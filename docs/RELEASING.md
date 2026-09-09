@@ -73,39 +73,21 @@ first.
 9. **Announce it**, once the store is really serving it:
 
    ```bash
-   node scripts/announce-release.mjs --watch --post
+   node scripts/announce-release.mjs --watch
    ```
 
    It waits until the catalog carries the entry, `release.json` on the default
    branch advertises this version, and the asset it points at actually
-   downloads — then posts `docs/discord-v<X.Y.Z>.md`. The tag is not that
-   moment: announcing on the tag can tell people to update to something the
-   store is not offering yet, or never will if the asset upload failed.
+   downloads — then prints `docs/discord-v<X.Y.Z>.md` for you to post. The tag
+   is not that moment: announcing on the tag can tell people to update to
+   something the store is not offering yet, or never will if the asset upload
+   failed.
 
-   Without `--post` it is a dry run and prints what it would send. It refuses
-   to post the same version twice, and records what it sent in `.announced.json`
-   — **commit that file**, or the guard is gone on the next clone and the next
-   run posts a duplicate.
-
-## Discord credentials
-
-The script needs one of these in the environment, and neither ever belongs in
-the repo:
-
-- `DISCORD_WEBHOOK_URL` — the simplest. Channel → Edit Channel → Integrations →
-  Webhooks → New Webhook, then copy the URL. The webhook is bound to its
-  channel, so nothing else is needed. Requires Manage Webhooks in that channel.
-- `DISCORD_BOT_TOKEN`, and `DISCORD_CHANNEL_ID` to override the default channel.
-  For a bot already in the server; it needs Send Messages there.
-
-Keep it out of shell history — put it in a file only you can read and source it
-for the one command:
-
-```bash
-echo 'export DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/..."' > ~/.movy-discord
-chmod 600 ~/.movy-discord
-( . ~/.movy-discord && node scripts/announce-release.mjs --watch --post )
-```
+   **Posting is manual, by design.** The announcement goes to a Discord channel
+   the project does not own, so there is no webhook to automate it with — and a
+   send path that cannot be tested end to end is worse than none, because it
+   becomes the release step nobody checks. The script tells you *when*, and
+   hands you the text.
 
 ## The catalog
 

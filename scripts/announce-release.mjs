@@ -1,45 +1,39 @@
 #!/usr/bin/env node
-/* Wait until the store would actually OFFER a release, then post its
- * announcement to Discord.
+/* Tell me when the store is actually serving a release, and hand me the
+ * announcement to post.
  *
- * The tag is not the event worth announcing. A user's Move is offered whatever
+ * The tag is not the moment worth announcing. A user's Move is offered whatever
  * `release.json` on the module's default branch says, so a release is live only
  * once the catalog carries the entry, that file advertises the new version, and
  * the asset it points at can really be downloaded. Announcing on the tag can
- * therefore tell people to update to something the store is not serving yet —
- * or, if the asset upload failed, will never serve.
+ * tell people to update to something the store is not serving yet — or, if the
+ * asset upload failed, will never serve.
  *
- * Dry run unless --post is given: it prints what it would send and exits. The
- * message is never composed here — it is docs/discord-v<version>.md, committed
- * and reviewed like anything else that goes out under the project's name.
+ * It does NOT post. Posting to Discord needs a webhook or bot credential that
+ * has to be created by hand in the server, and a half-working send path is
+ * worse than none: it would be the one step nobody checks. So this prints the
+ * message and you paste it. If a credential ever exists, the send belongs here,
+ * behind an explicit flag — see git history for a version that had one.
  *
  * Usage:
- *   node scripts/announce-release.mjs                 # check once, dry run
- *   node scripts/announce-release.mjs --watch --post  # wait for the store, then post
- *   node scripts/announce-release.mjs --version 0.34.0 --post
+ *   node scripts/announce-release.mjs            # is it live? print the message
+ *   node scripts/announce-release.mjs --watch    # wait until it is, then print
+ *   node scripts/announce-release.mjs --version 0.34.0
  */
-import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const CATALOG = 'https://raw.githubusercontent.com/charlesvestal/schwung/main/module-catalog.json';
 const MODULE_ID = 'movy';
-/* Not a secret — a channel id authorises nothing on its own, and this one is in
- * the channel's own URL. The credential is the webhook or bot token, and that
- * only ever comes from the environment. */
-const DEFAULT_CHANNEL = '1480993519035224136';
 /* Discord rejects a longer message outright; build-module.sh gates on this too,
  * so a file that got here is already within it unless it was edited after. */
 const DISCORD_LIMIT = 2000;
-const STATE = resolve(ROOT, '.announced.json');
 
 const args = process.argv.slice(2);
-const has = (f) => args.includes(f);
 const val = (f, d) => { const i = args.indexOf(f); return i >= 0 ? args[i + 1] : d; };
-
-const POST = has('--post');
-const WATCH = has('--watch');
+const WATCH = args.includes('--watch');
 const INTERVAL_S = Number(val('--interval', '60'));
 const TIMEOUT_S = Number(val('--timeout', '3600'));
 
@@ -86,46 +80,11 @@ async function storeOffers(version) {
     return null;
 }
 
-async function send(text) {
-    const webhook = process.env.DISCORD_WEBHOOK_URL;
-    const token = process.env.DISCORD_BOT_TOKEN;
-    const channel = process.env.DISCORD_CHANNEL_ID || DEFAULT_CHANNEL;
-
-    if (webhook) {
-        const r = await fetch(webhook, {
-            method: 'POST',
-            headers: { 'content-type': 'application/json' },
-            body: JSON.stringify({ content: text }),
-        });
-        if (!r.ok) die(`webhook rejected the post: ${r.status} ${await r.text()}`);
-        return 'webhook';
-    }
-    if (token) {
-        const r = await fetch(`https://discord.com/api/v10/channels/${channel}/messages`, {
-            method: 'POST',
-            headers: { authorization: `Bot ${token}`, 'content-type': 'application/json' },
-            body: JSON.stringify({ content: text }),
-        });
-        if (!r.ok) die(`Discord rejected the post: ${r.status} ${await r.text()}`);
-        return `bot → channel ${channel}`;
-    }
-    die('no credential: set DISCORD_WEBHOOK_URL, or DISCORD_BOT_TOKEN (+ DISCORD_CHANNEL_ID).\n'
-        + '        See docs/RELEASING.md. Never commit either one.');
-}
-
 const version = val('--version', JSON.parse(readFileSync(resolve(ROOT, 'module.json'), 'utf8')).version);
 const annPath = resolve(ROOT, `docs/discord-v${version}.md`);
 if (!existsSync(annPath)) die(`no announcement at docs/discord-v${version}.md`);
 const text = readFileSync(annPath, 'utf8').trimEnd();
 if (text.length > DISCORD_LIMIT) die(`announcement is ${text.length} chars; Discord caps at ${DISCORD_LIMIT}`);
-
-/* Posting twice is worse than not posting: the first one is already read, and a
- * duplicate is what an automation looks like when it is broken. */
-const state = existsSync(STATE) ? JSON.parse(readFileSync(STATE, 'utf8')) : {};
-if (state[version]) {
-    console.log(`announce: v${version} was already announced at ${state[version]} — nothing to do`);
-    process.exit(0);
-}
 
 const deadline = Date.now() + TIMEOUT_S * 1000;
 let reason = await storeOffers(version);
@@ -137,14 +96,5 @@ while (reason && WATCH) {
 }
 if (reason) die(`${reason}\n        (pass --watch to wait for it)`);
 
-console.log(`announce: the store is serving v${version} (${text.length}/${DISCORD_LIMIT} chars)`);
-if (!POST) {
-    console.log('--- would post (dry run; pass --post to send) ---');
-    console.log(text);
-    process.exit(0);
-}
-
-const via = await send(text);
-state[version] = new Date().toISOString();
-writeFileSync(STATE, JSON.stringify(state, null, 2) + '\n');
-console.log(`announce: posted v${version} via ${via}`);
+console.log(`announce: the store is serving v${version} — post this (${text.length}/${DISCORD_LIMIT} chars):\n`);
+console.log(text);

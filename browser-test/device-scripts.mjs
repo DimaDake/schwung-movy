@@ -440,10 +440,10 @@ ok('every scp destination is unlinked before it is written', noUnlink.length ===
    noUnlink.join(', ') || `${seedScps.length} checked`);
 
 /* ── Test 11: the release routine keeps its announcement step ────────────────
- * The announcement is only "part of the release" while two things hold: the
- * build gate refuses a tarball without the file, and the announcer refuses to
- * post before the store is actually serving that version. Announcing on the tag
- * instead would tell people to update to something the store may not offer yet.
+ * The announcement is only "part of the release" while the build gate refuses a
+ * tarball without the file and the announcer refuses to call it live before the
+ * store is actually serving that version. Announcing on the tag instead would
+ * tell people to update to something the store may not offer yet.
  */
 log('\nTest 11: the release routine still gates on the announcement');
 
@@ -457,16 +457,16 @@ const annSrc = readFileSync('scripts/announce-release.mjs', 'utf8');
 ok('the announcer checks the asset really downloads',
    /method:\s*'HEAD'/.test(annSrc),
    'a tagged release whose upload failed must not be announced');
-ok('and will not post the same version twice', /already announced/.test(annSrc));
-ok('the credential is read from the environment, never a file in the repo',
-   /process\.env\.DISCORD_(WEBHOOK_URL|BOT_TOKEN)/.test(annSrc));
 
-/* A token pasted into the script is the one mistake here that cannot be undone
- * by editing it back out — it is in the history the moment it is pushed. */
+/* Posting is manual because the channel is not ours to hold a credential for.
+ * If that ever changes the send belongs here behind an explicit flag — but it
+ * must not arrive by accident, and a credential in a committed file is the one
+ * mistake that editing cannot undo once pushed. */
+ok('and sends nothing itself', !/discord\.com\/api/.test(annSrc),
+   'posting is manual; a send path would need a credential and a real test');
 const leaked = /discord\.com\/api\/webhooks\/\d+\/[\w-]{20,}/.test(annSrc)
             || /\b[MN][\w-]{23}\.[\w-]{6}\.[\w-]{27}\b/.test(annSrc);
-ok('and no credential is committed in it', !leaked,
-   'a webhook URL or bot token is in the file');
+ok('and carries no credential', !leaked, 'a webhook URL or bot token is in the file');
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 

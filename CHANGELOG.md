@@ -33,6 +33,10 @@ far. Earlier work is summarised in the timeline below for context.
   own four track slots are not included and the confirm says so: those live in
   Move's Set file, which Movy cannot write.
 
+  Backups belong to the Set: deleting it in Move deletes its history with it,
+  and a new Set on the same pad starts empty rather than inheriting the old
+  one's versions.
+
   **Sets made by earlier builds are adopted, not started from scratch.** The
   first time one is opened, the copies already on disk — including the rotating
   backup that `recover-sets.mjs` reaches for today — are copied into its history,

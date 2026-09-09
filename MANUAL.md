@@ -147,6 +147,21 @@ now:
   file rather than Movy's, so a restore brings back your sequence and Movy's own
   chains, and leaves those slots alone.
 
+**Deleting a Set in Move deletes its backups.** A Set's versions belong to that
+Set, so removing it in Move's own interface takes its whole history with it —
+the next time Movy opens, it clears the state of every Set that no longer
+exists. There is no undo for that, and no way back to it from inside Movy.
+
+Two consequences worth knowing:
+
+- **A new Set made on the same pad starts with an empty history.** Move gives it
+  a new identity, so as far as Movy is concerned it is a different Set that has
+  never been played — not the old one with its backups missing.
+- **If you might want it back, copy it off the device before deleting the Set**,
+  or simply empty the Set rather than deleting it. The files live in
+  `schwung/modules/tools/movy/sets/<set-uuid>/`; see
+  [Troubleshooting & recovery](#9-troubleshooting--recovery).
+
 ### Which Set your sequence belongs to
 
 Movy stores one sequence per Move Set, and follows Move: pick another Set and
@@ -1936,6 +1951,10 @@ only.
 - **Movy looks frozen or the screen is stale.** Press **Back** to leave and
   re-open Movy from the Tools menu. Movy keeps running in the background; on most
   Schwung builds you can re-enter by holding **Shift + Step 13**.
+- **A set you deleted in Move is gone from Backups too.** Backups belong to the
+  Set, so deleting it in Move removes its history along with it, and a new Set
+  on the same pad is a different Set with an empty history. Nothing in Movy can
+  bring it back — copy a Set's folder off the device first if you may want it.
 - **A set opens as a blank template.** Movy keeps rotating backup copies and
   falls back to the newest intact one, so this should no longer follow a freeze
   or a power-cut. If it still happens, the set's files are under

@@ -11,7 +11,7 @@ far. Earlier work is summarised in the timeline below for context.
 > sequencer engine's `ENGINE_VERSION` are tracked separately. Versions below
 > refer to the app unless noted.
 
-## [Unreleased]
+## [0.34.0] — 2026-09-09
 
 ### Changed
 

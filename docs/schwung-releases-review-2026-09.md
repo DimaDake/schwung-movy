@@ -310,6 +310,17 @@ an overtake tool without leaving the Schwung ecosystem — the module store, the
 chain host binary and the param_pages library all remain available to a target
 that launches them.
 
+**Reuse inventory taken 2026-09-10** (see
+`docs/superpowers/specs/2026-09-10-movy-owned-master-chain-design.md` §4): far
+more is reusable than this section assumed. `src/host/js_display.c` is a
+standalone 773-line display library whose QuickJS bindings install the exact
+globals movy's UI already calls — all 155 `fill_rect` sites run unchanged — and
+`src/boot-select.c` (499 lines) is a working non-preload program that already
+opens `/dev/ablspi0.0`, drives the mailbox and decodes the jog. The two pieces
+assumed hardest are written. What movy would still owe: the audio half of the
+frame loop, a synthesised `host_api_v1` vtable (~9 entries; today movy forwards
+schwung's), pad/LED MIDI to the mailbox, and the boot plumbing.
+
 ### 4.5 Module loading is still on the audio thread — in both trees
 
 Schwung 1.0's own known-issues list: "Module loading blocks the SPI callback —

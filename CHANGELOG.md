@@ -11,6 +11,31 @@ far. Earlier work is summarised in the timeline below for context.
 > sequencer engine's `ENGINE_VERSION` are tracked separately. Versions below
 > refer to the app unless noted.
 
+## [Unreleased]
+
+### Changed
+
+- **Movy no longer reaches into Schwung to keep the master chain saved.** Movy
+  loads a master FX slot by writing to the shim directly, and Schwung used to
+  persist that chain from a JS mirror which never saw the write — so the save
+  wrote `{}` over a slot that was genuinely loaded and the whole master chain
+  was gone on the next boot. Movy worked around it by reaching into Schwung's
+  published context and repairing the mirror itself.
+
+  Schwung fixed this upstream in **1.1.0**: the saver now asks the shim what
+  each position holds, prefers the path the shim actually loaded, and keeps the
+  existing file rather than writing an incomplete one. The workaround is
+  removed.
+
+  It was not merely redundant. Repairing the mirror meant re-reading all four
+  slots, and a failed read there is indistinguishable from an empty slot — so a
+  read that did not answer could blank a position Movy had never touched. The
+  window where that mattered is a Schwung update, when the shim and the UI can
+  briefly be at different versions and reads fail for that reason alone.
+
+  **Movy now requires Schwung 1.1.0 or newer.** Older hosts do not have the fix
+  and are no longer offered the module.
+
 ## [0.33.0] — 2026-09-09
 
 ### Added

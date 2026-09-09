@@ -1,23 +1,19 @@
 #!/usr/bin/env bash
 # test-master-fx.sh — a master FX module loaded from movy SURVIVES persistence.
 #
-# Covers what no local suite can. Schwung saves the master chain from a JS
-# mirror inside shadow_ui.js, and movy loads a master slot by writing
-# `master_fx:fxN:module` straight to the shim, which that mirror never observes
-# — so the save wrote "{}" over the slot and the whole master chain was gone on
-# the next boot (schwung-movy#9). chain/master-mirror.ts repairs the mirror by
-# reaching into shadow_ui.js's published `ctx`.
+# Covers what no local suite can. Movy loads a master slot by writing
+# `master_fx:fxN:module` straight to the shim, and schwung's saver is what has
+# to notice: it asks the shim what each position holds and writes the per-set
+# state file the boot loader restores from. Movy used to have to repair
+# schwung's mirror itself, because the saver read a JS mirror that never saw
+# that write and wrote "{}" over the slot — the whole master chain gone on the
+# next boot (schwung-movy#9). Schwung v1.1.0 fixed it upstream (#221, #311) and
+# movy's workaround is gone, so this suite is now the check that the host still
+# holds up its end.
 #
-# Two device facts are on trial here, and neither is reachable off device:
-#
-#   1. movy's import of shadow_ui_ctx.mjs resolves to the SAME live module
-#      instance shadow_ui.js populated (QuickJS caches modules by normalized
-#      name; if that assumption is wrong the resync is a silent no-op).
-#   2. the per-set state file actually keeps the module_id afterwards.
-#
-# The app-loop suite already asserts movy CALLS the resync; only these two need
-# real hardware. Delete this file with chain/master-mirror.ts once schwung's
-# saveMasterFxChainConfig reads the shim instead of its mirror.
+# The device fact on trial, unreachable off device: the per-set state file keeps
+# the module_id and a real DSP path after a movy load, and the shim restores it
+# at boot. Nothing in a host build can load a chain, so no local suite can ask.
 #
 # Usage: ./scripts/test-master-fx.sh [move.local]
 set -u
@@ -142,16 +138,11 @@ sleep 0.5
 ts_tap_cc $CC_JOG_CLICK
 sleep 3
 
-LOGTXT=$(ts_ssh "cat $LOG")
-if echo "$LOGTXT" | qgrep "mfx: no shadow ctx"; then
-    fail "movy could not reach shadow_ui.js's ctx — the import resolved to a DIFFERENT module instance"
-elif echo "$LOGTXT" | qgrep "mfx: mirror resynced"; then
-    pass "movy reached the live shadow ctx and resynced the mirror"
-elif echo "$LOGTXT" | qgrep "mfx: mirror resync failed"; then
-    fail "the resync threw: $(echo "$LOGTXT" | grep -oE 'mfx: mirror resync failed.*' | tail -1)"
-else
-    fail "no mfx log line at all — the master branch never ran"
-fi
+# Nothing to assert between the load and the save: movy no longer touches
+# schwung's mirror, so it emits no line of its own here, and schwung's saver has
+# not run yet. The load is proven downstream instead — the state file was
+# emptied at boot and the slot asserted empty above, so a module_id appearing in
+# it can only have come from THIS run's load.
 
 MTIME_BEFORE=$(ts_ssh "stat -c %Y $STATE" 2>/dev/null | tr -d '\r\n')
 

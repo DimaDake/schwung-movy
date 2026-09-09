@@ -11,10 +11,10 @@ import type { CpuColumn } from './cpu-page-vm.js';
 /** The column scale's FLOOR, microseconds per block.
  *
  *  Free auto-ranging would make a column legible on any set and comparable on
- *  none — not between sessions, and not across the CPU Optimize flag, which is
- *  the one comparison the page exists to make. So the scale does not follow the
- *  set downward: it sits at 1 ms, which is round and fits almost every chain the
- *  fleet has measured, and only ever grows. */
+ *  none — not between sessions, and not between two tracks on the same screen,
+ *  which is the comparison the page exists to make. So the scale does not
+ *  follow the set downward: it sits at 1 ms, which is round and fits almost
+ *  every chain the fleet has measured, and only ever grows. */
 export const FULL_SCALE_US = 1000;
 
 /** Steps the scale may take, once 1 ms is not enough.

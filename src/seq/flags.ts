@@ -80,14 +80,11 @@ export function perSetFlagsSnapshot(): Record<string, number> {
 
 /* What the ENGINE is told, which is not always what the page says.
  *
- * `cpuopt` is one switch over the whole render optimisation: the engine has no
- * such param, so it is pushed as its effect on the two flags that do. And
  * `chtracks` is a three-value MODE up here but a routing decision down there —
  * `drain_out` sends a sequenced note out as MIDI or into a chain, and a 2 would
  * be neither. */
 function engineValue(key: string): number {
     const v = ensure();
-    if (key === 'chparallel' || key === 'chidle') return v['cpuopt'] > 0 ? v[key] : 0;
     if (key === 'chtracks') return resolveHost(v['chtracks'], ensurePerSet()['chtrackset']) ? 1 : 0;
     return v[key];
 }
@@ -158,34 +155,26 @@ export function setFlag(key: string, value: number): number {
     if (v[key] === next) return next;
     v[key] = next;
     writePrefFlag(key, next);
-    /* The master reaches the engine only through the two flags it gates, so
-     * moving it has to re-push those — otherwise the switch does nothing until
-     * the next engine boot. */
-    if (key === 'cpuopt') { push('chparallel'); push('chidle'); }
-    else if (!def.uiOnly) push(key);
+    if (!def.uiOnly) push(key);
     return next;
 }
 
 /** Push every flag to a (possibly brand new) engine, and remember how to reach
  *  it. Called from the engine-ready branch on EVERY boot: a re-dlopened engine
  *  has default flags and no idea what the page says, so a page reading
- *  "Parallel Render ON" over a serial engine is exactly what this prevents. */
+ *  "Tracks 1-4 Host MOVY" over an engine still routing them to schwung is
+ *  exactly what this prevents. */
 export function applyFlagsToEngine(set: EngineSet): void {
     sendToEngine = set;
     ensure();
-    /* Lanes before parallel: turning parallel on spawns the pool at whatever
-     * lane count is current, and `set_lanes` rebuilds it. Sending them the
-     * other way round spawns one pool and immediately replaces it — harmless,
-     * but it blocks the audio thread twice for no reason. */
     for (const f of FLAGS) {
-        if (f.uiOnly || f.key === 'chparallel') continue;
+        if (f.uiOnly) continue;
         push(f.key);
     }
-    /* The hazard list, before parallel render can act on it. Sent even when
-     * empty: the engine replaces the list wholesale, so an empty write is how a
-     * module removed from prefs.json stops being pinned. */
+    /* The hazard list. Sent even when empty: the engine replaces the list
+     * wholesale, so an empty write is how a module removed from prefs.json
+     * stops being pinned. */
     set('chblock', readPrefModuleBlacklist().join(','));
-    push('chparallel');
 }
 
 /** Drop the cache — the file is the truth again on the next read. */

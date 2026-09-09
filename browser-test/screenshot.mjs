@@ -61,7 +61,7 @@ const PRESETS = [
     'clip-default', 'clip-fraction', 'clip-overlay', 'clip-drum', 'clip-quant',
     'main-quant', 'quant-overlay-three', 'quant-overlay-two',
     'flags-top', 'flags-scrolled', 'flags-release',
-    'cpu-opt-on', 'cpu-opt-off', 'cpu-overscale', 'cpu-empty',
+    'cpu-movy-tracks', 'cpu-schwung-tracks', 'cpu-overscale', 'cpu-empty',
     'cpu-sends', 'cpu-sends-quiet',
     'env_dual', 'env_touched', 'env_ad', 'env_asr', 'lfo_mod',
     'filter_lp', 'filter_lp_reso', 'filter_hp', 'filter_bp', 'filter_notch',
@@ -183,7 +183,7 @@ const { renderFlagsView } = await import('../dist/esm/renderer/flags-view.js');
 const { renderCpuView }   = await import('../dist/esm/renderer/cpu-view.js');
 const { buildCpuPageVM }  = await import('../dist/esm/seq/cpu-page-vm.js');
 const { buildFlagsPageVM } = await import('../dist/esm/seq/flags-page-vm.js');
-const { flagsPageState, resetFlagsPage } = await import('../dist/esm/seq/flags-page.js');
+const { flagsPageState, resetFlagsPage, flagsRowCount } = await import('../dist/esm/seq/flags-page.js');
 const { visibleFlags } = await import('../dist/esm/seq/flags-visible.js');
 const { setFlag, resetFlags } = await import('../dist/esm/seq/flags.js');
 const { armQuantOverlay, buildQuantOverlayVM, resetQuantOverlay } =
@@ -620,19 +620,23 @@ function applyView(preset) {
             break;
         }
         /* The Settings page, in the debug arrangement: every flag listed. Two
-         * states, because the value column and the selection band are what the
-         * page IS — `top` has the selection on row 0 with the list unscrolled,
-         * `scrolled` puts it on the last flag with a value that is not the
-         * default, so a row whose number stopped tracking its flag shows up as
-         * a diff. */
+         * states, because the value column, the selection band and the scroll
+         * window are what the page IS — `top` has the selection on row 0 with
+         * the list unscrolled, `scrolled` puts it on the LAST row, which is one
+         * past the window and forces the list to scroll, with values that are
+         * not the defaults so a row whose value stopped tracking its flag shows
+         * up as a diff.
+         *
+         * `chtracks` stays at NEW SETS in both: an explicit mode drops the
+         * per-set row, and with it the fifth row that makes the list scroll at
+         * all — which would leave `scrolled` a second copy of `top`. */
         case 'flags-top':
         case 'flags-scrolled': {
             resetFlags(); resetFlagsPage();
             const scrolled = preset === 'flags-scrolled';
-            setFlag('chparallel', scrolled ? 1 : 0);
-            setFlag('chlanes', scrolled ? 4 : 3);
-            setFlag('chpin', scrolled ? 1 : 0);
-            flagsPageState.selected = scrolled ? visibleFlags().length - 1 : 0;
+            setFlag('setcommit', scrolled ? 0 : 1);
+            setFlag('schwunggrid', scrolled ? 2 : 0);
+            flagsPageState.selected = scrolled ? flagsRowCount() - 1 : 0;
             lastRender = () => renderFlagsView(buildFlagsPageVM());
             lastRender();
             break;
@@ -641,8 +645,8 @@ function applyView(preset) {
          * build lists, plus the per-set row the NEW SETS mode brings with it.
          * The debug scenes above cannot cover this — they render the list this
          * build has compiled in, which is every flag. */
-        case 'cpu-opt-on':
-        case 'cpu-opt-off':
+        case 'cpu-movy-tracks':
+        case 'cpu-schwung-tracks':
         case 'cpu-overscale':
         case 'cpu-empty':
         /* The page's SECOND layout: any send bus holding a module narrows every
@@ -654,11 +658,12 @@ function applyView(preset) {
         case 'cpu-sends':
         case 'cpu-sends-quiet': {
             resetFlags();
-            const on = preset !== 'cpu-opt-off';
-            setFlag('cpuopt', on ? 1 : 0);
-            // 'cpu-opt-off' also stands for the arrangement where tracks 1-4
-            // are Schwung's: the two are the states the page has to survive.
-            setFlag('chtracks', on ? 1 : 0);
+            /* The two arrangements the page has to survive: every track a movy
+             * chain, and tracks 1-4 left on the Schwung host — where movy has
+             * no cost to report and the column must say so rather than read as
+             * free. */
+            const movy = preset !== 'cpu-schwung-tracks';
+            setFlag('chtracks', movy ? 1 : 0);
             /* Every column inside the 1 ms floor, so `cpu-overscale` is the
              * only baseline where the scale has had to GROW — otherwise the two
              * scenes differ by nothing and neither pins it. */
@@ -666,9 +671,10 @@ function applyView(preset) {
                 '240/180/310', '370/300/450', '900/760/980', '820/620/910',
                 '250/200/300', '320/320/400', '180/140/220', '670/560/790',
             ];
-            /* With CPU Optimize off the chain renders in ONE call, so the synth
-             * stage IS the total and there is no FX segment. Sending split
-             * costs here would draw a picture the engine cannot produce. */
+            /* A chain whose module cannot split renders in ONE call, so the
+             * synth stage IS the total and there is no FX segment. The Schwung
+             * scene doubles as that arrangement — sending split costs for it
+             * would draw a picture the engine cannot produce. */
             const unsplit = live.map((t) => {
                 const [total, , peak] = t.split('/');
                 return `${total}/${total}/${peak}`;
@@ -680,7 +686,7 @@ function applyView(preset) {
             const over = live.slice();
             over[2] = '2400/1900/2600';
             const rows = (preset === 'cpu-overscale' ? over
-                : preset === 'cpu-opt-off' ? unsplit : live).slice();
+                : preset === 'cpu-schwung-tracks' ? unsplit : live).slice();
             /* Chain 8 is the sleeping one (mask 0100). Giving it a held peak is
              * what pins that a chain which spiked and then went quiet still
              * shows what it did — the dash alone would hide it. */

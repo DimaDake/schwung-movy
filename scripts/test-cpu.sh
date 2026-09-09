@@ -153,30 +153,11 @@ else
         "peak fell from $P0 to $(col "$ICOST" "$C0" 3)"
 fi
 
-# ── Arm 3: CPU Optimize off — one render call, so no FX segment ─────────────
-ep "chparallel" "0"; ep "chidle" "0"
-sleep 1
-for c in "${CHAINS[@]}"; do ep "ch$c:synth:decay" "1"; done
-for c in "${CHAINS[@]}"; do
-    for i in 0 1 2 3; do ep "ch$c:midi" "144.${CB_P[$i]}.100"; done
-done
-sleep 3
-OFF=$(cpu_read)
-echo "    $OFF"
-OCOST=$(field "$OFF" chcost)
-OT0=$(col "$OCOST" "$C0" 1); OS0=$(col "$OCOST" "$C0" 2)
-check "unsplit: the chain still costs something" \
-    "$([ "${OT0:-0}" -gt 0 ] && echo 1 || echo 0)" "chain $C0 total '$OT0' us"
-check "unsplit: the synth stage IS the whole chain, so no FX segment is drawn" \
-    "$([ "${OT0:-0}" -gt 0 ] && [ "$(( OT0 - OS0 ))" -le $(( OT0 / 10 )) ] && echo 1 || echo 0)" \
-    "total $OT0 us vs synth $OS0 us — expected them within 10%"
-
 # ── Teardown ────────────────────────────────────────────────────────────────
 for c in "${CHAINS[@]}"; do
     for i in 0 1 2 3; do ep "ch$c:midi" "128.${CB_P[$i]}.0"; done
     ep "ch$c:synth:module" ""
 done
-ep "chparallel" "1"; ep "chidle" "3"
 
 echo
 if [ "$EP_FAILS" -gt 0 ]; then

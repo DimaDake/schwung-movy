@@ -8,7 +8,6 @@
 
 import { seqState } from './state.js';
 import { scaleFor } from './cpu-scale.js';
-import { flagValue } from './flags.js';
 import { TRACK_COUNT, trackKind } from '../track/ref.js';
 import { SEND_BUSES } from '../chain/config.js';
 
@@ -34,7 +33,7 @@ export const USABLE_BLOCK = 0.70;
 export type CpuColumnKind =
     /** Rendering in movy's chain render, with a cost. */
     | 'live'
-    /** Loaded, but making no sound, so `chidle` is skipping it. Distinct from
+    /** Loaded, but making no sound, so the idle gate is skipping it. Distinct from
      *  `empty` because "costs nothing right now" and "there is nothing here"
      *  are the two different answers to a bar reading zero. */
     | 'asleep'
@@ -73,10 +72,6 @@ export type CpuPageVM = {
      *  most, and the bar clamping is the renderer's business, not this. */
     load: number;
     peakLoad: number;
-    /** CPU Optimize. Only the header uses it: with the flag off a chain renders
-     *  in one call, so `synthUs === totalUs` already and no segment needs a
-     *  branch. */
-    optimized: boolean;
 };
 
 function num(s: string | undefined): number {
@@ -129,7 +124,6 @@ export function buildCpuPageVM(): CpuPageVM {
         budgetUs,
         load: wallUs / budgetUs,
         peakLoad: wallPeakUs / budgetUs,
-        optimized: flagValue('cpuopt') > 0,
     };
 }
 

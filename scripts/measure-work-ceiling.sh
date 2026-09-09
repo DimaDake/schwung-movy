@@ -25,7 +25,7 @@ MOVY_DIR="$(pwd)"
 # shellcheck source=lib/test-set.sh
 source "$MOVY_DIR/scripts/lib/test-set.sh"
 # shellcheck source=lib/chain-bench.sh
-# for `ep` and the Frame(us) readers, which measure-chain-idle.sh also needs.
+# for `ep` and the Frame(us) readers.
 source "$MOVY_DIR/scripts/lib/chain-bench.sh"
 LOG=/data/UserData/schwung/debug.log
 SETTLE=10

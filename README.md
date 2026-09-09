@@ -131,7 +131,8 @@ Movy stands on the shoulders of several projects:
 
 - **Sixteen tracks in four groups.** Tracks 1-4 are the Schwung tracks in a set
   you already have; a new set hands them to Movy instead, which is what lets
-  them join the CPU optimization (see **Settings** below). Tracks 5-16 load a module the same way and Movy hosts
+  them join the multi-threaded chain render (see **Settings** below). Tracks
+  5-16 load a module the same way and Movy hosts
   the chain itself, saved with the set. In Session view, **octave +/−** moves between the
   four groups and **a step button selects a track** — or hold **Session** and
   press a step from anywhere. Hold **Mute** anywhere — the pads, Loop mode,
@@ -186,9 +187,8 @@ Movy stands on the shoulders of several projects:
 
   ![Step parameters](docs/assets/step_page_knobs.png)
 
-- **Settings — Shift + Step 2** — CPU optimization (multi-threaded chain
-  render, worth roughly 2× on a heavy set) with one switch to turn it off if a
-  module misbehaves, and which host owns tracks 1-4. The speed-up applies to
+- **Settings — Shift + Step 2** — which host owns tracks 1-4. Movy's
+  multi-threaded chain render is worth roughly 2× on a heavy set and applies to
   Movy's own tracks, so new sets hand tracks 1-4 to Movy as well; sets you
   already have keep them on Schwung, behaving exactly as they do without Movy.
   Each row explains itself on screen.

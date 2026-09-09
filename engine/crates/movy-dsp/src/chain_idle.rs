@@ -28,47 +28,6 @@ pub const PROBE_PERIOD: u32 = 172;
 /// `172 / 12` keeps all twelve distinct.
 pub const PROBE_STAGGER: u32 = 14;
 
-/// What `chidle` selects. An ordinal because the FX gate genuinely depends on
-/// the synth gate, and saying so in the type beats saying it in a rule.
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-pub enum IdleLevel {
-    /// Today's path: one `render_block` call that does synth and FX together.
-    Off,
-    /// Split into `render_block` + `process_fx`, but nothing ever sleeps. The
-    /// equivalence arm — what `chdigest` compares against `Off`.
-    Split,
-    /// Split, and a silent synth stops rendering.
-    Synth,
-    /// Split, and a silent FX tail stops processing once the synth is asleep.
-    SynthFx,
-}
-
-impl IdleLevel {
-    /// A typo must not silently disable the optimization, so anything
-    /// unrecognised reads as the default rather than as `Off`.
-    pub fn from_flag(v: &str) -> Self {
-        match v {
-            "0" => Self::Off,
-            "1" => Self::Split,
-            "2" => Self::Synth,
-            _ => Self::SynthFx,
-        }
-    }
-
-    /// Whether the chain renders as `render_block` + `process_fx`.
-    pub fn splits(self) -> bool {
-        self != Self::Off
-    }
-
-    fn synth_gate(self) -> bool {
-        matches!(self, Self::Synth | Self::SynthFx)
-    }
-
-    fn fx_gate(self) -> bool {
-        self == Self::SynthFx
-    }
-}
-
 /// What one chain owes this block.
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct Work {
@@ -93,7 +52,6 @@ pub struct IdleGate {
     asleep: Vec<bool>,
     fx_silence: Vec<u32>,
     fx_asleep: Vec<bool>,
-    level: IdleLevel,
     /// Bumped on every sleep/wake transition. The lane planner partitions by
     /// what is actually rendering, so it has to know when that set changed —
     /// and a transition is far rarer than a block, which is what makes reading
@@ -109,24 +67,8 @@ impl IdleGate {
             asleep: vec![false; chains],
             fx_silence: vec![0; chains],
             fx_asleep: vec![false; chains],
-            level: IdleLevel::from_flag(""),
             epoch: 0,
         }
-    }
-
-    pub fn level(&self) -> IdleLevel {
-        self.level
-    }
-
-    /// Changing the rules wakes everything: a chain asleep under one level has
-    /// no standing under another, and the render path has to re-apply external
-    /// FX mode anyway.
-    pub fn set_level(&mut self, level: IdleLevel) {
-        if self.level == level {
-            return;
-        }
-        self.level = level;
-        self.wake_all();
     }
 
     pub fn wake(&mut self, chain: usize) {
@@ -176,10 +118,6 @@ impl IdleGate {
         if chain >= self.asleep.len() {
             return Work::NONE;
         }
-        if !self.level.splits() {
-            // One render_block call, which does the FX itself.
-            return Work { synth: true, fx: false };
-        }
         if !self.asleep[chain] {
             return Work { synth: true, fx: true };
         }
@@ -206,7 +144,7 @@ impl IdleGate {
         if chain >= self.asleep.len() {
             return;
         }
-        if self.level.synth_gate() && work.synth {
+        if work.synth {
             if synth_peak <= SILENCE_LEVEL {
                 self.silence[chain] = self.silence[chain].saturating_add(1);
                 if self.silence[chain] >= SLEEP_AFTER && !self.asleep[chain] {
@@ -219,9 +157,6 @@ impl IdleGate {
             }
         }
 
-        if !self.level.fx_gate() {
-            return;
-        }
         if fx_keep_alive {
             // Loopers and modulated delays declare this. Skipping them stops a
             // 6 s loop's write position advancing, so the loop "only returns
@@ -258,10 +193,8 @@ mod tests {
 
     const CHAINS: usize = 12;
 
-    fn gate(level: IdleLevel) -> IdleGate {
-        let mut g = IdleGate::new(CHAINS);
-        g.set_level(level);
-        g
+    fn gate() -> IdleGate {
+        IdleGate::new(CHAINS)
     }
 
     /// Feed `n` silent blocks to chain 0, planning each one as the render path
@@ -276,15 +209,15 @@ mod tests {
 
     #[test]
     fn sleeps_on_the_344th_silent_block_and_not_the_343rd() {
-        let mut g = gate(IdleLevel::Synth);
+        let mut g = gate();
         assert!(silent_blocks(&mut g, 343).synth, "343 silent blocks is not yet a second");
-        let mut g = gate(IdleLevel::Synth);
+        let mut g = gate();
         assert!(!silent_blocks(&mut g, 344).synth, "the 344th silent block puts it to sleep");
     }
 
     #[test]
     fn one_loud_block_resets_the_count() {
-        let mut g = gate(IdleLevel::Synth);
+        let mut g = gate();
         for _ in 0..343 {
             let w = g.plan(0);
             g.observe(0, w, 0, 0, false);
@@ -296,14 +229,14 @@ mod tests {
 
     #[test]
     fn a_peak_of_four_is_silence_and_five_is_not() {
-        let mut g = gate(IdleLevel::Synth);
+        let mut g = gate();
         for _ in 0..344 {
             let w = g.plan(0);
             g.observe(0, w, SILENCE_LEVEL, SILENCE_LEVEL, false);
         }
         assert!(!g.plan(0).synth, "a peak at the threshold counts as silence");
 
-        let mut g = gate(IdleLevel::Synth);
+        let mut g = gate();
         for _ in 0..344 {
             let w = g.plan(0);
             g.observe(0, w, SILENCE_LEVEL + 1, 0, false);
@@ -313,7 +246,7 @@ mod tests {
 
     #[test]
     fn midi_wakes_it_on_that_block() {
-        let mut g = gate(IdleLevel::Synth);
+        let mut g = gate();
         assert!(!silent_blocks(&mut g, 344).synth);
         g.wake(0);
         assert!(g.plan(0).synth, "a woken chain renders on the very next block");
@@ -321,7 +254,7 @@ mod tests {
 
     #[test]
     fn a_sleeping_synth_probes_once_in_172_blocks() {
-        let mut g = gate(IdleLevel::Synth);
+        let mut g = gate();
         assert!(!silent_blocks(&mut g, 344).synth);
         let mut probes = 0;
         for _ in 0..PROBE_PERIOD * 3 {
@@ -340,7 +273,7 @@ mod tests {
     /// one — the spike the stagger exists to prevent.
     #[test]
     fn twelve_sleeping_chains_never_probe_on_the_same_block() {
-        let mut g = gate(IdleLevel::Synth);
+        let mut g = gate();
         for c in 0..CHAINS {
             for _ in 0..344 {
                 let w = g.plan(c);
@@ -364,7 +297,7 @@ mod tests {
 
     #[test]
     fn the_fx_never_sleeps_while_the_synth_is_awake() {
-        let mut g = gate(IdleLevel::SynthFx);
+        let mut g = gate();
         for _ in 0..1000 {
             // Loud synth, silent FX output — impossible in practice, and the
             // gate must not act on it.
@@ -376,7 +309,7 @@ mod tests {
 
     #[test]
     fn both_gates_sleep_once_the_synth_and_its_tail_are_silent() {
-        let mut g = gate(IdleLevel::SynthFx);
+        let mut g = gate();
         for _ in 0..344 * 2 {
             let w = g.plan(0);
             g.observe(0, w, 0, 0, false);
@@ -388,7 +321,7 @@ mod tests {
 
     #[test]
     fn an_fx_that_requires_continuous_processing_never_sleeps() {
-        let mut g = gate(IdleLevel::SynthFx);
+        let mut g = gate();
         for _ in 0..344 * 3 {
             let w = g.plan(0);
             g.observe(0, w, 0, 0, true);
@@ -398,45 +331,23 @@ mod tests {
         assert!(!g.deep_asleep(0));
     }
 
+    /// The split is unconditional: a chain that has
+    /// never been silent owes both halves every block. It used to be reachable
+    /// as a render setting, and nothing else pins it — every other test here starts
+    /// by going quiet.
     #[test]
-    fn level_off_renders_everything_every_block_and_does_not_split() {
-        let mut g = gate(IdleLevel::Off);
+    fn a_sounding_chain_owes_both_halves_every_block() {
+        let mut g = gate();
         for _ in 0..1000 {
             let w = g.plan(0);
-            assert!(w.synth, "chidle 0 always renders");
-            assert!(!w.fx, "chidle 0 does not run FX separately — render_block does it");
-            g.observe(0, w, 0, 0, false);
+            assert!(w.synth && w.fx, "a sounding chain renders synth and FX separately");
+            g.observe(0, w, 5000, 5000, false);
         }
-        assert!(!IdleLevel::Off.splits());
-    }
-
-    #[test]
-    fn level_split_renders_everything_every_block_but_does_split() {
-        let mut g = gate(IdleLevel::Split);
-        for _ in 0..1000 {
-            let w = g.plan(0);
-            assert!(w.synth && w.fx, "the equivalence arm never sleeps");
-            g.observe(0, w, 0, 0, false);
-        }
-        assert!(IdleLevel::Split.splits());
-    }
-
-    #[test]
-    fn changing_the_level_wakes_everything() {
-        let mut g = gate(IdleLevel::SynthFx);
-        for _ in 0..344 * 2 {
-            let w = g.plan(0);
-            g.observe(0, w, 0, 0, false);
-        }
-        assert!(g.deep_asleep(0));
-        g.set_level(IdleLevel::Synth);
-        assert!(!g.deep_asleep(0), "a level change may not leave a chain asleep under new rules");
-        assert!(g.plan(0).synth);
     }
 
     #[test]
     fn the_epoch_moves_only_on_a_sleep_or_wake_transition() {
-        let mut g = gate(IdleLevel::Synth);
+        let mut g = gate();
         let start = g.epoch();
         for _ in 0..100 {
             let w = g.plan(0);
@@ -448,15 +359,5 @@ mod tests {
             g.observe(0, w, 0, 0, false);
         }
         assert_ne!(g.epoch(), start, "falling asleep is a transition the planner must see");
-    }
-
-    #[test]
-    fn flag_values_map_to_levels() {
-        assert_eq!(IdleLevel::from_flag("0"), IdleLevel::Off);
-        assert_eq!(IdleLevel::from_flag("1"), IdleLevel::Split);
-        assert_eq!(IdleLevel::from_flag("2"), IdleLevel::Synth);
-        assert_eq!(IdleLevel::from_flag("3"), IdleLevel::SynthFx);
-        assert_eq!(IdleLevel::from_flag(""), IdleLevel::SynthFx, "an empty write keeps the default");
-        assert_eq!(IdleLevel::from_flag("banana"), IdleLevel::SynthFx, "a typo must not silently disable it");
     }
 }

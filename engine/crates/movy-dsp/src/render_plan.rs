@@ -8,7 +8,7 @@
 //! This file sees only `pin_key`: empty for a chain that may render anywhere,
 //! and a shared `<namespace>/<module>` for one that must stay with its
 //! siblings. Modules are assumed thread-safe, so keys are empty unless a module
-//! is blacklisted or `chpin` is on — twelve chains of one module now spread
+//! is blacklisted — twelve chains of one module now spread
 //! across every lane where they used to collapse onto one and return exactly
 //! 1.00x. Twelve drum tracks is a set people build.
 //!
@@ -231,7 +231,7 @@ mod tests {
         assert_eq!(with_obxd[0], &vec![0, 1]);
     }
 
-    /// The degenerate set, blacklisted (or `chpin 1`): twelve chains keyed alike
+    /// The degenerate set, every chain blacklisted: twelve chains keyed alike
     /// collapse onto one lane and buy nothing. That is the cost of containment,
     /// stated as a plan.
     #[test]

@@ -100,7 +100,7 @@ cb_prepare() {
 #
 # The SHIM's numbers, not the engine's, and the difference matters. movy's
 # `chcostlog` only accumulates wall time on a block where at least one chain
-# rendered, so once `chidle` puts a set to sleep the engine reports ~0 however
+# rendered, so once the idle gate puts a set to sleep the engine reports ~0 however
 # much the render path cost — including a parallel fan-out woken for empty
 # lanes. `Frame(us): pre=.. post=..` is measured around the whole callback and
 # cannot be fooled that way.

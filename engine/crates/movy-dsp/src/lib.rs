@@ -117,7 +117,7 @@ fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.70.0";
+const ENGINE_VERSION: &str = "0.71.0";
 
 /// Tracks backed by schwung's own shadow slots by default. Their notes go out as
 /// MIDI on the matching channel; everything above this index is a chain movy
@@ -278,80 +278,18 @@ impl Instance {
             "cpulog" => {
                 host::log(&format!("cpu:{}", self.chains.cost_status()));
             }
-            /* `chparallel <0|1>` — render the movy chains across helper threads.
-             * The UI's default is now ON (`flags-def.ts`), because the measured
-             * 2.0-2.2x is what puts several synths under the frame budget at
-             * all. The ENGINE's default stays serial, deliberately: the UI
-             * pushes every flag on each engine boot, so the product default is
-             * never in doubt, while a device script writing `1` still gets a log
-             * line rather than the silence of a no-op write.
-             *
-             * It remains a runtime toggle because this changes the "one thread,
-             * one at a time, in slot order" contract 93 module repos were
-             * written against — and because A/B on one running set is the only
-             * comparison that holds the chains constant. */
-            "chparallel" => {
-                self.chains.set_parallel(val != "0" && !val.is_empty());
-            }
-            /* `chlanes <n>` — how many lanes parallel render plans for, lane 0
-             * being the audio thread. The design point was 3, priced by a
-             * balance measurement that assumed chains cost the same however
-             * many render at once; D1 measured them costing 27% more, so a lane
-             * is also a cost to its neighbours and the count has to be swept on
-             * the device instead of assumed (T0). `1` is the control arm: the
-             * parallel path with no helpers at all. */
-            "chlanes" => match val.parse::<usize>() {
-                // A typo must not quietly become a one-lane run: that reads as
-                // 1.00x and looks like a finding rather than a mistake.
-                Ok(n) if n >= 1 => self.chains.set_lanes(n),
-                _ => host::log(&format!("chain mode: ignoring chlanes '{val}'")),
-            },
-            /* `chpin <0|1>` — pin EVERY duplicated module to one lane, not just
-             * the blacklisted ones. Off by default, because modules are assumed
-             * thread-safe (chain_pin). It is the blunt containment for a set
-             * that misbehaves before anyone knows which module is at fault, and
-             * the conservative arm of a measurement. Pointless unless
-             * `chparallel` is on, since serial render has one thread either
-             * way. */
-            "chpin" => {
-                self.chains.set_pin_duplicates(val != "0" && !val.is_empty());
-            }
-            /* `chcolo <0|1>` — let a send bus render on a chain lane, behind
-             * the tracks that feed it, instead of alone in the send phase after
-             * the join. Measured at 274 us on a twelve-chain set with one heavy
-             * FX (`plans/2026-09-07-send-bus-colocation.md`).
-             *
-             * It has a flag where the parallel send phase deliberately did not,
-             * because the control arm has to hold the chains constant: that
-             * change was measured on a one-synth fixture where `chparallel 0`
-             * moved nothing else, and this one is measured on twelve chains
-             * where it would move ~1500 us of chain work as well. Without
-             * `chcolo` the device measurement has no arm to compare against.
-             * Default on, matching the UI. */
-            "chcolo" => {
-                self.chains.set_colocate(val != "0" && !val.is_empty());
-            }
-            /* `chblock <csv>` — modules proven to race, whose instances all go
-             * back on one lane. Replaces the list wholesale, so an empty value
-             * clears it. The UI sends it from prefs.json on every engine boot;
-             * unlike the flags this is a hazard list, so it is policy the user
-             * adds to when a module misbehaves rather than a tuning knob. */
-            /* `chidle <0|1|2|3>` — skip work for chains that are making no
-             * sound. An ordinal because the FX gate depends on the synth gate:
-             * 0 is today's single render_block call, 1 splits synth from FX but
-             * never sleeps (the arm chdigest compares against 0), 2 sleeps a
-             * silent synth, 3 also sleeps a silent FX tail. Default 3 — unlike
-             * chparallel this is meant to be on, so an unrecognised value reads
-             * as the default rather than as off. */
-            "chidle" => {
-                self.chains.set_idle_level(crate::chain_idle::IdleLevel::from_flag(val));
-            }
             /* Log the idle gate's state. Same write-to-read trick as
              * `chcostlog`: `diag` and `status` carry the same numbers, but the
              * remote-UI socket a benchmark drives has no read verb. */
             "chidlelog" => {
                 host::log(&format!("chain idle: {}", self.chains.idle_report()));
             }
+            /* `chblock <csv>` — modules proven to race, whose instances all go
+             * back on one lane. Replaces the list wholesale, so an empty value
+             * clears it. The UI sends it from prefs.json on every engine boot.
+             * A hazard list, not a tuning knob: it is policy the user adds to
+             * when a module misbehaves, and the only containment left now that
+             * the render settings are fixed. */
             "chblock" => {
                 self.chains.set_blacklist(val);
             }

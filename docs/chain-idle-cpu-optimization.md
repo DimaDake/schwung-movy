@@ -1,6 +1,10 @@
 # Skipping silent chains
 
-**Status: SHIPPED 2026-08-24** as `chidle`, on by default. Design:
+**Status: SHIPPED 2026-08-24** as `chidle`, on by default, and since made
+unconditional — the flag, its engine param and `scripts/measure-chain-idle.sh`
+are gone, and what `chidle 3` did is simply what movy does. The `chidle N`
+levels below name the arms these measurements were taken under; they are the
+record of how the setting was chosen, not something that can be re-run. Design:
 `docs/superpowers/specs/2026-08-24-chain-idle-skip-design.md`. What was built
 differs from the sketch below in one important way — see *What shipped*.
 

@@ -78,7 +78,7 @@ pub fn worth_colocating(with: u64, without: u64, bus: u64) -> bool {
 /// merging groups transitively — a bus pulls in its feeders, a pinned feeder
 /// pulls in its twins, and those pull in their own buses. That is a real
 /// scheduling problem for a case that cannot occur in a shipped set: the
-/// blacklist ships EMPTY and `chpin` is a test setting, never a default (see
+/// blacklist ships EMPTY and pinning is a test setting, never a default (see
 /// `chain_pin`). Declining is correct rather than merely cheap — the bus keeps
 /// today's send phase, which is what a pinned set gets now.
 pub fn group_is_free(bus_key: &str, feeder_mask: u16, pin_keys: &[String]) -> bool {
@@ -119,7 +119,7 @@ mod tests {
 
     /// A sleeping chain sums nothing, so it is not a feeder. If it were, its
     /// lane would be dragged into the group to render a silence it never
-    /// produced — and `chidle` exists precisely so that lane can do something
+    /// produced — and the idle gate exists precisely so that lane can do something
     /// else.
     #[test]
     fn a_sleeping_chain_is_not_a_feeder() {

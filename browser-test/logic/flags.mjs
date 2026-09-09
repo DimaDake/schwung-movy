@@ -49,33 +49,34 @@ export async function run() {
     }
     eq('an unknown key resolves to nothing', flagDef('nope'), null);
 
-    const lanes = flagDef('chlanes');
-    eq('clamped low', clampFlag(lanes, -5), lanes.min);
-    eq('clamped high', clampFlag(lanes, 99), lanes.max);
-    eq('a non-number falls back to the default', clampFlag(lanes, NaN), lanes.def);
-    eq('fractions land on a whole setting', clampFlag(lanes, 2.4), 2);
+    const host = flagDef('chtracks');
+    eq('clamped low', clampFlag(host, -5), host.min);
+    eq('clamped high', clampFlag(host, 99), host.max);
+    eq('a non-number falls back to the default', clampFlag(host, NaN), host.def);
+    eq('fractions land on a whole setting', clampFlag(host, 1.4), 1);
 
-    /* The shipped render configuration, pinned because it is a product decision
-     * that lives in a one-character field. `chparallel` off is a ~2x CPU
-     * regression and `chidle` off is a ~14x one on an idle set, and neither
-     * would fail any other test in this repo — every suite below sets the flags
-     * it cares about explicitly, and the screenshot scenes do too. */
-    eq('parallel render ships ON', flagDef('chparallel').def, 1);
+    /* The shipped defaults, pinned because each is a product decision that
+     * lives in a one-character field and would fail no other test in this repo
+     * — every suite below sets the flags it cares about explicitly, and the
+     * screenshot scenes do too. */
     eq('tracks 1-4 follow the set they are in', flagDef('chtracks').def, 2);
-    eq('CPU optimization ships on', flagDef('cpuopt').def, 1);
-    eq('idle skip ships at full (synth + FX)', flagDef('chidle').def, 3);
-    eq('three lanes, the measured design point', flagDef('chlanes').def, 3);
-    eq('duplicates are not pinned', flagDef('chpin').def, 0);
+    eq('a set movy has never seen is new work', flagDef('chtrackset').def, 1);
+    eq('a set predating the field keeps schwung', flagDef('chtrackset').legacy, 0);
+    eq('new sets are committed to disk', flagDef('setcommit').def, 1);
+    eq('movy draws its own param pages', flagDef('schwunggrid').def, 0);
 
-    const par = flagDef('chparallel');
-    eq('a bool flag reads as OFF', flagValueLabel(par, 0), 'OFF');
-    eq('a bool flag reads as ON', flagValueLabel(par, 1), 'ON');
-    eq('a numeric flag shows its number', flagValueLabel(lanes, 3), '3');
+    /* `bool` presentation has no user in the shipped table — every flag there
+     * carries word labels or reads as a number — so it is exercised against a
+     * literal def rather than left untested until the next one needs it. */
+    const boolean = { key: 'x', name: 'X', hint: '', min: 0, max: 1, def: 0, bool: true };
+    eq('a bool flag reads as OFF', flagValueLabel(boolean, 0), 'OFF');
+    eq('a bool flag reads as ON', flagValueLabel(boolean, 1), 'ON');
+    eq('a numeric flag shows its number', flagValueLabel(flagDef('setcommit'), 1), '1');
 
-    eq('the LED is dark at the bottom of the range', flagNormalized(lanes, 1), 0);
-    eq('and full at the top', flagNormalized(lanes, 4), 1);
+    eq('the LED is dark at the bottom of the range', flagNormalized(host, 0), 0);
+    eq('and full at the top', flagNormalized(host, 2), 1);
     ok('and in between in between',
-        flagNormalized(lanes, 2) > 0 && flagNormalized(lanes, 2) < 1);
+        flagNormalized(host, 1) > 0 && flagNormalized(host, 1) < 1);
 }
 
 /* ── Persistence ──────────────────────────────────────────────────────────── */
@@ -97,19 +98,19 @@ export async function run() {
            flagValue(f.key), f.legacy);
     }
 
-    setFlag('chlanes', 2);
-    eq('the value moved', flagValue('chlanes'), 2);
-    eq('and reached prefs.json', readPrefFlags().chlanes, 2);
+    setFlag('schwunggrid', 1);
+    eq('the value moved', flagValue('schwunggrid'), 1);
+    eq('and reached prefs.json', readPrefFlags().schwunggrid, 1);
 
     /* The whole point: a flag was a measurement instrument that reset on every
      * engine load, and is a setting now. Dropping the cache models reopening
      * movy — if the value came back as the default, nothing was persisted. */
     resetFlags();
-    eq('and survives a reopen', flagValue('chlanes'), 2);
+    eq('and survives a reopen', flagValue('schwunggrid'), 1);
 
-    setFlag('chlanes', 99);
-    eq('a write past the range is clamped, not refused', flagValue('chlanes'), 4);
-    eq('and the clamped value is what is stored', readPrefFlags().chlanes, 4);
+    setFlag('schwunggrid', 99);
+    eq('a write past the range is clamped, not refused', flagValue('schwunggrid'), 2);
+    eq('and the clamped value is what is stored', readPrefFlags().schwunggrid, 2);
 
     eq('an unknown flag cannot be written', setFlag('nope', 1), 0);
     ok('and leaves no trace in prefs', !('nope' in readPrefFlags()));
@@ -120,40 +121,42 @@ export async function run() {
     installMockFs({
         [PREFS_PATH]: JSON.stringify({ defaultQuant: 70, flags: { chfuture: 7 } }),
     });
-    writePrefFlag('chlanes', 2);
+    writePrefFlag('schwunggrid', 1);
     const after = JSON.parse(globalThis.host_read_file(PREFS_PATH));
     eq('an unrelated preference survives', after.defaultQuant, 70);
     eq('and so does a flag this build does not know', after.flags.chfuture, 7);
-    eq('alongside the one just written', after.flags.chlanes, 2);
+    eq('alongside the one just written', after.flags.schwunggrid, 1);
     uninstallMockFs();
 
-    /* A device that formed an opinion under the OLD default. `chparallel` was
-     * off by default and got written as 0 during measurement sessions; without
-     * the rev check, "on by default" reaches only a device that never opened
-     * the page — which is how it silently failed to ship. */
+    /* A device that formed an opinion under the OLD default. Without the rev
+     * check, a changed default reaches only a device that never opened the page
+     * — which is how one silently failed to ship once already. */
     installMockFs({   // no flagsRev key at all, which reads as rev 0
-        [PREFS_PATH]: JSON.stringify({ flags: { chparallel: 0, chlanes: 3 } }),
+        [PREFS_PATH]: JSON.stringify({ flags: { chtracks: 0, schwunggrid: 1 } }),
     });
     resetFlags();
     eq('a superseded stored value is replaced by the new default',
-       flagValue('chparallel'), flagDef('chparallel').def);
-    eq('a flag with no revision keeps its stored value', flagValue('chlanes'), 3);
+       flagValue('chtracks'), flagDef('chtracks').def);
+    eq('a flag with no revision keeps its stored value', flagValue('schwunggrid'), 1);
 
-    /* Exactly once. Turning it off after the adoption is a real choice and must
-     * survive the next boot — a re-adopting migration would fight the user. */
-    setFlag('chparallel', 0);
+    /* Exactly once. Changing it back after the adoption is a real choice and
+     * must survive the next boot — a re-adopting migration would fight the
+     * user. */
+    setFlag('chtracks', 0);
     resetFlags();
-    eq('and turning it off again sticks', flagValue('chparallel'), 0);
+    eq('and changing it back again sticks', flagValue('chtracks'), 0);
     uninstallMockFs();
 
     installMockFs({ [PREFS_PATH]: '{not json' });
     resetFlags();
-    eq('corrupt prefs fall back to defaults', flagValue('chlanes'), flagDef('chlanes').def);
+    eq('corrupt prefs fall back to defaults',
+       flagValue('schwunggrid'), flagDef('schwunggrid').def);
     uninstallMockFs();
 
-    installMockFs({ [PREFS_PATH]: JSON.stringify({ flags: { chlanes: 'three' } }) });
+    installMockFs({ [PREFS_PATH]: JSON.stringify({ flags: { schwunggrid: 'one' } }) });
     resetFlags();
-    eq('and so does a value of the wrong type', flagValue('chlanes'), flagDef('chlanes').def);
+    eq('and so does a value of the wrong type',
+       flagValue('schwunggrid'), flagDef('schwunggrid').def);
     uninstallMockFs();
 }
 
@@ -163,12 +166,12 @@ export async function run() {
 
     installMockFs();
     resetFlags();
-    setFlag('chparallel', 1);
-    setFlag('chlanes', 2);
+    setFlag('setcommit', 0);
+    setFlag('chtracks', 1);          // MOVY, explicitly
 
     /* A re-dlopened engine is a brand new one with default flags. If the page
-     * says "Parallel Render ON" over a serial engine, the page is lying and the
-     * user's measurement is of the wrong thing. */
+     * says tracks 1-4 are movy's over an engine still routing them to schwung,
+     * the page is lying and every sequenced note goes to the wrong host. */
     let sent = [];
     applyFlagsToEngine((k, v) => sent.push(k + '=' + v));
     const engineFlags = FLAGS.filter((f) => !f.uiOnly);
@@ -185,22 +188,21 @@ export async function run() {
            !sent.some((s) => s.indexOf(f.key + '=') === 0), sent.join(' '));
     }
     eq('every engine flag exactly once, plus the blacklist', sent.length, engineFlags.length + 1);
-    ok('including the values that were set', sent.indexOf('chparallel=1') >= 0
-        && sent.indexOf('chlanes=2') >= 0);
-    /* Turning parallel on spawns the pool at the CURRENT lane count, so a lane
-     * count that arrives afterwards rebuilds it — two blocking calls on the
-     * audio thread where one would do. */
-    ok('lanes are sent before parallel',
-        sent.indexOf('chlanes=2') < sent.indexOf('chparallel=1'), sent.join(' '));
+    ok('including the values that were set', sent.indexOf('setcommit=0') >= 0);
+    /* The engine needs the RESOLVED host, not the three-value mode: `drain_out`
+     * sends a sequenced note out as MIDI or into a chain, and a 2 would be
+     * neither. */
+    ok('and the host mode goes out resolved', sent.indexOf('chtracks=1') >= 0,
+       sent.join(' '));
 
     /* And an edit after boot goes straight through, rather than waiting for the
      * next one. */
     sent = [];
-    setFlag('chlanes', 3);
-    eq('a later edit reaches the engine too', sent.join(''), 'chlanes=3');
+    setFlag('setcommit', 1);
+    eq('a later edit reaches the engine too', sent.join(''), 'setcommit=1');
 
     sent = [];
-    setFlag('chlanes', 3);
+    setFlag('setcommit', 1);
     eq('an edit that changes nothing writes nothing', sent.length, 0);
     uninstallMockFs();
 
@@ -213,8 +215,6 @@ export async function run() {
     sent = [];
     applyFlagsToEngine((k, v) => sent.push(k + '=' + v));
     ok('and is sent as one csv', sent.indexOf('chblock=helm,obxd') >= 0, sent.join(' '));
-    ok('before parallel render can act on it',
-       sentIndex(sent, 'chblock') < sentIndex(sent, 'chparallel'), sent.join(' '));
     uninstallMockFs();
 
     /* Empty is a real value: the engine replaces the list wholesale, so this is
@@ -271,25 +271,25 @@ export async function run() {
 
     /* Knob 1 edits whatever the jog selected — that is the whole interaction,
      * and it is what lets the list grow past eight entries. */
-    flagsPageState.selected = visibleFlags().findIndex((f) => f.key === 'chlanes');
-    setFlag('chlanes', 2);
+    flagsPageState.selected = visibleFlags().findIndex((f) => f.key === 'chtracks');
+    setFlag('chtracks', 1);
     turn(FLAG_KNOB, 6);
-    ok('knob 1 raises the selected flag', flagValue('chlanes') > 2);
+    ok('knob 1 raises the selected flag', flagValue('chtracks') > 1);
     turn(FLAG_KNOB, -20);
-    eq('and lowers it to its floor, never past', flagValue('chlanes'), flagDef('chlanes').min);
+    eq('and lowers it to its floor, never past', flagValue('chtracks'), flagDef('chtracks').min);
 
-    const before = flagValue('chlanes');
+    const before = flagValue('chtracks');
     turn(3, 6);
-    eq('another knob does nothing', flagValue('chlanes'), before);
+    eq('another knob does nothing', flagValue('chtracks'), before);
 
     /* A half-turn banked on one flag must not spend itself on the next: the
      * detent accumulator is shared, so jogging has to clear it. */
-    flagsPageState.selected = visibleFlags().findIndex((f) => f.key === 'chparallel');
-    setFlag('chparallel', 0);
+    flagsPageState.selected = visibleFlags().findIndex((f) => f.key === 'setcommit');
+    setFlag('setcommit', 0);
     flagsPageKnob(FLAG_KNOB, 1);
     flagsPageJog(1);
     flagsPageJog(-1);
-    eq('a detent banked before a jog does not leak past it', flagValue('chparallel'), 0);
+    eq('a detent banked before a jog does not leak past it', flagValue('setcommit'), 0);
 
     closeParamPage();
     uninstallMockFs();
@@ -303,8 +303,8 @@ export async function run() {
     resetFlags();
     resetFlagsPage();
 
-    setFlag('chparallel', 1);
-    setFlag('chlanes', 4);
+    setFlag('chtracks', 2);
+    setFlag('setcommit', 1);
     const vm = buildFlagsPageVM();
     /* ONE DRAWN ROW PER SELECTABLE ROW, and this is the assertion that was
      * missing when BACKUPS shipped invisible: it was added to the jog's clamp
@@ -317,9 +317,8 @@ export async function run() {
     eq('and the action row is last', vm.rows[vm.rows.length - 1].name, 'BACKUPS');
     eq('the name column is the readable name', vm.rows[0].name, visibleFlags()[0].name);
     eq('exactly one row is selected', vm.rows.filter((r) => r.selected).length, 1);
-    ok('a bool flag shows ON/OFF',
-        vm.rows.some((r) => r.value === 'ON' || r.value === 'OFF'));
-    ok('a numeric flag shows its number', vm.rows.some((r) => r.value === '4'));
+    ok('a labelled flag shows its word', vm.rows.some((r) => r.value === 'NEW SETS'));
+    ok('a numeric flag shows its number', vm.rows.some((r) => r.value === '1'));
 
     /* Selecting the action row: it draws as selected, the hint explains it
      * rather than the flag above, and knob 1 goes dark because it does nothing
@@ -337,10 +336,10 @@ export async function run() {
 
     /* The LED carries the value AND says which knob is live — it is the only
      * lit one. A flat brightness would leave the page mute about both. */
-    flagsPageState.selected = visibleFlags().findIndex((f) => f.key === 'chlanes');
-    setFlag('chlanes', 1);
+    flagsPageState.selected = visibleFlags().findIndex((f) => f.key === 'chtracks');
+    setFlag('chtracks', 0);
     eq('the knob LED is dim at the bottom of the range', buildFlagsPageVM().knobNormalized, 0);
-    setFlag('chlanes', 4);
+    setFlag('chtracks', 2);
     eq('and full at the top', buildFlagsPageVM().knobNormalized, 1);
 
     /* Scrolling. The list is short today and will not be, so the window is
@@ -377,16 +376,17 @@ export async function run() {
     installMockFs();
     resetFlags();
 
-    ok('CPU optimization is a release row', flagDef('cpuopt').release === true);
-    ok('so is the track host', flagDef('chtracks').release === true);
-    ok('the measurement knobs are not', !flagDef('chlanes').release && !flagDef('chpin').release);
+    ok('the track host is a release row', flagDef('chtracks').release === true);
+    ok('and the per-set half with it', flagDef('chtrackset').release === true);
+    ok('the debug surfaces are not',
+       !flagDef('setcommit').release && !flagDef('schwunggrid').release);
 
     const relKeys = () => visibleFlags(false).map((f) => f.key).join(',');
-    eq('a release build lists the two settings and the per-set row',
-       relKeys(), 'cpuopt,chtracks,chtrackset');
+    eq('a release build lists the setting and the per-set row',
+       relKeys(), 'chtracks,chtrackset');
     const dbg = visibleFlags(true).map((f) => f.key);
     eq('a debug build lists every flag', dbg.length, FLAGS.length);
-    ok('including the ones release hides', dbg.indexOf('chlanes') >= 0);
+    ok('including the ones release hides', dbg.indexOf('schwunggrid') >= 0);
 
     /* `This Set` is only answerable while the mode defers to the set. Under an
      * explicit mode it would show a value the knob cannot change, which reads
@@ -429,62 +429,15 @@ export async function run() {
      * a debug build until a row is dropped. */
     setFlag('chtracks', 1);                       // drops the per-set row
     resetFlagsPage();
-    flagsPageState.selected = 3;
-    eq('the drawn row here is Render Lanes', visibleFlags()[3].key, 'chlanes');
-    eq('while the raw table has Parallel Render there', FLAGS[3].key, 'chparallel');
-    setFlag('chlanes', 1);
-    setFlag('chparallel', 1);
+    flagsPageState.selected = 1;
+    eq('the drawn row here is Commit New Sets', visibleFlags()[1].key, 'setcommit');
+    eq('while the raw table has This Set there', FLAGS[1].key, 'chtrackset');
+    setFlag('setcommit', 0);
+    setFlag('chtrackset', 1);
     turn(FLAG_KNOB, 2);
-    eq('the knob moved the row the page drew', flagValue('chlanes'), 3);
-    eq('and left the one the raw table has there alone', flagValue('chparallel'), 1);
+    eq('the knob moved the row the page drew', flagValue('setcommit'), 1);
+    eq('and left the one the raw table has there alone', flagValue('chtrackset'), 1);
     setFlag('chtracks', 2);
-
-    uninstallMockFs();
-}
-
-/* ── CPU Optimization is the master over the render flags ───────── */
-{
-    _log('\nCPU optimization gates the render flags');
-
-    installMockFs();
-    resetFlags();
-    setFlag('chparallel', 1);
-    setFlag('chidle', 3);
-    setFlag('chlanes', 3);
-
-    let sent = [];
-    const sink = (k, v) => sent.push(k + '=' + v);
-    const pushed = (k) => {
-        for (const s of sent) if (s.indexOf(k + '=') === 0) return s;
-        return '';
-    };
-
-    applyFlagsToEngine(sink);
-    eq('with it on, parallel render goes out as set', pushed('chparallel'), 'chparallel=1');
-    eq('and idle skip too', pushed('chidle'), 'chidle=3');
-    ok('the master itself is never pushed — the engine has no such param',
-       pushed('cpuopt') === '', sent.join(' '));
-
-    /* Off is a full serial fallback, which is what makes it an escape hatch
-     * worth shipping: a module that misbehaves under threading is not helped by
-     * turning off half of it. */
-    sent = [];
-    setFlag('cpuopt', 0);
-    eq('turning it off stops parallel render at the engine', pushed('chparallel'), 'chparallel=0');
-    eq('and idle skip with it', pushed('chidle'), 'chidle=0');
-    eq('while the hidden setting keeps its own value', flagValue('chparallel'), 1);
-    eq('and so does idle skip', flagValue('chidle'), 3);
-
-    sent = [];
-    applyFlagsToEngine(sink);
-    eq('a re-dlopened engine comes up serial too', pushed('chparallel'), 'chparallel=0');
-    eq('with idle skip off', pushed('chidle'), 'chidle=0');
-    eq('and lanes still sent — they are what the pool rebuilds at', pushed('chlanes'), 'chlanes=3');
-
-    sent = [];
-    setFlag('cpuopt', 1);
-    eq('turning it back on restores parallel render', pushed('chparallel'), 'chparallel=1');
-    eq('and idle skip', pushed('chidle'), 'chidle=3');
 
     uninstallMockFs();
 }
@@ -596,13 +549,11 @@ export async function run() {
     ok('the host row explains what changes',
        /movy/i.test(flagDef('chtracks').hint) && /schwung/i.test(flagDef('chtracks').hint),
        flagDef('chtracks').hint);
-    ok('and the CPU row says which tracks it reaches',
-       /movy/i.test(flagDef('cpuopt').hint), flagDef('cpuopt').hint);
 
     /* The band follows the selection, or it is describing a different row than
      * the one under the inverted band. */
-    flagsPageState.selected = visibleFlags().findIndex((f) => f.key === 'chidle');
-    eq('the hint is the selected row\'s', buildFlagsPageVM().hint, flagDef('chidle').hint);
+    flagsPageState.selected = visibleFlags().findIndex((f) => f.key === 'setcommit');
+    eq('the hint is the selected row\'s', buildFlagsPageVM().hint, flagDef('setcommit').hint);
     flagsPageJog(-1);
     const above = visibleFlags()[flagsPageState.selected];
     eq('and it follows the jog', buildFlagsPageVM().hint, above.hint);

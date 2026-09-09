@@ -8,11 +8,16 @@ section.
 
 **Everything below §1 and §2 was measured with chain render SERIAL**, which is
 no longer the default. Both sections now carry a second table measured
-2026-08-24 with **parallel render on and no pinning** (`chparallel` 1,
-`chlanes` 3, `chpin` 0, `chidle` at its default 3) — **and that is now the
-shipped configuration**, so the serial tables are the historical arm. The flags
-live on the Global Params page (`src/seq/flags-def.ts`); the mechanism is
-`plans/2026-08-23-parallel-render-prototype.md`.
+2026-08-24 with **parallel render on and no pinning** — **and that is now the
+shipped configuration**, so the serial tables are the historical arm. The
+mechanism is `plans/2026-08-23-parallel-render-prototype.md`.
+
+> **The flag names below no longer exist.** `chparallel` 1, `chlanes` 3,
+> `chpin` 0 and `chidle` 3 were the settings these tables were measured under,
+> and they are what movy now does unconditionally — the engine params, the
+> Global Params rows and the A/B harnesses that produced the serial arms were
+> all removed once the numbers had settled. The tables stay as the record of
+> how the configuration was chosen; they cannot be re-run as written.
 
 ---
 

@@ -1607,7 +1607,7 @@ while it is open clears the held peaks and starts a fresh observation. Like the
 other page shortcuts, step 12 lights dim while Shift is held and full bright
 while the page is up.
 
-![CPU meter](docs/assets/cpu-opt-on.png)
+![CPU meter](docs/assets/cpu-movy-tracks.png)
 
 The bar under the header is Movy's **budget** for one audio block. The fill is
 how much of it Movy used; the notch above the bar is the worst single block
@@ -1692,19 +1692,23 @@ of CPU while every column on this page still looks empty. Treat a
 suspiciously-empty column on a module you know is heavy as "measured elsewhere",
 not as "costs nothing".
 
-#### With CPU Optimize off
+#### With tracks 1-4 on Schwung
 
-![CPU meter with CPU Optimize off](docs/assets/cpu-opt-off.png)
+![CPU meter with tracks 1-4 on Schwung](docs/assets/cpu-schwung-tracks.png)
 
-The header says **CPU OPT OFF**, and two things change. Chains render in a
-single pass, so there is no separate effects section to show and every bar is
-solid. And nothing sleeps, so the dash never appears.
+The first four columns are dotted verticals rather than bars. Those tracks are
+rendering inside Schwung, outside anything Movy measures — the dots say "not
+ours to measure", which is a different answer from an empty column.
 
-Expect an individual track to read **higher** with CPU Optimize on — around a
-quarter higher — while the bar at the top reads much *lower*. That is not a
-bug: several chains rendering at once cost each other a little, and the whole
-point is that they are running side by side instead of one after another. The
-bar is the number that decides whether you get dropouts; the columns are for
+A few modules cannot be split into a synth stage and an effects stage. Their
+column is one solid bar with no separate effects section, which is the same
+picture those tracks draw.
+
+Expect an individual track to read **higher** than it would rendering alone —
+around a quarter higher — while the bar at the top reads much *lower*. That is
+not a bug: several chains rendering at once cost each other a little, and the
+whole point is that they are running side by side instead of one after another.
+The bar is the number that decides whether you get dropouts; the columns are for
 finding which track is expensive.
 
 ---
@@ -1718,23 +1722,20 @@ Step 2 lights dim under Shift and full bright while the page is open.
 
 ![Settings](docs/assets/flags-release.png)
 
-**CPU OPTIMIZE** (ON) lets Movy render its chains on several threads and skip
-chains that are silent. It is worth roughly 2× on a heavy set, and it is the
-difference between a big set staying inside the audio frame and crackling. It
-applies to **Movy's own tracks only** — a Schwung track renders exactly as it
-does without Movy. Turn it **OFF** only if a particular module misbehaves: a few
-plugins are not safe to run off the audio thread, and this is the escape hatch.
-Everything under it (how many threads, how aggressively silent chains sleep)
-stays at the setting that measured best. The **CPU meter** (Shift + Step 12) is
-where you see what it buys you.
+Movy always renders its chains on several threads and always skips chains that
+are silent. Together those are worth roughly 2× on a heavy set — the difference
+between a big set staying inside the audio frame and crackling — and they apply
+to **Movy's own tracks only**: a Schwung track renders exactly as it does
+without Movy. There is nothing to turn on or tune; the **CPU meter**
+(Shift + Step 12) is where you see what it buys you.
 
 **TRACKS 1-4 HOST** decides who owns the first four tracks. Tracks 5-16 are
 always Movy's own; tracks 1-4 can be either:
 
 | Value | Tracks 1-4 |
 | --- | --- |
-| **SCHWUNG** | Schwung's four slots, exactly as they behave without Movy: Move's mixer fader, per-slot Link Audio, Schwung's own cached parameter reads, and no share of the CPU optimization above |
-| **MOVY** | Movy hosts them like tracks 5-16, so they join the CPU optimization — worth ~20-25 % of the chain render |
+| **SCHWUNG** | Schwung's four slots, exactly as they behave without Movy: Move's mixer fader, per-slot Link Audio, Schwung's own cached parameter reads, and no share of the multi-threaded render |
+| **MOVY** | Movy hosts them like tracks 5-16, so they join the multi-threaded render — worth ~20-25 % of the chain render |
 | **NEW SETS** *(default)* | each set decides — see below |
 
 On **NEW SETS**, a set that Movy has never opened before starts on MOVY, and a
@@ -1935,7 +1936,7 @@ only.
 
 | Combo | Action |
 | --- | --- |
-| **Shift + Step 2** | Open **Settings** (CPU optimization, which host owns tracks 1-4). |
+| **Shift + Step 2** | Open **Settings** (which host owns tracks 1-4, older versions of this set). |
 | **Shift + Step 3** | Open **Clip parameters** (scale, length, transpose, quantize; Track view). |
 | **Shift + Step 5 / 7 / 9** | Open **Set parameters** (tempo/swing/link/quantize, root/key/mode/layout). |
 | **Shift + Step 6** | Toggle the **metronome**. |

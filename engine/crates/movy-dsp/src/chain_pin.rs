@@ -13,19 +13,18 @@
 //! been *measured* racing, and seeding it from `audit-render-globals.py` would
 //! re-pin most of the fleet and give back the whole point of the change.
 //!
-//! `pin_all` (`chpin 1`) is the blunt version: pin every duplicate whatever the
-//! blacklist says. It is the conservative arm of a measurement and the fallback
-//! if a set misbehaves and the culprit is not yet known.
+//! **This is not a shipping policy.** The shipped default is and stays
+//! *nothing pinned* — an empty blacklist. It exists to answer a question — is
+//! this set misbehaving because two instances share state? — and to hold a
+//! known-bad module still until it is fixed at the source. A duplicate that
+//! has to be pinned to sound right is a bug to find, not a configuration to
+//! ship: pinning gives back exactly the parallelism it contains, and twelve
+//! chains of one module pinned together return 1.00x. Do not seed the
+//! blacklist defensively.
 //!
-//! **Neither is a shipping policy — pinning is a test setting.** The shipped
-//! default is and stays *nothing pinned*: an empty blacklist and `chpin 0`.
-//! Both switches exist to answer a question — is this set misbehaving because
-//! two instances share state? — and to hold a known-bad module still until it
-//! is fixed at the source. A duplicate that has to be pinned to sound right is
-//! a bug to find, not a configuration to ship: pinning gives back exactly the
-//! parallelism it contains, and twelve chains of one module pinned together
-//! return 1.00x. Do not seed the blacklist defensively, and do not reach for
-//! `chpin` as a fix.
+//! There used to be a blunt companion — a switch that pinned every duplicate
+//! whatever the blacklist said. It was a measurement arm, never a default, and
+//! it went when the render settings were fixed.
 //!
 //! Keys are `<namespace>/<module>`, not the synth id, because two chains can
 //! share an audio FX while running different synths — airwindows is an FX pack
@@ -62,8 +61,6 @@ pub struct PinPolicy {
     /// Modules proven to race. Matched on the bare module name across every
     /// namespace: a module that is unsafe as a synth is the same code as an FX.
     blacklist: Vec<String>,
-    /// Pin every duplicate, blacklisted or not.
-    pin_all: bool,
 }
 
 impl PinPolicy {
@@ -72,7 +69,6 @@ impl PinPolicy {
             comps: (0..chains).map(|_| Vec::new()).collect(),
             pin_keys: vec![String::new(); chains],
             blacklist: Vec::new(),
-            pin_all: false,
         }
     }
 
@@ -94,21 +90,6 @@ impl PinPolicy {
 
     pub fn blacklist_len(&self) -> usize {
         self.blacklist.len()
-    }
-
-    /// Turning this on must change what the PLANNER sees, not merely what the
-    /// next load does — otherwise the conservative arm sets the flag, re-keys
-    /// nothing, and measures the split plan while reporting the pinned one.
-    pub fn set_pin_all(&mut self, on: bool) {
-        if on == self.pin_all {
-            return;
-        }
-        self.pin_all = on;
-        self.recompute();
-    }
-
-    pub fn pin_all(&self) -> bool {
-        self.pin_all
     }
 
     /// Record what a chain now holds. An empty module clears that position.
@@ -146,7 +127,7 @@ impl PinPolicy {
                 // CONCURRENTLY by two chains, so a lone instance of even a
                 // blacklisted module runs free — a key there would group it
                 // with nothing and cost a lane for no reason.
-                if !(self.pin_all || self.blacklisted(&comp.module)) {
+                if !self.blacklisted(&comp.module) {
                     continue;
                 }
                 let shared = self.comps.iter().enumerate().any(|(o, list)| {
@@ -246,20 +227,6 @@ mod tests {
         p.on_load(0, "synth", "helm");
         p.on_load(1, "synth", "obxd");
         assert_eq!(keys(&p)[0], "", "one instance shares nothing: {:?}", keys(&p));
-    }
-
-    /// `chpin 1` — the blunt arm, for a set that misbehaves before anyone knows
-    /// which module is at fault.
-    #[test]
-    fn pin_all_pins_every_duplicate() {
-        let mut p = policy(4);
-        p.on_load(0, "synth", "obxd");
-        p.on_load(1, "synth", "obxd");
-        assert_eq!(keys(&p)[0], "");
-        p.set_pin_all(true);
-        assert_eq!(keys(&p)[0], "sound_generators/obxd", "{:?}", keys(&p));
-        p.set_pin_all(false);
-        assert_eq!(keys(&p)[0], "", "and it lets go again");
     }
 
     /// The key is the namespace too. Two chains sharing an FX must be pinned

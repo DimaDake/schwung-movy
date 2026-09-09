@@ -13,7 +13,7 @@ use crate::chain_cost::CostMeter;
 use crate::chain_doc;
 use crate::chain_digest::{ChainDigest, STIMULUS};
 use crate::chain_host::{ChainHost, ChainInstance};
-use crate::chain_idle::{IdleGate, IdleLevel, Work};
+use crate::chain_idle::{IdleGate, Work};
 use crate::chain_pin::PinPolicy;
 use crate::ffi::MOVE_MIDI_SOURCE_INTERNAL;
 use crate::host;
@@ -42,22 +42,18 @@ pub const MOVY_CHAINS: usize = 16;
 /// happen on the audio thread.
 const SCRATCH_SAMPLES: usize = 128 * 2;
 
-/// Lanes including the audio thread's own, so `DEFAULT_LANES - 1` helpers.
+/// Lanes including the audio thread's own, so `LANES - 1` helpers.
 /// Three was the design point from `plans/2026-08-22-chain-balance-measurement.md`
 /// — 2.98x against a 3.11x ceiling, with a fourth worker worth 0.13x.
 ///
 /// That pricing assumed the chains cost the same however many render at once,
 /// and D1 has since measured them costing **27% more** with three lanes running
-/// (`plans/2026-08-23-parallel-render-prototype.md` §6). A lane is therefore
-/// also a *cost* to the other lanes, which is why the count is now runtime
-/// settable (`chlanes`) rather than a constant: whether 3 beats 2 has to be
-/// measured on the device, not assumed here.
-const DEFAULT_LANES: usize = 3;
-
-/// Move's four cores, minus none: lane 0 is the audio thread, which is already
-/// running. Beyond this the helpers are competing for cores Move's own FIFO 70
-/// workers need immediately after us.
-const MAX_LANES: usize = 4;
+/// (`plans/2026-08-23-parallel-render-prototype.md` §6) — a lane is a *cost* to
+/// the other lanes as well as a gain. Three was therefore swept on the device
+/// rather than assumed, and it won: a fourth lane puts the helpers in
+/// competition for the cores Move's own FIFO 70 workers need immediately after
+/// us, and lost to the rendezvous overhead it added.
+const LANES: usize = 3;
 
 /// Blocks between replans. The plan follows measured cost, which only exists
 /// after chains have rendered, so it cannot be fixed at load time — but
@@ -103,7 +99,7 @@ pub struct ChainSlots {
     /// after the join anyway. 12 x 512 bytes.
     scratch: Vec<Vec<i16>>,
     /// Which chains must share a lane. Modules are assumed thread-safe, so this
-    /// is empty unless a module is blacklisted or `chpin` is on — see
+    /// is empty unless a module is blacklisted — see
     /// `chain_pin`.
     pin: PinPolicy,
     /// Set once the host has been tried and failed, so a broken install is not
@@ -137,14 +133,10 @@ pub struct ChainSlots {
     /// the largest single chain, and nothing else here can see a distribution —
     /// `peaks` says a chain is audible, not what it cost.
     cost: CostMeter,
-    /// Off by default. Parallel chain render is a prototype: it changes the
-    /// implicit "one thread, one at a time, in slot order" contract that 93
-    /// module repos were written against, so it is opted into per session and
-    /// measured, never assumed.
-    parallel: bool,
-    /// Lanes to plan for, including lane 0 (the audio thread). Changing it is a
-    /// measurement control, not a live tuning knob — it rebuilds the pool.
-    lane_count: usize,
+    /// The helper threads, spawned once by `configure` — off the audio thread,
+    /// which is the only place a spawn may happen. `None` until movy actually
+    /// hosts chains, and the render falls back to serial while it is (see
+    /// `parallel_ready`).
     pool: Option<RenderPool>,
     planner: Planner,
     /// Per-lane task lists, refilled in place each block — pushing into a `Vec`
@@ -156,9 +148,6 @@ pub struct ChainSlots {
     /// Which slots are loaded, as the planner wants it. A field rather than a
     /// local because replanning happens on the audio thread.
     loaded: Vec<bool>,
-    /// Keep same-module chains on one lane. OFF by default: modules are assumed
-    /// thread-safe and the ones proven otherwise go on `chain_pin`'s blacklist.
-    pin_duplicates: bool,
     /// Which chains may skip work this block. See `chain_idle`.
     idle: IdleGate,
     /// This block's decision per chain, taken once before anything renders —
@@ -193,8 +182,6 @@ pub struct ChainSlots {
     /// assignments at the same time, and one instance cannot carry both.
     send_planner: Planner,
     send_lanes: Vec<Vec<Task>>,
-    /// `chcolo` — may a bus render on a chain lane instead of the send phase?
-    colocate: bool,
     /// Buses the planner accepted onto a chain lane, and the chains feeding
     /// each. A replan-time snapshot: `plan_dirty` is what keeps it from going
     /// stale, because a feeder appearing on another lane is a data race on the
@@ -251,15 +238,12 @@ impl ChainSlots {
             generation: 0,
             active_last_block: 0,
             cost: CostMeter::new(MOVY_CHAINS),
-            parallel: false,
-            lane_count: DEFAULT_LANES,
             pool: None,
-            planner: Planner::new(MOVY_CHAINS, DEFAULT_LANES),
-            lanes: (0..DEFAULT_LANES).map(|_| Vec::with_capacity(MOVY_CHAINS)).collect(),
+            planner: Planner::new(MOVY_CHAINS, LANES),
+            lanes: (0..LANES).map(|_| Vec::with_capacity(MOVY_CHAINS)).collect(),
             blocks_since_plan: 0,
             plan_generation: u32::MAX,
             loaded: vec![false; MOVY_CHAINS],
-            pin_duplicates: false,
             digest: ChainDigest::new(MOVY_CHAINS),
             idle: IdleGate::new(MOVY_CHAINS),
             work: vec![Work::NONE; MOVY_CHAINS],
@@ -268,7 +252,6 @@ impl ChainSlots {
             sends: SendBuses::new(),
             send_fanned: false,
             send_work: vec![false; SEND_BUSES],
-            colocate: true,
             colo_bus: [false; SEND_BUSES],
             colo_feeders: [0; SEND_BUSES],
             colo_ran: [false; SEND_BUSES],
@@ -280,87 +263,24 @@ impl ChainSlots {
             colo_loaded: vec![false; RENDER_SLOTS],
             colo_cost: vec![0; RENDER_SLOTS],
             plan_dirty: false,
-            send_planner: Planner::new(SEND_BUSES, DEFAULT_LANES),
-            send_lanes: (0..DEFAULT_LANES).map(|_| Vec::with_capacity(SEND_BUSES)).collect(),
+            send_planner: Planner::new(SEND_BUSES, LANES),
+            send_lanes: (0..LANES).map(|_| Vec::with_capacity(SEND_BUSES)).collect(),
             mix_lanes: vec![[None; 8]; MOVY_CHAINS],
             send_slots: (0..SEND_BUSES).map(|_| None).collect(),
             send_loaded: vec![false; SEND_BUSES],
         }
     }
 
-    /// Turn parallel chain render on or off. Spawning the helpers is deferred to
-    /// the first enable so a session that never asks for it never pays for the
-    /// threads — and so a device measurement can A/B the same running set.
-    pub fn set_parallel(&mut self, on: bool) {
-        if on && self.pool.is_none() {
-            self.pool = Some(RenderPool::new(self.lane_count - 1, RENDER_SLOTS));
-        }
-        self.parallel = on;
-        // The next block replans: a plan built for one lane is wrong for three.
-        self.plan_generation = u32::MAX;
-        host::log(&format!(
-            "chain mode: {} lanes={}",
-            if on { "parallel" } else { "serial" },
-            self.lane_count
-        ));
-    }
-
-    /// How many lanes to render across, lane 0 being the audio thread itself.
-    ///
-    /// `1` is a real setting, not a no-op alias for serial: it runs the parallel
-    /// path with no helpers, which is the control arm that separates what the
-    /// planner and rendezvous cost from what the extra threads buy.
-    ///
-    /// Rebuilding the pool rather than resizing it keeps the "written only while
-    /// every helper is idle" invariant that `render_block` relies on: the old
-    /// pool's helpers are stopped and joined by its `Drop` before the new ones
-    /// exist. Both that and the spawn are why this is a between-measurements
-    /// control — it blocks, so it must never be called from a render.
-    pub fn set_lanes(&mut self, lanes: usize) {
-        let lanes = lanes.clamp(1, MAX_LANES);
-        if lanes == self.lane_count {
-            return;
-        }
-        self.lane_count = lanes;
-        self.planner = Planner::new(MOVY_CHAINS, lanes);
-        self.lanes = (0..lanes).map(|_| Vec::with_capacity(MOVY_CHAINS)).collect();
-        self.send_planner = Planner::new(SEND_BUSES, lanes);
-        self.send_lanes = (0..lanes).map(|_| Vec::with_capacity(SEND_BUSES)).collect();
-        self.plan_generation = u32::MAX;
-        // Drop first: two pools' helpers must never be alive at once, or the
-        // measurement is against more threads than it thinks it has.
-        self.pool = None;
-        if self.parallel {
-            self.pool = Some(RenderPool::new(lanes - 1, RENDER_SLOTS));
-        }
-        host::log(&format!("chain mode: lanes={lanes}"));
-    }
-
-    /// Pin EVERY duplicate to one lane, not just the blacklisted ones.
-    ///
-    /// Unlike `set_lanes` this does not touch the pool, so it is cheap — but it
-    /// must still force a replan, or the flag flips while the assignment it
-    /// changes stays exactly as it was for up to `REPLAN_BLOCKS`, and an arm
-    /// that believes it pinned the duplicates measures the split plan instead.
-    pub fn set_pin_duplicates(&mut self, pin: bool) {
-        if pin == self.pin_duplicates {
-            return;
-        }
-        self.pin_duplicates = pin;
-        self.pin.set_pin_all(pin);
-        self.plan_generation = u32::MAX;
-        host::log(&format!("chain mode: pin_duplicates={}", pin as u8));
-    }
-
     /// Modules proven to race, whose instances all go back on one lane. Forces
-    /// a replan for the same reason `set_pin_duplicates` does — the keys it
-    /// rewrites are only read when the plan is rebuilt.
+    /// a replan, because the keys it rewrites are only read when the plan is
+    /// rebuilt — without it the list changes while the assignment it governs
+    /// stays exactly as it was for up to `REPLAN_BLOCKS`.
     pub fn set_blacklist(&mut self, csv: &str) {
         self.pin.set_blacklist(csv);
         self.plan_generation = u32::MAX;
     }
 
-    /// `parallel=<0|1> lanes=<n> late=<blocks> plan=<lane0>|<lane1>|...`
+    /// `lanes=<n> blocked=<n> pinned=<n> yielded=<blocks> plan=<lane0>|<lane1>|...`
     pub fn render_report(&self) -> String {
         let plan = self
             .planner
@@ -369,16 +289,14 @@ impl ChainSlots {
             .map(|l| l.iter().map(|c| c.to_string()).collect::<Vec<_>>().join(","))
             .collect::<Vec<_>>()
             .join("|");
-        // `pin`, `blocked` and `pinned` are reported because the harness cannot
-        // infer any of them: a set with no duplicated module plans identically
-        // however they are set, so an arm that meant to pin duplicates and did
-        // not looks exactly like one that did. `pinned` is the count that
-        // separates "pinning was on" from "pinning had nothing to do".
+        // `blocked` and `pinned` are reported because the harness cannot infer
+        // either: a set with no duplicated module plans identically whatever
+        // the blacklist holds, so a blacklist that took looks exactly like one
+        // that did not. `pinned` is the count that separates "the module was
+        // listed" from "the listing had nothing to do".
         format!(
-            "parallel={} lanes={} pin={} blocked={} pinned={} yielded={} plan={}",
-            self.parallel as u8,
+            "lanes={} blocked={} pinned={} yielded={} plan={}",
             self.lanes.len(),
-            self.pin_duplicates as u8,
             self.pin.blacklist_len(),
             self.pin.pinned(),
             self.pool.as_ref().map_or(0, |p| p.joins_yielded_blocks()),
@@ -394,7 +312,14 @@ impl ChainSlots {
             return;
         }
         match ChainHost::load(so_path) {
-            Ok(h) => self.host = Some(h),
+            Ok(h) => {
+                self.host = Some(h);
+                /* The one place the helpers may be spawned: `configure` is a
+                 * param set, called once and never from a render. Spawning is
+                 * blocking, so the audio thread can never be where it happens —
+                 * and until it has, `parallel_ready` keeps the render serial. */
+                self.pool = Some(RenderPool::new(LANES - 1, RENDER_SLOTS));
+            }
             Err(e) => {
                 // Degrade, never panic: movy must keep sequencing its four host
                 // tracks when chain hosting is unavailable.
@@ -698,27 +623,6 @@ impl ChainSlots {
         self.generation
     }
 
-    pub fn idle_level(&self) -> IdleLevel {
-        self.idle.level()
-    }
-
-    /// Changing the level re-applies external FX mode to every live chain: the
-    /// mode is a property of the instance, and a chain loaded under one level
-    /// would otherwise keep rendering under the old contract.
-    pub fn set_idle_level(&mut self, level: IdleLevel) {
-        if self.idle.level() == level {
-            return;
-        }
-        self.idle.set_level(level);
-        let split = level.splits();
-        for s in self.slots.iter_mut().flatten() {
-            let want = split && s.supports_split();
-            s.set_external_fx_mode(want);
-        }
-        self.plan_generation = u32::MAX;
-        host::log(&format!("chain idle: level {level:?}"));
-    }
-
     /// Chains whose synth is asleep. Read by `diag` and `status`.
     pub fn asleep_count(&self) -> usize {
         self.idle.asleep_count()
@@ -749,8 +653,7 @@ impl ChainSlots {
             }
         }
         format!(
-            "level={:?} asleep={} deep={} loaded={} sleeping=[{}]",
-            self.idle.level(),
+            "asleep={} deep={} loaded={} sleeping=[{}]",
             self.idle.asleep_count(),
             deep,
             self.slots.iter().filter(|s| s.is_some()).count(),
@@ -802,8 +705,7 @@ impl ChainSlots {
         /* A freshly created instance is in whatever FX mode the module defaults
          * to. Claim it here, once, rather than per block. */
         if let Some(inst) = self.slots[req.slot].as_mut() {
-            let split = self.idle.level().splits() && inst.supports_split();
-            inst.set_external_fx_mode(split);
+            inst.set_external_fx_mode(inst.supports_split());
         }
         /* The load path IS the audio thread, so every millisecond here is a
          * dropped frame — and this one is a blocking dlopen, which is the
@@ -1042,19 +944,17 @@ impl ChainSlots {
                 // The oracle compares renders. A skipped block is not a
                 // difference in threading, which is the only thing it is
                 // allowed to report.
-                Work { synth: true, fx: self.idle.level().splits() }
+                Work { synth: true, fx: true }
             } else {
                 self.idle.plan(i)
             };
         }
         // LFOs still have to advance for every chain whose synth did not render,
         // and on the audio thread rather than a lane — see `ChainInstance::mod_tick`.
-        if self.idle.level().splits() {
-            for i in 0..MOVY_CHAINS {
-                if !self.work[i].synth {
-                    if let Some(inst) = self.slots[i].as_mut() {
-                        inst.mod_tick();
-                    }
+        for i in 0..MOVY_CHAINS {
+            if !self.work[i].synth {
+                if let Some(inst) = self.slots[i].as_mut() {
+                    inst.mod_tick();
                 }
             }
         }
@@ -1250,16 +1150,6 @@ impl ChainSlots {
         self.digest.report()
     }
 
-    /// `chcolo` — may a bus ride a chain lane? Off is the control arm: the
-    /// send phase then keeps every bus, which is what shipped before this.
-    pub fn set_colocate(&mut self, on: bool) {
-        if self.colocate != on {
-            self.colocate = on;
-            self.plan_dirty = true;
-            host::log(&format!("chain colo: {}", if on { "on" } else { "off" }));
-        }
-    }
-
     /// Which buses are riding a chain lane, for `sndlog`.
     pub fn colocated_mask(&self) -> u16 {
         let mut m = 0u16;
@@ -1271,13 +1161,16 @@ impl ChainSlots {
         m
     }
 
+    /// Serial render is no longer a setting — it is the fallback for a pool
+    /// that has not been spawned yet (nothing hosts chains) or that poisoned
+    /// itself when a helper panicked. Deleting it would turn either into
+    /// silence.
     fn parallel_ready(&self) -> bool {
-        self.parallel && self.pool.as_ref().is_some_and(|p| !p.is_poisoned())
+        self.pool.as_ref().is_some_and(|p| !p.is_poisoned())
     }
 
     fn render_serial(&mut self, frames: usize) -> usize {
         let mut active = 0usize;
-        let split = self.idle.level().splits();
         for i in 0..MOVY_CHAINS {
             let w = self.work[i];
             if w.none() {
@@ -1298,13 +1191,12 @@ impl ChainSlots {
                 self.scratch[i][..frames].fill(0);
             }
             // Before the peak scan, exactly as the pool does it — the two paths
-            // have to mean the same thing or the meter changes when a flag does.
+            // have to mean the same thing, or the meter changes when a poisoned
+            // pool drops the render back here.
             let synth_ns = if w.synth { t0.elapsed().as_nanos() as u64 } else { 0 };
-            if split {
-                self.synth_peak[i] = self.scratch[i][..frames]
-                    .iter()
-                    .fold(0i32, |m, &s| m.max((s as i32).abs()));
-            }
+            self.synth_peak[i] = self.scratch[i][..frames]
+                .iter()
+                .fold(0i32, |m, &s| m.max((s as i32).abs()));
             if w.fx {
                 inst.process_fx(&mut self.scratch[i][..frames]);
             }
@@ -1551,9 +1443,6 @@ impl ChainSlots {
             self.colo_cost[i] = if i < MOVY_CHAINS { self.cost.plan_ns()[i] } else { 0 };
         }
         self.planner.plan(&self.colo_keys, &self.colo_cost, &self.colo_loaded);
-        if !self.colocate {
-            return;
-        }
         let mut best = self.planner.makespan();
         let feeders = crate::chain_colo::feeders(&self.mixes, &self.loaded);
 
@@ -1945,17 +1834,6 @@ mod tests {
     }
 
     #[test]
-    fn the_idle_level_survives_a_round_trip() {
-        let mut slots = ChainSlots::new();
-        assert_eq!(slots.idle_level(), IdleLevel::SynthFx, "on by default");
-        slots.set_idle_level(IdleLevel::Off);
-        assert_eq!(slots.idle_level(), IdleLevel::Off);
-        slots.set_idle_level(IdleLevel::SynthFx);
-        assert_eq!(slots.idle_level(), IdleLevel::SynthFx);
-        assert_eq!(slots.asleep_count(), 0, "nothing is loaded, so nothing sleeps");
-    }
-
-    #[test]
     fn renders_nothing_when_empty() {
         let mut slots = ChainSlots::new();
         let mut out = vec![1234i16; SCRATCH_SAMPLES];
@@ -1987,62 +1865,39 @@ mod tests {
         slots.on_midi(999, &[0x90, 60, 100], 0);
     }
 
-    /* The lane count is a measurement control (T0: does 3 lanes beat 2 at all?),
-     * so what has to hold is that everything sized by it moves together. Three
-     * things are: the planner, the per-lane task lists, and the pool's helper
-     * count. A plan with more lanes than the task-list vector indexes out of
-     * range on the audio thread; a pool that kept its old helper count would
-     * measure a lane count nobody asked for. */
+    /* The lane count is fixed at `LANES` now, so what has to hold is that
+     * everything sized by it agrees. A plan with more lanes than the task-list
+     * vector indexes out of range on the audio thread, and the send phase has a
+     * second planner that would go unnoticed if it disagreed. */
 
     #[test]
-    fn set_lanes_resizes_the_plan_and_the_task_lists_together() {
-        let mut slots = ChainSlots::new();
-        assert_eq!(slots.planner.lane_count(), DEFAULT_LANES);
-        slots.set_lanes(2);
-        assert_eq!(slots.planner.lane_count(), 2, "the plan follows the lane count");
-        assert_eq!(slots.lanes.len(), 2, "and so do the task lists it is copied into");
-        assert!(slots.render_report().contains("lanes=2"), "and the report says so");
+    fn everything_sized_by_the_lane_count_agrees_on_it() {
+        let slots = ChainSlots::new();
+        assert_eq!(slots.planner.lane_count(), LANES);
+        assert_eq!(slots.lanes.len(), LANES, "and so do the task lists it is copied into");
+        assert_eq!(slots.send_planner.lane_count(), LANES, "the send phase plans the same lanes");
+        assert_eq!(slots.send_lanes.len(), LANES);
+        assert!(slots.render_report().contains(&format!("lanes={LANES}")));
     }
 
+    /// Spawning blocks, so it may never happen on the audio thread — which is
+    /// what `configure` being the only spawn site buys. Constructing the engine
+    /// must therefore start no threads, and a chain host that fails to load
+    /// must start none either: movy still sequences its host tracks without one.
     #[test]
-    fn a_lane_count_the_hardware_cannot_staff_is_clamped() {
+    fn no_chain_host_means_no_helper_threads() {
         let mut slots = ChainSlots::new();
-        slots.set_lanes(99);
-        assert_eq!(slots.lanes.len(), MAX_LANES, "four cores is the ceiling");
-        slots.set_lanes(0);
-        assert_eq!(slots.lanes.len(), 1, "and one lane — the audio thread — the floor");
-    }
-
-    #[test]
-    fn the_pool_is_rebuilt_to_match() {
-        let mut slots = ChainSlots::new();
-        slots.set_parallel(true);
-        assert_eq!(slots.pool.as_ref().map(|p| p.helpers()), Some(DEFAULT_LANES - 1));
-        slots.set_lanes(2);
-        assert_eq!(slots.pool.as_ref().map(|p| p.helpers()), Some(1),
-            "a two-lane measurement must actually run one helper");
-        // One lane is the control arm, not an alias for serial: the parallel
-        // path still runs, with nothing to fan out to.
-        slots.set_lanes(1);
-        assert_eq!(slots.pool.as_ref().map(|p| p.helpers()), Some(0));
-        assert!(slots.parallel, "one lane is still the parallel path");
+        assert!(slots.pool.is_none(), "constructing the engine spawned threads");
+        slots.configure("/nonexistent", "/nonexistent/dsp.so");
+        assert!(slots.host_failed);
+        assert!(slots.pool.is_none(), "a failed chain host still spawned threads");
     }
 
     /* Pinning is containment, so the ways it can fail quietly matter more than
      * the ways it can fail loudly: a set that thinks it pinned a racing module
      * and did not sounds exactly like one that had nothing to pin. */
 
-    #[test]
-    fn pinning_forces_a_replan_rather_than_waiting_for_one() {
-        let mut slots = ChainSlots::new();
-        slots.plan_generation = slots.generation;
-        slots.blocks_since_plan = 0;
-        slots.set_pin_duplicates(true);
-        assert_eq!(slots.plan_generation, u32::MAX,
-            "the plan the flag changes must be rebuilt before the next block, not in 512");
-    }
-
-    /// The blacklist rewrites the same keys `chpin` does, so it needs the same
+    /// The blacklist rewrites the planner's keys, so it needs the same
     /// replan — a module blacklisted mid-set must stop racing THIS block, not in
     /// `REPLAN_BLOCKS`.
     #[test]
@@ -2053,26 +1908,17 @@ mod tests {
         assert_eq!(slots.plan_generation, u32::MAX);
     }
 
+    /// The blacklist is the only containment left, and a harness cannot infer
+    /// it: a set with no duplicated module plans identically whatever the list
+    /// holds, so a list that never arrived looks exactly like one with nothing
+    /// to do.
     #[test]
-    fn the_report_says_which_pinning_an_arm_ran_under() {
+    fn the_report_says_what_the_blacklist_holds() {
         let mut slots = ChainSlots::new();
-        assert!(slots.render_report().contains("pin=0"), "free is the default now");
-        assert!(slots.render_report().contains("blocked=0"));
-        slots.set_pin_duplicates(true);
+        assert!(slots.render_report().contains("blocked=0"), "free is the default");
         slots.set_blacklist("helm,obxd");
         let r = slots.render_report();
-        assert!(r.contains("pin=1"), "{r}");
-        assert!(r.contains("blocked=2"), "the blacklist is reported too: {r}");
-    }
-
-    #[test]
-    fn lanes_can_be_chosen_before_the_pool_exists() {
-        let mut slots = ChainSlots::new();
-        slots.set_lanes(2);
-        assert!(slots.pool.is_none(), "asking for lanes does not spawn threads");
-        slots.set_parallel(true);
-        assert_eq!(slots.pool.as_ref().map(|p| p.helpers()), Some(1),
-            "the deferred spawn uses the count that was asked for");
+        assert!(r.contains("blocked=2"), "the blacklist is reported: {r}");
     }
 
     #[test]
@@ -2348,23 +2194,6 @@ mod tests {
         assert_eq!(slots.colocated_mask(), 0, "a bus that has never rendered was planned for");
     }
 
-    /// `chcolo 0` is the control arm a device measurement compares against, so
-    /// it has to actually turn the mechanism off — an arm that quietly still
-    /// co-located would print the same number twice and call it a finding.
-    #[test]
-    fn the_flag_is_a_real_control_arm() {
-        let mut slots = ChainSlots::new();
-        busy_set(&mut slots);
-        sends_to(&mut slots, 10, 0);
-        cost(&mut slots, 0, 200_000);
-        slots.set_colocate(false);
-        slots.plan_with_colocation();
-        assert_eq!(slots.colocated_mask(), 0);
-        slots.set_colocate(true);
-        slots.plan_with_colocation();
-        assert_eq!(slots.colocated_mask(), 1, "and back on again");
-    }
-
     /// A pinned feeder disqualifies its bus. Honouring both constraints would
     /// mean merging groups transitively; declining leaves the bus exactly where
     /// a pinned set has it today. See `chain_colo::group_is_free`.
@@ -2629,7 +2458,7 @@ mod tests {
     #[test]
     fn two_sends_holding_one_module_can_be_pinned_onto_one_lane() {
         let mut slots = ChainSlots::new();
-        slots.set_pin_duplicates(true);
+        slots.set_blacklist("mverb");
         slots.pin.on_load(send_index(0), SEND_COMPONENT, "mverb");
         slots.pin.on_load(send_index(1), SEND_COMPONENT, "mverb");
         cost(&mut slots, 0, 353_600);
@@ -2654,7 +2483,7 @@ mod tests {
     #[test]
     fn a_chain_and_a_send_sharing_a_module_still_use_every_lane() {
         let mut slots = ChainSlots::new();
-        slots.set_pin_duplicates(true);
+        slots.set_blacklist("mverb");
         slots.pin.on_load(0, "fx1", "mverb");
         slots.pin.on_load(send_index(0), SEND_COMPONENT, "mverb");
         cost(&mut slots, 0, 230_800);

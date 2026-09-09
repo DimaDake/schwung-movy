@@ -28,18 +28,18 @@ export type FlagDef = {
      *  hint at the real font and fails a third line, because the renderer would
      *  cut it mid-sentence and only the device would show it. */
     hint: string;
-    /** Listed on the page in a RELEASE build, not only in a debug one. Two
-     *  settings are a user's business — how much CPU movy takes, and which host
-     *  owns tracks 1-4. The rest are measurement instruments. */
+    /** Listed on the page in a RELEASE build, not only in a debug one. Which
+     *  host owns tracks 1-4 is a user's business — it trades Move's own mixer
+     *  fader for speed. The rest are measurement instruments. */
     release?: boolean;
     /** Never pushed to the engine under ITS OWN key, because the engine has no
      *  such param. Writing one would cost a blocking round trip on the audio
      *  thread to be told nothing, and would read in the log exactly like a flag
      *  that took.
      *
-     *  It does NOT mean the engine is unaffected. Both flags marked `uiOnly`
-     *  reach it folded into another key (flags.ts `engineValue`), and that fold
-     *  is the load-bearing part: `chtracks` was once `uiOnly` with no fold, so
+     *  It does NOT always mean the engine is unaffected. `chtrackset` reaches
+     *  it folded into another key (flags.ts `engineValue`), and that fold is the
+     *  load-bearing part: `chtracks` was once `uiOnly` with no fold, so
      *  `drain_out` never heard it and every sequenced note kept going to schwung
      *  while the UI had fully switched over. Mark a flag `uiOnly` only after
      *  answering "and what does the engine do about it?". */
@@ -60,9 +60,9 @@ export type FlagDef = {
  *
  *  A flag is persisted the moment it is edited, and a stored value beats a
  *  changed default forever — so "we turned it on by default" silently does not
- *  happen on any device that has ever opened the page. That is exactly what
- *  happened to `chparallel`: prefs.json held a 0 written during a measurement
- *  session, and the new default reached nobody who had run one. */
+ *  happen on any device that has ever opened the page. It has already bitten
+ *  once: a flag left off during a measurement session kept its stored 0, and
+ *  the new default reached nobody who had run one. */
 export const FLAGS_REV = 2;
 
 /** `chtracks` is an ordinal, not a bool — the third value is what makes the
@@ -74,18 +74,6 @@ export const HOST_NEW_SETS = 2;
 /* Release rows first: a release build lists only these, and a debug build reads
  * top-down the same way. */
 export const FLAGS: FlagDef[] = [
-    {
-        key: 'cpuopt', name: 'CPU Optimize',
-        hint: 'Speeds up Movy tracks only. Off if it glitches.',
-        // The one CPU switch a user gets. Everything under it — lanes, idle
-        // skip, pinning — stays hidden at its measured default.
-        //
-        // uiOnly because the engine has no such param: it is pushed as its
-        // EFFECT on `chparallel` and `chidle` (flags.ts `engineValue`). Off is a
-        // full serial fallback rather than half of one, because the module that
-        // makes someone reach for this is not helped by keeping idle skip.
-        min: 0, max: 1, def: 1, bool: true, release: true, uiOnly: true,
-    },
     {
         key: 'chtracks', name: 'Tracks 1-4 Host',
         hint: 'MOVY gets the CPU boost. SCHWUNG is stock Schwung.',
@@ -125,53 +113,10 @@ export const FLAGS: FlagDef[] = [
         // has never seen is new work and gets movy chains; a set whose blob was
         // written before this field keeps the schwung slots it was built on.
         //
-        // uiOnly for the same reason as `cpuopt`: it reaches the engine folded
-        // into `chtracks`.
+        // uiOnly because the engine has no such param: it reaches the engine
+        // folded into `chtracks`.
         min: 0, max: 1, def: 1, legacy: 0, labels: ['SCHWUNG', 'MOVY'],
         release: true, perSet: true, uiOnly: true,
-    },
-    {
-        key: 'chparallel', name: 'Parallel Render',
-        hint: 'Renders chains and send FX on several threads.',
-        // On: measured 2.15x on the twelve-chain obxd ramp and 2.0-2.2x across
-        // the mid-weight fleet (docs/track-performance.md §1, §2), which is what
-        // takes hera and nusaw from over the frame budget to under it. The
-        // engine's own default stays serial — the UI pushes this on every engine
-        // boot, and keeping the two apart is what lets a device script detect
-        // the flag by writing a value the engine will actually log.
-        min: 0, max: 1, def: 1, bool: true, revisedAt: 1,
-    },
-    {
-        key: 'chlanes', name: 'Render Lanes',
-        hint: 'How many threads chains render on.',
-        // 1 is a real setting, not an alias for serial: it is the parallel path
-        // with no helpers. 4 is MAX_LANES in chain_slots.rs.
-        min: 1, max: 4, def: 3,
-    },
-    {
-        key: 'chcolo', name: 'Send On Lane',
-        hint: 'Renders a send beside the tracks feeding it.',
-        // On: measured 274 us -- 9.4% of a 2902 us frame -- on twelve chains
-        // with one heavy send, against the same FX inserted on the track that
-        // fed it (plans/2026-09-07-send-bus-colocation.md §1). It closes the
-        // gap that made a send more expensive than an insert below four tracks,
-        // which is a trap a user cannot be expected to know about.
-        //
-        // A flag where the parallel send phase deliberately had none: that was
-        // measured on a one-synth fixture where `chparallel 0` was a clean
-        // control, and this is measured on twelve chains where the same flag
-        // would move ~1500 us of chain work too. Off is the arm to compare
-        // against.
-        min: 0, max: 1, def: 1, bool: true,
-    },
-    {
-        key: 'chidle', name: 'Idle Skip',
-        hint: 'Skips chains that are silent.',
-        // An ordinal, not a bool: the FX gate depends on the synth gate.
-        // 0 one render_block call (today) · 1 split, never sleeps (the arm
-        // chdigest compares against 0) · 2 sleep a silent synth · 3 also sleep
-        // a silent FX tail.
-        min: 0, max: 3, def: 3,
     },
     {
         key: 'setcommit', name: 'Commit New Sets',
@@ -186,19 +131,6 @@ export const FLAGS: FlagDef[] = [
         // schwung carries a 3-frame hold for, and the surface belongs to Move
         // for ~1.5 s. Worth it against losing the Set, but worth an off switch.
         min: 0, max: 1, def: 1,
-    },
-    {
-        key: 'chpin', name: 'Pin Duplicates',
-        hint: 'Keeps module copies on one thread.',
-        // Off by default: modules are assumed thread-safe and the ones proven
-        // otherwise go on chain_pin's blacklist. This is the blunt containment
-        // for a set that misbehaves before the culprit is known.
-        //
-        // A TEST SETTING, never a shipping default. Pinning gives back exactly
-        // the parallelism it contains — twelve chains of one module pinned
-        // together return 1.00x — so a set that needs it has a bug to find
-        // rather than a configuration to ship. See chain_pin.rs.
-        min: 0, max: 1, def: 0, bool: true,
     },
     {
         key: 'schwunggrid', name: 'Param Pages',
@@ -217,7 +149,7 @@ export const FLAGS: FlagDef[] = [
         //
         // uiOnly with NOTHING FOLDED, which is the rare honest case for that
         // field: the engine has no parameter-page concept at all, so unlike
-        // `cpuopt` and `chtracks` there is no second key carrying its effect.
+        // `chtrackset` there is no second key carrying its effect.
         // Pushing it under its own name would cost a blocking round trip on the
         // audio thread to be told the key does not exist.
         //

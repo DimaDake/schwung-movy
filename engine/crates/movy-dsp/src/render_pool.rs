@@ -198,7 +198,7 @@ impl RenderPool {
         // Nothing for a helper to do: run what there is inline and skip the
         // rendezvous. The unpark/join pair is pure scheduler wake, so paying it
         // for zero tasks is the whole cost of the pool and none of the benefit —
-        // which is exactly a set that `chidle` has put to sleep. Identical
+        // which is exactly a set the idle gate has put to sleep. Identical
         // output either way: `run` is the same call on the same tasks, and lane
         // 0 already runs first.
         if self.is_poisoned() || lanes.is_empty() || lanes[1..].iter().all(|l| l.is_empty()) {
@@ -506,7 +506,7 @@ mod tests {
         assert_eq!(got, vec![0x42, 0x45]);
     }
 
-    /* `chidle` puts a silent set to sleep, which empties every helper lane while
+    /* The idle gate puts a silent set to sleep, which empties every helper lane while
      * leaving parallel render on — now the default. The rendezvous costs the
      * same whether the helpers have twelve tasks or none, so a sleeping set must
      * not pay it. Asserted on `generation`, the counter that publishes work to

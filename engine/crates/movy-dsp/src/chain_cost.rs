@@ -105,7 +105,7 @@ impl CostMeter {
 
     /// The synth stage of one block, for the chains that render in two calls.
     ///
-    /// A chain that does not split — `chidle 0`, or a module whose chain host
+    /// A chain that does not split — a module whose chain host
     /// does not export the FX trio — renders everything inside `render_block`,
     /// so its synth cost IS its total and the FX segment comes out empty. That
     /// is why the meter needs no branch for CPU Optimize being off.
@@ -357,7 +357,7 @@ mod tests {
         assert!(synth < total, "the synth is a part of the whole, not the whole");
     }
 
-    /// A chain asleep under `chidle` builds no task at all, so nothing measures
+    /// A chain asleep under the idle gate builds no task at all, so nothing measures
     /// it. Feeding a zero is what makes the mean say "this costs nothing now" —
     /// without it the planner keeps budgeting a lane for a silent chain and the
     /// meter draws a bar for a chain that is rendering nothing.

@@ -30,7 +30,6 @@ export async function run() {
 
     _log('\ncpu page: columns');
     resetFlags();
-    setFlag('cpuopt', 1);
     setFlag('chtracks', 1);          // every track is a movy chain
     feed();
     let vm = buildCpuPageVM();
@@ -60,7 +59,6 @@ export async function run() {
 
     _log('\ncpu page: tracks movy cannot measure');
     resetFlags();
-    setFlag('cpuopt', 1);
     setFlag('chtracks', 0);          // tracks 1-4 stay on the schwung host
     feed();
     vm = buildCpuPageVM();
@@ -68,15 +66,14 @@ export async function run() {
     eq('and so are the other three', vm.columns[3].kind, 'na');
     eq('a movy chain beside them still reads', vm.columns[4].kind, 'live');
 
-    _log('\ncpu page: CPU Optimize off');
+    _log('\ncpu page: a chain whose module cannot split');
     resetFlags();
-    setFlag('cpuopt', 0);
     setFlag('chtracks', 1);
-    /* One render_block call: the synth stage IS the whole chain, so the FX
-     * segment comes out empty with no branch anywhere in the renderer. */
+    /* One render_block call, because the module does not support the split:
+     * the synth stage IS the whole chain, so the FX segment comes out empty
+     * with no branch anywhere in the renderer. */
     feed({ cost: ['800/800/900'].concat(Array(15).fill('0/0/0')).join(','), mask: '0001/0000' });
     vm = buildCpuPageVM();
-    eq('optimized is reported', vm.optimized, false);
     eq('synth equals total when the chain does not split', vm.columns[0].synthUs, 800);
     eq('so the FX segment is nothing', vm.columns[0].totalUs - vm.columns[0].synthUs, 0);
 
@@ -150,7 +147,6 @@ export async function run() {
 
         /* End to end, through the poll field the engine actually writes. */
         resetFlags();
-        setFlag('cpuopt', 1);
         setFlag('chtracks', 1);
         feed({ snd: '-,-,620/1500' });
         vm = buildCpuPageVM();

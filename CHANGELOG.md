@@ -11,6 +11,43 @@ far. Earlier work is summarised in the timeline below for context.
 > sequencer engine's `ENGINE_VERSION` are tracked separately. Versions below
 > refer to the app unless noted.
 
+## [Unreleased]
+
+### Changed
+
+- **The CPU settings are gone, and what they were set to is simply what Movy
+  does.** Parallel chain render, three render lanes, send co-location and the
+  full idle skip were each a switch on the Settings page or a hidden engine
+  param; every one of them shipped at a measured default that nobody had reason
+  to move. They are now unconditional. The **CPU OPTIMIZE** row is removed, and
+  Settings lists the track host and the backups menu.
+
+  The CPU meter's header no longer reads **CPU OPT OFF**, because there is no
+  longer a state it could report. A chain whose module cannot be split into a
+  synth stage and an effects stage still draws as one solid bar — that picture
+  survives; only the flag that also produced it is gone.
+
+  Serial render survives as a *fallback*, not a setting: it is what runs before
+  the helper threads exist and what takes over if one of them panics. Deleting
+  it would have turned either into silence.
+
+  The one containment left for a module that misbehaves under threading is the
+  `moduleBlacklist` list in `prefs.json`, which pins every instance of a named
+  module to one lane. It has no UI.
+
+### Removed
+
+- The `chparallel`, `chlanes`, `chcolo`, `chidle` and `chpin` engine params, and
+  the `cpuopt` Settings row that folded into them.
+- The measurement harnesses that drove them: `measure-parallel-render.sh`,
+  `measure-chain-idle.sh`, `measure-send-colocation.sh`,
+  `measure-render-equivalence.sh`, `measure-parallel-sends.sh`, and the
+  `chain-equiv.sh` / `digest-verdict.awk` / `render-accounting.mjs` libraries
+  they shared. Each compared an arm with the optimization on against one with it
+  off; with no flag to turn off, there is no arm. The numbers they produced are
+  in `docs/track-performance.md` and `docs/chain-idle-cpu-optimization.md`,
+  which now say so.
+
 ## [0.34.0] — 2026-09-09
 
 ### Changed

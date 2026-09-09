@@ -50,7 +50,7 @@ export function barPixels(us: number, scaleUs: number): number {
 
 export function renderCpuView(vm: CpuPageVM): void {
     clear_screen();
-    drawHeader(vm.optimized ? 'CPU' : 'CPU OPT OFF', Math.round(vm.load * 100) + '%');
+    drawHeader('CPU', Math.round(vm.load * 100) + '%');
     drawCapacity(vm.load, vm.peakLoad);
     /* Two layouts, and only two: no send module anywhere, or the send region.
      * Which BUSES are filled never moves anything, so a bus keeps its column as

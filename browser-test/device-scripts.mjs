@@ -419,6 +419,26 @@ const rootless = versionWipers.filter(f => !/ts_ssh_root/.test(readFileSync(f, '
 ok('every one of them falls back to root', rootless.length === 0,
    rootless.join(', ') || `${versionWipers.length} checked`);
 
+/* The other half of the same hazard. scp OPENS THE DESTINATION FOR WRITING, so
+ * it is refused on a root-owned file however writable the directory is — and
+ * movy's saves are root's. Removing the version store but not the state files
+ * seeded over it is what failed the movy-host sweep after the root fallback
+ * above had already fixed the version store.
+ */
+const seedScps = shFiles.filter(f => /scp[^\n]*\$D\/(seq|ui)-state/.test(readFileSync(f, 'utf8')));
+ok('a script does seed set state by scp', seedScps.length > 0,
+   'if this is 0 the check below is vacuous');
+
+const noUnlink = seedScps.filter(f => {
+    const src = readFileSync(f, 'utf8');
+    /* Every destination it scps to must appear in a removal first. */
+    const dests = [...src.matchAll(/scp[^\n]*\$D\/((?:seq|ui)-state[^"'\s]*)/g)].map(m => m[1]);
+    return dests.some(d => !new RegExp(`rm[^\\n]*\\$D/${d.replace('.', '\\.')}`).test(src)
+                        && !new RegExp(`SEEDED=[^\\n]*${d.replace('.', '\\.')}`).test(src));
+});
+ok('every scp destination is unlinked before it is written', noUnlink.length === 0,
+   noUnlink.join(', ') || `${seedScps.length} checked`);
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 log('');

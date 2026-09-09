@@ -56,6 +56,19 @@ pub struct host_api_v1_t {
     // schwung appending a field fails a test instead of truncating silently.
     pub slot_recv_channel: Option<unsafe extern "C" fn(instance: *mut c_void) -> c_int>,
     pub get_beat_position: Option<unsafe extern "C" fn() -> f64>,
+    // A RUN OF NULLS, and it is load-bearing — schwung's own comment is the
+    // authority. Every field above is called as `if (host->fn) host->fn()`,
+    // which is only sound while a read inside the struct is the only read that
+    // can happen. It is not: a module's copy of the header can declare a field
+    // the host does not have, and the guard then tests somebody else's memory.
+    // breakbeat's shipped header appends `get_project_bpm` after
+    // `get_beat_position`, i.e. +120 — inside schwung's struct that is
+    // `reserved[0]` and the guard fails; without this field it is one past
+    // movy's leaked `Box`, so whatever the allocator left there passes the
+    // guard and the `blr` lands in the heap. SIGSEGV on the SPI callback,
+    // which takes MoveOriginal down and boot-loops the device if the slot is
+    // restored. Never shrink it: consume from the FRONT when adding a field.
+    pub reserved: [*mut c_void; 8],
 }
 
 #[repr(C)]

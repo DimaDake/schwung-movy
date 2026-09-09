@@ -35,7 +35,11 @@ export function drumPadOn(
         }
     }
     if (drumConfig.currentPadParam) {
-        portFor(slot).setParam(componentKey + ':' + drumConfig.currentPadParam, String(drumPad));
+        /* A declared `focus_param` takes the voice's LEVEL NAME; a hand-written
+         * `currentPadParam` takes the instance number. Same key, two spellings
+         * — see DrumConfig.padFocusValues. */
+        const focusValue = drumConfig.padFocusValues?.[drumPad - 1] ?? String(drumPad);
+        portFor(slot).setParam(componentKey + ':' + drumConfig.currentPadParam, focusValue);
     }
     return drumPad;
 }

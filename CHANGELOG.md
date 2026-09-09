@@ -13,6 +13,70 @@ far. Earlier work is summarised in the timeline below for context.
 
 ## [Unreleased]
 
+### Fixed
+
+- **A chain synth could crash the device at load.** Movy hands the Schwung chain
+  host a copy of Schwung's host callback table, and that table gained a reserved
+  tail of null pointers in August — precisely because a module's own copy of the
+  header can declare a callback the host does not have, and the module's
+  `if (host->fn)` guard then tests memory belonging to somebody else. Movy's
+  mirror stopped one field earlier, so on a module that does this (breakbeat
+  ships exactly such a header) the guard read past the end of Movy's allocation,
+  found whatever the allocator had left there, and jumped into the heap. That is
+  a SIGSEGV on the audio callback, which takes Move's own audio down with it and
+  boot-loops the device if the slot is restored on the next start.
+
+  The ABI parity test reported green throughout: its C parser matched function
+  pointers and plain fields, and a reserved *array* was neither, so it counted
+  17 members where the header has 18 and agreed with Movy. It can see array
+  members now, and the tail is written as nulls rather than copied, so an older
+  Schwung cannot hand Movy garbage there either.
+
+- **A big synth's parameter list was read truncated.** A module describes its
+  whole page layout in one parameter value, and Schwung doubled the ceiling on
+  those to 128 KB because 64 KB was not enough for a real synth. Movy still read
+  into a 64 KB buffer — and the two hosts fail differently: Schwung refuses an
+  over-long description with a visible message, Movy would have planned a page
+  set from half a JSON document, which is how a truncated read looked on device
+  the last time it happened. The buffer now tracks Schwung's constant, and a
+  test fails if the two drift apart again.
+
+- **A sleeping chain lost notes its own MIDI FX generated.** A chain that has
+  been silent for a second stops rendering and is only probed every half second;
+  while parked, its timers are still advanced so LFOs and arpeggiators keep
+  running. If one of those timers *emits a note* on such a block, that block has
+  to render — otherwise the note reaches a synth nobody hears until the next
+  probe, up to half a second later. Movy was advancing the timers and discarding
+  the chain host's answer about whether anything came of it. An arp, a euclidean
+  generator or a strummed chord on an otherwise idle track is what this was
+  costing.
+
+- **A declared drum rack was told to focus a voice that does not exist.** A
+  module that declares its own voices names the parameter holding the focused
+  one, and its value is a **level name** — `snare`, never `2`. Movy wrote the
+  pad number into it, which the module could only ignore, so pressing a pad
+  moved Movy's page and left the module's own focus where it was.
+
+### Added
+
+- **Movy reads three more things a module says about itself**, instead of
+  guessing them:
+
+  - `access: "read"` — a **readout**: a value worth watching that writing means
+    nothing to. Drawn in a dotted frame, never turnable, never opens a list, and
+    not offered for automation. Previously these were ordinary knobs over values
+    the module discards.
+  - `access: "write"` — an **action**, declared rather than inferred from the
+    parameter's name. Movy's own rule needs a name like `rnd_` on an off/on
+    shaped control, so a randomiser offering `"—"` / `"Rnd!"` read as an
+    ordinary two-item setting — and its "do nothing" option is one the module
+    fires on.
+  - `short_name` — the module's own **cell label**, where it wants the cell to
+    say something shorter than the header. Used as typed when it fits; Movy's
+    abbreviator only gets a say when the declared label is too wide.
+
+  A module that declares none of them behaves exactly as before.
+
 ### Changed
 
 - **The CPU settings are gone, and what they were set to is simply what Movy

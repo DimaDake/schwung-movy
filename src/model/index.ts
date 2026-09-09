@@ -17,6 +17,7 @@ import { rememberFileDir, startDirFor, defaultDirFor } from './file-dirs.js';
 import { fileContentAllows } from './file-validate.js';
 import { mlog } from '../log.js';
 import { isItemSelector, itemValueAt, refreshItems } from './items-param.js';
+import { isDivable } from './access.js';
 
 // Fractional accumulator: returns whole steps consumed and the leftover fraction
 function accumStep(accum: number, delta: number): [newAccum: number, step: number] {
@@ -140,7 +141,8 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
             const local = slotToLocal(s, k);
             const gi = local < 0 ? -1 : s.knobPage * KNOBS_PER_PAGE + local;
             const p  = gi < 0 ? undefined : s.knobParams[gi];
-            if (p && p.options && (isItemSelector(p) || (p.type === 'enum' && p.options.length > 6))) {
+            if (p && p.options && isDivable(p)
+                && (isItemSelector(p) || (p.type === 'enum' && p.options.length > 6))) {
                 /* Re-scan on touch: the list is the module's live directory and
                  * this is the one moment it is cheap to ask (see items-param). */
                 const live = isItemSelector(p) ? refreshItems(s, p) : null;

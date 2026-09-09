@@ -147,6 +147,11 @@ export function applyKnobDelta(s: ModelState, physK: number, delta: number): voi
     const p  = s.knobParams[gi];
     if (!p) return;
     if (p.type === 'file') return;
+    /* A readout means something in one direction only, so a turn has nothing to
+     * write — and writing it anyway is not harmless: the value the knob would
+     * scrub to is the module's own telemetry, so movy would be overwriting what
+     * it is displaying. See model/access.ts. */
+    if (p.readOnly) return;
 
     const ioKey = paramIoKey(s, p);
     if (applyTriggerDelta(s, gi, p, ioKey, delta, () => enumFmtFor(s, gi, p, ioKey))) return;

@@ -540,6 +540,30 @@ So there are two ways to fire again: turn **counter-clockwise** to re-arm
 immediately, or just stop and let the bar run out. The name under the icon
 highlights while you are touching the knob, exactly like every other control.
 
+A module can now say outright that a parameter is an action, rather than leaving
+Movy to recognise one by its name. That matters most where the name gives
+nothing away: a randomiser offering *"—"* and *"Rnd!"* looks like an ordinary
+two-item setting, and choosing the first option — which means "do nothing" —
+would have fired it.
+
+**Readouts.** The other half of the same declaration is a parameter that means
+something to *read* and nothing to *write*: a detected key, an input level, a
+step count the module is counting down. These are drawn inside a **dotted
+frame**, and the knob will not move them:
+
+![Readouts in dotted frames](docs/assets/readouts.png)
+
+*Detected Key*, *Input Level* and *Hold Steps* are readouts; *Sensitivity*,
+without the frame, is an ordinary control. Turning a readout does nothing,
+touching one opens no list, and none of them is offered for automation — there
+is no value for a lane to record. They still refresh on screen, which is the
+whole reason they are on the page.
+
+**Cell labels.** A module may also declare a short name for the cell separate
+from the parameter's full name — *Osc 1 Pitch* in the header, *PITCH* in the
+cell. Movy uses it as typed when it fits, and only falls back to its own
+abbreviation when the declared label is too wide for the cell.
+
 Wide-range controls can also opt into slow single-step turns plus fast
 acceleration through the module's `knob_acceleration` metadata, so a 1–9999 seed
 moves one step at a time when you turn deliberately and travels quickly when you

@@ -25,6 +25,10 @@ export interface ParamVM {
     trigger?:        'armed' | 'fired' | 'cooling';
     triggerCool?:    number;
     triggerBlink?:   boolean;   // fired: which half of the icon blink cycle
+    /* The module declared `access: "read"` — telemetry. Drawn inside a dotted
+     * frame, which is how the cell says "you can look at this and not turn it"
+     * before the user discovers it by trying. See model/access.ts. */
+    readOnly?:       boolean;
 }
 
 /* Injected automation snapshot (built in app/tick from seqState + the lane

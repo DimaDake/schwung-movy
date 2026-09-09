@@ -159,6 +159,7 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
             ...(p.behavior === 'trigger'
                 ? (() => { const t = triggerVisual(s, p.key); return { trigger: t.phase, triggerCool: t.coolSteps, triggerBlink: t.blinkOn }; })()
                 : {}),
+            ...(p.readOnly ? { readOnly: true } : {}),
         };
     }
 

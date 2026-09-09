@@ -130,6 +130,31 @@ impl IdleGate {
         Work { synth: probe, fx: !self.fx_asleep[chain] || probe }
     }
 
+    /// Fold a chain host's one-shot MIDI-tick wake into this block's plan.
+    ///
+    /// `plan` decided this chain was parked, so `mod_tick` ran instead of a
+    /// render — and the tick may have advanced a MIDI FX's own timer far enough
+    /// to emit a note. That note has ALREADY reached the synth by the time this
+    /// is called, so the block it belongs to is this one; leaving the chain
+    /// parked hides it until the next probe, up to `PROBE_PERIOD` blocks away.
+    ///
+    /// `wake` and not merely `work.synth = true`: schwung clears both the idle
+    /// flag and the silence counter here (`schwung_shim.c:2036-2046`), so the
+    /// chain is genuinely awake and the probe clock restarts rather than the
+    /// chain rendering one block and parking again. Both halves, because the
+    /// note has to reach the mix THROUGH the FX in the same block and the task
+    /// list is built before anything renders.
+    ///
+    /// Deliberately not counted as a probe: `probe_burst_this_frame` is the
+    /// stagger-alignment detector, and a MIDI-driven wake is not a probe.
+    pub fn midi_tick_wake(&mut self, chain: usize, work: &mut Work) {
+        if chain >= self.asleep.len() {
+            return;
+        }
+        self.wake(chain);
+        *work = Work { synth: true, fx: true };
+    }
+
     /// Fold this block's peaks back in. `synth_peak` is measured before
     /// `process_fx` ran, `fx_peak` after — a chain whose FX never settles must
     /// not be able to hold its synth awake.
@@ -343,6 +368,46 @@ mod tests {
             assert!(w.synth && w.fx, "a sounding chain renders synth and FX separately");
             g.observe(0, w, 5000, 5000, false);
         }
+    }
+
+    /// The bug §2.1 of the schwung review describes, at the cheapest level that
+    /// can hold it: a parked chain whose MIDI FX generated a note on a tick must
+    /// render THAT block. Nothing arrives at `wake` — no MIDI reached the chain
+    /// — so without `midi_tick_wake` the note waits for the next probe.
+    #[test]
+    fn a_midi_tick_wake_renders_the_block_the_note_was_generated_on() {
+        let mut g = gate();
+        let mut w = silent_blocks(&mut g, 344);
+        assert!(!w.synth, "the chain is parked, so mod_tick ran instead of a render");
+
+        g.midi_tick_wake(0, &mut w);
+        assert!(w.synth, "the generated note must be rendered on its own block");
+        assert!(w.fx, "and reach the mix through the FX in the same block");
+    }
+
+    /// Not just this block. schwung clears the silence counter too, so the chain
+    /// is awake — otherwise an arp would render one block, park, and lose its
+    /// next note as well.
+    #[test]
+    fn a_midi_tick_wake_leaves_the_chain_awake_not_probing() {
+        let mut g = gate();
+        let mut w = silent_blocks(&mut g, 344);
+        g.midi_tick_wake(0, &mut w);
+        for b in 0..PROBE_PERIOD {
+            let w = g.plan(0);
+            assert!(w.synth, "block {b} after a MIDI-tick wake must still render");
+            // Silent output: an arp's note has not sounded yet. The chain must
+            // stay awake on the normal SLEEP_AFTER schedule, not re-park at once.
+            g.observe(0, w, 0, 0, false);
+        }
+    }
+
+    #[test]
+    fn a_midi_tick_wake_on_an_impossible_chain_is_ignored() {
+        let mut g = gate();
+        let mut w = Work::NONE;
+        g.midi_tick_wake(CHAINS, &mut w);
+        assert!(w.none(), "no chain, no work");
     }
 
     #[test]

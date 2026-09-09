@@ -14,6 +14,7 @@ import { run as run_model_hierarchy } from './logic/model-hierarchy.mjs';
 import { run as run_model_paging } from './logic/model-paging.mjs';
 import { run as run_model_params } from './logic/model-params.mjs';
 import { run as run_knob_input } from './logic/knob-input.mjs';
+import { run as run_declarations } from './logic/declarations.mjs';
 import { run as run_trigger_badge } from './logic/trigger-badge.mjs';
 import { run as run_drums } from './logic/drums.mjs';
 import { run as run_seq_engine } from './logic/seq-engine.mjs';
@@ -68,6 +69,7 @@ const SUITES = [
     run_model_paging,
     run_model_params,
     run_knob_input,
+    run_declarations,
     run_trigger_badge,
     run_drums,
     run_seq_engine,

@@ -2,6 +2,7 @@ import type { ModelState } from './state.js';
 import { wavPeaksTick } from './wav-peaks.js';
 import { conditionHolds } from './visible-if.js';
 import { loadHierarchy } from './hierarchy.js';
+import { isDivable } from './access.js';
 import { applyKnobDelta, refreshOneParam, pollModuleName, refreshModulatedKeys, slotToLocal } from './store.js';
 import { triggerAnimationTick } from './trigger.js';
 import { KNOBS_PER_PAGE, NAME_POLL_TICKS } from './constants.js';
@@ -114,7 +115,7 @@ export function processTick(s: ModelState): boolean {
             if (local >= 0) {
                 const gi = s.knobPage * KNOBS_PER_PAGE + local;
                 const p  = s.knobParams[gi];
-                if (p && p.type === 'enum' && p.options) {
+                if (p && p.type === 'enum' && p.options && isDivable(p)) {
                     s.enumOverlay = {
                         slot:     k,
                         gi,

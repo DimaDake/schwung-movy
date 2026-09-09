@@ -43,7 +43,7 @@ export function readSurface(hierarchy: any): DeclaredSurface | null {
  *  than imported, to keep the layering one-way. */
 export interface DeclaredSurface {
     layout: string | null;
-    voices: { note: number; name: string }[];
+    voices: { note: number; name: string; level: string }[];
     focusParam: string | null;
 }
 
@@ -75,5 +75,17 @@ export function effectiveDrumConfig(
         /* The module names the param holding its focused voice; movy's own
          * `currentPadParam` said the same thing by hand. */
         currentPadParam: declared.focusParam || fallback?.currentPadParam,
+        /* WHAT to write into it, which the two sources spell differently.
+         *
+         * A hand-written `currentPadParam` is the template shape's instance
+         * number, so movy writes the pad number. A declared `focus_param` is
+         * the SIBLING shape, and its value is a LEVEL NAME — "snare", never
+         * "2". movy wrote the pad number into both, so every declared rack was
+         * told to focus a voice called "1", which is not a level and which the
+         * module can only ignore. Carried per pad because the levels are the
+         * module's own names in its own order. */
+        ...(declared.focusParam
+            ? { padFocusValues: declared.voices.map((v) => v.level) }
+            : {}),
     };
 }

@@ -42,13 +42,19 @@ if (!existsSync(HEADER)) {
 }
 
 /* Commit the mirror was last verified against, so a failure says what to diff. */
-const VERIFIED_AT = 'd6c818c3';
+const VERIFIED_AT = '583cc175';
 
 const header = readFileSync(HEADER, 'utf8');
 const rust = readFileSync('engine/crates/movy-dsp/src/ffi.rs', 'utf8');
 
-/* Field names of a C struct, in declaration order. Handles plain fields and
- * function pointers: `ret (*name)(args);`. */
+/* Field names of a C struct, in declaration order. Handles plain fields,
+ * function pointers (`ret (*name)(args);`) and array members (`void *n[8];`).
+ *
+ * The array case is not decoration. `host_api_v1_t` ends in `void *reserved[8]`
+ * and the plain-field pattern below anchors on a trailing identifier, so a
+ * member ending in `]` matched NEITHER branch: the header had 18 members, this
+ * counted 17, ffi.rs had 17, and "field count matches (17) ✓" was printed over
+ * a mirror that was one member short of the struct it is copied into. */
 function cFields(src, structName) {
     const m = src.match(new RegExp(`typedef struct ${structName}\\s*\\{([\\s\\S]*?)\\}`, 'm'));
     if (!m) return null;
@@ -57,6 +63,8 @@ function cFields(src, structName) {
     for (const line of body.split(';')) {
         const fn = line.match(/\(\s*\*\s*([A-Za-z_]\w*)\s*\)\s*\(/);
         if (fn) { out.push(fn[1]); continue; }
+        const arr = line.match(/([A-Za-z_]\w*)\s*(?:\[[^\]]*\]\s*)+$/);
+        if (arr) { out.push(arr[1]); continue; }
         const plain = line.match(/([A-Za-z_]\w*)\s*$/);
         if (plain && line.trim()) out.push(plain[1]);
     }
@@ -118,6 +126,31 @@ compare('plugin_api_v2 — the struct movy calls the chain host through',
  * instead of on the device. */
 compare('host_api_v1 — the struct schwung calls movy through, and copies',
         'host_api_v1', 'host_api_v1_t');
+
+/* The param channel's ceiling is a shared constant, not a movy choice. Schwung
+ * REJECTS an over-long contract with a visible message; movy truncates and
+ * plans a page set from half a JSON document, so movy is the tree where drift
+ * is silent. It has already bitten once at 4 KB (dexed's ~13.5 KB contract) and
+ * schwung doubled 64 KB -> 128 KB in 1.3.0, which is what this now pins. */
+_log('\nparam contract ceiling matches schwung:');
+{
+    const CONSTS = '/Users/dake/git/cld/schwung/src/host/shadow_constants.h';
+    const cm = existsSync(CONSTS)
+        && readFileSync(CONSTS, 'utf8').match(/#define\s+SHADOW_PARAM_VALUE_LEN\s+(\d+)/);
+    const rm = readFileSync('engine/crates/movy-dsp/src/chain_host.rs', 'utf8')
+        .match(/const PARAM_BUF: usize = (\d+)\s*\*\s*1024;/);
+    ok('SHADOW_PARAM_VALUE_LEN found in shadow_constants.h', !!cm);
+    ok('PARAM_BUF found in chain_host.rs', !!rm);
+    if (cm && rm) {
+        const want = Number(cm[1]), got = Number(rm[1]) * 1024;
+        ok(want === got
+            ? `PARAM_BUF is SHADOW_PARAM_VALUE_LEN (${got})`
+            : `PARAM_BUF must equal SHADOW_PARAM_VALUE_LEN — header says ${want}, `
+              + `chain_host.rs says ${got}; a module written to the header's ceiling `
+              + `is read TRUNCATED into a wrong page layout`,
+            want === got);
+    }
+}
 
 /* api_version must be first in both, because it is the runtime check's anchor:
  * movy reads it before trusting any other field. */

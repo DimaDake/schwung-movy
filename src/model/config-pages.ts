@@ -8,8 +8,9 @@ import { KNOBS_PER_PAGE } from './constants.js';
 import { buildPresetParam } from './preset-param.js';
 import { buildItemSelectParam } from './items-param.js';
 import type { RawMeta } from './param-build.js';
-import { inferBehavior, inferAcceleration, parseFilter, applyAutoStyle } from './param-build.js';
+import { inferBehavior, inferAcceleration, parseFilter, applyAutoStyle, declaredShortName } from './param-build.js';
 import { cellStyleFor } from './step-labels.js';
+import { readAccess } from './access.js';
 
 interface CfgLevel { count_param?: string; name_param?: string;
                      label?: string; name?: string;
@@ -105,11 +106,20 @@ export function buildConfigPages(
                 const style = slot.render
                     ? { renderStyle: slot.render }
                     : cellStyleFor(slot.key, type as KnobParam['type'], min, max);
-                const behavior = inferBehavior(slot.behavior ?? hier.behavior ?? cp.behavior, options);
+                /* Module-declared, never config-declared: `access` states what the
+                 * DSP will DO with a write, which no movy-side layout template
+                 * is in a position to contradict. */
+                const access   = readAccess(cp.access, hier.access);
+                const behavior = inferBehavior(slot.behavior ?? hier.behavior ?? cp.behavior,
+                                               options, access);
                 const param: KnobParam = {
                     key:        slot.key,
                     label:      slot.full || cp.name || hier.label || slot.key,
-                    shortLabel: slot.short ?? null,
+                    /* movy's own config first: a hand-written `short` is a
+                     * deliberate choice about THIS layout, which is more than
+                     * the module can know. Its declaration still beats the
+                     * abbreviator, which is the guess this replaces. */
+                    shortLabel: slot.short ?? declaredShortName(hier, cp),
                     type:       type as KnobParam['type'],
                     options, min, max, step, ...style,
                     /* The module's `viz: false` is the same veto as the
@@ -127,11 +137,12 @@ export function buildConfigPages(
                     // may override per slot (it knows which per-voice keys the host
                     // resolves); module-supplied metadata must stay subordinate to
                     // the guard or a module re-enables a dot the host can't honour.
-                    automatable: behavior === 'trigger' ? false
+                    automatable: behavior === 'trigger' || access === 'read' ? false
                         : slot.automatable ?? (bank.global ? false
                             : (cp.automatable ?? hier.automatable ??
                                 ((type === 'float' || type === 'int') && max > min))),
                     behavior,
+                    ...(access === 'read' ? { readOnly: true } : {}),
                     knobAcceleration: inferAcceleration(
                         slot.knobAcceleration ?? cp.knob_acceleration ?? cp.knobAcceleration ??
                         hier.knob_acceleration ?? hier.knobAcceleration,

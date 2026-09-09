@@ -74,6 +74,7 @@ const PRESETS = [
     'track_volume_unity', 'track_volume_quiet', 'track_volume_min', 'track_volume_max',
     'trigger_armed', 'trigger_fired', 'trigger_blink_off', 'trigger_touched',
     'trigger_cooling', 'trigger_cooling_low',
+    'readouts', 'readout_touched',
     'font_5x3_all', 'font_small_all', 'font_big_all_1', 'font_big_all_2',
     'wave_cells', 'wave_overlay', 'wave_helm', 'wave_toggles',
     'env_stages', 'eq_bands', 'cut_filters', 'faders', 'wav_sample', 'wav_loop', 'wav_loop_off', 'wav_beside_filter',
@@ -110,6 +111,7 @@ const BASE = {
     trigger_armed: 'triggers', trigger_fired: 'triggers',
     trigger_blink_off: 'triggers', trigger_touched: 'triggers',
     trigger_cooling: 'triggers', trigger_cooling_low: 'triggers',
+    readouts: 'readouts', readout_touched: 'readouts',
     env_dual: 'env_dual', env_touched: 'env_dual', env_ad: 'env_ad', env_asr: 'env_asr', lfo_mod: 'lfo_mod',
     filter_lp: 'filter_demo', filter_lp_reso: 'filter_demo', filter_hp: 'filter_demo',
     filter_bp: 'filter_demo', filter_notch: 'filter_demo', filter_slope24: 'filter_demo',
@@ -405,6 +407,11 @@ function applyView(preset) {
         /* Trigger badge phases. Time is frozen so the fired flash and two drain
          * positions are deterministic; the drain is what makes the re-arm
          * debounce visible, so it needs more than one sample pinned. */
+        /* Knob 2 is the only turnable param on the page, so a shot with knob 0
+         * touched shows a dotted frame and a filled label cell together —
+         * touching a readout is allowed, turning it is not. */
+        case 'readouts':            settle(); forceRender(); break;
+        case 'readout_touched':     settle(); model.handleKnobTouch(0); forceRender(); break;
         case 'trigger_armed':       settle(); forceRender(); break;
         case 'trigger_fired':       fireTrigger(0); break;
         case 'trigger_blink_off':   fireTrigger(60); break;   // second half of the blink

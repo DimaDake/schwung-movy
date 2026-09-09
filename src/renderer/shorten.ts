@@ -183,8 +183,13 @@ export function dedupShortNames(
     budget: number,
 ): string[] {
     const locked = entries.map(e => !!(e && e.shortLabel));
+    /* A declared short label goes through `autoShorten` too, which returns it
+     * UNCHANGED when it fits — so "Noise" draws NOISE rather than the NSE the
+     * abbreviation table would pick, and "Amt" stays AMT rather than being
+     * expanded back to AMOUNT. The table only gets a say when what was declared
+     * is too wide for the cell, which used to overflow it instead. */
     const result = entries.map(e =>
-        e ? (e.shortLabel ? e.shortLabel.toUpperCase() : autoShorten(e.label, budget)) : '',
+        e ? autoShorten(e.shortLabel || e.label, budget) : '',
     );
 
     /* What each label still has to say for itself, narrowed as passes strip

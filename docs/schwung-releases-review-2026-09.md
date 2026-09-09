@@ -153,9 +153,10 @@ false` as an envelope veto. It reads none of the following.
 | `viz: { kind, group, role }` | `param-build.ts:28` carries `viz?: unknown` and reads only the `false` case; the comment says "a `{kind: ...}` object is the module asking for a specific graphic and **is not read here**". movy infers envelope/filter/LFO/EQ instead. Schwung's resolution order is module → host override → detector, and movy has no first tier. | Medium |
 | `options_as_string` | movy learns the enum wire format per key (`enumUsesIndex`, `store.ts:76`) — good, and equivalent to Schwung's `learnEnumWireFormat`. But the *declared* override is checked first upstream and never learned over. | Small |
 | `child_press_param` / `focus_press_param` | Not read. This is the "a finger did that" vouch: the grid forwards Move's hardware pad note passively and writes `"1"`, so a drum module can move its own focus to the pad you **hit** without confusing it with the pattern's notes. movy has `padSelectRefresh` for Forge instead. | Medium |
-| focus **change token** (`"17:snare"`) | `hierarchy.ts` reads `focus_param`; the counted form is what makes a *second* hit on the pad you are already editing move you back. Without it, hit kick → browse to Reverb → hit kick again leaves you on Reverb. | Small |
+| focus **change token** (`"17:snare"`) | ~~Not read.~~ **NO CONSUMER — checked 2026-09-10.** The token is an *edge detector for a reader that latches*, and movy never reads focus back: `hierarchy.ts:71` says so outright ("Deliberately NOT seeded from the DSP's currentPadParam"), and the only two sites touching `focus_param` (`drum-handler.ts`, `schwung-page.ts:386`) both WRITE it. movy's page moves from its own pad press, so re-hitting the pad you are on already works. What *was* wrong is the value movy writes — see the fix below. | — |
+| `focus_param` **value shape** | **FIXED 2026-09-10.** The sibling shape's param takes a LEVEL NAME; `drum-handler.ts` wrote the pad number into it, so every declared rack was told to focus a voice called "1". `DrumConfig.padFocusValues` now carries the module's own level per pad. | Done |
 | `default_fx`, `default_buses`, `preset` by name | Not read. A module can now say which FX belong behind it, and name a factory preset. Fires on interactive pick only, into an empty FX section. | Medium |
-| `requires_modules` (catalog) | Not read. movy carries hand-written dependency docs for forge and libpo32 (`docs/forge-dependency.md`, `docs/libpo32-dependency.md`) — this is the catalog field that installs them. | Small |
+| `requires_modules` (catalog) | ~~Not read.~~ **NOT APPLICABLE — checked 2026-09-10.** It is a field on the *catalog* entry (`charlesvestal/schwung`'s `module-catalog.json`), not on anything in this repo, and it names catalog **ids** the manager installs first and then refuses to uninstall. movy has no such dependency: forge and libpo32 are optional synths movy has enhanced support for, and both docs describe a **forked build** (a PR branch carrying `pv<N>_` keys), which an id cannot name. Declaring them would force-install two synths on every movy user and pin them there. | — |
 | `card_script`, `as_page`, `extra_keys`, `live: true` | Not read. See §4.1. | Large |
 
 The `pad_layout` / voices work (#411) is the exception and it is worth saying
@@ -393,12 +394,22 @@ something movy's has not.
 
 ## 7. Suggested order
 
-1. §1.1 `reserved[8]` + a parity test that can see array members. Crash class.
-2. §1.2 `PARAM_BUF` 128 KB + overflow log. Silent-corruption class.
-3. §2.1 `chain_take_midi_tick_wake`. One dlsym, one test, real audible bug.
-4. §3 the small column — `access`, `short_name`, focus change token,
-   `requires_modules`. Each is a day or less and each removes a movy guess in
-   favour of a module's own statement, which is the pattern #411 established.
+**Items 1-4 are DONE (2026-09-10) — see the CHANGELOG's Unreleased section.**
+Two of the four §3 rows resolved differently than this document expected, and
+the table above records why: the focus change token has no consumer in movy
+(movy writes focus, never reads it — but it was writing the wrong *value*, which
+is fixed), and `requires_modules` is a catalog field naming a dependency movy
+does not have.
+
+1. ~~§1.1 `reserved[8]` + a parity test that can see array members.~~ **DONE.**
+2. ~~§1.2 `PARAM_BUF` 128 KB + overflow log.~~ **DONE** — the overflow log was
+   already there (`chain_host.rs:310`); a drift test against
+   `SHADOW_PARAM_VALUE_LEN` was not.
+3. ~~§2.1 `chain_take_midi_tick_wake`.~~ **DONE.** The wake decision lives in
+   `chain_idle.rs::midi_tick_wake` so it is unit-testable without a chain host;
+   `mod_tick` is `#[must_use]`, because discarding its answer IS the bug.
+4. ~~§3 the small column.~~ **DONE** — `access` (both directions) and
+   `short_name`; see the table for the other two rows.
 5. §4.2 variable-length chains. Biggest user-visible win per unit of new
    engine risk, because the engine part already exists.
 6. §4.1 finish the `schwunggrid` PAGE-mode list, or accept the divergence

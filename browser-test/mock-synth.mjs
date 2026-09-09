@@ -56,6 +56,26 @@ export const MOCK_SYNTHS = {
         "synth:reroll":       "idle",
     },
 
+    /* Declared readouts (`access: "read"`) beside ordinary controls, so the
+     * dotted frame can be compared against an undotted cell in the same shot.
+     * One of each widget a readout realistically wears: a dial, an enum square,
+     * and a big number. */
+    readouts: {
+        "synth:name":         "Keydetect",
+        "synth_module":       "keydetect",
+        "synth:chain_params": JSON.stringify([
+            { key: "detected_key", name: "Detected Key", type: "enum",
+              options: ["C", "C#", "D", "D#", "E", "F", "F#", "G"], access: "read" },
+            { key: "level_in", name: "Input Level", type: "float", min: 0, max: 1, access: "read" },
+            { key: "sens",     name: "Sensitivity", type: "float", min: 0, max: 1 },
+            { key: "hold",     name: "Hold Steps",  type: "int",   min: 0, max: 16, access: "read" },
+        ]),
+        "synth:detected_key": "D#",
+        "synth:level_in":     "0.72",
+        "synth:sens":         "0.4",
+        "synth:hold":         "6",
+    },
+
     /* Eight trigger badges on one page — the worst case for badge draw cost. */
     triggers_full: {
         "synth:name":         "Smackier",

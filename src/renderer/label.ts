@@ -7,7 +7,8 @@ import { drawFilterCurve } from './filter-curve.js';
 import { drawEqCurve } from './eq-curve.js';
 import { drawCutCurve } from './cut-curve.js';
 import { drawWavForm } from './wav-form.js';
-import { CELL_W, LBL_H, ROW0_Y, LBL0_Y, ROW1_Y, LBL1_Y } from './layout.js';
+import { CELL_W, LBL_H, ROW0_Y, LBL0_Y, ROW1_Y, LBL1_Y, spanX } from './layout.js';
+import { drawDottedRect } from './primitives.js';
 
 /* Modulation mark — a 4×2 dither: top row 1010, bottom row 0101. Mirror of the
  * automation dot (a solid 2×2), visually distinct at a glance. */
@@ -83,6 +84,19 @@ export function drawKnobRow(
         const inCut = !!cutViz && col >= cutViz.startCol && col < cutViz.startCol + cutViz.cellCount;
         const inWav = !!wavViz && col >= wavViz.startCol && col < wavViz.startCol + wavViz.cellCount;
         if (!inEnv && !inViz && !inFlt && !inEq && !inCut && !inWav) drawKnobWidget(col, rowY, pvm);
+        /* A readout — `access: "read"`. The frame is the whole message: the
+         * widget still shows the live value (telemetry is worth watching), and
+         * the dots say the knob will not move it, before the user finds that out
+         * by turning. Drawn AFTER the widget so it is never painted over, and on
+         * `spanX` so two adjacent readouts stay two frames. */
+        if (pvm.readOnly) {
+            const [x0, xEnd] = spanX(col, 1);
+            /* Exactly the widget band: `lblY - rowY` is the 16px box every knob
+             * widget occupies, so the frame encloses it and stops on the row
+             * before the label. One less and an enum square's bottom edge hangs
+             * outside its own frame. */
+            drawDottedRect(x0, rowY, xEnd - x0, lblY - rowY);
+        }
         drawLabelCell(col, lblY, pvm);
     }
 }

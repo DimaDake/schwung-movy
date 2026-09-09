@@ -6,14 +6,23 @@ import { isFaderParam } from './fader.js';
 import { isPanParam } from './pan.js';
 import { isActionParam, isToggleParam } from './toggle.js';
 import { cellStyleFor } from './step-labels.js';
+import { readAccess } from './access.js';
 
 /* One param's metadata as published by a module — either a chain_params entry
  * or a ui_hierarchy params[]/knobs[] entry. Both shapes are partial and the
  * fields overlap, so one permissive interface serves both. */
 export interface RawMeta {
     key?: string; label?: string; name?: string; level?: string;
+    /* The cell label, when the module wants it to differ from `name`. The cell
+     * is ~5 characters and the header is the whole screen, so they want
+     * different words: `{name: "Osc 1 Pitch", short_name: "Pitch"}` draws PITCH
+     * in the cell and keeps "Osc 1 Pitch" in the held-knob header. */
+    short_name?: string;
     type?: string; min?: number; max?: number; step?: number; options?: string[];
     automatable?: boolean; behavior?: string;
+    /* "read" (a readout) / "write" (a trigger) / "readwrite" (the default).
+     * See model/access.ts — movy guesses both of these from names otherwise. */
+    access?: string;
     knob_acceleration?: string; knobAcceleration?: string;
     root?: string; filter?: unknown; start_path?: string;
     filepath_param?: string;   // wav_position → the file param it indexes
@@ -28,7 +37,30 @@ export interface RawMeta {
     viz?: unknown;
 }
 
-export function inferBehavior(explicit: unknown, options: string[] | null): KnobParam['behavior'] | undefined {
+/* The module's own cell label, or null to let movy abbreviate.
+ *
+ * PRECEDENCE IS THE REVERSE OF EVERY OTHER FIELD HERE, and deliberately so:
+ * `short_name` belongs to the parameter, but the same parameter can sit on more
+ * than one page — `env_amount` wants "Amt" on an Envelope page and something
+ * else beside an LFO Amt on Main — so a LEVEL's inline entry overrides the
+ * parameter's own. Everywhere else chain_params is the more specific source and
+ * wins; here the level is.
+ *
+ * Empty or blank is not a declaration: it would lock the cell to nothing.
+ * A declaration too wide for the cell is still fitted (shorten.ts) rather than
+ * overflowing — it is a label, not a way to smuggle six characters into five. */
+export function declaredShortName(level: RawMeta, param: RawMeta): string | null {
+    for (const v of [level.short_name, param.short_name]) {
+        if (typeof v === 'string' && v.trim().length > 0) return v.trim();
+    }
+    return null;
+}
+
+export function inferBehavior(explicit: unknown, options: string[] | null,
+                              access: 'read' | 'write' | null = null): KnobParam['behavior'] | undefined {
+    /* Ahead of everything else: `access: "write"` is the module STATING that
+     * this is an action, which outranks any convention read off its options. */
+    if (access === 'write') return 'trigger';
     if (explicit === 'trigger') return 'trigger';
     const normalized = (options ?? []).map(v => String(v).trim().toLowerCase());
     return normalized.includes('idle') && normalized.includes('trigger') ? 'trigger' : undefined;
@@ -66,7 +98,7 @@ export function buildGenericParam(key: string, cp: RawMeta, def: RawMeta): KnobP
         return {
             key,
             label:      String(cp.name ?? def.name ?? def.label ?? key),
-            shortLabel: null,
+            shortLabel: declaredShortName(def, cp),
             type:       'file',
             min: 0, max: 0, step: 0,
             options:    null,
@@ -87,20 +119,25 @@ export function buildGenericParam(key: string, cp: RawMeta, def: RawMeta): KnobP
     // only). Flag it so the first value read can infer the real int type
     // and widen the range (see meta-infer.ts / store.ts).
     const metaGuessed = !hasRange && (type === 'float' || type === 'int');
-    const behavior = inferBehavior(cp.behavior ?? def.behavior, options);
+    const access   = readAccess(cp.access, def.access);
+    const behavior = inferBehavior(cp.behavior ?? def.behavior, options, access);
     return {
         key,
         label:      cp.name || def.label || key,
-        shortLabel: null,
+        shortLabel: declaredShortName(def, cp),
         type:       type as KnobParam['type'],
         options, min, max, step,
         ...cellStyleFor(key, type as KnobParam['type'], min, max),
         // Config-less fallback: the `g_` global-naming convention is the
         // only signal available here. Modules with a movy config use
         // bank.global instead (see the config path in hierarchy.ts).
-        automatable: behavior === 'trigger' ? false : (cp.automatable ?? def.automatable ??
-            ((type === 'float' || type === 'int') && max > min && !key.startsWith('g_'))),
+        automatable: behavior === 'trigger' || access === 'read' ? false
+            : (cp.automatable ?? def.automatable ??
+               ((type === 'float' || type === 'int') && max > min && !key.startsWith('g_'))),
         behavior,
+        /* A readout has no value to record: an automation lane would replay
+         * writes the module ignores, over a knob that cannot be turned. */
+        ...(access === 'read' ? { readOnly: true } : {}),
         knobAcceleration: inferAcceleration(
             cp.knob_acceleration ?? cp.knobAcceleration ??
             def.knob_acceleration ?? def.knobAcceleration,
@@ -128,6 +165,10 @@ export function applyAutoStyle(p: KnobParam, explicitRender = false): KnobParam 
         p.automatable = false;
         return p;
     }
+    /* A declared readout keeps whatever cell style its shape earned — the frame
+     * is what says "readout", not the widget — but it must not become a SWITCH
+     * below, which would invite the flip it can never perform. */
+    if (p.readOnly) return p;
     if (explicitRender) return p;
     if (isToggleParam(p)) { p.renderStyle = 'switch'; return p; }
     /* Ahead of the fader: the two are disjoint (a level is not a placement, and

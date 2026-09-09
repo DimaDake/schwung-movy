@@ -123,6 +123,13 @@ fn shimmed_host() -> *const host_api_v1_t {
     let _ = ORIGINALS.set((copy.midi_send_internal, copy.midi_send_external));
     copy.midi_send_internal = Some(shim_send_internal);
     copy.midi_send_external = Some(shim_send_external);
+    // Written rather than copied, because the read above can be the thing that
+    // gets it wrong: on a schwung older than the reserved tail, `read` takes 64
+    // bytes from past the end of THEIR struct. NULL is the only correct value
+    // here whatever the host holds — movy provides no callback in the reserved
+    // run — so a module guarding `if (host->get_project_bpm)` on a field movy
+    // has never heard of gets the NULL its guard was written for.
+    copy.reserved = [core::ptr::null_mut(); 8];
     let leaked: *mut host_api_v1_t = Box::leak(Box::new(copy));
     SHIMMED_HOST.store(leaked, Ordering::Release);
     leaked
@@ -133,17 +140,19 @@ pub struct ChainHost {
     fx: ChainFxApi,
 }
 
-/// The split-render entry points, all three or none.
+/// Chain-host entry points that are plain exported symbols rather than members
+/// of `plugin_api_v2_t` — the shim resolves the same ones by name. A chain
+/// module without them is not an error: each capability degrades on its own.
 ///
-/// These are plain exported symbols on the chain module, NOT members of
-/// `plugin_api_v2_t` — the shim resolves the same three by name. A chain module
-/// without them is not an error: movy falls back to one `render_block` call and
-/// the FX gate is simply unavailable.
+/// The split-render trio is all three or none (`complete`); the MIDI-tick wake
+/// is independently optional, because it arrived two releases later and a host
+/// that never calls it costs at most one skipped tick.
 #[derive(Clone, Copy, Default)]
 pub struct ChainFxApi {
     set_external_fx_mode: Option<FxModeFn>,
     process_fx: Option<FxFn>,
     requires_continuous: Option<FxContinuousFn>,
+    take_midi_tick_wake: Option<TickWakeFn>,
 }
 
 impl ChainFxApi {
@@ -231,9 +240,11 @@ impl ChainHost {
             let mode = CString::new("chain_set_external_fx_mode").unwrap();
             let proc_fx = CString::new("chain_process_fx").unwrap();
             let cont = CString::new("chain_fx_requires_continuous").unwrap();
+            let wake = CString::new("chain_take_midi_tick_wake").unwrap();
             let m = dlsym(handle, mode.as_ptr());
             let p = dlsym(handle, proc_fx.as_ptr());
             let c = dlsym(handle, cont.as_ptr());
+            let w = dlsym(handle, wake.as_ptr());
             if !m.is_null() {
                 fx.set_external_fx_mode = Some(core::mem::transmute::<*mut c_void, FxModeFn>(m));
             }
@@ -244,9 +255,17 @@ impl ChainHost {
                 fx.requires_continuous =
                     Some(core::mem::transmute::<*mut c_void, FxContinuousFn>(c));
             }
+            if !w.is_null() {
+                fx.take_midi_tick_wake =
+                    Some(core::mem::transmute::<*mut c_void, TickWakeFn>(w));
+            }
         }
         if !fx.complete() {
             host::log("chain host exports no split render — idle skip limited to whole chains");
+        }
+        if fx.take_midi_tick_wake.is_none() {
+            host::log("chain host exports no midi tick wake — a sleeping chain's MIDI FX \
+                       can lose up to ~0.5s of notes");
         }
 
         host::log(&format!("chain host loaded from {} (api v{})", so_path, version));
@@ -274,7 +293,16 @@ impl ChainHost {
 /// UI's entire description of itself, and dexed's is ~13.5 KB. Reading it into a
 /// 4 KB buffer truncated it mid-JSON — the module loaded (its id is short) but
 /// every page came out wrong, which is exactly how it looked on device.
-const PARAM_BUF: usize = 64 * 1024;
+///
+/// TRACK SHADOW_PARAM_VALUE_LEN, do not pick a number. Schwung doubled it to
+/// 128 KB in 1.3.0 because 64 KB was not enough for a real synth — a Waldorf
+/// microQ reaches 79% of 64 KB at 286 of its 449 parameters, and only after
+/// dropping half of both modulation matrices. Modules are written against the
+/// new ceiling from 1.3.0 on, and the two hosts fail differently: schwung
+/// REJECTS an over-long contract with a visible "UI buffer overflow", movy
+/// truncates and plans a page set from half a JSON document. Per
+/// `ChainInstance`, so twelve chains is 1.5 MB of heap — not stack, and fine.
+const PARAM_BUF: usize = 128 * 1024;
 
 /// One movy-owned chain: a track's MIDI FX, synth and audio FX.
 pub struct ChainInstance {
@@ -377,11 +405,28 @@ impl ChainInstance {
     /// NOT `set_param`: that builds two `CString`s, and this runs on the audio
     /// thread once per block for every sleeping chain. Byte literals carrying
     /// their own NUL are `'static` and allocate nothing.
-    pub fn mod_tick(&mut self) {
+    ///
+    /// Answers **true when this block must render after all**: the tick may have
+    /// run a MIDI FX's own timer — an arp, a euclidean generator, a strum — and
+    /// delivered a generated note to the synth. `ChainIdle::wake` cannot see
+    /// that, because it is driven by MIDI ARRIVING at the chain, and nothing
+    /// arrived. Leaving the chain parked hides the note until the next probe,
+    /// up to `PROBE_PERIOD` blocks (~0.5 s) away.
+    ///
+    /// One-shot, and it clears itself on a read — a host that never asks costs
+    /// at most one skipped tick, which is the state movy was in before the
+    /// symbol was resolved. `#[must_use]` because discarding the answer is
+    /// exactly the bug: it is what movy did, and it is silent.
+    #[must_use]
+    pub fn mod_tick(&mut self) -> bool {
         const KEY: &[u8] = b"mod:tick\0";
         const VAL: &[u8] = b"128\0";
         if let Some(f) = self.api.set_param {
             unsafe { f(self.inst, KEY.as_ptr() as *const c_char, VAL.as_ptr() as *const c_char) };
+        }
+        match self.fx.take_midi_tick_wake {
+            Some(f) => unsafe { f(self.inst) != 0 },
+            None => false,
         }
     }
 
@@ -400,6 +445,9 @@ pub type RenderFn = unsafe extern "C" fn(*mut c_void, *mut i16, c_int);
 pub type FxFn = unsafe extern "C" fn(*mut c_void, *mut i16, c_int);
 type FxModeFn = unsafe extern "C" fn(*mut c_void, c_int);
 type FxContinuousFn = unsafe extern "C" fn(*mut c_void) -> c_int;
+
+/// `chain_take_midi_tick_wake` — one-shot, and reading it clears it.
+type TickWakeFn = unsafe extern "C" fn(*mut c_void) -> c_int;
 
 impl Drop for ChainInstance {
     fn drop(&mut self) {

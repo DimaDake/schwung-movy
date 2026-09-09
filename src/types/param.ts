@@ -139,6 +139,11 @@ export interface DrumConfig {
      * present it is authoritative and the arithmetic is not consulted. */
     padNotes?:        number[];
     currentPadParam?: string;
+    /* What to WRITE into `currentPadParam` for each pad, 1-based pad ->
+     * padFocusValues[pad-1]. Present only for a rack that DECLARED
+     * `focus_param`, whose contract is a level name rather than an instance
+     * number; absent means the pad number is the value. See drum-declared.ts. */
+    padFocusValues?:  string[];
     shiftSelectMidi?: boolean;
     /* Only pads 1..N are host-automatable (the chain caps declared params at 256,
      * so a padScoped module can only declare concrete keys for some voices —
@@ -204,6 +209,11 @@ export interface KnobParam {
     filter?:        'cutoff' | 'resonance' | 'mode' | 'slope';
     automatable:    boolean;
     behavior?:      'trigger';
+    /** The module declared `access: "read"` — a readout. The value means
+     *  something and writing it means nothing, so the knob never scrubs it and
+     *  the picker never opens on it; the cell says so with a dotted frame. See
+     *  model/access.ts. */
+    readOnly?:      boolean;
     /** See KnobSlot.capturesModuleState — resolved from the config, or implied
      *  by `renderStyle === 'preset'`. */
     capturesModuleState?: boolean;

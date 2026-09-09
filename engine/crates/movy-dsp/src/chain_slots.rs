@@ -951,11 +951,22 @@ impl ChainSlots {
         }
         // LFOs still have to advance for every chain whose synth did not render,
         // and on the audio thread rather than a lane — see `ChainInstance::mod_tick`.
+        //
+        // The ANSWER matters as much as the call: the same tick advances a MIDI
+        // FX's timers, so an arp can put a note into the synth on a block no
+        // note arrived on. `idle.wake` cannot see that — it is driven by MIDI
+        // reaching the chain — so the wake has to come back from the chain host.
+        // Discarding it, which is what this loop used to do, left the note
+        // inaudible until the next probe.
         for i in 0..MOVY_CHAINS {
-            if !self.work[i].synth {
-                if let Some(inst) = self.slots[i].as_mut() {
-                    inst.mod_tick();
-                }
+            if self.work[i].synth {
+                continue;
+            }
+            let wake = self.slots[i].as_mut().is_some_and(|inst| inst.mod_tick());
+            if wake {
+                let mut w = self.work[i];
+                self.idle.midi_tick_wake(i, &mut w);
+                self.work[i] = w;
             }
         }
 

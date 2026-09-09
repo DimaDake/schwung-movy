@@ -439,6 +439,35 @@ const noUnlink = seedScps.filter(f => {
 ok('every scp destination is unlinked before it is written', noUnlink.length === 0,
    noUnlink.join(', ') || `${seedScps.length} checked`);
 
+/* ── Test 11: the release routine keeps its announcement step ────────────────
+ * The announcement is only "part of the release" while two things hold: the
+ * build gate refuses a tarball without the file, and the announcer refuses to
+ * post before the store is actually serving that version. Announcing on the tag
+ * instead would tell people to update to something the store may not offer yet.
+ */
+log('\nTest 11: the release routine still gates on the announcement');
+
+const buildSrc = readFileSync('scripts/build-module.sh', 'utf8');
+ok('build-module.sh requires docs/discord-v$MOD_VER.md',
+   /docs\/discord-v\$MOD_VER\.md/.test(buildSrc) && /exit 1/.test(buildSrc),
+   'without it a release can ship with no announcement written');
+ok('and enforces Discord\'s 2000-character cap', /2000/.test(buildSrc));
+
+const annSrc = readFileSync('scripts/announce-release.mjs', 'utf8');
+ok('the announcer checks the asset really downloads',
+   /method:\s*'HEAD'/.test(annSrc),
+   'a tagged release whose upload failed must not be announced');
+ok('and will not post the same version twice', /already announced/.test(annSrc));
+ok('the credential is read from the environment, never a file in the repo',
+   /process\.env\.DISCORD_(WEBHOOK_URL|BOT_TOKEN)/.test(annSrc));
+
+/* A token pasted into the script is the one mistake here that cannot be undone
+ * by editing it back out — it is in the history the moment it is pushed. */
+const leaked = /discord\.com\/api\/webhooks\/\d+\/[\w-]{20,}/.test(annSrc)
+            || /\b[MN][\w-]{23}\.[\w-]{6}\.[\w-]{27}\b/.test(annSrc);
+ok('and no credential is committed in it', !leaked,
+   'a webhook URL or bot token is in the file');
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 log('');

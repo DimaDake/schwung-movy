@@ -42,6 +42,7 @@ import { chainLoadsPending, currentSetUuid, sessionError, sessionFailScope, sess
 import { takeSurfaceReturn } from '../seq/set-commit.js';
 import { claimLedOwnership } from './led-ownership.js';
 import { renderLoadingView } from '../renderer/loading-view.js';
+import { migrationPending } from '../track/migrate.js';
 import { tempoOverrideTick } from '../seq/tempo-override.js';
 import { captureTick } from '../seq/capture.js';
 import { seqLedsTick, seqLedsInvalidate, displayHoldNotes } from '../seq/leds.js';
@@ -658,7 +659,8 @@ function tickBody(): void {
         } else if (!sessionReady()) {
             /* Ahead of every view: until the Set is in the engine there is
              * nothing truthful to draw, and input is refused anyway. */
-            renderLoadingView(sessionPhase(), sessionError(), chainLoadsPending(), sessionFailScope());
+            renderLoadingView(sessionPhase(), sessionError(), chainLoadsPending(),
+                              sessionFailScope(), migrationPending());
         } else if (appState.currentView === VIEW_MAIN_PARAMS) {
             const vm = buildMainPageVM();
             renderKnobsView(vm, false, appState.activeTrack.index);

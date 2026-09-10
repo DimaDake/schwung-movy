@@ -340,4 +340,18 @@ export async function run() {
   uninstallMockFs();
 }
 
+{
+  _log('\nsplash — what the user reads while it happens:');
+  const { loadingStage } = await import('../../dist/esm/renderer/loading-view.js');
+  eq('booting is unchanged', loadingStage('booting', 0, false), 'STARTING ENGINE');
+  eq('loading is unchanged', loadingStage('loading', 0, false), 'LOADING SET');
+  eq('settling is unchanged', loadingStage('settling', 2, false), 'LOADING MODULES');
+  eq('preparing is unchanged', loadingStage('settling', 0, false), 'PREPARING SET');
+  /* A migration is neither a load nor a preparation, and the module count says
+   * nothing about it — the chains it is about to re-state have not been asked
+   * for yet, so without this the whole wait reads "PREPARING SET". */
+  eq('migrating says so', loadingStage('settling', 0, true), 'MIGRATING TRACKS');
+  eq('migrating outranks the module count', loadingStage('settling', 3, true), 'MIGRATING TRACKS');
+}
+
 }

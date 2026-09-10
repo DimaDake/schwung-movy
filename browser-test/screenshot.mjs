@@ -34,7 +34,8 @@ const UPDATE     = process.argv.includes('--update');
 const PRESETS = [
     'test8', 'test16', 'test_enum', 'test_steps', 'plaits', 'wurl',
     'enum_overlay', 'knob_toast', 'no_params', 'keys_view', 'browse_view',
-    'session_booting', 'session_loading', 'session_modules', 'session_preparing', 'session_failed',
+    'session_booting', 'session_loading', 'session_modules', 'session_preparing',
+    'session_migrating', 'session_failed',
     'session_failed_update',
     'versions_empty', 'versions_list', 'versions_confirm',
     'obxd_preset_page', 'obxd_main_page', 'obxd_filter_page',
@@ -370,6 +371,9 @@ function applyView(preset) {
          * Set-commit press has the surface. */
         case 'session_modules':  lastRender = () => renderLoadingView('settling', '', 7); lastRender(); break;
         case 'session_preparing': lastRender = () => renderLoadingView('settling', '', 0); lastRender(); break;
+        case 'session_migrating':
+            lastRender = () => renderLoadingView('settling', '', 0, 'set', true);
+            lastRender(); break;
         case 'session_failed':
             lastRender = () => renderLoadingView('failed', 'SET FILE UNREADABLE', 0, 'set');
             lastRender(); break;

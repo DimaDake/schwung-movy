@@ -22,8 +22,9 @@ import {
     uuidToStatePath,
 } from './set-context.js';
 import { deliverChainPayloads } from '../track/chain-payload.js';
-import { migrationTick } from '../track/migrate.js';
+import { migrationResult, migrationTick } from '../track/migrate.js';
 import { refreshModelsForSet } from '../app/model-refresh.js';
+import { seqToast } from './render.js';
 import { collectDeadSets } from './set-gc.js';
 import { resetSetCommit, setCommitTick } from './set-commit.js';
 import { readBestState, readUiBlob, writeStateBlob, writeUiBlob } from './persist-store.js';
@@ -203,6 +204,15 @@ function settleTick(): void {
      * Set — an empty slot on a cold open, the previous Set's module after a
      * switch, for as long as the poll took to come round. */
     refreshModelsForSet();
+    /* After the splash, never during it: a toast drawn behind the loading view
+     * is a toast nobody sees. What it names is the part of a migration that did
+     * NOT come across — a position movy has no page for, or a blob that would
+     * not read. The detail is in the log; the toast is what stops a quietly
+     * different track reading as a bug. */
+    const mig = migrationResult();
+    if (mig && mig.warnings.length > 0) {
+        seqToast('MIGRATED: ' + mig.warnings.length + ' ISSUE(S) — SEE LOG');
+    }
     phase = 'ready';
     mlog('seq: set ready after ' + settleWaited() + 'ms');
     /* After the Set is live, never before: collecting is pure hygiene and must

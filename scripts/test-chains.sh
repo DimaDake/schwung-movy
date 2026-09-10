@@ -32,10 +32,6 @@ INJECT_PY="$(cd .. && pwd)/schwung-midi-inject-ui.py"
 PASS=0; FAIL=0
 GRN=$'\033[0;32m'; RED=$'\033[0;31m'; YEL=$'\033[1;33m'; BLD=$'\033[1m'; RST=$'\033[0m'
 pass() { echo "${GRN}✓${RST} $1"; PASS=$((PASS+1)); }
-# Neither a pass nor a failure: something this suite cannot observe. Counted
-# separately so an unverifiable step can never read as a green check.
-WARN=0
-warn() { echo "${YEL}!${RST} $1"; WARN=$((WARN+1)); }
 fail() { echo "${RED}✗${RST} $1"; FAIL=$((FAIL+1)); }
 
 ssh -o ConnectTimeout=5 "ableton@$HOST" true 2>/dev/null || {
@@ -152,25 +148,35 @@ node scripts/engine-param.mjs set "ch4:midi" "128.60.0" "$HOST" >/dev/null 2>&1
 #    group set currentView to undefined and the UI had nothing to render.
 echo "${BLD}=== track selection across groups ===${RST}"
 ssh "ableton@$HOST" "> $LOG"
-ts_tap_cc 50            # Note/Session -> latch Session view
-sleep 0.6
-ts_tap_note 25          # step 10 -> track 10 (group 3)
-sleep 0.8
-ts_tap_cc 43            # first track button of the focused group
+# CC 50 is a TOGGLE, so a tap only latches Session when Note view is where we
+# started — and nothing above this line controls that. A track button does:
+# switchToTrack clears sessionMode unconditionally (track/switch.ts), so one tap
+# puts the view in a known state whatever the blocks above left behind. Every
+# Session gesture below is written from there.
+ts_select_track 9       # step 10 -> track 10, which is group 3
+sleep 0.4
+ts_tap_cc 43            # first track button of the focused group -> track index 8
 sleep 0.8
 SEL=$(ssh "ableton@$HOST" "cat $LOG")
-# movy logs no line for a track switch, so the selection itself is not
-# observable from here. What IS observable is the failure mode this replaced:
-# an undefined view reaching the UI. The selection logic itself is covered by
-# "track state exists for every track" in browser-test/app-loop.mjs.
-warn "track switch is not logged — selection asserted in app-loop.mjs, not here"
+# `track: active=` is logged by switch.ts for exactly this: a device measurement
+# has no other way to prove WHICH track it selected. The suite used to say the
+# switch was unobservable and warn instead — it has been observable since the
+# pad-latency run silently compared a host track against itself.
+if echo "$SEL" | qgrep -E "track: active=9 "; then
+    pass "the step row selected track 10 (group 3): $(echo "$SEL" | grep -oE 'track: active=9 .*' | tail -1)"
+else
+    fail "no 'track: active=9' — the step-row selection never reached a track switch"
+fi
+if echo "$SEL" | qgrep -E "track: active=8 "; then
+    pass "the track button then selected the group's first track (index 8)"
+else
+    fail "no 'track: active=8' — the track button did not switch within group 3"
+fi
 if echo "$SEL" | qgrep -iE "undefined|NaN|TypeError"; then
     fail "undefined/NaN reached the UI after selecting an out-of-group track"
 else
     pass "no undefined/NaN in the log after cross-group selection"
 fi
-ts_tap_cc 50            # back to Note view
-sleep 0.4
 
 # 6. THE Stage-4 gesture: load a synth onto a movy track the way a user does —
 #    select the track, then drive the module browser with the jog wheel. Every
@@ -179,12 +185,13 @@ sleep 0.4
 echo "${BLD}=== loading a module onto a movy track through the browser ===${RST}"
 CC_JOG=14; CC_CLICK=3
 ssh "ableton@$HOST" "> $LOG"
-ts_tap_cc 50            # Session view
-sleep 0.6
-ts_tap_note 20          # step 5 -> track 5 (first movy track, chain 4)
-sleep 0.8
-ts_tap_cc 50            # back to Note view, still on track 5
-sleep 0.6
+ts_select_track 4       # track 5 — the first movy track, chain 4
+SEL=$(ssh "ableton@$HOST" "cat $LOG")
+if echo "$SEL" | qgrep -E "track: active=4 kind=movy"; then
+    pass "the gesture selected the movy track: $(echo "$SEL" | grep -oE 'track: active=4 .*' | tail -1)"
+else
+    fail "no 'track: active=4 kind=movy' — the browser below would open on whatever track was left over"
+fi
 # TWO clicks, because the slot already holds plaits from the checks above:
 # the first drills chain view -> knob page, the second opens the browser
 # (midi/router.ts). A single click only browses straight from the chain view
@@ -193,11 +200,11 @@ sleep 0.6
 # ts_tap_cc delivers press+release in ONE device-side script: each ssh inject
 # costs ~0.5 s, so a pair sent as two injects is a >500 ms HOLD, which movy
 # reads as a different gesture entirely.
-# How many clicks reach the browser depends on which view movy is currently in
-# (chain view drills to the knob page first, and only browses directly when the
-# slot is EMPTY — this one is not, it holds plaits). Rather than assume a
-# starting view the earlier blocks do not control, click until the browser
-# actually opens.
+#
+# ts_select_track above lands on the track's own view (`trackView[track]`,
+# VIEW_CHAIN unless something drilled in earlier), so two clicks is the expected
+# count rather than a guess — but the loop still allows for a track left on the
+# knob page, where one click is enough.
 for _ in 1 2 3; do
     ts_tap_cc $CC_CLICK; sleep 1.5
     ssh "ableton@$HOST" "cat $LOG" | qgrep "browse: open" && break
@@ -216,10 +223,14 @@ BROWSE=$(echo "$LOGTXT" | grep -oE 'browse: open t=[0-9]+ [a-z_0-9]+ n=[0-9]+' |
 if [ -n "$BROWSE" ]; then
     pass "the jog gesture opened the browser: $BROWSE"
     BROWSE_T=$(echo "$BROWSE" | grep -oE 't=[0-9]+' | cut -d= -f2)
-    if [ "${BROWSE_T:-0}" -ge 4 ]; then
-        pass "the browser opened on a movy track (t=$BROWSE_T)"
+    # Exactly the track that was selected, not merely "some movy track": t is the
+    # param slot the browser will WRITE to, and the master chain passes 0 — so a
+    # `t=0 snd0` line means the click landed on the master page's send slot with
+    # Session mode still on, which is what a stale toggle here used to produce.
+    if [ "${BROWSE_T:-99}" -eq 4 ]; then
+        pass "the browser opened on the selected movy track (t=$BROWSE_T)"
     else
-        fail "the browser opened on host track $BROWSE_T — the track selection did not stick"
+        fail "the browser opened on $BROWSE, not track index 4 — the selection did not stick"
     fi
     if echo "$LOGTXT" | qgrep -E "chain 4: (synth|midi_fx1|fx1|fx2) = "; then
         pass "browser load reached a movy chain: $(echo "$LOGTXT" | grep -oE 'chain 4: [a-z_0-9]+ = .*' | tail -1)"
@@ -227,15 +238,11 @@ if [ -n "$BROWSE" ]; then
         fail "the browser opened but confirming it produced no chain load"
     fi
 else
-    # How many clicks reach the browser depends on the view movy is in, and the
-    # blocks above move it around in ways this one does not control. The
-    # capability itself IS verified — by hand on device (browse: open t=4 synth
-    # n=39, with the knob page rendering plaits' params for track 5 through
-    # MovyChainPort), and automatically in browser-test/app-loop.mjs, which
-    # drives the real handler and asserts the exact ch1:synth:module write.
-    # What is missing is a way to reach a KNOWN view from here without pressing
-    # Back into the Leave-Movy modal.
-    warn "browser gesture did not reach the browser from this view — see the note above"
+    # A real failure now, not a warning: the view this gesture starts from is no
+    # longer unknown. ts_select_track leaves the UI on the track's own view, so
+    # three clicks that never log `browse: open` means the click did not reach
+    # the browser at all.
+    fail "three clicks from the track view never opened the browser"
 fi
 
 # 6b. A module with LARGE metadata must survive the param channel. dexed's
@@ -315,7 +322,7 @@ echo "Restarting the Move stack (movy owns the LEDs while open)..."
 ssh "ableton@$HOST" 'systemctl --user restart move-launcher 2>/dev/null || true' >/dev/null 2>&1
 
 if [ "$FAIL" -eq 0 ]; then
-    echo "${GRN}${BLD}CHAIN DEVICE TEST PASSED${RST} ($PASS checks, $WARN unverified)"
+    echo "${GRN}${BLD}CHAIN DEVICE TEST PASSED${RST} ($PASS checks)"
 else
     echo "${RED}${BLD}$FAIL CHECK(S) FAILED${RST}"
     exit 1

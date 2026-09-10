@@ -16,7 +16,12 @@
 # Usage: ./scripts/measure-load-blocking.sh [move.local] [slot] [module-a] [module-b]
 set -uo pipefail
 
-HOST="${1:-move.local}"
+# Exported, not merely set: module-slot.mjs below reads the device from
+# `process.env.HOST`. This is the one script here that does not source
+# lib/test-set.sh (which exports it for every suite), so a run against any
+# other address would drive the wrong device over the WebSocket while ssh
+# measured the right one.
+export HOST="${1:-move.local}"
 SLOT="${2:-0}"
 MOD_A="${3:-plaits}"
 MOD_B="${4:-none}"

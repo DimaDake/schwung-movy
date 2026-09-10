@@ -382,6 +382,45 @@ const leaked = /discord\.com\/api\/webhooks\/\d+\/[\w-]{20,}/.test(annSrc)
             || /\b[MN][\w-]{23}\.[\w-]{6}\.[\w-]{27}\b/.test(annSrc);
 ok('and carries no credential', !leaked, 'a webhook URL or bot token is in the file');
 
+/* ── Test 12: the device address reaches the node helpers ────────────────────
+ * The suites take the device as $1 and use it for ssh and scp. The node helpers
+ * they call take it from `process.env.HOST` instead, defaulting to move.local.
+ * A plain shell assignment satisfies the first and not the second, so a run
+ * against an IP drove ssh at the right device and every WebSocket read at a
+ * name that did not resolve: `ts_verify` returned nothing, the fixture reported
+ * "no answer reading the chain", and every suite in the sweep spent six 24 s
+ * load attempts before saying so. It reads as a device fault and is a quoting
+ * bug.
+ */
+log('\nTest 12: the device address reaches the node helpers');
+
+const envHostHelpers = readdirSync(SCRIPTS)
+    .filter(f => f.endsWith('.mjs'))
+    .filter(f => /process\.env\.HOST/.test(readFileSync(join(SCRIPTS, f), 'utf8')));
+ok('node helpers do read HOST from the environment', envHostHelpers.length > 0,
+   `${envHostHelpers.length} helper(s) — if this is 0 the checks below are vacuous`);
+
+ok('the shared lib exports HOST', /^export HOST\b/m.test(libSrc),
+   'every suite sources this file, so one export covers them all');
+
+/* Any other script that calls one of those helpers has to supply HOST itself:
+ * sourcing the lib is what exports it, and a script that skips the lib gets
+ * nothing. A lib is not a runnable script — it inherits whatever sourced it, so
+ * it passes when every one of its sourcers does. */
+const helperCall = new RegExp(`node\\s+\\S*scripts/(${envHostHelpers.join('|').replace(/\./g, '\\.')})`);
+const srcOf = new Map(shFiles.map(f => [f, readFileSync(f, 'utf8')]));
+const supplies = f => /source .*lib\/test-set\.sh/.test(srcOf.get(f)) || /^export HOST\b/m.test(srcOf.get(f));
+const unexported = shFiles.filter((f) => {
+    if (!helperCall.test(srcOf.get(f))) return false;
+    if (supplies(f)) return false;
+    if (!f.includes('/lib/')) return true;
+    const base = f.split('/').pop();
+    const sourcers = shFiles.filter(o => o !== f && srcOf.get(o).includes(base));
+    return !sourcers.every(supplies);
+});
+ok('every script calling one passes it the address', unexported.length === 0,
+   unexported.length ? unexported.join(', ') : `${shFiles.length} scripts checked`);
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 log('');

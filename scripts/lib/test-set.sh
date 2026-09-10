@@ -13,6 +13,17 @@
 #
 # Requires the sourcing script to define: HOST, MOVY_DIR.
 
+# The device address has to reach the node helpers too, and they read it from
+# the ENVIRONMENT (`process.env.HOST`, defaulting to move.local) while every
+# suite sets it as a plain shell variable from $1. Without this export a run
+# against any other address — an IP, a second device — sends ssh and scp to the
+# right box and every WebSocket read to move.local: `ts_verify` gets nothing
+# back, reports "no answer reading the chain", and each suite burns six 24 s
+# load attempts proving it. Exporting here covers every suite, because they all
+# source this file, and an assignment to an already-exported name stays
+# exported however late it happens.
+export HOST
+
 TS_FIXTURE_DIR="$MOVY_DIR/scripts/fixtures/device-set"
 TS_DEVICE_DIR=/data/UserData/schwung/_movy-fixture
 
@@ -374,6 +385,39 @@ ts_focus_track0() {
 }
 ts_tap_note() {
     ts_send "0x09:0x90:$1:${2:-127}:0.05" "0x08:0x80:$1:0:0"
+}
+
+# Read from the source for the same reason TS_FLAGS_REV is: the step row's note
+# numbers are a build constant, and a suite that writes them down goes on
+# pressing the old ones.
+TS_STEP_NOTE_BASE=$(grep -oE 'STEP_NOTE_BASE = [0-9]+' "$MOVY_DIR/src/seq/constants.ts" \
+                    | grep -oE '[0-9]+$')
+
+# Select track $1 (a 0-based index, so any of the 16) from the Session step row,
+# from whatever view the device is currently in.
+#
+# Two rules make this reliable where tapping CC 50 by hand is not:
+#
+#   - CC 50 is a TOGGLE. Whether one tap latches Session depends on the view the
+#     previous block left behind, which no suite controls. A track button does
+#     control it: `switchToTrack` clears sessionMode unconditionally, so a tap on
+#     CC 43 puts the UI in Note view however it got there — and from Note, one
+#     CC 50 tap always latches Session.
+#   - The step press itself LEAVES Session (`sessionStepPress` -> the same
+#     `switchToTrack`). A tap "back to Note view" after it therefore turns
+#     Session back ON. That off-by-one is what opened the module browser on the
+#     master chain — masterChainActive() is just sessionMode — while the suite
+#     reported a track-selection failure.
+#
+# The switch is logged as `track: active=<index> kind=...`, so the caller can
+# assert that the track it asked for is the track it got.
+ts_select_track() {
+    ts_tap_cc 43                                  # any track button: Note view
+    sleep 0.5
+    ts_tap_cc 50                                  # from Note, one tap latches Session
+    sleep 0.5
+    ts_tap_note $(( TS_STEP_NOTE_BASE + $1 ))     # selects the track, and leaves Session
+    sleep 0.8
 }
 # Hold one step while tapping another — the drum multi-entry gesture.
 ts_tap_two_steps() {

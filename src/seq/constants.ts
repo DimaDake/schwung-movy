@@ -20,7 +20,7 @@ export const CC_MUTE = 88;
 /* Shifted step functions, 0-indexed. Here rather than in router.ts because the
  * quantize overlay's input classifier needs the same list, and router.ts
  * imports that overlay — reading them from router would be a module cycle. */
-export const STEP_FLAGS = 1;         // Shift+Step 2  — Global Params (debug only)
+export const STEP_FLAGS = 1;         // Shift+Step 2  — Settings (every build)
 export const STEP_CLIP_PARAMS = 2;   // Shift+Step 3  — Clip Params page
 export const STEP_METRO = 5;         // Shift+Step 6  — Metronome
 export const STEP_FULL_VEL = 9;      // Shift+Step 10 — Full Velocity

@@ -1,6 +1,6 @@
 # Migrating tracks 1-4 off schwung's shadow slots
 
-**Status:** design, approved 2026-09-10
+**Status:** design, approved 2026-09-10; delivery mechanism revised during implementation (see "When it runs")
 **Supersedes the host-choice half of:** `plans/2026-08-24-movy-hosted-first-tracks.md`
 
 ## Problem
@@ -52,21 +52,41 @@ gesture reaches the instrument while it is up.
 
 Per set load:
 
-1. `applyUiState` asks the migration module for a plan.
-2. **Plan ready** — the common case, and the case where the set is not a
-   candidate at all. The migrated `ChainTrackState[]` are merged into what
-   `restoreChains` was already about to send, and go out as **one** chain-set
-   document. Preset blobs, LFOs and the mix value ride the existing
-   `chain-payload` deferral; no new delivery machinery exists.
-3. **Plan pending** — schwung has not finished loading its slots. `restoreChains`
-   is **held**, the settle tick re-probes, and the single document goes out when
-   the plan resolves or its budget expires.
+1. `applyUiState` starts the migration, then sends the set's own chain document
+   immediately, exactly as it does today.
+2. The settle tick probes once per tick. While it probes, **the Set may not be
+   promoted** — the migration runs behind the splash and nowhere else.
+3. When the probe resolves having found something, the chain set is **re-stated**
+   as a second document carrying the set's own chains plus the migrated ones.
+   Preset blobs, LFOs and the mix value ride the existing `chain-payload`
+   deferral; no new delivery machinery exists.
 
-**`settleCheck()` must gate on "the chain document has been sent".** It promotes
-today on `chainPending === 0`, which is trivially true *before* any document
-goes out — so a held document would promote a candidate set straight through the
-splash. This is the same shape as the bug where the splash gated on the engine
-only, and it gets its own assertion.
+**Revised during implementation (2026-09-10).** This section originally held the
+first document until the probe resolved, to avoid queueing loads twice. Three
+existing suites rejected it, and they were right:
+
+- that document is also the instruction to **unload the previous Set's chains**,
+  so holding it means the Set you just left goes on sounding;
+- `restoreChains` calls `resetChainPayloads()`, so a late document **wipes preset
+  blobs already armed** behind the first one (`set-settling` S8 caught this);
+- a duplicated set's document could be held indefinitely if nothing drove the
+  probe, and there was no backstop.
+
+The second document costs one extra round of module loads, on the one open per
+legacy set where a migration actually finds something. That is the cheaper
+mistake. `abandonMigration()` on the settle cap is the backstop.
+
+**Probing is per TICK, not per millisecond.** Movy's tick is called from
+schwung's own tick, so two consecutive probes are separated by a schwung tick by
+construction — a stronger guarantee than "250 ms have passed", and one that does
+not stall a harness where wall-clock never advances. The budget is 20 ticks
+(~100-300 ms on device).
+
+**`settleCheck()` gates on `migrationPending()`**, ahead of its chain check. The
+control arm for this (`set-settling` S10) has to hold the rack changing for
+several ticks, because on the one tick where the migration is pending everything
+else blocks promotion too — the first version of that assertion passed with the
+gate removed.
 
 ### Which sets are candidates
 

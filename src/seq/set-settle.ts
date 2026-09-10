@@ -14,6 +14,8 @@
 import { statusSeq } from './engine.js';
 import { seqState } from './state.js';
 import { setCommitIdle } from './set-commit.js';
+import { applyMigratedChains } from './ui-state.js';
+import { abandonMigration, migrationPending } from '../track/migrate.js';
 
 /* A module that never loads — a broken .so, a wedged shim — must not leave the
  * user staring at a splash forever. The expiry goes LIVE rather than to the
@@ -43,8 +45,19 @@ export function resetSettle(): void {
 }
 
 export function settleCheck(): Settle {
+    const capped = Date.now() - start >= CAP_MS;
+    /* The probe must end, and the cap is what ends it: a rack that never settles
+     * cannot be allowed to hold the splash on its own. */
+    if (capped) abandonMigration();
+    /* The migration runs behind the splash and NOWHERE ELSE — that is the whole
+     * rule. Promoting while it is still probing would put a live surface in
+     * front of tracks that are about to be re-stated under the user's hands. */
+    if (migrationPending()) return 'wait';
+    /* Resolved: fold anything it found into the chain set. Idempotent, and a
+     * no-op for every set that had nothing waiting in a schwung slot. */
+    applyMigratedChains();
     if (statusSeq() > baseSeq && seqState.chainPending === 0 && setCommitIdle()) return 'done';
-    return Date.now() - start >= CAP_MS ? 'capped' : 'wait';
+    return capped ? 'capped' : 'wait';
 }
 
 /** How long the wait has run, for the log line that closes it. */
@@ -52,5 +65,6 @@ export function settleWaited(): number { return Date.now() - start; }
 
 /** Why the cap fired, when it does. */
 export function settleOutstanding(): string {
-    return 'chpend=' + seqState.chainPending + ' commit=' + (setCommitIdle() ? 'idle' : 'busy');
+    return 'chpend=' + seqState.chainPending + ' commit=' + (setCommitIdle() ? 'idle' : 'busy')
+        + (migrationPending() ? ' migrating' : '');
 }

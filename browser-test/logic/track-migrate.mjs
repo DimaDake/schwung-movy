@@ -3,7 +3,10 @@
  * Run by browser-test/logic.mjs.
  */
 
-import { installMockFs, uninstallMockFs, writePrefFlag, eq, ok, _log } from './harness.mjs';
+import {
+    installMockFs, uninstallMockFs, writePrefFlag, serializeUiState, applyUiState,
+    eq, ok, _log,
+} from './harness.mjs';
 
 
 /* A slot-addressed param store for the migration suites.
@@ -195,13 +198,13 @@ export async function run() {
   clearSlots(); seedSlot(0, 'plaits');
   M.resetMigration();
   M.beginMigration({ chtrackset: 0 }, M.MIGRATION_VERSION, []);
-  eq('a marked set resolves at once', M.migrationTick(0), true);
+  eq('a marked set resolves at once', M.migrationTick(), true);
   eq('a marked set migrates nothing', M.migrationResult(), null);
 
   /* A set that was already on movy chains is not a candidate. */
   M.resetMigration();
   M.beginMigration({ chtrackset: 1 }, undefined, []);
-  eq('a movy set resolves at once', M.migrationTick(0), true);
+  eq('a movy set resolves at once', M.migrationTick(), true);
   eq('a movy set migrates nothing', M.migrationResult(), null);
   eq('a movy set is still marked', M.migrationMarker(), M.MIGRATION_VERSION);
 
@@ -210,18 +213,19 @@ export async function run() {
    * rack mid-swap and migrate half a set. */
   M.resetMigration();
   M.beginMigration({ chtrackset: 0 }, undefined, []);
-  eq('first probe does not resolve', M.migrationTick(0), false);
-  eq('a re-probe inside the interval is ignored', M.migrationTick(10), false);
-  eq('second matching probe resolves', M.migrationTick(1000), true);
+  /* One probe can never settle: an empty rack has a real signature, so there is
+   * nothing for the first read to agree with. */
+  eq('first probe does not resolve', M.migrationTick(), false);
+  eq('second matching probe resolves', M.migrationTick(), true);
   eq('it migrated the seeded slot', M.migrationResult().migrated.join(','), '0');
 
   /* A rack that CHANGES between probes is still loading — keep waiting. */
   M.resetMigration();
   M.beginMigration({ chtrackset: 0 }, undefined, []);
-  M.migrationTick(0);
+  M.migrationTick();
   seedSlot(1, 'mrdrums');
-  eq('a changed signature does not resolve', M.migrationTick(1000), false);
-  eq('two matching reads then resolve', M.migrationTick(2000), true);
+  eq('a changed signature does not resolve', M.migrationTick(), false);
+  eq('two matching reads then resolve', M.migrationTick(), true);
   eq('both tracks came across', M.migrationResult().migrated.join(','), '0,1');
 
   /* An all-empty rack, stable, is a legitimate "nothing to migrate" — and it
@@ -229,8 +233,8 @@ export async function run() {
   clearSlots();
   M.resetMigration();
   M.beginMigration({ chtrackset: 0 }, undefined, []);
-  M.migrationTick(0);
-  eq('a stable empty rack resolves', M.migrationTick(1000), true);
+  M.migrationTick();
+  eq('a stable empty rack resolves', M.migrationTick(), true);
   eq('nothing to migrate is not a result', M.migrationResult(), null);
   eq('nothing to migrate still marks the set', M.migrationMarker(), M.MIGRATION_VERSION);
 
@@ -238,14 +242,25 @@ export async function run() {
    * otherwise sit on the splash forever. */
   M.resetMigration();
   M.beginMigration({ chtrackset: 0 }, undefined, []);
-  let ticks = 0, at = 0, resolved = false;
-  while (!resolved && ticks < 50) {
+  let ticks = 0, resolved = false;
+  while (!resolved && ticks < 200) {
     seedSlot(0, 'mod' + ticks);
-    resolved = M.migrationTick(at);
-    at += 1000; ticks++;
+    resolved = M.migrationTick();
+    ticks++;
   }
-  ok('the budget ends the wait', resolved && ticks <= 10);
+  ok('the budget ends the wait', resolved && ticks <= 20);
   eq('an exhausted budget still marks the set', M.migrationMarker(), M.MIGRATION_VERSION);
+
+  /* The settle cap's backstop: the held document carries the instruction to
+   * unload the previous Set's chains, so a probe that never finished must never
+   * be the reason it is never sent. */
+  M.resetMigration();
+  M.beginMigration({ chtrackset: 0 }, undefined, []);
+  M.migrationTick();
+  ok('still probing', M.migrationPending());
+  M.abandonMigration();
+  eq('abandon resolves it', M.migrationPending(), false);
+  eq('and still marks the set', M.migrationMarker(), M.MIGRATION_VERSION);
 
   /* The manual action needs no stability wait: the set is ready, so schwung's
    * slots are settled by definition. */
@@ -253,6 +268,74 @@ export async function run() {
   const man = M.runManualMigration([{ t: 2, comp: [{ c: 'synth', m: 'obxd' }] }]);
   eq('manual overwrites an occupied chain', man.migrated.join(','), '2');
 
+  uninstallSlotMock();
+  uninstallMockFs();
+}
+
+{
+  _log('\nset load — the second document, and the marker:');
+  const M2 = await import('../../dist/esm/track/migrate.js');
+  const { applyMigratedChains } = await import('../../dist/esm/seq/ui-state.js');
+
+  installMockFs(); writePrefFlag('chtracks', 2);
+  installSlotMock();
+
+  /* Capture what the engine is TOLD. Asserting on the migration's own return
+   * value would pass even if `chainSetTriples` dropped every track on the
+   * floor — the document is the only thing that puts an instrument on a track. */
+  const docs = [];
+  const prevBlocking = globalThis.host_module_set_param_blocking;
+  const prevGetP = globalThis.host_module_get_param;
+  globalThis.host_module_set_param_blocking = (k, v) => {
+    if (k === 'chains') docs.push(v);
+    return true;
+  };
+  globalThis.host_module_get_param = () => null;
+
+  clearSlots();
+  seed(0, { 'synth_module': 'plaits', 'synth:state': 'BLOB-A' });
+
+  M2.resetMigration();
+  applyUiState(JSON.stringify({ flags: { chtrackset: 0 }, chains: [] }));
+
+  /* The set's OWN document goes out at once. It is also the instruction to
+   * unload the previous Set's chains, so holding it back is how a Set you have
+   * left goes on sounding — and how a payload armed behind it gets reset. */
+  eq('the set document is delivered immediately', docs.length, 1);
+  ok('and carries nothing migrated yet', !docs[0].includes('plaits'));
+  ok('the migration is still probing', M2.migrationPending());
+
+  /* Two agreeing probes, exactly as the settle loop drives them. */
+  M2.migrationTick();
+  M2.migrationTick();
+  eq('the probe resolved', M2.migrationPending(), false);
+
+  applyMigratedChains();
+  eq('a second document went out', docs.length, 2);
+  ok('and the migrated chain is IN it',
+     docs[1].includes('plaits') && docs[1].includes('synth'));
+
+  /* Idempotent: the settle loop calls it every tick until the Set is live. */
+  applyMigratedChains();
+  applyMigratedChains();
+  eq('but only once', docs.length, 2);
+
+  /* And the marker is written, so the next open does not probe again. */
+  eq('the blob carries the marker', JSON.parse(serializeUiState()).migv,
+     M2.MIGRATION_VERSION);
+
+  /* A set already carrying the marker never probes, and never re-states. */
+  docs.length = 0;
+  M2.resetMigration();
+  applyUiState(JSON.stringify({ migv: M2.MIGRATION_VERSION, flags: { chtrackset: 0 }, chains: [] }));
+  eq('a marked set does not probe', M2.migrationPending(), false);
+  applyMigratedChains();
+  eq('and sends exactly one document', docs.length, 1);
+
+  if (prevBlocking) globalThis.host_module_set_param_blocking = prevBlocking;
+  else delete globalThis.host_module_set_param_blocking;
+  if (prevGetP) globalThis.host_module_get_param = prevGetP;
+  else delete globalThis.host_module_get_param;
   uninstallSlotMock();
   uninstallMockFs();
 }

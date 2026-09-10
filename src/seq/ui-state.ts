@@ -15,10 +15,51 @@ import { seqState } from './state.js';
 import { seqCmd } from './engine.js';
 import { readPrefDefaultQuant } from './prefs.js';
 import { perSetFlagsSnapshot } from './flags.js';
-import { loadSetHostChoice } from '../track/host-mode.js';
+import { loadSetHostChoice, setSetHost } from '../track/host-mode.js';
+import {
+    beginMigration, migrationMarker, migrationPending, migrationResult,
+} from '../track/migrate.js';
+import type { ChainTrackState } from '../track/chain-persist.js';
+import type { SendState } from '../track/send-persist.js';
 
 const clampInt = (v: unknown, lo: number, hi: number, dflt: number): number =>
     typeof v === 'number' && isFinite(v) ? Math.max(lo, Math.min(hi, v | 0)) : dflt;
+
+/* What the set's own blob asked for, kept so a migration can re-state it.
+ *
+ * The document names EVERY chain in the set, so a migrated track cannot be added
+ * by sending it alone — the engine would read that as "unload everything else".
+ *
+ * Two documents rather than one held document, and the difference is worth
+ * knowing. Holding the first one until the migration resolves keeps the loads
+ * from being queued twice — but that same document is also the instruction to
+ * UNLOAD the previous Set's chains, and delaying it means the Set you just left
+ * goes on sounding. It also arrives before `chain-payload` arms its blobs, so a
+ * late `restoreChains` wipes payloads that were already waiting. Both showed up
+ * as real test failures. The second document costs one extra round of loads, on
+ * the one open per legacy set where a migration actually finds something. */
+let lastLoaded: { chains: ChainTrackState[] | undefined; sends: SendState[] | undefined } | null = null;
+let migrationApplied = false;
+
+/** Re-state the chain set with the migrated tracks folded in. Idempotent, and a
+ *  no-op when the migration found nothing — which is every set but one, once. */
+export function applyMigratedChains(): void {
+    if (migrationApplied) return;
+    const mig = migrationResult();
+    if (!mig || mig.chains.length === 0) { migrationApplied = true; return; }
+    migrationApplied = true;
+    /* A track still on the schwung host has no chain — `chainInstance` is -1 —
+     * and `chainSetTriples` would drop everything the migration just built.
+     * Moving the SET onto movy's chains IS what a migration means, so it is
+     * said here rather than left to a flag the user set once. Goes away with
+     * the flag itself. */
+    setSetHost(1);
+    const chains = [...(lastLoaded?.chains ?? []), ...mig.chains]
+        .sort((a, b) => (a?.t ?? 0) - (b?.t ?? 0));
+    const n = restoreChains(chains, lastLoaded?.sends);
+    mlog('mig: re-stated the chain set — ' + n + ' component(s), '
+        + mig.migrated.length + ' migrated');
+}
 
 /** JSON of the persisted UI keyboard state (tonic, scale, layout, octaves). */
 export function serializeUiState(): string {
@@ -47,6 +88,10 @@ export function serializeUiState(): string {
          * which host owns tracks 1-4. Keyed by flag key, the way prefs.json
          * keys the machine's half. */
         flags: perSetFlagsSnapshot(),
+        /* Which migration this set has been through. Present means its tracks
+         * 1-4 are movy chains and schwung's slots are no longer consulted —
+         * including after a migration that could not complete, deliberately. */
+        migv: migrationMarker(),
     });
 }
 
@@ -60,11 +105,19 @@ export function applyUiState(blob: string): void {
          * before this existed and keeps the schwung slots it was built on —
          * which is not the same answer as a set movy has never seen. */
         loadSetHostChoice(o.flags && typeof o.flags === 'object' ? o.flags : {});
+        /* The migration is started before the chains go out but does not hold
+         * them: it may need several ticks to decide, and this document is also
+         * what unloads the previous Set. `applyMigratedChains` re-states it if
+         * the probe finds anything. */
+        beginMigration(o.flags && typeof o.flags === 'object' ? o.flags : null,
+                       o.migv, o.chains);
         /* Then the chains, before anything cosmetic: the loads are queued one
          * per audio callback, so the sooner they start the sooner the set sounds
          * like itself. One document says both what to unload and what to load —
          * a set with no `chains` key names nothing, which is how a set written
          * before movy hosted chains still clears the previous set's. */
+        lastLoaded = { chains: o.chains, sends: o.sends };
+        migrationApplied = false;
         const n = restoreChains(o.chains, o.sends);
         if (n > 0) mlog('chains: restoring ' + n + ' movy chain component(s)');
         if (Array.isArray(o.oct)) {
@@ -104,6 +157,13 @@ export function resetUiState(): void {
     /* A Set with no UI blob at all is new work: it takes the shipped default,
      * which puts tracks 1-4 on movy's own chains. */
     loadSetHostChoice(null);
+    /* A Set with no UI blob at all: new work, or a set duplicated in Move —
+     * indistinguishable until the probe runs, so both are candidates. A
+     * duplicated set's instruments are found by the probe and arrive in the
+     * second document. */
+    beginMigration(null, undefined, []);
+    lastLoaded = { chains: [], sends: undefined };
+    migrationApplied = false;
     /* A Set with no UI blob wants no movy chains — the same clean slate schwung
      * gives an unseen set when it seeds empty slots. */
     restoreChains(null, null);

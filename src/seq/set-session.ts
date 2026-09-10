@@ -22,6 +22,7 @@ import {
     uuidToStatePath,
 } from './set-context.js';
 import { deliverChainPayloads } from '../track/chain-payload.js';
+import { migrationTick } from '../track/migrate.js';
 import { refreshModelsForSet } from '../app/model-refresh.js';
 import { collectDeadSets } from './set-gc.js';
 import { resetSetCommit, setCommitTick } from './set-commit.js';
@@ -180,6 +181,12 @@ function enterLoading(id: string, name: string): void {
 
 /* Promote a loaded Set to a playable one — set-settle.ts owns what that means. */
 function settleTick(): void {
+    /* The migration probes once per tick, and this is the only loop that runs
+     * while the splash is up. Movy's tick is called from schwung's, so two
+     * probes on consecutive ticks are separated by a schwung tick by
+     * construction — which is what "schwung has had a chance to load its slots"
+     * actually means. */
+    migrationTick();
     const r = settleCheck();
     if (r === 'wait') return;
     /* The loads have drained, which means the shim's param mailbox is free for

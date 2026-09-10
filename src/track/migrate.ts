@@ -26,11 +26,17 @@ import { mlog } from '../log.js';
 /** The `migv` value this build writes. A set carrying it is never probed again. */
 export const MIGRATION_VERSION = 1;
 
-/* Wall-clock, not ticks: the device tick rate swings 63-205 Hz with load, so a
- * tick count is not a duration. Six probes at 250 ms is ~1.5 s inside a splash
- * that already waits seconds for modules to load. */
-const PROBE_MS = 250;
-const MAX_PROBES = 6;
+/* TICKS, and deliberately not wall-clock.
+ *
+ * The question is not "has enough time passed" but "has schwung had a chance to
+ * run" — and movy's tick is called FROM schwung's own tick, so two probes on
+ * consecutive ticks are separated by a schwung tick by construction. A duration
+ * only approximates that, and approximates it differently at 63 Hz and 205 Hz.
+ *
+ * Twenty ticks is ~100-300 ms on device: long enough to outlast a slot whose
+ * `load_file` timed out and is being retried, short enough to disappear inside
+ * a splash that is already waiting on module loads. */
+const MAX_PROBES = 20;
 
 /* A signature with nothing in it but separators. */
 const EMPTY_SIG = /^[|;]*$/;
@@ -40,13 +46,14 @@ type State = 'idle' | 'probing' | 'done';
 let state: State = 'idle';
 let existingChains: ChainTrackState[] | null = null;
 let result: MigrationResult | null = null;
-let lastSig = '';
+/* Not '' — an empty RACK has a real signature ('|||;|||;…'), and a sentinel that
+ * could never equal one is what stops the first probe agreeing with nothing. */
+let lastSig: string | null = null;
 let probes = 0;
-let nextAt = 0;
 
 export function resetMigration(): void {
     state = 'idle'; existingChains = null; result = null;
-    lastSig = ''; probes = 0; nextAt = 0;
+    lastSig = null; probes = 0;
 }
 
 /** Start the migration for the set being loaded.
@@ -73,11 +80,9 @@ export function beginMigration(
 }
 
 /** True when the migration has resolved and the chain document may go out.
- *  Call once per tick while the splash is up; `nowMs` is `Date.now()`. */
-export function migrationTick(nowMs: number): boolean {
+ *  Call exactly once per tick while the splash is up. */
+export function migrationTick(): boolean {
     if (state !== 'probing') return true;
-    if (probes > 0 && nowMs < nextAt) return false;
-    nextAt = nowMs + PROBE_MS;
     probes++;
 
     const sig = slotSignature();
@@ -129,6 +134,18 @@ export function migrationPending(): boolean { return state === 'probing'; }
  *  after a failure, deliberately. */
 export function migrationMarker(): number {
     return state === 'done' ? MIGRATION_VERSION : 0;
+}
+
+/** Give up and resolve, whatever the probe was doing.
+ *
+ *  The settle cap's backstop. The chain document is HELD until the migration
+ *  resolves, and that document carries the instruction to unload the previous
+ *  Set's chains — so a probe that never finished must never be the reason it is
+ *  never sent. */
+export function abandonMigration(): void {
+    if (state !== 'probing') return;
+    mlog('mig: settle cap reached while probing — tracks 1-4 not migrated');
+    finish(null);
 }
 
 /** The Settings action: one probe, no stability wait, and it OVERWRITES.

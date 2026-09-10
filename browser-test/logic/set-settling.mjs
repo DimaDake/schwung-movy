@@ -9,7 +9,8 @@
  */
 
 import {
-    installMockFs, uninstallMockFs, resetStoreRotation, ok, fail, eq, _log,
+    installMockFs, uninstallMockFs, resetStoreRotation, loadPerSetFlags, resetPorts,
+    ok, fail, eq, _log,
 } from './harness.mjs';
 
 export async function run() {
@@ -72,6 +73,7 @@ export async function run() {
         eq('S3 still settling before the cap', sessionPhase(), 'settling');
         t += 11000;
         run(4);
+    console.log('S9 after run(4): phase=', sessionPhase());
         eq('S3 the cap goes live', sessionPhase(), 'ready');
         eq('S3 with the load still outstanding', eng.status.chpend, 2);
         Date.now = realNow;
@@ -171,7 +173,16 @@ export async function run() {
         const oBS = globalThis.shadow_set_params;
         globalThis.shadow_set_params = () => (refuse ? null : true);
 
-        const fs = installMockFs({ [ACTIVE]: 'SET1\nA Set\n' });
+        /* `migv` so the one-time schwung migration does not run here. The
+         * ambient param mock answers `synth_module` for every slot, so a set
+         * with no blob looks like four legacy racks waiting to be adopted — and
+         * the migration's re-stated chain document would reset the very payload
+         * this arm arms by hand. This suite is about payload delivery. */
+        const fs = installMockFs({
+            [ACTIVE]: 'SET1\nA Set\n',
+            '/data/UserData/schwung/modules/tools/movy/sets/SET1/ui-state.json':
+                JSON.stringify({ migv: 1 }),
+        });
         const eng = installMockEngine();
         eng.status.chpend = 0;
         resetSeqEngine(); resetSeqState(); resetSetSession(); resetSetSave(); resetStoreRotation();
@@ -201,6 +212,75 @@ export async function run() {
         void fs; void eng;
         teardown();
     }
+}
+
+/* ── S10: a Set that is still being migrated is not a playable Set ───────── */
+{
+    _log('\nset load waits for the schwung migration:');
+    const { installMockEngine, uninstallMockEngine } = await import('../mock-engine.mjs');
+    const { seqEngineTick, resetSeqEngine } = await import('../../dist/esm/seq/engine.js');
+    const { resetSeqState } = await import('../../dist/esm/seq/state.js');
+    const { sessionTick, sessionPhase, resetSetSession }
+        = await import('../../dist/esm/seq/set-session.js');
+    const { resetSetSave } = await import('../../dist/esm/seq/set-save.js');
+    const { resetMigration } = await import('../../dist/esm/track/migrate.js');
+    const { resetChainPayloads } = await import('../../dist/esm/track/chain-payload.js');
+
+    const ACTIVE = '/data/UserData/schwung/active_set.txt';
+
+    /* The one rule the migration has: it runs BEHIND THE SPLASH and nowhere
+     * else, so no gesture can reach a track that is about to be re-stated. The
+     * probe takes two ticks — movy's tick is called from schwung's, so two
+     * consecutive probes are separated by a schwung tick by construction — and
+     * the Set must not go live inside them.
+     *
+     * No `migv` here, deliberately: this is a legacy set, and the ambient param
+     * mock answers `synth_module`, so there is a rack to adopt. */
+    /* A rack that keeps CHANGING for the first few reads — which is what a real
+     * schwung reload looks like from movy: pass 1 clears all four slots, pass 2
+     * loads them one at a time. Without it the probe settles on the very tick
+     * the status seq first moves, and nothing about this arm would be testing
+     * the gate: everything else blocks promotion on that tick anyway. */
+    let reads = 0;
+    const origGet = globalThis.shadow_get_param;
+    globalThis.shadow_get_param = (slot, key) => {
+        if (key.endsWith('_module')) {
+            reads++;
+            return reads < 16 ? 'mod' + Math.floor(reads / 4) : 'plaits';
+        }
+        return origGet ? origGet(slot, key) : null;
+    };
+
+    const fs = installMockFs({ [ACTIVE]: 'SET1\nA Set\n' });
+    const eng = installMockEngine();
+    eng.status.chpend = 0;
+    resetSeqEngine(); resetSeqState(); resetSetSession(); resetSetSave(); resetStoreRotation();
+    resetMigration();
+
+    seqEngineTick(); sessionTick();          // the Set loads; settling begins
+    /* One more tick: the status seq has moved past the baseline and nothing else
+     * is outstanding, so the migration is the ONLY thing still holding the
+     * splash. Without the gate this Set is live here, with its tracks about to
+     * be re-stated under the user's hands. */
+    seqEngineTick(); sessionTick();
+    eq('S10 a migrating Set is not live', sessionPhase(), 'settling');
+    for (let i = 0; i < 8; i++) { seqEngineTick(); sessionTick(); }
+    eq('S10 and goes live once the probe has settled', sessionPhase(), 'ready');
+
+    /* A migration re-states the chain set, which ARMS payloads and moves the
+     * set onto movy's chains. Both are module-global, so leaving them behind
+     * makes the next arm's Set settle on this one's leftovers. */
+    if (origGet) globalThis.shadow_get_param = origGet;
+    else delete globalThis.shadow_get_param;
+    uninstallMockEngine(); uninstallMockFs();
+    resetSeqEngine(); resetSeqState(); resetSetSession(); resetSetSave();
+    resetMigration(); resetChainPayloads(); resetPorts();
+    /* `{}` not `null`: a set movy has never seen takes the shipped default
+     * (movy chains), and leaving the store there makes the NEXT arm's
+     * schwung-era blob look like a host change — which rebuilds the track
+     * models that arm installed by hand. */
+    loadPerSetFlags({});
+    void fs;
 }
 
 /* ── S9: the UI's own caches are part of "loaded" ────────────────────────── */
@@ -238,7 +318,15 @@ export async function run() {
     appState.masterFxModels = [];
     appState.trackChainIndex[0] = 1;
 
-    const fs = installMockFs({ [ACTIVE]: 'SET1\nA Set\n' });
+    /* `migv` for the same reason S8 carries one: the ambient param mock answers
+     * `synth_module` for every slot, so a set with no blob reads as four legacy
+     * racks and the migration re-points the track models this arm just installed
+     * by hand. This suite is about the UI caches. */
+    const fs = installMockFs({
+        [ACTIVE]: 'SET1\nA Set\n',
+        '/data/UserData/schwung/modules/tools/movy/sets/SET1/ui-state.json':
+            JSON.stringify({ migv: 1 }),
+    });
     const eng = installMockEngine();
     eng.status.chpend = 2;                    // the Set's modules are still draining
     resetSeqEngine(); resetSeqState(); resetSetSession(); resetSetSave(); resetStoreRotation();

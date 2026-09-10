@@ -83,7 +83,9 @@ export function installEnv() {
      * passed while every slot returned slot 0's answer.
      *
      * The bare-key fallback is what keeps every other suite working: they seed
-     * `params[key]` and read through slot 0. */
+     * `params[key]` and read it back through whichever slot they happen to use.
+     * A write lands on both, because suites routinely set through one slot and
+     * read back through another. */
     globalThis.shadow_get_param   = (s, key) => params[s + '|' + key] ?? params[key] ?? null;
     globalThis.shadow_set_param   = (s, key, val) => {
         params[s + '|' + key] = val; params[key] = val; return true;

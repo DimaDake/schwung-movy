@@ -203,6 +203,7 @@ await esbuild.build({
         resolve(root, 'src/track/chain-payload.ts'),
         resolve(root, 'src/track/host-mode.ts'),
         resolve(root, 'src/track/legacy-host.ts'),
+        resolve(root, 'src/track/slot-read.ts'),
         resolve(root, 'src/browser/handler.ts'),
         resolve(root, 'src/browser/state.ts'),
         resolve(root, 'src/seq/track-select.ts'),

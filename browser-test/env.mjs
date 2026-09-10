@@ -76,8 +76,18 @@ export function installEnv() {
 
     globalThis.fill_rect          = () => {};
     globalThis.clear_screen       = () => {};
-    globalThis.shadow_get_param   = (_s, key) => params[key] ?? null;
-    globalThis.shadow_set_param   = (_s, key, val) => { params[key] = val; return true; };
+    /* Slot-AWARE, for the same reason `shadow_set_param_timeout` below guards on
+     * the slot: a stub that answers every slot alike cannot tell a per-slot read
+     * from a global one. The migration reads four schwung slots and has to see
+     * four different racks, and a suite running on the old stub would have
+     * passed while every slot returned slot 0's answer.
+     *
+     * The bare-key fallback is what keeps every other suite working: they seed
+     * `params[key]` and read through slot 0. */
+    globalThis.shadow_get_param   = (s, key) => params[s + '|' + key] ?? params[key] ?? null;
+    globalThis.shadow_set_param   = (s, key, val) => {
+        params[s + '|' + key] = val; params[key] = val; return true;
+    };
     /* The slot guard is the point, not the write. `js_shadow_set_param_timeout`
      * (schwung shadow_ui.c) refuses `slot >= SHADOW_UI_SLOTS` and returns false
      * having written nothing — a movy track (5-16) is not a schwung slot. A stub

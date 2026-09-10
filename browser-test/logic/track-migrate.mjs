@@ -130,4 +130,57 @@ export async function run() {
   uninstallSlotMock();
 }
 
+{
+  _log('\nmigration plan — what crosses, and what is reported:');
+  const { planMigration } = await import('../../dist/esm/track/migrate-plan.js');
+
+  const slot = (n, over) => ({
+    slot: n, comp: [{ c: 'synth', m: 'plaits', s: 'BLOB' }],
+    volume: 0.5, leftovers: [], unreadable: [], ...over,
+  });
+
+  const r = planMigration([slot(0), slot(1)], [], false);
+  eq('two tracks migrate', r.migrated.join(','), '0,1');
+  eq('chain state carries the track index', r.chains[0].t, 0);
+  eq('chain state carries the component', r.chains[0].comp[0].c, 'synth');
+  eq('chain state carries the blob', r.chains[0].comp[0].s, 'BLOB');
+  /* slot:volume is a linear amplitude with unity at 1.0, exactly like the
+   * mixer's gain field — so it maps straight onto the gain and the other
+   * mixer fields keep their defaults. */
+  ok('level became a mix value', typeof r.chains[0].mix === 'string'
+     && r.chains[0].mix.startsWith('0.5000,0.0000,0'));
+  eq('no warnings', r.warnings.length, 0);
+
+  /* Unity is the mixer's default, and a default is not written into a set. */
+  eq('a slot at unity writes no mix value',
+     planMigration([slot(0, { volume: 1 })], [], false).chains[0].mix, undefined);
+
+  /* THE guard: automatic migration never writes over a chain the set carries. */
+  const occupied = [{ t: 0, comp: [{ c: 'synth', m: 'obxd' }] }];
+  const g = planMigration([slot(0), slot(1)], occupied, false);
+  eq('an occupied chain is skipped', g.skipped.join(','), '0');
+  eq('only the free track migrates', g.migrated.join(','), '1');
+  eq('the occupied chain is left alone', g.chains.length, 1);
+
+  /* …and the manual row is the one thing that may. */
+  const o = planMigration([slot(0)], occupied, true);
+  eq('overwrite takes the occupied track', o.migrated.join(','), '0');
+  eq('overwrite replaces the module', o.chains[0].comp[0].m, 'plaits');
+
+  /* Leftovers and unreadable keys are reported, and do not stop the migration:
+   * the schwung slot is never cleared, so what stayed behind is not lost. */
+  const w = planMigration([slot(0, { leftovers: ['fx3'], unreadable: ['synth:state'] })], [], false);
+  eq('the track still migrated', w.migrated.join(','), '0');
+  eq('both problems are reported', w.warnings.length, 2);
+  ok('a warning names the track', w.warnings.every((x) => x.includes('track 1')));
+  ok('a warning names the position', w.warnings.some((x) => x.includes('fx3')));
+  ok('a warning names the key', w.warnings.some((x) => x.includes('synth:state')));
+
+  /* An empty slot is not a migration and must not count as one — otherwise
+   * "migrated 0 tracks" and "found nothing" become the same answer. */
+  const e = planMigration([slot(0, { comp: [] })], [], false);
+  eq('an empty slot migrates nothing', e.migrated.length, 0);
+  eq('an empty slot warns about nothing', e.warnings.length, 0);
+}
+
 }

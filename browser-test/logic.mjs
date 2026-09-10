@@ -55,6 +55,7 @@ import { run as run_loop_window } from './logic/loop-window.mjs';
 import { run as run_track_watch } from './logic/track-watch.mjs';
 import { run as run_tracks_refs } from './logic/tracks-refs.mjs';
 import { run as run_tracks_chain } from './logic/tracks-chain.mjs';
+import { run as run_track_migrate } from './logic/track-migrate.mjs';
 import { run as run_partition } from './logic/partition.mjs';
 import { run as run_flags } from './logic/flags.mjs';
 import { run as run_schwung_grid } from './logic/schwung-grid.mjs';
@@ -111,6 +112,7 @@ const SUITES = [
     run_tracks_refs,
     run_tracks_chain,
     run_partition,
+    run_track_migrate,
     run_flags,
     run_schwung_grid,
     run_cpu_page,

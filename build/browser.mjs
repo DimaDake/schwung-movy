@@ -205,6 +205,7 @@ await esbuild.build({
         resolve(root, 'src/track/legacy-host.ts'),
         resolve(root, 'src/track/slot-read.ts'),
         resolve(root, 'src/track/migrate-plan.ts'),
+        resolve(root, 'src/track/migrate.ts'),
         resolve(root, 'src/browser/handler.ts'),
         resolve(root, 'src/browser/state.ts'),
         resolve(root, 'src/seq/track-select.ts'),

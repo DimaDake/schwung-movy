@@ -183,4 +183,78 @@ export async function run() {
   eq('an empty slot warns about nothing', e.warnings.length, 0);
 }
 
+{
+  _log('\nmigration state machine — candidacy, stability, budget:');
+  const M = await import('../../dist/esm/track/migrate.js');
+
+  installMockFs(); writePrefFlag('chtracks', 2);
+  installSlotMock();
+  const seedSlot = (n, mod) => seed(n, { 'synth_module': mod });
+
+  /* Already migrated: the marker ends it before a single slot is read. */
+  clearSlots(); seedSlot(0, 'plaits');
+  M.resetMigration();
+  M.beginMigration({ chtrackset: 0 }, M.MIGRATION_VERSION, []);
+  eq('a marked set resolves at once', M.migrationTick(0), true);
+  eq('a marked set migrates nothing', M.migrationResult(), null);
+
+  /* A set that was already on movy chains is not a candidate. */
+  M.resetMigration();
+  M.beginMigration({ chtrackset: 1 }, undefined, []);
+  eq('a movy set resolves at once', M.migrationTick(0), true);
+  eq('a movy set migrates nothing', M.migrationResult(), null);
+  eq('a movy set is still marked', M.migrationMarker(), M.MIGRATION_VERSION);
+
+  /* A candidate needs TWO matching non-empty reads. One is not enough: schwung
+   * clears every slot before it reloads them, so a single read can catch the
+   * rack mid-swap and migrate half a set. */
+  M.resetMigration();
+  M.beginMigration({ chtrackset: 0 }, undefined, []);
+  eq('first probe does not resolve', M.migrationTick(0), false);
+  eq('a re-probe inside the interval is ignored', M.migrationTick(10), false);
+  eq('second matching probe resolves', M.migrationTick(1000), true);
+  eq('it migrated the seeded slot', M.migrationResult().migrated.join(','), '0');
+
+  /* A rack that CHANGES between probes is still loading — keep waiting. */
+  M.resetMigration();
+  M.beginMigration({ chtrackset: 0 }, undefined, []);
+  M.migrationTick(0);
+  seedSlot(1, 'mrdrums');
+  eq('a changed signature does not resolve', M.migrationTick(1000), false);
+  eq('two matching reads then resolve', M.migrationTick(2000), true);
+  eq('both tracks came across', M.migrationResult().migrated.join(','), '0,1');
+
+  /* An all-empty rack, stable, is a legitimate "nothing to migrate" — and it
+   * must still mark the set, or it re-probes on every open forever. */
+  clearSlots();
+  M.resetMigration();
+  M.beginMigration({ chtrackset: 0 }, undefined, []);
+  M.migrationTick(0);
+  eq('a stable empty rack resolves', M.migrationTick(1000), true);
+  eq('nothing to migrate is not a result', M.migrationResult(), null);
+  eq('nothing to migrate still marks the set', M.migrationMarker(), M.MIGRATION_VERSION);
+
+  /* The budget must END. A rack that never stops changing is a set that would
+   * otherwise sit on the splash forever. */
+  M.resetMigration();
+  M.beginMigration({ chtrackset: 0 }, undefined, []);
+  let ticks = 0, at = 0, resolved = false;
+  while (!resolved && ticks < 50) {
+    seedSlot(0, 'mod' + ticks);
+    resolved = M.migrationTick(at);
+    at += 1000; ticks++;
+  }
+  ok('the budget ends the wait', resolved && ticks <= 10);
+  eq('an exhausted budget still marks the set', M.migrationMarker(), M.MIGRATION_VERSION);
+
+  /* The manual action needs no stability wait: the set is ready, so schwung's
+   * slots are settled by definition. */
+  clearSlots(); seedSlot(2, 'plaits');
+  const man = M.runManualMigration([{ t: 2, comp: [{ c: 'synth', m: 'obxd' }] }]);
+  eq('manual overwrites an occupied chain', man.migrated.join(','), '2');
+
+  uninstallSlotMock();
+  uninstallMockFs();
+}
+
 }

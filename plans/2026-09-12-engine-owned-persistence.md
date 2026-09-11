@@ -2,6 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Status: DONE** — all seven tasks landed (`31a6aaf`…`6f4c15d`) and were
+device-verified on move.local. Two things changed during execution and are
+recorded in the commits rather than here: the chain document gained a sixth
+field for LFO state (it carried none, which would have lost it with the flag
+on), and `MANUAL.md` was deliberately not updated because `engpersist` is
+debug-only until the default flips.
+
 **Goal:** Move ownership of a Set's files from the TypeScript UI into the Rust engine, so no Set state crosses the lossy param slot in either direction.
 
 **Architecture:** The UI stays the librarian — it decides *which* Set is open and keeps every line of `set-session.ts` policy. The engine becomes the archive: it reads and writes `seq-state.json` and a new `chains.json` itself, atomically (temp → fsync → rename), on a dedicated saver thread. The wire carries short idempotent commands (`open`/`rename`/`blank`/`flush`) instead of payloads, because a lost command is harmless on retry while a lost payload destroyed data.

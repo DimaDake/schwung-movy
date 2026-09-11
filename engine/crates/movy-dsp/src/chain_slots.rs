@@ -25,17 +25,14 @@ use crate::render_pool::{Pre, RenderPool, Tap, Task, MAX_TAPS, NO_TAPS};
 
 /// Chains movy hosts itself: **one per track, and `ch<N>` IS track N.**
 ///
-/// Twelve used to back tracks 4..15, numbered 0..11. The four added for the
-/// `chtracks` flag — which lets tracks 0..3 leave schwung's shadow slots and
-/// render here, on the parallel lanes instead of serially on the audio thread —
-/// could have been appended as 12..15 to leave the twelve where they were. They
-/// were not: a mapping with an offset in it is a mapping someone gets wrong, and
-/// nothing persisted holds a chain index anyway (movy's saved state records a
-/// TRACK, and every param goes through a port), so the renumbering costs no
-/// migration.
-///
-/// Chains 0..3 sit allocated and empty until the flag is turned on — a `Vec`
-/// slot and 512 bytes of scratch each.
+/// Twelve used to back tracks 4..15, numbered 0..11. The four that carry
+/// tracks 0..3 — schwung's shadow slots until the UI's one-time migration
+/// (src/track/migrate.ts) moved their contents here — could have been
+/// appended as 12..15 to leave the twelve where they were. They were not: a
+/// mapping with an offset in it is a mapping someone gets wrong, and nothing
+/// persisted holds a chain index anyway (movy's saved state records a TRACK,
+/// and every param goes through a port), so the renumbering cost no migration
+/// on this side.
 pub const MOVY_CHAINS: usize = 16;
 
 /// 128 frames stereo — schwung's block size. Preallocated: no allocation may

@@ -117,28 +117,22 @@ fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.71.0";
+const ENGINE_VERSION: &str = "0.72.0";
 
-/// Tracks backed by schwung's own shadow slots by default. Their notes go out as
-/// MIDI on the matching channel; everything above this index is a chain movy
-/// hosts itself. `chtracks` moves these four onto chains as well.
-const HOST_TRACKS: u8 = 4;
-
-/// Where a track's output goes: `None` = out as MIDI on the track's own channel,
-/// which is how a schwung shadow slot is addressed; `Some(chain)` = a chain movy
-/// hosts, whose note never leaves this process.
+/// A track's chain. **`ch<N>` IS track N** — one host, no offset. Tracks 0..3
+/// were schwung shadow slots until the one-time migration in
+/// `src/track/migrate.ts` moved them here; `None` only for an out-of-range
+/// track, which the sequencer never actually produces.
 ///
-/// **A track's chain is its own index.** It was `track - HOST_TRACKS` while movy
-/// hosted twelve chains numbered from zero, and that offset had to be deleted in
-/// two languages at once: the UI addresses `ch<N>` for track N, so an engine
-/// still subtracting four sequences track 4's notes into track 0's synth. Wrong
-/// instrument, no error, nothing in any log.
-fn chain_for(track: u8, movy_tracks: bool) -> Option<usize> {
-    if track < HOST_TRACKS && !movy_tracks {
-        None
-    } else {
-        Some(track as usize)
-    }
+/// This used to take a second `movy_tracks` argument and return `None` for
+/// tracks 0..3 by default (schwung's), and before that used `track -
+/// HOST_TRACKS` while movy hosted twelve chains numbered from zero — that
+/// offset had to be deleted in two languages at once: the UI addresses `ch<N>`
+/// for track N, so an engine still subtracting four sequences track 4's notes
+/// into track 0's synth. Wrong instrument, no error, nothing in any log.
+fn chain_for(track: u8) -> Option<usize> {
+    let t = track as usize;
+    if t < chain_slots::MOVY_CHAINS { Some(t) } else { None }
 }
 
 struct Instance {
@@ -148,10 +142,6 @@ struct Instance {
     blocks: u64,
     chains: ChainSlots,
     pads: PadRoute,
-    /// `chtracks`: tracks 0..3 are movy chains rather than schwung shadow slots.
-    /// Pushed by the UI on every engine boot — the UI is the one that knows,
-    /// because it is where the setting lives.
-    movy_tracks: bool,
 }
 
 impl Instance {
@@ -164,7 +154,6 @@ impl Instance {
             blocks: 0,
             chains: ChainSlots::new(),
             pads: PadRoute::new(),
-            movy_tracks: false,
         }
     }
 
@@ -208,24 +197,10 @@ impl Instance {
             "padvel" => {
                 let on = val != "0" && !val.is_empty();
                 self.pads.set_full_velocity(on);
-                /* Logged like `chtracks`: it only ever moves on a deliberate
+                /* Logged on every change: it only ever moves on a deliberate
                  * gesture, and it is the one place a device check can see that
                  * the UI's toggle reached the thread that builds the note. */
                 host::log(&format!("pad velocity: {}", if on { "full" } else { "as played" }));
-            }
-            /* `chtracks <0|1>` — tracks 0..3 render on movy chains instead of
-             * schwung's shadow slots. The UI acts on this too (it re-points
-             * every port), but the ENGINE has to know as well: it sequences the
-             * notes, and `drain_out` is the one place that decides whether a
-             * track's note goes out as MIDI or into a chain. Without this the
-             * flag moves the UI and leaves every sequenced note going to
-             * schwung — which is exactly how it shipped broken. */
-            "chtracks" => {
-                self.movy_tracks = val != "0" && !val.is_empty();
-                host::log(&format!(
-                    "chain tracks: 0-3 -> {}",
-                    if self.movy_tracks { "movy chains" } else { "schwung slots" }
-                ));
             }
             /* `chloadedlog` — log what each movy chain actually holds, then
              * carry on. Write-to-read, the same trick as `chpeaklog`, and for
@@ -502,7 +477,7 @@ impl Instance {
                  * track is addressed by MIDI channel; a movy track is a chain
                  * movy owns, so its note never leaves this process. */
                 OutEvent::NoteOn { track, pitch, vel } => {
-                    match chain_for(track, self.movy_tracks) {
+                    match chain_for(track) {
                         None => {
                             host::midi_send_internal(0x90 | track, pitch, vel);
                         }
@@ -516,7 +491,7 @@ impl Instance {
                     }
                 }
                 OutEvent::NoteOff { track, pitch } => {
-                    match chain_for(track, self.movy_tracks) {
+                    match chain_for(track) {
                         None => {
                             host::midi_send_internal(0x80 | track, pitch, 0);
                         }
@@ -533,7 +508,7 @@ impl Instance {
                     self.click.trigger(accent);
                 }
                 OutEvent::Cc { track, lane, val } => {
-                    match chain_for(track, self.movy_tracks) {
+                    match chain_for(track) {
                         None => {
                             host::midi_send_internal(0xB0 | track, 102 + lane, val);
                         }
@@ -903,40 +878,24 @@ mod tests {
      * track 0's synth. Every device suite still passed — they inject
      * `ch<N>:midi` directly and never drive a movy track from the sequencer. */
     #[test]
-    fn a_tracks_notes_go_to_its_own_chain() {
-        // Default: the first four are schwung's, addressed as MIDI channels.
-        assert_eq!(chain_for(0, false), None);
-        assert_eq!(chain_for(3, false), None);
-        // And a movy track's chain is its own index — NOT index minus four.
-        assert_eq!(chain_for(4, false), Some(4), "track 4 must not reach chain 0");
-        assert_eq!(chain_for(15, false), Some(15));
-
-        // With `chtracks`, all sixteen are chains, still one-to-one.
-        for t in 0u8..16 {
-            assert_eq!(chain_for(t, true), Some(t as usize));
-        }
-    }
-
-    /* The flag has to reach the engine, not just the UI. The UI re-points its
-     * ports on its own, so a flag the engine never hears looks completely
-     * applied right up until a clip plays and the note goes to schwung. */
-    #[test]
-    fn chtracks_moves_the_first_four_tracks() {
-        let mut inst = Instance::new();
-        assert_eq!(chain_for(0, inst.movy_tracks), None, "off by default");
-        inst.set_param("chtracks", "1");
-        assert_eq!(chain_for(0, inst.movy_tracks), Some(0));
-        inst.set_param("chtracks", "0");
-        assert_eq!(chain_for(0, inst.movy_tracks), None);
+    fn every_track_is_a_chain() {
+        // One host: a track's chain IS its index, for all sixteen. The four
+        // that used to be schwung's are carried across by the UI's one-time
+        // migration (src/track/migrate.ts) before this build ever runs.
+        assert_eq!(chain_for(0), Some(0));
+        assert_eq!(chain_for(3), Some(3));
+        assert_eq!(chain_for(4), Some(4), "track 4 must not reach chain 0");
+        assert_eq!(chain_for(15), Some(15));
+        assert_eq!(chain_for(16), None, "past the last track");
     }
 
     #[test]
     fn parses_a_chain_key() {
         assert_eq!(parse_chain_key("ch0:synth:cutoff"), Some((0, "synth:cutoff")));
         assert_eq!(parse_chain_key("ch11:fx1:wet"), Some((11, "fx1:wet")));
-        // Two digits, and the four chains that back tracks 0..3 under
-        // `chtracks`. A parser that stopped at one digit would silently address
-        // chain 1 for every one of them.
+        // Two digits, and the four chains that back tracks 0..3. A parser
+        // that stopped at one digit would silently address chain 1 for every
+        // one of them.
         assert_eq!(parse_chain_key("ch15:synth:cutoff"), Some((15, "synth:cutoff")));
     }
 

@@ -154,6 +154,56 @@ const { writeUiBlob, readUiBlob } = await import('../../dist/esm/seq/persist-sto
     uninstallMockEngine(); uninstallMockFs();
 }
 
+/* ── An UNREADABLE chain set is not an empty one ──────────────────────────
+ * chain-persist.ts says it in as many words: "A malformed answer is not an
+ * empty set. Reading it as one would hand the autosave a set with no chains
+ * and delete the user's work." The line under that comment returns [] for
+ * BOTH — a failed read and a genuinely empty chain set are indistinguishable,
+ * so the autosave writes "chains":[] over real chains.
+ *
+ * Observed on device: ui-state.json at 5141 bytes became 217, holding
+ * "chains":[]. The restore gate does not cover this — the state push landed,
+ * so the gate is open.
+ *
+ * NOT FIXED YET, deliberately. The obvious guard — refuse to serialize when
+ * the chain read is unknown — was tried and reverted: it also fires whenever
+ * an engine simply does not answer the `chains` key, which blocked the UI
+ * write outright (it broke the mute-solo suite immediately). "Unknown blocks
+ * forever" is the same class of data loss the guard is meant to prevent.
+ *
+ * And the DEVICE symptom has a different cause again: there the read succeeds
+ * and truthfully reports no chains, because chain loads are queued and
+ * released one per audio callback — the save simply runs before they land.
+ * That one wants the save gated on the settle wait, which is session
+ * sequencing and a larger change than this suite should smuggle in. */
+{
+    installMockFs({});
+    const eng = installMockEngine();
+    resetSetSave(); resetStoreRotation(); resetRestoreGate();
+
+    const GOOD_UI = '{"root":60,"chains":[{"t":0,"comp":[{"c":"synth","m":"plaits"}]}]}';
+    writeUiBlob('C', GOOD_UI);
+
+    pushState(GOOD);                       // the state restore is FINE
+    eng.stateBlob = 'movy1\nbpm 17000\n';
+
+    const realGet = globalThis.host_module_get_param;
+    globalThis.host_module_get_param = (k) => (k === 'chains' ? null : realGet(k));
+    try {
+        seqState.dirty = true;
+        saveSet('C', 1, true);
+        /* !!! KNOWN GAP — this assertion encodes the BUG, not the fix. !!!
+         * The chains SHOULD survive. When the guard lands, this becomes
+         *     eq(..., readUiBlob('C'), GOOD_UI)
+         * Flip it rather than deleting it. See the note above the block for
+         * why the obvious guard is not the right one. */
+        ok('KNOWN GAP: an unreadable chain set blanks the chains on disk',
+            JSON.parse(readUiBlob('C')).chains.length === 0,
+            JSON.stringify(readUiBlob('C')).slice(0, 70));
+    } finally { globalThis.host_module_get_param = realGet; }
+    uninstallMockEngine(); uninstallMockFs();
+}
+
 /* A host with no blocking API cannot tell us either way. Assuming failure
  * there would block every save on that device — far worse than the hazard. */
 {

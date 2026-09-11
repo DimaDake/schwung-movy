@@ -24,9 +24,31 @@ import { resetUndoGroups } from '../undo/group.js';
 import { resetUndoToast } from '../undo/toast.js';
 import { mlog } from '../log.js';
 import { installPerfProbe } from './perf-probe.js';
+import { setProbeDeps } from '../test/probe.js';
+import { leaveModalActive, leaveModalLabels, leaveModalSel } from './leave-modal.js';
+import { schwungGridMode, setSchwungGridMode } from '../renderer/schwung-grid.js';
+import { laneKeysForTrack } from '../seq/automation.js';
 
 export function init(): void {
     installPerfProbe();   // wrap the host globals before anything calls them
+    /* The probe reads movy through these rather than importing them itself:
+     * src/test/ importing the app would make a test-only module part of the
+     * app's dependency graph, and `answer()` is meant to be callable from a
+     * plain unit test with nothing else loaded. */
+    setProbeDeps({
+        renderer:      () => schwungGridMode(),
+        lanesForTrack: (t) => laneKeysForTrack(t),
+        activeTrack:   () => appState.activeTrack.index,
+        /* A bare unset global identifier THROWS in QuickJS, so this must go
+         * through globalThis rather than naming overtakeParked directly. */
+        parked:        () => (globalThis as any).overtakeParked === true,
+        setGridMode:   (m) => setSchwungGridMode(m as any),
+        leaveModal:    () => ({
+            active: leaveModalActive(),
+            label:  leaveModalLabels()[leaveModalSel()] ?? '',
+            sel:    leaveModalSel(),
+        }),
+    });
     /* Movy opens on the track Move had selected. Through `selectTrack`, not a
      * bare assignment: the focus group has to follow (or the four track buttons
      * address a different quartet than the screen), and so does the sequencer —

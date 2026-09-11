@@ -117,7 +117,7 @@ fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.72.0";
+const ENGINE_VERSION: &str = "0.73.0";
 
 /// A track's chain. **`ch<N>` IS track N** — one host, no offset. Tracks 0..3
 /// were schwung shadow slots until the one-time migration in
@@ -142,6 +142,16 @@ struct Instance {
     blocks: u64,
     chains: ChainSlots,
     pads: PadRoute,
+    /* Device-test probe mailbox. The engine is only a POSTBOX here: it holds
+     * the harness's question and the UI's answer, because the harness can reach
+     * the engine's params (schwung-testd's SET_PARAM/GET_PARAM route into the
+     * overtake DSP) but has no way to address the UI's QuickJS context at all.
+     *
+     * `probe_gen` rides the status poll the UI already makes every few ticks,
+     * so a pending request costs no IPC of its own until there IS one. */
+    probe_req: String,
+    probe_rsp: String,
+    probe_gen: u32,
 }
 
 impl Instance {
@@ -154,6 +164,9 @@ impl Instance {
             blocks: 0,
             chains: ChainSlots::new(),
             pads: PadRoute::new(),
+            probe_req: String::new(),
+            probe_rsp: String::new(),
+            probe_gen: 0,
         }
     }
 
@@ -169,6 +182,17 @@ impl Instance {
                         self.engine.clock.set_bpm_x100((bpm * 100.0) as u32);
                     }
                 }
+            }
+            /* Device-test probe. `probereq` is written by the harness and read
+             * by the UI; `probersp` the other way about. The generation bump is
+             * what the UI notices — a repeated identical request must still be
+             * seen, so this counts writes rather than comparing strings. */
+            "probereq" => {
+                self.probe_req = val.to_string();
+                self.probe_gen = self.probe_gen.wrapping_add(1);
+            }
+            "probersp" => {
+                self.probe_rsp = val.to_string();
             }
             "file_path" => {}
             /* Ask the engine to log each chain's current output peak. The
@@ -419,8 +443,13 @@ impl Instance {
                 /* Rides the same poll, for the same reason: the CPU page
                  * repaints from `status` and must not buy an IPC of its own. */
                 s.push_str(&self.chains.cost_status());
+                /* Same rationale: the UI learns a probe is waiting from the
+                 * poll it already makes, never from a poll of its own. */
+                s.push_str(&format!(" prq={}", self.probe_gen));
                 Some(s)
             }
+            "probereq" => Some(self.probe_req.clone()),
+            "probersp" => Some(self.probe_rsp.clone()),
             "capinfo" => Some(self.engine.capture_info()),
             "alabels" => Some(self.engine.auto_labels()),
             "ping" => Some(format!("pong {ENGINE_VERSION}")),

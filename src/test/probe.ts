@@ -24,7 +24,7 @@ export function noteTick(): void { tickSeq++; }
 
 export function _resetForTest(): void { lastVm = null; renderSeq = 0; tickSeq = 0; }
 
-type Req = { key?: string; verb?: string; arg?: unknown };
+type Req = { id?: number; key?: string; verb?: string; arg?: unknown };
 
 export type ProbeDeps = {
     renderer: () => string;
@@ -32,6 +32,11 @@ export type ProbeDeps = {
     activeTrack: () => number;
     parked: () => boolean;
     setGridMode: (m: string | null) => void;
+    /* The Leave modal's state. The harness drives a real close through this:
+     * Back is not a close button (at root it OPENS this modal, while it is up
+     * it dismisses it), so a fixed number of Backs is ambiguous by parity and
+     * cannot close movy reliably. Reading the modal makes it closed-loop. */
+    leaveModal: () => { active: boolean; label: string; sel: number };
 };
 
 let deps: ProbeDeps | null = null;
@@ -66,23 +71,24 @@ export function answer(requestJson: string): string {
     let req: Req;
     try { req = JSON.parse(requestJson); }
     catch (e) { return JSON.stringify({ error: 'bad request json: ' + String(e) }); }
+    /* The reply carries the request's id back. Without it the harness cannot
+     * tell a fresh answer from the PREVIOUS one still sitting in the engine's
+     * mailbox, and every assertion would be one round behind without saying so. */
+    const tag = (o: object) => JSON.stringify(req.id === undefined ? o : { id: req.id, ...o });
 
-    if (req.verb) return JSON.stringify(runVerb(req.verb, req.arg));
+    if (req.verb) return tag(runVerb(req.verb, req.arg));
 
     switch (req.key) {
         case 'tick':
-            return JSON.stringify({
-                tickSeq, renderSeq,
-                parked: deps ? deps.parked() : false,
-            });
+            return tag({ tickSeq, renderSeq, parked: deps ? deps.parked() : false });
         case 'page': {
             const vm = lastVm;
-            if (!vm) return JSON.stringify({ error: 'no render yet' });
+            if (!vm) return tag({ error: 'no render yet' });
             const cells = [];
             for (let r = 0; r < 2; r++) {
                 for (let c = 0; c < 4; c++) cells.push(cellOf(vm.rows[r]?.[c] ?? null));
             }
-            return JSON.stringify({
+            return tag({
                 pageIndex: vm.bankIndex,
                 pageCount: vm.bankCount,
                 renderer:  deps ? deps.renderer() : 'unknown',
@@ -91,12 +97,16 @@ export function answer(requestJson: string): string {
                 cells,
             });
         }
+        case 'leave': {
+            if (!deps) return tag({ error: 'probe deps not installed' });
+            return tag(deps.leaveModal());
+        }
         case 'auto': {
-            if (!deps) return JSON.stringify({ error: 'probe deps not installed' });
+            if (!deps) return tag({ error: 'probe deps not installed' });
             const track = deps.activeTrack();
-            return JSON.stringify({ track, lanes: deps.lanesForTrack(track) });
+            return tag({ track, lanes: deps.lanesForTrack(track) });
         }
         default:
-            return JSON.stringify({ error: 'unknown key: ' + String(req.key) });
+            return tag({ error: 'unknown key: ' + String(req.key) });
     }
 }

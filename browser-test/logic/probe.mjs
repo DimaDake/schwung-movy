@@ -31,6 +31,7 @@ _log('\nTest: device probe');
         activeTrack:   () => 0,
         parked:        () => false,
         setGridMode:   () => {},
+        leaveModal:    () => ({ active: false, label: '', sel: 0 }),
     });
 
     const tick0 = JSON.parse(answer(JSON.stringify({ key: 'tick' })));
@@ -65,12 +66,28 @@ _log('\nTest: device probe');
     setProbeDeps({
         renderer: () => 'PAGE', lanesForTrack: () => [], activeTrack: () => 1,
         parked: () => true, setGridMode: () => {},
+        leaveModal: () => ({ active: true, label: 'Close Movy', sel: 1 }),
     });
     const empty = JSON.parse(answer(JSON.stringify({ key: 'auto' })));
     eq('an empty lane registry reports as empty', empty.lanes.length, 0);
     eq('tick reports the parked state', JSON.parse(answer(JSON.stringify({ key: 'tick' }))).parked, true);
     eq('page reflects a renderer change',
         JSON.parse(answer(JSON.stringify({ key: 'page' }))).renderer, 'PAGE');
+
+    /* Correlation: without the echoed id the harness cannot distinguish a
+     * fresh reply from the previous one still in the engine's mailbox. */
+    const tagged = JSON.parse(answer(JSON.stringify({ id: 42, key: 'tick' })));
+    eq('a reply echoes the request id', tagged.id, 42);
+    const untagged = JSON.parse(answer(JSON.stringify({ key: 'tick' })));
+    ok('an untagged request gets no id', untagged.id === undefined, JSON.stringify(untagged));
+    const taggedErr = JSON.parse(answer(JSON.stringify({ id: 7, key: 'nope' })));
+    eq('an error reply echoes the id too', taggedErr.id, 7);
+
+    /* The harness closes movy by reading this, because a fixed number of Back
+     * presses cannot do it reliably. */
+    const leave = JSON.parse(answer(JSON.stringify({ key: 'leave' })));
+    eq('leave reports the modal is up', leave.active, true);
+    eq('leave reports the selected label', leave.label, 'Close Movy');
 
     const bad = JSON.parse(answer(JSON.stringify({ key: 'nope' })));
     ok('an unknown key answers with an error, not a throw', typeof bad.error === 'string', bad.error);
@@ -81,6 +98,7 @@ _log('\nTest: device probe');
     setProbeDeps({
         renderer: () => 'DRAW', lanesForTrack: () => [], activeTrack: () => 0,
         parked: () => false, setGridMode: (m) => { gridArg = m; },
+        leaveModal: () => ({ active: false, label: '', sel: 0 }),
     });
     const verb = JSON.parse(answer(JSON.stringify({ verb: 'setGridMode', arg: 'PAGE' })));
     eq('setGridMode reaches the renderer override', gridArg, 'PAGE');

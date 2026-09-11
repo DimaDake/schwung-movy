@@ -17,6 +17,7 @@ import { mlog } from '../log.js';
 import { CHAIN_MODULE_DIR, ENGINE_DSP_PATH, ENGINE_VERSION, MOVY_MODULE_DIR } from './constants.js';
 import { activeFromStr, adoptLoopWindow, muteFromStr, occFromHex, seqState, sessionFromStr, songFromStr } from './state.js';
 import { rationalToIdx } from './clip-scale.js';
+import { noteProbeGen, probeBridgeTick } from './probe-bridge.js';
 import { markUiStateDirty } from './ui-dirty.js';
 import { applyFlagsToEngine } from './flags.js';
 import { resetPadRoute, syncPadRoute } from '../track/pad-route.js';
@@ -199,6 +200,10 @@ export function seqEngineTick(): void {
         statusPolls++;
         parseStatus(s);
     }
+    /* After parseStatus, so a request noticed in THIS poll is answered in the
+     * same tick rather than one poll interval later. Costs nothing when no
+     * request is waiting, which is every tick outside a device test. */
+    probeBridgeTick(host_module_get_param, engineSet);
 }
 
 /* Does an inject from the engine actually reach Move?
@@ -340,6 +345,7 @@ function parseStatus(s: string): void {
             if (lastChainGen >= 0 && g !== lastChainGen) markUiStateDirty();
             lastChainGen = g;
         }
+        else if (key === 'prq') noteProbeGen(Number(val) || 0);
         else if (key === 'chpend') seqState.chainPending = Number(val) || 0;
         else if (key === 'chcost') seqState.cpuCost = val;
         else if (key === 'chwall') seqState.cpuWall = val;

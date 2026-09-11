@@ -25,6 +25,7 @@ mod pad_route;
 mod set_envelope;
 mod set_store;
 mod chain_state;
+mod set_saver;
 
 use chain_slots::ChainSlots;
 use pad_route::PadRoute;
@@ -120,7 +121,12 @@ pub(crate) fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.73.0";
+const ENGINE_VERSION: &str = "0.74.0";
+
+/* Blocks between autosaves. The callback runs at ~344 Hz, so this is ~2 s —
+ * flash on this device is not free and the sequencer is dirty constantly while
+ * a user is working. */
+const SAVE_BLOCKS: u64 = 688;
 
 /// A track's chain. **`ch<N>` IS track N** — one host, no offset. Tracks 0..3
 /// were schwung shadow slots until the one-time migration in
@@ -155,6 +161,16 @@ struct Instance {
     probe_req: String,
     probe_rsp: String,
     probe_gen: u32,
+    /* Set persistence, owned by the engine behind the `engpersist` flag. None
+     * until the UI has said where the Sets live — the path belongs to
+     * set-context.ts, and hardcoding it here would be untestable anywhere but
+     * the device. */
+    saver: Option<set_saver::Saver>,
+    engpersist: bool,
+    set_uuid: String,
+    set_gen: u32,
+    /// Next block at which an autosave may run. Rate limits flash writes.
+    save_at: u64,
 }
 
 impl Instance {
@@ -169,6 +185,11 @@ impl Instance {
             pads: PadRoute::new(),
             probe_req: String::new(),
             probe_rsp: String::new(),
+            saver: None,
+            engpersist: false,
+            set_uuid: String::new(),
+            set_gen: 0,
+            save_at: 0,
             probe_gen: 0,
         }
     }
@@ -361,6 +382,40 @@ impl Instance {
                     host::log("chains: malformed set document ignored");
                 }
             }
+            /* Where the Set files live. The UI owns the path (set-context.ts)
+             * and tells the engine, rather than the engine hardcoding it: the
+             * host tests run against a tmpdir, and a hardcoded device path is
+             * untestable anywhere else. */
+            "setsdir" => {
+                if self.saver.is_none() {
+                    self.saver = Some(set_saver::Saver::new(val));
+                }
+            }
+            /* Who writes the Set files. Off (the default) the UI ferries state
+             * through the param slot and writes it; on, the engine reads and
+             * writes its own. Both must never be true at once, which is why
+             * the autosave below is gated on it and not merely preferred. */
+            "engpersist" => {
+                self.engpersist = val != "0";
+            }
+            /* Commands, not payloads. A lost command is harmless and idempotent
+             * on retry — an engine that has not opened a Set cannot overwrite
+             * one — where a lost `state` write destroyed data. Parsed here, on
+             * the audio thread; executed on the saver thread. */
+            "set" => {
+                if let Some(job) = set_saver::parse_cmd(val) {
+                    match &job {
+                        set_saver::Job::Open { uuid, .. } | set_saver::Job::Blank { uuid } => {
+                            self.set_uuid = uuid.clone();
+                        }
+                        set_saver::Job::Rename { to, .. } => self.set_uuid = to.clone(),
+                        _ => {}
+                    }
+                    if let Some(s) = &self.saver {
+                        s.submit(job);
+                    }
+                }
+            }
             // Load persisted state (UI sends the autosave file's contents).
             "state" => {
                 if seq_core::persist::load(&mut self.engine, val) {
@@ -451,6 +506,14 @@ impl Instance {
                 s.push_str(&format!(" prq={}", self.probe_gen));
                 Some(s)
             }
+            /* The UI compares this `uuid` against the Set it believes is open
+             * and re-sends `open` when they differ. That comparison is what
+             * replaces restore-gate.ts: a command nobody acknowledged is simply
+             * a command to send again. */
+            "set" => Some(self.saver.as_ref().map_or_else(
+                || "phase=failed reason=no-setsdir".to_string(),
+                |s| s.status(),
+            )),
             "probereq" => Some(self.probe_req.clone()),
             "probersp" => Some(self.probe_rsp.clone()),
             "capinfo" => Some(self.engine.capture_info()),
@@ -582,6 +645,45 @@ impl Instance {
         self.engine.on_external_realtime(status, &mut self.out);
     }
 
+    /* The saver hands back BYTES; applying them is engine work and belongs on
+     * this thread. Runs before service_loads so a chain the open just requested
+     * can be released in the same block.
+     *
+     * No file I/O here — that is the saver thread's, and the rule is not
+     * negotiable: this is the audio callback. */
+    fn service_set(&mut self) {
+        let Some(saver) = &self.saver else { return };
+
+        if let Some((payload, chains, gen)) = saver.take_loaded() {
+            /* persist::load resets before applying, so a failed open leaves the
+             * previous Set rather than half of the new one. */
+            if seq_core::persist::load(&mut self.engine, &payload) {
+                self.engine.dirty = false;
+            }
+            if !chain_state::restore(&mut self.chains, &chains) && !chains.is_empty() {
+                host::log("set: malformed chains.json ignored");
+            }
+            self.set_gen = gen;
+            self.save_at = self.blocks + SAVE_BLOCKS;
+        }
+
+        /* The engine's own dirty flag decides when to save. Nothing reads state
+         * out of the engine to find out, which matters because that read used
+         * to CLEAR the flag: a write we then failed to complete was an edit
+         * nothing would ever ask for again. */
+        if self.engpersist && self.engine.dirty && self.blocks >= self.save_at {
+            self.set_gen += 1;
+            saver.submit(set_saver::Job::Save {
+                uuid: self.set_uuid.clone(),
+                payload: seq_core::persist::serialize(&self.engine),
+                gen: self.set_gen,
+                chains: chain_state::serialize(&mut self.chains),
+            });
+            self.engine.dirty = false;
+            self.save_at = self.blocks + SAVE_BLOCKS;
+        }
+    }
+
     fn render(&mut self, out_audio: &mut [i16]) {
         self.blocks += 1;
         self.engine
@@ -591,6 +693,7 @@ impl Instance {
         /* At most ONE queued module load per block. This is the blocking call —
          * it dlopens — and releasing one per callback is what stops a twelve
          * chain restore stacking into a single block (see load_queue). */
+        self.service_set();
         self.chains.service_loads();
         self.chains.render(out_audio);
     }
@@ -1030,5 +1133,48 @@ mod tests {
         inst.set_param("cmd", "cpurst");
         let s = inst.get_param("status").expect("status");
         assert!(s.contains(" chcost="), "{s}");
+    }
+
+    /* The flag must GATE the new path, not merely be preferred by it. If both
+     * halves write, they race for the same files and the mirror in
+     * ui-state.json disagrees with chains.json — so "off means the engine does
+     * not save" is an invariant, not a default.
+     *
+     * Asserted through the saver's own status rather than a counter, because a
+     * counter would have to be added to production code to be readable. */
+    fn saver_tmp(name: &str) -> String {
+        let d = std::env::temp_dir().join(format!("movy-gate-{name}"));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        d.to_str().unwrap().to_string()
+    }
+
+    #[test]
+    fn engpersist_off_means_the_engine_never_saves() {
+        let mut inst = Instance::new();
+        inst.set_param("setsdir", &saver_tmp("off"));
+        inst.set_param("set", "open u1");
+        inst.engine.dirty = true;
+        let mut audio = [0i16; 256];
+        for _ in 0..(SAVE_BLOCKS + 2) {
+            inst.render(&mut audio);
+        }
+        let st = inst.get_param("set").expect("status");
+        assert!(st.contains("dirty=0"), "the engine must not have saved: {st}");
+        assert!(inst.engine.dirty, "and it must not have cleared the flag either");
+    }
+
+    #[test]
+    fn engpersist_on_saves_once_the_cadence_allows() {
+        let mut inst = Instance::new();
+        inst.set_param("setsdir", &saver_tmp("on"));
+        inst.set_param("engpersist", "1");
+        inst.set_param("set", "open u1");
+        inst.engine.dirty = true;
+        let mut audio = [0i16; 256];
+        for _ in 0..(SAVE_BLOCKS + 2) {
+            inst.render(&mut audio);
+        }
+        assert!(!inst.engine.dirty, "a save must have been taken");
     }
 }

@@ -262,11 +262,31 @@ export async function run() {
   eq('abandon resolves it', M.migrationPending(), false);
   eq('and still marks the set', M.migrationMarker(), M.MIGRATION_VERSION);
 
-  /* The manual action needs no stability wait: the set is ready, so schwung's
-   * slots are settled by definition. */
+  /* The manual Settings row re-enters this SAME state machine rather than
+   * inventing a second one — `armManualOverwrite` is its one behavioral
+   * difference, consumed by the very next probe. Without it, an occupied
+   * chain is skipped exactly as the automatic path does. */
   clearSlots(); seedSlot(2, 'plaits');
-  const man = M.runManualMigration([{ t: 2, comp: [{ c: 'synth', m: 'obxd' }] }]);
-  eq('manual overwrites an occupied chain', man.migrated.join(','), '2');
+  const occupied = [{ t: 2, comp: [{ c: 'synth', m: 'obxd' }] }];
+  M.resetMigration();
+  M.beginMigration({ chtrackset: 0 }, undefined, occupied);
+  M.migrationTick(); M.migrationTick();
+  eq('without the arm, an occupied chain is left alone', M.migrationResult(), null);
+
+  M.resetMigration();
+  M.armManualOverwrite();
+  M.beginMigration({ chtrackset: 0 }, undefined, occupied);
+  M.migrationTick(); M.migrationTick();
+  eq('armed, it overwrites the occupied chain',
+     M.migrationResult()?.migrated.join(','), '2');
+
+  /* One-shot: `finish()` consumes it, not just `resetMigration()` — a NEXT
+   * migration with NO reset in between (the shape a real reload takes: the
+   * arm survives beginMigration's own internal reset, but must not survive
+   * past the probe it was armed for) is back to the normal guard. */
+  M.beginMigration({ chtrackset: 0 }, undefined, occupied);
+  M.migrationTick(); M.migrationTick();
+  eq('the arm does not carry over to the next load', M.migrationResult(), null);
 
   uninstallSlotMock();
   uninstallMockFs();

@@ -9,7 +9,8 @@ import {
     FLAGS, flagDef, clampFlag, flagValueLabel, flagNormalized,
     flagValue, setFlag, applyFlagsToEngine, resetFlags,
     flagsPageState, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
-    flagsRowCount, backupsRowSelected,
+    flagsRowCount, backupsRowSelected, actionRowSelected,
+    migrateRowArmed, armMigrateRow, disarmMigrateRow, runMigrateRow, slotsHaveContent,
     buildFlagsPageVM, VISIBLE_ROWS, firstVisibleRow, readPrefFlags, writePrefFlag,
     visibleFlags, trackRef, DETENT_DIV,
     wrapWords, HINT_W, HINT_LINES, fontWidth, W,
@@ -249,12 +250,12 @@ export async function run() {
     eq('and back up', flagsPageState.selected, 0);
     flagsPageJog(-1);
     eq('the top is clamped, not wrapped', flagsPageState.selected, 0);
-    /* The list ends one row PAST the last flag: BACKUPS is an action row, and
-     * counting rows off `visibleFlags()` alone would put it out of the jog's
+    /* The list ends past the last flag with two action rows, and counting rows
+     * off `visibleFlags()` alone would put the second one out of the jog's
      * reach — which is how a row that draws but cannot be selected happens. */
     for (let i = 0; i < FLAGS.length + 5; i++) flagsPageJog(1);
     eq('and so is the bottom', flagsPageState.selected, flagsRowCount() - 1);
-    ok('the last row is BACKUPS, not a flag', backupsRowSelected());
+    eq('the last row is the last action row, not a flag', actionRowSelected(), 1);
 
     /* Knob 1 edits whatever the jog selected — that is the whole interaction,
      * and it is what lets the list grow past eight entries. */
@@ -301,7 +302,8 @@ export async function run() {
      * not have caught it; comparing against what the gestures walk can. */
     eq('one drawn row per selectable row', vm.rows.length, flagsRowCount());
     eq('the flags come first', vm.rows[0].name, visibleFlags()[0].name);
-    eq('and the action row is last', vm.rows[vm.rows.length - 1].name, 'BACKUPS');
+    eq('and the action rows come last', vm.rows.slice(-2).map((r) => r.name).join(','),
+       'BACKUPS,MIGRATE TRACKS');
     eq('the name column is the readable name', vm.rows[0].name, visibleFlags()[0].name);
     eq('exactly one row is selected', vm.rows.filter((r) => r.selected).length, 1);
     ok('a labelled flag shows its word', vm.rows.some((r) => r.value === 'PAGE'));
@@ -316,7 +318,7 @@ export async function run() {
         const av = buildFlagsPageVM();
         ok('the action row can be selected', av.rows[av.rows.length - 1].selected);
         eq('exactly one row is still selected', av.rows.filter((r) => r.selected).length, 1);
-        ok('the hint is the action row\'s own', av.hint.toLowerCase().includes('versions'));
+        ok('the hint is the action row\'s own', av.hint.toLowerCase().includes('schwung'));
         eq('the knob LED is dark on it', av.knobNormalized, 0);
         resetFlagsPage();
     }
@@ -432,6 +434,88 @@ export async function run() {
     /* The list has to give the band its two lines back. */
     ok('the list leaves room for the band', VISIBLE_ROWS >= 4 && VISIBLE_ROWS <= 5);
 
+    uninstallMockFs();
+}
+
+/* ── Settings — the second action row (MIGRATE TRACKS) ────── */
+{
+    _log('\nSettings action rows');
+
+    installMockFs();
+    resetFlags();
+    resetFlagsPage();
+    disarmMigrateRow();
+
+    const flags = visibleFlags(true);
+    /* The count is what the jog clamps to AND what the viewmodel draws. A row
+     * added to one but not the other is selectable, clickable and undrawn —
+     * exactly how BACKUPS shipped the first time. */
+    eq('two action rows past the flags', flagsRowCount(), flags.length + 2);
+
+    flagsPageState.selected = flags.length;
+    eq('vm draws every row', buildFlagsPageVM(flags).rows.length, flags.length + 2);
+    eq('first action row is BACKUPS', buildFlagsPageVM(flags).rows[flags.length].name, 'BACKUPS');
+    eq('backups is action 0', actionRowSelected(), 0);
+    ok('a flag row is action -1', (flagsPageState.selected = 0, actionRowSelected() === -1));
+
+    flagsPageState.selected = flags.length + 1;
+    const vm = buildFlagsPageVM(flags);
+    eq('second action row is MIGRATE TRACKS', vm.rows[flags.length + 1].name, 'MIGRATE TRACKS');
+    eq('migrate is action 1', actionRowSelected(), 1);
+    eq('it is selected', vm.rows[flags.length + 1].selected, true);
+    ok('its hint is shown', vm.hint.length > 0);
+    eq('the knob LED is dark on an action row', vm.knobNormalized, 0);
+
+    /* Arming: a stray jog-click stops playback and reloads every module in the
+     * Set, so the row says what the NEXT click will do before it does it. */
+    disarmMigrateRow();
+    eq('unarmed value', buildFlagsPageVM(flags).rows[flags.length + 1].value, '>');
+    armMigrateRow();
+    eq('armed', migrateRowArmed(), true);
+    eq('armed value', buildFlagsPageVM(flags).rows[flags.length + 1].value, 'CONFIRM?');
+    /* Moving away disarms: an arm left standing on a row the user has scrolled
+     * off is a confirmation they did not give. Building the viewmodel is what
+     * notices the move, so the read itself is what expires it. */
+    flagsPageState.selected = 0;
+    buildFlagsPageVM(flags);
+    eq('moving off disarms', migrateRowArmed(), false);
+    flagsPageState.selected = flags.length + 1;
+
+    uninstallMockFs();
+}
+
+/* ── The migrate action itself ─────────────────────────────── */
+{
+    _log('\nMIGRATE TRACKS: what the confirmed press does');
+
+    installMockFs();
+    const origGet = globalThis.shadow_get_param;
+    const origSet = globalThis.shadow_set_param;
+    const store = {};
+    globalThis.shadow_get_param = (s, k) => store[s + '|' + k] ?? null;
+    globalThis.shadow_set_param = (s, k, v) => { store[s + '|' + k] = v; return true; };
+    const clearSlots = () => {
+        for (let s = 0; s < 4; s++) {
+            for (const c of ['midi_fx1', 'synth', 'fx1', 'fx2']) {
+                globalThis.shadow_set_param(s, c + '_module', '');
+            }
+        }
+    };
+
+    clearSlots();
+    eq('nothing in the slots reads as nothing', slotsHaveContent(), false);
+    armMigrateRow();
+    eq('a press with nothing to find does not arm the reload', runMigrateRow(), false);
+    eq('and disarms the row either way', migrateRowArmed(), false);
+
+    globalThis.shadow_set_param(2, 'synth_module', 'plaits');
+    eq('a loaded slot reads as content', slotsHaveContent(), true);
+    armMigrateRow();
+    eq('a press with something to find arms the reload', runMigrateRow(), true);
+    eq('and disarms the row', migrateRowArmed(), false);
+
+    globalThis.shadow_get_param = origGet;
+    globalThis.shadow_set_param = origSet;
     uninstallMockFs();
 }
 

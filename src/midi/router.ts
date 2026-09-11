@@ -28,12 +28,13 @@ import { beginTrackSwitch, restoreTrackState, switchToTrack } from '../track/swi
 import { portFor } from '../track/registry.js';
 import { mappingFor } from '../seq/lane-mapping.js';
 import { setButtonHeld } from '../seq/button-held.js';
-import { currentSetUuid, reloadCurrentSet, sessionFailScope, sessionPhase, sessionReady } from '../seq/set-session.js';
+import { currentSetUuid, reloadCurrentSet, sessionFailScope, sessionFlush, sessionPhase, sessionReady } from '../seq/set-session.js';
 import { sessionStartFromScratch } from '../seq/set-fail.js';
 import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS } from '../app/state.js';
 import { mainPageActive, mainPageKnob, mainPageTouch, mainPageRelease } from '../seq/main-page.js';
 import { clipPageActive, clipPageKnob, clipPageTouch, clipPageRelease } from '../seq/clip-page.js';
-import { backupsRowSelected, flagsPageActive, flagsPageJog, flagsPageKnob } from '../seq/flags-page.js';
+import { actionRowSelected, backupsRowSelected, flagsPageActive, flagsPageJog, flagsPageKnob } from '../seq/flags-page.js';
+import { armMigrateRow, migrateRowArmed, runMigrateRow } from '../seq/migrate-action.js';
 import { openVersionsPage, versionsPageActive, versionsPageBack, versionsPageClick, versionsPageJog }
     from '../seq/versions-page.js';
 import { cpuPageActive } from '../seq/cpu-page.js';
@@ -619,6 +620,21 @@ export function onMidiMessageInternal(data: number[]): void {
         }
         if (flagsPageActive() && backupsRowSelected()) {
             openVersionsPage();
+            appState.dirty = true;
+            return;
+        }
+        if (flagsPageActive() && actionRowSelected() === 1) {
+            /* Arm, then act — never both on the same press. A stray click here
+             * stops playback and reloads every module in the Set, so the row
+             * says what the NEXT click will do before it does it. */
+            if (!migrateRowArmed()) {
+                armMigrateRow();
+            } else if (runMigrateRow()) {
+                /* Forced: the autosave is on a ~3-8 s countdown, so reloading
+                 * without this drops whatever was just played. */
+                sessionFlush(true);
+                reloadCurrentSet();
+            }
             appState.dirty = true;
             return;
         }

@@ -50,28 +50,55 @@ let result: MigrationResult | null = null;
  * could never equal one is what stops the first probe agreeing with nothing. */
 let lastSig: string | null = null;
 let probes = 0;
+/* Armed by the manual Settings row, ahead of the reload it forces — see
+ * `armManualOverwrite`. Deliberately NOT cleared by the internal reset
+ * `beginMigration` runs on every call (`resetCycle(true)` below): it has to
+ * survive from the arm to the very next probe, which is the one across that
+ * reload. It IS cleared by `resetMigration`, the public reset tests use
+ * between cases, and by every exit this file has — nothing left probing can
+ * carry it into an unrelated later load. */
+let forceOverwrite = false;
 
-export function resetMigration(): void {
+/* `keepOverwrite` is what lets `beginMigration` reset everything ELSE on every
+ * call without discarding an arm made moments before it. */
+function resetCycle(keepOverwrite: boolean): void {
     state = 'idle'; existingChains = null; result = null;
     lastSig = null; probes = 0;
+    if (!keepOverwrite) forceOverwrite = false;
 }
+
+/** Full reset, for tests between cases. Production never calls this directly —
+ *  `beginMigration` keeps a just-armed overwrite alive across its own reset. */
+export function resetMigration(): void { resetCycle(false); }
+
+/** Arm the very next probe — and only that one — to OVERWRITE an occupied
+ *  chain instead of skipping it. The manual Settings row's one behavioral
+ *  difference from the automatic path: the two reasons to press it are a
+ *  migration that came up partial and a chain since broken by hand, and the
+ *  automatic guard would refuse both. Call this, then force the reload that
+ *  makes the next `beginMigration` the one it arms. */
+export function armManualOverwrite(): void { forceOverwrite = true; }
 
 /** Start the migration for the set being loaded.
  *
  *  `marker` is the blob's `migv` field, `blobFlags` its `flags` object, and
  *  `existing` the chains the blob itself restored — a track already in there is
- *  the set's own and is never written over. */
+ *  the set's own and is never written over, UNLESS `armManualOverwrite` was
+ *  called since the last probe resolved. */
 export function beginMigration(
     blobFlags: Record<string, unknown> | null | undefined,
     marker: unknown,
     existing: ChainTrackState[] | undefined | null,
 ): void {
-    resetMigration();
-    if (typeof marker === 'number' && marker >= MIGRATION_VERSION) { state = 'done'; return; }
+    resetCycle(true);
+    if (typeof marker === 'number' && marker >= MIGRATION_VERSION) {
+        forceOverwrite = false; state = 'done'; return;
+    }
     if (!legacySetWasSchwung(blobFlags)) {
         /* Not a candidate, but still marked: a set that never had schwung tracks
          * has nothing to find, and saying so once is cheaper than asking again
          * on every open. */
+        forceOverwrite = false;
         state = 'done';
         return;
     }
@@ -111,8 +138,8 @@ export function migrationTick(): boolean {
 function collect(): MigrationResult {
     const slots: SlotChain[] = [];
     for (let s = 0; s < LEGACY_SLOTS; s++) slots.push(readSlotChain(s));
-    const r = planMigration(slots, existingChains, false);
-    mlog('mig: migrated ' + r.migrated.length + ' track(s)'
+    const r = planMigration(slots, existingChains, forceOverwrite);
+    mlog('mig: ' + (forceOverwrite ? 'manual — ' : '') + 'migrated ' + r.migrated.length + ' track(s)'
         + (r.skipped.length ? ', skipped ' + r.skipped.length : '')
         + (r.warnings.length ? ', ' + r.warnings.length + ' warning(s)' : ''));
     for (const w of r.warnings) mlog('mig: ' + w);
@@ -122,6 +149,9 @@ function collect(): MigrationResult {
 function finish(r: MigrationResult | null): void {
     result = r && r.migrated.length > 0 ? r : null;
     state = 'done';
+    /* Consumed either way: an arm that found nothing to overwrite must not
+     * wait around for a later, unrelated load to spend it on. */
+    forceOverwrite = false;
 }
 
 /** What the migration produced, or null when it produced nothing. */
@@ -148,17 +178,3 @@ export function abandonMigration(): void {
     finish(null);
 }
 
-/** The Settings action: one probe, no stability wait, and it OVERWRITES.
- *
- *  The set is `ready` when this runs, so schwung's slots are settled by
- *  definition — the wait above exists only for the load-time race. */
-export function runManualMigration(
-    existing: ChainTrackState[] | undefined | null,
-): MigrationResult {
-    const slots: SlotChain[] = [];
-    for (let s = 0; s < LEGACY_SLOTS; s++) slots.push(readSlotChain(s));
-    const r = planMigration(slots, existing, true);
-    mlog('mig: manual — ' + r.migrated.length + ' track(s)');
-    for (const w of r.warnings) mlog('mig: ' + w);
-    return r;
-}

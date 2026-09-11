@@ -52,11 +52,14 @@ import {
 } from '../../dist/esm/seq/flags.js';
 import {
     flagsPageState, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
-    flagsRowCount, backupsRowSelected,
+    flagsRowCount, backupsRowSelected, actionRowSelected,
 } from '../../dist/esm/seq/flags-page.js';
 import { buildFlagsPageVM } from '../../dist/esm/seq/flags-page-vm.js';
 import { visibleFlags } from '../../dist/esm/seq/flags-visible.js';
 import { loadPerSetFlags } from '../../dist/esm/seq/flags.js';
+import {
+    migrateRowArmed, armMigrateRow, disarmMigrateRow, runMigrateRow, slotsHaveContent,
+} from '../../dist/esm/seq/migrate-action.js';
 import { schwungGridMode, setSchwungGridMode, schwungPageFor,
          schwungGridReload } from '../../dist/esm/renderer/schwung-grid.js';
 import { schwungLibAvailable, schwungLibError } from '../../dist/esm/renderer/schwung-lib.js';
@@ -254,7 +257,8 @@ export {
     flagValue, setFlag, applyFlagsToEngine, resetFlags,
     schwungGridMode, setSchwungGridMode, schwungPageFor, schwungGridReload,
     schwungLibAvailable, schwungLibError,
-    flagsPageState, flagsRowCount, backupsRowSelected, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
+    flagsPageState, flagsRowCount, backupsRowSelected, actionRowSelected, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
+    migrateRowArmed, armMigrateRow, disarmMigrateRow, runMigrateRow, slotsHaveContent,
     buildFlagsPageVM, VISIBLE_ROWS, firstVisibleRow, readPrefFlags, writePrefFlag,
     visibleFlags, loadPerSetFlags, resetPorts,
     wrapWords, HINT_W, HINT_LINES, DETENT_DIV, fontWidth, W,

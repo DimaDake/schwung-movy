@@ -32,15 +32,35 @@ export function flagsPageActive(): boolean {
     return appState.currentView === VIEW_FLAGS;
 }
 
-/* The settings list ends with one row that is not a flag. It sits LAST so it
- * never moves when the flag list changes between debug and release builds, and
- * it is an ACTION: knob 1 does nothing on it, and the jog click opens the page.
- * Rows are counted through here rather than off `visibleFlags()` directly, so a
- * clamp cannot forget it exists. */
-export function flagsRowCount(): number { return visibleFlags().length + 1; }
-export function backupsRowSelected(): boolean {
-    return flagsPageState.selected === visibleFlags().length;
+/* The settings list ends with rows that are not flags — BACKUPS opens the
+ * versions list, MIGRATE TRACKS re-runs the schwung migration. They sit LAST so
+ * they never move when the flag list changes between debug and release builds,
+ * and each is an ACTION: knob 1 does nothing on it, the jog click does
+ * something else entirely.
+ *
+ * A LIST, not a hardcoded row: the FIRST version of BACKUPS added its row to
+ * the jog's clamp and to the router but not to `flags-page-vm.ts`'s drawn
+ * list, so it was selectable, clickable and undrawn — every screenshot stayed
+ * byte-identical because the viewmodel never changed. Both `flagsRowCount`
+ * below and the viewmodel walk this SAME array so that mistake needs the list
+ * itself to be wrong, not two copies of it to agree. */
+export const ACTION_ROWS = [
+    { name: 'BACKUPS', hint: 'Older versions of this set. Restore one.' },
+    { name: 'MIGRATE TRACKS', hint: 'Pull tracks 1-4 out of Schwung. Reloads the set.' },
+] as const;
+
+/* Rows are counted through here rather than off `visibleFlags()` directly, so
+ * a clamp cannot forget an action row exists. */
+export function flagsRowCount(): number { return visibleFlags().length + ACTION_ROWS.length; }
+
+/** Which action row is selected, or -1 when a flag is. */
+export function actionRowSelected(): number {
+    const i = flagsPageState.selected - visibleFlags().length;
+    return i >= 0 && i < ACTION_ROWS.length ? i : -1;
 }
+
+/** Kept for callers that only ever cared about the first action row. */
+export function backupsRowSelected(): boolean { return actionRowSelected() === 0; }
 
 /** Drop the transient gesture state; the view switch belongs to param-page.ts.
  *  The selection is NOT reset — coming back to the page you were just on should
@@ -63,7 +83,7 @@ export function flagsPageJog(delta: number): void {
  *  would be a change nobody could attribute. */
 export function flagsPageKnob(k: number, delta: number): void {
     if (k !== FLAG_KNOB) return;
-    if (backupsRowSelected()) return;   // an action row has no value to turn
+    if (actionRowSelected() >= 0) return;   // an action row has no value to turn
     const n = countDetents(accum, 0, delta);
     if (n === 0) return;
     /* The VISIBLE list: the page draws it, so it is also what the selection

@@ -52,9 +52,9 @@ and the Schwung audio chain keep running underneath — Movy just takes over the
 screen, pads, knobs, and buttons.
 
 You're always working with **one of sixteen tracks** at a time — four groups of
-four, where the first four are Schwung's own tracks and the other twelve are
-chains Movy hosts itself ([Tracks and groups](#tracks-and-groups)). Either way a
-track is a chain of up to four module slots, plus a per-track **LFO** page:
+four, all of them chains Movy hosts itself
+([Tracks and groups](#tracks-and-groups)). A track is a chain of up to four
+module slots, plus a per-track **LFO** page:
 
 ```
 MIDI FX  →  SYNTH  →  FX 1  →  FX 2  →  LFO
@@ -139,13 +139,9 @@ now:
 
 ![Restoring](docs/assets/versions_confirm.png)
 
-**Jog click** again restores it; **Back** cancels. Two things worth knowing:
-
-- Restoring is itself undoable — the state you had is kept as a version first,
-  so a mis-press costs you nothing.
-- **Schwung's own four track slots are not included.** Those live in Move's Set
-  file rather than Movy's, so a restore brings back your sequence and Movy's own
-  chains, and leaves those slots alone.
+**Jog click** again restores it; **Back** cancels. Restoring is itself
+undoable — the state you had is kept as a version first, so a mis-press costs
+you nothing.
 
 **Deleting a Set in Move deletes its backups.** A Set's versions belong to that
 Set, so removing it in Move's own interface takes its whole history with it —
@@ -653,15 +649,14 @@ screen for as long as you are touching the volume knob, so:
   Works on all 16 tracks.
 
 ⚠️ **On tracks 5-16, use the Shift variant.** The plain gesture leans on telling
-Move which track is held, and Move only has four track buttons — on a Movy-hosted
-track it has nothing to be told, so the knob stays on Move's *master* volume.
-Known limitation, not by design.
+Move which track is held, and Move only has four track buttons — beyond them it
+has nothing to be told, so the knob stays on Move's *master* volume. Known
+limitation, not by design.
 
-The value belongs to the track — a Schwung slot for tracks 1-4, Movy's own mixer
-for 5-16 — and it is **saved with the Set**, so it survives leaving Movy, a
-power cycle, and switching to another Set and back. A Movy-hosted track's level
-is saved alongside its chain, so a chain with nothing loaded in it has no level
-to keep.
+The value belongs to the track — Movy's own mixer, for every track — and it is
+**saved with the Set**, so it survives leaving Movy, a power cycle, and
+switching to another Set and back. A track's level is saved alongside its
+chain, so a chain with nothing loaded in it has no level to keep.
 
 ### The MIX page
 
@@ -696,12 +691,6 @@ moves where you expect it to rather than crowding into one end of the travel.
 The sends are **post-fader and post-pan**: pulling a track's level down takes its
 reverb with it, and a hard-panned track arrives in the return where you left it.
 Muting a track mutes its sends too.
-
-⚠️ **Tracks 1–4 show only VOL** unless they are Movy-hosted. A Schwung-hosted
-track's audio never passes through Movy, so there is nothing for Movy to pan or
-to tap for a send, and Schwung has no pan control of its own. Turn on
-**Movy tracks** in Settings to get the full page on tracks 1–4. This is a
-routing fact, not a missing feature.
 
 ### Send FX
 
@@ -799,7 +788,7 @@ add a second one to the same parameter). A modulated parameter shows a small
 While a parameter is modulated its on-screen knob stays at your **base value** —
 the LFO moves the sound, not the displayed knob.
 
-Both work on **every track**, Schwung-backed (1–4) and Movy-hosted (5–16) alike.
+Both work on **every track** alike.
 
 The prompt only appears on knobs an LFO can actually reach — a module's own
 parameters. It is not offered on the **MIX** page or on a **send FX** slot: those
@@ -1191,26 +1180,24 @@ never in the same row or the same column, so two tracks you can see at the same
 time never share one. Eight well-separated colours is also all this hardware
 offers — the pale and cool ones wash out to white next to the lit in-scale pads.
 
-**Tracks 5-16 host their own instruments.** Load a module onto one exactly as
-you would on a track button track, and movy hosts the whole chain itself.
-Tracks 1-4 can be either Schwung's four slots — Move's, with Move's mixer seeing
-them — or movy's own, which is what a new set gets by default; **TRACKS 1-4
-HOST** on the [Settings page](#settings--shift--step-2) is what decides, and the
-two differences below apply to whichever tracks movy is hosting.
+**Every track hosts its own instrument.** Load a module onto one exactly as you
+would on a track button track, and movy hosts the whole chain itself.
 
-Two differences worth knowing:
+Two things worth knowing:
 
-- **Move's mixer sees every movy-hosted track as one channel.** Movy sums them
-  into a single stereo output, so their levels are movy's own — the Move fader
-  does not reach them individually, and Movy saves them in the set itself. Set them with **Shift + hold track + volume encoder** —
-  ⚠️ on tracks 5-16 the plain gesture *without* Shift does not work yet and moves
-  Move's master volume instead, so use Shift there. Tracks 1-4 take either.
-- **They sound only while movy is open** (or parked in Background mode). A
-  Schwung-hosted track keeps playing under Move's own UI; a movy-hosted one
-  stops when movy closes, because movy is what renders it.
+- **Move's mixer sees every track as one channel.** Movy sums them into a
+  single stereo output, so their levels are movy's own — the Move fader does
+  not reach them individually, and Movy saves them in the set itself. Set them
+  with **Shift + hold track + volume encoder** — ⚠️ on tracks 5-16 the plain
+  gesture *without* Shift does not work yet and moves Move's master volume
+  instead, so use Shift there; tracks 1-4 take either.
+- **They sound only while movy is open** (or parked in Background mode) —
+  movy is what renders them.
 
-Their modules and settings are saved with the set, so a movy track comes back
-the way you left it.
+Their modules and settings are saved with the set, so a track comes back the
+way you left it. An older set that still has Schwung holding tracks 1-4 is
+pulled onto movy's own chains automatically, the first time you open it — see
+[Settings](#settings--shift--step-2).
 
 ### The Loop view
 
@@ -1670,11 +1657,11 @@ so — the same bargain any level meter makes.
 | --- | --- |
 | A solid bar | The instrument |
 | Checkered on top of it | The effects after it |
+| A solid bar with no checkering, even with FX loaded | A module that can't be split into a synth stage and an effects stage — it draws as one undivided bar |
 | A dotted line above the bar | The worst block that track has had since you opened the page |
 | A solid line across the top with a gap under it | Something on that column is off the top of the plot — usually a one-off spike in its peak, which the scale deliberately ignores (see below) |
 | A short dash just above the baseline | Loaded, but silent right now, so Movy is skipping it entirely. Its peak line is still drawn — a track that spiked and then went quiet is exactly what you came here to find |
 | Just the baseline | Nothing loaded |
-| A dotted vertical column | A **Schwung**-hosted track — it renders outside Movy, so Movy cannot measure it. Not the same as costing nothing |
 
 #### Send buses
 
@@ -1716,17 +1703,7 @@ of CPU while every column on this page still looks empty. Treat a
 suspiciously-empty column on a module you know is heavy as "measured elsewhere",
 not as "costs nothing".
 
-#### With tracks 1-4 on Schwung
-
-![CPU meter with tracks 1-4 on Schwung](docs/assets/cpu-schwung-tracks.png)
-
-The first four columns are dotted verticals rather than bars. Those tracks are
-rendering inside Schwung, outside anything Movy measures — the dots say "not
-ours to measure", which is a different answer from an empty column.
-
-A few modules cannot be split into a synth stage and an effects stage. Their
-column is one solid bar with no separate effects section, which is the same
-picture those tracks draw.
+#### Chains rendering side by side
 
 Expect an individual track to read **higher** than it would rendering alone —
 around a quarter higher — while the bar at the top reads much *lower*. That is
@@ -1748,29 +1725,31 @@ Step 2 lights dim under Shift and full bright while the page is open.
 
 Movy always renders its chains on several threads and always skips chains that
 are silent. Together those are worth roughly 2× on a heavy set — the difference
-between a big set staying inside the audio frame and crackling — and they apply
-to **Movy's own tracks only**: a Schwung track renders exactly as it does
-without Movy. There is nothing to turn on or tune; the **CPU meter**
-(Shift + Step 12) is where you see what it buys you.
+between a big set staying inside the audio frame and crackling. There is
+nothing to turn on or tune; the **CPU meter** (Shift + Step 12) is where you
+see what it buys you.
 
-**TRACKS 1-4 HOST** decides who owns the first four tracks. Tracks 5-16 are
-always Movy's own; tracks 1-4 can be either:
+**Bringing an older set across.** Tracks 1-4 used to have a choice of host —
+Schwung's own four slots, or Movy's chains. That choice is gone: every track is
+a Movy chain now. The first time you open a set that still has Schwung holding
+tracks 1-4, Movy pulls them onto its own chains for you, automatically, behind
+a **MIGRATING TRACKS** splash:
 
-| Value | Tracks 1-4 |
-| --- | --- |
-| **SCHWUNG** | Schwung's four slots, exactly as they behave without Movy: Move's mixer fader, per-slot Link Audio, Schwung's own cached parameter reads, and no share of the multi-threaded render |
-| **MOVY** | Movy hosts them like tracks 5-16, so they join the multi-threaded render — worth ~20-25 % of the chain render |
-| **NEW SETS** *(default)* | each set decides — see below |
+![Migrating tracks](docs/assets/session_migrating.png)
 
-On **NEW SETS**, a set that Movy has never opened before starts on MOVY, and a
-set you already have stays on SCHWUNG. Nothing is migrated either way: switching
-a set over does not move an instrument from one host to the other — the Schwung
-slot keeps what it holds and simply stops being played, and switching back finds
-it exactly as it was.
+Modules, presets, volume and LFO assignments come across. A chain position
+Movy's own UI never shows — a second MIDI FX slot, say — is left as it was and
+reported as a warning rather than silently dropped. The Schwung slot itself is
+never cleared; it just stops being the thing that plays. This runs once per
+set — opening it again does nothing, whether or not there was anything to pull
+across.
 
-**THIS SET** appears only under NEW SETS, and is the current set's own answer.
-Change it to move just the set you are in; it is saved with the set and travels
-with it.
+**MIGRATE TRACKS**, the last row on this page, reruns it by hand. Unlike the
+automatic pass, it **overwrites** whatever a Movy chain already holds, which is
+the way to redo a track after something changed on the Schwung side. It's a
+two-step press: the first click **arms** it, the second **confirms** —
+jog away or press anything else in between and it disarms instead. Confirming
+saves and reloads the set.
 
 ---
 
@@ -1870,11 +1849,9 @@ missing or simplified. **All of these are candidates for future work — and
   not a promise.
 - **Track + volume needs Shift on tracks 5-16** (see
   [Track volume](#track-volume)).
-- **Movy-hosted tracks are silent while Movy is closed.** Only Schwung-hosted
-  tracks keep playing under Move's own UI; a movy-hosted one needs Movy open, or
-  parked in [Background mode](#background-mode--keep-playing-under-moves-ui).
-  Since a new set puts tracks 1-4 on movy's chains, that now applies to them
-  too unless you hand them back on the Settings page.
+- **Tracks are silent while Movy is closed.** Every track needs Movy open, or
+  parked in [Background mode](#background-mode--keep-playing-under-moves-ui),
+  to sound — Movy is what renders them.
 - **Simplified clip model.** Sequencer resolution and some clip-level features
   are reduced compared to Move.
 - **Rough edges.** Expect occasional display glitches or, rarely, a crash that
@@ -1908,7 +1885,7 @@ behaviour you'd like — or, better, a PR.
 | **Shift / Play / Rec** (Leave menu up) | Run normally *without* closing the menu. |
 | **Parameter knobs** (Leave menu up) | Inert — the menu covers the screen, so the edit would be invisible. |
 | **Hold track + volume encoder** | Set that track's volume (0–400%, 100% = unity, 1 dB per detent). Add **Shift** to see Movy's slider instead of Move's native overlay. |
-| **MIX page knobs 1–2, 5–7** | VOL / PAN on the top row, SEND1 / SEND2 / SEND3 on the bottom, for the current track. All five automate like any parameter. Movy-hosted tracks only — a Schwung track shows VOL alone (see [The MIX page](#the-mix-page)). |
+| **MIX page knobs 1–2, 5–7** | VOL / PAN on the top row, SEND1 / SEND2 / SEND3 on the bottom, for the current track. All five automate like any parameter (see [The MIX page](#the-mix-page)). |
 | **Jog to the master chain's first three slots** | The three **send FX**. Load one like any module; feed it with SEND1 / SEND2 / SEND3 on each track's MIX page (see [Send FX](#send-fx)). |
 | **+ / −** (Up/Down) | Shift the **active track's** octave (melodic tracks only). Each track remembers its own, saved with the set. In **Session** view they step the focused **track group** instead (**+** towards tracks 1-4, **−** towards 13-16). |
 
@@ -1960,7 +1937,7 @@ only.
 
 | Combo | Action |
 | --- | --- |
-| **Shift + Step 2** | Open **Settings** (which host owns tracks 1-4, older versions of this set). |
+| **Shift + Step 2** | Open **Settings** (older versions of this set, MIGRATE TRACKS). |
 | **Shift + Step 3** | Open **Clip parameters** (scale, length, transpose, quantize; Track view). |
 | **Shift + Step 5 / 7 / 9** | Open **Set parameters** (tempo/swing/link/quantize, root/key/mode/layout). |
 | **Shift + Step 6** | Toggle the **metronome**. |

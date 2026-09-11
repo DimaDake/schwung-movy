@@ -1,3 +1,11 @@
+> **Superseded (2026-09-10):** the host choice this plan added is gone. Tracks
+> 1-4 are movy chains unconditionally, and work built on schwung slots is carried
+> across by a one-time migration — see
+> `docs/superpowers/specs/2026-09-10-movy-track-migration-design.md`. Its
+> "Problem" section still explains why migrating on a LIVE FLIP was rejected in
+> favour of `chtracks`, and why that call didn't survive as the end state; the
+> new migration runs on set load, behind the splash.
+
 # Tracks 1-4 on movy chains — design + plan
 
 **Goal:** a flag that makes movy's first four tracks use movy's own chains

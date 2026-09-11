@@ -77,14 +77,26 @@ far. Earlier work is summarised in the timeline below for context.
 
   A module that declares none of them behaves exactly as before.
 
+- **Tracks 1-4 leave Schwung's slots automatically.** The **TRACKS 1-4 HOST**
+  choice is gone — every track is a Movy chain now. A set that still has
+  Schwung holding tracks 1-4 is migrated the first time it's opened, behind a
+  **MIGRATING TRACKS** splash so no edit can race it: module, preset, volume
+  and LFO assignments come across, a chain position Movy's UI never shows is
+  left alone and reported as a warning, and the Schwung slot itself is never
+  cleared — it just stops being played. The set is marked migrated whether or
+  not the pass finds anything to pull across, so a bad read never retries
+  forever; the Settings page's new **MIGRATE TRACKS** row reruns it by hand and,
+  unlike the automatic pass, overwrites whatever a chain already holds. `ENGINE
+  0.72.0`.
+
 ### Changed
 
 - **The CPU settings are gone, and what they were set to is simply what Movy
   does.** Parallel chain render, three render lanes, send co-location and the
   full idle skip were each a switch on the Settings page or a hidden engine
   param; every one of them shipped at a measured default that nobody had reason
-  to move. They are now unconditional. The **CPU OPTIMIZE** row is removed, and
-  Settings lists the track host and the backups menu.
+  to move. They are now unconditional. The **CPU OPTIMIZE** row is removed.
+  (Settings' track-host row is also gone as of this release — see below.)
 
   The CPU meter's header no longer reads **CPU OPT OFF**, because there is no
   longer a state it could report. A chain whose module cannot be split into a
@@ -111,6 +123,13 @@ far. Earlier work is summarised in the timeline below for context.
   off; with no flag to turn off, there is no arm. The numbers they produced are
   in `docs/track-performance.md` and `docs/chain-idle-cpu-optimization.md`,
   which now say so.
+- The `chtracks` / `chtrackset` flags and **TRACKS 1-4 HOST** / **THIS SET**
+  Settings rows, `resolveHost()`, and every schwung-slot code path for tracks
+  1-4 (`host-mode.ts`, the engine's per-track host branch in `chain_for`). The
+  device test matrix that swept both arrangements
+  (`test-all-device-schwung.sh`, `test-all-device-movy.sh`, `TS_HOST_MODE`)
+  collapses to one sweep; a device suite for the migration itself
+  (`test-migrate.sh`) takes its place.
 
 ## [0.34.0] — 2026-09-09
 

@@ -5,8 +5,7 @@
 Movy turns Move into a hands-on instrument for Schwung modules: every module's
 parameters land on the 8 knobs as clean, readable pages, and a 16-track
 sequencer — modelled closely on Move's own — sits underneath, driven by a small
-Rust engine. Four of those tracks are Schwung's own; the other twelve are chains
-Movy hosts itself.
+Rust engine. All sixteen tracks are chains Movy hosts itself.
 
 ![Movy UI tour](docs/assets/demo.gif)
 
@@ -43,13 +42,14 @@ that gap with two things:
    FX 1 → FX 2 → LFO) with the jog wheel.
 2. **A sequencer** — a **16-track** step sequencer whose behaviour is aligned as
    closely as possible with Move's native sequencer (clips, session view, live +
-   step recording, automation), but driving Schwung tracks instead of Move's
-   instruments. Tracks 5-16 host their own module chains inside Movy, summed to
-   one stereo output, and a new set puts tracks 1-4 on Movy's chains too — one
-   host for all sixteen, and the only way those four join Movy's CPU
-   optimization. A setting hands them back to Schwung, per set or for good. The
-   16 are arranged as **four groups of four**: in Session view the +/− buttons
-   move between groups, and the step buttons pick a track.
+   step recording, automation), but driving Schwung modules instead of Move's
+   instruments. Every track hosts its own module chain inside Movy, summed to
+   one stereo output — one host for all sixteen, which is also what lets every
+   track share Movy's CPU optimization. An older set that still has Schwung
+   holding tracks 1-4 is pulled onto Movy's chains automatically, the first
+   time you open it. The 16 are arranged as **four groups of four**: in Session
+   view the +/− buttons move between groups, and the step buttons pick a
+   track.
 
 ## Inspiration & lineage
 
@@ -129,11 +129,11 @@ Movy stands on the shoulders of several projects:
 
   ![Song mode](docs/assets/song_band.png)
 
-- **Sixteen tracks in four groups.** Tracks 1-4 are the Schwung tracks in a set
-  you already have; a new set hands them to Movy instead, which is what lets
-  them join the multi-threaded chain render (see **Settings** below). Tracks
-  5-16 load a module the same way and Movy hosts
-  the chain itself, saved with the set. In Session view, **octave +/−** moves between the
+- **Sixteen tracks in four groups.** Every track loads a module the way any
+  track button does, and Movy hosts the whole chain itself, saved with the
+  set. An older set that still has Schwung holding tracks 1-4 is pulled onto
+  Movy's chains automatically, the first time you open it (see **Settings**
+  below). In Session view, **octave +/−** moves between the
   four groups and **a step button selects a track** — or hold **Session** and
   press a step from anywhere. Hold **Mute** anywhere — the pads, Loop mode,
   Session view — and the step row becomes a **16-track mute map**; add **Shift**
@@ -187,10 +187,9 @@ Movy stands on the shoulders of several projects:
 
   ![Step parameters](docs/assets/step_page_knobs.png)
 
-- **Settings — Shift + Step 2** — which host owns tracks 1-4. Movy's
-  multi-threaded chain render is worth roughly 2× on a heavy set and applies to
-  Movy's own tracks, so new sets hand tracks 1-4 to Movy as well; sets you
-  already have keep them on Schwung, behaving exactly as they do without Movy.
+- **Settings — Shift + Step 2** — a scrolling list, older versions of the set
+  (**BACKUPS**) and **MIGRATE TRACKS** for a set that still has Schwung holding
+  tracks 1-4 (this normally happens on its own, the first time you open it).
   Each row explains itself on screen.
 
   ![Settings](docs/assets/flags-release.png)
@@ -276,7 +275,7 @@ reimplementation. Notable gaps (all candidates for future work — contributions
 welcome):
 
 - **No automation capture** — Capture keeps notes; knob moves are not captured.
-- **Four Schwung tracks only** — not Move's native instruments, drum racks or
+- **Schwung tracks only** — not Move's native instruments, drum racks or
   sampler.
 - Sequencer **resolution and some clip-level features** are simplified.
 

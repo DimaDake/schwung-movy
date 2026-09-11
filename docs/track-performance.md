@@ -196,6 +196,13 @@ lanes. All 16 draw on the *same* frame budget either way, so a full set costs
 > Movy hosted **12** chains until 2026-08-24, numbered 0-11 for tracks 5-16.
 > `ch<N>` is now track N throughout.
 
+> **`chtracks` itself is gone as of 2026-09-11.** Tracks 1-4 are unconditionally
+> movy chains now — an older set still on schwung's slots is migrated onto them
+> automatically on open. The "+ 4 host" column below, and the single host-slot
+> data point it extrapolates from, describe an arrangement that can no longer
+> exist; they stay as the record of how "one host renders all 16 chains" was
+> decided, not as today's numbers.
+
 One clean host-slot measurement (helm: **694 µs** on a host slot against 741 µs
 on a movy chain) says the per-track cost is about the same either way. On that
 basis:

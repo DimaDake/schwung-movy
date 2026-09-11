@@ -107,15 +107,21 @@ ts_phase_end
 
 # ── 3. Restore it back, through the real gestures ───────────────────────────
 # Shift+Step 2 opens Settings (STEP_FLAGS = 1, so note 16 + 1). Then jog down
-# far enough to CLAMP on the last row, which is BACKUPS — clamping is what makes
-# this independent of how many flags the build shows. Then three clicks: open
-# the page, arm the confirm on the newest version, perform the restore.
+# far enough to CLAMP on the last row — MIGRATE TRACKS, the last action row —
+# and back up one to land on BACKUPS, the one before it. Clamping first is what
+# makes this independent of how many flags the build shows; the one step back
+# is independent of that count too, since MIGRATE TRACKS is always the row
+# right after BACKUPS regardless of how many flags sit above them. Then three
+# clicks: open the page, arm the confirm on the newest version, perform the
+# restore.
 ts_phase_start "restore via Settings -> BACKUPS"
 ts_send "0x0B:0xB0:49:127:0.08" "0x09:0x90:17:127:0.08" \
         "0x08:0x80:17:0:0.08"   "0x0B:0xB0:49:0:0.3"
 JOGS=()
 for _ in $(seq 1 40); do JOGS+=("0x0B:0xB0:14:1:0.02"); done
 ts_send "${JOGS[@]}"
+sleep 0.5
+ts_send "0x0B:0xB0:14:127:0.02"                        # back up onto BACKUPS
 sleep 0.5
 ts_send "0x0B:0xB0:3:127:0.15" "0x0B:0xB0:3:0:0.4"     # open BACKUPS
 ts_send "0x0B:0xB0:3:127:0.15" "0x0B:0xB0:3:0:0.4"     # arm the confirm

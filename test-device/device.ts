@@ -105,12 +105,20 @@ export class Device {
 
     /* How many times movy has logged `seq: set ready` (set-session.ts). */
     private async readyLineCount(): Promise<number> {
+        return (await this.logLines('seq: set ready')).length;
+    }
+
+    /* Lines matching `pattern` in the device's unified log, read out of band
+     * over SSH — for signals with no ViewModel to read: a restore in
+     * progress, or what fires during unload as the DSP tears down and no
+     * probe answers on the way out. */
+    async logLines(pattern: string): Promise<string[]> {
         try {
             const { stdout } = await run('ssh', ['-o', 'ConnectTimeout=5', '-o', 'BatchMode=yes',
                 `ableton@${this.host}`,
-                "grep -c 'seq: set ready' /data/UserData/schwung/debug.log 2>/dev/null || echo 0"]);
-            return Number(stdout.trim()) || 0;
-        } catch { return 0; }
+                `grep '${pattern}' /data/UserData/schwung/debug.log 2>/dev/null || true`]);
+            return stdout.split('\n').filter(Boolean);
+        } catch { return []; }
     }
 
     /* One SHM write, no gesture. Verified on device: overtake_mode 2 -> 0,

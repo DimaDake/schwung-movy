@@ -137,12 +137,42 @@ export function reinstallMockEngine(engine) {
     return engine;
 }
 
+/* A chain-namespaced key (`ch3:synth:cutoff`) is a TRACK's param, not one of the
+ * engine's own verbs. Every track is a movy chain now, so a model reading track
+ * 3's synth arrives here — and an engine that answered null for it would leave
+ * every param page blank in any suite that installs this mock. Handed back to
+ * the ambient shadow mock (env.mjs), which is where those fixtures live. */
+const CHAIN_KEY = /^ch([0-9]+):(.*)$/;
+
 function installGlobals(engine) {
     const setParam = engine._setParam;
-    globalThis.host_module_set_param = setParam;
-    globalThis.host_module_set_param_blocking = (key, value, _timeoutMs) => setParam(key, value);
+    const set = (key, value) => {
+        /* Recorded by the engine AND mirrored to the slot store. Both matter:
+         * suites assert on `eng.params['ch0:synth:state']` to see what the
+         * engine was told, and a model reading the same track back has to find
+         * it where the shadow fixtures live. */
+        const recorded = setParam(key, value);
+        if (!CHAIN_KEY.test(key)) return recorded;
+        /* Handed to env.mjs's own chain writer rather than reimplemented: it
+         * knows that `ch<N>:midi` is a note to be SENT, not a param to store,
+         * and two copies of that rule would drift. */
+        const put = globalThis.__movyEnvEngineSet;
+        return put ? put(key, value) : recorded;
+    };
+    globalThis.host_module_set_param = set;
+    globalThis.host_module_set_param_blocking = (key, value, _timeoutMs) => set(key, value);
 
     globalThis.host_module_get_param = (key) => {
+        const m = CHAIN_KEY.exec(key);
+        if (m) {
+            /* The SLOT store answers, because that is where the fixtures live
+             * and every chain write above is mirrored into it. `engine.params`
+             * keeps its own copy for suites that assert on what the engine was
+             * told, but it must not shadow a fixture it never saw. */
+            const read = globalThis.shadow_get_param ?? globalThis.__movyEnvSlotGet;
+            const v = read ? read(Number(m[1]), m[2]) : null;
+            return v !== null ? v : (engine.params[key] ?? null);
+        }
         engine.getParamCalls++;
         if (key === 'status') {
             if (engine.statusUnavailable) return null;
@@ -164,6 +194,15 @@ function installGlobals(engine) {
 }
 
 export function uninstallMockEngine() {
+    /* Restored, not deleted. Every track is a movy chain, so its params are read
+     * through these — a suite that removed them left every later suite's param
+     * pages blank. env.mjs installs the ambient pair at import. */
+    if (globalThis.__movyEnvEngineGet) {
+        globalThis.host_module_get_param = globalThis.__movyEnvEngineGet;
+        globalThis.host_module_set_param = globalThis.__movyEnvEngineSet;
+        globalThis.host_module_set_param_blocking = globalThis.__movyEnvEngineSet;
+        return;
+    }
     delete globalThis.host_module_set_param;
     delete globalThis.host_module_set_param_blocking;
     delete globalThis.host_module_get_param;

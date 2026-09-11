@@ -68,7 +68,7 @@ _log('\nTest: the MIX page');
     const off = () => new Array(SEND_BUSES).fill(0);
     const names = (cells) => cells.map((c) => (c ? c.shortName : '-')).join(' ');
 
-    const movy = buildMixCells({ gain: 1, pan: 0, muted: false, send: off() }, 'movy');
+    const movy = buildMixCells({ gain: 1, pan: 0, muted: false, send: off() });
     eq('a cell per field, the rest blank', movy.filter((c) => c !== null).length, 2 + SEND_BUSES);
 
     /* The layout itself, both rows, as one string. VOL and PAN sit alone on
@@ -84,30 +84,22 @@ _log('\nTest: the MIX page');
     ok('every drawn cell is automatable on a movy chain',
        movy.filter((c) => c !== null).every((c) => c.automatable));
 
-    const panned = buildMixCells({ gain: 0.5, pan: -1, muted: false, send: [1, 0.5, 0.25] }, 'movy');
+    const panned = buildMixCells({ gain: 0.5, pan: -1, muted: false, send: [1, 0.5, 0.25] });
     eq('hard left reads L100', panned[1].displayValue, 'L100');
     eq('a full send reads 0.0 dB', panned[4].displayValue, '0.0 dB');
     eq('a half send reads its level in dB', panned[5].displayValue, '-6.0 dB');
     eq('the third send is its own level', panned[6].displayValue, '-12.0 dB');
     eq('a fader at half reads -6.0 dB', panned[0].displayValue, '-6.0 dB');
     ok('centre is halfway along the pan arc',
-       buildMixCells({ gain: 1, pan: 0, muted: false, send: off() }, 'movy')[1].normalizedValue === 0.5);
-
-    /* A schwung-hosted track renders inside the shim: movy never sees its audio
-     * and schwung has no slot:pan, so everything but the fader is unreachable —
-     * not unimplemented. Drawing live knobs there invites a gesture that cannot
-     * do anything. */
-    const host = buildMixCells({ gain: 1, pan: 0, muted: false, send: off() }, 'host');
-    eq('a host track keeps its fader, alone', names(host), 'VOL - - - - - - -');
-    ok('and its fader is not automatable either', !host[0].automatable);
+       buildMixCells({ gain: 1, pan: 0, muted: false, send: off() })[1].normalizedValue === 0.5);
 
     /* Mute is the engine's own per-track mute, so the fader still shows the
      * level it will return to. */
-    const muted = buildMixCells({ gain: 0.5, pan: 0, muted: true, send: off() }, 'movy');
+    const muted = buildMixCells({ gain: 0.5, pan: 0, muted: true, send: off() });
     eq('mute does not zero the displayed level', muted[0].displayValue, '-6.0 dB');
 
     eq('silence reads -INF',
-       buildMixCells({ gain: 0, pan: 0, muted: false, send: off() }, 'movy')[0].displayValue, '-INF');
+       buildMixCells({ gain: 0, pan: 0, muted: false, send: off() })[0].displayValue, '-INF');
 }
 
 _log('\nTest: MIX page values and ranges');
@@ -441,28 +433,24 @@ _log('\nTest: undo returns the MIX knob to where it started');
     resetPorts();
 }
 
-/* The other half of the same bug, and it failed for a DIFFERENT reason. A host
- * track's fader writes `slot:volume`, which does have a colon — so it was never
- * skipped, it was routed to a component named `slot` that no page answers to.
- * Driven through syncParamsToModels with a stub page: standing up a whole
- * host-kind track would prove nothing more about the routing, which is the
- * thing that was wrong. */
+/* There used to be a second shape here: a host track's fader wrote
+ * `slot:volume`, which had a colon and so was never skipped by the mixer-key
+ * check — it was routed to a component named `slot` that no page answers to.
+ * One host now, one shape: `mix` is the only key a track's level ever writes. */
 
-_log('\nTest: both mixer key shapes reach the MIX page');
+_log('\nTest: a mix write reaches the MIX page');
 
 {
     const { syncParamsToModels } = await import('../../dist/esm/undo/param-sync.js');
     const { appState } = await import('../../dist/esm/app/state.js');
 
-    for (const key of ['mix', 'slot:volume']) {
-        let refreshed = 0;
-        appState.trackModels[2] = [{
-            getComponentKey: () => 'mix',
-            refreshParamKey: () => { refreshed++; return true; },
-        }];
-        syncParamsToModels([{ slot: 2, key, old: '1.0000', new: '0.5000' }]);
-        eq(`a "${key}" write refreshes the MIX page`, refreshed, 1);
-    }
+    let refreshed = 0;
+    appState.trackModels[2] = [{
+        getComponentKey: () => 'mix',
+        refreshParamKey: () => { refreshed++; return true; },
+    }];
+    syncParamsToModels([{ slot: 2, key: 'mix', old: '1.0000', new: '0.5000' }]);
+    eq('a "mix" write refreshes the MIX page', refreshed, 1);
     appState.trackModels.length = 0;
 }
 

@@ -86,10 +86,18 @@ export function installEnv() {
      * `params[key]` and read it back through whichever slot they happen to use.
      * A write lands on both, because suites routinely set through one slot and
      * read back through another. */
-    globalThis.shadow_get_param   = (s, key) => params[s + '|' + key] ?? params[key] ?? null;
-    globalThis.shadow_set_param   = (s, key, val) => {
-        params[s + '|' + key] = val; params[key] = val; return true;
-    };
+    /* The baseline slot accessors, kept reachable under their own names.
+     *
+     * Suites routinely swap in a capturing `shadow_set_param` and several
+     * DELETE it and never put it back — so the chain delegation below cannot
+     * simply assume the global is there. It prefers the global (that is what
+     * makes a capture stub see chain writes) and falls back to these. */
+    const slotGet = (s, key) => params[s + '|' + key] ?? params[key] ?? null;
+    const slotSet = (s, key, val) => { params[s + '|' + key] = val; params[key] = val; return true; };
+    globalThis.__movyEnvSlotGet = slotGet;
+    globalThis.__movyEnvSlotSet = slotSet;
+    globalThis.shadow_get_param   = slotGet;
+    globalThis.shadow_set_param   = slotSet;
     /* The slot guard is the point, not the write. `js_shadow_set_param_timeout`
      * (schwung shadow_ui.c) refuses `slot >= SHADOW_UI_SLOTS` and returns false
      * having written nothing — a movy track (5-16) is not a schwung slot. A stub
@@ -105,6 +113,52 @@ export function installEnv() {
      * deleting it — dropping it entirely would quietly send every later blocking
      * write down the non-blocking fallback. */
     env.restoreSetParamTimeout = () => { globalThis.shadow_set_param_timeout = setParamTimeout; };
+    /* ── The engine's param namespace ────────────────────────────────────
+     *
+     * Every track is a movy chain now, so `portFor(0)` addresses `ch0:<key>` in
+     * movy's own engine where it used to read schwung's slot 0.
+     *
+     * These DELEGATE to the shadow API rather than reading `params` directly,
+     * and that is the whole point: a suite that swaps in a capturing
+     * `shadow_set_param` to see what a knob wrote still sees it, and a suite
+     * that seeds `params` still describes what track 0 holds. The port
+     * underneath those fixtures changed; what they mean did not.
+     *
+     * Suites that want a real engine install `mock-engine.mjs`, which replaces
+     * these wholesale. */
+    const chainOf = (key) => {
+        const m = /^ch([0-9]+):(.*)$/.exec(key);
+        return m ? [Number(m[1]), m[2]] : [0, key];
+    };
+    const engineGet = (key) => {
+        const [slot, k] = chainOf(key);
+        return (globalThis.shadow_get_param ?? slotGet)(slot, k);
+    };
+    globalThis.host_module_get_param = engineGet;
+    const engineSet = (key, val) => {
+        const [slot, k] = chainOf(key);
+        /* A chain's live note arrives as a param (`ch<N>:midi` = "status.d1.d2")
+         * because the engine owns the chain, not the shim. Modelled as the send
+         * it stands for, so a suite asserting on note delivery keeps asserting
+         * on the same thing. */
+        if (k === 'midi') {
+            const [st, d1, d2] = String(val).split('.').map(Number);
+            if (globalThis.shadow_send_midi_to_dsp) {
+                globalThis.shadow_send_midi_to_dsp([(st | slot) & 0xff, d1, d2]);
+            }
+            return true;
+        }
+        return (globalThis.shadow_set_param ?? slotSet)(slot, k, val);
+    };
+    globalThis.host_module_set_param = engineSet;
+    globalThis.host_module_set_param_blocking = engineSet;
+    /* Kept reachable so `uninstallMockEngine()` can put these BACK rather than
+     * deleting them: a suite that installs a mock engine and removes it again
+     * would otherwise leave every later suite with no engine at all, and every
+     * param page blank — which is only survivable while a track is a shadow
+     * slot, and no track is. */
+    globalThis.__movyEnvEngineGet = engineGet;
+    globalThis.__movyEnvEngineSet = engineSet;
     globalThis.shadow_get_ui_slot = () => 0;
     globalThis.shadow_send_midi_to_dsp = () => {};
     globalThis.host_read_file     = (path) => serveModuleLayout(path);

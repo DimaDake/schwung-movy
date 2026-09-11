@@ -3,7 +3,6 @@ import { MIX_KEY } from '../track/mix-persist.js';
 import { mixerKeyFor } from './mix-io.js';
 import { markUiStateDirty } from '../seq/ui-dirty.js';
 import { portFor } from '../track/registry.js';
-import { trackKind } from '../track/ref.js';
 import { beginGesture } from '../undo/edit.js';
 import { endEdit } from '../undo/group.js';
 import {
@@ -102,23 +101,18 @@ let mixTail = MIX_TAIL_DEFAULT;
  * the edit. A movy track's param is the whole triple: recording just the gain
  * meant `parse_mix` rejected the inverse and undoing a volume change on a movy
  * track silently did nothing. */
-function writeValue(track: number, amp: number): string {
-    return trackKind(track) === 'movy' ? amp.toFixed(4) + mixTail : amp.toFixed(4);
+function writeValue(_track: number, amp: number): string {
+    return amp.toFixed(4) + mixTail;
 }
 
 function readVolume(track: number): number {
-    if (trackKind(track) === 'movy') {
-        /* "gain,pan,muted[,send1,send2]" — only the gain is on the fader. */
-        const raw = portFor(track).getParam(MIX_KEY);
-        const parts = raw === null ? [] : raw.split(',');
-        const comma = raw === null ? -1 : raw.indexOf(',');
-        mixTail = comma >= 0 ? raw!.slice(comma) : MIX_TAIL_DEFAULT;
-        const g = parts.length === 0 ? NaN : parseFloat(parts[0]);
-        return Number.isFinite(g) ? Math.min(VOL_MAX, Math.max(VOL_MIN, g)) : 1;
-    }
-    const raw = portFor(track).getParam( 'slot:volume');
-    const v   = raw === null ? NaN : parseFloat(raw);
-    return Number.isFinite(v) ? Math.min(VOL_MAX, Math.max(VOL_MIN, v)) : 1;
+    /* "gain,pan,muted[,send1,send2]" — only the gain is on the fader. */
+    const raw = portFor(track).getParam(MIX_KEY);
+    const parts = raw === null ? [] : raw.split(',');
+    const comma = raw === null ? -1 : raw.indexOf(',');
+    mixTail = comma >= 0 ? raw!.slice(comma) : MIX_TAIL_DEFAULT;
+    const g = parts.length === 0 ? NaN : parseFloat(parts[0]);
+    return Number.isFinite(g) ? Math.min(VOL_MAX, Math.max(VOL_MIN, g)) : 1;
 }
 
 /* Take the gesture: tell Move a track is held so its volume knob stops driving
@@ -195,12 +189,10 @@ export function volumeKnobDelta(d2: number): boolean {
      * per-track mute (so tails ring out, matching a host track), and pan has no
      * control surface yet. They still travel on every write, because the engine
      * parses the triple as a whole — as read, not as defaults (see mixTail). */
-    const movy = trackKind(heldTrack) === 'movy';
     setChainParam(portFor(heldTrack), volumeKey(heldTrack),
                   writeValue(heldTrack, value), volumeBefore);
-    /* A movy track's level is in movy's own set blob; a host track's is
-     * schwung's `slot:volume`, which Move saves for us. */
-    if (movy) markUiStateDirty();
+    /* A track's level is in movy's own set blob — nothing else saves it. */
+    markUiStateDirty();
     mlog('trackvol t=' + heldTrack + ' d=' + delta + ' v=' + value.toFixed(4));
     return true;
 }

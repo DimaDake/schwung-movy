@@ -8,6 +8,7 @@ import {
     selectTrack,
     MOCK_SYNTHS, installMockEngine, uninstallMockEngine, seqEngineTick, resetSeqEngine, eq,
     bootModel, lastMusicalOp, _log,
+    settleModel,
 } from './harness.mjs';
 
 export async function run() {
@@ -216,14 +217,14 @@ _log('\nTest: preset param uses the preset render style');
 {
     // obxd_like has 8 root knobs (= KNOBS_PER_PAGE), so the preset gets its own
     // page 0; rows[0][0] is the preset param.
-    const vm = bootModel(MOCK_SYNTHS.obxd_like).getViewModel();
+    const vm = settleModel(bootModel(MOCK_SYNTHS.obxd_like)).getViewModel();
     eq('preset knob renderStyle = preset', vm.rows[0][0]?.renderStyle, 'preset');
 }
 
 /* ── model exposes per-knob param info for automation ────────────────────── */
 _log('\nTest: getKnobParamInfo');
 {
-    const m = bootModel(MOCK_SYNTHS.obxd_like);
+    const m = settleModel(bootModel(MOCK_SYNTHS.obxd_like));
     const info = m.getKnobParamInfo(0);
     eq('param info present', info !== null, true);
     eq('param info has key', typeof info.key, 'string');

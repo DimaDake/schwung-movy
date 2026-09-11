@@ -7,6 +7,7 @@
  * root: node browser-test/app-loop.mjs */
 
 import { trackRef, TRACK_COUNT } from '../dist/esm/track/ref.js';
+import { REFRESH_BULK_TICKS } from '../dist/esm/model/constants.js';
 import { setFlag } from '../dist/esm/seq/flags.js';
 import { FONT_HEIGHT } from '../dist/esm/font/index.js';
 import { HINT_TOP, HINT_LINES } from '../dist/esm/renderer/flags-view.js';
@@ -78,11 +79,9 @@ function resetApp() {
     logs.length = 0;
     resetSeqState();
     resetSeqEngine();
-    /* The mocked instrument is a schwung SLOT (env.setParams), so tracks 1-4
-     * have to be slots. `chtracks` ships as NEW SETS, and the Set this harness
-     * boots into is one movy has never seen — which would put those four tracks
-     * on movy's own empty chains, where there is no drum module to find. */
-    setFlag('chtracks', 0);
+    /* env.setParams seeds the bare-key store every chain read falls back to
+     * (env.mjs), so every track — not just a distinguished four — finds the
+     * mocked instrument regardless of which chain it addresses. */
     /* The Set-commit press is WALL-CLOCK timed (it waits 1.5 s for Move to
      * finish loading the Set before borrowing the surface), and the loading
      * splash now waits for it — so with this harness's 12 instant ticks movy
@@ -95,6 +94,31 @@ function resetApp() {
     advance(12);                             // settle engine boot + hierarchy + lane
 }
 function advance(n = 1) { for (let i = 0; i < n; i++) globalThis.tick(); }
+
+/* Advance until the page has gone a full window with nothing NEW painted —
+ * the deterministic version of "advance enough ticks". `appState.dirty` cannot
+ * be observed for this: `tick()` clears it internally after drawing (app/tick.ts),
+ * so it always reads false right after `tick()` returns, whatever happened
+ * inside. `painted.length` is the only externally visible signal.
+ *
+ * A chain port's background model refresh is phase-dependent (it polls on a
+ * countdown, not on demand), so a fixed tick count can land the model's own
+ * poll inside the very window a test is about to measure — and it did: the CPU
+ * page's own dirty gate was proven correct (a device diff showed it comparing
+ * pixel-identical signatures and correctly declining to repaint), yet a fixed
+ * `advance(12)` still painted, because something ELSE — not the CPU gate —
+ * repainted a few ticks into the window this test used to start measuring
+ * from cold. This waits that out structurally instead of guessing a count. */
+function settleQuiet(margin = 3 * REFRESH_BULK_TICKS) {
+    let quiet = 0;
+    let guard = margin * 30;   // generous; this must never hang a test run
+    let last = painted.length;
+    while (quiet < margin && guard-- > 0) {
+        globalThis.tick();
+        if (painted.length !== last) { last = painted.length; quiet = 0; }
+        else quiet++;
+    }
+}
 function sendMidi(msg)  { globalThis.onMidiMessageInternal(msg); }
 function padColor(p)    { return ledByPad[p]; }
 
@@ -909,17 +933,14 @@ _log('\napp-loop: master FX slot adds a module by DSP path');
     globalThis.host_read_file = prevRead;
 }
 
-/* ── Master FX: a chtracks chain on track 1 must not capture the master bus ── */
-_log('\napp-loop: master FX adds a module while tracks 1-4 are movy chains');
+/* ── Master FX: track 0 being a movy chain must not capture the master bus ── */
+_log('\napp-loop: master FX adds a module while track 0 is a movy chain');
 {
     /* `master_fx:` keys are schwung's own and global to the shim; they only RIDE
-     * on slot 0 as a carrier. With `chtracks` on, a port taken by track INDEX
-     * makes slot 0 a movy chain, which namespaces the write `ch0:master_fx:…` —
-     * a key movy's engine has never heard of. The module then silently never
-     * loads, and since chtracks ships as NEW SETS this is every new set. */
-    const { setMovyTracks } = await import('../dist/esm/track/host-mode.js');
-    const { movyTracksOn, trackKind } = await import('../dist/esm/track/ref.js');
-
+     * on slot 0 as a carrier. Track 0 is ALWAYS a movy chain now, so a port taken
+     * by track INDEX would namespace the write `ch0:master_fx:…` — a key movy's
+     * engine has never heard of, and the module would silently never load. This
+     * used to be the case only under `chtracks`; it is the only case there is. */
     const prevOs = globalThis.os;
     const prevRead = globalThis.host_read_file;
     globalThis.os = {
@@ -932,8 +953,6 @@ _log('\napp-loop: master FX adds a module while tracks 1-4 are movy chains');
             : null;
 
     resetApp();
-    setMovyTracks(true);
-    eq('the flag moved tracks 1-4', movyTracksOn() && trackKind(0) === 'movy', true);
 
     const sets = [];
     const engineWrites = [];
@@ -971,7 +990,6 @@ _log('\napp-loop: master FX adds a module while tracks 1-4 are movy chains');
     globalThis.host_module_set_param_blocking = realEng;
     globalThis.os = prevOs;
     globalThis.host_read_file = prevRead;
-    setMovyTracks(false);
 }
 
 /* ── Master FX: jog-click on a loaded slot drills into its detail params ───── */
@@ -1201,7 +1219,6 @@ _log('\napp-loop: the splash does not lift on a UI that is still catching up');
     engine.reset();
     env.setParams(MOCK_SYNTHS.mrdrums);
     resetSeqState(); resetSeqEngine();
-    setFlag('chtracks', 0);
     setFlag('setcommit', 0);
     globalThis.init();                       // no manual reload(): this is a cold open
     resetSess();
@@ -2401,8 +2418,7 @@ _log('\napp-loop: the module browser loads onto a movy-hosted track');
         return realSet ? realSet(k, v, t) : true;
     };
 
-    selectTrack(5);                       // movy track => chain instance 1
-    eq('track 5 is movy-hosted', appState.activeTrack.kind, 'movy');
+    selectTrack(5);                       // chain instance 5
 
     openBrowser(CHAIN_SLOTS[1], appState.activeTrack.index, () => {});   // synth slot
     eq('browser opened for the movy track', browserState.paramSlot, 5);
@@ -2639,7 +2655,7 @@ _log('\napp-loop: CPU page repaints only when a drawn pixel changes');
 
     handleStepButton(STEP_CPU, true, true);
     eq('the CPU page is up for the gate check', appState.currentView, VIEW_CPU);
-    advance(12);                        // past a poll; settles the first repaint
+    settleQuiet();
 
     const paintsAfter = (mutate) => {
         mutate();

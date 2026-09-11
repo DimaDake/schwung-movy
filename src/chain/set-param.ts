@@ -11,9 +11,10 @@
  * snapshotting, unlike the engine.
  *
  * The write itself now goes through the track's port, so this file no longer
- * names `shadow_set_param` at all — `src/track/host-port.ts` is the one place
- * that does. `browser-test/logic.mjs` fails on any direct shadow
- * param write added outside that file and its short allowlist. */
+ * names `shadow_get_param`/`shadow_set_param` at all — `src/track/shim-port.ts`
+ * is the one remaining place that does (master_fx, and the migration's read of
+ * a schwung slot). `browser-test/logic/tracks-refs.mjs` fails on any direct
+ * shadow param read added outside that file and its short allowlist. */
 
 import { recordParamOp } from '../undo/record.js';
 import type { TrackPort } from '../track/port.js';

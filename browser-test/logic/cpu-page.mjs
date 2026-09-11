@@ -30,7 +30,6 @@ export async function run() {
 
     _log('\ncpu page: columns');
     resetFlags();
-    setFlag('chtracks', 1);          // every track is a movy chain
     feed();
     let vm = buildCpuPageVM();
     eq('one column per track', vm.columns.length, 16);
@@ -57,18 +56,8 @@ export async function run() {
     vm = buildCpuPageVM();
     ok('an overrun reads over 1.0', vm.load > 1);
 
-    _log('\ncpu page: tracks movy cannot measure');
-    resetFlags();
-    setFlag('chtracks', 0);          // tracks 1-4 stay on the schwung host
-    feed();
-    vm = buildCpuPageVM();
-    eq('a schwung-hosted track is n/a', vm.columns[0].kind, 'na');
-    eq('and so are the other three', vm.columns[3].kind, 'na');
-    eq('a movy chain beside them still reads', vm.columns[4].kind, 'live');
-
     _log('\ncpu page: a chain whose module cannot split');
     resetFlags();
-    setFlag('chtracks', 1);
     /* One render_block call, because the module does not support the split:
      * the synth stage IS the whole chain, so the FX segment comes out empty
      * with no branch anywhere in the renderer. */
@@ -147,7 +136,6 @@ export async function run() {
 
         /* End to end, through the poll field the engine actually writes. */
         resetFlags();
-        setFlag('chtracks', 1);
         feed({ snd: '-,-,620/1500' });
         vm = buildCpuPageVM();
         eq('the view model carries the region', vm.sends.length, 3);
@@ -180,7 +168,6 @@ export async function run() {
 
     _log('\ncpu page: nothing to draw');
     resetFlags();
-    setFlag('chtracks', 1);
     seqState.cpuCost = ''; seqState.cpuWall = ''; seqState.cpuMask = ''; seqState.cpuSend = '';
     vm = buildCpuPageVM();
     eq('an engine that never sent the fields draws empty', vm.columns[0].kind, 'empty');

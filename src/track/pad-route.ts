@@ -25,7 +25,7 @@ import { PAD_MIN } from '../seq/constants.js';
 import { padPitch } from '../seq/pads.js';
 import { padsPlayNotes } from '../seq/router-pads.js';
 import type { DrumConfig } from '../types/param.js';
-import { chainInstance, trackKind } from './ref.js';
+import { chainInstance } from './ref.js';
 
 const PAD_COUNT = 32;
 
@@ -59,9 +59,7 @@ function drumConfigFor(track: number): DrumConfig | null {
 function buildMap(): string {
     const t = appState.activeTrack.index;
     const drum = drumConfigFor(t);
-    const owns = padsPlayNotes()
-        && trackKind(t) === 'movy'
-        && !drumShiftSelect(appState.shiftHeld, drum);
+    const owns = padsPlayNotes() && !drumShiftSelect(appState.shiftHeld, drum);
     const chain = owns ? chainInstance(t) : -1;
     const parts: (string | number)[] = [chain];
     for (let i = 0; i < PAD_COUNT; i++) {
@@ -76,9 +74,7 @@ function buildMap(): string {
 /** True when the ENGINE is answering pads for this track, so the UI must not
  *  also send them — two sources would double-trigger every note. */
 export function engineOwnsPads(track: number): boolean {
-    return trackKind(track) === 'movy'
-        && pushed !== ''
-        && pushed.startsWith(chainInstance(track) + ',');
+    return pushed !== '' && pushed.startsWith(chainInstance(track) + ',');
 }
 
 /** Push the map and Full Velocity if either changed. Called once per tick;

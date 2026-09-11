@@ -160,10 +160,18 @@ _log('\nTest: LFO target commit uses blocking writes (device SHM race)');
     });
     // Capture blocking writes; the target commit must go through this path so
     // target+target_param+enabled all land (non-blocking would clobber on device).
+    //
+    // Every track is a movy chain now, so the commit reaches the engine's own
+    // blocking write (`host_module_set_param_blocking`, `ch0:lfo1:…`) rather
+    // than schwung's per-slot `shadow_set_param_timeout` — a track that once
+    // meant a shadow slot now means a chain instance. */
     const blocking = [];
-    globalThis.shadow_set_param_timeout = (slot, key, val) => {
-        if (!(slot >= 0 && slot < SHADOW_UI_SLOTS)) return false;
-        blocking.push([key, val]); env.params[key] = val; return true;
+    const prevBlocking = globalThis.host_module_set_param_blocking;
+    globalThis.host_module_set_param_blocking = (key, val) => {
+        const bare = key.replace(/^ch[0-9]+:/, '');
+        blocking.push([bare, val]);
+        env.params[bare] = val;
+        return true;
     };
     const m2 = createLfoModel(0);
     m2.tick();
@@ -176,7 +184,7 @@ _log('\nTest: LFO target commit uses blocking writes (device SHM race)');
     // No periodic re-read clobber: many ticks later the target is still set.
     for (let i = 0; i < 400; i++) m2.tick();
     eq('target persists across ticks (no poll clobber)', m2.getViewModel().rows[0][3].displayValue !== 'None', true);
-    env.restoreSetParamTimeout();
+    globalThis.host_module_set_param_blocking = prevBlocking;
 }
 
 _log('\nTest: LFO target commit reaches a movy-hosted track');

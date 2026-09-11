@@ -11,7 +11,7 @@ import {
     flagsPageState, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
     flagsRowCount, backupsRowSelected,
     buildFlagsPageVM, VISIBLE_ROWS, firstVisibleRow, readPrefFlags, writePrefFlag,
-    visibleFlags, movyTracksOn, loadSetHostChoice, trackRef, DETENT_DIV,
+    visibleFlags, trackRef, DETENT_DIV,
     wrapWords, HINT_W, HINT_LINES, fontWidth, W,
     serializeUiState, applyUiState, resetUiState,
     readPrefModuleBlacklist,
@@ -49,19 +49,19 @@ export async function run() {
     }
     eq('an unknown key resolves to nothing', flagDef('nope'), null);
 
-    const host = flagDef('chtracks');
-    eq('clamped low', clampFlag(host, -5), host.min);
-    eq('clamped high', clampFlag(host, 99), host.max);
-    eq('a non-number falls back to the default', clampFlag(host, NaN), host.def);
-    eq('fractions land on a whole setting', clampFlag(host, 1.4), 1);
+    /* A literal def rather than a shipped flag: the clamp is a property of the
+     * table, and pinning it to whichever flag happens to have a range today
+     * makes it break every time the table changes. */
+    const ranged = { key: 'r', name: 'R', hint: '', min: 0, max: 2, def: 2 };
+    eq('clamped low', clampFlag(ranged, -5), ranged.min);
+    eq('clamped high', clampFlag(ranged, 99), ranged.max);
+    eq('a non-number falls back to the default', clampFlag(ranged, NaN), ranged.def);
+    eq('fractions land on a whole setting', clampFlag(ranged, 1.4), 1);
 
     /* The shipped defaults, pinned because each is a product decision that
      * lives in a one-character field and would fail no other test in this repo
      * — every suite below sets the flags it cares about explicitly, and the
      * screenshot scenes do too. */
-    eq('tracks 1-4 follow the set they are in', flagDef('chtracks').def, 2);
-    eq('a set movy has never seen is new work', flagDef('chtrackset').def, 1);
-    eq('a set predating the field keeps schwung', flagDef('chtrackset').legacy, 0);
     eq('new sets are committed to disk', flagDef('setcommit').def, 1);
     eq('movy draws its own param pages', flagDef('schwunggrid').def, 0);
 
@@ -73,10 +73,10 @@ export async function run() {
     eq('a bool flag reads as ON', flagValueLabel(boolean, 1), 'ON');
     eq('a numeric flag shows its number', flagValueLabel(flagDef('setcommit'), 1), '1');
 
-    eq('the LED is dark at the bottom of the range', flagNormalized(host, 0), 0);
-    eq('and full at the top', flagNormalized(host, 2), 1);
+    eq('the LED is dark at the bottom of the range', flagNormalized(ranged, 0), 0);
+    eq('and full at the top', flagNormalized(ranged, 2), 1);
     ok('and in between in between',
-        flagNormalized(host, 1) > 0 && flagNormalized(host, 1) < 1);
+        flagNormalized(ranged, 1) > 0 && flagNormalized(ranged, 1) < 1);
 }
 
 /* ── Persistence ──────────────────────────────────────────────────────────── */
@@ -89,10 +89,11 @@ export async function run() {
         if (f.perSet) continue;
         eq(`${f.key} starts at its default`, flagValue(f.key), f.def);
     }
-    /* A per-set flag has no default to start at until a set has been loaded:
-     * before that it reads as it would in a set that predates it, which is what
-     * movy did before the flag existed. Reading `def` here would put tracks 1-4
-     * on movy chains during boot, before the set that owns them has said so. */
+    /* A per-set flag has no default to start at until a set has been loaded —
+     * it reads as it would in a set that predates it. No shipped flag is
+     * `perSet` today (the mechanism's one user, `chtrackset`, is gone with the
+     * schwung host); this loop is 0 iterations and documents that rather than
+     * testing dead weight. */
     for (const f of FLAGS.filter((f) => f.perSet)) {
         eq(`${f.key} starts conservative, not at its default`,
            flagValue(f.key), f.legacy);
@@ -128,23 +129,16 @@ export async function run() {
     eq('alongside the one just written', after.flags.schwunggrid, 1);
     uninstallMockFs();
 
-    /* A device that formed an opinion under the OLD default. Without the rev
-     * check, a changed default reaches only a device that never opened the page
-     * — which is how one silently failed to ship once already. */
+    /* The `revisedAt` adoption mechanism (a device that formed an opinion under
+     * an OLD default gets the new one once) has no shipped user today — its one
+     * example, `chtracks`, is gone with the schwung host. A stored value for a
+     * flag with no `revisedAt` is unaffected by the rev check either way, which
+     * is what this covers until the mechanism has a live flag to exercise. */
     installMockFs({   // no flagsRev key at all, which reads as rev 0
-        [PREFS_PATH]: JSON.stringify({ flags: { chtracks: 0, schwunggrid: 1 } }),
+        [PREFS_PATH]: JSON.stringify({ flags: { schwunggrid: 1 } }),
     });
     resetFlags();
-    eq('a superseded stored value is replaced by the new default',
-       flagValue('chtracks'), flagDef('chtracks').def);
     eq('a flag with no revision keeps its stored value', flagValue('schwunggrid'), 1);
-
-    /* Exactly once. Changing it back after the adoption is a real choice and
-     * must survive the next boot — a re-adopting migration would fight the
-     * user. */
-    setFlag('chtracks', 0);
-    resetFlags();
-    eq('and changing it back again sticks', flagValue('chtracks'), 0);
     uninstallMockFs();
 
     installMockFs({ [PREFS_PATH]: '{not json' });
@@ -167,11 +161,9 @@ export async function run() {
     installMockFs();
     resetFlags();
     setFlag('setcommit', 0);
-    setFlag('chtracks', 1);          // MOVY, explicitly
 
-    /* A re-dlopened engine is a brand new one with default flags. If the page
-     * says tracks 1-4 are movy's over an engine still routing them to schwung,
-     * the page is lying and every sequenced note goes to the wrong host. */
+    /* A re-dlopened engine is a brand new one with default flags — nothing the
+     * page says about a UI-only setting reaches it until this runs. */
     let sent = [];
     applyFlagsToEngine((k, v) => sent.push(k + '=' + v));
     const engineFlags = FLAGS.filter((f) => !f.uiOnly);
@@ -189,11 +181,6 @@ export async function run() {
     }
     eq('every engine flag exactly once, plus the blacklist', sent.length, engineFlags.length + 1);
     ok('including the values that were set', sent.indexOf('setcommit=0') >= 0);
-    /* The engine needs the RESOLVED host, not the three-value mode: `drain_out`
-     * sends a sequenced note out as MIDI or into a chain, and a 2 would be
-     * neither. */
-    ok('and the host mode goes out resolved', sent.indexOf('chtracks=1') >= 0,
-       sent.join(' '));
 
     /* And an edit after boot goes straight through, rather than waiting for the
      * next one. */
@@ -271,16 +258,16 @@ export async function run() {
 
     /* Knob 1 edits whatever the jog selected — that is the whole interaction,
      * and it is what lets the list grow past eight entries. */
-    flagsPageState.selected = visibleFlags().findIndex((f) => f.key === 'chtracks');
-    setFlag('chtracks', 1);
+    flagsPageState.selected = visibleFlags().findIndex((f) => f.key === 'schwunggrid');
+    setFlag('schwunggrid', 1);
     turn(FLAG_KNOB, 6);
-    ok('knob 1 raises the selected flag', flagValue('chtracks') > 1);
+    ok('knob 1 raises the selected flag', flagValue('schwunggrid') > 1);
     turn(FLAG_KNOB, -20);
-    eq('and lowers it to its floor, never past', flagValue('chtracks'), flagDef('chtracks').min);
+    eq('and lowers it to its floor, never past', flagValue('schwunggrid'), flagDef('schwunggrid').min);
 
-    const before = flagValue('chtracks');
+    const before = flagValue('schwunggrid');
     turn(3, 6);
-    eq('another knob does nothing', flagValue('chtracks'), before);
+    eq('another knob does nothing', flagValue('schwunggrid'), before);
 
     /* A half-turn banked on one flag must not spend itself on the next: the
      * detent accumulator is shared, so jogging has to clear it. */
@@ -303,7 +290,7 @@ export async function run() {
     resetFlags();
     resetFlagsPage();
 
-    setFlag('chtracks', 2);
+    setFlag('schwunggrid', 2);
     setFlag('setcommit', 1);
     const vm = buildFlagsPageVM();
     /* ONE DRAWN ROW PER SELECTABLE ROW, and this is the assertion that was
@@ -317,7 +304,7 @@ export async function run() {
     eq('and the action row is last', vm.rows[vm.rows.length - 1].name, 'BACKUPS');
     eq('the name column is the readable name', vm.rows[0].name, visibleFlags()[0].name);
     eq('exactly one row is selected', vm.rows.filter((r) => r.selected).length, 1);
-    ok('a labelled flag shows its word', vm.rows.some((r) => r.value === 'NEW SETS'));
+    ok('a labelled flag shows its word', vm.rows.some((r) => r.value === 'PAGE'));
     ok('a numeric flag shows its number', vm.rows.some((r) => r.value === '1'));
 
     /* Selecting the action row: it draws as selected, the hint explains it
@@ -336,10 +323,10 @@ export async function run() {
 
     /* The LED carries the value AND says which knob is live — it is the only
      * lit one. A flat brightness would leave the page mute about both. */
-    flagsPageState.selected = visibleFlags().findIndex((f) => f.key === 'chtracks');
-    setFlag('chtracks', 0);
+    flagsPageState.selected = visibleFlags().findIndex((f) => f.key === 'schwunggrid');
+    setFlag('schwunggrid', 0);
     eq('the knob LED is dim at the bottom of the range', buildFlagsPageVM().knobNormalized, 0);
-    setFlag('chtracks', 2);
+    setFlag('schwunggrid', 2);
     eq('and full at the top', buildFlagsPageVM().knobNormalized, 1);
 
     /* Scrolling. The list is short today and will not be, so the window is
@@ -376,38 +363,16 @@ export async function run() {
     installMockFs();
     resetFlags();
 
-    ok('the track host is a release row', flagDef('chtracks').release === true);
-    ok('and the per-set half with it', flagDef('chtrackset').release === true);
-    ok('the debug surfaces are not',
+    /* No shipped flag is `release` today — the mechanism's one user, `chtracks`,
+     * is gone with the schwung host, and the Settings page's flag section is
+     * empty in a release build (MIGRATE TRACKS and BACKUPS still draw: they are
+     * action rows, not flags, and are not filtered by this list at all). */
+    ok('neither debug flag is a release row',
        !flagDef('setcommit').release && !flagDef('schwunggrid').release);
-
-    const relKeys = () => visibleFlags(false).map((f) => f.key).join(',');
-    eq('a release build lists the setting and the per-set row',
-       relKeys(), 'chtracks,chtrackset');
+    eq('a release build lists no flags', visibleFlags(false).length, 0);
     const dbg = visibleFlags(true).map((f) => f.key);
     eq('a debug build lists every flag', dbg.length, FLAGS.length);
     ok('including the ones release hides', dbg.indexOf('schwunggrid') >= 0);
-
-    /* `This Set` is only answerable while the mode defers to the set. Under an
-     * explicit mode it would show a value the knob cannot change, which reads
-     * as a broken row rather than an inactive one. */
-    setFlag('chtracks', 1);
-    ok('an explicit mode drops the per-set row', relKeys().indexOf('chtrackset') < 0);
-    setFlag('chtracks', 0);
-    ok('either explicit mode', relKeys().indexOf('chtrackset') < 0);
-    setFlag('chtracks', 2);
-    ok('and NEW SETS brings it back', relKeys().indexOf('chtrackset') >= 0);
-
-    /* Word labels: OFF/ON cannot say which of two hosts a track is on. They
-     * name the hosts — a SCHWUNG track behaves exactly as it does without movy,
-     * which is the thing a user is choosing between. */
-    const tr = flagDef('chtracks');
-    eq('the row names what it decides', tr.name, 'Tracks 1-4 Host');
-    eq('0 leaves them with schwung', flagValueLabel(tr, 0), 'SCHWUNG');
-    eq('1 hands them to movy', flagValueLabel(tr, 1), 'MOVY');
-    eq('2 defers to the set', flagValueLabel(tr, 2), 'NEW SETS');
-    eq('and the per-set row answers the same question',
-       flagValueLabel(flagDef('chtrackset'), 0), 'SCHWUNG');
 
     /* The page walks the visible list, so a hidden flag can never be selected
      * — a knob turn on a row a release build does not draw would change a
@@ -423,94 +388,6 @@ export async function run() {
     eq('the knob is inert on the action row',
        flagValue(visibleFlags()[visibleFlags().length - 1].key), beforeAction);
 
-    /* And the knob edits the row the page DREW. Hiding `This Set` shifts every
-     * row below it up by one, so a page reading the raw table edits the flag
-     * above the selection — invisibly, since both lists are the same length in
-     * a debug build until a row is dropped. */
-    setFlag('chtracks', 1);                       // drops the per-set row
-    resetFlagsPage();
-    flagsPageState.selected = 1;
-    eq('the drawn row here is Commit New Sets', visibleFlags()[1].key, 'setcommit');
-    eq('while the raw table has This Set there', FLAGS[1].key, 'chtrackset');
-    setFlag('setcommit', 0);
-    setFlag('chtrackset', 1);
-    turn(FLAG_KNOB, 2);
-    eq('the knob moved the row the page drew', flagValue('setcommit'), 1);
-    eq('and left the one the raw table has there alone', flagValue('chtrackset'), 1);
-    setFlag('chtracks', 2);
-
-    uninstallMockFs();
-}
-
-/* ── Movy tracks 1-4: a mode, and a value the set carries ──────── */
-{
-    _log('\nMovy tracks 1-4 per set');
-
-    installMockFs();
-    resetFlags();
-    setFlag('chtracks', 2);          // NEW SETS
-
-    loadSetHostChoice(null);         // a Set movy has never seen
-    ok('a new set gets movy tracks', movyTracksOn());
-    eq('so track 1 is a movy chain', trackRef(0).kind, 'movy');
-
-    loadSetHostChoice({});           // a blob written before the field existed
-    ok('a set built before this keeps schwung slots', !movyTracksOn());
-    eq('so track 1 is a host slot', trackRef(0).kind, 'host');
-
-    loadSetHostChoice({ chtrackset: 1 });
-    ok('a set that recorded its choice keeps it', movyTracksOn());
-
-    /* The two explicit modes are global overrides — that is the whole reason
-     * they exist next to the per-set default. */
-    setFlag('chtracks', 0);
-    ok('SCHWUNG overrides a set that chose movy', !movyTracksOn());
-    setFlag('chtracks', 1);
-    loadSetHostChoice({});
-    ok('MOVY overrides a set that predates the field', movyTracksOn());
-
-    /* And the set's own value survives being overridden, so coming back to
-     * NEW SETS restores each set's choice rather than the last global one. */
-    setFlag('chtracks', 2);
-    ok('the set is back on schwung when the mode defers again', !movyTracksOn());
-
-    /* The engine is told the RESOLVED host, never the mode: `drain_out` decides
-     * whether a sequenced note leaves as MIDI or enters a chain, and a 2 there
-     * routes every note into a chain that does not exist. */
-    let sent = [];
-    applyFlagsToEngine((k, v) => sent.push(k + '=' + v));
-    ok('the engine is told schwung, not the mode', sent.indexOf('chtracks=0') >= 0, sent.join(' '));
-    ok('and never sees the per-set row as a param of its own',
-       !sent.some((s) => s.indexOf('chtrackset=') === 0), sent.join(' '));
-    loadSetHostChoice({ chtrackset: 1 });
-    sent = [];
-    applyFlagsToEngine((k, v) => sent.push(k + '=' + v));
-    ok('a movy set tells the engine so', sent.indexOf('chtracks=1') >= 0, sent.join(' '));
-
-    uninstallMockFs();
-}
-
-/* ── … and the set carries it across a save ───────────────── */
-{
-    _log('\nMovy tracks 1-4 round trip through the set blob');
-
-    installMockFs();
-    resetFlags();
-    setFlag('chtracks', 2);
-
-    resetUiState();                              // a Set with no blob at all
-    ok('a brand new set starts on movy tracks', movyTracksOn());
-    const blob = serializeUiState();
-    ok('and the choice is written down', JSON.parse(blob).flags.chtrackset === 1);
-
-    applyUiState(JSON.stringify({ scale: 1 }));  // an older set's blob
-    ok('loading a set that predates the field moves back to schwung', !movyTracksOn());
-
-    applyUiState(blob);
-    ok('and loading the new set moves back to movy', movyTracksOn());
-
-    setFlag('chtracks', 0);
-    resetFlags();
     uninstallMockFs();
 }
 
@@ -543,12 +420,6 @@ export async function run() {
         const used = fontWidth(f.name) + fontWidth(widest) + 4;
         ok(`"${f.name}" and "${widest}" fit one row`, used <= W, `${used}px of ${W}`);
     }
-
-    /* The CPU boost is not something a track gets for being a track: it is what
-     * movy's own chains join. Say so where the user is choosing between them. */
-    ok('the host row explains what changes',
-       /movy/i.test(flagDef('chtracks').hint) && /schwung/i.test(flagDef('chtracks').hint),
-       flagDef('chtracks').hint);
 
     /* The band follows the selection, or it is describing a different row than
      * the one under the inverted band. */

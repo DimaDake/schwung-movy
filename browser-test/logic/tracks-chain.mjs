@@ -5,7 +5,7 @@
  */
 
 import {
-    portFor, appState, eq, _log, loadPerSetFlags, resetPorts,
+    portFor, appState, eq, _log, resetPorts,
     undoOnce, resetUndoState, resetUndoGroups, resetUndoRecord,
 } from './harness.mjs';
 
@@ -53,7 +53,6 @@ export async function run() {
 
   resetPorts();
   const p = portFor(7);              // track 7 -> chain 7
-  eq('movy track gets a chain port', p.track.kind, 'movy');
 
   /* The namespace mapping is the routing: get it wrong and edits land on
    * another track's synth. */
@@ -348,10 +347,6 @@ export async function run() {
     uninstallMockFs();
   }
 
-  /* `resetUiState()` above modelled a Set movy had never seen, which puts
-   * tracks 1-4 on movy chains. These are about a track that is NOT one, so put
-   * track 0 back on its schwung slot first. */
-  loadPerSetFlags({});
   resetPorts();
 
   /* Tolerance: older blobs have no `chains` key, and a corrupt one must not
@@ -359,7 +354,6 @@ export async function run() {
   eq('missing chains key restores nothing', restoreChains(undefined), 0);
   eq('non-array restores nothing', restoreChains('nope'), 0);
   eq('out-of-range track skipped', restoreChains([{ t: 99, comp: [{ c: 'synth', m: 'x' }] }]), 0);
-  eq('host track index skipped', restoreChains([{ t: 0, comp: [{ c: 'synth', m: 'x' }] }]), 0);
   eq('unknown component skipped', restoreChains([{ t: 4, comp: [{ c: 'bogus', m: 'x' }] }]), 0);
 
   /* A malformed document from the engine must not read as "no chains" — that
@@ -369,41 +363,20 @@ export async function run() {
      captureChains().length, 0);
   engineSet = encodeBulk(['4', 'synth', 'plaits']);
 
-  /* With `chtracks` on, tracks 0-3 are movy chains and their modules exist
-   * ONLY inside movy's engine — schwung's set file no longer carries them. */
+  /* Track 0 is a movy chain like any other now — it used to be schwung's, and
+   * `chtracks` decided which. There is no second host left to route around. */
   {
-    const { setFlag, resetFlags } = await import('../../dist/esm/seq/flags.js');
-    const { installMockFs, uninstallMockFs } = await import('../mock-fs.mjs');
-    installMockFs();
-    resetFlags();
-    setFlag('chtracks', 1);
     resetPorts();
-
     engineSet = encodeBulk(['0', 'synth', 'dexed']);
-    const t1 = captureChains();
-    eq('track 1 is captured once it is a movy chain', t1.length, 1);
-    eq('and recorded under its TRACK index, not its chain', t1[0].t, 0);
-    eq('with the module read from chain 0', t1[0].comp[0].m, 'dexed');
+    const t0 = captureChains();
+    eq('track 0 is captured like any other chain', t0.length, 1);
+    eq('recorded under its own index', t0[0].t, 0);
+    eq('with the module read from chain 0', t0[0].comp[0].m, 'dexed');
 
     writes.length = 0;
-    eq('and it restores', restoreChains(t1), 1);
+    eq('and it restores', restoreChains(t0), 1);
     eq('to chain 0', decodeBulk(writes[0][1]).join('|'), '0|synth|dexed');
-
-    /* Off again, the same saved entry is inert rather than misdirected — a
-     * track with no chain must not write to one. */
-    setFlag('chtracks', 0);
     resetPorts();
-    writes.length = 0;
-    eq('a saved movy-track-1 chain is skipped when the flag is off',
-       restoreChains(t1), 0);
-    eq('and the document it sends is empty', writes[0][1], '0\n');
-    /* Symmetrically: a chain the engine still holds for a track that is no
-     * longer movy's is not captured into this set. */
-    eq('nor is it captured', captureChains().length, 0);
-
-    resetFlags();
-    resetPorts();
-    uninstallMockFs();
   }
 
   /* ── the chain's LFOs ride the same snapshot ──────────────────────────────
@@ -460,38 +433,31 @@ export async function run() {
 }
 
 {
-  _log('\ntrack volume routes by track kind:');
+  _log('\ntrack volume writes the whole mixer triple:');
   const { volumeTrackDown, volumeTrackUp, volumeKnobDelta } =
     await import('../../dist/esm/mixer/track-volume.js');
   const { resetPorts } = await import('../../dist/esm/track/registry.js');
 
+  /* One path now — every track is a movy chain, so the gesture always lands on
+   * the engine's `ch<N>:mix`. `track-volume.mjs` covers the dB ladder itself;
+   * this covers what is specific to the chain-namespaced write. */
   const writes = [];
-  const oSet = globalThis.shadow_set_param;
   const oMSet = globalThis.host_module_set_param_blocking;
   const oGet = globalThis.host_module_get_param;
-  const oSGet = globalThis.shadow_get_param;
-  globalThis.shadow_set_param = (slot, k, v) => { writes.push(['host', slot, k, v]); return true; };
-  globalThis.host_module_set_param_blocking = (k, v) => { writes.push(['movy', k, v]); return true; };
-  globalThis.shadow_get_param = () => '1';
-  globalThis.host_module_get_param = () => '1,0,0';
+  globalThis.host_module_set_param_blocking = (k, v) => { writes.push([k, v]); return true; };
+  /* Full width (gain + pan + muted + 2 sends): a narrower read is still legal
+   * (the codec accepts 0/2/3 sends), but a self-contained mock is what keeps
+   * this assertion from depending on `mixTail` state another suite's gesture
+   * happened to leave behind. */
+  globalThis.host_module_get_param = () => '1,0,0,0,0';
   resetPorts();
 
-  /* A host track keeps schwung's slot:volume — Move's mixer reads the same
-   * param, so writing anything else would desync the two. */
-  volumeTrackDown(1);
-  volumeKnobDelta(1);
-  const hostWrite = writes.find((w) => w[0] === 'host');
-  eq('host track writes slot:volume', hostWrite && hostWrite[2], 'slot:volume');
-
-  /* A movy track has no schwung slot and no Move fader, so its level is movy's
-   * own and must land on the summing mixer instead. */
-  writes.length = 0;
   volumeTrackDown(6);
   volumeKnobDelta(1);
-  const movyWrite = writes.find((w) => w[0] === 'movy');
-  eq('movy track writes its mixer', movyWrite && movyWrite[1], 'ch6:mix');
+  const movyWrite = writes.find(([k]) => k === 'ch6:mix');
+  eq('the write is namespaced to the chain', !!movyWrite, true);
   eq('mixer write is the whole value, not just the gain',
-     !!(movyWrite && /^[0-9.]+(,[-0-9.]+){4}$/.test(movyWrite[2])), true);
+     !!(movyWrite && /^[0-9.]+(,[-0-9.]+){4}$/.test(movyWrite[1])), true);
 
   /* Only the gain is on this fader, so everything after it must be carried
    * across unchanged — as READ, not as defaults. A gesture that rewrote the
@@ -502,9 +468,9 @@ export async function run() {
   globalThis.host_module_get_param = () => '0.5,-0.75,0,0.25,0.5';
   volumeTrackDown(6);
   volumeKnobDelta(1);
-  const carried = writes.find((w) => w[0] === 'movy');
+  const carried = writes.find(([k]) => k === 'ch6:mix');
   eq('pan, mute and both sends survive a volume turn',
-     carried && carried[2].slice(carried[2].indexOf(',')), ',-0.75,0,0.25,0.5');
+     carried && carried[1].slice(carried[1].indexOf(',')), ',-0.75,0,0.25,0.5');
 
   /* The fader has to resume from the level it last set. `ch<N>:mix` had no
    * reader in the engine — `get_param` forwarded it to the chain instance,
@@ -517,18 +483,18 @@ export async function run() {
     globalThis.host_module_get_param = (k) => (k === 'ch6:mix' ? '0.3162,-0.5000,0' : null);
     volumeTrackDown(6);
     volumeKnobDelta(1);                       // one detent up from -10 dB
-    const resumed = writes.find((w) => w[0] === 'movy');
-    eq('the gesture resumes from the level on the chain', resumed && resumed[2],
+    const resumed = writes.find(([k]) => k === 'ch6:mix');
+    eq('the gesture resumes from the level on the chain', resumed && resumed[1],
        '0.3548,-0.5000,0');
 
     /* The gain is the only field on this fader, so the other two must survive
      * the write — the triple is saved state now, and zeroing pan on every turn
      * would discard what the set file just restored. */
-    eq('and carries the rest of the triple through', resumed[2].endsWith(',-0.5000,0'), true);
+    eq('and carries the rest of the triple through', resumed[1].endsWith(',-0.5000,0'), true);
 
     /* Undo writes the inverse back to the same param, so it has to be the same
      * SHAPE: a bare gain is not a triple, `parse_mix` rejects it, and undoing a
-     * movy track's volume silently did nothing. */
+     * track's volume silently did nothing. */
     resetTrackVolume();
     resetUndoState(); resetUndoGroups(); resetUndoRecord();
     volumeTrackDown(6);
@@ -536,13 +502,13 @@ export async function run() {
     volumeTrackUp(6);
     writes.length = 0;
     undoOnce();
-    const undone = writes.find((w) => w[0] === 'movy');
-    eq('undo restores the whole triple', undone && undone[2], '0.3162,-0.5000,0');
+    const undone = writes.find(([k]) => k === 'ch6:mix');
+    eq('undo restores the whole triple', undone && undone[1], '0.3162,-0.5000,0');
     resetTrackVolume();
   }
 
-  globalThis.shadow_set_param = oSet; globalThis.host_module_set_param_blocking = oMSet;
-  globalThis.host_module_get_param = oGet; globalThis.shadow_get_param = oSGet;
+  globalThis.host_module_set_param_blocking = oMSet;
+  globalThis.host_module_get_param = oGet;
   resetPorts();
 }
 
@@ -559,20 +525,20 @@ export async function run() {
   const maps = () => sent.filter((s) => s[0] === 'padmap');
   const vels = () => sent.filter((s) => s[0] === 'padvel');
 
-  /* A host track keeps its own pad handling: chain -1, and the UI must still
-   * send its notes. */
+  /* Every track hands its pads to the engine now — track 0 used to be
+   * schwung's, with no chain of its own and no way for the engine to own its
+   * pads. It is chain 0 like any other. */
   resetPadRoute();
   selectTrack(0);
   syncPadRoute(send);
-  eq('a map is pushed for a host track', maps().length, 1);
-  eq('host track pushes chain -1', maps()[0][1].split(',')[0], '-1');
-  eq('the UI still owns host-track pads', engineOwnsPads(0), false);
+  eq('a map is pushed for track 0', maps().length, 1);
+  eq('it names chain 0, not -1', maps()[0][1].split(',')[0], '0');
+  eq('the engine owns its pads', engineOwnsPads(0), true);
 
-  /* A movy track hands pads to the engine. */
   sent.length = 0;
   selectTrack(6);                       // -> chain 6
   syncPadRoute(send);
-  eq('a map is pushed for a movy track', maps().length, 1);
+  eq('a map is pushed for track 6', maps().length, 1);
   eq('the key is padmap', maps()[0][0], 'padmap');
   eq('it names the chain', maps()[0][1].split(',')[0], '6');
   eq('it carries 32 pad entries', maps()[0][1].split(',').length - 1, 32);

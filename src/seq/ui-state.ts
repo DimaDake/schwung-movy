@@ -14,8 +14,7 @@ import { mutesSnapshot, restoreMutes, resetTrackMutes } from '../mixer/track-mut
 import { seqState } from './state.js';
 import { seqCmd } from './engine.js';
 import { readPrefDefaultQuant } from './prefs.js';
-import { perSetFlagsSnapshot } from './flags.js';
-import { loadSetHostChoice, setSetHost } from '../track/host-mode.js';
+import { loadPerSetFlags, perSetFlagsSnapshot } from './flags.js';
 import {
     beginMigration, migrationMarker, migrationPending, migrationResult,
 } from '../track/migrate.js';
@@ -48,12 +47,6 @@ export function applyMigratedChains(): void {
     const mig = migrationResult();
     if (!mig || mig.chains.length === 0) { migrationApplied = true; return; }
     migrationApplied = true;
-    /* A track still on the schwung host has no chain — `chainInstance` is -1 —
-     * and `chainSetTriples` would drop everything the migration just built.
-     * Moving the SET onto movy's chains IS what a migration means, so it is
-     * said here rather than left to a flag the user set once. Goes away with
-     * the flag itself. */
-    setSetHost(1);
     const chains = [...(lastLoaded?.chains ?? []), ...mig.chains]
         .sort((a, b) => (a?.t ?? 0) - (b?.t ?? 0));
     const n = restoreChains(chains, lastLoaded?.sends);
@@ -99,18 +92,19 @@ export function serializeUiState(): string {
 export function applyUiState(blob: string): void {
     try {
         const o = JSON.parse(blob);
-        /* FIRST, ahead of the chains: `restoreChains` routes by `trackKind()`,
-         * so tracks 1-4 have to be on the host this set wants before a single
-         * component is addressed. A blob with no `flags` object is a set saved
-         * before this existed and keeps the schwung slots it was built on —
-         * which is not the same answer as a set movy has never seen. */
-        loadSetHostChoice(o.flags && typeof o.flags === 'object' ? o.flags : {});
+        const flags = o.flags && typeof o.flags === 'object' ? o.flags : null;
+        /* Ahead of everything else this blob decides: a per-set flag's value has
+         * to be in place before any of the reads below could depend on it (none
+         * do today, but a value read stale for even one tick is how the
+         * migration's own predecessor bug — chtracks moving the UI but not the
+         * engine — happened). `null` here means "this set predates the field",
+         * matching what `beginMigration` is handed on the same line. */
+        loadPerSetFlags(flags);
         /* The migration is started before the chains go out but does not hold
          * them: it may need several ticks to decide, and this document is also
          * what unloads the previous Set. `applyMigratedChains` re-states it if
          * the probe finds anything. */
-        beginMigration(o.flags && typeof o.flags === 'object' ? o.flags : null,
-                       o.migv, o.chains);
+        beginMigration(flags, o.migv, o.chains);
         /* Then the chains, before anything cosmetic: the loads are queued one
          * per audio callback, so the sooner they start the sooner the set sounds
          * like itself. One document says both what to unload and what to load —
@@ -154,13 +148,11 @@ function applyDefaultQuant(pct: number): void {
 
 /* Defaults match init(): C tonic, Major, Chromatic/4ths, C3 on every track. */
 export function resetUiState(): void {
-    /* A Set with no UI blob at all is new work: it takes the shipped default,
-     * which puts tracks 1-4 on movy's own chains. */
-    loadSetHostChoice(null);
     /* A Set with no UI blob at all: new work, or a set duplicated in Move —
      * indistinguishable until the probe runs, so both are candidates. A
      * duplicated set's instruments are found by the probe and arrive in the
      * second document. */
+    loadPerSetFlags(null);
     beginMigration(null, undefined, []);
     lastLoaded = { chains: [], sends: undefined };
     migrationApplied = false;

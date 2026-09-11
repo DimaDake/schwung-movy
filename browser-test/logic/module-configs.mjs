@@ -7,6 +7,7 @@
 import {
     readFileSync, readdirSync, detectEnvelopes, MOCK_SYNTHS, init, eq, bootModel,
     _log, env, fail, KNOBS_PER_PAGE,
+    settleModel,
 } from './harness.mjs';
 
 export async function run() {
@@ -267,7 +268,7 @@ _log('\nTest: chunk-7 module configs (krautdrums/weird-dreams banks)');
                          'drummer_brain', 'fill_shape', 'step_grid', 'out_mode']) {
             eq(`signal: reachable ${k}`, !!byKey(d, k), true);
         }
-        const sg = bootModel(MOCK_SYNTHS.signal);
+        const sg = settleModel(bootModel(MOCK_SYNTHS.signal));
         eq('signal: focus defaults to voice 1', sg.getViewModel().drumCurrentPad, 1);
         for (let t = 0; t < 4; t++) sg.tick();   // round-robin refresh reaches row-0 knobs
         eq('signal: VOL reads v1_vol (0.11)', sg.getKnobParamInfo(1).value, 0.11);
@@ -303,7 +304,7 @@ _log('\nTest: chunk-7 module configs (krautdrums/weird-dreams banks)');
         for (const k of ['morph_src', 'morph_curve', 'all_mono']) eq(`forge: restored ${k}`, !!byKey(d, k), true);
         for (const k of ['copy_a_b', 'swap_ab', 'rnd_b_from_a']) eq(`forge: skipped ${k}`, !!byKey(d, k), false);
 
-        const fg = bootModel(MOCK_SYNTHS.forge);
+        const fg = settleModel(bootModel(MOCK_SYNTHS.forge));
         // Pad 1 (Kit A voice 1): WAVE alias cv_wave resolves to pv1_wave = 1 (Tri).
         eq('forge: WAVE ioKey is pv1_wave', fg.getKnobParamInfo(0).ioKey, 'pv1_wave');
         eq('forge: pv1_wave value (Tri=1)', fg.getKnobParamInfo(0).value, 1);
@@ -397,7 +398,7 @@ _log('\nTest: chunk-7 module configs (krautdrums/weird-dreams banks)');
             for (let k = 0; k < 8; k++) { const i = mm.getKnobParamInfo(k); if (i?.key === alias) return i; }
             return null;
         };
-        const pg = bootModel(MOCK_SYNTHS.libpo32);
+        const pg = settleModel(bootModel(MOCK_SYNTHS.libpo32));
         for (let t = 0; t < 4; t++) pg.tick();   // round-robin refresh reaches row-0 knobs
         eq('libpo32: pad 1 PITCH ioKey v01_freq', infoByKey(pg, 'v_freq').ioKey, 'v01_freq');
         eq('libpo32: v01_freq value (0.25)', infoByKey(pg, 'v_freq').value, 0.25);

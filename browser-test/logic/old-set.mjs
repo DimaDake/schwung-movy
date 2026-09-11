@@ -65,7 +65,6 @@ export async function run() {
         = await import('../../dist/esm/seq/set-session.js');
     const { resetSetSave } = await import('../../dist/esm/seq/set-save.js');
     const { decodeBulk } = await import('../../dist/esm/track/bulk.js');
-    const { trackKind } = await import('../../dist/esm/track/ref.js');
     const { keyboardState } = await import('../../dist/esm/keyboard/state.js');
     const { seqState } = await import('../../dist/esm/seq/state.js');
 
@@ -130,7 +129,6 @@ export async function run() {
 
         /* The instrument half. The set says movy hosts tracks 1-4, so every
          * chain in the file has to be named in the document. */
-        eq('A tracks 1-4 are movy chains', trackKind(0), 'movy');
         eq('A the document names every saved component',
             (chainDoc(eng) || []).join(' '),
             '0:synth=8w8 1:synth=obxd 1:fx1=cloudseed 2:synth=nusaw');
@@ -172,9 +170,19 @@ export async function run() {
         teardown();
     }
 
-    /* ── A set schwung hosts the first four tracks of ────────────────────── */
+    /* ── A set schwung USED to host the first four tracks of ─────────────── */
     {
         const arm = 'schwung-tracks';
+        /* The rack those four tracks were built on, as the device would still
+         * be holding it. This is the input the one-time migration exists for:
+         * a real captured set from before movy hosted these tracks. */
+        for (let sl = 0; sl < 4; sl++) {
+            for (const c of ['midi_fx1', 'synth', 'fx1', 'fx2', 'fx3', 'fx4']) {
+                globalThis.shadow_set_param(sl, c + '_module', '');
+            }
+        }
+        globalThis.shadow_set_param(0, 'synth_module', 'plaits');
+        globalThis.shadow_set_param(0, 'synth:state', 'OLD-PATCH');
         const { eng } = boot(arm);
         const file = read(arm, 'seq-state.json');
 
@@ -187,13 +195,18 @@ export async function run() {
         eq('B track 3 keeps its 10 notes', notes[3], 10);
         eq('B a track past the host four keeps its note', notes[9], 1);
 
-        /* The whole point of this arm: the four tracks belong to schwung's
-         * shadow slots, whose modules live in Move's own set file. movy must
-         * claim none of them — a document that did would load a second
-         * instrument over the one the user saved. */
-        eq('B tracks 1-4 stay with schwung', trackKind(0), 'host');
-        eq('B and movy claims no chain on them', (chainDoc(eng) || []).join(' '), '');
-        ok('B the empty document is still delivered', eng.params.chains !== undefined);
+        /* The whole point of this arm now: a set built on schwung's shadow
+         * slots is MIGRATED on open. Its instrument was in Move's own set file
+         * and movy could no longer reach it, so the one-time migration adopts
+         * it into the chain of the same track — and says so in the document,
+         * which is the only thing that puts an instrument on a track. */
+        ok('B the set document was delivered', eng.params.chains !== undefined);
+        eq('B the schwung rack was adopted', (chainDoc(eng) || []).join(' '), '0:synth=plaits');
+        eq('B with the patch it was holding', eng.params['ch0:synth:state'], 'OLD-PATCH');
+        /* And the slot is left exactly as it was: nothing is cleared, so a
+         * migration that went wrong costs the user nothing. */
+        eq('B the schwung slot is untouched',
+           globalThis.shadow_get_param(0, 'synth_module'), 'plaits');
         eq('B the default quantise came back', seqState.defaultQuant, 100);
         teardown();
     }

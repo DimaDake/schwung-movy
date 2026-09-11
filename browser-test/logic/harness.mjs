@@ -56,8 +56,6 @@ import {
 } from '../../dist/esm/seq/flags-page.js';
 import { buildFlagsPageVM } from '../../dist/esm/seq/flags-page-vm.js';
 import { visibleFlags } from '../../dist/esm/seq/flags-visible.js';
-import { movyTracksOn } from '../../dist/esm/track/ref.js';
-import { loadSetHostChoice } from '../../dist/esm/track/host-mode.js';
 import { loadPerSetFlags } from '../../dist/esm/seq/flags.js';
 import { schwungGridMode, setSchwungGridMode, schwungPageFor,
          schwungGridReload } from '../../dist/esm/renderer/schwung-grid.js';
@@ -215,6 +213,18 @@ function bootModel(preset, slot = 0, componentKey = 'synth') {
     return m;
 }
 
+/* Tick a model far enough for its knob VALUES to arrive.
+ *
+ * A track is a movy chain now, and a chain port reads in BULK on a countdown
+ * (REFRESH_BULK_TICKS) rather than one param per tick — two ticks were enough
+ * only while a track was a shadow slot read per tick. Not folded into
+ * `bootModel`: several suites assert on what is known EARLY, and handing them
+ * a fully converged model changes what they are testing. */
+function settleModel(m, ticks = 12) {
+    for (let i = 0; i < ticks; i++) m.tick();
+    return m;
+}
+
 function bankNames(m) {
     const n = m.getViewModel().bankCount;
     const names = [];
@@ -246,7 +256,7 @@ export {
     schwungLibAvailable, schwungLibError,
     flagsPageState, flagsRowCount, backupsRowSelected, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
     buildFlagsPageVM, VISIBLE_ROWS, firstVisibleRow, readPrefFlags, writePrefFlag,
-    visibleFlags, movyTracksOn, loadSetHostChoice, loadPerSetFlags, resetPorts,
+    visibleFlags, loadPerSetFlags, resetPorts,
     wrapWords, HINT_W, HINT_LINES, DETENT_DIV, fontWidth, W,
     serializeUiState, applyUiState, resetUiState,
     readPrefModuleBlacklist,
@@ -273,7 +283,7 @@ export {
     holdTouch, holdRelease, holdTurnCancel, holdTick, assignActive, assignCycle,
     assignCommit, assignToastText, resetAssignMode, jogHintTouch, jogHintTick, jogHintVisible,
     shapeSample, drawWave, CHAIN_SLOTS, LFO_CHAIN_INDEX, isLfoSlot, init,
-    appState, selectTrack, watchedTrack, ok, fail, eq, notMatch, bootModel,
+    appState, selectTrack, watchedTrack, ok, fail, eq, notMatch, bootModel, settleModel,
     bankNames, P, lastMusicalOp, musicalOps, UNDO_RING, _log,
     env, mockFsEntries, failureCount,
 };

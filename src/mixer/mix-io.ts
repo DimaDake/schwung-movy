@@ -5,13 +5,12 @@
  * discard whatever the set file had restored into the others. The same reason
  * the volume gesture carries a tail (`track-volume.ts`).
  *
- * A host track has no movy mixer: its level is schwung's `slot:volume`, which
- * Move's own fader reads too, and it has no pan and no sends at all. */
+ * There used to be a second shape: a schwung-hosted track had no movy mixer at
+ * all, only `slot:volume`. Every track is a movy chain now. */
 
 import { setChainParam } from '../chain/set-param.js';
 import { markUiStateDirty } from '../seq/ui-dirty.js';
 import { portFor } from '../track/registry.js';
-import { trackKind } from '../track/ref.js';
 import { SEND_BUSES } from '../chain/config.js';
 import { SEND_TOP_DB, VOL_MAX, VOL_MIN, VOL_TOP_DB, dbFrac, fracToAmp } from './db-ladder.js';
 
@@ -31,24 +30,20 @@ export interface MixVals {
 /** The engine param carrying a chain's mixer state. */
 export const MIX_KEY = 'mix';
 
-/** A host track's level: schwung's own slot fader, which Move's mixer reads
- *  too. The only mixer field such a track has. */
-export const HOST_VOLUME_KEY = 'slot:volume';
-
-/** Where a track's level lives — the two shapes a mixer write can take. */
-export function mixerKeyFor(track: number): string {
-    return trackKind(track) === 'movy' ? MIX_KEY : HOST_VOLUME_KEY;
+/** Where a track's level lives. One shape now — it used to be this or schwung's
+ *  `slot:volume`, depending on which host owned the track. */
+export function mixerKeyFor(_track: number): string {
+    return MIX_KEY;
 }
 
-/** Whether a recorded param write came from the mixer, in either shape.
+/** Whether a recorded param write came from the mixer.
  *
  *  Undo needs this to find the page that must re-read. Every other param key is
- *  `<component>:<param>`, which names the model that owns it; neither mixer key
- *  is — `mix` has no component part at all, and `slot:volume` names schwung's
- *  slot rather than any movy page. So the generic lookup skipped both, and an
+ *  `<component>:<param>`, which names the model that owns it; this one is not —
+ *  `mix` has no component part at all. So the generic lookup skipped it, and an
  *  undone MIX edit changed the sound while the knob stayed put. */
 export function isMixerKey(key: string): boolean {
-    return key === MIX_KEY || key === HOST_VOLUME_KEY;
+    return key === MIX_KEY;
 }
 
 export const PAN_MIN = -1;
@@ -184,14 +179,7 @@ export function packMixValue(v: MixVals): string {
 }
 
 export function readMix(track: number): MixVals {
-    const port = portFor(track);
-    if (trackKind(track) === 'host') {
-        /* No mixer, no pan, no sends — only schwung's slot fader. */
-        const raw = port.getParam(HOST_VOLUME_KEY);
-        const g = raw === null ? NaN : parseFloat(raw);
-        return { ...defaultMix(), gain: Number.isFinite(g) ? clamp(g, VOL_MIN, VOL_MAX) : 1 };
-    }
-    return parseMixValue(port.getParam(MIX_KEY));
+    return parseMixValue(portFor(track).getParam(MIX_KEY));
 }
 
 /** Write one field, carrying the rest of `v` unchanged. `before` is the packed
@@ -199,13 +187,8 @@ export function readMix(track: number): MixVals {
  *  the engine rejects a partial value, and an inverse it rejects is an undo
  *  that silently does nothing. */
 export function writeMix(track: number, v: MixVals, before: string | null): void {
-    const port = portFor(track);
-    if (trackKind(track) === 'host') {
-        setChainParam(port, HOST_VOLUME_KEY, v.gain.toFixed(4), before);
-        return;
-    }
-    setChainParam(port, MIX_KEY, packMixValue(v), before);
-    /* A movy track's level lives in movy's own set blob; nothing else marks it. */
+    setChainParam(portFor(track), MIX_KEY, packMixValue(v), before);
+    /* A track's level lives in movy's own set blob; nothing else marks it. */
     markUiStateDirty();
 }
 

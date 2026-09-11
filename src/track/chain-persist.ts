@@ -1,8 +1,9 @@
 /* Saving and restoring the chains movy hosts itself.
  *
- * A host track's chain is schwung's — Move's own set file carries it. A movy
- * track's chain exists only inside movy's engine, so if movy does not write it
- * down it is gone on the next open. This is that write-down.
+ * A track's chain exists only inside movy's engine, so if movy does not write it
+ * down it is gone on the next open. This is that write-down. Tracks 1-4 used to
+ * be schwung's, carried in Move's own set file; `track/migrate.ts` brought the
+ * last of them here.
  *
  * **The set travels as one document, both ways.** It used to cross the wire as
  * one blocking param write per component, each with its own 50 ms timeout and
@@ -27,7 +28,7 @@ import { armChainPayloads, pendingPayloadFor, resetChainPayloads, type ChainPayl
     from './chain-payload.js';
 import { decodeBulk, encodeBulk } from './bulk.js';
 import { mlog } from '../log.js';
-import { TRACK_COUNT, chainInstance, trackKind } from './ref.js';
+import { TRACK_COUNT } from './ref.js';
 import { portFor } from './registry.js';
 import { lfoPairs, lfoStateKeys, packLfoState } from './lfo-persist.js';
 import { MIX_KEY, mixPair, packMix } from './mix-persist.js';
@@ -114,9 +115,7 @@ export function captureChains(doc: string[] | null = readChainDoc()): ChainTrack
         const t = Number(doc[i]);
         const c = doc[i + 1], m = doc[i + 2];
         if (!Number.isInteger(t) || t < 0 || t >= TRACK_COUNT) continue;
-        /* A chain the engine still holds for a track that is no longer movy's
-         * belongs to the host now and must not be written into this set. */
-        if (trackKind(t) !== 'movy' || !known.has(c) || m === '') continue;
+        if (!known.has(c) || m === '') continue;
         const comps = byTrack.get(t) ?? [];
         comps.push({ c, m });
         byTrack.set(t, comps);
@@ -164,11 +163,6 @@ function chainSetTriples(saved: ChainTrackState[] | undefined | null): string[] 
     for (const track of saved) {
         const t = track?.t;
         if (typeof t !== 'number' || t < 0 || t >= TRACK_COUNT) continue;
-        /* The real gate, and the only one since `chtracks`: tracks 0-3 have a
-         * chain when the flag is on and none when it is off. A set saved with
-         * it on and reopened with it off leaves those entries on disk, so
-         * turning it back on finds them again. */
-        if (chainInstance(t) < 0) continue;
         if (!Array.isArray(track.comp)) continue;
         for (const c of track.comp) {
             if (!c || typeof c.c !== 'string' || typeof c.m !== 'string') continue;
@@ -222,7 +216,7 @@ export function restoreChains(
     const payloads: ChainPayload[] = [];
     for (const track of Array.isArray(saved) ? saved : []) {
         const t = track?.t;
-        if (typeof t !== 'number' || chainInstance(t) < 0) continue;
+        if (typeof t !== 'number' || t < 0 || t >= TRACK_COUNT) continue;
         const pairs: [string, string][] = [];
         for (const c of Array.isArray(track.comp) ? track.comp : []) {
             if (!c || typeof c.c !== 'string' || !sent.has(t + '|' + c.c)) continue;

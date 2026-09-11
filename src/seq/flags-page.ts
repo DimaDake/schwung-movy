@@ -17,7 +17,6 @@ import { appState, VIEW_FLAGS } from '../app/state.js';
 import { clampFlag } from './flags-def.js';
 import { visibleFlags } from './flags-visible.js';
 import { flagValue, setFlag } from './flags.js';
-import { setHostMode, setSetHost } from '../track/host-mode.js';
 import { countDetents } from './detent.js';
 
 /** The knob that edits the selected flag. The others are blank on this page. */
@@ -72,13 +71,7 @@ export function flagsPageKnob(k: number, delta: number): void {
      * see — and a different one than the row they are looking at. */
     const def = visibleFlags()[flagsPageState.selected];
     if (!def) return;
-    const next = clampFlag(def, flagValue(def.key) + n);
-    /* Not a plain setFlag: changing a track's host has to release what is
-     * sounding on it FIRST, while its port still resolves to the host that
-     * played it. `host-mode.ts` owns that order. */
-    if (def.key === 'chtracks') { setHostMode(next); return; }
-    if (def.key === 'chtrackset') { setSetHost(next); return; }
-    setFlag(def.key, next);
+    setFlag(def.key, clampFlag(def, flagValue(def.key) + n));
 }
 
 export function resetFlagsPage(): void {

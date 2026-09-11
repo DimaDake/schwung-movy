@@ -11,7 +11,7 @@
  * then only ever written through `setFlag`, so the cache cannot outlive the
  * file it mirrors. */
 
-import { FLAGS, FLAGS_REV, clampFlag, flagDef, resolveHost } from './flags-def.js';
+import { FLAGS, FLAGS_REV, clampFlag, flagDef } from './flags-def.js';
 import {
     readPrefFlags, writePrefFlag, readPrefModuleBlacklist,
     readPrefFlagsRev, writePrefFlagsRev,
@@ -78,25 +78,11 @@ export function perSetFlagsSnapshot(): Record<string, number> {
     return out;
 }
 
-/* What the ENGINE is told, which is not always what the page says.
- *
- * `chtracks` is a three-value MODE up here but a routing decision down there —
- * `drain_out` sends a sequenced note out as MIDI or into a chain, and a 2 would
- * be neither. */
-function engineValue(key: string): number {
-    const v = ensure();
-    if (key === 'chtracks') return resolveHost(v['chtracks'], ensurePerSet()['chtrackset']) ? 1 : 0;
-    return v[key];
-}
-
+/* What the ENGINE is told. A flag whose engine meaning differs from its page
+ * meaning is folded here — `chtracks` was, being a three-value MODE up here and
+ * a routing decision down there. Nothing needs the fold today. */
 function push(key: string): void {
-    sendToEngine?.(key, String(engineValue(key)));
-}
-
-/** Re-push one engine key. `host-mode.ts` uses it after a per-set value moved
- *  the resolved host: the flag that changed is `uiOnly`, but its effect is not. */
-export function pushFlagToEngine(key: string): void {
-    push(key);
+    sendToEngine?.(key, String(ensure()[key]));
 }
 
 function ensure(): Record<string, number> {
@@ -161,9 +147,7 @@ export function setFlag(key: string, value: number): number {
 
 /** Push every flag to a (possibly brand new) engine, and remember how to reach
  *  it. Called from the engine-ready branch on EVERY boot: a re-dlopened engine
- *  has default flags and no idea what the page says, so a page reading
- *  "Tracks 1-4 Host MOVY" over an engine still routing them to schwung is
- *  exactly what this prevents. */
+ *  has default flags and no idea what the page says. */
 export function applyFlagsToEngine(set: EngineSet): void {
     sendToEngine = set;
     ensure();

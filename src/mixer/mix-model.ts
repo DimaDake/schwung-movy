@@ -24,7 +24,6 @@ import {
     packMixValue, readMix, writeMix, type MixFieldName, type MixVals,
 } from './mix-io.js';
 import { CONTINUOUS_TICK_FRAC } from '../model/constants.js';
-import { trackKind } from '../track/ref.js';
 
 /* Pan is the one field not on the dB ladder, but it travels at the same rate as
  * everything else on the page: one CC unit is CONTINUOUS_TICK_FRAC of the
@@ -70,7 +69,7 @@ export function createMixModel(track: number): Model {
 
     function edit(k: number, delta: number): void {
         const field = FIELD_AT[k];
-        if (field === undefined || trackKind(track) === 'host' && field !== 'gain') return;
+        if (field === undefined) return;
         const v = ensure();
         const before = packMixValue(v);
         /* VOL and every send walk the shared dB ladder — silence at the bottom,
@@ -128,7 +127,7 @@ export function createMixModel(track: number): Model {
             const d = dirty; dirty = false; return d;
         },
         getViewModel(auto?: import('../types/viewmodel.js').AutomationView): ViewModel {
-            return buildMixVM({ vals: ensure(), kind: trackKind(track), touched, auto });
+            return buildMixVM({ vals: ensure(), touched, auto });
         },
         reload(): void { dropCache(); },
         reloadNow(): void { dropCache(); },
@@ -146,10 +145,6 @@ export function createMixModel(track: number): Model {
         getKnobParamInfo(physK: number): KnobParamInfo | null {
             const field = FIELD_AT[physK];
             if (field === undefined) return null;
-            /* A host track has a fader but no lane: `slot:volume` is a shim
-             * param, and `knob_find_param` resolves only components inside the
-             * chain, so there is nothing for a lane to target. */
-            if (trackKind(track) === 'host') return null;
             /* Reported as a POSITION on the control's travel, not in the
              * field's own units: that is what a lane's 0-127 means here, so the
              * automation the knob writes follows the curve the knob walks. */

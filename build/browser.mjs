@@ -201,7 +201,6 @@ await esbuild.build({
         resolve(root, 'src/track/pad-route.ts'),
         resolve(root, 'src/track/chain-persist.ts'),
         resolve(root, 'src/track/chain-payload.ts'),
-        resolve(root, 'src/track/host-mode.ts'),
         resolve(root, 'src/track/legacy-host.ts'),
         resolve(root, 'src/track/slot-read.ts'),
         resolve(root, 'src/track/migrate-plan.ts'),

@@ -1,80 +1,41 @@
 /* Mirrors each track's drum/melodic identity into the engine (`tdrum`).
  *
- * The engine sequences all four tracks but has no idea what module a chain slot
- * holds; only the UI does. It needs the answer because a drum module's pitches
- * are pad addresses, not notes — clip transpose must not shift them, or the
- * step plays a different voice (or none, when it lands off the pad range). */
+ * The engine sequences all sixteen tracks but has no idea what module a chain
+ * slot holds; only the UI does. It needs the answer because a drum module's
+ * pitches are pad addresses, not notes — clip transpose must not shift them, or
+ * the step plays a different voice (or none, when it lands off the pad range). */
 
-import { portFor } from '../track/registry.js';
-import { TRACK_COUNT, trackKind } from '../track/ref.js';
+import { TRACK_COUNT } from '../track/ref.js';
 import { appState, trackIsDrum } from '../app/state.js';
-import { moduleReadKey } from '../chain/config.js';
-import { loadModuleConfig } from '../modules/loader.js';
 import { seqCmd } from './engine.js';
-import { NAME_POLL_TICKS } from '../model/constants.js';
 
-/* Was a local 4 while `probed` had already moved to TRACK_COUNT, so drum
- * identity was only ever probed for the first four tracks — a movy track
- * holding a drum module never reported, and the engine went on transposing a
- * drum clip it was already playing (the exact bug probeTrack exists to stop). */
+/* Was a local 4 while the state arrays had already moved to TRACK_COUNT, so drum
+ * identity was only ever reported for the first four tracks — a track holding a
+ * drum module never reported, and the engine went on transposing a drum clip it
+ * was already playing. */
 const NUM_TRACKS = TRACK_COUNT;
 
 /* Last value sent per track; -1 = unknown, so the first answer always sends. */
-const sent = [-1, -1, -1, -1];
-/* Tracks already answered by the direct probe below (see `probeTrack`). */
-const probed = new Array(TRACK_COUNT).fill(false) as boolean[];
-/* Ticks to wait before re-probing a track that gave no answer. An empty slot
- * never answers, so without this the probe repeats every tick for the life of
- * the tool — and each probe is a blocking round-trip the shim only services
- * once per SPI frame (~2.7 ms). Four empty tracks cost ~11 ms of every tick,
- * which is most of the tick period, and the tick period is also how often knob
- * MIDI is sampled. Retrying on the name-poll cadence keeps the "a module was
- * loaded from outside movy" case working at ~1 s granularity, for ~0.3% of the
- * IPC. */
-const retryIn = new Array(TRACK_COUNT).fill(0) as number[];
-
-/* Drum identity for a track whose model hasn't loaded — only the *active*
- * track's model ticks, so an unvisited track would otherwise never report, and
- * the engine would transpose a drum clip it is already playing. Reads the same
- * two things loadHierarchy does (module id → module config), so the answer can't
- * drift from the model's. Runs at most once per track per tool open: an
- * unvisited track's module can only change from outside movy, and visiting it
- * hands authority back to the model. */
-function probeTrack(t: number): number | null {
-    const model = appState.trackModels[t]?.[1];
-    if (!model || typeof shadow_get_param !== 'function') return null;
-    const id = portFor(t).getParam( moduleReadKey(model.getComponentKey()));
-    if (!id) return null;   // empty slot — leave it unanswered, not "melodic"
-    return (loadModuleConfig(id)?.drum?.padCount ?? 0) > 0 ? 1 : 0;
-}
+const sent = new Array(TRACK_COUNT).fill(-1) as number[];
 
 /* Cheap per-tick check: nothing is sent while the answer is unchanged. A track
  * with no answer at all is skipped rather than reported melodic — a transient
- * "not loaded" must not clear a drum flag mid-playback. */
+ * "not loaded" must not clear a drum flag mid-playback.
+ *
+ * There used to be a second path here: a direct param probe for tracks whose
+ * model had not loaded, because a SCHWUNG SLOT's module could change from
+ * outside movy and an unvisited track would otherwise never report. No track is
+ * a schwung slot any more — a chain can only change from inside movy — so the
+ * model is the only authority, and the probe is gone with it. Its retry budget
+ * went too: that existed because an empty slot never answers, and four of them
+ * probing every tick cost ~11 ms of a tick period that is also how often knob
+ * MIDI is sampled. */
 export function drumSyncTick(): void {
     for (let t = 0; t < NUM_TRACKS; t++) {
         const model = appState.trackModels[t]?.[1];
-        if (!model) continue;
-        let drum: number | null;
-        if (model.hasLoadedParams()) {
-            drum = trackIsDrum(t) ? 1 : 0;   // the model is authoritative
-            probed[t] = true;
-        } else if (!probed[t] && trackKind(t) === 'host') {
-            /* Host tracks only. The probe exists because a schwung slot's module
-             * can change from OUTSIDE movy, so an unvisited track's identity has
-             * to be re-read. A movy chain can only change from inside movy, so
-             * there is nothing to discover — and the read would be a blocking
-             * engine IPC (3-5 ms) rather than a cheap slot read. Twelve empty
-             * movy chains retrying on the same tick would stall it by ~50 ms
-             * once a second. */
-            if (retryIn[t] > 0) { retryIn[t]--; continue; }
-            drum = probeTrack(t);
-            if (drum !== null) probed[t] = true;
-            else retryIn[t] = NAME_POLL_TICKS;
-        } else {
-            continue;
-        }
-        if (drum === null || sent[t] === drum) continue;
+        if (!model || !model.hasLoadedParams()) continue;
+        const drum = trackIsDrum(t) ? 1 : 0;
+        if (sent[t] === drum) continue;
         sent[t] = drum;
         seqCmd('tdrum ' + t + ' ' + drum);
     }
@@ -84,6 +45,4 @@ export function drumSyncTick(): void {
  * where `track_drum` is back to its default (all melodic) and must be re-sent. */
 export function resetDrumSync(): void {
     sent.fill(-1);
-    probed.fill(false);
-    retryIn.fill(0);
 }

@@ -21,7 +21,6 @@
 import { mlog } from '../log.js';
 import type { ChainTrackState } from './chain-persist.js';
 import type { SendState } from './send-persist.js';
-import { chainInstance } from './ref.js';
 import { engineRootPort, portFor } from './registry.js';
 
 export interface ChainPayload {
@@ -102,10 +101,6 @@ export function deliverChainPayloads(): boolean {
             if (!engineRootPort().setMany(p.pairs)) left.push(p);
             continue;
         }
-        /* No longer a movy chain — `chtracks` was turned off under us, or the
-         * track went back to the host. There is nothing to deliver to, and
-         * holding it would guard a capture that is no longer ours to guard. */
-        if (chainInstance(p.t) < 0) continue;
         if (!portFor(p.t).setMany(p.pairs)) left.push(p);
     }
     pending = left;

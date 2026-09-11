@@ -1,13 +1,14 @@
-/* A track backed by a schwung shadow slot: index === slot number.
+/* A schwung shadow slot, addressed by slot number.
  *
- * Every method here is exactly what its call sites did inline before this
- * existed. The value is not in the code, it is in there being one place that
- * knows a host track is a slot. */
+ * No longer a TRACK port — every track is a movy chain now. Two things still
+ * reach a shadow slot: `master_fx:` params, which are global to the shim and
+ * merely ride slot 0 as a carrier, and the one-time migration, which reads what
+ * a slot still holds (`slot-read.ts`). */
 
 import type { TrackPort } from './port.js';
 import { trackRef, type TrackRef } from './ref.js';
 
-export class HostSlotPort implements TrackPort {
+export class ShimSlotPort implements TrackPort {
     readonly track: TrackRef;
     /* A slot read is served from schwung's own param cache and measured at
      * ~0.3 ms per tick for the whole UI. Nothing to batch, and the shim's bulk

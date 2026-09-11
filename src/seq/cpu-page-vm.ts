@@ -8,7 +8,7 @@
 
 import { seqState } from './state.js';
 import { scaleFor } from './cpu-scale.js';
-import { TRACK_COUNT, trackKind } from '../track/ref.js';
+import { TRACK_COUNT } from '../track/ref.js';
 import { SEND_BUSES } from '../chain/config.js';
 
 /** Fallback block period, microseconds — 128 frames at 44.1 kHz. Only used
@@ -91,10 +91,6 @@ export function buildCpuPageVM(): CpuPageVM {
 
     const columns: CpuColumn[] = [];
     for (let t = 0; t < TRACK_COUNT; t++) {
-        if (trackKind(t) === 'host') {
-            columns.push({ kind: 'na', totalUs: 0, synthUs: 0, peakUs: 0 });
-            continue;
-        }
         const bit = 1 << t;
         if (!(loaded & bit)) {
             columns.push({ kind: 'empty', totalUs: 0, synthUs: 0, peakUs: 0 });

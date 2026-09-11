@@ -14,6 +14,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createModel }     from '../dist/esm/model/index.js';
+import { encodeBulk, decodeBulk } from '../dist/esm/track/bulk.js';
 import { portFor } from '../dist/esm/track/registry.js';
 import { renderKnobsView } from '../dist/esm/renderer/knob-view.js';
 import { buildMainPageVM } from '../dist/esm/seq/main-page-vm.js';
@@ -32,11 +33,13 @@ import { MOCK_SYNTHS }     from './mock-synth.mjs';
 const WAV_TICK_MAX_MS = 4.0;   // a tick that misses its slot is felt as input lag
 const FILL_RECT_PER_RENDER_MAX = 1500;
 
-/* Max shadow_get_param calls in any single tick over a 70-tick window.
- * After staggered refresh: 1 GET per tick (cursor advances one position).
- * Threshold 2 allows for rounding/off-by-one while catching any bulk-refresh
- * regression (old code fired 16 GETs on the scheduled tick). */
-const GET_PARAM_PER_TICK_MAX = 2;
+/* Max BULK round trips (shadow_get_params) in any single tick over a 70-tick
+ * window. Every track is a movy chain now, and a chain port's whole refresh
+ * IS a bulk round trip (docs/track-performance.md §6): one GET for a page's
+ * worth of knobs rather than one `shadow_get_param` per key. The per-tick cap
+ * is 1 — refreshOneParam gates the bulk fetch on `bulkCountdown`, so at most
+ * one may land on any given tick, however many params the module has. */
+const BULK_PER_TICK_MAX = 1;
 
 /* Median renderKnobsView wall-clock time (ms) in Node.js V8 with a no-op
  * fill_rect. Baseline: ~0.004ms. Threshold is generous (V8 is much faster
@@ -88,6 +91,63 @@ globalThis.shadow_get_param   = (_s, key) => { getParamCount++; return mockState
 globalThis.shadow_set_param   = (_s, key, val) => { mockState[key] = val; return true; };
 globalThis.shadow_get_ui_slot = () => 0;
 globalThis.host_read_file     = () => null;
+
+/* Every track is a movy chain now, so `portFor(0)` in the tests below reaches
+ * the engine's own param API (`ch0:<key>`), not the shadow slot API — a chain
+ * read still counts against `getParamCount`, the same signal it always was, so
+ * the call-count assertions below stay meaningful rather than reading zero
+ * because nothing answered. Individual tests override these where a DIFFERENT
+ * mock is the point (send buses, master FX, foreign-write detection). */
+const CHAIN_KEY = /^ch[0-9]+:(.*)$/;
+/* Only `MovyChainPort.getParam`/`.setParam` (the SINGLE-key path) call this —
+ * `getMany`'s bulk path goes straight to `shadow_get_params` below and never
+ * touches it. A count here during normal (bulk-mocked) operation means the
+ * fallback fired: the bulk endpoint was missing or its response malformed,
+ * which is not the shape a real device serves under normal operation. */
+let individualGetCount = 0;
+globalThis.host_module_get_param = (key) => {
+    individualGetCount++;
+    const m = CHAIN_KEY.exec(key);
+    return globalThis.shadow_get_param(0, m ? m[1] : key);
+};
+globalThis.host_module_set_param = (key, val) => {
+    const m = CHAIN_KEY.exec(key);
+    return globalThis.shadow_set_param(0, m ? m[1] : key, val);
+};
+globalThis.host_module_set_param_blocking = (key, val) => globalThis.host_module_set_param(key, val);
+
+/* Counts BULK round trips, the shape of the real IPC cost now that every
+ * track's params are read via `shadow_get_params`/`shadow_set_params` — one
+ * round trip for a whole page's worth of knobs, not one `shadow_get_param`
+ * per key. Without this mock, `getMany`'s bulk endpoint is missing and it
+ * falls back to N individual `shadow_get_param` calls landing on one tick,
+ * which is the fallback path a real device only takes on a malformed
+ * response — exercising it here would measure the wrong thing. */
+let bulkGetCount = 0;
+globalThis.shadow_get_params = (slot, _marker, payload) => {
+    bulkGetCount++;
+    const keys = decodeBulk(payload) ?? [];
+    /* Per key, through `shadow_get_param` rather than reading `mockState`
+     * directly — several tests below override that function to count or
+     * intercept a SPECIFIC key, and a bulk path that skipped it would make
+     * their counts read zero regardless of what actually happened. Stripped of
+     * its `ch<N>:` prefix first: the payload carries the chain-namespaced key
+     * (MovyChainPort.getMany encodes `this.key(k)`), and `synth:cutoff` — not
+     * `ch0:synth:cutoff` — is the spelling every other mock and override here
+     * still expects. */
+    return encodeBulk(keys.map((k) => {
+        const m = CHAIN_KEY.exec(k);
+        return globalThis.shadow_get_param(slot, m ? m[1] : k) ?? '';
+    }));
+};
+globalThis.shadow_set_params = (slot, _marker, payload) => {
+    const flat = decodeBulk(payload) ?? [];
+    for (let i = 0; i + 1 < flat.length; i += 2) {
+        const m = CHAIN_KEY.exec(flat[i]);
+        globalThis.shadow_set_param(slot, m ? m[1] : flat[i], flat[i + 1]);
+    }
+    return true;
+};
 globalThis.setLED             = () => {};
 globalThis.setButtonLED       = () => {};
 globalThis.MoveKnob1          = 71;
@@ -139,9 +199,9 @@ _origLog('\nTest 1: fill_rect calls per renderKnobsView (test16, 8 arc knobs)');
     _origLog(`    (baseline: ${fillRectCount} calls)`);
 }
 
-/* ── Test 2: max shadow_get_param calls in any single tick ───────────────── */
+/* ── Test 2: max bulk round trips in any single tick ──────────────────────── */
 
-_origLog('\nTest 2: max shadow_get_param calls in any single tick (test16, 70 ticks)');
+_origLog('\nTest 2: max bulk round trips in any single tick (test16, 70 ticks)');
 
 {
     mockState = { ...MOCK_SYNTHS.test16 };
@@ -150,18 +210,24 @@ _origLog('\nTest 2: max shadow_get_param calls in any single tick (test16, 70 ti
     /* Tick 1 loads hierarchy; its GETs are excluded from per-tick measurement. */
     model.tick();
 
-    /* Ticks 2–71: measure the maximum GETs seen in any single tick.
-     * Old code: tick 70 fires refreshKnobValues for all 16 params → 16 GETs.
-     * New code (staggered): every tick does exactly 1 GET → max = 1. */
-    let maxGetsInOneTick = 0;
+    /* Ticks 2–71: measure the maximum bulk round trips seen in any single tick,
+     * and how many landed across the window — REFRESH_BULK_TICKS=8 means ~9
+     * over 70 ticks is the expected shape; a regression back to individual
+     * `shadow_get_param` calls (the pre-chain-port cost this test used to
+     * bound) would show as bulkGetCount staying 0 while getParamCount spikes. */
+    let maxBulkInOneTick = 0, totalBulk = 0;
     for (let i = 0; i < 70; i++) {
-        getParamCount = 0;
+        bulkGetCount = 0; individualGetCount = 0;
         model.tick();
-        if (getParamCount > maxGetsInOneTick) maxGetsInOneTick = getParamCount;
+        if (bulkGetCount > maxBulkInOneTick) maxBulkInOneTick = bulkGetCount;
+        totalBulk += bulkGetCount;
+        if (individualGetCount > 0) {
+            fail('individual get_param calls', `${individualGetCount} outside the bulk path`);
+        }
     }
 
-    check('max shadow_get_param calls per tick', maxGetsInOneTick, GET_PARAM_PER_TICK_MAX);
-    _origLog(`    (baseline: ${maxGetsInOneTick} max calls in any single tick)`);
+    check('max bulk round trips per tick', maxBulkInOneTick, BULK_PER_TICK_MAX);
+    _origLog(`    (baseline: ${maxBulkInOneTick} max in any single tick, ${totalBulk} total over 70 ticks)`);
 }
 
 /* ── Test 2b: automation lanes are decoupled from playback ───────────────── */
@@ -262,20 +328,24 @@ _origLog('\nTest 3b: helm-scale module (full ui_hierarchy traversal)');
     const paramCount = model.dumpLayout().params.filter(Boolean).length;
     _origLog(`    (${paramCount} params, ${model.getViewModel().bankCount} pages)`);
 
-    /* Per-tick IPC must stay flat: refreshOneParam advances a cursor by one
-     * regardless of how many params the module has. */
-    let maxGets = 0, totalGets = 0;
+    /* Per-tick IPC must stay flat: refreshOneParam gates the bulk fetch on a
+     * countdown regardless of how many params or pages the module has — 180
+     * params across 34 pages must cost the same per-tick shape as test16's 16. */
+    let maxBulk = 0, totalBulk = 0;
     for (let i = 0; i < 70; i++) {
-        getParamCount = 0;
+        bulkGetCount = 0; individualGetCount = 0;
         model.tick();
-        totalGets += getParamCount;
-        if (getParamCount > maxGets) maxGets = getParamCount;
+        totalBulk += bulkGetCount;
+        if (bulkGetCount > maxBulk) maxBulk = bulkGetCount;
+        if (individualGetCount > 0) {
+            fail('helm: individual get_param calls', `${individualGetCount} outside the bulk path`);
+        }
     }
-    check('helm: max shadow_get_param calls per tick', maxGets, GET_PARAM_PER_TICK_MAX);
+    check('helm: max bulk round trips per tick', maxBulk, BULK_PER_TICK_MAX);
     /* The page-first cursor splits its reads between the current page and the
-     * global sweep — it must not ADD IPC, whatever the module's page count. */
-    check('helm: avg shadow_get_param calls per tick',
-          +(totalGets / 70).toFixed(2), GET_PARAM_PER_TICK_MAX);
+     * global sweep — it must not ADD an extra round trip, whatever the
+     * module's page count. */
+    check('helm: avg bulk round trips per tick', +(totalBulk / 70).toFixed(2), BULK_PER_TICK_MAX);
 
     /* buildViewModel maps over every param (viewmodel.ts allValues), so it is
      * the one path that grows with param count. */
@@ -587,6 +657,13 @@ _origLog('\nTest 5: sequencer perf budgets');
 
 {
     const { ENGINE_VERSION } = await import('../dist/esm/seq/constants.js');
+    /* Saved and restored: every track is a movy chain now, so the model tests
+     * below this block also read through `host_module_get_param` — an engine
+     * stub left in place here (as it was, unrestored, before that was true)
+     * silently answers null for every knob param in every test that follows. */
+    const oldSetSeq = globalThis.host_module_set_param;
+    const oldSetBlockingSeq = globalThis.host_module_set_param_blocking;
+    const oldGetSeq = globalThis.host_module_get_param;
     globalThis.host_module_set_param = () => true;
     globalThis.host_module_set_param_blocking = () => true;
     globalThis.host_module_get_param = (k) =>
@@ -681,6 +758,10 @@ _origLog('\nTest 5: sequencer perf budgets');
     drawLoopStrip();
     check('loop strip fill_rect calls', fillRectCount, 40);
     _origLog(`    (strip: ${fillRectCount} fill_rect)`);
+
+    globalThis.host_module_set_param = oldSetSeq;
+    globalThis.host_module_set_param_blocking = oldSetBlockingSeq;
+    globalThis.host_module_get_param = oldGetSeq;
 }
 
 /* ── Test 5: cost of turning a knob ──────────────────────────────────────── */

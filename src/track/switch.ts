@@ -18,7 +18,7 @@ import { releaseAllLive } from '../keyboard/release.js';
 import { closeParamPage, paramPageActive } from '../seq/param-page.js';
 import { seqState } from '../seq/state.js';
 import { selectTrack } from './focus.js';
-import { chainInstance, trackKind } from './ref.js';
+import { chainInstance } from './ref.js';
 
 /** Everything a momentary track peek has to put back on release. */
 export interface TrackSnapshot {
@@ -47,8 +47,7 @@ export function beginTrackSwitch(): TrackSnapshot {
  * the gesture that was meant to select a movy track left the UI in Session mode
  * instead, both rows read identical, and nothing in the log contradicted them. */
 function logSwitch(track: number): void {
-    mlog('track: active=' + track + ' kind=' + trackKind(track)
-        + (trackKind(track) === 'movy' ? ' chain=' + chainInstance(track) : ''));
+    mlog('track: active=' + track + ' chain=' + chainInstance(track));
 }
 
 function repaint(): void {

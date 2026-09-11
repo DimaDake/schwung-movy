@@ -21,6 +21,7 @@ import { fileURLToPath } from 'url';
 import { PNG } from 'pngjs';
 import pixelmatch from 'pixelmatch';
 import { installEnv } from './env.mjs';
+import { REFRESH_BULK_TICKS } from '../dist/esm/model/constants.js';
 
 /* Quiet the renderer's [movy] mlog chatter; keep our own status lines. */
 const _log = console.log.bind(console);
@@ -44,7 +45,7 @@ const PRESETS = [
     'chain_synth', 'chain_empty', 'chain_jog_toast', 'knobs_jog_toast',
     'chain_t2', 'chain_t4',
     'lfo_chain', 'lfo_lfo1', 'lfo_lfo2', 'lfo_target_overlay', 'lfo_viz_unipolar', 'lfo_viz_retrig',
-    'mix_page', 'mix_page_chain', 'mix_page_host', 'mix_page_two_held',
+    'mix_page', 'mix_page_chain', 'mix_page_two_held',
     'master_send_slot', 'master_send_empty',
     'lfo_master', 'lfo_master_chain',
     'lfo_mod_mark', 'lfo_mod_and_auto', 'lfo_assign_toast',
@@ -62,7 +63,7 @@ const PRESETS = [
     'clip-default', 'clip-fraction', 'clip-overlay', 'clip-drum', 'clip-quant',
     'main-quant', 'quant-overlay-three', 'quant-overlay-two',
     'flags-top', 'flags-scrolled', 'flags-release',
-    'cpu-movy-tracks', 'cpu-schwung-tracks', 'cpu-overscale', 'cpu-empty',
+    'cpu-movy-tracks', 'cpu-unsplit-module', 'cpu-overscale', 'cpu-empty',
     'cpu-sends', 'cpu-sends-quiet',
     'env_dual', 'env_touched', 'env_ad', 'env_asr', 'lfo_mod',
     'filter_lp', 'filter_lp_reso', 'filter_hp', 'filter_bp', 'filter_notch',
@@ -337,12 +338,22 @@ function makeSceneWav() {
 }
 
 /* Drive model.tick()+repaint until the render converges (mirrors the old
- * deterministic settle: 5 clean ticks, or a 200-tick cap). Only the synth
+ * deterministic settle: N clean ticks, or a 200-tick cap). Only the synth
  * model ticks — matching the harness rAF loop — so chain slots that were never
- * ticked render as empty. */
+ * ticked render as empty.
+ *
+ * N is REFRESH_BULK_TICKS + 1, not a flat 5: every track is a movy chain now,
+ * and a chain port's background refresh fires once per REFRESH_BULK_TICKS
+ * rather than incrementally every tick (a host track's old cadence). A gap
+ * between two bulk reads can itself run REFRESH_BULK_TICKS ticks wide with
+ * nothing changing, so 5 consecutive quiet ticks can land entirely inside that
+ * gap — "converged" right before the one read that would have populated a page
+ * just switched to. `obxd_filter_page` shipped every knob reading "..." this
+ * way: settle() gave up 8 ticks early. */
 function settle() {
     let idle = 0, total = 0;
-    while (idle < 5 && total < 200) {
+    const quietFor = REFRESH_BULK_TICKS + 1;
+    while (idle < quietFor && total < 200) {
         const dirty = model.tick();
         if (dirty) lastRender();
         idle = dirty ? 0 : idle + 1;
@@ -605,7 +616,8 @@ function applyView(preset) {
                            settle(); showChain(1, false); break;
         case 'obxd_preset_page': forceRender(); break;                       // page 0
         case 'obxd_main_page':   model.changePage(1); forceRender(); break;
-        case 'obxd_filter_page': model.changePage(3); forceRender(); break;
+        case 'obxd_filter_page': model.changePage(3); forceRender();
+        break;
         case 'chain_synth':      showChain(1, false); break;
         case 'chain_empty':      showChain(2, false); break;                 // fx1 = empty
         case 'chain_jog_toast':  showChain(1, true); break;
@@ -633,14 +645,10 @@ function applyView(preset) {
         /* The Settings page, in the debug arrangement: every flag listed. Two
          * states, because the value column, the selection band and the scroll
          * window are what the page IS — `top` has the selection on row 0 with
-         * the list unscrolled, `scrolled` puts it on the LAST row, which is one
-         * past the window and forces the list to scroll, with values that are
-         * not the defaults so a row whose value stopped tracking its flag shows
-         * up as a diff.
-         *
-         * `chtracks` stays at NEW SETS in both: an explicit mode drops the
-         * per-set row, and with it the fifth row that makes the list scroll at
-         * all — which would leave `scrolled` a second copy of `top`. */
+         * the list unscrolled, `scrolled` puts it on the LAST row (an action
+         * row — the table is only two flags deep now that the schwung host is
+         * gone), with values that are not the defaults so a row whose value
+         * stopped tracking its flag shows up as a diff. */
         case 'flags-top':
         case 'flags-scrolled': {
             resetFlags(); resetFlagsPage();
@@ -657,7 +665,7 @@ function applyView(preset) {
          * The debug scenes above cannot cover this — they render the list this
          * build has compiled in, which is every flag. */
         case 'cpu-movy-tracks':
-        case 'cpu-schwung-tracks':
+        case 'cpu-unsplit-module':
         case 'cpu-overscale':
         case 'cpu-empty':
         /* The page's SECOND layout: any send bus holding a module narrows every
@@ -669,12 +677,6 @@ function applyView(preset) {
         case 'cpu-sends':
         case 'cpu-sends-quiet': {
             resetFlags();
-            /* The two arrangements the page has to survive: every track a movy
-             * chain, and tracks 1-4 left on the Schwung host — where movy has
-             * no cost to report and the column must say so rather than read as
-             * free. */
-            const movy = preset !== 'cpu-schwung-tracks';
-            setFlag('chtracks', movy ? 1 : 0);
             /* Every column inside the 1 ms floor, so `cpu-overscale` is the
              * only baseline where the scale has had to GROW — otherwise the two
              * scenes differ by nothing and neither pins it. */
@@ -683,9 +685,7 @@ function applyView(preset) {
                 '250/200/300', '320/320/400', '180/140/220', '670/560/790',
             ];
             /* A chain whose module cannot split renders in ONE call, so the
-             * synth stage IS the total and there is no FX segment. The Schwung
-             * scene doubles as that arrangement — sending split costs for it
-             * would draw a picture the engine cannot produce. */
+             * synth stage IS the total and there is no FX segment. */
             const unsplit = live.map((t) => {
                 const [total, , peak] = t.split('/');
                 return `${total}/${total}/${peak}`;
@@ -697,7 +697,7 @@ function applyView(preset) {
             const over = live.slice();
             over[2] = '2400/1900/2600';
             const rows = (preset === 'cpu-overscale' ? over
-                : preset === 'cpu-schwung-tracks' ? unsplit : live).slice();
+                : preset === 'cpu-unsplit-module' ? unsplit : live).slice();
             /* Chain 8 is the sleeping one (mask 0100). Giving it a held peak is
              * what pins that a chain which spiked and then went quiet still
              * shows what it did — the dash alone would hide it. */
@@ -1107,22 +1107,14 @@ function applyView(preset) {
             globalThis.host_module_get_param = oldGet;
             break;
         }
-        /* Movy's own summing mixer as a page. `mix_page_host` is the same page
-         * on a schwung-hosted track, where movy never sees the audio: the fader
-         * is real (`slot:volume`) and pan and both sends are blank, because a
-         * drawn knob that cannot do anything reads as broken. */
+        /* Movy's own summing mixer as a page. */
         /* `mix_page_two_held` is two knobs held at once: BOTH show their value,
          * and the header follows the one touched last. One readout for two
          * hands reads as a knob that stopped responding. */
         case 'mix_page':
         case 'mix_page_chain':
-        case 'mix_page_host':
         case 'mix_page_two_held': {
-            const host = preset === 'mix_page_host';
-            /* Track 0 is a schwung slot unless `chtracks` says otherwise; track
-             * 6 is always a movy chain. */
-            const mtrk = host ? 0 : 6;
-            env.setParams({ 'slot:volume': '0.7079' });          // -3.0 dB
+            const mtrk = 6;
             const oldGet = globalThis.host_module_get_param;
             globalThis.host_module_get_param = (k) =>
                 /* Full width, and every send at a DIFFERENT level: a baseline

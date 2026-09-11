@@ -15,15 +15,8 @@ export async function run() {
 
 {
   _log('\ntrack refs — index arithmetic:');
-  const { trackRef, trackGroup, trackIndexInGroup, trackKind, chainInstance, HOST_TRACKS } =
+  const { trackRef, trackGroup, trackIndexInGroup, chainInstance } =
     await import('../../dist/esm/track/ref.js');
-
-  eq('track 0 is host', trackKind(0), 'host');
-  eq('track 3 is host', trackKind(3), 'host');
-  /* Stage 1 ships with TRACK_COUNT=4, but the predicate is what Stage 2 turns
-   * on — so it is specified now and tested now. */
-  eq('track 4 is movy', trackKind(4), 'movy');
-  eq('track 15 is movy', trackKind(15), 'movy');
 
   eq('group of track 0', trackGroup(0), 0);
   eq('group of track 3', trackGroup(3), 0);
@@ -34,124 +27,68 @@ export async function run() {
   eq('index-in-group of 5', trackIndexInGroup(5), 1);
   eq('index-in-group of 15', trackIndexInGroup(15), 3);
 
-  /* A track's chain IS its index — no offset to get wrong. Tracks 0-3 have no
-   * chain until `chtracks` gives them one. */
+  /* One host, so a track's chain IS its index for all sixteen — no offset, and
+   * no track that has none. Tracks 0-3 used to be schwung shadow slots; the
+   * one-time migration (track/migrate.ts) is what brought them here. */
+  eq('chain instance of track 0', chainInstance(0), 0);
+  eq('chain instance of track 3', chainInstance(3), 3);
   eq('chain instance of track 4', chainInstance(4), 4);
   eq('chain instance of track 15', chainInstance(15), 15);
-  eq('host tracks have no chain instance', chainInstance(3), -1);
 
   const r = trackRef(6);
   eq('trackRef carries index', r.index, 6);
-  eq('trackRef carries kind', r.kind, 'movy');
-  eq('HOST_TRACKS is 4', HOST_TRACKS, 4);
 }
 
-{
-  _log('\ntrack refs — chtracks moves tracks 1-4 onto movy chains:');
-  const { trackKind, chainInstance, MOVY_CHAINS, TRACK_COUNT: TC } =
-    await import('../../dist/esm/track/ref.js');
-  const { setFlag, resetFlags } = await import('../../dist/esm/seq/flags.js');
-
-  installMockFs();
-  resetFlags();
-
-  /* Turning the flag off must put every mapping back exactly. A kind that is a
-   * setting can be flipped twice, and a track that came back addressing a
-   * different chain than it left would do so silently — the audio simply comes
-   * out of the wrong track. */
-  const before = [];
-  for (let t = 0; t < TC; t++) before.push(chainInstance(t));
-
-  setFlag('chtracks', 1);
-  eq('track 0 becomes movy', trackKind(0), 'movy');
-  eq('track 3 becomes movy', trackKind(3), 'movy');
-  eq('track 0 gets chain 0', chainInstance(0), 0);
-  eq('track 3 gets chain 3', chainInstance(3), 3);
-  eq('track 4 is still chain 4', chainInstance(4), 4);
-  eq('track 15 is still chain 15', chainInstance(15), 15);
-
-  /* Two tracks sharing a chain is the failure this numbering exists to avoid,
-   * and it is invisible in any single-track assertion. */
-  const seen = new Set();
-  let collision = null;
-  for (let t = 0; t < TC; t++) {
-    const c = chainInstance(t);
-    if (c < 0) continue;
-    if (seen.has(c)) collision = 'tracks share chain ' + c;
-    seen.add(c);
-  }
-  eq('every track has its own chain', collision, null);
-  eq('sixteen tracks, sixteen chains', seen.size, TC);
-
-  /* The engine has to actually HAVE chain 15. `parse_chain_key` rejects a slot
-   * at or above MOVY_CHAINS by returning None, and a rejected key is dropped in
-   * silence — track 4 would simply never make a sound, with nothing in any log
-   * saying why. Two numbers in two languages that must add up, so they are
-   * compared rather than trusted. */
-  const rust = readFileSync('engine/crates/movy-dsp/src/chain_slots.rs', 'utf8');
-  const m = rust.match(/pub const MOVY_CHAINS:\s*usize\s*=\s*(\d+)/);
-  eq('the engine declares a chain count', !!m, true);
-  eq('and it covers every track', m && Number(m[1]), MOVY_CHAINS);
-  eq('one chain per track', MOVY_CHAINS, TC);
-
-  setFlag('chtracks', 0);
-  const after = [];
-  for (let t = 0; t < TC; t++) after.push(chainInstance(t));
-  eq('turning it off restores every mapping', after.join(','), before.join(','));
-  eq('track 0 is a host slot again', trackKind(0), 'host');
-
-  resetFlags();
-  uninstallMockFs();
-}
 
 {
-  _log('\ntrack ports — host port wraps the shadow API:');
+  _log('\ntrack ports — a chain port wraps the engine API:');
   const { portFor, resetPorts } = await import('../../dist/esm/track/registry.js');
 
-  const gets = [], sets = [], midi = [];
-  const origGet = globalThis.shadow_get_param;
-  const origSet = globalThis.shadow_set_param;
-  const origMidi = globalThis.shadow_send_midi_to_dsp;
-  globalThis.shadow_get_param = (slot, key) => { gets.push([slot, key]); return 'v:' + key; };
-  globalThis.shadow_set_param = (slot, key, val) => { sets.push([slot, key, val]); return true; };
-  globalThis.shadow_send_midi_to_dsp = (m) => { midi.push(m.slice()); };
+  const gets = [], sets = [];
+  const origGet = globalThis.host_module_get_param;
+  const origSet = globalThis.host_module_set_param_blocking;
+  globalThis.host_module_get_param = (key) => { gets.push(key); return 'v:' + key; };
+  globalThis.host_module_set_param_blocking = (key, val) => { sets.push([key, val]); return true; };
 
   resetPorts();
   const p2 = portFor(2);
 
   eq('port knows its track', p2.track.index, 2);
-  eq('port knows its kind', p2.track.kind, 'host');
 
-  eq('getParam returns the value', p2.getParam('synth:cutoff'), 'v:synth:cutoff');
-  eq('getParam addressed the right slot', gets[0][0], 2);
-  eq('getParam passed the key through', gets[0][1], 'synth:cutoff');
+  /* `ch<N>:` is the whole routing: the engine dispatches a chain param by this
+   * prefix alone, so a key without it would land nowhere — or on chain 0. */
+  eq('getParam returns the value', p2.getParam('synth:cutoff'), 'v:ch2:synth:cutoff');
+  eq('getParam addressed the right chain', gets[0], 'ch2:synth:cutoff');
 
   p2.setParam('synth:cutoff', '0.5');
-  eq('setParam addressed the right slot', sets[0][0], 2);
-  eq('setParam passed key/value', sets[0][1] + '=' + sets[0][2], 'synth:cutoff=0.5');
+  eq('setParam addressed the right chain', sets[0][0], 'ch2:synth:cutoff');
+  eq('setParam passed the value', sets[0][1], '0.5');
 
-  /* getMany is one call per key for a host track — the batching only pays off
-   * for movy chains. What matters here is that the ORDER of results matches the
-   * order of keys, because callers index into it positionally. */
+  /* No `shadow_get_params` bulk endpoint here (env.mjs's ambient mock does not
+   * install one), so getMany falls back to one getParam per key — same
+   * fallback a real device takes when the bulk response is malformed. What
+   * matters is that the ORDER of results matches the order of keys, since
+   * callers index into it positionally. */
   gets.length = 0;
   const many = p2.getMany(['a', 'b', 'c']);
   eq('getMany returns one result per key', many.length, 3);
-  eq('getMany preserves order', many.join(','), 'v:a,v:b,v:c');
+  eq('getMany preserves order', many.join(','), 'v:ch2:a,v:ch2:b,v:ch2:c');
   eq('getMany issued one get per key', gets.length, 3);
 
-  /* The channel is the port's job: a caller passes the TYPE nibble only. */
+  /* A live note is not a MIDI send at all here — it is a param write the engine
+   * parses back into a note, because the engine owns the chain and there is no
+   * shim slot to address. */
+  sets.length = 0;
   p2.sendMidi(0x90, 60, 100);
-  eq('sendMidi ORs in the track channel', midi[0][0], 0x92);
-  eq('sendMidi passes pitch', midi[0][1], 60);
-  eq('sendMidi passes velocity', midi[0][2], 100);
+  eq('sendMidi writes the chain\'s midi param', sets[0][0], 'ch2:midi');
+  eq('sendMidi encodes status.d1.d2', sets[0][1], '144.60.100');
 
   /* Ports are cached: rebuilding one per call would allocate on every param
    * read, and reads happen per tick. */
   eq('portFor caches', portFor(2) === p2, true);
 
-  globalThis.shadow_get_param = origGet;
-  globalThis.shadow_set_param = origSet;
-  globalThis.shadow_send_midi_to_dsp = origMidi;
+  globalThis.host_module_get_param = origGet;
+  globalThis.host_module_set_param_blocking = origSet;
   resetPorts();
 }
 
@@ -161,8 +98,8 @@ export async function run() {
   const { resetPorts } = await import('../../dist/esm/track/registry.js');
 
   const gets = [];
-  const origGet = globalThis.shadow_get_param;
-  globalThis.shadow_get_param = (slot, key) => { gets.push([slot, key]); return '0.25'; };
+  const origGet = globalThis.host_module_get_param;
+  globalThis.host_module_get_param = (key) => { gets.push(key); return '0.25'; };
 
   resetPorts();
   const s = createModelState(portFor(1), 'synth');
@@ -171,11 +108,12 @@ export async function run() {
    * slot assumption alive straight through Stage 2. */
   eq('state has no activeSlot', 'activeSlot' in s, false);
 
-  /* The point of the refactor: a read names a key, not a slot. */
-  eq('port read reaches the right slot', s.port.getParam('synth:cutoff'), '0.25');
-  eq('the slot came from the port', gets[0][0], 1);
+  /* The point of the refactor: a read names a key, not a slot — and the port
+   * is what turns that key into the right CHAIN. */
+  eq('port read reaches the right chain', s.port.getParam('synth:cutoff'), '0.25');
+  eq('the chain came from the port', gets[0], 'ch1:synth:cutoff');
 
-  globalThis.shadow_get_param = origGet;
+  globalThis.host_module_get_param = origGet;
   resetPorts();
 }
 
@@ -196,7 +134,7 @@ export async function run() {
   });
   const READ_ALLOWED = {
     'src/types/schwung.d.ts':  'the ambient declaration',
-    'src/track/host-port.ts':  'the host-track door — the one place that reads a slot',
+    'src/track/shim-port.ts':  "a schwung slot's one door — reads for master_fx and migration",
   };
   const offenders = walkTs('src')
     .filter((f) => !(f in READ_ALLOWED))
@@ -213,16 +151,15 @@ export async function run() {
   const { resetPorts } = await import('../../dist/esm/track/registry.js');
 
   const sets = [];
-  const origSet = globalThis.shadow_set_param;
-  globalThis.shadow_set_param = (slot, key, val) => { sets.push([slot, key, val]); return true; };
+  const origSet = globalThis.host_module_set_param_blocking;
+  globalThis.host_module_set_param_blocking = (key, val) => { sets.push([key, val]); return true; };
 
   resetPorts();
   setChainParam(portFor(3), 'synth:cutoff', '0.8', '0.2');
-  eq('write reached the port\'s slot', sets[0][0], 3);
-  eq('write passed key', sets[0][1], 'synth:cutoff');
-  eq('write passed value', sets[0][2], '0.8');
+  eq('write reached the port\'s chain', sets[0][0], 'ch3:synth:cutoff');
+  eq('write passed value', sets[0][1], '0.8');
 
-  globalThis.shadow_set_param = origSet;
+  globalThis.host_module_set_param_blocking = origSet;
   resetPorts();
 }
 
@@ -242,7 +179,6 @@ export async function run() {
   const { appState } = await import('../../dist/esm/app/state.js');
   eq('activeTrack exists', typeof appState.activeTrack, 'object');
   eq('activeTrack has an index', appState.activeTrack.index, 0);
-  eq('activeTrack has a kind', appState.activeTrack.kind, 'host');
   /* The old field must be GONE, not aliased. */
   eq('activeSlot is removed', 'activeSlot' in appState, false);
 }
@@ -274,21 +210,6 @@ export async function run() {
   eq('active notes parse on the last track', activeHasNote(15, 60), true);
   eq('active notes bounded by track', activeHasNote(14, 60), false);
   resetSeqState();
-}
-
-{
-  _log('\nunbacked port — movy tracks before Stage 3:');
-  const { resetPorts } = await import('../../dist/esm/track/registry.js');
-  resetPorts();
-  const p = portFor(7);
-  eq('movy track gets a port', p.track.kind, 'movy');
-  eq('reads answer empty', p.getParam('synth:cutoff'), null);
-  eq('batch reads answer empty', p.getMany(['a', 'b']).join(','), ',');
-  eq('writes are refused, not thrown', p.setParam('synth:cutoff', '1'), false);
-  /* Must not throw: the tick loop sends note-offs to every track on teardown. */
-  p.sendMidi(0x80, 60, 0);
-  eq('host tracks still get a real port', portFor(0).track.kind, 'host');
-  resetPorts();
 }
 
 {
@@ -414,152 +335,6 @@ export async function run() {
   selectTrack(0);
 }
 
-{
-  /* The one way this feature strands a note forever.
-   *
-   * A note-off is routed by looking the track's port up at RELEASE time, not by
-   * remembering where the note-on went. Flip `chtracks` while a pad on track 1
-   * is down and the note-off is addressed to the host that never played it —
-   * the schwung slot that DID keeps sounding, and no later gesture reaches it
-   * because movy no longer addresses that slot at all.
-   *
-   * Asserted on which HOST API was called, because that is the actual
-   * destination. Asserting that a note-off was "sent" would pass either way. */
-  _log('\nchtracks — a held note is released on the host that played it:');
-  const L = await import('../../dist/esm/keyboard/held-notes.js');
-  const { setMovyTracks } = await import('../../dist/esm/track/host-mode.js');
-  const { resetFlags, flagValue } = await import('../../dist/esm/seq/flags.js');
-  const { resetPorts } = await import('../../dist/esm/track/registry.js');
 
-  installMockFs();
-  resetFlags();
-  resetPorts();
-
-  const toSlot = [], toEngine = [];
-  const origMidi = globalThis.shadow_send_midi_to_dsp;
-  const origBlk  = globalThis.host_module_set_param_blocking;
-  globalThis.shadow_send_midi_to_dsp = (m) => { toSlot.push(m.slice()); };
-  globalThis.host_module_set_param_blocking = (k, v) => { toEngine.push([k, v]); return true; };
-
-  L.drainAll();
-  // Pad 68 on track 1, while track 1 is still a schwung slot.
-  L.noteSounded(68, 1, 60);
-  eq('the track started as a host slot', trackRef(1).kind, 'host');
-
-  setMovyTracks(true);
-
-  eq('the flag did move', flagValue('chtracks'), 1);
-  const offToSlot = toSlot.some((m) => (m[0] & 0xf0) === 0x80 && m[1] === 60);
-  eq('the note-off went to the schwung slot', offToSlot, true);
-  const offToChain = toEngine.some(([k]) => typeof k === 'string' && k.indexOf('midi') >= 0);
-  eq('and not to a movy chain', offToChain, false);
-  eq('the ledger is empty afterwards', L.soundingCount(), 0);
-
-  globalThis.shadow_send_midi_to_dsp = origMidi;
-  globalThis.host_module_set_param_blocking = origBlk;
-  setMovyTracks(false);
-  resetFlags();
-  resetPorts();
-  uninstallMockFs();
-}
-
-{
-  /* A model CAPTURES the port it was built with, so re-pointing the registry
-   * does not reach it. On device this looked like the flag doing nothing: every
-   * param page went on reading the host the track had just left, and only a
-   * restart of movy fixed it. */
-  _log('\nchtracks — the param pages follow the track to its new host:');
-  const { setMovyTracks } = await import('../../dist/esm/track/host-mode.js');
-  const { resetFlags } = await import('../../dist/esm/seq/flags.js');
-  const { resetPorts } = await import('../../dist/esm/track/registry.js');
-
-  installMockFs();
-  resetFlags();
-  resetPorts();
-  const { init } = await import('../../dist/esm/app/init.js');
-  init();
-
-  /* Asserted on which host API the model's own reads REACH, not on a field it
-   * happens to expose: reaching the wrong host is the symptom, and a port
-   * reference that looks right while the model holds an older one would pass an
-   * identity check. */
-  const slotReads = [], chainReads = [];
-  const oG = globalThis.shadow_get_param;
-  const oMG = globalThis.host_module_get_param;
-  globalThis.shadow_get_param = (slot, k) => { slotReads.push(k); return null; };
-  globalThis.host_module_get_param = (k) => { chainReads.push(k); return null; };
-
-  const readsOf = (track) => {
-    slotReads.length = 0; chainReads.length = 0;
-    const m = appState.trackModels[track][0];
-    m.reload(); m.tick(); m.tick();
-    return { slot: slotReads.length, chain: chainReads.filter((k) => k.indexOf('ch') === 0).length };
-  };
-
-  let r = readsOf(0);
-  eq('track 0 starts on a schwung slot', r.slot > 0 && r.chain === 0, true);
-  const before = appState.trackModels[0][0];
-
-  setMovyTracks(true);
-  r = readsOf(0);
-  eq('after the flip its reads go to a movy chain', r.chain > 0 && r.slot === 0, true);
-  eq('and the model was rebuilt, not merely re-pointed',
-     appState.trackModels[0][0] !== before, true);
-  /* The twelve that did not move must NOT be rebuilt — discarding a model
-   * throws away its cached page state for no reason. */
-  r = readsOf(8);
-  eq('a track that did not move still reads its own chain', r.chain > 0, true);
-
-  /* Master FX is NOT a track. `master_fx:` keys are global to schwung and only
-   * ride on a slot number as a carrier, and that carrier has always been slot 0
-   * — which `chtracks` can turn into a movy chain. A chain port would namespace
-   * them `ch0:master_fx:…` and send the master chain's edits into a synth.
-   *
-   * The models are built by init(), so this only bites when movy OPENS with the
-   * flag already on — the normal case, since it is persisted. Flipping it in a
-   * running session leaves the master models holding the port they were built
-   * with and hides the bug entirely, which is why this re-inits. */
-  setMovyTracks(true);
-  init();
-  /* By COMPONENT, not by index: the master page grew two movy-hosted SEND
-   * slots in front of the master FX, and this assertion is about what a
-   * `master_fx:` key does, not about what happens to be first. */
-  const mfx = appState.masterFxModels.find((m) => m.getComponentKey().startsWith('master_fx'));
-  slotReads.length = 0; chainReads.length = 0;
-  mfx.reload();
-  mfx.tick();
-  eq('master FX still reads through a schwung slot', slotReads.length > 0, true);
-
-  /* And its neighbour must not: a send bus is movy's own, so its params go to
-   * the engine however chtracks has resolved track 0. */
-  const snd = appState.masterFxModels.find((m) => m.getComponentKey() === 'snd0');
-  slotReads.length = 0; chainReads.length = 0;
-  snd.reload();
-  snd.tick();
-  eq('a send slot never reads a schwung slot', slotReads.length, 0);
-  eq('and never namespaces its keys to a chain',
-     chainReads.filter((k) => k.indexOf('ch') === 0).join(','), '');
-
-  /* The master chain's own two LFOs ride the very same carrier slot, and a port
-   * taken by track index swallows them the same way — an assign that writes
-   * `ch0:master_fx:lfo1:target` moves nothing and reports nothing. */
-  const { masterScope } = await import('../../dist/esm/lfo/scope.js');
-  slotReads.length = 0; chainReads.length = 0;
-  masterScope().port.getParam('master_fx:lfo1:depth');
-  eq('the master LFOs read through a schwung slot too', slotReads.length > 0, true);
-  eq('and are not namespaced to a chain either',
-     chainReads.filter((k) => k.indexOf('ch') === 0).join(','), '');
-
-  setMovyTracks(false);
-  r = readsOf(0);
-  eq('and back to the slot again', r.slot > 0 && r.chain === 0, true);
-
-  globalThis.shadow_get_param = oG;
-  globalThis.host_module_get_param = oMG;
-
-  resetFlags();
-  resetPorts();
-  uninstallMockFs();
-}
 
 }

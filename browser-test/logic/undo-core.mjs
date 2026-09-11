@@ -390,7 +390,7 @@ export async function run() {
      * on a movy one — the failure this guard exists to prevent. */
     const ALLOWED = {
         'src/types/schwung.d.ts':       'the ambient declaration',
-        'src/track/host-port.ts':       'the host-track door — the one place that talks to a slot',
+        'src/track/shim-port.ts':       "a schwung slot's one door — reads for master_fx and migration",
     };
     const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
         const full = dir + '/' + e.name;

@@ -61,6 +61,15 @@ _log('\nTest: note-off channel follows the ledger, not the active track');
   const { noteOn, noteOff }        = await import('../../dist/esm/keyboard/handler.js');
   const { drumPadOn, drumPadOff }  = await import('../../dist/esm/keyboard/drum-handler.js');
   const { releaseAllLive, releaseLiveOnTrack } = await import('../../dist/esm/keyboard/release.js');
+  const { resetPadRoute } = await import('../../dist/esm/track/pad-route.js');
+
+  /* Every track is a movy chain now, and `engineOwnsPads` compares against the
+   * pad map another suite pushed and never cleared — module state that used to
+   * be harmless for these tracks (chainInstance was -1 for a host track, and
+   * no pushed map ever starts with "-1,"). It matters now: a stale "chain 0
+   * owns its pads" from an earlier suite would make this one drop a note-off
+   * it should send. */
+  resetPadRoute();
 
   let sentMidi = [];
   const origSendMidi = globalThis.shadow_send_midi_to_dsp;
@@ -165,12 +174,17 @@ _log('\nTest: mute releases only that track\'s live notes');
   const { noteOn } = await import('../../dist/esm/keyboard/handler.js');
   const { toggleMute } = await import('../../dist/esm/mixer/track-mutes.js');
   const { seqState } = await import('../../dist/esm/seq/state.js');
+  const { resetPadRoute } = await import('../../dist/esm/track/pad-route.js');
 
   let sentMidi = [];
   const origSendMidi = globalThis.shadow_send_midi_to_dsp;
   globalThis.shadow_send_midi_to_dsp = (msg) => { sentMidi.push([...msg]); };
   const offs = () => sentMidi.filter(m => (m[0] & 0xF0) === 0x80);
 
+  /* Every track is a movy chain now, and `engineOwnsPads` compares against
+   * whatever map an EARLIER suite last pushed and never cleared — see the note
+   * on the same fix above, in the release-routing block. */
+  resetPadRoute();
   L.drainAll();
   seqState.muted = [false, false, false, false];
   noteOn(68, 68, 0, 100);
@@ -200,12 +214,14 @@ _log('\nTest: onUnload releases live notes and sequencer gates');
   const { noteOn }   = await import('../../dist/esm/keyboard/handler.js');
   const { onUnload } = await import('../../dist/esm/app/unload.js');
   const { seqState } = await import('../../dist/esm/seq/state.js');
+  const { resetPadRoute } = await import('../../dist/esm/track/pad-route.js');
 
   let sentMidi = [];
   const origSendMidi = globalThis.shadow_send_midi_to_dsp;
   globalThis.shadow_send_midi_to_dsp = (msg) => { sentMidi.push([...msg]); };
   const offs = () => sentMidi.filter(m => (m[0] & 0xF0) === 0x80);
 
+  resetPadRoute();
   L.drainAll();
   seqState.activeNotes.fill(0);
   seqState.activeNotes[0 * 128 + 60] = 1;   // sequencer gate: track 0, pitch 60

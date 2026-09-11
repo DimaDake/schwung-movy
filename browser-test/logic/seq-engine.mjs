@@ -123,8 +123,13 @@ export async function run() {
     eq('stale engine: reload requested on first probe', e3.loadRequests.length, 1);
     e3.reset();
 
-    // No engine at all: everything is a no-op.
+    // No engine at all: everything is a no-op. The globals are deleted rather
+    // than uninstalled, because `uninstallMockEngine()` now restores the ambient
+    // chain-param mock (env.mjs) — which IS an engine as far as this asks.
     uninstallMockEngine();
+    delete globalThis.host_module_get_param;
+    delete globalThis.host_module_set_param;
+    delete globalThis.host_module_set_param_blocking;
     resetSeqEngine();
     seqCmd('play');
     seqEngineTick();

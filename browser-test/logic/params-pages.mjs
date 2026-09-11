@@ -230,40 +230,10 @@ export async function run() {
     appState.trackModels[1][1] = fakeModel(true);   // module swapped to a drum
     drumSyncTick();
     eq('a swap re-sends the flag', peekSeqCmdQueue().some((c) => c === 'tdrum 1 1'), true);
-    // Only the active track's model ticks, so an unvisited track's drum identity
-    // is probed directly from its module id — otherwise a drum clip already
-    // playing on a never-visited track would still be transposed.
-    resetSeqEngine(); resetDrumSync();
-    const savedGet = globalThis.shadow_get_param;
-    appState.trackModels[0][1] = { ...fakeModel(true, false), getComponentKey: () => 'synth' };
-    globalThis.shadow_get_param = (slot, key) => (slot === 0 && key === 'synth_module' ? 'mrdrums' : null);
-    drumSyncTick();
-    eq('unvisited drum track probed from its module id', peekSeqCmdQueue().some((c) => c === 'tdrum 0 1'), true);
-    // …and an empty slot stays unanswered rather than being declared melodic.
-    resetSeqEngine(); resetDrumSync();
-    globalThis.shadow_get_param = () => null;
-    drumSyncTick();
-    eq('empty slot is not reported', peekSeqCmdQueue().some((c) => c.startsWith('tdrum 0')), false);
-
-    /* Every probe is a blocking round-trip the shim only services once per SPI
-     * frame (~2.7 ms), so it sets the tick period — and the tick period is the
-     * knob's MIDI sampling interval. An empty slot never answers, so probing it
-     * per tick spent a whole frame per empty track, every tick, forever. */
-    resetSeqEngine(); resetDrumSync();
-    let probeReads = 0;
-    globalThis.shadow_get_param = () => { probeReads++; return null; };
-    for (let i = 0; i < 200; i++) drumSyncTick();
-    eq('empty slot is not re-probed every tick (' + probeReads + ' reads / 200 ticks)', probeReads <= 4, true);
-    // …but it is still re-probed eventually, so a module loaded from outside
-    // movy is picked up without reopening the tool.
-    globalThis.shadow_get_param = (slot, key) => (slot === 0 && key === 'synth_module' ? 'mrdrums' : null);
-    let found = false;
-    for (let i = 0; i < 800 && !found; i++) {
-        drumSyncTick();
-        found = peekSeqCmdQueue().some((c) => c === 'tdrum 0 1');
-    }
-    eq('a module appearing in a previously empty slot is still detected', found, true);
-    globalThis.shadow_get_param = savedGet;
+    /* The direct probe that used to live here is gone with the schwung host: a
+     * SLOT's module could change from outside movy, so an unvisited track had
+     * to be re-read from its module id. A chain can only change from inside
+     * movy, so the model is the only authority and there is nothing to probe. */
 
     appState.trackModels = savedModels;
     appState.activeTrack = trackRef(0);

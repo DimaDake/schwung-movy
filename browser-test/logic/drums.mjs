@@ -8,6 +8,7 @@ import {
     MOCK_SYNTHS, drumPadOn, drumPadOff, fail, eq, bootModel,
     _log, env, mockFsEntries, readFileSync,
     OVERRIDES_MODULE_FILE,
+    settleModel,
 } from './harness.mjs';
 
 export async function run() {
@@ -414,7 +415,7 @@ _log('\nTest: mrdrums per-pad scoping');
 _log('\nTest: weird-dreams per-voice scoping');
 {
   // cv_* alias → concrete v{pad}_{suffix}, 1-indexed, no padding, no currentPadParam.
-  const wd = bootModel(MOCK_SYNTHS.weird_dreams, 0, 'synth');
+  const wd = settleModel(bootModel(MOCK_SYNTHS.weird_dreams, 0, 'synth'));
   eq('focus defaults to 1', wd.getViewModel().drumCurrentPad, 1);
   eq('VOL reads v1_vol (0.11)', wd.getKnobParamInfo(0).value, 0.11);
   eq('ioKey is v1_vol', wd.getKnobParamInfo(0).ioKey, 'v1_vol');
@@ -530,7 +531,7 @@ _log('\nTest: padKeys per-pad addressing');
   const savedRead = globalThis.host_read_file;
   const layout = readFileSync(new URL('../fixtures/padkeys-movy-config.json', import.meta.url), 'utf8');
   globalThis.host_read_file = (p) => p.endsWith('/padkeys/movy_config.json') ? layout : null;
-  const nw = bootModel(MOCK_SYNTHS.padkeys, 0, 'synth');
+  const nw = settleModel(bootModel(MOCK_SYNTHS.padkeys, 0, 'synth'));
   globalThis.host_read_file = savedRead;
   const vm = nw.getViewModel();
   eq('padKeys module is a drum module', vm.drumPadCount, 11);

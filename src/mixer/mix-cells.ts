@@ -6,7 +6,6 @@
 
 import type { AutomationView, ParamVM, ViewModel } from '../types/viewmodel.js';
 import { paramCell as cell } from '../seq/param-vm.js';
-import type { TrackKind } from '../track/ref.js';
 import { sendFrac, volumeFrac } from './db-ladder.js';
 import {
     FIELD_AT, fieldFromFrac, sendField, formatDb, formatPan, formatSend,
@@ -20,22 +19,14 @@ function panFrac(pan: number): number {
     return (pan - PAN_MIN) / (PAN_MAX - PAN_MIN);
 }
 
-export function buildMixCells(v: MixVals, kind: TrackKind): (ParamVM | null)[] {
+export function buildMixCells(v: MixVals): (ParamVM | null)[] {
     /* A fader, not an arc: this is a channel level, and the widget already
      * exists as the vertical partner of the pan dial's horizontal bar. */
     const vol = cell({
         shortName: 'VOL', fullName: 'Volume', type: 'float', renderStyle: 'vbar',
         displayValue: formatDb(v.gain), normalizedValue: volumeFrac(v.gain),
-        automatable: kind === 'movy',
+        automatable: true,
     });
-    /* A schwung-hosted track renders inside the shim: movy never sees its audio,
-     * and schwung has no `slot:pan`. Its fader is real — that is `slot:volume`,
-     * which Move's own mixer reads — but pan and every send are unreachable, not
-     * unimplemented. A drawn knob that does nothing reads as broken, so the
-     * other cells are blank and their LEDs stay dark. */
-    if (kind === 'host') {
-        return [vol, null, null, null, null, null, null, null];
-    }
     const cells: (ParamVM | null)[] = [
         vol,
         cell({ shortName: 'PAN', fullName: 'Pan', type: 'float', renderStyle: 'pan',
@@ -62,7 +53,6 @@ export function buildMixCells(v: MixVals, kind: TrackKind): (ParamVM | null)[] {
 
 export interface MixPageState {
     vals: MixVals;
-    kind: TrackKind;
     /** Knob touch order; the last entry owns the header toast. */
     touched: number[];
     /** Lanes, locks and live turns. Absent on a page built for a test. */
@@ -104,7 +94,7 @@ function decorate(cells: (ParamVM | null)[], v: MixVals, auto: AutomationView): 
 /** The whole page as a ViewModel, so the existing chain/knob renderers and the
  *  router plumbing drive it exactly like a module's page. */
 export function buildMixVM(st: MixPageState): ViewModel {
-    const cells = buildMixCells(st.vals, st.kind);
+    const cells = buildMixCells(st.vals);
     if (st.auto) decorate(cells, st.vals, st.auto);
     /* EVERY held knob shows its value, not just the last one — two hands on the
      * page is two readouts, the same as a module's. Only the header toast is

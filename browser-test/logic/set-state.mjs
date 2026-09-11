@@ -9,7 +9,7 @@ import {
     stripCopySuffix, findInheritCandidates, resolveState, sessionTick, resetSetSession, wrapState,
     parseState, adler32, installMockFs, uninstallMockFs, safeWrite, readBestState,
     readUiBlob, writeStateBlob, resetStoreRotation, shadowPath, keyboardState, installMockEngine,
-    uninstallMockEngine, seqEngineTick, resetSeqEngine, eq, _log,
+    uninstallMockEngine, seqEngineTick, resetSeqEngine, ok, eq, _log,
 } from './harness.mjs';
 
 export async function run() {
@@ -243,4 +243,65 @@ _log('\nTest: a set switch saves the outgoing set before loading the incoming on
     uninstallMockEngine(); uninstallMockFs(); resetSetSession(); resetSeqEngine();
 }
 
+
+/* ── The compatibility mirror ─────────────────────────────────────────────
+ * `engpersist` is a runtime switch, so "on, then off again" is an ordinary
+ * afternoon during rollout — and a build with the flag OFF looks for the
+ * chains inside ui-state.json. The mirror is what makes going back free; a
+ * flag you cannot flip back is not an escape hatch. */
+_log('\nTest: the chains mirror written from the engine\'s own file');
+{
+    const { setFlag } = await import('../../dist/esm/seq/flags.js');
+    const { saveSet, resetSetSave } = await import('../../dist/esm/seq/set-save.js');
+    const { uuidToChainsPath } = await import('../../dist/esm/seq/set-context.js');
+    const { encodeBulk } = await import('../../dist/esm/track/bulk.js');
+    const { resetRestoreGate } = await import('../../dist/esm/seq/restore-gate.js');
+
+    /* Six fields per record, matching FIELDS in chain_state.rs. */
+    const doc = encodeBulk([
+        '0', 'synth', 'noisemaker', 'blob-A', '1.0000,0.0000,0', '',
+        '0', 'fx1', 'mverb', 'blob-B', '', '',
+    ]);
+
+    const fs = installMockFs({ [uuidToChainsPath('M')]: doc });
+    installMockEngine();
+    resetSetSave(); resetStoreRotation(); resetRestoreGate();
+    setFlag('engpersist', 1);
+
+    saveSet('M', 1, true);
+    const ui = JSON.parse(readUiBlob('M'));
+    eq('the mirror carries the module', ui.chains[0].comp[0].m, 'noisemaker');
+    eq('and the preset blob, which no chain document carries',
+       ui.chains[0].comp[0].s, 'blob-A');
+    eq('and the second component', ui.chains[0].comp[1].m, 'mverb');
+    eq('and the mixer triple', ui.chains[0].mix, '1.0000,0.0000,0');
+
+    /* An unreadable chains.json must NEVER write []: that is §3 in a new file.
+     * It is not the authority, so keeping a stale mirror costs nothing, while
+     * blanking it costs the user their chains the moment the flag goes off. */
+    fs.files[uuidToChainsPath('M')] = 'not-a-document';
+    saveSet('M', 2, true);
+    const after = JSON.parse(readUiBlob('M'));
+    /* Counted before it is indexed: the failure mode this guards against is an
+     * EMPTY mirror, and indexing [0] of that throws instead of reporting. */
+    eq('an unreadable chains.json leaves the previous mirror alone',
+       after.chains.length, 1);
+    eq('with its module', after.chains[0]?.comp[0]?.m, 'noisemaker');
+    eq('and its blob', after.chains[0]?.comp[0]?.s, 'blob-A');
+
+    /* Turning the flag off must FLUSH first: the engine may still be holding
+     * an unwritten chains.json, and the old path is about to read the mirror
+     * that file feeds. Without this the last few seconds of chain edits are the
+     * price of flipping the switch. */
+    fs.files[uuidToChainsPath('M')] = doc;
+    const eng2 = installMockEngine();
+    eng2.setState.dirty = 1;
+    setFlag('engpersist', 1);
+    setFlag('engpersist', 0);
+    eq('leaving engine-owned flushes the engine first', eng2.setState.dirty, 0);
+    ok('and the flush is the command that did it', eng2.setCmds.includes('flush'));
+
+    setFlag('engpersist', 0);
+    uninstallMockEngine(); uninstallMockFs();
+}
 }

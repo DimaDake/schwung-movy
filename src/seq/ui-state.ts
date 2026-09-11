@@ -6,6 +6,9 @@
 import { TRACK_COUNT } from '../track/ref.js';
 import { captureChains, readChainDoc, restoreChains } from '../track/chain-persist.js';
 import { captureSends } from '../track/send-persist.js';
+import { parseMirror } from '../track/chain-mirror.js';
+import { flagValue } from './flags.js';
+import { readChainsFile, readUiBlob } from './persist-store.js';
 import { mlog } from '../log.js';
 import { keyboardState, resetOctaves, OCT_MIN, OCT_MAX } from '../keyboard/state.js';
 import { MODE_NAMES, layoutNames } from '../keyboard/layouts.js';
@@ -55,10 +58,36 @@ export function applyMigratedChains(): void {
 }
 
 /** JSON of the persisted UI keyboard state (tonic, scale, layout, octaves). */
-export function serializeUiState(): string {
-    /* One read for the chains AND the sends: an engine GET blocks ~3-5 ms and
-     * this runs on every autosave. */
-    const chainDoc = readChainDoc();
+/* The chains and sends to write, and where they came from.
+ *
+ * Engine-owned, they are a MIRROR of chains.json — the file the engine writes
+ * and the only truth while `engpersist` is on. The copy exists so a build with
+ * the flag OFF still finds chains where it looks for them; without it, flipping
+ * the flag back would cost the user their chains.
+ *
+ * An unreadable chains.json keeps whatever ui-state.json already holds. It is
+ * not the authority, so a stale mirror cannot lose work — but writing `[]` over
+ * a real chain set would, and that is §3 wearing a different hat. */
+function chainsToWrite(uuid: string): { chains: ChainTrackState[]; sends: SendState[] } {
+    if (!flagValue('engpersist')) {
+        /* One read for the chains AND the sends: an engine GET blocks ~3-5 ms
+         * and this runs on every autosave. */
+        const chainDoc = readChainDoc();
+        return { chains: captureChains(chainDoc), sends: captureSends(chainDoc) };
+    }
+    const mirror = parseMirror(readChainsFile(uuid));
+    if (mirror) return mirror;
+    try {
+        const prev = JSON.parse(readUiBlob(uuid) ?? '{}');
+        return {
+            chains: Array.isArray(prev.chains) ? prev.chains : [],
+            sends: Array.isArray(prev.sends) ? prev.sends : [],
+        };
+    } catch { return { chains: [], sends: [] }; }
+}
+
+export function serializeUiState(uuid = ''): string {
+    const chains = chainsToWrite(uuid);
     return JSON.stringify({
         // `root` is kept as track 0's absolute base so an older build reading a
         // newer file still lands on a sane note.
@@ -72,11 +101,11 @@ export function serializeUiState(): string {
         defaultQuant: seqState.defaultQuant,
         /* Movy-hosted chains. Host tracks are not here: Move's own set file
          * carries those, and duplicating them would let the two disagree. */
-        chains: captureChains(chainDoc),
+        chains: chains.chains,
         /* The send FX buses. Their own array, not a `chains` entry with a
          * track index above TRACK_COUNT: a send is not a track, and a reader
          * that took `t` for one would address a track that does not exist. */
-        sends: captureSends(chainDoc),
+        sends: chains.sends,
         /* The flags that belong to the SET rather than to this Move — today,
          * which host owns tracks 1-4. Keyed by flag key, the way prefs.json
          * keys the machine's half. */

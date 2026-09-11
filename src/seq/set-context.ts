@@ -37,6 +37,11 @@ export function ensureDir(uuid: string): void {
 export function uuidToStatePath(uuid: string): string {
     return SETS_DIR + '/' + (uuid || '_default') + '/seq-state.json';
 }
+/* The engine's own chain document. Written only by the engine (see
+ * chain_state.rs); the UI reads it to mirror into ui-state.json. */
+export function uuidToChainsPath(uuid: string): string {
+    return SETS_DIR + '/' + (uuid || '_default') + '/chains.json';
+}
 export function uuidToUiStatePath(uuid: string): string {
     return SETS_DIR + '/' + (uuid || '_default') + '/ui-state.json';
 }

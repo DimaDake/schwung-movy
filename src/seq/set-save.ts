@@ -68,7 +68,7 @@ export function saveSet(
         mlog('seq: SAVE BLOCKED — this Set never reached the engine');
         return { ok: false, wrote: false, gen };
     }
-    if ((takeUiDirty() || force) && !writeUiBlob(id, serializeUiState())) markUiStateDirty();
+    if ((takeUiDirty() || force) && !writeUiBlob(id, serializeUiState(id))) markUiStateDirty();
     /* Engine-owned: it saves on its own dirty flag, on its own thread. Reading
      * `state` here would not merely be redundant — the read CLEARS the engine's
      * dirty flag, so a UI that asked would silently cancel the engine's own

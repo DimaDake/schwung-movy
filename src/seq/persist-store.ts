@@ -16,7 +16,9 @@
  *    API can actually go wrong with: ENOSPC, EACCES and short writes. */
 
 import { wrapState, parseState, ParsedState } from './persist-blob.js';
-import { BLANK_STATE, ensureDir, shadowPath, uuidToStatePath, uuidToUiStatePath } from './set-context.js';
+import {
+    BLANK_STATE, ensureDir, shadowPath, uuidToChainsPath, uuidToStatePath, uuidToUiStatePath,
+} from './set-context.js';
 
 function readFile(path: string): string | null {
     return (typeof host_read_file === 'function') ? host_read_file(path) : null;
@@ -77,6 +79,12 @@ export function readBestState(uuid: string): ParsedState | null {
         if (c && (!best || c.gen > best.gen)) best = c;
     }
     return best;
+}
+
+/** The engine's chain document. Read-only here — the engine owns this file,
+ *  and a second writer is the shape this whole design exists to remove. */
+export function readChainsFile(uuid: string): string | null {
+    return readFile(uuidToChainsPath(uuid));
 }
 
 /* The UI blob (tonic, scale, layout, octaves, mutes) is deliberately NOT

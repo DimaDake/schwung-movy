@@ -118,6 +118,22 @@ function ensure(): Record<string, number> {
     return v;
 }
 
+/* Turning engine-owned persistence OFF is the one moment the mirror has to be
+ * current. The old path reads the chains out of ui-state.json, and that copy is
+ * refreshed on the autosave cadence — so without this, flipping the switch
+ * costs the user whatever chain edits the last few seconds held.
+ *
+ * `flush` first, because the engine may still be holding an unwritten
+ * chains.json; then the UI blob is marked dirty so the next save rewrites the
+ * mirror from what the engine just landed. */
+function leaveEngineOwned(): void {
+    if (typeof host_module_set_param_blocking === 'function') {
+        host_module_set_param_blocking('set', 'flush', 500);
+    }
+    markUiStateDirty();
+    mlog('flags: engpersist off — mirror refreshed from the engine\'s file');
+}
+
 export function flagValue(key: string): number {
     const def = flagDef(key);
     if (!def) return 0;
@@ -139,9 +155,11 @@ export function setFlag(key: string, value: number): number {
     }
     const v = ensure();
     if (v[key] === next) return next;
+    const prev = v[key];
     v[key] = next;
     writePrefFlag(key, next);
     if (!def.uiOnly) push(key);
+    if (key === 'engpersist' && prev === 1 && next === 0) leaveEngineOwned();
     return next;
 }
 

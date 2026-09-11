@@ -16,7 +16,41 @@
 
 use crate::chain_slots::ChainSlots;
 
-const FIELDS: usize = 5;
+const FIELDS: usize = 6;
+
+/* Every field the chain host accepts under `lfoN:`, minus `active`, which it
+ * derives from target+param and refuses to be told. The ORDER is the contract:
+ * `src/track/lfo-persist.ts:lfoStateKeys()` reads these back positionally, and
+ * a reordering here silently writes one LFO's depth into another's rate. */
+const LFO_KEYS: [&str; 11] = [
+    "enabled", "shape", "sync", "rate_hz", "rate_div",
+    "depth", "polarity", "phase_offset", "target", "target_param", "retrigger",
+];
+const LFO_COUNT: usize = 2;
+
+/// A chain's two LFOs as a nested document, or "" when both are idle.
+///
+/// Nested rather than joined by a separator because a target name is arbitrary
+/// text; the outer field is length-prefixed, so anything at all fits inside it.
+/// An untouched chain writes nothing, matching `packLfoState`.
+fn lfo_state(slots: &mut ChainSlots, slot: usize) -> String {
+    let mut vals: Vec<String> = Vec::with_capacity(LFO_COUNT * LFO_KEYS.len());
+    let mut used = false;
+    for i in 1..=LFO_COUNT {
+        for k in LFO_KEYS {
+            let v = slots.get_param(slot, &format!("lfo{i}:{k}")).unwrap_or_default();
+            if !v.is_empty() {
+                if k == "target" || k == "target_param" {
+                    used = true;
+                } else if k == "enabled" && v != "0" {
+                    used = true;
+                }
+            }
+            vals.push(v);
+        }
+    }
+    if used { pack(&vals) } else { String::new() }
+}
 
 fn put(out: &mut String, s: &str) {
     out.push_str(&format!("{}\n{}", s.len(), s));
@@ -34,10 +68,16 @@ fn pack(items: &[String]) -> String {
 /// when the payload is malformed: a truncated document read as "no chains"
 /// would clear the set.
 pub fn parse_items(doc: &str) -> Option<Vec<String>> {
+    parse_items_n(doc, FIELDS)
+}
+
+/// `parse_items`, with the record width to enforce. The nested LFO document is
+/// a flat list, so it passes 1.
+pub fn parse_items_n(doc: &str, width: usize) -> Option<Vec<String>> {
     let s = doc.as_bytes();
     let nl = s.iter().position(|&c| c == b'\n')?;
     let count: usize = std::str::from_utf8(&s[..nl]).ok()?.parse().ok()?;
-    if count % FIELDS != 0 {
+    if count % width != 0 {
         return None;
     }
     let mut p = nl + 1;
@@ -68,17 +108,20 @@ pub fn serialize(slots: &mut ChainSlots) -> String {
             .unwrap_or_default();
         // The mixer triple belongs to the CHAIN, so it rides that chain's first
         // component rather than being repeated on every one of them.
-        let extra = if prev_slot == Some(e.slot) {
-            String::new()
+        // The mixer triple and the LFOs belong to the CHAIN, so they ride its
+        // first component rather than being repeated on every one of them.
+        let (mix, lfo) = if prev_slot == Some(e.slot) {
+            (String::new(), String::new())
         } else {
             prev_slot = Some(e.slot);
-            slots.mix_csv(e.slot).unwrap_or_default()
+            (slots.mix_csv(e.slot).unwrap_or_default(), lfo_state(slots, e.slot))
         };
         items.push(e.slot.to_string());
         items.push(e.component.clone());
         items.push(e.module.clone());
         items.push(state);
-        items.push(extra);
+        items.push(mix);
+        items.push(lfo);
     }
     pack(&items)
 }
@@ -111,6 +154,21 @@ pub fn restore(slots: &mut ChainSlots, doc: &str) -> bool {
                 slots.set_mix(slot, mix);
             }
         }
+        if !c[5].is_empty() {
+            if let Some(vals) = parse_items_n(&c[5], 1) {
+                let mut i = 0;
+                for n in 1..=LFO_COUNT {
+                    for k in LFO_KEYS {
+                        if let Some(v) = vals.get(i) {
+                            if !v.is_empty() {
+                                slots.set_param(slot, &format!("lfo{n}:{k}"), v);
+                            }
+                        }
+                        i += 1;
+                    }
+                }
+            }
+        }
     }
     true
 }
@@ -138,9 +196,9 @@ mod tests {
 
     #[test]
     fn reads_back_what_it_writes() {
-        let d = doc(&["0", "synth", "noisemaker", "preset-blob", "1.0000,0.0000,0"]);
+        let d = doc(&["0", "synth", "noisemaker", "preset-blob", "1.0000,0.0000,0", ""]);
         let items = parse_items(&d).expect("parses");
-        assert_eq!(items.len(), 5);
+        assert_eq!(items.len(), 6);
         assert_eq!(items[2], "noisemaker");
         assert_eq!(items[4], "1.0000,0.0000,0");
     }
@@ -150,7 +208,7 @@ mod tests {
     #[test]
     fn a_blob_containing_newlines_and_quotes_survives() {
         let nasty = "a\nb\"c\\d\ne";
-        let d = doc(&["0", "synth", "m", nasty, ""]);
+        let d = doc(&["0", "synth", "m", nasty, "", ""]);
         assert_eq!(parse_items(&d).expect("parses")[3], nasty);
     }
 
@@ -164,8 +222,8 @@ mod tests {
     }
 
     #[test]
-    fn an_item_count_that_is_not_a_multiple_of_five_is_rejected() {
-        assert!(parse_items(&doc(&["0", "synth", "m"])).is_none());
+    fn an_item_count_that_is_not_a_whole_record_is_rejected() {
+        assert!(parse_items(&doc(&["0", "synth", "m", "", ""])).is_none());
     }
 
     /* The cross-language contract the ui-state mirror rests on: TypeScript's
@@ -178,14 +236,33 @@ mod tests {
      * The blob deliberately carries a newline and a quote: that is what the
      * length prefix buys over JSON, and it is the case an escaping bug hits. */
     pub(crate) const GOLDEN: &str =
-        "10\n1\n05\nsynth10\nnoisemaker7\nbl\"ob\nx15\n1.0000,0.0000,01\n03\nfx15\nmverb0\n0\n";
+        "12\n1\n05\nsynth10\nnoisemaker7\nbl\"ob\nx15\n1.0000,0.0000,084\n22\n1\n14\nsine1\n03\n2.00\n2\n501\n01\n05\nsynth6\ncutoff1\n01\n03\ntri1\n03\n1.00\n1\n01\n01\n00\n0\n1\n01\n03\nfx15\nmverb0\n0\n0\n";
 
     #[test]
     fn pack_matches_the_typescript_codec() {
-        let items: Vec<String> = ["0", "synth", "noisemaker", "bl\"ob\nx", "1.0000,0.0000,0",
-                                  "0", "fx1", "mverb", "", ""]
+        let lfo = "22\n1\n14\nsine1\n03\n2.00\n2\n501\n01\n05\nsynth6\ncutoff1\n01\n03\ntri1\n03\n1.00\n1\n01\n01\n00\n0\n1\n0";
+        let items: Vec<String> = ["0", "synth", "noisemaker", "bl\"ob\nx", "1.0000,0.0000,0", lfo,
+                                  "0", "fx1", "mverb", "", "", ""]
             .iter().map(|s| s.to_string()).collect();
         assert_eq!(pack(&items), GOLDEN);
         assert_eq!(parse_items(GOLDEN).expect("parses"), items);
+    }
+
+    /* The LFO half, which no component's `:state` blob carries: without it an
+     * assignment appears to work right up until the tool closes. The nested
+     * document is read back positionally, so its ORDER is the contract with
+     * lfo-persist.ts — a reordering writes one LFO's depth into another's rate.
+     *
+     * An idle chain writes "" rather than 22 empty fields, matching
+     * packLfoState: an untouched track puts nothing in the set file. */
+    #[test]
+    fn the_lfo_document_nests_and_reads_back_positionally() {
+        let vals: Vec<String> = (0..22).map(|i| format!("v{i}")).collect();
+        let nested = pack(&vals);
+        let outer = pack(&["0".into(), "synth".into(), "m".into(), String::new(),
+                           String::new(), nested.clone()]);
+        let items = parse_items(&outer).expect("parses");
+        assert_eq!(items[5], nested, "the nested document survives the outer one");
+        assert_eq!(parse_items_n(&items[5], 1).expect("nested parses"), vals);
     }
 }

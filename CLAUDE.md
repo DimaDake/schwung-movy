@@ -157,6 +157,9 @@ ssh -o ConnectTimeout=3 ableton@move.local echo ok 2>/dev/null \
   || echo "DEVICE OFFLINE — SKIPPING DEVICE TESTS"
 # If offline: report DEVICE OFFLINE to the user in CAPS
 
+# 4a. TS device scenarios (the replacement tier — see test-device/MIGRATION.md)
+npm run test:device
+
 # 4b. Every device suite at once (each one is independent — any subset, any order).
 #     Tracks 1-16 are all movy chains; there is no separate host arrangement
 #     to sweep a second time.
@@ -284,6 +287,22 @@ leaving only the Schwung shared imports external (`/data/UserData/schwung/shared
 respawn it, so the device UI breaks until a full reboot.
 
 ---
+
+## Device tests
+
+Two tiers during the migration:
+
+- **`npm run test:device`** — the TypeScript scenarios in `test-device/`. One
+  process, one connection, frame-based waits, assertions read from movy's own
+  ViewModel through a probe. `test-device/MIGRATION.md` is the guide for moving
+  the remaining bash suites across, including the rules that are not optional
+  and when to stop and escalate.
+- **`scripts/test-*.sh`** — what is left of the bash tier. Each script is deleted
+  in the same commit as the scenario that replaces it.
+
+`docs/persistence-hazards.md` records what the migration turned up about saving
+and restoring Sets: two bugs fixed, two open and pinned by tests. Read it before
+touching `set-save.ts`, `set-load.ts` or `ui-state.ts`.
 
 ## Releasing
 

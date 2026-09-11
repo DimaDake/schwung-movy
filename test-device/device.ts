@@ -13,6 +13,10 @@ import {
 const run = promisify(execFile);
 const REMOTE = '/data/UserData/schwung/modules/tools/movy';
 
+/* Frames of silence after the host's gates, while movy restores the set.
+ * ~900 frames is ~2.6 s. See open(). */
+const RESTORE_QUIET = 900;
+
 export class Device {
     constructor(private bus: Bus, private agent: Agent, private host: string) {}
 
@@ -66,25 +70,47 @@ export class Device {
             (v) => v !== '0', { within: 2000 });
     }
 
-    /* Opening has THREE gates, not two.
+    /* Opening has two host gates and then SILENCE.
      *
-     * The host's gates (overtake_mode, then the DSP instance) say the module is
-     * loaded. Movy's SESSION — the set restored, the UI live — comes later, and
-     * a gesture sent in between lands on whatever movy was showing before the
-     * restore finished. Measured: a selectTrack(0) issued after only the host
-     * gates left the harness reading a DIFFERENT track's automation registry,
-     * which reads exactly like a broken restore. Adding ssh round trips made it
-     * pass, which is what gave the race away.
+     * The host's gates say the module is loaded. Movy then restores the set by
+     * ferrying it through the overtake_dsp param SHM, which is a SINGLE SLOT —
+     * and touching that SHM while the restore runs does not merely slow it, it
+     * STARVES it, the same way a poll loop starved the probe's own replies.
      *
-     * The probe is optional so open() still works before one exists (the
-     * fixture's own open, for instance). */
-    async open(probe?: Probe): Promise<void> {
+     * Measured: an automation registry that came back EMPTY on about half of
+     * reopens, from a blob that demonstrably held both lanes (au=2 on disk).
+     * A probe-driven "session ready" gate here made it worse, because the gate
+     * is itself param traffic — the very thing the restore cannot share. It was
+     * added on a hypothesis that proved wrong (the track was right all along)
+     * and is gone rather than worked around.
+     *
+     * So: wait, silently. WAIT_FRAME touches no param. The probe argument is
+     * accepted and unused, so callers need not care which gates exist. */
+    async open(_probe?: Probe): Promise<void> {
+        const before = await this.readyLineCount();
         await this.bus.openTool('movy');
         await this.overtakeReady();
-        if (!probe) return;
-        await until(this.bus, 'movy session to be ready',
-            () => probe.tick().catch(() => ({ ready: false })),
-            (t: any) => t.ready === true, { within: 4000, every: 120 });
+        /* Wait for movy's own "set ready" line, read over SSH — deliberately
+         * OUT OF BAND. Every param read would compete with the restore it is
+         * waiting for; the log does not. Falls back to the quiet window if the
+         * device log is off, so this degrades rather than breaks. */
+        try {
+            await until(this.bus, 'movy to report the set ready',
+                () => this.readyLineCount(), (n) => n > before,
+                { within: 5000, every: 150 });
+        } catch {
+            await this.bus.frames(RESTORE_QUIET);
+        }
+    }
+
+    /* How many times movy has logged `seq: set ready` (set-session.ts). */
+    private async readyLineCount(): Promise<number> {
+        try {
+            const { stdout } = await run('ssh', ['-o', 'ConnectTimeout=5', '-o', 'BatchMode=yes',
+                `ableton@${this.host}`,
+                "grep -c 'seq: set ready' /data/UserData/schwung/debug.log 2>/dev/null || echo 0"]);
+            return Number(stdout.trim()) || 0;
+        } catch { return 0; }
     }
 
     /* One SHM write, no gesture. Verified on device: overtake_mode 2 -> 0,

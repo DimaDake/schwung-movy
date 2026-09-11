@@ -178,28 +178,28 @@ scenario('automation', async (t) => {
     } catch { after = await probe.auto(); }
     t.note('lanesAfterReopen', after.lanes);
     t.note('trackAfterReopen', after.track);
-    /* KNOWN FLAKY, and the point of migrating this check.
+    /* P3 is the check the bash suite could not make.
      *
-     * What is established:
-     *  - the restore itself WORKS. An isolated open -> close -> reopen, with
-     *    the same take in between, reliably brings the registry back.
-     *  - the first failure was mine: fixture.ensure destroyed its own fixture,
-     *    because verifyChains opens movy and movy SAVES on close, writing an
-     *    emptier blob over the one just installed (au=1 cl=2 size=670 became
-     *    au=0 cl=0 size=209). Fixed by giving the fixture the last word.
-     *    registry_afterOpen is correct now.
-     *  - the bash suite never met that hazard, because its `Back x3` never
-     *    actually closed movy, so no save-on-close ever happened.
+     * Its `Back x3` never closed movy, so "reopen fresh" re-opened an
+     * already-open instance and the registry it asserted on had simply never
+     * left memory. close() drives the Leave modal, so this is a real close.
      *
-     * What is NOT established: after a REAL close, lanesAfterReopen is
-     * sometimes the full registry and sometimes empty, on identical runs with
-     * the correct track and a live param page. Movy keeps rotating shadow
-     * copies (seq-state.1/.2.json) whose generation outranks the fixture's
-     * legacy gen0 blob, so which blob wins a reopen depends on what the
-     * previous session wrote and when — that is the lead, not a conclusion.
+     * Two real causes were found making it fail, BOTH in the harness:
      *
-     * Left failing on purpose: it is a real question about persistence across
-     * a genuine close, and the notes above carry the evidence to continue from.
+     *  1. fixture.ensure destroyed its own fixture. verifyChains has to open
+     *     movy, and movy SAVES on close — writing an emptier blob over the one
+     *     just installed (au=1 cl=2 size=670 became au=0 cl=0 size=209). The
+     *     fixture now gets the last word. The bash version has the same
+     *     ordering and never showed it, because its close did not close.
+     *
+     *  2. OBSERVING THE RESTORE BROKE IT. Movy ferries the set through the
+     *     overtake_dsp param SHM, a SINGLE SLOT, so a probe read during the
+     *     restore starves it rather than merely slowing it — the registry came
+     *     back empty from a blob that demonstrably held both lanes. open() now
+     *     waits on movy's own log line, out of band over ssh. A probe-driven
+     *     readiness gate made it worse and was removed rather than patched.
+     *
+     * The dot lands a moment after the registry, so it is waited for too.
      */
     t.check('p3-registry', 'the lane registry repopulated from restore',
         Array.isArray(after.lanes) && after.lanes.length > 0,
@@ -214,7 +214,17 @@ scenario('automation', async (t) => {
         await dev.tap.jogTurn(1);
         await t.bus.frames(ACT);
     }
-    const page = await probe.page();
+    /* The dot is registry-DRIVEN, and the registry repopulates a moment after
+     * the page first draws — so the cell's automated flag lands later than the
+     * cells themselves. Wait for it rather than reading once; a single read
+     * here saw a fully-populated registry and a page with no dot on it. */
+    let page: any = await probe.page();
+    try {
+        page = await until(t.bus, 'the automation dot to appear',
+            () => probe.page(),
+            (p: any) => (p.cells ?? []).some((c: any) => c && c.automated),
+            { within: 3000, every: 150 });
+    } catch { page = await probe.page(); }
     t.note('pageAfterReopen', page.cells);
     t.check('p3-dot', 'the dot shows on reopen without re-touching a knob',
         (page.cells ?? []).some((c: any) => c && c.automated),

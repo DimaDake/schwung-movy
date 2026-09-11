@@ -43,6 +43,12 @@ export function installMockEngine() {
         /* blocking `state` loads, in order; stateBlob = last loaded blob */
         stateLoads: [],
         stateBlob: null,
+        /* The engine's own Set store, MODELLED rather than echoed: `open` moves
+         * the reported uuid only when the command actually arrives, so a test
+         * that drops the write sees the status stay behind — which is the whole
+         * safety argument for commands-instead-of-payloads. */
+        setState: { uuid: '', phase: 'opening', gen: 0, dirty: 0 },
+        setCmds: [],
         /* Every other set_param, last value per key — the chain-set document
          * (`chains`) among them. RECORDED ONLY, never served back by
          * get_param: a mock that answered a key the real engine had not been
@@ -58,6 +64,8 @@ export function installMockEngine() {
             this.pingVersion = null;
             this.setParamCalls = 0;
             this.getParamCalls = 0;
+            this.setState = { uuid: '', phase: 'opening', gen: 0, dirty: 0 };
+            this.setCmds = [];
             this.loadRequests = [];
             this.alabels = null;
             this.stateLoads = [];
@@ -69,6 +77,26 @@ export function installMockEngine() {
 
     const setParam = (key, value) => {
         engine.setParamCalls++;
+        /* The saver, modelled. Faithful on the one point the tests turn on: a
+         * command that never arrives leaves `uuid` where it was, so the UI's
+         * status comparison notices and re-sends. */
+        if (key === 'set') {
+            engine.setCmds.push(value);
+            const [verb, a, b] = value.split(/\s+/);
+            if (verb === 'open' && a) {
+                engine.setState.uuid = a;
+                engine.setState.phase = 'ready';
+            } else if (verb === 'rename' && b) {
+                engine.setState.uuid = b;
+            } else if (verb === 'blank' && a) {
+                engine.setState.uuid = a;
+                engine.setState.phase = 'ready';
+                engine.setState.gen = 0;
+            } else if (verb === 'flush') {
+                engine.setState.dirty = 0;
+            }
+            return true;
+        }
         if (key === 'cmd') {
             engine.cmdBatches.push(value);
             for (const op of value.split(';')) {
@@ -186,6 +214,10 @@ function installGlobals(engine) {
         if (key === 'ping') {
             if (engine.pingUnavailable) return null;
             return 'pong ' + (engine.pingVersion ?? ENGINE_VERSION);
+        }
+        if (key === 'set') {
+            const st = engine.setState;
+            return `uuid=${st.uuid} phase=${st.phase} gen=${st.gen} dirty=${st.dirty}`;
         }
         if (key === 'alabels') return engine.alabels;
         if (key === 'state') return engine.stateBlob;

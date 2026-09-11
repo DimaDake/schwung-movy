@@ -3,7 +3,7 @@
  * set is identified by /data/UserData/schwung/active_set.txt (line 1 = UUID,
  * line 2 = name) — the same source davebox's seq8 tool reads. */
 
-const SETS_DIR      = '/data/UserData/schwung/modules/tools/movy/sets';
+export const SETS_DIR = '/data/UserData/schwung/modules/tools/movy/sets';
 const NAME_INDEX    = SETS_DIR + '/name-index.json';
 const ACTIVE_SET    = '/data/UserData/schwung/active_set.txt';
 /* Move stores each set's folder under its UUID; used to skip deleted sets. */

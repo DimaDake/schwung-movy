@@ -109,6 +109,27 @@ export const FLAGS: FlagDef[] = [
         // reaches every device without help.
         min: 0, max: 2, def: 0, labels: ['MOVY', 'DRAW', 'PAGE'], uiOnly: true,
     },
+    {
+        key: 'engpersist', name: 'Engine Saves',
+        hint: 'The engine owns the set file. OFF is the old path.',
+        // WHO WRITES THE SET FILES.
+        //
+        // Off, the UI ferries the whole Set through the overtake_dsp param slot
+        // and writes it — the shape every hazard in docs/persistence-hazards.md
+        // is about. On, the engine reads and writes its own files and the wire
+        // carries only commands, which are idempotent: a lost one costs a retry
+        // where a lost payload cost the Set.
+        //
+        // A runtime switch, so "on, then off again" is an ordinary afternoon
+        // during rollout. What makes going back free is the chains mirror in
+        // ui-state.json (ui-state.ts) — without it, the old path finds no
+        // chains and the flag is not an escape hatch at all.
+        //
+        // Default 0 until the device run. Flipping it later needs a FLAGS_REV
+        // bump, or a stored 0 beats the new default on every device that has
+        // ever opened this page.
+        min: 0, max: 1, def: 0,
+    },
 ];
 
 export function flagDef(key: string): FlagDef | null {

@@ -15,7 +15,7 @@
  */
 import {
     installMockFs, uninstallMockFs, installMockEngine, uninstallMockEngine,
-    writeStateBlob, readBestState, resetStoreRotation, BLANK_STATE, ok, eq, _log,
+    writeStateBlob, readBestState, resetStoreRotation, BLANK_STATE, setFlag, ok, eq, _log,
 } from './harness.mjs';
 
 /* A Set with real content: an automation lane and a clip. */
@@ -34,7 +34,7 @@ export async function run() {
 _log('\nTest: a dropped restore must not cost the Set');
 
 const { saveSet, saveNeeded, resetSetSave } = await import('../../dist/esm/seq/set-save.js');
-const { pushState } = await import('../../dist/esm/seq/set-load.js');
+const { pushState, openSet, setStatusUuid } = await import('../../dist/esm/seq/set-load.js');
 const { seqState } = await import('../../dist/esm/seq/state.js');
 const { resetRestoreGate } = await import('../../dist/esm/seq/restore-gate.js');
 const { writeUiBlob, readUiBlob } = await import('../../dist/esm/seq/persist-store.js');
@@ -218,6 +218,65 @@ const { writeUiBlob, readUiBlob } = await import('../../dist/esm/seq/persist-sto
         seqState.dirty = true;
         eq('an old host without the blocking API still saves', saveSet('O', 0, true).wrote, true);
     } finally { globalThis.host_module_set_param_blocking = real; }
+    uninstallMockEngine(); uninstallMockFs();
+}
+
+/* ── Engine-owned: a lost COMMAND cannot cost the Set ─────────────────────
+ * The safety argument for commands-instead-of-payloads, stated exactly.
+ *
+ * It is NOT that the command is more reliable — it rides the same starved
+ * slot. It is that losing one is harmless: the engine has not opened the Set,
+ * so it holds nothing to write over it, and the UI sees the mismatch in the
+ * status and re-sends. Losing a PAYLOAD destroyed data, because the next
+ * autosave read the engine's blank-but-valid state and wrote that instead. */
+{
+    installMockFs({});
+    installMockEngine();
+    resetSetSave(); resetStoreRotation(); resetRestoreGate();
+    setFlag('engpersist', 1);
+    writeStateBlob('E', GOOD, 1);
+
+    const real = globalThis.host_module_set_param_blocking;
+    globalThis.host_module_set_param_blocking = (k, v, t) =>
+        (k === 'set' ? false : real(k, v, t));
+    try {
+        openSet('E', null);
+        seqState.dirty = true;
+        saveSet('E', 1, true);
+    } finally { globalThis.host_module_set_param_blocking = real; }
+
+    eq('a dropped open leaves the Set on disk untouched', readBestState('E').payload, GOOD);
+    ok('and the UI can see the engine does not hold it', setStatusUuid() !== 'E');
+
+    /* Re-sending is the whole recovery, and it is free: the command is
+     * idempotent, so a retry after a lost one is indistinguishable from the
+     * first attempt having landed. */
+    openSet('E', null);
+    eq('a re-sent open lands', setStatusUuid(), 'E');
+
+    setFlag('engpersist', 0);
+    uninstallMockEngine(); uninstallMockFs();
+}
+
+/* The flag must GATE the write, not merely be preferred by it: if both halves
+ * save, they race for the same file. With the engine owning it, a UI save must
+ * not touch seq-state.json even when everything looks dirty and forced. */
+{
+    installMockFs({});
+    const eng = installMockEngine();
+    resetSetSave(); resetStoreRotation(); resetRestoreGate();
+    setFlag('engpersist', 1);
+    writeStateBlob('G', GOOD, 1);
+
+    openSet('G', null);
+    eng.stateBlob = 'movy1\n';          // the blank a fresh engine holds
+    seqState.dirty = true;
+    const r = saveSet('G', 1, true);
+
+    eq('the UI writes no state when the engine owns it', r.wrote, false);
+    eq('and the Set on disk still holds the real payload', readBestState('G').payload, GOOD);
+
+    setFlag('engpersist', 0);
     uninstallMockEngine(); uninstallMockFs();
 }
 }

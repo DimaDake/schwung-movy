@@ -17,6 +17,7 @@ import { serializeUiState } from './ui-state.js';
 import { writeStateBlob, writeUiBlob } from './persist-store.js';
 import { captureAutoIfDue } from './version-capture.js';
 import { restoreLanded } from './restore-gate.js';
+import { flagValue } from './flags.js';
 
 let lastGoodPayload = '';
 let saveRetry = false;
@@ -68,6 +69,11 @@ export function saveSet(
         return { ok: false, wrote: false, gen };
     }
     if ((takeUiDirty() || force) && !writeUiBlob(id, serializeUiState())) markUiStateDirty();
+    /* Engine-owned: it saves on its own dirty flag, on its own thread. Reading
+     * `state` here would not merely be redundant — the read CLEARS the engine's
+     * dirty flag, so a UI that asked would silently cancel the engine's own
+     * reason to save. The UI blob above is still ours. */
+    if (flagValue('engpersist')) return { ok: true, wrote: false, gen };
     if (!saveNeeded() && !force) return { ok: true, wrote: false, gen };
     if (typeof host_module_get_param !== 'function') return { ok: false, wrote: false, gen };
 

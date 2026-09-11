@@ -239,6 +239,16 @@ export async function installMovyState(): Promise<void> {
     await ssh(`rm -f '${dir}/seq-state.1.json' '${dir}/seq-state.2.json'`);
 }
 
+/* The per-set sequencer blob's mtime. Movy persists on its own schedule (~8 s
+ * of device time), so a scenario that closes right after a take can find there
+ * was nothing saved to restore — which looks exactly like a broken restore.
+ * Watching the mtime tells the two apart. */
+export async function seqStateMtime(): Promise<string> {
+    const uuid = await activeUuid();
+    const p = `/data/UserData/schwung/modules/tools/movy/sets/${uuid || '_default'}/seq-state.json`;
+    return (await ssh(`ls -l '${p}' 2>/dev/null || true`)).trim();
+}
+
 /* Ask the engine what each movy chain HOLDS. `chloadedlog` is write-to-read, so
  * wait for the poke's OWN line — the previous one describes a chain from before
  * whatever the caller just did. */

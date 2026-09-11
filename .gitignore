@@ -9,3 +9,6 @@ dist/
 browser-test/screenshots/actual/
 *.js.map
 .DS_Store
+.aider*
+.test-out/
+test-device/dist/

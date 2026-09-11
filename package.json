@@ -5,9 +5,12 @@
     "build": "node build/device.mjs && node build/browser.mjs",
     "build:device": "node build/device.mjs",
     "build:browser": "node build/browser.mjs",
+    "build:test-device": "node build/test-device.mjs",
     "typecheck": "tsc --noEmit",
     "dev": "node build/browser.mjs --watch",
     "test:app": "node browser-test/app-loop.mjs",
+    "test:device": "node build/test-device.mjs && node test-device/run.mjs",
+    "test:device-self": "node build/test-device.mjs && node test-device/selftest/wait.mjs && node test-device/selftest/runner.mjs",
     "test": "node build/browser.mjs && node browser-test/logic.mjs && node browser-test/track-colors.mjs && node browser-test/abi-parity.mjs && node browser-test/dump-replay.mjs && node browser-test/app-loop.mjs && node browser-test/screenshot.mjs && node browser-test/perf.mjs && node browser-test/device-scripts.mjs"
   },
   "devDependencies": {

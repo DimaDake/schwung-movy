@@ -59,7 +59,7 @@ The candidacy rule needs to know which host a set *used to* be on, and it must k
 **Interfaces:**
 - Produces: `legacySetWasSchwung(blobFlags: Record<string, unknown> | null | undefined): boolean`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `browser-test/logic/track-migrate.mjs`:
 
@@ -118,12 +118,12 @@ import { run as run_track_migrate } from './logic/track-migrate.mjs';
 
 and add `run_track_migrate,` to the run list beside `run_tracks_chain,`.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm run build:browser && node browser-test/logic.mjs 2>&1 | tail -20`
 Expected: FAIL — cannot resolve `dist/esm/track/legacy-host.js`.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Create `src/track/legacy-host.ts`:
 
@@ -174,16 +174,16 @@ function storedMode(): number {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npm run build:browser && node browser-test/logic.mjs 2>&1 | tail -20`
 Expected: PASS, 0 failures.
 
-- [ ] **Step 5: Prove the test has teeth**
+- [x] **Step 5: Prove the test has teeth**
 
 Temporarily change `if (!o || typeof o['chtrackset'] !== 'number') return true;` to `return false;`. Re-run — the "flags object without the key" and "no blob" assertions must fail. Put it back.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/track/legacy-host.ts browser-test/logic/track-migrate.mjs browser-test/logic.mjs
@@ -228,7 +228,7 @@ The browser harness's `shadow_get_param` currently **ignores the slot argument**
   export const EXTRA_POSITIONS: string[]
   ```
 
-- [ ] **Step 1: Make the mock slot-aware**
+- [x] **Step 1: Make the mock slot-aware**
 
 In `browser-test/harness.mjs`, replace lines 36-37:
 
@@ -242,7 +242,7 @@ globalThis.shadow_set_param   = (slot, key, val) => {
 
 The `?? mockState[key]` fallback keeps every existing suite working — they seed bare keys and read slot 0.
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 Append to `run()` in `browser-test/logic/track-migrate.mjs`:
 
@@ -305,12 +305,12 @@ Append to `run()` in `browser-test/logic/track-migrate.mjs`:
 }
 ```
 
-- [ ] **Step 3: Run test to verify it fails**
+- [x] **Step 3: Run test to verify it fails**
 
 Run: `npm run build:browser && node browser-test/logic.mjs 2>&1 | tail -20`
 Expected: FAIL — cannot resolve `dist/esm/track/slot-read.js`.
 
-- [ ] **Step 4: Write the implementation**
+- [x] **Step 4: Write the implementation**
 
 Create `src/track/slot-read.ts`:
 
@@ -408,16 +408,16 @@ export function readSlotChain(slot: number): SlotChain {
 }
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 Run: `npm run build:browser && node browser-test/logic.mjs 2>&1 | tail -20`
 Expected: PASS, 0 failures.
 
-- [ ] **Step 6: Prove the slot-aware mock has teeth**
+- [x] **Step 6: Prove the slot-aware mock has teeth**
 
 Temporarily revert `browser-test/harness.mjs` line 36 to `(_slot, key) => mockState[key] ?? null`. Re-run — `slot 1 is not slot 0` must fail. Put the fix back.
 
-- [ ] **Step 7: Full local gate and commit**
+- [x] **Step 7: Full local gate and commit**
 
 Run: `npm test` — 0 failures (the mock change touches every suite).
 
@@ -458,7 +458,7 @@ Pure function: slot reads plus the chains the set already restored → the `Chai
   ): MigrationResult
   ```
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `run()` in `browser-test/logic/track-migrate.mjs`:
 
@@ -517,12 +517,12 @@ Append to `run()` in `browser-test/logic/track-migrate.mjs`:
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm run build:browser && node browser-test/logic.mjs 2>&1 | tail -20`
 Expected: FAIL — cannot resolve `dist/esm/track/migrate-plan.js`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `src/track/migrate-plan.ts`:
 
@@ -611,16 +611,16 @@ function mixFromVolume(volume: number | null): string | undefined {
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npm run build:browser && node browser-test/logic.mjs 2>&1 | tail -20`
 Expected: PASS, 0 failures.
 
-- [ ] **Step 5: Prove the guard has teeth**
+- [x] **Step 5: Prove the guard has teeth**
 
 Temporarily delete `if (occupied.has(t) && !overwrite) { out.skipped.push(t); continue; }`. Re-run — `an occupied chain is skipped` and `the occupied chain is left alone` must fail. Put it back.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/track/migrate-plan.ts browser-test/logic/track-migrate.mjs
@@ -657,7 +657,7 @@ Candidacy, the probe budget, and the stability rule that stops movy reading schw
   export function resetMigration(): void
   ```
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `run()` in `browser-test/logic/track-migrate.mjs`:
 
@@ -741,12 +741,12 @@ Append to `run()` in `browser-test/logic/track-migrate.mjs`:
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm run build:browser && node browser-test/logic.mjs 2>&1 | tail -20`
 Expected: FAIL — cannot resolve `dist/esm/track/migrate.js`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Create `src/track/migrate.ts`:
 
@@ -898,16 +898,16 @@ export function runManualMigration(
 }
 ```
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npm run build:browser && node browser-test/logic.mjs 2>&1 | tail -20`
 Expected: PASS, 0 failures.
 
-- [ ] **Step 5: Prove the stability rule has teeth**
+- [x] **Step 5: Prove the stability rule has teeth**
 
 Temporarily change `if (sig === lastSig)` to `if (true)`. Re-run — `first probe does not resolve` and `a changed signature does not resolve` must fail. Put it back.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/track/migrate.ts browser-test/logic/track-migrate.mjs
@@ -938,7 +938,7 @@ The marker round-trips through the blob, and the chain document waits for the mi
 - Consumes: `beginMigration`, `migrationTick`, `migrationResult`, `migrationMarker`, `migrationPending`, `MIGRATION_VERSION`
 - Produces: `flushHeldChains(): boolean` from `ui-state.ts` — sends the held document; true once sent. `chainDocSent(): boolean` from `set-settle.ts`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `run()` in `browser-test/logic/track-migrate.mjs`:
 
@@ -978,12 +978,12 @@ Append to `run()` in `browser-test/logic/track-migrate.mjs`:
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm run build:browser && node browser-test/logic.mjs 2>&1 | tail -20`
 Expected: FAIL — `flushHeldChains` is not exported.
 
-- [ ] **Step 3: Implement in `ui-state.ts`**
+- [x] **Step 3: Implement in `ui-state.ts`**
 
 Add the imports:
 
@@ -1065,7 +1065,7 @@ In `resetUiState()`, replace **both** `loadSetHostChoice(null)` and the direct
 
 Delete the now-unused `loadSetHostChoice` import.
 
-- [ ] **Step 4: Implement the settle gate**
+- [x] **Step 4: Implement the settle gate**
 
 In `src/seq/set-settle.ts`, add to `settleCheck()`:
 
@@ -1100,16 +1100,16 @@ In `src/seq/set-session.ts`, drive the probe from `settleTick()` — add as its 
     migrationTick(Date.now());
 ```
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 Run: `npm run build:browser && node browser-test/logic.mjs 2>&1 | tail -20`
 Expected: PASS, 0 failures.
 
-- [ ] **Step 6: Prove the settle gate has teeth**
+- [x] **Step 6: Prove the settle gate has teeth**
 
 Temporarily remove the `if (!flushHeldChains())` block from `settleCheck()`. Run `node browser-test/logic.mjs` — the set-settling suite's held-document assertion must fail. If it does not, the assertion is not reaching the gate: add one to `browser-test/logic/set-settling.mjs` that calls `settleCheck()` with a candidate set mid-probe and expects `'wait'`. Put the block back.
 
-- [ ] **Step 7: Full gate and commit**
+- [x] **Step 7: Full gate and commit**
 
 Run: `npm test` — 0 failures.
 
@@ -1137,7 +1137,7 @@ EOF
 - Modify: `browser-test/logic/track-migrate.mjs`
 - Modify: `browser-test/screenshot.mjs` (new scene)
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `run()` in `browser-test/logic/track-migrate.mjs`:
 
@@ -1155,12 +1155,12 @@ Append to `run()` in `browser-test/logic/track-migrate.mjs`:
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm run build:browser && node browser-test/logic.mjs 2>&1 | tail -20`
 Expected: FAIL — `loadingStage('settling', 0, true)` returns `'PREPARING SET'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `src/renderer/loading-view.ts`:
 
@@ -1193,12 +1193,12 @@ In `src/seq/set-session.ts`, raise the toast at promotion — inside `settleTick
 
 with `import { seqToast } from './render.js';`.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npm run build:browser && node browser-test/logic.mjs 2>&1 | tail -20`
 Expected: PASS.
 
-- [ ] **Step 5: Add the screenshot scene and regenerate baselines**
+- [x] **Step 5: Add the screenshot scene and regenerate baselines**
 
 Add a scene to `browser-test/screenshot.mjs` named `loading_migrating` that calls `renderLoadingView('settling', '', 0, 'set', true)`. Then:
 
@@ -1209,7 +1209,7 @@ node browser-test/screenshot.mjs
 
 Expected: the new baseline is written and the suite passes.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/renderer/loading-view.ts src/app/tick.ts src/seq/set-session.ts \
@@ -1238,7 +1238,7 @@ Now that migration works, tracks 0-3 are movy chains unconditionally.
 - Modify: `src/seq/drum-sync.ts`, `src/seq/cpu-page-vm.ts`, `src/lfo/scope.ts`, `src/undo/param-sync.ts`
 - Modify: `browser-test/logic/tracks-refs.mjs`, `tracks-chain.mjs`, `flags.mjs`, `cpu-page.mjs`, `harness.mjs`
 
-- [ ] **Step 1: Update the tests first — they are the specification**
+- [x] **Step 1: Update the tests first — they are the specification**
 
 In `browser-test/logic/tracks-refs.mjs`, replace the `trackKind` assertions with:
 
@@ -1252,12 +1252,12 @@ In `browser-test/logic/tracks-refs.mjs`, replace the `trackKind` assertions with
 
 Delete the whole `chtracks moves tracks 1-4 onto movy chains` block. In `flags.mjs`, delete every `chtracks`/`chtrackset` assertion. In `cpu-page.mjs`, replace the `kind: 'na'` expectations for tracks 0-3 with `'empty'`. Remove `movyTracksOn`, `loadSetHostChoice` from the `harness.mjs` export list and its imports.
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `npm run build:browser && node browser-test/logic.mjs 2>&1 | tail -30`
 Expected: FAIL — `chainInstance(0)` is `-1`, and the CPU columns say `na`.
 
-- [ ] **Step 3: Cut `ref.ts` down**
+- [x] **Step 3: Cut `ref.ts` down**
 
 ```typescript
 /* What a track IS.
@@ -1288,7 +1288,7 @@ export function chainInstance(index: number): number { return index; }
 
 Delete `HOST_TRACKS`, `TrackKind`, `trackKind`, `movyTracksOn`, and the `kind` field on `TrackRef`.
 
-- [ ] **Step 4: Fix the fallout, file by file**
+- [x] **Step 4: Fix the fallout, file by file**
 
 Compile-driven. `npm run build:device` names each site; apply this rule at every one:
 
@@ -1313,14 +1313,14 @@ Specifically:
 - `flags-page.ts` — delete the `setHostMode`/`setSetHost` branches in `flagsPageKnob` and the `host-mode.js` import.
 - Delete `src/track/host-mode.ts`.
 
-- [ ] **Step 5: Run tests to verify they pass**
+- [x] **Step 5: Run tests to verify they pass**
 
 ```bash
 npm run build:device && npm test
 ```
 Expected: 0 failures. Fix any suite still importing a deleted symbol.
 
-- [ ] **Step 6: Verify nothing is left**
+- [x] **Step 6: Verify nothing is left**
 
 ```bash
 grep -rn "chtracks\|chtrackset\|trackKind\|HOST_TRACKS\|movyTracksOn\|host-mode" \
@@ -1328,7 +1328,7 @@ grep -rn "chtracks\|chtrackset\|trackKind\|HOST_TRACKS\|movyTracksOn\|host-mode"
 ```
 Expected: no hits except `legacy-host.ts`'s deliberate read of the stored `chtracks` value and its comments.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add -u src browser-test
@@ -1354,7 +1354,7 @@ EOF
 - Modify: `src/seq/constants.ts` (`ENGINE_VERSION`)
 - Modify: `engine/crates/movy-dsp/src/chain_slots.rs` (comment only)
 
-- [ ] **Step 1: Update the tests first**
+- [x] **Step 1: Update the tests first**
 
 In `lib.rs`, replace `chtracks_moves_the_first_four_tracks` with:
 
@@ -1373,12 +1373,12 @@ In `lib.rs`, replace `chtracks_moves_the_first_four_tracks` with:
     }
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+- [x] **Step 2: Run to verify it fails**
 
 Run: `cd engine && cargo test 2>&1 | tail -20`
 Expected: FAIL — `chain_for` takes two arguments.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `lib.rs`:
 
@@ -1396,7 +1396,7 @@ Delete the `movy_tracks` field (line 154), its initializer (167), the whole `"ch
 
 Bump `ENGINE_VERSION` in `lib.rs` **and** `src/seq/constants.ts` to the same new value.
 
-- [ ] **Step 4: Run to verify it passes**
+- [x] **Step 4: Run to verify it passes**
 
 ```bash
 cd engine && cargo test 2>&1 | tail -5
@@ -1404,7 +1404,7 @@ cd .. && ./scripts/build-dsp.sh
 ```
 Expected: tests pass; the build succeeds (it fails on an `ENGINE_VERSION` mismatch, which is the check that the two bumps agree).
 
-- [ ] **Step 5: Full gate and commit**
+- [x] **Step 5: Full gate and commit**
 
 Run: `npm test`
 
@@ -1430,7 +1430,7 @@ EOF
 **Interfaces:**
 - Produces: `ACTION_ROWS` (name/value/hint per row) from `flags-page-vm.ts`; `actionRowSelected(): number` (index into `ACTION_ROWS`, or -1) from `flags-page.ts`; `migrateRowArmed(): boolean`, `armMigrateRow()`, `disarmMigrateRow()`, `runMigrateRow(): string` from `migrate-action.ts`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `browser-test/logic/flags.mjs`:
 
@@ -1476,12 +1476,12 @@ Append to `browser-test/logic/flags.mjs`:
 }
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm run build:browser && node browser-test/logic.mjs 2>&1 | tail -20`
 Expected: FAIL — `flagsRowCount()` is `flags.length + 1`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 Create `src/seq/migrate-action.ts`:
 
@@ -1614,16 +1614,16 @@ In `src/midi/router.ts` around line 620, extend the click handler:
 
 Add `clearSetMigrationMarker()` to `src/seq/ui-state.ts` (sets a module flag that makes `serializeUiState` write `migv: 0`, and calls `markUiStateDirty()`), and export `saveCurrentSetNow()` from `set-session.ts` wrapping the existing `saveSet(setId, gen, true)` path.
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `npm run build:browser && node browser-test/logic.mjs 2>&1 | tail -20`
 Expected: PASS.
 
-- [ ] **Step 5: Prove the count/viewmodel agreement has teeth**
+- [x] **Step 5: Prove the count/viewmodel agreement has teeth**
 
 Temporarily change `flagsRowCount()` back to `visibleFlags().length + 1`. Re-run — `two action rows past the flags` must fail. Put it back.
 
-- [ ] **Step 6: Screenshot and commit**
+- [x] **Step 6: Screenshot and commit**
 
 ```bash
 node browser-test/screenshot.mjs --update && node browser-test/screenshot.mjs && npm test
@@ -1650,7 +1650,7 @@ EOF
 - Modify: `browser-test/device-scripts.mjs`
 - Modify: `scripts/test-all-device.sh` (add `test-migrate.sh` to `SCRIPTS`)
 
-- [ ] **Step 1: Write the suite header and the contract canary**
+- [x] **Step 1: Write the suite header and the contract canary**
 
 Create `scripts/test-migrate.sh`, modelled on `scripts/test-versions.sh`:
 
@@ -1701,7 +1701,7 @@ Add `ts_slot_param <slot> <key>` to `scripts/lib/test-set.sh` if it does not
 exist — a one-line wrapper over the same remote-UI read `module-slot.mjs` uses,
 so the canary reads through the same transport movy does.
 
-- [ ] **Step 2: Write the three behaviour arms**
+- [x] **Step 2: Write the three behaviour arms**
 
 Continue the same script:
 
@@ -1738,11 +1738,11 @@ Continue the same script:
 
 Finish with the usual `echo "$PASS passed, $FAIL failed"; [ "$FAIL" -eq 0 ]`.
 
-- [ ] **Step 3: Add the invariant check**
+- [x] **Step 3: Add the invariant check**
 
 In `browser-test/device-scripts.mjs`, add `test-migrate.sh` to the scripts it validates: every log pattern it greps for must exist in `src/`, so the suite cannot report "missing" for a line movy never prints.
 
-- [ ] **Step 4: Run locally, then on device**
+- [x] **Step 4: Run locally, then on device**
 
 ```bash
 node browser-test/device-scripts.mjs
@@ -1753,7 +1753,7 @@ ssh -o ConnectTimeout=3 ableton@move.local echo ok 2>/dev/null \
 
 If the device is offline, **report it to the user in CAPS**. If a device arm fails, check the output for a real regression in what you changed; do not re-run or bisect.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/test-migrate.sh scripts/lib/test-set.sh browser-test/device-scripts.mjs scripts/test-all-device.sh
@@ -1774,13 +1774,13 @@ EOF
 - Modify: `scripts/lib/test-set.sh`, `scripts/test-all-device.sh`, `scripts/fixtures/README.md`
 - Modify: `browser-test/device-scripts.mjs`
 
-- [ ] **Step 1: Strip `TS_HOST_MODE`**
+- [x] **Step 1: Strip `TS_HOST_MODE`**
 
 In `scripts/lib/test-set.sh`: delete the variable and its validation (lines 30-45), the prefs pinning (`ts_save_host_flag` / the `chtracks` writes and read-back, ~505-610), the host-mode banner (781), and the `TS_HOST_MODE` branches at 625, 695, 717. `ts_fixture_synth` (625) becomes unconditional. **Keep the `slots.txt` / `slot_N.json` seeding** — it is now the migration suite's input.
 
 In `scripts/test-all-device.sh`: delete `TS_HOST_MODE`, its export, `ts_save_host_flag`, and the two banner lines that name the host.
 
-- [ ] **Step 2: Verify the library still works**
+- [x] **Step 2: Verify the library still works**
 
 ```bash
 ssh -o ConnectTimeout=3 ableton@move.local echo ok 2>/dev/null \
@@ -1790,13 +1790,13 @@ ssh -o ConnectTimeout=3 ableton@move.local echo ok 2>/dev/null \
 
 This is the suite that exists for exactly this change: a fixture that quietly did nothing would make every other suite look clean while running on whatever the device happened to hold.
 
-- [ ] **Step 3: Run the full sweep**
+- [x] **Step 3: Run the full sweep**
 
 ```bash
 ./scripts/test-all-device.sh
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git rm scripts/test-all-device-schwung.sh scripts/test-all-device-movy.sh
@@ -1817,7 +1817,7 @@ EOF
 **Files:**
 - Modify: `MANUAL.md`, `README.md`, `CHANGELOG.md`, `docs/track-performance.md`, `plans/2026-08-24-movy-hosted-first-tracks.md`
 
-- [ ] **Step 1: `MANUAL.md`**
+- [x] **Step 1: `MANUAL.md`**
 
 Delete the `Tracks 1-4 Host` / `This Set` settings rows from the Settings section and from the Controls reference tables (section 8). Add a short subsection describing what happens the first time an older set is opened (a `MIGRATING TRACKS` splash, the tracks arriving as movy chains, the schwung slot left as it was), and the `MIGRATE TRACKS` row with its two-click confirm. Add the `loading_migrating` screenshot:
 
@@ -1827,19 +1827,19 @@ node scripts/make-doc-assets.mjs loading_migrating
 
 and reference it as `docs/assets/loading_migrating.png`.
 
-- [ ] **Step 2: `README.md`**
+- [x] **Step 2: `README.md`**
 
 Update the chain description to say all sixteen tracks are movy chains. Remove any host-choice mention from *Features*.
 
-- [ ] **Step 3: `CHANGELOG.md`**
+- [x] **Step 3: `CHANGELOG.md`**
 
 An entry under Unreleased: the migration, the removed flags, the new Settings row, and the `ENGINE_VERSION` bump.
 
-- [ ] **Step 4: `docs/track-performance.md`**
+- [x] **Step 4: `docs/track-performance.md`**
 
 Its §1/§2 measurements were taken with `chtracks` as a variable. Add a note that the flag is gone and every track is a chain; do not re-write the numbers.
 
-- [ ] **Step 5: Point the old plan at the new spec**
+- [x] **Step 5: Point the old plan at the new spec**
 
 At the top of `plans/2026-08-24-movy-hosted-first-tracks.md`:
 
@@ -1852,7 +1852,7 @@ At the top of `plans/2026-08-24-movy-hosted-first-tracks.md`:
 > FLIP was rejected; the migration runs on set load, behind the splash.
 ```
 
-- [ ] **Step 6: Final gate and commit**
+- [x] **Step 6: Final gate and commit**
 
 ```bash
 npm test && (cd engine && cargo test 2>&1 | tail -3)

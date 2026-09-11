@@ -25,6 +25,18 @@ Every hazard in `docs/persistence-hazards.md` is that boundary:
 | §3 an unreadable chain read blanks the chains | OPEN, pinned as a KNOWN GAP | no read exists to fail |
 | §4 a save runs before the chains have loaded | OPEN, untested | the writer already holds `desired` |
 | §1 observer effect starves a restore | unavoidable | reduced: movy stops adding traffic |
+| a timed-out bulk write saves shipped defaults over a patch | retry loop + `pendingPayloadFor` | the engine serializes its own modules — no IPC to time out |
+
+That last row was not in `persistence-hazards.md` and is the largest of them.
+A chain's preset blobs, LFO state and mixer triple do not ride the state param
+at all: they cross on schwung's bulk channel, which waits 100 ms and does not
+retry, serviced on the audio thread that a cold `dlopen` holds for up to 428 ms
+(obxd, measured). `chain-payload.ts` records the consequence — every payload
+write timing out, every module coming up at its shipped defaults, and **the next
+capture writing those defaults into the Set file**. That is a patch destroyed,
+not merely un-restored. The bulk channel's far end *is* movy's engine, so an
+engine that serializes its own chains does it with no IPC and nothing to time
+out.
 
 The engine is also the better-equipped half, which is the part that makes this
 cheap rather than heroic:
@@ -123,7 +135,7 @@ of scope — see §11.
 | file | owner | note |
 | --- | --- | --- |
 | `sets/<uuid>/seq-state.json` | **engine** | same format, byte-for-byte |
-| `sets/<uuid>/chains.json` | **engine** | NEW — the `chains` and `sends` arrays that live inside `ui-state.json` today |
+| `sets/<uuid>/chains.json` | **engine** | NEW — everything `ui-state.json`'s `chains`/`sends` hold today: module ids, preset blobs, LFO state, the mixer triple. Flat format, §6.1 |
 | `sets/<uuid>/ui-state.json` | UI | its own half — `root`/`rootPc`/`scale`/`mode`/`layout`/`oct`/`mutes`/`defaultQuant`/`flags`/`migv` — plus a `chains`/`sends` **mirror**, §6.1 |
 | `sets/<uuid>/v/<n>/` | **engine** | version history, 32 per Set |
 | `sets/<uuid>/versions.json` | **engine** | the ladder index |
@@ -212,10 +224,18 @@ at all, so §3 (a malformed answer read as an empty set) and §4 (a save that
 races the module loads) stay fixed — the engine writes `chains.json` from
 `desired`, and the UI copies bytes out of it without judging them.
 
-**`chains.json` holds exactly `{"chains":[…],"sends":[…]}`** — the same two
-arrays `ui-state.json` already carries, in the same shape. The mirror is then a
-splice of two named fields, not a translation, and TypeScript needs no more
-knowledge of their contents than it needs of a string it copies.
+**`chains.json` is written in the engine's flat length-prefixed format**
+(`<count>\n<len>\n<bytes>…`), not JSON. `movy-dsp` has **no external
+dependencies** — a deliberate property of a cdylib living inside MoveOriginal's
+audio process — so it has neither a JSON writer nor a parser, and preset blobs
+are arbitrary bytes, which makes hand-rolled escaping the actual cost of JSON
+here. `chain_doc.rs` already chose this format for exactly that reason: no
+escaping, so a module id containing anything at all survives the trip.
+
+The mirror is therefore a **translation**, not a splice — but nothing new is
+written to perform it. `decodeBulk` (`src/track/bulk.ts`) already reads this
+format and `chain-persist.ts` already builds `ChainTrackState` from it; the only
+change is that the bytes come from a file instead of from the wire.
 
 **A failed mirror costs nothing.** If `chains.json` is missing or unreadable,
 the UI leaves the previous `chains` field in place and writes the rest. It is

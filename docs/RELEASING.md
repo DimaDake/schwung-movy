@@ -47,11 +47,10 @@ first.
    version is read as the state of the module. Put anything that can bite —
    a raised `min_host_version`, a changed default — where it will be seen.
 
-6. **Run the gates.** `npm test` (8 suites, 0 failures) and the device sweeps
-   for both hosts (`scripts/test-all-device-schwung.sh`,
-   `scripts/test-all-device-movy.sh`). Device suites are flaky: run once, and
+6. **Run the gates.** `npm test` (8 suites, 0 failures) and the device sweep
+   (`scripts/test-all-device.sh`). Device suites are flaky: run once, and
    check a failure against what actually changed before chasing it. A failure
-   in a suite that greps a *host* log phrase is often test rot rather than a
+   in a suite that greps a log phrase is often test rot rather than a
    regression — the phrase moved upstream.
 
 7. **Build, commit, push, release.**

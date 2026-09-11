@@ -35,7 +35,7 @@ ep() {
     node scripts/engine-param.mjs set "$1" "$2" "$HOST" >/dev/null 2>&1
 }
 
-TS_HOST_MODE=movy test_set_begin
+test_set_begin
 trap test_set_end EXIT INT TERM
 ts_ssh "touch /data/UserData/schwung/debug_log_on" >/dev/null 2>&1
 ts_open_movy

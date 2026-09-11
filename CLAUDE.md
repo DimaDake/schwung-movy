@@ -157,11 +157,10 @@ ssh -o ConnectTimeout=3 ableton@move.local echo ok 2>/dev/null \
   || echo "DEVICE OFFLINE — SKIPPING DEVICE TESTS"
 # If offline: report DEVICE OFFLINE to the user in CAPS
 
-# 4b. Every device suite at once (each one is independent — any subset, any order),
-#     once per host for tracks 1-4. Both must be green: the two arrangements are
-#     different code paths for routing, ports, note-offs and the param pages.
-./scripts/test-all-device-schwung.sh [move.local]   # tracks 1-4 = schwung slots
-./scripts/test-all-device-movy.sh    [move.local]   # tracks 1-4 = movy chains 0-3
+# 4b. Every device suite at once (each one is independent — any subset, any order).
+#     Tracks 1-16 are all movy chains; there is no separate host arrangement
+#     to sweep a second time.
+./scripts/test-all-device.sh [move.local]
 ```
 
 ### Device tests run against a fixture state
@@ -173,11 +172,13 @@ automation lane. It applies the state and then **reads it back** — a suite nev
 runs on unconfirmed state. Move's firmware owns set switching, so the fixture is
 applied to whichever set is active; the previous contents are not preserved.
 
-`TS_HOST_MODE` picks which host owns tracks 1-4 for the run (`schwung`, the
-default, or `movy`) and pins it in the device's `prefs.json`, so the run does
-not depend on what the active set carries. The fixture seeds both hosts; only
-the named one is live. A suite that names the instrument must ask
-`ts_fixture_synth <track>` rather than hard-coding `plaits`.
+Tracks 1-16 are all movy chains, seeded from the `chains` array in
+`ui-state.json` and verified via `chloadedlog` (`ts_verify_chains`). The
+fixture also seeds schwung's four shadow slots (`slots.txt` + `slot_<N>.json`,
+`ts_verify`) — not as a live host any track still reads from, but as the raw
+material `test-migrate.sh` needs: a legacy set schwung still holds the patch
+for, which movy pulls into a chain on open. A suite that names the instrument
+must ask `ts_fixture_synth <track>` rather than hard-coding `plaits`.
 
 This is what makes the suites order-independent. Before it, `test-unload.sh`
 deleted the clip `test-reselect.sh` needed, and step presses toggled whatever a
@@ -190,10 +191,10 @@ buttons stay dark afterwards and the hardware looks broken. It costs ~10 s;
 `test-all-device.sh` suppresses the per-suite restarts and does one at the end.
 
 The library has its own device suite — `./scripts/test-fixture-selftest.sh`. It
-is not in the sweep (it perturbs slots and flips both hosts, and takes minutes),
-so run it after changing `scripts/lib/test-set.sh`: a fixture that quietly did
-nothing would make every suite look clean while running on whatever the device
-happened to hold.
+is not in the sweep (it perturbs slots and takes minutes), so run it after
+changing `scripts/lib/test-set.sh`: a fixture that quietly did nothing would
+make every suite look clean while running on whatever the device happened to
+hold.
 
 **Writing a device test:** source the library, call `test_set_begin`, add
 `trap test_set_end EXIT INT TERM`, and use

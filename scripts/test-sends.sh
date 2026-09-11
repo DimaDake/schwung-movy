@@ -26,7 +26,7 @@ SEND_FX=freeverb        # cheap, always installed, and audibly wet
 SEND_BUSES=$(node -e "import('./dist/esm/chain/config.js').then(m => console.log(m.SEND_BUSES))")
 # The fixture seeds a synth on track 0 (and a drum module on track 1); every
 # other track is empty, so a send from one would measure silence and report it
-# as a routing bug. With TS_HOST_MODE=movy, track 0 IS movy chain 0.
+# as a routing bug. Track 0 is movy chain 0.
 TRACK=0
 FAILS=0
 
@@ -44,9 +44,9 @@ ep() {
     node scripts/engine-param.mjs set "$1" "$2" "$HOST" >/dev/null 2>&1
 }
 
-# The fixture puts a synth on the movy chains and pins the host mode, so this
-# suite never runs on whatever the device happened to hold.
-TS_HOST_MODE=movy test_set_begin
+# The fixture puts a synth on the movy chains, so this suite never runs on
+# whatever the device happened to hold.
+test_set_begin
 trap test_set_end EXIT INT TERM
 
 ts_ssh "touch /data/UserData/schwung/debug_log_on" >/dev/null 2>&1

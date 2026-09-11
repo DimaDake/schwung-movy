@@ -27,31 +27,6 @@ export HOST
 TS_FIXTURE_DIR="$MOVY_DIR/scripts/fixtures/device-set"
 TS_DEVICE_DIR=/data/UserData/schwung/_movy-fixture
 
-# Which host owns tracks 1-4 for this run: `schwung` (Move's four shadow slots,
-# the stock arrangement) or `movy` (movy's own chains 0-3, the `chtracks`
-# feature). Every suite runs on both — scripts/test-all-device-schwung.sh and
-# scripts/test-all-device-movy.sh are the two sweeps.
-#
-# The fixture seeds BOTH hosts in either mode: `slots.txt` for schwung's slots
-# and the `chains` array in `ui-state.json` for movy's. Only one of them is live
-# at a time, because `chainSetTriples` drops every track under `HOST_TRACKS`
-# when the flag says schwung — so the inactive half is inert rather than
-# conflicting, and switching modes costs no reload.
-TS_HOST_MODE="${TS_HOST_MODE:-schwung}"
-case "$TS_HOST_MODE" in
-    schwung|movy) ;;
-    *) echo "test-set: TS_HOST_MODE must be 'schwung' or 'movy', not '$TS_HOST_MODE'" >&2
-       return 1 2>/dev/null || exit 1 ;;
-esac
-
-TS_PREFS=/data/UserData/schwung/modules/tools/movy/prefs.json
-
-# Read from the source so the harness cannot drift from the build: a prefs.json
-# whose `flagsRev` is below a flag's `revisedAt` has its stored value ignored
-# once (flags.ts), which would silently undo the host we just pinned.
-TS_FLAGS_REV=$(grep -oE 'FLAGS_REV = [0-9]+' "$MOVY_DIR/src/seq/flags-def.ts" \
-               | grep -oE '[0-9]+$')
-
 ts_ssh() { ssh "ableton@$HOST" "$@"; }
 
 # Same, as root. Movy's own saves go through the host, which runs as ROOT
@@ -403,9 +378,9 @@ ts_tap_note() {
     ts_send "0x09:0x90:$1:${2:-127}:0.05" "0x08:0x80:$1:0:0"
 }
 
-# Read from the source for the same reason TS_FLAGS_REV is: the step row's note
-# numbers are a build constant, and a suite that writes them down goes on
-# pressing the old ones.
+# Read from the source rather than hard-coded: the step row's note numbers
+# are a build constant, and a suite that writes them down goes on pressing
+# the old ones.
 TS_STEP_NOTE_BASE=$(grep -oE 'STEP_NOTE_BASE = [0-9]+' "$MOVY_DIR/src/seq/constants.ts" \
                     | grep -oE '[0-9]+$')
 
@@ -521,108 +496,6 @@ ts_seq_apply() {
     ts_ssh "rm -f '${p%/*}/seq-state.1.json' '${p%/*}/seq-state.2.json'"
 }
 
-# Pin which host owns tracks 1-4, in prefs.json, for the whole run.
-#
-# The GLOBAL flag, deliberately, not the set's `chtrackset`: `resolveHost` reads
-# the per-set half only in NEW SETS mode, so writing 0 or 1 here makes the run's
-# host independent of which Move set is active and what that set happens to
-# carry. Move's firmware owns set switching, so the harness cannot pick the set
-# — leaving the host to it would make the mode a coin flip.
-#
-# `flags.ts` caches prefs for the life of one movy open, so this only takes
-# effect on the NEXT open; every caller writes it with movy closed.
-
-# What prefs.json held before this process pinned anything, as `<chtracks>
-# <flagsRev>`. `-` means the key was ABSENT, which is not the same as 0: absent
-# takes the shipped default (NEW SETS), so writing 0 back would leave the user
-# on a setting they never chose. Empty means nothing has been saved yet.
-TS_HOST_FLAG_SAVED=""
-
-ts_save_host_flag() {
-    [ -n "$TS_HOST_FLAG_SAVED" ] && return 0
-    TS_HOST_FLAG_SAVED=$(ts_ssh "python3 -c \"
-import json
-try:
-    o = json.load(open('$TS_PREFS'))
-except Exception:
-    o = {}
-f = o.get('flags') if isinstance(o, dict) else None
-if not isinstance(f, dict):
-    f = {}
-print('%s %s' % (f.get('chtracks', '-'), (o.get('flagsRev', '-') if isinstance(o, dict) else '-')))
-\"" 2>/dev/null | tr -d '\r\n')
-    [ -n "$TS_HOST_FLAG_SAVED" ] || TS_HOST_FLAG_SAVED="- -"
-}
-
-# Put the user's own track-host setting back. The harness pins the flag for the
-# length of a run; leaving it pinned would silently move which host owns tracks
-# 1-4 on the device afterwards, which is a real setting and not the harness's to
-# change.
-ts_restore_host_flag() {
-    [ -n "$TS_HOST_FLAG_SAVED" ] || return 0
-    local v r
-    read -r v r <<EOF
-$TS_HOST_FLAG_SAVED
-EOF
-    TS_HOST_FLAG_SAVED=""
-    ts_ssh "python3 -c \"
-import json, os
-p = '$TS_PREFS'
-try:
-    o = json.load(open(p))
-except Exception:
-    o = {}
-if not isinstance(o, dict):
-    o = {}
-f = o.get('flags')
-if not isinstance(f, dict):
-    f = {}
-if '$v' == '-':
-    f.pop('chtracks', None)
-else:
-    f['chtracks'] = int('$v')
-o['flags'] = f
-if '$r' == '-':
-    o.pop('flagsRev', None)
-else:
-    o['flagsRev'] = int('$r')
-open(p + '.ts-tmp', 'w').write(json.dumps(o))
-os.rename(p + '.ts-tmp', p)
-\"" >/dev/null 2>&1
-}
-
-ts_apply_host_flag() {
-    local want=0 got
-    ts_save_host_flag
-    [ "$TS_HOST_MODE" = "movy" ] && want=1
-    got=$(ts_ssh "python3 -c \"
-import json, os
-p = '$TS_PREFS'
-try:
-    o = json.load(open(p))
-except Exception:
-    o = {}
-if not isinstance(o, dict):
-    o = {}
-f = o.get('flags')
-if not isinstance(f, dict):
-    f = {}
-f['chtracks'] = $want
-o['flags'] = f
-try:
-    rev = int(o.get('flagsRev') or 0)
-except Exception:
-    rev = 0
-o['flagsRev'] = max(rev, $TS_FLAGS_REV)
-open(p + '.ts-tmp', 'w').write(json.dumps(o))
-os.rename(p + '.ts-tmp', p)
-print(json.load(open(p))['flags']['chtracks'])
-\"" 2>/dev/null | tr -d '\r\n')
-    [ "$got" = "$want" ] && return 0
-    echo "test-set: prefs.json chtracks reads '${got:-<no answer>}', wanted $want" >&2
-    return 1
-}
-
 # The movy-hosted half of the fixture: `<track> <component> <module>` per line,
 # read out of the same `ui-state.json` movy itself restores from. One parser, so
 # what is installed and what is verified cannot disagree — the same rule
@@ -633,12 +506,6 @@ const o = JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'));
 for (const t of o.chains || [])
     for (const c of t.comp || []) console.log(t.t + ' ' + c.c + ' ' + c.m);
 " "$TS_FIXTURE_DIR/ui-state.json" 2>/dev/null
-}
-
-# Which host owns a track right now. Tracks 5-16 are always movy's; 1-4 follow
-# the run's mode.
-ts_track_host() {
-    if [ "$1" -ge 4 ] || [ "$TS_HOST_MODE" = "movy" ]; then echo movy; else echo schwung; fi
 }
 
 # Ask the engine what each movy chain HOLDS, and print the answer line.
@@ -664,59 +531,43 @@ ts_chloaded() {
 
 # What a track's chain component currently holds, or "" when it is empty.
 #
-# Two hosts, two transports — a schwung slot answers on the remote-UI socket,
-# a movy chain only through the engine's log (there is no get verb). The movy
-# side therefore needs movy OPEN: the overtake DSP is unloaded on exit, so a
-# read taken with movy closed is not "empty", it is nobody listening.
+# Read through the engine's log (there is no get verb) — movy has to be OPEN:
+# the overtake DSP is unloaded on exit, so a read taken with movy closed is not
+# "empty", it is nobody listening.
 ts_read_component() {
     local track="$1" component="$2" tok
-    if [ "$(ts_track_host "$track")" = "movy" ]; then
-        tok=$(ts_chloaded | grep -oE "(^| )$track:$component=[^ ]*" | tail -1)
-        # A trailing `?` is a module the engine was ASKED for and never
-        # instantiated. Handing that back as "what was there" would make the
-        # restore re-request a load that has already failed once.
-        case "$tok" in *\?) return 0 ;; esac
-        echo "$tok" | sed 's/^ *//' | cut -d= -f2
-    else
-        node "$MOVY_DIR/scripts/module-slot.mjs" get "$track" "$component" </dev/null 2>/dev/null
-    fi
+    tok=$(ts_chloaded | grep -oE "(^| )$track:$component=[^ ]*" | tail -1)
+    # A trailing `?` is a module the engine was ASKED for and never
+    # instantiated. Handing that back as "what was there" would make the
+    # restore re-request a load that has already failed once.
+    case "$tok" in *\?) return 0 ;; esac
+    echo "$tok" | sed 's/^ *//' | cut -d= -f2
 }
 
-# Load a module into a track's chain component on whichever host owns the track;
-# `none` empties it.
+# Load a module into a track's chain component; `none` empties it.
 #
-# A suite that borrows a slot must come through here. Writing to schwung's slot
-# 0 while tracks 1-4 are movy chains loads the module into a host the track is
-# not on — the module loads, the read-back confirms it, and every assertion
-# afterwards runs against a chain that is still empty.
+# A suite that borrows a slot must come through here rather than writing a
+# schwung slot directly — tracks 1-16 are all movy chains now, and a write to
+# the wrong place loads a module nothing reads, so the read-back confirms it
+# while the actual chain stays empty.
 ts_load_component() {
     local track="$1" component="$2" module="$3"
-    if [ "$(ts_track_host "$track")" = "movy" ]; then
-        [ "$module" = "none" ] && module=""
-        HOST="$HOST" node "$MOVY_DIR/scripts/engine-param.mjs" \
-            set "ch$track:$component:module" "$module" "$HOST" </dev/null >/dev/null 2>&1
-    else
-        node "$MOVY_DIR/scripts/module-slot.mjs" set "$track" "$component" "$module" \
-            </dev/null >/dev/null 2>&1
-    fi
+    [ "$module" = "none" ] && module=""
+    HOST="$HOST" node "$MOVY_DIR/scripts/engine-param.mjs" \
+        set "ch$track:$component:module" "$module" "$HOST" </dev/null >/dev/null 2>&1
 }
 
-# The synth the fixture puts on a track, under whichever host owns it.
+# The synth the fixture puts on a track.
 #
 # A suite that asserts on the instrument must ask for it rather than writing
-# `plaits` down: the two hosts are seeded from different files, and a hard-coded
-# id is how an assertion silently stops describing the fixture it runs against.
+# `plaits` down: a hard-coded id is how an assertion silently stops describing
+# the fixture it runs against.
 ts_fixture_synth() {
     local track="$1"
-    if [ "$TS_HOST_MODE" = "movy" ]; then
-        ts_chain_entries | awk -v t="$track" '$1 == t && $2 == "synth" { print $3; exit }'
-    else
-        ts_fixture_entries | awk -v t="$track" '$1 == t && $2 != "none" { print $2; exit }'
-    fi
+    ts_chain_entries | awk -v t="$track" '$1 == t && $2 == "synth" { print $3; exit }'
 }
 
-# Confirm the movy-hosted chains actually hold the fixture's modules. No-op in
-# schwung mode, where `ts_verify` is the equivalent check.
+# Confirm the movy chains actually hold the fixture's modules.
 #
 # The read-back is the engine's `chloadedlog` diagnostic: the remote-UI socket
 # can WRITE an engine param but has no get verb, so the engine is poked and
@@ -730,14 +581,9 @@ ts_fixture_synth() {
 # because every suite expects to do the FIRST open itself — several assert on
 # lines only a fresh open writes.
 ts_verify_chains() {
-    [ "$TS_HOST_MODE" = "movy" ] || return 0
     local want; want=$(ts_chain_entries)
     [ -n "$want" ] || return 0
 
-    # Cleared, not merely enabled: a matching line left by the PREVIOUS run
-    # would let this pass without the chains having loaded at all.
-    ts_ssh "touch /data/UserData/schwung/debug_log_on
-            > /data/UserData/schwung/debug.log" || return 1
     ts_open_movy
     # Wall clock, not a count of sleeps: each pass costs several ssh round trips
     # and a `chloadedlog` poll, so counting only the sleeps turned a 40 s budget
@@ -746,12 +592,6 @@ ts_verify_chains() {
     local deadline=$(( $(date +%s) + 40 )) report missing t c m
     while [ "$(date +%s)" -lt $deadline ]; do
         sleep 2
-        # The flag reached the ENGINE too, not just the UI. `drain_out` is the
-        # one place that decides whether a sequenced note goes out as MIDI or
-        # into a chain, so a UI-only flip leaves every note going to schwung
-        # while the chains below look perfectly loaded.
-        ts_ssh "grep -F 'chain tracks:' /data/UserData/schwung/debug.log 2>/dev/null || true" \
-            | qgrep -F 'chain tracks: 0-3 -> movy chains' || continue
         report=$(ts_chloaded) || continue
         missing=0
         while read -r t c m; do
@@ -779,7 +619,6 @@ EOF
 # per-set blobs are autosaved over within seconds of it running.
 ts_install_movy_state() {
     ts_close_movy || return 1
-    ts_apply_host_flag || { echo "test-set: could not pin the track host" >&2; return 1; }
     ts_seq_apply || { echo "test-set: could not install the fixture sequencer state" >&2; return 1; }
 }
 
@@ -794,7 +633,6 @@ test_set_begin() {
     # (the previous run left it there), and re-loading modules that are already
     # loaded cost ~60 s per suite for no change. One batched read settles it in
     # ~2 s; only a genuine mismatch pays for an apply.
-    printf '\033[2m  [fixture] tracks 1-4 host: %s\033[0m\n' "$TS_HOST_MODE" >&2
     ts_phase_start "fixture: check chain"
     if ts_verify 2>/dev/null; then
         ts_phase_end
@@ -863,12 +701,6 @@ test_set_begin() {
 # once per suite.
 test_set_end() {
     [ "${TS_SKIP_RESTORE:-0}" = "1" ] && return 0
-    # Before the hardware handoff, and unconditional: the flag is a real user
-    # setting, and a sweep that left it pinned would move which host owns tracks
-    # 1-4 for good. In a sweep this is a no-op here (TS_SKIP_RESTORE returns
-    # above) and the runner does it once, from the value it saved before the
-    # first suite pinned anything.
-    ts_restore_host_flag
     # Closing movy is what hands the LEDs back: it owns the surface under
     # overtake and suppresses Move's own LED writes, and the framework clears
     # that suppression on overtake exit. Leaving it open is why the pads and

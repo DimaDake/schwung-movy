@@ -83,34 +83,21 @@ ring that intermittently floods shadow_ui with zero-MIDI.
 Set `TS_SKIP_RESTORE=1` to suppress it — `test-all-device.sh` does this so a
 sweep restarts once at the end rather than once per suite.
 
-## The fixture seeds BOTH hosts for tracks 1-4
+## The fixture seeds movy's chains — and schwung's slots too
 
-Tracks 1-4 belong to whichever host `chtracks` names — Schwung's four shadow
-slots, or movy's own chains 0-3 — and every suite runs on both:
+Every track, 1-16, is a movy chain; there is no more per-track host choice.
+`./scripts/test-all-device.sh` runs the whole sweep on that one arrangement.
 
-    ./scripts/test-all-device-schwung.sh    # tracks 1-4 on schwung's slots
-    ./scripts/test-all-device-movy.sh       # tracks 1-4 on movy's chains 0-3
-
-`TS_HOST_MODE` (`schwung` | `movy`, default `schwung`) is what those two set.
-It reaches the device as `flags.chtracks` in **`prefs.json`** — the global mode,
-deliberately, not the set's `chtrackset`: `resolveHost` consults the per-set
-half only in `NEW SETS` mode, so writing 0 or 1 makes the run's host independent
-of which Move set happens to be active. Move's firmware owns set switching, so
-leaving the host to the set would make the mode a coin flip. `flags.ts` caches
-prefs for the life of one movy open, so it is written with movy closed.
-
-Both halves of the fixture are installed in either mode:
-
-| Host | Seeded from | Verified by |
-|---|---|---|
-| schwung slots | `slots.txt` + `slot_<N>.json`, via `module-slot.mjs` | `ts_verify` (`slots-read.mjs`) |
-| movy chains | the `chains` array in `ui-state.json`, restored by movy itself | `ts_verify_chains` (`chloadedlog`) |
-
-Only one is live at a time — `chainSetTriples` drops every track under
-`HOST_TRACKS` when the flag says schwung — so the inactive half is inert rather
-than conflicting, and switching modes costs no reload. A suite that needs to
-name the instrument asks `ts_fixture_synth <track>` rather than writing `plaits`
-down, because the two hosts are seeded from different files.
+The fixture still seeds schwung's four shadow slots as well, from
+`slots.txt` + `slot_<N>.json` via `module-slot.mjs`, verified by `ts_verify`
+(`slots-read.mjs`) — not because anything plays through them, but because
+that state is exactly what `scripts/test-migrate.sh` needs as its migration
+INPUT: a legacy set that still has schwung holding the patch. The movy chains
+are seeded separately, from the `chains` array in `ui-state.json` (restored
+by movy itself) and verified by `ts_verify_chains` (`chloadedlog`). A suite
+that needs to name the instrument asks `ts_fixture_synth <track>` rather than
+writing `plaits` down, because the two are seeded from different files and
+must not be allowed to drift apart.
 
 ### Reading a movy chain back
 
@@ -133,9 +120,9 @@ the same fixture logs no load at all and would read as a failed one.
 `m` the module id. The module's preset blob (`s`) is **not** written here — it
 is rendered in from `slot_<t>.json` at install time by
 `scripts/fixture-ui-state.mjs`, so the fixture declares its parameter values
-exactly once and the two hosts cannot drift into testing different sounds. Add
-a chain by naming its module here and giving it the matching `slot_<N>.json`,
-the same file the schwung side needs.
+exactly once and the chain seed cannot drift from the schwung-slot seed used
+as the migration test's input. Add a chain by naming its module here and
+giving it the matching `slot_<N>.json`, the same file the schwung side needs.
 
 The blob is not decoration. Without it the chain comes up at the module's
 shipped defaults — a fixed state only for as long as the chain is created

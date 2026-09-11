@@ -249,6 +249,18 @@ export async function seqStateMtime(): Promise<string> {
     return (await ssh(`ls -l '${p}' 2>/dev/null || true`)).trim();
 }
 
+/* A one-line summary of the per-set blob: how many automation lanes and clips
+ * it holds, its generation and size. Diagnostic — a scenario can note this at
+ * each stage and see exactly where state stops surviving. */
+export async function blobInfo(): Promise<string> {
+    const uuid = await activeUuid();
+    const f = `/data/UserData/schwung/modules/tools/movy/sets/${uuid || '_default'}/seq-state.json`;
+    return (await ssh(
+        `F=${f}; printf 'au=%s cl=%s %s size=%s' ` +
+        `"$(grep -c '^au ' $F 2>/dev/null)" "$(grep -c '^cl ' $F 2>/dev/null)" ` +
+        `"$(grep '^gen ' $F 2>/dev/null || echo gen0)" "$(wc -c < $F 2>/dev/null)"`)).trim();
+}
+
 /* Ask the engine what each movy chain HOLDS. `chloadedlog` is write-to-read, so
  * wait for the poke's OWN line — the previous one describes a chain from before
  * whatever the caller just did. */
@@ -314,12 +326,28 @@ export async function verifyChains(bus: Bus, open: () => Promise<void>,
  * slow — so an attempt failing says nothing about the next. Three was
  * demonstrably marginal: one suite in a sweep recovered on attempt 3 while
  * another gave up at the same boundary. */
+/* The second installMovyState() is not redundant.
+ *
+ * verifyChains has to OPEN movy (the set restore is what issues the chain
+ * loads) and closes it again afterwards — and movy SAVES on close. If the
+ * sequencer restore has not finished by then, that save writes an emptier
+ * blob straight over the fixture we just installed: measured, au=1 cl=2
+ * size=670 became au=0 cl=0 size=209, and the scenario then ran with no
+ * automation lane and no clips.
+ *
+ * The bash version has the same ordering and never showed it, because its
+ * close was `Back x3`, which does not actually close movy — so no save on
+ * close ever happened. Making close() work is what exposed this.
+ *
+ * So the fixture gets the last word: re-install after movy has finished
+ * touching the blob. Cheap (two scp) and idempotent. */
 export async function ensure(bus: Bus, open: () => Promise<void>,
                              close: () => Promise<void>): Promise<void> {
     if (await verify(true)) {
         await close().catch(() => {});
         await installMovyState();
         if (!await verifyChains(bus, open, close)) throw new Error('fixture: movy chains not established');
+        await installMovyState();   // see the note below
         return;
     }
 
@@ -335,6 +363,7 @@ export async function ensure(bus: Bus, open: () => Promise<void>,
         await apply(bus);
         if (await verify(attempt === 6 ? false : true)) {
             if (!await verifyChains(bus, open, close)) throw new Error('fixture: movy chains not established');
+            await installMovyState();   // see the note below
             return;
         }
         await bus.frames(1000);   // ~2.9 s of device frames, not a wall clock

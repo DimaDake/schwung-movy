@@ -32,6 +32,7 @@ _log('\nTest: device probe');
         parked:        () => false,
         setGridMode:   () => {},
         leaveModal:    () => ({ active: false, label: '', sel: 0 }),
+        ready:         () => true,
     });
 
     const tick0 = JSON.parse(answer(JSON.stringify({ key: 'tick' })));
@@ -67,6 +68,7 @@ _log('\nTest: device probe');
         renderer: () => 'PAGE', lanesForTrack: () => [], activeTrack: () => 1,
         parked: () => true, setGridMode: () => {},
         leaveModal: () => ({ active: true, label: 'Close Movy', sel: 1 }),
+        ready: () => false,
     });
     const empty = JSON.parse(answer(JSON.stringify({ key: 'auto' })));
     eq('an empty lane registry reports as empty', empty.lanes.length, 0);
@@ -89,6 +91,9 @@ _log('\nTest: device probe');
     eq('leave reports the modal is up', leave.active, true);
     eq('leave reports the selected label', leave.label, 'Close Movy');
 
+    eq('tick reports session readiness',
+        JSON.parse(answer(JSON.stringify({ key: 'tick' }))).ready, false);
+
     const bad = JSON.parse(answer(JSON.stringify({ key: 'nope' })));
     ok('an unknown key answers with an error, not a throw', typeof bad.error === 'string', bad.error);
     const torn = JSON.parse(answer('{not json'));
@@ -99,6 +104,7 @@ _log('\nTest: device probe');
         renderer: () => 'DRAW', lanesForTrack: () => [], activeTrack: () => 0,
         parked: () => false, setGridMode: (m) => { gridArg = m; },
         leaveModal: () => ({ active: false, label: '', sel: 0 }),
+        ready: () => true,
     });
     const verb = JSON.parse(answer(JSON.stringify({ verb: 'setGridMode', arg: 'PAGE' })));
     eq('setGridMode reaches the renderer override', gridArg, 'PAGE');

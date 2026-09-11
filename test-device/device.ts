@@ -66,9 +66,25 @@ export class Device {
             (v) => v !== '0', { within: 2000 });
     }
 
-    async open(): Promise<void> {
+    /* Opening has THREE gates, not two.
+     *
+     * The host's gates (overtake_mode, then the DSP instance) say the module is
+     * loaded. Movy's SESSION — the set restored, the UI live — comes later, and
+     * a gesture sent in between lands on whatever movy was showing before the
+     * restore finished. Measured: a selectTrack(0) issued after only the host
+     * gates left the harness reading a DIFFERENT track's automation registry,
+     * which reads exactly like a broken restore. Adding ssh round trips made it
+     * pass, which is what gave the race away.
+     *
+     * The probe is optional so open() still works before one exists (the
+     * fixture's own open, for instance). */
+    async open(probe?: Probe): Promise<void> {
         await this.bus.openTool('movy');
         await this.overtakeReady();
+        if (!probe) return;
+        await until(this.bus, 'movy session to be ready',
+            () => probe.tick().catch(() => ({ ready: false })),
+            (t: any) => t.ready === true, { within: 4000, every: 120 });
     }
 
     /* One SHM write, no gesture. Verified on device: overtake_mode 2 -> 0,
@@ -80,7 +96,7 @@ export class Device {
             async () => (await this.bus.state()).overtake_mode, (m) => m !== 2, { within: 1400 });
     }
 
-    async unpark(): Promise<void> { await this.open(); }
+    async unpark(probe?: Probe): Promise<void> { await this.open(probe); }
 
     /* A FULL close, which unloads the DSP — not the same thing as park().
      *
@@ -112,7 +128,7 @@ export class Device {
             async () => (await this.bus.state()).overtake_mode, (m) => m !== 2, { within: 2000 });
     }
 
-    async reopen(probe: Probe): Promise<void> { await this.close(probe); await this.open(); }
+    async reopen(probe: Probe): Promise<void> { await this.close(probe); await this.open(probe); }
 
     async selectTrack(n: number): Promise<void> {
         await this.tap.cc(CC_TRACK_BASE + (3 - (n % 4)));
@@ -134,7 +150,7 @@ export class Device {
         await run('scp', ['-q', localPath, `ableton@${this.host}:${REMOTE}/dsp.so.new`]);
         await run('ssh', [`ableton@${this.host}`, `mv ${REMOTE}/dsp.so.new ${REMOTE}/dsp.so`]);
         await this.restartStack();
-        await this.open();
+        await this.open(probe);
     }
 
     async restartStack(): Promise<void> {

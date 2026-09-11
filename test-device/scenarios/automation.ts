@@ -41,12 +41,16 @@ scenario('automation', async (t) => {
     fixture.setHost(t.host);
     const dev = new Device(t.bus, t.agent, t.host);
     const probe = new Probe(t.bus);
-    const open  = () => dev.open();
+    const open  = () => dev.open(probe);
     const close = () => dev.close(probe);
 
     await fixture.ensure(t.bus, open, close);
+    t.note('blob_afterEnsure', await fixture.blobInfo());
     await dev.deployUi();
-    await dev.open();
+    await dev.open(probe);
+    await t.bus.frames(300);
+    t.note('blob_afterOpen', await fixture.blobInfo());
+    t.note('registry_afterOpen', (await probe.auto()).lanes);
 
     t.note('fixtureSynth', fixture.fixtureSynth(0));
     await dev.selectTrack(0);
@@ -136,6 +140,7 @@ scenario('automation', async (t) => {
      * Leave modal at root and DISMISSES it while up), so its "reopen fresh"
      * re-opened an already-open movy and this check never exercised a cold
      * restore at all. close() drives the modal, so this is now the real thing. */
+    t.note('blob_afterTakes', await fixture.blobInfo());
     const lanesBefore = (await probe.auto()).lanes ?? [];
     t.note('lanesBeforeReopen', lanesBefore);
 
@@ -154,7 +159,8 @@ scenario('automation', async (t) => {
     t.note('persistedBeforeClose', saved);
 
     await dev.close(probe);
-    await dev.open();
+    t.note('blob_afterClose', await fixture.blobInfo());
+    await dev.open(probe);
     await dev.selectTrack(0);
     await dev.tap.jog();                   // show the params → forces a render
     await t.bus.frames(ACT);
@@ -171,23 +177,30 @@ scenario('automation', async (t) => {
             { within: 4000, every: 150 });
     } catch { after = await probe.auto(); }
     t.note('lanesAfterReopen', after.lanes);
-    /* KNOWN FAILURE, and the point of migrating this check.
+    t.note('trackAfterReopen', after.track);
+    /* KNOWN FLAKY, and the point of migrating this check.
      *
-     * Evidence from a clean run: lanesBeforeReopen is
-     * ["octave_transpose","decay"] — octave_transpose is the lane the FIXTURE
-     * seeds on disk, decay is the one this take just made. After a real close
-     * and reopen the registry is []. Movy never rewrote seq-state.json (the
-     * persistedBeforeClose note is false and the file's mtime is still the
-     * fixture's), so the blob movy reads on the second open is the SAME one it
-     * read on the first — the one whose octave_transpose lane it restored
-     * correctly the first time.
+     * What is established:
+     *  - the restore itself WORKS. An isolated open -> close -> reopen, with
+     *    the same take in between, reliably brings the registry back.
+     *  - the first failure was mine: fixture.ensure destroyed its own fixture,
+     *    because verifyChains opens movy and movy SAVES on close, writing an
+     *    emptier blob over the one just installed (au=1 cl=2 size=670 became
+     *    au=0 cl=0 size=209). Fixed by giving the fixture the last word.
+     *    registry_afterOpen is correct now.
+     *  - the bash suite never met that hazard, because its `Back x3` never
+     *    actually closed movy, so no save-on-close ever happened.
      *
-     * So this is not "the take was not saved". The restore does not repopulate
-     * the lane registry on an open that follows a real close.
+     * What is NOT established: after a REAL close, lanesAfterReopen is
+     * sometimes the full registry and sometimes empty, on identical runs with
+     * the correct track and a live param page. Movy keeps rotating shadow
+     * copies (seq-state.1/.2.json) whose generation outranks the fixture's
+     * legacy gen0 blob, so which blob wins a reopen depends on what the
+     * previous session wrote and when — that is the lead, not a conclusion.
      *
-     * The bash suite could not see this: its `Back x3` never closed movy, so
-     * its "reopen fresh" re-opened an already-open instance and the registry it
-     * asserted on had simply never left memory. */
+     * Left failing on purpose: it is a real question about persistence across
+     * a genuine close, and the notes above carry the evidence to continue from.
+     */
     t.check('p3-registry', 'the lane registry repopulated from restore',
         Array.isArray(after.lanes) && after.lanes.length > 0,
         { expected: 'a non-empty registry', actual: JSON.stringify(after.lanes) });

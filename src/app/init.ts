@@ -26,6 +26,7 @@ import { mlog } from '../log.js';
 import { installPerfProbe } from './perf-probe.js';
 import { setProbeDeps } from '../test/probe.js';
 import { leaveModalActive, leaveModalLabels, leaveModalSel } from './leave-modal.js';
+import { sessionReady } from '../seq/set-session.js';
 import { schwungGridMode, setSchwungGridMode } from '../renderer/schwung-grid.js';
 import { laneKeysForTrack } from '../seq/automation.js';
 
@@ -43,6 +44,7 @@ export function init(): void {
          * through globalThis rather than naming overtakeParked directly. */
         parked:        () => (globalThis as any).overtakeParked === true,
         setGridMode:   (m) => setSchwungGridMode(m as any),
+        ready:         () => sessionReady(),
         leaveModal:    () => ({
             active: leaveModalActive(),
             label:  leaveModalLabels()[leaveModalSel()] ?? '',

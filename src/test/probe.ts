@@ -37,6 +37,11 @@ export type ProbeDeps = {
      * it dismisses it), so a fixed number of Backs is ambiguous by parity and
      * cannot close movy reliably. Reading the modal makes it closed-loop. */
     leaveModal: () => { active: boolean; label: string; sel: number };
+    /* Movy's SESSION readiness — the set restored and the UI live. The host's
+     * overtake gates say the DSP is up, which is a different and earlier thing:
+     * a gesture sent between the two lands on whatever movy was showing before
+     * the restore finished. */
+    ready: () => boolean;
 };
 
 let deps: ProbeDeps | null = null;
@@ -80,7 +85,8 @@ export function answer(requestJson: string): string {
 
     switch (req.key) {
         case 'tick':
-            return tag({ tickSeq, renderSeq, parked: deps ? deps.parked() : false });
+            return tag({ tickSeq, renderSeq, parked: deps ? deps.parked() : false,
+                         ready: deps ? deps.ready() : false });
         case 'page': {
             const vm = lastVm;
             if (!vm) return tag({ error: 'no render yet' });

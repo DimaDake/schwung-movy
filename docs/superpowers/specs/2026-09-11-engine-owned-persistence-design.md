@@ -124,7 +124,7 @@ of scope — see §11.
 | --- | --- | --- |
 | `sets/<uuid>/seq-state.json` | **engine** | same format, byte-for-byte |
 | `sets/<uuid>/chains.json` | **engine** | NEW — the `chains` and `sends` arrays that live inside `ui-state.json` today |
-| `sets/<uuid>/ui-state.json` | UI | its own half only: `root`/`rootPc`/`scale`/`mode`/`layout`/`oct`/`mutes`/`defaultQuant`/`flags`/`migv` |
+| `sets/<uuid>/ui-state.json` | UI | its own half — `root`/`rootPc`/`scale`/`mode`/`layout`/`oct`/`mutes`/`defaultQuant`/`flags`/`migv` — plus a `chains`/`sends` **mirror**, §6.1 |
 | `sets/<uuid>/v/<n>/` | **engine** | version history, 32 per Set |
 | `sets/<uuid>/versions.json` | **engine** | the ladder index |
 | `name-index.json` | UI | name→uuid, for the rename policy |
@@ -188,16 +188,48 @@ writing Set files altogether; the one question the policy asks of the disk —
 "two implementations of a recovery rule is how recovery rules rot" risk from
 `docs/engine-owned-persistence.md` §3.4 does not materialise.
 
-### Accepted cost: downgrade loses movy chains
+### 6.1 The compatibility mirror
 
-A Set saved by the new build, opened by an older movy, comes back without its
-movy chains — the old code looks for them in `ui-state.json` and finds nothing.
-The sequencer, the keyboard state and the mutes are unaffected, and the version
-ladder still holds the Set's history.
+`engpersist` is a runtime switch on the Global Params page, so "on, then off
+again" is an ordinary afternoon during rollout, not only a downgrade. A build
+running with the flag off looks for the chains inside `ui-state.json`. If
+nothing put them there, flipping the flag back costs the user their chains —
+which would make the flag useless as an escape hatch, which is the whole reason
+it exists.
 
-Accepted rather than mitigated: the alternative is the engine writing the
-`chains` field into a file the UI also writes, which is the two-writer shape
-this design exists to remove. It must appear in the release notes.
+So `ui-state.json` keeps its `chains` and `sends` fields.
+
+**One writer per file, still.** The engine does not write into `ui-state.json`;
+the UI does, as it always has. What changes is where the UI gets the values:
+
+| | before | after |
+| --- | --- | --- |
+| source of the chains | `readChainDoc()` — an engine GET over the param slot | `chains.json`, read from disk |
+| authority | the only copy | a mirror; `chains.json` is the truth |
+
+The dangerous read still disappears. `serializeUiState()` makes no engine call
+at all, so §3 (a malformed answer read as an empty set) and §4 (a save that
+races the module loads) stay fixed — the engine writes `chains.json` from
+`desired`, and the UI copies bytes out of it without judging them.
+
+**`chains.json` holds exactly `{"chains":[…],"sends":[…]}`** — the same two
+arrays `ui-state.json` already carries, in the same shape. The mirror is then a
+splice of two named fields, not a translation, and TypeScript needs no more
+knowledge of their contents than it needs of a string it copies.
+
+**A failed mirror costs nothing.** If `chains.json` is missing or unreadable,
+the UI leaves the previous `chains` field in place and writes the rest. It is
+not the authority, so a stale or absent mirror cannot lose work while the flag
+is on.
+
+**The flag going 1 → 0 is the one moment the mirror must be current.** On that
+transition the UI re-reads `chains.json` and rewrites `ui-state.json`
+immediately, rather than waiting for the next autosave — otherwise the last few
+seconds of chain edits would be the price of flipping the switch.
+
+The mirror lives as long as the flag does. Whether it survives the release that
+deletes the old path (§12 step 6) is a separate decision to take then, with the
+downgrade question in front of us rather than assumed.
 
 ## 7. Collection and versions
 
@@ -278,6 +310,14 @@ it, and prove every new test has teeth by removing the fix and watching it fail.
 - `set-settling.mjs`, `set-state.mjs`, `versions.mjs` — updated to the new
   ownership.
 
+**The mirror (§6.1), which the flag's value as an escape hatch rests on:**
+
+- with `engpersist` on, `ui-state.json`'s `chains`/`sends` match `chains.json`
+- an unreadable `chains.json` leaves the previous mirror intact — it never
+  writes `[]`, which is the §3 failure wearing a new hat
+- flipping the flag 1 → 0 rewrites the mirror before the old path reads it: the
+  teeth are a chain edit made seconds before the flip, which must survive it
+
 **Device:** `test-seq.sh` plus the Set fixture. A dsp.so change needs the
 restart discipline in `movy/CLAUDE.md`, and device suites are a smoke check, not
 the gate.
@@ -306,8 +346,10 @@ Behind a flag, the way `chparallel` shipped. `engpersist` in
    Not wired to anything.
 2. Rust: the saver thread, the `set` key, the status line.
 3. `chains.json` in the engine (`chain_doc.rs` already holds the document).
-4. TypeScript behind `engpersist`: stop pushing `state`, stop reading `chains`,
-   send commands, compare status.
+4. TypeScript behind `engpersist`: stop pushing `state`, stop calling
+   `readChainDoc()`, send commands, compare status — and write the mirror
+   (§6.1), including the rewrite on the flag's 1 → 0 transition. The flag is
+   only an escape hatch once that transition is tested.
 5. Versions and GC into the engine.
 6. Device verification → default ON (which needs a `FLAGS_REV` bump, or a
    stored 0 beats the new default and it ships to nobody) → delete the old path

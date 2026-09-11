@@ -29,6 +29,9 @@ await esbuild.build({
         resolve(root, 'src/renderer/schwung-widgets.ts'),
         resolve(root, 'src/renderer/schwung-voices.ts'),
         resolve(root, 'src/renderer/schwung-grid.ts'),
+        /* The device harness's probe: entry point so the logic suite can pin
+         * its response shape without a device. */
+        resolve(root, 'src/test/probe.ts'),
         resolve(root, 'src/model/envelope.ts'),
         resolve(root, 'src/model/lfo-viz.ts'),
         resolve(root, 'src/model/page-layout.ts'),

@@ -35,6 +35,7 @@ import { run as run_envelope } from './logic/envelope.mjs';
 import { run as run_set_state } from './logic/set-state.mjs';
 import { run as run_old_set } from './logic/old-set.mjs';
 import { run as run_versions } from './logic/versions.mjs';
+import { run as run_probe } from './logic/probe.mjs';
 import { run as run_lfo } from './logic/lfo.mjs';
 import { run as run_filter_viz } from './logic/filter-viz.mjs';
 import { run as run_lfo_assign } from './logic/lfo-assign.mjs';
@@ -91,6 +92,7 @@ const SUITES = [
     run_set_state,
     run_old_set,
     run_versions,
+    run_probe,
     run_lfo,
     run_filter_viz,
     run_lfo_assign,

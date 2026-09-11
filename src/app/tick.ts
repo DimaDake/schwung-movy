@@ -37,6 +37,7 @@ import { syncLabelsFromEngine, validateLane, automationRegistry, denorm7, laneKe
 import type { AutomationView, ViewModel } from '../types/viewmodel.js';
 import type { Model } from '../model/index.js';
 import { concreteKey } from '../model/pad-scope.js';
+import { noteRender } from '../test/probe.js';
 import { mlog } from '../log.js';
 import { chainLoadsPending, currentSetUuid, sessionError, sessionFailScope, sessionPhase, sessionReady, sessionTick } from '../seq/set-session.js';
 import { takeSurfaceReturn } from '../seq/set-commit.js';
@@ -207,6 +208,15 @@ let _autoRenderLog = '';
  * — automated (a, the dot) and touched (t, showing the held value) — so the
  * device automation test can assert the dot + held-value highlight without
  * reading pixels. Throttled to changes, so it is silent at steady state. */
+/* Everything that must happen once per rendered frame, whatever drew it. Both
+ * render paths call this, so a third one added later cannot silently skip the
+ * probe's frame counter — which the device harness waits on instead of
+ * sleeping after a gesture. */
+function noteRendered(vm: ViewModel): void {
+    noteRender(vm);
+    diagAutoRender(vm);
+}
+
 function diagAutoRender(vm: ViewModel): void {
     let line = 'held=' + (vm.automationHeld ? 1 : 0) + ' |';
     for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) {
@@ -720,7 +730,7 @@ function tickBody(): void {
                 perfPhaseEnd();
                 if (stepAvail) { vm.stepPagePresent = true; vm.stepPageSelected = false; }
             }
-            diagAutoRender(vm);
+            noteRendered(vm);
             perfPhase('render');
             /*
              * SCHWUNG PAGINATION. Under mode 'page' Schwung plans the page set
@@ -765,7 +775,7 @@ function tickBody(): void {
                 vm = activeModel!.getViewModel(av);
                 if (stepAvail) { vm.stepPagePresent = true; vm.stepPageSelected = false; }
             }
-            diagAutoRender(vm);
+            noteRendered(vm);
             renderChainView(vm, chainIdx, jogHintVisible(), 'T' + (appState.activeTrack.index + 1),
                             undefined, undefined as any,
                             schwungBodyFor(activeModel, stepAvail && stepPageState.selected));

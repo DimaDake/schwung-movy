@@ -24,6 +24,7 @@ mod send_bus;
 mod pad_route;
 mod set_envelope;
 mod set_store;
+mod chain_state;
 
 use chain_slots::ChainSlots;
 use pad_route::PadRoute;
@@ -90,7 +91,7 @@ fn parse_midi_triplet(val: &str) -> Option<[u8; 3]> {
 ///
 /// More sends than this build has is refused for the same reason: those levels
 /// have nowhere to land.
-fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
+pub(crate) fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
     /* Shipped shapes only. The list grows when a bus is added; the older widths
      * stay, because sets written by older builds keep opening. */
     const SEND_FIELDS: [usize; 3] = [0, 2, send_bus::SEND_BUSES];

@@ -14,7 +14,7 @@
 
 - **`movy-dsp` has zero external dependencies.** Do not add any — not `serde`, not `serde_json`, not a tempfile crate. This is why `chains.json` uses the flat length-prefixed format rather than JSON.
 - **No file I/O on the audio thread.** `set_param`, `get_param` and `render_block` all run there. Every open, read, write, rename and fsync belongs to the saver thread.
-- **`ENGINE_VERSION` gets exactly one bump per build** (`engine/crates/movy-dsp/src/lib.rs:120`, currently `0.73.0` → `0.74.0` for this plan).
+- **`ENGINE_VERSION` gets exactly one bump per build, in TWO files.** `engine/crates/movy-dsp/src/lib.rs:120` and `src/seq/constants.ts` must match or `scripts/build-dsp.sh` fails the build. `0.73.0` → `0.74.0` for this plan. Bumping once for two different builds hides the stale-`dsp.so` problem completely: both answer `ping` with the same string.
 - **A redeployed `dsp.so` is not the running one** until Move restarts — the shim dlopens by path. `scripts/deploy.sh` restarts on an md5 change; a manual copy does not.
 - **Flag `engpersist` ships `def: 0`.** No `FLAGS_REV` bump in this plan — that belongs to the release that flips the default.
 - **The on-disk format does not change.** `seq-state.json` stays byte-identical to what `persist-store.ts` writes today: `movy1\n`, `gen N\n`, payload, `end N <len> <adler32>\n`.
@@ -756,6 +756,7 @@ git commit -m "engine: serialize the whole chain set, preset blobs included"
 **Files:**
 - Create: `engine/crates/movy-dsp/src/set_saver.rs`
 - Modify: `engine/crates/movy-dsp/src/lib.rs` — `mod set_saver;`, the `set_param` match (beside `"chains"` at :356 and `"state"` at :362), the `get_param` match (beside `"status"` at :432), and `ENGINE_VERSION` at :120 (`0.73.0` → `0.74.0`)
+- Modify: `src/seq/constants.ts` — the same `ENGINE_VERSION` bump, or `build-dsp.sh` refuses to build
 - Test: inline `#[cfg(test)] mod tests` in `set_saver.rs`
 
 **Interfaces:**
@@ -943,7 +944,7 @@ if let Some(s) = &self.saver {
 }
 ```
 
-Add an `"engpersist"` arm to `set_param` setting `self.engpersist = val != "0"`, defaulting `false`. Bump `ENGINE_VERSION` to `0.74.0`.
+Add an `"engpersist"` arm to `set_param` setting `self.engpersist = val != "0"`, defaulting `false`. Bump `ENGINE_VERSION` to `0.74.0` in **both** `lib.rs` and `src/seq/constants.ts`.
 
 - [ ] **Step 5: Run the whole crate's tests**
 
@@ -1202,6 +1203,7 @@ Expected: 0 failures. If UI rendering changed at all (it should not have): `node
 - `docs/persistence-hazards.md`: §2/§3/§4 gain a line naming the flag that closes them and pointing at the spec. Do not delete the sections — they are the record of how the bugs were found.
 - `CHANGELOG.md`: the flag, what it changes, and the downgrade note — a Set saved with the flag ON keeps its chains in `chains.json`, and the mirror is what an older build reads.
 - `MANUAL.md`: the Global Params row, one sentence.
+- `CLAUDE.md` (movy): the Hard-rules line *"The engine has no filesystem; the UI ferries persisted state via `host_read_file`/`host_write_file`"* is what this plan repeals. Rewrite it to say the engine owns the Set files behind `engpersist`, and that the UI path is the fallback.
 
 - [ ] **Step 4: Deploy and run the device suites**
 

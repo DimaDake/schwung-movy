@@ -37,6 +37,7 @@ const { saveSet, saveNeeded, resetSetSave } = await import('../../dist/esm/seq/s
 const { pushState } = await import('../../dist/esm/seq/set-load.js');
 const { seqState } = await import('../../dist/esm/seq/state.js');
 const { resetRestoreGate } = await import('../../dist/esm/seq/restore-gate.js');
+const { writeUiBlob, readUiBlob } = await import('../../dist/esm/seq/persist-store.js');
 
 /* ── The guard that works ─────────────────────────────────────────────────
  * An engine that answers `null` is one we could not read at all, and saveSet
@@ -119,6 +120,37 @@ const { resetRestoreGate } = await import('../../dist/esm/seq/restore-gate.js');
     eq('a later successful restore reopens the gate', saveSet('N', 1, true).wrote, true);
     eq('and what reaches disk is the engine content, not the blank',
         readBestState('N').payload, 'movy1\nbpm 14000\n');
+    uninstallMockEngine(); uninstallMockFs();
+}
+
+/* ── The UI half is engine-sourced too ───────────────────────────────────
+ * ui-state.json is not just keyboard settings: serializeUiState() calls
+ * readChainDoc(), an engine GET, so the movy chains in it come from the same
+ * engine the state does. A blank engine therefore costs the chains as well —
+ * observed on device, ui-state.json collapsing from 5141 to 217 bytes. So the
+ * gate has to cover this write too, not only the sequencer blob. */
+{
+    installMockFs({});
+    const eng = installMockEngine();
+    resetSetSave(); resetStoreRotation(); resetRestoreGate();
+
+    const GOOD_UI = '{"root":60,"chains":[{"t":0,"comp":[{"c":"synth","m":"plaits"}]}]}';
+    writeUiBlob('U', GOOD_UI);
+
+    await withDroppedStateWrite(async () => { pushState(GOOD); });
+    eng.stateBlob = BLANK_STATE;
+    seqState.dirty = true;
+    saveSet('U', 1, true);
+    eq('a blocked save leaves the UI blob alone too', readUiBlob('U'), GOOD_UI);
+
+    /* And it must not be forgotten: once the gate reopens the UI half is
+     * written, or the settings are lost a slower way. */
+    pushState(GOOD);
+    eng.stateBlob = 'movy1\nbpm 16000\n';
+    seqState.dirty = true;
+    saveSet('U', 1, true);
+    ok('and it IS written once the gate reopens', readUiBlob('U') !== GOOD_UI,
+        'the blocked UI write must stay pending, not vanish');
     uninstallMockEngine(); uninstallMockFs();
 }
 

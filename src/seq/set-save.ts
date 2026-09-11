@@ -48,16 +48,27 @@ export function saveNeeded(): boolean {
 export function saveSet(
     id: string, gen: number, force = false,
 ): { ok: boolean; wrote: boolean; gen: number } {
-    if ((takeUiDirty() || force) && !writeUiBlob(id, serializeUiState())) markUiStateDirty();
-    if (!saveNeeded() && !force) return { ok: true, wrote: false, gen };
-    /* Before the read, not after: reading `state` CLEARS the engine's dirty
-     * flag, so a read we then decline to act on costs us the next save's
-     * reason to run. Stays pending so the save happens once a restore lands. */
+    /* FIRST, above the UI write as well as the state write.
+     *
+     * ui-state.json is not only keyboard settings: serializeUiState() calls
+     * readChainDoc(), an engine GET, so the movy chains in it come from the
+     * same engine the sequencer state does. A blank engine costs the chains
+     * too — observed on device as ui-state.json collapsing from 5141 to 217
+     * bytes, and in the suite as `"chains":[]` written over a real chain.
+     *
+     * Also before reading `state` below, because that read CLEARS the engine's
+     * dirty flag: a read we then decline to act on would cost the next save
+     * its reason to run. Both halves stay PENDING instead. */
     if (!restoreLanded()) {
         saveRetry = true;
+        /* `force` carries no dirty flag to preserve, so mark it: otherwise a
+         * forced save that we refuse here is a UI blob nothing writes later. */
+        markUiStateDirty();
         mlog('seq: SAVE BLOCKED — this Set never reached the engine');
         return { ok: false, wrote: false, gen };
     }
+    if ((takeUiDirty() || force) && !writeUiBlob(id, serializeUiState())) markUiStateDirty();
+    if (!saveNeeded() && !force) return { ok: true, wrote: false, gen };
     if (typeof host_module_get_param !== 'function') return { ok: false, wrote: false, gen };
 
     const payload = host_module_get_param('state');

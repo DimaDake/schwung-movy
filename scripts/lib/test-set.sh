@@ -138,6 +138,22 @@ ts_read_slot() {
     return 1
 }
 
+# An arbitrary schwung slot param — synth:state, lfo1:target, slot:volume,
+# anything the migration reads through HostSlotPort/ShimSlotPort — not just the
+# loaded module id ts_read_slot answers for. Prints '' (not failure) for a key
+# that answered empty; only a silent device is a retry-worthy failure, same
+# three-way distinction as ts_read_slot for the same reason.
+ts_slot_param() {
+    local slot="$1" key="$2" cur rc try
+    for try in 1 2 3; do
+        cur=$(node "$MOVY_DIR/scripts/slot-param.mjs" get "$slot" "$key" </dev/null 2>/dev/null)
+        rc=$?
+        [ $rc -eq 0 ] && { printf '%s' "$cur"; return 0; }
+        sleep 1
+    done
+    return 1
+}
+
 # Ship the fixture to a directory schwung does not own. Anything kept under
 # set_state/<uuid>/ is autosaved over with whatever is currently loaded, so a
 # fixture stored there quietly becomes a copy of the last test's mess.

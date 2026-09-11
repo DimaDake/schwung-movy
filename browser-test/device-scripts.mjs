@@ -421,6 +421,37 @@ const unexported = shFiles.filter((f) => {
 ok('every script calling one passes it the address', unexported.length === 0,
    unexported.length ? unexported.join(', ') : `${shFiles.length} scripts checked`);
 
+/* ── Test 13: test-migrate.sh keys on phrases the source can actually emit ───
+ * migrate.ts composes its log lines from pieces at runtime ('mig: ' +
+ * (forceOverwrite ? 'manual — ' : '') + 'migrated ' + n + ' track(s)'), the
+ * same reason Test 8 above only pins two whole literals rather than scanning
+ * every log line in the codebase — a mid-string check is what survives that,
+ * checking the PIECES the shell script's grep depends on actually exist. */
+log('\nTest 13: test-migrate.sh keys on phrases the source can actually emit');
+{
+    const migrateSrc = readFileSync('src/track/migrate.ts', 'utf8');
+    const migrateSh = readFileSync('scripts/test-migrate.sh', 'utf8');
+    for (const piece of ["'mig: '", "'migrated '", "'manual — '", "'mig: nothing to migrate'"]) {
+        ok(`src can emit ${piece}`, migrateSrc.includes(piece));
+    }
+    for (const phrase of ['mig: migrated', 'mig: nothing to migrate', 'mig: manual']) {
+        ok(`test-migrate.sh looks for ${JSON.stringify(phrase)}`, migrateSh.includes(phrase));
+    }
+    /* The contract canary's own claim: it asks the device for slot:volume,
+     * the one key that round-trips over the remote-UI subscribe channel
+     * (verified on device — see scripts/slot-param.mjs). synth:state does not
+     * broadcast there at all; test-migrate.sh's positive arm is its canary
+     * instead, since a renamed synth:state fails distinctly there (a migrated
+     * chain with no preset blob). */
+    const slotReadSrc = readFileSync('src/track/slot-read.ts', 'utf8');
+    ok('slot-read.ts reads a component\'s :state blob', slotReadSrc.includes("c + ':state'"));
+    ok('slot-read.ts reads slot:volume', slotReadSrc.includes('SLOT_VOLUME_KEY')
+       && slotReadSrc.includes("'slot:volume'"));
+    ok('the canary asks for "slot:volume"', migrateSh.includes('"slot:volume"'));
+    ok('the positive arm checks the migrated blob, covering synth:state',
+       migrateSh.includes('factory defaults'));
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 log('');

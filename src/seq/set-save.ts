@@ -16,6 +16,7 @@ import { markUiStateDirty, takeUiDirty } from './ui-dirty.js';
 import { serializeUiState } from './ui-state.js';
 import { writeStateBlob, writeUiBlob } from './persist-store.js';
 import { captureAutoIfDue } from './version-capture.js';
+import { restoreLanded } from './restore-gate.js';
 
 let lastGoodPayload = '';
 let saveRetry = false;
@@ -49,6 +50,14 @@ export function saveSet(
 ): { ok: boolean; wrote: boolean; gen: number } {
     if ((takeUiDirty() || force) && !writeUiBlob(id, serializeUiState())) markUiStateDirty();
     if (!saveNeeded() && !force) return { ok: true, wrote: false, gen };
+    /* Before the read, not after: reading `state` CLEARS the engine's dirty
+     * flag, so a read we then decline to act on costs us the next save's
+     * reason to run. Stays pending so the save happens once a restore lands. */
+    if (!restoreLanded()) {
+        saveRetry = true;
+        mlog('seq: SAVE BLOCKED — this Set never reached the engine');
+        return { ok: false, wrote: false, gen };
+    }
     if (typeof host_module_get_param !== 'function') return { ok: false, wrote: false, gen };
 
     const payload = host_module_get_param('state');

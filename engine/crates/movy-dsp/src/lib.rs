@@ -23,6 +23,7 @@ mod mixer;
 mod send_bus;
 mod pad_route;
 mod set_envelope;
+mod set_store;
 
 use chain_slots::ChainSlots;
 use pad_route::PadRoute;

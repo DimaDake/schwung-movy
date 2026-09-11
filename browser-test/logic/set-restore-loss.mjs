@@ -192,15 +192,59 @@ const { writeUiBlob, readUiBlob } = await import('../../dist/esm/seq/persist-sto
     try {
         seqState.dirty = true;
         saveSet('C', 1, true);
-        /* !!! KNOWN GAP — this assertion encodes the BUG, not the fix. !!!
-         * The chains SHOULD survive. When the guard lands, this becomes
-         *     eq(..., readUiBlob('C'), GOOD_UI)
-         * Flip it rather than deleting it. See the note above the block for
-         * why the obvious guard is not the right one. */
-        ok('KNOWN GAP: an unreadable chain set blanks the chains on disk',
+        /* !!! KNOWN GAP, ON THE OLD PATH ONLY — this assertion encodes the
+         * BUG, not the fix. !!!
+         *
+         * It stays because the old path still ships: with `engpersist` off the
+         * UI reads the chains out of the engine, and a malformed answer is
+         * still read as an empty set. The block immediately below is the same
+         * scenario with the flag ON, where the chains survive because nothing
+         * asks the engine at all — that is the flip, and it is what closes
+         * docs/persistence-hazards.md §3.
+         *
+         * Delete this arm when the old path goes, not before. */
+        ok('KNOWN GAP (old path): an unreadable chain set blanks the chains on disk',
             JSON.parse(readUiBlob('C')).chains.length === 0,
             JSON.stringify(readUiBlob('C')).slice(0, 70));
     } finally { globalThis.host_module_get_param = realGet; }
+    uninstallMockEngine(); uninstallMockFs();
+}
+
+
+/* ── §3 CLOSED, engine-owned ──────────────────────────────────────────────
+ * The same scenario the KNOWN GAP above pins, with `engpersist` on.
+ *
+ * The chains survive, and not because a guard caught the malformed answer —
+ * because there is no answer to catch. serializeUiState makes no engine call
+ * at all; it copies chains.json, which the engine wrote from what it holds.
+ * §4 goes with it for the same reason: a save taken while module loads are
+ * still draining cannot under-report a set the writer already knows.
+ *
+ * The teeth are the engine GET being made to fail exactly as above: if this
+ * ever passes because the UI silently fell back to reading the engine, the
+ * mirror is not doing its job. */
+{
+    const { setFlag } = await import('../../dist/esm/seq/flags.js');
+    const { uuidToChainsPath } = await import('../../dist/esm/seq/set-context.js');
+    const { encodeBulk } = await import('../../dist/esm/track/bulk.js');
+
+    const doc = encodeBulk(['0', 'synth', 'noisemaker', 'blob-A', '', '']);
+    installMockFs({ [uuidToChainsPath('C2')]: doc });
+    installMockEngine();
+    resetSetSave(); resetStoreRotation(); resetRestoreGate();
+    setFlag('engpersist', 1);
+
+    const realGet = globalThis.host_module_get_param;
+    globalThis.host_module_get_param = (k) => (k === 'chains' ? null : realGet(k));
+    try {
+        seqState.dirty = true;
+        saveSet('C2', 1, true);
+        const ui = JSON.parse(readUiBlob('C2'));
+        eq('§3 closed: an unreadable engine answer costs no chains', ui.chains.length, 1);
+        eq('and the chain is the real one', ui.chains[0].comp[0].m, 'noisemaker');
+    } finally { globalThis.host_module_get_param = realGet; }
+
+    setFlag('engpersist', 0);
     uninstallMockEngine(); uninstallMockFs();
 }
 

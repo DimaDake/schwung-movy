@@ -13,6 +13,27 @@ far. Earlier work is summarised in the timeline below for context.
 
 ## [Unreleased]
 
+### Added
+
+- **Engine-owned persistence, behind `engpersist` (Settings, debug builds).**
+  The engine now reads and writes a Set's files itself — `seq-state.json` and a
+  new `chains.json` — atomically (temp → fsync → rename) on its own thread, and
+  the UI sends commands (`open`, `rename`, `blank`, `flush`) instead of pushing
+  the Set's bytes through the shared param slot. That slot has four producers
+  and writes into it are routinely lost; a lost *command* is harmless and
+  idempotent on retry, where a lost *payload* cost the Set. Closes three of the
+  four hazards in `docs/persistence-hazards.md` by removing the wire they
+  travelled on, plus a fourth that was not written down: a chain's preset blobs
+  crossed schwung's bulk channel, which times out after 100 ms without retrying
+  while the audio thread holds a cold `dlopen`, and the next capture then wrote
+  the module's shipped defaults over the user's patch.
+
+  Off by default pending device verification. `ui-state.json` keeps a mirror of
+  the chains so turning the flag back off costs nothing — but a Set saved with
+  the flag ON and then opened by an OLDER movy keeps its sequencer, keyboard
+  state and version history while losing its movy chains, because that build
+  looks for them in a file the engine no longer owns.
+
 ### Fixed
 
 - **A chain synth could crash the device at load.** Movy hands the Schwung chain

@@ -6,6 +6,26 @@ reasoned about — where a claim is *not* established, it says so.
 
 ---
 
+## 0. What closed them, and what did not
+
+Three of the four sections below describe a wire, not a bug in a serializer:
+state crossing the `overtake_dsp` param slot in one direction or the other.
+**`engpersist` removes that wire** — the engine reads and writes its own files
+and the UI sends commands. §2, §3 and §4 are closed where that flag is on, and
+the assertions that pinned them are flipped rather than deleted, with the old
+arm kept because the old path still ships.
+
+Design: `docs/superpowers/specs/2026-09-11-engine-owned-persistence-design.md`.
+Plan: `plans/2026-09-12-engine-owned-persistence.md`.
+
+**§1 is NOT closed.** The slot is shared with the shim, shadow_ui, the chain
+forwarder and the remote-UI socket; movy can stop being a contributor and
+nothing more. The rule below still stands for anything that observes movy.
+
+Everything from §1 on is the record of how these were found. It stays.
+
+---
+
 ## 1. The shape of the problem
 
 Movy's engine has no filesystem. The UI ferries every byte of a Set into it

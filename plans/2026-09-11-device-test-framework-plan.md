@@ -27,6 +27,60 @@
 
 ---
 
+## REVISION 2026-09-11 (after the Task 1 spike) — READ THIS FIRST
+
+`plans/2026-09-11-dsp-hotswap-findings.md` invalidated three assumptions. Where
+this section conflicts with a task below, **this section wins.**
+
+**A. Task 8 (the schwung fork + PR) is DELETED.** Decision: zero schwung
+changes. `schwung` stays a reference-only checkout; no fork, no Docker
+cross-compile, no upstream dependency.
+
+**B. UI injection is movy-owned.** `schwung-testd`'s `INJECT_MIDI` writes
+`/schwung-midi-inject` (the shim's ring, into Move's MIDI_IN) and **never
+reaches an overtake module's UI** — measured. Movy's gestures are drained from
+`/dev/shm/schwung-ui-midi` by `shadow_ui.c:3349`. A new **Task 2b** adds a
+movy-owned device-side injector for that ring. Stock testd still provides
+`WAIT_FRAME`, `STATE`, `GET_PARAM`/`SET_PARAM`, `SET_OPEN_TOOL`,
+`SNAPSHOT_PAD_LEDS` — all verified working in the spike.
+
+**C. The probe rides the engine, and moves to the critical path.** No
+`shadow_register_test_state` hook. Movy's UI publishes its state blob as an
+engine param, which testd reads back with `GET_PARAM overtake_dsp:uistate`.
+Movy already polls the engine's `status` every tick, so a "probe requested" bit
+in that response costs nothing when no test is running. **Task 9 becomes Task
+5b and runs before the migration**, because `Device.close()` cannot be made
+deterministic without it.
+
+**D. Lifecycle corrections** (replacing Task 6's versions):
+
+- `park()` / `unpark()` — write `/dev/shm/schwung-control` byte 7 `|= 0x80`
+  (`SHADOW_UI_FLAG_JUMP_TO_TOOLS`). **Verified:** `overtake_mode` 2 → 0 in one
+  write, logging `suspendOvertakeMode: suspend_keeps_js — parking movy in
+  background`. The DSP stays loaded — this is a park, not a close.
+- `close()` — **NOT `Back x3`.** Back opens a Leave modal at root, dismisses it
+  while up, and navigates up otherwise; it also descends schwung's own layer
+  ladder first (hint, enum peek, section picker, entered menu). There is no
+  Shift+Back variant. Drive it closed-loop off the probe: press Back until the
+  probe reports the leave modal active, jog-turn (`CC 14`) until it reports
+  `Close Movy` selected, then jog-click (`CC 3`).
+- `swapEngine()` — **always restarts.** `dsp.so` does not hot-reload: the module
+  is freed, a fresh inode is deployed, a fresh `dlopen` runs, and the old build
+  still executes. Drop the `MOVY_ENGINE_NEEDS_RESTART` opt-in; restart
+  unconditionally. Task 1 Step 7 (correcting `CLAUDE.md`) is a no-op — the doc
+  was right.
+
+**E. Task 7's P3 check gets fixed, not ported as-is.** `test-auto.sh`'s two
+"Reopening movy fresh" steps use `Back x3`, which never closed movy, so its P3
+assertions have been re-opening an already-open movy instead of exercising a
+cold restore. The migrated scenario must do a real close (per D) before
+reopening. **If that exposes a genuine restore bug, fixing it is in scope.**
+
+**F. Revised order:** 1 (done) → 2 (bus) → 2b (injector) → 3 (wait) → 4 (runner)
+→ 5 (fixture) → 5b (probe) → 6 (device/lifecycle) → 7 (migrate automation).
+
+---
+
 ### Task 1: Spike — can `dsp.so` hot-swap without a stack restart?
 
 **Files:**

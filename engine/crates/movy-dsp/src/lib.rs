@@ -26,6 +26,7 @@ mod set_envelope;
 mod set_store;
 mod chain_state;
 mod set_saver;
+mod version_index;
 
 use chain_slots::ChainSlots;
 use pad_route::PadRoute;

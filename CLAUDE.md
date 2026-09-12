@@ -158,133 +158,140 @@ node browser-test/perf.mjs
 #     suite cannot report "missing" for a log line that is present
 node browser-test/device-scripts.mjs
 
-# 4. Device (when reachable) — deploy + automated MIDI/log test + perf timing.
-#    The bash param-UI e2e (./scripts/test.sh) is the `smoke` scenario now; the
-#    tier below is what runs here. A clean run exits 0 — there is no
-#    known-red check left in this tier (the `lfo` scenario's `param-moving`
-#    was one; fixed 2026-09-12, see test-device/scenarios/lfo.ts).
+# 4. Device (when reachable) — the whole tier in one process. It builds and
+#    deploys dsp.so FIRST, so a Rust change is the one actually under test.
+#    A clean run exits 0: there is no known-red check in this tier.
 ssh -o ConnectTimeout=3 ableton@move.local echo ok 2>/dev/null \
   && npm run test:device \
   || echo "DEVICE OFFLINE — SKIPPING DEVICE TESTS"
 # If offline: report DEVICE OFFLINE to the user in CAPS
 
-# 4a. The seq suite is still bash, and it is the only thing that builds and
-#     deploys dsp.so — run it for any engine (Rust) or sequencer change, since
-#     no TS scenario ships an engine. See test-device/MIGRATION.md.
+# 4a. seq is the one suite still in bash — run it for any sequencer change.
 ./scripts/test-seq.sh [move.local]
 
-# 4b. Every device suite at once (each one is independent — any subset, any order).
-#     Tracks 1-16 are all movy chains; there is no separate host arrangement
-#     to sweep a second time.
+# 4b. Both of the above, plus the per-suite restarts collapsed into one.
 ./scripts/test-all-device.sh [move.local]
 ```
 
-### Device tests run against a fixture state
+### The device tier is `test-device/`
 
-Every device script starts with `test_set_begin` (from `scripts/lib/test-set.sh`),
-which puts the device into the known state in `scripts/fixtures/device-set/`:
-plaits on track 0, a drum module on track 1, fixed clips, and a seeded
-automation lane. It applies the state and then **reads it back** — a suite never
-runs on unconfirmed state. Move's firmware owns set switching, so the fixture is
-applied to whichever set is active; the previous contents are not preserved.
+One process, one connection to the device, one report. `npm run test:device`
+runs every scenario; `--scenario <name>` runs one. A clean run exits **0** —
+there is no known-red check in it, and if one ever becomes permanent it is
+either fixed or taken out of the sweep, never left red. A gate that is red by
+design is a gate people stop reading.
 
-Tracks 1-16 are all movy chains, seeded from the `chains` array in
-`ui-state.json` and verified via `chloadedlog` (`ts_verify_chains`). The
-fixture also seeds schwung's four shadow slots (`slots.txt` + `slot_<N>.json`,
-`ts_verify`) — not as a live host any track still reads from, but as the raw
-material `test-migrate.sh` needs: a legacy set schwung still holds the patch
-for, which movy pulls into a chain on open. A suite that names the instrument
-must ask `ts_fixture_synth <track>` rather than hard-coding `plaits`.
+The tier **builds and deploys `dsp.so` before any scenario runs**, so a Rust
+change is the one actually under test. It restarts the stack only when the
+bytes changed, and a failed build aborts the run instead of falling through to
+the engine already on the device. `--no-engine` skips it for UI-only iteration
+and says so loudly.
 
-This is what makes the suites order-independent. Before it, `test-unload.sh`
-deleted the clip `test-reselect.sh` needed, and step presses toggled whatever a
-previous run had left.
+**New device tests go in `test-device/scenarios/`.** The bash tier is closed to
+additions and `browser-test/device-scripts.mjs` enforces it — a new
+`scripts/test-*.sh` fails `npm test`. The list may shrink, never grow.
 
-On the way out, every suite restarts the Move stack (`test_set_end`, trapped on
-`EXIT INT TERM`). Device tests leave movy open in overtake owning the LEDs and
-suppressing Move's own LED writes, so without the restart the pads and step
-buttons stay dark afterwards and the hardware looks broken. It costs ~10 s;
-`test-all-device.sh` suppresses the per-suite restarts and does one at the end.
+What is still bash, and why:
 
-The library has its own device suite — `./scripts/test-fixture-selftest.sh`. It
-is not in the sweep (it perturbs slots and takes minutes), so run it after
-changing `scripts/lib/test-set.sh`: a fixture that quietly did nothing would
-make every suite look clean while running on whatever the device happened to
-hold.
+| script | why it is still here |
+| --- | --- |
+| `test-seq.sh` | its scenario (`test-device/seq.wip.ts`, run with `--wip`) is not green. See `plans/2026-09-12-test-device-migration-followups.md` item 6. |
+| `test-chains.sh`, `test-cpu.sh`, `test-voice-slot.sh` | never in `MIGRATION.md`'s scope, and not in the sweep either. Migrate on next touch. |
+| `test-fixture-selftest.sh` | it tests `scripts/lib/test-set.sh`, which outlives the suites: fourteen non-test scripts (`measure-*`, `bench-*`, `dev-probe`) still source it. |
 
-**Writing a device test:** source the library, call `test_set_begin`, add
-`trap test_set_end EXIT INT TERM`, and use
-`ts_tap_cc` / `ts_tap_note` / `ts_tap_two_steps` for gestures. Each inject is
-its own ssh round trip (~0.5 s), so a press/release pair driven as two injects
-is a >500 ms hold — long enough that movy reads it as a different gesture (a
-held step becomes an automation hold that enters no note; a held track button is
-momentary and reverts on release). The helpers deliver a whole gesture in one
-device-side script. See `scripts/fixtures/README.md` for the fixture format and
-the device behaviours it works around.
+### What the harness can do
 
-Other useful commands:
+Everything below is in `test-device/`; reach for it before writing anything new.
+
+- **Gestures** — `dev.tap.cc/note/knob/jog`, `dev.hold*` for real holds,
+  `dev.selectTrack`. One inject is one ssh round trip (~0.5 s), so a
+  press/release pair sent as two injects is a **>500 ms hold** and movy reads it
+  as a different gesture. Use the helpers; they deliver a whole gesture at once.
+- **Waits** — `until(bus, what, read, pred)` and `bus.frames(n)`. Wait on the
+  thing itself, in **device frames**, never on a wall clock: the tick rate
+  swings 63-205 Hz with load, so any fixed sleep reading async state is a race.
+  The one exception is behaviour whose SPEC is a wall clock (the jog hint's
+  1 s hold) — and that check then has to defend its own timing.
+- **Reads** — `probe` (movy's own ViewModel), `dev.param.get/set` (engine
+  params), `dev.logLines` (debug.log, always as a before/after delta),
+  `Display` (the real framebuffer, `/dev/shm/schwung-display`).
+- **Engine** — `deployEngine()` (build + deploy + conditional restart),
+  `restartStack()`.
+
+### Rules that were each paid for once
+
+- **A restart must run as root and be verified.** MoveOriginal is root, so
+  `restart-move.sh` as `ableton` is EPERM, `|| true` swallows it, and the script
+  exits **0** with the old engine still running (measured: pid 7515 unchanged).
+  `scripts/lib/restart-stack.py` is the one body both tiers use; it fails unless
+  the process actually went away and a new one came back. Never confirm a
+  restart by asking whether `schwung-testd` answers — testd does not go down
+  with the stack, so it answers instantly and the no-op reports green.
+- **A redeployed `dsp.so` is not the running one** until that restart happens,
+  and it must go to a fresh inode (`scp` to a temp name + `mv`) — overwriting a
+  mapped `.so` corrupts its pages and crashes MoveOriginal.
+- **`dev.selectTrack(n)` taps a group-relative track button.** There are four,
+  addressing the focused group of four, so it is right only while that group is
+  0. With the focus on track 9, `selectTrack(2)` selects track **10**. The
+  16-track selector (hold Session + step) is not a drop-in: it commits the
+  switch and stays in Session view, where the pads are the clip grid, and its
+  press also runs `captureClear()` and `releaseAllLive()`.
+- **Sampling a periodic value a fixed number of times asks "was I lucky".**
+  Poll to a deadline instead — "did it move within 6 s" has one answer. And park
+  the base mid-range first: a 0..1 param modulated at depth 0.9 from near a rail
+  spends most of its cycle clamped and reads as frozen while working perfectly.
+- **A `logLines` check must be a delta**, opened before the gesture. `debug.log`
+  persists across runs, so an absolute read is satisfied by the last run.
+- **Assert audibility, not a proxy** — the synth's real param value moving, not
+  a repopulated host cache.
+- **The playhead only advances with a playing clip that HAS notes** (`len>0` in
+  `status`); an empty clip freezes `step`/`pos` at 0 even at `play=1`.
+- **MIDI-inject to overtake drops notes and CCs unpredictably.** Build scenes
+  with engine commands (`tog`/`clen`/`aset`/`clipdel`) and read `status`/`diag`
+  back, rather than driving every setup gesture through the surface.
+- **Never `kill -9` `shadow_ui`** — MoveOriginal does not respawn it and the
+  device UI stays broken until a reboot.
+
+### The fixture
+
+`test-device/fixture.ts` (`fixture.ensure`) puts the device into the state in
+`scripts/fixtures/device-set/`: plaits on track 0, a drum module on track 1,
+fixed clips, a seeded automation lane. It applies the state and then **reads it
+back** — a scenario never runs on unconfirmed state, which is what makes the
+sweep order-independent. Tracks 1-16 are all movy chains, verified via
+`chloadedlog`; the four schwung shadow slots are seeded too, as the legacy
+material the `migrate` scenario pulls from. A scenario that names an instrument
+must ask `fixtureSynth(track)`, never hard-code `plaits`.
+
+Move's firmware owns set switching, so the fixture lands on whichever set is
+active and the previous contents are **not** preserved.
+
+`scripts/lib/test-set.sh` is the bash half of the same job and the two must stay
+in sync by hand until the last bash suite is gone. After changing it, run
+`./scripts/test-fixture-selftest.sh` — a fixture that quietly did nothing makes
+every suite look clean while running on whatever the device happened to hold.
+
+### Device tests are a smoke check, not the gate
+
+Local suites cover correctness; the device covers integration (MIDI routing,
+IPC, display). **They are flaky.** Run the relevant suite **once**. If it fails,
+check whether the failure is in what you changed; if it is not, report it to the
+user and move on. Do not re-run, bisect, or chase. If the device is unreachable,
+say **DEVICE OFFLINE in caps** so the skip is visible.
+
+Both `npm test` (which includes `npm run typecheck`, now covering `test-device/`
+as its own project) and the device tier must be green before a commit.
 
 ```bash
-# Build + deploy ui.js to device
-./scripts/deploy.sh [move.local]
-
-# Same, but the bundle that SHIPS — the Settings page then lists only the two
-# flags marked `release`. ui.js reloads on tool OPEN, so reopen movy to see it.
-./scripts/deploy.sh --release [move.local]
-
-# Full automated test — deploy, open movy, inject knob CCs, check log (PASS/FAIL).
-# Was ./scripts/test.sh; it is the `smoke` scenario now.
-npm run test:device -- --scenario smoke
-
-# Device e2e: step automation stays audible after a real module reselect
-npm run test:device -- --scenario reselect
-
-# Device e2e: the bottom CLICK JOG hint only appears after a ~1 s jog hold
-# (asserts on the real framebuffer's toast band, not the log)
-node scripts/test-jog-hint.mjs [move.local]
-
-# Device e2e: the CPU meter's numbers are real, and a chain that goes silent
-# stops being charged for what it cost awake (the one claim no host build can
-# reach — a host build cannot load a chain at all)
-./scripts/test-cpu.sh [move.local]
-
-# Device e2e: a send FX bus actually carries audio — a track's signal reaches
-# the bus, the FX pass runs, and audio comes out (the one claim no host build
-# can reach: it cannot load a chain at all). `sndlog` is the read-back.
-npm run test:device -- --scenario sends
-
-# Device e2e: closing Movy mid-sequence releases every sounding note.
-# Fills all 16 steps first — one note on one step is silent for most of the
-# loop, so a teardown sampled at random would find no open gate and prove
-# nothing. Asserts '[movy] unload: released N' with N > 0.
-./scripts/test-unload.sh [move.local]
-
-# Capture the device's live screen as a PNG — verify what the Move actually
-# shows instead of inferring it from log lines. Drive the UI with
-# ../schwung-midi-inject-ui.py first (cc 40-43 tracks, cc 3 jog click,
-# cc 14 jog turn, cc 71-78 knobs), then grab.
-node scripts/grab-screen.mjs /tmp/shot.png [move.local] [scale]
-
-# Enable unified log (once per device boot; persists until cleared)
-ssh ableton@move.local 'touch /data/UserData/schwung/debug_log_on'
-
-# Live movy log tail
+# Useful commands
+./scripts/deploy.sh [move.local]              # build + deploy ui.js AND dsp.so
+./scripts/deploy.sh --release [move.local]    # the bundle that SHIPS
+npm run test:device -- --scenario smoke       # one scenario
+npm run test:device -- --wip                  # the seq WIP, never in the sweep
+node scripts/grab-screen.mjs /tmp/shot.png    # the live screen as a PNG
+ssh ableton@move.local 'touch /data/UserData/schwung/debug_log_on'   # once per boot
 ssh ableton@move.local 'tail -f /data/UserData/schwung/debug.log | grep "\[movy\]"'
-
-# Clear log
-ssh ableton@move.local '> /data/UserData/schwung/debug.log'
 ```
-
-### Device-test harness gotchas
-
-- Playhead only advances with a **playing clip that has notes** (`len>0` in
-  `status`); an empty clip freezes `step`/`pos` at 0 even when `play=1`.
-- MIDI-inject to overtake is device-state-flaky (notes vs CCs drop unpredictably),
-  so **build test scenes with engine commands** via `seqCmd`: `tog`/`clen`/`aset`/
-  `clipdel`; read `status`/`diag` via `host_module_get_param`.
-- Verify **audibility** (the synth's real param value moving), not a proxy like a
-  repopulated host cache. Full context: automation-reselect fix + engine-command
-  method are in `CHANGELOG.md` and the session's `project_reselect-synthparams-cache` note.
 
 **Build system:** All source lives in `src/` (TypeScript). `npm run build:device`
 bundles everything to `ui.js` via esbuild (single ESM file, no stale-module
@@ -304,15 +311,11 @@ respawn it, so the device UI breaks until a full reboot.
 
 ## Device tests
 
-Two tiers during the migration:
-
-- **`npm run test:device`** — the TypeScript scenarios in `test-device/`. One
-  process, one connection, frame-based waits, assertions read from movy's own
-  ViewModel through a probe. `test-device/MIGRATION.md` is the guide for moving
-  the remaining bash suites across, including the rules that are not optional
-  and when to stop and escalate.
-- **`scripts/test-*.sh`** — what is left of the bash tier. Each script is deleted
-  in the same commit as the scenario that replaces it.
+See **The device tier is `test-device/`** above — that section is the whole
+story. `test-device/MIGRATION.md` is the recipe for moving a remaining bash
+suite across, including when to stop and escalate;
+`test-device/MIGRATION-STATUS.md` is where each one stands. A retired script is
+deleted in the same commit as the scenario that replaces it.
 
 `docs/persistence-hazards.md` records what the migration turned up about saving
 and restoring Sets: two bugs fixed, two open and pinned by tests. Read it before

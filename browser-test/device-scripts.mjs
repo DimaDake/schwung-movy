@@ -598,6 +598,30 @@ const gone = BASH_SUITES_LEFT.filter((f) => !deviceSuites.includes(f));
 ok('the allowlist names no script that is already deleted', gone.length === 0,
    gone.length ? `stale: ${gone.join(', ')} — drop these lines` : 'in sync');
 
+/* ── Test 17: the docs may not name a script that does not exist ────────────
+ * Twice in one day: CONVENTIONS.md still pointed at ./scripts/test.sh and two
+ * sweep scripts that had never existed under those names, and CLAUDE.md's step
+ * 4a was a repeat of step 4. A doc that names a dead command costs the next
+ * person a debugging session against their own device before they think to
+ * doubt the instruction.
+ *
+ * Only COMMAND references are checked — a path inside backticks or prose that
+ * explains what used to be there is history, not an instruction.
+ */
+log('\nTest 17: CLAUDE.md and CONVENTIONS.md name only scripts that exist');
+
+for (const doc of ['CLAUDE.md', 'CONVENTIONS.md']) {
+    const src = readFileSync(doc, 'utf8');
+    /* A command line: the path at the start of a line, or after a shell
+     * operator, optionally `./`-prefixed. Prose mentions are wrapped in
+     * backticks and do not match. */
+    const named = [...src.matchAll(/(?:^|\|\||&&|\$\()\s*\.?\/?(scripts\/[\w-]+\.(?:sh|mjs|py))/gm)]
+        .map((m) => m[1]);
+    const missing = [...new Set(named)].filter((f) => !existsSync(f));
+    ok(`${doc} names no missing script`, missing.length === 0,
+       missing.length ? `missing: ${missing.join(', ')}` : `${new Set(named).size} referenced, all present`);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 log('');

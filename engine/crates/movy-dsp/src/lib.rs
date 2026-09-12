@@ -27,6 +27,7 @@ mod set_store;
 mod chain_state;
 mod set_saver;
 mod version_index;
+mod version_retain;
 
 use chain_slots::ChainSlots;
 use pad_route::PadRoute;

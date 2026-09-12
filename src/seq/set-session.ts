@@ -120,6 +120,21 @@ function filesAvailable(): boolean {
  * finally materialised the Set movy was already working in. */
 function rename(toId: string, toName: string): void {
     const from = setId;
+    /* Engine-owned: ONE command, because everything the old branch below does
+     * by hand is the engine's now. It saves what it is holding under the new id
+     * and removes the pad's directory itself — the UI cannot do that removal,
+     * since it has no way to know when the seed that may still need those files
+     * has run. Only the ui blob is copied here: that half is still ours. */
+    if (flagValue('engpersist')) {
+        if (typeof host_module_set_param_blocking === 'function')
+            host_module_set_param_blocking('set', 'rename ' + from + ' ' + toId, 200);
+        const ui = readUiBlob(from);
+        if (ui) writeUiBlob(toId, ui);
+        setId = toId; setName = toName;
+        rememberSet(toName, toId);
+        mlog('seq: set renamed ' + from + ' -> ' + toId);
+        return;
+    }
     /* Capture what the engine is holding RIGHT NOW, not what was last written.
      * The whole point of a rename is the work done since the last autosave —
      * carrying the durable bytes would hand the new Set the blank state the

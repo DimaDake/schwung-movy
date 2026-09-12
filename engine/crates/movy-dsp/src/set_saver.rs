@@ -281,6 +281,15 @@ fn worker(root: String, shared: Arc<Mutex<Shared>>, rx: std::sync::mpsc::Receive
                 if !store.has_state(&to) {
                     store.seed(&to, &from);
                 }
+                /* The pad's directory is now a stale copy of this Set, and
+                 * leaving it is how a device grows a `__pending-*` tree nothing
+                 * will ever read. Removed HERE and not by the UI because the
+                 * seed above may still need it, and the UI cannot know when
+                 * this job has run. Its version history goes with it, exactly
+                 * as `removeSetState` took it on the old path. */
+                if from != to {
+                    let _ = std::fs::remove_dir_all(store.set_dir(&from));
+                }
                 let mut sh = shared.lock().unwrap();
                 sh.uuid = to;
             }

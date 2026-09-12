@@ -415,14 +415,38 @@ impl Instance {
              * the audio thread; executed on the saver thread. */
             "set" => {
                 if let Some(job) = set_saver::parse_cmd(val, &self.set_uuid) {
+                    let mut carry: Option<set_saver::Job> = None;
                     match &job {
                         set_saver::Job::Open { uuid, .. } | set_saver::Job::Blank { uuid } => {
                             self.set_uuid = uuid.clone();
                         }
-                        set_saver::Job::Rename { to, .. } => self.set_uuid = to.clone(),
+                        /* A rename is "the Set I am holding just got its real
+                         * name", so what has to travel is the work IN HAND, not
+                         * the bytes on disk: the provisional directory holds
+                         * whatever the last autosave left, which for a Set born
+                         * blank is the blank. Saved under the new id here, which
+                         * makes the job's own seed the fallback for an engine
+                         * holding nothing — a re-`dlopen`ed one. */
+                        set_saver::Job::Rename { to, .. } => {
+                            self.set_uuid = to.clone();
+                            self.set_gen += 1;
+                            let payload = seq_core::persist::serialize(&self.engine);
+                            let chains = chain_state::serialize(&mut self.chains);
+                            carry = Some(set_saver::Job::Save {
+                                uuid: to.clone(),
+                                payload: payload.clone(),
+                                gen: self.set_gen,
+                                chains: chains.clone(),
+                            });
+                            self.last_saved = Some((payload, chains));
+                            self.engine.dirty = false;
+                        }
                         _ => {}
                     }
                     if let Some(s) = &self.saver {
+                        if let Some(c) = carry {
+                            s.submit(c);
+                        }
                         s.submit(job);
                     }
                 }
@@ -1201,6 +1225,45 @@ mod tests {
     /* Without a saver there is nothing to ask, and the UI must be able to tell
      * that apart from an empty history: `versions` is empty either way, but a
      * restore that cannot be asked for is `failed`, never `none`. */
+    /* The rename is the one transition where the id changed but the Set did
+     * not, and what must survive it is the work since the last autosave. The
+     * provisional directory cannot supply that — for a Set born blank it holds
+     * the blank — so the engine saves what it is HOLDING under the new id.
+     */
+    #[test]
+    fn a_rename_carries_the_work_in_hand_not_the_provisional_file() {
+        const STALE: &str = "movy1\nbpm 12000\ncl 0 0 16 0 0:24:60:100\n";
+        let dir = saver_tmp("rename");
+        crate::set_store::SetStore::new(&dir).write("__pending-1-2", STALE, 3, "0\n").unwrap();
+
+        let mut inst = Instance::new();
+        inst.set_param("setsdir", &dir);
+        inst.set_param("engpersist", "1");
+        inst.set_param("set", "open __pending-1-2");
+        let mut audio = [0i16; 256];
+        for _ in 0..200 {
+            inst.render(&mut audio);
+            if inst.get_param("set").is_some_and(|st| st.contains("gen=3")) { break; }
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+        /* An edit the provisional file has never seen. */
+        inst.set_param("cmd", "bpm 14000");
+        inst.set_param("set", "rename __pending-1-2 REAL1");
+
+        let path = format!("{dir}/REAL1/seq-state.json");
+        for _ in 0..200 {
+            if std::path::Path::new(&path).exists() { break; }
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+        let got = std::fs::read_to_string(&path).expect("the new id must own the Set");
+        assert!(got.contains("bpm 14000"), "the work in hand must travel: {got:?}");
+        /* And the pad's directory goes, or a device grows a __pending-* tree
+         * nothing will ever read. */
+        std::thread::sleep(std::time::Duration::from_millis(200));
+        assert!(!std::path::Path::new(&format!("{dir}/__pending-1-2")).exists(),
+                "the provisional directory must not be left behind");
+    }
+
     /* An open marks the engine dirty — the chain restore does it — so without
      * the comparison every open rewrote the Set at a new generation. A device
      * run caught this: `test-versions.sh` asserts the bytes it adopted are the

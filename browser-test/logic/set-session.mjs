@@ -129,6 +129,38 @@ export async function run() {
         teardown();
     }
 
+    /* E5 — R1 with the engine owning the files. The rename is the one
+     * transition where the UI used to copy a Set's bytes itself, which under
+     * the flag means writing files the engine owns while the engine goes on
+     * saving under the old id. One command replaces the copy. */
+    {
+        const { setFlag } = await import('../../dist/esm/seq/flags.js');
+        const { uuidToUiStatePath } = await import('../../dist/esm/seq/set-context.js');
+        /* The pad has a ui half of its own — otherwise "it carried its own
+         * half" would be asserting about a file that never existed. */
+        const { fs, eng } = boot({ [ACTIVE]: '__pending-13-3\nNew Set\n',
+                                   [uuidToUiStatePath('__pending-13-3')]: '{"root":48}' });
+        setFlag('engpersist', 1);
+        eng.setCmds.length = 0;
+        const writesBefore = fs.writes.length;
+
+        fs.files[ACTIVE] = 'NEW1\nSet 26\n';          // Move materialises it
+        run();
+
+        eq('E5 renamed to the real id', currentSetUuid(), 'NEW1');
+        ok('E5 by command', eng.setCmds.some((c) => c === 'rename __pending-13-3 NEW1'));
+        /* The engine writes the Set; the UI writes only its own half. A
+         * seq-state.json from here is the two-writers bug this flag exists to
+         * prevent. */
+        eq('E5 and the UI wrote no state file',
+            fs.writes.slice(writesBefore).filter((p) => p.endsWith('seq-state.json')).length, 0);
+        ok('E5 but it did carry its own half',
+            fs.writes.slice(writesBefore).some((p) => p.includes('NEW1/ui-state.json')));
+
+        setFlag('engpersist', 0);
+        teardown();
+    }
+
     /* R2 — the counterpart: an incoming Set that HAS state is a real switch. */
     {
         const { fs, eng } = boot({ [ACTIVE]: '__pending-13-3\nNew Set\n' });

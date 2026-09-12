@@ -168,9 +168,10 @@ node browser-test/perf.mjs
 #     suite cannot report "missing" for a log line that is present
 node browser-test/device-scripts.mjs
 
-# 4. Device (when reachable) — deploy + automated MIDI/log test + perf timing
+# 4. Device (when reachable) — deploy + automated MIDI/log test + perf timing.
+#    The bash param-UI e2e (./scripts/test.sh) is the `smoke` scenario now.
 ssh -o ConnectTimeout=3 ableton@move.local echo ok 2>/dev/null \
-  && ./scripts/test.sh \
+  && npm run test:device \
   || echo "DEVICE OFFLINE — SKIPPING DEVICE TESTS"
 # If offline: report DEVICE OFFLINE to the user in CAPS
 
@@ -232,8 +233,9 @@ Other useful commands:
 # flags marked `release`. ui.js reloads on tool OPEN, so reopen movy to see it.
 ./scripts/deploy.sh --release [move.local]
 
-# Full automated test — deploy, open movy, inject knob CCs, check log (PASS/FAIL)
-./scripts/test.sh [move.local]
+# Full automated test — deploy, open movy, inject knob CCs, check log (PASS/FAIL).
+# Was ./scripts/test.sh; it is the `smoke` scenario now.
+npm run test:device -- --scenario smoke
 
 # Device e2e: step automation stays audible after a real module reselect
 ./scripts/test-reselect.sh [move.local]
@@ -431,7 +433,9 @@ Param metadata (min/max/step/type) comes from `shadow_get_param(slot, "synth:cha
 
 ## open_tool_cmd protocol
 
-The only way to open a tool programmatically (used by `scripts/test.sh`):
+The only way to open a tool programmatically (the device harness does this
+through `test-device/bus.ts`'s `openTool`, which is how every scenario opens and
+reopens movy):
 
 ```python
 import mmap, json

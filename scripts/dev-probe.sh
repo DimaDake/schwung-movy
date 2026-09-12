@@ -16,7 +16,8 @@
 # log mode:
 #   -p PATTERN   grep -E pattern to dump from debug.log (default: \[movy\])
 #   -t TIMEOUT   max seconds to poll for PATTERN before dumping, in 0.5s steps
-#                (default: 5). Polling beats a fixed sleep — see test.sh 6b.
+#                (default: 5). Polling beats a fixed sleep — see the tick-rate
+#                note in test-device/scenarios/smoke.ts.
 #   -i EVENT     inject one MIDI event before waiting, as head:status:d1:d2[:nap]
 #                (same grammar as ts_send in lib/test-set.sh, e.g. a knob-1 CC
 #                bump is 0x0B:0xB0:71:65). Repeatable; events fire in order.
@@ -155,8 +156,8 @@ PYEOF"
     (( CLEAR )) && CLEAR_BLOCK="> $(q "$LOG")"
 
     # Poll in-place (remote side, still the one ssh call) instead of a fixed
-    # sleep — tick rate varies 60-200Hz with device load (see test.sh 6b), so a
-    # fixed wait either wastes time or misses a line that lands a beat late.
+    # sleep — tick rate varies 60-200Hz with device load, so a fixed wait either
+    # wastes time or misses a line that lands a beat late.
     STEPS=$(( TIMEOUT * 2 ))
     (( STEPS < 1 )) && STEPS=1
 

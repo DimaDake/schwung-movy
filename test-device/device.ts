@@ -149,11 +149,23 @@ export class Device {
      * background". The DSP stays loaded — this is a park, not a close. */
     async park(): Promise<void> {
         await this.agent.uiFlag(UI_FLAG_JUMP_TO_TOOLS);
-        await until(this.bus, 'movy to park',
-            async () => (await this.bus.state()).overtake_mode, (m) => m !== 2, { within: 1400 });
+        await this.waitParked(1400);
     }
 
+    /* Park by the USER'S door rather than the host flag above: Back at the root
+     * opens the Leave modal, whose DEFAULT selection is Background (the router
+     * maps it to host_suspend_overtake). Both routes land in the same state, but
+     * only this one also exercises the modal — and the modal is what a park has
+     * to survive, since Background is the option that exists only while
+     * host_suspend_overtake does. */
+    async parkViaModal(probe: Probe): Promise<void> { await this.leaveVia(probe, 'Background'); }
+
     async unpark(probe?: Probe): Promise<void> { await this.open(probe); }
+
+    private async waitParked(within: number): Promise<void> {
+        await until(this.bus, 'movy to park',
+            async () => (await this.bus.state()).overtake_mode, (m) => m !== 2, { within });
+    }
 
     /* A FULL close, which unloads the DSP — not the same thing as park().
      *
@@ -166,8 +178,14 @@ export class Device {
      * exit. test-auto.sh's "reopen fresh" steps never actually closed movy.
      *
      * Closed-loop off the probe instead: press Back until the modal is up, jog
-     * to "Close Movy", confirm. */
-    async close(probe: Probe): Promise<void> {
+     * to the wanted label, confirm. */
+    async close(probe: Probe): Promise<void> { await this.leaveVia(probe, 'Close Movy'); }
+
+    /* Shared by close() and parkViaModal() — the same modal, different label.
+     * parkViaModal is a PARK (DSP stays loaded, init() not re-run) so it lands
+     * on the same wait; close is a full unload, but the host drops overtake_mode
+     * either way, so one wait covers both. */
+    private async leaveVia(probe: Probe, want: string): Promise<void> {
         for (let i = 0; i < 6; i++) {
             const st = await probe.ask({ key: 'leave' });
             if (st.active) break;
@@ -177,12 +195,11 @@ export class Device {
         for (let i = 0; i < 4; i++) {
             const st = await probe.ask({ key: 'leave' });
             if (!st.active) break;
-            if (st.label === 'Close Movy') { await this.tap.cc(CC_JOG_CLICK); break; }
+            if (st.label === want) { await this.tap.cc(CC_JOG_CLICK); break; }
             await this.tap.jogTurn(1);
             await this.bus.frames(20);
         }
-        await until(this.bus, 'overtake_mode to leave 2',
-            async () => (await this.bus.state()).overtake_mode, (m) => m !== 2, { within: 2000 });
+        await this.waitParked(2000);
     }
 
     async reopen(probe: Probe): Promise<void> { await this.close(probe); await this.open(probe); }

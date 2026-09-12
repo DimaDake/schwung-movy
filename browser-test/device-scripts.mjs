@@ -83,9 +83,9 @@ ok('every local log assertion uses qgrep', offenders.length === 0,
    offenders.length ? offenders.join(', ') : `${shFiles.length} scripts clean`);
 
 /* ── Test 3b: a failing suite must say so in its exit code ────────────────────
- * test-all-device.sh judges each suite by exit status. test.sh and test-seq.sh
- * printed their failures and exited 0, so the sweep reported "ALL DEVICE SUITES
- * PASSED" over a suite that had failed every check it ran.
+ * test-all-device.sh judges each suite by exit status. test-seq.sh printed its
+ * failures and exited 0, so the sweep reported "ALL DEVICE SUITES PASSED" over
+ * a suite that had failed every check it ran.
  */
 log('\nTest 3b: every device suite exits non-zero when it fails');
 
@@ -230,21 +230,26 @@ ok('every benchmark that drives the engine proves the link first',
    unchecked.length === 0,
    unchecked.length ? unchecked.join(', ') : 'all probe before they measure');
 
-/* ── Test 8: the phrases test.sh judges the fixture by must be emittable ─────
- * `config loaded for` sat in test.sh for months and in src/ for none of them.
- * plaits — the fixture's synth, and one that HAS a bundled movy config — never
- * matched it, fell through to the "no synth loaded" branch, and reported a
+/* ── Test 8: the phrases the fixture's instrument check keys on must be emittable ─
+ * `config loaded for` sat in the smoke suite for months and in src/ for none of
+ * them. plaits — the fixture's synth, and one that HAS a bundled movy config —
+ * never matched it, fell through to the "no synth loaded" branch, and reported a
  * PASS. The suite's instrument check had stopped working, which is worse than a
  * failing check: the sweep printed green exactly where the fixture had failed
  * to reach the track's host, which is the one thing running the suites on two
  * hosts is meant to catch.
  *
- * Only the STATIC halves are pinned here. Most movy log lines are composed at
+ * That suite is `test-device/scenarios/smoke.ts` now, and it decides the same
+ * question off the same two phrases — so the same static half is pinned here.
+ * Rename either in src/ and the scenario's hierarchy check goes quietly green
+ * having tested nothing, which nothing else would notice.
+ *
+ * Only the STATIC halves are pinned. Most movy log lines are composed at
  * runtime ('auto render held=' + n), so a blanket "every grepped phrase exists
  * in src" scan is dozens of false positives long and would not survive. These
- * two are whole literals in the source, and test.sh's verdict on whether the
- * fixture has an instrument turns on them. */
-log('\nTest 8: test.sh keys on phrases the source can actually emit');
+ * two are whole literals in the source, and the scenario's verdict on whether
+ * the fixture has an instrument turns on them. */
+log('\nTest 8: the smoke scenario keys on phrases the source can actually emit');
 {
     const srcFiles = [];
     const walk = (d) => {
@@ -255,10 +260,10 @@ log('\nTest 8: test.sh keys on phrases the source can actually emit');
     };
     walk('src');
     const src = srcFiles.map((p) => readFileSync(p, 'utf8')).join('\n');
-    const testSh = readFileSync('scripts/test.sh', 'utf8');
+    const smoke = readFileSync('test-device/scenarios/smoke.ts', 'utf8');
     for (const phrase of ['loadHierarchy: config for ', 'loadHierarchy: chain_params ']) {
         ok(`src can emit ${JSON.stringify(phrase)}`, src.includes(phrase));
-        ok(`test.sh looks for ${JSON.stringify(phrase.trim())}`, testSh.includes(phrase.trim()));
+        ok(`smoke.ts looks for ${JSON.stringify(phrase.trim())}`, smoke.includes(phrase.trim()));
     }
 
     /* Same rule for the versions suite, whose verdict on the whole feature is
@@ -277,10 +282,10 @@ log('\nTest 8: test.sh keys on phrases the source can actually emit');
         readFileSync('src/seq/version-index.ts', 'utf8')
             .includes('JSON.stringify({ next: idx.next, v: idx.v })'));
     /* And the branch that made the dead phrase harmless-looking: with a fixture
-     * that guarantees a synth, "no synth loaded" cannot be a pass. */
-    ok('a missing instrument is a failure, not an outcome',
-       !/pass "Hierarchy: no synth loaded/.test(testSh)
-       && /fail "the fixture's synth/.test(testSh));
+     * that guarantees a synth, an empty hierarchy window cannot be a pass, and
+     * the failure has to name what was missing rather than shrug at it. */
+    ok('an empty hierarchy window cannot pass', /hLines\.length > 0 &&/.test(smoke));
+    ok('a missing instrument is named, not tolerated', /no instrument/.test(smoke));
 }
 
 /* ── Test 9: the movy half of the fixture is a fixed PARAMETER state ─────────

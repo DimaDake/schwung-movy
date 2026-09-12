@@ -75,7 +75,7 @@ cd engine && cargo test
 
 # Deploy + device end-to-end (when a Move is reachable at move.local)
 ./scripts/deploy.sh
-./scripts/test.sh       # param-UI e2e
+npm run test:device     # param-UI e2e (the `smoke` scenario and the rest)
 ./scripts/test-seq.sh   # sequencer e2e (also builds + deploys dsp.so)
 ```
 
@@ -279,7 +279,7 @@ drifting between releases.
 - [ ] `npm test` passes (logic, app-loop, screenshot, perf).
 - [ ] Screenshot baselines updated if rendering changed.
 - [ ] `cargo test` passes if you touched `engine/`.
-- [ ] Device e2e (`./scripts/test.sh` / `test-seq.sh`) run if you have hardware
+- [ ] Device e2e (`npm run test:device` / `test-seq.sh`) run if you have hardware
       — note in the PR if you couldn't.
 - [ ] New rendering → a screenshot test; new logic → a logic test.
 - [ ] No code duplication; shared logic factored out.

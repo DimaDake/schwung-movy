@@ -157,9 +157,10 @@ code with no external dependency — `schwung-grid.ts` (the registry),
 an esbuild alpha-rename of `mode` to `mode2`. That is the cost of the seam
 itself, and it is defensible; the load-time dependency was not.
 
-**Any device suite silently reverts the flag.** `scripts/test.sh` calls
-`deploy.sh`, which rebuilds `ui.js` with no `MOVY_SCHWUNG_GRID` in the
-environment — so a test run leaves the device on `mode = true ? "off" : "off"`.
+**Any device suite silently reverts the flag.** Every suite redeploys `ui.js`
+with the grid flag unset — `npm run test:device`'s scenarios build it in-process,
+and the bash tier goes through `deploy.sh` — so a test run leaves the device on
+`mode = true ? "off" : "off"`.
 Rebuild and redeploy with `MOVY_SCHWUNG_GRID=page ./scripts/build-module.sh`
 after any device suite, and confirm with
 

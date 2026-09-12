@@ -8,7 +8,7 @@ cd "$(dirname "$0")/.."
 
 GRN='\033[0;32m'; RED='\033[0;31m'; BLD='\033[1m'; RST='\033[0m'
 
-SCRIPTS=(test.sh test-seq.sh
+SCRIPTS=(test-seq.sh
          test-versions.sh test-migrate.sh)
 declare -a FAILED=()
 

@@ -376,4 +376,34 @@ export async function run() {
     eq('all three of them', seqState.cpuWall + seqState.cpuMask, '');
 }
 
+/* ── seq: a Play press against a "playing" mirror claims the event and
+ * queues `stop` — plans/2026-09-12-test-device-migration-followups.md item 6's
+ * cheapest-path step 1. `seq: play=0` in the log fires only from inside
+ * `parseStatus`, so "no play=0 line appeared" on device is the SAME fact as
+ * "play= stayed 1", not independent evidence the press never reached the
+ * router. This pins the UI half of that chain forever, with no device: the
+ * router-side logic is not what the failing legs could be blaming. */
+{
+    _log('\nseq: Play press against a playing mirror:');
+    const { installMockEngine, uninstallMockEngine } = await import('../mock-engine.mjs');
+    const { seqEngineTick, resetSeqEngine } = await import('../../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../../dist/esm/seq/state.js');
+    const { seqHandleMidi } = await import('../../dist/esm/seq/router.js');
+    const { CC_PLAY } = await import('../../dist/esm/seq/constants.js');
+
+    const engine = installMockEngine();
+    resetSeqEngine(); resetSeqState();
+    seqEngineTick(); seqEngineTick();   // boot probe → ready, first poll
+    engine.ops.length = 0;
+
+    seqState.playing = true;   // the mirror already believes the transport runs
+    const claimed = seqHandleMidi([0xB0, CC_PLAY, 127], false);
+    eq('a Play press against a playing mirror is claimed', claimed, true);
+    eq('and the mirror flips to stopped optimistically', seqState.playing, false);
+    seqEngineTick();
+    eq('and `stop` is queued for the engine', engine.ops.includes('stop'), true);
+
+    resetSeqEngine(); resetSeqState(); uninstallMockEngine();
+}
+
 }

@@ -276,6 +276,30 @@ is why one-directory-per-version (a shape forced by `host_remove_dir` being the
 only removal JS has) is no longer load-bearing — but the layout does not change
 in this step.
 
+**Decided when the step was planned** (2026-09-12), and recorded here because
+they are design rather than detail:
+
+- **The index crosses the wire, not the disk.** A new `versions` GET returns one
+  line per version (`n gen ms why clips ui ch`), so TypeScript stops reading Set
+  files altogether and `versions.json` keeps the single implementer §6 argues
+  for.
+- **A version is three files now.** `chains.json` joins `seq-state.json` and
+  `ui-state.json` under `v/<n>/`. With the flag on the chains live in their own
+  file, so a version without one restores an old sequence under today's chains —
+  the loss the chain document's missing LFO field would have been. A version
+  carrying neither half is what the page already shows as SEQ ONLY.
+- **The engine hands back the ui bytes; the UI applies them.** `ui-state.json`
+  stays the UI's file (§5), and a restore reaches live state down the path an
+  ordinary load already uses.
+- **The GC reports the uuids it collected**, and the UI drops those names from
+  `name-index.json`. The aliveness test leaves TypeScript entirely; what remains
+  there is name policy, which is all §5 leaves the index for.
+
+Four of the six capture moments never reach the wire: `open`, `adopted`, `auto`
+and `pre-wipe` happen inside the `Open`, `Save` and `Blank` jobs, where the
+engine already knows what it is about to overwrite. Only `keep exit`,
+`restore <n>` and `gc` are commands.
+
 ## 8. What is deleted in TypeScript
 
 - `restore-gate.ts` — all 19 lines. It exists only to remember whether a push

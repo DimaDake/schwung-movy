@@ -456,3 +456,14 @@ impl Drop for ChainInstance {
         }
     }
 }
+
+#[cfg(test)]
+impl ChainInstance {
+    /// Wires a fake vtable directly, skipping the real dlopen'd chain host.
+    /// Lets `chain_slots.rs` tests observe exactly which key string movy asks
+    /// for — the thing `lfo_report`'s bug actually was — without a device or a
+    /// real `.so`. `inst` stays null: the fake `get_param` never dereferences it.
+    pub(crate) fn for_test(api: &'static plugin_api_v2_t) -> Self {
+        Self { inst: core::ptr::null_mut(), api, fx: ChainFxApi::default(), scratch: vec![0u8; 256] }
+    }
+}

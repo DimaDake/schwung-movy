@@ -24,30 +24,24 @@
  *   L2  an unassigned LFO starts inactive
  *   L3  the assignment reaches the chain instance
  *   L4  the chain marks the LFO active
- *   L5  the driven param actually MOVES — see the note on that check. KNOWN
- *       FAILING, inherited: the bash suite reported it rather than scoring it,
- *       and refused to leave it red, on the argument that a suite every sweep
- *       reads as broken stops being read at all. It is scored here, so L5 fails
- *       on every run until the chain host modulates.
+ *   L5  the driven param actually MOVES
  *   L6  clearing the target deactivates the LFO
  *
- * L5's ruled-out list, preserved from the bash header because it is the
- * expensive part of the note — what was checked before parking it:
- *   - The read-back is sound, so a frozen value is real. The LFO applies
- *     through chain_mod_emit_value -> chain_mod_apply_effective_value, which
- *     writes with chain_mod_set_param_string(target, param) — the same
- *     addressing chain_mod_get_param_string reads. A modulated value would
- *     show here.
- *   - Idle-skip is not starving it. lfo_tick() runs inside render_block and the
- *     shim skips that on a silent slot, which is exactly why the chain host has
- *     a `mod:tick` key; movy drives it for every chain whose synth did not
- *     render (chain_slots.rs, ChainInstance::mod_tick), on by default.
- * So the remaining suspects are inside the chain host's mod runtime — most
- * likely chain_mod_emit_value bailing on a param it cannot resolve metadata
- * for (`if (!pinfo) return -1`). That is a schwung-side investigation with a
- * real user-facing symptom (a chain LFO that assigns and reports active, but
- * does not modulate), and it wants its own session rather than a release
- * checklist.
+ * L5 WAS "KNOWN FAILING, inherited": the bash suite reported it rather than
+ * scoring it, on the argument that a suite every sweep reads as broken stops
+ * being read at all. Fixed 2026-09-12 — the freeze was never in the chain
+ * host. `chlfolog`'s own read-back (chain_slots.rs, `lfo_report`) asked for
+ * the PLAIN "<target>:<param>" key, which schwung's chain host deliberately
+ * shadows to the BASE value while a target is actively modulated
+ * (`chain_mod_get_base_for_plain_key`, guarding #276 — a mod-unaware reader
+ * must not see the value the overlay keeps writing into the plugin). The
+ * diagnostic needed "<target>:<param>:effective" instead
+ * (`chain_mod_get_effective_for_subkey`) — the same key the UI's own mod
+ * dot/marker use. Pinned forever by a Rust unit test
+ * (`chain_slots::tests::lfo_report_reads_the_effective_value_not_the_base`)
+ * that fakes the chain host's key-based dispatch with no device needed, and
+ * device-verified here: the four samples now read
+ * `1.000000 -> 1.000000 -> 1.000000 -> 0.630558` instead of frozen at 0.5.
  *
  * What the bash suite spent on `sleep`: 1.2 s per LFO report (six of them),
  * 1 s after the assignment, 3 s after the module load, 8 s after the open, and
@@ -226,24 +220,16 @@ scenario('lfo', async (t) => {
     t.note('drivenParam', samples);
     const seen  = samples.join(' -> ');
     const moved = samples[0] !== '' && samples.some((v) => v !== samples[0]);
-    /* KNOWN FAILING, inherited verbatim from the bash suite. The driven param
-     * reads back frozen at its base (0.500000) on BOTH hosts, every run, and did
-     * so at v0.31.0 too — pre-existing, deterministic, not a regression. The
-     * remaining suspects are inside the chain host's mod runtime (most likely
-     * `chain_mod_emit_value` bailing on a param it cannot resolve metadata for);
-     * it is a schwung-side investigation with its own user-facing symptom and it
-     * wants its own session, not a release checklist.
-     *
-     * The bash script printed this rather than counting it, so its PASS tally
-     * was 5 against 6 logical assertions. It is a SCORED check here: the fact is
-     * either true or it is not, and a check that cannot fail is decoration.
-     * Today it FAILS, and the failing run is the honest report — remove the
-     * header note and this comment the day the chain host modulates.
-     *
-     * No teeth could be shown for it either, and that is a statement about the
-     * check rather than a gap in the proof: teeth means removing the fix and
-     * watching the check notice, and there is no fix to remove. It has never
-     * been observed GREEN — not here, not on either host, not at v0.31.0. */
+    /* WAS known-failing (frozen at the base, 0.500000, on both hosts, since
+     * v0.31.0) — see the header note. The freeze was never in the chain host's
+     * mod runtime: `report()` above reads `chlfolog`, and that diagnostic
+     * (`chain_slots.rs::lfo_report`) asked for the plain "target:param" key,
+     * which the chain host deliberately shadows to the BASE value while a
+     * target is actively modulated. Fixed by asking for ":effective" instead —
+     * see the Rust unit test this restores teeth to
+     * (`chain_slots::tests::lfo_report_reads_the_effective_value_not_the_base`).
+     * This check is a real device readback, not decoration: it is what proved
+     * the fix, sampling `1.000000 -> 1.000000 -> 1.000000 -> 0.630558`. */
     t.check('param-moving', 'the driven param is moving — modulation is live',
         moved,
         { expected: 'the sampled value to differ across four samples',

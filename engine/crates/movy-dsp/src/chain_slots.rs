@@ -607,7 +607,15 @@ impl ChainSlots {
             let value = if target.is_empty() || param.is_empty() {
                 "-".to_string()
             } else {
-                g(self, &format!("{target}:{param}"))
+                // The plain "<target>:<param>" key is intercepted by the chain
+                // host to answer with the BASE value on purpose (schwung's
+                // chain_mod_get_base_for_plain_key, guarding #276: a mod-unaware
+                // reader must not see the value the overlay keeps writing into
+                // the plugin). That made every LFO diagnostic read back frozen
+                // at its base forever, modulation live or not. ":effective" is
+                // the key that asks for the driven value instead
+                // (chain_mod_get_effective_for_subkey).
+                g(self, &format!("{target}:{param}:effective"))
             };
             if i > 1 { out.push(' '); }
             out.push_str(&format!("lfo{i}=[{target}:{param} active={active} value={value}]"));
@@ -1696,10 +1704,70 @@ impl Default for ChainSlots {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ffi::plugin_api_v2_t;
+    use core::ffi::{c_char, c_int, c_void};
+    use std::ffi::CStr;
 
     /* These run on the host, where no chain host exists — so they verify the
      * DEGRADED path, which is the one that must never crash: movy has to keep
      * sequencing its four schwung tracks when chain hosting is unavailable. */
+
+    /* Stands in for the real chain host's `get_param`: answers by exact key
+     * string, the same way schwung's dispatcher does — the plain key is the
+     * BASE value (chain_mod_get_base_for_plain_key), only ":effective" is the
+     * driven one (chain_mod_get_effective_for_subkey). Lets the test tell a
+     * `lfo_report` that asks for the wrong key apart from one that doesn't,
+     * with no device and no real `.so`. */
+    unsafe extern "C" fn fake_lfo_get_param(
+        _inst: *mut c_void, key: *const c_char, buf: *mut c_char, buf_len: c_int,
+    ) -> c_int {
+        let k = unsafe { CStr::from_ptr(key) }.to_str().unwrap_or("");
+        let v = match k {
+            "lfo1:target" => "synth",
+            "lfo1:target_param" => "morph",
+            "lfo1:active" => "1",
+            "lfo2:target" | "lfo2:target_param" => "",
+            "lfo2:active" => "0",
+            "synth:morph:effective" => "0.812345",
+            "synth:morph" => "0.500000", // the frozen BASE — what the bug read
+            _ => "",
+        };
+        let bytes = v.as_bytes();
+        if bytes.len() as c_int >= buf_len {
+            return -1;
+        }
+        unsafe {
+            core::ptr::copy_nonoverlapping(bytes.as_ptr() as *const c_char, buf, bytes.len());
+        }
+        bytes.len() as c_int
+    }
+
+    /* Pins the bug from
+     * `plans/2026-09-12-test-device-migration-followups.md` item 4: the driven
+     * param read back frozen at its base on every run, because the diagnostic
+     * asked for the plain "<target>:<param>" key — which the chain host
+     * deliberately shadows to the base value (#276) — instead of
+     * "<target>:<param>:effective". Revert the ":effective" suffix in
+     * `lfo_report` and this fails on "0.500000" instead of "0.812345". */
+    #[test]
+    fn lfo_report_reads_the_effective_value_not_the_base() {
+        let api: &'static plugin_api_v2_t = Box::leak(Box::new(plugin_api_v2_t {
+            api_version: 0,
+            create_instance: None,
+            destroy_instance: None,
+            on_midi: None,
+            set_param: None,
+            get_param: Some(fake_lfo_get_param),
+            get_error: None,
+            render_block: None,
+        }));
+
+        let mut slots = ChainSlots::new();
+        slots.slots[4] = Some(ChainInstance::for_test(api));
+
+        let report = slots.lfo_report(4);
+        assert_eq!(report, "lfo1=[synth:morph active=1 value=0.812345] lfo2=[: active=0 value=-]");
+    }
 
     /* The digest is compiled in permanently but must cost a set that never asks
      * for it exactly one bool check per block — so "off until armed" is a

@@ -5,6 +5,7 @@
  * which deserve to be readable on their own. */
 
 import { mlog } from '../log.js';
+import { flagValue } from './flags.js';
 import { BLANK_STATE } from './set-context.js';
 import { readBestState, writeStateBlob } from './persist-store.js';
 import { captureVersion } from './version-capture.js';
@@ -19,7 +20,18 @@ import { bumpGen, clearFailure, currentGen, currentSetUuid } from './set-session
  * movy silently blanking it would destroy the only copy. */
 export function sessionStartFromScratch(): void {
     mlog('seq: starting ' + (currentSetUuid() || 'this set') + ' from scratch on request');
-        const id = currentSetUuid() || '_default';
+    const id = currentSetUuid() || '_default';
+    /* Engine-owned: it captures the pre-wipe version and removes the state
+     * files itself. Writing a blank blob from here would leave the engine's own
+     * files untouched, and the Set the user asked to be rid of would come
+     * straight back on the next open. */
+    if (flagValue('engpersist')) {
+        if (typeof host_module_set_param_blocking === 'function')
+            host_module_set_param_blocking('set', 'blank ' + id, 200);
+        bumpGen();
+        clearFailure();
+        return;
+    }
     /* The Set about to be blanked, kept unconditionally. This is the capture
      * the whole version history exists for: the user is one press away from
      * losing work movy can still see. */

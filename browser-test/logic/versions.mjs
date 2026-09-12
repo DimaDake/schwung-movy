@@ -502,4 +502,72 @@ export async function run() {
     uninstallMockEngine();
     uninstallMockFs();
 }
+
+{
+    _log('\nengine-owned capture and restore:');
+    const { installMockFs, uninstallMockFs, installMockEngine, uninstallMockEngine }
+        = await import('./harness.mjs');
+    const { setFlag } = await import('../../dist/esm/seq/flags.js');
+    const { restoreVersion, restoreTick, restorePending, resetVersionRestore }
+        = await import('../../dist/esm/seq/version-restore.js');
+    const { collectDeadSets, gcTick, resetSetGc } = await import('../../dist/esm/seq/set-gc.js');
+    const { readVersionIndex } = await import('../../dist/esm/seq/version-store.js');
+    const { loadNameIndex } = await import('../../dist/esm/seq/set-context.js');
+    const { readUiBlob } = await import('../../dist/esm/seq/persist-store.js');
+    const SETS = '/data/UserData/schwung/modules/tools/movy/sets';
+
+    const fs = installMockFs({ [`${SETS}/name-index.json`]: '{"ALIVE":"A1","DEAD":"D1"}' });
+    const engine = installMockEngine();
+    setFlag('engpersist', 1);
+    resetVersionRestore(); resetSetGc();
+
+    /* Two ladders writing the same directory would interleave version numbers
+     * and prune each other's entries. With the flag on the UI keeps none. */
+    engine.vui = 'pending';
+    eq('a restore does not finish on the press', restoreVersion('S1', 3), false);
+    ok('and the page can tell that apart from a refusal', restorePending());
+    ok('the command went out', engine.setCmds.indexOf('restore 3') >= 0);
+    eq('and no version file was written', fs.writes.filter((p) => p.includes('/v/')).length, 0);
+    eq('the UI wrote no index either', readVersionIndex('S1').v.length, 0);
+
+    eq('a pending restore is not done', restoreTick(), false);
+    engine.vui = '{"root":48}';
+    eq('the answer completes it', restoreTick(), true);
+    eq('and the ui half landed in the UI\'s own file', readUiBlob('S1'), '{"root":48}');
+
+    /* An adopted older sequence has no ui half; overwriting the chains with
+     * nothing would be worse than the wipe the feature exists to undo. */
+    const beforeUi = readUiBlob('S1');
+    restoreVersion('S1', 4);
+    engine.vui = 'none';
+    eq('a version with no ui half still completes', restoreTick(), true);
+    eq('and left the ui blob alone', readUiBlob('S1'), beforeUi);
+
+    /* A restore that never lands must not leave the page waiting forever. */
+    restoreVersion('S1', 5);
+    engine.vui = 'pending';
+    let spun = 0;
+    while (restorePending() && spun < 200) { restoreTick(); spun++; }
+    ok('a restore that never answers gives up', spun < 200);
+
+    /* The sweep: the engine names what it collected and the UI drops those
+     * names. The aliveness test is gone from TypeScript entirely. */
+    engine.gc = 'pending';
+    collectDeadSets('A1');
+    ok('the sweep was asked for', engine.setCmds.some((c) => c.startsWith('gc ')));
+    ok('with Move\'s own directory named',
+        engine.setCmds.some((c) => c.includes('sets=/data/UserData/UserLibrary/Sets')));
+    gcTick();
+    eq('nothing is dropped while it is pending', Object.keys(loadNameIndex()).length, 2);
+    engine.gc = 'collected=1 D1';
+    gcTick();
+    const idx = loadNameIndex();
+    eq('the collected name is gone', 'DEAD' in idx, false);
+    eq('the live one stays', idx.ALIVE, 'A1');
+
+    setFlag('engpersist', 0);
+    resetVersionRestore(); resetSetGc();
+    uninstallMockEngine();
+    uninstallMockFs();
+}
 }

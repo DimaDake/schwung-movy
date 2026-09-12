@@ -13,7 +13,7 @@
 import { appState, VIEW_VERSIONS } from '../app/state.js';
 import { openParamPage } from './param-page.js';
 import { refreshVersionRows, versionRows } from './version-wire.js';
-import { restoreVersion } from './version-restore.js';
+import { restorePending, restoreVersion } from './version-restore.js';
 import { mlog } from '../log.js';
 
 export const versionsPageState = {
@@ -63,7 +63,10 @@ export function versionsPageClick(uuid: string): boolean {
     }
     versionsPageState.confirming = false;
     if (restoreVersion(uuid, rec.n)) return true;
-    mlog('versions: restore refused for ' + rec.n);
+    /* With the engine owning the files the restore finishes on a later tick, so
+     * "not done yet" is not a refusal — and a log line saying it was would send
+     * the next reader hunting a failure that did not happen. */
+    if (!restorePending()) mlog('versions: restore refused for ' + rec.n);
     return false;
 }
 

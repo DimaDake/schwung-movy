@@ -15,11 +15,71 @@
  * to overwrite every copy. */
 
 import { mlog } from '../log.js';
+import { flagValue } from './flags.js';
+import { refreshVersionRows } from './version-wire.js';
 import { readBestState, writeStateBlob, writeUiBlob } from './persist-store.js';
 import { captureVersion } from './version-capture.js';
 import { readVersionIndex, readVersionState, readVersionUi } from './version-store.js';
 
+/* A restore cannot be awaited: the saver is another thread and this host has no
+ * sleep. So the press sends the command and a later tick collects the answer —
+ * the same shape settling uses for module loads. */
+let pending: { uuid: string; tries: number } | null = null;
+
+/* ~2.5 s at the tick rate this runs at. A restore is a handful of file
+ * operations; a bound this loose only ever fires when something is wrong, and
+ * firing is what stops the page waiting forever. */
+const RESTORE_TRIES = 60;
+
+function restoreViaEngine(uuid: string, n: number): boolean {
+    if (typeof host_module_set_param_blocking !== 'function') return false;
+    host_module_set_param_blocking('set', 'restore ' + n, 200);
+    pending = { uuid, tries: 0 };
+    return false;   // nothing to reload yet — restoreTick says when
+}
+
+/** True on the tick a restore completed: the caller re-enters the load. */
+export function restoreTick(): boolean {
+    if (!pending) return false;
+    const v = typeof host_module_get_param === 'function'
+        ? host_module_get_param('vui') : null;
+    if (v === null || v === 'pending') {
+        if (++pending.tries < RESTORE_TRIES) return false;
+        mlog('versions: restore never answered — giving up');
+        pending = null;
+        return false;
+    }
+    const { uuid } = pending;
+    pending = null;
+    refreshVersionRows();
+    if (v === 'failed') {
+        mlog('versions: the engine refused the restore');
+        return false;
+    }
+    /* The version's ui half, written to the UI's own file: that half is ours
+     * (spec §5), and the reload that follows applies it the way an ordinary
+     * load would. `none` means the version carried none — an adopted older
+     * sequence — and the chains stay as they are. */
+    if (v !== 'none' && v.length > 0) writeUiBlob(uuid, v);
+    return true;
+}
+
+/** Is a restore in flight? `restoreVersion` answers false on the press with the
+ *  flag on, and without this the page reads that as a refusal and says so. */
+export function restorePending(): boolean {
+    return pending !== null;
+}
+
+export function resetVersionRestore(): void {
+    pending = null;
+}
+
 export function restoreVersion(uuid: string, n: number, now: number = Date.now()): boolean {
+    /* Engine-owned: it holds the files, so it takes the pre-restore capture,
+     * bumps the generation above everything on disk and hands the ui half
+     * back. Nothing below this line may run as well — two writers of one Set
+     * are what the flag exists to keep apart. */
+    if (flagValue('engpersist')) return restoreViaEngine(uuid, n);
     const rec = readVersionIndex(uuid).v.find((r) => r.n === n);
     const src = rec ? readVersionState(uuid, n) : null;
     if (!rec || !src) {

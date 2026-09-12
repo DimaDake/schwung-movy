@@ -25,13 +25,15 @@ import { deliverChainPayloads } from '../track/chain-payload.js';
 import { migrationResult, migrationTick } from '../track/migrate.js';
 import { refreshModelsForSet } from '../app/model-refresh.js';
 import { seqToast } from './render.js';
-import { collectDeadSets } from './set-gc.js';
+import { flagValue } from './flags.js';
+import { collectDeadSets, gcTick, resetSetGc } from './set-gc.js';
 import { resetSetCommit, setCommitTick } from './set-commit.js';
 import { readBestState, readUiBlob, writeStateBlob, writeUiBlob } from './persist-store.js';
 import { clearUiDirty, markUiStateDirty } from './ui-dirty.js';
 import { resetUiState } from './ui-state.js';
 import { loadSet, setHasState } from './set-load.js';
 import { adoptExistingVersions, captureVersion, resetVersionCapture } from './version-capture.js';
+import { resetVersionRestore, restoreTick } from './version-restore.js';
 import { adoptSaved, resetSetSave, saveNeeded, saveSet, savedPayload } from './set-save.js';
 
 export type Phase = 'booting' | 'loading' | 'settling' | 'ready' | 'switching' | 'failed';
@@ -105,6 +107,8 @@ export function resetSetSession(): void {
     resetSetSave();
     resetSetCommit();
     resetVersionCapture();
+    resetVersionRestore();
+    resetSetGc();
     clearUiDirty();
 }
 
@@ -161,8 +165,13 @@ function enterLoading(id: string, name: string): void {
      * builds left behind, then snapshot what was actually on disk. This one
      * capture is what makes a Set that comes up blank a menu entry rather than
      * a loss. */
-    adoptExistingVersions(id);
-    if (stored) captureVersion(id, 'open', stored.payload, stored.gen);
+    /* Engine-owned: the Open job adopts and captures before it reads, where the
+     * engine already knows what it is about to overwrite. Running both halves
+     * would interleave two ladders in one directory. */
+    if (!flagValue('engpersist')) {
+        adoptExistingVersions(id);
+        if (stored) captureVersion(id, 'open', stored.payload, stored.gen);
+    }
     const st = loadSet(id, name);
     setId = id; setName = name; gen = st.gen;
     adoptSaved(st.payload);
@@ -262,7 +271,17 @@ export function sessionFlush(force = false): void {
     if (r.ok) gen = r.gen;
     /* A forced flush is a teardown or a set switch — a natural boundary, and
      * the last chance this Set has to record where it got to. */
-    if (force && r.ok) captureVersion(setId, 'exit', savedPayload(), gen);
+    if (force && r.ok) {
+        if (flagValue('engpersist')) {
+            /* The one capture that is a command: the engine cannot see a
+             * teardown or a Set switch, and this is the last chance this Set
+             * has to record where it got to. */
+            if (typeof host_module_set_param_blocking === 'function')
+                host_module_set_param_blocking('set', 'keep exit', 200);
+        } else {
+            captureVersion(setId, 'exit', savedPayload(), gen);
+        }
+    }
 }
 
 export function sessionTick(): void {
@@ -287,6 +306,10 @@ export function sessionTick(): void {
         }
         return;
     }
+    /* Both answers arrive on a later tick than the command that asked for them
+     * — a saver thread cannot be awaited from here. */
+    if (restoreTick()) { reloadCurrentSet(); return; }
+    gcTick();
     if (phase === 'failed') return;   // waiting on the user
     if (!engineReady()) {
         if (live()) phase = 'booting';   // the engine went away

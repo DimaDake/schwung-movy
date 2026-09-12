@@ -90,6 +90,45 @@ export async function run() {
         teardown();
     }
 
+    /* E1-E4 — with the engine owning the files, every capture is either a
+     * command or something the engine does inside the job that overwrites the
+     * Set. Two ladders writing one directory would interleave version numbers
+     * and prune each other's entries, so "on means the UI keeps no history" is
+     * an invariant, not a preference.
+     *
+     * Driven through a SET SWITCH because that is the one gesture that takes
+     * both captures: the outgoing Set's exit and the incoming Set's open. An
+     * earlier version of this block measured only the flush and passed with
+     * the open capture's gate deleted. */
+    {
+        const { setFlag } = await import('../../dist/esm/seq/flags.js');
+        const { sessionStartFromScratch } = await import('../../dist/esm/seq/set-fail.js');
+        const { fs, eng } = boot({ [ACTIVE]: 'S1\nSong One\n',
+                                   [uuidToStatePath('S1')]: SAVED,
+                                   [uuidToStatePath('S2')]: SAVED });
+        setFlag('engpersist', 1);
+        eng.setCmds.length = 0;
+        const writesBefore = fs.writes.length;
+
+        fs.files[ACTIVE] = 'S2\nSong Two\n';        // a switch: flush, then load
+        run();
+
+        eq('E1 we are on the new set', currentSetUuid(), 'S2');
+        eq('E2 the switch asks the engine to keep a version',
+            eng.setCmds.filter((c) => c === 'keep exit').length, 1);
+        eq('E3 and neither capture wrote a version file',
+            fs.writes.slice(writesBefore).filter((p) => p.includes('/v/')).length, 0);
+
+        /* Start-from-scratch is the engine's blank, which captures before it
+         * removes. A UI that wrote a blank blob instead would leave the
+         * engine's own files untouched and the Set would come back. */
+        sessionStartFromScratch();
+        ok('E4 blanking is a command', eng.setCmds.some((c) => c.startsWith('blank ')));
+
+        setFlag('engpersist', 0);
+        teardown();
+    }
+
     /* R2 — the counterpart: an incoming Set that HAS state is a real switch. */
     {
         const { fs, eng } = boot({ [ACTIVE]: '__pending-13-3\nNew Set\n' });

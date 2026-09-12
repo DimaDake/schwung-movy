@@ -11,6 +11,7 @@
  * one, which is the right trade for something that deletes files. */
 
 import { mlog } from '../log.js';
+import { flagValue } from './flags.js';
 import {
     MOVE_SETS_DIR, fileExists, isProvisionalUuid, loadNameIndex, removeSetState, saveNameIndex,
 } from './set-context.js';
@@ -42,9 +43,24 @@ export function setUuidAlive(uuid: string): boolean {
     return false;
 }
 
+let sweeping = false;
+
 /** Remove state for every indexed Set whose Move Set is gone. `keep` is the
  *  live Set, which is never collected whatever the index says about it. */
 export function collectDeadSets(keep: string): number {
+    /* Engine-owned: `read_dir` sees every Set directory, including the ones no
+     * name index ever named — which is the whole reason this moved. The answer
+     * comes back on a later tick (`gcTick`), because the sweep runs on the
+     * saver thread and cannot be awaited from here. */
+    if (flagValue('engpersist')) {
+        if (typeof host_module_set_param_blocking === 'function') {
+            host_module_set_param_blocking('set',
+                'gc keep=' + keep + ' sets=' + MOVE_SETS_DIR
+                + ' pages=' + PAGE_ROOTS.join(','), 200);
+            sweeping = true;
+        }
+        return 0;
+    }
     /* The guard that makes this safe: an unreadable Sets directory answers "no
      * set exists" for every uuid, and acting on that answer would delete all of
      * them. Nothing is collected unless Move's own directory is there to be
@@ -68,4 +84,29 @@ export function collectDeadSets(keep: string): number {
     if (changed) saveNameIndex(idx);
     if (removed > 0) mlog('seq: collected ' + removed + ' deleted set(s)');
     return removed;
+}
+
+/** Read the sweep's verdict once, and drop the names it collected.
+ *
+ *  `name-index.json` is the UI's file and all that is left of it is the rename
+ *  policy's lookup — the sweep no longer walks it, so the only thing it needs
+ *  from the engine is which names are now dead. */
+export function gcTick(): void {
+    if (!sweeping || typeof host_module_get_param !== 'function') return;
+    const v = host_module_get_param('gc');
+    if (v === null || v === 'pending') return;
+    sweeping = false;
+    const parts = v.split(' ');
+    if (parts.length < 2) return;
+    const idx = loadNameIndex();
+    let changed = false;
+    for (const uuid of parts.slice(1)) {
+        for (const name in idx) if (idx[name] === uuid) { delete idx[name]; changed = true; }
+    }
+    if (changed) saveNameIndex(idx);
+    mlog('seq: engine collected ' + parts.slice(1).length + ' deleted set(s)');
+}
+
+export function resetSetGc(): void {
+    sweeping = false;
 }

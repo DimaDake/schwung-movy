@@ -184,6 +184,7 @@ await esbuild.build({
          * suite can import each layer on its own — the retention ladder in
          * particular is a pure function whose whole value is being testable
          * without a filesystem. */
+        resolve(root, 'src/seq/set-gc.ts'),
         resolve(root, 'src/seq/version-index.ts'),
         resolve(root, 'src/seq/version-retain.ts'),
         resolve(root, 'src/seq/version-store.ts'),

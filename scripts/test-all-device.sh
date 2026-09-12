@@ -8,8 +8,7 @@ cd "$(dirname "$0")/.."
 
 GRN='\033[0;32m'; RED='\033[0;31m'; BLD='\033[1m'; RST='\033[0m'
 
-SCRIPTS=(test-seq.sh
-         test-migrate.sh)
+SCRIPTS=(test-seq.sh)
 declare -a FAILED=()
 
 # Each suite normally restarts the Move stack on the way out to hand the LEDs

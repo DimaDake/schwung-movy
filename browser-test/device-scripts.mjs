@@ -406,35 +406,46 @@ const unexported = shFiles.filter((f) => {
 ok('every script calling one passes it the address', unexported.length === 0,
    unexported.length ? unexported.join(', ') : `${shFiles.length} scripts checked`);
 
-/* ── Test 13: test-migrate.sh keys on phrases the source can actually emit ───
+/* ── Test 13: the migrate scenario keys on phrases the source can emit ───────
  * migrate.ts composes its log lines from pieces at runtime ('mig: ' +
  * (forceOverwrite ? 'manual — ' : '') + 'migrated ' + n + ' track(s)'), the
  * same reason Test 8 above only pins two whole literals rather than scanning
  * every log line in the codebase — a mid-string check is what survives that,
- * checking the PIECES the shell script's grep depends on actually exist. */
-log('\nTest 13: test-migrate.sh keys on phrases the source can actually emit');
+ * checking the PIECES the scenario's regexes depend on actually exist. */
+log('\nTest 13: the migrate scenario keys on phrases the source can actually emit');
 {
     const migrateSrc = readFileSync('src/track/migrate.ts', 'utf8');
-    const migrateSh = readFileSync('scripts/test-migrate.sh', 'utf8');
+    const migrateTs = readFileSync('test-device/scenarios/migrate.ts', 'utf8');
     for (const piece of ["'mig: '", "'migrated '", "'manual — '", "'mig: nothing to migrate'"]) {
         ok(`src can emit ${piece}`, migrateSrc.includes(piece));
     }
     for (const phrase of ['mig: migrated', 'mig: nothing to migrate', 'mig: manual']) {
-        ok(`test-migrate.sh looks for ${JSON.stringify(phrase)}`, migrateSh.includes(phrase));
+        ok(`migrate.ts looks for ${JSON.stringify(phrase)}`, migrateTs.includes(phrase));
     }
     /* The contract canary's own claim: it asks the device for slot:volume,
      * the one key that round-trips over the remote-UI subscribe channel
      * (verified on device — see scripts/slot-param.mjs). synth:state does not
-     * broadcast there at all; test-migrate.sh's positive arm is its canary
-     * instead, since a renamed synth:state fails distinctly there (a migrated
-     * chain with no preset blob). */
+     * broadcast there at all; the positive arm is its canary instead, since a
+     * renamed synth:state fails distinctly there (a migrated chain with no
+     * preset blob). */
     const slotReadSrc = readFileSync('src/track/slot-read.ts', 'utf8');
     ok('slot-read.ts reads a component\'s :state blob', slotReadSrc.includes("c + ':state'"));
     ok('slot-read.ts reads slot:volume', slotReadSrc.includes('SLOT_VOLUME_KEY')
        && slotReadSrc.includes("'slot:volume'"));
-    ok('the canary asks for "slot:volume"', migrateSh.includes('"slot:volume"'));
+    ok('the canary asks for "slot:volume"', migrateTs.includes("'slot:volume'"));
+
+    /* The positive arm has to assert on a patch a plain module LOAD could not
+     * have produced. The fixture's slot-0 patch is the module's factory
+     * defaults, so keying on any of its own values passes just as happily when
+     * the preset is dropped — measured, with slot-read.ts's preset read
+     * deleted. The scenario therefore moves one param off its default with
+     * slot-state.mjs `load` and asserts on that value. */
     ok('the positive arm checks the migrated blob, covering synth:state',
-       migrateSh.includes('factory defaults'));
+       migrateTs.includes('factory defaults'));
+    ok('the asserted patch value is written, not assumed to be the fixture\'s',
+       migrateTs.includes('PATCH_VALUE') && migrateTs.includes('slot-state.mjs'));
+    ok('and read back, so a marker that never landed is visible',
+       migrateTs.includes('slot0PatchLive'));
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

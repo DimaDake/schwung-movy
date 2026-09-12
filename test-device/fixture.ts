@@ -24,7 +24,7 @@ const run = promisify(execFile);
 const HERE = dirname(fileURLToPath(import.meta.url));
 const MOVY = join(HERE, '..', '..');
 const FIXTURE_DIR = join(MOVY, 'scripts', 'fixtures', 'device-set');
-const DEVICE_DIR = '/data/UserData/schwung/_movy-fixture';
+export const DEVICE_DIR = '/data/UserData/schwung/_movy-fixture';
 const SSH_OPTS = ['-o', 'ConnectTimeout=8', '-o', 'BatchMode=yes'];
 
 let HOST = 'move.local';
@@ -274,7 +274,7 @@ export async function blobInfo(): Promise<string> {
 /* Ask the engine what each movy chain HOLDS. `chloadedlog` is write-to-read, so
  * wait for the poke's OWN line — the previous one describes a chain from before
  * whatever the caller just did. */
-async function chloaded(bus: Bus): Promise<string | null> {
+export async function chloaded(bus: Bus): Promise<string | null> {
     const countBefore = Number(
         (await ssh("grep -c 'chain loaded:' /data/UserData/schwung/debug.log 2>/dev/null || echo 0")).trim()) || 0;
     await node('engine-param.mjs', ['set', 'chloadedlog', '1', HOST]);

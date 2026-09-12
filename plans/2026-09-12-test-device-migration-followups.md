@@ -1,7 +1,9 @@
 # Device-suite migration — independent verification and follow-ups
 
-Reviewed `feat/test-device-migration` at `c764e84` (12 commits) on 2026-09-12,
-independently of the migration's own reports. `test-device/MIGRATION-STATUS.md`
+Reviewed `feat/test-device-migration` on 2026-09-12, independently of the
+migration's own reports. The review started at `c764e84`; while it ran, that
+commit was amended to `d2840a7` (the doc fixes below landed in it) and `27ce44d`
+was added on top, so the two items they resolve are marked closed here. `test-device/MIGRATION-STATUS.md`
 is the migration's account of itself; this file is the audit of that account plus
 the prioritised work it leaves behind.
 
@@ -204,13 +206,16 @@ Cheapest path, in order:
 
 ## P2 — durability and hygiene
 
-### 7. Commit the working tree; unbundle the unrelated change
+### 7. ~~Commit the working tree~~ — mostly done; one unrelated change left
 
-Uncommitted at review time: `CLAUDE.md`, `CONVENTIONS.md`,
-`.github/pull_request_template.md`, `test-device/MIGRATION-STATUS.md` — these are
-the fixes for the migration review's own D1/D2/D3 and should land. Also modified:
-`.aider.conf.yml` (drops the `../schwung` and `../*` reads), which has nothing to
-do with this migration — separate commit or revert, but do not let it ride along.
+The D1/D2/D3 doc fixes (`CLAUDE.md`, `CONVENTIONS.md`,
+`.github/pull_request_template.md`, `MIGRATION-STATUS.md`) landed in `d2840a7`
+while this review was running. **Still loose:** `.aider.conf.yml` is modified
+(it drops the `../schwung` and `../*` reads), which has nothing to do with this
+migration — separate commit or revert, but do not let it ride along. Three
+untracked measurement scripts (`scripts/grid-call-cost.mjs`,
+`scripts/inject-movy.py`, `scripts/measure-grid-cost.sh`) are also sitting in the
+tree from earlier work and want a decision.
 
 ### 8. The `seq` WIP is stored in a gitignored path
 
@@ -220,14 +225,17 @@ ignores it — along with all thirteen per-suite reports and `progress.md`. A cl
 clone or a fresh worktree has none of it. Move the WIP somewhere tracked before
 the next attempt needs it.
 
-### 9. `device-scripts.mjs` has a decorative guard of its own
+### 9. ~~`device-scripts.mjs` has a decorative guard of its own~~ — fixed in `27ce44d`
 
-Test 10's third guard ("unlinks the state files before seeding over them") keys on
-strings that `versions.ts`'s `scpTo` destinations guarantee regardless of the
-`clear` command — its bash predecessor required each destination to appear in a
-removal. This suite exists to catch exactly this class of check, so it should not
-contain one. (Test 10's other two guards and Test 13's `slot-state.mjs` conjunct
-are weak for the same reason; see O1–O3 in the migration's `final-review.md`.)
+Test 10's third guard ("unlinks the state files before seeding over them") keyed
+on strings that `versions.ts`'s `scpTo` destinations guarantee regardless of the
+`clear` command. `27ce44d` now parses each `scpTo` destination and requires an
+`rm -rf` naming it earlier in the file — order, not substring presence.
+
+**Still open in the same suite:** Test 10's other two guards and Test 13's
+`slot-state.mjs` conjunct are weak for the same reason (O1–O3 in the migration's
+`final-review.md`). Worth one pass while the context is fresh, since this is the
+suite whose whole job is catching checks that cannot fail.
 
 ### 10. Two fixture implementations now have to stay in sync
 

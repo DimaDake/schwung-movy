@@ -49,6 +49,13 @@ export function installMockEngine() {
          * safety argument for commands-instead-of-payloads. */
         setState: { uuid: '', phase: 'opening', gen: 0, dirty: 0 },
         setCmds: [],
+        /* The version menu, the restored ui half and the sweep's verdict. All
+         * three are strings the real engine's saver thread has already
+         * published, so the mock serves them the same way: a field a test sets,
+         * never something computed from what the UI just wrote. */
+        versions: '',
+        vui: 'none',
+        gc: 'idle',
         /* Every other set_param, last value per key — the chain-set document
          * (`chains`) among them. RECORDED ONLY, never served back by
          * get_param: a mock that answered a key the real engine had not been
@@ -66,6 +73,9 @@ export function installMockEngine() {
             this.getParamCalls = 0;
             this.setState = { uuid: '', phase: 'opening', gen: 0, dirty: 0 };
             this.setCmds = [];
+            this.versions = '';
+            this.vui = 'none';
+            this.gc = 'idle';
             this.loadRequests = [];
             this.alabels = null;
             this.stateLoads = [];
@@ -218,6 +228,19 @@ function installGlobals(engine) {
         if (key === 'set') {
             const st = engine.setState;
             return `uuid=${st.uuid} phase=${st.phase} gen=${st.gen} dirty=${st.dirty}`;
+        }
+        if (key === 'versions') return engine.versions;
+        /* Taken once, exactly as the engine takes them: a verdict read twice
+         * would let a test see a restore or a sweep that never happened. */
+        if (key === 'vui') {
+            const v = engine.vui;
+            if (v !== 'pending') engine.vui = 'none';
+            return v;
+        }
+        if (key === 'gc') {
+            const v = engine.gc;
+            if (v !== 'pending') engine.gc = 'idle';
+            return v;
         }
         if (key === 'alabels') return engine.alabels;
         if (key === 'state') return engine.stateBlob;

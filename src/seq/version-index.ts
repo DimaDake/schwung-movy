@@ -17,6 +17,10 @@ export interface VersionRec {
     why: VersionWhy;
     clips: number;  // how a user tells a real version from a blank one
     ui: boolean;    // whether v/<n>/ui-state.json exists
+    /* Whether v/<n>/chains.json exists. Absent in every version written before
+     * the engine owned the chains, where they rode inside the ui blob — which
+     * is why a missing field must read as false rather than as unknown. */
+    ch: boolean;
 }
 
 export interface VersionIndex { next: number; v: VersionRec[] }
@@ -40,6 +44,7 @@ export function parseVersionIndex(raw: string | null): VersionIndex {
             n: r.n, gen: r.gen, ms: r.ms, why: r.why,
             clips: typeof r.clips === 'number' ? r.clips : 0,
             ui: r.ui === true,
+            ch: r.ch === true,
         }))
         : [];
     list.sort((a, b) => b.gen - a.gen || b.n - a.n);

@@ -12,7 +12,7 @@
 
 import { appState, VIEW_VERSIONS } from '../app/state.js';
 import { openParamPage } from './param-page.js';
-import { readVersionIndex } from './version-store.js';
+import { refreshVersionRows, versionRows } from './version-wire.js';
 import { restoreVersion } from './version-restore.js';
 import { mlog } from '../log.js';
 
@@ -27,6 +27,9 @@ export function versionsPageActive(): boolean {
 
 export function openVersionsPage(): void {
     resetVersionsPage();
+    /* Once, here: the page's viewmodel is rebuilt every frame and must not buy
+     * an engine read per repaint. */
+    refreshVersionRows();
     openParamPage(VIEW_VERSIONS);
 }
 
@@ -42,7 +45,7 @@ export function versionsPageJog(delta: number, shift: boolean, uuid: string): vo
     /* The confirm owns the wheel while it is armed. A list that scrolled under
      * it would restore whatever the jog happened to land on. */
     if (versionsPageState.confirming) return;
-    const max = Math.max(0, readVersionIndex(uuid).v.length - 1);
+    const max = Math.max(0, versionRows(uuid).length - 1);
     const step = shift ? 8 : 1;
     versionsPageState.selected =
         Math.max(0, Math.min(max, versionsPageState.selected + delta * step));
@@ -52,7 +55,7 @@ export function versionsPageJog(delta: number, shift: boolean, uuid: string): vo
  *  restore. Returns true when a restore actually happened, so the caller can
  *  re-enter the load path — this module does not import the lifecycle. */
 export function versionsPageClick(uuid: string): boolean {
-    const rec = readVersionIndex(uuid).v[versionsPageState.selected];
+    const rec = versionRows(uuid)[versionsPageState.selected];
     if (!rec) return false;
     if (!versionsPageState.confirming) {
         versionsPageState.confirming = true;

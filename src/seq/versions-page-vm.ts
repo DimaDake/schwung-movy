@@ -1,7 +1,7 @@
 /* What the BACKUPS page draws — computed without pixels, so the wording and the
  * time labels are testable on their own. */
 
-import { readVersionIndex } from './version-store.js';
+import { versionRows } from './version-wire.js';
 import type { VersionWhy } from './version-index.js';
 
 export interface VersionsRowVM {
@@ -40,11 +40,13 @@ export function agoLabel(ms: number, now: number): string {
  *  import the set lifecycle, which imports the capture layer, which imports the
  *  store this reads — a cycle through the bundle for one string. */
 export function buildVersionsPageVM(now: number, uuid: string): VersionsPageVM {
-    const rows = readVersionIndex(uuid).v.map((r) => ({
+    const rows = versionRows(uuid).map((r) => ({
         age: agoLabel(r.ms, now),
         why: WHY_LABEL[r.why],
         clips: r.clips === 1 ? '1 CLIP' : r.clips + ' CLIPS',
-        seqOnly: !r.ui,
+        /* Neither half: the sequence comes back and everything else stays as
+         * it is. A version carrying chains alone still restores instruments. */
+        seqOnly: !r.ui && !r.ch,
     }));
     return { rows, selected: 0, confirming: false, empty: rows.length === 0 };
 }

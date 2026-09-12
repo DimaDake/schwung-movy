@@ -64,7 +64,9 @@ export function writeVersion(
     if (ui !== null && ui !== '') hasUi = safeWrite(versionUiPath(uuid, n), ui);
 
     idx.next = n + 1;
-    idx.v.unshift({ n, gen, ms: now, why, clips: countClips(payload), ui: hasUi });
+    /* `ch: false` always: with the flag off the chains ride inside the ui
+     * blob, so this path has no separate chains file to point at. */
+    idx.v.unshift({ n, gen, ms: now, why, clips: countClips(payload), ui: hasUi, ch: false });
     idx.v.sort((a, b) => b.gen - a.gen || b.n - a.n);
     if (!safeWrite(versionsIndexPath(uuid), serializeVersionIndex(idx))) {
         mlog('versions: index write failed for ' + uuid);

@@ -451,4 +451,55 @@ export async function run() {
 
     uninstallMockFs();
 }
+
+{
+    _log('\nthe menu off the wire:');
+    const { installMockFs, uninstallMockFs, installMockEngine, uninstallMockEngine }
+        = await import('./harness.mjs');
+    const { parseVersionRows, refreshVersionRows, versionRows, resetVersionWire }
+        = await import('../../dist/esm/seq/version-wire.js');
+    const { buildVersionsPageVM } = await import('../../dist/esm/seq/versions-page-vm.js');
+    const { setFlag } = await import('../../dist/esm/seq/flags.js');
+
+    const rows = parseVersionRows('3 9 1788892154000 open 6 1 1\n1 4 0 adopted 2 0 0');
+    eq('parses both rows', rows.length, 2);
+    eq('newest first as the engine sends it', rows[0].n, 3);
+    eq('carries why', rows[1].why, 'adopted');
+    eq('carries the chains flag', rows[0].ch, true);
+    eq('a version with neither half', rows[1].ui || rows[1].ch, false);
+    /* An engine that has not answered is NO VERSIONS, never a crash — the same
+     * rule the file reader applies to an unreadable index. */
+    eq('no answer is empty', parseVersionRows(null).length, 0);
+    eq('an empty answer is empty', parseVersionRows('').length, 0);
+    eq('a malformed row is dropped', parseVersionRows('x y z\n1 4 0 open 2 0 0').length, 1);
+
+    /* Mock fs as well as mock engine: `setFlag` writes the value to prefs.json,
+     * and a flag that cannot be stored is a flag the next read does not see. */
+    installMockFs({});
+    const engine = installMockEngine();
+    setFlag('engpersist', 1);
+    engine.versions = '2 7 0 exit 3 1 1';
+    refreshVersionRows();
+    eq('the rows came from the engine', versionRows('S1')[0].n, 2);
+
+    /* The page repaints every frame. A menu that asked the engine per frame
+     * would cost 3-5 ms of the tick that samples MIDI. */
+    const before = engine.getParamCalls;
+    for (let i = 0; i < 10; i++) buildVersionsPageVM(Date.now(), 'S1');
+    eq('ten frames cost no engine reads', engine.getParamCalls, before);
+
+    /* SEQ ONLY means neither half came with it. A version that carries chains
+     * alone still restores instruments, so it is not seq-only. */
+    engine.versions = '5 9 0 adopted 1 0 0';
+    refreshVersionRows();
+    eq('neither half reads as SEQ ONLY', buildVersionsPageVM(Date.now(), 'S1').rows[0].seqOnly, true);
+    engine.versions = '5 9 0 adopted 1 0 1';
+    refreshVersionRows();
+    eq('chains alone is not SEQ ONLY', buildVersionsPageVM(Date.now(), 'S1').rows[0].seqOnly, false);
+
+    setFlag('engpersist', 0);
+    resetVersionWire();
+    uninstallMockEngine();
+    uninstallMockFs();
+}
 }

@@ -122,10 +122,12 @@ ok('no script calls qgrep without sourcing test-set.sh', missingSource.length ==
  * restart-move.sh detaches and sleeps ~1 s before it kills anything, so for the
  * first seconds `pidof MoveOriginal` still answers with the doomed process. A
  * suite that waits that way proceeds against a stack that is about to die, and
- * a fixed sleep before it is worse: test-master-fx.sh assumed the boot was ~20 s
- * out, wrote its empty-slot seed at t+6 s — after the fresh shim had already
- * restored the old module — and cleared the log over the boot line its own guard
- * reads. Every check it made then ran on a slot that was never empty.
+ * a fixed sleep before it is worse: the master-FX suite (a TS scenario now)
+ * assumed the boot was ~20 s out, wrote its empty-slot seed at t+6 s — after the
+ * fresh shim had already restored the old module — and cleared the log over the
+ * boot line its own guard reads. Every check it made then ran on a slot that was
+ * never empty. Its `rebootWith` clears the log first and then waits on the
+ * shim's own boot line, which is the shape to copy.
  */
 log('\nTest 5: a restart is waited for by pid change, not by pidof');
 

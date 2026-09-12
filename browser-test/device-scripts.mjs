@@ -330,9 +330,22 @@ ok('the shared lib defines ts_ssh_root', /^ts_ssh_root\(\)/m.test(libSrc),
    'without it a suite has no way to remove what movy wrote as root');
 
 const versionsTs = readFileSync('test-device/scenarios/versions.ts', 'utf8');
-ok('the scenario clears the version store', /rm -rf/.test(versionsTs) && /v'/.test(versionsTs),
+/* O2 (final-review.md): the original pair was two independent greps —
+ * `/rm -rf/` and `/v'/` — so `'${D}/v'` sitting anywhere else in the file
+ * (it does, as the directory-existence check further down) satisfied the
+ * second on its own, and `/sshRoot/` was satisfied by the HELPER'S OWN
+ * DEFINITION, never a call. Neither actually tied "clears the version store"
+ * to "falls back to root for THAT clear". Both conjuncts now live in one
+ * regex — the `rm -rf` template literal must itself contain `${D}/v'` — and
+ * the fallback check requires `sshRoot(<that same variable>)`, an actual call
+ * naming the command just matched, not just the identifier appearing
+ * somewhere in the file. */
+const clearStore = versionsTs.match(/const\s+(\w+)\s*=\s*`rm -rf[^`]*\$\{D\}\/v'[^`]*`/);
+ok('the scenario clears the version store', !!clearStore,
    'if it does not, the check below is vacuous');
-ok('and falls back to root ssh for it', /sshRoot/.test(versionsTs),
+const clearVar = clearStore?.[1];
+ok('and falls back to root ssh for it',
+   !!clearVar && new RegExp(`sshRoot\\(\\s*${clearVar}\\s*\\)`).test(versionsTs),
    'an ableton-only clear dies on a root-owned tree');
 /* The easy half to fake. scp OPENS THE DESTINATION FOR WRITING, so it is refused
  * on a root-owned file no matter how writable the directory is — but merely
@@ -458,8 +471,14 @@ log('\nTest 13: the migrate scenario keys on phrases the source can actually emi
      * slot-state.mjs `load` and asserts on that value. */
     ok('the positive arm checks the migrated blob, covering synth:state',
        migrateTs.includes('factory defaults'));
+    /* O3 (final-review.md): `slot-state.mjs` alone is decorative — the scenario
+     * also calls it with `clear` (teardown) and `module` (restore), so the
+     * substring survives even with the actual `load` call deleted. The guard
+     * now requires the `load` VERB specifically, tied to the assignment that
+     * moves the value off the fixture's default. */
     ok('the asserted patch value is written, not assumed to be the fixture\'s',
-       migrateTs.includes('PATCH_VALUE') && migrateTs.includes('slot-state.mjs'));
+       migrateTs.includes('st[key] = PATCH_VALUE')
+       && /node\('slot-state\.mjs',\s*\[\s*'load'/.test(migrateTs));
     ok('and read back, so a marker that never landed is visible',
        migrateTs.includes('slot0PatchLive'));
 }

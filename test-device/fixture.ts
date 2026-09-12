@@ -237,6 +237,16 @@ export async function installMovyState(): Promise<void> {
     /* The rotating shadow copies outrank a lower-generation canonical file, so
      * a stale pair would be restored right back over the fixture on next open. */
     await ssh(`rm -f '${dir}/seq-state.1.json' '${dir}/seq-state.2.json'`);
+    /* And chains.json, which with `engpersist` on is the AUTHORITY for the movy
+     * chains — ui-state.json's copy is only a mirror (spec §6.1). Seeding the
+     * mirror while the previous run's authority survived meant a scenario ran
+     * on whatever modules the last one left: the fixture asked for plaits on
+     * track 0 and the engine reported rex, which reads as "movy chains never
+     * reached the fixture". Removing it puts the Set in the shape the engine's
+     * compatibility path expects — no chains.json, chains read from the ui blob
+     * — which is also what every Set written before this feature looks like.
+     * Mirrors scripts/lib/test-set.sh, which carries the same fix. */
+    await ssh(`rm -f '${dir}/chains.json'`);
 }
 
 /* The per-set sequencer blob's mtime. Movy persists on its own schedule (~8 s

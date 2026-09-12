@@ -23,6 +23,7 @@ export const CC_BACK      = 51;
 export const CC_PLAY      = 85;
 export const CC_REC       = 86;
 export const CC_DELETE    = 119;
+export const CC_UNDO      = 56;   // seq/leds.ts CC_UNDO — fires on press
 export const CC_KNOB_BASE = 71;   // knobs 1..8 -> 71..78
 export const CC_TRACK_BASE = 40;  // 43 = track 1, 40 = track 4
 export const STEP_NOTE_BASE = 16; // step buttons 16..31

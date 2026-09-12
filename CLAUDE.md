@@ -160,11 +160,9 @@ node browser-test/device-scripts.mjs
 
 # 4. Device (when reachable) — deploy + automated MIDI/log test + perf timing.
 #    The bash param-UI e2e (./scripts/test.sh) is the `smoke` scenario now; the
-#    tier below is what runs here.
-#    NOTE: the `lfo` scenario carries one permanently-red check (`param-moving`
-#    — a standing movy bug, see test-device/MIGRATION-STATUS.md), so the full
-#    run exits non-zero BY DESIGN. That is the bug being visible, not a
-#    regression, and the fix is in movy's mod path — never in the check.
+#    tier below is what runs here. A clean run exits 0 — there is no
+#    known-red check left in this tier (the `lfo` scenario's `param-moving`
+#    was one; fixed 2026-09-12, see test-device/scenarios/lfo.ts).
 ssh -o ConnectTimeout=3 ableton@move.local echo ok 2>/dev/null \
   && npm run test:device \
   || echo "DEVICE OFFLINE — SKIPPING DEVICE TESTS"
@@ -374,6 +372,10 @@ code splitting). Never edit `ui.js` directly — it is a build artifact.
   one coherent subsystem, so 200 would shred it). It was exempt by omission,
   and `logic.mjs` quietly reached 12,620 lines — 63× the src limit — becoming
   the most-edited and most-expensive-to-read file in the repo.
+- **`test-device/` gets the same ~600-line ceiling as `browser-test/`, for the
+  same reason.** Scenarios run 273–583 lines (`mutes.ts` 583,
+  `module-contract.ts` 518, `migrate.ts` 484) — one suite is one coherent
+  subsystem. Said explicitly rather than left to inference.
 
 ### Directory responsibilities
 

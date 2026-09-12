@@ -334,9 +334,25 @@ ok('the scenario clears the version store', /rm -rf/.test(versionsTs) && /v'/.te
    'if it does not, the check below is vacuous');
 ok('and falls back to root ssh for it', /sshRoot/.test(versionsTs),
    'an ableton-only clear dies on a root-owned tree');
-ok('and unlinks the state files before seeding over them',
-   /seq-state\.json'/.test(versionsTs) && /ui-state\.json'/.test(versionsTs),
-   'scp over a root-owned file is refused');
+/* The easy half to fake. scp OPENS THE DESTINATION FOR WRITING, so it is refused
+ * on a root-owned file no matter how writable the directory is — but merely
+ * MENTIONING the filename is not the guard, because the scp line mentions it too.
+ * A grep for the name passes on precisely the code it is meant to police. The
+ * assertion has to be ORDER: every file the seed scp's must have been rm'd
+ * earlier in the same file. */
+const seedWrites = [...versionsTs.matchAll(/scpTo\([\s\S]*?\$\{D\}\/((?:seq|ui)-state[^`'"\s]*)/g)]
+    .map(m => ({ dest: m[1], at: m.index }));
+ok('the scenario seeds the state files by scp', seedWrites.length > 0,
+   'if this is 0 the check below is vacuous');
+const uncleared = seedWrites.filter(({ dest, at }) => {
+    const before = versionsTs.slice(0, at);
+    const rm = before.lastIndexOf('rm -rf');
+    return rm === -1 || !before.slice(rm).includes('${D}/' + dest);
+});
+ok('and unlinks each one before writing it', uncleared.length === 0,
+   uncleared.length
+       ? uncleared.map(w => w.dest).join(', ') + ' written before the unlink'
+       : `${seedWrites.length} destination(s), unlink precedes the write`);
 
 /* ── Test 11: the release routine keeps its announcement step ────────────────
  * The announcement is only "part of the release" while the build gate refuses a

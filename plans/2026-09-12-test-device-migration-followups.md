@@ -9,6 +9,45 @@ the prioritised work it leaves behind.
 
 ---
 
+## Status — 2026-09-12 evening
+
+| item | state |
+| --- | --- |
+| 1. `test-all-device.sh` ran 1 of 14 | **closed** — the TS tier is one `run_one` entry; jog-hint's line is gone with the script |
+| 2. `--scenario <name>` used the wrong host | **closed** (`f5bb22d`) |
+| 3. the gate can never be green | **closed** — item 4 fixed, and `lfo`'s sampling made deterministic |
+| 4. LFO modulation never reaches the driven param | **closed** (`be58142`) — and it was never the mod runtime: `lfo_report` read the plain key, which the chain host deliberately shadows to the BASE value. `:effective` is the driven one. A diagnostic bug, not an audio bug |
+| 5. the watched-track push cannot heal a fresh UI | **open** |
+| 6. `seq` transport-stop | **open, but both hypotheses disproved** — see `4219b3e`. (a) is refuted by `transportStop_step record` succeeding through the identical poll path; (b) by zero `capture dismissed by` lines in the device log. The live lead is `Device.selectTrack`'s group-0 assumption, and the blocker before any single check is that the scenario is not reproducible run to run (4, 8, 7 failures over identical code) |
+| 7. working tree | **closed** — three untracked measurement scripts still want a decision |
+| 8. seq WIP in a gitignored path | **closed** (`1717f8c`) — and it could not be imported at all until `4219b3e`; `npm run test:device -- --wip` runs it |
+| 9. decorative guards in `device-scripts.mjs` | **closed** (`27ce44d`, `33823be`) |
+| 10. two fixture implementations | **open** — `test-set.sh` outlives the suites; 14 non-test scripts source it |
+| 11. scope of the remaining bash tier | **decided** — `browser-test/device-scripts.mjs` Test 16 is a ratchet: the five surviving suites are an allowlist that may shrink and may not grow |
+| 12. name `test-device/` in the file-size rule | **closed** (`b65c747`) |
+
+Three things this review did not know about, found while closing the above:
+
+- **No scenario ever shipped an engine.** `npm run test:device` graded a Rust
+  change against whatever `dsp.so` the device held. That, not item 6, was the
+  reason `test-seq.sh` could not be retired. Closed in `78fb441`.
+- **The harness could not restart the stack.** `swapEngine`/`restartStack` went
+  through `bus.restartMove()`, i.e. as whoever owns `schwung-testd` — started as
+  `ableton`, so the kill is EPERM and the script exits 0 — and then "confirmed"
+  the restart by pinging that same testd, which never went down. Measured:
+  MoveOriginal held pid 7515 across it. Closed in `78fb441`.
+- **`test-device/` was never typechecked.** `tsconfig.json`'s include is `src/`,
+  `browser-test/`, `build/`. The gate cited `npm run typecheck` as evidence over
+  5,900 lines it never read. Closed in `8d436b3`, which found four real defects
+  on its first run.
+
+And item 11's "blocked by design" entry for `test-jog-hint.mjs` was wrong: the
+framebuffer is a file in `/dev/shm` that scp reads, which is what the script
+itself did. `SNAPSHOT_DISPLAY` was never needed. It is the `jog-hint` scenario
+now (`8d436b3`).
+
+---
+
 ## Verdict: the migration is faithful. Accept it.
 
 | what was checked | how | result |

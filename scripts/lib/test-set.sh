@@ -494,6 +494,15 @@ ts_seq_apply() {
     # The rotating shadow copies outrank a lower-generation canonical file, so a
     # stale pair would be restored right back over the fixture on the next open.
     ts_ssh "rm -f '${p%/*}/seq-state.1.json' '${p%/*}/seq-state.2.json'"
+    # And chains.json, which with `engpersist` on is the AUTHORITY for the movy
+    # chains — ui-state.json's copy is only a mirror (spec §6.1). Seeding the
+    # mirror while the previous run's authority survived meant every suite in a
+    # sweep ran on whatever modules the last one left: the fixture asked for
+    # plaits on track 0 and the engine reported rex. Removing it puts the Set in
+    # the shape the engine's compatibility path expects — no chains.json, chains
+    # read from the ui blob — which is also what every Set written before this
+    # feature looks like.
+    ts_ssh "rm -f '${p%/*}/chains.json'"
 }
 
 # The movy-hosted half of the fixture: `<track> <component> <module>` per line,

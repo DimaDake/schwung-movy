@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 # Shared device-test fixture state. Sourced, never executed.
 #
+# test-device/fixture.ts is a SEPARATE TS port of this file (a scripting-
+# environment split, not a fork by design) — the two seed the same device
+# state and have to stay in sync BY HAND. This already cost a real bug once:
+# 6cc850d removed chains.json as an authority here, and until that removal was
+# hand-ported to fixture.ts too (800ceb6), the TS fixture asked for plaits
+# while the engine reported rex. `test-seq.sh` and the other scripts still on
+# this file are what keeps it alive (plans/2026-09-12-test-device-migration-
+# followups.md item 10) — until `test-seq.sh` retires, treat any change here as
+# a change fixture.ts needs too, and vice versa.
+#
 # Device tests used to assert against whatever set the device happened to hold
 # and mutated it for each other, so results depended on run order. This puts
 # every run on one known state.

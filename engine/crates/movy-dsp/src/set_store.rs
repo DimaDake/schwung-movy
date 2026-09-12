@@ -29,7 +29,7 @@ pub fn is_blank(payload: &str, chains: &str) -> bool {
 
 /// Write-temp → fsync → rename. The rename is atomic, so a reader never sees a
 /// partial canonical file — the thing the two shadows existed to survive.
-fn atomic_write(path: &Path, content: &str) -> Result<(), String> {
+pub(crate) fn atomic_write(path: &Path, content: &str) -> Result<(), String> {
     let tmp = path.with_extension("writing");
     {
         let mut f = fs::File::create(&tmp).map_err(|e| format!("create {tmp:?}: {e}"))?;

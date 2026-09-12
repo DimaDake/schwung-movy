@@ -47,6 +47,18 @@ export class Device {
         try { await body(); } finally { await this.agent.inject(noteOff(note)); }
     }
 
+    /* A knob HOLD — the gesture hold() above cannot express.
+     *
+     * BOTH edges of a knob touch are note-ON (0x90) on note 0..7: d2 > 0 presses,
+     * d2 = 0 releases. `src/midi/router.ts` takes the whole knob branch under
+     * `(status & 0xF0) === 0x90 && d1 < 8`, so a real note-off (0x80) is dropped
+     * silently — movy never sees the release, and a picker that an item selector
+     * opens on touch is never committed. The hold would look like a hang. */
+    async knobHold(k: number, body: () => Promise<void>): Promise<void> {
+        await this.agent.inject(noteOn(k, 127));
+        try { await body(); } finally { await this.agent.inject(noteOn(k, 0)); }
+    }
+
     /* TWO gates, separate budgets.
      *
      * The overtake DSP load runs on the shim worker, so the mode flips when the

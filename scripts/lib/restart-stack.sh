@@ -18,33 +18,12 @@
 
 # restart_move_stack <host> [cmd-to-run-while-down]
 # Non-zero unless MoveOriginal actually went away and a NEW one came back.
+#
+# The body lives in restart-stack.py so the bash tier and the TS device tier
+# (test-device/engine.ts) run the SAME verified restart rather than two copies
+# of it.
 restart_move_stack() {
     local host="$1" while_down="${2:-}"
-    ssh -o ConnectTimeout=5 "root@$host" "python3 -c \"
-import os, subprocess, sys, time
-def pids(name):
-    try: return subprocess.check_output(['pidof', name]).decode().split()
-    except Exception: return []
-old = pids('MoveOriginal')
-subprocess.call(['/data/UserData/schwung/restart-move.sh'])
-t0 = time.time()
-while time.time() - t0 < 60:
-    if not pids('MoveOriginal'): break
-    time.sleep(0.02)
-down = time.time() - t0
-if pids('MoveOriginal') == old and old:
-    print('restart: THE STACK NEVER WENT DOWN — MoveOriginal is still pid %s.' % ','.join(old))
-    print('restart: a redeployed dsp.so is NOT running. Re-run as root.')
-    sys.exit(1)
-cmd = '''$while_down'''
-if cmd.strip(): os.system(cmd)
-while time.time() - t0 < 120:
-    new = pids('MoveOriginal')
-    if new and new != old and pids('shadow_ui'): break
-    time.sleep(0.1)
-if not (pids('MoveOriginal') and pids('shadow_ui')):
-    print('restart: the stack went down but did not come back')
-    sys.exit(1)
-print('restart: down at %.1fs, new stack at %.1fs' % (down, time.time() - t0))
-\""
+    local here; here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    ssh -o ConnectTimeout=5 "root@$host" python3 - "$while_down" < "$here/restart-stack.py"
 }

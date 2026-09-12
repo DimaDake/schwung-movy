@@ -178,6 +178,13 @@ scenario('lfo', async (t) => {
      * is asynchronous (the engine services it on the audio thread), so the
      * wait's budget is what tells a slow assignment apart from one that never
      * happened. */
+    /* Park the base mid-range FIRST. `morph` is 0..1 and the depth below is 0.9,
+     * so a base left near either rail spends most of the cycle clamped and the
+     * readback below is legitimately constant — which is how this check failed
+     * on a build whose modulation was working (`1.000000` four times, against
+     * the same engine md5 that had just passed). Centring it makes a moving
+     * param unable to look frozen. */
+    await ep(`ch${CHAIN}:${TARGET}:${TARGET_PARAM}`, '0.5');
     await ep(`ch${CHAIN}:lfo${LFO}:target`, TARGET);
     await ep(`ch${CHAIN}:lfo${LFO}:target_param`, TARGET_PARAM);
     await ep(`ch${CHAIN}:lfo${LFO}:enabled`, '1');
@@ -208,15 +215,19 @@ scenario('lfo', async (t) => {
           actual: afterRaw || '<no chlfolog answer>' });
 
     // ── L5: THE claim — the driven param actually moves ──────────────────────
-    /* Several samples, not two: a periodic value read at two arbitrary instants
-     * can legitimately come back the same, and a flaky device test is worse than
-     * none. The bash suite spread them over ~3.5 s of sleeps; each `report()`
-     * here is its own device round trip, so the spacing is real work. */
+    /* Sample until it MOVES, bounded — not a fixed count. A periodic value read
+     * at N arbitrary instants can legitimately come back the same N times, so a
+     * fixed sample count asks "was I lucky" and answers it differently on
+     * different runs. Polling to a deadline asks "did it move within 6 s",
+     * which has one answer. Each `report()` is its own device round trip, so
+     * the spacing between samples is real work, not a wall clock. */
     const samples = [after.value];
-    for (let i = 0; i < 3; i++) {
-        await t.bus.frames(ACT);
-        samples.push(parseLfo(await report()).value);
-    }
+    try {
+        await until(t.bus, 'the driven param to move',
+            async () => { samples.push(parseLfo(await report()).value); return samples; },
+            (vs) => vs[0] !== '' && vs.some((v) => v !== vs[0]),
+            { within: 6000, every: ACT });
+    } catch { /* the check below reports every sample it took */ }
     t.note('drivenParam', samples);
     const seen  = samples.join(' -> ');
     const moved = samples[0] !== '' && samples.some((v) => v !== samples[0]);

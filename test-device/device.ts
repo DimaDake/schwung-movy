@@ -5,6 +5,7 @@ import type { Agent } from './agent.js';
 import { UI_FLAG_JUMP_TO_TOOLS } from './agent.js';
 import type { Probe } from './probe.js';
 import { until } from './wait.js';
+import { restartStack } from './engine.js';
 import {
     cc, noteOn, noteOff, knobDelta,
     CC_JOG_CLICK, CC_JOG_TURN, CC_BACK, CC_KNOB_BASE, CC_TRACK_BASE,
@@ -227,8 +228,21 @@ export class Device {
         await this.open(probe);
     }
 
+    /* Goes through the ROOT path in engine.ts, not bus.restartMove().
+     *
+     * RESTART_MOVE runs restart-move.sh as whoever owns schwung-testd, and
+     * daemon.ts starts testd as `ableton` whenever the port is closed — which
+     * is the normal case. MoveOriginal is root, so that kill is EPERM, `|| true`
+     * swallows it, and the script exits 0 with the old engine still running.
+     * Worse, the old "wait for the stack to come back" below pinged testd,
+     * which never went down, so the no-op returned green immediately. Measured
+     * 2026-09-12: MoveOriginal held pid 7515 across such a restart.
+     *
+     * restartStack() is non-zero unless the process really went away and a new
+     * one came back; the ping that follows only waits for testd to answer
+     * again. */
     async restartStack(): Promise<void> {
-        await this.bus.restartMove();
+        await restartStack(this.host);
         await until(this.bus, 'the stack to come back',
             () => this.bus.ping().catch(() => ''),
             (v) => v.startsWith('schwung-testd'), { within: 6000 });

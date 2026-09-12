@@ -9,7 +9,7 @@ cd "$(dirname "$0")/.."
 GRN='\033[0;32m'; RED='\033[0;31m'; BLD='\033[1m'; RST='\033[0m'
 
 SCRIPTS=(test.sh test-seq.sh
-         test-mutes.sh test-module-contract.sh test-master-fx.sh
+         test-mutes.sh test-master-fx.sh
          test-versions.sh test-migrate.sh)
 declare -a FAILED=()
 

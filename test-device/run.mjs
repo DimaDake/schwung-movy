@@ -11,6 +11,7 @@ import './dist/scenarios/lfo.js';
 import './dist/scenarios/items.js';
 import './dist/scenarios/volume.js';
 import './dist/scenarios/sends.js';
+import './dist/scenarios/module-contract.js';
 
 const argv = process.argv.slice(2);
 const flag = (n) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : undefined; };

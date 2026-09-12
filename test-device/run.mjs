@@ -19,6 +19,13 @@ import './dist/scenarios/smoke.js';
 import './dist/scenarios/versions.js';
 import './dist/scenarios/migrate.js';
 
+/* The seq WIP is opt-in and never part of the sweep: it is not green, and a
+ * never-green scenario in the default run is how a red gate stops being read.
+ * `npm run test:device -- --wip` is how you work on it. Before this it could
+ * not be run at all — it was moved up out of scenarios/ without its relative
+ * imports being fixed, so importing it threw ERR_MODULE_NOT_FOUND. */
+if (process.argv.includes('--wip')) await import('./dist/seq.wip.js');
+
 const argv = process.argv.slice(2);
 const flag = (n) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : undefined; };
 // A flag's own value (e.g. "smoke" in "--scenario smoke") is not a positional

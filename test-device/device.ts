@@ -205,6 +205,24 @@ export class Device {
 
     async reopen(probe: Probe): Promise<void> { await this.close(probe); await this.open(probe); }
 
+    /* Taps a TRACK BUTTON, which is group-relative: there are only four, and
+     * they address the focused group of four. So this is correct ONLY while
+     * that group is 0, and lands somewhere else silently otherwise — measured
+     * 2026-09-12, with the focus on track 9, selectTrack(2) selected track 10.
+     *
+     * Every shipped scenario asks for track 0 from a fresh open, so none of
+     * them can see it. seq.wip.ts is the one caller that moves the focus
+     * (hold-Session + step 9) and then keeps calling this, which is why its
+     * later legs assert against clips on tracks nothing wrote to.
+     *
+     * Replacing the gesture with the 16-track selector (hold Session + step)
+     * was tried and is NOT a drop-in: holding Session commits the switch and
+     * stays in Session view, where the pads are the clip grid rather than the
+     * keyboard, and the press also runs captureClear() and releaseAllLive()
+     * (src/seq/router-buttons.ts). Measured on the seq WIP: 12/16 → 9/16 with
+     * the bare swap, 6/16 with a Session tap added to return to Note view. The
+     * fix is to give the harness a deliberate track-selection primitive, not to
+     * swap this one gesture for another. */
     async selectTrack(n: number): Promise<void> {
         await this.tap.cc(CC_TRACK_BASE + (3 - (n % 4)));
         await this.bus.frames(30);

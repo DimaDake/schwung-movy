@@ -559,6 +559,13 @@ ok('a failed engine build aborts instead of falling through',
 ok('--no-engine announces that the engine was not shipped',
    runMjs.includes('--no-engine') && /noEngine[\s\S]{0,200}console\.log/.test(runMjs));
 
+/* The seq WIP is not green. It may be runnable (`--wip`) but must never load
+ * by default: a never-green scenario in the sweep is how a red gate stops being
+ * read — the same reasoning that kept it out of scenarios/. */
+ok('the seq WIP loads only behind --wip',
+   /--wip[\s\S]{0,80}import\('\.\/dist\/seq\.wip\.js'\)/.test(runMjs)
+   && !/^import '\.\/dist\/seq\.wip\.js';/m.test(runMjs));
+
 /* ── Test 16: the bash device tier is closed to additions ───────────────────
  * A ratchet, not a ban. Eleven bash suites became TS scenarios; these are what
  * is left, each for a reason recorded in test-device/MIGRATION-STATUS.md. The

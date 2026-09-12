@@ -70,12 +70,12 @@
  */
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { scenario } from '../runner.js';
-import { Device } from '../device.js';
-import { Probe } from '../probe.js';
-import * as fixture from '../fixture.js';
-import { until } from '../wait.js';
-import { cc, noteOn, noteOff, CC_PLAY, CC_REC, CC_UNDO, STEP_NOTE_BASE } from '../midi.js';
+import { scenario } from './runner.js';
+import { Device } from './device.js';
+import { Probe } from './probe.js';
+import * as fixture from './fixture.js';
+import { until } from './wait.js';
+import { cc, noteOn, noteOff, CC_PLAY, CC_REC, CC_UNDO, STEP_NOTE_BASE } from './midi.js';
 
 const run = promisify(execFile);
 

@@ -12,7 +12,7 @@
 
 import { mlog } from '../log.js';
 import { seqState } from './state.js';
-import { markUiStateDirty, takeUiDirty } from './ui-dirty.js';
+import { markUiStateDirty, takeUiDirty, uiStateDirty } from './ui-dirty.js';
 import { serializeUiState } from './ui-state.js';
 import { writeStateBlob, writeUiBlob } from './persist-store.js';
 import { captureAutoIfDue } from './version-capture.js';
@@ -38,7 +38,14 @@ export function adoptSaved(payload: string): void {
 }
 
 export function saveNeeded(): boolean {
-    return seqState.dirty || saveRetry;
+    /* The UI half counts. `seqState.dirty` mirrors the ENGINE's flag, and with
+     * `engpersist` on the engine clears its own on its own thread — so an edit
+     * that only touches the UI blob (a mute, a solo, the root note, the scale,
+     * the migration marker, the chains mirror) raced that clearing and lost:
+     * the autosave saw nothing to do and `ui-state.json` was never written.
+     * A device sweep found it through mutes and the migration, not through
+     * persistence: seven mute/solo checks and three migration checks. */
+    return seqState.dirty || saveRetry || uiStateDirty();
 }
 
 /** Persist the engine's state, and the UI blob when dirty, under `id`.

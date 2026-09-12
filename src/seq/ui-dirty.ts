@@ -12,4 +12,8 @@ let uiDirty = false;
 
 export function markUiStateDirty(): void { uiDirty = true; }
 export function takeUiDirty(): boolean { const d = uiDirty; uiDirty = false; return d; }
+/** A peek, for the autosave's "is there anything to do?" question. Distinct
+ *  from `takeUiDirty`, which CONSUMES the flag — asking with that would answer
+ *  the question by discarding the work. */
+export function uiStateDirty(): boolean { return uiDirty; }
 export function clearUiDirty(): void { uiDirty = false; }

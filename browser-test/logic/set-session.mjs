@@ -161,6 +161,32 @@ export async function run() {
         teardown();
     }
 
+    /* E6 — an edit that touches only the UI half must still be saved. With the
+     * flag on the engine saves on its own thread and clears its own dirty
+     * flag, so the UI's mirror reads 0 exactly when a mute, a solo, the root
+     * note or the chains mirror needs writing. A device sweep found this
+     * through seven mute/solo checks and three migration checks — none of them
+     * about persistence. */
+    {
+        const { setFlag } = await import('../../dist/esm/seq/flags.js');
+        const { markUiStateDirty } = await import('../../dist/esm/seq/ui-dirty.js');
+        const { fs } = boot({ [ACTIVE]: 'S1\nSong One\n',
+                              [uuidToStatePath('S1')]: SAVED });
+        setFlag('engpersist', 1);
+        seqState.dirty = false;              // the engine has already saved
+        const before = fs.writes.length;
+
+        markUiStateDirty();
+        /* The unforced flush IS the gate under test — `run()` would need 600
+         * ticks to reach the autosave, and a forced flush skips the question. */
+        sessionFlush();
+
+        ok('E6 a UI-only edit still reaches ui-state.json',
+            fs.writes.slice(before).some((p) => p.endsWith('ui-state.json')));
+        setFlag('engpersist', 0);
+        teardown();
+    }
+
     /* R2 — the counterpart: an incoming Set that HAS state is a real switch. */
     {
         const { fs, eng } = boot({ [ACTIVE]: '__pending-13-3\nNew Set\n' });

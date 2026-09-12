@@ -1,10 +1,12 @@
 import { mkdirSync } from 'node:fs';
+import type { Bus } from './bus.js';
+import type { Agent } from './agent.js';
 import type { Check, ScenarioResult } from './types.js';
 import { printLevel0, writeReport } from './report.js';
 
 export type Ctx = {
-    bus: any;
-    agent: any;
+    bus: Bus;
+    agent: Agent;
     host: string;
     check(id: string, label: string, pass: boolean,
           detail?: { expected?: string; actual?: string; frame?: number }): void;

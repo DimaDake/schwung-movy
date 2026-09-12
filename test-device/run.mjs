@@ -18,6 +18,7 @@ import './dist/scenarios/mutes.js';
 import './dist/scenarios/smoke.js';
 import './dist/scenarios/versions.js';
 import './dist/scenarios/migrate.js';
+import './dist/scenarios/jog-hint.js';
 
 /* The seq WIP is opt-in and never part of the sweep: it is not green, and a
  * never-green scenario in the default run is how a red gate stops being read.

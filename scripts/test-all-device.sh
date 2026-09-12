@@ -9,11 +9,10 @@ cd "$(dirname "$0")/.."
 GRN='\033[0;32m'; RED='\033[0;31m'; BLD='\033[1m'; RST='\033[0m'
 
 # What MIGRATION.md's step 6 leaves behind: the one bash suite not yet
-# migrated (test-seq.sh), plus test-jog-hint.mjs, which is blocked on
-# SNAPSHOT_DISPLAY and was never migrated at all. Every retired script's own
-# entry was removed here in the same commit that retired it, and nothing was
-# ever added back for what replaced them — so this sweep silently shrank to 2
-# of 14 suites while still printing a green "ALL DEVICE SUITES PASSED" banner.
+# migrated (test-seq.sh). test-jog-hint.mjs used to be here too, recorded as
+# blocked on a schwung change (SNAPSHOT_DISPLAY) — it never was: the
+# framebuffer is a file in /dev/shm and scp reads it, which is what the script
+# itself did. It is the `jog-hint` scenario now.
 # The TS scenarios are one entry below, run as the single process they already
 # are (test-device/run.mjs), not unrolled per-scenario here.
 SCRIPTS=(test-seq.sh)
@@ -47,7 +46,6 @@ for s in "${SCRIPTS[@]}"; do
     run_one "$s" ./scripts/"$s" "$HOST"
 done
 run_one "test:device (TS scenarios)" npm run test:device -- --host "$HOST"
-run_one test-jog-hint.mjs node scripts/test-jog-hint.mjs "$HOST"
 
 echo
 echo -e "${BLD}=== Time per suite (slowest last) ===${RST}"

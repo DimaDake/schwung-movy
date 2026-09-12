@@ -43,7 +43,7 @@ export class Device {
      * Under the old harness each inject was its own ~500 ms ssh round trip, so a
      * press/release pair WAS a half-second hold and movy read it as a different
      * gesture entirely. */
-    async hold(note: number, body: () => Promise<void>): Promise<void> {
+    async hold(note: number, body: () => Promise<unknown>): Promise<void> {
         await this.agent.inject(noteOn(note, 127));
         try { await body(); } finally { await this.agent.inject(noteOff(note)); }
     }
@@ -54,7 +54,7 @@ export class Device {
      * is armed on the PRESS and torn down on the release (track-volume.ts), so a
      * tap of the button leaves `heldTrack` at -1 and the turn falls through to
      * Move's own master volume. */
-    async holdCc(n: number, body: () => Promise<void>): Promise<void> {
+    async holdCc(n: number, body: () => Promise<unknown>): Promise<void> {
         await this.agent.inject(cc(n, 127));
         try { await body(); } finally { await this.agent.inject(cc(n, 0)); }
     }
@@ -66,7 +66,7 @@ export class Device {
      * `(status & 0xF0) === 0x90 && d1 < 8`, so a real note-off (0x80) is dropped
      * silently — movy never sees the release, and a picker that an item selector
      * opens on touch is never committed. The hold would look like a hang. */
-    async knobHold(k: number, body: () => Promise<void>): Promise<void> {
+    async knobHold(k: number, body: () => Promise<unknown>): Promise<void> {
         await this.agent.inject(noteOn(k, 127));
         try { await body(); } finally { await this.agent.inject(noteOn(k, 0)); }
     }

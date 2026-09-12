@@ -43,6 +43,9 @@ pub enum Job {
     Keep { uuid: String, why: Why },
     /// Put a kept version back. The UI names `n` from the menu it was served.
     Restore { uuid: String, n: u32 },
+    /// The once-per-session sweep. It runs here because it is file work, and
+    /// it is pure hygiene: it must never delay an instrument becoming playable.
+    Gc { keep: String, paths: crate::set_gc::GcPaths },
     Flush,
 }
 
@@ -87,6 +90,10 @@ struct Shared {
     /// the bytes. The UI owns `ui-state.json` (spec §5), so the engine hands
     /// the bytes back rather than writing that file.
     vui: String,
+    /// The sweep's verdict: `idle`, `pending`, or `collected=<n>` and the
+    /// uuids. The UI drops those names from `name-index.json`, which is all
+    /// that file is for now that the sweep no longer walks it.
+    gc: String,
 }
 
 pub struct Saver {
@@ -115,6 +122,19 @@ pub fn parse_cmd(val: &str, cur: &str) -> Option<Job> {
          * editing. */
         "keep" => Some(Job::Keep { uuid: cur.to_string(), why: Why::from_str(it.next()?)? }),
         "restore" => Some(Job::Restore { uuid: cur.to_string(), n: it.next()?.parse().ok()? }),
+        /* `keep=` is the Set the UI has open; `sets=` and `pages=` are Move's
+         * own directories, which are the UI's knowledge — the engine learns
+         * every path it touches rather than hardcoding one (see `setsdir`). */
+        "gc" => {
+            let (mut keep, mut sets, mut pages) = (String::new(), String::new(), String::new());
+            for tok in it {
+                if let Some(v) = tok.strip_prefix("keep=") { keep = v.to_string(); }
+                else if let Some(v) = tok.strip_prefix("sets=") { sets = v.to_string(); }
+                else if let Some(v) = tok.strip_prefix("pages=") { pages = v.to_string(); }
+            }
+            if sets.is_empty() { return None; }
+            Some(Job::Gc { keep, paths: crate::set_gc::GcPaths::from_cmd(&sets, &pages) })
+        }
         "flush" => Some(Job::Flush),
         _ => None,
     }
@@ -361,6 +381,18 @@ fn worker(root: String, shared: Arc<Mutex<Shared>>, rx: std::sync::mpsc::Receive
                             store.read_chains(&uuid).as_deref());
                 }
             }
+            Msg::Work(Job::Gc { keep, paths }) => {
+                let removed = crate::set_gc::collect(&store, &paths, &keep);
+                /* The uuids, not just a count: the UI drops those names from
+                 * `name-index.json`, and it has no way to list the directory
+                 * that would tell it which ones went. */
+                let mut line = format!("collected={}", removed.len());
+                for uuid in &removed {
+                    line.push(' ');
+                    line.push_str(uuid);
+                }
+                shared.lock().unwrap().gc = line;
+            }
             Msg::Work(Job::Flush) => {}
         }
     }
@@ -378,6 +410,7 @@ impl Saver {
             loaded: None,
             versions: String::new(),
             vui: "none".to_string(),
+            gc: "idle".to_string(),
         }));
         let w = Arc::clone(&shared);
         let root = root.to_string();
@@ -396,6 +429,9 @@ impl Saver {
          * previous restore's verdict. */
         if matches!(job, Job::Restore { .. }) {
             self.shared.lock().unwrap().vui = "pending".to_string();
+        }
+        if matches!(job, Job::Gc { .. }) {
+            self.shared.lock().unwrap().gc = "pending".to_string();
         }
         let _ = self.tx.send(Msg::Work(job));
     }
@@ -417,6 +453,15 @@ impl Saver {
 
     pub fn versions(&self) -> String {
         self.shared.lock().unwrap().versions.clone()
+    }
+
+    /// The sweep's verdict — taken once, for the same reason `vui` is.
+    pub fn gc(&self) -> String {
+        let mut sh = self.shared.lock().unwrap();
+        if sh.gc == "pending" {
+            return sh.gc.clone();
+        }
+        std::mem::replace(&mut sh.gc, "idle".to_string())
     }
 
     /// The restored version's ui half — taken once, so a verdict is never read
@@ -667,6 +712,32 @@ mod tests {
         assert_eq!(s.vui(), "failed");
         /* Taken once: a stale verdict must not be read as a second failure. */
         assert_eq!(s.vui(), "none");
+    }
+
+    #[test]
+    fn the_sweep_reports_what_it_collected() {
+        let root = tmp("gc");
+        /* Beside the saver's root, not inside it: on the device Move's library
+         * is a different tree, and a sweep that found it under `sets/` would
+         * treat it as a Set directory of its own. */
+        let sets = format!("{root}-library");
+        std::fs::create_dir_all(&sets).unwrap();
+        SetStore::new(&root).write("dead", "movy1\ncl 0 0 16 0 x\n", 1, "0\n").unwrap();
+        let s = Saver::new(&root);
+        assert_eq!(s.gc(), "idle");
+
+        s.submit(Job::Gc { keep: "live".into(), paths: crate::set_gc::GcPaths::from_cmd(&sets, "") });
+        s.drain_for_test();
+        assert_eq!(s.gc(), "collected=1 dead");
+        assert_eq!(s.gc(), "idle", "a verdict is read once");
+    }
+
+    #[test]
+    fn parses_the_gc_command() {
+        assert!(matches!(parse_cmd("gc keep=u1 sets=/Sets pages=/a,/b", "u1"), Some(Job::Gc { .. })));
+        /* Without Move's own directory there is nothing safe to compare
+         * against, so this is not a sweep at all. */
+        assert!(parse_cmd("gc keep=u1", "u1").is_none());
     }
 
     #[test]

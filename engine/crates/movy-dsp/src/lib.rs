@@ -26,6 +26,7 @@ mod set_envelope;
 mod set_store;
 mod chain_state;
 mod set_saver;
+mod set_gc;
 mod version_index;
 mod version_retain;
 mod version_store;

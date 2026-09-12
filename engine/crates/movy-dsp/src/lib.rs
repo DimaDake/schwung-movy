@@ -406,7 +406,7 @@ impl Instance {
              * one — where a lost `state` write destroyed data. Parsed here, on
              * the audio thread; executed on the saver thread. */
             "set" => {
-                if let Some(job) = set_saver::parse_cmd(val) {
+                if let Some(job) = set_saver::parse_cmd(val, &self.set_uuid) {
                     match &job {
                         set_saver::Job::Open { uuid, .. } | set_saver::Job::Blank { uuid } => {
                             self.set_uuid = uuid.clone();

@@ -19,14 +19,28 @@
 
 use crate::set_envelope::BLANK_STATE;
 use crate::set_store::SetStore;
+use crate::version_index::Why;
+use crate::version_store::{read_index, wire_rows, write_version, Capture};
 use std::sync::mpsc::{channel, Sender};
 use std::sync::{Arc, Mutex};
+use std::time::{SystemTime, UNIX_EPOCH};
+
+/// ~10 minutes. The autosave runs every few seconds forever, so `auto` needs a
+/// floor or the history is just the rotation with extra steps.
+const VERSION_MIN_MS: u64 = 600_000;
+
+fn now_ms() -> u64 {
+    SystemTime::now().duration_since(UNIX_EPOCH).map_or(0, |d| d.as_millis() as u64)
+}
 
 pub enum Job {
     Open { uuid: String, seed: Option<String> },
     Rename { from: String, to: String },
     Blank { uuid: String },
     Save { uuid: String, payload: String, gen: u32, chains: String },
+    /// The one capture that is a command: a teardown or a Set switch, where
+    /// the UI knows a boundary has been reached and the engine does not.
+    Keep { uuid: String, why: Why },
     Flush,
 }
 
@@ -62,6 +76,9 @@ struct Shared {
     dirty: u32,
     /// Bytes for the audio thread to apply: (payload, chains, gen).
     loaded: Option<(String, String, u32)>,
+    /// The menu, already formatted. `get_param` runs on the audio thread, so
+    /// what it serves must already be a string.
+    versions: String,
 }
 
 pub struct Saver {
@@ -71,7 +88,7 @@ pub struct Saver {
 
 /// Total by construction: this runs on the audio thread, and a malformed
 /// command must be ignored rather than panic inside someone else's callback.
-pub fn parse_cmd(val: &str) -> Option<Job> {
+pub fn parse_cmd(val: &str, cur: &str) -> Option<Job> {
     let mut it = val.split_whitespace();
     match it.next()? {
         "open" => {
@@ -85,9 +102,75 @@ pub fn parse_cmd(val: &str) -> Option<Job> {
             Some(Job::Rename { from, to })
         }
         "blank" => Some(Job::Blank { uuid: it.next()?.to_string() }),
+        /* The Set is the one the engine already has open: a capture command
+         * naming a different Set would be a command to capture a Set nobody is
+         * editing. */
+        "keep" => Some(Job::Keep { uuid: cur.to_string(), why: Why::from_str(it.next()?)? }),
         "flush" => Some(Job::Flush),
         _ => None,
     }
+}
+
+/// Keep a version, and republish the menu. `ui` comes from the Set's own file:
+/// that half is the UI's to write (spec §5) and the engine's only to copy.
+fn capture(store: &SetStore, shared: &Arc<Mutex<Shared>>, uuid: &str, why: Why,
+           payload: &str, gen: u32, chains: Option<&str>) {
+    let ui = std::fs::read_to_string(store.set_dir(uuid).join("ui-state.json")).ok();
+    let c = Capture { why, payload, gen, chains, ui: ui.as_deref(), now: now_ms() };
+    if !write_version(store, uuid, &c) {
+        /* Logged and dropped. The Set's CURRENT state outranks its history, so
+         * a capture never fails the save it rode in on. */
+        crate::host::log(&format!("versions: {} capture dropped for {uuid}", why.as_str()));
+    }
+    publish_versions(store, shared, uuid);
+}
+
+fn publish_versions(store: &SetStore, shared: &Arc<Mutex<Shared>>, uuid: &str) {
+    let rows = wire_rows(&read_index(store, uuid));
+    shared.lock().unwrap().versions = rows;
+}
+
+/// Seed a Set's history from what earlier builds left in the rotation.
+///
+/// A no-op once the Set has an index — this runs on every open. Adoption
+/// COPIES: the shadows are live rotation slots, so adopting them by reference
+/// would mean the history evaporates on the very next autosave.
+fn adopt_existing(store: &SetStore, shared: &Arc<Mutex<Shared>>, uuid: &str) {
+    if !read_index(store, uuid).v.is_empty() {
+        return;
+    }
+    let mut found: Vec<(String, u32)> = Vec::new();
+    for path in [store.state_path(uuid), store.shadow_path(uuid, 1), store.shadow_path(uuid, 2)] {
+        let Some(p) = std::fs::read_to_string(path).ok().and_then(|s| crate::set_envelope::parse(&s)) else { continue };
+        if found.iter().any(|(payload, _)| *payload == p.payload) {
+            continue;
+        }
+        found.push((p.payload, p.gen));
+    }
+    if found.is_empty() {
+        return;
+    }
+    found.sort_by_key(|(_, gen)| *gen);   // oldest gets the lowest n
+    let chains = store.read_chains(uuid);
+    for (i, (payload, gen)) in found.iter().enumerate() {
+        /* Only the NEWEST adopted version gets today's chains and ui blob.
+         * There is exactly one of each on disk — they were never rotated — so
+         * giving an older sequence today's instruments would be a quiet lie.
+         * An older adopted version restores the sequence alone, which the menu
+         * shows as SEQ ONLY. */
+        let newest = i == found.len() - 1;
+        let ui = if newest {
+            std::fs::read_to_string(store.set_dir(uuid).join("ui-state.json")).ok()
+        } else {
+            None
+        };
+        write_version(store, uuid, &Capture {
+            why: Why::Adopted, payload, gen: *gen,
+            chains: if newest { chains.as_deref() } else { None },
+            ui: ui.as_deref(), now: 0,
+        });
+    }
+    publish_versions(store, shared, uuid);
 }
 
 fn do_open(store: &SetStore, shared: &Arc<Mutex<Shared>>, uuid: &str, seed: Option<&str>) {
@@ -98,6 +181,16 @@ fn do_open(store: &SetStore, shared: &Arc<Mutex<Shared>>, uuid: &str, seed: Opti
         if let Some(src) = seed {
             store.seed(uuid, src);
         }
+    }
+
+    /* Before movy can write anything to this Set: adopt whatever earlier builds
+     * left behind, then snapshot what is actually on disk. This one capture is
+     * what makes a Set that comes up blank a menu entry rather than a loss. */
+    adopt_existing(store, shared, uuid);
+    if let Some(p) = store.read_best(uuid) {
+        capture(store, shared, uuid, Why::Open, &p.payload, p.gen, store.read_chains(uuid).as_deref());
+    } else {
+        publish_versions(store, shared, uuid);
     }
 
     let had_files = store.has_state(uuid);
@@ -131,6 +224,11 @@ fn do_open(store: &SetStore, shared: &Arc<Mutex<Shared>>, uuid: &str, seed: Opti
 
 fn worker(root: String, shared: Arc<Mutex<Shared>>, rx: std::sync::mpsc::Receiver<Msg>) {
     let store = SetStore::new(&root);
+    /* The `auto` cadence, owned by the thread that captures. It starts at the
+     * open capture: without that it is still 0 when the first autosave lands
+     * ~8 s later, and a session opened and played into records its second
+     * version within seconds of its first — the rotation's job, not history's. */
+    let mut last_auto_ms = 0u64;
     while let Ok(msg) = rx.recv() {
         match msg {
             Msg::Sync(ack) => {
@@ -138,6 +236,7 @@ fn worker(root: String, shared: Arc<Mutex<Shared>>, rx: std::sync::mpsc::Receive
             }
             Msg::Work(Job::Open { uuid, seed }) => {
                 do_open(&store, &shared, &uuid, seed.as_deref());
+                last_auto_ms = now_ms();
             }
             Msg::Work(Job::Rename { from, to }) => {
                 /* The id changed but the Set did not, so the work in hand moves
@@ -150,10 +249,18 @@ fn worker(root: String, shared: Arc<Mutex<Shared>>, rx: std::sync::mpsc::Receive
                 sh.uuid = to;
             }
             Msg::Work(Job::Blank { uuid }) => {
+                /* Unconditional, and before the files go: what is about to be
+                 * overwritten may be the only copy, and "it looked the same as
+                 * the last version" is not a reason to find out afterwards. */
+                if let Some(p) = store.read_best(&uuid) {
+                    capture(&store, &shared, &uuid, Why::PreWipe, &p.payload, p.gen,
+                            store.read_chains(&uuid).as_deref());
+                }
                 /* The deliberate exception to "a blank Set writes nothing": the
-                 * files must GO, or reopening restores exactly the state the
-                 * user asked to be rid of. */
-                let _ = std::fs::remove_dir_all(store.set_dir(&uuid));
+                 * state files must GO, or reopening restores exactly what the
+                 * user asked to be rid of. The history is NOT state — it is the
+                 * record of what was destroyed, and it stays. */
+                store.blank_files(&uuid);
                 let mut sh = shared.lock().unwrap();
                 sh.gen = 0;
                 sh.phase = Phase::Ready;
@@ -162,21 +269,42 @@ fn worker(root: String, shared: Arc<Mutex<Shared>>, rx: std::sync::mpsc::Receive
             }
             Msg::Work(Job::Save { uuid, payload, gen, chains }) => {
                 let res = store.write(&uuid, &payload, gen, &chains);
-                let mut sh = shared.lock().unwrap();
-                sh.dirty = sh.dirty.saturating_sub(1);
-                match res {
-                    Ok(()) => {
-                        sh.gen = gen;
-                        sh.reason.clear();
+                /* Scoped so the lock is released before the capture below: the
+                 * mutex is never held across file I/O, or an audio-thread
+                 * `status()` would wait on a write. */
+                let saved = {
+                    let mut sh = shared.lock().unwrap();
+                    sh.dirty = sh.dirty.saturating_sub(1);
+                    match &res {
+                        Ok(()) => {
+                            sh.gen = gen;
+                            sh.reason.clear();
+                        }
+                        /* Left for the next save to retry. The engine keeps the
+                         * bytes — unlike the old path, where reading `state` out
+                         * of the engine cleared its dirty flag and a failed write
+                         * was then lost for good. */
+                        Err(e) => {
+                            crate::host::log(&format!("set: save failed: {e}"));
+                            sh.reason = "save-failed".to_string();
+                        }
                     }
-                    /* Left for the next save to retry. The engine keeps the
-                     * bytes — unlike the old path, where reading `state` out of
-                     * the engine cleared its dirty flag and a failed write was
-                     * then lost for good. */
-                    Err(e) => {
-                        crate::host::log(&format!("set: save failed: {e}"));
-                        sh.reason = "save-failed".to_string();
-                    }
+                    res.is_ok()
+                };
+                /* Rides the save that just landed, so the history costs no
+                 * extra read — and is rate-limited here, because this arm runs
+                 * every few seconds for as long as movy is open. */
+                if saved && (last_auto_ms == 0 || now_ms() - last_auto_ms >= VERSION_MIN_MS) {
+                    capture(&store, &shared, &uuid, Why::Auto, &payload, gen, Some(&chains));
+                    /* Set even when the capture was dropped: the interval is
+                     * about how often we ASK, not how often we succeed. */
+                    last_auto_ms = now_ms();
+                }
+            }
+            Msg::Work(Job::Keep { uuid, why }) => {
+                if let Some(p) = store.read_best(&uuid) {
+                    capture(&store, &shared, &uuid, why, &p.payload, p.gen,
+                            store.read_chains(&uuid).as_deref());
                 }
             }
             Msg::Work(Job::Flush) => {}
@@ -194,6 +322,7 @@ impl Saver {
             reason: String::new(),
             dirty: 0,
             loaded: None,
+            versions: String::new(),
         }));
         let w = Arc::clone(&shared);
         let root = root.to_string();
@@ -225,6 +354,10 @@ impl Saver {
         s
     }
 
+    pub fn versions(&self) -> String {
+        self.shared.lock().unwrap().versions.clone()
+    }
+
     /// Bytes waiting to be applied, taken exactly once.
     pub fn take_loaded(&self) -> Option<(String, String, u32)> {
         self.shared.lock().unwrap().loaded.take()
@@ -249,19 +382,153 @@ mod tests {
         d.to_str().unwrap().to_string()
     }
 
+    fn versions_of(root: &str, uuid: &str) -> Vec<crate::version_index::VersionRec> {
+        crate::version_store::read_index(&SetStore::new(root), uuid).v
+    }
+
+    /* The capture that makes a Set coming up blank a menu entry rather than a
+     * loss: a snapshot of what was on disk BEFORE movy can write anything. */
+    #[test]
+    fn opening_a_set_keeps_what_was_on_disk() {
+        let root = tmp("openkeep");
+        /* Seeded through the store rather than a Save job: a save that arrives
+         * before any open finds the auto cadence still at zero and captures
+         * immediately, which is correct — the UI always opens first — but it
+         * would put a second version in the way of what this test is about. */
+        SetStore::new(&root).write("u1", "movy1\ncl 0 0 16 0 x\n", 1, "0\n").unwrap();
+        let s = Saver::new(&root);
+        s.submit(Job::Open { uuid: "u1".into(), seed: None });
+        s.drain_for_test();
+        let v = versions_of(&root, "u1");
+        /* Two, and the pair is the point: a Set with files and no index looks
+         * exactly like one an earlier build wrote, so the rotation is adopted
+         * first and the open capture lands on top of it. */
+        assert_eq!(v.len(), 2, "got {v:?}");
+        assert_eq!(v[0].why, Why::Open);
+        assert_eq!(v[1].why, Why::Adopted);
+        assert_eq!(crate::version_store::read_state(&SetStore::new(&root), "u1", v[0].n).unwrap().payload,
+                   "movy1\ncl 0 0 16 0 x\n", "the open capture is what was on disk");
+    }
+
+    /* A Set with nothing on disk has nothing to keep. A version per visited
+     * pad is how a history becomes noise. */
+    #[test]
+    fn opening_an_empty_set_keeps_nothing() {
+        let root = tmp("openempty");
+        let s = Saver::new(&root);
+        s.submit(Job::Open { uuid: "u1".into(), seed: None });
+        s.drain_for_test();
+        assert_eq!(versions_of(&root, "u1").len(), 0);
+    }
+
+    /* What earlier builds left behind is adopted once, oldest first, and
+     * COPIED: the shadows are live rotation slots, so adopting by reference
+     * would mean the history evaporates on the very next autosave. */
+    #[test]
+    fn an_older_set_adopts_its_rotation_once() {
+        let root = tmp("adopt");
+        let store = SetStore::new(&root);
+        std::fs::create_dir_all(store.set_dir("old")).unwrap();
+        std::fs::write(store.state_path("old"), crate::set_envelope::wrap("movy1\ncl 0 0 16 0 a\n", 4)).unwrap();
+        std::fs::write(store.shadow_path("old", 1), crate::set_envelope::wrap("movy1\ncl 0 0 16 0 b\n", 3)).unwrap();
+
+        let s = Saver::new(&root);
+        s.submit(Job::Open { uuid: "old".into(), seed: None });
+        s.drain_for_test();
+        let v = versions_of(&root, "old");
+        let adopted: Vec<_> = v.iter().filter(|r| r.why == Why::Adopted).collect();
+        assert_eq!(adopted.len(), 2, "both distinct copies");
+        assert!(adopted.iter().any(|r| r.gen == 3), "the shadow was adopted at its own generation");
+
+        let s2 = Saver::new(&root);
+        s2.submit(Job::Open { uuid: "old".into(), seed: None });
+        s2.drain_for_test();
+        assert_eq!(versions_of(&root, "old").iter().filter(|r| r.why == Why::Adopted).count(), 2,
+                   "adoption is a no-op after the first open");
+    }
+
+    /* The autosave runs every few seconds forever. Without a floor the history
+     * is just the rotation with extra steps. */
+    #[test]
+    fn the_autosave_capture_is_rate_limited() {
+        let root = tmp("auto");
+        let s = Saver::new(&root);
+        for i in 1..=5u32 {
+            s.submit(Job::Save {
+                uuid: "u1".into(),
+                payload: format!("movy1\ncl 0 0 16 0 {i}\n"),
+                gen: i, chains: "0\n".into(),
+            });
+        }
+        s.drain_for_test();
+        assert_eq!(versions_of(&root, "u1").iter().filter(|r| r.why == Why::Auto).count(), 1,
+                   "five saves inside the window are one version");
+    }
+
+    /* The capture the whole history exists for — and the trap the port
+     * creates: Blank used to take the Set's whole directory, which would
+     * delete the history at the one moment it matters. */
+    #[test]
+    fn blanking_keeps_the_history_it_just_captured() {
+        let root = tmp("blank");
+        let s = Saver::new(&root);
+        s.submit(Job::Save { uuid: "u1".into(), payload: "movy1\ncl 0 0 16 0 x\n".into(), gen: 1, chains: "0\n".into() });
+        s.submit(Job::Blank { uuid: "u1".into() });
+        s.drain_for_test();
+
+        let store = SetStore::new(&root);
+        assert!(!store.has_state("u1"), "the state files must be gone");
+        let v = versions_of(&root, "u1");
+        assert!(v.iter().any(|r| r.why == Why::PreWipe),
+                "the pre-wipe capture must survive the wipe: {v:?}");
+        assert_eq!(crate::version_store::read_state(&store, "u1", v[0].n).unwrap().payload,
+                   "movy1\ncl 0 0 16 0 x\n");
+    }
+
+    /* A teardown or a Set switch is the last chance this Set has to record
+     * where it got to. It is the one capture that is a command. */
+    #[test]
+    fn keep_exit_captures_the_current_state() {
+        let root = tmp("keepexit");
+        let s = Saver::new(&root);
+        s.submit(Job::Save { uuid: "u1".into(), payload: "movy1\ncl 0 0 16 0 x\n".into(), gen: 2, chains: "0\n".into() });
+        s.submit(Job::Keep { uuid: "u1".into(), why: Why::Exit });
+        s.drain_for_test();
+        assert!(versions_of(&root, "u1").iter().any(|r| r.why == Why::Exit));
+    }
+
+    #[test]
+    fn the_wire_rows_are_published_without_a_file_read() {
+        let root = tmp("pub");
+        SetStore::new(&root).write("u1", "movy1\ncl 0 0 16 0 x\n", 1, "0\n").unwrap();
+        let s = Saver::new(&root);
+        s.submit(Job::Keep { uuid: "u1".into(), why: Why::Exit });
+        s.drain_for_test();
+        let rows = s.versions();
+        assert_eq!(rows.lines().count(), 1, "got {rows:?}");
+        assert!(rows.contains(" exit "), "got {rows:?}");
+    }
+
+    #[test]
+    fn parses_the_keep_command() {
+        assert!(matches!(parse_cmd("keep exit", "u1"), Some(Job::Keep { why: Why::Exit, .. })));
+        assert!(parse_cmd("keep nonsense", "u1").is_none());
+        assert!(parse_cmd("keep", "u1").is_none());
+    }
+
     /* Commands are parsed on the audio thread and executed on the saver
      * thread, so parsing must be total: an unknown or malformed command is
      * ignored, never a panic in someone else's audio callback. */
     #[test]
     fn parses_every_command() {
-        assert!(matches!(parse_cmd("open abc"), Some(Job::Open { .. })));
-        assert!(matches!(parse_cmd("open abc seed=def"), Some(Job::Open { seed: Some(_), .. })));
-        assert!(matches!(parse_cmd("rename a b"), Some(Job::Rename { .. })));
-        assert!(matches!(parse_cmd("blank a"), Some(Job::Blank { .. })));
-        assert!(matches!(parse_cmd("flush"), Some(Job::Flush)));
-        assert!(parse_cmd("open").is_none());
-        assert!(parse_cmd("nonsense a b c").is_none());
-        assert!(parse_cmd("").is_none());
+        assert!(matches!(parse_cmd("open abc", ""), Some(Job::Open { .. })));
+        assert!(matches!(parse_cmd("open abc seed=def", ""), Some(Job::Open { seed: Some(_), .. })));
+        assert!(matches!(parse_cmd("rename a b", ""), Some(Job::Rename { .. })));
+        assert!(matches!(parse_cmd("blank a", ""), Some(Job::Blank { .. })));
+        assert!(matches!(parse_cmd("flush", ""), Some(Job::Flush)));
+        assert!(parse_cmd("open", "").is_none());
+        assert!(parse_cmd("nonsense a b c", "").is_none());
+        assert!(parse_cmd("", "").is_none());
     }
 
     #[test]

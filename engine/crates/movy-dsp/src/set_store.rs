@@ -107,6 +107,16 @@ impl SetStore {
         atomic_write(&self.chains_path(uuid), chains)
     }
 
+    /// Give up this Set's state without giving up its history. `remove_dir_all`
+    /// on the whole directory would take `v/` with it — deleting the record at
+    /// the one moment the user is destroying the thing it records.
+    pub fn blank_files(&self, uuid: &str) {
+        for p in [self.state_path(uuid), self.chains_path(uuid),
+                  self.shadow_path(uuid, 1), self.shadow_path(uuid, 2)] {
+            let _ = fs::remove_file(p);
+        }
+    }
+
     /// Copy-on-inherit: Move's Copy/Paste makes "X Copy" with no movy state of
     /// its own. The UI names the source — that is name policy, and it stays in
     /// `set-inherit.ts` — and the engine moves the bytes. A seed lands at

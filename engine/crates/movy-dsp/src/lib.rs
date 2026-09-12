@@ -125,7 +125,7 @@ pub(crate) fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.74.0";
+const ENGINE_VERSION: &str = "0.75.0";
 
 /* Blocks between autosaves. The callback runs at ~344 Hz, so this is ~2 s —
  * flash on this device is not free and the sequencer is dirty constantly while
@@ -518,6 +518,14 @@ impl Instance {
                 || "phase=failed reason=no-setsdir".to_string(),
                 |s| s.status(),
             )),
+            /* The menu, already formatted by the saver thread. Reading the file
+             * here would be file I/O on the audio thread — the one thing this
+             * module's own doc comment forbids. */
+            "versions" => Some(self.saver.as_ref().map_or_else(String::new, |s| s.versions())),
+            /* The restored version's ui half. `failed` with no saver, because
+             * "no engine to ask" must not read as "this version has no ui". */
+            "vui" => Some(self.saver.as_ref().map_or_else(|| "failed".to_string(), |s| s.vui())),
+            "gc" => Some(self.saver.as_ref().map_or_else(|| "idle".to_string(), |s| s.gc())),
             "probereq" => Some(self.probe_req.clone()),
             "probersp" => Some(self.probe_rsp.clone()),
             "capinfo" => Some(self.engine.capture_info()),
@@ -1166,6 +1174,54 @@ mod tests {
         let st = inst.get_param("set").expect("status");
         assert!(st.contains("dirty=0"), "the engine must not have saved: {st}");
         assert!(inst.engine.dirty, "and it must not have cleared the flag either");
+    }
+
+    /* Without a saver there is nothing to ask, and the UI must be able to tell
+     * that apart from an empty history: `versions` is empty either way, but a
+     * restore that cannot be asked for is `failed`, never `none`. */
+    #[test]
+    fn the_new_keys_answer_before_setsdir_arrives() {
+        let mut inst = Instance::new();
+        assert_eq!(inst.get_param("versions").as_deref(), Some(""));
+        assert_eq!(inst.get_param("vui").as_deref(), Some("failed"));
+        assert_eq!(inst.get_param("gc").as_deref(), Some("idle"));
+    }
+
+    #[test]
+    fn a_set_with_no_history_has_an_empty_menu() {
+        let mut inst = Instance::new();
+        inst.set_param("setsdir", &saver_tmp("menu"));
+        assert_eq!(inst.get_param("versions").as_deref(), Some(""));
+        assert_eq!(inst.get_param("vui").as_deref(), Some("none"));
+        assert_eq!(inst.get_param("gc").as_deref(), Some("idle"));
+    }
+
+    /* The command reached the saver: `submit` marks the answer pending before
+     * the send, so anything other than `none` means it was parsed, bound to the
+     * open Set and queued. Which verdict it settles on is the saver's own test. */
+    #[test]
+    fn a_restore_command_reaches_the_saver() {
+        let mut inst = Instance::new();
+        inst.set_param("setsdir", &saver_tmp("restorecmd"));
+        inst.set_param("set", "open u1");
+        inst.set_param("set", "restore 7");
+        let v = inst.get_param("vui").expect("the key must answer at all");
+        assert!(v == "pending" || v == "failed", "got {v:?}");
+    }
+
+    /* Commands are parsed on the audio thread, so a malformed one must be
+     * ignored rather than panic inside someone else's callback. */
+    #[test]
+    fn a_malformed_new_command_is_ignored() {
+        let mut inst = Instance::new();
+        inst.set_param("setsdir", &saver_tmp("bogus"));
+        inst.set_param("set", "restore");
+        inst.set_param("set", "restore x");
+        inst.set_param("set", "keep");
+        inst.set_param("set", "keep nonsense");
+        inst.set_param("set", "gc keep=u1");          // no sets= — not a sweep
+        inst.set_param("set", "");
+        assert!(inst.get_param("set").is_some(), "the saver must still answer");
     }
 
     #[test]

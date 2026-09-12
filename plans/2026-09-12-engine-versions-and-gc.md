@@ -2,7 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status: DONE** — all ten tasks landed (`9a72e4a`…) and `scripts/test-versions.sh`
+**Status: DONE, and step 6 with it** — the default is ON (`FLAGS_REV = 4`,
+`b804536`) after all thirteen device suites passed with the flag pinned on. The
+rename moved into the engine on the way (`c62a01f`): it was the last place the
+UI wrote a Set's bytes, and the engine was never told, so it went on saving
+under the provisional id. Three more findings are recorded in §12 of the spec.
+
+All ten tasks landed (`9a72e4a`…) and `scripts/test-versions.sh`
 passes on move.local with `engpersist` both on and off, plus `test-seq.sh` as the
 smoke check. Three things the plan did not foresee are recorded in the commits:
 the engine rewrote a Set on every open (the dirty flag says an edit was offered,

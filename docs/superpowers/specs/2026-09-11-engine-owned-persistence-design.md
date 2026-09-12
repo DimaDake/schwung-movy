@@ -399,6 +399,21 @@ Behind a flag, the way `chparallel` shipped. `engpersist` in
    stored 0 beats the new default and it ships to nobody) → delete the old path
    in the following release.
 
+   **Verification and the flip are done** (2026-09-12, `FLAGS_REV = 4`): all
+   thirteen device suites pass with the flag on, and the adoption was checked on
+   a device carrying a stored 0 at the old revision — it came up 1 at rev 4.
+   Three things the flag's own device run found, none of which any local suite
+   could have: the engine writes as root from Move's audio process while the UI
+   writes as `ableton` from the manager's, so engine-created files were
+   unwritable by the half that still writes `ui-state.json` and, with the flag
+   off again, the Set itself; the device fixture seeded the chains *mirror*
+   while the authority survived from the previous run; and `saveNeeded()` asked
+   only about the engine's dirty flag, which the engine now clears itself, so an
+   edit touching only the UI's half was never written.
+
+   **Still open:** deleting the old path. Every suite that asserts who WRITES a
+   Set pins the flag off, which is the honest marker of what remains.
+
 `ENGINE_VERSION` gets exactly one bump per build, and the store-update hazard
 applies: a store update overwrites `dsp.so` at the same inode while the old one
 is dlopened, so the gate can loop. `deploy.sh` hides it; a release must not.

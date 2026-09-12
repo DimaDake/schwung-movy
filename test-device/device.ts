@@ -47,6 +47,17 @@ export class Device {
         try { await body(); } finally { await this.agent.inject(noteOff(note)); }
     }
 
+    /* A CC HOLD — the same gesture as hold(), for a button that is a control
+     * change rather than a note. The track buttons (CC 40-43) are CCs, and
+     * holding one IS the gesture the track-volume fader is built on: the divert
+     * is armed on the PRESS and torn down on the release (track-volume.ts), so a
+     * tap of the button leaves `heldTrack` at -1 and the turn falls through to
+     * Move's own master volume. */
+    async holdCc(n: number, body: () => Promise<void>): Promise<void> {
+        await this.agent.inject(cc(n, 127));
+        try { await body(); } finally { await this.agent.inject(cc(n, 0)); }
+    }
+
     /* A knob HOLD — the gesture hold() above cannot express.
      *
      * BOTH edges of a knob touch are note-ON (0x90) on note 0..7: d2 > 0 presses,

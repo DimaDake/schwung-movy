@@ -1115,6 +1115,12 @@ _log('\napp-loop: active-set switch reloads the engine');
     const stPath = (u) => '/data/UserData/schwung/modules/tools/movy/sets/' + u + '/seq-state.json';
 
     fs[ACTIVE] = 's1-uuid\nSet One\n';
+    /* The OLD path: every assertion here is about the UI pushing `state` and
+     * writing seq-state.json, which is what a mock engine can be held to. The
+     * engine-owned path's own mechanics are covered in logic/set-session.mjs
+     * (E1-E6) and on the device; this block keeps the writer it was written
+     * for until the release that deletes it (spec §12 step 6). */
+    setFlag('engpersist', 0);
     resetSetSession();                       // force a fresh boot-load
     resetApp();                              // init() + settle; boot-load reads S1
     advance(4);

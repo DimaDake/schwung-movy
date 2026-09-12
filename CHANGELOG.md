@@ -15,7 +15,7 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
-- **Engine-owned persistence, behind `engpersist` (Settings, debug builds).**
+- **Engine-owned persistence — now the default, with `engpersist` (Settings) to turn it off.**
   The engine now reads and writes a Set's files itself — `seq-state.json` and a
   new `chains.json` — atomically (temp → fsync → rename) on its own thread, and
   the UI sends commands (`open`, `rename`, `blank`, `flush`) instead of pushing
@@ -37,8 +37,15 @@ far. Earlier work is summarised in the timeline below for context.
   whose `name-index.json` entry was overwritten — on the device this was written
   against, exactly one such directory was invisible to the old sweep.
 
-  Off by default pending device verification. `ui-state.json` keeps a mirror of
-  the chains so turning the flag back off costs nothing — but a Set saved with
+  **On by default** as of this release: every device suite passes with it, and
+  three of the failures on the way there were things only a device could show —
+  the engine writes as root from Move's audio process while the UI writes as
+  `ableton` from the manager's (so its files now land group- and
+  world-writable), the test fixture was seeding the chains *mirror* while the
+  authority survived from the previous run, and the autosave skipped the UI's
+  own half because the engine had already cleared the dirty flag it asked
+  about. The flag is still there to turn off. `ui-state.json` keeps a mirror of
+  the chains so turning it back off costs nothing — but a Set saved with
   the flag ON and then opened by an OLDER movy keeps its sequencer, keyboard
   state and version history while losing its movy chains, because that build
   looks for them in a file the engine no longer owns.

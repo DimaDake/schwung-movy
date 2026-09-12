@@ -5,6 +5,7 @@
  */
 
 import {
+    setFlag as setFlagFixture,
     uuidToStatePath, sessionTick, resetSetSession, installMockFs, uninstallMockFs, readBestState,
     resetStoreRotation, keyboardState, installMockEngine, uninstallMockEngine, takeLabelSync, seqEngineTick,
     resetSeqEngine, ok, fail, eq, _log,
@@ -61,6 +62,12 @@ export async function run() {
         const fs = installMockFs(files);
         const eng = installMockEngine();
         resetSeqEngine(); resetSeqState(); resetSetSession(); resetSetSave(); resetStoreRotation();
+        /* The OLD path by default, because most of this suite is about who
+         * writes what and the old writer is the UI — which is the half a mock
+         * engine can model. It still ships until the release that deletes it
+         * (spec §12 step 6); the blocks that test the new one turn the flag on
+         * themselves. */
+        setFlagFixture('engpersist', 0);
         if (!opts.skipBoot) for (let i = 0; i < 200; i++) { seqEngineTick(); sessionTick(); }
         return { fs, eng };
     };

@@ -61,7 +61,7 @@ export type FlagDef = {
  *  happen on any device that has ever opened the page. It has already bitten
  *  once: a flag left off during a measurement session kept its stored 0, and
  *  the new default reached nobody who had run one. */
-export const FLAGS_REV = 3;
+export const FLAGS_REV = 4;
 
 /* Release rows first: a release build lists only these, and a debug build reads
  * top-down the same way. */
@@ -125,10 +125,16 @@ export const FLAGS: FlagDef[] = [
         // ui-state.json (ui-state.ts) — without it, the old path finds no
         // chains and the flag is not an escape hatch at all.
         //
-        // Default 0 until the device run. Flipping it later needs a FLAGS_REV
-        // bump, or a stored 0 beats the new default on every device that has
-        // ever opened this page.
-        min: 0, max: 1, def: 0,
+        // ON since rev 4: every device suite passes with it, including the
+        // three arms that only a device could have failed — file permissions
+        // (the engine writes as root from Move's audio process, the UI as
+        // ableton from the manager's), the fixture seeding the chains mirror
+        // instead of the authority, and an autosave that skipped the UI half
+        // because the engine had already cleared the dirty flag it asked about.
+        //
+        // `revisedAt` is what makes the flip arrive: a stored 0 beats a changed
+        // default forever, and during rollout everyone who tested this had one.
+        min: 0, max: 1, def: 1, revisedAt: 4,
     },
 ];
 

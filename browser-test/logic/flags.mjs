@@ -130,16 +130,31 @@ export async function run() {
     eq('alongside the one just written', after.flags.schwunggrid, 1);
     uninstallMockFs();
 
-    /* The `revisedAt` adoption mechanism (a device that formed an opinion under
-     * an OLD default gets the new one once) has no shipped user today — its one
-     * example, `chtracks`, is gone with the schwung host. A stored value for a
-     * flag with no `revisedAt` is unaffected by the rev check either way, which
-     * is what this covers until the mechanism has a live flag to exercise. */
+    /* The `revisedAt` adoption mechanism, now with a live user: `engpersist`
+     * shipped off, everyone who tested it has a stored 0, and a stored value
+     * beats a changed default forever. Without this the release that turns
+     * engine-owned saves on turns them on for nobody who was involved. */
+    installMockFs({
+        [PREFS_PATH]: JSON.stringify({ flagsRev: 3, flags: { engpersist: 0, schwunggrid: 1 } }),
+    });
+    resetFlags();
+    eq('a stored value from before the revision is superseded', flagValue('engpersist'), 1);
+    eq('a flag with no revision keeps its stored value', flagValue('schwunggrid'), 1);
+    /* Written back, so the adoption happens exactly once — a user who then
+     * turns it off again must keep it off. */
+    const adopted = JSON.parse(globalThis.host_read_file(PREFS_PATH));
+    eq('the adoption is recorded', adopted.flags.engpersist, 1);
+    eq('at the new revision', adopted.flagsRev, 4);
+    setFlag('engpersist', 0);
+    resetFlags();
+    eq('and a later opinion at the current revision stands', flagValue('engpersist'), 0);
+    uninstallMockFs();
+
     installMockFs({   // no flagsRev key at all, which reads as rev 0
         [PREFS_PATH]: JSON.stringify({ flags: { schwunggrid: 1 } }),
     });
     resetFlags();
-    eq('a flag with no revision keeps its stored value', flagValue('schwunggrid'), 1);
+    eq('a rev-less prefs file still reads its unrevised flags', flagValue('schwunggrid'), 1);
     uninstallMockFs();
 
     installMockFs({ [PREFS_PATH]: '{not json' });

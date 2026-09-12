@@ -7,6 +7,7 @@ import { runAll } from './dist/runner.js';
 import './dist/scenarios/automation.js';
 import './dist/scenarios/unload.js';
 import './dist/scenarios/reselect.js';
+import './dist/scenarios/lfo.js';
 
 const argv = process.argv.slice(2);
 const flag = (n) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : undefined; };

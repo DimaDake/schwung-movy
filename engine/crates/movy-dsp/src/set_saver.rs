@@ -41,6 +41,8 @@ pub enum Job {
     /// The one capture that is a command: a teardown or a Set switch, where
     /// the UI knows a boundary has been reached and the engine does not.
     Keep { uuid: String, why: Why },
+    /// Put a kept version back. The UI names `n` from the menu it was served.
+    Restore { uuid: String, n: u32 },
     Flush,
 }
 
@@ -79,6 +81,12 @@ struct Shared {
     /// The menu, already formatted. `get_param` runs on the audio thread, so
     /// what it serves must already be a string.
     versions: String,
+    /// The restored version's ui half, waiting for the UI: `pending` while the
+    /// job is queued, `none` when the version has no ui half or the answer has
+    /// already been taken, `failed` when the restore did not happen, otherwise
+    /// the bytes. The UI owns `ui-state.json` (spec §5), so the engine hands
+    /// the bytes back rather than writing that file.
+    vui: String,
 }
 
 pub struct Saver {
@@ -106,6 +114,7 @@ pub fn parse_cmd(val: &str, cur: &str) -> Option<Job> {
          * naming a different Set would be a command to capture a Set nobody is
          * editing. */
         "keep" => Some(Job::Keep { uuid: cur.to_string(), why: Why::from_str(it.next()?)? }),
+        "restore" => Some(Job::Restore { uuid: cur.to_string(), n: it.next()?.parse().ok()? }),
         "flush" => Some(Job::Flush),
         _ => None,
     }
@@ -301,6 +310,51 @@ fn worker(root: String, shared: Arc<Mutex<Shared>>, rx: std::sync::mpsc::Receive
                     last_auto_ms = now_ms();
                 }
             }
+            Msg::Work(Job::Restore { uuid, n }) => {
+                let Some(src) = crate::version_store::read_state(&store, &uuid, n) else {
+                    crate::host::log(&format!("versions: cannot restore {n} of {uuid}"));
+                    shared.lock().unwrap().vui = "failed".to_string();
+                    continue;
+                };
+                /* Before anything is overwritten: a mis-press must not cost the
+                 * live take, so a restore is itself undoable. */
+                let cur = store.read_best(&uuid);
+                if let Some(c) = &cur {
+                    capture(&store, &shared, &uuid, Why::PreRestore, &c.payload, c.gen,
+                            store.read_chains(&uuid).as_deref());
+                }
+                /* Above every copy AND every version, so nothing on disk can
+                 * outrank the restore — including the capture just taken. */
+                let mut top = cur.map_or(0, |c| c.gen);
+                for r in &read_index(&store, &uuid).v {
+                    if r.gen > top {
+                        top = r.gen;
+                    }
+                }
+                let gen = top + 1;
+                /* The version's own chains, not today's: restoring the sequence
+                 * under the instruments that replaced it is the loss `ch`
+                 * exists to prevent. A version that carries none leaves the
+                 * chains alone, which the menu shows as SEQ ONLY. */
+                let chains = crate::version_store::read_chains(&store, &uuid, n)
+                    .or_else(|| store.read_chains(&uuid))
+                    .unwrap_or_else(|| "0\n".to_string());
+                let ui = crate::version_store::read_ui(&store, &uuid, n);
+                match store.write(&uuid, &src.payload, gen, &chains) {
+                    Ok(()) => {
+                        crate::host::log(&format!("versions: restored {n} of {uuid} at gen {gen}"));
+                        let mut sh = shared.lock().unwrap();
+                        sh.gen = gen;
+                        sh.loaded = Some((src.payload, chains, gen));
+                        sh.vui = ui.unwrap_or_else(|| "none".to_string());
+                    }
+                    Err(e) => {
+                        crate::host::log(&format!("versions: restore of {n} did not reach disk: {e}"));
+                        shared.lock().unwrap().vui = "failed".to_string();
+                    }
+                }
+                publish_versions(&store, &shared, &uuid);
+            }
             Msg::Work(Job::Keep { uuid, why }) => {
                 if let Some(p) = store.read_best(&uuid) {
                     capture(&store, &shared, &uuid, why, &p.payload, p.gen,
@@ -323,6 +377,7 @@ impl Saver {
             dirty: 0,
             loaded: None,
             versions: String::new(),
+            vui: "none".to_string(),
         }));
         let w = Arc::clone(&shared);
         let root = root.to_string();
@@ -335,6 +390,12 @@ impl Saver {
          * worker picking it up still reports the Set as un-saved. */
         if matches!(job, Job::Save { .. }) {
             self.shared.lock().unwrap().dirty += 1;
+        }
+        /* Marked before the send, so a UI that reads the answer between the
+         * command and the worker picking it up sees `pending` rather than the
+         * previous restore's verdict. */
+        if matches!(job, Job::Restore { .. }) {
+            self.shared.lock().unwrap().vui = "pending".to_string();
         }
         let _ = self.tx.send(Msg::Work(job));
     }
@@ -356,6 +417,16 @@ impl Saver {
 
     pub fn versions(&self) -> String {
         self.shared.lock().unwrap().versions.clone()
+    }
+
+    /// The restored version's ui half — taken once, so a verdict is never read
+    /// as a second restore's.
+    pub fn vui(&self) -> String {
+        let mut sh = self.shared.lock().unwrap();
+        if sh.vui == "pending" {
+            return sh.vui.clone();
+        }
+        std::mem::replace(&mut sh.vui, "none".to_string())
     }
 
     /// Bytes waiting to be applied, taken exactly once.
@@ -507,6 +578,102 @@ mod tests {
         let rows = s.versions();
         assert_eq!(rows.lines().count(), 1, "got {rows:?}");
         assert!(rows.contains(" exit "), "got {rows:?}");
+    }
+
+    /* A restore must win an ordinary read afterwards — including against the
+     * pre-restore capture just taken. A hand-copy that does NOT bump the
+     * generation loses to a newer blank in a shadow; that is what a device
+     * showed, and why MANUAL.md tells anyone recovering by hand to overwrite
+     * every copy. */
+    #[test]
+    fn a_restore_outranks_everything_on_disk() {
+        let root = tmp("restore");
+        let s = Saver::new(&root);
+        s.submit(Job::Save { uuid: "u1".into(), payload: "movy1\ncl 0 0 16 0 old\n".into(), gen: 1, chains: "0\n".into() });
+        s.submit(Job::Keep { uuid: "u1".into(), why: Why::Exit });
+        s.submit(Job::Save { uuid: "u1".into(), payload: "movy1\ncl 0 0 16 0 new\n".into(), gen: 9, chains: "0\n".into() });
+        s.drain_for_test();
+        let n = versions_of(&root, "u1")[0].n;
+
+        s.submit(Job::Restore { uuid: "u1".into(), n });
+        s.drain_for_test();
+
+        let store = SetStore::new(&root);
+        let best = store.read_best("u1").expect("reads");
+        assert_eq!(best.payload, "movy1\ncl 0 0 16 0 old\n");
+        assert!(best.gen > 9, "the restore must outrank the newest generation: {}", best.gen);
+    }
+
+    /* A mis-press must not cost the live take: the restore is itself undoable. */
+    #[test]
+    fn a_restore_keeps_what_it_replaced() {
+        let root = tmp("prerestore");
+        let s = Saver::new(&root);
+        s.submit(Job::Save { uuid: "u1".into(), payload: "movy1\ncl 0 0 16 0 a\n".into(), gen: 1, chains: "0\n".into() });
+        s.submit(Job::Keep { uuid: "u1".into(), why: Why::Exit });
+        s.submit(Job::Save { uuid: "u1".into(), payload: "movy1\ncl 0 0 16 0 live\n".into(), gen: 5, chains: "0\n".into() });
+        s.drain_for_test();
+        let n = versions_of(&root, "u1").iter().find(|r| r.why == Why::Exit).unwrap().n;
+
+        s.submit(Job::Restore { uuid: "u1".into(), n });
+        s.drain_for_test();
+        let pre = versions_of(&root, "u1").into_iter().find(|r| r.why == Why::PreRestore)
+            .expect("the live take was kept");
+        assert_eq!(crate::version_store::read_state(&SetStore::new(&root), "u1", pre.n).unwrap().payload,
+                   "movy1\ncl 0 0 16 0 live\n");
+    }
+
+    /* The restored bytes reach the audio thread the same way an open's do. */
+    #[test]
+    fn a_restore_publishes_what_the_engine_must_apply() {
+        let root = tmp("restoreapply");
+        let s = Saver::new(&root);
+        s.submit(Job::Save { uuid: "u1".into(), payload: "movy1\ncl 0 0 16 0 a\n".into(), gen: 1, chains: "7\n".into() });
+        s.submit(Job::Keep { uuid: "u1".into(), why: Why::Exit });
+        s.submit(Job::Save { uuid: "u1".into(), payload: "movy1\ncl 0 0 16 0 b\n".into(), gen: 4, chains: "0\n".into() });
+        s.drain_for_test();
+        let n = versions_of(&root, "u1").iter().find(|r| r.why == Why::Exit).unwrap().n;
+        let _ = s.take_loaded();
+
+        s.submit(Job::Restore { uuid: "u1".into(), n });
+        s.drain_for_test();
+        let (payload, chains, _gen) = s.take_loaded().expect("the restore must publish its bytes");
+        assert_eq!(payload, "movy1\ncl 0 0 16 0 a\n");
+        assert_eq!(chains, "7\n", "and the chains that were live with it");
+    }
+
+    /* An adopted OLDER sequence has no ui half, and overwriting the keyboard
+     * and chains with nothing would be worse than the wipe this feature exists
+     * to undo. `none` is the whole answer. */
+    #[test]
+    fn a_version_with_no_ui_half_answers_none() {
+        let root = tmp("restorenoui");
+        let s = Saver::new(&root);
+        s.submit(Job::Save { uuid: "u1".into(), payload: "movy1\ncl 0 0 16 0 a\n".into(), gen: 1, chains: "0\n".into() });
+        s.submit(Job::Keep { uuid: "u1".into(), why: Why::Exit });
+        s.drain_for_test();
+        let n = versions_of(&root, "u1")[0].n;
+        s.submit(Job::Restore { uuid: "u1".into(), n });
+        s.drain_for_test();
+        assert_eq!(s.vui(), "none");
+    }
+
+    #[test]
+    fn a_restore_of_a_version_that_is_gone_says_so() {
+        let root = tmp("restoremiss");
+        let s = Saver::new(&root);
+        s.submit(Job::Restore { uuid: "u1".into(), n: 7 });
+        s.drain_for_test();
+        assert_eq!(s.vui(), "failed");
+        /* Taken once: a stale verdict must not be read as a second failure. */
+        assert_eq!(s.vui(), "none");
+    }
+
+    #[test]
+    fn parses_the_restore_command() {
+        assert!(matches!(parse_cmd("restore 4", "u1"), Some(Job::Restore { n: 4, .. })));
+        assert!(parse_cmd("restore", "u1").is_none());
+        assert!(parse_cmd("restore x", "u1").is_none());
     }
 
     #[test]

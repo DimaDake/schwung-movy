@@ -14,7 +14,29 @@
 use crate::set_envelope::{parse, wrap, Parsed, BLANK_STATE};
 use std::fs;
 use std::io::Write;
+use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
+
+/* The engine runs as root, inside Move's audio process; movy's UI runs as
+ * `ableton`, in the manager process. So anything the engine creates with
+ * default permissions locks the other half out of its own Set directory — and
+ * the UI still writes `ui-state.json` beside these files, still writes the Set
+ * itself whenever `engpersist` goes back off, and the device fixture writes it
+ * too. Measured: `ableton` could not overwrite a root-owned `seq-state.json`,
+ * which is what aborted nine device suites at `test_set_begin`.
+ *
+ * Group- and world-writable is the price of two processes owning one
+ * directory. Nothing here is a secret, and the alternative is a Set only one
+ * half of movy can save. */
+const DIR_MODE: u32 = 0o777;
+const FILE_MODE: u32 = 0o666;
+
+/// `mkdir -p`, left writable by both halves.
+pub(crate) fn ensure_dir(path: &Path) -> Result<(), String> {
+    fs::create_dir_all(path).map_err(|e| format!("mkdir {path:?}: {e}"))?;
+    let _ = fs::set_permissions(path, fs::Permissions::from_mode(DIR_MODE));
+    Ok(())
+}
 
 pub struct SetStore {
     pub root: PathBuf,
@@ -33,6 +55,9 @@ pub(crate) fn atomic_write(path: &Path, content: &str) -> Result<(), String> {
     let tmp = path.with_extension("writing");
     {
         let mut f = fs::File::create(&tmp).map_err(|e| format!("create {tmp:?}: {e}"))?;
+        /* Set on the temp file, so the mode arrives with the rename rather than
+         * in a window after it. */
+        let _ = f.set_permissions(fs::Permissions::from_mode(FILE_MODE));
         f.write_all(content.as_bytes()).map_err(|e| format!("write {tmp:?}: {e}"))?;
         f.sync_all().map_err(|e| format!("fsync {tmp:?}: {e}"))?;
     }
@@ -101,8 +126,7 @@ impl SetStore {
         if is_blank(payload, chains) {
             return Ok(());
         }
-        let dir = self.set_dir(uuid);
-        fs::create_dir_all(&dir).map_err(|e| format!("mkdir {dir:?}: {e}"))?;
+        ensure_dir(&self.set_dir(uuid))?;
         /* Neither half is rewritten with bytes it already holds. One save
          * carries both, and the chains settle a beat after the sequence does —
          * so without this, a Set that had only finished loading its modules
@@ -240,6 +264,23 @@ mod tests {
         s.write("u1", BLANK_STATE, 1, CHAINS).unwrap();
         assert!(s.has_state("u1"));
         assert_eq!(s.read_chains("u1").as_deref(), Some(CHAINS));
+    }
+
+    /* Two processes own one Set directory: the engine writes as root from
+     * Move's audio process, the UI as `ableton` from the manager's. A device
+     * sweep proved what default permissions cost — nine suites could not
+     * write the fixture over the engine's files. */
+    #[test]
+    fn what_the_engine_writes_stays_writable_by_the_other_half() {
+        use std::os::unix::fs::PermissionsExt;
+        let s = tmp("modes");
+        s.write("u1", GOOD, 1, CHAINS).unwrap();
+        for p in [s.state_path("u1"), s.chains_path("u1")] {
+            let mode = fs::metadata(&p).unwrap().permissions().mode() & 0o777;
+            assert_eq!(mode, 0o666, "{p:?} is {mode:o}");
+        }
+        let mode = fs::metadata(s.set_dir("u1")).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o777, "the directory is {mode:o}");
     }
 
     /* A save that changes only the chains must leave the sequence file alone.

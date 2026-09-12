@@ -10,7 +10,7 @@
 //! other order leaves the menu offering a version whose files do not exist.
 
 use crate::set_envelope::{parse, wrap, Parsed};
-use crate::set_store::{atomic_write, SetStore};
+use crate::set_store::{atomic_write, ensure_dir, SetStore};
 use crate::version_index::{count_clips, serialize, Index, VersionRec, Why};
 use crate::version_retain::version_to_drop;
 use std::fs;
@@ -68,7 +68,9 @@ pub fn write_version(store: &SetStore, uuid: &str, c: &Capture) -> bool {
     let mut idx = read_index(store, uuid);
     let n = idx.next;
     let dir = version_dir(store, uuid, n);
-    if fs::create_dir_all(&dir).is_err() {
+    /* Both levels: `v/` is created on the way to `v/<n>/`, and a root-only `v/`
+     * would keep the other half out of every version under it. */
+    if ensure_dir(&store.set_dir(uuid).join("v")).is_err() || ensure_dir(&dir).is_err() {
         return false;
     }
     if atomic_write(&dir.join("seq-state.json"), &wrap(c.payload, c.gen)).is_err() {
@@ -245,6 +247,20 @@ mod tests {
          * bytes it stops a device from accumulating. */
         let dirs = fs::read_dir(s.set_dir("S1").join("v")).unwrap().count();
         assert_eq!(dirs, idx.v.len());
+    }
+
+    #[test]
+    fn version_files_stay_writable_by_the_other_half() {
+        use std::os::unix::fs::PermissionsExt;
+        let s = tmp("modes");
+        write_version(&s, "S1", &cap(Why::Open, GOOD, 1, Some(CHAINS), Some(UI)));
+        for p in [version_dir(&s, "S1", 1).join("seq-state.json"),
+                  version_dir(&s, "S1", 1).join("chains.json")] {
+            assert_eq!(fs::metadata(&p).unwrap().permissions().mode() & 0o777, 0o666, "{p:?}");
+        }
+        for d in [s.set_dir("S1").join("v"), version_dir(&s, "S1", 1)] {
+            assert_eq!(fs::metadata(&d).unwrap().permissions().mode() & 0o777, 0o777, "{d:?}");
+        }
     }
 
     #[test]

@@ -170,6 +170,10 @@ node browser-test/device-scripts.mjs
 
 # 4. Device (when reachable) — deploy + automated MIDI/log test + perf timing.
 #    The bash param-UI e2e (./scripts/test.sh) is the `smoke` scenario now.
+#    NOTE: the `lfo` scenario carries one permanently-red check (`param-moving`
+#    — a standing movy bug, see test-device/MIGRATION-STATUS.md), so the full
+#    run exits non-zero BY DESIGN. That is the bug being visible, not a
+#    regression, and the fix is in movy's mod path — never in the check.
 ssh -o ConnectTimeout=3 ableton@move.local echo ok 2>/dev/null \
   && npm run test:device \
   || echo "DEVICE OFFLINE — SKIPPING DEVICE TESTS"
@@ -238,7 +242,7 @@ Other useful commands:
 npm run test:device -- --scenario smoke
 
 # Device e2e: step automation stays audible after a real module reselect
-./scripts/test-reselect.sh [move.local]
+npm run test:device -- --scenario reselect
 
 # Device e2e: the bottom CLICK JOG hint only appears after a ~1 s jog hold
 # (asserts on the real framebuffer's toast band, not the log)

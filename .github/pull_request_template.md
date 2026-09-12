@@ -12,7 +12,7 @@
 - [ ] `npm test` passes (logic, app-loop, screenshot, perf)
 - [ ] Screenshot baselines updated if rendering changed
 - [ ] `cargo test` passes (if `engine/` changed)
-- [ ] Device e2e run (`./scripts/test.sh` / `test-seq.sh`), or noted why not
+- [ ] Device e2e run (`npm run test:device` / `test-seq.sh`), or noted why not
 
 ## Checklist
 

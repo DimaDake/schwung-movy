@@ -20,7 +20,17 @@ import './dist/scenarios/migrate.js';
 
 const argv = process.argv.slice(2);
 const flag = (n) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : undefined; };
-const HOST = process.env.HOST || flag('--host') || argv.find((a) => !a.startsWith('--')) || 'move.local';
+// A flag's own value (e.g. "smoke" in "--scenario smoke") is not a positional
+// host — without this, "--scenario smoke" left "smoke" as the only bare argv
+// entry and HOST became "smoke", so the run tried `ssh ableton@smoke`.
+const consumedByFlag = new Set();
+for (const name of ['--host', '--scenario']) {
+    const i = argv.indexOf(name);
+    if (i >= 0) consumedByFlag.add(i + 1);
+}
+const HOST = process.env.HOST || flag('--host')
+    || argv.find((a, i) => !a.startsWith('--') && !consumedByFlag.has(i))
+    || 'move.local';
 const only = flag('--scenario');
 
 const started = await ensureServers(HOST);

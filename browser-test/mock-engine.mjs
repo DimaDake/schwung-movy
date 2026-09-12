@@ -37,6 +37,14 @@ export function installMockEngine() {
          * default: most tests set seqState.lenSteps by hand and a poll reporting
          * a length would fight them. */
         trackClipLength: false,
+        /* Consecutive `watch` ops to accept-but-not-apply: the op is recorded
+         * in `ops` (the UI genuinely sent it) but `status.trk` is left alone,
+         * modelling the single-slot `overtake_dsp` SHM's "observer effect"
+         * (docs/persistence-hazards.md #1) — a write made while a Set is
+         * restoring can be silently overwritten before the engine core ever
+         * reads it, which looks like this from the UI's side, not like a
+         * write that never happened. */
+        dropWatchCount: 0,
         /* persisted automation lane labels reported via get_param('alabels');
          * an `aclr <t> <l>` op blanks the matching lane (faithful engine). */
         alabels: null,
@@ -82,6 +90,7 @@ export function installMockEngine() {
             this.stateBlob = null;
             this.params = {};
             this.trackClipLength = false;
+            this.dropWatchCount = 0;
         },
     };
 
@@ -123,7 +132,10 @@ export function installMockEngine() {
                 // reverting it — that round trip is what proves a knob turn
                 // actually reached the engine, not just the UI mirror.
                 else if (verb === 'bpm') engine.status.bpm = +parts[1];
-                else if (verb === 'watch') engine.status.trk = +parts[1];
+                else if (verb === 'watch') {
+                    if (engine.dropWatchCount > 0) engine.dropWatchCount--;
+                    else engine.status.trk = +parts[1];
+                }
                 else if (engine.trackClipLength && (verb === 'addp' || verb === 'clen')) {
                     const cur = engine.status.len ?? 0;
                     if (verb === 'clen') {

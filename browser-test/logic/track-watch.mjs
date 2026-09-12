@@ -61,6 +61,20 @@ export async function run() {
     openOn(0);
     eq('reopening on track 1 takes the engine off the old track', engine.status.trk, 0);
 
+    /* plans/2026-09-12-test-device-migration-followups.md item 5: a `watch`
+     * sent while a Set is restoring can be lost to the single-slot
+     * `overtake_dsp` SHM's observer effect (docs/persistence-hazards.md #1) —
+     * overwritten before the engine core ever applies it, not merely delayed.
+     * `dropWatchCount` models a few such losses in a row (roughly the width of
+     * a slow restore). The reconciliation must keep retrying once the
+     * contention clears, not settle for a push it only believes landed. */
+    engine.status.trk = 2;
+    engine.dropWatchCount = 3;
+    openOn(0);
+    for (let i = 0; i < 40; i++) seqEngineTick();
+    eq('a watch lost to SHM contention during a restore is retried until it lands',
+        engine.status.trk, 0);
+
     /* Move can only hand over one of its four slots, but the focus group has to
      * follow the track anyway — the four track buttons address the focused
      * quartet, so a group left behind aims them at other tracks. */

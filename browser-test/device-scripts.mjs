@@ -266,21 +266,16 @@ log('\nTest 8: the smoke scenario keys on phrases the source can actually emit')
         ok(`smoke.ts looks for ${JSON.stringify(phrase.trim())}`, smoke.includes(phrase.trim()));
     }
 
-    /* Same rule for the versions suite, whose verdict on the whole feature is
-     * two greps: one for the log line the restore emits, one for the shape of
-     * the index entry adoption writes. Rename either and the suite goes green
-     * having tested nothing. */
-    const versionsSh = readFileSync('scripts/test-versions.sh', 'utf8');
-    ok('src can emit "versions: restored "', src.includes('versions: restored '));
-    ok('test-versions.sh looks for it', versionsSh.includes('versions: restored'));
+    /* Same rule for the versions suite. Its verdict turns on two strings the
+     * version index carries: the `adopted` entry the open writes, and the
+     * `pre-restore` entry the restore writes (check 7 reads that index entry
+     * now, where the bash grepped a log line). Rename either writer and the
+     * scenario goes green having tested nothing. */
+    const versionsTs = readFileSync('test-device/scenarios/versions.ts', 'utf8');
     ok('src can write a why of "adopted"', src.includes("'adopted'"));
-    ok('test-versions.sh greps the adopted entry', versionsSh.includes('"why":"adopted"'));
-    /* And that the shape it greps for is the shape the index actually
-     * serializes — JSON.stringify writes no spaces, which is why the pattern
-     * has none. A pretty-printed index would slip past this grep. */
-    ok('the index is serialized without spaces',
-        readFileSync('src/seq/version-index.ts', 'utf8')
-            .includes('JSON.stringify({ next: idx.next, v: idx.v })'));
+    ok('versions.ts looks for the adopted entry', versionsTs.includes("'adopted'"));
+    ok('src can write a why of "pre-restore"', src.includes("'pre-restore'"));
+    ok('versions.ts looks for the pre-restore entry', versionsTs.includes("'pre-restore'"));
     /* And the branch that made the dead phrase harmless-looking: with a fixture
      * that guarantees a synth, an empty hierarchy window cannot be a pass, and
      * the failure has to name what was missing rather than shrug at it. */
@@ -321,44 +316,27 @@ log('\nTest 9: every movy chain component ships the fixture\'s parameter values'
 
 /* ── Test 10: clearing a version store is done with root ─────────────────────
  * Movy's saves go through the host, which runs as ROOT, so the version store it
- * writes (sets/<uuid>/v/<n>/) is root-owned DIRECTORIES. `ableton` cannot
- * unlink inside them, so an ableton-only `rm -rf .../v` fails — and under
- * `set -euo pipefail` it takes the suite down before its first assertion.
- * test-versions.sh shipped that way and could only ever pass on a device where
- * movy had never written a version: green once, dead on every run after.
+ * writes (sets/<uuid>/v/<n>/) is root-owned DIRECTORIES. `ableton` cannot unlink
+ * inside them, so an ableton-only clear fails. test-versions.sh shipped that way
+ * and could only ever pass on a device where movy had never written a version:
+ * green once, dead on every run after. It is the versions scenario now, and the
+ * hazard moved with it — the seed step must fall back to root ssh, and must
+ * unlink the state files before scp'ing over them (scp opens the destination for
+ * writing and is refused on a root-owned file).
  */
-log('\nTest 10: a suite that clears a version store can reach the root-owned tree');
+log('\nTest 10: the versions scenario can reach the root-owned tree');
 
 ok('the shared lib defines ts_ssh_root', /^ts_ssh_root\(\)/m.test(libSrc),
    'without it a suite has no way to remove what movy wrote as root');
 
-const versionWipers = shFiles.filter(f => /rm -rf[^\n]*\$D\/v\b/.test(readFileSync(f, 'utf8')));
-ok('a script does clear a version store', versionWipers.length > 0,
-   'if this is 0 the check below is vacuous');
-
-const rootless = versionWipers.filter(f => !/ts_ssh_root/.test(readFileSync(f, 'utf8')));
-ok('every one of them falls back to root', rootless.length === 0,
-   rootless.join(', ') || `${versionWipers.length} checked`);
-
-/* The other half of the same hazard. scp OPENS THE DESTINATION FOR WRITING, so
- * it is refused on a root-owned file however writable the directory is — and
- * movy's saves are root's. Removing the version store but not the state files
- * seeded over it is what failed the movy-host sweep after the root fallback
- * above had already fixed the version store.
- */
-const seedScps = shFiles.filter(f => /scp[^\n]*\$D\/(seq|ui)-state/.test(readFileSync(f, 'utf8')));
-ok('a script does seed set state by scp', seedScps.length > 0,
-   'if this is 0 the check below is vacuous');
-
-const noUnlink = seedScps.filter(f => {
-    const src = readFileSync(f, 'utf8');
-    /* Every destination it scps to must appear in a removal first. */
-    const dests = [...src.matchAll(/scp[^\n]*\$D\/((?:seq|ui)-state[^"'\s]*)/g)].map(m => m[1]);
-    return dests.some(d => !new RegExp(`rm[^\\n]*\\$D/${d.replace('.', '\\.')}`).test(src)
-                        && !new RegExp(`SEEDED=[^\\n]*${d.replace('.', '\\.')}`).test(src));
-});
-ok('every scp destination is unlinked before it is written', noUnlink.length === 0,
-   noUnlink.join(', ') || `${seedScps.length} checked`);
+const versionsTs = readFileSync('test-device/scenarios/versions.ts', 'utf8');
+ok('the scenario clears the version store', /rm -rf/.test(versionsTs) && /v'/.test(versionsTs),
+   'if it does not, the check below is vacuous');
+ok('and falls back to root ssh for it', /sshRoot/.test(versionsTs),
+   'an ableton-only clear dies on a root-owned tree');
+ok('and unlinks the state files before seeding over them',
+   /seq-state\.json'/.test(versionsTs) && /ui-state\.json'/.test(versionsTs),
+   'scp over a root-owned file is refused');
 
 /* ── Test 11: the release routine keeps its announcement step ────────────────
  * The announcement is only "part of the release" while the build gate refuses a

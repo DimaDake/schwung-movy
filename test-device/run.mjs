@@ -15,6 +15,7 @@ import './dist/scenarios/module-contract.js';
 import './dist/scenarios/master-fx.js';
 import './dist/scenarios/mutes.js';
 import './dist/scenarios/smoke.js';
+import './dist/scenarios/versions.js';
 
 const argv = process.argv.slice(2);
 const flag = (n) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : undefined; };

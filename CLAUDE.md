@@ -168,8 +168,10 @@ ssh -o ConnectTimeout=3 ableton@move.local echo ok 2>/dev/null \
   || echo "DEVICE OFFLINE — SKIPPING DEVICE TESTS"
 # If offline: report DEVICE OFFLINE to the user in CAPS
 
-# 4a. TS device scenarios (the replacement tier — see test-device/MIGRATION.md)
-npm run test:device
+# 4a. The seq suite is still bash, and it is the only thing that builds and
+#     deploys dsp.so — run it for any engine (Rust) or sequencer change, since
+#     no TS scenario ships an engine. See test-device/MIGRATION.md.
+./scripts/test-seq.sh [move.local]
 
 # 4b. Every device suite at once (each one is independent — any subset, any order).
 #     Tracks 1-16 are all movy chains; there is no separate host arrangement

@@ -75,10 +75,11 @@ outranks this migration.
 
 **Escalated under the 3-fix rule.** A working scenario exists but was never
 green, so nothing was committed and `scripts/test-seq.sh` is untouched and still
-in `test-all-device.sh`. The work is preserved at
-`.superpowers/sdd/test-device-migration/seq-wip.ts`, deliberately moved out of
-`test-device/scenarios/` so a never-green scenario cannot be auto-discovered and
-pollute the remaining suites.
+in `test-all-device.sh`. The work is tracked at `test-device/seq.wip.ts`,
+deliberately kept out of `test-device/scenarios/` so a never-green scenario
+cannot be auto-discovered and pollute the remaining suites. (It first lived
+under `.superpowers/sdd/`, which is gitignored — a clean clone would have had
+none of it.)
 
 **The blocking fact: the Play button never stopped a running transport.** In both
 runs the engine's `play=` stayed `1` and no `seq: play=0` line appeared. That

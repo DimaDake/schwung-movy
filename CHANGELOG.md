@@ -28,6 +28,15 @@ far. Earlier work is summarised in the timeline below for context.
   while the audio thread holds a cold `dlopen`, and the next capture then wrote
   the module's shipped defaults over the user's patch.
 
+  The version history and the dead-Set sweep moved with it. The engine keeps
+  `versions.json` and `v/<n>/` itself and takes four of the six captures inside
+  the jobs that overwrite a Set — only the exit capture, a restore and the sweep
+  are commands. A kept version now carries its **chains** alongside its sequence
+  and UI state, so restoring an old take no longer leaves it under the
+  instruments that replaced it. The sweep uses `read_dir`, which sees a Set
+  whose `name-index.json` entry was overwritten — on the device this was written
+  against, exactly one such directory was invisible to the old sweep.
+
   Off by default pending device verification. `ui-state.json` keeps a mirror of
   the chains so turning the flag back off costs nothing — but a Set saved with
   the flag ON and then opened by an OLDER movy keeps its sequencer, keyboard

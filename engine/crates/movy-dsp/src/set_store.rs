@@ -103,8 +103,21 @@ impl SetStore {
         }
         let dir = self.set_dir(uuid);
         fs::create_dir_all(&dir).map_err(|e| format!("mkdir {dir:?}: {e}"))?;
-        atomic_write(&self.state_path(uuid), &wrap(payload, gen))?;
-        atomic_write(&self.chains_path(uuid), chains)
+        /* Neither half is rewritten with bytes it already holds. One save
+         * carries both, and the chains settle a beat after the sequence does —
+         * so without this, a Set that had only finished loading its modules
+         * rewrote its sequence too, at a new generation, on every open. A
+         * device run caught it: the bytes `test-versions.sh` adopted were not
+         * the bytes still on disk a moment later. */
+        if fs::read_to_string(self.state_path(uuid)).ok().and_then(|s| parse(&s))
+            .map_or(true, |p| p.payload != payload)
+        {
+            atomic_write(&self.state_path(uuid), &wrap(payload, gen))?;
+        }
+        if self.read_chains(uuid).as_deref() != Some(chains) {
+            atomic_write(&self.chains_path(uuid), chains)?;
+        }
+        Ok(())
     }
 
     /// Give up this Set's state without giving up its history. `remove_dir_all`
@@ -227,6 +240,23 @@ mod tests {
         s.write("u1", BLANK_STATE, 1, CHAINS).unwrap();
         assert!(s.has_state("u1"));
         assert_eq!(s.read_chains("u1").as_deref(), Some(CHAINS));
+    }
+
+    /* A save that changes only the chains must leave the sequence file alone.
+     * The generation on disk is the proof: bumping it for a Set whose notes
+     * did not move is churn, and it is what a device run caught. */
+    #[test]
+    fn an_unchanged_half_is_not_rewritten() {
+        let s = tmp("unchanged");
+        s.write("u1", GOOD, 1, "0\n").unwrap();
+        s.write("u1", GOOD, 2, CHAINS).unwrap();
+        let raw = fs::read_to_string(s.state_path("u1")).unwrap();
+        assert!(raw.contains("gen 1"), "the sequence file must be untouched: {raw:?}");
+        assert_eq!(s.read_chains("u1").as_deref(), Some(CHAINS), "the chains did change");
+
+        /* …and the other way round: a real edit still lands. */
+        s.write("u1", "movy1\nbpm 14000\n", 3, CHAINS).unwrap();
+        assert_eq!(s.read_best("u1").unwrap().gen, 3);
     }
 
     #[test]

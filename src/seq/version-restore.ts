@@ -24,7 +24,7 @@ import { readVersionIndex, readVersionState, readVersionUi } from './version-sto
 /* A restore cannot be awaited: the saver is another thread and this host has no
  * sleep. So the press sends the command and a later tick collects the answer —
  * the same shape settling uses for module loads. */
-let pending: { uuid: string; tries: number } | null = null;
+let pending: { uuid: string; n: number; tries: number } | null = null;
 
 /* ~2.5 s at the tick rate this runs at. A restore is a handful of file
  * operations; a bound this loose only ever fires when something is wrong, and
@@ -34,7 +34,7 @@ const RESTORE_TRIES = 60;
 function restoreViaEngine(uuid: string, n: number): boolean {
     if (typeof host_module_set_param_blocking !== 'function') return false;
     host_module_set_param_blocking('set', 'restore ' + n, 200);
-    pending = { uuid, tries: 0 };
+    pending = { uuid, n, tries: 0 };
     return false;   // nothing to reload yet — restoreTick says when
 }
 
@@ -49,13 +49,18 @@ export function restoreTick(): boolean {
         pending = null;
         return false;
     }
-    const { uuid } = pending;
+    const { uuid, n } = pending;
     pending = null;
     refreshVersionRows();
     if (v === 'failed') {
         mlog('versions: the engine refused the restore');
         return false;
     }
+    /* Logged HERE, not by the engine that did the work: a device run showed
+     * that `host::log` from the saver thread never reaches debug.log, while the
+     * same call from the audio thread does. The restore is a user action and
+     * has to leave a trace, so the trace is the UI's. */
+    mlog('versions: restored ' + n + ' of ' + uuid);
     /* The version's ui half, written to the UI's own file: that half is ours
      * (spec §5), and the reload that follows applies it the way an ordinary
      * load would. `none` means the version carried none — an adopted older

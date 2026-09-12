@@ -52,6 +52,21 @@ export async function run() {
     eq('next is repaired past the highest n',
         parseVersionIndex(JSON.stringify({ next: 1, v: [{ n: 9, gen: 1, ms: 0, why: 'open', clips: 0, ui: false }] })).next, 10);
 
+    /* What the ENGINE writes, read by the half that does not write it — the
+     * other direction of the golden `version_index.rs` pins, and taken from a
+     * device run with `engpersist` on. The flag is an escape hatch both ways:
+     * a build that could not read this would show an empty history to a user
+     * who has one. */
+    const FROM_ENGINE = '{"next":6,"v":[{"n":5,"gen":46,"ms":1789204535913,"why":"exit","clips":3,"ui":true,"ch":true},'
+        + '{"n":3,"gen":45,"ms":1789204533931,"why":"pre-restore","clips":2,"ui":true,"ch":true},'
+        + '{"n":1,"gen":43,"ms":0,"why":"adopted","clips":3,"ui":true,"ch":true}]}';
+    const fromEngine = parseVersionIndex(FROM_ENGINE);
+    eq('reads what the engine wrote', fromEngine.v.length, 3);
+    eq('newest first', fromEngine.v[0].why, 'exit');
+    eq('carries the engine-only chains flag', fromEngine.v[0].ch, true);
+    eq('and pre-restore, which only the engine writes', fromEngine.v[1].why, 'pre-restore');
+    eq('next survives the round trip', fromEngine.next, 6);
+
     eq('counts clips', countClips('movy1\ncl 0 0 16 0 x\ncp 0\ncl 1 0 16 0 y\n'), 2);
     eq('a blank has none', countClips('movy1\n'), 0);
 }

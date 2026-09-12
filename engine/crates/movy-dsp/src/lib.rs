@@ -170,6 +170,12 @@ struct Instance {
      * set-context.ts, and hardcoding it here would be untestable anywhere but
      * the device. */
     saver: Option<set_saver::Saver>,
+    /// What the Set on disk already holds, as this engine would write it.
+    /// Loading marks the engine dirty (the chain restore does), so without this
+    /// every open rewrote `seq-state.json` at a new generation — flash churn,
+    /// and a version ladder whose generations climb while nothing changes.
+    /// `persist-store.ts` made the same comparison with `lastGoodPayload`.
+    last_saved: Option<(String, String)>,
     engpersist: bool,
     set_uuid: String,
     set_gen: u32,
@@ -190,6 +196,7 @@ impl Instance {
             probe_req: String::new(),
             probe_rsp: String::new(),
             saver: None,
+            last_saved: None,
             engpersist: false,
             set_uuid: String::new(),
             set_gen: 0,
@@ -676,6 +683,11 @@ impl Instance {
                 host::log("set: malformed chains.json ignored");
             }
             self.set_gen = gen;
+            /* Taken from the engine, not from the bytes that arrived: what
+             * matters is what a save WOULD write now, and an older file may
+             * spell the same Set differently. */
+            self.last_saved = Some((seq_core::persist::serialize(&self.engine),
+                                    chain_state::serialize(&mut self.chains)));
             self.save_at = self.blocks + SAVE_BLOCKS;
         }
 
@@ -684,15 +696,25 @@ impl Instance {
          * to CLEAR the flag: a write we then failed to complete was an edit
          * nothing would ever ask for again. */
         if self.engpersist && self.engine.dirty && self.blocks >= self.save_at {
-            self.set_gen += 1;
-            saver.submit(set_saver::Job::Save {
-                uuid: self.set_uuid.clone(),
-                payload: seq_core::persist::serialize(&self.engine),
-                gen: self.set_gen,
-                chains: chain_state::serialize(&mut self.chains),
-            });
+            let payload = seq_core::persist::serialize(&self.engine);
+            let chains = chain_state::serialize(&mut self.chains);
             self.engine.dirty = false;
             self.save_at = self.blocks + SAVE_BLOCKS;
+            /* Identical bytes are not a save. The dirty flag says an edit was
+             * OFFERED, not that anything came of it — a knob moved and moved
+             * back, or a Set that has only just been loaded. */
+            let changed = self.last_saved.as_ref()
+                .is_none_or(|(p, c)| *p != payload || *c != chains);
+            if changed {
+                self.set_gen += 1;
+                saver.submit(set_saver::Job::Save {
+                    uuid: self.set_uuid.clone(),
+                    payload: payload.clone(),
+                    gen: self.set_gen,
+                    chains: chains.clone(),
+                });
+                self.last_saved = Some((payload, chains));
+            }
         }
     }
 
@@ -1179,6 +1201,42 @@ mod tests {
     /* Without a saver there is nothing to ask, and the UI must be able to tell
      * that apart from an empty history: `versions` is empty either way, but a
      * restore that cannot be asked for is `failed`, never `none`. */
+    /* An open marks the engine dirty — the chain restore does it — so without
+     * the comparison every open rewrote the Set at a new generation. A device
+     * run caught this: `test-versions.sh` asserts the bytes it adopted are the
+     * bytes still on disk, and they were not. */
+    #[test]
+    fn an_open_that_changes_nothing_does_not_rewrite_the_set() {
+        const GOOD: &str = "movy1\nbpm 12000\ncl 0 0 16 0 0:24:60:100\n";
+        let dir = saver_tmp("nochange");
+        crate::set_store::SetStore::new(&dir).write("u1", GOOD, 7, "0\n").unwrap();
+        let path = format!("{dir}/u1/seq-state.json");
+        let before = std::fs::read_to_string(&path).unwrap();
+
+        let mut inst = Instance::new();
+        inst.set_param("setsdir", &dir);
+        inst.set_param("engpersist", "1");
+        inst.set_param("set", "open u1");
+        let mut audio = [0i16; 256];
+        /* The open lands on the saver thread; render until the engine has taken
+         * the bytes, then run past the save cadence with nothing changed. */
+        for _ in 0..200 {
+            inst.render(&mut audio);
+            /* The status reports the generation the saver published, which is
+             * how the test knows the open has been applied rather than merely
+             * queued. */
+            if inst.get_param("set").is_some_and(|st| st.contains("gen=7")) { break; }
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+        inst.engine.dirty = true;
+        for _ in 0..(SAVE_BLOCKS + 2) {
+            inst.render(&mut audio);
+        }
+        std::thread::sleep(std::time::Duration::from_millis(300));
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), before,
+                   "an unchanged Set must not be rewritten at a new generation");
+    }
+
     #[test]
     fn the_new_keys_answer_before_setsdir_arrives() {
         let mut inst = Instance::new();

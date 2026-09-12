@@ -2,6 +2,15 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+**Status: DONE** — all ten tasks landed (`9a72e4a`…) and `scripts/test-versions.sh`
+passes on move.local with `engpersist` both on and off, plus `test-seq.sh` as the
+smoke check. Three things the plan did not foresee are recorded in the commits:
+the engine rewrote a Set on every open (the dirty flag says an edit was offered,
+not that anything came of it — fixed with a per-file comparison in `set_store`),
+nothing logged from the saver thread reaches `debug.log` so the restore is logged
+by the UI, and two of the ported ladder's expectations were wrong until the
+TypeScript ladder was run on the same fixtures.
+
 **Goal:** Move the Set version history and the dead-Set sweep out of TypeScript into the Rust engine, behind the `engpersist` flag, so the engine owns every file under `sets/<uuid>/`.
 
 **Architecture:** The engine already owns `seq-state.json` and `chains.json` on a saver thread (`set_saver.rs`). This step gives the same thread the version ladder (`versions.json` + `v/<n>/`) and a `read_dir`-based sweep. Four of the six capture moments — `open`, `adopted`, `auto`, `pre-wipe` — stop crossing the wire entirely, because the jobs that overwrite state are the jobs that capture. Only `keep exit`, `restore <n>` and `gc …` are commands. The UI reads the menu through a new `versions` GET instead of the file, and a restore comes back through `vui`.

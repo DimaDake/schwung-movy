@@ -394,7 +394,7 @@ Behind a flag, the way `chparallel` shipped. `engpersist` in
    `readChainDoc()`, send commands, compare status — and write the mirror
    (§6.1), including the rewrite on the flag's 1 → 0 transition. The flag is
    only an escape hatch once that transition is tested.
-5. Versions and GC into the engine.
+5. Versions and GC into the engine. **Done** — `plans/2026-09-12-engine-versions-and-gc.md`, device-verified with the flag on and off.
 6. Device verification → default ON (which needs a `FLAGS_REV` bump, or a
    stored 0 beats the new default and it ships to nobody) → delete the old path
    in the following release.

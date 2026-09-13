@@ -1,0 +1,521 @@
+{
+ "id": "ruminant",
+ "name": "Ruminant",
+ "version": "0.2.0",
+ "author": "mestela",
+ "category": "audio_fx",
+ "status": "ok",
+ "load_ms": 56,
+ "dsp_size": 17504,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "audio_fx",
+  "requires_continuous_processing": true,
+  "chain_params": [
+   {
+    "key": "shift_hz",
+    "name": "Shift",
+    "type": "float",
+    "min": -2000,
+    "max": 2000,
+    "default": 40,
+    "step": 5,
+    "unit": "Hz",
+    "display_format": "%.0f"
+   },
+   {
+    "key": "delay_ms",
+    "name": "Delay",
+    "type": "float",
+    "min": 0.05,
+    "max": 1000,
+    "default": 120,
+    "step": 0.05,
+    "unit": "ms",
+    "display_format": "%.2f"
+   },
+   {
+    "key": "feedback",
+    "name": "Fdbk",
+    "type": "float",
+    "min": 0,
+    "max": 110,
+    "default": 65,
+    "step": 1,
+    "unit": "%"
+   },
+   {
+    "key": "sideband",
+    "name": "Side",
+    "type": "float",
+    "min": -100,
+    "max": 100,
+    "default": 100,
+    "step": 2,
+    "unit": "%"
+   },
+   {
+    "key": "mix",
+    "name": "Mix",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "default": 50,
+    "step": 1,
+    "unit": "%"
+   },
+   {
+    "key": "tone",
+    "name": "Tone",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "step": 1,
+    "unit": "%"
+   },
+   {
+    "key": "stereo",
+    "name": "Stereo",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "default": 20,
+    "step": 1,
+    "unit": "%"
+   },
+   {
+    "key": "range",
+    "name": "Range",
+    "type": "enum",
+    "options": [
+     "Fine",
+     "Wide"
+    ],
+    "default": 0
+   }
+  ],
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "name": "Ruminant",
+     "params": [
+      {
+       "key": "shift_hz",
+       "name": "Shift",
+       "type": "float",
+       "min": -2000,
+       "max": 2000,
+       "default": 40,
+       "step": 5,
+       "unit": "Hz",
+       "display_format": "%.0f"
+      },
+      {
+       "key": "delay_ms",
+       "name": "Delay",
+       "type": "float",
+       "min": 0.05,
+       "max": 1000,
+       "default": 120,
+       "step": 0.05,
+       "unit": "ms",
+       "display_format": "%.2f"
+      },
+      {
+       "key": "feedback",
+       "name": "Fdbk",
+       "type": "float",
+       "min": 0,
+       "max": 110,
+       "default": 65,
+       "step": 1,
+       "unit": "%"
+      },
+      {
+       "key": "sideband",
+       "name": "Side",
+       "type": "float",
+       "min": -100,
+       "max": 100,
+       "default": 100,
+       "step": 2,
+       "unit": "%"
+      },
+      {
+       "key": "mix",
+       "name": "Mix",
+       "type": "float",
+       "min": 0,
+       "max": 100,
+       "default": 50,
+       "step": 1,
+       "unit": "%"
+      },
+      {
+       "key": "tone",
+       "name": "Tone",
+       "type": "float",
+       "min": 0,
+       "max": 100,
+       "default": 100,
+       "step": 1,
+       "unit": "%"
+      },
+      {
+       "key": "stereo",
+       "name": "Stereo",
+       "type": "float",
+       "min": 0,
+       "max": 100,
+       "default": 20,
+       "step": 1,
+       "unit": "%"
+      },
+      {
+       "key": "range",
+       "name": "Range",
+       "type": "enum",
+       "options": [
+        "Fine",
+        "Wide"
+       ],
+       "default": 0
+      }
+     ],
+     "knobs": [
+      "shift_hz",
+      "delay_ms",
+      "feedback",
+      "sideband",
+      "mix",
+      "tone",
+      "stereo",
+      "range"
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root"
+  ],
+  "params": [
+   {
+    "key": "shift_hz",
+    "name": "Shift",
+    "type": "float",
+    "min": -2000,
+    "max": 2000,
+    "step": null,
+    "options": null,
+    "default": "40.0"
+   },
+   {
+    "key": "delay_ms",
+    "name": "Delay",
+    "type": "float",
+    "min": 0.05,
+    "max": 1000,
+    "step": null,
+    "options": null,
+    "default": "120.0"
+   },
+   {
+    "key": "feedback",
+    "name": "Fdbk",
+    "type": "float",
+    "min": 0,
+    "max": 110,
+    "step": null,
+    "options": null,
+    "default": "65.0"
+   },
+   {
+    "key": "sideband",
+    "name": "Side",
+    "type": "float",
+    "min": -100,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.0"
+   },
+   {
+    "key": "mix",
+    "name": "Mix",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "50.0"
+   },
+   {
+    "key": "tone",
+    "name": "Tone",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.0"
+   },
+   {
+    "key": "stereo",
+    "name": "Stereo",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "20.0"
+   },
+   {
+    "key": "range",
+    "name": "Range",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Fine",
+     "Wide"
+    ],
+    "default": "0"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "SHIFT",
+       "fullName": "Shift",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DELAY",
+       "fullName": "Delay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FDBK",
+       "fullName": "Fdbk",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SIDE",
+       "fullName": "Side",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "MIX",
+       "fullName": "Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TONE",
+       "fullName": "Tone",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "STEREO",
+       "fullName": "Stereo",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RANGE",
+       "fullName": "Range",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "shift_hz",
+    "label": "Shift",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -2000,
+    "max": 2000,
+    "step": 5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 2.5,
+     "detentsFullSweep": 1600
+    }
+   },
+   {
+    "key": "delay_ms",
+    "label": "Delay",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.05,
+    "max": 1000,
+    "step": 0.05,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.025,
+     "detentsFullSweep": 39998
+    }
+   },
+   {
+    "key": "feedback",
+    "label": "Fdbk",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 110,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 220
+    }
+   },
+   {
+    "key": "sideband",
+    "label": "Side",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -100,
+    "max": 100,
+    "step": 2,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 1,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "mix",
+    "label": "Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "tone",
+    "label": "Tone",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "stereo",
+    "label": "Stereo",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "range",
+    "label": "Range",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Fine",
+     "Wide"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   }
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [],
+  "noMetadata": [],
+  "warnings": []
+ }
+}

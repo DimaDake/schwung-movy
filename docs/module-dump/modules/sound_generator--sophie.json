@@ -1,0 +1,3566 @@
+{
+ "id": "sophie",
+ "name": "Sophie",
+ "version": "0.5.0",
+ "author": "mestela",
+ "category": "sound_generator",
+ "status": "ok",
+ "load_ms": 76,
+ "dsp_size": 70968,
+ "capabilities": {
+  "audio_out": true,
+  "audio_in": false,
+  "midi_in": true,
+  "midi_out": false,
+  "chainable": true,
+  "component_type": "sound_generator",
+  "ui_hierarchy_legacy": {
+   "levels": {
+    "root": {
+     "name": "Sophie",
+     "child_count": 16,
+     "child_label": "Pad",
+     "child_labels": [
+      "1 Kick",
+      "2 Rim",
+      "3 Snare",
+      "4 Clap",
+      "5 Snare 2",
+      "6 Low Tom",
+      "7 Closed HH",
+      "8 Floor Tom",
+      "9 Pedal HH",
+      "10 Mid Tom",
+      "11 Open HH",
+      "12 Low-Mid",
+      "13 High-Mid",
+      "14 Crash",
+      "15 High Tom",
+      "16 Ride"
+     ],
+     "child_key_template": "p{index}_{key}",
+     "child_index_base": 1,
+     "child_index_digits": 2,
+     "child_index_param": "focused_pad",
+     "child_key_overrides": {
+      "focused_pad": "focused_pad"
+     },
+     "params": [
+      "focused_pad",
+      "tune",
+      "decay",
+      "level",
+      "cutoff",
+      "resonance",
+      "filter_type",
+      "model",
+      "color",
+      "metal",
+      "feedback",
+      "sweep",
+      "crush",
+      "drive",
+      {
+       "level": "ring",
+       "label": "Ring"
+      }
+     ],
+     "knobs": [
+      "tune",
+      "decay",
+      "model",
+      "color",
+      "metal",
+      "feedback",
+      "sweep",
+      "crush",
+      "drive"
+     ]
+    },
+    "ring": {
+     "label": "Ring",
+     "child_count": 16,
+     "child_label": "Pad",
+     "child_key_template": "p{index}_{key}",
+     "child_index_base": 1,
+     "child_index_digits": 2,
+     "child_index_param": "focused_pad",
+     "params": [
+      "ring_time",
+      "ring_feedback",
+      "ring_mix",
+      "ring_tone"
+     ],
+     "knobs": [
+      "ring_time",
+      "ring_feedback",
+      "ring_mix",
+      "ring_tone"
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [],
+  "params": [
+   {
+    "key": "focused_pad",
+    "name": "Pad",
+    "type": "int",
+    "min": 1,
+    "max": 16,
+    "step": 1,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "p01_model",
+    "name": "Pad 1 Model",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Fuse",
+     "Stack",
+     "Split",
+     "Shard"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "p01_tune",
+    "name": "Pad 1 Tune",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "-5.000"
+   },
+   {
+    "key": "p01_color",
+    "name": "Pad 1 Color",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "24.000"
+   },
+   {
+    "key": "p01_metal",
+    "name": "Pad 1 Metal",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "8.000"
+   },
+   {
+    "key": "p01_feedback",
+    "name": "Pad 1 Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "6.000"
+   },
+   {
+    "key": "p01_sweep",
+    "name": "Pad 1 Sweep",
+    "type": "float",
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "55.000"
+   },
+   {
+    "key": "p01_decay",
+    "name": "Pad 1 Decay",
+    "type": "float",
+    "min": 0.03,
+    "max": 4,
+    "step": 0.01,
+    "options": null,
+    "default": "0.280"
+   },
+   {
+    "key": "p01_crush",
+    "name": "Pad 1 Crush",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p01_drive",
+    "name": "Pad 1 Drive",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "58.000"
+   },
+   {
+    "key": "p01_level",
+    "name": "Pad 1 Level",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p01_cutoff",
+    "name": "Pad 1 Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p01_resonance",
+    "name": "Pad 1 Resonance",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p01_filter_type",
+    "name": "Pad 1 Filter Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LPF",
+     "HPF",
+     "Notch",
+     "DJ",
+     "BPF"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "p01_ring_time",
+    "name": "Pad 1 Ring Time",
+    "type": "float",
+    "min": 0.5,
+    "max": 30,
+    "step": 0.1,
+    "options": null,
+    "default": "6.000"
+   },
+   {
+    "key": "p01_ring_feedback",
+    "name": "Pad 1 Ring Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 95,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p01_ring_mix",
+    "name": "Pad 1 Ring Mix",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p01_ring_tone",
+    "name": "Pad 1 Ring Tone",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "70.000"
+   },
+   {
+    "key": "p02_model",
+    "name": "Pad 2 Model",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Fuse",
+     "Stack",
+     "Split",
+     "Shard"
+    ],
+    "default": "3"
+   },
+   {
+    "key": "p02_tune",
+    "name": "Pad 2 Tune",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p02_color",
+    "name": "Pad 2 Color",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "76.000"
+   },
+   {
+    "key": "p02_metal",
+    "name": "Pad 2 Metal",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "72.000"
+   },
+   {
+    "key": "p02_feedback",
+    "name": "Pad 2 Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "34.000"
+   },
+   {
+    "key": "p02_sweep",
+    "name": "Pad 2 Sweep",
+    "type": "float",
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "16.000"
+   },
+   {
+    "key": "p02_decay",
+    "name": "Pad 2 Decay",
+    "type": "float",
+    "min": 0.03,
+    "max": 4,
+    "step": 0.01,
+    "options": null,
+    "default": "0.090"
+   },
+   {
+    "key": "p02_crush",
+    "name": "Pad 2 Crush",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "48.000"
+   },
+   {
+    "key": "p02_drive",
+    "name": "Pad 2 Drive",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "58.000"
+   },
+   {
+    "key": "p02_level",
+    "name": "Pad 2 Level",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p02_cutoff",
+    "name": "Pad 2 Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p02_resonance",
+    "name": "Pad 2 Resonance",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p02_filter_type",
+    "name": "Pad 2 Filter Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LPF",
+     "HPF",
+     "Notch",
+     "DJ",
+     "BPF"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "p02_ring_time",
+    "name": "Pad 2 Ring Time",
+    "type": "float",
+    "min": 0.5,
+    "max": 30,
+    "step": 0.1,
+    "options": null,
+    "default": "6.000"
+   },
+   {
+    "key": "p02_ring_feedback",
+    "name": "Pad 2 Ring Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 95,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p02_ring_mix",
+    "name": "Pad 2 Ring Mix",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p02_ring_tone",
+    "name": "Pad 2 Ring Tone",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "70.000"
+   },
+   {
+    "key": "p03_model",
+    "name": "Pad 3 Model",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Fuse",
+     "Stack",
+     "Split",
+     "Shard"
+    ],
+    "default": "3"
+   },
+   {
+    "key": "p03_tune",
+    "name": "Pad 3 Tune",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p03_color",
+    "name": "Pad 3 Color",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "52.000"
+   },
+   {
+    "key": "p03_metal",
+    "name": "Pad 3 Metal",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "76.000"
+   },
+   {
+    "key": "p03_feedback",
+    "name": "Pad 3 Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "18.000"
+   },
+   {
+    "key": "p03_sweep",
+    "name": "Pad 3 Sweep",
+    "type": "float",
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "28.000"
+   },
+   {
+    "key": "p03_decay",
+    "name": "Pad 3 Decay",
+    "type": "float",
+    "min": 0.03,
+    "max": 4,
+    "step": 0.01,
+    "options": null,
+    "default": "0.240"
+   },
+   {
+    "key": "p03_crush",
+    "name": "Pad 3 Crush",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "30.000"
+   },
+   {
+    "key": "p03_drive",
+    "name": "Pad 3 Drive",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "52.000"
+   },
+   {
+    "key": "p03_level",
+    "name": "Pad 3 Level",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p03_cutoff",
+    "name": "Pad 3 Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p03_resonance",
+    "name": "Pad 3 Resonance",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p03_filter_type",
+    "name": "Pad 3 Filter Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LPF",
+     "HPF",
+     "Notch",
+     "DJ",
+     "BPF"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "p03_ring_time",
+    "name": "Pad 3 Ring Time",
+    "type": "float",
+    "min": 0.5,
+    "max": 30,
+    "step": 0.1,
+    "options": null,
+    "default": "6.000"
+   },
+   {
+    "key": "p03_ring_feedback",
+    "name": "Pad 3 Ring Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 95,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p03_ring_mix",
+    "name": "Pad 3 Ring Mix",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p03_ring_tone",
+    "name": "Pad 3 Ring Tone",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "70.000"
+   },
+   {
+    "key": "p04_model",
+    "name": "Pad 4 Model",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Fuse",
+     "Stack",
+     "Split",
+     "Shard"
+    ],
+    "default": "2"
+   },
+   {
+    "key": "p04_tune",
+    "name": "Pad 4 Tune",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p04_color",
+    "name": "Pad 4 Color",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "84.000"
+   },
+   {
+    "key": "p04_metal",
+    "name": "Pad 4 Metal",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "88.000"
+   },
+   {
+    "key": "p04_feedback",
+    "name": "Pad 4 Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "42.000"
+   },
+   {
+    "key": "p04_sweep",
+    "name": "Pad 4 Sweep",
+    "type": "float",
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "-8.000"
+   },
+   {
+    "key": "p04_decay",
+    "name": "Pad 4 Decay",
+    "type": "float",
+    "min": 0.03,
+    "max": 4,
+    "step": 0.01,
+    "options": null,
+    "default": "0.190"
+   },
+   {
+    "key": "p04_crush",
+    "name": "Pad 4 Crush",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "56.000"
+   },
+   {
+    "key": "p04_drive",
+    "name": "Pad 4 Drive",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "68.000"
+   },
+   {
+    "key": "p04_level",
+    "name": "Pad 4 Level",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p04_cutoff",
+    "name": "Pad 4 Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p04_resonance",
+    "name": "Pad 4 Resonance",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p04_filter_type",
+    "name": "Pad 4 Filter Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LPF",
+     "HPF",
+     "Notch",
+     "DJ",
+     "BPF"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "p04_ring_time",
+    "name": "Pad 4 Ring Time",
+    "type": "float",
+    "min": 0.5,
+    "max": 30,
+    "step": 0.1,
+    "options": null,
+    "default": "6.000"
+   },
+   {
+    "key": "p04_ring_feedback",
+    "name": "Pad 4 Ring Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 95,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p04_ring_mix",
+    "name": "Pad 4 Ring Mix",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p04_ring_tone",
+    "name": "Pad 4 Ring Tone",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "70.000"
+   },
+   {
+    "key": "p05_model",
+    "name": "Pad 5 Model",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Fuse",
+     "Stack",
+     "Split",
+     "Shard"
+    ],
+    "default": "1"
+   },
+   {
+    "key": "p05_tune",
+    "name": "Pad 5 Tune",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p05_color",
+    "name": "Pad 5 Color",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "63.000"
+   },
+   {
+    "key": "p05_metal",
+    "name": "Pad 5 Metal",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "82.000"
+   },
+   {
+    "key": "p05_feedback",
+    "name": "Pad 5 Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "28.000"
+   },
+   {
+    "key": "p05_sweep",
+    "name": "Pad 5 Sweep",
+    "type": "float",
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "24.000"
+   },
+   {
+    "key": "p05_decay",
+    "name": "Pad 5 Decay",
+    "type": "float",
+    "min": 0.03,
+    "max": 4,
+    "step": 0.01,
+    "options": null,
+    "default": "0.180"
+   },
+   {
+    "key": "p05_crush",
+    "name": "Pad 5 Crush",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "38.000"
+   },
+   {
+    "key": "p05_drive",
+    "name": "Pad 5 Drive",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "58.000"
+   },
+   {
+    "key": "p05_level",
+    "name": "Pad 5 Level",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p05_cutoff",
+    "name": "Pad 5 Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p05_resonance",
+    "name": "Pad 5 Resonance",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p05_filter_type",
+    "name": "Pad 5 Filter Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LPF",
+     "HPF",
+     "Notch",
+     "DJ",
+     "BPF"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "p05_ring_time",
+    "name": "Pad 5 Ring Time",
+    "type": "float",
+    "min": 0.5,
+    "max": 30,
+    "step": 0.1,
+    "options": null,
+    "default": "6.000"
+   },
+   {
+    "key": "p05_ring_feedback",
+    "name": "Pad 5 Ring Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 95,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p05_ring_mix",
+    "name": "Pad 5 Ring Mix",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p05_ring_tone",
+    "name": "Pad 5 Ring Tone",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "70.000"
+   },
+   {
+    "key": "p06_model",
+    "name": "Pad 6 Model",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Fuse",
+     "Stack",
+     "Split",
+     "Shard"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "p06_tune",
+    "name": "Pad 6 Tune",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p06_color",
+    "name": "Pad 6 Color",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "24.000"
+   },
+   {
+    "key": "p06_metal",
+    "name": "Pad 6 Metal",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "44.000"
+   },
+   {
+    "key": "p06_feedback",
+    "name": "Pad 6 Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "16.000"
+   },
+   {
+    "key": "p06_sweep",
+    "name": "Pad 6 Sweep",
+    "type": "float",
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "58.000"
+   },
+   {
+    "key": "p06_decay",
+    "name": "Pad 6 Decay",
+    "type": "float",
+    "min": 0.03,
+    "max": 4,
+    "step": 0.01,
+    "options": null,
+    "default": "0.420"
+   },
+   {
+    "key": "p06_crush",
+    "name": "Pad 6 Crush",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "8.000"
+   },
+   {
+    "key": "p06_drive",
+    "name": "Pad 6 Drive",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "48.000"
+   },
+   {
+    "key": "p06_level",
+    "name": "Pad 6 Level",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p06_cutoff",
+    "name": "Pad 6 Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p06_resonance",
+    "name": "Pad 6 Resonance",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p06_filter_type",
+    "name": "Pad 6 Filter Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LPF",
+     "HPF",
+     "Notch",
+     "DJ",
+     "BPF"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "p06_ring_time",
+    "name": "Pad 6 Ring Time",
+    "type": "float",
+    "min": 0.5,
+    "max": 30,
+    "step": 0.1,
+    "options": null,
+    "default": "6.000"
+   },
+   {
+    "key": "p06_ring_feedback",
+    "name": "Pad 6 Ring Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 95,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p06_ring_mix",
+    "name": "Pad 6 Ring Mix",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p06_ring_tone",
+    "name": "Pad 6 Ring Tone",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "70.000"
+   },
+   {
+    "key": "p07_model",
+    "name": "Pad 7 Model",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Fuse",
+     "Stack",
+     "Split",
+     "Shard"
+    ],
+    "default": "3"
+   },
+   {
+    "key": "p07_tune",
+    "name": "Pad 7 Tune",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p07_color",
+    "name": "Pad 7 Color",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "94.000"
+   },
+   {
+    "key": "p07_metal",
+    "name": "Pad 7 Metal",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "98.000"
+   },
+   {
+    "key": "p07_feedback",
+    "name": "Pad 7 Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "58.000"
+   },
+   {
+    "key": "p07_sweep",
+    "name": "Pad 7 Sweep",
+    "type": "float",
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p07_decay",
+    "name": "Pad 7 Decay",
+    "type": "float",
+    "min": 0.03,
+    "max": 4,
+    "step": 0.01,
+    "options": null,
+    "default": "0.055"
+   },
+   {
+    "key": "p07_crush",
+    "name": "Pad 7 Crush",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "52.000"
+   },
+   {
+    "key": "p07_drive",
+    "name": "Pad 7 Drive",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "62.000"
+   },
+   {
+    "key": "p07_level",
+    "name": "Pad 7 Level",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p07_cutoff",
+    "name": "Pad 7 Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p07_resonance",
+    "name": "Pad 7 Resonance",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p07_filter_type",
+    "name": "Pad 7 Filter Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LPF",
+     "HPF",
+     "Notch",
+     "DJ",
+     "BPF"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "p07_ring_time",
+    "name": "Pad 7 Ring Time",
+    "type": "float",
+    "min": 0.5,
+    "max": 30,
+    "step": 0.1,
+    "options": null,
+    "default": "6.000"
+   },
+   {
+    "key": "p07_ring_feedback",
+    "name": "Pad 7 Ring Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 95,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p07_ring_mix",
+    "name": "Pad 7 Ring Mix",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p07_ring_tone",
+    "name": "Pad 7 Ring Tone",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "70.000"
+   },
+   {
+    "key": "p08_model",
+    "name": "Pad 8 Model",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Fuse",
+     "Stack",
+     "Split",
+     "Shard"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "p08_tune",
+    "name": "Pad 8 Tune",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p08_color",
+    "name": "Pad 8 Color",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "31.000"
+   },
+   {
+    "key": "p08_metal",
+    "name": "Pad 8 Metal",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "48.000"
+   },
+   {
+    "key": "p08_feedback",
+    "name": "Pad 8 Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "20.000"
+   },
+   {
+    "key": "p08_sweep",
+    "name": "Pad 8 Sweep",
+    "type": "float",
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "54.000"
+   },
+   {
+    "key": "p08_decay",
+    "name": "Pad 8 Decay",
+    "type": "float",
+    "min": 0.03,
+    "max": 4,
+    "step": 0.01,
+    "options": null,
+    "default": "0.470"
+   },
+   {
+    "key": "p08_crush",
+    "name": "Pad 8 Crush",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "10.000"
+   },
+   {
+    "key": "p08_drive",
+    "name": "Pad 8 Drive",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "50.000"
+   },
+   {
+    "key": "p08_level",
+    "name": "Pad 8 Level",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p08_cutoff",
+    "name": "Pad 8 Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p08_resonance",
+    "name": "Pad 8 Resonance",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p08_filter_type",
+    "name": "Pad 8 Filter Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LPF",
+     "HPF",
+     "Notch",
+     "DJ",
+     "BPF"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "p08_ring_time",
+    "name": "Pad 8 Ring Time",
+    "type": "float",
+    "min": 0.5,
+    "max": 30,
+    "step": 0.1,
+    "options": null,
+    "default": "6.000"
+   },
+   {
+    "key": "p08_ring_feedback",
+    "name": "Pad 8 Ring Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 95,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p08_ring_mix",
+    "name": "Pad 8 Ring Mix",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p08_ring_tone",
+    "name": "Pad 8 Ring Tone",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "70.000"
+   },
+   {
+    "key": "p09_model",
+    "name": "Pad 9 Model",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Fuse",
+     "Stack",
+     "Split",
+     "Shard"
+    ],
+    "default": "3"
+   },
+   {
+    "key": "p09_tune",
+    "name": "Pad 9 Tune",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p09_color",
+    "name": "Pad 9 Color",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "88.000"
+   },
+   {
+    "key": "p09_metal",
+    "name": "Pad 9 Metal",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "94.000"
+   },
+   {
+    "key": "p09_feedback",
+    "name": "Pad 9 Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "50.000"
+   },
+   {
+    "key": "p09_sweep",
+    "name": "Pad 9 Sweep",
+    "type": "float",
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "2.000"
+   },
+   {
+    "key": "p09_decay",
+    "name": "Pad 9 Decay",
+    "type": "float",
+    "min": 0.03,
+    "max": 4,
+    "step": 0.01,
+    "options": null,
+    "default": "0.100"
+   },
+   {
+    "key": "p09_crush",
+    "name": "Pad 9 Crush",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "46.000"
+   },
+   {
+    "key": "p09_drive",
+    "name": "Pad 9 Drive",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "58.000"
+   },
+   {
+    "key": "p09_level",
+    "name": "Pad 9 Level",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p09_cutoff",
+    "name": "Pad 9 Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p09_resonance",
+    "name": "Pad 9 Resonance",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p09_filter_type",
+    "name": "Pad 9 Filter Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LPF",
+     "HPF",
+     "Notch",
+     "DJ",
+     "BPF"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "p09_ring_time",
+    "name": "Pad 9 Ring Time",
+    "type": "float",
+    "min": 0.5,
+    "max": 30,
+    "step": 0.1,
+    "options": null,
+    "default": "6.000"
+   },
+   {
+    "key": "p09_ring_feedback",
+    "name": "Pad 9 Ring Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 95,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p09_ring_mix",
+    "name": "Pad 9 Ring Mix",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p09_ring_tone",
+    "name": "Pad 9 Ring Tone",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "70.000"
+   },
+   {
+    "key": "p10_model",
+    "name": "Pad 10 Model",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Fuse",
+     "Stack",
+     "Split",
+     "Shard"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "p10_tune",
+    "name": "Pad 10 Tune",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p10_color",
+    "name": "Pad 10 Color",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "38.000"
+   },
+   {
+    "key": "p10_metal",
+    "name": "Pad 10 Metal",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "52.000"
+   },
+   {
+    "key": "p10_feedback",
+    "name": "Pad 10 Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "22.000"
+   },
+   {
+    "key": "p10_sweep",
+    "name": "Pad 10 Sweep",
+    "type": "float",
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "48.000"
+   },
+   {
+    "key": "p10_decay",
+    "name": "Pad 10 Decay",
+    "type": "float",
+    "min": 0.03,
+    "max": 4,
+    "step": 0.01,
+    "options": null,
+    "default": "0.360"
+   },
+   {
+    "key": "p10_crush",
+    "name": "Pad 10 Crush",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "12.000"
+   },
+   {
+    "key": "p10_drive",
+    "name": "Pad 10 Drive",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "52.000"
+   },
+   {
+    "key": "p10_level",
+    "name": "Pad 10 Level",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p10_cutoff",
+    "name": "Pad 10 Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p10_resonance",
+    "name": "Pad 10 Resonance",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p10_filter_type",
+    "name": "Pad 10 Filter Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LPF",
+     "HPF",
+     "Notch",
+     "DJ",
+     "BPF"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "p10_ring_time",
+    "name": "Pad 10 Ring Time",
+    "type": "float",
+    "min": 0.5,
+    "max": 30,
+    "step": 0.1,
+    "options": null,
+    "default": "6.000"
+   },
+   {
+    "key": "p10_ring_feedback",
+    "name": "Pad 10 Ring Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 95,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p10_ring_mix",
+    "name": "Pad 10 Ring Mix",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p10_ring_tone",
+    "name": "Pad 10 Ring Tone",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "70.000"
+   },
+   {
+    "key": "p11_model",
+    "name": "Pad 11 Model",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Fuse",
+     "Stack",
+     "Split",
+     "Shard"
+    ],
+    "default": "3"
+   },
+   {
+    "key": "p11_tune",
+    "name": "Pad 11 Tune",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p11_color",
+    "name": "Pad 11 Color",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "91.000"
+   },
+   {
+    "key": "p11_metal",
+    "name": "Pad 11 Metal",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "96.000"
+   },
+   {
+    "key": "p11_feedback",
+    "name": "Pad 11 Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "62.000"
+   },
+   {
+    "key": "p11_sweep",
+    "name": "Pad 11 Sweep",
+    "type": "float",
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "-4.000"
+   },
+   {
+    "key": "p11_decay",
+    "name": "Pad 11 Decay",
+    "type": "float",
+    "min": 0.03,
+    "max": 4,
+    "step": 0.01,
+    "options": null,
+    "default": "0.480"
+   },
+   {
+    "key": "p11_crush",
+    "name": "Pad 11 Crush",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "42.000"
+   },
+   {
+    "key": "p11_drive",
+    "name": "Pad 11 Drive",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "60.000"
+   },
+   {
+    "key": "p11_level",
+    "name": "Pad 11 Level",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p11_cutoff",
+    "name": "Pad 11 Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p11_resonance",
+    "name": "Pad 11 Resonance",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p11_filter_type",
+    "name": "Pad 11 Filter Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LPF",
+     "HPF",
+     "Notch",
+     "DJ",
+     "BPF"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "p11_ring_time",
+    "name": "Pad 11 Ring Time",
+    "type": "float",
+    "min": 0.5,
+    "max": 30,
+    "step": 0.1,
+    "options": null,
+    "default": "6.000"
+   },
+   {
+    "key": "p11_ring_feedback",
+    "name": "Pad 11 Ring Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 95,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p11_ring_mix",
+    "name": "Pad 11 Ring Mix",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p11_ring_tone",
+    "name": "Pad 11 Ring Tone",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "70.000"
+   },
+   {
+    "key": "p12_model",
+    "name": "Pad 12 Model",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Fuse",
+     "Stack",
+     "Split",
+     "Shard"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "p12_tune",
+    "name": "Pad 12 Tune",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p12_color",
+    "name": "Pad 12 Color",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "45.000"
+   },
+   {
+    "key": "p12_metal",
+    "name": "Pad 12 Metal",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "56.000"
+   },
+   {
+    "key": "p12_feedback",
+    "name": "Pad 12 Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "25.000"
+   },
+   {
+    "key": "p12_sweep",
+    "name": "Pad 12 Sweep",
+    "type": "float",
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "44.000"
+   },
+   {
+    "key": "p12_decay",
+    "name": "Pad 12 Decay",
+    "type": "float",
+    "min": 0.03,
+    "max": 4,
+    "step": 0.01,
+    "options": null,
+    "default": "0.310"
+   },
+   {
+    "key": "p12_crush",
+    "name": "Pad 12 Crush",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "14.000"
+   },
+   {
+    "key": "p12_drive",
+    "name": "Pad 12 Drive",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "54.000"
+   },
+   {
+    "key": "p12_level",
+    "name": "Pad 12 Level",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p12_cutoff",
+    "name": "Pad 12 Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p12_resonance",
+    "name": "Pad 12 Resonance",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p12_filter_type",
+    "name": "Pad 12 Filter Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LPF",
+     "HPF",
+     "Notch",
+     "DJ",
+     "BPF"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "p12_ring_time",
+    "name": "Pad 12 Ring Time",
+    "type": "float",
+    "min": 0.5,
+    "max": 30,
+    "step": 0.1,
+    "options": null,
+    "default": "6.000"
+   },
+   {
+    "key": "p12_ring_feedback",
+    "name": "Pad 12 Ring Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 95,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p12_ring_mix",
+    "name": "Pad 12 Ring Mix",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p12_ring_tone",
+    "name": "Pad 12 Ring Tone",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "70.000"
+   },
+   {
+    "key": "p13_model",
+    "name": "Pad 13 Model",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Fuse",
+     "Stack",
+     "Split",
+     "Shard"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "p13_tune",
+    "name": "Pad 13 Tune",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p13_color",
+    "name": "Pad 13 Color",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "51.000"
+   },
+   {
+    "key": "p13_metal",
+    "name": "Pad 13 Metal",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "60.000"
+   },
+   {
+    "key": "p13_feedback",
+    "name": "Pad 13 Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "28.000"
+   },
+   {
+    "key": "p13_sweep",
+    "name": "Pad 13 Sweep",
+    "type": "float",
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "40.000"
+   },
+   {
+    "key": "p13_decay",
+    "name": "Pad 13 Decay",
+    "type": "float",
+    "min": 0.03,
+    "max": 4,
+    "step": 0.01,
+    "options": null,
+    "default": "0.270"
+   },
+   {
+    "key": "p13_crush",
+    "name": "Pad 13 Crush",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "16.000"
+   },
+   {
+    "key": "p13_drive",
+    "name": "Pad 13 Drive",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "56.000"
+   },
+   {
+    "key": "p13_level",
+    "name": "Pad 13 Level",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p13_cutoff",
+    "name": "Pad 13 Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p13_resonance",
+    "name": "Pad 13 Resonance",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p13_filter_type",
+    "name": "Pad 13 Filter Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LPF",
+     "HPF",
+     "Notch",
+     "DJ",
+     "BPF"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "p13_ring_time",
+    "name": "Pad 13 Ring Time",
+    "type": "float",
+    "min": 0.5,
+    "max": 30,
+    "step": 0.1,
+    "options": null,
+    "default": "6.000"
+   },
+   {
+    "key": "p13_ring_feedback",
+    "name": "Pad 13 Ring Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 95,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p13_ring_mix",
+    "name": "Pad 13 Ring Mix",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p13_ring_tone",
+    "name": "Pad 13 Ring Tone",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "70.000"
+   },
+   {
+    "key": "p14_model",
+    "name": "Pad 14 Model",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Fuse",
+     "Stack",
+     "Split",
+     "Shard"
+    ],
+    "default": "1"
+   },
+   {
+    "key": "p14_tune",
+    "name": "Pad 14 Tune",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p14_color",
+    "name": "Pad 14 Color",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "78.000"
+   },
+   {
+    "key": "p14_metal",
+    "name": "Pad 14 Metal",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "92.000"
+   },
+   {
+    "key": "p14_feedback",
+    "name": "Pad 14 Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "72.000"
+   },
+   {
+    "key": "p14_sweep",
+    "name": "Pad 14 Sweep",
+    "type": "float",
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "-12.000"
+   },
+   {
+    "key": "p14_decay",
+    "name": "Pad 14 Decay",
+    "type": "float",
+    "min": 0.03,
+    "max": 4,
+    "step": 0.01,
+    "options": null,
+    "default": "1.650"
+   },
+   {
+    "key": "p14_crush",
+    "name": "Pad 14 Crush",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "28.000"
+   },
+   {
+    "key": "p14_drive",
+    "name": "Pad 14 Drive",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "54.000"
+   },
+   {
+    "key": "p14_level",
+    "name": "Pad 14 Level",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p14_cutoff",
+    "name": "Pad 14 Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p14_resonance",
+    "name": "Pad 14 Resonance",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p14_filter_type",
+    "name": "Pad 14 Filter Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LPF",
+     "HPF",
+     "Notch",
+     "DJ",
+     "BPF"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "p14_ring_time",
+    "name": "Pad 14 Ring Time",
+    "type": "float",
+    "min": 0.5,
+    "max": 30,
+    "step": 0.1,
+    "options": null,
+    "default": "6.000"
+   },
+   {
+    "key": "p14_ring_feedback",
+    "name": "Pad 14 Ring Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 95,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p14_ring_mix",
+    "name": "Pad 14 Ring Mix",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p14_ring_tone",
+    "name": "Pad 14 Ring Tone",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "70.000"
+   },
+   {
+    "key": "p15_model",
+    "name": "Pad 15 Model",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Fuse",
+     "Stack",
+     "Split",
+     "Shard"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "p15_tune",
+    "name": "Pad 15 Tune",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p15_color",
+    "name": "Pad 15 Color",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "58.000"
+   },
+   {
+    "key": "p15_metal",
+    "name": "Pad 15 Metal",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "64.000"
+   },
+   {
+    "key": "p15_feedback",
+    "name": "Pad 15 Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "30.000"
+   },
+   {
+    "key": "p15_sweep",
+    "name": "Pad 15 Sweep",
+    "type": "float",
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "36.000"
+   },
+   {
+    "key": "p15_decay",
+    "name": "Pad 15 Decay",
+    "type": "float",
+    "min": 0.03,
+    "max": 4,
+    "step": 0.01,
+    "options": null,
+    "default": "0.230"
+   },
+   {
+    "key": "p15_crush",
+    "name": "Pad 15 Crush",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "18.000"
+   },
+   {
+    "key": "p15_drive",
+    "name": "Pad 15 Drive",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "58.000"
+   },
+   {
+    "key": "p15_level",
+    "name": "Pad 15 Level",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p15_cutoff",
+    "name": "Pad 15 Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p15_resonance",
+    "name": "Pad 15 Resonance",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p15_filter_type",
+    "name": "Pad 15 Filter Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LPF",
+     "HPF",
+     "Notch",
+     "DJ",
+     "BPF"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "p15_ring_time",
+    "name": "Pad 15 Ring Time",
+    "type": "float",
+    "min": 0.5,
+    "max": 30,
+    "step": 0.1,
+    "options": null,
+    "default": "6.000"
+   },
+   {
+    "key": "p15_ring_feedback",
+    "name": "Pad 15 Ring Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 95,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p15_ring_mix",
+    "name": "Pad 15 Ring Mix",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p15_ring_tone",
+    "name": "Pad 15 Ring Tone",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "70.000"
+   },
+   {
+    "key": "p16_model",
+    "name": "Pad 16 Model",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Fuse",
+     "Stack",
+     "Split",
+     "Shard"
+    ],
+    "default": "2"
+   },
+   {
+    "key": "p16_tune",
+    "name": "Pad 16 Tune",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p16_color",
+    "name": "Pad 16 Color",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "69.000"
+   },
+   {
+    "key": "p16_metal",
+    "name": "Pad 16 Metal",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "86.000"
+   },
+   {
+    "key": "p16_feedback",
+    "name": "Pad 16 Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "66.000"
+   },
+   {
+    "key": "p16_sweep",
+    "name": "Pad 16 Sweep",
+    "type": "float",
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "-6.000"
+   },
+   {
+    "key": "p16_decay",
+    "name": "Pad 16 Decay",
+    "type": "float",
+    "min": 0.03,
+    "max": 4,
+    "step": 0.01,
+    "options": null,
+    "default": "1.150"
+   },
+   {
+    "key": "p16_crush",
+    "name": "Pad 16 Crush",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "22.000"
+   },
+   {
+    "key": "p16_drive",
+    "name": "Pad 16 Drive",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "52.000"
+   },
+   {
+    "key": "p16_level",
+    "name": "Pad 16 Level",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p16_cutoff",
+    "name": "Pad 16 Cutoff",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "p16_resonance",
+    "name": "Pad 16 Resonance",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p16_filter_type",
+    "name": "Pad 16 Filter Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LPF",
+     "HPF",
+     "Notch",
+     "DJ",
+     "BPF"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "p16_ring_time",
+    "name": "Pad 16 Ring Time",
+    "type": "float",
+    "min": 0.5,
+    "max": 30,
+    "step": 0.1,
+    "options": null,
+    "default": "6.000"
+   },
+   {
+    "key": "p16_ring_feedback",
+    "name": "Pad 16 Ring Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 95,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p16_ring_mix",
+    "name": "Pad 16 Ring Mix",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "p16_ring_tone",
+    "name": "Pad 16 Ring Tone",
+    "type": "float",
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "options": null,
+    "default": "70.000"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": true,
+  "usesMovyConfigFile": true,
+  "drum": {
+   "padCount": 16,
+   "padNoteStart": 36,
+   "rawMidi": false,
+   "currentPadParam": "focused_pad",
+   "padScoping": {
+    "aliasPrefix": "pad_",
+    "concreteKeyTemplate": "p{pad}_{suffix}",
+    "padDigits": 2
+   }
+  },
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": true
+   },
+   {
+    "name": "Filter",
+    "global": false,
+    "padSpecific": true
+   },
+   {
+    "name": "Ring",
+    "global": false,
+    "padSpecific": true
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "TUNE",
+       "fullName": "Tune",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay",
+       "renderStyle": "envstage",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MODEL",
+       "fullName": "Model",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "COLOR",
+       "fullName": "Color",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "METAL",
+       "fullName": "Metal",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FBK",
+       "fullName": "Feedback",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SWEEP",
+       "fullName": "Sweep",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CRUSH",
+       "fullName": "Crush",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Filter",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "CUTOFF",
+       "fullName": "Cutoff",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RES",
+       "fullName": "Resonance",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LEVEL",
+       "fullName": "Level",
+       "renderStyle": "vbar",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TYPE",
+       "fullName": "Filter Type",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Ring",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "TIME",
+       "fullName": "Ring Time",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FBK",
+       "fullName": "Ring Feedback",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MIX",
+       "fullName": "Ring Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TONE",
+       "fullName": "Ring Tone",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "pad_tune",
+    "label": "Tune",
+    "shortLabel": "TUNE",
+    "type": "float",
+    "options": null,
+    "min": -24,
+    "max": 24,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 9600
+    }
+   },
+   {
+    "key": "pad_decay",
+    "label": "Decay",
+    "shortLabel": "DECAY",
+    "type": "float",
+    "options": null,
+    "min": 0.03,
+    "max": 4,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 794
+    }
+   },
+   {
+    "key": "pad_model",
+    "label": "Model",
+    "shortLabel": "MODEL",
+    "type": "enum",
+    "options": [
+     "Fuse",
+     "Stack",
+     "Split",
+     "Shard"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "pad_color",
+    "label": "Color",
+    "shortLabel": "COLOR",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 20000
+    }
+   },
+   {
+    "key": "pad_metal",
+    "label": "Metal",
+    "shortLabel": "METAL",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 20000
+    }
+   },
+   {
+    "key": "pad_feedback",
+    "label": "Feedback",
+    "shortLabel": "FBK",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 20000
+    }
+   },
+   {
+    "key": "pad_sweep",
+    "label": "Sweep",
+    "shortLabel": "SWEEP",
+    "type": "float",
+    "options": null,
+    "min": -100,
+    "max": 100,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 40000
+    }
+   },
+   {
+    "key": "pad_crush",
+    "label": "Crush",
+    "shortLabel": "CRUSH",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 20000
+    }
+   },
+   {
+    "key": "pad_level",
+    "label": "Level",
+    "shortLabel": "LEVEL",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 0.01,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 10000
+    }
+   },
+   {
+    "key": "pad_cutoff",
+    "label": "Cutoff",
+    "shortLabel": "CUTOFF",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "filter": "cutoff",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 20000
+    }
+   },
+   {
+    "key": "pad_resonance",
+    "label": "Resonance",
+    "shortLabel": "RES",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "filter": "resonance",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 20000
+    }
+   },
+   {
+    "key": "pad_filter_type",
+    "label": "Filter Type",
+    "shortLabel": "TYPE",
+    "type": "enum",
+    "options": [
+     "LPF",
+     "HPF",
+     "Notch",
+     "DJ",
+     "BPF"
+    ],
+    "min": 0,
+    "max": 4,
+    "step": 1,
+    "renderStyle": "arc",
+    "filter": "mode",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 5
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "pad_ring_time",
+    "label": "Ring Time",
+    "shortLabel": "TIME",
+    "type": "float",
+    "options": null,
+    "min": 0.5,
+    "max": 30,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 5900
+    }
+   },
+   {
+    "key": "pad_ring_feedback",
+    "label": "Ring Feedback",
+    "shortLabel": "FBK",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 95,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 19000
+    }
+   },
+   {
+    "key": "pad_ring_mix",
+    "label": "Ring Mix",
+    "shortLabel": "MIX",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 20000
+    }
+   },
+   {
+    "key": "pad_ring_tone",
+    "label": "Ring Tone",
+    "shortLabel": "TONE",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 20000
+    }
+   },
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "focused_pad",
+   "p01_drive",
+   "p02_drive",
+   "p03_drive",
+   "p04_drive",
+   "p05_drive",
+   "p06_drive",
+   "p07_drive",
+   "p08_drive",
+   "p09_drive",
+   "p10_drive",
+   "p11_drive",
+   "p12_drive",
+   "p13_drive",
+   "p14_drive",
+   "p15_drive",
+   "p16_drive"
+  ],
+  "noMetadata": [
+   "pad_tune",
+   "pad_decay",
+   "pad_model",
+   "pad_color",
+   "pad_metal",
+   "pad_feedback",
+   "pad_sweep",
+   "pad_crush",
+   "pad_level",
+   "pad_cutoff",
+   "pad_resonance",
+   "pad_filter_type",
+   "pad_ring_time",
+   "pad_ring_feedback",
+   "pad_ring_mix",
+   "pad_ring_tone"
+  ],
+  "warnings": [
+   "17 chain_params not reachable in movy: focused_pad, p01_drive, p02_drive, p03_drive, p04_drive, p05_drive, p06_drive, p07_drive, p08_drive, p09_drive, p10_drive, p11_drive, …"
+  ]
+ }
+}

@@ -1,11 +1,11 @@
 {
  "id": "sf2",
  "name": "SF2 Player",
- "version": "0.3.15",
+ "version": "0.3.17",
  "author": "FluidLite by Robin Lobel (port: charlesvestal)",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 55,
+ "load_ms": 53,
  "dsp_size": 230688,
  "capabilities": {
   "audio_out": true,
@@ -68,7 +68,7 @@
     "name": "Preset",
     "type": "int",
     "min": 0,
-    "max": -1,
+    "max": 9999,
     "step": null,
     "options": null,
     "default": "0"
@@ -117,18 +117,18 @@
     "rows": [
      [
       {
-       "shortName": "OCTAV",
+       "shortName": "OCTAVE",
        "fullName": "Octave",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "0"
       },
       {
        "shortName": "GAIN",
        "fullName": "Gain",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
-       "displayValue": "..."
+       "displayValue": "50%"
       },
       {
        "shortName": "BR",
@@ -138,9 +138,9 @@
        "displayValue": "..."
       },
       {
-       "shortName": "RL",
+       "shortName": "REVER",
        "fullName": "Reverb Level",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       }
@@ -154,9 +154,9 @@
        "displayValue": "..."
       },
       {
-       "shortName": "CL",
+       "shortName": "CHORU",
        "fullName": "Chorus Level",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
@@ -176,12 +176,13 @@
     "min": -4,
     "max": 4,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
+    "signed": true,
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 16
+     "perDetent": 1,
+     "detentsFullSweep": 8
     }
    },
    {
@@ -193,12 +194,12 @@
     "min": 0,
     "max": 2,
     "step": 0.02,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 200
+     "perDetent": 0.02,
+     "detentsFullSweep": 100
     }
    },
    {
@@ -221,18 +222,18 @@
    {
     "key": "reverb_level",
     "label": "Reverb Level",
-    "shortLabel": null,
+    "shortLabel": "reverb",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
     }
    },
    {
@@ -255,18 +256,18 @@
    {
     "key": "chorus_level",
     "label": "Chorus Level",
-    "shortLabel": null,
+    "shortLabel": "chorus",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 10,
     "step": 0.1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.05,
-     "detentsFullSweep": 200
+     "perDetent": 0.1,
+     "detentsFullSweep": 100
     }
    },
    null,

@@ -1,12 +1,12 @@
 {
  "id": "braids",
  "name": "Braids",
- "version": "0.2.5",
+ "version": "0.2.8",
  "author": "Emilie Gillet (port: charlesvestal)",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 51,
- "dsp_size": 532528,
+ "load_ms": 44,
+ "dsp_size": 533808,
  "capabilities": {
   "audio_out": true,
   "audio_in": false,
@@ -21,6 +21,7 @@
      "params": [
       {
        "key": "engine",
+       "short_name": "ALGO",
        "label": "Algorithm",
        "type": "enum",
        "options": [
@@ -156,6 +157,7 @@
       },
       {
        "key": "filt_env",
+       "short_name": "Env",
        "label": "Filt Env",
        "type": "float",
        "min": 0,
@@ -194,6 +196,7 @@
       },
       {
        "key": "f_attack",
+       "short_name": "Attack",
        "label": "F.Attack",
        "type": "float",
        "min": 0,
@@ -204,6 +207,7 @@
       },
       {
        "key": "f_decay",
+       "short_name": "Decay",
        "label": "F.Decay",
        "type": "float",
        "min": 0,
@@ -214,6 +218,7 @@
       },
       {
        "key": "f_sustain",
+       "short_name": "Sustain",
        "label": "F.Sustain",
        "type": "float",
        "min": 0,
@@ -224,6 +229,7 @@
       },
       {
        "key": "f_release",
+       "short_name": "Release",
        "label": "F.Release",
        "type": "float",
        "min": 0,
@@ -237,11 +243,11 @@
       "engine",
       "timbre",
       "color",
+      "cutoff",
       "attack",
       "decay",
       "sustain",
-      "release",
-      "cutoff"
+      "release"
      ],
      "label": "Braids"
     }
@@ -528,7 +534,7 @@
     "rows": [
      [
       {
-       "shortName": "PRESE",
+       "shortName": "PRESET",
        "fullName": "Preset",
        "renderStyle": "preset",
        "type": "enum",
@@ -549,44 +555,21 @@
    {
     "name": "Main",
     "envelopeLines": [
-     true,
-     false
+     false,
+     true
     ],
     "lfoViz": false,
     "rows": [
      [
       {
-       "shortName": "ATTAC",
-       "fullName": "Attack",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "DECAY",
-       "fullName": "Decay",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "SUSTA",
-       "fullName": "Sustain",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "ALGOR",
+       "shortName": "ALGORI",
        "fullName": "Algorithm",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
-      }
-     ],
-     [
+      },
       {
-       "shortName": "TIMBR",
+       "shortName": "TIMBRE",
        "fullName": "Timbre",
        "renderStyle": "arc",
        "type": "float",
@@ -600,15 +583,38 @@
        "displayValue": "..."
       },
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "ATTACK",
+       "fullName": "Attack",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "FILT",
-       "fullName": "Filt Env",
+       "shortName": "DECAY",
+       "fullName": "Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SUSTAI",
+       "fullName": "Sustain",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RELEA",
+       "fullName": "Release",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -626,14 +632,14 @@
     "rows": [
      [
       {
-       "shortName": "ALGOR",
+       "shortName": "ALGORI",
        "fullName": "Algorithm",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "TIMBR",
+       "shortName": "TIMBRE",
        "fullName": "Timbre",
        "renderStyle": "arc",
        "type": "float",
@@ -672,7 +678,7 @@
     "rows": [
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "Attack",
        "renderStyle": "arc",
        "type": "float",
@@ -686,7 +692,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SUSTA",
+       "shortName": "SUSTAI",
        "fullName": "Sustain",
        "renderStyle": "arc",
        "type": "float",
@@ -718,28 +724,28 @@
     "rows": [
      [
       {
-       "shortName": "F.ATT",
+       "shortName": "F.ATTA",
        "fullName": "F.Attack",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "F.DEC",
+       "shortName": "F.DECA",
        "fullName": "F.Decay",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "F.SUS",
+       "shortName": "F.SUST",
        "fullName": "F.Sustain",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "F.REL",
+       "shortName": "F.RELE",
        "fullName": "F.Release",
        "renderStyle": "arc",
        "type": "float",
@@ -748,7 +754,7 @@
      ],
      [
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
        "type": "float",
@@ -784,14 +790,14 @@
       {
        "shortName": "VOLUM",
        "fullName": "Volume",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "OCTAV",
+       "shortName": "OCTAVE",
        "fullName": "Octave",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
       },
@@ -819,6 +825,7 @@
     "options": null,
     "nameKey": "preset_name",
     "renderStyle": "preset",
+    "capturesModuleState": true,
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -933,6 +940,23 @@
     }
    },
    {
+    "key": "cutoff",
+    "label": "Cutoff",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
     "key": "attack",
     "label": "Attack",
     "shortLabel": null,
@@ -984,25 +1008,8 @@
     }
    },
    {
-    "key": "cutoff",
-    "label": "Cutoff",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.02,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
-    }
-   },
-   {
-    "key": "filt_env",
-    "label": "Filt Env",
+    "key": "release",
+    "label": "Release",
     "shortLabel": null,
     "type": "float",
     "options": null,
@@ -1210,57 +1217,6 @@
    null,
    null,
    {
-    "key": "cutoff",
-    "label": "Cutoff",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.02,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
-    }
-   },
-   {
-    "key": "resonance",
-    "label": "Resonance",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.02,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
-    }
-   },
-   {
-    "key": "filt_env",
-    "label": "Filt Env",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.02,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
-    }
-   },
-   {
     "key": "f_attack",
     "label": "F.Attack",
     "shortLabel": null,
@@ -1328,10 +1284,9 @@
      "detentsFullSweep": 100
     }
    },
-   null,
    {
-    "key": "volume",
-    "label": "Volume",
+    "key": "cutoff",
+    "label": "Cutoff",
     "shortLabel": null,
     "type": "float",
     "options": null,
@@ -1347,6 +1302,58 @@
     }
    },
    {
+    "key": "resonance",
+    "label": "Resonance",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "filt_env",
+    "label": "Filt Env",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   null,
+   {
+    "key": "volume",
+    "label": "Volume",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
+    }
+   },
+   {
     "key": "octave_transpose",
     "label": "Octave",
     "shortLabel": null,
@@ -1355,12 +1362,13 @@
     "min": -3,
     "max": 3,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
+    "signed": true,
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 12
+     "perDetent": 1,
+     "detentsFullSweep": 6
     }
    },
    null,

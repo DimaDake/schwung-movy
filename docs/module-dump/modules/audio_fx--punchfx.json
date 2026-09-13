@@ -5,7 +5,7 @@
  "author": "fillioning",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 69,
+ "load_ms": 89,
  "dsp_size": 27808,
  "capabilities": {
   "chainable": true,
@@ -125,12 +125,12 @@
        "fullName": "BPM",
        "renderStyle": "arc",
        "type": "int",
-       "displayValue": "120"
+       "displayValue": "..."
       },
       {
        "shortName": "VOLUM",
        "fullName": "Volume",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
@@ -179,12 +179,12 @@
     "min": 0,
     "max": 1,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
     }
    },
    {

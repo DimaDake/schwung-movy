@@ -5,8 +5,8 @@
  "author": null,
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 51,
- "dsp_size": 93456,
+ "load_ms": 62,
+ "dsp_size": 93584,
  "capabilities": {
   "chainable": true,
   "component_type": "audio_fx",
@@ -17,6 +17,7 @@
      "params": [
       {
        "key": "room_size",
+       "short_name": "ROOM",
        "name": "Room Size",
        "type": "float",
        "min": 0,
@@ -28,6 +29,7 @@
       },
       {
        "key": "damping",
+       "short_name": "DAMP",
        "name": "Damping",
        "type": "float",
        "min": 0,
@@ -165,10 +167,10 @@
        "fullName": "Room Size",
        "renderStyle": "arc",
        "type": "float",
-       "displayValue": "50%"
+       "displayValue": "..."
       },
       {
-       "shortName": "DAMPI",
+       "shortName": "DAMP",
        "fullName": "Damping",
        "renderStyle": "arc",
        "type": "float",
@@ -208,7 +210,7 @@
    {
     "key": "room_size",
     "label": "Room Size",
-    "shortLabel": null,
+    "shortLabel": "ROOM",
     "type": "float",
     "options": null,
     "min": 0,
@@ -225,7 +227,7 @@
    {
     "key": "damping",
     "label": "Damping",
-    "shortLabel": null,
+    "shortLabel": "DAMP",
     "type": "float",
     "options": null,
     "min": 0,

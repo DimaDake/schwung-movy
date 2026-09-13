@@ -5,7 +5,7 @@
  "author": "seajay",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 57,
+ "load_ms": 73,
  "dsp_size": 359688,
  "capabilities": {
   "chainable": true,
@@ -758,11 +758,11 @@
     "rows": [
      [
       {
-       "shortName": "EFFEC",
+       "shortName": "EFFECT",
        "fullName": "Effect",
        "renderStyle": "arc",
        "type": "enum",
-       "displayValue": "Stack"
+       "displayValue": "..."
       },
       {
        "shortName": "VAR",
@@ -772,14 +772,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "ACTIV",
+       "shortName": "ACTIVIT",
        "fullName": "Activity",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "REPEA",
+       "shortName": "REPEAT",
        "fullName": "Repeats",
        "renderStyle": "arc",
        "type": "float",
@@ -809,7 +809,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "FILTE",
+       "shortName": "FILTER",
        "fullName": "Filter",
        "renderStyle": "arc",
        "type": "float",
@@ -828,7 +828,7 @@
     "rows": [
      [
       {
-       "shortName": "PRESE",
+       "shortName": "PRESET",
        "fullName": "Preset",
        "renderStyle": "arc",
        "type": "enum",
@@ -870,9 +870,9 @@
        "displayValue": "..."
       },
       {
-       "shortName": "FX",
+       "shortName": "FX VOL",
        "fullName": "FX Vol",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
@@ -915,7 +915,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SUBDI",
+       "shortName": "SUBDIV",
        "fullName": "Subdiv",
        "renderStyle": "arc",
        "type": "enum",
@@ -955,7 +955,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SHIMM",
+       "shortName": "SHIMME",
        "fullName": "Shimmer",
        "renderStyle": "arc",
        "type": "enum",
@@ -969,7 +969,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "STERE",
+       "shortName": "STEREO",
        "fullName": "Stereo",
        "renderStyle": "arc",
        "type": "float",
@@ -978,7 +978,7 @@
      ],
      [
       {
-       "shortName": "SUSTA",
+       "shortName": "SUSTAI",
        "fullName": "Sustain",
        "renderStyle": "arc",
        "type": "float",
@@ -1041,7 +1041,7 @@
       {
        "shortName": "WAVE",
        "fullName": "Wave",
-       "renderStyle": "arc",
+       "renderStyle": "wave",
        "type": "enum",
        "displayValue": "..."
       }
@@ -1112,14 +1112,14 @@
       {
        "shortName": "REVER",
        "fullName": "Reverse",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
       {
        "shortName": "HOLD",
        "fullName": "Hold",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -1158,12 +1158,12 @@
       {
        "shortName": "LOOPE",
        "fullName": "Looper",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "TRANS",
+       "shortName": "TRANSP",
        "fullName": "Transport",
        "renderStyle": "arc",
        "type": "enum",
@@ -1172,7 +1172,7 @@
       {
        "shortName": "LEVEL",
        "fullName": "Level",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
@@ -1188,7 +1188,7 @@
       {
        "shortName": "REVER",
        "fullName": "Reverse",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -1202,7 +1202,7 @@
       {
        "shortName": "SOLO",
        "fullName": "Solo",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -1261,23 +1261,23 @@
        "displayValue": "..."
       },
       {
-       "shortName": "IN",
+       "shortName": "IN GAIN",
        "fullName": "In Gain",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "BYPAS",
        "fullName": "Bypass",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "TRAIL",
+       "shortName": "TRAILS",
        "fullName": "Trails",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       }
@@ -1286,7 +1286,7 @@
       {
        "shortName": "ECO",
        "fullName": "Eco CPU",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -1541,12 +1541,12 @@
     "min": 0,
     "max": 1,
     "step": 0.02,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
     }
    },
    {
@@ -1995,7 +1995,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -2015,7 +2015,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -2076,7 +2076,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -2118,12 +2118,12 @@
     "min": 0,
     "max": 1,
     "step": 0.02,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
     }
    },
    {
@@ -2155,7 +2155,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -2195,7 +2195,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -2278,12 +2278,12 @@
     "min": 0,
     "max": 2,
     "step": 0.05,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.025,
-     "detentsFullSweep": 80
+     "perDetent": 0.05,
+     "detentsFullSweep": 40
     }
    },
    {
@@ -2298,7 +2298,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -2318,7 +2318,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -2338,7 +2338,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",

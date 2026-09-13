@@ -5,7 +5,7 @@
  "author": "move-anything contributors",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 72,
+ "load_ms": 84,
  "dsp_size": 207224,
  "capabilities": {
   "audio_out": true,
@@ -767,28 +767,12 @@
        "displayValue": "—"
       },
       {
-       "shortName": "POSIT",
+       "shortName": "POSITIO",
        "fullName": "Position",
        "renderStyle": "arc",
-       "type": "wav_position",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "SIZE",
-       "fullName": "Size",
-       "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
-      {
-       "shortName": "DENSI",
-       "fullName": "Density",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      }
-     ],
-     [
       {
        "shortName": "SPRAY",
        "fullName": "Spray",
@@ -797,7 +781,23 @@
        "displayValue": "..."
       },
       {
-       "shortName": "JITTE",
+       "shortName": "SIZE",
+       "fullName": "Size",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "DENSIT",
+       "fullName": "Density",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "JITTER",
        "fullName": "Jitter",
        "renderStyle": "arc",
        "type": "float",
@@ -811,9 +811,9 @@
        "displayValue": "..."
       },
       {
-       "shortName": "GRAIN",
+       "shortName": "GRAING",
        "fullName": "GrainGain",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       }
@@ -830,7 +830,7 @@
     "rows": [
      [
       {
-       "shortName": "QUALI",
+       "shortName": "QUALIT",
        "fullName": "Quality",
        "renderStyle": "arc",
        "type": "enum",
@@ -858,22 +858,15 @@
     "rows": [
      [
       {
-       "shortName": "POSIT",
+       "shortName": "SF",
+       "fullName": "Sample File",
+       "renderStyle": "arc",
+       "type": "file",
+       "displayValue": "—"
+      },
+      {
+       "shortName": "POSITIO",
        "fullName": "Position",
-       "renderStyle": "arc",
-       "type": "wav_position",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "SIZE",
-       "fullName": "Size",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "DENSI",
-       "fullName": "Density",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -884,31 +877,38 @@
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
-      }
+      },
+      null
      ],
      [
       {
-       "shortName": "JITTE",
+       "shortName": "SIZE",
+       "fullName": "Size",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DENSIT",
+       "fullName": "Density",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "JITTER",
        "fullName": "Jitter",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "GRAIN",
+       "shortName": "GRAING",
        "fullName": "GrainGain",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
-      },
-      {
-       "shortName": "SF",
-       "fullName": "Sample File",
-       "renderStyle": "arc",
-       "type": "file",
-       "displayValue": "—"
-      },
-      null
+      }
      ]
     ]
    },
@@ -924,7 +924,7 @@
       {
        "shortName": "ENABL",
        "fullName": "Scan Enable",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -962,28 +962,28 @@
     "rows": [
      [
       {
-       "shortName": "WINDO",
+       "shortName": "WINDOW",
        "fullName": "Window",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "WINSH",
+       "shortName": "WINSHA",
        "fullName": "WinShape",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "GRAIN",
+       "shortName": "GRAING",
        "fullName": "GrainGain",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "QUALI",
+       "shortName": "QUALIT",
        "fullName": "Quality",
        "renderStyle": "arc",
        "type": "enum",
@@ -992,7 +992,7 @@
      ],
      [
       {
-       "shortName": "TRIGG",
+       "shortName": "TRIGGE",
        "fullName": "Trigger",
        "renderStyle": "arc",
        "type": "enum",
@@ -1028,7 +1028,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "KEYTR",
+       "shortName": "KEYTRA",
        "fullName": "KeyTrack",
        "renderStyle": "arc",
        "type": "float",
@@ -1046,7 +1046,7 @@
       {
        "shortName": "POLYV",
        "fullName": "PolyVoices",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
       },
@@ -1078,7 +1078,7 @@
     "rows": [
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "Attack",
        "renderStyle": "arc",
        "type": "float",
@@ -1092,7 +1092,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SUSTA",
+       "shortName": "SUSTAI",
        "fullName": "Sustain",
        "renderStyle": "arc",
        "type": "float",
@@ -1140,15 +1140,17 @@
     "key": "position",
     "label": "Position",
     "shortLabel": null,
-    "type": "wav_position",
+    "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
     "step": 0.01,
     "renderStyle": "arc",
-    "automatable": false,
+    "automatable": true,
+    "uiType": "wav_position",
+    "filepathParam": "sample_path",
     "increment": {
-     "kind": "wav_position",
+     "kind": "float",
      "perDetent": 0.005,
      "detentsFullSweep": 200
     }
@@ -1247,12 +1249,12 @@
     "min": 0,
     "max": 1,
     "step": 0.02,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
     }
    },
    {
@@ -1287,15 +1289,17 @@
     "key": "position",
     "label": "Position",
     "shortLabel": null,
-    "type": "wav_position",
+    "type": "float",
     "options": null,
     "min": 0,
     "max": 1,
     "step": 0.01,
     "renderStyle": "arc",
-    "automatable": false,
+    "automatable": true,
+    "uiType": "wav_position",
+    "filepathParam": "sample_path",
     "increment": {
-     "kind": "wav_position",
+     "kind": "float",
      "perDetent": 0.005,
      "detentsFullSweep": 200
     }
@@ -1377,12 +1381,12 @@
     "min": 0,
     "max": 1,
     "step": 0.02,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
     }
    },
    {
@@ -1418,7 +1422,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -1517,12 +1521,12 @@
     "min": 0,
     "max": 1,
     "step": 0.02,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
     }
    },
    {
@@ -1650,12 +1654,12 @@
     "min": 1,
     "max": 8,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 14
+     "perDetent": 1,
+     "detentsFullSweep": 7
     }
    },
    {

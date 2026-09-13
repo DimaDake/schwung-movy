@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* browser-test/dump-replay.mjs — dump-driven regression suite (IMPROVEMENTS § D).
  *
- * Replays every one of the 76 modules captured in
+ * Replays every module captured in
  * docs/module-dump/device-dump.json through the REAL model and gates two
  * things against a checked-in snapshot (dump-expect.json):
  *   1. global invariants that must hold for EVERY module/page, and
@@ -20,9 +20,10 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-    MOVY, loadDump, createDumpBoot, serializePages, expandLayoutKeys,
+    MOVY, loadDump, createDumpBoot, serializePages, expandLayoutKeys, forEachRenderedPage,
 } from './dump-boot.mjs';
 import { detentsPerStep, perDetentStep } from '../dist/esm/model/knob-step.js';
+import { KNOBS_PER_PAGE } from '../dist/esm/model/constants.js';
 import { waveCellIndices } from '../dist/esm/model/wave-viz.js';
 import { waveToggleCells } from '../dist/esm/model/wave-toggle.js';
 import { envStageCells } from '../dist/esm/model/env-stage.js';
@@ -63,6 +64,12 @@ const KNOWN_COLLIDING_PAGES = new Set([
     // page (stutter_sync / stutter_resample_sync are both "Stutter Sync", same
     // for tempo), so no shortener can tell them apart — an upstream fix.
     'sound_generator--helm::Stutter',
+    // jp8000's Performance page carries both "Key Mode" and "Arp Mode", which
+    // shorten to the same MODE, and they are genuinely different params (the
+    // patch's key mode, the arpeggiator's mode). Five characters cannot carry
+    // the distinction, and renaming either would misreport the module — an
+    // upstream fix, same as helm.
+    'sound_generator--jp8000::Performance',
 ]);
 
 let failures = 0;
@@ -229,6 +236,17 @@ function checkKnobStepSymmetric(key, model) {
     }
 }
 
+/* Labels out of an items_param payload (a JSON array of {label|name, index}),
+ * parsed the way items-param.ts parses it. */
+function itemListLabels(raw) {
+    if (typeof raw !== 'string') return null;
+    try {
+        const arr = JSON.parse(raw);
+        if (!Array.isArray(arr)) return null;
+        return arr.map((it, i) => String(it?.label ?? it?.name ?? ('Item ' + i)));
+    } catch { return null; }
+}
+
 /* An enum knob may only offer the options the module itself reports. Option
  * lists are CONFIG-FIRST in hierarchy.ts (slot.options wins over cp.options),
  * so a hand-written list silently overrides the truth — and an option the DSP
@@ -243,7 +261,16 @@ function checkEnumOptionsMatchModule(key, model, entry) {
     const cp = new Map((entry.chain_params ?? []).map(p => [p.key, p]));
     for (const p of model.dumpLayout().params) {
         if (!p?.options?.length) continue;
-        const modOptions = cp.get(p.key)?.options;
+        let modOptions = cp.get(p.key)?.options;
+        /* An items-level cell (items-param.ts) takes its options from the
+         * module's LIVE list, not from chain_params — the level declares
+         * items_param/select_param instead of a static enum precisely because
+         * its list is not static (dexed's banks, nam's models, midiverb's
+         * unit_list). Compare against the list the model read, so a mis-parse
+         * still shows. midiverb's "* Midiverb" is the module flagging its own
+         * SELECTED entry: `unit_list` index 0 carries that marker and `unit`
+         * reads "0". Labels are verbatim by contract, so it belongs. */
+        if (p.itemsKey) modOptions = itemListLabels(entry.params?.[p.itemsKey]) ?? modOptions;
         if (!modOptions?.length) continue;
         check(`${key}: enum ${p.key} options = ${JSON.stringify(modOptions)} (got ${JSON.stringify(p.options)})`,
             JSON.stringify(p.options) === JSON.stringify(modOptions));
@@ -278,6 +305,53 @@ const ENV_STAGES_EXPECTED = [
     'sound_generator--303::decay d',
     'sound_generator--303::normal_decay d',
     'sound_generator--303::soft_attack a',
+    'sound_generator--6w6::bd_decay d',
+    'sound_generator--6w6::ch_decay d',
+    'sound_generator--6w6::cp_decay d',
+    'sound_generator--6w6::cy_decay d',
+    'sound_generator--6w6::ht_decay d',
+    'sound_generator--6w6::lt_decay d',
+    'sound_generator--6w6::oh_decay d',
+    'sound_generator--6w6::sd_decay d',
+    'sound_generator--8w8::bd_decay d',
+    'sound_generator--8w8::cb_decay d',
+    'sound_generator--8w8::ch_decay d',
+    'sound_generator--8w8::cl_decay d',
+    'sound_generator--8w8::cp_decay d',
+    'sound_generator--8w8::cy_decay d',
+    'sound_generator--8w8::hc_decay d',
+    'sound_generator--8w8::ht_decay d',
+    'sound_generator--8w8::lc_decay d',
+    'sound_generator--8w8::lt_decay d',
+    'sound_generator--8w8::mc_decay d',
+    'sound_generator--8w8::mt_decay d',
+    'sound_generator--8w8::oh_decay d',
+    'sound_generator--8w8::rs_decay d',
+    'sound_generator--8w8::sd_decay d',
+    'sound_generator--9w9::bd_c_decay d',
+    'sound_generator--9w9::chh_decay d',
+    'sound_generator--9w9::cr_decay d',
+    'sound_generator--9w9::hc_decay d',
+    'sound_generator--9w9::ht_c_decay d',
+    'sound_generator--9w9::lt_c_decay d',
+    'sound_generator--9w9::mt_c_decay d',
+    'sound_generator--9w9::ohh_decay d',
+    'sound_generator--9w9::rc_decay d',
+    'sound_generator--9w9::sd_c_noise_decay d',
+    'sound_generator--cw78::bd_decay d',
+    'sound_generator--cw78::cb_decay d',
+    'sound_generator--cw78::cl_decay d',
+    'sound_generator--cw78::cy_decay d',
+    'sound_generator--cw78::gu_decay d',
+    'sound_generator--cw78::hb_decay d',
+    'sound_generator--cw78::hh_decay d',
+    'sound_generator--cw78::lb_decay d',
+    'sound_generator--cw78::lc_decay d',
+    'sound_generator--cw78::ma_decay d',
+    'sound_generator--cw78::mb_decay d',
+    'sound_generator--cw78::rs_decay d',
+    'sound_generator--cw78::sd_decay d',
+    'sound_generator--cw78::tb_decay d',
     'sound_generator--essaim::decay d',
     'sound_generator--fizzik::a_decay d',
     'sound_generator--fizzik::b_decay d',
@@ -296,6 +370,7 @@ const ENV_STAGES_EXPECTED = [
     'sound_generator--signal::cv_attack a',
     'sound_generator--signal::cv_decay d',
     'sound_generator--signal::mod_decay d',
+    'sound_generator--sophie::pad_decay d',
     'sound_generator--weird-dreams::cv_decay d',
 ];
 
@@ -314,10 +389,20 @@ const CUT_PAIRS_EXPECTED = [
     'sound_generator--noisemaker reverb_lo+reverb_hi',
 ];
 const CUT_SINGLES_EXPECTED = [
+    'audio_fx--4k-eq hpf_freq lowcut',
+    'audio_fx--4k-eq lpf_freq highcut',
     'audio_fx--magneto lowcut lowcut',
     'audio_fx--superboom hiCut highcut',
     'sound_generator--303 feedback_hpf lowcut',
+    'sound_generator--6w6 dly_hpf lowcut',
+    'sound_generator--6w6 rev_hpf lowcut',
+    'sound_generator--8w8 dly_hpf lowcut',
+    'sound_generator--8w8 rev_hpf lowcut',
+    'sound_generator--9w9 dly_hpf lowcut',
+    'sound_generator--9w9 rev_hpf lowcut',
     'sound_generator--chordism reverb_lowcut lowcut',
+    'sound_generator--cw78 dly_hpf lowcut',
+    'sound_generator--cw78 rev_hpf lowcut',
     'sound_generator--hera hpf lowcut',
     'sound_generator--krautdrums hpf_freq lowcut',
     'sound_generator--noisemaker highpass lowcut',
@@ -327,7 +412,9 @@ const CUT_SINGLES_EXPECTED = [
 const EQ_GROUPS_EXPECTED = [
     'audio_fx--magneto low/mid/high',
     'audio_fx--ottx low/mid/high',
+    'audio_fx--tape-echo2 low/high',
     'sound_generator--forge low/mid/high',
+    'sound_generator--jp8000 low/high',
     'sound_generator--krautdrums mid/high',
     'sound_generator--weird-dreams low/mid/high',
 ];
@@ -354,6 +441,7 @@ const WAVE_CELLS_EXPECTED = [
     'sound_generator--noisemaker::osc2_wave',
     'sound_generator--osirus::delay_lfo_shape',
     'sound_generator--osirus::sub_osc_shape',
+    'sound_generator--po32-drum::v_wave',
     'sound_generator--signal::mod_shape',
 ];
 
@@ -391,6 +479,7 @@ const BOOL_ACTIONS_EXPECTED = [
     'sound_generator--forge::rnd_pan',
     'sound_generator--forge::rnd_pitch',
     'sound_generator--forge::rnd_voice',
+    'sound_generator--tablor::preset_rnd',
 ];
 
 /* Every knob the fleet draws as a bipolar pan bar. Two entries look wrong and
@@ -401,6 +490,7 @@ const BOOL_ACTIONS_EXPECTED = [
 const PANS_EXPECTED = [
     'audio_fx--magneto::input_pan',
     'audio_fx--usefulity::pan',
+    'audio_fx--work::pan',
     'sound_generator--forge::cv_pan',
     'sound_generator--freak::pan',
     'sound_generator--minijv::nvram_patchCommon_patchpan',
@@ -422,10 +512,16 @@ const PANS_EXPECTED = [
     'sound_generator--osirus::panorama',
     'sound_generator--signal::cv_pan',
     'sound_generator--surge::pan',
+    'sound_generator--tablor::wt1_pan',
+    'sound_generator--tablor::wt2_pan',
     'sound_generator--weird-dreams::cv_pan',
 ];
 
 const SWITCHES_EXPECTED = [
+    'audio_fx--4k-eq::auto_gain',
+    'audio_fx--4k-eq::bypass',
+    'audio_fx--4k-eq::hf_bell',
+    'audio_fx--4k-eq::lf_bell',
     'audio_fx--ambiotica::lofi_tails',
     'audio_fx--ambiotica::mod_sync',
     'audio_fx--belt::hard',
@@ -442,6 +538,9 @@ const SWITCHES_EXPECTED = [
     'audio_fx--structor::seq_on',
     'audio_fx--superboom::limiter',
     'audio_fx--superboom::micControl',
+    'audio_fx--tape-echo2::input_send',
+    'audio_fx--tape-echo2::ping_pong',
+    'audio_fx--tape-echo2::tempo_sync',
     'audio_fx--tapescam::widen',
     'audio_fx--usefulity::bass_audition',
     'audio_fx--usefulity::bass_mono',
@@ -458,6 +557,7 @@ const SWITCHES_EXPECTED = [
     'audio_fx--war_bells::loop_reverse',
     'audio_fx--war_bells::looper_on',
     'audio_fx--war_bells::reverse',
+    'audio_fx--work::seq_on',
     'midi_fx--branchage::hat_branch_enabled',
     'midi_fx--branchage::kick_branch_enabled',
     'midi_fx--branchage::snare_branch_enabled',
@@ -534,12 +634,30 @@ const SWITCHES_EXPECTED = [
     'sound_generator--hush1::lfo_invert',
     'sound_generator--hush1::lfo_pitch_snap',
     'sound_generator--hush1::same_note_quirk',
+    'sound_generator--jp8000::active_bender',
+    'sound_generator--jp8000::active_control',
+    'sound_generator--jp8000::active_velocity',
+    'sound_generator--jp8000::arp_hold',
+    'sound_generator--jp8000::arp_switch',
+    'sound_generator--jp8000::legato',
+    'sound_generator--jp8000::mono',
+    'sound_generator--jp8000::morph_bend',
+    'sound_generator--jp8000::osc2_sync',
+    'sound_generator--jp8000::portamento',
+    'sound_generator--jp8000::ring_mod',
+    'sound_generator--jp8000::sys_midi_sync',
+    'sound_generator--jp8000::sys_ribbon_hold',
+    'sound_generator--jp8000::sys_ribbon_rel',
+    'sound_generator--jp8000::sys_txrx_edit',
+    'sound_generator--jp8000::trigger_switch',
+    'sound_generator--jp8000::velocity_switch',
     'sound_generator--krautdrums::limiter',
     'sound_generator--linein::hum_notch',
     'sound_generator--linein::riaa_eq',
     'sound_generator--linein::safety_limiter',
     'sound_generator--linein::soft_clip',
     'sound_generator--minijv::chorusswitch',
+    'sound_generator--minijv::internalswitch',
     'sound_generator--minijv::link_tones',
     'sound_generator--minijv::nvram_patchCommon_portamentoswitch',
     'sound_generator--minijv::nvram_patchCommon_sololegato',
@@ -632,13 +750,24 @@ const SWITCHES_EXPECTED = [
     'sound_generator--surge::osc3_keytrack',
     'sound_generator--surge::osc3_retrigger',
     'sound_generator--surge::sync_bpm',
+    'sound_generator--tablor::legato',
 ];
 
 function collectWaveCells(key, model, into, intoToggles, intoStages, intoEqs, intoCuts, intoCutSingles) {
     const params = model.dumpLayout().params;
     let detected = 0;
-    for (let start = 0; start < params.length; start += 8) {
-        const page = params.slice(start, start + 8);
+    let styled = 0;
+    /* Walk the pages the VM RENDERS, not the seats the jog lands on. The two
+     * differ for a drum kit, whose leading voice run collapses into one seat:
+     * the old walk sliced the flat param list in 8s, which reaches every bank,
+     * then counted the VM's styled cells over the rotation, which reaches one
+     * voice — so 6W6 reported 8 detected cells against 1 styled and read as a
+     * rendering fault when it was the two halves measuring different page sets.
+     * Detection and the count below now come off the same page, in the same
+     * visit, so the assertion compares the detectors against the renderer on
+     * identical input. */
+    forEachRenderedPage(model, (bank) => {
+        const page = params.slice(bank * KNOBS_PER_PAGE, bank * KNOBS_PER_PAGE + KNOBS_PER_PAGE);
         const layout = planPageLayout(page);
         for (const i of waveCellIndices(page, layout)) {
             into.push(`${key}::${page[i].key}`);
@@ -675,19 +804,15 @@ function collectWaveCells(key, model, into, intoToggles, intoStages, intoEqs, in
                 detected++;
             }
         }
-    }
-    let styled = 0;
-    /* snapshot() already walked every page and changePage CLAMPS at the last one
-     * rather than wrapping, so rewind before counting or every read repeats the
-     * final page. */
-    model.changePage(-model.getBankCount());
-    for (let pg = 0; pg < model.getBankCount(); pg++) {
         const vm = model.getViewModel();
         for (const row of vm.rows) {
             for (const pvm of row) if (pvm?.renderStyle === 'wave' || pvm?.renderStyle === 'envstage') styled++;
         }
-        model.changePage(1);
-    }
+    });
+    /* Every detected cell must be one the VM actually drew as a wave/stage — not
+     * one the layout dropped on the floor. `detected` and `styled` now come off
+     * the same page, so the remaining evasion is a cell the detectors claim that
+     * planPageLayout gives no knob to. */
     check(`${key}: VM styles every detected wave/stage cell (${detected} detected, ${styled} styled)`,
         detected === styled);
 }

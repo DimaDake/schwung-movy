@@ -121,6 +121,26 @@ export async function createDumpBoot(dump) {
         movyConfigByPath[`/data/UserData/schwung/modules/${dir}/${m.id}/module.json`] =
             JSON.stringify(m.module_json);
     }
+    /* The modules in OVERRIDES_MODULE_FILE (src/modules/loader.ts) do NOT get
+     * their own movy_config.json on the device: movy reads the replacement
+     * shipped beside ui.js instead, and it reads it BEFORE the module's own —
+     * that list exists precisely because the shipped layouts are unusable (they
+     * pad-declare every bank, which movy reads as "every bank is a voice" and
+     * collapses the whole module to one page). Serve those files from the repo
+     * copy, the way browser-test/env.mjs already does; without them the replay
+     * boots those modules against the exact layout the override replaces. Note
+     * the served key must match `${MOVY_TOOL_ROOT}/configs/<id>.json`, not the
+     * module directory. */
+    const overrideDir = join(MOVY, 'src', 'module-configs');
+    if (existsSync(overrideDir)) {
+        for (const f of readdirSync(overrideDir)) {
+            if (!f.endsWith('.json')) continue;
+            try {
+                movyConfigByPath[`/data/UserData/schwung/modules/tools/movy/configs/${f}`] =
+                    readFileSync(join(overrideDir, f), 'utf8');
+            } catch { /* unreadable override: leave it unserved, the loader warns */ }
+        }
+    }
     globalThis.host_read_file = (path) => movyConfigByPath[path] ?? null;
 
     const { createModel } = await import(join(MOVY, 'dist', 'esm', 'model', 'index.js'));
@@ -170,6 +190,42 @@ export function serializePages(model) {
         model.changePage(1);
     }
     return pages;
+}
+
+/* Every page the model can put on screen, handed to `fn` as a bank index.
+ *
+ * A page is `knobParams.slice(knobPage * 8, +8)` — the VM slices by BANK INDEX,
+ * and `pageRotation` decides only which banks the JOG lands on. For most of the
+ * fleet those are the same list, which is why `serializePages` (a jog walk, and
+ * the right one for "what does the bank bar show") has served so far. They
+ * diverge for a config whose banks declare a `pad`: the leading voice run
+ * collapses into ONE seat, so the jog shows whichever voice the slot holds and
+ * none of its siblings — and a kit's sibling voices are pages like any other,
+ * opened by pressing their pad. A check that must see every rendered page (the
+ * wave/stage styling one) has to reach those too, or it reports a kit's voice
+ * cells as missing.
+ *
+ * Distinct banks only, so a caller counting per-page facts counts each once. */
+export function forEachRenderedPage(model, fn) {
+    const seen = new Set();
+    const visit = () => {
+        const bank = model.getKnobPage();
+        if (seen.has(bank)) return;
+        seen.add(bank);
+        fn(bank);
+    };
+    /* changePage CLAMPS at the last seat rather than wrapping, so a full rewind
+     * always lands on seat 0. */
+    model.changePage(-model.getBankCount());
+    for (let i = 0; i < model.getBankCount(); i++) { visit(); model.changePage(1); }
+    /* The collapsed voice run, reached the way a player reaches it — by pad. A
+     * pad only moves the page while a voice bank is the one open, so rewind to
+     * the slot first; an unmapped pad leaves the page where it was, and `seen`
+     * discounts the repeat. 16 is the whole pad grid, so no declared pad is
+     * missed even where padCount understates the pads in use. */
+    model.changePage(-model.getBankCount());
+    const padMax = Math.max(16, model.getDrumPadCount?.() ?? 0);
+    for (let pad = 1; pad <= padMax; pad++) { model.selectBankForPad(pad); visit(); }
 }
 
 /* Expand a drum pad-alias key ("pad_vol") into the concrete per-pad keys it

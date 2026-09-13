@@ -5,7 +5,7 @@
  "author": "Vincent Fillion",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 52,
+ "load_ms": 62,
  "dsp_size": 72808,
  "capabilities": {
   "audio_out": true,
@@ -964,10 +964,10 @@
        "fullName": "Osc1 Freq",
        "renderStyle": "arc",
        "type": "float",
-       "displayValue": "50%"
+       "displayValue": "..."
       },
       {
-       "shortName": "TIMBR",
+       "shortName": "TIMBRE",
        "fullName": "Timbre",
        "renderStyle": "arc",
        "type": "float",
@@ -1011,7 +1011,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
        "type": "float",
@@ -1030,7 +1030,7 @@
     "rows": [
      [
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
        "type": "float",
@@ -1060,7 +1060,7 @@
      ],
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "Attack",
        "renderStyle": "arc",
        "type": "float",
@@ -1074,7 +1074,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SUSTA",
+       "shortName": "SUSTAI",
        "fullName": "Sustain",
        "renderStyle": "arc",
        "type": "float",
@@ -1100,14 +1100,14 @@
     "rows": [
      [
       {
-       "shortName": "FT",
+       "shortName": "FILTER",
        "fullName": "Filter Type",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "VEL>F",
+       "shortName": "VEL>FI",
        "fullName": "Vel>Filter",
        "renderStyle": "arc",
        "type": "float",
@@ -1204,7 +1204,7 @@
     "rows": [
      [
       {
-       "shortName": "PRESE",
+       "shortName": "PRESET",
        "fullName": "Preset",
        "renderStyle": "arc",
        "type": "enum",
@@ -1225,9 +1225,9 @@
        "displayValue": "..."
       },
       {
-       "shortName": "LEGAT",
+       "shortName": "LEGATO",
        "fullName": "Legato",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       }
@@ -1250,28 +1250,28 @@
     "rows": [
      [
       {
-       "shortName": "ENV->",
+       "shortName": "ENV->P",
        "fullName": "Env->Pitch1",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "ENV-2",
+       "shortName": "ENV->TI",
        "fullName": "Env->Timbre",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "ENV-3",
+       "shortName": "ENV->2",
        "fullName": "Env->Pitch2",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "ENV-4",
+       "shortName": "ENV->H",
        "fullName": "Env->Harm",
        "renderStyle": "arc",
        "type": "float",
@@ -1280,28 +1280,28 @@
      ],
      [
       {
-       "shortName": "ENV-5",
+       "shortName": "ENV->F",
        "fullName": "Env->Fold",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "ENV-6",
+       "shortName": "ENV->3",
        "fullName": "Env->FType",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "ENV-7",
+       "shortName": "ENV->C",
        "fullName": "Env->Cutof",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "ENV-8",
+       "shortName": "ENV->L",
        "fullName": "Env->Level",
        "renderStyle": "arc",
        "type": "float",
@@ -1320,28 +1320,28 @@
     "rows": [
      [
       {
-       "shortName": "LF->P",
+       "shortName": "LF->PT",
        "fullName": "LFO->Pitch1",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "LF->T",
+       "shortName": "LFO->TI",
        "fullName": "LFO->Timbre",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "LF->2",
+       "shortName": "LF->P2",
        "fullName": "LFO->Pitch2",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "LF->H",
+       "shortName": "LFO->H",
        "fullName": "LFO->Harm",
        "renderStyle": "arc",
        "type": "float",
@@ -1350,28 +1350,28 @@
      ],
      [
       {
-       "shortName": "LF->F",
+       "shortName": "LF->FL",
        "fullName": "LFO->Fold",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "LF->3",
+       "shortName": "LF->FT",
        "fullName": "LFO->FType",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "LF->C",
+       "shortName": "LFO->C",
        "fullName": "LFO->Cutof",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "LF->L",
+       "shortName": "LFO->L",
        "fullName": "LFO->Level",
        "renderStyle": "arc",
        "type": "float",
@@ -1390,28 +1390,28 @@
     "rows": [
      [
       {
-       "shortName": "S&H->",
+       "shortName": "S&H->P",
        "fullName": "S&H->Pitch1",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "S&H-2",
+       "shortName": "S&H->TI",
        "fullName": "S&H->Timbre",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "S&H-3",
+       "shortName": "S&H->2",
        "fullName": "S&H->Pitch2",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "S&H-4",
+       "shortName": "S&H->H",
        "fullName": "S&H->Harm",
        "renderStyle": "arc",
        "type": "float",
@@ -1420,28 +1420,28 @@
      ],
      [
       {
-       "shortName": "S&H-5",
+       "shortName": "S&H->F",
        "fullName": "S&H->Fold",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "S&H-6",
+       "shortName": "S&H->3",
        "fullName": "S&H->FType",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "S&H-7",
+       "shortName": "S&H->C",
        "fullName": "S&H->Cutof",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "S&H-8",
+       "shortName": "S&H->L",
        "fullName": "S&H->Level",
        "renderStyle": "arc",
        "type": "float",
@@ -1460,28 +1460,28 @@
     "rows": [
      [
       {
-       "shortName": "NZ->P",
+       "shortName": "NZ->PT",
        "fullName": "Nz->Pitch1",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "NZ->T",
+       "shortName": "NZ->TI",
        "fullName": "Nz->Timbre",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "NZ->2",
+       "shortName": "NZ->P2",
        "fullName": "Nz->Pitch2",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "NZ->H",
+       "shortName": "NZ->HA",
        "fullName": "Nz->Harm",
        "renderStyle": "arc",
        "type": "float",
@@ -1490,28 +1490,28 @@
      ],
      [
       {
-       "shortName": "NZ->F",
+       "shortName": "NZ->FO",
        "fullName": "Nz->Fold",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "NZ->3",
+       "shortName": "NZ->FT",
        "fullName": "Nz->FType",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "NZ->C",
+       "shortName": "NZ->CU",
        "fullName": "Nz->Cutof",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "NZ->L",
+       "shortName": "NZ->LE",
        "fullName": "Nz->Level",
        "renderStyle": "arc",
        "type": "float",
@@ -2076,7 +2076,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",

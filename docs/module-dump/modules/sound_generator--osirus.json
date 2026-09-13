@@ -1,12 +1,12 @@
 {
  "id": "osirus",
  "name": "Osirus",
- "version": "0.6.0",
+ "version": "0.6.3",
  "author": "dsp56300/gearmulator (port: charlesvestal)",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 66,
- "dsp_size": 4648912,
+ "load_ms": 141,
+ "dsp_size": 4628016,
  "capabilities": {
   "audio_out": true,
   "audio_in": false,
@@ -3466,37 +3466,37 @@
     "rows": [
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "Flt Attack",
        "renderStyle": "arc",
        "type": "int",
-       "displayValue": "..."
+       "displayValue": "0"
       },
       {
        "shortName": "DECAY",
        "fullName": "Flt Decay",
        "renderStyle": "arc",
        "type": "int",
-       "displayValue": "..."
+       "displayValue": "0"
       },
       {
-       "shortName": "SUSTA",
+       "shortName": "SUSTAI",
        "fullName": "Flt Sustain",
        "renderStyle": "arc",
        "type": "int",
-       "displayValue": "..."
+       "displayValue": "0"
       },
       {
        "shortName": "RELEA",
        "fullName": "Flt Release",
        "renderStyle": "arc",
        "type": "int",
-       "displayValue": "..."
+       "displayValue": "0"
       }
      ],
      [
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
        "type": "int",
@@ -3507,21 +3507,21 @@
        "fullName": "Filt1 Reso",
        "renderStyle": "arc",
        "type": "int",
-       "displayValue": "..."
+       "displayValue": "0"
       },
       {
        "shortName": "ENVAM",
        "fullName": "Filt1 EnvAmt",
        "renderStyle": "arc",
        "type": "int",
-       "displayValue": "..."
+       "displayValue": "0"
       },
       {
-       "shortName": "OCTAV",
+       "shortName": "OCTAVE",
        "fullName": "Octave",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
-       "displayValue": "..."
+       "displayValue": "0"
       }
      ]
     ]
@@ -3559,7 +3559,7 @@
       {
        "shortName": "VOLUM",
        "fullName": "Osc Volume",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       }
@@ -3627,7 +3627,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DETUN",
+       "shortName": "DETUNE",
        "fullName": "Osc2 Detune",
        "renderStyle": "arc",
        "type": "int",
@@ -3636,7 +3636,7 @@
      ],
      [
       {
-       "shortName": "OFA",
+       "shortName": "AMT",
        "fullName": "Osc2 FM Amt",
        "renderStyle": "arc",
        "type": "int",
@@ -3645,12 +3645,12 @@
       {
        "shortName": "SYNC",
        "fullName": "Osc2 Sync",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "FILTE",
+       "shortName": "OF",
        "fullName": "Osc2 FiltEnv",
        "renderStyle": "arc",
        "type": "int",
@@ -3699,7 +3699,7 @@
       {
        "shortName": "VOLUM",
        "fullName": "Sub Volume",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       }
@@ -3708,14 +3708,14 @@
       {
        "shortName": "SHAPE",
        "fullName": "Sub Shape",
-       "renderStyle": "arc",
+       "renderStyle": "wave",
        "type": "enum",
        "displayValue": "..."
       },
       {
        "shortName": "VOL",
        "fullName": "Noise Vol",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
@@ -3746,14 +3746,14 @@
     "rows": [
      [
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "FLT1R",
+       "shortName": "FLT1RS",
        "fullName": "Filt1 Reso",
        "renderStyle": "arc",
        "type": "int",
@@ -3783,7 +3783,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "FLT2R",
+       "shortName": "FLT2RS",
        "fullName": "Filt2 Reso",
        "renderStyle": "arc",
        "type": "int",
@@ -3830,7 +3830,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SATUR",
+       "shortName": "SATURA",
        "fullName": "Saturation",
        "renderStyle": "arc",
        "type": "enum",
@@ -3846,7 +3846,7 @@
      ],
      [
       {
-       "shortName": "FS",
+       "shortName": "FILTER",
        "fullName": "Filter Select",
        "renderStyle": "arc",
        "type": "enum",
@@ -3855,7 +3855,7 @@
       {
        "shortName": "FLT2",
        "fullName": "Flt2 Cut Link",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -3880,7 +3880,7 @@
     "rows": [
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "Flt Attack",
        "renderStyle": "arc",
        "type": "int",
@@ -3894,7 +3894,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SUSTA",
+       "shortName": "SUSTAI",
        "fullName": "Flt Sustain",
        "renderStyle": "arc",
        "type": "int",
@@ -3990,7 +3990,7 @@
     "rows": [
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "Amp Attack",
        "renderStyle": "arc",
        "type": "int",
@@ -4004,7 +4004,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SUSTA",
+       "shortName": "SUSTAI",
        "fullName": "Amp Sustain",
        "renderStyle": "arc",
        "type": "int",
@@ -4027,7 +4027,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "VELOC",
+       "shortName": "VELOCI",
        "fullName": "Amp Velocity",
        "renderStyle": "arc",
        "type": "int",
@@ -4086,7 +4086,7 @@
       {
        "shortName": "ENV",
        "fullName": "LFO1 Env Mode",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -4105,7 +4105,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "KEYTR",
+       "shortName": "KEYTRI",
        "fullName": "LFO1 KeyTrig",
        "renderStyle": "arc",
        "type": "int",
@@ -4176,7 +4176,7 @@
     "rows": [
      [
       {
-       "shortName": "LS",
+       "shortName": "SHAPE",
        "fullName": "LFO2 Shape",
        "renderStyle": "arc",
        "type": "enum",
@@ -4197,7 +4197,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SL",
+       "shortName": "LFO2",
        "fullName": "Shape LFO2",
        "renderStyle": "arc",
        "type": "int",
@@ -4208,7 +4208,7 @@
       {
        "shortName": "ENV",
        "fullName": "LFO2 Env Mode",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -4227,7 +4227,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "KEYTR",
+       "shortName": "KEYTRI",
        "fullName": "LFO2 KeyTrig",
        "renderStyle": "arc",
        "type": "int",
@@ -4342,7 +4342,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "FADEI",
+       "shortName": "FADEIN",
        "fullName": "LFO3 FadeIn",
        "renderStyle": "arc",
        "type": "int",
@@ -4375,14 +4375,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "PATTE",
+       "shortName": "PATTER",
        "fullName": "Arp Pattern",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "OCTAV",
+       "shortName": "OCTAVE",
        "fullName": "Arp Octaves",
        "renderStyle": "arc",
        "type": "enum",
@@ -4400,26 +4400,26 @@
       {
        "shortName": "HOLD",
        "fullName": "Arp Hold",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "LENGT",
+       "shortName": "LENGTH",
        "fullName": "Arp Length",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "AC",
+       "shortName": "CLOCK",
        "fullName": "Arp Clock",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "CT",
+       "shortName": "TEMPO",
        "fullName": "Clock Tempo",
        "renderStyle": "arc",
        "type": "int",
@@ -4445,7 +4445,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "ES",
+       "shortName": "EFFECT",
        "fullName": "Effect Send",
        "renderStyle": "arc",
        "type": "int",
@@ -4531,7 +4531,7 @@
       {
        "shortName": "LFO",
        "fullName": "Delay LFO",
-       "renderStyle": "arc",
+       "renderStyle": "wave",
        "type": "enum",
        "displayValue": "..."
       }
@@ -4596,7 +4596,7 @@
      ],
      [
       {
-       "shortName": "ASGN1",
+       "shortName": "ASGN1S",
        "fullName": "Asgn1 Src",
        "renderStyle": "arc",
        "type": "enum",
@@ -4748,19 +4748,19 @@
       {
        "shortName": "VOLUM",
        "fullName": "Volume",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "PANOR",
        "fullName": "Panorama",
-       "renderStyle": "arc",
+       "renderStyle": "pan",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "UM",
+       "shortName": "MODE",
        "fullName": "Unison Mode",
        "renderStyle": "arc",
        "type": "enum",
@@ -4776,7 +4776,7 @@
      ],
      [
       {
-       "shortName": "TRANS",
+       "shortName": "TRANSP",
        "fullName": "Transpose",
        "renderStyle": "arc",
        "type": "int",
@@ -4790,14 +4790,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "UD",
+       "shortName": "DETUNE",
        "fullName": "Unison Detune",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "UP",
+       "shortName": "PAN",
        "fullName": "Unison Pan",
        "renderStyle": "arc",
        "type": "int",
@@ -4816,7 +4816,7 @@
     "rows": [
      [
       {
-       "shortName": "ULP",
+       "shortName": "UNISON",
        "fullName": "Unison LFO Ph",
        "renderStyle": "arc",
        "type": "int",
@@ -4886,16 +4886,16 @@
     "rows": [
      [
       {
-       "shortName": "DSP",
+       "shortName": "DSP %",
        "fullName": "DSP Clock %",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "GAIN",
+       "shortName": "GAIN %",
        "fullName": "Gain %",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
@@ -5046,12 +5046,13 @@
     "min": -4,
     "max": 4,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
+    "signed": true,
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 16
+     "perDetent": 1,
+     "detentsFullSweep": 8
     }
    },
    {
@@ -5114,12 +5115,12 @@
     "min": 0,
     "max": 127,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -5417,7 +5418,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -5533,12 +5534,12 @@
     "min": 0,
     "max": 127,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -5570,12 +5571,12 @@
     "min": 0,
     "max": 127,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -5884,7 +5885,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -6377,7 +6378,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -6699,7 +6700,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -7203,7 +7204,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -9031,12 +9032,12 @@
     "min": 0,
     "max": 127,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -9048,12 +9049,12 @@
     "min": 0,
     "max": 127,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "pan",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -9326,7 +9327,7 @@
    {
     "key": "dsp_clock",
     "label": "DSP Clock %",
-    "shortLabel": null,
+    "shortLabel": "DSP %",
     "type": "int",
     "options": null,
     "min": 10,
@@ -9349,12 +9350,12 @@
     "min": 1,
     "max": 100,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 198
+     "perDetent": 1,
+     "detentsFullSweep": 99
     }
    },
    {

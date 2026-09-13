@@ -1,11 +1,11 @@
 {
  "id": "gate",
  "name": "GATE",
- "version": "0.1.1",
+ "version": "0.1.2",
  "author": "charlesvestal",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 48,
+ "load_ms": 63,
  "dsp_size": 18952,
  "capabilities": {
   "chainable": true,
@@ -77,6 +77,7 @@
       },
       {
        "key": "hysteresis",
+       "short_name": "HYST",
        "label": "Hysteresis",
        "type": "float",
        "min": 0,
@@ -223,7 +224,7 @@
     "rows": [
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "Attack",
        "renderStyle": "arc",
        "type": "float",
@@ -237,11 +238,11 @@
        "displayValue": "..."
       },
       {
-       "shortName": "THRES",
+       "shortName": "THRESH",
        "fullName": "Threshold",
        "renderStyle": "arc",
        "type": "float",
-       "displayValue": "50%"
+       "displayValue": "..."
       },
       {
        "shortName": "HOLD",
@@ -267,7 +268,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "HYSTE",
+       "shortName": "HYST",
        "fullName": "Hysteresis",
        "renderStyle": "arc",
        "type": "float",
@@ -390,7 +391,7 @@
    {
     "key": "hysteresis",
     "label": "Hysteresis",
-    "shortLabel": null,
+    "shortLabel": "HYST",
     "type": "float",
     "options": null,
     "min": 0,

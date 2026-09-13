@@ -5,7 +5,7 @@
  "author": "move-anything contributors",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 55,
+ "load_ms": 71,
  "dsp_size": 1938480,
  "capabilities": {
   "audio_out": true,
@@ -2076,7 +2076,7 @@
        "fullName": "Model",
        "renderStyle": "arc",
        "type": "enum",
-       "displayValue": "Virtu"
+       "displayValue": "..."
       },
       {
        "shortName": "HARMO",
@@ -2086,7 +2086,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "TIMBR",
+       "shortName": "TIMBRE",
        "fullName": "Timbre",
        "renderStyle": "arc",
        "type": "float",
@@ -2111,7 +2111,7 @@
       {
        "shortName": "DECAY",
        "fullName": "LPG Decay",
-       "renderStyle": "arc",
+       "renderStyle": "envstage",
        "type": "float",
        "displayValue": "..."
       },
@@ -2123,7 +2123,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
        "type": "float",
@@ -2163,7 +2163,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "TIMBR",
+       "shortName": "TIMBRE",
        "fullName": "Timbre",
        "renderStyle": "arc",
        "type": "float",
@@ -2195,7 +2195,7 @@
       {
        "shortName": "LPG",
        "fullName": "LPG Decay",
-       "renderStyle": "arc",
+       "renderStyle": "envstage",
        "type": "float",
        "displayValue": "..."
       }
@@ -2240,7 +2240,7 @@
     "rows": [
      [
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
        "type": "float",
@@ -2310,7 +2310,7 @@
      ],
      [
       {
-       "shortName": "VELOC",
+       "shortName": "VELOCI",
        "fullName": "Velocity",
        "renderStyle": "arc",
        "type": "float",
@@ -2368,7 +2368,7 @@
      ],
      [
       {
-       "shortName": "VELOC",
+       "shortName": "VELOCI",
        "fullName": "Velocity",
        "renderStyle": "arc",
        "type": "float",
@@ -2426,7 +2426,7 @@
      ],
      [
       {
-       "shortName": "VELOC",
+       "shortName": "VELOCI",
        "fullName": "Velocity",
        "renderStyle": "arc",
        "type": "float",
@@ -2484,7 +2484,7 @@
      ],
      [
       {
-       "shortName": "VELOC",
+       "shortName": "VELOCI",
        "fullName": "Velocity",
        "renderStyle": "arc",
        "type": "float",
@@ -2512,7 +2512,7 @@
     "rows": [
      [
       {
-       "shortName": "TARGE",
+       "shortName": "TARGET",
        "fullName": "Target",
        "renderStyle": "arc",
        "type": "enum",
@@ -2549,7 +2549,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "VELOC",
+       "shortName": "VELOCI",
        "fullName": "Velocity",
        "renderStyle": "arc",
        "type": "float",
@@ -2576,7 +2576,7 @@
     "rows": [
      [
       {
-       "shortName": "TARGE",
+       "shortName": "TARGET",
        "fullName": "Target",
        "renderStyle": "arc",
        "type": "enum",
@@ -2613,7 +2613,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "VELOC",
+       "shortName": "VELOCI",
        "fullName": "Velocity",
        "renderStyle": "arc",
        "type": "float",
@@ -2670,9 +2670,9 @@
      ],
      [
       {
-       "shortName": "RETRI",
+       "shortName": "RETRIG",
        "fullName": "Retrig",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -2692,7 +2692,7 @@
     "rows": [
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "Attack",
        "renderStyle": "arc",
        "type": "int",
@@ -2706,7 +2706,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SUSTA",
+       "shortName": "SUSTAI",
        "fullName": "Sustain",
        "renderStyle": "arc",
        "type": "float",
@@ -2722,9 +2722,9 @@
      ],
      [
       {
-       "shortName": "RETRI",
+       "shortName": "RETRIG",
        "fullName": "Retrig",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -2744,7 +2744,7 @@
     "rows": [
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "Attack",
        "renderStyle": "arc",
        "type": "int",
@@ -2767,23 +2767,23 @@
       {
        "shortName": "SYNC",
        "fullName": "Sync",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       }
      ],
      [
       {
-       "shortName": "RETRI",
+       "shortName": "RETRIG",
        "fullName": "Retrig",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "BIPOL",
+       "shortName": "BIPOLA",
        "fullName": "Bipolar",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -2832,9 +2832,9 @@
      ],
      [
       {
-       "shortName": "RETRI",
+       "shortName": "RETRIG",
        "fullName": "Retrig",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -2912,14 +2912,14 @@
       {
        "shortName": "VOLUM",
        "fullName": "Volume",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "PAN",
        "fullName": "Pan",
-       "renderStyle": "arc",
+       "renderStyle": "pan",
        "type": "float",
        "displayValue": "..."
       },
@@ -2933,21 +2933,21 @@
       {
        "shortName": "POLYP",
        "fullName": "Polyphony",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
       }
      ],
      [
       {
-       "shortName": "UNISO",
+       "shortName": "UNISON",
        "fullName": "Unison",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "DETUN",
+       "shortName": "DETUNE",
        "fullName": "Detune",
        "renderStyle": "arc",
        "type": "float",
@@ -4123,7 +4123,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -4231,7 +4231,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -4309,7 +4309,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -4329,7 +4329,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -4349,7 +4349,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -4446,7 +4446,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -4514,12 +4514,12 @@
     "min": 0,
     "max": 2,
     "step": 0.02,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 200
+     "perDetent": 0.02,
+     "detentsFullSweep": 100
     }
    },
    {
@@ -4531,12 +4531,12 @@
     "min": -1,
     "max": 1,
     "step": 0.02,
-    "renderStyle": "arc",
+    "renderStyle": "pan",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 200
+     "perDetent": 0.02,
+     "detentsFullSweep": 100
     }
    },
    {
@@ -4569,12 +4569,12 @@
     "min": 1,
     "max": 8,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 14
+     "perDetent": 1,
+     "detentsFullSweep": 7
     }
    },
    {
@@ -4586,12 +4586,12 @@
     "min": 1,
     "max": 8,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 14
+     "perDetent": 1,
+     "detentsFullSweep": 7
     }
    },
    {

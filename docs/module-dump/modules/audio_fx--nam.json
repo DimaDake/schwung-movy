@@ -1,11 +1,11 @@
 {
  "id": "nam",
  "name": "NAM",
- "version": "0.1.5",
+ "version": "0.1.7",
  "author": "NeuralAudio by Mike Oliphant (port: charlesvestal)",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 71,
+ "load_ms": 102,
  "dsp_size": 1163072,
  "capabilities": {
   "chainable": true,
@@ -19,6 +19,7 @@
       "output_level",
       {
        "key": "cab_bypass",
+       "short_name": "Bypass",
        "label": "Cab Bypass"
       },
       {
@@ -145,27 +146,33 @@
     "rows": [
      [
       {
+       "shortName": "MODEL",
+       "fullName": "Model",
+       "renderStyle": "items",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
        "shortName": "INPUT",
        "fullName": "Input",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "50%"
-      },
-      {
-       "shortName": "OUTPU",
-       "fullName": "Output",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "CAB",
+       "shortName": "OUTPUT",
+       "fullName": "Output",
+       "renderStyle": "vbar",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BYPAS",
        "fullName": "Cab Bypass",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
-      },
-      null
+      }
      ],
      [
       null,
@@ -178,6 +185,88 @@
   ],
   "params": [
    {
+    "key": "model_index",
+    "label": "Model",
+    "shortLabel": null,
+    "type": "enum",
+    "min": 0,
+    "max": 29,
+    "step": 1,
+    "options": [
+     "5150 BlockLetter - NoBoost (Helga B)",
+     "5152 Lead No Boost (Tim R)",
+     "6505+ Red ch - NoBoost (Helga B)",
+     "Axe FX 2 Orange Rockerverb (Tom C)",
+     "Ceriatone King Kong Channel 1 60s mode (George B)",
+     "Ceriatone Molecular 50 (Tudor N)",
+     "DirtyShirleyMini_Clean_B1_M6_T7_MV10_G4 (Sascha S)",
+     "DirtyShirleyMini_crunch_G6 (Sascha S)",
+     "driftwood purple nightmare TS engaged (Luis R)",
+     "DS1_g6_t5 (Keith B)",
+     "Engl e530 preamp & 840 power amp with Boss DS1 Overdrive (Tom C)",
+     "Fender TwinVerb Norm Bright (Tim R)",
+     "Fender TwinVerb Vibrato Bright (Tim R)",
+     "Fortin Grind Mini Knob @ 5 ESR_0.0017_standard (Tudor N)",
+     "FriedmanDSM_PowerAmpEL84_MV6_feather (Sascha S)",
+     "GCI Jugendstil (Helga B)",
+     "HM-2_V5_L10_H10_D0_Std_ESR-0.0004 (Peter N)",
+     "Ibanez Tube Screamer Mini Tone@5_Level@5_Overdrive@5 ESR_0.0008_standard (Tudor N)",
+     "JCM2000 Clean (Tim R)",
+     "JCM2000 Crunch (Tim R)",
+     "Jet City G5 (Tim R)",
+     "JVM-CR-OR-NoDrive-ESR0,017 (Phillipe P)",
+     "klone_g6_t6_o5 (Keith B)",
+     "LaneyGH100S-Hi-MidGain-ESR0,003 (Phillipe P)",
+     "Magnatone Super 59 Mkii Bridged Blend (Tim R)",
+     "Magnatone Super 59 Mkii Ch1 Norm (Tim R)",
+     "Sovtek MIG50 (Mikhail K)",
+     "Tech21 dUg DP3X bass preamp pedal all dimed no shift (Jason Z)",
+     "V4 Countess 300eps (George B)",
+     "VOXAC15-TopBoost (Phillipe P)"
+    ],
+    "itemIndices": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14,
+     15,
+     16,
+     17,
+     18,
+     19,
+     20,
+     21,
+     22,
+     23,
+     24,
+     25,
+     26,
+     27,
+     28,
+     29
+    ],
+    "itemsKey": "model_list",
+    "renderStyle": "items",
+    "capturesModuleState": true,
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 30
+    }
+   },
+   {
     "key": "input_level",
     "label": "Input",
     "shortLabel": null,
@@ -186,12 +275,12 @@
     "min": 0,
     "max": 1,
     "step": 0.02,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
     }
    },
    {
@@ -203,24 +292,24 @@
     "min": 0,
     "max": 1,
     "step": 0.02,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
     }
    },
    {
     "key": "cab_bypass",
     "label": "Cab Bypass",
-    "shortLabel": null,
+    "shortLabel": "Bypass",
     "type": "int",
     "options": null,
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -231,13 +320,16 @@
    null,
    null,
    null,
-   null,
    null
   ]
  },
  "analysis": {
   "hiddenParams": [],
-  "noMetadata": [],
-  "warnings": []
+  "noMetadata": [
+   "model_index"
+  ],
+  "warnings": [
+   "1 shown params lack chain_params metadata (movy guesses type/range): model_index"
+  ]
  }
 }

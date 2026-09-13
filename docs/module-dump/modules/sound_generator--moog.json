@@ -1,11 +1,11 @@
 {
  "id": "moog",
  "name": "RaffoSynth",
- "version": "0.2.3",
+ "version": "0.2.5",
  "author": "Nicolas Roulet, Julian Palladino (port: charlesvestal)",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 68,
+ "load_ms": 43,
  "dsp_size": 130384,
  "capabilities": {
   "audio_out": true,
@@ -16,173 +16,13 @@
   "chainable": true,
   "component_type": "sound_generator",
   "ui_hierarchy": {
+   "modes": null,
    "levels": {
     "root": {
-     "name": "RaffoSynth",
-     "params": [
-      {
-       "key": "preset",
-       "label": "Preset",
-       "type": "int",
-       "min": 0,
-       "max_param": "preset_count",
-       "default": 0
-      },
-      {
-       "key": "cutoff",
-       "label": "Cutoff",
-       "type": "float",
-       "min": 0,
-       "max": 1,
-       "default": 0.7,
-       "step": 0.02,
-       "unit": "%"
-      },
-      {
-       "key": "resonance",
-       "label": "Resonance",
-       "type": "float",
-       "min": 0,
-       "max": 1,
-       "default": 0.2,
-       "step": 0.02,
-       "unit": "%"
-      },
-      {
-       "key": "contour",
-       "label": "Contour",
-       "type": "float",
-       "min": 0,
-       "max": 1,
-       "default": 0.3,
-       "step": 0.02,
-       "unit": "%"
-      },
-      {
-       "key": "attack",
-       "label": "Attack",
-       "type": "float",
-       "min": 0,
-       "max": 1,
-       "default": 0.01,
-       "step": 0.02,
-       "unit": "%"
-      },
-      {
-       "key": "decay",
-       "label": "Decay",
-       "type": "float",
-       "min": 0,
-       "max": 1,
-       "default": 0.3,
-       "step": 0.02,
-       "unit": "%"
-      },
-      {
-       "key": "sustain",
-       "label": "Sustain",
-       "type": "float",
-       "min": 0,
-       "max": 1,
-       "default": 0.7,
-       "step": 0.02,
-       "unit": "%"
-      },
-      {
-       "key": "release",
-       "label": "Release",
-       "type": "float",
-       "min": 0,
-       "max": 1,
-       "default": 0.2,
-       "step": 0.02,
-       "unit": "%"
-      },
-      {
-       "key": "glide",
-       "label": "Glide",
-       "type": "float",
-       "min": 0,
-       "max": 1,
-       "default": 0,
-       "step": 0.02,
-       "unit": "%"
-      },
-      {
-       "key": "osc1_wave",
-       "label": "Osc1 Wave",
-       "type": "enum",
-       "options": [
-        "Triangle",
-        "Sawtooth",
-        "Square",
-        "Pulse"
-       ],
-       "default": 0
-      },
-      {
-       "key": "osc2_wave",
-       "label": "Osc2 Wave",
-       "type": "enum",
-       "options": [
-        "Triangle",
-        "Sawtooth",
-        "Square",
-        "Pulse"
-       ],
-       "default": 0
-      },
-      {
-       "key": "osc2_detune",
-       "label": "Osc2 Detune",
-       "type": "float",
-       "min": 0,
-       "max": 1,
-       "default": 0.5,
-       "step": 0.02,
-       "unit": "%"
-      },
-      {
-       "key": "noise",
-       "label": "Noise",
-       "type": "float",
-       "min": 0,
-       "max": 1,
-       "default": 0,
-       "step": 0.02,
-       "unit": "%"
-      },
-      {
-       "key": "osc1_volume",
-       "label": "Osc1 Vol",
-       "type": "float",
-       "min": 0,
-       "max": 1,
-       "default": 0.8,
-       "step": 0.02,
-       "unit": "%"
-      },
-      {
-       "key": "osc2_volume",
-       "label": "Osc2 Vol",
-       "type": "float",
-       "min": 0,
-       "max": 1,
-       "default": 0,
-       "step": 0.02,
-       "unit": "%"
-      },
-      {
-       "key": "osc3_volume",
-       "label": "Osc3 Vol",
-       "type": "float",
-       "min": 0,
-       "max": 1,
-       "default": 0,
-       "step": 0.02,
-       "unit": "%"
-      }
-     ],
+     "list_param": "preset",
+     "count_param": "preset_count",
+     "name_param": "preset_name",
+     "children": "main",
      "knobs": [
       "cutoff",
       "resonance",
@@ -191,7 +31,217 @@
       "decay",
       "sustain",
       "release",
-      "glide"
+      "octave_transpose"
+     ],
+     "params": []
+    },
+    "main": {
+     "children": null,
+     "knobs": [
+      "cutoff",
+      "resonance",
+      "contour",
+      "attack",
+      "decay",
+      "sustain",
+      "release",
+      "octave_transpose"
+     ],
+     "params": [
+      {
+       "level": "osc1",
+       "label": "Oscillator 1"
+      },
+      {
+       "level": "osc2",
+       "label": "Oscillator 2"
+      },
+      {
+       "level": "osc3",
+       "label": "Oscillator 3"
+      },
+      {
+       "level": "osc4",
+       "label": "Oscillator 4"
+      },
+      {
+       "level": "mixer",
+       "label": "Mixer"
+      },
+      {
+       "level": "filter",
+       "label": "Filter"
+      },
+      {
+       "level": "filt_env",
+       "label": "Filter Env"
+      },
+      {
+       "level": "amp_env",
+       "label": "Amp Env"
+      },
+      {
+       "level": "lfo",
+       "label": "LFO"
+      },
+      {
+       "level": "performance",
+       "label": "Performance"
+      }
+     ]
+    },
+    "osc1": {
+     "children": null,
+     "knobs": [
+      "osc1_wave",
+      "osc1_volume",
+      "osc1_range"
+     ],
+     "params": [
+      "osc1_wave",
+      "osc1_volume",
+      "osc1_range"
+     ]
+    },
+    "osc2": {
+     "children": null,
+     "knobs": [
+      "osc2_wave",
+      "osc2_volume",
+      "osc2_range",
+      "osc2_detune"
+     ],
+     "params": [
+      "osc2_wave",
+      "osc2_volume",
+      "osc2_range",
+      "osc2_detune"
+     ]
+    },
+    "osc3": {
+     "children": null,
+     "knobs": [
+      "osc3_wave",
+      "osc3_volume",
+      "osc3_range",
+      "osc3_detune"
+     ],
+     "params": [
+      "osc3_wave",
+      "osc3_volume",
+      "osc3_range",
+      "osc3_detune"
+     ]
+    },
+    "osc4": {
+     "children": null,
+     "knobs": [
+      "osc4_wave",
+      "osc4_volume",
+      "osc4_range",
+      "osc4_detune"
+     ],
+     "params": [
+      "osc4_wave",
+      "osc4_volume",
+      "osc4_range",
+      "osc4_detune"
+     ]
+    },
+    "mixer": {
+     "children": null,
+     "knobs": [
+      "osc1_volume",
+      "osc2_volume",
+      "osc3_volume",
+      "osc4_volume",
+      "noise",
+      "volume"
+     ],
+     "params": [
+      "osc1_volume",
+      "osc2_volume",
+      "osc3_volume",
+      "osc4_volume",
+      "noise",
+      "volume"
+     ]
+    },
+    "filter": {
+     "children": null,
+     "knobs": [
+      "cutoff",
+      "resonance",
+      "contour",
+      "key_follow"
+     ],
+     "params": [
+      "cutoff",
+      "resonance",
+      "contour",
+      "key_follow"
+     ]
+    },
+    "filt_env": {
+     "children": null,
+     "knobs": [
+      "f_attack",
+      "f_decay",
+      "f_sustain",
+      "f_release"
+     ],
+     "params": [
+      "f_attack",
+      "f_decay",
+      "f_sustain",
+      "f_release"
+     ]
+    },
+    "amp_env": {
+     "children": null,
+     "knobs": [
+      "attack",
+      "decay",
+      "sustain",
+      "release"
+     ],
+     "params": [
+      "attack",
+      "decay",
+      "sustain",
+      "release"
+     ]
+    },
+    "lfo": {
+     "children": null,
+     "knobs": [
+      "lfo_rate",
+      "lfo_pitch",
+      "lfo_filter"
+     ],
+     "params": [
+      "lfo_rate",
+      "lfo_pitch",
+      "lfo_filter"
+     ]
+    },
+    "performance": {
+     "children": null,
+     "knobs": [
+      "glide",
+      "mod_filter",
+      "mod_pitch",
+      "bend_range",
+      "vel_sens",
+      "octave_transpose"
+     ],
+     "params": [
+      "glide",
+      "mod_filter",
+      "mod_pitch",
+      "bend_range",
+      "vel_sens",
+      "octave_transpose"
      ]
     }
    }
@@ -686,11 +736,11 @@
     "rows": [
      [
       {
-       "shortName": "PRESE",
+       "shortName": "PRESET",
        "fullName": "Preset",
        "renderStyle": "preset",
        "type": "enum",
-       "displayValue": "0"
+       "displayValue": "..."
       },
       null,
       null,
@@ -714,7 +764,7 @@
     "rows": [
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "Attack",
        "renderStyle": "arc",
        "type": "float",
@@ -728,7 +778,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SUSTA",
+       "shortName": "SUSTAI",
        "fullName": "Sustain",
        "renderStyle": "arc",
        "type": "float",
@@ -744,7 +794,7 @@
      ],
      [
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
        "type": "float",
@@ -758,16 +808,16 @@
        "displayValue": "..."
       },
       {
-       "shortName": "CONTO",
+       "shortName": "CONTOU",
        "fullName": "Contour",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "OCTAV",
+       "shortName": "OCTAVE",
        "fullName": "Octave",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
       }
@@ -793,14 +843,14 @@
       {
        "shortName": "VOLUM",
        "fullName": "Osc1 Volume",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "RANGE",
        "fullName": "Osc1 Range",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
       },
@@ -833,19 +883,19 @@
       {
        "shortName": "VOLUM",
        "fullName": "Osc2 Volume",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "RANGE",
        "fullName": "Osc2 Range",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "DETUN",
+       "shortName": "DETUNE",
        "fullName": "Osc2 Detune",
        "renderStyle": "arc",
        "type": "float",
@@ -879,19 +929,19 @@
       {
        "shortName": "VOLUM",
        "fullName": "Osc3 Volume",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "RANGE",
        "fullName": "Osc3 Range",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "DETUN",
+       "shortName": "DETUNE",
        "fullName": "Osc3 Detune",
        "renderStyle": "arc",
        "type": "float",
@@ -925,19 +975,19 @@
       {
        "shortName": "VOLUM",
        "fullName": "Osc4 Volume",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "RANGE",
        "fullName": "Osc4 Range",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "DETUN",
+       "shortName": "DETUNE",
        "fullName": "Osc4 Detune",
        "renderStyle": "arc",
        "type": "float",
@@ -964,28 +1014,28 @@
       {
        "shortName": "OSC1",
        "fullName": "Osc1 Volume",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "OSC2",
        "fullName": "Osc2 Volume",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "OSC3",
        "fullName": "Osc3 Volume",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "OSC4",
        "fullName": "Osc4 Volume",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       }
@@ -1001,7 +1051,7 @@
       {
        "shortName": "VOLUM",
        "fullName": "Volume",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
@@ -1020,7 +1070,7 @@
     "rows": [
      [
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
        "type": "float",
@@ -1034,7 +1084,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "CONTO",
+       "shortName": "CONTOU",
        "fullName": "Contour",
        "renderStyle": "arc",
        "type": "float",
@@ -1066,7 +1116,7 @@
     "rows": [
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "F Attack",
        "renderStyle": "arc",
        "type": "float",
@@ -1080,7 +1130,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SUSTA",
+       "shortName": "SUSTAI",
        "fullName": "F Sustain",
        "renderStyle": "arc",
        "type": "float",
@@ -1112,7 +1162,7 @@
     "rows": [
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "Attack",
        "renderStyle": "arc",
        "type": "float",
@@ -1126,7 +1176,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SUSTA",
+       "shortName": "SUSTAI",
        "fullName": "Sustain",
        "renderStyle": "arc",
        "type": "float",
@@ -1165,14 +1215,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "LFO>P",
+       "shortName": "LFO>PI",
        "fullName": "LFO>Pitch",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "LFO>F",
+       "shortName": "LFO>FI",
        "fullName": "LFO>Filter",
        "renderStyle": "arc",
        "type": "float",
@@ -1205,14 +1255,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "MOD>F",
+       "shortName": "MOD>FI",
        "fullName": "Mod>Filter",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "MOD>P",
+       "shortName": "MOD>PI",
        "fullName": "Mod>Pitch",
        "renderStyle": "arc",
        "type": "float",
@@ -1235,9 +1285,9 @@
        "displayValue": "..."
       },
       {
-       "shortName": "OCTAV",
+       "shortName": "OCTAVE",
        "fullName": "Octave",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
       },
@@ -1259,6 +1309,7 @@
     "options": null,
     "nameKey": "preset_name",
     "renderStyle": "preset",
+    "capturesModuleState": true,
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -1401,12 +1452,13 @@
     "min": -3,
     "max": 3,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
+    "signed": true,
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 12
+     "perDetent": 1,
+     "detentsFullSweep": 6
     }
    },
    {
@@ -1435,12 +1487,12 @@
     "min": 0,
     "max": 1,
     "step": 0.02,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
     }
    },
    {
@@ -1452,12 +1504,13 @@
     "min": -2,
     "max": 2,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
+    "signed": true,
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 8
+     "perDetent": 1,
+     "detentsFullSweep": 4
     }
    },
    null,
@@ -1491,12 +1544,12 @@
     "min": 0,
     "max": 1,
     "step": 0.02,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
     }
    },
    {
@@ -1508,12 +1561,13 @@
     "min": -2,
     "max": 2,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
+    "signed": true,
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 8
+     "perDetent": 1,
+     "detentsFullSweep": 4
     }
    },
    {
@@ -1563,12 +1617,12 @@
     "min": 0,
     "max": 1,
     "step": 0.02,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
     }
    },
    {
@@ -1580,12 +1634,13 @@
     "min": -2,
     "max": 2,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
+    "signed": true,
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 8
+     "perDetent": 1,
+     "detentsFullSweep": 4
     }
    },
    {
@@ -1635,12 +1690,12 @@
     "min": 0,
     "max": 1,
     "step": 0.02,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
     }
    },
    {
@@ -1652,12 +1707,13 @@
     "min": -2,
     "max": 2,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
+    "signed": true,
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 8
+     "perDetent": 1,
+     "detentsFullSweep": 4
     }
    },
    {
@@ -1690,12 +1746,12 @@
     "min": 0,
     "max": 1,
     "step": 0.02,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
     }
    },
    {
@@ -1707,12 +1763,12 @@
     "min": 0,
     "max": 1,
     "step": 0.02,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
     }
    },
    {
@@ -1724,12 +1780,12 @@
     "min": 0,
     "max": 1,
     "step": 0.02,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
     }
    },
    {
@@ -1741,12 +1797,12 @@
     "min": 0,
     "max": 1,
     "step": 0.02,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
     }
    },
    {
@@ -1775,12 +1831,12 @@
     "min": 0,
     "max": 1,
     "step": 0.02,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
     }
    },
    null,
@@ -2151,12 +2207,13 @@
     "min": -3,
     "max": 3,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
+    "signed": true,
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 12
+     "perDetent": 1,
+     "detentsFullSweep": 6
     }
    },
    null,

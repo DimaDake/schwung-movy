@@ -5,7 +5,7 @@
  "author": "Filliformes",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 69,
+ "load_ms": 67,
  "dsp_size": 139152,
  "capabilities": {
   "chainable": true,
@@ -1147,14 +1147,14 @@
     "rows": [
      [
       {
-       "shortName": "FX1AM",
+       "shortName": "FX1AMN",
        "fullName": "FX1 Amount",
        "renderStyle": "arc",
        "type": "float",
-       "displayValue": "0%"
+       "displayValue": "..."
       },
       {
-       "shortName": "FX1MC",
+       "shortName": "FX1MCR",
        "fullName": "FX1 Macro",
        "renderStyle": "arc",
        "type": "float",
@@ -1217,7 +1217,7 @@
     "rows": [
      [
       {
-       "shortName": "PRESE",
+       "shortName": "PRESET",
        "fullName": "Preset",
        "renderStyle": "arc",
        "type": "enum",
@@ -1231,7 +1231,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "RNDFX",
+       "shortName": "RND FX",
        "fullName": "Rnd FX",
        "renderStyle": "arc",
        "type": "enum",
@@ -1263,7 +1263,7 @@
       {
        "shortName": "INPUT",
        "fullName": "Input Vol",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
@@ -1322,21 +1322,21 @@
        "displayValue": "..."
       },
       {
-       "shortName": "FX1AM",
+       "shortName": "FX1AMN",
        "fullName": "FX1 Amount",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "FX1MC",
+       "shortName": "FX1MCR",
        "fullName": "FX1 Macro",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "FX1DR",
+       "shortName": "FX1DRF",
        "fullName": "FX1 Drift",
        "renderStyle": "arc",
        "type": "float",
@@ -1366,7 +1366,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "FX2DR",
+       "shortName": "FX2DRF",
        "fullName": "FX2 Drift",
        "renderStyle": "arc",
        "type": "float",
@@ -1406,7 +1406,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "FX3DR",
+       "shortName": "FX3DRF",
        "fullName": "FX3 Drift",
        "renderStyle": "arc",
        "type": "float",
@@ -1436,7 +1436,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "FX4DR",
+       "shortName": "FX4DRF",
        "fullName": "FX4 Drift",
        "renderStyle": "arc",
        "type": "float",
@@ -1711,6 +1711,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": false,
+    "behavior": "trigger",
     "increment": {
      "kind": "enum",
      "detentsPerStep": 4,
@@ -1731,6 +1732,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": false,
+    "behavior": "trigger",
     "increment": {
      "kind": "enum",
      "detentsPerStep": 4,
@@ -1751,6 +1753,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": false,
+    "behavior": "trigger",
     "increment": {
      "kind": "enum",
      "detentsPerStep": 4,
@@ -1771,6 +1774,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": false,
+    "behavior": "trigger",
     "increment": {
      "kind": "enum",
      "detentsPerStep": 4,
@@ -1791,6 +1795,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": false,
+    "behavior": "trigger",
     "increment": {
      "kind": "enum",
      "detentsPerStep": 4,
@@ -1806,12 +1811,12 @@
     "min": 0,
     "max": 2,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 400
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
     }
    },
    {

@@ -5,7 +5,7 @@
  "author": "Boris (port: charlesvestal)",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 69,
+ "load_ms": 66,
  "dsp_size": 31664,
  "capabilities": {
   "chainable": true,
@@ -609,11 +609,11 @@
     "rows": [
      [
       {
-       "shortName": "DENSI",
+       "shortName": "DENSIT",
        "fullName": "Density",
        "renderStyle": "arc",
        "type": "float",
-       "displayValue": "48%"
+       "displayValue": "..."
       },
       {
        "shortName": "SIZE",
@@ -623,7 +623,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "POSIT",
+       "shortName": "POSITIO",
        "fullName": "Position",
        "renderStyle": "arc",
        "type": "float",
@@ -655,7 +655,7 @@
       {
        "shortName": "FREEZ",
        "fullName": "Freeze",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -773,12 +773,12 @@
       {
        "shortName": "SYNC",
        "fullName": "Sync",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "DIVIS",
+       "shortName": "DIVISIO",
        "fullName": "Division",
        "renderStyle": "arc",
        "type": "enum",
@@ -813,21 +813,21 @@
       {
        "shortName": "INPUT",
        "fullName": "Input",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "MUTE",
        "fullName": "Mute",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "VOICE",
+       "shortName": "VOICES",
        "fullName": "Voices",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
       },
@@ -957,7 +957,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -1138,7 +1138,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -1206,12 +1206,12 @@
     "min": 0,
     "max": 1.5,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 300
+     "perDetent": 0.01,
+     "detentsFullSweep": 150
     }
    },
    {
@@ -1226,7 +1226,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -1243,12 +1243,12 @@
     "min": 1,
     "max": 24,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 46
+     "perDetent": 1,
+     "detentsFullSweep": 23
     }
    },
    null,

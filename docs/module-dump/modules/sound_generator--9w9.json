@@ -1,0 +1,3310 @@
+{
+ "id": "9w9",
+ "name": "9W9",
+ "version": "2.6.0",
+ "author": "athousanddetails; after ER-99 (Matthew Cieplak)",
+ "category": "sound_generator",
+ "status": "ok",
+ "load_ms": 42,
+ "dsp_size": 85352,
+ "capabilities": {
+  "audio_out": true,
+  "audio_in": false,
+  "midi_in": true,
+  "midi_out": false,
+  "chainable": true,
+  "component_type": "sound_generator",
+  "default_forward_channel": 1
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [],
+  "params": [
+   {
+    "key": "note_map",
+    "name": "Note Map",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Drum Rack (36+)",
+     "General MIDI"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "bd_c_tune",
+    "name": "BD Tune",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "34.0000"
+   },
+   {
+    "key": "bd_c_attack",
+    "name": "BD Attack",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "13.0000"
+   },
+   {
+    "key": "bd_c_decay",
+    "name": "BD Decay",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "90.0000"
+   },
+   {
+    "key": "bd_c_sweep_depth",
+    "name": "BD P. Depth",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "bd_c_pitch_mod",
+    "name": "BD Pitch",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "45.0000"
+   },
+   {
+    "key": "bd_c_drive",
+    "name": "BD Drive",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "bd_c_dist_type",
+    "name": "BD Distortion",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Diode (909)",
+     "Hard Clip",
+     "SAT",
+     "BFZ",
+     "PDIST",
+     "Wavefolder",
+     "Bitcrush"
+    ],
+    "default": "0.0000"
+   },
+   {
+    "key": "bd_c_level",
+    "name": "BD Level",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "94.0000"
+   },
+   {
+    "key": "sd_c_tune",
+    "name": "SN Tune",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "64.0000"
+   },
+   {
+    "key": "sd_c_noise_decay",
+    "name": "SN Tone",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "68.0000"
+   },
+   {
+    "key": "sd_c_snappy",
+    "name": "SN Snappy",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "64.0000"
+   },
+   {
+    "key": "sd_c_drive",
+    "name": "SN Drive",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "36.0000"
+   },
+   {
+    "key": "sd_c_dist_type",
+    "name": "SN Distortion",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Diode (909)",
+     "Hard Clip",
+     "SAT",
+     "BFZ",
+     "PDIST",
+     "Wavefolder",
+     "Bitcrush"
+    ],
+    "default": "0.0000"
+   },
+   {
+    "key": "sd_c_level",
+    "name": "SN Level",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "58.0000"
+   },
+   {
+    "key": "sd_c_rev",
+    "name": "SN Rev",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "sd_c_dly",
+    "name": "SN Dly",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "lt_c_tune",
+    "name": "LT Tune",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "66.0000"
+   },
+   {
+    "key": "lt_c_decay",
+    "name": "LT Decay",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "111.0000"
+   },
+   {
+    "key": "lt_c_attack",
+    "name": "LT Attack",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "23.0000"
+   },
+   {
+    "key": "lt_c_drive",
+    "name": "LT Drive",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "41.0000"
+   },
+   {
+    "key": "lt_c_dist_type",
+    "name": "LT Distortion",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Diode (909)",
+     "Hard Clip",
+     "SAT",
+     "BFZ",
+     "PDIST",
+     "Wavefolder",
+     "Bitcrush"
+    ],
+    "default": "0.0000"
+   },
+   {
+    "key": "lt_c_level",
+    "name": "LT Level",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "52.0000"
+   },
+   {
+    "key": "lt_c_rev",
+    "name": "LT Rev",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "lt_c_dly",
+    "name": "LT Dly",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "mt_c_tune",
+    "name": "MT Tune",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "69.0000"
+   },
+   {
+    "key": "mt_c_decay",
+    "name": "MT Decay",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "100.0000"
+   },
+   {
+    "key": "mt_c_attack",
+    "name": "MT Attack",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "23.0000"
+   },
+   {
+    "key": "mt_c_drive",
+    "name": "MT Drive",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "41.0000"
+   },
+   {
+    "key": "mt_c_dist_type",
+    "name": "MT Distortion",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Diode (909)",
+     "Hard Clip",
+     "SAT",
+     "BFZ",
+     "PDIST",
+     "Wavefolder",
+     "Bitcrush"
+    ],
+    "default": "0.0000"
+   },
+   {
+    "key": "mt_c_level",
+    "name": "MT Level",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "52.0000"
+   },
+   {
+    "key": "mt_c_rev",
+    "name": "MT Rev",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "mt_c_dly",
+    "name": "MT Dly",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "ht_c_tune",
+    "name": "HT Tune",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "53.0000"
+   },
+   {
+    "key": "ht_c_decay",
+    "name": "HT Decay",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "105.0000"
+   },
+   {
+    "key": "ht_c_attack",
+    "name": "HT Attack",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "23.0000"
+   },
+   {
+    "key": "ht_c_drive",
+    "name": "HT Drive",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "41.0000"
+   },
+   {
+    "key": "ht_c_dist_type",
+    "name": "HT Distortion",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Diode (909)",
+     "Hard Clip",
+     "SAT",
+     "BFZ",
+     "PDIST",
+     "Wavefolder",
+     "Bitcrush"
+    ],
+    "default": "0.0000"
+   },
+   {
+    "key": "ht_c_level",
+    "name": "HT Level",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "52.0000"
+   },
+   {
+    "key": "ht_c_rev",
+    "name": "HT Rev",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "ht_c_dly",
+    "name": "HT Dly",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "rs_tune",
+    "name": "RM Tune",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "62.0000"
+   },
+   {
+    "key": "rs_saturation",
+    "name": "RM Drive",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "24.0000"
+   },
+   {
+    "key": "rs_dist_type",
+    "name": "RM Distortion",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Diode (909)",
+     "Hard Clip",
+     "SAT",
+     "BFZ",
+     "PDIST",
+     "Wavefolder",
+     "Bitcrush"
+    ],
+    "default": "0.0000"
+   },
+   {
+    "key": "rs_volume",
+    "name": "RM Level",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "103.0000"
+   },
+   {
+    "key": "rs_rev",
+    "name": "RM Rev",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "rs_dly",
+    "name": "RM Dly",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "hc_tune",
+    "name": "CP Tune",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "63.0000"
+   },
+   {
+    "key": "hc_decay",
+    "name": "CP Tail",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "63.0000"
+   },
+   {
+    "key": "hc_drive",
+    "name": "CP Drive",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "30.0000"
+   },
+   {
+    "key": "hc_dist_type",
+    "name": "CP Distortion",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Diode (909)",
+     "Hard Clip",
+     "SAT",
+     "BFZ",
+     "PDIST",
+     "Wavefolder",
+     "Bitcrush"
+    ],
+    "default": "0.0000"
+   },
+   {
+    "key": "hc_volume",
+    "name": "CP Level",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "122.0000"
+   },
+   {
+    "key": "hc_rev",
+    "name": "CP Rev",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "hc_dly",
+    "name": "CP Dly",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "chh_decay",
+    "name": "CH Decay",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "84.0000"
+   },
+   {
+    "key": "chh_pitch",
+    "name": "CH Tune",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "64.0000"
+   },
+   {
+    "key": "chh_drive",
+    "name": "CH Drive",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "chh_dist_type",
+    "name": "CH Distortion",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Diode (909)",
+     "Hard Clip",
+     "SAT",
+     "BFZ",
+     "PDIST",
+     "Wavefolder",
+     "Bitcrush"
+    ],
+    "default": "0.0000"
+   },
+   {
+    "key": "chh_volume",
+    "name": "CH Level",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "89.0000"
+   },
+   {
+    "key": "chh_rev",
+    "name": "CH Rev",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "chh_dly",
+    "name": "CH Dly",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "ohh_decay",
+    "name": "OH Decay",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "97.0000"
+   },
+   {
+    "key": "ohh_pitch",
+    "name": "OH Tune",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "64.0000"
+   },
+   {
+    "key": "ohh_drive",
+    "name": "OH Drive",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "ohh_dist_type",
+    "name": "OH Distortion",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Diode (909)",
+     "Hard Clip",
+     "SAT",
+     "BFZ",
+     "PDIST",
+     "Wavefolder",
+     "Bitcrush"
+    ],
+    "default": "0.0000"
+   },
+   {
+    "key": "ohh_volume",
+    "name": "OH Level",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "80.0000"
+   },
+   {
+    "key": "ohh_rev",
+    "name": "OH Rev",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "ohh_dly",
+    "name": "OH Dly",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "rc_decay",
+    "name": "RD Decay",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "108.0000"
+   },
+   {
+    "key": "rc_pitch",
+    "name": "RD Tune",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "64.0000"
+   },
+   {
+    "key": "rc_drive",
+    "name": "RD Drive",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "rc_dist_type",
+    "name": "RD Distortion",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Diode (909)",
+     "Hard Clip",
+     "SAT",
+     "BFZ",
+     "PDIST",
+     "Wavefolder",
+     "Bitcrush"
+    ],
+    "default": "0.0000"
+   },
+   {
+    "key": "rc_volume",
+    "name": "RD Level",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "42.0000"
+   },
+   {
+    "key": "rc_rev",
+    "name": "RD Rev",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "rc_dly",
+    "name": "RD Dly",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cr_decay",
+    "name": "CY Decay",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "108.0000"
+   },
+   {
+    "key": "cr_pitch",
+    "name": "CY Tune",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "64.0000"
+   },
+   {
+    "key": "cr_drive",
+    "name": "CY Drive",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cr_dist_type",
+    "name": "CY Distortion",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Diode (909)",
+     "Hard Clip",
+     "SAT",
+     "BFZ",
+     "PDIST",
+     "Wavefolder",
+     "Bitcrush"
+    ],
+    "default": "0.0000"
+   },
+   {
+    "key": "cr_volume",
+    "name": "CY Level",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "47.0000"
+   },
+   {
+    "key": "cr_rev",
+    "name": "CY Rev",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "cr_dly",
+    "name": "CY Dly",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "master_dist",
+    "name": "Master Dist",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "Diode (909)",
+     "Hard Clip",
+     "SAT",
+     "BFZ",
+     "PDIST",
+     "Wavefolder",
+     "Bitcrush"
+    ],
+    "default": "0.0000"
+   },
+   {
+    "key": "master_drive",
+    "name": "Master Drive",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "41.0000"
+   },
+   {
+    "key": "master_comp",
+    "name": "Comp",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "volume",
+    "name": "Volume",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "44.0000"
+   },
+   {
+    "key": "accent",
+    "name": "Accent",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "42.0000"
+   },
+   {
+    "key": "vel_depth",
+    "name": "Velocity",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "127.0000"
+   },
+   {
+    "key": "rev_decay",
+    "name": "Rev Decay",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "73.0000"
+   },
+   {
+    "key": "rev_tone",
+    "name": "Rev Tone",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "57.0000"
+   },
+   {
+    "key": "rev_hpf",
+    "name": "Rev HPF",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "62.0000"
+   },
+   {
+    "key": "rev_level",
+    "name": "Rev Level",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "85.0000"
+   },
+   {
+    "key": "dly_time",
+    "name": "Dly Time",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "1/32",
+     "1/16T",
+     "1/16",
+     "1/8T",
+     "1/16.",
+     "1/8",
+     "1/4T",
+     "1/8.",
+     "1/4",
+     "1/2T",
+     "1/4.",
+     "1/2",
+     "1/2."
+    ],
+    "default": "7.0000"
+   },
+   {
+    "key": "dly_fdbk",
+    "name": "Dly Fdbk",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "52.0000"
+   },
+   {
+    "key": "dly_tone",
+    "name": "Dly Tone",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "51.0000"
+   },
+   {
+    "key": "dly_hpf",
+    "name": "Dly HPF",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "62.0000"
+   },
+   {
+    "key": "dly_level",
+    "name": "Dly Level",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "85.0000"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": true,
+  "usesMovyConfigFile": true,
+  "drum": {
+   "padCount": 11,
+   "padNoteStart": 36,
+   "rawMidi": false
+  },
+  "banks": [
+   {
+    "name": "Bass Drum",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Snare",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Low Tom",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Med Tom",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Hi Tom",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Rim Shot",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Hand Clap",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Closed Hat",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Open Hat",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Crash",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Ride",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Reverb",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Delay",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Bass Drum",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "TUNE",
+       "fullName": "Tune",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ATCK",
+       "fullName": "Attack",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECY",
+       "fullName": "Decay",
+       "renderStyle": "envstage",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PDPT",
+       "fullName": "P. Depth",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "PTCH",
+       "fullName": "Pitch",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRIV",
+       "fullName": "Drive",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DIST",
+       "fullName": "Distortion",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LEVL",
+       "fullName": "Level",
+       "renderStyle": "vbar",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Reverb",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "DECY",
+       "fullName": "Decay",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TONE",
+       "fullName": "Tone",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HPF",
+       "fullName": "HPF",
+       "renderStyle": "cut",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LEVL",
+       "fullName": "Level",
+       "renderStyle": "vbar",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Delay",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "TIME",
+       "fullName": "Time",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FDBK",
+       "fullName": "Fdbk",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TONE",
+       "fullName": "Tone",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HPF",
+       "fullName": "HPF",
+       "renderStyle": "cut",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "LEVL",
+       "fullName": "Level",
+       "renderStyle": "vbar",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "NOTE",
+       "fullName": "Note Map",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MDST",
+       "fullName": "Master Dist",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MDRV",
+       "fullName": "Master Drive",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "COMP",
+       "fullName": "Comp",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "VOL",
+       "fullName": "Volume",
+       "renderStyle": "vbar",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ACC",
+       "fullName": "Accent",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VEL",
+       "fullName": "Velocity",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "bd_c_tune",
+    "label": "Tune",
+    "shortLabel": "TUNE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "bd_c_attack",
+    "label": "Attack",
+    "shortLabel": "ATCK",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "env": false,
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "bd_c_decay",
+    "label": "Decay",
+    "shortLabel": "DECY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "bd_c_sweep_depth",
+    "label": "P. Depth",
+    "shortLabel": "PDPT",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "bd_c_pitch_mod",
+    "label": "Pitch",
+    "shortLabel": "PTCH",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "bd_c_drive",
+    "label": "Drive",
+    "shortLabel": "DRIV",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "bd_c_dist_type",
+    "label": "Distortion",
+    "shortLabel": "DIST",
+    "type": "enum",
+    "options": [
+     "Diode (909)",
+     "Hard Clip",
+     "SAT",
+     "BFZ",
+     "PDIST",
+     "Wavefolder",
+     "Bitcrush"
+    ],
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 7
+    }
+   },
+   {
+    "key": "bd_c_level",
+    "label": "Level",
+    "shortLabel": "LEVL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 127
+    }
+   },
+   {
+    "key": "sd_c_tune",
+    "label": "Tune",
+    "shortLabel": "TUNE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "sd_c_noise_decay",
+    "label": "Tone",
+    "shortLabel": "TONE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "sd_c_snappy",
+    "label": "Snappy",
+    "shortLabel": "SNAP",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "sd_c_drive",
+    "label": "Drive",
+    "shortLabel": "DRIV",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "sd_c_dist_type",
+    "label": "Distortion",
+    "shortLabel": "DIST",
+    "type": "enum",
+    "options": [
+     "Diode (909)",
+     "Hard Clip",
+     "SAT",
+     "BFZ",
+     "PDIST",
+     "Wavefolder",
+     "Bitcrush"
+    ],
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 7
+    }
+   },
+   {
+    "key": "sd_c_level",
+    "label": "Level",
+    "shortLabel": "LEVL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 127
+    }
+   },
+   {
+    "key": "sd_c_rev",
+    "label": "Rev",
+    "shortLabel": "REV",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "sd_c_dly",
+    "label": "Dly",
+    "shortLabel": "DLY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "lt_c_tune",
+    "label": "Tune",
+    "shortLabel": "TUNE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "lt_c_decay",
+    "label": "Decay",
+    "shortLabel": "DECY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "lt_c_attack",
+    "label": "Attack",
+    "shortLabel": "ATCK",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "env": false,
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "lt_c_drive",
+    "label": "Drive",
+    "shortLabel": "DRIV",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "lt_c_dist_type",
+    "label": "Distortion",
+    "shortLabel": "DIST",
+    "type": "enum",
+    "options": [
+     "Diode (909)",
+     "Hard Clip",
+     "SAT",
+     "BFZ",
+     "PDIST",
+     "Wavefolder",
+     "Bitcrush"
+    ],
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 7
+    }
+   },
+   {
+    "key": "lt_c_level",
+    "label": "Level",
+    "shortLabel": "LEVL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 127
+    }
+   },
+   {
+    "key": "lt_c_rev",
+    "label": "Rev",
+    "shortLabel": "REV",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "lt_c_dly",
+    "label": "Dly",
+    "shortLabel": "DLY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "mt_c_tune",
+    "label": "Tune",
+    "shortLabel": "TUNE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "mt_c_decay",
+    "label": "Decay",
+    "shortLabel": "DECY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "mt_c_attack",
+    "label": "Attack",
+    "shortLabel": "ATCK",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "env": false,
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "mt_c_drive",
+    "label": "Drive",
+    "shortLabel": "DRIV",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "mt_c_dist_type",
+    "label": "Distortion",
+    "shortLabel": "DIST",
+    "type": "enum",
+    "options": [
+     "Diode (909)",
+     "Hard Clip",
+     "SAT",
+     "BFZ",
+     "PDIST",
+     "Wavefolder",
+     "Bitcrush"
+    ],
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 7
+    }
+   },
+   {
+    "key": "mt_c_level",
+    "label": "Level",
+    "shortLabel": "LEVL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 127
+    }
+   },
+   {
+    "key": "mt_c_rev",
+    "label": "Rev",
+    "shortLabel": "REV",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "mt_c_dly",
+    "label": "Dly",
+    "shortLabel": "DLY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "ht_c_tune",
+    "label": "Tune",
+    "shortLabel": "TUNE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "ht_c_decay",
+    "label": "Decay",
+    "shortLabel": "DECY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "ht_c_attack",
+    "label": "Attack",
+    "shortLabel": "ATCK",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "env": false,
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "ht_c_drive",
+    "label": "Drive",
+    "shortLabel": "DRIV",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "ht_c_dist_type",
+    "label": "Distortion",
+    "shortLabel": "DIST",
+    "type": "enum",
+    "options": [
+     "Diode (909)",
+     "Hard Clip",
+     "SAT",
+     "BFZ",
+     "PDIST",
+     "Wavefolder",
+     "Bitcrush"
+    ],
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 7
+    }
+   },
+   {
+    "key": "ht_c_level",
+    "label": "Level",
+    "shortLabel": "LEVL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 127
+    }
+   },
+   {
+    "key": "ht_c_rev",
+    "label": "Rev",
+    "shortLabel": "REV",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "ht_c_dly",
+    "label": "Dly",
+    "shortLabel": "DLY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "rs_tune",
+    "label": "Tune",
+    "shortLabel": "TUNE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "rs_saturation",
+    "label": "Drive",
+    "shortLabel": "DRIV",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "rs_dist_type",
+    "label": "Distortion",
+    "shortLabel": "DIST",
+    "type": "enum",
+    "options": [
+     "Diode (909)",
+     "Hard Clip",
+     "SAT",
+     "BFZ",
+     "PDIST",
+     "Wavefolder",
+     "Bitcrush"
+    ],
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 7
+    }
+   },
+   {
+    "key": "rs_volume",
+    "label": "Level",
+    "shortLabel": "LEVL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 127
+    }
+   },
+   {
+    "key": "rs_rev",
+    "label": "Rev",
+    "shortLabel": "REV",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "rs_dly",
+    "label": "Dly",
+    "shortLabel": "DLY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   null,
+   null,
+   {
+    "key": "hc_tune",
+    "label": "Tune",
+    "shortLabel": "TUNE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "hc_decay",
+    "label": "Tail",
+    "shortLabel": "TAIL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "hc_drive",
+    "label": "Drive",
+    "shortLabel": "DRIV",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "hc_dist_type",
+    "label": "Distortion",
+    "shortLabel": "DIST",
+    "type": "enum",
+    "options": [
+     "Diode (909)",
+     "Hard Clip",
+     "SAT",
+     "BFZ",
+     "PDIST",
+     "Wavefolder",
+     "Bitcrush"
+    ],
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 7
+    }
+   },
+   {
+    "key": "hc_volume",
+    "label": "Level",
+    "shortLabel": "LEVL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 127
+    }
+   },
+   {
+    "key": "hc_rev",
+    "label": "Rev",
+    "shortLabel": "REV",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "hc_dly",
+    "label": "Dly",
+    "shortLabel": "DLY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   null,
+   {
+    "key": "chh_decay",
+    "label": "Decay",
+    "shortLabel": "DECY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "chh_pitch",
+    "label": "Tune",
+    "shortLabel": "TUNE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "chh_drive",
+    "label": "Drive",
+    "shortLabel": "DRIV",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "chh_dist_type",
+    "label": "Distortion",
+    "shortLabel": "DIST",
+    "type": "enum",
+    "options": [
+     "Diode (909)",
+     "Hard Clip",
+     "SAT",
+     "BFZ",
+     "PDIST",
+     "Wavefolder",
+     "Bitcrush"
+    ],
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 7
+    }
+   },
+   {
+    "key": "chh_volume",
+    "label": "Level",
+    "shortLabel": "LEVL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 127
+    }
+   },
+   {
+    "key": "chh_rev",
+    "label": "Rev",
+    "shortLabel": "REV",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "chh_dly",
+    "label": "Dly",
+    "shortLabel": "DLY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   null,
+   {
+    "key": "ohh_decay",
+    "label": "Decay",
+    "shortLabel": "DECY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "ohh_pitch",
+    "label": "Tune",
+    "shortLabel": "TUNE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "ohh_drive",
+    "label": "Drive",
+    "shortLabel": "DRIV",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "ohh_dist_type",
+    "label": "Distortion",
+    "shortLabel": "DIST",
+    "type": "enum",
+    "options": [
+     "Diode (909)",
+     "Hard Clip",
+     "SAT",
+     "BFZ",
+     "PDIST",
+     "Wavefolder",
+     "Bitcrush"
+    ],
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 7
+    }
+   },
+   {
+    "key": "ohh_volume",
+    "label": "Level",
+    "shortLabel": "LEVL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 127
+    }
+   },
+   {
+    "key": "ohh_rev",
+    "label": "Rev",
+    "shortLabel": "REV",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "ohh_dly",
+    "label": "Dly",
+    "shortLabel": "DLY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   null,
+   {
+    "key": "cr_decay",
+    "label": "Decay",
+    "shortLabel": "DECY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "cr_pitch",
+    "label": "Tune",
+    "shortLabel": "TUNE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "cr_drive",
+    "label": "Drive",
+    "shortLabel": "DRIV",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "cr_dist_type",
+    "label": "Distortion",
+    "shortLabel": "DIST",
+    "type": "enum",
+    "options": [
+     "Diode (909)",
+     "Hard Clip",
+     "SAT",
+     "BFZ",
+     "PDIST",
+     "Wavefolder",
+     "Bitcrush"
+    ],
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 7
+    }
+   },
+   {
+    "key": "cr_volume",
+    "label": "Level",
+    "shortLabel": "LEVL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 127
+    }
+   },
+   {
+    "key": "cr_rev",
+    "label": "Rev",
+    "shortLabel": "REV",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "cr_dly",
+    "label": "Dly",
+    "shortLabel": "DLY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   null,
+   {
+    "key": "rc_decay",
+    "label": "Decay",
+    "shortLabel": "DECY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "rc_pitch",
+    "label": "Tune",
+    "shortLabel": "TUNE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "rc_drive",
+    "label": "Drive",
+    "shortLabel": "DRIV",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "rc_dist_type",
+    "label": "Distortion",
+    "shortLabel": "DIST",
+    "type": "enum",
+    "options": [
+     "Diode (909)",
+     "Hard Clip",
+     "SAT",
+     "BFZ",
+     "PDIST",
+     "Wavefolder",
+     "Bitcrush"
+    ],
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 7
+    }
+   },
+   {
+    "key": "rc_volume",
+    "label": "Level",
+    "shortLabel": "LEVL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 127
+    }
+   },
+   {
+    "key": "rc_rev",
+    "label": "Rev",
+    "shortLabel": "REV",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "rc_dly",
+    "label": "Dly",
+    "shortLabel": "DLY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   null,
+   {
+    "key": "rev_decay",
+    "label": "Decay",
+    "shortLabel": "DECY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "rev_tone",
+    "label": "Tone",
+    "shortLabel": "TONE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "rev_hpf",
+    "label": "HPF",
+    "shortLabel": "HPF",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "rev_level",
+    "label": "Level",
+    "shortLabel": "LEVL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 127
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "dly_time",
+    "label": "Time",
+    "shortLabel": "TIME",
+    "type": "enum",
+    "options": [
+     "1/32",
+     "1/16T",
+     "1/16",
+     "1/8T",
+     "1/16.",
+     "1/8",
+     "1/4T",
+     "1/8.",
+     "1/4",
+     "1/2T",
+     "1/4.",
+     "1/2",
+     "1/2."
+    ],
+    "min": 0,
+    "max": 12,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 13
+    }
+   },
+   {
+    "key": "dly_fdbk",
+    "label": "Fdbk",
+    "shortLabel": "FDBK",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "dly_tone",
+    "label": "Tone",
+    "shortLabel": "TONE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "dly_hpf",
+    "label": "HPF",
+    "shortLabel": "HPF",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "dly_level",
+    "label": "Level",
+    "shortLabel": "LEVL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 127
+    }
+   },
+   null,
+   null,
+   null,
+   {
+    "key": "note_map",
+    "label": "Note Map",
+    "shortLabel": "NOTE",
+    "type": "enum",
+    "options": [
+     "Drum Rack (36+)",
+     "General MIDI"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "master_dist",
+    "label": "Master Dist",
+    "shortLabel": "MDST",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Diode (909)",
+     "Hard Clip",
+     "SAT",
+     "BFZ",
+     "PDIST",
+     "Wavefolder",
+     "Bitcrush"
+    ],
+    "min": 0,
+    "max": 7,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 8
+    }
+   },
+   {
+    "key": "master_drive",
+    "label": "Master Drive",
+    "shortLabel": "MDRV",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "master_comp",
+    "label": "Comp",
+    "shortLabel": "COMP",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "volume",
+    "label": "Volume",
+    "shortLabel": "VOL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 127
+    }
+   },
+   {
+    "key": "accent",
+    "label": "Accent",
+    "shortLabel": "ACC",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "vel_depth",
+    "label": "Velocity",
+    "shortLabel": "VEL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [],
+  "noMetadata": [],
+  "warnings": []
+ }
+}

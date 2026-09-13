@@ -1,0 +1,3324 @@
+{
+ "id": "tablor",
+ "name": "Tablor",
+ "version": "1.3.3",
+ "author": "athousanddetails; after Wavetable (Roland Rabien / FigBug, BSD-3)",
+ "category": "sound_generator",
+ "status": "ok",
+ "load_ms": 111,
+ "dsp_size": 696280,
+ "capabilities": {
+  "audio_out": true,
+  "audio_in": false,
+  "midi_in": true,
+  "midi_out": false,
+  "chainable": true,
+  "component_type": "sound_generator"
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "unison",
+   "shape",
+   "filter",
+   "env1",
+   "env2",
+   "envmod",
+   "global",
+   "root"
+  ],
+  "params": [
+   {
+    "key": "wt1_table",
+    "name": "WT1",
+    "type": "filepath",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": null,
+    "default": ""
+   },
+   {
+    "key": "wt2_table",
+    "name": "WT2",
+    "type": "filepath",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": null,
+    "default": ""
+   },
+   {
+    "key": "wt1_pos",
+    "name": "WT1 Pos",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "wt2_pos",
+    "name": "WT2 Pos",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "wt1_level",
+    "name": "WT1 Level",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "100"
+   },
+   {
+    "key": "wt2_level",
+    "name": "WT2 Level",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "wt1_tune",
+    "name": "WT1 Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "wt2_tune",
+    "name": "WT2 Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "wt1_uni",
+    "name": "WT1 Unison",
+    "type": "int",
+    "min": 1,
+    "max": 4,
+    "step": null,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "wt1_detune",
+    "name": "WT1 Detune",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "wt1_spread",
+    "name": "WT1 Spread",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "wt1_pan",
+    "name": "WT1 Pan",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "wt2_uni",
+    "name": "WT2 Unison",
+    "type": "int",
+    "min": 1,
+    "max": 4,
+    "step": null,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "wt2_detune",
+    "name": "WT2 Detune",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "wt2_spread",
+    "name": "WT2 Spread",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "wt2_pan",
+    "name": "WT2 Pan",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "wt1_bend",
+    "name": "WT1 Bend",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "wt1_formant",
+    "name": "WT1 Formant",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "wt2_bend",
+    "name": "WT2 Bend",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "wt2_formant",
+    "name": "WT2 Formant",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "sub_tune",
+    "name": "Sub Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": "-12"
+   },
+   {
+    "key": "flt_freq",
+    "name": "Filter Freq",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "127"
+   },
+   {
+    "key": "flt_res",
+    "name": "Filter Res",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "flt_type",
+    "name": "Filter Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "LP 12",
+     "LP 24",
+     "HP 12",
+     "HP 24",
+     "BP 12",
+     "BP 24",
+     "Notch 12",
+     "Notch 24"
+    ],
+    "default": "LP 24"
+   },
+   {
+    "key": "sub_level",
+    "name": "Sub Level",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "sub_wave",
+    "name": "Sub Wave",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Sine",
+     "Triangle",
+     "Saw",
+     "Square",
+     "Pulse",
+     "Pulse Tr"
+    ],
+    "default": "Sine"
+   },
+   {
+    "key": "noise_level",
+    "name": "Noise Level",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "noise_type",
+    "name": "Noise Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "White",
+     "Pink"
+    ],
+    "default": "White"
+   },
+   {
+    "key": "vca_a",
+    "name": "VCA Attack",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "51"
+   },
+   {
+    "key": "vca_d",
+    "name": "VCA Decay",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "vca_s",
+    "name": "VCA Sustain",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "102"
+   },
+   {
+    "key": "vca_r",
+    "name": "VCA Release",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "flt_a",
+    "name": "Flt Attack",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "51"
+   },
+   {
+    "key": "flt_d",
+    "name": "Flt Decay",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "flt_s",
+    "name": "Flt Sustain",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "102"
+   },
+   {
+    "key": "flt_r",
+    "name": "Flt Release",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "me1_a",
+    "name": "EG1 A",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "me1_d",
+    "name": "EG1 D",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "me1_s",
+    "name": "EG1 S",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "me1_r",
+    "name": "EG1 R",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "me2_a",
+    "name": "EG2 A",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "me2_d",
+    "name": "EG2 D",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "me2_s",
+    "name": "EG2 S",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "me2_r",
+    "name": "EG2 R",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "vca_vel",
+    "name": "VCA Velocity",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "100"
+   },
+   {
+    "key": "flt_key",
+    "name": "Key Track",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "flt_vel",
+    "name": "Vel Track",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "flt_env",
+    "name": "Filter EG Amt",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "me1_dst",
+    "name": "EG1 Dst",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "None",
+     "WT1 Pos",
+     "WT2 Pos",
+     "WT1 Level",
+     "WT2 Level",
+     "WT1 Tune",
+     "WT2 Tune",
+     "WT1 Bend",
+     "WT2 Bend",
+     "WT1 Formant",
+     "WT2 Formant",
+     "WT1 Pan",
+     "WT2 Pan",
+     "Filter Freq",
+     "Filter Res",
+     "Sub Level",
+     "Noise Level",
+     "Amp"
+    ],
+    "default": "None"
+   },
+   {
+    "key": "me1_amt",
+    "name": "EG1 Amt",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "me2_dst",
+    "name": "EG2 Dst",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "None",
+     "WT1 Pos",
+     "WT2 Pos",
+     "WT1 Level",
+     "WT2 Level",
+     "WT1 Tune",
+     "WT2 Tune",
+     "WT1 Bend",
+     "WT2 Bend",
+     "WT1 Formant",
+     "WT2 Formant",
+     "WT1 Pan",
+     "WT2 Pan",
+     "Filter Freq",
+     "Filter Res",
+     "Sub Level",
+     "Noise Level",
+     "Amp"
+    ],
+    "default": "None"
+   },
+   {
+    "key": "me2_amt",
+    "name": "EG2 Amt",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "voice_mode",
+    "name": "Voice Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Poly",
+     "Mono"
+    ],
+    "default": "Poly"
+   },
+   {
+    "key": "voices",
+    "name": "Voices",
+    "type": "int",
+    "min": 1,
+    "max": 8,
+    "step": null,
+    "options": null,
+    "default": "8"
+   },
+   {
+    "key": "glide",
+    "name": "Glide",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "glide_mode",
+    "name": "Glide Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "Glissando",
+     "Portamento"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "legato",
+    "name": "Legato",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "pb_range",
+    "name": "PB Range",
+    "type": "int",
+    "min": 0,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": "2"
+   },
+   {
+    "key": "volume",
+    "name": "Volume",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "100"
+   },
+   {
+    "key": "wt_pack",
+    "name": "WT Pack",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "All",
+     "Adventure Kid",
+     "Neu KatalYst"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "wt1_select",
+    "name": "WT1 Table",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Init",
+     "AKWP 0001",
+     "AKWP 0002",
+     "AKWP 0003",
+     "AKWP 0004",
+     "AKWP 0005",
+     "AKWP 0006",
+     "AKWP 0007",
+     "AKWP 0008",
+     "AKWP 0009",
+     "AKWP 0010",
+     "AKWP 0011",
+     "AKWP 0012",
+     "AKWP 0013",
+     "AKWP 0014",
+     "AKWP 0015",
+     "AKWP 0016",
+     "AKWP 0017",
+     "AKWP 0018",
+     "AKWP 0019",
+     "AKWP 0020",
+     "AKWP aguitar",
+     "AKWP altosax",
+     "AKWP birds",
+     "AKWP bitreduced",
+     "AKWP bw_blended",
+     "AKWP bw_perfectwaves",
+     "AKWP bw_saw",
+     "AKWP bw_sawbright",
+     "AKWP bw_sawgap",
+     "AKWP bw_sawrounded",
+     "AKWP bw_sin",
+     "AKWP bw_squ",
+     "AKWP bw_squrounded",
+     "AKWP bw_tri",
+     "AKWP c604",
+     "AKWP cello",
+     "AKWP clarinett",
+     "AKWP clavinet",
+     "AKWP dbass",
+     "AKWP distorted",
+     "AKWP ebass",
+     "AKWP eguitar",
+     "AKWP eorgan",
+     "AKWP epiano",
+     "AKWP flute",
+     "AKWP fmsynth",
+     "AKWP granular",
+     "AKWP hdrawn",
+     "AKWP hvoice",
+     "AKWP linear",
+     "AKWP oboe",
+     "AKWP oscchip",
+     "AKWP overtone",
+     "AKWP piano",
+     "AKWP pluckalgo",
+     "AKWP raw",
+     "AKWP sinharm",
+     "AKWP snippets",
+     "AKWP stereo",
+     "AKWP stringbox",
+     "AKWP symetric",
+     "AKWP theremin",
+     "AKWP vgame",
+     "AKWP vgamebasic",
+     "AKWP violin",
+     "NK - ACTIVE",
+     "NK - AGE",
+     "NK - ALIGN",
+     "NK - ALKALINE",
+     "NK - CHEMICAL",
+     "NK - COKE",
+     "NK - COLOR",
+     "NK - COMMERCIAL",
+     "NK - COMPOSE",
+     "NK - CONVENT",
+     "NK - CRUCIAL",
+     "NK - DISPENSE",
+     "NK - EFFECT",
+     "NK - EFFICIENT",
+     "NK - FINISH",
+     "NK - FRESH",
+     "NK - HELP",
+     "NK - INDIFFERENT",
+     "NK - INERT",
+     "NK - LATENT",
+     "NK - MODIFY",
+     "NK - MONOLITH",
+     "NK - MORAL",
+     "NK - NEUTRAL",
+     "NK - NOBLE",
+     "NK - NUCLEUS",
+     "NK - OBJECT",
+     "NK - OXIDIZE",
+     "NK - PERSONAL",
+     "NK - POLYMER",
+     "NK - POROUS",
+     "NK - POTENT",
+     "NK - POWDER",
+     "NK - PREFER",
+     "NK - PRIME",
+     "NK - PROMISE",
+     "NK - REACT",
+     "NK - REDUCE",
+     "NK - RESIDUE",
+     "NK - SELECT",
+     "NK - SOLID",
+     "NK - SOLUBLE",
+     "NK - SUBJECT",
+     "NK - SUIT",
+     "NK - SUPPORT",
+     "NK - SYNTHETIC",
+     "NK - TERTIARY",
+     "NK - USE",
+     "NK - VIEW",
+     "NK - WIT"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "wt2_select",
+    "name": "WT2 Table",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Init",
+     "AKWP 0001",
+     "AKWP 0002",
+     "AKWP 0003",
+     "AKWP 0004",
+     "AKWP 0005",
+     "AKWP 0006",
+     "AKWP 0007",
+     "AKWP 0008",
+     "AKWP 0009",
+     "AKWP 0010",
+     "AKWP 0011",
+     "AKWP 0012",
+     "AKWP 0013",
+     "AKWP 0014",
+     "AKWP 0015",
+     "AKWP 0016",
+     "AKWP 0017",
+     "AKWP 0018",
+     "AKWP 0019",
+     "AKWP 0020",
+     "AKWP aguitar",
+     "AKWP altosax",
+     "AKWP birds",
+     "AKWP bitreduced",
+     "AKWP bw_blended",
+     "AKWP bw_perfectwaves",
+     "AKWP bw_saw",
+     "AKWP bw_sawbright",
+     "AKWP bw_sawgap",
+     "AKWP bw_sawrounded",
+     "AKWP bw_sin",
+     "AKWP bw_squ",
+     "AKWP bw_squrounded",
+     "AKWP bw_tri",
+     "AKWP c604",
+     "AKWP cello",
+     "AKWP clarinett",
+     "AKWP clavinet",
+     "AKWP dbass",
+     "AKWP distorted",
+     "AKWP ebass",
+     "AKWP eguitar",
+     "AKWP eorgan",
+     "AKWP epiano",
+     "AKWP flute",
+     "AKWP fmsynth",
+     "AKWP granular",
+     "AKWP hdrawn",
+     "AKWP hvoice",
+     "AKWP linear",
+     "AKWP oboe",
+     "AKWP oscchip",
+     "AKWP overtone",
+     "AKWP piano",
+     "AKWP pluckalgo",
+     "AKWP raw",
+     "AKWP sinharm",
+     "AKWP snippets",
+     "AKWP stereo",
+     "AKWP stringbox",
+     "AKWP symetric",
+     "AKWP theremin",
+     "AKWP vgame",
+     "AKWP vgamebasic",
+     "AKWP violin",
+     "NK - ACTIVE",
+     "NK - AGE",
+     "NK - ALIGN",
+     "NK - ALKALINE",
+     "NK - CHEMICAL",
+     "NK - COKE",
+     "NK - COLOR",
+     "NK - COMMERCIAL",
+     "NK - COMPOSE",
+     "NK - CONVENT",
+     "NK - CRUCIAL",
+     "NK - DISPENSE",
+     "NK - EFFECT",
+     "NK - EFFICIENT",
+     "NK - FINISH",
+     "NK - FRESH",
+     "NK - HELP",
+     "NK - INDIFFERENT",
+     "NK - INERT",
+     "NK - LATENT",
+     "NK - MODIFY",
+     "NK - MONOLITH",
+     "NK - MORAL",
+     "NK - NEUTRAL",
+     "NK - NOBLE",
+     "NK - NUCLEUS",
+     "NK - OBJECT",
+     "NK - OXIDIZE",
+     "NK - PERSONAL",
+     "NK - POLYMER",
+     "NK - POROUS",
+     "NK - POTENT",
+     "NK - POWDER",
+     "NK - PREFER",
+     "NK - PRIME",
+     "NK - PROMISE",
+     "NK - REACT",
+     "NK - REDUCE",
+     "NK - RESIDUE",
+     "NK - SELECT",
+     "NK - SOLID",
+     "NK - SOLUBLE",
+     "NK - SUBJECT",
+     "NK - SUIT",
+     "NK - SUPPORT",
+     "NK - SYNTHETIC",
+     "NK - TERTIARY",
+     "NK - USE",
+     "NK - VIEW",
+     "NK - WIT"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "wt1_shape",
+    "name": "WT1 Shape",
+    "type": "string",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": null,
+    "default": "24,64,wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww55555555555555555555555555555555vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv66666666666666666666666666666666ttttttttuuuuuuuuuuuuuuuuuuuuuu6666777777777777777777777778888888ssssssssssssttttttttttttttuuu77777777778888888888888899999999999rrrrrrrrrssssssssssssttttttt7777788888888888999999999999AAAAAAAAppqqqqqqqqqrrrrrrrrrsssssss888888888999999999AAAAAAAAABBBBBBBBBCooooopppppppqqqqqqqqrrrrr8888889999999AAAAAAABBBBBBBBCCCCCCCDDDDmnnnnnnooooooppppppqqqqq888999999AAAAAAABBBBBBCCCCCCDDDDDDEEEEEElmmmmmnnnnnnooooopppppp88899999AAAAAABBBBBCCCCCCDDDDDEEEEEEFFFFFkkklllllmmmmmnnnnooooo899999AAAAABBBBBCCCCCDDDDDEEEEFFFFFGGGGGHHjjjjjkkkkllllmmmmnnn889999AAAABBBBBCCCCDDDDEEEEEFFFFGGGGHHHHIIIIhhiiiijjjjkkkkllllm89999AAAABBBBCCCCDDDDEEEEFFFGGGGHHHHIIIIJJJJKgghhhiiiijjjjkkkll88999AAAABBBBCCCDDDDEEEFFFFGGGGHHHIIIIJJJJKKKLfffgggghhhiiijjjk88999AAABBBBCCCDDDEEEEFFFGGGHHHHIIIJJJKKKLLLLMMdeeefffggghhhhii88999AAABBBCCCDDDEEEFFFGGGHHHIIIJJJKKKKLLLMMMNNNcccddeeefffggg888999AAABBBCCCDDEEEFFFGGGHHHIIIJJKKKLLLMMMNNNOOPPbbcccdddeefff7888999AABBBCCCDDEEEFFFGGHHHIIIJJKKKLLLMMMNNOOOPPPQZaabbbccddde7788999AABBBCCDDDEEFFFGGHHHIIJJJKKKLLMMMNNOOOPPQQQRRYYZZaaabbcc7788899AAABBCCDDDEEFFGGGHHIIJJJKKLLLMMNNOOOPPQQRRRSSTWXXYYZZaa667788999AABBCCDDDEEFFGGHHIIIJJKKLLMMMNNOOPPQQQRRSSTTUUWWWXXYYZ566778899AABBBCCDDEEFFGGHHIIIJJKKLLMMNNOOPPPQQRRSSTTUUVVUVVWWXX5566778899AABBCCDDEEFFGGHHIIJJKKLLMMNNOOPPQQRRSSTTUUUVVWWTTUUVV4556677899AABBCCDDEEFFGGHHIIJJKKLLMMNOOPPQQRRSSTTUUVVWWXXYRSST344556678899AABBCCDEEFFGGHHIIJKKLLMMNNOOPQQRRSSTTUUVWWXXYYZZ"
+   },
+   {
+    "key": "wt2_shape",
+    "name": "WT2 Shape",
+    "type": "string",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": null,
+    "default": "24,64,wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww55555555555555555555555555555555vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv66666666666666666666666666666666ttttttttuuuuuuuuuuuuuuuuuuuuuu6666777777777777777777777778888888ssssssssssssttttttttttttttuuu77777777778888888888888899999999999rrrrrrrrrssssssssssssttttttt7777788888888888999999999999AAAAAAAAppqqqqqqqqqrrrrrrrrrsssssss888888888999999999AAAAAAAAABBBBBBBBBCooooopppppppqqqqqqqqrrrrr8888889999999AAAAAAABBBBBBBBCCCCCCCDDDDmnnnnnnooooooppppppqqqqq888999999AAAAAAABBBBBBCCCCCCDDDDDDEEEEEElmmmmmnnnnnnooooopppppp88899999AAAAAABBBBBCCCCCCDDDDDEEEEEEFFFFFkkklllllmmmmmnnnnooooo899999AAAAABBBBBCCCCCDDDDDEEEEFFFFFGGGGGHHjjjjjkkkkllllmmmmnnn889999AAAABBBBBCCCCDDDDEEEEEFFFFGGGGHHHHIIIIhhiiiijjjjkkkkllllm89999AAAABBBBCCCCDDDDEEEEFFFGGGGHHHHIIIIJJJJKgghhhiiiijjjjkkkll88999AAAABBBBCCCDDDDEEEFFFFGGGGHHHIIIIJJJJKKKLfffgggghhhiiijjjk88999AAABBBBCCCDDDEEEEFFFGGGHHHHIIIJJJKKKLLLLMMdeeefffggghhhhii88999AAABBBCCCDDDEEEFFFGGGHHHIIIJJJKKKKLLLMMMNNNcccddeeefffggg888999AAABBBCCCDDEEEFFFGGGHHHIIIJJKKKLLLMMMNNNOOPPbbcccdddeefff7888999AABBBCCCDDEEEFFFGGHHHIIIJJKKKLLLMMMNNOOOPPPQZaabbbccddde7788999AABBBCCDDDEEFFFGGHHHIIJJJKKKLLMMMNNOOOPPQQQRRYYZZaaabbcc7788899AAABBCCDDDEEFFGGGHHIIJJJKKLLLMMNNOOOPPQQRRRSSTWXXYYZZaa667788999AABBCCDDDEEFFGGHHIIIJJKKLLMMMNNOOPPQQQRRSSTTUUWWWXXYYZ566778899AABBBCCDDEEFFGGHHIIIJJKKLLMMNNOOPPPQQRRSSTTUUVVUVVWWXX5566778899AABBCCDDEEFFGGHHIIJJKKLLMMNNOOPPQQRRSSTTUUUVVWWTTUUVV4556677899AABBCCDDEEFFGGHHIIJJKKLLMMNOOPPQQRRSSTTUUVVWWXXYRSST344556678899AABBCCDEEFFGGHHIIJKKLLMMNNOOPQQRRSSTTUUVWWXXYYZZ"
+   },
+   {
+    "key": "wt_paths",
+    "name": "WT Paths",
+    "type": "string",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": null,
+    "default": "[\"\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP 0001.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP 0002.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP 0003.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP 0004.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP 0005.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP 0006.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP 0007.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP 0008.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP 0009.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP 0010.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP 0011.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP 0012.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP 0013.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP 0014.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP 0015.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP 0016.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP 0017.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP 0018.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP 0019.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP 0020.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP aguitar.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP altosax.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP birds.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP bitreduced.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP bw_blended.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP bw_perfectwaves.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP bw_saw.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP bw_sawbright.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP bw_sawgap.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP bw_sawrounded.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP bw_sin.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP bw_squ.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP bw_squrounded.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP bw_tri.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP c604.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP cello.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP clarinett.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP clavinet.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP dbass.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP distorted.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP ebass.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP eguitar.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP eorgan.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP epiano.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP flute.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP fmsynth.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP granular.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP hdrawn.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP hvoice.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP linear.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP oboe.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP oscchip.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP overtone.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP piano.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP pluckalgo.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP raw.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP sinharm.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP snippets.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP stereo.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP stringbox.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP symetric.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP theremin.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP vgame.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP vgamebasic.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Adventure Kid/AKWP violin.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - ACTIVE.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - AGE.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - ALIGN.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - ALKALINE.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - CHEMICAL.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - COKE.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - COLOR.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - COMMERCIAL.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - COMPOSE.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - CONVENT.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - CRUCIAL.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - DISPENSE.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - EFFECT.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - EFFICIENT.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - FINISH.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - FRESH.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - HELP.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - INDIFFERENT.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - INERT.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - LATENT.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - MODIFY.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - MONOLITH.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - MORAL.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - NEUTRAL.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - NOBLE.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - NUCLEUS.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - OBJECT.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - OXIDIZE.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - PERSONAL.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - POLYMER.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - POROUS.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - POTENT.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - POWDER.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - PREFER.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - PRIME.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - PROMISE.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - REACT.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - REDUCE.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - RESIDUE.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - SELECT.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - SOLID.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - SOLUBLE.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - SUBJECT.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - SUIT.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - SUPPORT.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - SYNTHETIC.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - TERTIARY.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - USE.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - VIEW.wt2048\",\"/data/UserData/UserLibrary/Wavetables/Neu KatalYst/NK - WIT.wt2048\"]"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": true,
+  "usesMovyConfigFile": true,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Presets",
+    "global": true,
+    "padSpecific": false
+   },
+   {
+    "name": "Osc",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Unison",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Shape",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Filter",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Env",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Env+",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Global",
+    "global": true,
+    "padSpecific": false
+   },
+   {
+    "name": "User",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "U.Map",
+    "global": true,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Presets",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PRST",
+       "fullName": "Preset",
+       "renderStyle": "preset",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RAND",
+       "fullName": "Rnd Prst",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Osc",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "WT1",
+       "fullName": "WT1",
+       "renderStyle": "arc",
+       "type": "file",
+       "displayValue": "—"
+      },
+      {
+       "shortName": "WT2",
+       "fullName": "WT2",
+       "renderStyle": "arc",
+       "type": "file",
+       "displayValue": "—"
+      },
+      {
+       "shortName": "POS1",
+       "fullName": "WT1 Pos",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "POS2",
+       "fullName": "WT2 Pos",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "LVL1",
+       "fullName": "WT1 Level",
+       "renderStyle": "vbar",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LVL2",
+       "fullName": "WT2 Level",
+       "renderStyle": "vbar",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TUN1",
+       "fullName": "WT1 Tune",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TUN2",
+       "fullName": "WT2 Tune",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Unison",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "UNI1",
+       "fullName": "WT1 Unison",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DET1",
+       "fullName": "WT1 Detune",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SPR1",
+       "fullName": "WT1 Spread",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PAN1",
+       "fullName": "WT1 Pan",
+       "renderStyle": "pan",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "UNI2",
+       "fullName": "WT2 Unison",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DET2",
+       "fullName": "WT2 Detune",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SPR2",
+       "fullName": "WT2 Spread",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PAN2",
+       "fullName": "WT2 Pan",
+       "renderStyle": "pan",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Shape",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "BND1",
+       "fullName": "WT1 Bend",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FRM1",
+       "fullName": "WT1 Formant",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BND2",
+       "fullName": "WT2 Bend",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FRM2",
+       "fullName": "WT2 Formant",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "SUBT",
+       "fullName": "Sub Tune",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Filter",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "FREQ",
+       "fullName": "Filter Freq",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RES",
+       "fullName": "Filter Res",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TYPE",
+       "fullName": "Filter Type",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FENV",
+       "fullName": "Filter EG Amt",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "SUB",
+       "fullName": "Sub Level",
+       "renderStyle": "vbar",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SUBW",
+       "fullName": "Sub Wave",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NOIS",
+       "fullName": "Noise Level",
+       "renderStyle": "vbar",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NTYP",
+       "fullName": "Noise Type",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Env",
+    "envelopeLines": [
+     true,
+     true
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ATK",
+       "fullName": "VCA Attack",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DEC",
+       "fullName": "VCA Decay",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SUS",
+       "fullName": "VCA Sustain",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "REL",
+       "fullName": "VCA Release",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "FATK",
+       "fullName": "Flt Attack",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FDEC",
+       "fullName": "Flt Decay",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FSUS",
+       "fullName": "Flt Sustain",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREL",
+       "fullName": "Flt Release",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Env+",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "VVEL",
+       "fullName": "VCA Velocity",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "KEYT",
+       "fullName": "Key Track",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VELT",
+       "fullName": "Vel Track",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Global",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MODE",
+       "fullName": "Voice Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOIC",
+       "fullName": "Voices",
+       "renderStyle": "steps",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GLID",
+       "fullName": "Glide",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GMOD",
+       "fullName": "Glide Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "LEGA",
+       "fullName": "Legato",
+       "renderStyle": "switch",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BEND",
+       "fullName": "PB Range",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOL",
+       "fullName": "Volume",
+       "renderStyle": "vbar",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   },
+   {
+    "name": "User",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "USR1",
+       "fullName": "Macro 1",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "USR2",
+       "fullName": "Macro 2",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "USR3",
+       "fullName": "Macro 3",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "USR4",
+       "fullName": "Macro 4",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "USR5",
+       "fullName": "Macro 5",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "USR6",
+       "fullName": "Macro 6",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "USR7",
+       "fullName": "Macro 7",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "USR8",
+       "fullName": "Macro 8",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "U.Map",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "TGT1",
+       "fullName": "Macro 1 Target",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TGT2",
+       "fullName": "Macro 2 Target",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TGT3",
+       "fullName": "Macro 3 Target",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TGT4",
+       "fullName": "Macro 4 Target",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "TGT5",
+       "fullName": "Macro 5 Target",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TGT6",
+       "fullName": "Macro 6 Target",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TGT7",
+       "fullName": "Macro 7 Target",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TGT8",
+       "fullName": "Macro 8 Target",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "preset",
+    "label": "Preset",
+    "shortLabel": "PRST",
+    "type": "enum",
+    "options": [
+     "Init",
+     "First Contact",
+     "Neu Bass",
+     "Formant Keys",
+     "Dust Pad",
+     "Sub Punch",
+     "Glass Bells",
+     "Res Bass"
+    ],
+    "min": 0,
+    "max": 7,
+    "step": 1,
+    "renderStyle": "preset",
+    "automatable": false,
+    "capturesModuleState": true,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 8
+    }
+   },
+   {
+    "key": "preset_rnd",
+    "label": "Rnd Prst",
+    "shortLabel": "RAND",
+    "type": "enum",
+    "options": [
+     "-",
+     "Random"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "behavior": "trigger",
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "wt1_table",
+    "label": "WT1",
+    "shortLabel": "WT1",
+    "type": "file",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "fileRoot": "/data/UserData/UserLibrary/Wavetables",
+    "fileFilter": [
+     ".wav",
+     ".wt2048",
+     ".wt1024",
+     ".wt512",
+     ".wt256"
+    ],
+    "fileStartPath": "/data/UserData/UserLibrary/Wavetables",
+    "increment": {
+     "kind": "file-browse"
+    }
+   },
+   {
+    "key": "wt2_table",
+    "label": "WT2",
+    "shortLabel": "WT2",
+    "type": "file",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "fileRoot": "/data/UserData/UserLibrary/Wavetables",
+    "fileFilter": [
+     ".wav",
+     ".wt2048",
+     ".wt1024",
+     ".wt512",
+     ".wt256"
+    ],
+    "fileStartPath": "/data/UserData/UserLibrary/Wavetables",
+    "increment": {
+     "kind": "file-browse"
+    }
+   },
+   {
+    "key": "wt1_pos",
+    "label": "WT1 Pos",
+    "shortLabel": "POS1",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "wt2_pos",
+    "label": "WT2 Pos",
+    "shortLabel": "POS2",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "wt1_level",
+    "label": "WT1 Level",
+    "shortLabel": "LVL1",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 127
+    }
+   },
+   {
+    "key": "wt2_level",
+    "label": "WT2 Level",
+    "shortLabel": "LVL2",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 127
+    }
+   },
+   {
+    "key": "wt1_tune",
+    "label": "WT1 Tune",
+    "shortLabel": "TUN1",
+    "type": "int",
+    "options": null,
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 96
+    }
+   },
+   {
+    "key": "wt2_tune",
+    "label": "WT2 Tune",
+    "shortLabel": "TUN2",
+    "type": "int",
+    "options": null,
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 96
+    }
+   },
+   {
+    "key": "wt1_uni",
+    "label": "WT1 Unison",
+    "shortLabel": "UNI1",
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 4,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 6
+    }
+   },
+   {
+    "key": "wt1_detune",
+    "label": "WT1 Detune",
+    "shortLabel": "DET1",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "wt1_spread",
+    "label": "WT1 Spread",
+    "shortLabel": "SPR1",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "wt1_pan",
+    "label": "WT1 Pan",
+    "shortLabel": "PAN1",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "pan",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 127
+    }
+   },
+   {
+    "key": "wt2_uni",
+    "label": "WT2 Unison",
+    "shortLabel": "UNI2",
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 4,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 6
+    }
+   },
+   {
+    "key": "wt2_detune",
+    "label": "WT2 Detune",
+    "shortLabel": "DET2",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "wt2_spread",
+    "label": "WT2 Spread",
+    "shortLabel": "SPR2",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "wt2_pan",
+    "label": "WT2 Pan",
+    "shortLabel": "PAN2",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "pan",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 127
+    }
+   },
+   {
+    "key": "wt1_bend",
+    "label": "WT1 Bend",
+    "shortLabel": "BND1",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "wt1_formant",
+    "label": "WT1 Formant",
+    "shortLabel": "FRM1",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "wt2_bend",
+    "label": "WT2 Bend",
+    "shortLabel": "BND2",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "wt2_formant",
+    "label": "WT2 Formant",
+    "shortLabel": "FRM2",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "sub_tune",
+    "label": "Sub Tune",
+    "shortLabel": "SUBT",
+    "type": "int",
+    "options": null,
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 96
+    }
+   },
+   null,
+   null,
+   null,
+   {
+    "key": "flt_freq",
+    "label": "Filter Freq",
+    "shortLabel": "FREQ",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "filter": "cutoff",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "flt_res",
+    "label": "Filter Res",
+    "shortLabel": "RES",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "filter": "resonance",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "flt_type",
+    "label": "Filter Type",
+    "shortLabel": "TYPE",
+    "type": "enum",
+    "options": [
+     "LP 12",
+     "LP 24",
+     "HP 12",
+     "HP 24",
+     "BP 12",
+     "BP 24",
+     "Notch 12",
+     "Notch 24"
+    ],
+    "min": 0,
+    "max": 7,
+    "step": 1,
+    "renderStyle": "arc",
+    "filter": "mode",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 8
+    }
+   },
+   {
+    "key": "flt_env",
+    "label": "Filter EG Amt",
+    "shortLabel": "FENV",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "sub_level",
+    "label": "Sub Level",
+    "shortLabel": "SUB",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 127
+    }
+   },
+   {
+    "key": "sub_wave",
+    "label": "Sub Wave",
+    "shortLabel": "SUBW",
+    "type": "enum",
+    "options": [
+     "Sine",
+     "Triangle",
+     "Saw",
+     "Square",
+     "Pulse",
+     "Pulse Tr"
+    ],
+    "min": 0,
+    "max": 5,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 6
+    }
+   },
+   {
+    "key": "noise_level",
+    "label": "Noise Level",
+    "shortLabel": "NOIS",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 127
+    }
+   },
+   {
+    "key": "noise_type",
+    "label": "Noise Type",
+    "shortLabel": "NTYP",
+    "type": "enum",
+    "options": [
+     "White",
+     "Pink"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "vca_a",
+    "label": "VCA Attack",
+    "shortLabel": "ATK",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "vca_d",
+    "label": "VCA Decay",
+    "shortLabel": "DEC",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "vca_s",
+    "label": "VCA Sustain",
+    "shortLabel": "SUS",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "vca_r",
+    "label": "VCA Release",
+    "shortLabel": "REL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "flt_a",
+    "label": "Flt Attack",
+    "shortLabel": "FATK",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "flt_d",
+    "label": "Flt Decay",
+    "shortLabel": "FDEC",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "flt_s",
+    "label": "Flt Sustain",
+    "shortLabel": "FSUS",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "flt_r",
+    "label": "Flt Release",
+    "shortLabel": "FREL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "vca_vel",
+    "label": "VCA Velocity",
+    "shortLabel": "VVEL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "flt_key",
+    "label": "Key Track",
+    "shortLabel": "KEYT",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "flt_vel",
+    "label": "Vel Track",
+    "shortLabel": "VELT",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "voice_mode",
+    "label": "Voice Mode",
+    "shortLabel": "MODE",
+    "type": "enum",
+    "options": [
+     "Poly",
+     "Mono"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "voices",
+    "label": "Voices",
+    "shortLabel": "VOIC",
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 8,
+    "step": 1,
+    "renderStyle": "steps",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 7
+    }
+   },
+   {
+    "key": "glide",
+    "label": "Glide",
+    "shortLabel": "GLID",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "glide_mode",
+    "label": "Glide Mode",
+    "shortLabel": "GMOD",
+    "type": "enum",
+    "options": [
+     "Off",
+     "Glissando",
+     "Portamento"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "legato",
+    "label": "Legato",
+    "shortLabel": "LEGA",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "switch",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "pb_range",
+    "label": "PB Range",
+    "shortLabel": "BEND",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 48
+    }
+   },
+   {
+    "key": "volume",
+    "label": "Volume",
+    "shortLabel": "VOL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "vbar",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 127
+    }
+   },
+   null,
+   {
+    "key": "u1",
+    "label": "Macro 1",
+    "shortLabel": "USR1",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "u2",
+    "label": "Macro 2",
+    "shortLabel": "USR2",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "u3",
+    "label": "Macro 3",
+    "shortLabel": "USR3",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "u4",
+    "label": "Macro 4",
+    "shortLabel": "USR4",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "u5",
+    "label": "Macro 5",
+    "shortLabel": "USR5",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "u6",
+    "label": "Macro 6",
+    "shortLabel": "USR6",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "u7",
+    "label": "Macro 7",
+    "shortLabel": "USR7",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "u8",
+    "label": "Macro 8",
+    "shortLabel": "USR8",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "u1_target",
+    "label": "Macro 1 Target",
+    "shortLabel": "TGT1",
+    "type": "enum",
+    "options": [
+     "None",
+     "WT1 Pos",
+     "WT2 Pos",
+     "WT1 Level",
+     "WT2 Level",
+     "WT1 Tune",
+     "WT2 Tune",
+     "WT1 Unison",
+     "WT1 Detune",
+     "WT1 Spread",
+     "WT1 Pan",
+     "WT2 Unison",
+     "WT2 Detune",
+     "WT2 Spread",
+     "WT2 Pan",
+     "WT1 Bend",
+     "WT1 Formant",
+     "WT2 Bend",
+     "WT2 Formant",
+     "Sub Tune",
+     "Filter Freq",
+     "Filter Res",
+     "Filter Type",
+     "Filter EG Amt",
+     "Sub Level",
+     "Sub Wave",
+     "Noise Level",
+     "Noise Type",
+     "VCA Attack",
+     "VCA Decay",
+     "VCA Sustain",
+     "VCA Release",
+     "Flt Attack",
+     "Flt Decay",
+     "Flt Sustain",
+     "Flt Release",
+     "VCA Velocity",
+     "Key Track",
+     "Vel Track",
+     "Voice Mode",
+     "Voices",
+     "Glide",
+     "Glide Mode",
+     "Legato",
+     "PB Range",
+     "Volume"
+    ],
+    "min": 0,
+    "max": 45,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 46
+    }
+   },
+   {
+    "key": "u2_target",
+    "label": "Macro 2 Target",
+    "shortLabel": "TGT2",
+    "type": "enum",
+    "options": [
+     "None",
+     "WT1 Pos",
+     "WT2 Pos",
+     "WT1 Level",
+     "WT2 Level",
+     "WT1 Tune",
+     "WT2 Tune",
+     "WT1 Unison",
+     "WT1 Detune",
+     "WT1 Spread",
+     "WT1 Pan",
+     "WT2 Unison",
+     "WT2 Detune",
+     "WT2 Spread",
+     "WT2 Pan",
+     "WT1 Bend",
+     "WT1 Formant",
+     "WT2 Bend",
+     "WT2 Formant",
+     "Sub Tune",
+     "Filter Freq",
+     "Filter Res",
+     "Filter Type",
+     "Filter EG Amt",
+     "Sub Level",
+     "Sub Wave",
+     "Noise Level",
+     "Noise Type",
+     "VCA Attack",
+     "VCA Decay",
+     "VCA Sustain",
+     "VCA Release",
+     "Flt Attack",
+     "Flt Decay",
+     "Flt Sustain",
+     "Flt Release",
+     "VCA Velocity",
+     "Key Track",
+     "Vel Track",
+     "Voice Mode",
+     "Voices",
+     "Glide",
+     "Glide Mode",
+     "Legato",
+     "PB Range",
+     "Volume"
+    ],
+    "min": 0,
+    "max": 45,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 46
+    }
+   },
+   {
+    "key": "u3_target",
+    "label": "Macro 3 Target",
+    "shortLabel": "TGT3",
+    "type": "enum",
+    "options": [
+     "None",
+     "WT1 Pos",
+     "WT2 Pos",
+     "WT1 Level",
+     "WT2 Level",
+     "WT1 Tune",
+     "WT2 Tune",
+     "WT1 Unison",
+     "WT1 Detune",
+     "WT1 Spread",
+     "WT1 Pan",
+     "WT2 Unison",
+     "WT2 Detune",
+     "WT2 Spread",
+     "WT2 Pan",
+     "WT1 Bend",
+     "WT1 Formant",
+     "WT2 Bend",
+     "WT2 Formant",
+     "Sub Tune",
+     "Filter Freq",
+     "Filter Res",
+     "Filter Type",
+     "Filter EG Amt",
+     "Sub Level",
+     "Sub Wave",
+     "Noise Level",
+     "Noise Type",
+     "VCA Attack",
+     "VCA Decay",
+     "VCA Sustain",
+     "VCA Release",
+     "Flt Attack",
+     "Flt Decay",
+     "Flt Sustain",
+     "Flt Release",
+     "VCA Velocity",
+     "Key Track",
+     "Vel Track",
+     "Voice Mode",
+     "Voices",
+     "Glide",
+     "Glide Mode",
+     "Legato",
+     "PB Range",
+     "Volume"
+    ],
+    "min": 0,
+    "max": 45,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 46
+    }
+   },
+   {
+    "key": "u4_target",
+    "label": "Macro 4 Target",
+    "shortLabel": "TGT4",
+    "type": "enum",
+    "options": [
+     "None",
+     "WT1 Pos",
+     "WT2 Pos",
+     "WT1 Level",
+     "WT2 Level",
+     "WT1 Tune",
+     "WT2 Tune",
+     "WT1 Unison",
+     "WT1 Detune",
+     "WT1 Spread",
+     "WT1 Pan",
+     "WT2 Unison",
+     "WT2 Detune",
+     "WT2 Spread",
+     "WT2 Pan",
+     "WT1 Bend",
+     "WT1 Formant",
+     "WT2 Bend",
+     "WT2 Formant",
+     "Sub Tune",
+     "Filter Freq",
+     "Filter Res",
+     "Filter Type",
+     "Filter EG Amt",
+     "Sub Level",
+     "Sub Wave",
+     "Noise Level",
+     "Noise Type",
+     "VCA Attack",
+     "VCA Decay",
+     "VCA Sustain",
+     "VCA Release",
+     "Flt Attack",
+     "Flt Decay",
+     "Flt Sustain",
+     "Flt Release",
+     "VCA Velocity",
+     "Key Track",
+     "Vel Track",
+     "Voice Mode",
+     "Voices",
+     "Glide",
+     "Glide Mode",
+     "Legato",
+     "PB Range",
+     "Volume"
+    ],
+    "min": 0,
+    "max": 45,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 46
+    }
+   },
+   {
+    "key": "u5_target",
+    "label": "Macro 5 Target",
+    "shortLabel": "TGT5",
+    "type": "enum",
+    "options": [
+     "None",
+     "WT1 Pos",
+     "WT2 Pos",
+     "WT1 Level",
+     "WT2 Level",
+     "WT1 Tune",
+     "WT2 Tune",
+     "WT1 Unison",
+     "WT1 Detune",
+     "WT1 Spread",
+     "WT1 Pan",
+     "WT2 Unison",
+     "WT2 Detune",
+     "WT2 Spread",
+     "WT2 Pan",
+     "WT1 Bend",
+     "WT1 Formant",
+     "WT2 Bend",
+     "WT2 Formant",
+     "Sub Tune",
+     "Filter Freq",
+     "Filter Res",
+     "Filter Type",
+     "Filter EG Amt",
+     "Sub Level",
+     "Sub Wave",
+     "Noise Level",
+     "Noise Type",
+     "VCA Attack",
+     "VCA Decay",
+     "VCA Sustain",
+     "VCA Release",
+     "Flt Attack",
+     "Flt Decay",
+     "Flt Sustain",
+     "Flt Release",
+     "VCA Velocity",
+     "Key Track",
+     "Vel Track",
+     "Voice Mode",
+     "Voices",
+     "Glide",
+     "Glide Mode",
+     "Legato",
+     "PB Range",
+     "Volume"
+    ],
+    "min": 0,
+    "max": 45,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 46
+    }
+   },
+   {
+    "key": "u6_target",
+    "label": "Macro 6 Target",
+    "shortLabel": "TGT6",
+    "type": "enum",
+    "options": [
+     "None",
+     "WT1 Pos",
+     "WT2 Pos",
+     "WT1 Level",
+     "WT2 Level",
+     "WT1 Tune",
+     "WT2 Tune",
+     "WT1 Unison",
+     "WT1 Detune",
+     "WT1 Spread",
+     "WT1 Pan",
+     "WT2 Unison",
+     "WT2 Detune",
+     "WT2 Spread",
+     "WT2 Pan",
+     "WT1 Bend",
+     "WT1 Formant",
+     "WT2 Bend",
+     "WT2 Formant",
+     "Sub Tune",
+     "Filter Freq",
+     "Filter Res",
+     "Filter Type",
+     "Filter EG Amt",
+     "Sub Level",
+     "Sub Wave",
+     "Noise Level",
+     "Noise Type",
+     "VCA Attack",
+     "VCA Decay",
+     "VCA Sustain",
+     "VCA Release",
+     "Flt Attack",
+     "Flt Decay",
+     "Flt Sustain",
+     "Flt Release",
+     "VCA Velocity",
+     "Key Track",
+     "Vel Track",
+     "Voice Mode",
+     "Voices",
+     "Glide",
+     "Glide Mode",
+     "Legato",
+     "PB Range",
+     "Volume"
+    ],
+    "min": 0,
+    "max": 45,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 46
+    }
+   },
+   {
+    "key": "u7_target",
+    "label": "Macro 7 Target",
+    "shortLabel": "TGT7",
+    "type": "enum",
+    "options": [
+     "None",
+     "WT1 Pos",
+     "WT2 Pos",
+     "WT1 Level",
+     "WT2 Level",
+     "WT1 Tune",
+     "WT2 Tune",
+     "WT1 Unison",
+     "WT1 Detune",
+     "WT1 Spread",
+     "WT1 Pan",
+     "WT2 Unison",
+     "WT2 Detune",
+     "WT2 Spread",
+     "WT2 Pan",
+     "WT1 Bend",
+     "WT1 Formant",
+     "WT2 Bend",
+     "WT2 Formant",
+     "Sub Tune",
+     "Filter Freq",
+     "Filter Res",
+     "Filter Type",
+     "Filter EG Amt",
+     "Sub Level",
+     "Sub Wave",
+     "Noise Level",
+     "Noise Type",
+     "VCA Attack",
+     "VCA Decay",
+     "VCA Sustain",
+     "VCA Release",
+     "Flt Attack",
+     "Flt Decay",
+     "Flt Sustain",
+     "Flt Release",
+     "VCA Velocity",
+     "Key Track",
+     "Vel Track",
+     "Voice Mode",
+     "Voices",
+     "Glide",
+     "Glide Mode",
+     "Legato",
+     "PB Range",
+     "Volume"
+    ],
+    "min": 0,
+    "max": 45,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 46
+    }
+   },
+   {
+    "key": "u8_target",
+    "label": "Macro 8 Target",
+    "shortLabel": "TGT8",
+    "type": "enum",
+    "options": [
+     "None",
+     "WT1 Pos",
+     "WT2 Pos",
+     "WT1 Level",
+     "WT2 Level",
+     "WT1 Tune",
+     "WT2 Tune",
+     "WT1 Unison",
+     "WT1 Detune",
+     "WT1 Spread",
+     "WT1 Pan",
+     "WT2 Unison",
+     "WT2 Detune",
+     "WT2 Spread",
+     "WT2 Pan",
+     "WT1 Bend",
+     "WT1 Formant",
+     "WT2 Bend",
+     "WT2 Formant",
+     "Sub Tune",
+     "Filter Freq",
+     "Filter Res",
+     "Filter Type",
+     "Filter EG Amt",
+     "Sub Level",
+     "Sub Wave",
+     "Noise Level",
+     "Noise Type",
+     "VCA Attack",
+     "VCA Decay",
+     "VCA Sustain",
+     "VCA Release",
+     "Flt Attack",
+     "Flt Decay",
+     "Flt Sustain",
+     "Flt Release",
+     "VCA Velocity",
+     "Key Track",
+     "Vel Track",
+     "Voice Mode",
+     "Voices",
+     "Glide",
+     "Glide Mode",
+     "Legato",
+     "PB Range",
+     "Volume"
+    ],
+    "min": 0,
+    "max": 45,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 46
+    }
+   }
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "me1_a",
+   "me1_d",
+   "me1_s",
+   "me1_r",
+   "me2_a",
+   "me2_d",
+   "me2_s",
+   "me2_r",
+   "me1_dst",
+   "me1_amt",
+   "me2_dst",
+   "me2_amt",
+   "wt_pack",
+   "wt1_select",
+   "wt2_select",
+   "wt1_shape",
+   "wt2_shape",
+   "wt_paths"
+  ],
+  "noMetadata": [
+   "preset",
+   "preset_rnd",
+   "u1",
+   "u2",
+   "u3",
+   "u4",
+   "u5",
+   "u6",
+   "u7",
+   "u8",
+   "u1_target",
+   "u2_target",
+   "u3_target",
+   "u4_target",
+   "u5_target",
+   "u6_target",
+   "u7_target",
+   "u8_target"
+  ],
+  "warnings": [
+   "18 chain_params not reachable in movy: me1_a, me1_d, me1_s, me1_r, me2_a, me2_d, me2_s, me2_r, me1_dst, me1_amt, me2_dst, me2_amt, …"
+  ]
+ }
+}

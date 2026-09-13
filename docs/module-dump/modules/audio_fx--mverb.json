@@ -1,11 +1,11 @@
 {
  "id": "mverb",
  "name": "MVerb",
- "version": "0.1.1",
+ "version": "0.1.3",
  "author": "Andre Louis (DSP: Martin Eastwood)",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 70,
+ "load_ms": 68,
  "dsp_size": 25824,
  "capabilities": {
   "chainable": true,
@@ -136,21 +136,21 @@
     "rows": [
      [
       {
-       "shortName": "DAMPI",
+       "shortName": "DAMP",
        "fullName": "Damping",
        "renderStyle": "arc",
        "type": "float",
-       "displayValue": "50%"
+       "displayValue": "..."
       },
       {
-       "shortName": "DENSI",
+       "shortName": "DENS",
        "fullName": "Density",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "BANDW",
+       "shortName": "BANDWI",
        "fullName": "Bandwidth",
        "renderStyle": "arc",
        "type": "float",
@@ -182,7 +182,7 @@
       {
        "shortName": "GAIN",
        "fullName": "Gain",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
@@ -229,7 +229,7 @@
    {
     "key": "damping",
     "label": "Damping",
-    "shortLabel": null,
+    "shortLabel": "DAMP",
     "type": "float",
     "options": null,
     "min": 0,
@@ -246,7 +246,7 @@
    {
     "key": "density",
     "label": "Density",
-    "shortLabel": null,
+    "shortLabel": "DENS",
     "type": "float",
     "options": null,
     "min": 0,
@@ -297,7 +297,7 @@
    {
     "key": "predelay",
     "label": "Predelay",
-    "shortLabel": null,
+    "shortLabel": "PREDEL",
     "type": "float",
     "options": null,
     "min": 0,
@@ -337,12 +337,12 @@
     "min": 0,
     "max": 1.5,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 300
+     "perDetent": 0.01,
+     "detentsFullSweep": 150
     }
    },
    {
@@ -365,7 +365,7 @@
    {
     "key": "early_mix",
     "label": "Early Mix",
-    "shortLabel": null,
+    "shortLabel": "Early",
     "type": "float",
     "options": null,
     "min": 0,

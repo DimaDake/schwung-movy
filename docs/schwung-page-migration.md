@@ -33,7 +33,7 @@ and must never grow. If it grew, the last item regressed a sibling — stop.
 | SP-01 | `app-loop` runs both modes; the 13 Cause-A failures become a named ledger | Sonnet | ✅ |
 | SP-02 | Harness env leak: `createDumpBoot()` calls `installEnv()` twice | Sonnet | ✅ |
 | SP-03 | Split `schwung-page.ts` (457 → ≤200/file) | Sonnet | ✅ |
-| SP-04a | **Re-capture the module dump** — the committed one is 2026-07-15 | Sonnet | ⬜ |
+| SP-04a | **Re-capture the module dump** — the committed one is 2026-07-15 | Sonnet | ✅ |
 | SP-04 | Fleet sweep: 76 dump modules planned through Schwung's `page_plan` | Sonnet | ⬜ |
 | SP-05 | `page` screenshot scenes — today `page` has zero pixel coverage | Sonnet | ⬜ |
 | SP-06 | Fork install script + runtime Schwung **version** floor | Sonnet | ⬜ |
@@ -87,6 +87,14 @@ and must never grow. If it grew, the last item regressed a sibling — stop.
 
 ## Environment facts a fresh session needs
 
+- **The fleet dump is `2026-09-13T16:33:12.253Z`, 95 modules, `complete: true`**
+  (SP-04a). The July capture it replaces had 76, so 19 modules — including
+  movy's own four drum kits (`6w6`, `8w8`, `9w9`, `cw78`) and the voice
+  reference `voice-poc` — were simply absent from every fleet reading taken
+  before that date. One module, `audio_fx--gesture-test`, is captured
+  `load_timeout`: its directory holds a `module.json` and no `.so`
+  (`dsp_size: 0`), so it is an incomplete install left on the device, not a
+  module that stalled the collector.
 - **The real planner runs offline.** `SCHWUNG=/path/to/schwung node build/browser.mjs`
   makes `build/browser.mjs:268` resolve `/data/UserData/schwung/shared/param_pages/*`
   to the checkout instead of `browser-test/stubs/schwung-param-pages.mjs` (which
@@ -257,17 +265,31 @@ voice-declaration count (below) is recorded either way.
 **Needs:** a reachable device. `ping move.local` always fails (ICMP blocked) —
 probe with `./scripts/dev-probe.sh status`.
 
+**Outcome (2026-09-13):** re-captured — `2026-09-13T16:33:12.253Z`, **95
+modules, `complete: true`**, no MIDI-inject wedge afterwards. The fleet grew by
+19 modules in two months, and **every** shared module that moved carries an
+upstream version bump, so the `dump-replay` diffs are the fleet moving, not movy
+(proved by replaying the *old* dump through the current code: 0 failures). Two
+harness defects surfaced that the July dump could not show, and both are fixed
+here: `browser-test/dump-boot.mjs` never served the `OVERRIDES_MODULE_FILE`
+configs, so the four drum kits replayed against the very layout the override
+exists to replace; and `dump-replay.mjs`'s fleet-wide `*_EXPECTED` lists were
+re-spliced from the suite's own measured additions. `dump-expect.json` was
+regenerated for the widened fleet and **`dump-replay` is green over all 95
+modules** — see the note under SP-04.
+
 ### SP-04 — the fleet sweep
 
-`docs/module-dump/device-dump.json` carries all 76 real modules with
+`docs/module-dump/device-dump.json` carries all 95 real modules with
 `chain_params`, `module_json`, `ui_hierarchy`, `movy_config` and `params` —
 everything Schwung's planner needs, with no device. `dump-replay.mjs` replays
 *movy's* model, the layer Schwung bypasses, so it is structurally blind to
 re-pagination. The sibling suite plans each module through `page_plan` and
 asserts what a user can navigate.
 
-**Two things were measured on 2026-09-13, and they change what this item is
-for:**
+**Two things were measured on 2026-09-13 against the JULY capture, and they
+change what this item is for. Both need re-running over the fresh fleet — the
+counts below are the old one's (76 modules / 72 with a hierarchy):**
 
 1. **The static invariants already pass.** `planPages()` over all 76 modules:
    **72 clean, 0 duplicate page names, 0 empty knobs pages, 0 throws**, 4
@@ -281,15 +303,59 @@ for:**
    locates the gap: `voices.mjs`'s own comment describes an mrdrums root with
    `child_count: 16` / `child_key_template: "p{index}_{key}"`, while the dumped
    mrdrums root carries only `name`, `params`, `knobs`. The library is ready;
-   the captured fleet predates the declaration. SP-04a decides whether that is
-   still true. `voices.mjs` and `page_plan.mjs` are byte-identical to
-   `origin/main`, so this is not an artefact of the stale local branch.
+   the captured fleet predates the declaration. SP-04a settles it: the fresh
+   fleet is 95 / 82 and the count is **one** (see SP-14). `voices.mjs` and
+   `page_plan.mjs` are byte-identical to `origin/main`, so this is not an
+   artefact of the stale local branch.
 
 Note `voicesOf` takes the **hierarchy itself**, not an options object — passing
 `{ hierarchy }` returns `[]` and looks exactly like a real answer.
 
 **Closes when:** the suite runs the whole dump green, each invariant has been
 shown to fail when broken, and the voice census is baselined.
+
+**State against the 2026-09-13 fleet (SP-04a).** `dump-replay` is **GREEN over
+all 95 modules** (`SCHWUNG=../schwung node browser-test/dump-replay.mjs`, exit
+0), and the `dump-expect.json` baseline is regenerated. The six checks that were
+red against the widened fleet — none of them a movy regression — are closed:
+
+1. **`dump-expect.json` was stale.** 52 of the failures were the baseline not
+   knowing the 19 new modules and the changed ones. Regenerated with
+   `--update`, which writes all 95 snapshots and exits 1 on the checks below.
+2. **The six checks that a baseline could not fix** — each was the *check*
+   meeting a newly-dumped module, and each is fixed at the check:
+   - `6w6` / `8w8` / `9w9` / `cw78`: `VM styles every detected wave/stage cell`.
+     `collectWaveCells` detected on a synthetic 8-per-page chunking of the flat
+     param list, then compared against the VM styled on the rotation's SEATS.
+     The chunking was not the problem — banks are 8-aligned, so the two agree on
+     where pages start; the *page set* was. `pageRotation` collapses a kit's
+     leading voice run into one seat, so the jog reaches one voice and the count
+     missed the other seven. It now walks `forEachRenderedPage` (dump-boot.mjs):
+     the rotation for ordinary pages, then the voice run BY PAD, which is how a
+     player reaches a sibling voice. Detection and the styled count come off the
+     same page in the same visit, so the assertion compares the detectors against
+     the renderer on identical input; what it can still catch is a detected cell
+     `planPageLayout` gives no knob. **Teeth proved twice**: forcing the wave
+     branch to `'arc'` reddens 15 modules, and forcing the envstage branch to
+     `'arc'` reddens 16 including all four kits (each `8 detected, 0 styled`).
+     `mrdrums` detects **zero** cells before and after — it has no wave or stage
+     cell to style, so it was never passing *because* of the bug.
+   - `jp8000`: duplicate short name `MODE` on the new `Performance` page —
+     "Key Mode" and "Arp Mode" both shorten to it, both are genuinely different
+     params, and five characters cannot carry the distinction. Added
+     `sound_generator--jp8000::Performance` to `KNOWN_COLLIDING_PAGES` (helm's
+     `Stutter` is the precedent) — an upstream label fix, not a movy one.
+   - `midiverb`: `unit_list` index 0 is labelled `"* Midiverb"` while
+     `chain_params.unit.options` says `"Midiverb"`. **`unit_list` is the
+     authoritative source**: `unit` is an items-level cell (the level declares
+     `items_param: "unit_list"` + `select_param: "unit"`), `items-param.ts` reads
+     its options from that live list and uses labels verbatim, and the asterisk
+     is the *selection marker* — index 0 is starred and `unit` reads `"0"`. So
+     movy is rendering the right source, and `checkEnumOptionsMatchModule` now
+     compares an items cell against the list it was built from (which also
+     brings dexed/obxd/nam under the check, whose select keys have no
+     `chain_params` entry at all). **Teeth proved**: stripping the marker in
+     `items-param.ts` turns exactly that one check red.
 
 **Needs:** SP-02 (the env leak corrupts multi-module boots), SP-04a.
 
@@ -353,6 +419,19 @@ critical path, the movy-side translation is the candidate to cost first —
 movy already knows these racks from `bank.pad` in `src/module-configs/` (6w6,
 8w8, 9w9, cw78, none of which are in the dump at all) and from `movy_config.json`
 on device.
+
+**The census against the 2026-09-13 fleet (SP-04a): `voicesOf()` returns 7 voices
+for exactly ONE of the 82 modules with a hierarchy — `voice-poc`**, a
+purpose-built reference module that is itself new since July. It is the only
+module in the fleet that feeds Schwung, and it is not a rack movy has to serve:
+its 7 are 3 role-named levels (`kick`/`snare`/`hat`) plus a 4-child `pads` level.
+Every rack movy actually pages still declares **zero** — `mrdrums`, `forge`,
+`essaim`, `tablor` and movy's own `6w6`/`8w8`/`9w9`/`cw78` (the last four carry
+no `ui_hierarchy` at all and are paged from `chain_params`). So Cause E is
+unchanged in substance: **the fix stays on movy's side**, and `voice-poc` becomes
+the fixture that proves the declaration `voicesOf` wants is expressible. Also
+still true of `mrdrums`: its captured root carries only `name`, `params`,
+`knobs`.
 
 The bar is "no dramatic regression", and drum racks are a large part of how movy
 is used: today every page shows at once and a pad press does not move the page,

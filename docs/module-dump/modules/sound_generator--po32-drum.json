@@ -1,12 +1,12 @@
 {
  "id": "po32-drum",
  "name": "Libpo32",
- "version": "1.0.6",
+ "version": "1.1.0",
  "author": "mestela",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 53,
- "dsp_size": 106304,
+ "load_ms": 48,
+ "dsp_size": 105688,
  "capabilities": {
   "chainable": true,
   "component_type": "sound_generator",
@@ -20,29 +20,15 @@
      "params": [
       {
        "key": "kit",
-       "name": "Kit",
-       "type": "int",
-       "min": 0,
-       "max": 31,
-       "default": 0
+       "name": "Kit"
       },
       {
        "key": "level",
-       "name": "Level",
-       "type": "float",
-       "min": 0,
-       "max": 1,
-       "default": 1,
-       "step": 0.01
+       "name": "Level"
       },
       {
        "key": "decay",
-       "name": "Decay",
-       "type": "float",
-       "min": 0.1,
-       "max": 3,
-       "default": 1,
-       "step": 0.05
+       "name": "Decay"
       }
      ],
      "knobs": [
@@ -52,7 +38,1569 @@
      ]
     }
    }
-  }
+  },
+  "chain_params": [
+   {
+    "key": "kit",
+    "name": "Kit",
+    "type": "int",
+    "min": 0,
+    "max": 31,
+    "step": 1
+   },
+   {
+    "key": "level",
+    "name": "Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "decay",
+    "name": "Decay",
+    "type": "float",
+    "min": 0.1,
+    "max": 3,
+    "step": 0.05
+   },
+   {
+    "key": "v01_freq",
+    "name": "V1 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v01_atk",
+    "name": "V1 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v01_dcy",
+    "name": "V1 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v01_mrate",
+    "name": "V1 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v01_mamt",
+    "name": "V1 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v01_nffrq",
+    "name": "V1 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v01_nfq",
+    "name": "V1 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v01_neatk",
+    "name": "V1 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v01_nedcy",
+    "name": "V1 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v01_mix",
+    "name": "V1 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v01_dist",
+    "name": "V1 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v01_lvl",
+    "name": "V1 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v02_freq",
+    "name": "V2 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v02_atk",
+    "name": "V2 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v02_dcy",
+    "name": "V2 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v02_mrate",
+    "name": "V2 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v02_mamt",
+    "name": "V2 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v02_nffrq",
+    "name": "V2 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v02_nfq",
+    "name": "V2 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v02_neatk",
+    "name": "V2 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v02_nedcy",
+    "name": "V2 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v02_mix",
+    "name": "V2 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v02_dist",
+    "name": "V2 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v02_lvl",
+    "name": "V2 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v03_freq",
+    "name": "V3 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v03_atk",
+    "name": "V3 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v03_dcy",
+    "name": "V3 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v03_mrate",
+    "name": "V3 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v03_mamt",
+    "name": "V3 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v03_nffrq",
+    "name": "V3 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v03_nfq",
+    "name": "V3 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v03_neatk",
+    "name": "V3 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v03_nedcy",
+    "name": "V3 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v03_mix",
+    "name": "V3 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v03_dist",
+    "name": "V3 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v03_lvl",
+    "name": "V3 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v04_freq",
+    "name": "V4 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v04_atk",
+    "name": "V4 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v04_dcy",
+    "name": "V4 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v04_mrate",
+    "name": "V4 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v04_mamt",
+    "name": "V4 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v04_nffrq",
+    "name": "V4 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v04_nfq",
+    "name": "V4 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v04_neatk",
+    "name": "V4 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v04_nedcy",
+    "name": "V4 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v04_mix",
+    "name": "V4 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v04_dist",
+    "name": "V4 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v04_lvl",
+    "name": "V4 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v05_freq",
+    "name": "V5 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v05_atk",
+    "name": "V5 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v05_dcy",
+    "name": "V5 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v05_mrate",
+    "name": "V5 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v05_mamt",
+    "name": "V5 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v05_nffrq",
+    "name": "V5 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v05_nfq",
+    "name": "V5 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v05_neatk",
+    "name": "V5 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v05_nedcy",
+    "name": "V5 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v05_mix",
+    "name": "V5 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v05_dist",
+    "name": "V5 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v05_lvl",
+    "name": "V5 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v06_freq",
+    "name": "V6 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v06_atk",
+    "name": "V6 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v06_dcy",
+    "name": "V6 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v06_mrate",
+    "name": "V6 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v06_mamt",
+    "name": "V6 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v06_nffrq",
+    "name": "V6 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v06_nfq",
+    "name": "V6 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v06_neatk",
+    "name": "V6 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v06_nedcy",
+    "name": "V6 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v06_mix",
+    "name": "V6 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v06_dist",
+    "name": "V6 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v06_lvl",
+    "name": "V6 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v07_freq",
+    "name": "V7 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v07_atk",
+    "name": "V7 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v07_dcy",
+    "name": "V7 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v07_mrate",
+    "name": "V7 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v07_mamt",
+    "name": "V7 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v07_nffrq",
+    "name": "V7 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v07_nfq",
+    "name": "V7 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v07_neatk",
+    "name": "V7 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v07_nedcy",
+    "name": "V7 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v07_mix",
+    "name": "V7 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v07_dist",
+    "name": "V7 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v07_lvl",
+    "name": "V7 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v08_freq",
+    "name": "V8 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v08_atk",
+    "name": "V8 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v08_dcy",
+    "name": "V8 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v08_mrate",
+    "name": "V8 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v08_mamt",
+    "name": "V8 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v08_nffrq",
+    "name": "V8 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v08_nfq",
+    "name": "V8 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v08_neatk",
+    "name": "V8 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v08_nedcy",
+    "name": "V8 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v08_mix",
+    "name": "V8 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v08_dist",
+    "name": "V8 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v08_lvl",
+    "name": "V8 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v09_freq",
+    "name": "V9 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v09_atk",
+    "name": "V9 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v09_dcy",
+    "name": "V9 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v09_mrate",
+    "name": "V9 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v09_mamt",
+    "name": "V9 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v09_nffrq",
+    "name": "V9 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v09_nfq",
+    "name": "V9 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v09_neatk",
+    "name": "V9 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v09_nedcy",
+    "name": "V9 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v09_mix",
+    "name": "V9 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v09_dist",
+    "name": "V9 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v09_lvl",
+    "name": "V9 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v10_freq",
+    "name": "V10 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v10_atk",
+    "name": "V10 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v10_dcy",
+    "name": "V10 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v10_mrate",
+    "name": "V10 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v10_mamt",
+    "name": "V10 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v10_nffrq",
+    "name": "V10 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v10_nfq",
+    "name": "V10 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v10_neatk",
+    "name": "V10 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v10_nedcy",
+    "name": "V10 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v10_mix",
+    "name": "V10 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v10_dist",
+    "name": "V10 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v10_lvl",
+    "name": "V10 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v11_freq",
+    "name": "V11 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v11_atk",
+    "name": "V11 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v11_dcy",
+    "name": "V11 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v11_mrate",
+    "name": "V11 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v11_mamt",
+    "name": "V11 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v11_nffrq",
+    "name": "V11 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v11_nfq",
+    "name": "V11 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v11_neatk",
+    "name": "V11 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v11_nedcy",
+    "name": "V11 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v11_mix",
+    "name": "V11 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v11_dist",
+    "name": "V11 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v11_lvl",
+    "name": "V11 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v12_freq",
+    "name": "V12 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v12_atk",
+    "name": "V12 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v12_dcy",
+    "name": "V12 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v12_mrate",
+    "name": "V12 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v12_mamt",
+    "name": "V12 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v12_nffrq",
+    "name": "V12 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v12_nfq",
+    "name": "V12 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v12_neatk",
+    "name": "V12 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v12_nedcy",
+    "name": "V12 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v12_mix",
+    "name": "V12 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v12_dist",
+    "name": "V12 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v12_lvl",
+    "name": "V12 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v13_freq",
+    "name": "V13 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v13_atk",
+    "name": "V13 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v13_dcy",
+    "name": "V13 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v13_mrate",
+    "name": "V13 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v13_mamt",
+    "name": "V13 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v13_nffrq",
+    "name": "V13 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v13_nfq",
+    "name": "V13 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v13_neatk",
+    "name": "V13 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v13_nedcy",
+    "name": "V13 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v13_mix",
+    "name": "V13 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v13_dist",
+    "name": "V13 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v13_lvl",
+    "name": "V13 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v14_freq",
+    "name": "V14 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v14_atk",
+    "name": "V14 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v14_dcy",
+    "name": "V14 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v14_mrate",
+    "name": "V14 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v14_mamt",
+    "name": "V14 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v14_nffrq",
+    "name": "V14 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v14_nfq",
+    "name": "V14 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v14_neatk",
+    "name": "V14 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v14_nedcy",
+    "name": "V14 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v14_mix",
+    "name": "V14 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v14_dist",
+    "name": "V14 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v14_lvl",
+    "name": "V14 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v15_freq",
+    "name": "V15 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v15_atk",
+    "name": "V15 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v15_dcy",
+    "name": "V15 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v15_mrate",
+    "name": "V15 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v15_mamt",
+    "name": "V15 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v15_nffrq",
+    "name": "V15 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v15_nfq",
+    "name": "V15 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v15_neatk",
+    "name": "V15 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v15_nedcy",
+    "name": "V15 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v15_mix",
+    "name": "V15 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v15_dist",
+    "name": "V15 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v15_lvl",
+    "name": "V15 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v16_freq",
+    "name": "V16 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v16_atk",
+    "name": "V16 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v16_dcy",
+    "name": "V16 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v16_mrate",
+    "name": "V16 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v16_mamt",
+    "name": "V16 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v16_nffrq",
+    "name": "V16 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v16_nfq",
+    "name": "V16 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v16_neatk",
+    "name": "V16 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v16_nedcy",
+    "name": "V16 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v16_mix",
+    "name": "V16 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v16_dist",
+    "name": "V16 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   },
+   {
+    "key": "v16_lvl",
+    "name": "V16 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01
+   }
+  ]
  },
  "presets": null,
  "native": {
@@ -63,8 +1611,8 @@
     "name": "Kit",
     "type": "int",
     "min": 0,
-    "max": 31,
-    "step": null,
+    "max": 2,
+    "step": 1,
     "options": null,
     "default": "0"
    },
@@ -74,7 +1622,7 @@
     "type": "float",
     "min": 0,
     "max": 1,
-    "step": null,
+    "step": 0.01,
     "options": null,
     "default": "1.000"
    },
@@ -84,28 +1632,2187 @@
     "type": "float",
     "min": 0.1,
     "max": 3,
-    "step": null,
+    "step": 0.05,
     "options": null,
     "default": "1.000"
+   },
+   {
+    "key": "v01_freq",
+    "name": "V1 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.2710"
+   },
+   {
+    "key": "v01_atk",
+    "name": "V1 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v01_dcy",
+    "name": "V1 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.4824"
+   },
+   {
+    "key": "v01_mrate",
+    "name": "V1 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v01_mamt",
+    "name": "V1 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "-0.0000"
+   },
+   {
+    "key": "v01_nffrq",
+    "name": "V1 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5663"
+   },
+   {
+    "key": "v01_nfq",
+    "name": "V1 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v01_neatk",
+    "name": "V1 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v01_nedcy",
+    "name": "V1 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3333"
+   },
+   {
+    "key": "v01_mix",
+    "name": "V1 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "v01_dist",
+    "name": "V1 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v01_lvl",
+    "name": "V1 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.7878"
+   },
+   {
+    "key": "v02_freq",
+    "name": "V2 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3471"
+   },
+   {
+    "key": "v02_atk",
+    "name": "V2 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v02_dcy",
+    "name": "V2 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3597"
+   },
+   {
+    "key": "v02_mrate",
+    "name": "V2 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v02_mamt",
+    "name": "V2 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.2500"
+   },
+   {
+    "key": "v02_nffrq",
+    "name": "V2 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.7670"
+   },
+   {
+    "key": "v02_nfq",
+    "name": "V2 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.1398"
+   },
+   {
+    "key": "v02_neatk",
+    "name": "V2 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v02_nedcy",
+    "name": "V2 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3920"
+   },
+   {
+    "key": "v02_mix",
+    "name": "V2 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.4000"
+   },
+   {
+    "key": "v02_dist",
+    "name": "V2 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.1000"
+   },
+   {
+    "key": "v02_lvl",
+    "name": "V2 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.7878"
+   },
+   {
+    "key": "v03_freq",
+    "name": "V3 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8674"
+   },
+   {
+    "key": "v03_atk",
+    "name": "V3 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v03_dcy",
+    "name": "V3 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.2007"
+   },
+   {
+    "key": "v03_mrate",
+    "name": "V3 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v03_mamt",
+    "name": "V3 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "v03_nffrq",
+    "name": "V3 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8257"
+   },
+   {
+    "key": "v03_nfq",
+    "name": "V3 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.2000"
+   },
+   {
+    "key": "v03_neatk",
+    "name": "V3 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v03_nedcy",
+    "name": "V3 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.2007"
+   },
+   {
+    "key": "v03_mix",
+    "name": "V3 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v03_dist",
+    "name": "V3 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v03_lvl",
+    "name": "V3 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.7392"
+   },
+   {
+    "key": "v04_freq",
+    "name": "V4 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8480"
+   },
+   {
+    "key": "v04_atk",
+    "name": "V4 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v04_dcy",
+    "name": "V4 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.4475"
+   },
+   {
+    "key": "v04_mrate",
+    "name": "V4 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v04_mamt",
+    "name": "V4 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "v04_nffrq",
+    "name": "V4 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.7993"
+   },
+   {
+    "key": "v04_nfq",
+    "name": "V4 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.1690"
+   },
+   {
+    "key": "v04_neatk",
+    "name": "V4 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v04_nedcy",
+    "name": "V4 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.4475"
+   },
+   {
+    "key": "v04_mix",
+    "name": "V4 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v04_dist",
+    "name": "V4 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v04_lvl",
+    "name": "V4 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.7392"
+   },
+   {
+    "key": "v05_freq",
+    "name": "V5 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5927"
+   },
+   {
+    "key": "v05_atk",
+    "name": "V5 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v05_dcy",
+    "name": "V5 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.4184"
+   },
+   {
+    "key": "v05_mrate",
+    "name": "V5 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v05_mamt",
+    "name": "V5 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "v05_nffrq",
+    "name": "V5 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.6990"
+   },
+   {
+    "key": "v05_nfq",
+    "name": "V5 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.2602"
+   },
+   {
+    "key": "v05_neatk",
+    "name": "V5 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0402"
+   },
+   {
+    "key": "v05_nedcy",
+    "name": "V5 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.4184"
+   },
+   {
+    "key": "v05_mix",
+    "name": "V5 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v05_dist",
+    "name": "V5 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.1500"
+   },
+   {
+    "key": "v05_lvl",
+    "name": "V5 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.7716"
+   },
+   {
+    "key": "v06_freq",
+    "name": "V6 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.4014"
+   },
+   {
+    "key": "v06_atk",
+    "name": "V6 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v06_dcy",
+    "name": "V6 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.4184"
+   },
+   {
+    "key": "v06_mrate",
+    "name": "V6 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v06_mamt",
+    "name": "V6 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3750"
+   },
+   {
+    "key": "v06_nffrq",
+    "name": "V6 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5663"
+   },
+   {
+    "key": "v06_nfq",
+    "name": "V6 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0954"
+   },
+   {
+    "key": "v06_neatk",
+    "name": "V6 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v06_nedcy",
+    "name": "V6 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3010"
+   },
+   {
+    "key": "v06_mix",
+    "name": "V6 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8500"
+   },
+   {
+    "key": "v06_dist",
+    "name": "V6 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v06_lvl",
+    "name": "V6 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.7716"
+   },
+   {
+    "key": "v07_freq",
+    "name": "V7 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3181"
+   },
+   {
+    "key": "v07_atk",
+    "name": "V7 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v07_dcy",
+    "name": "V7 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.4601"
+   },
+   {
+    "key": "v07_mrate",
+    "name": "V7 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v07_mamt",
+    "name": "V7 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3750"
+   },
+   {
+    "key": "v07_nffrq",
+    "name": "V7 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5340"
+   },
+   {
+    "key": "v07_nfq",
+    "name": "V7 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0954"
+   },
+   {
+    "key": "v07_neatk",
+    "name": "V7 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v07_nedcy",
+    "name": "V7 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3597"
+   },
+   {
+    "key": "v07_mix",
+    "name": "V7 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8500"
+   },
+   {
+    "key": "v07_dist",
+    "name": "V7 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v07_lvl",
+    "name": "V7 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.7716"
+   },
+   {
+    "key": "v08_freq",
+    "name": "V8 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5340"
+   },
+   {
+    "key": "v08_atk",
+    "name": "V8 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v08_dcy",
+    "name": "V8 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.2594"
+   },
+   {
+    "key": "v08_mrate",
+    "name": "V8 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v08_mamt",
+    "name": "V8 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "v08_nffrq",
+    "name": "V8 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.7254"
+   },
+   {
+    "key": "v08_nfq",
+    "name": "V8 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.2352"
+   },
+   {
+    "key": "v08_neatk",
+    "name": "V8 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v08_nedcy",
+    "name": "V8 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.2594"
+   },
+   {
+    "key": "v08_mix",
+    "name": "V8 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.6000"
+   },
+   {
+    "key": "v08_dist",
+    "name": "V8 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0500"
+   },
+   {
+    "key": "v08_lvl",
+    "name": "V8 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.7554"
+   },
+   {
+    "key": "v09_freq",
+    "name": "V9 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v09_atk",
+    "name": "V9 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v09_dcy",
+    "name": "V9 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v09_mrate",
+    "name": "V9 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v09_mamt",
+    "name": "V9 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v09_nffrq",
+    "name": "V9 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v09_nfq",
+    "name": "V9 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v09_neatk",
+    "name": "V9 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v09_nedcy",
+    "name": "V9 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v09_mix",
+    "name": "V9 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v09_dist",
+    "name": "V9 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v09_lvl",
+    "name": "V9 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v10_freq",
+    "name": "V10 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v10_atk",
+    "name": "V10 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v10_dcy",
+    "name": "V10 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v10_mrate",
+    "name": "V10 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v10_mamt",
+    "name": "V10 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v10_nffrq",
+    "name": "V10 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v10_nfq",
+    "name": "V10 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v10_neatk",
+    "name": "V10 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v10_nedcy",
+    "name": "V10 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v10_mix",
+    "name": "V10 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v10_dist",
+    "name": "V10 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v10_lvl",
+    "name": "V10 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v11_freq",
+    "name": "V11 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v11_atk",
+    "name": "V11 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v11_dcy",
+    "name": "V11 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v11_mrate",
+    "name": "V11 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v11_mamt",
+    "name": "V11 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v11_nffrq",
+    "name": "V11 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v11_nfq",
+    "name": "V11 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v11_neatk",
+    "name": "V11 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v11_nedcy",
+    "name": "V11 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v11_mix",
+    "name": "V11 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v11_dist",
+    "name": "V11 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v11_lvl",
+    "name": "V11 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v12_freq",
+    "name": "V12 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v12_atk",
+    "name": "V12 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v12_dcy",
+    "name": "V12 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v12_mrate",
+    "name": "V12 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v12_mamt",
+    "name": "V12 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v12_nffrq",
+    "name": "V12 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v12_nfq",
+    "name": "V12 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v12_neatk",
+    "name": "V12 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v12_nedcy",
+    "name": "V12 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v12_mix",
+    "name": "V12 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v12_dist",
+    "name": "V12 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v12_lvl",
+    "name": "V12 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v13_freq",
+    "name": "V13 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v13_atk",
+    "name": "V13 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v13_dcy",
+    "name": "V13 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v13_mrate",
+    "name": "V13 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v13_mamt",
+    "name": "V13 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v13_nffrq",
+    "name": "V13 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v13_nfq",
+    "name": "V13 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v13_neatk",
+    "name": "V13 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v13_nedcy",
+    "name": "V13 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v13_mix",
+    "name": "V13 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v13_dist",
+    "name": "V13 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v13_lvl",
+    "name": "V13 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v14_freq",
+    "name": "V14 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v14_atk",
+    "name": "V14 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v14_dcy",
+    "name": "V14 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v14_mrate",
+    "name": "V14 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v14_mamt",
+    "name": "V14 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v14_nffrq",
+    "name": "V14 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v14_nfq",
+    "name": "V14 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v14_neatk",
+    "name": "V14 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v14_nedcy",
+    "name": "V14 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v14_mix",
+    "name": "V14 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v14_dist",
+    "name": "V14 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v14_lvl",
+    "name": "V14 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v15_freq",
+    "name": "V15 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v15_atk",
+    "name": "V15 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v15_dcy",
+    "name": "V15 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v15_mrate",
+    "name": "V15 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v15_mamt",
+    "name": "V15 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v15_nffrq",
+    "name": "V15 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v15_nfq",
+    "name": "V15 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v15_neatk",
+    "name": "V15 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v15_nedcy",
+    "name": "V15 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v15_mix",
+    "name": "V15 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v15_dist",
+    "name": "V15 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v15_lvl",
+    "name": "V15 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v16_freq",
+    "name": "V16 Pitch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v16_atk",
+    "name": "V16 Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v16_dcy",
+    "name": "V16 Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v16_mrate",
+    "name": "V16 Mod Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v16_mamt",
+    "name": "V16 Bend",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v16_nffrq",
+    "name": "V16 N.Freq",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v16_nfq",
+    "name": "V16 N.Q",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v16_neatk",
+    "name": "V16 N.Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v16_nedcy",
+    "name": "V16 N.Dcy",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v16_mix",
+    "name": "V16 Noise Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v16_dist",
+    "name": "V16 Dist",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "v16_lvl",
+    "name": "V16 Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
    }
   ]
  },
  "movy": {
   "hasConfig": true,
-  "usesMovyConfigFile": false,
+  "usesMovyConfigFile": true,
   "drum": {
-   "padCount": 8,
+   "padCount": 16,
    "padNoteStart": 36,
-   "rawMidi": false
+   "rawMidi": false,
+   "padScoping": {
+    "aliasPrefix": "v_",
+    "concreteKeyTemplate": "v{pad}_{suffix}",
+    "padDigits": 2
+   }
   },
   "banks": [
    {
-    "name": "Main",
+    "name": "Osc",
     "global": false,
+    "padSpecific": true
+   },
+   {
+    "name": "Mod",
+    "global": false,
+    "padSpecific": true
+   },
+   {
+    "name": "Noise",
+    "global": false,
+    "padSpecific": true
+   },
+   {
+    "name": "Voice",
+    "global": false,
+    "padSpecific": true
+   },
+   {
+    "name": "Main",
+    "global": true,
     "padSpecific": false
    }
   ],
   "pages": [
+   {
+    "name": "Osc",
+    "envelopeLines": [
+     true,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ATK",
+       "fullName": "Attack",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WAVE",
+       "fullName": "Wave",
+       "renderStyle": "wave",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PITCH",
+       "fullName": "Pitch",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "LEVEL",
+       "fullName": "Level",
+       "renderStyle": "vbar",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NOISE",
+       "fullName": "Noise Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DIST",
+       "fullName": "Distortion",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Mod",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MOD",
+       "fullName": "Mod Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MRATE",
+       "fullName": "Mod Rate",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BEND",
+       "fullName": "Bend",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Noise",
+    "envelopeLines": [
+     false,
+     true
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "NFRQ",
+       "fullName": "Noise Freq",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NQ",
+       "fullName": "Noise Q",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NFILT",
+       "fullName": "Noise Filter",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NENV",
+       "fullName": "Noise Env",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "NATK",
+       "fullName": "Noise Attack",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NDCY",
+       "fullName": "Noise Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Voice",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "EQFRQ",
+       "fullName": "EQ Freq",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "EQGN",
+       "fullName": "EQ Gain",
+       "renderStyle": "vbar",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OVEL",
+       "fullName": "Osc Vel",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NVEL",
+       "fullName": "Noise Vel",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "MVEL",
+       "fullName": "Mod Vel",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ]
+    ]
+   },
    {
     "name": "Main",
     "envelopeLines": [
@@ -120,19 +3827,19 @@
        "fullName": "Kit",
        "renderStyle": "arc",
        "type": "int",
-       "displayValue": "0"
+       "displayValue": "..."
       },
       {
        "shortName": "LEVEL",
        "fullName": "Level",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "DECAY",
        "fullName": "Decay",
-       "renderStyle": "arc",
+       "renderStyle": "envstage",
        "type": "float",
        "displayValue": "..."
       },
@@ -149,20 +3856,429 @@
   ],
   "params": [
    {
+    "key": "v_wave",
+    "label": "Wave",
+    "shortLabel": "WAVE",
+    "type": "enum",
+    "options": [
+     "Sine",
+     "Tri",
+     "Saw"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "v_freq",
+    "label": "Pitch",
+    "shortLabel": "PITCH",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v_atk",
+    "label": "Attack",
+    "shortLabel": "ATK",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v_dcy",
+    "label": "Decay",
+    "shortLabel": "DECAY",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v_lvl",
+    "label": "Level",
+    "shortLabel": "LEVEL",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "v_mix",
+    "label": "Noise Mix",
+    "shortLabel": "NOISE",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v_dist",
+    "label": "Distortion",
+    "shortLabel": "DIST",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   {
+    "key": "v_mmode",
+    "label": "Mod Mode",
+    "shortLabel": "MOD",
+    "type": "enum",
+    "options": [
+     "Drop",
+     "Sine",
+     "Noise"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "v_mrate",
+    "label": "Mod Rate",
+    "shortLabel": "MRATE",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v_mamt",
+    "label": "Bend",
+    "shortLabel": "BEND",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "v_nfmode",
+    "label": "Noise Filter",
+    "shortLabel": "NFILT",
+    "type": "enum",
+    "options": [
+     "LP",
+     "BP",
+     "HP"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "filter": "mode",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "v_nffrq",
+    "label": "Noise Freq",
+    "shortLabel": "NFRQ",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "filter": "cutoff",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v_nfq",
+    "label": "Noise Q",
+    "shortLabel": "NQ",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "filter": "resonance",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   {
+    "key": "v_nemode",
+    "label": "Noise Env",
+    "shortLabel": "NENV",
+    "type": "enum",
+    "options": [
+     "Exp",
+     "Lin",
+     "Clap"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "v_neatk",
+    "label": "Noise Attack",
+    "shortLabel": "NATK",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v_nedcy",
+    "label": "Noise Decay",
+    "shortLabel": "NDCY",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   {
+    "key": "v_eqfrq",
+    "label": "EQ Freq",
+    "shortLabel": "EQFRQ",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v_eqgain",
+    "label": "EQ Gain",
+    "shortLabel": "EQGN",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "vbar",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "v_ovel",
+    "label": "Osc Vel",
+    "shortLabel": "OVEL",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v_nvel",
+    "label": "Noise Vel",
+    "shortLabel": "NVEL",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "v_mvel",
+    "label": "Mod Vel",
+    "shortLabel": "MVEL",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null,
+   null,
+   {
     "key": "kit",
     "label": "Kit",
     "shortLabel": "KIT",
     "type": "int",
     "options": null,
     "min": 0,
-    "max": 31,
+    "max": 2,
     "step": 1,
     "renderStyle": "arc",
-    "automatable": true,
+    "automatable": false,
+    "capturesModuleState": false,
     "increment": {
      "kind": "int",
      "perDetent": 0.5,
-     "detentsFullSweep": 62
+     "detentsFullSweep": 4
     }
    },
    {
@@ -174,12 +4290,13 @@
     "min": 0,
     "max": 1,
     "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
+    "renderStyle": "vbar",
+    "automatable": false,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
     }
    },
    {
@@ -190,13 +4307,14 @@
     "options": null,
     "min": 0.1,
     "max": 3,
-    "step": 0.01,
+    "step": 0.05,
     "renderStyle": "arc",
-    "automatable": true,
+    "automatable": false,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 580
+     "perDetent": 0.025,
+     "detentsFullSweep": 116
     }
    },
    null,
@@ -208,7 +4326,29 @@
  },
  "analysis": {
   "hiddenParams": [],
-  "noMetadata": [],
+  "noMetadata": [
+   "v_wave",
+   "v_freq",
+   "v_atk",
+   "v_dcy",
+   "v_lvl",
+   "v_mix",
+   "v_dist",
+   "v_mmode",
+   "v_mrate",
+   "v_mamt",
+   "v_nfmode",
+   "v_nffrq",
+   "v_nfq",
+   "v_nemode",
+   "v_neatk",
+   "v_nedcy",
+   "v_eqfrq",
+   "v_eqgain",
+   "v_ovel",
+   "v_nvel",
+   "v_mvel"
+  ],
   "warnings": []
  }
 }

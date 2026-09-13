@@ -1,11 +1,11 @@
 {
  "id": "rex",
  "name": "REX Player",
- "version": "0.4.2",
+ "version": "0.4.4",
  "author": "charlesvestal",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 70,
+ "load_ms": 38,
  "dsp_size": 72080,
  "capabilities": {
   "audio_out": true,
@@ -160,62 +160,62 @@
     "rows": [
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "Attack",
        "renderStyle": "arc",
        "type": "float",
-       "displayValue": "..."
+       "displayValue": "0%"
       },
       {
        "shortName": "DECAY",
        "fullName": "Decay",
        "renderStyle": "arc",
        "type": "float",
-       "displayValue": "..."
+       "displayValue": "0%"
       },
       {
-       "shortName": "SUSTA",
+       "shortName": "SUSTAI",
        "fullName": "Sustain",
        "renderStyle": "arc",
        "type": "float",
-       "displayValue": "..."
+       "displayValue": "100%"
       },
       {
        "shortName": "RELEA",
        "fullName": "Release",
        "renderStyle": "arc",
        "type": "float",
-       "displayValue": "..."
+       "displayValue": "0%"
       }
      ],
      [
       {
        "shortName": "GAIN",
        "fullName": "Gain",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "50%"
       },
       {
-       "shortName": "START",
+       "shortName": "NOTE",
        "fullName": "Start Note",
        "renderStyle": "arc",
        "type": "int",
-       "displayValue": "..."
+       "displayValue": "36"
       },
       {
-       "shortName": "TRANS",
+       "shortName": "TRANSP",
        "fullName": "Transpose",
        "renderStyle": "arc",
        "type": "int",
-       "displayValue": "..."
+       "displayValue": "0"
       },
       {
        "shortName": "MODE",
        "fullName": "Mode",
        "renderStyle": "arc",
        "type": "enum",
-       "displayValue": "..."
+       "displayValue": "trigg"
       }
      ]
     ]
@@ -232,7 +232,7 @@
       {
        "shortName": "CHOKE",
        "fullName": "Choke",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -259,18 +259,18 @@
     "min": 0,
     "max": 2,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 400
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
     }
    },
    {
     "key": "start_note",
     "label": "Start Note",
-    "shortLabel": null,
+    "shortLabel": "Note",
     "type": "int",
     "options": null,
     "min": 0,
@@ -401,7 +401,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",

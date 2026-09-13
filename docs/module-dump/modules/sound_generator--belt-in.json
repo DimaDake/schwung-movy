@@ -575,7 +575,7 @@
        "fullName": "Key",
        "renderStyle": "arc",
        "type": "enum",
-       "displayValue": "C"
+       "displayValue": "..."
       },
       {
        "shortName": "SCALE",
@@ -585,7 +585,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "RETUN",
+       "shortName": "RETUNE",
        "fullName": "Retune",
        "renderStyle": "arc",
        "type": "float",
@@ -617,28 +617,28 @@
     "rows": [
      [
       {
-       "shortName": "VOIC1",
+       "shortName": "VOICE1",
        "fullName": "Voice 1",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "VOIC2",
+       "shortName": "VOICE2",
        "fullName": "Voice 2",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "VOIC3",
+       "shortName": "VOICE3",
        "fullName": "Voice 3",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "VOIC4",
+       "shortName": "VOICE4",
        "fullName": "Voice 4",
        "renderStyle": "arc",
        "type": "enum",
@@ -649,7 +649,7 @@
       {
        "shortName": "HARM",
        "fullName": "Harm Level",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
@@ -683,7 +683,7 @@
       {
        "shortName": "HARD",
        "fullName": "Hard Tune",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -711,7 +711,7 @@
      ],
      [
       {
-       "shortName": "HUMAN",
+       "shortName": "HUMANI",
        "fullName": "Humanize",
        "renderStyle": "arc",
        "type": "float",
@@ -949,12 +949,12 @@
     "min": 0,
     "max": 100,
     "step": 5,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 2.5,
-     "detentsFullSweep": 40
+     "perDetent": 5,
+     "detentsFullSweep": 20
     }
    },
    {
@@ -1004,7 +1004,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",

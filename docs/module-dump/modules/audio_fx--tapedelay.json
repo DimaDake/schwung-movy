@@ -1,11 +1,11 @@
 {
  "id": "tapedelay",
  "name": "TapeDelay",
- "version": "0.4.3",
+ "version": "2.0.1",
  "author": "cyrusasfa (port: charlesvestal)",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 70,
+ "load_ms": 48,
  "dsp_size": 19000,
  "capabilities": {
   "chainable": true,
@@ -77,6 +77,7 @@
       },
       {
        "key": "stereo_width",
+       "short_name": "WIDTH",
        "label": "Stereo Width",
        "type": "int",
        "min": 0,
@@ -205,10 +206,10 @@
        "fullName": "Time",
        "renderStyle": "arc",
        "type": "int",
-       "displayValue": "400"
+       "displayValue": "..."
       },
       {
-       "shortName": "DIVIS",
+       "shortName": "DIVISIO",
        "fullName": "Division",
        "renderStyle": "arc",
        "type": "enum",
@@ -238,7 +239,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SW",
+       "shortName": "WIDTH",
        "fullName": "Stereo Width",
        "renderStyle": "arc",
        "type": "int",
@@ -352,7 +353,7 @@
    {
     "key": "stereo_width",
     "label": "Stereo Width",
-    "shortLabel": null,
+    "shortLabel": "WIDTH",
     "type": "int",
     "options": null,
     "min": 0,

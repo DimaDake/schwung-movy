@@ -1,12 +1,12 @@
 {
  "id": "chiptune",
  "name": "Chiptune",
- "version": "0.1.2",
+ "version": "0.1.5",
  "author": "charlesvestal",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 71,
- "dsp_size": 553448,
+ "load_ms": 52,
+ "dsp_size": 553288,
  "capabilities": {
   "audio_out": true,
   "audio_in": false,
@@ -254,7 +254,7 @@
        "fullName": "Attack",
        "renderStyle": "arc",
        "type": "int",
-       "displayValue": "0"
+       "displayValue": "..."
       },
       {
        "shortName": "DECAY",
@@ -289,7 +289,7 @@
       {
        "shortName": "VOL",
        "fullName": "Volume",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
@@ -303,7 +303,7 @@
       {
        "shortName": "OCT",
        "fullName": "Octave",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
       }
@@ -433,6 +433,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "int",
      "perDetent": 0.5,
@@ -450,6 +451,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "int",
      "perDetent": 0.5,
@@ -467,6 +469,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "int",
      "perDetent": 0.5,
@@ -484,6 +487,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "int",
      "perDetent": 0.5,
@@ -501,6 +505,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "int",
      "perDetent": 0.5,
@@ -516,12 +521,13 @@
     "min": 0,
     "max": 15,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 30
+     "perDetent": 1,
+     "detentsFullSweep": 15
     }
    },
    {
@@ -535,6 +541,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "int",
      "perDetent": 0.5,
@@ -550,12 +557,14 @@
     "min": -3,
     "max": 3,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
+    "signed": true,
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 12
+     "perDetent": 1,
+     "detentsFullSweep": 6
     }
    },
    {
@@ -572,6 +581,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": false,
+    "capturesModuleState": false,
     "increment": {
      "kind": "enum",
      "detentsPerStep": 4,
@@ -593,6 +603,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": false,
+    "capturesModuleState": false,
     "increment": {
      "kind": "enum",
      "detentsPerStep": 4,
@@ -613,6 +624,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": false,
+    "capturesModuleState": false,
     "increment": {
      "kind": "enum",
      "detentsPerStep": 4,
@@ -630,6 +642,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "int",
      "perDetent": 0.5,
@@ -647,6 +660,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "int",
      "perDetent": 0.5,
@@ -664,6 +678,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "int",
      "perDetent": 0.5,
@@ -681,6 +696,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "int",
      "perDetent": 0.5,
@@ -698,6 +714,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "int",
      "perDetent": 0.5,
@@ -715,6 +732,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "int",
      "perDetent": 0.5,
@@ -732,6 +750,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "int",
      "perDetent": 0.5,
@@ -749,6 +768,7 @@
     "options": null,
     "nameKey": "preset_name",
     "renderStyle": "preset",
+    "capturesModuleState": true,
     "automatable": false,
     "increment": {
      "kind": "enum",

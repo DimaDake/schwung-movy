@@ -5,7 +5,7 @@
  "author": "fillioning",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 49,
+ "load_ms": 57,
  "dsp_size": 110088,
  "capabilities": {
   "chainable": true,
@@ -675,10 +675,10 @@
        "fullName": "Envelope",
        "renderStyle": "arc",
        "type": "float",
-       "displayValue": "50%"
+       "displayValue": "..."
       },
       {
-       "shortName": "DENSI",
+       "shortName": "DENSIT",
        "fullName": "Density",
        "renderStyle": "arc",
        "type": "float",
@@ -715,7 +715,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SPECI",
+       "shortName": "SPECIA",
        "fullName": "Special",
        "renderStyle": "arc",
        "type": "float",
@@ -748,7 +748,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DENSI",
+       "shortName": "DENSIT",
        "fullName": "Rnd Density",
        "renderStyle": "arc",
        "type": "float",
@@ -780,7 +780,7 @@
       {
        "shortName": "SEQUE",
        "fullName": "Sequence",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -811,7 +811,7 @@
     "rows": [
      [
       {
-       "shortName": "DETEC",
+       "shortName": "DETECT",
        "fullName": "Detection",
        "renderStyle": "arc",
        "type": "float",
@@ -845,7 +845,7 @@
     "rows": [
      [
       {
-       "shortName": "PRESE",
+       "shortName": "PRESET",
        "fullName": "Preset",
        "renderStyle": "arc",
        "type": "int",
@@ -859,7 +859,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "FILTE",
+       "shortName": "FILTER",
        "fullName": "Filter",
        "renderStyle": "arc",
        "type": "float",
@@ -1149,7 +1149,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",

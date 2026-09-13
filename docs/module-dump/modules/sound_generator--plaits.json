@@ -5,7 +5,7 @@
  "author": "Emilie Gillet (port: Justin Joe)",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 2376,
+ "load_ms": 2511,
  "dsp_size": 1653896,
  "capabilities": {
   "audio_out": true,
@@ -441,7 +441,7 @@
        "fullName": "Engine",
        "renderStyle": "arc",
        "type": "enum",
-       "displayValue": "VA VC"
+       "displayValue": "..."
       },
       {
        "shortName": "HARM",
@@ -469,7 +469,7 @@
       {
        "shortName": "DCAY",
        "fullName": "Decay",
-       "renderStyle": "arc",
+       "renderStyle": "envstage",
        "type": "float",
        "displayValue": "..."
       },
@@ -509,7 +509,7 @@
       {
        "shortName": "ATK",
        "fullName": "Attack",
-       "renderStyle": "arc",
+       "renderStyle": "envstage",
        "type": "float",
        "displayValue": "..."
       },
@@ -539,14 +539,14 @@
       {
        "shortName": "LGTO",
        "fullName": "Legato",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
       {
        "shortName": "OCT",
        "fullName": "Octave",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
       },
@@ -593,6 +593,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": false,
+    "capturesModuleState": false,
     "increment": {
      "kind": "enum",
      "detentsPerStep": 4,
@@ -610,6 +611,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -627,6 +629,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -644,6 +647,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -661,6 +665,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -678,6 +683,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -695,6 +701,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -712,6 +719,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -729,6 +737,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -746,6 +755,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -763,6 +773,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -780,6 +791,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -798,8 +810,9 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
+    "capturesModuleState": false,
     "increment": {
      "kind": "enum",
      "detentsPerStep": 4,
@@ -815,12 +828,14 @@
     "min": -3,
     "max": 3,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
+    "signed": true,
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 12
+     "perDetent": 1,
+     "detentsFullSweep": 6
     }
    },
    null,

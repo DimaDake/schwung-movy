@@ -1,0 +1,2073 @@
+{
+ "id": "work",
+ "name": "Work",
+ "version": "0.12.0",
+ "author": "timncox",
+ "category": "audio_fx",
+ "status": "ok",
+ "load_ms": 90,
+ "dsp_size": 514080,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "audio_fx"
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [],
+  "params": [
+   {
+    "key": "src",
+    "name": "SRC Machine",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Bypass",
+     "Granulator",
+     "One Shot",
+     "Polysample",
+     "Slicer",
+     "Wavescan"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "machine1",
+    "name": "FX1 Machine",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Bypass",
+     "Clock Pitch",
+     "Comb Filter",
+     "Compressor",
+     "Chain Delay",
+     "Decimator",
+     "Gritshaper",
+     "Fold Filter",
+     "Filterbank",
+     "Spectrum Bender",
+     "Endless Flanger",
+     "Low-Pass Filter",
+     "Multimode Filter",
+     "Wide Chorus",
+     "Phase Array",
+     "Roomtone Reverb",
+     "Drive Delay",
+     "Iron Room Reverb",
+     "Voidspace Reverb",
+     "Flutter",
+     "Tilt"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "machine2",
+    "name": "FX2 Machine",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Bypass",
+     "Clock Pitch",
+     "Comb Filter",
+     "Compressor",
+     "Chain Delay",
+     "Decimator",
+     "Gritshaper",
+     "Fold Filter",
+     "Filterbank",
+     "Spectrum Bender",
+     "Endless Flanger",
+     "Low-Pass Filter",
+     "Multimode Filter",
+     "Wide Chorus",
+     "Phase Array",
+     "Roomtone Reverb",
+     "Drive Delay",
+     "Iron Room Reverb",
+     "Voidspace Reverb",
+     "Flutter",
+     "Tilt"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "mix",
+    "name": "Dry/Wet",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "127"
+   },
+   {
+    "key": "level",
+    "name": "Level",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "127"
+   },
+   {
+    "key": "pan",
+    "name": "Pan",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "track",
+    "name": "Track",
+    "type": "int",
+    "min": 0,
+    "max": 7,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "seq_on",
+    "name": "Sequencer",
+    "type": "int",
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "seq_len",
+    "name": "Length",
+    "type": "int",
+    "min": 1,
+    "max": 64,
+    "step": 1,
+    "options": null,
+    "default": "16"
+   },
+   {
+    "key": "pattern",
+    "name": "Pattern",
+    "type": "int",
+    "min": 0,
+    "max": 15,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "vf_base",
+    "name": "BASE",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "vf_width",
+    "name": "WDTH",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "127"
+   },
+   {
+    "key": "vf_reso",
+    "name": "RESO",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "vf_env",
+    "name": "ENV",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "vf_atk",
+    "name": "ATK",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "vf_dec",
+    "name": "DEC",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "48"
+   },
+   {
+    "key": "vf_track",
+    "name": "KEY",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "vlfo1_dest",
+    "name": "vlfo1 Dest",
+    "type": "int",
+    "min": -1,
+    "max": 14,
+    "step": 1,
+    "options": null,
+    "default": "-1"
+   },
+   {
+    "key": "vlfo1_spd",
+    "name": "vlfo1 Speed",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "32"
+   },
+   {
+    "key": "vlfo1_mult",
+    "name": "vlfo1 Mult",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "vlfo1_depth",
+    "name": "vlfo1 Depth",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "vlfo1_phase",
+    "name": "vlfo1 Phase",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "vlfo1_wave",
+    "name": "vlfo1 Wave",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Tri",
+     "Sin",
+     "Sqr",
+     "Saw",
+     "Ramp",
+     "Exp",
+     "Rnd"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "vlfo1_trig",
+    "name": "vlfo1 Trig",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Free",
+     "Retrig"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "vlfo2_dest",
+    "name": "vlfo2 Dest",
+    "type": "int",
+    "min": -1,
+    "max": 14,
+    "step": 1,
+    "options": null,
+    "default": "-1"
+   },
+   {
+    "key": "vlfo2_spd",
+    "name": "vlfo2 Speed",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "32"
+   },
+   {
+    "key": "vlfo2_mult",
+    "name": "vlfo2 Mult",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "vlfo2_depth",
+    "name": "vlfo2 Depth",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "vlfo2_phase",
+    "name": "vlfo2 Phase",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "vlfo2_wave",
+    "name": "vlfo2 Wave",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Tri",
+     "Sin",
+     "Sqr",
+     "Saw",
+     "Ramp",
+     "Exp",
+     "Rnd"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "vlfo2_trig",
+    "name": "vlfo2 Trig",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Free",
+     "Retrig"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "flfo1_dest",
+    "name": "flfo1 Dest",
+    "type": "int",
+    "min": -1,
+    "max": 15,
+    "step": 1,
+    "options": null,
+    "default": "-1"
+   },
+   {
+    "key": "flfo1_spd",
+    "name": "flfo1 Speed",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "32"
+   },
+   {
+    "key": "flfo1_mult",
+    "name": "flfo1 Mult",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "flfo1_depth",
+    "name": "flfo1 Depth",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "flfo1_phase",
+    "name": "flfo1 Phase",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "flfo1_wave",
+    "name": "flfo1 Wave",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Tri",
+     "Sin",
+     "Sqr",
+     "Saw",
+     "Ramp",
+     "Exp",
+     "Rnd"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "flfo1_trig",
+    "name": "flfo1 Trig",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Free",
+     "Retrig"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "flfo2_dest",
+    "name": "flfo2 Dest",
+    "type": "int",
+    "min": -1,
+    "max": 15,
+    "step": 1,
+    "options": null,
+    "default": "-1"
+   },
+   {
+    "key": "flfo2_spd",
+    "name": "flfo2 Speed",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "32"
+   },
+   {
+    "key": "flfo2_mult",
+    "name": "flfo2 Mult",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "flfo2_depth",
+    "name": "flfo2 Depth",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "64"
+   },
+   {
+    "key": "flfo2_phase",
+    "name": "flfo2 Phase",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "flfo2_wave",
+    "name": "flfo2 Wave",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Tri",
+     "Sin",
+     "Sqr",
+     "Saw",
+     "Ramp",
+     "Exp",
+     "Rnd"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "flfo2_trig",
+    "name": "flfo2 Trig",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Free",
+     "Retrig"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "menv_dest",
+    "name": "Env Dest",
+    "type": "int",
+    "min": -1,
+    "max": 23,
+    "step": 1,
+    "options": null,
+    "default": "-1"
+   },
+   {
+    "key": "menv_atk",
+    "name": "Env Attack",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "menv_hold",
+    "name": "Env Hold",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "8"
+   },
+   {
+    "key": "menv_dec",
+    "name": "Env Decay",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "48"
+   },
+   {
+    "key": "menv_depth",
+    "name": "Env Depth",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "options": null,
+    "default": "64"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Main - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Main - 3",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Main - 4",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Main - 5",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Main - 6",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Main - 7",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "SRC",
+       "fullName": "SRC Machine",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FX1",
+       "fullName": "FX1 Machine",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FX2",
+       "fullName": "FX2 Machine",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRY/W",
+       "fullName": "Dry/Wet",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "LEVEL",
+       "fullName": "Level",
+       "renderStyle": "vbar",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PAN",
+       "fullName": "Pan",
+       "renderStyle": "pan",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TRACK",
+       "fullName": "Track",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SEQUE",
+       "fullName": "Sequencer",
+       "renderStyle": "switch",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Main - 2",
+    "envelopeLines": [
+     false,
+     true
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LENGTH",
+       "fullName": "Length",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PATTER",
+       "fullName": "Pattern",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BASE",
+       "fullName": "BASE",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WDTH",
+       "fullName": "WDTH",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "ATK",
+       "fullName": "ATK",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DEC",
+       "fullName": "DEC",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RESO",
+       "fullName": "RESO",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ENV",
+       "fullName": "ENV",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Main - 3",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "KEY",
+       "fullName": "KEY",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DEST",
+       "fullName": "vlfo1 Dest",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SPEED",
+       "fullName": "vlfo1 Speed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MULT",
+       "fullName": "vlfo1 Mult",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "DEPTH",
+       "fullName": "vlfo1 Depth",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PHASE",
+       "fullName": "vlfo1 Phase",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WAVE",
+       "fullName": "vlfo1 Wave",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TRIG",
+       "fullName": "vlfo1 Trig",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Main - 4",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "DEST",
+       "fullName": "vlfo2 Dest",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SPEED",
+       "fullName": "vlfo2 Speed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MULT",
+       "fullName": "vlfo2 Mult",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DEPTH",
+       "fullName": "vlfo2 Depth",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "PHASE",
+       "fullName": "vlfo2 Phase",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WAVE",
+       "fullName": "vlfo2 Wave",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TRIG",
+       "fullName": "vlfo2 Trig",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FLFO1",
+       "fullName": "flfo1 Dest",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Main - 5",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "FLF1SP",
+       "fullName": "flfo1 Speed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MULT",
+       "fullName": "flfo1 Mult",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DEPTH",
+       "fullName": "flfo1 Depth",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PHASE",
+       "fullName": "flfo1 Phase",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "WAVE",
+       "fullName": "flfo1 Wave",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TRIG",
+       "fullName": "flfo1 Trig",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DEST",
+       "fullName": "flfo2 Dest",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FLF2S",
+       "fullName": "flfo2 Speed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Main - 6",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MULT",
+       "fullName": "flfo2 Mult",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DEPTH",
+       "fullName": "flfo2 Depth",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PHASE",
+       "fullName": "flfo2 Phase",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WAVE",
+       "fullName": "flfo2 Wave",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "TRIG",
+       "fullName": "flfo2 Trig",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DEST",
+       "fullName": "Env Dest",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ATTACK",
+       "fullName": "Env Attack",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HOLD",
+       "fullName": "Env Hold",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Main - 7",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "DECAY",
+       "fullName": "Env Decay",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DEPTH",
+       "fullName": "Env Depth",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "src",
+    "label": "SRC Machine",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Bypass",
+     "Granulator",
+     "One Shot",
+     "Polysample",
+     "Slicer",
+     "Wavescan"
+    ],
+    "min": 0,
+    "max": 5,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 6
+    }
+   },
+   {
+    "key": "machine1",
+    "label": "FX1 Machine",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Bypass",
+     "Clock Pitch",
+     "Comb Filter",
+     "Compressor",
+     "Chain Delay",
+     "Decimator",
+     "Gritshaper",
+     "Fold Filter",
+     "Filterbank",
+     "Spectrum Bender",
+     "Endless Flanger",
+     "Low-Pass Filter",
+     "Multimode Filter",
+     "Wide Chorus",
+     "Phase Array",
+     "Roomtone Reverb",
+     "Drive Delay",
+     "Iron Room Reverb",
+     "Voidspace Reverb",
+     "Flutter",
+     "Tilt"
+    ],
+    "min": 0,
+    "max": 20,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 21
+    }
+   },
+   {
+    "key": "machine2",
+    "label": "FX2 Machine",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Bypass",
+     "Clock Pitch",
+     "Comb Filter",
+     "Compressor",
+     "Chain Delay",
+     "Decimator",
+     "Gritshaper",
+     "Fold Filter",
+     "Filterbank",
+     "Spectrum Bender",
+     "Endless Flanger",
+     "Low-Pass Filter",
+     "Multimode Filter",
+     "Wide Chorus",
+     "Phase Array",
+     "Roomtone Reverb",
+     "Drive Delay",
+     "Iron Room Reverb",
+     "Voidspace Reverb",
+     "Flutter",
+     "Tilt"
+    ],
+    "min": 0,
+    "max": 20,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 21
+    }
+   },
+   {
+    "key": "mix",
+    "label": "Dry/Wet",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "level",
+    "label": "Level",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 127
+    }
+   },
+   {
+    "key": "pan",
+    "label": "Pan",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "pan",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 127
+    }
+   },
+   {
+    "key": "track",
+    "label": "Track",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 7,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 14
+    }
+   },
+   {
+    "key": "seq_on",
+    "label": "Sequencer",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "switch",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 1
+    }
+   },
+   {
+    "key": "seq_len",
+    "label": "Length",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 126
+    }
+   },
+   {
+    "key": "pattern",
+    "label": "Pattern",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 15,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 30
+    }
+   },
+   {
+    "key": "vf_base",
+    "label": "BASE",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "vf_width",
+    "label": "WDTH",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "vf_reso",
+    "label": "RESO",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "vf_env",
+    "label": "ENV",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "vf_atk",
+    "label": "ATK",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "vf_dec",
+    "label": "DEC",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "vf_track",
+    "label": "KEY",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "vlfo1_dest",
+    "label": "vlfo1 Dest",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -1,
+    "max": 14,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 30
+    }
+   },
+   {
+    "key": "vlfo1_spd",
+    "label": "vlfo1 Speed",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "vlfo1_mult",
+    "label": "vlfo1 Mult",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "vlfo1_depth",
+    "label": "vlfo1 Depth",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "vlfo1_phase",
+    "label": "vlfo1 Phase",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "vlfo1_wave",
+    "label": "vlfo1 Wave",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Tri",
+     "Sin",
+     "Sqr",
+     "Saw",
+     "Ramp",
+     "Exp",
+     "Rnd"
+    ],
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 7
+    }
+   },
+   {
+    "key": "vlfo1_trig",
+    "label": "vlfo1 Trig",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Free",
+     "Retrig"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "vlfo2_dest",
+    "label": "vlfo2 Dest",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -1,
+    "max": 14,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 30
+    }
+   },
+   {
+    "key": "vlfo2_spd",
+    "label": "vlfo2 Speed",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "vlfo2_mult",
+    "label": "vlfo2 Mult",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "vlfo2_depth",
+    "label": "vlfo2 Depth",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "vlfo2_phase",
+    "label": "vlfo2 Phase",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "vlfo2_wave",
+    "label": "vlfo2 Wave",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Tri",
+     "Sin",
+     "Sqr",
+     "Saw",
+     "Ramp",
+     "Exp",
+     "Rnd"
+    ],
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 7
+    }
+   },
+   {
+    "key": "vlfo2_trig",
+    "label": "vlfo2 Trig",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Free",
+     "Retrig"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "flfo1_dest",
+    "label": "flfo1 Dest",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -1,
+    "max": 15,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 32
+    }
+   },
+   {
+    "key": "flfo1_spd",
+    "label": "flfo1 Speed",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "flfo1_mult",
+    "label": "flfo1 Mult",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "flfo1_depth",
+    "label": "flfo1 Depth",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "flfo1_phase",
+    "label": "flfo1 Phase",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "flfo1_wave",
+    "label": "flfo1 Wave",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Tri",
+     "Sin",
+     "Sqr",
+     "Saw",
+     "Ramp",
+     "Exp",
+     "Rnd"
+    ],
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 7
+    }
+   },
+   {
+    "key": "flfo1_trig",
+    "label": "flfo1 Trig",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Free",
+     "Retrig"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "flfo2_dest",
+    "label": "flfo2 Dest",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -1,
+    "max": 15,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 32
+    }
+   },
+   {
+    "key": "flfo2_spd",
+    "label": "flfo2 Speed",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "flfo2_mult",
+    "label": "flfo2 Mult",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "flfo2_depth",
+    "label": "flfo2 Depth",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "flfo2_phase",
+    "label": "flfo2 Phase",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "flfo2_wave",
+    "label": "flfo2 Wave",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Tri",
+     "Sin",
+     "Sqr",
+     "Saw",
+     "Ramp",
+     "Exp",
+     "Rnd"
+    ],
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 7
+    }
+   },
+   {
+    "key": "flfo2_trig",
+    "label": "flfo2 Trig",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Free",
+     "Retrig"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "menv_dest",
+    "label": "Env Dest",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -1,
+    "max": 23,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 48
+    }
+   },
+   {
+    "key": "menv_atk",
+    "label": "Env Attack",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "menv_hold",
+    "label": "Env Hold",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "menv_dec",
+    "label": "Env Decay",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "menv_depth",
+    "label": "Env Depth",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [],
+  "noMetadata": [],
+  "warnings": [
+   "has chain_params but no ui_hierarchy and no movy config"
+  ]
+ }
+}

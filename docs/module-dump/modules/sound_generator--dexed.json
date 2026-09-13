@@ -1,11 +1,11 @@
 {
  "id": "dexed",
  "name": "Dexed",
- "version": "0.5.11",
+ "version": "0.5.13",
  "author": "Dexed/MSFA by google/asb2m10 (port: charlesvestal)",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 55,
+ "load_ms": 53,
  "dsp_size": 538792,
  "capabilities": {
   "audio_out": true,
@@ -30,6 +30,7 @@
       },
       {
        "key": "output_level",
+       "short_name": "Output",
        "label": "Output",
        "type": "int",
        "min": 0,
@@ -46,6 +47,7 @@
       },
       {
        "key": "algorithm",
+       "short_name": "ALGO",
        "label": "Algorithm",
        "type": "int",
        "min": 1,
@@ -62,6 +64,7 @@
       },
       {
        "key": "osc_sync",
+       "short_name": "Sync",
        "label": "Osc Sync",
        "type": "int",
        "min": 0,
@@ -78,6 +81,7 @@
       },
       {
        "key": "lfo_speed",
+       "short_name": "Spd",
        "label": "LFO Spd",
        "type": "int",
        "min": 0,
@@ -86,6 +90,7 @@
       },
       {
        "key": "lfo_delay",
+       "short_name": "Dly",
        "label": "LFO Dly",
        "type": "int",
        "min": 0,
@@ -94,6 +99,7 @@
       },
       {
        "key": "lfo_pmd",
+       "short_name": "PMD",
        "label": "LFO PMD",
        "type": "int",
        "min": 0,
@@ -102,6 +108,7 @@
       },
       {
        "key": "lfo_amd",
+       "short_name": "AMD",
        "label": "LFO AMD",
        "type": "int",
        "min": 0,
@@ -110,6 +117,7 @@
       },
       {
        "key": "lfo_pms",
+       "short_name": "PMS",
        "label": "LFO PMS",
        "type": "int",
        "min": 0,
@@ -118,6 +126,7 @@
       },
       {
        "key": "lfo_wave",
+       "short_name": "Wave",
        "label": "LFO Wave",
        "type": "int",
        "min": 0,
@@ -126,6 +135,7 @@
       },
       {
        "key": "lfo_sync",
+       "short_name": "Sync",
        "label": "LFO Sync",
        "type": "int",
        "min": 0,
@@ -134,6 +144,7 @@
       },
       {
        "key": "op1_level",
+       "short_name": "Op1",
        "label": "Op1 Lvl",
        "type": "int",
        "min": 0,
@@ -142,6 +153,7 @@
       },
       {
        "key": "op2_level",
+       "short_name": "Op2",
        "label": "Op2 Lvl",
        "type": "int",
        "min": 0,
@@ -150,6 +162,7 @@
       },
       {
        "key": "op3_level",
+       "short_name": "Op3",
        "label": "Op3 Lvl",
        "type": "int",
        "min": 0,
@@ -158,6 +171,7 @@
       },
       {
        "key": "op4_level",
+       "short_name": "Op4",
        "label": "Op4 Lvl",
        "type": "int",
        "min": 0,
@@ -166,6 +180,7 @@
       },
       {
        "key": "op5_level",
+       "short_name": "Op5",
        "label": "Op5 Lvl",
        "type": "int",
        "min": 0,
@@ -174,6 +189,7 @@
       },
       {
        "key": "op6_level",
+       "short_name": "Op6",
        "label": "Op6 Lvl",
        "type": "int",
        "min": 0,
@@ -1868,35 +1884,42 @@
     "rows": [
      [
       {
-       "shortName": "PRESE",
+       "shortName": "SYX",
+       "fullName": "SYX Banks",
+       "renderStyle": "items",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PRESET",
        "fullName": "Preset",
        "renderStyle": "preset",
        "type": "enum",
-       "displayValue": "0"
+       "displayValue": "..."
       },
       {
-       "shortName": "OUTPU",
+       "shortName": "OUTPUT",
        "fullName": "Output",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "OCTAV",
+       "shortName": "OCTAVE",
        "fullName": "Octave",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
-      },
+      }
+     ],
+     [
       {
        "shortName": "FEEDB",
        "fullName": "Feedback",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
-      }
-     ],
-     [
+      },
       {
        "shortName": "SPD",
        "fullName": "LFO Spd",
@@ -1917,8 +1940,7 @@
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
-      },
-      null
+      }
      ]
     ]
    },
@@ -1932,21 +1954,21 @@
     "rows": [
      [
       {
-       "shortName": "OUTPU",
+       "shortName": "OUTPUT",
        "fullName": "Output",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "OCTAV",
+       "shortName": "OCTAVE",
        "fullName": "Octave",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "ALGOR",
+       "shortName": "ALGORI",
        "fullName": "Algorithm",
        "renderStyle": "arc",
        "type": "int",
@@ -1964,12 +1986,12 @@
       {
        "shortName": "OSC",
        "fullName": "Osc Sync",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "TRANS",
+       "shortName": "TRANSP",
        "fullName": "Transpose",
        "renderStyle": "arc",
        "type": "int",
@@ -2036,7 +2058,7 @@
       {
        "shortName": "SYNC",
        "fullName": "LFO Sync",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
@@ -2054,7 +2076,7 @@
     "rows": [
      [
       {
-       "shortName": "PEGR1",
+       "shortName": "PEG R1",
        "fullName": "PEG R1",
        "renderStyle": "arc",
        "type": "int",
@@ -2084,7 +2106,7 @@
      ],
      [
       {
-       "shortName": "PEGL1",
+       "shortName": "PEG L1",
        "fullName": "PEG L1",
        "renderStyle": "arc",
        "type": "int",
@@ -2126,28 +2148,28 @@
       {
        "shortName": "OP1",
        "fullName": "Op1 Lvl",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "OP2",
        "fullName": "Op2 Lvl",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "OP3",
        "fullName": "Op3 Lvl",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "OP4",
        "fullName": "Op4 Lvl",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       }
@@ -2156,14 +2178,14 @@
       {
        "shortName": "OP5",
        "fullName": "Op5 Lvl",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "OP6",
        "fullName": "Op6 Lvl",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
@@ -2184,7 +2206,7 @@
       {
        "shortName": "LVL",
        "fullName": "Op1 Lvl",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
@@ -2212,14 +2234,14 @@
      ],
      [
       {
-       "shortName": "OP1R1",
+       "shortName": "OP1 R1",
        "fullName": "Op1 R1",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "OP1R4",
+       "shortName": "OP1 R4",
        "fullName": "Op1 R4",
        "renderStyle": "arc",
        "type": "int",
@@ -2228,7 +2250,7 @@
       {
        "shortName": "MODE",
        "fullName": "Op1 Mode",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
@@ -2259,7 +2281,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "OP1RS",
+       "shortName": "OP1 RS",
        "fullName": "Op1 RS",
        "renderStyle": "arc",
        "type": "int",
@@ -2286,28 +2308,28 @@
     "rows": [
      [
       {
-       "shortName": "OP1R1",
+       "shortName": "OP1 R1",
        "fullName": "Op1 R1",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "OP1R2",
+       "shortName": "OP1 R2",
        "fullName": "Op1 R2",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "OP1R3",
+       "shortName": "OP1 R3",
        "fullName": "Op1 R3",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "OP1R4",
+       "shortName": "OP1 R4",
        "fullName": "Op1 R4",
        "renderStyle": "arc",
        "type": "int",
@@ -2316,28 +2338,28 @@
      ],
      [
       {
-       "shortName": "OP1L1",
+       "shortName": "OP1 L1",
        "fullName": "Op1 L1",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "OP1L2",
+       "shortName": "OP1 L2",
        "fullName": "Op1 L2",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "OP1L3",
+       "shortName": "OP1 L3",
        "fullName": "Op1 L3",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "OP1L4",
+       "shortName": "OP1 L4",
        "fullName": "Op1 L4",
        "renderStyle": "arc",
        "type": "int",
@@ -2356,28 +2378,28 @@
     "rows": [
      [
       {
-       "shortName": "OP1BP",
+       "shortName": "OP1 BP",
        "fullName": "Op1 BP",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "OP1LD",
+       "shortName": "OP1 LD",
        "fullName": "Op1 LD",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "OP1RD",
+       "shortName": "OP1 RD",
        "fullName": "Op1 RD",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "OP1LC",
+       "shortName": "OP1 LC",
        "fullName": "Op1 LC",
        "renderStyle": "arc",
        "type": "int",
@@ -2386,7 +2408,7 @@
      ],
      [
       {
-       "shortName": "OP1RC",
+       "shortName": "OP1 RC",
        "fullName": "Op1 RC",
        "renderStyle": "arc",
        "type": "int",
@@ -2410,7 +2432,7 @@
       {
        "shortName": "LVL",
        "fullName": "Op2 Lvl",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
@@ -2438,7 +2460,7 @@
      ],
      [
       {
-       "shortName": "OP2R1",
+       "shortName": "OP2 R1",
        "fullName": "Op2 R1",
        "renderStyle": "arc",
        "type": "int",
@@ -2454,7 +2476,7 @@
       {
        "shortName": "MODE",
        "fullName": "Op2 Mode",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
@@ -2485,7 +2507,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "OP2RS",
+       "shortName": "OP2",
        "fullName": "Op2 RS",
        "renderStyle": "arc",
        "type": "int",
@@ -2512,7 +2534,7 @@
     "rows": [
      [
       {
-       "shortName": "OP2R1",
+       "shortName": "OP2 R1",
        "fullName": "Op2 R1",
        "renderStyle": "arc",
        "type": "int",
@@ -2542,7 +2564,7 @@
      ],
      [
       {
-       "shortName": "OP2L1",
+       "shortName": "OP2 L1",
        "fullName": "Op2 L1",
        "renderStyle": "arc",
        "type": "int",
@@ -2636,7 +2658,7 @@
       {
        "shortName": "LVL",
        "fullName": "Op3 Lvl",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
@@ -2664,7 +2686,7 @@
      ],
      [
       {
-       "shortName": "OP3R1",
+       "shortName": "OP3 R1",
        "fullName": "Op3 R1",
        "renderStyle": "arc",
        "type": "int",
@@ -2680,7 +2702,7 @@
       {
        "shortName": "MODE",
        "fullName": "Op3 Mode",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
@@ -2711,7 +2733,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "OP3RS",
+       "shortName": "OP3",
        "fullName": "Op3 RS",
        "renderStyle": "arc",
        "type": "int",
@@ -2738,7 +2760,7 @@
     "rows": [
      [
       {
-       "shortName": "OP3R1",
+       "shortName": "OP3 R1",
        "fullName": "Op3 R1",
        "renderStyle": "arc",
        "type": "int",
@@ -2768,7 +2790,7 @@
      ],
      [
       {
-       "shortName": "OP3L1",
+       "shortName": "OP3 L1",
        "fullName": "Op3 L1",
        "renderStyle": "arc",
        "type": "int",
@@ -2862,7 +2884,7 @@
       {
        "shortName": "LVL",
        "fullName": "Op4 Lvl",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
@@ -2890,7 +2912,7 @@
      ],
      [
       {
-       "shortName": "OP4R1",
+       "shortName": "OP4 R1",
        "fullName": "Op4 R1",
        "renderStyle": "arc",
        "type": "int",
@@ -2906,7 +2928,7 @@
       {
        "shortName": "MODE",
        "fullName": "Op4 Mode",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
@@ -2937,7 +2959,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "OP4RS",
+       "shortName": "OP4",
        "fullName": "Op4 RS",
        "renderStyle": "arc",
        "type": "int",
@@ -2964,7 +2986,7 @@
     "rows": [
      [
       {
-       "shortName": "OP4R1",
+       "shortName": "OP4 R1",
        "fullName": "Op4 R1",
        "renderStyle": "arc",
        "type": "int",
@@ -2994,7 +3016,7 @@
      ],
      [
       {
-       "shortName": "OP4L1",
+       "shortName": "OP4 L1",
        "fullName": "Op4 L1",
        "renderStyle": "arc",
        "type": "int",
@@ -3088,7 +3110,7 @@
       {
        "shortName": "LVL",
        "fullName": "Op5 Lvl",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
@@ -3116,7 +3138,7 @@
      ],
      [
       {
-       "shortName": "OP5R1",
+       "shortName": "OP5 R1",
        "fullName": "Op5 R1",
        "renderStyle": "arc",
        "type": "int",
@@ -3132,7 +3154,7 @@
       {
        "shortName": "MODE",
        "fullName": "Op5 Mode",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
@@ -3163,7 +3185,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "OP5RS",
+       "shortName": "OP5",
        "fullName": "Op5 RS",
        "renderStyle": "arc",
        "type": "int",
@@ -3190,7 +3212,7 @@
     "rows": [
      [
       {
-       "shortName": "OP5R1",
+       "shortName": "OP5 R1",
        "fullName": "Op5 R1",
        "renderStyle": "arc",
        "type": "int",
@@ -3220,7 +3242,7 @@
      ],
      [
       {
-       "shortName": "OP5L1",
+       "shortName": "OP5 L1",
        "fullName": "Op5 L1",
        "renderStyle": "arc",
        "type": "int",
@@ -3314,7 +3336,7 @@
       {
        "shortName": "LVL",
        "fullName": "Op6 Lvl",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
@@ -3342,7 +3364,7 @@
      ],
      [
       {
-       "shortName": "OP6R1",
+       "shortName": "OP6 R1",
        "fullName": "Op6 R1",
        "renderStyle": "arc",
        "type": "int",
@@ -3358,7 +3380,7 @@
       {
        "shortName": "MODE",
        "fullName": "Op6 Mode",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
@@ -3389,7 +3411,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "OP6RS",
+       "shortName": "OP6",
        "fullName": "Op6 RS",
        "renderStyle": "arc",
        "type": "int",
@@ -3416,7 +3438,7 @@
     "rows": [
      [
       {
-       "shortName": "OP6R1",
+       "shortName": "OP6 R1",
        "fullName": "Op6 R1",
        "renderStyle": "arc",
        "type": "int",
@@ -3446,7 +3468,7 @@
      ],
      [
       {
-       "shortName": "OP6L1",
+       "shortName": "OP6 L1",
        "fullName": "Op6 L1",
        "renderStyle": "arc",
        "type": "int",
@@ -3531,6 +3553,94 @@
   ],
   "params": [
    {
+    "key": "syx_bank_index",
+    "label": "SYX Banks",
+    "shortLabel": null,
+    "type": "enum",
+    "min": 0,
+    "max": 32,
+    "step": 1,
+    "options": [
+     "Dexed_01.syx",
+     "SynprezFM_01.syx",
+     "SynprezFM_02.syx",
+     "SynprezFM_03.syx",
+     "SynprezFM_04.syx",
+     "SynprezFM_05.syx",
+     "SynprezFM_06.syx",
+     "SynprezFM_07.syx",
+     "SynprezFM_08.syx",
+     "SynprezFM_09.syx",
+     "SynprezFM_10.syx",
+     "SynprezFM_11.syx",
+     "SynprezFM_12.syx",
+     "SynprezFM_13.syx",
+     "SynprezFM_14.syx",
+     "SynprezFM_15.syx",
+     "SynprezFM_16.syx",
+     "SynprezFM_17.syx",
+     "SynprezFM_18.syx",
+     "SynprezFM_19.syx",
+     "SynprezFM_20.syx",
+     "SynprezFM_21.syx",
+     "SynprezFM_22.syx",
+     "SynprezFM_23.syx",
+     "SynprezFM_24.syx",
+     "SynprezFM_25.syx",
+     "SynprezFM_26.syx",
+     "SynprezFM_27.syx",
+     "SynprezFM_28.syx",
+     "SynprezFM_29.syx",
+     "SynprezFM_30.syx",
+     "SynprezFM_31.syx",
+     "SynprezFM_32.syx"
+    ],
+    "itemIndices": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14,
+     15,
+     16,
+     17,
+     18,
+     19,
+     20,
+     21,
+     22,
+     23,
+     24,
+     25,
+     26,
+     27,
+     28,
+     29,
+     30,
+     31,
+     32
+    ],
+    "itemsKey": "syx_bank_list",
+    "renderStyle": "items",
+    "capturesModuleState": true,
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 33
+    }
+   },
+   {
     "key": "preset",
     "label": "Preset",
     "shortLabel": null,
@@ -3541,6 +3651,7 @@
     "options": null,
     "nameKey": "preset_name",
     "renderStyle": "preset",
+    "capturesModuleState": true,
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -3557,12 +3668,12 @@
     "min": 0,
     "max": 100,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 200
+     "perDetent": 1,
+     "detentsFullSweep": 100
     }
    },
    {
@@ -3574,12 +3685,13 @@
     "min": -3,
     "max": 3,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
+    "signed": true,
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 12
+     "perDetent": 1,
+     "detentsFullSweep": 6
     }
    },
    {
@@ -3650,7 +3762,6 @@
      "detentsFullSweep": 198
     }
    },
-   null,
    {
     "key": "output_level",
     "label": "Output",
@@ -3660,12 +3771,12 @@
     "min": 0,
     "max": 100,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 200
+     "perDetent": 1,
+     "detentsFullSweep": 100
     }
    },
    {
@@ -3677,12 +3788,13 @@
     "min": -3,
     "max": 3,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
+    "signed": true,
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 12
+     "perDetent": 1,
+     "detentsFullSweep": 6
     }
    },
    {
@@ -3728,7 +3840,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -3866,7 +3978,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -4020,12 +4132,12 @@
     "min": 0,
     "max": 99,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 198
+     "perDetent": 1,
+     "detentsFullSweep": 99
     }
    },
    {
@@ -4037,12 +4149,12 @@
     "min": 0,
     "max": 99,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 198
+     "perDetent": 1,
+     "detentsFullSweep": 99
     }
    },
    {
@@ -4054,12 +4166,12 @@
     "min": 0,
     "max": 99,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 198
+     "perDetent": 1,
+     "detentsFullSweep": 99
     }
    },
    {
@@ -4071,12 +4183,12 @@
     "min": 0,
     "max": 99,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 198
+     "perDetent": 1,
+     "detentsFullSweep": 99
     }
    },
    {
@@ -4088,12 +4200,12 @@
     "min": 0,
     "max": 99,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 198
+     "perDetent": 1,
+     "detentsFullSweep": 99
     }
    },
    {
@@ -4105,12 +4217,12 @@
     "min": 0,
     "max": 99,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 198
+     "perDetent": 1,
+     "detentsFullSweep": 99
     }
    },
    null,
@@ -4124,18 +4236,18 @@
     "min": 0,
     "max": 99,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 198
+     "perDetent": 1,
+     "detentsFullSweep": 99
     }
    },
    {
     "key": "op1_coarse",
     "label": "Op1 Crs",
-    "shortLabel": null,
+    "shortLabel": "Crs",
     "type": "int",
     "options": null,
     "min": 0,
@@ -4169,7 +4281,7 @@
    {
     "key": "op1_detune",
     "label": "Op1 Det",
-    "shortLabel": null,
+    "shortLabel": "Det",
     "type": "int",
     "options": null,
     "min": -7,
@@ -4220,13 +4332,13 @@
    {
     "key": "op1_osc_mode",
     "label": "Op1 Mode",
-    "shortLabel": null,
+    "shortLabel": "Mode",
     "type": "int",
     "options": null,
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -4237,7 +4349,7 @@
    {
     "key": "op1_vel_sens",
     "label": "Op1 Vel",
-    "shortLabel": null,
+    "shortLabel": "Vel",
     "type": "int",
     "options": null,
     "min": 0,
@@ -4254,7 +4366,7 @@
    {
     "key": "op1_amp_mod",
     "label": "Op1 AMS",
-    "shortLabel": null,
+    "shortLabel": "AMS",
     "type": "int",
     "options": null,
     "min": 0,
@@ -4524,18 +4636,18 @@
     "min": 0,
     "max": 99,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 198
+     "perDetent": 1,
+     "detentsFullSweep": 99
     }
    },
    {
     "key": "op2_coarse",
     "label": "Op2 Crs",
-    "shortLabel": null,
+    "shortLabel": "Crs",
     "type": "int",
     "options": null,
     "min": 0,
@@ -4569,7 +4681,7 @@
    {
     "key": "op2_detune",
     "label": "Op2 Det",
-    "shortLabel": null,
+    "shortLabel": "Det",
     "type": "int",
     "options": null,
     "min": -7,
@@ -4620,13 +4732,13 @@
    {
     "key": "op2_osc_mode",
     "label": "Op2 Mode",
-    "shortLabel": null,
+    "shortLabel": "Mode",
     "type": "int",
     "options": null,
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -4637,7 +4749,7 @@
    {
     "key": "op2_vel_sens",
     "label": "Op2 Vel",
-    "shortLabel": null,
+    "shortLabel": "Vel",
     "type": "int",
     "options": null,
     "min": 0,
@@ -4654,7 +4766,7 @@
    {
     "key": "op2_amp_mod",
     "label": "Op2 AMS",
-    "shortLabel": null,
+    "shortLabel": "AMS",
     "type": "int",
     "options": null,
     "min": 0,
@@ -4924,18 +5036,18 @@
     "min": 0,
     "max": 99,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 198
+     "perDetent": 1,
+     "detentsFullSweep": 99
     }
    },
    {
     "key": "op3_coarse",
     "label": "Op3 Crs",
-    "shortLabel": null,
+    "shortLabel": "Crs",
     "type": "int",
     "options": null,
     "min": 0,
@@ -4969,7 +5081,7 @@
    {
     "key": "op3_detune",
     "label": "Op3 Det",
-    "shortLabel": null,
+    "shortLabel": "Det",
     "type": "int",
     "options": null,
     "min": -7,
@@ -5020,13 +5132,13 @@
    {
     "key": "op3_osc_mode",
     "label": "Op3 Mode",
-    "shortLabel": null,
+    "shortLabel": "Mode",
     "type": "int",
     "options": null,
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -5037,7 +5149,7 @@
    {
     "key": "op3_vel_sens",
     "label": "Op3 Vel",
-    "shortLabel": null,
+    "shortLabel": "Vel",
     "type": "int",
     "options": null,
     "min": 0,
@@ -5054,7 +5166,7 @@
    {
     "key": "op3_amp_mod",
     "label": "Op3 AMS",
-    "shortLabel": null,
+    "shortLabel": "AMS",
     "type": "int",
     "options": null,
     "min": 0,
@@ -5324,18 +5436,18 @@
     "min": 0,
     "max": 99,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 198
+     "perDetent": 1,
+     "detentsFullSweep": 99
     }
    },
    {
     "key": "op4_coarse",
     "label": "Op4 Crs",
-    "shortLabel": null,
+    "shortLabel": "Crs",
     "type": "int",
     "options": null,
     "min": 0,
@@ -5369,7 +5481,7 @@
    {
     "key": "op4_detune",
     "label": "Op4 Det",
-    "shortLabel": null,
+    "shortLabel": "Det",
     "type": "int",
     "options": null,
     "min": -7,
@@ -5420,13 +5532,13 @@
    {
     "key": "op4_osc_mode",
     "label": "Op4 Mode",
-    "shortLabel": null,
+    "shortLabel": "Mode",
     "type": "int",
     "options": null,
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -5437,7 +5549,7 @@
    {
     "key": "op4_vel_sens",
     "label": "Op4 Vel",
-    "shortLabel": null,
+    "shortLabel": "Vel",
     "type": "int",
     "options": null,
     "min": 0,
@@ -5454,7 +5566,7 @@
    {
     "key": "op4_amp_mod",
     "label": "Op4 AMS",
-    "shortLabel": null,
+    "shortLabel": "AMS",
     "type": "int",
     "options": null,
     "min": 0,
@@ -5724,18 +5836,18 @@
     "min": 0,
     "max": 99,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 198
+     "perDetent": 1,
+     "detentsFullSweep": 99
     }
    },
    {
     "key": "op5_coarse",
     "label": "Op5 Crs",
-    "shortLabel": null,
+    "shortLabel": "Crs",
     "type": "int",
     "options": null,
     "min": 0,
@@ -5769,7 +5881,7 @@
    {
     "key": "op5_detune",
     "label": "Op5 Det",
-    "shortLabel": null,
+    "shortLabel": "Det",
     "type": "int",
     "options": null,
     "min": -7,
@@ -5820,13 +5932,13 @@
    {
     "key": "op5_osc_mode",
     "label": "Op5 Mode",
-    "shortLabel": null,
+    "shortLabel": "Mode",
     "type": "int",
     "options": null,
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -5837,7 +5949,7 @@
    {
     "key": "op5_vel_sens",
     "label": "Op5 Vel",
-    "shortLabel": null,
+    "shortLabel": "Vel",
     "type": "int",
     "options": null,
     "min": 0,
@@ -5854,7 +5966,7 @@
    {
     "key": "op5_amp_mod",
     "label": "Op5 AMS",
-    "shortLabel": null,
+    "shortLabel": "AMS",
     "type": "int",
     "options": null,
     "min": 0,
@@ -6124,18 +6236,18 @@
     "min": 0,
     "max": 99,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 198
+     "perDetent": 1,
+     "detentsFullSweep": 99
     }
    },
    {
     "key": "op6_coarse",
     "label": "Op6 Crs",
-    "shortLabel": null,
+    "shortLabel": "Crs",
     "type": "int",
     "options": null,
     "min": 0,
@@ -6169,7 +6281,7 @@
    {
     "key": "op6_detune",
     "label": "Op6 Det",
-    "shortLabel": null,
+    "shortLabel": "Det",
     "type": "int",
     "options": null,
     "min": -7,
@@ -6220,13 +6332,13 @@
    {
     "key": "op6_osc_mode",
     "label": "Op6 Mode",
-    "shortLabel": null,
+    "shortLabel": "Mode",
     "type": "int",
     "options": null,
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -6237,7 +6349,7 @@
    {
     "key": "op6_vel_sens",
     "label": "Op6 Vel",
-    "shortLabel": null,
+    "shortLabel": "Vel",
     "type": "int",
     "options": null,
     "min": 0,
@@ -6254,7 +6366,7 @@
    {
     "key": "op6_amp_mod",
     "label": "Op6 AMS",
-    "shortLabel": null,
+    "shortLabel": "AMS",
     "type": "int",
     "options": null,
     "min": 0,
@@ -6519,7 +6631,11 @@
  },
  "analysis": {
   "hiddenParams": [],
-  "noMetadata": [],
-  "warnings": []
+  "noMetadata": [
+   "syx_bank_index"
+  ],
+  "warnings": [
+   "1 shown params lack chain_params metadata (movy guesses type/range): syx_bank_index"
+  ]
  }
 }

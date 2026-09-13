@@ -5,7 +5,7 @@
  "author": "fillioning",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 73,
+ "load_ms": 55,
  "dsp_size": 74976,
  "capabilities": {
   "chain_params": [
@@ -599,11 +599,11 @@
     "rows": [
      [
       {
-       "shortName": "DISSO",
+       "shortName": "DISSOL",
        "fullName": "Dissolve",
        "renderStyle": "arc",
        "type": "float",
-       "displayValue": "100%"
+       "displayValue": "..."
       },
       {
        "shortName": "FREEZ",
@@ -613,7 +613,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "STRET",
+       "shortName": "STRETC",
        "fullName": "Stretch",
        "renderStyle": "arc",
        "type": "float",
@@ -629,7 +629,7 @@
      ],
      [
       {
-       "shortName": "EVOLU",
+       "shortName": "EVOLUT",
        "fullName": "Evolution",
        "renderStyle": "arc",
        "type": "float",
@@ -683,7 +683,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SW",
+       "shortName": "STEREO",
        "fullName": "Stereo Width",
        "renderStyle": "arc",
        "type": "float",
@@ -720,9 +720,9 @@
        "displayValue": "..."
       },
       {
-       "shortName": "OL",
+       "shortName": "OUTPUT",
        "fullName": "Output Level",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       }
@@ -739,7 +739,7 @@
     "rows": [
      [
       {
-       "shortName": "AT",
+       "shortName": "ATTACK",
        "fullName": "Attack Time",
        "renderStyle": "arc",
        "type": "float",
@@ -1029,12 +1029,12 @@
     "min": 0,
     "max": 1,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
     }
    },
    {

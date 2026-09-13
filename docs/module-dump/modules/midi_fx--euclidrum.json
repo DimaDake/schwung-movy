@@ -5,7 +5,7 @@
  "author": "Vincent Fillion",
  "category": "midi_fx",
  "status": "ok",
- "load_ms": 52,
+ "load_ms": 53,
  "dsp_size": 53232,
  "capabilities": {
   "chainable": true,
@@ -2317,28 +2317,28 @@
       {
        "shortName": "L1",
        "fullName": "L1",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
-       "displayValue": "on"
+       "displayValue": "..."
       },
       {
        "shortName": "L2",
        "fullName": "L2",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
       {
        "shortName": "L3",
        "fullName": "L3",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
       {
        "shortName": "L4",
        "fullName": "L4",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       }
@@ -2347,28 +2347,28 @@
       {
        "shortName": "L5",
        "fullName": "L5",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
       {
        "shortName": "L6",
        "fullName": "L6",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
       {
        "shortName": "L7",
        "fullName": "L7",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
       {
        "shortName": "L8",
        "fullName": "L8",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       }
@@ -2385,7 +2385,7 @@
     "rows": [
      [
       {
-       "shortName": "PRESE",
+       "shortName": "PRESET",
        "fullName": "Preset",
        "renderStyle": "arc",
        "type": "enum",
@@ -2422,7 +2422,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "MUTAT",
+       "shortName": "MUTATE",
        "fullName": "Mutate",
        "renderStyle": "arc",
        "type": "int",
@@ -2476,9 +2476,9 @@
        "displayValue": "..."
       },
       {
-       "shortName": "VOICE",
+       "shortName": "VOICES",
        "fullName": "Voices",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
       }
@@ -2499,9 +2499,9 @@
        "displayValue": "..."
       },
       {
-       "shortName": "PASST",
+       "shortName": "PASSTH",
        "fullName": "Passthru",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -2521,7 +2521,7 @@
       {
        "shortName": "L1",
        "fullName": "L1",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -2540,7 +2540,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "ROTAT",
+       "shortName": "ROTATI",
        "fullName": "Rotation",
        "renderStyle": "arc",
        "type": "int",
@@ -2556,7 +2556,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "ACCEN",
+       "shortName": "ACCENT",
        "fullName": "Accent",
        "renderStyle": "arc",
        "type": "int",
@@ -2596,14 +2596,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "VELOC",
+       "shortName": "VELOCI",
        "fullName": "Velocity",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "AA",
+       "shortName": "ACCENT",
        "fullName": "Accent Amt",
        "renderStyle": "arc",
        "type": "int",
@@ -2655,7 +2655,7 @@
       {
        "shortName": "L2",
        "fullName": "L2",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -2674,7 +2674,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "ROTAT",
+       "shortName": "ROTATI",
        "fullName": "Rotation",
        "renderStyle": "arc",
        "type": "int",
@@ -2690,7 +2690,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "ACCEN",
+       "shortName": "ACCENT",
        "fullName": "Accent",
        "renderStyle": "arc",
        "type": "int",
@@ -2730,14 +2730,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "VELOC",
+       "shortName": "VELOCI",
        "fullName": "Velocity",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "AA",
+       "shortName": "ACCENT",
        "fullName": "Accent Amt",
        "renderStyle": "arc",
        "type": "int",
@@ -2789,7 +2789,7 @@
       {
        "shortName": "L3",
        "fullName": "L3",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -2808,7 +2808,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "ROTAT",
+       "shortName": "ROTATI",
        "fullName": "Rotation",
        "renderStyle": "arc",
        "type": "int",
@@ -2824,7 +2824,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "ACCEN",
+       "shortName": "ACCENT",
        "fullName": "Accent",
        "renderStyle": "arc",
        "type": "int",
@@ -2864,14 +2864,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "VELOC",
+       "shortName": "VELOCI",
        "fullName": "Velocity",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "AA",
+       "shortName": "ACCENT",
        "fullName": "Accent Amt",
        "renderStyle": "arc",
        "type": "int",
@@ -2923,7 +2923,7 @@
       {
        "shortName": "L4",
        "fullName": "L4",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -2942,7 +2942,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "ROTAT",
+       "shortName": "ROTATI",
        "fullName": "Rotation",
        "renderStyle": "arc",
        "type": "int",
@@ -2958,7 +2958,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "ACCEN",
+       "shortName": "ACCENT",
        "fullName": "Accent",
        "renderStyle": "arc",
        "type": "int",
@@ -2998,14 +2998,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "VELOC",
+       "shortName": "VELOCI",
        "fullName": "Velocity",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "AA",
+       "shortName": "ACCENT",
        "fullName": "Accent Amt",
        "renderStyle": "arc",
        "type": "int",
@@ -3057,7 +3057,7 @@
       {
        "shortName": "L5",
        "fullName": "L5",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -3076,7 +3076,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "ROTAT",
+       "shortName": "ROTATI",
        "fullName": "Rotation",
        "renderStyle": "arc",
        "type": "int",
@@ -3092,7 +3092,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "ACCEN",
+       "shortName": "ACCENT",
        "fullName": "Accent",
        "renderStyle": "arc",
        "type": "int",
@@ -3132,14 +3132,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "VELOC",
+       "shortName": "VELOCI",
        "fullName": "Velocity",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "AA",
+       "shortName": "ACCENT",
        "fullName": "Accent Amt",
        "renderStyle": "arc",
        "type": "int",
@@ -3191,7 +3191,7 @@
       {
        "shortName": "L6",
        "fullName": "L6",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -3210,7 +3210,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "ROTAT",
+       "shortName": "ROTATI",
        "fullName": "Rotation",
        "renderStyle": "arc",
        "type": "int",
@@ -3226,7 +3226,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "ACCEN",
+       "shortName": "ACCENT",
        "fullName": "Accent",
        "renderStyle": "arc",
        "type": "int",
@@ -3266,14 +3266,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "VELOC",
+       "shortName": "VELOCI",
        "fullName": "Velocity",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "AA",
+       "shortName": "ACCENT",
        "fullName": "Accent Amt",
        "renderStyle": "arc",
        "type": "int",
@@ -3325,7 +3325,7 @@
       {
        "shortName": "L7",
        "fullName": "L7",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -3344,7 +3344,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "ROTAT",
+       "shortName": "ROTATI",
        "fullName": "Rotation",
        "renderStyle": "arc",
        "type": "int",
@@ -3360,7 +3360,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "ACCEN",
+       "shortName": "ACCENT",
        "fullName": "Accent",
        "renderStyle": "arc",
        "type": "int",
@@ -3400,14 +3400,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "VELOC",
+       "shortName": "VELOCI",
        "fullName": "Velocity",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "AA",
+       "shortName": "ACCENT",
        "fullName": "Accent Amt",
        "renderStyle": "arc",
        "type": "int",
@@ -3459,7 +3459,7 @@
       {
        "shortName": "L8",
        "fullName": "L8",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -3478,7 +3478,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "ROTAT",
+       "shortName": "ROTATI",
        "fullName": "Rotation",
        "renderStyle": "arc",
        "type": "int",
@@ -3494,7 +3494,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "ACCEN",
+       "shortName": "ACCENT",
        "fullName": "Accent",
        "renderStyle": "arc",
        "type": "int",
@@ -3534,14 +3534,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "VELOC",
+       "shortName": "VELOCI",
        "fullName": "Velocity",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "AA",
+       "shortName": "ACCENT",
        "fullName": "Accent Amt",
        "renderStyle": "arc",
        "type": "int",
@@ -3595,7 +3595,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -3615,7 +3615,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -3635,7 +3635,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -3655,7 +3655,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -3675,7 +3675,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -3695,7 +3695,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -3715,7 +3715,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -3735,7 +3735,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -3988,12 +3988,12 @@
     "min": 1,
     "max": 64,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 126
+     "perDetent": 1,
+     "detentsFullSweep": 63
     }
    },
    {
@@ -4042,7 +4042,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -4063,7 +4063,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -4330,7 +4330,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -4597,7 +4597,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -4864,7 +4864,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -5131,7 +5131,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -5398,7 +5398,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -5665,7 +5665,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -5932,7 +5932,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",

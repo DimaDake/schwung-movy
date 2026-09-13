@@ -1,11 +1,11 @@
 {
  "id": "nusaw",
  "name": "NuSaw",
- "version": "0.2.1",
+ "version": "0.2.2",
  "author": "charlesvestal",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 67,
+ "load_ms": 53,
  "dsp_size": 136496,
  "capabilities": {
   "audio_out": true,
@@ -70,6 +70,7 @@
       },
       {
        "key": "f_amount",
+       "short_name": "Amt",
        "label": "Filt Env",
        "type": "float",
        "min": 0,
@@ -120,6 +121,7 @@
       },
       {
        "key": "f_attack",
+       "short_name": "Attack",
        "label": "F Attack",
        "type": "float",
        "min": 0,
@@ -130,6 +132,7 @@
       },
       {
        "key": "f_decay",
+       "short_name": "Decay",
        "label": "F Decay",
        "type": "float",
        "min": 0,
@@ -140,6 +143,7 @@
       },
       {
        "key": "f_sustain",
+       "short_name": "Sustain",
        "label": "F Sustain",
        "type": "float",
        "min": 0,
@@ -150,6 +154,7 @@
       },
       {
        "key": "f_release",
+       "short_name": "Release",
        "label": "F Release",
        "type": "float",
        "min": 0,
@@ -170,6 +175,7 @@
       },
       {
        "key": "vel_sens",
+       "short_name": "Sens",
        "label": "Vel Sens",
        "type": "float",
        "min": 0,
@@ -180,6 +186,7 @@
       },
       {
        "key": "bend_range",
+       "short_name": "Bend",
        "label": "Bend Range",
        "type": "float",
        "min": 0,
@@ -200,6 +207,7 @@
       },
       {
        "key": "sub_octave",
+       "short_name": "Oct",
        "label": "Sub Oct",
        "type": "int",
        "min": -2,
@@ -226,6 +234,7 @@
       },
       {
        "key": "chorus_depth",
+       "short_name": "Chr",
        "label": "Chr Depth",
        "type": "float",
        "min": 0,
@@ -236,6 +245,7 @@
       },
       {
        "key": "delay_time",
+       "short_name": "Time",
        "label": "Dly Time",
        "type": "float",
        "min": 0,
@@ -246,6 +256,7 @@
       },
       {
        "key": "delay_fback",
+       "short_name": "Fback",
        "label": "Dly Fback",
        "type": "float",
        "min": 0,
@@ -266,6 +277,7 @@
       },
       {
        "key": "delay_tone",
+       "short_name": "Tone",
        "label": "Dly Tone",
        "type": "float",
        "min": 0,
@@ -640,11 +652,11 @@
     "rows": [
      [
       {
-       "shortName": "PRESE",
+       "shortName": "PRESET",
        "fullName": "Preset",
        "renderStyle": "preset",
        "type": "enum",
-       "displayValue": "0"
+       "displayValue": "..."
       },
       null,
       null,
@@ -668,7 +680,7 @@
     "rows": [
      [
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
        "type": "float",
@@ -682,7 +694,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DETUN",
+       "shortName": "DETUNE",
        "fullName": "Detune",
        "renderStyle": "arc",
        "type": "float",
@@ -698,7 +710,7 @@
      ],
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "Attack",
        "renderStyle": "arc",
        "type": "float",
@@ -712,7 +724,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SUSTA",
+       "shortName": "SUSTAI",
        "fullName": "Sustain",
        "renderStyle": "arc",
        "type": "float",
@@ -738,7 +750,7 @@
     "rows": [
      [
       {
-       "shortName": "DETUN",
+       "shortName": "DETUNE",
        "fullName": "Detune",
        "renderStyle": "arc",
        "type": "float",
@@ -761,7 +773,7 @@
       {
        "shortName": "SUB",
        "fullName": "Sub",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       }
@@ -770,7 +782,7 @@
       {
        "shortName": "OCT",
        "fullName": "Sub Oct",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
       },
@@ -790,7 +802,7 @@
     "rows": [
      [
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
        "type": "float",
@@ -830,7 +842,7 @@
     "rows": [
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "F Attack",
        "renderStyle": "arc",
        "type": "float",
@@ -844,7 +856,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SUSTA",
+       "shortName": "SUSTAI",
        "fullName": "F Sustain",
        "renderStyle": "arc",
        "type": "float",
@@ -882,7 +894,7 @@
     "rows": [
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "Attack",
        "renderStyle": "arc",
        "type": "float",
@@ -896,7 +908,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SUSTA",
+       "shortName": "SUSTAI",
        "fullName": "Sustain",
        "renderStyle": "arc",
        "type": "float",
@@ -1010,7 +1022,7 @@
       {
        "shortName": "VOLUM",
        "fullName": "Volume",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
@@ -1029,9 +1041,9 @@
        "displayValue": "..."
       },
       {
-       "shortName": "OCTAV",
+       "shortName": "OCTAVE",
        "fullName": "Octave",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
       }
@@ -1057,6 +1069,7 @@
     "options": null,
     "nameKey": "preset_name",
     "renderStyle": "preset",
+    "capturesModuleState": true,
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -1267,12 +1280,12 @@
     "min": 0,
     "max": 1,
     "step": 0.02,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
     }
    },
    {
@@ -1284,12 +1297,13 @@
     "min": -2,
     "max": 0,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
+    "signed": true,
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 4
+     "perDetent": 1,
+     "detentsFullSweep": 2
     }
    },
    null,
@@ -1632,12 +1646,12 @@
     "min": 0,
     "max": 1,
     "step": 0.02,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
     }
    },
    {
@@ -1683,12 +1697,13 @@
     "min": -3,
     "max": 3,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
+    "signed": true,
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 12
+     "perDetent": 1,
+     "detentsFullSweep": 6
     }
    },
    null,

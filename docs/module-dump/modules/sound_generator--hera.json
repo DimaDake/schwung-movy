@@ -1,11 +1,11 @@
 {
  "id": "hera",
  "name": "Hera",
- "version": "0.1.5",
+ "version": "0.1.7",
  "author": "jpcima (port: charlesvestal)",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 73,
+ "load_ms": 90,
  "dsp_size": 651256,
  "capabilities": {
   "audio_out": true,
@@ -40,6 +40,7 @@
       },
       {
        "key": "vcf_cutoff",
+       "short_name": "Cutoff",
        "label": "Cutoff",
        "type": "float",
        "min": 0,
@@ -50,6 +51,7 @@
       },
       {
        "key": "vcf_resonance",
+       "short_name": "Reso",
        "label": "Resonance",
        "type": "float",
        "min": 0,
@@ -60,6 +62,7 @@
       },
       {
        "key": "vcf_env",
+       "short_name": "Env",
        "label": "VCF Env",
        "type": "float",
        "min": -1,
@@ -110,6 +113,7 @@
       },
       {
        "key": "lfo_rate",
+       "short_name": "Rate",
        "label": "LFO Rate",
        "type": "float",
        "min": 0,
@@ -497,11 +501,11 @@
     "rows": [
      [
       {
-       "shortName": "PRESE",
+       "shortName": "PRESET",
        "fullName": "Preset",
        "renderStyle": "preset",
        "type": "enum",
-       "displayValue": "0"
+       "displayValue": "..."
       },
       null,
       null,
@@ -525,7 +529,7 @@
     "rows": [
      [
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "VCF Cutoff",
        "renderStyle": "arc",
        "type": "float",
@@ -541,7 +545,7 @@
       {
        "shortName": "VOLUM",
        "fullName": "Volume",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
@@ -555,7 +559,7 @@
      ],
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "Attack",
        "renderStyle": "arc",
        "type": "float",
@@ -569,16 +573,16 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SUSTA",
+       "shortName": "SUSTAI",
        "fullName": "Sustain",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "OCTAV",
+       "shortName": "OCTAVE",
        "fullName": "Octave",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
       }
@@ -597,28 +601,28 @@
       {
        "shortName": "SAW",
        "fullName": "Saw Level",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "PULSE",
        "fullName": "Pulse Level",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "SUB",
        "fullName": "Sub Level",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "NOISE",
        "fullName": "Noise Level",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       }
@@ -665,7 +669,7 @@
     "rows": [
      [
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "VCF Cutoff",
        "renderStyle": "arc",
        "type": "float",
@@ -732,7 +736,7 @@
       {
        "shortName": "TYPE",
        "fullName": "VCA Type",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
@@ -757,7 +761,7 @@
     "rows": [
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "Attack",
        "renderStyle": "arc",
        "type": "float",
@@ -771,7 +775,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SUSTA",
+       "shortName": "SUSTAI",
        "fullName": "Sustain",
        "renderStyle": "arc",
        "type": "float",
@@ -817,9 +821,9 @@
        "displayValue": "..."
       },
       {
-       "shortName": "TRIGG",
+       "shortName": "TRIGGE",
        "fullName": "LFO Trigger",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
@@ -845,21 +849,21 @@
       {
        "shortName": "HPF",
        "fullName": "HPF",
-       "renderStyle": "arc",
+       "renderStyle": "cut",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "CHORI",
+       "shortName": "CHORUI",
        "fullName": "Chorus I",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "CHOII",
+       "shortName": "CHORII",
        "fullName": "Chorus II",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
@@ -886,6 +890,7 @@
     "options": null,
     "nameKey": "preset_name",
     "renderStyle": "preset",
+    "capturesModuleState": true,
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -909,12 +914,12 @@
     "min": 0,
     "max": 1,
     "step": 0.02,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
     }
    },
    {
@@ -1028,12 +1033,13 @@
     "min": -3,
     "max": 3,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
+    "signed": true,
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 12
+     "perDetent": 1,
+     "detentsFullSweep": 6
     }
    },
    {
@@ -1045,12 +1051,12 @@
     "min": 0,
     "max": 1,
     "step": 0.02,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
     }
    },
    {
@@ -1062,12 +1068,12 @@
     "min": 0,
     "max": 1,
     "step": 0.02,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
     }
    },
    {
@@ -1079,12 +1085,12 @@
     "min": 0,
     "max": 1,
     "step": 0.02,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
     }
    },
    {
@@ -1096,12 +1102,12 @@
     "min": 0,
     "max": 1,
     "step": 0.02,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
     }
    },
    {
@@ -1302,7 +1308,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -1431,7 +1437,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -1470,7 +1476,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -1487,7 +1493,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",

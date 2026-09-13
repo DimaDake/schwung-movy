@@ -5,7 +5,7 @@
  "author": "charlesvestal",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 47,
+ "load_ms": 64,
  "dsp_size": 19032,
  "capabilities": {
   "chainable": true,
@@ -171,7 +171,7 @@
        "fullName": "Model",
        "renderStyle": "arc",
        "type": "enum",
-       "displayValue": "Hall"
+       "displayValue": "..."
       },
       {
        "shortName": "DECAY",
@@ -190,7 +190,7 @@
       {
        "shortName": "LEVEL",
        "fullName": "Level",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       }
@@ -199,7 +199,7 @@
       {
        "shortName": "INPUT",
        "fullName": "Input",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
@@ -278,12 +278,12 @@
     "min": 0,
     "max": 1,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
     }
    },
    {
@@ -295,12 +295,12 @@
     "min": 0,
     "max": 1,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
     }
    },
    null,

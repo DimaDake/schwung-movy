@@ -1,12 +1,12 @@
 {
  "id": "midiverb",
  "name": "Midiverb",
- "version": "0.2.0",
+ "version": "0.2.2",
  "author": "Charles Vestal (DSP: thement/midiverb_emulator)",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 71,
- "dsp_size": 388264,
+ "load_ms": 66,
+ "dsp_size": 392456,
  "capabilities": {
   "chainable": true,
   "component_type": "audio_fx"
@@ -200,13 +200,19 @@
     "rows": [
      [
       {
-       "shortName": "PRESE",
+       "shortName": "UNIT",
+       "fullName": "Unit",
+       "renderStyle": "items",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PRESET",
        "fullName": "Preset",
        "renderStyle": "preset",
        "type": "enum",
-       "displayValue": "0"
+       "displayValue": "..."
       },
-      null,
       null,
       null
      ],
@@ -244,26 +250,19 @@
       {
        "shortName": "INPUT",
        "fullName": "Input Gain",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "OG",
+       "shortName": "OUTPUT",
        "fullName": "Output Gain",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       }
      ],
      [
-      {
-       "shortName": "PRE-D",
-       "fullName": "Pre-delay",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
       {
        "shortName": "LOW",
        "fullName": "Low Cut",
@@ -274,6 +273,13 @@
       {
        "shortName": "HIGH",
        "fullName": "High Cut",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DELAY",
+       "fullName": "Pre-delay",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -298,7 +304,7 @@
     "rows": [
      [
       {
-       "shortName": "DAMPI",
+       "shortName": "DAMPIN",
        "fullName": "Damping",
        "renderStyle": "arc",
        "type": "float",
@@ -337,6 +343,34 @@
   ],
   "params": [
    {
+    "key": "unit",
+    "label": "Unit",
+    "shortLabel": null,
+    "type": "enum",
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "options": [
+     "* Midiverb",
+     "Midifex",
+     "Midiverb II"
+    ],
+    "itemIndices": [
+     0,
+     1,
+     2
+    ],
+    "itemsKey": "unit_list",
+    "renderStyle": "items",
+    "capturesModuleState": true,
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
     "key": "program",
     "label": "Preset",
     "shortLabel": null,
@@ -347,6 +381,7 @@
     "options": null,
     "nameKey": "program_name",
     "renderStyle": "preset",
+    "capturesModuleState": true,
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -354,7 +389,6 @@
      "steps": 64
     }
    },
-   null,
    null,
    null,
    null,
@@ -398,41 +432,41 @@
    {
     "key": "input_gain",
     "label": "Input Gain",
-    "shortLabel": null,
+    "shortLabel": "Input",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 2,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 400
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
     }
    },
    {
     "key": "output_gain",
     "label": "Output Gain",
-    "shortLabel": null,
+    "shortLabel": "Output",
     "type": "float",
     "options": null,
     "min": 0,
     "max": 2,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 400
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
     }
    },
    {
     "key": "predelay_ms",
     "label": "Pre-delay",
-    "shortLabel": null,
+    "shortLabel": "delay",
     "type": "float",
     "options": null,
     "min": 0,
@@ -449,7 +483,7 @@
    {
     "key": "low_cut_hz",
     "label": "Low Cut",
-    "shortLabel": null,
+    "shortLabel": "Low",
     "type": "float",
     "options": null,
     "min": 20,
@@ -466,7 +500,7 @@
    {
     "key": "high_cut_hz",
     "label": "High Cut",
-    "shortLabel": null,
+    "shortLabel": "High",
     "type": "float",
     "options": null,
     "min": 1000,
@@ -534,7 +568,7 @@
    {
     "key": "lfo_rate",
     "label": "LFO Rate",
-    "shortLabel": null,
+    "shortLabel": "Rate",
     "type": "float",
     "options": null,
     "min": 0,
@@ -551,7 +585,7 @@
    {
     "key": "lfo_depth",
     "label": "LFO Depth",
-    "shortLabel": null,
+    "shortLabel": "Depth",
     "type": "float",
     "options": null,
     "min": 0,
@@ -572,12 +606,8 @@
   ]
  },
  "analysis": {
-  "hiddenParams": [
-   "unit"
-  ],
+  "hiddenParams": [],
   "noMetadata": [],
-  "warnings": [
-   "1 chain_params not reachable in movy: unit"
-  ]
+  "warnings": []
  }
 }

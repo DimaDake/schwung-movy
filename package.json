@@ -11,7 +11,7 @@
     "test:app": "node browser-test/app-loop.mjs",
     "test:device": "node build/test-device.mjs && node test-device/run.mjs",
     "test:device-self": "node build/test-device.mjs && node test-device/selftest/wait.mjs && node test-device/selftest/runner.mjs && node test-device/selftest/flake.mjs",
-    "test": "node build/browser.mjs && node browser-test/logic.mjs && node browser-test/track-colors.mjs && node browser-test/abi-parity.mjs && node browser-test/dump-replay.mjs && node browser-test/app-loop.mjs && node browser-test/page-mode.mjs && node browser-test/screenshot.mjs && node browser-test/perf.mjs && node browser-test/device-scripts.mjs && node browser-test/source-rules.mjs && npm run test:device-self && npm run typecheck"
+    "test": "node build/browser.mjs && node browser-test/logic.mjs && node browser-test/track-colors.mjs && node browser-test/abi-parity.mjs && node browser-test/dump-replay.mjs && node browser-test/fleet-pages.mjs && node browser-test/app-loop.mjs && node browser-test/page-mode.mjs && node browser-test/screenshot.mjs && node browser-test/perf.mjs && node browser-test/device-scripts.mjs && node browser-test/source-rules.mjs && npm run test:device-self && npm run typecheck"
   },
   "devDependencies": {
     "@types/node": "^22.20.2",

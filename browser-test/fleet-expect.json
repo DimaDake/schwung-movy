@@ -1,0 +1,49 @@
+{
+  "warned": {
+    "branchage": [
+      "no ui_hierarchy — paginated from chain_params"
+    ],
+    "6w6": [
+      "no ui_hierarchy — paginated from chain_params"
+    ],
+    "8w8": [
+      "no ui_hierarchy — paginated from chain_params"
+    ],
+    "9w9": [
+      "no ui_hierarchy — paginated from chain_params"
+    ],
+    "belt-in": [
+      "no ui_hierarchy — paginated from chain_params"
+    ],
+    "cw78": [
+      "no ui_hierarchy — paginated from chain_params"
+    ],
+    "hank": [
+      "no \"root\" level — starting at \"main\""
+    ],
+    "mono-voice": [
+      "no ui_hierarchy — paginated from chain_params"
+    ],
+    "po32-drum": [
+      "no ui_hierarchy — paginated from chain_params"
+    ],
+    "slicer": [
+      "no ui_hierarchy — paginated from chain_params"
+    ],
+    "smack-in": [
+      "no ui_hierarchy — paginated from chain_params"
+    ],
+    "sophie": [
+      "no ui_hierarchy — paginated from chain_params"
+    ],
+    "work": [
+      "no ui_hierarchy — paginated from chain_params"
+    ]
+  },
+  "voiceDeclaring": [
+    "voice-poc"
+  ],
+  "unplannable": [
+    "gesture-test"
+  ]
+}

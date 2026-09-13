@@ -34,7 +34,7 @@ and must never grow. If it grew, the last item regressed a sibling — stop.
 | SP-02 | Harness env leak: `createDumpBoot()` calls `installEnv()` twice | Sonnet | ✅ |
 | SP-03 | Split `schwung-page.ts` (457 → ≤200/file) | Sonnet | ✅ |
 | SP-04a | **Re-capture the module dump** — the committed one is 2026-07-15 | Sonnet | ✅ |
-| SP-04 | Fleet sweep: 76 dump modules planned through Schwung's `page_plan` | Sonnet | ⬜ |
+| SP-04 | Fleet sweep: 95 dump modules planned through Schwung's `page_plan` | Sonnet | ✅ |
 | SP-05 | `page` screenshot scenes — today `page` has zero pixel coverage | Sonnet | ⬜ |
 | SP-06 | Fork install script + runtime Schwung **version** floor | Sonnet | ⬜ |
 | SP-07 | Grid A/B cost harness, reproducible, both arms | Opus | ⬜ |
@@ -364,6 +364,36 @@ Note `voicesOf` takes the **hierarchy itself**, not an options object — passin
 **Closes when:** the suite runs the whole dump green, each invariant has been
 shown to fail when broken, and the voice census is baselined.
 
+**Outcome (2026-09-13):** `browser-test/fleet-pages.mjs` + `fleet-expect.json`,
+in `npm test` after `dump-replay`. Against the 95-module dump: **94 plannable, 0
+duplicate kind+name, 0 keys-less knobs pages, 0 unnamed pages, 0 throws**, 13
+warnings baselined (`no ui_hierarchy — paginated from chain_params` ×12, plus
+`hank` → `no "root" level — starting at "main"`), and `gesture-test` baselined as
+**unplannable** — it carries no `chain_params` at all, a module-side shape, so
+failing on it would make the suite red on arrival.
+
+**The teeth are on synthetic page lists, not the dump, and that is measured, not
+assumed.** `planPages` repairs every corruption the dump can carry — it
+disambiguates duplicate page names itself (`"Sync"` → `"Sync - 2"`,
+`page_plan.mjs:703`), **omits** an all-empty knobs page rather than emitting it,
+and derives a level name from its key. Renaming a level in `genera`, emptying
+`genera.sync`'s knobs and blanking a name each left all three invariants green.
+So `checkPages(pages, slotKeys)` is exported and pure, and the suite runs it
+against every real plan while the proofs feed it directly: 3 synthetic reds fire,
+2 merely-unusual greens stay green, exit 0. The census has real teeth — mutating
+`voiceDeclaring` to `["mrdrums"]` exits 1.
+
+**The census is baselined, not asserted** (`voice-poc`, 1 module — see SP-14).
+One declarer is Cause E, a module-side fact; a red build for it would make every
+session red for something no session can fix. A *change* is what is loud.
+
+**One correction to this item's own brief:** it gives the SCHWUNG import as a
+raw `join(process.env.SCHWUNG, …)`. Dynamic `import()` resolves a relative
+specifier against the *importing file*, not the cwd, so `SCHWUNG=../schwung`
+resolved to `movy/schwung/` and threw `ERR_MODULE_NOT_FOUND` — the briefed
+`--update` line would have died before writing a baseline. The suite calls
+`resolve()` first, which is how `build/browser.mjs` resolves the same variable.
+
 **State against the 2026-09-13 fleet (SP-04a).** `dump-replay` is **GREEN over
 all 95 modules** (`SCHWUNG=../schwung node browser-test/dump-replay.mjs`, exit
 0), and the `dump-expect.json` baseline is regenerated. The six checks that were
@@ -492,6 +522,13 @@ unchanged in substance: **the fix stays on movy's side**, and `voice-poc` become
 the fixture that proves the declaration `voicesOf` wants is expressible. Also
 still true of `mrdrums`: its captured root carries only `name`, `params`,
 `knobs`.
+
+**This number is now a gate input, not a reading.** SP-04's fleet sweep
+baselines it (`browser-test/fleet-expect.json` → `voiceDeclaring: ["voice-poc"]`)
+and `npm test` fails when it moves in either direction, so a module that starts
+or stops declaring is loud rather than something the next reader has to notice.
+Re-baselining is a deliberate act (`--update`) and is what this item's fixture
+work should be checking against.
 
 The bar is "no dramatic regression", and drum racks are a large part of how movy
 is used: today every page shows at once and a pad press does not move the page,

@@ -18,21 +18,48 @@
  * `off` and BOTH arms measure the same program. That is the one result an A/B
  * must not be able to fake, and it is checked below rather than assumed.
  *
- * THE BUDGET IS A RATIO. page's gesture premium over its own idle floor may not
- * exceed this multiple of off's. A ratio does not move when the harness gains
- * ticks or a page gains params, which an absolute number would; the numbers it
- * was set from are recorded underneath, so the next reader is not guessing at a
- * magic constant.
+ * THE BUDGET IS WRITTEN AS A RATIO AND THE RATIO IS NOMINAL — what is actually
+ * asserted is an ABSOLUTE CEILING on the page arm's premium, and saying so is the
+ * honest reading rather than a downgrade. `off`'s premium is NEGATIVE by
+ * construction: an input suppresses movy's refresh window and in `off` mode the
+ * gesture adds nothing to replace it, so no ratio with `off` as its denominator
+ * can ever move. The denominator is floored at one call per gesture and the
+ * comparison reduces to `pagePremium <= BUDGET_RATIO`. The price of that is that
+ * an absolute ceiling DOES drift if the mock's page changes shape or the gesture
+ * changes — so those are re-measure triggers, not defects, and the numbers below
+ * are what it was set from rather than a magic constant.
  *
- * MEASURED 2026-09-13, this harness, this repo:
- *   off  = -63 calls  (an input SUPPRESSES movy's refresh window and, in `off`
- *                      mode, the gesture adds nothing to replace it — so the arm
- *                      lands BELOW its own idle floor and the ratio's
- *                      denominator is pinned at one call per gesture)
- *   page = 397 calls  → ratio 397
- * The budget is 550: 38% of headroom above the measurement, and the mutation
- * grid-call-cost.mjs's own teeth-proof applies to store.ts (refreshOneParam
- * doing its work twice) lands at 729, i.e. 33% past it in the other direction.
+ * MEASURED 2026-09-13, corrected windows (600 ticks each side), this harness:
+ *   off  = -418 calls  (below its own idle floor, for the reason above)
+ *   page =  +51 calls
+ * The budget is 90: 1.76x the measurement. It is deliberately close, because the
+ * thing it must not let through is a DOUBLING of the page arm's real gesture cost
+ * — which is now 102, and 102 > 90. A budget with the old generous headroom would
+ * pass exactly the regression this gate exists for. The margin is affordable
+ * because the child is deterministic to the call (51 on every run, both arms'
+ * idle windows identical at 678), so the headroom guards against legitimate drift
+ * in the mock's page shape, not against noise — and drift is a re-measure
+ * trigger, as above.
+ *
+ * THE PAIR QUOTED HERE EARLIER WAS -63 / 397 AND IT WAS WRONG. Those windows had
+ * different spans — `window_` advanced its own 300 ticks on top of the 300 the
+ * gestures had already advanced, so the gesture window spanned 600 against a
+ * 300-tick floor and the subtraction removed HALF a floor. The tell was the
+ * gesture row's own `calls/tick`, a 600-tick count divided by 300. Both arms
+ * carried the same inflation, which is exactly why it read as a healthy ratio:
+ * at the old budget of 550, a regression that doubled the real page gesture cost
+ * passed. The spans are now measured, printed, and refused if they disagree.
+ *
+ * ONE CONSEQUENCE OF THAT FIX IS WORTH KNOWING BEFORE CHANGING THIS FILE. With
+ * the spans equal, a cost that scales with ticks cancels out of the premium — so
+ * `refreshOneParam` doing its work twice (the mutation this gate was first proven
+ * with) moves page's premium 51 -> 51 and does NOT trip it any more: it adds 675
+ * calls to the gesture window and 675 to the idle floor. That is the metric
+ * working, not failing — the premium answers "what did the GESTURE add", and a
+ * uniform per-tick increase is not that. What does trip it is work in the gesture
+ * path: a host round-trip per knob detent in the page arm (`knobTurn`, i.e. the
+ * throttle removed, which is the shape the original complaint describes) measures
+ * 1311 and leaves the off arm untouched at -418.
  */
 import { spawnSync } from 'node:child_process';
 import { realpathSync } from 'node:fs';
@@ -41,10 +68,14 @@ import { fileURLToPath } from 'node:url';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 
-/* The committed budget. Both arms are the same child with a different mode, so
- * the units cancel; a value near 1 would fail on a one-call difference in the
- * mock and a value in the thousands would never catch anything. */
-export const BUDGET_RATIO = 550;
+/* The committed budget: an ABSOLUTE CEILING on the page arm's premium, in calls
+ * over its own idle floor, and set close to the measurement on purpose. What it
+ * must not pass is a DOUBLING of the measured gesture cost — 51 -> 102 — so a
+ * budget with comfortable headroom would pass exactly the regression this exists
+ * for. It can afford to sit close because the child is deterministic (51 every
+ * run, both arms' idle windows 678), so the headroom that is there absorbs drift
+ * in the mock's page shape, not noise. */
+export const BUDGET_RATIO = 90;
 
 /* The ONE line the child publishes for this suite, and it is the only thing read
  * from it: the human table above it is the part a later reader is most likely to
@@ -70,6 +101,20 @@ export function parseGridCost(stdout) {
  * budget mean the opposite of what it says.
  */
 export function checkRatio(offCalls, pageCalls, budget = BUDGET_RATIO) {
+    /* A PAGE ARM THAT MEASURED NOTHING IS NOT A PASS, and without this line it is
+     * a very quiet one: `0 / 1 = 0 <= budget` reads green, and the near-zero tooth
+     * below used to encode that a cheap page arm passes. A regression that stops
+     * the gesture reaching the router produces EXACTLY this — the harness
+     * reporting a healthy number over a void, which is the `setcommit` defect
+     * found and fixed in this very task. A non-positive premium means the gesture
+     * added nothing, so there is no measurement here, not a good one. */
+    if (pageCalls <= 0) {
+        return {
+            ok: false,
+            ratio: 0,
+            why: `the page arm measured ${pageCalls} calls over its idle floor — a gesture that never arrived is not a cheap gesture`,
+        };
+    }
     const ratio = pageCalls / Math.max(1, offCalls);
     if (ratio <= budget) return { ok: true, ratio };
     return {
@@ -115,15 +160,24 @@ async function main() {
         if (got === want) ok(`teeth: ${label}`);
         else fail(`teeth: ${label}`, `said ${got ? 'within' : 'over'} budget, want the opposite`);
     };
-    teeth('the measured pair is within budget, so this check is not merely always red', -63, 397, true);
-    teeth('a doubled page gesture is over budget', -63, 729, false);
-    teeth('a page arm that grew into the thousands is over budget', -63, 5000, false);
-    teeth('a page arm that got CHEAPER is within budget, so the check is not a constant',
-          -63, 200, true);
+    teeth('the measured pair is within budget, so this check is not merely always red', -418, 51, true);
+    /* THE ONE THE BUDGET IS SET BY. 51 is the measured page premium, so 102 is
+     * that gesture costing TWICE what it costs today — the regression the tight
+     * budget exists for, and the reason the budget cannot be generous. */
+    teeth('a DOUBLED page gesture is over budget', -418, 102, false);
+    teeth('a page arm that grew into the thousands is over budget', -418, 5000, false);
+    teeth('a page arm that got CHEAPER than measured is within budget, so the check is not a constant',
+          -418, 20, true);
     /* The floor, on its own: broken INPUT rather than a broken assertion. A
      * negative or zero denominator must not flip the comparison. */
     teeth('a zero denominator cannot divide the budget away', 0, 5000, false);
-    teeth('a negative denominator cannot divide the budget away', -63, 5000, false);
+    teeth('a negative denominator cannot divide the budget away', -418, 5000, false);
+    /* THE VOID. `checkRatio(0, 0)` used to be `0 / 1 = 0 <= budget` — green — so a
+     * harness that measured nothing at all, on both arms, reported the best
+     * possible result. That is the `setcommit` failure of this very task. */
+    teeth('a page arm that measured nothing is not a pass, however cheap it looks', 0, 0, false);
+    teeth('a page arm that measured nothing is not a pass even against a healthy off arm',
+          -418, 0, false);
 
     const off  = arm('off');
     const page = arm('page');
@@ -142,18 +196,32 @@ async function main() {
             + `param_pages (rebuild with SCHWUNG=../schwung) and both arms measured the same program`);
         comparable = false;
     }
+    /* A GESTURE THAT NEVER ARRIVED IS NOT A CHEAP GESTURE. `checkRatio` refuses a
+     * non-positive page count on its own — it is pinned by two teeth above — but
+     * naming it here says WHAT happened instead of reporting it as a budget
+     * figure, and it is the failure this task's own `setcommit` defect produced:
+     * both arms reporting the idle refresh and nothing on top, exit 0. */
+    if (page.mode === 'page' && page.calls <= 0) {
+        fail('the page arm', `measured ${page.calls} calls over its idle floor — the gesture did not reach the router`
+            + ` (see the setcommit guard in grid-call-cost.mjs), so this run has no result rather than a good one`);
+        comparable = false;
+    }
 
     /* THE RATIO IS ONLY MEANINGFUL BETWEEN TWO DIFFERENT PROGRAMS. Assessing it
      * anyway prints a verdict line beside the failure above, and on this exact
-     * input that line reads "page costs -63x off" and says it is within budget —
+     * input that line reads "page costs -418x off" and says it is within budget —
      * a number that looks like a measurement and is arithmetic on two copies of
      * the same arm. */
     if (!comparable) {
         fail('the two arms', 'are not comparable, so no ratio was assessed');
     } else {
         const r = checkRatio(off.calls, page.calls);
-        if (r.ok) ok(`page gesture costs ${r.ratio.toFixed(0)}x off (budget ${BUDGET_RATIO}x)`
-            + ` — page ${page.calls} calls, off ${off.calls}, same 20 gestures each`);
+        /* The verdict names the CEILING, not the ratio, because the ratio is the
+         * nominal half: with `off` negative the denominator is floored at one and
+         * the assertion is `pagePremium <= budget`. The ratio is still printed —
+         * it is what a reader will look for — but as the arithmetic it is. */
+        if (r.ok) ok(`page's gesture premium is ${page.calls} calls over its own idle floor`
+            + ` (ceiling ${BUDGET_RATIO}; off measured ${off.calls}, nominal ratio ${r.ratio.toFixed(0)}x)`);
         else fail('page gesture cost', r.why);
     }
 

@@ -639,11 +639,47 @@ name which layer the time is in, and the off-device arm is in `npm test`.
 `setSchwungGridMode(arm)` off device, the `schwunggrid` prefs flag plus a movy
 reopen on it — and each arm now prints the mode it *resolved*, so the two-identical-
 arms failure can never be mistaken for a finding again. The off-device arm is
-`browser-test/grid-cost.mjs`, in `scripts.test`, asserting a **ratio** budget of
-550 (measured 397 with the committed harness; the teeth mutation lands at 729).
-The metric is the gesture **premium** over each arm's own idle floor, not the
-ratio of window totals: the totals ratio is dominated by the refresh both arms
-share and moves only 2.71 → 2.80 under the teeth mutation — no signal at all.
+`browser-test/grid-cost.mjs`, in `scripts.test`. The metric is the gesture
+**premium** over each arm's own idle floor, not the ratio of window totals: the
+totals ratio is dominated by the refresh both arms share and moves only 2.71 →
+2.80 under the teeth mutation — no signal at all.
+
+The budget is an **absolute ceiling** on the page arm's premium — **90 calls** —
+measured at **+51** against an `off` arm at **−418**. Calling it a "ratio budget"
+was wrong and is corrected here. `off`'s premium is negative *by construction*:
+an input suppresses movy's refresh window and in `off` mode the gesture adds
+nothing to replace it, so the denominator is floored at one call per gesture and
+the comparison reduces to `pagePremium <= 90`. An absolute ceiling **does** drift
+if the mock's page changes shape or the gesture changes — that is a re-measure
+trigger, not a defect. It sits deliberately close because the regression it exists
+to catch is a **doubling** of the page gesture's cost: 51 → 102, which is over 90.
+A first version of the suite could not tell "the grid is free" from "the harness
+measured nothing" (`checkRatio(0, 0)` was `0/1 = 0 <= budget`, green, and a tooth
+actively encoded that a near-zero page premium passes); a non-positive page
+premium now fails, and the suite asserts the page arm measured something before
+the budget is assessed — the same void the `setcommit` defect below produced.
+
+**The first version of this measurement was 2x wrong on one window, and both arms
+carried the inflation.** `window_` advanced its own 300 ticks *after* `before()`,
+and `playGesture` already advances `SETTLE_TICKS` itself, so the gesture window
+spanned 600 ticks against a 300-tick idle floor and the subtraction removed half
+a floor. It reported `off −63` / `page 397` against a budget of 550, which — with
+the denominator floored at 1 — let a doubled page gesture report ≈448 and pass.
+The tell was on the harness's own output: the gesture row's `calls/tick` read
+0.90, a 600-tick count divided by 300. The span is now **measured** from a tick
+counter, printed on both rows, and the child refuses to print a number (exit 4)
+if the two disagree.
+
+**The wrong window length was where the gate got its teeth, which is why the
+budget had to be re-derived rather than kept.** With the spans equal, a cost that
+scales with ticks cancels out of the premium, so the mutation the gate was first
+proven with — `refreshOneParam` doing its work twice — moves page's premium
+51 → 51 (it adds 675 calls to the gesture window and 675 to the idle floor) and
+no longer trips it. That is the metric working: the premium answers "what did the
+*gesture* add", and a uniform per-tick increase is not that. The mutation that
+models the complaint — a host round trip per knob detent in the page arm, i.e.
+the throttle gone — measures **1311** and leaves `off` untouched at −418,
+page-only and gesture-only.
 
 Two defects were found in the instruments themselves while closing this, and
 both are the kind that produce a confident wrong number rather than an error:
@@ -733,7 +769,7 @@ That is not a null result about the grid — it is the reason the gate is off
 device. `perf_ipc` reports an average over 120 ticks, the tick period here is
 ~5 ms with ~0.6 host calls/tick, and the module under it is a mock; a difference
 of a few calls per gesture disappears into that average. The same gesture counted
-in **host calls** separates the arms by 397 vs −63 (`off` lands below its own
+in **host calls** separates the arms by +51 vs −418 (`off` lands below its own
 idle floor because input suppresses movy's refresh window), which is a number the
 device tier cannot produce and a laptop can. So SP-13's number is the off-device
 count; these `period_ms` figures are the device half, recorded as the baseline
@@ -745,6 +781,41 @@ less than the spread above is a null result rather than a pass.
 ## Log
 
 Newest first. One line per closed item: id, date, commit, the evidence.
+
+- 2026-09-13 — **Task 8, fix round 1 — the measured window was 2x wrong on one
+  side and the budget was re-derived from scratch.** `window_` advanced its own
+  300 ticks *after* `before()`, and `playGesture` already advances `SETTLE_TICKS`,
+  so the gesture window spanned 600 ticks against a 300-tick idle floor: the
+  subtraction removed half a floor, and the columns said so (the gesture row's
+  `calls/tick` was `269/300`). Both arms carried the inflation, which is why it
+  read as healthy; the consequence was that `pagePremium <= 550` passed a page
+  gesture **doubled** in true cost at ≈448. The span is now measured from a tick
+  counter, printed on both rows, and the child exits 4 rather than print a number
+  if they disagree; `perTick` divides by the span it actually measured. Re-measured
+  pair: `off −418`, `page +51` (idle 678 both arms, 600 ticks each side,
+  deterministic across runs). Budget **90**, not kept at 550 — it must catch the
+  doubling at 102, so it sits at 1.76x the measurement, which the determinism
+  affords. **The nominated mutation no longer has teeth, and that is the metric
+  working:** `refreshOneParam` doing its work twice (`src/model/store.ts`) adds
+  675 calls to *both* equal-span windows and moves page's premium 51 → 51. The
+  mutation that models the complaint — `globalThis.shadow_get_param(slot,
+  "synth:chain_params")` per knob detent in the page arm's knob loop, i.e. the
+  throttle gone — is **RED at 1311** (page-only, gesture-only; `off` untouched at
+  −418), restored by `cp`, rebuilt on both sides of the copy, **GREEN at 51**.
+  Pinned teeth moved to the measured pair, including one for the *doubling*
+  itself. **M1 closed:** `checkRatio(0, 0)` was `0/1 = 0 <= budget` → green, and a
+  tooth encoded that a near-zero page premium passes — the exact void the
+  `setcommit` defect produced below. A non-positive page premium now fails
+  (`checkRatio` plus an assertion in `main()`), pinned by two teeth. **Prose
+  corrected in three places** (suite header, this ledger's SP-07 line, the task
+  report's §2.1): the ratio framing is *nominal*, the check is an **absolute
+  ceiling**, and an absolute ceiling does drift if the mock's page changes shape
+  — a re-measure trigger, not a defect. Also: the 400-tick ready guard is
+  **wall-clock relative** (it must outlast a 1.5 s Set-commit press), and
+  `measure-grid-cost.sh`'s `inject` now writes an explicit `INVALID` line to the
+  artifact when the ssh fails, instead of leaving a section header with nothing
+  under it. No device tier re-run: nothing here reaches the device and
+  `measure-grid-cost.sh`'s sections do not depend on its sibling's window length.
 
 - 2026-09-13 — **SP-07 closed, and the device A/B baseline is in under SP-13.**
   Both scripts could not do what they claimed. `grid-call-cost.mjs` counted
@@ -759,12 +830,14 @@ Newest first. One line per closed item: id, date, commit, the evidence.
   offending lines. **Teeth, and the metric was changed because the first one had
   none:** a ratio of window *totals* is dominated by the refresh both arms share
   and moves 2.71 → 2.80 under the teeth mutation — no signal — so the committed
-  metric is the gesture **premium** over each arm's own idle floor, which the
-  same mutation moves 397 → 729. `browser-test/grid-cost.mjs` (in `scripts.test`,
-  budget **550**) was proven red at 729 and green at 397, with the rebuild on
-  *both* sides of the copy, since the child reads `dist/esm` and a `src/`
-  mutation that is never rebuilt reaches nothing. Suite guard realpath-hardened
-  — Task 5's version silently did nothing under a symlinked path and exited 0.
+  metric is the gesture **premium** over each arm's own idle floor. Suite guard
+  realpath-hardened — Task 5's version silently did nothing under a symlinked
+  path and exited 0. **The premium pair and the budget first recorded here (397
+  vs −63, budget 550) were wrong** — one window was twice the other's span — and
+  are superseded by the fix round below; the device `period_ms` figures in the
+  SP-13 section are unaffected and stand. Rebuild on *both* sides of any `src/`
+  mutation, since the child reads `dist/esm` and a mutation that is never rebuilt
+  reaches nothing.
   Both `npm test` modes green (`SCHWUNG=../schwung`, and SKIPPED without it).
   **Device baseline, both arms, in the SP-13 section:** `period_ms` 4.8–5.1 and
   `calls/tick=0.6` on *both*, i.e. the device tier does not separate the arms at

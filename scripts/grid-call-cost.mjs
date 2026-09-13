@@ -63,7 +63,11 @@ const { resetSeqEngine } = await import('../dist/esm/seq/engine.js');
 const { sessionReady } = await import('../dist/esm/seq/set-session.js');
 const { setFlag } = await import('../dist/esm/seq/flags.js');
 
-const advance = (n) => { for (let i = 0; i < n; i++) globalThis.tick(); };
+/* TICKS ARE COUNTED HERE, IN THE ONE PLACE THAT ADVANCES THEM. A window's span
+ * has to be MEASURED rather than assumed, because `before()` runs inside the
+ * measured region and drives ticks of its own — see `window_` below. */
+let ticks = 0;
+const advance = (n) => { for (let i = 0; i < n; i++) { globalThis.tick(); ticks++; } };
 const sendMidi = (m) => globalThis.onMidiMessageInternal(m);
 
 engine.reset();
@@ -90,7 +94,14 @@ m.reload();
 appState.currentView = VIEW_KNOBS;
 /* TICK UNTIL LIVE, not a magic count. The gate decides whether the gesture
  * below is measured or thrown away, and a count that is a few ticks short fails
- * SILENTLY — which is the whole failure above. */
+ * SILENTLY — which is the whole failure above.
+ *
+ * THE 400 IS WALL-CLOCK-RELATIVE, which is why it looks arbitrary and is not.
+ * What it has to outlast is a 1.5 s WALL-CLOCK Set-commit press, and under the
+ * mock a tick is microseconds — so 400 clears it by orders of magnitude today.
+ * If tick cost ever rises enough for that margin to shrink, THIS is the bound to
+ * re-derive, and the failure it produces is the exit(3) below rather than a
+ * wrong number. */
 for (let i = 0; i < 400 && !sessionReady(); i++) advance(1);
 if (!sessionReady()) {
     console.error('grid-call-cost: movy never went live, so the input gate would void every gesture — refusing to print a number');
@@ -98,12 +109,31 @@ if (!sessionReady()) {
 }
 advance(20);
 
-function window_(label, ticks, before) {
+/* THE TWO WINDOWS MUST SPAN THE SAME NUMBER OF TICKS, AND THAT SPAN IS MEASURED.
+ *
+ * The first version took a nominal `ticks` and advanced exactly that many AFTER
+ * `before()` — but `before()` drives the gestures, and `playGesture` advances
+ * SETTLE_TICKS itself, so the gesture window really spanned 600 ticks against an
+ * idle window of 300 and the subtraction removed HALF an idle floor. Both arms
+ * carried the same inflation, which is exactly why it read as a healthy ratio;
+ * the tell was the gesture row's own `calls/tick`, a 600-tick count divided by
+ * 300. The consequence was not cosmetic: the check reduced to an absolute ceiling
+ * on page's premium, so a regression that DOUBLED the real page gesture cost
+ * landed inside the budget and passed.
+ *
+ * Driving the span from the counter is what makes this unrepeatable: `before()`
+ * can do as much work as it likes and the window still ends at the same span as
+ * its control, and `perTick` divides by what actually elapsed rather than by a
+ * constant nobody re-derived. */
+function window_(label, before) {
     gets = 0; sets = 0;
+    const start = ticks;
     if (before) before();
-    advance(ticks);
+    const spent = ticks - start;
+    if (spent < WINDOW_TICKS) advance(WINDOW_TICKS - spent);
+    const span = ticks - start;
     const total = gets + sets;
-    return { label, ticks, gets, sets, total, perTick: total / ticks };
+    return { label, span, gets, sets, total, perTick: total / span };
 }
 
 /* THE GESTURE THE COMPLAINT IS ABOUT. "Knob turns and jog paging feel slower
@@ -132,7 +162,11 @@ const JOG_BACK   = [0xB0, globalThis.MoveMainKnob, 0x7f];
  * gesture inside one window averages the transient instead of betting on it. */
 const GESTURES = 20;
 const SETTLE_TICKS = 15;                             /* per gesture, gesture→gesture */
-const WINDOW_TICKS = GESTURES * SETTLE_TICKS;
+/* 20 gestures advance 300 ticks of their own, so the window is 600: that span
+ * plus an equal tail. The idle floor is then measured over the same 600, and the
+ * two windows differ by the input and nothing else — which is what the comment
+ * below always claimed and the code did not do. */
+const WINDOW_TICKS = GESTURES * SETTLE_TICKS * 2;
 
 function playGesture(i) {
     const up = i % 2 === 0;
@@ -144,10 +178,11 @@ function playGesture(i) {
 }
 
 /* Two windows, and the difference between them is the gesture's cost. The
- * control window is the same length and the same code path minus the input, so
- * what it subtracts is the idle refresh and nothing else. */
-const idle    = window_('idle', WINDOW_TICKS);
-const gesture = window_('gesture', WINDOW_TICKS, () => {
+ * control window is the same SPAN and the same code path minus the input, so
+ * what it subtracts is the idle refresh and nothing else — both spans are now
+ * measured and printed, so a reader can check that claim instead of trusting it. */
+const idle    = window_('idle');
+const gesture = window_('gesture', () => {
     for (let i = 0; i < GESTURES; i++) playGesture(i);
 });
 
@@ -157,15 +192,31 @@ const gesture = window_('gesture', WINDOW_TICKS, () => {
  * below moves it to 2.80, i.e. no signal at all).
  *
  * IT IS REPORTED AS MEASURED, negative included. An input SUPPRESSES movy's
- * refresh window, so an arm whose gesture adds nothing can come out BELOW its
- * own idle floor — `off` measures −63 — and that is a finding rather than a
- * glitch. Whoever divides by it is the one who has to decide what a negative
- * denominator means; clamping it here would hide it from the human table too. */
+ * refresh window, so an arm whose gesture adds nothing comes out BELOW its own
+ * idle floor — `off` measures −418 — and that is a finding rather than a glitch.
+ * Whoever divides by it is the one who has to decide what a negative denominator
+ * means; clamping it here would hide it from the human table too.
+ *
+ * AND THE PREMIUM IS ONLY A DELTA IF BOTH WINDOWS SPAN THE SAME NUMBER OF TICKS.
+ * That is the one thing that can be silently wrong here, and it was: see the
+ * measured-span note on `window_` above. */
 const premium = gesture.total - idle.total;
 const mode = schwungGridMode();
+
+/* THE SPANS MUST MATCH, AND THEY ARE PRINTED BESIDE THE COUNTS. They were once
+ * wrong by 2x and the only reason anyone noticed is that `calls/tick` on the
+ * gesture row did not agree with the count on the same line. Two equal spans is
+ * the invariant; rows that disagree mean a broken harness, not a result, and the
+ * number below would be a floor of the wrong size subtracted from a real one. */
+if (idle.span !== gesture.span) {
+    console.error(`grid-call-cost: the windows span ${idle.span} and ${gesture.span} ticks — the subtraction removes a floor of the wrong size, refusing to print a number`);
+    process.exit(4);
+}
+
 console.log(`arm=${ARM}  mode=${mode}  pages=${m.getBankCount()}  knobPage=${m.getKnobPage()}`);
 for (const w of [idle, gesture]) {
-    console.log(`  ${w.label.padEnd(12)} gets=${String(w.gets).padStart(5)} sets=${String(w.sets).padStart(3)}`
+    console.log(`  ${w.label.padEnd(12)} span=${String(w.span).padStart(4)}`
+              + ` gets=${String(w.gets).padStart(5)} sets=${String(w.sets).padStart(3)}`
               + `  total=${String(w.total).padStart(5)}  calls/tick=${w.perTick.toFixed(2)}`);
 }
 console.log(`  ${GESTURES} gestures: ${premium} calls over the idle floor`

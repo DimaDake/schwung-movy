@@ -51,7 +51,17 @@ esac
 # One CC per token, 40 ms apart (inject-any.py's own pacing).
 #   0e = jog turn, 47..4e = knobs 1..8, 90/80 = knob touch/release.
 # Relative CC: 1..63 is +N, 65..127 is -N. A 20 (=32) is a hard flick.
-inject() { sshd "python3 /data/UserData/inject-any.py $* >/dev/null 2>&1"; }
+# A DROPPED INJECT MUST NOT LEAVE AN EMPTY SECTION. The script runs `set -u`
+# without `set -e`, and this body used to discard the stderr saying why, so a
+# failed ssh left a section header with no numbers under it and nothing to explain
+# them — which reads as "the grid costs nothing" rather than as a harness that
+# never sent anything. Say it where the artifact is, not only on the terminal.
+inject() {
+    if ! sshd "python3 /data/UserData/inject-any.py $* >/dev/null 2>&1"; then
+        echo "  INVALID: inject FAILED (ssh or python) — this section measured nothing: $*" >> "$OUT"
+        echo "measure-grid-cost: inject failed for: $*" >&2
+    fi
+}
 
 # perf_ipc reports every 120 ticks, so a window needs to span several reports.
 #

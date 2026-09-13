@@ -1271,6 +1271,12 @@ Both have **stale usage lines**: they document `MOVY_SCHWUNG_GRID=off|page`, whi
 
 **Files:**
 - Modify: `scripts/grid-call-cost.mjs` (arm selection), `scripts/measure-grid-cost.sh` (arm selection) — both untracked; commit them
+- Commit: `scripts/inject-movy.py` — untracked, and the only member of the `inject-*.py` family
+  that is (`inject-any`, `inject-burst`, `inject-seq`, `inject-to-move`, `inject-ui` are all
+  tracked). It documents a fact that cost a whole measurement session — a cable-0 injection
+  reaches schwung's cached handler, so every probe built on those five measures schwung while
+  believing it measures movy — and untracked scratch is how such a fact gets lost. `chmod +x`
+  it first: it is also the only one not executable
 - Create: `browser-test/grid-cost.mjs`
 - Modify: `package.json` (`scripts.test`)
 
@@ -1355,8 +1361,8 @@ Record both in the ledger under SP-13 — this is the "before" that SP-13 compar
 - [ ] **Step 8: Commit**
 
 ```bash
-git add scripts/grid-call-cost.mjs scripts/measure-grid-cost.sh browser-test/grid-cost.mjs package.json \
-        docs/schwung-page-migration.md
+git add scripts/grid-call-cost.mjs scripts/measure-grid-cost.sh scripts/inject-movy.py \
+        browser-test/grid-cost.mjs package.json docs/schwung-page-migration.md
 git commit -m "$(cat <<'EOF'
 perf: the grid A/B becomes reproducible, and its arms can no longer be identical
 

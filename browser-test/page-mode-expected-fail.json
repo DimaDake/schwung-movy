@@ -1,0 +1,18 @@
+{
+  "note": "The 13 app-loop checks that fail under schwunggrid=page, all of them Cause A in docs/schwung-param-pages-findings.md — movy's model still owning paging, polling and input for a component Schwung draws. THIS LIST MAY SHRINK AND MUST NEVER GROW. A label here that starts passing must be DELETED (the run fails until it is). A failure not listed here is a regression and fails the run. Owner: docs/schwung-page-migration.md.",
+  "labels": [
+    "chain page: file-param jog click opens file browser",
+    "browser opened",
+    "browseOrigin captured the pre-open view",
+    "Back leaves the file browser",
+    "select committed the preset path",
+    "assigned: navigated to LFO slot",
+    "assigned: on chain view",
+    "assign mode exited",
+    "LFO page shows the assigned target (not None)",
+    "module touch cleared on return",
+    "held-step jog switches page",
+    "chain+held jog-press drills to params",
+    "shift+jog: plain jog steps one page"
+  ]
+}

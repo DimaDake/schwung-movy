@@ -42,6 +42,15 @@ console.log = (...a) => { if (typeof a[0] === 'string' && a[0].startsWith('[movy
 await import('../dist/esm/app/globals.js');
 const { appState, VIEW_KNOBS, VIEW_CHAIN, VIEW_BROWSE, VIEW_FILE_BROWSE } = await import('../dist/esm/app/state.js');
 
+/* THE ARM IS SELECTED HERE, NOT BY A BUILD DEFINE. The grid is a setting now
+ * (src/renderer/schwung-grid.ts), and MOVY_SCHWUNG_GRID — still in two scripts'
+ * usage lines — reaches no build at all, so selecting a mode that way ran `off`
+ * twice and called it an A/B. Unset means the default, which is what every
+ * existing `npm test` run wants. */
+const { setSchwungGridMode } = await import('../dist/esm/renderer/schwung-grid.js');
+const GRID_ARM = process.env.MOVY_APP_LOOP_GRID || null;
+if (GRID_ARM) setSchwungGridMode(GRID_ARM);
+
 /* The first master FX slot, by COMPONENT rather than by position: movy's own
  * send buses sit in front of them on the master page, and these blocks are
  * about what a `master_fx:` slot does, not about what happens to be first. */
@@ -62,7 +71,11 @@ const { closeParamPage } = await import('../dist/esm/seq/param-page.js');
 let failures = 0;
 const _log = _origLog.bind(console);
 function ok(label)        { _log(`  \x1b[32m✓\x1b[0m ${label}`); }
-function fail(label, why) { _log(`  \x1b[31m✗\x1b[0m ${label}: ${why}`); failures++; }
+/* The LABELS, not the count. page-mode.mjs ratchets on which checks fail, so a
+ * count would let one check start failing while another stopped and call it
+ * unchanged. */
+const failedLabels = [];
+function fail(label, why) { _log(`  \x1b[31m✗\x1b[0m ${label}: ${why}`); failures++; failedLabels.push(label); }
 function eq(label, actual, expected) {
     if (actual === expected) ok(label);
     else fail(label, `expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
@@ -2710,5 +2723,6 @@ _log('\napp-loop: CPU page repaints only when a drawn pixel changes');
 }
 
 
+if (process.env.MOVY_APP_LOOP_LABELS) _log('APP-LOOP-FAILED-LABELS ' + JSON.stringify(failedLabels));
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');
 else { _log(`\n\x1b[31m\x1b[1m${failures} APP-LOOP CHECK(S) FAILED\x1b[0m`); process.exit(1); }

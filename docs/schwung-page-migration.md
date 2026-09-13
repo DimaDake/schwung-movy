@@ -14,7 +14,7 @@ code. **Phase 0 is the exception: it already has a full plan at
 **The burn-down is the real check, not this table.** Run:
 
 ```bash
-SCHWUNG=../schwung npm run test:app
+SCHWUNG=../schwung node browser-test/page-mode.mjs
 ```
 
 It prints `page-mode: N of 13 expected failures remain`. That number may shrink
@@ -30,7 +30,7 @@ and must never grow. If it grew, the last item regressed a sibling — stop.
 
 | id | item | model | state |
 | --- | --- | --- | --- |
-| SP-01 | `app-loop` runs both modes; the 13 Cause-A failures become a named ledger | Sonnet | ⬜ |
+| SP-01 | `app-loop` runs both modes; the 13 Cause-A failures become a named ledger | Sonnet | ✅ |
 | SP-02 | Harness env leak: `createDumpBoot()` calls `installEnv()` twice | Sonnet | ⬜ |
 | SP-03 | Split `schwung-page.ts` (457 → ≤200/file) | Sonnet | ⬜ |
 | SP-04a | **Re-capture the module dump** — the committed one is 2026-07-15 | Sonnet | ⬜ |
@@ -134,9 +134,14 @@ passing must be removed from the list and an unlisted check that fails is a hard
 error. The 13 labels are quoted verbatim in
 `docs/schwung-param-pages-findings.md` §3 Cause A.
 
-**Closes when:** `SCHWUNG=../schwung npm run test:app` exits 0 and prints
-`page-mode: 13 of 13 expected failures remain`; deleting one label from the list
-makes the run exit 1.
+**Closes when:** `SCHWUNG=../schwung node browser-test/page-mode.mjs` exits 0 and
+prints `page-mode: 13 of 13 expected failures remain`; deleting one label from
+the list makes the run exit 1.
+
+**Done as an arm rather than an internal parameterisation.** The 2713 lines are
+top-level straight-line blocks, so `app-loop.mjs` learned to take its mode from
+`MOVY_APP_LOOP_GRID` and to print its failed labels, and `page-mode.mjs` spawns
+it once per arm. Both directions were proved red before the commit.
 
 **Needs:** nothing. **Do first.**
 
@@ -302,3 +307,10 @@ continue in parallel. It does not stop the migration.
 Newest first. One line per closed item: id, date, commit, the evidence.
 
 - 2026-09-13 — spec approved and committed (`c4b6775`); ledger created.
+- 2026-09-13 — **SP-01 ✅** — `app-loop.mjs` runs as an arm (`MOVY_APP_LOOP_GRID`,
+  and `MOVY_APP_LOOP_LABELS=1` prints its failed labels), and
+  `browser-test/page-mode.mjs` spawns it twice and ratchets the `page` arm
+  against `browser-test/page-mode-expected-fail.json`. Evidence:
+  `page-mode: 13 of 13 expected failures remain` with `SCHWUNG=../schwung`, the
+  `off` arm clean, and both teeth directions exiting 1. Commit: this one —
+  `test: the page-mode burn-down, ratcheted on labels rather than a count`.

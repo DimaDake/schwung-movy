@@ -431,6 +431,10 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
             return (v === null || v === undefined) ? null : (v as number);
         },
 
+        /* The module's declared live-press param, for the router's vouch.
+         * Null for every module that has not declared one, which is all of
+         * them in docs/module-dump/. */
+        getPressParam(): string | null { return s.pressParam; },
         getDrumConfig(): import('../types/param.js').DrumConfig | null {
             /* `drumConfig` is the RESOLVED one — the module's declaration where
              * it made one, movy's table otherwise — settled once per hierarchy

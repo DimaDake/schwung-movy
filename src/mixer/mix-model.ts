@@ -132,6 +132,9 @@ export function createMixModel(track: number): Model {
         reload(): void { dropCache(); },
         reloadNow(): void { dropCache(); },
         getComponentKey(): string { return 'mix'; },
+        /* A virtual chain slot has no module and so no declaration:
+         * nothing here can ask to be told a finger hit a pad. */
+        getPressParam(): string | null { return null; },
         /* The page's values are read once and owned by movy after that, so a
          * value written behind its back — an undo, or an automation lane moving
          * the mixer during playback — leaves the display showing the old one.

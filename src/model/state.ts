@@ -133,6 +133,12 @@ export interface ModelState {
     /* What the MODULE calls each pad, pad-ordered. Only a declared rack has
      * these; movy's own table names banks, never voices. */
     drumPadNames:        string[];
+    /* The module's declared live-press param (schwung's `child_press_param` /
+     * `focus_press_param`), or null.
+     *
+     * Here rather than on DrumConfig because `focus_press_param` sits at the
+     * hierarchy ROOT — a module need not declare a drum layout to want it. */
+    pressParam:          string | null;
     drumCurrentPad:      number;
     drumCurrentPhysPad:  number;
     /* Param keys that are automation lanes — their synth value is driven by
@@ -195,6 +201,7 @@ export function createModelState(port: TrackPort, componentKey: string): ModelSt
         drumPadCount:        0,
         drumConfig:          null,
         drumPadNames:        [],
+        pressParam:          null,
         drumCurrentPad:      1,
         drumCurrentPhysPad:  0,
         noRefreshKeys:       new Set(),

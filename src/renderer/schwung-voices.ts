@@ -40,9 +40,38 @@ export interface VoiceSurface {
     voices: Voice[];
     /** The param holding the focused voice, or null. */
     focusParam: string | null;
+    /** The param a hardware pad press writes `"1"` to, or null. A CHILD level's
+     *  `child_press_param` first, else the root's `focus_press_param`. */
+    pressParam: string | null;
 }
 
-const EMPTY: VoiceSurface = { layout: null, voices: [], focusParam: null };
+const EMPTY: VoiceSurface = { layout: null, voices: [], focusParam: null, pressParam: null };
+
+/* A child level's `child_press_param`, else the root's `focus_press_param`.
+ *
+ * NOT SCOPED TO THE PAGE YOU ARE ON, matching upstream: a level declaring this
+ * is the module saying "tell me about presses", and which page you happen to be
+ * looking at is not part of that request. Under `page` the grid follows the
+ * module's focus from any page, so a hit while you are on the reverb page
+ * should still land you on the drum you hit.
+ *
+ * Both reads are guarded because both exports are optional on an older Schwung,
+ * and "the library cannot answer" is the same as "the module has not said".
+ * `childPressParam` already returns null for a level with no children, so this
+ * needs no second guard of its own. */
+function pressParamOf(lib: any, hierarchy: any): string | null {
+    if (typeof lib.childPressParam === 'function') {
+        const levels = (hierarchy && hierarchy.levels) || {};
+        for (const name of Object.keys(levels)) {
+            const k = lib.childPressParam(levels[name]);
+            if (k) return k;
+        }
+    }
+    if (typeof lib.focusPressParamOf === 'function') {
+        return lib.focusPressParamOf(hierarchy) ?? null;
+    }
+    return null;
+}
 
 /** Read a module's declared performance surface. Never throws: a malformed
  *  contract is "has not said", the same as no contract at all. */
@@ -54,6 +83,7 @@ export function surfaceOf(hierarchy: any): VoiceSurface {
             layout: lib.padLayoutOf(hierarchy) ?? null,
             voices: lib.voicesOf(hierarchy) || [],
             focusParam: lib.focusParamOf(hierarchy) ?? null,
+            pressParam: pressParamOf(lib, hierarchy),
         };
     } catch (_e) {
         return EMPTY;

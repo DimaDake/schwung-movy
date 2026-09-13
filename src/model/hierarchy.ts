@@ -184,11 +184,15 @@ export function loadHierarchy(s: ModelState): void {
      * reached movy, and the table fallback all fail the same silent way. */
     mlog('drum-declared layout=' + (declaredSurface ? declaredSurface.layout : 'no-reader')
        + ' voices=' + (declaredSurface ? declaredSurface.voices.length : 0)
+       + ' press=' + (declaredSurface?.pressParam || '-')
        + ' hier=' + (declaredHierarchy ? 'yes' : 'none')
        + ' keys=' + (declaredHierarchy ? Object.keys(declaredHierarchy).join('|') : '-'));
     s.drumPadNames = (declaredSurface && declaredSurface.layout === 'drums')
         ? declaredSurface.voices.map((v) => v.name || '')
         : [];
+    /* Alongside the drum config, not inside it: the vouch is not drum-only.
+     * See ModelState.pressParam. */
+    s.pressParam = declaredSurface?.pressParam ?? null;
     s.drumConfig = effectiveDrumConfig(declaredSurface, s.moduleConfig?.drum ?? null);
     if (s.drumConfig) {
         s.isDrum       = true;

@@ -361,6 +361,31 @@ export function onMidiMessageInternal(data: number[]): void {
         const track = appState.activeTrack.index;
         if ((status & 0xF0) === 0x90 && d2 > 0) {
             const vel = seqState.fullVelocity ? 127 : d2;
+            /* "A finger did that." Move turns a pad press into an ordinary note
+             * BEFORE playing it, so by the time it reaches the module's on_midi
+             * a hit and a sequenced note are the same bytes — same status,
+             * channel, note and source. This is the one fact the module cannot
+             * get for itself, and under `page` it is the other half of the
+             * follow: focusVoice() below moves the SCHWUNG page to the voice,
+             * and this moves the MODULE's own focus, which is what its
+             * per-voice keys resolve against. Without it the page turns to the
+             * snare while the knobs still edit the kick.
+             *
+             * No hardware-press sift is needed here, unlike Schwung's own
+             * vouch: that one reads raw cable 0, where steps, track buttons and
+             * knob touch all arrive as notes on the same wire. movy owns the
+             * surface and has already decoded this as a pad — and the
+             * sequencer's own notes never reach this site.
+             *
+             * The vouch, never a pad id: the pad-to-note map is Move's (drum
+             * layout, octave, a track's transpose), and a module told "pad 68"
+             * could only ever address one bank, mis-strided. The module pairs
+             * this with the note it receives itself. Note-on only, one write
+             * per press — which is exactly this branch. */
+            const pressParam = model?.getPressParam();
+            if (pressParam) {
+                portFor(track).setParam(model!.getComponentKey() + ':' + pressParam, '1');
+            }
             if (drumCfg) {
                 const pad = drumPadOn(d1, PAD_MIN, appState.shiftHeld, drumCfg, model!.getComponentKey(), track, vel);
                 /* The only trace a pad leaves. selectBankForPad logs when it

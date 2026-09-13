@@ -171,6 +171,9 @@ export function createScopedLfoModel(scope: LfoScope): Model {
          * build, not polled, so there is nothing to bring forward. */
         reloadNow(): void { dropCache(); },
         getComponentKey(): string { return scope.keyPrefix + 'lfo'; },
+        /* A virtual chain slot has no module and so no declaration:
+         * nothing here can ask to be told a finger hit a pad. */
+        getPressParam(): string | null { return null; },
         /* The page's values are read from schwung ONCE and owned by movy after
          * that (see `loaded`), so a value restored behind its back — by an undo
          * writing straight to the chain — leaves the display showing the old

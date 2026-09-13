@@ -44,6 +44,15 @@ export interface SchwungLib {
     focusParamOf: any;
     voicesOf: any;
     voiceIndexFromNote: any;
+    /* OPTIONAL, and typed so. A Schwung predating the live-press contract
+     * serves voices.mjs and child_key.mjs without these, and the whole point of
+     * this file is that such a Schwung costs movy nothing but the feature.
+     * Reached by property access on the namespace object and guarded at the
+     * call site, so a missing export answers `undefined` rather than raising
+     * the link error that would take the library — and with it the renderer —
+     * down. */
+    focusPressParamOf?: any;
+    childPressParam?:   any;
 }
 
 /* LITERAL PATHS, NOT A CONCATENATION. esbuild can only apply its resolver to a
@@ -68,7 +77,7 @@ try {
      * error at evaluation, indistinguishable from a missing file to everything
      * above this line, and correctly treated the same way.
      */
-    const [pc, pi, rpm, el, wr, vo] = await Promise.all([
+    const [pc, pi, rpm, el, wr, vo, ck] = await Promise.all([
         // @ts-ignore — absolute device path; external in the device build
         import('/data/UserData/schwung/shared/param_pages/page_controller.mjs'),
         // @ts-ignore
@@ -81,6 +90,11 @@ try {
         import('/data/UserData/schwung/shared/param_pages/widget_registry.mjs'),
         // @ts-ignore
         import('/data/UserData/schwung/shared/param_pages/voices.mjs'),
+        /* Safe to add to the set: page_controller.mjs, already here, imports
+         * child_key.mjs — so it exists wherever the library does, and it cannot
+         * be the module that makes an otherwise-serviceable Schwung fail. */
+        // @ts-ignore
+        import('/data/UserData/schwung/shared/param_pages/child_key.mjs'),
     ]);
     lib = {
         createController: pc.createController, LAYOUT_MOVY: pc.LAYOUT_MOVY,
@@ -91,6 +105,7 @@ try {
         isWidgetAvailable: wr.isWidgetAvailable,
         padLayoutOf: vo.padLayoutOf, focusParamOf: vo.focusParamOf,
         voicesOf: vo.voicesOf, voiceIndexFromNote: vo.voiceIndexFromNote,
+        focusPressParamOf: vo.focusPressParamOf, childPressParam: ck.childPressParam,
     };
 } catch (e: any) {
     /* Swallowed DELIBERATELY, and this is the whole point of the file: an

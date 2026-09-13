@@ -62,6 +62,7 @@ import { run as run_track_migrate } from './logic/track-migrate.mjs';
 import { run as run_partition } from './logic/partition.mjs';
 import { run as run_flags } from './logic/flags.mjs';
 import { run as run_schwung_grid } from './logic/schwung-grid.mjs';
+import { run as run_schwung_page } from './logic/schwung-page.mjs';
 import { run as run_cpu_page } from './logic/cpu-page.mjs';
 import { run as run_mixer } from './logic/mixer.mjs';
 import { run as run_pan_viz } from './logic/pan-viz.mjs';
@@ -74,6 +75,13 @@ const SUITES = [
     run_model_params,
     run_knob_input,
     run_declarations,
+    /* Beside its sibling, and deliberately BEFORE run_undo_params: that suite
+     * imports dump-boot.mjs, whose createDumpBoot() calls installEnv() a SECOND
+     * time. From that point the globals belong to the new env instance while
+     * `env.setParams` still feeds the harness's own — so a suite after it boots
+     * a model against whatever the dump left behind, not its own preset. This
+     * suite boots models, so it has to run while `env` is still the live one. */
+    run_schwung_page,
     run_trigger_badge,
     run_drums,
     run_host_param,

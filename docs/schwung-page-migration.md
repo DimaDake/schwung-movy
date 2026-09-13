@@ -1,0 +1,304 @@
+# Schwung page migration — ledger
+
+**The single source of truth for where this migration is.** Design and rationale
+live in `docs/superpowers/specs/2026-09-13-schwung-page-migration-design.md`;
+symptom detail lives in `docs/schwung-param-pages-findings.md` and
+`docs/schwung-releases-review-2026-09.md`. This file is *state*.
+
+**Every session working this migration: read this file first, update it last.**
+Write your own item plan into `plans/SP-<id>-<slug>.md` from the entry below —
+do not expect one to be waiting for you, and do not trust a stale one over the
+code. **Phase 0 is the exception: it already has a full plan at
+`plans/2026-09-13-schwung-page-migration-phase-0.md`.**
+
+**The burn-down is the real check, not this table.** Run:
+
+```bash
+SCHWUNG=../schwung npm run test:app
+```
+
+It prints `page-mode: N of 13 expected failures remain`. That number may shrink
+and must never grow. If it grew, the last item regressed a sibling — stop.
+
+---
+
+## State
+
+`✅ done · 🔨 in progress · ⬜ not started · 🚫 blocked`
+
+### Phase 0 — infrastructure
+
+| id | item | model | state |
+| --- | --- | --- | --- |
+| SP-01 | `app-loop` runs both modes; the 13 Cause-A failures become a named ledger | Sonnet | ⬜ |
+| SP-02 | Harness env leak: `createDumpBoot()` calls `installEnv()` twice | Sonnet | ⬜ |
+| SP-03 | Split `schwung-page.ts` (457 → ≤200/file) | Sonnet | ⬜ |
+| SP-04a | **Re-capture the module dump** — the committed one is 2026-07-15 | Sonnet | ⬜ |
+| SP-04 | Fleet sweep: 76 dump modules planned through Schwung's `page_plan` | Sonnet | ⬜ |
+| SP-05 | `page` screenshot scenes — today `page` has zero pixel coverage | Sonnet | ⬜ |
+| SP-06 | Fork install script + runtime Schwung **version** floor | Sonnet | ⬜ |
+| SP-07 | Grid A/B cost harness, reproducible, both arms | Opus | ⬜ |
+
+### Phase 1 — blockers, hardest first
+
+| id | item | model | state |
+| --- | --- | --- | --- |
+| SP-10 | Delegation boundary: ownership accessor + page identity | Opus | ⬜ |
+| SP-11 | Input ownership, incl. **Clear+knob must not delete the clip** | Opus | ⬜ |
+| SP-12 | Polling + LED ownership | Opus | ⬜ |
+| SP-13 | Per-tick cost: number, attribution, recommendation (**branch point**) | Opus | ⬜ |
+| SP-14 | Cause E — drum/voice pages | Opus | ⬜ |
+| SP-15 | Cause D — contract lifecycle | Sonnet | ⬜ |
+| SP-16 | Cause G — graphics return | Sonnet | ⬜ |
+| SP-17 | Cause C/B — dives, header readout, footer hints | Sonnet | ⬜ |
+| SP-18 | Decoration channel: dot vs tilde, p-lock highlight, held-step filter | Sonnet | ⬜ |
+| SP-19 | Undo redraw + automation-follows-arc | Sonnet | ⬜ |
+| SP-20 | `ui_hierarchy` ownership under Schwung's planner | Opus | ⬜ |
+
+### Phase 2 — parity
+
+| id | item | model | state |
+| --- | --- | --- | --- |
+| SP-21 | Metadata correction overlay (ranges + enum lists only) + the audit | Sonnet | ⬜ |
+| SP-22 | Cut-curve viz kind (SU-5, or a documented movy exception) | Sonnet | ⬜ |
+| SP-23 | Font parity + enum-overlay double-draw | Sonnet | ⬜ |
+| SP-24 | movy-only page kinds verified against a Schwung body | Sonnet | ⬜ |
+
+### Phase 3–4
+
+| id | item | model | state |
+| --- | --- | --- | --- |
+| SP-30 | Default-on: flip, device tier, docs, release, **stated revert path** | Sonnet | ⬜ |
+| SP-40 | Delete `body` and the `.off` stand-ins | Sonnet | ⬜ |
+| SP-41 | Delete `off`, movy's page renderer, model page planning. **No return** | Opus | ⬜ |
+
+### Upstream — all Opus
+
+| id | item | PR | state |
+| --- | --- | --- | --- |
+| SU-1 | Viz gate per-cell or held-only, not "any decorations exist" | — | ⬜ |
+| SU-2 | `decorations` gains a modulation bit | — | ⬜ |
+| SU-3 | Voice declaration for caller-supplied racks | — | ⬜ |
+| SU-4 | Non-enum dive intents (filepath, canvas) | — | ⬜ |
+| SU-5 | Cut-curve viz kind | — | ⬜ |
+| SU-6 | The 15-vs-16 widget band that offsets label rows by one row | — | ⬜ |
+
+---
+
+## Environment facts a fresh session needs
+
+- **The real planner runs offline.** `SCHWUNG=/path/to/schwung node build/browser.mjs`
+  makes `build/browser.mjs:268` resolve `/data/UserData/schwung/shared/param_pages/*`
+  to the checkout instead of `browser-test/stubs/schwung-param-pages.mjs` (which
+  throws on import, deliberately). Without `SCHWUNG` every Schwung assertion is
+  skipped, not failed — a green run proves nothing.
+- **The local schwung checkout is not on `main`.** `git -C schwung status` reads
+  `movy-min-host-1.1.0 … behind 23`, and `git pull` refuses to fast-forward.
+  Read upstream with `git -C schwung show origin/main:<path>` rather than
+  trusting the working tree.
+- **`MOVY_SCHWUNG_GRID=off|page` is STALE.** It appears in the usage lines of
+  `scripts/grid-call-cost.mjs` and `scripts/measure-grid-cost.sh`, but no build
+  honours it — the mode became the `schwunggrid` flag. Off device, select a mode
+  with `setSchwungGridMode()` (`src/renderer/schwung-grid.ts:89`); on device, set
+  the flag. `MOVY_NO_SCHWUNG_GRID=1` still removes the layer from the bundle.
+- **A file copy does not reload `param_pages`.** QuickJS caches modules per
+  `shadow_ui` process and `shadow_load_ui_module` renames only `ui.js`, not its
+  imports — so a fresh `voices.mjs` links against the cached old `page_plan.mjs`
+  and fails with `Could not find export 'navLabelsOf'`. The stack must restart.
+- **That failure is silent.** `shadow_ui`'s stderr is `/dev/null`; `debug.log`
+  says only `shadow_load_ui_module returned false`. To see a real message, ship
+  a throwaway `ui.js` that does the import inside `try { await import(...) }
+  catch { console.log(...) }`.
+- **Schwung floor today:** `main` at or past #405 / #411 / #414 / #415, plus
+  1.3.0 for the 128 KB param contract. SP-06 turns this into a runtime check.
+- **`schwungLibError()` already exists** (`schwung-lib.ts`) and carries the
+  reason the Settings row is stuck on MOVY. SP-06 extends it to a *version*
+  reason, not just an availability one.
+
+---
+
+## Item detail
+
+Each entry: what the item is, where it lives, what closes it, what it needs
+first. Read the design spec for *why*.
+
+### SP-01 — `app-loop` runs both modes
+
+`browser-test/app-loop.mjs` (2713 lines) is the gate for this feature and runs
+one mode. It has no `ok(label, cond)`; assertions go through
+`eq(label, actual, expected)` and `fail()` increments `failures`
+(`app-loop.mjs:62-69`). Parameterise the schwung-sensitive blocks over
+`off`/`page` via `setSchwungGridMode()`, and land the 13 known Cause-A failures
+as a **named** expected-fail list in its own file, so a listed check that starts
+passing must be removed from the list and an unlisted check that fails is a hard
+error. The 13 labels are quoted verbatim in
+`docs/schwung-param-pages-findings.md` §3 Cause A.
+
+**Closes when:** `SCHWUNG=../schwung npm run test:app` exits 0 and prints
+`page-mode: 13 of 13 expected failures remain`; deleting one label from the list
+makes the run exit 1.
+
+**Needs:** nothing. **Do first.**
+
+### SP-02 — the harness env leak
+
+`browser-test/dump-boot.mjs:95` calls `installEnv()` a second time. From that
+suite onward the param globals belong to the new env while `env.setParams` still
+feeds the harness's own, so a later suite that boots a model reads whatever the
+dump left behind. `browser-test/logic.mjs:79` documents it and works around it by
+ordering `run_schwung_page` before `run_undo_params`. Fix the leak; restore the
+natural ordering. §7 warns this may turn other suites red — that is the point,
+so do it alone and in one commit.
+
+**Closes when:** `run_schwung_page` sits beside `run_schwung_grid`, the
+work-around comment is gone, and `npm test` is green.
+
+**Needs:** nothing. Independent of SP-01.
+
+### SP-03 — split `schwung-page.ts`
+
+457 lines against the repo's hard 200-line limit, and every Phase-1 item edits
+it. Natural seams already visible in the file: controller construction
+(`:111`), the contract tri-state and `refreshLoaded()` (`:171-190`), the
+placeholder retry (`RETRY_TICKS 12` / `RETRY_LIMIT 60`, `:224-237`), and
+`render()`. Pure refactor — no behaviour change.
+
+**Closes when:** no file over 200 lines, `npm test` green, and the
+`schwung-page` logic suite unchanged.
+
+**Needs:** SP-01 (so a regression is visible in both modes).
+
+### SP-04a — re-capture the module dump
+
+**The committed dump's `generated_at` is 2026-07-15** — before Schwung #405/#411
+existed, so before a module could declare voices or widgets at all. Every fleet
+statement of the form "no module declares X" read off it is a claim about a
+two-month-old fleet. Re-capture before drawing any conclusion from SP-04, and
+re-baseline `dump-replay` only where the fleet genuinely moved — never with
+`--update` to make it quiet.
+
+**Closes when:** `generated_at` is current, `complete: true`, and the
+voice-declaration count (below) is recorded either way.
+
+**Needs:** a reachable device. `ping move.local` always fails (ICMP blocked) —
+probe with `./scripts/dev-probe.sh status`.
+
+### SP-04 — the fleet sweep
+
+`docs/module-dump/device-dump.json` carries all 76 real modules with
+`chain_params`, `module_json`, `ui_hierarchy`, `movy_config` and `params` —
+everything Schwung's planner needs, with no device. `dump-replay.mjs` replays
+*movy's* model, the layer Schwung bypasses, so it is structurally blind to
+re-pagination. The sibling suite plans each module through `page_plan` and
+asserts what a user can navigate.
+
+**Two things were measured on 2026-09-13, and they change what this item is
+for:**
+
+1. **The static invariants already pass.** `planPages()` over all 76 modules:
+   **72 clean, 0 duplicate page names, 0 empty knobs pages, 0 throws**, 4
+   warnings — all `no ui_hierarchy — paginated from chain_params`
+   (`branchage`, `belt-in`, `po32-drum`, `smack-in`). **The 9W9 class is fixed
+   upstream.** So this suite is a regression guard, and each invariant must be
+   shown able to fail rather than asserted to work.
+2. **Zero of 72 modules with a hierarchy declare voices to Schwung.**
+   `voicesOf(hierarchy)` returns `[]` for every one, `mrdrums` and `forge`
+   included. **That is Cause E reproduced offline, with no device** — and it
+   locates the gap: `voices.mjs`'s own comment describes an mrdrums root with
+   `child_count: 16` / `child_key_template: "p{index}_{key}"`, while the dumped
+   mrdrums root carries only `name`, `params`, `knobs`. The library is ready;
+   the captured fleet predates the declaration. SP-04a decides whether that is
+   still true. `voices.mjs` and `page_plan.mjs` are byte-identical to
+   `origin/main`, so this is not an artefact of the stale local branch.
+
+Note `voicesOf` takes the **hierarchy itself**, not an options object — passing
+`{ hierarchy }` returns `[]` and looks exactly like a real answer.
+
+**Closes when:** the suite runs the whole dump green, each invariant has been
+shown to fail when broken, and the voice census is baselined.
+
+**Needs:** SP-02 (the env leak corrupts multi-module boots), SP-04a.
+
+### SP-05 — `page` screenshot scenes
+
+`schwungGridEnabled()` is `mode === 'body'`, so under `page` it is false and no
+baseline renders Schwung's body — `screenshot` passes **vacuously**. Under
+`body` it does bite: 111 of 149 baselines differ. `GRID_BODY_RECT`'s *value* is
+asserted in `browser-test/logic/schwung-page.mjs`; its *use* at the `ctl.render`
+call is not. Add scenes that render a real Schwung-planned body.
+
+**Closes when:** new `page` baselines exist, and removing the `rect` argument
+from the `ctl.render` call turns them red.
+
+**Needs:** SP-01, SP-03.
+
+### SP-06 — fork install + version floor
+
+Consequence of the fork-and-pin decision. One script that installs a fork
+branch's `param_pages` onto the device *with the restart* the QuickJS module
+cache requires (a copy is not enough — see Environment facts). Plus a runtime
+**version** floor: `schwungLibAvailable()` answers availability, not vintage, so
+a Schwung with all six files but an older `page_plan` link-errors into
+"unavailable" with a confusing reason. Record the floor per feature and surface
+it through `schwungLibError()`.
+
+**Closes when:** installing a fork branch and reopening movy shows the fork's
+behaviour; an under-floor Schwung pins to MOVY and the Settings hint says which
+version is needed.
+
+**Needs:** nothing.
+
+### SP-07 — the A/B cost harness
+
+`scripts/grid-call-cost.mjs` and `scripts/measure-grid-cost.sh` exist untracked
+and are already good: the first counts host calls per arm off device (a
+`shadow_*_param` is a synchronous round-trip, so the call count *is* the
+latency); the second reads `perf_ipc` on device while injecting one CC carrying
+a real magnitude, because a flick is not sixty small turns. Both have **stale
+usage lines** — they document `MOVY_SCHWUNG_GRID=off|page`, which no build
+honours. Fix the arm selection, commit them, and make the off-device arm a
+suite that fails on a regression rather than a script someone remembers to run.
+
+Note the reason the device arm is passive: an injected control CC reaches
+schwung's cached cable-0 handler, not movy, so movy's surface cannot be driven
+by script while overtaking. That is why the off-device call-count arm carries
+the burden.
+
+**Closes when:** the same gesture run twice reproduces within noise, both arms
+name which layer the time is in, and the off-device arm is in `npm test`.
+
+**Needs:** SP-01.
+
+### SP-14 — Cause E, and where its gap actually is
+
+The findings offered three possible homes for the fix (movy reads `bank.pad` and
+tells the planner · a Schwung fallback · the modules declare their racks the
+`voice-poc` way). SP-04's measurement narrows it: **Schwung's `voicesOf` is ready
+and no module feeds it.** Since decision 2 keeps third-party module repos off the
+critical path, the movy-side translation is the candidate to cost first —
+movy already knows these racks from `bank.pad` in `src/module-configs/` (6w6,
+8w8, 9w9, cw78, none of which are in the dump at all) and from `movy_config.json`
+on device.
+
+The bar is "no dramatic regression", and drum racks are a large part of how movy
+is used: today every page shows at once and a pad press does not move the page,
+while the header *does* name the right pad, because that half is movy's.
+
+**Needs:** SP-04 (the census is its fixture), SP-10.
+
+### SP-13 — the branch point, stated precisely
+
+Not a gate. SP-13 produces three things: **a number** (calls/tick and ipc_ms per
+arm, on a movy chain with a heavy module — mini JV is the reproducer), **an
+attribution** (which layer the time is in; attribution is exactly what failed
+last time), and **a recommendation**. If the delegation boundary did not recover
+the cost, SP-13 opens a scoped investigation and the remaining Phase 1 items
+continue in parallel. It does not stop the migration.
+
+---
+
+## Log
+
+Newest first. One line per closed item: id, date, commit, the evidence.
+
+- 2026-09-13 — spec approved and committed (`c4b6775`); ledger created.

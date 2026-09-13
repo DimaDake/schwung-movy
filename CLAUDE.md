@@ -12,6 +12,39 @@ Device: `ableton@move.local`
 
 ---
 
+## Schwung page migration — standing rules
+
+**In force until Phase 4 of `docs/schwung-page-migration.md` closes.** Schwung's
+`param_pages` is becoming the only implementation of a module's parameter pages;
+movy's own page renderer is being deleted. Read
+`docs/schwung-page-migration.md` (the ledger) before working any `SP-*`/`SU-*`
+item, and update it when you finish one. The design and its rationale are in
+`docs/superpowers/specs/2026-09-13-schwung-page-migration-design.md`.
+
+Three rules, and they bind work that is not itself a migration item:
+
+1. **No new features in movy's page renderer.** `label.ts`, `knob.ts`,
+   `envelope.ts`, the curve renderers, `lfo-wave.ts`, `model/page-layout.ts`,
+   `generic-pages.ts` and `config-pages.ts` are all scheduled for deletion. Fix
+   bugs there; do not grow them. A parameter-page feature belongs in Schwung's
+   planner or in the movy↔Schwung seam.
+2. **A change Schwung needs is an upstream PR, never a local patch.** Work
+   against a fork branch, record the minimum Schwung version the feature needs,
+   and file the PR in parallel — do not wait on review, and do not vendor
+   `param_pages` into movy.
+3. **A delegated component is never dual-driven.** If Schwung owns a
+   component's pages, movy must not also page it, poll it, draw its LEDs, or
+   handle its knob input. Never read `getKnobPage()` or a `knobPage` index
+   directly for a component that may be delegated — go through the ownership
+   accessor. Fifteen ad-hoc seam checks in `src/midi/router.ts` are how eight
+   symptoms and one clip-deleting data loss arrived.
+
+Local suites are only meaningful for this work with a schwung checkout:
+`SCHWUNG=../schwung npm test`. Without it every Schwung assertion is **skipped,
+not failed**.
+
+---
+
 ## Context discipline
 
 A tool call is a full model turn — the whole conversation gets re-sent on

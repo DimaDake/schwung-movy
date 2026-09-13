@@ -24,7 +24,7 @@ Read `MIGRATION.md` for the recipe and the rules; this file is the result.
 | 8 | `test-master-fx.sh` | **FINALIZED** | `14eb256` | 6 | 63.0 s → 35.4 s |
 | 9 | `test-mutes.sh` | **FINALIZED** | `29fd0bc` | 15 | 85 s → 43 s |
 | 10 | `test.sh` | **FINALIZED** | `3c296a1` | 11 | 30.5 s → 26.2 s |
-| 11 | `test-seq.sh` | **POSTPONED** — see below | *(none)* | 16 (WIP) | 1:59.8 → 102.5 s ⚠️ |
+| 11 | `test-seq.sh` | **DONE** 2026-09-13 — see below | `f78860d` | 16 | 1:59.8 → 40.7 s |
 | 12 | `test-versions.sh` | **FINALIZED** | `ed1a5c9` | 8 | 39.7 s → 24.3 s |
 | 13 | `test-migrate.sh` | **FINALIZED** | `e907f8e` | 11 | 109.8 s → 86.6 s |
 
@@ -73,7 +73,12 @@ outranks this migration.
 
 ### `test-seq.sh` → `test-device/scenarios/seq.ts` — CLOSED 2026-09-13
 
-16 checks, in the sweep. Five consecutive runs at 16/16 before it was promoted.
+16 checks, in the sweep. Five consecutive runs at 16/16 before it was promoted,
+and `scripts/test-seq.sh` is deleted — the last bash suite the migration was
+about. `scripts/lib/test-set.sh` outlives it regardless: ten non-test scripts
+still source it, so the two fixture implementations stay in sync by hand until
+`test-chains.sh`, `test-cpu.sh`, `test-voice-slot.sh` and the `measure-*` family
+move too.
 
 It was escalated under the 3-fix rule on 2026-09-12 and sat as a WIP for a day,
 on this blocking fact: **the Play button never stopped a running transport**, and

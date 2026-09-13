@@ -5,7 +5,7 @@ import type { Agent } from './agent.js';
 import { UI_FLAG_JUMP_TO_TOOLS } from './agent.js';
 import type { Probe } from './probe.js';
 import { until } from './wait.js';
-import { deployUi, restartStack } from './engine.js';
+import { applyRunMute, deployUi, restartStack } from './engine.js';
 import {
     cc, noteOn, noteOff, knobDelta,
     CC_JOG_CLICK, CC_JOG_TURN, CC_BACK, CC_KNOB_BASE, CC_TRACK_BASE,
@@ -125,6 +125,8 @@ export class Device {
         } catch {
             await this.bus.frames(RESTORE_QUIET);
         }
+        /* After the restore, never during it — see applyRunMute. */
+        await applyRunMute(this.bus);
     }
 
     /* How many times movy has logged `seq: set ready` (set-session.ts). */

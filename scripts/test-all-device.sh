@@ -8,14 +8,17 @@ cd "$(dirname "$0")/.."
 
 GRN='\033[0;32m'; RED='\033[0;31m'; BLD='\033[1m'; RST='\033[0m'
 
-# What MIGRATION.md's step 6 leaves behind: the one bash suite not yet
-# migrated (test-seq.sh). test-jog-hint.mjs used to be here too, recorded as
-# blocked on a schwung change (SNAPSHOT_DISPLAY) — it never was: the
-# framebuffer is a file in /dev/shm and scp reads it, which is what the script
-# itself did. It is the `jog-hint` scenario now.
-# The TS scenarios are one entry below, run as the single process they already
-# are (test-device/run.mjs), not unrolled per-scenario here.
-SCRIPTS=(test-seq.sh)
+# Nothing bash left in the sweep. `test-seq.sh` was the last one and its
+# scenario (test-device/scenarios/seq.ts) took over on 2026-09-13; the four
+# scripts still in scripts/ were never in this sweep. test-jog-hint.mjs used to
+# be here too, recorded as blocked on a schwung change (SNAPSHOT_DISPLAY) — it
+# never was: the framebuffer is a file in /dev/shm and scp reads it, which is
+# what the script itself did. It is the `jog-hint` scenario now.
+#
+# This wrapper is kept for the ONE thing `npm run test:device` does not do:
+# hand the LEDs back afterwards, including on Ctrl-C. Add a bash suite here
+# only if one ever comes back, which the Test 16 ratchet says it may not.
+SCRIPTS=()
 declare -a FAILED=()
 
 # Each bash suite normally restarts the Move stack on the way out to hand the
@@ -42,7 +45,7 @@ run_one() {   # name, then the command
     echo -e "${BLD}---------- $name took ${dt}s ----------${RST}"
 }
 
-for s in "${SCRIPTS[@]}"; do
+for s in "${SCRIPTS[@]+"${SCRIPTS[@]}"}"; do
     run_one "$s" ./scripts/"$s" "$HOST"
 done
 run_one "test:device (TS scenarios)" npm run test:device -- --host "$HOST"

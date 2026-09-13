@@ -208,6 +208,27 @@ scenarios still poll `overtake_dsp` params faster than `PARAM_POLL_GAP` —
 
 ---
 
+### 13a. Two flakes measured on 2026-09-13, both on the param channel
+
+Neither is caused by the param-door refactor (each was A/B'd against it), and
+neither is fixed. They are recorded with RATES rather than adjectives, because
+"flaky" without a number is how the last one survived a year.
+
+| what | rate measured today | shape |
+| --- | --- | --- |
+| `automation` / `p3-registry` — the lane registry is empty after a real reopen | **2 in 7** | the scenario's own comment already names the cause: "OBSERVING THE RESTORE BROKE IT". The wait that was added to fix a read-once race polls `probe.auto()` — param traffic — starting while the restore is still running |
+| `seq` / the two capture legs — the UI's `capture select`/`capture fixed` line is missing from its window | **1 in 9, in-sweep only** | the engine took the path (`capinfo` shows the overlay open with candidates) and the UI had not logged it yet. Both legs do up to 11 param polls *before* reading the log, so they compete with the UI for the slot exactly while it is trying to act |
+
+Both have the same shape as the transport bug this file opened with, and the
+same fix is available for both: **read the out-of-band witness (the log, over
+ssh) FIRST, and the param channel afterwards** — or do not poll the channel at
+all across a gesture the UI has to answer. `seq`'s other legs already work that
+way; these two were written before the rule existed.
+
+`automation`'s is the one to do first: it has the higher rate, and its fix is to
+stop polling `probe.auto()` during the restore window rather than to restructure
+anything.
+
 ### 13. Eight scenarios still poll the param SHM faster than the gap that works
 
 `test-device/wait.ts` now carries `PARAM_POLL_GAP` (150 frames) and the

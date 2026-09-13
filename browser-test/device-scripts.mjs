@@ -568,6 +568,23 @@ const atUi = runMjs.search(/^await deployUi\(HOST\);/m);
 ok('ui.js is deployed before the scenarios run too',
    atUi > 0 && atRunAll > 0 && atUi < atRunAll);
 
+/* The sweep drives real pads and a real transport, so it makes real noise for
+ * as long as it runs. `mute` is the engine's test-only silence; what this
+ * guards is the half that is easy to leave out — turning it back OFF, from a
+ * `finally`, so a scenario that threw does not leave the device quiet with no
+ * explanation. */
+ok('the run asks for the mute and clears it in a finally',
+   /setRunMute\(MUTE\)/.test(runMjs)
+   && /finally\s*\{[\s\S]{0,260}setRunMute\(false\)/.test(runMjs));
+
+/* And it has to be applied where a DSP exists to receive it. Setting it at the
+ * top of the sweep printed COULD NOT MUTE and the run played out loud: the
+ * stack had just restarted and movy was not open yet. */
+const deviceSrc = readFileSync('test-device/device.ts', 'utf8');
+ok('and the mute is applied on open, after the restore wait',
+   /applyRunMute\(this\.bus\)/.test(deviceSrc)
+   && deviceSrc.indexOf('applyRunMute(this.bus)') > deviceSrc.indexOf('RESTORE_QUIET'));
+
 /* Every scenario in scenarios/ must be LOADED. The registry is built by import
  * side effect, so a file that exists and is never imported is a suite that
  * silently does not run — which is what `seq` was for a day: moved out of
@@ -591,10 +608,6 @@ ok('every scenario in scenarios/ is imported by run.mjs', notLoaded.length === 0
 log('\nTest 16: no new bash device suites (the tier only shrinks)');
 
 const BASH_SUITES_LEFT = [
-    /* Its scenario (test-device/scenarios/seq.ts) is green and in the sweep as
-     * of 2026-09-13, and run.mjs ships the engine itself now — so this is a
-     * duplicate, kept only until scripts/lib/test-set.sh can go with it. */
-    'test-seq.sh',
     /* Never in MIGRATION.md's scope. Not run by test-all-device.sh either. */
     'test-chains.sh', 'test-cpu.sh', 'test-voice-slot.sh',
     /* Tests scripts/lib/test-set.sh itself; outlives the suites because 14

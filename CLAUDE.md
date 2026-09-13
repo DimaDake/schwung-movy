@@ -113,7 +113,7 @@ if you are opus or fable 5 try to optimize token usage and make it cost efficien
 cd engine && cargo test            # pure seq-core logic (host)
 ./scripts/build-dsp.sh             # cross-compile aarch64 → dist/dsp.so (glibc <= 2.35)
 ./scripts/deploy.sh                # builds ui.js + dsp.so, deploys both (atomic .so)
-./scripts/test-seq.sh              # device e2e: transport, steps, record, session, persistence
+npm run test:device                # device e2e, every scenario (builds + ships dsp.so and ui.js)
 ```
 
 If MoveOriginal dies, recover with the davebox restart sequence (root SSH;
@@ -166,10 +166,7 @@ ssh -o ConnectTimeout=3 ableton@move.local echo ok 2>/dev/null \
   || echo "DEVICE OFFLINE — SKIPPING DEVICE TESTS"
 # If offline: report DEVICE OFFLINE to the user in CAPS
 
-# 4a. seq is the one suite still in bash — run it for any sequencer change.
-./scripts/test-seq.sh [move.local]
-
-# 4b. Both of the above, plus the per-suite restarts collapsed into one.
+# 4a. The above plus the LED restore on the way out, including on Ctrl-C.
 ./scripts/test-all-device.sh [move.local]
 ```
 

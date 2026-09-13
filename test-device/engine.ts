@@ -121,3 +121,25 @@ export async function deployUi(host: string, force = false): Promise<boolean> {
     uiDeployed = true;
     return true;
 }
+
+/* The engine's test-only silence, and WHEN it can be applied.
+ *
+ * `mute` is a process static inside dsp.so, so one write holds for the rest of
+ * that dlopen — across the instance churn a scenario's close-and-reopen causes.
+ * But it can only be written once the .so is actually loaded, and at the top of
+ * a sweep nothing is: the stack has just been restarted and movy has not been
+ * opened yet. Setting it there reported COULD NOT MUTE and the sweep played out
+ * loud, which is how this ended up here instead.
+ *
+ * So the intent is recorded once and applied by `Device.open()` — after its
+ * ready wait, never during the restore, because a param write in that window is
+ * the documented way to starve the restore itself. Re-applied on every open
+ * rather than once: `restartStack` re-dlopens, which resets the static. */
+let wantMute = false;
+
+export function setRunMute(on: boolean): void { wantMute = on; }
+
+export async function applyRunMute(bus: { setParam(k: string, v: string): Promise<void> }): Promise<void> {
+    if (!wantMute) return;
+    try { await bus.setParam('overtake_dsp:mute', '1'); } catch { /* audible, not fatal */ }
+}

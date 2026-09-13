@@ -3,7 +3,7 @@
 import { Bus } from './dist/bus.js';
 import { Agent } from './dist/agent.js';
 import { ensureServers, stopServers } from './dist/daemon.js';
-import { deployEngine, deployUi } from './dist/engine.js';
+import { deployEngine, deployUi, setRunMute } from './dist/engine.js';
 import { runAll } from './dist/runner.js';
 import './dist/scenarios/automation.js';
 import './dist/scenarios/unload.js';
@@ -71,7 +71,36 @@ const started = await ensureServers(HOST);
 const bus = new Bus(HOST);   await bus.connect();
 const agent = new Agent(HOST); await agent.connect();
 
-const failures = await runAll({ host: HOST, only, bus, agent });
+/* Silence the engine for the run. The scenarios press pads and run the
+ * transport for real, so a sweep otherwise plays the fixture set out loud for
+ * ten minutes. The engine still RENDERS everything — `mute` zeroes the block
+ * after render_block, never instead of it, so chain costs and the CPU meter
+ * stay honest and no check moves.
+ *
+ * A process static in the DSP, so it survives the instance churn that a
+ * scenario's close-and-reopen causes; cleared below, and cleared for free by
+ * any later engine deploy or stack restart if this process dies first. Read
+ * back rather than assumed: a mute that did not take is a sweep that is about
+ * to be loud, and the reason should be on screen, not a mystery.
+ *
+ * MOVY_TEST_AUDIO=1 keeps the sound, for when the thing you are debugging is
+ * the sound. */
+const MUTE = process.env.MOVY_TEST_AUDIO !== '1';
+setRunMute(MUTE);
+console.log(MUTE
+    ? 'audio: muted from the first open (MOVY_TEST_AUDIO=1 to hear it)'
+    : 'audio: MOVY_TEST_AUDIO=1 — the run will be audible');
+
+let failures;
+try {
+    failures = await runAll({ host: HOST, only, bus, agent });
+} finally {
+    /* In `finally`: a scenario that threw is exactly when the device is most
+     * likely to be left in a state nobody asked for. */
+    setRunMute(false);
+    try { await bus.setParam('overtake_dsp:mute', '0'); }
+    catch { console.log('audio: could not un-mute — a redeploy or restart clears it'); }
+}
 
 bus.close(); agent.close();
 await stopServers(HOST, started);

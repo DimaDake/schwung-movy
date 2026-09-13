@@ -32,7 +32,7 @@ and must never grow. If it grew, the last item regressed a sibling — stop.
 | --- | --- | --- | --- |
 | SP-01 | `app-loop` runs both modes; the 13 Cause-A failures become a named ledger | Sonnet | ✅ |
 | SP-02 | Harness env leak: `createDumpBoot()` calls `installEnv()` twice | Sonnet | ✅ |
-| SP-03 | Split `schwung-page.ts` (457 → ≤200/file) | Sonnet | ⬜ |
+| SP-03 | Split `schwung-page.ts` (457 → ≤200/file) | Sonnet | ✅ |
 | SP-04a | **Re-capture the module dump** — the committed one is 2026-07-15 | Sonnet | ⬜ |
 | SP-04 | Fleet sweep: 76 dump modules planned through Schwung's `page_plan` | Sonnet | ⬜ |
 | SP-05 | `page` screenshot scenes — today `page` has zero pixel coverage | Sonnet | ⬜ |
@@ -375,6 +375,30 @@ continue in parallel. It does not stop the migration.
 
 Newest first. One line per closed item: id, date, commit, the evidence.
 
+- 2026-09-13 — **SP-03 ✅** — `schwung-page.ts` 457 → 124 lines, split into four
+  modules along the seams Phase 1 edits: `schwung-page-io.ts` (57, the injected
+  `io`), `schwung-page-contract.ts` (98, the tri-state, `refreshLoaded()`, the
+  retry budget), `schwung-page-render.ts` (124, `render()`, `knobParamInfo()`,
+  the decoration pass) and `schwung-page-input.ts` (142, the knob turn/touch,
+  the click and Back ladders, `focusVoice`). **A fourth module beyond the plan's
+  three**, because the binding with only io/contract/render moved out still came
+  to ~196 lines and the gestures are a responsibility of their own.
+  **No behaviour change:** every code line moved verbatim (a whitespace-stripped
+  set-diff of before vs after loses nothing but the five glue statements), the
+  `SchwungPage` surface is the same 18 members, and the seam is staged so
+  `schwung-page.ts` remains the new files' **sole importer** — which is what
+  keeps `build/device.mjs`'s `/\/schwung-(body|page|editor|widgets|voices|lib)\.js$/`
+  swap taking the whole layer out (their names deliberately do not match it).
+  Evidence: `npm test` exit 0 with `SCHWUNG=../schwung`, `page-mode: 13 of 13
+  expected failures remain` (baseline 13 of 13), `npm run typecheck` exit 0,
+  `wc -l` every file ≤ 200, and `scripts/schwung-off-is-free.mjs` **PASS** — the
+  one assertion that a new module pulled `param_pages` back into a flag-off
+  build. Also re-ran the eight host `scripts/schwung-*-check.mjs` suites that
+  drive `createSchwungPage` directly: all eight pass.
+  **`schwung-pagination-check.mjs` is red, and was red before this task** —
+  verified by reverting to `66e71a9` and re-running: `FAIL: the lock mark is not
+  at the locked cell: 0/4 pixels lit at (97,9) for slot 3`, byte-identical in
+  both states. It is not in the `npm test` chain and has no caller in the repo.
 - 2026-09-13 — **SP-02 ✅** — `installEnv()` is idempotent, so the param globals
   belong to one env per process; the work-around ordering in `logic.mjs` is gone
   and `run_schwung_page` sits beside `run_schwung_grid`. **`undo-params` went red

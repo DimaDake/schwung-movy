@@ -81,7 +81,18 @@ const PRESETS = [
     'wave_cells', 'wave_overlay', 'wave_helm', 'wave_toggles',
     'env_stages', 'eq_bands', 'cut_filters', 'faders', 'wav_sample', 'wav_loop', 'wav_loop_off', 'wav_beside_filter',
     'switches', 'pan_dials', 'spray_saturated',
+    'page_body', 'page_body_p2',
 ];
+
+/* The scenes that render Schwung's own body. Only reachable from a bundle built
+ * against a checkout — the no-checkout stub throws on import and schwungPageFor
+ * raises on top of it — so they are SKIPPED rather than failed without one,
+ * which is the repo's rule for a missing checkout: "skipped, not failed"
+ * (CLAUDE.md). A set, not an inline `||`, because the runner has to ask before
+ * it builds or loads anything; the scenes carry their own guard as well, so a
+ * name that drifts out of this set fails loudly instead of rendering a body it
+ * cannot. */
+const PAGE_SCENES = new Set(['page_body', 'page_body_p2']);
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
 const BASE = {
@@ -134,6 +145,11 @@ const BASE = {
     leave_modal: 'test8',
     track_volume_unity: 'test8', track_volume_quiet: 'test8',
     track_volume_min: 'test8', track_volume_max: 'test8',
+    /* test16, not test8: Schwung plans it into TWO pages ("Main" / "Main - 2"),
+     * which is what `page_body_p2` needs and what puts more than one segment in
+     * the bank bar. A one-page mock would make the pair identical and the second
+     * scene assert nothing. */
+    page_body: 'test16', page_body_p2: 'test16',
 };
 
 const STEP_VM_A = {
@@ -200,6 +216,11 @@ const { setCaptureStateForTest } = await import('../dist/esm/seq/capture.js');
 const { drawVolumeOverlay } = await import('../dist/esm/renderer/volume-overlay.js');
 const { volumeFrac }       = await import('../dist/esm/mixer/track-volume.js');
 const { renderKnobsView }  = await import('../dist/esm/renderer/knob-view.js');
+/* The `page` scenes' entry points. Imported here, not statically, for the same
+ * reason as every other renderer: the file resolves them after installEnv(). */
+const { setSchwungGridMode, schwungPageFor, schwungGridReload } =
+    await import('../dist/esm/renderer/schwung-grid.js');
+const { schwungLibAvailable } = await import('../dist/esm/renderer/schwung-lib.js');
 const { renderKeysView }   = await import('../dist/esm/renderer/keys-view.js');
 const { renderLoadingView } = await import('../dist/esm/renderer/loading-view.js');
 const { renderVersionsView } = await import('../dist/esm/renderer/versions-view.js');
@@ -1193,6 +1214,54 @@ function applyView(preset) {
             lastRender();
             break;
         }
+        /* PAGE MODE, DRAWN BY SCHWUNG. The rest of the baselines cannot reach it:
+         * schwungGridEnabled() is `mode === 'body'`, so under `page` every
+         * existing scene renders movy's widgets however the flag is set, and the
+         * suite reports green about a renderer it never ran. These two supply
+         * `bodyOverride` — the same seam the device uses — so Schwung really
+         * plans and really draws.
+         *
+         * The two differ only by a jog click, which is the point: the bank bar's
+         * index is Schwung's pageIndex, and a frozen 0 there is the Cause A
+         * symptom a screenshot can see. */
+        case 'page_body':
+        case 'page_body_p2': {
+            if (!schwungLibAvailable()) throw new Error(
+                'screenshot: ' + preset + ' needs a bundle built with SCHWUNG=/path/to/schwung');
+            setSchwungGridMode('page');
+            /* dropped first so the two scenes cannot share one page: `pages` is
+             * a module-level cache and nothing clears it between them, so
+             * without this `page_body` would inherit `page_body_p2`'s index if
+             * the PRESETS list were ever reordered. */
+            schwungGridReload();
+            /* schwungPageFor, NOT schwungActiveFor. The Active variant returns
+             * null unless the page is ALREADY ready (`schwung-grid.ts:129` —
+             * `p.ready ? p : null`), and a page it just created never is. Used
+             * here it would throw on this line, before the loop below could ever
+             * run, with a message blaming SCHWUNG for what is only a readiness
+             * race. schwungPageFor creates and reload()s the page and never
+             * returns null. */
+            const sp = schwungPageFor(0, 'synth');
+            /* The controller resolves the contract over several ticks (RETRY_TICKS
+             * 12 × RETRY_LIMIT 60 in schwung-page-contract.ts). Waiting on
+             * `ready` rather than on a tick count keeps the scene deterministic
+             * on a slow machine. model.tick() alongside sp.tick() because the
+             * scene owns the clock: the harness's own settle() drives model.tick()
+             * and knows nothing about a Schwung page, so a page ticked without a
+             * model tick reads a stale view. */
+            for (let i = 0; i < 12 * 60 && !sp.ready; i++) { sp.tick(); model.tick(); }
+            if (!sp.ready) throw new Error(preset + ': the contract never resolved');
+            if (preset === 'page_body_p2') sp.changePage(1);
+            lastRender = () => renderKnobsView(model.getViewModel(), false, 0,
+                () => sp.render('T1 > ' + model.getModuleName()),
+                { index: sp.pageIndex, count: sp.pageCount });
+            lastRender();
+            /* The mode is a module-level override: leaving it set would silently
+             * repaint every scene after this one, and they would still report
+             * green. */
+            setSchwungGridMode(null);
+            break;
+        }
         default:                 forceRender(); break;                       // plain knobs view
     }
 }
@@ -1222,10 +1291,20 @@ function diffPngs(baselinePath, actualPath) {
 mkdirSync(BASE_DIR,   { recursive: true });
 mkdirSync(ACTUAL_DIR, { recursive: true });
 
-let pass = 0, fail = 0;
+let pass = 0, fail = 0, skipped = 0;
 
 for (const preset of PRESETS) {
     process.stdout.write(`  ${preset} ... `);
+
+    /* A `page` scene cannot run without the library, and the difference between
+     * "skipped" and "passed" is the whole point of this file: a baseline written
+     * from a build that could not render the body would be a lie that stays
+     * green forever. Skipped loudly, and never baselined. */
+    if (PAGE_SCENES.has(preset) && !schwungLibAvailable()) {
+        console.log('SKIPPED (no param_pages; set SCHWUNG=/path/to/schwung)');
+        skipped++;
+        continue;
+    }
 
     clear_screen();
     nowOverride = null;            // every scene starts on the real clock
@@ -1256,5 +1335,6 @@ for (const preset of PRESETS) {
     }
 }
 
-console.log(`\n  ${pass} passed, ${fail} failed`);
+console.log(`\n  ${pass} passed, ${fail} failed`
+    + (skipped ? `, ${skipped} skipped (no param_pages; set SCHWUNG=)` : ''));
 process.exit(fail > 0 ? 1 : 0);

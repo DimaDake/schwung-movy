@@ -35,7 +35,7 @@ and must never grow. If it grew, the last item regressed a sibling — stop.
 | SP-03 | Split `schwung-page.ts` (457 → ≤200/file) | Sonnet | ✅ |
 | SP-04a | **Re-capture the module dump** — the committed one is 2026-07-15 | Sonnet | ✅ |
 | SP-04 | Fleet sweep: 95 dump modules planned through Schwung's `page_plan` | Sonnet | ✅ |
-| SP-05 | `page` screenshot scenes — today `page` has zero pixel coverage | Sonnet | ⬜ |
+| SP-05 | `page` screenshot scenes — today `page` has zero pixel coverage | Sonnet | ✅ |
 | SP-06 | Fork install script + runtime Schwung **version** floor | Sonnet | ⬜ |
 | SP-07 | Grid A/B cost harness, reproducible, both arms | Sonnet | ⬜ |
 
@@ -483,6 +483,33 @@ call is not. Add scenes that render a real Schwung-planned body.
 
 **Closes when:** new `page` baselines exist, and removing the `rect` argument
 from the `ctl.render` call turns them red.
+
+#### Closed 2026-09-13
+
+Two scenes render Schwung's own body through `renderKnobsView`'s `bodyOverride`
+— the same seam the device uses — over `test16`, which Schwung plans into two
+pages (`Main` / `Main - 2`): `page_body` at index 0, `page_body_p2` after
+`changePage(1)`. The second exists because movy draws the bank bar from
+Schwung's `pageIndex`/`pageCount`, so a frozen `0` there is the Cause-A symptom
+a screenshot can see. It does: the two baselines differ on **row 9 by 127 px**,
+which is the bar and nothing else.
+
+**Teeth proved.** Removing `rect: GRID_BODY_RECT` from the `ctl.render` call
+reddens both new scenes (682 px, 758 px) and leaves all 165 other baselines
+green — `movyBandLayout` reflows only when a rect is supplied (`const reflow =
+!!o.rect`), so with none the body lands at y=9 on top of movy's bank bar (rows
+9-27 move). That diff is the coverage §7 item 10 asked for, and it is the only
+assertion in the repo that the rect is *used* rather than merely correct.
+
+**The `body` figure in this entry was stale.** Forcing the mode to `body` for
+every scene reddens **116 of the 165** pre-existing baselines, re-measured
+against the suite as it stands — not the 111 of 149 quoted above.
+
+The scenes need a bundle built with `SCHWUNG=../schwung node build/browser.mjs`,
+and are **skipped, not failed**, without one: `schwungPageFor` raises off the
+stub, and a baseline written from a build that cannot render the body would be
+a lie that stays green forever. `npm test` with no checkout therefore reports
+`165 passed, 0 failed, 2 skipped`.
 
 **Needs:** SP-01, SP-03.
 

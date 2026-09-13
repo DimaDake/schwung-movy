@@ -41,13 +41,11 @@ and must never grow. If it grew, the last item regressed a sibling — stop.
 
 ### Phase 1 — blockers, hardest first
 
-> **BEFORE SP-25 OR ANY ITEM BELOW: the device tier is already red on arrival.**
-> `smoke#refresh-blocking` fails through its retry (`npm run test:device` exit 1)
-> and has never passed on a first attempt in any recorded run. It **predates this
-> migration** — see the Log entry of 2026-09-13 — so it is not yours, but it does
-> mean the tier cannot tell you whether *your* change broke something until it is
-> closed. Close it, or state in your item's Log entry that you ran the tier and
-> `refresh-blocking` was the only red. Do not let a second red join it unnoticed.
+> **The device tier is GREEN — 15 scenarios, 130 checks, 0 failed.**
+> `smoke#refresh-blocking` was red on arrival for every recorded run and is fixed
+> (Log, 2026-09-13): the check was measuring a refresh that was not running, and
+> grading it by a wall clock that could not tell a descheduled tick from a slow
+> refresh. SP-25 starts on a gate that means something. Keep it that way.
 
 
 | id | item | model | state |
@@ -189,11 +187,19 @@ this is a rendering change with a one-line symptom already pinned above.
   beforehand: head `0x2B` (cable 2) left the framebuffer **byte-identical**;
   head `0x0B` (cable 0) moved the selection down to *Param Pages*. Note-on is
   cable 0 too (`0x09`, with `0x08` for the release) — that is the pairing
-  `Shift` + step needs, since the same step lights both. `schwung-midi-inject-ui.py`
-  and `test-device/device-agent/ui-agent.py` both write cable 0;
-  `scripts/inject-movy.py`, an untracked scratch file, claims in its docstring
-  that reaching an overtaking tool needs cable 2 and is **wrong** — do not
-  follow it. It stays untracked for that reason.
+  `Shift` + step needs, since the same step lights both. `schwung-midi-inject-ui.py`,
+  `test-device/device-agent/ui-agent.py` and `scripts/inject-any.py` all write
+  cable 0. **`scripts/inject-movy.py` is DELETED** (2026-09-13): it was an
+  untracked scratch file whose docstring claimed reaching an overtaking tool
+  needs cable 2, it had **zero callers**, and leaving it untracked was never the
+  mitigation it was taken for — an untracked file is still what a `grep` of
+  `scripts/` turns up, and it stated the false premise more confidently than this
+  entry states the correction. Its two genuine improvements were harvested into
+  `inject-any.py` first: a per-status CIN (`0x09`/`0x08` for notes, which
+  `inject-any.py` was getting wrong — it labelled every note-on as a control
+  change and survived only because both are three-byte messages) and a ring-full
+  error instead of a silent success. The cable-0 measurement is now recorded in
+  `inject-any.py`'s own docstring, so the claim cannot come back a third time.
 - **`Shift` + step opens a movy page, and the screen says which one.** `Shift`
   + step 2 is Settings; the gesture is global (it is not a page-local binding)
   so it is reachable whatever the current view, and the page it lands on prints
@@ -814,6 +820,58 @@ less than the spread above is a null result rather than a pass.
 
 Newest first. One line per closed item: id, date, commit, the evidence.
 
+- 2026-09-13 — **THE RED GATE IS GREEN, and the check was the thing that was
+  broken — twice over.** `npm run test:device` now exits 0. Neither defect was in
+  movy, and neither was Phase 0's: the check has failed since it was ported from
+  bash in `3c296a1`.
+
+  **Defect 1 — the window measured a movy with nothing to refresh.** The two jog
+  turns in `smoke.ts` move the CHAIN cursor (`chain chainIndex=2`, then `3`), and
+  `loadHierarchy` answers each empty slot with `ui_hierarchy null — no params`.
+  The perf settle sat *after* those turns, so every sample in it read
+  `perf_refresh_ms=0 params=0` — `refreshOneParam` had no populated param to read,
+  measured nothing, and reported the best possible number for it. The window is
+  now taken **before** the jog. Re-selecting track 0 afterwards does not work and
+  the comment says why: track 0 is already active, so `dev.selectTrack(0)` is a
+  no-op (`track: active=0 chain=0` with no `loadHierarchy` behind it) and the
+  chain cursor stays where the jog left it. Measured before: 0 of 5 samples with
+  `params>0`. After: 4 samples, `[5,5,5,4]`.
+
+  **Defect 2 — the one non-zero sample was a descheduled tick, not a refresh.**
+  `perf_refresh_ms` is a `Date.now()` delta around `refreshOneParam()`
+  (`src/model/tick.ts:141-147`) on the shadow-UI QuickJS thread, which is **not
+  realtime**, so the number includes any time that thread spent parked. Requiring
+  every sample under 10 ms asserted that the OS never deschedules it for longer —
+  not a property movy has, or that the check meant to assert. Evidence, 424
+  samples over a full tier run: 5 exceed 10 ms (27, 35, 166, 237, 339, 458), every
+  one lands in the `seq` window with the sequencer PLAYING and step-recording, and
+  each sits beside a `perf_ipc` line reporting `peak_period` 239-351 ms — the
+  whole TICK stalled. The decisive one is `perf_refresh_ms=166 params=0`: a
+  refresh with no populated param to read cannot spend 166 ms working. The check
+  now asserts the **median** of samples with `params>0`, with
+  `REFRESH_MIN_SAMPLES = 3` so "measured nothing" FAILS rather than passes.
+
+  **A startup stall is fine and is now explicitly tolerated.** The first sample
+  after a cold open is 157-181 ms while the module is still loading (`peak=112`
+  host calls in that tick, tick rate recovering to ~218 Hz immediately after).
+  That is loading, not blocking, and the median ignores it — which is the point:
+  the old check failed on exactly that sample.
+
+  **TEETH, all three directions, two of them on the device.** (1) *Broken refresh
+  path:* `refreshBatch`'s one `port.getMany(keys)` replaced by
+  `keys.map(k => port.getParam(k))` — the bulk batching coming undone, which is
+  the regression this check exists for — moved **every** sample to `[40,40,38,39,
+  37]`, median 39, **red**. That is why the median keeps the teeth the max was
+  supposed to have: a real regression moves every sample, a descheduled tick moves
+  one. (2) *Measuring nothing:* the intermediate run, before the window moved,
+  failed with `only 0 of 5 sample(s) had params>0` — so the void is loud now
+  instead of green. (3) *Outlier tolerance:* median `[5,5,5,458]` = 5 and
+  `[5,5,339,458]` = 5, while `[40,40,38,39,37]` = 39. Restored via `cp`, never
+  `git checkout`.
+
+  **Full tier after the fix: 15 scenarios, 130 checks, 0 failed.** The Phase 1
+  warning above the state table is lifted — SP-25 starts on a green gate.
+
 - 2026-09-13 — **THE DEVICE TIER IS RED, AND EVERY PHASE 0 COMMIT LANDED ON IT
   ANYWAY.** Found by the independent verification below, which ran the gate that
   Phase 0's own Log never reports running. `npm run test:device` **exit 1**: 15
@@ -873,7 +931,9 @@ Newest first. One line per closed item: id, date, commit, the evidence.
   `complete: true`. No `src/` change; the Phase 0 Global Constraint held
   throughout. **Phase 0 is closed. Next item is SP-25.**
 
-- 2026-09-13 — **HAZARD LEFT IN THE TREE, and untracked is not the mitigation it
+- 2026-09-13 — **FIXED (below, same day): `scripts/inject-movy.py` is deleted and
+  its good parts live in `inject-any.py`.** The original finding, kept for the
+  reasoning: **hazard left in the tree, and untracked is not the mitigation it
   was taken for.** `scripts/inject-movy.py` is untracked on purpose because its
   docstring is **wrong** — it asserts that a cable-0 injection reaches the host UI
   and that an overtaking tool needs cable 2, which the device measurement in

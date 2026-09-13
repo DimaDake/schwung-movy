@@ -5,6 +5,7 @@ import { Agent } from './dist/agent.js';
 import { ensureServers, stopServers } from './dist/daemon.js';
 import { deployEngine, deployUi, setRunMute } from './dist/engine.js';
 import { runAll } from './dist/runner.js';
+import { printFlakes } from './dist/flake-log.js';
 import './dist/scenarios/automation.js';
 import './dist/scenarios/unload.js';
 import './dist/scenarios/reselect.js';
@@ -36,6 +37,16 @@ const HOST = process.env.HOST || flag('--host')
     || 'move.local';
 const only = flag('--scenario');
 const noEngine = argv.includes('--no-engine');
+
+/* Read-only, and before anything touches the device: what has needed a second
+ * attempt lately, and how often. A rate is the thing that turns "flaky" from a
+ * reason to stop reading the tier into a named race worth fixing. */
+if (argv.includes('--flakes')) { printFlakes(); process.exit(0); }
+
+/* Retries make the tier a gate; switching them off is for debugging one
+ * scenario, so it says so rather than quietly halving the run's meaning. */
+const noRetry = argv.includes('--no-retry');
+if (noRetry) console.log('--no-retry: one attempt per scenario; a race will read as a failure');
 
 /* Ship the engine BEFORE anything measures it. No scenario builds or deploys
  * dsp.so, so without this the whole tier grades a Rust change against whatever
@@ -93,7 +104,8 @@ console.log(MUTE
 
 let failures;
 try {
-    failures = await runAll({ host: HOST, only, bus, agent });
+    failures = await runAll({ host: HOST, only, bus, agent,
+                              retries: noRetry ? { assert: 0, infra: 0 } : undefined });
 } finally {
     /* In `finally`: a scenario that threw is exactly when the device is most
      * likely to be left in a state nobody asked for. */

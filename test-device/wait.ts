@@ -22,6 +22,28 @@ type FrameSource = { frames(n: number): Promise<number> };
  * free to poll as fast as they like. */
 export const PARAM_POLL_GAP = 150;
 
+/* Waits that only just made it, and what they were waiting for.
+ *
+ * A wait that resolved at 690 of its 700 frames is next week's failure: the
+ * budget held on this run's device load and will not on a busier one. The
+ * frame counter is already there, so recording the near misses turns "it went
+ * red out of nowhere" into a warning printed runs earlier. Near misses only —
+ * a sweep makes thousands of waits and almost all of them land immediately. */
+export const NEAR_BUDGET = 0.7;
+
+export type WaitRecord = { what: string; spent: number; within: number };
+let nearMisses: WaitRecord[] = [];
+
+export function drainWaitStats(): WaitRecord[] {
+    const r = nearMisses;
+    nearMisses = [];
+    return r;
+}
+
+function recordWait(what: string, spent: number, within: number): void {
+    if (spent >= within * NEAR_BUDGET) nearMisses.push({ what, spent, within });
+}
+
 export class WaitBudgetExceeded extends Error {
     constructor(readonly what: string, readonly budget: number, readonly last: unknown) {
         super(`waited ${budget} frames for ${what}; last saw ${JSON.stringify(last)}`);
@@ -45,7 +67,7 @@ export async function until<T>(
         await bus.frames(every);
         spent += every;
         last = await probe();
-        if (pred(last)) return last;
+        if (pred(last)) { recordWait(what, spent, within); return last; }
     }
     throw new WaitBudgetExceeded(what, within, last);
 }

@@ -160,7 +160,9 @@ node browser-test/device-scripts.mjs
 
 # 4. Device (when reachable) — the whole tier in one process. It builds and
 #    deploys dsp.so FIRST, so a Rust change is the one actually under test.
-#    A clean run exits 0: there is no known-red check in this tier.
+#    A clean run exits 0: there is no known-red check in this tier. A failed
+#    scenario is retried by cause before it counts, so a red exit is real —
+#    see "The device tier is a gate, and it retries itself".
 ssh -o ConnectTimeout=3 ableton@move.local echo ok 2>/dev/null \
   && npm run test:device \
   || echo "DEVICE OFFLINE — SKIPPING DEVICE TESTS"
@@ -268,22 +270,49 @@ in sync by hand until the last bash suite is gone. After changing it, run
 `./scripts/test-fixture-selftest.sh` — a fixture that quietly did nothing makes
 every suite look clean while running on whatever the device happened to hold.
 
-### Device tests are a smoke check, not the gate
+### The device tier is a gate, and it retries itself
 
 Local suites cover correctness; the device covers integration (MIDI routing,
-IPC, display). **They are flaky.** Run the relevant suite **once**. If it fails,
-check whether the failure is in what you changed; if it is not, report it to the
-user and move on. Do not re-run, bisect, or chase. If the device is unreachable,
-say **DEVICE OFFLINE in caps** so the skip is visible.
+IPC, display). Both must be green before a commit — `npm test` (which includes
+`npm run typecheck` over `test-device/`, and the harness's own host-only
+selftests) and the device tier.
 
-Both `npm test` (which includes `npm run typecheck`, now covering `test-device/`
-as its own project) and the device tier must be green before a commit.
+The tier retries a failed scenario itself, by cause, so a race and a break do
+not look alike:
+
+| outcome | what it means | what you do |
+| --- | --- | --- |
+| `✓` | passed first time | nothing |
+| `✓` + `infra-retried` | the ssh or the socket dropped and the retry landed | nothing; the link, not movy |
+| `⚠ FLAKY` | failed, then passed on the retry | exit 0, but it is **recorded**: see the ledger below |
+| `✗` | failed twice | a real failure — **do not commit** |
+
+So a red tier is a red tier. It is not "flaky, probably fine": the retry already
+ran and it stayed red. Read the first line of the failure, which carries
+`actual, want expected` and a path to the artifact; the evidence is already on
+disk, so a second run buys nothing a `.test-out/<scenario>.md` does not.
+
+`⚠ FLAKY` does not block the commit, but it is not free either — every flake
+lands in `test-device/.flake-log.json` (last 50 runs, gitignored). `npm run
+test:device -- --flakes` prints what has needed a second attempt and how often,
+per scenario and per check id. A check that flakes in a few runs out of twenty
+is a named race worth an issue and a fix, not a reason to distrust the tier.
+
+`! wait near budget` is the leading indicator: a wait that resolved at ~70%+ of
+its frame budget passed *this* time. It is next month's flake, and cheaper to
+widen or fix now.
+
+Only two escapes: **DEVICE OFFLINE in caps** when the device is unreachable, and
+`--no-retry` for debugging one scenario (it says so on stdout, because one
+attempt halves what the run means).
 
 ```bash
 # Useful commands
 ./scripts/deploy.sh [move.local]              # build + deploy ui.js AND dsp.so
 ./scripts/deploy.sh --release [move.local]    # the bundle that SHIPS
 npm run test:device -- --scenario smoke       # one scenario
+npm run test:device -- --flakes               # what has needed a retry lately
+npm run test:device -- --no-retry             # one attempt, for debugging a race
 node scripts/grab-screen.mjs /tmp/shot.png    # the live screen as a PNG
 ssh ableton@move.local 'touch /data/UserData/schwung/debug_log_on'   # once per boot
 ssh ableton@move.local 'tail -f /data/UserData/schwung/debug.log | grep "\[movy\]"'

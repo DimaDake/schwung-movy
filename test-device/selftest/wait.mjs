@@ -1,5 +1,5 @@
 /* Host-only: drives a fake frame source, so no device is needed. */
-import { until, untilStable, WaitBudgetExceeded } from '../dist/wait.js';
+import { until, untilStable, WaitBudgetExceeded, drainWaitStats } from '../dist/wait.js';
 
 let fails = 0;
 const ok = (l, c, d = '') => { if (c) console.log('✓ ' + l);
@@ -40,6 +40,32 @@ const fakeBus = () => { const b = { n: 0, frames: async (k) => (b.n += k) }; ret
     let i = 0;
     const v = await untilStable(bus, 'settling', async () => seq[Math.min(i++, seq.length - 1)]);
     ok('untilStable returns the settled value', v.a === 2, JSON.stringify(v));
+}
+
+{
+    /* The near-miss detector: a wait that lands with room to spare is silent,
+     * one that scrapes in is recorded. Without this, a budget that is about to
+     * stop holding is indistinguishable from one that always will. */
+    drainWaitStats();
+    const bus = fakeBus();
+    let calls = 0;
+    await until(bus, 'comfortable', async () => ++calls, (x) => x >= 2, { within: 100, every: 2 });
+    ok('a wait with room to spare is not recorded', drainWaitStats().length === 0);
+
+    calls = 0;
+    await until(bus, 'scraped in', async () => ++calls, (x) => x >= 41, { within: 100, every: 2 });
+    const near = drainWaitStats();
+    ok('a wait that nearly ran out IS recorded', near.length === 1, JSON.stringify(near));
+    ok('the record names the wait and both numbers',
+       near[0]?.what === 'scraped in' && near[0]?.spent === 80 && near[0]?.within === 100,
+       JSON.stringify(near[0]));
+    ok('draining clears the record', drainWaitStats().length === 0);
+
+    let threw = false;
+    try { await until(bus, 'never', async () => 0, () => false, { within: 10, every: 2 }); }
+    catch { threw = true; }
+    ok('a wait that ran OUT is a failure, not a near miss',
+       threw && drainWaitStats().length === 0);
 }
 
 console.log(fails === 0 ? 'WAIT SELFTEST PASSED' : `${fails} WAIT CHECK(S) FAILED`);

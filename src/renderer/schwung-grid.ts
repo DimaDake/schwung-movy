@@ -56,8 +56,9 @@ const MODES: SchwungGridMode[] = ['off', 'body', 'page'];
  * are one clause because they are one question — can Schwung serve what the
  * flag is offering — and a mode that answered it in two places would be a mode
  * that could disagree with itself. `schwungFloorMetOnce` is the read-once form
- * deliberately: this is asked on every rendered frame and every knob event, and
- * a `host_read_file` on those paths is what Schwung's own read budget forbids.
+ * deliberately: this clause is asked on every rendered frame and every knob
+ * event, so the one `host_read_file` behind its answer is paid at the first of
+ * them rather than on each — which is the shape Schwung's read budget is about.
  */
 let override: SchwungGridMode | null = null;
 let lastMode: SchwungGridMode | null = null;

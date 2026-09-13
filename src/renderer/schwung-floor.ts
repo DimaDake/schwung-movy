@@ -35,7 +35,16 @@ const HOST_VERSION = '/data/UserData/schwung/host/version.txt';
 /* PER COMPONENT, NUMERICALLY. A string compare puts '1.10.0' BELOW '1.3.3',
  * which would pin a perfectly good Schwung to MOVY the first time the minor
  * version reached double digits — a bug that hides for a year and then bites
- * every user at once. */
+ * every user at once.
+ *
+ * A DELIBERATE COPY of upstream's `compareVersions` (schwung/src/shared/
+ * store_utils.mjs:34-45), which movy COULD import off the device the way
+ * schwung-lib.ts imports its param_pages — by absolute
+ * `/data/UserData/schwung/shared/...` path. It must not: the host whose version
+ * this computes is exactly the thing that may be too old to export it, so
+ * importing would reintroduce the link error this module exists to report, on
+ * the one device that needs a version answer most. Dedupe it and the hazard
+ * comes back. */
 function atLeast(have: string, want: string): boolean {
     const h = have.split('.').map((n) => parseInt(n, 10) || 0);
     const w = want.split('.').map((n) => parseInt(n, 10) || 0);
@@ -50,7 +59,13 @@ function atLeast(have: string, want: string): boolean {
 export function schwungVersion(): string {
     try {
         const raw = host_read_file(RELEASE);
-        if (raw) return String(JSON.parse(raw).version || '');
+        /* A release.json that PARSES but carries no `version` is not a version
+         * either, so it falls through to the host's own file exactly as an
+         * absent or corrupt one does. Returning its empty string here
+         * short-circuits the chain — and the device that carries both files is
+         * precisely where that leaves the floor reading '' = met = inert. */
+        const v = raw ? String(JSON.parse(raw).version || '') : '';
+        if (v) return v;
     } catch { /* a corrupt release.json is not a version — try the host's own */ }
     try {
         const raw = host_read_file(HOST_VERSION);
@@ -64,6 +79,17 @@ export function schwungVersion(): string {
  * release.json at all, and refusing the grid there would make the whole feature
  * untestable on the only machine that can test it. A wrong `true` here costs a
  * confusing render; a wrong `false` costs the device.
+ *
+ * UNREADABLE IS NOT THE ONLY FAIL-OPEN CASE, and the way the two directions
+ * differ is a choice too. Measured: absent -> met; '1.4' -> met (a missing
+ * component counts as 0, and 4 > 3 at index 1); 'banana' -> PINNED;
+ * 'v1.4.0' -> PINNED. `atLeast` reads each component with parseInt and takes 0
+ * for whatever it cannot read, so garbage reads as an OLD version. For a gate,
+ * fail-CLOSED on garbage is the more dangerous of the two — one unrecognised
+ * prefix would switch the feature off on every device at once — but it is what
+ * upstream's own `compareVersions` does with the same algorithm, so movy and
+ * the host agree about what a version string means. It is also loud: the
+ * Settings hint names the version it thinks it is holding.
  */
 export function schwungFloorMet(): boolean {
     const v = schwungVersion();
@@ -78,11 +104,15 @@ export function schwungFloorReason(): string {
 
 /*
  * THE READ-ONCE PAIR, and it is the one the mode gate and the Settings hint
- * use. Both are on paths a `host_read_file` is not allowed on: `schwungGridMode`
- * is asked on every rendered frame AND on every knob event, and a file read
- * there is what Schwung's own read budget forbids (PARAM_PAGES.md; shadow_ui.js
- * says it of its own draw path: "a host_read_file on the draw path is what the
- * read budget forbids"). The Settings hint is drawn on the dirty-frame path.
+ * use. Both CALLERS are on hot paths: `schwungGridMode` is asked on every
+ * rendered frame AND on every knob event, and the Settings hint is composed
+ * whenever that page redraws. The read behind their answer is not on them — it
+ * is paid once, lazily, on the first of those calls, and never again. Said at
+ * that length because the careless reading of the next sentence is wrong: what
+ * Schwung's budget forbids is a `host_read_file` ON the draw path (PARAM_PAGES.md;
+ * shadow_ui.js says it of its own draw path: "a host_read_file on the draw path
+ * is what the read budget forbids"), and one read at the first draw or knob
+ * event is not a read on that path.
  *
  * One read, and the answer cannot go stale under it: installing a different
  * Schwung RESTARTS THE STACK — that is the whole point of

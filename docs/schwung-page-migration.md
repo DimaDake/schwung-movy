@@ -167,6 +167,26 @@ this is a rendering change with a one-line symptom already pinned above.
   says only `shadow_load_ui_module returned false`. To see a real message, ship
   a throwaway `ui.js` that does the import inside `try { await import(...) }
   catch { console.log(...) }`.
+- **An injected gesture reaches movy on CABLE 0 of the UI ring.** Movy sits
+  behind the shadow UI, so `Shift` + a step button has to be injected into
+  `/dev/shm/schwung-ui-midi` — the ring `shadow_ui` drains into
+  `onMidiMessageInternal` — and the head byte's cable nibble decides whether it
+  lands. Measured on the device 2026-09-13, movy on the Settings page, the same
+  jog turn (CC 14, +1) injected twice with the screen confirmed static
+  beforehand: head `0x2B` (cable 2) left the framebuffer **byte-identical**;
+  head `0x0B` (cable 0) moved the selection down to *Param Pages*. Note-on is
+  cable 0 too (`0x09`, with `0x08` for the release) — that is the pairing
+  `Shift` + step needs, since the same step lights both. `schwung-midi-inject-ui.py`
+  and `test-device/device-agent/ui-agent.py` both write cable 0;
+  `scripts/inject-movy.py`, an untracked scratch file, claims in its docstring
+  that reaching an overtaking tool needs cable 2 and is **wrong** — do not
+  follow it. It stays untracked for that reason.
+- **`Shift` + step opens a movy page, and the screen says which one.** `Shift`
+  + step 2 is Settings; the gesture is global (it is not a page-local binding)
+  so it is reachable whatever the current view, and the page it lands on prints
+  its own name — which makes it the one gesture to reach for when confirming a
+  gesture path by screenshot. A movy backgrounded under Move's own UI shows
+  nothing.
 - **Schwung floor today:** `SCHWUNG_FLOOR = '1.3.0'` in
   `src/renderer/schwung-floor.ts`, checked at runtime (SP-06). It is `main` at or
   past #405 / #411 / #414 / #415, plus 1.3.0 for the 128 KB param contract. Raise
@@ -182,7 +202,23 @@ this is a rendering change with a one-line symptom already pinned above.
   `collect-diagnostics.sh`; it read **1.4.0**. `schwungVersion()` reads
   `release.json` first and falls back to that file, because with `release.json`
   alone every real device reads as "unknown", unknown reads as met, and the floor
-  is inert.
+  is inert. The fall-through has to be **total**: absent, corrupt, and
+  *present-but-versionless* all reach the second rung. A `release.json` that
+  parses without a `version` is the one that does not look like a failure — an
+  early `return` there hands back `''`, skips the rung below it, and misses the
+  fail-open default too, because `''` is "unreadable" and "unreadable" is met. It
+  is pinned by the suite for that reason.
+- **The floor value stands as `1.3.0`** (ruling R13, 2026-09-13): it is derived
+  from the fork branch this migration needs and is an *instrument's* constant —
+  Phase 1 re-pins it when a feature starts needing a newer host. It is pinned by
+  `browser-test/logic/schwung-floor.mjs`, which goes red when it moves.
+- **"`src/renderer/` has no state" means the render FUNCTIONS are pure** (ruling
+  R12, 2026-09-13). The `schwung-*` family has always held connection state —
+  `schwung-lib.ts`'s availability latch, `schwung-grid.ts`'s mode and page cache,
+  `schwung-editor.ts`, `knob-leds.ts` — and `schwung-floor.ts`'s memoized read is
+  the same kind of thing. The part with teeth for pixels is that no *render
+  function* reads host state, which is why the floor's reason is composed in
+  `src/seq/flags-page-vm.ts` and not in `renderer/flags-view.ts`.
 - **`schwungLibError()` carries no screen.** It says why the library is
   unavailable, and in production **nothing renders it** — only tests read it. The
   Settings row's *Param Pages* hint is where a reason reaches a person, composed
@@ -550,6 +586,32 @@ version is needed.
 
 **Needs:** nothing.
 
+#### Closed 2026-09-13
+
+`scripts/install-schwung-fork.sh <branch>` installed the fork's `param_pages`
+through a staged swap and `restart_move_stack` ("down at 1.4s, new stack at
+5.3s"), and the floor is live: with `host/version.txt` at 0.9.9 the Settings
+row reads **NEEDS SCHWUNG 1.3.0 (HAVE 0.9.9)**; at 1.4.0 it reads its own hint
+and renders nothing new. Full evidence and the three teeth-proofs are in the
+Log; the review's fix round is there too.
+
+**Two things this item's wording got wrong, and the ledger is where that gets
+corrected.** It says the reason surfaces "through `schwungLibError()`", but
+`schwungLibError()` **renders nowhere in production** — the reason reaches a
+person through the Settings row's hint, composed in `src/seq/flags-page-vm.ts`
+(Environment facts; R12 is why it is not composed in `renderer/flags-view.ts`).
+And it implies `release.json` is where the installed version lives; it is not
+(Environment facts — it is a store descriptor that is not on the box at all).
+The floor therefore reads **two** rungs, `release.json` then
+`host/version.txt`, and the *totality* of that fall-through is load-bearing
+enough to be pinned by the suite.
+
+The floor value is `1.3.0` and **stands** (R13). Raise it when a feature starts
+needing a newer host, and say which feature in the commit: Phase 1 re-pins it.
+It is pinned by `browser-test/logic/schwung-floor.mjs`, which goes red when it
+moves — deliberately, because the brief's own five assertions do not
+(Environment facts, and Log).
+
 ### SP-07 — the A/B cost harness
 
 `scripts/grid-call-cost.mjs` and `scripts/measure-grid-cost.sh` exist untracked
@@ -623,6 +685,34 @@ continue in parallel. It does not stop the migration.
 
 Newest first. One line per closed item: id, date, commit, the evidence.
 
+- 2026-09-13 — **SP-06, review fix round 1** — two of the findings were defects
+  in the instrument, not the prose. **F2, a short-circuit hole in the version
+  chain:** a `release.json` that *parses* but carries no `version` returned its
+  empty string, which is neither a version nor "unreadable", so it skipped the
+  `host/version.txt` rung **and** the fail-open default — and the device that
+  carries both files is exactly where that leaves the floor inert. The chain now
+  falls through on an empty string like an absent or corrupt one. **F6, an
+  assertion that could not fail:** the added `ok('the floor reads release.json
+  and reports its reason')` was vacuous — `harness.mjs`'s `ok(label, cond)`
+  defaults `cond` to `true` — so it was deleted, and the hole it was standing in
+  front of is now pinned by three assertions that all read the *second* rung
+  (`release.json` versionless, absent, and the host file alone). **Teeth, two
+  mutations, each restored by `cp` (never `git checkout`):** restoring the
+  short-circuit red `a versionless release.json falls through to the host
+  version`; deleting the `version.txt` rung red all three at once — the rung
+  that answers in production, invisible to every other assertion in the file.
+  Both re-ran green after the copy, `diff` identical. **Also:** F5 (the
+  read-once comment claimed a read on the draw path the implementation does not
+  make), F4 (why `atLeast` is a deliberate copy of upstream's `compareVersions`
+  rather than an import), F3 (garbage version strings fail *closed*, and what
+  the two failure directions cost), F10 (the installer's staged-swap comment
+  said atomic; the pair is not), and F1 — the mechanism sentence below is
+  corrected. **The cable question is settled on the device** (Environment
+  facts): `Shift` + step reaches movy on cable **0** of `/dev/shm/schwung-ui-midi`,
+  measured as `0x2B` byte-identical against `0x0B` moving the row, so
+  `scripts/inject-movy.py`'s cable-2 docstring is refuted and the script stays
+  untracked. Commit: this one — `fix: the floor's fall-through, and an assertion
+  that could not fail`.
 - 2026-09-13 — **SP-06 ✅** — `SCHWUNG_FLOOR = '1.3.0'` in
   `src/renderer/schwung-floor.ts`, and `schwungGridMode()` pins to `off` on an
   under-floor host the same way it does when the library is missing.
@@ -646,11 +736,15 @@ Newest first. One line per closed item: id, date, commit, the evidence.
   `SCHWUNG_FLOOR = '99.0.0'` (the brief's own Step 8 mutation) and a lexicographic
   `atLeast`, which red `browser-test/logic/schwung-floor.mjs`; and dropping the
   floor term from the mode gate, which red `browser-test/logic/schwung-grid.mjs`.
-  **The brief's five assertions cannot fail that way**: four of them feed
+  **None of the brief's five assertions detects the floor being RAISED**, which is
+  Step 8's mutation and the one that matters: four of the five feed
   `SCHWUNG_FLOOR` back into the reader that compares against it, so all five stay
-  green with the constant at any value — measured, not assumed. The value pin and
-  a numeric-compare case were added for it, and the pin is what makes Step 8's
-  stated procedure reproduce. Two other brief gaps: `build/browser.mjs` needed the
+  green at `'99.0.0'` — measured, not assumed. Two of them *do* red when the floor
+  is LOWERED (`an old Schwung fails the floor` and `and the reason names the
+  floor`, measured at `'0.1.0'`), so the suite is not uniformly blind; it is blind
+  in the direction that hides a raise. The value pin and a numeric-compare case
+  were added for it, and the pin is what makes Step 8's stated procedure
+  reproduce. Two other brief gaps: `build/browser.mjs` needed the
   new module as an **entry point** (it does not glob), and the hint is composed in
   `src/seq/flags-page-vm.ts`, not `renderer/flags-view.ts` — the renderer is pure
   and `schwungLibError()` renders nowhere in production.

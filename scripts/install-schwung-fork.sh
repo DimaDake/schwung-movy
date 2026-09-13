@@ -82,9 +82,13 @@ fi
 echo "==> $BRANCH $commit -> $HOST:$REMOTE_SHARED/param_pages"
 
 # Staged and swapped inside one ssh: a half-copied param_pages is the link error
-# this script exists to avoid, and the swap is a rename so it is never partial.
-# The replaced tree is kept as `param_pages.prev` rather than deleted — one
-# directory, and the way back if the branch is the wrong one.
+# this script exists to avoid. Each `mv` is an atomic rename; the PAIR is not —
+# between them `param_pages` does not exist, so a stack restarting inside that
+# window finds no pages rather than half of them. Two syscalls wide, against a
+# copy that is half-written for as long as it takes, so the pair is the smaller
+# hole; the restart happens after, and the rollback line printed at the end is
+# the way back if the branch turns out to be the wrong one. The replaced tree is
+# kept as `param_pages.prev` rather than deleted — one directory.
 ssh -o ConnectTimeout=5 "ableton@$HOST" \
     "rm -rf $REMOTE_SHARED/param_pages.new && mkdir -p $REMOTE_SHARED/param_pages.new"
 scp -q -r "$SRC/." "ableton@$HOST:$REMOTE_SHARED/param_pages.new/"

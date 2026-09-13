@@ -615,9 +615,11 @@ EOF
 
 ### Task 5: The fleet sweep
 
-`dump-replay.mjs` replays **movy's** model — the layer Schwung bypasses — so it is structurally blind to re-pagination (`docs/schwung-param-pages-findings.md` §5). This is its sibling: the same 76 modules planned through Schwung's own `planPages`.
+`dump-replay.mjs` replays **movy's** model — the layer Schwung bypasses — so it is structurally blind to re-pagination (`docs/schwung-param-pages-findings.md` §5). This is its sibling: the same modules planned through Schwung's own `planPages`.
 
-Measured before writing this plan, the static invariants **already pass**: 72 clean, 0 duplicate page names, 0 empty knobs pages, 0 throws, and 4 `no ui_hierarchy — paginated from chain_params` warnings (`branchage`, `belt-in`, `po32-drum`, `smack-in`). The 9W9 class is fixed upstream. So this suite's job is to **hold** that, and to carry the voice census — which does not pass, and which is Cause E reproduced with no device.
+Measured against the **95-module** dump Task 4 captured (2026-09-13), the static invariants **already pass**: 94 plannable, 0 duplicate page names, 0 empty knobs pages, 0 unnamed pages, 0 throws. 13 modules warn (`no ui_hierarchy — paginated from chain_params` ×12, plus `hank` → `no "root" level — starting at "main"`), and 1 module (`gesture-test`) carries no `chain_params` at all. The 9W9 class is fixed upstream. So this suite's job is to **hold** that, and to carry the voice census — which does not pass, and which is Cause E reproduced with no device.
+
+**Step 3 does not prove teeth the way you would expect, and that correction is what this pre-flight produced.** The three invariants are *unfalsifiable from the dump*: `planPages` disambiguates duplicate page names itself (`"Sync"` → `"Sync - 2"`, `page_plan.mjs:703`), drops a page whose knobs are all empty rather than emitting it empty, and derives a name from the key when a level has none. Verified by experiment — renaming a level in `genera`, emptying `genera.sync`'s knobs, and blanking a name each left all three invariants **green**. So they are written as a pure function of a page list and proven on synthetic input. They still run against every real plan; the pure form is what makes them provable.
 
 **Files:**
 - Create: `browser-test/fleet-pages.mjs`
@@ -641,146 +643,213 @@ Create `browser-test/fleet-pages.mjs`:
  * modules the way the device will under `page`, against the real captured
  * metadata in docs/module-dump/ — no device.
  *
- * THE INVARIANTS PASS TODAY (72 clean of 76 at the 2026-07-15 capture). That is
+ * THE INVARIANTS PASS TODAY (94 plannable of 95, 2026-09-13 capture). That is
  * the point: the 9W9 class — 13 pages all named "Params - 2", no level on any of
- * them — is fixed upstream, and this is what stops it coming back. A suite is
- * allowed to be green on the day it lands as long as it can go red.
+ * them — is fixed upstream, and this is what stops it coming back.
+ *
+ * THEY CANNOT BE FALSIFIED FROM THE DUMP, which is why checkPages() below is a
+ * pure function and why the teeth are proven in a scratch harness rather than by
+ * corrupting device-dump.json. The planner disambiguates duplicate page names
+ * itself ("Sync" becomes "Sync - 2"), drops a page whose knobs are all empty
+ * instead of emitting it empty, and names a level from its key when the level
+ * has none — so a mutated dump produces a different VALID plan, never a broken
+ * one. Measured against genera, not assumed.
  *
  * The census is the part that does not pass, and it is deliberately a REPORT
- * rather than an assertion: zero modules declaring voices is Cause E, it is a
+ * rather than an assertion: one module declaring voices is Cause E, it is a
  * fleet/module fact rather than a movy regression, and failing the build for it
  * would make every session red for something no session can fix. It is
  * baselined so a CHANGE in it is loud.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
+/* Written as a code point rather than an escape so the source carries no control
+ * byte for a formatter, a diff, or an editor round-trip to mangle. */
+const ESC = String.fromCharCode(27);
 const __dir = dirname(fileURLToPath(import.meta.url));
 const EXPECT = join(__dir, 'fleet-expect.json');
 const UPDATE = process.argv.includes('--update');
 
-if (!process.env.SCHWUNG) {
-    console.log('fleet-pages: SKIPPED (no param_pages; set SCHWUNG=/path/to/schwung)');
-    process.exit(0);
-}
-
-/* Resolved straight from SCHWUNG, NOT through dist/esm and the esbuild alias:
- * this suite reads the library as data — it plans pages without a model, a
- * port or a controller — so going through movy's bundle would drag the whole
- * renderer in for nothing. */
-const PP = join(process.env.SCHWUNG, 'src', 'shared', 'param_pages');
-const { planPages, pageSlotKeys } = await import(join(PP, 'page_plan.mjs'));
-const { voicesOf } = await import(join(PP, 'voices.mjs'));
-
-const dump = JSON.parse(readFileSync(join(__dir, '..', 'docs', 'module-dump', 'device-dump.json'), 'utf8'));
-const P = (v) => { try { return typeof v === 'string' ? JSON.parse(v) : v; } catch { return null; } };
-
-let failures = 0;
-const ok   = (l) => console.log(`  \x1b[32m✓\x1b[0m ${l}`);
-const fail = (l, why) => { console.log(`  \x1b[31m✗\x1b[0m ${l}: ${why}`); failures++; };
-
-const warned = {};       // id → warnings[]
-const census = [];       // ids declaring voices
-
-console.log(`\nfleet-pages: ${dump.modules.length} modules, dump ${dump.generated_at}`);
-
-for (const m of dump.modules) {
-    const cp = P(m.chain_params);
-    if (!cp) { fail(m.id, 'no chain_params in the dump'); continue; }
-    const h = P(m.ui_hierarchy);
-
-    let r;
-    try { r = planPages({ hierarchy: h, chainParams: cp, unresolved: false }); }
-    catch (e) { fail(m.id, 'planPages threw: ' + e.message); continue; }
-
+/* The static invariants, as a pure function of a page list.
+ *
+ * Pure so they can be PROVEN. planPages repairs every corruption this suite
+ * could inject into the dump (see the header), so a teeth-proof that goes
+ * through the dump proves nothing — it stays green and looks like a pass.
+ * Handed a page list directly, each invariant goes red on input that is
+ * genuinely bad. Step 3 is that harness; the loop in main() is the real
+ * subject, and this is the check that runs against it.
+ *
+ * slotKeys is pageSlotKeys, passed in rather than imported: this file must be
+ * importable for its checks WITHOUT a schwung checkout at SCHWUNG. */
+export function checkPages(pages, slotKeys) {
+    const out = [];
     /* THE 9W9 CLASS. Two pages with the same kind and name are two jog steps a
      * user cannot tell apart — 9W9 shipped 13 of them, all "Params - 2", and no
-     * amount of reading one page told you which. */
+     * amount of reading one page told you which. Kind is part of the key: a
+     * knobs page and an items page may share a label and still be distinct
+     * steps, so collapsing them would fail a healthy plan. JSON-encoded rather
+     * than joined with a separator, so no separator can occur in a name. */
     const seen = new Set();
-    for (const p of r.pages) {
-        const k = p.kind + '\u0000' + p.name;
-        if (seen.has(k)) { fail(m.id, `two ${p.kind} pages both named "${p.name}"`); break; }
+    for (const p of pages) {
+        const k = JSON.stringify([p.kind, p.name]);
+        if (seen.has(k)) out.push(`two ${p.kind} pages both named "${p.name}"`);
         seen.add(k);
     }
-
     /* A knobs page whose every slot is empty is a page that draws nothing and
      * still costs a jog step. */
-    for (const p of r.pages) {
+    for (const p of pages) {
         if (p.kind !== 'knobs') continue;
-        if (pageSlotKeys(p).every((x) => !x)) { fail(m.id, `knobs page "${p.name}" has no keys`); break; }
+        if (slotKeys(p).every((x) => !x)) out.push(`knobs page "${p.name}" has no keys`);
     }
-
     /* Every page must be nameable. An unnamed page has nothing to put in movy's
      * header or its bank bar. */
-    for (const p of r.pages) {
-        if (!p.name) { fail(m.id, `a ${p.kind} page has no name`); break; }
+    for (const p of pages) {
+        if (!p.name) out.push(`a ${p.kind} page has no name`);
     }
-
-    if (r.warnings.length) warned[m.id] = r.warnings;
-    if (h && (voicesOf(h) || []).length) census.push(m.id);
+    return out;
 }
 
-/* Warnings are baselined, not banned: `no ui_hierarchy — paginated from
- * chain_params` is a legitimate module shape, and four modules have it. A NEW
- * warning is what matters. */
-const expect = UPDATE ? null : JSON.parse(readFileSync(EXPECT, 'utf8'));
-if (UPDATE) {
-    writeFileSync(EXPECT, JSON.stringify({ warned, voiceDeclaring: census.sort() }, null, 2) + '\n');
-    console.log('  baseline written to browser-test/fleet-expect.json');
-} else {
-    for (const id of Object.keys(warned)) {
-        if (!expect.warned[id]) fail(id, 'new planner warning: ' + warned[id].join(' | '));
+async function main() {
+    if (!process.env.SCHWUNG) {
+        console.log('fleet-pages: SKIPPED (no param_pages; set SCHWUNG=/path/to/schwung)');
+        process.exit(0);
     }
-    for (const id of Object.keys(expect.warned)) {
-        if (!warned[id]) fail(id, 'warning gone — re-baseline with --update');
+
+    /* Resolved straight from SCHWUNG, NOT through dist/esm and the esbuild alias:
+     * this suite reads the library as data — it plans pages without a model, a
+     * port or a controller — so going through movy's bundle would drag the whole
+     * renderer in for nothing. Imported inside main() for the reason checkPages
+     * documents above. */
+    const PP = join(process.env.SCHWUNG, 'src', 'shared', 'param_pages');
+    const { planPages, pageSlotKeys } = await import(join(PP, 'page_plan.mjs'));
+    const { voicesOf } = await import(join(PP, 'voices.mjs'));
+
+    const dump = JSON.parse(readFileSync(join(__dir, '..', 'docs', 'module-dump', 'device-dump.json'), 'utf8'));
+    const P = (v) => { try { return typeof v === 'string' ? JSON.parse(v) : v; } catch { return null; } };
+
+    let failures = 0;
+    const ok   = (l) => console.log(`  ${ESC}[32m✓${ESC}[0m ${l}`);
+    const fail = (l, why) => { console.log(`  ${ESC}[31m✗${ESC}[0m ${l}: ${why}`); failures++; };
+
+    const warned = {};       // id → warnings[]
+    const census = [];       // ids declaring voices
+    const unplannable = [];  // ids with no chain_params — baselined, not failed
+
+    console.log(`\nfleet-pages: ${dump.modules.length} modules, dump ${dump.generated_at}`);
+
+    for (const m of dump.modules) {
+        const cp = P(m.chain_params);
+        /* A module with no chain_params has no parameters to paginate at all —
+         * `gesture-test` is the one such module. That is a module-side shape,
+         * not a planner defect, so it is baselined like a warning rather than
+         * failing: otherwise the suite is red on arrival for something no
+         * session can fix, which is how a gate stops being read. */
+        if (!cp) { unplannable.push(m.id); continue; }
+        const h = P(m.ui_hierarchy);
+
+        let r;
+        try { r = planPages({ hierarchy: h, chainParams: cp, unresolved: false }); }
+        catch (e) { fail(m.id, 'planPages threw: ' + e.message); continue; }
+
+        for (const why of checkPages(r.pages, pageSlotKeys)) fail(m.id, why);
+
+        if (r.warnings.length) warned[m.id] = r.warnings;
+        if (h && (voicesOf(h) || []).length) census.push(m.id);
     }
-    const before = (expect.voiceDeclaring || []).join(',');
-    const now    = census.sort().join(',');
-    if (before !== now) fail('voice census', `was [${before}], now [${now}] — re-baseline with --update and tell SP-14`);
-    else ok(`voice census unchanged (${census.length} module(s) declare voices to Schwung)`);
+
+    /* Warnings are baselined, not banned: `no ui_hierarchy — paginated from
+     * chain_params` is a legitimate module shape. A NEW warning is what matters. */
+    const expect = UPDATE ? null : JSON.parse(readFileSync(EXPECT, 'utf8'));
+    if (UPDATE) {
+        writeFileSync(EXPECT, JSON.stringify({
+            warned,
+            voiceDeclaring: census.sort(),
+            unplannable: unplannable.sort(),
+        }, null, 2) + '\n');
+        console.log('  baseline written to browser-test/fleet-expect.json');
+    } else {
+        for (const id of Object.keys(warned)) {
+            if (!expect.warned[id]) fail(id, 'new planner warning: ' + warned[id].join(' | '));
+        }
+        for (const id of Object.keys(expect.warned)) {
+            if (!warned[id]) fail(id, 'warning gone — re-baseline with --update');
+        }
+        const before = (expect.voiceDeclaring || []).join(',');
+        const now    = census.sort().join(',');
+        if (before !== now) fail('voice census', `was [${before}], now [${now}] — re-baseline with --update and tell SP-14`);
+        else ok(`voice census unchanged (${census.length} module(s) declare voices to Schwung)`);
+
+        const ub = (expect.unplannable || []).join(',');
+        const un = unplannable.sort().join(',');
+        if (ub !== un) fail('unplannable', `was [${ub}], now [${un}] — re-baseline with --update`);
+    }
+
+    if (failures === 0) console.log(`\n${ESC}[32m${ESC}[1mALL FLEET-PAGE CHECKS PASSED${ESC}[0m`);
+    else { console.log(`\n${ESC}[31m${ESC}[1m${failures} FLEET-PAGE CHECK(S) FAILED${ESC}[0m`); process.exit(1); }
 }
 
-if (failures === 0) console.log('\n\x1b[32m\x1b[1mALL FLEET-PAGE CHECKS PASSED\x1b[0m');
-else { console.log(`\n\x1b[31m\x1b[1m${failures} FLEET-PAGE CHECK(S) FAILED\x1b[0m`); process.exit(1); }
+/* Importing this file for checkPages() must not run the sweep. */
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await main();
 ```
 
 - [ ] **Step 2: Baseline and run**
 
 ```bash
-node browser-test/fleet-pages.mjs --update   # writes fleet-expect.json
+SCHWUNG=../schwung node browser-test/fleet-pages.mjs --update   # writes fleet-expect.json
 SCHWUNG=../schwung node browser-test/fleet-pages.mjs
 ```
 
-Expected: all checks pass. The census line should read `0 module(s) declare voices to Schwung` against the July dump, or whatever Task 4 measured against a fresh one.
+**Both lines need the environment.** `--update` is read *after* the `SCHWUNG` guard, so without it the suite prints `SKIPPED`, exits **0**, and writes nothing — and the next line then dies on `ENOENT` reading a baseline that was never created. A green exit that wrote no file is the failure mode to watch for here.
+
+Expected: all checks pass. The census line reads `voice census unchanged (1 module(s) declare voices to Schwung)` — the declarer is `voice-poc`. The July capture's `0` is stale against this dump: Task 4's recapture added `voice-poc`.
 
 - [ ] **Step 3: Prove it has teeth**
 
-The invariants pass on arrival, so they must be shown able to fail. Inject each class into a scratch copy of the dump and confirm a red run:
+**Not by corrupting the dump.** `planPages` repairs every corruption the dump can carry (see the header comment), so those teeth-proofs stay green and prove nothing — they would look like passes. Feed `checkPages()` a page list directly instead. Each invariant must go red on input that is genuinely bad, and must stay **green** on input that is merely unusual:
 
 ```bash
-node --input-type=module -e "
-import { readFileSync, writeFileSync } from 'node:fs';
-const p = 'docs/module-dump/device-dump.json';
-const d = JSON.parse(readFileSync(p, 'utf8'));
-const m = d.modules.find(x => x.id === 'obxd');
-const h = JSON.parse(m.ui_hierarchy);
-// Two levels with the SAME name → two pages a user cannot tell apart.
-h.levels.osc2.name = h.levels.osc1.name;
-m.ui_hierarchy = JSON.stringify(h);
-writeFileSync(p, JSON.stringify(d));
+SCHWUNG=../schwung node --input-type=module -e "
+import { checkPages } from './browser-test/fleet-pages.mjs';
+const { pageSlotKeys } = await import(process.env.SCHWUNG + '/src/shared/param_pages/page_plan.mjs');
+const t = (label, pages, want) => {
+  const bad = checkPages(pages, pageSlotKeys);
+  console.log((bad.length === want ? 'OK  ' : 'BAD ') + label + ': ' + bad.length + ' failure(s), want ' + want);
+  if (bad.length !== want) process.exitCode = 1;
+  for (const f of bad) console.log('        ' + f);
+};
+t('9W9: two knobs pages, same name',
+  [{ kind: 'knobs', name: 'Params - 2', keys: ['a'] },
+   { kind: 'knobs', name: 'Params - 2', keys: ['b'] }], 1);
+t('same name, DIFFERENT kinds — two distinct steps, must stay green',
+  [{ kind: 'knobs', name: 'X', keys: ['a'] },
+   { kind: 'items', name: 'X' }], 0);
+t('knobs page with no keys',
+  [{ kind: 'knobs', name: 'Empty', keys: [] }], 1);
+t('unnamed page',
+  [{ kind: 'knobs', name: '', keys: ['a'] }], 1);
+/* Every synthetic page carries keys: pageSlotKeys reads page.keys.length,
+   so a knobs page without it throws rather than reporting a failure. */
+t('a healthy plan is clean',
+  [{ kind: 'knobs', name: 'Main', keys: ['osc1'] },
+   { kind: 'preset', name: 'Presets' }], 0);
 "
-SCHWUNG=../schwung node browser-test/fleet-pages.mjs; echo "exit=$?   # expect 1, obxd two knobs pages both named …"
-git checkout docs/module-dump/device-dump.json
 ```
 
-Then the census, which is the one that guards Cause E:
+Expect five `OK` lines and exit 0 — three reds that fire, and two greens that must not, so the checks are not merely "always red".
+
+Then the census, which is the one guarding Cause E. Its teeth need a baseline that *differs*, and `fleet-expect.json` is untracked until Step 5 — so **`git checkout` here would be a no-op and the mutation would survive into the commit as the accepted baseline**. Copy and restore by hand instead:
 
 ```bash
+cp browser-test/fleet-expect.json /tmp/fleet-expect.bak
 node -e "const f='browser-test/fleet-expect.json',j=JSON.parse(require('fs').readFileSync(f));j.voiceDeclaring=['mrdrums'];require('fs').writeFileSync(f,JSON.stringify(j,null,2))"
 SCHWUNG=../schwung node browser-test/fleet-pages.mjs; echo "exit=$?   # expect 1, voice census"
-git checkout browser-test/fleet-expect.json
+cp /tmp/fleet-expect.bak browser-test/fleet-expect.json
+SCHWUNG=../schwung node browser-test/fleet-pages.mjs; echo "exit=$?   # expect 0, restored"
 ```
+
+The last line is the one that matters: it proves the restore worked, so Step 5 cannot commit a corrupted baseline.
 
 - [ ] **Step 4: Register and run the suite**
 
@@ -799,21 +868,22 @@ git commit -m "$(cat <<'EOF'
 test: the fleet, planned through Schwung's planner instead of movy's model
 
 dump-replay replays movy's model — the layer `page` mode bypasses — so it cannot
-see a re-pagination. This plans the same 76 modules the way the device will and
+see a re-pagination. This plans the same 95 modules the way the device will and
 asserts what a user can actually navigate: no two pages with the same kind and
 name (9W9 shipped 13 "Params - 2"), no knobs page with no keys, every page
 nameable.
 
-The invariants pass on arrival, so each is shown able to fail rather than
-asserted to work: the 9W9 class is fixed upstream and this is what stops it
-returning.
+The invariants pass on arrival and CANNOT be falsified from the dump — planPages
+disambiguates duplicate names itself, drops an all-empty knobs page instead of
+emitting it, and names a level from its key when it has none. So they are written
+as a pure function and proven on synthetic input, where each one goes red.
 
-The voice census is a baselined report, not an assertion. Zero modules declare
-voices to voicesOf() — that is Cause E, it is a module-side fact, and failing
-the build for it would make every session red for something no session can fix.
+The voice census is a baselined report, not an assertion: one module declares
+voices to voicesOf() — that is Cause E, it is a module-side fact, and failing the
+build for it would make every session red for something no session can fix.
 A change in it is loud, which is what SP-14 needs.
 
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 EOF
 )"
 ```

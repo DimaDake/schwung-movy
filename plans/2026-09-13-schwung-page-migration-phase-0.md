@@ -290,7 +290,7 @@ is stale. So the list can only shrink.
 The off arm is asserted clean because it is the control: if it fails, nothing
 the page arm says is attributable to the mode.
 
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 EOF
 )"
 ```
@@ -432,7 +432,7 @@ passing quietly.
 installEnv() now returns the live env. Per-suite isolation was never the env's
 job — env.setParams() replaces the whole store.
 
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 EOF
 )"
 ```
@@ -519,7 +519,7 @@ contract tri-state and its retry budget, and the render path.
 No behaviour change — the SchwungPage surface is identical and the page-mode
 burn-down still reads 13 of 13, which is the assertion that this was a refactor.
 
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 EOF
 )"
 ```
@@ -604,7 +604,7 @@ Recorded with it: how many modules declare voices to Schwung's voicesOf(). That
 number decides whether Cause E is solved on movy's side or in the modules, and
 it was unanswerable against the old capture.
 
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 EOF
 )"
 ```
@@ -980,7 +980,7 @@ reflows only when a rect is supplied, so without one the body lands on top of
 movy's bank bar. That was the gap named in findings §7 item 10 — the rect's
 value was asserted, its use was not.
 
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 EOF
 )"
 ```
@@ -1198,7 +1198,7 @@ install-schwung-fork.sh restarts the stack rather than copying files, because
 QuickJS caches modules per shadow_ui process and renames only ui.js — so a
 fresh voices.mjs links against the cached old page_plan.mjs.
 
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 EOF
 )"
 ```
@@ -1209,7 +1209,7 @@ EOF
 
 ### Task 8: The A/B cost harness
 
-**Opus.** Attribution is what failed last time (`docs/schwung-param-pages-findings.md` §4 "Why it is not attributed"), and SP-13 depends entirely on this being trustworthy.
+**Dispatch this on the standard (sonnet) tier.** Attribution is what failed last time (`docs/schwung-param-pages-findings.md` §4 "Why it is not attributed"), and SP-13 depends entirely on this being trustworthy.
 
 Two scripts already exist untracked and are good. `scripts/grid-call-cost.mjs` counts **host calls** off device, on the reasoning that a `shadow_*_param` is a synchronous round-trip costing about one audio block whatever the value is — so the call count *is* the latency, in units a laptop can count exactly. `scripts/measure-grid-cost.sh` reads `perf_ipc` on device while injecting one CC carrying a real magnitude, because a flick is not sixty small turns.
 
@@ -1305,7 +1305,7 @@ surface cannot be driven by script while it is overtaking.
 
 SP-13 compares against the baseline recorded here.
 
-Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 EOF
 )"
 ```

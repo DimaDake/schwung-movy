@@ -35,7 +35,15 @@ function serveModuleLayout(path) {
     catch { return null; }
 }
 
+/* ONE ENV PER PROCESS. The globals the bundled modules read are module-level
+ * assignments, so a second installEnv() silently repoints them at a second
+ * store while every existing holder keeps writing to the first. Returning the
+ * live one is safe because env.setParams() replaces the whole store anyway —
+ * per-suite isolation comes from that call, never from a fresh env. */
+let installed = null;
+
 export function installEnv() {
+    if (installed) return installed;
     let params = {};
     /* USB-MIDI packets a module pushed into Move's MIDI_IN, so tests can assert
      * the track-hold divert (see src/mixer/track-volume.ts). */
@@ -113,6 +121,17 @@ export function installEnv() {
      * deleting it — dropping it entirely would quietly send every later blocking
      * write down the non-blocking fallback. */
     env.restoreSetParamTimeout = () => { globalThis.shadow_set_param_timeout = setParamTimeout; };
+    /* …and the same for the pair above, which suites also delete outright. A
+     * delete used to be survivable because the next `createDumpBoot()` called
+     * `installEnv()` and repointed the globals at a fresh store; now that
+     * installEnv() returns the live env, nothing puts them back — so a suite
+     * that deletes them takes the host away from every suite after it, and the
+     * first direct `globalThis.shadow_get_param(…)` in one of those is a
+     * TypeError. Returning the env's own accessors is what the cleanup meant. */
+    env.restoreParamGlobals = () => {
+        globalThis.shadow_get_param = slotGet;
+        globalThis.shadow_set_param = slotSet;
+    };
     /* ── The engine's param namespace ────────────────────────────────────
      *
      * Every track is a movy chain now, so `portFor(0)` addresses `ch0:<key>` in
@@ -202,5 +221,6 @@ export function installEnv() {
     globalThis.MoveUp             = 55;
     globalThis.MoveDown           = 54;
 
+    installed = env;
     return env;
 }

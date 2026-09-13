@@ -13,7 +13,7 @@ import {
     seqSideEffect, setUndoStrict, takeUndoViolation, resetUndoRecord, isUndoableVerb, isControlVerb,
     UNDOABLE_VERBS, undoOnce, redoOnce, undoWatchContext, resetUndoApply, undoToastVM,
     noteCount, clipTarget, valueChange, seqCmd, takeLabelSync, seqEngineTick,
-    resetSeqEngine, appState, ok, eq, notMatch, _log,
+    resetSeqEngine, appState, env, ok, eq, notMatch, _log,
     loadPerSetFlags, resetPorts,
 } from './harness.mjs';
 
@@ -320,8 +320,7 @@ export async function run() {
     undoWatchContext();
     eq('a set switch clears the stack', canUndo(), false);
 
-    delete globalThis.shadow_set_param;
-    delete globalThis.shadow_get_param;
+    env.restoreParamGlobals();
     resetUndoState(); resetUndoGroups(); resetUndoApply(); resetSetSession();
     uninstallMockEngine();
 }
@@ -520,8 +519,7 @@ export async function run() {
     pushEntry(entry());
     eq('an unlanded load is not treated as drift', undoOnce().ok, true);
 
-    delete globalThis.shadow_get_param;
-    delete globalThis.shadow_set_param;
+    env.restoreParamGlobals();
     resetUndoState(); resetUndoGroups(); resetUndoApply(); resetModuleRestore();
 }
 

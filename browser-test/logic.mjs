@@ -66,6 +66,7 @@ import { run as run_schwung_page } from './logic/schwung-page.mjs';
 import { run as run_cpu_page } from './logic/cpu-page.mjs';
 import { run as run_mixer } from './logic/mixer.mjs';
 import { run as run_pan_viz } from './logic/pan-viz.mjs';
+import { run as run_env_identity } from './logic/env-identity.mjs';
 
 /* Awaited one at a time: the suites share the mock device globals, and the
  * expected output is a fixed transcript, so they must not interleave. */
@@ -75,13 +76,6 @@ const SUITES = [
     run_model_params,
     run_knob_input,
     run_declarations,
-    /* Beside its sibling, and deliberately BEFORE run_undo_params: that suite
-     * imports dump-boot.mjs, whose createDumpBoot() calls installEnv() a SECOND
-     * time. From that point the globals belong to the new env instance while
-     * `env.setParams` still feeds the harness's own — so a suite after it boots
-     * a model against whatever the dump left behind, not its own preset. This
-     * suite boots models, so it has to run while `env` is still the live one. */
-    run_schwung_page,
     run_trigger_badge,
     run_drums,
     run_host_param,
@@ -119,6 +113,15 @@ const SUITES = [
     run_step_record,
     run_undo_core,
     run_undo_restore,
+    /* Beside the seam it is about: the suites above take the host away (their
+     * cleanup used to DELETE `shadow_get_param` and rely on the next
+     * createDumpBoot() to hand a fresh one back through installEnv()), and the
+     * suites below are the first that read it directly. It has to run after
+     * every suite that boots a model against the pristine host — a dump boot
+     * installs its own `os`/`host_read_file`, so running it earlier strips the
+     * file stubs out from under items-select — and where those accessors are
+     * the live env's own, which is what the two suites just above restore. */
+    run_env_identity,
     run_undo_params,
     run_quantize,
     run_loop_window,
@@ -129,6 +132,7 @@ const SUITES = [
     run_track_migrate,
     run_flags,
     run_schwung_grid,
+    run_schwung_page,
     run_cpu_page,
     run_mixer,
     run_pan_viz,

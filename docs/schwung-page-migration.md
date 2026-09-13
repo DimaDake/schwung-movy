@@ -31,7 +31,7 @@ and must never grow. If it grew, the last item regressed a sibling — stop.
 | id | item | model | state |
 | --- | --- | --- | --- |
 | SP-01 | `app-loop` runs both modes; the 13 Cause-A failures become a named ledger | Sonnet | ✅ |
-| SP-02 | Harness env leak: `createDumpBoot()` calls `installEnv()` twice | Sonnet | ⬜ |
+| SP-02 | Harness env leak: `createDumpBoot()` calls `installEnv()` twice | Sonnet | ✅ |
 | SP-03 | Split `schwung-page.ts` (457 → ≤200/file) | Sonnet | ⬜ |
 | SP-04a | **Re-capture the module dump** — the committed one is 2026-07-15 | Sonnet | ⬜ |
 | SP-04 | Fleet sweep: 76 dump modules planned through Schwung's `page_plan` | Sonnet | ⬜ |
@@ -159,6 +159,19 @@ so do it alone and in one commit.
 work-around comment is gone, and `npm test` is green.
 
 **Needs:** nothing. Independent of SP-01.
+
+**Closed.** `installEnv()` now returns the live env (`browser-test/env.mjs`), and
+`browser-test/logic/env-identity.mjs` asserts the property directly, through the
+real second caller. Removing the ordering turned **`undo-params`** red — not on
+an assertion but as a `TypeError`: `undo-core` and `undo-restore` ended their
+cleanup with `delete globalThis.shadow_get_param`, and the *only* thing that ever
+put it back was `createDumpBoot()`'s repointing `installEnv()` call. That is the
+same defect at one remove, so both suites now call `env.restoreParamGlobals()`
+(the idiom `restoreSetParamTimeout` already set) instead of deleting. The
+ordering was also doing real work for `run_schwung_page`: with the leak restored
+but the ordering left in place, it passes; move it beside its sibling with the
+leak restored and `the model carries the press param` fails. Both directions are
+recorded in `task-2-report.md`.
 
 ### SP-03 — split `schwung-page.ts`
 
@@ -306,6 +319,16 @@ continue in parallel. It does not stop the migration.
 
 Newest first. One line per closed item: id, date, commit, the evidence.
 
+- 2026-09-13 — **SP-02 ✅** — `installEnv()` is idempotent, so the param globals
+  belong to one env per process; the work-around ordering in `logic.mjs` is gone
+  and `run_schwung_page` sits beside `run_schwung_grid`. **`undo-params` went red
+  when the work-around was removed** (a `TypeError`, not an assertion): it read
+  `shadow_get_param` directly and depended on `createDumpBoot()` resurrecting the
+  global that `undo-core` and `undo-restore` had deleted. Both now restore via
+  `env.restoreParamGlobals()`. Evidence: `ALL LOGIC CHECKS PASSED`,
+  `page-mode: 13 of 13 expected failures remain`, and the new suite red both when
+  `env.mjs` is stashed and when only the guard is removed. Commit: this one —
+  `test: one env per process, and the suite order that was hiding a second one`.
 - 2026-09-13 — spec approved and committed (`c4b6775`); ledger created.
 - 2026-09-13 — **SP-01 ✅** — `app-loop.mjs` runs as an arm (`MOVY_APP_LOOP_GRID`,
   and `MOVY_APP_LOOP_LABELS=1` prints its failed labels), and

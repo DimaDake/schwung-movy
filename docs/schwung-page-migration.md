@@ -55,6 +55,56 @@ and must never grow. If it grew, the last item regressed a sibling — stop.
 | SP-19 | Undo redraw + automation-follows-arc | Sonnet | ⬜ |
 | SP-20 | `ui_hierarchy` ownership under Schwung's planner | Opus | ⬜ |
 
+**Phase 1; id to be assigned at Phase 0 close — Level-shadowed `short_name`
+renders one page's label on another.**
+
+Found during SP-04a and **not fixable in Phase 0** — the fix changes what a user
+sees, which is Phase 1 by the plan's Global Constraints. Phase 0 records it and
+accommodates it in `KNOWN_COLLIDING_PAGES`; **that entry is a temporary
+accommodation, not a resolution.**
+
+What happens, on `jp8000`'s Performance page:
+
+- `src/model/hierarchy.ts:108` — `absorbHierarchy` flattens **every** level's
+  `params[]` into one `paramDefs` map, **last write wins**.
+- `src/model/generic-pages.ts:156` — the cell is built from that flat
+  `paramDefs[key]`, which carries no memory of which page declared it.
+- `src/model/param-build.ts:52-57` — `declaredShortName` prefers the `def` over
+  `chain_params` *deliberately*, so the shadowed value wins over the module's
+  live metadata for this page.
+- `src/renderer/shorten.ts:185` — the resulting `shortLabel` is non-null, so
+  both cells are `locked`, and `collisionGroups` (`:142`) and `forceUnique`
+  (`:165`) each `return` early on a locked entry. **The disambiguation
+  machinery never runs.**
+
+Reproduction (all confirmed against the 2026-09-13 dump and the committed
+baseline):
+
+```
+perf_main   key_mode  label "Key Mode"  short_name "KeyMd"
+perf_main   arp_mode  label "Arp Mode"  short_name "ArpMd"
+perf_setup  key_mode  label "Key Mode"  short_name "Mode"
+perf_arp    arp_mode  label "Arp Mode"  short_name "Mode"
+```
+
+`perf_setup` and `perf_arp` come **after** `perf_main` in `ui_hierarchy.levels`,
+so the flattening overwrites both. The rendered page is
+`["MODE","SPLIT","DETUNE","VOICES","ARP","MODE","BEAT","BPM"]` — two knobs a
+user cannot tell apart, produced from labels the module never gave them.
+`VOICES` and `DETUNE` sit on that same page at six characters, so the width
+budget was never the constraint; the module's own `KeyMd`/`ArpMd` fit it.
+
+**`jp8000` is the only module in the fleet with this shape**, and these are its
+only two affected keys. This is **not** the helm case: helm's
+`stutter_sync`/`stutter_resample_sync` carry identical `name: "Stutter Sync"` and
+no `short_name` at all, so only upstream can fix them. jp8000 is the opposite —
+distinct, correctly-declared labels that movy discards. Filing an upstream PR
+against jp8000 would be filing it against names it already ships right.
+
+The fix is to build each cell from the def of the level that **owns** it rather
+than from the flattened map. Prefer a test that fails on the shadowing first —
+this is a rendering change with a one-line symptom already pinned above.
+
 ### Phase 2 — parity
 
 | id | item | model | state |
@@ -340,11 +390,14 @@ red against the widened fleet — none of them a movy regression — are closed:
      `'arc'` reddens 16 including all four kits (each `8 detected, 0 styled`).
      `mrdrums` detects **zero** cells before and after — it has no wave or stage
      cell to style, so it was never passing *because* of the bug.
-   - `jp8000`: duplicate short name `MODE` on the new `Performance` page —
-     "Key Mode" and "Arp Mode" both shorten to it, both are genuinely different
-     params, and five characters cannot carry the distinction. Added
-     `sound_generator--jp8000::Performance` to `KNOWN_COLLIDING_PAGES` (helm's
-     `Stutter` is the precedent) — an upstream label fix, not a movy one.
+   - `jp8000`: duplicate short name `MODE` on the new `Performance` page. **This
+     one is a movy defect, not an upstream one** — the module declares distinct
+     `KeyMd`/`ArpMd` on that page and movy overwrites them with `Mode` from
+     another level (level shadowing; full account under *Level-shadowed
+     `short_name`* in Phase 1). It is added to `KNOWN_COLLIDING_PAGES` as a
+     **temporary Phase 0 accommodation**, because fixing it changes what a user
+     sees and that is Phase 1 work — **not** as a resolution, and **not** on
+     helm's `Stutter` precedent, which is the opposite shape.
    - `midiverb`: `unit_list` index 0 is labelled `"* Midiverb"` while
      `chain_params.unit.options` says `"Midiverb"`. **`unit_list` is the
      authoritative source**: `unit` is an items-level cell (the level declares
@@ -352,10 +405,16 @@ red against the widened fleet — none of them a movy regression — are closed:
      its options from that live list and uses labels verbatim, and the asterisk
      is the *selection marker* — index 0 is starred and `unit` reads `"0"`. So
      movy is rendering the right source, and `checkEnumOptionsMatchModule` now
-     compares an items cell against the list it was built from (which also
-     brings dexed/obxd/nam under the check, whose select keys have no
-     `chain_params` entry at all). **Teeth proved**: stripping the marker in
-     `items-param.ts` turns exactly that one check red.
+     compares an items cell against the list it was built from
+     (`itemListLabels(entry.params[p.itemsKey])`) instead of skipping it. That
+     also gives dexed/obxd/nam something to compare — their select keys have no
+     `chain_params` entry, so the old code fell through. **What it proves is
+     narrower than "these modules are now covered"**: the check re-parses the
+     same bytes the model parsed and takes `p.itemsKey` from the model itself,
+     so a *wrong* `items_param` stays invisible — it would read the same wrong
+     key and agree. It catches divergence between the rendered options and the
+     source movy actually read, nothing more. **Teeth proved**: stripping the
+     marker in `items-param.ts` turns exactly that one check red.
 
 **Needs:** SP-02 (the env leak corrupts multi-module boots). SP-04a is closed —
 the fleet sweep now starts from a current capture.

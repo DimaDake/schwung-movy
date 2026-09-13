@@ -178,7 +178,15 @@ export function installEnv() {
      * slot, and no track is. */
     globalThis.__movyEnvEngineGet = engineGet;
     globalThis.__movyEnvEngineSet = engineSet;
-    globalThis.shadow_get_ui_slot = () => 0;
+    /* Assigned once and restorable by name, for the same reason as the pair
+     * above. `installEnv` is the only thing that ever installs it, so a suite
+     * that deletes it takes it away from every suite after — and that failure is
+     * SILENT, not red: the bundle's one consumer guards with `typeof … ===
+     * "function" ? shadow_get_ui_slot() : 0`, so the next suite to render a
+     * model would quietly select track 0 instead of throwing. */
+    const uiSlot = () => 0;
+    globalThis.shadow_get_ui_slot = uiSlot;
+    env.restoreUiSlot = () => { globalThis.shadow_get_ui_slot = uiSlot; };
     globalThis.shadow_send_midi_to_dsp = () => {};
     globalThis.host_read_file     = (path) => serveModuleLayout(path);
     globalThis.host_write_file    = () => true;

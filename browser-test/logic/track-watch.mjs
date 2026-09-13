@@ -13,7 +13,7 @@
  * Run by browser-test/logic.mjs.
  */
 
-import { eq, _log, lastMusicalOp, selectTrack, watchedTrack } from './harness.mjs';
+import { env, eq, _log, lastMusicalOp, selectTrack, watchedTrack } from './harness.mjs';
 
 export async function run() {
 
@@ -82,7 +82,7 @@ export async function run() {
     eq('the track buttons address the group the open landed in',
        appState.focusGroup, 0);
 
-    delete globalThis.shadow_get_ui_slot;
+    env.restoreUiSlot();
     uninstallMockFs();
     uninstallMockEngine();
     engine.reset(); resetSeqEngine(); resetSeqState(); selectTrack(0);

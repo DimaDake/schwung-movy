@@ -17,13 +17,20 @@ export async function run() {
 
     const first = installEnv();
     eq('installEnv is idempotent', installEnv(), first);
+    /* Identity, not reachability — the two checks below are different claims.
+     * This one holds the exact accessor the globals pointed at before the dump
+     * boot; a second env repoints them at its own, so a `===` here fails on the
+     * leak itself rather than on its downstream symptom. */
+    const liveGet = globalThis.shadow_get_param;
 
     /* The real second caller, not a stand-in: the bug lives in dump-boot's own
      * call, and a hand-written installEnv() here would pass while dump-boot
      * still stole the globals. */
     await createDumpBoot(loadDump());
 
-    /* The globals must still answer to the env the suite is holding. */
+    ok('a dump boot does not steal the globals', globalThis.shadow_get_param === liveGet);
+
+    /* …and the survivor is a working host, not merely the same function. */
     first.setParams({ 'synth:env_identity_probe': '41' });
     /* (slot, key): the real `shadow_get_param` is slot-addressed, and this env's
      * stub is `(s, key) => params[s + '|' + key] ?? params[key]` — a one-arg
@@ -32,6 +39,4 @@ export async function run() {
      * other. */
     eq('the live env still backs shadow_get_param',
         globalThis.shadow_get_param(0, 'synth:env_identity_probe'), '41');
-
-    ok('a dump boot does not steal the globals');
 }

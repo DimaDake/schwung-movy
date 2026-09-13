@@ -147,7 +147,7 @@ export async function run() {
         presetVm()?.displayValue !== shown, true);
 
     env.restoreParamGlobals();
-    delete globalThis.shadow_get_ui_slot;
+    env.restoreUiSlot();
     appState.trackModels[0] = [];
     resetUndoState(); resetUndoGroups(); resetUndoApply();
 }

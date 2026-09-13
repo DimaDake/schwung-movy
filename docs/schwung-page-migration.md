@@ -173,6 +173,62 @@ but the ordering left in place, it passes; move it beside its sibling with the
 leak restored and `the model carries the press param` fails. Both directions are
 recorded in `task-2-report.md`.
 
+**The rule this leaves behind, for the next suite author:**
+
+> **A suite cleanup must RESTORE, never delete. Nothing reinstalls the globals
+> for you.**
+
+The removed second `installEnv()` was a full re-install of *every* global
+`env.mjs` assigns — the param pair, `shadow_get_ui_slot`, the engine and file
+stubs, the whole device. Every `delete` a suite left behind used to be repaired
+by it, so removing it took away the reset path for *all* of them at once, not
+just the ones that were caught. Each stub that a suite may take away therefore
+wants a named restorer on `env` (`restoreParamGlobals`, `restoreUiSlot`,
+`restoreSetParamTimeout`, and `uninstallMockEngine`, which already restores the
+engine trio) — and the calling site uses it.
+
+**Deferred — every remaining site that takes away an `env`-installed global
+without putting it back.** Survey, not guess (rerun it after a suite lands):
+
+```bash
+grep -rn "delete globalThis" browser-test/ | grep -v node_modules
+```
+
+Latent, because nothing after them reads those globals *directly* today: the
+next suite that does fails, and for some of them it fails **silently** rather
+than red — the bundle guards `shadow_get_ui_slot` with
+`typeof … === 'function' ? shadow_get_ui_slot() : 0`, so a model renders on
+track 0 instead of throwing, and a `host_read_file` that answers `null` reads as
+a module that ships no `movy_config.json`. Not fixed here — outside SP-02's
+scope, and each is a one-line change at the matching site:
+
+- `shadow_get_param` / `shadow_set_param` — `quantize.mjs:241-242`, `:298`,
+  `:368-369`; `undo-params.mjs:253-254`, `:305-306`. The largest group, and the
+  same fix as the two suites already repaired.
+- The same pair, **restore-what-was-found-then-delete** shape —
+  `track-migrate.mjs:30-31`, `set-settling.mjs:274`. These put back a *previous*
+  stub, so they are only as good as whoever set that stub; with nothing there,
+  the delete stands.
+- The `host_module_*` trio — `seq-engine.mjs:174-176`, deleted on purpose (that
+  block asserts there is no engine at all, so a restorer would be the wrong fix
+  there and the block wants a scoped save/restore); `host_module_set_param_blocking`
+  alone at `set-restore-loss.mjs:258` and `track-migrate.mjs:356`;
+  `host_module_get_param` alone at `track-migrate.mjs:358`.
+- `host_write_file` — `seq-engine.mjs:357`, and `mock-fs.mjs:48` (see below).
+- `move_midi_internal_send` — `app-loop.mjs:1983`; `move_midi_inject_to_move` —
+  `set-settling.mjs:153` (restore-then-delete shape). `app-loop.mjs` is its own
+  process, so that one only matters within it, but it is the same defect.
+- `browser-test/mock-fs.mjs:46-50` (`uninstallMockFs`) is the odd one — not a
+  `delete` of everything: it deletes `host_write_file` and then leaves
+  `host_read_file = () => null`, where `installEnv` had put the module-layout
+  server. Same class, worse shape (a wrong stub rather than a missing one), and
+  the most likely to bite next, since `host_read_file` is how a self-describing
+  module's `movy_config.json` is read.
+
+The two `shadow_get_ui_slot` sites were on this list and are **fixed** in this
+task's follow-up commit, via `env.restoreUiSlot()`:
+`browser-test/logic/undo-restore.mjs:150`, `browser-test/logic/track-watch.mjs:85`.
+
 ### SP-03 — split `schwung-page.ts`
 
 457 lines against the repo's hard 200-line limit, and every Phase-1 item edits
@@ -329,6 +385,11 @@ Newest first. One line per closed item: id, date, commit, the evidence.
   `page-mode: 13 of 13 expected failures remain`, and the new suite red both when
   `env.mjs` is stashed and when only the guard is removed. Commit: this one —
   `test: one env per process, and the suite order that was hiding a second one`.
+  **Follow-up commit (review fix round 1):** `env.restoreUiSlot()` added and used
+  at `undo-restore.mjs:150` / `track-watch.mjs:85` (the same delete, and it fails
+  *silently*), the deferred list above rebuilt from a survey, and
+  `env-identity.mjs`'s dump-boot check given a condition it can fail on.
+  Same evidence, re-run: `npm test` exit 0, `page-mode: 13 of 13`.
 - 2026-09-13 — spec approved and committed (`c4b6775`); ledger created.
 - 2026-09-13 — **SP-01 ✅** — `app-loop.mjs` runs as an arm (`MOVY_APP_LOOP_GRID`,
   and `MOVY_APP_LOOP_LABELS=1` prints its failed labels), and

@@ -1267,7 +1267,7 @@ Two scripts already exist untracked and are good. `scripts/grid-call-cost.mjs` c
 
 Both have **stale usage lines**: they document `MOVY_SCHWUNG_GRID=off|page`, which reaches no build, so following them as written measures `off` twice and reports no difference.
 
-`grid-call-cost.mjs` also records why the device arm must be passive: an injected control CC reaches schwung's cable-0 handler, cached at `shadow_ui` startup, not movy's — so movy's surface cannot be driven by script while it is overtaking. That is why the off-device call-count arm carries the burden and why it, not the device arm, becomes a suite.
+`grid-call-cost.mjs` also records why the device arm must be passive, and **its stated reason is false — correct the header as part of Step 1.** It claims an injected control CC reaches schwung's cable-0 handler rather than movy's, so movy's surface cannot be driven by script while overtaking. Measured with framebuffer hashes on 2026-09-13, cable 0 on `/dev/shm/schwung-ui-midi` *does* drive movy while it is overtaking, and cable 2 does nothing; `inject-any.py:24`, `measure-grid-cost.sh:35,77` and `test-device/device-agent/ui-agent.py` all rely on exactly that. The true reason the off-device arm carries the burden is **reproducibility**: the tick rate swings 63-205 Hz with load, so the same gesture times differently run to run, while a host-call count is load-independent.
 
 **Files:**
 - Modify: `scripts/grid-call-cost.mjs` (arm selection), `scripts/measure-grid-cost.sh` (arm selection) — both untracked; commit them
@@ -1371,9 +1371,10 @@ a shadow_*_param is a synchronous round-trip costing about one audio block, so
 the call count is the latency in units a laptop can count exactly, while an
 absolute number would drift with every unrelated change to page size.
 
-The device arm stays passive because it has to: an injected control CC reaches
-schwung's cable-0 handler, cached at shadow_ui startup, not movy's — so movy's
-surface cannot be driven by script while it is overtaking.
+The device arm stays a baseline rather than a gate, and for the right reason: a
+script CAN drive movy's surface while it overtakes (cable 0 on the ui-midi ring,
+measured with framebuffer hashes) — but the tick rate swings 63-205 Hz with load,
+so the same gesture times differently run to run. A host-call count does not.
 
 SP-13 compares against the baseline recorded here.
 

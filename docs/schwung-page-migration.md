@@ -623,10 +623,14 @@ usage lines** — they document `MOVY_SCHWUNG_GRID=off|page`, which no build
 honours. Fix the arm selection, commit them, and make the off-device arm a
 suite that fails on a regression rather than a script someone remembers to run.
 
-Note the reason the device arm is passive: an injected control CC reaches
-schwung's cached cable-0 handler, not movy, so movy's surface cannot be driven
-by script while overtaking. That is why the off-device call-count arm carries
-the burden.
+Note the reason the device arm is a baseline rather than a gate, and it is NOT
+that movy cannot be driven by script: it can. **This note said the opposite until
+2026-09-13**, on the theory that `process_shadow_midi` dispatches cable 0 through
+schwung's startup-cached handler; measured with framebuffer hashes, cable 0 on
+`/dev/shm/schwung-ui-midi` drives movy's surface while it is overtaking, and cable
+2 does nothing (see Environment facts). The real reason is reproducibility: the tick
+rate swings 63-205 Hz with load, so the same gesture times differently run to run.
+The off-device call count is load-independent, which is why it carries the burden.
 
 **Closes when:** the same gesture run twice reproduces within noise, both arms
 name which layer the time is in, and the off-device arm is in `npm test`.

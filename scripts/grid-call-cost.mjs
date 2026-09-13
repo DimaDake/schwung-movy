@@ -96,12 +96,23 @@ appState.currentView = VIEW_KNOBS;
  * below is measured or thrown away, and a count that is a few ticks short fails
  * SILENTLY — which is the whole failure above.
  *
- * THE 400 IS WALL-CLOCK-RELATIVE, which is why it looks arbitrary and is not.
- * What it has to outlast is a 1.5 s WALL-CLOCK Set-commit press, and under the
- * mock a tick is microseconds — so 400 clears it by orders of magnitude today.
- * If tick cost ever rises enough for that margin to shrink, THIS is the bound to
- * re-derive, and the failure it produces is the exit(3) below rather than a
- * wrong number. */
+ * THE 400 IS NOT A DURATION, and an earlier version of this comment said it was.
+ * It claimed 400 ticks had to outlast a 1.5 s WALL-CLOCK Set-commit press "by
+ * orders of magnitude" — but this file disables that press itself, ten lines up:
+ * `setFlag('setcommit', 0)` makes set-commit.ts:153 return before it ever reaches
+ * `phase = 'waiting'`, so the press never enters the state machine and the
+ * wall-clock timeout it would have waited on never runs. The arithmetic was
+ * inverted as well: 400 microsecond-ticks is ~0.4 ms against 1.5 s, three orders
+ * of magnitude SHORT, not clear.
+ *
+ * What the loop is actually sized against is the settle completing at all — it
+ * promotes to `phase = 'ready'` in a handful of ticks under the mock (the run
+ * logs "set ready after 3ms"), so 400 is margin against a slow start rather than
+ * against a clock. The one wall-clock bound genuinely left on that path is
+ * `CAP_MS = 10000` in src/seq/set-settle.ts:24, and it is a backstop for a
+ * migration that never resolves: it promotes rather than blocks, and at 10 s it
+ * cannot fire inside 400 mock ticks. If the loop ever IS too short, the failure
+ * is the exit(3) below — a refusal, not a plausible figure. */
 for (let i = 0; i < 400 && !sessionReady(); i++) advance(1);
 if (!sessionReady()) {
     console.error('grid-call-cost: movy never went live, so the input gate would void every gesture — refusing to print a number');

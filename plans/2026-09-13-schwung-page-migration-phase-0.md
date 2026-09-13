@@ -1332,8 +1332,14 @@ Add `node browser-test/grid-cost.mjs` to `scripts.test`. Then `npm test` and `SC
 It originally said to make `refreshOneParam` (`src/model/store.ts:288`) do its work
 twice. **Measured, that does not red the gate and cannot**: the mutation adds its
 calls uniformly with ticks, so it adds the same ~675 to the gesture window and to
-the idle floor, and a *premium* — a difference between two equal-span windows —
-cancels it. The gate it was first proven against was the one with a 600-tick
+the idle floor, and **the page arm's** *premium* — a difference between two
+equal-span windows — cancels it (51 → 51). **That cancellation is a property of
+the page arm, not of the metric**: the `off` arm moved −418 → −851 under the same
+mutation, because its gesture SUPPRESSES movy's refresh, so the added cost lands
+mostly on the idle side (675 there against ~242 on the gesture side) and the two
+do not cancel. It holds where both windows' work is unaffected by whether a
+gesture is in flight, which is true of `page` and false of `off`. The gate it was
+first proven against was the one with a 600-tick
 gesture window against a 300-tick floor (see the fix-round note below), where a
 uniform increase landed twice on one side and produced a red. **The inflated
 window was where the old teeth came from.** A gate must not flag a uniform per-tick

@@ -50,16 +50,27 @@
  * at the old budget of 550, a regression that doubled the real page gesture cost
  * passed. The spans are now measured, printed, and refused if they disagree.
  *
- * ONE CONSEQUENCE OF THAT FIX IS WORTH KNOWING BEFORE CHANGING THIS FILE. With
- * the spans equal, a cost that scales with ticks cancels out of the premium — so
- * `refreshOneParam` doing its work twice (the mutation this gate was first proven
- * with) moves page's premium 51 -> 51 and does NOT trip it any more: it adds 675
- * calls to the gesture window and 675 to the idle floor. That is the metric
- * working, not failing — the premium answers "what did the GESTURE add", and a
- * uniform per-tick increase is not that. What does trip it is work in the gesture
- * path: a host round-trip per knob detent in the page arm (`knobTurn`, i.e. the
- * throttle removed, which is the shape the original complaint describes) measures
- * 1311 and leaves the off arm untouched at -418.
+ * ONE CONSEQUENCE OF THAT FIX IS WORTH KNOWING BEFORE CHANGING THIS FILE, AND IT
+ * HOLDS ONLY FOR THE ARM THIS GATE ASSERTS ON. With the spans equal, a cost that
+ * scales with ticks adds equally to both of THE PAGE ARM'S windows and cancels
+ * out of its premium — so `refreshOneParam` doing its work twice (the mutation
+ * this gate was first proven with) adds 675 calls to the gesture window and 675
+ * to the idle floor, moves page's premium 51 -> 51, and no longer trips it. That
+ * is the metric working, not failing — the premium answers "what did the GESTURE
+ * add", and a uniform per-tick increase is not that.
+ *
+ * IT IS NOT A PROPERTY OF THE METRIC IN GENERAL. Under that same mutation the
+ * `off` arm moves -418 -> -851, because in `off` mode the gesture SUPPRESSES
+ * movy's refresh window: the added cost lands mostly on the idle side (675 there
+ * against ~242 on the gesture side) and the two do not cancel. The cancellation
+ * needs both windows' work to be unaffected by whether a gesture is in flight,
+ * which is true of page and false of off. Do not apply it to an arm whose gesture
+ * suppresses the floor.
+ *
+ * What does trip this gate is work in the PAGE gesture path: a host round-trip
+ * per knob detent in the page arm (`knobTurn`, i.e. the throttle removed, which is
+ * the shape the original complaint describes) measures 1311 and leaves the off
+ * arm untouched at -418.
  */
 import { spawnSync } from 'node:child_process';
 import { realpathSync } from 'node:fs';

@@ -671,15 +671,25 @@ counter, printed on both rows, and the child refuses to print a number (exit 4)
 if the two disagree.
 
 **The wrong window length was where the gate got its teeth, which is why the
-budget had to be re-derived rather than kept.** With the spans equal, a cost that
-scales with ticks cancels out of the premium, so the mutation the gate was first
-proven with — `refreshOneParam` doing its work twice — moves page's premium
-51 → 51 (it adds 675 calls to the gesture window and 675 to the idle floor) and
-no longer trips it. That is the metric working: the premium answers "what did the
-*gesture* add", and a uniform per-tick increase is not that. The mutation that
-models the complaint — a host round trip per knob detent in the page arm, i.e.
-the throttle gone — measures **1311** and leaves `off` untouched at −418,
-page-only and gesture-only.
+budget had to be re-derived rather than kept.** On the **page arm** — the arm the
+gate asserts on — a cost that scales with ticks adds equally to both windows and
+so cancels out of the premium: the mutation the gate was first proven with,
+`refreshOneParam` doing its work twice, adds 675 calls to the gesture window and
+675 to the idle floor and moves page's premium 51 → 51, no longer tripping it.
+That is the metric working: the premium answers "what did the *gesture* add", and
+a uniform per-tick increase is not that.
+
+**It is not a property of the metric in general, and the `off` arm is the
+counterexample.** Under the same mutation `off` moved −418 → −851, because an
+input in `off` mode SUPPRESSES movy's refresh window: the added cost lands mostly
+on the idle side (675 there against ~242 on the gesture side) and the two do not
+cancel. The cancellation holds only where the two windows' work is unaffected by
+whether a gesture is in flight — which is true of the page arm and false of
+`off`. Do not apply it to an arm whose gesture suppresses the floor.
+
+The mutation that models the complaint — a host round trip per knob detent in the
+page arm, i.e. the throttle gone — measures **1311** and leaves `off` untouched at
+−418, page-only and gesture-only.
 
 Two defects were found in the instruments themselves while closing this, and
 both are the kind that produce a confident wrong number rather than an error:
@@ -810,12 +820,24 @@ Newest first. One line per closed item: id, date, commit, the evidence.
   corrected in three places** (suite header, this ledger's SP-07 line, the task
   report's §2.1): the ratio framing is *nominal*, the check is an **absolute
   ceiling**, and an absolute ceiling does drift if the mock's page changes shape
-  — a re-measure trigger, not a defect. Also: the 400-tick ready guard is
-  **wall-clock relative** (it must outlast a 1.5 s Set-commit press), and
-  `measure-grid-cost.sh`'s `inject` now writes an explicit `INVALID` line to the
-  artifact when the ssh fails, instead of leaving a section header with nothing
-  under it. No device tier re-run: nothing here reaches the device and
-  `measure-grid-cost.sh`'s sections do not depend on its sibling's window length.
+  — a re-measure trigger, not a defect. Also: the 400-tick ready guard is **not a
+  duration**, and the first version of this line said it was. It claimed 400 ticks
+  had to outlast a 1.5 s wall-clock Set-commit press "by orders of magnitude" —
+  but the harness disables that press itself (`setFlag('setcommit', 0)` above, and
+  `set-commit.ts:153` returns on that flag before `phase = 'waiting'`), so the
+  press never enters the state machine; and 400 microsecond-ticks is ~0.4 ms
+  against 1.5 s, which is short by three orders of magnitude rather than clear by
+  them. What the loop is actually sized against is the settle running to
+  completion at all (it promotes in a handful of ticks; the child logs `set ready
+  after 3ms`), and the only wall-clock bound left on that path is `CAP_MS = 10000`
+  in `set-settle.ts:24` — a backstop for a migration that never resolves, which
+  promotes rather than blocks and cannot fire inside 400 mock ticks. If the loop
+  ever IS too short the failure is the child's exit 3, a refusal rather than a
+  plausible figure. And `measure-grid-cost.sh`'s `inject` now writes an explicit
+  `INVALID` line to the artifact when the ssh fails, instead of leaving a section
+  header with nothing under it. No device tier re-run: nothing here reaches the
+  device and `measure-grid-cost.sh`'s sections do not depend on its sibling's
+  window length.
 
 - 2026-09-13 — **SP-07 closed, and the device A/B baseline is in under SP-13.**
   Both scripts could not do what they claimed. `grid-call-cost.mjs` counted

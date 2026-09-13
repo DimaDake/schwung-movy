@@ -1235,7 +1235,7 @@ function applyView(preset) {
              * the PRESETS list were ever reordered. */
             schwungGridReload();
             /* schwungPageFor, NOT schwungActiveFor. The Active variant returns
-             * null unless the page is ALREADY ready (`schwung-grid.ts:129` —
+             * null unless the page is ALREADY ready (`schwung-grid.ts:138` —
              * `p.ready ? p : null`), and a page it just created never is. Used
              * here it would throw on this line, before the loop below could ever
              * run, with a message blaming SCHWUNG for what is only a readiness

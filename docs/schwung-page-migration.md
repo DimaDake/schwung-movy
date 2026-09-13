@@ -43,6 +43,7 @@ and must never grow. If it grew, the last item regressed a sibling — stop.
 
 | id | item | model | state |
 | --- | --- | --- | --- |
+| SP-25 | Level-shadowed `short_name` — build each cell from the def of the level that owns it | Sonnet | ⬜ |
 | SP-10 | Delegation boundary: ownership accessor + page identity | Opus | ⬜ |
 | SP-11 | Input ownership, incl. **Clear+knob must not delete the clip** | Opus | ⬜ |
 | SP-12 | Polling + LED ownership | Opus | ⬜ |
@@ -55,8 +56,11 @@ and must never grow. If it grew, the last item regressed a sibling — stop.
 | SP-19 | Undo redraw + automation-follows-arc | Sonnet | ⬜ |
 | SP-20 | `ui_hierarchy` ownership under Schwung's planner | Opus | ⬜ |
 
-**Phase 1; id to be assigned at Phase 0 close — Level-shadowed `short_name`
-renders one page's label on another.**
+**SP-25's id was assigned at Phase 0 close, and it executes before SP-10.** The
+number is out of band on purpose: it records *when the id was assigned*, not when
+the work runs.
+
+**SP-25 — Level-shadowed `short_name` renders one page's label on another.**
 
 Found during SP-04a and **not fixable in Phase 0** — the fix changes what a user
 sees, which is Phase 1 by the plan's Global Constraints. Phase 0 records it and
@@ -157,7 +161,7 @@ this is a rendering change with a one-line symptom already pinned above.
 - **`MOVY_SCHWUNG_GRID=off|page` is STALE.** It appears in the usage lines of
   `scripts/grid-call-cost.mjs` and `scripts/measure-grid-cost.sh`, but no build
   honours it — the mode became the `schwunggrid` flag. Off device, select a mode
-  with `setSchwungGridMode()` (`src/renderer/schwung-grid.ts:89`); on device, set
+  with `setSchwungGridMode()` (`src/renderer/schwung-grid.ts:100`); on device, set
   the flag. `MOVY_NO_SCHWUNG_GRID=1` still removes the layer from the bundle.
 - **A file copy does not reload `param_pages`.** QuickJS caches modules per
   `shadow_ui` process and `shadow_load_ui_module` renames only `ui.js`, not its
@@ -500,7 +504,7 @@ red against the widened fleet — none of them a movy regression — are closed:
    - `jp8000`: duplicate short name `MODE` on the new `Performance` page. **This
      one is a movy defect, not an upstream one** — the module declares distinct
      `KeyMd`/`ArpMd` on that page and movy overwrites them with `Mode` from
-     another level (level shadowing; full account under *Level-shadowed
+     another level (level shadowing; full account under **SP-25**, *Level-shadowed
      `short_name`* in Phase 1). It is added to `KNOWN_COLLIDING_PAGES` as a
      **temporary Phase 0 accommodation**, because fixing it changes what a user
      sees and that is Phase 1 work — **not** as a resolution, and **not** on
@@ -530,9 +534,11 @@ the fleet sweep now starts from a current capture.
 
 `schwungGridEnabled()` is `mode === 'body'`, so under `page` it is false and no
 baseline renders Schwung's body — `screenshot` passes **vacuously**. Under
-`body` it does bite: 111 of 149 baselines differ. `GRID_BODY_RECT`'s *value* is
-asserted in `browser-test/logic/schwung-page.mjs`; its *use* at the `ctl.render`
-call is not. Add scenes that render a real Schwung-planned body.
+`body` it does bite: **116 of the 165** baselines the suite carried before this
+item's own two scenes differ (the 2026-09-13 re-measurement; the counting is in
+*Closed* below). `GRID_BODY_RECT`'s
+*value* is asserted in `browser-test/logic/schwung-page.mjs`; its *use* at the
+`ctl.render` call is not. Add scenes that render a real Schwung-planned body.
 
 **Closes when:** new `page` baselines exist, and removing the `rect` argument
 from the `ctl.render` call turns them red.
@@ -560,9 +566,16 @@ green — `movyBandLayout` reflows only when a rect is supplied (`const reflow =
 9-27 move). That diff is the coverage §7 item 10 asked for, and it is the only
 assertion in the repo that the rect is *used* rather than merely correct.
 
-**The `body` figure in this entry was stale.** Forcing the mode to `body` for
-every scene reddens **116 of the 165** pre-existing baselines, re-measured
-against the suite as it stands — not the 111 of 149 quoted above.
+**The `body` figure in this entry was stale, and the two numbers it carried
+measure the same thing at two suite sizes.** Counted: `ls
+browser-test/screenshots/baseline/*.png | wc -l` is **167** today; **165** of
+those pre-date this item's own two scenes (`git ls-tree --name-only
+5dfd036:browser-test/screenshots/baseline | wc -l`, the commit before they
+landed); and **149** was the suite size on 2026-09-05, where the original
+measurement was taken (`docs/schwung-param-pages-findings.md`). Forcing the mode
+to `body` for every scene reddens **116 of the 165** inherited baselines,
+re-measured against the suite as it stands — that re-measurement is the figure
+the entry now quotes, and the 149-baseline one is not comparable to it.
 
 The scenes need a bundle built with `SCHWUNG=../schwung node build/browser.mjs`,
 and are **skipped, not failed**, without one: `schwungPageFor` raises off the
@@ -792,6 +805,31 @@ less than the spread above is a null result rather than a pass.
 
 Newest first. One line per closed item: id, date, commit, the evidence.
 
+- 2026-09-13 — **Phase 0 close-out: the id it owed, and the ordering SP-02 moved
+  rather than removed.** No `src/` change; the Phase 0 Global Constraint holds.
+  (1) **SP-25 assigned** — the level-shadowing defect Phase 0 found and could not
+  fix now has its id, is the first row of the Phase 1 table, and executes before
+  SP-10; the `KNOWN_COLLIDING_PAGES` entry is recorded there as a temporary
+  accommodation, not a resolution. (2) **The dump boot's host leak is closed.**
+  `createDumpBoot()` overwrote `globalThis.os` and `globalThis.host_read_file`
+  and nothing put them back, so every suite after a boot ran on the dump's stubs —
+  `browser-test/logic.mjs` had an eleven-line comment holding `run_env_identity`
+  between two fixed ranges, and that comment is now deleted along with the
+  constraint it described. `browser-test/dump-boot.mjs` captures the prior pair at
+  the first boot (`harness.mjs` replaces `os` with its own readdir-backed one
+  after `installEnv()`, so installing-time capture restores a stub that cannot
+  list a directory) and exposes `env.restoreHostGlobals()` beside
+  `env.restoreParamGlobals()`/`env.restoreUiSlot()`; the two dump-driven logic
+  suites call it in cleanup and `run_env_identity` now sits **first** in the suite
+  list. **Teeth, measured:** with the restorer call removed, `logic.mjs` goes red
+  in 18 checks — the new identity assertion plus 17 in `items-select` — which is
+  what makes the front position a claim rather than an accident. (3) Two stale
+  citations corrected in this file and `browser-test/screenshot.mjs`
+  (`setSchwungGridMode` `:89`→`:100`, `schwungActiveFor` `:129`→`:138`), and the
+  SP-05 `body` figure reconciled to **116 of the 165** with its counting method.
+  (4) `scripts/schwung-pagination-check.mjs` kept red and now *recorded* red — see
+  SP-03's Log entry below. Evidence: `npm test` exit 0 both with and without
+  `SCHWUNG=../schwung`, `page-mode: 13 of 13 expected failures remain`.
 - 2026-09-13 — **Task 8, fix round 1 — the measured window was 2x wrong on one
   side and the budget was re-derived from scratch.** `window_` advanced its own
   300 ticks *after* `before()`, and `playGesture` already advances `SETTLE_TICKS`,
@@ -950,10 +988,20 @@ Newest first. One line per closed item: id, date, commit, the evidence.
   one assertion that a new module pulled `param_pages` back into a flag-off
   build. Also re-ran the eight host `scripts/schwung-*-check.mjs` suites that
   drive `createSchwungPage` directly: all eight pass.
-  **`schwung-pagination-check.mjs` is red, and was red before this task** —
-  verified by reverting to `66e71a9` and re-running: `FAIL: the lock mark is not
-  at the locked cell: 0/4 pixels lit at (97,9) for slot 3`, byte-identical in
-  both states. It is not in the `npm test` chain and has no caller in the repo.
+  **`schwung-pagination-check.mjs` is a known-red stand-alone probe.**
+  Disposition recorded here because the failure was otherwise only in this Log
+  line, where the next person to run it cannot tell a known state from a new
+  break. It is **not in any gate and not in the device sweep** (`npm test` does
+  not call it; the device tier's `browser-test/device-scripts.mjs` does not know
+  it), so it is unwatched rather than hazardous — and it is **left red on
+  purpose**: it exits 1 with `FAIL: the lock mark is not at the locked cell: 0/4
+  pixels lit at (97,9) for slot 3`, which is a rendering symptom, so fixing it
+  changes what a user sees and is Phase 1 by the Global Constraint — not Phase 0
+  work and not debugged here. Two things make it a *known* state rather than a
+  new break: **it was red before this task** — verified by reverting to `66e71a9`
+  and re-running, byte-identical in both states — and the script's own header
+  carries the same facts and points back to this entry. Read the header before
+  treating its red as news.
 - 2026-09-13 — **SP-02 ✅** — `installEnv()` is idempotent, so the param globals
   belong to one env per process; the work-around ordering in `logic.mjs` is gone
   and `run_schwung_page` sits beside `run_schwung_grid`. **`undo-params` went red

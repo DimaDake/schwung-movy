@@ -72,6 +72,14 @@ import { run as run_env_identity } from './logic/env-identity.mjs';
 /* Awaited one at a time: the suites share the mock device globals, and the
  * expected output is a fixed transcript, so they must not interleave. */
 const SUITES = [
+    /* First on purpose. A dump boot takes the param accessors AND the env's
+     * `os`/`host_read_file`, and it used to be that only a boot could hand the
+     * accessors back — so this suite had to sit between the range that needed one
+     * host and the range that needed another. It restores what it takes
+     * (`env.restoreHostGlobals()`), which is what makes its position arbitrary;
+     * it stays first because a position that is only correct because nothing has
+     * run yet is the position that keeps that property visible. */
+    run_env_identity,
     run_model_hierarchy,
     run_model_paging,
     run_model_params,
@@ -114,15 +122,6 @@ const SUITES = [
     run_step_record,
     run_undo_core,
     run_undo_restore,
-    /* Beside the seam it is about: the suites above take the host away (their
-     * cleanup used to DELETE `shadow_get_param` and rely on the next
-     * createDumpBoot() to hand a fresh one back through installEnv()), and the
-     * suites below are the first that read it directly. It has to run after
-     * every suite that boots a model against the pristine host — a dump boot
-     * installs its own `os`/`host_read_file`, so running it earlier strips the
-     * file stubs out from under items-select — and where those accessors are
-     * the live env's own, which is what the two suites just above restore. */
-    run_env_identity,
     run_undo_params,
     run_quantize,
     run_loop_window,

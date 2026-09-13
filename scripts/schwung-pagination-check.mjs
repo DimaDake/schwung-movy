@@ -19,7 +19,21 @@
  *      slot and a different page number.
  *
  *   SCHWUNG=/path/to/schwung node scripts/schwung-pagination-check.mjs
- */
+ *
+ * ── KNOWN RED — read this before treating the failure below as news ──────────
+ *
+ * This is a stand-alone probe: it is in NO gate and NOT in the device sweep
+ * (`npm test` never calls it; `browser-test/device-scripts.mjs` does not know
+ * it). It is currently red, and was red before SP-03 touched `schwung-page.ts`:
+ *
+ *   FAIL: the lock mark is not at the locked cell: 0/4 pixels lit at (97,9) for slot 3
+ *
+ * The symptom is a rendered lock mark, so fixing it changes what a user sees —
+ * Phase 1 by the page migration's Global Constraint, not Phase 0 work — and it
+ * is left red on purpose rather than fixed or deleted. The full record, its
+ * disposition, and the proof that the red pre-dates SP-03 live in
+ * `docs/schwung-page-migration.md`, under **SP-03**'s Log section. */
+
 import { installEnv } from '../browser-test/env.mjs';
 
 const W = 128, H = 64;

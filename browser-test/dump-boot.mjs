@@ -86,6 +86,17 @@ export function loadDump() {
     return dump;
 }
 
+/* The host a boot takes away: `os` — which the file stubs and every overlay's
+ * readdir ride on — and `host_read_file`, which serves a module's shipped
+ * layouts. Captured ONCE per process, at the first boot, because that is the
+ * only moment the pair on the globals is the harness's own: a later boot would
+ * record whichever earlier boot's stubs were left behind and hand those back.
+ * (The catalogues those two answer from are the harness's, not the env's:
+ * `logic/harness.mjs` replaces `os` with its own readdir-backed one after
+ * installEnv(), so capturing at install time would restore a stub that cannot
+ * list a directory at all.) */
+let hostBeforeBoot = null;
+
 /* Install the env/os/host stubs and return a boot function bound to this dump.
  * movy_config.json overrides are looked up by module id under the
  * sound_generators root (src/modules/loader.ts); serve the captured ones. Each
@@ -93,6 +104,16 @@ export function loadDump() {
  * hermetic. env.setParams() below replaces the whole store per module. */
 export async function createDumpBoot(dump) {
     const env = installEnv();
+    hostBeforeBoot ??= { os: globalThis.os, readFile: globalThis.host_read_file };
+    /* A suite that boots a dump gives the pair back in cleanup — this is the
+     * restorer, beside `env.restoreParamGlobals`/`env.restoreUiSlot`, and the
+     * reason the suite order stopped mattering: without a call to it, every
+     * suite after the boot runs on the stubs installed below instead of the
+     * harness's. */
+    env.restoreHostGlobals = () => {
+        globalThis.os = hostBeforeBoot.os;
+        globalThis.host_read_file = hostBeforeBoot.readFile;
+    };
     globalThis.os = {
         readdir: () => [[], 0],
         stat:    () => [{ mode: 0x8000, size: 0 }, 0],
@@ -141,6 +162,8 @@ export async function createDumpBoot(dump) {
             } catch { /* unreadable override: leave it unserved, the loader warns */ }
         }
     }
+    /* Replaces the env's reader for the life of the process: the pair this and
+     * the `os` above take is what `env.restoreHostGlobals` gives back. */
     globalThis.host_read_file = (path) => movyConfigByPath[path] ?? null;
 
     const { createModel } = await import(join(MOVY, 'dist', 'esm', 'model', 'index.js'));

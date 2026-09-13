@@ -357,7 +357,8 @@ red against the widened fleet — none of them a movy regression — are closed:
      `chain_params` entry at all). **Teeth proved**: stripping the marker in
      `items-param.ts` turns exactly that one check red.
 
-**Needs:** SP-02 (the env leak corrupts multi-module boots), SP-04a.
+**Needs:** SP-02 (the env leak corrupts multi-module boots). SP-04a is closed —
+the fleet sweep now starts from a current capture.
 
 ### SP-05 — `page` screenshot scenes
 

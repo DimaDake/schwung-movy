@@ -1217,14 +1217,17 @@ SCHWUNG=../schwung node build/browser.mjs && SCHWUNG=../schwung node browser-tes
 # expect GREEN again. THIS line is the one that matters.
 ```
 
-**The restore is a copy, not `git checkout`, and that is the whole point.** `src/renderer/schwung-floor.ts` is created in Step 3 and not committed until Step 9 — so at Step 8 it is **untracked**, and `git checkout` on it is a silent no-op. The `99.0.0` mutation would survive, Step 9 would commit it, and the floor would then be unmet on every device: `schwungGridMode()` pins to `off` and the entire feature is dead, with `npm test` still green because the test reads whatever the constant says. The confirming run after the copy is what proves the restore took.
+**The restore is a copy, not `git checkout`, and that is the whole point.** `src/renderer/schwung-floor.ts` is created in Step 3 and not committed until Step 10 — so at Step 8 it is **untracked**, and `git checkout` on it is a silent no-op. The `99.0.0` mutation would survive, Step 10 would commit it, and the floor would then be unmet on every device: `schwungGridMode()` pins to `off` and the entire feature is dead, with `npm test` still green because the test reads whatever the constant says. The confirming run after the copy is what proves the restore took.
 
-- [ ] **Step 9: Commit**
+- [ ] **Step 9: Update the ledger** — SP-06 `✅` (or `🔨` if the device was unreachable), and put the floor value into Environment facts. **Do this before the commit below** — the ledger is one of the files that commit stages, and an update left until after it is a change nothing ever commits.
+
+- [ ] **Step 10: Commit**
 
 ```bash
 git add src/renderer/schwung-floor.ts src/renderer/schwung-grid.ts src/renderer/schwung-lib.ts \
         src/renderer/flags-view.ts scripts/install-schwung-fork.sh browser-test/logic/schwung-floor.mjs \
-        browser-test/logic.mjs
+        browser-test/logic.mjs \
+        docs/schwung-page-migration.md
 git commit -m "$(cat <<'EOF'
 schwung: a version floor, because "unavailable" was true and useless
 
@@ -1248,7 +1251,6 @@ EOF
 )"
 ```
 
-- [ ] **Step 10: Update the ledger** — SP-06 `✅` (or `🔨` if the device was unreachable), and put the floor value into Environment facts.
 
 ---
 

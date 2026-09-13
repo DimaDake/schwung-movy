@@ -39,13 +39,57 @@ export async function run() {
     seqCmd('nof 0 60');
     seqEngineTick();
     eq('three ops → one set_param call', engine.cmdBatches.length, 1);
-    eq('batch joins ops with ;', engine.cmdBatches[0], 'watch 0;non 0 60 100;nof 0 60');
+    /* The `#<seq>` tag is what the engine dedupes a resend on (see below), so
+     * the ops are compared behind it rather than against a fixed number — the
+     * boot traffic cleared above has already spent one. */
+    eq('every batch carries a sequence tag', /^#\d+;/.test(engine.cmdBatches[0]), true);
+    eq('batch joins ops with ;',
+        engine.cmdBatches[0].replace(/^#\d+;/, ''), 'watch 0;non 0 60 100;nof 0 60');
     eq('ops parsed on engine side', engine.ops.length, 3);
 
     // No queued ops → no set_param traffic.
     const before = engine.setParamCalls;
     seqEngineTick();
     eq('idle tick sends no cmd', engine.setParamCalls, before);
+
+    /* A batch the device could not deliver must not be lost.
+     *
+     * `host_module_set_param_blocking` returns false when the single-slot param
+     * SHM refuses the write, and until this was checked the batch was cleared
+     * anyway: a transport stop, an undo group or a step toggle simply vanished.
+     * Measured on device 2026-09-13 — 24 Play presses all reached the router and
+     * 15 of their `cmd` batches were dropped this way, which is why `seq`'s
+     * stopTransport could press three times against a transport that never
+     * stopped. The retry carries a `#<seq>` tag so a batch that WAS delivered
+     * but could not be confirmed is recognised and not applied twice. */
+    engine.cmdBatches.length = 0; engine.ops.length = 0; engine.droppedSets.length = 0;
+    engine.dropBlockingSets = true;
+    seqCmd('stop');
+    seqEngineTick();
+    eq('a refused batch is reported dropped', engine.droppedSets.length, 1);
+    eq('a refused batch reaches no op', engine.ops.length, 0);
+    seqEngineTick();
+    eq('the refused batch is retried, not forgotten', engine.droppedSets.length, 2);
+    eq('the retry carries the same tag',
+        engine.droppedSets[0][1], engine.droppedSets[1][1]);
+    /* Ops queued while a batch is unconfirmed must not overtake it. */
+    seqCmd('watch 2');
+    seqEngineTick();
+    eq('a later op does not jump the unconfirmed batch',
+        engine.droppedSets[2][1], engine.droppedSets[0][1]);
+    engine.dropBlockingSets = false;
+    seqEngineTick();
+    eq('the batch lands once the slot frees', engine.ops.includes('stop'), true);
+    eq('nothing else rode in with it', engine.ops.length, 1);
+    seqEngineTick();
+    eq('the ops queued behind it follow', engine.ops.includes('watch 2'), true);
+
+    /* The other half of the contract: a batch the engine DID apply, resent
+     * because the UI could not confirm it, is recognised by its tag. */
+    engine.ops.length = 0;
+    const landed = engine.cmdBatches[engine.cmdBatches.length - 1];
+    globalThis.host_module_set_param_blocking('cmd', landed, 50);
+    eq('a resent batch is applied once', engine.ops.length, 0);
 
     // Status changes propagate on the next poll cadence.
     engine.status.play = 1;

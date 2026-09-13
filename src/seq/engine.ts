@@ -73,12 +73,15 @@ export function engineAvailable(): boolean {
  * movy's own blocking param GETs and get clobbered before the shim consumes
  * them (observed on device: even the framework's own DSP-load request was
  * lost this way). */
-function engineSet(key: string, value: string): void {
+function engineSet(key: string, value: string): boolean {
     if (typeof host_module_set_param_blocking === 'function') {
-        host_module_set_param_blocking(key, value, 50);
-    } else {
-        host_module_set_param(key, value);
+        /* An explicit false is a REFUSAL: the write could not claim the single
+         * slot inside its timeout, or could not see its own response. Anything
+         * else (including a host that returns nothing) counts as delivered. */
+        return host_module_set_param_blocking(key, value, 50) !== false;
     }
+    host_module_set_param(key, value);
+    return true;
 }
 
 export function engineGeneration(): number { return generation; }
@@ -120,13 +123,34 @@ export function seqCmd(op: string): void {
     cmdQueue.push(op);
 }
 
+/* The batch written but not yet confirmed, and the tag it carries. Measured on
+ * device 2026-09-13: of 24 Play presses that all reached the router, 15 had
+ * their `cmd` batch refused by the param SHM — and the batch was cleared
+ * regardless, so the transport simply never stopped. A refused batch is kept
+ * and rewritten verbatim until it lands.
+ *
+ * Verbatim matters. A refusal cannot say whether the shim had already taken the
+ * request, so the resend may be a SECOND delivery of a batch the engine ran —
+ * and `tog` applied twice toggles the step back off. The `#<seq>` tag is what
+ * the engine dedupes on (seq-core `apply_batch`), so the tag must not change
+ * between attempts. */
+let pendingBatch = '';
+let cmdSeq = 0;
+
 /* Send the queued ops now rather than on the next tick. Teardown has no next
  * tick, so anything the engine must have applied before its state is
  * serialized — a note-off closing a recording capture — has to go out here. */
 export function seqCmdFlush(): void {
-    if (!engineReady() || cmdQueue.length === 0) return;
-    engineSet('cmd', cmdQueue.join(';'));
-    cmdQueue.length = 0;
+    if (!engineReady()) return;
+    if (pendingBatch === '') {
+        if (cmdQueue.length === 0) return;
+        /* Ops queued behind an unconfirmed batch wait their turn: they were
+         * made after it, and the engine must see them in that order. */
+        cmdSeq = (cmdSeq + 1) >>> 0;
+        pendingBatch = '#' + cmdSeq + ';' + cmdQueue.join(';');
+        cmdQueue.length = 0;
+    }
+    if (engineSet('cmd', pendingBatch)) pendingBatch = '';
 }
 
 /* Automation label re-sync request: set on engine boot/reload; the app tick
@@ -412,6 +436,8 @@ export function peekSeqCmdQueue(): string[] {
 /* Test hook: reset boot/queue/backoff between test cases. */
 export function resetSeqEngine(): void {
     cmdQueue.length = 0;
+    pendingBatch = '';
+    cmdSeq = 0;
     bootState = 'probe';
     generation = 0;
     probeCountdown = 1;

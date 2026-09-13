@@ -6,6 +6,7 @@
  * status poll carries the pending count and a generation counter, and only a
  * change in that generation costs one extra `capinfo` read. */
 
+import { paramGet } from '../host/param.js';
 import { seqState } from './state.js';
 import { seqCmd, engineReady } from './engine.js';
 import { beginEdit, endEdit, CLOSE } from '../undo/group.js';
@@ -85,8 +86,7 @@ function parseInfo(info: string): void {
 export function captureTick(): void {
     if (seqState.capGen === seenGen || seqState.capGen < 0) return;
     seenGen = seqState.capGen;
-    if (typeof host_module_get_param !== 'function') return;
-    const info = host_module_get_param('capinfo');
+    const info = paramGet('capinfo');
     if (info !== null) parseInfo(info);
 }
 

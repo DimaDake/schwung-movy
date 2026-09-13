@@ -13,6 +13,7 @@
  * one `get_param("status")` poll every STATUS_POLL_TICKS; each get blocks
  * ~3-5 ms on device, so the cadence is a deliberate IPC budget. */
 
+import { paramAvailable, paramGet, paramSet } from '../host/param.js';
 import { mlog } from '../log.js';
 import { CHAIN_MODULE_DIR, ENGINE_DSP_PATH, ENGINE_VERSION, MOVY_MODULE_DIR } from './constants.js';
 import { activeFromStr, adoptLoopWindow, muteFromStr, occFromHex, seqState, sessionFromStr, songFromStr } from './state.js';
@@ -65,21 +66,15 @@ let statusFailures = 0;
 let statusPolls = 0;
 
 export function engineAvailable(): boolean {
-    return typeof host_module_set_param === 'function'
-        && typeof host_module_get_param === 'function';
+    return paramAvailable();
 }
 
-/* Sets MUST block: non-blocking writes share a single-slot param SHM with
- * movy's own blocking param GETs and get clobbered before the shim consumes
- * them (observed on device: even the framework's own DSP-load request was
- * lost this way). */
-function engineSet(key: string, value: string): void {
-    if (typeof host_module_set_param_blocking === 'function') {
-        host_module_set_param_blocking(key, value, 50);
-    } else {
-        host_module_set_param(key, value);
-    }
-}
+/* The engine's writes go through the one door, which owns the blocking rule
+ * (a non-blocking write shares a single-slot SHM with movy's own blocking GETs
+ * and is clobbered before the shim consumes it — observed on device, even the
+ * framework's own DSP-load request was lost this way) and counts what the slot
+ * refuses. `false` here means refused; see host/param.ts. */
+const engineSet = paramSet;
 
 export function engineGeneration(): number { return generation; }
 
@@ -120,13 +115,34 @@ export function seqCmd(op: string): void {
     cmdQueue.push(op);
 }
 
+/* The batch written but not yet confirmed, and the tag it carries. Measured on
+ * device 2026-09-13: of 24 Play presses that all reached the router, 15 had
+ * their `cmd` batch refused by the param SHM — and the batch was cleared
+ * regardless, so the transport simply never stopped. A refused batch is kept
+ * and rewritten verbatim until it lands.
+ *
+ * Verbatim matters. A refusal cannot say whether the shim had already taken the
+ * request, so the resend may be a SECOND delivery of a batch the engine ran —
+ * and `tog` applied twice toggles the step back off. The `#<seq>` tag is what
+ * the engine dedupes on (seq-core `apply_batch`), so the tag must not change
+ * between attempts. */
+let pendingBatch = '';
+let cmdSeq = 0;
+
 /* Send the queued ops now rather than on the next tick. Teardown has no next
  * tick, so anything the engine must have applied before its state is
  * serialized — a note-off closing a recording capture — has to go out here. */
 export function seqCmdFlush(): void {
-    if (!engineReady() || cmdQueue.length === 0) return;
-    engineSet('cmd', cmdQueue.join(';'));
-    cmdQueue.length = 0;
+    if (!engineReady()) return;
+    if (pendingBatch === '') {
+        if (cmdQueue.length === 0) return;
+        /* Ops queued behind an unconfirmed batch wait their turn: they were
+         * made after it, and the engine must see them in that order. */
+        cmdSeq = (cmdSeq + 1) >>> 0;
+        pendingBatch = '#' + cmdSeq + ';' + cmdQueue.join(';');
+        cmdQueue.length = 0;
+    }
+    if (engineSet('cmd', pendingBatch)) pendingBatch = '';
 }
 
 /* Automation label re-sync request: set on engine boot/reload; the app tick
@@ -185,7 +201,7 @@ export function seqEngineTick(): void {
     seqCmdFlush();
     if (--pollCountdown <= 0) {
         pollCountdown = STATUS_POLL_TICKS;
-        const s = host_module_get_param('status');
+        const s = paramGet('status');
         if (s === null) {
             /* Engine vanished (unloaded/replaced) — reprobe. */
             if (++statusFailures >= MAX_STATUS_FAILURES) {
@@ -203,7 +219,7 @@ export function seqEngineTick(): void {
     /* After parseStatus, so a request noticed in THIS poll is answered in the
      * same tick rather than one poll interval later. Costs nothing when no
      * request is waiting, which is every tick outside a device test. */
-    probeBridgeTick(host_module_get_param, engineSet);
+    probeBridgeTick(paramGet, engineSet);
 }
 
 /* Does an inject from the engine actually reach Move?
@@ -226,7 +242,7 @@ function moveInjectReachesMove(): boolean {
 function probeTick(): void {
     if (--probeCountdown > 0) return;
     probeCountdown = PROBE_TICKS;
-    const pong = host_module_get_param('ping');
+    const pong = paramGet('ping');
     if (pong === 'pong ' + ENGINE_VERSION) {
         mlog('seq: engine ready v' + ENGINE_VERSION);
         bootState = 'ok';
@@ -412,6 +428,8 @@ export function peekSeqCmdQueue(): string[] {
 /* Test hook: reset boot/queue/backoff between test cases. */
 export function resetSeqEngine(): void {
     cmdQueue.length = 0;
+    pendingBatch = '';
+    cmdSeq = 0;
     bootState = 'probe';
     generation = 0;
     probeCountdown = 1;

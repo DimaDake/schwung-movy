@@ -10,6 +10,7 @@
  *  - An unchanged payload is not rewritten. Flash on this device is not free,
  *    and the autosave runs every few seconds forever. */
 
+import { paramAvailable, paramGet } from '../host/param.js';
 import { mlog } from '../log.js';
 import { seqState } from './state.js';
 import { markUiStateDirty, takeUiDirty, uiStateDirty } from './ui-dirty.js';
@@ -82,9 +83,9 @@ export function saveSet(
      * reason to save. The UI blob above is still ours. */
     if (flagValue('engpersist')) return { ok: true, wrote: false, gen };
     if (!saveNeeded() && !force) return { ok: true, wrote: false, gen };
-    if (typeof host_module_get_param !== 'function') return { ok: false, wrote: false, gen };
+    if (!paramAvailable()) return { ok: false, wrote: false, gen };
 
-    const payload = host_module_get_param('state');
+    const payload = paramGet('state');
     if (payload === null) { saveRetry = true; return { ok: false, wrote: false, gen }; }
     /* The engine cleared its own flag on that read; clear the mirror too rather
      * than waiting for the next poll to tell us what we already know. */

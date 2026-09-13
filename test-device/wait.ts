@@ -6,6 +6,44 @@
  * value it was still seeing, which is the diagnostic a sleep can never give. */
 type FrameSource = { frames(n: number): Promise<number> };
 
+/* Frames of silence a poll must leave between reads of an overtake_dsp param.
+ *
+ * That SHM is a SINGLE SLOT shared with movy's own writes, so a read issued
+ * while movy is writing starves the write outright — it is lost, not delayed.
+ * Measured twice, on both halves of the channel: eight probe requests spaced by
+ * a bare WAIT_FRAME all answered while a 30-frame poll loop answered the first
+ * few and then never again (probe.ts); and, on the command half, a Play press
+ * landed 12/12 with this gap and 0/12 at `every: 30` — movy retried its `cmd`
+ * batch every tick for 400 ms and never once claimed the slot.
+ *
+ * So this is the poll rate for anything reading `overtake_dsp:*`, not a probe
+ * detail. ~150 frames is ~435 ms, which is the real cost of that single slot.
+ * Reads that do NOT touch it — the daemon's STATE, a log grep over ssh — are
+ * free to poll as fast as they like. */
+export const PARAM_POLL_GAP = 150;
+
+/* Waits that only just made it, and what they were waiting for.
+ *
+ * A wait that resolved at 690 of its 700 frames is next week's failure: the
+ * budget held on this run's device load and will not on a busier one. The
+ * frame counter is already there, so recording the near misses turns "it went
+ * red out of nowhere" into a warning printed runs earlier. Near misses only —
+ * a sweep makes thousands of waits and almost all of them land immediately. */
+export const NEAR_BUDGET = 0.7;
+
+export type WaitRecord = { what: string; spent: number; within: number };
+let nearMisses: WaitRecord[] = [];
+
+export function drainWaitStats(): WaitRecord[] {
+    const r = nearMisses;
+    nearMisses = [];
+    return r;
+}
+
+function recordWait(what: string, spent: number, within: number): void {
+    if (spent >= within * NEAR_BUDGET) nearMisses.push({ what, spent, within });
+}
+
 export class WaitBudgetExceeded extends Error {
     constructor(readonly what: string, readonly budget: number, readonly last: unknown) {
         super(`waited ${budget} frames for ${what}; last saw ${JSON.stringify(last)}`);
@@ -29,7 +67,7 @@ export async function until<T>(
         await bus.frames(every);
         spent += every;
         last = await probe();
-        if (pred(last)) return last;
+        if (pred(last)) { recordWait(what, spent, within); return last; }
     }
     throw new WaitBudgetExceeded(what, within, last);
 }

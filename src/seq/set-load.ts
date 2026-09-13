@@ -8,6 +8,7 @@ import { requestLabelSync } from './engine.js';
 import { flagValue } from './flags.js';
 import { findInheritCandidates } from './set-inherit.js';
 import { SETS_DIR, loadNameIndex } from './set-context.js';
+import { paramAvailable, paramGet, paramSet } from '../host/param.js';
 import { mlog } from '../log.js';
 import { noteRestore } from './restore-gate.js';
 import { readBestState, readUiBlob } from './persist-store.js';
@@ -33,9 +34,9 @@ export function setHasState(id: string): boolean {
  * reasoning the device fixture uses for module loads. */
 export function pushState(payload: string): boolean {
     let ok = false;
-    if (typeof host_module_set_param_blocking === 'function') {
+    if (paramAvailable()) {
         for (let i = 0; i < 3 && !ok; i++) {
-            ok = host_module_set_param_blocking('state', payload, 200);
+            ok = paramSet('state', payload, 200);
             if (!ok) mlog('seq: state push attempt ' + (i + 1) + ' did not land');
         }
         if (!ok) mlog('seq: RESTORE FAILED — the engine never took this Set');
@@ -60,8 +61,7 @@ export function pushState(payload: string): boolean {
  * same push-by-comparison `syncWatch` uses for the watched track.
  */
 export function setStatusUuid(): string | null {
-    if (typeof host_module_get_param !== 'function') return null;
-    const s = host_module_get_param('set');
+    const s = paramGet('set');
     if (s === null) return null;
     const m = s.match(/(?:^| )uuid=(\S*)/);
     return m ? m[1] : null;
@@ -75,14 +75,14 @@ export function setStatusUuid(): string | null {
  * a state file and a live Move Set), so it stays here; only the byte copy is
  * the engine's. The engine ignores the seed when the Set owns state already. */
 export function openSet(id: string, seed: string | null): void {
-    if (typeof host_module_set_param_blocking !== 'function') return;
+    if (!paramAvailable()) return;
     /* Re-stated on every open rather than once per session: a re-dlopen'd
      * engine comes up knowing nothing, and an engine with no sets directory
      * answers `phase=failed reason=no-setsdir` forever. One extra param write
      * per Set load buys a path that heals itself. */
-    host_module_set_param_blocking('setsdir', SETS_DIR, 200);
+    paramSet('setsdir', SETS_DIR, 200);
     const cmd = 'open ' + id + (seed ? ' seed=' + seed : '');
-    host_module_set_param_blocking('set', cmd, 200);
+    paramSet('set', cmd, 200);
     /* The restore carries the lane labels with it either way, so the automation
      * registry still has to be rebuilt from them. */
     requestLabelSync();

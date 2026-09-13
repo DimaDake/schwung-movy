@@ -5,6 +5,7 @@ import type { Agent } from './agent.js';
 import { UI_FLAG_JUMP_TO_TOOLS } from './agent.js';
 import type { Probe } from './probe.js';
 import { until } from './wait.js';
+import { applyRunMute, deployUi, restartStack } from './engine.js';
 import {
     cc, noteOn, noteOff, knobDelta,
     CC_JOG_CLICK, CC_JOG_TURN, CC_BACK, CC_KNOB_BASE, CC_TRACK_BASE,
@@ -42,7 +43,7 @@ export class Device {
      * Under the old harness each inject was its own ~500 ms ssh round trip, so a
      * press/release pair WAS a half-second hold and movy read it as a different
      * gesture entirely. */
-    async hold(note: number, body: () => Promise<void>): Promise<void> {
+    async hold(note: number, body: () => Promise<unknown>): Promise<void> {
         await this.agent.inject(noteOn(note, 127));
         try { await body(); } finally { await this.agent.inject(noteOff(note)); }
     }
@@ -53,7 +54,7 @@ export class Device {
      * is armed on the PRESS and torn down on the release (track-volume.ts), so a
      * tap of the button leaves `heldTrack` at -1 and the turn falls through to
      * Move's own master volume. */
-    async holdCc(n: number, body: () => Promise<void>): Promise<void> {
+    async holdCc(n: number, body: () => Promise<unknown>): Promise<void> {
         await this.agent.inject(cc(n, 127));
         try { await body(); } finally { await this.agent.inject(cc(n, 0)); }
     }
@@ -65,7 +66,7 @@ export class Device {
      * `(status & 0xF0) === 0x90 && d1 < 8`, so a real note-off (0x80) is dropped
      * silently — movy never sees the release, and a picker that an item selector
      * opens on touch is never committed. The hold would look like a hang. */
-    async knobHold(k: number, body: () => Promise<void>): Promise<void> {
+    async knobHold(k: number, body: () => Promise<unknown>): Promise<void> {
         await this.agent.inject(noteOn(k, 127));
         try { await body(); } finally { await this.agent.inject(noteOn(k, 0)); }
     }
@@ -124,6 +125,8 @@ export class Device {
         } catch {
             await this.bus.frames(RESTORE_QUIET);
         }
+        /* After the restore, never during it — see applyRunMute. */
+        await applyRunMute(this.bus);
     }
 
     /* How many times movy has logged `seq: set ready` (set-session.ts). */
@@ -204,14 +207,30 @@ export class Device {
 
     async reopen(probe: Probe): Promise<void> { await this.close(probe); await this.open(probe); }
 
+    /* Taps a TRACK BUTTON, which is group-relative: there are only four, and
+     * they address the focused group of four. So this is correct ONLY while
+     * that group is 0, and lands somewhere else silently otherwise — measured
+     * 2026-09-12, with the focus on track 9, selectTrack(2) selected track 10.
+     *
+     * Every shipped scenario but one asks for track 0 from a fresh open, so
+     * none of them can see it. `scenarios/seq.ts` is the caller that moves the
+     * focus (hold-Session + step 9) and then keeps calling this; its `goTrack`
+     * verifies the engine's `trk=` and falls back to the Session step row,
+     * which addresses all sixteen absolutely. That fallback belongs there
+     * rather than here because it is a different gesture with side effects of
+     * its own (captureClear, releaseAllLive — src/seq/router-buttons.ts), not a
+     * drop-in replacement for a button press. */
     async selectTrack(n: number): Promise<void> {
         await this.tap.cc(CC_TRACK_BASE + (3 - (n % 4)));
         await this.bus.frames(30);
     }
 
+    /* Kept as the scenarios' call site; the work and the once-per-sweep rule
+     * live in engine.ts next to deployEngine, because the ordering that matters
+     * (ui.js on the device BEFORE the first open, not after the fixture) is a
+     * property of the sweep rather than of any one scenario. */
     async deployUi(): Promise<void> {
-        await run('node', ['build/device.mjs']);
-        await run('scp', ['-q', 'ui.js', `ableton@${this.host}:${REMOTE}/`]);
+        await deployUi(this.host);
     }
 
     /* A redeployed dsp.so does NOT hot-reload, measured 2026-09-11: the module
@@ -227,8 +246,21 @@ export class Device {
         await this.open(probe);
     }
 
+    /* Goes through the ROOT path in engine.ts, not bus.restartMove().
+     *
+     * RESTART_MOVE runs restart-move.sh as whoever owns schwung-testd, and
+     * daemon.ts starts testd as `ableton` whenever the port is closed — which
+     * is the normal case. MoveOriginal is root, so that kill is EPERM, `|| true`
+     * swallows it, and the script exits 0 with the old engine still running.
+     * Worse, the old "wait for the stack to come back" below pinged testd,
+     * which never went down, so the no-op returned green immediately. Measured
+     * 2026-09-12: MoveOriginal held pid 7515 across such a restart.
+     *
+     * restartStack() is non-zero unless the process really went away and a new
+     * one came back; the ping that follows only waits for testd to answer
+     * again. */
     async restartStack(): Promise<void> {
-        await this.bus.restartMove();
+        await restartStack(this.host);
         await until(this.bus, 'the stack to come back',
             () => this.bus.ping().catch(() => ''),
             (v) => v.startsWith('schwung-testd'), { within: 6000 });

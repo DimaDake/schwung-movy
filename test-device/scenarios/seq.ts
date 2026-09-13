@@ -1,20 +1,16 @@
-/* WORK IN PROGRESS — not wired into run.mjs, not part of the 13-scenario
- * suite. Moved here from `.superpowers/sdd/test-device-migration/seq-wip.ts`
- * 2026-09-12 (followups item 8): that directory is `.gitignore`d wholesale, so
- * a clean clone or fresh worktree had none of this — 851 lines nobody could
- * recover. Tracked here instead, named `.wip.ts` so `build/test-device.mjs`
- * happily transpiles it (harmless — nothing imports it) without it being
- * mistaken for a shipped scenario.
+/* Migrated from scripts/test-seq.sh — the sequencer end-to-end run.
  *
- * Status per test-device/MIGRATION-STATUS.md and
- * plans/2026-09-12-test-device-migration-followups.md item 6: `test-seq.sh`
- * itself is still green and is the trustworthy suite for `seq` in the
- * meantime. What blocks adopting this file is the transport-stop escalation
- * — see item 6's "cheapest path": a local probe now pins the UI-side send
- * (browser-test/logic/seq-engine.mjs), the remaining step is dropping
- * `stopTransport`'s pre-read/poll loop below and re-verifying on device.
- *
- * Migrated from scripts/test-seq.sh — the sequencer end-to-end run.
+ * It was a WIP for a day (plans/2026-09-12-test-device-migration-followups.md
+ * item 6): the transport would not stop, and the failure count moved 4, 8, 7
+ * over identical code. Both of those had one cause, and it was not in this
+ * file. `host_module_set_param_blocking` reports a refused write by returning
+ * false and `src/seq/engine.ts` discarded it, so every `cmd` batch the
+ * single-slot param SHM would not take was silently dropped — measured on
+ * device 2026-09-13, 24 Play presses all reached the router and 15 of their
+ * batches died there. The engine now dedupes a resent batch on its `#<seq>`
+ * tag and the UI resends until the write lands; this file's part of the fix was
+ * to stop polling that same slot every 30 frames, which was what starved it.
+ * Five consecutive runs, 16/16.
  *
  * One journey across the surface: step entry, bar/Loop navigation, the
  * transport, punch-in recording, step record (melodic and drum), the Session
@@ -74,7 +70,7 @@ import { scenario } from '../runner.js';
 import { Device } from '../device.js';
 import { Probe } from '../probe.js';
 import * as fixture from '../fixture.js';
-import { until } from '../wait.js';
+import { PARAM_POLL_GAP, until } from '../wait.js';
 import { cc, noteOn, noteOff, CC_PLAY, CC_REC, CC_UNDO, STEP_NOTE_BASE } from '../midi.js';
 
 const run = promisify(execFile);
@@ -192,8 +188,17 @@ scenario('seq', async (t) => {
     const capinfo = async (): Promise<string> => {
         try { return await dev.param.get('overtake_dsp:capinfo'); } catch { return ''; }
     };
+    /* Every read here rides the single-slot overtake_dsp SHM, so the gap
+     * between them is PARAM_POLL_GAP and not a number chosen for responsiveness:
+     * at `every: 30` this loop STARVED movy's own `cmd` writes outright, and the
+     * transport it was waiting to see stop never got the command. Measured on
+     * device 2026-09-13 — a Play press moved the engine's play byte 12/12 with
+     * this gap and 0/12 at `every: 30`. The budgets are frames, so they are
+     * stated in whole polls of that gap. */
+    const polls = (n: number): number => n * PARAM_POLL_GAP;
     const waitStatus = async (what: string, pred: (s: string) => boolean,
-                               within = 700, every = 30): Promise<string> =>
+                               within = polls(5),
+                               every = PARAM_POLL_GAP): Promise<string> =>
         until(t.bus, what, status, pred, { within, every }).catch(() => status());
 
     /* The per-set blob, read out of band — no param and no ViewModel exposes the
@@ -262,14 +267,29 @@ scenario('seq', async (t) => {
      * on the engine's answer and never on a timer. */
     const goTrack = async (n: number): Promise<number> => {
         await dev.selectTrack(n);
-        let s = await waitStatus(`track ${n} to be watched`, (x) => num(x, 'trk') === n, 700);
+        let s = await waitStatus(`track ${n} to be watched`, (x) => num(x, 'trk') === n, polls(5));
         if (num(s, 'trk') !== n) {
             const via = n === 3 ? 2 : n + 1;   // any other button of the same group
             await dev.selectTrack(via);
             await t.bus.frames(ACT);
             await dev.selectTrack(n);
             s = await waitStatus(`track ${n} to be watched (second press)`,
-                (x) => num(x, 'trk') === n, 700);
+                (x) => num(x, 'trk') === n, polls(5));
+        }
+        if (num(s, 'trk') !== n) {
+            /* The track BUTTONS address the FOCUSED group of four
+             * (device.ts selectTrack), so from another group they cannot reach
+             * `n` at all — they land silently on a neighbour of the track they
+             * can reach. Nothing here controls which group Move has focused on
+             * the way in, and §7 deliberately moves it, so the fallback is the
+             * row that is absolute over all sixteen: hold Session + step. It
+             * commits through switchToTrack, which closes Session view again
+             * (src/track/switch.ts), so this lands on track `n` in Note view —
+             * the same place the button press would have. */
+            await sessionStep(n);
+            await t.bus.frames(ACT);
+            s = await waitStatus(`track ${n} to be watched (via the Session row)`,
+                (x) => num(x, 'trk') === n, polls(5));
         }
         const got = num(s, 'trk');
         if (got !== n) t.note(`trackMiss_t${n}`, s || '<no status>');
@@ -294,14 +314,14 @@ scenario('seq', async (t) => {
         let s = await status();
         if (Number.isNaN(num(s, 'play'))) {
             s = await waitStatus(`${what}: a readable play byte`,
-                (x) => !Number.isNaN(num(x, 'play')), 300);
+                (x) => !Number.isNaN(num(x, 'play')), polls(3));
         }
         let tries = 0;
         while (num(s, 'play') === 1 && tries < 3) {
             tries++;
             await dev.holdCc(CC_PLAY, () => t.bus.frames(PRESS));
             s = await waitStatus(`the transport to be stopped for ${what} (press ${tries})`,
-                (x) => num(x, 'play') === 0, 300);
+                (x) => num(x, 'play') === 0, polls(4));
         }
         t.note('transportStop_' + what, `presses=${tries} play=${num(s, 'play')}`);
         if (num(s, 'play') !== 0) t.note('transportNotStopped', `${what}: ${s || '<no status>'}`);
@@ -428,7 +448,7 @@ scenario('seq', async (t) => {
     const beforePlay = await mark();
     await dev.tap.cc(CC_PLAY);
     const played = await waitStatus('Play to start the transport',
-        (s) => num(s, 'play') === 1, 700);
+        (s) => num(s, 'play') === 1, polls(5));
     const playLines = await settle(beforePlay, (ls) => hits(ls, 'seq: play=1').length > 0,
         'the transport start to be logged', 700);
     const okPlay = num(played, 'play') === 1 && hits(playLines, 'seq: play=1').length > 0;
@@ -452,15 +472,15 @@ scenario('seq', async (t) => {
      * engine says there is one — either way the pad is played once the take is
      * armed, which is what the bash's fixed 2.5 s was standing in for. */
     const armed = await waitStatus('Rec to arm the take',
-        (s) => num(s, 'rec') === 1 || num(s, 'cin') === 1, 400);
+        (s) => num(s, 'rec') === 1 || num(s, 'cin') === 1, polls(4));
     if (num(armed, 'cin') === 1) {
         await waitStatus('the count-in to elapse into recording',
-            (s) => num(s, 'cin') === 0 && num(s, 'rec') === 1, 1400);
+            (s) => num(s, 'cin') === 0 && num(s, 'rec') === 1, polls(10));
     }
     await dev.tap.note(PAD, 110);
     await t.bus.frames(ACT);
     await dev.tap.cc(CC_REC);                    // Rec again stops the take
-    await waitStatus('the take to close', (s) => num(s, 'rec') === 0 && num(s, 'cin') === 0, 400);
+    await waitStatus('the take to close', (s) => num(s, 'rec') === 0 && num(s, 'cin') === 0, polls(4));
 
     await stopTransport('step record');
     t.note('afterRecordingLeg', await status());
@@ -512,7 +532,7 @@ scenario('seq', async (t) => {
     const grews = await waitStatus('track 2 to hold a 3-step clip',
         (s) => num(s, 'trk') === 2 && num(s, 'len') === 3
             && [0, 1, 2].every((b) => occBit(s, b) === 1)
-            && occBits(s).length === 3, 900);
+            && occBits(s).length === 3, polls(6));
     const legBLines = await lines(legB);
     const legBSteps = hits(legBLines, 'seq: steprec ').map((l) => word(l, 'steprec'));
     const okGrew = num(grews, 'len') === 3 && occBits(grews).join(',') === '0,1,2';
@@ -537,10 +557,10 @@ scenario('seq', async (t) => {
     await sessionStep(9);
     await t.bus.frames(ACT);
     const trk9 = await waitStatus('the Session step row to move the watched track',
-        (s) => num(s, 'trk') === 9, 700);
+        (s) => num(s, 'trk') === 9, polls(5));
     await dev.tap.note(STEP(0), 110);            // the step edit must follow it
     const on9 = await waitStatus('the note to land on track 9',
-        (s) => num(s, 'trk') === 9 && num(s, 'len') === 16 && occBit(s, 0) === 1, 700);
+        (s) => num(s, 'trk') === 9 && num(s, 'len') === 16 && occBit(s, 0) === 1, polls(5));
     const okRetarget = num(trk9, 'trk') === 9 && num(on9, 'len') === 16 && occBit(on9, 0) === 1;
     t.note('track9Clip', on9 || '<no status>');
     t.check('session-step-retarget',
@@ -555,7 +575,7 @@ scenario('seq', async (t) => {
      * FOCUSED group, which selecting track 9 moved to group 2. */
     await sessionStep(0);
     await t.bus.frames(ACT);
-    await waitStatus('the selector to bring track 0 back', (s) => num(s, 'trk') === 0, 700);
+    await waitStatus('the selector to bring track 0 back', (s) => num(s, 'trk') === 0, polls(5));
 
     /* ── 8. Session mode: launch a clip, stop a slot ──────────────────────────*/
     await dev.tap.cc(SESSION_CC);
@@ -605,18 +625,28 @@ scenario('seq', async (t) => {
     await stopTransport('the free-tempo capture');
     await phrase(10, LEG1_PERIOD, LEG1_HOLD);
     const buffered1 = await waitStatus('the take to be buffered',
-        (s) => capPending(s) >= 3, 500);
+        (s) => capPending(s) >= 3, polls(4));
     const pending1 = capPending(buffered1);
     const leg1 = await mark();
     await dev.tap.cc(CAPTURE_CC);
     const rolled1 = await waitStatus('the take to land in the clip',
-        (s) => num(s, 'trk') === 3 && num(s, 'len') > 0 && occBit(s, 0) === 1, 900);
+        (s) => num(s, 'trk') === 3 && num(s, 'len') > 0 && occBit(s, 0) === 1, polls(6));
     let info1 = '';
     try {
         info1 = await until(t.bus, 'the tempo overlay to open', capinfo,
-            (i) => raw(i, 'mode') !== 'none', { within: 900, every: 60 });
+            (i) => raw(i, 'mode') !== 'none',
+            { within: polls(5), every: PARAM_POLL_GAP });
     } catch { info1 = await capinfo(); }
-    const leg1Lines = await lines(leg1);
+    /* `settle`, not a bare read: the engine's `capinfo` is answered from the
+     * DSP while the log line is written by the UI on its own tick, so the wait
+     * above says nothing about whether movy has logged yet. Read once and this
+     * leg scores movy's report as missing whenever the tick had not come round
+     * — which is exactly how the fixed-tempo leg failed on one run in three
+     * with everything else green. */
+    const leg1Lines = await settle(leg1,
+        (ls) => hits(ls, 'seq: capture commit').length > 0
+             && hits(ls, 'seq: capture select').length > 0,
+        'the capture commit and the tempo selector to be logged');
     const commit1 = last(hits(leg1Lines, 'seq: capture commit'));
     const select1 = last(hits(leg1Lines, 'seq: capture select'));
     /* The clip must hold a PHRASE, not a note: `capture commit` is written on
@@ -658,15 +688,19 @@ scenario('seq', async (t) => {
     const bpmBefore = Math.round(num(await status(), 'bpm') / 100);
     await phrase(4, LEG2_PERIOD, LEG2_HOLD);
     const buffered2 = await waitStatus('the second take to be buffered',
-        (s) => capPending(s) >= 3, 500);
+        (s) => capPending(s) >= 3, polls(4));
     const leg2 = await mark();
     await dev.tap.cc(CAPTURE_CC);
     let info2 = '';
     try {
         info2 = await until(t.bus, 'the fitted overlay to open', capinfo,
-            (i) => raw(i, 'mode') === 'fix', { within: 900, every: 60 });
+            (i) => raw(i, 'mode') === 'fix',
+            { within: polls(5), every: PARAM_POLL_GAP });
     } catch { info2 = await capinfo(); }
-    const leg2Lines = await lines(leg2);
+    const leg2Lines = await settle(leg2,
+        (ls) => hits(ls, 'seq: capture commit').length > 0
+             && hits(ls, 'seq: capture fixed').length > 0,
+        'the capture commit and the fitted-tempo report to be logged');
     const commit2 = last(hits(leg2Lines, 'seq: capture commit'));
     const fixed2 = last(hits(leg2Lines, 'seq: capture fixed'));
     const bpmAfter = num(info2, 'bpm');
@@ -736,13 +770,15 @@ scenario('seq', async (t) => {
     const beforeReopen = await mark();
     await close();
     await open();
-    const reopenLines = await lines(beforeReopen);
+    const reopenLines = await settle(beforeReopen,
+        (ls) => hits(ls, 'seq: loaded set').length > 0,
+        'the reopened movy to log its set load');
     const loadedSet = hits(reopenLines, 'seq: loaded set');
     await goTrack(2);
     const restored = await waitStatus('the reopened engine to hold the run\'s track-2 clip',
         (s) => num(s, 'trk') === 2 && num(s, 'len') === 3
             && [0, 1, 2].every((b) => occBit(s, b) === 1)
-            && occBits(s).length === 3, 900);
+            && occBits(s).length === 3, polls(6));
     const okLoaded = loadedSet.length > 0 && num(restored, 'len') === 3
         && [0, 1, 2].every((b) => occBit(restored, b) === 1);
     t.note('reopenLoadedSet', loadedSet.length);
@@ -770,7 +806,7 @@ scenario('seq', async (t) => {
     const undoFrom = await mark();
     await dev.tap.note(STEP(8), 127);            // step 9 — a step the run left alone
     const toggled = await waitStatus('the step edit to reach the engine',
-        (s) => occBit(s, 8) !== occBefore, 700);
+        (s) => occBit(s, 8) !== occBefore, polls(5));
     t.note('step9Before', occBefore);
     t.note('step9AfterTap', occBit(toggled, 8));
     await t.bus.frames(ACT);
@@ -779,7 +815,7 @@ scenario('seq', async (t) => {
         'the undo of this step to be logged');
     const undoEntry = undoLines.find((l) => UNDO9.test(l)) ?? '';
     const afterUndo = await waitStatus('the engine to take the undo',
-        (s) => occBit(s, 8) === occBefore, 700);
+        (s) => occBit(s, 8) === occBefore, polls(5));
     const okUndo = UNDO9.test(undoEntry) && occBit(afterUndo, 8) === occBefore;
     t.note('undoEntry', undoEntry);
     t.check('undo-applied', 'Undo (CC 56) reached movy and put the step back', okUndo, {
@@ -798,7 +834,7 @@ scenario('seq', async (t) => {
         'the redo of this step to be logged');
     const redoEntry = redoLines.find((l) => REDO9.test(l)) ?? '';
     const afterRedo = await waitStatus('the engine to take the redo',
-        (s) => occBit(s, 8) !== occBefore, 700);
+        (s) => occBit(s, 8) !== occBefore, polls(5));
     const okRedo = REDO9.test(redoEntry) && occBit(afterRedo, 8) !== occBefore;
     t.note('redoEntry', redoEntry);
     t.check('redo-applied', 'Shift+Undo redid that entry', okRedo, {
@@ -845,7 +881,7 @@ scenario('seq', async (t) => {
         await dev.tap.note(STEP(2), 127);
     });
     const songEngine = await waitStatus('the engine to hold the song',
-        (s) => /^\d+:0,1$/.test(raw(s, 'song')), 700);
+        (s) => /^\d+:0,1$/.test(raw(s, 'song')), polls(5));
     const songBlob = await waitDisk('the song to reach the Set on disk', /^sg 0 1$/m, 6000);
     const okSong = /^\d+:0,1$/.test(raw(songEngine, 'song')) && /^sg 0 1$/m.test(songBlob);
     t.note('songEngine', raw(songEngine, 'song'));

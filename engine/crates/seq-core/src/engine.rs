@@ -124,6 +124,11 @@ pub struct Engine {
     /// Set by edit commands, cleared when the state is serialized for saving.
     /// The UI polls it to know when to write the autosave file.
     pub dirty: bool,
+    /// The `#<seq>` tag of the last `cmd` batch applied, or `None` before the
+    /// first tagged one. The UI resends a batch whose delivery the param SHM
+    /// could not confirm; this is what stops the resend being applied twice.
+    /// See `command::apply_batch`.
+    pub last_cmd_seq: Option<u32>,
     /// Song mode: the raw sequence of scene presses, e.g. `[1,2,2,3]`. Empty =
     /// no song. Consecutive duplicates fold into one entry with a repeat count
     /// only at scheduling time (`song_entry_at`), so this stays the literal
@@ -276,6 +281,7 @@ impl Engine {
             cap_stretch_permille: 0,
             master_tick: 0,
             dirty: false,
+            last_cmd_seq: None,
             gates: Vec::with_capacity(128),
             held_query: None,
             rng_state: 0x9E3779B97F4A7C15,

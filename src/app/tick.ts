@@ -1,3 +1,4 @@
+import { paramGet } from '../host/param.js';
 import { portFor } from '../track/registry.js';
 import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS, VIEW_FLAGS, VIEW_CPU, VIEW_VERSIONS } from './state.js';
 import { mainPageActive, mainPageState } from '../seq/main-page.js';
@@ -456,7 +457,7 @@ function tickBody(): void {
     // re-apply each lane's chain knob mapping so playback CCs land.
     if (engineReady() && takeLabelSync()) {
         resetDrumSync();   // a rebooted engine has lost the drum flags too
-        const labels = host_module_get_param('alabels');
+        const labels = paramGet('alabels');
         if (labels) {
             syncLabelsFromEngine(
                 labels,

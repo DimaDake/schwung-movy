@@ -17,6 +17,7 @@ import {
     readPrefFlagsRev, writePrefFlagsRev,
 } from './prefs.js';
 import { markUiStateDirty } from './ui-dirty.js';
+import { paramSet } from '../host/param.js';
 import { mlog } from '../log.js';
 
 /** How to write an engine param. Handed over by engine.ts rather than imported
@@ -127,9 +128,7 @@ function ensure(): Record<string, number> {
  * chains.json; then the UI blob is marked dirty so the next save rewrites the
  * mirror from what the engine just landed. */
 function leaveEngineOwned(): void {
-    if (typeof host_module_set_param_blocking === 'function') {
-        host_module_set_param_blocking('set', 'flush', 500);
-    }
+    paramSet('set', 'flush', 500);
     markUiStateDirty();
     mlog('flags: engpersist off — mirror refreshed from the engine\'s file');
 }

@@ -1,4 +1,5 @@
 import net from 'node:net';
+import { TransportError } from './errors.js';
 
 /* Both device servers (schwung-testd and movy's ui-agent) speak the same shape:
  * line-based ASCII, one command per line, replies starting OK or ERR. One
@@ -20,12 +21,27 @@ export class LineClient {
              * no frames to count. */
             s.setTimeout(10_000, () => {
                 s.destroy();
-                reject(new Error(`${this.what}: connect timeout ${this.host}:${this.port}`));
+                reject(new TransportError(`${this.what}: connect timeout ${this.host}:${this.port}`));
             });
             s.once('connect', () => { s.setTimeout(0); this.sock = s; resolve(); });
             s.once('error', reject);
             s.on('data', (d) => this.onData(d.toString('utf8')));
+            /* A connection that dies mid-run used to hang the sweep: every
+             * queued command was waiting on a reply that could no longer come,
+             * and nothing in the harness times a command out. Failing the
+             * waiters instead turns a dropped link into an infra error the
+             * runner can retry. */
+            s.once('close', () => this.fail(new TransportError(`${this.what}: connection closed`)));
         });
+    }
+
+    /* Reject everything still in flight. The socket is gone, so no reply is
+     * coming for any of them. */
+    private fail(err: TransportError): void {
+        if (this.sock) this.sock = null;
+        const q = this.queue;
+        this.queue = [];
+        for (const w of q) w.reject(err);
     }
 
     private onData(chunk: string): void {
@@ -50,7 +66,7 @@ export class LineClient {
     }
 
     private write(line: string, multi: boolean): Promise<any> {
-        if (!this.sock) return Promise.reject(new Error(`${this.what}: not connected`));
+        if (!this.sock) return Promise.reject(new TransportError(`${this.what}: not connected`));
         return new Promise((resolve, reject) => {
             this.queue.push({ multi, resolve, reject, lines: [] });
             this.sock!.write(line + '\n');

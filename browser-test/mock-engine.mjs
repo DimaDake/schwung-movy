@@ -18,6 +18,17 @@ export function installMockEngine() {
         status: { play: 0, tick: 0, bpm: 12000, trk: 0 },
         /* set true to simulate an engine that lacks the protocol */
         statusUnavailable: false,
+        /* Set true to make every BLOCKING set report failure, which is what the
+         * device's single-slot param SHM does when the write cannot claim the
+         * slot inside its timeout. The write is not recorded — the batch really
+         * did not arrive — so a caller that ignores the return value loses it. */
+        dropBlockingSets: false,
+        /* What `dropBlockingSets` swallowed, in order. */
+        droppedSets: [],
+        /* The sequence number of the last `cmd` batch applied, mirroring
+         * seq-core's dedupe: a resend of the batch the UI could not confirm
+         * must not be applied twice. */
+        lastCmdSeq: null,
         /* Set true to simulate a DSP that never loads: the UI probes `ping`
          * until it gives up and declares the engine absent. */
         pingUnavailable: false,
@@ -75,6 +86,9 @@ export function installMockEngine() {
             this.ops = [];
             this.status = { play: 0, tick: 0, bpm: 12000, trk: 0 };
             this.statusUnavailable = false;
+            this.dropBlockingSets = false;
+            this.droppedSets = [];
+            this.lastCmdSeq = null;
             this.pingUnavailable = false;
             this.pingVersion = null;
             this.setParamCalls = 0;
@@ -118,7 +132,21 @@ export function installMockEngine() {
         }
         if (key === 'cmd') {
             engine.cmdBatches.push(value);
-            for (const op of value.split(';')) {
+            /* A batch may carry a leading `#<seq>` tag. The UI resends a batch
+             * whose delivery it could not confirm, so a repeat of the tag it
+             * last applied is that resend and must be ignored — `tog` applied
+             * twice toggles the step back off. Mirrors seq-core's apply_batch. */
+            let body = value;
+            if (value.startsWith('#')) {
+                const cut = value.indexOf(';');
+                const tag = Number(cut < 0 ? value.slice(1) : value.slice(1, cut));
+                if (Number.isFinite(tag)) {
+                    if (engine.lastCmdSeq === tag) return true;
+                    engine.lastCmdSeq = tag;
+                    body = cut < 0 ? '' : value.slice(cut + 1);
+                }
+            }
+            for (const op of body.split(';')) {
                 if (op.length === 0) continue;
                 engine.ops.push(op);
                 /* Apply transport ops to status so a subsequent poll agrees
@@ -210,7 +238,11 @@ function installGlobals(engine) {
         return put ? put(key, value) : recorded;
     };
     globalThis.host_module_set_param = set;
-    globalThis.host_module_set_param_blocking = (key, value, _timeoutMs) => set(key, value);
+    globalThis.host_module_set_param_blocking = (key, value, _timeoutMs) => {
+        if (engine.dropBlockingSets) { engine.droppedSets.push([key, value]); return false; }
+        set(key, value);
+        return true;
+    };
 
     globalThis.host_module_get_param = (key) => {
         const m = CHAIN_KEY.exec(key);

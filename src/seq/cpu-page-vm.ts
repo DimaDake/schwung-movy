@@ -6,6 +6,7 @@
  * The four inputs arrive as raw strings on the status poll and are parsed
  * HERE, once per repaint, rather than on every poll — see seq/state.ts. */
 
+import { paramStats } from '../host/param.js';
 import { seqState } from './state.js';
 import { scaleFor } from './cpu-scale.js';
 import { TRACK_COUNT } from '../track/ref.js';
@@ -72,6 +73,16 @@ export type CpuPageVM = {
      *  most, and the bar clamping is the renderer's business, not this. */
     load: number;
     peakLoad: number;
+    /** Engine writes this session, and how many of them the single-slot param
+     *  SHM REFUSED (`host/param.ts`).
+     *
+     *  It belongs on THIS page because a refusal is a cost the same way a long
+     *  block is: it is movy asking for the device and not getting it. And it
+     *  belongs on a page at all because the alternative is what it was until
+     *  2026-09-13 — perfectly silent. A refused write is a gesture that did not
+     *  happen, and nothing anywhere said so. */
+    ipcSets: number;
+    ipcRefused: number;
 };
 
 function num(s: string | undefined): number {
@@ -110,6 +121,7 @@ export function buildCpuPageVM(): CpuPageVM {
 
     const sends = buildSendColumns(seqState.cpuSend);
     const budgetUs = Math.max(1, Math.round(blockUs * USABLE_BLOCK));
+    const ipc = paramStats();
     return {
         columns,
         sends,
@@ -120,6 +132,8 @@ export function buildCpuPageVM(): CpuPageVM {
         budgetUs,
         load: wallUs / budgetUs,
         peakLoad: wallPeakUs / budgetUs,
+        ipcSets: ipc.sets,
+        ipcRefused: ipc.refused,
     };
 }
 

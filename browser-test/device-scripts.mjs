@@ -9,7 +9,7 @@
  * Run from movy root: node browser-test/device-scripts.mjs
  */
 
-import { readFileSync, readdirSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 
@@ -186,8 +186,12 @@ ok('the shared lib defines ts_restart_stack', /^ts_restart_stack\(\)/m.test(libS
 const restartSrc = readFileSync(join(SCRIPTS, 'lib/restart-stack.sh'), 'utf8');
 ok('the restart runs as root', /ssh[^\n]*root@/.test(restartSrc),
    'as the ableton user pkill matches nothing and the stack stays up');
+/* The body moved to restart-stack.py so the TS tier could share it rather than
+ * copy it (Test 14). This assertion follows it — the guarantee is about the
+ * verification, not about which file holds it. */
+const restartPySrc = readFileSync(join(SCRIPTS, 'lib/restart-stack.py'), 'utf8');
 ok('a stack that never went down is reported as a failure',
-   /NEVER WENT DOWN/.test(restartSrc) && /sys\.exit\(1\)/.test(restartSrc),
+   /NEVER WENT DOWN/.test(restartPySrc) && /sys\.exit\(1\)/.test(restartPySrc),
    'otherwise a 60-second wait prints as though it had restarted');
 const tsBody = libSrc.split('ts_restart_stack()')[1].split('\n}')[0]
     .split('\n').filter((l) => !/^\s*#/.test(l)).join('\n');   // a comment may name it
@@ -481,6 +485,170 @@ log('\nTest 13: the migrate scenario keys on phrases the source can actually emi
        && /node\('slot-state\.mjs',\s*\[\s*'load'/.test(migrateTs));
     ok('and read back, so a marker that never landed is visible',
        migrateTs.includes('slot0PatchLive'));
+}
+
+/* ── Test 14: a stack restart goes through root, and through ONE body ───────
+ * MoveOriginal runs as root. restart-move.sh's kill is therefore EPERM for the
+ * `ableton` user, and `|| true` swallows it: the script exits 0 and the OLD
+ * engine keeps running. Measured 2026-09-12 — MoveOriginal held pid 7515
+ * across a "successful" ableton-user restart, then changed to 9326 through the
+ * root path.
+ *
+ * The TS harness used to restart via bus.restartMove(), i.e. as whoever owns
+ * schwung-testd — and daemon.ts starts testd as `ableton` whenever the port is
+ * closed, which is the normal case. It then "confirmed" the restart by pinging
+ * that same testd, which had never gone down. A no-op that reports green is
+ * worse than a missing feature, so this pins the user and the shared body.
+ */
+log('\nTest 14: the stack restart runs as root, from one shared script');
+
+const restartPy = 'scripts/lib/restart-stack.py';
+const restartSh = readFileSync('scripts/lib/restart-stack.sh', 'utf8');
+const engineTs  = readFileSync('test-device/engine.ts', 'utf8');
+const deviceTs  = readFileSync('test-device/device.ts', 'utf8');
+
+ok('the verified restart body exists as a shared script', existsSync(restartPy));
+
+/* Both tiers must name the shared file AND address root. Checked as a pair:
+ * either half alone passes with the other one wrong. */
+for (const [who, src] of [['restart-stack.sh', restartSh], ['engine.ts', engineTs]]) {
+    ok(`${who} runs ${restartPy.split('/').pop()} as root`,
+       src.includes('restart-stack.py') && /root@/.test(src));
+}
+
+/* Duplication is what let the two drift before. Neither caller may carry its
+ * own copy of the verification loop. */
+for (const [who, src] of [['restart-stack.sh', restartSh], ['engine.ts', engineTs]]) {
+    ok(`${who} does not re-implement the pidof check`, !src.includes("pidof"));
+}
+
+/* The trap this replaces, named so it cannot come back. */
+/* Strip comments first. device.ts explains this trap by name, and a guard that
+ * matched the explanation would fire on the fix as readily as on the bug. */
+const codeOf = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+ok('device.ts no longer restarts through bus.restartMove()',
+   !codeOf(deviceTs).includes('bus.restartMove()')
+   && /restartStack\(this\.host\)/.test(codeOf(deviceTs)));
+
+/* ── Test 15: the tier ships an engine before it grades one ─────────────────
+ * No scenario builds or deploys dsp.so. Before run.mjs did it once per sweep,
+ * `npm run test:device` graded a Rust change against whatever the device
+ * happened to hold — every check green, none of them about the new build. That
+ * is the single reason scripts/test-seq.sh could not be retired.
+ */
+log('\nTest 15: npm run test:device deploys the engine it is about to test');
+
+const runMjs = readFileSync('test-device/run.mjs', 'utf8');
+
+ok('run.mjs imports the engine deploy', /import \{[^}]*deployEngine[^}]*\}/.test(runMjs));
+
+/* Order, not presence: a deploy that happens after the scenarios have run
+ * tests the old engine just as thoroughly as no deploy at all. */
+const atDeploy = runMjs.indexOf('deployEngine(HOST)');
+const atRunAll = runMjs.indexOf('runAll(');
+ok('and calls it BEFORE the scenarios run',
+   atDeploy > 0 && atRunAll > 0 && atDeploy < atRunAll);
+
+/* A failed build must stop the tier. Falling through would run every scenario
+ * against the previous dsp.so and report it as a pass. */
+ok('a failed engine build aborts instead of falling through',
+   /!r\.built[\s\S]{0,320}process\.exit\(1\)/.test(runMjs));
+
+/* The skip must be loud: "I forgot --no-engine was on" is indistinguishable
+ * from a clean run otherwise. */
+ok('--no-engine announces that the engine was not shipped',
+   runMjs.includes('--no-engine') && /noEngine[\s\S]{0,200}console\.log/.test(runMjs));
+
+/* ui.js has to be on the device BEFORE anything opens movy, and what opens it
+ * first is each scenario's own `fixture.ensure()` — so a per-scenario
+ * `dev.deployUi()` is always too late and the fixture phase runs the previous
+ * build. Invisible until the UI and the engine had to agree on a version, at
+ * which point the tier hung on a fixture that could not establish itself. */
+const atUi = runMjs.search(/^await deployUi\(HOST\);/m);
+ok('ui.js is deployed before the scenarios run too',
+   atUi > 0 && atRunAll > 0 && atUi < atRunAll);
+
+/* The sweep drives real pads and a real transport, so it makes real noise for
+ * as long as it runs. `mute` is the engine's test-only silence; what this
+ * guards is the half that is easy to leave out — turning it back OFF, from a
+ * `finally`, so a scenario that threw does not leave the device quiet with no
+ * explanation. */
+ok('the run asks for the mute and clears it in a finally',
+   /setRunMute\(MUTE\)/.test(runMjs)
+   && /finally\s*\{[\s\S]{0,260}setRunMute\(false\)/.test(runMjs));
+
+/* And it has to be applied where a DSP exists to receive it. Setting it at the
+ * top of the sweep printed COULD NOT MUTE and the run played out loud: the
+ * stack had just restarted and movy was not open yet. */
+const deviceSrc = readFileSync('test-device/device.ts', 'utf8');
+ok('and the mute is applied on open, after the restore wait',
+   /applyRunMute\(this\.bus\)/.test(deviceSrc)
+   && deviceSrc.indexOf('applyRunMute(this.bus)') > deviceSrc.indexOf('RESTORE_QUIET'));
+
+/* Every scenario in scenarios/ must be LOADED. The registry is built by import
+ * side effect, so a file that exists and is never imported is a suite that
+ * silently does not run — which is what `seq` was for a day: moved out of
+ * scenarios/ with broken relative imports, it threw ERR_MODULE_NOT_FOUND on the
+ * one flag that loaded it, and nobody could tell because nothing ran it. */
+const scenarioFiles = readdirSync('test-device/scenarios')
+    .filter((f) => f.endsWith('.ts'))
+    .map((f) => f.replace(/\.ts$/, ''));
+const notLoaded = scenarioFiles.filter(
+    (n) => !runMjs.includes(`import './dist/scenarios/${n}.js';`));
+ok('every scenario in scenarios/ is imported by run.mjs', notLoaded.length === 0,
+   notLoaded.length ? `never loaded: ${notLoaded.join(', ')}` : `${scenarioFiles.length} loaded`);
+
+/* ── Test 16: the bash device tier is closed to additions ───────────────────
+ * A ratchet, not a ban. Eleven bash suites became TS scenarios; these are what
+ * is left, each for a reason recorded in test-device/MIGRATION-STATUS.md. The
+ * list may SHRINK — delete a script and delete its line — and may not grow: a
+ * new device test belongs in test-device/scenarios/. Without this the tier
+ * quietly regrows, which is how it got to fourteen scripts the first time.
+ */
+log('\nTest 16: no new bash device suites (the tier only shrinks)');
+
+const BASH_SUITES_LEFT = [
+    /* Never in MIGRATION.md's scope. Not run by test-all-device.sh either. */
+    'test-chains.sh', 'test-cpu.sh', 'test-voice-slot.sh',
+    /* Tests scripts/lib/test-set.sh itself; outlives the suites because 14
+     * non-test scripts (measure-*, bench-*, dev-probe) still source that lib. */
+    'test-fixture-selftest.sh',
+];
+
+const deviceSuites = readdirSync(SCRIPTS)
+    .filter((f) => f.startsWith('test-') && f.endsWith('.sh'))
+    .filter((f) => f !== 'test-all-device.sh');   // the runner, not a suite
+
+const added = deviceSuites.filter((f) => !BASH_SUITES_LEFT.includes(f));
+ok('no bash device suite outside the allowlist', added.length === 0,
+   added.length ? `new: ${added.join(', ')} — write it as a test-device/ scenario` : `${deviceSuites.length} left`);
+
+const gone = BASH_SUITES_LEFT.filter((f) => !deviceSuites.includes(f));
+ok('the allowlist names no script that is already deleted', gone.length === 0,
+   gone.length ? `stale: ${gone.join(', ')} — drop these lines` : 'in sync');
+
+/* ── Test 17: the docs may not name a script that does not exist ────────────
+ * Twice in one day: CONVENTIONS.md still pointed at ./scripts/test.sh and two
+ * sweep scripts that had never existed under those names, and CLAUDE.md's step
+ * 4a was a repeat of step 4. A doc that names a dead command costs the next
+ * person a debugging session against their own device before they think to
+ * doubt the instruction.
+ *
+ * Only COMMAND references are checked — a path inside backticks or prose that
+ * explains what used to be there is history, not an instruction.
+ */
+log('\nTest 17: CLAUDE.md and CONVENTIONS.md name only scripts that exist');
+
+for (const doc of ['CLAUDE.md', 'CONVENTIONS.md']) {
+    const src = readFileSync(doc, 'utf8');
+    /* A command line: the path at the start of a line, or after a shell
+     * operator, optionally `./`-prefixed. Prose mentions are wrapped in
+     * backticks and do not match. */
+    const named = [...src.matchAll(/(?:^|\|\||&&|\$\()\s*\.?\/?(scripts\/[\w-]+\.(?:sh|mjs|py))/gm)]
+        .map((m) => m[1]);
+    const missing = [...new Set(named)].filter((f) => !existsSync(f));
+    ok(`${doc} names no missing script`, missing.length === 0,
+       missing.length ? `missing: ${missing.join(', ')}` : `${new Set(named).size} referenced, all present`);
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

@@ -14,6 +14,7 @@
  * what a device showed, and it is why MANUAL.md tells anyone recovering by hand
  * to overwrite every copy. */
 
+import { paramAvailable, paramGet, paramSet } from '../host/param.js';
 import { mlog } from '../log.js';
 import { flagValue } from './flags.js';
 import { refreshVersionRows } from './version-wire.js';
@@ -32,8 +33,8 @@ let pending: { uuid: string; n: number; tries: number } | null = null;
 const RESTORE_TRIES = 60;
 
 function restoreViaEngine(uuid: string, n: number): boolean {
-    if (typeof host_module_set_param_blocking !== 'function') return false;
-    host_module_set_param_blocking('set', 'restore ' + n, 200);
+    if (!paramAvailable()) return false;
+    paramSet('set', 'restore ' + n, 200);
     pending = { uuid, n, tries: 0 };
     return false;   // nothing to reload yet — restoreTick says when
 }
@@ -41,8 +42,7 @@ function restoreViaEngine(uuid: string, n: number): boolean {
 /** True on the tick a restore completed: the caller re-enters the load. */
 export function restoreTick(): boolean {
     if (!pending) return false;
-    const v = typeof host_module_get_param === 'function'
-        ? host_module_get_param('vui') : null;
+    const v = paramGet('vui');
     if (v === null || v === 'pending') {
         if (++pending.tries < RESTORE_TRIES) return false;
         mlog('versions: restore never answered — giving up');

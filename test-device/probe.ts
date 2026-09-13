@@ -1,15 +1,10 @@
 import type { Bus } from './bus.js';
-import { until } from './wait.js';
+import { PARAM_POLL_GAP, until } from './wait.js';
 
-/* Frames of silence around every probe read.
- *
- * The overtake_dsp param SHM is a SINGLE SLOT shared with movy's own writes, so
- * a read issued while movy is answering starves the answer outright — it is
- * lost, not delayed. Measured: eight requests spaced by a bare WAIT_FRAME all
- * answered, while a 30-frame poll loop in the gap answered the first few and
- * then never again. WAIT_FRAME touches no param, so this gap is genuinely
- * silent. ~150 frames is ~435 ms, which is the real cost of that single slot. */
-const PROBE_GAP = 150;
+/* Frames of silence around every probe read. The probe rides the overtake_dsp
+ * param SHM like every other param reader, so it takes the shared gap rather
+ * than a number of its own — see PARAM_POLL_GAP for why it is what it is. */
+const PROBE_GAP = PARAM_POLL_GAP;
 
 const REQ = 'overtake_dsp:probereq';
 const RSP = 'overtake_dsp:probersp';

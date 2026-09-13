@@ -7,6 +7,7 @@
  * under the fingers. Refreshed when the page opens and after anything that
  * changes the history. */
 
+import { paramGet } from '../host/param.js';
 import { flagValue } from './flags.js';
 import { readVersionIndex } from './version-store.js';
 import type { VersionRec, VersionWhy } from './version-index.js';
@@ -39,8 +40,7 @@ export function parseVersionRows(raw: string | null): VersionRec[] {
 }
 
 export function refreshVersionRows(): void {
-    if (typeof host_module_get_param !== 'function') return;
-    rows = parseVersionRows(host_module_get_param('versions'));
+    rows = parseVersionRows(paramGet('versions'));
 }
 
 export function resetVersionWire(): void {

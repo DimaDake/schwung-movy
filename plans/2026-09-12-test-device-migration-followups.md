@@ -9,6 +9,45 @@ the prioritised work it leaves behind.
 
 ---
 
+## Status — 2026-09-12 evening
+
+| item | state |
+| --- | --- |
+| 1. `test-all-device.sh` ran 1 of 14 | **closed** — the TS tier is one `run_one` entry; jog-hint's line is gone with the script |
+| 2. `--scenario <name>` used the wrong host | **closed** (`f5bb22d`) |
+| 3. the gate can never be green | **closed** — item 4 fixed, and `lfo`'s sampling made deterministic |
+| 4. LFO modulation never reaches the driven param | **closed** (`be58142`) — and it was never the mod runtime: `lfo_report` read the plain key, which the chain host deliberately shadows to the BASE value. `:effective` is the driven one. A diagnostic bug, not an audio bug |
+| 5. the watched-track push cannot heal a fresh UI | **open** |
+| 6. `seq` transport-stop | **closed 2026-09-13** — hypothesis (a) was right after all, and the disproof of it was itself wrong (see below). `scenarios/seq.ts` is in the sweep at 16/16 over five consecutive runs |
+| 7. working tree | **closed** — three untracked measurement scripts still want a decision |
+| 8. seq WIP in a gitignored path | **closed** (`1717f8c`) — and it could not be imported at all until `4219b3e`; `npm run test:device -- --wip` runs it |
+| 9. decorative guards in `device-scripts.mjs` | **closed** (`27ce44d`, `33823be`) |
+| 10. two fixture implementations | **open** — `test-set.sh` outlives the suites; 14 non-test scripts source it |
+| 11. scope of the remaining bash tier | **decided** — `browser-test/device-scripts.mjs` Test 16 is a ratchet: the five surviving suites are an allowlist that may shrink and may not grow |
+| 12. name `test-device/` in the file-size rule | **closed** (`b65c747`) |
+
+Three things this review did not know about, found while closing the above:
+
+- **No scenario ever shipped an engine.** `npm run test:device` graded a Rust
+  change against whatever `dsp.so` the device held. That, not item 6, was the
+  reason `test-seq.sh` could not be retired. Closed in `78fb441`.
+- **The harness could not restart the stack.** `swapEngine`/`restartStack` went
+  through `bus.restartMove()`, i.e. as whoever owns `schwung-testd` — started as
+  `ableton`, so the kill is EPERM and the script exits 0 — and then "confirmed"
+  the restart by pinging that same testd, which never went down. Measured:
+  MoveOriginal held pid 7515 across it. Closed in `78fb441`.
+- **`test-device/` was never typechecked.** `tsconfig.json`'s include is `src/`,
+  `browser-test/`, `build/`. The gate cited `npm run typecheck` as evidence over
+  5,900 lines it never read. Closed in `8d436b3`, which found four real defects
+  on its first run.
+
+And item 11's "blocked by design" entry for `test-jog-hint.mjs` was wrong: the
+framebuffer is a file in `/dev/shm` that scp reads, which is what the script
+itself did. `SNAPSHOT_DISPLAY` was never needed. It is the `jog-hint` scenario
+now (`8d436b3`).
+
+---
+
 ## Verdict: the migration is faithful. Accept it.
 
 | what was checked | how | result |
@@ -128,81 +167,82 @@ so tapping track 0 does nothing and the disagreement is permanent. The engine's
 This is a user-facing bug on any reopen, not a test artefact, and the bash suite
 could not have seen it because it never read the engine here.
 
-### 6. `seq`: the transport-stop escalation, re-scoped
+### 6. ~~`seq`: the transport-stop escalation~~ — CLOSED 2026-09-13
 
-**First, the gap the status doc flags as worth closing first is now closed: the
-bash suite is green.** `./scripts/test-seq.sh move.local`, run once today on this
-branch, passed **18/18 and exited 0** — including `capture-commit`,
-`capture-select-tempo`, `capture-fixed-notes`, `steprec-rest-advanced` and
-`set-loaded-on-reopen`, every one of the checks that died downstream of the
-transport in the scenario. Capture-while-stopped is the path that only exists off
-a stopped transport, so the device stops its transport perfectly well.
+The full account is in `test-device/MIGRATION-STATUS.md`. In short: the Play
+press always reached the router, and its `cmd` batch was dropped by the param
+SHM — `host_module_set_param_blocking` returns false on a write it cannot claim
+and `src/seq/engine.ts` discarded that return. Measured with one throwaway
+`mlog` at each end: **24 presses arrived, 15 batches died.** movy now resends a
+refused batch behind a `#<seq>` tag the engine dedupes on, and the scenario
+stopped polling the same slot every 30 frames (12/12 at `PARAM_POLL_GAP`,
+**0/12** at `every: 30`).
 
-So this is **not** a pre-existing device failure and **not** a movy bug: it is a
-gap between the bash harness and the TS scenario. The bash tier remains
-trustworthy for `seq` in the meantime.
+Two things this file got wrong are worth keeping, because they are the reusable
+lesson rather than the bug:
 
-Two concrete differences, both in the direction the report ruled out:
+- **Hypothesis (a) was correct and this document dismissed it on bad evidence.**
+  The dismissal ran "`mutes.ts` polls the same param and passes" — but `mutes`
+  writes engine params from the harness side and never depends on movy's own
+  queued batch surviving, so it cannot exercise the mechanism. A contradiction
+  found in a test that does not run the code is not a contradiction. The later
+  note that "(a) is refuted by `transportStop_step record` succeeding through
+  the identical poll path" was the same mistake in a different suit: one success
+  out of a run whose every other stop failed is a coin landing heads, not a
+  disproof.
+- **"Not reproducible run to run" was the symptom of the bug, not a separate
+  blocker.** A dropped write is a race; 4, 8 and 7 failures over identical code
+  is what a race looks like from outside. Chasing reproducibility first would
+  have been chasing the same defect by a different name.
 
-- **Bash never reads the engine before pressing.** Lines 126/128, 149, 239/240
-  and 271/272 of `scripts/test-seq.sh` are blind press/release pairs with no
-  `status` read anywhere near them. The scenario replaced that with
-  read-the-play-byte → press → poll-until-stopped, retried three times — which
-  puts the harness on the single-slot `overtake_dsp` SHM exactly while the UI is
-  trying to flush its `cmd` batch. That is hypothesis (a) below, and it is the
-  one difference that tracks the failure.
-- **The gesture shape was only half reproduced.** The report states bash's stop
-  is `ts_tap_cc` (a 50 ms device-side hold) and reproduced that. True for line
-  149 — but the capture-leg stops at 239/240 and 271/272 are **two separate ssh
-  injects**, i.e. a hold of >500 ms by `CLAUDE.md`'s own harness note, not 50 ms.
-  The shape the report tested and declared dead is not the shape those sites use.
+`Device.selectTrack`'s group-0 assumption was real but was never the transport
+failure. It is handled where it bites — `goTrack` in the scenario now verifies
+the engine's `trk=` and falls back to the absolute Session step row.
 
-Second, the report's central inference is wrong, and correcting it reopens the
-hypothesis it discarded. Both halves are verified locally, no device needed:
-
-- **`seq: play=0` is emitted from inside `parseStatus`** (`src/seq/engine.ts:398`,
-  in the function that starts at `:303`) — so it fires *only* when the engine
-  itself reports `play=0`. "No `play=0` line appeared" is therefore the **same
-  single fact** as "`play=` stayed 1", not a second, independent witness. It does
-  not show that the press failed to reach the router.
-- **The optimistic mirror flip is silently reverted.** `router.ts:99-100` sends
-  `stop` and sets `seqState.playing = false`; the next status poll in the same
-  tick sets it straight back from the engine's byte. Nothing is logged.
-
-Driven through the local mock (`browser-test/mock-engine.mjs` + `parseStatusForTest`),
-a Play press against a mirror that says *playing* **does** claim the event and
-**does** queue `stop`. So the UI-side logic is correct, and what remains is:
-
-- (a) the `stop` op was queued and its batch was lost on the single-slot
-  `overtake_dsp` param SHM — the coalescing hazard `CLAUDE.md` documents,
-  plausibly aggravated by the scenario's own `every: 30` polling (2× house style,
-  5× `PROBE_GAP`). Consistent with `last_key=cmd` being 0, since a coalesced
-  batch is not a *failed* write; or
-- (b) the press never reached `seqHandleMidi` in the later legs — the capture and
-  quantize overlays in `src/midi/router.ts` swallow any non-jog press as a
-  dismissal, and the failing legs are the capture legs.
-
-What the missing log line *does* rule out is the third option: the mirror was not
-stale-false at press time, so the router did not send `play` again.
-
-The counter-evidence the report used to kill hypothesis (a) — "`mutes.ts` polls
-the same param and passes" — does not apply: `mutes` writes engine params from
-the harness side and never depends on movy's own queued `cmd` batch surviving.
-With bash green off blind presses, (a) is now the leading candidate on evidence
-rather than on argument.
-
-Cheapest path, in order:
-
-1. Extend `browser-test/logic/seq-engine.mjs` with the probe above, so the UI
-   half is pinned by a unit test forever (it is ~15 lines and needs no device).
-2. Drop `stopTransport`'s pre-read and its poll loop — press blind like bash,
-   then verify once, spaced at `PROBE_GAP`. If that turns the leg green, (a) is
-   confirmed and the rule to write down is "never poll the param slot across a
-   gesture the UI has to answer".
-3. Only if it stays red, separate (a) from (b) on device with one `mlog` at
-   `router.ts:96`.
+Three smaller defects found while closing it: the capture and reopen legs read
+the log once instead of waiting for it (one run in three); `dev.deployUi()` runs
+after `fixture.ensure()` opens movy, so the fixture phase always ran the previous
+ui.js (ui.js is deployed once per sweep from `run.mjs` now); and eight other
+scenarios still poll `overtake_dsp` params faster than `PARAM_POLL_GAP` —
+**open**, see item 13.
 
 ---
+
+### 13a. Two flakes measured on 2026-09-13, both on the param channel
+
+Neither is caused by the param-door refactor (each was A/B'd against it), and
+neither is fixed. They are recorded with RATES rather than adjectives, because
+"flaky" without a number is how the last one survived a year.
+
+| what | rate measured today | shape |
+| --- | --- | --- |
+| `automation` / `p3-registry` — the lane registry is empty after a real reopen | **2 in 7** | the scenario's own comment already names the cause: "OBSERVING THE RESTORE BROKE IT". The wait that was added to fix a read-once race polls `probe.auto()` — param traffic — starting while the restore is still running |
+| `seq` / the two capture legs — the UI's `capture select`/`capture fixed` line is missing from its window | **1 in 9, in-sweep only** | the engine took the path (`capinfo` shows the overlay open with candidates) and the UI had not logged it yet. Both legs do up to 11 param polls *before* reading the log, so they compete with the UI for the slot exactly while it is trying to act |
+
+Both have the same shape as the transport bug this file opened with, and the
+same fix is available for both: **read the out-of-band witness (the log, over
+ssh) FIRST, and the param channel afterwards** — or do not poll the channel at
+all across a gesture the UI has to answer. `seq`'s other legs already work that
+way; these two were written before the rule existed.
+
+`automation`'s is the one to do first: it has the higher rate, and its fix is to
+stop polling `probe.auto()` during the restore window rather than to restructure
+anything.
+
+### 13. Eight scenarios still poll the param SHM faster than the gap that works
+
+`test-device/wait.ts` now carries `PARAM_POLL_GAP` (150 frames) and the
+measurement behind it. `probe.ts` and `scenarios/seq.ts` use it; these do not,
+and each is a write of movy's that a wait can starve the same way:
+
+`automation.ts:112` (`every: 60`), `mutes.ts:162` (60), `unload.ts:64` (60),
+`sends.ts:197,210,220` (100), `lfo.ts:135,157` (120), `items.ts:175` (120),
+`module-contract.ts:234` (120), `reselect.ts:180,200` (120).
+
+They are green today, which is the argument for leaving them alone and the
+reason they are worth fixing: a starved write is silent, so a green run does not
+say the channel was healthy. Waits over the LOG (ssh) and over the daemon's
+`STATE` are unaffected — only `overtake_dsp:*` reads share the slot.
 
 ## P2 — durability and hygiene
 

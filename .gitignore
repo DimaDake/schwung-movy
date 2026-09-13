@@ -12,3 +12,4 @@ browser-test/screenshots/actual/
 .aider*
 .test-out/
 test-device/dist/
+test-device/.flake-log.json

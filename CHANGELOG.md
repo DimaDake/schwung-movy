@@ -52,6 +52,19 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **A sequencer gesture could go nowhere at all — a Play press, an undo group, a
+  step toggle — and nothing said so.** Every command Movy sends the engine
+  travels as one batched write into Schwung's `overtake_dsp` param slot, which is
+  a single slot shared with every other writer on the device. A blocking write
+  that cannot claim it inside its timeout returns `false`; Movy discarded that
+  return and cleared the batch anyway, so a contended write was a silently lost
+  gesture. Measured on device: of 24 Play presses that all reached the router,
+  **15 had their batch dropped this way** — which is what "the transport ignored
+  the button" looked like from the front. A refused batch is now kept and
+  rewritten until it lands, tagged with a sequence number the engine deduplicates
+  on, because a refusal cannot say whether the request had already been taken and
+  a step toggle applied twice toggles itself back off. (`ENGINE_VERSION` 0.76.0.)
+
 - **A chain synth could crash the device at load.** Movy hands the Schwung chain
   host a copy of Schwung's host callback table, and that table gained a reserved
   tail of null pointers in August — precisely because a module's own copy of the

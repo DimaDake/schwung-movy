@@ -31,6 +31,7 @@ mod version_index;
 mod version_retain;
 mod version_store;
 
+use std::sync::atomic::{AtomicBool, Ordering};
 use chain_slots::ChainSlots;
 use pad_route::PadRoute;
 use click::Click;
@@ -125,7 +126,7 @@ pub(crate) fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.75.0";
+const ENGINE_VERSION: &str = "0.77.0";
 
 /* Blocks between autosaves. The callback runs at ~344 Hz, so this is ~2 s —
  * flash on this device is not free and the sequencer is dirty constantly while
@@ -228,6 +229,11 @@ impl Instance {
             }
             "probersp" => {
                 self.probe_rsp = val.to_string();
+            }
+            /* Test-only: silence the output. See MUTE. */
+            "mute" => {
+                MUTE.store(val.trim() == "1", Ordering::Relaxed);
+                host::log(&format!("movy-dsp: mute={}", val.trim()));
             }
             "file_path" => {}
             /* Ask the engine to log each chain's current output peak. The
@@ -561,6 +567,7 @@ impl Instance {
             "probersp" => Some(self.probe_rsp.clone()),
             "capinfo" => Some(self.engine.capture_info()),
             "alabels" => Some(self.engine.auto_labels()),
+            "mute" => Some(if MUTE.load(Ordering::Relaxed) { "1".into() } else { "0".into() }),
             "ping" => Some(format!("pong {ENGINE_VERSION}")),
             // Serialize for autosave; reading it clears the dirty flag (the UI
             // is about to persist exactly this snapshot).
@@ -891,12 +898,40 @@ unsafe extern "C" fn get_error(_instance: *mut c_void, _buf: *mut c_char, _buf_l
     0
 }
 
+/* Silence the output without changing anything that produces it.
+ *
+ * Set by the device test harness (`test-device/run.mjs`) so a sweep does not
+ * play the whole set out loud for as long as it runs — the scenarios press
+ * pads and run the transport for real, and that is the noise. Everything still
+ * renders: the chains cost what they cost, `chcost`/`chwall` stay honest, and
+ * every check reads params and logs rather than audio, so nothing it asserts on
+ * moves.
+ *
+ * A process-wide static rather than instance state ON PURPOSE. Scenarios close
+ * and reopen movy, which destroys the instance and builds a new one, so per-
+ * instance state would come back unmuted in the middle of a sweep. A static
+ * lives as long as the dlopen — which also means it CANNOT outlive a redeploy
+ * or a stack restart, so the worst a crashed sweep can leave behind is a
+ * silence that the next engine load clears.
+ *
+ * Not exposed in movy's UI and not persisted anywhere: there is no user-facing
+ * mute here, and a setting that could be left on by accident is exactly what
+ * this is not. */
+static MUTE: AtomicBool = AtomicBool::new(false);
+
 unsafe extern "C" fn render_block(instance: *mut c_void, out: *mut i16, frames: c_int) {
     guard((), || {
         if let Some(i) = inst(instance) {
             if !out.is_null() && frames > 0 {
                 let slice = unsafe { core::slice::from_raw_parts_mut(out, frames as usize * 2) };
                 i.render(slice);
+                /* After render, never instead of it: the cost of the block is
+                 * what the CPU page reports and what the parallel scheduler is
+                 * tuned against. Muting by skipping work would make every
+                 * measurement taken under test a lie. */
+                if MUTE.load(Ordering::Relaxed) {
+                    slice.fill(0);
+                }
             }
         }
     });
@@ -926,6 +961,25 @@ pub unsafe extern "C" fn move_plugin_init_v2(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /* The test harness's mute. It is a process static so it survives the
+     * instance churn a scenario's close-and-reopen causes; the risk that comes
+     * with that is it outliving the run that set it, so the readback is what
+     * lets the harness clear it and CHECK that it cleared. */
+    #[test]
+    fn mute_is_settable_readable_and_clears() {
+        let mut inst = Instance::new();
+        assert_eq!(inst.get_param("mute").as_deref(), Some("0"), "silent is not the default");
+        inst.set_param("mute", "1");
+        assert_eq!(inst.get_param("mute").as_deref(), Some("1"));
+        /* A NEW instance still reads muted — the whole point, and the thing a
+         * per-instance flag would get wrong halfway through a sweep. */
+        let mut fresh = Instance::new();
+        assert_eq!(fresh.get_param("mute").as_deref(), Some("1"),
+                   "a reopen must not bring the sound back mid-sweep");
+        fresh.set_param("mute", "0");
+        assert_eq!(inst.get_param("mute").as_deref(), Some("0"), "and clearing it is global too");
+    }
 
     #[test]
     fn parses_a_mix_setting() {

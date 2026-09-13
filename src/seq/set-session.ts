@@ -13,6 +13,7 @@
  * every identity change asks one question — does the incoming Set already have
  * state? — and nothing ever waits on identity. */
 
+import { paramSet } from '../host/param.js';
 import { mlog } from '../log.js';
 import { engineAbsent, engineAbsentReason, engineGeneration, engineReady } from './engine.js';
 import { seqState } from './state.js';
@@ -126,8 +127,7 @@ function rename(toId: string, toName: string): void {
      * since it has no way to know when the seed that may still need those files
      * has run. Only the ui blob is copied here: that half is still ours. */
     if (flagValue('engpersist')) {
-        if (typeof host_module_set_param_blocking === 'function')
-            host_module_set_param_blocking('set', 'rename ' + from + ' ' + toId, 200);
+        paramSet('set', 'rename ' + from + ' ' + toId, 200);
         const ui = readUiBlob(from);
         if (ui) writeUiBlob(toId, ui);
         setId = toId; setName = toName;
@@ -291,8 +291,7 @@ export function sessionFlush(force = false): void {
             /* The one capture that is a command: the engine cannot see a
              * teardown or a Set switch, and this is the last chance this Set
              * has to record where it got to. */
-            if (typeof host_module_set_param_blocking === 'function')
-                host_module_set_param_blocking('set', 'keep exit', 200);
+            paramSet('set', 'keep exit', 200);
         } else {
             captureVersion(setId, 'exit', savedPayload(), gen);
         }

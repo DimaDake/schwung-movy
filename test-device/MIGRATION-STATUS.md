@@ -71,42 +71,56 @@ not clean, and it would be dishonest to present it as a 33% win.
 **Escalation ask:** diagnose the mod path above. It is a movy engine bug and it
 outranks this migration.
 
-### `test-seq.sh` → `test-device/scenarios/seq.ts` — no commit
+### `test-seq.sh` → `test-device/scenarios/seq.ts` — CLOSED 2026-09-13
 
-**Escalated under the 3-fix rule.** A working scenario exists but was never
-green, so nothing was committed and `scripts/test-seq.sh` is untouched and still
-in `test-all-device.sh`. The work is tracked at `test-device/seq.wip.ts`,
-deliberately kept out of `test-device/scenarios/` so a never-green scenario
-cannot be auto-discovered and pollute the remaining suites. (It first lived
-under `.superpowers/sdd/`, which is gitignored — a clean clone would have had
-none of it.)
+16 checks, in the sweep. Five consecutive runs at 16/16 before it was promoted.
 
-**The blocking fact: the Play button never stopped a running transport.** In both
-runs the engine's `play=` stayed `1` and no `seq: play=0` line appeared. That
-absence is meaningful — `src/seq/engine.ts:399` is exactly where movy emits that
-line, so this is not a grep for a string that never exists. Seven checks sit
-downstream of it.
+It was escalated under the 3-fix rule on 2026-09-12 and sat as a WIP for a day,
+on this blocking fact: **the Play button never stopped a running transport**, and
+the failure count moved 4, 8, 7 over identical code. Both were one cause, and it
+was not in the scenario.
 
-Ruled out before escalating (this is what makes it a real escalation rather than
-a transcription slip):
+`host_module_set_param_blocking` reports a refused write by returning false —
+the single-slot `overtake_dsp` param SHM refuses what it cannot claim inside the
+timeout — and `src/seq/engine.ts` discarded that return, clearing the batch
+either way. So any `cmd` batch written while something else held the slot was
+dropped in silence. Measured on device with one throwaway `mlog` at each end:
+**24 Play presses all reached the router and 15 of their batches died there**,
+which is exactly what "press three times against a transport that never stops"
+looks like.
 
-- inject delivery, press duration, the Move-link branch (`link=0`), and a
-  generally wedged command channel;
-- **the gesture shape** — the scenario was rewritten to reproduce bash's own tap
-  timing exactly (`ts_tap_cc` is `ts_send "…:127:0.05" "…:0"`, a 50 ms hold;
-  `device.ts`'s `tap.cc` holds 2 frames) and it *still* failed. This was my own
-  first hypothesis and it is now tested and dead.
+Two fixes, both with tests that fail without them:
 
-The agent's own leading hypothesis — its status polling starving the shared
-`overtake_dsp` param slot — was contradicted by `mutes.ts` polling the same
-param and passing, and it declined to act on a contradicted hypothesis rather
-than rewriting the harness to fit it. That restraint is the point of the rule.
+- **movy** keeps a refused batch and rewrites it verbatim until it lands, behind
+  a `#<seq>` tag the engine dedupes on (`seq-core::apply_batch`) — a refusal
+  cannot say whether the shim had already taken the request, and `tog` applied
+  twice toggles the step back off. ENGINE_VERSION 0.75.0 → 0.76.0.
+- **the scenario** stopped polling that same slot every 30 frames. `PARAM_POLL_GAP`
+  (150) now lives in `wait.ts` and is what both `probe.ts` and this scenario use.
+  A Play press moved the engine's play byte 12/12 at that gap and **0/12** at
+  `every: 30`: the poll loop was starving the very write it was waiting on.
 
-⚠️ **Gap worth closing first:** the report records bash's *time* (1:59.78) but
-never records **whether bash passed**. "bash green, scenario red" is therefore
-unestablished. If bash is also red today, this suite was already broken before
-the migration, which is a materially different escalation. The cheapest first
-step is one `./scripts/test-seq.sh move.local` and read its tally.
+Worth recording, because the 2026-09-12 review reasoned about it from the
+outside and got it backwards: the leading hypothesis — *harness polling starves
+the shared param slot* — was **right**. It was dismissed because `mutes.ts`
+polls the same param and passes, but `mutes` writes engine params from the
+harness side and never depends on movy's own queued batch surviving. A
+contradiction found in a suite that does not exercise the mechanism is not a
+contradiction.
+
+Three smaller defects the scenario itself carried, all fixed here:
+
+- the capture and reopen legs read the log **once**, immediately after a press,
+  where every other leg waits (`settle`). One run in three scored
+  `capture-fixed-notes` as "movy never reported it" when the UI tick had simply
+  not come round yet.
+- `goTrack` had no answer when the track BUTTONS could not reach the wanted
+  track at all — they address Move's focused group of four, and §7 moves it.
+  It now falls back to the Session step row, which is absolute over all sixteen.
+- `dev.deployUi()` runs AFTER `fixture.ensure()`, which opens movy — so the
+  fixture phase always ran the previous ui.js. Harmless until the UI and engine
+  had to agree on a version, at which point the tier hung. ui.js is now deployed
+  once per sweep from `run.mjs`, next to the engine, before anything opens.
 
 Note the migration did find and fix two real harness defects on the way (a
 `key=value` log reader aimed at space-separated `seq: step 4 lane 36` /

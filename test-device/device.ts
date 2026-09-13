@@ -5,7 +5,7 @@ import type { Agent } from './agent.js';
 import { UI_FLAG_JUMP_TO_TOOLS } from './agent.js';
 import type { Probe } from './probe.js';
 import { until } from './wait.js';
-import { restartStack } from './engine.js';
+import { deployUi, restartStack } from './engine.js';
 import {
     cc, noteOn, noteOff, knobDelta,
     CC_JOG_CLICK, CC_JOG_TURN, CC_BACK, CC_KNOB_BASE, CC_TRACK_BASE,
@@ -210,27 +210,25 @@ export class Device {
      * that group is 0, and lands somewhere else silently otherwise — measured
      * 2026-09-12, with the focus on track 9, selectTrack(2) selected track 10.
      *
-     * Every shipped scenario asks for track 0 from a fresh open, so none of
-     * them can see it. seq.wip.ts is the one caller that moves the focus
-     * (hold-Session + step 9) and then keeps calling this, which is why its
-     * later legs assert against clips on tracks nothing wrote to.
-     *
-     * Replacing the gesture with the 16-track selector (hold Session + step)
-     * was tried and is NOT a drop-in: holding Session commits the switch and
-     * stays in Session view, where the pads are the clip grid rather than the
-     * keyboard, and the press also runs captureClear() and releaseAllLive()
-     * (src/seq/router-buttons.ts). Measured on the seq WIP: 12/16 → 9/16 with
-     * the bare swap, 6/16 with a Session tap added to return to Note view. The
-     * fix is to give the harness a deliberate track-selection primitive, not to
-     * swap this one gesture for another. */
+     * Every shipped scenario but one asks for track 0 from a fresh open, so
+     * none of them can see it. `scenarios/seq.ts` is the caller that moves the
+     * focus (hold-Session + step 9) and then keeps calling this; its `goTrack`
+     * verifies the engine's `trk=` and falls back to the Session step row,
+     * which addresses all sixteen absolutely. That fallback belongs there
+     * rather than here because it is a different gesture with side effects of
+     * its own (captureClear, releaseAllLive — src/seq/router-buttons.ts), not a
+     * drop-in replacement for a button press. */
     async selectTrack(n: number): Promise<void> {
         await this.tap.cc(CC_TRACK_BASE + (3 - (n % 4)));
         await this.bus.frames(30);
     }
 
+    /* Kept as the scenarios' call site; the work and the once-per-sweep rule
+     * live in engine.ts next to deployEngine, because the ordering that matters
+     * (ui.js on the device BEFORE the first open, not after the fixture) is a
+     * property of the sweep rather than of any one scenario. */
     async deployUi(): Promise<void> {
-        await run('node', ['build/device.mjs']);
-        await run('scp', ['-q', 'ui.js', `ableton@${this.host}:${REMOTE}/`]);
+        await deployUi(this.host);
     }
 
     /* A redeployed dsp.so does NOT hot-reload, measured 2026-09-11: the module

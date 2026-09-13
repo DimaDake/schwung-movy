@@ -195,7 +195,7 @@ What is still bash, and why:
 
 | script | why it is still here |
 | --- | --- |
-| `test-seq.sh` | its scenario (`test-device/seq.wip.ts`, run with `--wip`) is not green. See `plans/2026-09-12-test-device-migration-followups.md` item 6. |
+| `test-seq.sh` | its scenario (`test-device/scenarios/seq.ts`) is green and in the sweep as of 2026-09-13; this is now a duplicate kept only until `scripts/lib/test-set.sh` goes. Retire it with that. |
 | `test-chains.sh`, `test-cpu.sh`, `test-voice-slot.sh` | never in `MIGRATION.md`'s scope, and not in the sweep either. Migrate on next touch. |
 | `test-fixture-selftest.sh` | it tests `scripts/lib/test-set.sh`, which outlives the suites: fourteen non-test scripts (`measure-*`, `bench-*`, `dev-probe`) still source it. |
 
@@ -287,7 +287,6 @@ as its own project) and the device tier must be green before a commit.
 ./scripts/deploy.sh [move.local]              # build + deploy ui.js AND dsp.so
 ./scripts/deploy.sh --release [move.local]    # the bundle that SHIPS
 npm run test:device -- --scenario smoke       # one scenario
-npm run test:device -- --wip                  # the seq WIP, never in the sweep
 node scripts/grab-screen.mjs /tmp/shot.png    # the live screen as a PNG
 ssh ableton@move.local 'touch /data/UserData/schwung/debug_log_on'   # once per boot
 ssh ableton@move.local 'tail -f /data/UserData/schwung/debug.log | grep "\[movy\]"'

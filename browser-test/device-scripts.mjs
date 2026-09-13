@@ -559,12 +559,27 @@ ok('a failed engine build aborts instead of falling through',
 ok('--no-engine announces that the engine was not shipped',
    runMjs.includes('--no-engine') && /noEngine[\s\S]{0,200}console\.log/.test(runMjs));
 
-/* The seq WIP is not green. It may be runnable (`--wip`) but must never load
- * by default: a never-green scenario in the sweep is how a red gate stops being
- * read — the same reasoning that kept it out of scenarios/. */
-ok('the seq WIP loads only behind --wip',
-   /--wip[\s\S]{0,80}import\('\.\/dist\/seq\.wip\.js'\)/.test(runMjs)
-   && !/^import '\.\/dist\/seq\.wip\.js';/m.test(runMjs));
+/* ui.js has to be on the device BEFORE anything opens movy, and what opens it
+ * first is each scenario's own `fixture.ensure()` — so a per-scenario
+ * `dev.deployUi()` is always too late and the fixture phase runs the previous
+ * build. Invisible until the UI and the engine had to agree on a version, at
+ * which point the tier hung on a fixture that could not establish itself. */
+const atUi = runMjs.search(/^await deployUi\(HOST\);/m);
+ok('ui.js is deployed before the scenarios run too',
+   atUi > 0 && atRunAll > 0 && atUi < atRunAll);
+
+/* Every scenario in scenarios/ must be LOADED. The registry is built by import
+ * side effect, so a file that exists and is never imported is a suite that
+ * silently does not run — which is what `seq` was for a day: moved out of
+ * scenarios/ with broken relative imports, it threw ERR_MODULE_NOT_FOUND on the
+ * one flag that loaded it, and nobody could tell because nothing ran it. */
+const scenarioFiles = readdirSync('test-device/scenarios')
+    .filter((f) => f.endsWith('.ts'))
+    .map((f) => f.replace(/\.ts$/, ''));
+const notLoaded = scenarioFiles.filter(
+    (n) => !runMjs.includes(`import './dist/scenarios/${n}.js';`));
+ok('every scenario in scenarios/ is imported by run.mjs', notLoaded.length === 0,
+   notLoaded.length ? `never loaded: ${notLoaded.join(', ')}` : `${scenarioFiles.length} loaded`);
 
 /* ── Test 16: the bash device tier is closed to additions ───────────────────
  * A ratchet, not a ban. Eleven bash suites became TS scenarios; these are what
@@ -576,8 +591,9 @@ ok('the seq WIP loads only behind --wip',
 log('\nTest 16: no new bash device suites (the tier only shrinks)');
 
 const BASH_SUITES_LEFT = [
-    /* The only script that builds and deploys dsp.so via deploy.sh, and the
-     * suite whose scenario (test-device/seq.wip.ts) is not green yet. */
+    /* Its scenario (test-device/scenarios/seq.ts) is green and in the sweep as
+     * of 2026-09-13, and run.mjs ships the engine itself now — so this is a
+     * duplicate, kept only until scripts/lib/test-set.sh can go with it. */
     'test-seq.sh',
     /* Never in MIGRATION.md's scope. Not run by test-all-device.sh either. */
     'test-chains.sh', 'test-cpu.sh', 'test-voice-slot.sh',

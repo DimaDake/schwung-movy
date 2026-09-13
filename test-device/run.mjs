@@ -3,7 +3,7 @@
 import { Bus } from './dist/bus.js';
 import { Agent } from './dist/agent.js';
 import { ensureServers, stopServers } from './dist/daemon.js';
-import { deployEngine } from './dist/engine.js';
+import { deployEngine, deployUi } from './dist/engine.js';
 import { runAll } from './dist/runner.js';
 import './dist/scenarios/automation.js';
 import './dist/scenarios/unload.js';
@@ -19,13 +19,7 @@ import './dist/scenarios/smoke.js';
 import './dist/scenarios/versions.js';
 import './dist/scenarios/migrate.js';
 import './dist/scenarios/jog-hint.js';
-
-/* The seq WIP is opt-in and never part of the sweep: it is not green, and a
- * never-green scenario in the default run is how a red gate stops being read.
- * `npm run test:device -- --wip` is how you work on it. Before this it could
- * not be run at all — it was moved up out of scenarios/ without its relative
- * imports being fixed, so importing it threw ERR_MODULE_NOT_FOUND. */
-if (process.argv.includes('--wip')) await import('./dist/seq.wip.js');
+import './dist/scenarios/seq.js';
 
 const argv = process.argv.slice(2);
 const flag = (n) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : undefined; };
@@ -63,6 +57,15 @@ if (noEngine) {
         ? `engine: deployed and restarted (${r.detail})`
         : `engine: unchanged, no restart (md5 ${r.detail})`);
 }
+
+/* ui.js too, and for the same reason as the engine above: every scenario's
+ * `fixture.ensure()` OPENS movy, and the per-scenario `dev.deployUi()` runs
+ * after it — so the fixture phase always ran the previous build. With the UI and
+ * the engine having to agree on a version, that is not merely stale: an
+ * ENGINE_VERSION bump left the fixture opening a 0.75.0 ui.js against a 0.76.0
+ * engine and the tier hung there. */
+await deployUi(HOST);
+console.log('ui.js: deployed');
 
 const started = await ensureServers(HOST);
 const bus = new Bus(HOST);   await bus.connect();

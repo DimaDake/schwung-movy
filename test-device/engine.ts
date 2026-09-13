@@ -98,3 +98,26 @@ export async function deployEngine(host: string): Promise<EngineDeploy> {
     const detail = await restartStack(host);
     return { built: true, changed: true, restarted: true, detail };
 }
+
+/* Build ui.js and put it on the device.
+ *
+ * Called once per sweep from run.mjs, BEFORE any scenario runs, for the same
+ * reason deployEngine is: a scenario's `fixture.ensure()` opens movy, and until
+ * this existed the only deploy was `dev.deployUi()` — which every scenario
+ * calls AFTER that ensure. So the fixture phase always ran the PREVIOUS ui.js,
+ * and a change that the UI and the engine have to agree on deadlocked the tier:
+ * measured 2026-09-13, an ENGINE_VERSION bump left ui.js asking for 0.75.0
+ * while the freshly deployed engine answered 0.76.0, and `fixture.ensure` sat
+ * in its retry loop until it gave up.
+ *
+ * Idempotent per process: `Device.deployUi()` still exists and still works, and
+ * after this has run it is a no-op rather than a rebuild and scp per scenario. */
+let uiDeployed = false;
+
+export async function deployUi(host: string, force = false): Promise<boolean> {
+    if (uiDeployed && !force) return false;
+    await run('node', [join(repoRoot(), 'build', 'device.mjs')], { cwd: repoRoot() });
+    await run('scp', ['-q', ...SSH_OPTS, join(repoRoot(), 'ui.js'), `ableton@${host}:${REMOTE}/`]);
+    uiDeployed = true;
+    return true;
+}

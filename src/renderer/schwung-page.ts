@@ -33,6 +33,7 @@ import { registerModuleWidgets } from './schwung-widgets.js';
 import { surfaceOf } from './schwung-voices.js';
 
 import { schwungLib } from './schwung-lib.js';
+import { GRID_BODY_RECT } from './layout.js';
 /*
  * SCHWUNG'S OWN INPUT HANDLER, not a copy of it. Click and Back are LADDERS —
  * click is picker/door/no-knob-held/held, Back is hint/peek/picker/menu/exit —
@@ -441,7 +442,7 @@ export function createSchwungPage(port: TrackPort, componentKey = 'synth'): Schw
             };
             /* No `footer` argument: movy draws its own. Every page kind honours
              * `bands` now that the controller's chrome is one definition. */
-            ctl.render(ctx, { title, bands: BANDS });
+            ctl.render(ctx, { title, bands: BANDS, rect: GRID_BODY_RECT });
             /*
              * THE OVERLAYS ARE THE CONTROLLER'S AND IT DRAWS THEM ITSELF — the
              * enum peek that shows a divable enum's whole list while you turn

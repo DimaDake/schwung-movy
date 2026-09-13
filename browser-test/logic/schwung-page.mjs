@@ -134,4 +134,44 @@ _log('\nTest: a module declaring none leaves the model with null');
 
 setSurfaceReader(null);
 
+/* ── the embedded grid's rect ─────────────────────────────────────────────── */
+
+_log('\nTest: the embedded body rect seats Schwung’s widget rows on movy’s own rows');
+{
+    const { schwungLib } = await import('../../dist/esm/renderer/schwung-lib.js');
+    const { BAND_H } = schwungLib();
+    const { GRID_BODY_RECT, ROW0_Y, ROW1_Y, BAR_Y, BAR_H, TOAST_Y } =
+        await import('../../dist/esm/renderer/layout.js');
+
+    /* This is the whole reason for supplying a rect at all: upstream reflows
+     * ONLY when one is given (render_page_movy.mjs, `const reflow = !!o.rect`),
+     * so passing none is not a default — it leaves the body on Schwung's own
+     * vertical rhythm, on top of movy's bank bar.
+     *
+     * The arithmetic is asserted rather than the literal, so this fails if
+     * EITHER side moves: movy's row constants or Schwung's band heights. */
+    const row0 = GRID_BODY_RECT.y + BAND_H.gutter0;
+    const row1 = row0 + BAND_H.widget + BAND_H.label + BAND_H.gutter1;
+    const end  = row1 + BAND_H.widget + BAND_H.label;
+
+    eq('widget row 0 is movy’s ROW0_Y', row0, ROW0_Y);
+    eq('widget row 1 is movy’s ROW1_Y', row1, ROW1_Y);
+    eq('the body clears the bank bar', GRID_BODY_RECT.y >= BAR_Y + BAR_H, true);
+    eq('and stops above the toast band', end <= TOAST_Y, true);
+    eq('the rect is exactly the room a body needs', GRID_BODY_RECT.h,
+       BAND_H.gutter0 + BAND_H.widget + BAND_H.label
+       + BAND_H.gutter1 + BAND_H.widget + BAND_H.label);
+}
+
+_log('\nTest: both embedded modes, and the off stand-in, use ONE rect');
+{
+    /* `body` and `page` embed the same grid under the same chrome, and the off
+     * stand-in has to stay surface-identical. Three copies of two numbers is
+     * how they came to disagree by 2 px in the first place. */
+    const { GRID_BODY_RECT } = await import('../../dist/esm/renderer/layout.js');
+    const { BODY_Y, BODY_H } = await import('../../dist/esm/renderer/schwung-body.js');
+    eq('body mode shares the rect’s y', BODY_Y, GRID_BODY_RECT.y);
+    eq('body mode shares the rect’s h', BODY_H, GRID_BODY_RECT.h);
+}
+
 }

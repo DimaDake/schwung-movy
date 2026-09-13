@@ -33,13 +33,14 @@ import { fontPrint, fontWidth } from '../font/index.js';
  * renderer and movy's own is a runtime flag now, so both have to survive a
  * Schwung that cannot serve the library at all. */
 import { schwungLib } from './schwung-lib.js';
+import { GRID_BODY_RECT } from './layout.js';
 
-/* The body band movy hands over: below its header + bank bar, above its footer
- * row. Schwung's body is a fixed 48 rows (two gutters, two 15-row widget bands,
- * two 7-row label bands) and none of it scales, so this is not a free choice —
- * it is the only rect that fits. */
-export const BODY_Y = 8;
-export const BODY_H = 48;
+/* The rect the embedded grid draws into — one definition, in layout.ts, shared
+ * with `page` mode and the off stand-in. These were 8 and 48 here, under a
+ * comment claiming that was the only rect that fits; it was not. A body needs
+ * 47 rows, so `y` had room, and 8 put widget row 0 on top of movy's bank bar. */
+export const BODY_Y = GRID_BODY_RECT.y;
+export const BODY_H = GRID_BODY_RECT.h;
 
 const KIND_NUMBER = 'number';
 const KIND_ENUM   = 'enum';

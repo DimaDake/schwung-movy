@@ -32,6 +32,9 @@ await esbuild.build({
         /* The device harness's probe: entry point so the logic suite can pin
          * its response shape without a device. */
         resolve(root, 'src/test/probe.ts'),
+        /* The one door to the param channel: an entry point so the logic suite
+         * can drive it directly and assert on its refusal counters. */
+        resolve(root, 'src/host/param.ts'),
         resolve(root, 'src/seq/restore-gate.ts'),
         resolve(root, 'src/model/envelope.ts'),
         resolve(root, 'src/model/lfo-viz.ts'),

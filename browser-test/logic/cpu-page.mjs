@@ -166,6 +166,34 @@ export async function run() {
         eq('and the top of the plot is the same either way', barPixels(2000, 2000), barPixels(S, S));
     }
 
+    _log('\ncpu page: the param channel\'s health');
+    {
+        const { paramSet, resetParamStats } =
+            await import('../../dist/esm/host/param.js');
+        const savedB = globalThis.host_module_set_param_blocking;
+        const savedS = globalThis.host_module_set_param;
+        resetParamStats();
+        feed();
+
+        globalThis.host_module_set_param_blocking = () => true;
+        paramSet('cmd', 'play');
+        vm = buildCpuPageVM();
+        eq('a healthy channel reports no refusals', vm.ipcRefused, 0);
+        eq('and still counts the write', vm.ipcSets, 1);
+
+        /* The whole point of the number: a refused write is a gesture that did
+         * not happen, and before this it was silent everywhere. */
+        globalThis.host_module_set_param_blocking = () => false;
+        paramSet('cmd', 'stop');
+        paramSet('cmd', 'stop');
+        vm = buildCpuPageVM();
+        eq('a refused write reaches the page', vm.ipcRefused, 2);
+
+        globalThis.host_module_set_param_blocking = savedB;
+        globalThis.host_module_set_param = savedS;
+        resetParamStats();
+    }
+
     _log('\ncpu page: nothing to draw');
     resetFlags();
     seqState.cpuCost = ''; seqState.cpuWall = ''; seqState.cpuMask = ''; seqState.cpuSend = '';

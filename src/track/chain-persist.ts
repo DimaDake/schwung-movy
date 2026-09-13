@@ -26,6 +26,7 @@
 import { CHAIN_SLOTS, isVirtualSlot } from '../chain/config.js';
 import { armChainPayloads, pendingPayloadFor, resetChainPayloads, type ChainPayload }
     from './chain-payload.js';
+import { paramAvailable, paramGet, paramSet } from '../host/param.js';
 import { decodeBulk, encodeBulk } from './bulk.js';
 import { mlog } from '../log.js';
 import { TRACK_COUNT } from './ref.js';
@@ -80,16 +81,15 @@ export function persistableComponents(): string[] {
 const lastBlob = new Map<string, string>();
 
 function readChainSet(): string | null {
-    if (typeof host_module_get_param !== 'function') return null;
-    return host_module_get_param(CHAIN_SET_KEY);
+    return paramGet(CHAIN_SET_KEY);
 }
 
 /** Deliver the set. One retry, because the refusal this is guarding against is
  *  transient by nature — the shim was busy opening the previous module. */
 function writeChainSet(doc: string): boolean {
-    if (typeof host_module_set_param_blocking !== 'function') return false;
+    if (!paramAvailable()) return false;
     for (let attempt = 0; attempt < 2; attempt++) {
-        if (host_module_set_param_blocking(CHAIN_SET_KEY, doc, SET_TIMEOUT_MS)) return true;
+        if (paramSet(CHAIN_SET_KEY, doc, SET_TIMEOUT_MS)) return true;
     }
     return false;
 }

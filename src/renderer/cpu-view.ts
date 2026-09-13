@@ -80,6 +80,22 @@ export function renderCpuView(vm: CpuPageVM): void {
      * label is the only thing telling you what a column's height is worth. */
     const scale = scaleLabel(vm.scaleUs);
     fontPrint5x3((sends ? TRACKS_END : W) - fontWidth5x3(scale), LABEL_Y, scale, 1);
+    drawRefusals(vm.ipcRefused);
+}
+
+/* Writes the param slot refused, and NOTHING AT ALL when there were none.
+ *
+ * Drawn only when it has something to say, so a healthy page is the page it has
+ * always been and this cannot become another number people stop seeing. When it
+ * does appear it is a count of gestures that did not reach the engine — not a
+ * slow frame, a lost one — which is why it sits beside the load rather than in a
+ * log nobody reads.
+ *
+ * Under the capacity bar, left, where the plot has a clear margin above the
+ * first column in both layouts. */
+function drawRefusals(refused: number): void {
+    if (refused <= 0) return;
+    fontPrint5x3(1, BAR_Y + BAR_H + 1, 'IPC ' + (refused > 999 ? '999+' : refused), 1);
 }
 
 /* Where 1 ms sits.

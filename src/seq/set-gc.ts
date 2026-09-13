@@ -10,6 +10,7 @@
  * index existed. That makes this a best-effort sweep rather than a complete
  * one, which is the right trade for something that deletes files. */
 
+import { paramAvailable, paramGet, paramSet } from '../host/param.js';
 import { mlog } from '../log.js';
 import { flagValue } from './flags.js';
 import {
@@ -53,8 +54,8 @@ export function collectDeadSets(keep: string): number {
      * comes back on a later tick (`gcTick`), because the sweep runs on the
      * saver thread and cannot be awaited from here. */
     if (flagValue('engpersist')) {
-        if (typeof host_module_set_param_blocking === 'function') {
-            host_module_set_param_blocking('set',
+        if (paramAvailable()) {
+            paramSet('set',
                 'gc keep=' + keep + ' sets=' + MOVE_SETS_DIR
                 + ' pages=' + PAGE_ROOTS.join(','), 200);
             sweeping = true;
@@ -92,8 +93,8 @@ export function collectDeadSets(keep: string): number {
  *  policy's lookup — the sweep no longer walks it, so the only thing it needs
  *  from the engine is which names are now dead. */
 export function gcTick(): void {
-    if (!sweeping || typeof host_module_get_param !== 'function') return;
-    const v = host_module_get_param('gc');
+    if (!sweeping) return;
+    const v = paramGet('gc');
     if (v === null || v === 'pending') return;
     sweeping = false;
     const parts = v.split(' ');

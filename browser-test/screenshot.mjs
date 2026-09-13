@@ -64,7 +64,7 @@ const PRESETS = [
     'main-quant', 'quant-overlay-three', 'quant-overlay-two',
     'flags-top', 'flags-scrolled', 'flags-release',
     'cpu-movy-tracks', 'cpu-unsplit-module', 'cpu-overscale', 'cpu-empty',
-    'cpu-sends', 'cpu-sends-quiet',
+    'cpu-sends', 'cpu-sends-quiet', 'cpu-ipc-refused',
     'env_dual', 'env_touched', 'env_ad', 'env_asr', 'lfo_mod',
     'filter_lp', 'filter_lp_reso', 'filter_hp', 'filter_bp', 'filter_notch',
     'filter_slope24', 'filter_dual', 'filter_open',
@@ -186,6 +186,7 @@ const { drawQuantOverlay } = await import('../dist/esm/renderer/quant-overlay.js
 const { renderFlagsView } = await import('../dist/esm/renderer/flags-view.js');
 const { renderCpuView }   = await import('../dist/esm/renderer/cpu-view.js');
 const { buildCpuPageVM }  = await import('../dist/esm/seq/cpu-page-vm.js');
+const { paramSet, resetParamStats } = await import('../dist/esm/host/param.js');
 const { buildFlagsPageVM } = await import('../dist/esm/seq/flags-page-vm.js');
 const { flagsPageState, resetFlagsPage, flagsRowCount } = await import('../dist/esm/seq/flags-page.js');
 const { visibleFlags } = await import('../dist/esm/seq/flags-visible.js');
@@ -675,7 +676,11 @@ function applyView(preset) {
          * nothing is feeding, which must read as asleep-with-a-peak rather than
          * as empty. */
         case 'cpu-sends':
-        case 'cpu-sends-quiet': {
+        case 'cpu-sends-quiet':
+        /* Writes the single-slot param SHM refused. Drawn ONLY when there were
+         * some, which is why it needs a baseline of its own: every other CPU
+         * baseline is the proof that a healthy channel adds nothing to the page. */
+        case 'cpu-ipc-refused': {
             resetFlags();
             /* Every column inside the 1 ms floor, so `cpu-overscale` is the
              * only baseline where the scale has had to GROW — otherwise the two
@@ -713,6 +718,13 @@ function applyView(preset) {
                 preset === 'cpu-sends' ? '760/1180,190/240,-'
                 : preset === 'cpu-sends-quiet' ? '0/1180,-,-'
                 : '-,-,-';
+            resetParamStats();
+            if (preset === 'cpu-ipc-refused') {
+                const saved = globalThis.host_module_set_param_blocking;
+                globalThis.host_module_set_param_blocking = () => false;
+                for (let i = 0; i < 7; i++) paramSet('cmd', 'stop');
+                globalThis.host_module_set_param_blocking = saved;
+            }
             lastRender = () => renderCpuView(buildCpuPageVM());
             lastRender();
             break;

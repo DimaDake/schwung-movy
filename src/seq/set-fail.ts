@@ -4,6 +4,7 @@
  * and because these are the paths a user actually hits when something is wrong,
  * which deserve to be readable on their own. */
 
+import { paramSet } from '../host/param.js';
 import { mlog } from '../log.js';
 import { flagValue } from './flags.js';
 import { BLANK_STATE } from './set-context.js';
@@ -26,8 +27,7 @@ export function sessionStartFromScratch(): void {
      * files untouched, and the Set the user asked to be rid of would come
      * straight back on the next open. */
     if (flagValue('engpersist')) {
-        if (typeof host_module_set_param_blocking === 'function')
-            host_module_set_param_blocking('set', 'blank ' + id, 200);
+        paramSet('set', 'blank ' + id, 200);
         bumpGen();
         clearFailure();
         return;

@@ -13,6 +13,7 @@
  * one `get_param("status")` poll every STATUS_POLL_TICKS; each get blocks
  * ~3-5 ms on device, so the cadence is a deliberate IPC budget. */
 
+import { paramAvailable, paramGet, paramSet } from '../host/param.js';
 import { mlog } from '../log.js';
 import { CHAIN_MODULE_DIR, ENGINE_DSP_PATH, ENGINE_VERSION, MOVY_MODULE_DIR } from './constants.js';
 import { activeFromStr, adoptLoopWindow, muteFromStr, occFromHex, seqState, sessionFromStr, songFromStr } from './state.js';
@@ -65,24 +66,15 @@ let statusFailures = 0;
 let statusPolls = 0;
 
 export function engineAvailable(): boolean {
-    return typeof host_module_set_param === 'function'
-        && typeof host_module_get_param === 'function';
+    return paramAvailable();
 }
 
-/* Sets MUST block: non-blocking writes share a single-slot param SHM with
- * movy's own blocking param GETs and get clobbered before the shim consumes
- * them (observed on device: even the framework's own DSP-load request was
- * lost this way). */
-function engineSet(key: string, value: string): boolean {
-    if (typeof host_module_set_param_blocking === 'function') {
-        /* An explicit false is a REFUSAL: the write could not claim the single
-         * slot inside its timeout, or could not see its own response. Anything
-         * else (including a host that returns nothing) counts as delivered. */
-        return host_module_set_param_blocking(key, value, 50) !== false;
-    }
-    host_module_set_param(key, value);
-    return true;
-}
+/* The engine's writes go through the one door, which owns the blocking rule
+ * (a non-blocking write shares a single-slot SHM with movy's own blocking GETs
+ * and is clobbered before the shim consumes it — observed on device, even the
+ * framework's own DSP-load request was lost this way) and counts what the slot
+ * refuses. `false` here means refused; see host/param.ts. */
+const engineSet = paramSet;
 
 export function engineGeneration(): number { return generation; }
 
@@ -209,7 +201,7 @@ export function seqEngineTick(): void {
     seqCmdFlush();
     if (--pollCountdown <= 0) {
         pollCountdown = STATUS_POLL_TICKS;
-        const s = host_module_get_param('status');
+        const s = paramGet('status');
         if (s === null) {
             /* Engine vanished (unloaded/replaced) — reprobe. */
             if (++statusFailures >= MAX_STATUS_FAILURES) {
@@ -227,7 +219,7 @@ export function seqEngineTick(): void {
     /* After parseStatus, so a request noticed in THIS poll is answered in the
      * same tick rather than one poll interval later. Costs nothing when no
      * request is waiting, which is every tick outside a device test. */
-    probeBridgeTick(host_module_get_param, engineSet);
+    probeBridgeTick(paramGet, engineSet);
 }
 
 /* Does an inject from the engine actually reach Move?
@@ -250,7 +242,7 @@ function moveInjectReachesMove(): boolean {
 function probeTick(): void {
     if (--probeCountdown > 0) return;
     probeCountdown = PROBE_TICKS;
-    const pong = host_module_get_param('ping');
+    const pong = paramGet('ping');
     if (pong === 'pong ' + ENGINE_VERSION) {
         mlog('seq: engine ready v' + ENGINE_VERSION);
         bootState = 'ok';

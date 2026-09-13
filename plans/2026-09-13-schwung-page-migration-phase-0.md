@@ -2,6 +2,13 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **STATUS: COMPLETE. Every exit criterion below was re-measured on 2026-09-13 by a
+> session that did not implement any of it — see **Phase 0 exit criteria** at the
+> foot of this file for what was run and what it printed. The step checkboxes in
+> the task bodies were never ticked as the work landed; the ledger
+> (`docs/schwung-page-migration.md`) carried the state instead, and it is the one
+> to trust. Nothing here is left to do. Phase 1 starts at SP-25.**
+
 **Goal:** Make `schwunggrid = page` observable, measurable and testable offline, so that every Phase 1 behaviour claim has evidence behind it.
 
 **Architecture:** Nothing here changes what movy does on screen. Phase 0 builds the instruments: a two-arm router run with a burn-down number, a fleet sweep through Schwung's real planner over the captured device dump, pixel coverage for a mode that currently has none, a fork-install path with a version floor, and a reproducible A/B for the per-tick cost. The enabler already exists and is under-used — `SCHWUNG=/path/to/schwung node build/browser.mjs` resolves `/data/UserData/schwung/shared/param_pages/*` to a real checkout (`build/browser.mjs:268`), so Schwung's planner runs in Node with no device.
@@ -1421,15 +1428,17 @@ EOF
 
 ## Phase 0 exit criteria
 
-Phase 1 starts when all of these hold:
+**ALL MET — independently re-measured 2026-09-13 on a clean tree, after the
+close-out commits, by a session that did not write any of it.** Each box below
+records what was actually run, not what the implementing session reported.
 
-- [ ] `SCHWUNG=../schwung npm test` green, and `npm test` green without a checkout
-- [ ] `SCHWUNG=../schwung node browser-test/page-mode.mjs` prints `page-mode: 13 of 13 expected failures remain` and exits 0
-- [ ] `browser-test/fleet-pages.mjs` green, with the voice census baselined and its number recorded under SP-14
-- [ ] `page_body` and `page_body_p2` baselines exist, and removing the rect from the `ctl.render` call turns them red
-- [ ] No file in `src/renderer/schwung-page*.ts` over 200 lines
-- [ ] The dump's `generated_at` is this month, or the device was unreachable and that is **recorded in CAPS** in the ledger
-- [ ] A device A/B baseline for both arms is in the ledger under SP-13, or the same CAPS note
-- [ ] `docs/schwung-page-migration.md` shows SP-01 … SP-07 closed, each with its evidence
+- [x] `SCHWUNG=../schwung npm test` green, and `npm test` green without a checkout — **both exit 0.** Without `SCHWUNG` the four page-dependent subjects print `SKIPPED` by name (`page-mode`, `grid-cost`, `page_body`, `page_body_p2`), so a checkout-less green cannot be mistaken for coverage.
+- [x] `SCHWUNG=../schwung node browser-test/page-mode.mjs` prints `page-mode: 13 of 13 expected failures remain` and exits 0 — **and the ratchet bites in BOTH directions, re-proved here.** Dropping `browser opened` from the list → `REGRESSION under page — not in the expected-fail list`, exit 1. Adding a label that passes (`app-loop boots`) → `fixed under page … so delete it`, exit 1.
+- [x] `browser-test/fleet-pages.mjs` green, with the voice census baselined and its number recorded under SP-14 — **95 modules planned through the real `planPages`, dump `2026-09-13T16:33:12.253Z`, 0 invariant failures.** Census `["voice-poc"]`, baselined in `browser-test/fleet-expect.json` and written up under SP-14.
+- [x] `page_body` and `page_body_p2` baselines exist, and removing the rect from the `ctl.render` call turns them red — **re-proved: 682 px and 758 px differ** with `rect: GRID_BODY_RECT` dropped from `schwung-page-render.ts:112`. Both baselines carry real content (header, bank bar, eight knob cells) and differ from each other by the jog click — `P1…P8` vs `P9…P16` — so the page index is genuinely Schwung's.
+- [x] No file in `src/renderer/schwung-page*.ts` over 200 lines — largest is `schwung-page-input.ts` at 142; the family is 98/142/57/124/17/124.
+- [x] The dump's `generated_at` is this month, or the device was unreachable and that is **recorded in CAPS** in the ledger — `2026-09-13T16:33:12.253Z`, `module_count` 95 = `modules.length` 95, `complete: true`. The device answered; no CAPS note is owed.
+- [x] A device A/B baseline for both arms is in the ledger under SP-13, or the same CAPS note — present, and **recorded honestly**: `period_ms` 4.8–5.1 and `calls/tick=0.6` on *both* arms, i.e. the device tier does not separate them at this scale, and the off-device host-call count (+51 vs −418) is what SP-13's number rests on.
+- [x] `docs/schwung-page-migration.md` shows SP-01 … SP-07 closed, each with its evidence — all eight rows (SP-04a included) read `✅`.
 
 **Then stop.** Phase 1's first item (SP-10, the delegation boundary) is Opus work and gets its own plan written from the ledger at the start of its own session — not appended here.

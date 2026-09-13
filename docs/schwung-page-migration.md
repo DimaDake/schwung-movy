@@ -41,6 +41,15 @@ and must never grow. If it grew, the last item regressed a sibling — stop.
 
 ### Phase 1 — blockers, hardest first
 
+> **BEFORE SP-25 OR ANY ITEM BELOW: the device tier is already red on arrival.**
+> `smoke#refresh-blocking` fails through its retry (`npm run test:device` exit 1)
+> and has never passed on a first attempt in any recorded run. It **predates this
+> migration** — see the Log entry of 2026-09-13 — so it is not yours, but it does
+> mean the tier cannot tell you whether *your* change broke something until it is
+> closed. Close it, or state in your item's Log entry that you ran the tier and
+> `refresh-blocking` was the only red. Do not let a second red join it unnoticed.
+
+
 | id | item | model | state |
 | --- | --- | --- | --- |
 | SP-25 | Level-shadowed `short_name` — build each cell from the def of the level that owns it | Sonnet | ⬜ |
@@ -804,6 +813,79 @@ less than the spread above is a null result rather than a pass.
 ## Log
 
 Newest first. One line per closed item: id, date, commit, the evidence.
+
+- 2026-09-13 — **THE DEVICE TIER IS RED, AND EVERY PHASE 0 COMMIT LANDED ON IT
+  ANYWAY.** Found by the independent verification below, which ran the gate that
+  Phase 0's own Log never reports running. `npm run test:device` **exit 1**: 15
+  scenarios, 130 checks, **1 failed** — `smoke#refresh-blocking`, red through the
+  retry (attempt 1 `15 ms max`, attempt 2 `179 ms max`, budget `REFRESH_MS_MAX =
+  10`, and the check requires *every* `perf_refresh_ms` sample under it). `seq`
+  was `⚠ FLAKY` on `capture-fixed-notes`, which does not block.
+
+  **PHASE 0 DID NOT CAUSE IT, and the flake log proves that rather than asserting
+  it.** `test-device/.flake-log.json` holds 8 runs, all today.
+  `smoke#refresh-blocking` is **6 flaky of 6 runs — it has never once passed on a
+  first attempt** — and the earliest of those, `c8a0e18` at 10:37, is **eleven
+  commits before `bf94962`**, the schwung-page split. It hardened from flaky into
+  a two-attempt `fail` at `7b570cd` (14:00), still before the Phase 0 plan
+  existed. So the check is older than this phase and nothing in the phase moved
+  it.
+
+  **What IS a Phase 0 defect is that it was committed over.** Three Phase 0
+  commits — `162ec36`, `e3c2525`, `39310b1` — each have a recorded `smoke`
+  `status: "fail", attempts: 2` in the flake log. `CLAUDE.md` is explicit that a
+  red exit is real *because* the retry already ran, and that the response is to
+  fix it or report it to the user, never to wave it through. The Log's only trace
+  of any of this is four words in the SP-07 entry — "`refresh-blocking` was not
+  touched" — which records that the phase did not edit the check, not that the
+  gate it belongs to was failing every time it ran. **A gate that is red and
+  unmentioned is a gate that has stopped being read**, which is the exact failure
+  mode the tier's own design notes warn about.
+
+  **NOT FIXED HERE, and deliberately so.** It is not Phase 0 work, and the two
+  ways out are different decisions with different costs: either `179 ms` is a
+  real blocking stall on the first refresh after a cold tool open and wants
+  debugging, or `REFRESH_MS_MAX = 10` — justified in `smoke.ts:54-58` as "one
+  `shadow_get_param` measures ~3 ms, so 10 ms allows for shim jitter" — is simply
+  not a budget the first refresh can meet, and wants re-deriving. `179 ms` is not
+  shim jitter, so the first reading is the one to test first. **Whoever picks
+  this up: a 100%-retry check is not a flake, it is an under-budgeted or
+  genuinely-failing check wearing a flake's clothes.** Until it closes, the tier
+  cannot be used as a gate for SP-25, because it is already red before SP-25
+  writes a line.
+
+- 2026-09-13 — **PHASE 0 VERIFIED INDEPENDENTLY, and it holds.** A session that
+  implemented none of it re-ran every exit criterion on a clean tree after the
+  close-out commits. `SCHWUNG=../schwung npm test` exit 0; `npm test` without a
+  checkout exit 0, with `page-mode`, `grid-cost`, `page_body` and `page_body_p2`
+  each printing `SKIPPED` **by name** (a checkout-less green cannot be misread as
+  coverage). `page-mode.mjs` prints `13 of 13` and was re-proved red in **both**
+  directions — a dropped label reads `REGRESSION under page`, an added passing
+  label reads `fixed under page … so delete it`, exit 1 each. `fleet-pages.mjs`
+  plans all 95 modules through the real `planPages` with 0 invariant failures,
+  census `["voice-poc"]`. `grid-cost.mjs` reproduces the committed pair exactly —
+  page premium **51**, off **−418**, ceiling 90 — so the budget is a live
+  measurement, not a copied constant. Dropping `rect: GRID_BODY_RECT` from
+  `schwung-page-render.ts:112` reddens both scenes (**682 px** / **758 px**), and
+  the two baselines carry real content and differ by the jog click (`P1…P8` vs
+  `P9…P16`), so the bank index is Schwung's and not a frozen 0. Largest
+  `schwung-page*.ts` is 142 lines. Dump `2026-09-13T16:33:12.253Z`, 95 = 95,
+  `complete: true`. No `src/` change; the Phase 0 Global Constraint held
+  throughout. **Phase 0 is closed. Next item is SP-25.**
+
+- 2026-09-13 — **HAZARD LEFT IN THE TREE, and untracked is not the mitigation it
+  was taken for.** `scripts/inject-movy.py` is untracked on purpose because its
+  docstring is **wrong** — it asserts that a cable-0 injection reaches the host UI
+  and that an overtaking tool needs cable 2, which the device measurement in
+  Environment facts refutes (head `0x0B` moved movy's selection; `0x2B` left the
+  framebuffer byte-identical). But an untracked file is not an invisible one: it
+  sits in the working tree, it is what a `grep` or an `ls scripts/` turns up, and
+  it states the false premise more confidently than the ledger states the
+  correction. It is the same false premise commit `ac1e50d` had to chase out of
+  the rest of the tooling. **It should be deleted, or its docstring corrected in
+  place and the file committed — leaving it as-is re-seeds the thing that cost a
+  measurement session.** Flagged, not acted on: deleting an untracked file is not
+  reversible from git.
 
 - 2026-09-13 — **Phase 0 close-out, fix round 2 — the assertion that could not
   fail, and the reader `uninstallMockFs` downgraded.** No `src/` change; the

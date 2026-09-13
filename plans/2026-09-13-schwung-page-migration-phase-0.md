@@ -1276,7 +1276,7 @@ Both have **stale usage lines**: they document `MOVY_SCHWUNG_GRID=off|page`, whi
 
 **Interfaces:**
 - Consumes: `setSchwungGridMode` from `dist/esm/renderer/schwung-grid.js`; `installEnv`, `installMockEngine`, `MOCK_SYNTHS` from `browser-test/`; `MOVY_APP_LOOP_GRID` from Task 1 if the device arm reuses it.
-- Produces: `browser-test/grid-cost.mjs` fails when `page`-mode host calls per gesture exceed a committed budget relative to `off`. The budget is a **ratio**, not an absolute — an absolute number would drift with every unrelated change to how many params a page holds.
+- Produces: `browser-test/grid-cost.mjs` fails when `page`-mode host calls per gesture exceed a committed budget relative to `off`. **The budget was specified here as a ratio rather than an absolute, on the reasoning that an absolute would drift with every unrelated change to how many params a page holds. That reasoning does not survive the measurement: `off`'s gesture premium is NEGATIVE by construction — an input suppresses movy's refresh window and in `off` mode the gesture adds nothing to replace it — so the denominator floors at one call per gesture and the check reduces to an absolute ceiling on the page arm's premium. See Step 5 and the ledger's SP-07 closure; the ceiling is re-derived, and the drift this note worried about becomes a re-measure trigger rather than a defect.**
 
 - [ ] **Step 1: Fix the arm selection in both scripts**
 
@@ -1311,7 +1311,7 @@ Expected: two different call counts. **If they are equal the harness is broken, 
 
 - [ ] **Step 3: Turn the off-device arm into a suite**
 
-Create `browser-test/grid-cost.mjs`: run the same scripted gesture under both modes in one process — each arm in its own `spawnSync`, as `page-mode.mjs` does and for the same reason — and assert the ratio against a committed budget. Record the measured numbers in the file's comment with the date, so the next reader knows what the budget was set from rather than guessing at a magic constant.
+Create `browser-test/grid-cost.mjs`: run the same scripted gesture under both modes in one process — each arm in its own `spawnSync`, as `page-mode.mjs` does and for the same reason — and assert the page arm's gesture premium against a committed budget (nominally a ratio; effectively an absolute ceiling, for the reason in **Interfaces** above). Record the measured numbers in the file's comment with the date, so the next reader knows what the budget was set from rather than guessing at a magic constant.
 
 **Two things the arm child must do, or this suite cannot work:**
 
@@ -1328,15 +1328,35 @@ Add `node browser-test/grid-cost.mjs` to `scripts.test`. Then `npm test` and `SC
 
 - [ ] **Step 5: Prove it has teeth**
 
-Raise the `page` arm's cost by making `refreshOneParam` do its work twice. That is `src/model/store.ts:288`, a **tracked** file — so the restore is safe *here*, which is true of no other file in this task: both `scripts/grid-call-cost.mjs` and `scripts/measure-grid-cost.sh` are UNTRACKED until Step 7, and a `git checkout` on either is a silent no-op that would ship the mutation.
+**This step's mutation changed on 2026-09-13, and the reason is the useful part.**
+It originally said to make `refreshOneParam` (`src/model/store.ts:288`) do its work
+twice. **Measured, that does not red the gate and cannot**: the mutation adds its
+calls uniformly with ticks, so it adds the same ~675 to the gesture window and to
+the idle floor, and a *premium* — a difference between two equal-span windows —
+cancels it. The gate it was first proven against was the one with a 600-tick
+gesture window against a 300-tick floor (see the fix-round note below), where a
+uniform increase landed twice on one side and produced a red. **The inflated
+window was where the old teeth came from.** A gate must not flag a uniform per-tick
+cost increase anyway: that is the shared refresh path, identical in both arms, and
+`browser-test/perf.mjs` is where a regression in it belongs.
+
+So mutate what the premium is *for* — a **host round trip per knob detent in the
+page arm**, i.e. the throttle gone, which is the shape "knobs move very very
+slowly" actually describes.
 
 ```bash
-cp src/model/store.ts /tmp/store.bak
-# make refreshOneParam run its body twice
-SCHWUNG=../schwung node build/browser.mjs && SCHWUNG=../schwung node browser-test/grid-cost.mjs; echo "exit=$?   # expect 1"
-cp /tmp/store.bak src/model/store.ts
+cp src/renderer/schwung-page-input.ts /tmp/input.bak
+# add one globalThis.shadow_get_param(slot, "synth:chain_params") per detent
+SCHWUNG=../schwung node build/browser.mjs && SCHWUNG=../schwung node browser-test/grid-cost.mjs; echo "exit=$?   # expect 1 at 1311"
+cp /tmp/input.bak src/renderer/schwung-page-input.ts
 SCHWUNG=../schwung node build/browser.mjs && SCHWUNG=../schwung node browser-test/grid-cost.mjs; echo "exit=$?   # expect 0, restored"
 ```
+
+Both files are **tracked**, so the restore is safe *here* — which is true of no
+other file in this task: `scripts/grid-call-cost.mjs` and
+`scripts/measure-grid-cost.sh` are UNTRACKED until Step 7, and a `git checkout` on
+either is a silent no-op that would ship the mutation. Restore by `cp` anyway, and
+confirm with `git diff --stat -- src/` empty.
 
 **`SCHWUNG` is repeated on both sides of the `&&` and that is not decorative.** A
 leading `VAR=value cmd` assignment applies to *that command only* — `... && cmd2`

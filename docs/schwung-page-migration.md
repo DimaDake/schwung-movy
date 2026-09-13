@@ -37,7 +37,7 @@ and must never grow. If it grew, the last item regressed a sibling — stop.
 | SP-04 | Fleet sweep: 95 dump modules planned through Schwung's `page_plan` | Sonnet | ✅ |
 | SP-05 | `page` screenshot scenes — today `page` has zero pixel coverage | Sonnet | ✅ |
 | SP-06 | Fork install script + runtime Schwung **version** floor | Sonnet | ✅ |
-| SP-07 | Grid A/B cost harness, reproducible, both arms | Sonnet | ⬜ |
+| SP-07 | Grid A/B cost harness, reproducible, both arms | Sonnet | ✅ |
 
 ### Phase 1 — blockers, hardest first
 
@@ -635,6 +635,32 @@ The off-device call count is load-independent, which is why it carries the burde
 **Closes when:** the same gesture run twice reproduces within noise, both arms
 name which layer the time is in, and the off-device arm is in `npm test`.
 
+**Closed 2026-09-13.** All three hold. The arms are selected for real —
+`setSchwungGridMode(arm)` off device, the `schwunggrid` prefs flag plus a movy
+reopen on it — and each arm now prints the mode it *resolved*, so the two-identical-
+arms failure can never be mistaken for a finding again. The off-device arm is
+`browser-test/grid-cost.mjs`, in `scripts.test`, asserting a **ratio** budget of
+550 (measured 397 with the committed harness; the teeth mutation lands at 729).
+The metric is the gesture **premium** over each arm's own idle floor, not the
+ratio of window totals: the totals ratio is dominated by the refresh both arms
+share and moves only 2.71 → 2.80 under the teeth mutation — no signal at all.
+
+Two defects were found in the instruments themselves while closing this, and
+both are the kind that produce a confident wrong number rather than an error:
+
+- **`grid-call-cost.mjs` measured nothing at all.** `setFlag('setcommit', 0)` was
+  missing, so the wall-clock-timed Set-commit press never completed under instant
+  ticks, movy stayed in `settling`, and `router.ts:168`'s input gate refused every
+  injected message — both arms reported the idle refresh and nothing on top. The
+  fix ticks until `sessionReady()` and refuses to print a number if it never is.
+- **`measure-grid-cost.sh`'s view-change guard could never pass.** `grep -c` exits
+  1 on a zero count, so `|| echo 0` appended a second `0`; `moved` became the
+  two-line `"0\n0"`, which is not `0`, so every clean sample was stamped `INVALID`
+  — and every dirty one too, which is why it read as merely noisy. A guard that
+  fires on all inputs is not a weaker guard, it is no guard: the mark carried no
+  information and the numbers beside it could not be trusted or discarded on
+  their merits. It now strips the newline and prints the offending lines.
+
 **Needs:** SP-01.
 
 ### SP-14 — Cause E, and where its gap actually is
@@ -683,11 +709,68 @@ last time), and **a recommendation**. If the delegation boundary did not recover
 the cost, SP-13 opens a scoped investigation and the remaining Phase 1 items
 continue in parallel. It does not stop the migration.
 
+#### The A/B baseline, 2026-09-13 (this is the "before" SP-13 compares against)
+
+Taken with `./scripts/measure-grid-cost.sh off` then `... page`, device reachable,
+movy sitting on track 0's `synth` page (`page` arm preflight: `schwung-body ok
+track=0 ck=synth pages=2`; `off` arm preflight: `schwung-body mode=off` — both
+arms prove the view they measured before measuring it). One representative
+`perf_ipc` report per section, the same five sections on each arm:
+
+| section | `off` period_ms | `page` period_ms |
+| --- | --- | --- |
+| idle | 4.9 (peak 10) | 5.0 (peak 15) |
+| jog | 5.0 (peak 14) | 4.9 (peak 11) |
+| jogflick | 4.9 (peak 10) | 4.9 (peak 9) |
+| knob | 5.0 (peak 14) | 4.9 (peak 13) |
+| knobflick | 5.0 (peak 14) | 4.8 (peak 10) |
+
+`calls/tick=0.6` and `ipc_ms` 1.2–1.5 on **both** arms, every section; worst
+`period_ms` seen anywhere is 5.1. No section was flagged `INVALID`.
+
+**Read this honestly: the device arm does not separate the arms at this scale.**
+That is not a null result about the grid — it is the reason the gate is off
+device. `perf_ipc` reports an average over 120 ticks, the tick period here is
+~5 ms with ~0.6 host calls/tick, and the module under it is a mock; a difference
+of a few calls per gesture disappears into that average. The same gesture counted
+in **host calls** separates the arms by 397 vs −63 (`off` lands below its own
+idle floor because input suppresses movy's refresh window), which is a number the
+device tier cannot produce and a laptop can. So SP-13's number is the off-device
+count; these `period_ms` figures are the device half, recorded as the baseline
+this item compares against after SP-12, and a post-SP-12 run that moves them by
+less than the spread above is a null result rather than a pass.
+
 ---
 
 ## Log
 
 Newest first. One line per closed item: id, date, commit, the evidence.
+
+- 2026-09-13 — **SP-07 closed, and the device A/B baseline is in under SP-13.**
+  Both scripts could not do what they claimed. `grid-call-cost.mjs` counted
+  nothing: without `setFlag('setcommit', 0)` the Set-commit press — which is
+  wall-clock timed — never completed under instant ticks, movy stayed in
+  `settling`, and the input gate refused every injected message, so both arms
+  reported the idle refresh and nothing on top. It now ticks until
+  `sessionReady()` and **refuses to print a number** rather than print that one.
+  `measure-grid-cost.sh`'s view-change guard could never pass (a `grep -c` of
+  zero exits 1, so `|| echo 0` made `moved` the two-line `"0\n0"`): every sample,
+  clean or not, was stamped `INVALID`. It strips the newline now and prints the
+  offending lines. **Teeth, and the metric was changed because the first one had
+  none:** a ratio of window *totals* is dominated by the refresh both arms share
+  and moves 2.71 → 2.80 under the teeth mutation — no signal — so the committed
+  metric is the gesture **premium** over each arm's own idle floor, which the
+  same mutation moves 397 → 729. `browser-test/grid-cost.mjs` (in `scripts.test`,
+  budget **550**) was proven red at 729 and green at 397, with the rebuild on
+  *both* sides of the copy, since the child reads `dist/esm` and a `src/`
+  mutation that is never rebuilt reaches nothing. Suite guard realpath-hardened
+  — Task 5's version silently did nothing under a symlinked path and exited 0.
+  Both `npm test` modes green (`SCHWUNG=../schwung`, and SKIPPED without it).
+  **Device baseline, both arms, in the SP-13 section:** `period_ms` 4.8–5.1 and
+  `calls/tick=0.6` on *both*, i.e. the device tier does not separate the arms at
+  this scale — recorded as the before-value, and the reason the gate is the
+  load-independent host-call count. `scripts/inject-movy.py` stays untracked, per
+  the ruling; `refresh-blocking` was not touched.
 
 - 2026-09-13 — **SP-06, review fix round 1** — two of the findings were defects
   in the instrument, not the prose. **F2, a short-circuit hole in the version

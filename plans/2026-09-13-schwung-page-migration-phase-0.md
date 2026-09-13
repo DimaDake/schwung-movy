@@ -1164,6 +1164,16 @@ In `src/renderer/schwung-grid.ts:54`, extend `schwungGridMode()`'s first clause 
 
 Surface `schwungFloorReason()` wherever `schwungLibError()` already renders, so the Settings row says which version is needed rather than that something failed.
 
+**This is the one place in Phase 0 that touches what a user sees, so rule on it
+explicitly in your report.** On a device that MEETS the floor — every device this
+ships to, including the one you verify on in Step 7 — the mode is unchanged and
+nothing moves on screen. The only behaviour that changes is on an **under-floor**
+device, and there it turns a link error with no explanation into a clear "needs
+Schwung X.Y.Z" message. That is the Global Constraint satisfied rather than
+strayed past: Phase 0 adds an instrument that reports a broken environment; it
+does not change a working one. If you find yourself changing anything a
+floor-meeting device renders, you have crossed into Phase 1 — stop and say so.
+
 - [ ] **Step 5: Run the tests**
 
 ```bash
@@ -1198,11 +1208,16 @@ Confirm movy starts and the Settings row shows the fork's behaviour. If the devi
 - [ ] **Step 8: Prove the floor has teeth**
 
 ```bash
-node -e "const f='src/renderer/schwung-floor.ts',s=require('fs').readFileSync(f,'utf8');require('fs').writeFileSync(f,s.replace(/SCHWUNG_FLOOR\s*=\s*'[^']*'/,\"SCHWUNG_FLOOR = '99.0.0'\"))"
+cp src/renderer/schwung-floor.ts /tmp/schwung-floor.bak
+sed -i '' "s/SCHWUNG_FLOOR *= *'[0-9.]*'/SCHWUNG_FLOOR = '99.0.0'/" src/renderer/schwung-floor.ts
 SCHWUNG=../schwung node build/browser.mjs && SCHWUNG=../schwung node browser-test/logic.mjs 2>&1 | grep -A6 'version floor'
-# expect ✗ on 'exactly the floor passes' — the floor is being read, not ignored
-git checkout src/renderer/schwung-floor.ts
+# expect a RED on 'exactly the floor passes' — the floor is being read, not ignored
+cp /tmp/schwung-floor.bak src/renderer/schwung-floor.ts
+SCHWUNG=../schwung node build/browser.mjs && SCHWUNG=../schwung node browser-test/logic.mjs 2>&1 | grep -A6 'version floor'
+# expect GREEN again. THIS line is the one that matters.
 ```
+
+**The restore is a copy, not `git checkout`, and that is the whole point.** `src/renderer/schwung-floor.ts` is created in Step 3 and not committed until Step 9 — so at Step 8 it is **untracked**, and `git checkout` on it is a silent no-op. The `99.0.0` mutation would survive, Step 9 would commit it, and the floor would then be unmet on every device: `schwungGridMode()` pins to `off` and the entire feature is dead, with `npm test` still green because the test reads whatever the constant says. The confirming run after the copy is what proves the restore took.
 
 - [ ] **Step 9: Commit**
 

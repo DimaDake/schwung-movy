@@ -379,9 +379,33 @@ disambiguates duplicate page names itself (`"Sync"` → `"Sync - 2"`,
 and derives a level name from its key. Renaming a level in `genera`, emptying
 `genera.sync`'s knobs and blanking a name each left all three invariants green.
 So `checkPages(pages, slotKeys)` is exported and pure, and the suite runs it
-against every real plan while the proofs feed it directly: 3 synthetic reds fire,
-2 merely-unusual greens stay green, exit 0. The census has real teeth — mutating
-`voiceDeclaring` to `["mrdrums"]` exits 1.
+against every real plan while the proofs feed it directly. **Those proofs now
+live in the suite and run on every `npm test`** — five synthetic cases through
+the same `ok`/`fail` reporting, 3 reds that fire and 2 merely-unusual greens that
+must not. They are deliberately not behind a `--selftest` flag: the real fleet is
+well-formed and only ever exercises the passing path, so a `checkPages` hollowed
+out to `return []` would leave every suite green — pinned by making exactly that
+edit (3 teeth red, the 95-module sweep still clean, exit 1) and restoring it. The
+census has real teeth — mutating `voiceDeclaring` to `["mrdrums"]` exits 1.
+
+**A truncated capture cannot read as green.** The invariants only ever see the
+modules that are PRESENT, so a dump that silently lost some passes all of them;
+one pruned copy (`mrdrums` removed, `complete: false`) proved it. The suite now
+asserts `dump.complete` and `dump.modules.length === dump.module_count` before
+the sweep — through `fail()`, not a throw, so the rest of the report still
+prints — and prints `generated_at` on the header line so staleness sits beside
+completeness. Both branches were shown firing on a pruned copy in an isolated
+tree. **Warning TEXT is compared, not just a module's presence**: a presence-only
+check let an upstream rewording, a gained warning and a dropped one all read
+green, so the baseline stored text nothing read back.
+
+**Deliberately NOT pinned: each module's plan shape.** `planPages` returns a
+`fingerprint` this suite does not use, and a hierarchy corrupted to *add* a page
+would stay green. That is out of scope on purpose — pinning every module's exact
+page count turns a legitimate upstream planner change into a red suite for a
+whole session, and the job here is the invariants a **user** can navigate, not
+the planner's output. The completeness assertion above is what guards against
+silent truncation. (Noted in the suite beside the loop so it is not re-raised.)
 
 **The census is baselined, not asserted** (`voice-poc`, 1 module — see SP-14).
 One declarer is Cause E, a module-side fact; a red build for it would make every

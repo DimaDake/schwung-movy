@@ -106,8 +106,58 @@ async function main() {
     const census = [];       // ids declaring voices
     const unplannable = [];  // ids with no chain_params — baselined, not failed
 
+    /* A WEDGE-TRUNCATED DUMP MUST NOT READ AS GREEN, and until this assertion
+     * existed it did. The invariants below only ever see the modules that are
+     * PRESENT, so a capture that silently lost some passes every one of them —
+     * the suite prints a smaller number and calls it a pass. This repo has
+     * captured exactly that before (the MIDI-inject wedge), so it is a live
+     * failure mode rather than a hypothetical. Both fields are the dump's own
+     * claim about itself, which is the point: `complete: false` or a count that
+     * disagrees with the list is the capture saying so.
+     *
+     * `generated_at` rides the same line so staleness sits next to
+     * completeness — a complete capture of a two-month-old fleet is the other
+     * way this suite could be quietly meaningless. */
     console.log(`\nfleet-pages: ${dump.modules.length} modules, dump ${dump.generated_at}`);
+    if (!dump.complete) fail('dump', `complete is ${JSON.stringify(dump.complete)} — not a whole capture`);
+    if (dump.modules.length !== dump.module_count) {
+        fail('dump', `modules.length ${dump.modules.length} !== module_count ${dump.module_count} — the capture lost modules`);
+    }
 
+    /* THE TEETH, PINNED. These are the only cases in this suite that hand the
+     * checks input which is genuinely BAD, and they must run on every `npm test`.
+     * Behind a `--selftest` flag they would fire only when someone remembered to
+     * ask, which leaves the same hole one level up: without them a `checkPages`
+     * hollowed out to `return []` leaves every suite green, because the real
+     * fleet is well-formed and only ever exercises the passing path.
+     *
+     * They stay in the suite rather than in the ledger because prose cannot
+     * fail. Every synthetic page carries `keys`: pageSlotKeys reads
+     * page.keys.length, so a page without it THROWS here rather than reporting
+     * a failure. */
+    const teeth = (label, pages, want) => {
+        const bad = checkPages(pages, pageSlotKeys);
+        if (bad.length === want) ok(`teeth: ${label}`);
+        else fail(`teeth: ${label}`, `${bad.length} failure(s), want ${want} — ${bad.join('; ') || 'nothing reported'}`);
+    };
+    teeth('two knobs pages sharing a name are two jog steps a user cannot tell apart',
+        [{ kind: 'knobs', name: 'Params - 2', keys: ['a'] },
+         { kind: 'knobs', name: 'Params - 2', keys: ['b'] }], 1);
+    teeth('the same name on different KINDS is two distinct steps and must stay clean',
+        [{ kind: 'knobs', name: 'X', keys: ['a'] },
+         { kind: 'items', name: 'X' }], 0);
+    teeth('a knobs page whose every slot is empty draws nothing and still costs a jog step',
+        [{ kind: 'knobs', name: 'Empty', keys: [] }], 1);
+    teeth('an unnamed page has nothing to put in the header or the bank bar',
+        [{ kind: 'knobs', name: '', keys: ['a'] }], 1);
+    teeth('a healthy plan is clean, so the checks are not merely always red',
+        [{ kind: 'knobs', name: 'Main', keys: ['osc1'] },
+         { kind: 'preset', name: 'Presets' }], 0);
+
+    /* Deliberately NOT pinning each module's plan shape (page count, order,
+     * names). A legitimate upstream planner change would then redden this suite
+     * for a whole session, and the stated job here is to hold the invariants a
+     * USER can navigate, not to freeze the planner's output. */
     for (const m of dump.modules) {
         const cp = P(m.chain_params);
         /* A module with no chain_params has no parameters to paginate at all —
@@ -139,8 +189,20 @@ async function main() {
         }, null, 2) + '\n');
         console.log('  baseline written to browser-test/fleet-expect.json');
     } else {
+        /* The warning TEXT is compared, not just the module's presence. A
+         * presence-only check let an upstream rewording, an extra warning on a
+         * module, and a dropped one all read as green — the baseline stored
+         * text nothing ever read back, which is a baseline in name only. */
         for (const id of Object.keys(warned)) {
-            if (!expect.warned[id]) fail(id, 'new planner warning: ' + warned[id].join(' | '));
+            const was = expect.warned[id];
+            if (!was) { fail(id, 'new planner warning: ' + warned[id].join(' | ')); continue; }
+            if (JSON.stringify(was) === JSON.stringify(warned[id])) continue;
+            /* Named from the PLAN's side: a baseline carrying a phantom line
+             * reads as "the plan lost a warning", which is what changed, and
+             * both sides are printed so the direction cannot be misread. */
+            const shape = was.length === warned[id].length ? 'reworded'
+                        : (warned[id].length > was.length ? 'the plan gained a warning' : 'the plan lost a warning');
+            fail(id, `warning ${shape} — was [${was.join(' | ')}], now [${warned[id].join(' | ')}] — re-baseline with --update`);
         }
         for (const id of Object.keys(expect.warned)) {
             if (!warned[id]) fail(id, 'warning gone — re-baseline with --update');

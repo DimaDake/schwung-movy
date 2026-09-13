@@ -24,9 +24,9 @@
  * would make every session red for something no session can fix. It is
  * baselined so a CHANGE in it is loud.
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 /* Written as a code point rather than an escape so the source carries no control
  * byte for a formatter, a diff, or an editor round-trip to mangle. */
@@ -197,12 +197,15 @@ async function main() {
             const was = expect.warned[id];
             if (!was) { fail(id, 'new planner warning: ' + warned[id].join(' | ')); continue; }
             if (JSON.stringify(was) === JSON.stringify(warned[id])) continue;
-            /* Named from the PLAN's side: a baseline carrying a phantom line
+            /* Each branch is its own complete sentence, because this line is
+             * what a human reads when the gate fires and a bare `shape` glued
+             * to a `warning ` prefix read as "warning the plan lost a warning".
+             * Named from the PLAN's side: a baseline carrying a phantom line
              * reads as "the plan lost a warning", which is what changed, and
              * both sides are printed so the direction cannot be misread. */
-            const shape = was.length === warned[id].length ? 'reworded'
+            const shape = was.length === warned[id].length ? 'the warning was reworded'
                         : (warned[id].length > was.length ? 'the plan gained a warning' : 'the plan lost a warning');
-            fail(id, `warning ${shape} — was [${was.join(' | ')}], now [${warned[id].join(' | ')}] — re-baseline with --update`);
+            fail(id, `${shape} — was [${was.join(' | ')}], now [${warned[id].join(' | ')}] — re-baseline with --update`);
         }
         for (const id of Object.keys(expect.warned)) {
             if (!warned[id]) fail(id, 'warning gone — re-baseline with --update');
@@ -221,5 +224,13 @@ async function main() {
     else { console.log(`\n${ESC}[31m${ESC}[1m${failures} FLEET-PAGE CHECK(S) FAILED${ESC}[0m`); process.exit(1); }
 }
 
-/* Importing this file for checkPages() must not run the sweep. */
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) await main();
+/* Run the sweep when invoked directly, and only then.
+ *
+ * BOTH SIDES ARE REALPATHED, because comparing them as spelled is wrong under a
+ * symlink: node resolves the entry point's symlinks, so `import.meta.url` comes
+ * back as the real path while `argv[1]` keeps the spelling used to invoke it.
+ * The guard then never matches, and the suite prints NOTHING and exits 0 — a
+ * false green of exactly the shape this file exists to prevent. That is not
+ * hypothetical: it produced one inside this suite's own fix round, where the
+ * isolated scratch tree the proofs run in is the place a symlink turns up. */
+if (process.argv[1] && realpathSync(fileURLToPath(import.meta.url)) === realpathSync(process.argv[1])) await main();

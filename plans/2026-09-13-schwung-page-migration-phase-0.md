@@ -1306,6 +1306,13 @@ Expected: two different call counts. **If they are equal the harness is broken, 
 
 Create `browser-test/grid-cost.mjs`: run the same scripted gesture under both modes in one process — each arm in its own `spawnSync`, as `page-mode.mjs` does and for the same reason — and assert the ratio against a committed budget. Record the measured numbers in the file's comment with the date, so the next reader knows what the budget was set from rather than guessing at a magic constant.
 
+**Two things the arm child must do, or this suite cannot work:**
+
+1. **`grid-call-cost.mjs` prints a human table today** (`:81-86`: an `arm=` line, a per-widget table, and a `page-change premium:` line). A ratio assertion needs one stable token to parse, so give the script a single machine-readable summary line — e.g. `grid-cost: arm=<off|page> calls=<n>` — and have the suite read exactly that and nothing else. Parsing the human lines is the fragile choice: they are the part most likely to be reworded by a later reader.
+2. **Print the resolved mode in that same line.** Step 2 already says why: if `schwungLibAvailable()` is false, `page` pins itself to `off` and the two arms measure the same thing while looking like a result. The line carries the mode it actually ran, not the one it was asked for.
+
+**And `grid-cost.mjs` must guard `process.env.SCHWUNG` before any import that reaches `dist/esm`.** `browser-test/stubs/schwung-param-pages.mjs` **throws on import** — deliberately, so that `schwungLibAvailable()` cannot answer true on a machine with no checkout. ESM imports are hoisted, so a *static* import of anything reaching `renderer/schwung-grid.js` runs before your guard and turns the intended `SKIPPED` into an uncaught throw. Keep the reach in the spawned child, as `page-mode.mjs` keeps it in `app-loop.mjs`, and guard in the parent first.
+
 Use a gesture that reproduces the complaint: a knob flick on a heavy module's page, then a jog page change. `docs/schwung-param-pages-findings.md` §Cause F names mini JV as the reproducer.
 
 - [ ] **Step 4: Register and run**
@@ -1314,7 +1321,17 @@ Add `node browser-test/grid-cost.mjs` to `scripts.test`. Then `npm test` and `SC
 
 - [ ] **Step 5: Prove it has teeth**
 
-Raise the `page` arm's cost artificially — e.g. force `refreshOneParam` to run twice per tick — and confirm the suite goes red. Revert. Without this the budget is a number nobody has ever seen fail.
+Raise the `page` arm's cost by making `refreshOneParam` do its work twice. That is `src/model/store.ts:288`, a **tracked** file — so the restore is safe *here*, which is true of no other file in this task: both `scripts/grid-call-cost.mjs` and `scripts/measure-grid-cost.sh` are UNTRACKED until Step 7, and a `git checkout` on either is a silent no-op that would ship the mutation.
+
+```bash
+cp src/model/store.ts /tmp/store.bak
+# make refreshOneParam run its body twice
+SCHWUNG=../schwung node build/browser.mjs && node browser-test/grid-cost.mjs; echo "exit=$?   # expect 1"
+cp /tmp/store.bak src/model/store.ts
+SCHWUNG=../schwung node build/browser.mjs && node browser-test/grid-cost.mjs; echo "exit=$?   # expect 0, restored"
+```
+
+**The rebuild either side of the copy is not optional**, and leaving it out is the quiet failure: `grid-cost.mjs` spawns `grid-call-cost.mjs`, which reads `dist/esm` — so a mutation to `src/` that is never rebuilt reaches nothing, the suite prints green, and the teeth-proof "passes" without ever having been able to fail. The last line is the one that matters.
 
 - [ ] **Step 6: Take the device baseline, or say you could not**
 
@@ -1329,7 +1346,8 @@ Record both in the ledger under SP-13 — this is the "before" that SP-13 compar
 - [ ] **Step 7: Commit**
 
 ```bash
-git add scripts/grid-call-cost.mjs scripts/measure-grid-cost.sh browser-test/grid-cost.mjs package.json
+git add scripts/grid-call-cost.mjs scripts/measure-grid-cost.sh browser-test/grid-cost.mjs package.json \
+        docs/schwung-page-migration.md
 git commit -m "$(cat <<'EOF'
 perf: the grid A/B becomes reproducible, and its arms can no longer be identical
 

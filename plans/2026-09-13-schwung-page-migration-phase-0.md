@@ -1350,7 +1350,9 @@ SCHWUNG=../schwung node build/browser.mjs && node browser-test/grid-cost.mjs; ec
 
 Record both in the ledger under SP-13 — this is the "before" that SP-13 compares against after SP-12. If the device is unreachable, **report it IN CAPS**; the off-device arm still lands.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 7: Update the ledger** — SP-07 `✅`, and the baseline numbers under SP-13. **Do this before the commit below** — the ledger is one of the files that commit stages, and an update left until after it is a change nothing ever commits.
+
+- [ ] **Step 8: Commit**
 
 ```bash
 git add scripts/grid-call-cost.mjs scripts/measure-grid-cost.sh browser-test/grid-cost.mjs package.json \
@@ -1380,7 +1382,6 @@ EOF
 )"
 ```
 
-- [ ] **Step 8: Update the ledger** — SP-07 `✅`, and the baseline numbers under SP-13.
 
 ---
 

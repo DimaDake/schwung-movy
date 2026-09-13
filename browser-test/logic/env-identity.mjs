@@ -63,9 +63,21 @@ export async function run() {
         globalThis.os === liveOs && globalThis.host_read_file === liveReadFile);
     /* Reachability again, not merely identity: the restored reader is the one
      * that serves a module's shipped layout, which is what the suites this
-     * suite used to have to run after actually read. */
+     * suite used to have to run after actually read.
+     *
+     * THE PATH IS THE WHOLE ASSERTION: it has to be one the dump boot's reader
+     * cannot answer. `padkeys` is a synthetic module id — a browser-test
+     * fixture, never a module on any device — so that reader, a lookup over
+     * what the dump holds, answers null for it while the env's answers the
+     * fixture. Ask about a path BOTH readers serve and this check passes
+     * with `restoreHostGlobals()` commented out: forge's `movy_config.json` is
+     * served by both (the boot snapshots it, `dump-boot.mjs:131-132`) and so is
+     * every `/tools/movy/configs/<id>.json` override, which the boot reads from
+     * the same `src/module-configs` copy the env does. That was the first
+     * version of this check — green under the mutation, claiming a
+     * discrimination it did not make. */
     eq('and the restored host serves module layouts again',
         globalThis.host_read_file(
-            '/data/UserData/schwung/modules/sound_generators/forge/movy_config.json') !== null,
+            '/data/UserData/schwung/modules/sound_generators/padkeys/movy_config.json') !== null,
         true);
 }

@@ -244,7 +244,8 @@ _log('\nTest: overlay commit rejects a non-drum preset (param unchanged)');
   mockFsEntries[FACTORY_KITS] = ['808 Kit.json', 'synth.json'];
   const saved = globalThis.host_read_file;
   // Override only across the release/validation — loadModuleConfig also reads
-  // via host_read_file, so the model must boot with the real (null) impl first.
+  // via host_read_file, so the model must boot with the harness's own reader
+  // (env.mjs's serveModuleLayout), not this preset stub.
   const presetContent = (p) => p.endsWith('808 Kit.json')
     ? '{ "kind": "drumRack" }' : '{ "kind": "instrumentRack" }';
 
@@ -526,8 +527,15 @@ _log('\nTest: padKeys per-pad addressing');
    * form (see the 9w9 test below), and a fixture called "9w9" would assert a
    * layout the module deliberately stopped shipping. The mechanism is still
    * right for a kit whose pads share a control set, so its coverage lives on
-   * here. Serve the fixture the way module-configs does, since the logic
-   * harness stubs host_read_file to null. */
+   * here.
+   *
+   * The swap pins the exact path and bytes. The note that used to stand here
+   * said "the logic harness stubs host_read_file to null", and that is not so:
+   * `env.mjs:191` installs `(path) => serveModuleLayout(path)`, which answers a
+   * module's shipped layout out of `browser-test/fixtures/<id>-movy-config.json`
+   * — `padkeys` among them. What carries the weight is the save/restore around
+   * the swap: it hands the harness's own reader back instead of downgrading it
+   * to a null-answering stub for every suite that runs afterwards. */
   const savedRead = globalThis.host_read_file;
   const layout = readFileSync(new URL('../fixtures/padkeys-movy-config.json', import.meta.url), 'utf8');
   globalThis.host_read_file = (p) => p.endsWith('/padkeys/movy_config.json') ? layout : null;

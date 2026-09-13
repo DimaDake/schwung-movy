@@ -805,8 +805,58 @@ less than the spread above is a null result rather than a pass.
 
 Newest first. One line per closed item: id, date, commit, the evidence.
 
+- 2026-09-13 — **Phase 0 close-out, fix round 2 — the assertion that could not
+  fail, and the reader `uninstallMockFs` downgraded.** No `src/` change; the
+  Phase 0 Global Constraint holds. Commit: this one —
+  `Phase 0 close-out fix round 2: an assertion that can fail, and the reader the
+  mock fs gives back`. (1) **`env-identity.mjs`'s reachability check now
+  discriminates.** It asked about forge's `movy_config.json`, which BOTH readers
+  serve — the dump boot snapshots that path (`dump-boot.mjs:131-132`) and serves
+  every `/tools/movy/configs/<id>.json` override out of the same
+  `src/module-configs` copy `env.mjs` reads — so it stayed **green** with
+  `env.restoreHostGlobals()` commented out, claiming a discrimination it did not
+  make. It now asks about `sound_generators/padkeys/movy_config.json`: `padkeys`
+  is a synthetic module id that exists only as a browser-test fixture, so the
+  dump boot's lookup answers null for it where `serveModuleLayout` answers the
+  fixture. **Teeth, measured, all three states:** round-1 assertion with round-1
+  `mock-fs.mjs` → **18** reds and this check green; fixed assertion, same
+  `mock-fs.mjs` → **19** reds with this check among them — that is the movement
+  this round asked for, and reverting only `mock-fs.mjs` is what isolates it;
+  finished tree → **13**, because (2) repairs six of the downstream
+  `items-select` failures the mutation had been producing. Restored, `logic.mjs`
+  is 0 reds, exit 0. (2) **`uninstallMockFs` gives the harness's reader back
+  instead of downgrading it.** It assigned `() => null` under the comment
+  "logic.mjs's default stub" — a reader that does not exist. `host_read_file` has
+  exactly one installer, `env.mjs:191`'s `(path) => serveModuleLayout(path)`,
+  which is what serves a module its shipped layout, so every uninstall took that
+  away for good and round 1 removed the accidental repair (the next
+  `createDumpBoot()` reassigning the global). Now `installMockFs` captures the
+  prior global and `uninstallMockFs` puts it back, **deleting** it when there was
+  none; the capture is taken by the OUTERMOST install only, because suites
+  genuinely nest (`set-session.mjs` holds four outstanding at once —
+  `:285`/`:309`/`:332`/`:645`) and a capture per install would make the innermost
+  mock, not the harness's reader, what the last uninstall restores. The same
+  false belief is corrected where else it is written down in
+  `browser-test/logic/drums.mjs` (the `padkeys` swap and the factory-kit block,
+  `:246`); no behaviour there changed. (3) **The pagination probe's KNOWN RED
+  block gained the precondition it was missing** — verified against both builds
+  rather than assumed: the recorded `FAIL: the lock mark is not at the locked
+  cell…` line needs a `SCHWUNG`-built `dist/esm`, and without one the stub throws
+  on import, `schwungLib()` (`schwung-lib.ts:134`) re-raises it, and the throw
+  lands at the script's `schwungLayout(preset)` call
+  (`schwung-pagination-check.mjs:143`) as an uncaught stack trace. The note names
+  those two call sites instead of numbering them, because writing it moved them
+  (`:129`/`:106` → `:143`/`:120`). The exit status is 1 either way, so it is the
+  line, not the code, that needs the build.
+  (4) `RESUME.md` no longer files that probe among the checks that "each fail on
+  the mutation of the bug it was written for": the listing marks it KNOWN RED and
+  a paragraph below it carries the caveat and points here, at SP-03's entry.
+  (5) The round-1 entry below and this one now carry their commits. Evidence:
+  `npm test` exit 0 both with `SCHWUNG=../schwung` and bare,
+  `page-mode: 13 of 13 expected failures remain`, `ALL LOGIC CHECKS PASSED`.
 - 2026-09-13 — **Phase 0 close-out: the id it owed, and the ordering SP-02 moved
-  rather than removed.** No `src/` change; the Phase 0 Global Constraint holds.
+  rather than removed.** Commit `6951261`. No `src/` change; the Phase 0 Global
+  Constraint holds.
   (1) **SP-25 assigned** — the level-shadowing defect Phase 0 found and could not
   fix now has its id, is the first row of the Phase 1 table, and executes before
   SP-10; the `KNOWN_COLLIDING_PAGES` entry is recorded there as a temporary

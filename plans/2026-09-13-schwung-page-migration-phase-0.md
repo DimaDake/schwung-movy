@@ -894,7 +894,11 @@ EOF
 
 ### Task 6: `page`-mode screenshot scenes
 
-`schwungGridEnabled()` is `mode === 'body'`, so under `page` it is false, screenshot scenes pass no `bodyOverride`, and **every baseline renders movy's widgets whatever the flag says** — the suite passes vacuously (`docs/schwung-param-pages-findings.md` §5). Under `body` it does bite: 111 of 149 baselines differ. `GRID_BODY_RECT`'s *value* is asserted in `browser-test/logic/schwung-page.mjs`; its *use* at the `ctl.render` call is not, and §7 item 10 names that gap explicitly.
+`schwungGridEnabled()` is `mode === 'body'`, so under `page` it is false, screenshot scenes pass no `bodyOverride`, and **every baseline renders movy's widgets whatever the flag says** — the suite passes vacuously (`docs/schwung-param-pages-findings.md` §5). `GRID_BODY_RECT`'s *value* is asserted in `browser-test/logic/schwung-page.mjs`; its *use* at the `ctl.render` call is not, and §7 item 10 names that gap explicitly.
+
+**Measured before dispatch, not quoted from an older capture:** the suite holds **165 baselines** today (`ls browser-test/screenshots/baseline/*.png | wc -l`), and `npm test` reports `165 passed, 0 failed`. An earlier draft of this task asserted "111 of 149 differ" against the `body` flag; **149 is stale — re-measure against 165** rather than trusting the number, and state the one you measured in the commit.
+
+**Two API facts this task turns on, both verified in `src/renderer/schwung-page.ts:52-78`** — the `SchwungPage` interface really does expose `ready`, `pageIndex`, `pageCount` and `changePage(delta)`, so the scene below is written against the real thing. The trap is *which accessor* hands you the page (see Step 1).
 
 **Files:**
 - Modify: `browser-test/screenshot.mjs` (new scenes; `PRESETS` at `:35`)
@@ -906,7 +910,15 @@ EOF
 
 - [ ] **Step 1: Add a scene that renders Schwung's body**
 
-`renderKnobsView` already takes the two arguments this needs — `bodyOverride` and `bank` — because movy draws the bank bar from Schwung's page index and count (`knob-view.ts`). So the scene supplies both:
+`renderKnobsView` already takes the two arguments this needs — `bodyOverride` and `bank` — because movy draws the bank bar from Schwung's page index and count (`knob-view.ts`). So the scene supplies both.
+
+**Add the import first, in the file's own idiom.** `browser-test/screenshot.mjs` reaches renderer modules by **dynamic, awaited** import — `const { renderKnobsView } = await import('../dist/esm/renderer/knob-view.js');` at `:202` — which is why a static-import grep of that file finds no renderer import at all. Match it:
+
+```js
+const { setSchwungGridMode, schwungPageFor } = await import('../dist/esm/renderer/schwung-grid.js');
+```
+
+Then the scene:
 
 ```js
 /* PAGE MODE, DRAWN BY SCHWUNG. The rest of the baselines cannot reach it:
@@ -915,22 +927,35 @@ EOF
  * green about a renderer it never ran. */
 case 'page_body': {
     setSchwungGridMode('page');
-    const sp = schwungActiveFor(0, 'synth');
-    if (!sp) throw new Error('page_body: no SchwungPage for track 0 — is SCHWUNG set?');
+    /* schwungPageFor, NOT schwungActiveFor. The Active variant returns null
+     * unless the page is ALREADY ready (`schwung-grid.ts:129` — `p.ready ? p :
+     * null`), and a page it just created never is. Used here it would throw on
+     * this line, before the loop below could ever run, with a message blaming
+     * SCHWUNG for what is only a readiness race. schwungPageFor creates and
+     * reload()s the page and never returns null. */
+    const sp = schwungPageFor(0, 'synth');
     /* The controller resolves the contract over several ticks (RETRY_TICKS 12 ×
      * RETRY_LIMIT 60 in schwung-page-contract.ts). Waiting on `ready` rather
-     * than on a tick count keeps the scene deterministic on a slow machine. */
-    for (let i = 0; i < 12 * 60 && !sp.ready; i++) { sp.tick(); advance(1); }
+     * than on a tick count keeps the scene deterministic on a slow machine.
+     * model.tick() alongside sp.tick() because the scene owns the clock: the
+     * harness's own settle() drives model.tick() and knows nothing about a
+     * Schwung page, so a page ticked without a model tick reads a stale view. */
+    for (let i = 0; i < 12 * 60 && !sp.ready; i++) { sp.tick(); model.tick(); }
     if (!sp.ready) throw new Error('page_body: the contract never resolved');
     lastRender = () => renderKnobsView(model.getViewModel(), false, 0,
         () => sp.render('T1 > ' + MODULE_NAME),
         { index: sp.pageIndex, count: sp.pageCount });
     lastRender();
+    /* The mode is a module-level override: leaving it set would silently
+     * repaint every scene after this one, and they would still report green. */
+    setSchwungGridMode(null);
     break;
 }
 ```
 
-Add `'page_body'` to `PRESETS`. Reset the mode with `setSchwungGridMode(null)` after the scene so later scenes are unaffected — the mode is a module-level override, and leaving it set would silently repaint every scene after this one.
+Add `'page_body'` to `PRESETS`.
+
+**There is no `advance()` helper in this file** — an earlier draft of this step called `advance(1)`, which does not exist and would throw `advance is not defined` on the first iteration. The file's tick drivers are `settle()` (`:354`, which loops `model.tick()` to convergence against a 200-tick cap) and `model.tick()` directly (`:279`, `:358`).
 
 - [ ] **Step 2: Add a second scene one page in**
 
@@ -943,6 +968,8 @@ SCHWUNG=../schwung node build/browser.mjs
 SCHWUNG=../schwung node browser-test/screenshot.mjs --update
 open browser-test/screenshots/baseline/page_body.png browser-test/screenshots/baseline/page_body_p2.png
 ```
+
+**The build must come first, and the ordering is a real trap.** `dist/esm` is built **with or without** `SCHWUNG` — without it, `dist/esm/renderer/schwung-grid.js` is a throwing stub (943 bytes against the real module's size), and `npm test` with no checkout is the last thing to have rebuilt it. So a scene run before that build line dies inside the stub. Rebuild after **any** bare `npm test`, and never read a stub's failure as a dump or scene problem.
 
 **Look at them.** A blank 128×64 frame will baseline itself perfectly and assert nothing. Expect widget rows at y=11 and y=35 (`GRID_BODY_RECT = {x:0, y:10, w:128, h:47}` reflowed), movy's bank bar on rows 8–9, and the two frames differing.
 
@@ -963,7 +990,8 @@ git checkout src/renderer/schwung-page-render.ts
 ```bash
 SCHWUNG=../schwung npm test && npm test
 git add browser-test/screenshot.mjs browser-test/screenshots/baseline/page_body.png \
-        browser-test/screenshots/baseline/page_body_p2.png
+        browser-test/screenshots/baseline/page_body_p2.png \
+        docs/schwung-page-migration.md
 git commit -m "$(cat <<'EOF'
 test: `page` mode gets pixels, and the body rect gets its first real assertion
 
@@ -986,6 +1014,8 @@ EOF
 ```
 
 - [ ] **Step 6: Update the ledger** — SP-05 `✅`.
+
+**There are two files called "the ledger", and only one of them is committed.** `docs/schwung-page-migration.md` is the repo's migration ledger: it is **tracked**, it is what the next session reads, and it is in the `git add` above. `.superpowers/sdd/.../progress.md` is this plan's scratch workspace — `.superpowers/sdd/.gitignore` contains `*`, so it is deliberately **untracked and must not be added**. Updating it is still worth doing (the controller reads it), but a `git add` of it does nothing, and an earlier draft of this plan wrongly called that an omission.
 
 ---
 

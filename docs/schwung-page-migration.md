@@ -484,6 +484,8 @@ call is not. Add scenes that render a real Schwung-planned body.
 **Closes when:** new `page` baselines exist, and removing the `rect` argument
 from the `ctl.render` call turns them red.
 
+**Needs:** SP-01, SP-03.
+
 #### Closed 2026-09-13
 
 Two scenes render Schwung's own body through `renderKnobsView`'s `bodyOverride`
@@ -491,8 +493,12 @@ Two scenes render Schwung's own body through `renderKnobsView`'s `bodyOverride`
 pages (`Main` / `Main - 2`): `page_body` at index 0, `page_body_p2` after
 `changePage(1)`. The second exists because movy draws the bank bar from
 Schwung's `pageIndex`/`pageCount`, so a frozen `0` there is the Cause-A symptom
-a screenshot can see. It does: the two baselines differ on **row 9 by 127 px**,
-which is the bar and nothing else.
+a screenshot can see. It does: the two baselines differ in **480 px — 127 on row
+9**, which is the whole bank bar (`63 + 64`), and 353 across the two body bands
+(rows 14-23/27-31 and 38-47/51-55), so the second scene asserts the body's
+re-pagination and not the bar alone. The bar is **2 segments**, which is Schwung's
+`pageCount` and not movy's 6 banks: the scene supplies `{index, count}` straight
+from the page, and an instrumented run reads `pageCount=2`.
 
 **Teeth proved.** Removing `rect: GRID_BODY_RECT` from the `ctl.render` call
 reddens both new scenes (682 px, 758 px) and leaves all 165 other baselines
@@ -510,8 +516,6 @@ and are **skipped, not failed**, without one: `schwungPageFor` raises off the
 stub, and a baseline written from a build that cannot render the body would be
 a lie that stays green forever. `npm test` with no checkout therefore reports
 `165 passed, 0 failed, 2 skipped`.
-
-**Needs:** SP-01, SP-03.
 
 ### SP-06 — fork install + version floor
 

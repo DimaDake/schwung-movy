@@ -953,7 +953,9 @@ case 'page_body': {
 }
 ```
 
-Add `'page_body'` to `PRESETS`.
+Add `'page_body'` to `PRESETS`, **and add a `BASE` entry for it.** `loadPreset` is called as `loadPreset(BASE[preset] ?? preset)`, so without one the preset name is looked up as a mock-synth name, the param store comes back empty, `sp.ready` never turns true, and the scene throws on its first run. Use `page_body: 'test16'`.
+
+**`test16`, not the default `test8` — and the difference is the entire second scene.** `test8` is a **one-page** mock, so `page_body` and `page_body_p2` render byte-identical images and the second scene asserts nothing at all: the vacuous pass this task exists to remove, reintroduced one level up. Measured both ways — `test8` gives `pageCount=1` and identical PNGs, `test16` gives `pageCount=2` and 480 differing pixels. `test16` is a registered mock (`browser-test/mock-synth.mjs:114`) and already has its own baseline.
 
 **There is no `advance()` helper in this file** — an earlier draft of this step called `advance(1)`, which does not exist and would throw `advance is not defined` on the first iteration. The file's tick drivers are `settle()` (`:354`, which loops `model.tick()` to convergence against a 200-tick cap) and `model.tick()` directly (`:279`, `:358`).
 
@@ -988,7 +990,8 @@ git checkout src/renderer/schwung-page-render.ts
 - [ ] **Step 5: Run everything and commit**
 
 ```bash
-SCHWUNG=../schwung npm test && npm test
+SCHWUNG=../schwung npm test      # 167 passed — the two new scenes RUN
+npm test                         # 165 passed, 2 skipped — they SKIP
 git add browser-test/screenshot.mjs browser-test/screenshots/baseline/page_body.png \
         browser-test/screenshots/baseline/page_body_p2.png \
         docs/schwung-page-migration.md
@@ -1012,6 +1015,8 @@ Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 EOF
 )"
 ```
+
+**These two commands cannot be joined with `&&`, and an earlier draft joined them.** `npm test` rebuilds `dist/esm` **without** `SCHWUNG`, so the stub throws on import — run the bare clause first and `screenshot.mjs` dies instead of skipping. The scenes are therefore gated on `schwungLibAvailable()`, which tests the **built artifact** rather than `process.env.SCHWUNG`, so a bare build reports `165 passed, 0 failed, 2 skipped`. That is `CLAUDE.md`'s "skipped, not failed" rule and matches `page-mode.mjs`'s precedent, while being strictly better than it: a bare `node browser-test/screenshot.mjs` against a SCHWUNG-built `dist/esm` still *runs* the scenes instead of skipping them. The skip happens **before** `capturePng()`, so an `--update` run can never write a baseline from a build that cannot render the body.
 
 - [ ] **Step 6: Update the ledger** — SP-05 `✅`.
 

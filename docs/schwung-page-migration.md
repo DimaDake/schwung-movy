@@ -36,7 +36,7 @@ and must never grow. If it grew, the last item regressed a sibling — stop.
 | SP-04a | **Re-capture the module dump** — the committed one is 2026-07-15 | Sonnet | ✅ |
 | SP-04 | Fleet sweep: 95 dump modules planned through Schwung's `page_plan` | Sonnet | ✅ |
 | SP-05 | `page` screenshot scenes — today `page` has zero pixel coverage | Sonnet | ✅ |
-| SP-06 | Fork install script + runtime Schwung **version** floor | Sonnet | ⬜ |
+| SP-06 | Fork install script + runtime Schwung **version** floor | Sonnet | ✅ |
 | SP-07 | Grid A/B cost harness, reproducible, both arms | Sonnet | ⬜ |
 
 ### Phase 1 — blockers, hardest first
@@ -167,11 +167,28 @@ this is a rendering change with a one-line symptom already pinned above.
   says only `shadow_load_ui_module returned false`. To see a real message, ship
   a throwaway `ui.js` that does the import inside `try { await import(...) }
   catch { console.log(...) }`.
-- **Schwung floor today:** `main` at or past #405 / #411 / #414 / #415, plus
-  1.3.0 for the 128 KB param contract. SP-06 turns this into a runtime check.
-- **`schwungLibError()` already exists** (`schwung-lib.ts`) and carries the
-  reason the Settings row is stuck on MOVY. SP-06 extends it to a *version*
-  reason, not just an availability one.
+- **Schwung floor today:** `SCHWUNG_FLOOR = '1.3.0'` in
+  `src/renderer/schwung-floor.ts`, checked at runtime (SP-06). It is `main` at or
+  past #405 / #411 / #414 / #415, plus 1.3.0 for the 128 KB param contract. Raise
+  it when a feature depends on a newer Schwung, and say which feature in the
+  commit — `browser-test/logic/schwung-floor.mjs` pins the value and goes red
+  when it moves, on purpose.
+- **The installed version is NOT in `release.json`.** `release.json` is the
+  store descriptor fetched from GitHub (`store_utils.mjs:78`, `install.sh:907`)
+  and cached under `tmp/`; measured on the device 2026-09-13, nothing named
+  `release.json` exists anywhere under `/data/UserData`. What a host on the box
+  reports is `/data/UserData/schwung/host/version.txt` — read by
+  `getHostVersion()`, written by the installer, printed by
+  `collect-diagnostics.sh`; it read **1.4.0**. `schwungVersion()` reads
+  `release.json` first and falls back to that file, because with `release.json`
+  alone every real device reads as "unknown", unknown reads as met, and the floor
+  is inert.
+- **`schwungLibError()` carries no screen.** It says why the library is
+  unavailable, and in production **nothing renders it** — only tests read it. The
+  Settings row's *Param Pages* hint is where a reason reaches a person, composed
+  in `src/seq/flags-page-vm.ts` (not in `renderer/flags-view.ts`, which is pure
+  and would have to read host state to say it). SP-06 put the version reason
+  there.
 
 ---
 
@@ -606,6 +623,37 @@ continue in parallel. It does not stop the migration.
 
 Newest first. One line per closed item: id, date, commit, the evidence.
 
+- 2026-09-13 — **SP-06 ✅** — `SCHWUNG_FLOOR = '1.3.0'` in
+  `src/renderer/schwung-floor.ts`, and `schwungGridMode()` pins to `off` on an
+  under-floor host the same way it does when the library is missing.
+  `scripts/install-schwung-fork.sh movy-min-host-1.1.0` installed the fork's
+  `param_pages` (583cc175 → `param_pages.new` → rename swap → `restart_move_stack`,
+  "down at 1.4s, new stack at 5.3s"). The version is read from `release.json`
+  **first** and `/data/UserData/schwung/host/version.txt` **second**, because
+  `release.json` does not exist on a real device (Environment facts) and with it
+  alone every device reads as "unknown", unknown reads as met, and the floor is
+  inert. The gate and the hint read `schwungFloorMetOnce`/`schwungFloorReasonOnce`
+  — `schwungGridMode` is asked on every rendered frame and every knob event, and a
+  `host_read_file` there is what Schwung's own read budget forbids; installing a
+  Schwung restarts the stack, so a per-process answer is a per-host answer.
+  **Device evidence, 2026-09-13**, movy reopened through `open_tool_cmd`: Settings
+  row 1 reads **PARAM PAGES MOVY** with its own hint ("WHO DRAWS MODULE KNOBS. PAGE
+  RE-PAGINATES.") at version 1.4.0; with `host/version.txt` set to **0.9.9** the
+  same row reads **NEEDS SCHWUNG 1.3.0 (HAVE 0.9.9)**, wrapping to two lines of the
+  124 px band; restoring 1.4.0 restores the row's own hint — so the floor is live
+  on the device, and a floor-meeting device renders nothing new. **Teeth: three
+  mutations, each captured red, restored by copy, and re-run green** —
+  `SCHWUNG_FLOOR = '99.0.0'` (the brief's own Step 8 mutation) and a lexicographic
+  `atLeast`, which red `browser-test/logic/schwung-floor.mjs`; and dropping the
+  floor term from the mode gate, which red `browser-test/logic/schwung-grid.mjs`.
+  **The brief's five assertions cannot fail that way**: four of them feed
+  `SCHWUNG_FLOOR` back into the reader that compares against it, so all five stay
+  green with the constant at any value — measured, not assumed. The value pin and
+  a numeric-compare case were added for it, and the pin is what makes Step 8's
+  stated procedure reproduce. Two other brief gaps: `build/browser.mjs` needed the
+  new module as an **entry point** (it does not glob), and the hint is composed in
+  `src/seq/flags-page-vm.ts`, not `renderer/flags-view.ts` — the renderer is pure
+  and `schwungLibError()` renders nowhere in production.
 - 2026-09-13 — **SP-03 ✅** — `schwung-page.ts` 457 → 124 lines, split into four
   modules along the seams Phase 1 edits: `schwung-page-io.ts` (57, the injected
   `io`), `schwung-page-contract.ts` (98, the tri-state, `refreshLoaded()`, the

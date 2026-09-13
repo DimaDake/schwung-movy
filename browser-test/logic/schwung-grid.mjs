@@ -17,7 +17,7 @@ import {
     ok, eq, _log,
 } from './harness.mjs';
 
-export function run() {
+export async function run() {
     _log('\nlogic: schwung grid switch');
 
     resetFlags();
@@ -53,6 +53,26 @@ export function run() {
         schwungGridMode();                       // the read is what notices
         setFlag('schwunggrid', 2);
         ok('a mode flip drops the cached page', schwungPageFor(0, 'synth') !== first);
+
+        /* ── an under-floor Schwung is pinned the same way ─────────────────── */
+        /* Availability is not vintage: the six files can all be present and the
+         * renderer behind them still unable to run, because a link error is not
+         * a missing file. That is the same hole as the branch below, one version
+         * number further along — and it is asked with the flag at PAGE, so what
+         * is asserted is the floor and not the default. */
+        const { resetSchwungFloorOnce } =
+            await import('../../dist/esm/renderer/schwung-floor.js');
+        const realRead = globalThis.host_read_file;
+        globalThis.host_read_file = (p) =>
+            p === '/data/UserData/schwung/release.json'
+                ? JSON.stringify({ version: '0.11.4', download_url: '' })
+                : realRead?.(p) ?? null;
+        resetSchwungFloorOnce();
+        setFlag('schwunggrid', 2);
+        eq('an under-floor Schwung pins to movy with the flag on PAGE',
+           schwungGridMode(), 'off');
+        globalThis.host_read_file = realRead;
+        resetSchwungFloorOnce();
     } else {
         /* ── the library is not there, and the switch must not pretend ─────── */
         /* This is the branch that matters on an older Schwung: the flag can say

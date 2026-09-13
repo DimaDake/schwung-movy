@@ -29,6 +29,11 @@ await esbuild.build({
         resolve(root, 'src/renderer/schwung-widgets.ts'),
         resolve(root, 'src/renderer/schwung-voices.ts'),
         resolve(root, 'src/renderer/schwung-grid.ts'),
+        /* The version floor. Entry point for the same reason as its siblings:
+         * the logic suite drives `schwungFloorMet`/`schwungFloorReason`
+         * directly, and folded into a chunk there would be no module to import
+         * — the suite would fail on a path, not on the floor. */
+        resolve(root, 'src/renderer/schwung-floor.ts'),
         /* The device harness's probe: entry point so the logic suite can pin
          * its response shape without a device. */
         resolve(root, 'src/test/probe.ts'),

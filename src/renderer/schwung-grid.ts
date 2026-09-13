@@ -19,6 +19,7 @@
 import { createSchwungPage, type SchwungPage } from './schwung-page.js';
 import { portFor } from '../track/registry.js';
 import { schwungLibAvailable } from './schwung-lib.js';
+import { schwungFloorMetOnce } from './schwung-floor.js';
 import { flagValue } from '../seq/flags.js';
 
 export type SchwungGridMode = 'off' | 'body' | 'page';
@@ -47,12 +48,22 @@ const MODES: SchwungGridMode[] = ['off', 'body', 'page'];
  * Pinning to 'off' when the library is unavailable is what makes the setting
  * safe to expose at all — otherwise choosing DRAW on an old Schwung would take
  * the screen to a renderer that cannot run.
+ *
+ * THE VERSION FLOOR PINS IT THE SAME WAY, and for the same reason. Availability
+ * is not vintage: a Schwung with every param_pages file but an older
+ * `page_plan.mjs` imports far enough to fail on a missing export, so the six
+ * modules are present and the renderer behind them still cannot run. The two
+ * are one clause because they are one question — can Schwung serve what the
+ * flag is offering — and a mode that answered it in two places would be a mode
+ * that could disagree with itself. `schwungFloorMetOnce` is the read-once form
+ * deliberately: this is asked on every rendered frame and every knob event, and
+ * a `host_read_file` on those paths is what Schwung's own read budget forbids.
  */
 let override: SchwungGridMode | null = null;
 let lastMode: SchwungGridMode | null = null;
 
 export function schwungGridMode(): SchwungGridMode {
-    const m = !schwungLibAvailable() ? 'off'
+    const m = (!schwungLibAvailable() || !schwungFloorMetOnce()) ? 'off'
             : override !== null ? override
             : (MODES[flagValue('schwunggrid')] ?? 'off');
     /*

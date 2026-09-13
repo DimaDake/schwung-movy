@@ -699,7 +699,7 @@ for (const m of dump.modules) {
      * amount of reading one page told you which. */
     const seen = new Set();
     for (const p of r.pages) {
-        const k = p.kind + ' ' + p.name;
+        const k = p.kind + '\u0000' + p.name;
         if (seen.has(k)) { fail(m.id, `two ${p.kind} pages both named "${p.name}"`); break; }
         seen.add(k);
     }

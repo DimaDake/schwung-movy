@@ -37,7 +37,7 @@ and must never grow. If it grew, the last item regressed a sibling — stop.
 | SP-04 | Fleet sweep: 95 dump modules planned through Schwung's `page_plan` | Sonnet | ✅ |
 | SP-05 | `page` screenshot scenes — today `page` has zero pixel coverage | Sonnet | ⬜ |
 | SP-06 | Fork install script + runtime Schwung **version** floor | Sonnet | ⬜ |
-| SP-07 | Grid A/B cost harness, reproducible, both arms | Opus | ⬜ |
+| SP-07 | Grid A/B cost harness, reproducible, both arms | Sonnet | ⬜ |
 
 ### Phase 1 — blockers, hardest first
 

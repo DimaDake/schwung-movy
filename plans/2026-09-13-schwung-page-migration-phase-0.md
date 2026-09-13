@@ -905,7 +905,7 @@ EOF
 - Create: `browser-test/screenshots/baseline/page_*.png`
 
 **Interfaces:**
-- Consumes: `setSchwungGridMode`, `schwungActiveFor` from `dist/esm/renderer/schwung-grid.js`; `renderKnobsView(vm, jogTouched, activeSlot, bodyOverride, bank)` from `dist/esm/renderer/knob-view.js`; `SchwungPage.render(title, auto?, touched?)`, `.ready`, `.pageIndex`, `.pageCount`.
+- Consumes: `setSchwungGridMode`, `schwungPageFor` from `dist/esm/renderer/schwung-grid.js`; `renderKnobsView(vm, jogTouched, activeSlot, bodyOverride, bank)` from `dist/esm/renderer/knob-view.js`; `SchwungPage.render(title, auto?, touched?)`, `.ready`, `.pageIndex`, `.pageCount`.
 - Produces: baselines that fail if the rect stops being supplied at the `ctl.render` call.
 
 - [ ] **Step 1: Add a scene that renders Schwung's body**

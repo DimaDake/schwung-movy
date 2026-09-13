@@ -1333,10 +1333,17 @@ Raise the `page` arm's cost by making `refreshOneParam` do its work twice. That 
 ```bash
 cp src/model/store.ts /tmp/store.bak
 # make refreshOneParam run its body twice
-SCHWUNG=../schwung node build/browser.mjs && node browser-test/grid-cost.mjs; echo "exit=$?   # expect 1"
+SCHWUNG=../schwung node build/browser.mjs && SCHWUNG=../schwung node browser-test/grid-cost.mjs; echo "exit=$?   # expect 1"
 cp /tmp/store.bak src/model/store.ts
-SCHWUNG=../schwung node build/browser.mjs && node browser-test/grid-cost.mjs; echo "exit=$?   # expect 0, restored"
+SCHWUNG=../schwung node build/browser.mjs && SCHWUNG=../schwung node browser-test/grid-cost.mjs; echo "exit=$?   # expect 0, restored"
 ```
+
+**`SCHWUNG` is repeated on both sides of the `&&` and that is not decorative.** A
+leading `VAR=value cmd` assignment applies to *that command only* — `... && cmd2`
+leaves `cmd2` without it, and the suite then sees no checkout, prints
+`SKIPPED (no param_pages; set SCHWUNG=/path/to/schwung)` and exits **0** exactly
+where this line annotates `expect 1`. A teeth-proof written that way passes
+without ever having been able to fail.
 
 **The rebuild either side of the copy is not optional**, and leaving it out is the quiet failure: `grid-cost.mjs` spawns `grid-call-cost.mjs`, which reads `dist/esm` — so a mutation to `src/` that is never rebuilt reaches nothing, the suite prints green, and the teeth-proof "passes" without ever having been able to fail. The last line is the one that matters.
 

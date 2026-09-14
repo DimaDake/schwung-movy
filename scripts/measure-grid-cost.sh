@@ -154,7 +154,7 @@ sleep 8
 # preflight with their reason already written down.
 inject b0:0e:01 b0:0e:7f
 sleep 2
-WHERE=$(sshd "grep -oE 'schwung-body (ok track=[0-9]+ ck=[a-z_0-9:]+ pages=[0-9]+|not-ready[^|]*|mode=[a-z]+|no-model|step-page-selected)' $LOG | tail -n 1")
+WHERE=$(sshd "grep -oE 'schwung-body (ok track=[0-9]+ ck=[a-z_0-9:]+ pages=[0-9]+|not-ready[^|]*|mode=[a-z]+|movy-page ck=[a-z_0-9:]+|no-model|step-page-selected)' $LOG | tail -n 1")
 echo "== preflight: ${WHERE:-(no schwung-body line at all)}" | tee -a "$OUT"
 case "$WHERE" in
     *"ok track="*) ;;                       # grid is drawing — the arm we want

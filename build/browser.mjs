@@ -127,6 +127,10 @@ await esbuild.build({
         resolve(root, 'src/keyboard/held-notes.ts'),
         resolve(root, 'src/keyboard/release.ts'),
         resolve(root, 'src/keyboard/handler.ts'),
+        /* The delegation boundary (SP-10): an entry point so the logic suite
+         * can ask the accessor directly, rather than inferring ownership from
+         * a router gesture. */
+        resolve(root, 'src/app/page-owner.ts'),
         resolve(root, 'src/app/globals.ts'),
         resolve(root, 'src/app/init.ts'),
         resolve(root, 'src/app/resume.ts'),

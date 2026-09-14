@@ -118,25 +118,13 @@ export function schwungGridReload(trackIndex?: number): void {
     for (const k of [...pages.keys()]) if (k.startsWith(trackIndex + ':')) pages.delete(k);
 }
 
-/** Jog moved a page. Returns true when Schwung owned the move. */
-export function schwungChangePage(trackIndex: number, componentKey: string, delta: number): boolean {
-    if (schwungGridMode() !== 'page') return false;
-    const p = schwungPageFor(trackIndex, componentKey);
-    if (!p.ready) return false;
-    p.changePage(delta);
-    return true;
-}
-
-/**
- * The Schwung page for this track, or null when Schwung is not driving.
+/*
+ * WHETHER SCHWUNG IS DRIVING IS NOT ASKED HERE.
  *
- * One predicate for every input site, so a gesture cannot be routed to Schwung
- * on one path and to movy's model on another — which is how the knob turn and
- * the knob touch would end up disagreeing about which parameter is under the
- * finger.
+ * This file used to export `schwungActiveFor` (the mode + a ready check) and
+ * `schwungChangePage` (the same, plus a jog), and every seam point called one of
+ * them with a component key it derived itself. The ownership question now has
+ * exactly one answer, in `app/page-owner.ts`, which is the only caller of
+ * `schwungPageFor` — see `browser-test/logic/page-owner.mjs`, which greps for a
+ * second one. What is left here is the mode and the cache.
  */
-export function schwungActiveFor(trackIndex: number, componentKey: string): SchwungPage | null {
-    if (schwungGridMode() !== 'page') return null;
-    const p = schwungPageFor(trackIndex, componentKey);
-    return p.ready ? p : null;
-}

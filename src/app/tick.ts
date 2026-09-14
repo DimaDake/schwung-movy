@@ -24,7 +24,7 @@ import { WHITE_DIM } from '../seq/colors.js';
 import { padColor } from '../seq/pads.js';
 import { midiNoteName } from '../keyboard/notes.js';
 import { renderKnobsView } from '../renderer/knob-view.js';
-import { schwungGridMode, schwungPageFor, schwungActiveFor } from '../renderer/schwung-grid.js';
+import { pageOwnerOf } from './page-owner.js';
 import { schwungEditorActive, renderSchwungEditor } from '../renderer/schwung-editor.js';
 import { renderKeysView }  from '../renderer/keys-view.js';
 import { renderBrowseView } from '../renderer/browse-view.js';
@@ -155,27 +155,22 @@ let _schwungDiag = '';
  */
 function schwungBodyFor(model: any, stepSelected: boolean): (() => void) | undefined {
     /* Says WHY it declined, once per distinct reason. Reporting only that the
-     * grid "is still movy's" cost two device round trips; the answer is always
-     * one of these four and none of them is visible from the screen. */
+     * grid "is still movy's" cost two device round trips; the reason comes from
+     * the owner and none of them is visible from the screen. */
     const why = (r: string) => {
         if (r !== _schwungWhy) { _schwungWhy = r; mlog('schwung-body ' + r); }
         return undefined;
     };
-    if (schwungGridMode() !== 'page') return why('mode=' + schwungGridMode());
-    if (!model) return why('no-model');
     if (stepSelected) return why('step-page-selected');
-    const ck = model.getComponentKey ? model.getComponentKey() : '(none)';
-    const sp = schwungPageFor(appState.activeTrack.index, ck);
+    const owner = pageOwnerOf(model);
+    if (!owner.claimed) return why(owner.reason);
     /* BEFORE the ready check, so an unready page keeps asking. The page is
      * built while the module is still loading, and without this its first
      * empty answer stood for the whole session. */
-    sp.tick();
-    if (!sp.ready) {
-        return why(`not-ready track=${appState.activeTrack.index} ck=${ck} `
-                 + `pages=${sp.pageCount}`);
-    }
-    why(`ok track=${appState.activeTrack.index} ck=${ck} pages=${sp.pageCount} `
-      + `at=${sp.pageIndex}`);
+    owner.poll();
+    const sp = owner.page;
+    if (!sp) return why(owner.reason);
+    why(owner.reason);
     /* The bands live with the page now, not with each call site: which chrome
      * movy keeps is one decision about the embedding, and repeating it here
      * would let the two disagree. */
@@ -187,19 +182,18 @@ function schwungBodyFor(model: any, stepSelected: boolean): (() => void) | undef
  *
  * movy draws the bar; Schwung only reports. Under the grid the jog pages
  * SCHWUNG's page set, and its count differs from movy's banks, so movy's own
- * index would sit still while the body paged. `schwungActiveFor` is the same
- * one predicate every input site asks, so the bar cannot end up indexing a
- * page set the jog is not moving.
+ * index would sit still while the body paged. The owner is the same one every
+ * input site asks, so the bar cannot end up indexing a page set the jog is not
+ * moving.
  *
  * Undefined means "movy's own banks", which is also the answer on the step
  * page — that page IS movy's, and so is its bar.
  */
 function schwungBankFor(model: any, stepSelected: boolean):
         { index: number; count: number } | undefined {
-    if (stepSelected || !model) return undefined;
-    const sp = schwungActiveFor(appState.activeTrack.index,
-        model.getComponentKey ? model.getComponentKey() : 'synth');
-    return sp ? { index: sp.pageIndex, count: sp.pageCount } : undefined;
+    if (stepSelected) return undefined;
+    const owner = pageOwnerOf(model);
+    return owner.delegated ? { index: owner.pageIndex, count: owner.pageCount } : undefined;
 }
 let _schwungView = '';
 let _schwungWhy = '';

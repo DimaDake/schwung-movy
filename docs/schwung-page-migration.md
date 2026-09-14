@@ -51,7 +51,7 @@ and must never grow. If it grew, the last item regressed a sibling — stop.
 | id | item | model | state |
 | --- | --- | --- | --- |
 | SP-25 | Level-shadowed `short_name` — build each cell from the def of the level that owns it | Sonnet | ✅ |
-| SP-10 | Delegation boundary: ownership accessor + page identity | Opus | ⬜ |
+| SP-10 | Delegation boundary: ownership accessor + page identity | Opus | ✅ |
 | SP-11 | Input ownership, incl. **Clear+knob must not delete the clip** | Opus | ⬜ |
 | SP-12 | Polling + LED ownership | Opus | ⬜ |
 | SP-13 | Per-tick cost: number, attribution, recommendation (**branch point**) | Opus | ⬜ |
@@ -819,6 +819,103 @@ less than the spread above is a null result rather than a pass.
 ## Log
 
 Newest first. One line per closed item: id, date, commit, the evidence.
+
+- 2026-09-14 — **SP-10 ✅ — the delegation boundary exists, and it is one
+  object.** `src/app/page-owner.ts` is now the only place in movy that decides
+  whether Schwung owns a component's pages. `pageRefOf(model)` is the page
+  identity — `{track: appState.activeTrack.index, componentKey}` — and
+  `pageOwnerOf(model)` returns a `PageOwner` with the two implementations §3 of
+  the design asks for: `movyOwner` (movy plans, pages and answers) and
+  `delegateOwner` (Schwung's page, holding a movy owner as its fallback). It
+  answers `ref`, `claimed`, `delegated`, `page`, `pageIndex`, `pageCount`,
+  `reason`, `poll()`, `knobParamInfo(slot)` and `changePage(delta)`.
+
+  **What was there before was the same seven lines written seven times.** Every
+  seam point re-derived ownership — `schwungActiveFor(appState.activeTrack.index,
+  m.getComponentKey ? m.getComponentKey() : 'synth')` — with **four different
+  component-key fallbacks between them** (`'synth'`, `'(none)'`, `?? 'synth'`,
+  and one with no guard at all), plus two
+  `schwungChangePage(...) || m?.changePage(dir)` pairs. Migrated: `knobInfoFor`,
+  knob touch, knob release, drum-pad voice focus, knob turn, Back, jog click and
+  both jog-paging branches in `src/midi/router.ts`; `schwungBodyFor` and
+  `schwungBankFor` in `src/app/tick.ts`. `schwungActiveFor` and
+  `schwungChangePage` are **deleted** from `schwung-grid.ts`, which is now only
+  the mode and the `(track, component)` page cache — `schwungPageFor` has exactly
+  one caller in `src/`.
+
+  **CLAIMED IS NOT DELEGATED, and that distinction is the one the old code
+  smeared.** A page is built while its module is still loading, so there is a
+  window where Schwung is the intended owner and its contract has not resolved.
+  `tick.ts` needs that window to keep ticking the page; every gesture needs it to
+  stay with movy. `schwungActiveFor`'s `ready ? p : null` said the second half at
+  each site and `schwungPageFor` said the first at one, which is why `tick.ts`
+  had to call both. One owner says both: `claimed` gates the poll, `delegated`
+  and `page` gate every answer, and the pre-ready window falls through to the
+  SAME movy owner object the movy-owned case uses, so the two cannot drift.
+
+  **One deliberate narrowing, and it can only ever reduce what Schwung takes.**
+  `isMovyOwnComponent()` (new, in `chain/config.ts` beside `isMasterComponent`)
+  says the mix page and the two LFO pages are movy's own — no module declares
+  them, so there is nothing for a planner to plan. They were claimed before this:
+  a controller was built per `(track, component)` and its contract never
+  resolved, so the right answer came back for the wrong reason. Their new log
+  reason is `movy-page ck=<key>`, and `scripts/measure-grid-cost.sh:157`'s
+  preflight regex learned it in the same commit — a reason that regex cannot
+  match reads as "no schwung-body line at all" and ABORTS the measurement.
+
+  **The test with teeth is structural, because the defect is a site that was
+  never written to ask.** `browser-test/logic/page-owner.mjs` walks `src/**/*.ts`
+  and fails if `schwungActiveFor(`/`schwungChangePage(`/`schwungPageFor(` appears
+  outside `schwung-grid.ts` and `page-owner.ts`, with a stale-allowlist check —
+  the idiom `logic/tracks-refs.mjs:120` already uses for slot-addressed param
+  reads. **Proved red both ways**: it was red before the migration (`router.ts`
+  and `tick.ts` both named those functions), and restoring ONE jog site to the
+  old `schwungChangePage(...) || m?.changePage(dir)` turns it red again, naming
+  the file. The behaviour half is proved too — making `delegateOwner.changePage`
+  fall through to movy reddens exactly the two checks that pin the divergence
+  (`changePage moves Schwung's page` / `and leaves movy's bank alone`), which is
+  the disagreement the accessor exists to stop: the two planners page
+  differently, so a site moving movy's bank while Schwung draws moves an index
+  nothing displays.
+
+  **Behaviour is unchanged and that is the claim being made**, not a hope:
+  `SCHWUNG=../schwung npm test` exit 0 (167 screenshots passed, 0 failed — no
+  pixel moved, so no baseline was regenerated), `page-mode` still **13 of 13**,
+  device tier **15 scenarios · 130 checks · 0 failed**, no flakes, engine
+  unchanged. The `schwung-body` log tokens are preserved verbatim because the
+  device A/B greps them.
+
+  **What SP-11, SP-12 and SP-13 build on.**
+  - **SP-11 (input):** `owner.page` is the one handle for forwarding a gesture,
+    and `owner.knobParamInfo` already gives Clear+knob the same key the page is
+    showing. Two sites are DELIBERATELY LEFT for it and named here so they are
+    not missed: `router.ts:892` and `:933` still read
+    `(m?.getKnobPage?.() ?? 0) === 0` — the step-page-at-bank-0 interplay and the
+    Left/Right arrows — because changing them changes the step-page jog, which is
+    SP-11's listed scope. Each is one line: `pageOwnerOf(m).pageIndex === 0` and
+    `pageOwnerOf(m).changePage(±1)`. `model/index.ts`'s `getFileBrowseTarget`
+    reads `s.knobPage` and cannot be fixed in place — `model/` may not import
+    `app/`, so the target has to be passed in.
+  - **SP-12 (polling + LEDs):** `owner.poll()` is where a delegated page's own
+    read cursor runs, and `owner.delegated` is the gate that stops movy's
+    `refreshOneParam` and `updateKnobLEDs` for the same component. The rule is
+    already expressible in one condition instead of fifteen.
+  - **SP-13 (cost):** the boundary removed one duplicated
+    `schwungGridMode()` + `schwungPageFor()` pair per knob turn (the turn site
+    asked twice: once for `spk`, once inside `knobInfoFor`). That is the only
+    cost this item moved; re-measure with `scripts/measure-grid-cost.sh` after
+    SP-12, against the 2026-09-13 baseline recorded above.
+
+  **One finding recorded, not fixed:** `schwungPageFor` builds every page on
+  `portFor(trackIndex)`, so a `master_fx*` component's page is read from
+  `ch<track>:master_fx…`, which does not exist — master FX pages are claimed and
+  their contract can never resolve. `componentPort()` is the function that
+  already knows better. Fixing it would ENABLE delegation of a surface with no
+  device coverage, so it is left for SP-14/SP-20 rather than smuggled in here.
+
+  MANUAL.md / README.md untouched: this is an internal seam with no user-visible
+  change — no new feature, page, gesture or control, and the docs granularity
+  rule asks for none.
 
 - 2026-09-14 — **SP-25 ✅ — level-shadowed `short_name`, and the fix that
   almost broke a second module.** Root cause exactly as pinned: `absorbHierarchy`

@@ -96,7 +96,20 @@ export function loadHierarchy(s: ModelState): void {
     }
 
     /* Parse ui_hierarchy — build paramDefs (from .params arrays) and knobInline
-     * (from inline object knobs) for label/type fallback lookups */
+     * (from inline object knobs) for label/type fallback lookups.
+     *
+     * This flatten is last-write-wins across levels: a level can list a key by
+     * BARE STRING (no object) to reuse another level's canonical declaration —
+     * filter's root lists lfo_rate_div in its knobs but only the "lfo" level
+     * declares its short_name, and Main is meant to inherit it — so this map
+     * has to stay as the fallback for exactly that case. What it must NOT be is
+     * the *first* place a page's own cell looks: a level that redeclares a key
+     * with its OWN object entry (jp8000's perf_main/perf_setup/perf_arp each
+     * do, with DIFFERENT short_names) owns that declaration for its own page,
+     * and generic-pages.ts asks the owning level (hierarchy-walk.ts's
+     * levelOwnDefs) FIRST, falling back to this flat map only when the owning
+     * level didn't redeclare the key itself. See SP-25,
+     * docs/schwung-page-migration.md. */
     const paramDefs:  Record<string, HierParam> = {};
     const knobInline: Record<string, HierParam> = {};
     let allLevels: Record<string, HierLevel> = {};

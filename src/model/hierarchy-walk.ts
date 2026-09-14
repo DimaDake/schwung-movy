@@ -1,6 +1,7 @@
 /* Level-graph walk for the generic (no movy config) param pages: turns a
  * module's ui_hierarchy levels into an ordered list of knob pages. Split out of
  * hierarchy.ts, which owns param metadata resolution. */
+import type { RawMeta } from './param-build.js';
 
 export interface WalkParam { key?: string; label?: string; level?: string; }
 export interface WalkLevel {
@@ -25,6 +26,25 @@ export function paramKeys(lvl: WalkLevel | undefined): string[] {
     return (lvl?.params ?? [])
         .map(p => (typeof p === 'string' ? p : p.key ?? null))
         .filter((k): k is string => k !== null);
+}
+
+/* One level's OWN params[]/knobs[] inline entries as a key→def map — never
+ * merged across levels. A param can sit on more than one page (the same key
+ * under a different level's knobs), each with its own label/short_name, so a
+ * hierarchy-wide flatten (as hierarchy.ts's absorbHierarchy builds for
+ * metadata lookups elsewhere) silently overwrites one page's declaration with
+ * another's. This is scoped to exactly the level a page is being built from.
+ * `params[]` wins over an inline `knobs[]` entry for the same key, same as the
+ * flattened map's precedence (see hierarchy.ts). */
+export function levelOwnDefs(lvl: WalkLevel | undefined): Record<string, RawMeta> {
+    const defs: Record<string, RawMeta> = {};
+    for (const k of (lvl?.knobs ?? [])) {
+        if (typeof k === 'object' && k.key) defs[k.key] = k;
+    }
+    for (const p of (lvl?.params ?? [])) {
+        if (typeof p === 'object' && p.key) defs[p.key] = p;
+    }
+    return defs;
 }
 
 export interface WalkOptions {
@@ -54,8 +74,8 @@ function childOf(lvl: WalkLevel): string | null {
 
 export function buildLevelPages(
     allLevels: Record<string, WalkLevel>, rootKey: string, opts: WalkOptions = {},
-): Array<{ name: string; keys: string[] }> {
-    const out: Array<{ name: string; keys: string[] }> = [];
+): Array<{ name: string; keys: string[]; defs: Record<string, RawMeta> }> {
+    const out: Array<{ name: string; keys: string[]; defs: Record<string, RawMeta> }> = [];
     const rootLevel = allLevels[rootKey];
     if (!rootLevel) return out;
 
@@ -104,7 +124,7 @@ export function buildLevelPages(
         const pageKeys = dup ? extras : [...keys, ...extras];
         if (pageKeys.length > 0) {
             if (!dup) rendered.add(sig);
-            out.push({ name: prefix ? prefix + '/' + name : name, keys: pageKeys });
+            out.push({ name: prefix ? prefix + '/' + name : name, keys: pageKeys, defs: levelOwnDefs(lvl) });
         }
 
         /* Both edges, always: a level that has knobs can still own sub-levels

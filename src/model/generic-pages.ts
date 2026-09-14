@@ -5,7 +5,7 @@ import type { KnobParam } from '../types/param.js';
 import type { ModelState } from './state.js';
 import { mlog } from '../log.js';
 import { KNOBS_PER_PAGE } from './constants.js';
-import { buildLevelPages, knobKeys } from './hierarchy-walk.js';
+import { buildLevelPages, knobKeys, levelOwnDefs } from './hierarchy-walk.js';
 import type { WalkLevel } from './hierarchy-walk.js';
 import { makeExtrasPicker } from './level-extras.js';
 import { buildPresetParam } from './preset-param.js';
@@ -26,6 +26,13 @@ export function buildGenericPages(
     s: ModelState,
     cpMap: Record<string, RawMeta>,
     cpOrder: string[],
+    /* Hierarchy-wide flattened fallback (hierarchy.ts's absorbHierarchy) —
+     * last-write-wins across levels. Still needed: a level can list a key by
+     * BARE STRING (no object) to deliberately reuse another level's canonical
+     * declaration (filter's root lists lfo_rate_div in its knobs but only the
+     * "lfo" level declares its short_name), and that inheritance has to keep
+     * working. Only consulted when the page's OWN level does not redeclare the
+     * key itself — see `entry.defs` below and SP-25. */
     paramDefs: Record<string, RawMeta>,
     knobInline: Record<string, RawMeta>,
     allLevels: Record<string, GenericLevel>,
@@ -33,18 +40,27 @@ export function buildGenericPages(
     /* ── Generic no-config path: parse all levels ────────────────────────── */
     const rootLevel = allLevels['root'] || Object.values(allLevels)[0] || null;
 
-    /* Bank page accumulator: each entry is KNOBS_PER_PAGE keys (null = empty slot) */
-    const bankEntries: Array<{ name: string; keys: (string | null)[]; group: number }> = [];
+    /* Bank page accumulator: each entry is KNOBS_PER_PAGE keys (null = empty
+     * slot), plus the OWN defs of the one level this page was built from — a
+     * level's own object-keyed params[]/knobs[] entries, never the flattened
+     * fallback above. The same param key can appear on more than one page,
+     * each declaring it with its OWN object entry (jp8000's Performance/Setup/
+     * Arp pages each redeclare key_mode/arp_mode with a DIFFERENT short_name);
+     * the flattened map remembers only whichever level absorbHierarchy visited
+     * last, which silently hands one page a def some OTHER page declared
+     * (SP-25). A page's own level is asked FIRST; `paramDefs`/`knobInline`
+     * only apply when it said nothing about that key at all. */
+    const bankEntries: Array<{ name: string; keys: (string | null)[]; group: number; defs: Record<string, RawMeta> }> = [];
     /* Pages from the same level share a group id — see ModelState.bankGroups. */
     let nextGroup = 0;
 
-    function addPage(name: string, keys: (string | null)[], group: number): void {
+    function addPage(name: string, keys: (string | null)[], group: number, defs: Record<string, RawMeta>): void {
         const padded = keys.slice(0, KNOBS_PER_PAGE);
         while (padded.length < KNOBS_PER_PAGE) padded.push(null);
-        bankEntries.push({ name, keys: padded, group });
+        bankEntries.push({ name, keys: padded, group, defs });
     }
 
-    function addLevel(label: string, keys0: string[]): void {
+    function addLevel(label: string, keys0: string[], defs: Record<string, RawMeta>): void {
         /* Drop what the module says does not apply right now (visible_if).
          * Filtering HERE rather than at render time keeps every downstream
          * consumer honest at once: the param never gets a cell, so the knob
@@ -61,6 +77,7 @@ export function buildGenericPages(
                 i === 0 ? label : label + ' - ' + (i + 1),
                 keys.slice(i * KNOBS_PER_PAGE, (i + 1) * KNOBS_PER_PAGE),
                 group,
+                defs,
             );
         }
     }
@@ -85,8 +102,16 @@ export function buildGenericPages(
          * orphan-filepath injection here (which would double-add them); ui_* keys
          * are internal UI state, not user-facing params. */
         const fallbackKeys = cpOrder.filter(k => !k.startsWith('ui_'));
-        if (fallbackKeys.length > 0) addLevel('Main', fallbackKeys);
+        // No ui_hierarchy at all here (that's what routed to this branch), so
+        // there is no level to own a def — chain_params (cpMap) is the only
+        // source buildGenericParam has below.
+        if (fallbackKeys.length > 0) addLevel('Main', fallbackKeys, {});
     } else {
+
+    /* root's own defs — the preset/selector keys on the pages below are both
+     * intercepted by presetParam/selMap in the final build loop, never read
+     * from this, but every other root-owned key is. */
+    const rootDefs = levelOwnDefs(rootLevel as WalkLevel);
 
     /* Preset detection */
     listParam   = rootLevel.list_param;
@@ -96,7 +121,7 @@ export function buildGenericPages(
 
     /* Dedicated Preset page before Main when Main is full */
     if (presetParam && presetSeparate) {
-        addPage('Preset', [...selectors.map(p => p.key), listParam!], nextGroup++);
+        addPage('Preset', [...selectors.map(p => p.key), listParam!], nextGroup++, rootDefs);
     }
 
     /* Main page from root.knobs (with preset prepended if there's room) */
@@ -133,13 +158,14 @@ export function buildGenericPages(
     const extras = makeExtrasPicker(cpMap, allKnobKeys, listParam, s.degenerateKeys);
     const rootExtras = extras(rootLevel as WalkLevel);
     if (rootKeys.length > 0 || rootExtras.length > 0) {
-        addLevel('Main', [...rootKeys, ...rootExtras]);
+        addLevel('Main', [...rootKeys, ...rootExtras], rootDefs);
     }
 
-    /* Every level below root comes from the shared walk. */
+    /* Every level below root comes from the shared walk, each page carrying
+     * the defs of the one level it was built from. */
     const rootLevelKey = allLevels['root'] ? 'root' : Object.keys(allLevels)[0];
     for (const page of buildLevelPages(allLevels, rootLevelKey, { extras })) {
-        addLevel(page.name, page.keys);
+        addLevel(page.name, page.keys, page.defs);
     }
     }  /* end hierarchy path (else of the chain_params fallback) */
 
@@ -153,7 +179,7 @@ export function buildGenericPages(
             if (selMap[key]) { s.knobParams.push(selMap[key]); continue; }
 
             s.knobParams.push(applyAutoStyle(buildGenericParam(
-                key, cpMap[key] ?? {}, paramDefs[key] ?? knobInline[key] ?? {},
+                key, cpMap[key] ?? {}, entry.defs[key] ?? paramDefs[key] ?? knobInline[key] ?? {},
             )));
         }
     }

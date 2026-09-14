@@ -7859,12 +7859,12 @@
     "PORT"
    ],
    [
-    "MODE",
+    "KEYMD",
     "SPLIT",
     "DETUNE",
     "VOICES",
     "ARP",
-    "MODE",
+    "ARPMD",
     "BEAT",
     "BPM"
    ],

@@ -50,7 +50,7 @@ and must never grow. If it grew, the last item regressed a sibling — stop.
 
 | id | item | model | state |
 | --- | --- | --- | --- |
-| SP-25 | Level-shadowed `short_name` — build each cell from the def of the level that owns it | Sonnet | ⬜ |
+| SP-25 | Level-shadowed `short_name` — build each cell from the def of the level that owns it | Sonnet | ✅ |
 | SP-10 | Delegation boundary: ownership accessor + page identity | Opus | ⬜ |
 | SP-11 | Input ownership, incl. **Clear+knob must not delete the clip** | Opus | ⬜ |
 | SP-12 | Polling + LED ownership | Opus | ⬜ |
@@ -819,6 +819,66 @@ less than the spread above is a null result rather than a pass.
 ## Log
 
 Newest first. One line per closed item: id, date, commit, the evidence.
+
+- 2026-09-14 — **SP-25 ✅ — level-shadowed `short_name`, and the fix that
+  almost broke a second module.** Root cause exactly as pinned: `absorbHierarchy`
+  (`model/hierarchy.ts:108`) flattens every level's `params[]` into one
+  `paramDefs` map, last-write-wins, so `generic-pages.ts:156` built jp8000's
+  `Performance` page (owned by `perf_main`, which declares `key_mode` → "KeyMd"
+  and `arp_mode` → "ArpMd") from whatever `perf_setup`/`perf_arp` (both
+  `short_name: "Mode"`) wrote last. Fixed by building each cell from the def of
+  the level that OWNS its page first: `hierarchy-walk.ts` gains `levelOwnDefs`
+  (a level's own `.params`/`.knobs` object entries, never merged across
+  levels), `buildLevelPages` carries it on every returned page, and
+  `generic-pages.ts` threads a `defs` map through `bankEntries` instead of
+  reading the flattened map directly.
+
+  **The flattened map (`paramDefs`/`knobInline`) was NOT deleted — a first cut
+  that dropped it reddened `audio_fx--filter` in `dump-replay`, and that fleet
+  check is what caught it before it shipped.** `filter`'s `root` level lists
+  `lfo_rate_div` in its own `knobs[]` but declares no object entry for it — only
+  the child `lfo` level does (`short_name: "Div"`) — so `root` is deliberately
+  *inheriting* a declaration it never redeclares, the same pattern `env_amount`
+  uses between `root` and `envelope`. That is the opposite shape from jp8000,
+  where the colliding levels each carry their OWN full redeclaration with a
+  DIFFERENT value. The final read is layered:
+  `entry.defs[key] ?? paramDefs[key] ?? knobInline[key] ?? {}` — the owning
+  level's own object entry wins when it exists, and the pre-existing flattened
+  map still serves the inheritance case when it doesn't. Re-running the full
+  95-module `dump-replay` after layering the fallback back in showed exactly
+  one snapshot line move in the entire fleet (jp8000's Performance page, MODE/
+  MODE → KEYMD/ARPMD) — confirmed by diffing the regenerated
+  `dump-expect.json` before trusting it.
+
+  **Teeth, both directions, on a synthetic fixture shaped like jp8000's
+  (`MOCK_SYNTHS.level_shadowed_short_name`, `browser-test/mock-synth.mjs`):** a
+  level that owns a page and declares distinct short_names, plus sibling levels
+  visited LATER (so they write LAST into the flat map) that redeclare the same
+  keys colliding. The new check in `browser-test/logic/model-hierarchy.mjs`
+  failed red against the unmodified code (`key_mode`/`arp_mode` both read back
+  "Mode", the exact jp8000 symptom) and passed green after the fix; it also
+  asserts the sibling levels' OWN pages still read correctly, as a guard that
+  scoping to the owning level doesn't regress the pages that were already right
+  by coincidence of write order.
+
+  **`KNOWN_COLLIDING_PAGES`'s jp8000 entry is removed** (`dump-replay.mjs`) —
+  verified, not assumed: `SCHWUNG=../schwung node browser-test/dump-replay.mjs`
+  is green over all 95 modules with the entry gone, jp8000's Performance page
+  now reading `["KEYMD","SPLIT","DETUNE","VOICES","ARP","ARPMD","BEAT","BPM"]`
+  with no accommodation. `config-pages.ts:67` reads the same kind of flattened
+  map for movy-config modules and was deliberately left untouched — no known
+  repro (none of `KNOWN_COLLIDING_PAGES`'s remaining four entries are a
+  config-path module) and out of this item's pinned scope; noted here as an
+  unverified parallel shape for whoever next touches that file.
+
+  No screenshot baseline touches jp8000 (confirmed by grep before starting), so
+  none needed regenerating; `screenshot.mjs` reports its usual 167 passed, 0
+  failed. `npm test` exit 0. Device tier: 15 scenarios, 130 checks, 0 failed, no
+  flakes — unaffected, since this is a label-only change to the generic
+  parameter-page path and the engine did not rebuild (`engine: unchanged, no
+  restart`). MANUAL.md/README.md not touched: a corrected label on one
+  third-party module's page is not a new feature, page, gesture or control by
+  the docs granularity rule.
 
 - 2026-09-13 — **THE RED GATE IS GREEN, and the check was the thing that was
   broken — twice over.** `npm run test:device` now exits 0. Neither defect was in

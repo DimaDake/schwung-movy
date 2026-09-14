@@ -924,6 +924,50 @@ export const MOCK_SYNTHS = {
             .map(x => [`synth:${x}`, "0"])),
     },
 
+    /* jp8000's Performance-page shape (SP-25): a level that owns a page and
+     * declares distinct short_names for its keys, plus sibling levels visited
+     * LATER (so they write LAST into a hierarchy-wide flattened map) that
+     * redeclare the same keys with a colliding short_name. `main`'s own page
+     * must keep its own KeyMd/ArpMd rather than reading whichever level's def
+     * happened to be absorbed last. */
+    level_shadowed_short_name: {
+        "synth:name": "ShadowTest",
+        "synth:ui_hierarchy": JSON.stringify({
+            levels: {
+                root: {
+                    params: [
+                        { label: "Main",  level: "main"  },
+                        { label: "Setup", level: "setup" },
+                        { label: "Arp",   level: "arp"   },
+                    ],
+                },
+                main: {
+                    name: "Main",
+                    knobs: ["key_mode", "arp_mode"],
+                    params: [
+                        { key: "key_mode", label: "Key Mode", short_name: "KeyMd" },
+                        { key: "arp_mode", label: "Arp Mode", short_name: "ArpMd" },
+                    ],
+                },
+                setup: {
+                    name: "Setup",
+                    knobs: ["key_mode"],
+                    params: [{ key: "key_mode", label: "Key Mode", short_name: "Mode" }],
+                },
+                arp: {
+                    name: "Arp",
+                    knobs: ["arp_mode"],
+                    params: [{ key: "arp_mode", label: "Arp Mode", short_name: "Mode" }],
+                },
+            },
+        }),
+        "synth:chain_params": JSON.stringify([
+            { key: "key_mode", name: "Key Mode", type: "enum", options: ["A", "B"] },
+            { key: "arp_mode", name: "Arp Mode", type: "enum", options: ["X", "Y"] },
+        ]),
+        "synth:key_mode": "0", "synth:arp_mode": "0",
+    },
+
     nav_levels: {
         "synth:name": "NavTest",
         "synth:ui_hierarchy": JSON.stringify({

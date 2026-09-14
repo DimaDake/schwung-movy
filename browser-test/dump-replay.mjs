@@ -64,28 +64,15 @@ const KNOWN_COLLIDING_PAGES = new Set([
     // page (stutter_sync / stutter_resample_sync are both "Stutter Sync", same
     // for tempo), so no shortener can tell them apart — an upstream fix.
     'sound_generator--helm::Stutter',
-    // jp8000 is NOT the helm shape above, and reading it as "same as helm"
-    // sends the next session to file an upstream PR against names the module
-    // already ships correctly. jp8000 declares DISTINCT short names on its
-    // Performance page — key_mode "KeyMd", arp_mode "ArpMd", the same budget
-    // that renders VOICES and DETUNE on that very page. movy discards them:
-    // absorbHierarchy (model/hierarchy.ts:108) flattens EVERY level's params[]
-    // into one paramDefs map, LAST WRITE WINS, and perf_setup and perf_arp
-    // (both short_name "Mode") come after perf_main in the levels object — so
-    // paramDefs['key_mode'].short_name becomes "Mode". generic-pages.ts:156
-    // then builds each cell from that flat paramDefs[key], and param-build.ts
-    // declaredShortName deliberately prefers the def over chain_params, so the
-    // Performance page renders a label declared by a DIFFERENT page. Result:
-    // ["MODE","SPLIT","DETUNE","VOICES","ARP","MODE","BEAT","BPM"] — two knobs
-    // a user cannot tell apart, out of labels the module never gave them.
-    // The non-null shortLabel also locks both cells (renderer/shorten.ts:185),
-    // and collisionGroups and forceUnique both return early on a locked entry
-    // (:142, :165), so the disambiguation machinery never even runs.
-    // TEMPORARY Phase 0 ACCOMMODATION, not a resolution. The fix — pass the
-    // owning level's def instead of the flattened one — changes what a user
-    // sees, which is Phase 1 work; this entry goes away with it. See the
-    // "Level-shadowed short_name" item in docs/schwung-page-migration.md.
-    'sound_generator--jp8000::Performance',
+    // jp8000's Performance page is NOT here any more (SP-25, closed
+    // 2026-09-14). It used to collide on "MODE"/"MODE" because a
+    // hierarchy-wide flattened map let perf_setup/perf_arp's later
+    // declarations overwrite perf_main's own KeyMd/ArpMd short_names
+    // (model/hierarchy.ts's absorbHierarchy, last-write-wins). Fixed by
+    // having generic-pages.ts build each cell from the def of the level that
+    // OWNS its page first (hierarchy-walk.ts's levelOwnDefs), falling back to
+    // the flattened map only when the owning level didn't redeclare the key
+    // itself — see docs/schwung-page-migration.md's SP-25 entry.
 ]);
 
 let failures = 0;

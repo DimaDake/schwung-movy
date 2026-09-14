@@ -17,8 +17,10 @@ code. **Phase 0 is the exception: it already has a full plan at
 SCHWUNG=../schwung node browser-test/page-mode.mjs
 ```
 
-It prints `page-mode: N of 13 expected failures remain`. That number may shrink
-and must never grow. If it grew, the last item regressed a sibling — stop.
+It prints `page-mode: N of M expected failures remain`. That number may shrink
+and must never grow. If it grew, the last item regressed a sibling — stop. It
+started at 13 (Phase 0) and **SP-11 took it to 6**; the remaining six are named
+in `browser-test/page-mode-expected-fail.json`'s own note.
 
 ---
 
@@ -52,7 +54,7 @@ and must never grow. If it grew, the last item regressed a sibling — stop.
 | --- | --- | --- | --- |
 | SP-25 | Level-shadowed `short_name` — build each cell from the def of the level that owns it | Sonnet | ✅ |
 | SP-10 | Delegation boundary: ownership accessor + page identity | Opus | ✅ |
-| SP-11 | Input ownership, incl. **Clear+knob must not delete the clip** | Opus | ⬜ |
+| SP-11 | Input ownership, incl. **Clear+knob must not delete the clip** | Opus | ✅ |
 | SP-12 | Polling + LED ownership | Opus | ⬜ |
 | SP-13 | Per-tick cost: number, attribution, recommendation (**branch point**) | Opus | ⬜ |
 | SP-14 | Cause E — drum/voice pages | Opus | ⬜ |
@@ -819,6 +821,105 @@ less than the spread above is a null result rather than a pass.
 ## Log
 
 Newest first. One line per closed item: id, date, commit, the evidence.
+
+- 2026-09-14 — **SP-11 ✅ — input ownership, and the clip survives Clear+knob.**
+  The burn-down went **13 → 6** and the guarantee in the design's bold line is
+  now a check that runs in both arms on every `npm test`.
+
+  **CLEAR + KNOB IS A KNOB GESTURE, WHATEVER IT FOUND — that is the whole fix,
+  and the old code made it conditional on a lookup.** `router.ts`'s touch branch
+  read `if (deleteActive() && info)`, so when the owner named no parameter for
+  that knob the branch fell through, `markDeleteActed()` never ran, and letting
+  go of Clear ran `clipdel`. A knob with nothing under it is not exotic: any
+  page that does not fill all 8 cells has one, and a delegated page answers null
+  for every knob until its contract resolves. It now consumes the gesture
+  unconditionally and clears the lane only when there is one — plus the same
+  mark on the RELEASE, for the ordering where Clear goes down after the touch.
+
+  **The test is `app-loop.mjs`'s `Clear + a knob never deletes the clip`, and it
+  was red in BOTH arms before the fix** (`expected false, got true`) — this was
+  never only a delegation bug, which is why the fixture is a two-parameter
+  module where knob 7 is blank on either planner. Three checks: the empty knob,
+  a live knob, and a plain Clear tap that must still delete the clip, so the
+  guard cannot be a mute button on the feature. Teeth re-proved after the fix by
+  restoring `&& info`: red again, both arms.
+
+  **Six burn-down labels fell to ONE ordering change.** Schwung's door block ran
+  before movy's own in-flight gestures, and a knob under the hand is one of the
+  conditions that ladder takes a click on — so assign mode could never be
+  committed (`assigned: navigated to LFO slot`, `assigned: on chain view`,
+  `assign mode exited`, `LFO page shows the assigned target (not None)`,
+  `module touch cleared on return`) and a held-step click never drilled from the
+  chain into the params (`chain+held jog-press drills to params`). Assign mode
+  and a held step are now decided above the door, with the reason at the site.
+
+  **What else moved to the owner:** the step-page-at-bank-0 test on the jog
+  (`pageOwnerOf(m).pageIndex === 0` — reading movy's bank meant a jog on page 3
+  hopped to the step page), both Left/Right arrows, master-detail paging, and
+  the assign-mode jump to the LFO page. `handleKnobTouch(d1, !owner.delegated)`
+  stops movy opening its OWN enum / file dive over the cell someone else drew —
+  the touch is still recorded, because the release, the header readout and the
+  file-browse gesture all read it. `getFileBrowseTarget(keyAt?)` takes the drawn
+  key from the caller (`model/` may not import `app/`), resolves it BY KEY —
+  movy's gi is meaningless under another planner — and answers null when the
+  drawn cell is not a file param.
+
+  **The structural check is where the teeth are, again.** `logic/page-owner.mjs`
+  now also fails if any file outside the five page *implementations* calls
+  `.changePage(` / `.getKnobPage(` on a receiver that is not an owner, and if
+  `router.ts` contains `getFileBrowseTarget()` or `handleKnobTouch(d1)` with no
+  page named. All four mutations were run and each reddened exactly its own
+  check, naming the file and the line.
+
+  **One KNOWN EXEMPTION, named in the test so it is not mistaken for coverage:**
+  Shift+jog's `changePageGroup` still goes straight to movy's model. Schwung's
+  pages have no group, so routing it through the owner would page a delegated
+  page by one and turn a passing app-loop check red — the burn-down must never
+  grow. The section jump is Schwung's Shift+click picker: SP-17.
+
+  **The six that remain, and why none of them is one line.** Five are Cause C —
+  a filepath dive has no editor in Schwung, so under `page` the controller takes
+  the click and movy's file browser is never reached (SP-17 / SU-4). This item
+  fixes WHICH parameter that browser would open, not who gets the click, and
+  says so. The sixth, `held-step jog switches page`, is a **fixture limit, not a
+  movy defect**: the suite's module (mrdrums) is four movy banks and a SINGLE
+  Schwung page, so in the `page` arm the jog has nowhere to go — measured,
+  `pageCount 1, delegated true`. Swapping that block's module for a multi-page
+  one makes the label pass and **poisons every later block**: the page cache is
+  keyed by `(track, component)`, outlives `init()`, and its contract does not
+  re-resolve after a module swap — not with a cache drop, not with 200 ticks
+  (`select leaves the file browser` goes red). That is Cause D reproduced
+  offline, and it is **SP-15's** to fix; the note in
+  `page-mode-expected-fail.json` carries it so the next session does not re-find
+  it. Two checks were re-phrased through the accessor rather than through movy's
+  bank index (`held-step jog switches page`, `shift+jog: plain jog steps one
+  page`) — in the `off` arm the accessor IS movy's bank, so they are the same
+  checks they were; in the `page` arm they finally ask about the page on screen.
+
+  **Gates.** `SCHWUNG=../schwung npm test` exit 0 (167 screenshots passed, 0
+  failed — no pixel moved, so no baseline was regenerated); `page-mode` **6 of
+  6, ledger up to date**; device tier **15 scenarios · 130 checks · 0 failed**,
+  no flakes, `engine: unchanged, no restart`. The device tier runs with the
+  `schwunggrid` flag OFF, so what it proves is that the movy-owned paths are
+  untouched — the `page` arm's coverage is the burn-down, and that is the
+  arrangement until SP-30 flips the default.
+
+  **MANUAL.md updated** (§8 Controls reference, the Delete/Clear row): the clip
+  surviving Clear + an empty knob is visible in the DEFAULT build, not only
+  under `page`, so it is a behaviour change a user would notice. README
+  untouched — not a headline feature.
+
+  **What SP-12 and SP-13 build on.**
+  - **SP-12 (polling + LEDs):** nothing in the input path polls any more, so
+    `owner.poll()` has exactly one caller left to gain (`tick.ts`), and
+    `owner.delegated` — now proven at the input sites — is the same gate that
+    stops `refreshOneParam` and `updateKnobLEDs`. Note that `owner.knobParamInfo`
+    is what the LED ring must ask: the touch, the turn, the lane and the
+    Clear gesture all take their parameter from it already.
+  - **SP-13 (cost):** this item added no per-tick work — the owner calls it
+    introduces are all on the gesture path, one per input event — so the
+    2026-09-13 A/B baseline still stands as the "before". Re-measure after
+    SP-12 with `scripts/measure-grid-cost.sh`.
 
 - 2026-09-14 — **SP-10 ✅ — the delegation boundary exists, and it is one
   object.** `src/app/page-owner.ts` is now the only place in movy that decides

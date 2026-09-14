@@ -296,12 +296,34 @@ export function onMidiMessageInternal(data: number[]): void {
         const owner = knobOwner();
         if (d2 > 0) {
             const info = owner.knobParamInfo(d1);
-            if (deleteActive() && info) {
-                clearLaneForKnob(appState.activeTrack.index, info);
-                markDeleteActed();   // Clear release must not also delete the clip
+            /*
+             * CLEAR + KNOB IS A KNOB GESTURE, WHATEVER IT FOUND.
+             *
+             * Clear's RELEASE deletes the active clip unless the gesture marked
+             * itself as having acted, and this branch used to mark it only when
+             * the owner named a parameter. A knob with nothing under it — an
+             * empty cell on a page that does not fill all 8, a delegated page
+             * still loading — answered null, fell through, and letting go of
+             * Clear wiped the clip. That is data loss, and it is the reason
+             * consuming the gesture cannot be conditional on the lookup
+             * succeeding. The lane is cleared when there is one to clear.
+             */
+            if (deleteActive()) {
+                if (info) clearLaneForKnob(appState.activeTrack.index, info);
+                markDeleteActed();
+                appState.dirty = true;
                 return;
             }
-            knobModel()?.handleKnobTouch(d1);
+            /*
+             * A DIVE BELONGS TO WHOEVER DREW THE CELL. movy's model opens its
+             * OWN enum / file overlay from its OWN page index; while Schwung
+             * draws the body that is a different parameter, so the overlay
+             * covered Schwung's page with a list for a param the user is not
+             * looking at. The touch itself is still recorded either way —
+             * the release, the header readout and the file-browse gesture all
+             * read it.
+             */
+            knobModel()?.handleKnobTouch(d1, !owner.delegated);
             /* Schwung shows the held param's full name and value in the header
              * strip, and a dive is a click WITH a knob held — both need the same
              * finger movy just saw. */
@@ -313,6 +335,10 @@ export function onMidiMessageInternal(data: number[]): void {
             holdTouch(knobLfoScope(), d1, info);   // arm hold-to-modulate
         } else {
             const info = owner.knobParamInfo(d1);
+            /* The same rule from the other end: letting go of a knob while
+             * Clear is held is still the knob's gesture, even when Clear went
+             * down after the touch did. */
+            if (deleteActive()) markDeleteActed();
             if (knobModel()?.handleKnobRelease(d1)) seqToast('Wrong preset type');
             owner.page?.knobTouch(d1, false);
             if (info) automationKnobReleased(appState.activeTrack.index, d1, info);
@@ -646,6 +672,61 @@ export function onMidiMessageInternal(data: number[]): void {
             return;
         }
         /*
+         * A GESTURE ALREADY IN FLIGHT DECIDES ITS OWN CLICK — which is why the
+         * next two blocks sit ABOVE Schwung's door below. Both of them end with
+         * a knob or a step under a finger, and a knob under the hand is one of
+         * the conditions Schwung's ladder takes a click on: with the door
+         * first, assign mode could never be committed or navigated out of, and
+         * a held-step click never drilled from the chain into the params.
+         */
+        // Assign-mode: commit the LFO modulation (assign → jump to that LFO's
+        // chain page; remove → stay + toast). Consumes the click.
+        if (assignActive()) {
+            const r = assignCommit();
+            if (r) {
+                knobModel()?.refreshModulation();   // update the ~ mark immediately
+                if (r.assigned) {
+                    /* Land on the LFO page that now owns the param — the master
+                     * chain's when the gesture happened there, the track's
+                     * otherwise. */
+                    const onMaster = masterChainActive();
+                    let lm;
+                    if (onMaster) {
+                        appState.masterChainIndex = MASTER_LFO_INDEX;
+                        appState.masterDetail = false;
+                        lm = appState.masterFxModels[MASTER_LFO_INDEX];
+                    } else {
+                        appState.trackChainIndex[appState.activeTrack.index] = LFO_CHAIN_INDEX;
+                        appState.currentView = VIEW_CHAIN;
+                        lm = appState.trackModels[appState.activeTrack.index]?.[LFO_CHAIN_INDEX];
+                    }
+                    if (lm) {
+                        /* Through the owner like every other page move: an LFO
+                         * page is movy's own, so this IS movy's bank — asking
+                         * the accessor is what keeps that a fact the boundary
+                         * states rather than one each site assumes. */
+                        const lo = pageOwnerOf(lm);
+                        lo.changePage(r.lfoIdx - lo.pageIndex);
+                        lm.reload();   // re-read the freshly-written target (cache was stale)
+                    }
+                } else {
+                    seqToast('LFO' + (r.lfoIdx + 1) + ' mod removed');
+                }
+                appState.dirty = true;
+            }
+            return;
+        }
+        // While a step is held, the jog click is navigation-only: drill from the
+        // chain into the focused module's params, never open a browser (Back
+        // returns to the chain). Lets one held step automate across modules.
+        if (anyStepHeld()) {
+            if (appState.currentView === VIEW_CHAIN) {
+                appState.currentView = VIEW_KNOBS;
+                appState.dirty = true;
+            }
+            return;
+        }
+        /*
          * A DOOR IS SCHWUNG'S CLICK.
          *
          * While Schwung owns the pages, a menu / items / preset / child page is
@@ -699,48 +780,6 @@ export function onMidiMessageInternal(data: number[]): void {
                 return;
             }
         }
-        // Assign-mode: commit the LFO modulation (assign → jump to that LFO's
-        // chain page; remove → stay + toast). Consumes the click.
-        if (assignActive()) {
-            const r = assignCommit();
-            if (r) {
-                knobModel()?.refreshModulation();   // update the ~ mark immediately
-                if (r.assigned) {
-                    /* Land on the LFO page that now owns the param — the master
-                     * chain's when the gesture happened there, the track's
-                     * otherwise. */
-                    const onMaster = masterChainActive();
-                    let lm;
-                    if (onMaster) {
-                        appState.masterChainIndex = MASTER_LFO_INDEX;
-                        appState.masterDetail = false;
-                        lm = appState.masterFxModels[MASTER_LFO_INDEX];
-                    } else {
-                        appState.trackChainIndex[appState.activeTrack.index] = LFO_CHAIN_INDEX;
-                        appState.currentView = VIEW_CHAIN;
-                        lm = appState.trackModels[appState.activeTrack.index]?.[LFO_CHAIN_INDEX];
-                    }
-                    if (lm) {
-                        lm.changePage(r.lfoIdx - lm.getKnobPage());
-                        lm.reload();   // re-read the freshly-written target (cache was stale)
-                    }
-                } else {
-                    seqToast('LFO' + (r.lfoIdx + 1) + ' mod removed');
-                }
-                appState.dirty = true;
-            }
-            return;
-        }
-        // While a step is held, the jog click is navigation-only: drill from the
-        // chain into the focused module's params, never open a browser (Back
-        // returns to the chain). Lets one held step automate across modules.
-        if (anyStepHeld()) {
-            if (appState.currentView === VIEW_CHAIN) {
-                appState.currentView = VIEW_KNOBS;
-                appState.dirty = true;
-            }
-            return;
-        }
         if (appState.currentView === VIEW_BROWSE) {
             loadSelectedModule();
         } else if (appState.currentView === VIEW_FILE_BROWSE) {
@@ -776,7 +815,14 @@ export function onMidiMessageInternal(data: number[]): void {
             /* The editor is a modal layer: while it is up the click is its
              * commit and nothing else's. */
             if (schwungEditorActive()) { schwungEditorCommit(); appState.dirty = true; return; }
-            const fileTarget = activeModel()?.getFileBrowseTarget() ?? null;
+            /* The parameter under the finger comes from whoever DREW the cell.
+             * movy's own arithmetic stays authoritative while movy owns the
+             * page — its gi is what the file value is stored under — so the
+             * resolver is supplied only when someone else is drawing. */
+            const fileOwner = pageOwnerOf(activeModel());
+            const fileTarget = activeModel()?.getFileBrowseTarget(
+                fileOwner.delegated ? (slot) => fileOwner.knobParamInfo(slot)?.key ?? null
+                                    : undefined) ?? null;
             if (fileTarget) {
                 // Capture the origin BEFORE openFileBrowser flips currentView to
                 // VIEW_FILE_BROWSE — otherwise Back/select return to the browser
@@ -843,7 +889,7 @@ export function onMidiMessageInternal(data: number[]): void {
             }
             if (cpuPageActive()) return;   // sixteen columns fit; nothing to scroll
             if (masterDetailActive()) {
-                masterModel()?.changePage(delta > 0 ? 1 : -1);
+                pageOwnerOf(masterModel()).changePage(delta > 0 ? 1 : -1);
             } else if (masterGridActive()) {
                 appState.masterChainIndex = Math.max(0, Math.min(LAST_MASTER_INDEX, appState.masterChainIndex + (delta > 0 ? 1 : -1)));
             } else if (appState.currentView === VIEW_CHAIN) {
@@ -869,7 +915,10 @@ export function onMidiMessageInternal(data: number[]): void {
                 if (appState.shiftHeld) {
                     m?.changePageGroup(dir);
                 } else if (stepPageAvailable()) {
-                    const onBank0 = (m?.getKnobPage?.() ?? 0) === 0;
+                    /* The page the user is LOOKING at, not movy's bank: with
+                     * Schwung drawing, movy's index sits wherever it was left
+                     * and a jog on page 3 would hop to the step page. */
+                    const onBank0 = pageOwnerOf(m).pageIndex === 0;
                     if (stepPageState.selected) {
                         if (dir > 0) setStepPageSelected(false);
                     } else if (dir < 0 && onBank0) {
@@ -898,32 +947,31 @@ export function onMidiMessageInternal(data: number[]): void {
      * chain-slot nav in VIEW_CHAIN. */
     if (d1 === MoveLeft && d2 > 0) {
         if (masterDetailActive()) {
-            masterModel()?.changePage(-1);
+            pageOwnerOf(masterModel()).changePage(-1);
         } else if (masterGridActive()) {
             appState.masterChainIndex = Math.max(0, appState.masterChainIndex - 1);
         } else if (appState.currentView === VIEW_CHAIN) {
             if (stepPageAvailable() && !stepPageState.selected && chainIndex() === 0) setStepPageSelected(true);
             else if (!(stepPageAvailable() && stepPageState.selected)) setChainIndex(Math.max(0, chainIndex() - 1));
         } else if (appState.currentView === VIEW_KNOBS) {
-            const m = activeModel();
-            if (stepPageAvailable() && !stepPageState.selected && (m?.getKnobPage?.() ?? 0) === 0) setStepPageSelected(true);
-            else if (!(stepPageAvailable() && stepPageState.selected)) m?.changePage(-1);
+            const o = pageOwnerOf(activeModel());
+            if (stepPageAvailable() && !stepPageState.selected && o.pageIndex === 0) setStepPageSelected(true);
+            else if (!(stepPageAvailable() && stepPageState.selected)) o.changePage(-1);
         }
         appState.dirty = true;
         return;
     }
     if (d1 === MoveRight && d2 > 0) {
         if (masterDetailActive()) {
-            masterModel()?.changePage(1);
+            pageOwnerOf(masterModel()).changePage(1);
         } else if (masterGridActive()) {
             appState.masterChainIndex = Math.min(LAST_MASTER_INDEX, appState.masterChainIndex + 1);
         } else if (appState.currentView === VIEW_CHAIN) {
             if (stepPageAvailable() && stepPageState.selected) setStepPageSelected(false);
             else setChainIndex(Math.min(LAST_CHAIN_INDEX, chainIndex() + 1));
         } else if (appState.currentView === VIEW_KNOBS) {
-            const m = activeModel();
             if (stepPageAvailable() && stepPageState.selected) setStepPageSelected(false);
-            else m?.changePage(1);
+            else pageOwnerOf(activeModel()).changePage(1);
         }
         appState.dirty = true;
         return;

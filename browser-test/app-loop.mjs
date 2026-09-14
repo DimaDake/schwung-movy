@@ -51,6 +51,15 @@ const { setSchwungGridMode } = await import('../dist/esm/renderer/schwung-grid.j
 const GRID_ARM = process.env.MOVY_APP_LOOP_GRID || null;
 if (GRID_ARM) setSchwungGridMode(GRID_ARM);
 
+/* WHICH PAGE IS UNDER THE KNOBS, asked the way the app asks it. A gesture whose
+ * visible effect is "the param page moved" is asserted through the ownership
+ * accessor, not through movy's own bank index: under `page` the bank index is
+ * not what is on screen, so asserting it would be asserting an implementation
+ * detail this migration deletes. In the `off` arm the accessor IS movy's bank,
+ * so the check is the same check it always was. */
+const { pageOwnerOf } = await import('../dist/esm/app/page-owner.js');
+const shownPage = (model) => pageOwnerOf(model).pageIndex;
+
 /* The first master FX slot, by COMPONENT rather than by position: movy's own
  * send buses sit in front of them on the master page, and these blocks are
  * about what a `master_fx:` slot does, not about what happens to be first. */
@@ -562,12 +571,19 @@ _log('\napp-loop: jog wheel while holding a step switches page (not length)');
 {
     resetApp();
     appState.currentView = VIEW_KNOBS;
-    const vm = () => appState.trackModels[0][appState.trackChainIndex[0]].getViewModel();
-    const page0 = vm().bankIndex;
+    const held = () => appState.trackModels[0][appState.trackChainIndex[0]];
+    const page0 = shownPage(held());
     sendMidi([0x90, 16, 127]);            // hold step 1
     engine.ops.length = 0;                // watch for any 'elen' length edit
     sendMidi([0xB0, 14, 1]);              // jog wheel +1
-    eq('held-step jog switches page', vm().bankIndex, page0 + 1);
+    /* Asked through the accessor, not through movy's bank: under `page` this
+     * fixture is a single Schwung page with nowhere to jog to, which is why the
+     * label is still on the burn-down — a fixture limit, not a movy defect, and
+     * the note in page-mode-expected-fail.json says so. Swapping the module for
+     * a multi-page one poisons every later block: the page cache is keyed by
+     * (track, component), outlives init(), and its contract does not re-resolve
+     * after a swap even given 200 ticks and a cache drop (Cause D / SP-15). */
+    eq('held-step jog switches page', shownPage(held()), page0 + 1);
     eq('no note-length edit emitted', engine.ops.some(o => o.startsWith('elen')), false);
     sendMidi([0x80, 16, 0]);              // release step
 }
@@ -1705,7 +1721,7 @@ _log('\napp-loop: shift+jog skips a level\'s overflow pages');
 
     sendMidi([0xB0, globalThis.MoveMainKnob, 1]);        // plain jog CW
     advance(1);
-    eq('shift+jog: plain jog steps one page', m.getKnobPage(), 1);
+    eq('shift+jog: plain jog steps one page', shownPage(m), 1);
 
     sendMidi([0xB0, globalThis.MoveShift, 127]);         // Shift down
     sendMidi([0xB0, globalThis.MoveMainKnob, 127]);      // jog CCW (decodeDelta → -1)
@@ -2025,6 +2041,59 @@ _log('\napp-loop: Clear + drum pad wipes that pad from the clip');
     seqState.lenSteps = 0;
 }
 
+_log('\napp-loop: Clear + a knob never deletes the clip');
+{
+    /*
+     * THE HIGHEST-SEVERITY SYMPTOM IN THE MIGRATION (design §3): Clear + knob
+     * deleted the clip. Clear's RELEASE deletes the active clip unless the
+     * gesture marked itself as having acted, and the knob branch only marked it
+     * when the page owner named a parameter for that knob. An empty cell — a
+     * page with fewer than 8 knobs, a delegated page still loading — answered
+     * null, the branch fell through, and letting go of Clear wiped the clip.
+     *
+     * Runs in BOTH arms on purpose: this is not only a delegation bug. movy's
+     * own pages have empty cells too, so the guarantee is the same under `off`,
+     * and a two-parameter module is where both planners leave knob 7 blank.
+     */
+    const CC_CLEAR = 119;
+    const clipDeleted = () => engine.ops.some((o) => o.startsWith('clipdel'));
+
+    resetApp();
+    env.setParams(MOCK_SYNTHS.file_param);   // knob 0 = file, knob 1 = Volume, 2..7 blank
+    resetSeqState(); resetSeqEngine();
+    globalThis.init();
+    appState.trackModels[0][1].reload();
+    advance(12);
+    seqState.lenSteps = 16;
+
+    engine.ops.length = 0;
+    sendMidi([0xB0, CC_CLEAR, 127]);     // hold Clear
+    sendMidi([0x90, 7, 127]);            // + touch a knob with nothing under it
+    sendMidi([0x80, 7, 0]);
+    sendMidi([0xB0, CC_CLEAR, 0]);       // let Clear go
+    advance(3);
+    eq('Clear + an empty knob leaves the clip alone', clipDeleted(), false);
+
+    /* And the ordinary case still consumes the gesture: a knob that DOES carry
+     * a parameter clears that parameter's lane, not the clip. */
+    engine.ops.length = 0;
+    sendMidi([0xB0, CC_CLEAR, 127]);
+    sendMidi([0x90, 1, 127]);
+    sendMidi([0x80, 1, 0]);
+    sendMidi([0xB0, CC_CLEAR, 0]);
+    advance(3);
+    eq('Clear + a live knob leaves the clip alone too', clipDeleted(), false);
+
+    /* The tap itself must still work, or the guard above would be a mute button
+     * on the feature: Clear with nothing else touched deletes the clip. */
+    engine.ops.length = 0;
+    sendMidi([0xB0, CC_CLEAR, 127]);
+    sendMidi([0xB0, CC_CLEAR, 0]);
+    advance(3);
+    eq('a plain Clear tap still deletes the clip', clipDeleted(), true);
+
+    seqState.lenSteps = 0;
+}
 
 /* ── Undo: the guard, and the round trip ─────────────────────────────────── */
 

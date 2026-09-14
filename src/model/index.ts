@@ -131,7 +131,11 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
             }
         },
 
-        handleKnobTouch(k: number): void {
+        /* `dive` is false when another renderer owns the page: the touch is
+         * still recorded (release, header readout and the file-browse gesture
+         * all read it) but movy must not open ITS list over someone else's
+         * cell — see the router's knob-touch branch. */
+        handleKnobTouch(k: number, dive = true): void {
             if (s.enumOverlay) { s.enumOverlay = null; s.dirty = true; }
             if (s.fileOverlay) { s.fileOverlay = null; s.dirty = true; }
             const idx = s.touchedSlots.indexOf(k);
@@ -141,7 +145,7 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
             const local = slotToLocal(s, k);
             const gi = local < 0 ? -1 : s.knobPage * KNOBS_PER_PAGE + local;
             const p  = gi < 0 ? undefined : s.knobParams[gi];
-            if (p && p.options && isDivable(p)
+            if (dive && p && p.options && isDivable(p)
                 && (isItemSelector(p) || (p.type === 'enum' && p.options.length > 6))) {
                 /* Re-scan on touch: the list is the module's live directory and
                  * this is the one moment it is cheap to ask (see items-param). */
@@ -156,7 +160,7 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
                 s.enumOverlay = { slot: k, gi, options: p.options, selected: sel };
                 s.enumAccums[k] = 0;
             }
-            if (p && p.type === 'file') {
+            if (dive && p && p.type === 'file') {
                 const currentPath = s.fileValues[gi] ?? '';
                 const scanDir     = startDirFor(s.moduleId, p, currentPath);
                 const items       = scanFiles(scanDir, p.fileFilter ?? []);
@@ -360,12 +364,32 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
          * or the previous Set's module, on a surface that had gone live. */
         reloadNow(): void { reReadModule(s); },
 
-        getFileBrowseTarget(): { key: string; gi: number; root: string; filter: string[]; startPath: string; currentPath: string | null; requireContains?: string } | null {
+        /*
+         * `keyAt` names the parameter the DRAWN page put under a slot, and it is
+         * supplied whenever movy is not the one drawing. Without it this resolved
+         * the held knob through `s.knobPage` — movy's own bank — so under a
+         * delegated page the browser opened for whatever movy's frozen index
+         * happened to hold: a different parameter, or a file param that is not
+         * on screen at all. `model/` cannot see who owns the page (it may not
+         * import `app/`), so the answer is passed in.
+         */
+        getFileBrowseTarget(keyAt?: (slot: number) => string | null): { key: string; gi: number; root: string; filter: string[]; startPath: string; currentPath: string | null; requireContains?: string } | null {
             const primary = primarySlot();
             if (primary < 0) return null;
-            const local = slotToLocal(s, primary);
-            if (local < 0) return null;
-            const gi = s.knobPage * KNOBS_PER_PAGE + local;
+            let gi: number;
+            if (keyAt) {
+                const drawn = keyAt(primary);
+                /* By key, because the drawn page's index means nothing here.
+                 * First match: a key repeated across levels (jp8000's shape)
+                 * carries the same declaration, and its file value is stored
+                 * per gi, so the first is the one movy has been reading. */
+                gi = drawn ? s.knobParams.findIndex((q) => q?.key === drawn) : -1;
+                if (gi < 0) return null;
+            } else {
+                const local = slotToLocal(s, primary);
+                if (local < 0) return null;
+                gi = s.knobPage * KNOBS_PER_PAGE + local;
+            }
             const p  = s.knobParams[gi];
             if (!p || p.type !== 'file') return null;
             return {

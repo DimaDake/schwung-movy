@@ -57,6 +57,58 @@ const { isMovyOwnComponent } = await import('../../dist/esm/chain/config.js');
     const grid = readFileSync('src/renderer/schwung-grid.ts', 'utf8');
     ok('schwungActiveFor is gone from the grid', !grid.includes('function schwungActiveFor'));
     ok('schwungChangePage is gone from the grid', !grid.includes('function schwungChangePage'));
+
+    /* SP-11. The same rule one level down: a site may not PAGE a component or
+     * read its page index for itself either. `movy/CLAUDE.md` names this one —
+     * "Never read getKnobPage() or a knobPage index directly for a component
+     * that may be delegated" — and it is the half SP-10 left standing, because
+     * the two planners count pages differently: moving movy's index while
+     * Schwung draws moves an index nothing displays. */
+    const PAGE_CALL = /\.(changePage|getKnobPage)\(/g;
+    /* The receiver has to BE an owner: a `pageOwnerOf(...)` call (one level of
+     * nesting, for `pageOwnerOf(masterModel())`) or a local holding one. */
+    const RECEIVER  = /(pageOwnerOf\((?:[^()]|\([^()]*\))*\)|knobOwner\(\)|\b(?:owner|fileOwner|lo|o))$/;
+    const IMPLEMENTS = {
+        'src/app/page-owner.ts':          'the accessor — it is what calls the implementations',
+        'src/model/index.ts':             'movy\'s model implements them',
+        'src/lfo/model.ts':               'the LFO model implements them',
+        'src/mixer/mix-model.ts':         'the mix model implements them',
+        'src/renderer/schwung-page.ts':   'Schwung\'s page implements changePage',
+    };
+    const pageOffenders = [];
+    for (const f of walkTs('src')) {
+        if (f in IMPLEMENTS) continue;
+        for (const line of readFileSync(f, 'utf8').split('\n')) {
+            for (const m of line.matchAll(PAGE_CALL)) {
+                if (!RECEIVER.test(line.slice(0, m.index))) {
+                    pageOffenders.push(f + ': ' + line.trim());
+                }
+            }
+        }
+    }
+    eq('no site pages a component itself: ' + pageOffenders.join(' | '),
+       pageOffenders.length, 0);
+    const staleImpl = Object.keys(IMPLEMENTS)
+        .filter((f) => !/\.?(changePage|getKnobPage)\(/.test(readFileSync(f, 'utf8')));
+    eq('no stale page-implementer entries: ' + staleImpl.join(','), staleImpl.length, 0);
+
+    /* The two input sites that resolve a parameter for a gesture must say which
+     * page they mean. `getFileBrowseTarget()` with no argument reads movy's
+     * frozen bank (it opened the wrong parameter); `handleKnobTouch(k)` with no
+     * dive flag opens movy's own list over the cell someone else drew. */
+    const router = readFileSync('src/midi/router.ts', 'utf8');
+    ok('the file-browse target names the drawn page',
+       !/getFileBrowseTarget\(\s*\)/.test(router));
+    ok('the knob touch says whose dive it is',
+       !/handleKnobTouch\(\s*d1\s*\)/.test(router));
+
+    /* KNOWN EXEMPTION, named so it is not mistaken for coverage: Shift+jog's
+     * `changePageGroup` still goes straight to movy's model. Schwung's pages
+     * have no group, so routing it through the owner would page a delegated
+     * page by one and turn a passing app-loop check red — and the burn-down
+     * must never grow. The section jump is Schwung's Shift+click picker: SP-17. */
+    ok('the level-skip exemption is still the only one',
+       (router.match(/changePageGroup\(/g) || []).length === 1);
 }
 
 /* ── page identity ────────────────────────────────────────────────────────── */
@@ -109,6 +161,43 @@ const { isMovyOwnComponent } = await import('../../dist/esm/chain/config.js');
      * once per tick from the render path. */
     o.poll();
     eq('poll leaves a movy-owned page alone', o.pageIndex, before);
+}
+
+/* ── the gestures that resolve a parameter ────────────────────────────────── */
+{
+    _log('\nlogic: a gesture resolves its parameter through the drawn page');
+
+    /* SP-11. Two input sites resolved a parameter from movy's own page index
+     * and had no way to be told otherwise. Under a delegated page that index is
+     * not what is on screen: the dive opened movy's list over Schwung's cell,
+     * and the file browser opened a parameter the user was not holding. */
+    setSchwungGridMode('off');
+    const m = settleModel(bootModel(MOCK_SYNTHS.lfo_mod));
+
+    m.handleKnobTouch(0);
+    ok('a touch movy draws opens movy\'s dive', m.getViewModel().overlay !== null);
+    m.handleKnobRelease(0);
+
+    m.handleKnobTouch(0, false);
+    eq('a touch someone else drew opens none', m.getViewModel().overlay, null);
+    eq('but the touch is still recorded', m.getViewModel().touchedSlot, 0);
+    m.handleKnobRelease(0);
+
+    /* The file browser's target. `model/` cannot ask who owns the page (it may
+     * not import `app/`), so the drawn key is passed in — and a drawn cell that
+     * is NOT a file param must open nothing, which is the assertion that fails
+     * when the resolver is ignored and movy's arithmetic answers anyway. */
+    const f = settleModel(bootModel(MOCK_SYNTHS.file_param));
+    f.handleKnobTouch(0, false);
+    eq('movy\'s own arithmetic still answers when movy draws',
+       f.getFileBrowseTarget()?.key, 'sample');
+    eq('the drawn key answers when one is supplied',
+       f.getFileBrowseTarget(() => 'sample')?.key, 'sample');
+    eq('a drawn cell that is not a file opens nothing',
+       f.getFileBrowseTarget(() => 'vol'), null);
+    eq('an empty drawn cell opens nothing',
+       f.getFileBrowseTarget(() => null), null);
+    f.handleKnobRelease(0);
 }
 
 /* ── no model at all ──────────────────────────────────────────────────────── */

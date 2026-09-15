@@ -52,6 +52,18 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **A send FX was never saved with the Set — and would not have loaded if it
+  had been.** Both directions go through one document, the chain set the engine
+  answers with, and that document was built from the engine's list of *tracks*:
+  sixteen slots, while the send buses live at 16–18. A send was loaded by a path
+  that never touched that list, so the module and its patch were missing from
+  every save, and a send *named* in a Set file was dropped at the door by a
+  guard that stopped at sixteen. Silent in both directions, and the feature was
+  born this way — the saves are correct for a Set that never had a send. Sends
+  are saved and restored now, which is what the manual has claimed all along.
+  **Sets saved before this build have no send in them, in any copy or version:
+  re-add the send FX once and it will persist from then on.**
+
 - **A sequencer gesture could go nowhere at all — a Play press, an undo group, a
   step toggle — and nothing said so.** Every command Movy sends the engine
   travels as one batched write into Schwung's `overtake_dsp` param slot, which is

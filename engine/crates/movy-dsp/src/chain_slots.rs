@@ -60,7 +60,7 @@ const REPLAN_BLOCKS: u32 = 1024;
 /// The chain host component a send bus loads its FX into. A send holds one
 /// audio FX, so the bus number lives in the engine key and the component
 /// underneath is always the same — the UI never has to know it exists.
-const SEND_COMPONENT: &str = "fx1";
+pub(crate) const SEND_COMPONENT: &str = "fx1";
 
 /// Every position the render pool can be given work for: the chains, then the
 /// send buses. ONE index space, so a task's `chain` field names exactly one
@@ -78,6 +78,16 @@ pub fn send_index(bus: usize) -> usize {
     MOVY_CHAINS + bus
 }
 
+/// The bus a document slot addresses, or `None` when it addresses a track.
+///
+/// The way back, for a reader holding a slot from a Set file — mirroring
+/// `busOfDocSlot` in `src/track/send-persist.ts`, which is the same question
+/// asked on the other side of the wire.
+pub fn bus_of_slot(slot: usize) -> Option<usize> {
+    let bus = slot.checked_sub(MOVY_CHAINS)?;
+    (bus < SEND_BUSES).then_some(bus)
+}
+
 pub struct ChainSlots {
     host: Option<ChainHost>,
     /// `None` until something is loaded — this is the "empty costs nothing" rule.
@@ -90,6 +100,11 @@ pub struct ChainSlots {
     /// that a save must never be allowed to see. Reporting the request instead
     /// is what makes a partial set unrepresentable — see
     /// plans/2026-08-29-chain-set-document.md.
+    ///
+    /// Indexed in the SHARED slot space, so it covers the send buses at
+    /// `send_index` as well as the tracks — a send the document does not name
+    /// is a send no save can record, which is how every send FX stayed out of
+    /// every Set file (plans/2026-09-15-send-persist-not-saved.md).
     desired: Vec<Vec<(String, String)>>,
     /// One output buffer per chain, not one shared buffer: two chains rendering
     /// concurrently need somewhere disjoint to write, and the mix has to happen
@@ -225,7 +240,7 @@ impl ChainSlots {
             slots,
             mixes: vec![TrackMix::default(); MOVY_CHAINS],
             queue: LoadQueue::new(),
-            desired: vec![Vec::new(); MOVY_CHAINS],
+            desired: vec![Vec::new(); RENDER_SLOTS],
             scratch: vec![vec![0i16; SCRATCH_SAMPLES]; MOVY_CHAINS],
             pin: PinPolicy::new(RENDER_SLOTS),
             host_failed: false,
@@ -331,8 +346,12 @@ impl ChainSlots {
     }
 
     /// Queue a module load. Never loads inline — see `load_queue` for why.
+    ///
+    /// Accepts a send bus's slot too: a send is part of the set (see `desired`),
+    /// so applying a document has to be able to queue one, and `service_loads`
+    /// sends anything above `MOVY_CHAINS` down the send path.
     pub fn request_load(&mut self, slot: usize, component: &str, module: &str) {
-        if slot >= MOVY_CHAINS {
+        if slot >= RENDER_SLOTS {
             return;
         }
         /* The one place the set is updated, for the same reason `generation`
@@ -366,12 +385,11 @@ impl ChainSlots {
         if bus >= SEND_BUSES {
             return;
         }
-        self.queue.push(LoadRequest {
-            slot: send_index(bus),
-            component: SEND_COMPONENT.to_string(),
-            module: module.to_string(),
-            state: None,
-        });
+        /* Through the chain path rather than straight onto the queue, so the
+         * bus lands in `desired` with everything else: it is the document a
+         * save reads, and a send missing from it is a send that never comes
+         * back. */
+        self.request_load(send_index(bus), SEND_COMPONENT, module);
     }
 
     /// Apply a module-preset blob to a send. Rides a pending load when there is
@@ -500,6 +518,16 @@ impl ChainSlots {
         let Some(wanted) = chain_doc::decode(doc) else {
             return false;
         };
+        /* A bus is loaded into ONE component and the engine hard-codes which
+         * (`SEND_COMPONENT`), so a document naming anything else at a bus slot
+         * is malformed. Loading it would put a module where no reader looks —
+         * the UI's `sendsFromDoc` and this file's own `restore` both key a bus
+         * on that component — and the send would disappear again on the next
+         * save. Dropped here so both halves agree on what a bus entry IS. */
+        let wanted: Vec<_> = wanted
+            .into_iter()
+            .filter(|w| bus_of_slot(w.slot).is_none() || w.component == SEND_COMPONENT)
+            .collect();
         /* A set document is a whole-set replace, and the mix belongs to the set
          * that named the chain. Left alone, the level you set in one Set went on
          * applying to whatever the next Set loaded into that chain. The restore
@@ -566,11 +594,16 @@ impl ChainSlots {
                 out.push(' ');
             }
             /* The underscore alias, which is the readable form for a track
-             * component — the colon key is write-only (see module-slot.mjs). */
-            match self
-                .get_param(slot, &format!("{component}_module"))
-                .filter(|v| !v.is_empty())
-            {
+             * component — the colon key is write-only (see module-slot.mjs). A
+             * bus is read off the send's own instances: `slots` holds nothing
+             * above `MOVY_CHAINS`, so asking it would mark every loaded send
+             * with the `?` that means "asked for, never instantiated". */
+            let live = if slot >= MOVY_CHAINS {
+                self.send_module(slot - MOVY_CHAINS)
+            } else {
+                self.get_param(slot, &format!("{component}_module"))
+            };
+            match live.filter(|v| !v.is_empty()) {
                 Some(live) => out.push_str(&format!("{slot}:{component}={live}")),
                 None => out.push_str(&format!("{slot}:{component}={module}?")),
             }
@@ -1934,9 +1967,13 @@ mod tests {
     #[test]
     fn out_of_range_slots_are_ignored() {
         let mut slots = ChainSlots::new();
-        slots.request_load(MOVY_CHAINS, "synth", "plaits");
+        /* The last bus is a real slot — a track's is not the only numbered
+         * thing here any more. One past it is not. */
+        slots.request_load(send_index(SEND_BUSES - 1), SEND_COMPONENT, "mverb");
+        assert_eq!(slots.pending_loads(), 1, "the last bus is loadable");
+        slots.request_load(RENDER_SLOTS, "synth", "plaits");
         slots.request_load(999, "synth", "plaits");
-        assert_eq!(slots.pending_loads(), 0, "a slot that cannot exist is not queued");
+        assert_eq!(slots.pending_loads(), 1, "neither impossible slot joined the one real load");
         slots.set_param(999, "synth:cutoff", "1");
         slots.on_midi(999, &[0x90, 60, 100], 0);
     }
@@ -2057,6 +2094,58 @@ mod tests {
         );
     }
 
+    /* A send bus is part of the set for the same reason a track's chain is:
+     * the document is what a save writes down. Left out of it, a send FX is
+     * loaded, audible, and absent from the Set file — it simply does not come
+     * back. */
+    #[test]
+    fn a_send_bus_is_part_of_the_set_the_engine_reports() {
+        let mut slots = ChainSlots::new();
+        slots.request_send_load(1, "mverb");
+        assert_eq!(
+            chain_doc::decode(&slots.chain_set()),
+            Some(vec![chain_doc::Entry { slot: send_index(1), component: SEND_COMPONENT.into(),
+                                         module: "mverb".into() }]),
+            "a loaded send must be in the document a save reads"
+        );
+    }
+
+    /* The other half of the same round trip: a Set file NAMES its sends, and
+     * applying it has to queue them. `request_load` refuses every slot above
+     * MOVY_CHAINS, so a send in a document used to be dropped at the door —
+     * silently, which is why nothing ever failed loudly. */
+    #[test]
+    fn applying_a_set_queues_the_sends_it_names() {
+        let mut slots = ChainSlots::new();
+        let doc = chain_doc::encode(&[chain_doc::Entry {
+            slot: send_index(0), component: SEND_COMPONENT.into(), module: "mverb".into(),
+        }]);
+        assert!(slots.set_chain_set(&doc));
+        assert_eq!(slots.pending_loads(), 1, "a named send is queued like a chain");
+    }
+
+    /* A restored send's preset has to reach the load it was queued with — the
+     * load path bails above `MOVY_CHAINS`, so without its own hop the module
+     * arrives with the patch left behind. A send that comes back at the
+     * module's shipped defaults is the "my filter reopened" loss one page out
+     * from where it was first paid for. */
+    #[test]
+    fn a_sets_send_preset_rides_the_load_that_queued_it() {
+        fn doc(items: &[&str]) -> String {
+            let mut out = format!("{}\n", items.len());
+            for it in items {
+                out.push_str(&format!("{}\n{}", it.len(), it));
+            }
+            out
+        }
+        let mut slots = ChainSlots::new();
+        let saved = doc(&[&send_index(0).to_string(), SEND_COMPONENT, "mverb", "PATCH", "", ""]);
+        assert!(crate::chain_state::restore(&mut slots, &saved));
+        let req = slots.queue.take_one().expect("the send's load is queued");
+        assert_eq!((req.slot, req.component.as_str()), (send_index(0), SEND_COMPONENT));
+        assert_eq!(req.state.as_deref(), Some("PATCH"), "the patch rides the load");
+    }
+
     /* `loaded_report` is a device test's only read-back for a movy chain, so
      * the one thing it must never do is echo the request as though it were
      * evidence: a fixture that "verified" against `desired` would pass while
@@ -2148,7 +2237,19 @@ mod tests {
     fn an_out_of_range_slot_never_enters_the_set() {
         let mut slots = ChainSlots::new();
         assert!(slots.set_chain_set(&chain_doc::encode(&[chain_doc::Entry {
-            slot: MOVY_CHAINS, component: "synth".into(), module: "plaits".into() }])));
+            slot: RENDER_SLOTS, component: "synth".into(), module: "plaits".into() }])));
+        assert_eq!(chain_doc::decode(&slots.chain_set()), Some(vec![]));
+    }
+
+    /* A bus holds one FX under one component, which the engine hard-codes, so
+     * a document that names a different component at a bus slot is malformed:
+     * honouring it would load the module where nothing can read it back. */
+    #[test]
+    fn a_document_cannot_load_a_bus_under_another_component() {
+        let mut slots = ChainSlots::new();
+        assert!(slots.set_chain_set(&chain_doc::encode(&[chain_doc::Entry {
+            slot: send_index(0), component: "synth".into(), module: "plaits".into() }])));
+        assert_eq!(slots.pending_loads(), 0, "a malformed bus entry queues nothing");
         assert_eq!(chain_doc::decode(&slots.chain_set()), Some(vec![]));
     }
 

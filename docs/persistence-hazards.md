@@ -191,3 +191,49 @@ Stated plainly so nobody inherits a stronger claim than the evidence supports:
   ordinary schwung activity or an open remote-UI wins the same race is unknown.
 - The §3 and §4 fixes are described as *candidates*. Neither has been built.
 - §4 has no test.
+
+---
+
+## 8. FIXED — the sends were never in the chain set at all
+
+Found 2026-09-15, after the migration, and appended rather than renumbered so
+the §3 references in `chain-mirror.ts` and `set-state.mjs` keep pointing where
+they point. It is here because it is the one hazard in this file that is **not**
+a wire: no amount of param-slot care would have found it, and `engpersist`
+inherited it intact.
+
+The chain set is the one document that carries a Set's chains — the engine
+answers with it, `captureChains`/`captureSends` read it, the mirror parses it,
+`restoreChains` writes it. It was built by walking the engine's own list of
+tracks: **sixteen slots**, sized for `MOVY_CHAINS`, while the send buses live at
+16–18. A send was loaded through a path that never touched that list.
+
+So the document had no send in it, at any moment, ever:
+
+| producer | result |
+| --- | --- |
+| `chains` param GET → `readChainDoc()` | no `16\|fx1\|…` triple |
+| the engine's `chains.json` (`engpersist` on) | same |
+| `captureSends()` / `parseMirror()` | `[]` |
+
+`serializeUiState` wrote `"sends":[]` into every Set file movy has ever
+produced. The reverse direction was broken at the same line — `set_chain_set`
+routed every record through a load that returns immediately at `slot >= 16` — so
+a send named in a Set file was dropped silently.
+
+**This is not a regression.** `git log -S desired` finds exactly two commits:
+the one that created the list at sixteen, and an unrelated test commit. Send
+persistence landed the same day sends did, written against document slots the
+engine never emitted.
+
+**Fixed in the list itself**: it is now sized to the shared render slot space, a
+send load goes through the same bookkeeping a track's does, and a restored send's
+preset blob is routed to the bus rather than to a track that does not exist.
+Pinned by `chain_slots.rs`'s `a_send_bus_is_part_of_the_set_the_engine_reports`
+and `applying_a_set_queues_the_sends_it_names` (both red before the fix), plus a
+send record in the cross-language golden document on both sides.
+
+**Nothing to migrate.** Every reader of the old format is correct; it simply
+never carried a send. Rename, duplicate and version history ferry
+`ui-state.json` verbatim, so the `[]` travelled intact — a Set saved before this
+fix has no send in it in any copy, and the send must be re-added by hand once.

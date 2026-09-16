@@ -17,7 +17,9 @@
  * Run by browser-test/logic.mjs.
  */
 
-import { schwungLibAvailable, bootModel, eq, _log } from './harness.mjs';
+import { schwungLibAvailable, bootModel, eq, ok, _log,
+         env, portFor, MOCK_SYNTHS, schwungPageFor, schwungGridReload,
+         setSchwungGridMode } from './harness.mjs';
 
 export async function run() {
 
@@ -161,6 +163,52 @@ _log('\nTest: the embedded body rect seats Schwung’s widget rows on movy’s o
     eq('the rect is exactly the room a body needs', GRID_BODY_RECT.h,
        BAND_H.gutter0 + BAND_H.widget + BAND_H.label
        + BAND_H.gutter1 + BAND_H.widget + BAND_H.label);
+}
+
+/* ── SP-12: what one tick of a delegated page costs ──────────────────────── */
+
+_log('\nTest: a settled page reads its cursor, not a contract, every tick');
+{
+    /* SP-12 made the poll PER-TICK — it had to, or the page's read cursor never
+     * advances and the cells on screen stop moving. That turned a line that was
+     * almost never reached into the page's largest standing cost:
+     * `ctl.reloadIfChanged()` is a whole contract read, and it was on every
+     * tick. Measured in scripts/grid-call-cost.mjs, the `page` arm's idle floor
+     * went 678 -> 1803 host calls per 600 ticks with it there, against movy's
+     * own refresh at the 678 it replaces.
+     *
+     * What the page is ALLOWED is the read cursor: one get_param a tick, which
+     * is the budget movy's refresh used to spend on the same values. */
+    setSchwungGridMode('page');
+    schwungGridReload();
+    env.setParams(MOCK_SYNTHS.test16);
+    const p = schwungPageFor(0, 'synth');
+    for (let i = 0; i < 12 * 60 && !p.ready; i++) p.tick();
+    ok('the page resolved', p.ready);
+
+    const TICKS = 64;
+    /* Suites before this one delete the param globals rather than restoring
+     * them (SP-02's deferred list), so wrapping whatever is there would wrap
+     * `undefined`. The env's own restorer is what that cleanup meant. */
+    env.restoreParamGlobals();
+    const real = globalThis.shadow_get_param;
+    let reads = 0;
+    globalThis.shadow_get_param = (...a) => { reads++; return real(...a); };
+    for (let i = 0; i < TICKS; i++) p.tick();
+    globalThis.shadow_get_param = real;
+
+    /* Measured: 80 over 64 ticks — 1 a tick for the cursor plus 2 per contract
+     * poll on a divider of 8, the same divider Schwung's own host uses for the
+     * same question. The ceiling is 1.5 a tick: comfortably above that, and far
+     * below the ~3 a tick a contract read on EVERY tick costs, which is the
+     * regression this exists to catch. */
+    _log(`    (${reads} reads over ${TICKS} ticks)`);
+    eq('a settled page stays within one read a tick plus the paced poll',
+       reads <= TICKS + Math.ceil(TICKS / 2), true);
+
+    schwungGridReload();
+    setSchwungGridMode(null);
+    env.setParams(MOCK_SYNTHS.test16);
 }
 
 _log('\nTest: both embedded modes, and the off stand-in, use ONE rect');

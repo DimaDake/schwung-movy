@@ -109,6 +109,52 @@ const { isMovyOwnComponent } = await import('../../dist/esm/chain/config.js');
      * must never grow. The section jump is Schwung's Shift+click picker: SP-17. */
     ok('the level-skip exemption is still the only one',
        (router.match(/changePageGroup\(/g) || []).length === 1);
+
+    /* SP-12. The poll is a PER-TICK call now — it is the only thing that
+     * advances a delegated page's contract and its read cursor, and movy's own
+     * refresh no longer dirties the model into rendering a frame for it. A
+     * second poller costs the read this item exists to remove, and worse: the
+     * contract's retry budget (schwung-page-contract.ts, RETRY_TICKS ×
+     * RETRY_LIMIT) has no recovery once spent, so a site polling on its own
+     * schedule gives the page up on a view it was never even on. */
+    const POLL_CALL = /\.poll\(\)/;
+    const POLLERS = { 'src/app/page-poll.ts': 'the one caller — once per tick, from app/tick.ts' };
+    const pollOffenders = walkTs('src')
+        .filter((f) => !(f in POLLERS))
+        .filter((f) => POLL_CALL.test(readFileSync(f, 'utf8')));
+    eq('nothing polls a page but the tick: ' + pollOffenders.join(','),
+       pollOffenders.length, 0);
+    const stalePoll = Object.keys(POLLERS)
+        .filter((f) => !POLL_CALL.test(readFileSync(f, 'utf8')));
+    eq('no stale poller entries: ' + stalePoll.join(','), stalePoll.length, 0);
+
+    /* ...and the model's value refresh is gated by the same answer, at the same
+     * site. A model ticked without it re-reads a page nobody is drawing, and
+     * there is no symptom: the values are simply right, twice over. */
+    const appTick = readFileSync('src/app/tick.ts', 'utf8');
+    ok('the model is ticked with the ownership answer',
+       !/activeModel\?\.tick\(\s*\)/.test(appTick));
+
+    /* ONE WRITER FOR THE EIGHT KNOB LEDS, whoever supplies the values. The
+     * diff cache and the frame budget are movy's; a second writer on the same
+     * eight LEDs is how a knob ends up claiming a colour it no longer shows
+     * (the LED-ownership hazard this item was warned about). */
+    /* Asked of the IMPORT, not of the call: an alias (`updateKnobLEDs as _u`)
+     * walks straight past a name-shaped grep, and it was tried — the first
+     * version of this rule stayed green on exactly that. Nothing can write the
+     * row without importing the module. */
+    const LED_IMPORT = /from ['"][^'"]*knob-leds\.js['"]/;
+    const LED_SITES = {
+        'src/app/tick.ts': 'the only importer — the source follows who drew the body',
+    };
+    const ledOffenders = walkTs('src')
+        .filter((f) => !(f in LED_SITES) && f !== 'src/renderer/knob-leds.ts')
+        .filter((f) => LED_IMPORT.test(readFileSync(f, 'utf8')));
+    eq('only the tick lights the knob row: ' + ledOffenders.join(','),
+       ledOffenders.length, 0);
+    const staleLed = Object.keys(LED_SITES)
+        .filter((f) => !LED_IMPORT.test(readFileSync(f, 'utf8')));
+    eq('no stale knob-LED entries: ' + staleLed.join(','), staleLed.length, 0);
 }
 
 /* ── page identity ────────────────────────────────────────────────────────── */
@@ -290,7 +336,51 @@ if (!schwungLibAvailable()) {
        o.page.knobParamInfo(0)?.key);
     o.changePage(-1);
 
+    /* SP-12. The knob LEDs are lit from the DRAWN cells, and the normalisation
+     * is Schwung's own `normalizedOf` rather than a second copy of the rule —
+     * it is the function `page_controller.mjs` itself imports by name, so it
+     * exists wherever the library loads at all. */
+    const lv = o.page.knobLevels();
+    eq('the drawn page reports a level per knob', lv.length, 8);
+    const i3 = o.knobParamInfo(3);
+    const round = (v) => Math.round(v * 1000) / 1000;
+    eq('and a bound cell\'s level is its value on its range',
+       round(lv[3]), round((i3.value - i3.min) / (i3.max - i3.min)));
+
     schwungGridReload();
+}
+
+/* ── one knob-LED writer, two sources ─────────────────────────────────────── */
+{
+    _log('\nlogic: the knob row has one writer and one ramp');
+
+    const { updateKnobLEDs, updateKnobLEDsFrom, resetKnobLedCache } =
+        await import('../../dist/esm/renderer/knob-leds.js');
+    const { ledFrameReset } = await import('../../dist/esm/seq/led-cache.js');
+
+    const seen = {};
+    const realBtn = globalThis.setButtonLED;
+    globalThis.setButtonLED = (cc, c) => { seen[cc] = c; };
+    const row = () => Array.from({ length: 8 }, (_, k) => seen[71 + k]).join();
+    const paint = (fn) => { ledFrameReset(); resetKnobLedCache(); fn(); return row(); };
+
+    /* A delegated page hands over normalised values and nothing else; movy's
+     * own page hands over a whole view model. They must reach the same colour,
+     * or the row would change appearance when ownership changed and say
+     * nothing about the sound. */
+    const levels = [0, 0.2, 0.5, 0.9, 0, 0.3, 0.6, 0.99];
+    const vm = { rows: [levels.slice(0, 4).map((v) => ({ normalizedValue: v })),
+                        levels.slice(4).map((v) => ({ normalizedValue: v }))] };
+    eq('the two sources light the same colours',
+       paint(() => updateKnobLEDsFrom(levels)), paint(() => updateKnobLEDs(vm)));
+
+    /* An unread or unbound cell goes DARK rather than sitting confidently at
+     * the bottom of its range — colour 0 already means "nothing to turn here". */
+    eq('an unbound cell is dark, not minimum',
+       paint(() => updateKnobLEDsFrom(new Array(8).fill(null))), '0,0,0,0,0,0,0,0');
+
+    globalThis.setButtonLED = realBtn;
+    resetKnobLedCache();
 }
 
 setSchwungGridMode(null);

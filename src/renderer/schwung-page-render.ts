@@ -25,6 +25,7 @@ const BANDS = { header: false, bank: false, footer: false };
 
 export interface PageRender {
     knobParamInfo(slot: number): any | null;
+    knobLevels(): (number | null)[];
     render(title: string, auto?: AutomationView, touched?: number): void;
 }
 
@@ -32,8 +33,9 @@ export function createPageRender(ctl: any, deps: {
     keyAt: (slot: number) => string | null;
     keysOf: () => (string | null)[];
     componentKey: string;
+    normalizedOf: (meta: any, raw: any) => number | null;
 }): PageRender {
-    const { keyAt, keysOf, componentKey } = deps;
+    const { keyAt, keysOf, componentKey, normalizedOf } = deps;
 
     return {
         /*
@@ -72,6 +74,39 @@ export function createPageRender(ctl: any, deps: {
                 automatable: m.kind !== 'opaque' && !m.writeOnly && !m.readOnly
                              && typeof m.min === 'number' && typeof m.max === 'number',
             };
+        },
+
+        /*
+         * THE EIGHT KNOB LEDS, AND THE REPAINT SIGNAL, FROM THE DRAWN CELLS.
+         *
+         * movy's LED row used to be lit from movy's own view model, which under
+         * this page is a different set of parameters (design §3, symptom 5).
+         * These are the values the page on screen is showing — and, because
+         * movy's own per-tick refresh no longer dirties the model for a
+         * delegated component, a change in them is now also the only thing that
+         * asks for the frame back (app/page-poll.ts).
+         *
+         * `normalizedOf` is Schwung's, not a second copy: "how full is this
+         * control, or unknown", which measures an enum across its OPTION LIST
+         * and distinguishes unread from zero. A cell with nothing bound, or a
+         * value not read back yet, is `null` — an unlit knob, which is the
+         * honest reading of a cell that will do nothing if you turn it.
+         *
+         * A page with no knobs (a preset browser, an items list) has no keys,
+         * so every entry is null and the row goes dark — the same answer
+         * Schwung's own host gives it.
+         */
+        knobLevels() {
+            const out: (number | null)[] = [null, null, null, null, null, null, null, null];
+            if (!ctl.metaIndex) return out;
+            const keys = keysOf();
+            for (let slot = 0; slot < 8; slot++) {
+                const k = keys[slot];
+                if (!k) continue;
+                const raw = ctl.state && ctl.state.values ? ctl.state.values[k] : null;
+                out[slot] = normalizedOf(ctl.metaIndex.getOrGuess(k), raw) ?? null;
+            }
+            return out;
         },
 
         render(title: string, auto?: AutomationView, _touched = -1) {

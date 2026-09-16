@@ -36,6 +36,15 @@ export interface SchwungLib {
     applyInput: any;
     renderPageMovy: any;
     BAND_H: any;
+    /* "How full is this control, or unknown" — the reading a knob ARC, a
+     * modulation dot and an indicator LED all take, and deliberately not
+     * `fractionOf`, which measures an enum against min/max for the viz shapes.
+     * Taken from Schwung rather than re-derived so the ring, the arc and the
+     * dot cannot disagree about the same cell. Guaranteed present wherever this
+     * library loads: `page_controller.mjs` imports it BY NAME, so a
+     * render_page_movy without it fails the link and takes the whole set down
+     * before anything reads this. */
+    normalizedOf: any;
     drawEnumList: any;
     registerWidget: any;
     clearWidgets: any;
@@ -100,6 +109,7 @@ try {
         createController: pc.createController, LAYOUT_MOVY: pc.LAYOUT_MOVY,
         applyInput: pi.applyInput,
         renderPageMovy: rpm.renderPageMovy, BAND_H: rpm.BAND_H,
+        normalizedOf: rpm.normalizedOf,
         drawEnumList: el.drawEnumList,
         registerWidget: wr.registerWidget, clearWidgets: wr.clearWidgets,
         isWidgetAvailable: wr.isWidgetAvailable,

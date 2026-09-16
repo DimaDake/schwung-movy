@@ -81,6 +81,31 @@ export function createPageContract(ctl: any, port: TrackPort, componentKey: stri
     const RETRY_TICKS = 12;
     const RETRY_LIMIT = 60;
 
+    /*
+     * `reloadIfChanged` IS POLLED ON A DIVIDER, NOT EVERY TICK.
+     *
+     * It is a full contract read — `load()` unconditionally, with the
+     * fingerprint compare deciding only whether to re-PLAN — so on device it is
+     * a synchronous round trip per call, for a question whose answer changes
+     * once: has the module in this slot been swapped. Schwung's own host
+     * (shadow_ui_param_pages.mjs) paces the same question on a divider of 8 and
+     * says why: "every one of these is a synchronous round trip (~2.8ms) ... for
+     * an edge that fires once".
+     *
+     * It was every tick here, and that was survivable only because the tick
+     * itself was rare: the poll used to hang off movy's repaint, which in a
+     * steady state never came. SP-12 made the poll per-tick — it had to, or the
+     * page's read cursor never advances — and that turned this line into the
+     * page's largest standing cost. Measured in `scripts/grid-call-cost.mjs`:
+     * every tick, the `page` arm idles at 3.00 host calls/tick; on this divider,
+     * 1.25, against movy's own refresh at the 1.13 it replaces.
+     *
+     * The delay it costs is at most RELOAD_POLL_TICKS before a departed module
+     * hands the frame back — tens of milliseconds, against a module load.
+     */
+    const RELOAD_POLL_TICKS = 8;
+    let sinceReload = 0;
+
     function tick(): void {
         if (!loaded) {
             sinceRetry++;
@@ -89,9 +114,12 @@ export function createPageContract(ctl: any, port: TrackPort, componentKey: stri
             }
             if (!loaded) return;
         }
-        ctl.reloadIfChanged();
+        if (++sinceReload >= RELOAD_POLL_TICKS) {
+            sinceReload = 0;
+            ctl.reloadIfChanged();
+            refreshLoaded();        /* the module may have just left the slot */
+        }
         ctl.tick();                 /* exactly one get_param */
-        refreshLoaded();            /* the module may have just left the slot */
     }
 
     return { reload, tick, isReady: () => loaded };

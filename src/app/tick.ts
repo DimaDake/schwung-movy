@@ -24,13 +24,14 @@ import { WHITE_DIM } from '../seq/colors.js';
 import { padColor } from '../seq/pads.js';
 import { midiNoteName } from '../keyboard/notes.js';
 import { renderKnobsView } from '../renderer/knob-view.js';
-import { pageOwnerOf } from './page-owner.js';
+import { pageOwnerOf, type PageOwner } from './page-owner.js';
+import { moduleGridOnScreen, pollDrawnPage, drawnKnobLevels } from './page-poll.js';
 import { schwungEditorActive, renderSchwungEditor } from '../renderer/schwung-editor.js';
 import { renderKeysView }  from '../renderer/keys-view.js';
 import { renderBrowseView } from '../renderer/browse-view.js';
 import { renderChainView }    from '../renderer/chain-view.js';
 import { renderFileBrowseView } from '../renderer/file-browse-view.js';
-import { updateKnobLEDs, updateSingleKnobLED, resetKnobLedCache } from '../renderer/knob-leds.js';
+import { updateKnobLEDs, updateKnobLEDsFrom, updateSingleKnobLED, resetKnobLedCache } from '../renderer/knob-leds.js';
 import { seqEngineTick, takeLabelSync, requestLabelSync } from '../seq/engine.js';
 import { drumSyncTick, resetDrumSync } from '../seq/drum-sync.js';
 import { applyLaneMapping } from '../seq/lane-mapping.js';
@@ -153,7 +154,7 @@ let _schwungDiag = '';
  * indexes CHAIN SLOTS, not param pages, so replacing it with Schwung's page
  * indicator would be a lie about what the jog does there.
  */
-function schwungBodyFor(model: any, stepSelected: boolean): (() => void) | undefined {
+function schwungBodyFor(owner: PageOwner, stepSelected: boolean): (() => void) | undefined {
     /* Says WHY it declined, once per distinct reason. Reporting only that the
      * grid "is still movy's" cost two device round trips; the reason comes from
      * the owner and none of them is visible from the screen. */
@@ -162,12 +163,11 @@ function schwungBodyFor(model: any, stepSelected: boolean): (() => void) | undef
         return undefined;
     };
     if (stepSelected) return why('step-page-selected');
-    const owner = pageOwnerOf(model);
     if (!owner.claimed) return why(owner.reason);
-    /* BEFORE the ready check, so an unready page keeps asking. The page is
-     * built while the module is still loading, and without this its first
-     * empty answer stood for the whole session. */
-    owner.poll();
+    /* The poll moved to `pollDrawnPage` (app/page-poll.ts), which runs once per
+     * tick rather than once per rendered frame. It had to: with movy's own
+     * refresh stopped for a delegated component, nothing dirties the model, so
+     * a poll that waits for a frame waits for a frame nothing will ask for. */
     const sp = owner.page;
     if (!sp) return why(owner.reason);
     why(owner.reason);
@@ -189,11 +189,28 @@ function schwungBodyFor(model: any, stepSelected: boolean): (() => void) | undef
  * Undefined means "movy's own banks", which is also the answer on the step
  * page — that page IS movy's, and so is its bar.
  */
-function schwungBankFor(model: any, stepSelected: boolean):
+function schwungBankFor(owner: PageOwner, stepSelected: boolean):
         { index: number; count: number } | undefined {
     if (stepSelected) return undefined;
-    const owner = pageOwnerOf(model);
     return owner.delegated ? { index: owner.pageIndex, count: owner.pageCount } : undefined;
+}
+
+/*
+ * THE RING FOLLOWS THE BODY, and for the same reason `schwungBodyFor` is one
+ * helper: movy draws a module's knobs from two screens, and a rule applied to
+ * one of them is how the seam drifts. Whoever drew the eight cells supplies the
+ * eight values, so the LEDs cannot end up describing a page the screen is not
+ * showing (design §3, symptom 5) — and under a delegated page movy's own view
+ * model is not merely a different parameter set, it is an EMPTY one, because
+ * movy has stopped reading it.
+ *
+ * The WRITER is movy's either way. The diff cache and the frame LED budget live
+ * in renderer/knob-leds.ts, and a second writer on these eight is how a knob
+ * strands itself on a colour it no longer shows.
+ */
+function lightKnobRow(vm: ViewModel, body: (() => void) | undefined): void {
+    if (body) updateKnobLEDsFrom(drawnKnobLevels());
+    else updateKnobLEDs(vm);
 }
 let _schwungView = '';
 let _schwungWhy = '';
@@ -589,8 +606,21 @@ function tickBody(): void {
     // Automation lanes are driven by playback — keep the page from reading them
     // back (decouples display from automation; avoids per-step repaints).
     activeModel?.setNoRefreshKeys(laneKeysForTrack(appState.activeTrack.index));
+    /*
+     * WHO OWNS THIS COMPONENT'S PAGES — asked ONCE per tick, and the answer
+     * decides three things below: whether movy's value refresh runs at all,
+     * whether Schwung's page is polled and drawn, and which of the two lights
+     * the eight knob LEDs. Asking it once is the point: three answers derived
+     * separately is how the seam drifted apart in the first place (design §3).
+     */
+    const pageOwner = pageOwnerOf(activeModel);
+
+    /* A DELEGATED COMPONENT IS NEVER DUAL-DRIVEN (movy/CLAUDE.md, rule 3).
+     * Under Schwung's page movy's round-robin re-reads a page nobody is
+     * drawing, at a bulk engine round trip every REFRESH_BULK_TICKS — the
+     * second reader design §3 names as the leading cost hypothesis. */
     perfPhase('modeltick');
-    const modelDirty  = activeModel?.tick() ?? false;
+    const modelDirty  = activeModel?.tick(!pageOwner.delegated) ?? false;
     perfPhaseEnd();
 
     /* A module swap on the focused component changes its param set → re-validate
@@ -632,6 +662,29 @@ function tickBody(): void {
     seqHeaderTick();
     const toastShowing = seqToastActive();
     const headerShowing = seqHeaderActive();
+
+    /*
+     * THE DELEGATED PAGE'S OWN TICK, and the repaint it asks for.
+     *
+     * Computed here, once, and used by both render branches below — so the
+     * condition that decides whether Schwung is polled is literally the same
+     * expression that decides whether Schwung is drawn. Two of those would
+     * eventually disagree, and the failure is silent in both directions: a page
+     * polled but not drawn pays for reads nobody sees, and a page drawn but not
+     * polled shows values that stopped moving.
+     */
+    const stepSelected = stepPageAvailable() && stepPageState.selected;
+    const gridOnScreen = moduleGridOnScreen();
+    /* THE POLL COMES BEFORE THE BODY IS ASKED FOR, because the body is what
+     * readiness gates and the poll is what resolves readiness. Gating the poll
+     * on the body instead is a deadlock that looks exactly like the feature
+     * being off: the contract never resolves, every gesture stays movy's, and
+     * the burn-down goes green by never delegating at all.
+     *
+     * What `refreshOneParam` used to do by accident, this does on purpose: the
+     * drawn cells moving is what asks for the frame back. */
+    if (gridOnScreen && !stepSelected && pollDrawnPage(pageOwner)) appState.dirty = true;
+    const schwungBody = gridOnScreen ? schwungBodyFor(pageOwner, stepSelected) : undefined;
 
     /* Whether this tick repainted the view. The song band sits on top of it,
      * so a repaint erases the band and it has to be drawn again. */
@@ -742,15 +795,14 @@ function tickBody(): void {
              * The step page is movy's too, so it keeps its own renderer.
              */
             renderKnobsView(vm, jogHintVisible(), appState.activeTrack.index,
-                            schwungBodyFor(activeModel, stepAvail && stepPageState.selected),
-                            schwungBankFor(activeModel, stepAvail && stepPageState.selected));
+                            schwungBody, schwungBankFor(pageOwner, stepSelected));
             perfPhaseEnd();
             // The pool-full toast shares the bottom rows with the Loop strip;
             // claim them so the strip yields to it (like every other toast).
             jogToastShown = (vm.automationHeld && vm.automationPoolFull)
                 || !!vm.toast?.browseHint || jogHintVisible();
             perfPhase('leds');
-            updateKnobLEDs(vm);
+            lightKnobRow(vm, schwungBody);
             perfPhaseEnd();
         } else if (appState.currentView === VIEW_CHAIN) {
             const stepAvail = stepPageAvailable();
@@ -772,13 +824,12 @@ function tickBody(): void {
             }
             noteRendered(vm);
             renderChainView(vm, chainIdx, jogHintVisible(), 'T' + (appState.activeTrack.index + 1),
-                            undefined, undefined as any,
-                            schwungBodyFor(activeModel, stepAvail && stepPageState.selected));
+                            undefined, undefined as any, schwungBody);
             /* Must match what renderChainView actually drew: the Loop strip
              * clears rows 60-63 every tick and would erase a toast it was not
              * told about. */
             jogToastShown = !!vm.toast?.browseHint || jogHintVisible();
-            updateKnobLEDs(vm);
+            lightKnobRow(vm, schwungBody);
         }
         /* Track-volume slider sits above the view it was invoked from. Only
          * visible in the Shift variant — without Shift the shim has handed the

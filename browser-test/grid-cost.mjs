@@ -71,6 +71,21 @@
  * per knob detent in the page arm (`knobTurn`, i.e. the throttle removed, which is
  * the shape the original complaint describes) measures 1311 and leaves the off
  * arm untouched at -418.
+ *
+ * RE-MEASURED 2026-09-14, AFTER SP-12, AND THE CEILING IS NOW LOOSE. The page
+ * arm's gesture premium is **7** (was 51) and its idle floor is **753** over 600
+ * ticks, 1.25 calls/tick, against `off` unchanged at -418 / 678 / 1.13. Read the
+ * floors together with the premium or the numbers mislead: BEFORE SP-12 the page
+ * arm idled at exactly `off`'s 678, not because the grid was free but because the
+ * delegated page was polled only on a repaint and a steady movy does not repaint
+ * — the page's read cursor never advanced at all. It advances every tick now, and
+ * costs 0.12 calls/tick more than the movy refresh it replaced.
+ *
+ * The consequence for THIS gate is that 90 is 13x the measurement, so a doubled
+ * page gesture (14) sails through it — the exact regression the tight budget was
+ * chosen for. Re-deriving it is SP-13's, which owns the cost verdict; SP-12
+ * deliberately did not move a gate it had just changed the reading of. The
+ * numbers above are what SP-13 should set it from.
  */
 import { spawnSync } from 'node:child_process';
 import { realpathSync } from 'node:fs';

@@ -55,7 +55,7 @@ in `browser-test/page-mode-expected-fail.json`'s own note.
 | SP-25 | Level-shadowed `short_name` — build each cell from the def of the level that owns it | Sonnet | ✅ |
 | SP-10 | Delegation boundary: ownership accessor + page identity | Opus | ✅ |
 | SP-11 | Input ownership, incl. **Clear+knob must not delete the clip** | Opus | ✅ |
-| SP-12 | Polling + LED ownership | Opus | ⬜ |
+| SP-12 | Polling + LED ownership | Opus | ✅ |
 | SP-13 | Per-tick cost: number, attribution, recommendation (**branch point**) | Opus | ⬜ |
 | SP-14 | Cause E — drum/voice pages | Opus | ⬜ |
 | SP-15 | Cause D — contract lifecycle | Sonnet | ⬜ |
@@ -804,6 +804,14 @@ arms prove the view they measured before measuring it). One representative
 `calls/tick=0.6` and `ipc_ms` 1.2–1.5 on **both** arms, every section; worst
 `period_ms` seen anywhere is 5.1. No section was flagged `INVALID`.
 
+**SP-12 has now moved the off-device half, and the Log entry for 2026-09-16 has
+the numbers**: the `page` arm's gesture premium is **51 → 7**, its idle floor
+**678 → 753 calls / 600 ticks** (1.13 → 1.25 per tick), `off` untouched at
+**−418 / 678**. Read the floors together: the old 678 was not a free grid, it
+was a page whose read cursor never ran. `browser-test/grid-cost.mjs`'s ceiling
+of 90 is now 13x the measurement and no longer catches a doubled gesture —
+**re-deriving it is SP-13's**, and the header of that file says so.
+
 **Read this honestly: the device arm does not separate the arms at this scale.**
 That is not a null result about the grid — it is the reason the gate is off
 device. `perf_ipc` reports an average over 120 ticks, the tick period here is
@@ -821,6 +829,144 @@ less than the spread above is a null result rather than a pass.
 ## Log
 
 Newest first. One line per closed item: id, date, commit, the evidence.
+
+- 2026-09-16 — **SP-12 ✅ — one reader, one LED writer, and the poll that had to
+  move first.** `refreshOneParam` and `updateKnobLEDs` both stop for a delegated
+  component, and neither could stop until the poll did.
+
+  **WHAT GATES THEM IS `owner.delegated`, asked ONCE per tick.** `app/tick.ts`
+  resolves `pageOwnerOf(activeModel)` a single time and that one answer decides
+  three things: `activeModel.tick(!owner.delegated)` (the new `refreshValues`
+  argument on `processTick`, gating ONLY the value refresh — the name poll, the
+  modulation re-read and the metadata retry stay, because they are how a module
+  swap is noticed at all), whether Schwung's page is polled and drawn, and which
+  of the two lights the ring. `model/` may not import `app/`, so the answer is
+  pushed down, the way `setNoRefreshKeys` already was.
+
+  **THE NAIVE VERSION OF THIS ITEM IS A DEADLOCK, and it is the whole reason
+  `src/app/page-poll.ts` exists.** `refreshOneParam` sets `dirty`
+  unconditionally, so movy's repaint cadence WAS the refresh — and the repaint
+  was the only caller of `owner.poll()`. Stop the refresh and: no refresh → model
+  never dirty → no frame → no poll → the page never reads → its values freeze →
+  nothing dirties. Measured, not reasoned: before the poll moved out of the
+  render branch, a parameter changed behind both readers' backs was picked up by
+  movy in the `off` arm and by **nobody** in the `page` arm. So the poll runs
+  once per tick, and the drawn cells' own values (plus the page identity, because
+  jogging to a page with the same numbers still changes every label) are what
+  asks for the frame back.
+
+  **THE POLL IS NOT UNCONDITIONAL, and that is deliberate.**
+  `schwung-page-contract.ts` spends a finite retry budget with no recovery once
+  spent (Cause D, SP-15). Polling regardless of view would burn it down while
+  movy sat on the sequencer and the page would be given up before the user ever
+  opened it. `moduleGridOnScreen()` is the guard, and **`app/tick.ts` derives the
+  BODY from the same expression** — one computation, two uses, so "polled" and
+  "drawn" cannot drift apart. Ordering is load-bearing in the other direction
+  too: the poll comes BEFORE the body is asked for, because the body is what
+  readiness gates and the poll is what resolves readiness. Gating the poll on the
+  body instead looks exactly like the feature being off — proved by mutation, the
+  burn-down collapses to **0 of 6** because nothing delegates at all.
+
+  **WHO DRIVES THE LEDS: Schwung supplies the values, movy stays the one
+  writer.** Schwung ships `knob_leds.mjs`, but its only caller is
+  `shadow_ui_param_pages.mjs` — the shadow UI's own host, not the controller — so
+  an embedder gets no LED writes from `createController`. `SchwungPage` gains
+  `knobLevels()`: the eight drawn cells normalised through Schwung's **own**
+  `normalizedOf` (the reading a knob arc, a modulation dot and an indicator LED
+  all take, and not `fractionOf`), `null` for unbound or unread, which is an
+  unlit knob. `knob-leds.ts` gains `updateKnobLEDsFrom(levels)` beside
+  `updateKnobLEDs(vm)`, sharing one `writeKnobRow` — one ramp, one diff cache,
+  one frame LED budget, one `knobLED k=` log line. A second writer on eight LEDs
+  is exactly how a knob strands itself on a colour it no longer shows, and
+  keeping `lastKnobColor` single is what makes leaving a delegated page relight
+  the row instead of inheriting it. `lightKnobRow(vm, body)` is one helper for
+  both screens, for the same reason `schwungBodyFor` is.
+
+  **A COST DEFECT THIS ITEM CREATED AND THEN FIXED, and the fix is the
+  interesting half.** `createPageContract.tick()` called `ctl.reloadIfChanged()`
+  every tick — a full contract read, asking whether the module was swapped. That
+  was survivable only because the tick was rare; making the poll per-tick turned
+  it into the page's largest standing cost. Measured in
+  `scripts/grid-call-cost.mjs`: the `page` arm idled at **3.00 host calls/tick**
+  with it there. It is now on a divider of **8** — Schwung's own host paces the
+  identical question the same way and says why ("~2.8 ms ... for an edge that
+  fires once") — giving **1.25 calls/tick**, against the **1.13** of the movy
+  refresh it replaces. The delay it buys is at most 8 ticks before a departed
+  module hands the frame back.
+
+  **The tests, and which half each holds.**
+  - `browser-test/app-loop.mjs`, last block, **both arms**, fixture `test16`:
+    `movy re-reads the params only when movy owns the page` is ONE label whose
+    expectation is `!delegated`, so it is the gate itself in both arms; `the
+    drawn page is read whoever owns it` is its partner, without which the first
+    passes just as well with nothing reading at all. Then the ring: jog one page
+    — under `page` that moves Schwung's index and leaves movy's bank alone, so a
+    row lit from movy's model would not move — and the eight LEDs must equal the
+    colours of the DRAWN cells, computed from the live store and the drawn keys
+    so it is neither reader's cache.
+  - The movy-owned half is in the same block: Main Params still lights its row
+    and **takes it back** from the module page. Tooth: suppressing LED work by
+    VIEW rather than by OWNER (dropping the `updateKnobLEDs` on the
+    VIEW_MAIN_PARAMS branch) reddens `and the row left the module page behind` in
+    **both** arms — the row stranded on the module page's colours, which is the
+    LED-ownership hazard in one line.
+  - `browser-test/logic/page-owner.mjs`, structural, the SP-10/SP-11 idiom:
+    `.poll()` appears only in `app/page-poll.ts`; `app/tick.ts` never calls
+    `activeModel?.tick()` with no argument; and `knob-leds.js` is **imported**
+    only by `app/tick.ts`. That last rule is asked of the IMPORT and not the
+    call because the first version was asked of the call and an alias
+    (`updateKnobLEDs as _u`) walked straight past it — it stayed green on the
+    tooth, which is how that was found.
+  - `browser-test/logic/page-owner.mjs`, unit: the two LED sources light the same
+    colours for the same normalised values, and an unbound cell is dark rather
+    than sitting at the bottom of its range.
+  - `browser-test/logic/schwung-page.mjs`: a settled page stays inside one read a
+    tick plus the paced poll — 80 reads over 64 ticks; with the divider at 1 it
+    is 192, and the check goes red.
+
+  **Teeth proved on every new check and restored**: the three page-arm app-loop
+  reds were red before the implementation (`expected false, got true`; `expected
+  0.9, got 0`; the ring showing movy's page-1 values); afterwards each was
+  re-reddened by its own mutation — `tick(true)`, `updateKnobLEDs(vm)` on both
+  module branches (which shows the row going to `[124,124,124,124,75,75,75,75]`,
+  i.e. not merely the wrong parameters but a DEAD row, because movy has stopped
+  reading them), a second `.poll()` caller, `activeModel?.tick()`, an aliased
+  LED import, one ramp for both sources, an unbound cell lit at minimum,
+  `knobLevels` answering 0, `RELOAD_POLL_TICKS = 1`, and the poll gated behind
+  the body.
+
+  **One fixture correction, and it is not a burn-down win.** The file-browse
+  block swaps the module under a cached page and gestured immediately; SP-12 made
+  the resulting re-plan visible (the stale plan used to just keep answering), so
+  the block was measuring the RE-PLAN rather than who takes the click, and
+  `chain page: file-param jog click opens file browser` flipped green for the
+  wrong reason. The fixture now waits the contract out, bounded, and the label is
+  red again. **The burn-down stands at 6 of 6** — Cause C is untouched and stays
+  SP-17 / SU-4's.
+
+  **Gates.** `SCHWUNG=../schwung npm test` exit 0 (167 screenshots passed, 0
+  failed — no pixel moved, so no baseline was regenerated); `page-mode` **6 of 6,
+  ledger up to date**; device tier **15 scenarios · 130 checks · 0 failed**, no
+  flakes, `engine: unchanged, no restart`. The tier runs with `schwunggrid` OFF,
+  so what it proves is the movy-owned half on real hardware — `smoke` reports
+  `updateKnobLEDs ran — 8 knobs logged, 8 lit` and `refresh-blocking` PASS at a
+  5 ms median.
+
+  **MANUAL.md / README.md untouched, and that is a call rather than an
+  oversight**: the DEFAULT build is `off`, where nothing about this is visible.
+  What changed is visible only under `schwunggrid = page`, and SP-30 is the item
+  that documents that mode when it becomes the default.
+
+  **What SP-13 should expect to see move.** Off device, `grid-call-cost.mjs`:
+  page premium **51 → 7**, page idle floor **678 → 753 / 600 ticks** (1.13 →
+  1.25 calls/tick), `off` unchanged at **−418 / 678**. Read them together or
+  they mislead — the old 678 was movy's refresh alone, with the delegated page
+  polled only on a repaint that a steady movy never asks for, so its read cursor
+  never advanced. The page is genuinely read now, for 0.12 calls/tick more than
+  the refresh it replaced. On device, re-run `./scripts/measure-grid-cost.sh off`
+  then `page` against the 2026-09-13 `period_ms` table above; a move smaller than
+  that spread is a null result, not a pass. And SP-13 owns re-deriving
+  `grid-cost.mjs`'s ceiling, which at 90 is now 13x the measurement.
 
 - 2026-09-14 — **SP-11 ✅ — input ownership, and the clip survives Clear+knob.**
   The burn-down went **13 → 6** and the guarantee in the design's bold line is

@@ -68,7 +68,21 @@ export function reReadModule(s: ModelState): void {
     s.dirty = true;
 }
 
-export function processTick(s: ModelState): boolean {
+/*
+ * `refreshValues` is FALSE when Schwung draws this component's pages.
+ *
+ * The value refresh keeps movy's idea of the parameters converging on the
+ * engine's, and under a delegated page nobody draws that idea: the page on
+ * screen has its own read cursor, so a second reader is the whole of the
+ * per-tick cost this migration went looking for (design §3, Cause F). It is
+ * passed in rather than asked here because `model/` may not import `app/`, and
+ * the one site that knows who owns the page is `app/tick.ts`.
+ *
+ * Only the VALUE refresh stops. The name poll, the modulation re-read and the
+ * metadata retry below are how a module swap is noticed at all, and a model
+ * that stopped noticing would never hand the page back.
+ */
+export function processTick(s: ModelState, refreshValues = true): boolean {
     /* Chip away at the sample waveform. The read is deliberately here and not
      * in buildViewModel: movy's tick period IS its MIDI sampling interval, so
      * this does a couple of 32 KB blocks and returns, repainting only on the
@@ -139,7 +153,7 @@ export function processTick(s: ModelState): boolean {
 
     // A metadata probe already spent this tick's read budget (perf.mjs caps the
     // per-tick shadow_get_param count) — the value refresh waits a tick.
-    if (!probed && s.knobParams.length > 0) {
+    if (refreshValues && !probed && s.knobParams.length > 0) {
         const t0 = Date.now();
         refreshOneParam(s, _perfTickCount);
         const ms = Date.now() - t0;

@@ -352,7 +352,9 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
             s.dirty = true;
         },
 
-        tick(): boolean { return processTick(s); },
+        /* `refreshValues: false` while another planner draws this component —
+         * see processTick. The default keeps every other caller unchanged. */
+        tick(refreshValues = true): boolean { return processTick(s, refreshValues); },
 
         getViewModel(auto?: import('../types/viewmodel.js').AutomationView) { return buildViewModel(s, auto); },
 

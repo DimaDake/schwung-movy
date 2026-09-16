@@ -63,6 +63,10 @@ export interface SchwungPage {
     labelAt(slot: number): string | null;
     /** What movy's automation layer needs about the param at this knob. */
     knobParamInfo(slot: number): any | null;
+    /** The drawn cells as normalised 0..1, `null` where nothing is bound or
+     *  nothing has been read back. What lights the knob LEDs, and what movy
+     *  watches to know the drawn page moved. */
+    knobLevels(): (number | null)[];
     render(title: string, auto?: AutomationView, touched?: number): void;
     knobTurn(slot: number, delta: number): void;
     knobTouch(slot: number, down: boolean): void;
@@ -94,7 +98,8 @@ export function createSchwungPage(port: TrackPort, componentKey = 'synth'): Schw
     const keyAt = (slot: number) => (keysOf()[slot] as string) || null;
 
     const contract = createPageContract(ctl, port, componentKey);
-    const page = createPageRender(ctl, { keyAt, keysOf, componentKey });
+    const page = createPageRender(ctl, { keyAt, keysOf, componentKey,
+                                        normalizedOf: lib.normalizedOf });
     const input = createPageInput(ctl, lib, port, qualify);
 
     return {
@@ -114,6 +119,7 @@ export function createSchwungPage(port: TrackPort, componentKey = 'synth'): Schw
             return String((m && (m.label || m.key)) || k);
         },
         knobParamInfo: page.knobParamInfo,
+        knobLevels: page.knobLevels,
         render: page.render,
         knobTurn: input.knobTurn,
         knobTouch: input.knobTouch,

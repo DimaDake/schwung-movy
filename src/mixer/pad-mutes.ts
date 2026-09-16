@@ -83,7 +83,7 @@ export function padMuteGesture(track: number, note: number, solo: boolean): void
      * a screen. */
     mlog(solo
         ? 'psolo t=' + track + ' n=' + (wasSolo ? -1 : note)
-        : 'pmute t=' + track + ' n=' + note + ' -> ' + (wasMuted ? 0 : 1));;
+        : 'pmute t=' + track + ' n=' + note + ' -> ' + (wasMuted ? 0 : 1));
 
     /* Optimistic mirror, so the pad greys this tick rather than at the next
      * status poll (~40 ms). A payload for another track is replaced outright:

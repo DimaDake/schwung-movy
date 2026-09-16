@@ -182,6 +182,36 @@ The plan's cross-language item is a **contract pin, not a regression test** —
 written from `sendDocSlot`/`send_index` on both sides and a change to it breaks
 the engine and the UI at once.
 
+## Follow-up, 2026-09-16 — the half this plan got wrong
+
+"Nothing else changes: … `mix_csv`/`get_param` are `.get`-based, so a send's mix
+and LFO fields serialize as `""` by construction" was written in this file as a
+reassurance, and it is exactly where the second bug was hiding. `mix_csv` and
+`lfo_state` read through `get_param` and are *right* to — a bus has no mixer
+triple and no LFOs. `serialize` reads the **preset blob** through the same
+accessor, and there the emptiness is data loss: `get_param` is `.get`-based over
+`slots`, which holds `MOVY_CHAINS` entries, so a bus's slot indexes past the end
+of it.
+
+So the engine's `chains.json` recorded every send with an empty fourth field,
+`chain-mirror.ts` carried the absence into `ui-state.json`, and `restore`'s
+`if !c[3].is_empty()` guard skipped `set_send_state` on open. The module came
+back; its knobs did not. `engpersist` is on by default, so this is every Set the
+fixed build wrote.
+
+The lesson worth keeping: two callers telling the truth about empty fields made
+the third, which was losing data, read as the same pattern. `bus_of_slot` now
+selects the accessor explicitly in `serialize`, so the bus branch and the track
+branch are named rather than inferred. §8a of `docs/persistence-hazards.md`
+carries the record. Test: `a_live_sends_preset_reaches_the_file` (reads `""`
+with the fix reverted), which asserts both the blob in the file and the queued
+load that gets it back.
+
+**Still uncovered on device**: nothing in `test-device/` saves a Set holding a
+send and reopens it, so both halves of this were found by hand — the second one
+by the user opening a Set. `sends.ts` drives `snd0:module`, i.e. audio routing.
+That is the gap worth closing next.
+
 ## Device tier, 2026-09-15 — one red check, and it is not this one
 
 `npm run test:device` on this worktree: **130 checks, 1 failed.**

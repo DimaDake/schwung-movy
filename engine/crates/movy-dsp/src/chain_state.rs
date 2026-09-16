@@ -103,9 +103,21 @@ pub fn serialize(slots: &mut ChainSlots) -> String {
     let mut items: Vec<String> = Vec::new();
     let mut prev_slot: Option<usize> = None;
     for e in entries {
-        let state = slots
-            .get_param(e.slot, &format!("{}:state", e.component))
-            .unwrap_or_default();
+        /* A bus's preset is read through the SEND accessor, because `get_param`
+         * is `.get`-based over `slots` — MOVY_CHAINS entries — so a bus's slot
+         * indexes past the end of it and answers None. Every send serialized
+         * with an empty blob: the module came back and its knobs did not.
+         *
+         * The mixer triple and the LFOs below are still read through
+         * `get_param`, and "" is the TRUTH for them rather than the same loss —
+         * a bus has no mixer of its own and no LFOs, which is why the schema
+         * writes both fields empty for one. */
+        let state = match bus_of_slot(e.slot) {
+            Some(bus) => slots.send_get_param(bus, "state").unwrap_or_default(),
+            None => slots
+                .get_param(e.slot, &format!("{}:state", e.component))
+                .unwrap_or_default(),
+        };
         // The mixer triple belongs to the CHAIN, so it rides that chain's first
         // component rather than being repeated on every one of them.
         // The mixer triple and the LFOs belong to the CHAIN, so they ride its

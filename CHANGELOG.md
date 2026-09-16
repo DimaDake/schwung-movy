@@ -61,6 +61,15 @@ far. Earlier work is summarised in the timeline below for context.
   guard that stopped at sixteen. Silent in both directions, and the feature was
   born this way — the saves are correct for a Set that never had a send. Sends
   are saved and restored now, which is what the manual has claimed all along.
+
+  **A send that did load came back with its knobs at the module's defaults.**
+  The engine writes its own `chains.json` by asking each chain for its preset
+  blob, and it asked through the chain-slot accessor — which holds sixteen
+  instances, so a bus's slot is past the end of it and every send was written
+  down with an empty patch. The module was re-created and its settings were
+  never applied. A bus's preset is read through the send accessor the UI half
+  already used, so what a send sounds like now survives the round trip.
+
   **Sets saved before this build have no send in them, in any copy or version:
   re-add the send FX once and it will persist from then on.**
 

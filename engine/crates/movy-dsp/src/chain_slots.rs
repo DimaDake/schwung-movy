@@ -2146,6 +2146,62 @@ mod tests {
         assert_eq!(req.state.as_deref(), Some("PATCH"), "the patch rides the load");
     }
 
+    /* The SAVE half of that round trip, and it is the half that was missing.
+     * `chain_state::serialize` read every record's blob through `get_param`,
+     * which is `.get`-based over `slots` — MOVY_CHAINS entries — so a bus's
+     * slot indexed past the end of it and answered None. Every send therefore
+     * went into the file with an empty blob, and a restore re-loaded the module
+     * with `fx1:state` never set: the module came back and its knobs did not.
+     *
+     * The fake answers `fx1:state` because that is the key the LIVE instance
+     * holds it under — the accessor translates the bus, not the key. */
+    #[test]
+    fn a_live_sends_preset_reaches_the_file() {
+        unsafe extern "C" fn fake_send_get_param(
+            _inst: *mut c_void, key: *const c_char, buf: *mut c_char, buf_len: c_int,
+        ) -> c_int {
+            let k = unsafe { CStr::from_ptr(key) }.to_str().unwrap_or("");
+            let v = match k {
+                "fx1:state" => "PATCH",
+                _ => "",
+            };
+            let bytes = v.as_bytes();
+            if bytes.len() as c_int >= buf_len {
+                return -1;
+            }
+            unsafe {
+                core::ptr::copy_nonoverlapping(bytes.as_ptr() as *const c_char, buf, bytes.len());
+            }
+            bytes.len() as c_int
+        }
+        let api: &'static plugin_api_v2_t = Box::leak(Box::new(plugin_api_v2_t {
+            api_version: 0,
+            create_instance: None,
+            destroy_instance: None,
+            on_midi: None,
+            set_param: None,
+            get_param: Some(fake_send_get_param),
+            get_error: None,
+            render_block: None,
+        }));
+
+        let mut slots = ChainSlots::new();
+        slots.request_send_load(0, "mverb");
+        slots.send_slots[0] = Some(ChainInstance::for_test(api));
+
+        let saved = crate::chain_state::serialize(&mut slots);
+        let items = crate::chain_state::parse_items(&saved).expect("the file parses");
+        assert_eq!(items.len(), 6, "one record: the bus");
+        assert_eq!(items[3], "PATCH", "a send's patch belongs in the Set file");
+
+        /* And the whole point of writing it down: reopening the Set hands it
+         * back to the load that will re-create the module. */
+        let mut reopened = ChainSlots::new();
+        assert!(crate::chain_state::restore(&mut reopened, &saved));
+        let req = reopened.queue.take_one().expect("the send is queued again");
+        assert_eq!(req.state.as_deref(), Some("PATCH"), "knobs and all");
+    }
+
     /* `loaded_report` is a device test's only read-back for a movy chain, so
      * the one thing it must never do is echo the request as though it were
      * evidence: a fixture that "verified" against `desired` would pass while

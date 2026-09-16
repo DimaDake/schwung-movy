@@ -237,3 +237,49 @@ send record in the cross-language golden document on both sides.
 never carried a send. Rename, duplicate and version history ferry
 `ui-state.json` verbatim, so the `[]` travelled intact — a Set saved before this
 fix has no send in it in any copy, and the send must be re-added by hand once.
+
+### 8a. Its second half — the module came back and its knobs did not
+
+Found 2026-09-16 by opening a Set that a build with §8 fixed had just written.
+The send was in the document now, the module loaded — and it was at the module's
+shipped defaults.
+
+Getting a bus INTO the document was only half of it. The engine writes
+`chains.json` by asking each record for its preset, and it asked through
+`ChainSlots::get_param` — which is `.get`-based over `slots`, the **sixteen**
+chain instances. A bus's slot indexes past the end of that array and answers
+`None`, so `chain_state::serialize` fell through to `unwrap_or_default()` for
+every send it wrote. A Set file written by the fixed engine records its sends
+with an **empty fourth field**:
+
+```
+17 → fx1 → mverb → ""        ← the patch, gone
+```
+
+The mirror then carried the absence faithfully (`chain-mirror.ts:53`), so
+`ui-state.json` lost it too, and on open `restore`'s `if !c[3].is_empty()` guard
+skipped `set_send_state` — the module loaded through the load the document
+queued and `fx1:state` was never set.
+
+**The read is the bug, not the write.** `snd0:state` → `set_send_state` →
+`attach_state` → the load that applies it were all correct, and the UI path was
+too: `captureSends` reads `snd0:state` through `send_get_param`
+(`chain_slots.rs:423`), which reaches the live instance. Only the engine's own
+serializer was blind — and only with `engpersist` on, which is the shipped
+default, so every Set movy has written since that flag landed has a send in it
+with no patch.
+
+**What hid it**: `mix_csv` and `lfo_state` call the same `get_param` and are
+*right* to — a bus has no mixer triple and no LFOs, so `""` is the truth for
+those fields, and the paragraph in `plans/2026-09-15-send-persist-not-saved.md`
+that noticed this ("`.get`-based, so a send's mix and LFO fields serialize as
+`""` by construction") stopped one field short of the one a bus actually has.
+Two callers telling the truth about empty fields made the third, which was
+losing data, look like the same pattern.
+
+**Fixed** at the read: a bus's preset is read through `send_get_param(bus,
+"state")` — the accessor that already existed for the UI's half — selected by
+`bus_of_slot`, so the bus branch and the track branch are named rather than
+inferred. Pinned by `chain_slots.rs`'s `a_live_sends_preset_reaches_the_file`,
+which asserts the blob is in the file **and** that reopening hands it back to
+the queued load; it reads `""` with the fix reverted.

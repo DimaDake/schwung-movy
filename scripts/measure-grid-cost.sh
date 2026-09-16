@@ -40,6 +40,18 @@ PREFS=/data/UserData/schwung/modules/tools/movy/prefs.json
 
 sshd() { ssh "ableton@$HOST" "$@"; }
 
+# SHIP THE INJECTOR THESE TOKENS ARE WRITTEN FOR, EVERY RUN. Nothing else
+# deploys inject-any.py, so the device keeps whichever copy someone last put
+# there by hand. Measured 2026-09-16: that copy read d1/d2 as DECIMAL and threw
+# on `0e`, so every inject below failed — and a failed inject does not stop the
+# run, it only removes the gesture, leaving five sections of real numbers that
+# are all the idle floor. That is how the 2026-09-13 A/B baseline in
+# docs/schwung-page-migration.md came to read "the arms do not separate". One
+# scp against a three-minute measurement makes the instrument the repo's copy
+# rather than the device's.
+scp -q "$(dirname "$0")/inject-any.py" "ableton@$HOST:/data/UserData/inject-any.py" \
+    || { echo "measure-grid-cost: could not ship inject-any.py — refusing to measure with an injector of unknown vintage" >&2; exit 2; }
+
 # The flag's values are the Settings row's order (src/renderer/schwung-grid.ts):
 # 0 = MOVY, 1 = BODY, 2 = PAGE. There is no build that selects any of them.
 case "$ARM" in
@@ -71,6 +83,12 @@ inject() {
 # `schwung-view` and `schwung-body` are already logged once per change, and
 # `schwung-body ok` is the only proof the grid drew the frame at all; a sample
 # without one measured movy's own renderer whatever the flag was set to.
+# The one pattern both the preflight and every sample read the body through. It
+# was written out twice; the sample guard below is only as good as its agreeing
+# with the preflight, so there is one copy.
+BODY_RE='schwung-body (ok track=[0-9]+ ck=[a-z_0-9:]+ pages=[0-9]+|not-ready[^|]*|mode=[a-z]+|movy-page ck=[a-z_0-9:]+|no-model|step-page-selected)'
+BODY_NOW=""
+
 sample() {
     local label="$1"; shift
     sshd "> $LOG"
@@ -91,6 +109,25 @@ sample() {
     if [ "${moved:-0}" != "0" ]; then
         echo "  INVALID: the view changed ${moved}x during this sample" >> "$OUT"
         sshd "grep schwung-view $LOG" | tail -n 3 >> "$OUT"
+    fi
+    # A SAMPLE THAT LEFT THE MEASURED BODY MEASURED SOMETHING ELSE, and the
+    # `schwung-view` check above cannot see it: the VIEW stays VIEW_KNOBS while
+    # the jog walks off the last page of `synth` onto `midi_fx1`, whose contract
+    # is not ready — so the component is no longer delegated, nothing polls, and
+    # the section comes back CHEAPER than idle. Measured 2026-09-16: the page
+    # arm's jog/knob sections read 0.5 calls/tick against an idle of 3.0, which
+    # reads as "the gesture is free" and is really "the page was gone".
+    #
+    # `schwung-body` logs once per distinct reason, so a section that strays and
+    # STAYS strayed emits nothing of its own — which is why the last reason is
+    # carried across sections in BODY_NOW rather than re-derived per sample.
+    local seen stray
+    seen=$(sshd "grep -oE '$BODY_RE' $LOG")
+    [ -n "$seen" ] && BODY_NOW=$(printf '%s\n' "$seen" | tail -n 1)
+    stray=$(printf '%s\n' "$seen" | grep -v -F -x "$WHERE" | grep -v '^$')
+    if [ -n "$stray" ] || { [ -n "$BODY_NOW" ] && [ "$BODY_NOW" != "$WHERE" ]; }; then
+        echo "  INVALID: the drawn body was not '$WHERE' throughout this sample (ends at: ${BODY_NOW:-unchanged})" >> "$OUT"
+        [ -n "$stray" ] && printf '%s\n' "$stray" | sed 's/^/    /' >> "$OUT"
     fi
     sshd "grep perf_ipc $LOG" | sed -E 's/.*perf_ipc //' >> "$OUT"
 }
@@ -154,7 +191,7 @@ sleep 8
 # preflight with their reason already written down.
 inject b0:0e:01 b0:0e:7f
 sleep 2
-WHERE=$(sshd "grep -oE 'schwung-body (ok track=[0-9]+ ck=[a-z_0-9:]+ pages=[0-9]+|not-ready[^|]*|mode=[a-z]+|movy-page ck=[a-z_0-9:]+|no-model|step-page-selected)' $LOG | tail -n 1")
+WHERE=$(sshd "grep -oE '$BODY_RE' $LOG | tail -n 1")
 echo "== preflight: ${WHERE:-(no schwung-body line at all)}" | tee -a "$OUT"
 case "$WHERE" in
     *"ok track="*) ;;                       # grid is drawing — the arm we want

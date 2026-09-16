@@ -15,11 +15,24 @@ moved the selection. A deleted scratch script (inject-movy.py) claimed the
 opposite in its docstring and sent cable 2; it is gone, and this note is here so
 the claim cannot come back a third time.
 
-Usage: inject-any.py <token> [...]
-  b0:d1:d2    control change (jog click 3, jog turn 14, knobs 71-78)
-  90:d1:d2    note on   (knob touch: d1 = knob index 0-7, d2 = 127)
+EVERY BYTE IN A TOKEN IS HEX, INCLUDING d1 AND d2. The status byte always was,
+and d1/d2 were read as DECIMAL -- so `b0:0e:01` (a jog detent, the token this
+script's only caller has always sent) died on int('0e') and the caller saw a
+failed inject rather than a wrong note. Measured 2026-09-16: the device copy
+refused every token measure-grid-cost.sh sends, which is why its five sections
+came back identical and the SP-13 device A/B had never delivered a gesture. A
+token whose first field is hex and whose other two are not is a trap, not a
+convention; the radix is now uniform and `--dry-run` lets a test prove it
+without a device.
+
+`sleep:ms` stays decimal -- it is a duration, not a byte.
+
+Usage: inject-any.py [--dry-run] <token> [...]
+  b0:d1:d2    control change (jog click 03, jog turn 0e, knobs 47-4e)
+  90:d1:d2    note on   (knob touch: d1 = knob index 00-07, d2 = 7f)
   80:d1:d2    note off  (knob release)
-  sleep:ms    pause
+  sleep:ms    pause, in DECIMAL milliseconds
+  --dry-run   print the decoded bytes and touch no shared memory
 """
 import sys, mmap, time
 
@@ -52,9 +65,23 @@ def send(status, d1, d2):
         mm.close()
     time.sleep(0.04)
 
-for tok in sys.argv[1:]:
+ARGS = sys.argv[1:]
+# --dry-run exists so the token grammar can be tested off device. Without it the
+# only way to find out that a token does not parse is a failed run against real
+# shared memory, which is how the radix bug survived: the caller logged "inject
+# FAILED" and nobody asked which of ssh, python or the token was at fault.
+DRY = bool(ARGS) and ARGS[0] == '--dry-run'
+if DRY:
+    ARGS = ARGS[1:]
+
+for tok in ARGS:
     parts = tok.split(':')
     if parts[0] == 'sleep':
-        time.sleep(int(parts[1]) / 1000.0)
+        if not DRY:
+            time.sleep(int(parts[1]) / 1000.0)
     else:
-        send(int(parts[0], 16), int(parts[1]), int(parts[2]))
+        status, d1, d2 = (int(p, 16) for p in parts[:3])
+        if DRY:
+            print('%02x %02x %02x' % (status, d1, d2))
+        else:
+            send(status, d1, d2)

@@ -173,6 +173,34 @@ const JOG_BACK   = [0xB0, globalThis.MoveMainKnob, 0x7f];
  * gesture inside one window averages the transient instead of betting on it. */
 const GESTURES = 20;
 const SETTLE_TICKS = 15;                             /* per gesture, gesture→gesture */
+/*
+ * THE GESTURES ARE SPACED ON A WALL CLOCK, AND WITHOUT THAT THE PAGE ARM
+ * MEASURES A GESTURE NOBODY CAN MAKE.
+ *
+ * Schwung's controller throttles its own setParam on Date.now
+ * (SETPARAM_THROTTLE_MS = 20 in param_pages/page_controller.mjs): a write
+ * inside the window is not lost, it is parked in pendingWrite and flushed by a
+ * later tick or by the knob release. Ticks here are instant, so all 20 gestures
+ * used to land inside one millisecond and 16 of their 20 writes collapsed into
+ * their neighbours — the page arm reported 4 writes for 20 gestures and a
+ * premium of 7, against `off`'s 20 writes. Measured 2026-09-16: stepping the
+ * clock 40 ms per gesture takes the same 20 gestures to 40 writes and the
+ * premium to 43, deterministic across five runs on each arm.
+ *
+ * 40 and not 20: the throttle compares `>=`, so a step ON the window is a
+ * coin-flip against whatever real time the run spent, and a measurement sitting
+ * on a boundary is not one. Two windows is clear of it with nothing to tune.
+ *
+ * It is a VIRTUAL clock added to the real one rather than a frozen one, because
+ * movy's own wall-clock paths (set-settle's CAP_MS, the hint timers) must keep
+ * seeing time move forward. `off` is unaffected either way — measured at
+ * −418 with the step and without it — which is what says this models
+ * Schwung's throttle and not something of movy's.
+ */
+const GESTURE_GAP_MS = 40;
+let vclock = 0;
+const realNow = Date.now;
+Date.now = () => realNow() + vclock;
 /* 20 gestures advance 300 ticks of their own, so the window is 600: that span
  * plus an equal tail. The idle floor is then measured over the same 600, and the
  * two windows differ by the input and nothing else — which is what the comment
@@ -185,6 +213,7 @@ function playGesture(i) {
     sendMidi(up ? FLICK_UP : FLICK_DOWN);
     sendMidi([0x80, globalThis.MoveKnob1Touch, 0x00]);
     sendMidi(up ? JOG_FWD : JOG_BACK);
+    vclock += GESTURE_GAP_MS;
     advance(SETTLE_TICKS);
 }
 
@@ -238,7 +267,10 @@ console.log(`  ${GESTURES} gestures: ${premium} calls over the idle floor`
  * a later reader, and a suite that parsed it would break on a column change.
  * `calls` is the gesture premium for the whole window — a plain count of host
  * calls, no rounding and no division, so the suite can compare the two arms
- * without either of them losing a digit. `mode` is the mode that ACTUALLY ran:
+ * without either of them losing a digit. `gap` travels beside it because the
+ * ceiling is only valid for the gesture CADENCE it was derived at: with the
+ * spacing removed the same code measures 7 instead of 43, which would sail
+ * under any ceiling and look like a win. `mode` is the mode that ACTUALLY ran:
  * with no schwung checkout `page` pins itself to `off`, and an arm reporting
  * only what it was ASKED for would let two identical runs read as an A/B. */
-console.log(`grid-cost: arm=${ARM} mode=${mode} calls=${premium}`);
+console.log(`grid-cost: arm=${ARM} mode=${mode} calls=${premium} gap=${GESTURE_GAP_MS}`);

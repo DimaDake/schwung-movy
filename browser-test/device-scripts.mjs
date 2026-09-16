@@ -651,6 +651,58 @@ for (const doc of ['CLAUDE.md', 'CONVENTIONS.md']) {
        missing.length ? `missing: ${missing.join(', ')}` : `${new Set(named).size} referenced, all present`);
 }
 
+/* ── Test 18: every inject token the A/B sends actually parses ──────────────
+ * `scripts/inject-any.py` read the STATUS byte as hex and d1/d2 as DECIMAL,
+ * while its only caller — scripts/measure-grid-cost.sh — writes all three in
+ * hex. So `b0:0e:01`, the jog detent that starts every run, died on int('0e')
+ * and every inject failed. A failed inject does not stop the measurement: it
+ * removes the gesture and leaves five sections of real numbers that are all the
+ * idle floor, which is how the 2026-09-13 device A/B in
+ * docs/schwung-page-migration.md came to read "the two arms do not separate".
+ *
+ * The token grammar is therefore checked against the tokens the script really
+ * sends, through the injector's own parser (`--dry-run`, which touches no shared
+ * memory), rather than by eye. A device is not needed and must not be.
+ */
+log('\nTest 18: measure-grid-cost.sh sends tokens inject-any.py can parse');
+
+const injectSrc = readFileSync('scripts/measure-grid-cost.sh', 'utf8');
+/* Every `inject`/`sample <label> inject` argument that looks like a MIDI token.
+ * Tokens are literal in that script — there is no variable to expand — so a
+ * regex over the source is the whole call graph. */
+const tokens = [...new Set([...injectSrc.matchAll(/\b([0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2})\b/g)].map((m) => m[1]))];
+ok('the script names some inject tokens at all', tokens.length > 0, `${tokens.length} distinct`);
+
+let parsed = null;
+try {
+    parsed = execFileSync('python3', ['scripts/inject-any.py', '--dry-run', ...tokens],
+                          { encoding: 'utf8' }).trim().split('\n');
+} catch (e) {
+    parsed = null;
+    ok('inject-any.py parses every token the A/B sends', false,
+       `${e.stderr || e.message}`.trim().split('\n').pop());
+}
+if (parsed) {
+    ok('inject-any.py parses every token the A/B sends', parsed.length === tokens.length,
+       `${parsed.length} of ${tokens.length}`);
+    /* The bytes, not just the absence of a throw: `b0:47:20` parses under BOTH
+     * radices (0x47 = 71, and "47" decimal = 47) and would silently turn knob 1
+     * into a different CC. Only comparing the decoded value catches that. */
+    const wrong = tokens.filter((t, i) => {
+        const want = t.split(':').map((b) => parseInt(b, 16));
+        const got = (parsed[i] || '').split(' ').map((b) => parseInt(b, 16));
+        return want.some((v, j) => v !== got[j]);
+    });
+    ok('and decodes each one as hex, not as decimal', wrong.length === 0,
+       wrong.length ? `mis-decoded: ${wrong.join(', ')}` : `${tokens.length} tokens`);
+}
+
+/* The instrument must be the repo's copy, not whatever the device happens to
+ * hold: nothing else deploys inject-any.py, and the stale copy that broke the
+ * A/B had been sitting there since it was hand-copied. */
+ok('measure-grid-cost.sh ships the injector it depends on',
+   /scp[^\n]*inject-any\.py[^\n]*ableton@/.test(injectSrc));
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 log('');

@@ -56,7 +56,8 @@ in `browser-test/page-mode-expected-fail.json`'s own note.
 | SP-10 | Delegation boundary: ownership accessor + page identity | Opus | ✅ |
 | SP-11 | Input ownership, incl. **Clear+knob must not delete the clip** | Opus | ✅ |
 | SP-12 | Polling + LED ownership | Opus | ✅ |
-| SP-13 | Per-tick cost: number, attribution, recommendation (**branch point**) | Opus | ⬜ |
+| SP-13 | Per-tick cost: number, attribution, recommendation (**branch point**) | Opus | ✅ |
+| SP-26 | **Bulk read for a delegated page** — SP-13's branch. The page reads ONE key per tick where movy's refresh read eight in one round trip | Opus | ⬜ |
 | SP-14 | Cause E — drum/voice pages | Opus | ⬜ |
 | SP-15 | Cause D — contract lifecycle | Sonnet | ⬜ |
 | SP-16 | Cause G — graphics return | Sonnet | ⬜ |
@@ -145,6 +146,7 @@ this is a rendering change with a one-line symptom already pinned above.
 | SU-4 | Non-enum dive intents (filepath, canvas) | — | ⬜ |
 | SU-5 | Cut-curve viz kind | — | ⬜ |
 | SU-6 | The 15-vs-16 widget band that offsets label rows by one row | — | ⬜ |
+| SU-7 | `io.getParams(keys)` — an optional BULK read for the staggered cursor and the reload check | — | ⬜ |
 
 ---
 
@@ -804,31 +806,239 @@ arms prove the view they measured before measuring it). One representative
 `calls/tick=0.6` and `ipc_ms` 1.2–1.5 on **both** arms, every section; worst
 `period_ms` seen anywhere is 5.1. No section was flagged `INVALID`.
 
-**SP-12 has now moved the off-device half, and the Log entry for 2026-09-16 has
-the numbers**: the `page` arm's gesture premium is **51 → 7**, its idle floor
-**678 → 753 calls / 600 ticks** (1.13 → 1.25 per tick), `off` untouched at
-**−418 / 678**. Read the floors together: the old 678 was not a free grid, it
-was a page whose read cursor never ran. `browser-test/grid-cost.mjs`'s ceiling
-of 90 is now 13x the measurement and no longer catches a doubled gesture —
-**re-deriving it is SP-13's**, and the header of that file says so.
+**⚠ THAT BASELINE MEASURED NOTHING, AND SP-13 FOUND OUT WHY (2026-09-16).**
+`scripts/inject-any.py` read the status byte as hex and d1/d2 as **decimal**,
+while `measure-grid-cost.sh` writes all three in hex — so `b0:0e:01`, the jog
+detent that opens every run, died on `int('0e')` and **every inject failed**. A
+failed inject does not stop the run: it removes the gesture and leaves five
+sections of real numbers that are all the idle floor. That is why the table
+above has five identical rows and why both arms read the same. The parser, the
+`--dry-run` that lets a test check it, the `scp` that stops the device keeping a
+copy of its own, and `browser-test/device-scripts.mjs` Test 18 all landed with
+SP-13. **Only the `idle` row above was ever a measurement**; treat the other
+four as absent. (The `INVALID: inject FAILED` line landed in SP-07's own fix
+round, `32fe8c5`. Whether that table was sampled before it or beside it cannot
+be recovered now — the rows are the idle floor either way, which is the point:
+a guard that arrives after the number it would have voided does not void it
+retroactively, so the number has to be re-taken. It has been.)
 
-**Read this honestly: the device arm does not separate the arms at this scale.**
-That is not a null result about the grid — it is the reason the gate is off
-device. `perf_ipc` reports an average over 120 ticks, the tick period here is
-~5 ms with ~0.6 host calls/tick, and the module under it is a mock; a difference
-of a few calls per gesture disappears into that average. The same gesture counted
-in **host calls** separates the arms by +51 vs −418 (`off` lands below its own
-idle floor because input suppresses movy's refresh window), which is a number the
-device tier cannot produce and a laptop can. So SP-13's number is the off-device
-count; these `period_ms` figures are the device half, recorded as the baseline
-this item compares against after SP-12, and a post-SP-12 run that moves them by
-less than the spread above is a null result rather than a pass.
+#### The A/B re-measured, 2026-09-16 (SP-13, after SP-12)
+
+Same command, same device, working injector, three runs per arm alternating.
+`page` preflight `schwung-body ok track=0 ck=synth pages=2`, `off` preflight
+`schwung-body mode=off`. Section averages over every `perf_ipc` report in the
+section; `n` is 28–56 reports per section.
+
+| section | `off` calls/tick · ipc_ms · period_ms | `page` calls/tick · ipc_ms · period_ms |
+| --- | --- | --- |
+| idle | 0.60 · 1.22–1.45 · **4.89–5.00** | 3.00 · 6.44–6.54 · **9.11–9.48** |
+| jog | 0.59 · 1.26–1.31 · 4.76–4.80 | *invalid — see below* |
+| jogflick | 0.50 · 1.05–1.09 · 4.65–4.69 | *invalid* |
+| knob | 0.50 · 1.02–1.06 · 4.65–4.67 | *invalid* |
+| knobflick | 0.50 · 1.01–1.02 · 4.61–4.64 | *invalid* |
+
+**The number: on a delegated page the device's tick period is 9.1–9.5 ms against
+`off`'s 4.9–5.0 — it nearly DOUBLES, and it is sustained, not a transient.**
+`tick_ms` goes 1.85 → 6.2–6.6. Measured directly as well: one jog, then 25 s of
+`perf_ipc` reports, and every one of them reads 3.0 calls/tick / 9.1 ms with no
+decay. The spread within an arm is ≤0.4 ms; the gap between the arms is 4.3 ms,
+an order of magnitude outside it. This is not a null result.
+
+`calls/tick=3.0` **double-counts**: `perf-probe` wraps both
+`host_module_get_param` and the `shadow_get_param` the shim implements it over,
+so `get overtake_dsp:* 1.4` and `mget ch0:* 1.3` are the same reads seen twice
+(`ipc_ms` 6.5 > `tick_ms` 6.2 is the tell). The real figure is ~1.25 engine GETs
+per tick, ~3.4 ms each — which is exactly the off-device count, from the other
+instrument.
+
+**The four `page` gesture sections are INVALID, and the run says so itself.**
+Ten jog detents on a 2-page module walk off the end of `synth` onto `midi_fx1`,
+whose contract is not ready — so the component stops being delegated, nothing
+polls, and the sections come back at 0.50 calls/tick / 4.6 ms, *cheaper than
+idle*, reading as "the gesture is free". `schwung-view` could not catch it (the
+view never changes) so `sample()` now carries the body reason across sections
+and flags it. A `page` gesture number on device needs a module with more pages
+than the jog can cross; the gesture verdict stays off device, where it belongs.
+
+#### Off device, 2026-09-16 — five runs per arm, zero spread
+
+| arm | idle / 600 ticks | gesture / 600 ticks | premium | mode resolved |
+| --- | --- | --- | --- | --- |
+| `off` | 678 (1.13/tick) | 260 (0.43/tick), 20 sets | **−418** | off |
+| `page` | 753 (1.25/tick) | 796 (1.33/tick), 40 sets | **+43** | page |
+
+Identical on all five runs of each arm. `SP-12's four predictions: three held
+exactly` — page idle 678 → 753, `off` untouched at −418 / 678, and the ceiling
+of 90 being far too loose. **The fourth did not**: the page premium is not 7.
+
+**7 was an artefact of the harness's own clock.** Schwung throttles its
+`setParam` on `Date.now` (`SETPARAM_THROTTLE_MS = 20`), parking a missed write
+in `pendingWrite`; the harness fired all 20 gestures inside a millisecond of
+wall clock, so 16 of the 20 writes collapsed into their neighbours and the page
+arm wrote 4 where `off` wrote 20. `grid-call-cost.mjs` now spaces the gestures
+40 ms apart on a virtual clock (`GESTURE_GAP_MS`, published as `gap=` on the
+machine line and asserted by the suite). The same 20 gestures then write 40 —
+two per gesture, the throttled write plus the release flush — and the premium is
+**43**. `off` is −418 either way, which is what says this models Schwung's
+throttle and not something of movy's.
+
+`browser-test/grid-cost.mjs`'s ceiling is re-derived to **64**: above every
+observed run (43, zero spread) and strictly below the doubling it exists to
+catch (86), at the midpoint of that window rounded down.
+
+#### The attribution
+
+Every host call in both windows, bucketed by call site (five stack frames above
+the wrapper), both arms:
+
+| arm / window | site | calls / 600 ticks |
+| --- | --- | --- |
+| `off` idle | `refreshBatch → getMany → paramGetMany` | 675 |
+| `off` gesture | same, suppressed by input | 234 (+20 sets) |
+| `page` idle | Schwung's staggered read cursor → `getParam` | **600 (1/tick)** |
+| `page` idle | `reloadIfChanged → load → getParam` | **150 (2 per 8 ticks)** |
+| both | `pollModuleName` + `refreshModulatedKeys` | 3 |
+
+**The cost is not how many parameters are read. It is that the delegated page
+reads them ONE AT A TIME.** movy's `refreshOneParam` went through
+`paramGetMany` — one bulk `shadow_get_params` round trip for a whole page of
+eight keys, measured on device at `bget 0.1` + `mget ch0:* 0.0` per tick.
+Schwung's controller has **no bulk read at all**: `page_controller.mjs:526` is
+`io.getParam || (() => null)` and the cursor is deliberately one key per tick
+(`:315`, sized against a schwung SLOT read at ~2.8 ms). On a movy CHAIN that
+read is an engine GET at ~3.4 ms, and `src/host/param.ts:paramGetMany`'s own
+comment is the whole story: *"A single engine GET blocks ~3-5 ms on device and a
+param page refreshes eight knobs at a time; done one by one that is ~40 ms."*
+The reload check on its divider of 8 adds 0.25 GETs/tick on top.
+
+#### The recommendation
+
+**The migration continues as planned.** SP-14 onward is unaffected: nothing
+here is a reason to stop, and the cost is in one identified place rather than
+spread through the design — the delegation boundary did its job, and SP-12's
+own account of the per-tick poll was accurate; what it could not see is that
+the read it added is un-batched.
+
+**But SP-30 (default-on) cannot pass on this number.** A 4.9 → 9.1 ms tick is
+movy's MIDI sampling interval halving, which is the original complaint
+(swallowed jog detents) in its own units.
+
+So SP-13 opens **SP-26 — bulk read for a delegated page**, Opus, in parallel,
+blocking SP-30 and nothing else:
+
+1. **Movy side, no upstream wait** (decision 3): movy owns the `io` object it
+   hands the controller, so `io.getParam` can be served from a per-tick prefetch
+   of the drawn page's keys — one `paramGetMany` round trip for the page instead
+   of one GET per tick. The correctness question SP-26 has to answer is
+   staleness against writes in flight, and it has SP-12's settle window
+   (`s.settleUntil`) to answer it with.
+2. **Upstream, in parallel: SU-7** — `io.getParams(keys) → values[]`, optional,
+   used by the staggered cursor and by `reloadIfChanged`, falling back to
+   per-key where a host does not supply it. `MOD_FAST_READS_PER_TICK`'s own
+   comment already names the same want ("the real fix ... is publishing
+   effective values in shared memory").
+
+Re-measure SP-26 with this section's exact commands; the `idle` rows above are
+its "before".
 
 ---
 
 ## Log
 
 Newest first. One line per closed item: id, date, commit, the evidence.
+
+- 2026-09-16 — **SP-13 ✅ — the number is 9.1 ms, the attribution is the
+  un-batched read, and the migration continues.** Branch point, not a gate: the
+  full numbers, both arms, are in the SP-13 item detail above, in the same shape
+  as the baseline they replace. Three things this session had to correct before
+  it could report anything.
+
+  **THE DEVICE HALF OF THE A/B HAD NEVER DELIVERED A GESTURE.**
+  `scripts/inject-any.py` parsed the status byte as hex and d1/d2 as **decimal**
+  — since the day it was written (`5bed7be`) — while its only caller writes all
+  three in hex. `b0:0e:01` died on `int('0e')`, so every inject in every run
+  failed. A failed inject does not abort the run: it removes the gesture and
+  leaves five sections of real numbers that are all the idle floor. The
+  2026-09-13 baseline's five identical rows were that, and the honest-sounding
+  note under them ("the device arm does not separate the arms at this scale")
+  was right about the `idle` row for a reason that had nothing to do with scale
+  — before SP-12 the delegated page's cursor did not run — and vacuous about the
+  other four. Fixed at the parser (uniform hex, with `--dry-run` so the grammar
+  can be tested off device), at the supply chain (`measure-grid-cost.sh` now
+  **scp**s the injector every run — nothing else deployed it, and the device had
+  been holding a hand-copied one since 2026-09-04), and at the suite
+  (`device-scripts.mjs` Test 18 parses the script's own tokens through the
+  injector and compares the DECODED BYTES, because `b0:47:20` parses under both
+  radices and means two different knobs). Teeth proved three ways: the decimal
+  parser reddens it, a parser that decodes without throwing but as decimal
+  reddens only the byte check, and removing the `scp` reddens the supply check.
+
+  **A SAMPLE CAN LEAVE THE PAGE IT IS MEASURING, AND THE OLD GUARD COULD NOT SEE
+  IT.** With the injects landing, the `page` arm's four gesture sections came
+  back at 0.50 calls/tick against an idle of 3.00 — *cheaper than idle*, which
+  reads as "the gesture is free". It was not: ten jog detents on a 2-page module
+  walk off the end of `synth` onto `midi_fx1`, whose contract is not ready, so
+  the component stops being delegated and nothing polls. `schwung-view` cannot
+  catch that (the view never changes), and a section that strays and STAYS
+  strayed logs nothing of its own — so `sample()` now carries the last
+  `schwung-body` reason ACROSS sections and flags any that is not the one the
+  preflight proved. It flags exactly those four and leaves `idle` clean.
+
+  **THE FOURTH SP-12 PREDICTION DID NOT HOLD, AND THE HARNESS'S OWN CLOCK IS
+  WHY.** Page idle 678 → 753, `off` untouched at −418 / 678, the ceiling far too
+  loose: all three held to the call, five runs each, zero spread. The premium is
+  **43**, not 7. Schwung throttles its `setParam` on `Date.now`
+  (`SETPARAM_THROTTLE_MS = 20`) and parks the miss in `pendingWrite`; the
+  harness fired all 20 gestures inside a millisecond, so 16 of the page arm's 20
+  writes collapsed into their neighbours. `grid-call-cost.mjs` now spaces them
+  40 ms apart on a virtual clock — 40 and not 20 because the throttle compares
+  `>=` and a measurement sitting on its own boundary is not one — and the arm
+  writes 40, two per gesture: the throttled write plus the release flush. `off`
+  is −418 with the spacing and without it, which is what says this models
+  Schwung's throttle rather than something of movy's. The cadence is published
+  as `gap=` on the machine line and **asserted**, because a harness that
+  silently got faster again is the one regression that makes the number BETTER.
+  The ceiling is re-derived to **64**: above every observed run (43) and
+  strictly below the doubling it exists to catch (86), at the midpoint of that
+  window rounded down — not a round number, which is what 90 was.
+
+  **THE NUMBER.** On device, on a delegated page, the tick period is **9.11–9.48
+  ms against `off`'s 4.89–5.00** — sustained, not a transient (one jog, then 25 s
+  of reports, every one of them 3.0 calls/tick / 9.1 ms with no decay). Spread
+  within an arm ≤0.4 ms; the gap is 4.3 ms. The tick period IS movy's MIDI
+  sampling interval, so this is the original complaint — swallowed jog detents —
+  in its own units.
+
+  **THE ATTRIBUTION, from call-site bucketing on both arms rather than from
+  reasoning.** `off`'s floor is 675 calls through
+  `refreshBatch → paramGetMany` — **one bulk round trip for eight keys**.
+  `page`'s 753 is 600 single-key reads from Schwung's staggered cursor (1/tick)
+  plus 150 from `reloadIfChanged` on its divider of 8. The cost is not how many
+  parameters are read; it is that the delegated page reads them ONE AT A TIME.
+  `page_controller.mjs:526` is `io.getParam || (() => null)` — the controller
+  has no bulk read at all, and its cursor is sized against a schwung SLOT read
+  at ~2.8 ms, where a movy CHAIN read is an engine GET at ~3.4 ms.
+  `src/host/param.ts:paramGetMany`'s own comment predicted this exactly.
+
+  **THE RECOMMENDATION.** The migration continues as planned — SP-14 onward is
+  unaffected, and the cost is in one identified place rather than spread through
+  the design. **SP-30 (default-on) cannot pass on this number**, so SP-13 opens
+  **SP-26** (movy-side per-tick prefetch through the `io` object movy already
+  owns) with **SU-7** upstream (`io.getParams`) in parallel. Both are in the
+  tables above; SP-26 blocks SP-30 and nothing else.
+
+  **No `src/` or `engine/` change** — this item is a measurement, and the code
+  it touched is the instruments that produce it (`scripts/inject-any.py`,
+  `scripts/measure-grid-cost.sh`, `scripts/grid-call-cost.mjs`) plus the two
+  suites that pin them (`browser-test/grid-cost.mjs`,
+  `browser-test/device-scripts.mjs`).
+
+  **Gates.** `SCHWUNG=../schwung npm test` exit 0 (167 screenshots passed, 0
+  failed — no pixel moved); `page-mode` **6 of 6**; `grid-cost` green at the new
+  ceiling; device tier **15 scenarios · 130 checks · 0 failed**, no flakes,
+  `engine: unchanged, no restart`. The device was left with `schwunggrid` back
+  at 0 and movy reopened on it, which is what the tier expects. MANUAL.md /
+  README.md untouched: nothing here is user-visible.
 
 - 2026-09-16 — **SP-12 ✅ — one reader, one LED writer, and the poll that had to
   move first.** `refreshOneParam` and `updateKnobLEDs` both stop for a delegated

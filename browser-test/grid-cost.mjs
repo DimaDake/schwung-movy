@@ -29,17 +29,13 @@
  * changes — so those are re-measure triggers, not defects, and the numbers below
  * are what it was set from rather than a magic constant.
  *
- * MEASURED 2026-09-13, corrected windows (600 ticks each side), this harness:
- *   off  = -418 calls  (below its own idle floor, for the reason above)
- *   page =  +51 calls
- * The budget is 90: 1.76x the measurement. It is deliberately close, because the
- * thing it must not let through is a DOUBLING of the page arm's real gesture cost
- * — which is now 102, and 102 > 90. A budget with the old generous headroom would
- * pass exactly the regression this gate exists for. The margin is affordable
- * because the child is deterministic to the call (51 on every run, both arms'
- * idle windows identical at 678), so the headroom guards against legitimate drift
- * in the mock's page shape, not against noise — and drift is a re-measure
- * trigger, as above.
+ * HISTORY, because the shape of the derivation is what a later reader needs and
+ * each correction changed the NUMBER without changing the rule. Measured
+ * 2026-09-13 with corrected windows (600 ticks each side): off -418, page +51,
+ * ceiling 90 — 1.76x the measurement, close on purpose, because what it must not
+ * let through is a DOUBLING of the page arm's real gesture cost. The live
+ * numbers and the live ceiling are at the bottom of this header; the rule has not
+ * moved.
  *
  * THE PAIR QUOTED HERE EARLIER WAS -63 / 397 AND IT WAS WRONG. Those windows had
  * different spans — `window_` advanced its own 300 ticks on top of the 300 the
@@ -72,20 +68,33 @@
  * the shape the original complaint describes) measures 1311 and leaves the off
  * arm untouched at -418.
  *
- * RE-MEASURED 2026-09-14, AFTER SP-12, AND THE CEILING IS NOW LOOSE. The page
- * arm's gesture premium is **7** (was 51) and its idle floor is **753** over 600
- * ticks, 1.25 calls/tick, against `off` unchanged at -418 / 678 / 1.13. Read the
- * floors together with the premium or the numbers mislead: BEFORE SP-12 the page
- * arm idled at exactly `off`'s 678, not because the grid was free but because the
- * delegated page was polled only on a repaint and a steady movy does not repaint
- * — the page's read cursor never advanced at all. It advances every tick now, and
- * costs 0.12 calls/tick more than the movy refresh it replaced.
+ * RE-MEASURED 2026-09-14, AFTER SP-12. The page arm's idle floor went 678 -> 753
+ * over 600 ticks (1.13 -> 1.25 calls/tick) against `off` unchanged at -418 / 678.
+ * Read the floors together with the premium or the numbers mislead: BEFORE SP-12
+ * the page arm idled at exactly `off`'s 678, not because the grid was free but
+ * because the delegated page was polled only on a repaint and a steady movy does
+ * not repaint — the page's read cursor never advanced at all. It advances every
+ * tick now.
  *
- * The consequence for THIS gate is that 90 is 13x the measurement, so a doubled
- * page gesture (14) sails through it — the exact regression the tight budget was
- * chosen for. Re-deriving it is SP-13's, which owns the cost verdict; SP-12
- * deliberately did not move a gate it had just changed the reading of. The
- * numbers above are what SP-13 should set it from.
+ * RE-DERIVED 2026-09-16 BY SP-13, AND THE OLD 51 AND THE INTERIM 7 WERE BOTH
+ * MEASURING A GESTURE NOBODY CAN MAKE. Schwung throttles its own setParam on a
+ * WALL CLOCK (SETPARAM_THROTTLE_MS = 20), and this harness fired all 20 gestures
+ * inside a millisecond of it, so 16 of the page arm's 20 writes collapsed into
+ * their neighbours and the premium read 7. `scripts/grid-call-cost.mjs` now
+ * spaces the gestures 40 ms apart on a virtual clock — see GESTURE_GAP_MS there,
+ * and note the `gap=` field it publishes, which is checked below. The same 20
+ * gestures then measure:
+ *
+ *   off  = -418 calls  (below its own idle floor, for the reason above)
+ *   page =  +43 calls  (40 writes, 2 per gesture: the throttled write plus the
+ *                       release flush), deterministic over five runs per arm
+ *
+ * THE CEILING IS 64, AND IT IS DERIVED RATHER THAN CHOSEN. It has to sit above
+ * every observed run (43, with zero spread) and strictly below the doubling it
+ * exists to catch (86). 64 is the midpoint of that window rounded down: 1.49x
+ * headroom for drift in the mock's page shape, with the doubling still 1.34x
+ * outside. A round 50 or 75 would be the same kind of number the old 90 was — a
+ * figure nobody can re-derive from a measurement.
  */
 import { spawnSync } from 'node:child_process';
 import { realpathSync } from 'node:fs';
@@ -95,23 +104,29 @@ import { fileURLToPath } from 'node:url';
 const __dir = dirname(fileURLToPath(import.meta.url));
 
 /* The committed budget: an ABSOLUTE CEILING on the page arm's premium, in calls
- * over its own idle floor, and set close to the measurement on purpose. What it
- * must not pass is a DOUBLING of the measured gesture cost — 51 -> 102 — so a
- * budget with comfortable headroom would pass exactly the regression this exists
- * for. It can afford to sit close because the child is deterministic (51 every
- * run, both arms' idle windows 678), so the headroom that is there absorbs drift
- * in the mock's page shape, not noise. */
-export const BUDGET_RATIO = 90;
+ * over its own idle floor. What it must not pass is a DOUBLING of the measured
+ * gesture cost — 43 -> 86 — so a budget with comfortable headroom would pass
+ * exactly the regression this exists for. It can afford to sit close because the
+ * child is deterministic (43 every run over five, both arms' idle windows fixed
+ * at 753 / 678), so the headroom that is there absorbs drift in the mock's page
+ * shape, not noise. See the header for the derivation. */
+export const BUDGET_RATIO = 64;
+
+/* The gesture spacing the ceiling was derived at. It is asserted rather than
+ * assumed: remove the spacing from the child and the SAME code measures 7
+ * instead of 43, which passes every ceiling and reads as a six-fold improvement.
+ * A number whose cadence is not pinned is not a measurement. */
+export const EXPECTED_GAP_MS = 40;
 
 /* The ONE line the child publishes for this suite, and it is the only thing read
  * from it: the human table above it is the part a later reader is most likely to
  * reword, and a parser pointed at that would break on a column change. */
-const LINE = /^grid-cost: arm=(\S+) mode=(\S+) calls=(-?\d+)$/m;
+const LINE = /^grid-cost: arm=(\S+) mode=(\S+) calls=(-?\d+) gap=(\d+)$/m;
 
 /** Parse the child's summary line, or null if it never printed one. */
 export function parseGridCost(stdout) {
     const m = LINE.exec(stdout || '');
-    return m ? { arm: m[1], mode: m[2], calls: Number(m[3]) } : null;
+    return m ? { arm: m[1], mode: m[2], calls: Number(m[3]), gap: Number(m[4]) } : null;
 }
 
 /**
@@ -186,11 +201,11 @@ async function main() {
         if (got === want) ok(`teeth: ${label}`);
         else fail(`teeth: ${label}`, `said ${got ? 'within' : 'over'} budget, want the opposite`);
     };
-    teeth('the measured pair is within budget, so this check is not merely always red', -418, 51, true);
-    /* THE ONE THE BUDGET IS SET BY. 51 is the measured page premium, so 102 is
+    teeth('the measured pair is within budget, so this check is not merely always red', -418, 43, true);
+    /* THE ONE THE BUDGET IS SET BY. 43 is the measured page premium, so 86 is
      * that gesture costing TWICE what it costs today — the regression the tight
      * budget exists for, and the reason the budget cannot be generous. */
-    teeth('a DOUBLED page gesture is over budget', -418, 102, false);
+    teeth('a DOUBLED page gesture is over budget', -418, 86, false);
     teeth('a page arm that grew into the thousands is over budget', -418, 5000, false);
     teeth('a page arm that got CHEAPER than measured is within budget, so the check is not a constant',
           -418, 20, true);
@@ -213,6 +228,18 @@ async function main() {
      * reads as "the grid is free" rather than as a broken harness. This is the
      * failure the header describes, and it is a FAILURE, not a skip. */
     let comparable = true;
+    /* THE CADENCE THE CEILING WAS DERIVED AT. The child spaces its gestures on a
+     * virtual wall clock so Schwung's own setParam throttle cannot swallow 16 of
+     * the 20 writes; drop the spacing and the page arm measures 7 rather than 43
+     * and every ceiling passes. A silently faster harness is the one regression
+     * this suite could not otherwise see, because it makes the number BETTER. */
+    for (const a of [off, page]) {
+        if (a.gap !== EXPECTED_GAP_MS) {
+            fail(`the ${a.arm} arm`, `spaced its gestures ${a.gap} ms apart, not the ${EXPECTED_GAP_MS} ms`
+                + ` the ceiling was derived at — the number is not comparable to the committed one`);
+            comparable = false;
+        }
+    }
     if (off.mode !== 'off') {
         fail('the off arm', `resolved to '${off.mode}' — the mode was not the one asked for`);
         comparable = false;

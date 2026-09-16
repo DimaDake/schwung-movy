@@ -445,6 +445,10 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
          * all but one number away, on every tick and for a model that may not
          * even be on screen. */
         getDrumPadCount(): number { return s.drumPadCount; },
+        /* The voice names a DECLARED rack gave, 1-based ('' for a rack that
+         * declared none). A gesture has to name the voice it moved, and the
+         * view model's `drumPadName` is the FOCUSED pad's — the wrong one. */
+        getDrumPadNames(): string[] { return s.drumPadNames; },
         getDrumCurrentPad(): number { return s.drumCurrentPad; },
         getDrumCurrentPhysPad(): number { return s.drumCurrentPhysPad; },
 

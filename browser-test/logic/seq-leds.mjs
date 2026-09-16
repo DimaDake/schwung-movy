@@ -30,6 +30,20 @@ export async function run() {
     eq('playing = green', playing, 11);
     const off = drumPadLedColor(72, padMin, cfg, -1, 2, false); // col>=4 => off
     eq('right half = off', off, 0);
+
+    /* A voice silenced by a pad mute or solo rests grey — and grey is the
+     * LOWEST of the four, because the two states above it both mean something
+     * the user would otherwise lose: a grey pad cannot show that its gate is
+     * open, and the pad the grid is editing must stay findable. */
+    const { C_DARKGREY } = await import('../../dist/esm/seq/colors.js');
+    eq('silenced at rest = grey',
+       drumPadLedColor(68, padMin, cfg, -1, 2, false, /*silent*/true), C_DARKGREY);
+    eq('silenced but sounding = green',
+       drumPadLedColor(68, padMin, cfg, -1, 2, true, true), 11);
+    eq('silenced but selected = white',
+       drumPadLedColor(68, padMin, cfg, /*phys*/68, 2, false, true), 120);
+    eq('a silenced pad outside the rack is still off',
+       drumPadLedColor(72, padMin, cfg, -1, 2, false, true), 0);
 }
 
 /* ── chromatic pad LED color ─────────────────────────────────────────────── */

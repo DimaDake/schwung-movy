@@ -47,6 +47,9 @@ import { noteOn, noteOff, changeOctave } from '../keyboard/handler.js';
 import { soundingPitch, soundingTrack } from '../keyboard/held-notes.js';
 import { releaseAllLive } from '../keyboard/release.js';
 import { drumPadOn, drumPadOff } from '../keyboard/drum-handler.js';
+import { drumNoteOfPhys } from '../keyboard/drum-grid.js';
+import { padsPlayNotes } from '../seq/router-pads.js';
+import { padMuteGesture } from '../mixer/pad-mutes.js';
 import { openBrowser, loadSelectedModule } from '../browser/handler.js';
 import { openFileBrowser, navigateFileBrowser, activateFileBrowserItem } from '../browser/file-handler.js';
 import { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased, muteHeld, muteMarkGestured, muteShiftHeld, muteTrack } from '../seq/router.js';
@@ -359,6 +362,28 @@ export function onMidiMessageInternal(data: number[]): void {
         const model   = synthModel();
         const drumCfg = model?.getDrumConfig() ?? null;
         const track = appState.activeTrack.index;
+        /* Mute (+Shift) and a pad silences that drum VOICE — the per-voice form
+         * of the track mute, on the same gesture shape. Taken here, ahead of
+         * everything below, and consumed whole: no note sounds and the page
+         * does not follow a pad the user was only silencing.
+         *
+         * `muteMarkGestured` is what stops Mute's own release from muting the
+         * whole track on top of this — without it every pad mute would also
+         * silence the track, which is the one thing the user did not ask for.
+         *
+         * Drum tracks only. On a melodic track the pads ARE notes, and a note
+         * has no voice to silence; in Session they are the clip grid, which
+         * `seqHandleMidi` has already answered. Shift is read at the action as
+         * well as at the press, like the track solo — either order is natural. */
+        if ((status & 0xF0) === 0x90 && d2 > 0 && muteHeld() && drumCfg && padsPlayNotes()) {
+            const voice = drumNoteOfPhys(d1, PAD_MIN, drumCfg);
+            if (voice >= 0) {
+                muteMarkGestured();
+                padMuteGesture(track, voice, muteShiftHeld() || appState.shiftHeld);
+                appState.dirty = true;
+                return;
+            }
+        }
         if ((status & 0xF0) === 0x90 && d2 > 0) {
             const vel = seqState.fullVelocity ? 127 : d2;
             if (drumCfg) {

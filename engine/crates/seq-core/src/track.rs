@@ -27,6 +27,25 @@ pub struct Track {
     /// Position inside the playing clip in ticks; valid while transport runs.
     pub pos_tick: u32,
     pub muted: bool,
+    /// Drum-pad mutes: the MIDI notes whose voices the sequencer must not
+    /// emit. One entry per muted voice, in the order they were muted.
+    ///
+    /// Empty on every melodic track, and empty is the ordinary case — a pad
+    /// mute can only be set on a drum track's rack, so nothing downstream needs
+    /// to ask whether this track is a drum track. Unlike `muted` there is no
+    /// host-level gate to mirror: this is movy's own control, so it gates
+    /// sequenced notes and leaves live pad playing audible (see `pad_solo`).
+    pub pad_mutes: Vec<u8>,
+    /// The note of the one soloed drum pad, if any. Exclusive per track — a
+    /// second solo moves it rather than adding — which is what keeps the gate
+    /// a single comparison instead of a set.
+    ///
+    /// Held BESIDE `pad_mutes` rather than derived from it. The track mute has
+    /// to derive (one bool per track cannot hold both), so the UI keeps a
+    /// `base` of the user's own mutes and restores them when the last solo
+    /// drops. Both fields living here means the user's mutes are never
+    /// overwritten and un-soloing needs no bookkeeping to undo.
+    pub pad_solo: Option<u8>,
     /// Automation lane state (per track, shared across the track's clips —
     /// mirrors the chain slot's 8 knob mappings). label = "target:param".
     pub lane_assigned: [bool; 8],
@@ -65,6 +84,8 @@ impl Track {
             pending_select: None,
             pos_tick: 0,
             muted: false,
+            pad_mutes: Vec::new(),
+            pad_solo: None,
             lane_assigned: [false; 8],
             lane_base: [0u8; 8],
             lane_label: Default::default(),
@@ -72,6 +93,35 @@ impl Track {
             auto_cur: [-1; 8],
             cycle: 1,
             scale_acc: 0,
+        }
+    }
+
+    /// Add or remove one voice's pad mute, keeping the list a set.
+    pub fn set_pad_mute(&mut self, note: u8, muted: bool) {
+        match (muted, self.pad_mutes.iter().position(|&n| n == note)) {
+            (true, None) => self.pad_mutes.push(note),
+            // `remove`, not `swap_remove`: the list is serialized in order, and
+            // a stable order keeps the persisted bytes of an unchanged set
+            // unchanged.
+            (false, Some(i)) => {
+                self.pad_mutes.remove(i);
+            }
+            _ => {}
+        }
+    }
+
+    /// Is this voice silenced by the track's own pad mute/solo? The ONE
+    /// definition of it: the note gate, the gate flush and the status report
+    /// all ask here, so a muted voice cannot be silent in one place and
+    /// sounding in another.
+    ///
+    /// Solo is checked first and stands alone: while a solo is up the mute set
+    /// is not consulted, so the soloed voice sounds even if it was muted —
+    /// the precedence the track mute settled on.
+    pub fn pad_voice_silent(&self, pitch: u8) -> bool {
+        match self.pad_solo {
+            Some(s) => s != pitch,
+            None => self.pad_mutes.contains(&pitch),
         }
     }
 

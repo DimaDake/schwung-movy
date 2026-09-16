@@ -98,6 +98,17 @@ export interface SeqUiState {
     /* per-track mute, from `mute=` engine status field */
     muted: boolean[];
 
+    /* Drum-pad mute/solo for the WATCHED track, from `wpad=` engine status.
+     *
+     * Bound to the track they describe (`padMuteTrack`): the payload answers
+     * for one track only, so one that arrives after a track switch would
+     * otherwise grey a voice on a grid that belongs to a different track. Raw
+     * mirror, like `muted[]` — the silence rule itself is `pad-mutes.ts`, which
+     * checks the binding before answering. */
+    padMuteTrack: number;    // the track the two fields below describe; -1 = none
+    padMutes: Set<number>;   // notes whose voices the sequencer must not emit
+    padSolo: number;         // the one soloed note, or -1 for none
+
     /* session mode */
     sessionMode: boolean;        // pads show the clip grid
     session: SessionTrack[];     // one entry per track, clip-slot state (from status)
@@ -174,6 +185,11 @@ function defaults(): SeqUiState {
         holdInvert: false,
         holdMaxGate: 0,
         muted: new Array(TRACK_COUNT).fill(false) as boolean[],
+        /* A fresh Set per reset, so `resetSeqState` cannot hand two mirrors the
+         * same one. */
+        padMuteTrack: -1,
+        padMutes: new Set<number>(),
+        padSolo: -1,
         sessionMode: false,
         session: emptySession(),
         songScenes: [],
@@ -188,6 +204,21 @@ function defaults(): SeqUiState {
 /* Parse the engine's `mute=` value (one '0'/'1' per track). */
 export function muteFromStr(s: string): void {
     for (let t = 0; t < TRACK_COUNT; t++) seqState.muted[t] = s[t] === '1';
+}
+
+/* Parse the engine's `wpad=` value: `<solo|-1>:<note>[.<note>…]` for the
+ * watched track. `trk=` is parsed earlier in the same status string, so the
+ * track the payload is bound to is already the one the engine reported. */
+export function padMutesFromStr(s: string): void {
+    const [solo, notes] = s.split(':');
+    const n = Number(solo);
+    seqState.padSolo = Number.isInteger(n) && n >= 0 && n <= 127 ? n : -1;
+    seqState.padMutes.clear();
+    if (notes) for (const p of notes.split('.')) {
+        const v = Number(p);
+        if (Number.isInteger(v) && v >= 0 && v <= 127) seqState.padMutes.add(v);
+    }
+    seqState.padMuteTrack = seqState.reportedTrack;
 }
 
 /* Parse the engine's `sess=` value: tracks joined by ',', each `EE.P.Q.S`

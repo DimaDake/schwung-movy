@@ -176,7 +176,8 @@ Movy stands on the shoulders of several projects:
   ![Keyboard view](docs/assets/keys_view.png)
 
 - **Drum support** — drum modules switch the pads to a 4×4 rack with per-pad
-  parameter pages.
+  parameter pages, and **Mute + pad** silences one voice of the sequence
+  (**Shift** solos it) — a silenced voice sits grey on the pads.
 
   ![Drum module](docs/assets/drum-mrdrums-global.png)
 

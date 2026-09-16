@@ -109,6 +109,7 @@ await esbuild.build({
         resolve(root, 'src/mixer/mix-model.ts'),
         resolve(root, 'src/mixer/track-volume.ts'),
         resolve(root, 'src/mixer/track-mutes.ts'),
+        resolve(root, 'src/mixer/pad-mutes.ts'),
         resolve(root, 'src/seq/leds.ts'),
         resolve(root, 'src/seq/led-cache.ts'),
         resolve(root, 'src/seq/button-held.ts'),

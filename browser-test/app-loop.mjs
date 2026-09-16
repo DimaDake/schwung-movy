@@ -48,6 +48,8 @@ const { appState, VIEW_KNOBS, VIEW_CHAIN, VIEW_BROWSE, VIEW_FILE_BROWSE } = awai
 const MFX1 = _MFX_SLOTS.findIndex((s) => s.componentKey.startsWith('master_fx'));
 const { seqState, resetSeqState, occHasStep } = await import('../dist/esm/seq/state.js');
 const { resetSeqEngine } = await import('../dist/esm/seq/engine.js');
+const { padVoiceSilent } = await import('../dist/esm/mixer/pad-mutes.js');
+const { seqToastText } = await import('../dist/esm/seq/render.js');
 const { resetSetSession } = await import('../dist/esm/seq/set-session.js');
 const { CC_NOTE_SESSION, STEP_NOTE_BASE } = await import('../dist/esm/seq/constants.js');
 const { anyStepHeld, STEP_AUTO_MS } = await import('../dist/esm/seq/step-edit.js');
@@ -240,6 +242,143 @@ _log('\napp-loop: drum pads + step lane stay live on a non-synth module slot');
     advance(2);
     eq('FX slot focused: drum pad selects its lane', seqState.watchLane, 37);
     eq('FX slot focused: selected drum pad lights white', padColor(PAD_SNARE), 120);
+}
+
+_log('\napp-loop: Mute (+Shift) + pad mutes or solos that drum voice');
+{
+    /* The same gesture the track mute uses, one voice down: Mute held and a pad
+     * pressed silences that voice in the sequence. It is movy's own control, so
+     * there is no host-level gate — live pad playing stays audible, exactly as
+     * playing over a muted track does. */
+    const CC_MUTE = 88;
+    const GREY = 124, WHITE = 120;
+    const PAD_SNARE = 69;                    // grid pad 2 → drumPad 2 → note 37
+    const NOTE_SNARE = 37;
+    const DEAD_PAD  = 72;                    // col 4: outside a 16-pad rack
+
+    resetApp();
+    engine.ops.length = 0;
+    const model = appState.trackModels[0][1];
+
+    sendMidi([0xB0, CC_MUTE, 127]);          // Mute down
+    sendMidi([0x90, PAD_SNARE, 100]);        // …then the snare pad
+    advance(1);
+    eq('queues the voice mute', engine.ops.includes('pmute 0 ' + NOTE_SNARE + ' 1'), true);
+    eq('the mirror greys it', seqState.padMutes.has(NOTE_SNARE), true);
+    /* Consumed: the press is a mute, not a pad select or a note. */
+    eq('the pad does not become the selected one', model.getDrumCurrentPhysPad(), PAD_KICK);
+    /* The toast says WHICH voice, the way the track mute names its track: the
+     * rack's own name where it declared one, else the pad's number. */
+    eq('and the toast names the voice', seqToastText(), 'PAD 2 MUTED');
+    /* One log line per press, the way the track mute reports itself — it is how
+     * a device suite reads a gesture back without a screen. */
+    eq('and the gesture is logged',
+       logs.some((l) => l === '[movy] pmute t=0 n=' + NOTE_SNARE + ' -> 1'), true);
+
+    sendMidi([0xB0, CC_MUTE, 0]);            // Mute up — the gesture was this one
+    advance(1);
+    eq('and the release does not also mute the track', seqState.muted[0], false);
+    eq('no whole-track mute was sent', engine.ops.some((o) => o === 'mute 0 1'), false);
+
+    /* The same gesture takes it back off. */
+    engine.ops.length = 0;
+    sendMidi([0xB0, CC_MUTE, 127]);
+    sendMidi([0x90, PAD_SNARE, 100]);
+    advance(1);
+    eq('the same gesture unmutes', engine.ops.includes('pmute 0 ' + NOTE_SNARE + ' 0'), true);
+    eq('and toasts that too', seqToastText(), 'PAD 2 UNMUTED');
+    sendMidi([0xB0, CC_MUTE, 0]);
+    advance(1);
+
+    /* A dead pad is not a voice: nothing to silence, and nothing to select. */
+    engine.ops.length = 0;
+    sendMidi([0xB0, CC_MUTE, 127]);
+    sendMidi([0x90, DEAD_PAD, 100]);
+    sendMidi([0xB0, CC_MUTE, 0]);
+    advance(1);
+    eq('a pad outside the rack mutes nothing', engine.ops.some((o) => o.startsWith('pmute')), false);
+
+    /* Shift takes the same gesture to solo. */
+    engine.ops.length = 0;
+    appState.shiftHeld = true;
+    sendMidi([0xB0, CC_MUTE, 127]);
+    sendMidi([0x90, PAD_SNARE, 100]);
+    advance(1);
+    eq('Shift + Mute + pad solos the voice', engine.ops.includes('psolo 0 ' + NOTE_SNARE), true);
+    eq('and the toast names the solo', seqToastText(), 'PAD 2 SOLO');
+    eq('and the solo is logged', logs.some((l) => l === '[movy] psolo t=0 n=' + NOTE_SNARE), true);
+    appState.shiftHeld = false;
+    sendMidi([0xB0, CC_MUTE, 0]);
+    advance(2);
+    eq('the soloed voice is not grey', padColor(PAD_SNARE) !== GREY, true);
+    eq('the voices it silences are', padColor(PAD_KICK), WHITE);
+
+    /* Exclusive and moving, and pressing the soloed voice again clears it —
+     * the track solo's rule, one voice down. */
+    engine.ops.length = 0;
+    appState.shiftHeld = true;
+    sendMidi([0xB0, CC_MUTE, 127]);
+    sendMidi([0x90, PAD_SNARE, 100]);
+    advance(1);
+    eq('pressing the soloed voice again clears it', engine.ops.includes('psolo 0 -1'), true);
+    eq('and says so', seqToastText(), 'SOLO OFF');
+    /* `-1` is the "no voice" token on the wire, so the log says the same thing
+     * the command did. */
+    eq('and the clear is logged as none', logs.some((l) => l === '[movy] psolo t=0 n=-1'), true);
+    appState.shiftHeld = false;
+    sendMidi([0xB0, CC_MUTE, 0]);
+    advance(2);
+
+    /* Melodic track: pads are notes, not voices, so the gesture does not exist
+     * and the press plays as it always did. */
+    env.setParams(MOCK_SYNTHS.plaits);
+    model.reload();
+    advance(3);
+    engine.ops.length = 0;
+    sendMidi([0xB0, CC_MUTE, 127]);
+    sendMidi([0x90, PAD_SNARE, 100]);
+    sendMidi([0xB0, CC_MUTE, 0]);
+    advance(1);
+    eq('melodic track: nothing is muted', engine.ops.some((o) => o.startsWith('pmute')), false);
+}
+
+_log('\napp-loop: a muted pad greys, but plays green and selects white');
+{
+    /* The priority the user asked for: grey at rest, but a voice that is
+     * sounding or selected keeps the colour that says so — a muted pad must
+     * never look dead while its gate is open. */
+    resetApp();
+    const GREY = 124, GREEN = 11, WHITE = 120;
+    const PAD_KICK = 68, NOTE_KICK = 36;
+    const PAD_SNARE = 69, NOTE_SNARE = 37;
+
+    /* Muted through the gesture, so the mirror is bound to the track the way a
+     * real read-back binds it. The lane opens on pad 1, so the kick is the
+     * selected pad throughout. */
+    sendMidi([0xB0, 88, 127]);
+    sendMidi([0x90, PAD_SNARE, 100]);
+    sendMidi([0xB0, 88, 0]);
+    advance(2);
+    eq('a silenced voice rests grey', padColor(PAD_SNARE), GREY);
+    eq('the selected pad is still white', padColor(PAD_KICK), WHITE);
+
+    /* Playing beats muted: a voice the sequencer is sounding must still be
+     * green. */
+    seqState.activeNotes[NOTE_SNARE] = 1;    // track 0's voice, as `act=` lands it
+    advance(2);
+    eq('green while its gate is open', padColor(PAD_SNARE), GREEN);
+    seqState.activeNotes[NOTE_SNARE] = 0;
+    advance(2);
+    eq('grey again when it closes', padColor(PAD_SNARE), GREY);
+
+    /* Selection beats muted too — the pad the drum lane edits is white even
+     * with its own voice silenced, or the user could not see where they are. */
+    sendMidi([0xB0, 88, 127]);
+    sendMidi([0x90, PAD_KICK, 100]);
+    sendMidi([0xB0, 88, 0]);
+    advance(2);
+    eq('the muted KICK is the selected pad', padVoiceSilent(NOTE_KICK), true);
+    eq('and it stays white', padColor(PAD_KICK), WHITE);
 }
 
 _log('\napp-loop: a pad press turns the page (bank.pad, through the router)');

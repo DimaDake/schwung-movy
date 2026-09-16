@@ -447,4 +447,87 @@ export async function run() {
     uninstallMockEngine(); resetSeqEngine(); resetSeqState(); resetTrackMutes();
 }
 
+/* ── drum-pad mute and solo: Mute (+Shift) and a pad ─────────────────────── */
+{
+    /* Mute is the whole track; this is one VOICE of it, and it is movy's own
+     * control — there is no host-level gate to mirror it onto. So it silences
+     * the sequencer and leaves live pad playing audible, which is the same
+     * trade the track mute makes. */
+    _log('\ndrum-pad mute/solo:');
+    const { installMockEngine, uninstallMockEngine } = await import('../mock-engine.mjs');
+    const { resetSeqEngine, peekSeqCmdQueue } = await import('../../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState, padMutesFromStr } = await import('../../dist/esm/seq/state.js');
+    const { padMuteGesture, padVoiceSilent } =
+        await import('../../dist/esm/mixer/pad-mutes.js');
+
+    const pads = () => peekSeqCmdQueue().filter((c) => /^(pmute|psolo) /.test(c));
+    const usnaps = () => peekSeqCmdQueue().filter((c) => /^usnap /.test(c));
+    const fresh = () => {
+        resetSeqEngine(); resetSeqState();
+        appState.activeTrack = trackRef(0);
+    };
+    /* What the engine's read-back would land: a `wpad=` payload for the
+     * watched track. */
+    const fromEngine = (s) => padMutesFromStr(s);
+
+    installMockEngine();
+
+    fresh();
+    padMuteGesture(0, 36, false);
+    eq('mute queues that voice', pads().includes('pmute 0 36 1'), true);
+    eq('and the mirror greys it this tick', padVoiceSilent(36), true);
+    eq('only that voice', padVoiceSilent(38), false);
+    eq('the gesture is one undo', usnaps().length, 1);
+
+    fresh();
+    fromEngine('-1:36');
+    padMuteGesture(0, 36, false);
+    eq('muting a muted voice unmutes it', pads().includes('pmute 0 36 0'), true);
+    eq('and the mirror clears', padVoiceSilent(36), false);
+
+    fresh();
+    padMuteGesture(0, 36, true);
+    eq('solo queues', pads().includes('psolo 0 36'), true);
+    eq('the soloed voice sounds', padVoiceSilent(36), false);
+    eq('its neighbours are silenced', padVoiceSilent(38), true);
+
+    fresh();
+    fromEngine('36:');
+    padMuteGesture(0, 36, true);
+    eq('pressing the soloed pad clears it', pads().includes('psolo 0 -1'), true);
+    eq('nothing is left silenced', padVoiceSilent(38), false);
+
+    /* Exclusive, like the track solo: a second solo MOVES it. */
+    fresh();
+    fromEngine('36:');
+    padMuteGesture(0, 38, true);
+    eq('a second solo moves it', pads().includes('psolo 0 38'), true);
+    eq('the voice it left is back', padVoiceSilent(36), true);
+    eq('the new one sounds alone', padVoiceSilent(38), false);
+
+    /* Muting while a pad is soloed edits the SET, not the solo — the same
+     * place a track mute under solo goes, and for the same reason: un-soloing
+     * must restore what the user asked for, not what the solo imposed. */
+    fresh();
+    fromEngine('36:');
+    padMuteGesture(0, 38, false);
+    eq('mute under solo still queues', pads().includes('pmute 0 38 1'), true);
+    eq('and that voice stays silent for now', padVoiceSilent(38), true);
+    fromEngine('-1:38');
+    eq('un-soloing leaves the mute standing', padVoiceSilent(38), true);
+    eq('and the voice the solo protected is heard again', padVoiceSilent(36), false);
+
+    /* `wpad=` answers for ONE track, and it can arrive after the UI has moved
+     * on. Painting it on the grid now showing would grey a voice that is not
+     * muted — so a payload bound to another track is inert. */
+    fresh();
+    fromEngine('-1:36');
+    appState.activeTrack = trackRef(1);
+    eq('another track\'s mutes are not painted here', padVoiceSilent(36), false);
+    appState.activeTrack = trackRef(0);
+    eq('and they are there when the track comes back', padVoiceSilent(36), true);
+
+    uninstallMockEngine(); resetSeqEngine(); resetSeqState();
+}
+
 }

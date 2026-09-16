@@ -134,6 +134,9 @@ pub fn is_undoable_edit(verb: &str) -> bool {
         | "aset" | "asetr" | "aclr" | "aclrs" | "aclrstep"
         // set-level settings
         | "mute" | "bpm" | "swing"
+        // per-voice drum settings: the same kind of set-level control `mute`
+        // is, one drum voice at a time
+        | "pmute" | "psolo"
         // retroactive capture: `cap` writes the buffered phrase into the clip
         // and `capsel` rewrites it at another tempo. `capclr`/`capdone` only
         // touch the input buffer and the overlay, so they stay control.
@@ -251,6 +254,33 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                     if muting {
                         engine.flush_track_gates(t as usize, out);
                     }
+                }
+            }
+        }
+        // pmute <track> <note> <0|1> — mute ONE drum voice of one track.
+        // `mute` above is the whole track; this is the per-pad control, and
+        // like the track mute it holds back the SEQUENCER only: live pad
+        // playing stays audible.
+        "pmute" => {
+            if let (Some(t), Some(p), Some(m)) = (next(), next(), next()) {
+                if (t as usize) < NUM_TRACKS && (0..128).contains(&p) {
+                    engine.tracks[t as usize].set_pad_mute(p as u8, m != 0);
+                    // Immediate, for the same reason the track mute is: the
+                    // gate countdown runs even for a silenced voice, so without
+                    // this the note already ringing goes on until it expires.
+                    engine.flush_silenced_pad_gates(t as usize, out);
+                }
+            }
+        }
+        // psolo <track> <note|-1> — solo one drum voice of one track, -1 for
+        // none (the token `wlane` already uses for "no note"). Exclusive per
+        // track: a solo is one note, so setting another MOVES it.
+        "psolo" => {
+            if let (Some(t), Some(p)) = (next(), next()) {
+                if (t as usize) < NUM_TRACKS {
+                    engine.tracks[t as usize].pad_solo =
+                        if (0..128).contains(&p) { Some(p as u8) } else { None };
+                    engine.flush_silenced_pad_gates(t as usize, out);
                 }
             }
         }
@@ -1259,6 +1289,36 @@ mod tests {
         for v in ["mute", "bpm", "swing", "tog", "clipdel", "aset"] {
             assert!(is_undoable_edit(v), "{v} must be undoable");
         }
+    }
+
+    /* ── Drum-pad mute/solo ───────────────────────────────────────────── */
+
+    #[test]
+    fn pmute_toggles_one_voice() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "pmute 0 36 1", &mut out);
+        assert_eq!(e.tracks[0].pad_mutes, vec![36]);
+        // A second voice joins it rather than replacing it — the kick and the
+        // snare drop out independently.
+        apply_batch(&mut e, "pmute 0 38 1", &mut out);
+        assert_eq!(e.tracks[0].pad_mutes, vec![36, 38]);
+        apply_batch(&mut e, "pmute 0 36 0", &mut out);
+        assert_eq!(e.tracks[0].pad_mutes, vec![38]);
+    }
+
+    #[test]
+    fn psolo_moves_then_clears() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "psolo 0 36", &mut out);
+        assert_eq!(e.tracks[0].pad_solo, Some(36));
+        // Exclusive per track: a second solo MOVES it rather than adding.
+        apply_batch(&mut e, "psolo 0 38", &mut out);
+        assert_eq!(e.tracks[0].pad_solo, Some(38));
+        // -1 clears, the same token `wlane` uses for "none".
+        apply_batch(&mut e, "psolo 0 -1", &mut out);
+        assert_eq!(e.tracks[0].pad_solo, None);
     }
 
     /* ── Undo ring commands ───────────────────────────────────────────── */

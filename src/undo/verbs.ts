@@ -4,9 +4,9 @@
  * Two copies of one rule is a smell, but the engine cannot see the UI and the
  * UI cannot call into Rust, and BOTH need the answer: the engine to decide what
  * the dirty flag and ucommit mean, the UI to refuse a mutating command that no
- * group would record. The duplication is made safe by
- * `every_command_rs_verb_is_classified` in browser-test/logic.mjs, which reads
- * command.rs itself and fails when the two drift. */
+ * group would record. The duplication is made safe by the parity check in
+ * browser-test/logic/undo-core.mjs, which reads command.rs itself and fails
+ * when the two drift. */
 
 /** User edits — the unit undo restores. */
 export const UNDOABLE_VERBS: string[] = [
@@ -22,6 +22,9 @@ export const UNDOABLE_VERBS: string[] = [
     'aset', 'asetr', 'aclr', 'aclrs', 'aclrstep',
     // set-level settings
     'mute', 'bpm', 'swing',
+    /* Per-voice drum settings, beside the whole-track mute they share a
+     * gesture with: a pad mute is the same kind of edit one voice down. */
+    'pmute', 'psolo',
     /* Retroactive capture writes the buffered phrase into the clip, and a
      * tempo re-selection rewrites it — both are edits. `capclr`/`capdone` only
      * touch the runtime input buffer and the overlay, so they stay control. */

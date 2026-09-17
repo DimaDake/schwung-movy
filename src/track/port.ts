@@ -25,6 +25,21 @@ export interface TrackPort {
     getMany(keys: string[]): (string | null)[];
     setMany(pairs: [string, string][]): boolean;
 
+    /** How many writes this port has made, and which keys the last of them
+     *  carried. A reader that CACHES a value has to know when movy itself made
+     *  that value stale — and on a delegated page movy is the writer (the knob
+     *  under the hand, the sequencer, automation, undo), all of them through the
+     *  one memoized port for the track. Pull rather than push, so a cache that
+     *  is thrown away (a mode change drops every SchwungPage) leaves no listener
+     *  behind. `writesSince` answers null when more writes happened than the log
+     *  holds: the caller cannot know what went stale, so it must drop everything.
+     *
+     *  Optional because only a port whose reads are worth caching needs it — a
+     *  shadow slot read is served from schwung's own cache at ~0.3 ms and is
+     *  never batched or cached by movy. */
+    writeSeq?(): number;
+    writesSince?(seq: number): string[] | null;
+
     /** `statusType` is the type nibble alone (0x90, 0x80, 0xB0). The port adds
      *  the channel — a host track is addressed BY its channel, so leaving that
      *  to callers is how notes end up on the wrong track. */

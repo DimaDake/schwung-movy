@@ -25,6 +25,10 @@ await esbuild.build({
         resolve(root, 'src/renderer/schwung-lib.ts'),
         resolve(root, 'src/renderer/schwung-body.ts'),
         resolve(root, 'src/renderer/schwung-page.ts'),
+        /* The delegated page's read cache (SP-26): an entry point so the logic
+         * suite can drive the stale-write hazard at the level it lives at,
+         * rather than racing Schwung's settle window through the page. */
+        resolve(root, 'src/renderer/schwung-page-cache.ts'),
         resolve(root, 'src/renderer/schwung-editor.ts'),
         resolve(root, 'src/renderer/schwung-widgets.ts'),
         resolve(root, 'src/renderer/schwung-voices.ts'),

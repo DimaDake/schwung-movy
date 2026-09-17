@@ -34,6 +34,7 @@ import type { TrackPort } from '../track/port.js';
 import type { AutomationView } from '../types/viewmodel.js';
 import { schwungLib } from './schwung-lib.js';
 import { createPageIo } from './schwung-page-io.js';
+import { createPageReadCache } from './schwung-page-cache.js';
 import { createPageContract } from './schwung-page-contract.js';
 import { createPageRender } from './schwung-page-render.js';
 import { createPageInput } from './schwung-page-input.js';
@@ -85,7 +86,12 @@ export function createSchwungPage(port: TrackPort, componentKey = 'synth'): Schw
     const qualify = (k: string) => (k.indexOf(':') >= 0 ? k : componentKey + ':' + k);
 
     const lib = schwungLib();
-    const ctl = lib.createController(createPageIo(port, qualify));
+    /* The cache IS movy's half of the read contract (SP-26): Schwung asks one
+     * key a tick, movy answers from a page-sized batch it refills on a divider.
+     * It is created here, beside the controller it serves, because its lifetime
+     * is the controller's — `schwungGridReload()` drops both together. */
+    const cache = createPageReadCache(port);
+    const ctl = lib.createController(createPageIo(port, qualify, cache));
     ctl.setLayout(lib.LAYOUT_MOVY);
 
     /* The controller's own view of the page it is showing. Both the binding's
@@ -97,13 +103,19 @@ export function createSchwungPage(port: TrackPort, componentKey = 'synth'): Schw
     }
     const keyAt = (slot: number) => (keysOf()[slot] as string) || null;
 
-    const contract = createPageContract(ctl, port, componentKey);
+    const contract = createPageContract(ctl, port, componentKey, cache);
     const page = createPageRender(ctl, { keyAt, keysOf, componentKey,
                                         normalizedOf: lib.normalizedOf });
     const input = createPageInput(ctl, lib, port, qualify);
 
     return {
-        reload: contract.reload, tick: contract.tick,
+        /* `contract.reload()` drops the cache itself — a re-plan reads live,
+         * including the retry path this binding cannot see. */
+        reload: contract.reload,
+        /* The fill happens BEFORE the controller's tick, so the cursor's one
+         * read this tick is served from the batch rather than arriving a tick
+         * ahead of it. */
+        tick() { cache.tick(); contract.tick(); },
         get ready() { return contract.isReady(); },
         get ctl() { return ctl; },
         get pageCount() { return ctl.pages ? ctl.pages.length : 0; },

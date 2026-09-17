@@ -155,6 +155,21 @@ const { isMovyOwnComponent } = await import('../../dist/esm/chain/config.js');
     const staleLed = Object.keys(LED_SITES)
         .filter((f) => !LED_IMPORT.test(readFileSync(f, 'utf8')));
     eq('no stale knob-LED entries: ' + staleLed.join(','), staleLed.length, 0);
+
+    /* SP-26. The delegated page's reads go through the cache and nowhere else.
+     *
+     * Schwung asks ONE key per tick (page_controller.mjs:526 has no bulk read
+     * at all) and on a movy chain each of those is a blocking ~3.4 ms engine
+     * GET — the +4.3 ms SP-13 measured on device. movy answers them from a
+     * batch it refills on a divider, and a single `port.getParam` left in the
+     * io is a key that pays the old price forever while every test stays green,
+     * because the VALUE it returns is identical. Only the cost differs, so only
+     * a structural check can hold it. The stale-write hazard rides on the same
+     * rule: a read that skips the cache also skips the write log the cache
+     * drains, which is a different bug wearing the same shape. */
+    const io = readFileSync('src/renderer/schwung-page-io.ts', 'utf8');
+    ok('the page io reads only through the cache', !/port\.getParam\(/.test(io));
+    ok('...and the cache is what it was handed', /cache\.get\(/.test(io));
 }
 
 /* ── page identity ────────────────────────────────────────────────────────── */

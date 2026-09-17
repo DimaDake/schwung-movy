@@ -49,12 +49,31 @@ setSchwungGridMode(ARM);
 
 /* Count at the host boundary, which is where the cost actually is. Wrapping
  * rather than replacing keeps the mock's own behaviour intact — a counter that
- * changed what the calls RETURN would be measuring a different program. */
-let gets = 0, sets = 0;
+ * changed what the calls RETURN would be measuring a different program.
+ *
+ * TWO COUNTS, BECAUSE THEY ARE TWO DIFFERENT QUESTIONS AND SP-26 MOVES ONE OF
+ * THEM. `calls` is params crossing the channel — the unit every number in this
+ * file's history is in, and what the gesture-premium gate compares. `trips` is
+ * BLOCKING ROUND TRIPS: `shadow_get_params` reads a whole page in one IPC where
+ * `shadow_get_param` reads one key in one, and on device each costs ~3.4 ms
+ * whatever it carries, so the trip count is the tick period and the param count
+ * is not. Counting params alone is why this instrument could see SP-13's
+ * attribution ("both arms read about the same NUMBER of params") but not the
+ * fix for it. The bulk call's own per-key delegation is suppressed inside the
+ * request: one request is one trip. */
+let gets = 0, sets = 0, trips = 0, bulkDepth = 0;
 const realGet = globalThis.shadow_get_param;
 const realSet = globalThis.shadow_set_param;
-globalThis.shadow_get_param = (...a) => { gets++; return realGet(...a); };
-globalThis.shadow_set_param = (...a) => { sets++; return realSet(...a); };
+const realGetMany = globalThis.shadow_get_params;
+const realSetMany = globalThis.shadow_set_params;
+globalThis.shadow_get_param = (...a) => { gets++; if (!bulkDepth) trips++; return realGet(...a); };
+globalThis.shadow_set_param = (...a) => { sets++; if (!bulkDepth) trips++; return realSet(...a); };
+const wrapBulk = (real) => (...a) => {
+    trips++; bulkDepth++;
+    try { return real(...a); } finally { bulkDepth--; }
+};
+if (typeof realGetMany === 'function') globalThis.shadow_get_params = wrapBulk(realGetMany);
+if (typeof realSetMany === 'function') globalThis.shadow_set_params = wrapBulk(realSetMany);
 
 await import('../dist/esm/app/globals.js');
 const { appState, VIEW_KNOBS } = await import('../dist/esm/app/state.js');
@@ -137,14 +156,15 @@ advance(20);
  * its control, and `perTick` divides by what actually elapsed rather than by a
  * constant nobody re-derived. */
 function window_(label, before) {
-    gets = 0; sets = 0;
+    gets = 0; sets = 0; trips = 0;
     const start = ticks;
     if (before) before();
     const spent = ticks - start;
     if (spent < WINDOW_TICKS) advance(WINDOW_TICKS - spent);
     const span = ticks - start;
     const total = gets + sets;
-    return { label, span, gets, sets, total, perTick: total / span };
+    return { label, span, gets, sets, total, trips, perTick: total / span,
+             tripsPerTick: trips / span };
 }
 
 /* THE GESTURE THE COMPLAINT IS ABOUT. "Knob turns and jog paging feel slower
@@ -257,7 +277,8 @@ console.log(`arm=${ARM}  mode=${mode}  pages=${m.getBankCount()}  knobPage=${m.g
 for (const w of [idle, gesture]) {
     console.log(`  ${w.label.padEnd(12)} span=${String(w.span).padStart(4)}`
               + ` gets=${String(w.gets).padStart(5)} sets=${String(w.sets).padStart(3)}`
-              + `  total=${String(w.total).padStart(5)}  calls/tick=${w.perTick.toFixed(2)}`);
+              + `  total=${String(w.total).padStart(5)}  calls/tick=${w.perTick.toFixed(2)}`
+              + `  trips=${String(w.trips).padStart(5)}  trips/tick=${w.tripsPerTick.toFixed(3)}`);
 }
 console.log(`  ${GESTURES} gestures: ${premium} calls over the idle floor`
           + `  (${(premium / GESTURES).toFixed(2)} per gesture)`);
@@ -273,4 +294,11 @@ console.log(`  ${GESTURES} gestures: ${premium} calls over the idle floor`
  * under any ceiling and look like a win. `mode` is the mode that ACTUALLY ran:
  * with no schwung checkout `page` pins itself to `off`, and an arm reporting
  * only what it was ASKED for would let two identical runs read as an A/B. */
-console.log(`grid-cost: arm=${ARM} mode=${mode} calls=${premium} gap=${GESTURE_GAP_MS}`);
+/* `idletrips` is the IDLE floor in round trips, not a premium: what SP-26
+ * changed is what a delegated page costs when NOTHING is happening — Schwung's
+ * cursor asking one key a tick, every tick, for as long as the page is on
+ * screen. A premium cannot see it (it is in both windows and subtracts out),
+ * which is exactly how a page that quietly went back to one trip a tick would
+ * pass every check in this file. */
+console.log(`grid-cost: arm=${ARM} mode=${mode} calls=${premium} gap=${GESTURE_GAP_MS}`
+          + ` idletrips=${idle.trips} span=${idle.span}`);

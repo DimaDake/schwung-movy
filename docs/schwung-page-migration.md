@@ -57,7 +57,8 @@ in `browser-test/page-mode-expected-fail.json`'s own note.
 | SP-11 | Input ownership, incl. **Clear+knob must not delete the clip** | Opus | ✅ |
 | SP-12 | Polling + LED ownership | Opus | ✅ |
 | SP-13 | Per-tick cost: number, attribution, recommendation (**branch point**) | Opus | ✅ |
-| SP-26 | **Bulk read for a delegated page** — SP-13's branch. The page reads ONE key per tick where movy's refresh read eight in one round trip | Opus | ⬜ |
+| SP-26 | **Bulk read for a delegated page** — SP-13's branch. The page reads ONE key per tick where movy's refresh read eight in one round trip | Opus | ✅ |
+| SP-27 | **The per-tick CPU a delegated page costs** — what is left after SP-26 took the reads out: `tick_ms` 4.0–4.5 against `off`'s 1.7–2.0, with IPC accounting for 0.4 of it | Opus | ⬜ |
 | SP-14 | Cause E — drum/voice pages | Opus | ⬜ |
 | SP-15 | Cause D — contract lifecycle | Sonnet | ⬜ |
 | SP-16 | Cause G — graphics return | Sonnet | ⬜ |
@@ -860,6 +861,66 @@ view never changes) so `sample()` now carries the body reason across sections
 and flags it. A `page` gesture number on device needs a module with more pages
 than the jog can cross; the gesture verdict stays off device, where it belongs.
 
+#### The A/B after SP-26, 2026-09-17 — three runs per arm, alternating
+
+Same command, same device, the tier's own fixture (plaits on track 0, so
+`page` preflight `schwung-body ok track=0 ck=synth pages=2`, the same shape the
+rows above were taken at). Every `perf_ipc` report in each `idle` section:
+
+| section | `off` calls/tick · ipc_ms · tick_ms · period_ms | `page` calls/tick · ipc_ms · tick_ms · period_ms |
+| --- | --- | --- |
+| idle | 0.60 · 1.1–1.4 · 1.7–2.0 · **4.80–5.00** | 0.80 · 1.5–1.9 · 4.0–4.5 · **6.80–7.20** |
+
+**The read cost is gone and the prediction held.** `calls/tick` 3.00 → 0.80
+against `off`'s 0.60 — on the same double count, ~1.25 engine GETs a tick → ~0.1
+— and `ipc_ms` 6.44–6.54 → 1.5–1.9 against `off`'s 1.1–1.4. The IPC premium a
+delegated page charges is **+0.4 ms**, where SP-13 predicted ~+0.35 and measured
++5.1 before.
+
+**What is left is not IPC, and that is SP-27.** The tick period is 6.80–7.20 ms
+against `off`'s 4.80–5.00, a premium of **~2.0 ms**, and only 0.4 of it is in the
+param channel: `tick_ms` is 4.0–4.5 against 1.7–2.0. That is CPU inside the
+delegated page's own tick — the controller's tick and render, and movy's
+`knobLevels` poll — and no amount of read batching touches it. It is a new item
+rather than a re-opening of this one: the thing SP-13 attributed is fixed, and
+what the measurement now shows is a different cost in a different layer. **Note
+it is NOT the quiescing follow-on SP-13 floated** — that would have taken the
+remaining reads, which are already down to ~0.1 a tick.
+
+The four `page` gesture sections are still flagged `INVALID` for SP-13's reason
+(ten jog detents walk off `synth` onto `midi_fx1`), so `idle` remains the row
+that carries the comparison.
+
+#### Off device after SP-26, 2026-09-17 — three runs per arm, zero spread
+
+| arm | idle calls / trips per 600 ticks | gesture premium (calls) | mode resolved |
+| --- | --- | --- | --- |
+| `off` | 678 / **78** | −418 | off |
+| `page` | 877 / **146** | +109 | page |
+
+**The off-device instrument could not see this item until it was taught to.**
+It counted `shadow_get_param`, one per param, so a page read one key at a time
+and a page read eight in one bulk call scored the same — which is exactly why
+SP-13's off-device row said "both arms read about the same NUMBER of params" and
+had to send the verdict to the device. `browser-test/env.mjs` now serves
+`shadow_get_params`/`shadow_set_params` over movy's own wire format (the device
+has had them all along; without a stub every off-device suite took
+`paramGetMany`'s per-key fallback, so movy's primary read path on device was
+never exercised at all), and the instrument publishes BOTH counts: `calls` in
+params, the unit every number in that file's history is in, and `trips` in
+blocking round trips, which is the unit the device's tick period is set by.
+
+In trips the page arm's idle floor goes **753 → 146**; the 78 beside it is what
+`off` pays for movy's own refresh. In calls it goes 753 → 877, because the batch
+reads a few MORE params than the cursor did — which is the whole trade, and the
+reason the premium ceiling had to be re-derived (43 → 109 measured, ceiling
+64 → 163) rather than kept.
+
+~67 of those 146 trips are an artefact of the MOCK, not a cost the device pays:
+a key the device does not serve answers `""` (the shim replies with an error and
+a zeroed buffer) and `""` is cached like any other value, where the env's store
+answers `null` — and **a null is never cached**, on purpose (below).
+
 #### Off device, 2026-09-16 — five runs per arm, zero spread
 
 | arm | idle / 600 ticks | gesture / 600 ticks | premium | mode resolved |
@@ -941,11 +1002,212 @@ blocking SP-30 and nothing else:
 Re-measure SP-26 with this section's exact commands; the `idle` rows above are
 its "before".
 
+**Outcome (2026-09-17): SP-26 is closed and 1 was enough — SU-7 was not needed
+to get the number.** The read premium is +0.4 ms against the ~+0.35 predicted
+here. What blocks SP-30 now is **SP-27**, the ~1.9 ms of per-tick CPU this
+measurement could not see behind the reads. SU-7 stays open on its own merits:
+every OTHER embedder of `page_controller` still reads one key per tick, and a
+host-side cache is movy's answer, not the library's.
+
 ---
+
+### SP-26 — bulk read for a delegated page
+
+**Closed 2026-09-17.** movy owns the `io` object it hands Schwung's controller,
+so `io.getParam` is served from `src/renderer/schwung-page-cache.ts`: an EPOCH
+cache in front of the track's port. Every `FILL_TICKS` (8 — the divider
+`reloadIfChanged` already runs on, and the one Schwung's own host paces its
+round trips with) the epoch advances and ONE `port.getMany()` refills every
+tracked key; a read inside the epoch is a map lookup. Nothing about Schwung
+changed: it still asks one key at a time, and it still gets an answer no older
+than one fill — which is FRESHER than the cursor it replaces, because the cursor
+reached a given cell once per rotation (~10 ticks on an eight-knob page).
+
+**The tracked set is LEARNED, not predicted.** The keys asked in the last two
+epochs are the batch. Predicting from `ctl.page.keys` would mean re-deriving
+Schwung's `fullKey` template resolution for child levels — a second
+implementation of the thing this migration exists to remove — and would still
+miss `:base`, `:effective`, `preset_name`, `ui_hierarchy` and `chain_params`.
+Learning covers all of them and self-corrects on a page change; the price is one
+rotation of live reads when a page is first drawn, which is what every rotation
+cost before.
+
+**THE STALE-WRITE HAZARD IS ANSWERED AT THE PORT, BY PULL.** On a delegated page
+movy is the writer — the knob under the hand (`io.setParam`), the sequencer, an
+automation lane, undo, the drum handler — and every one of them goes through the
+one memoized `portFor(track)`. `EnginePort` therefore logs the key of each write
+with a sequence number (`writeSeq()` / `writesSince(seq)`, optional on
+`TrackPort`), and the cache drains that log before it serves ANY value. One rule
+covers every writer including its own, and nothing is subscribed, so a mode
+change that throws every `SchwungPage` away leaves no listener behind. A write to
+`k` drops `k` and `k:*` (the `:base` and `:effective` faces Schwung reads);
+a write to `<ck>:module` drops everything, because a module swap changes every
+value on the page; a log overrun drops everything, which is the safe direction.
+
+**A NULL IS NEVER CACHED, AND THAT RULE WAS PAID FOR.** `null` is the channel
+saying it did not answer — the state the controller's tri-state exists to re-ask
+about — while `""` is a real answer and is cached like any other. The first
+version cached both, and the burn-down went **6 → 7**: a module that arrived in
+the slot while the grid was off screen was read as having NO hierarchy, so the
+controller paginated `chain_params` into ONE page and `shift+jog: plain jog steps
+one page` had nowhere to go. That is the fifth time in this branch a latched
+verdict has come from collapsing those three answers into two, and the first time
+one has come from collapsing them **in time** rather than in value. A re-plan
+(`createPageContract.reload()`) drops the cache outright for the same reason: the
+cache ages in PAGE TICKS, a page is ticked only while the grid is on screen
+(SP-12), so a page that has been away knows nothing about how old its values are.
+
+**Bulky values stay out of the batch.** `SHADOW_PARAM_VALUE_LEN` is 128 KB for
+the whole bulk response and the fleet's heaviest contract (minijv) is 39 KB of
+`ui_hierarchy` plus 45 KB of `chain_params`; an overflowing response makes
+`paramGetMany` fall back to N single reads, which is correct and is exactly
+today's cost. A key whose last value exceeded 16 KB is therefore read live, and
+everything else rides the batch (plaits: 2.3 KB for both contract keys).
+`SHADOW_BULK_MAX_ITEMS` is 64, so the batch is capped at 48.
+
+**The numbers are in the SP-13 section above, in the same shape as the two rows
+they join.** Device: tick period **9.11–9.48 → 6.80–7.20 ms** against `off`'s
+4.80–5.00, `ipc_ms` **6.44–6.54 → 1.5–1.9** against 1.1–1.4, `calls/tick`
+3.0 → 0.8. Off device: idle round trips **753 → 146**. SP-13's prediction — the
+read premium falling from +4.3 ms to ~+0.35 — **held, at +0.4 ms measured**.
+
+**The tests, and which half each holds.**
+- `browser-test/logic/schwung-page.mjs`, restated in ROUND TRIPS (the old
+  budget counted params, which is the one unit this item does not move — 80
+  before, 125 after, while the real cost fell): a settled page stays under 54
+  trips over 64 ticks, measured at 36. Tooth: `FILL_TICKS = 1` → 144.
+- Same file, the hazard, at the level it lives at: a write through the port is
+  visible on the very next read, and takes the parameter's `:base` with it.
+  Tooth: remove the drain from `get()` → all four reds. It is asserted on the
+  cache rather than through the page because through the page it would race
+  Schwung's settle window against the fill divider, and a check that passes
+  because two timers lined up is not one. What ties it to the page is
+  structural (below).
+- Same file, the control: a change movy did NOT make waits for the fill and is
+  then picked up — without it every check above passes with no cache at all.
+  And the null rule: a key nobody serves reads as no answer, and the value that
+  arrives is seen at once. Tooth: cache the null → that check reddens.
+- `browser-test/logic/page-owner.mjs`, structural: `schwung-page-io.ts` reads
+  only through the cache. A `port.getParam` left in the io returns the identical
+  VALUE and pays the old price forever, so only a grep can hold it. Tooth: put
+  one back → red.
+- `browser-test/grid-cost.mjs`: the page arm's idle floor in round trips, ceiling
+  **219** (measured 146, doubling 292, midpoint rounded down). This is SP-26's
+  own gate and the premium above is structurally unable to be it — the idle cost
+  is in BOTH windows and subtracts out. Tooth: bypass the cache → 753 trips, red,
+  **while the premium check stays green at 43**, which is the demonstration.
+
+### SP-27 — the per-tick CPU a delegated page costs
+
+Opened by SP-26's own measurement, which is what SP-13's instrument could only
+see once the reads were out of the way. With the IPC premium down to +0.4 ms the
+delegated page's tick period is still 6.80–7.20 ms against `off`'s 4.80–5.00,
+and `tick_ms` is **4.0–4.5 against 1.7–2.0**. So ~1.9 ms per tick is CPU inside
+the delegated page — Schwung's controller tick and render, plus movy's
+`knobLevels` poll — and no amount of read batching touches it.
+
+**It is not SP-13's quiescing follow-on**, which would have taken the remaining
+reads: those are already ~0.1 a tick. Whether SP-30 can pass on 6.9 ms is this
+item's question, not SP-26's: 6.9 ms is a 40% longer MIDI sampling interval than
+`off`, against the 90% SP-13 measured.
+
 
 ## Log
 
 Newest first. One line per closed item: id, date, commit, the evidence.
+
+- 2026-09-17 — **SP-26 ✅ — the delegated page reads a page at a time, and the
+  tick came back 2.3 ms.** SP-13's branch, closed on the number it opened for:
+  device tick period **9.11–9.48 → 6.80–7.20 ms** against `off`'s 4.80–5.00,
+  `ipc_ms` **6.44–6.54 → 1.5–1.9** against 1.1–1.4, `calls/tick` 3.0 → 0.8. The
+  read premium SP-13 attributed — +4.3 ms, ~1.25 blocking engine GETs a tick —
+  is **+0.4 ms**, against the ~+0.35 it predicted. Full account under **SP-26**
+  in the item detail; both new measurement tables sit beside SP-13's own in its
+  section, so all three readings read side by side.
+
+  **HOW.** movy owns the `io` it hands the controller, so `io.getParam` is served
+  from an epoch cache (`src/renderer/schwung-page-cache.ts`) that one
+  `port.getMany()` refills every 8 ticks — the divider `reloadIfChanged` already
+  runs on. The tracked set is LEARNED from what the controller actually asks, not
+  predicted from `ctl.page.keys`: predicting would mean re-deriving Schwung's
+  `fullKey` child-level templates in movy, which is the second implementation
+  this migration exists to delete, and would still miss `:base`, `:effective`,
+  `preset_name` and the two contract keys. Freshness improves rather than
+  degrades — every tracked key is refreshed every 8 ticks where the cursor
+  reached a given cell once per ~10-tick rotation.
+
+  **THE STALE-WRITE HAZARD IS ANSWERED AT THE PORT, BY PULL.** movy is the writer
+  on a delegated page — the knob under the hand, the sequencer, a lane, undo, the
+  drum handler — and all of them go through the one memoized `portFor(track)`.
+  `EnginePort` logs each write's key behind a sequence number and the cache
+  drains that log before serving ANY value, so one rule covers every writer
+  including `io.setParam`'s own, and nothing is subscribed — a mode change that
+  drops every `SchwungPage` leaves no listener behind. A write to `k` takes
+  `k:base`/`k:effective` with it; a write to `<ck>:module` takes everything,
+  because a module swap changes every value on the page.
+
+  **A NULL IS NEVER CACHED, AND THE BURN-DOWN IS WHAT SAID SO.** The first
+  version cached a no-answer alongside a real one and the burn-down went **6 →
+  7**: a module that arrived while the grid was off screen read as having NO
+  hierarchy, the controller paginated `chain_params` into ONE page, and
+  `shift+jog: plain jog steps one page` had nowhere to go. `null` is the channel
+  declining to answer — the state the tri-state re-asks about — where `""` is a
+  real answer and is cached like any other. Fifth latched verdict in this branch
+  from collapsing those three into two, and the first collapsed **in time**
+  rather than in value. A re-plan drops the cache outright for the same reason:
+  the cache ages in PAGE TICKS, and a page is ticked only while the grid is on
+  screen (SP-12), so a page that has been away knows nothing about how old its
+  values are. The burn-down is back at **6 of 6** with the original fixture
+  ordering — no fixture was adjusted to get there.
+
+  **THE OFF-DEVICE INSTRUMENT COULD NOT SEE THIS ITEM UNTIL IT WAS TAUGHT TO,
+  and that is a finding about the harness.** It counted `shadow_get_param`, one
+  per param, so eight keys in one bulk call and eight keys one at a time scored
+  the same — which is precisely why SP-13's off-device row read "both arms read
+  about the same NUMBER of params" and the verdict had to go to the device.
+  `browser-test/env.mjs` now serves `shadow_get_params`/`shadow_set_params` over
+  movy's own wire format; without them every off-device suite took
+  `paramGetMany`'s per-key fallback, so **movy's primary read path on device was
+  never exercised off device at all**. `scripts/grid-call-cost.mjs` publishes
+  both counts — `calls` (params, the unit its whole history is in) and `trips`
+  (round trips, the unit the tick period is in) — and the page arm's idle floor
+  is **753 → 146 trips**, against the 78 `off` pays for its own refresh. In
+  calls it goes 753 → 877: the batch reads a few more params than the cursor
+  did, which is the trade, and is why the premium ceiling was re-derived
+  (43 → 109 measured; 64 → **163**, the same midpoint-of-the-doubling rule)
+  rather than kept.
+
+  **THE NEW GATE IS THE IDLE FLOOR IN TRIPS, ceiling 219**, because a gesture
+  PREMIUM is structurally unable to hold this: the idle cost sits in both windows
+  and subtracts out exactly. Proved by mutation — bypassing the cache puts the
+  floor back at **753** and reddens the new check while the premium check stays
+  green at 43.
+
+  **Teeth proved on every new check and restored**: `FILL_TICKS = 1` (144 trips
+  over 64 ticks), the drain removed from `get()` (four hazard reds), the null
+  cached (the arrival-is-seen-at-once red), a `port.getParam` put back in the io
+  (both structural reds), and the cache bypassed end to end (753 trips).
+
+  **WHAT IS LEFT IS NOT IPC, and it is a new item rather than this one
+  re-opened.** At 0.4 ms of IPC premium the page's tick is still 6.8–7.2 ms
+  against 4.8–5.0, and `tick_ms` is 4.0–4.5 against 1.7–2.0 — ~1.9 ms of CPU
+  inside the delegated page's own tick. **SP-27** takes it. It is explicitly NOT
+  SP-13's quiescing follow-on, which would have taken reads that are already down
+  to ~0.1 a tick.
+
+  **SP-30 is not unblocked by this number alone.** 6.9 ms is a 40% longer MIDI
+  sampling interval than `off`, against the 90% SP-13 measured — the complaint's
+  cause is gone and its magnitude is halved, but the gap is still four times the
+  within-arm spread. SP-27 is what SP-30 should now wait on.
+
+  **Gates.** `SCHWUNG=../schwung npm test` exit 0 (167 screenshots passed, 0
+  failed — no pixel moved); `page-mode` **6 of 6**; `grid-cost` green at both
+  re-derived ceilings; device tier **15 scenarios · 130 checks · 0 failed**, two
+  `⚠ FLAKY` (`automation`, the known cold-chain-fixture hazard, and
+  `module-contract`) and `engine: unchanged`. The device was left with
+  `schwunggrid` back at 0. MANUAL.md / README.md untouched: the default build is
+  `off`, where none of this is visible — SP-30 is the item that documents the
+  mode when it becomes the default.
 
 - 2026-09-16 — **SP-13 ✅ — the number is 9.1 ms, the attribution is the
   un-batched read, and the migration continues.** Branch point, not a gate: the

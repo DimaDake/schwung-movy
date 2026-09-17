@@ -9,8 +9,10 @@
 import type { TrackPort } from '../track/port.js';
 import { moduleReadKey } from '../chain/config.js';
 import { registerModuleWidgets } from './schwung-widgets.js';
+import type { PageReadCache } from './schwung-page-cache.js';
 
-export function createPageContract(ctl: any, port: TrackPort, componentKey: string) {
+export function createPageContract(ctl: any, port: TrackPort, componentKey: string,
+                                   cache: PageReadCache) {
     let loaded = false;
     let attempts = 0;
     let sinceRetry = 0;
@@ -43,6 +45,20 @@ export function createPageContract(ctl: any, port: TrackPort, componentKey: stri
     }
 
     function reload(): void {
+        /*
+         * A RE-PLAN READS LIVE. Everything on screen hangs off the plan, and a
+         * plan is rare — construction, the retry, a module swap — so it is the
+         * one read that must not be answered from a batch taken before it.
+         *
+         * It is also the one place where a cached answer can be arbitrarily
+         * old: the cache ages in PAGE TICKS, and a page is ticked only while
+         * the module grid is on screen (SP-12), so a page that has been away
+         * comes back holding whatever it last saw. Measured in app-loop: the
+         * module changed while the grid was off screen, the re-plan read the
+         * previous module's absent hierarchy from the cache and paginated
+         * `chain_params` into ONE page, and the jog then had nowhere to go.
+         */
+        cache.invalidateAll();
         ctl.load({ slot: port.track.index, component: componentKey });
         refreshLoaded();
         /*

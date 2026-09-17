@@ -89,12 +89,23 @@
  *   page =  +43 calls  (40 writes, 2 per gesture: the throttled write plus the
  *                       release flush), deterministic over five runs per arm
  *
- * THE CEILING IS 64, AND IT IS DERIVED RATHER THAN CHOSEN. It has to sit above
- * every observed run (43, with zero spread) and strictly below the doubling it
- * exists to catch (86). 64 is the midpoint of that window rounded down: 1.49x
- * headroom for drift in the mock's page shape, with the doubling still 1.34x
- * outside. A round 50 or 75 would be the same kind of number the old 90 was — a
- * figure nobody can re-derive from a measurement.
+ * THE CEILING WAS 64 AND SP-26 RE-DERIVED IT TO 124, BECAUSE THE FLOOR MOVED
+ * UNDER IT. SP-26 serves the delegated page's reads from a batch movy refills on
+ * a divider, so the page arm's idle window went 753 host calls to 832 (it reads
+ * a few MORE params, in far fewer round trips) and — the part that matters — 753
+ * round trips to 79. The gesture premium is measured in calls, so it moved with
+ * the floor: 43 -> 83, zero spread over five runs per arm, `off` untouched at
+ * -418 / 678. The rule has not changed: above every observed run (109), strictly
+ * below the doubling it exists to catch (218), midpoint rounded down = 163.
+ *
+ * AND A SECOND GATE ARRIVES WITH IT, BECAUSE A PREMIUM CANNOT SEE WHAT SP-26
+ * FIXED. The cost SP-13 measured on device — 9.1 ms a tick against `off`'s 4.9 —
+ * is what a delegated page costs while NOTHING happens: Schwung's cursor asking
+ * one key per tick, every tick, each one a blocking ~3.4 ms engine GET. That is
+ * in both windows, so it subtracts out of the premium exactly. `idletrips` is
+ * therefore asserted directly: the page arm's idle floor in ROUND TRIPS, which
+ * measures 146 over 600 ticks (0.24 a tick, against the 78 `off` pays for its
+ * own refresh) and was 753 before this item.
  */
 import { spawnSync } from 'node:child_process';
 import { realpathSync } from 'node:fs';
@@ -110,7 +121,17 @@ const __dir = dirname(fileURLToPath(import.meta.url));
  * child is deterministic (43 every run over five, both arms' idle windows fixed
  * at 753 / 678), so the headroom that is there absorbs drift in the mock's page
  * shape, not noise. See the header for the derivation. */
-export const BUDGET_RATIO = 64;
+export const BUDGET_RATIO = 163;
+
+/* The page arm's idle floor in BLOCKING ROUND TRIPS over the 600-tick window —
+ * the number SP-26 moved and the one a premium cannot see. Measured at 146 (three
+ * runs, zero spread; `off` measures 78 for the same window). The ceiling is
+ * derived the same way as the one above: above every observed run, strictly
+ * below the doubling it exists to catch (292), midpoint rounded down. The
+ * regression it is really for is much further out — with the cache bypassed the
+ * same window costs 753 trips, which is one blocking GET per tick and is what
+ * SP-13 measured on device as a DOUBLED tick period. */
+export const IDLE_TRIPS_CEILING = 219;
 
 /* The gesture spacing the ceiling was derived at. It is asserted rather than
  * assumed: remove the spacing from the child and the SAME code measures 7
@@ -121,12 +142,13 @@ export const EXPECTED_GAP_MS = 40;
 /* The ONE line the child publishes for this suite, and it is the only thing read
  * from it: the human table above it is the part a later reader is most likely to
  * reword, and a parser pointed at that would break on a column change. */
-const LINE = /^grid-cost: arm=(\S+) mode=(\S+) calls=(-?\d+) gap=(\d+)$/m;
+const LINE = /^grid-cost: arm=(\S+) mode=(\S+) calls=(-?\d+) gap=(\d+) idletrips=(\d+) span=(\d+)$/m;
 
 /** Parse the child's summary line, or null if it never printed one. */
 export function parseGridCost(stdout) {
     const m = LINE.exec(stdout || '');
-    return m ? { arm: m[1], mode: m[2], calls: Number(m[3]), gap: Number(m[4]) } : null;
+    return m ? { arm: m[1], mode: m[2], calls: Number(m[3]), gap: Number(m[4]),
+                 idleTrips: Number(m[5]), span: Number(m[6]) } : null;
 }
 
 /**
@@ -201,11 +223,11 @@ async function main() {
         if (got === want) ok(`teeth: ${label}`);
         else fail(`teeth: ${label}`, `said ${got ? 'within' : 'over'} budget, want the opposite`);
     };
-    teeth('the measured pair is within budget, so this check is not merely always red', -418, 43, true);
-    /* THE ONE THE BUDGET IS SET BY. 43 is the measured page premium, so 86 is
+    teeth('the measured pair is within budget, so this check is not merely always red', -418, 109, true);
+    /* THE ONE THE BUDGET IS SET BY. 109 is the measured page premium, so 218 is
      * that gesture costing TWICE what it costs today — the regression the tight
      * budget exists for, and the reason the budget cannot be generous. */
-    teeth('a DOUBLED page gesture is over budget', -418, 86, false);
+    teeth('a DOUBLED page gesture is over budget', -418, 218, false);
     teeth('a page arm that grew into the thousands is over budget', -418, 5000, false);
     teeth('a page arm that got CHEAPER than measured is within budget, so the check is not a constant',
           -418, 20, true);
@@ -276,6 +298,25 @@ async function main() {
         if (r.ok) ok(`page's gesture premium is ${page.calls} calls over its own idle floor`
             + ` (ceiling ${BUDGET_RATIO}; off measured ${off.calls}, nominal ratio ${r.ratio.toFixed(0)}x)`);
         else fail('page gesture cost', r.why);
+    }
+
+    /* THE IDLE FLOOR, IN ROUND TRIPS — SP-26's own gate, and the one the premium
+     * above is structurally unable to hold. Both arms are named so a reader sees
+     * them side by side: a delegated page now idles at the same round-trip cost
+     * as movy's own refresh, which is what "the migration is affordable" means in
+     * the unit the device's tick period is set by. */
+    if (page.mode === 'page' && page.span > 0) {
+        if (page.idleTrips <= IDLE_TRIPS_CEILING) {
+            ok(`a delegated page idles at ${page.idleTrips} round trips per ${page.span} ticks`
+               + ` (${(page.idleTrips / page.span).toFixed(3)} a tick; ceiling ${IDLE_TRIPS_CEILING},`
+               + ` off measured ${off.idleTrips})`);
+        } else {
+            fail('the delegated page\'s idle floor',
+                 `${page.idleTrips} round trips over ${page.span} ticks`
+                 + ` (${(page.idleTrips / page.span).toFixed(3)} a tick) is over the ceiling of`
+                 + ` ${IDLE_TRIPS_CEILING} — the page's reads are not being batched, which is the`
+                 + ` 9.1 ms tick SP-13 measured on device`);
+        }
     }
 
     if (failures === 0) console.log(`\n${ESC}[32m${ESC}[1mGRID COST IS WITHIN BUDGET${ESC}[0m`);

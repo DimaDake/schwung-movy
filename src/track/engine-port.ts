@@ -17,6 +17,12 @@ import type { TrackPort } from './port.js';
 import type { TrackRef } from './ref.js';
 import { paramGet, paramGetMany, paramSet, paramSetMany } from '../host/param.js';
 
+/* Enough history that a reader draining once a tick can never miss a key: a
+ * chord, a lane sweep and a knob stream together are a handful of writes per
+ * tick. Beyond it the answer is "everything", which is correct and merely
+ * expensive. */
+const WRITE_LOG_MAX = 128;
+
 export abstract class EnginePort implements TrackPort {
     abstract readonly track: TrackRef;
     /* Every engine param read is a round trip through the single-slot SHM, so
@@ -28,15 +34,41 @@ export abstract class EnginePort implements TrackPort {
 
     abstract sendMidi(statusType: number, d1: number, d2: number): void;
 
+    /* The write log is kept in PORT-LEVEL keys — the form the caller passed and
+     * the form a cache in front of this port holds — not the engine key. */
+    private wseq = 0;
+    private readonly wlog: string[] = [];
+
+    /* Logged whether or not the slot accepted it. A refused write may still have
+     * been taken (host/param.ts's header: the two failures are indistinguishable
+     * from here), so treating it as "nothing changed" is the one direction that
+     * can leave a cache holding a value the engine does not have. */
+    private noteWrite(key: string): void {
+        this.wseq++;
+        this.wlog.push(key);
+        if (this.wlog.length > WRITE_LOG_MAX) this.wlog.shift();
+    }
+
+    writeSeq(): number { return this.wseq; }
+
+    writesSince(seq: number): string[] | null {
+        const n = this.wseq - seq;
+        if (n <= 0) return [];
+        if (n > this.wlog.length) return null;   /* overran the log — drop it all */
+        return this.wlog.slice(this.wlog.length - n);
+    }
+
     getParam(key: string): string | null {
         return paramGet(this.key(key));
     }
 
     setParam(key: string, value: string): boolean {
+        this.noteWrite(key);
         return paramSet(this.key(key), value);
     }
 
     setParamTimeout(key: string, value: string, timeoutMs: number): boolean {
+        this.noteWrite(key);
         return paramSet(this.key(key), value, timeoutMs);
     }
 
@@ -45,6 +77,7 @@ export abstract class EnginePort implements TrackPort {
     }
 
     setMany(pairs: [string, string][]): boolean {
+        for (const [k] of pairs) this.noteWrite(k);
         return paramSetMany(pairs.map(([k, v]): [string, string] => [this.key(k), v]));
     }
 }

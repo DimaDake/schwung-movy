@@ -8,8 +8,15 @@
  */
 
 import type { TrackPort } from '../track/port.js';
+import type { PageReadCache } from './schwung-page-cache.js';
 
-export function createPageIo(port: TrackPort, qualify: (k: string) => string) {
+/* EVERY READ GOES THROUGH THE CACHE, including the ui_pages fallback below.
+ * Schwung asks one key per tick and would otherwise spend a blocking engine GET
+ * on each — SP-26, and `browser-test/logic/page-owner.mjs` greps this file for
+ * a `port.getParam` that walks around it. */
+export function createPageIo(port: TrackPort, qualify: (k: string) => string,
+                             cache: PageReadCache) {
+    const read = (k: string) => cache.get(qualify(k));
     return {
         /*
          * `ui_hierarchy` FALLS BACK TO `ui_pages`, which is what a module
@@ -28,7 +35,7 @@ export function createPageIo(port: TrackPort, qualify: (k: string) => string) {
          * device — it is why a pad press had no page to jump to.
          */
         getParam: (k: string) => {
-            const v = port.getParam(qualify(k));
+            const v = read(k);
             if (v !== null && v !== undefined && v !== '') return v;
             /* MATCHED ON THE SUFFIX, because the controller asks with the
              * component already on the key — `synth:ui_hierarchy`, not
@@ -36,7 +43,7 @@ export function createPageIo(port: TrackPort, qualify: (k: string) => string) {
              * fallback silently never ran. */
             const key = String(k);
             if (!key.endsWith('ui_hierarchy')) return v;
-            const alt = port.getParam(qualify(key.replace('ui_hierarchy', 'ui_pages')));
+            const alt = read(key.replace('ui_hierarchy', 'ui_pages'));
             /*
              * THE FALLBACK MUST NOT DESTROY THE TRI-STATE. The controller reads
              * this key with three answers: JSON = declared, "" = served and

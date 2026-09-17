@@ -165,50 +165,151 @@ _log('\nTest: the embedded body rect seats Schwung’s widget rows on movy’s o
        + BAND_H.gutter1 + BAND_H.widget + BAND_H.label);
 }
 
-/* ── SP-12: what one tick of a delegated page costs ──────────────────────── */
+/* ── SP-12/SP-26: what one tick of a delegated page costs ────────────────── */
 
-_log('\nTest: a settled page reads its cursor, not a contract, every tick');
-{
-    /* SP-12 made the poll PER-TICK — it had to, or the page's read cursor never
-     * advances and the cells on screen stop moving. That turned a line that was
-     * almost never reached into the page's largest standing cost:
-     * `ctl.reloadIfChanged()` is a whole contract read, and it was on every
-     * tick. Measured in scripts/grid-call-cost.mjs, the `page` arm's idle floor
-     * went 678 -> 1803 host calls per 600 ticks with it there, against movy's
-     * own refresh at the 678 it replaces.
-     *
-     * What the page is ALLOWED is the read cursor: one get_param a tick, which
-     * is the budget movy's refresh used to spend on the same values. */
+/* Count ROUND TRIPS, not params.
+ *
+ * SP-26 is the difference between the two: `shadow_get_params` reads a whole
+ * page in ONE blocking IPC where `shadow_get_param` reads one key in one, and
+ * on device each of those is ~3.4 ms whatever it carries. A counter on the
+ * single-key call alone therefore cannot see the thing this budget is about —
+ * it counted 80 before SP-26 and 125 after, while the real cost went the other
+ * way. The bulk call's own per-key delegation is suppressed for the same
+ * reason: inside one request it is one trip. */
+function countTrips(fn) {
+    /* Suites before this one delete the param globals rather than restoring
+     * them (SP-02's deferred list), so wrapping whatever is there would wrap
+     * `undefined`. The env's own restorer is what that cleanup meant. */
+    env.restoreParamGlobals();
+    const realGet = globalThis.shadow_get_param;
+    const realBulk = globalThis.shadow_get_params;
+    let trips = 0, depth = 0;
+    globalThis.shadow_get_params = (...a) => {
+        trips++; depth++;
+        try { return realBulk(...a); } finally { depth--; }
+    };
+    globalThis.shadow_get_param = (...a) => { if (!depth) trips++; return realGet(...a); };
+    try { fn(); } finally {
+        globalThis.shadow_get_param = realGet;
+        globalThis.shadow_get_params = realBulk;
+    }
+    return trips;
+}
+
+/** A settled, delegated page for track 0, ticked until its contract resolves. */
+function settledPage() {
     setSchwungGridMode('page');
     schwungGridReload();
     env.setParams(MOCK_SYNTHS.test16);
     const p = schwungPageFor(0, 'synth');
     for (let i = 0; i < 12 * 60 && !p.ready; i++) p.tick();
+    return p;
+}
+
+_log('\nTest: a settled page costs ONE round trip for a page, not one per tick');
+{
+    /* SP-12 made the poll PER-TICK — it had to, or the page's read cursor never
+     * advances and the cells on screen stop moving. SP-13 then measured what
+     * that cost on device: 9.1 ms a tick against `off`'s 4.9, because Schwung's
+     * cursor asks ONE key per tick and `page_controller.mjs:526` has no bulk
+     * read at all. SP-26 serves those asks from a batch movy refills on a
+     * divider, so the page costs a round trip per FILL_TICKS rather than one
+     * per tick.
+     *
+     * THE CEILING IS 54 OVER 64 TICKS, AND IT IS DERIVED. Measured here: 36 —
+     * eight fills (one per FILL_TICKS), fifteen first-touch misses as this
+     * page's keys enter the batch, and the keys this MOCK answers null for. The
+     * last group is an artefact of the env rather than a cost the device pays:
+     * a key the device does not serve answers "" (the shim replies with an
+     * error and a zeroed buffer) and "" IS cached, where the mock's store
+     * answers null and a null is never cached. 54 is the midpoint of 36 and 72
+     * — a doubling of the measurement — rounded down. The regression it exists
+     * to catch is further out still: with the cache bypassed the same 64 ticks
+     * cost 80 trips, which is what SP-13 measured on device as 9.1 ms a tick. */
+    const p = settledPage();
     ok('the page resolved', p.ready);
 
     const TICKS = 64;
-    /* Suites before this one delete the param globals rather than restoring
-     * them (SP-02's deferred list), so wrapping whatever is there would wrap
-     * `undefined`. The env's own restorer is what that cleanup meant. */
-    env.restoreParamGlobals();
-    const real = globalThis.shadow_get_param;
-    let reads = 0;
-    globalThis.shadow_get_param = (...a) => { reads++; return real(...a); };
-    for (let i = 0; i < TICKS; i++) p.tick();
-    globalThis.shadow_get_param = real;
+    const trips = countTrips(() => { for (let i = 0; i < TICKS; i++) p.tick(); });
 
-    /* Measured: 80 over 64 ticks — 1 a tick for the cursor plus 2 per contract
-     * poll on a divider of 8, the same divider Schwung's own host uses for the
-     * same question. The ceiling is 1.5 a tick: comfortably above that, and far
-     * below the ~3 a tick a contract read on EVERY tick costs, which is the
-     * regression this exists to catch. */
-    _log(`    (${reads} reads over ${TICKS} ticks)`);
-    eq('a settled page stays within one read a tick plus the paced poll',
-       reads <= TICKS + Math.ceil(TICKS / 2), true);
+    _log(`    (${trips} round trips over ${TICKS} ticks)`);
+    eq('a settled page stays under one round trip per two ticks',
+       trips <= 54, true);
 
     schwungGridReload();
     setSchwungGridMode(null);
     env.setParams(MOCK_SYNTHS.test16);
+}
+
+_log('\nTest: a cached read never outlives movy’s own write');
+{
+    /*
+     * THE HAZARD SP-13 NAMED, and the one a read cache has to answer for: on a
+     * delegated page movy is the writer — the knob under the hand, the
+     * sequencer, an automation lane, undo — so a page served from a batch taken
+     * before the write shows the value SNAPPING BACK to what it was, which is a
+     * worse bug than a slow tick. Every one of those writers goes through the
+     * one memoized port for the track, which is why the cache drains that
+     * port's write log before it serves anything.
+     *
+     * Asserted here rather than through the page because this is the level the
+     * hazard lives at and the only one where it is deterministic: through the
+     * page it would race Schwung's own settle window against the fill divider,
+     * and a test that passes because two timers happened to line up is not a
+     * test. What ties this to the page is structural — page-owner.mjs greps
+     * schwung-page-io.ts for a read that walks around the cache.
+     */
+    const { createPageReadCache } =
+        await import('../../dist/esm/renderer/schwung-page-cache.js');
+    env.restoreParamGlobals();
+    const port = portFor(0);
+    const cache = createPageReadCache(port);
+    const KEY = 'synth:sp26_probe';
+
+    port.setParam(KEY, '0.25');
+    eq('the first read answers what the port holds', cache.get(KEY), '0.25');
+
+    port.setParam(KEY, '0.75');
+    eq('a write movy made is visible on the very next read', cache.get(KEY), '0.75');
+
+    /* The same, for the two other faces of one parameter: Schwung reads a
+     * modulated cell as `k:base` and its driven value as `k:effective`, so a
+     * write to `k` has to take all three. */
+    globalThis.shadow_set_param(0, KEY + ':base', '0.75');
+    eq('and its :base reads through', cache.get(KEY + ':base'), '0.75');
+    port.setParam(KEY, '0.1');
+    globalThis.shadow_set_param(0, KEY + ':base', '0.1');
+    eq('a write takes the parameter’s other faces with it',
+       cache.get(KEY + ':base'), '0.1');
+
+    /* Back into the cache after that write, so the control below is testing
+     * the cache and not an entry the write had just dropped. */
+    eq('and the parameter itself reads back', cache.get(KEY), '0.1');
+
+    /*
+     * A NO-ANSWER IS NEVER CACHED, AND THIS IS THE CHECK THAT COST A PAGE.
+     *
+     * null is the channel saying it did not answer — the state the controller's
+     * tri-state re-asks about — while "" is a real answer and is cached like any
+     * other. Cache the null and "I do not know yet" becomes "there is nothing
+     * there" for the rest of the epoch: measured in app-loop, a module that
+     * arrived while the grid was off screen was read as having NO hierarchy, so
+     * the controller paginated `chain_params` into one page and the jog had
+     * nowhere to go. The burn-down grew 6 -> 7 on exactly that.
+     */
+    const ABSENT = 'synth:sp26_absent';
+    eq('a key nobody serves reads as no answer', cache.get(ABSENT), null);
+    globalThis.shadow_set_param(0, ABSENT, '0.5');
+    eq('...and the value that arrives is seen at once, not after a fill',
+       cache.get(ABSENT), '0.5');
+
+    /* THE CONTROL, without which every check above passes with no cache at all:
+     * a value that moved behind movy's back — the engine's own LFO, another
+     * writer — is NOT seen until the next fill, and then it is. */
+    globalThis.shadow_set_param(0, KEY, '0.9');
+    eq('a change movy did not make waits for the fill', cache.get(KEY), '0.1');
+    for (let i = 0; i < 8; i++) cache.tick();
+    eq('...and the fill picks it up', cache.get(KEY), '0.9');
 }
 
 _log('\nTest: both embedded modes, and the off stand-in, use ONE rect');

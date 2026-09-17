@@ -27,6 +27,10 @@ import { noteReportedTrack, resetWatchPush, syncWatch } from './watch.js';
 /* -1 until the first poll: the opening value is not a change, and treating it
  * as one would mark every fresh open dirty and rewrite the set for nothing. */
 let lastChainGen = -1;
+/* The count of Sets the engine has APPLIED, as of the last poll. -1 is "never
+ * polled", and unlike `lastChainGen` the first real value IS acted on — see the
+ * `sapl` arm in parseStatus. */
+let lastSetApplied = -1;
 
 const STATUS_POLL_TICKS = 8;  // ~24 Hz at the ~196 Hz device tick rate
 const PROBE_TICKS = 30;       // ping cadence while booting
@@ -361,6 +365,27 @@ function parseStatus(s: string): void {
             if (lastChainGen >= 0 && g !== lastChainGen) markUiStateDirty();
             lastChainGen = g;
         }
+        /* The engine has applied a Set — which is the moment `alabels` starts
+         * answering for THAT Set and not the previous one. An open is
+         * asynchronous (the UI asks by name; the bytes land on the saver thread
+         * hundreds of ms later), and `openSet`'s own `requestLabelSync` is
+         * armed at REQUEST time, so its one shot was routinely spent reading
+         * the outgoing Set's labels — all dashes on a cold open. The registry
+         * then stayed empty for the whole session: no automation dot, no held
+         * value, no read-back suppression, and the take still on disk. Asking
+         * again here cannot race it, because this counter only moves once the
+         * payload is in the engine. */
+        else if (key === 'sapl') {
+            const a = Number(val) || 0;
+            /* The FIRST value counts as a change, unlike `chgen` above: there a
+             * change means a write (mark the set dirty), so an opening value
+             * must be swallowed, while here it means a read the UI needs anyway
+             * — its registry starts empty and the engine may have been holding
+             * this Set since before movy launched. Swallowing the first value
+             * would leave exactly the cold open this fixes unsynced. */
+            if (a !== lastSetApplied) requestLabelSync();
+            lastSetApplied = a;
+        }
         else if (key === 'prq') noteProbeGen(Number(val) || 0);
         else if (key === 'chpend') seqState.chainPending = Number(val) || 0;
         else if (key === 'chcost') seqState.cpuCost = val;
@@ -444,4 +469,7 @@ export function resetSeqEngine(): void {
     /* A re-dlopened engine starts its chain generation at 0 again; carrying the
      * old value across would read as a change and dirty the set for nothing. */
     lastChainGen = -1;
+    /* And for the same reason: a re-dlopened engine has applied nothing yet, so
+     * its first `sapl` is an opening value rather than a Set that just landed. */
+    lastSetApplied = -1;
 }

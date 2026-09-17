@@ -195,6 +195,45 @@ export async function run() {
     eq('empty hauto clears heldLocks', seqState.heldLocks.size, 0);
 }
 
+/* ── sapl: an APPLIED Set re-arms the automation label sync ──────────────── */
+{
+    _log('\napplied-set label sync:');
+    const { parseStatusForTest, resetSeqEngine, takeLabelSync, requestLabelSync } =
+        await import('../../dist/esm/seq/engine.js');
+    const { resetSeqState } = await import('../../dist/esm/seq/state.js');
+    resetSeqEngine(); resetSeqState();
+
+    /* THE BUG, at the level that reproduces it. `openSet` arms the sync when it
+     * ASKS the engine to open, and the engine applies the bytes on another
+     * thread hundreds of ms later — so the one shot was routinely spent reading
+     * the outgoing Set's labels, and the registry stayed empty for the session
+     * (device evidence: two `auto sync labels="-.-.-…"` reads, both before
+     * `seq: set ready`, and no lanes afterwards). */
+    requestLabelSync();
+    eq('the open-time request is still one-shot', takeLabelSync(), true);
+    eq('and spending it leaves nothing armed', takeLabelSync(), false);
+
+    /* The fix: the engine counts the Sets it has APPLIED, and the first value
+     * counts — the engine may have been holding this Set since before movy
+     * launched, and the UI's registry starts empty either way. */
+    parseStatusForTest('play=0 trk=0 sapl=7');
+    eq('the first sapl arms a sync', takeLabelSync(), true);
+    /* An unchanged counter is not an event: re-syncing every poll would re-issue
+     * a lane mapping write per assigned lane, forever. */
+    parseStatusForTest('play=0 trk=0 sapl=7');
+    eq('an unchanged sapl arms nothing', takeLabelSync(), false);
+    /* And the case the device test caught: the Set landed AFTER the open-time
+     * shot was spent. */
+    parseStatusForTest('play=0 trk=0 sapl=8');
+    eq('an applied Set arms a sync after the fact', takeLabelSync(), true);
+
+    /* A re-dlopened engine starts counting again, so its first value must read
+     * as an applied Set rather than as a counter going backwards. */
+    resetSeqEngine();
+    parseStatusForTest('play=0 trk=0 sapl=0');
+    eq('a rebooted engine arms a sync too', takeLabelSync(), true);
+}
+
 /* ── EXT follow: engine ext= status field ────────────────────────────────── */
 {
     _log('\nEXT follow status parse:');

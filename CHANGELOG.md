@@ -76,6 +76,24 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Reopening a Set could lose every automation lane it had — the take was on
+  disk and the UI came up blank.** No dot, no held value while a step is held,
+  and the read-back suppression that keeps a knob from fighting its own
+  automation switched off with it. The lanes themselves were never gone: they
+  were in the file and in the engine, and a second Set switch usually brought
+  them back, which is what made it look random.
+
+  Opening a Set is asynchronous — movy asks the engine by name and the bytes
+  land on the engine's own thread a few hundred milliseconds later — and movy
+  rebuilt its automation registry once, at the moment it ASKED. So it routinely
+  read the outgoing Set's lane labels: all empty on a cold open. One read, spent
+  on the wrong Set, and nothing ever asked again. On device the whole race is
+  two log lines apart: both label reads landed before `seq: set ready`, and the
+  registry stayed empty for the session. The engine now counts the Sets it has
+  applied and reports that on the status poll movy already makes, so movy asks
+  again once the Set is actually in — a moment that cannot, by construction,
+  come before the labels answer for it. (`ENGINE_VERSION` 0.78.0.)
+
 - **The Schwung-rendered knob grid drew 2 px too high, on top of movy's bank
   bar.** `movyBandLayout` reflows **only when a rect is supplied** — so passing
   none was not taking a default, it was opting out of the layout, and the body

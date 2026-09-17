@@ -126,7 +126,7 @@ pub(crate) fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.77.0";
+const ENGINE_VERSION: &str = "0.78.0";
 
 /* Blocks between autosaves. The callback runs at ~344 Hz, so this is ~2 s —
  * flash on this device is not free and the sequencer is dirty constantly while
@@ -180,6 +180,18 @@ struct Instance {
     engpersist: bool,
     set_uuid: String,
     set_gen: u32,
+    /// How many Set payloads this engine has APPLIED — not requested, not read
+    /// off disk: applied, on this thread, by `service_set`.
+    ///
+    /// The UI's automation registry is rebuilt from `alabels`, and an open is
+    /// asynchronous: the UI asks by name and the bytes arrive on the saver
+    /// thread some hundreds of milliseconds later. Nothing told the UI which
+    /// side of that it was on, so its one-shot re-sync read the PREVIOUS Set's
+    /// labels — all dashes on a cold open — and left the registry empty for the
+    /// session: no automation dot, no held value, and read-back suppression
+    /// dead. A counter turns "has it landed?" into a comparison the UI can make
+    /// from the poll it already does, the same way `chgen` does for chains.
+    set_applied: u32,
     /// Next block at which an autosave may run. Rate limits flash writes.
     save_at: u64,
 }
@@ -201,6 +213,7 @@ impl Instance {
             engpersist: false,
             set_uuid: String::new(),
             set_gen: 0,
+            set_applied: 0,
             save_at: 0,
             probe_gen: 0,
         }
@@ -545,6 +558,10 @@ impl Instance {
                 /* Same rationale: the UI learns a probe is waiting from the
                  * poll it already makes, never from a poll of its own. */
                 s.push_str(&format!(" prq={}", self.probe_gen));
+                /* And the same again for an applied Set (`set_applied`): the
+                 * open the UI asked for lands here, asynchronously, and the
+                 * only thing that can say so is this thread. */
+                s.push_str(&format!(" sapl={}", self.set_applied));
                 Some(s)
             }
             /* The UI compares this `uuid` against the Set it believes is open
@@ -714,6 +731,12 @@ impl Instance {
                 host::log("set: malformed chains.json ignored");
             }
             self.set_gen = gen;
+            /* The payload is IN the engine as of this line, so the labels it
+             * carried are answerable now and not before. Bumped even when
+             * `persist::load` refused the bytes: the previous Set then still
+             * stands, and a UI that rebuilds its registry from the labels of
+             * whatever is actually loaded is right either way. */
+            self.set_applied = self.set_applied.wrapping_add(1);
             /* Taken from the engine, not from the bytes that arrived: what
              * matters is what a save WOULD write now, and an older file may
              * spell the same Set differently. */
@@ -1316,6 +1339,62 @@ mod tests {
         std::thread::sleep(std::time::Duration::from_millis(200));
         assert!(!std::path::Path::new(&format!("{dir}/__pending-1-2")).exists(),
                 "the provisional directory must not be left behind");
+    }
+
+    /* `sapl` exists so the UI can tell "the open I asked for has landed" from
+     * "not yet", and the whole value of it is that the two cannot be confused:
+     * by the time the counter moves, `alabels` must already answer for the Set
+     * that moved it.
+     *
+     * Without it the UI's one-shot label re-sync — armed by `openSet`, which
+     * runs when the open is REQUESTED — read the outgoing Set's labels and the
+     * automation registry stayed empty for the session: no dot, no held value,
+     * no read-back suppression, with the take still on disk. Measured on
+     * device: two `auto sync labels="-.-.-…"` reads, both before `seq: set
+     * ready`, and no lanes after.
+     *
+     * The teeth: bump `set_applied` where the open is QUEUED (`set_param("set",
+     * "open …")`) instead of where it is applied, and the counter moves while
+     * `alabels` is still all dashes — which is exactly the bug, and this fails. */
+    #[test]
+    fn an_applied_set_is_announced_only_once_its_labels_answer() {
+        /* One automation lane, which is what the labels have to carry across. */
+        const WITH_LANE: &str = "movy1\nbpm 12000\nau 0 1 64 synth:cutoff\n";
+        let dir = saver_tmp("sapl");
+        crate::set_store::SetStore::new(&dir).write("u1", WITH_LANE, 4, "0\n").unwrap();
+
+        let mut inst = Instance::new();
+        inst.set_param("setsdir", &dir);
+        inst.set_param("engpersist", "1");
+        let sapl = |i: &mut Instance| -> u32 {
+            let st = i.get_param("status").expect("status");
+            st.split(' ').find_map(|kv| kv.strip_prefix("sapl="))
+                .expect("status must carry sapl").parse().expect("a number")
+        };
+        let before = sapl(&mut inst);
+        assert_eq!(inst.engine.auto_labels().split(',').next(), Some("-.-.-.-.-.-.-.-"),
+                   "no Set open yet, so track 0 has no labels");
+
+        inst.set_param("set", "open u1");
+        let mut audio = [0i16; 256];
+        let mut announced = false;
+        for _ in 0..200 {
+            inst.render(&mut audio);
+            if sapl(&mut inst) != before { announced = true; break; }
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+        assert!(announced, "an applied Set must move the counter");
+        /* The invariant, asserted at the FIRST poll that saw the change — a
+         * later one would pass even if the counter had run ahead of the bytes. */
+        assert_eq!(inst.engine.auto_labels().split(',').next(),
+                   Some("-.synth:cutoff.-.-.-.-.-.-"),
+                   "the labels must be the applied Set's, not the previous one's");
+
+        /* And it is an EVENT, not a level: nothing else moves it, or the UI
+         * re-issues a lane mapping write per assigned lane on every poll. */
+        let after = sapl(&mut inst);
+        for _ in 0..50 { inst.render(&mut audio); }
+        assert_eq!(sapl(&mut inst), after, "rendering alone must not announce a Set");
     }
 
     /* An open marks the engine dirty — the chain restore does it — so without

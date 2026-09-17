@@ -300,11 +300,20 @@ const { isMovyOwnComponent } = await import('../../dist/esm/chain/config.js');
     ok('an FX slot is not', !isMovyOwnComponent('audio_fx1'));
     ok('a master FX slot is not', !isMovyOwnComponent('master_fx1'));
 
-    setSchwungGridMode('page');
-    const o = pageOwnerOf({ getComponentKey: () => 'mix' });
-    eq('a movy page is not claimed under PAGE', o.claimed, false);
-    eq('and the log says which component it kept', o.reason, 'movy-page ck=mix');
-    setSchwungGridMode('off');
+    /* PAGE is only reachable with the library: `schwungGridMode` pins itself to
+     * 'off' when param_pages cannot load, so without a SCHWUNG checkout the
+     * override below answers 'mode=off' and these two say nothing about the
+     * rule. Skipped, not failed — the standing contract for every Schwung
+     * assertion in the local suites (movy/CLAUDE.md). */
+    if (!schwungLibAvailable()) {
+        _log('  (the PAGE half SKIPPED — no param_pages; set SCHWUNG=)');
+    } else {
+        setSchwungGridMode('page');
+        const o = pageOwnerOf({ getComponentKey: () => 'mix' });
+        eq('a movy page is not claimed under PAGE', o.claimed, false);
+        eq('and the log says which component it kept', o.reason, 'movy-page ck=mix');
+        setSchwungGridMode('off');
+    }
 }
 
 /* ── Schwung owns it ──────────────────────────────────────────────────────── */

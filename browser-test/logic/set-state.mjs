@@ -257,10 +257,16 @@ _log('\nTest: the chains mirror written from the engine\'s own file');
     const { encodeBulk } = await import('../../dist/esm/track/bulk.js');
     const { resetRestoreGate } = await import('../../dist/esm/seq/restore-gate.js');
 
-    /* Six fields per record, matching FIELDS in chain_state.rs. */
+    /* Six fields per record, matching FIELDS in chain_state.rs. The last record
+     * is a SEND BUS: its slot is written from the exported arithmetic rather
+     * than typed, because the number is the contract `busOfDocSlot` inverts —
+     * typed here, a moved slot would break the engine and a stale literal
+     * would keep agreeing with it. */
+    const { sendDocSlot } = await import('../../dist/esm/track/send-persist.js');
     const doc = encodeBulk([
         '0', 'synth', 'noisemaker', 'blob-A', '1.0000,0.0000,0', '',
         '0', 'fx1', 'mverb', 'blob-B', '', '',
+        String(sendDocSlot(1)), 'fx1', 'delay', 'blob-C', '', '',
     ]);
 
     const fs = installMockFs({ [uuidToChainsPath('M')]: doc });
@@ -275,6 +281,14 @@ _log('\nTest: the chains mirror written from the engine\'s own file');
        ui.chains[0].comp[0].s, 'blob-A');
     eq('and the second component', ui.chains[0].comp[1].m, 'mverb');
     eq('and the mixer triple', ui.chains[0].mix, '1.0000,0.0000,0');
+
+    /* The send half of the same document. It lands in its own array, not as a
+     * chain with `t: 17`: a reader that took `t` for a track index would address
+     * a track that does not exist. Engine side is `GOLDEN` in chain_state.rs. */
+    eq('a send record becomes a send, not a chain', ui.sends.length, 1);
+    eq('addressed to its bus, not its document slot', ui.sends[0].b, 1);
+    eq('with its module', ui.sends[0].m, 'delay');
+    eq('and its preset blob', ui.sends[0].s, 'blob-C');
 
     /* An unreadable chains.json must NEVER write []: that is §3 in a new file.
      * It is not the authority, so keeping a stale mirror costs nothing, while

@@ -87,6 +87,27 @@ far. Earlier work is summarised in the timeline below for context.
   needs. Affects the debug-only `schwunggrid` setting in `DRAW` and `PAGE`;
   `MOVY`, the default, is unchanged.
 
+- **A send FX was never saved with the Set — and would not have loaded if it
+  had been.** Both directions go through one document, the chain set the engine
+  answers with, and that document was built from the engine's list of *tracks*:
+  sixteen slots, while the send buses live at 16–18. A send was loaded by a path
+  that never touched that list, so the module and its patch were missing from
+  every save, and a send *named* in a Set file was dropped at the door by a
+  guard that stopped at sixteen. Silent in both directions, and the feature was
+  born this way — the saves are correct for a Set that never had a send. Sends
+  are saved and restored now, which is what the manual has claimed all along.
+
+  **A send that did load came back with its knobs at the module's defaults.**
+  The engine writes its own `chains.json` by asking each chain for its preset
+  blob, and it asked through the chain-slot accessor — which holds sixteen
+  instances, so a bus's slot is past the end of it and every send was written
+  down with an empty patch. The module was re-created and its settings were
+  never applied. A bus's preset is read through the send accessor the UI half
+  already used, so what a send sounds like now survives the round trip.
+
+  **Sets saved before this build have no send in them, in any copy or version:
+  re-add the send FX once and it will persist from then on.**
+
 - **A sequencer gesture could go nowhere at all — a Play press, an undo group, a
   step toggle — and nothing said so.** Every command Movy sends the engine
   travels as one batched write into Schwung's `overtake_dsp` param slot, which is

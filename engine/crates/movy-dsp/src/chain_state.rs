@@ -14,7 +14,7 @@
 //! Same flat length-prefixed codec as `chain_doc` and `src/track/bulk.ts`: no
 //! escaping, so a preset blob containing anything at all survives.
 
-use crate::chain_slots::ChainSlots;
+use crate::chain_slots::{bus_of_slot, ChainSlots, SEND_COMPONENT};
 
 const FIELDS: usize = 6;
 
@@ -103,9 +103,21 @@ pub fn serialize(slots: &mut ChainSlots) -> String {
     let mut items: Vec<String> = Vec::new();
     let mut prev_slot: Option<usize> = None;
     for e in entries {
-        let state = slots
-            .get_param(e.slot, &format!("{}:state", e.component))
-            .unwrap_or_default();
+        /* A bus's preset is read through the SEND accessor, because `get_param`
+         * is `.get`-based over `slots` — MOVY_CHAINS entries — so a bus's slot
+         * indexes past the end of it and answers None. Every send serialized
+         * with an empty blob: the module came back and its knobs did not.
+         *
+         * The mixer triple and the LFOs below are still read through
+         * `get_param`, and "" is the TRUTH for them rather than the same loss —
+         * a bus has no mixer of its own and no LFOs, which is why the schema
+         * writes both fields empty for one. */
+        let state = match bus_of_slot(e.slot) {
+            Some(bus) => slots.send_get_param(bus, "state").unwrap_or_default(),
+            None => slots
+                .get_param(e.slot, &format!("{}:state", e.component))
+                .unwrap_or_default(),
+        };
         // The mixer triple belongs to the CHAIN, so it rides that chain's first
         // component rather than being repeated on every one of them.
         // The mixer triple and the LFOs belong to the CHAIN, so they ride its
@@ -146,6 +158,19 @@ pub fn restore(slots: &mut ChainSlots, doc: &str) -> bool {
      * queued load rather than racing it. */
     for c in items.chunks(FIELDS) {
         let Ok(slot) = c[0].parse::<usize>() else { continue };
+        /* A bus's preset goes to the bus, under the component a bus is always
+         * loaded into. `set_state` would drop it: that path stops at
+         * `MOVY_CHAINS`, so a restored send would come back at the module's
+         * shipped defaults — the patch lost, which is the half of this that is
+         * worse than not restoring at all. Mix and LFO are not asked for: a
+         * bus has no mixer triple of its own, and `serialize` writes both
+         * fields empty for one. */
+        if let Some(bus) = bus_of_slot(slot) {
+            if !c[3].is_empty() && c[1] == SEND_COMPONENT {
+                slots.set_send_state(bus, &c[3]);
+            }
+            continue;
+        }
         if !c[3].is_empty() {
             slots.set_state(slot, &c[1], &c[3]);
         }
@@ -228,21 +253,29 @@ mod tests {
 
     /* The cross-language contract the ui-state mirror rests on: TypeScript's
      * decodeBulk must read exactly what pack() writes. Pinned as a golden
-     * document so both sides assert against the same bytes — the node half
-     * lives in browser-test/logic/set-state.mjs. The bytes came from
-     * encodeBulk itself, not from reading the format and typing them out —
-     * the hand-written version was wrong on its first attempt.
+     * document so both sides assert against the same shape — the TypeScript
+     * half builds records of that shape in browser-test/logic/set-state.mjs, and
+     * the send bus record is the one that file's `sendsFromDoc` keys on. The
+     * bytes came from encodeBulk itself, not from reading the format and
+     * typing them out — the hand-written version was wrong on its first
+     * attempt.
      *
      * The blob deliberately carries a newline and a quote: that is what the
      * length prefix buys over JSON, and it is the case an escaping bug hits. */
     pub(crate) const GOLDEN: &str =
-        "12\n1\n05\nsynth10\nnoisemaker7\nbl\"ob\nx15\n1.0000,0.0000,084\n22\n1\n14\nsine1\n03\n2.00\n2\n501\n01\n05\nsynth6\ncutoff1\n01\n03\ntri1\n03\n1.00\n1\n01\n01\n00\n0\n1\n01\n03\nfx15\nmverb0\n0\n0\n";
+        "18\n1\n05\nsynth10\nnoisemaker7\nbl\"ob\nx15\n1.0000,0.0000,084\n22\n1\n14\nsine1\n03\n2.00\n2\n501\n01\n05\nsynth6\ncutoff1\n01\n03\ntri1\n03\n1.00\n1\n01\n01\n00\n0\n1\n01\n03\nfx15\nmverb0\n0\n0\n2\n173\nfx15\nmverb6\nblob-C0\n0\n";
 
     #[test]
     fn pack_matches_the_typescript_codec() {
         let lfo = "22\n1\n14\nsine1\n03\n2.00\n2\n501\n01\n05\nsynth6\ncutoff1\n01\n03\ntri1\n03\n1.00\n1\n01\n01\n00\n0\n1\n0";
+        /* The last record is a SEND bus, and its slot is written from
+         * `send_index` rather than typed: the number is the contract the
+         * TypeScript `busOfDocSlot` inverts, so moving it must break both
+         * sides at once rather than one of them quietly. */
+        let send_slot = crate::chain_slots::send_index(1).to_string();
         let items: Vec<String> = ["0", "synth", "noisemaker", "bl\"ob\nx", "1.0000,0.0000,0", lfo,
-                                  "0", "fx1", "mverb", "", "", ""]
+                                  "0", "fx1", "mverb", "", "", "",
+                                  send_slot.as_str(), SEND_COMPONENT, "mverb", "blob-C", "", ""]
             .iter().map(|s| s.to_string()).collect();
         assert_eq!(pack(&items), GOLDEN);
         assert_eq!(parse_items(GOLDEN).expect("parses"), items);

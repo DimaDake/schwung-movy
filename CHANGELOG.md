@@ -59,6 +59,11 @@ far. Earlier work is summarised in the timeline below for context.
   editing is still **white** — so a grey pad is exactly a voice the sequencer
   will not play.
 
+  The engine holds the mute set and the solo beside each other, so un-soloing
+  gives your own mutes back without the UI having to remember them, and a Set
+  that never touched a pad mute saves byte-identically to before.
+  (`ENGINE_VERSION` 0.79.0.)
+
 - **Engine-owned persistence — now the default, with `engpersist` (Settings) to turn it off.**
   The engine now reads and writes a Set's files itself — `seq-state.json` and a
   new `chains.json` — atomically (temp → fsync → rename) on its own thread, and

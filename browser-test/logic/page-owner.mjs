@@ -170,6 +170,15 @@ const { isMovyOwnComponent } = await import('../../dist/esm/chain/config.js');
     const io = readFileSync('src/renderer/schwung-page-io.ts', 'utf8');
     ok('the page io reads only through the cache', !/port\.getParam\(/.test(io));
     ok('...and the cache is what it was handed', /cache\.get\(/.test(io));
+
+    /* The contract reads moved OUT of the io (SP-14), so the rule follows them.
+     * `ui_hierarchy`, `ui_pages` and the module id are read on the reload
+     * divider and on every pad press; left on the port they would pay the full
+     * blocking price the line above exists to stop — the same check, one file
+     * over, because the hazard went with the code. */
+    const hier = readFileSync('src/renderer/schwung-page-hierarchy.ts', 'utf8');
+    ok('the contract source reads only through the cache', !/port\.getParam\(/.test(hier));
+    ok('...and it is the same cache the io was handed', /cache\.get\(/.test(hier));
 }
 
 /* ── page identity ────────────────────────────────────────────────────────── */

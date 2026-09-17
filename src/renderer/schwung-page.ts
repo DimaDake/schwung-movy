@@ -35,6 +35,7 @@ import type { AutomationView } from '../types/viewmodel.js';
 import { schwungLib } from './schwung-lib.js';
 import { createPageIo } from './schwung-page-io.js';
 import { createPageReadCache } from './schwung-page-cache.js';
+import { createPageHierarchy } from './schwung-page-hierarchy.js';
 import { createPageContract } from './schwung-page-contract.js';
 import { createPageRender } from './schwung-page-render.js';
 import { createPageInput } from './schwung-page-input.js';
@@ -91,7 +92,11 @@ export function createSchwungPage(port: TrackPort, componentKey = 'synth'): Schw
      * It is created here, beside the controller it serves, because its lifetime
      * is the controller's — `schwungGridReload()` drops both together. */
     const cache = createPageReadCache(port);
-    const ctl = lib.createController(createPageIo(port, qualify, cache));
+    /* The one reader of the module's contract, for the two things that need it:
+     * the planner (through the io below) and `focusVoice`. Built here for the
+     * same reason as the cache — its lifetime is the controller's. */
+    const hier = createPageHierarchy(port, qualify, cache, componentKey);
+    const ctl = lib.createController(createPageIo(port, qualify, cache, hier));
     ctl.setLayout(lib.LAYOUT_MOVY);
 
     /* The controller's own view of the page it is showing. Both the binding's
@@ -103,10 +108,10 @@ export function createSchwungPage(port: TrackPort, componentKey = 'synth'): Schw
     }
     const keyAt = (slot: number) => (keysOf()[slot] as string) || null;
 
-    const contract = createPageContract(ctl, port, componentKey, cache);
+    const contract = createPageContract(ctl, port, componentKey, cache, hier);
     const page = createPageRender(ctl, { keyAt, keysOf, componentKey,
                                         normalizedOf: lib.normalizedOf });
-    const input = createPageInput(ctl, lib, port, qualify);
+    const input = createPageInput(ctl, lib, port, qualify, hier);
 
     return {
         /* `contract.reload()` drops the cache itself — a re-plan reads live,

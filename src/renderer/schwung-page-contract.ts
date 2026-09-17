@@ -11,9 +11,10 @@ import { perfPhase, perfPhaseEnd } from '../app/perf-probe.js';
 import { moduleReadKey } from '../chain/config.js';
 import { registerModuleWidgets } from './schwung-widgets.js';
 import type { PageReadCache } from './schwung-page-cache.js';
+import type { PageHierarchy } from './schwung-page-hierarchy.js';
 
 export function createPageContract(ctl: any, port: TrackPort, componentKey: string,
-                                   cache: PageReadCache) {
+                                   cache: PageReadCache, hier: PageHierarchy) {
     let loaded = false;
     let attempts = 0;
     let sinceRetry = 0;
@@ -60,6 +61,11 @@ export function createPageContract(ctl: any, port: TrackPort, componentKey: stri
          * `chain_params` into ONE page, and the jog then had nowhere to go.
          */
         cache.invalidateAll();
+        /* The translated contract is dropped with the cache it was built from:
+         * the module in the slot is exactly what a re-plan may have changed, and
+         * a memo keyed by the DEPARTED module's id would plan the new one from
+         * the old one's banks. */
+        hier.invalidate();
         ctl.load({ slot: port.track.index, component: componentKey });
         refreshLoaded();
         /*

@@ -24,7 +24,7 @@
  * would make every session red for something no session can fix. It is
  * baselined so a CHANGE in it is loud.
  */
-import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { readFileSync, readdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -218,6 +218,82 @@ async function main() {
         const ub = (expect.unplannable || []).join(',');
         const un = unplannable.sort().join(',');
         if (ub !== un) fail('unplannable', `was [${ub}], now [${un}] — re-baseline with --update`);
+    }
+
+    /*
+     * SP-14 — THE RACKS MOVY SHIPS A CONFIG FOR, PLANNED THE WAY `page` WILL.
+     *
+     * The loop above plans every module from what the MODULE published, and for
+     * these four that is nothing: 6W6 comes out as ten pages named "Params" to
+     * "Params - 10", no level on any of them, `voicesOf` empty, and a pad press
+     * with nowhere to jump. That is Cause E, and it is reproduced by the
+     * `warned` baseline above ("no ui_hierarchy — paginated from chain_params").
+     *
+     * This section plans them again with the hierarchy movy translates from its
+     * own config, against the SAME captured `chain_params`. It is the teeth for
+     * the translation: strip `hierarchyFromConfig` back to `return null` and
+     * every assertion below goes red, because the page names return to
+     * "Params - N" and the voice count to zero.
+     */
+    const configDir = join(__dir, '..', 'src', 'module-configs');
+    const shipped = readdirSync(configDir).filter((f) => f.endsWith('.json'))
+                                          .map((f) => f.slice(0, -5)).sort();
+    const { hierarchyFromConfig } =
+        await import(join(__dir, '..', 'dist', 'esm', 'model', 'config-hierarchy.js'));
+
+    console.log(`\nfleet-pages: ${shipped.length} movy-config rack(s), planned from the translation`);
+    /* A config movy ships for a module that is not in the capture cannot be
+     * checked against real metadata, and silently skipping every one of them
+     * would leave this whole section passing while testing nothing. */
+    if (!shipped.length) fail('movy configs', 'src/module-configs is empty — nothing to translate');
+
+    for (const id of shipped) {
+        const m = dump.modules.find((x) => x.id === id);
+        if (!m) { fail(id, 'movy ships a config for a module the capture does not have'); continue; }
+
+        const cfg = JSON.parse(readFileSync(join(configDir, id + '.json'), 'utf8'));
+        const h = hierarchyFromConfig(cfg);
+        if (!h) { fail(id, 'the shipped config translated to nothing'); continue; }
+
+        /* The module's own contract must still be absent, or this module does
+         * not belong here at all: movy fills in where a module said NOTHING,
+         * and a capture showing one has started declaring means the translation
+         * is now overriding it. */
+        if (P(m.ui_hierarchy)) { fail(id, 'the module now declares its own hierarchy — movy must not translate over it'); continue; }
+
+        let r;
+        try { r = planPages({ hierarchy: h, chainParams: P(m.chain_params), unresolved: false }); }
+        catch (e) { fail(id, 'planPages threw on the translation: ' + e.message); continue; }
+
+        for (const why of checkPages(r.pages, pageSlotKeys)) fail(id, why);
+        if (r.warnings.length) fail(id, 'the translation still warns: ' + r.warnings.join(' | '));
+
+        /* EVERY PAGE IS A BANK, BY NAME AND IN ORDER. This is the user-visible
+         * half of Cause E — what the bank bar and movy's header read — and the
+         * failure it replaces is "Params - 7". */
+        const want = cfg.banks.map((b) => b.name).join(' | ');
+        const got  = r.pages.map((p) => p.name).join(' | ');
+        if (want !== got) fail(id, `pages are not the config's banks:\n      want ${want}\n      got  ${got}`);
+
+        /* And the pad press has somewhere to land: one voice per pad, at the
+         * note that pad plays. `focusVoice(pad)` indexes this list. */
+        const voices = voicesOf(h);
+        if (voices.length !== cfg.drum.padCount) {
+            fail(id, `${voices.length} voice(s) for ${cfg.drum.padCount} pads`);
+            continue;
+        }
+        const notes = voices.map((v) => v.note).join(',');
+        const expectNotes = cfg.banks.filter((b) => b.pad !== undefined)
+            .map((b) => cfg.drum.padNoteStart + b.pad - 1).join(',');
+        if (notes !== expectNotes) fail(id, `voice notes ${notes}, want ${expectNotes}`);
+
+        /* A voice names the level the planner named its page after — that
+         * lookup IS focusVoice, and it is what "the header followed the pad
+         * while the page stood still" was missing. */
+        const levelled = new Set(r.pages.map((p) => p.level));
+        const orphan = voices.find((v) => !levelled.has(v.level));
+        if (orphan) fail(id, `voice ${orphan.name} lives on level ${orphan.level}, which no page carries`);
+        else ok(`${id}: ${r.pages.length} pages named for its banks, ${voices.length} voices at ${notes}`);
     }
 
     if (failures === 0) console.log(`\n${ESC}[32m${ESC}[1mALL FLEET-PAGE CHECKS PASSED${ESC}[0m`);

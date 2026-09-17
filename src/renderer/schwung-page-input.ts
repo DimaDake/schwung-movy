@@ -14,6 +14,7 @@
 
 import type { TrackPort } from '../track/port.js';
 import type { SchwungIntent } from './schwung-page.js';
+import type { PageHierarchy } from './schwung-page-hierarchy.js';
 import { mlog } from '../log.js';
 import { surfaceOf } from './schwung-voices.js';
 
@@ -26,7 +27,8 @@ export interface PageInput {
 }
 
 export function createPageInput(ctl: any, lib: any, port: TrackPort,
-                                qualify: (k: string) => string): PageInput {
+                                qualify: (k: string) => string,
+                                hier: PageHierarchy): PageInput {
     return {
         /*
          * ONE DETENT PER UNIT OF DELTA. Move's encoders accumulate: a quick
@@ -94,17 +96,19 @@ export function createPageInput(ctl: any, lib: any, port: TrackPort,
          * the UI and moved the page under the user's hands.
          */
         focusVoice(pad: number): boolean {
-            /* READ THE CONTRACT FROM THE PORT, as movy's model does. The
-             * controller keeps its own copy but does not publish it, and its
-             * planned pages do not carry the level they came from — both were
-             * assumed and both were wrong, measured on device as
-             * `hier=no ... lv0=null`. Same two keys movy uses: a module that
-             * ships its own chain editor serves the first empty and publishes
-             * under the second. */
-            let raw = port.getParam(qualify('ui_hierarchy'));
-            if (!raw) raw = port.getParam(qualify('ui_pages'));
-            let hierarchy: any = null;
-            try { hierarchy = raw ? JSON.parse(raw) : null; } catch (_e) { hierarchy = null; }
+            /* THE CONTRACT THE PAGES WERE PLANNED FROM, from the one place that
+             * knows it. The controller keeps its own copy but does not publish
+             * it, and its planned pages do not carry the level they came from —
+             * both were assumed and both were wrong, measured on device as
+             * `hier=no ... lv0=null`.
+             *
+             * This used to climb its own ladder off the port (`ui_hierarchy`
+             * then `ui_pages`), which was right until movy could supply a
+             * contract of its own: a rack paged from a translated config
+             * (SP-14) would have had its named pages here and NO voices, so the
+             * page would not follow the pad — the exact symptom, one layer
+             * further in. */
+            const hierarchy = hier.parsed();
             const s = surfaceOf(hierarchy);
             const v = s.voices[pad - 1];
             if (!hierarchy || !v) return false;

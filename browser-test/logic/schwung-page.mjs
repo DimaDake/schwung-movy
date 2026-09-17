@@ -312,6 +312,94 @@ _log('\nTest: a cached read never outlives movy’s own write');
     eq('...and the fill picks it up', cache.get(KEY), '0.9');
 }
 
+/* ── SP-14: a rack movy has a config for, under a delegated page ──────────── */
+
+_log('\nTest: a rack that declares nothing is paged from movy’s own config');
+{
+    /*
+     * CAUSE E, END TO END. 6W6 publishes no `ui_hierarchy` at all, so Schwung
+     * planned it from `chain_params`: ten pages named "Params" to "Params - 10",
+     * no level on any of them, and a pad press with nowhere to jump — while
+     * movy's own header went on naming the right pad, which is what made it
+     * look like it should be working.
+     *
+     * The config is the SHIPPED one (browser-test/env.mjs serves
+     * src/module-configs through host_read_file), so this asserts against the
+     * file that deploys rather than a fixture that agrees with the code.
+     */
+    setSchwungGridMode('page');
+    schwungGridReload();
+    env.setParams(MOCK_SYNTHS['6w6']);
+
+    const p = schwungPageFor(0, 'synth');
+    for (let i = 0; i < 12 * 60 && !p.ready; i++) p.tick();
+    ok('the page resolved', p.ready);
+
+    const names = (p.ctl.pages || []).map((x) => x.name).join(',');
+    eq('every bank is a page, in the config’s order', names,
+       'Kick,Snare,Lo Tom,Hi Tom,Cl Hat,Op Hat,Cymbal,Clap,Reverb,Delay,Master');
+
+    /* THE FOLLOW. `focusVoice` is movy's pad press arriving at the delegated
+     * page: voice -> level -> page. It is the half that reads the contract a
+     * SECOND time, so a translation that reached only the planner would leave
+     * this false and the page parked on the kick. */
+    p.goToPage(0);
+    ok('a pad press moves the page', p.focusVoice(3));
+    eq('...to the voice it hit', p.ctl.pages[p.pageIndex].name, 'Lo Tom');
+    ok('and the last pad reaches the last voice', p.focusVoice(8));
+    eq('...which is the clap', p.ctl.pages[p.pageIndex].name, 'Clap');
+
+    /* A PAGE IS NOT A VOICE. Reverb sits at bank 9 with no pad behind it; a
+     * ninth pad addresses nothing, and must not scroll the page to it. */
+    const before = p.pageIndex;
+    eq('a pad the rack does not have moves nothing', p.focusVoice(9), false);
+    eq('...and the page stayed put', p.pageIndex, before);
+
+    schwungGridReload();
+    setSchwungGridMode(null);
+    env.setParams(MOCK_SYNTHS.test16);
+}
+
+_log('\nTest: a module that declares its own hierarchy is never spoken for');
+{
+    /*
+     * THE TRANSLATION IS A FALLBACK, AND THIS IS WHERE THAT IS ENFORCED. Same
+     * module, same shipped config — but the module now publishes a contract of
+     * its own, and it must be the one that plans. movy filling in where a module
+     * said nothing is the migration's direction; movy OVERRIDING what a module
+     * said would be the second implementation this whole exercise removes,
+     * reinstalled one layer down.
+     *
+     * 6W6 is the subject precisely because its config WOULD translate: a module
+     * whose config movy cannot use proves nothing here.
+     */
+    setSchwungGridMode('page');
+    schwungGridReload();
+    env.setParams({
+        ...MOCK_SYNTHS['6w6'],
+        'synth:ui_hierarchy': JSON.stringify({
+            levels: { root: { name: 'Mine', knobs: ['bd_tune', 'bd_decay'] } },
+        }),
+    });
+
+    const p = schwungPageFor(0, 'synth');
+    for (let i = 0; i < 12 * 60 && !p.ready; i++) p.tick();
+    ok('the page resolved', p.ready);
+    /* The KEYS, not the page name: the planner titles a root-only contract
+     * "Main" itself, so a name check would assert its chrome rather than whose
+     * contract it planned. Two knobs the module declared, against the eight the
+     * config's Kick bank would have put here \u2014 and one page, not eleven. */
+    eq('the module\u2019s own contract plans it', p.pageCount, 1);
+    eq('...with the knobs IT declared',
+       [p.keyAt(0), p.keyAt(1), p.keyAt(2)].join(','), 'bd_tune,bd_decay,');
+    eq('a pad has no voice to follow, because the module declared none',
+       p.focusVoice(1), false);
+
+    schwungGridReload();
+    setSchwungGridMode(null);
+    env.setParams(MOCK_SYNTHS.test16);
+}
+
 _log('\nTest: both embedded modes, and the off stand-in, use ONE rect');
 {
     /* `body` and `page` embed the same grid under the same chrome, and the off

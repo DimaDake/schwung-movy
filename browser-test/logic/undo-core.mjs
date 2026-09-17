@@ -5,7 +5,7 @@
  */
 
 import {
-    readFileSync, readdirSync, sessionTick, resetSetSession, installMockFs, installMockEngine,
+    readFileSync, readdirSync, sessionTick, resetSetSession, installMockFs, uninstallMockFs, installMockEngine,
     uninstallMockEngine, pushEntry, popUndo, pushRedo, canUndo, canRedo,
     undoDepth, retractEntry, peekUndo, invalidateUndo, takeOrphanedSnaps, resetUndoState,
     MAX_ENTRIES, beginEdit, endEdit, groupOpen, undoTick, onLoopWrap,
@@ -321,6 +321,13 @@ export async function run() {
     eq('a set switch clears the stack', canUndo(), false);
 
     env.restoreParamGlobals();
+    /* GIVE THE FILESYSTEM BACK. The mock installed above answers every other
+     * path with null, and it outlived this block: from here to the end of the
+     * run, any suite reading a real file — movy's shipped module configs, which
+     * the delegated page translates a drum rack from — saw an empty disk and
+     * could not say why. Nothing caught it because nothing later read one, until
+     * SP-14 did. */
+    uninstallMockFs();
     resetUndoState(); resetUndoGroups(); resetUndoApply(); resetSetSession();
     uninstallMockEngine();
 }

@@ -59,7 +59,7 @@ in `browser-test/page-mode-expected-fail.json`'s own note.
 | SP-13 | Per-tick cost: number, attribution, recommendation (**branch point**) | Opus | ✅ |
 | SP-26 | **Bulk read for a delegated page** — SP-13's branch. The page reads ONE key per tick where movy's refresh read eight in one round trip | Opus | ✅ |
 | SP-27 | **The per-tick CPU a delegated page costs** — what is left after SP-26 took the reads out: `tick_ms` 4.0–4.5 against `off`'s 1.7–2.0, with IPC accounting for 0.4 of it | Opus | ✅ |
-| SP-14 | Cause E — drum/voice pages | Opus | ⬜ |
+| SP-14 | Cause E — drum/voice pages: movy's config, translated into the contract Schwung's planner wants | Opus | ✅ |
 | SP-15 | Cause D — contract lifecycle | Sonnet | ⬜ |
 | SP-16 | Cause G — graphics return | Sonnet | ⬜ |
 | SP-17 | Cause C/B — dives, header readout, footer hints | Sonnet | ⬜ |
@@ -133,7 +133,7 @@ this is a rendering change with a one-line symptom already pinned above.
 
 | id | item | model | state |
 | --- | --- | --- | --- |
-| SP-30 | Default-on: flip, device tier, docs, release, **stated revert path** | Sonnet | ⬜ |
+| SP-30 | Default-on: flip, device tier, docs, release, **stated revert path**. Must put a RACK under `page` on hardware — SP-14 could not, and nothing else will | Sonnet | ⬜ |
 | SP-40 | Delete `body` and the `.off` stand-ins | Sonnet | ⬜ |
 | SP-41 | Delete `off`, movy's page renderer, model page planning. **No return** | Opus | ⬜ |
 
@@ -778,6 +778,85 @@ is used: today every page shows at once and a pad press does not move the page,
 while the header *does* name the right pad, because that half is movy's.
 
 **Needs:** SP-04 (the census is its fixture), SP-10.
+
+#### Done, 2026-09-17 — movy's config IS the declaration, for four modules
+
+The fix is the movy-side translation this item predicted, and it is generic:
+**any** config with a leading run of `pad`-declaring banks translates. That the
+set is exactly `{6w6, 8w8, 9w9, cw78}` today is a fact about the fleet, not a
+list in the code — `browser-test/fleet-pages.mjs` derives its subjects from
+`src/module-configs/`, so a fifth config is covered the day it lands.
+
+Measured against the 2026-09-13 capture, planning the SAME `chain_params` both
+ways:
+
+| module | before (module's own contract) | after (movy's config, translated) |
+| --- | --- | --- |
+| 6w6 | 10 pages, `Params` … `Params - 10`, 0 voices | 11 pages `Kick … Master`, 8 voices at 36–43 |
+| 8w8 | 17 pages, same shape, 0 voices | 19 pages, 16 voices at 36–51 |
+| 9w9 | 13 pages, same shape, 0 voices | 14 pages, 11 voices at 36–46 |
+| cw78 | 15 pages, same shape, 0 voices | 18 pages, 14 voices at 36–49 |
+
+Zero planner warnings on all four after, where all four warned `no
+ui_hierarchy — paginated from chain_params` before.
+
+**Three sources, and movy is LAST** (`renderer/schwung-page-hierarchy.ts`):
+`ui_hierarchy` → `ui_pages` → the translation. A module that describes itself is
+never overridden — a movy table outvoting a module's own words would be the
+second implementation this migration removes, reinstalled one layer down. Pinned
+by a test that gives 6W6 a hierarchy of its own and watches the eleven banks
+vanish.
+
+**Both readers of the contract now climb ONE ladder, and that is the half that
+would have made this a half-fix.** `focusVoice` read `ui_hierarchy` off the port
+itself, so a translation reaching only the planner would have given a rack its
+named pages and still not followed a pad — the same symptom, one layer in. The
+ladder lives in one file, which both the io and the input path read. The
+`ui_pages` fallback moved there with it, and `page-owner.mjs`'s
+"reads only through the cache" rule followed the code.
+
+**The jog walks every page (11 for 6W6, 19 for 8W8), not movy's four-seat voice
+rotation.** Collapsing to a voice SEAT would mean movy filtering and remapping
+the controller's page indices — a second implementation of page order. A pad
+press lands on its voice directly; the section picker is the shortcut.
+
+**`ui_focus` is NOT declared as `focus_param`, deliberately.** 6w6/8w8/cw78
+expose `ui_focus` (`int 0..padCount`), which is the template shape's INDEX, while
+`focus_param` promises a LEVEL NAME — `drum-declared.ts` already carries the scar
+from movy writing a pad number into one. So movy's screen follows the pad and the
+module's own focus is left exactly where it was. A module wanting the two tied
+together can publish `focus_param` itself; that is the upstream half (SU-3).
+
+**A harness leak was in the way, and it was not this item's.**
+`browser-test/logic/undo-core.mjs:317` installed a mock filesystem and never
+uninstalled it, so from that suite on, every later suite saw a disk holding one
+file. Nothing caught it because nothing later read a real file — until a
+delegated page tried to read movy's shipped configs and got null. Fixed there.
+Also `MOCK_SYNTHS`'s three racks now STATE `ui_hierarchy: ""`: the device's shim
+answers an unserved key with `""` and this store answers an absent key with
+`null`, which are different states and the page is right to treat them
+differently.
+
+**What the device says, and what it has not been asked.** The tier is green with
+this change — 15 scenarios, 130 checks, 0 failed, no flakes — which is a
+no-regression result, not a confirmation: no scenario puts a rack under `page`,
+because `schwunggrid` is off by default. The device evidence that the gate keys
+on is indirect but decisive in one direction: Cause E was REPRODUCED on device as
+"every page shows at once", which means the controller planned from
+`chain_params`, which means the `ui_hierarchy` read resolved rather than hanging
+— the `""` this translation waits for. **If some device ever answers `null`
+instead, the page simply stays not-ready and movy draws its own voice-slot pages,
+which is the pre-migration behaviour** — the failure mode is the old UI, never a
+wrong one. **SP-30 must put a rack under `page` on hardware before the default
+flips**; that is the check this item could not buy cheaply.
+
+**Tests:** `browser-test/logic/config-hierarchy.mjs` (the translator, against the
+four SHIPPED configs), the SP-14 section of `browser-test/fleet-pages.mjs` (the
+four planned from real captured metadata), and two cases in
+`browser-test/logic/schwung-page.mjs` (a rack paged and followed end to end; a
+declaring module never spoken for). Teeth proven by stubbing
+`hierarchyFromConfig` to `return null`: fleet-pages fails 4, the translator suite
+fails on the first rack. Burn-down unchanged at 6.
 
 ### SP-13 — the branch point, stated precisely
 

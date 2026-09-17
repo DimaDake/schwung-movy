@@ -144,6 +144,17 @@ export const EXPECTED_GAP_MS = 40;
  * reword, and a parser pointed at that would break on a column change. */
 const LINE = /^grid-cost: arm=(\S+) mode=(\S+) calls=(-?\d+) gap=(\d+) idletrips=(\d+) span=(\d+)$/m;
 
+/* SP-27's line, from the other child. Same convention, same reason. */
+const CPU_LINE = /^grid-tick-cpu: arm=(\S+) mode=(\S+) module=(\S+) params=(\d+) levels=(\d+) parses=(\d+) ticks=(\d+) meanus=(\d+) p99us=(\d+)$/m;
+
+/** Parse scripts/grid-tick-cpu.mjs's summary line, or null if it never printed one. */
+export function parseTickCpu(stdout) {
+    const m = CPU_LINE.exec(stdout || '');
+    return m ? { arm: m[1], mode: m[2], module: m[3], params: Number(m[4]),
+                 levels: Number(m[5]), parses: Number(m[6]), ticks: Number(m[7]),
+                 meanUs: Number(m[8]), p99Us: Number(m[9]) } : null;
+}
+
 /** Parse the child's summary line, or null if it never printed one. */
 export function parseGridCost(stdout) {
     const m = LINE.exec(stdout || '');
@@ -185,6 +196,28 @@ export function checkRatio(offCalls, pageCalls, budget = BUDGET_RATIO) {
         ratio,
         why: `page costs ${ratio.toFixed(0)}x off (budget ${budget}x) — page ${pageCalls} calls, off ${offCalls}`,
     };
+}
+
+/**
+ * Run the CPU child for one arm against one dumped module.
+ *
+ * `CPU_TICKS` is deliberately small here: this gate asserts a COUNT that is
+ * zero or is not, so a long window buys no confidence — it only makes the
+ * suite slower. The ledger numbers in docs/ are taken at the script's own
+ * default, which is larger because a millisecond distribution does need one.
+ */
+function cpuArm(which, module, ticks = 600) {
+    const r = spawnSync(process.execPath,
+        [join(__dir, '..', 'scripts', 'grid-tick-cpu.mjs'), which, module],
+        { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024,
+          env: { ...process.env, CPU_TICKS: String(ticks) } });
+    const line = parseTickCpu(r.stdout);
+    if (!line) {
+        console.log(r.stdout || '');
+        console.log(r.stderr || '');
+        throw new Error(`the ${which}/${module} arm printed no grid-tick-cpu line`);
+    }
+    return line;
 }
 
 function arm(which) {
@@ -316,6 +349,49 @@ async function main() {
                  + ` (${(page.idleTrips / page.span).toFixed(3)} a tick) is over the ceiling of`
                  + ` ${IDLE_TRIPS_CEILING} — the page's reads are not being batched, which is the`
                  + ` 9.1 ms tick SP-13 measured on device`);
+        }
+    }
+
+    /* SP-27 — A STEADY PAGE RE-DERIVES THE MODULE'S CONTRACT ZERO TIMES.
+     *
+     * An INVARIANT, not a threshold, which is why it is a count and not the
+     * milliseconds that found it. `load` runs on a divider so a module swap is
+     * noticed while the grid stands on a page; it used to answer "did anything
+     * change?" by parsing both contract strings and planning every page, then
+     * discarding all of it at the fingerprint compare. Nothing is moving in
+     * this window, so the correct number of re-derivations is none, and any
+     * number above zero is that work coming back.
+     *
+     * ON MINIJV ON PURPOSE. The count is the same for every module — it is a
+     * cadence — but the COST is not: minijv is 433 params and 57 levels against
+     * plaits' 14 and 1, and the discarded work measured 2.8 ms per reload
+     * against plaits' ~0.05. Asserting on the module the complaint came from is
+     * what keeps the gate pointed at the case that hurts, and the shape is
+     * asserted alongside the count so a fixture that silently shrank to a
+     * two-param mock cannot pass this quietly.
+     *
+     * `off` is measured beside it as the control: movy's own pages never re-read
+     * a contract they already hold, which is the standard being met here. */
+    {
+        const cpuPage = cpuArm('page', 'minijv');
+        const cpuOff  = cpuArm('off',  'minijv');
+
+        if (cpuPage.mode !== 'page') {
+            fail('the delegated page\'s contract re-derivations',
+                 `the page arm resolved to mode=${cpuPage.mode}, so both arms measured the same program`);
+        } else if (cpuPage.params < 400 || cpuPage.levels < 50) {
+            fail('the minijv fixture',
+                 `${cpuPage.params} params / ${cpuPage.levels} levels is not minijv — the gate would`
+                 + ` still pass, against a module too small for the cost it exists to catch`);
+        } else if (cpuPage.parses === 0) {
+            ok(`a steady delegated page re-derives minijv's contract ${cpuPage.parses} times`
+               + ` per ${cpuPage.ticks} ticks (${cpuPage.params} params, ${cpuPage.levels} levels;`
+               + ` off measured ${cpuOff.parses}; mean tick ${cpuPage.meanUs}us vs off's ${cpuOff.meanUs}us)`);
+        } else {
+            fail('the delegated page\'s contract re-derivations',
+                 `${cpuPage.parses} over ${cpuPage.ticks} ticks, want 0 — the reload is parsing and`
+                 + ` re-planning minijv's ${cpuPage.params} params on its divider and throwing the`
+                 + ` result away, which is ~2.8 ms of CPU per reload (SP-27)`);
         }
     }
 

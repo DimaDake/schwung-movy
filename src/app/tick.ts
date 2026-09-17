@@ -683,8 +683,16 @@ function tickBody(): void {
      *
      * What `refreshOneParam` used to do by accident, this does on purpose: the
      * drawn cells moving is what asks for the frame back. */
+    /* PHASED, because an unmeasured phase is where a cost hides. `perf_phase`
+     * reported minijv's delegated page as `rest=0.6 seqengine=0.5 ...` summing
+     * to ~1.3 ms against a `tick_ms` of 70 — so 69 ms sat outside every named
+     * phase and the probe could say only that the tick was slow. The delegated
+     * page's poll (which advances Schwung's controller tick) is one of the two
+     * places that time can be; the other is the render, phased below. */
+    perfPhase('pagepoll');
     if (gridOnScreen && !stepSelected && pollDrawnPage(pageOwner)) appState.dirty = true;
     const schwungBody = gridOnScreen ? schwungBodyFor(pageOwner, stepSelected) : undefined;
+    perfPhaseEnd();
 
     /* Whether this tick repainted the view. The song band sits on top of it,
      * so a repaint erases the band and it has to be drawn again. */
@@ -817,19 +825,30 @@ function tickBody(): void {
                  * opens on, Schwung was drawn with whatever a previous
                  * VIEW_KNOBS frame had left behind, or with nothing at all.
                  * Reported from the device as "i can't see p locks working". */
+                /* Phased to match the VIEW_KNOBS branch above. This is the view
+                 * movy OPENS on, so it is the one a user's first impression of
+                 * a slow page comes from, and it was the only module view whose
+                 * render was invisible to `perf_phase`. */
+                perfPhase('autoview');
                 const av = buildAutomationView(appState.activeTrack.index, activeModel!);
                 lastAutoView = av;
+                perfPhase('buildvm');
                 vm = activeModel!.getViewModel(av);
+                perfPhaseEnd();
                 if (stepAvail) { vm.stepPagePresent = true; vm.stepPageSelected = false; }
             }
             noteRendered(vm);
+            perfPhase('render');
             renderChainView(vm, chainIdx, jogHintVisible(), 'T' + (appState.activeTrack.index + 1),
                             undefined, undefined as any, schwungBody);
+            perfPhaseEnd();
             /* Must match what renderChainView actually drew: the Loop strip
              * clears rows 60-63 every tick and would erase a toast it was not
              * told about. */
             jogToastShown = !!vm.toast?.browseHint || jogHintVisible();
+            perfPhase('leds');
             lightKnobRow(vm, schwungBody);
+            perfPhaseEnd();
         }
         /* Track-volume slider sits above the view it was invoked from. Only
          * visible in the Shift variant — without Shift the shim has handed the

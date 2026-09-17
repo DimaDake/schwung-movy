@@ -14,8 +14,13 @@
 # how Move's encoders actually arrive. A flick is not sixty small turns.
 #
 # Run it once per arm and diff:
-#   ./scripts/measure-grid-cost.sh off
-#   ./scripts/measure-grid-cost.sh page
+#   MODULE=minijv ./scripts/measure-grid-cost.sh off
+#   MODULE=minijv ./scripts/measure-grid-cost.sh page
+#
+# MODULE is optional and names what must be loaded. Prefer minijv: it is the
+# largest module in the fleet (433 params, 57 levels, 72 pages), it is where the
+# lag was reported, and it is the only fixture with enough pages for the jog
+# sections to stay on the component — see the preflight.
 #
 # The arm is the `schwunggrid` FLAG now, and this script writes it into the
 # device's prefs and reopens movy to read it back. MOVY_SCHWUNG_GRID used to
@@ -201,8 +206,55 @@ case "$WHERE" in
         exit 2 ;;
 esac
 
+# WHICH MODULE, SAID OUT LOUD — and refused if it is not the one asked for.
+#
+# This script measures whatever happens to be loaded, and for a long while that
+# was plaits: 14 params, one level, the SMALLEST shape in the fleet. Every
+# number in docs/schwung-page-migration.md up to SP-26 was taken there, which is
+# why SP-27's per-tick CPU could sit open with no attribution — the cost scales
+# with the module, and the fixture was the best case. minijv is the other end
+# (433 params, 57 levels) and is the module the complaint came from, so a run
+# that means to measure it must not quietly measure something else.
+#
+# `MODULE=` is a substring of the module NAME as movy logs it; unset keeps the
+# old behaviour of measuring whatever is there.
+MODULE="${MODULE:-}"
+LOADED=$(sshd "grep -oE 'schwung-body ok track=[0-9]+ ck=[a-z_0-9:]+ pages=[0-9]+' $LOG | tail -n 1")
+echo "== module: ${LOADED:-(unknown — off arm draws no body line)}" | tee -a "$OUT"
+if [ -n "$MODULE" ] && [ -n "$LOADED" ]; then
+    NAME=$(sshd "grep -oiE '\"?$MODULE\"?' $LOG | head -n 1")
+    if [ -z "$NAME" ]; then
+        echo "ABORT: asked for MODULE=$MODULE and the log never names it." >&2
+        echo "       Load $MODULE on the movy track and re-run, or unset MODULE." >&2
+        exit 2
+    fi
+fi
+
+# THE GESTURE SECTIONS NEED A MODULE THE JOG CANNOT WALK OFF, and until now
+# nothing checked. Ten detents on a 2-page module walk off the end of `synth`
+# onto `midi_fx1`, whose contract is not ready — so the component stops being
+# delegated, nothing polls, and the sections come back CHEAPER than idle,
+# reading as "the gesture is free". That invalidated four of the five sections
+# of the 2026-09-16 and 2026-09-17 device runs, and it was found by reading the
+# body reason afterwards rather than by being refused up front. minijv plans 72
+# pages, so it clears this by a wide margin; the check is on the NUMBER, not on
+# the module, because any big module will do.
+PAGES=$(printf '%s' "$WHERE" | sed -nE 's/.*pages=([0-9]+).*/\1/p')
+if [ -n "$PAGES" ] && [ "$PAGES" -lt 12 ]; then
+    echo "  WARNING: only $PAGES pages — the 10-detent jog sections below will walk off the" | tee -a "$OUT"
+    echo "           end of this component and measure an undelegated page, not a gesture." | tee -a "$OUT"
+    echo "           Load a module with more pages (minijv plans 72) for a valid gesture number." | tee -a "$OUT"
+fi
+
 # 1. IDLE — the floor. Anything the grid costs per frame with no input shows here.
-sample idle sleep 12
+#
+# 8, not 12. `perf_ipc` reports every 120 ticks and the device ticks at 63-205 Hz,
+# so this spans 4-13 reports — several, which is what the cadence note above asks
+# for, with the shortest plausible tick rate still clearing it. The old 12 bought
+# more of the same reading: the within-arm spread across a window was <=0.4 ms
+# where the gap between arms was 4.3, so the extra seconds were not resolving
+# anything. Four sections x two arms makes the difference worth having.
+sample idle sleep 8
 
 # 2. JOG PAGING — ten single-detent moves, alternating so the page returns.
 sample jog inject b0:0e:01 b0:0e:01 b0:0e:01 b0:0e:01 b0:0e:01 \

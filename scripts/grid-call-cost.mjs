@@ -34,6 +34,7 @@
 import { installEnv } from '../browser-test/env.mjs';
 import { installMockEngine } from '../browser-test/mock-engine.mjs';
 import { MOCK_SYNTHS } from '../browser-test/mock-synth.mjs';
+import { dumpFixture } from '../browser-test/dump-fixture.mjs';
 
 const env = installEnv();
 const engine = installMockEngine();
@@ -93,7 +94,17 @@ engine.reset();
 /* A module with a REAL hierarchy and more parameters than one page holds: the
  * whole question is what a page CHANGE costs, and a single-page module never
  * changes page. */
-env.setParams(MOCK_SYNTHS.hier_params_overflow_two_levels);
+/* A REAL MODULE CAN BE SUBSTITUTED, AND THE DEFAULT DELIBERATELY IS NOT ONE.
+ *
+ * `grid-call-cost.mjs page minijv` replays minijv's own metadata from
+ * docs/module-dump/device-dump.json (browser-test/dump-fixture.mjs) — useful
+ * for asking whether the READ cost, like the CPU cost SP-27 found, scales with
+ * the module. The default stays the small mock because every ceiling in
+ * browser-test/grid-cost.mjs was derived against it, and a gate whose fixture
+ * moved under it is measuring a different program at the same number. */
+const MODULE = process.argv[3];
+env.setParams(MODULE ? dumpFixture(MODULE)
+                     : MOCK_SYNTHS.hier_params_overflow_two_levels);
 resetSeqState();
 resetSeqEngine();
 setFlag('chtracks', 0);

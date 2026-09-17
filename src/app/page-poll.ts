@@ -36,6 +36,7 @@ import { seqState } from '../seq/state.js';
 import { sessionReady } from '../seq/set-session.js';
 import { schwungEditorActive } from '../renderer/schwung-editor.js';
 import type { PageOwner } from './page-owner.js';
+import { perfPhase, perfPhaseEnd } from './perf-probe.js';
 
 /**
  * Is the module grid what the eight knobs are addressing?
@@ -74,7 +75,14 @@ export function pollDrawnPage(owner: PageOwner): boolean {
     /* BEFORE the ready check, so an unready page keeps asking: the page is
      * built while the module is still loading, and without this its first
      * empty answer stood for the whole session. */
+    /* SPLIT INTO TWO PHASES because they are two different programs: `poll` is
+     * Schwung's controller tick (its read cursor, its replan, its settle) and
+     * `knoblevels` is movy reading the eight drawn cells back out. On minijv
+     * the pair measured 67 ms of a 70 ms tick on device and the probe could not
+     * say which half. */
+    perfPhase('ctlpoll');
     owner.poll();
+    perfPhaseEnd();
 
     const page = owner.page;
     if (!page) {
@@ -89,7 +97,9 @@ export function pollDrawnPage(owner: PageOwner): boolean {
     let moved = key !== lastKey;
     lastKey = key;
 
+    perfPhase('knoblevels');
     const next = page.knobLevels();
+    perfPhaseEnd();
     for (let k = 0; k < 8; k++) {
         if (levels[k] !== next[k]) { levels[k] = next[k]; moved = true; }
     }

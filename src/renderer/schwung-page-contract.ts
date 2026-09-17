@@ -7,6 +7,7 @@
  */
 
 import type { TrackPort } from '../track/port.js';
+import { perfPhase, perfPhaseEnd } from '../app/perf-probe.js';
 import { moduleReadKey } from '../chain/config.js';
 import { registerModuleWidgets } from './schwung-widgets.js';
 import type { PageReadCache } from './schwung-page-cache.js';
@@ -130,12 +131,22 @@ export function createPageContract(ctl: any, port: TrackPort, componentKey: stri
             }
             if (!loaded) return;
         }
+        /* PHASED SEPARATELY because they answer different questions and only
+         * one of them is on the divider: `reloadIfChanged` asks "was the module
+         * swapped" every 8 ticks, `ctl.tick()` advances the page every tick.
+         * `perf_phase` attributed 68 ms of minijv's 70 ms tick to this function
+         * as a whole and could not say which half. */
         if (++sinceReload >= RELOAD_POLL_TICKS) {
             sinceReload = 0;
+            perfPhase('ctlreload');
             ctl.reloadIfChanged();
+            perfPhase('refreshloaded');
             refreshLoaded();        /* the module may have just left the slot */
+            perfPhaseEnd();
         }
+        perfPhase('ctltick');
         ctl.tick();                 /* exactly one get_param */
+        perfPhaseEnd();
     }
 
     return { reload, tick, isReady: () => loaded };

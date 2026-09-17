@@ -58,7 +58,7 @@ in `browser-test/page-mode-expected-fail.json`'s own note.
 | SP-12 | Polling + LED ownership | Opus | ✅ |
 | SP-13 | Per-tick cost: number, attribution, recommendation (**branch point**) | Opus | ✅ |
 | SP-26 | **Bulk read for a delegated page** — SP-13's branch. The page reads ONE key per tick where movy's refresh read eight in one round trip | Opus | ✅ |
-| SP-27 | **The per-tick CPU a delegated page costs** — what is left after SP-26 took the reads out: `tick_ms` 4.0–4.5 against `off`'s 1.7–2.0, with IPC accounting for 0.4 of it | Opus | ⬜ |
+| SP-27 | **The per-tick CPU a delegated page costs** — what is left after SP-26 took the reads out: `tick_ms` 4.0–4.5 against `off`'s 1.7–2.0, with IPC accounting for 0.4 of it | Opus | ✅ |
 | SP-14 | Cause E — drum/voice pages | Opus | ⬜ |
 | SP-15 | Cause D — contract lifecycle | Sonnet | ⬜ |
 | SP-16 | Cause G — graphics return | Sonnet | ⬜ |
@@ -1111,10 +1111,198 @@ reads: those are already ~0.1 a tick. Whether SP-30 can pass on 6.9 ms is this
 item's question, not SP-26's: 6.9 ms is a 40% longer MIDI sampling interval than
 `off`, against the 90% SP-13 measured.
 
+#### The answer, 2026-09-17 — the reload re-planned the whole module every 8 ticks
+
+**The cost is `load()`, and it was doing the entire job in order to discard it.**
+`reloadIfChanged` runs on a divider (~every 8 ticks) so a module swap or a preset
+that republishes its contract is noticed while the grid stands on a page. It
+answered that question by parsing both contract strings, walking the hierarchy,
+planning every page, resolving each page's viz and hashing the result — and then
+returning at `planned.fingerprint === s.fingerprint`, which in a steady state is
+EVERY time.
+
+**The fingerprint is taken over `[hierarchy, chainParams, mode]` and nothing
+else** (`page_plan.mjs:586`), so the raw bytes of those same three inputs answer
+the identical question before any of the work. That is what makes the fix an
+equivalence rather than an approximation, and it is why `visible_if` is
+untouched: a condition is driven by a VALUE, which moves without the declaration
+moving, and the fingerprint has never been able to see it — `conditionKeys` and
+`replanIfCondition`/`flushReplan` are that path, and they still run.
+
+A second cost rode on the first. `fingerprintOf` memoises on object IDENTITY,
+with a comment noting that the controller assigns `hierarchy`/`chainParams` from
+`parse()` and never mutates them — but `load()` re-`parse()`d on every reload, so
+the memo never hit and the full FNV hash over the stringified contract ran each
+time. Reusing the parsed objects restores it.
+
+**WHY NOBODY HAD SEEN IT: every instrument ran the best case.** The off-device
+suite used `hier_params_overflow_two_levels` (11 params, 2 levels) and the device
+A/B used plaits (14 params, 1 level). minijv is 433 params and 57 levels — the
+LARGEST in the fleet, a 31x/57x ratio — and the discarded work scales with the
+module while the CADENCE does not. Measured in node on the page arm:
+
+| arm | module | mean tick | p50 | p99 | contract re-derivations / 2000 ticks |
+| --- | --- | --- | --- | --- | --- |
+| `off` | plaits | 0.0116 ms | 0.0091 | 0.0288 | **0** |
+| `off` | minijv | 0.0117 ms | 0.0092 | 0.0277 | **0** |
+| `page` | plaits | 0.0270 ms | 0.0125 | 0.1365 | 500 |
+| `page` | minijv | **0.3660 ms** | 0.0137 | **3.0231** | 500 |
+
+The tell is the p50/p99 split: the median tick was always cheap and one tick in
+eight cost 2.8 ms, uniformly, gap of exactly 8. A mean smears that across every
+tick and a median hides it completely, which is why the new instrument keeps the
+whole distribution. And `off` is FLAT in module size — 0.0116 against 0.0117 for
+a 31x bigger module — which is the standard this item was measured against.
+
+After the fix, on the same runs:
+
+| arm | module | mean tick | p99 | re-derivations |
+| --- | --- | --- | --- | --- |
+| `page` | plaits | 0.0161 ms | 0.0366 | **0** |
+| `page` | minijv | **0.0158 ms** | **0.0359** | **0** |
+
+**A delegated page is now flat in module size too** — minijv costs what plaits
+costs — and the page arm's premium over `off` falls from 31x to ~1.4x. In node
+that is 23x on the mean and 84x on the tail.
+
+#### On device, 2026-09-17 — 67.5 ms a tick to 3.0, and `off` is 1.9
+
+The A/B that matters, both arms freshly loaded, minijv on track 0, `schwunggrid`
+at `page`, sampled after the arrival transient (`perf_ipc`, every reading in a
+20 s window):
+
+| controller | `tick_ms` | `period_ms` | `ctlreload` phase |
+| --- | --- | --- | --- |
+| before | 67.5–67.7 | 70.3–70.4 | **65.1** |
+| after | **3.0–3.1** | **5.8–5.9** | **0.8** |
+| (`off` arm, same module) | 1.9 | 4.9 | — |
+
+**22x on the tick, 81x on the phase itself, and the MIDI sampling interval goes
+70.4 ms to 5.9 ms against movy's own 4.9.** A delegated page was ticking at
+**13 Hz**; it ticks at ~170 Hz now. That is the complaint in its own units: at
+13 Hz the grid drops jog detents and knob CCs wholesale, which is what "very
+laggy" was.
+
+**The off-device instrument predicted the device ratio almost exactly** — 0.366
+→ 0.0158 ms is 23x in node, 67.5 → 3.0 is 22x on device — which is the argument
+for keeping a node instrument at all. The ABSOLUTE numbers do not transfer (the
+device is ~185x slower on this work: 0.366 x 185 = 67.7) but the ratio did, on
+both arms.
+
+**AND THE COST WAS NEVER WHERE `perf_phase` COULD SEE IT.** It reported
+`rest=0.6 seqengine=0.5 ...` summing to ~1.3 ms against a `tick_ms` of 70, so 69
+ms sat outside every named phase: `VIEW_CHAIN` — the view movy OPENS on — had no
+phases at all, and the delegated page's poll had none either. Four new phases
+(`pagepoll`, `ctlpoll`, `ctlreload`, `ctltick`, plus `render`/`buildvm`/`leds` on
+`VIEW_CHAIN`) are what turned "the tick is slow" into `ctlreload=65.1`. An
+unmeasured phase is where a cost hides, and this one hid in the open for the
+whole migration.
+
+#### The measurement trap that cost four readings, written down so it is not paid twice
+
+**A swapped `.mjs` under `shared/` is NOT loaded until the stack restarts, and
+every reading before that is the OLD file reporting as the new one.** movy's own
+CLAUDE.md says it — `shadow_load_ui_module` re-evaluates `ui.js` on every tool
+open, but the ES modules it IMPORTS are cached for the whole `shadow_ui` process
+lifetime — and `param_pages` is external to movy's bundle (`external:
+['/data/UserData/schwung/*']` in `build/device.mjs`), so it is exactly such an
+import. Reopening movy, which is what every other device measurement in this file
+relies on, does not reload it.
+
+The failure is silent and it looks like a RESULT: patched and original measured
+67 ms and 70 ms, a plausible 4% with the spread of two arms that were the same
+program. The tell, in hindsight, was that a fix proven to remove the work
+off-device moved nothing at all. `ssh root@move.local python3 -` with
+`scripts/lib/restart-stack.py` is the fix — the same body the device tier uses,
+which fails loudly unless the process actually went away and a new one came back.
+Restart between arms, or do not compare them.
+
+**THE FIX IS UPSTREAM, in `page_controller.mjs`.** movy owns the `io` it hands
+the controller (SP-26) but not the reload cadence, so there is no movy-side
+version of this — and there should not be: every other embedder of
+`page_controller` pays the same cost, and `load()` is byte-identical between the
+schwung the device runs and upstream `origin/main`. Branch
+`perf/page-reload-skip-unchanged-contract`, with
+`tests/host/test_page_reload_skips_unchanged_contract.sh` asserting BOTH
+directions — a steady reload re-derives nothing, and a republished hierarchy, a
+changed `chain_params` and a different component each still re-plan.
+
+**NEW INSTRUMENTS, because the old ones structurally could not see this.**
+`scripts/grid-call-cost.mjs` counts host CALLS, and its header explains at length
+why calls and not milliseconds — sound reasoning that has an end, and SP-26 is
+where it was reached. `scripts/grid-tick-cpu.mjs` measures the other half: per-tick
+CPU as a distribution, a V8 self-time profile behind `--prof`, and a count of
+contract re-derivations. `browser-test/dump-fixture.mjs` builds its fixtures from
+`docs/module-dump/device-dump.json`, so `minijv` is minijv's own metadata replayed
+rather than a mock shaped like it.
+
+**THE GATE IS A COUNT, NOT A DURATION.** `grid-cost.mjs` asserts that a steady
+delegated page re-derives minijv's contract ZERO times — an invariant, where
+milliseconds would be flaky, and with the fixture's shape asserted beside it so a
+mock that silently shrank cannot pass quietly. Teeth: without the fix it measures
+150 over 600 ticks and reddens.
+
 
 ## Log
 
 Newest first. One line per closed item: id, date, commit, the evidence.
+
+- 2026-09-17 — **SP-27 ✅ — the delegated page re-planned the whole module every
+  8 ticks and threw the result away; minijv's tick is 23x cheaper.** Reported as
+  "schwung pages are very laggy on minijv compared to movy pages", and that is
+  the shape of the answer: `off` is FLAT in module size (0.0116 ms on plaits,
+  0.0117 on minijv — 14 params against 433) where the delegated page was 13x
+  more expensive on the big module. Root cause in `load()`: `planPages` runs
+  unconditionally and is discarded at `planned.fingerprint === s.fingerprint`,
+  and the fingerprint is over `[hierarchy, chainParams, mode]` ONLY — so the raw
+  bytes answer the same question before the work. Comparing them first is an
+  equivalence, not a heuristic. `page`/minijv mean tick **0.3660 → 0.0158 ms**,
+  p99 **3.0231 → 0.0359**, contract re-derivations **500 → 0** per 2000 ticks; a
+  delegated page is now flat in module size, like movy's own. Full account under
+  **SP-27** in the item detail.
+
+  **ON DEVICE: `tick_ms` 67.5 → 3.0, `period_ms` 70.4 → 5.9 against `off`'s
+  4.9** — a delegated page on minijv was ticking at **13 Hz** and now ticks at
+  ~170 Hz. The node instrument predicted the ratio (23x there, 22x here) while
+  the absolute numbers are ~185x apart, which is the case for keeping it.
+
+  **THE COST WAS INVISIBLE TO `perf_phase`**, which named 1.3 ms of a 70 ms
+  tick: `VIEW_CHAIN` — the view movy opens on — carried no phases, and neither
+  did the delegated page's poll. Four new phases turned "the tick is slow" into
+  `ctlreload=65.1`, and they stay.
+
+  **AND A SWAPPED `param_pages` FILE IS NOT LOADED UNTIL THE STACK RESTARTS.**
+  QuickJS caches the modules `ui.js` imports for the whole `shadow_ui` process
+  life, and `param_pages` is external to the bundle — so reopening movy, which
+  every other device measurement here relies on, reloads nothing. Four readings
+  were taken before this was noticed and all four were the old file; they read
+  as a plausible 4% difference rather than as an error. Restart with
+  `scripts/lib/restart-stack.py` as root between arms, or do not compare them.
+
+  **THE FIX IS UPSTREAM AND THE MEASUREMENT WAS THE HARD PART.** schwung branch
+  `perf/page-reload-skip-unchanged-contract`; `load()` is byte-identical between
+  the schwung the device runs and `origin/main`, so one patch serves both, and
+  every other embedder of `page_controller` pays this today. movy owns the `io`
+  but not the reload cadence, so there is no movy-side version of it.
+
+  **EVERY EXISTING INSTRUMENT RAN THE BEST CASE**, which is why SP-27 could sit
+  open as "~1.9 ms of CPU" with no attribution: off-device used an 11-param
+  2-level mock, the device A/B used plaits (14 params, 1 level), and the cost
+  scales with the module while the CADENCE does not. `scripts/grid-tick-cpu.mjs`
+  and `browser-test/dump-fixture.mjs` are new — the fixture is built from
+  `docs/module-dump/device-dump.json`, so `minijv` is minijv's own 433 params and
+  57 levels replayed rather than a mock shaped like it. The p50/p99 split is what
+  found it: the median tick was always cheap and one tick in eight cost 2.8 ms,
+  at a uniform gap of exactly 8.
+
+  **Gates.** `SCHWUNG=../schwung npm test` exit 0 (167 screenshots, page-mode 6
+  of 6, grid-cost green at both existing ceilings plus the new one); schwung
+  `tests/host` 298 pass with the same 14 pre-existing failures as the unpatched
+  tree; new `test_page_reload_skips_unchanged_contract.sh` 6 of 6, with the two
+  steady-state checks proven to fail (40 and 10 parses) against the unfixed
+  controller and the four change-detection checks passing both ways by design.
+  `grid-cost.mjs`'s new check measures 150 re-derivations and reddens with the
+  fix removed. Device: the A/B above, taken with a stack restart between arms.
 
 - 2026-09-17 — **SP-26 ✅ — the delegated page reads a page at a time, and the
   tick came back 2.3 ms.** SP-13's branch, closed on the number it opened for:

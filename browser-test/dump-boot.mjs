@@ -86,6 +86,17 @@ export function loadDump() {
     return dump;
 }
 
+/* The host a boot takes away: `os` — which the file stubs and every overlay's
+ * readdir ride on — and `host_read_file`, which serves a module's shipped
+ * layouts. Captured ONCE per process, at the first boot, because that is the
+ * only moment the pair on the globals is the harness's own: a later boot would
+ * record whichever earlier boot's stubs were left behind and hand those back.
+ * (The catalogues those two answer from are the harness's, not the env's:
+ * `logic/harness.mjs` replaces `os` with its own readdir-backed one after
+ * installEnv(), so capturing at install time would restore a stub that cannot
+ * list a directory at all.) */
+let hostBeforeBoot = null;
+
 /* Install the env/os/host stubs and return a boot function bound to this dump.
  * movy_config.json overrides are looked up by module id under the
  * sound_generators root (src/modules/loader.ts); serve the captured ones. Each
@@ -93,6 +104,16 @@ export function loadDump() {
  * hermetic. env.setParams() below replaces the whole store per module. */
 export async function createDumpBoot(dump) {
     const env = installEnv();
+    hostBeforeBoot ??= { os: globalThis.os, readFile: globalThis.host_read_file };
+    /* A suite that boots a dump gives the pair back in cleanup — this is the
+     * restorer, beside `env.restoreParamGlobals`/`env.restoreUiSlot`, and the
+     * reason the suite order stopped mattering: without a call to it, every
+     * suite after the boot runs on the stubs installed below instead of the
+     * harness's. */
+    env.restoreHostGlobals = () => {
+        globalThis.os = hostBeforeBoot.os;
+        globalThis.host_read_file = hostBeforeBoot.readFile;
+    };
     globalThis.os = {
         readdir: () => [[], 0],
         stat:    () => [{ mode: 0x8000, size: 0 }, 0],
@@ -121,6 +142,28 @@ export async function createDumpBoot(dump) {
         movyConfigByPath[`/data/UserData/schwung/modules/${dir}/${m.id}/module.json`] =
             JSON.stringify(m.module_json);
     }
+    /* The modules in OVERRIDES_MODULE_FILE (src/modules/loader.ts) do NOT get
+     * their own movy_config.json on the device: movy reads the replacement
+     * shipped beside ui.js instead, and it reads it BEFORE the module's own —
+     * that list exists precisely because the shipped layouts are unusable (they
+     * pad-declare every bank, which movy reads as "every bank is a voice" and
+     * collapses the whole module to one page). Serve those files from the repo
+     * copy, the way browser-test/env.mjs already does; without them the replay
+     * boots those modules against the exact layout the override replaces. Note
+     * the served key must match `${MOVY_TOOL_ROOT}/configs/<id>.json`, not the
+     * module directory. */
+    const overrideDir = join(MOVY, 'src', 'module-configs');
+    if (existsSync(overrideDir)) {
+        for (const f of readdirSync(overrideDir)) {
+            if (!f.endsWith('.json')) continue;
+            try {
+                movyConfigByPath[`/data/UserData/schwung/modules/tools/movy/configs/${f}`] =
+                    readFileSync(join(overrideDir, f), 'utf8');
+            } catch { /* unreadable override: leave it unserved, the loader warns */ }
+        }
+    }
+    /* Replaces the env's reader for the life of the process: the pair this and
+     * the `os` above take is what `env.restoreHostGlobals` gives back. */
     globalThis.host_read_file = (path) => movyConfigByPath[path] ?? null;
 
     const { createModel } = await import(join(MOVY, 'dist', 'esm', 'model', 'index.js'));
@@ -170,6 +213,42 @@ export function serializePages(model) {
         model.changePage(1);
     }
     return pages;
+}
+
+/* Every page the model can put on screen, handed to `fn` as a bank index.
+ *
+ * A page is `knobParams.slice(knobPage * 8, +8)` — the VM slices by BANK INDEX,
+ * and `pageRotation` decides only which banks the JOG lands on. For most of the
+ * fleet those are the same list, which is why `serializePages` (a jog walk, and
+ * the right one for "what does the bank bar show") has served so far. They
+ * diverge for a config whose banks declare a `pad`: the leading voice run
+ * collapses into ONE seat, so the jog shows whichever voice the slot holds and
+ * none of its siblings — and a kit's sibling voices are pages like any other,
+ * opened by pressing their pad. A check that must see every rendered page (the
+ * wave/stage styling one) has to reach those too, or it reports a kit's voice
+ * cells as missing.
+ *
+ * Distinct banks only, so a caller counting per-page facts counts each once. */
+export function forEachRenderedPage(model, fn) {
+    const seen = new Set();
+    const visit = () => {
+        const bank = model.getKnobPage();
+        if (seen.has(bank)) return;
+        seen.add(bank);
+        fn(bank);
+    };
+    /* changePage CLAMPS at the last seat rather than wrapping, so a full rewind
+     * always lands on seat 0. */
+    model.changePage(-model.getBankCount());
+    for (let i = 0; i < model.getBankCount(); i++) { visit(); model.changePage(1); }
+    /* The collapsed voice run, reached the way a player reaches it — by pad. A
+     * pad only moves the page while a voice bank is the one open, so rewind to
+     * the slot first; an unmapped pad leaves the page where it was, and `seen`
+     * discounts the repeat. 16 is the whole pad grid, so no declared pad is
+     * missed even where padCount understates the pads in use. */
+    model.changePage(-model.getBankCount());
+    const padMax = Math.max(16, model.getDrumPadCount?.() ?? 0);
+    for (let pad = 1; pad <= padMax; pad++) { model.selectBankForPad(pad); visit(); }
 }
 
 /* Expand a drum pad-alias key ("pad_vol") into the concrete per-pad keys it

@@ -9,7 +9,7 @@ import {
     undoDepth, peekUndo, resetUndoState, beginEdit, endEdit, groupOpen,
     CLOSE, resetUndoGroups, installEditGuard, recordParamOp, takeUndoViolation, isUndoableVerb,
     isControlVerb, undoOnce, redoOnce, resetUndoApply, valueChange, seqEngineTick,
-    resetSeqEngine, appState, eq, _log,
+    resetSeqEngine, appState, env, eq, _log,
 } from './harness.mjs';
 
 export async function run() {
@@ -146,9 +146,8 @@ export async function run() {
     eq('and the knob on screen followed it now, not seconds later',
         presetVm()?.displayValue !== shown, true);
 
-    delete globalThis.shadow_get_param;
-    delete globalThis.shadow_set_param;
-    delete globalThis.shadow_get_ui_slot;
+    env.restoreParamGlobals();
+    env.restoreUiSlot();
     appState.trackModels[0] = [];
     resetUndoState(); resetUndoGroups(); resetUndoApply();
 }
@@ -305,8 +304,7 @@ export async function run() {
         vd.params.map(([k]) => k).join(','), 'rom_index,bank_index,preset,gain');
     eq('with all three leading', vd.leadCount, 3);
 
-    delete globalThis.shadow_get_param;
-    delete globalThis.shadow_set_param;
+    env.restoreParamGlobals();
     resetModuleRestore();
 }
 
@@ -381,8 +379,7 @@ export async function run() {
     eq('redo restores the incoming module\'s values, not the outgoing one\'s',
         writes.join(','), 'synth:cutoff=0.91');
 
-    delete globalThis.shadow_get_param;
-    delete globalThis.shadow_set_param;
+    env.restoreParamGlobals();
     resetModuleRestore();
 }
 
@@ -501,8 +498,7 @@ export async function run() {
     eq('a module without state still replays its params',
         writes.join(','), 'synth:cutoff=0.42');
 
-    delete globalThis.shadow_get_param;
-    delete globalThis.shadow_set_param;
+    env.restoreParamGlobals();
     resetModuleRestore();
 }
 
@@ -583,8 +579,7 @@ export async function run() {
     eq('then the tweak it would have discarded',
         writes.some((w) => w === 'synth:cutoff=0.90'), true);
 
-    delete globalThis.shadow_get_param;
-    delete globalThis.shadow_set_param;
+    env.restoreParamGlobals();
     appState.trackModels[0] = [];
     resetUndoState(); resetUndoGroups(); resetUndoApply();
 }

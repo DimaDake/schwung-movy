@@ -5,7 +5,7 @@
  "author": null,
  "category": "midi_fx",
  "status": "ok",
- "load_ms": 52,
+ "load_ms": 40,
  "dsp_size": 184224,
  "capabilities": {
   "chainable": true,
@@ -661,9 +661,9 @@
       {
        "shortName": "LATCH",
        "fullName": "Latch",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
-       "displayValue": "off"
+       "displayValue": "..."
       },
       {
        "shortName": "GATE",
@@ -673,7 +673,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "VELOC",
+       "shortName": "VELOCI",
        "fullName": "Velocity",
        "renderStyle": "arc",
        "type": "int",
@@ -731,14 +731,14 @@
       {
        "shortName": "LATCH",
        "fullName": "Latch",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
       {
        "shortName": "MAX",
        "fullName": "Max Voices",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
       },
@@ -750,9 +750,9 @@
        "displayValue": "..."
       },
       {
-       "shortName": "TRIPL",
+       "shortName": "TRIPLE",
        "fullName": "Triplet",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       }
@@ -773,14 +773,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "VELOC",
+       "shortName": "VELOCI",
        "fullName": "Velocity",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "OCTAV",
+       "shortName": "OCTAVE",
        "fullName": "Octave",
        "renderStyle": "arc",
        "type": "enum",
@@ -840,14 +840,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "PATTE",
+       "shortName": "PATTER",
        "fullName": "Pattern",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "TRIGG",
+       "shortName": "TRIGGE",
        "fullName": "Trigger",
        "renderStyle": "arc",
        "type": "enum",
@@ -870,7 +870,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "LENGT",
+       "shortName": "LENGTH",
        "fullName": "Rand Length",
        "renderStyle": "arc",
        "type": "int",
@@ -903,14 +903,14 @@
     "rows": [
      [
       {
-       "shortName": "PATTE",
+       "shortName": "PATTER",
        "fullName": "Pattern",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "TRIGG",
+       "shortName": "TRIGGE",
        "fullName": "Trigger",
        "renderStyle": "arc",
        "type": "enum",
@@ -1007,7 +1007,7 @@
     "rows": [
      [
       {
-       "shortName": "TRIGG",
+       "shortName": "TRIGGE",
        "fullName": "Trigger",
        "renderStyle": "arc",
        "type": "enum",
@@ -1063,7 +1063,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -1202,7 +1202,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -1219,12 +1219,12 @@
     "min": 1,
     "max": 64,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 126
+     "perDetent": 1,
+     "detentsFullSweep": 63
     }
    },
    {
@@ -1261,7 +1261,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",

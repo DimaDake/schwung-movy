@@ -5,7 +5,7 @@
  "author": "fillioning",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 50,
+ "load_ms": 45,
  "dsp_size": 73568,
  "capabilities": {
   "audio_out": true,
@@ -152,7 +152,7 @@
      "A#",
      "B"
     ],
-    "default": "B"
+    "default": "G#"
    },
    {
     "key": "scale",
@@ -169,7 +169,7 @@
      "Whole Tone",
      "Harm Minor"
     ],
-    "default": "Chromatic"
+    "default": "Major"
    },
    {
     "key": "rnd_patch",
@@ -189,7 +189,7 @@
     "max": 1,
     "step": 0.01,
     "options": null,
-    "default": "0.9338"
+    "default": "0.8228"
    },
    {
     "key": "init_freq",
@@ -209,7 +209,7 @@
     "max": 100,
     "step": 0.05,
     "options": null,
-    "default": "11.4130"
+    "default": "12.2186"
    },
    {
     "key": "rnd_mod",
@@ -341,7 +341,7 @@
     "max": 1,
     "step": 0.01,
     "options": null,
-    "default": "0.0536"
+    "default": "0.1164"
    },
    {
     "key": "filter",
@@ -351,7 +351,7 @@
     "max": 1,
     "step": 0.01,
     "options": null,
-    "default": "0.4105"
+    "default": "0.3063"
    },
    {
     "key": "dly_mix",
@@ -361,7 +361,7 @@
     "max": 1,
     "step": 0.01,
     "options": null,
-    "default": "0.2337"
+    "default": "0.3223"
    },
    {
     "key": "dly_rate",
@@ -371,7 +371,7 @@
     "max": 4,
     "step": 0.001,
     "options": null,
-    "default": "0.3687"
+    "default": "3.4241"
    },
    {
     "key": "dly_feedback",
@@ -381,7 +381,7 @@
     "max": 0.95,
     "step": 0.01,
     "options": null,
-    "default": "0.4786"
+    "default": "0.3084"
    },
    {
     "key": "dly_tone",
@@ -391,7 +391,7 @@
     "max": 1,
     "step": 0.01,
     "options": null,
-    "default": "0.2384"
+    "default": "0.0145"
    },
    {
     "key": "dly_mode",
@@ -405,7 +405,7 @@
      "Stereo",
      "Ping-Pong"
     ],
-    "default": "Ping-Pong"
+    "default": "Stereo"
    },
    {
     "key": "speed",
@@ -415,7 +415,7 @@
     "max": 40,
     "step": 0.1,
     "options": null,
-    "default": "11.4130"
+    "default": "12.2186"
    },
    {
     "key": "mod",
@@ -425,7 +425,7 @@
     "max": 1,
     "step": 0.01,
     "options": null,
-    "default": "0.3095"
+    "default": "0.7457"
    },
    {
     "key": "decay",
@@ -435,7 +435,7 @@
     "max": 2,
     "step": 0.005,
     "options": null,
-    "default": "0.6201"
+    "default": "0.0800"
    },
    {
     "key": "timbre",
@@ -445,7 +445,7 @@
     "max": 1,
     "step": 0.01,
     "options": null,
-    "default": "0.0406"
+    "default": "0.7227"
    },
    {
     "key": "frequency",
@@ -455,7 +455,7 @@
     "max": 1,
     "step": 0.01,
     "options": null,
-    "default": "0.9338"
+    "default": "0.8228"
    },
    {
     "key": "noisiness",
@@ -465,7 +465,7 @@
     "max": 1,
     "step": 0.01,
     "options": null,
-    "default": "0.2789"
+    "default": "0.1062"
    },
    {
     "key": "cutoff",
@@ -475,7 +475,7 @@
     "max": 1,
     "step": 0.01,
     "options": null,
-    "default": "0.6137"
+    "default": "0.7796"
    },
    {
     "key": "volume",
@@ -485,7 +485,7 @@
     "max": 1,
     "step": 0.01,
     "options": null,
-    "default": "0.4236"
+    "default": "0.3426"
    },
    {
     "key": "v_attack",
@@ -495,7 +495,7 @@
     "max": 1,
     "step": 0.001,
     "options": null,
-    "default": "0.0069"
+    "default": "0.0183"
    },
    {
     "key": "v_pan",
@@ -505,7 +505,7 @@
     "max": 1,
     "step": 0.01,
     "options": null,
-    "default": "0.2918"
+    "default": "0.0672"
    },
    {
     "key": "v_octave",
@@ -539,7 +539,7 @@
      "Skewed Sine",
      "Warm Pulse"
     ],
-    "default": "Sine"
+    "default": "Triangle"
    },
    {
     "key": "v_mod_dest",
@@ -553,7 +553,7 @@
      "Vol+Filt",
      "Filter"
     ],
-    "default": "Filter"
+    "default": "Volume"
    }
   ]
  },
@@ -749,7 +749,7 @@
       {
        "shortName": "DECAY",
        "fullName": "Decay",
-       "renderStyle": "arc",
+       "renderStyle": "envstage",
        "type": "float",
        "displayValue": "..."
       },
@@ -786,7 +786,7 @@
       {
        "shortName": "VOL",
        "fullName": "Volume",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       }
@@ -819,6 +819,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "int",
      "perDetent": 0.5,
@@ -843,6 +844,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "int",
      "perDetent": 0.5,
@@ -860,6 +862,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.5,
@@ -877,6 +880,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -894,6 +898,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.5,
@@ -911,6 +916,7 @@
     "step": 0.05,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.025,
@@ -928,6 +934,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.5,
@@ -945,6 +952,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.5,
@@ -972,6 +980,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "int",
      "perDetent": 0.5,
@@ -989,6 +998,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -1006,6 +1016,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -1023,6 +1034,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -1040,6 +1052,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -1057,6 +1070,7 @@
     "step": 0.001,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.0005,
@@ -1074,6 +1088,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -1091,6 +1106,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -1108,6 +1124,7 @@
     "step": 0.1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.05,
@@ -1125,6 +1142,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -1142,6 +1160,7 @@
     "step": 0.005,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.0025,
@@ -1159,6 +1178,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -1176,6 +1196,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -1193,6 +1214,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -1210,6 +1232,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -1225,12 +1248,13 @@
     "min": 0,
     "max": 1,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
     }
    }
   ]

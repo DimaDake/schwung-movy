@@ -40,7 +40,26 @@ console.log = (...a) => { if (typeof a[0] === 'string' && a[0].startsWith('[movy
 
 /* Bundled app entry points assign init/tick/onMidiMessageInternal to globalThis. */
 await import('../dist/esm/app/globals.js');
-const { appState, VIEW_KNOBS, VIEW_CHAIN, VIEW_BROWSE, VIEW_FILE_BROWSE } = await import('../dist/esm/app/state.js');
+const { appState, VIEW_KNOBS, VIEW_CHAIN, VIEW_BROWSE, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS } = await import('../dist/esm/app/state.js');
+
+/* THE ARM IS SELECTED HERE, NOT BY A BUILD DEFINE. The grid is a setting now
+ * (src/renderer/schwung-grid.ts), and MOVY_SCHWUNG_GRID — still in two scripts'
+ * usage lines — reaches no build at all, so selecting a mode that way ran `off`
+ * twice and called it an A/B. Unset means the default, which is what every
+ * existing `npm test` run wants. */
+const { setSchwungGridMode, schwungGridMode, schwungGridReload } =
+    await import('../dist/esm/renderer/schwung-grid.js');
+const GRID_ARM = process.env.MOVY_APP_LOOP_GRID || null;
+if (GRID_ARM) setSchwungGridMode(GRID_ARM);
+
+/* WHICH PAGE IS UNDER THE KNOBS, asked the way the app asks it. A gesture whose
+ * visible effect is "the param page moved" is asserted through the ownership
+ * accessor, not through movy's own bank index: under `page` the bank index is
+ * not what is on screen, so asserting it would be asserting an implementation
+ * detail this migration deletes. In the `off` arm the accessor IS movy's bank,
+ * so the check is the same check it always was. */
+const { pageOwnerOf } = await import('../dist/esm/app/page-owner.js');
+const shownPage = (model) => pageOwnerOf(model).pageIndex;
 
 /* The first master FX slot, by COMPONENT rather than by position: movy's own
  * send buses sit in front of them on the master page, and these blocks are
@@ -62,7 +81,11 @@ const { closeParamPage } = await import('../dist/esm/seq/param-page.js');
 let failures = 0;
 const _log = _origLog.bind(console);
 function ok(label)        { _log(`  \x1b[32m✓\x1b[0m ${label}`); }
-function fail(label, why) { _log(`  \x1b[31m✗\x1b[0m ${label}: ${why}`); failures++; }
+/* The LABELS, not the count. page-mode.mjs ratchets on which checks fail, so a
+ * count would let one check start failing while another stopped and call it
+ * unchanged. */
+const failedLabels = [];
+function fail(label, why) { _log(`  \x1b[31m✗\x1b[0m ${label}: ${why}`); failures++; failedLabels.push(label); }
 function eq(label, actual, expected) {
     if (actual === expected) ok(label);
     else fail(label, `expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
@@ -341,6 +364,16 @@ _log('\napp-loop: file-param jog-click opens the browser on the chain page');
         appState.trackModels[0][1].reload();
         advance(12);                                // load hierarchy
         appState.currentView = VIEW_CHAIN;          // user is on the chain page
+        /* The Schwung page cache is keyed by (track, component) and outlives
+         * init(), so this swap hands a cached controller a different module and
+         * it re-plans. Gesturing into that window measures the RE-PLAN, not who
+         * takes the click — which is what this block is about. Wait it out,
+         * bounded; in the `off` arm nothing is claimed and this returns at once.
+         * (SP-12 made the re-plan visible by polling the page once per tick
+         * instead of once per rendered frame; before that the stale plan simply
+         * kept answering.) */
+        const owner = () => pageOwnerOf(appState.trackModels[0][1]);
+        for (let i = 0; i < 12 * 60 && owner().claimed && !owner().delegated; i++) advance(1);
     };
 
     // Holding the file-param knob (slot 0) + jog click → file browser.
@@ -549,12 +582,19 @@ _log('\napp-loop: jog wheel while holding a step switches page (not length)');
 {
     resetApp();
     appState.currentView = VIEW_KNOBS;
-    const vm = () => appState.trackModels[0][appState.trackChainIndex[0]].getViewModel();
-    const page0 = vm().bankIndex;
+    const held = () => appState.trackModels[0][appState.trackChainIndex[0]];
+    const page0 = shownPage(held());
     sendMidi([0x90, 16, 127]);            // hold step 1
     engine.ops.length = 0;                // watch for any 'elen' length edit
     sendMidi([0xB0, 14, 1]);              // jog wheel +1
-    eq('held-step jog switches page', vm().bankIndex, page0 + 1);
+    /* Asked through the accessor, not through movy's bank: under `page` this
+     * fixture is a single Schwung page with nowhere to jog to, which is why the
+     * label is still on the burn-down — a fixture limit, not a movy defect, and
+     * the note in page-mode-expected-fail.json says so. Swapping the module for
+     * a multi-page one poisons every later block: the page cache is keyed by
+     * (track, component), outlives init(), and its contract does not re-resolve
+     * after a swap even given 200 ticks and a cache drop (Cause D / SP-15). */
+    eq('held-step jog switches page', shownPage(held()), page0 + 1);
     eq('no note-length edit emitted', engine.ops.some(o => o.startsWith('elen')), false);
     sendMidi([0x80, 16, 0]);              // release step
 }
@@ -1692,7 +1732,7 @@ _log('\napp-loop: shift+jog skips a level\'s overflow pages');
 
     sendMidi([0xB0, globalThis.MoveMainKnob, 1]);        // plain jog CW
     advance(1);
-    eq('shift+jog: plain jog steps one page', m.getKnobPage(), 1);
+    eq('shift+jog: plain jog steps one page', shownPage(m), 1);
 
     sendMidi([0xB0, globalThis.MoveShift, 127]);         // Shift down
     sendMidi([0xB0, globalThis.MoveMainKnob, 127]);      // jog CCW (decodeDelta → -1)
@@ -2012,6 +2052,59 @@ _log('\napp-loop: Clear + drum pad wipes that pad from the clip');
     seqState.lenSteps = 0;
 }
 
+_log('\napp-loop: Clear + a knob never deletes the clip');
+{
+    /*
+     * THE HIGHEST-SEVERITY SYMPTOM IN THE MIGRATION (design §3): Clear + knob
+     * deleted the clip. Clear's RELEASE deletes the active clip unless the
+     * gesture marked itself as having acted, and the knob branch only marked it
+     * when the page owner named a parameter for that knob. An empty cell — a
+     * page with fewer than 8 knobs, a delegated page still loading — answered
+     * null, the branch fell through, and letting go of Clear wiped the clip.
+     *
+     * Runs in BOTH arms on purpose: this is not only a delegation bug. movy's
+     * own pages have empty cells too, so the guarantee is the same under `off`,
+     * and a two-parameter module is where both planners leave knob 7 blank.
+     */
+    const CC_CLEAR = 119;
+    const clipDeleted = () => engine.ops.some((o) => o.startsWith('clipdel'));
+
+    resetApp();
+    env.setParams(MOCK_SYNTHS.file_param);   // knob 0 = file, knob 1 = Volume, 2..7 blank
+    resetSeqState(); resetSeqEngine();
+    globalThis.init();
+    appState.trackModels[0][1].reload();
+    advance(12);
+    seqState.lenSteps = 16;
+
+    engine.ops.length = 0;
+    sendMidi([0xB0, CC_CLEAR, 127]);     // hold Clear
+    sendMidi([0x90, 7, 127]);            // + touch a knob with nothing under it
+    sendMidi([0x80, 7, 0]);
+    sendMidi([0xB0, CC_CLEAR, 0]);       // let Clear go
+    advance(3);
+    eq('Clear + an empty knob leaves the clip alone', clipDeleted(), false);
+
+    /* And the ordinary case still consumes the gesture: a knob that DOES carry
+     * a parameter clears that parameter's lane, not the clip. */
+    engine.ops.length = 0;
+    sendMidi([0xB0, CC_CLEAR, 127]);
+    sendMidi([0x90, 1, 127]);
+    sendMidi([0x80, 1, 0]);
+    sendMidi([0xB0, CC_CLEAR, 0]);
+    advance(3);
+    eq('Clear + a live knob leaves the clip alone too', clipDeleted(), false);
+
+    /* The tap itself must still work, or the guard above would be a mute button
+     * on the feature: Clear with nothing else touched deletes the clip. */
+    engine.ops.length = 0;
+    sendMidi([0xB0, CC_CLEAR, 127]);
+    sendMidi([0xB0, CC_CLEAR, 0]);
+    advance(3);
+    eq('a plain Clear tap still deletes the clip', clipDeleted(), true);
+
+    seqState.lenSteps = 0;
+}
 
 /* ── Undo: the guard, and the round trip ─────────────────────────────────── */
 
@@ -2710,5 +2803,126 @@ _log('\napp-loop: CPU page repaints only when a drawn pixel changes');
 }
 
 
+/* ── SP-12: who READS the page, and who LIGHTS the knobs ────────────────────
+ *
+ * LAST BLOCK ON PURPOSE. It swaps the module under track 0, and a swap poisons
+ * every later block: the Schwung page cache is keyed by (track, component),
+ * outlives init(), and its contract does not re-resolve after one (Cause D,
+ * SP-15). SP-11 measured that and the note in page-mode-expected-fail.json
+ * carries it.
+ *
+ * Both halves of SP-12 in one fixture, in BOTH arms:
+ *
+ *  - movy's own value refresh must stop for a component Schwung draws, and the
+ *    drawn page must go on reading — a page nobody reads is a frozen page, not
+ *    a cheap one.
+ *  - the eight knob LEDs must show the DRAWN cells. Under `page` the jog moves
+ *    Schwung's index and leaves movy's bank where it was (SP-10's divergence),
+ *    so a row still lit from movy's model would simply not move.
+ */
+_log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
+{
+    /* The ramps are written out rather than imported so the expectation is an
+     * independent one — if renderer/knob-leds.ts's ramp moves, this is one of
+     * the places that says so. */
+    const rampWhite = (v) => (v < 0.33 ? 124 : v < 0.67 ? 118 : 120);
+    const rampAmber = (v) => (v < 0.25 ? 75 : v < 0.5 ? 29 : v < 0.75 ? 6 : 3);
+
+    schwungGridReload();                     // the cache still holds mrdrums' page
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.test16);       // p1..p16 = i/15; two pages either way
+    resetSeqState(); resetSeqEngine();
+    setFlag('setcommit', 0);
+    globalThis.init();
+    const m = appState.trackModels[0][1];
+    m.reload();
+    appState.currentView = VIEW_KNOBS;
+    advance(12);
+
+    const owner = () => pageOwnerOf(appState.trackModels[0][1]);
+    /* The contract resolves on the POLL, and the poll is the thing this item
+     * moved — so this settle is also the first assertion that it still runs. */
+    for (let i = 0; i < 12 * 60 && !owner().delegated; i++) advance(1);
+
+    /* Asked of the mode that RESOLVED, never of the env var: without a schwung
+     * checkout `page` pins itself to `off` and both arms would measure one
+     * program and agree. */
+    const expectDelegated = schwungGridMode() === 'page';
+    eq('the arm delegates exactly when its mode says so',
+       owner().delegated, expectDelegated);
+
+    /* ── the reader ──────────────────────────────────────────────────────── */
+
+    /* Change p1 behind BOTH readers' backs. Whoever is polling picks it up. */
+    const movyP1 = () => m.getKnobParamInfo(0)?.value;
+    const drawnP1 = () => owner().knobParamInfo(0)?.value;
+    const before = movyP1();
+    globalThis.shadow_set_param(0, 'synth:p1', '0.90');
+    advance(6 * REFRESH_BULK_TICKS);         // several full refresh windows
+
+    /* ONE label, both arms, and it is the gate itself: movy re-reads the
+     * module's params only while movy owns the page. */
+    eq('movy re-reads the params only when movy owns the page',
+       movyP1() !== before, !expectDelegated);
+    /* ...and the page on screen is read by SOMEBODY in either arm. Without
+     * this the check above passes just as well with nothing reading at all. */
+    eq('the drawn page is read whoever owns it', drawnP1(), 0.9);
+
+    /* ── the LEDs ────────────────────────────────────────────────────────── */
+
+    const ledRow = () => Array.from({ length: 8 }, (_, k) => buttonLeds[71 + k] ?? -1);
+    /* Built from the LIVE store and the DRAWN keys, so it is neither reader's
+     * cache: what the eight cells on screen are worth right now. */
+    const drawnRow = () => {
+        const o = owner();
+        return Array.from({ length: 8 }, (_, k) => {
+            const info = o.knobParamInfo(k);
+            if (!info) return 0;
+            const raw = globalThis.shadow_get_param(0, 'synth:' + info.key);
+            if (raw === null) return 0;
+            const nv = (parseFloat(raw) - info.min) / (info.max - info.min);
+            return k < 4 ? rampWhite(nv) : rampAmber(nv);
+        });
+    };
+
+    appState.dirty = true; advance(3);
+    eq('the knob row shows the drawn page',
+       JSON.stringify(ledRow()), JSON.stringify(drawnRow()));
+
+    /* Jog one page. In the `page` arm this moves SCHWUNG's index and leaves
+     * movy's bank alone, so a row lit from movy's model would not move at all. */
+    const rowBefore = JSON.stringify(ledRow());
+    sendMidi([0xB0, globalThis.MoveMainKnob, 1]);
+    advance(20);                              // the incoming page fills a key/tick
+    eq('the jog moved the page the knobs address', owner().pageIndex, 1);
+    eq('and the knob row followed it', ledRow().join() === rowBefore, false);
+    eq('the knob row still shows the drawn page',
+       JSON.stringify(ledRow()), JSON.stringify(drawnRow()));
+    const modulePageRow = ledRow().join();
+
+    /* ── the other half: movy's OWN pages are untouched ──────────────────── */
+
+    /* Main Params is not a module's declared contract — nothing delegates it,
+     * in either arm — and it lights four knobs from its own view model. A gate
+     * that suppressed movy's LED work by view rather than by OWNER would take
+     * this row out with it. */
+    sendMidi([0xB0, globalThis.MoveMainKnob, 0]);   // no-op, keeps the jog quiet
+    handleStepButton(4, true, true);                // a MAIN_PAGE_STEPS step
+    advance(4);
+    eq('the main params page is up', appState.currentView, VIEW_MAIN_PARAMS);
+    const mainRow = ledRow();
+    eq('movy\'s own page still lights its knobs',
+       mainRow.every((c) => c > 0), true);
+    /* ...and it TOOK the row back from whoever had it: one writer, one diff
+     * cache, so leaving a delegated page can never strand a knob on its
+     * colour. */
+    eq('and the row left the module page behind',
+       mainRow.join() === modulePageRow, false);
+    appState.currentView = closeParamPage();
+    advance(2);
+}
+
+
+if (process.env.MOVY_APP_LOOP_LABELS) _log('APP-LOOP-FAILED-LABELS ' + JSON.stringify(failedLabels));
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');
 else { _log(`\n\x1b[31m\x1b[1m${failures} APP-LOOP CHECK(S) FAILED\x1b[0m`); process.exit(1); }

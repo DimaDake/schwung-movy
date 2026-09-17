@@ -103,6 +103,12 @@ export async function run() {
      * for what it costs and why it is opt-in. */
     eq('a plain knob does not capture state', byKey.cv_cutoff?.capturesModuleState, false);
     eq('nor does a plain FX knob', byKey.rev_mix?.capturesModuleState, false);
+
+    /* The boot above replaced `os` and `host_read_file` with the dump's own and
+     * nothing else puts the env's back, so a suite that boots a dump gives them
+     * back before it returns — this is the whole of what the old suite-order
+     * constraint in logic.mjs was working around. */
+    env.restoreHostGlobals();
 }
 
 {
@@ -167,6 +173,7 @@ export async function run() {
     eq('the randomiser is not in its own dump', keys.includes('rnd_kit'), false);
 
     resetUndoState(); resetUndoGroups();
+    env.restoreHostGlobals();   // as above — this block boots its own dump too
 }
 
 

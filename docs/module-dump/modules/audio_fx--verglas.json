@@ -5,7 +5,7 @@
  "author": "Emilie Gillet (DSP) / fillioning (port)",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 67,
+ "load_ms": 55,
  "dsp_size": 122904,
  "capabilities": {
   "chainable": true,
@@ -534,11 +534,11 @@
     "rows": [
      [
       {
-       "shortName": "POSIT",
+       "shortName": "POSITIO",
        "fullName": "Position",
        "renderStyle": "arc",
        "type": "float",
-       "displayValue": "50%"
+       "displayValue": "..."
       },
       {
        "shortName": "SIZE",
@@ -555,7 +555,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DENSI",
+       "shortName": "DENSIT",
        "fullName": "Density",
        "renderStyle": "arc",
        "type": "float",
@@ -564,7 +564,7 @@
      ],
      [
       {
-       "shortName": "TEXTU",
+       "shortName": "TEXTUR",
        "fullName": "Texture",
        "renderStyle": "arc",
        "type": "float",
@@ -613,12 +613,12 @@
       {
        "shortName": "FREEZ",
        "fullName": "Freeze",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "QUALI",
+       "shortName": "QUALIT",
        "fullName": "Quality",
        "renderStyle": "arc",
        "type": "enum",
@@ -664,16 +664,16 @@
        "displayValue": "..."
       },
       {
-       "shortName": "LIMIT",
+       "shortName": "LIMITER",
        "fullName": "Limiter",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
       {
        "shortName": "PRE",
        "fullName": "Pre Gain",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       }
@@ -682,7 +682,7 @@
       {
        "shortName": "POST",
        "fullName": "Post Gain",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
@@ -882,7 +882,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -977,7 +977,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -994,12 +994,12 @@
     "min": -6,
     "max": 6,
     "step": 0.5,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.25,
-     "detentsFullSweep": 48
+     "perDetent": 0.5,
+     "detentsFullSweep": 24
     }
    },
    {
@@ -1011,12 +1011,12 @@
     "min": -6,
     "max": 6,
     "step": 0.5,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.25,
-     "detentsFullSweep": 48
+     "perDetent": 0.5,
+     "detentsFullSweep": 24
     }
    },
    {

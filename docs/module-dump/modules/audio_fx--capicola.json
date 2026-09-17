@@ -1,0 +1,1292 @@
+{
+ "id": "capicola",
+ "name": "Capicola",
+ "version": "0.1.2",
+ "author": "Heavylight Industries (port: charlesvestal)",
+ "category": "audio_fx",
+ "status": "ok",
+ "load_ms": 55,
+ "dsp_size": 60584,
+ "capabilities": {
+  "audio_out": true,
+  "audio_in": false,
+  "midi_in": true,
+  "midi_out": false,
+  "chainable": true,
+  "component_type": "audio_fx",
+  "ui_hierarchy": {
+   "modes": null,
+   "levels": {
+    "root": {
+     "label": "Capicola",
+     "knobs": [
+      "pitch",
+      "stretch",
+      "threshold",
+      "grain",
+      "quality",
+      "feedback"
+     ],
+     "params": [
+      {
+       "key": "pitch",
+       "label": "Pitch",
+       "type": "int",
+       "min": -12,
+       "max": 12,
+       "default": 0,
+       "unit": "st",
+       "step": 1
+      },
+      {
+       "key": "stretch",
+       "short_name": "STRTCH",
+       "label": "Stretch",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "step": 0.01,
+       "default": 0
+      },
+      {
+       "key": "threshold",
+       "short_name": "THRSH",
+       "label": "Threshold",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "step": 0.01,
+       "default": 0.5
+      },
+      {
+       "key": "grain",
+       "label": "Grain",
+       "type": "int",
+       "min": 32,
+       "max": 4096,
+       "default": 128
+      },
+      {
+       "key": "quality",
+       "short_name": "QUAL",
+       "label": "Quality",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "step": 0.01,
+       "default": 1
+      },
+      {
+       "key": "feedback",
+       "label": "Feedback",
+       "type": "float",
+       "min": 0,
+       "max": 1.5,
+       "step": 0.01,
+       "default": 0
+      },
+      {
+       "level": "secondary",
+       "label": "Secondary"
+      },
+      {
+       "level": "modulation",
+       "label": "Mod Depth"
+      },
+      {
+       "level": "mod_source",
+       "label": "Mod Source"
+      }
+     ]
+    },
+    "secondary": {
+     "label": "Secondary",
+     "knobs": [
+      "smoothing",
+      "fade_ms",
+      "drive",
+      "character",
+      "mix",
+      "fb_tone"
+     ],
+     "params": [
+      {
+       "key": "smoothing",
+       "label": "Smoothing",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "step": 0.01,
+       "default": 0.4259
+      },
+      {
+       "key": "fade_ms",
+       "label": "Fade",
+       "type": "float",
+       "min": 10,
+       "max": 250,
+       "step": 1,
+       "default": 20,
+       "unit": "ms"
+      },
+      {
+       "key": "drive",
+       "label": "Drive",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "step": 0.01,
+       "default": 0.1429
+      },
+      {
+       "key": "character",
+       "label": "Character",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "step": 0.01,
+       "default": 1
+      },
+      {
+       "key": "mix",
+       "label": "Mix",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "step": 0.01,
+       "default": 1
+      },
+      {
+       "key": "fb_tone",
+       "short_name": "Tone",
+       "label": "Feedback Tone",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "step": 0.01,
+       "default": 0.3769
+      }
+     ]
+    },
+    "modulation": {
+     "label": "Mod Depth",
+     "knobs": [
+      "mod_depth_pitch",
+      "mod_depth_stretch",
+      "mod_depth_threshold",
+      "mod_depth_grain",
+      "mod_depth_quality",
+      "mod_depth_feedback"
+     ],
+     "params": [
+      {
+       "key": "mod_depth_pitch",
+       "short_name": "Pitch",
+       "label": "Pitch Depth",
+       "type": "float",
+       "min": -1,
+       "max": 1,
+       "step": 0.01,
+       "default": 0
+      },
+      {
+       "key": "mod_depth_stretch",
+       "short_name": "STRCH",
+       "label": "Stretch Depth",
+       "type": "float",
+       "min": -1,
+       "max": 1,
+       "step": 0.01,
+       "default": 0
+      },
+      {
+       "key": "mod_depth_threshold",
+       "short_name": "Threshold",
+       "label": "Threshold Depth",
+       "type": "float",
+       "min": -1,
+       "max": 1,
+       "step": 0.01,
+       "default": 0
+      },
+      {
+       "key": "mod_depth_grain",
+       "short_name": "Grain",
+       "label": "Grain Depth",
+       "type": "float",
+       "min": -1,
+       "max": 1,
+       "step": 0.01,
+       "default": 0
+      },
+      {
+       "key": "mod_depth_quality",
+       "short_name": "Quality",
+       "label": "Quality Depth",
+       "type": "float",
+       "min": -1,
+       "max": 1,
+       "step": 0.01,
+       "default": 0
+      },
+      {
+       "key": "mod_depth_feedback",
+       "short_name": "Feedback",
+       "label": "Feedback Depth",
+       "type": "float",
+       "min": -1,
+       "max": 1,
+       "step": 0.01,
+       "default": 0
+      }
+     ]
+    },
+    "mod_source": {
+     "label": "Mod Source",
+     "knobs": [
+      "mod_src_pitch",
+      "mod_src_stretch",
+      "mod_src_threshold",
+      "mod_src_grain",
+      "mod_src_quality",
+      "mod_src_feedback"
+     ],
+     "params": [
+      {
+       "key": "mod_src_pitch",
+       "label": "Pitch",
+       "type": "enum",
+       "options": [
+        "Input Env",
+        "Output Env"
+       ],
+       "default": 1
+      },
+      {
+       "key": "mod_src_stretch",
+       "short_name": "STRTCH",
+       "label": "Stretch",
+       "type": "enum",
+       "options": [
+        "Input Env",
+        "Output Env"
+       ],
+       "default": 1
+      },
+      {
+       "key": "mod_src_threshold",
+       "label": "Threshold",
+       "type": "enum",
+       "options": [
+        "Input Env",
+        "Output Env"
+       ],
+       "default": 1
+      },
+      {
+       "key": "mod_src_grain",
+       "label": "Grain",
+       "type": "enum",
+       "options": [
+        "Input Env",
+        "Output Env"
+       ],
+       "default": 1
+      },
+      {
+       "key": "mod_src_quality",
+       "label": "Quality",
+       "type": "enum",
+       "options": [
+        "Input Env",
+        "Output Env"
+       ],
+       "default": 1
+      },
+      {
+       "key": "mod_src_feedback",
+       "label": "Feedback",
+       "type": "enum",
+       "options": [
+        "Input Env",
+        "Output Env"
+       ],
+       "default": 1
+      }
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "secondary",
+   "modulation",
+   "mod_source"
+  ],
+  "params": [
+   {
+    "key": "pitch",
+    "name": "Pitch",
+    "type": "int",
+    "min": -12,
+    "max": 12,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "stretch",
+    "name": "Stretch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "threshold",
+    "name": "Threshold",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "grain",
+    "name": "Grain",
+    "type": "int",
+    "min": 32,
+    "max": 4096,
+    "step": null,
+    "options": null,
+    "default": "128.0000"
+   },
+   {
+    "key": "quality",
+    "name": "Quality",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "feedback",
+    "name": "Feedback",
+    "type": "float",
+    "min": 0,
+    "max": 1.5,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "smoothing",
+    "name": "Smoothing",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.4259"
+   },
+   {
+    "key": "fade_ms",
+    "name": "Fade",
+    "type": "float",
+    "min": 10,
+    "max": 250,
+    "step": 1,
+    "options": null,
+    "default": "20.00"
+   },
+   {
+    "key": "drive",
+    "name": "Drive",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.1429"
+   },
+   {
+    "key": "character",
+    "name": "Character",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "mix",
+    "name": "Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "fb_tone",
+    "name": "Feedback Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3769"
+   },
+   {
+    "key": "mod_depth_pitch",
+    "name": "Pitch Depth",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "mod_depth_stretch",
+    "name": "Stretch Depth",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "mod_depth_threshold",
+    "name": "Threshold Depth",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "mod_depth_grain",
+    "name": "Grain Depth",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "mod_depth_quality",
+    "name": "Quality Depth",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "mod_depth_feedback",
+    "name": "Feedback Depth",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "mod_src_pitch",
+    "name": "Pitch",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Input Env",
+     "Output Env"
+    ],
+    "default": "1"
+   },
+   {
+    "key": "mod_src_stretch",
+    "name": "Stretch",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Input Env",
+     "Output Env"
+    ],
+    "default": "1"
+   },
+   {
+    "key": "mod_src_threshold",
+    "name": "Threshold",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Input Env",
+     "Output Env"
+    ],
+    "default": "1"
+   },
+   {
+    "key": "mod_src_grain",
+    "name": "Grain",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Input Env",
+     "Output Env"
+    ],
+    "default": "1"
+   },
+   {
+    "key": "mod_src_quality",
+    "name": "Quality",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Input Env",
+     "Output Env"
+    ],
+    "default": "1"
+   },
+   {
+    "key": "mod_src_feedback",
+    "name": "Feedback",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Input Env",
+     "Output Env"
+    ],
+    "default": "1"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Secondary",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Mod Depth",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Mod Source",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PITCH",
+       "fullName": "Pitch",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "STRTCH",
+       "fullName": "Stretch",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "THRSH",
+       "fullName": "Threshold",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GRAIN",
+       "fullName": "Grain",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "QUAL",
+       "fullName": "Quality",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FEEDB",
+       "fullName": "Feedback",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Secondary",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "SMOOT",
+       "fullName": "Smoothing",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FADE",
+       "fullName": "Fade",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRIVE",
+       "fullName": "Drive",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CHARA",
+       "fullName": "Character",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "MIX",
+       "fullName": "Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TONE",
+       "fullName": "Feedback Tone",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Mod Depth",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PITCH",
+       "fullName": "Pitch Depth",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "STRCH",
+       "fullName": "Stretch Depth",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "THRESH",
+       "fullName": "Threshold Depth",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GRAIN",
+       "fullName": "Grain Depth",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "QUALIT",
+       "fullName": "Quality Depth",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FEEDB",
+       "fullName": "Feedback Depth",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Mod Source",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PITCH",
+       "fullName": "Pitch",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "STRTCH",
+       "fullName": "Stretch",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "THRESH",
+       "fullName": "Threshold",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GRAIN",
+       "fullName": "Grain",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "QUALIT",
+       "fullName": "Quality",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FEEDB",
+       "fullName": "Feedback",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "pitch",
+    "label": "Pitch",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -12,
+    "max": 12,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 48
+    }
+   },
+   {
+    "key": "stretch",
+    "label": "Stretch",
+    "shortLabel": "STRTCH",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "threshold",
+    "label": "Threshold",
+    "shortLabel": "THRSH",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "grain",
+    "label": "Grain",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 32,
+    "max": 4096,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 8128
+    }
+   },
+   {
+    "key": "quality",
+    "label": "Quality",
+    "shortLabel": "QUAL",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "feedback",
+    "label": "Feedback",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1.5,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 300
+    }
+   },
+   null,
+   null,
+   {
+    "key": "smoothing",
+    "label": "Smoothing",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fade_ms",
+    "label": "Fade",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 10,
+    "max": 250,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 480
+    }
+   },
+   {
+    "key": "drive",
+    "label": "Drive",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "character",
+    "label": "Character",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "mix",
+    "label": "Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fb_tone",
+    "label": "Feedback Tone",
+    "shortLabel": "Tone",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null,
+   {
+    "key": "mod_depth_pitch",
+    "label": "Pitch Depth",
+    "shortLabel": "Pitch",
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "mod_depth_stretch",
+    "label": "Stretch Depth",
+    "shortLabel": "STRCH",
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "mod_depth_threshold",
+    "label": "Threshold Depth",
+    "shortLabel": "Threshold",
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "mod_depth_grain",
+    "label": "Grain Depth",
+    "shortLabel": "Grain",
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "mod_depth_quality",
+    "label": "Quality Depth",
+    "shortLabel": "Quality",
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "mod_depth_feedback",
+    "label": "Feedback Depth",
+    "shortLabel": "Feedback",
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 400
+    }
+   },
+   null,
+   null,
+   {
+    "key": "mod_src_pitch",
+    "label": "Pitch",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Input Env",
+     "Output Env"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "mod_src_stretch",
+    "label": "Stretch",
+    "shortLabel": "STRTCH",
+    "type": "enum",
+    "options": [
+     "Input Env",
+     "Output Env"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "mod_src_threshold",
+    "label": "Threshold",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Input Env",
+     "Output Env"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "mod_src_grain",
+    "label": "Grain",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Input Env",
+     "Output Env"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "mod_src_quality",
+    "label": "Quality",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Input Env",
+     "Output Env"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "mod_src_feedback",
+    "label": "Feedback",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Input Env",
+     "Output Env"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [],
+  "noMetadata": [],
+  "warnings": []
+ }
+}

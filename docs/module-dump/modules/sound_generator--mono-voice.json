@@ -3143,11 +3143,11 @@
     "rows": [
      [
       {
-       "shortName": "MACHI",
+       "shortName": "MACHIN",
        "fullName": "Machine",
        "renderStyle": "arc",
        "type": "enum",
-       "displayValue": "SW Sa"
+       "displayValue": "..."
       },
       null,
       null,
@@ -3171,7 +3171,7 @@
     "rows": [
      [
       {
-       "shortName": "SYNT1",
+       "shortName": "SYNTH1",
        "fullName": "Synth 1",
        "renderStyle": "arc",
        "type": "int",
@@ -3311,7 +3311,7 @@
     "rows": [
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "Attack",
        "renderStyle": "arc",
        "type": "int",
@@ -3341,7 +3341,7 @@
      ],
      [
       {
-       "shortName": "DISTO",
+       "shortName": "DISTOR",
        "fullName": "Distortion",
        "renderStyle": "arc",
        "type": "int",
@@ -3350,14 +3350,14 @@
       {
        "shortName": "VOLUM",
        "fullName": "Volume",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "PAN",
        "fullName": "Pan",
-       "renderStyle": "arc",
+       "renderStyle": "pan",
        "type": "int",
        "displayValue": "..."
       },
@@ -3381,7 +3381,7 @@
     "rows": [
      [
       {
-       "shortName": "AC",
+       "shortName": "ATTACK",
        "fullName": "Attack Curve",
        "renderStyle": "arc",
        "type": "int",
@@ -3434,7 +3434,7 @@
       {
        "shortName": "GAIN",
        "fullName": "Gain",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       }
@@ -3481,7 +3481,7 @@
      ],
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "Env Attack",
        "renderStyle": "arc",
        "type": "int",
@@ -3542,7 +3542,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "PRE-D",
+       "shortName": "PRE-DR",
        "fullName": "Pre-Drive",
        "renderStyle": "arc",
        "type": "int",
@@ -3572,7 +3572,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SATUR",
+       "shortName": "SATURA",
        "fullName": "Saturation",
        "renderStyle": "arc",
        "type": "int",
@@ -3600,7 +3600,7 @@
       {
        "shortName": "GAIN",
        "fullName": "EQ Gain",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
@@ -3668,7 +3668,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "EQ",
+       "shortName": "EQ MIX",
        "fullName": "EQ Mix",
        "renderStyle": "arc",
        "type": "int",
@@ -3682,7 +3682,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "PING-",
+       "shortName": "PING-P",
        "fullName": "Ping-Pong",
        "renderStyle": "arc",
        "type": "int",
@@ -3731,14 +3731,14 @@
     "rows": [
      [
       {
-       "shortName": "DESTI",
+       "shortName": "DESTIN",
        "fullName": "Destination",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "TRIGG",
+       "shortName": "TRIGGE",
        "fullName": "Trigger",
        "renderStyle": "arc",
        "type": "int",
@@ -3752,7 +3752,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "MULTI",
+       "shortName": "MULTIP",
        "fullName": "Multiplier",
        "renderStyle": "arc",
        "type": "int",
@@ -3768,7 +3768,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "INTER",
+       "shortName": "INTERL",
        "fullName": "Interlace",
        "renderStyle": "arc",
        "type": "int",
@@ -3838,7 +3838,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "POLAR",
+       "shortName": "POLARI",
        "fullName": "Polarity",
        "renderStyle": "arc",
        "type": "int",
@@ -3871,14 +3871,14 @@
     "rows": [
      [
       {
-       "shortName": "DESTI",
+       "shortName": "DESTIN",
        "fullName": "Destination",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "TRIGG",
+       "shortName": "TRIGGE",
        "fullName": "Trigger",
        "renderStyle": "arc",
        "type": "int",
@@ -3892,7 +3892,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "MULTI",
+       "shortName": "MULTIP",
        "fullName": "Multiplier",
        "renderStyle": "arc",
        "type": "int",
@@ -3908,7 +3908,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "INTER",
+       "shortName": "INTERL",
        "fullName": "Interlace",
        "renderStyle": "arc",
        "type": "int",
@@ -3978,7 +3978,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "POLAR",
+       "shortName": "POLARI",
        "fullName": "Polarity",
        "renderStyle": "arc",
        "type": "int",
@@ -4011,14 +4011,14 @@
     "rows": [
      [
       {
-       "shortName": "DESTI",
+       "shortName": "DESTIN",
        "fullName": "Destination",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "TRIGG",
+       "shortName": "TRIGGE",
        "fullName": "Trigger",
        "renderStyle": "arc",
        "type": "int",
@@ -4032,7 +4032,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "MULTI",
+       "shortName": "MULTIP",
        "fullName": "Multiplier",
        "renderStyle": "arc",
        "type": "int",
@@ -4048,7 +4048,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "INTER",
+       "shortName": "INTERL",
        "fullName": "Interlace",
        "renderStyle": "arc",
        "type": "int",
@@ -4118,7 +4118,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "POLAR",
+       "shortName": "POLARI",
        "fullName": "Polarity",
        "renderStyle": "arc",
        "type": "int",
@@ -4540,12 +4540,12 @@
     "min": 0,
     "max": 127,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -4557,12 +4557,12 @@
     "min": 0,
     "max": 127,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "pan",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -4710,12 +4710,12 @@
     "min": 0,
     "max": 127,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -5016,12 +5016,12 @@
     "min": 0,
     "max": 127,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {

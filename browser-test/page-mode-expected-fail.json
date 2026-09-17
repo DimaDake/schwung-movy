@@ -1,0 +1,11 @@
+{
+  "note": "The app-loop checks that still fail under schwunggrid=page. Started at 13 (Phase 0); SP-11 took it to 6. Five are Cause C — a filepath dive has no editor in Schwung, so under `page` the click is taken by the controller and movy's file browser is never reached (SP-17 / SU-4). The sixth, 'held-step jog switches page', is a FIXTURE limit rather than a movy defect: the suite's module (mrdrums) is four movy banks and a SINGLE Schwung page, so in the `page` arm the jog has nowhere to go — and swapping that block's module poisons every later block, because the page cache is keyed by (track, component) and its contract does not re-resolve after a swap (Cause D / SP-15). THIS LIST MAY SHRINK AND MUST NEVER GROW. A label here that starts passing must be DELETED (the run fails until it is). A failure not listed here is a regression and fails the run. Owner: docs/schwung-page-migration.md.",
+  "labels": [
+    "chain page: file-param jog click opens file browser",
+    "browser opened",
+    "browseOrigin captured the pre-open view",
+    "Back leaves the file browser",
+    "select committed the preset path",
+    "held-step jog switches page"
+  ]
+}

@@ -6,6 +6,10 @@
  * assertions compare against the same values the device uses. */
 
 import { readFileSync } from 'node:fs';
+/* The bulk wire format is movy's own — imported rather than re-implemented so
+ * the stub cannot drift from the encoder under test. `track/bulk.js` reads no
+ * globals, so importing it before installEnv() runs is safe. */
+import { decodeBulk, encodeBulk } from '../dist/esm/track/bulk.js';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -35,7 +39,15 @@ function serveModuleLayout(path) {
     catch { return null; }
 }
 
+/* ONE ENV PER PROCESS. The globals the bundled modules read are module-level
+ * assignments, so a second installEnv() silently repoints them at a second
+ * store while every existing holder keeps writing to the first. Returning the
+ * live one is safe because env.setParams() replaces the whole store anyway —
+ * per-suite isolation comes from that call, never from a fresh env. */
+let installed = null;
+
 export function installEnv() {
+    if (installed) return installed;
     let params = {};
     /* USB-MIDI packets a module pushed into Move's MIDI_IN, so tests can assert
      * the track-hold divert (see src/mixer/track-volume.ts). */
@@ -113,6 +125,17 @@ export function installEnv() {
      * deleting it — dropping it entirely would quietly send every later blocking
      * write down the non-blocking fallback. */
     env.restoreSetParamTimeout = () => { globalThis.shadow_set_param_timeout = setParamTimeout; };
+    /* …and the same for the pair above, which suites also delete outright. A
+     * delete used to be survivable because the next `createDumpBoot()` called
+     * `installEnv()` and repointed the globals at a fresh store; now that
+     * installEnv() returns the live env, nothing puts them back — so a suite
+     * that deletes them takes the host away from every suite after it, and the
+     * first direct `globalThis.shadow_get_param(…)` in one of those is a
+     * TypeError. Returning the env's own accessors is what the cleanup meant. */
+    env.restoreParamGlobals = () => {
+        globalThis.shadow_get_param = slotGet;
+        globalThis.shadow_set_param = slotSet;
+    };
     /* ── The engine's param namespace ────────────────────────────────────
      *
      * Every track is a movy chain now, so `portFor(0)` addresses `ch0:<key>` in
@@ -152,6 +175,38 @@ export function installEnv() {
     };
     globalThis.host_module_set_param = engineSet;
     globalThis.host_module_set_param_blocking = engineSet;
+    /*
+     * THE BULK CHANNEL, WHICH THE DEVICE HAS AND THIS ENV DID NOT.
+     *
+     * `shadow_get_params`/`shadow_set_params` (shadow_ui.c request types 3 and
+     * 4) are how movy reads a whole page in ONE round trip — `paramGetMany` is
+     * built on them and its per-key fallback exists only for a host that lacks
+     * them. With no stub here, every off-device suite took that fallback, so the
+     * primary read path on device was never exercised at all and the A/B
+     * instrument (scripts/grid-call-cost.mjs) counted params READ where the
+     * device counts ROUND TRIPS — structurally unable to see the collapse SP-26
+     * is about.
+     *
+     * Each item DELEGATES through the engine accessor for the same reason those
+     * delegate through the shadow pair: a suite that swaps in a capturing stub
+     * still sees every key that crossed the channel.
+     */
+    globalThis.shadow_get_params = (_slot, _marker, payload) => {
+        const keys = decodeBulk(payload);
+        if (!keys) return null;
+        const get = globalThis.host_module_get_param ?? engineGet;
+        /* The shim answers a key it cannot serve with a zero-length item, which
+         * is NOT the same as a null read — decodeBulk hands back '' and
+         * paramGetMany is what decides what that means. */
+        return encodeBulk(keys.map((k) => get(k) ?? ''));
+    };
+    globalThis.shadow_set_params = (_slot, _marker, payload) => {
+        const flat = decodeBulk(payload);
+        if (!flat || flat.length % 2 !== 0) return false;
+        const set = globalThis.host_module_set_param_blocking ?? engineSet;
+        for (let i = 0; i < flat.length; i += 2) set(flat[i], flat[i + 1]);
+        return true;
+    };
     /* Kept reachable so `uninstallMockEngine()` can put these BACK rather than
      * deleting them: a suite that installs a mock engine and removes it again
      * would otherwise leave every later suite with no engine at all, and every
@@ -159,7 +214,15 @@ export function installEnv() {
      * slot, and no track is. */
     globalThis.__movyEnvEngineGet = engineGet;
     globalThis.__movyEnvEngineSet = engineSet;
-    globalThis.shadow_get_ui_slot = () => 0;
+    /* Assigned once and restorable by name, for the same reason as the pair
+     * above. `installEnv` is the only thing that ever installs it, so a suite
+     * that deletes it takes it away from every suite after — and that failure is
+     * SILENT, not red: the bundle's one consumer guards with `typeof … ===
+     * "function" ? shadow_get_ui_slot() : 0`, so the next suite to render a
+     * model would quietly select track 0 instead of throwing. */
+    const uiSlot = () => 0;
+    globalThis.shadow_get_ui_slot = uiSlot;
+    env.restoreUiSlot = () => { globalThis.shadow_get_ui_slot = uiSlot; };
     globalThis.shadow_send_midi_to_dsp = () => {};
     globalThis.host_read_file     = (path) => serveModuleLayout(path);
     globalThis.host_write_file    = () => true;
@@ -202,5 +265,6 @@ export function installEnv() {
     globalThis.MoveUp             = 55;
     globalThis.MoveDown           = 54;
 
+    installed = env;
     return env;
 }

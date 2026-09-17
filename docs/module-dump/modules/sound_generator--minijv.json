@@ -1,12 +1,12 @@
 {
  "id": "minijv",
  "name": "Mini-JV",
- "version": "0.4.13",
+ "version": "0.6.1",
  "author": "nukeykt/giulioz (port: charlesvestal)",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 958,
- "dsp_size": 196008,
+ "load_ms": 55,
+ "dsp_size": 204552,
  "capabilities": {
   "audio_out": true,
   "audio_in": false,
@@ -123,6 +123,22 @@
       {
        "level": "tone1_fx",
        "label": "FX Sends"
+      },
+      {
+       "key": "nvram_tone_0_tvaenvtime1",
+       "short_name": "T1"
+      },
+      {
+       "key": "nvram_tone_0_tvaenvtime2",
+       "short_name": "T2"
+      },
+      {
+       "key": "nvram_tone_0_tvaenvlevel3",
+       "short_name": "L3"
+      },
+      {
+       "key": "nvram_tone_0_tvaenvtime4",
+       "short_name": "T4"
       }
      ]
     },
@@ -142,6 +158,22 @@
       {
        "key": "nvram_tone_0_toneswitch",
        "label": "Tone Switch"
+      },
+      {
+       "key": "nvram_tone_0_tvaenvtime1",
+       "short_name": "T1"
+      },
+      {
+       "key": "nvram_tone_0_tvaenvtime2",
+       "short_name": "T2"
+      },
+      {
+       "key": "nvram_tone_0_tvaenvlevel3",
+       "short_name": "L3"
+      },
+      {
+       "key": "nvram_tone_0_tvaenvtime4",
+       "short_name": "T4"
       }
      ]
     },
@@ -177,6 +209,98 @@
      "items_param": "save_patch_slot_list",
      "select_param": "do_save_to_slot",
      "navigate_to": "patch",
+     "knobs": []
+    },
+    "_performance_note": "The live hierarchy declares modes ['patch','performance'] and the two trees are DISJOINT — the host roots its page walk at the active mode, so nothing above is reachable in performance mode and nothing below is reachable in patch mode.",
+    "perf_main": {
+     "name": "Performance",
+     "knobs": [
+      "octave_transpose"
+     ],
+     "params": [
+      {
+       "level": "perf_common",
+       "label": "Common / Effects"
+      },
+      {
+       "level": "part_selector",
+       "label": "Edit Parts"
+      },
+      {
+       "level": "save_perf_slot",
+       "label": "Save to Slot"
+      },
+      {
+       "level": "load_expansion",
+       "label": "Load Expansion"
+      },
+      {
+       "key": "octave_transpose",
+       "label": "Octave"
+      }
+     ]
+    },
+    "perf_common": {
+     "name": "Common / Effects",
+     "_note": "The PERFORMANCE's reverb and chorus, not the patch's — in performance mode the JV-880 takes its effects from the performance, so the patch-mode Effects page is not what is sounding. Keys are sram_perfCommon_<param>; full list in the C source.",
+     "knobs": [
+      "sram_perfCommon_keymode",
+      "sram_perfCommon_reverbtype",
+      "sram_perfCommon_reverblevel",
+      "sram_perfCommon_reverbtime",
+      "sram_perfCommon_chorustype",
+      "sram_perfCommon_choruslevel",
+      "sram_perfCommon_chorusdepth",
+      "sram_perfCommon_chorusrate"
+     ],
+     "knob_labels": [
+      "Key",
+      "RvTy",
+      "RvLv",
+      "RvTm",
+      "ChTy",
+      "ChLv",
+      "ChDp",
+      "ChRt"
+     ]
+    },
+    "part_selector": {
+     "name": "Parts",
+     "child_prefix": "sram_part_",
+     "child_count": 8,
+     "child_label": "Part",
+     "knobs": [
+      "partlevel",
+      "partpan",
+      "reverbswitch",
+      "chorusswitch",
+      "partcoarsetune",
+      "partfinetune",
+      "internalkeyrangelower",
+      "internalkeyrangeupper"
+     ],
+     "knob_labels": [
+      "Lvl",
+      "Pan",
+      "Rev",
+      "Cho",
+      "CTn",
+      "FTn",
+      "KLo",
+      "KHi"
+     ]
+    },
+    "save_perf_slot": {
+     "name": "Save to Slot",
+     "items_param": "save_perf_slot_list",
+     "select_param": "do_save_to_perf_slot",
+     "navigate_to": "performance",
+     "knobs": []
+    },
+    "load_expansion": {
+     "name": "Load Expansion",
+     "items_param": "expansion_list",
+     "select_param": "load_expansion",
      "knobs": []
     }
    }
@@ -272,6 +396,7 @@
    },
    {
     "key": "macro_tvf_env_depth",
+    "short_name": "Filter",
     "name": "TVF Env",
     "type": "int",
     "min": -63,
@@ -281,6 +406,7 @@
    },
    {
     "key": "macro_lfo_depth",
+    "short_name": "LFO",
     "name": "LFO Depth",
     "type": "int",
     "min": -63,
@@ -365,11 +491,26 @@
    "save_slot",
    "performance",
    "perf_main",
+   "perf_common",
+   "save_perf_slot",
    "load_expansion",
    "part_selector",
    "expansions"
   ],
   "params": [
+   {
+    "key": "mode",
+    "name": "Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Patch",
+     "Performance"
+    ],
+    "default": "Patch"
+   },
    {
     "key": "preset",
     "name": "Preset",
@@ -431,7 +572,7 @@
     "max": 127,
     "step": 1,
     "options": null,
-    "default": "14"
+    "default": "127"
    },
    {
     "key": "macro_resonance",
@@ -451,7 +592,7 @@
     "max": 127,
     "step": 1,
     "options": null,
-    "default": "0"
+    "default": "32"
    },
    {
     "key": "macro_decay",
@@ -461,7 +602,7 @@
     "max": 127,
     "step": 1,
     "options": null,
-    "default": "70"
+    "default": "0"
    },
    {
     "key": "macro_release",
@@ -471,7 +612,7 @@
     "max": 127,
     "step": 1,
     "options": null,
-    "default": "40"
+    "default": "60"
    },
    {
     "key": "macro_sustain",
@@ -481,7 +622,7 @@
     "max": 127,
     "step": 1,
     "options": null,
-    "default": "0"
+    "default": "127"
    },
    {
     "key": "macro_tvf_env_depth",
@@ -491,7 +632,7 @@
     "max": 63,
     "step": 1,
     "options": null,
-    "default": "23"
+    "default": "0"
    },
    {
     "key": "macro_lfo_depth",
@@ -511,7 +652,7 @@
     "max": 127,
     "step": null,
     "options": null,
-    "default": "127"
+    "default": "85"
    },
    {
     "key": "nvram_patchCommon_patchpan",
@@ -531,7 +672,7 @@
     "max": 127,
     "step": 1,
     "options": null,
-    "default": "91"
+    "default": "100"
    },
    {
     "key": "nvram_patchCommon_reverbtime",
@@ -541,7 +682,7 @@
     "max": 127,
     "step": null,
     "options": null,
-    "default": "89"
+    "default": "82"
    },
    {
     "key": "nvram_patchCommon_choruslevel",
@@ -551,7 +692,7 @@
     "max": 127,
     "step": 1,
     "options": null,
-    "default": "90"
+    "default": "127"
    },
    {
     "key": "nvram_patchCommon_chorusdepth",
@@ -561,7 +702,7 @@
     "max": 127,
     "step": null,
     "options": null,
-    "default": "16"
+    "default": "120"
    },
    {
     "key": "nvram_patchCommon_chorusrate",
@@ -571,7 +712,7 @@
     "max": 127,
     "step": null,
     "options": null,
-    "default": "0"
+    "default": "22"
    },
    {
     "key": "nvram_patchCommon_analogfeel",
@@ -581,7 +722,7 @@
     "max": 127,
     "step": null,
     "options": null,
-    "default": "8"
+    "default": "11"
    },
    {
     "key": "nvram_patchCommon_reverbtype",
@@ -600,7 +741,7 @@
      "Delay",
      "Pan-Dly"
     ],
-    "default": "12"
+    "default": "3"
    },
    {
     "key": "nvram_patchCommon_reverbfeedback",
@@ -693,7 +834,7 @@
      "Legato",
      "Normal"
     ],
-    "default": "0"
+    "default": "1"
    },
    {
     "key": "nvram_patchCommon_portamentotype",
@@ -716,7 +857,7 @@
     "max": 127,
     "step": null,
     "options": null,
-    "default": "93"
+    "default": "102"
    },
    {
     "key": "nvram_patchCommon_keyassign",
@@ -793,7 +934,7 @@
     "max": 255,
     "step": null,
     "options": null,
-    "default": "0"
+    "default": "40"
    },
    {
     "key": "nvram_tone_0_fxmswitch",
@@ -826,7 +967,7 @@
     "max": 127,
     "step": null,
     "options": null,
-    "default": "127"
+    "default": "71"
    },
    {
     "key": "nvram_tone_0_pan",
@@ -836,7 +977,7 @@
     "max": 63,
     "step": null,
     "options": null,
-    "default": "0"
+    "default": "12"
    },
    {
     "key": "nvram_tone_0_levelkeyfollow",
@@ -846,7 +987,7 @@
     "max": 15,
     "step": null,
     "options": null,
-    "default": "8"
+    "default": "1"
    },
    {
     "key": "nvram_tone_0_panningkeyfollow",
@@ -856,7 +997,7 @@
     "max": 15,
     "step": null,
     "options": null,
-    "default": "10"
+    "default": "7"
    },
    {
     "key": "nvram_tone_0_cutofffrequency",
@@ -866,7 +1007,7 @@
     "max": 127,
     "step": null,
     "options": null,
-    "default": "14"
+    "default": "127"
    },
    {
     "key": "nvram_tone_0_resonance",
@@ -913,7 +1054,7 @@
     "max": 127,
     "step": null,
     "options": null,
-    "default": "150"
+    "default": "117"
    },
    {
     "key": "nvram_tone_0_pitchcoarse",
@@ -933,7 +1074,7 @@
     "max": 50,
     "step": null,
     "options": null,
-    "default": "0"
+    "default": "-2"
    },
    {
     "key": "nvram_tone_0_randompitchdepth",
@@ -5219,7 +5360,7 @@
      "L1 Rate",
      "L2 Rate"
     ],
-    "default": "2"
+    "default": null
    },
    {
     "key": "nvram_tone_3_expsensa",
@@ -5334,6 +5475,136 @@
     "default": null
    },
    {
+    "key": "sram_perfCommon_keymode",
+    "name": "Key Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Layer",
+     "Zone",
+     "Single"
+    ],
+    "default": null
+   },
+   {
+    "key": "sram_perfCommon_reverbtype",
+    "name": "Reverb Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Room1",
+     "Room2",
+     "Stage1",
+     "Stage2",
+     "Hall1",
+     "Hall2",
+     "Delay",
+     "Pan-Dly"
+    ],
+    "default": null
+   },
+   {
+    "key": "sram_perfCommon_reverblevel",
+    "name": "Reverb Level",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": null
+   },
+   {
+    "key": "sram_perfCommon_reverbtime",
+    "name": "Reverb Time",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": null
+   },
+   {
+    "key": "sram_perfCommon_reverbfeedback",
+    "name": "Reverb Feedback",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": null
+   },
+   {
+    "key": "sram_perfCommon_chorustype",
+    "name": "Chorus Type",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Chorus1",
+     "Chorus2",
+     "Chorus3"
+    ],
+    "default": null
+   },
+   {
+    "key": "sram_perfCommon_choruslevel",
+    "name": "Chorus Level",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": null
+   },
+   {
+    "key": "sram_perfCommon_chorusdepth",
+    "name": "Chorus Depth",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": null
+   },
+   {
+    "key": "sram_perfCommon_chorusrate",
+    "name": "Chorus Rate",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": null
+   },
+   {
+    "key": "sram_perfCommon_chorusfeedback",
+    "name": "Chorus Feedback",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": null
+   },
+   {
+    "key": "sram_perfCommon_chorusoutput",
+    "name": "Chorus Output",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Mix",
+     "Reverb"
+    ],
+    "default": null
+   },
+   {
     "key": "patchbank",
     "name": "Bank",
     "type": "enum",
@@ -5341,10 +5612,44 @@
     "max": null,
     "step": null,
     "options": [
+     "User",
      "Internal",
      "Preset A",
      "Preset B"
     ],
+    "default": null
+   },
+   {
+    "key": "internalswitch",
+    "name": "Part On",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": null
+   },
+   {
+    "key": "internalvelocitysense",
+    "name": "Vel Sense",
+    "type": "int",
+    "min": 1,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": null
+   },
+   {
+    "key": "internalvelocitymax",
+    "name": "Vel Max",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
     "default": null
    },
    {
@@ -5801,6 +6106,16 @@
     "padSpecific": false
    },
    {
+    "name": "Common / Effects",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Common / Effects - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
     "name": "Edit Parts",
     "global": false,
     "padSpecific": false
@@ -5822,11 +6137,11 @@
     "rows": [
      [
       {
-       "shortName": "PRESE",
+       "shortName": "PRESET",
        "fullName": "Preset",
        "renderStyle": "preset",
        "type": "enum",
-       "displayValue": "0"
+       "displayValue": "..."
       },
       null,
       null,
@@ -5850,7 +6165,7 @@
     "rows": [
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "Attack",
        "renderStyle": "arc",
        "type": "int",
@@ -5864,7 +6179,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SUSTA",
+       "shortName": "SUSTAI",
        "fullName": "Sustain",
        "renderStyle": "arc",
        "type": "int",
@@ -5880,7 +6195,7 @@
      ],
      [
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
        "type": "int",
@@ -5894,7 +6209,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "FE",
+       "shortName": "FILTER",
        "fullName": "Filter Env",
        "renderStyle": "arc",
        "type": "int",
@@ -5922,26 +6237,26 @@
       {
        "shortName": "LEVEL",
        "fullName": "Patch Level",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "PAN",
        "fullName": "Patch Pan",
-       "renderStyle": "arc",
+       "renderStyle": "pan",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "AF",
+       "shortName": "FEEL",
        "fullName": "Analog Feel",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "BENUP",
+       "shortName": "UP",
        "fullName": "Bend Up",
        "renderStyle": "arc",
        "type": "int",
@@ -5959,19 +6274,19 @@
       {
        "shortName": "PORTA",
        "fullName": "Portamento",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "PT",
+       "shortName": "TIME",
        "fullName": "Porta Time",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "KEY",
+       "shortName": "ASSIGN",
        "fullName": "Key Assign",
        "renderStyle": "arc",
        "type": "enum",
@@ -6004,16 +6319,16 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SOLO",
+       "shortName": "LEGATO",
        "fullName": "Solo Legato",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "VS",
+       "shortName": "VELOCI",
        "fullName": "Velocity Sw",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       }
@@ -6036,7 +6351,7 @@
     "rows": [
      [
       {
-       "shortName": "TYPE",
+       "shortName": "RT",
        "fullName": "Reverb Type",
        "renderStyle": "arc",
        "type": "enum",
@@ -6057,7 +6372,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "RF",
+       "shortName": "FEEDB",
        "fullName": "Reverb Feedback",
        "renderStyle": "arc",
        "type": "int",
@@ -6080,14 +6395,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "CD",
+       "shortName": "DEPTH",
        "fullName": "Chorus Depth",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "CR",
+       "shortName": "RATE",
        "fullName": "Chorus Rate",
        "renderStyle": "arc",
        "type": "int",
@@ -6106,14 +6421,14 @@
     "rows": [
      [
       {
-       "shortName": "CF",
+       "shortName": "FEEDB",
        "fullName": "Chorus Feedback",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "CO",
+       "shortName": "OUTPUT",
        "fullName": "Chorus Output",
        "renderStyle": "arc",
        "type": "enum",
@@ -6142,7 +6457,7 @@
       {
        "shortName": "LINK",
        "fullName": "Link all to 1",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -6168,7 +6483,7 @@
     "rows": [
      [
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
        "type": "int",
@@ -6182,14 +6497,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "A.ET1",
+       "shortName": "A.ENT1",
        "fullName": "A.Env T1",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "A.ET2",
+       "shortName": "A.ENT2",
        "fullName": "A.Env T2",
        "renderStyle": "arc",
        "type": "int",
@@ -6198,14 +6513,14 @@
      ],
      [
       {
-       "shortName": "A.EL3",
+       "shortName": "A.ENL3",
        "fullName": "A.Env L3",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "A.ET4",
+       "shortName": "A.ENT4",
        "fullName": "A.Env T4",
        "renderStyle": "arc",
        "type": "int",
@@ -6214,14 +6529,14 @@
       {
        "shortName": "LEVEL",
        "fullName": "Level",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "PAN",
        "fullName": "Pan",
-       "renderStyle": "arc",
+       "renderStyle": "pan",
        "type": "int",
        "displayValue": "..."
       }
@@ -6240,7 +6555,7 @@
       {
        "shortName": "TONE",
        "fullName": "Tone Switch",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -6261,7 +6576,7 @@
       {
        "shortName": "FXM",
        "fullName": "FXM",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       }
@@ -6311,7 +6626,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "P.ET1",
+       "shortName": "P.ENT1",
        "fullName": "P.Env T1",
        "renderStyle": "arc",
        "type": "int",
@@ -6320,21 +6635,21 @@
      ],
      [
       {
-       "shortName": "P.ET2",
+       "shortName": "P.ENT2",
        "fullName": "P.Env T2",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "P.ET4",
+       "shortName": "P.ENT4",
        "fullName": "P.Env T4",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "PITKF",
+       "shortName": "PITCKF",
        "fullName": "Pitch KF",
        "renderStyle": "arc",
        "type": "int",
@@ -6360,28 +6675,28 @@
     "rows": [
      [
       {
-       "shortName": "P.ET3",
+       "shortName": "P.ENT3",
        "fullName": "P.Env T3",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "P.EL1",
+       "shortName": "P.ENL1",
        "fullName": "P.Env L1",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "P.EL2",
+       "shortName": "P.ENL2",
        "fullName": "P.Env L2",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "P.EL3",
+       "shortName": "P.ENL3",
        "fullName": "P.Env L3",
        "renderStyle": "arc",
        "type": "int",
@@ -6390,7 +6705,7 @@
      ],
      [
       {
-       "shortName": "P.EL4",
+       "shortName": "P.ENL4",
        "fullName": "P.Env L4",
        "renderStyle": "arc",
        "type": "int",
@@ -6412,7 +6727,7 @@
     "rows": [
      [
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
        "type": "int",
@@ -6433,7 +6748,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "F.ET1",
+       "shortName": "F.ENT1",
        "fullName": "F.Env T1",
        "renderStyle": "arc",
        "type": "int",
@@ -6442,28 +6757,28 @@
      ],
      [
       {
-       "shortName": "F.ET2",
+       "shortName": "F.ENT2",
        "fullName": "F.Env T2",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "F.EL3",
+       "shortName": "F.ENL3",
        "fullName": "F.Env L3",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "F.ET4",
+       "shortName": "F.ENT4",
        "fullName": "F.Env T4",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "FM",
+       "shortName": "FILTER",
        "fullName": "Filter Mode",
        "renderStyle": "arc",
        "type": "enum",
@@ -6482,7 +6797,7 @@
     "rows": [
      [
       {
-       "shortName": "CK",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff KF",
        "renderStyle": "arc",
        "type": "int",
@@ -6503,7 +6818,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "F.ET3",
+       "shortName": "F.ENT3",
        "fullName": "F.Env T3",
        "renderStyle": "arc",
        "type": "int",
@@ -6512,21 +6827,21 @@
      ],
      [
       {
-       "shortName": "F.EL1",
+       "shortName": "F.ENL1",
        "fullName": "F.Env L1",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "F.EL2",
+       "shortName": "F.ENL2",
        "fullName": "F.Env L2",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "F.EL4",
+       "shortName": "F.ENL4",
        "fullName": "F.Env L4",
        "renderStyle": "arc",
        "type": "int",
@@ -6548,26 +6863,26 @@
       {
        "shortName": "LEVEL",
        "fullName": "Level",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "PAN",
        "fullName": "Pan",
-       "renderStyle": "arc",
+       "renderStyle": "pan",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "A.ET1",
+       "shortName": "A.ENT1",
        "fullName": "A.Env T1",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "A.ET2",
+       "shortName": "A.ENT2",
        "fullName": "A.Env T2",
        "renderStyle": "arc",
        "type": "int",
@@ -6576,14 +6891,14 @@
      ],
      [
       {
-       "shortName": "A.EL3",
+       "shortName": "A.ENL3",
        "fullName": "A.Env L3",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "A.ET4",
+       "shortName": "A.ENT4",
        "fullName": "A.Env T4",
        "renderStyle": "arc",
        "type": "int",
@@ -6623,21 +6938,21 @@
        "displayValue": "..."
       },
       {
-       "shortName": "PAN",
+       "shortName": "PAN KF",
        "fullName": "Pan KF",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "A.ET3",
+       "shortName": "A.ENT3",
        "fullName": "A.Env T3",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "A.EL1",
+       "shortName": "A.ENL1",
        "fullName": "A.Env L1",
        "renderStyle": "arc",
        "type": "int",
@@ -6646,7 +6961,7 @@
      ],
      [
       {
-       "shortName": "A.EL2",
+       "shortName": "A.ENL2",
        "fullName": "A.Env L2",
        "renderStyle": "arc",
        "type": "int",
@@ -6717,7 +7032,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "FILTE",
+       "shortName": "FILTER",
        "fullName": "LFO1 Filter",
        "renderStyle": "arc",
        "type": "int",
@@ -6731,7 +7046,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "OFFSE",
+       "shortName": "OFFSET",
        "fullName": "LFO1 Offset",
        "renderStyle": "arc",
        "type": "enum",
@@ -6752,7 +7067,7 @@
       {
        "shortName": "LFO1",
        "fullName": "LFO1 Sync",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -6815,7 +7130,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "FILTE",
+       "shortName": "FILTER",
        "fullName": "LFO2 Filter",
        "renderStyle": "arc",
        "type": "int",
@@ -6844,7 +7159,7 @@
       {
        "shortName": "DRY",
        "fullName": "Dry Level",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
@@ -6882,7 +7197,7 @@
     "rows": [
      [
       {
-       "shortName": "DESTA",
+       "shortName": "DEST A",
        "fullName": "Mod Dest A",
        "renderStyle": "arc",
        "type": "enum",
@@ -6896,7 +7211,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DESTB",
+       "shortName": "DEST B",
        "fullName": "Mod Dest B",
        "renderStyle": "arc",
        "type": "enum",
@@ -6912,7 +7227,7 @@
      ],
      [
       {
-       "shortName": "DESTC",
+       "shortName": "DEST C",
        "fullName": "Mod Dest C",
        "renderStyle": "arc",
        "type": "enum",
@@ -6926,7 +7241,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DESTD",
+       "shortName": "DEST D",
        "fullName": "Mod Dest D",
        "renderStyle": "arc",
        "type": "enum",
@@ -6952,7 +7267,7 @@
     "rows": [
      [
       {
-       "shortName": "DESTA",
+       "shortName": "DEST A",
        "fullName": "Aft Dest A",
        "renderStyle": "arc",
        "type": "enum",
@@ -6966,7 +7281,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DESTB",
+       "shortName": "DEST B",
        "fullName": "Aft Dest B",
        "renderStyle": "arc",
        "type": "enum",
@@ -6982,7 +7297,7 @@
      ],
      [
       {
-       "shortName": "DESTC",
+       "shortName": "DEST C",
        "fullName": "Aft Dest C",
        "renderStyle": "arc",
        "type": "enum",
@@ -6996,7 +7311,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DESTD",
+       "shortName": "DEST D",
        "fullName": "Aft Dest D",
        "renderStyle": "arc",
        "type": "enum",
@@ -7022,7 +7337,7 @@
     "rows": [
      [
       {
-       "shortName": "DESTA",
+       "shortName": "DEST A",
        "fullName": "Exp Dest A",
        "renderStyle": "arc",
        "type": "enum",
@@ -7036,7 +7351,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DESTB",
+       "shortName": "DEST B",
        "fullName": "Exp Dest B",
        "renderStyle": "arc",
        "type": "enum",
@@ -7052,7 +7367,7 @@
      ],
      [
       {
-       "shortName": "DESTC",
+       "shortName": "DEST C",
        "fullName": "Exp Dest C",
        "renderStyle": "arc",
        "type": "enum",
@@ -7066,7 +7381,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DESTD",
+       "shortName": "DEST D",
        "fullName": "Exp Dest D",
        "renderStyle": "arc",
        "type": "enum",
@@ -7092,7 +7407,7 @@
     "rows": [
      [
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
        "type": "int",
@@ -7106,14 +7421,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "A.ET1",
+       "shortName": "A.ENT1",
        "fullName": "A.Env T1",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "A.ET2",
+       "shortName": "A.ENT2",
        "fullName": "A.Env T2",
        "renderStyle": "arc",
        "type": "int",
@@ -7122,14 +7437,14 @@
      ],
      [
       {
-       "shortName": "A.EL3",
+       "shortName": "A.ENL3",
        "fullName": "A.Env L3",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "A.ET4",
+       "shortName": "A.ENT4",
        "fullName": "A.Env T4",
        "renderStyle": "arc",
        "type": "int",
@@ -7138,14 +7453,14 @@
       {
        "shortName": "LEVEL",
        "fullName": "Level",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "PAN",
        "fullName": "Pan",
-       "renderStyle": "arc",
+       "renderStyle": "pan",
        "type": "int",
        "displayValue": "..."
       }
@@ -7164,7 +7479,7 @@
       {
        "shortName": "TONE",
        "fullName": "Tone Switch",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -7185,7 +7500,7 @@
       {
        "shortName": "FXM",
        "fullName": "FXM",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       }
@@ -7235,7 +7550,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "P.ET1",
+       "shortName": "P.ENT1",
        "fullName": "P.Env T1",
        "renderStyle": "arc",
        "type": "int",
@@ -7244,21 +7559,21 @@
      ],
      [
       {
-       "shortName": "P.ET2",
+       "shortName": "P.ENT2",
        "fullName": "P.Env T2",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "P.ET4",
+       "shortName": "P.ENT4",
        "fullName": "P.Env T4",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "PITKF",
+       "shortName": "PITCKF",
        "fullName": "Pitch KF",
        "renderStyle": "arc",
        "type": "int",
@@ -7284,28 +7599,28 @@
     "rows": [
      [
       {
-       "shortName": "P.ET3",
+       "shortName": "P.ENT3",
        "fullName": "P.Env T3",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "P.EL1",
+       "shortName": "P.ENL1",
        "fullName": "P.Env L1",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "P.EL2",
+       "shortName": "P.ENL2",
        "fullName": "P.Env L2",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "P.EL3",
+       "shortName": "P.ENL3",
        "fullName": "P.Env L3",
        "renderStyle": "arc",
        "type": "int",
@@ -7314,7 +7629,7 @@
      ],
      [
       {
-       "shortName": "P.EL4",
+       "shortName": "P.ENL4",
        "fullName": "P.Env L4",
        "renderStyle": "arc",
        "type": "int",
@@ -7336,7 +7651,7 @@
     "rows": [
      [
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
        "type": "int",
@@ -7357,7 +7672,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "F.ET1",
+       "shortName": "F.ENT1",
        "fullName": "F.Env T1",
        "renderStyle": "arc",
        "type": "int",
@@ -7366,28 +7681,28 @@
      ],
      [
       {
-       "shortName": "F.ET2",
+       "shortName": "F.ENT2",
        "fullName": "F.Env T2",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "F.EL3",
+       "shortName": "F.ENL3",
        "fullName": "F.Env L3",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "F.ET4",
+       "shortName": "F.ENT4",
        "fullName": "F.Env T4",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "FM",
+       "shortName": "FILTER",
        "fullName": "Filter Mode",
        "renderStyle": "arc",
        "type": "enum",
@@ -7406,7 +7721,7 @@
     "rows": [
      [
       {
-       "shortName": "CK",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff KF",
        "renderStyle": "arc",
        "type": "int",
@@ -7427,7 +7742,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "F.ET3",
+       "shortName": "F.ENT3",
        "fullName": "F.Env T3",
        "renderStyle": "arc",
        "type": "int",
@@ -7436,21 +7751,21 @@
      ],
      [
       {
-       "shortName": "F.EL1",
+       "shortName": "F.ENL1",
        "fullName": "F.Env L1",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "F.EL2",
+       "shortName": "F.ENL2",
        "fullName": "F.Env L2",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "F.EL4",
+       "shortName": "F.ENL4",
        "fullName": "F.Env L4",
        "renderStyle": "arc",
        "type": "int",
@@ -7472,26 +7787,26 @@
       {
        "shortName": "LEVEL",
        "fullName": "Level",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "PAN",
        "fullName": "Pan",
-       "renderStyle": "arc",
+       "renderStyle": "pan",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "A.ET1",
+       "shortName": "A.ENT1",
        "fullName": "A.Env T1",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "A.ET2",
+       "shortName": "A.ENT2",
        "fullName": "A.Env T2",
        "renderStyle": "arc",
        "type": "int",
@@ -7500,14 +7815,14 @@
      ],
      [
       {
-       "shortName": "A.EL3",
+       "shortName": "A.ENL3",
        "fullName": "A.Env L3",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "A.ET4",
+       "shortName": "A.ENT4",
        "fullName": "A.Env T4",
        "renderStyle": "arc",
        "type": "int",
@@ -7547,21 +7862,21 @@
        "displayValue": "..."
       },
       {
-       "shortName": "PAN",
+       "shortName": "PAN KF",
        "fullName": "Pan KF",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "A.ET3",
+       "shortName": "A.ENT3",
        "fullName": "A.Env T3",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "A.EL1",
+       "shortName": "A.ENL1",
        "fullName": "A.Env L1",
        "renderStyle": "arc",
        "type": "int",
@@ -7570,7 +7885,7 @@
      ],
      [
       {
-       "shortName": "A.EL2",
+       "shortName": "A.ENL2",
        "fullName": "A.Env L2",
        "renderStyle": "arc",
        "type": "int",
@@ -7641,7 +7956,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "FILTE",
+       "shortName": "FILTER",
        "fullName": "LFO1 Filter",
        "renderStyle": "arc",
        "type": "int",
@@ -7655,7 +7970,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "OFFSE",
+       "shortName": "OFFSET",
        "fullName": "LFO1 Offset",
        "renderStyle": "arc",
        "type": "enum",
@@ -7676,7 +7991,7 @@
       {
        "shortName": "LFO1",
        "fullName": "LFO1 Sync",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -7739,7 +8054,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "FILTE",
+       "shortName": "FILTER",
        "fullName": "LFO2 Filter",
        "renderStyle": "arc",
        "type": "int",
@@ -7768,7 +8083,7 @@
       {
        "shortName": "DRY",
        "fullName": "Dry Level",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
@@ -7806,7 +8121,7 @@
     "rows": [
      [
       {
-       "shortName": "DESTA",
+       "shortName": "DEST A",
        "fullName": "Mod Dest A",
        "renderStyle": "arc",
        "type": "enum",
@@ -7820,7 +8135,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DESTB",
+       "shortName": "DEST B",
        "fullName": "Mod Dest B",
        "renderStyle": "arc",
        "type": "enum",
@@ -7836,7 +8151,7 @@
      ],
      [
       {
-       "shortName": "DESTC",
+       "shortName": "DEST C",
        "fullName": "Mod Dest C",
        "renderStyle": "arc",
        "type": "enum",
@@ -7850,7 +8165,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DESTD",
+       "shortName": "DEST D",
        "fullName": "Mod Dest D",
        "renderStyle": "arc",
        "type": "enum",
@@ -7876,7 +8191,7 @@
     "rows": [
      [
       {
-       "shortName": "DESTA",
+       "shortName": "DEST A",
        "fullName": "Aft Dest A",
        "renderStyle": "arc",
        "type": "enum",
@@ -7890,7 +8205,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DESTB",
+       "shortName": "DEST B",
        "fullName": "Aft Dest B",
        "renderStyle": "arc",
        "type": "enum",
@@ -7906,7 +8221,7 @@
      ],
      [
       {
-       "shortName": "DESTC",
+       "shortName": "DEST C",
        "fullName": "Aft Dest C",
        "renderStyle": "arc",
        "type": "enum",
@@ -7920,7 +8235,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DESTD",
+       "shortName": "DEST D",
        "fullName": "Aft Dest D",
        "renderStyle": "arc",
        "type": "enum",
@@ -7946,7 +8261,7 @@
     "rows": [
      [
       {
-       "shortName": "DESTA",
+       "shortName": "DEST A",
        "fullName": "Exp Dest A",
        "renderStyle": "arc",
        "type": "enum",
@@ -7960,7 +8275,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DESTB",
+       "shortName": "DEST B",
        "fullName": "Exp Dest B",
        "renderStyle": "arc",
        "type": "enum",
@@ -7976,7 +8291,7 @@
      ],
      [
       {
-       "shortName": "DESTC",
+       "shortName": "DEST C",
        "fullName": "Exp Dest C",
        "renderStyle": "arc",
        "type": "enum",
@@ -7990,7 +8305,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DESTD",
+       "shortName": "DEST D",
        "fullName": "Exp Dest D",
        "renderStyle": "arc",
        "type": "enum",
@@ -8016,7 +8331,7 @@
     "rows": [
      [
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
        "type": "int",
@@ -8030,14 +8345,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "A.ET1",
+       "shortName": "A.ENT1",
        "fullName": "A.Env T1",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "A.ET2",
+       "shortName": "A.ENT2",
        "fullName": "A.Env T2",
        "renderStyle": "arc",
        "type": "int",
@@ -8046,14 +8361,14 @@
      ],
      [
       {
-       "shortName": "A.EL3",
+       "shortName": "A.ENL3",
        "fullName": "A.Env L3",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "A.ET4",
+       "shortName": "A.ENT4",
        "fullName": "A.Env T4",
        "renderStyle": "arc",
        "type": "int",
@@ -8062,14 +8377,14 @@
       {
        "shortName": "LEVEL",
        "fullName": "Level",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "PAN",
        "fullName": "Pan",
-       "renderStyle": "arc",
+       "renderStyle": "pan",
        "type": "int",
        "displayValue": "..."
       }
@@ -8088,7 +8403,7 @@
       {
        "shortName": "TONE",
        "fullName": "Tone Switch",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -8109,7 +8424,7 @@
       {
        "shortName": "FXM",
        "fullName": "FXM",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       }
@@ -8159,7 +8474,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "P.ET1",
+       "shortName": "P.ENT1",
        "fullName": "P.Env T1",
        "renderStyle": "arc",
        "type": "int",
@@ -8168,21 +8483,21 @@
      ],
      [
       {
-       "shortName": "P.ET2",
+       "shortName": "P.ENT2",
        "fullName": "P.Env T2",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "P.ET4",
+       "shortName": "P.ENT4",
        "fullName": "P.Env T4",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "PITKF",
+       "shortName": "PITCKF",
        "fullName": "Pitch KF",
        "renderStyle": "arc",
        "type": "int",
@@ -8208,28 +8523,28 @@
     "rows": [
      [
       {
-       "shortName": "P.ET3",
+       "shortName": "P.ENT3",
        "fullName": "P.Env T3",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "P.EL1",
+       "shortName": "P.ENL1",
        "fullName": "P.Env L1",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "P.EL2",
+       "shortName": "P.ENL2",
        "fullName": "P.Env L2",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "P.EL3",
+       "shortName": "P.ENL3",
        "fullName": "P.Env L3",
        "renderStyle": "arc",
        "type": "int",
@@ -8238,7 +8553,7 @@
      ],
      [
       {
-       "shortName": "P.EL4",
+       "shortName": "P.ENL4",
        "fullName": "P.Env L4",
        "renderStyle": "arc",
        "type": "int",
@@ -8260,7 +8575,7 @@
     "rows": [
      [
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
        "type": "int",
@@ -8281,7 +8596,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "F.ET1",
+       "shortName": "F.ENT1",
        "fullName": "F.Env T1",
        "renderStyle": "arc",
        "type": "int",
@@ -8290,28 +8605,28 @@
      ],
      [
       {
-       "shortName": "F.ET2",
+       "shortName": "F.ENT2",
        "fullName": "F.Env T2",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "F.EL3",
+       "shortName": "F.ENL3",
        "fullName": "F.Env L3",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "F.ET4",
+       "shortName": "F.ENT4",
        "fullName": "F.Env T4",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "FM",
+       "shortName": "FILTER",
        "fullName": "Filter Mode",
        "renderStyle": "arc",
        "type": "enum",
@@ -8330,7 +8645,7 @@
     "rows": [
      [
       {
-       "shortName": "CK",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff KF",
        "renderStyle": "arc",
        "type": "int",
@@ -8351,7 +8666,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "F.ET3",
+       "shortName": "F.ENT3",
        "fullName": "F.Env T3",
        "renderStyle": "arc",
        "type": "int",
@@ -8360,21 +8675,21 @@
      ],
      [
       {
-       "shortName": "F.EL1",
+       "shortName": "F.ENL1",
        "fullName": "F.Env L1",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "F.EL2",
+       "shortName": "F.ENL2",
        "fullName": "F.Env L2",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "F.EL4",
+       "shortName": "F.ENL4",
        "fullName": "F.Env L4",
        "renderStyle": "arc",
        "type": "int",
@@ -8396,26 +8711,26 @@
       {
        "shortName": "LEVEL",
        "fullName": "Level",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "PAN",
        "fullName": "Pan",
-       "renderStyle": "arc",
+       "renderStyle": "pan",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "A.ET1",
+       "shortName": "A.ENT1",
        "fullName": "A.Env T1",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "A.ET2",
+       "shortName": "A.ENT2",
        "fullName": "A.Env T2",
        "renderStyle": "arc",
        "type": "int",
@@ -8424,14 +8739,14 @@
      ],
      [
       {
-       "shortName": "A.EL3",
+       "shortName": "A.ENL3",
        "fullName": "A.Env L3",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "A.ET4",
+       "shortName": "A.ENT4",
        "fullName": "A.Env T4",
        "renderStyle": "arc",
        "type": "int",
@@ -8471,21 +8786,21 @@
        "displayValue": "..."
       },
       {
-       "shortName": "PAN",
+       "shortName": "PAN KF",
        "fullName": "Pan KF",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "A.ET3",
+       "shortName": "A.ENT3",
        "fullName": "A.Env T3",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "A.EL1",
+       "shortName": "A.ENL1",
        "fullName": "A.Env L1",
        "renderStyle": "arc",
        "type": "int",
@@ -8494,7 +8809,7 @@
      ],
      [
       {
-       "shortName": "A.EL2",
+       "shortName": "A.ENL2",
        "fullName": "A.Env L2",
        "renderStyle": "arc",
        "type": "int",
@@ -8565,7 +8880,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "FILTE",
+       "shortName": "FILTER",
        "fullName": "LFO1 Filter",
        "renderStyle": "arc",
        "type": "int",
@@ -8579,7 +8894,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "OFFSE",
+       "shortName": "OFFSET",
        "fullName": "LFO1 Offset",
        "renderStyle": "arc",
        "type": "enum",
@@ -8600,7 +8915,7 @@
       {
        "shortName": "LFO1",
        "fullName": "LFO1 Sync",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -8663,7 +8978,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "FILTE",
+       "shortName": "FILTER",
        "fullName": "LFO2 Filter",
        "renderStyle": "arc",
        "type": "int",
@@ -8692,7 +9007,7 @@
       {
        "shortName": "DRY",
        "fullName": "Dry Level",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
@@ -8730,7 +9045,7 @@
     "rows": [
      [
       {
-       "shortName": "DESTA",
+       "shortName": "DEST A",
        "fullName": "Mod Dest A",
        "renderStyle": "arc",
        "type": "enum",
@@ -8744,7 +9059,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DESTB",
+       "shortName": "DEST B",
        "fullName": "Mod Dest B",
        "renderStyle": "arc",
        "type": "enum",
@@ -8760,7 +9075,7 @@
      ],
      [
       {
-       "shortName": "DESTC",
+       "shortName": "DEST C",
        "fullName": "Mod Dest C",
        "renderStyle": "arc",
        "type": "enum",
@@ -8774,7 +9089,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DESTD",
+       "shortName": "DEST D",
        "fullName": "Mod Dest D",
        "renderStyle": "arc",
        "type": "enum",
@@ -8800,7 +9115,7 @@
     "rows": [
      [
       {
-       "shortName": "DESTA",
+       "shortName": "DEST A",
        "fullName": "Aft Dest A",
        "renderStyle": "arc",
        "type": "enum",
@@ -8814,7 +9129,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DESTB",
+       "shortName": "DEST B",
        "fullName": "Aft Dest B",
        "renderStyle": "arc",
        "type": "enum",
@@ -8830,7 +9145,7 @@
      ],
      [
       {
-       "shortName": "DESTC",
+       "shortName": "DEST C",
        "fullName": "Aft Dest C",
        "renderStyle": "arc",
        "type": "enum",
@@ -8844,7 +9159,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DESTD",
+       "shortName": "DEST D",
        "fullName": "Aft Dest D",
        "renderStyle": "arc",
        "type": "enum",
@@ -8870,7 +9185,7 @@
     "rows": [
      [
       {
-       "shortName": "DESTA",
+       "shortName": "DEST A",
        "fullName": "Exp Dest A",
        "renderStyle": "arc",
        "type": "enum",
@@ -8884,7 +9199,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DESTB",
+       "shortName": "DEST B",
        "fullName": "Exp Dest B",
        "renderStyle": "arc",
        "type": "enum",
@@ -8900,7 +9215,7 @@
      ],
      [
       {
-       "shortName": "DESTC",
+       "shortName": "DEST C",
        "fullName": "Exp Dest C",
        "renderStyle": "arc",
        "type": "enum",
@@ -8914,7 +9229,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DESTD",
+       "shortName": "DEST D",
        "fullName": "Exp Dest D",
        "renderStyle": "arc",
        "type": "enum",
@@ -8940,7 +9255,7 @@
     "rows": [
      [
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
        "type": "int",
@@ -8954,14 +9269,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "A.ET1",
+       "shortName": "A.ENT1",
        "fullName": "A.Env T1",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "A.ET2",
+       "shortName": "A.ENT2",
        "fullName": "A.Env T2",
        "renderStyle": "arc",
        "type": "int",
@@ -8970,14 +9285,14 @@
      ],
      [
       {
-       "shortName": "A.EL3",
+       "shortName": "A.ENL3",
        "fullName": "A.Env L3",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "A.ET4",
+       "shortName": "A.ENT4",
        "fullName": "A.Env T4",
        "renderStyle": "arc",
        "type": "int",
@@ -8986,14 +9301,14 @@
       {
        "shortName": "LEVEL",
        "fullName": "Level",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "PAN",
        "fullName": "Pan",
-       "renderStyle": "arc",
+       "renderStyle": "pan",
        "type": "int",
        "displayValue": "..."
       }
@@ -9012,7 +9327,7 @@
       {
        "shortName": "TONE",
        "fullName": "Tone Switch",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -9033,7 +9348,7 @@
       {
        "shortName": "FXM",
        "fullName": "FXM",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       }
@@ -9083,7 +9398,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "P.ET1",
+       "shortName": "P.ENT1",
        "fullName": "P.Env T1",
        "renderStyle": "arc",
        "type": "int",
@@ -9092,21 +9407,21 @@
      ],
      [
       {
-       "shortName": "P.ET2",
+       "shortName": "P.ENT2",
        "fullName": "P.Env T2",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "P.ET4",
+       "shortName": "P.ENT4",
        "fullName": "P.Env T4",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "PITKF",
+       "shortName": "PITCKF",
        "fullName": "Pitch KF",
        "renderStyle": "arc",
        "type": "int",
@@ -9132,28 +9447,28 @@
     "rows": [
      [
       {
-       "shortName": "P.ET3",
+       "shortName": "P.ENT3",
        "fullName": "P.Env T3",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "P.EL1",
+       "shortName": "P.ENL1",
        "fullName": "P.Env L1",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "P.EL2",
+       "shortName": "P.ENL2",
        "fullName": "P.Env L2",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "P.EL3",
+       "shortName": "P.ENL3",
        "fullName": "P.Env L3",
        "renderStyle": "arc",
        "type": "int",
@@ -9162,7 +9477,7 @@
      ],
      [
       {
-       "shortName": "P.EL4",
+       "shortName": "P.ENL4",
        "fullName": "P.Env L4",
        "renderStyle": "arc",
        "type": "int",
@@ -9184,7 +9499,7 @@
     "rows": [
      [
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
        "type": "int",
@@ -9205,7 +9520,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "F.ET1",
+       "shortName": "F.ENT1",
        "fullName": "F.Env T1",
        "renderStyle": "arc",
        "type": "int",
@@ -9214,28 +9529,28 @@
      ],
      [
       {
-       "shortName": "F.ET2",
+       "shortName": "F.ENT2",
        "fullName": "F.Env T2",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "F.EL3",
+       "shortName": "F.ENL3",
        "fullName": "F.Env L3",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "F.ET4",
+       "shortName": "F.ENT4",
        "fullName": "F.Env T4",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "FM",
+       "shortName": "FILTER",
        "fullName": "Filter Mode",
        "renderStyle": "arc",
        "type": "enum",
@@ -9254,7 +9569,7 @@
     "rows": [
      [
       {
-       "shortName": "CK",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff KF",
        "renderStyle": "arc",
        "type": "int",
@@ -9275,7 +9590,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "F.ET3",
+       "shortName": "F.ENT3",
        "fullName": "F.Env T3",
        "renderStyle": "arc",
        "type": "int",
@@ -9284,21 +9599,21 @@
      ],
      [
       {
-       "shortName": "F.EL1",
+       "shortName": "F.ENL1",
        "fullName": "F.Env L1",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "F.EL2",
+       "shortName": "F.ENL2",
        "fullName": "F.Env L2",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "F.EL4",
+       "shortName": "F.ENL4",
        "fullName": "F.Env L4",
        "renderStyle": "arc",
        "type": "int",
@@ -9320,26 +9635,26 @@
       {
        "shortName": "LEVEL",
        "fullName": "Level",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "PAN",
        "fullName": "Pan",
-       "renderStyle": "arc",
+       "renderStyle": "pan",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "A.ET1",
+       "shortName": "A.ENT1",
        "fullName": "A.Env T1",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "A.ET2",
+       "shortName": "A.ENT2",
        "fullName": "A.Env T2",
        "renderStyle": "arc",
        "type": "int",
@@ -9348,14 +9663,14 @@
      ],
      [
       {
-       "shortName": "A.EL3",
+       "shortName": "A.ENL3",
        "fullName": "A.Env L3",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "A.ET4",
+       "shortName": "A.ENT4",
        "fullName": "A.Env T4",
        "renderStyle": "arc",
        "type": "int",
@@ -9395,21 +9710,21 @@
        "displayValue": "..."
       },
       {
-       "shortName": "PAN",
+       "shortName": "PAN KF",
        "fullName": "Pan KF",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "A.ET3",
+       "shortName": "A.ENT3",
        "fullName": "A.Env T3",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "A.EL1",
+       "shortName": "A.ENL1",
        "fullName": "A.Env L1",
        "renderStyle": "arc",
        "type": "int",
@@ -9418,7 +9733,7 @@
      ],
      [
       {
-       "shortName": "A.EL2",
+       "shortName": "A.ENL2",
        "fullName": "A.Env L2",
        "renderStyle": "arc",
        "type": "int",
@@ -9489,7 +9804,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "FILTE",
+       "shortName": "FILTER",
        "fullName": "LFO1 Filter",
        "renderStyle": "arc",
        "type": "int",
@@ -9503,7 +9818,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "OFFSE",
+       "shortName": "OFFSET",
        "fullName": "LFO1 Offset",
        "renderStyle": "arc",
        "type": "enum",
@@ -9524,7 +9839,7 @@
       {
        "shortName": "LFO1",
        "fullName": "LFO1 Sync",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -9587,7 +9902,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "FILTE",
+       "shortName": "FILTER",
        "fullName": "LFO2 Filter",
        "renderStyle": "arc",
        "type": "int",
@@ -9616,7 +9931,7 @@
       {
        "shortName": "DRY",
        "fullName": "Dry Level",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
@@ -9654,7 +9969,7 @@
     "rows": [
      [
       {
-       "shortName": "DESTA",
+       "shortName": "DEST A",
        "fullName": "Mod Dest A",
        "renderStyle": "arc",
        "type": "enum",
@@ -9668,7 +9983,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DESTB",
+       "shortName": "DEST B",
        "fullName": "Mod Dest B",
        "renderStyle": "arc",
        "type": "enum",
@@ -9684,7 +9999,7 @@
      ],
      [
       {
-       "shortName": "DESTC",
+       "shortName": "DEST C",
        "fullName": "Mod Dest C",
        "renderStyle": "arc",
        "type": "enum",
@@ -9698,7 +10013,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DESTD",
+       "shortName": "DEST D",
        "fullName": "Mod Dest D",
        "renderStyle": "arc",
        "type": "enum",
@@ -9724,7 +10039,7 @@
     "rows": [
      [
       {
-       "shortName": "DESTA",
+       "shortName": "DEST A",
        "fullName": "Aft Dest A",
        "renderStyle": "arc",
        "type": "enum",
@@ -9738,7 +10053,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DESTB",
+       "shortName": "DEST B",
        "fullName": "Aft Dest B",
        "renderStyle": "arc",
        "type": "enum",
@@ -9754,7 +10069,7 @@
      ],
      [
       {
-       "shortName": "DESTC",
+       "shortName": "DEST C",
        "fullName": "Aft Dest C",
        "renderStyle": "arc",
        "type": "enum",
@@ -9768,7 +10083,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DESTD",
+       "shortName": "DEST D",
        "fullName": "Aft Dest D",
        "renderStyle": "arc",
        "type": "enum",
@@ -9794,7 +10109,7 @@
     "rows": [
      [
       {
-       "shortName": "DESTA",
+       "shortName": "DEST A",
        "fullName": "Exp Dest A",
        "renderStyle": "arc",
        "type": "enum",
@@ -9808,7 +10123,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DESTB",
+       "shortName": "DEST B",
        "fullName": "Exp Dest B",
        "renderStyle": "arc",
        "type": "enum",
@@ -9824,7 +10139,7 @@
      ],
      [
       {
-       "shortName": "DESTC",
+       "shortName": "DEST C",
        "fullName": "Exp Dest C",
        "renderStyle": "arc",
        "type": "enum",
@@ -9838,7 +10153,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DESTD",
+       "shortName": "DEST D",
        "fullName": "Exp Dest D",
        "renderStyle": "arc",
        "type": "enum",
@@ -9864,14 +10179,124 @@
     "rows": [
      [
       {
-       "shortName": "OCTAV",
+       "shortName": "OCTAVE",
        "fullName": "Octave",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
       },
       null,
       null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Common / Effects",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "KEY",
+       "fullName": "Key Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TYPE",
+       "fullName": "Reverb Type",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RL",
+       "fullName": "Reverb Level",
+       "renderStyle": "vbar",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TIME",
+       "fullName": "Reverb Time",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "CT",
+       "fullName": "Chorus Type",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CL",
+       "fullName": "Chorus Level",
+       "renderStyle": "vbar",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CD",
+       "fullName": "Chorus Depth",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CR",
+       "fullName": "Chorus Rate",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Common / Effects - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "RF",
+       "fullName": "Reverb Feedback",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CF",
+       "fullName": "Chorus Feedback",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CO",
+       "fullName": "Chorus Output",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
       null
      ],
      [
@@ -9894,28 +10319,28 @@
       {
        "shortName": "LEVEL",
        "fullName": "Part Level",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "PAN",
        "fullName": "Part Pan",
-       "renderStyle": "arc",
+       "renderStyle": "pan",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "REVER",
        "fullName": "Reverb",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
       {
        "shortName": "CHORU",
        "fullName": "Chorus",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       }
@@ -9936,14 +10361,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "KEYLO",
+       "shortName": "KEY LO",
        "fullName": "Key Lo",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "KEYHI",
+       "shortName": "KEY HI",
        "fullName": "Key Hi",
        "renderStyle": "arc",
        "type": "int",
@@ -9962,6 +10387,13 @@
     "rows": [
      [
       {
+       "shortName": "PART",
+       "fullName": "Part On",
+       "renderStyle": "switch",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
        "shortName": "BANK",
        "fullName": "Bank",
        "renderStyle": "arc",
@@ -9976,17 +10408,28 @@
        "displayValue": "..."
       },
       {
-       "shortName": "TRANS",
+       "shortName": "TRANSP",
        "fullName": "Transpose",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
-      },
-      null
+      }
      ],
      [
-      null,
-      null,
+      {
+       "shortName": "SENSE",
+       "fullName": "Vel Sense",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MAX",
+       "fullName": "Vel Max",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
       null,
       null
      ]
@@ -10005,6 +10448,7 @@
     "options": null,
     "nameKey": "preset_name",
     "renderStyle": "preset",
+    "capturesModuleState": true,
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -10158,41 +10602,41 @@
    {
     "key": "nvram_patchCommon_patchlevel",
     "label": "Patch Level",
-    "shortLabel": null,
+    "shortLabel": "Level",
     "type": "int",
     "options": null,
     "min": 0,
     "max": 127,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
     "key": "nvram_patchCommon_patchpan",
     "label": "Patch Pan",
-    "shortLabel": null,
+    "shortLabel": "Pan",
     "type": "int",
     "options": null,
     "min": 0,
     "max": 127,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "pan",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
     "key": "nvram_patchCommon_analogfeel",
     "label": "Analog Feel",
-    "shortLabel": null,
+    "shortLabel": "Feel",
     "type": "int",
     "options": null,
     "min": 0,
@@ -10209,7 +10653,7 @@
    {
     "key": "nvram_patchCommon_bendrangeup",
     "label": "Bend Up",
-    "shortLabel": null,
+    "shortLabel": "Up",
     "type": "int",
     "options": null,
     "min": 0,
@@ -10226,7 +10670,7 @@
    {
     "key": "nvram_patchCommon_bendrangedown",
     "label": "Bend Down",
-    "shortLabel": null,
+    "shortLabel": "Down",
     "type": "int",
     "options": null,
     "min": 0,
@@ -10252,7 +10696,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -10263,7 +10707,7 @@
    {
     "key": "nvram_patchCommon_portamentotime",
     "label": "Porta Time",
-    "shortLabel": null,
+    "shortLabel": "TIME",
     "type": "int",
     "options": null,
     "min": 0,
@@ -10280,7 +10724,7 @@
    {
     "key": "nvram_patchCommon_keyassign",
     "label": "Key Assign",
-    "shortLabel": null,
+    "shortLabel": "Assign",
     "type": "enum",
     "options": [
      "Poly",
@@ -10300,7 +10744,7 @@
    {
     "key": "nvram_patchCommon_portamentomode",
     "label": "Porta Mode",
-    "shortLabel": null,
+    "shortLabel": "Mode",
     "type": "enum",
     "options": [
      "Legato",
@@ -10320,7 +10764,7 @@
    {
     "key": "nvram_patchCommon_portamentotype",
     "label": "Porta Type",
-    "shortLabel": null,
+    "shortLabel": "Type",
     "type": "enum",
     "options": [
      "Time",
@@ -10340,7 +10784,7 @@
    {
     "key": "nvram_patchCommon_sololegato",
     "label": "Solo Legato",
-    "shortLabel": null,
+    "shortLabel": "Legato",
     "type": "enum",
     "options": [
      "Off",
@@ -10349,7 +10793,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -10360,7 +10804,7 @@
    {
     "key": "nvram_patchCommon_velocityswitch",
     "label": "Velocity Sw",
-    "shortLabel": null,
+    "shortLabel": "Velocity",
     "type": "enum",
     "options": [
      "Off",
@@ -10369,7 +10813,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -10427,7 +10871,7 @@
    {
     "key": "nvram_patchCommon_reverbtime",
     "label": "Reverb Time",
-    "shortLabel": null,
+    "shortLabel": "Time",
     "type": "int",
     "options": null,
     "min": 0,
@@ -10444,7 +10888,7 @@
    {
     "key": "nvram_patchCommon_reverbfeedback",
     "label": "Reverb Feedback",
-    "shortLabel": null,
+    "shortLabel": "Feedback",
     "type": "int",
     "options": null,
     "min": 0,
@@ -10499,7 +10943,7 @@
    {
     "key": "nvram_patchCommon_chorusdepth",
     "label": "Chorus Depth",
-    "shortLabel": null,
+    "shortLabel": "Depth",
     "type": "int",
     "options": null,
     "min": 0,
@@ -10516,7 +10960,7 @@
    {
     "key": "nvram_patchCommon_chorusrate",
     "label": "Chorus Rate",
-    "shortLabel": null,
+    "shortLabel": "Rate",
     "type": "int",
     "options": null,
     "min": 0,
@@ -10533,7 +10977,7 @@
    {
     "key": "nvram_patchCommon_chorusfeedback",
     "label": "Chorus Feedback",
-    "shortLabel": null,
+    "shortLabel": "Feedback",
     "type": "int",
     "options": null,
     "min": 0,
@@ -10550,7 +10994,7 @@
    {
     "key": "nvram_patchCommon_chorusoutput",
     "label": "Chorus Output",
-    "shortLabel": null,
+    "shortLabel": "Output",
     "type": "enum",
     "options": [
      "Mix",
@@ -10576,7 +11020,7 @@
    {
     "key": "link_tones",
     "label": "Link all to 1",
-    "shortLabel": null,
+    "shortLabel": "Link all 1",
     "type": "enum",
     "options": [
      "Off",
@@ -10585,7 +11029,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -10711,12 +11155,12 @@
     "min": 0,
     "max": 127,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -10728,12 +11172,12 @@
     "min": -64,
     "max": 63,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "pan",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -10748,7 +11192,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -10807,7 +11251,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -11331,12 +11775,12 @@
     "min": 0,
     "max": 127,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -11348,12 +11792,12 @@
     "min": -64,
     "max": 63,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "pan",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -11744,7 +12188,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -11895,12 +12339,12 @@
     "min": 0,
     "max": 127,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -12629,12 +13073,12 @@
     "min": 0,
     "max": 127,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -12646,12 +13090,12 @@
     "min": -64,
     "max": 63,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "pan",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -12666,7 +13110,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -12725,7 +13169,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -13249,12 +13693,12 @@
     "min": 0,
     "max": 127,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -13266,12 +13710,12 @@
     "min": -64,
     "max": 63,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "pan",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -13662,7 +14106,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -13813,12 +14257,12 @@
     "min": 0,
     "max": 127,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -14547,12 +14991,12 @@
     "min": 0,
     "max": 127,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -14564,12 +15008,12 @@
     "min": -64,
     "max": 63,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "pan",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -14584,7 +15028,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -14643,7 +15087,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -15167,12 +15611,12 @@
     "min": 0,
     "max": 127,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -15184,12 +15628,12 @@
     "min": -64,
     "max": 63,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "pan",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -15580,7 +16024,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -15731,12 +16175,12 @@
     "min": 0,
     "max": 127,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -16465,12 +16909,12 @@
     "min": 0,
     "max": 127,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -16482,12 +16926,12 @@
     "min": -64,
     "max": 63,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "pan",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -16502,7 +16946,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -16561,7 +17005,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -17085,12 +17529,12 @@
     "min": 0,
     "max": 127,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -17102,12 +17546,12 @@
     "min": -64,
     "max": 63,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "pan",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -17498,7 +17942,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -17649,12 +18093,12 @@
     "min": 0,
     "max": 127,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -18281,16 +18725,229 @@
     "min": -3,
     "max": 3,
     "step": 1,
+    "renderStyle": "steps",
+    "signed": true,
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 6
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "sram_perfCommon_keymode",
+    "label": "Key Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Layer",
+     "Zone",
+     "Single"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "sram_perfCommon_reverbtype",
+    "label": "Reverb Type",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Room1",
+     "Room2",
+     "Stage1",
+     "Stage2",
+     "Hall1",
+     "Hall2",
+     "Delay",
+     "Pan-Dly"
+    ],
+    "min": 0,
+    "max": 7,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 8
+    }
+   },
+   {
+    "key": "sram_perfCommon_reverblevel",
+    "label": "Reverb Level",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 127
+    }
+   },
+   {
+    "key": "sram_perfCommon_reverbtime",
+    "label": "Reverb Time",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
     "renderStyle": "arc",
     "automatable": true,
     "increment": {
      "kind": "int",
      "perDetent": 0.5,
-     "detentsFullSweep": 12
+     "detentsFullSweep": 254
     }
    },
-   null,
-   null,
+   {
+    "key": "sram_perfCommon_chorustype",
+    "label": "Chorus Type",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Chorus1",
+     "Chorus2",
+     "Chorus3"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "sram_perfCommon_choruslevel",
+    "label": "Chorus Level",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 127
+    }
+   },
+   {
+    "key": "sram_perfCommon_chorusdepth",
+    "label": "Chorus Depth",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "sram_perfCommon_chorusrate",
+    "label": "Chorus Rate",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "sram_perfCommon_reverbfeedback",
+    "label": "Reverb Feedback",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "sram_perfCommon_chorusfeedback",
+    "label": "Chorus Feedback",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "sram_perfCommon_chorusoutput",
+    "label": "Chorus Output",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Mix",
+     "Reverb"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
    null,
    null,
    null,
@@ -18305,12 +18962,12 @@
     "min": 0,
     "max": 127,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -18322,12 +18979,12 @@
     "min": 0,
     "max": 127,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "pan",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -18342,7 +18999,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -18362,7 +19019,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -18439,24 +19096,45 @@
     }
    },
    {
+    "key": "internalswitch",
+    "label": "Part On",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "switch",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
     "key": "patchbank",
     "label": "Bank",
     "shortLabel": null,
     "type": "enum",
     "options": [
+     "User",
      "Internal",
      "Preset A",
      "Preset B"
     ],
     "min": 0,
-    "max": 2,
+    "max": 3,
     "step": 1,
     "renderStyle": "arc",
     "automatable": false,
     "increment": {
      "kind": "enum",
      "detentsPerStep": 4,
-     "steps": 3
+     "steps": 4
     }
    },
    {
@@ -18493,15 +19171,47 @@
      "detentsFullSweep": 192
     }
    },
-   null,
-   null,
-   null,
+   {
+    "key": "internalvelocitysense",
+    "label": "Vel Sense",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 252
+    }
+   },
+   {
+    "key": "internalvelocitymax",
+    "label": "Vel Max",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
    null,
    null
   ]
  },
  "analysis": {
   "hiddenParams": [
+   "mode",
    "performance",
    "part",
    "nvram_tone_0_velocityrangelower",
@@ -18515,7 +19225,7 @@
   ],
   "noMetadata": [],
   "warnings": [
-   "10 chain_params not reachable in movy: performance, part, nvram_tone_0_velocityrangelower, nvram_tone_0_velocityrangeupper, nvram_tone_1_velocityrangelower, nvram_tone_1_velocityrangeupper, nvram_tone_2_velocityrangelower, nvram_tone_2_velocityrangeupper, nvram_tone_3_velocityrangelower, nvram_tone_3_velocityrangeupper"
+   "11 chain_params not reachable in movy: mode, performance, part, nvram_tone_0_velocityrangelower, nvram_tone_0_velocityrangeupper, nvram_tone_1_velocityrangelower, nvram_tone_1_velocityrangeupper, nvram_tone_2_velocityrangelower, nvram_tone_2_velocityrangeupper, nvram_tone_3_velocityrangelower, nvram_tone_3_velocityrangeupper"
   ]
  }
 }

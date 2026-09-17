@@ -1,0 +1,967 @@
+{
+ "id": "slicer",
+ "name": "slicer",
+ "version": null,
+ "author": null,
+ "category": "sound_generator",
+ "status": "ok",
+ "capabilities": null,
+ "presets": {
+  "count": 0,
+  "sample": []
+ },
+ "native": {
+  "hierarchy_levels": [],
+  "params": [
+   {
+    "key": "threshold",
+    "name": "Sensitivity",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.5"
+   },
+   {
+    "key": "pitch",
+    "name": "Pitch",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "velocity_sens",
+    "name": "Velocity",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": null
+   },
+   {
+    "key": "mode",
+    "name": "Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "trigger",
+     "gate"
+    ],
+    "default": "gate"
+   },
+   {
+    "key": "global_gain",
+    "name": "Gain",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": null
+   },
+   {
+    "key": "mono_mode",
+    "name": "Mono",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": null
+   },
+   {
+    "key": "sync",
+    "name": "Tempo Sync",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0",
+     "1"
+    ],
+    "default": "1"
+   },
+   {
+    "key": "slice_algo",
+    "name": "Slice Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0",
+     "1"
+    ],
+    "default": null
+   },
+   {
+    "key": "playthrough",
+    "name": "Playthrough",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0",
+     "1"
+    ],
+    "default": null
+   },
+   {
+    "key": "global_attack",
+    "name": "Global Attack",
+    "type": "float",
+    "min": 5,
+    "max": 2000,
+    "step": null,
+    "options": null,
+    "default": null
+   },
+   {
+    "key": "global_decay",
+    "name": "Global Decay",
+    "type": "float",
+    "min": 0,
+    "max": 5000,
+    "step": null,
+    "options": null,
+    "default": null
+   },
+   {
+    "key": "slice_attack",
+    "name": "Attack",
+    "type": "float",
+    "min": 5,
+    "max": 2000,
+    "step": null,
+    "options": null,
+    "default": null
+   },
+   {
+    "key": "slice_decay",
+    "name": "Decay",
+    "type": "float",
+    "min": 0,
+    "max": 5000,
+    "step": null,
+    "options": null,
+    "default": null
+   },
+   {
+    "key": "slice_start_trim",
+    "name": "Start Trim",
+    "type": "float",
+    "min": -1000,
+    "max": 1000,
+    "step": null,
+    "options": null,
+    "default": null
+   },
+   {
+    "key": "slice_end_trim",
+    "name": "End Trim",
+    "type": "float",
+    "min": -1000,
+    "max": 1000,
+    "step": null,
+    "options": null,
+    "default": null
+   },
+   {
+    "key": "slice_pitch",
+    "name": "Pad Pitch",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": null
+   },
+   {
+    "key": "slice_gain",
+    "name": "Pad Gain",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": null,
+    "options": null,
+    "default": null
+   },
+   {
+    "key": "slice_mode",
+    "name": "Pad Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0",
+     "1"
+    ],
+    "default": null
+   },
+   {
+    "key": "slice_loop",
+    "name": "Loop",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0",
+     "1",
+     "2",
+     "3"
+    ],
+    "default": null
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": true,
+  "usesMovyConfigFile": false,
+  "drum": {
+   "padCount": 32,
+   "padNoteStart": 68,
+   "rawMidi": true,
+   "shiftSelectMidi": true
+  },
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Slice",
+    "global": false,
+    "padSpecific": true
+   },
+   {
+    "name": "Advanced",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "SAMPL",
+       "fullName": "Sample",
+       "renderStyle": "arc",
+       "type": "file",
+       "displayValue": "—"
+      },
+      {
+       "shortName": "SCAN",
+       "fullName": "Scan Slices",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SENSI",
+       "fullName": "Sensitivity",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SLICE",
+       "fullName": "Slices",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "PITCH",
+       "fullName": "Pitch",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VELOC",
+       "fullName": "Velocity",
+       "renderStyle": "switch",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GAIN",
+       "fullName": "Gain",
+       "renderStyle": "vbar",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MONO",
+       "fullName": "Mono",
+       "renderStyle": "switch",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Slice",
+    "envelopeLines": [
+     true,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ATTK",
+       "fullName": "Slice Attack",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Slice Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "START",
+       "fullName": "Slice Start",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "END",
+       "fullName": "Slice End",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "PTCH",
+       "fullName": "Slice Pitch",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SGAIN",
+       "fullName": "Slice Gain",
+       "renderStyle": "vbar",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SMODE",
+       "fullName": "Slice Mode",
+       "renderStyle": "switch",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LOOP",
+       "fullName": "Slice Loop",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Advanced",
+    "envelopeLines": [
+     false,
+     true
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MODE",
+       "fullName": "Trigger Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ALGO",
+       "fullName": "Slice Algo",
+       "renderStyle": "switch",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PTHRU",
+       "fullName": "Playthrough",
+       "renderStyle": "switch",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SYNC",
+       "fullName": "Tempo Sync",
+       "renderStyle": "switch",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "GATTK",
+       "fullName": "Global Attack",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GDECY",
+       "fullName": "Global Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ROLL",
+       "fullName": "Reroll Slices",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DBPM",
+       "fullName": "Detect BPM",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "sample_path",
+    "label": "Sample",
+    "shortLabel": "SAMPL",
+    "type": "file",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "fileRoot": "/data/UserData/UserLibrary",
+    "fileFilter": [
+     ".wav",
+     ".aif",
+     ".aiff",
+     ".mp3",
+     ".flac"
+    ],
+    "fileStartPath": "/data/UserData/UserLibrary/Samples",
+    "increment": {
+     "kind": "file-browse"
+    }
+   },
+   {
+    "key": "scan",
+    "label": "Scan Slices",
+    "shortLabel": "SCAN",
+    "type": "enum",
+    "options": [
+     "idle",
+     "trigger"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "behavior": "trigger",
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "threshold",
+    "label": "Sensitivity",
+    "shortLabel": "SENSI",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "slices",
+    "label": "Slices",
+    "shortLabel": "SLICE",
+    "type": "enum",
+    "options": [
+     "8",
+     "16",
+     "32",
+     "64"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "pitch",
+    "label": "Pitch",
+    "shortLabel": "PITCH",
+    "type": "float",
+    "options": null,
+    "min": -24,
+    "max": 24,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 9600
+    }
+   },
+   {
+    "key": "velocity_sens",
+    "label": "Velocity",
+    "shortLabel": "VELOC",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "switch",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "global_gain",
+    "label": "Gain",
+    "shortLabel": "GAIN",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "mono_mode",
+    "label": "Mono",
+    "shortLabel": "MONO",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "switch",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "slice_start_trim",
+    "label": "Slice Start",
+    "shortLabel": "START",
+    "type": "float",
+    "options": null,
+    "min": -1000,
+    "max": 1000,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 400000
+    }
+   },
+   {
+    "key": "slice_end_trim",
+    "label": "Slice End",
+    "shortLabel": "END",
+    "type": "float",
+    "options": null,
+    "min": -1000,
+    "max": 1000,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 400000
+    }
+   },
+   {
+    "key": "slice_attack",
+    "label": "Slice Attack",
+    "shortLabel": "ATTK",
+    "type": "float",
+    "options": null,
+    "min": 5,
+    "max": 2000,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 399000
+    }
+   },
+   {
+    "key": "slice_decay",
+    "label": "Slice Decay",
+    "shortLabel": "DECAY",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 5000,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 1000000
+    }
+   },
+   {
+    "key": "slice_pitch",
+    "label": "Slice Pitch",
+    "shortLabel": "PTCH",
+    "type": "float",
+    "options": null,
+    "min": -24,
+    "max": 24,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 9600
+    }
+   },
+   {
+    "key": "slice_gain",
+    "label": "Slice Gain",
+    "shortLabel": "SGAIN",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 2,
+    "step": 0.01,
+    "renderStyle": "vbar",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "slice_mode",
+    "label": "Slice Mode",
+    "shortLabel": "SMODE",
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "switch",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "slice_loop",
+    "label": "Slice Loop",
+    "shortLabel": "LOOP",
+    "type": "enum",
+    "options": [
+     "0",
+     "1",
+     "2",
+     "3"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "mode",
+    "label": "Trigger Mode",
+    "shortLabel": "MODE",
+    "type": "enum",
+    "options": [
+     "trigger",
+     "gate"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "slice_algo",
+    "label": "Slice Algo",
+    "shortLabel": "ALGO",
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "switch",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "playthrough",
+    "label": "Playthrough",
+    "shortLabel": "PTHRU",
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "switch",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "sync",
+    "label": "Tempo Sync",
+    "shortLabel": "SYNC",
+    "type": "enum",
+    "options": [
+     "0",
+     "1"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "switch",
+    "automatable": false,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "global_attack",
+    "label": "Global Attack",
+    "shortLabel": "GATTK",
+    "type": "float",
+    "options": null,
+    "min": 5,
+    "max": 2000,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 399000
+    }
+   },
+   {
+    "key": "global_decay",
+    "label": "Global Decay",
+    "shortLabel": "GDECY",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 5000,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 1000000
+    }
+   },
+   {
+    "key": "reroll",
+    "label": "Reroll Slices",
+    "shortLabel": "ROLL",
+    "type": "enum",
+    "options": [
+     "idle",
+     "trigger"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "behavior": "trigger",
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "detect_bpm",
+    "label": "Detect BPM",
+    "shortLabel": "DBPM",
+    "type": "enum",
+    "options": [
+     "idle",
+     "trigger"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "behavior": "trigger",
+    "capturesModuleState": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   }
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [],
+  "noMetadata": [
+   "scan",
+   "slices",
+   "reroll",
+   "detect_bpm"
+  ],
+  "warnings": []
+ }
+}

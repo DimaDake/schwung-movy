@@ -5,7 +5,7 @@
  "author": "mestela",
  "category": "midi_fx",
  "status": "ok",
- "load_ms": 80,
+ "load_ms": 68,
  "dsp_size": 114896,
  "capabilities": {
   "chainable": true,
@@ -187,7 +187,172 @@
   "hierarchy_levels": [
    "root"
   ],
-  "params": []
+  "params": [
+   {
+    "key": "preset_index",
+    "name": "Preset",
+    "type": "int",
+    "min": 0,
+    "max": 500,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "base_note",
+    "name": "Base Note",
+    "type": "int",
+    "min": 0,
+    "max": 127,
+    "step": null,
+    "options": null,
+    "default": "48"
+   },
+   {
+    "key": "transpose",
+    "name": "Transpose",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "invert",
+    "name": "Invert",
+    "type": "int",
+    "min": -12,
+    "max": 12,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "strum",
+    "name": "Strum",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "tilt",
+    "name": "Tilt",
+    "type": "int",
+    "min": -100,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "articulate",
+    "name": "Articulate",
+    "type": "int",
+    "min": 1,
+    "max": 8,
+    "step": null,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "length",
+    "name": "Length",
+    "type": "int",
+    "min": 10,
+    "max": 2000,
+    "step": null,
+    "options": null,
+    "default": "200"
+   },
+   {
+    "key": "retrig",
+    "name": "Retrigger",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "0 Off",
+     "1 1B",
+     "2 1/2B",
+     "3 1b",
+     "4 1/2b",
+     "5 1/4b",
+     "6 1/8b",
+     "7 1/16b",
+     "8 1/32b"
+    ],
+    "default": "0 Off"
+   },
+   {
+    "key": "timing",
+    "name": "Timing",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Straight",
+     "Dotted",
+     "Triplet"
+    ],
+    "default": "Straight"
+   },
+   {
+    "key": "choke",
+    "name": "Choke",
+    "type": "int",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "notes",
+    "name": "Notes Limit",
+    "type": "int",
+    "min": 0,
+    "max": 12,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "fit",
+    "name": "Fit Strum",
+    "type": "int",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "gate",
+    "name": "Gate",
+    "type": "int",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "scan",
+    "name": "Scan Presets",
+    "type": "int",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   }
+  ]
  },
  "movy": {
   "hasConfig": false,
@@ -221,7 +386,7 @@
     "rows": [
      [
       {
-       "shortName": "PRESE",
+       "shortName": "PRESET",
        "fullName": "Preset",
        "renderStyle": "preset",
        "type": "enum",
@@ -250,28 +415,28 @@
      [
       {
        "shortName": "BASE",
-       "fullName": "base_note",
+       "fullName": "Base Note",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "TRANS",
-       "fullName": "transpose",
+       "shortName": "TRANSP",
+       "fullName": "Transpose",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "INVER",
-       "fullName": "invert",
+       "shortName": "INVERT",
+       "fullName": "Invert",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "STRUM",
-       "fullName": "strum",
+       "fullName": "Strum",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
@@ -280,28 +445,28 @@
      [
       {
        "shortName": "TILT",
-       "fullName": "tilt",
+       "fullName": "Tilt",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "ARTIC",
-       "fullName": "articulate",
+       "shortName": "ARTICU",
+       "fullName": "Articulate",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "LENGT",
-       "fullName": "length",
+       "shortName": "LENGTH",
+       "fullName": "Length",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "RETRI",
-       "fullName": "retrig",
+       "shortName": "RETRIG",
+       "fullName": "Retrigger",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
@@ -319,30 +484,30 @@
     "rows": [
      [
       {
-       "shortName": "TIMIN",
-       "fullName": "timing",
+       "shortName": "TIMING",
+       "fullName": "Timing",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
        "shortName": "CHOKE",
-       "fullName": "choke",
-       "renderStyle": "hbar",
+       "fullName": "Choke",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "NOTES",
-       "fullName": "notes",
+       "fullName": "Notes Limit",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "FIT",
-       "fullName": "fit",
-       "renderStyle": "hbar",
+       "fullName": "Fit Strum",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       }
@@ -350,15 +515,15 @@
      [
       {
        "shortName": "GATE",
-       "fullName": "gate",
-       "renderStyle": "hbar",
+       "fullName": "Gate",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "SCAN",
-       "fullName": "scan",
-       "renderStyle": "hbar",
+       "fullName": "Scan Presets",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
@@ -380,6 +545,7 @@
     "options": null,
     "nameKey": "preset_name",
     "renderStyle": "preset",
+    "capturesModuleState": true,
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -396,7 +562,7 @@
    null,
    {
     "key": "base_note",
-    "label": "base_note",
+    "label": "Base Note",
     "shortLabel": null,
     "type": "int",
     "options": null,
@@ -413,7 +579,7 @@
    },
    {
     "key": "transpose",
-    "label": "transpose",
+    "label": "Transpose",
     "shortLabel": null,
     "type": "int",
     "options": null,
@@ -430,7 +596,7 @@
    },
    {
     "key": "invert",
-    "label": "invert",
+    "label": "Invert",
     "shortLabel": null,
     "type": "int",
     "options": null,
@@ -447,7 +613,7 @@
    },
    {
     "key": "strum",
-    "label": "strum",
+    "label": "Strum",
     "shortLabel": null,
     "type": "int",
     "options": null,
@@ -464,7 +630,7 @@
    },
    {
     "key": "tilt",
-    "label": "tilt",
+    "label": "Tilt",
     "shortLabel": null,
     "type": "int",
     "options": null,
@@ -481,7 +647,7 @@
    },
    {
     "key": "articulate",
-    "label": "articulate",
+    "label": "Articulate",
     "shortLabel": null,
     "type": "int",
     "options": null,
@@ -498,7 +664,7 @@
    },
    {
     "key": "length",
-    "label": "length",
+    "label": "Length",
     "shortLabel": null,
     "type": "int",
     "options": null,
@@ -515,7 +681,7 @@
    },
    {
     "key": "retrig",
-    "label": "retrig",
+    "label": "Retrigger",
     "shortLabel": null,
     "type": "enum",
     "options": [
@@ -542,7 +708,7 @@
    },
    {
     "key": "timing",
-    "label": "timing",
+    "label": "Timing",
     "shortLabel": null,
     "type": "enum",
     "options": [
@@ -563,14 +729,14 @@
    },
    {
     "key": "choke",
-    "label": "choke",
+    "label": "Choke",
     "shortLabel": null,
     "type": "int",
     "options": null,
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -580,7 +746,7 @@
    },
    {
     "key": "notes",
-    "label": "notes",
+    "label": "Notes Limit",
     "shortLabel": null,
     "type": "int",
     "options": null,
@@ -597,14 +763,14 @@
    },
    {
     "key": "fit",
-    "label": "fit",
+    "label": "Fit Strum",
     "shortLabel": null,
     "type": "int",
     "options": null,
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -614,14 +780,14 @@
    },
    {
     "key": "gate",
-    "label": "gate",
+    "label": "Gate",
     "shortLabel": null,
     "type": "int",
     "options": null,
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -631,14 +797,14 @@
    },
    {
     "key": "scan",
-    "label": "scan",
+    "label": "Scan Presets",
     "shortLabel": null,
     "type": "int",
     "options": null,
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -652,25 +818,7 @@
  },
  "analysis": {
   "hiddenParams": [],
-  "noMetadata": [
-   "preset_index",
-   "base_note",
-   "transpose",
-   "invert",
-   "strum",
-   "tilt",
-   "articulate",
-   "length",
-   "retrig",
-   "timing",
-   "choke",
-   "notes",
-   "fit",
-   "gate",
-   "scan"
-  ],
-  "warnings": [
-   "15 shown params lack chain_params metadata (movy guesses type/range): preset_index, base_note, transpose, invert, strum, tilt, articulate, length, retrig, timing, choke, notes, …"
-  ]
+  "noMetadata": [],
+  "warnings": []
  }
 }

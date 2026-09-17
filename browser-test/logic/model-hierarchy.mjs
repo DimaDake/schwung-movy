@@ -194,6 +194,29 @@ _log('\nTest: level params[] entries render after that level\'s knobs');
     eq('extras: no key rendered twice',       all.length, new Set(all).size);
 }
 
+_log('\nTest: a page keeps its OWN level\'s short_name, not a later level\'s (SP-25)');
+{
+    // jp8000's Performance-page shape: a level ("main") declares distinct
+    // short_names for two keys; sibling levels visited LATER by the walk
+    // ("setup"/"arp") redeclare the same keys with a colliding short_name.
+    // A hierarchy-wide flattened map (absorbHierarchy, model/hierarchy.ts)
+    // absorbs whichever level is processed last for a given key, so "main"'s
+    // own page would read the LAST writer's value instead of its own.
+    const m = bootModel(MOCK_SYNTHS.level_shadowed_short_name);
+    const shortOf = (pg, i) => m.dumpLayout().params[pg * 8 + i]?.shortLabel;
+    const names = bankNames(m);
+    eq('shadow: page 0 = Main',  names[0], 'Main');
+    eq('shadow: page 1 = Setup', names[1], 'Setup');
+    eq('shadow: page 2 = Arp',   names[2], 'Arp');
+    eq('shadow: Main key_mode keeps its OWN short_name', shortOf(0, 0), 'KeyMd');
+    eq('shadow: Main arp_mode keeps its OWN short_name', shortOf(0, 1), 'ArpMd');
+    // Setup/Arp were already correct by coincidence of write order (nothing
+    // writes after them) — a regression guard that scoping to the owning
+    // level doesn't break the pages that were already right.
+    eq('shadow: Setup keeps its own short_name too', shortOf(1, 0), 'Mode');
+    eq('shadow: Arp keeps its own short_name too',    shortOf(2, 0), 'Mode');
+}
+
 _log('\nTest: a level overflowing 8 slots numbers from " - 2"');
 {
     const names = bankNames(bootModel(MOCK_SYNTHS.hier_params_overflow));

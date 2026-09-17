@@ -5,8 +5,8 @@
  "author": null,
  "category": "midi_fx",
  "status": "ok",
- "load_ms": 72,
- "dsp_size": 93360,
+ "load_ms": 40,
+ "dsp_size": 93488,
  "capabilities": {
   "chainable": true,
   "component_type": "midi_fx",
@@ -17,6 +17,7 @@
      "params": [
       {
        "key": "mode",
+       "options_as_string": true,
        "name": "Mode",
        "type": "enum",
        "options": [
@@ -39,6 +40,7 @@
       },
       {
        "key": "division",
+       "options_as_string": true,
        "name": "Division",
        "type": "enum",
        "options": [
@@ -57,6 +59,7 @@
       },
       {
        "key": "sync",
+       "options_as_string": true,
        "name": "Sync",
        "type": "enum",
        "options": [
@@ -170,7 +173,7 @@
        "fullName": "Mode",
        "renderStyle": "arc",
        "type": "enum",
-       "displayValue": "up"
+       "displayValue": "..."
       },
       {
        "shortName": "BPM",
@@ -180,7 +183,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DIVIS",
+       "shortName": "DIVISIO",
        "fullName": "Division",
        "renderStyle": "arc",
        "type": "enum",

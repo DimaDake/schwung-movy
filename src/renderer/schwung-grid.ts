@@ -19,6 +19,7 @@
 import { createSchwungPage, type SchwungPage } from './schwung-page.js';
 import { portFor } from '../track/registry.js';
 import { schwungLibAvailable } from './schwung-lib.js';
+import { schwungFloorMetOnce } from './schwung-floor.js';
 import { flagValue } from '../seq/flags.js';
 
 export type SchwungGridMode = 'off' | 'body' | 'page';
@@ -47,12 +48,23 @@ const MODES: SchwungGridMode[] = ['off', 'body', 'page'];
  * Pinning to 'off' when the library is unavailable is what makes the setting
  * safe to expose at all — otherwise choosing DRAW on an old Schwung would take
  * the screen to a renderer that cannot run.
+ *
+ * THE VERSION FLOOR PINS IT THE SAME WAY, and for the same reason. Availability
+ * is not vintage: a Schwung with every param_pages file but an older
+ * `page_plan.mjs` imports far enough to fail on a missing export, so the six
+ * modules are present and the renderer behind them still cannot run. The two
+ * are one clause because they are one question — can Schwung serve what the
+ * flag is offering — and a mode that answered it in two places would be a mode
+ * that could disagree with itself. `schwungFloorMetOnce` is the read-once form
+ * deliberately: this clause is asked on every rendered frame and every knob
+ * event, so the one `host_read_file` behind its answer is paid at the first of
+ * them rather than on each — which is the shape Schwung's read budget is about.
  */
 let override: SchwungGridMode | null = null;
 let lastMode: SchwungGridMode | null = null;
 
 export function schwungGridMode(): SchwungGridMode {
-    const m = !schwungLibAvailable() ? 'off'
+    const m = (!schwungLibAvailable() || !schwungFloorMetOnce()) ? 'off'
             : override !== null ? override
             : (MODES[flagValue('schwunggrid')] ?? 'off');
     /*
@@ -106,25 +118,13 @@ export function schwungGridReload(trackIndex?: number): void {
     for (const k of [...pages.keys()]) if (k.startsWith(trackIndex + ':')) pages.delete(k);
 }
 
-/** Jog moved a page. Returns true when Schwung owned the move. */
-export function schwungChangePage(trackIndex: number, componentKey: string, delta: number): boolean {
-    if (schwungGridMode() !== 'page') return false;
-    const p = schwungPageFor(trackIndex, componentKey);
-    if (!p.ready) return false;
-    p.changePage(delta);
-    return true;
-}
-
-/**
- * The Schwung page for this track, or null when Schwung is not driving.
+/*
+ * WHETHER SCHWUNG IS DRIVING IS NOT ASKED HERE.
  *
- * One predicate for every input site, so a gesture cannot be routed to Schwung
- * on one path and to movy's model on another — which is how the knob turn and
- * the knob touch would end up disagreeing about which parameter is under the
- * finger.
+ * This file used to export `schwungActiveFor` (the mode + a ready check) and
+ * `schwungChangePage` (the same, plus a jog), and every seam point called one of
+ * them with a component key it derived itself. The ownership question now has
+ * exactly one answer, in `app/page-owner.ts`, which is the only caller of
+ * `schwungPageFor` — see `browser-test/logic/page-owner.mjs`, which greps for a
+ * second one. What is left here is the mode and the cache.
  */
-export function schwungActiveFor(trackIndex: number, componentKey: string): SchwungPage | null {
-    if (schwungGridMode() !== 'page') return null;
-    const p = schwungPageFor(trackIndex, componentKey);
-    return p.ready ? p : null;
-}

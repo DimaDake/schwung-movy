@@ -19,7 +19,35 @@
  *      slot and a different page number.
  *
  *   SCHWUNG=/path/to/schwung node scripts/schwung-pagination-check.mjs
- */
+ *
+ * ── KNOWN RED — read this before treating the failure below as news ──────────
+ *
+ * This is a stand-alone probe: it is in NO gate and NOT in the device sweep
+ * (`npm test` never calls it; `browser-test/device-scripts.mjs` does not know
+ * it). It is currently red, and was red before SP-03 touched `schwung-page.ts`:
+ *
+ *   FAIL: the lock mark is not at the locked cell: 0/4 pixels lit at (97,9) for slot 3
+ *
+ * THAT LINE HAS A PRECONDITION: it is only reachable from a `SCHWUNG`-built
+ * `dist/esm`. Without one, the build aliases the library to
+ * `browser-test/stubs/schwung-param-pages.mjs`, which throws on import —
+ * `src/renderer/schwung-lib.ts:110` catches that into `failure`, `schwungLib()`
+ * (`:134`) re-raises it on first use, and the throw surfaces at the
+ * `schwungLayout(preset)` call in the loop below, reached through the
+ * `createSchwungPage` call above it, as an uncaught stack trace. The process
+ * exits 1 either way; it is the FAIL line, not the exit status, that needs the
+ * build. So a bare `node scripts/schwung-pagination-check.mjs` reporting
+ * `schwung param_pages unavailable` is this probe's known-red state too, not a
+ * second, worse failure — and not a green one either. (Checked against both
+ * builds, 2026-09-13. The two call sites are named rather than numbered on
+ * purpose: writing this note is what moved them.)
+ *
+ * The symptom is a rendered lock mark, so fixing it changes what a user sees —
+ * Phase 1 by the page migration's Global Constraint, not Phase 0 work — and it
+ * is left red on purpose rather than fixed or deleted. The full record, its
+ * disposition, and the proof that the red pre-dates SP-03 live in
+ * `docs/schwung-page-migration.md`, under **SP-03**'s Log section. */
+
 import { installEnv } from '../browser-test/env.mjs';
 
 const W = 128, H = 64;

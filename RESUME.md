@@ -91,9 +91,21 @@ node scripts/schwung-page-kinds-check.mjs    # preset/items/knobs all draw
 node scripts/schwung-interaction-check.mjs   # knobs + clicks reach the controller
 node scripts/schwung-knob-feel-check.mjs     # knob travel matches movy's
 node scripts/schwung-late-contract-check.mjs # late module, empty slot, failed read
-node scripts/schwung-pagination-check.mjs    # lanes follow parameters, not slots
+node scripts/schwung-pagination-check.mjs    # lanes follow parameters, not slots — KNOWN RED
 node scripts/schwung-grid-delta.mjs          # measurement: how different the grids are
 ```
+
+**`schwung-pagination-check.mjs` is the one exception to the rule above: it is
+red today, on purpose, and it is not in any gate** (`npm test` does not call it
+and the device sweep does not know it). A red that nobody watches reads as a
+pass, so: its red is the recorded `FAIL: the lock mark is not at the locked
+cell…` line, and that line only appears under a `SCHWUNG`-built `dist/esm` —
+without one the script throws `schwung param_pages unavailable` at its
+`schwungLayout()` call (`:143`) instead. It is left red rather than fixed
+because the symptom is a rendered lock mark, which is Phase 1 by the migration's
+Global Constraint. The disposition, and the proof that the red pre-dates SP-03
+rather than being one, are in `docs/schwung-page-migration.md` under **SP-03**'s
+Log entry.
 
 movy's own suite, which must stay green with the flag OFF:
 

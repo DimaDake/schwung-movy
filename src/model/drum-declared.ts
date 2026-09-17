@@ -45,6 +45,12 @@ export interface DeclaredSurface {
     layout: string | null;
     voices: { note: number; name: string; level: string }[];
     focusParam: string | null;
+    /* The live-press param, carried past `effectiveDrumConfig` rather than INTO
+     * it: `focus_press_param` is a hierarchy ROOT field, so a module need not
+     * declare a drum layout to want to be told a finger did that. Folding it
+     * into DrumConfig would silently skip every melodic module that declares
+     * one. See ModelState.pressParam. */
+    pressParam: string | null;
 }
 
 /**

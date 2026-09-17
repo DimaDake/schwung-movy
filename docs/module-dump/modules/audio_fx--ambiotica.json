@@ -1,11 +1,11 @@
 {
  "id": "ambiotica",
  "name": "Ambiotica",
- "version": "0.2.3",
+ "version": "0.2.4",
  "author": "Charles Vestal",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 48,
+ "load_ms": 62,
  "dsp_size": 38408,
  "capabilities": {
   "chainable": true,
@@ -195,11 +195,11 @@
     "rows": [
      [
       {
-       "shortName": "PRESE",
+       "shortName": "PRESET",
        "fullName": "Preset",
        "renderStyle": "preset",
        "type": "enum",
-       "displayValue": "0"
+       "displayValue": "..."
       },
       null,
       null,
@@ -244,7 +244,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SCATT",
+       "shortName": "SCTTR",
        "fullName": "Scatter",
        "renderStyle": "arc",
        "type": "float",
@@ -253,7 +253,7 @@
      ],
      [
       {
-       "shortName": "MICRO",
+       "shortName": "HOLD",
        "fullName": "Micro Hold",
        "renderStyle": "arc",
        "type": "float",
@@ -293,30 +293,30 @@
     "rows": [
      [
       {
-       "shortName": "LOOP",
+       "shortName": "LENGTH",
        "fullName": "Loop Length",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "MOD",
+       "shortName": "SHAPE",
        "fullName": "Mod Shape",
-       "renderStyle": "arc",
+       "renderStyle": "wave",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "TEMPO",
+       "shortName": "SYNC",
        "fullName": "Tempo Sync",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "LO-FI",
+       "shortName": "TAILS",
        "fullName": "Lo-Fi Tails",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       }
@@ -342,6 +342,7 @@
     "options": null,
     "nameKey": "mode_name",
     "renderStyle": "preset",
+    "capturesModuleState": true,
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -376,7 +377,7 @@
    {
     "key": "loop_layer",
     "label": "Loop Layer",
-    "shortLabel": null,
+    "shortLabel": "Loop",
     "type": "float",
     "options": null,
     "min": 0,
@@ -393,7 +394,7 @@
    {
     "key": "grain_size",
     "label": "Grain Size",
-    "shortLabel": null,
+    "shortLabel": "Grain",
     "type": "float",
     "options": null,
     "min": 0,
@@ -410,7 +411,7 @@
    {
     "key": "scatter",
     "label": "Scatter",
-    "shortLabel": null,
+    "shortLabel": "SCTTR",
     "type": "float",
     "options": null,
     "min": 0,
@@ -427,7 +428,7 @@
    {
     "key": "micro_hold",
     "label": "Micro Hold",
-    "shortLabel": null,
+    "shortLabel": "Hold",
     "type": "float",
     "options": null,
     "min": 0,
@@ -461,7 +462,7 @@
    {
     "key": "mod_depth",
     "label": "Mod Depth",
-    "shortLabel": null,
+    "shortLabel": "Depth",
     "type": "float",
     "options": null,
     "min": 0,
@@ -478,7 +479,7 @@
    {
     "key": "mod_rate",
     "label": "Mod Rate",
-    "shortLabel": null,
+    "shortLabel": "Rate",
     "type": "float",
     "options": null,
     "min": 0,
@@ -495,7 +496,7 @@
    {
     "key": "loop_length",
     "label": "Loop Length",
-    "shortLabel": null,
+    "shortLabel": "Length",
     "type": "float",
     "options": null,
     "min": 0.5,
@@ -512,7 +513,7 @@
    {
     "key": "mod_shape",
     "label": "Mod Shape",
-    "shortLabel": null,
+    "shortLabel": "Shape",
     "type": "enum",
     "options": [
      "Sine",
@@ -533,13 +534,13 @@
    {
     "key": "mod_sync",
     "label": "Tempo Sync",
-    "shortLabel": null,
+    "shortLabel": "Sync",
     "type": "int",
     "options": null,
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -550,13 +551,13 @@
    {
     "key": "lofi_tails",
     "label": "Lo-Fi Tails",
-    "shortLabel": null,
+    "shortLabel": "Tails",
     "type": "int",
     "options": null,
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",

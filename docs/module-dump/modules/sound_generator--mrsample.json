@@ -1,11 +1,11 @@
 {
  "id": "mrsample",
  "name": "MrSample",
- "version": "0.2.0",
+ "version": "0.2.2",
  "author": "charlesvestal",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 72,
+ "load_ms": 41,
  "dsp_size": 1142728,
  "capabilities": {
   "audio_out": true,
@@ -113,7 +113,11 @@
       "filter_type",
       "filter_cutoff",
       "filter_res",
-      "filter_env_amt"
+      "filter_env_amt",
+      {
+       "key": "filter_env_amt",
+       "short_name": "Amt"
+      }
      ],
      "knobs": [
       "filter_type",
@@ -126,7 +130,15 @@
      "name": "LFO",
      "params": [
       "lfo_rate_hz",
-      "lfo_depth"
+      "lfo_depth",
+      {
+       "key": "lfo_rate_hz",
+       "short_name": "Rate"
+      },
+      {
+       "key": "lfo_depth",
+       "short_name": "Depth"
+      }
      ],
      "knobs": [
       "lfo_rate_hz",
@@ -138,7 +150,11 @@
      "params": [
       "root_note",
       "transpose",
-      "fine_tune"
+      "fine_tune",
+      {
+       "key": "root_note",
+       "short_name": "Note"
+      }
      ],
      "knobs": [
       "root_note",
@@ -448,7 +464,7 @@
     "rows": [
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "Attack",
        "renderStyle": "arc",
        "type": "float",
@@ -462,7 +478,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SUSTA",
+       "shortName": "SUSTAI",
        "fullName": "Sustain",
        "renderStyle": "arc",
        "type": "float",
@@ -478,7 +494,7 @@
      ],
      [
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
        "type": "float",
@@ -520,7 +536,7 @@
       {
        "shortName": "GAIN",
        "fullName": "Gain",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
@@ -546,49 +562,31 @@
     "rows": [
      [
       {
-       "shortName": "START",
-       "fullName": "Start",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "LOOP",
-       "fullName": "Loop",
-       "renderStyle": "arc",
-       "type": "enum",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "LS",
-       "fullName": "Loop Start",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "END",
-       "fullName": "Loop End",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      }
-     ],
-     [
-      {
-       "shortName": "XFADE",
-       "fullName": "Loop Xfade",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
        "shortName": "SAMPL",
        "fullName": "Sample",
        "renderStyle": "arc",
        "type": "file",
        "displayValue": "—"
       },
+      {
+       "shortName": "START",
+       "fullName": "Start",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ],
+     [
+      {
+       "shortName": "LOOP",
+       "fullName": "Loop",
+       "renderStyle": "switch",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
       null,
       null
      ]
@@ -604,7 +602,7 @@
     "rows": [
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "Attack",
        "renderStyle": "arc",
        "type": "float",
@@ -618,7 +616,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SUSTA",
+       "shortName": "SUSTAI",
        "fullName": "Sustain",
        "renderStyle": "arc",
        "type": "float",
@@ -650,7 +648,7 @@
     "rows": [
      [
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
        "type": "float",
@@ -737,7 +735,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "TRANS",
+       "shortName": "TRANSP",
        "fullName": "Transpose",
        "renderStyle": "arc",
        "type": "int",
@@ -772,14 +770,14 @@
       {
        "shortName": "GAIN",
        "fullName": "Gain",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "POLYP",
        "fullName": "Polyphony",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
       },
@@ -831,6 +829,9 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "uiType": "wav_position",
+    "viewGroup": "loop",
+    "filepathParam": "sample_path",
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -948,12 +949,12 @@
     "min": 0,
     "max": 2,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 400
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
     }
    },
    null,
@@ -974,6 +975,9 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "uiType": "wav_position",
+    "viewGroup": "loop",
+    "filepathParam": "sample_path",
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -992,63 +996,12 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
      "detentsPerStep": 4,
      "steps": 2
-    }
-   },
-   {
-    "key": "loop_start",
-    "label": "Loop Start",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "loop_end",
-    "label": "Loop End",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
-    }
-   },
-   {
-    "key": "loop_xfade_ms",
-    "label": "Loop Xfade",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0,
-    "max": 500,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.5,
-     "detentsFullSweep": 1000
     }
    },
    {
@@ -1075,6 +1028,9 @@
      "kind": "file-browse"
     }
    },
+   null,
+   null,
+   null,
    null,
    null,
    {
@@ -1330,12 +1286,12 @@
     "min": 0,
     "max": 2,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 400
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
     }
    },
    {
@@ -1347,12 +1303,12 @@
     "min": 1,
     "max": 16,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 30
+     "perDetent": 1,
+     "detentsFullSweep": 15
     }
    },
    null,
@@ -1364,8 +1320,14 @@
   ]
  },
  "analysis": {
-  "hiddenParams": [],
+  "hiddenParams": [
+   "loop_start",
+   "loop_end",
+   "loop_xfade_ms"
+  ],
   "noMetadata": [],
-  "warnings": []
+  "warnings": [
+   "3 chain_params not reachable in movy: loop_start, loop_end, loop_xfade_ms"
+  ]
  }
 }

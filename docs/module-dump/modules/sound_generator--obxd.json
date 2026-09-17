@@ -1,11 +1,11 @@
 {
  "id": "obxd",
  "name": "OB-Xd",
- "version": "0.4.7",
+ "version": "0.4.9",
  "author": "reales (port: charlesvestal)",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 490,
+ "load_ms": 470,
  "dsp_size": 422336,
  "capabilities": {
   "audio_out": true,
@@ -82,6 +82,14 @@
       {
        "level": "voice_var",
        "label": "Voice Variation"
+      },
+      {
+       "key": "filter_env",
+       "short_name": "Env"
+      },
+      {
+       "key": "octave_transpose",
+       "short_name": "Transp"
       }
      ]
     },
@@ -107,7 +115,11 @@
       "unison_det",
       "legato",
       "as_played",
-      "octave_transpose"
+      "octave_transpose",
+      {
+       "key": "octave_transpose",
+       "short_name": "Transp"
+      }
      ]
     },
     "osc1": {
@@ -122,7 +134,23 @@
       "osc1_saw",
       "osc1_pulse",
       "osc1_pitch",
-      "osc1_mix"
+      "osc1_mix",
+      {
+       "key": "osc1_saw",
+       "short_name": "Saw"
+      },
+      {
+       "key": "osc1_pulse",
+       "short_name": "Pulse"
+      },
+      {
+       "key": "osc1_pitch",
+       "short_name": "Pitch"
+      },
+      {
+       "key": "osc1_mix",
+       "short_name": "Mix"
+      }
      ]
     },
     "osc2": {
@@ -143,7 +171,35 @@
       "osc2_mix",
       "osc2_detune",
       "osc2_sync",
-      "osc_quantize"
+      "osc_quantize",
+      {
+       "key": "osc2_saw",
+       "short_name": "Saw"
+      },
+      {
+       "key": "osc2_pulse",
+       "short_name": "Pulse"
+      },
+      {
+       "key": "osc2_pitch",
+       "short_name": "Pitch"
+      },
+      {
+       "key": "osc2_mix",
+       "short_name": "Mix"
+      },
+      {
+       "key": "osc2_detune",
+       "short_name": "Detune"
+      },
+      {
+       "key": "osc2_sync",
+       "short_name": "Sync"
+      },
+      {
+       "key": "osc_quantize",
+       "short_name": "Step"
+      }
      ]
     },
     "osc_common": {
@@ -162,7 +218,15 @@
       "pw_ofs",
       "noise",
       "xmod",
-      "brightness"
+      "brightness",
+      {
+       "key": "pw",
+       "short_name": "Width"
+      },
+      {
+       "key": "pw_env",
+       "short_name": "Amt"
+      }
      ]
     },
     "filter": {
@@ -184,7 +248,19 @@
       "bandpass",
       "fourpole",
       "self_osc",
-      "fenv_inv"
+      "fenv_inv",
+      {
+       "key": "filter_env",
+       "short_name": "Env"
+      },
+      {
+       "key": "key_follow",
+       "short_name": "Follow"
+      },
+      {
+       "key": "multimode",
+       "short_name": "MULT"
+      }
      ]
     },
     "filt_env": {
@@ -201,7 +277,27 @@
       "f_decay",
       "f_sustain",
       "f_release",
-      "vel_filter"
+      "vel_filter",
+      {
+       "key": "f_attack",
+       "short_name": "Attack"
+      },
+      {
+       "key": "f_decay",
+       "short_name": "Decay"
+      },
+      {
+       "key": "f_sustain",
+       "short_name": "Sustain"
+      },
+      {
+       "key": "f_release",
+       "short_name": "Release"
+      },
+      {
+       "key": "vel_filter",
+       "short_name": "Vel"
+      }
      ]
     },
     "amp_env": {
@@ -218,7 +314,11 @@
       "decay",
       "sustain",
       "release",
-      "vel_amp"
+      "vel_amp",
+      {
+       "key": "vel_amp",
+       "short_name": "Vel"
+      }
      ]
     },
     "lfo": {
@@ -238,7 +338,31 @@
       "lfo_sh",
       "lfo_sync",
       "lfo_amt1",
-      "lfo_amt2"
+      "lfo_amt2",
+      {
+       "key": "lfo_rate",
+       "short_name": "Rate"
+      },
+      {
+       "key": "lfo_sin",
+       "short_name": "Sine"
+      },
+      {
+       "key": "lfo_square",
+       "short_name": "Square"
+      },
+      {
+       "key": "lfo_sh",
+       "short_name": "S&H"
+      },
+      {
+       "key": "lfo_amt1",
+       "short_name": "Amt 1"
+      },
+      {
+       "key": "lfo_amt2",
+       "short_name": "Amt 2"
+      }
      ]
     },
     "lfo_dest": {
@@ -255,7 +379,27 @@
       "lfo_osc2",
       "lfo_filter",
       "lfo_pw1",
-      "lfo_pw2"
+      "lfo_pw2",
+      {
+       "key": "lfo_osc1",
+       "short_name": "Osc1"
+      },
+      {
+       "key": "lfo_osc2",
+       "short_name": "Osc2"
+      },
+      {
+       "key": "lfo_filter",
+       "short_name": "Filter"
+      },
+      {
+       "key": "lfo_pw1",
+       "short_name": "PW1"
+      },
+      {
+       "key": "lfo_pw2",
+       "short_name": "PW2"
+      }
      ]
     },
     "pitch_mod": {
@@ -271,7 +415,19 @@
       "env_pitch_both",
       "bend_range",
       "bend_osc2",
-      "vibrato"
+      "vibrato",
+      {
+       "key": "env_pitch",
+       "short_name": "Env"
+      },
+      {
+       "key": "bend_range",
+       "short_name": "Range"
+      },
+      {
+       "key": "bend_osc2",
+       "short_name": "Bend"
+      }
      ]
     },
     "voice_var": {
@@ -298,7 +454,23 @@
       "pan_5",
       "pan_6",
       "pan_7",
-      "pan_8"
+      "pan_8",
+      {
+       "key": "filter_var",
+       "short_name": "Filter"
+      },
+      {
+       "key": "porta_var",
+       "short_name": "Porta"
+      },
+      {
+       "key": "env_var",
+       "short_name": "Env"
+      },
+      {
+       "key": "level_var",
+       "short_name": "Level"
+      }
      ]
     },
     "banks": {
@@ -1201,13 +1373,19 @@
     "rows": [
      [
       {
-       "shortName": "PRESE",
+       "shortName": "SELECT",
+       "fullName": "Select Bank",
+       "renderStyle": "items",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PRESET",
        "fullName": "Preset",
        "renderStyle": "preset",
        "type": "enum",
-       "displayValue": "0"
+       "displayValue": "..."
       },
-      null,
       null,
       null
      ],
@@ -1229,7 +1407,7 @@
     "rows": [
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "Attack",
        "renderStyle": "arc",
        "type": "int",
@@ -1243,7 +1421,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SUSTA",
+       "shortName": "SUSTAI",
        "fullName": "Sustain",
        "renderStyle": "arc",
        "type": "int",
@@ -1259,7 +1437,7 @@
      ],
      [
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
        "type": "int",
@@ -1273,16 +1451,16 @@
        "displayValue": "..."
       },
       {
-       "shortName": "FE",
+       "shortName": "FILTER",
        "fullName": "Filter Env",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "OCTAV",
+       "shortName": "OCTAVE",
        "fullName": "Octave",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
       }
@@ -1301,7 +1479,7 @@
       {
        "shortName": "VOLUM",
        "fullName": "Volume",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "int",
        "displayValue": "..."
       },
@@ -1313,9 +1491,9 @@
        "displayValue": "..."
       },
       {
-       "shortName": "OCTAV",
+       "shortName": "OCTAVE",
        "fullName": "Octave",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
       },
@@ -1329,9 +1507,9 @@
      ],
      [
       {
-       "shortName": "UNISO",
+       "shortName": "UNISON",
        "fullName": "Unison",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
@@ -1343,16 +1521,16 @@
        "displayValue": "..."
       },
       {
-       "shortName": "LEGAT",
+       "shortName": "LEGATO",
        "fullName": "Legato",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "OCTAV",
+       "shortName": "OCTAVE",
        "fullName": "Octave",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
       }
@@ -1369,16 +1547,16 @@
     "rows": [
      [
       {
-       "shortName": "VOICE",
+       "shortName": "VOICES",
        "fullName": "Voices",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "AS",
        "fullName": "As Played",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
@@ -1405,14 +1583,14 @@
       {
        "shortName": "SAW",
        "fullName": "Osc1 Saw",
-       "renderStyle": "hbar",
+       "renderStyle": "wave",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "PULSE",
        "fullName": "Osc1 Pulse",
-       "renderStyle": "hbar",
+       "renderStyle": "wave",
        "type": "int",
        "displayValue": "..."
       },
@@ -1451,14 +1629,14 @@
       {
        "shortName": "SAW",
        "fullName": "Osc2 Saw",
-       "renderStyle": "hbar",
+       "renderStyle": "wave",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "PULSE",
        "fullName": "Osc2 Pulse",
-       "renderStyle": "hbar",
+       "renderStyle": "wave",
        "type": "int",
        "displayValue": "..."
       },
@@ -1479,7 +1657,7 @@
      ],
      [
       {
-       "shortName": "DETUN",
+       "shortName": "DETUNE",
        "fullName": "Osc2 Detune",
        "renderStyle": "arc",
        "type": "int",
@@ -1488,14 +1666,14 @@
       {
        "shortName": "SYNC",
        "fullName": "Osc2 Sync",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "OSC",
        "fullName": "Osc Step",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
@@ -1543,7 +1721,7 @@
      ],
      [
       {
-       "shortName": "BRIGH",
+       "shortName": "BRIGHT",
        "fullName": "Brightness",
        "renderStyle": "arc",
        "type": "int",
@@ -1552,7 +1730,7 @@
       {
        "shortName": "BOTH",
        "fullName": "PW Env Both",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
@@ -1577,7 +1755,7 @@
     "rows": [
      [
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
        "type": "int",
@@ -1591,7 +1769,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "FE",
+       "shortName": "FILTER",
        "fullName": "Filter Env",
        "renderStyle": "arc",
        "type": "int",
@@ -1607,30 +1785,30 @@
      ],
      [
       {
-       "shortName": "MULTI",
+       "shortName": "MULTIM",
        "fullName": "Multimode",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "4-POL",
+       "shortName": "4-POLE",
        "fullName": "4-Pole",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "BANDP",
        "fullName": "Bandpass",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "SELF",
        "fullName": "Self Osc",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       }
@@ -1649,7 +1827,7 @@
       {
        "shortName": "F.ENV",
        "fullName": "F.Env Invert",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
@@ -1675,7 +1853,7 @@
     "rows": [
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "F Attack",
        "renderStyle": "arc",
        "type": "int",
@@ -1689,7 +1867,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SUSTA",
+       "shortName": "SUSTAI",
        "fullName": "F Sustain",
        "renderStyle": "arc",
        "type": "int",
@@ -1705,7 +1883,7 @@
      ],
      [
       {
-       "shortName": "VEL>F",
+       "shortName": "VEL>FI",
        "fullName": "Vel>Filter",
        "renderStyle": "arc",
        "type": "int",
@@ -1727,7 +1905,7 @@
     "rows": [
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "Attack",
        "renderStyle": "arc",
        "type": "int",
@@ -1741,7 +1919,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "SUSTA",
+       "shortName": "SUSTAI",
        "fullName": "Sustain",
        "renderStyle": "arc",
        "type": "int",
@@ -1788,21 +1966,21 @@
       {
        "shortName": "SINE",
        "fullName": "LFO Sine",
-       "renderStyle": "hbar",
+       "renderStyle": "wave",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "SQUAR",
        "fullName": "LFO Square",
-       "renderStyle": "hbar",
+       "renderStyle": "wave",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "S&H",
        "fullName": "LFO S&H",
-       "renderStyle": "hbar",
+       "renderStyle": "wave",
        "type": "int",
        "displayValue": "..."
       }
@@ -1825,7 +2003,7 @@
       {
        "shortName": "SYNC",
        "fullName": "LFO Sync",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
@@ -1843,39 +2021,39 @@
     "rows": [
      [
       {
-       "shortName": "LF>SC",
+       "shortName": "LF>SC1",
        "fullName": "LFO>Osc1",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "LF>S2",
+       "shortName": "LF>SC2",
        "fullName": "LFO>Osc2",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "LFO>F",
+       "shortName": "LFO>FI",
        "fullName": "LFO>Filter",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "LF>PW",
+       "shortName": "LF>PW1",
        "fullName": "LFO>PW1",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       }
      ],
      [
       {
-       "shortName": "LF>P2",
+       "shortName": "LF>PW",
        "fullName": "LFO>PW2",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
@@ -1895,7 +2073,7 @@
     "rows": [
      [
       {
-       "shortName": "ENV>P",
+       "shortName": "ENV>PI",
        "fullName": "Env>Pitch",
        "renderStyle": "arc",
        "type": "int",
@@ -1904,19 +2082,19 @@
       {
        "shortName": "BEND",
        "fullName": "Bend Range",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "BEND>",
+       "shortName": "BEND>O",
        "fullName": "Bend>Osc2",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "VIBRA",
+       "shortName": "VIBRAT",
        "fullName": "Vibrato",
        "renderStyle": "arc",
        "type": "int",
@@ -1927,7 +2105,7 @@
       {
        "shortName": "ENV",
        "fullName": "Env Pitch Both",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
@@ -1947,7 +2125,7 @@
     "rows": [
      [
       {
-       "shortName": "FV",
+       "shortName": "FILTER",
        "fullName": "Filter Var",
        "renderStyle": "arc",
        "type": "int",
@@ -1979,28 +2157,28 @@
       {
        "shortName": "PAN 1",
        "fullName": "Pan 1",
-       "renderStyle": "arc",
+       "renderStyle": "pan",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "PAN 2",
        "fullName": "Pan 2",
-       "renderStyle": "arc",
+       "renderStyle": "pan",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "PAN 3",
        "fullName": "Pan 3",
-       "renderStyle": "arc",
+       "renderStyle": "pan",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "PAN 4",
        "fullName": "Pan 4",
-       "renderStyle": "arc",
+       "renderStyle": "pan",
        "type": "int",
        "displayValue": "..."
       }
@@ -2019,28 +2197,28 @@
       {
        "shortName": "PAN 5",
        "fullName": "Pan 5",
-       "renderStyle": "arc",
+       "renderStyle": "pan",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "PAN 6",
        "fullName": "Pan 6",
-       "renderStyle": "arc",
+       "renderStyle": "pan",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "PAN 7",
        "fullName": "Pan 7",
-       "renderStyle": "arc",
+       "renderStyle": "pan",
        "type": "int",
        "displayValue": "..."
       },
       {
        "shortName": "PAN 8",
        "fullName": "Pan 8",
-       "renderStyle": "arc",
+       "renderStyle": "pan",
        "type": "int",
        "displayValue": "..."
       }
@@ -2056,6 +2234,34 @@
   ],
   "params": [
    {
+    "key": "bank_index",
+    "label": "Select Bank",
+    "shortLabel": null,
+    "type": "enum",
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "options": [
+     "Factory",
+     "Lukas OBXd Presets",
+     "Stamina by Daniel Stawczyk"
+    ],
+    "itemIndices": [
+     0,
+     1,
+     2
+    ],
+    "itemsKey": "fxb_bank_list",
+    "renderStyle": "items",
+    "capturesModuleState": true,
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
     "key": "preset",
     "label": "Preset",
     "shortLabel": null,
@@ -2066,6 +2272,7 @@
     "options": null,
     "nameKey": "preset_name",
     "renderStyle": "preset",
+    "capturesModuleState": true,
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -2073,7 +2280,6 @@
      "steps": 128
     }
    },
-   null,
    null,
    null,
    null,
@@ -2208,12 +2414,13 @@
     "min": -3,
     "max": 3,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
+    "signed": true,
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 12
+     "perDetent": 1,
+     "detentsFullSweep": 6
     }
    },
    {
@@ -2225,12 +2432,12 @@
     "min": 0,
     "max": 100,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 200
+     "perDetent": 1,
+     "detentsFullSweep": 100
     }
    },
    {
@@ -2259,12 +2466,13 @@
     "min": -2,
     "max": 2,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
+    "signed": true,
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 8
+     "perDetent": 1,
+     "detentsFullSweep": 4
     }
    },
    {
@@ -2293,7 +2501,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -2344,12 +2552,13 @@
     "min": -3,
     "max": 3,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
+    "signed": true,
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 12
+     "perDetent": 1,
+     "detentsFullSweep": 6
     }
    },
    {
@@ -2361,12 +2570,12 @@
     "min": 1,
     "max": 8,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 14
+     "perDetent": 1,
+     "detentsFullSweep": 7
     }
    },
    {
@@ -2378,7 +2587,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -2401,7 +2610,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -2418,7 +2627,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -2473,7 +2682,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -2490,7 +2699,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -2558,7 +2767,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -2575,7 +2784,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -2678,7 +2887,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -2798,7 +3007,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -2815,7 +3024,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -2832,7 +3041,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -2849,7 +3058,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -3066,7 +3275,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -3083,7 +3292,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -3100,7 +3309,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -3151,7 +3360,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -3169,7 +3378,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -3186,7 +3395,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -3203,7 +3412,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -3220,7 +3429,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -3237,7 +3446,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -3274,7 +3483,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -3291,7 +3500,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -3325,7 +3534,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -3413,12 +3622,12 @@
     "min": 0,
     "max": 100,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "pan",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 200
+     "perDetent": 1,
+     "detentsFullSweep": 100
     }
    },
    {
@@ -3430,12 +3639,12 @@
     "min": 0,
     "max": 100,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "pan",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 200
+     "perDetent": 1,
+     "detentsFullSweep": 100
     }
    },
    {
@@ -3447,12 +3656,12 @@
     "min": 0,
     "max": 100,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "pan",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 200
+     "perDetent": 1,
+     "detentsFullSweep": 100
     }
    },
    {
@@ -3464,12 +3673,12 @@
     "min": 0,
     "max": 100,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "pan",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 200
+     "perDetent": 1,
+     "detentsFullSweep": 100
     }
    },
    {
@@ -3481,12 +3690,12 @@
     "min": 0,
     "max": 100,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "pan",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 200
+     "perDetent": 1,
+     "detentsFullSweep": 100
     }
    },
    {
@@ -3498,12 +3707,12 @@
     "min": 0,
     "max": 100,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "pan",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 200
+     "perDetent": 1,
+     "detentsFullSweep": 100
     }
    },
    {
@@ -3515,12 +3724,12 @@
     "min": 0,
     "max": 100,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "pan",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 200
+     "perDetent": 1,
+     "detentsFullSweep": 100
     }
    },
    {
@@ -3532,12 +3741,12 @@
     "min": 0,
     "max": 100,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "pan",
     "automatable": true,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 200
+     "perDetent": 1,
+     "detentsFullSweep": 100
     }
    },
    null,
@@ -3548,9 +3757,12 @@
  },
  "analysis": {
   "hiddenParams": [],
-  "noMetadata": [],
+  "noMetadata": [
+   "bank_index"
+  ],
   "warnings": [
-   "page \"Global\": duplicate on-screen names OCTAV"
+   "1 shown params lack chain_params metadata (movy guesses type/range): bank_index",
+   "page \"Global\": duplicate on-screen names OCTAVE"
   ]
  }
 }

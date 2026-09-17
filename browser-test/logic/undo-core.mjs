@@ -5,7 +5,7 @@
  */
 
 import {
-    readFileSync, readdirSync, sessionTick, resetSetSession, installMockFs, installMockEngine,
+    readFileSync, readdirSync, sessionTick, resetSetSession, installMockFs, uninstallMockFs, installMockEngine,
     uninstallMockEngine, pushEntry, popUndo, pushRedo, canUndo, canRedo,
     undoDepth, retractEntry, peekUndo, invalidateUndo, takeOrphanedSnaps, resetUndoState,
     MAX_ENTRIES, beginEdit, endEdit, groupOpen, undoTick, onLoopWrap,
@@ -13,7 +13,7 @@ import {
     seqSideEffect, setUndoStrict, takeUndoViolation, resetUndoRecord, isUndoableVerb, isControlVerb,
     UNDOABLE_VERBS, undoOnce, redoOnce, undoWatchContext, resetUndoApply, undoToastVM,
     noteCount, clipTarget, valueChange, seqCmd, takeLabelSync, seqEngineTick,
-    resetSeqEngine, appState, ok, eq, notMatch, _log,
+    resetSeqEngine, appState, env, ok, eq, notMatch, _log,
     loadPerSetFlags, resetPorts,
 } from './harness.mjs';
 
@@ -320,8 +320,14 @@ export async function run() {
     undoWatchContext();
     eq('a set switch clears the stack', canUndo(), false);
 
-    delete globalThis.shadow_set_param;
-    delete globalThis.shadow_get_param;
+    env.restoreParamGlobals();
+    /* GIVE THE FILESYSTEM BACK. The mock installed above answers every other
+     * path with null, and it outlived this block: from here to the end of the
+     * run, any suite reading a real file — movy's shipped module configs, which
+     * the delegated page translates a drum rack from — saw an empty disk and
+     * could not say why. Nothing caught it because nothing later read one, until
+     * SP-14 did. */
+    uninstallMockFs();
     resetUndoState(); resetUndoGroups(); resetUndoApply(); resetSetSession();
     uninstallMockEngine();
 }
@@ -520,8 +526,7 @@ export async function run() {
     pushEntry(entry());
     eq('an unlanded load is not treated as drift', undoOnce().ok, true);
 
-    delete globalThis.shadow_get_param;
-    delete globalThis.shadow_set_param;
+    env.restoreParamGlobals();
     resetUndoState(); resetUndoGroups(); resetUndoApply(); resetModuleRestore();
 }
 

@@ -1,12 +1,12 @@
 {
  "id": "velocity_scale",
  "name": "Velocity Scale",
- "version": "0.2.0",
- "author": null,
+ "version": "0.3.0",
+ "author": "Charles Vestal",
  "category": "midi_fx",
  "status": "ok",
- "load_ms": 61,
- "dsp_size": 84048,
+ "load_ms": 53,
+ "dsp_size": 84120,
  "capabilities": {
   "chainable": true,
   "component_type": "midi_fx",
@@ -17,6 +17,7 @@
      "params": [
       {
        "key": "min",
+       "short_name": "Min",
        "name": "Min",
        "type": "int",
        "min": 1,
@@ -26,6 +27,7 @@
       },
       {
        "key": "max",
+       "short_name": "Max",
        "name": "Max",
        "type": "int",
        "min": 1,
@@ -44,6 +46,8 @@
       },
       {
        "key": "curve_preset",
+       "short_name": "Preset",
+       "options_as_string": true,
        "name": "Curve Preset",
        "type": "enum",
        "options": [
@@ -145,7 +149,7 @@
        "fullName": "Min Velocity",
        "renderStyle": "arc",
        "type": "int",
-       "displayValue": "1"
+       "displayValue": "..."
       },
       {
        "shortName": "MAX",
@@ -162,7 +166,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "PRESE",
+       "shortName": "PRESET",
        "fullName": "Curve Preset",
        "renderStyle": "arc",
        "type": "enum",
@@ -182,7 +186,7 @@
    {
     "key": "min",
     "label": "Min Velocity",
-    "shortLabel": null,
+    "shortLabel": "Min",
     "type": "int",
     "options": null,
     "min": 1,
@@ -199,7 +203,7 @@
    {
     "key": "max",
     "label": "Max Velocity",
-    "shortLabel": null,
+    "shortLabel": "Max",
     "type": "int",
     "options": null,
     "min": 1,
@@ -233,7 +237,7 @@
    {
     "key": "curve_preset",
     "label": "Curve Preset",
-    "shortLabel": null,
+    "shortLabel": "Preset",
     "type": "enum",
     "options": [
      "Linear",

@@ -5,8 +5,8 @@
  "author": null,
  "category": "midi_fx",
  "status": "ok",
- "load_ms": 66,
- "dsp_size": 97768,
+ "load_ms": 43,
+ "dsp_size": 97912,
  "capabilities": {
   "chainable": true,
   "component_type": "midi_fx",
@@ -17,6 +17,8 @@
      "params": [
       {
        "key": "type",
+       "short_name": "Chord",
+       "options_as_string": true,
        "name": "Type",
        "type": "enum",
        "options": [
@@ -40,6 +42,7 @@
       },
       {
        "key": "inversion",
+       "options_as_string": true,
        "name": "Inversion",
        "type": "enum",
        "options": [
@@ -52,6 +55,7 @@
       },
       {
        "key": "voicing",
+       "options_as_string": true,
        "name": "Voicing",
        "type": "enum",
        "options": [
@@ -73,6 +77,8 @@
       },
       {
        "key": "strum_dir",
+       "short_name": "Dir",
+       "options_as_string": true,
        "name": "Strum Dir",
        "type": "enum",
        "options": [
@@ -205,17 +211,17 @@
        "fullName": "Chord Type",
        "renderStyle": "arc",
        "type": "enum",
-       "displayValue": "major"
+       "displayValue": "..."
       },
       {
-       "shortName": "INVER",
+       "shortName": "INVERSI",
        "fullName": "Inversion",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "VOICI",
+       "shortName": "VOICING",
        "fullName": "Voicing",
        "renderStyle": "arc",
        "type": "enum",
@@ -248,7 +254,7 @@
    {
     "key": "type",
     "label": "Chord Type",
-    "shortLabel": null,
+    "shortLabel": "Chord",
     "type": "enum",
     "options": [
      "none",
@@ -342,7 +348,7 @@
    {
     "key": "strum_dir",
     "label": "Strum Dir",
-    "shortLabel": null,
+    "shortLabel": "Dir",
     "type": "enum",
     "options": [
      "up",

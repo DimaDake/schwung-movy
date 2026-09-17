@@ -13,9 +13,13 @@
  * It therefore throws rather than drawing nothing — a blank body band would
  * look like a rendering bug in a build that cannot draw a body band at all. */
 import type { ViewModel } from '../types/viewmodel.js';
+import { GRID_BODY_RECT } from './layout.js';
 
-export const BODY_Y = 8;
-export const BODY_H = 48;
+/* From layout.ts, which has no param_pages dependency — so the stand-in
+ * stays surface-identical without putting the real module back in the
+ * graph, which is this file's whole job. */
+export const BODY_Y = GRID_BODY_RECT.y;
+export const BODY_H = GRID_BODY_RECT.h;
 export const BAND_H = null;
 
 export function drawKnobParamsSchwung(_vm: ViewModel, _touched = -1): never {

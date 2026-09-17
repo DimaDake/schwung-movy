@@ -1,11 +1,11 @@
 {
  "id": "cloudseed",
  "name": "CloudSeed",
- "version": "0.3.7",
+ "version": "0.3.9",
  "author": "Ghost Note Audio (port: charlesvestal)",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 136,
+ "load_ms": 126,
  "dsp_size": 36272,
  "capabilities": {
   "chainable": true,
@@ -47,6 +47,7 @@
       },
       {
        "key": "predelay",
+       "short_name": "Delay",
        "label": "Pre-Delay",
        "type": "float",
        "min": 0,
@@ -67,6 +68,7 @@
       },
       {
        "key": "low_cut",
+       "short_name": "LO CUT",
        "label": "Low Cut",
        "type": "float",
        "min": 0,
@@ -77,6 +79,7 @@
       },
       {
        "key": "high_cut",
+       "short_name": "HI CUT",
        "label": "High Cut",
        "type": "float",
        "min": 0,
@@ -87,6 +90,7 @@
       },
       {
        "key": "mod_amount",
+       "short_name": "MOD",
        "label": "Mod Amount",
        "type": "float",
        "min": 0,
@@ -97,6 +101,7 @@
       },
       {
        "key": "mod_rate",
+       "short_name": "Rate",
        "label": "Mod Rate",
        "type": "float",
        "min": 0,
@@ -269,7 +274,7 @@
        "fullName": "Mix",
        "renderStyle": "arc",
        "type": "float",
-       "displayValue": "30%"
+       "displayValue": "..."
       },
       {
        "shortName": "DECAY",
@@ -286,7 +291,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "PRE-D",
+       "shortName": "DELAY",
        "fullName": "Pre-Delay",
        "renderStyle": "arc",
        "type": "float",
@@ -295,22 +300,22 @@
      ],
      [
       {
-       "shortName": "DIFFU",
-       "fullName": "Diffusion",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "LOW",
+       "shortName": "LO CUT",
        "fullName": "Low Cut",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "HIGH",
+       "shortName": "HI CUT",
        "fullName": "High Cut",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DIFFUSI",
+       "fullName": "Diffusion",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -335,14 +340,14 @@
     "rows": [
      [
       {
-       "shortName": "MOD",
+       "shortName": "RATE",
        "fullName": "Mod Rate",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "SW",
+       "shortName": "STEREO",
        "fullName": "Stereo Width",
        "renderStyle": "arc",
        "type": "float",
@@ -415,7 +420,7 @@
    {
     "key": "predelay",
     "label": "Pre-Delay",
-    "shortLabel": null,
+    "shortLabel": "Delay",
     "type": "float",
     "options": null,
     "min": 0,
@@ -449,7 +454,7 @@
    {
     "key": "low_cut",
     "label": "Low Cut",
-    "shortLabel": null,
+    "shortLabel": "LO CUT",
     "type": "float",
     "options": null,
     "min": 0,
@@ -466,7 +471,7 @@
    {
     "key": "high_cut",
     "label": "High Cut",
-    "shortLabel": null,
+    "shortLabel": "HI CUT",
     "type": "float",
     "options": null,
     "min": 0,
@@ -483,7 +488,7 @@
    {
     "key": "mod_amount",
     "label": "Mod Amount",
-    "shortLabel": null,
+    "shortLabel": "MOD",
     "type": "float",
     "options": null,
     "min": 0,
@@ -500,7 +505,7 @@
    {
     "key": "mod_rate",
     "label": "Mod Rate",
-    "shortLabel": null,
+    "shortLabel": "Rate",
     "type": "float",
     "options": null,
     "min": 0,

@@ -5,7 +5,7 @@
  "author": "Mutable Instruments ideas / port for Schwung Move",
  "category": "midi_fx",
  "status": "ok",
- "load_ms": 65,
+ "load_ms": 36,
  "dsp_size": 72240,
  "capabilities": {
   "midi_in": true,
@@ -333,7 +333,7 @@
        "fullName": "Map X",
        "renderStyle": "arc",
        "type": "float",
-       "displayValue": "50%"
+       "displayValue": "..."
       },
       {
        "shortName": "MAP Y",
@@ -445,7 +445,7 @@
       {
        "shortName": "BRAON",
        "fullName": "K Branch On",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
@@ -478,7 +478,7 @@
       {
        "shortName": "BO",
        "fullName": "S Branch On",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
@@ -501,7 +501,7 @@
       {
        "shortName": "BRAON",
        "fullName": "H Branch On",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
@@ -513,7 +513,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "RANHI",
+       "shortName": "RANDHI",
        "fullName": "K Rand Hi",
        "renderStyle": "arc",
        "type": "int",
@@ -553,7 +553,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "RANHI",
+       "shortName": "RANDHI",
        "fullName": "H Rand Hi",
        "renderStyle": "arc",
        "type": "int",
@@ -821,7 +821,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -872,7 +872,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",
@@ -923,7 +923,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
+    "renderStyle": "switch",
     "automatable": true,
     "increment": {
      "kind": "int",

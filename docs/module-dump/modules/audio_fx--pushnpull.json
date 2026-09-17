@@ -5,7 +5,7 @@
  "author": "legsmechanical",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 69,
+ "load_ms": 54,
  "dsp_size": 33456,
  "capabilities": {
   "chainable": true,
@@ -248,7 +248,7 @@
        "fullName": "Curve",
        "renderStyle": "arc",
        "type": "enum",
-       "displayValue": "Sidec"
+       "displayValue": "..."
       },
       {
        "shortName": "RATE",
@@ -260,12 +260,12 @@
       {
        "shortName": "VOLUM",
        "fullName": "Volume",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "FILTE",
+       "shortName": "FILTER",
        "fullName": "Filter",
        "renderStyle": "arc",
        "type": "float",
@@ -295,7 +295,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "OUTPU",
+       "shortName": "OUTPUT",
        "fullName": "Output",
        "renderStyle": "arc",
        "type": "float",
@@ -314,14 +314,7 @@
     "rows": [
      [
       {
-       "shortName": "VE",
-       "fullName": "Visual Edit",
-       "renderStyle": "arc",
-       "type": "canvas",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "Attack",
        "renderStyle": "arc",
        "type": "float",
@@ -330,10 +323,11 @@
       {
        "shortName": "BAND",
        "fullName": "Band Split",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
+      null,
       null
      ],
      [
@@ -354,7 +348,7 @@
     "rows": [
      [
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
        "type": "float",
@@ -459,12 +453,12 @@
     "min": -1,
     "max": 1,
     "step": 0.02,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 200
+     "perDetent": 0.02,
+     "detentsFullSweep": 100
     }
    },
    {
@@ -553,23 +547,6 @@
     }
    },
    {
-    "key": "view",
-    "label": "Visual Edit",
-    "shortLabel": null,
-    "type": "canvas",
-    "options": null,
-    "min": 0,
-    "max": 1,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": false,
-    "increment": {
-     "kind": "canvas",
-     "perDetent": 0.5,
-     "detentsFullSweep": 2
-    }
-   },
-   {
     "key": "attack",
     "label": "Attack",
     "shortLabel": null,
@@ -598,7 +575,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -606,6 +583,7 @@
      "steps": 2
     }
    },
+   null,
    null,
    null,
    null,
@@ -712,8 +690,12 @@
   ]
  },
  "analysis": {
-  "hiddenParams": [],
+  "hiddenParams": [
+   "view"
+  ],
   "noMetadata": [],
-  "warnings": []
+  "warnings": [
+   "1 chain_params not reachable in movy: view"
+  ]
  }
 }

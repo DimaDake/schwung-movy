@@ -5,7 +5,7 @@
  "author": "Peter Allwin (port: charlesvestal)",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 65,
+ "load_ms": 67,
  "dsp_size": 14848,
  "capabilities": {
   "chainable": true,
@@ -124,7 +124,7 @@
        "fullName": "Mode",
        "renderStyle": "arc",
        "type": "enum",
-       "displayValue": "I+II"
+       "displayValue": "..."
       },
       {
        "shortName": "MIX",
@@ -134,7 +134,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "BRIGH",
+       "shortName": "BRIGHT",
        "fullName": "Brightness",
        "renderStyle": "arc",
        "type": "float",

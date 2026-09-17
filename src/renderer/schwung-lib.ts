@@ -36,6 +36,15 @@ export interface SchwungLib {
     applyInput: any;
     renderPageMovy: any;
     BAND_H: any;
+    /* "How full is this control, or unknown" — the reading a knob ARC, a
+     * modulation dot and an indicator LED all take, and deliberately not
+     * `fractionOf`, which measures an enum against min/max for the viz shapes.
+     * Taken from Schwung rather than re-derived so the ring, the arc and the
+     * dot cannot disagree about the same cell. Guaranteed present wherever this
+     * library loads: `page_controller.mjs` imports it BY NAME, so a
+     * render_page_movy without it fails the link and takes the whole set down
+     * before anything reads this. */
+    normalizedOf: any;
     drawEnumList: any;
     registerWidget: any;
     clearWidgets: any;
@@ -44,6 +53,15 @@ export interface SchwungLib {
     focusParamOf: any;
     voicesOf: any;
     voiceIndexFromNote: any;
+    /* OPTIONAL, and typed so. A Schwung predating the live-press contract
+     * serves voices.mjs and child_key.mjs without these, and the whole point of
+     * this file is that such a Schwung costs movy nothing but the feature.
+     * Reached by property access on the namespace object and guarded at the
+     * call site, so a missing export answers `undefined` rather than raising
+     * the link error that would take the library — and with it the renderer —
+     * down. */
+    focusPressParamOf?: any;
+    childPressParam?:   any;
 }
 
 /* LITERAL PATHS, NOT A CONCATENATION. esbuild can only apply its resolver to a
@@ -68,7 +86,7 @@ try {
      * error at evaluation, indistinguishable from a missing file to everything
      * above this line, and correctly treated the same way.
      */
-    const [pc, pi, rpm, el, wr, vo] = await Promise.all([
+    const [pc, pi, rpm, el, wr, vo, ck] = await Promise.all([
         // @ts-ignore — absolute device path; external in the device build
         import('/data/UserData/schwung/shared/param_pages/page_controller.mjs'),
         // @ts-ignore
@@ -81,16 +99,23 @@ try {
         import('/data/UserData/schwung/shared/param_pages/widget_registry.mjs'),
         // @ts-ignore
         import('/data/UserData/schwung/shared/param_pages/voices.mjs'),
+        /* Safe to add to the set: page_controller.mjs, already here, imports
+         * child_key.mjs — so it exists wherever the library does, and it cannot
+         * be the module that makes an otherwise-serviceable Schwung fail. */
+        // @ts-ignore
+        import('/data/UserData/schwung/shared/param_pages/child_key.mjs'),
     ]);
     lib = {
         createController: pc.createController, LAYOUT_MOVY: pc.LAYOUT_MOVY,
         applyInput: pi.applyInput,
         renderPageMovy: rpm.renderPageMovy, BAND_H: rpm.BAND_H,
+        normalizedOf: rpm.normalizedOf,
         drawEnumList: el.drawEnumList,
         registerWidget: wr.registerWidget, clearWidgets: wr.clearWidgets,
         isWidgetAvailable: wr.isWidgetAvailable,
         padLayoutOf: vo.padLayoutOf, focusParamOf: vo.focusParamOf,
         voicesOf: vo.voicesOf, voiceIndexFromNote: vo.voiceIndexFromNote,
+        focusPressParamOf: vo.focusPressParamOf, childPressParam: ck.childPressParam,
     };
 } catch (e: any) {
     /* Swallowed DELIBERATELY, and this is the whole point of the file: an

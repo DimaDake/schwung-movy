@@ -46,6 +46,7 @@ import { run as run_eq_cut_wav } from './logic/eq-cut-wav.mjs';
 import { run as run_graphics } from './logic/graphics.mjs';
 import { run as run_wav_peaks } from './logic/wav-peaks.mjs';
 import { run as run_module_configs } from './logic/module-configs.mjs';
+import { run as run_config_hierarchy } from './logic/config-hierarchy.mjs';
 import { run as run_items_select } from './logic/items-select.mjs';
 import { run as run_track_volume } from './logic/track-volume.mjs';
 import { run as run_notes_release } from './logic/notes-release.mjs';
@@ -62,13 +63,25 @@ import { run as run_track_migrate } from './logic/track-migrate.mjs';
 import { run as run_partition } from './logic/partition.mjs';
 import { run as run_flags } from './logic/flags.mjs';
 import { run as run_schwung_grid } from './logic/schwung-grid.mjs';
+import { run as run_schwung_page } from './logic/schwung-page.mjs';
+import { run as run_schwung_floor } from './logic/schwung-floor.mjs';
+import { run as run_page_owner } from './logic/page-owner.mjs';
 import { run as run_cpu_page } from './logic/cpu-page.mjs';
 import { run as run_mixer } from './logic/mixer.mjs';
 import { run as run_pan_viz } from './logic/pan-viz.mjs';
+import { run as run_env_identity } from './logic/env-identity.mjs';
 
 /* Awaited one at a time: the suites share the mock device globals, and the
  * expected output is a fixed transcript, so they must not interleave. */
 const SUITES = [
+    /* First on purpose. A dump boot takes the param accessors AND the env's
+     * `os`/`host_read_file`, and it used to be that only a boot could hand the
+     * accessors back — so this suite had to sit between the range that needed one
+     * host and the range that needed another. It restores what it takes
+     * (`env.restoreHostGlobals()`), which is what makes its position arbitrary;
+     * it stays first because a position that is only correct because nothing has
+     * run yet is the position that keeps that property visible. */
+    run_env_identity,
     run_model_hierarchy,
     run_model_paging,
     run_model_params,
@@ -105,6 +118,7 @@ const SUITES = [
     run_graphics,
     run_wav_peaks,
     run_module_configs,
+    run_config_hierarchy,
     run_items_select,
     run_track_volume,
     run_notes_release,
@@ -121,6 +135,9 @@ const SUITES = [
     run_track_migrate,
     run_flags,
     run_schwung_grid,
+    run_schwung_page,
+    run_schwung_floor,
+    run_page_owner,
     run_cpu_page,
     run_mixer,
     run_pan_viz,

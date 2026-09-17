@@ -5,8 +5,8 @@
  "author": null,
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 91,
- "dsp_size": 126368,
+ "load_ms": 41,
+ "dsp_size": 125400,
  "capabilities": {
   "audio_in": true,
   "audio_out": true,
@@ -32,6 +32,7 @@
       },
       {
        "key": "input_mode",
+       "short_name": "Input",
        "label": "Input Mode",
        "type": "enum",
        "options": [
@@ -54,6 +55,7 @@
       },
       {
        "key": "output_trim",
+       "short_name": "Output",
        "label": "Output Trim",
        "type": "float",
        "min": -24,
@@ -76,6 +78,7 @@
       },
       {
        "key": "gate_amount",
+       "short_name": "GATEAM",
        "label": "Gate Amount",
        "type": "float",
        "min": 0,
@@ -217,6 +220,7 @@
      "params": [
       {
        "key": "cable_comp",
+       "short_name": "Comp",
        "label": "Cable Comp",
        "type": "enum",
        "options": [
@@ -229,6 +233,7 @@
       },
       {
        "key": "soft_clip",
+       "short_name": "Clip",
        "label": "Soft Clip",
        "type": "enum",
        "options": [
@@ -258,6 +263,7 @@
       },
       {
        "key": "subsonic_freq",
+       "short_name": "Filter",
        "label": "Sub Filter",
        "type": "enum",
        "options": [
@@ -271,6 +277,7 @@
       },
       {
        "key": "hum_notch",
+       "short_name": "Notch",
        "label": "Hum Notch",
        "type": "enum",
        "options": [
@@ -281,6 +288,7 @@
       },
       {
        "key": "hum_freq",
+       "short_name": "Freq",
        "label": "Hum Freq",
        "type": "enum",
        "options": [
@@ -302,6 +310,7 @@
      "params": [
       {
        "key": "hum_filter",
+       "short_name": "Filter",
        "label": "Hum Filter",
        "type": "enum",
        "options": [
@@ -632,7 +641,7 @@
        "fullName": "Input Type",
        "renderStyle": "arc",
        "type": "enum",
-       "displayValue": "Line"
+       "displayValue": "..."
       },
       {
        "shortName": "MODE",
@@ -649,7 +658,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "OT",
+       "shortName": "OUTPUT",
        "fullName": "Output Trim",
        "renderStyle": "arc",
        "type": "float",
@@ -714,7 +723,7 @@
     "rows": [
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "Attack",
        "renderStyle": "arc",
        "type": "float",
@@ -728,7 +737,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "THRES",
+       "shortName": "THRESH",
        "fullName": "Threshold",
        "renderStyle": "arc",
        "type": "float",
@@ -773,9 +782,9 @@
        "displayValue": "..."
       },
       {
-       "shortName": "LIMIT",
+       "shortName": "LIMITER",
        "fullName": "Limiter",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -809,7 +818,7 @@
       {
        "shortName": "SOFT",
        "fullName": "Soft Clip",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -836,7 +845,7 @@
       {
        "shortName": "RIAA",
        "fullName": "RIAA EQ",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -850,7 +859,7 @@
       {
        "shortName": "NOTCH",
        "fullName": "Hum Notch",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -1140,7 +1149,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -1188,7 +1197,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -1214,7 +1223,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -1257,7 +1266,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",

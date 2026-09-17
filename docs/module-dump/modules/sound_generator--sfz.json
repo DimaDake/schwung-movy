@@ -1,12 +1,12 @@
 {
  "id": "sfz",
  "name": "Multisampler",
- "version": "0.6.0",
+ "version": "0.6.4",
  "author": "charlesvestal",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 164,
- "dsp_size": 7159952,
+ "load_ms": 176,
+ "dsp_size": 7160296,
  "capabilities": {
   "audio_out": true,
   "audio_in": false,
@@ -62,6 +62,7 @@
       },
       {
        "key": "knob_preset",
+       "short_name": "Preset",
        "label": "Knob Preset",
        "type": "int",
        "min": 0,
@@ -84,7 +85,7 @@
   }
  },
  "presets": {
-  "count": 0,
+  "count": 16,
   "sample": []
  },
  "native": {
@@ -212,6 +213,56 @@
     "step": null,
     "options": null,
     "default": "0"
+   },
+   {
+    "key": "knob_0",
+    "name": "Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.0697674"
+   },
+   {
+    "key": "knob_1",
+    "name": "Release",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.285714"
+   },
+   {
+    "key": "knob_2",
+    "name": "Cho Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "knob_3",
+    "name": "Filter",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "knob_4",
+    "name": "Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "options": null,
+    "default": "0.2"
    }
   ]
  },
@@ -251,7 +302,7 @@
        "fullName": "Attack",
        "renderStyle": "arc",
        "type": "float",
-       "displayValue": "50%"
+       "displayValue": "..."
       },
       {
        "shortName": "DECAY",
@@ -293,14 +344,14 @@
       {
        "shortName": "GAIN",
        "fullName": "Gain",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "VOICE",
        "fullName": "Voices",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
       }
@@ -326,7 +377,7 @@
       {
        "shortName": "OCT",
        "fullName": "Octave",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
       },
@@ -334,7 +385,7 @@
        "shortName": "PRSET",
        "fullName": "Preset",
        "renderStyle": "preset",
-       "type": "int",
+       "type": "enum",
        "displayValue": "..."
       },
       null
@@ -430,6 +481,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.5,
@@ -447,6 +499,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.5,
@@ -464,6 +517,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.5,
@@ -481,6 +535,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.5,
@@ -498,6 +553,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.5,
@@ -515,6 +571,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.5,
@@ -530,12 +587,13 @@
     "min": 0,
     "max": 2,
     "step": 0.02,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 200
+     "perDetent": 0.02,
+     "detentsFullSweep": 100
     }
    },
    {
@@ -547,12 +605,13 @@
     "min": 1,
     "max": 128,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "perDetent": 1,
+     "detentsFullSweep": 127
     }
    },
    {
@@ -566,6 +625,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.5,
@@ -581,29 +641,33 @@
     "min": -4,
     "max": 4,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
+    "signed": true,
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 16
+     "perDetent": 1,
+     "detentsFullSweep": 8
     }
    },
    {
     "key": "preset",
     "label": "Preset",
     "shortLabel": "PRSET",
-    "type": "int",
-    "options": null,
+    "type": "enum",
     "min": 0,
-    "max": 1,
+    "max": 15,
     "step": 1,
+    "options": null,
+    "nameKey": "preset_name",
     "renderStyle": "preset",
-    "automatable": true,
+    "capturesModuleState": true,
+    "automatable": false,
     "increment": {
      "kind": "enum",
      "detentsPerStep": 4,
-     "steps": 2
+     "steps": 16
     }
    },
    null,
@@ -619,13 +683,14 @@
     "options": null,
     "min": 0,
     "max": 1,
-    "step": 0.01,
+    "step": 0.02,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
     }
    },
    {
@@ -636,13 +701,14 @@
     "options": null,
     "min": 0,
     "max": 1,
-    "step": 0.01,
+    "step": 0.02,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
     }
    },
    {
@@ -653,13 +719,14 @@
     "options": null,
     "min": 0,
     "max": 1,
-    "step": 0.01,
+    "step": 0.02,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
     }
    },
    {
@@ -670,13 +737,14 @@
     "options": null,
     "min": 0,
     "max": 1,
-    "step": 0.01,
+    "step": 0.02,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
     }
    },
    {
@@ -687,13 +755,14 @@
     "options": null,
     "min": 0,
     "max": 1,
-    "step": 0.01,
+    "step": 0.02,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
     }
    },
    {
@@ -707,6 +776,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -724,6 +794,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -741,6 +812,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -754,11 +826,6 @@
    "knob_preset"
   ],
   "noMetadata": [
-   "knob_0",
-   "knob_1",
-   "knob_2",
-   "knob_3",
-   "knob_4",
    "knob_5",
    "knob_6",
    "knob_7"

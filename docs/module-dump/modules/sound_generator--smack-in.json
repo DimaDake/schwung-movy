@@ -614,7 +614,7 @@
        "fullName": "FX Density",
        "renderStyle": "arc",
        "type": "float",
-       "displayValue": "50%"
+       "displayValue": "..."
       },
       {
        "shortName": "ORDER",
@@ -647,7 +647,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "RE-RO",
+       "shortName": "RE-ROL",
        "fullName": "Re-Roll",
        "renderStyle": "arc",
        "type": "enum",
@@ -735,7 +735,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "RE-RO",
+       "shortName": "RE-ROL",
        "fullName": "Re-Roll",
        "renderStyle": "arc",
        "type": "enum",
@@ -791,7 +791,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DB",
+       "shortName": "DETECT",
        "fullName": "Detect BPM",
        "renderStyle": "arc",
        "type": "enum",
@@ -800,7 +800,7 @@
       {
        "shortName": "PAD",
        "fullName": "Pad Play",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -894,7 +894,7 @@
     "rows": [
      [
       {
-       "shortName": "TRANS",
+       "shortName": "TRANSP",
        "fullName": "Transport",
        "renderStyle": "arc",
        "type": "enum",
@@ -1323,7 +1323,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",

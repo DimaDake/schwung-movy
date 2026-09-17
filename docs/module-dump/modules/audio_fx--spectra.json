@@ -5,7 +5,7 @@
  "author": "fillioning",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 72,
+ "load_ms": 59,
  "dsp_size": 73408,
  "capabilities": {
   "chainable": true,
@@ -1250,7 +1250,7 @@
        "fullName": "Onset",
        "renderStyle": "arc",
        "type": "float",
-       "displayValue": "70%"
+       "displayValue": "..."
       },
       {
        "shortName": "FREQU",
@@ -1260,14 +1260,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "BRIGH",
+       "shortName": "BRIGHT",
        "fullName": "Brightness",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "TIMBR",
+       "shortName": "TIMBRE",
        "fullName": "Timbre",
        "renderStyle": "arc",
        "type": "float",
@@ -1346,20 +1346,6 @@
      ],
      [
       {
-       "shortName": "PRE",
-       "fullName": "Pre Gain",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "POST",
-       "fullName": "Post Gain",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
        "shortName": "HPF",
        "fullName": "HPF",
        "renderStyle": "arc",
@@ -1371,6 +1357,20 @@
        "fullName": "LPF",
        "renderStyle": "arc",
        "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PRE",
+       "fullName": "Pre Gain",
+       "renderStyle": "vbar",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "POST",
+       "fullName": "Post Gain",
+       "renderStyle": "vbar",
+       "type": "float",
        "displayValue": "..."
       }
      ]
@@ -1386,9 +1386,9 @@
     "rows": [
      [
       {
-       "shortName": "LIMIT",
+       "shortName": "LIMITER",
        "fullName": "Limiter",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -1466,7 +1466,7 @@
       {
        "shortName": "SHAPE",
        "fullName": "Mot Shape",
-       "renderStyle": "arc",
+       "renderStyle": "wave",
        "type": "enum",
        "displayValue": "..."
       },
@@ -1490,7 +1490,7 @@
     "rows": [
      [
       {
-       "shortName": "PRESE",
+       "shortName": "PRESET",
        "fullName": "Preset",
        "renderStyle": "arc",
        "type": "enum",
@@ -1499,21 +1499,21 @@
       {
        "shortName": "RP",
        "fullName": "Rnd Preset",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "SPECT",
+       "shortName": "SPECTR",
        "fullName": "Rnd Spectra",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "MOTIO",
+       "shortName": "MOTION",
        "fullName": "Rnd Motion",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       }
@@ -1522,12 +1522,12 @@
       {
        "shortName": "PAN",
        "fullName": "Rnd Pan",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "SW",
+       "shortName": "STEREO",
        "fullName": "Stereo Width",
        "renderStyle": "arc",
        "type": "float",
@@ -1788,12 +1788,12 @@
     "min": -12,
     "max": 12,
     "step": 0.5,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.25,
-     "detentsFullSweep": 96
+     "perDetent": 0.5,
+     "detentsFullSweep": 48
     }
    },
    {
@@ -1805,12 +1805,12 @@
     "min": -12,
     "max": 12,
     "step": 0.5,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.25,
-     "detentsFullSweep": 96
+     "perDetent": 0.5,
+     "detentsFullSweep": 48
     }
    },
    {
@@ -1859,7 +1859,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -2101,8 +2101,9 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
-    "automatable": true,
+    "renderStyle": "switch",
+    "automatable": false,
+    "behavior": "trigger",
     "increment": {
      "kind": "int",
      "perDetent": 1,
@@ -2118,8 +2119,9 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
-    "automatable": true,
+    "renderStyle": "switch",
+    "automatable": false,
+    "behavior": "trigger",
     "increment": {
      "kind": "int",
      "perDetent": 1,
@@ -2135,8 +2137,9 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
-    "automatable": true,
+    "renderStyle": "switch",
+    "automatable": false,
+    "behavior": "trigger",
     "increment": {
      "kind": "int",
      "perDetent": 1,
@@ -2152,8 +2155,9 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
-    "automatable": true,
+    "renderStyle": "switch",
+    "automatable": false,
+    "behavior": "trigger",
     "increment": {
      "kind": "int",
      "perDetent": 1,

@@ -5,7 +5,7 @@
  "author": "move-anything contributors",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 52,
+ "load_ms": 39,
  "dsp_size": 768200,
  "capabilities": {
   "audio_out": true,
@@ -2624,23 +2624,23 @@
        "displayValue": "—"
       },
       {
+       "shortName": "START",
+       "fullName": "Start",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
        "shortName": "VOL",
        "fullName": "Volume",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "PAN",
        "fullName": "Pan",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "TUNE",
-       "fullName": "Tune",
-       "renderStyle": "arc",
+       "renderStyle": "pan",
        "type": "float",
        "displayValue": "..."
       }
@@ -2661,8 +2661,8 @@
        "displayValue": "..."
       },
       {
-       "shortName": "START",
-       "fullName": "Start",
+       "shortName": "TUNE",
+       "fullName": "Tune",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -2741,14 +2741,14 @@
       {
        "shortName": "MSVOL",
        "fullName": "Master Vol",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "POLY",
        "fullName": "Polyphony",
-       "renderStyle": "arc",
+       "renderStyle": "steps",
        "type": "int",
        "displayValue": "..."
       },
@@ -2816,11 +2816,14 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": false,
-    "fileRoot": "/data/UserData",
+    "capturesModuleState": false,
+    "fileRoot": "/data",
     "fileFilter": [
-     ".wav"
+     ".wav",
+     ".aif",
+     ".aiff"
     ],
-    "fileStartPath": "/data/UserData/UserLibrary/Samples",
+    "fileStartPath": "/data/CoreLibrary/Samples/Drums",
     "increment": {
      "kind": "file-browse"
     }
@@ -2834,12 +2837,13 @@
     "min": 0,
     "max": 2,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 400
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
     }
    },
    {
@@ -2851,12 +2855,13 @@
     "min": -1,
     "max": 1,
     "step": 0.1,
-    "renderStyle": "arc",
+    "renderStyle": "pan",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
-     "perDetent": 0.05,
-     "detentsFullSweep": 40
+     "perDetent": 0.1,
+     "detentsFullSweep": 20
     }
    },
    {
@@ -2870,6 +2875,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.5,
@@ -2887,6 +2893,9 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
+    "filepathParam": "pad_sample_path",
+    "uiType": "wav_position",
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -2904,6 +2913,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.5,
@@ -2921,6 +2931,7 @@
     "step": 5,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 2.5,
@@ -2941,6 +2952,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": false,
+    "capturesModuleState": false,
     "increment": {
      "kind": "enum",
      "detentsPerStep": 4,
@@ -2958,6 +2970,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -2975,6 +2988,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -2992,6 +3006,7 @@
     "step": 0.01,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.005,
@@ -3009,6 +3024,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.5,
@@ -3026,6 +3042,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": true,
+    "capturesModuleState": false,
     "increment": {
      "kind": "int",
      "perDetent": 0.5,
@@ -3044,12 +3061,13 @@
     "min": 0,
     "max": 2,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": false,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 400
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
     }
    },
    {
@@ -3061,12 +3079,13 @@
     "min": 1,
     "max": 64,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "steps",
     "automatable": false,
+    "capturesModuleState": false,
     "increment": {
      "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 126
+     "perDetent": 1,
+     "detentsFullSweep": 63
     }
    },
    {
@@ -3084,6 +3103,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": false,
+    "capturesModuleState": false,
     "increment": {
      "kind": "enum",
      "detentsPerStep": 4,
@@ -3101,6 +3121,7 @@
     "step": 0.1,
     "renderStyle": "arc",
     "automatable": false,
+    "capturesModuleState": false,
     "increment": {
      "kind": "float",
      "perDetent": 0.05,
@@ -3122,11 +3143,13 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": false,
-    "fileRoot": "/data/UserData/UserLibrary",
+    "capturesModuleState": false,
+    "fileRoot": "/data",
     "fileFilter": [
-     ".ablpreset"
+     ".ablpreset",
+     ".json"
     ],
-    "fileStartPath": "/data/UserData/UserLibrary/Track Presets",
+    "fileStartPath": "/data/CoreLibrary/Track Presets/Drums/Electronic",
     "fileRequireContains": "drumRack",
     "increment": {
      "kind": "file-browse"

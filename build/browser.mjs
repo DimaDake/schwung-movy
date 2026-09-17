@@ -25,10 +25,19 @@ await esbuild.build({
         resolve(root, 'src/renderer/schwung-lib.ts'),
         resolve(root, 'src/renderer/schwung-body.ts'),
         resolve(root, 'src/renderer/schwung-page.ts'),
+        /* The delegated page's read cache (SP-26): an entry point so the logic
+         * suite can drive the stale-write hazard at the level it lives at,
+         * rather than racing Schwung's settle window through the page. */
+        resolve(root, 'src/renderer/schwung-page-cache.ts'),
         resolve(root, 'src/renderer/schwung-editor.ts'),
         resolve(root, 'src/renderer/schwung-widgets.ts'),
         resolve(root, 'src/renderer/schwung-voices.ts'),
         resolve(root, 'src/renderer/schwung-grid.ts'),
+        /* The version floor. Entry point for the same reason as its siblings:
+         * the logic suite drives `schwungFloorMet`/`schwungFloorReason`
+         * directly, and folded into a chunk there would be no module to import
+         * — the suite would fail on a path, not on the floor. */
+        resolve(root, 'src/renderer/schwung-floor.ts'),
         /* The device harness's probe: entry point so the logic suite can pin
          * its response shape without a device. */
         resolve(root, 'src/test/probe.ts'),
@@ -52,6 +61,7 @@ await esbuild.build({
         resolve(root, 'src/model/wave-toggle.ts'),
         resolve(root, 'src/model/env-stage.ts'),
         resolve(root, 'src/model/page-rotation.ts'),
+        resolve(root, 'src/model/config-hierarchy.ts'),
         resolve(root, 'src/model/eq-viz.ts'),
         resolve(root, 'src/model/eq-vm.ts'),
         resolve(root, 'src/renderer/eq-curve.ts'),
@@ -122,6 +132,10 @@ await esbuild.build({
         resolve(root, 'src/keyboard/held-notes.ts'),
         resolve(root, 'src/keyboard/release.ts'),
         resolve(root, 'src/keyboard/handler.ts'),
+        /* The delegation boundary (SP-10): an entry point so the logic suite
+         * can ask the accessor directly, rather than inferring ownership from
+         * a router gesture. */
+        resolve(root, 'src/app/page-owner.ts'),
         resolve(root, 'src/app/globals.ts'),
         resolve(root, 'src/app/init.ts'),
         resolve(root, 'src/app/resume.ts'),

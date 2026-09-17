@@ -1,0 +1,812 @@
+{
+ "id": "hank",
+ "name": "Hank",
+ "version": "0.5.0",
+ "author": "charlesvestal",
+ "category": "sound_generator",
+ "status": "ok",
+ "load_ms": 40,
+ "dsp_size": 74976,
+ "capabilities": {
+  "audio_out": true,
+  "audio_in": false,
+  "midi_in": true,
+  "midi_out": false,
+  "aftertouch": false,
+  "chainable": true,
+  "pad_layout": "chromatic",
+  "canvas_script": "canvas.js",
+  "chain_params": [
+   {
+    "key": "ratio",
+    "name": "Ratio",
+    "short_name": "Ratio",
+    "type": "int",
+    "min": 0,
+    "max": 15,
+    "step": 1,
+    "default": 4,
+    "options": [
+     "0.5",
+     "1",
+     "1.5",
+     "2",
+     "2.5",
+     "3",
+     "3.7",
+     "4",
+     "5",
+     "5.4",
+     "6",
+     "7",
+     "8",
+     "9.2",
+     "11",
+     "14"
+    ],
+    "viz": {
+     "group": "fm",
+     "role": "ratio",
+     "kind": "custom:hank_wave"
+    }
+   },
+   {
+    "key": "bright",
+    "name": "Bright",
+    "short_name": "Bright",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0.35,
+    "unit": "%",
+    "viz": {
+     "group": "fm",
+     "role": "level"
+    }
+   },
+   {
+    "key": "bite",
+    "name": "Bite",
+    "short_name": "Bite",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0,
+    "unit": "%",
+    "viz": {
+     "group": "fm",
+     "role": "feedback"
+    }
+   },
+   {
+    "key": "tone",
+    "name": "Tone",
+    "short_name": "Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0.8,
+    "unit": "%"
+   },
+   {
+    "key": "attack",
+    "name": "Attack",
+    "short_name": "Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "decay",
+    "name": "Decay",
+    "short_name": "Dec",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0.45,
+    "unit": "%"
+   },
+   {
+    "key": "sustain",
+    "name": "Sustain",
+    "short_name": "Sus",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0.7,
+    "unit": "%"
+   },
+   {
+    "key": "noise",
+    "name": "Noise",
+    "short_name": "Nois",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "voice_count",
+    "name": "Voices",
+    "short_name": "Voc",
+    "type": "int",
+    "min": 1,
+    "max": 16,
+    "step": 1,
+    "default": 8
+   },
+   {
+    "key": "glide",
+    "name": "Glide",
+    "short_name": "Gld",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pitch",
+    "name": "Transpose",
+    "short_name": "Trans",
+    "type": "float",
+    "min": -96,
+    "max": 96,
+    "step": 1,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "volume",
+    "name": "Volume",
+    "short_name": "Vol",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 1,
+    "unit": "%"
+   },
+   {
+    "key": "preset",
+    "name": "Preset",
+    "short_name": "Preset",
+    "type": "int",
+    "min": 0,
+    "max_param": "preset_count",
+    "default": 0
+   }
+  ]
+ },
+ "presets": {
+  "count": 32,
+  "sample": [
+   "round bass",
+   "sub",
+   "growl bass",
+   "pluck bass",
+   "clank bass",
+   "e piano",
+   "marimba",
+   "wood key",
+   "clav",
+   "soft key"
+  ]
+ },
+ "native": {
+  "hierarchy_levels": [
+   "main",
+   "setup"
+  ],
+  "params": [
+   {
+    "key": "ratio",
+    "name": "Ratio",
+    "type": "int",
+    "min": 0,
+    "max": 15,
+    "step": 1,
+    "options": [
+     "0.5",
+     "1",
+     "1.5",
+     "2",
+     "2.5",
+     "3",
+     "3.7",
+     "4",
+     "5",
+     "5.4",
+     "6",
+     "7",
+     "8",
+     "9.2",
+     "11",
+     "14"
+    ],
+    "default": "1.0000"
+   },
+   {
+    "key": "bright",
+    "name": "Bright",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.3800"
+   },
+   {
+    "key": "bite",
+    "name": "Bite",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.1800"
+   },
+   {
+    "key": "tone",
+    "name": "Tone",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.6000"
+   },
+   {
+    "key": "attack",
+    "name": "Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "decay",
+    "name": "Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.6800"
+   },
+   {
+    "key": "sustain",
+    "name": "Sustain",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.6000"
+   },
+   {
+    "key": "noise",
+    "name": "Noise",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "voice_count",
+    "name": "Voices",
+    "type": "int",
+    "min": 1,
+    "max": 16,
+    "step": 1,
+    "options": null,
+    "default": "8"
+   },
+   {
+    "key": "glide",
+    "name": "Glide",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "pitch",
+    "name": "Transpose",
+    "type": "float",
+    "min": -96,
+    "max": 96,
+    "step": 1,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "volume",
+    "name": "Volume",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "preset",
+    "name": "Preset",
+    "type": "int",
+    "min": 0,
+    "max": null,
+    "step": null,
+    "options": null,
+    "default": "0"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Preset",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Setup",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Preset",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PRESET",
+       "fullName": "Preset",
+       "renderStyle": "preset",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     true
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "RATIO",
+       "fullName": "Ratio",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BRIGHT",
+       "fullName": "Bright",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BITE",
+       "fullName": "Bite",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TONE",
+       "fullName": "Tone",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "ATK",
+       "fullName": "Attack",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DEC",
+       "fullName": "Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SUS",
+       "fullName": "Sustain",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NOIS",
+       "fullName": "Noise",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Setup",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "VOC",
+       "fullName": "Voices",
+       "renderStyle": "steps",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GLD",
+       "fullName": "Glide",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TRANS",
+       "fullName": "Transpose",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOL",
+       "fullName": "Volume",
+       "renderStyle": "vbar",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "PRESET",
+       "fullName": "Preset",
+       "renderStyle": "preset",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "preset",
+    "label": "Preset",
+    "shortLabel": null,
+    "type": "enum",
+    "min": 0,
+    "max": 31,
+    "step": 1,
+    "options": null,
+    "nameKey": "preset_name",
+    "renderStyle": "preset",
+    "capturesModuleState": true,
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 32
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "ratio",
+    "label": "Ratio",
+    "shortLabel": "Ratio",
+    "type": "int",
+    "options": [
+     "0.5",
+     "1",
+     "1.5",
+     "2",
+     "2.5",
+     "3",
+     "3.7",
+     "4",
+     "5",
+     "5.4",
+     "6",
+     "7",
+     "8",
+     "9.2",
+     "11",
+     "14"
+    ],
+    "min": 0,
+    "max": 15,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 30
+    }
+   },
+   {
+    "key": "bright",
+    "label": "Bright",
+    "shortLabel": "Bright",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "bite",
+    "label": "Bite",
+    "shortLabel": "Bite",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "tone",
+    "label": "Tone",
+    "shortLabel": "Tone",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "attack",
+    "label": "Attack",
+    "shortLabel": "Atk",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "decay",
+    "label": "Decay",
+    "shortLabel": "Dec",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "sustain",
+    "label": "Sustain",
+    "shortLabel": "Sus",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "noise",
+    "label": "Noise",
+    "shortLabel": "Nois",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "voice_count",
+    "label": "Voices",
+    "shortLabel": "Voc",
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 16,
+    "step": 1,
+    "renderStyle": "steps",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 15
+    }
+   },
+   {
+    "key": "glide",
+    "label": "Glide",
+    "shortLabel": "Gld",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "pitch",
+    "label": "Transpose",
+    "shortLabel": "Trans",
+    "type": "float",
+    "options": null,
+    "min": -96,
+    "max": 96,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 384
+    }
+   },
+   {
+    "key": "volume",
+    "label": "Volume",
+    "shortLabel": "Vol",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "preset",
+    "label": "Preset",
+    "shortLabel": null,
+    "type": "enum",
+    "min": 0,
+    "max": 31,
+    "step": 1,
+    "options": null,
+    "nameKey": "preset_name",
+    "renderStyle": "preset",
+    "capturesModuleState": true,
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 32
+    }
+   },
+   null,
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [],
+  "noMetadata": [],
+  "warnings": []
+ }
+}

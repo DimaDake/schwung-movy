@@ -1,11 +1,11 @@
 {
  "id": "chowtape",
  "name": "CHOWTape",
- "version": "0.1.0",
+ "version": "0.1.2",
  "author": "charlesvestal",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 69,
+ "load_ms": 60,
  "dsp_size": 27568,
  "capabilities": {
   "chainable": true,
@@ -269,10 +269,10 @@
        "fullName": "Drive",
        "renderStyle": "arc",
        "type": "float",
-       "displayValue": "50%"
+       "displayValue": "..."
       },
       {
-       "shortName": "SATUR",
+       "shortName": "SATURA",
        "fullName": "Saturation",
        "renderStyle": "arc",
        "type": "float",
@@ -302,7 +302,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "FLUTT",
+       "shortName": "FLUTTE",
        "fullName": "Flutter",
        "renderStyle": "arc",
        "type": "float",
@@ -342,7 +342,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "OUTPU",
+       "shortName": "OUTPUT",
        "fullName": "Output",
        "renderStyle": "arc",
        "type": "float",

@@ -152,12 +152,30 @@ false` as an envelope veto. It reads none of the following.
 | `short_name` | movy computes abbreviations itself (`renderer/shorten.ts`). A module that has *declared* a 5-character label is overridden by movy's guess. | Small |
 | `viz: { kind, group, role }` | `param-build.ts:28` carries `viz?: unknown` and reads only the `false` case; the comment says "a `{kind: ...}` object is the module asking for a specific graphic and **is not read here**". movy infers envelope/filter/LFO/EQ instead. Schwung's resolution order is module → host override → detector, and movy has no first tier. | Medium |
 | `options_as_string` | movy learns the enum wire format per key (`enumUsesIndex`, `store.ts:76`) — good, and equivalent to Schwung's `learnEnumWireFormat`. But the *declared* override is checked first upstream and never learned over. | Small |
-| `child_press_param` / `focus_press_param` | Not read. This is the "a finger did that" vouch: the grid forwards Move's hardware pad note passively and writes `"1"`, so a drum module can move its own focus to the pad you **hit** without confusing it with the pattern's notes. movy has `padSelectRefresh` for Forge instead. | Medium |
+| `child_press_param` / `focus_press_param` | ~~Not read.~~ **DONE 2026-09-13.** The "a finger did that" vouch. Schwung's own fires from `shadow_ui_param_pages.mjs` on `isHardwarePadPress(data)` — its shadow UI reading raw cable 0; under overtake **movy** owns the surface and the controller it embeds never sees a pad, so only movy can vouch. Read through `schwung-lib` (`focusPressParamOf` + `childPressParam`, both optional and guarded), carried on `ModelState` rather than `DrumConfig` because `focus_press_param` is a hierarchy ROOT field, and written at `router.ts`'s single pad-note site. Under `page` it is the other half of the follow: `focusVoice()` moves the Schwung page, the vouch moves the module's own focus. | Done |
 | focus **change token** (`"17:snare"`) | ~~Not read.~~ **NO CONSUMER — checked 2026-09-10.** The token is an *edge detector for a reader that latches*, and movy never reads focus back: `hierarchy.ts:71` says so outright ("Deliberately NOT seeded from the DSP's currentPadParam"), and the only two sites touching `focus_param` (`drum-handler.ts`, `schwung-page.ts:386`) both WRITE it. movy's page moves from its own pad press, so re-hitting the pad you are on already works. What *was* wrong is the value movy writes — see the fix below. | — |
 | `focus_param` **value shape** | **FIXED 2026-09-10.** The sibling shape's param takes a LEVEL NAME; `drum-handler.ts` wrote the pad number into it, so every declared rack was told to focus a voice called "1". `DrumConfig.padFocusValues` now carries the module's own level per pad. | Done |
 | `default_fx`, `default_buses`, `preset` by name | Not read. A module can now say which FX belong behind it, and name a factory preset. Fires on interactive pick only, into an empty FX section. | Medium |
 | `requires_modules` (catalog) | ~~Not read.~~ **NOT APPLICABLE — checked 2026-09-10.** It is a field on the *catalog* entry (`charlesvestal/schwung`'s `module-catalog.json`), not on anything in this repo, and it names catalog **ids** the manager installs first and then refuses to uninstall. movy has no such dependency: forge and libpo32 are optional synths movy has enhanced support for, and both docs describe a **forked build** (a PR branch carrying `pv<N>_` keys), which an id cannot name. Declaring them would force-install two synths on every movy user and pin them there. | — |
 | `card_script`, `as_page`, `extra_keys`, `live: true` | Not read. See §4.1. | Large |
+
+**Which half of this table is movy's depends on the RENDERER — checked
+2026-09-13.** Under `schwunggrid = page`, where Schwung plans *and* draws, its
+own planner reads most of these and movy adding a second reader would be two
+implementations of one contract:
+
+| row | where Schwung already reads it |
+|---|---|
+| `short_name` | `page_plan.mjs:440`, `:497` |
+| `viz: {kind, group, role}` | `viz.mjs::resolveViz`, imported by `page_controller.mjs:43`; `page_plan.mjs:109` aligns the groups to rows |
+| `options_as_string` | `param_format.mjs::learnEnumWireFormat` / `enumWireValue` |
+
+What is left for movy is the half that depends on **who owns the hardware** —
+only the surface owner sees a pad press, which is why the vouch row above is
+movy's and had to be built here. The others stay worth doing for `MOVY` mode,
+where movy's own detectors and abbreviator are what draw; they are simply not
+`page`-mode work. See `docs/schwung-param-pages-findings.md` for what `page`
+still needs.
 
 The `pad_layout` / voices work (#411) is the exception and it is worth saying
 out loud: **Schwung wrote that contract for movy specifically.** MODULES.md names
@@ -211,9 +229,20 @@ a second one." That is movy's exact configuration (`bands: { header: false, bank
 false, footer: false }`), now a supported API rather than a bend.
 
 Checked: every symbol `renderer/schwung-lib.ts` imports still exists on
-`origin/main`. New ones available and unused: `focusPressParamOf`, `focusToken`,
-`voiceIndexFromLevel/Child/Wire`, `isHardwarePadPress`, `movyBandLayout`,
+`origin/main`. Still available and unused: `focusToken`,
+`voiceIndexFromLevel/Child/Wire`, `isHardwarePadPress`,
 `movyHeaderFor`, `drawPadGridIcon`, `registerOverlayWidgets`, `drawCustom`.
+
+**Two came off that list on 2026-09-13.** `focusPressParamOf` (with
+`childPressParam` from `child_key.mjs`) is now read — see the §3 table.
+And `movyBandLayout` is now given a **rect**: `schwung-page.ts` passed none,
+and upstream reflows *only* when one is supplied (`const reflow = !!o.rect`),
+so movy was opting out of the layout rather than taking its default. The body
+sat on Schwung's own vertical rhythm — widget row 0 at y=9, on top of movy's
+bank bar — and now sits at `{x:0, y:10, w:128, h:47}`, which lands both widget
+rows exactly on movy's `ROW0_Y`/`ROW1_Y`. `isHardwarePadPress` stays unused on
+purpose: movy owns the surface and has already decoded the press, so the sift
+Schwung needs for raw cable 0 would gate a range that is already gated.
 
 ### 4.2 Variable-length chains, as a permutation
 
@@ -421,6 +450,13 @@ does not have.
    `mod_tick` is `#[must_use]`, because discarding its answer IS the bug.
 4. ~~§3 the small column.~~ **DONE** — `access` (both directions) and
    `short_name`; see the table for the other two rows.
+4b. ~~§3 `child_press_param` / `focus_press_param`, and the rect for
+   `movyBandLayout` from §4.1.~~ **DONE 2026-09-13** — the two items that
+   change what movy does under `schwunggrid = page`. The rest of §3 is read by
+   Schwung's own planner under that mode; see the note under the §3 table for
+   which rows and where, and `plans/2026-09-13-schwung-page-mode-declarations.md`
+   for what the filter deliberately left out (`options_as_string`, `viz`
+   groups and `default_fx` are all still open for `MOVY` mode).
 5. §4.2 variable-length chains. Biggest user-visible win per unit of new
    engine risk, because the engine part already exists.
 6. §4.1 finish the `schwunggrid` PAGE-mode list, or accept the divergence
@@ -435,3 +471,18 @@ does not have.
 - Whether a movy lane render can interleave with a chain permutation (§4.2) —
   Schwung's "thread safety is free" argument does not transfer unexamined.
 - Nothing in §4 was measured for cost on movy's frame budget.
+- The live-press vouch's **write** is unverified end to end, and cannot be today:
+  no module in `docs/module-dump/modules/` (78 of them) declares
+  `child_press_param`, `focus_press_param` or even `focus_param`, and
+  `voice-poc` is a Schwung test module built only under
+  `SCHWUNG_BUILD_TEST_MODULES=1`. The reader and the model wiring are covered by
+  `browser-test/logic/schwung-page.mjs`; the router line is not, and a device
+  scenario against a module that declares nothing would pass by proving nothing.
+  What would close it: a fleet module that declares one, asserted in
+  `test-device/scenarios/module-contract.ts` as a
+  `set slot=<s> key=<comp>:<press_param> val=1` log line after a pad press and
+  no such line after a sequenced note on the same pad.
+- The rect's **presence** at `schwung-page.ts`'s `ctl.render` call is likewise
+  uncovered — its value is asserted against Schwung's `BAND_H`, its use is not.
+  `browser-test/screenshot.mjs` has no scene that renders `page` at all, which
+  is the findings doc's §7 item 10.

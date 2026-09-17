@@ -1,0 +1,1259 @@
+{
+ "id": "4k-eq",
+ "name": "4K EQ",
+ "version": "1.0.3",
+ "author": "4K EQ 2 by Dusk Audio (GPL-3.0); port: athousanddetails",
+ "category": "audio_fx",
+ "status": "ok",
+ "load_ms": 64,
+ "dsp_size": 410824,
+ "capabilities": {
+  "audio_out": true,
+  "audio_in": true,
+  "midi_in": false,
+  "midi_out": false,
+  "chainable": true,
+  "component_type": "audio_fx",
+  "chain_params": [
+   {
+    "key": "lf_gain",
+    "name": "GAIN",
+    "type": "float",
+    "min": -15,
+    "max": 15,
+    "default": 0,
+    "unit": "dB",
+    "display_format": ".1f"
+   },
+   {
+    "key": "lm_gain",
+    "name": "GAIN",
+    "type": "float",
+    "min": -15,
+    "max": 15,
+    "default": 0,
+    "unit": "dB",
+    "display_format": ".1f"
+   },
+   {
+    "key": "hm_gain",
+    "name": "GAIN",
+    "type": "float",
+    "min": -15,
+    "max": 15,
+    "default": 0,
+    "unit": "dB",
+    "display_format": ".1f"
+   },
+   {
+    "key": "hf_gain",
+    "name": "GAIN",
+    "type": "float",
+    "min": -15,
+    "max": 15,
+    "default": 0,
+    "unit": "dB",
+    "display_format": ".1f"
+   },
+   {
+    "key": "hpf_freq",
+    "name": "HPF",
+    "type": "float",
+    "min": 16,
+    "max": 350,
+    "default": 16,
+    "unit": "Hz",
+    "display_format": ".0f"
+   },
+   {
+    "key": "lpf_freq",
+    "name": "LPF",
+    "type": "float",
+    "min": 3000,
+    "max": 15201,
+    "default": 15201,
+    "unit": "Hz",
+    "display_format": ".0f"
+   },
+   {
+    "key": "input_gain",
+    "name": "IN",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "default": 0,
+    "unit": "dB",
+    "display_format": ".1f"
+   },
+   {
+    "key": "output_gain",
+    "name": "OUT",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "default": 0,
+    "unit": "dB",
+    "display_format": ".1f"
+   },
+   {
+    "key": "lf_freq",
+    "name": "FREQ",
+    "type": "float",
+    "min": 30,
+    "max": 450,
+    "default": 200,
+    "unit": "Hz",
+    "display_format": ".0f"
+   },
+   {
+    "key": "lm_freq",
+    "name": "FREQ",
+    "type": "float",
+    "min": 200,
+    "max": 2500,
+    "default": 1000,
+    "unit": "Hz",
+    "display_format": ".0f",
+    "viz": false
+   },
+   {
+    "key": "hm_freq",
+    "name": "FREQ",
+    "type": "float",
+    "min": 600,
+    "max": 7000,
+    "default": 3000,
+    "unit": "Hz",
+    "display_format": ".0f",
+    "viz": false
+   },
+   {
+    "key": "hf_freq",
+    "name": "FREQ",
+    "type": "float",
+    "min": 1500,
+    "max": 16000,
+    "default": 8000,
+    "unit": "Hz",
+    "display_format": ".0f"
+   },
+   {
+    "key": "lm_q",
+    "name": "Q",
+    "type": "float",
+    "min": 0.5,
+    "max": 3,
+    "default": 1.5,
+    "display_format": ".2f",
+    "viz": false
+   },
+   {
+    "key": "hm_q",
+    "name": "Q",
+    "type": "float",
+    "min": 0.5,
+    "max": 3,
+    "default": 1.5,
+    "display_format": ".2f",
+    "viz": false
+   },
+   {
+    "key": "lf_bell",
+    "name": "BELL",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off",
+    "viz": {
+     "kind": "switch"
+    }
+   },
+   {
+    "key": "hf_bell",
+    "name": "BELL",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off",
+    "viz": {
+     "kind": "switch"
+    }
+   },
+   {
+    "key": "hpf_enabled",
+    "name": "HPF ON",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off",
+    "viz": {
+     "kind": "switch"
+    }
+   },
+   {
+    "key": "lpf_enabled",
+    "name": "LPF ON",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off",
+    "viz": {
+     "kind": "switch"
+    }
+   },
+   {
+    "key": "eq_type",
+    "name": "TYPE",
+    "type": "enum",
+    "options": [
+     "Brown",
+     "Black"
+    ],
+    "default": "Brown"
+   },
+   {
+    "key": "auto_gain",
+    "name": "A.GAIN",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off",
+    "viz": {
+     "kind": "switch"
+    }
+   },
+   {
+    "key": "oversampling",
+    "name": "OVRSMP",
+    "type": "enum",
+    "options": [
+     "1x",
+     "2x",
+     "4x"
+    ],
+    "default": "2x"
+   },
+   {
+    "key": "bypass",
+    "name": "BYPASS",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off",
+    "viz": {
+     "kind": "switch"
+    }
+   },
+   {
+    "key": "in_peak_l",
+    "name": "in_peak_l",
+    "type": "float",
+    "access": "read"
+   },
+   {
+    "key": "in_peak_r",
+    "name": "in_peak_r",
+    "type": "float",
+    "access": "read"
+   },
+   {
+    "key": "out_peak_l",
+    "name": "out_peak_l",
+    "type": "float",
+    "access": "read"
+   },
+   {
+    "key": "out_peak_r",
+    "name": "out_peak_r",
+    "type": "float",
+    "access": "read"
+   },
+   {
+    "key": "clip",
+    "name": "clip",
+    "type": "int",
+    "access": "read"
+   }
+  ]
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "lf",
+   "lmf",
+   "hmf",
+   "hf",
+   "presets"
+  ],
+  "params": [
+   {
+    "key": "lf_gain",
+    "name": "GAIN",
+    "type": "float",
+    "min": -15,
+    "max": 15,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lm_gain",
+    "name": "GAIN",
+    "type": "float",
+    "min": -15,
+    "max": 15,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "hm_gain",
+    "name": "GAIN",
+    "type": "float",
+    "min": -15,
+    "max": 15,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "hf_gain",
+    "name": "GAIN",
+    "type": "float",
+    "min": -15,
+    "max": 15,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "hpf_freq",
+    "name": "HPF",
+    "type": "float",
+    "min": 16,
+    "max": 350,
+    "step": null,
+    "options": null,
+    "default": "16"
+   },
+   {
+    "key": "lpf_freq",
+    "name": "LPF",
+    "type": "float",
+    "min": 3000,
+    "max": 15201,
+    "step": null,
+    "options": null,
+    "default": "15201"
+   },
+   {
+    "key": "input_gain",
+    "name": "IN",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "output_gain",
+    "name": "OUT",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "lf_freq",
+    "name": "FREQ",
+    "type": "float",
+    "min": 30,
+    "max": 450,
+    "step": null,
+    "options": null,
+    "default": "200"
+   },
+   {
+    "key": "lm_freq",
+    "name": "FREQ",
+    "type": "float",
+    "min": 200,
+    "max": 2500,
+    "step": null,
+    "options": null,
+    "default": "1000"
+   },
+   {
+    "key": "hm_freq",
+    "name": "FREQ",
+    "type": "float",
+    "min": 600,
+    "max": 7000,
+    "step": null,
+    "options": null,
+    "default": "3000"
+   },
+   {
+    "key": "hf_freq",
+    "name": "FREQ",
+    "type": "float",
+    "min": 1500,
+    "max": 16000,
+    "step": null,
+    "options": null,
+    "default": "8000"
+   },
+   {
+    "key": "lm_q",
+    "name": "Q",
+    "type": "float",
+    "min": 0.5,
+    "max": 3,
+    "step": null,
+    "options": null,
+    "default": "1.5"
+   },
+   {
+    "key": "hm_q",
+    "name": "Q",
+    "type": "float",
+    "min": 0.5,
+    "max": 3,
+    "step": null,
+    "options": null,
+    "default": "1.5"
+   },
+   {
+    "key": "lf_bell",
+    "name": "BELL",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "hf_bell",
+    "name": "BELL",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "hpf_enabled",
+    "name": "HPF ON",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "lpf_enabled",
+    "name": "LPF ON",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "eq_type",
+    "name": "TYPE",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Brown",
+     "Black"
+    ],
+    "default": "Brown"
+   },
+   {
+    "key": "auto_gain",
+    "name": "A.GAIN",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "oversampling",
+    "name": "OVRSMP",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "1x",
+     "2x",
+     "4x"
+    ],
+    "default": "2x"
+   },
+   {
+    "key": "bypass",
+    "name": "BYPASS",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "in_peak_l",
+    "name": "in_peak_l",
+    "type": "float",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "in_peak_r",
+    "name": "in_peak_r",
+    "type": "float",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "out_peak_l",
+    "name": "out_peak_l",
+    "type": "float",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "out_peak_r",
+    "name": "out_peak_r",
+    "type": "float",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "clip",
+    "name": "clip",
+    "type": "int",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": null,
+    "default": "0"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": true,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "LF",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "LMF",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "HMF",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "HF",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "TYPE",
+       "fullName": "TYPE",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OVRSM",
+       "fullName": "OVRSMP",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BYPAS",
+       "fullName": "BYPASS",
+       "renderStyle": "switch",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "A.GAIN",
+       "fullName": "A.GAIN",
+       "renderStyle": "switch",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "IN",
+       "fullName": "IN",
+       "renderStyle": "vbar",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OUT",
+       "fullName": "OUT",
+       "renderStyle": "vbar",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "LF",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "GAIN",
+       "fullName": "GAIN",
+       "renderStyle": "vbar",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREQ",
+       "fullName": "FREQ",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BELL",
+       "fullName": "BELL",
+       "renderStyle": "switch",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HPF",
+       "fullName": "HPF",
+       "renderStyle": "cut",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "LMF",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "GAIN",
+       "fullName": "GAIN",
+       "renderStyle": "vbar",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREQ",
+       "fullName": "FREQ",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "Q",
+       "fullName": "Q",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "HMF",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "GAIN",
+       "fullName": "GAIN",
+       "renderStyle": "vbar",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREQ",
+       "fullName": "FREQ",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "Q",
+       "fullName": "Q",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "HF",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "GAIN",
+       "fullName": "GAIN",
+       "renderStyle": "vbar",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FREQ",
+       "fullName": "FREQ",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BELL",
+       "fullName": "BELL",
+       "renderStyle": "switch",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LPF",
+       "fullName": "LPF",
+       "renderStyle": "cut",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "eq_type",
+    "label": "TYPE",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Brown",
+     "Black"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "oversampling",
+    "label": "OVRSMP",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1x",
+     "2x",
+     "4x"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "bypass",
+    "label": "BYPASS",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "switch",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "auto_gain",
+    "label": "A.GAIN",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "switch",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "input_gain",
+    "label": "IN",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -12,
+    "max": 12,
+    "step": 0.02,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.02,
+     "detentsFullSweep": 1200
+    }
+   },
+   {
+    "key": "output_gain",
+    "label": "OUT",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -12,
+    "max": 12,
+    "step": 0.02,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.02,
+     "detentsFullSweep": 1200
+    }
+   },
+   null,
+   null,
+   {
+    "key": "lf_gain",
+    "label": "GAIN",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -15,
+    "max": 15,
+    "step": 0.02,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.02,
+     "detentsFullSweep": 1500
+    }
+   },
+   {
+    "key": "lf_freq",
+    "label": "FREQ",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 30,
+    "max": 450,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 42000
+    }
+   },
+   {
+    "key": "lf_bell",
+    "label": "BELL",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "switch",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "hpf_freq",
+    "label": "HPF",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 16,
+    "max": 350,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 33400
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "lm_gain",
+    "label": "GAIN",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -15,
+    "max": 15,
+    "step": 0.02,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.02,
+     "detentsFullSweep": 1500
+    }
+   },
+   {
+    "key": "lm_freq",
+    "label": "FREQ",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 200,
+    "max": 2500,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 230000
+    }
+   },
+   {
+    "key": "lm_q",
+    "label": "Q",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.5,
+    "max": 3,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 250
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "hm_gain",
+    "label": "GAIN",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -15,
+    "max": 15,
+    "step": 0.02,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.02,
+     "detentsFullSweep": 1500
+    }
+   },
+   {
+    "key": "hm_freq",
+    "label": "FREQ",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 600,
+    "max": 7000,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 640000
+    }
+   },
+   {
+    "key": "hm_q",
+    "label": "Q",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0.5,
+    "max": 3,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 250
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "hf_gain",
+    "label": "GAIN",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -15,
+    "max": 15,
+    "step": 0.02,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.02,
+     "detentsFullSweep": 1500
+    }
+   },
+   {
+    "key": "hf_freq",
+    "label": "FREQ",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 1500,
+    "max": 16000,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 1450000
+    }
+   },
+   {
+    "key": "hf_bell",
+    "label": "BELL",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "switch",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "lpf_freq",
+    "label": "LPF",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 3000,
+    "max": 15201,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 1220100
+    }
+   },
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "hpf_enabled",
+   "lpf_enabled",
+   "in_peak_l",
+   "in_peak_r",
+   "out_peak_l",
+   "out_peak_r",
+   "clip"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "7 chain_params not reachable in movy: hpf_enabled, lpf_enabled, in_peak_l, in_peak_r, out_peak_l, out_peak_r, clip"
+  ]
+ }
+}

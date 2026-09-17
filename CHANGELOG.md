@@ -15,6 +15,30 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
+- **A module is told when a FINGER hit a pad (`child_press_param` /
+  `focus_press_param`).** Move turns a pad press into an ordinary note *before*
+  playing it, so by the time it reaches a module's `on_midi` a hit and a
+  sequenced note are the same bytes — same status, channel, note and source.
+  That is the one fact a drum module cannot work out for itself, and Schwung's
+  contract answers it with a vouch: a write of `"1"`, note-on only, one per
+  press, saying *a finger did that* and deliberately not saying which pad (the
+  pad-to-note map is Move's, and a module told "pad 68" could only address one
+  bank, mis-strided).
+
+  Schwung's own vouch fires from its shadow UI reading raw cable 0. Under
+  overtake **movy** owns the surface, so the controller movy embeds never sees a
+  pad and only movy can send it. Under the `page` renderer this completes a
+  follow that was half-built: `focusVoice()` already moved the Schwung page to
+  the voice you hit, but nothing moved the *module's* own focus, which is what
+  its per-voice keys resolve against — so the page turned to the snare while the
+  knobs still edited the kick.
+
+  It lives on `ModelState`, not `DrumConfig`: `focus_press_param` is a hierarchy
+  root field, so a melodic module can declare one too, and folding it into the
+  drum config would have silently skipped every module that does. No module in
+  the captured fleet declares one yet, so this costs every existing module
+  exactly nothing — no read, no write.
+
 - **Engine-owned persistence — now the default, with `engpersist` (Settings) to turn it off.**
   The engine now reads and writes a Set's files itself — `seq-state.json` and a
   new `chains.json` — atomically (temp → fsync → rename) on its own thread, and
@@ -51,6 +75,17 @@ far. Earlier work is summarised in the timeline below for context.
   looks for them in a file the engine no longer owns.
 
 ### Fixed
+
+- **The Schwung-rendered knob grid drew 2 px too high, on top of movy's bank
+  bar.** `movyBandLayout` reflows **only when a rect is supplied** — so passing
+  none was not taking a default, it was opting out of the layout, and the body
+  kept Schwung's own vertical rhythm: widget row 0 at y=9, over the bank bar
+  (rows 8-9), with three dead rows under the last label. Both embedded modes now
+  draw into one `GRID_BODY_RECT` (`{x:0, y:10, w:128, h:47}`), which lands the
+  two widget rows exactly on movy's own `ROW0_Y`/`ROW1_Y` and ends the body one
+  row above the toast band. 47 is not a chosen number: it is the room a body
+  needs. Affects the debug-only `schwunggrid` setting in `DRAW` and `PAGE`;
+  `MOVY`, the default, is unchanged.
 
 - **A sequencer gesture could go nowhere at all — a Play press, an undo group, a
   step toggle — and nothing said so.** Every command Movy sends the engine

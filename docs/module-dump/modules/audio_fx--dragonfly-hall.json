@@ -5,7 +5,7 @@
  "author": "bradcoomber",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 67,
+ "load_ms": 49,
  "dsp_size": 174512,
  "capabilities": {
   "chainable": true,
@@ -214,7 +214,7 @@
     "rows": [
      [
       {
-       "shortName": "PRESE",
+       "shortName": "PRESET",
        "fullName": "Preset",
        "renderStyle": "preset",
        "type": "enum",
@@ -244,21 +244,21 @@
       {
        "shortName": "DRY",
        "fullName": "Dry",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "EARLY",
        "fullName": "Early",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "LATE",
        "fullName": "Late",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
@@ -279,7 +279,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DIFFU",
+       "shortName": "DIFFUS",
        "fullName": "Diffuse",
        "renderStyle": "arc",
        "type": "float",
@@ -312,15 +312,8 @@
     "rows": [
      [
       {
-       "shortName": "MODUL",
-       "fullName": "Modulation",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "WANDE",
-       "fullName": "Wander",
+       "shortName": "CUT2",
+       "fullName": "Low Cut",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -333,8 +326,15 @@
        "displayValue": "..."
       },
       {
-       "shortName": "CROSS",
-       "fullName": "High Cross",
+       "shortName": "MODUL",
+       "fullName": "Modulation",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WANDE",
+       "fullName": "Wander",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -342,15 +342,15 @@
      ],
      [
       {
-       "shortName": "HM",
-       "fullName": "High Mult",
+       "shortName": "CROSS",
+       "fullName": "High Cross",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "CUT2",
-       "fullName": "Low Cut",
+       "shortName": "HM",
+       "fullName": "High Mult",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -385,6 +385,7 @@
     "options": null,
     "nameKey": "preset_name",
     "renderStyle": "preset",
+    "capturesModuleState": true,
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -408,12 +409,12 @@
     "min": 0,
     "max": 100,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.5,
-     "detentsFullSweep": 200
+     "perDetent": 1,
+     "detentsFullSweep": 100
     }
    },
    {
@@ -425,12 +426,12 @@
     "min": 0,
     "max": 100,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.5,
-     "detentsFullSweep": 200
+     "perDetent": 1,
+     "detentsFullSweep": 100
     }
    },
    {
@@ -442,12 +443,12 @@
     "min": 0,
     "max": 100,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.5,
-     "detentsFullSweep": 200
+     "perDetent": 1,
+     "detentsFullSweep": 100
     }
    },
    {

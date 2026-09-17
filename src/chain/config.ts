@@ -76,6 +76,19 @@ export function isMasterComponent(componentKey: string): boolean {
     return componentKey.startsWith('master_fx');
 }
 
+/* A component movy draws out of its OWN model, never out of a module contract.
+ *
+ * The mix page and the two LFO pages occupy chain slots and answer the same
+ * model surface as a module, but no module declares them — there is nothing for
+ * a page planner to plan. They were handed to Schwung's planner anyway while
+ * ownership was decided at each call site: a controller was built per (track,
+ * component), its contract never resolved, and the right answer came back for
+ * the wrong reason. Asked by the ownership accessor (`app/page-owner.ts`), so a
+ * delegated component is one a MODULE declares. */
+export function isMovyOwnComponent(componentKey: string): boolean {
+    return componentKey === 'mix' || componentKey.endsWith('lfo');
+}
+
 /* A send bus is hosted by MOVY, not by schwung's master bus. It rides the master
  * page because that is where a user looks for it, but its params live in movy's
  * engine under `snd<n>:` and its port must not be a shadow slot. */

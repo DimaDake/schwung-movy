@@ -1913,7 +1913,7 @@ behaviour you'd like — or, better, a PR.
 | **Loop + Step 1 / 3 / 5 / 7 / 9 / 11 / 13 / 15** | *(Session view)* **Scenes 1-8** — launch a whole clip column, or build a song. Loop is a modifier only there: it does not latch the bar selector. |
 | **Left / Right** | Navigate bars — the loop's own bars plus one empty bar past its end (or nudge held steps). |
 | **Copy** | Duplicate a step / clip / bar (context-dependent). |
-| **Delete (Clear)** | Delete a step / clip / bar; in Session, delete a clip. Hold + knob-touch clears that knob's automation lane. |
+| **Delete (Clear)** | Delete a step / clip / bar; in Session, delete a clip. Hold + knob-touch clears that knob's automation lane — and touching a knob is always a knob gesture, so a knob with nothing under it clears nothing and the clip is left alone. |
 | **Hold Clear + pad** | Clear every note of that pad's pitch from the clip — a whole drum lane at once. |
 | **Undo** | Undo the last edit. |
 | **Shift + Undo** | Redo it. |

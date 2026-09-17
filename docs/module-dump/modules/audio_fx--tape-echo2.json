@@ -1,0 +1,986 @@
+{
+ "id": "tape-echo2",
+ "name": "Tape Echo 2",
+ "version": "1.4.5",
+ "author": "Tape Echo 2 by Dusk Audio (GPL-3.0); port: athousanddetails",
+ "category": "audio_fx",
+ "status": "ok",
+ "load_ms": 67,
+ "dsp_size": 400488,
+ "capabilities": {
+  "audio_in": true,
+  "audio_out": true,
+  "chain_params": [
+   {
+    "default": "H3",
+    "key": "mode",
+    "name": "Mode",
+    "options": [
+     "H1",
+     "H2",
+     "H3",
+     "H2+3",
+     "H1+R",
+     "H2+R",
+     "H3+R",
+     "H12+R",
+     "H23+R",
+     "H13+R",
+     "H123R",
+     "Rev"
+    ],
+    "type": "enum"
+   },
+   {
+    "default": 0.414888,
+    "key": "repeat_rate",
+    "max": 1,
+    "min": 0,
+    "name": "Rate",
+    "type": "float"
+   },
+   {
+    "default": 0.44,
+    "key": "intensity",
+    "max": 1,
+    "min": 0,
+    "name": "Fbk",
+    "type": "float"
+   },
+   {
+    "default": 1,
+    "key": "echo_volume",
+    "max": 1,
+    "min": 0,
+    "name": "Echo",
+    "type": "float"
+   },
+   {
+    "default": 0.35,
+    "key": "reverb_volume",
+    "max": 1,
+    "min": 0,
+    "name": "Verb",
+    "type": "float"
+   },
+   {
+    "default": 0.5,
+    "key": "mix",
+    "max": 1,
+    "min": 0,
+    "name": "Mix",
+    "type": "float"
+   },
+   {
+    "default": "Off",
+    "key": "tempo_sync",
+    "name": "Sync",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "type": "enum"
+   },
+   {
+    "default": 5,
+    "key": "echo_rate_note",
+    "max": 11,
+    "min": 1,
+    "name": "Div",
+    "type": "int"
+   },
+   {
+    "default": 0.5,
+    "key": "input_volume",
+    "max": 1,
+    "min": 0,
+    "name": "Drive",
+    "type": "float"
+   },
+   {
+    "default": 0,
+    "key": "bass",
+    "max": 1,
+    "min": -1,
+    "name": "Bass",
+    "type": "float"
+   },
+   {
+    "default": 0,
+    "key": "treble",
+    "max": 1,
+    "min": -1,
+    "name": "Treble",
+    "type": "float"
+   },
+   {
+    "default": 0,
+    "key": "wow_flutter",
+    "max": 1,
+    "min": 0,
+    "name": "W&F",
+    "type": "float"
+   },
+   {
+    "default": "Used",
+    "key": "tape_age",
+    "name": "Age",
+    "options": [
+     "New",
+     "Used",
+     "Old"
+    ],
+    "type": "enum"
+   },
+   {
+    "default": "On",
+    "key": "input_send",
+    "name": "Arm",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "type": "enum"
+   },
+   {
+    "default": "Off",
+    "key": "ping_pong",
+    "name": "Pong",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "type": "enum"
+   },
+   {
+    "default": 0,
+    "key": "stereo_width",
+    "max": 100,
+    "min": 0,
+    "name": "Width",
+    "type": "int"
+   },
+   {
+    "default": 400,
+    "display_format": ".0f",
+    "key": "time_ms",
+    "max": 490,
+    "min": 69,
+    "name": "Time",
+    "type": "float",
+    "unit": "ms"
+   },
+   {
+    "default": 0,
+    "key": "tone_tilt",
+    "max": 1,
+    "min": -1,
+    "name": "Tone",
+    "type": "float"
+   },
+   {
+    "default": 0.25,
+    "key": "tape_wear",
+    "max": 1,
+    "min": 0,
+    "name": "Tape",
+    "type": "float"
+   }
+  ],
+  "chainable": true,
+  "component_type": "audio_fx",
+  "midi_in": false,
+  "midi_out": false
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "advanced",
+   "out"
+  ],
+  "params": [
+   {
+    "key": "mode",
+    "name": "Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "H1",
+     "H2",
+     "H3",
+     "H2+3",
+     "H1+R",
+     "H2+R",
+     "H3+R",
+     "H12+R",
+     "H23+R",
+     "H13+R",
+     "H123R",
+     "Rev"
+    ],
+    "default": "H3"
+   },
+   {
+    "key": "repeat_rate",
+    "name": "Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.4149"
+   },
+   {
+    "key": "intensity",
+    "name": "Fbk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.4400"
+   },
+   {
+    "key": "echo_volume",
+    "name": "Echo",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "reverb_volume",
+    "name": "Verb",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.3500"
+   },
+   {
+    "key": "mix",
+    "name": "Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "tempo_sync",
+    "name": "Sync",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "echo_rate_note",
+    "name": "Div",
+    "type": "int",
+    "min": 1,
+    "max": 11,
+    "step": null,
+    "options": null,
+    "default": "5"
+   },
+   {
+    "key": "input_volume",
+    "name": "Drive",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "bass",
+    "name": "Bass",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "treble",
+    "name": "Treble",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "wow_flutter",
+    "name": "W&F",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "tape_age",
+    "name": "Age",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "New",
+     "Used",
+     "Old"
+    ],
+    "default": "Used"
+   },
+   {
+    "key": "input_send",
+    "name": "Arm",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "On"
+   },
+   {
+    "key": "ping_pong",
+    "name": "Pong",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "stereo_width",
+    "name": "Width",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "time_ms",
+    "name": "Time",
+    "type": "float",
+    "min": 69,
+    "max": 490,
+    "step": null,
+    "options": null,
+    "default": "400.0000"
+   },
+   {
+    "key": "tone_tilt",
+    "name": "Tone",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "tape_wear",
+    "name": "Tape",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.2500"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": true,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Advanced",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Out",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "TIME",
+       "fullName": "Time",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SYNC",
+       "fullName": "Sync",
+       "renderStyle": "switch",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FBK",
+       "fullName": "Fbk",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MIX",
+       "fullName": "Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "TONE",
+       "fullName": "Tone",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WIDTH",
+       "fullName": "Width",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TAPE",
+       "fullName": "Tape",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MODE",
+       "fullName": "Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Advanced",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ARM",
+       "fullName": "Arm",
+       "renderStyle": "switch",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRIVE",
+       "fullName": "Drive",
+       "renderStyle": "vbar",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AGE",
+       "fullName": "Age",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "W&F",
+       "fullName": "W&F",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "BASS",
+       "fullName": "Bass",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TREBLE",
+       "fullName": "Treble",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RATE",
+       "fullName": "Rate",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Out",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ECHO",
+       "fullName": "Echo",
+       "renderStyle": "vbar",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VERB",
+       "fullName": "Verb",
+       "renderStyle": "vbar",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PONG",
+       "fullName": "Pong",
+       "renderStyle": "switch",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DIV",
+       "fullName": "Div",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "time_ms",
+    "label": "Time",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 69,
+    "max": 490,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 42100
+    }
+   },
+   {
+    "key": "tempo_sync",
+    "label": "Sync",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "switch",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "intensity",
+    "label": "Fbk",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "mix",
+    "label": "Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "tone_tilt",
+    "label": "Tone",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "stereo_width",
+    "label": "Width",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "tape_wear",
+    "label": "Tape",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "mode",
+    "label": "Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "H1",
+     "H2",
+     "H3",
+     "H2+3",
+     "H1+R",
+     "H2+R",
+     "H3+R",
+     "H12+R",
+     "H23+R",
+     "H13+R",
+     "H123R",
+     "Rev"
+    ],
+    "min": 0,
+    "max": 11,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 12
+    }
+   },
+   {
+    "key": "input_send",
+    "label": "Arm",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "switch",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "input_volume",
+    "label": "Drive",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
+    }
+   },
+   {
+    "key": "tape_age",
+    "label": "Age",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "New",
+     "Used",
+     "Old"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "wow_flutter",
+    "label": "W&F",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "bass",
+    "label": "Bass",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "treble",
+    "label": "Treble",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "repeat_rate",
+    "label": "Rate",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   null,
+   {
+    "key": "echo_volume",
+    "label": "Echo",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
+    }
+   },
+   {
+    "key": "reverb_volume",
+    "label": "Verb",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
+    }
+   },
+   {
+    "key": "ping_pong",
+    "label": "Pong",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "switch",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "echo_rate_note",
+    "label": "Div",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 11,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 20
+    }
+   },
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [],
+  "noMetadata": [],
+  "warnings": []
+ }
+}

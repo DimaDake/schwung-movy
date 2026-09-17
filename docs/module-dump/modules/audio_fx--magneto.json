@@ -5,7 +5,7 @@
  "author": "Filliformes",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 53,
+ "load_ms": 78,
  "dsp_size": 74480,
  "capabilities": {
   "chainable": true,
@@ -1752,7 +1752,7 @@
        "fullName": "Play",
        "renderStyle": "arc",
        "type": "enum",
-       "displayValue": "Stopp"
+       "displayValue": "..."
       },
       {
        "shortName": "REC",
@@ -1801,7 +1801,7 @@
       {
        "shortName": "VOLUM",
        "fullName": "Volume",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       }
@@ -1900,14 +1900,14 @@
      ],
      [
       {
-       "shortName": "STUTT",
+       "shortName": "STUTTE",
        "fullName": "Stutter",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "FAILU",
+       "shortName": "FAILUR",
        "fullName": "Failure",
        "renderStyle": "arc",
        "type": "float",
@@ -1916,7 +1916,7 @@
       {
        "shortName": "TAPE",
        "fullName": "Tape Stop",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -1940,8 +1940,15 @@
     "rows": [
      [
       {
-       "shortName": "TRIM",
-       "fullName": "Trim",
+       "shortName": "LOW",
+       "fullName": "Low",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MID",
+       "fullName": "Mid",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -1953,6 +1960,15 @@
        "type": "float",
        "displayValue": "..."
       },
+      {
+       "shortName": "TRIM",
+       "fullName": "Trim",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
       {
        "shortName": "HF",
        "fullName": "High Freq",
@@ -1966,34 +1982,18 @@
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
-      }
-     ],
-     [
-      {
-       "shortName": "MID",
-       "fullName": "Mid",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "LOW",
-       "fullName": "Low",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
       },
       {
        "shortName": "PAN",
        "fullName": "Pan",
-       "renderStyle": "arc",
+       "renderStyle": "pan",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "VOLUM",
        "fullName": "Volume",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       }
@@ -2052,14 +2052,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "FLUTT",
+       "shortName": "FLUTTE",
        "fullName": "Flutter",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "SATUR",
+       "shortName": "SATURA",
        "fullName": "Saturation",
        "renderStyle": "arc",
        "type": "float",
@@ -2077,7 +2077,7 @@
       {
        "shortName": "LOW",
        "fullName": "Low Cut",
-       "renderStyle": "arc",
+       "renderStyle": "cut",
        "type": "float",
        "displayValue": "..."
       },
@@ -2117,14 +2117,14 @@
       {
        "shortName": "FWD",
        "fullName": "Fwd",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
       {
        "shortName": "BWD",
        "fullName": "Bwd",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -2147,7 +2147,7 @@
       {
        "shortName": "PAN",
        "fullName": "Pan",
-       "renderStyle": "arc",
+       "renderStyle": "pan",
        "type": "float",
        "displayValue": "..."
       },
@@ -2384,12 +2384,12 @@
     "min": 0,
     "max": 1,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
     }
    },
    {
@@ -2608,7 +2608,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -2744,12 +2744,12 @@
     "min": 0,
     "max": 1,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "pan",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
     }
    },
    {
@@ -2761,12 +2761,12 @@
     "min": 0,
     "max": 1,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
     }
    },
    {
@@ -2975,7 +2975,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -2995,7 +2995,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -3052,12 +3052,12 @@
     "min": 0,
     "max": 1,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "pan",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
     }
    },
    {

@@ -1,12 +1,12 @@
 {
  "id": "breakbeat",
- "name": "Breakbeat v4.0",
- "version": "0.4.0",
+ "name": "Breakbeat v4.11",
+ "version": "0.4.11",
  "author": "mestela",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 58,
- "dsp_size": 46144,
+ "load_ms": 65,
+ "dsp_size": 51664,
  "capabilities": {
   "audio_out": true,
   "audio_in": false,
@@ -432,11 +432,11 @@
     "rows": [
      [
       {
-       "shortName": "PRESE",
+       "shortName": "PRESET",
        "fullName": "Preset",
        "renderStyle": "preset",
        "type": "enum",
-       "displayValue": "0"
+       "displayValue": "..."
       },
       null,
       null,
@@ -544,14 +544,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "R2",
+       "shortName": "RETR2X",
        "fullName": "Retrig 2x",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "R3",
+       "shortName": "RETR3X",
        "fullName": "Retrig 3x",
        "renderStyle": "arc",
        "type": "int",
@@ -560,14 +560,14 @@
      ],
      [
       {
-       "shortName": "R4",
+       "shortName": "RETR4X",
        "fullName": "Retrig 4x",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "R8",
+       "shortName": "RETR8X",
        "fullName": "Retrig 8x",
        "renderStyle": "arc",
        "type": "int",
@@ -576,12 +576,12 @@
       {
        "shortName": "SAVE",
        "fullName": "Save Preset",
-       "renderStyle": "hbar",
+       "renderStyle": "switch",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "STATU",
+       "shortName": "STATUS",
        "fullName": "Status",
        "renderStyle": "arc",
        "type": "enum",
@@ -603,6 +603,7 @@
     "options": null,
     "nameKey": "preset_name",
     "renderStyle": "preset",
+    "capturesModuleState": true,
     "automatable": false,
     "increment": {
      "kind": "enum",
@@ -890,8 +891,9 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "hbar",
-    "automatable": true,
+    "renderStyle": "switch",
+    "automatable": false,
+    "behavior": "trigger",
     "increment": {
      "kind": "int",
      "perDetent": 1,

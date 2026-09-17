@@ -1,11 +1,11 @@
 {
  "id": "filter",
  "name": "FILTER",
- "version": "0.2.0",
+ "version": "0.2.3",
  "author": "charlesvestal",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 65,
+ "load_ms": 64,
  "dsp_size": 28968,
  "capabilities": {
   "chainable": true,
@@ -69,6 +69,7 @@
       },
       {
        "key": "env_amount",
+       "short_name": "ENV",
        "label": "Env Amt",
        "type": "float",
        "min": -1,
@@ -78,6 +79,7 @@
       },
       {
        "key": "lfo_amount",
+       "short_name": "AMT",
        "label": "LFO Amt",
        "type": "float",
        "min": 0,
@@ -135,6 +137,7 @@
       "env_amount",
       {
        "key": "env_attack",
+       "short_name": "Atk",
        "label": "Attack",
        "type": "float",
        "min": 1,
@@ -145,6 +148,7 @@
       },
       {
        "key": "env_release",
+       "short_name": "Rel",
        "label": "Release",
        "type": "float",
        "min": 1,
@@ -159,15 +163,16 @@
      "label": "LFO",
      "knobs": [
       "lfo_amount",
-      "lfo_rate_div",
       "lfo_rate_hz",
       "lfo_shape",
+      "lfo_rate_div",
       "lfo_sync"
      ],
      "params": [
       "lfo_amount",
       {
        "key": "lfo_shape",
+       "short_name": "Shape",
        "label": "Shape",
        "type": "enum",
        "options": [
@@ -181,6 +186,7 @@
       },
       {
        "key": "lfo_sync",
+       "short_name": "Sync",
        "label": "Sync",
        "type": "enum",
        "options": [
@@ -191,6 +197,7 @@
       },
       {
        "key": "lfo_rate_div",
+       "short_name": "Div",
        "label": "Division",
        "type": "enum",
        "options": [
@@ -209,6 +216,7 @@
       },
       {
        "key": "lfo_rate_hz",
+       "short_name": "Rate",
        "label": "Rate Hz",
        "type": "float",
        "min": 0.01,
@@ -475,11 +483,11 @@
     "rows": [
      [
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
        "type": "float",
-       "displayValue": "50%"
+       "displayValue": "..."
       },
       {
        "shortName": "RESON",
@@ -587,7 +595,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "AMT",
+       "shortName": "ENV",
        "fullName": "Env Amt",
        "renderStyle": "arc",
        "type": "float",
@@ -620,10 +628,10 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DIV",
-       "fullName": "LFO Div",
+       "shortName": "RATE",
+       "fullName": "LFO Rate",
        "renderStyle": "arc",
-       "type": "enum",
+       "type": "float",
        "displayValue": "..."
       },
       {
@@ -634,10 +642,10 @@
        "displayValue": "..."
       },
       {
-       "shortName": "RATE",
-       "fullName": "LFO Rate",
+       "shortName": "DIV",
+       "fullName": "LFO Div",
        "renderStyle": "arc",
-       "type": "float",
+       "type": "enum",
        "displayValue": "..."
       }
      ],
@@ -672,7 +680,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "OUTPU",
+       "shortName": "OUTPUT",
        "fullName": "Output",
        "renderStyle": "arc",
        "type": "float",
@@ -762,7 +770,7 @@
    {
     "key": "env_amount",
     "label": "Env Amt",
-    "shortLabel": null,
+    "shortLabel": "ENV",
     "type": "float",
     "options": null,
     "min": -1,
@@ -779,7 +787,7 @@
    {
     "key": "lfo_amount",
     "label": "LFO Amt",
-    "shortLabel": null,
+    "shortLabel": "AMT",
     "type": "float",
     "options": null,
     "min": 0,
@@ -796,7 +804,7 @@
    {
     "key": "lfo_rate_div",
     "label": "LFO Div",
-    "shortLabel": null,
+    "shortLabel": "Div",
     "type": "enum",
     "options": [
      "1/1",
@@ -875,7 +883,7 @@
    {
     "key": "env_amount",
     "label": "Env Amt",
-    "shortLabel": null,
+    "shortLabel": "ENV",
     "type": "float",
     "options": null,
     "min": -1,
@@ -892,7 +900,7 @@
    {
     "key": "env_attack",
     "label": "Env Atk",
-    "shortLabel": null,
+    "shortLabel": "Atk",
     "type": "float",
     "options": null,
     "min": 1,
@@ -909,7 +917,7 @@
    {
     "key": "env_release",
     "label": "Env Rel",
-    "shortLabel": null,
+    "shortLabel": "Rel",
     "type": "float",
     "options": null,
     "min": 1,
@@ -931,7 +939,7 @@
    {
     "key": "lfo_amount",
     "label": "LFO Amt",
-    "shortLabel": null,
+    "shortLabel": "AMT",
     "type": "float",
     "options": null,
     "min": 0,
@@ -946,9 +954,49 @@
     }
    },
    {
+    "key": "lfo_rate_hz",
+    "label": "LFO Rate",
+    "shortLabel": "Rate",
+    "type": "float",
+    "options": null,
+    "min": 0.01,
+    "max": 20,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 3998
+    }
+   },
+   {
+    "key": "lfo_shape",
+    "label": "LFO Shape",
+    "shortLabel": "Shape",
+    "type": "enum",
+    "options": [
+     "Sine",
+     "Tri",
+     "Saw",
+     "Sqr",
+     "S&H"
+    ],
+    "min": 0,
+    "max": 4,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 5
+    }
+   },
+   {
     "key": "lfo_rate_div",
     "label": "LFO Div",
-    "shortLabel": null,
+    "shortLabel": "Div",
     "type": "enum",
     "options": [
      "1/1",
@@ -974,49 +1022,9 @@
     }
    },
    {
-    "key": "lfo_rate_hz",
-    "label": "LFO Rate",
-    "shortLabel": null,
-    "type": "float",
-    "options": null,
-    "min": 0.01,
-    "max": 20,
-    "step": 0.01,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 3998
-    }
-   },
-   {
-    "key": "lfo_shape",
-    "label": "LFO Shape",
-    "shortLabel": null,
-    "type": "enum",
-    "options": [
-     "Sine",
-     "Tri",
-     "Saw",
-     "Sqr",
-     "S&H"
-    ],
-    "min": 0,
-    "max": 4,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": false,
-    "increment": {
-     "kind": "enum",
-     "detentsPerStep": 4,
-     "steps": 5
-    }
-   },
-   {
     "key": "lfo_sync",
     "label": "LFO Sync",
-    "shortLabel": null,
+    "shortLabel": "Sync",
     "type": "enum",
     "options": [
      "Free",

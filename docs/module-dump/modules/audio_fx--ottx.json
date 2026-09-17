@@ -1,11 +1,11 @@
 {
  "id": "ottx",
  "name": "OTTx",
- "version": "0.1.0",
+ "version": "0.2.0",
  "author": "Schwung OTTx port; DSP by Matt Tytel (Vital), Yegor Suslin (vitOTT)",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 49,
+ "load_ms": 81,
  "dsp_size": 30096,
  "capabilities": {
   "chainable": true,
@@ -618,7 +618,7 @@
        "fullName": "Mix",
        "renderStyle": "arc",
        "type": "float",
-       "displayValue": "100%"
+       "displayValue": "..."
       },
       {
        "shortName": "DEPTH",
@@ -651,16 +651,16 @@
        "displayValue": "..."
       },
       {
-       "shortName": "IN",
+       "shortName": "IN GAIN",
        "fullName": "In Gain",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
        "shortName": "OUT",
        "fullName": "Out Gain",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
@@ -684,7 +684,7 @@
     "rows": [
      [
       {
-       "shortName": "MH",
+       "shortName": "MID/HI",
        "fullName": "Mid/Hi Hz",
        "renderStyle": "arc",
        "type": "float",
@@ -712,7 +712,7 @@
     "rows": [
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "Attack",
        "renderStyle": "arc",
        "type": "float",
@@ -726,15 +726,15 @@
        "displayValue": "..."
       },
       {
-       "shortName": "GAIN",
-       "fullName": "Low Gain",
+       "shortName": "UP THR",
+       "fullName": "Low Up Thr",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "MID",
-       "fullName": "Mid Gain",
+       "shortName": "UP",
+       "fullName": "Low Up Ratio",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -742,28 +742,28 @@
      ],
      [
       {
-       "shortName": "HI",
+       "shortName": "GAIN",
+       "fullName": "Low Gain",
+       "renderStyle": "vbar",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MID",
+       "fullName": "Mid Gain",
+       "renderStyle": "vbar",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HI GAIN",
        "fullName": "Hi Gain",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "THR",
-       "fullName": "Low Up Thr",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "RATIO",
-       "fullName": "Low Up Ratio",
-       "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
-      },
-      {
-       "shortName": "DN",
+       "shortName": "DN THR",
        "fullName": "Low Dn Thr",
        "renderStyle": "arc",
        "type": "float",
@@ -812,7 +812,7 @@
      ],
      [
       {
-       "shortName": "MDR",
+       "shortName": "DN",
        "fullName": "Mid Dn Ratio",
        "renderStyle": "arc",
        "type": "float",
@@ -833,7 +833,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DN",
+       "shortName": "HDT",
        "fullName": "Hi Dn Thr",
        "renderStyle": "arc",
        "type": "float",
@@ -966,12 +966,12 @@
     "min": -60,
     "max": 30,
     "step": 0.5,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.25,
-     "detentsFullSweep": 360
+     "perDetent": 0.5,
+     "detentsFullSweep": 180
     }
    },
    {
@@ -983,12 +983,12 @@
     "min": -60,
     "max": 30,
     "step": 0.5,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.25,
-     "detentsFullSweep": 360
+     "perDetent": 0.5,
+     "detentsFullSweep": 180
     }
    },
    {
@@ -1075,12 +1075,12 @@
     "min": -30,
     "max": 30,
     "step": 0.5,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.25,
-     "detentsFullSweep": 240
+     "perDetent": 0.5,
+     "detentsFullSweep": 120
     }
    },
    {
@@ -1092,12 +1092,12 @@
     "min": -30,
     "max": 30,
     "step": 0.5,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.25,
-     "detentsFullSweep": 240
+     "perDetent": 0.5,
+     "detentsFullSweep": 120
     }
    },
    {
@@ -1109,12 +1109,12 @@
     "min": -30,
     "max": 30,
     "step": 0.5,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.25,
-     "detentsFullSweep": 240
+     "perDetent": 0.5,
+     "detentsFullSweep": 120
     }
    },
    {

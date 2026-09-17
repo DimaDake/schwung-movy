@@ -254,7 +254,18 @@ for a held p-lock readout, or only for the cells a graphic actually spans.
 
 ### Smaller findings
 
-**The body sits 2 px too high and overlaps movy's bank bar. CONFIRMED.**
+**The body sits 2 px too high and overlaps movy's bank bar. FIXED 2026-09-13.**
+`schwung-page.ts` now passes `rect: GRID_BODY_RECT` = `{x:0, y:10, w:128,
+h:47}`, and the mechanism is worth stating because it is not a tuning value:
+`movyBandLayout` reflows **only when a rect is supplied** (`const reflow =
+!!o.rect`), so passing none was opting out of the layout rather than taking its
+default. The constant lives in `src/renderer/layout.ts`, shared with
+`schwung-body.ts` and `schwung-body.off.ts` — both of which carried their own
+copy of 8/48, which is how the two modes came to disagree. The comment in
+`schwung-body.ts` claiming 8/48 "is the only rect that fits" was wrong and is
+gone: a body needs 47 rows, so `y` had room. The original finding follows.
+
+
 `schwung-page.ts:render()` passes no `rect`, so `movyBandLayout()` uses Schwung's
 own vertical rhythm: widget row 0 at `y=9`, on top of movy's bank bar (`BAR_Y 8`,
 `BAR_H 2` → rows 8–9), and the last label ends at 54 leaving three dead rows
@@ -436,9 +447,29 @@ Recorded so the next reader does not re-open them:
 6. Cause G — graphics return.
 7. Config corrections upstreamed into the modules' `chain_params`.
 8. Cause C and B — filepath dives, header readout, footer hints.
-9. The 2 px body offset; the held-step filter.
+9. ~~The 2 px body offset;~~ **the offset is DONE (2026-09-13)** — one
+   `GRID_BODY_RECT` in `layout.ts`, supplied at the `ctl.render` call. The
+   held-step filter is still open.
 10. Coverage: `app-loop` green under `page`; a screenshot scene that actually
     exercises `page`; a fleet sweep under Schwung's planner.
+    **Still uncovered after 2026-09-13, and named so it is not re-discovered:**
+    the rect's *value* is asserted against Schwung's own `BAND_H`
+    (`browser-test/logic/schwung-page.mjs`) but its *use* at the render call is
+    not — a `page` screenshot scene is what would close that, and there is
+    none. Separately, the live-press vouch's write has no device coverage
+    because no fleet module declares a press param; see §8 of
+    `schwung-releases-review-2026-09.md` for the shape of the test that would.
+
+**One more thing the page-mode work turned up, in the test harness rather than
+in movy.** `browser-test/logic/undo-params.mjs` imports `dump-boot.mjs`, whose
+`createDumpBoot()` calls `installEnv()` a **second** time. From that suite
+onward the param globals belong to the new env instance while `env.setParams`
+still feeds the harness's own — so any later suite that boots a model reads
+whatever the dump left behind instead of its own preset. It is why
+`run_schwung_page` is registered before `run_undo_params` rather than beside
+`run_schwung_grid`. Not fixed here: restoring the harness's env between suites
+is its own change, and it may well turn other suites red on the way — which is
+the point of doing it deliberately.
 
 ---
 

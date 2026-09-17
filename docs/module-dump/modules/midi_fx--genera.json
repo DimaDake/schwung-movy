@@ -5,7 +5,7 @@
  "author": "Vincent Fillion",
  "category": "midi_fx",
  "status": "ok",
- "load_ms": 71,
+ "load_ms": 41,
  "dsp_size": 41192,
  "capabilities": {
   "chainable": true,
@@ -592,10 +592,10 @@
        "fullName": "Root",
        "renderStyle": "arc",
        "type": "enum",
-       "displayValue": "D"
+       "displayValue": "..."
       },
       {
-       "shortName": "DIVIS",
+       "shortName": "DIVISIO",
        "fullName": "Division",
        "renderStyle": "arc",
        "type": "enum",
@@ -609,7 +609,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "CAPTU",
+       "shortName": "CAPTUR",
        "fullName": "Capture",
        "renderStyle": "arc",
        "type": "int",
@@ -625,14 +625,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "STUTT",
+       "shortName": "STUTTE",
        "fullName": "Stutter",
        "renderStyle": "arc",
        "type": "int",
        "displayValue": "..."
       },
       {
-       "shortName": "OCTAV",
+       "shortName": "OCTAVE",
        "fullName": "Octaves",
        "renderStyle": "arc",
        "type": "int",
@@ -706,7 +706,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "DIVIS",
+       "shortName": "DIVISIO",
        "fullName": "Division",
        "renderStyle": "arc",
        "type": "enum",
@@ -722,7 +722,7 @@
      ],
      [
       {
-       "shortName": "VELOC",
+       "shortName": "VELOCI",
        "fullName": "Velocity",
        "renderStyle": "arc",
        "type": "int",
@@ -743,7 +743,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "HUMAN",
+       "shortName": "HUMANI",
        "fullName": "Humanize",
        "renderStyle": "arc",
        "type": "int",

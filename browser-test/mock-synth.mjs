@@ -924,6 +924,50 @@ export const MOCK_SYNTHS = {
             .map(x => [`synth:${x}`, "0"])),
     },
 
+    /* jp8000's Performance-page shape (SP-25): a level that owns a page and
+     * declares distinct short_names for its keys, plus sibling levels visited
+     * LATER (so they write LAST into a hierarchy-wide flattened map) that
+     * redeclare the same keys with a colliding short_name. `main`'s own page
+     * must keep its own KeyMd/ArpMd rather than reading whichever level's def
+     * happened to be absorbed last. */
+    level_shadowed_short_name: {
+        "synth:name": "ShadowTest",
+        "synth:ui_hierarchy": JSON.stringify({
+            levels: {
+                root: {
+                    params: [
+                        { label: "Main",  level: "main"  },
+                        { label: "Setup", level: "setup" },
+                        { label: "Arp",   level: "arp"   },
+                    ],
+                },
+                main: {
+                    name: "Main",
+                    knobs: ["key_mode", "arp_mode"],
+                    params: [
+                        { key: "key_mode", label: "Key Mode", short_name: "KeyMd" },
+                        { key: "arp_mode", label: "Arp Mode", short_name: "ArpMd" },
+                    ],
+                },
+                setup: {
+                    name: "Setup",
+                    knobs: ["key_mode"],
+                    params: [{ key: "key_mode", label: "Key Mode", short_name: "Mode" }],
+                },
+                arp: {
+                    name: "Arp",
+                    knobs: ["arp_mode"],
+                    params: [{ key: "arp_mode", label: "Arp Mode", short_name: "Mode" }],
+                },
+            },
+        }),
+        "synth:chain_params": JSON.stringify([
+            { key: "key_mode", name: "Key Mode", type: "enum", options: ["A", "B"] },
+            { key: "arp_mode", name: "Arp Mode", type: "enum", options: ["X", "Y"] },
+        ]),
+        "synth:key_mode": "0", "synth:arp_mode": "0",
+    },
+
     nav_levels: {
         "synth:name": "NavTest",
         "synth:ui_hierarchy": JSON.stringify({
@@ -1521,11 +1565,24 @@ export const MOCK_SYNTHS = {
  * Master/Reverb/Delay which name none — the shape the page rotation collapses
  * to four entries. Params come from the fixture's own keys; the model boots
  * fine without values, and this test is about navigation, not readback. */
-MOCK_SYNTHS['8w8'] = { "synth:name": "8W8", "synth_module": "8w8" };
+/*
+ * `ui_hierarchy` IS STATED, AND STATED EMPTY. None of these three publishes a
+ * contract — that is the whole of Cause E — and on device that reads as `""`:
+ * the shim answers a key the module does not serve with an error and a zeroed
+ * buffer, which is how the controller tells "there is none" (plan from
+ * chain_params) from "the read did not complete" (hold and ask again). This
+ * store answers an ABSENT key with null, so leaving the key out here would put
+ * the rack in the second state forever — a page that never resolves, which is
+ * not what the device does and not what any of these fixtures are about.
+ */
+MOCK_SYNTHS['8w8'] = { "synth:name": "8W8", "synth_module": "8w8",
+                       "synth:ui_hierarchy": "" };
 /* 6W6 and CW-78 round out the family. Same story: the fixture is the shipped
  * config and carries the keys, so the mock only has to name the module. */
-MOCK_SYNTHS['6w6']  = { "synth:name": "6W6",   "synth_module": "6w6" };
-MOCK_SYNTHS['cw78'] = { "synth:name": "CW-78", "synth_module": "cw78" };
+MOCK_SYNTHS['6w6']  = { "synth:name": "6W6",   "synth_module": "6w6",
+                        "synth:ui_hierarchy": "" };
+MOCK_SYNTHS['cw78'] = { "synth:name": "CW-78", "synth_module": "cw78",
+                        "synth:ui_hierarchy": "" };
 
 /* The pre-2.0 9W9 layout, under a name that does not claim to be 9W9. 9W9
  * deliberately stopped shipping padScoping/padKeys — one re-targeting row is

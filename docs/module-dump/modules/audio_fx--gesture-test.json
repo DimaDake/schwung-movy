@@ -1,0 +1,57 @@
+{
+ "id": "gesture-test",
+ "name": "Gesture Test",
+ "version": "0.1.0",
+ "author": null,
+ "category": "audio_fx",
+ "status": "load_timeout",
+ "load_ms": 12034,
+ "dsp_size": 0,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "audio_fx"
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [],
+  "params": []
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [],
+  "pages": [
+   {
+    "name": "",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      null,
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": []
+ },
+ "analysis": {
+  "hiddenParams": [],
+  "noMetadata": [],
+  "warnings": [
+   "device status: load_timeout"
+  ]
+ }
+}

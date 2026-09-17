@@ -1,11 +1,11 @@
 {
  "id": "tapescam",
  "name": "TAPESCAM",
- "version": "0.5.3",
+ "version": "0.5.5",
  "author": "charlesvestal",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 62,
+ "load_ms": 54,
  "dsp_size": 31920,
  "capabilities": {
   "chainable": true,
@@ -109,6 +109,7 @@
       },
       {
        "key": "compression",
+       "short_name": "COMP",
        "label": "Comp",
        "type": "enum",
        "options": [
@@ -307,7 +308,7 @@
        "fullName": "Drive",
        "renderStyle": "arc",
        "type": "float",
-       "displayValue": "0%"
+       "displayValue": "..."
       },
       {
        "shortName": "COLOR",
@@ -340,7 +341,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "OUTPU",
+       "shortName": "OUTPUT",
        "fullName": "Output",
        "renderStyle": "arc",
        "type": "float",
@@ -354,7 +355,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "COMPR",
+       "shortName": "COMP",
        "fullName": "Compression",
        "renderStyle": "arc",
        "type": "enum",
@@ -389,7 +390,7 @@
       {
        "shortName": "WIDEN",
        "fullName": "Widen",
-       "renderStyle": "arc",
+       "renderStyle": "switch",
        "type": "enum",
        "displayValue": "..."
       },
@@ -531,7 +532,7 @@
    {
     "key": "compression",
     "label": "Compression",
-    "shortLabel": null,
+    "shortLabel": "COMP",
     "type": "enum",
     "options": [
      "OFF",
@@ -599,7 +600,7 @@
     "min": 0,
     "max": 1,
     "step": 1,
-    "renderStyle": "arc",
+    "renderStyle": "switch",
     "automatable": false,
     "increment": {
      "kind": "enum",

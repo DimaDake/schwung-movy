@@ -1,0 +1,590 @@
+{
+ "id": "voice-poc",
+ "name": "Voice POC",
+ "version": "0.1.0",
+ "author": "Schwung",
+ "category": "sound_generator",
+ "status": "ok",
+ "load_ms": 69,
+ "dsp_size": 81360,
+ "capabilities": {
+  "chainable": true,
+  "midi_in": true,
+  "chain_params": [
+   {
+    "key": "kick_tune",
+    "name": "Tune",
+    "type": "float",
+    "min": -24,
+    "max": 24
+   },
+   {
+    "key": "snare_tune",
+    "name": "Tune",
+    "type": "float",
+    "min": -24,
+    "max": 24
+   },
+   {
+    "key": "hat_tune",
+    "name": "Tune",
+    "type": "float",
+    "min": -24,
+    "max": 24
+   },
+   {
+    "key": "verb_size",
+    "name": "Size",
+    "type": "float",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "key": "cur_voice",
+    "name": "Voice",
+    "type": "enum",
+    "options": [
+     "kick",
+     "snare",
+     "hat"
+    ]
+   },
+   {
+    "key": "p1_vol",
+    "name": "Vol",
+    "type": "float",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "key": "p2_vol",
+    "name": "Vol",
+    "type": "float",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "key": "p3_vol",
+    "name": "Vol",
+    "type": "float",
+    "min": 0,
+    "max": 1
+   },
+   {
+    "key": "p4_vol",
+    "name": "Vol",
+    "type": "float",
+    "min": 0,
+    "max": 1
+   }
+  ],
+  "ui_hierarchy": {
+   "pad_layout": "drums",
+   "focus_param": "cur_voice",
+   "levels": {
+    "root": {
+     "params": [
+      {
+       "level": "kick",
+       "label": "Kick"
+      },
+      {
+       "level": "snare",
+       "label": "Snare"
+      },
+      {
+       "level": "hat",
+       "label": "Hat"
+      },
+      {
+       "level": "reverb",
+       "label": "Reverb"
+      },
+      {
+       "level": "pads",
+       "label": "Pads"
+      }
+     ]
+    },
+    "kick": {
+     "name": "Kick",
+     "note": 36,
+     "role": "kick",
+     "knobs": [
+      "kick_tune"
+     ],
+     "params": [
+      {
+       "key": "kick_tune"
+      }
+     ]
+    },
+    "snare": {
+     "name": "Snare",
+     "note": 38,
+     "role": "snare",
+     "knobs": [
+      "snare_tune"
+     ],
+     "params": [
+      {
+       "key": "snare_tune"
+      }
+     ]
+    },
+    "hat": {
+     "name": "Hat",
+     "note": 42,
+     "role": "hat",
+     "knobs": [
+      "hat_tune"
+     ],
+     "params": [
+      {
+       "key": "hat_tune"
+      }
+     ]
+    },
+    "reverb": {
+     "name": "Reverb",
+     "knobs": [
+      "verb_size"
+     ],
+     "params": [
+      {
+       "key": "verb_size"
+      }
+     ]
+    },
+    "pads": {
+     "name": "Pads",
+     "child_count": 4,
+     "child_label": "Pad",
+     "child_key_template": "p{index}_{key}",
+     "child_index_base": 1,
+     "child_note_base": 60,
+     "child_names": [
+      "Tom Lo",
+      "Tom Hi",
+      "Rim",
+      "Clap"
+     ],
+     "knobs": [
+      "vol"
+     ],
+     "params": [
+      {
+       "key": "vol"
+      }
+     ]
+    }
+   }
+  },
+  "audio_out": true
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "kick",
+   "snare",
+   "hat",
+   "reverb",
+   "pads"
+  ],
+  "params": [
+   {
+    "key": "kick_tune",
+    "name": "KICK",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "snare_tune",
+    "name": "SNARE",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "hat_tune",
+    "name": "HAT",
+    "type": "float",
+    "min": -24,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "verb_size",
+    "name": "Size",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.500"
+   },
+   {
+    "key": "p1_vol",
+    "name": "Vol",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.800"
+   },
+   {
+    "key": "p2_vol",
+    "name": "Vol",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.800"
+   },
+   {
+    "key": "p3_vol",
+    "name": "Vol",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.800"
+   },
+   {
+    "key": "p4_vol",
+    "name": "Vol",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.800"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Kick",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Snare",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Hat",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Reverb",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Pads",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Kick",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "KICK",
+       "fullName": "KICK",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Snare",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "SNARE",
+       "fullName": "SNARE",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Hat",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "HAT",
+       "fullName": "HAT",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Reverb",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "SIZE",
+       "fullName": "Size",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Pads",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "VOL",
+       "fullName": "vol",
+       "renderStyle": "vbar",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "kick_tune",
+    "label": "KICK",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -24,
+    "max": 24,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 4800
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "snare_tune",
+    "label": "SNARE",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -24,
+    "max": 24,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 4800
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "hat_tune",
+    "label": "HAT",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -24,
+    "max": 24,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 4800
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "verb_size",
+    "label": "Size",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "vol",
+    "label": "vol",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "metaGuessed": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "p1_vol",
+   "p2_vol",
+   "p3_vol",
+   "p4_vol"
+  ],
+  "noMetadata": [
+   "vol"
+  ],
+  "warnings": [
+   "4 chain_params not reachable in movy: p1_vol, p2_vol, p3_vol, p4_vol",
+   "1 shown params lack chain_params metadata (movy guesses type/range): vol"
+  ]
+ }
+}

@@ -5,7 +5,7 @@
  "author": "Filliformes",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 71,
+ "load_ms": 56,
  "dsp_size": 74160,
  "capabilities": {
   "audio_out": true,
@@ -1857,11 +1857,11 @@
     "rows": [
      [
       {
-       "shortName": "PRESE",
+       "shortName": "PRESET",
        "fullName": "Preset",
        "renderStyle": "arc",
        "type": "enum",
-       "displayValue": "CaveS"
+       "displayValue": "..."
       },
       {
        "shortName": "PATCH",
@@ -1871,7 +1871,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "EXCIT",
+       "shortName": "EXCITE",
        "fullName": "Rnd Exciter",
        "renderStyle": "arc",
        "type": "int",
@@ -1887,7 +1887,7 @@
      ],
      [
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "Cutoff",
        "renderStyle": "arc",
        "type": "float",
@@ -1908,7 +1908,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "FT",
+       "shortName": "FILTER",
        "fullName": "Filter Type",
        "renderStyle": "arc",
        "type": "enum",
@@ -1927,7 +1927,7 @@
     "rows": [
      [
       {
-       "shortName": "VOICI",
+       "shortName": "VOICING",
        "fullName": "Voicing",
        "renderStyle": "arc",
        "type": "enum",
@@ -1955,7 +1955,7 @@
     "rows": [
      [
       {
-       "shortName": "ATTAC",
+       "shortName": "ATTACK",
        "fullName": "Attack",
        "renderStyle": "arc",
        "type": "float",
@@ -1976,7 +1976,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "CRACK",
+       "shortName": "CRACKL",
        "fullName": "Crackle",
        "renderStyle": "arc",
        "type": "float",
@@ -2041,7 +2041,7 @@
       {
        "shortName": "DECAY",
        "fullName": "Decay A",
-       "renderStyle": "arc",
+       "renderStyle": "envstage",
        "type": "float",
        "displayValue": "..."
       },
@@ -2062,14 +2062,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "TONE",
+       "shortName": "TONE A",
        "fullName": "Tone A",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "TUNE",
+       "shortName": "TUNE A",
        "fullName": "Tune A",
        "renderStyle": "arc",
        "type": "int",
@@ -2111,7 +2111,7 @@
       {
        "shortName": "DECAY",
        "fullName": "Decay B",
-       "renderStyle": "arc",
+       "renderStyle": "envstage",
        "type": "float",
        "displayValue": "..."
       },
@@ -2132,14 +2132,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "TONE",
+       "shortName": "TONE B",
        "fullName": "Tone B",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "TUNE",
+       "shortName": "TUNE B",
        "fullName": "Tune B",
        "renderStyle": "arc",
        "type": "int",
@@ -2218,7 +2218,7 @@
       {
        "shortName": "LEVEL",
        "fullName": "Level",
-       "renderStyle": "arc",
+       "renderStyle": "vbar",
        "type": "float",
        "displayValue": "..."
       }
@@ -2375,7 +2375,7 @@
     "rows": [
      [
       {
-       "shortName": "LF1SH",
+       "shortName": "LF1SHP",
        "fullName": "LFO1 Shape",
        "renderStyle": "arc",
        "type": "enum",
@@ -2389,14 +2389,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "LF1DP",
+       "shortName": "LF1DPT",
        "fullName": "LFO1 Depth",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "LF1TR",
+       "shortName": "LF1TRG",
        "fullName": "LFO1 Target",
        "renderStyle": "arc",
        "type": "enum",
@@ -2419,14 +2419,14 @@
        "displayValue": "..."
       },
       {
-       "shortName": "LF2DP",
+       "shortName": "LF2DPT",
        "fullName": "LFO2 Depth",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
       {
-       "shortName": "LF2TR",
+       "shortName": "LF2TRG",
        "fullName": "LFO2 Target",
        "renderStyle": "arc",
        "type": "enum",
@@ -2445,14 +2445,14 @@
     "rows": [
      [
       {
-       "shortName": "PRESE",
+       "shortName": "PRESET",
        "fullName": "AT Preset",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
       },
       {
-       "shortName": "BRIGH",
+       "shortName": "BRIGHT",
        "fullName": "AT Bright",
        "renderStyle": "arc",
        "type": "float",
@@ -2466,7 +2466,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "CUTOF",
+       "shortName": "CUTOFF",
        "fullName": "AT Cutoff",
        "renderStyle": "arc",
        "type": "float",
@@ -2475,7 +2475,7 @@
      ],
      [
       {
-       "shortName": "VIB",
+       "shortName": "AT VIB",
        "fullName": "AT Vib",
        "renderStyle": "arc",
        "type": "float",
@@ -2489,7 +2489,7 @@
        "displayValue": "..."
       },
       {
-       "shortName": "RATE",
+       "shortName": "VIB",
        "fullName": "AT Vib Rate",
        "renderStyle": "arc",
        "type": "float",
@@ -3262,12 +3262,12 @@
     "min": 0,
     "max": 1,
     "step": 0.01,
-    "renderStyle": "arc",
+    "renderStyle": "vbar",
     "automatable": true,
     "increment": {
      "kind": "float",
-     "perDetent": 0.005,
-     "detentsFullSweep": 200
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
     }
    },
    {

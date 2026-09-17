@@ -59,7 +59,19 @@ function drumConfigFor(track: number): DrumConfig | null {
 function buildMap(): string {
     const t = appState.activeTrack.index;
     const drum = drumConfigFor(t);
-    const owns = padsPlayNotes() && !drumShiftSelect(appState.shiftHeld, drum);
+    /* A held button the engine cannot see takes the pads back on a drum track
+     * for as long as it is down: Shift makes them a SELECTOR, Mute makes the
+     * press a per-voice MUTE. Both are silent actions, and silence has to be
+     * decided HERE — the engine builds the live note on the audio thread, so a
+     * `return` in the UI's pad handler arrives after it has already sounded.
+     *
+     * Shift's timing caveat applies to Mute too: this is pushed on the tick that
+     * sees the button, so a button and a pad landing inside one tick period
+     * (~5-15 ms) can still let the engine answer. Holding the button first, as
+     * both gestures are played, cannot. */
+    const shiftSelect  = drumShiftSelect(appState.shiftHeld, drum);
+    const muteGesture  = appState.muteHeld && drum !== null;
+    const owns = padsPlayNotes() && !shiftSelect && !muteGesture;
     const chain = owns ? chainInstance(t) : -1;
     const parts: (string | number)[] = [chain];
     for (let i = 0; i < PAD_COUNT; i++) {

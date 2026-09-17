@@ -34,6 +34,7 @@ official docs first:
    - [The MIX page](#the-mix-page)
    - [Send FX](#send-fx)
 4. [Keyboard & drums](#4-keyboard--drums)
+   - [Muting one voice](#muting-one-voice)
 5. [The sequencer (aligned with Move)](#5-the-sequencer-aligned-with-move)
 6. [Beyond Move: Step, Clip & Set parameters](#6-beyond-move-step-clip--set-parameters)
    - [CPU meter](#cpu-meter--shift--step-12)
@@ -960,6 +961,36 @@ Signal ship Movy templates; Forge and Libpo32 are **self-describing** — they
 carry their own layout in the module. Other drum modules may need one
 contributed (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
+#### Muting one voice
+
+A drum track's voices can be silenced one at a time, with the same gesture that
+mutes a whole track: **hold Mute and press a pad** to silence that voice,
+**Shift + Mute + pad** to solo it. It is the track gesture one voice down, and it
+follows the track rules throughout: every form is a **latch** (press again to
+unmute, or to clear the solo), solo is **exclusive** (soloing another voice moves
+the solo rather than adding to it), and **solo overrides mute** — the voices you
+muted are remembered underneath and come back exactly as they were when the solo
+drops.
+
+Like a track mute, it silences the **sequencer**: it applies to the whole track,
+in every clip, and a pad you play by hand still sounds. **The press that works the
+gesture does not, though** — for as long as Mute is down the pads belong to the
+gesture, so a press neither sounds nor moves the pad the lane is editing. Let Mute
+go and they play as usual. It lasts as long as the
+Set does — the mutes and the solo are saved with the tracks' own — and both are
+**undoable**, with the Undo record naming the voice. A voice outside the rack
+(no pad in the drum layout maps to it) is not a voice: the gesture does nothing.
+
+Each press shows a **toast naming the voice** — the rack's own name where the
+module declares one (`KICK MUTED`), otherwise its pad number (`PAD 2 SOLO`).
+
+**Seeing what is silenced.** A silenced voice rests **grey** on the pads
+themselves instead of its track colour. Two states outrank the grey, because both
+would otherwise become invisible: a voice **whose gate is open stays green**
+while it sounds, and the pad the drum lane is **editing stays white**. So a grey
+pad is exactly a voice the sequencer is not going to play — the difference
+between a mute you can read off the grid and one you have to remember.
+
 ---
 
 ## 5. The sequencer (aligned with Move)
@@ -1062,6 +1093,11 @@ for the concepts:
   visible at once, the **Mute button itself lights bright** whenever anything is
   muted or soloed — the one always-visible cue that something is silent two
   groups away.
+- **Per-voice mute and solo** (drum tracks) — **hold Mute and press a pad** to
+  silence that one voice; **Shift + Mute + pad** solos it. The track gesture,
+  one voice down, and it follows the track rules: latch, exclusive solo,
+  solo-overrides-mute, a toast naming the voice, saved with the Set, undoable.
+  See [Muting one voice](#muting-one-voice).
 - **Automation** — turn a module knob while recording (or while holding a step)
   to record parameter automation; the on-screen knob arc follows the automation.
 
@@ -1923,6 +1959,8 @@ behaviour you'd like — or, better, a PR.
 | **Shift + Mute** | Solo / un-solo the current track (Track view only). Exclusive — soloing another moves it. |
 | **Shift + Mute + track** | Solo that track instead. |
 | **Shift + Mute + step** | Solo that track from the mute map. |
+| **Mute + pad** (drum track) | Mute / unmute that drum voice in the sequencer — the whole track, every clip. Live pad playing is unaffected, but the press itself is silent (no note, no pad select). Latch. |
+| **Shift + Mute + pad** (drum track) | Solo that drum voice instead — exclusive, press again to clear. |
 | **Track buttons 1–4** | Select a track within the focused group of four (hold = momentary peek). |
 | **Volume encoder** | Adjust held steps' velocity. With a track button held instead, sets that track's volume (**add Shift on tracks 5-16** — see [Track volume](#track-volume)); otherwise it stays Move's master volume. |
 | **TEMPO knob** (Set page) | Set the tempo; also sets Move's device-wide tempo via Link. **EXT** on the cell = locked to Move's transport. |

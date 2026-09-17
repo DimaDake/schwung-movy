@@ -48,6 +48,16 @@ export function drumNoteOfPad(pad: number, cfg: DrumConfig): number {
     return cfg.padNoteStart + pad - 1;
 }
 
+/** The rack pad a note belongs to, or -1. The inverse of `drumNoteOfPad`, for
+ *  naming a voice from the note the ENGINE keys on — a pad mute is stored per
+ *  note, and the toast has to say which voice that is. */
+export function drumPadOfNote(note: number, cfg: DrumConfig): number {
+    for (let pad = 1; pad <= cfg.padCount; pad++) {
+        if (drumNoteOfPad(pad, cfg) === note) return pad;
+    }
+    return -1;
+}
+
 /** MIDI note this physical pad plays, or -1 when it plays nothing. */
 export function drumNoteOfPhys(physPad: number, padMin: number, cfg: DrumConfig): number {
     const pad = drumPadOfPhys(physPad, padMin, cfg);

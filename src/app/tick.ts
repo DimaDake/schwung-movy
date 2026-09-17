@@ -20,6 +20,7 @@ import { browserState } from '../browser/state.js';
 import { MASTER_FX_SLOTS } from '../chain/config.js';
 import { drumPadLedColor } from '../keyboard/leds.js';
 import { drumNoteOfPhys } from '../keyboard/drum-grid.js';
+import { padVoiceSilent } from '../mixer/pad-mutes.js';
 import { WHITE_DIM } from '../seq/colors.js';
 import { padColor } from '../seq/pads.js';
 import { midiNoteName } from '../keyboard/notes.js';
@@ -917,7 +918,8 @@ function tickBody(): void {
                 // with what a press sends. -1 = not part of the rack.
                 const note = drumNoteOfPhys(p, PAD_MIN, drumCfg);
                 const playing = note >= 0 && (activeHasNote(track, note) || isSounding(p));
-                const color = drumPadLedColor(p, PAD_MIN, drumCfg, sel, track, playing);
+                const color = drumPadLedColor(p, PAD_MIN, drumCfg, sel, track, playing,
+                                              note >= 0 && padVoiceSilent(note));
                 if (drumCache[i] !== color) {
                     if (!ledBudgetTake()) continue;   // cache left stale: retries next tick
                     drumCache[i] = color;

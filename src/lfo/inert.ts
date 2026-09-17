@@ -16,7 +16,7 @@ export type InertModelSurface = Pick<Model,
     'getFileBrowseTarget' | 'clearFileOverlay' | 'setFileValue' |
     'getKnobParamInfo' | 'setNoRefreshKeys' | 'refreshModulation' |
     'paramRangeByKey' | 'getValueByKey' |
-    'getDrumConfig' | 'getDrumPadCount' | 'getDrumCurrentPad' |
+    'getDrumConfig' | 'getDrumPadCount' | 'getDrumPadNames' | 'getDrumCurrentPad' |
     'getDrumCurrentPhysPad' | 'updateDrumPad' | 'dumpLayout'>;
 
 export function inertModelSurface(id: string, name: string, componentKey: string): InertModelSurface {
@@ -33,6 +33,7 @@ export function inertModelSurface(id: string, name: string, componentKey: string
         /* Never a drum module; mirrors the module model's cheap accessors so the
          * app tick never has to build a VM to ask. */
         getDrumPadCount() { return 0; },
+        getDrumPadNames() { return []; },
         getDrumCurrentPad() { return 0; },
         getDrumCurrentPhysPad() { return 0; },
         updateDrumPad(_pad: number, _physPad: number): void { /* not a drum */ },

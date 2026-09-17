@@ -42,6 +42,11 @@ export const appState = {
     focusGroup:       0,
     currentView:      VIEW_CHAIN,
     shiftHeld:        false,
+    /* Mute held, beside Shift because it is the same kind of state and for the
+     * same reason: a held button that changes what the pads MEAN. `track/pad-route`
+     * reads it — the engine answers live pads on the audio thread and cannot see a
+     * button, so the map has to carry the fact or a gesture press sounds. */
+    muteHeld:         false,
     dirty:            true,
     initLedIndex:     0,
     initLedsDone:     false,

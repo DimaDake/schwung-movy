@@ -44,6 +44,15 @@ pub fn serialize(engine: &Engine) -> String {
     }
     for (ti, t) in engine.tracks.iter().enumerate() {
         s.push_str(&format!("tk {} {} {}\n", ti, t.active_clip, t.muted as u8));
+        /* One line per muted voice, omitted when there are none — so a Set that
+         * never touched a pad mute is byte-identical to before this feature,
+         * the same way `sg` and `au` are. */
+        for &note in &t.pad_mutes {
+            s.push_str(&format!("pm {} {}\n", ti, note));
+        }
+        if let Some(note) = t.pad_solo {
+            s.push_str(&format!("ps {} {}\n", ti, note));
+        }
         for lane in 0..8 {
             if t.lane_assigned[lane] {
                 s.push_str(&format!("au {} {} {} {}\n", ti, lane, t.lane_base[lane], t.lane_label[lane]));
@@ -111,6 +120,8 @@ pub fn load(engine: &mut Engine, data: &str) -> bool {
         }
         t.active_clip = 0;
         t.muted = false;
+        t.pad_mutes.clear();
+        t.pad_solo = None;
         t.playing_slot = None;
         t.queued_slot = None;
         t.pending_stop = false;
@@ -154,6 +165,29 @@ pub fn load(engine: &mut Engine, data: &str) -> bool {
                     if track < engine.tracks.len() {
                         engine.tracks[track].active_clip = active.min(7);
                         engine.tracks[track].muted = muted != 0;
+                    }
+                }
+            }
+            Some("pm") => {
+                // pm <track> <note> — one muted drum voice. A line each, so an
+                // absent one for a note that is not muted simply never appears.
+                let track = it.next().and_then(|x| x.parse::<usize>().ok());
+                let note = it.next().and_then(|x| x.parse::<u8>().ok());
+                if let (Some(track), Some(note)) = (track, note) {
+                    if track < engine.tracks.len() && note < 128 {
+                        engine.tracks[track].set_pad_mute(note, true);
+                    }
+                }
+            }
+            Some("ps") => {
+                // ps <track> <note> — the track's soloed drum voice. A file
+                // with no `ps` line for a track leaves it unsoloed (the reset
+                // above), so un-soloing needs no line of its own.
+                let track = it.next().and_then(|x| x.parse::<usize>().ok());
+                let note = it.next().and_then(|x| x.parse::<u8>().ok());
+                if let (Some(track), Some(note)) = (track, note) {
+                    if track < engine.tracks.len() && note < 128 {
+                        engine.tracks[track].pad_solo = Some(note);
                     }
                 }
             }
@@ -399,6 +433,45 @@ mod tests {
         // Transport never persists.
         assert!(!e2.playing);
         assert_eq!(e2.tracks[0].playing_slot, None);
+    }
+
+    #[test]
+    fn pad_mutes_and_solo_round_trip() {
+        let mut e = Engine::new(44100, 12000);
+        e.tracks[0].set_pad_mute(36, true);
+        e.tracks[0].set_pad_mute(38, true);
+        e.tracks[3].pad_solo = Some(42);
+
+        let s = serialize(&e);
+
+        let mut e2 = Engine::new(44100, 12000);
+        assert!(load(&mut e2, &s));
+        assert_eq!(e2.tracks[0].pad_mutes, vec![36, 38]);
+        assert_eq!(e2.tracks[3].pad_solo, Some(42));
+        assert!(e2.tracks[1].pad_mutes.is_empty());
+        assert_eq!(e2.tracks[1].pad_solo, None);
+    }
+
+    /// A Set with nothing muted must serialize exactly as it did before this
+    /// feature — the lines are omitted, not written empty — and a load must
+    /// clear mutes it does not find, or a Set left with a silenced kick would
+    /// hand that silence to every Set opened after it.
+    #[test]
+    fn no_pad_mute_lines_when_none_are_set() {
+        let mut e = Engine::new(44100, 12000);
+        let clean = serialize(&e);
+        assert!(!clean.lines().any(|l| l.starts_with("pm ") || l.starts_with("ps ")));
+
+        e.tracks[0].set_pad_mute(36, true);
+        e.tracks[2].pad_solo = Some(40);
+        // Loaded over an engine that HAS mutes: the absent lines must clear
+        // them, the way every other absent line resets its own state.
+        let mut e2 = Engine::new(44100, 12000);
+        e2.tracks[0].set_pad_mute(36, true);
+        e2.tracks[2].pad_solo = Some(40);
+        assert!(load(&mut e2, &clean));
+        assert!(e2.tracks[0].pad_mutes.is_empty());
+        assert_eq!(e2.tracks[2].pad_solo, None);
     }
 
     #[test]

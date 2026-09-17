@@ -1008,6 +1008,30 @@ impl Engine {
         }
     }
 
+    /// Stop the notes a drum-pad mute or solo just silenced, NOW rather than at
+    /// gate expiry — the guarantee `flush_track_gates` gives the track mute,
+    /// per voice. Only ever called from the two commands that move a pad mute
+    /// or solo, and it removes only what its own track's rules now call silent,
+    /// so soloing a voice does not cut the other tracks.
+    pub fn flush_silenced_pad_gates(&mut self, track: usize, out: &mut Vec<OutEvent>) {
+        let mut gi = 0;
+        while gi < self.gates.len() {
+            // Read the two fields out rather than moving the Gate: `Gate` is
+            // only borrowed here, and the swap_remove below needs `self.gates`
+            // mutably.
+            let (g_track, g_pitch) = (self.gates[gi].track, self.gates[gi].pitch);
+            if g_track as usize == track && self.tracks[track].pad_voice_silent(g_pitch) {
+                let g = self.gates.swap_remove(gi);
+                out.push(OutEvent::NoteOff {
+                    track: g.track,
+                    pitch: g.pitch,
+                });
+                continue; // re-examine the element swapped into this slot
+            }
+            gi += 1;
+        }
+    }
+
     /// Queue a MovePlay toggle: press next `advance_block`, release after the
     /// davebox-verified gap. Fire-and-forget — only ever called from a
     /// transport command (design §7 Phase 4 no-feedback-loop invariant).
@@ -2168,6 +2192,25 @@ impl Engine {
                         // and live pads stay at concert pitch.
                         let emit_pitch =
                             (n.pitch as i32 + self.clip_transpose(ti, slot)).clamp(0, 127) as u8;
+                        /* Per-voice drum-pad mute and solo. Gated on the
+                         * EMITTED pitch, which is the note the synth would
+                         * receive: drum tracks have their transpose suppressed,
+                         * so for them this is the voice's own note. The clip
+                         * still advances — the same trade the track mute makes.
+                         *
+                         * Solo silences the OTHER voices by comparison rather
+                         * than by being folded into `pad_mutes`: the two are
+                         * separate fields on the track (see track.rs), so
+                         * un-soloing restores the user's own mutes without
+                         * anyone having to remember them.
+                         *
+                         * While a solo is up the mute set is not consulted at
+                         * all — solo decides, so the soloed voice sounds even
+                         * if the user had muted it. Same precedence as the
+                         * track mute. */
+                        if self.tracks[ti].pad_voice_silent(emit_pitch) {
+                            continue;
+                        }
                         out.push(OutEvent::NoteOn { track: ti as u8, pitch: emit_pitch, vel: n.vel });
                         self.gates.push(Gate {
                             track: ti as u8,
@@ -2495,7 +2538,7 @@ impl Engine {
         let htp = self.held_trig();
         let hlmax = self.held_max_gate();
         format!(
-            "play={} tick={} bpm={} ext={} link={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} hlen={} hnotes={} occ={} alanes={:02x} aauto={:02x} hauto={} hvel={} hgate={} hgmix={} hprob={} hcond={}:{} hinv={} hlmax={} swing={} csc={}/{} ctr={} quant={} dquant={} cap={}.{} song={}",
+            "play={} tick={} bpm={} ext={} link={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} wpad={} hlen={} hnotes={} occ={} alanes={:02x} aauto={:02x} hauto={} hvel={} hgate={} hgmix={} hprob={} hcond={}:{} hinv={} hlmax={} swing={} csc={}/{} ctr={} quant={} dquant={} cap={}.{} song={}",
             self.playing as u8,
             self.master_tick,
             self.clock.bpm_x100(),
@@ -2513,6 +2556,7 @@ impl Engine {
             self.session_state(),
             self.active_notes_state(),
             self.mute_state(),
+            self.pad_mute_state(),
             self.held_len_steps(),
             self.held_notes_state(),
             clip.occupancy_hex_lane(self.watch_lane),
@@ -2544,6 +2588,35 @@ impl Engine {
         let mut out = String::with_capacity(4);
         for t in &self.tracks {
             out.push(if t.muted { '1' } else { '0' });
+        }
+        out
+    }
+
+    /// `wpad=` payload for the WATCHED track: the soloed note (or -1), then the
+    /// muted notes, dot-separated ascending — `-1:36.38`, `42:36.38`, `-1:`.
+    ///
+    /// The watched track only: the drum grid the UI paints belongs to the track
+    /// it is showing, and sending all sixteen would be sixteen times the traffic
+    /// for the same one answer.
+    ///
+    /// The mute set travels even while a solo is up, so un-soloing restores the
+    /// user's own mutes from the same read that cleared the solo — the LED
+    /// cannot be left grey by a payload that dropped them.
+    fn pad_mute_state(&self) -> String {
+        let t = &self.tracks[self.watch_track];
+        let mut out = String::with_capacity(16);
+        out.push_str(&match t.pad_solo {
+            Some(n) => n.to_string(),
+            None => "-1".to_string(),
+        });
+        out.push(':');
+        let mut notes = t.pad_mutes.clone();
+        notes.sort_unstable(); // the mute set is a set; the wire is sorted
+        for (i, n) in notes.iter().enumerate() {
+            if i > 0 {
+                out.push('.');
+            }
+            out.push_str(&n.to_string());
         }
         out
     }
@@ -3702,6 +3775,112 @@ mod tests {
         );
     }
 
+    /* A drum pad's mute is per VOICE, where the track mute above is per track:
+     * the kick drops out while the snare goes on. Otherwise the same shape —
+     * the sequencer stops emitting what is muted, and since a drum voice's
+     * notes ARE its pads, the gate is on the emitted pitch. */
+    #[test]
+    fn pad_mute_silences_only_that_voice() {
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(36, 100), (38, 100)]);
+        e.tracks[0].pad_mutes = vec![36];
+        e.play();
+        let ev = run_ticks(&mut e, 8);
+        assert!(
+            !ev.iter().any(|x| matches!(x, OutEvent::NoteOn { pitch: 36, .. })),
+            "the muted voice must not sound"
+        );
+        assert!(
+            ev.iter().any(|x| matches!(x, OutEvent::NoteOn { pitch: 38, .. })),
+            "the other voice must still sound, or the assertion above is vacuous"
+        );
+    }
+
+    #[test]
+    fn pad_solo_silences_the_other_pads() {
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(36, 100), (38, 100)]);
+        e.tracks[0].pad_solo = Some(36);
+        e.play();
+        let ev = run_ticks(&mut e, 8);
+        assert!(
+            ev.iter().any(|x| matches!(x, OutEvent::NoteOn { pitch: 36, .. })),
+            "the soloed voice must sound"
+        );
+        assert!(
+            !ev.iter().any(|x| matches!(x, OutEvent::NoteOn { pitch: 38, .. })),
+            "every other voice of that track is silenced"
+        );
+    }
+
+    /* Solo overrides mute, the rule the track mute settled on the hard way:
+     * deriving the engine state as `base || !solo` left a track you had muted
+     * silent even once you soloed it, which made soloing look broken exactly
+     * when something was muted. A drum voice is the same promise. */
+    #[test]
+    fn pad_solo_overrides_that_voice_mute() {
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(36, 100)]);
+        e.tracks[0].pad_mutes = vec![36];
+        e.tracks[0].pad_solo = Some(36);
+        e.play();
+        let ev = run_ticks(&mut e, 8);
+        assert!(
+            ev.iter().any(|x| matches!(x, OutEvent::NoteOn { pitch: 36, .. })),
+            "the soloed voice sounds even though it was muted"
+        );
+    }
+
+    /* "Silence now, not at gate expiry" — the guarantee `mute` gives a track,
+     * per voice. Without it a muted drum pad rings on for the length of its
+     * gate, which reads as the mute not having worked. */
+    #[test]
+    fn pmute_flushes_that_voices_gate() {
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(36, 100), (38, 100)]);
+        e.play();
+        let ev = run_ticks(&mut e, 2); // both voices on, gates still open
+        assert!(
+            ev.iter().any(|x| matches!(x, OutEvent::NoteOn { pitch: 36, .. }))
+                && ev.iter().any(|x| matches!(x, OutEvent::NoteOn { pitch: 38, .. })),
+            "both voices must be sounding, or the assertions below are vacuous"
+        );
+
+        let mut out = Vec::new();
+        apply_batch(&mut e, "pmute 0 36 1", &mut out);
+        assert!(
+            out.contains(&OutEvent::NoteOff { track: 0, pitch: 36 }),
+            "muting a voice releases the note it was already holding"
+        );
+        assert!(
+            !out.iter().any(|x| matches!(x, OutEvent::NoteOff { pitch: 38, .. })),
+            "the other voice's gate is untouched"
+        );
+    }
+
+    #[test]
+    fn psolo_flushes_the_gates_it_silences() {
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(36, 100), (38, 100)]);
+        e.tracks[1].active_mut().toggle_step(0, &[(40, 100)]);
+        e.play();
+        let _ = run_ticks(&mut e, 2);
+        let mut out = Vec::new();
+        apply_batch(&mut e, "psolo 0 36", &mut out);
+        assert!(
+            out.contains(&OutEvent::NoteOff { track: 0, pitch: 38 }),
+            "soloing releases the voices it silences"
+        );
+        assert!(
+            !out.iter().any(|x| matches!(x, OutEvent::NoteOff { pitch: 36, .. })),
+            "the soloed voice was already sounding and keeps sounding"
+        );
+        assert!(
+            !out.iter().any(|x| matches!(x, OutEvent::NoteOff { track: 1, .. })),
+            "another track's voices are not touched"
+        );
+    }
+
     #[test]
     fn stop_releases_held_gates() {
         let mut e = engine();
@@ -4583,6 +4762,30 @@ mod tests {
         let s3 = e.status();
         let hn3 = s3.split("hnotes=").nth(1).unwrap().split(' ').next().unwrap();
         assert_eq!(hn3, "");
+    }
+
+    #[test]
+    fn status_reports_watched_pad_mutes_and_solo() {
+        let mut e = engine();
+        let wp = |e: &Engine| -> String {
+            e.status().split("wpad=").nth(1).unwrap().split(' ').next().unwrap().to_string()
+        };
+        assert_eq!(wp(&e), "-1:", "nothing muted, no solo");
+
+        e.tracks[0].set_pad_mute(36, true);
+        e.tracks[0].set_pad_mute(38, true);
+        assert_eq!(wp(&e), "-1:36.38");
+
+        /* The mute set stays in the payload while a solo is up, so un-soloing
+         * restores the user's own mutes without a second read. */
+        e.tracks[0].pad_solo = Some(42);
+        assert_eq!(wp(&e), "42:36.38");
+
+        // Another track's mutes must not leak into the watched one.
+        e.tracks[1].set_pad_mute(40, true);
+        assert_eq!(wp(&e), "42:36.38");
+        e.watch_track = 1;
+        assert_eq!(wp(&e), "-1:40");
     }
 
     #[test]

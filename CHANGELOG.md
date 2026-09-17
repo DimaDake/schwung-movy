@@ -39,6 +39,26 @@ far. Earlier work is summarised in the timeline below for context.
   the captured fleet declares one yet, so this costs every existing module
   exactly nothing — no read, no write.
 
+- **Per-voice mute and solo for drum tracks.** Hold **Mute** and press a pad to
+  silence that drum voice; **Shift + Mute + pad** solos it. It is the track
+  gesture one voice down, and it keeps the track rules: a latch, an exclusive
+  solo that moves, solo overriding mute with your own mutes remembered
+  underneath, a toast naming the voice, saved with the Set, and undoable.
+
+  It silences the **sequencer**, not the instrument — the voice is dropped from
+  that track's sequence in every clip, while a pad you play by hand still sounds.
+  The press that works the gesture is itself silent: for as long as **Mute** is
+  held the pads answer to the gesture, so a press neither sounds nor moves the
+  pad the lane is editing. That is the trade a track mute makes, and for the
+  same reason: playing over a silenced track stays possible. The gate sits in
+  the engine at the one place a sequenced note is emitted, so what the grid
+  shows and what the sequencer plays cannot disagree.
+
+  A silenced voice rests **grey** on the pads. Two states outrank the grey — a
+  voice whose gate is open is still **green**, and the pad the drum lane is
+  editing is still **white** — so a grey pad is exactly a voice the sequencer
+  will not play.
+
 - **Engine-owned persistence — now the default, with `engpersist` (Settings) to turn it off.**
   The engine now reads and writes a Set's files itself — `seq-state.json` and a
   new `chains.json` — atomically (temp → fsync → rename) on its own thread, and

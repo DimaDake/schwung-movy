@@ -660,12 +660,41 @@ export async function run() {
   drumPadOn(68, 68, true, drumCfg, 'synth', 6, 100);
   eq('and the silent select stays silent', writes.filter((k) => k.endsWith(':midi')).length, 0);
 
+  /* Mute is the same kind of held button as Shift, for the gesture it now
+   * shares: Mute + a pad SILENCES that voice, so the press that does it must not
+   * also sound. The engine builds live pad notes on the audio thread and cannot
+   * see a button being held, and the UI's early return (midi/router.ts) never
+   * sees a note the engine already made — so the map has to say it. */
+  appState.shiftHeld = false;
+  sent.length = 0;
+  syncPadRoute(send);
+  eq('releasing Shift gives the drum pads back', (maps()[0]?.[1] ?? '').split(',')[0], '6');
+
+  const { setMuteHeld } = await import('../../dist/esm/seq/router.js');
+  setMuteHeld(true);
+  sent.length = 0;
+  syncPadRoute(send);
+  eq('Mute hands the drum pads back to the UI', (maps()[0]?.[1] ?? '').split(',')[0], '-1');
+  eq('so the press that mutes cannot sound from the audio thread', engineOwnsPads(6), false);
+
+  setMuteHeld(false);
+  sent.length = 0;
+  syncPadRoute(send);
+  eq('releasing Mute gives the pads back to the engine', engineOwnsPads(6), true);
+  eq('and names the chain again', (sent[0]?.[1] ?? '').split(',')[0], '6');
+
   /* A melodic track has no such gesture: Shift is a modifier there, not a pad
-   * mode, and taking the pads back would cost every shifted press its latency. */
+   * mode, and taking the pads back would cost every shifted press its latency.
+   * Mute has no voice to silence on one either. */
   appState.trackModels[6] = prevModels;
   sent.length = 0;
   syncPadRoute(send);
   eq('Shift leaves a melodic movy track with the engine', engineOwnsPads(6), true);
+  setMuteHeld(true);
+  sent.length = 0;
+  syncPadRoute(send);
+  eq('and so does Mute', engineOwnsPads(6), true);
+  setMuteHeld(false);
   appState.shiftHeld = false;
   globalThis.host_module_set_param_blocking = realEng;
 

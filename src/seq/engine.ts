@@ -16,7 +16,7 @@
 import { paramAvailable, paramGet, paramSet } from '../host/param.js';
 import { mlog } from '../log.js';
 import { CHAIN_MODULE_DIR, ENGINE_DSP_PATH, ENGINE_VERSION, MOVY_MODULE_DIR } from './constants.js';
-import { activeFromStr, adoptLoopWindow, muteFromStr, occFromHex, seqState, sessionFromStr, songFromStr } from './state.js';
+import { activeFromStr, adoptLoopWindow, muteFromStr, occFromHex, padMutesFromStr, seqState, sessionFromStr, songFromStr } from './state.js';
 import { rationalToIdx } from './clip-scale.js';
 import { noteProbeGen, probeBridgeTick } from './probe-bridge.js';
 import { markUiStateDirty } from './ui-dirty.js';
@@ -421,6 +421,7 @@ function parseStatus(s: string): void {
         else if (key === 'hlmax') seqState.holdMaxGate = Number(val) || 0;
         else if (key === 'act') activeFromStr(val);
         else if (key === 'mute') muteFromStr(val);
+        else if (key === 'wpad') padMutesFromStr(val);
         else if (key === 'sess') sessionFromStr(val);
         else if (key === 'song') songFromStr(val);
         else if (key === 'occ') occFromHex(val);

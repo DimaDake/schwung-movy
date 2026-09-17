@@ -14,6 +14,16 @@ do not expect one to be waiting, and do not trust a stale one over the code.
 of a module's parameter pages in movy; `schwunggrid` and movy's own page
 renderer are deleted.
 
+**The acceptance bar is NATIVE SCHWUNG, not movy's `off`** (ruling, 2026-09-17).
+A parameter page under `page` must be no worse than the page Schwung's own host
+draws for the same module. Where movy's `off` renderer drew something Schwung
+does not draw at all, that is a **movy extension**, and losing it is a deliberate
+cost of the migration rather than a regression to be fixed. This bar closed
+SP-21 and SP-22; it also bounds SP-16, SP-23 and SP-24 — none of them may grow
+into "make Schwung draw what movy used to". The bar does **not** apply to
+anything that is not parameter rendering: movy's own views, its sequencer, its
+lanes and its gestures keep their own standard.
+
 ---
 
 ## The burn-down is the gate
@@ -61,14 +71,15 @@ run proves nothing.
 | SP-28 | **NEW** — custom module visualisations (`custom:` viz kinds) | Sonnet | ⬜ | **5** |
 | SP-16 | Cause G — graphics return (**shrunk: upstream fixed the hard half**) | Sonnet | ⬜ | **6** |
 | SP-20 | `ui_hierarchy` ownership under Schwung's planner | Opus | ⬜ | 7 |
-| SP-21 | Metadata correction overlay (ranges + enum lists only) + the audit | Sonnet | ⬜ | 8 |
-| SP-22 | Cut-curve viz kind (SU-5, or a documented movy exception) | Sonnet | ⬜ | 9 |
-| SP-23 | Font parity + enum-overlay double-draw | Sonnet | ⬜ | 10 |
-| SP-24 | movy-only page kinds verified against a Schwung body | Sonnet | ⬜ | 11 |
-| SP-29 | **NEW** — Schwung now ships its own automation lanes and p-locks. Decide movy's position | Opus | ⬜ | 12 |
-| SP-30 | Default-on: flip, device tier, docs, release, stated revert path | Sonnet | ⬜ | 13 |
-| SP-40 | Delete `body` and the `.off` stand-ins | Sonnet | ⬜ | 14 |
-| SP-41 | Delete `off`, movy's page renderer, model page planning. **No return** | Opus | ⬜ | 15 |
+| SP-21 | Metadata correction overlay | Sonnet | ❌ **dropped** — the audit found 1 real correction in 555 | — |
+| SP-21a | Report po32-drum's `kit` range upstream (the 1) | Sonnet | ⬜ | 8 |
+| SP-22 | Cut-curve viz kind | Sonnet | ❌ **dropped** — a movy extension; Schwung draws plain dials natively | — |
+| SP-23 | Font parity + enum-overlay double-draw | Sonnet | ⬜ | 9 |
+| SP-24 | movy-only page kinds verified against a Schwung body | Sonnet | ⬜ | 10 |
+| SP-29 | **NEW** — Schwung now ships its own automation lanes and p-locks. Decide movy's position | Opus | ⬜ | 11 |
+| SP-30 | Default-on: flip, device tier, docs, release, stated revert path | Sonnet | ⬜ | 12 |
+| SP-40 | Delete `body` and the `.off` stand-ins | Sonnet | ⬜ | 13 |
+| SP-41 | Delete `off`, movy's page renderer, model page planning. **No return** | Opus | ⬜ | 14 |
 
 ### Upstream
 
@@ -78,7 +89,7 @@ run proves nothing.
 | SU-2 | `decorations` gains a modulation bit | ❌ **not needed** — a separate `isModulated` channel already exists |
 | SU-3 | Voice declaration for caller-supplied racks | ✅ shipped as #411; SP-14 consumed it |
 | SU-4 | Non-enum dive intents (filepath, canvas) | ❌ **not upstream** — the intent contract is complete; the editor is the host's job (SP-17) |
-| SU-5 | Cut-curve viz kind | ⬜ open — no `cut` kind in `viz.mjs` |
+| SU-5 | Cut-curve viz kind | ❌ **withdrawn** — with SP-22 dropped there is nothing movy needs it for |
 | SU-6 | The 15-vs-16 widget band that offsets label rows by one row | ⬜ open, cosmetic |
 | SU-7 | `io.getParams(keys)` — an optional BULK read | ❌ **moot** — SP-26 solved it caller-side with no library change |
 
@@ -427,76 +438,118 @@ reader and reddens when a second one is added; `page-mode` does not grow.
 
 ---
 
-### SP-21 — the metadata correction overlay, and the audit
+### SP-21 ❌ — the metadata correction overlay: DROPPED, 2026-09-17
 
-**Product.** movy ships corrections to third-party modules' metadata in
-`src/module-configs/` — a wrong `min`/`max` that makes a knob unusable, a missing
-or wrong enum option list that makes a selector snap back. Under `page` the
-planner reads the module's *own* declaration, so every correction silently
-reverts and those knobs are broken again. The design decision (spec §4.2) is that
-the overlay stays a movy layer — **ranges and enum lists only, never viz or
-labels** — because gating default-on on fourteen third-party repos' review
-latency would put their schedules on this project's critical path. The product
-promise is therefore: a module movy has corrected behaves the same under `page`
-as under `off`, and the overlay shrinks as upstreams land.
+**The audit ran and the answer is 1 in 555.** SP-21 existed to carry movy's
+`movy_config.json` range and enum-list corrections onto Schwung's metadata, on
+the assumption that dropping them would break knobs on the fourteen modules movy
+corrects. Ten modules on the device ship a `movy_config`. Every `min`/`max` and
+every `options` list in all ten, checked against the module's own
+`chain_params` in `docs/module-dump/device-dump.json`:
 
-**Design & implementation.** Two pieces. The *overlay* is a thin translation
-applied where Schwung's `metaIndex` is consulted — the narrowest seam is
-`ctl.metaIndex.getOrGuess(k)`, which `schwung-page-render.ts` already calls for
-`knobParamInfo`, and which is also where a lane's `min`/`max` come from, so a
-missing correction here is also the "automation range may be wrong" symptom in
-the findings. Keep it declarative: a map from `(module id, key)` to
-`{min, max, options}` derived from the existing configs at build time, with a
-test that no other field can pass through it. The *audit* is the half that keeps
-it honest: walk all fourteen configs against `docs/module-dump/device-dump.json`
-and classify each entry as a real correction (the module's declaration is
-genuinely wrong) or a duplicate (it now matches the module). Duplicates are
-deleted, real corrections are listed in this ledger with the module and key, and
-that list is the overlay's size — which is the only number that tells anyone
-whether the layer is draining or accreting. Memory of past work here:
-`config-range-drift-audit` found that config min/max must match the DSP clamps
-and that enum options are config-first or the knob snaps back, so the audit has a
-known shape.
+| verdict | count |
+| --- | --- |
+| **duplicate** — the config repeats what the module already declares | **554** |
+| **real correction** — the config and the module disagree | **1** |
+| module declares nothing and the config is the only source | **0** |
 
-**Closes when:** a dump-replay assertion shows every corrected key planning with
-the corrected range and option list; the audit list is in this ledger with a
-count; every duplicate is deleted and `npm test` is green.
+The one: **`po32-drum`'s `kit`** — the module declares `min 0, max 2`, movy's
+config says `0..31`. That is a functional difference (three kits reachable
+instead of thirty-two) and it is a **bug in po32-drum**, which movy happens to
+know the answer to. Per the standing rule that a third-party change movy needs
+is framed as an upstream PR and never as a movy patch, it becomes **SP-21a** — a
+one-line fix to the module's declaration — not a general-purpose overlay layer
+with an audit, a size metric and a drain plan.
 
-**Needs:** SP-20.
+**What this does NOT license.** The configs are not redundant and must not be
+deleted. 98 of their keys have no `chain_params` declaration at all — `forge`'s
+43 `cv_*` aliases, `po32-drum`'s 21 `v_*`, `sophie`'s 16 `pad_*`, `tablor`'s 18
+— and those are the **voice and bank declaration** SP-14 shipped against
+(`bank.pad` is the page declaration; see the `movy-bundled-config-override` and
+`movy-voice-page-rotation` findings). They are a different thing living in the
+same file. What the audit does establish is that the 554 duplicate `min`/`max`/
+`options` entries are dead weight, and **SP-41 can delete them with the `off`
+renderer that is their only remaining reader**.
+
+**Also settled by this: the "automation range may be wrong" finding.** Under
+`page` a lane's `min`/`max` already come from `ctl.metaIndex.getOrGuess(k)`
+rather than from movy's config, and with 554 of 555 entries identical there is
+one key in the fleet where that can differ — `po32-drum`'s `kit`, which is an
+`int` selector nobody automates. The symptom, if it is real, is Cause F lag and
+not metadata.
+
+**Reproduce the audit:** the script is thirty lines over
+`docs/module-dump/device-dump.json` — walk each `movy_config`'s
+`banks[].rows[][]`, compare `min`/`max`/`options` against the module's
+`chain_params` entry for the same key. Re-run it after a dump re-capture if this
+ever needs re-deciding.
 
 ---
 
-### SP-22 — the cut curve
+### SP-21a — report po32-drum's `kit` range upstream
 
-**Product.** movy draws a lowcut/highcut pair as a single cut-curve graphic. It
-is the only one of movy's graphics with no equivalent in Schwung's `viz.mjs`,
-whose kinds are envelope, filter, LFO, waveform, fader, switch, EQ and sample. So
-on a module with a lowcut/highcut pair, `page` draws two plain dials where `off`
-drew the curve — a real regression on exactly the modules where the shape of the
-filter is the thing you are adjusting.
+**Product.** `po32-drum` declares `kit` as `min 0, max 2`. Its actual kit count
+is 32, which movy's config has known since it was written. Under `page` the
+planner believes the module, so the Kit knob reaches three of thirty-two kits —
+a module that appears mostly broken to anyone who does not have movy's config in
+their head. It is also the *only* metadata disagreement in the fleet, which is
+what makes it a bug report rather than an architecture.
 
-**Design & implementation.** Two honest options, and the item's job is to pick
-one and record why. **Upstream (SU-5):** add a `cut` kind to `viz.mjs`'s detector
-and a drawer to `viz_draw.mjs`, following the existing filter/EQ detectors — the
-roles are a lowcut frequency and a highcut frequency on adjacent cells of one
-row, which is the same adjacency rule the other spanning kinds use. Filed as a
-PR against Schwung; per spec §4.3 movy does not wait on it, it forks and pins.
-**Or a documented movy exception:** movy keeps drawing this one graphic itself
-over Schwung's body for the handful of modules that declare the pair. That is
-cheaper and it is a crack in the end-state — the spec deletes `cut-curve.ts` —
-so it needs to be written down as an exception with a named list of modules, not
-allowed to become precedent. Recommendation: upstream, because a cut curve is
-generic and Schwung's detector already has the shape for it; take the exception
-only if the PR stalls and SP-30 is otherwise ready.
+**Design & implementation.** One line in po32-drum's `chain_params`
+declaration (`"max": 31`), filed as an upstream PR per the standing rule that a
+third-party change movy needs is never a local patch. movy already has per-voice
+libpo32 work in flight, so check whether that PR is the right vehicle before
+opening a second one. Until it lands, the knob is wrong under `page` in exactly
+the way it is wrong on Schwung's own host — which is the acceptance bar, so it
+does **not** block SP-30. Verify the real maximum against the module's DSP
+before filing: the config's `31` is movy's claim, not the module's, and the
+whole point of this item is to stop asserting ranges movy has not checked.
 
-**Closes when:** either a Schwung PR is merged and the kind resolves in a
-dump-replay assertion, or the exception is documented here with its module list
-and a screenshot scene that pins it.
+**Closes when:** a PR is open against po32-drum with the corrected range, linked
+here. Merged is better; open is enough to close this item.
 
 **Needs:** nothing.
 
 ---
 
+### SP-22 ❌ — the cut curve: DROPPED, 2026-09-17
+
+**It is a movy extension, and the acceptance bar is native Schwung.** movy draws
+a lowcut/highcut pair as one cut-curve graphic; Schwung has no `cut` kind — its
+kinds are envelope, filter, LFO, waveform, fader, switch, EQ and sample. So the
+question is not "does movy lose a graphic" (it does) but "does `page` render
+worse than Schwung's own host" (it does not — it renders identically).
+
+**Measured, not assumed.** Seven of 95 fleet modules carry a lowcut/highcut pair
+by movy's own detector words (`aphex`, `mono-voice`, `noisemaker`, `4k-eq`,
+`spectra`, `superboom`, `verglas`). Planned through Schwung's real planner and
+resolved through its real `resolveViz`, here is what Schwung draws on each page
+that carries such a pair:
+
+| module | page | what Schwung draws on that page |
+| --- | --- | --- |
+| aphex | Filter, Patchbay | nothing — plain dials |
+| aphex | Main | `fader[volume]` (unrelated to the pair) |
+| mono-voice | Params - 5, Params - 6 | nothing — plain dials |
+| noisemaker | Chr/Verb, Delay | nothing — plain dials |
+| spectra | Control | two faders (unrelated to the pair) |
+| superboom | Seal | nothing — plain dials |
+| verglas | Filters | `filter[low_freq,low_q]` (a different pair) |
+
+**In no case does Schwung claim the cut pair.** So the cost of dropping SP-22 is
+bounded and known: seven modules render their cut pair as two dials, exactly as
+they do on Schwung's own host today. Against that, the alternatives were an
+upstream PR on a third-party review clock (SU-5, now withdrawn) or a documented
+movy exception that would keep `cut-curve.ts` alive past SP-41 and stand as
+precedent for every other movy graphic Schwung lacks. Neither is worth seven
+modules' worth of two dials.
+
+**If it comes back**, it comes back as an upstream `cut` kind that Schwung's own
+host also draws — benefiting every embedder — and not as a movy-side exception.
+That is the same door SU-5 went out of, and it can be reopened on evidence
+(someone actually misses it on one of the seven).
+
+---
 ### SP-23 — font parity and the enum-overlay double-draw
 
 **Product.** Two small things that make `page` look like a different program
@@ -712,6 +765,15 @@ Up for review. What changed and why:
    bulk read caller-side.
 7. **SP-15 stays first.** It is the only remaining item that makes the mode
    unusable rather than imperfect.
+8. **SP-21 and SP-22 are DROPPED, and SU-5 withdrawn with them** — asked
+   directly, and the answer is the acceptance bar at the top of this file plus
+   two measurements. SP-21's own audit ran: 554 duplicates, **1** real
+   correction, 0 cases where movy's config is the only source of a range — so
+   the overlay's entire content is one wrong `max` in po32-drum, which becomes
+   the upstream one-liner **SP-21a**. SP-22's cost was measured the same way:
+   7 of 95 fleet modules carry a cut pair and Schwung claims none of them, so
+   dropping it lands exactly on native parity. All of Phase 2 that remains is
+   SP-23 and SP-24, both of which are parity checks rather than features.
 
 ---
 

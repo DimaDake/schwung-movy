@@ -973,7 +973,10 @@ muted are remembered underneath and come back exactly as they were when the solo
 drops.
 
 Like a track mute, it silences the **sequencer**: it applies to the whole track,
-in every clip, and a pad you play by hand still sounds. It lasts as long as the
+in every clip, and a pad you play by hand still sounds. **The press that works the
+gesture does not, though** — for as long as Mute is down the pads belong to the
+gesture, so a press neither sounds nor moves the pad the lane is editing. Let Mute
+go and they play as usual. It lasts as long as the
 Set does — the mutes and the solo are saved with the tracks' own — and both are
 **undoable**, with the Undo record naming the voice. A voice outside the rack
 (no pad in the drum layout maps to it) is not a voice: the gesture does nothing.
@@ -1956,7 +1959,7 @@ behaviour you'd like — or, better, a PR.
 | **Shift + Mute** | Solo / un-solo the current track (Track view only). Exclusive — soloing another moves it. |
 | **Shift + Mute + track** | Solo that track instead. |
 | **Shift + Mute + step** | Solo that track from the mute map. |
-| **Mute + pad** (drum track) | Mute / unmute that drum voice in the sequencer — the whole track, every clip. Live pad playing is unaffected. Latch. |
+| **Mute + pad** (drum track) | Mute / unmute that drum voice in the sequencer — the whole track, every clip. Live pad playing is unaffected, but the press itself is silent (no note, no pad select). Latch. |
 | **Shift + Mute + pad** (drum track) | Solo that drum voice instead — exclusive, press again to clear. |
 | **Track buttons 1–4** | Select a track within the focused group of four (hold = momentary peek). |
 | **Volume encoder** | Adjust held steps' velocity. With a track button held instead, sets that track's volume (**add Shift on tracks 5-16** — see [Track volume](#track-volume)); otherwise it stays Move's master volume. |

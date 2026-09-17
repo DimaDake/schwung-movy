@@ -260,7 +260,17 @@ _log('\napp-loop: Mute (+Shift) + pad mutes or solos that drum voice');
     engine.ops.length = 0;
     const model = appState.trackModels[0][1];
 
+    /* The engine answers live pads ITSELF, on the audio thread, from a map movy
+     * pushes each tick — so the early return below cannot stop a note it has
+     * already built and sent. What silences a gesture press is the MAP saying
+     * "the UI owns the pads while Mute is down". */
+    const { engineOwnsPads } = await import('../dist/esm/track/pad-route.js');
+    advance(1);
+    eq('the engine is the one answering pads here', engineOwnsPads(0), true);
+
     sendMidi([0xB0, CC_MUTE, 127]);          // Mute down
+    advance(1);
+    eq('holding Mute takes the pads off the engine', engineOwnsPads(0), false);
     sendMidi([0x90, PAD_SNARE, 100]);        // …then the snare pad
     advance(1);
     eq('queues the voice mute', engine.ops.includes('pmute 0 ' + NOTE_SNARE + ' 1'), true);
@@ -277,6 +287,7 @@ _log('\napp-loop: Mute (+Shift) + pad mutes or solos that drum voice');
 
     sendMidi([0xB0, CC_MUTE, 0]);            // Mute up — the gesture was this one
     advance(1);
+    eq('and the engine answers pads again once Mute is up', engineOwnsPads(0), true);
     eq('and the release does not also mute the track', seqState.muted[0], false);
     eq('no whole-track mute was sent', engine.ops.some((o) => o === 'mute 0 1'), false);
 

@@ -27,9 +27,11 @@ const CC_DELETE = 119;
 const CC_CAPTURE = 52;
 const CC_UNDO = 56;
 
-let muteHeldState = false;
-export function setMuteHeld(down: boolean): void { muteHeldState = down; }
-export function muteHeld(): boolean { return muteHeldState; }
+/* Held mute lives in appState beside shiftHeld, not in a flag of its own: a held
+ * button that changes what the pads mean has to be visible to `track/pad-route`,
+ * which decides whether the engine or the UI answers them. */
+export function setMuteHeld(down: boolean): void { appState.muteHeld = down; }
+export function muteHeld(): boolean { return appState.muteHeld; }
 
 /* Shift state captured when Mute went down: selects solo over mute for the
  * whole gesture, including the Mute+track form (midi/router.ts). */

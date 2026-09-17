@@ -23,7 +23,10 @@ far. Earlier work is summarised in the timeline below for context.
 
   It silences the **sequencer**, not the instrument — the voice is dropped from
   that track's sequence in every clip, while a pad you play by hand still sounds.
-  That is the trade a track mute makes, and for the same reason: playing over a
+  The press that works the gesture is itself silent: for as long as **Mute** is
+  held the pads answer to the gesture, so a press neither sounds nor moves the pad
+  the lane is editing. That is the trade a track mute makes, and for the same
+  reason: playing over a
   silenced track stays possible. The gate sits in the engine at the one place a
   sequenced note is emitted, so what the grid shows and what the sequencer plays
   cannot disagree.

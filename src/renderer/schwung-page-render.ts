@@ -8,9 +8,9 @@
  */
 
 import type { AutomationView } from '../types/viewmodel.js';
-import { fontPrint, fontWidth } from '../font/index.js';
 import { GRID_BODY_RECT } from './layout.js';
 import { decorationsFor } from './schwung-page-decorations.js';
+import { movyCtx } from './schwung-ctx.js';
 
 /* movy draws its own header, bank bar and footer; Schwung is asked for the
  * widgets between them.
@@ -115,12 +115,7 @@ export function createPageRender(ctl: any, deps: {
         render(title: string, auto?: AutomationView, _touched = -1) {
             ctl.setDecorations(decorationsFor(auto, keysOf()));
 
-            const ctx = {
-                fillRect: (x: number, y: number, w: number, h: number, c: any) =>
-                    fill_rect(x, y, w, h, c ? 1 : 0),
-                print: (x: number, y: number, t: string, c: any) => fontPrint(x, y, t, c ? 1 : 0),
-                textWidth: (t: string) => fontWidth(t),
-            };
+            const ctx = movyCtx();
             /* No `footer` argument: movy draws its own. Every page kind honours
              * `bands` now that the controller's chrome is one definition. */
             ctl.render(ctx, { title, bands: BANDS, rect: GRID_BODY_RECT });

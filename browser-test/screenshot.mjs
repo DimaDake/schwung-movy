@@ -52,6 +52,7 @@ const PRESETS = [
     'drum-mrdrums-pad5', 'drum-mrdrums-global',
     'chordism-chordb', 'sfz-amp',
     'params-overflow-page', 'params-extras-settings',
+    'file_browse',
     'bankbar-mid', 'bankbar-surge', 'bankbar-dense',
     'auto_dot', 'auto_held', 'auto_live', 'auto_limit',
     'step_page_knobs', 'step_page_chain', 'step_indicator', 'step_rec_header',
@@ -84,6 +85,7 @@ const PRESETS = [
     'page_body', 'page_body_p2',
     'page_mod_cell', 'page_mod_cell_held',
     'page_held_lock', 'page_held_unassignable',
+    'page_chrome_held', 'page_chrome_flip',
 ];
 
 /* The scenes that render Schwung's own body. Only reachable from a bundle built
@@ -96,12 +98,13 @@ const PRESETS = [
  * cannot. */
 const PAGE_SCENES = new Set(['page_body', 'page_body_p2',
     'page_mod_cell', 'page_mod_cell_held',
-    'page_held_lock', 'page_held_unassignable']);
+    'page_held_lock', 'page_held_unassignable',
+    'page_chrome_held', 'page_chrome_flip']);
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
 const BASE = {
     enum_overlay: 'plaits', knob_toast: 'test8', no_params: 'no_params',
-    keys_view: 'test8', browse_view: 'test8',
+    keys_view: 'test8', browse_view: 'test8', file_browse: 'test8',
     obxd_preset_page: 'obxd_like', obxd_main_page: 'obxd_like', obxd_filter_page: 'obxd_like',
     items_cell: 'dexed_like', items_overlay: 'dexed_like',
     chain_synth: 'test8', chain_empty: 'test8', chain_jog_toast: 'test8',
@@ -119,6 +122,10 @@ const BASE = {
      * `access: "read"`, which is non-automatable by declaration. */
     page_mod_cell: 'test8', page_mod_cell_held: 'test8',
     page_held_lock: 'test8', page_held_unassignable: 'readouts_hier',
+    /* The chrome scenes need the two click kinds that never reach movy — a
+     * trigger and a two-way enum — and `switches` is the mock that declares
+     * both. */
+    page_chrome_held: 'switches', page_chrome_flip: 'switches',
     step_page_knobs: 'test8', step_page_chain: 'test8', step_indicator: 'test8',
     step_rec_header: 'test8',
     loop_strip_midclip: 'test8', loop_strip_outside: 'test8', loop_header: 'test8',
@@ -243,6 +250,7 @@ const { renderKeysView }   = await import('../dist/esm/renderer/keys-view.js');
 const { renderLoadingView } = await import('../dist/esm/renderer/loading-view.js');
 const { renderVersionsView } = await import('../dist/esm/renderer/versions-view.js');
 const { renderBrowseView } = await import('../dist/esm/renderer/browse-view.js');
+const { renderFileBrowseView } = await import('../dist/esm/renderer/file-browse-view.js');
 const { renderChainView }  = await import('../dist/esm/renderer/chain-view.js');
 const { buildStepPageVM }  = await import('../dist/esm/seq/step-page-vm.js');
 const { buildMainPageVM }  = await import('../dist/esm/seq/main-page-vm.js');
@@ -459,6 +467,26 @@ function applyView(preset) {
                 selected: 0, confirming: true, empty: false });
             lastRender(); break;
         case 'browse_view':      showBrowse([{ name: 'Plaits' }, { name: 'Wurl' }, { name: 'Bass' }], 1); break;
+        /* The other browser: the one a FILE parameter opens, which is what "hold
+         * the knob and click the jog" lands on. The cursor sits on a file rather
+         * than the ".." row so the selection bar is over a loadable entry. */
+        case 'file_browse':
+            lastRender = () => renderFileBrowseView({
+                paramSlot: 0, componentKey: 'synth', paramKey: 'sample', gi: 12,
+                root: '/data/UserData/UserLibrary/Samples',
+                filter: ['.wav', '.aif'],
+                currentDir: '/data/UserData/UserLibrary/Samples/Drums',
+                items: [
+                    { name: '..', path: '/data/UserData/UserLibrary/Samples', isDir: true },
+                    { name: 'Breaks', path: '/data/UserData/UserLibrary/Samples/Drums/Breaks', isDir: true },
+                    { name: 'Kick Tight A.wav', path: '/x/Kick Tight A.wav', isDir: false },
+                    { name: 'Kick Tight B.wav', path: '/x/Kick Tight B.wav', isDir: false },
+                    { name: 'Snare Rim C.wav',  path: '/x/Snare Rim C.wav',  isDir: false },
+                    { name: 'Tom Low D.wav',    path: '/x/Tom Low D.wav',    isDir: false },
+                ],
+                selectedIndex: 2,
+            });
+            lastRender(); break;
         /* Trigger badge phases. Time is frozen so the fired flash and two drain
          * positions are deterministic; the drain is what makes the re-arm
          * debounce visible, so it needs more than one sample pinned. */
@@ -1426,6 +1454,56 @@ function applyView(preset) {
             }
             break;
         }
+        /* ── THE TWO BANDS MOVY KEEPS (SP-17) ─────────────────────────────────
+         * `bands.header`/`bands.footer` are false for LAYOUT reasons, so movy
+         * draws both — the readout from the controller's own `describePage()`,
+         * the hints from conditions it asks the controller for. A scene is the
+         * only thing that sees them: the logic suite proves the pairs are the
+         * right WORDS, and nothing there proves they reach the pixels.
+         *
+         * The two scenes are the two clicks that never come back to movy. A
+         * trigger FIRES inside the controller, a two-way enum FLIPS there, and
+         * neither returns an intent — so the footer has to name the consequence
+         * instead, and these are the frames where it does.
+         */
+        case 'page_chrome_held':
+        case 'page_chrome_flip': {
+            if (!schwungLibAvailable()) throw new Error(
+                'screenshot: ' + preset + ' needs a bundle built with SCHWUNG=/path/to/schwung');
+            const savedModels = appState.trackModels;
+            appState.trackModels = [chainModels];
+            try {
+                setSchwungGridMode('page');
+                schwungGridReload();
+                const sp = schwungPageFor(0, 'synth');
+                for (let i = 0; i < 12 * 60 && !sp.ready; i++) { sp.tick(); model.tick(); }
+                if (!sp.ready) throw new Error(preset + ': the contract never resolved');
+
+                /* By KEY, not by slot: which cell a param lands in is the
+                 * planner's business, and a scene pinned to slot 0 would keep
+                 * rendering green if the planner moved it. */
+                const WANT = preset === 'page_chrome_held' ? 'rnd_patch' : 'legato';
+                let slot = -1;
+                for (let pg = 0; pg < sp.pageCount && slot < 0; pg++) {
+                    sp.goToPage(pg);
+                    for (let k = 0; k < 8; k++) if (sp.keyAt(k) === WANT) { slot = k; break; }
+                }
+                if (slot < 0) throw new Error(preset + ': ' + WANT + ' is on no page');
+                sp.knobTouch(slot, true);
+                /* Through the app's own call, chrome included — the header and
+                 * the hints are the last argument, exactly as app/tick.ts
+                 * passes them. */
+                lastRender = () => renderKnobsView(model.getViewModel(), false, 0,
+                    () => sp.render('T1 > ' + model.getModuleName()),
+                    { index: sp.pageIndex, count: sp.pageCount }, sp.chrome(true));
+                lastRender();
+            } finally {
+                setSchwungGridMode(null);
+                appState.trackModels = savedModels;
+            }
+            break;
+        }
+
         default:                 forceRender(); break;                       // plain knobs view
     }
 }

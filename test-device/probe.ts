@@ -60,6 +60,9 @@ export class Probe {
     tick()  { return this.ask({ key: 'tick' }); }
     page()  { return this.ask({ key: 'page' }); }
     auto()  { return this.ask({ key: 'auto' }); }
+    /* Null when no browser is up — which is itself the answer a scenario needs
+     * after a commit: the browser is torn down in the same call that writes. */
+    browse() { return this.ask({ key: 'browse' }); }
 
     /* The internal mode strings, NOT the flag's display labels (the Settings
      * page shows MOVY/DRAW/PAGE for off/body/page). */

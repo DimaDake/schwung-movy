@@ -27,7 +27,7 @@
  */
 
 import type { ViewModel, ParamVM } from '../types/viewmodel.js';
-import { fontPrint, fontWidth } from '../font/index.js';
+import { movyCtx } from './schwung-ctx.js';
 
 /* Reached through schwung-lib, not imported directly: the switch between this
  * renderer and movy's own is a runtime flag now, so both have to survive a
@@ -128,12 +128,7 @@ export function drawKnobParamsSchwung(vm: ViewModel, touched = -1): void {
         keys: Object.keys(metas),
     };
 
-    const ctx = {
-        fillRect: (x: number, y: number, w: number, h: number, c: any) =>
-            fill_rect(x, y, w, h, c ? 1 : 0),
-        print: (x: number, y: number, t: string, c: any) => fontPrint(x, y, t, c ? 1 : 0),
-        textWidth: (t: string) => fontWidth(t),
-    };
+    const ctx = movyCtx();
 
     schwungLib().renderPageMovy(ctx, {
         page: { kind: 'knobs', name: vm.bankName || '', keys },

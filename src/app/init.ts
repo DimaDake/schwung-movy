@@ -6,7 +6,7 @@ import { selectTrack } from '../track/focus.js';
 import { resetWatchPush } from '../seq/watch.js';
 import { createLfoModel, createScopedLfoModel } from '../lfo/model.js';
 import { masterScope } from '../lfo/scope.js';
-import { appState, VIEW_CHAIN } from './state.js';
+import { appState, viewName, VIEW_CHAIN } from './state.js';
 import { buildTrackModels } from './track-models.js';
 import { jogHintTouch } from './jog-hint.js';
 import { keyboardState, resetOctaves } from '../keyboard/state.js';
@@ -45,6 +45,14 @@ export function init(): void {
         parked:        () => (globalThis as any).overtakeParked === true,
         setGridMode:   (m) => setSchwungGridMode(m as any),
         ready:         () => sessionReady(),
+        view:          () => viewName(appState.currentView),
+        browse:        () => {
+            const s = appState.fileBrowserState;
+            if (!s) return null;
+            return { dir: s.currentDir, sel: s.selectedIndex,
+                     items: s.items.map((it) => ({ name: it.name, path: it.path,
+                                                   isDir: !!it.isDir })) };
+        },
         leaveModal:    () => ({
             active: leaveModalActive(),
             label:  leaveModalLabels()[leaveModalSel()] ?? '',

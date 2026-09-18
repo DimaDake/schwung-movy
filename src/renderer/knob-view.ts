@@ -6,15 +6,26 @@ import { drawEnumOverlay, drawJogToast } from './overlay.js';
 import { W } from './layout.js';
 import { drawKnobParamsSchwung } from './schwung-body.js';
 import { schwungGridEnabled } from './schwung-flag.js';
+import type { PageChrome } from './schwung-page-chrome.js';
+import { drawPageFooter } from './schwung-footer.js';
 
 /** What the bank bar should index, when it is not movy's own banks. */
 export interface BankOverride { index: number; count: number }
 
 export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 0,
-                                bodyOverride?: () => void, bank?: BankOverride): void {
+                                bodyOverride?: () => void, bank?: BankOverride,
+                                chrome?: PageChrome): void {
     clear_screen();
 
-    if (vm.toast) {
+    /* THE HELD PARAM OUTRANKS MOVY'S TOAST, and under a delegated page it has
+     * to: movy's model still records the touch (it is what the release, the
+     * header readout and the file-browse gesture read) and raises its own toast
+     * for it — but the param it names is movy's own bank's, which is not the
+     * one on screen. Drawing Schwung's readout first is what makes the header
+     * true. */
+    if (chrome?.header) {
+        drawHeader(chrome.header.left, chrome.header.right, chrome.header.inverted);
+    } else if (vm.toast) {
         drawHeader(vm.toast.fullName, vm.overlay ? null : vm.toast.value, true);
     } else {
         const showIcon = vm.isPadScoped && vm.drumPadCount > 0;
@@ -67,4 +78,12 @@ export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 
     if (vm.automationHeld && vm.automationPoolFull) drawJogToast('8 AUTOMATION LANES — FULL');
     else if (vm.toast?.browseHint) drawJogToast('JOG: BROWSE');
     else if (jogTouched)      drawJogToast('CLICK JOG: SWAP MODULE');
+    /* THE FOOTER IS THE LAST RESORT FOR THOSE ROWS, not a layer over them. A
+     * toast and a Schwung hint band occupy the same six rows (TOAST_Y 58 and
+     * the footer's 57..63), so one has to lose: it is the footer, because a
+     * toast is about THIS MOMENT and the hints are always true. Drawing it last
+     * in the chain is what makes the yield complete — a footer drawn under a
+     * toast would leave its pill tops on row 57, above a banner that has taken
+     * the rest. */
+    else if (chrome?.footer?.length) drawPageFooter(chrome.footer);
 }

@@ -39,6 +39,7 @@ import { createPageHierarchy } from './schwung-page-hierarchy.js';
 import { createPageContract } from './schwung-page-contract.js';
 import { createPageRender } from './schwung-page-render.js';
 import { createPageInput } from './schwung-page-input.js';
+import { chromeFor, type PageChrome } from './schwung-page-chrome.js';
 
 /** What Schwung asks the HOST to do. `open` wants an editor for `key`; `exit`
  *  means every layer is down and Back now belongs to movy. */
@@ -70,6 +71,9 @@ export interface SchwungPage {
      *  watches to know the drawn page moved. */
     knobLevels(): (number | null)[];
     render(title: string, auto?: AutomationView, touched?: number): void;
+    /** What movy's header and footer should say while this page is the body.
+     *  `paging` is true only where the jog moves this page set. */
+    chrome(paging: boolean): PageChrome;
     knobTurn(slot: number, delta: number): void;
     knobTouch(slot: number, down: boolean): void;
     /** Jog click. Returns a host intent ("open") when Schwung asks for one. */
@@ -149,6 +153,7 @@ export function createSchwungPage(
         knobParamInfo: page.knobParamInfo,
         knobLevels: page.knobLevels,
         render: page.render,
+        chrome: (paging: boolean) => chromeFor(ctl, lib, paging),
         knobTurn: input.knobTurn,
         knobTouch: input.knobTouch,
         click: input.click,

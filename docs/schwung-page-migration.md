@@ -34,8 +34,12 @@ SCHWUNG=../schwung node browser-test/page-mode.mjs
 
 It prints `page-mode: N of M expected failures remain`. **That number may shrink
 and must never grow.** If it grew, the last item regressed a sibling — stop. It
-started at 13 and is at **6**; the remaining six are named in
-`browser-test/page-mode-expected-fail.json`.
+started at 13 and is at **5**; the remaining five are named in
+`browser-test/page-mode-expected-fail.json`, and they are one FIXTURE limit
+rather than five defects — under `page` the page set is Schwung's own plan, and
+for the suites' modules that plan is a single page named *Main* while movy's
+config has four banks (mrdrums) or three. Every one of them is a check whose
+subject is "the jog reaches bank N". See the SP-17 entry in Closed items.
 
 Without `SCHWUNG=` every Schwung assertion is *skipped, not failed* — a green
 run proves nothing.
@@ -70,12 +74,13 @@ rather than as regressions.
 | SP-14 | Cause E — drum/voice pages planned from movy's config |
 | SP-15 | Cause D — contract lifecycle: the asking never stops, only its pace |
 | SP-18 | The decoration channel: modulation tilde, mod dot, p-lock highlight, held-step filter |
+| SP-17 | Cause C/B — the filepath dive, the header readout, the footer hints |
 
 ### Open
 
 | id | item | model | state | proposed order |
 | --- | --- | --- | --- | --- |
-| SP-17 | Cause C/B — filepath & canvas dives, header readout, footer hints | Sonnet | ⬜ | **2** |
+| SP-31 | **NEW** — a knob release that lands on another page latches `touched`, and the next jog click is swallowed | Sonnet | ⬜ | **2** |
 | SP-19 | Undo redraw + automation-follows-arc (**verify first — may already be closed**) | Sonnet | ⬜ | **3** |
 | SP-28 | **NEW** — custom module visualisations (`custom:` viz kinds) | Sonnet | ⬜ | **4** |
 | SP-16 | Cause G — graphics return (**shrunk: upstream fixed the hard half**) | Sonnet | ⬜ | **5** |
@@ -171,46 +176,40 @@ evidence. **Needs** — its predecessor.
 
 ---
 
-### SP-17 — Cause C/B: the dives that do not open, the header that says nothing, the footer that hints nothing
+### SP-31 — a lost knob release latches the controller, forever
 
-**Product.** Three losses that share one shape — Schwung offers something and
-movy does not take it. **Dives:** clicking a filepath or canvas parameter reaches
-the controller, the controller returns an `open` intent, and movy drops it on the
-floor. On `mrsample` that means **you cannot choose a sample** — the module is
-unusable under `page`. **Header:** Schwung's header strip is the held
-parameter's full name and value, inverted; movy draws its own header and its
-toast occupies that row, so the one readout that tells you what you are turning
-and where it is now is gone. On a page of five-character short names that is the
-difference between editing and guessing. **Footer:** Schwung's footer is
-`[key, action]` pairs supplied by the caller, and movy supplies none — so
-mrsample never says "jog click to pick a sample", which is how you would have
-discovered the dive that also does not work.
+**Product.** A gesture goes dead. Touch a knob, and while it is held the page
+under it changes — a chain switch, a module swap, a bank the fixture moved,
+anything that resolves `knobOwner()` to a different page on the way up. The
+release is routed to whatever screen is up now, so the pressed page never hears
+it and keeps the slot in `touchOrder`. `touched` therefore stays ≥ 0 for the
+rest of the session, and movy's router guard treats the controller as "a knob is
+under the hand" — so **every later jog click is handed to the page instead of
+movy**, and with SP-17's chrome the hint band also pins itself over the Loop
+strip. Measured while working SP-17: `touched=1 order=[1]`, and the swallowed
+jog click moved the CHAIN index rather than paging (measured with the latch on:
+`ck=4 modelCk=lfo`).
 
-**Design & implementation.** `openSchwungEditor()` in
-`src/renderer/schwung-editor.ts` handles enum-shaped intents only, and its own
-comment records the gap: "an intent with no options — a filepath, a canvas — has
-no editor here; it is logged rather than dropped". movy already owns a file
-browser and a canvas-capable screen, so the work is an adapter: map the pending
-intent's param key and type onto movy's existing browser, and return the chosen
-value through the same `setParam` path the enum editor uses, so undo and the
-write-log drain (SP-26) see it like any other write. Two hazards worth naming in
-the plan. First, the intent carries the *controller's* key, not movy's — bind the
-browser to it directly and never re-derive from `(page, slot)`, which is exactly
-the class of bug SP-10 existed to remove. Second, a filepath's `""` is a real
-value (no file), not a failed read, and collapsing those two is the mistake this
-branch has now made five times. For the header, movy composes its own; the
-readout should be produced by movy from the controller's held-parameter state
-rather than by asking Schwung to draw the band, because `BANDS.header` is `false`
-deliberately — movy's bank bar and Schwung's would otherwise stack. For the
-footer, pass the caller-supplied hint pairs into `ctl.render` and draw them in
-movy's own footer row.
+**Design & implementation.** The controller has no staleness expiry for a held
+knob on purpose — `page_controller.mjs` ~1499 returns early while
+`touchOrder.length`, and `onKnobTouch` zeroes `turnClaimMs`, so nothing ages a
+touch out. **The fix is on movy's side: pin the page at press and deliver the
+release to THAT page.** A `Map<knobIndex, page>` filled in the router's
+knob-touch branch and drained on release is ~15 lines, and it is the same shape
+as the note-off ledger (`keyboard/held-notes.ts`) — the release must come from
+what the press recorded, never from current state. SP-17 implemented exactly
+that and reverted it, because it is not SP-17's to make: the pin cleared the
+latch and took the burn-down 5 → **7** (`shift+jog: plain jog steps one page`
+reddens whenever the pin is active — measured `pcount=1 ctlPages=1 names=Main`
+pinned against `pcount=3 names=Main>Main - 2>Effects` unpinned), so the pin is
+entangled with the FIXTURE limit rather than with the latch.
 
-**Closes when:** on device, a click on mrsample's sample parameter opens movy's
-browser and the chosen file plays; a `page` screenshot scene shows the held
-parameter's name and value in the header; a module declaring footer hints renders
-them. `page-mode` does not grow.
+**Closes when:** a device or app-loop check holds a knob, changes the page under
+it, releases out of order, and asserts the next jog click still reaches movy —
+and the burn-down has not grown.
 
-**Needs:** nothing — SP-15 landed 2026-09-18.
+**Needs:** nothing. Do it after the fixture limit is understood, or it will look
+like the fix that broke paging.
 
 ---
 
@@ -798,6 +797,78 @@ Up for review. What changed and why:
 Newest first. The full narrative for each is in git history; what is kept here is
 the fact a later session would otherwise re-derive.
 
+- **SP-17 ✅ 2026-09-18 — the filepath dive opens movy's browser; the header and
+  the hint band are movy's rows with the controller's words.** Three pieces.
+  **(a) The dive.** The controller's click returns `{action:"open", key, fullKey,
+  meta}` and opens nothing — that screen is the host's. `openSchwungEditor` takes
+  the enum-shaped intents and declines these, so `src/browser/schwung-dive.ts`
+  is the adapter: `filepath`/`file` intents become movy's file browser, bound to
+  `intent.fullKey` (the dive ANCHOR, which is not always the clicked cell — a
+  gizmo inside a sample graphic redirects, `diveTargetAt`), never re-derived from
+  `(page, slot)`. Directory, filter and start hint come from the page's own
+  `meta`; movy supplies only what Schwung has no concept of (its file-value
+  index, its preset guard), both asked BY KEY and both optional. The commit is
+  unchanged — movy's `activateFileBrowserItem` writes under `undoableEdit`, so
+  undo and the SP-26 write log see it. A `canvas` or a `string` still falls
+  through to the `schwung-open unhandled` log; that is the honest report, and the
+  brief's claim that movy has "a canvas-capable screen" is **wrong** — movy's
+  param types are `float|int|enum|file` and it draws no canvas.
+  **(b) The chrome.** `schwung-page-chrome.ts` composes both bands from the
+  controller: `describePage({}).header` (Schwung's `movyHeaderFor`, so the
+  readout cannot drift from the host's) and `inverted` — which is true on
+  exactly the held-param branch — as the gate, so the header never tells you
+  about a param that is not under the hand. `BANDS.header` stays false, as the
+  brief required. **(c) The footer is drawn last in the yield chain**, because
+  the hint band's rows (57..63) overlap the Loop strip's (60..63) and the strip
+  clears them on every tick: the caller sets `jogToastShown` on the frame the
+  band is drawn, exactly as a bottom-row toast does. It is drawn only while a
+  knob is held — with nothing held the click is MENU and the line is the least
+  useful one on screen.
+  **TWO OF THE BRIEF'S THREE MECHANISMS WERE WRONG, AND THE CODE WON.** It said
+  to "pass the caller-supplied hint pairs into `ctl.render`": `render`'s `footer`
+  argument is consumed only when `bands.footer` is true, and `describePage`
+  merely echoes `o.footer` back — so movy composes the pairs itself and draws
+  them with Schwung's own `drawFooter` (one definition of a pill). The words are
+  a second copy of `footerHints()` (the shadow-side HOST, not importable); every
+  CONDITION is the controller's — page kind from `PAGE_MENU/PRESET/ITEMS`,
+  `menuEntered`, `pickerOpen`, and for a held cell `meta.writeOnly`,
+  `flipsOnClick` and `diveTargetAt`, the same predicates `onClick` walks. That is
+  why a two-option enum says FLIP and a trigger says FIRE: neither returns an
+  intent at all.
+  **THE BURN-DOWN WENT 6 → 5 AND ONLY ONE LABEL WAS EVER A CAUSE-C FAILURE.**
+  `chain page: file-param jog click opens file browser` was; it now passes and is
+  DELETED from the ledger file, whose note now records that the remaining five
+  are one FIXTURE limit (Schwung plans a single page named *Main* for the suites'
+  mocks, movy's config has four banks, so "the jog reaches bank N" cannot hold).
+  The brief's count of five Cause-C labels was this item's own error, copied
+  from a symptom list written before SP-15.
+  **Scope discipline, measured.** Pin the pressed page across a press/release
+  pair to fix the latched-`touched` defect below and the ledger goes 5 → **7**:
+  it clears the latch but breaks `shift+jog: plain jog steps one page` (measured
+  with the pin: `pcount=1 ctlPages=1 names=Main`; without it:
+  `pcount=3 names=Main>Main - 2>Effects`). Reverted in full. A fix that grows the
+  ledger is not SP-17's to make.
+  **Tests, and what they can see.** `browser-test/logic/schwung-page.mjs` walks
+  every bound slot of the `switches` mock and asserts the footer's CLK verb
+  equals what the click actually DID (`OPEN` from a returned intent, `FIRE` from
+  `meta.writeOnly`, `FLIP` from a two-way enum that wrote, else `MENU`);
+  `app-loop.mjs` drives the real tick and asserts a held knob takes the bottom
+  rows AND that the painter was the band rather than a toast (knob 1, not 0 — on
+  that model knob 0 is the `file` param and movy's own `JOG: BROWSE` toast
+  legitimately wins the row one rung higher). Teeth: with `chromeFor`'s footer
+  forced null the band check reddens (`a knob under the hand takes the bottom
+  rows` expected false, got true) and `page-mode` reports a 6th unexpected label.
+  Scenes `page_chrome_held` / `page_chrome_flip`, plus `file_browse` (movy's own
+  browser, now an esbuild entry point) for the MANUAL.
+  **A REAL DEFECT FOUND AND LEFT OPEN, because it is not this item's.** A knob
+  release resolves `knobOwner()` after an ownership change and lands on a
+  different page; the controller has no staleness expiry for a held knob
+  (`page_controller.mjs` ~1499 returns early while `touchOrder.length`, and
+  `onKnobTouch` zeroes `turnClaimMs`), so the pressed page keeps the slot
+  forever, `touched` latches ≥ 0, and movy's router guard then routes every later
+  jog click to the controller instead of movy — with the new chrome it would also
+  pin the hint band over the Loop strip. Owner-pinning the pair is the fix and it
+  belongs in its own item (see the Open list).
 - **SP-18 ✅ 2026-09-18 — the decoration channel came back; only one of its four
   parts was a wiring job, and the brief named a field that does not exist.**
   **(a) The tilde was the whole of the wiring.** The controller already computed

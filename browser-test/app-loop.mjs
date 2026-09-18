@@ -61,6 +61,13 @@ if (GRID_ARM) setSchwungGridMode(GRID_ARM);
 const { pageOwnerOf } = await import('../dist/esm/app/page-owner.js');
 const shownPage = (model) => pageOwnerOf(model).pageIndex;
 
+/* The module under the knobs, spelled the way app/tick.ts spells it, and its
+ * page owner — for the two blocks below that have to reach the controller. */
+const activeModelFor = () =>
+    appState.trackModels[appState.activeTrack.index]
+        ?.[appState.trackChainIndex[appState.activeTrack.index]];
+const ownerFor = () => pageOwnerOf(activeModelFor());
+
 /* The first master FX slot, by COMPONENT rather than by position: movy's own
  * send buses sit in front of them on the master page, and these blocks are
  * about what a `master_fx:` slot does, not about what happens to be first. */
@@ -531,6 +538,13 @@ _log('\napp-loop: file-param jog-click opens the browser on the chain page');
     sendMidi([0x90, 0, 100]);   // touch knob 0 (file param), keep held
     sendMidi([0xB0, globalThis.MoveMainButton, 127]);  // jog click
     eq('chain page: file-param jog click opens file browser', appState.currentView, VIEW_FILE_BROWSE);
+    /* LET GO. A knob left held keeps its slot in the controller's `touchOrder`,
+     * and the Schwung page cache is keyed by (track, component) and outlives
+     * `init()` — so `touched` stayed >= 0 for the rest of the run, where the
+     * controller's own jog-click guard reads it and swallows the click. The
+     * PRESS is what this block is about; the hold was never asserted, and it
+     * silently disarmed every later block's first click. */
+    sendMidi([0x90, 0, 0]);
 
     // Holding a non-file knob (slot 1 = Volume) + jog click → NOT a file browser.
     setup();
@@ -538,6 +552,12 @@ _log('\napp-loop: file-param jog-click opens the browser on the chain page');
     sendMidi([0xB0, 50, 127]);  // jog click
     eq('chain page: non-file knob jog click does not open file browser',
         appState.currentView === VIEW_FILE_BROWSE, false);
+    /* Both leaks go back with it: the knob, and the Session press that took the
+     * knobs to the master bus while it was down — with that latched, the
+     * release below reaches a page that never heard the touch and the synth
+     * page keeps the slot. */
+    sendMidi([0xB0, 50, 0]);
+    sendMidi([0x90, 1, 0]);
 }
 
 _log('\napp-loop: knob turn while a step is held writes automation');
@@ -2828,7 +2848,7 @@ console.log = _origLog;
 _log('\napp-loop: CPU page is not painted over by the loop strip');
 {
     const { seqToastActive } = await import('../dist/esm/seq/render.js');
-    const stripRectsFor = (view) => {
+    const stripRectsFor = (view, holdKnob = -1) => {
         resetApp();
         for (let i = 0; i < 400 && seqToastActive(); i++) advance(1);
         if (view === VIEW_CPU) handleStepButton(STEP_CPU, true, true);
@@ -2836,6 +2856,15 @@ _log('\napp-loop: CPU page is not painted over by the loop strip');
         eq(`arm is on view ${view}`, appState.currentView, view);
         appState.dirty = true;
         const rects = [];
+        /* A knob any EARLIER block left pressed must be let go of first:
+         * `touched` / `touchOrder` live in the page controller, which
+         * resetApp() does not reach and which is cached by (track, component)
+         * for the whole process. movy's header readout and hint band take the
+         * bottom rows exactly while a knob is under the hand, so an inherited
+         * latch would fail the control arm for a reason it is not about. The
+         * arm is "a page with NOTHING held keeps the strip", and it says so. */
+        ownerFor().page?.ctl.clearTouch();
+        if (holdKnob >= 0) sendMidi([0x90, holdKnob, 100]);
         /* jogToastShown and the toast TTL are tick.ts / render.ts module state
          * that resetApp() does not reach, and both suppress the strip. Ticking
          * the toast out is what makes the control arm meaningful. */
@@ -2857,6 +2886,31 @@ _log('\napp-loop: CPU page is not painted over by the loop strip');
     const cpu = stripRectsFor(VIEW_CPU);
     eq('loop strip suppressed on the CPU page', cleared(cpu), false);
     eq('and the page actually painted', cpu.length > 0, true);
+
+    /* A HAND ON A KNOB TAKES THE BOTTOM ROWS. The footer band is 57..63 and
+     * the strip clears 60..63 on every tick, so they cannot both have them —
+     * the same terms movy's own bottom-row toasts already take the row on.
+     * Only meaningful where there IS a controller to hint about: with the grid
+     * off there is no page, no chrome, and the strip keeps its rows. */
+    if (GRID_ARM === 'page') {
+        /* Knob 1, not 0: on this model knob 0 is the `file` param, and movy's
+         * own browse hint ("JOG: BROWSE", a full-width band at 58) legitimately
+         * wins the row for it — it is a rung ABOVE the footer in the same yield
+         * chain, and that is not the rung this arm is about. Every other knob
+         * reaches the footer. */
+        const touched = stripRectsFor(VIEW_KNOBS, 1);
+        eq('a knob under the hand takes the bottom rows from the strip',
+           cleared(touched), false);
+        const isPill = ([x, y, w, h, v]) => y === 57 && h === 7 && v === 1 && x < 128;
+        eq('...which the hint band is what took',
+           touched.some(isPill), true);
+        /* A toast would have taken them just as effectively, and one is a full
+         * width inverted band one row lower. Without this the check passes on
+         * the wrong painter. */
+        eq('...and not one of movy\'s own bottom-row toasts instead',
+           touched.some(([x, y, w, h, v]) => x === 0 && y === 58 && w === 128 && h === 6 && v === 1),
+           false);
+    }
 }
 
 /* ── The step LED under the CPU page's own gesture ──────────────────────────

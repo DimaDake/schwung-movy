@@ -374,6 +374,111 @@ _log('\nTest: a module that declares its own hierarchy is never spoken for');
     env.setParams(MOCK_SYNTHS.test16);
 }
 
+_log('\nTest: the header readout and the footer hints come from the controller');
+{
+    /*
+     * THE BANDS MOVY KEEPS. `bands.header`/`bands.footer` stay false — Schwung's
+     * own chrome needs 56 rows and movy leaves 54 — so movy draws both, and the
+     * one thing it must not do is INVENT what they say. The header is
+     * `describePage().header.left`, built by the same `movyHeaderFor` the
+     * shadow host draws its own with. The footer's WORDS are movy's (Schwung's
+     * vocabulary lives in the shadow-side host, which movy may not import) and
+     * its every CONDITION is the controller's.
+     *
+     * So the assertion with teeth is not "the footer says OPEN" — that is the
+     * code read back to itself. It is that the verb it prints is the
+     * CONSEQUENCE the click actually has, observed by clicking.
+     */
+    setSchwungGridMode('page');
+    schwungGridReload();
+    env.setParams(MOCK_SYNTHS['6w6']);
+    const p = schwungPageFor(0, 'synth');
+    for (let i = 0; i < 12 * 60 && !p.ready; i++) p.tick();
+    ok('the page resolved', p.ready);
+
+    const showed = p.chrome(true);
+    eq('nothing held, no readout — movy’s own header stands',
+       showed.header === null && showed.footer === null, true);
+
+    const bound = [];
+    for (let k = 0; k < 8; k++) if (p.keyAt(k)) bound.push(k);
+    ok('the page has knobs to hold', bound.length > 0);
+    eq('a knob over an unbound cell says nothing either',
+       p.chrome(true).header, null);
+
+    const k = bound[0];
+    p.knobTouch(k, true);
+    const held = p.chrome(true);
+    const own = p.ctl.describePage({}).header;
+    eq('held, the readout is the controller’s own, verbatim',
+       held.header && held.header.left, own.left);
+    eq('...and its second half too', held.header && held.header.right, own.right);
+    ok('...and it is the branch that says a param is under the hand',
+       !!(held.header && held.header.inverted));
+    ok('...beside a hint band', Array.isArray(held.footer) && held.footer.length > 0);
+    eq('the chain view keeps its own footer, where the jog is not paging',
+       p.chrome(false).footer, null);
+    eq('...but the readout is still the page’s',
+       p.chrome(false).header.left, held.header.left);
+    p.knobTouch(k, false);
+    eq('and letting go takes the band with it', p.chrome(true).footer, null);
+    /* THE CLICK IS THE SUBJECT. One knob at a time, and the verb printed for it
+     * has to match what pressing the jog DOES to the parameter — an `open`
+     * intent, a flip, a write, or nothing at all. Asserting the verb the code
+     * chose would be the code read back to itself; asserting it against the
+     * consequence is what catches a footer that promises OPEN on a cell whose
+     * click does nothing.
+     *
+     * A page of floats exercises only the fallback, so the walk runs over a
+     * whole module's pages and the tally at the end is the point: a run where
+     * every verb was MENU proves the default and nothing about the branches
+     * this file exists for.
+     *
+     * A TRIGGER'S WRITE LEAVES NO TRACE — it bangs and returns to idle — so the
+     * fire branch is read from the parameter's own declaration, not from the
+     * value map. The flip branch IS read from the consequence, and that is the
+     * half with teeth: a two-way enum that moved while the footer said
+     * something else fails here. */
+    const verbs = new Set();
+    const walk = (name, params) => {
+        env.setParams(params);
+        schwungGridReload();
+        const pg = schwungPageFor(0, 'synth');
+        for (let i = 0; i < 12 * 60 && !pg.ready; i++) pg.tick();
+        ok(name + ': the page resolved', pg.ready);
+        for (let page = 0; page < pg.pageCount; page++) {
+            pg.goToPage(page);
+            for (let slot = 0; slot < 8; slot++) {
+                const key = pg.keyAt(slot);
+                if (!key) continue;
+                pg.knobTouch(slot, true);
+                const foot = pg.chrome(true).footer.find((h) => h[0] === 'CLK');
+                const before = JSON.stringify(pg.ctl.state.values);
+                const intent = pg.click();
+                const wrote = before !== JSON.stringify(pg.ctl.state.values);
+                const meta = pg.ctl.metaAt(slot);
+                const twoWay = !!(meta && Array.isArray(meta.options)
+                                  && meta.options.length === 2);
+                const want = (intent && intent.action === 'open') ? 'OPEN'
+                           : (meta && meta.writeOnly) ? 'FIRE'
+                           : (twoWay && wrote) ? 'FLIP' : 'MENU';
+                eq(name + ' ' + key + ' hands the click to ' + want,
+                   foot ? foot[1] : null, want);
+                verbs.add(want);
+                pg.knobTouch(slot, false);
+            }
+        }
+    };
+    walk('switches', MOCK_SYNTHS.switches);
+    ok('a two-way enum was reached, so the flip branch ran (' + [...verbs].join('/') + ')',
+       verbs.has('FLIP'));
+    ok('and a trigger, so the fire branch ran', verbs.has('FIRE'));
+
+    schwungGridReload();
+    setSchwungGridMode(null);
+    env.setParams(MOCK_SYNTHS.test16);
+}
+
 _log('\nTest: both embedded modes, and the off stand-in, use ONE rect');
 {
     /* `body` and `page` embed the same grid under the same chrome, and the off

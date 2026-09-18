@@ -13,6 +13,28 @@ export const VIEW_FLAGS       = 8;   // Settings (Shift+Step 2; ships in every b
 export const VIEW_CPU         = 9;   // CPU meter (Shift+Step 12)
 export const VIEW_VERSIONS    = 10;  // Backups (Settings -> BACKUPS)
 
+/* A stable name for the screen constants above, for anything that has to SAY
+ * which one is up: the probe, and whatever device scenario reads it. It lives
+ * here because this is the list it names — a screen added without a word here
+ * answers `unknown`, which is a visible gap rather than a silent wrong answer.
+ * The strings are the scenario's contract; the numbers are not, which is the
+ * whole reason this exists. */
+const VIEW_NAMES: Record<number, string> = {
+    [VIEW_KEYS]:        'keys',
+    [VIEW_KNOBS]:       'knobs',
+    [VIEW_BROWSE]:      'browse',
+    [VIEW_CHAIN]:       'chain',
+    [VIEW_FILE_BROWSE]: 'file-browse',
+    [VIEW_SESSION]:     'session',
+    [VIEW_MAIN_PARAMS]: 'main-params',
+    [VIEW_CLIP_PARAMS]: 'clip-params',
+    [VIEW_FLAGS]:       'flags',
+    [VIEW_CPU]:         'cpu',
+    [VIEW_VERSIONS]:    'versions',
+};
+
+export function viewName(view: number): string { return VIEW_NAMES[view] ?? 'unknown'; }
+
 export interface FileBrowserItem {
     name:  string;
     path:  string;

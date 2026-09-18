@@ -31,6 +31,7 @@ import { schwungEditorActive, renderSchwungEditor } from '../renderer/schwung-ed
 import { renderKeysView }  from '../renderer/keys-view.js';
 import { renderBrowseView } from '../renderer/browse-view.js';
 import { renderChainView }    from '../renderer/chain-view.js';
+import type { PageChrome } from '../renderer/schwung-page-chrome.js';
 import { renderFileBrowseView } from '../renderer/file-browse-view.js';
 import { updateKnobLEDs, updateKnobLEDsFrom, updateSingleKnobLED, resetKnobLedCache } from '../renderer/knob-leds.js';
 import { seqEngineTick, takeLabelSync, requestLabelSync } from '../seq/engine.js';
@@ -224,6 +225,25 @@ export function schwungBodyFor(owner: PageOwner, stepSelected: boolean,
 export function schwungBankFor(owner: PageOwner, body: (() => void) | undefined):
         { index: number; count: number } | undefined {
     return body && owner.delegated ? { index: owner.pageIndex, count: owner.pageCount } : undefined;
+}
+
+/*
+ * WHAT MOVY'S HEADER AND FOOTER SAY while Schwung draws the body.
+ *
+ * Derived from the BODY like `schwungBankFor`, and for the same reason: the
+ * chrome belongs with the page it frames, so the answer cannot outlive the body
+ * it was composed for. It used to be its own set of conditions, and that is how
+ * a header ends up reading out a param from a page that is no longer on screen.
+ *
+ * `paging` says whether the JOG moves this page set. It does on the module page
+ * and it does NOT on the chain view, where the jog moves chain slots — so a
+ * `JOG PAGE` pill there would promise a thing the button does not do. The
+ * caller owns that because it is the only one that knows which view it is
+ * drawing.
+ */
+export function schwungChromeFor(owner: PageOwner, body: (() => void) | undefined,
+                                paging: boolean): PageChrome | undefined {
+    return body && owner.page ? owner.page.chrome(paging) : undefined;
 }
 
 /*
@@ -855,13 +875,21 @@ function tickBody(): void {
              *
              * The step page is movy's too, so it keeps its own renderer.
              */
+            /* The chrome's footer band overlaps the Loop strip's rows, so the
+             * frame that draws it has to claim them the way a bottom-row toast
+             * does — otherwise the strip's per-tick clear takes the bottoms off
+             * every pill a few milliseconds later. `chromeFor` decides WHEN it
+             * is drawn (a knob under the hand); this only has to make the strip
+             * yield on that frame. */
+            const chrome = schwungChromeFor(pageOwner, schwungBody, true);
+            const chromeFooter = !!(chrome && chrome.footer);
             renderKnobsView(vm, jogHintVisible(), appState.activeTrack.index,
-                            schwungBody, schwungBankFor(pageOwner, schwungBody));
+                            schwungBody, schwungBankFor(pageOwner, schwungBody), chrome);
             perfPhaseEnd();
             // The pool-full toast shares the bottom rows with the Loop strip;
             // claim them so the strip yields to it (like every other toast).
             jogToastShown = (vm.automationHeld && vm.automationPoolFull)
-                || !!vm.toast?.browseHint || jogHintVisible();
+                || !!vm.toast?.browseHint || jogHintVisible() || chromeFooter;
             perfPhase('leds');
             lightKnobRow(vm, schwungBody);
             perfPhaseEnd();
@@ -892,8 +920,11 @@ function tickBody(): void {
             }
             noteRendered(vm);
             perfPhase('render');
+            /* `paging: false` — the jog moves CHAIN SLOTS here, so Schwung owes
+             * this view no hint band (see schwung-page-chrome.ts). */
             renderChainView(vm, chainIdx, jogHintVisible(), 'T' + (appState.activeTrack.index + 1),
-                            undefined, undefined as any, schwungBody);
+                            undefined, undefined as any, schwungBody,
+                            schwungChromeFor(pageOwner, schwungBody, false));
             perfPhaseEnd();
             /* Must match what renderChainView actually drew: the Loop strip
              * clears rows 60-63 every tick and would erase a toast it was not

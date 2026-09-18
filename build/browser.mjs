@@ -88,6 +88,10 @@ await esbuild.build({
         resolve(root, 'src/renderer/shorten.ts'),
         resolve(root, 'src/renderer/keys-view.ts'),
         resolve(root, 'src/renderer/browse-view.ts'),
+        /* The other browser — the one a file parameter dives into. An entry
+         * point for the same reason as its sibling: the screenshot scene has to
+         * render it, and folded into a chunk there is no path to import. */
+        resolve(root, 'src/renderer/file-browse-view.ts'),
         resolve(root, 'src/renderer/chain-view.ts'),
         resolve(root, 'src/renderer/lfo-wave.ts'),
         resolve(root, 'src/renderer/overlay.ts'),

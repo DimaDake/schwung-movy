@@ -927,16 +927,29 @@ the fact a later session would otherwise re-derive.
   before SP-15.
   **THE FIX ROUND TOOK IT 5 → 3, AND NOT BY FIXING ANYTHING.** Two of the five —
   `Back leaves the file browser` and `select committed the preset path` — were
-  passing under `page` for no reason at all: the block asserts on a browser that
-  the gesture had failed to open, so `fileBrowserState` was already null and the
-  view was still KNOBS from the drill. Deleting them was not available (a listed
-  label that PASSES is what the gate rejects) and listing them was not either, so
-  the block's tail is now gated on its own premise —
-  `if (appState.currentView === VIEW_FILE_BROWSE)` — and those three checks
+  **FAILING**, as one cascade rather than two defects. The fixture's plan has no
+  Preset page, so the jog never reaches `ui_preset_path`, so movy's browser never
+  opens — and an assertion about where a browser left the view then reads the
+  *drill's* own view, and one about what a commit wrote reads `undefined`. The
+  measurement is in `progress.md` ("Burn-down adjudication"); the two lines are
+  `✗ Back leaves the file browser: expected 1, got 3` (VIEW_KNOBS expected,
+  VIEW_CHAIN actual — MoveBack exiting the knobs page, which is movy behaving
+  normally) and `✗ select committed the preset path: … got undefined`.
+  **A DIFFERENT SET of checks was vacuous, and the two must not be confused.**
+  `Back clears fileBrowserState`, `select leaves the file browser` and
+  `select clears fileBrowserState` expect the state a browser-less run is already
+  in, so they were green while proving nothing — and **not one of those three was
+  ever a burn-down entry**, because a passing label is not a failure and this
+  file lists failures. They therefore moved no number; the two above did.
+  Deleting the two was not available — they were FAILING, and an unlisted failure
+  fails the run as a regression — and neither was leaving them listed, so the
+  block's tail is now gated on its own premise —
+  `if (appState.currentView === VIEW_FILE_BROWSE)` — and the five checks it holds
   either run against a real browser or do not run. `off` still runs every one of
   them; the coverage is where the browser is. **The gated checks are not
   "passing": they are absent under `page`, and the two labels left the ledger
-  because a check that never ran cannot be a failure.**
+  because a check that never ran cannot be a failure — a COVERAGE REDUCTION, not
+  a fix.**
   **Scope discipline, measured.** Pin the pressed page across a press/release
   pair to fix the latched-`touched` defect below and the ledger goes 5 → **7**:
   it clears the latch but breaks `shift+jog: plain jog steps one page` (measured

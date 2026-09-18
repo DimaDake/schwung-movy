@@ -1001,15 +1001,24 @@ _log('\napp-loop: full-screen file browser exits cleanly');
        + ` ctlPages=${planned.pageCount}`
        + ` names=${JSON.stringify((planned.ctl?.pages ?? []).map((p) => p.name))}`);
 
-    /* THE REST OF THIS BLOCK RUNS ONLY IN A BROWSER THAT IS ACTUALLY UP, and
-     * that is a correctness fix rather than a convenience. Under `page` the
-     * gesture above opens nothing, and three of the assertions below then
-     * reported on a browser that had never existed: `Back clears
-     * fileBrowserState` was true because it was already null, and both `select`
-     * checks were true because the view was still KNOBS from the drill. A check
-     * that cannot fail is the defect this migration exists to delete, whichever
-     * arm it is red on. Gated, these either run against a real browser or do not
-     * run at all; the two above stay outside because they ARE the premise. */
+    /* THE REST OF THIS BLOCK RUNS ONLY IN A BROWSER THAT IS ACTUALLY UP. Under
+     * `page` the gesture above opens nothing, and the five checks below then
+     * split into two groups that must not be confused with each other.
+     *
+     * THREE COULD NOT FAIL — `Back clears fileBrowserState` was true because it
+     * was already null, and `select leaves the file browser` / `select clears
+     * fileBrowserState` expect the view and state a browser-less run is already
+     * in. A check that cannot fail is the defect this migration exists to
+     * delete, whichever arm it is red on.
+     *
+     * TWO DID FAIL, and they are why the burn-down moved: `Back leaves the file
+     * browser` (expected VIEW_KNOBS, got VIEW_CHAIN — MoveBack exiting the knobs
+     * page, movy behaving normally) and `select committed the preset path`
+     * (`undefined` — no browser, so no commit). Gating stopped them RUNNING, so
+     * they left the ledger as a COVERAGE REDUCTION, not as a fix. The record in
+     * docs/schwung-page-migration.md and page-mode-expected-fail.json says so.
+     *
+     * The two `eq`s above stay outside because they ARE the premise. */
     if (appState.currentView === VIEW_FILE_BROWSE) {
         // Back must return to the origin view, not to the (now empty) browser.
         sendMidi([0xB0, 51, 127]); advance(1);            // MoveBack

@@ -11,16 +11,21 @@
  * detector pool and a built-in widget draws instead — the registry's single
  * fall-through path, which also covers author typos, a canvas.js that failed to
  * load, and an older host reading a newer module. A missing widget is a
- * different picture, never a hole.
+ * different picture, never a hole. Every "that did not work out" branch below
+ * therefore ends in the same place: hand the registry nothing and let the
+ * built-in draw.
  *
- * THE LOADER RUNS THE SCRIPT IN MOVY'S OWN GLOBALS. `shadow_load_ui_module` is
- * how movy itself was loaded, so a canvas.js that assigns `init` or `tick` —
- * by accident or because it was copied from a UI module — would REPLACE MOVY'S.
- * The device would keep running a tool whose tick belonged to someone else,
- * with no error. Every global the script could plausibly claim is therefore
- * saved and restored around the call, restore included on the throwing path.
+ * THE FILE SIDE LIVES NEXT DOOR (schwung-canvas.ts): which script a module
+ * ships, and what it published. It is separate because it must stay drivable
+ * with no Schwung checkout, while everything in THIS file is the door to the
+ * registry. What a module DECLARES is decided here, on the near side of that
+ * door, because it is the part that fails quietly: a shape movy does not
+ * understand registers nothing and the built-in draws, which looks like a
+ * perfectly reasonable page and is not the module author's.
  */
 import { schwungLib } from './schwung-lib.js';
+import { findOverlay } from './schwung-canvas.js';
+import { mlog } from '../log.js';
 
 /*
  * RE-EXPORTED BECAUSE THE REGISTRY IS PER MODULE INSTANCE.
@@ -34,21 +39,22 @@ import { schwungLib } from './schwung-lib.js';
  *
  * So movy's binding is the one door. Anything registering a widget for movy —
  * including its tests — goes through here.
+ *
+ * AND AN ABSENT LIBRARY IS THE SAME ANSWER AS AN UNREGISTERED KIND. A Schwung
+ * without param_pages, or a local build with no checkout, leaves `schwungLib()`
+ * throwing; on the page path that is one more way to have no widget, which the
+ * fall-through already draws correctly. Letting it throw would turn this file's
+ * safety story into a crash instead.
  */
-/* STILL THE ONE DOOR. The registry is MODULE STATE: reaching it by a second
- * specifier gives a second instance with its own empty map, the widget
- * registers into one and `vizGroups()` reads the other. These wrappers keep
- * that guarantee now that the library itself is reached dynamically. */
-export function registerWidget(kind: string, impl: any): void { schwungLib().registerWidget(kind, impl); }
-export function clearWidgets(): void { schwungLib().clearWidgets(); }
-export function isWidgetAvailable(kind: string): boolean { return schwungLib().isWidgetAvailable(kind); }
-
-declare const shadow_load_ui_module: ((path: string) => boolean) | undefined;
-
-/* Where a module's files live, in the order schwung's own resolver tries. */
-const MODULES_ROOT = '/data/UserData/schwung/modules';
-const SEARCH_DIRS = ['', 'sound_generators/', 'audio_fx/', 'midi_fx/',
-                     'utilities/', 'tools/', 'other/'];
+export function registerWidget(kind: string, impl: any): void {
+    try { schwungLib().registerWidget(kind, impl); } catch (_e) { /* nothing claims the cell */ }
+}
+export function clearWidgets(): void {
+    try { schwungLib().clearWidgets(); } catch (_e) { /* nothing to clear */ }
+}
+export function isWidgetAvailable(kind: string): boolean {
+    try { return !!schwungLib().isWidgetAvailable(kind); } catch (_e) { return false; }
+}
 
 /** Does this contract declare a widget at all? Nothing is loaded if not. */
 export function declaresCustomWidget(chainParams: any[]): boolean {
@@ -59,53 +65,104 @@ export function declaresCustomWidget(chainParams: any[]): boolean {
     });
 }
 
-/* The globals a canvas.js could claim, deliberately including movy's own
- * entry points — those are the ones whose loss would be silent and fatal. */
-const GUARDED = ['init', 'tick', 'onMidiMessageInternal', 'onMidiMessageExternal',
-                 'canvas_overlay', 'canvas_overlays'];
+/** One drawer, as it will be handed to the registry. */
+export interface OverlayWidget { kind: string; draw: (ctx: any) => void; nominal: any; }
 
 /**
- * Evaluate a canvas.js and hand back its overlay, with movy's globals intact
- * whatever the script did. Returns null when there is nothing usable.
+ * Every widget one canvas overlay publishes.
+ *
+ * THE SHAPES ARE UPSTREAM'S (`registerOverlayWidgets`, widget_registry.mjs),
+ * MIRRORED RATHER THAN CALLED. Calling it through the door would put this
+ * decision behind the library, where nothing without a Schwung checkout can see
+ * it — and it is the decision that goes wrong invisibly. The cost of mirroring
+ * is bounded, because a shape movy does not know about registers nothing and
+ * the built-in draws: the fall-through either way.
+ *
+ *   widgetKind:  "custom:a"                  + drawCell   (one widget)
+ *   widgetKinds: ["custom:a", "custom:b"]    + drawCell   (one drawer, the kind
+ *                                                         says which cell)
+ *   widgetKinds: { "custom:a": fn | { draw | drawCell, nominal } }
+ *
+ * The singular is read FIRST, so a module spelling both keeps the richer entry
+ * for the name they share, and a module may use more than one shape.
  */
-export function loadOverlay(path: string): any {
-    if (typeof shadow_load_ui_module !== 'function') return null;
-    const saved: Record<string, any> = {};
-    const had: Record<string, boolean> = {};
-    for (const k of GUARDED) {
-        had[k] = Object.prototype.hasOwnProperty.call(globalThis, k);
-        saved[k] = (globalThis as any)[k];
-    }
-    let overlay: any = null;
-    try {
-        if (shadow_load_ui_module(path)) overlay = (globalThis as any).canvas_overlay || null;
-    } catch (_e) {
-        overlay = null;
-    } finally {
-        for (const k of GUARDED) {
-            if (had[k]) (globalThis as any)[k] = saved[k];
-            else delete (globalThis as any)[k];
+export function overlayWidgets(ov: any): OverlayWidget[] {
+    const out: OverlayWidget[] = [];
+    if (!ov || typeof ov !== 'object') return out;
+    const fallback = typeof ov.drawCell === 'function' ? ov.drawCell.bind(ov) : null;
+    const nominal = ov.widgetNominal || null;
+    const add = (kind: any, draw: any, nom: any) => {
+        if (typeof kind !== 'string' || !kind.startsWith('custom:')) return;
+        if (typeof draw !== 'function') return;
+        out.push({ kind, draw, nominal: nom || nominal });
+    };
+    if (typeof ov.widgetKind === 'string') add(ov.widgetKind, fallback, nominal);
+    const many = ov.widgetKinds;
+    if (Array.isArray(many)) {
+        for (const k of many) add(k, fallback, nominal);
+    } else if (many && typeof many === 'object') {
+        for (const k of Object.keys(many)) {
+            const e = many[k];
+            if (typeof e === 'function') add(k, e.bind(ov), nominal);
+            else if (e && typeof e === 'object') {
+                const d = typeof e.draw === 'function' ? e.draw
+                        : (typeof e.drawCell === 'function' ? e.drawCell : null);
+                add(k, d ? d.bind(ov) : null, e.nominal || e.widgetNominal);
+            }
         }
     }
-    return overlay;
+    return out;
 }
 
 /**
- * Register whatever widget `moduleId` supplies. Safe to call repeatedly: the
- * registry keys on the kind, and re-registering the same implementation is what
- * a module reload should do.
+ * Register whatever widgets the module in this component supplies, replacing
+ * whatever the module before it left.
+ *
+ * RETURNS WHETHER THE QUESTION IS CLOSED. `true` means "this module's art is in
+ * the registry, or it has none" — a state a second identical ask cannot improve
+ * on. `false` means the answer has not arrived: the module is not where we
+ * looked, or its script did not load. The caller keeps asking on a false and
+ * must NOT latch it; latching a decision taken from a read that had not settled
+ * is how the widget never appeared on Schwung's own host, twice.
+ *
+ * THE MODULE ID IS A READ, NOT AN ARGUMENT. It costs a blocking round trip, and
+ * this runs on the page's divider — so it is asked for lazily, once the contract
+ * has said it declares a `custom:` kind at all. Taking it as a value made every
+ * caller pay for the common case: `grid-cost` caught the delegated page's idle
+ * floor at 221 round trips over 600 ticks against a ceiling of 219, exactly one
+ * trip per divider, for 600 ticks in which nothing was ever registered.
+ *
+ * AN EMPTY chain_params IS NOT AN ANSWER. A chain component always declares
+ * something, so an empty array is a read that has not arrived — decide nothing,
+ * clear nothing, latch nothing.
+ *
+ * THE REGISTRY IS PROCESS-GLOBAL AND shadow_ui IS LONG-LIVED. A departed
+ * module's widget would outlive it, and the next module declaring the same
+ * `custom:` name would silently inherit the wrong art. So the clear comes
+ * BEFORE the registration, and it comes even for a module that declares nothing
+ * — that being exactly the case where a stale name would otherwise be served.
  */
-export function registerModuleWidgets(moduleId: string, chainParams: any[]): boolean {
-    if (!moduleId || !declaresCustomWidget(chainParams)) return false;
-    for (const sub of SEARCH_DIRS) {
-        const ov = loadOverlay(`${MODULES_ROOT}/${sub}${moduleId}/canvas.js`);
-        if (ov && typeof ov.drawCell === 'function' && typeof ov.widgetKind === 'string') {
-            registerWidget(ov.widgetKind, {
-                draw: ov.drawCell.bind(ov),
-                nominal: ov.widgetNominal || null,
-            });
-            return true;
-        }
+export function registerModuleWidgets(readId: () => string, chainParams: any[]): boolean {
+    if (!Array.isArray(chainParams) || chainParams.length === 0) return false;
+    if (!declaresCustomWidget(chainParams)) {
+        clearWidgets();                     /* declares nothing: settled, and nothing is read */
+        return true;
     }
-    return false;
+    const moduleId = readId();
+    if (!moduleId) return false;                                  /* no id, no verdict */
+    clearWidgets();
+    const ov = findOverlay(moduleId);
+    if (!ov) {
+        mlog(`widgets: ${moduleId} declares a custom kind but its canvas.js did not load`);
+        return false;
+    }
+    const kinds = overlayWidgets(ov);
+    for (const w of kinds) registerWidget(w.kind, { draw: w.draw, nominal: w.nominal });
+    /* Both branches are said out loud: a module drawing a built-in dial is a
+     * correct-looking page, and this line is the only thing that tells its
+     * author the picture is not theirs. */
+    mlog(kinds.length
+        ? `widgets: ${moduleId} registered ${kinds.map((w) => w.kind).join(', ')}`
+        : `widgets: ${moduleId} declares a custom kind but its canvas.js draws none`);
+    return true;
 }

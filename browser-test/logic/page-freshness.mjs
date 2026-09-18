@@ -13,12 +13,13 @@
  *      the page must not look frozen while the sound moves;
  *   2. an undo, which writes the OLD value back after the page drew the new one.
  *
- * The second uses a key the model cannot map, deliberately. In `off` mode the
- * redraw came from `syncParamsToModels` refreshing the model's own knob cell;
- * under `page` that path cannot reach a key the model does not carry, so the
- * cache is the only thing left that can deliver it. With both mechanisms
- * present a pass would not say which one did the work, and the whole point of
- * the item is that the one that does is the drain.
+ * The second uses a key the model cannot map, deliberately: it removes the
+ * `off`-mode confound, where `syncParamsToModels` could redraw the cell
+ * directly. That is all the key buys. What tells the drain from the fill under
+ * `page` is the ARRIVAL BOUND, not the key being unmapped — the page holds two
+ * keys, so the cursor returns within one rotation, while the batch behind it
+ * is eight ticks away, and a value that arrives inside the rotation was the
+ * write's own, not the fill's copy of it.
  *
  * Both are guarded on schwungLibAvailable(), like every other page claim here.
  *

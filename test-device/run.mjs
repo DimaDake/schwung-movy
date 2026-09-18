@@ -23,6 +23,7 @@ import './dist/scenarios/versions.js';
 import './dist/scenarios/migrate.js';
 import './dist/scenarios/jog-hint.js';
 import './dist/scenarios/seq.js';
+import './dist/scenarios/widgets.js';
 
 const argv = process.argv.slice(2);
 const flag = (n) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : undefined; };

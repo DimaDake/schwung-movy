@@ -28,6 +28,7 @@ import { setProbeDeps } from '../test/probe.js';
 import { leaveModalActive, leaveModalLabels, leaveModalSel } from './leave-modal.js';
 import { sessionReady } from '../seq/set-session.js';
 import { schwungGridMode, setSchwungGridMode } from '../renderer/schwung-grid.js';
+import { clearWidgets, isWidgetAvailable } from '../renderer/schwung-widgets.js';
 import { laneKeysForTrack } from '../seq/automation.js';
 
 export function init(): void {
@@ -44,6 +45,11 @@ export function init(): void {
          * through globalThis rather than naming overtakeParked directly. */
         parked:        () => (globalThis as any).overtakeParked === true,
         setGridMode:   (m) => setSchwungGridMode(m as any),
+        /* Through the door in renderer/schwung-widgets.ts, never by importing
+         * widget_registry.mjs here: the registry is module state and a second
+         * specifier is a second empty map. See that file's header. */
+        widgetAvailable: (k) => isWidgetAvailable(k),
+        widgetClear:     () => clearWidgets(),
         ready:         () => sessionReady(),
         view:          () => viewName(appState.currentView),
         browse:        () => {

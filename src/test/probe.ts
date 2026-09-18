@@ -58,6 +58,21 @@ export type ProbeDeps = {
      * and the names: the paths are what a scenario grades a commit against. */
     browse: () => { dir: string; sel: number;
                     items: { name: string; path: string; isDir: boolean }[] } | null;
+    /* A MODULE-SUPPLIED WIDGET, asked of the registry through MOVY'S OWN
+     * BINDING rather than the library's (see renderer/schwung-widgets.ts: the
+     * registry is module state, and a second import specifier is a second empty
+     * map that registers nothing movy draws). `available` is the library's own
+     * answer to "would this kind draw at all", which is the half a log line
+     * cannot make: a registration that reached the wrong copy logs identically.
+     *
+     * `clearWidgets` is a MUTATION SEAM, the same kind of thing `setGridMode`
+     * is: it survives no reload and writes nothing, so a scenario can put the
+     * registry back to the state a module with no widget leaves it in — without
+     * a module swap — and then look at the screen. That is the only way to see
+     * the FALL-THROUGH draw: an unclaimed custom kind leaves its key to the
+     * built-in, and a cell that goes blank instead is a regression. */
+    widgetAvailable: (kind: string) => boolean;
+    widgetClear: () => void;
 };
 
 let deps: ProbeDeps | null = null;
@@ -83,6 +98,16 @@ function runVerb(verb: string, arg: unknown): object {
         case 'setGridMode':
             deps.setGridMode(arg === null ? null : String(arg));
             return { ok: true, renderer: deps.renderer() };
+        /* READ AND CLEAR IN ONE CALL, because they are one question: "is this
+         * kind in the registry, and take it out if I ask". Clearing is not a
+         * write to anything durable — see ProbeDeps — so it is safe on a
+         * device whose prefs a scenario must not touch. */
+        case 'widgets': {
+            const a = (arg && typeof arg === 'object') ? (arg as any) : {};
+            const kind = String(a.kind || '');
+            if (a.clear) deps.widgetClear();
+            return { kind, available: deps.widgetAvailable(kind) };
+        }
         default:
             return { error: 'unknown verb: ' + verb };
     }

@@ -31,6 +31,11 @@ await esbuild.build({
         resolve(root, 'src/renderer/schwung-page-cache.ts'),
         resolve(root, 'src/renderer/schwung-editor.ts'),
         resolve(root, 'src/renderer/schwung-widgets.ts'),
+        /* The file side of a module's widget (SP-28): an entry point so the
+         * logic suite can drive the resolution — which script a module names,
+         * and which global the `#ref` points at — through the real function
+         * rather than through a re-implementation of it. */
+        resolve(root, 'src/renderer/schwung-canvas.ts'),
         resolve(root, 'src/renderer/schwung-voices.ts'),
         resolve(root, 'src/renderer/schwung-grid.ts'),
         /* The version floor. Entry point for the same reason as its siblings:

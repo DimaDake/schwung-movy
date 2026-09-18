@@ -105,6 +105,7 @@ changes no mode at all while looking exactly like the fix.
 | SP-18 | The decoration channel: modulation tilde, mod dot, p-lock highlight, held-step filter |
 | SP-17 | Cause C/B — the filepath dive, the header readout, the footer hints |
 | SP-19 | Undo redraw + automation-follows-arc — **verified, not built**: SP-26's write-log drain delivers the **undo** half; a playing lane's arc is served by the 8-tick fill and nothing tests that path (SP-29) |
+| SP-28 | Custom module visualisations (`custom:` viz kinds) — the four loader defects fixed, and hank's own waveform is on the panel under `page` |
 
 ### Open
 
@@ -112,7 +113,6 @@ changes no mode at all while looking exactly like the fix.
 | --- | --- | --- | --- | --- |
 | SP-32 | **NEW** — a bank or cell that exists only in movy's config is on no page under `page`: audit which before SP-30 flips the default | Sonnet | ⬜ | **1** |
 | SP-31 | **NEW** — a knob release that lands on another page latches `touched`, and the next jog click is swallowed | Sonnet | ⬜ | **2** |
-| SP-28 | **NEW** — custom module visualisations (`custom:` viz kinds) | Sonnet | ⬜ | **4** |
 | SP-16 | Cause G — graphics return (**shrunk: upstream fixed the hard half**) | Sonnet | ⬜ | **5** |
 | SP-20 | `ui_hierarchy` ownership under Schwung's planner | Opus | ⬜ | 6 |
 | SP-21 | Metadata correction overlay | Sonnet | ❌ **dropped** — the audit found 1 real correction in 555 | — |
@@ -383,7 +383,7 @@ controller treats a modulated one") was already the implementation.
 
 ---
 
-### SP-28 — custom module visualisations (NEW, 2026-09-17)
+### SP-28 ✅ 2026-09-18 — custom module visualisations (NEW, 2026-09-17)
 
 **Product.** A module can ship a `canvas.js` beside its `module.json` and draw
 its **own** picture in a knob cell — the module author's waveform, not a generic
@@ -426,6 +426,84 @@ itself needs the device, since `shadow_load_ui_module` does not exist off it.
 same holds after swapping hank in and out of a slot without leaving the grid; a
 module declaring only `widgetKinds` registers; and the dump-replay assertion goes
 red when registration is removed.
+
+**Closed 2026-09-18 — four defects fixed, and all four were live.** Nothing
+here was already fixed and nothing was moot; the one half that was already safe
+is named under (2), where the fix is the resolution and not the safety net.
+**(1) Live.** `overlayWidgets()` now mirrors every shape upstream's
+`registerOverlayWidgets` accepts — the legacy `widgetKind` string, a
+`widgetKinds` ARRAY sharing `drawCell`, and a `widgetKinds` OBJECT of drawers or
+`{draw|drawCell, nominal|widgetNominal}` — read singular-first, so a module
+spelling both keeps the richer entry for the name they share. hank declares
+both, so it worked on hank and on nothing else: an author following today's docs
+and writing the array alone registered nothing while the page still looked
+reasonable. **(2) Live.** The script is the MODULE's, not movy's: `findOverlay()`
+reads `capabilities.canvas_script` (top-level `canvas_script` honoured too),
+splits a `#ref` fragment off as the global to read, and resolves the name against
+the first of the seven `SEARCH_DIRS` that has a `module.json`. A name that
+resolves nowhere, a script that does not load, a `shadow_load_ui_module` that
+throws — each is `null`, which the registry answers with a built-in. **That
+fall-through half was ALREADY correct**: the old loader returned `null` too, and
+`null` registered nothing, so what this defect changed is which script gets
+read, not what happens when reading fails. The fall-through is the whole safety
+story of this path and is asserted in all three tiers. **(3) Live.** Registration had ONE trigger, `reload()`, which runs at
+construction and on the retry and never again once a page is up — so a module
+swapped into a slot kept drawing the departed module's art. It now runs from
+`syncWidgets()` on two triggers: after a reload, and after a re-plan that
+ADOPTED a new plan (`ctl.reloadIfChanged()` answers that), which is the swap.
+**(4) Live.** `registerModuleWidgets` clears BEFORE it registers, and it clears
+for a module that declares nothing too — that being exactly the case where a
+stale name would otherwise be served, since the registry is process-global and
+`shadow_ui` is long-lived. `clearWidgets()` bumps the generation in
+`vizGroups()`'s cache key, so a clear also re-resolves a page that was already
+planned.
+
+**How it is tested, and what each tier can say.** Three suites, one entry point.
+`browser-test/logic/schwung-widgets.mjs` runs with **no Schwung checkout at all**
+and covers (1), (2) and the invariant half of (4): the shapes, the script and
+`#ref` resolution, the search, and the two "not an answer" rules (an empty
+`chain_params` and an unresolved module id are neither of them a verdict). The
+door is stubbed by the two DEVICE globals only (`host_read_file`,
+`shadow_load_ui_module`) — nothing imports `widget_registry.mjs` by its own
+specifier, because that is a second empty map. `scripts/schwung-widgets-check.mjs`
+(needs `SCHWUNG=`) is where the registry exists: it drives a plural-only
+`widgetKinds` module through the same entry point and reads the kinds back out of
+the REAL map, and asserts the clear against it. `test-device/scenarios/widgets.ts`
+is the only place a swap can be staged: the module is written to the slot's own
+param (`ch0:synth:module`) with movy open and the knobs page up from before the
+first swap to after the last, and three reads have to agree — the log line
+(delta), `probe.widget(kind)` through movy's binding, and the FRAMEBUFFER.
+
+**Teeth, measured.** Removing the plural branch from `overlayWidgets` reddens
+`an array-only declaration registers every kind it names` and `a built-in kind in
+the list is dropped`; hard-coding `canvas.js` again reddens three script/`#ref`
+checks; deleting the declare-nothing `clearWidgets()` reddens `the registry still
+serves the departed module's kind` in the Schwung-gated script; and deleting the
+adopted re-plan trigger reddens 4 of the device scenario's 7 checks, beginning
+with `swap-in-registers-the-widget` — "no new line, `available=false`" — which is
+the reported defect verbatim.
+
+**What is NOT covered, stated rather than implied.** (4)'s registry contents
+cannot be asserted without a registry, so the logic suite carries the invariant
+and the two Schwung-backed tiers carry the claim; its teeth were therefore proved
+in the Schwung-gated script rather than in the no-checkout suite. And the
+assertion the item proposed — a `dump-replay` check that hank's `ratio` cell
+resolves to `custom:hank_wave` — was NOT written: `dump-replay` pages a module
+from `docs/module-dump/*.json` through movy's own planner, and under `page` the
+kind is resolved by Schwung's `viz.mjs` against the registry, which a dump has no
+access to. The device scenario is what replaced it, and it is the stronger test:
+it reads the panel.
+
+**Noticed while closing, and left alone as out of scope.** movy's view model
+cannot be asked which page is up under `page`: `page-owner.ts` hands a jog turn
+to the delegated controller (`page.changePage` → `ctl.onJog`), so `vm.bankIndex`
+keeps reporting the bank movy last built while the screen moves — measured, four
+jog turns left the probe on `page=0 of 3 cells=[PRESET]`. The device scenario now
+finds its page from the framebuffer instead. Related: a backward jog turn at the
+FIRST page does not page at all — with a step page available it SELECTS the step
+page — so a page walk is not symmetric under turn direction. Both are worth
+knowing before anything else tries to navigate a delegated page; neither is a
+defect.
 
 **Needs:** nothing. Independent of the other open items.
 

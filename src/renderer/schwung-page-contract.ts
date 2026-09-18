@@ -50,6 +50,78 @@ export function createPageContract(ctl: any, port: TrackPort, componentKey: stri
         if (!loaded) { attempts = 0; sinceRetry = 0; }
     }
 
+    /*
+     * A MODULE'S OWN WIDGET, AND WHERE ITS REGISTRATION IS TRIGGERED.
+     *
+     * Registering inside reload() alone is the defect this covers. reload()
+     * runs on construction and on the retry, and neither happens again once a
+     * page is up: a module SWAP goes through the controller's own cheap re-plan
+     * (`reloadIfChanged`, on the divider below), so the incoming module's
+     * canvas.js was never read and the cell went on drawing the departed
+     * module's art — or a built-in. Two triggers now: after every reload, and
+     * after a re-plan that MOVED, which is the swap.
+     *
+     * THREE THINGS HERE ARE LOAD-BEARING.
+     *
+     * AN EMPTY CONTRACT IS NOT A VERDICT — upstream's own rule, paid for twice
+     * on its host. A chain component always declares something, so an empty
+     * `chainParams` is a read that has not arrived; reading "this module
+     * declares no custom kind" out of it, and latching that, is exactly how a
+     * widget never appears. Nothing is even read in that state, which is what
+     * keeps the empty slot — the common case — free.
+     *
+     * AN UNRESOLVED MODULE ID IS NOT "NO MODULE" either. It is an IPC round
+     * trip that fails by answering empty, and a failed read must not become a
+     * verdict — it must leave the question open.
+     *
+     * AND A FALSE IS NOT LATCHED. It says the module was not where we looked,
+     * which is what a module still being installed looks like, so the asking
+     * continues — but on a BUDGET: the ask is a module.json read in each of
+     * seven directories, and a module that is genuinely absent would otherwise
+     * pay it on every divider tick for as long as the tool is open. The budget
+     * is per module id, and a contract that MOVES resets it, because a contract
+     * that moved is the one piece of evidence that a second look could answer
+     * differently.
+     */
+    const WIDGET_TRIES = 3;
+    let widgetDone = false;
+    let widgetTries = 0;
+
+    /*
+     * A SETTLED WIDGET COSTS NOTHING, AND THAT IS A READ, NOT A STYLE.
+     *
+     * The settled test is FIRST, before the module key is fetched, because the
+     * fetch is a blocking round trip. It used to sit after it — "ask which
+     * module this is, then see if that is news" — and that is one host call per
+     * divider for the whole session, which `grid-cost` caught as the delegated
+     * page's idle floor going 146 -> 221 round trips over 600 ticks, 2 over the
+     * ceiling that exists to notice exactly this doubling. The door holds the
+     * same line from its own side: it takes the id as a READ (see
+     * registerModuleWidgets), so the common case — a contract declaring no
+     * custom kind — settles without asking for it at all.
+     *
+     * Nothing is missed by not asking: a module SWAP moves the contract
+     * fingerprint, so `reloadIfChanged()` reports it and the divider clears
+     * `widgetDone` — which is the trigger the swap case is built on.
+     */
+    function moduleId(): string {
+        try { return String(port.getParam(moduleReadKey(componentKey)) || ''); }
+        catch (_e) { return ''; }
+    }
+
+    function syncWidgets(): void {
+        if (widgetDone) return;
+        const params = ctl.state && ctl.state.chainParams;
+        if (!Array.isArray(params) || params.length === 0) return;   /* not an answer */
+        if (registerModuleWidgets(moduleId, params)) { widgetTries = 0; widgetDone = true; return; }
+        /* An unresolved id is not "no module", either: it is a read that failed,
+         * so the question stays open — on the budget, or a module that is simply
+         * absent would cost a module.json read per divider tick, forever. The
+         * budget is refilled by a contract that MOVED, which is the only cheap
+         * evidence that the module in the slot said something new. */
+        widgetDone = ++widgetTries >= WIDGET_TRIES;
+    }
+
     function reload(): void {
         /*
          * A RE-PLAN READS LIVE. Everything on screen hangs off the plan, and a
@@ -73,23 +145,17 @@ export function createPageContract(ctl: any, port: TrackPort, componentKey: stri
         ctl.load({ slot: port.track.index, component: componentKey });
         refreshLoaded();
         /*
-         * A MODULE'S OWN WIDGET, REGISTERED WHEN ITS CONTRACT ARRIVES.
-         *
+         * A MODULE'S OWN WIDGET, REGISTERED WHEN ITS CONTRACT ARRIVES — see
+         * syncWidgets, which also owns the swap case the divider below reaches.
          * Here rather than on a gesture: upstream registered widgets from the
          * canvas-open path, so an in-grid widget did not appear until the
-         * fullscreen view had been opened once and never appeared at all for a
-         * module with no canvas param. The contract is the only moment that is
-         * always reached and always current — a module swap re-plans through
-         * here too, so a new module's widget arrives with its pages.
+         * fullscreen view had been opened once, and never appeared at all for a
+         * module with no canvas param.
          *
-         * Nothing is read unless the contract declares a `custom:` kind, and a
-         * failure is not one: an unregistered kind falls through to the
-         * built-in widget by design.
+         * A failure is not one either: an unregistered kind falls through to
+         * the built-in widget by design, so this must never fail a page plan.
          */
-        try {
-            const id = port.getParam(moduleReadKey(componentKey));
-            if (id) registerModuleWidgets(String(id), ctl.state.chainParams || []);
-        } catch (_e) { /* a widget is never worth failing a page plan for */ }
+        try { syncWidgets(); } catch (_e) { /* a widget is never worth a page plan */ }
     }
     reload();
 
@@ -181,9 +247,23 @@ export function createPageContract(ctl: any, port: TrackPort, componentKey: stri
         if (++sinceReload >= RELOAD_POLL_TICKS) {
             sinceReload = 0;
             perfPhase('ctlreload');
-            ctl.reloadIfChanged();
+            /* `load` answers whether it ADOPTED a new plan, which is the only
+             * cheap evidence that the module in the slot said something new —
+             * a swap, a preset, a module that finished loading. That is also
+             * the moment a widget may belong to a different module, and the one
+             * other moment a `port.getParam` here buys anything (see
+             * syncWidgets). Phased separately from the reload so its cost is
+             * not read as the re-plan's. */
+            const adopted = ctl.reloadIfChanged();
             perfPhase('refreshloaded');
             refreshLoaded();        /* the module may have just left the slot */
+            perfPhase('reloadwidgets');
+            /* An adopted plan is new evidence, so a verdict already reached is
+             * dropped and the widget question is asked again — that is the whole
+             * of the swap case, and it costs one round trip per swap. Nothing
+             * else reaches syncWidgets here: a settled widget is silent. */
+            if (adopted) { widgetTries = 0; widgetDone = false; }
+            if (adopted || !widgetDone) syncWidgets();
             perfPhaseEnd();
         }
         perfPhase('ctltick');

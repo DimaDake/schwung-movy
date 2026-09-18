@@ -25,8 +25,15 @@ const DEFAULT_CANVAS = 'canvas.js';
 const GUARDED = ['init', 'tick', 'onMidiMessageInternal', 'onMidiMessageExternal',
                  'canvas_overlay', 'canvas_overlays'];
 
+/* GUARDED, because the header promises nothing here throws and the caller that
+ * matters has no try of its own: the contract's divider asks on a tick, so an
+ * unguarded host read would escape into the host's tick loop. `tryFile` in
+ * modules/loader.ts is the same shape for the same reason. A read that throws is
+ * a MISS, which is the answer this file already gives for everything else — the
+ * registry draws a built-in. */
 function readFile(path: string): string | null {
-    return (typeof host_read_file === 'function') ? host_read_file(path) : null;
+    try { return (typeof host_read_file === 'function') ? host_read_file(path) : null; }
+    catch (_e) { return null; }
 }
 
 function getPath(root: any, path: string): any {

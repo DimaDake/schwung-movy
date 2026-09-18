@@ -446,11 +446,17 @@ throws — each is `null`, which the registry answers with a built-in. **That
 fall-through half was ALREADY correct**: the old loader returned `null` too, and
 `null` registered nothing, so what this defect changed is which script gets
 read, not what happens when reading fails. The fall-through is the whole safety
-story of this path and is asserted in all three tiers. **(3) Live.** Registration had ONE trigger, `reload()`, which runs at
+story of this path and is asserted in all three tiers.
+
+**(3) Live.** Registration had ONE trigger, `reload()`, which runs at
 construction and on the retry and never again once a page is up — so a module
 swapped into a slot kept drawing the departed module's art. It now runs from
-`syncWidgets()` on two triggers: after a reload, and after a re-plan that
-ADOPTED a new plan (`ctl.reloadIfChanged()` answers that), which is the swap.
+`createWidgetSync()` (its own unit, `src/renderer/schwung-page-widget-sync.ts`)
+on two triggers: `sync()` after a reload, and `afterReplan(adopted)` after a
+re-plan that ADOPTED a new plan (`ctl.reloadIfChanged()` answers that), which is
+the swap. The budget is honest about what it is: a `false` is never taken for an
+answer, but the question is asked at most three times per module id and then
+**parked** — unanswered, not answered — until a contract that MOVED re-opens it.
 **(4) Live.** `registerModuleWidgets` clears BEFORE it registers, and it clears
 for a module that declares nothing too — that being exactly the case where a
 stale name would otherwise be served, since the registry is process-global and

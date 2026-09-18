@@ -36,6 +36,10 @@ await esbuild.build({
          * and which global the `#ref` points at — through the real function
          * rather than through a re-implementation of it. */
         resolve(root, 'src/renderer/schwung-canvas.ts'),
+        /* The widget trigger (SP-28 defect 3): same reason — the suite asserts
+         * WHEN the question is asked, which is behaviour the device tier can
+         * only confirm after the fact. */
+        resolve(root, 'src/renderer/schwung-page-widget-sync.ts'),
         resolve(root, 'src/renderer/schwung-voices.ts'),
         resolve(root, 'src/renderer/schwung-grid.ts'),
         /* The version floor. Entry point for the same reason as its siblings:

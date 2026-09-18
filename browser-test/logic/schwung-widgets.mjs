@@ -29,6 +29,7 @@ import { overlayWidgets, declaresCustomWidget, registerModuleWidgets,
          registerWidget, clearWidgets, isWidgetAvailable }
     from '../../dist/esm/renderer/schwung-widgets.js';
 import { findOverlay, loadOverlay } from '../../dist/esm/renderer/schwung-canvas.js';
+import { createWidgetSync } from '../../dist/esm/renderer/schwung-page-widget-sync.js';
 
 const MODULES = '/data/UserData/schwung/modules';
 
@@ -70,7 +71,24 @@ function only(files, table) {
 }
 
 export async function run() {
-installFakes();
+    installFakes();
+    try { await suite(); } finally { restoreFakes(); }
+}
+
+/* THE FAKES COME OUT WHATEVER HAPPENS. `host_read_file` is the harness's and
+ * every suite after this one is served a module layout by the real one —
+ * env-identity asserts exactly that, and schwung-page pages a rack from the
+ * `movy_config.json` it reads. An exception mid-suite that left the fake
+ * installed would make the NEXT suite's failures look like its own. */
+function restoreFakes() {
+    globalThis.host_read_file = realRead;
+    delete globalThis.shadow_load_ui_module;
+    delete globalThis.myart;
+    delete globalThis.canvas_overlay;
+    delete globalThis.canvas_overlays;
+}
+
+async function suite() {
 _log('\nlogic: module-supplied widgets (SP-28)');
 
 /* ── the shapes an overlay may publish ─────────────────────────────────────── */
@@ -217,6 +235,18 @@ _log('\nlogic: module-supplied widgets (SP-28)');
     only({ [`${MODULES}/tools/broken/module.json`]: '{}' });
     eq('a script that does not load yields no overlay', findOverlay('broken'), null);
 
+    /* A HOST READ THAT THROWS IS ALSO A MISS. The caller that matters has no try
+     * of its own — the contract's divider asks for a module's overlay on a tick
+     * — so an unguarded `host_read_file` that throws escapes into the host's tick
+     * loop. schwung-canvas.ts says "NOTHING HERE THROWS" in its header; this line
+     * is what holds it, and it fails the moment `readFile` stops catching. */
+    const hostRead = globalThis.host_read_file;
+    globalThis.host_read_file = () => { throw new Error('the host refused the read'); };
+    let escaped = '';
+    try { findOverlay('broken'); } catch (e) { escaped = String((e && e.message) || e); }
+    globalThis.host_read_file = hostRead;
+    eq('a host read that throws is a miss, not an exception', escaped, '');
+
     /* AN ABSOLUTE PATH is the module's own business; upstream honours one. */
     only({ [`${MODULES}/tools/abs/module.json`]:
              JSON.stringify({ canvas_script: '/tmp/elsewhere/art.js' }) });
@@ -292,6 +322,61 @@ _log('\nlogic: module-supplied widgets (SP-28)');
        registerModuleWidgets(idOf('hank'), declares), false);
 }
 
+/* ── the trigger: when the question is asked, and when it is parked ────────── */
+{
+    /* DEFECT 3, LOCALLY. Registration used to hang off reload() alone, so a
+     * module SWAPPED into a slot — which reaches the contract through the
+     * controller's cheap re-plan, not through a reload — was never asked about,
+     * and the cell kept the departed module's art. `afterReplan(adopted)` is the
+     * second trigger. Two observables, one per question: `asked` is the script
+     * loads a registration costs, and the port's own read count is the blocking
+     * host round trip the budget exists to bound. */
+    const params = [{ key: 'ratio', viz: { kind: 'custom:hank_wave' } }];
+    const ctl = { state: { chainParams: params } };
+    only({ [`${MODULES}/sound_generators/hank/module.json`]: '{}' },
+         { [`${MODULES}/sound_generators/hank/canvas.js`]:
+             { canvas_overlay: { widgetKinds: ['custom:hank_wave'], drawCell() { /* art */ } } } });
+
+    const w = createWidgetSync(ctl, { getParam: () => 'hank' }, 'ch0:synth');
+    w.sync();
+    eq('a reload registers the module in the slot', asked.length, 1);
+    w.afterReplan(false);
+    eq('...and a re-plan that changed nothing asks nothing again', asked.length, 1);
+    w.afterReplan(true);
+    eq('...while a re-plan that MOVED is the swap, and asks again', asked.length, 2);
+
+    /* THE BUDGET IS A PARK, NOT AN ANSWER, and this is the assertion that says
+     * so: a module that is NOWHERE is asked three times and then stops being
+     * asked — with the question still open, because a false was never a verdict
+     * — until a plan that moved re-opens it. Without the park, `sync` would read
+     * the module key on every divider tick for as long as the tool is open. */
+    let reads = 0;
+    const missing = createWidgetSync(ctl, { getParam: () => { reads++; return 'ghost'; } }, 'ch0:synth');
+    missing.sync();                 /* 1 */
+    missing.afterReplan(false);     /* 2 */
+    missing.afterReplan(false);     /* 3 — parked here */
+    missing.afterReplan(false);     /* parked: no read */
+    eq('a module that is nowhere is asked WIDGET_TRIES times and then parked', reads, 3);
+    missing.afterReplan(true);
+    eq('...and a plan that moved re-opens the parked question', reads, 4);
+
+    /* ...and an empty contract is not an answer, so it is not even a read.
+     *
+     * IT HOLDS THE PAIR, NOT THE EARLY RETURN. Removing `sync`'s own empty-contract
+     * guard does not redden this — measured — because the door takes the module id
+     * as a READ and never fetches it for a contract with no custom kind. So what
+     * fails here is a door that fetched the id eagerly, or `sync` that reached the
+     * door at all with nothing to ask about; the two guards are one rule with two
+     * halves, and this line is the joint. */
+
+    let emptyReads = 0;
+    const empty = createWidgetSync({ state: { chainParams: [] } },
+                                   { getParam: () => { emptyReads++; return 'hank'; } }, 'ch0:synth');
+    empty.sync();
+    empty.afterReplan(true);
+    eq('an empty contract asks nothing at all — not even which module this is', emptyReads, 0);
+}
+
 /* ── the door, with no registry behind it ──────────────────────────────────── */
 {
     /* With no checkout the library never loads, and an absent library has to be
@@ -305,25 +390,28 @@ _log('\nlogic: module-supplied widgets (SP-28)');
     eq('...and answers "no such widget", which is the fall-through',
        isWidgetAvailable('custom:x'), false);
 
-    /* THE ONE THING ABOUT THE CLEAR THAT CAN BE SAID WITHOUT A REGISTRY. Upstream
-     * clears per module because the registry is process-global and shadow_ui is
-     * long-lived: a departed module's art would otherwise be inherited by the
-     * next module declaring the same `custom:` name. Where a registry exists
-     * this is the real assertion; where it does not, the door above has already
-     * answered "no", and this line is only the invariant. */
+    /* THE ONE THING ABOUT THE CLEAR THAT CAN BE SAID WITHOUT A REGISTRY — AND IT
+     * IS VACUOUS HERE, WHICH THE LABEL ITSELF SAYS, because a reader who takes
+     * this line for the defect's coverage has been misled by a pass.
+     *
+     * Upstream clears per module because the registry is process-global and
+     * shadow_ui is long-lived: a departed module's art would otherwise be
+     * inherited by the next module declaring the same `custom:` name. With no
+     * checkout the library never loads, so there is no map for a clear to empty
+     * — the `registerWidget` above was already a caught throw — and this passes
+     * whether or not `clearWidgets()` ran. The teeth for this defect are where a
+     * registry exists: the device check `swap-away-leaves-nothing-behind`, and
+     * `the registry still serves the departed module's kind` in
+     * scripts/schwung-widgets-check.mjs. What THIS line holds is only that the
+     * entry point keeps asking the door, which is why it is kept. */
     registerWidget('custom:stale', { draw: () => {} });
     registerModuleWidgets(() => 'plain', [{ key: 'cutoff', viz: { kind: 'filter' } }]);
-    eq('a kind registered for an earlier module is gone once a module that declares none is in',
+    eq('a departed module\'s kind is not claimable — VACUOUS in this build (no registry to hold '
+       + 'it); the teeth are the device check swap-away-leaves-nothing-behind',
        isWidgetAvailable('custom:stale'), false);
-    _log(`    (registry behind the door in this build: ${schwungLibAvailable() ? 'yes' : 'no'}
-    — with none, the clear is carried by the invariant above and by the device tier,
-    not by the contents of a map that does not exist here)`);
+    _log(`    (registry behind the door in this build: ${schwungLibAvailable() ? 'yes' : 'no'})`);
 }
 
-/* The mock globals are the harness's and the next suite's; put them back. */
-globalThis.host_read_file = realRead;
-delete globalThis.shadow_load_ui_module;
-delete globalThis.myart;
-delete globalThis.canvas_overlay;
-delete globalThis.canvas_overlays;
+/* The block above is the last of the suite's body; this closes `suite()`. Its
+ * teardown is `run()`'s `finally`, not a tail of statements — see restoreFakes. */
 }

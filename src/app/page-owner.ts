@@ -31,6 +31,7 @@
 
 import { appState } from './state.js';
 import { schwungGridMode, schwungPageFor } from '../renderer/schwung-grid.js';
+import { modulatedKeysOf } from './modulated-keys.js';
 import type { SchwungPage } from '../renderer/schwung-page.js';
 import { isMovyOwnComponent } from '../chain/config.js';
 
@@ -139,6 +140,6 @@ export function pageOwnerOf(model: any): PageOwner {
     if (isMovyOwnComponent(ref.componentKey)) {
         return movyOwner(ref, model, 'movy-page ck=' + ref.componentKey);
     }
-    return delegateOwner(ref, schwungPageFor(ref.track, ref.componentKey),
+    return delegateOwner(ref, schwungPageFor(ref.track, ref.componentKey, modulatedKeysOf),
                          movyOwner(ref, model, ''));
 }

@@ -101,11 +101,20 @@ export function setSchwungGridMode(m: SchwungGridMode | null): void {
     override = m;
 }
 
-export function schwungPageFor(trackIndex: number, componentKey: string): SchwungPage {
+/** The lookup the page asks for its modulation, supplied by the app layer.
+ *
+ * Passed in rather than imported because the set lives on the model, and a model
+ * is app state (R12). Held as a parameter on this one function rather than as a
+ * module-level slot so that a page carries the answer IT was built with: the
+ * cache below is keyed by track and component, and a global would let the last
+ * caller decide for every page. `app/page-owner.ts` is the only caller. */
+export function schwungPageFor(trackIndex: number, componentKey: string,
+                               modulatedOf?: ((track: number, componentKey: string) => ReadonlySet<string> | null) | null,
+): SchwungPage {
     const id = trackIndex + ':' + componentKey;
     let p = pages.get(id);
     if (!p) {
-        p = createSchwungPage(portFor(trackIndex), componentKey);
+        p = createSchwungPage(portFor(trackIndex), componentKey, modulatedOf ?? null);
         p.reload();
         pages.set(id, p);
     }

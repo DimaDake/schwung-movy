@@ -155,7 +155,8 @@ let _schwungDiag = '';
  * indexes CHAIN SLOTS, not param pages, so replacing it with Schwung's page
  * indicator would be a lie about what the jog does there.
  */
-function schwungBodyFor(owner: PageOwner, stepSelected: boolean): (() => void) | undefined {
+export function schwungBodyFor(owner: PageOwner, stepSelected: boolean,
+                               held = false): (() => void) | undefined {
     /* Says WHY it declined, once per distinct reason. Reporting only that the
      * grid "is still movy's" cost two device round trips; the reason comes from
      * the owner and none of them is visible from the screen. */
@@ -164,6 +165,31 @@ function schwungBodyFor(owner: PageOwner, stepSelected: boolean): (() => void) |
         return undefined;
     };
     if (stepSelected) return why('step-page-selected');
+    /*
+     * A HELD STEP IS MOVY'S SCREEN — the whole of it, not just a lock mark.
+     *
+     * Schwung has no held-step filter. Its page is built from the module's
+     * contract, where every declared param is offered, so while a step is held
+     * it draws eight knobs that will do nothing: turning one on the step page
+     * is how a lock is made, and a param that cannot take a lane cannot. movy
+     * already knows which those are — `hiddenDuringHold` in `renderer/label.ts`
+     * — and it is inside movy's body drawer, so the only way to reach it is to
+     * keep drawing the body.
+     *
+     * NOT ONLY THE STEP PAGE. `stepSelected` is a step with an OCCURRENCE under
+     * it (`seq/step-page.ts`); holding an EMPTY step is the same edit against
+     * nothing, and it is the case where the offer is most misleading, because
+     * there is not even a trig to lock against. `held` is the wider fact — a
+     * step held at all — and it is the one that decides.
+     *
+     * WHAT IS NOT LOST IS THE LOCK READING. Both renderers resolve it from the
+     * same `auto.heldValues` (`model/viewmodel.ts` for movy's body,
+     * `renderer/schwung-page-render.ts` for Schwung's decoration), so a held
+     * step shows the lock and the value that step will play either way. What
+     * only movy's body can add — and the reason this gate exists — is which
+     * knobs will take a lock in the first place.
+     */
+    if (held) return why('step-held');
     if (!owner.claimed) return why(owner.reason);
     /* The poll moved to `pollDrawnPage` (app/page-poll.ts), which runs once per
      * tick rather than once per rendered frame. It had to: with movy's own
@@ -187,13 +213,17 @@ function schwungBodyFor(owner: PageOwner, stepSelected: boolean): (() => void) |
  * input site asks, so the bar cannot end up indexing a page set the jog is not
  * moving.
  *
- * Undefined means "movy's own banks", which is also the answer on the step
- * page — that page IS movy's, and so is its bar.
+ * Undefined means "movy's own banks" — a movy-drawn body, and the step page,
+ * which IS movy's and so is its bar.
+ *
+ * IT IS DERIVED FROM THE BODY, not from the conditions that produced it. The
+ * bar must index whatever the jog is moving: two callers asking the same
+ * question twice is how a page indicator ends up counting a set the body is not
+ * showing, and this is the third condition to be added to it.
  */
-function schwungBankFor(owner: PageOwner, stepSelected: boolean):
+export function schwungBankFor(owner: PageOwner, body: (() => void) | undefined):
         { index: number; count: number } | undefined {
-    if (stepSelected) return undefined;
-    return owner.delegated ? { index: owner.pageIndex, count: owner.pageCount } : undefined;
+    return body && owner.delegated ? { index: owner.pageIndex, count: owner.pageCount } : undefined;
 }
 
 /*
@@ -675,6 +705,14 @@ function tickBody(): void {
      * polled shows values that stopped moving.
      */
     const stepSelected = stepPageAvailable() && stepPageState.selected;
+    /* IS A STEP HELD AT ALL, which is the wider fact than `stepSelected`: a step
+     * with an OCCURRENCE under it opens the step page, a step with nothing under
+     * it does not, and both are the same edit. Read from the seq mirror rather
+     * than from `vm.automationHeld` because the body is asked for BEFORE either
+     * branch builds its view model — and for the two branches that consult the
+     * body it is the same value, since `automationHeld` is `auto.held`, and
+     * `auto.held` is this flag (`app/tick.ts:buildAutomationView`). */
+    const stepHeld = seqState.stepAutoMode;
     const gridOnScreen = moduleGridOnScreen();
     /* THE POLL COMES BEFORE THE BODY IS ASKED FOR, because the body is what
      * readiness gates and the poll is what resolves readiness. Gating the poll
@@ -692,7 +730,8 @@ function tickBody(): void {
      * places that time can be; the other is the render, phased below. */
     perfPhase('pagepoll');
     if (gridOnScreen && !stepSelected && pollDrawnPage(pageOwner)) appState.dirty = true;
-    const schwungBody = gridOnScreen ? schwungBodyFor(pageOwner, stepSelected) : undefined;
+    const schwungBody = gridOnScreen
+        ? schwungBodyFor(pageOwner, stepSelected, stepHeld) : undefined;
     perfPhaseEnd();
 
     /* Whether this tick repainted the view. The song band sits on top of it,
@@ -804,7 +843,7 @@ function tickBody(): void {
              * The step page is movy's too, so it keeps its own renderer.
              */
             renderKnobsView(vm, jogHintVisible(), appState.activeTrack.index,
-                            schwungBody, schwungBankFor(pageOwner, stepSelected));
+                            schwungBody, schwungBankFor(pageOwner, schwungBody));
             perfPhaseEnd();
             // The pool-full toast shares the bottom rows with the Loop strip;
             // claim them so the strip yields to it (like every other toast).

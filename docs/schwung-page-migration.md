@@ -69,12 +69,12 @@ rather than as regressions.
 | SP-27 | The delegated page re-planned the whole module every 8 ticks — 67.5 ms → 3.0 |
 | SP-14 | Cause E — drum/voice pages planned from movy's config |
 | SP-15 | Cause D — contract lifecycle: the asking never stops, only its pace |
+| SP-18 | The decoration channel: modulation tilde, mod dot, p-lock highlight, held-step filter |
 
 ### Open
 
 | id | item | model | state | proposed order |
 | --- | --- | --- | --- | --- |
-| SP-18 | Modulation tilde + mod dot + p-lock highlight + held-step filter | Sonnet | ⬜ | **1** |
 | SP-17 | Cause C/B — filepath & canvas dives, header readout, footer hints | Sonnet | ⬜ | **2** |
 | SP-19 | Undo redraw + automation-follows-arc (**verify first — may already be closed**) | Sonnet | ⬜ | **3** |
 | SP-28 | **NEW** — custom module visualisations (`custom:` viz kinds) | Sonnet | ⬜ | **4** |
@@ -125,9 +125,21 @@ is required**:
 
 | what | how it is fed | how it draws |
 | --- | --- | --- |
-| a parameter is modulated | `io.isModulated(key)`, or `<key>:modulated` reads | a **wave-mark tilde** 6 px left of the label run, polarity-aware |
+| a parameter is modulated | `io.isModulated(key)` — **the only channel; `<key>:modulated` reads were deleted in this version** | a **wave-mark tilde** 6 px left of the label run, polarity-aware |
 | where modulation has put it | `<key>:effective`, falling back to the plain key | a **5-pixel plus riding the knob arc**, while the pointer keeps showing the base you dialled in |
-| a parameter lock / caller decoration | `ctl.setDecorations([{locked, value, exact}])` | a **2×2 corner dot**, an inverted label band, and the decoration's value **replaces** the live one on the widget |
+| a parameter lock / caller decoration | `ctl.setDecorations([{locked, value}])` — **two fields, no third; the `exact` above was this ledger's error** | a **2×2 corner dot**, an inverted label band, and the decoration's value **replaces** the live one on the widget |
+
+**Two corrections, made by SP-18 (2026-09-18) and left visible rather than
+quietly edited, because both were copied forward into a work item's brief.**
+This table named a third decoration field, **`exact`, which does not exist**:
+`setDecorations` is a bare passthrough, and the only two decoration fields any
+renderer reads are `locked` and `value` (`render_page_movy.mjs` ~2593,
+`render_page.mjs` ~466). The rule `exact` was standing in for — a lock mark on a
+cell with no recorded value — is carried by `value === undefined`, which draws
+the live value under the mark. And the modulation row's second channel is gone:
+`page_controller.mjs` ~2318 records that the `<key>:modulated` reads cost 3.5 of
+the grid's 7.1 reads per tick and were replaced by `io.isModulated` on the value
+cursor. Neither correction changes the conclusion below.
 
 That is movy's own grammar — dot for automation, tilde for modulation — already
 implemented, and the mod dot is something `off` never had. **movy passes none of
@@ -156,49 +168,6 @@ and it belongs in this ledger before SP-30 flips the default.
 Each entry: **Product** — what a person gets, and what they lose today without
 it. **Design & implementation** — how to build it. **Closes when** — the
 evidence. **Needs** — its predecessor.
-
----
-
-### SP-18 — the decoration channel: modulation tilde, mod dot, p-lock highlight, held-step filter
-
-**Product.** Four readings a person takes at a glance in `off` mode, all missing
-under `page`. **(a)** An LFO-modulated parameter is marked with a tilde; an
-automated one with a dot. Under `page` both collapse to the lock mark, so you
-cannot tell a parameter something is *moving* from one you *recorded*. **(b)**
-Holding a step does not highlight the locked parameter's value the way movy
-does. **(c)** movy's `hiddenDuringHold` filter — while a step is held, only
-parameters you can actually lock are shown, and at the 8-lane cap only assigned
-ones — is gone, so you are offered knobs that will do nothing. **(d)** And the
-item *adds* something `off` never had: Schwung's mod dot rides the knob arc at
-the live modulated value while the pointer stays on the base you dialled in. In
-`off`, an LFO drags the pointer and you lose sight of what you set. This is the
-cheapest large visible win left, and after the upstream refresh above it needs
-no Schwung change and no floor bump.
-
-**Design & implementation.** Three separate wirings, one file each, and they are
-independent enough to land in one commit only because they share a test scene.
-*Modulation:* add `isModulated: (key) => boolean` to the object built in
-`src/renderer/schwung-page-io.ts`, answered from movy's own LFO routing model
-(the same source `label.ts` uses for its tilde today) — the controller's own
-`<key>:modulated` polling is the fallback for what movy does not know about, and
-costs one read per tick on the rotation that key was already paying for. The mod
-dot then follows for free: the controller reads `<key>:effective` on a bounded
-fast lane and `render_page_movy` draws `drawModDot`. *P-lock highlight:*
-`schwung-page-render.ts` already passes `{locked, value}` and Schwung already
-prefers the decoration's value over the live one; check what is actually missing
-is the *highlight*, which is `exact` — a decoration without `exact` keeps the old
-meaning, so passing `exact: true` for a real lock is likely the whole change.
-*Held-step filter:* `schwungBodyFor()` already returns `undefined` for
-`stepPageSelected` to keep movy's own screen; extend that gate to
-`vm.automationHeld`. Prove each with a `page`-mode screenshot scene (SP-05's
-machinery) rather than a logic assertion, because every one of them is a pixel.
-
-**Closes when:** four new `page` screenshot baselines — a modulated cell, a
-modulated cell with its knob held (the polarity case upstream calls out as the
-one no contact sheet shows), a held step with a lock, and a held step on a page
-with unassignable params — and each goes red with its wiring removed.
-
-**Needs:** nothing.
 
 ---
 
@@ -346,8 +315,15 @@ priority should move accordingly.
 
 **Design & implementation.** Two halves that can land separately. The movy half
 is the condition in `schwung-page-render.ts:render()`: decorate a cell only when
-there is something to show — a held step with a resolved lock value, per SP-18's
-`exact` rule — rather than whenever `activeLanes` has a bit set. It is a
+there is something to show — a held step with a resolved lock value — rather than
+whenever `activeLanes` has a bit set. **Note what "resolved" means there:** the
+decorations contract is `{ locked, value }` and there is no `exact` flag in it —
+this section and SP-18's brief both assumed one, and SP-18 found none in the
+library, the README or either renderer. The rule it was reaching for is carried
+by `value === undefined`: a cell is marked without a value when the lock has not
+resolved, and the live value shows through. SP-18 left that distinction in place
+and documented it at the point the decoration is built, so this half is a change
+to the CONDITION and nothing else. It is a
 three-line change with a screenshot scene, and it should be written as part of
 SP-18's scene set since both are about what the decoration channel means. The
 upstream half is a **floor bump**: `SCHWUNG_FLOOR` is `'1.3.0'` in
@@ -729,6 +705,8 @@ Up for review. What changed and why:
    bulk read caller-side.
 7. **SP-15 closed 2026-09-18, so SP-18 is first.** It was the only item that
    made the mode unusable rather than imperfect; everything left is polish.
+   **SP-18 then closed the same day, so SP-17 is first** — the ordering above is
+   the 09-17 proposal and is not renumbered; read it as "SP-18, then SP-17".
 8. **SP-21 and SP-22 are DROPPED, and SU-5 withdrawn with them** — asked
    directly, and the answer is the acceptance bar at the top of this file plus
    two measurements. SP-21's own audit ran: 554 duplicates, **1** real
@@ -799,6 +777,77 @@ Up for review. What changed and why:
 Newest first. The full narrative for each is in git history; what is kept here is
 the fact a later session would otherwise re-derive.
 
+- **SP-18 ✅ 2026-09-18 — the decoration channel came back; only one of its four
+  parts was a wiring job, and the brief named a field that does not exist.**
+  **(a) The tilde was the whole of the wiring.** The controller already computed
+  `modulated: (key) => !!s.modCache[key]` and called `io.isModulated(fullKey)`
+  once per tick on the read cursor's rotation; movy's `createPageIo` did not
+  implement `isModulated`, so every cell read as unmodulated. Answering it from
+  movy's own LFO routing (`model.modulatedKeys()`, threaded
+  `page-owner → schwung-page → io`, stripped back to the bare key) restored the
+  tilde **and** the mod dot: `refreshModulatedValues` only visits keys whose
+  `modCache` bit is set, so the dot rides the arc for free once this answers.
+  **(b) The p-lock highlight and its held value needed no code change at all.**
+  `schwung-page-render.ts` already passed `{locked, value}` from
+  `auto.heldValues`, gated on `auto.held`. SP-18's output here is the scene, the
+  documentation, and the correction below — `git diff` on that file is 36 added
+  lines, **all comments, zero behaviour**. **(c)** needed one condition, below.
+  **(d)** is (a) plus (b) and needed no third wiring.
+  **Three of the brief's claims were wrong, and the code won.** **(1)** There is
+  **no `exact` flag.** The contract is `{ locked, value }`: `setDecorations` is a
+  bare passthrough holding whatever the caller handed it, and the only two fields
+  either renderer reads are `locked` and `value` (`render_page_movy.mjs` ~2593,
+  `render_page.mjs` ~466). The ledger's own upstream-refresh table had invented
+  the third field, which is where the brief got it; that table is now corrected
+  in place. The rule `exact` was reaching for is carried by `value === undefined`
+  — marked, no resolved lock — and is documented at the site now.
+  **(2)** The `<key>:modulated` fallback does not exist to fall back on. This
+  Schwung version DELETED it; `page_controller.mjs` ~2318 keeps the measurement
+  that killed it (3.5 of the grid's 7.1 reads per tick, half). `s.modCache[key]`
+  is set from `io.isModulated` and nothing else. So **movy's answer is the only
+  answer**: a key movy reports unmodulated gets no tilde and no dot, because
+  `refreshModulatedValues` collects from `modCache` too and no second source
+  would notice. What it does NOT lose is the pointer — `:base` is asked only when
+  the bit is set, but since schwung #276 the plain key also answers with the base
+  for a modulated target, so the knob keeps showing what you dialled in either
+  way. **(3)** `hiddenDuringHold` needed no new gate. In `page` mode
+  `schwungGridEnabled()` is false, so the `undefined` body `schwungBodyFor`
+  already returns for a step page falls through to movy's `drawKnobParams`, which
+  is where the filter lives. The only gap was that `held` meant "a step page is
+  open" rather than "a step is held"; `schwungBodyFor(owner, stepSelected, held)`
+  now takes the wider fact as a parameter, read from `seqState.stepAutoMode` —
+  the same value `auto.held` is built from, so body and decorations cannot
+  disagree.
+  **Teeth, one scene each, only its own wiring removed, and every other scene
+  `ok` in each run so no scene grades another's wiring:**
+  `page_mod_cell` and `page_mod_cell_held` red by **128 px** with
+  `io.isModulated` neutered; `page_held_lock` red by **9 px** with the
+  decoration forced to `{locked: true}`; `page_held_unassignable` red by
+  **470 px** with `if (held) return why('step-held')` removed.
+  `page-mode-expected-fail.json` is unchanged at 6 — no label grew, none shrank.
+  **NINE PIXELS IS THIN EVIDENCE AND THE ITEM DOES NOT DRESS IT UP.** That is the
+  measured difference between the decoration's value and the live value for one
+  cell holding a two-character reading; the scene grades it, but it grades it
+  barely. A future change could perturb it into a false pass. It is recorded
+  here so the next session widens the reading rather than trusting the colour.
+  **Two things not to smooth over. First, (b) and (c) are in tension.** The brief
+  wanted a held step with a resolved lock to show the lock **and the held value,
+  not the live one**. movy's own UI cannot reach that state: the (c) gate hands
+  the whole screen back to movy while a step is held, which is what the ledger's
+  (c) asks for and what was implemented. So the held-`value` path in
+  `schwung-page-render.ts` is real, tested, and **unreachable in the app** —
+  only the screenshot scene drives it. Either SP-16's condition change makes it
+  reachable, or movy has decided it wants no held-`value` reading and the code
+  should say so out loud. That call is not SP-18's and is not made here.
+  **Second, the unit agreement was never verified on hardware.** movy's
+  `heldValues` are `denorm7`-ed into the param's own units and Schwung's
+  `values[key]` are too, so the decoration's `value` lands in the right space by
+  construction — but the app-side path is the one the gate closes, so only the
+  scene (which sources both from the same meta index) exercises it. If SP-16
+  reopens the path, check the held reading on a real held step before trusting
+  the green.
+  Also: SP-16's brief cites "SP-18's `exact` rule" twice; both now point at the
+  `value` distinction, which is what actually exists.
 - **SP-15 ✅ 2026-09-18 — the contract's retry budget latched, and the asking may
   not stop.** `attempts` reached `RETRY_LIMIT` and never reset for a slot that
   had never loaded, so a module arriving later was never noticed — and with

@@ -137,6 +137,12 @@ await esbuild.build({
          * can ask the accessor directly, rather than inferring ownership from
          * a router gesture. */
         resolve(root, 'src/app/page-owner.ts'),
+        /* The body/ring decision (SP-18): an entry point so the `page` scenes
+         * render through `schwungBodyFor` itself. A scene that re-derived the
+         * condition would stay green with it taken out, which is exactly what
+         * the scene exists to catch. */
+        resolve(root, 'src/app/tick.ts'),
+        resolve(root, 'src/app/modulated-keys.ts'),
         resolve(root, 'src/app/globals.ts'),
         resolve(root, 'src/app/init.ts'),
         resolve(root, 'src/app/resume.ts'),

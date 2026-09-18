@@ -83,7 +83,17 @@ export interface SchwungPage {
     readonly ctl: any;
 }
 
-export function createSchwungPage(port: TrackPort, componentKey = 'synth'): SchwungPage {
+export function createSchwungPage(
+    port: TrackPort, componentKey = 'synth',
+    /* WHICH MODEL ANSWERS FOR THIS PAGE'S MODULATION. Injected, not imported:
+     * the LFO routing lives on the model and the model is app state (R12), and
+     * the page is created here from a (track, component) pair that no model owns
+     * by itself. Bound to those two at creation — both are the page's own cache
+     * key, so neither can go stale — and asked lazily, because the model behind
+     * them can be swapped while the page lives on. Absent means "movy knows of
+     * none", which is what a page built outside the app (a test, a probe) gets. */
+    modulatedOf: ((track: number, componentKey: string) => ReadonlySet<string> | null) | null = null,
+): SchwungPage {
     const qualify = (k: string) => (k.indexOf(':') >= 0 ? k : componentKey + ':' + k);
 
     const lib = schwungLib();
@@ -96,7 +106,8 @@ export function createSchwungPage(port: TrackPort, componentKey = 'synth'): Schw
      * the planner (through the io below) and `focusVoice`. Built here for the
      * same reason as the cache — its lifetime is the controller's. */
     const hier = createPageHierarchy(port, qualify, cache, componentKey);
-    const ctl = lib.createController(createPageIo(port, qualify, cache, hier));
+    const ctl = lib.createController(createPageIo(port, qualify, cache, hier, componentKey,
+        modulatedOf ? () => modulatedOf(port.track.index, componentKey) : null));
     ctl.setLayout(lib.LAYOUT_MOVY);
 
     /* The controller's own view of the page it is showing. Both the binding's

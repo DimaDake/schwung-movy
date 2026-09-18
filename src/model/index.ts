@@ -438,6 +438,15 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
          * change shows immediately without waiting for the poll. */
         refreshModulation(): void { refreshModulatedKeys(s); },
 
+        /* The same cached set, answered by KEY rather than by ParamVM.
+         *
+         * Schwung's page controller asks "is this parameter modulated?" with the
+         * module's own key, before any of movy's pages has been laid out — and
+         * the delegated page has no ParamVM to ask through. One source for both
+         * marks is the point: a tilde drawn by movy and a mod dot drawn by
+         * Schwung that disagreed would be two readings of one fact. */
+        modulatedKeys(): ReadonlySet<string> { return s.modulatedKeys; },
+
         /* Range of a loaded param by key (for automation-lane validation), or
          * null if this module has no such param. Authoritative for config-driven
          * drum modules, where chain_params may be absent. */

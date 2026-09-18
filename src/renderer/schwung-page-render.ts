@@ -126,6 +126,42 @@ export function createPageRender(ctl: any, deps: {
                      * it, which is the one reading a parameter lock must not
                      * show. `decoration.value` is exactly this, and Schwung
                      * already prefers it over the live value.
+                     *
+                     * THE TWO FIELDS, AND THEIR EXACT MEANINGS — this is the
+                     * whole contract, and the migration ledger named a third:
+                     *
+                     *   locked  TRUE means "some automation lane that is live
+                     *           on this frame holds this PARAMETER". The cell
+                     *           gets a mark (a 2x2 top-left corner on the movy
+                     *           layout, `render_page_movy.mjs` ~2700). It is a
+                     *           fact about the parameter, not about the lane
+                     *           count or the page, which is why it is asked by
+                     *           KEY: re-pagination moves the mark with the
+                     *           param instead of leaving it on a cell.
+                     *
+                     *   value   SET means "and here is what the step will
+                     *           play". It REPLACES the live value in the cell —
+                     *           both `raw` and `liveRaw`, so the pointer moves
+                     *           too (`render_page_movy.mjs` ~2599). ABSENT means
+                     *           "marked, but the lock has no resolved value";
+                     *           the live value is drawn as usual. That is the
+                     *           case for a lock recorded against a lane whose
+                     *           value the engine has not reported, and it must
+                     *           stay distinguishable from a lock that resolves
+                     *           to the value the knob already holds.
+                     *
+                     * THERE IS NO `exact` FLAG, and the migration brief for
+                     * SP-18 assumed one. The decorations contract in this
+                     * Schwung version is `{ locked, value }` and nothing else
+                     * — grep `setDecorations` across `param_pages/`: the
+                     * README states it, `render_page.mjs` consumes exactly
+                     * those two, `render_page_movy.mjs` likewise. So the rule
+                     * the brief called "keep `exact`" is carried by the
+                     * `value === undefined` case above: a decoration is emitted
+                     * only when there is something real to show, and "locked
+                     * with no value" is that. Nothing here may start writing a
+                     * third field — the renderer would ignore it and the mark
+                     * would silently mean the wrong thing.
                      */
                     const held = auto.held ? auto.heldValues.get(lane) : undefined;
                     return held === undefined ? { locked: true }

@@ -3072,6 +3072,59 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
     advance(2);
 }
 
+/* ── a held step keeps movy's own values arriving ─────────────────────────── */
+{
+    /*
+     * THE HELD-STEP SCREEN IS MOVY'S, SO MOVY MUST KEEP READING FOR IT.
+     *
+     * SP-18 handed the held-step screen back to movy (schwungBodyFor's `held`
+     * gate) but left the refresh gate above it asking the narrower question —
+     * "is the page delegated?" — so under `page` that screen was built from
+     * whatever values were last read before the finger went down, and the cells
+     * NEIGHBOURING a lock froze for as long as the step was held. The locked
+     * cells themselves stayed right (they come from the engine's own status
+     * poll) which is what made it easy to miss.
+     *
+     * The gate now asks the same question the BODY asks. In the `off` arm this
+     * is true for the ordinary reason and is a regression guard; in the `page`
+     * arm it is the whole fix.
+     */
+    const { resetAutomation } = await import('../dist/esm/seq/automation.js');
+
+    schwungGridReload();                     // the cache holds the last block's page
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.test16);       // p1..p16 = i/15
+    resetSeqState(); resetSeqEngine(); resetAutomation();
+    setFlag('setcommit', 0);
+    globalThis.init();
+    const m = appState.trackModels[0][1];
+    m.reload();
+    appState.currentView = VIEW_KNOBS;
+    appState.activeTrack = trackRef(0);
+    advance(12);
+
+    const owner = () => pageOwnerOf(appState.trackModels[0][1]);
+    for (let i = 0; i < 12 * 60 && !owner().delegated; i++) advance(1);
+    const expectDelegated = schwungGridMode() === 'page';
+
+    /* THE HOLD IS IN PLACE FIRST, so the only window in which the new value
+     * could arrive is a held one. Written behind every reader's back, exactly as
+     * the block above does, so the arrival is a re-read and not an echo. */
+    seqState.stepAutoMode = true; seqState.holdStep = 4;
+    const p1 = () => m.getKnobParamInfo(0)?.value;
+    const before = p1();
+    globalThis.shadow_set_param(0, 'synth:p1', '0.55');
+    advance(6 * REFRESH_BULK_TICKS);         // several full refresh windows
+
+    /* ...and the screen really is still delegated while held — otherwise the
+     * value arrives for the wrong reason and the check below proves nothing. */
+    eq('a held step is still a delegated page', owner().delegated, expectDelegated);
+    eq('a held step keeps movy reading its own page', p1() !== before, true);
+
+    seqState.stepAutoMode = false; seqState.holdStep = -1;
+    resetAutomation();
+}
+
 
 if (process.env.MOVY_APP_LOOP_LABELS) _log('APP-LOOP-FAILED-LABELS ' + JSON.stringify(failedLabels));
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

@@ -1,13 +1,16 @@
 /* schwung-page-render.ts — one render of the page Schwung planned.
  *
- * The decoration pass that marks a locked cell, the drawing context movy hands
- * the controller, and the param description movy's automation layer is built
- * from. Kept out of the binding because this is the half SP-16 (Cause G2) edits.
+ * The drawing context movy hands the controller, the param description movy's
+ * automation layer is built from, and the call that hands over the eight knob
+ * LEDs. The decoration pass that marks a locked cell lives next door, in
+ * `schwung-page-decorations.ts`; this file is the half SP-16 (Cause G2) edits
+ * around it.
  */
 
 import type { AutomationView } from '../types/viewmodel.js';
 import { fontPrint, fontWidth } from '../font/index.js';
 import { GRID_BODY_RECT } from './layout.js';
+import { decorationsFor } from './schwung-page-decorations.js';
 
 /* movy draws its own header, bank bar and footer; Schwung is asked for the
  * widgets between them.
@@ -110,67 +113,7 @@ export function createPageRender(ctl: any, deps: {
         },
 
         render(title: string, auto?: AutomationView, _touched = -1) {
-            /* A lane with locks marks its cell. Asked BY PARAMETER, which is
-             * what makes re-pagination harmless. */
-            if (auto) {
-                const decs = keysOf().map((k) => {
-                    if (!k) return null;
-                    const lane = auto.laneForKey(k as string);
-                    const on = lane >= 0 && (auto.activeLanes & (1 << lane)) !== 0;
-                    if (!on) return null;
-                    /*
-                     * ON A HELD STEP YOU LOOK AT WHAT THE STEP WILL PLAY, not
-                     * at where the knob happens to be. movy has already
-                     * resolved the held value per lane; passing only `locked`
-                     * marked the cell and then drew the LIVE value underneath
-                     * it, which is the one reading a parameter lock must not
-                     * show. `decoration.value` is exactly this, and Schwung
-                     * already prefers it over the live value.
-                     *
-                     * THE TWO FIELDS, AND THEIR EXACT MEANINGS — this is the
-                     * whole contract, and the migration ledger named a third:
-                     *
-                     *   locked  TRUE means "some automation lane that is live
-                     *           on this frame holds this PARAMETER". The cell
-                     *           gets a mark (a 2x2 top-left corner on the movy
-                     *           layout, `render_page_movy.mjs` ~2700). It is a
-                     *           fact about the parameter, not about the lane
-                     *           count or the page, which is why it is asked by
-                     *           KEY: re-pagination moves the mark with the
-                     *           param instead of leaving it on a cell.
-                     *
-                     *   value   SET means "and here is what the step will
-                     *           play". It REPLACES the live value in the cell —
-                     *           both `raw` and `liveRaw`, so the pointer moves
-                     *           too (`render_page_movy.mjs` ~2599). ABSENT means
-                     *           "marked, but the lock has no resolved value";
-                     *           the live value is drawn as usual. That is the
-                     *           case for a lock recorded against a lane whose
-                     *           value the engine has not reported, and it must
-                     *           stay distinguishable from a lock that resolves
-                     *           to the value the knob already holds.
-                     *
-                     * THERE IS NO `exact` FLAG, and the migration brief for
-                     * SP-18 assumed one. The decorations contract in this
-                     * Schwung version is `{ locked, value }` and nothing else
-                     * — grep `setDecorations` across `param_pages/`: the
-                     * README states it, `render_page.mjs` consumes exactly
-                     * those two, `render_page_movy.mjs` likewise. So the rule
-                     * the brief called "keep `exact`" is carried by the
-                     * `value === undefined` case above: a decoration is emitted
-                     * only when there is something real to show, and "locked
-                     * with no value" is that. Nothing here may start writing a
-                     * third field — the renderer would ignore it and the mark
-                     * would silently mean the wrong thing.
-                     */
-                    const held = auto.held ? auto.heldValues.get(lane) : undefined;
-                    return held === undefined ? { locked: true }
-                                              : { locked: true, value: held };
-                });
-                ctl.setDecorations(decs.some(Boolean) ? decs : null);
-            } else {
-                ctl.setDecorations(null);
-            }
+            ctl.setDecorations(decorationsFor(auto, keysOf()));
 
             const ctx = {
                 fillRect: (x: number, y: number, w: number, h: number, c: any) =>

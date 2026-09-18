@@ -305,7 +305,8 @@ curve, waveform — are the fastest read on the screen, and under `page` they we
 disappearing permanently: automate one filter cutoff and that page's curve never
 came back. **Upstream has fixed the hard half** (SU-1, schwung #509): graphics no
 longer stand down because decorations exist. What remains on movy's side is
-narrower but still wrong — `schwung-page-render.ts` builds decorations from
+narrower but still wrong — the decoration pass (now `decorationsFor()`,
+`schwung-page-decorations.ts`) builds decorations from
 whether a lane *exists* on the page, with no `auto.held` in the condition, so a
 page carrying any automation lane is permanently decorated. With the viz gate
 gone that no longer costs graphics; it costs *meaning*: a lock mark and an
@@ -314,18 +315,38 @@ from "the migration's most visible regression" to "a mark that lies", and its
 priority should move accordingly.
 
 **Design & implementation.** Two halves that can land separately. The movy half
-is the condition in `schwung-page-render.ts:render()`: decorate a cell only when
-there is something to show — a held step with a resolved lock value — rather than
-whenever `activeLanes` has a bit set. **Note what "resolved" means there:** the
-decorations contract is `{ locked, value }` and there is no `exact` flag in it —
-this section and SP-18's brief both assumed one, and SP-18 found none in the
-library, the README or either renderer. The rule it was reaching for is carried
-by `value === undefined`: a cell is marked without a value when the lock has not
+is the condition in `decorationsFor()` (`schwung-page-decorations.ts`, split out
+of `schwung-page-render.ts` by SP-18 to leave room here): decorate a cell only
+when there is something to show — a held step with a resolved lock value — rather
+than whenever `activeLanes` has a bit set. **Note what "resolved" means there:**
+the decorations contract is `{ locked, value }` and there is no `exact` flag in
+it — this section and SP-18's brief both assumed one, and SP-18 found none in the
+library or in either renderer. The rule it was reaching for is carried by
+`value === undefined`: a cell is marked without a value when the lock has not
 resolved, and the live value shows through. SP-18 left that distinction in place
 and documented it at the point the decoration is built, so this half is a change
-to the CONDITION and nothing else. It is a
-three-line change with a screenshot scene, and it should be written as part of
-SP-18's scene set since both are about what the decoration channel means. The
+to the CONDITION and nothing else — **on movy's side of the Schwung page**, and
+invisible without the co-requisite below. It is a three-line change, and SP-18
+already wrote the scene it needs (`page_held_lock`), since both items are about
+what the decoration channel means.
+
+**IT HAS A CO-REQUISITE, WHICH SP-18 MEASURED AND WHICH IS EASY TO MISS.**
+Changing that condition alone changes **nothing a user can see**, because the
+decoration is only built while Schwung's body is DRAWN, and SP-18's (c) gate
+(`if (held) return why('step-held')`, `src/app/tick.ts`) hands the whole
+held-step screen back to movy — so `sp.render`, the only caller of
+`setDecorations`, is never reached while a step is held. That is deliberate and
+it is the ledger's own (c); the consequence is that the held-`value` decoration
+is exercised only by the screenshot scene. **The two changes must move
+together**: either the condition changes AND the held gate is lifted (or narrowed
+to the cases that should delegate), or the condition change is scene-only and
+should be described as such rather than landing as a fix. Also note which of the
+two is the app's real reading: with the gate in place, movy's own body is what a
+held step shows, and `auto.heldValues` feeding `renderer/label.ts` is what draws
+the held value there. The Schwung-side decoration is the reading of the same
+fact on the OTHER screen, and today nothing puts a user on it.
+
+The
 upstream half is a **floor bump**: `SCHWUNG_FLOOR` is `'1.3.0'` in
 `src/renderer/schwung-floor.ts`, pinned by
 `browser-test/logic/schwung-floor.mjs` which reddens deliberately when it moves.
@@ -788,11 +809,13 @@ the fact a later session would otherwise re-derive.
   tilde **and** the mod dot: `refreshModulatedValues` only visits keys whose
   `modCache` bit is set, so the dot rides the arc for free once this answers.
   **(b) The p-lock highlight and its held value needed no code change at all.**
-  `schwung-page-render.ts` already passed `{locked, value}` from
+  The decoration pass — `schwung-page-render.ts` at the time, `decorationsFor()`
+  since the split below — already passed `{locked, value}` from
   `auto.heldValues`, gated on `auto.held`. SP-18's output here is the scene, the
-  documentation, and the correction below — `git diff` on that file is 36 added
-  lines, **all comments, zero behaviour**. **(c)** needed one condition, below.
-  **(d)** is (a) plus (b) and needed no third wiring.
+  documentation, and the correction below — the diff that produced it is 36 added
+  lines, **all comments, zero behaviour**. **(c)** needed one condition plus a
+  second one the brief did not name, both below. **(d)** is (a) plus (b) and
+  needed no third wiring.
   **Three of the brief's claims were wrong, and the code won.** **(1)** There is
   **no `exact` flag.** The contract is `{ locked, value }`: `setDecorations` is a
   bare passthrough holding whatever the caller handed it, and the only two fields
@@ -818,6 +841,32 @@ the fact a later session would otherwise re-derive.
   now takes the wider fact as a parameter, read from `seqState.stepAutoMode` —
   the same value `auto.held` is built from, so body and decorations cannot
   disagree.
+  **Handing the screen to movy obliges movy to keep READING it, and the gate that
+  did not know that was the review's find.** The refresh gate above the body gate
+  asked only "is the page delegated?" (`activeModel.tick(!pageOwner.delegated)`),
+  so under `page` the held-step screen was drawn from whatever movy last read
+  before the finger went down: the LOCKED cells stayed right — they come from the
+  engine's own status poll — and every NEIGHBOURING cell froze, which is exactly
+  the shape that reads as working. The two gates are now one expression's worth of
+  the same opinion (the `held` fact is read once, above both), and
+  `browser-test/app-loop.mjs` measures it through the real tick: a held step
+  **is still a delegated page** (measured, `owner().delegated === true`) and the
+  value written behind movy's back **arrives** while it is held. Teeth: reverting
+  the expression alone reddens `a held step keeps movy reading its own page`
+  (`expected true, got false`) and takes the `page` arm to a 7th unexpected label,
+  which `page-mode.mjs` fails on. Cost of the exception, stated because this repo
+  counts it: one bulk read per `REFRESH_BULK_TICKS` — the pre-migration pace — for
+  as long as a step is held, and not one tick longer.
+  **The SP-12 question the brief asked has an answer, and the scenes cannot see
+  it.** The modulated-key sweep DOES still run for a delegated component:
+  `refreshModulatedKeys` is called from the `pollCountdown` block
+  (`model/tick.ts`), which is not gated by the `refreshValues` flag — only
+  `refreshOneParam` is. That is why (a) works at all on a delegated page. Note
+  what it means for the coverage: every `page_mod_cell*` scene calls
+  `model.refreshModulation()` by hand, so if the production sweep ever stopped,
+  the tilde would vanish on the device and **every scene would stay green**. The
+  logic suite's own reach is the scenes; the sweep itself has no test. Worth one
+  if that call is ever touched.
   **Teeth, one scene each, only its own wiring removed, and every other scene
   `ok` in each run so no scene grades another's wiring:**
   `page_mod_cell` and `page_mod_cell_held` red by **128 px** with
@@ -835,10 +884,12 @@ the fact a later session would otherwise re-derive.
   not the live one**. movy's own UI cannot reach that state: the (c) gate hands
   the whole screen back to movy while a step is held, which is what the ledger's
   (c) asks for and what was implemented. So the held-`value` path in
-  `schwung-page-render.ts` is real, tested, and **unreachable in the app** —
+  `decorationsFor()` is real, tested, and **unreachable in the app** —
   only the screenshot scene drives it. Either SP-16's condition change makes it
   reachable, or movy has decided it wants no held-`value` reading and the code
-  should say so out loud. That call is not SP-18's and is not made here.
+  should say so out loud. That call is not SP-18's and is not made here. What
+  movy's own body draws for a held step is `auto.heldValues` through
+  `renderer/label.ts`, and THAT path is live and user-visible.
   **Second, the unit agreement was never verified on hardware.** movy's
   `heldValues` are `denorm7`-ed into the param's own units and Schwung's
   `values[key]` are too, so the decoration's `value` lands in the right space by
@@ -846,6 +897,15 @@ the fact a later session would otherwise re-derive.
   scene (which sources both from the same meta index) exercises it. If SP-16
   reopens the path, check the held reading on a real held step before trusting
   the green.
+  **The decoration pass has moved, and that is where SP-16 works now.** The
+  documentation above and the condition SP-16 edits are in
+  `src/renderer/schwung-page-decorations.ts` (**new**, `decorationsFor()`), split
+  out of `schwung-page-render.ts` (195 → 138) because 36 of the lines this item
+  added there were prose, leaving 5 lines of headroom against the 200 limit and
+  nothing for the next change to write in. Behaviour is identical: the split is
+  the file's existing seam — that pass answers "what should the cells say", the
+  rendering either side of it answers "draw them". Both files are now well inside
+  the limit and `schwung-page-render.ts` has 62 lines of room.
   Also: SP-16's brief cites "SP-18's `exact` rule" twice; both now point at the
   `value` distinction, which is what actually exists.
 - **SP-15 ✅ 2026-09-18 — the contract's retry budget latched, and the asking may

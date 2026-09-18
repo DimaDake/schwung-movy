@@ -646,12 +646,33 @@ function tickBody(): void {
      */
     const pageOwner = pageOwnerOf(activeModel);
 
-    /* A DELEGATED COMPONENT IS NEVER DUAL-DRIVEN (movy/CLAUDE.md, rule 3).
-     * Under Schwung's page movy's round-robin re-reads a page nobody is
-     * drawing, at a bulk engine round trip every REFRESH_BULK_TICKS — the
-     * second reader design §3 names as the leading cost hypothesis. */
+    /* IS A STEP HELD AT ALL, which is the wider fact than `stepSelected`: a step
+     * with an OCCURRENCE under it opens the step page, a step with nothing under
+     * it does not, and both are the same edit. Read from the seq mirror rather
+     * than from `vm.automationHeld` because the gates below run BEFORE either
+     * branch builds its view model — and for the branches that consult it, it is
+     * the same value, since `automationHeld` is `auto.held`, and `auto.held` is
+     * this flag (`buildAutomationView`). Declared HERE, above both gates, because
+     * the refresh gate and the body gate now have to agree and two reads of one
+     * fact is how they stop agreeing. */
+    const stepHeld = seqState.stepAutoMode;
+
+    /* A DELEGATED COMPONENT IS NEVER DUAL-DRIVEN (movy/CLAUDE.md, rule 3):
+     * under Schwung's page movy's round-robin re-reads a page nobody is drawing,
+     * at a bulk engine round trip every REFRESH_BULK_TICKS — the second reader
+     * design §3 names as the leading cost hypothesis.
+     *
+     * WHILE A STEP IS HELD MOVY *IS* DRAWING, so the rule does not apply and the
+     * refresh must run — it is the same condition `schwungBodyFor` uses to hand
+     * the screen over, and the two have to be one expression's worth of the same
+     * opinion. Left asking only "is the page delegated?", the held-step screen
+     * was built from whatever movy last read before the finger went down: the
+     * locked cells stayed right (they come from the engine's status poll), so
+     * every NEIGHBOURING cell froze and the reading looked live. Cost of the
+     * exception: the pre-migration pace, one bulk read per REFRESH_BULK_TICKS,
+     * for as long as a step is held and not one tick longer. */
     perfPhase('modeltick');
-    const modelDirty  = activeModel?.tick(!pageOwner.delegated) ?? false;
+    const modelDirty  = activeModel?.tick(!pageOwner.delegated || stepHeld) ?? false;
     perfPhaseEnd();
 
     /* A module swap on the focused component changes its param set → re-validate
@@ -705,14 +726,6 @@ function tickBody(): void {
      * polled shows values that stopped moving.
      */
     const stepSelected = stepPageAvailable() && stepPageState.selected;
-    /* IS A STEP HELD AT ALL, which is the wider fact than `stepSelected`: a step
-     * with an OCCURRENCE under it opens the step page, a step with nothing under
-     * it does not, and both are the same edit. Read from the seq mirror rather
-     * than from `vm.automationHeld` because the body is asked for BEFORE either
-     * branch builds its view model — and for the two branches that consult the
-     * body it is the same value, since `automationHeld` is `auto.held`, and
-     * `auto.held` is this flag (`app/tick.ts:buildAutomationView`). */
-    const stepHeld = seqState.stepAutoMode;
     const gridOnScreen = moduleGridOnScreen();
     /* THE POLL COMES BEFORE THE BODY IS ASKED FOR, because the body is what
      * readiness gates and the poll is what resolves readiness. Gating the poll

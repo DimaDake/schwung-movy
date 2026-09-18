@@ -156,8 +156,7 @@ let _schwungDiag = '';
  * indexes CHAIN SLOTS, not param pages, so replacing it with Schwung's page
  * indicator would be a lie about what the jog does there.
  */
-export function schwungBodyFor(owner: PageOwner, stepSelected: boolean,
-                               held = false): (() => void) | undefined {
+export function schwungBodyFor(owner: PageOwner, stepSelected: boolean): (() => void) | undefined {
     /* Says WHY it declined, once per distinct reason. Reporting only that the
      * grid "is still movy's" cost two device round trips; the reason comes from
      * the owner and none of them is visible from the screen. */
@@ -180,8 +179,14 @@ export function schwungBodyFor(owner: PageOwner, stepSelected: boolean,
      * NOT ONLY THE STEP PAGE. `stepSelected` is a step with an OCCURRENCE under
      * it (`seq/step-page.ts`); holding an EMPTY step is the same edit against
      * nothing, and it is the case where the offer is most misleading, because
-     * there is not even a trig to lock against. `held` is the wider fact — a
-     * step held at all — and it is the one that decides.
+     * there is not even a trig to lock against.
+     *
+     * THE HOLD IS NOT TESTED HERE, AND THAT IS THE FIX. It is part of who OWNS
+     * the page (`app/page-owner.ts`), so `owner.page` is already null under a
+     * held step and the two lines below decline for it — with `owner.reason`
+     * saying `step-held`. Asked here as well, it was asked TWICE: the body moved
+     * to movy and the gesture sites, which read ownership, went on targeting
+     * Schwung's parameters.
      *
      * WHAT IS NOT LOST IS THE LOCK READING. Both renderers resolve it from the
      * same `auto.heldValues` (`model/viewmodel.ts` for movy's body,
@@ -190,7 +195,6 @@ export function schwungBodyFor(owner: PageOwner, stepSelected: boolean,
      * only movy's body can add — and the reason this gate exists — is which
      * knobs will take a lock in the first place.
      */
-    if (held) return why('step-held');
     if (!owner.claimed) return why(owner.reason);
     /* The poll moved to `pollDrawnPage` (app/page-poll.ts), which runs once per
      * tick rather than once per rendered frame. It had to: with movy's own
@@ -666,33 +670,22 @@ function tickBody(): void {
      */
     const pageOwner = pageOwnerOf(activeModel);
 
-    /* IS A STEP HELD AT ALL, which is the wider fact than `stepSelected`: a step
-     * with an OCCURRENCE under it opens the step page, a step with nothing under
-     * it does not, and both are the same edit. Read from the seq mirror rather
-     * than from `vm.automationHeld` because the gates below run BEFORE either
-     * branch builds its view model — and for the branches that consult it, it is
-     * the same value, since `automationHeld` is `auto.held`, and `auto.held` is
-     * this flag (`buildAutomationView`). Declared HERE, above both gates, because
-     * the refresh gate and the body gate now have to agree and two reads of one
-     * fact is how they stop agreeing. */
-    const stepHeld = seqState.stepAutoMode;
-
     /* A DELEGATED COMPONENT IS NEVER DUAL-DRIVEN (movy/CLAUDE.md, rule 3):
      * under Schwung's page movy's round-robin re-reads a page nobody is drawing,
      * at a bulk engine round trip every REFRESH_BULK_TICKS — the second reader
      * design §3 names as the leading cost hypothesis.
      *
      * WHILE A STEP IS HELD MOVY *IS* DRAWING, so the rule does not apply and the
-     * refresh must run — it is the same condition `schwungBodyFor` uses to hand
-     * the screen over, and the two have to be one expression's worth of the same
-     * opinion. Left asking only "is the page delegated?", the held-step screen
-     * was built from whatever movy last read before the finger went down: the
-     * locked cells stayed right (they come from the engine's status poll), so
-     * every NEIGHBOURING cell froze and the reading looked live. Cost of the
-     * exception: the pre-migration pace, one bulk read per REFRESH_BULK_TICKS,
-     * for as long as a step is held and not one tick longer. */
+     * refresh must run. It needs no second term: a held step is not delegated
+     * (`app/page-owner.ts`), so `!delegated` already covers it — which is the
+     * point of the hold living in the accessor. Left asking a narrower question,
+     * the held-step screen was built from whatever movy last read before the
+     * finger went down: the locked cells stayed right (they come from the
+     * engine's status poll), so every NEIGHBOURING cell froze and the reading
+     * looked live. Cost: the pre-migration pace, one bulk read per
+     * REFRESH_BULK_TICKS, for as long as a step is held and not one tick longer. */
     perfPhase('modeltick');
-    const modelDirty  = activeModel?.tick(!pageOwner.delegated || stepHeld) ?? false;
+    const modelDirty  = activeModel?.tick(!pageOwner.delegated) ?? false;
     perfPhaseEnd();
 
     /* A module swap on the focused component changes its param set → re-validate
@@ -763,8 +756,7 @@ function tickBody(): void {
      * places that time can be; the other is the render, phased below. */
     perfPhase('pagepoll');
     if (gridOnScreen && !stepSelected && pollDrawnPage(pageOwner)) appState.dirty = true;
-    const schwungBody = gridOnScreen
-        ? schwungBodyFor(pageOwner, stepSelected, stepHeld) : undefined;
+    const schwungBody = gridOnScreen ? schwungBodyFor(pageOwner, stepSelected) : undefined;
     perfPhaseEnd();
 
     /* Whether this tick repainted the view. The song band sits on top of it,

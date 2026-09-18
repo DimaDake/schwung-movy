@@ -420,4 +420,12 @@ scenario('widgets', async (t) => {
                        : 'no box was established by the first comparison, so there is nowhere '
                        + 'this could read the ink from')
                 + `; ${describe(pgBack)}` });
+
+    /* THE OVERRIDE COMES OFF, like page-dive's and page-lifecycle's do. It writes
+     * nothing durable, so it survives only until movy is closed — but it does
+     * survive this scenario, and a scenario that asserts movy's OWN writes reads
+     * `writes: none` under `page`. This one runs last today; the day it does
+     * not, the three that grade movy as the renderer would go red for a reason
+     * no artifact of theirs names. */
+    await probe.setGridMode(null);
 });

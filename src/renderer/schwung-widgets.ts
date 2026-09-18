@@ -49,11 +49,54 @@ import { mlog } from '../log.js';
 export function registerWidget(kind: string, impl: any): void {
     try { schwungLib().registerWidget(kind, impl); } catch (_e) { /* nothing claims the cell */ }
 }
-export function clearWidgets(): void {
+function libClear(): void {
     try { schwungLib().clearWidgets(); } catch (_e) { /* nothing to clear */ }
 }
+export function clearWidgets(): void { owned.clear(); libClear(); }
 export function isWidgetAvailable(kind: string): boolean {
     try { return !!schwungLib().isWidgetAvailable(kind); } catch (_e) { return false; }
+}
+
+/*
+ * WHAT MOVY HAS PUT IN THE REGISTRY, AND WHICH PAGE PUT IT THERE.
+ *
+ * THE REGISTRY'S ONLY REMOVAL EMPTIES ALL OF IT. `clearWidgets()` is the whole
+ * of the library's unregister — there is no per-kind one — so the clear that
+ * stops a DEPARTED module's art from being inherited also took the art of the
+ * component next door, which had done nothing but exist. And it never came
+ * back: the sync latches on a settled answer, so the page that registered it is
+ * not asked again until its own plan moves. Walking one chain slot along and
+ * back lost hank's waveform for the rest of the session.
+ *
+ * So movy keeps its own copy of what it registered, and the library's map is a
+ * PROJECTION of this one: every change empties the library and replays the
+ * whole map into it. Replaying is cheap — the drawers are already in memory,
+ * and nothing here re-reads a file or re-evaluates a script.
+ *
+ * THE OWNER IS THE PAGE, NOT THE MODULE. It is the `(track, component)` the
+ * page cache is keyed by, so a module swapped INTO a slot still replaces
+ * exactly what the module before it left THERE — the property the clear existed
+ * for, and the one a scoping fix is most likely to drop.
+ *
+ * A KIND TWO OWNERS BOTH CLAIM goes to the later one, which is what a map keyed
+ * by kind meant before this existed too. Two modules publishing one `custom:`
+ * name is the collision the name is supposed to prevent, and movy is not the
+ * layer that can arbitrate it.
+ */
+interface OwnedWidget { owner: string; draw: (ctx: any) => void; nominal: any; }
+const owned = new Map<string, OwnedWidget>();
+
+function replayRegistry(): void {
+    libClear();
+    for (const [kind, w] of owned) registerWidget(kind, { draw: w.draw, nominal: w.nominal });
+}
+
+/** Replace everything `owner` has registered with `widgets` — an empty list
+ *  being how a page says it has none. */
+export function setOwnerWidgets(owner: string, widgets: OverlayWidget[]): void {
+    for (const [kind, w] of owned) if (w.owner === owner) owned.delete(kind);
+    for (const w of widgets) owned.set(w.kind, { owner, draw: w.draw, nominal: w.nominal });
+    replayRegistry();
 }
 
 /** Does this contract declare a widget at all? Nothing is loaded if not. */
@@ -141,23 +184,28 @@ export function overlayWidgets(ov: any): OverlayWidget[] {
  * `custom:` name would silently inherit the wrong art. So the clear comes
  * BEFORE the registration, and it comes even for a module that declares nothing
  * — that being exactly the case where a stale name would otherwise be served.
+ *
+ * IT IS THIS OWNER'S CLEAR, NOT THE REGISTRY'S. `owner` names the page asking,
+ * and only what that page put there is dropped — see `setOwnerWidgets` above
+ * for why a whole-registry clear here cost every OTHER page its art.
  */
-export function registerModuleWidgets(readId: () => string, chainParams: any[]): boolean {
+export function registerModuleWidgets(owner: string, readId: () => string,
+                                      chainParams: any[]): boolean {
     if (!Array.isArray(chainParams) || chainParams.length === 0) return false;
     if (!declaresCustomWidget(chainParams)) {
-        clearWidgets();                     /* declares nothing: settled, and nothing is read */
+        setOwnerWidgets(owner, []);         /* declares nothing: settled, and nothing is read */
         return true;
     }
     const moduleId = readId();
     if (!moduleId) return false;                                  /* no id, no verdict */
-    clearWidgets();
+    setOwnerWidgets(owner, []);
     const ov = findOverlay(moduleId);
     if (!ov) {
         mlog(`widgets: ${moduleId} declares a custom kind but its canvas.js did not load`);
         return false;
     }
     const kinds = overlayWidgets(ov);
-    for (const w of kinds) registerWidget(w.kind, { draw: w.draw, nominal: w.nominal });
+    setOwnerWidgets(owner, kinds);
     /* Both branches are said out loud: a module drawing a built-in dial is a
      * correct-looking page, and this line is the only thing that tells its
      * author the picture is not theirs. */

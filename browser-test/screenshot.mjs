@@ -1466,8 +1466,11 @@ function applyView(preset) {
                     seqState.stepAutoMode = true;
                     lastRender = () => {
                         const owner = pageOwnerOf(model);
+                        /* The hold is the OWNER's now — `pageOwnerOf` reads
+                         * `seqState.stepAutoMode` set above — so the body is not
+                         * told it a second time (app/page-owner.ts). */
                         const body = schwungBodyFor(owner,
-                            stepPageAvailable() && stepPageState.selected, seqState.stepAutoMode);
+                            stepPageAvailable() && stepPageState.selected);
                         renderKnobsView(model.getViewModel(autoView({ held: true })), false, 0,
                             body, schwungBankFor(owner, body));
                     };

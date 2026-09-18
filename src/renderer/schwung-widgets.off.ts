@@ -17,7 +17,9 @@
  */
 export function declaresCustomWidget(_chainParams: any[]): boolean { return false; }
 export function overlayWidgets(_ov: any): any[] { return []; }
-export function registerModuleWidgets(_readId: () => string, _chainParams: any[]): boolean { return false; }
+export function registerModuleWidgets(_owner: string, _readId: () => string,
+                                      _chainParams: any[]): boolean { return false; }
+export function setOwnerWidgets(_owner: string, _widgets: any[]): void { /* no registry */ }
 export function registerWidget(_kind: string, _impl: any): void { /* no grid to draw in */ }
 export function clearWidgets(): void { /* nothing registered */ }
 export function isWidgetAvailable(_kind: string): boolean { return false; }

@@ -102,10 +102,10 @@ changes no mode at all while looking exactly like the fix.
 | SP-27 | The delegated page re-planned the whole module every 8 ticks — 67.5 ms → 3.0 |
 | SP-14 | Cause E — drum/voice pages planned from movy's config |
 | SP-15 | Cause D — contract lifecycle: the asking never stops, only its pace |
-| SP-18 | The decoration channel: modulation tilde, mod dot, p-lock highlight, held-step filter |
+| SP-18 | The decoration channel: modulation tilde, mod dot, p-lock highlight, held-step filter — **see SP-33** for the half of the held-step gate it left undone |
 | SP-17 | Cause C/B — the filepath dive, the header readout, the footer hints |
 | SP-19 | Undo redraw + automation-follows-arc — **verified, not built**: SP-26's write-log drain delivers the **undo** half; a playing lane's arc is served by the 8-tick fill and nothing tests that path (SP-29) |
-| SP-28 | Custom module visualisations (`custom:` viz kinds) — the four loader defects fixed, and hank's own waveform is on the panel under `page` |
+| SP-28 | Custom module visualisations (`custom:` viz kinds) — the four loader defects fixed, and hank's own waveform is on the panel under `page`. **See SP-34** for the fifth, found in review |
 
 ### Open
 
@@ -380,6 +380,67 @@ would pin it. Read from source, not measured.
 **Needs:** nothing. No fix landed — the item's suspicion that SP-26 already
 closed it was right, and the freshness rule ("treat a lane-driven key as the
 controller treats a modulated one") was already the implementation.
+
+---
+
+### SP-33 ✅ 2026-09-18 — a held step moved the screen and not the knobs (review of SP-18)
+
+**Symptom.** Under `page`, hold an **empty** step and turn a knob: the screen
+shows movy's labels and the lock lands on **Schwung's** parameter — a different
+one on every cell where the two planners disagree, which `midi/router.ts`'s own
+comment counts at nine across the mock presets. A step with an OCCURRENCE under
+it is unaffected: it opens the step page, which returns before either decision.
+
+**Cause.** SP-18 put the held-step test in `app/tick.ts`'s `schwungBodyFor`, so
+the BODY went back to movy. Every gesture site reads OWNERSHIP instead
+(`pageOwnerOf`), and that still said `delegated`. Two files, one question,
+different answers — the exact shape SP-10 exists to make structurally
+impossible, reintroduced by putting a second gate outside the accessor.
+
+**Fix.** The hold is part of the accessor. `delegateOwner` gates on
+`page.ready && !seqState.stepAutoMode`, so `delegated`, `page`, `knobParamInfo`,
+`changePage` and the page index all fall through to the movy owner together, and
+`schwungBodyFor` derives the body from `owner.page` like the bank bar and the
+chrome already do. `poll()` stays OUTSIDE the gate — the contract keeps settling
+under the finger, so the page is current when the step is let go.
+
+**Teeth.** `browser-test/app-loop.mjs`, "a held step hands the page back to
+movy", which reddened under `page` before the fix (the `off` arm cannot see it —
+nothing is delegated there) plus "...so the knob targets the parameter movy
+drew". The refresh check the block was built for is unchanged and still passes.
+
+---
+
+### SP-34 ✅ 2026-09-18 — one page's widget cleared every other page's (review of SP-28)
+
+**Symptom.** hank's waveform appears, then vanishes the moment any other
+component's page syncs, and **never comes back** — not on return to the track,
+not on a re-plan, only on a module swap into that same slot.
+
+**Cause.** The registry is process-global and its only removal is
+`clearWidgets()`, which empties **all** of it — there is no per-kind
+unregister. `registerModuleWidgets` cleared unconditionally, including for a
+module declaring nothing, which is right for the slot it is asking about and
+wrong for every other. And it cannot recover: `createWidgetSync` latches
+`widgetDone` on a settled answer, so the page that registered the kind is not
+asked again until its own plan moves. One chain slot along and back was enough.
+
+Reproduced against the real entry points and the real library — `custom:hank_wave`
+available `true` after the synth page syncs, `false` after an fx page with no
+custom kind syncs, still `false` on return.
+
+**Fix.** movy keeps its own `kind -> { owner, draw, nominal }` map and the
+library's registry is a PROJECTION of it: `setOwnerWidgets(owner, widgets)`
+replaces only that owner's entries and replays the whole map. The owner is the
+page's `(track, component)` — the key the page cache already uses — so a module
+swapped INTO a slot still replaces exactly what the module before it left there.
+Replay is cheap: the drawers are in memory, and nothing re-reads a file.
+
+**Teeth.** `browser-test/logic/schwung-widgets.mjs`, "one registry, several
+pages" — three checks red before the fix, with the property the clear existed
+for ("a module swapped into a slot drops the departed module's kind") green
+throughout, which is what says the fix did not simply delete the clear. Needs a
+registry, so it is skipped and says so where there is no Schwung checkout.
 
 ---
 

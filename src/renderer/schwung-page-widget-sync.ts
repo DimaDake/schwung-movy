@@ -47,6 +47,17 @@ export function createWidgetSync(ctl: any, port: TrackPort, componentKey: string
     let widgetDone = false;
     let widgetTries = 0;
 
+    /* WHICH ENTRIES IN THE PROCESS-GLOBAL REGISTRY ARE THIS PAGE'S. The same
+     * `(track, component)` the page cache is keyed by, so a module swapped into
+     * the slot replaces what the module before it left there and nothing else —
+     * a whole-registry clear here took the component next door's art with it,
+     * permanently, because the sync latches. See schwung-widgets.ts.
+     *
+     * Guarded because the suites drive this with a port stub that has no track;
+     * a page without one is its own owner and shares with nobody, which is the
+     * safe end of the mistake. */
+    const owner = `${(port as any)?.track?.index ?? '?'}:${componentKey}`;
+
     function moduleId(): string {
         try { return String(port.getParam(moduleReadKey(componentKey)) || ''); }
         catch (_e) { return ''; }
@@ -56,7 +67,7 @@ export function createWidgetSync(ctl: any, port: TrackPort, componentKey: string
         if (widgetDone) return;
         const params = ctl.state && ctl.state.chainParams;
         if (!Array.isArray(params) || params.length === 0) return;   /* not an answer */
-        if (registerModuleWidgets(moduleId, params)) { widgetTries = 0; widgetDone = true; return; }
+        if (registerModuleWidgets(owner, moduleId, params)) { widgetTries = 0; widgetDone = true; return; }
         widgetDone = ++widgetTries >= WIDGET_TRIES;              /* parked, not answered */
     }
 

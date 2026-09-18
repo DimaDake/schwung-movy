@@ -91,6 +91,11 @@ function restoreFakes() {
 async function suite() {
 _log('\nlogic: module-supplied widgets (SP-28)');
 
+/* Every direct call below is one page's ask, so they share one owner — the same
+ * `(track, component)` the page cache keys by. The block that asserts what an
+ * owner scopes builds its own. */
+const OWNER = '0:synth';
+
 /* ── the shapes an overlay may publish ─────────────────────────────────────── */
 /* Mirrored from upstream's registerOverlayWidgets. Which shape a module uses is
  * the module author's choice, and a shape movy does not understand registers
@@ -279,9 +284,9 @@ _log('\nlogic: module-supplied widgets (SP-28)');
      * "declares no custom kind" out of it, then latching that, is how the
      * widget never appeared on Schwung's own host, twice. Nothing is read. */
     hank(); reads = 0;
-    eq('an empty contract is not a verdict', registerModuleWidgets(idOf('hank'), []), false);
-    eq('...nor is a null one', registerModuleWidgets(idOf('hank'), null), false);
-    eq('...nor an undefined one', registerModuleWidgets(idOf('hank'), undefined), false);
+    eq('an empty contract is not a verdict', registerModuleWidgets(OWNER, idOf('hank'), []), false);
+    eq('...nor is a null one', registerModuleWidgets(OWNER, idOf('hank'), null), false);
+    eq('...nor an undefined one', registerModuleWidgets(OWNER, idOf('hank'), undefined), false);
     eq('...and the module was never identified for any of them', reads, 0);
     eq('...nor was a script read', asked.length, 0);
 
@@ -291,7 +296,7 @@ _log('\nlogic: module-supplied widgets (SP-28)');
      * a page whose module has no widget as cheap as one with no page at all. */
     hank(); reads = 0;
     eq('a module declaring no custom kind is settled',
-       registerModuleWidgets(idOf('plain'), nothing), true);
+       registerModuleWidgets(OWNER, idOf('plain'), nothing), true);
     eq('...without the module being identified', reads, 0);
     eq('...and without a script being read', asked.length, 0);
 
@@ -300,7 +305,7 @@ _log('\nlogic: module-supplied widgets (SP-28)');
      * nothing" would settle a module that has art on the strength of a timeout.
      * Not settled, so the caller asks again. */
     reads = 0;
-    eq('a module with no id is not a verdict either', registerModuleWidgets(idOf(''), declares), false);
+    eq('a module with no id is not a verdict either', registerModuleWidgets(OWNER, idOf(''), declares), false);
     eq('...and it did ask, which is the difference', reads, 1);
     eq('...reading no script on the strength of a failed read', asked.length, 0);
 
@@ -309,7 +314,7 @@ _log('\nlogic: module-supplied widgets (SP-28)');
      * names, and the answer is settled. */
     hank(); reads = 0;
     eq('a module whose contract declares a custom kind is registered',
-       registerModuleWidgets(idOf('hank'), declares), true);
+       registerModuleWidgets(OWNER, idOf('hank'), declares), true);
     eq('...identified once, and only because a custom kind was declared', reads, 1);
     eq('...from the script its module.json names', asked[0],
        `${MODULES}/sound_generators/hank/canvas.js`);
@@ -319,7 +324,7 @@ _log('\nlogic: module-supplied widgets (SP-28)');
     hank();
     delete layout[`${MODULES}/sound_generators/hank/module.json`];
     eq('a module that is not where we looked stays open',
-       registerModuleWidgets(idOf('hank'), declares), false);
+       registerModuleWidgets(OWNER, idOf('hank'), declares), false);
 }
 
 /* ── the trigger: when the question is asked, and when it is parked ────────── */
@@ -411,11 +416,84 @@ _log('\nlogic: module-supplied widgets (SP-28)');
      * THIS line holds is only that the entry point keeps asking the door, which
      * is why it is kept. */
     registerWidget('custom:stale', { draw: () => {} });
-    registerModuleWidgets(() => 'plain', [{ key: 'cutoff', viz: { kind: 'filter' } }]);
+    registerModuleWidgets(OWNER, () => 'plain', [{ key: 'cutoff', viz: { kind: 'filter' } }]);
     eq('a departed module\'s kind is not claimable — VACUOUS in this build (no registry to hold '
        + 'it); the teeth are the device check swap-away-leaves-nothing-behind',
        isWidgetAvailable('custom:stale'), false);
     _log(`    (registry behind the door in this build: ${schwungLibAvailable() ? 'yes' : 'no'})`);
+}
+
+/* ── one registry, several pages ───────────────────────────────────────────── */
+{
+    /* THE DEFECT: A PAGE THAT DECLARES NOTHING WIPED EVERY OTHER PAGE'S ART.
+     *
+     * The registry is process-global and its only removal is `clearWidgets()`,
+     * which empties ALL of it — so the clear that keeps a DEPARTED module's kind
+     * from being inherited also took the kind belonging to the component next
+     * door. It never came back either: `sync` latches on a true, so the page
+     * that registered it is never asked again until its own plan moves. Walking
+     * one chain slot along and back was enough to lose hank's waveform for the
+     * rest of the session.
+     *
+     * The owner is the page's identity — the same (track, component) the page
+     * cache is keyed by — so a module swapped INTO a slot still replaces exactly
+     * what the module before it left there. That is asserted below too, because
+     * it is the property the clear existed for and the one a scoping fix is
+     * most likely to drop.
+     *
+     * NEEDS THE REGISTRY, so it is asked only where there is one: with no
+     * checkout `isWidgetAvailable` answers false for everything and every line
+     * here would pass while testing nothing. It says which it did.
+     */
+    only({ [`${MODULES}/sound_generators/hank/module.json`]: '{}',
+           [`${MODULES}/sound_generators/other/module.json`]: '{}' },
+         { [`${MODULES}/sound_generators/hank/canvas.js`]:
+             { canvas_overlay: { widgetKinds: ['custom:hank_wave'], drawCell() { /* art */ } } },
+           [`${MODULES}/sound_generators/other/canvas.js`]:
+             { canvas_overlay: { widgetKinds: ['custom:other_art'], drawCell() { /* art */ } } } });
+
+    if (!schwungLibAvailable()) {
+        _log('    (one registry, several pages: SKIPPED — no registry behind the door in this build)');
+    } else {
+        clearWidgets();
+        const declares = (kind) => [{ key: 'k', viz: { kind } }];
+        const page = (ck, id) => createWidgetSync(
+            { state: { chainParams: declares(id === 'hank' ? 'custom:hank_wave' : 'custom:other_art') } },
+            { getParam: () => id, track: { index: 0 } }, ck);
+
+        const synth = page('synth', 'hank');
+        synth.sync();
+        eq('a page registers its own module\'s kind', isWidgetAvailable('custom:hank_wave'), true);
+
+        /* The component next door, and it declares nothing at all — the case the
+         * clear is unconditional for, and the one that took everything with it. */
+        const plain = createWidgetSync({ state: { chainParams: [{ key: 'cutoff' }] } },
+                                       { getParam: () => 'plain', track: { index: 0 } }, 'fx1');
+        plain.sync();
+        eq('...and a second page that declares nothing leaves it alone',
+           isWidgetAvailable('custom:hank_wave'), true);
+
+        /* ...as does a second page that declares art of its OWN: both cells draw
+         * their own picture, which is the whole point of a registry keyed by
+         * kind rather than a single current widget. */
+        const fx = page('fx2', 'other');
+        fx.sync();
+        eq('...a second page with its own art keeps both',
+           isWidgetAvailable('custom:hank_wave') && isWidgetAvailable('custom:other_art'), true);
+
+        /* AND THE PROPERTY THE CLEAR EXISTED FOR IS STILL HELD: a module swapped
+         * into a slot replaces what the module before it left THERE, and nothing
+         * else. `afterReplan(true)` is the swap — the plan moved — and the slot's
+         * new contract declares no custom kind at all. */
+        const swapped = createWidgetSync({ state: { chainParams: [{ key: 'cutoff' }] } },
+                                         { getParam: () => 'plain', track: { index: 0 } }, 'synth');
+        swapped.sync();
+        eq('a module swapped into a slot drops the departed module\'s kind',
+           isWidgetAvailable('custom:hank_wave'), false);
+        eq('...and takes nothing from the slot next door with it',
+           isWidgetAvailable('custom:other_art'), true);
+        clearWidgets();
+    }
 }
 
 /* The block above is the last of the suite's body; this closes `suite()`. Its

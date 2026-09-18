@@ -3218,9 +3218,30 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
     globalThis.shadow_set_param(0, 'synth:p1', '0.55');
     advance(6 * REFRESH_BULK_TICKS);         // several full refresh windows
 
-    /* ...and the screen really is still delegated while held — otherwise the
-     * value arrives for the wrong reason and the check below proves nothing. */
-    eq('a held step is still a delegated page', owner().delegated, expectDelegated);
+    /* WHILE A STEP IS HELD THE SCREEN IS MOVY'S, SO THE KNOBS MUST BE TOO.
+     *
+     * SP-18 moved the BODY back to movy for a held step and left the OWNER
+     * saying Schwung. The two are read by different files — `app/tick.ts` draws
+     * from the body, `midi/router.ts` targets from the owner — so under `page`
+     * you looked at movy's labels and locked SCHWUNG's parameters, on every
+     * cell where the two planners disagree (the router's own comment counts 9
+     * across the mock presets). Holding an EMPTY step is where it bit: a step
+     * with an occurrence opens the step page, which returns before either.
+     *
+     * The decision is the OWNER's now, and the body is derived from it — the
+     * same rule the bank bar and the chrome already follow. So this asks the
+     * ownership question and then asks whether the parameter under knob 0 is
+     * the one movy would draw there, which is a claim about the two agreeing
+     * rather than about either alone.
+     */
+    eq('a held step hands the page back to movy', owner().delegated, false);
+    eq('...so the knob targets the parameter movy drew',
+       owner().knobParamInfo(0)?.key, m.getKnobParamInfo(0)?.key);
+    /* The claim the block was built for, unchanged: movy is drawing, so movy
+     * must keep reading. `expectDelegated` is what the page was BEFORE the hold
+     * — the hold is only meaningful on a page Schwung had actually taken. */
+    eq('the page under the hold was Schwung\'s to begin with',
+       expectDelegated, schwungGridMode() === 'page');
     eq('a held step keeps movy reading its own page', p1() !== before, true);
 
     seqState.stepAutoMode = false; seqState.holdStep = -1;

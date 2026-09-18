@@ -191,7 +191,7 @@ _log('schwung-widgets-check: a module-supplied widget draws in movy\n');
 
     clearWidgets();
     const declares = [{ key: 'ratio', viz: { kind: 'custom:sp28_wave' } }];
-    const settled = WID.registerModuleWidgets(() => 'sp28widget', declares);
+    const settled = WID.registerModuleWidgets('0:synth', () => 'sp28widget', declares);
     if (settled === true) ok('a module whose contract declares a custom kind settles');
     else fail('registerModuleWidgets left the question open for a module that resolves');
     if (isWidgetAvailable('custom:sp28_wave')) ok('...and a plural-only widgetKinds is IN the registry');
@@ -204,7 +204,7 @@ _log('schwung-widgets-check: a module-supplied widget draws in movy\n');
      * custom kind, and the departed module's name must not be left claimable —
      * a later module spelling `custom:sp28_wave` would silently inherit art that
      * belongs to a module no longer in the slot. */
-    const nothing = WID.registerModuleWidgets(() => 'plain', [{ key: 'cutoff', viz: { kind: 'filter' } }]);
+    const nothing = WID.registerModuleWidgets('0:synth', () => 'plain', [{ key: 'cutoff', viz: { kind: 'filter' } }]);
     if (nothing === true) ok('a module declaring no custom kind settles');
     else fail('a module declaring no custom kind did not settle');
     if (!isWidgetAvailable('custom:sp28_wave')) ok('...and the departed module\'s kind is out of the registry');

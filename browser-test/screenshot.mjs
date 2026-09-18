@@ -84,7 +84,7 @@ const PRESETS = [
     'switches', 'pan_dials', 'spray_saturated',
     'page_body', 'page_body_p2',
     'page_mod_cell', 'page_mod_cell_held',
-    'page_held_lock', 'page_held_unassignable',
+    'page_held_lock', 'page_lane_unheld', 'page_held_unassignable',
     'page_chrome_held', 'page_chrome_flip',
 ];
 
@@ -98,7 +98,7 @@ const PRESETS = [
  * cannot. */
 const PAGE_SCENES = new Set(['page_body', 'page_body_p2',
     'page_mod_cell', 'page_mod_cell_held',
-    'page_held_lock', 'page_held_unassignable',
+    'page_held_lock', 'page_lane_unheld', 'page_held_unassignable',
     'page_chrome_held', 'page_chrome_flip']);
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
@@ -121,7 +121,8 @@ const BASE = {
      * which can take a lock — `readouts` declares three of its four params
      * `access: "read"`, which is non-automatable by declaration. */
     page_mod_cell: 'test8', page_mod_cell_held: 'test8',
-    page_held_lock: 'test8', page_held_unassignable: 'readouts_hier',
+    page_held_lock: 'test8', page_lane_unheld: 'test8',
+    page_held_unassignable: 'readouts_hier',
     /* The chrome scenes need the two click kinds that never reach movy — a
      * trigger and a two-way enum — and `switches` is the mock that declares
      * both. */
@@ -1352,10 +1353,21 @@ function applyView(preset) {
          * through the REAL body decision — `pageOwnerOf` + `schwungBodyFor`,
          * with `seqState.stepAutoMode` set, which is what `vm.automationHeld`
          * is — so the scene grades movy's held-step filter end to end rather
-         * than a copy of its condition. */
+         * than a copy of its condition.
+         *
+         * ── page_lane_unheld (d) ────────────────────────────────────────────
+         * The frame `page_held_lock` is one term away from: the same page, the
+         * same live lane, nothing held. `activeLanes` is set in both — it is
+         * live for as long as the track has locks — so what separates them is
+         * `held` alone, and a decoration pass that ignores it marks a cell
+         * nobody locked, every frame, for the rest of the page's life. That is
+         * SP-16's "mark that lies": it went unnoticed while the graphic gate
+         * hid the picture behind it, and it is the whole of what is left of the
+         * symptom now that upstream keeps the graphic. */
         case 'page_mod_cell':
         case 'page_mod_cell_held':
         case 'page_held_lock':
+        case 'page_lane_unheld':
         case 'page_held_unassignable': {
             if (!schwungLibAvailable()) throw new Error(
                 'screenshot: ' + preset + ' needs a bundle built with SCHWUNG=/path/to/schwung');
@@ -1424,6 +1436,23 @@ function applyView(preset) {
                      * 0's lane locked at its maximum: `test8` reads 0.50 at
                      * rest, so a lock at 1.00 is unmistakable. */
                     const auto = { ...autoView({ held: true, heldVal: info.max }),
+                                   laneForKey: (k) => (k === info.key ? 0 : -1) };
+                    lastRender = () => renderKnobsView(model.getViewModel(auto), false, 0,
+                        () => sp.render('T1 > ' + model.getModuleName(), auto),
+                        { index: sp.pageIndex, count: sp.pageCount });
+                } else if (preset === 'page_lane_unheld') {
+                    /* THE OTHER HALF OF `page_held_lock`: the SAME page, the
+                     * same live lane, and no step held. `activeLanes` is set in
+                     * both frames — it is live for as long as the track HAS
+                     * locks, which on an automated page is every frame — so
+                     * `held` is the only thing between them, and the decoration
+                     * pass is the only reader of it. Resolved through the owner
+                     * for the same reason as above: a lane built from movy's
+                     * own knob 0 would mark a different cell under `page`, and
+                     * the shot would stay green with the condition taken out. */
+                    const info = pageOwnerOf(model).knobParamInfo(0);
+                    if (!info) throw new Error(preset + ': no parameter at knob 0');
+                    const auto = { ...autoView({ held: false }),
                                    laneForKey: (k) => (k === info.key ? 0 : -1) };
                     lastRender = () => renderKnobsView(model.getViewModel(auto), false, 0,
                         () => sp.render('T1 > ' + model.getModuleName(), auto),

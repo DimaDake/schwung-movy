@@ -374,7 +374,11 @@ _log('\nlogic: module-supplied widgets (SP-28)');
                                    { getParam: () => { emptyReads++; return 'hank'; } }, 'ch0:synth');
     empty.sync();
     empty.afterReplan(true);
-    eq('an empty contract asks nothing at all — not even which module this is', emptyReads, 0);
+    eq('an empty contract asks nothing at all — not even which module this is — VACUOUS as the '
+       + 'empty-contract guard\'s own coverage (removing that guard reddens nothing; the door never '
+       + 'fetches the id for a contract with no custom kind); what it holds is the eager fetch and '
+       + 'the reach, which is the joint of the pair',
+       emptyReads, 0);
 }
 
 /* ── the door, with no registry behind it ──────────────────────────────────── */
@@ -401,9 +405,11 @@ _log('\nlogic: module-supplied widgets (SP-28)');
      * — the `registerWidget` above was already a caught throw — and this passes
      * whether or not `clearWidgets()` ran. The teeth for this defect are where a
      * registry exists: the device check `swap-away-leaves-nothing-behind`, and
-     * `the registry still serves the departed module's kind` in
-     * scripts/schwung-widgets-check.mjs. What THIS line holds is only that the
-     * entry point keeps asking the door, which is why it is kept. */
+     * `...and the departed module's kind is out of the registry` in
+     * scripts/schwung-widgets-check.mjs — its CHECK, not the `fail()` message
+     * that negates it, which a reader would only ever find in a red run. What
+     * THIS line holds is only that the entry point keeps asking the door, which
+     * is why it is kept. */
     registerWidget('custom:stale', { draw: () => {} });
     registerModuleWidgets(() => 'plain', [{ key: 'cutoff', viz: { kind: 'filter' } }]);
     eq('a departed module\'s kind is not claimable — VACUOUS in this build (no registry to hold '

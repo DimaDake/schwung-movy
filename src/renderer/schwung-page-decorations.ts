@@ -52,7 +52,14 @@ export function decorationsFor(
     auto: AutomationView | undefined,
     keys: (string | null)[],
 ): (Decoration | null)[] | null {
-    if (!auto) return null;
+    /* A HELD STEP IS THE ONLY THING THERE IS TO SAY (SP-16, Cause G2). The
+     * bitmask is live for as long as the track HAS locks, so on an automated
+     * page it is set on every frame — decorating on it alone put a lock mark
+     * and an inverted label band on cells whose lock belongs to some step, not
+     * to this one. Under the old viz gate that only cost the graphics; with
+     * upstream's gate gone (schwung #509) it costs MEANING, and that is worse:
+     * a mark that is always there says "locked" about a cell nobody locked. */
+    if (!auto || !auto.held) return null;
     const decs = keys.map((k): Decoration | null => {
         if (!k) return null;
         const lane = auto.laneForKey(k);
@@ -64,7 +71,7 @@ export function decorationsFor(
          * underneath it, which is the one reading a parameter lock must not
          * show. `decoration.value` is exactly this, and Schwung already prefers
          * it over the live value. */
-        const held = auto.held ? auto.heldValues.get(lane) : undefined;
+        const held = auto.heldValues.get(lane);
         return held === undefined ? { locked: true } : { locked: true, value: held };
     });
     return decs.some(Boolean) ? decs : null;

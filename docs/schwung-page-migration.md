@@ -113,7 +113,7 @@ changes no mode at all while looking exactly like the fix.
 | --- | --- | --- | --- | --- |
 | SP-32 | **NEW** — a bank or cell that exists only in movy's config is on no page under `page`: audit which before SP-30 flips the default | Sonnet | ⬜ | **1** |
 | SP-31 | **NEW** — a knob release that lands on another page latches `touched`, and the next jog click is swallowed | Sonnet | ⬜ | **2** |
-| SP-16 | Cause G — graphics return (**shrunk: upstream fixed the hard half**) | Sonnet | ⬜ | **5** |
+| SP-16 | Cause G — graphics return (**shrunk: upstream fixed the hard half**) | Sonnet | 🔨 **movy half done** 2026-09-18; floor bump waits on #509 | **5** |
 | SP-20 | `ui_hierarchy` ownership under Schwung's planner | Opus | ⬜ | 6 |
 | SP-21 | Metadata correction overlay | Sonnet | ❌ **dropped** — the audit found 1 real correction in 555 | — |
 | SP-21a | Report po32-drum's `kit` range upstream (the 1) | Sonnet | ⬜ | 7 |
@@ -515,70 +515,106 @@ defect.
 
 ---
 
-### SP-16 — Cause G: graphics return
+### SP-16 🔨 2026-09-18 — Cause G: graphics return (movy half done; the floor bump waits on #509)
 
 **Product.** The parameter graphics — envelope, LFO wave, filter curve, EQ
 curve, waveform — are the fastest read on the screen, and under `page` they were
 disappearing permanently: automate one filter cutoff and that page's curve never
 came back. **Upstream has fixed the hard half** (SU-1, schwung #509): graphics no
-longer stand down because decorations exist. What remains on movy's side is
-narrower but still wrong — the decoration pass (now `decorationsFor()`,
-`schwung-page-decorations.ts`) builds decorations from
-whether a lane *exists* on the page, with no `auto.held` in the condition, so a
-page carrying any automation lane is permanently decorated. With the viz gate
-gone that no longer costs graphics; it costs *meaning*: a lock mark and an
-inverted label band on a cell that has no lock, all the time. The item has gone
-from "the migration's most visible regression" to "a mark that lies", and its
-priority should move accordingly.
+longer stand down because decorations exist. What remained on movy's side was
+narrower but still wrong — the decoration pass (`decorationsFor()`,
+`schwung-page-decorations.ts`) built decorations from whether a lane *exists* on
+the page, with no `auto.held` in the condition, so a page carrying any automation
+lane was permanently decorated: a lock mark and an inverted label band on a cell
+that has no lock, all the time, and (until the fix, on the 1.4.0 the device runs)
+the graphics standing down behind them as well. The item had gone from "the
+migration's most visible regression" to "a mark that lies"; **the mention is
+fixed, and what is left is the upstream half below.**
 
-**Design & implementation.** Two halves that can land separately. The movy half
-is the condition in `decorationsFor()` (`schwung-page-decorations.ts`, split out
-of `schwung-page-render.ts` by SP-18 to leave room here): decorate a cell only
-when there is something to show — a held step with a resolved lock value — rather
-than whenever `activeLanes` has a bit set. **Note what "resolved" means there:**
-the decorations contract is `{ locked, value }` and there is no `exact` flag in
-it — this section and SP-18's brief both assumed one, and SP-18 found none in the
-library or in either renderer. The rule it was reaching for is carried by
-`value === undefined`: a cell is marked without a value when the lock has not
-resolved, and the live value shows through. SP-18 left that distinction in place
-and documented it at the point the decoration is built, so this half is a change
-to the CONDITION and nothing else — **on movy's side of the Schwung page**, and
-invisible without the co-requisite below. It is a three-line change, and SP-18
-already wrote the scene it needs (`page_held_lock`), since both items are about
-what the decoration channel means.
+**Design & implementation.** Two halves, and they have landed differently.
+**The movy half is DONE (2026-09-18): the condition, and nothing else.** The
+first line of `decorationsFor()`'s body read `if (!auto) return null;` — decorate
+whenever the page carries a live lane — and now reads
 
-**IT HAS A CO-REQUISITE, WHICH SP-18 MEASURED AND WHICH IS EASY TO MISS.**
-Changing that condition alone changes **nothing a user can see**, because the
-decoration is only built while Schwung's body is DRAWN, and SP-18's (c) gate
-(`if (held) return why('step-held')`, `src/app/tick.ts`) hands the whole
-held-step screen back to movy — so `sp.render`, the only caller of
-`setDecorations`, is never reached while a step is held. That is deliberate and
-it is the ledger's own (c); the consequence is that the held-`value` decoration
-is exercised only by the screenshot scene. **The two changes must move
-together**: either the condition changes AND the held gate is lifted (or narrowed
-to the cases that should delegate), or the condition change is scene-only and
-should be described as such rather than landing as a fix. Also note which of the
-two is the app's real reading: with the gate in place, movy's own body is what a
-held step shows, and `auto.heldValues` feeding `renderer/label.ts` is what draws
-the held value there. The Schwung-side decoration is the reading of the same
-fact on the OTHER screen, and today nothing puts a user on it.
+```
+if (!auto || !auto.held) return null;
+```
 
-The
-upstream half is a **floor bump**: `SCHWUNG_FLOOR` is `'1.3.0'` in
-`src/renderer/schwung-floor.ts`, pinned by
-`browser-test/logic/schwung-floor.mjs` which reddens deliberately when it moves.
-#509 is not in 1.4.0, so raise the floor to the first release that contains it,
-say which feature needs it in the commit message, and confirm with
-`tests/host/test_viz_under_held_step.sh` against the installed tree rather than
-against `origin/main`. Until that release exists, movy on 1.4.0 keeps the old
-gate — which is a reason to fix the movy half first: with decorations set only
-when a lock is real, the old gate stands graphics down only while a step is held,
-which is the behaviour SU-1 was asking for anyway.
+with the per-cell `auto.held ? auto.heldValues.get(lane) : undefined` losing the
+guard that line now supplies. The cell loop, the `{ locked, value }` contract and
+the `value === undefined` distinction SP-18 documented are untouched — **fewer
+decorations, never different ones.** (The contract has no `exact` flag: this
+section and SP-18's brief both assumed one and SP-18 found none in the library or
+in either renderer. What it was reaching for is `value === undefined`, a cell
+marked with no resolved value and the live value showing through.)
 
-**Closes when:** a `page` screenshot scene shows a page with an automation lane
-drawing its graphics with no lock mark; the same page under a held step shows the
-lock and (post-floor-bump) keeps its graphics; `schwung-floor.mjs` pins the new
-value.
+The scene is `page_lane_unheld`, in `browser-test/screenshot.mjs`'s
+`PAGE_SCENES` beside `page_body`/`page_body_p2`, and it is `page_held_lock`'s
+frame one term away: the same page, the same live lane, **nothing held**. Its
+`setSchwungGridMode('page')` and its `pageOwnerOf(model).knobParamInfo(0)` key
+resolution are both load-bearing — a lane built from movy's own knob 0 would mark
+a different cell under `page` and the shot would stay green with the condition
+taken out. **Teeth, measured in the source with `dist/esm` rebuilt:** with
+`if (!auto) return null;` put back the suite reports `page_lane_unheld ... FAIL
+(924 px differ)` and `174 passed, 1 failed` — and it is the ONLY scene that
+reddens, which is the precision claim; with the change in place, `175 passed, 0
+failed`.
+
+**WHAT THE CO-REQUISITE ACTUALLY IS, RE-MEASURED — the earlier wording here was
+right about the held screen and wrong about the unheld one.** It said the
+condition change alone "changes nothing a user can see". On the held screen that
+holds; on the unheld screen it is false, and the unheld screen is the item:
+
+  * **Unheld, on the release movy currently ships against (1.4.0, pre-#509
+    gate).** The old condition decorated every frame a lane existed, and the
+    pre-#509 gate stands graphics down exactly when `s.decorations` is non-null —
+    so the change DOES restore the graphics by itself, with no floor bump. Device,
+    page mode on bouba-kiki's root page: with the old ui.js a live lane cost
+    **177 px** of frame — the frame's lower content block re-laid-out (rows 36-55,
+    158 px of it: the 8-px texture filling rows 52-55 loses 31 px of its ink and
+    rows 36-47 change instead) — and the rows 48-63 band dropping **299 -> 269**.
+    With the fix, **15 px**, and those rows stay **299**. The residual 15 px is
+    the automation's own effect on the drawn value (the cell's readout and the
+    filled bar moved, `MRPH` at 9%), not a mark: it is the same 15 px in all four
+    builds.
+  * **Unheld, against the post-#509 tree.** Same pair: with the old ui.js the
+    diff is **97 px** — the same 15 px value effect plus **82 px in rows 8, 24-25
+    and 32-33**, the cell's own band and mark region, while the frame's texture
+    rows are untouched. The control is the fixed build on the same tree: the
+    identical scenario, gesture and value — its 15 px is the same 15 px — shows
+    none of those rows. So those 82 px are the decoration's ink, drawn with
+    nothing held, and the mark still lies. With the fix, **15 px** and no mark.
+    That pair is what the floor bump is finally for.
+  * **Held, either build.** Unchanged, because the (c) gate (`if (held) return
+    why('step-held')`, `src/app/tick.ts`) hands the whole held-step screen to
+    movy's own body, so `sp.render` — the only caller of `setDecorations` — is
+    never reached. Measured with `heldFlag:true` and `schwung-body step-held`
+    logged (1.2-1.5 s window): the held frame is movy's body carrying the lock
+    and an envelope curve, identical in all four ui/pages combinations (1171-1189
+    px from the unheld frame; ink bands ≈ [290,352,185,282]). A held capture that
+    comes back equal to the frame before it is a missed hold, not a result — the
+    first A and B attempts did exactly that and were re-run. The held-`value`
+    decoration is therefore still exercised **only** by the screenshot scene, and
+    `auto.heldValues` feeding `renderer/label.ts` is still what draws the held
+    value on the screen a user actually sees. Nothing here needs the held gate
+    lifted; that would change what a held step shows, which is a different item.
+
+**The upstream half is a floor bump that cannot be made yet, and the floor is
+STILL `'1.3.0'`.** `src/renderer/schwung-floor.ts` untouched,
+`browser-test/logic/schwung-floor.mjs` untouched and green. Re-measured
+2026-09-18 against the checkout: the newest release tag is **`v1.4.0`**,
+`git merge-base --is-ancestor 0ae48972 v1.4.0` answers NO, and `origin/main` is
+still `43e3c3b7` — **no release contains #509.** Raise the floor to the first
+release that does, say which feature needs it in the commit message, and confirm
+with `tests/host/test_viz_under_held_step.sh` against the installed tree rather
+than against `origin/main`. Until then the release keeps the old gate — which,
+with the movy half in, now stands graphics down only while a step is held, which
+is the behaviour SU-1 was asking for anyway.
+
+**Closes when:** `schwung-floor.mjs` pins the first release containing #509. Both
+scenes the item asked for already exist and pass — `page_lane_unheld` (a lane, no
+held step, graphics drawn, no mark) and `page_held_lock`. **Left OPEN on that
+single remainder**; the movy half is done and the floor bump does not re-open it.
 
 **Needs:** SP-18 (they share the decoration semantics and the scene set).
 
@@ -1244,7 +1280,12 @@ the fact a later session would otherwise re-derive.
   `decorationsFor()` is real, tested, and **unreachable in the app** —
   only the screenshot scene drives it. Either SP-16's condition change makes it
   reachable, or movy has decided it wants no held-`value` reading and the code
-  should say so out loud. That call is not SP-18's and is not made here. What
+  should say so out loud. That call is not SP-18's and is not made here. (**SP-16
+  answered it on 2026-09-18: the condition change does NOT make the path
+  reachable — the (c) gate still hands the whole held screen to movy's own body,
+  measured identical across all four ui/pages combinations on device — so the
+  decoration's `value` stays scene-only, and movy's body is the held reading a
+  user actually sees.**) What
   movy's own body draws for a held step is `auto.heldValues` through
   `renderer/label.ts`, and THAT path is live and user-visible.
   **Second, the unit agreement was never verified on hardware.** movy's

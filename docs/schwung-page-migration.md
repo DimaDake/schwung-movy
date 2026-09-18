@@ -590,8 +590,11 @@ holds; on the unheld screen it is false, and the unheld screen is the item:
     movy's own body, so `sp.render` — the only caller of `setDecorations` — is
     never reached. Measured with `heldFlag:true` and `schwung-body step-held`
     logged (1.2-1.5 s window): the held frame is movy's body carrying the lock
-    and an envelope curve, identical in all four ui/pages combinations (1171-1189
-    px from the unheld frame; ink bands ≈ [290,352,185,282]). A held capture that
+    and an envelope curve — **the same across all four ui/pages combinations
+    within ~10 px (0.1%), not byte-identical**: the lane→held distance spans
+    1171-1189 px, and the ink bands land on [290,352,185,282] for A2 and C but
+    [291,344,184,282] for D, so no single vector is right for all four builds.
+    The claim is the tolerance, not identity. A held capture that
     comes back equal to the frame before it is a missed hold, not a result — the
     first A and B attempts did exactly that and were re-run. The held-`value`
     decoration is therefore still exercised **only** by the screenshot scene, and
@@ -615,6 +618,33 @@ is the behaviour SU-1 was asking for anyway.
 scenes the item asked for already exist and pass — `page_lane_unheld` (a lane, no
 held step, graphics drawn, no mark) and `page_held_lock`. **Left OPEN on that
 single remainder**; the movy half is done and the floor bump does not re-open it.
+
+**The box's `param_pages`, and the one thing the task report got wrong about it
+(measured by the controller 2026-09-18).** The post-#509 tree was installed from
+`43e3c3b7` for the A/B measurement, and the box's own pre-#509 tree put back
+before the tier run. What the box holds now, read directly: `param_pages/` is
+**31 `.mjs` + `README.md` + `styles/` = 33 directory entries** (the report's "33
+files" is the installer's `ls param_pages | wc -l`, counting entries, not `.mjs`
+— the `.mjs` count is 31); its `page_controller.mjs` is `66af3e4a…` and the
+whole tree matches `/Users/dake/git/cld/schwung` on
+`perf/page-reload-skip-unchanged-contract` **hash for hash over all 31 files**,
+with the old gate back at `page_controller.mjs:4315` and `:4508` and **0**
+matches for `vizGroupsForDecorations`.
+
+**`param_pages.prev` holds the POST-#509 tree**, not the pre-#509 one. Its
+`page_controller.mjs` is `ef2e8781…` — the same md5 the task report itself
+recorded for the installed file — with **4** matches for
+`vizGroupsForDecorations`. The report's note says the opposite ("this restore
+overwrote `param_pages.prev`, which now holds this pre-#509 tree") and is
+**wrong**, which matters because the installer's own printed rollback is
+`mv param_pages{.prev,}`: a later session following that note would install a
+post-#509 tree while believing it was restoring the box's original. The
+report's pre-install manifest md5 (`f4e56dc3…`) does not reproduce, and the
+pre-install bytes are **not recoverable** — `.prev` was overwritten by the
+restore and the box holds no other copy (only those two directories exist under
+`/data`). So the box is verified pre-#509 **by gate shape and by hash against
+the reference branch**, not by a before/after fingerprint; the pre-install
+fingerprint should be read as lost, not as evidence.
 
 **Needs:** SP-18 (they share the decoration semantics and the scene set).
 

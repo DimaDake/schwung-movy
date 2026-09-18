@@ -1074,20 +1074,26 @@ which is git-ignored scratch deleted with that workspace.
   and the `!loaded` branch of `tick()`) is one responsibility and should move out
   before the file is next edited.
 - **`tickSeq` in the probe payload — the follow-up this fix round creates.**
-  `noteTick` was its only writer, so the field is now permanently `0` and is still
-  in the payload a device scenario reads. Remove it from the payload (and from
-  `page-lifecycle.ts:250`) or give it a real writer. Owner: whoever next touches
-  `src/test/probe.ts`.
-- **The `widgets` device flake — a named race, not a watch.** Measured **4/9** in
-  `test-device/.flake-log.json`, on check `the-widget-is-what-is-on-the-screen`.
-  The fourth flake is `2026-09-18T15:28:54.443Z` on `a49121e` — **outside** the
-  `13:57–14:03` development window an earlier ruling rested on, and on code the
-  scenario was not being changed for — which meets the escalation trigger that
-  ruling set. Fix belongs to SP-28's follow-up and costs a device tier.
-- **The `page-dive` flake.** The flakiest scenario in the log: **5/12**, every one
-  on `dive-commit-lands-in-the-parameter`, with flakes on `e7a4304` (×3),
-  **`a7512c4`** (14:48) and **`a49121e`** (15:28) — two of them on this branch's
-  own commits. Both attempts ran the same build, so it is a race in the
+  `noteTick` was its only writer, so the field is permanently `0`. **Nothing reads
+  it**: the only `tickSeq` mention anywhere under `test-device/` is the comment at
+  `page-lifecycle.ts:250` that records this very thing, and the payload fields the
+  device actually reads are `renderSeq` and `parked`. So the choice is to delete
+  the field from the payload (and reword that comment) or give it a real writer —
+  a comment is not a consumer. Owner: whoever next touches `src/test/probe.ts`.
+- **The `widgets` device flake — a named race, not a watch.** Measured **4/10** to
+  date in `test-device/.flake-log.json`, on check
+  `the-widget-is-what-is-on-the-screen` (the first three, all on `3f933fb`, took
+  `fallthrough-still-draws` and `swap-back-registers-again` with them). The fourth
+  flake is `2026-09-18T15:28:54.443Z` on `a49121e` — **outside** the `13:57–14:03`
+  development window an earlier ruling rested on, and on code the scenario was not
+  being changed for — which meets the escalation trigger that ruling set. Fix
+  belongs to SP-28's follow-up and costs a device tier.
+- **The `page-dive` flake.** The flakiest scenario in the log: **6 of 13** runs to
+  date, on `e7a4304` (×3: 11:04, 11:08, 11:22), **`a7512c4`** (14:48),
+  **`a49121e`** (15:28) and **`0515ba3`** (16:00) — three of them on this branch's
+  own commits. The check is `dive-commit-lands-in-the-parameter` in **5** of the
+  6; the sixth (11:04) took `file-param-click-opens-the-browser` instead, and
+  11:08 flaked two. Both attempts ran the same build, so it is a race in the
   browse/commit path and not a code difference.
 
 ---

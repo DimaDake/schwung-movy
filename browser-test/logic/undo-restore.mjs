@@ -202,6 +202,34 @@ export async function run() {
     eq('nor is reset', keys.includes('reset_patch'), false);
     eq('preset_count is metadata, not a value', keys.includes('preset_count'), false);
 
+    /* SP-20. The declared `list_param` comes from the SAME ladder the page
+     * climbs — `ui_hierarchy`, then `ui_pages`, then `module.json`. Asking only
+     * the first key meant a module that ships its own chain editor (9W9 serves
+     * `ui_hierarchy` empty on purpose and publishes under `ui_pages`) declared
+     * no preset param as far as undo was concerned, so its preset dropped to
+     * tier 2 and was replayed AFTER the params the preset itself rewrites — the
+     * restore then looked like it had lost the patch. */
+    {
+        /* `mode` deliberately: the name fallbacks catch `preset` and `program`
+         * whatever the contract says, so a module that calls its list something
+         * else is the only thing that can tell the ladder from the guesswork. */
+        const realHier = store['synth:ui_hierarchy'];
+        const realCps = store['synth:chain_params'];
+        store['synth:chain_params'] = JSON.stringify([
+            { key: 'rom_index' }, { key: 'cutoff' }, { key: 'mode' }]);
+        store['synth:mode'] = '3';
+        store['synth:ui_hierarchy'] = '{}';
+        store['synth:ui_pages'] = JSON.stringify({ levels: { root: { list_param: 'mode' } } });
+        const alt = dumpModuleParams(0, 'synth');
+        eq('a contract published under ui_pages still names the list',
+            alt.params.map(([k]) => k).join(','), 'rom_index,mode,cutoff');
+        eq('and the list goes in the lead, before what it rewrites', alt.leadCount, 2);
+        delete store['synth:ui_pages'];
+        delete store['synth:mode'];
+        store['synth:chain_params'] = realCps;
+        store['synth:ui_hierarchy'] = realHier;
+    }
+
     /* The staged replay. */
     resetModuleRestore();
     const op = {

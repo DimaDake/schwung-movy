@@ -1,8 +1,9 @@
 import type { ModelState } from './state.js';
-import { loadModuleConfig, loadModuleJson } from '../modules/loader.js';
+import { loadModuleConfig } from '../modules/loader.js';
 import { effectiveDrumConfig, readSurface } from './drum-declared.js';
 import { mlog } from '../log.js';
 import { moduleReadKey } from '../chain/config.js';
+import { declaredContract } from '../chain/hierarchy-source.js';
 import { buildConfigPages } from './config-pages.js';
 import { buildGenericPages } from './generic-pages.js';
 import { conditionHolds, collectRules } from './visible-if.js';
@@ -130,51 +131,38 @@ export function loadHierarchy(s: ModelState): void {
     }
 
     /*
-     * `ui_hierarchy`, THEN `ui_pages`.
+     * WHAT THE MODULE PUBLISHED, from the one reader (SP-20).
      *
-     * A module that ships its own chain editor serves `ui_hierarchy` EMPTY on
-     * purpose: the shadow UI reaches for the hierarchy editor whenever one is
-     * offered, and only falls back to the module's ui_chain.js when it is not.
-     * 9W9 is the case — its RD-9 pad editor is the point — so it answers ""
-     * there and publishes the same hierarchy under `ui_pages`, which the host
-     * does not probe, for ui_chain.js to feed the param_pages controller.
+     * `chain/hierarchy-source` climbs the three rungs — `ui_hierarchy`, then
+     * `ui_pages` for a module that ships its own chain editor (9W9 answers the
+     * first key EMPTY on purpose and publishes the same contract under a key
+     * the host does not probe), then `module.json`, because schwung serves a
+     * SYNTH slot's `ui_hierarchy` from the plugin alone and a module that
+     * describes its UI in its manifest arrives here with none. The delegated
+     * page climbs the same three, which is the point: two readers of one
+     * contract is how a pad press ended up with no page to jump to.
      *
-     * movy asked only the first key, so for exactly the modules that ship their
-     * own editor it saw no contract at all: no declared drum rack, no pad names,
-     * no notes. It looked like the declaration was being ignored; it was never
-     * being read. Asking the second key costs one param read on the modules
-     * that answer nothing to the first.
+     * `pending` is not acted on here. These reads go through a BLOCKING port,
+     * so a null means the param does not exist — it is the delegated page's
+     * cached reads that can be in flight.
      *
      * NOT CACHED BEYOND THIS LOAD. 9W9's note map is switchable at runtime and
      * it serves a DIFFERENT hierarchy per map, so a value kept across loads
      * would seat every voice at the wrong note with nothing to say why. This
      * runs on each hierarchy load, which is what a map change triggers.
      */
-    let raw = s.port.getParam(s.componentKey + ':ui_hierarchy');
-    if (!raw) raw = s.port.getParam(s.componentKey + ':ui_pages');
-    if (raw) {
-        try {
-            const parsed = JSON.parse(raw) as { levels?: Record<string, HierLevel> };
-            declaredHierarchy = parsed;
-            absorbHierarchy(parsed);
-        } catch (e) { mlog('ui_hierarchy parse error: ' + e); }
-    }
-
-    /* Nothing served? Read the module's own manifest. Schwung serves a SYNTH
-     * slot's ui_hierarchy from the plugin alone — only FX and MIDI FX slots get
-     * module.json's, cached by the chain host — so a module that describes its
-     * UI in module.json and not in its DSP arrives here with an empty
-     * hierarchy, and everything it declares there (a sample browser, most
-     * visibly) would be unreachable. This is the same file schwung parses for
-     * the slot's own param table. */
-    if (Object.keys(allLevels).length === 0) {
-        const caps = loadModuleJson(s.moduleId, s.componentKey)?.capabilities;
-        const hier = caps?.ui_hierarchy as { levels?: Record<string, HierLevel> } | undefined;
-        if (hier?.levels) {
-            mlog('loadHierarchy: ui_hierarchy from module.json');
-            declaredHierarchy = hier;
-            absorbHierarchy(hier);
-        }
+    const declared = declaredContract({
+        read: (k) => s.port.getParam(s.componentKey + ':' + k),
+        moduleId: () => s.moduleId,
+        componentKey: s.componentKey,
+    });
+    if (declared.levels) {
+        mlog('loadHierarchy: contract from ' + declared.source);
+        /* The source's own parse, not a second one: minijv's contract is 39 KB
+         * and it had to parse it to know the module had said anything. */
+        const parsed = declared.levels as { levels?: Record<string, HierLevel> };
+        declaredHierarchy = parsed;
+        absorbHierarchy(parsed);
     }
 
     /*

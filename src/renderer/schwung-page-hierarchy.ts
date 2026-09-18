@@ -8,29 +8,30 @@
  * still find nothing to jump to, because only one of the two readers knew where
  * the hierarchy had come from.
  *
- * THREE SOURCES, IN THIS ORDER, AND MOVY IS LAST:
+ * THE MODULE'S OWN WORD IS READ BY `chain/hierarchy-source` (SP-20) — three
+ * rungs, `ui_hierarchy` then `ui_pages` then `module.json`, shared with movy's
+ * model and the undo dump so the three cannot answer differently. What is left
+ * here is the rung that belongs to the DELEGATED PAGE alone:
  *
- *   1. `ui_hierarchy` — what the module publishes. Authoritative, always.
- *   2. `ui_pages` — what a module shipping its own chain editor publishes
- *      instead. 9W9 serves `ui_hierarchy` EMPTY on purpose (the shadow UI
- *      reaches for the hierarchy editor whenever one is offered, and 9W9's RD-9
- *      pad editor is the point of the module) and publishes the same contract
- *      under a key the host does not probe; its own ui_chain.js does exactly
- *      this rewrite to feed this controller.
- *   3. movy's own config, translated (SP-14). Only for a module that published
- *      NEITHER — never over a module that described itself.
+ *   4. movy's own config, translated (SP-14). Only for a module that published
+ *      NOTHING on any of the three — never over a module that described itself
+ *      — and only here, because Schwung's planner needs a contract or it has
+ *      nothing to plan. movy's own model reads the same config natively.
  *
- * THE TRI-STATE SURVIVES ALL THREE. The controller reads this key with three
+ * THE TRI-STATE SURVIVES ALL FOUR. The controller reads this key with three
  * answers: JSON = declared, "" = served and empty (give up now), null = the read
  * did not complete (hold and ask again). A null must not become movy's
  * translation any more than it may become ui_pages' null: that is the fourth
  * latched-verdict bug this branch has had from collapsing three answers into
- * two, and schwung-late-contract-check exists because of the third.
+ * two, and schwung-late-contract-check exists because of the third. The source
+ * reports `pending` and this is the caller that acts on it — its reads go
+ * through SP-26's cache, where a null is a read in flight.
  */
 
 import type { TrackPort } from '../track/port.js';
 import type { PageReadCache } from './schwung-page-cache.js';
 import { moduleReadKey } from '../chain/config.js';
+import { createContractSource } from '../chain/hierarchy-source.js';
 import { loadModuleConfig } from '../modules/loader.js';
 import { hierarchyFromConfig } from '../model/config-hierarchy.js';
 
@@ -53,6 +54,14 @@ export function createPageHierarchy(port: TrackPort, qualify: (k: string) => str
      * out of this path in the first place. */
     const read = (k: string) => cache.get(qualify(k));
 
+    /* NOT `read`: `moduleReadKey` already returns the key the PORT wants —
+     * `synth_module`, with no colon in it — and qualify() would see the missing
+     * colon and make it `synth:synth_module`, which nothing serves. The contract
+     * lifecycle asks for the same key the same way. */
+    const moduleId = () => { try { return cache.get(moduleReadKey(componentKey)); } catch (_e) { return null; } };
+
+    const declared = createContractSource({ read, moduleId, componentKey });
+
     /* THE TRANSLATION IS MEMOIZED, AND THE SAME STRING COMES BACK EVERY TIME.
      * `reloadIfChanged` fingerprints the contract every 8 ticks; a freshly
      * stringified object per call is a new fingerprint per call, and the page
@@ -69,12 +78,7 @@ export function createPageHierarchy(port: TrackPort, qualify: (k: string) => str
     let parsedVal: any = null;
 
     function translated(): string | null {
-        /* NOT `read`: `moduleReadKey` already returns the key the PORT wants
-         * — `synth_module`, with no colon in it — and qualify() would see the
-         * missing colon and make it `synth:synth_module`, which nothing serves.
-         * The contract lifecycle asks for the same key the same way. */
-        let id: string | null = null;
-        try { id = cache.get(moduleReadKey(componentKey)); } catch (_e) { id = null; }
+        const id = moduleId();
         /* No module id yet is not "no rack" — it is a read that has not landed,
          * and answering "" for it would latch a verdict the same way. */
         if (!id) return null;
@@ -89,17 +93,14 @@ export function createPageHierarchy(port: TrackPort, qualify: (k: string) => str
     }
 
     function raw(): string | null {
-        const own = read('ui_hierarchy');
-        if (own !== null && own !== undefined && own !== '') return own;
+        const d = declared.get();
+        if (d.text) return d.text;
 
-        const alt = read('ui_pages');
-        if (alt !== null && alt !== undefined && alt !== '') return alt;
+        /* THE MODULE HAS TO HAVE ANSWERED before movy speaks for it. `pending`
+         * is a read in flight: hold, and the controller asks again. */
+        if (d.pending) return null;
 
-        /* THE MODULE HAS TO HAVE ANSWERED before movy speaks for it. `own ===
-         * null` is a read in flight: hold, and the controller asks again. */
-        if (own === null || own === undefined) return own ?? null;
-
-        return translated() ?? own;
+        return translated() ?? d.served;
     }
 
     return {
@@ -112,6 +113,9 @@ export function createPageHierarchy(port: TrackPort, qualify: (k: string) => str
             try { parsedVal = JSON.parse(s); } catch (_e) { parsedVal = null; }
             return parsedVal;
         },
-        invalidate() { synthId = null; synthText = null; parsedFrom = null; parsedVal = null; },
+        invalidate() {
+            synthId = null; synthText = null; parsedFrom = null; parsedVal = null;
+            declared.invalidate();
+        },
     };
 }

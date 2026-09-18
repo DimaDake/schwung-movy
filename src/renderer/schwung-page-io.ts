@@ -10,6 +10,7 @@
 import type { TrackPort } from '../track/port.js';
 import type { PageReadCache } from './schwung-page-cache.js';
 import type { PageHierarchy } from './schwung-page-hierarchy.js';
+import { isContractKey } from '../chain/hierarchy-source.js';
 
 /* EVERY READ GOES THROUGH THE CACHE. Schwung asks one key per tick and would
  * otherwise spend a blocking engine GET on each — SP-26, and
@@ -54,18 +55,20 @@ export function createPageIo(port: TrackPort, qualify: (k: string) => string,
     return {
         /*
          * `ui_hierarchy` IS ANSWERED BY schwung-page-hierarchy, not read here.
-         * The module's own contract, then `ui_pages` for a module that ships
-         * its own chain editor, then movy's config translated for a rack that
-         * published neither (SP-14) — one ladder, because `focusVoice` climbs
-         * the same one and two readers of one contract is precisely how a pad
-         * press ended up with no page to jump to.
+         * The module's own word comes from `chain/hierarchy-source` — its own
+         * contract, then `ui_pages` for a module that ships its own chain
+         * editor, then `module.json` — and movy's config translated (SP-14) is
+         * the page's own last rung for a rack that published none of the three.
+         * One ladder, because `focusVoice` climbs the same one and two readers
+         * of one contract is precisely how a pad press ended up with no page to
+         * jump to.
          */
         getParam: (k: string) => {
-            /* MATCHED ON THE SUFFIX, because the controller asks with the
-             * component already on the key — `synth:ui_hierarchy`, not
-             * `ui_hierarchy`. Comparing the whole string never matched and the
-             * fallback silently never ran. */
-            if (String(k).endsWith('ui_hierarchy')) return hierarchy.raw();
+            /* The test is the SOURCE's (`isContractKey`): the controller asks
+             * with the component already on the key, so it matches the suffix,
+             * and a key literal here would be a second reader of the contract
+             * in the one file that must not have one. */
+            if (isContractKey(k)) return hierarchy.raw();
             return read(k);
         },
         setParam: (k: string, v: string) => { port.setParam(qualify(k), v); },

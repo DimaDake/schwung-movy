@@ -106,6 +106,7 @@ changes no mode at all while looking exactly like the fix.
 | SP-17 | Cause C/B — the filepath dive, the header readout, the footer hints |
 | SP-19 | Undo redraw + automation-follows-arc — **verified, not built**: SP-26's write-log drain delivers the **undo** half; a playing lane's arc is served by the 8-tick fill and nothing tests that path (SP-29) |
 | SP-28 | Custom module visualisations (`custom:` viz kinds) — the four loader defects fixed, and hank's own waveform is on the panel under `page`. **See SP-34** for the fifth, found in review |
+| SP-20 | `ui_hierarchy` ownership — one reader (`chain/hierarchy-source.ts`) for the page, the model and the undo dump; the manifest rung and the `"{}"` test were each a divergence |
 
 ### Open
 
@@ -114,7 +115,6 @@ changes no mode at all while looking exactly like the fix.
 | SP-32 | **NEW** — a bank or cell that exists only in movy's config is on no page under `page`: audit which before SP-30 flips the default | Sonnet | ⬜ | **1** |
 | SP-31 | **NEW** — a knob release that lands on another page latches `touched`, and the next jog click is swallowed | Sonnet | ⬜ | **2** |
 | SP-16 | Cause G — graphics return (**shrunk: upstream fixed the hard half**) | Sonnet | 🔨 **movy half done** 2026-09-18; floor bump waits on #509 | **5** |
-| SP-20 | `ui_hierarchy` ownership under Schwung's planner | Opus | ⬜ | 6 |
 | SP-21 | Metadata correction overlay | Sonnet | ❌ **dropped** — the audit found 1 real correction in 555 | — |
 | SP-21a | Report po32-drum's `kit` range upstream (the 1) | Sonnet | ⬜ | 7 |
 | SP-22 | Cut-curve viz kind | Sonnet | ❌ **dropped** — a movy extension; Schwung draws plain dials natively | — |
@@ -711,33 +711,90 @@ fingerprint should be read as lost, not as evidence.
 
 ---
 
-### SP-20 — `ui_hierarchy` ownership under Schwung's planner
+### SP-20 ✅ 2026-09-18 — `ui_hierarchy` ownership: one reader, and the two divergences it was hiding
 
-**Product.** No direct user-visible symptom — this is the item that stops the
-other symptoms coming back. A SYNTH slot's `ui_hierarchy` comes from the plugin,
-and movy reads `module.json` itself; Schwung's planner reads it too. Two readers
-of one contract is precisely how a pad press ended up with no page to jump to
-(SP-14), and it is the last place where movy still has an opinion about a
-module's page structure. Leaving it unresolved means every later item has to
-remember which reader wins.
+**Product.** The item was written as "no direct user-visible symptom — this is
+the one that stops the other symptoms coming back". It had two, both live:
 
-**Design & implementation.** The ladder already exists and is documented in
-`schwung-page-io.ts`: `ui_hierarchy` is answered by
-`src/renderer/schwung-page-hierarchy.ts`, not read from the port — the module's
-own contract first, then `ui_pages` for a module that ships its own chain editor,
-then movy's config translated for a rack that published neither (SP-14's
-output). `focusVoice` climbs the same ladder, deliberately. The item is to make
-that the *only* reader: find every other place movy parses `ui_hierarchy` or
-`module.json` page structure for a component that may be delegated, route it
-through `PageHierarchy`, and add a structural test in the shape of
-`browser-test/logic/page-owner.mjs` — a grep that reddens when a second reader
-appears, because behaviour tests cannot hold this. Note the suffix-matching
-gotcha already recorded in the io: the controller asks with the component on the
-key (`synth:ui_hierarchy`), so a whole-string comparison never matches and the
-fallback silently never runs.
+1. **`module.json` was invisible to the delegated page.** Schwung serves a SYNTH
+   slot's `ui_hierarchy` from the plugin alone, so a module that describes its UI
+   in its manifest (Sample Slicer is the case that found this in the model, years
+   of device evidence behind it) arrives with none. movy's MODEL has read the
+   manifest since the beginning; the page planner had its own ladder and did not.
+   Under `page` that module's declared pages — a sample browser above all — were
+   on no page at all, and the knobs held whatever `chain_params` paginated to.
+2. **`"{}"` was a declaration to one reader and nothing to the other.** A module
+   that serves an empty object (the device does; the `module_json_hier` mock
+   copies it because that is what was observed) stopped the PAGE at rung 1 — no
+   `ui_pages`, no manifest, no translation — while the model read it as nothing
+   and climbed on. Same module, two page sets, and nothing that could notice.
 
-**Closes when:** a structural test names `schwung-page-hierarchy.ts` as the sole
-reader and reddens when a second one is added; `page-mode` does not grow.
+A third, one layer down: `undo/module-dump.ts` asked `ui_hierarchy` and nothing
+else for the module's declared `list_param`, so a module publishing its contract
+under `ui_pages` or in its manifest declared no preset list as far as undo was
+concerned. Its preset then dropped from tier 1 to tier 2 and was replayed AFTER
+the params a preset rewrites — a restore that looks like it lost the patch.
+
+**Fix.** `src/chain/hierarchy-source.ts` is the one reader: three rungs
+(`ui_hierarchy`, then `ui_pages`, then `module.json`'s
+`capabilities.ui_hierarchy`), one emptiness test (**a rung counts when it
+declares LEVELS**, which was the model's test and is the right one), one
+tri-state. `renderer/schwung-page-hierarchy.ts`, `model/hierarchy.ts` and
+`undo/module-dump.ts` all climb it.
+
+**NOT in `schwung-page-hierarchy.ts`, which is what this entry said it would
+be.** `model/` may not import `renderer/` — stated in `model/config-hierarchy.ts`
+and `app/page-owner.ts`, and the reason is that the model has to be testable
+without a schwung checkout — so a shared ladder living under `renderer/` would
+have been the layering rule traded for the file name. `chain/` is the layer all
+three callers already import. The file name in the closes-when moved with it.
+
+**Two things stayed where they were, deliberately:**
+
+- **movy's config translation is not a rung.** It is the delegated page's own
+  last resort (SP-14), because Schwung's planner needs a contract or it has
+  nothing to plan. The model consumes `movy_config` natively through
+  `buildConfigPages`, and handing it a translated hierarchy would make movy's own
+  table indistinguishable from the module's own declaration — `readSurface` would
+  read it as declared voices and outvote the table it was translated from.
+- **`pending` is reported, not acted on.** The page reads through SP-26's cache,
+  where `null` is a read in flight and answering for the module would latch a
+  verdict (the fifth time this branch would have had that bug). The model and the
+  dump read through a BLOCKING port, where `null` means the param does not exist.
+  One ladder, two read semantics, and which applies is the caller's to say.
+
+**Cost.** The levels test is memoized against the exact string it ran on, and it
+has to be: `grid-cost.mjs` counts contract re-derivations on minijv and wants
+**zero**, and parsing 39 KB to answer "did the module say anything?" put 75 of
+them back on the reload divider — SP-27's cost, re-introduced one question
+earlier. Caught by the gate, before the device. The manifest rung is a blocking
+`host_read_file`, so it is read once per module id inside the source. Final
+numbers are baseline-identical: premium 109 (ceiling 163), idle 146/600 ticks,
+re-derivations 0.
+
+**Teeth.**
+
+- `browser-test/logic/page-owner.mjs` — the structural rule, beside the other
+  ownership greps: over `src/**.ts` with comments stripped, a quoted
+  `ui_hierarchy`/`ui_pages` literal or a `loadModuleJson(` call outside
+  `chain/hierarchy-source.ts` (and `modules/loader.ts`, which DEFINES it) fails
+  the suite, with the same stale-allowlist check its siblings carry. Proven by
+  putting the dump's own reader back: it reddened on that file by name. The io's
+  suffix test moved into the source as `isContractKey` so the file that routes
+  the controller's ask holds no key literal of its own.
+- `browser-test/logic/hierarchy-source.mjs` (new suite) — the ladder's answers:
+  rung order, the levels test on both a text and a manifest, `pending` vs
+  served-and-empty, the manifest read once per module id, and **the delegated
+  page planned from a manifest** (`knobParamInfo(0).key` is the declared
+  `sample_path`, not the `threshold` that `chain_params` paginates to). That last
+  one is skipped, and says so, without a schwung checkout.
+- `browser-test/logic/undo-restore.mjs` — a contract published under `ui_pages`
+  still names the list param. Written against a module whose list is called
+  `mode`, on purpose: the name fallbacks catch `preset` and `program` whatever
+  the contract says, so a module that calls its list something else is the only
+  thing that can tell the ladder from the guesswork. Both checks red with the
+  old single-key reader restored.
+- `page-mode` held at **3 of 3** and `SCHWUNG=../schwung npm test` exits 0.
 
 **Needs:** nothing — SP-15 landed 2026-09-18.
 
@@ -1216,6 +1273,22 @@ which is git-ignored scratch deleted with that workspace.
 
 Newest first. The full narrative for each is in git history; what is kept here is
 the fact a later session would otherwise re-derive.
+
+- **SP-20 ✅ 2026-09-18 — one reader of the declared contract:
+  `src/chain/hierarchy-source.ts`.** Three rungs — `ui_hierarchy`, `ui_pages`,
+  `module.json`'s `capabilities.ui_hierarchy` — climbed by the delegated page,
+  movy's model and the undo dump alike. **Two facts a later session would
+  re-derive.** (1) It is NOT in `renderer/schwung-page-hierarchy.ts`, where this
+  item's closes-when put it: `model/` may not import `renderer/` (the model has
+  to be testable without a schwung checkout), and `chain/` is the layer all three
+  callers already import. (2) **The levels test must be memoized against the
+  string it ran on** — `levelsOf` on minijv's 39 KB contract, called from the
+  reload divider, put 75 re-derivations back and reddened `grid-cost.mjs`, which
+  is SP-27's cost re-introduced one question earlier. movy's config translation
+  stayed OUT of the ladder (it is the page's own rung 4; a translated hierarchy
+  in the model would let `readSurface` read movy's table as declared voices), and
+  `pending` is reported rather than acted on, because the page's reads can be in
+  flight and the model's and dump's cannot.
 
 - **SP-19 ✅ 2026-09-18 — verified, not built: SP-26's write-log drain already
   delivers both invariants it was asked about.** Two logic tests,

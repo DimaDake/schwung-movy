@@ -71,6 +71,11 @@ await esbuild.build({
         resolve(root, 'src/model/env-stage.ts'),
         resolve(root, 'src/model/page-rotation.ts'),
         resolve(root, 'src/model/config-hierarchy.ts'),
+        /* The one reader of a module's declared page contract (SP-20): an entry
+         * point so the logic suite can drive the three rungs, the levels test
+         * and the pending answer directly, rather than inferring the ladder
+         * from a page that was planned from it. */
+        resolve(root, 'src/chain/hierarchy-source.ts'),
         resolve(root, 'src/model/eq-viz.ts'),
         resolve(root, 'src/model/eq-vm.ts'),
         resolve(root, 'src/renderer/eq-curve.ts'),

@@ -68,6 +68,7 @@ import { run as run_schwung_widgets } from './logic/schwung-widgets.mjs';
 import { run as run_page_freshness } from './logic/page-freshness.mjs';
 import { run as run_schwung_floor } from './logic/schwung-floor.mjs';
 import { run as run_page_owner } from './logic/page-owner.mjs';
+import { run as run_hierarchy_source } from './logic/hierarchy-source.mjs';
 import { run as run_page_contract } from './logic/page-contract.mjs';
 import { run as run_cpu_page } from './logic/cpu-page.mjs';
 import { run as run_mixer } from './logic/mixer.mjs';
@@ -143,6 +144,7 @@ const SUITES = [
     run_page_freshness,
     run_schwung_floor,
     run_page_owner,
+    run_hierarchy_source,
     run_page_contract,
     run_cpu_page,
     run_mixer,

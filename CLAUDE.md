@@ -21,7 +21,7 @@ movy's own page renderer is being deleted. Read
 item, and update it when you finish one. The design and its rationale are in
 `docs/superpowers/specs/2026-09-13-schwung-page-migration-design.md`.
 
-Three rules, and they bind work that is not itself a migration item:
+Four rules, and they bind work that is not itself a migration item:
 
 1. **No new features in movy's page renderer.** `label.ts`, `knob.ts`,
    `envelope.ts`, the curve renderers, `lfo-wave.ts`, `model/page-layout.ts`,
@@ -38,6 +38,11 @@ Three rules, and they bind work that is not itself a migration item:
    directly for a component that may be delegated — go through the ownership
    accessor. Fifteen ad-hoc seam checks in `src/midi/router.ts` are how eight
    symptoms and one clip-deleting data loss arrived.
+4. **One reader of a module's declared page contract** (SP-20). `ui_hierarchy`,
+   `ui_pages` and `module.json`'s `capabilities.ui_hierarchy` are three ways a
+   module publishes ONE thing; `src/chain/hierarchy-source.ts` is the only place
+   that reads any of them. Never add a key literal or a `loadModuleJson()` call
+   elsewhere — `browser-test/logic/page-owner.mjs` greps for both.
 
 Local suites are only meaningful for this work with a schwung checkout:
 `SCHWUNG=../schwung npm test`. Without it every Schwung assertion is **skipped,

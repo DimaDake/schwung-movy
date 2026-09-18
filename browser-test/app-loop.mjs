@@ -47,8 +47,9 @@ const { appState, VIEW_KNOBS, VIEW_CHAIN, VIEW_BROWSE, VIEW_FILE_BROWSE, VIEW_MA
  * usage lines — reaches no build at all, so selecting a mode that way ran `off`
  * twice and called it an A/B. Unset means the default, which is what every
  * existing `npm test` run wants. */
-const { setSchwungGridMode, schwungGridMode, schwungGridReload } =
+const { setSchwungGridMode, schwungGridMode, schwungGridReload, schwungPageFor } =
     await import('../dist/esm/renderer/schwung-grid.js');
+const { schwungLibAvailable } = await import('../dist/esm/renderer/schwung-lib.js');
 const GRID_ARM = process.env.MOVY_APP_LOOP_GRID || null;
 if (GRID_ARM) setSchwungGridMode(GRID_ARM);
 
@@ -973,20 +974,58 @@ _log('\napp-loop: full-screen file browser exits cleanly');
     eq('browser opened', appState.currentView, VIEW_FILE_BROWSE);
     eq('browseOrigin captured the pre-open view', appState.browseOrigin, VIEW_KNOBS);
 
-    // Back must return to the origin view, not to the (now empty) browser.
-    sendMidi([0xB0, 51, 127]); advance(1);            // MoveBack
-    eq('Back leaves the file browser', appState.currentView, VIEW_KNOBS);
-    eq('Back clears fileBrowserState', appState.fileBrowserState, null);
+    /* WHAT SCHWUNG PLANS FOR THIS FIXTURE — recorded, not asserted.
+     * These labels are filed in `page-mode-expected-fail.json` as one FIXTURE
+     * limit, and the premise of that filing is a page plan: this MOCK declares
+     * no `ui_hierarchy`, so the plan is the single fallback page 'Main' and the
+     * four banks movy's own config gives it — among them the Preset bank that
+     * carries `ui_preset_path` — are on no page at all. (Said of the fixture.
+     * The real mrdrums DOES declare that param; SP-32 in the ledger is about
+     * which config banks no module declaration carries.) Printing the plan HERE
+     * is what keeps the premise a measurement rather than a recollection — a
+     * maintainer reads it back on the same run that produces the failures.
+     * `movyBanks` is movy's own config, `ctlPages`/`names` Schwung's plan for
+     * the declaration; under `off` there is no plan and it says so. */
+    const drums = appState.trackModels[0][1];          // the model this block drives
+    const plan  = pageOwnerOf(drums);
+    const ck    = drums?.getComponentKey?.() ?? '?';
+    /* `schwungPageFor` is asked DIRECTLY when the owner has no page, so the plan
+     * is read back whatever the arm — the owner is movy's whenever the mode is
+     * `off`, and a measurement that only ran under `page` would be no
+     * measurement at all. It is the same call `pageOwnerOf` makes. */
+    const planned = plan.page ?? schwungPageFor(appState.activeTrack.index, ck);
+    planned.tick();   // a fresh controller plans on its first tick, not at reload
+    _log(`[page-plan] mrdrums fixture ck=${ck} mode=${schwungGridMode()}`
+       + ` lib=${schwungLibAvailable()} movyBanks=${drums?.getBankCount?.()}`
+       + ` claimed=${plan.claimed} delegated=${plan.delegated}`
+       + ` ctlPages=${planned.pageCount}`
+       + ` names=${JSON.stringify((planned.ctl?.pages ?? []).map((p) => p.name))}`);
 
-    // Reopen, move to 808 Kit.json, select → loads + closes the browser.
-    sendMidi([0x90, 0, 127]); sendMidi([0xB0, 3, 127]); advance(1);
-    sendMidi([0xB0, 14, 1]);                          // skip '..' → 808 Kit.json
-    globalThis.host_read_file = (p) => p.endsWith('.json') ? '{ "kind": "drumRack" }' : null;
-    sendMidi([0xB0, 3, 127]);                         // jog-click = select
-    globalThis.host_read_file = savedRead;
-    eq('select leaves the file browser', appState.currentView, VIEW_KNOBS);
-    eq('select clears fileBrowserState', appState.fileBrowserState, null);
-    eq('select committed the preset path', env.params['synth:ui_preset_path'], TP + '/808 Kit.json');
+    /* THE REST OF THIS BLOCK RUNS ONLY IN A BROWSER THAT IS ACTUALLY UP, and
+     * that is a correctness fix rather than a convenience. Under `page` the
+     * gesture above opens nothing, and three of the assertions below then
+     * reported on a browser that had never existed: `Back clears
+     * fileBrowserState` was true because it was already null, and both `select`
+     * checks were true because the view was still KNOBS from the drill. A check
+     * that cannot fail is the defect this migration exists to delete, whichever
+     * arm it is red on. Gated, these either run against a real browser or do not
+     * run at all; the two above stay outside because they ARE the premise. */
+    if (appState.currentView === VIEW_FILE_BROWSE) {
+        // Back must return to the origin view, not to the (now empty) browser.
+        sendMidi([0xB0, 51, 127]); advance(1);            // MoveBack
+        eq('Back leaves the file browser', appState.currentView, VIEW_KNOBS);
+        eq('Back clears fileBrowserState', appState.fileBrowserState, null);
+
+        // Reopen, move to 808 Kit.json, select → loads + closes the browser.
+        sendMidi([0x90, 0, 127]); sendMidi([0xB0, 3, 127]); advance(1);
+        sendMidi([0xB0, 14, 1]);                          // skip '..' → 808 Kit.json
+        globalThis.host_read_file = (p) => p.endsWith('.json') ? '{ "kind": "drumRack" }' : null;
+        sendMidi([0xB0, 3, 127]);                         // jog-click = select
+        globalThis.host_read_file = savedRead;
+        eq('select leaves the file browser', appState.currentView, VIEW_KNOBS);
+        eq('select clears fileBrowserState', appState.fileBrowserState, null);
+        eq('select committed the preset path', env.params['synth:ui_preset_path'], TP + '/808 Kit.json');
+    }
 
     globalThis.os = savedOs;
 }

@@ -33,6 +33,8 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { join, dirname } from 'node:path';
+import { tmpdir } from 'node:os';
+import { writeFileSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { scenario } from '../runner.js';
 import { Device } from '../device.js';
@@ -97,6 +99,39 @@ scenario('page-dive', async (t) => {
     /* The slot is put back whatever happens below — this suite loads a module
      * into it that the rest of the sweep does not expect. */
     t.need.register(async () => { await ep('ch0:synth:module', RESTORE); });
+
+    /* AND SO IS THE MACHINE-LEVEL PREFS FILE, because D2 COMMITS A FILE and a
+     * commit remembers the directory it came from: `rememberFileDir` writes
+     * `prefs.json`'s `fileDirs['mrsample:sample_path']`, which no set owns and
+     * the next scenario would inherit. Snapshotted after `fixture.ensure`, so
+     * what is restored is the state the fixture installed. `prefs.ts` re-reads
+     * the file for every read-modify-write ("not cached"), so a restore after
+     * movy has already written is not clobbered by a stale in-RAM copy.
+     *
+     * SHIPPED OVER `scp` TO A TEMP NAME AND `mv`, the way `device.ts` ships the
+     * engine — not a shell redirect carrying the snapshot, and NOT a base64
+     * round trip. The box is BusyBox and has no `base64` at all (measured:
+     * `command -v base64` is empty), so an encoded trip through the shell fails
+     * there and fails SILENTLY — the `&&` never runs, the file keeps the
+     * directory movy remembered, and only the runner's `undo_error` note says
+     * anything. `mv` also replaces the inode, so movy cannot read a
+     * half-written file. */
+    const PREFS = '/data/UserData/schwung/modules/tools/movy/prefs.json';
+    const sshBox = async (cmd: string): Promise<string> => {
+        const { stdout } = await run('ssh', ['-o', 'ConnectTimeout=5', '-o', 'BatchMode=yes',
+                                             `ableton@${t.host}`, cmd],
+                                     { maxBuffer: 8 * 1024 * 1024 });
+        return stdout;
+    };
+    const prefsBefore = await sshBox(`cat '${PREFS}' 2>/dev/null || true`);
+    t.need.register(async () => {
+        if (!prefsBefore.trim()) { await sshBox(`rm -f '${PREFS}'`); return; }
+        const snap = join(tmpdir(), `movy-prefs-${process.pid}.json`);
+        writeFileSync(snap, prefsBefore);
+        await run('scp', ['-q', snap, `ableton@${t.host}:${PREFS}.new`]);
+        await sshBox(`mv '${PREFS}.new' '${PREFS}'`);
+        rmSync(snap, { force: true });
+    });
 
     const pageNow = async (): Promise<Page | null> => {
         try {

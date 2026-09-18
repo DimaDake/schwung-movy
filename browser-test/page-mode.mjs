@@ -21,11 +21,28 @@ import { fileURLToPath } from 'node:url';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 
-/* SKIPPED, not passed, and it says so: without a checkout the stub throws on
- * import, the mode pins to `off`, and both arms would measure the same thing
- * and agree. Silence here is what would make this suite lie. */
-if (!process.env.SCHWUNG) {
-    console.log('page-mode: SKIPPED (no param_pages; set SCHWUNG=/path/to/schwung)');
+/* SKIPPED, not passed, and it says so. The guard asks the BUILT ARTEFACT, not
+ * the variable, because `SCHWUNG` is a BUILD-time alias (`build/browser.mjs`):
+ * it selects between the real `param_pages` and a stub that throws on import.
+ * With the stub, `schwungLibAvailable()` is false, the mode pins to `off`, and
+ * both arms measure the same thing and agree — and that is worse than a skip,
+ * because a `page` arm that never ran reports every listed label as ✓ fixed,
+ * which instructs a maintainer to DELETE labels that are still failing. An
+ * environment variable set NOW is not evidence the build saw one: unset it for
+ * a single `node build/browser.mjs` — which `npm run build:browser` does — and
+ * this whole file lies. Silence here is what would make this suite lie. */
+let libUp = false;
+try {
+    ({ schwungLibAvailable: libUp } = await import('../dist/esm/renderer/schwung-lib.js'));
+    libUp = libUp();
+} catch { /* dist/esm missing — same answer: the build never saw a checkout */ }
+if (!libUp) {
+    console.log('page-mode: SKIPPED (param_pages is not in dist/esm)');
+    console.log('page-mode:   rebuild with: SCHWUNG=/path/to/schwung node build/browser.mjs');
+    if (process.env.SCHWUNG) {
+        console.log('page-mode:   SCHWUNG is set now but was not when dist/esm was built —');
+        console.log('page-mode:   a build-time alias cannot be satisfied at run time.');
+    }
     process.exit(0);
 }
 

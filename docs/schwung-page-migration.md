@@ -34,12 +34,38 @@ SCHWUNG=../schwung node browser-test/page-mode.mjs
 
 It prints `page-mode: N of M expected failures remain`. **That number may shrink
 and must never grow.** If it grew, the last item regressed a sibling — stop. It
-started at 13 and is at **5**; the remaining five are named in
+started at 13, SP-11 took it to 6, SP-17 to 5, and the SP-17 fix round to
+**3**; the remaining three are named in
 `browser-test/page-mode-expected-fail.json`, and they are one FIXTURE limit
-rather than five defects — under `page` the page set is Schwung's own plan, and
-for the suites' modules that plan is a single page named *Main* while movy's
-config has four banks (mrdrums) or three. Every one of them is a check whose
-subject is "the jog reaches bank N". See the SP-17 entry in Closed items.
+rather than three defects — under `page` the page set is Schwung's own plan, and
+for the module they run on that plan is a single page named *Main* while movy's
+config gives it four banks. Every one of them is a check whose subject is "the
+jog reaches bank N"; the consequence for the product — a bank that exists only
+in movy's config is on no page under `page` — is owned by SP-32. See the SP-17
+entry in Closed items.
+
+**THE COUNT IS READ BACK, NOT RECALLED.** `browser-test/app-loop.mjs` prints a
+permanent line on both arms, next to the labels it belongs to:
+
+```
+[page-plan] mrdrums fixture ck=synth mode=page lib=true movyBanks=4 claimed=true delegated=true ctlPages=1 names=["Main"]
+[page-plan] mrdrums fixture ck=synth mode=off  lib=true movyBanks=4 claimed=false delegated=false ctlPages=0 names=[]
+```
+
+`off` plans nothing because movy draws — that is what the flag buys, not a
+contradiction. The four banks against one page is the whole of the fixture
+limit, in one line, on the same run that produces the failures. A claim about a
+page plan that no run prints is a claim nobody has checked.
+
+**AND `SCHWUNG=` MUST HAVE BEEN SET WHEN `dist/esm` WAS BUILT.** It is a
+BUILD-time alias (`build/browser.mjs`): without it the `param_pages` import
+resolves to a stub that throws, `schwungLibAvailable()` is false, the mode pins
+to `off`, and **both arms measure the same thing** — while `page-mode.mjs`
+reports every listed label as ✓ fixed, which instructs a maintainer to DELETE
+labels that are still failing. The suite now asks the built artefact
+(`schwungLibAvailable()`), not the variable, and SKIPS with the rebuild command
+in the message. `SCHWUNG=… npm test` covers this; a hand-run
+`node build/browser.mjs` between them does not.
 
 Without `SCHWUNG=` every Schwung assertion is *skipped, not failed* — a green
 run proves nothing.
@@ -51,7 +77,10 @@ arrives, `applyKnobDelta` is never reached, and the sweep reports eleven
 failures that all read `writes: none`. Measured 2026-09-18 — the same `ui.js` is
 `smoke` 9/11 at `schwunggrid=2` and 11/11 at `0`. Put the flag back to `off`
 before `npm run test:device`, or read those three scenarios as page-mode results
-rather than as regressions.
+rather than as regressions. **The key is `flags.schwunggrid`**, because
+`readPrefFlags()` reads `prefs.flags` and nothing else: a top-level
+`"schwunggrid"` in that file is inert, and a hand-edit that writes one there
+changes no mode at all while looking exactly like the fix.
 
 ---
 
@@ -80,6 +109,7 @@ rather than as regressions.
 
 | id | item | model | state | proposed order |
 | --- | --- | --- | --- | --- |
+| SP-32 | **NEW** — a bank or cell that exists only in movy's config is on no page under `page`: audit which before SP-30 flips the default | Sonnet | ⬜ | **1** |
 | SP-31 | **NEW** — a knob release that lands on another page latches `touched`, and the next jog click is swallowed | Sonnet | ⬜ | **2** |
 | SP-19 | Undo redraw + automation-follows-arc (**verify first — may already be closed**) | Sonnet | ⬜ | **3** |
 | SP-28 | **NEW** — custom module visualisations (`custom:` viz kinds) | Sonnet | ⬜ | **4** |
@@ -173,6 +203,57 @@ and it belongs in this ledger before SP-30 flips the default.
 Each entry: **Product** — what a person gets, and what they lose today without
 it. **Design & implementation** — how to build it. **Closes when** — the
 evidence. **Needs** — its predecessor.
+
+---
+
+### SP-32 — under `page`, whatever lives only in movy's config has no page
+
+**Product.** A page under `page` is built from the module's OWN declaration —
+`ui_hierarchy` for the shape, `chain_params` for the types. movy's config
+(`src/modules/*.json`) is the other source: its banks, its file roots, its
+filters, its `fileRequireContains`. Under `off` both are on screen, because movy
+draws. Under `page` only the first is. A bank or a cell that exists ONLY in a
+movy config is therefore not mis-drawn and not greyed out — it is **absent**,
+with no error and no hint. SP-30 flips the default to `page`.
+
+**What that costs is not what it looks like, and the difference is measured.**
+The tempting reading — "movy's file browsing is a movy invention and dies under
+`page`" — is **wrong**. `synth:ui_preset_path` is a real DSP param of mrdrums
+(`docs/module-dump/modules/sound_generator--mrdrums.json` → `native.params`,
+`type: "filepath"`), and the module names it in its own declaration
+(`capabilities.ui_hierarchy.levels.root.params`), as it names `pad_sample_path`
+under `pad_settings`. Given that declaration the plan carries the route:
+
+```
+logic: schwung page mode — Test: under `page` the plan is the module’s declaration
+  ✓ a declared level becomes its own page
+  ✓ and the declared filepath IS a page key
+  ✓ so a click on it is a dive, which is the route `off` gets from movy’s config
+```
+
+(`browser-test/logic/schwung-page.mjs`. Teeth: drop `pad_sample_path` from the
+fixture's `pad_settings` and the second reddens; change its `chain_params` type
+away from `filepath` and the third does.)
+
+So what is open is narrower than a design question, and it is an AUDIT: **which
+movy-config banks and cells does no module declaration carry?** Only one end of
+that is measured today — the suite's own fixture, which declares nothing at all:
+
+```
+[page-plan] mrdrums fixture ck=synth mode=page lib=true movyBanks=4 claimed=true delegated=true ctlPages=1 names=["Main"]
+```
+
+Four config banks, one planned page, and nothing on it that opens a file. That
+is the fixture limit the ledger's three labels sit on, and it is a statement
+about a MOCK. The real modules each need the same read-back, and none of them
+has had it: `docs/module-dump/` (the 76-module inventory) against each
+`src/modules/*.json` is the worklist.
+
+**Closes when:** every bank and cell in `src/modules/*.json` is either carried
+by that module's own declaration — the plan read back, not assumed — or listed
+here as something a `page`-default user loses, with what they lose stated.
+
+**Needs:** nothing. Do it BEFORE SP-30's flip, which is why its order is 1.
 
 ---
 
@@ -837,11 +918,25 @@ the fact a later session would otherwise re-derive.
   intent at all.
   **THE BURN-DOWN WENT 6 → 5 AND ONLY ONE LABEL WAS EVER A CAUSE-C FAILURE.**
   `chain page: file-param jog click opens file browser` was; it now passes and is
-  DELETED from the ledger file, whose note now records that the remaining five
+  DELETED from the ledger file, whose note now records that the remaining labels
   are one FIXTURE limit (Schwung plans a single page named *Main* for the suites'
-  mocks, movy's config has four banks, so "the jog reaches bank N" cannot hold).
-  The brief's count of five Cause-C labels was this item's own error, copied
-  from a symptom list written before SP-15.
+  mocks, movy's config has four banks, so "the jog reaches bank N" cannot hold —
+  `ctlPages=1 names=["Main"]` against `movyBanks=4`, printed by app-loop's
+  `[page-plan]` line, not quoted from a probe). The brief's count of five
+  Cause-C labels was this item's own error, copied from a symptom list written
+  before SP-15.
+  **THE FIX ROUND TOOK IT 5 → 3, AND NOT BY FIXING ANYTHING.** Two of the five —
+  `Back leaves the file browser` and `select committed the preset path` — were
+  passing under `page` for no reason at all: the block asserts on a browser that
+  the gesture had failed to open, so `fileBrowserState` was already null and the
+  view was still KNOBS from the drill. Deleting them was not available (a listed
+  label that PASSES is what the gate rejects) and listing them was not either, so
+  the block's tail is now gated on its own premise —
+  `if (appState.currentView === VIEW_FILE_BROWSE)` — and those three checks
+  either run against a real browser or do not run. `off` still runs every one of
+  them; the coverage is where the browser is. **The gated checks are not
+  "passing": they are absent under `page`, and the two labels left the ledger
+  because a check that never ran cannot be a failure.**
   **Scope discipline, measured.** Pin the pressed page across a press/release
   pair to fix the latched-`touched` defect below and the ledger goes 5 → **7**:
   it clears the latch but breaks `shift+jog: plain jog steps one page` (measured

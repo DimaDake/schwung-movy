@@ -61,9 +61,15 @@ export function openSchwungDive(intent: SchwungIntent | null, page: SchwungPage,
 
     /* movy's own answers for the same key, or null when its config has none.
      * `gi` is refused below zero by `setFileValue`, so -1 costs the remembered
-     * directory and nothing else. */
-    const own = model && typeof model.getFileBrowseTarget === 'function'
-        ? model.getFileBrowseTarget(() => paramKey) : null;
+     * directory and nothing else.
+     *
+     * BY KEY, NOT THROUGH A SLOT. `getFileBrowseTarget`'s optional argument is
+     * a slot resolver, and handing it `() => paramKey` would make the answer
+     * depend on `primarySlot()` — movy's own `touchedSlots`, the one piece of
+     * state a page Schwung is drawing does not fill. The dive's anchor does not
+     * need a slot: `fullKey` names the parameter outright. */
+    const own = model && typeof model.fileBrowseTargetForKey === 'function'
+        ? model.fileBrowseTargetForKey(paramKey) : null;
 
     /* "" IS A REAL VALUE — "this param has no file" — AND SO IS "NOT READ YET",
      * AND THEY ARE NOT THE SAME. Both mean "nothing to put the cursor on", so

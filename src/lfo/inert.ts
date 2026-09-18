@@ -17,7 +17,7 @@ const NO_MODULATION: ReadonlySet<string> = new Set();
 
 /** Every Model member a page with no module answers the same way. */
 export type InertModelSurface = Pick<Model,
-    'getFileBrowseTarget' | 'clearFileOverlay' | 'setFileValue' |
+    'getFileBrowseTarget' | 'fileBrowseTargetForKey' | 'clearFileOverlay' | 'setFileValue' |
     'getKnobParamInfo' | 'setNoRefreshKeys' | 'refreshModulation' | 'modulatedKeys' |
     'paramRangeByKey' | 'getValueByKey' |
     'getDrumConfig' | 'getDrumPadCount' | 'getDrumPadNames' | 'getDrumCurrentPad' |
@@ -26,6 +26,7 @@ export type InertModelSurface = Pick<Model,
 export function inertModelSurface(id: string, name: string, componentKey: string): InertModelSurface {
     return {
         getFileBrowseTarget() { return null; },
+        fileBrowseTargetForKey() { return null; },
         clearFileOverlay(): void { /* no file params */ },
         setFileValue(_gi: number, _path: string): void { /* no file params */ },
         getKnobParamInfo(_physK: number) { return null; },     // not automatable

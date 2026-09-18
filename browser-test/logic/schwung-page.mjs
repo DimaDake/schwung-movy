@@ -479,6 +479,65 @@ _log('\nTest: the header readout and the footer hints come from the controller')
     env.setParams(MOCK_SYNTHS.test16);
 }
 
+_log('\nTest: under `page` the plan is the module’s declaration, and nothing else');
+{
+    /* The burn-down's remaining labels are a FIXTURE limit: the suite's mrdrums
+     * mock declares no `ui_hierarchy`, so the plan is one fallback page named
+     * Main while movy's config has four banks. That is a statement about the
+     * MOCK unless the REAL shape is read back too — and the real shape is what
+     * SP-30's default flip will meet. `docs/module-dump/…--mrdrums.json` has it:
+     * `ui_preset_path` (root level, in `params`) and `pad_sample_path` (the
+     * `pad_settings` level) are both `type: "filepath"` — real DSP params
+     * mrdrums declares for ITSELF. So "a movy-config file param can never be on
+     * a Schwung page" is false, and the true statement is narrower: what has no
+     * page under `page` is whatever exists ONLY in movy's config. Both halves
+     * are asserted here because only the pair says which is which. */
+    setSchwungGridMode('page');
+    schwungGridReload();
+    env.setParams({ ...MOCK_SYNTHS.mrdrums,
+        'synth:ui_hierarchy': JSON.stringify({
+            levels: {
+                root: { name: 'MrDrums', knobs: ['pad_vol'],
+                        params: [{ label: 'Pad Settings', level: 'pad_settings' },
+                                 'ui_preset_path'] },
+                pad_settings: { name: 'Pad Settings', knobs: ['pad_vol'],
+                                params: ['pad_sample_path', 'pad_vol'] },
+            },
+        }),
+        'synth:chain_params': JSON.stringify([
+            { key: 'ui_preset_path',  name: 'Load Preset', type: 'filepath', default: '' },
+            { key: 'pad_sample_path', name: 'Sample',      type: 'filepath', default: '' },
+            { key: 'pad_vol',         name: 'Volume',      type: 'float', min: 0, max: 2, step: 0.01 },
+        ]),
+    });
+    const declared = schwungPageFor(0, 'synth');
+    for (let i = 0; i < 12 * 60 && !declared.ready; i++) declared.tick();
+
+    eq('the declared plan resolved', declared.ready, true);
+    eq('a declared level becomes its own page',
+       declared.ctl.pages.map((x) => x.name).join(','), 'Main,Pad Settings');
+    eq('and the declared filepath IS a page key',
+       declared.ctl.pages.map((x) => (x.keys || []).join('+')).join(','),
+       'pad_vol,pad_sample_path');
+    const fm = declared.ctl.metaIndex.getOrGuess('pad_sample_path');
+    eq('so a click on it is a dive, which is the route `off` gets from movy’s config',
+       !!(fm && fm.divable), true);
+
+    /* THE OTHER HALF IS NOT HERE, and deliberately. A page built for a module
+     * that declares NOTHING does not resolve outside the app (measured: this
+     * harness leaves `ready=false` and `pages=[]` for `MOCK_SYNTHS.mrdrums`),
+     * so its half of the pair is read back where the app is running:
+     * `app-loop.mjs`'s permanent `[page-plan]` line prints `ctlPages=1
+     * names=["Main"]` against `movyBanks=4` for exactly this fixture, on BOTH
+     * arms. That line is cited by the burn-down section and by
+     * `page-mode-expected-fail.json`; this test is the other half — the
+     * declaration that makes the route exist. */
+
+    schwungGridReload();
+    setSchwungGridMode(null);
+    env.setParams(MOCK_SYNTHS.test16);
+}
+
 _log('\nTest: both embedded modes, and the off stand-in, use ONE rect');
 {
     /* `body` and `page` embed the same grid under the same chrome, and the off

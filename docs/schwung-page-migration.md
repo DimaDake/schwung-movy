@@ -104,6 +104,7 @@ changes no mode at all while looking exactly like the fix.
 | SP-15 | Cause D — contract lifecycle: the asking never stops, only its pace |
 | SP-18 | The decoration channel: modulation tilde, mod dot, p-lock highlight, held-step filter |
 | SP-17 | Cause C/B — the filepath dive, the header readout, the footer hints |
+| SP-19 | Undo redraw + automation-follows-arc — **verified, not built**: SP-26's write-log drain already delivers both |
 
 ### Open
 
@@ -111,7 +112,6 @@ changes no mode at all while looking exactly like the fix.
 | --- | --- | --- | --- | --- |
 | SP-32 | **NEW** — a bank or cell that exists only in movy's config is on no page under `page`: audit which before SP-30 flips the default | Sonnet | ⬜ | **1** |
 | SP-31 | **NEW** — a knob release that lands on another page latches `touched`, and the next jog click is swallowed | Sonnet | ⬜ | **2** |
-| SP-19 | Undo redraw + automation-follows-arc (**verify first — may already be closed**) | Sonnet | ⬜ | **3** |
 | SP-28 | **NEW** — custom module visualisations (`custom:` viz kinds) | Sonnet | ⬜ | **4** |
 | SP-16 | Cause G — graphics return (**shrunk: upstream fixed the hard half**) | Sonnet | ⬜ | **5** |
 | SP-20 | `ui_hierarchy` ownership under Schwung's planner | Opus | ⬜ | 6 |
@@ -294,7 +294,7 @@ like the fix that broke paging.
 
 ---
 
-### SP-19 — undo redraw, and the arc that follows automation
+### SP-19 ✅ 2026-09-18 — undo redraw, and the arc that follows automation: VERIFIED, NOT BUILT
 
 **Product.** Two invariants a person never thinks about until they break. **Undo
 must redraw:** movy's undo writes the DSP and only repaints if
@@ -326,7 +326,46 @@ the controller treats a modulated one — on the fast lane, not the rotation.
 red), or a fix lands and they pass. Either outcome closes it; a verification with
 no test does not.
 
-**Needs:** nothing.
+**Closed 2026-09-18 — the first outcome: both pass, on tests that redden when the
+drain is removed.** `browser-test/logic/page-freshness.mjs` holds the two. **(a)
+The arc follows the lane:** a page under `schwunggrid=page`, a lane writing a
+distinct value through `portFor(0)` every tick, and the controller's own cursor
+read of that key — 4 reads over 40 ticks, every one of them the value the lane
+had just written, with the drawn arc (`knobLevels()[0]`) wearing the last one.
+**(b) Undo redraws on a key `syncParamsToModels` cannot map:** the model boots on
+one declaration and the page is planned from another, so `q1` reaches the model
+and `refreshParamKey('q1')` answers no (asserted in the test) — the undo is then
+visible on the next read, `3` ticks, which is the page's whole rotation. **The
+teeth, measured on the SOURCE, not on the built chunk:** with `drainWrites()`'s
+body replaced by `return` and `dist/esm` rebuilt, (a) reports `expected 0, got 3`
+(3 of its 4 reads behind the lane) and (b) reports delays of `9, 9, 6, 9, 9, 6`
+against a rotation of 3. Restored and rebuilt, both green.
+
+**WHY (b) IS A SHORT PAGE, WHICH IS THE ONE THING WORTH KEEPING.** The batch
+fill is 8 ticks. A rotation is `keys.length + 1`, so an 8-key page (9) is
+*slower* than the fill and the fill alone would serve every read — an **arrival**
+bound there would not distinguish the drain from the timer and would pass for the
+wrong reason, which is why (a) is an 8-key page that asserts *which* value each
+read saw rather than when a value turned up. Two keys (3) is shorter than the
+fill, so the only thing that can deliver the undo within one rotation is the
+write having been drained, and (b) can assert an arrival bound outright.
+
+**WHERE THE DRAIN IS *NOT* ON THE PATH, stated so it is not re-derived.** The
+drain makes a key fresh when **movy** wrote it — `applyLaneMapping`'s binding
+writes (`src/app/tick.ts:527`, `:552`), the knob under the hand, undo, the drum
+handler — which is what (a) and (b) exercise. The engine's own lane **playback**
+does not go through the port: `movy-dsp` emits `OutEvent::Cc` as
+`midi_send_internal(0xB0 | track, 102 + lane, val)`
+(`engine/crates/movy-dsp/src/lib.rs:675`) and the chain applies it in the DSP, so
+nothing logs a write and the page sees the moved value on its next **fill** —
+≤ 8 ticks, i.e. inside one rotation of an 8-key page. That is "not frozen", which
+is what the product claim asks, but it is the fill and not the drain, and a
+device measurement of the arc against a playing lane (not taken here) is what
+would pin it. Read from source, not measured.
+
+**Needs:** nothing. No fix landed — the item's suspicion that SP-26 already
+closed it was right, and the freshness rule ("treat a lane-driven key as the
+controller treats a modulated one") was already the implementation.
 
 ---
 
@@ -878,6 +917,22 @@ Up for review. What changed and why:
 Newest first. The full narrative for each is in git history; what is kept here is
 the fact a later session would otherwise re-derive.
 
+- **SP-19 ✅ 2026-09-18 — verified, not built: SP-26's write-log drain already
+  delivers both invariants.** Two logic tests, `browser-test/logic/page-freshness.mjs`
+  (a new subsystem module, registered in `logic.mjs`'s two lists). **(a) The arc
+  follows the lane** — a lane writes a distinct value through `portFor(0)` every
+  tick, every cursor read of that key saw the value the lane had just written,
+  and the drawn arc wore the last one. **(b) Undo redraws a key
+  `syncParamsToModels` cannot map** — the model boots on one declaration and the
+  page is planned from another, so the model answers `refreshParamKey('q1')`
+  `false` (asserted in the test); the undo is visible on the next read, one
+  rotation. Teeth, measured with the drain's body removed in the SOURCE and
+  `dist/esm` rebuilt: (a) `expected 0, got 3`, (b) delays `9, 9, 6, 9, 9, 6`
+  against a rotation of 3. **The one thing worth re-deriving:** the batch fill is
+  8 ticks and a rotation is `keys.length + 1`, so (b) had to be a TWO-key page —
+  on an 8-key page the fill alone serves every read and the test would pass with
+  the drain gone.
+
 - **SP-17 ✅ 2026-09-18 — the filepath dive opens movy's browser; the header and
   the hint band are movy's rows with the controller's words.** Three pieces.
   **(a) The dive.** The controller's click returns `{action:"open", key, fullKey,
@@ -930,7 +985,9 @@ the fact a later session would otherwise re-derive.
   **FAILING**, as one cascade rather than two defects. The fixture's plan has no
   Preset page, so the jog never reaches `ui_preset_path`, so movy's browser never
   opens — and an assertion about where a browser left the view then reads the
-  *drill's* own view, and one about what a commit wrote reads `undefined`. The
+  chain view instead, because MoveBack exited the knobs page (the drill's own
+  view — and the expected side — is VIEW_KNOBS), and one about what a commit
+  wrote reads `undefined`. The
   measurement is in `progress.md` ("Burn-down adjudication"); the two lines are
   `✗ Back leaves the file browser: expected 1, got 3` (VIEW_KNOBS expected,
   VIEW_CHAIN actual — MoveBack exiting the knobs page, which is movy behaving

@@ -104,7 +104,7 @@ changes no mode at all while looking exactly like the fix.
 | SP-15 | Cause D — contract lifecycle: the asking never stops, only its pace |
 | SP-18 | The decoration channel: modulation tilde, mod dot, p-lock highlight, held-step filter |
 | SP-17 | Cause C/B — the filepath dive, the header readout, the footer hints |
-| SP-19 | Undo redraw + automation-follows-arc — **verified, not built**: SP-26's write-log drain already delivers both |
+| SP-19 | Undo redraw + automation-follows-arc — **verified, not built**: SP-26's write-log drain delivers the **undo** half; a playing lane's arc is served by the 8-tick fill and nothing tests that path (SP-29) |
 
 ### Open
 
@@ -313,7 +313,12 @@ any value, and *every* movy writer goes through the one memoized `portFor(track)
 — the knob under the hand, the sequencer, **an automation lane**, undo, the drum
 handler. If that holds, a lane write invalidates the key and the controller's
 next read is fresh, which is precisely "the arc follows the lane"; and undo is
-the same path. So the first session task is an assertion, not a feature: a logic
+the same path. **(Corrected after SP-19 closed: `an automation lane` does not
+belong in that list of port writers. A lane's *value* never reaches the port —
+the engine's CC is applied inside the chain's DSP — which is why a playing lane's
+arc is served by the 8-tick fill. Kept rather than deleted so the prediction
+above is not read as still standing; see the closed note and SP-29.)**
+So the first session task is an assertion, not a feature: a logic
 test that writes through the port as a lane would, ticks the page, and asserts
 the controller's `values` moved and the rendered arc with it — and the same for
 undo, including a key `syncParamsToModels` does *not* map, which is the case that
@@ -331,7 +336,11 @@ drain is removed.** `browser-test/logic/page-freshness.mjs` holds the two. **(a)
 The arc follows the lane:** a page under `schwunggrid=page`, a lane writing a
 distinct value through `portFor(0)` every tick, and the controller's own cursor
 read of that key — 4 reads over 40 ticks, every one of them the value the lane
-had just written, with the drawn arc (`knobLevels()[0]`) wearing the last one.
+had just written. **The teeth in (a) are the cursor-read assertion, NOT the arc
+one:** the companion check that the drawn arc (`knobLevels()[0]`) wears that
+value stays **green with the drain removed**, because the test's settle loop is
+long enough for the fill to catch up. It is a real check of the end state, and it
+is not evidence of the drain — said here so the two do not read alike.
 **(b) Undo redraws on a key `syncParamsToModels` cannot map:** the model boots on
 one declaration and the page is planned from another, so `q1` reaches the model
 and `refreshParamKey('q1')` answers no (asserted in the test) — the undo is then
@@ -340,6 +349,11 @@ teeth, measured on the SOURCE, not on the built chunk:** with `drainWrites()`'s
 body replaced by `return` and `dist/esm` rebuilt, (a) reports `expected 0, got 3`
 (3 of its 4 reads behind the lane) and (b) reports delays of `9, 9, 6, 9, 9, 6`
 against a rotation of 3. Restored and rebuilt, both green.
+
+**The residue this does NOT cover belongs to SP-29, and is recorded there, not
+here** — a *playing* lane's arc is served by the 8-tick fill and no test reaches
+that path. It is stated in SP-29's own text because a closed item is where the
+next session stops reading.
 
 **WHY (b) IS A SHORT PAGE, WHICH IS THE ONE THING WORTH KEEPING.** The batch
 fill is 8 ticks. A rotation is `keys.length + 1`, so an 8-key page (9) is
@@ -716,8 +730,23 @@ it implies work, one or more new items — **not** an implementation. Read
 `docs/CHAIN.md` and `docs/plans/2026-09-12-automation-lanes-design.md` in the
 schwung checkout (both new in #509) and establish: whether the two lane models
 can coexist per component or per track; whether movy's lanes should keep writing
-through `portFor(track)` as they do now (which is what makes SP-19's arc follow)
-or migrate onto `lanes:*` verbs; what `lanes:plock_step` does when movy is the
+through `portFor(track)` as they do now — **the parenthetical that used to sit
+here ("which is what makes SP-19's arc follow") is FALSE, and SP-19 is what
+falsified it:** a lane's **value** never goes through the port — only its
+**binding** does: `applyLaneMapping` writes `knob_<N>_set` / `mixlane` through
+`portFor(slot)` (`src/seq/lane-mapping.ts:38-54`, called at `src/app/tick.ts:527`
+and `:552`), and that is a real port write. Read "the value never goes through
+the port", never "nothing about a lane does" — the latter invites a later session
+to delete those writes as dead. The engine
+emits `OutEvent::Cc` → `midi_send_internal(0xB0 | track, 102 + lane, val)`
+(`engine/crates/movy-dsp/src/lib.rs:675`) and the **chain** applies it inside the
+DSP, so **no write is ever logged**; under `page` a playing lane's arc is served
+by the 8-tick **fill** (`FILL_TICKS`, `src/renderer/schwung-page-cache.ts`).
+**Nothing tests that path.** SP-19 verifies the drain for the writers that *do*
+go through the port — the knob under the hand, undo, the drum handler — and
+argues the playing-lane case from source alone. Whether that is good enough is
+part of this item, not a settled question
+— or migrate onto `lanes:*` verbs; what `lanes:plock_step` does when movy is the
 one holding the step; and whether Move's Record button is now contended.
 Three outcomes are plausible and all are acceptable: **coexist** (movy keeps its
 lanes, Schwung's are inert under movy because movy owns decorations and the
@@ -834,6 +863,8 @@ Up for review. What changed and why:
 3. **SP-19 becomes verify-first** and moves up. SP-26's write-log drain may
    already deliver "the arc follows the lane" and the undo redraw; the item's
    first task is two assertions, and if they pass it closes on the tests.
+   **(Settled 2026-09-18: it did deliver the undo half. A playing lane's arc is
+   served by the 8-tick fill and was never a drain claim — SP-29.)**
 4. **SP-28 is new** — custom module visualisations. Raised from the device: hank
    declares `custom:hank_wave` and movy draws a dial. Four concrete loader
    defects, zero test coverage, and it is a reason a module author would want
@@ -918,11 +949,17 @@ Newest first. The full narrative for each is in git history; what is kept here i
 the fact a later session would otherwise re-derive.
 
 - **SP-19 ✅ 2026-09-18 — verified, not built: SP-26's write-log drain already
-  delivers both invariants.** Two logic tests, `browser-test/logic/page-freshness.mjs`
-  (a new subsystem module, registered in `logic.mjs`'s two lists). **(a) The arc
-  follows the lane** — a lane writes a distinct value through `portFor(0)` every
-  tick, every cursor read of that key saw the value the lane had just written,
-  and the drawn arc wore the last one. **(b) Undo redraws a key
+  delivers both invariants it was asked about.** Two logic tests,
+  `browser-test/logic/page-freshness.mjs` (a new subsystem module, registered in
+  `logic.mjs`'s two lists). **(a) The arc follows the lane** — a lane writes a
+  distinct value through `portFor(0)` every tick, and every cursor read of that
+  key saw the value the lane had just written. **What (a) proves and what it does
+  not:** a lane's *playback* value never reaches the port (the engine's CC is
+  applied inside the chain's DSP), so *real* automation's arc is served by the
+  8-tick fill rather than by the drain, and **nothing tests that path** — SP-29.
+  The cursor-read assertion is the teeth; the companion check that the drawn arc
+  wore the last value stays green with the drain removed, because the settle loop
+  lets the fill catch up. **(b) Undo redraws a key
   `syncParamsToModels` cannot map** — the model boots on one declaration and the
   page is planned from another, so the model answers `refreshParamKey('q1')`
   `false` (asserted in the test); the undo is visible on the next read, one

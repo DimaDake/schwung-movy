@@ -185,7 +185,7 @@ export function schwungBodyFor(owner: PageOwner, stepSelected: boolean,
      *
      * WHAT IS NOT LOST IS THE LOCK READING. Both renderers resolve it from the
      * same `auto.heldValues` (`model/viewmodel.ts` for movy's body,
-     * `renderer/schwung-page-render.ts` for Schwung's decoration), so a held
+     * `renderer/schwung-page-decorations.ts` for Schwung's decoration), so a held
      * step shows the lock and the value that step will play either way. What
      * only movy's body can add — and the reason this gate exists — is which
      * knobs will take a lock in the first place.

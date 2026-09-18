@@ -120,11 +120,13 @@ for (const delay of [0, 100, 719, 721, 1500]) {
  * there.
  *
  * THE TWO NUMBERS ARE BOTH MEASURED, and the second is the reason the check
- * exists: over the same 800 ticks an empty slot costs 6 round trips under the
- * paced rule, and 201 when the latch is kept and RETRY_LIMIT is merely raised
+ * exists: over the same 800 ticks an empty slot costs 4 round trips under the
+ * paced rule, and 134 when the latch is kept and RETRY_LIMIT is merely raised
  * to 200 — the fix the ledger rules out, and one that passes every check above.
- * 100 is between them with room on both sides, so a drift towards read pace
- * lands outside it and a slower idle pace is still free to be tuned. */
+ * 100 sits between them, but the margin is ASYMMETRIC: 25x of headroom on the
+ * paced side, only 34% on the bad one. A drift towards read pace lands outside
+ * it; a slower idle pace still has room to move, but far less than the midpoint
+ * implies, so re-tuning that pace means re-measuring both sides. */
 {
     const p = pageFor({});
     for (let i = 0; i < OLD_BUDGET + 200; i++) p.tick();

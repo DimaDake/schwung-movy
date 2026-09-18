@@ -946,7 +946,12 @@ and in MANUAL.md, by flag name.
 tier included and a rack verified on hardware, docs and release notes are
 updated, and the revert path is written where a user can find it.
 
-**Needs:** every Phase 1 and Phase 2 item, and SP-29's decision.
+**Needs:** every Phase 1 and Phase 2 item, SP-29's decision, and **SP-31**. SP-31
+is a `page`-mode defect — a lost knob release latches the controller and swallows
+every later jog click — so it cannot happen while `off` is the default. This is
+the item that makes `page` the default, which makes SP-31 a precondition of it.
+SP-32's own row already carries the same "before SP-30" dependency; this makes
+SP-31's explicit too.
 
 ---
 
@@ -1037,6 +1042,53 @@ Up for review. What changed and why:
    7 of 95 fleet modules carry a cut pair and Schwung claims none of them, so
    dropping it lands exactly on native parity. All of Phase 2 that remains is
    SP-23 and SP-24, both of which are parity checks rather than features.
+
+---
+
+## Carried items — rulings that outlive the plan workspace
+
+The final whole-branch review adjudicated the items that were carried out of the
+per-item rounds. Only those with a named owner or a real next action are kept
+here; the ones that ended with nothing to do are not carried forward. This
+section is the durable copy — it stood in the plan workspace's `progress.md`,
+which is git-ignored scratch deleted with that workspace.
+
+- **Files over the 200-line limit — pinned debt.** `src/app/tick.ts` **1078**,
+  `src/midi/router.ts` **1055**. The parked item's path, `src/seq/tick.ts`,
+  **does not exist** — that is the correction. Owner: the Phase-4 deletion of
+  movy's page renderer, or whoever next edits `tick.ts`'s body gate.
+- **The device page-mode ritual needs no fixture — accepted in writing.** Neither
+  `test-device/fixture.ts` nor `scripts/lib/test-set.sh` writes `flags`/`prefs`,
+  and none is needed: every page-mode device check now pins the mode by override
+  **and** asserts `p.renderer === PAGE_MODE` (`page-lifecycle.ts:173,190,261`,
+  `page-dive.ts:210,224,229`, `widgets.ts:193,259`), so a fallback to the box flag
+  reddens instead of silently grading `off`.
+- **`page-dive.ts` mutating `prefs.json` — keep.** `page-dive.ts:139-160`
+  establishes absence, snapshots, restores, and reads back with a throw. This is
+  **the pattern for machine-level state**, not an inherited habit.
+- **`README.md` untouched — parked, decided.** The headline lands when SP-30 flips
+  the default, and SP-30's *Closes when* already owns the README line; writing it
+  now documents a feature nobody has. Must be re-read at SP-30.
+- **`schwung-page-contract.ts` at 198/200 — park, owner SP-30 or SP-40.** The
+  retry/pace policy (`RETRY_TICKS:108`, `RETRY_LIMIT:109`, `IDLE_RETRY_TICKS:131`,
+  and the `!loaded` branch of `tick()`) is one responsibility and should move out
+  before the file is next edited.
+- **`tickSeq` in the probe payload — the follow-up this fix round creates.**
+  `noteTick` was its only writer, so the field is now permanently `0` and is still
+  in the payload a device scenario reads. Remove it from the payload (and from
+  `page-lifecycle.ts:250`) or give it a real writer. Owner: whoever next touches
+  `src/test/probe.ts`.
+- **The `widgets` device flake — a named race, not a watch.** Measured **4/9** in
+  `test-device/.flake-log.json`, on check `the-widget-is-what-is-on-the-screen`.
+  The fourth flake is `2026-09-18T15:28:54.443Z` on `a49121e` — **outside** the
+  `13:57–14:03` development window an earlier ruling rested on, and on code the
+  scenario was not being changed for — which meets the escalation trigger that
+  ruling set. Fix belongs to SP-28's follow-up and costs a device tier.
+- **The `page-dive` flake.** The flakiest scenario in the log: **5/12**, every one
+  on `dive-commit-lands-in-the-parameter`, with flakes on `e7a4304` (×3),
+  **`a7512c4`** (14:48) and **`a49121e`** (15:28) — two of them on this branch's
+  own commits. Both attempts ran the same build, so it is a race in the
+  browse/commit path and not a code difference.
 
 ---
 
@@ -1135,7 +1187,10 @@ the fact a later session would otherwise re-derive.
   undo and the SP-26 write log see it. A `canvas` or a `string` still falls
   through to the `schwung-open unhandled` log; that is the honest report, and the
   brief's claim that movy has "a canvas-capable screen" is **wrong** — movy's
-  param types are `float|int|enum|file` and it draws no canvas.
+  param types are `float|int|enum|file` and it draws no canvas. The `canvas.js`
+  SP-28 added is the opposite kind of thing — a module-supplied widget SCRIPT,
+  loaded by `src/renderer/schwung-canvas.ts` — and is not a param type movy
+  renders, so the two items do not disagree.
   **(b) The chrome.** `schwung-page-chrome.ts` composes both bands from the
   controller: `describePage({}).header` (Schwung's `movyHeaderFor`, so the
   readout cannot drift from the host's) and `inverted` — which is true on

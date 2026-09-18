@@ -247,12 +247,12 @@ scenario('page-lifecycle', async (t) => {
      * held anything — which is the cold start this item is about, and the one
      * case the retry latch is reachable from.
      *
-     * Waited out in DEVICE FRAMES. `probe.tick().tickSeq` is structurally 0 —
-     * `noteTick` is exported from src/test/probe.ts and called from NOWHERE in
-     * `src/`, so nothing ever advances it — so the budget cannot be counted
-     * directly and is spent by waiting a quantity of device work sized for the
-     * slowest tick rate (`PAST_OLD_BUDGET`). Frames cannot be talked out of
-     * advancing, and the count is arithmetic rather than a guess. */
+     * Waited out in DEVICE FRAMES. `probe.tick().tickSeq` is structurally 0 by
+     * construction — it has no writer at all any more, its only one (`noteTick`)
+     * having been deleted — so the budget cannot be counted on this field and is
+     * instead spent by waiting a quantity of device work sized for the slowest
+     * tick rate (`PAST_OLD_BUDGET`). Frames cannot be talked out of advancing,
+     * and the count is arithmetic rather than a guess. */
     await dev.reopen(probe);
     /* THE OVERRIDE DID NOT SURVIVE THAT REOPEN (see the top of L1), and the
      * reopen is the whole point of this check: it is the cold start an empty

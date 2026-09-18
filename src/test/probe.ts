@@ -20,7 +20,6 @@ let tickSeq   = 0;
  * waits on: a sleep after a gesture asserts nothing, whereas waiting for this
  * to advance proves movy processed the input AND repainted. */
 export function noteRender(vm: ViewModel): void { lastVm = vm; renderSeq++; }
-export function noteTick(): void { tickSeq++; }
 
 export function _resetForTest(): void { lastVm = null; renderSeq = 0; tickSeq = 0; }
 

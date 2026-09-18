@@ -1345,7 +1345,7 @@ function applyView(preset) {
          * A held step with a resolved lock: the cell is marked AND shows the
          * value that step will play, never where the knob was left. Rendered
          * through `sp.render(title, auto)` because that is where the decoration
-         * is built (`schwung-page-render.ts`), and the held value is the
+         * is built (`schwung-page-decorations.ts`), and the held value is the
          * wiring: drop it and the cell goes back to the live value.
          *
          * ── page_held_unassignable (c) ──────────────────────────────────────

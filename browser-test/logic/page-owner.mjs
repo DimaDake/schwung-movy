@@ -113,10 +113,11 @@ const { isMovyOwnComponent } = await import('../../dist/esm/chain/config.js');
     /* SP-12. The poll is a PER-TICK call now — it is the only thing that
      * advances a delegated page's contract and its read cursor, and movy's own
      * refresh no longer dirties the model into rendering a frame for it. A
-     * second poller costs the read this item exists to remove, and worse: the
-     * contract's retry budget (schwung-page-contract.ts, RETRY_TICKS ×
-     * RETRY_LIMIT) has no recovery once spent, so a site polling on its own
-     * schedule gives the page up on a view it was never even on. */
+     * second poller costs the read this item exists to remove, on a view the
+     * page is not even on: a page polled from elsewhere settles and re-plans
+     * while nobody is watching, and the eager window a slot that is about to be
+     * filled depends on (schwung-page-contract.ts) is spent on the way to a view
+     * that never opened. */
     const POLL_CALL = /\.poll\(\)/;
     const POLLERS = { 'src/app/page-poll.ts': 'the one caller — once per tick, from app/tick.ts' };
     const pollOffenders = walkTs('src')

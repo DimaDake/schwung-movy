@@ -40,6 +40,15 @@ started at 13 and is at **6**; the remaining six are named in
 Without `SCHWUNG=` every Schwung assertion is *skipped, not failed* — a green
 run proves nothing.
 
+**Arming page mode on the DEVICE reddens the device tier, and not because of the
+code under test.** `items`, `module-contract` and `smoke` assert movy's OWN
+writes, and under `schwunggrid=page` movy is not the renderer: the knob CC
+arrives, `applyKnobDelta` is never reached, and the sweep reports eleven
+failures that all read `writes: none`. Measured 2026-09-18 — the same `ui.js` is
+`smoke` 9/11 at `schwunggrid=2` and 11/11 at `0`. Put the flag back to `off`
+before `npm run test:device`, or read those three scenarios as page-mode results
+rather than as regressions.
+
 ---
 
 ## State
@@ -59,27 +68,27 @@ run proves nothing.
 | SP-26 | Bulk read for a delegated page — the epoch cache in front of the port |
 | SP-27 | The delegated page re-planned the whole module every 8 ticks — 67.5 ms → 3.0 |
 | SP-14 | Cause E — drum/voice pages planned from movy's config |
+| SP-15 | Cause D — contract lifecycle: the asking never stops, only its pace |
 
 ### Open
 
 | id | item | model | state | proposed order |
 | --- | --- | --- | --- | --- |
-| SP-15 | Cause D — contract lifecycle: None does not eject, the first module does not take | Sonnet | ⬜ | **1** |
-| SP-18 | Modulation tilde + mod dot + p-lock highlight + held-step filter | Sonnet | ⬜ | **2** |
-| SP-17 | Cause C/B — filepath & canvas dives, header readout, footer hints | Sonnet | ⬜ | **3** |
-| SP-19 | Undo redraw + automation-follows-arc (**verify first — may already be closed**) | Sonnet | ⬜ | **4** |
-| SP-28 | **NEW** — custom module visualisations (`custom:` viz kinds) | Sonnet | ⬜ | **5** |
-| SP-16 | Cause G — graphics return (**shrunk: upstream fixed the hard half**) | Sonnet | ⬜ | **6** |
-| SP-20 | `ui_hierarchy` ownership under Schwung's planner | Opus | ⬜ | 7 |
+| SP-18 | Modulation tilde + mod dot + p-lock highlight + held-step filter | Sonnet | ⬜ | **1** |
+| SP-17 | Cause C/B — filepath & canvas dives, header readout, footer hints | Sonnet | ⬜ | **2** |
+| SP-19 | Undo redraw + automation-follows-arc (**verify first — may already be closed**) | Sonnet | ⬜ | **3** |
+| SP-28 | **NEW** — custom module visualisations (`custom:` viz kinds) | Sonnet | ⬜ | **4** |
+| SP-16 | Cause G — graphics return (**shrunk: upstream fixed the hard half**) | Sonnet | ⬜ | **5** |
+| SP-20 | `ui_hierarchy` ownership under Schwung's planner | Opus | ⬜ | 6 |
 | SP-21 | Metadata correction overlay | Sonnet | ❌ **dropped** — the audit found 1 real correction in 555 | — |
-| SP-21a | Report po32-drum's `kit` range upstream (the 1) | Sonnet | ⬜ | 8 |
+| SP-21a | Report po32-drum's `kit` range upstream (the 1) | Sonnet | ⬜ | 7 |
 | SP-22 | Cut-curve viz kind | Sonnet | ❌ **dropped** — a movy extension; Schwung draws plain dials natively | — |
-| SP-23 | Font parity + enum-overlay double-draw | Sonnet | ⬜ | 9 |
-| SP-24 | movy-only page kinds verified against a Schwung body | Sonnet | ⬜ | 10 |
-| SP-29 | **NEW** — Schwung now ships its own automation lanes and p-locks. Decide movy's position | Opus | ⬜ | 11 |
-| SP-30 | Default-on: flip, device tier, docs, release, stated revert path | Sonnet | ⬜ | 12 |
-| SP-40 | Delete `body` and the `.off` stand-ins | Sonnet | ⬜ | 13 |
-| SP-41 | Delete `off`, movy's page renderer, model page planning. **No return** | Opus | ⬜ | 14 |
+| SP-23 | Font parity + enum-overlay double-draw | Sonnet | ⬜ | 8 |
+| SP-24 | movy-only page kinds verified against a Schwung body | Sonnet | ⬜ | 9 |
+| SP-29 | **NEW** — Schwung now ships its own automation lanes and p-locks. Decide movy's position | Opus | ⬜ | 10 |
+| SP-30 | Default-on: flip, device tier, docs, release, stated revert path | Sonnet | ⬜ | 11 |
+| SP-40 | Delete `body` and the `.off` stand-ins | Sonnet | ⬜ | 12 |
+| SP-41 | Delete `off`, movy's page renderer, model page planning. **No return** | Opus | ⬜ | 13 |
 
 ### Upstream
 
@@ -147,51 +156,6 @@ and it belongs in this ledger before SP-30 flips the default.
 Each entry: **Product** — what a person gets, and what they lose today without
 it. **Design & implementation** — how to build it. **Closes when** — the
 evidence. **Needs** — its predecessor.
-
----
-
-### SP-15 — Cause D: the contract lifecycle does not hold
-
-**Product.** Two of the three things a person does with a chain slot are broken
-under `page`, and both read as the tool being stuck rather than as a bug.
-Setting a slot to **None** leaves Schwung drawing the departed module's page —
-you cannot get out of an editor for a module that is no longer there ("if I
-choose None I do not get kicked out"). And the **first** module dropped into an
-empty slot does not take: you land on movy's own page and stay there until you
-navigate away to the chain view and back, sometimes needing a page change too.
-The second one is worse than it sounds, because it is the first thing anyone
-does after a reboot — after a cold start no chain slot is active at all — so the
-very first impression of `page` mode is that the module you just loaded has no
-editor. Until this closes, default-on is unshippable regardless of how good
-every other item is.
-
-**Design & implementation.** The tri-state that decides "is there a page set to
-draw" already exists and is right: `refreshLoaded()` in
-`src/renderer/schwung-page-contract.ts` holds the previous verdict when
-`ctl.contractUnresolved` (a failed *read* is not news about the module) and only
-a resolved, genuinely empty plan hands the frame back. The suspect is the retry
-budget around it: `RETRY_TICKS 12` × `RETRY_LIMIT 60` is spent on a slot that was
-*never* loaded, and `refreshLoaded()` re-arms the budget only on going *empty* —
-which a never-loaded slot never does. So reproduce it first at the cheapest
-level: a logic test over `createPageContract` driving a port that answers empty
-for N ticks and then answers a real contract, asserting that the page becomes
-ready for any N up to the module's real load time, and asserting separately that
-a slot set to None resolves to zero pages and releases the frame. Expect the fix
-to be in the *re-arm rule* (a contract that has never resolved keeps asking, on a
-budget measured against module-load time rather than tick count) rather than in
-bigger numbers — raising `RETRY_LIMIT` hides it and costs a read per tick
-forever. Watch the interaction with SP-26: `reload()` deliberately reads live and
-drops the cache, so a retry is a real round trip and the budget is a real cost.
-The ejection half also needs a device check, because "resolved and empty" is a
-statement about the engine's answer for a slot that just went None, and only the
-device produces it.
-
-**Closes when:** a logic test in `browser-test/logic/` reproduces both halves and
-goes red with the fix removed; on device, setting a slot to None returns to
-movy's view within one `RELOAD_POLL_TICKS`, and a module loaded into an empty
-slot after a cold boot draws its page without any navigation.
-
-**Needs:** nothing. SP-26/SP-27 are in and the retry path is unchanged by them.
 
 ---
 
@@ -277,7 +241,7 @@ browser and the chosen file plays; a `page` screenshot scene shows the held
 parameter's name and value in the header; a module declaring footer hints renders
 them. `page-mode` does not grow.
 
-**Needs:** SP-15 (a module whose contract will not settle cannot be dived into).
+**Needs:** nothing — SP-15 landed 2026-09-18.
 
 ---
 
@@ -434,7 +398,7 @@ fallback silently never runs.
 **Closes when:** a structural test names `schwung-page-hierarchy.ts` as the sole
 reader and reddens when a second one is added; `page-mode` does not grow.
 
-**Needs:** SP-15.
+**Needs:** nothing — SP-15 landed 2026-09-18.
 
 ---
 
@@ -763,8 +727,8 @@ Up for review. What changed and why:
 6. **SU-2, SU-4, SU-7 close without work.** The modulation channel already
    exists, the dive intent contract is already complete, and SP-26 solved the
    bulk read caller-side.
-7. **SP-15 stays first.** It is the only remaining item that makes the mode
-   unusable rather than imperfect.
+7. **SP-15 closed 2026-09-18, so SP-18 is first.** It was the only item that
+   made the mode unusable rather than imperfect; everything left is polish.
 8. **SP-21 and SP-22 are DROPPED, and SU-5 withdrawn with them** — asked
    directly, and the answer is the acceptance bar at the top of this file plus
    two measurements. SP-21's own audit ran: 554 duplicates, **1** real
@@ -835,6 +799,31 @@ Up for review. What changed and why:
 Newest first. The full narrative for each is in git history; what is kept here is
 the fact a later session would otherwise re-derive.
 
+- **SP-15 ✅ 2026-09-18 — the contract's retry budget latched, and the asking may
+  not stop.** `attempts` reached `RETRY_LIMIT` and never reset for a slot that
+  had never loaded, so a module arriving later was never noticed — and with
+  `loaded === false` `tick()` returns before the reload divider, so the retry is
+  the only discovery path and nothing else could have re-armed it. The numbers
+  are unchanged; what changed is what `RETRY_LIMIT` MEANS (the end of the urgent
+  window) and what `attempts` counts. After it, the asking continues at
+  module-load pace for as long as the slot is unloaded, while a settled,
+  empty-and-resolved contract still stops reading.
+  Teeth are in `browser-test/logic/page-contract.mjs` — red on both
+  late-arrival cases with the fix removed. **The two halves are not equal
+  evidence, and the item does not claim they are.** The `None` half was already
+  correct once the engine serves a genuinely empty answer — which is the
+  tri-state's job, and the case the logic suite can only model — so it is kept
+  as a **regression guard**; the half this item demonstrates is the
+  **late-arrival re-arm**. `test-device/scenarios/page-lifecycle.ts` covers the
+  end-to-end outcome on hardware and does **not** discriminate the fix there:
+  measured with the latch reverted, with the renderer pinned to `page`
+  (`probe.page().renderer`, now asserted in all three checks — the first version
+  silently graded movy's own renderer, because L3's reopen drops the mode
+  override and falls back to the device flag), and with the empty-slot window at
+  10000 frames — ~29 s, ~1840 ticks at the slowest tick rate the board is known
+  to tick, against a 720-tick budget — the module's page comes back anyway. The
+  device does not reach the latch by that route; something re-makes the contract
+  when the module lands, and which path that is was not established.
 - **SP-27 ✅ 2026-09-17 — the delegated page re-planned the whole module every 8
   ticks and discarded the result.** `load()` ran `planPages` unconditionally and
   returned at `planned.fingerprint === s.fingerprint`, which in a steady state is

@@ -14,6 +14,7 @@ import './dist/scenarios/items.js';
 import './dist/scenarios/volume.js';
 import './dist/scenarios/sends.js';
 import './dist/scenarios/module-contract.js';
+import './dist/scenarios/page-lifecycle.js';
 import './dist/scenarios/master-fx.js';
 import './dist/scenarios/mutes.js';
 import './dist/scenarios/smoke.js';

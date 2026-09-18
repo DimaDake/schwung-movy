@@ -1,7 +1,13 @@
+/* How long a module takes to land, in ticks — the window in which its own
+ * answers are still on their way, and so the span every "has it arrived yet"
+ * question is measured against. ~1 s at the device tick rate. Named once
+ * because the name probe below and the delegated page's contract retry
+ * (renderer/schwung-page-contract.ts) ask that one question. */
+export const MODULE_LOAD_TICKS      = 344;  /* ~1 s at device tick rate */
 /* Probes of asynchronous module metadata (preset lists, enum option sets that
  * arrive after load) before movy stops asking. One probe per name poll. */
 export const META_RETRY_LIMIT       = 8;
-export const NAME_POLL_TICKS        = 344;  /* ~1 s at device tick rate */
+export const NAME_POLL_TICKS        = MODULE_LOAD_TICKS;
 export const LONG_PRESS_TICKS       = 172;  /* ~0.5 s */
 /* How often a visible_if controller is re-read. movy's tick period IS its MIDI
  * sampling interval, so an IPC read on EVERY tick is paid for in input latency

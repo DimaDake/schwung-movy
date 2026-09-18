@@ -66,6 +66,7 @@ import { run as run_schwung_grid } from './logic/schwung-grid.mjs';
 import { run as run_schwung_page } from './logic/schwung-page.mjs';
 import { run as run_schwung_floor } from './logic/schwung-floor.mjs';
 import { run as run_page_owner } from './logic/page-owner.mjs';
+import { run as run_page_contract } from './logic/page-contract.mjs';
 import { run as run_cpu_page } from './logic/cpu-page.mjs';
 import { run as run_mixer } from './logic/mixer.mjs';
 import { run as run_pan_viz } from './logic/pan-viz.mjs';
@@ -138,6 +139,7 @@ const SUITES = [
     run_schwung_page,
     run_schwung_floor,
     run_page_owner,
+    run_page_contract,
     run_cpu_page,
     run_mixer,
     run_pan_viz,

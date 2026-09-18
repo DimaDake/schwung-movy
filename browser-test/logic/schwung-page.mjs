@@ -19,7 +19,7 @@
 
 import { schwungLibAvailable, bootModel, eq, ok, _log,
          env, portFor, MOCK_SYNTHS, schwungPageFor, schwungGridReload,
-         setSchwungGridMode } from './harness.mjs';
+         setSchwungGridMode, countTrips } from './harness.mjs';
 
 export async function run() {
 
@@ -167,34 +167,8 @@ _log('\nTest: the embedded body rect seats Schwung’s widget rows on movy’s o
 
 /* ── SP-12/SP-26: what one tick of a delegated page costs ────────────────── */
 
-/* Count ROUND TRIPS, not params.
- *
- * SP-26 is the difference between the two: `shadow_get_params` reads a whole
- * page in ONE blocking IPC where `shadow_get_param` reads one key in one, and
- * on device each of those is ~3.4 ms whatever it carries. A counter on the
- * single-key call alone therefore cannot see the thing this budget is about —
- * it counted 80 before SP-26 and 125 after, while the real cost went the other
- * way. The bulk call's own per-key delegation is suppressed for the same
- * reason: inside one request it is one trip. */
-function countTrips(fn) {
-    /* Suites before this one delete the param globals rather than restoring
-     * them (SP-02's deferred list), so wrapping whatever is there would wrap
-     * `undefined`. The env's own restorer is what that cleanup meant. */
-    env.restoreParamGlobals();
-    const realGet = globalThis.shadow_get_param;
-    const realBulk = globalThis.shadow_get_params;
-    let trips = 0, depth = 0;
-    globalThis.shadow_get_params = (...a) => {
-        trips++; depth++;
-        try { return realBulk(...a); } finally { depth--; }
-    };
-    globalThis.shadow_get_param = (...a) => { if (!depth) trips++; return realGet(...a); };
-    try { fn(); } finally {
-        globalThis.shadow_get_param = realGet;
-        globalThis.shadow_get_params = realBulk;
-    }
-    return trips;
-}
+/* `countTrips` is the shared counter — harness.mjs owns what a round trip is,
+ * and the contract suite budgets against the same one. */
 
 /** A settled, delegated page for track 0, ticked until its contract resolves. */
 function settledPage() {

@@ -193,6 +193,34 @@ function notMatch(label, str, pattern) {
     else fail(label, `'${str}' should not match ${pattern}`);
 }
 
+/* Count ROUND TRIPS, not params.
+ *
+ * SP-26 is the difference between the two: `shadow_get_params` reads a whole
+ * page in ONE blocking IPC where `shadow_get_param` reads one key in one, and
+ * on device each of those is ~3.4 ms whatever it carries. A counter on the
+ * single-key call alone therefore cannot see the thing a read-cost budget is
+ * about — it counted 80 before SP-26 and 125 after, while the real cost went
+ * the other way. The bulk call's own per-key delegation is suppressed for the
+ * same reason: inside one request it is one trip. */
+function countTrips(fn) {
+    /* Suites before this one delete the param globals rather than restoring
+     * them (SP-02's deferred list), so wrapping whatever is there would wrap
+     * `undefined`. The env's own restorer is what that cleanup meant. */
+    env.restoreParamGlobals();
+    const realGet = globalThis.shadow_get_param;
+    const realBulk = globalThis.shadow_get_params;
+    let trips = 0, depth = 0;
+    globalThis.shadow_get_params = (...a) => {
+        trips++; depth++;
+        try { return realBulk(...a); } finally { depth--; }
+    };
+    globalThis.shadow_get_param = (...a) => { if (!depth) trips++; return realGet(...a); };
+    try { fn(); } finally {
+        globalThis.shadow_get_param = realGet;
+        globalThis.shadow_get_params = realBulk;
+    }
+    return trips;
+}
 
 /* The last MUSICAL op. Undo brackets every edit with ring bookkeeping
  * (usnap/ucommit/udrop/uswap), which is never what a test asserting "the
@@ -287,7 +315,7 @@ export {
     holdTouch, holdRelease, holdTurnCancel, holdTick, assignActive, assignCycle,
     assignCommit, assignToastText, resetAssignMode, jogHintTouch, jogHintTick, jogHintVisible,
     shapeSample, drawWave, CHAIN_SLOTS, LFO_CHAIN_INDEX, isLfoSlot, init,
-    appState, selectTrack, watchedTrack, ok, fail, eq, notMatch, bootModel, settleModel,
+    appState, selectTrack, watchedTrack, countTrips, ok, fail, eq, notMatch, bootModel, settleModel,
     bankNames, P, lastMusicalOp, musicalOps, UNDO_RING, _log,
     env, mockFsEntries, failureCount,
 };

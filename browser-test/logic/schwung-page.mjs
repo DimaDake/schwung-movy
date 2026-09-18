@@ -19,7 +19,7 @@
 
 import { schwungLibAvailable, bootModel, eq, ok, _log,
          env, portFor, MOCK_SYNTHS, schwungPageFor, schwungGridReload,
-         setSchwungGridMode } from './harness.mjs';
+         setSchwungGridMode, countTrips } from './harness.mjs';
 
 export async function run() {
 
@@ -167,34 +167,8 @@ _log('\nTest: the embedded body rect seats Schwung’s widget rows on movy’s o
 
 /* ── SP-12/SP-26: what one tick of a delegated page costs ────────────────── */
 
-/* Count ROUND TRIPS, not params.
- *
- * SP-26 is the difference between the two: `shadow_get_params` reads a whole
- * page in ONE blocking IPC where `shadow_get_param` reads one key in one, and
- * on device each of those is ~3.4 ms whatever it carries. A counter on the
- * single-key call alone therefore cannot see the thing this budget is about —
- * it counted 80 before SP-26 and 125 after, while the real cost went the other
- * way. The bulk call's own per-key delegation is suppressed for the same
- * reason: inside one request it is one trip. */
-function countTrips(fn) {
-    /* Suites before this one delete the param globals rather than restoring
-     * them (SP-02's deferred list), so wrapping whatever is there would wrap
-     * `undefined`. The env's own restorer is what that cleanup meant. */
-    env.restoreParamGlobals();
-    const realGet = globalThis.shadow_get_param;
-    const realBulk = globalThis.shadow_get_params;
-    let trips = 0, depth = 0;
-    globalThis.shadow_get_params = (...a) => {
-        trips++; depth++;
-        try { return realBulk(...a); } finally { depth--; }
-    };
-    globalThis.shadow_get_param = (...a) => { if (!depth) trips++; return realGet(...a); };
-    try { fn(); } finally {
-        globalThis.shadow_get_param = realGet;
-        globalThis.shadow_get_params = realBulk;
-    }
-    return trips;
-}
+/* `countTrips` is the shared counter — harness.mjs owns what a round trip is,
+ * and the contract suite budgets against the same one. */
 
 /** A settled, delegated page for track 0, ticked until its contract resolves. */
 function settledPage() {
@@ -394,6 +368,170 @@ _log('\nTest: a module that declares its own hierarchy is never spoken for');
        [p.keyAt(0), p.keyAt(1), p.keyAt(2)].join(','), 'bd_tune,bd_decay,');
     eq('a pad has no voice to follow, because the module declared none',
        p.focusVoice(1), false);
+
+    schwungGridReload();
+    setSchwungGridMode(null);
+    env.setParams(MOCK_SYNTHS.test16);
+}
+
+_log('\nTest: the header readout and the footer hints come from the controller');
+{
+    /*
+     * THE BANDS MOVY KEEPS. `bands.header`/`bands.footer` stay false — Schwung's
+     * own chrome needs 56 rows and movy leaves 54 — so movy draws both, and the
+     * one thing it must not do is INVENT what they say. The header is
+     * `describePage().header.left`, built by the same `movyHeaderFor` the
+     * shadow host draws its own with. The footer's WORDS are movy's (Schwung's
+     * vocabulary lives in the shadow-side host, which movy may not import) and
+     * its every CONDITION is the controller's.
+     *
+     * So the assertion with teeth is not "the footer says OPEN" — that is the
+     * code read back to itself. It is that the verb it prints is the
+     * CONSEQUENCE the click actually has, observed by clicking.
+     */
+    setSchwungGridMode('page');
+    schwungGridReload();
+    env.setParams(MOCK_SYNTHS['6w6']);
+    const p = schwungPageFor(0, 'synth');
+    for (let i = 0; i < 12 * 60 && !p.ready; i++) p.tick();
+    ok('the page resolved', p.ready);
+
+    const showed = p.chrome(true);
+    eq('nothing held, no readout — movy’s own header stands',
+       showed.header === null && showed.footer === null, true);
+
+    const bound = [];
+    for (let k = 0; k < 8; k++) if (p.keyAt(k)) bound.push(k);
+    ok('the page has knobs to hold', bound.length > 0);
+    eq('a knob over an unbound cell says nothing either',
+       p.chrome(true).header, null);
+
+    const k = bound[0];
+    p.knobTouch(k, true);
+    const held = p.chrome(true);
+    const own = p.ctl.describePage({}).header;
+    eq('held, the readout is the controller’s own, verbatim',
+       held.header && held.header.left, own.left);
+    eq('...and its second half too', held.header && held.header.right, own.right);
+    ok('...and it is the branch that says a param is under the hand',
+       !!(held.header && held.header.inverted));
+    ok('...beside a hint band', Array.isArray(held.footer) && held.footer.length > 0);
+    eq('the chain view keeps its own footer, where the jog is not paging',
+       p.chrome(false).footer, null);
+    eq('...but the readout is still the page’s',
+       p.chrome(false).header.left, held.header.left);
+    p.knobTouch(k, false);
+    eq('and letting go takes the band with it', p.chrome(true).footer, null);
+    /* THE CLICK IS THE SUBJECT. One knob at a time, and the verb printed for it
+     * has to match what pressing the jog DOES to the parameter — an `open`
+     * intent, a flip, a write, or nothing at all. Asserting the verb the code
+     * chose would be the code read back to itself; asserting it against the
+     * consequence is what catches a footer that promises OPEN on a cell whose
+     * click does nothing.
+     *
+     * A page of floats exercises only the fallback, so the walk runs over a
+     * whole module's pages and the tally at the end is the point: a run where
+     * every verb was MENU proves the default and nothing about the branches
+     * this file exists for.
+     *
+     * A TRIGGER'S WRITE LEAVES NO TRACE — it bangs and returns to idle — so the
+     * fire branch is read from the parameter's own declaration, not from the
+     * value map. The flip branch IS read from the consequence, and that is the
+     * half with teeth: a two-way enum that moved while the footer said
+     * something else fails here. */
+    const verbs = new Set();
+    const walk = (name, params) => {
+        env.setParams(params);
+        schwungGridReload();
+        const pg = schwungPageFor(0, 'synth');
+        for (let i = 0; i < 12 * 60 && !pg.ready; i++) pg.tick();
+        ok(name + ': the page resolved', pg.ready);
+        for (let page = 0; page < pg.pageCount; page++) {
+            pg.goToPage(page);
+            for (let slot = 0; slot < 8; slot++) {
+                const key = pg.keyAt(slot);
+                if (!key) continue;
+                pg.knobTouch(slot, true);
+                const foot = pg.chrome(true).footer.find((h) => h[0] === 'CLK');
+                const before = JSON.stringify(pg.ctl.state.values);
+                const intent = pg.click();
+                const wrote = before !== JSON.stringify(pg.ctl.state.values);
+                const meta = pg.ctl.metaAt(slot);
+                const twoWay = !!(meta && Array.isArray(meta.options)
+                                  && meta.options.length === 2);
+                const want = (intent && intent.action === 'open') ? 'OPEN'
+                           : (meta && meta.writeOnly) ? 'FIRE'
+                           : (twoWay && wrote) ? 'FLIP' : 'MENU';
+                eq(name + ' ' + key + ' hands the click to ' + want,
+                   foot ? foot[1] : null, want);
+                verbs.add(want);
+                pg.knobTouch(slot, false);
+            }
+        }
+    };
+    walk('switches', MOCK_SYNTHS.switches);
+    ok('a two-way enum was reached, so the flip branch ran (' + [...verbs].join('/') + ')',
+       verbs.has('FLIP'));
+    ok('and a trigger, so the fire branch ran', verbs.has('FIRE'));
+
+    schwungGridReload();
+    setSchwungGridMode(null);
+    env.setParams(MOCK_SYNTHS.test16);
+}
+
+_log('\nTest: under `page` the plan is the module’s declaration, and nothing else');
+{
+    /* The burn-down's remaining labels are a FIXTURE limit: the suite's mrdrums
+     * mock declares no `ui_hierarchy`, so the plan is one fallback page named
+     * Main while movy's config has four banks. That is a statement about the
+     * MOCK unless the REAL shape is read back too — and the real shape is what
+     * SP-30's default flip will meet. `docs/module-dump/…--mrdrums.json` has it:
+     * `ui_preset_path` (root level, in `params`) and `pad_sample_path` (the
+     * `pad_settings` level) are both `type: "filepath"` — real DSP params
+     * mrdrums declares for ITSELF. So "a movy-config file param can never be on
+     * a Schwung page" is false, and the true statement is narrower: what has no
+     * page under `page` is whatever exists ONLY in movy's config. Both halves
+     * are asserted here because only the pair says which is which. */
+    setSchwungGridMode('page');
+    schwungGridReload();
+    env.setParams({ ...MOCK_SYNTHS.mrdrums,
+        'synth:ui_hierarchy': JSON.stringify({
+            levels: {
+                root: { name: 'MrDrums', knobs: ['pad_vol'],
+                        params: [{ label: 'Pad Settings', level: 'pad_settings' },
+                                 'ui_preset_path'] },
+                pad_settings: { name: 'Pad Settings', knobs: ['pad_vol'],
+                                params: ['pad_sample_path', 'pad_vol'] },
+            },
+        }),
+        'synth:chain_params': JSON.stringify([
+            { key: 'ui_preset_path',  name: 'Load Preset', type: 'filepath', default: '' },
+            { key: 'pad_sample_path', name: 'Sample',      type: 'filepath', default: '' },
+            { key: 'pad_vol',         name: 'Volume',      type: 'float', min: 0, max: 2, step: 0.01 },
+        ]),
+    });
+    const declared = schwungPageFor(0, 'synth');
+    for (let i = 0; i < 12 * 60 && !declared.ready; i++) declared.tick();
+
+    eq('the declared plan resolved', declared.ready, true);
+    eq('a declared level becomes its own page',
+       declared.ctl.pages.map((x) => x.name).join(','), 'Main,Pad Settings');
+    eq('and the declared filepath IS a page key',
+       declared.ctl.pages.map((x) => (x.keys || []).join('+')).join(','),
+       'pad_vol,pad_sample_path');
+    const fm = declared.ctl.metaIndex.getOrGuess('pad_sample_path');
+    eq('so a click on it is a dive, which is the route `off` gets from movy’s config',
+       !!(fm && fm.divable), true);
+
+    /* THE OTHER HALF IS NOT HERE, and deliberately. A page built for a module
+     * that declares NOTHING does not resolve outside the app (measured: this
+     * harness leaves `ready=false` and `pages=[]` for `MOCK_SYNTHS.mrdrums`),
+     * so its half of the pair is read back where the app is running:
+     * `app-loop.mjs`'s permanent `[page-plan]` line prints `ctlPages=1
+     * names=["Main"]` against `movyBanks=4` for exactly this fixture, on BOTH
+     * arms. That line is cited by the burn-down section and by
+     * `page-mode-expected-fail.json`; this test is the other half — the
+     * declaration that makes the route exist. */
 
     schwungGridReload();
     setSchwungGridMode(null);

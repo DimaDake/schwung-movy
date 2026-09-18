@@ -52,6 +52,7 @@ const PRESETS = [
     'drum-mrdrums-pad5', 'drum-mrdrums-global',
     'chordism-chordb', 'sfz-amp',
     'params-overflow-page', 'params-extras-settings',
+    'file_browse',
     'bankbar-mid', 'bankbar-surge', 'bankbar-dense',
     'auto_dot', 'auto_held', 'auto_live', 'auto_limit',
     'step_page_knobs', 'step_page_chain', 'step_indicator', 'step_rec_header',
@@ -82,6 +83,9 @@ const PRESETS = [
     'env_stages', 'eq_bands', 'cut_filters', 'faders', 'wav_sample', 'wav_loop', 'wav_loop_off', 'wav_beside_filter',
     'switches', 'pan_dials', 'spray_saturated',
     'page_body', 'page_body_p2',
+    'page_mod_cell', 'page_mod_cell_held',
+    'page_held_lock', 'page_lane_unheld', 'page_held_unassignable',
+    'page_chrome_held', 'page_chrome_flip',
 ];
 
 /* The scenes that render Schwung's own body. Only reachable from a bundle built
@@ -92,12 +96,15 @@ const PRESETS = [
  * it builds or loads anything; the scenes carry their own guard as well, so a
  * name that drifts out of this set fails loudly instead of rendering a body it
  * cannot. */
-const PAGE_SCENES = new Set(['page_body', 'page_body_p2']);
+const PAGE_SCENES = new Set(['page_body', 'page_body_p2',
+    'page_mod_cell', 'page_mod_cell_held',
+    'page_held_lock', 'page_lane_unheld', 'page_held_unassignable',
+    'page_chrome_held', 'page_chrome_flip']);
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
 const BASE = {
     enum_overlay: 'plaits', knob_toast: 'test8', no_params: 'no_params',
-    keys_view: 'test8', browse_view: 'test8',
+    keys_view: 'test8', browse_view: 'test8', file_browse: 'test8',
     obxd_preset_page: 'obxd_like', obxd_main_page: 'obxd_like', obxd_filter_page: 'obxd_like',
     items_cell: 'dexed_like', items_overlay: 'dexed_like',
     chain_synth: 'test8', chain_empty: 'test8', chain_jog_toast: 'test8',
@@ -109,6 +116,17 @@ const BASE = {
     'params-overflow-page': 'hier_params_overflow',
     'params-extras-settings': 'hier_params_extras',
     auto_dot: 'test8', auto_held: 'test8', auto_live: 'test8', auto_limit: 'test8',
+    /* The page scenes' mocks. `page_mod_cell*` need a page whose first param an
+     * LFO can be pointed at; `page_held_unassignable` needs a page only SOME of
+     * which can take a lock — `readouts` declares three of its four params
+     * `access: "read"`, which is non-automatable by declaration. */
+    page_mod_cell: 'test8', page_mod_cell_held: 'test8',
+    page_held_lock: 'test8', page_lane_unheld: 'test8',
+    page_held_unassignable: 'readouts_hier',
+    /* The chrome scenes need the two click kinds that never reach movy — a
+     * trigger and a two-way enum — and `switches` is the mock that declares
+     * both. */
+    page_chrome_held: 'switches', page_chrome_flip: 'switches',
     step_page_knobs: 'test8', step_page_chain: 'test8', step_indicator: 'test8',
     step_rec_header: 'test8',
     loop_strip_midclip: 'test8', loop_strip_outside: 'test8', loop_header: 'test8',
@@ -220,11 +238,20 @@ const { renderKnobsView }  = await import('../dist/esm/renderer/knob-view.js');
  * reason as every other renderer: the file resolves them after installEnv(). */
 const { setSchwungGridMode, schwungPageFor, schwungGridReload } =
     await import('../dist/esm/renderer/schwung-grid.js');
+/* The app's own half of the `page` scenes: who owns the page, what body it
+ * draws, and the lookup the page asks about modulation. Imported rather than
+ * re-derived — a scene that re-implements a condition the app owns stays green
+ * with that condition taken out, which is the one thing these have to not do. */
+const { pageOwnerOf } = await import('../dist/esm/app/page-owner.js');
+const { schwungBodyFor, schwungBankFor } = await import('../dist/esm/app/tick.js');
+const { modulatedKeysOf } = await import('../dist/esm/app/modulated-keys.js');
+const { stepPageAvailable, stepPageState } = await import('../dist/esm/seq/step-page.js');
 const { schwungLibAvailable } = await import('../dist/esm/renderer/schwung-lib.js');
 const { renderKeysView }   = await import('../dist/esm/renderer/keys-view.js');
 const { renderLoadingView } = await import('../dist/esm/renderer/loading-view.js');
 const { renderVersionsView } = await import('../dist/esm/renderer/versions-view.js');
 const { renderBrowseView } = await import('../dist/esm/renderer/browse-view.js');
+const { renderFileBrowseView } = await import('../dist/esm/renderer/file-browse-view.js');
 const { renderChainView }  = await import('../dist/esm/renderer/chain-view.js');
 const { buildStepPageVM }  = await import('../dist/esm/seq/step-page-vm.js');
 const { buildMainPageVM }  = await import('../dist/esm/seq/main-page-vm.js');
@@ -441,6 +468,26 @@ function applyView(preset) {
                 selected: 0, confirming: true, empty: false });
             lastRender(); break;
         case 'browse_view':      showBrowse([{ name: 'Plaits' }, { name: 'Wurl' }, { name: 'Bass' }], 1); break;
+        /* The other browser: the one a FILE parameter opens, which is what "hold
+         * the knob and click the jog" lands on. The cursor sits on a file rather
+         * than the ".." row so the selection bar is over a loadable entry. */
+        case 'file_browse':
+            lastRender = () => renderFileBrowseView({
+                paramSlot: 0, componentKey: 'synth', paramKey: 'sample', gi: 12,
+                root: '/data/UserData/UserLibrary/Samples',
+                filter: ['.wav', '.aif'],
+                currentDir: '/data/UserData/UserLibrary/Samples/Drums',
+                items: [
+                    { name: '..', path: '/data/UserData/UserLibrary/Samples', isDir: true },
+                    { name: 'Breaks', path: '/data/UserData/UserLibrary/Samples/Drums/Breaks', isDir: true },
+                    { name: 'Kick Tight A.wav', path: '/x/Kick Tight A.wav', isDir: false },
+                    { name: 'Kick Tight B.wav', path: '/x/Kick Tight B.wav', isDir: false },
+                    { name: 'Snare Rim C.wav',  path: '/x/Snare Rim C.wav',  isDir: false },
+                    { name: 'Tom Low D.wav',    path: '/x/Tom Low D.wav',    isDir: false },
+                ],
+                selectedIndex: 2,
+            });
+            lastRender(); break;
         /* Trigger badge phases. Time is frozen so the fired flash and two drain
          * positions are deterministic; the drain is what makes the re-arm
          * debounce visible, so it needs more than one sample pinned. */
@@ -1262,6 +1309,233 @@ function applyView(preset) {
             setSchwungGridMode(null);
             break;
         }
+
+        /* THE DECORATION CHANNEL (SP-18). Four readings a person takes at a
+         * glance in `off` mode, and the reason `page_body` cannot cover any of
+         * them: it passes no automation view and wires no modulation source, so
+         * under it all four are the plain page and would stay green with the
+         * whole channel taken out.
+         *
+         * Each scene is the frame the APP draws, through the same call the app
+         * makes — `sp.render(title, auto)` where the decoration decides, and
+         * `schwungBodyFor(owner, …)` where the body decision does. None of them
+         * re-derives a condition the app owns; a scene that did would keep
+         * passing with that condition removed, which is the one thing these
+         * exist to prevent.
+         *
+         * ── page_mod_cell / page_mod_cell_held (a) ───────────────────────────
+         * The tilde, and the polarity case upstream calls out as the one no
+         * contact sheet shows: the mark sits six pixels left of the label run,
+         * which is OUTSIDE the inverted strip, so on a touched cell it has to be
+         * drawn in black-on-white rather than white-on-black or it is invisible
+         * on exactly the cell that needs it. `page_mod_cell_held` is therefore
+         * the same frame with knob 0 touched — a real `knobTouch`, the same call
+         * a finger makes — not a second flag.
+         *
+         * The LFO is pointed at the page's first key, and the tick loop is then
+         * driven to that key rather than to a count: `modCache` is filled one
+         * key per tick by the controller's own read rotation, so a page that
+         * has just resolved has only asked about the keys its replan landed on,
+         * and how many ticks the rotation needs is the controller's business.
+         * `synth:freq:effective` is set away from the base value so the mod dot
+         * is a dot ON the arc rather than under the pointer — without it the two
+         * marks coincide and the shot cannot tell the dot from the base.
+         *
+         * ── page_held_lock (b) ──────────────────────────────────────────────
+         * A held step with a resolved lock: the cell is marked AND shows the
+         * value that step will play, never where the knob was left. Rendered
+         * through `sp.render(title, auto)` because that is where the decoration
+         * is built (`schwung-page-decorations.ts`), and the held value is the
+         * wiring: drop it and the cell goes back to the live value.
+         *
+         * ── page_held_unassignable (c) ──────────────────────────────────────
+         * A held step on a page most of which cannot take a lock. Rendered
+         * through the REAL body decision — `pageOwnerOf` + `schwungBodyFor`,
+         * with `seqState.stepAutoMode` set, which is what `vm.automationHeld`
+         * is — so the scene grades movy's held-step filter end to end rather
+         * than a copy of its condition.
+         *
+         * ── page_lane_unheld (d) ────────────────────────────────────────────
+         * The frame `page_held_lock` is one term away from: the same page, the
+         * same live lane, nothing held. `activeLanes` is set in both — it is
+         * live for as long as the track has locks — so what separates them is
+         * `held` alone, and a decoration pass that ignores it marks a cell
+         * nobody locked, every frame, for the rest of the page's life. That is
+         * SP-16's "mark that lies": it went unnoticed while the graphic gate
+         * hid the picture behind it, and it is the whole of what is left of the
+         * symptom now that upstream keeps the graphic. */
+        case 'page_mod_cell':
+        case 'page_mod_cell_held':
+        case 'page_held_lock':
+        case 'page_lane_unheld':
+        case 'page_held_unassignable': {
+            if (!schwungLibAvailable()) throw new Error(
+                'screenshot: ' + preset + ' needs a bundle built with SCHWUNG=/path/to/schwung');
+            const modded = preset === 'page_mod_cell' || preset === 'page_mod_cell_held';
+            /* `modulatedKeysOf` resolves the model through `appState.trackModels`
+             * — the registry `app/init.ts` fills and the one production runs on
+             * — so the scene has to be under it too, or it would be grading a
+             * lookup that never finds anything. Restored on the way out: other
+             * scenes read this. */
+            const savedModels = appState.trackModels;
+            appState.trackModels = [chainModels];
+            try {
+                setSchwungGridMode('page');
+                /* Dropped first: `pages` is a module-level cache and nothing
+                 * clears it between scenes, so a scene would otherwise inherit
+                 * the previous one's index. */
+                schwungGridReload();
+                const sp = schwungPageFor(0, 'synth', modulatedKeysOf);
+                for (let i = 0; i < 12 * 60 && !sp.ready; i++) { sp.tick(); model.tick(); }
+                if (!sp.ready) throw new Error(preset + ': the contract never resolved');
+
+                if (modded) {
+                    /* The page's OWN key at knob 0, not movy's: the tilde is the
+                     * controller asking `isModulated` about the key IT planned,
+                     * and the two planners do not always put the same param in
+                     * the same cell. */
+                    const MOD_KEY = sp.keyAt(0);
+                    if (!MOD_KEY) throw new Error(preset + ': nothing planned at knob 0');
+                    env.setParams({
+                        ...env.params,
+                        'lfo1:target': 'synth',
+                        'lfo1:target_param': MOD_KEY,
+                        /* The live value an LFO has put the param at, which the
+                         * controller reads on its own lane for the dot. Above
+                         * the 0.50 base, so dot and pointer are two marks. */
+                        ['synth:' + MOD_KEY + ':effective']: '0.85',
+                    });
+                    model.refreshModulation();
+
+                    /* Driven to the key, not to a tick count — the accessor is
+                     * the controller's own, i.e. the cache the renderer reads.
+                     * Deliberately NOT an assertion: the failure this guards
+                     * against is "the mark did not appear", and the pixel diff
+                     * says that with a count, where a throw would only say the
+                     * page never asked. */
+                    for (let i = 0; i < 400 && !sp.ctl.isModulatedCached(MOD_KEY); i++) {
+                        sp.tick(); model.tick();
+                    }
+                    /* ...and a little more, for the effective-value lane the dot
+                     * rides, which is a separate read on its own cadence. */
+                    for (let i = 0; i < 24; i++) { sp.tick(); model.tick(); }
+                    if (preset === 'page_mod_cell_held') sp.knobTouch(0, true);
+                    lastRender = () => renderKnobsView(model.getViewModel(), false, 0,
+                        () => sp.render('T1 > ' + model.getModuleName()),
+                        { index: sp.pageIndex, count: sp.pageCount });
+                } else if (preset === 'page_held_lock') {
+                    /* THE KEY THE PAGE PLANNED, resolved the way the app resolves
+                     * it: through the owner, which under delegation answers with
+                     * Schwung's key. A lane built from movy's own knob 0 would
+                     * mark nothing at all on a page that put a different param
+                     * there — and the scene would then be green with the whole
+                     * decoration taken out. */
+                    const info = pageOwnerOf(model).knobParamInfo(0);
+                    if (!info) throw new Error(preset + ': no parameter at knob 0');
+                    /* The auto view the app builds for a held step, with knob
+                     * 0's lane locked at its maximum: `test8` reads 0.50 at
+                     * rest, so a lock at 1.00 is unmistakable. */
+                    const auto = { ...autoView({ held: true, heldVal: info.max }),
+                                   laneForKey: (k) => (k === info.key ? 0 : -1) };
+                    lastRender = () => renderKnobsView(model.getViewModel(auto), false, 0,
+                        () => sp.render('T1 > ' + model.getModuleName(), auto),
+                        { index: sp.pageIndex, count: sp.pageCount });
+                } else if (preset === 'page_lane_unheld') {
+                    /* THE OTHER HALF OF `page_held_lock`: the SAME page, the
+                     * same live lane, and no step held. `activeLanes` is set in
+                     * both frames — it is live for as long as the track HAS
+                     * locks, which on an automated page is every frame — so
+                     * `held` is the only thing between them, and the decoration
+                     * pass is the only reader of it. Resolved through the owner
+                     * for the same reason as above: a lane built from movy's
+                     * own knob 0 would mark a different cell under `page`, and
+                     * the shot would stay green with the condition taken out. */
+                    const info = pageOwnerOf(model).knobParamInfo(0);
+                    if (!info) throw new Error(preset + ': no parameter at knob 0');
+                    const auto = { ...autoView({ held: false }),
+                                   laneForKey: (k) => (k === info.key ? 0 : -1) };
+                    lastRender = () => renderKnobsView(model.getViewModel(auto), false, 0,
+                        () => sp.render('T1 > ' + model.getModuleName(), auto),
+                        { index: sp.pageIndex, count: sp.pageCount });
+                } else {
+                    /* `seqState.stepAutoMode` IS `vm.automationHeld` — the flag
+                     * the automation view publishes as `held`. Set rather than
+                     * gestured because the scene owns the frame; the body is
+                     * asked for through the app's own function either way, once
+                     * per frame, which is where the app asks it. */
+                    seqState.stepAutoMode = true;
+                    lastRender = () => {
+                        const owner = pageOwnerOf(model);
+                        /* The hold is the OWNER's now — `pageOwnerOf` reads
+                         * `seqState.stepAutoMode` set above — so the body is not
+                         * told it a second time (app/page-owner.ts). */
+                        const body = schwungBodyFor(owner,
+                            stepPageAvailable() && stepPageState.selected);
+                        renderKnobsView(model.getViewModel(autoView({ held: true })), false, 0,
+                            body, schwungBankFor(owner, body));
+                    };
+                }
+                lastRender();
+            } finally {
+                /* Both are module-level state, and leaving either set silently
+                 * repaints every scene after this one — which would still report
+                 * green. */
+                setSchwungGridMode(null);
+                seqState.stepAutoMode = false;
+                appState.trackModels = savedModels;
+            }
+            break;
+        }
+        /* ── THE TWO BANDS MOVY KEEPS (SP-17) ─────────────────────────────────
+         * `bands.header`/`bands.footer` are false for LAYOUT reasons, so movy
+         * draws both — the readout from the controller's own `describePage()`,
+         * the hints from conditions it asks the controller for. A scene is the
+         * only thing that sees them: the logic suite proves the pairs are the
+         * right WORDS, and nothing there proves they reach the pixels.
+         *
+         * The two scenes are the two clicks that never come back to movy. A
+         * trigger FIRES inside the controller, a two-way enum FLIPS there, and
+         * neither returns an intent — so the footer has to name the consequence
+         * instead, and these are the frames where it does.
+         */
+        case 'page_chrome_held':
+        case 'page_chrome_flip': {
+            if (!schwungLibAvailable()) throw new Error(
+                'screenshot: ' + preset + ' needs a bundle built with SCHWUNG=/path/to/schwung');
+            const savedModels = appState.trackModels;
+            appState.trackModels = [chainModels];
+            try {
+                setSchwungGridMode('page');
+                schwungGridReload();
+                const sp = schwungPageFor(0, 'synth');
+                for (let i = 0; i < 12 * 60 && !sp.ready; i++) { sp.tick(); model.tick(); }
+                if (!sp.ready) throw new Error(preset + ': the contract never resolved');
+
+                /* By KEY, not by slot: which cell a param lands in is the
+                 * planner's business, and a scene pinned to slot 0 would keep
+                 * rendering green if the planner moved it. */
+                const WANT = preset === 'page_chrome_held' ? 'rnd_patch' : 'legato';
+                let slot = -1;
+                for (let pg = 0; pg < sp.pageCount && slot < 0; pg++) {
+                    sp.goToPage(pg);
+                    for (let k = 0; k < 8; k++) if (sp.keyAt(k) === WANT) { slot = k; break; }
+                }
+                if (slot < 0) throw new Error(preset + ': ' + WANT + ' is on no page');
+                sp.knobTouch(slot, true);
+                /* Through the app's own call, chrome included — the header and
+                 * the hints are the last argument, exactly as app/tick.ts
+                 * passes them. */
+                lastRender = () => renderKnobsView(model.getViewModel(), false, 0,
+                    () => sp.render('T1 > ' + model.getModuleName()),
+                    { index: sp.pageIndex, count: sp.pageCount }, sp.chrome(true));
+                lastRender();
+            } finally {
+                setSchwungGridMode(null);
+                appState.trackModels = savedModels;
+            }
+            break;
+        }
+
         default:                 forceRender(); break;                       // plain knobs view
     }
 }

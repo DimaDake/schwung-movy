@@ -2,6 +2,7 @@ import { trackRef } from '../track/ref.js';
 import { pageOwnerOf } from '../app/page-owner.js';
 import { openSchwungEditor, schwungEditorActive, schwungEditorJog,
          schwungEditorCommit, schwungEditorCancel } from '../renderer/schwung-editor.js';
+import { openSchwungDive } from '../browser/schwung-dive.js';
 
 /*
  * WHICH PARAMETER IS UNDER KNOB k — one answer, for every gesture.
@@ -794,13 +795,18 @@ export function onMidiMessageInternal(data: number[]): void {
                     || spc.ctl.state.touched >= 0)) {
                 const intent = spc.click(wantPicker);
                 appState.dirty = true;
-                /* A divable param opens its list. An intent with no options —
-                 * a filepath, a canvas — has no editor here; it is logged
-                 * rather than dropped, because a param that appears inert is
-                 * exactly the failure a silent drop would hide. */
-                if (intent && intent.action === 'open' && !openSchwungEditor(intent, spc)) {
+                /* A divable param opens its list, or — with no options, as a
+                 * filepath has none — movy's file browser, bound to the
+                 * intent's own key. What is left after both is still logged
+                 * rather than dropped: a canvas or a string has no screen here
+                 * yet, and a param that appears inert is exactly the failure a
+                 * silent drop would hide. */
+                if (intent && intent.action === 'open'
+                    && !openSchwungEditor(intent, spc)
+                    && !openSchwungDive(intent, spc, activeModel())) {
                     mlog('schwung-open unhandled ' + (intent.key || '?')
-                       + ' kind=' + (intent.meta ? intent.meta.kind : '?'));
+                       + ' kind=' + (intent.meta ? intent.meta.kind : '?')
+                       + ' type=' + (intent.meta ? intent.meta.type : '?'));
                 }
                 return;
             }
@@ -808,7 +814,23 @@ export function onMidiMessageInternal(data: number[]): void {
         if (appState.currentView === VIEW_BROWSE) {
             loadSelectedModule();
         } else if (appState.currentView === VIEW_FILE_BROWSE) {
+            /* A file committed into a component Schwung owns changes what that
+             * module DECLARES — a wav decides the position marker that indexes
+             * it, a ROM its banks — so the contract this page was planned from
+             * comes due shortly. `selectionChanged` is the controller's own
+             * name for that, and the shadow host's list editor drives the same
+             * modules through its own browser and has the same race. Asked only
+             * of a component movy is actually showing a Schwung page for: a
+             * commit into a movy-drawn slot has no contract to settle. */
+            const committed = appState.fileBrowserState;
             activateFileBrowserItem();
+            if (committed && !appState.fileBrowserState) {
+                const owner = pageOwnerOf(activeModel());
+                if (owner.delegated && owner.ref
+                    && owner.ref.componentKey === committed.componentKey) {
+                    owner.page?.ctl.selectionChanged();
+                }
+            }
         } else if (masterChainActive()) {
             // Master FX chain, mirroring the track chain:
             //  - in the detail page, a click opens the browser to swap the module

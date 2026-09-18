@@ -1,13 +1,16 @@
 /* schwung-page-render.ts — one render of the page Schwung planned.
  *
- * The decoration pass that marks a locked cell, the drawing context movy hands
- * the controller, and the param description movy's automation layer is built
- * from. Kept out of the binding because this is the half SP-16 (Cause G2) edits.
+ * The drawing context movy hands the controller, the param description movy's
+ * automation layer is built from, and the call that hands over the eight knob
+ * LEDs. The decoration pass that marks a locked cell lives next door, in
+ * `schwung-page-decorations.ts`; this file is the half SP-16 (Cause G2) edits
+ * around it.
  */
 
 import type { AutomationView } from '../types/viewmodel.js';
-import { fontPrint, fontWidth } from '../font/index.js';
 import { GRID_BODY_RECT } from './layout.js';
+import { decorationsFor } from './schwung-page-decorations.js';
+import { movyCtx } from './schwung-ctx.js';
 
 /* movy draws its own header, bank bar and footer; Schwung is asked for the
  * widgets between them.
@@ -110,38 +113,9 @@ export function createPageRender(ctl: any, deps: {
         },
 
         render(title: string, auto?: AutomationView, _touched = -1) {
-            /* A lane with locks marks its cell. Asked BY PARAMETER, which is
-             * what makes re-pagination harmless. */
-            if (auto) {
-                const decs = keysOf().map((k) => {
-                    if (!k) return null;
-                    const lane = auto.laneForKey(k as string);
-                    const on = lane >= 0 && (auto.activeLanes & (1 << lane)) !== 0;
-                    if (!on) return null;
-                    /*
-                     * ON A HELD STEP YOU LOOK AT WHAT THE STEP WILL PLAY, not
-                     * at where the knob happens to be. movy has already
-                     * resolved the held value per lane; passing only `locked`
-                     * marked the cell and then drew the LIVE value underneath
-                     * it, which is the one reading a parameter lock must not
-                     * show. `decoration.value` is exactly this, and Schwung
-                     * already prefers it over the live value.
-                     */
-                    const held = auto.held ? auto.heldValues.get(lane) : undefined;
-                    return held === undefined ? { locked: true }
-                                              : { locked: true, value: held };
-                });
-                ctl.setDecorations(decs.some(Boolean) ? decs : null);
-            } else {
-                ctl.setDecorations(null);
-            }
+            ctl.setDecorations(decorationsFor(auto, keysOf()));
 
-            const ctx = {
-                fillRect: (x: number, y: number, w: number, h: number, c: any) =>
-                    fill_rect(x, y, w, h, c ? 1 : 0),
-                print: (x: number, y: number, t: string, c: any) => fontPrint(x, y, t, c ? 1 : 0),
-                textWidth: (t: string) => fontWidth(t),
-            };
+            const ctx = movyCtx();
             /* No `footer` argument: movy draws its own. Every page kind honours
              * `bands` now that the controller's chrome is one definition. */
             ctl.render(ctx, { title, bands: BANDS, rect: GRID_BODY_RECT });

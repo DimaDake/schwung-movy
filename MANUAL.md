@@ -556,6 +556,43 @@ touching one opens no list, and none of them is offered for automation — there
 is no value for a lane to record. They still refresh on screen, which is the
 whole reason they are on the page.
 
+**The header and the hint row.** These pages are drawn by Schwung, and Movy
+keeps two bands for itself. **While a knob is under your hand** the header
+becomes that parameter — its full name on the left, its current value on the
+right, drawn inverted — and the bottom row of hints changes to match, because
+the click is what changes meaning:
+
+![A held knob takes the header and the hint row](docs/assets/page_chrome_held.png)
+
+Here `RND PATCH` is under the hand; `JOG PAGE` still moves the page, while the
+two action knobs beside it offer `CLK FIRE` and `KNB FIRE`. Those are named as
+*consequences* rather than as clicks on purpose: a trigger fires inside the
+controller and hands nothing back, so "click to fire" is the only true thing the
+row can say. An ordinary control reads `CLK OPEN`, and a two-way setting that
+flips in place reads `CLK FLIP`. Let go and Movy's own header and footer come
+back — the track, the module and the pad grid say more than a page title does,
+and with nothing held the click is the same everywhere.
+
+**Files.** A parameter that points at a file — a sample, a wavetable, a
+soundfont, an SFZ — has no list to open, so it opens **Movy's file browser**
+instead. Hold the knob and the header names the parameter and the file it is set
+to; the bottom row says so — `JOG PAGE` still moves the page, and `CLK OPEN`
+(click the jog) opens the browser in that parameter's folder:
+
+![The file browser a file parameter opens](docs/assets/file_browse.png)
+
+Turn the jog to move the highlight, click to load the highlighted file, **Back**
+to cancel. Folders come first and are marked with a `>`, so you can walk down
+into a library and back out through the `..` row. The folder you last used for a
+parameter is remembered, so the second visit starts where the first one ended —
+per parameter rather than per module, because a drum module has one of these for
+every pad.
+
+Loading is **one undo step**, named after the parameter it went into. When a
+module says what a valid file contains — a drum-rack preset as opposed to a
+synth one, say — a file that fails that test is refused with a toast instead of
+loaded, and the browser stays open so you can pick another.
+
 **Cell labels.** A module may also declare a short name for the cell separate
 from the parameter's full name — *Osc 1 Pitch* in the header, *PITCH* in the
 cell. Movy uses it as typed when it fits, and only falls back to its own
@@ -1908,6 +1945,7 @@ behaviour you'd like — or, better, a PR.
 | **Turn an action knob clockwise** | Fire a one-shot action (Capture, Reroll, …) once per turn, however far you keep turning. The circle blinks and the knob LED flashes. |
 | **Turn an action knob counter-clockwise** | Re-arm it immediately instead of waiting for the drain bar to run out. |
 | **Touch a bank / soundfont / model knob** | Open the collection list. Turn to scroll, release to load — scrolling on its own loads nothing. |
+| **Hold a file knob, then jog-click** | Open the file browser for a sample / wavetable / preset parameter (the header names the file, the bottom row reads `CLK OPEN`). Turn to move, click to load, Back to cancel. |
 | **Hold a knob (~1 s)** | Assign that parameter as an **LFO target**: jog picks LFO 1/2, jog-click assigns (hold again to remove). Automatable parameters only. |
 | **Jog wheel — turn** | Scroll chain slots (Chain view) or module pages (Knobs view) / browser list. On either LFO page — a track's or the master chain's — scroll between LFO 1 and LFO 2. |
 | **Jog wheel — click** | Drill Chain → module pages; on Knobs (or an empty slot) open the module browser; in a browser, load the selection. |

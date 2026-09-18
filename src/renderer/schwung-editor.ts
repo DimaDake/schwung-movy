@@ -18,9 +18,8 @@
  * announce, and the condition re-plan that a changed enum can trigger.
  */
 import type { SchwungIntent, SchwungPage } from './schwung-page.js';
-import { fontPrint, fontWidth } from '../font/index.js';
-
 import { schwungLib } from './schwung-lib.js';
+import { movyCtx } from './schwung-ctx.js';
 
 interface EditorState {
     intent: SchwungIntent;
@@ -78,12 +77,7 @@ export function schwungEditorCancel(): void { state = null; }
 
 export function renderSchwungEditor(): void {
     if (!state) return;
-    const ctx = {
-        fillRect: (x: number, y: number, w: number, h: number, c: any) =>
-            fill_rect(x, y, w, h, c ? 1 : 0),
-        print: (x: number, y: number, t: string, c: any) => fontPrint(x, y, t, c ? 1 : 0),
-        textWidth: (t: string) => fontWidth(t),
-    };
+    const ctx = movyCtx();
     schwungLib().drawEnumList(ctx, {
         title: state.intent.meta?.label || state.intent.meta?.name || state.intent.key || '',
         /* "SELECT", not "TURNING": here a choice is pending and a click takes

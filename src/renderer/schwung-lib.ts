@@ -45,6 +45,19 @@ export interface SchwungLib {
      * render_page_movy without it fails the link and takes the whole set down
      * before anything reads this. */
     normalizedOf: any;
+    /* movy's chrome composes the two bands Schwung is not asked to draw, and
+     * the footer is drawn with Schwung's own widget so there is one definition
+     * of a hint pill. `flipsOnClick` is what decides whether a click on a
+     * two-option enum flips it (no intent comes back at all) or opens its list,
+     * and the page kinds say which verbs a door's footer owes — the same
+     * questions the controller's own onClick and shadow footer answer, taken
+     * from the same source rather than restated. */
+    drawFooter: any;
+    flipsOnClick: any;
+    PAGE_KNOBS: any;
+    PAGE_PRESET: any;
+    PAGE_ITEMS: any;
+    PAGE_MENU: any;
     drawEnumList: any;
     registerWidget: any;
     clearWidgets: any;
@@ -86,7 +99,7 @@ try {
      * error at evaluation, indistinguishable from a missing file to everything
      * above this line, and correctly treated the same way.
      */
-    const [pc, pi, rpm, el, wr, vo, ck] = await Promise.all([
+    const [pc, pi, rpm, el, wr, vo, ck, pm, pp] = await Promise.all([
         // @ts-ignore — absolute device path; external in the device build
         import('/data/UserData/schwung/shared/param_pages/page_controller.mjs'),
         // @ts-ignore
@@ -100,16 +113,24 @@ try {
         // @ts-ignore
         import('/data/UserData/schwung/shared/param_pages/voices.mjs'),
         /* Safe to add to the set: page_controller.mjs, already here, imports
-         * child_key.mjs — so it exists wherever the library does, and it cannot
-         * be the module that makes an otherwise-serviceable Schwung fail. */
+         * child_key.mjs, param_meta.mjs AND page_plan.mjs — so all three exist
+         * wherever the library does, and none of them can be the module that
+         * makes an otherwise-serviceable Schwung fail. */
         // @ts-ignore
         import('/data/UserData/schwung/shared/param_pages/child_key.mjs'),
+        // @ts-ignore
+        import('/data/UserData/schwung/shared/param_pages/param_meta.mjs'),
+        // @ts-ignore
+        import('/data/UserData/schwung/shared/param_pages/page_plan.mjs'),
     ]);
     lib = {
         createController: pc.createController, LAYOUT_MOVY: pc.LAYOUT_MOVY,
         applyInput: pi.applyInput,
         renderPageMovy: rpm.renderPageMovy, BAND_H: rpm.BAND_H,
         normalizedOf: rpm.normalizedOf,
+        drawFooter: rpm.drawFooter, flipsOnClick: pm.flipsOnClick,
+        PAGE_KNOBS: pp.PAGE_KNOBS, PAGE_PRESET: pp.PAGE_PRESET,
+        PAGE_ITEMS: pp.PAGE_ITEMS, PAGE_MENU: pp.PAGE_MENU,
         drawEnumList: el.drawEnumList,
         registerWidget: wr.registerWidget, clearWidgets: wr.clearWidgets,
         isWidgetAvailable: wr.isWidgetAvailable,

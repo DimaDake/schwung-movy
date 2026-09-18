@@ -21,6 +21,12 @@
  *    error. The loader saves and restores, and this proves it on the throwing
  *    path too, which is the one a careless `finally` would miss.
  *
+ * 3. THE KINDS MOVY DECIDED ON ARE THE KINDS THE REGISTRY SERVES, and they go
+ *    out when the module does. The registry exists only where the library does,
+ *    so this is the half the no-checkout logic suite cannot reach — it asserts
+ *    the shapes and this asserts the map. The shape it uses is the plural-only
+ *    `widgetKinds`, which is what the docs tell an author to write.
+ *
  *   SCHWUNG=/path/to/schwung node scripts/schwung-widgets-check.mjs
  */
 import { installEnv } from '../browser-test/env.mjs';
@@ -46,6 +52,10 @@ if (!SCHWUNG) { console.log('SKIP: SCHWUNG is not set'); process.exit(0); }
 const { portFor } = await import('../dist/esm/track/registry.js');
 const { createSchwungPage } = await import('../dist/esm/renderer/schwung-page.js');
 const WID = await import('../dist/esm/renderer/schwung-widgets.js');
+/* The file side — which script a module ships, and what it published — lives in
+ * its own module (see the header of src/renderer/schwung-widgets.ts), so
+ * `loadOverlay` is imported from there rather than re-exported out of the door. */
+const CANVAS = await import('../dist/esm/renderer/schwung-canvas.js');
 /* THROUGH MOVY'S BINDING, not from the schwung checkout. The registry is module
  * state, and importing widget_registry.mjs by a different specifier yields a
  * second instance with its own empty map — registering there leaves the
@@ -126,7 +136,7 @@ _log('schwung-widgets-check: a module-supplied widget draws in movy\n');
         globalThis.canvas_overlay = { widgetKind: 'custom:x', drawCell: () => {} };
         throw new Error('canvas.js blew up after assigning tick');
     };
-    const ov = WID.loadOverlay('/nonexistent/canvas.js');
+    const ov = CANVAS.loadOverlay('/nonexistent/canvas.js');
 
     if (ov === null) ok('a canvas.js that throws yields no overlay');
     else fail('a throwing canvas.js still returned an overlay');
@@ -142,13 +152,69 @@ _log('schwung-widgets-check: a module-supplied widget draws in movy\n');
         globalThis.canvas_overlay = { widgetKind: 'custom:y', drawCell: () => {} };
         return true;
     };
-    const ov2 = WID.loadOverlay('/whatever/canvas.js');
+    const ov2 = CANVAS.loadOverlay('/whatever/canvas.js');
     if (ov2 && ov2.widgetKind === 'custom:y') ok('a good canvas.js yields its overlay');
     else fail('a good canvas.js did not yield its overlay');
     if (globalThis.tick === sentinelTick) ok('...with movy\'s tick restored');
     else fail('...but movy\'s tick was left clobbered on the SUCCESS path');
 
     delete globalThis.shadow_load_ui_module;
+}
+
+/* ---- 3. the entry point registers into the real registry, and clears ------- */
+{
+    /* WHAT THE LOGIC SUITE CANNOT SEE. browser-test/logic/schwung-widgets.mjs
+     * asserts the DECISIONS — which shapes an overlay publishes, which script a
+     * module names, what settles what — and it does so with no checkout at all,
+     * because the registry only exists where the library does. This block is the
+     * other half, and it is the half a module author's "my widget does not draw"
+     * actually lands in: the kinds movy decided on, read back out of the REAL
+     * registry.
+     *
+     * The shape is the one that was broken: a module declaring ONLY the plural
+     * `widgetKinds`, which is what today's docs tell an author to write. */
+    const MODULES = '/data/UserData/schwung/modules';
+    const dir = `${MODULES}/sound_generators/sp28widget`;
+    const realRead = globalThis.host_read_file;
+    const realLoader = globalThis.shadow_load_ui_module;
+    const tickByMovy = globalThis.tick;      /* block 2 left movy's own here */
+    globalThis.host_read_file = (p) =>
+        (p === `${dir}/module.json` ? JSON.stringify({ capabilities: { canvas_script: 'canvas.js' } }) : null);
+    globalThis.shadow_load_ui_module = (p) => {
+        if (p !== `${dir}/canvas.js`) return false;
+        globalThis.canvas_overlay = {
+            widgetKinds: ['custom:sp28_wave'],          /* plural only — no widgetKind */
+            drawCell: (c) => { c.fillRect(0, 0, 8, 8, 1); },
+        };
+        return true;
+    };
+
+    clearWidgets();
+    const declares = [{ key: 'ratio', viz: { kind: 'custom:sp28_wave' } }];
+    const settled = WID.registerModuleWidgets('0:synth', () => 'sp28widget', declares);
+    if (settled === true) ok('a module whose contract declares a custom kind settles');
+    else fail('registerModuleWidgets left the question open for a module that resolves');
+    if (isWidgetAvailable('custom:sp28_wave')) ok('...and a plural-only widgetKinds is IN the registry');
+    else fail('a module declaring only `widgetKinds` registered nothing — the shape the docs tell '
+            + 'an author to write is the one movy does not understand');
+    if (globalThis.tick === tickByMovy) ok('...and loading it did not steal movy\'s tick');
+    else fail('...but loading a module\'s canvas.js stole globalThis.tick');
+
+    /* THE CLEAR, against the real map: the module that comes next declares no
+     * custom kind, and the departed module's name must not be left claimable —
+     * a later module spelling `custom:sp28_wave` would silently inherit art that
+     * belongs to a module no longer in the slot. */
+    const nothing = WID.registerModuleWidgets('0:synth', () => 'plain', [{ key: 'cutoff', viz: { kind: 'filter' } }]);
+    if (nothing === true) ok('a module declaring no custom kind settles');
+    else fail('a module declaring no custom kind did not settle');
+    if (!isWidgetAvailable('custom:sp28_wave')) ok('...and the departed module\'s kind is out of the registry');
+    else fail('the registry still serves the departed module\'s kind');
+    clearWidgets();
+
+    globalThis.host_read_file = realRead;
+    if (realLoader) globalThis.shadow_load_ui_module = realLoader;
+    else delete globalThis.shadow_load_ui_module;
+    delete globalThis.canvas_overlay;
 }
 
 Date.now = REAL_NOW;

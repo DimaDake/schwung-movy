@@ -47,8 +47,9 @@ const { appState, VIEW_KNOBS, VIEW_CHAIN, VIEW_BROWSE, VIEW_FILE_BROWSE, VIEW_MA
  * usage lines — reaches no build at all, so selecting a mode that way ran `off`
  * twice and called it an A/B. Unset means the default, which is what every
  * existing `npm test` run wants. */
-const { setSchwungGridMode, schwungGridMode, schwungGridReload } =
+const { setSchwungGridMode, schwungGridMode, schwungGridReload, schwungPageFor } =
     await import('../dist/esm/renderer/schwung-grid.js');
+const { schwungLibAvailable } = await import('../dist/esm/renderer/schwung-lib.js');
 const GRID_ARM = process.env.MOVY_APP_LOOP_GRID || null;
 if (GRID_ARM) setSchwungGridMode(GRID_ARM);
 
@@ -60,6 +61,13 @@ if (GRID_ARM) setSchwungGridMode(GRID_ARM);
  * so the check is the same check it always was. */
 const { pageOwnerOf } = await import('../dist/esm/app/page-owner.js');
 const shownPage = (model) => pageOwnerOf(model).pageIndex;
+
+/* The module under the knobs, spelled the way app/tick.ts spells it, and its
+ * page owner — for the two blocks below that have to reach the controller. */
+const activeModelFor = () =>
+    appState.trackModels[appState.activeTrack.index]
+        ?.[appState.trackChainIndex[appState.activeTrack.index]];
+const ownerFor = () => pageOwnerOf(activeModelFor());
 
 /* The first master FX slot, by COMPONENT rather than by position: movy's own
  * send buses sit in front of them on the master page, and these blocks are
@@ -531,6 +539,13 @@ _log('\napp-loop: file-param jog-click opens the browser on the chain page');
     sendMidi([0x90, 0, 100]);   // touch knob 0 (file param), keep held
     sendMidi([0xB0, globalThis.MoveMainButton, 127]);  // jog click
     eq('chain page: file-param jog click opens file browser', appState.currentView, VIEW_FILE_BROWSE);
+    /* LET GO. A knob left held keeps its slot in the controller's `touchOrder`,
+     * and the Schwung page cache is keyed by (track, component) and outlives
+     * `init()` — so `touched` stayed >= 0 for the rest of the run, where the
+     * controller's own jog-click guard reads it and swallows the click. The
+     * PRESS is what this block is about; the hold was never asserted, and it
+     * silently disarmed every later block's first click. */
+    sendMidi([0x90, 0, 0]);
 
     // Holding a non-file knob (slot 1 = Volume) + jog click → NOT a file browser.
     setup();
@@ -538,6 +553,12 @@ _log('\napp-loop: file-param jog-click opens the browser on the chain page');
     sendMidi([0xB0, 50, 127]);  // jog click
     eq('chain page: non-file knob jog click does not open file browser',
         appState.currentView === VIEW_FILE_BROWSE, false);
+    /* Both leaks go back with it: the knob, and the Session press that took the
+     * knobs to the master bus while it was down — with that latched, the
+     * release below reaches a page that never heard the touch and the synth
+     * page keeps the slot. */
+    sendMidi([0xB0, 50, 0]);
+    sendMidi([0x90, 1, 0]);
 }
 
 _log('\napp-loop: knob turn while a step is held writes automation');
@@ -953,20 +974,67 @@ _log('\napp-loop: full-screen file browser exits cleanly');
     eq('browser opened', appState.currentView, VIEW_FILE_BROWSE);
     eq('browseOrigin captured the pre-open view', appState.browseOrigin, VIEW_KNOBS);
 
-    // Back must return to the origin view, not to the (now empty) browser.
-    sendMidi([0xB0, 51, 127]); advance(1);            // MoveBack
-    eq('Back leaves the file browser', appState.currentView, VIEW_KNOBS);
-    eq('Back clears fileBrowserState', appState.fileBrowserState, null);
+    /* WHAT SCHWUNG PLANS FOR THIS FIXTURE — recorded, not asserted.
+     * These labels are filed in `page-mode-expected-fail.json` as one FIXTURE
+     * limit, and the premise of that filing is a page plan: this MOCK declares
+     * no `ui_hierarchy`, so the plan is the single fallback page 'Main' and the
+     * four banks movy's own config gives it — among them the Preset bank that
+     * carries `ui_preset_path` — are on no page at all. (Said of the fixture.
+     * The real mrdrums DOES declare that param; SP-32 in the ledger is about
+     * which config banks no module declaration carries.) Printing the plan HERE
+     * is what keeps the premise a measurement rather than a recollection — a
+     * maintainer reads it back on the same run that produces the failures.
+     * `movyBanks` is movy's own config, `ctlPages`/`names` Schwung's plan for
+     * the declaration; under `off` there is no plan and it says so. */
+    const drums = appState.trackModels[0][1];          // the model this block drives
+    const plan  = pageOwnerOf(drums);
+    const ck    = drums?.getComponentKey?.() ?? '?';
+    /* `schwungPageFor` is asked DIRECTLY when the owner has no page, so the plan
+     * is read back whatever the arm — the owner is movy's whenever the mode is
+     * `off`, and a measurement that only ran under `page` would be no
+     * measurement at all. It is the same call `pageOwnerOf` makes. */
+    const planned = plan.page ?? schwungPageFor(appState.activeTrack.index, ck);
+    planned.tick();   // a fresh controller plans on its first tick, not at reload
+    _log(`[page-plan] mrdrums fixture ck=${ck} mode=${schwungGridMode()}`
+       + ` lib=${schwungLibAvailable()} movyBanks=${drums?.getBankCount?.()}`
+       + ` claimed=${plan.claimed} delegated=${plan.delegated}`
+       + ` ctlPages=${planned.pageCount}`
+       + ` names=${JSON.stringify((planned.ctl?.pages ?? []).map((p) => p.name))}`);
 
-    // Reopen, move to 808 Kit.json, select → loads + closes the browser.
-    sendMidi([0x90, 0, 127]); sendMidi([0xB0, 3, 127]); advance(1);
-    sendMidi([0xB0, 14, 1]);                          // skip '..' → 808 Kit.json
-    globalThis.host_read_file = (p) => p.endsWith('.json') ? '{ "kind": "drumRack" }' : null;
-    sendMidi([0xB0, 3, 127]);                         // jog-click = select
-    globalThis.host_read_file = savedRead;
-    eq('select leaves the file browser', appState.currentView, VIEW_KNOBS);
-    eq('select clears fileBrowserState', appState.fileBrowserState, null);
-    eq('select committed the preset path', env.params['synth:ui_preset_path'], TP + '/808 Kit.json');
+    /* THE REST OF THIS BLOCK RUNS ONLY IN A BROWSER THAT IS ACTUALLY UP. Under
+     * `page` the gesture above opens nothing, and the five checks below then
+     * split into two groups that must not be confused with each other.
+     *
+     * THREE COULD NOT FAIL — `Back clears fileBrowserState` was true because it
+     * was already null, and `select leaves the file browser` / `select clears
+     * fileBrowserState` expect the view and state a browser-less run is already
+     * in. A check that cannot fail is the defect this migration exists to
+     * delete, whichever arm it is red on.
+     *
+     * TWO DID FAIL, and they are why the burn-down moved: `Back leaves the file
+     * browser` (expected VIEW_KNOBS, got VIEW_CHAIN — MoveBack exiting the knobs
+     * page, movy behaving normally) and `select committed the preset path`
+     * (`undefined` — no browser, so no commit). Gating stopped them RUNNING, so
+     * they left the ledger as a COVERAGE REDUCTION, not as a fix. The record in
+     * docs/schwung-page-migration.md and page-mode-expected-fail.json says so.
+     *
+     * The two `eq`s above stay outside because they ARE the premise. */
+    if (appState.currentView === VIEW_FILE_BROWSE) {
+        // Back must return to the origin view, not to the (now empty) browser.
+        sendMidi([0xB0, 51, 127]); advance(1);            // MoveBack
+        eq('Back leaves the file browser', appState.currentView, VIEW_KNOBS);
+        eq('Back clears fileBrowserState', appState.fileBrowserState, null);
+
+        // Reopen, move to 808 Kit.json, select → loads + closes the browser.
+        sendMidi([0x90, 0, 127]); sendMidi([0xB0, 3, 127]); advance(1);
+        sendMidi([0xB0, 14, 1]);                          // skip '..' → 808 Kit.json
+        globalThis.host_read_file = (p) => p.endsWith('.json') ? '{ "kind": "drumRack" }' : null;
+        sendMidi([0xB0, 3, 127]);                         // jog-click = select
+        globalThis.host_read_file = savedRead;
+        eq('select leaves the file browser', appState.currentView, VIEW_KNOBS);
+        eq('select clears fileBrowserState', appState.fileBrowserState, null);
+        eq('select committed the preset path', env.params['synth:ui_preset_path'], TP + '/808 Kit.json');
+    }
 
     globalThis.os = savedOs;
 }
@@ -2828,7 +2896,7 @@ console.log = _origLog;
 _log('\napp-loop: CPU page is not painted over by the loop strip');
 {
     const { seqToastActive } = await import('../dist/esm/seq/render.js');
-    const stripRectsFor = (view) => {
+    const stripRectsFor = (view, holdKnob = -1) => {
         resetApp();
         for (let i = 0; i < 400 && seqToastActive(); i++) advance(1);
         if (view === VIEW_CPU) handleStepButton(STEP_CPU, true, true);
@@ -2836,6 +2904,15 @@ _log('\napp-loop: CPU page is not painted over by the loop strip');
         eq(`arm is on view ${view}`, appState.currentView, view);
         appState.dirty = true;
         const rects = [];
+        /* A knob any EARLIER block left pressed must be let go of first:
+         * `touched` / `touchOrder` live in the page controller, which
+         * resetApp() does not reach and which is cached by (track, component)
+         * for the whole process. movy's header readout and hint band take the
+         * bottom rows exactly while a knob is under the hand, so an inherited
+         * latch would fail the control arm for a reason it is not about. The
+         * arm is "a page with NOTHING held keeps the strip", and it says so. */
+        ownerFor().page?.ctl.clearTouch();
+        if (holdKnob >= 0) sendMidi([0x90, holdKnob, 100]);
         /* jogToastShown and the toast TTL are tick.ts / render.ts module state
          * that resetApp() does not reach, and both suppress the strip. Ticking
          * the toast out is what makes the control arm meaningful. */
@@ -2857,6 +2934,31 @@ _log('\napp-loop: CPU page is not painted over by the loop strip');
     const cpu = stripRectsFor(VIEW_CPU);
     eq('loop strip suppressed on the CPU page', cleared(cpu), false);
     eq('and the page actually painted', cpu.length > 0, true);
+
+    /* A HAND ON A KNOB TAKES THE BOTTOM ROWS. The footer band is 57..63 and
+     * the strip clears 60..63 on every tick, so they cannot both have them —
+     * the same terms movy's own bottom-row toasts already take the row on.
+     * Only meaningful where there IS a controller to hint about: with the grid
+     * off there is no page, no chrome, and the strip keeps its rows. */
+    if (GRID_ARM === 'page') {
+        /* Knob 1, not 0: on this model knob 0 is the `file` param, and movy's
+         * own browse hint ("JOG: BROWSE", a full-width band at 58) legitimately
+         * wins the row for it — it is a rung ABOVE the footer in the same yield
+         * chain, and that is not the rung this arm is about. Every other knob
+         * reaches the footer. */
+        const touched = stripRectsFor(VIEW_KNOBS, 1);
+        eq('a knob under the hand takes the bottom rows from the strip',
+           cleared(touched), false);
+        const isPill = ([x, y, w, h, v]) => y === 57 && h === 7 && v === 1 && x < 128;
+        eq('...which the hint band is what took',
+           touched.some(isPill), true);
+        /* A toast would have taken them just as effectively, and one is a full
+         * width inverted band one row lower. Without this the check passes on
+         * the wrong painter. */
+        eq('...and not one of movy\'s own bottom-row toasts instead',
+           touched.some(([x, y, w, h, v]) => x === 0 && y === 58 && w === 128 && h === 6 && v === 1),
+           false);
+    }
 }
 
 /* ── The step LED under the CPU page's own gesture ──────────────────────────
@@ -3070,6 +3172,80 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
        mainRow.join() === modulePageRow, false);
     appState.currentView = closeParamPage();
     advance(2);
+}
+
+/* ── a held step keeps movy's own values arriving ─────────────────────────── */
+{
+    /*
+     * THE HELD-STEP SCREEN IS MOVY'S, SO MOVY MUST KEEP READING FOR IT.
+     *
+     * SP-18 handed the held-step screen back to movy (schwungBodyFor's `held`
+     * gate) but left the refresh gate above it asking the narrower question —
+     * "is the page delegated?" — so under `page` that screen was built from
+     * whatever values were last read before the finger went down, and the cells
+     * NEIGHBOURING a lock froze for as long as the step was held. The locked
+     * cells themselves stayed right (they come from the engine's own status
+     * poll) which is what made it easy to miss.
+     *
+     * The gate now asks the same question the BODY asks. In the `off` arm this
+     * is true for the ordinary reason and is a regression guard; in the `page`
+     * arm it is the whole fix.
+     */
+    const { resetAutomation } = await import('../dist/esm/seq/automation.js');
+
+    schwungGridReload();                     // the cache holds the last block's page
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.test16);       // p1..p16 = i/15
+    resetSeqState(); resetSeqEngine(); resetAutomation();
+    setFlag('setcommit', 0);
+    globalThis.init();
+    const m = appState.trackModels[0][1];
+    m.reload();
+    appState.currentView = VIEW_KNOBS;
+    appState.activeTrack = trackRef(0);
+    advance(12);
+
+    const owner = () => pageOwnerOf(appState.trackModels[0][1]);
+    for (let i = 0; i < 12 * 60 && !owner().delegated; i++) advance(1);
+    const expectDelegated = schwungGridMode() === 'page';
+
+    /* THE HOLD IS IN PLACE FIRST, so the only window in which the new value
+     * could arrive is a held one. Written behind every reader's back, exactly as
+     * the block above does, so the arrival is a re-read and not an echo. */
+    seqState.stepAutoMode = true; seqState.holdStep = 4;
+    const p1 = () => m.getKnobParamInfo(0)?.value;
+    const before = p1();
+    globalThis.shadow_set_param(0, 'synth:p1', '0.55');
+    advance(6 * REFRESH_BULK_TICKS);         // several full refresh windows
+
+    /* WHILE A STEP IS HELD THE SCREEN IS MOVY'S, SO THE KNOBS MUST BE TOO.
+     *
+     * SP-18 moved the BODY back to movy for a held step and left the OWNER
+     * saying Schwung. The two are read by different files — `app/tick.ts` draws
+     * from the body, `midi/router.ts` targets from the owner — so under `page`
+     * you looked at movy's labels and locked SCHWUNG's parameters, on every
+     * cell where the two planners disagree (the router's own comment counts 9
+     * across the mock presets). Holding an EMPTY step is where it bit: a step
+     * with an occurrence opens the step page, which returns before either.
+     *
+     * The decision is the OWNER's now, and the body is derived from it — the
+     * same rule the bank bar and the chrome already follow. So this asks the
+     * ownership question and then asks whether the parameter under knob 0 is
+     * the one movy would draw there, which is a claim about the two agreeing
+     * rather than about either alone.
+     */
+    eq('a held step hands the page back to movy', owner().delegated, false);
+    eq('...so the knob targets the parameter movy drew',
+       owner().knobParamInfo(0)?.key, m.getKnobParamInfo(0)?.key);
+    /* The claim the block was built for, unchanged: movy is drawing, so movy
+     * must keep reading. `expectDelegated` is what the page was BEFORE the hold
+     * — the hold is only meaningful on a page Schwung had actually taken. */
+    eq('the page under the hold was Schwung\'s to begin with',
+       expectDelegated, schwungGridMode() === 'page');
+    eq('a held step keeps movy reading its own page', p1() !== before, true);
+
+    seqState.stepAutoMode = false; seqState.holdStep = -1;
+    resetAutomation();
 }
 
 

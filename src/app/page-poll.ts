@@ -22,13 +22,17 @@
  *      lane, an LFO or the page's own cursor moving one of them is what asks
  *      for the frame back now.
  *
- * THE POLL IS NOT UNCONDITIONAL, and that is deliberate. `schwung-page-contract`
- * spends a finite retry budget (RETRY_TICKS x RETRY_LIMIT) and has no recovery
- * once it is spent — Cause D, SP-15's item. Polling on every tick regardless of
- * view would burn it down while movy sat on the sequencer, so the page would be
- * given up before the user ever opened it. The guard is therefore exactly the
- * condition under which the module grid is what the knobs are addressing, and
- * `app/tick.ts` derives the BODY from the same call, so the two cannot drift.
+ * THE POLL IS NOT UNCONDITIONAL, and that is deliberate. A poll is a read, and a
+ * page nobody is addressing is a page whose contract is being re-planned and
+ * whose cursor is being advanced for no one, on a view the user may not open for
+ * minutes. It used to be worse than waste — the retry budget was finite with no
+ * recovery once spent (Cause D, SP-15), so polling while movy sat on the
+ * sequencer gave the page up before the user ever opened it. SP-15 made the
+ * asking survive; it did not make it free, and a contract that has asked its way
+ * through the eager window settles slowly for whoever opens it next. The guard
+ * is therefore exactly the condition under which the module grid is what the
+ * knobs are addressing, and `app/tick.ts` derives the BODY from the same call,
+ * so the two cannot drift.
  */
 
 import { appState, VIEW_KNOBS, VIEW_CHAIN } from './state.js';

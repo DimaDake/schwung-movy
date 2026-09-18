@@ -5,13 +5,15 @@ import { drawKnobParams } from './label.js';
 import { drawEnumOverlay, drawJogToast } from './overlay.js';
 import { W } from './layout.js';
 import { CHAIN_SLOTS, isVirtualSlot, type ChainSlot } from '../chain/config.js';
+import type { PageChrome } from './schwung-page-chrome.js';
+import { drawPageFooter } from './schwung-footer.js';
 
 /* `slots` is the chain being drawn — a track's or the master's. It used to be
  * CHAIN_SLOTS unconditionally, which drew the track chain's five dots over the
  * master's four slots. */
 export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: boolean, trackLabel: string,
                                 slotLabel?: string, slots: ChainSlot[] = CHAIN_SLOTS,
-                                bodyOverride?: () => void): void {
+                                bodyOverride?: () => void, chrome?: PageChrome): void {
     clear_screen();
 
     const slot = slots[chainIndex] ?? slots[1];
@@ -32,7 +34,11 @@ export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: b
         return;
     }
 
-    if (vm.toast) {
+    /* Same precedence as the module page: the param under the hand, read by
+     * whoever drew the cell, outranks movy's own toast about a different one. */
+    if (chrome?.header) {
+        drawHeader(chrome.header.left, chrome.header.right, chrome.header.inverted);
+    } else if (vm.toast) {
         drawHeader(vm.toast.fullName, vm.overlay ? null : vm.toast.value, true);
     } else {
         /* A voice page carries the same pad-grid icon it does on the module
@@ -79,4 +85,8 @@ export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: b
      * appearing only sometimes. */
     if (vm.toast?.browseHint) drawJogToast('JOG: BROWSE');
     else if (jogTouched) drawJogToast(virtual ? 'CLICK JOG: EDIT LFOS' : 'SHIFT+CLICK SWAP  CLICK OPEN');
+    /* Null on this view today — the jog moves chain slots, not Schwung's pages,
+     * so the caller withholds the hint band (see schwung-page-chrome.ts). Kept
+     * so the two views that share the body contract share its precedence too. */
+    else if (chrome?.footer?.length) drawPageFooter(chrome.footer);
 }

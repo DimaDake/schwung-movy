@@ -33,6 +33,7 @@ _log('\nTest: device probe');
         setGridMode:   () => {},
         leaveModal:    () => ({ active: false, label: '', sel: 0 }),
         ready:         () => true,
+        view:          () => 'knobs',
     });
 
     const tick0 = JSON.parse(answer(JSON.stringify({ key: 'tick' })));
@@ -57,6 +58,11 @@ _log('\nTest: device probe');
     eq('cell carries the touched flag', page.cells[0].touched, true);
     ok('an empty slot is null, not a blank cell', page.cells[1] === null,
         JSON.stringify(page.cells[1]));
+    /* A screen with no page behind it — the file browser a dive opens — is the
+     * reason this exists, and it is precisely the case `page` cannot describe:
+     * the VM goes on being the last PAGE movy drew. A scenario reads this to
+     * tell "the gesture did nothing" from "the gesture changed the screen". */
+    eq('page reports the screen movy is showing', page.view, 'knobs');
 
     const auto = JSON.parse(answer(JSON.stringify({ key: 'auto' })));
     eq('auto reports the active track', auto.track, 0);
@@ -69,12 +75,36 @@ _log('\nTest: device probe');
         parked: () => true, setGridMode: () => {},
         leaveModal: () => ({ active: true, label: 'Close Movy', sel: 1 }),
         ready: () => false,
+        view: () => 'file-browse',
+        browse: () => ({ dir: '/data/UserData/Samples', sel: 1,
+                         items: [{ name: '..', path: '/data/UserData', isDir: true },
+                                 { name: 'a.wav', path: '/data/UserData/Samples/a.wav',
+                                   isDir: false }] }),
     });
     const empty = JSON.parse(answer(JSON.stringify({ key: 'auto' })));
     eq('an empty lane registry reports as empty', empty.lanes.length, 0);
     eq('tick reports the parked state', JSON.parse(answer(JSON.stringify({ key: 'tick' }))).parked, true);
     eq('page reflects a renderer change',
         JSON.parse(answer(JSON.stringify({ key: 'page' }))).renderer, 'PAGE');
+    /* Read live, not off the view model: this is the one field that answers
+     * about the screen rather than the page on it, and the two disagree
+     * whenever movy is showing something that is not a module's knobs. */
+    eq('page reflects a screen change too',
+        JSON.parse(answer(JSON.stringify({ key: 'page' }))).view, 'file-browse');
+    /* The screen name alone cannot say WHICH CLICK lands on a file, and on the
+     * device the walk that finds one is a property of the user's library. The
+     * rows and the cursor are what a scenario grades a commit against, so the
+     * file the parameter ends up holding can be checked against the file the
+     * browser said was selected rather than against a written-down name. */
+    const rows = JSON.parse(answer(JSON.stringify({ key: 'browse' }))).browse;
+    eq('browse reports the directory on screen', rows && rows.dir, '/data/UserData/Samples');
+    eq('browse reports the cursor', rows && rows.sel, 1);
+    eq('browse reports the row under the cursor',
+        rows && rows.items[rows.sel].name + ':' + rows.items[rows.sel].path,
+        'a.wav:/data/UserData/Samples/a.wav');
+    eq('browse reports which rows are directories',
+        rows && rows.items.map((it) => it.name + (it.isDir ? '/' : '')).join(','),
+        '../,a.wav');
 
     /* Correlation: without the echoed id the harness cannot distinguish a
      * fresh reply from the previous one still in the engine's mailbox. */
@@ -105,6 +135,7 @@ _log('\nTest: device probe');
         parked: () => false, setGridMode: (m) => { gridArg = m; },
         leaveModal: () => ({ active: false, label: '', sel: 0 }),
         ready: () => true,
+        view: () => 'chain',
     });
     const verb = JSON.parse(answer(JSON.stringify({ verb: 'setGridMode', arg: 'PAGE' })));
     eq('setGridMode reaches the renderer override', gridArg, 'PAGE');

@@ -31,6 +31,15 @@ await esbuild.build({
         resolve(root, 'src/renderer/schwung-page-cache.ts'),
         resolve(root, 'src/renderer/schwung-editor.ts'),
         resolve(root, 'src/renderer/schwung-widgets.ts'),
+        /* The file side of a module's widget (SP-28): an entry point so the
+         * logic suite can drive the resolution — which script a module names,
+         * and which global the `#ref` points at — through the real function
+         * rather than through a re-implementation of it. */
+        resolve(root, 'src/renderer/schwung-canvas.ts'),
+        /* The widget trigger (SP-28 defect 3): same reason — the suite asserts
+         * WHEN the question is asked, which is behaviour the device tier can
+         * only confirm after the fact. */
+        resolve(root, 'src/renderer/schwung-page-widget-sync.ts'),
         resolve(root, 'src/renderer/schwung-voices.ts'),
         resolve(root, 'src/renderer/schwung-grid.ts'),
         /* The version floor. Entry point for the same reason as its siblings:
@@ -88,6 +97,10 @@ await esbuild.build({
         resolve(root, 'src/renderer/shorten.ts'),
         resolve(root, 'src/renderer/keys-view.ts'),
         resolve(root, 'src/renderer/browse-view.ts'),
+        /* The other browser — the one a file parameter dives into. An entry
+         * point for the same reason as its sibling: the screenshot scene has to
+         * render it, and folded into a chunk there is no path to import. */
+        resolve(root, 'src/renderer/file-browse-view.ts'),
         resolve(root, 'src/renderer/chain-view.ts'),
         resolve(root, 'src/renderer/lfo-wave.ts'),
         resolve(root, 'src/renderer/overlay.ts'),
@@ -137,6 +150,12 @@ await esbuild.build({
          * can ask the accessor directly, rather than inferring ownership from
          * a router gesture. */
         resolve(root, 'src/app/page-owner.ts'),
+        /* The body/ring decision (SP-18): an entry point so the `page` scenes
+         * render through `schwungBodyFor` itself. A scene that re-derived the
+         * condition would stay green with it taken out, which is exactly what
+         * the scene exists to catch. */
+        resolve(root, 'src/app/tick.ts'),
+        resolve(root, 'src/app/modulated-keys.ts'),
         resolve(root, 'src/app/globals.ts'),
         resolve(root, 'src/app/init.ts'),
         resolve(root, 'src/app/resume.ts'),

@@ -20,7 +20,6 @@ let tickSeq   = 0;
  * waits on: a sleep after a gesture asserts nothing, whereas waiting for this
  * to advance proves movy processed the input AND repainted. */
 export function noteRender(vm: ViewModel): void { lastVm = vm; renderSeq++; }
-export function noteTick(): void { tickSeq++; }
 
 export function _resetForTest(): void { lastVm = null; renderSeq = 0; tickSeq = 0; }
 
@@ -42,6 +41,37 @@ export type ProbeDeps = {
      * a gesture sent between the two lands on whatever movy was showing before
      * the restore finished. */
     ready: () => boolean;
+    /* WHICH SCREEN IS UP. Neither the renderer nor the page can answer this: a
+     * screen that is not a module's knobs has no page to read, so a scenario
+     * watching a gesture that LEAVES the knobs for another one — the file
+     * browser a dive opens is the case that exists today — could not tell "the
+     * gesture did nothing" from "the gesture worked and the screen changed".
+     * Named rather than numbered, so a scenario says `file-browse` and a
+     * renumbering of the constants cannot move what it asserts. */
+    view: () => string;
+    /* WHAT THE BROWSER IS SHOWING, when one is up. The rows are the only thing
+     * that says whether a click COMMITS a file or merely walks the tree, and
+     * off the device the walk is a property of a user's library rather than of
+     * movy — so a scenario that clicks blind cannot tell "the commit wrote the
+     * wrong key" from "no file was ever under the cursor". Only the selection
+     * and the names: the paths are what a scenario grades a commit against. */
+    browse: () => { dir: string; sel: number;
+                    items: { name: string; path: string; isDir: boolean }[] } | null;
+    /* A MODULE-SUPPLIED WIDGET, asked of the registry through MOVY'S OWN
+     * BINDING rather than the library's (see renderer/schwung-widgets.ts: the
+     * registry is module state, and a second import specifier is a second empty
+     * map that registers nothing movy draws). `available` is the library's own
+     * answer to "would this kind draw at all", which is the half a log line
+     * cannot make: a registration that reached the wrong copy logs identically.
+     *
+     * `clearWidgets` is a MUTATION SEAM, the same kind of thing `setGridMode`
+     * is: it survives no reload and writes nothing, so a scenario can put the
+     * registry back to the state a module with no widget leaves it in — without
+     * a module swap — and then look at the screen. That is the only way to see
+     * the FALL-THROUGH draw: an unclaimed custom kind leaves its key to the
+     * built-in, and a cell that goes blank instead is a regression. */
+    widgetAvailable: (kind: string) => boolean;
+    widgetClear: () => void;
 };
 
 let deps: ProbeDeps | null = null;
@@ -67,6 +97,16 @@ function runVerb(verb: string, arg: unknown): object {
         case 'setGridMode':
             deps.setGridMode(arg === null ? null : String(arg));
             return { ok: true, renderer: deps.renderer() };
+        /* READ AND CLEAR IN ONE CALL, because they are one question: "is this
+         * kind in the registry, and take it out if I ask". Clearing is not a
+         * write to anything durable — see ProbeDeps — so it is safe on a
+         * device whose prefs a scenario must not touch. */
+        case 'widgets': {
+            const a = (arg && typeof arg === 'object') ? (arg as any) : {};
+            const kind = String(a.kind || '');
+            if (a.clear) deps.widgetClear();
+            return { kind, available: deps.widgetAvailable(kind) };
+        }
         default:
             return { error: 'unknown verb: ' + verb };
     }
@@ -100,12 +140,22 @@ export function answer(requestJson: string): string {
                 renderer:  deps ? deps.renderer() : 'unknown',
                 held:      !!vm.automationHeld,
                 module:    vm.moduleName,
+                /* Read live rather than from the VM: the VM is the last page
+                 * movy RENDERED, and a screen with no page behind it — the file
+                 * browser — leaves that stale by design. This is the one field
+                 * here that answers about the screen instead of about the page
+                 * on it. */
+                view:      deps ? deps.view() : 'unknown',
                 cells,
             });
         }
         case 'leave': {
             if (!deps) return tag({ error: 'probe deps not installed' });
             return tag(deps.leaveModal());
+        }
+        case 'browse': {
+            if (!deps || !deps.browse) return tag({ error: 'probe deps not installed' });
+            return tag({ browse: deps.browse() });
         }
         case 'auto': {
             if (!deps) return tag({ error: 'probe deps not installed' });

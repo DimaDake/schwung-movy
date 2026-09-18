@@ -19,6 +19,13 @@ import { mlog } from '../log.js';
 import { isItemSelector, itemValueAt, refreshItems } from './items-param.js';
 import { isDivable } from './access.js';
 
+/* Everything the file browser needs to open on one parameter. `gi` is movy's
+ * own index, and the only handle its file-value cache answers to. */
+export interface FileBrowseTarget {
+    key: string; gi: number; root: string; filter: string[]; startPath: string;
+    currentPath: string | null; requireContains?: string;
+}
+
 // Fractional accumulator: returns whole steps consumed and the leftover fraction
 function accumStep(accum: number, delta: number): [newAccum: number, step: number] {
     const next = accum + delta / ENUM_DELTA_DIV;
@@ -85,6 +92,29 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
         const local = slotToLocal(s, k);
         if (local < 0) return null;
         return s.knobParams[s.knobPage * KNOBS_PER_PAGE + local] ?? null;
+    }
+
+    /* What the file browser needs to open on the right parameter. `gi` is
+     * movy's own index and the only handle its file-value cache answers to. */
+    function fileTargetByGi(gi: number): FileBrowseTarget | null {
+        const p = s.knobParams[gi];
+        if (!p || p.type !== 'file') return null;
+        return {
+            key:         p.key,
+            gi,
+            root:        p.fileRoot      ?? '/data/UserData',
+            filter:      p.fileFilter    ?? [],
+            startPath:   defaultDirFor(s.moduleId, p),
+            currentPath: s.fileValues[gi] ?? null,
+            requireContains: p.fileRequireContains,
+        };
+    }
+
+    /* First match: a key repeated across levels (jp8000's shape) carries the
+     * same declaration, and its file value is stored per gi, so the first is
+     * the one movy has been reading. */
+    function fileTargetByKey(key: string): FileBrowseTarget | null {
+        return fileTargetByGi(s.knobParams.findIndex((q) => q?.key === key));
     }
 
     return {
@@ -375,34 +405,34 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
          * on screen at all. `model/` cannot see who owns the page (it may not
          * import `app/`), so the answer is passed in.
          */
-        getFileBrowseTarget(keyAt?: (slot: number) => string | null): { key: string; gi: number; root: string; filter: string[]; startPath: string; currentPath: string | null; requireContains?: string } | null {
+        getFileBrowseTarget(keyAt?: (slot: number) => string | null): FileBrowseTarget | null {
             const primary = primarySlot();
             if (primary < 0) return null;
-            let gi: number;
             if (keyAt) {
                 const drawn = keyAt(primary);
-                /* By key, because the drawn page's index means nothing here.
-                 * First match: a key repeated across levels (jp8000's shape)
-                 * carries the same declaration, and its file value is stored
-                 * per gi, so the first is the one movy has been reading. */
-                gi = drawn ? s.knobParams.findIndex((q) => q?.key === drawn) : -1;
-                if (gi < 0) return null;
-            } else {
-                const local = slotToLocal(s, primary);
-                if (local < 0) return null;
-                gi = s.knobPage * KNOBS_PER_PAGE + local;
+                return drawn ? fileTargetByKey(drawn) : null;
             }
-            const p  = s.knobParams[gi];
-            if (!p || p.type !== 'file') return null;
-            return {
-                key:         p.key,
-                gi,
-                root:        p.fileRoot      ?? '/data/UserData',
-                filter:      p.fileFilter    ?? [],
-                startPath:   defaultDirFor(s.moduleId, p),
-                currentPath: s.fileValues[gi] ?? null,
-                requireContains: p.fileRequireContains,
-            };
+            const local = slotToLocal(s, primary);
+            if (local < 0) return null;
+            return fileTargetByGi(s.knobPage * KNOBS_PER_PAGE + local);
+        },
+
+        /*
+         * THE SAME ANSWER WITHOUT A SLOT, and it is asked for by the caller that
+         * has no business naming one. A DIVE arrives as `{action:"open", key,
+         * fullKey}` — the controller's own anchor — and it does NOT arrive with
+         * a slot: under a delegated page Schwung holds the touch order, and the
+         * anchor is not always the cell that was clicked (a gizmo inside a
+         * sample graphic redirects). Routing that through `getFileBrowseTarget`
+         * would mean handing it a thunk that returns one constant and hoping
+         * `primarySlot()` happens to be >= 0 — movy's own `touchedSlots`, which
+         * is precisely the state a page Schwung is drawing does not fill. The
+         * fallback would then vanish silently, and the browser would open on
+         * Schwung's declaration alone with no sign that movy's config had been
+         * consulted at all.
+         */
+        fileBrowseTargetForKey(key: string): FileBrowseTarget | null {
+            return fileTargetByKey(key);
         },
 
         clearFileOverlay(): void { s.fileOverlay = null; s.dirty = true; },
@@ -437,6 +467,15 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
          * mark + read-back suppression). Called after an assign/remove so the
          * change shows immediately without waiting for the poll. */
         refreshModulation(): void { refreshModulatedKeys(s); },
+
+        /* The same cached set, answered by KEY rather than by ParamVM.
+         *
+         * Schwung's page controller asks "is this parameter modulated?" with the
+         * module's own key, before any of movy's pages has been laid out — and
+         * the delegated page has no ParamVM to ask through. One source for both
+         * marks is the point: a tilde drawn by movy and a mod dot drawn by
+         * Schwung that disagreed would be two readings of one fact. */
+        modulatedKeys(): ReadonlySet<string> { return s.modulatedKeys; },
 
         /* Range of a loaded param by key (for automation-lane validation), or
          * null if this module has no such param. Authoritative for config-driven

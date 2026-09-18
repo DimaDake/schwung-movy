@@ -34,11 +34,53 @@ SCHWUNG=../schwung node browser-test/page-mode.mjs
 
 It prints `page-mode: N of M expected failures remain`. **That number may shrink
 and must never grow.** If it grew, the last item regressed a sibling — stop. It
-started at 13 and is at **6**; the remaining six are named in
-`browser-test/page-mode-expected-fail.json`.
+started at 13, SP-11 took it to 6, SP-17 to 5, and the SP-17 fix round to
+**3**; the remaining three are named in
+`browser-test/page-mode-expected-fail.json`, and they are one FIXTURE limit
+rather than three defects — under `page` the page set is Schwung's own plan, and
+for the module they run on that plan is a single page named *Main* while movy's
+config gives it four banks. Every one of them is a check whose subject is "the
+jog reaches bank N"; the consequence for the product — a bank that exists only
+in movy's config is on no page under `page` — is owned by SP-32. See the SP-17
+entry in Closed items.
+
+**THE COUNT IS READ BACK, NOT RECALLED.** `browser-test/app-loop.mjs` prints a
+permanent line on both arms, next to the labels it belongs to:
+
+```
+[page-plan] mrdrums fixture ck=synth mode=page lib=true movyBanks=4 claimed=true delegated=true ctlPages=1 names=["Main"]
+[page-plan] mrdrums fixture ck=synth mode=off  lib=true movyBanks=4 claimed=false delegated=false ctlPages=0 names=[]
+```
+
+`off` plans nothing because movy draws — that is what the flag buys, not a
+contradiction. The four banks against one page is the whole of the fixture
+limit, in one line, on the same run that produces the failures. A claim about a
+page plan that no run prints is a claim nobody has checked.
+
+**AND `SCHWUNG=` MUST HAVE BEEN SET WHEN `dist/esm` WAS BUILT.** It is a
+BUILD-time alias (`build/browser.mjs`): without it the `param_pages` import
+resolves to a stub that throws, `schwungLibAvailable()` is false, the mode pins
+to `off`, and **both arms measure the same thing** — while `page-mode.mjs`
+reports every listed label as ✓ fixed, which instructs a maintainer to DELETE
+labels that are still failing. The suite now asks the built artefact
+(`schwungLibAvailable()`), not the variable, and SKIPS with the rebuild command
+in the message. `SCHWUNG=… npm test` covers this; a hand-run
+`node build/browser.mjs` between them does not.
 
 Without `SCHWUNG=` every Schwung assertion is *skipped, not failed* — a green
 run proves nothing.
+
+**Arming page mode on the DEVICE reddens the device tier, and not because of the
+code under test.** `items`, `module-contract` and `smoke` assert movy's OWN
+writes, and under `schwunggrid=page` movy is not the renderer: the knob CC
+arrives, `applyKnobDelta` is never reached, and the sweep reports eleven
+failures that all read `writes: none`. Measured 2026-09-18 — the same `ui.js` is
+`smoke` 9/11 at `schwunggrid=2` and 11/11 at `0`. Put the flag back to `off`
+before `npm run test:device`, or read those three scenarios as page-mode results
+rather than as regressions. **The key is `flags.schwunggrid`**, because
+`readPrefFlags()` reads `prefs.flags` and nothing else: a top-level
+`"schwunggrid"` in that file is inert, and a hand-edit that writes one there
+changes no mode at all while looking exactly like the fix.
 
 ---
 
@@ -59,27 +101,29 @@ run proves nothing.
 | SP-26 | Bulk read for a delegated page — the epoch cache in front of the port |
 | SP-27 | The delegated page re-planned the whole module every 8 ticks — 67.5 ms → 3.0 |
 | SP-14 | Cause E — drum/voice pages planned from movy's config |
+| SP-15 | Cause D — contract lifecycle: the asking never stops, only its pace |
+| SP-18 | The decoration channel: modulation tilde, mod dot, p-lock highlight, held-step filter — **see SP-33** for the half of the held-step gate it left undone |
+| SP-17 | Cause C/B — the filepath dive, the header readout, the footer hints |
+| SP-19 | Undo redraw + automation-follows-arc — **verified, not built**: SP-26's write-log drain delivers the **undo** half; a playing lane's arc is served by the 8-tick fill and nothing tests that path (SP-29) |
+| SP-28 | Custom module visualisations (`custom:` viz kinds) — the four loader defects fixed, and hank's own waveform is on the panel under `page`. **See SP-34** for the fifth, found in review |
 
 ### Open
 
 | id | item | model | state | proposed order |
 | --- | --- | --- | --- | --- |
-| SP-15 | Cause D — contract lifecycle: None does not eject, the first module does not take | Sonnet | ⬜ | **1** |
-| SP-18 | Modulation tilde + mod dot + p-lock highlight + held-step filter | Sonnet | ⬜ | **2** |
-| SP-17 | Cause C/B — filepath & canvas dives, header readout, footer hints | Sonnet | ⬜ | **3** |
-| SP-19 | Undo redraw + automation-follows-arc (**verify first — may already be closed**) | Sonnet | ⬜ | **4** |
-| SP-28 | **NEW** — custom module visualisations (`custom:` viz kinds) | Sonnet | ⬜ | **5** |
-| SP-16 | Cause G — graphics return (**shrunk: upstream fixed the hard half**) | Sonnet | ⬜ | **6** |
-| SP-20 | `ui_hierarchy` ownership under Schwung's planner | Opus | ⬜ | 7 |
+| SP-32 | **NEW** — a bank or cell that exists only in movy's config is on no page under `page`: audit which before SP-30 flips the default | Sonnet | ⬜ | **1** |
+| SP-31 | **NEW** — a knob release that lands on another page latches `touched`, and the next jog click is swallowed | Sonnet | ⬜ | **2** |
+| SP-16 | Cause G — graphics return (**shrunk: upstream fixed the hard half**) | Sonnet | 🔨 **movy half done** 2026-09-18; floor bump waits on #509 | **5** |
+| SP-20 | `ui_hierarchy` ownership under Schwung's planner | Opus | ⬜ | 6 |
 | SP-21 | Metadata correction overlay | Sonnet | ❌ **dropped** — the audit found 1 real correction in 555 | — |
-| SP-21a | Report po32-drum's `kit` range upstream (the 1) | Sonnet | ⬜ | 8 |
+| SP-21a | Report po32-drum's `kit` range upstream (the 1) | Sonnet | ⬜ | 7 |
 | SP-22 | Cut-curve viz kind | Sonnet | ❌ **dropped** — a movy extension; Schwung draws plain dials natively | — |
-| SP-23 | Font parity + enum-overlay double-draw | Sonnet | ⬜ | 9 |
-| SP-24 | movy-only page kinds verified against a Schwung body | Sonnet | ⬜ | 10 |
-| SP-29 | **NEW** — Schwung now ships its own automation lanes and p-locks. Decide movy's position | Opus | ⬜ | 11 |
-| SP-30 | Default-on: flip, device tier, docs, release, stated revert path | Sonnet | ⬜ | 12 |
-| SP-40 | Delete `body` and the `.off` stand-ins | Sonnet | ⬜ | 13 |
-| SP-41 | Delete `off`, movy's page renderer, model page planning. **No return** | Opus | ⬜ | 14 |
+| SP-23 | Font parity + enum-overlay double-draw | Sonnet | ⬜ | 8 |
+| SP-24 | movy-only page kinds verified against a Schwung body | Sonnet | ⬜ | 9 |
+| SP-29 | **NEW** — Schwung now ships its own automation lanes and p-locks. Decide movy's position | Opus | ⬜ | 10 |
+| SP-30 | Default-on: flip, device tier, docs, release, stated revert path | Sonnet | ⬜ | 11 |
+| SP-40 | Delete `body` and the `.off` stand-ins | Sonnet | ⬜ | 12 |
+| SP-41 | Delete `off`, movy's page renderer, model page planning. **No return** | Opus | ⬜ | 13 |
 
 ### Upstream
 
@@ -116,9 +160,21 @@ is required**:
 
 | what | how it is fed | how it draws |
 | --- | --- | --- |
-| a parameter is modulated | `io.isModulated(key)`, or `<key>:modulated` reads | a **wave-mark tilde** 6 px left of the label run, polarity-aware |
+| a parameter is modulated | `io.isModulated(key)` — **the only channel; `<key>:modulated` reads were deleted in this version** | a **wave-mark tilde** 6 px left of the label run, polarity-aware |
 | where modulation has put it | `<key>:effective`, falling back to the plain key | a **5-pixel plus riding the knob arc**, while the pointer keeps showing the base you dialled in |
-| a parameter lock / caller decoration | `ctl.setDecorations([{locked, value, exact}])` | a **2×2 corner dot**, an inverted label band, and the decoration's value **replaces** the live one on the widget |
+| a parameter lock / caller decoration | `ctl.setDecorations([{locked, value}])` — **two fields, no third; the `exact` above was this ledger's error** | a **2×2 corner dot**, an inverted label band, and the decoration's value **replaces** the live one on the widget |
+
+**Two corrections, made by SP-18 (2026-09-18) and left visible rather than
+quietly edited, because both were copied forward into a work item's brief.**
+This table named a third decoration field, **`exact`, which does not exist**:
+`setDecorations` is a bare passthrough, and the only two decoration fields any
+renderer reads are `locked` and `value` (`render_page_movy.mjs` ~2593,
+`render_page.mjs` ~466). The rule `exact` was standing in for — a lock mark on a
+cell with no recorded value — is carried by `value === undefined`, which draws
+the live value under the mark. And the modulation row's second channel is gone:
+`page_controller.mjs` ~2318 records that the `<key>:modulated` reads cost 3.5 of
+the grid's 7.1 reads per tick and were replaced by `io.isModulated` on the value
+cursor. Neither correction changes the conclusion below.
 
 That is movy's own grammar — dot for automation, tilde for modulation — already
 implemented, and the mod dot is something `off` never had. **movy passes none of
@@ -150,138 +206,95 @@ evidence. **Needs** — its predecessor.
 
 ---
 
-### SP-15 — Cause D: the contract lifecycle does not hold
+### SP-32 — under `page`, whatever lives only in movy's config has no page
 
-**Product.** Two of the three things a person does with a chain slot are broken
-under `page`, and both read as the tool being stuck rather than as a bug.
-Setting a slot to **None** leaves Schwung drawing the departed module's page —
-you cannot get out of an editor for a module that is no longer there ("if I
-choose None I do not get kicked out"). And the **first** module dropped into an
-empty slot does not take: you land on movy's own page and stay there until you
-navigate away to the chain view and back, sometimes needing a page change too.
-The second one is worse than it sounds, because it is the first thing anyone
-does after a reboot — after a cold start no chain slot is active at all — so the
-very first impression of `page` mode is that the module you just loaded has no
-editor. Until this closes, default-on is unshippable regardless of how good
-every other item is.
+**Product.** A page under `page` is built from the module's OWN declaration —
+`ui_hierarchy` for the shape, `chain_params` for the types. movy's config
+(`src/modules/*.json`) is the other source: its banks, its file roots, its
+filters, its `fileRequireContains`. Under `off` both are on screen, because movy
+draws. Under `page` only the first is. A bank or a cell that exists ONLY in a
+movy config is therefore not mis-drawn and not greyed out — it is **absent**,
+with no error and no hint. SP-30 flips the default to `page`.
 
-**Design & implementation.** The tri-state that decides "is there a page set to
-draw" already exists and is right: `refreshLoaded()` in
-`src/renderer/schwung-page-contract.ts` holds the previous verdict when
-`ctl.contractUnresolved` (a failed *read* is not news about the module) and only
-a resolved, genuinely empty plan hands the frame back. The suspect is the retry
-budget around it: `RETRY_TICKS 12` × `RETRY_LIMIT 60` is spent on a slot that was
-*never* loaded, and `refreshLoaded()` re-arms the budget only on going *empty* —
-which a never-loaded slot never does. So reproduce it first at the cheapest
-level: a logic test over `createPageContract` driving a port that answers empty
-for N ticks and then answers a real contract, asserting that the page becomes
-ready for any N up to the module's real load time, and asserting separately that
-a slot set to None resolves to zero pages and releases the frame. Expect the fix
-to be in the *re-arm rule* (a contract that has never resolved keeps asking, on a
-budget measured against module-load time rather than tick count) rather than in
-bigger numbers — raising `RETRY_LIMIT` hides it and costs a read per tick
-forever. Watch the interaction with SP-26: `reload()` deliberately reads live and
-drops the cache, so a retry is a real round trip and the budget is a real cost.
-The ejection half also needs a device check, because "resolved and empty" is a
-statement about the engine's answer for a slot that just went None, and only the
-device produces it.
+**What that costs is not what it looks like, and the difference is measured.**
+The tempting reading — "movy's file browsing is a movy invention and dies under
+`page`" — is **wrong**. `synth:ui_preset_path` is a real DSP param of mrdrums
+(`docs/module-dump/modules/sound_generator--mrdrums.json` → `native.params`,
+`type: "filepath"`), and the module names it in its own declaration
+(`capabilities.ui_hierarchy.levels.root.params`), as it names `pad_sample_path`
+under `pad_settings`. Given that declaration the plan carries the route:
 
-**Closes when:** a logic test in `browser-test/logic/` reproduces both halves and
-goes red with the fix removed; on device, setting a slot to None returns to
-movy's view within one `RELOAD_POLL_TICKS`, and a module loaded into an empty
-slot after a cold boot draws its page without any navigation.
+```
+logic: schwung page mode — Test: under `page` the plan is the module’s declaration
+  ✓ a declared level becomes its own page
+  ✓ and the declared filepath IS a page key
+  ✓ so a click on it is a dive, which is the route `off` gets from movy’s config
+```
 
-**Needs:** nothing. SP-26/SP-27 are in and the retry path is unchanged by them.
+(`browser-test/logic/schwung-page.mjs`. Teeth: drop `pad_sample_path` from the
+fixture's `pad_settings` and the second reddens; change its `chain_params` type
+away from `filepath` and the third does.)
 
----
+So what is open is narrower than a design question, and it is an AUDIT: **which
+movy-config banks and cells does no module declaration carry?** Only one end of
+that is measured today — the suite's own fixture, which declares nothing at all:
 
-### SP-18 — the decoration channel: modulation tilde, mod dot, p-lock highlight, held-step filter
+```
+[page-plan] mrdrums fixture ck=synth mode=page lib=true movyBanks=4 claimed=true delegated=true ctlPages=1 names=["Main"]
+```
 
-**Product.** Four readings a person takes at a glance in `off` mode, all missing
-under `page`. **(a)** An LFO-modulated parameter is marked with a tilde; an
-automated one with a dot. Under `page` both collapse to the lock mark, so you
-cannot tell a parameter something is *moving* from one you *recorded*. **(b)**
-Holding a step does not highlight the locked parameter's value the way movy
-does. **(c)** movy's `hiddenDuringHold` filter — while a step is held, only
-parameters you can actually lock are shown, and at the 8-lane cap only assigned
-ones — is gone, so you are offered knobs that will do nothing. **(d)** And the
-item *adds* something `off` never had: Schwung's mod dot rides the knob arc at
-the live modulated value while the pointer stays on the base you dialled in. In
-`off`, an LFO drags the pointer and you lose sight of what you set. This is the
-cheapest large visible win left, and after the upstream refresh above it needs
-no Schwung change and no floor bump.
+Four config banks, one planned page, and nothing on it that opens a file. That
+is the fixture limit the ledger's three labels sit on, and it is a statement
+about a MOCK. The real modules each need the same read-back, and none of them
+has had it: `docs/module-dump/` (the 76-module inventory) against each
+`src/modules/*.json` is the worklist.
 
-**Design & implementation.** Three separate wirings, one file each, and they are
-independent enough to land in one commit only because they share a test scene.
-*Modulation:* add `isModulated: (key) => boolean` to the object built in
-`src/renderer/schwung-page-io.ts`, answered from movy's own LFO routing model
-(the same source `label.ts` uses for its tilde today) — the controller's own
-`<key>:modulated` polling is the fallback for what movy does not know about, and
-costs one read per tick on the rotation that key was already paying for. The mod
-dot then follows for free: the controller reads `<key>:effective` on a bounded
-fast lane and `render_page_movy` draws `drawModDot`. *P-lock highlight:*
-`schwung-page-render.ts` already passes `{locked, value}` and Schwung already
-prefers the decoration's value over the live one; check what is actually missing
-is the *highlight*, which is `exact` — a decoration without `exact` keeps the old
-meaning, so passing `exact: true` for a real lock is likely the whole change.
-*Held-step filter:* `schwungBodyFor()` already returns `undefined` for
-`stepPageSelected` to keep movy's own screen; extend that gate to
-`vm.automationHeld`. Prove each with a `page`-mode screenshot scene (SP-05's
-machinery) rather than a logic assertion, because every one of them is a pixel.
+**Closes when:** every bank and cell in `src/modules/*.json` is either carried
+by that module's own declaration — the plan read back, not assumed — or listed
+here as something a `page`-default user loses, with what they lose stated.
 
-**Closes when:** four new `page` screenshot baselines — a modulated cell, a
-modulated cell with its knob held (the polarity case upstream calls out as the
-one no contact sheet shows), a held step with a lock, and a held step on a page
-with unassignable params — and each goes red with its wiring removed.
-
-**Needs:** nothing.
+**Needs:** nothing. Do it BEFORE SP-30's flip, which is why its order is 1.
 
 ---
 
-### SP-17 — Cause C/B: the dives that do not open, the header that says nothing, the footer that hints nothing
+### SP-31 — a lost knob release latches the controller, forever
 
-**Product.** Three losses that share one shape — Schwung offers something and
-movy does not take it. **Dives:** clicking a filepath or canvas parameter reaches
-the controller, the controller returns an `open` intent, and movy drops it on the
-floor. On `mrsample` that means **you cannot choose a sample** — the module is
-unusable under `page`. **Header:** Schwung's header strip is the held
-parameter's full name and value, inverted; movy draws its own header and its
-toast occupies that row, so the one readout that tells you what you are turning
-and where it is now is gone. On a page of five-character short names that is the
-difference between editing and guessing. **Footer:** Schwung's footer is
-`[key, action]` pairs supplied by the caller, and movy supplies none — so
-mrsample never says "jog click to pick a sample", which is how you would have
-discovered the dive that also does not work.
+**Product.** A gesture goes dead. Touch a knob, and while it is held the page
+under it changes — a chain switch, a module swap, a bank the fixture moved,
+anything that resolves `knobOwner()` to a different page on the way up. The
+release is routed to whatever screen is up now, so the pressed page never hears
+it and keeps the slot in `touchOrder`. `touched` therefore stays ≥ 0 for the
+rest of the session, and movy's router guard treats the controller as "a knob is
+under the hand" — so **every later jog click is handed to the page instead of
+movy**, and with SP-17's chrome the hint band also pins itself over the Loop
+strip. Measured while working SP-17: `touched=1 order=[1]`, and the swallowed
+jog click moved the CHAIN index rather than paging (measured with the latch on:
+`ck=4 modelCk=lfo`).
 
-**Design & implementation.** `openSchwungEditor()` in
-`src/renderer/schwung-editor.ts` handles enum-shaped intents only, and its own
-comment records the gap: "an intent with no options — a filepath, a canvas — has
-no editor here; it is logged rather than dropped". movy already owns a file
-browser and a canvas-capable screen, so the work is an adapter: map the pending
-intent's param key and type onto movy's existing browser, and return the chosen
-value through the same `setParam` path the enum editor uses, so undo and the
-write-log drain (SP-26) see it like any other write. Two hazards worth naming in
-the plan. First, the intent carries the *controller's* key, not movy's — bind the
-browser to it directly and never re-derive from `(page, slot)`, which is exactly
-the class of bug SP-10 existed to remove. Second, a filepath's `""` is a real
-value (no file), not a failed read, and collapsing those two is the mistake this
-branch has now made five times. For the header, movy composes its own; the
-readout should be produced by movy from the controller's held-parameter state
-rather than by asking Schwung to draw the band, because `BANDS.header` is `false`
-deliberately — movy's bank bar and Schwung's would otherwise stack. For the
-footer, pass the caller-supplied hint pairs into `ctl.render` and draw them in
-movy's own footer row.
+**Design & implementation.** The controller has no staleness expiry for a held
+knob on purpose — `page_controller.mjs` ~1499 returns early while
+`touchOrder.length`, and `onKnobTouch` zeroes `turnClaimMs`, so nothing ages a
+touch out. **The fix is on movy's side: pin the page at press and deliver the
+release to THAT page.** A `Map<knobIndex, page>` filled in the router's
+knob-touch branch and drained on release is ~15 lines, and it is the same shape
+as the note-off ledger (`keyboard/held-notes.ts`) — the release must come from
+what the press recorded, never from current state. SP-17 implemented exactly
+that and reverted it, because it is not SP-17's to make: the pin cleared the
+latch and took the burn-down 5 → **7** (`shift+jog: plain jog steps one page`
+reddens whenever the pin is active — measured `pcount=1 ctlPages=1 names=Main`
+pinned against `pcount=3 names=Main>Main - 2>Effects` unpinned), so the pin is
+entangled with the FIXTURE limit rather than with the latch.
 
-**Closes when:** on device, a click on mrsample's sample parameter opens movy's
-browser and the chosen file plays; a `page` screenshot scene shows the held
-parameter's name and value in the header; a module declaring footer hints renders
-them. `page-mode` does not grow.
+**Closes when:** a device or app-loop check holds a knob, changes the page under
+it, releases out of order, and asserts the next jog click still reaches movy —
+and the burn-down has not grown.
 
-**Needs:** SP-15 (a module whose contract will not settle cannot be dived into).
+**Needs:** nothing. Do it after the fixture limit is understood, or it will look
+like the fix that broke paging.
 
 ---
 
-### SP-19 — undo redraw, and the arc that follows automation
+### SP-19 ✅ 2026-09-18 — undo redraw, and the arc that follows automation: VERIFIED, NOT BUILT
 
 **Product.** Two invariants a person never thinks about until they break. **Undo
 must redraw:** movy's undo writes the DSP and only repaints if
@@ -300,7 +313,12 @@ any value, and *every* movy writer goes through the one memoized `portFor(track)
 — the knob under the hand, the sequencer, **an automation lane**, undo, the drum
 handler. If that holds, a lane write invalidates the key and the controller's
 next read is fresh, which is precisely "the arc follows the lane"; and undo is
-the same path. So the first session task is an assertion, not a feature: a logic
+the same path. **(Corrected after SP-19 closed: `an automation lane` does not
+belong in that list of port writers. A lane's *value* never reaches the port —
+the engine's CC is applied inside the chain's DSP — which is why a playing lane's
+arc is served by the 8-tick fill. Kept rather than deleted so the prediction
+above is not read as still standing; see the closed note and SP-29.)**
+So the first session task is an assertion, not a feature: a logic
 test that writes through the port as a lane would, ticks the page, and asserts
 the controller's `values` moved and the rendered arc with it — and the same for
 undo, including a key `syncParamsToModels` does *not* map, which is the case that
@@ -313,11 +331,120 @@ the controller treats a modulated one — on the fast lane, not the rotation.
 red), or a fix lands and they pass. Either outcome closes it; a verification with
 no test does not.
 
-**Needs:** nothing.
+**Closed 2026-09-18 — the first outcome: both pass, on tests that redden when the
+drain is removed.** `browser-test/logic/page-freshness.mjs` holds the two. **(a)
+The arc follows the lane:** a page under `schwunggrid=page`, a lane writing a
+distinct value through `portFor(0)` every tick, and the controller's own cursor
+read of that key — 4 reads over 40 ticks, every one of them the value the lane
+had just written. **The teeth in (a) are the cursor-read assertion, NOT the arc
+one:** the companion check that the drawn arc (`knobLevels()[0]`) wears that
+value stays **green with the drain removed**, because the test's settle loop is
+long enough for the fill to catch up. It is a real check of the end state, and it
+is not evidence of the drain — said here so the two do not read alike.
+**(b) Undo redraws on a key `syncParamsToModels` cannot map:** the model boots on
+one declaration and the page is planned from another, so `q1` reaches the model
+and `refreshParamKey('q1')` answers no (asserted in the test) — the undo is then
+visible on the next read, `3` ticks, which is the page's whole rotation. **The
+teeth, measured on the SOURCE, not on the built chunk:** with `drainWrites()`'s
+body replaced by `return` and `dist/esm` rebuilt, (a) reports `expected 0, got 3`
+(3 of its 4 reads behind the lane) and (b) reports delays of `9, 9, 6, 9, 9, 6`
+against a rotation of 3. Restored and rebuilt, both green.
+
+**The residue this does NOT cover belongs to SP-29, and is recorded there, not
+here** — a *playing* lane's arc is served by the 8-tick fill and no test reaches
+that path. It is stated in SP-29's own text because a closed item is where the
+next session stops reading.
+
+**WHY (b) IS A SHORT PAGE, WHICH IS THE ONE THING WORTH KEEPING.** The batch
+fill is 8 ticks. A rotation is `keys.length + 1`, so an 8-key page (9) is
+*slower* than the fill and the fill alone would serve every read — an **arrival**
+bound there would not distinguish the drain from the timer and would pass for the
+wrong reason, which is why (a) is an 8-key page that asserts *which* value each
+read saw rather than when a value turned up. Two keys (3) is shorter than the
+fill, so the only thing that can deliver the undo within one rotation is the
+write having been drained, and (b) can assert an arrival bound outright.
+
+**WHERE THE DRAIN IS *NOT* ON THE PATH, stated so it is not re-derived.** The
+drain makes a key fresh when **movy** wrote it — `applyLaneMapping`'s binding
+writes (`src/app/tick.ts:527`, `:552`), the knob under the hand, undo, the drum
+handler — which is what (a) and (b) exercise. The engine's own lane **playback**
+does not go through the port: `movy-dsp` emits `OutEvent::Cc` as
+`midi_send_internal(0xB0 | track, 102 + lane, val)`
+(`engine/crates/movy-dsp/src/lib.rs:675`) and the chain applies it in the DSP, so
+nothing logs a write and the page sees the moved value on its next **fill** —
+≤ 8 ticks, i.e. inside one rotation of an 8-key page. That is "not frozen", which
+is what the product claim asks, but it is the fill and not the drain, and a
+device measurement of the arc against a playing lane (not taken here) is what
+would pin it. Read from source, not measured.
+
+**Needs:** nothing. No fix landed — the item's suspicion that SP-26 already
+closed it was right, and the freshness rule ("treat a lane-driven key as the
+controller treats a modulated one") was already the implementation.
 
 ---
 
-### SP-28 — custom module visualisations (NEW, 2026-09-17)
+### SP-33 ✅ 2026-09-18 — a held step moved the screen and not the knobs (review of SP-18)
+
+**Symptom.** Under `page`, hold an **empty** step and turn a knob: the screen
+shows movy's labels and the lock lands on **Schwung's** parameter — a different
+one on every cell where the two planners disagree, which `midi/router.ts`'s own
+comment counts at nine across the mock presets. A step with an OCCURRENCE under
+it is unaffected: it opens the step page, which returns before either decision.
+
+**Cause.** SP-18 put the held-step test in `app/tick.ts`'s `schwungBodyFor`, so
+the BODY went back to movy. Every gesture site reads OWNERSHIP instead
+(`pageOwnerOf`), and that still said `delegated`. Two files, one question,
+different answers — the exact shape SP-10 exists to make structurally
+impossible, reintroduced by putting a second gate outside the accessor.
+
+**Fix.** The hold is part of the accessor. `delegateOwner` gates on
+`page.ready && !seqState.stepAutoMode`, so `delegated`, `page`, `knobParamInfo`,
+`changePage` and the page index all fall through to the movy owner together, and
+`schwungBodyFor` derives the body from `owner.page` like the bank bar and the
+chrome already do. `poll()` stays OUTSIDE the gate — the contract keeps settling
+under the finger, so the page is current when the step is let go.
+
+**Teeth.** `browser-test/app-loop.mjs`, "a held step hands the page back to
+movy", which reddened under `page` before the fix (the `off` arm cannot see it —
+nothing is delegated there) plus "...so the knob targets the parameter movy
+drew". The refresh check the block was built for is unchanged and still passes.
+
+---
+
+### SP-34 ✅ 2026-09-18 — one page's widget cleared every other page's (review of SP-28)
+
+**Symptom.** hank's waveform appears, then vanishes the moment any other
+component's page syncs, and **never comes back** — not on return to the track,
+not on a re-plan, only on a module swap into that same slot.
+
+**Cause.** The registry is process-global and its only removal is
+`clearWidgets()`, which empties **all** of it — there is no per-kind
+unregister. `registerModuleWidgets` cleared unconditionally, including for a
+module declaring nothing, which is right for the slot it is asking about and
+wrong for every other. And it cannot recover: `createWidgetSync` latches
+`widgetDone` on a settled answer, so the page that registered the kind is not
+asked again until its own plan moves. One chain slot along and back was enough.
+
+Reproduced against the real entry points and the real library — `custom:hank_wave`
+available `true` after the synth page syncs, `false` after an fx page with no
+custom kind syncs, still `false` on return.
+
+**Fix.** movy keeps its own `kind -> { owner, draw, nominal }` map and the
+library's registry is a PROJECTION of it: `setOwnerWidgets(owner, widgets)`
+replaces only that owner's entries and replays the whole map. The owner is the
+page's `(track, component)` — the key the page cache already uses — so a module
+swapped INTO a slot still replaces exactly what the module before it left there.
+Replay is cheap: the drawers are in memory, and nothing re-reads a file.
+
+**Teeth.** `browser-test/logic/schwung-widgets.mjs`, "one registry, several
+pages" — three checks red before the fix, with the property the clear existed
+for ("a module swapped into a slot drops the departed module's kind") green
+throughout, which is what says the fix did not simply delete the clear. Needs a
+registry, so it is skipped and says so where there is no Schwung checkout.
+
+---
+
+### SP-28 ✅ 2026-09-18 — custom module visualisations (NEW, 2026-09-17)
 
 **Product.** A module can ship a `canvas.js` beside its `module.json` and draw
 its **own** picture in a knob cell — the module author's waveform, not a generic
@@ -361,46 +488,224 @@ same holds after swapping hank in and out of a slot without leaving the grid; a
 module declaring only `widgetKinds` registers; and the dump-replay assertion goes
 red when registration is removed.
 
+**Closed 2026-09-18 — four defects fixed, and all four were live.** Nothing
+here was already fixed and nothing was moot; the one half that was already safe
+is named under (2), where the fix is the resolution and not the safety net.
+**(1) Live.** `overlayWidgets()` now mirrors every shape upstream's
+`registerOverlayWidgets` accepts — the legacy `widgetKind` string, a
+`widgetKinds` ARRAY sharing `drawCell`, and a `widgetKinds` OBJECT of drawers or
+`{draw|drawCell, nominal|widgetNominal}` — read singular-first, so a module
+spelling both keeps the richer entry for the name they share. hank declares
+both, so it worked on hank and on nothing else: an author following today's docs
+and writing the array alone registered nothing while the page still looked
+reasonable. **(2) Live.** The script is the MODULE's, not movy's: `findOverlay()`
+reads `capabilities.canvas_script` (top-level `canvas_script` honoured too),
+splits a `#ref` fragment off as the global to read, and resolves the name against
+the first of the seven `SEARCH_DIRS` that has a `module.json`. A name that
+resolves nowhere, a script that does not load, a `shadow_load_ui_module` that
+throws — each is `null`, which the registry answers with a built-in. **That
+fall-through half was ALREADY correct**: the old loader returned `null` too, and
+`null` registered nothing, so what this defect changed is which script gets
+read, not what happens when reading fails. The fall-through is the whole safety
+story of this path and is asserted in all three tiers.
+
+**(3) Live.** Registration had ONE trigger, `reload()`, which runs at
+construction and on the retry and never again once a page is up — so a module
+swapped into a slot kept drawing the departed module's art. It now runs from
+`createWidgetSync()` (its own unit, `src/renderer/schwung-page-widget-sync.ts`)
+on two triggers: `sync()` after a reload, and `afterReplan(adopted)` after a
+re-plan that ADOPTED a new plan (`ctl.reloadIfChanged()` answers that), which is
+the swap. The budget is honest about what it is: a `false` is never taken for an
+answer, but the question is asked at most three times per module id and then
+**parked** — unanswered, not answered — until a contract that MOVED re-opens it.
+**(4) Live.** `registerModuleWidgets` clears BEFORE it registers, and it clears
+for a module that declares nothing too — that being exactly the case where a
+stale name would otherwise be served, since the registry is process-global and
+`shadow_ui` is long-lived. `clearWidgets()` bumps the generation in
+`vizGroups()`'s cache key, so a clear also re-resolves a page that was already
+planned.
+
+**How it is tested, and what each tier can say.** Three suites, one entry point.
+`browser-test/logic/schwung-widgets.mjs` runs with **no Schwung checkout at all**
+and covers (1), (2) and the invariant half of (4): the shapes, the script and
+`#ref` resolution, the search, and the two "not an answer" rules (an empty
+`chain_params` and an unresolved module id are neither of them a verdict). The
+door is stubbed by the two DEVICE globals only (`host_read_file`,
+`shadow_load_ui_module`) — nothing imports `widget_registry.mjs` by its own
+specifier, because that is a second empty map. `scripts/schwung-widgets-check.mjs`
+(needs `SCHWUNG=`) is where the registry exists: it drives a plural-only
+`widgetKinds` module through the same entry point and reads the kinds back out of
+the REAL map, and asserts the clear against it. `test-device/scenarios/widgets.ts`
+is the only place a swap can be staged: the module is written to the slot's own
+param (`ch0:synth:module`) with movy open and the knobs page up from before the
+first swap to after the last, and three reads have to agree — the log line
+(delta), `probe.widget(kind)` through movy's binding, and the FRAMEBUFFER.
+
+**Teeth, measured.** Removing the plural branch from `overlayWidgets` reddens
+`an array-only declaration registers every kind it names` and `a built-in kind in
+the list is dropped`; hard-coding `canvas.js` again reddens three script/`#ref`
+checks; deleting the declare-nothing `clearWidgets()` reddens `the registry still
+serves the departed module's kind` in the Schwung-gated script; and deleting the
+adopted re-plan trigger reddens 4 of the device scenario's 7 checks, beginning
+with `swap-in-registers-the-widget` — "no new line, `available=false`" — which is
+the reported defect verbatim.
+
+**What is NOT covered, stated rather than implied.** (4)'s registry contents
+cannot be asserted without a registry, so the logic suite carries the invariant
+and the two Schwung-backed tiers carry the claim; its teeth were therefore proved
+in the Schwung-gated script rather than in the no-checkout suite. And the
+assertion the item proposed — a `dump-replay` check that hank's `ratio` cell
+resolves to `custom:hank_wave` — was NOT written: `dump-replay` pages a module
+from `docs/module-dump/*.json` through movy's own planner, and under `page` the
+kind is resolved by Schwung's `viz.mjs` against the registry, which a dump has no
+access to. The device scenario is what replaced it, and it is the stronger test:
+it reads the panel.
+
+**Noticed while closing, and left alone as out of scope.** movy's view model
+cannot be asked which page is up under `page`: `page-owner.ts` hands a jog turn
+to the delegated controller (`page.changePage` → `ctl.onJog`), so `vm.bankIndex`
+keeps reporting the bank movy last built while the screen moves — measured, four
+jog turns left the probe on `page=0 of 3 cells=[PRESET]`. The device scenario now
+finds its page from the framebuffer instead. Related: a backward jog turn at the
+FIRST page does not page at all — with a step page available it SELECTS the step
+page — so a page walk is not symmetric under turn direction. Both are worth
+knowing before anything else tries to navigate a delegated page; neither is a
+defect.
+
 **Needs:** nothing. Independent of the other open items.
 
 ---
 
-### SP-16 — Cause G: graphics return
+### SP-16 🔨 2026-09-18 — Cause G: graphics return (movy half done; the floor bump waits on #509)
 
 **Product.** The parameter graphics — envelope, LFO wave, filter curve, EQ
 curve, waveform — are the fastest read on the screen, and under `page` they were
 disappearing permanently: automate one filter cutoff and that page's curve never
 came back. **Upstream has fixed the hard half** (SU-1, schwung #509): graphics no
-longer stand down because decorations exist. What remains on movy's side is
-narrower but still wrong — `schwung-page-render.ts` builds decorations from
-whether a lane *exists* on the page, with no `auto.held` in the condition, so a
-page carrying any automation lane is permanently decorated. With the viz gate
-gone that no longer costs graphics; it costs *meaning*: a lock mark and an
-inverted label band on a cell that has no lock, all the time. The item has gone
-from "the migration's most visible regression" to "a mark that lies", and its
-priority should move accordingly.
+longer stand down because decorations exist. What remained on movy's side was
+narrower but still wrong — the decoration pass (`decorationsFor()`,
+`schwung-page-decorations.ts`) built decorations from whether a lane *exists* on
+the page, with no `auto.held` in the condition, so a page carrying any automation
+lane was permanently decorated: a lock mark and an inverted label band on a cell
+that has no lock, all the time, and (until the fix, on the 1.4.0 the device runs)
+the graphics standing down behind them as well. The item had gone from "the
+migration's most visible regression" to "a mark that lies"; **the mention is
+fixed, and what is left is the upstream half below.**
 
-**Design & implementation.** Two halves that can land separately. The movy half
-is the condition in `schwung-page-render.ts:render()`: decorate a cell only when
-there is something to show — a held step with a resolved lock value, per SP-18's
-`exact` rule — rather than whenever `activeLanes` has a bit set. It is a
-three-line change with a screenshot scene, and it should be written as part of
-SP-18's scene set since both are about what the decoration channel means. The
-upstream half is a **floor bump**: `SCHWUNG_FLOOR` is `'1.3.0'` in
-`src/renderer/schwung-floor.ts`, pinned by
-`browser-test/logic/schwung-floor.mjs` which reddens deliberately when it moves.
-#509 is not in 1.4.0, so raise the floor to the first release that contains it,
-say which feature needs it in the commit message, and confirm with
-`tests/host/test_viz_under_held_step.sh` against the installed tree rather than
-against `origin/main`. Until that release exists, movy on 1.4.0 keeps the old
-gate — which is a reason to fix the movy half first: with decorations set only
-when a lock is real, the old gate stands graphics down only while a step is held,
-which is the behaviour SU-1 was asking for anyway.
+**Design & implementation.** Two halves, and they have landed differently.
+**The movy half is DONE (2026-09-18): the condition, and nothing else.** The
+first line of `decorationsFor()`'s body read `if (!auto) return null;` — decorate
+whenever the page carries a live lane — and now reads
 
-**Closes when:** a `page` screenshot scene shows a page with an automation lane
-drawing its graphics with no lock mark; the same page under a held step shows the
-lock and (post-floor-bump) keeps its graphics; `schwung-floor.mjs` pins the new
-value.
+```
+if (!auto || !auto.held) return null;
+```
+
+with the per-cell `auto.held ? auto.heldValues.get(lane) : undefined` losing the
+guard that line now supplies. The cell loop, the `{ locked, value }` contract and
+the `value === undefined` distinction SP-18 documented are untouched — **fewer
+decorations, never different ones.** (The contract has no `exact` flag: this
+section and SP-18's brief both assumed one and SP-18 found none in the library or
+in either renderer. What it was reaching for is `value === undefined`, a cell
+marked with no resolved value and the live value showing through.)
+
+The scene is `page_lane_unheld`, in `browser-test/screenshot.mjs`'s
+`PAGE_SCENES` beside `page_body`/`page_body_p2`, and it is `page_held_lock`'s
+frame one term away: the same page, the same live lane, **nothing held**. Its
+`setSchwungGridMode('page')` and its `pageOwnerOf(model).knobParamInfo(0)` key
+resolution are both load-bearing — a lane built from movy's own knob 0 would mark
+a different cell under `page` and the shot would stay green with the condition
+taken out. **Teeth, measured in the source with `dist/esm` rebuilt:** with
+`if (!auto) return null;` put back the suite reports `page_lane_unheld ... FAIL
+(924 px differ)` and `174 passed, 1 failed` — and it is the ONLY scene that
+reddens, which is the precision claim; with the change in place, `175 passed, 0
+failed`.
+
+**WHAT THE CO-REQUISITE ACTUALLY IS, RE-MEASURED — the earlier wording here was
+right about the held screen and wrong about the unheld one.** It said the
+condition change alone "changes nothing a user can see". On the held screen that
+holds; on the unheld screen it is false, and the unheld screen is the item:
+
+  * **Unheld, on the release movy currently ships against (1.4.0, pre-#509
+    gate).** The old condition decorated every frame a lane existed, and the
+    pre-#509 gate stands graphics down exactly when `s.decorations` is non-null —
+    so the change DOES restore the graphics by itself, with no floor bump. Device,
+    page mode on bouba-kiki's root page: with the old ui.js a live lane cost
+    **177 px** of frame — the frame's lower content block re-laid-out (rows 36-55,
+    158 px of it: the 8-px texture filling rows 52-55 loses 31 px of its ink and
+    rows 36-47 change instead) — and the rows 48-63 band dropping **299 -> 269**.
+    With the fix, **15 px**, and those rows stay **299**. The residual 15 px is
+    the automation's own effect on the drawn value (the cell's readout and the
+    filled bar moved, `MRPH` at 9%), not a mark: it is the same 15 px in all four
+    builds.
+  * **Unheld, against the post-#509 tree.** Same pair: with the old ui.js the
+    diff is **97 px** — the same 15 px value effect plus **82 px in rows 8, 24-25
+    and 32-33**, the cell's own band and mark region, while the frame's texture
+    rows are untouched. The control is the fixed build on the same tree: the
+    identical scenario, gesture and value — its 15 px is the same 15 px — shows
+    none of those rows. So those 82 px are the decoration's ink, drawn with
+    nothing held, and the mark still lies. With the fix, **15 px** and no mark.
+    That pair is what the floor bump is finally for.
+  * **Held, either build.** Unchanged, because the (c) gate (`if (held) return
+    why('step-held')`, `src/app/tick.ts`) hands the whole held-step screen to
+    movy's own body, so `sp.render` — the only caller of `setDecorations` — is
+    never reached. Measured with `heldFlag:true` and `schwung-body step-held`
+    logged (1.2-1.5 s window): the held frame is movy's body carrying the lock
+    and an envelope curve — **the same across all four ui/pages combinations
+    within ~10 px (0.1%), not byte-identical**: the lane→held distance spans
+    1171-1189 px, and the ink bands land on [290,352,185,282] for A2 and C but
+    [291,344,184,282] for D, so no single vector is right for all four builds.
+    The claim is the tolerance, not identity. A held capture that
+    comes back equal to the frame before it is a missed hold, not a result — the
+    first A and B attempts did exactly that and were re-run. The held-`value`
+    decoration is therefore still exercised **only** by the screenshot scene, and
+    `auto.heldValues` feeding `renderer/label.ts` is still what draws the held
+    value on the screen a user actually sees. Nothing here needs the held gate
+    lifted; that would change what a held step shows, which is a different item.
+
+**The upstream half is a floor bump that cannot be made yet, and the floor is
+STILL `'1.3.0'`.** `src/renderer/schwung-floor.ts` untouched,
+`browser-test/logic/schwung-floor.mjs` untouched and green. Re-measured
+2026-09-18 against the checkout: the newest release tag is **`v1.4.0`**,
+`git merge-base --is-ancestor 0ae48972 v1.4.0` answers NO, and `origin/main` is
+still `43e3c3b7` — **no release contains #509.** Raise the floor to the first
+release that does, say which feature needs it in the commit message, and confirm
+with `tests/host/test_viz_under_held_step.sh` against the installed tree rather
+than against `origin/main`. Until then the release keeps the old gate — which,
+with the movy half in, now stands graphics down only while a step is held, which
+is the behaviour SU-1 was asking for anyway.
+
+**Closes when:** `schwung-floor.mjs` pins the first release containing #509. Both
+scenes the item asked for already exist and pass — `page_lane_unheld` (a lane, no
+held step, graphics drawn, no mark) and `page_held_lock`. **Left OPEN on that
+single remainder**; the movy half is done and the floor bump does not re-open it.
+
+**The box's `param_pages`, and the one thing the task report got wrong about it
+(measured by the controller 2026-09-18).** The post-#509 tree was installed from
+`43e3c3b7` for the A/B measurement, and the box's own pre-#509 tree put back
+before the tier run. What the box holds now, read directly: `param_pages/` is
+**31 `.mjs` + `README.md` + `styles/` = 33 directory entries** (the report's "33
+files" is the installer's `ls param_pages | wc -l`, counting entries, not `.mjs`
+— the `.mjs` count is 31); its `page_controller.mjs` is `66af3e4a…` and the
+whole tree matches `/Users/dake/git/cld/schwung` on
+`perf/page-reload-skip-unchanged-contract` **hash for hash over all 31 files**,
+with the old gate back at `page_controller.mjs:4315` and `:4508` and **0**
+matches for `vizGroupsForDecorations`.
+
+**`param_pages.prev` holds the POST-#509 tree**, not the pre-#509 one. Its
+`page_controller.mjs` is `ef2e8781…` — the same md5 the task report itself
+recorded for the installed file — with **4** matches for
+`vizGroupsForDecorations`. The report's note says the opposite ("this restore
+overwrote `param_pages.prev`, which now holds this pre-#509 tree") and is
+**wrong**, which matters because the installer's own printed rollback is
+`mv param_pages{.prev,}`: a later session following that note would install a
+post-#509 tree while believing it was restoring the box's original. The
+report's pre-install manifest md5 (`f4e56dc3…`) does not reproduce, and the
+pre-install bytes are **not recoverable** — `.prev` was overwritten by the
+restore and the box holds no other copy (only those two directories exist under
+`/data`). So the box is verified pre-#509 **by gate shape and by hash against
+the reference branch**, not by a before/after fingerprint; the pre-install
+fingerprint should be read as lost, not as evidence.
 
 **Needs:** SP-18 (they share the decoration semantics and the scene set).
 
@@ -434,7 +739,7 @@ fallback silently never runs.
 **Closes when:** a structural test names `schwung-page-hierarchy.ts` as the sole
 reader and reddens when a second one is added; `page-mode` does not grow.
 
-**Needs:** SP-15.
+**Needs:** nothing — SP-15 landed 2026-09-18.
 
 ---
 
@@ -636,8 +941,23 @@ it implies work, one or more new items — **not** an implementation. Read
 `docs/CHAIN.md` and `docs/plans/2026-09-12-automation-lanes-design.md` in the
 schwung checkout (both new in #509) and establish: whether the two lane models
 can coexist per component or per track; whether movy's lanes should keep writing
-through `portFor(track)` as they do now (which is what makes SP-19's arc follow)
-or migrate onto `lanes:*` verbs; what `lanes:plock_step` does when movy is the
+through `portFor(track)` as they do now — **the parenthetical that used to sit
+here ("which is what makes SP-19's arc follow") is FALSE, and SP-19 is what
+falsified it:** a lane's **value** never goes through the port — only its
+**binding** does: `applyLaneMapping` writes `knob_<N>_set` / `mixlane` through
+`portFor(slot)` (`src/seq/lane-mapping.ts:38-54`, called at `src/app/tick.ts:527`
+and `:552`), and that is a real port write. Read "the value never goes through
+the port", never "nothing about a lane does" — the latter invites a later session
+to delete those writes as dead. The engine
+emits `OutEvent::Cc` → `midi_send_internal(0xB0 | track, 102 + lane, val)`
+(`engine/crates/movy-dsp/src/lib.rs:675`) and the **chain** applies it inside the
+DSP, so **no write is ever logged**; under `page` a playing lane's arc is served
+by the 8-tick **fill** (`FILL_TICKS`, `src/renderer/schwung-page-cache.ts`).
+**Nothing tests that path.** SP-19 verifies the drain for the writers that *do*
+go through the port — the knob under the hand, undo, the drum handler — and
+argues the playing-lane case from source alone. Whether that is good enough is
+part of this item, not a settled question
+— or migrate onto `lanes:*` verbs; what `lanes:plock_step` does when movy is the
 one holding the step; and whether Move's Record button is now contended.
 Three outcomes are plausible and all are acceptable: **coexist** (movy keeps its
 lanes, Schwung's are inert under movy because movy owns decorations and the
@@ -687,7 +1007,12 @@ and in MANUAL.md, by flag name.
 tier included and a rack verified on hardware, docs and release notes are
 updated, and the revert path is written where a user can find it.
 
-**Needs:** every Phase 1 and Phase 2 item, and SP-29's decision.
+**Needs:** every Phase 1 and Phase 2 item, SP-29's decision, and **SP-31**. SP-31
+is a `page`-mode defect — a lost knob release latches the controller and swallows
+every later jog click — so it cannot happen while `off` is the default. This is
+the item that makes `page` the default, which makes SP-31 a precondition of it.
+SP-32's own row already carries the same "before SP-30" dependency; this makes
+SP-31's explicit too.
 
 ---
 
@@ -754,6 +1079,8 @@ Up for review. What changed and why:
 3. **SP-19 becomes verify-first** and moves up. SP-26's write-log drain may
    already deliver "the arc follows the lane" and the undo redraw; the item's
    first task is two assertions, and if they pass it closes on the tests.
+   **(Settled 2026-09-18: it did deliver the undo half. A playing lane's arc is
+   served by the 8-tick fill and was never a drain claim — SP-29.)**
 4. **SP-28 is new** — custom module visualisations. Raised from the device: hank
    declares `custom:hank_wave` and movy draws a dial. Four concrete loader
    defects, zero test coverage, and it is a reason a module author would want
@@ -763,8 +1090,10 @@ Up for review. What changed and why:
 6. **SU-2, SU-4, SU-7 close without work.** The modulation channel already
    exists, the dive intent contract is already complete, and SP-26 solved the
    bulk read caller-side.
-7. **SP-15 stays first.** It is the only remaining item that makes the mode
-   unusable rather than imperfect.
+7. **SP-15 closed 2026-09-18, so SP-18 is first.** It was the only item that
+   made the mode unusable rather than imperfect; everything left is polish.
+   **SP-18 then closed the same day, so SP-17 is first** — the ordering above is
+   the 09-17 proposal and is not renumbered; read it as "SP-18, then SP-17".
 8. **SP-21 and SP-22 are DROPPED, and SU-5 withdrawn with them** — asked
    directly, and the answer is the acceptance bar at the top of this file plus
    two measurements. SP-21's own audit ran: 554 duplicates, **1** real
@@ -774,6 +1103,59 @@ Up for review. What changed and why:
    7 of 95 fleet modules carry a cut pair and Schwung claims none of them, so
    dropping it lands exactly on native parity. All of Phase 2 that remains is
    SP-23 and SP-24, both of which are parity checks rather than features.
+
+---
+
+## Carried items — rulings that outlive the plan workspace
+
+The final whole-branch review adjudicated the items that were carried out of the
+per-item rounds. Only those with a named owner or a real next action are kept
+here; the ones that ended with nothing to do are not carried forward. This
+section is the durable copy — it stood in the plan workspace's `progress.md`,
+which is git-ignored scratch deleted with that workspace.
+
+- **Files over the 200-line limit — pinned debt.** `src/app/tick.ts` **1078**,
+  `src/midi/router.ts` **1055**. The parked item's path, `src/seq/tick.ts`,
+  **does not exist** — that is the correction. Owner: the Phase-4 deletion of
+  movy's page renderer, or whoever next edits `tick.ts`'s body gate.
+- **The device page-mode ritual needs no fixture — accepted in writing.** Neither
+  `test-device/fixture.ts` nor `scripts/lib/test-set.sh` writes `flags`/`prefs`,
+  and none is needed: every page-mode device check now pins the mode by override
+  **and** asserts `p.renderer === PAGE_MODE` (`page-lifecycle.ts:173,190,261`,
+  `page-dive.ts:210,224,229`, `widgets.ts:193,259`), so a fallback to the box flag
+  reddens instead of silently grading `off`.
+- **`page-dive.ts` mutating `prefs.json` — keep.** `page-dive.ts:139-160`
+  establishes absence, snapshots, restores, and reads back with a throw. This is
+  **the pattern for machine-level state**, not an inherited habit.
+- **`README.md` untouched — parked, decided.** The headline lands when SP-30 flips
+  the default, and SP-30's *Closes when* already owns the README line; writing it
+  now documents a feature nobody has. Must be re-read at SP-30.
+- **`schwung-page-contract.ts` at 198/200 — park, owner SP-30 or SP-40.** The
+  retry/pace policy (`RETRY_TICKS:108`, `RETRY_LIMIT:109`, `IDLE_RETRY_TICKS:131`,
+  and the `!loaded` branch of `tick()`) is one responsibility and should move out
+  before the file is next edited.
+- **`tickSeq` in the probe payload — the follow-up this fix round creates.**
+  `noteTick` was its only writer, so the field is permanently `0`. **Nothing reads
+  it**: the only `tickSeq` mention anywhere under `test-device/` is the comment at
+  `page-lifecycle.ts:250` that records this very thing, and the payload fields the
+  device actually reads are `renderSeq` and `parked`. So the choice is to delete
+  the field from the payload (and reword that comment) or give it a real writer —
+  a comment is not a consumer. Owner: whoever next touches `src/test/probe.ts`.
+- **The `widgets` device flake — a named race, not a watch.** Measured **4/10** to
+  date in `test-device/.flake-log.json`, on check
+  `the-widget-is-what-is-on-the-screen` (the first three, all on `3f933fb`, took
+  `fallthrough-still-draws` and `swap-back-registers-again` with them). The fourth
+  flake is `2026-09-18T15:28:54.443Z` on `a49121e` — **outside** the `13:57–14:03`
+  development window an earlier ruling rested on, and on code the scenario was not
+  being changed for — which meets the escalation trigger that ruling set. Fix
+  belongs to SP-28's follow-up and costs a device tier.
+- **The `page-dive` flake.** The flakiest scenario in the log: **6 of 13** runs to
+  date, on `e7a4304` (×3: 11:04, 11:08, 11:22), **`a7512c4`** (14:48),
+  **`a49121e`** (15:28) and **`0515ba3`** (16:00) — three of them on this branch's
+  own commits. The check is `dive-commit-lands-in-the-parameter` in **5** of the
+  6; the sixth (11:04) took `file-param-click-opens-the-browser` instead, and
+  11:08 flaked two. Both attempts ran the same build, so it is a race in the
+  browse/commit path and not a code difference.
 
 ---
 
@@ -835,6 +1217,272 @@ Up for review. What changed and why:
 Newest first. The full narrative for each is in git history; what is kept here is
 the fact a later session would otherwise re-derive.
 
+- **SP-19 ✅ 2026-09-18 — verified, not built: SP-26's write-log drain already
+  delivers both invariants it was asked about.** Two logic tests,
+  `browser-test/logic/page-freshness.mjs` (a new subsystem module, registered in
+  `logic.mjs`'s two lists). **(a) The arc follows the lane** — a lane writes a
+  distinct value through `portFor(0)` every tick, and every cursor read of that
+  key saw the value the lane had just written. **What (a) proves and what it does
+  not:** a lane's *playback* value never reaches the port (the engine's CC is
+  applied inside the chain's DSP), so *real* automation's arc is served by the
+  8-tick fill rather than by the drain, and **nothing tests that path** — SP-29.
+  The cursor-read assertion is the teeth; the companion check that the drawn arc
+  wore the last value stays green with the drain removed, because the settle loop
+  lets the fill catch up. **(b) Undo redraws a key
+  `syncParamsToModels` cannot map** — the model boots on one declaration and the
+  page is planned from another, so the model answers `refreshParamKey('q1')`
+  `false` (asserted in the test); the undo is visible on the next read, one
+  rotation. Teeth, measured with the drain's body removed in the SOURCE and
+  `dist/esm` rebuilt: (a) `expected 0, got 3`, (b) delays `9, 9, 6, 9, 9, 6`
+  against a rotation of 3. **The one thing worth re-deriving:** the batch fill is
+  8 ticks and a rotation is `keys.length + 1`, so (b) had to be a TWO-key page —
+  on an 8-key page the fill alone serves every read and the test would pass with
+  the drain gone.
+
+- **SP-17 ✅ 2026-09-18 — the filepath dive opens movy's browser; the header and
+  the hint band are movy's rows with the controller's words.** Three pieces.
+  **(a) The dive.** The controller's click returns `{action:"open", key, fullKey,
+  meta}` and opens nothing — that screen is the host's. `openSchwungEditor` takes
+  the enum-shaped intents and declines these, so `src/browser/schwung-dive.ts`
+  is the adapter: `filepath`/`file` intents become movy's file browser, bound to
+  `intent.fullKey` (the dive ANCHOR, which is not always the clicked cell — a
+  gizmo inside a sample graphic redirects, `diveTargetAt`), never re-derived from
+  `(page, slot)`. Directory, filter and start hint come from the page's own
+  `meta`; movy supplies only what Schwung has no concept of (its file-value
+  index, its preset guard), both asked BY KEY and both optional. The commit is
+  unchanged — movy's `activateFileBrowserItem` writes under `undoableEdit`, so
+  undo and the SP-26 write log see it. A `canvas` or a `string` still falls
+  through to the `schwung-open unhandled` log; that is the honest report, and the
+  brief's claim that movy has "a canvas-capable screen" is **wrong** — movy's
+  param types are `float|int|enum|file` and it draws no canvas. The `canvas.js`
+  SP-28 added is the opposite kind of thing — a module-supplied widget SCRIPT,
+  loaded by `src/renderer/schwung-canvas.ts` — and is not a param type movy
+  renders, so the two items do not disagree.
+  **(b) The chrome.** `schwung-page-chrome.ts` composes both bands from the
+  controller: `describePage({}).header` (Schwung's `movyHeaderFor`, so the
+  readout cannot drift from the host's) and `inverted` — which is true on
+  exactly the held-param branch — as the gate, so the header never tells you
+  about a param that is not under the hand. `BANDS.header` stays false, as the
+  brief required. **(c) The footer is drawn last in the yield chain**, because
+  the hint band's rows (57..63) overlap the Loop strip's (60..63) and the strip
+  clears them on every tick: the caller sets `jogToastShown` on the frame the
+  band is drawn, exactly as a bottom-row toast does. It is drawn only while a
+  knob is held — with nothing held the click is MENU and the line is the least
+  useful one on screen.
+  **TWO OF THE BRIEF'S THREE MECHANISMS WERE WRONG, AND THE CODE WON.** It said
+  to "pass the caller-supplied hint pairs into `ctl.render`": `render`'s `footer`
+  argument is consumed only when `bands.footer` is true, and `describePage`
+  merely echoes `o.footer` back — so movy composes the pairs itself and draws
+  them with Schwung's own `drawFooter` (one definition of a pill). The words are
+  a second copy of `footerHints()` (the shadow-side HOST, not importable); every
+  CONDITION is the controller's — page kind from `PAGE_MENU/PRESET/ITEMS`,
+  `menuEntered`, `pickerOpen`, and for a held cell `meta.writeOnly`,
+  `flipsOnClick` and `diveTargetAt`, the same predicates `onClick` walks. That is
+  why a two-option enum says FLIP and a trigger says FIRE: neither returns an
+  intent at all.
+  **THE BURN-DOWN WENT 6 → 5 AND ONLY ONE LABEL WAS EVER A CAUSE-C FAILURE.**
+  `chain page: file-param jog click opens file browser` was; it now passes and is
+  DELETED from the ledger file, whose note now records that the remaining labels
+  are one FIXTURE limit (Schwung plans a single page named *Main* for the suites'
+  mocks, movy's config has four banks, so "the jog reaches bank N" cannot hold —
+  `ctlPages=1 names=["Main"]` against `movyBanks=4`, printed by app-loop's
+  `[page-plan]` line, not quoted from a probe). The brief's count of five
+  Cause-C labels was this item's own error, copied from a symptom list written
+  before SP-15.
+  **THE FIX ROUND TOOK IT 5 → 3, AND NOT BY FIXING ANYTHING.** Two of the five —
+  `Back leaves the file browser` and `select committed the preset path` — were
+  **FAILING**, as one cascade rather than two defects. The fixture's plan has no
+  Preset page, so the jog never reaches `ui_preset_path`, so movy's browser never
+  opens — and an assertion about where a browser left the view then reads the
+  chain view instead, because MoveBack exited the knobs page (the drill's own
+  view — and the expected side — is VIEW_KNOBS), and one about what a commit
+  wrote reads `undefined`. The
+  measurement is in `progress.md` ("Burn-down adjudication"); the two lines are
+  `✗ Back leaves the file browser: expected 1, got 3` (VIEW_KNOBS expected,
+  VIEW_CHAIN actual — MoveBack exiting the knobs page, which is movy behaving
+  normally) and `✗ select committed the preset path: … got undefined`.
+  **A DIFFERENT SET of checks was vacuous, and the two must not be confused.**
+  `Back clears fileBrowserState`, `select leaves the file browser` and
+  `select clears fileBrowserState` expect the state a browser-less run is already
+  in, so they were green while proving nothing — and **not one of those three was
+  ever a burn-down entry**, because a passing label is not a failure and this
+  file lists failures. They therefore moved no number; the two above did.
+  Deleting the two was not available — they were FAILING, and an unlisted failure
+  fails the run as a regression — and neither was leaving them listed, so the
+  block's tail is now gated on its own premise —
+  `if (appState.currentView === VIEW_FILE_BROWSE)` — and the five checks it holds
+  either run against a real browser or do not run. `off` still runs every one of
+  them; the coverage is where the browser is. **The gated checks are not
+  "passing": they are absent under `page`, and the two labels left the ledger
+  because a check that never ran cannot be a failure — a COVERAGE REDUCTION, not
+  a fix.**
+  **Scope discipline, measured.** Pin the pressed page across a press/release
+  pair to fix the latched-`touched` defect below and the ledger goes 5 → **7**:
+  it clears the latch but breaks `shift+jog: plain jog steps one page` (measured
+  with the pin: `pcount=1 ctlPages=1 names=Main`; without it:
+  `pcount=3 names=Main>Main - 2>Effects`). Reverted in full. A fix that grows the
+  ledger is not SP-17's to make.
+  **Tests, and what they can see.** `browser-test/logic/schwung-page.mjs` walks
+  every bound slot of the `switches` mock and asserts the footer's CLK verb
+  equals what the click actually DID (`OPEN` from a returned intent, `FIRE` from
+  `meta.writeOnly`, `FLIP` from a two-way enum that wrote, else `MENU`);
+  `app-loop.mjs` drives the real tick and asserts a held knob takes the bottom
+  rows AND that the painter was the band rather than a toast (knob 1, not 0 — on
+  that model knob 0 is the `file` param and movy's own `JOG: BROWSE` toast
+  legitimately wins the row one rung higher). Teeth: with `chromeFor`'s footer
+  forced null the band check reddens (`a knob under the hand takes the bottom
+  rows` expected false, got true) and `page-mode` reports a 6th unexpected label.
+  Scenes `page_chrome_held` / `page_chrome_flip`, plus `file_browse` (movy's own
+  browser, now an esbuild entry point) for the MANUAL.
+  **A REAL DEFECT FOUND AND LEFT OPEN, because it is not this item's.** A knob
+  release resolves `knobOwner()` after an ownership change and lands on a
+  different page; the controller has no staleness expiry for a held knob
+  (`page_controller.mjs` ~1499 returns early while `touchOrder.length`, and
+  `onKnobTouch` zeroes `turnClaimMs`), so the pressed page keeps the slot
+  forever, `touched` latches ≥ 0, and movy's router guard then routes every later
+  jog click to the controller instead of movy — with the new chrome it would also
+  pin the hint band over the Loop strip. Owner-pinning the pair is the fix and it
+  belongs in its own item (see the Open list).
+- **SP-18 ✅ 2026-09-18 — the decoration channel came back; only one of its four
+  parts was a wiring job, and the brief named a field that does not exist.**
+  **(a) The tilde was the whole of the wiring.** The controller already computed
+  `modulated: (key) => !!s.modCache[key]` and called `io.isModulated(fullKey)`
+  once per tick on the read cursor's rotation; movy's `createPageIo` did not
+  implement `isModulated`, so every cell read as unmodulated. Answering it from
+  movy's own LFO routing (`model.modulatedKeys()`, threaded
+  `page-owner → schwung-page → io`, stripped back to the bare key) restored the
+  tilde **and** the mod dot: `refreshModulatedValues` only visits keys whose
+  `modCache` bit is set, so the dot rides the arc for free once this answers.
+  **(b) The p-lock highlight and its held value needed no code change at all.**
+  The decoration pass — `schwung-page-render.ts` at the time, `decorationsFor()`
+  since the split below — already passed `{locked, value}` from
+  `auto.heldValues`, gated on `auto.held`. SP-18's output here is the scene, the
+  documentation, and the correction below — the diff that produced it is 36 added
+  lines, **all comments, zero behaviour**. **(c)** needed one condition plus a
+  second one the brief did not name, both below. **(d)** is (a) plus (b) and
+  needed no third wiring.
+  **Three of the brief's claims were wrong, and the code won.** **(1)** There is
+  **no `exact` flag.** The contract is `{ locked, value }`: `setDecorations` is a
+  bare passthrough holding whatever the caller handed it, and the only two fields
+  either renderer reads are `locked` and `value` (`render_page_movy.mjs` ~2593,
+  `render_page.mjs` ~466). The ledger's own upstream-refresh table had invented
+  the third field, which is where the brief got it; that table is now corrected
+  in place. The rule `exact` was reaching for is carried by `value === undefined`
+  — marked, no resolved lock — and is documented at the site now.
+  **(2)** The `<key>:modulated` fallback does not exist to fall back on. This
+  Schwung version DELETED it; `page_controller.mjs` ~2318 keeps the measurement
+  that killed it (3.5 of the grid's 7.1 reads per tick, half). `s.modCache[key]`
+  is set from `io.isModulated` and nothing else. So **movy's answer is the only
+  answer**: a key movy reports unmodulated gets no tilde and no dot, because
+  `refreshModulatedValues` collects from `modCache` too and no second source
+  would notice. What it does NOT lose is the pointer — `:base` is asked only when
+  the bit is set, but since schwung #276 the plain key also answers with the base
+  for a modulated target, so the knob keeps showing what you dialled in either
+  way. **(3)** `hiddenDuringHold` needed no new gate. In `page` mode
+  `schwungGridEnabled()` is false, so the `undefined` body `schwungBodyFor`
+  already returns for a step page falls through to movy's `drawKnobParams`, which
+  is where the filter lives. The only gap was that `held` meant "a step page is
+  open" rather than "a step is held"; `schwungBodyFor(owner, stepSelected, held)`
+  now takes the wider fact as a parameter, read from `seqState.stepAutoMode` —
+  the same value `auto.held` is built from, so body and decorations cannot
+  disagree.
+  **Handing the screen to movy obliges movy to keep READING it, and the gate that
+  did not know that was the review's find.** The refresh gate above the body gate
+  asked only "is the page delegated?" (`activeModel.tick(!pageOwner.delegated)`),
+  so under `page` the held-step screen was drawn from whatever movy last read
+  before the finger went down: the LOCKED cells stayed right — they come from the
+  engine's own status poll — and every NEIGHBOURING cell froze, which is exactly
+  the shape that reads as working. The two gates are now one expression's worth of
+  the same opinion (the `held` fact is read once, above both), and
+  `browser-test/app-loop.mjs` measures it through the real tick: a held step
+  **is still a delegated page** (measured, `owner().delegated === true`) and the
+  value written behind movy's back **arrives** while it is held. Teeth: reverting
+  the expression alone reddens `a held step keeps movy reading its own page`
+  (`expected true, got false`) and takes the `page` arm to a 7th unexpected label,
+  which `page-mode.mjs` fails on. Cost of the exception, stated because this repo
+  counts it: one bulk read per `REFRESH_BULK_TICKS` — the pre-migration pace — for
+  as long as a step is held, and not one tick longer.
+  **The SP-12 question the brief asked has an answer, and the scenes cannot see
+  it.** The modulated-key sweep DOES still run for a delegated component:
+  `refreshModulatedKeys` is called from the `pollCountdown` block
+  (`model/tick.ts`), which is not gated by the `refreshValues` flag — only
+  `refreshOneParam` is. That is why (a) works at all on a delegated page. Note
+  what it means for the coverage: every `page_mod_cell*` scene calls
+  `model.refreshModulation()` by hand, so if the production sweep ever stopped,
+  the tilde would vanish on the device and **every scene would stay green**. The
+  logic suite's own reach is the scenes; the sweep itself has no test. Worth one
+  if that call is ever touched.
+  **Teeth, one scene each, only its own wiring removed, and every other scene
+  `ok` in each run so no scene grades another's wiring:**
+  `page_mod_cell` and `page_mod_cell_held` red by **128 px** with
+  `io.isModulated` neutered; `page_held_lock` red by **9 px** with the
+  decoration forced to `{locked: true}`; `page_held_unassignable` red by
+  **470 px** with `if (held) return why('step-held')` removed.
+  `page-mode-expected-fail.json` is unchanged at 6 — no label grew, none shrank.
+  **NINE PIXELS IS THIN EVIDENCE AND THE ITEM DOES NOT DRESS IT UP.** That is the
+  measured difference between the decoration's value and the live value for one
+  cell holding a two-character reading; the scene grades it, but it grades it
+  barely. A future change could perturb it into a false pass. It is recorded
+  here so the next session widens the reading rather than trusting the colour.
+  **Two things not to smooth over. First, (b) and (c) are in tension.** The brief
+  wanted a held step with a resolved lock to show the lock **and the held value,
+  not the live one**. movy's own UI cannot reach that state: the (c) gate hands
+  the whole screen back to movy while a step is held, which is what the ledger's
+  (c) asks for and what was implemented. So the held-`value` path in
+  `decorationsFor()` is real, tested, and **unreachable in the app** —
+  only the screenshot scene drives it. Either SP-16's condition change makes it
+  reachable, or movy has decided it wants no held-`value` reading and the code
+  should say so out loud. That call is not SP-18's and is not made here. (**SP-16
+  answered it on 2026-09-18: the condition change does NOT make the path
+  reachable — the (c) gate still hands the whole held screen to movy's own body,
+  measured identical across all four ui/pages combinations on device — so the
+  decoration's `value` stays scene-only, and movy's body is the held reading a
+  user actually sees.**) What
+  movy's own body draws for a held step is `auto.heldValues` through
+  `renderer/label.ts`, and THAT path is live and user-visible.
+  **Second, the unit agreement was never verified on hardware.** movy's
+  `heldValues` are `denorm7`-ed into the param's own units and Schwung's
+  `values[key]` are too, so the decoration's `value` lands in the right space by
+  construction — but the app-side path is the one the gate closes, so only the
+  scene (which sources both from the same meta index) exercises it. If SP-16
+  reopens the path, check the held reading on a real held step before trusting
+  the green.
+  **The decoration pass has moved, and that is where SP-16 works now.** The
+  documentation above and the condition SP-16 edits are in
+  `src/renderer/schwung-page-decorations.ts` (**new**, `decorationsFor()`), split
+  out of `schwung-page-render.ts` (195 → 138) because 36 of the lines this item
+  added there were prose, leaving 5 lines of headroom against the 200 limit and
+  nothing for the next change to write in. Behaviour is identical: the split is
+  the file's existing seam — that pass answers "what should the cells say", the
+  rendering either side of it answers "draw them". Both files are now well inside
+  the limit and `schwung-page-render.ts` has 62 lines of room.
+  Also: SP-16's brief cites "SP-18's `exact` rule" twice; both now point at the
+  `value` distinction, which is what actually exists.
+- **SP-15 ✅ 2026-09-18 — the contract's retry budget latched, and the asking may
+  not stop.** `attempts` reached `RETRY_LIMIT` and never reset for a slot that
+  had never loaded, so a module arriving later was never noticed — and with
+  `loaded === false` `tick()` returns before the reload divider, so the retry is
+  the only discovery path and nothing else could have re-armed it. The numbers
+  are unchanged; what changed is what `RETRY_LIMIT` MEANS (the end of the urgent
+  window) and what `attempts` counts. After it, the asking continues at
+  module-load pace for as long as the slot is unloaded, while a settled,
+  empty-and-resolved contract still stops reading.
+  Teeth are in `browser-test/logic/page-contract.mjs` — red on both
+  late-arrival cases with the fix removed. **The two halves are not equal
+  evidence, and the item does not claim they are.** The `None` half was already
+  correct once the engine serves a genuinely empty answer — which is the
+  tri-state's job, and the case the logic suite can only model — so it is kept
+  as a **regression guard**; the half this item demonstrates is the
+  **late-arrival re-arm**. `test-device/scenarios/page-lifecycle.ts` covers the
+  end-to-end outcome on hardware and does **not** discriminate the fix there:
+  measured with the latch reverted, with the renderer pinned to `page`
+  (`probe.page().renderer`, now asserted in all three checks — the first version
+  silently graded movy's own renderer, because L3's reopen drops the mode
+  override and falls back to the device flag), and with the empty-slot window at
+  10000 frames — ~29 s, ~1840 ticks at the slowest tick rate the board is known
+  to tick, against a 720-tick budget — the module's page comes back anyway. The
+  device does not reach the latch by that route; something re-makes the contract
+  when the module lands, and which path that is was not established.
 - **SP-27 ✅ 2026-09-17 — the delegated page re-planned the whole module every 8
   ticks and discarded the result.** `load()` ran `planPages` unconditionally and
   returned at `planned.fingerprint === s.fingerprint`, which in a steady state is

@@ -297,6 +297,33 @@ _log('\nTest: both commit paths record the folder');
     uninstallMockFs();
 }
 
+_log('\nTest: a dive anchor resolves movy’s target without a slot');
+
+{
+    /* A DIVE COMES FROM SCHWUNG. `{action:"open", key, fullKey}` names the
+     * parameter outright and carries no slot of movy's — under a delegated page
+     * the touch order is the controller's, and the anchor is not always the cell
+     * that was clicked. So the target has to resolve BY KEY. Routed through the
+     * slot-taking call instead, the answer depends on `primarySlot()`, which is
+     * movy's own `touchedSlots`: empty, and movy's config silently stops being
+     * consulted at all — the browser would open on Schwung's declaration alone
+     * with nothing anywhere saying so. */
+    const m = bootModel(MOCK_SYNTHS.file_param);   // sample = Samples/kick.wav
+    for (let i = 0; i < 20; i++) m.tick();
+
+    eq('with no touch on record the slot route answers nothing',
+       m.getFileBrowseTarget(), null);
+    const byKey = m.fileBrowseTargetForKey('sample');
+    eq('but the anchor resolves by key alone', byKey?.key, 'sample');
+
+    m.handleKnobTouch(0);
+    eq('and it is the SAME target the slot route gives once a touch exists',
+       JSON.stringify(byKey), JSON.stringify(m.getFileBrowseTarget()));
+    eq('a key movy has no config for resolves to nothing, so Schwung’s '
+       + 'declaration stands alone rather than movy guessing one',
+       m.fileBrowseTargetForKey('ui_preset_path'), null);
+}
+
 _log('\nTest: file overlay scrolls with knob delta');
 
 {

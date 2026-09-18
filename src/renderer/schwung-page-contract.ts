@@ -3,13 +3,14 @@
  * The tri-state verdict that decides it, the reload that re-plans when the
  * module in the slot changes, and the placeholder retry that covers a page
  * built while its module was still loading. Separated from the binding because
- * the retry budget is the thing SP-15's Cause-D hypothesis is about.
+ * the retry IS the lifecycle — how long it keeps asking, and how often once the
+ * answer stops being news (SP-15).
  */
 
 import type { TrackPort } from '../track/port.js';
 import { perfPhase, perfPhaseEnd } from '../app/perf-probe.js';
-import { moduleReadKey } from '../chain/config.js';
-import { registerModuleWidgets } from './schwung-widgets.js';
+import { MODULE_LOAD_TICKS } from '../model/constants.js';
+import { createWidgetSync } from './schwung-page-widget-sync.js';
 import type { PageReadCache } from './schwung-page-cache.js';
 import type { PageHierarchy } from './schwung-page-hierarchy.js';
 
@@ -41,10 +42,17 @@ export function createPageContract(ctl: any, port: TrackPort, componentKey: stri
         const has = !!(ctl.pages && ctl.pages.length);
         if (has === loaded) return;
         loaded = has;
-        /* Going empty re-arms the retry, so the NEXT module to arrive in the
-         * slot is picked up instead of waiting on a spent attempt budget. */
+        /* Going empty re-arms the retry — not to release a latch, because
+         * nothing latches any more, but to put the page back on the URGENT
+         * pace: a slot a module has just LEFT is one the user is about to
+         * fill, and that is the case the delayed first load is made of. */
         if (!loaded) { attempts = 0; sinceRetry = 0; }
     }
+
+    /* A MODULE'S OWN WIDGET — the trigger, the rules and the budget are all in
+     * schwung-page-widget-sync.ts. Two calls reach it: `sync` after a reload,
+     * `afterReplan` on the divider below. */
+    const widgets = createWidgetSync(ctl, port, componentKey);
 
     function reload(): void {
         /*
@@ -68,24 +76,15 @@ export function createPageContract(ctl: any, port: TrackPort, componentKey: stri
         hier.invalidate();
         ctl.load({ slot: port.track.index, component: componentKey });
         refreshLoaded();
-        /*
-         * A MODULE'S OWN WIDGET, REGISTERED WHEN ITS CONTRACT ARRIVES.
-         *
-         * Here rather than on a gesture: upstream registered widgets from the
+        /* A MODULE'S OWN WIDGET, REGISTERED WHEN ITS CONTRACT ARRIVES. Here
+         * rather than on a gesture: upstream registered widgets from the
          * canvas-open path, so an in-grid widget did not appear until the
-         * fullscreen view had been opened once and never appeared at all for a
-         * module with no canvas param. The contract is the only moment that is
-         * always reached and always current — a module swap re-plans through
-         * here too, so a new module's widget arrives with its pages.
+         * fullscreen view had been opened once, and never appeared at all for a
+         * module with no canvas param.
          *
-         * Nothing is read unless the contract declares a `custom:` kind, and a
-         * failure is not one: an unregistered kind falls through to the
-         * built-in widget by design.
-         */
-        try {
-            const id = port.getParam(moduleReadKey(componentKey));
-            if (id) registerModuleWidgets(String(id), ctl.state.chainParams || []);
-        } catch (_e) { /* a widget is never worth failing a page plan for */ }
+         * A failure is not one either: an unregistered kind falls through to
+         * the built-in widget by design, so this must never fail a page plan. */
+        try { widgets.sync(); } catch (_e) { /* a widget is never worth a page plan */ }
     }
     reload();
 
@@ -93,9 +92,14 @@ export function createPageContract(ctl: any, port: TrackPort, componentKey: stri
      * A CONTRACT READ THAT CAME BACK EMPTY IS NOT A VERDICT.
      *
      * The page is built while the module is still loading, so the first load
-     * sees no hierarchy. Reported from the device as "I opened braids, I see
-     * movy UI", with `not-ready pages=0` logged exactly once — the shape of a
-     * latched answer rather than a repeated failure.
+     * sees no hierarchy — reported from the device as "I opened braids, I see
+     * movy UI", where the only evidence was a single `not-ready pages=0` line.
+     * A SINGLE LINE IS NOT A LATCHED ANSWER, and reading it as one is what let
+     * the real latch live: the reason lines are written once per DISTINCT
+     * reason (`app/tick.ts`), so a retry that keeps failing at an unchanged
+     * reason is silent, and "once" is the dedup rather than the asking having
+     * stopped. Nothing latches any more (SP-15) — the asking continues at a
+     * slower pace — and either way the contract decides the page, never the log.
      *
      * Once loaded, `reloadIfChanged` is the controller's own cheap re-plan (it
      * rebuilds only when the contract fingerprint moves), so a module swap
@@ -103,6 +107,28 @@ export function createPageContract(ctl: any, port: TrackPort, componentKey: stri
      */
     const RETRY_TICKS = 12;
     const RETRY_LIMIT = 60;
+
+    /*
+     * THE ASKING NEVER STOPS; ONLY ITS PACE CHANGES (SP-15).
+     *
+     * `RETRY_LIMIT` is not the number of tries after which the page gives up —
+     * it is the end of the URGENT window. Past it a page with nothing to draw
+     * keeps asking, at a module load's pace instead of a read's.
+     *
+     * It has to keep asking, and that is the whole of Cause D: while `loaded`
+     * is false `tick()` returns before the divider below, so `reloadIfChanged`
+     * — the only other place that could notice a module — never runs, and a
+     * discovery path that stops is not slow, it is gone. The empty slot is the
+     * COMMON case (a cold boot has no active chain slot at all), so a latching
+     * budget is spent before the user has loaded anything and the module that
+     * lands afterwards is never read again — "the first module I drop into an
+     * empty slot keeps movy's page until I navigate away and back", that
+     * navigation building the fresh contract which hid it.
+     *
+     * A load's pace is also what keeps the re-arm above honest: it fires on
+     * slots that stay empty.
+     */
+    const IDLE_RETRY_TICKS = MODULE_LOAD_TICKS;
 
     /*
      * `reloadIfChanged` IS POLLED ON A DIVIDER, NOT EVERY TICK.
@@ -132,8 +158,13 @@ export function createPageContract(ctl: any, port: TrackPort, componentKey: stri
     function tick(): void {
         if (!loaded) {
             sinceRetry++;
-            if (attempts < RETRY_LIMIT && sinceRetry >= RETRY_TICKS) {
-                sinceRetry = 0; attempts++; reload();
+            const urgent = attempts < RETRY_LIMIT;
+            /* The pace is chosen in ONE place, and `attempts` counts the urgent
+             * asks only — it is a window that ends, not a budget that runs out. */
+            if (sinceRetry >= (urgent ? RETRY_TICKS : IDLE_RETRY_TICKS)) {
+                sinceRetry = 0;
+                if (urgent) attempts++;
+                reload();
             }
             if (!loaded) return;
         }
@@ -145,9 +176,17 @@ export function createPageContract(ctl: any, port: TrackPort, componentKey: stri
         if (++sinceReload >= RELOAD_POLL_TICKS) {
             sinceReload = 0;
             perfPhase('ctlreload');
-            ctl.reloadIfChanged();
+            /* `load` answers whether it ADOPTED a new plan: the only cheap
+             * evidence that the module in the slot said something new — a swap,
+             * a preset, a module that finished loading. Phased separately from
+             * the reload so its cost is not read as the re-plan's. */
+            const adopted = ctl.reloadIfChanged();
             perfPhase('refreshloaded');
             refreshLoaded();        /* the module may have just left the slot */
+            perfPhase('reloadwidgets');
+            /* A re-plan that MOVED is the swap, and the one moment a widget may
+             * belong to a different module — see schwung-page-widget-sync.ts. */
+            widgets.afterReplan(adopted);
             perfPhaseEnd();
         }
         perfPhase('ctltick');

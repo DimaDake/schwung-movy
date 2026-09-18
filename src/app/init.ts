@@ -6,7 +6,7 @@ import { selectTrack } from '../track/focus.js';
 import { resetWatchPush } from '../seq/watch.js';
 import { createLfoModel, createScopedLfoModel } from '../lfo/model.js';
 import { masterScope } from '../lfo/scope.js';
-import { appState, VIEW_CHAIN } from './state.js';
+import { appState, viewName, VIEW_CHAIN } from './state.js';
 import { buildTrackModels } from './track-models.js';
 import { jogHintTouch } from './jog-hint.js';
 import { keyboardState, resetOctaves } from '../keyboard/state.js';
@@ -28,6 +28,7 @@ import { setProbeDeps } from '../test/probe.js';
 import { leaveModalActive, leaveModalLabels, leaveModalSel } from './leave-modal.js';
 import { sessionReady } from '../seq/set-session.js';
 import { schwungGridMode, setSchwungGridMode } from '../renderer/schwung-grid.js';
+import { clearWidgets, isWidgetAvailable } from '../renderer/schwung-widgets.js';
 import { laneKeysForTrack } from '../seq/automation.js';
 
 export function init(): void {
@@ -44,7 +45,20 @@ export function init(): void {
          * through globalThis rather than naming overtakeParked directly. */
         parked:        () => (globalThis as any).overtakeParked === true,
         setGridMode:   (m) => setSchwungGridMode(m as any),
+        /* Through the door in renderer/schwung-widgets.ts, never by importing
+         * widget_registry.mjs here: the registry is module state and a second
+         * specifier is a second empty map. See that file's header. */
+        widgetAvailable: (k) => isWidgetAvailable(k),
+        widgetClear:     () => clearWidgets(),
         ready:         () => sessionReady(),
+        view:          () => viewName(appState.currentView),
+        browse:        () => {
+            const s = appState.fileBrowserState;
+            if (!s) return null;
+            return { dir: s.currentDir, sel: s.selectedIndex,
+                     items: s.items.map((it) => ({ name: it.name, path: it.path,
+                                                   isDir: !!it.isDir })) };
+        },
         leaveModal:    () => ({
             active: leaveModalActive(),
             label:  leaveModalLabels()[leaveModalSel()] ?? '',

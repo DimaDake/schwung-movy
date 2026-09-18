@@ -31,6 +31,7 @@ import { schwungEditorActive, renderSchwungEditor } from '../renderer/schwung-ed
 import { renderKeysView }  from '../renderer/keys-view.js';
 import { renderBrowseView } from '../renderer/browse-view.js';
 import { renderChainView }    from '../renderer/chain-view.js';
+import type { PageChrome } from '../renderer/schwung-page-chrome.js';
 import { renderFileBrowseView } from '../renderer/file-browse-view.js';
 import { updateKnobLEDs, updateKnobLEDsFrom, updateSingleKnobLED, resetKnobLedCache } from '../renderer/knob-leds.js';
 import { seqEngineTick, takeLabelSync, requestLabelSync } from '../seq/engine.js';
@@ -155,7 +156,7 @@ let _schwungDiag = '';
  * indexes CHAIN SLOTS, not param pages, so replacing it with Schwung's page
  * indicator would be a lie about what the jog does there.
  */
-function schwungBodyFor(owner: PageOwner, stepSelected: boolean): (() => void) | undefined {
+export function schwungBodyFor(owner: PageOwner, stepSelected: boolean): (() => void) | undefined {
     /* Says WHY it declined, once per distinct reason. Reporting only that the
      * grid "is still movy's" cost two device round trips; the reason comes from
      * the owner and none of them is visible from the screen. */
@@ -164,6 +165,36 @@ function schwungBodyFor(owner: PageOwner, stepSelected: boolean): (() => void) |
         return undefined;
     };
     if (stepSelected) return why('step-page-selected');
+    /*
+     * A HELD STEP IS MOVY'S SCREEN — the whole of it, not just a lock mark.
+     *
+     * Schwung has no held-step filter. Its page is built from the module's
+     * contract, where every declared param is offered, so while a step is held
+     * it draws eight knobs that will do nothing: turning one on the step page
+     * is how a lock is made, and a param that cannot take a lane cannot. movy
+     * already knows which those are — `hiddenDuringHold` in `renderer/label.ts`
+     * — and it is inside movy's body drawer, so the only way to reach it is to
+     * keep drawing the body.
+     *
+     * NOT ONLY THE STEP PAGE. `stepSelected` is a step with an OCCURRENCE under
+     * it (`seq/step-page.ts`); holding an EMPTY step is the same edit against
+     * nothing, and it is the case where the offer is most misleading, because
+     * there is not even a trig to lock against.
+     *
+     * THE HOLD IS NOT TESTED HERE, AND THAT IS THE FIX. It is part of who OWNS
+     * the page (`app/page-owner.ts`), so `owner.page` is already null under a
+     * held step and the two lines below decline for it — with `owner.reason`
+     * saying `step-held`. Asked here as well, it was asked TWICE: the body moved
+     * to movy and the gesture sites, which read ownership, went on targeting
+     * Schwung's parameters.
+     *
+     * WHAT IS NOT LOST IS THE LOCK READING. Both renderers resolve it from the
+     * same `auto.heldValues` (`model/viewmodel.ts` for movy's body,
+     * `renderer/schwung-page-decorations.ts` for Schwung's decoration), so a held
+     * step shows the lock and the value that step will play either way. What
+     * only movy's body can add — and the reason this gate exists — is which
+     * knobs will take a lock in the first place.
+     */
     if (!owner.claimed) return why(owner.reason);
     /* The poll moved to `pollDrawnPage` (app/page-poll.ts), which runs once per
      * tick rather than once per rendered frame. It had to: with movy's own
@@ -187,13 +218,36 @@ function schwungBodyFor(owner: PageOwner, stepSelected: boolean): (() => void) |
  * input site asks, so the bar cannot end up indexing a page set the jog is not
  * moving.
  *
- * Undefined means "movy's own banks", which is also the answer on the step
- * page — that page IS movy's, and so is its bar.
+ * Undefined means "movy's own banks" — a movy-drawn body, and the step page,
+ * which IS movy's and so is its bar.
+ *
+ * IT IS DERIVED FROM THE BODY, not from the conditions that produced it. The
+ * bar must index whatever the jog is moving: two callers asking the same
+ * question twice is how a page indicator ends up counting a set the body is not
+ * showing, and this is the third condition to be added to it.
  */
-function schwungBankFor(owner: PageOwner, stepSelected: boolean):
+export function schwungBankFor(owner: PageOwner, body: (() => void) | undefined):
         { index: number; count: number } | undefined {
-    if (stepSelected) return undefined;
-    return owner.delegated ? { index: owner.pageIndex, count: owner.pageCount } : undefined;
+    return body && owner.delegated ? { index: owner.pageIndex, count: owner.pageCount } : undefined;
+}
+
+/*
+ * WHAT MOVY'S HEADER AND FOOTER SAY while Schwung draws the body.
+ *
+ * Derived from the BODY like `schwungBankFor`, and for the same reason: the
+ * chrome belongs with the page it frames, so the answer cannot outlive the body
+ * it was composed for. It used to be its own set of conditions, and that is how
+ * a header ends up reading out a param from a page that is no longer on screen.
+ *
+ * `paging` says whether the JOG moves this page set. It does on the module page
+ * and it does NOT on the chain view, where the jog moves chain slots — so a
+ * `JOG PAGE` pill there would promise a thing the button does not do. The
+ * caller owns that because it is the only one that knows which view it is
+ * drawing.
+ */
+export function schwungChromeFor(owner: PageOwner, body: (() => void) | undefined,
+                                paging: boolean): PageChrome | undefined {
+    return body && owner.page ? owner.page.chrome(paging) : undefined;
 }
 
 /*
@@ -616,10 +670,20 @@ function tickBody(): void {
      */
     const pageOwner = pageOwnerOf(activeModel);
 
-    /* A DELEGATED COMPONENT IS NEVER DUAL-DRIVEN (movy/CLAUDE.md, rule 3).
-     * Under Schwung's page movy's round-robin re-reads a page nobody is
-     * drawing, at a bulk engine round trip every REFRESH_BULK_TICKS — the
-     * second reader design §3 names as the leading cost hypothesis. */
+    /* A DELEGATED COMPONENT IS NEVER DUAL-DRIVEN (movy/CLAUDE.md, rule 3):
+     * under Schwung's page movy's round-robin re-reads a page nobody is drawing,
+     * at a bulk engine round trip every REFRESH_BULK_TICKS — the second reader
+     * design §3 names as the leading cost hypothesis.
+     *
+     * WHILE A STEP IS HELD MOVY *IS* DRAWING, so the rule does not apply and the
+     * refresh must run. It needs no second term: a held step is not delegated
+     * (`app/page-owner.ts`), so `!delegated` already covers it — which is the
+     * point of the hold living in the accessor. Left asking a narrower question,
+     * the held-step screen was built from whatever movy last read before the
+     * finger went down: the locked cells stayed right (they come from the
+     * engine's status poll), so every NEIGHBOURING cell froze and the reading
+     * looked live. Cost: the pre-migration pace, one bulk read per
+     * REFRESH_BULK_TICKS, for as long as a step is held and not one tick longer. */
     perfPhase('modeltick');
     const modelDirty  = activeModel?.tick(!pageOwner.delegated) ?? false;
     perfPhaseEnd();
@@ -803,13 +867,21 @@ function tickBody(): void {
              *
              * The step page is movy's too, so it keeps its own renderer.
              */
+            /* The chrome's footer band overlaps the Loop strip's rows, so the
+             * frame that draws it has to claim them the way a bottom-row toast
+             * does — otherwise the strip's per-tick clear takes the bottoms off
+             * every pill a few milliseconds later. `chromeFor` decides WHEN it
+             * is drawn (a knob under the hand); this only has to make the strip
+             * yield on that frame. */
+            const chrome = schwungChromeFor(pageOwner, schwungBody, true);
+            const chromeFooter = !!(chrome && chrome.footer);
             renderKnobsView(vm, jogHintVisible(), appState.activeTrack.index,
-                            schwungBody, schwungBankFor(pageOwner, stepSelected));
+                            schwungBody, schwungBankFor(pageOwner, schwungBody), chrome);
             perfPhaseEnd();
             // The pool-full toast shares the bottom rows with the Loop strip;
             // claim them so the strip yields to it (like every other toast).
             jogToastShown = (vm.automationHeld && vm.automationPoolFull)
-                || !!vm.toast?.browseHint || jogHintVisible();
+                || !!vm.toast?.browseHint || jogHintVisible() || chromeFooter;
             perfPhase('leds');
             lightKnobRow(vm, schwungBody);
             perfPhaseEnd();
@@ -840,8 +912,11 @@ function tickBody(): void {
             }
             noteRendered(vm);
             perfPhase('render');
+            /* `paging: false` — the jog moves CHAIN SLOTS here, so Schwung owes
+             * this view no hint band (see schwung-page-chrome.ts). */
             renderChainView(vm, chainIdx, jogHintVisible(), 'T' + (appState.activeTrack.index + 1),
-                            undefined, undefined as any, schwungBody);
+                            undefined, undefined as any, schwungBody,
+                            schwungChromeFor(pageOwner, schwungBody, false));
             perfPhaseEnd();
             /* Must match what renderChainView actually drew: the Loop strip
              * clears rows 60-63 every tick and would erase a toast it was not

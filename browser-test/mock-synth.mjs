@@ -1596,3 +1596,21 @@ MOCK_SYNTHS.padkeys = {
     "synth:name":   "PadKeys",
     "synth_module": "padkeys",
 };
+
+/* `readouts` plus the hierarchy a DELEGATED page needs.
+ *
+ * The preset above is movy's own: movy builds a bank from `chain_params` when
+ * the module ships no hierarchy, so the readout scenes never needed one. A page
+ * Schwung plans is built from `ui_hierarchy` alone, so the same params have to
+ * be declared there too — kept as a separate preset rather than added to
+ * `readouts`, because the hierarchy changes which params end up on which page
+ * and the readout baselines are not about that. */
+MOCK_SYNTHS.readouts_hier = {
+    ...MOCK_SYNTHS.readouts,
+    "synth:ui_hierarchy": hier([
+        { key: "detected_key", label: "Key",    type: "enum" },
+        { key: "level_in",     label: "InLvl",  type: "float", min: 0, max: 1 },
+        { key: "sens",         label: "Sens",   type: "float", min: 0, max: 1 },
+        { key: "hold",         label: "Hold",   type: "int",   min: 0, max: 16 },
+    ]),
+};

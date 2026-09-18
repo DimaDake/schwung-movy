@@ -11,10 +11,14 @@
 
 import type { Model } from '../model/index.js';
 
+/** One empty set, shared: "nothing here is modulated" is a constant, and a
+ *  fresh Set per call would be a fresh allocation per rendered frame. */
+const NO_MODULATION: ReadonlySet<string> = new Set();
+
 /** Every Model member a page with no module answers the same way. */
 export type InertModelSurface = Pick<Model,
-    'getFileBrowseTarget' | 'clearFileOverlay' | 'setFileValue' |
-    'getKnobParamInfo' | 'setNoRefreshKeys' | 'refreshModulation' |
+    'getFileBrowseTarget' | 'fileBrowseTargetForKey' | 'clearFileOverlay' | 'setFileValue' |
+    'getKnobParamInfo' | 'setNoRefreshKeys' | 'refreshModulation' | 'modulatedKeys' |
     'paramRangeByKey' | 'getValueByKey' |
     'getDrumConfig' | 'getDrumPadCount' | 'getDrumPadNames' | 'getDrumCurrentPad' |
     'getDrumCurrentPhysPad' | 'updateDrumPad' | 'dumpLayout'>;
@@ -22,11 +26,18 @@ export type InertModelSurface = Pick<Model,
 export function inertModelSurface(id: string, name: string, componentKey: string): InertModelSurface {
     return {
         getFileBrowseTarget() { return null; },
+        fileBrowseTargetForKey() { return null; },
         clearFileOverlay(): void { /* no file params */ },
         setFileValue(_gi: number, _path: string): void { /* no file params */ },
         getKnobParamInfo(_physK: number) { return null; },     // not automatable
         setNoRefreshKeys(_keys: string[]): void { /* no automation lanes */ },
         refreshModulation(): void { /* LFO params aren't modulation targets */ },
+        /* Same fact, answered by key: a page with no module has no LFO routed to
+         * it, and these pages are movy's own besides — no Schwung page is ever
+         * built for one. The empty set rather than `null` because it is the
+         * stronger statement: `null` means "movy knows of no model here", which
+         * is a different claim from "this model has nothing modulated". */
+        modulatedKeys(): ReadonlySet<string> { return NO_MODULATION; },
         paramRangeByKey(_key: string) { return null; },
         getValueByKey(_key: string) { return null; },
         getDrumConfig() { return null; },

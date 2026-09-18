@@ -60,11 +60,24 @@ export class Probe {
     tick()  { return this.ask({ key: 'tick' }); }
     page()  { return this.ask({ key: 'page' }); }
     auto()  { return this.ask({ key: 'auto' }); }
+    /* Null when no browser is up — which is itself the answer a scenario needs
+     * after a commit: the browser is torn down in the same call that writes. */
+    browse() { return this.ask({ key: 'browse' }); }
 
     /* The internal mode strings, NOT the flag's display labels (the Settings
      * page shows MOVY/DRAW/PAGE for off/body/page). */
     setGridMode(m: 'off' | 'body' | 'page' | null) {
         return this.ask({ verb: 'setGridMode', arg: m });
+    }
+
+    /* A MODULE-SUPPLIED WIDGET (SP-28). `available` is the library's own answer
+     * read through movy's binding to the registry, and `clear` is a mutation
+     * seam like setGridMode: it writes nothing durable, so a scenario can put
+     * the registry back to the state a module with no widget leaves it in and
+     * then look at the screen — which is the only way to watch the built-in
+     * draw in a cell a module had claimed. */
+    widget(kind: string, opts: { clear?: boolean } = {}) {
+        return this.ask({ verb: 'widgets', arg: { kind, clear: !!opts.clear } });
     }
 
     /* Wait until movy has repainted since `from`. This replaces every

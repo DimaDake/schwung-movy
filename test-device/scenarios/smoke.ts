@@ -26,6 +26,8 @@ import { Device } from '../device.js';
 import { Probe } from '../probe.js';
 import * as fixture from '../fixture.js';
 import { until } from '../wait.js';
+import { TICK_RATE_MIN, REFRESH_MS_MAX, REFRESH_MIN_SAMPLES, PERF_WINDOW_MAX,
+         at, lastOf, median, refreshSamples } from '../log-fields.js';
 
 const run = promisify(execFile);
 
@@ -33,66 +35,38 @@ const run = promisify(execFile);
  * work, never a wall clock. */
 const ACT = 90;
 
-/* What the refresh window's wait may spend before it gives up. It is NOT the
- * window's size: the window is closed by a COUNT of measuring samples
- * (REFRESH_MIN_SAMPLES below), and this is only how long reaching that count is
- * allowed to take.
- *
- * The sample cadence is set by the TICK rate, not by the clock: movy emits
- * perf_refresh_ms every NAME_POLL_TICKS (344) ticks, and the tick rate swings
- * 63-205 Hz with device load — so one sample is 2.3 s at 152 Hz and 5.5 s at
- * 63 Hz. A fixed frame budget is a bet on the device's speed, and it is a bet
- * this box currently wins: restoring the old 2400-frame budget under the
- * corrected window did NOT go red (measured 2026-09-19), because 2400 frames
- * ≈ 7 s still spans three samples at 151 Hz. At the 63 Hz floor the same budget
- * buys one. Sizing on the slow case costs nothing, since the count closes the
- * window the instant the third sample lands — 344 ticks at 63 Hz is 5.5 s, three
- * of them (one for the phase offset, two for the gaps) is ~16 s, and this is
- * 6000 frames ≈ 17 s at the shim's ~2.9 ms SPI period.
- *
- * It is a LET-THE-DEVICE-WORK budget, not a sleep: the wait returns the moment
- * the third measuring sample exists, so a fast device pays seconds and only a
- * genuine failure pays all of it.
- *
- * AND IT IS STILL A FRAME BUDGET, so the rate-dependence has not gone away — it
- * has moved from the window's SIZE to its TIMEOUT. On a healthy but loaded
- * device (63-90 Hz) three samples can legitimately take most of this, and the
- * tier will print `! wait near budget` for this check (`NEAR_BUDGET = 0.7` in
- * runner.ts). That is the tier's own "next month's flake" signal and it is
- * expected here, not a fault to go and widen: the fix would be waiting on a
- * sample COUNT without any ceiling, which cannot terminate on a device whose
- * refresh genuinely stopped — the case this check exists to red. */
-const PERF_WINDOW_MAX = 6000;
-
 /* The knob turns the bash made: knob 1 up, knob 1 down, knob 2 up. Two knobs so
  * one stuck cache cannot satisfy the CC check, and bidirectional so a turn is
  * not simply clamped at a rail. */
 const KNOB_TURNS: Array<[number, number]> = [[0, 1], [0, -1], [1, 1]];
 
-/* Thresholds, unchanged from the bash. TICK_RATE_MIN only catches catastrophic
- * starvation — the overtake loop targets ~500 Hz but the schwung host caps it
- * far lower, and a heavy co-running synth drags the achievable rate to ~80 Hz
- * (verified identical on a pre-feature build). REFRESH_MS_MAX is the real
- * per-tick blocking detector: one shadow_get_param measures ~3 ms, so 10 ms
- * allows for shim jitter and any single sample over it fails. */
-const TICK_RATE_MIN  = 60;
-const REFRESH_MS_MAX = 10;
-
-/* How many MEASURING refresh samples the window must hold before its median is
- * allowed to mean anything. A sample carries `params=N`; N=0 means the refresh
- * had no populated param to read, so its ms is not a refresh cost and counting
- * it is how this check used to pass over a metric that measured nothing. The
- * window is CLOSED on this count — the same helper both waits for it and
- * asserts on it, so the two can never disagree about what counts.
+/* THE ARM THIS SCENARIO RUNS IN, and it sets the arm itself.
  *
- * CLOSING AT EXACTLY THIS COUNT IS DELIBERATE, and it makes the graded number
- * the most sensitive it can be rather than the least: a median of 3 is moved by
- * 2 of its 3 samples, where a median of 5 needs 3. So the window stops as soon
- * as the check can mean anything, and every sample it does grade counts. The
- * cost is noise, and the 10 ms budget is what absorbs it — steady state is 4-5
- * ms (measured 2026-09-13), so a single slow sample cannot carry the median
- * over on its own. */
-const REFRESH_MIN_SAMPLES = 3;
+ * `off` is the only arm in which movy is the renderer, and every check here
+ * grades movy's OWN work — the knob turn has to reach `applyKnobDelta` and the
+ * refresh has to run. Under `page` Schwung plans AND draws, so `pageOwnerOf`
+ * hands the component over (src/app/page-owner.ts), movy takes no knob input
+ * and refreshes nothing. That is the arm the device RESTS in, and it is not a
+ * defect: `prefs.flags.schwunggrid` is a user-visible setting, read back as `2`
+ * on 2026-09-19.
+ *
+ * Measured at that resting value on 2026-09-19, a bare `npm run test:device` was
+ * `smoke` 8/11 — `set-param-attempted`, `set-param-ipc` and `refresh-blocking`
+ * red, every one of them for that one reason. So the arm is the SCENARIO's to
+ * set (see the note at `refresh-blocking`), and it is set for the whole scenario
+ * rather than around the one check that names it: the other two are just as
+ * dependent, and leaving them on the ambient arm is what kept this suite red on
+ * a box at rest.
+ *
+ * AN OVERRIDE, NOT THE FLAG. `probe.setGridMode` writes nothing — it is the same
+ * seam page-lifecycle.ts arms through — so the device's own prefs are never
+ * touched. What it does not survive is a reopen: `openTool` re-evaluates ui.js
+ * and the override is a module-level `let`, so it is RE-ARMED after this
+ * scenario's reopen.
+ *
+ * A check that demands a human set a flag is a check that gets run wrong. A
+ * check that sets and reads its own arm cannot be. */
+const ARM = 'off';
 
 /* Everything this suite reads out of the log, in ONE grep. `leds: repaint` is
  * here only so check 8's adjacency is a real adjacency: without it the line
@@ -114,37 +88,6 @@ const LOG_RE = '\\[shadow\\].*\\[movy\\] (' + [
     'perf_tick_rate=',
     'perf_refresh_ms=',
 ].join('|') + ')';
-
-/* Movy's machine-level prefs — the same file `page-dive.ts` snapshots and
- * restores, and the one `src/seq/prefs.ts` reads its flags from. Read here for
- * the ARM the refresh check ran in; see the note at the check. */
-const PREFS = '/data/UserData/schwung/modules/tools/movy/prefs.json';
-
-/* A numeric field out of one of those lines. The leading separator keeps `t=`
- * out of `set=`, `k=` out of `chainIndex=`, and so on. NaN for a field that is
- * not there — never 0, because a line that never arrived must not read as a
- * plausible value. */
-const at = (line: string, name: string): number => {
-    const m = line.match(new RegExp('(?:^| )' + name + '=(-?[0-9]+)'));
-    return m ? Number(m[1]) : NaN;
-};
-const lastOf = (ls: string[]): string => (ls.length ? ls[ls.length - 1] : '');
-
-/* Lower median: the middle sample of an odd count, the lower of the middle two
- * of an even count. Deliberately NOT an average — an average is moved by a
- * single 458 ms outlier, which is the exact quantity this check must ignore. */
-const median = (xs: number[]): number => {
-    const v = [...xs].sort((a, b) => a - b);
-    return v[Math.floor((v.length - 1) / 2)];
-};
-
-/* The refresh samples in a window that MEASURED something, in ms — the only
- * ones whose number is a refresh cost. One reader, because the window's close
- * condition and the check's assertion have to be the same rule. */
-const refreshSamples = (w: string[]): number[] =>
-    w.filter((l) => l.includes('perf_refresh_ms='))
-     .filter((l) => at(l, 'params') > 0)
-     .map((l) => at(l, 'perf_refresh_ms'));
 
 /* On a PASS, `actual` says what was measured; the diagnostic chain is only ever
  * reached on the failing side. */
@@ -215,6 +158,10 @@ scenario('smoke', async (t) => {
      * feature failures that are really state drift. */
     await dev.selectTrack(0);
     await t.bus.frames(ACT);
+    /* ARM THE SCENARIO (see ARM above for why, and for what it is not). It has
+     * to be here rather than before the open: the override lives in ui.js's
+     * module scope, so there is nothing to set it on until the tool is up. */
+    t.note('gridMode', (await probe.setGridMode(ARM)).renderer);
     lap('t_3_open');
 
     /* Rule: the instrument this suite judges is the one the fixture put there.
@@ -475,30 +422,31 @@ scenario('smoke', async (t) => {
      * window sitting on an empty chain slot every sample read
      * `perf_refresh_ms=0 params=0` and the check called that the best possible
      * result. Too few measuring samples is therefore a FAILURE, not a skip. */
-    /* WHICH ARM THIS CHECK IS MEASURING, read off the box rather than assumed
-     * (SP-15's pattern — `page-lifecycle.ts` gates its checks on the arm they
-     * ran in for the same reason).
+    /* WHICH ARM THIS CHECK IS MEASURING — the renderer's own answer, not a read
+     * of the file the renderer is supposed to derive it from (SP-15's pattern:
+     * `page-lifecycle.ts` gates its checks on the arm they ran in the same way).
      *
-     * `prefs.flags.schwunggrid` is `2` at rest, and NOTHING under `test-device/`
-     * sets it: every scenario that needs `0` relies on someone having set it by
-     * hand first. At `2` (the `page` arm) Schwung owns the component's pages, so
-     * the UI passes `!pageOwner.delegated` and `refreshOneParam` never runs
-     * (src/app/tick.ts) — and the samples then read `perf_refresh_ms=0
-     * params=14`. `params` counts populated params, not refreshes, so a full
-     * window of zeros is a full median of zeros: the check PASSES, having
-     * measured nothing at all. That is the same free green the 2026-09-13
-     * rewrite killed for the EMPTY window, arriving through the other door.
+     * The arm is part of the check, not context for it. Under `page` Schwung
+     * owns the component's pages, so the UI passes `!pageOwner.delegated` and
+     * `refreshOneParam` never runs (src/app/tick.ts) — and the samples then read
+     * `perf_refresh_ms=0 params=14`. `params` counts populated params, not
+     * refreshes, so a full window of zeros is a full median of zeros: the check
+     * PASSES, having measured nothing at all. That is the same free green the
+     * 2026-09-13 rewrite killed for the EMPTY window, arriving through the other
+     * door, and the arm is what closes it.
      *
-     * So the arm is part of the check, not context for it. A run in the wrong
-     * arm FAILS here and says which arm and what to do, rather than reporting a
-     * green that means "not measured". */
-    let arm: number | null = null;
-    try {
-        const { stdout } = await run('ssh', ['-o', 'ConnectTimeout=5', '-o', 'BatchMode=yes',
-            `ableton@${t.host}`, `cat ${PREFS} 2>/dev/null || echo '{}'`]);
-        arm = Number(JSON.parse(stdout).flags?.schwunggrid);
-    } catch { arm = null; }   /* unreadable prefs is NOT the off arm */
-    const okArm = arm === 0;
+     * THE SCENARIO SET THAT ARM ITSELF (ARM above), so this is an assertion and
+     * not a precondition. It used to read `prefs.flags.schwunggrid` over ssh and
+     * fail unless a HUMAN had set it to 0 — which made a bare `npm run
+     * test:device` red on a box at rest, for a reason that was not movy being
+     * wrong. `renderer` is `schwungGridMode()`'s own answer (src/test/probe.ts),
+     * so it reads the arm the window actually ran in and cannot be satisfied by
+     * a flag file that disagrees with the running UI. The assertion stays HARD:
+     * a red here now means the arm the scenario set is not the arm the renderer
+     * reports, which is a real disagreement and not a setting to go and change. */
+    const armPage = await probe.page().catch(() => null) as { renderer?: string } | null;
+    const arm: string | null = armPage?.renderer ?? null;
+    const okArm = arm === ARM;
     t.note('refreshArm', arm);
 
     const refLines = refW.filter((l) => l.includes('perf_refresh_ms='));
@@ -514,15 +462,16 @@ scenario('smoke', async (t) => {
     t.check('refresh-blocking',
         `refresh blocking ${medRef} ms median of ${measured.length} measuring sample(s) `
         + `<= ${REFRESH_MS_MAX} ms (threshold)`, okRef, {
-            expected: `prefs.flags.schwunggrid at 0, at least ${REFRESH_MIN_SAMPLES} samples with params>0, `
-                      + `and their median at or below ${REFRESH_MS_MAX}`,
+            expected: `the renderer at '${ARM}' — the arm this scenario sets — at least `
+                      + `${REFRESH_MIN_SAMPLES} samples with params>0, and their median at or below ${REFRESH_MS_MAX}`,
             actual: said(okRef, `${measured.length} measuring sample(s), median ${medRef} ms, `
-                + `max ${measured.length ? Math.max(...measured) : NaN} ms, arm schwunggrid=${arm}`,
+                + `max ${measured.length ? Math.max(...measured) : NaN} ms, arm renderer=${arm}`,
                 !okArm
-                    ? `prefs.flags.schwunggrid is ${arm === null ? 'unreadable' : arm}, not 0 — in that arm Schwung owns the `
-                      + 'component\'s pages, refreshOneParam does not run, and every sample reads perf_refresh_ms=0 '
-                      + 'with params>0. The check would pass having measured nothing. Set prefs.flags.schwunggrid to 0 '
-                      + '(and restore it afterwards) to run this check.'
+                    ? `the renderer did not answer '${ARM}'${arm === null ? ' (the probe gave no page at all, so '
+                      + 'the arm cannot be confirmed)' : `, it answered '${arm}'`} — this scenario arms itself `
+                      + '(`probe.setGridMode`, an override that writes no flag), so this is not a setting to go and '
+                      + `change: in any arm but '${ARM}' Schwung owns the component's pages, refreshOneParam does not `
+                      + 'run, and every sample reads perf_refresh_ms=0 with params>0 — a green that measured nothing'
                     : refLines.length === 0
                         ? `only ${measured.length} of ${refLines.length} sample(s) had params>0 — the refresh was not running `
                           + 'over a loaded module, so this window measured nothing rather than measuring something good'
@@ -556,6 +505,12 @@ scenario('smoke', async (t) => {
     let backUp = true;
     try { await dev.overtakeReady(); } catch { backUp = false; }
     t.note('resumeReady', backUp);
+    /* RE-ARM. `openTool` re-evaluated ui.js, so the override went with it and
+     * the renderer fell back to the device's own `schwunggrid` — the ambient arm
+     * this scenario exists not to depend on. Re-armed here so the whole run is in
+     * ONE arm, which is what lets the notes name it (ARM above; page-lifecycle
+     * re-arms after its reopen for the same reason). */
+    t.note('gridModeAfterReopen', (await probe.setGridMode(ARM)).renderer);
 
     await settled(markResume, (w) => w.some((l) => l.includes('resume from background')),
                   'movy to resume from the background', 3000);

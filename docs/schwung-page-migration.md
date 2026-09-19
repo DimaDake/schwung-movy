@@ -75,11 +75,17 @@ run proves nothing.
 **Arming page mode on the DEVICE reddens the device tier, and not because of the
 code under test.** `items`, `module-contract` and `smoke` assert movy's OWN
 writes, and under `schwunggrid=page` movy is not the renderer: the knob CC
-arrives, `applyKnobDelta` is never reached, and the sweep reports eleven
-failures that all read `writes: none`. Measured 2026-09-18 — the same `ui.js` is
-`smoke` 9/11 at `schwunggrid=2` and 11/11 at `0`. Put the flag back to `off`
-before `npm run test:device`, or read those three scenarios as page-mode results
-rather than as regressions. **The key is `flags.schwunggrid`**, because
+arrives, `applyKnobDelta` is never reached, and the sweep reports failures that
+all read `writes: none` (or `0 commits`). Measured 2026-09-18 — the same `ui.js`
+is `smoke` 9/11 at `schwunggrid=2` and 11/11 at `0`.
+**`smoke` no longer depends on this** — as of 2026-09-19 it arms its own renderer
+(`probe.setGridMode`, which writes no flag) and is 11/11 at the resting `2`; see
+the arm entry below. `items` and `module-contract` do NOT, and re-measured on
+2026-09-19 at the resting `2` they are the two that still go red: `items` 4/7
+(`commit-once`, `reread-after-commit`, `selection-stuck`) and `module-contract`
+4/10 (the six trigger-write checks). Until they take the same one-line arm, put
+the flag back to `off` before `npm run test:device`, or read those two scenarios
+as page-mode results rather than as regressions. **The key is `flags.schwunggrid`**, because
 `readPrefFlags()` reads `prefs.flags` and nothing else: a top-level
 `"schwunggrid"` in that file is inert, and a hand-edit that writes one there
 changes no mode at all while looking exactly like the fix.
@@ -3090,16 +3096,17 @@ the fact a later session would otherwise re-derive.
   refresh had something to READ, not that it READ it — a refresh that stopped
   altogether emits `perf_refresh_ms=0 params=14` and passes on the median. The
   median catches a refresh that got slower; nothing here catches one that stopped.
-  **The check now GATES ON THE ARM IT RAN IN.** Under `schwunggrid=page` (the
-  device's resting value, `prefs.flags.schwunggrid = 2`) Schwung owns the
-  component's pages, so the UI stops calling `refreshOneParam` for it
-  (`src/app/tick.ts` passes `!pageOwner.delegated`), `params` still counts
+  **The check GATES ON THE ARM IT RAN IN** — first by reading the flag, then (see
+  the 2026-09-19 arm entry below) by setting the arm itself. Under
+  `schwunggrid=page` (the device's resting value, `prefs.flags.schwunggrid = 2`)
+  Schwung owns the component's pages, so the UI stops calling `refreshOneParam`
+  for it (`src/app/tick.ts` passes `!pageOwner.delegated`), `params` still counts
   populated params, and the samples read `perf_refresh_ms=0 params=14` — a full
   median of zeros that PASSED. That was this check's second vacuity hole, reached
   through the other door from the one 2026-09-13 closed, and nothing under
-  `test-device/` sets the flag; it depended on someone having set `0` by hand
-  first. The scenario now reads `prefs.flags.schwunggrid` and FAILS when it is
-  not `0`, naming the arm and the fix, so a run in the wrong arm can no longer
+  `test-device/` set the flag; it depended on someone having set `0` by hand
+  first. The fix made the check read `prefs.flags.schwunggrid` and FAIL when it
+  is not `0`, naming the arm and the fix, so a run in the wrong arm can no longer
   report a green that means "not measured".
 - **2026-09-19 — the flake ledger could kill a whole tier, and its headline
   number was a tautology.** Fix round on the entry above, both found by review.
@@ -3117,3 +3124,34 @@ the fact a later session would otherwise re-derive.
   8 flaky 0 failed of 8 runs` was read as "never passed first try" when it had
   passed first try twenty times in between. A check row's denominator is now its
   scenario's run count.
+- **2026-09-19 — the refresh check owns its arm; the operator does not.**
+  The entry above made `smoke#refresh-blocking` FAIL unless
+  `prefs.flags.schwunggrid` was `0`, which closed a real vacuity hole and opened
+  a worse one: every task's contract is to restore the flag to what it found, the
+  box rests at `2`, so a bare `npm run test:device` was red on arrival for a
+  reason that was not movy being wrong — and `movy/CLAUDE.md` is explicit that a
+  gate red by design is a gate people stop reading. **Measured on 2026-09-19 at
+  the resting `2`: `smoke` 8/11 — `set-param-attempted`, `set-param-ipc` and
+  `refresh-blocking` all red, all three for that one reason.** The other two are
+  the same arm dependence, not a second bug: in the `page` arm Schwung owns the
+  component's pages, so the knob turn never reaches `applyKnobDelta` and neither
+  check can pass there by design.
+  So the scenario **arms itself** — `probe.setGridMode('off')`, the override
+  `page-lifecycle.ts` arms through, which writes no flag and so never touches the
+  device's prefs — for the WHOLE scenario rather than around the one check that
+  names the arm, because the other two are just as dependent and leaving them on
+  the ambient arm is what kept the suite red on a box at rest. It is re-armed
+  after the scenario's reopen, since `openTool` re-evaluates `ui.js` and the
+  override is a module-level `let` (the same reason `page-lifecycle` re-arms
+  after its own). The check then asserts the arm it actually ran in: `renderer`
+  off the probe's page reply, which is `schwungGridMode()`'s own answer, not a
+  read of the flag file it is derived from. **The assertion stays hard** — with
+  the arm self-set, a red there can only mean a real disagreement.
+  Teeth, without a device-forced red: with the two arm calls removed the check
+  reddens with `the renderer did not answer 'off', it answered 'page'`, while the
+  three samples it graded are `perf_refresh_ms=0 params=14` — `measured.length`
+  3 and median `0`, so the arm is provably the ONLY thing standing between that
+  window and a free green. The failure message no longer says to set the flag.
+  `smoke.ts` paid for the addition by extraction rather than length: the
+  log-field readers and the refresh window's arithmetic and thresholds moved to
+  `test-device/log-fields.ts` (583 → 538 lines against the ~600 ceiling).

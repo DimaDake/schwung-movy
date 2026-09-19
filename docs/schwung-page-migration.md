@@ -916,19 +916,25 @@ is to re-run the same method on minijv.**
 **The decisive raw lines**, so the claim can be checked without a device:
 
 ```
-# knob section, BEFORE (fff4f25) — 16 windows
+# knob section, BEFORE (fff4f25) — 8 windows
 seqengine=0.6 rest=0.5 ctltick=0.4 ctlpoll=0.3 buildvm=0.2 render=0.2
 
-# knob section, AFTER (this commit) — 14 windows
+# knob section, AFTER (this commit) — 7 windows. The animating window is the
+# FIRST of them, and it is also the section's worst tick:
+calls/tick=0.9 peak=10 ipc_ms=2.0 tick_ms=3.9 period_ms=6.8 peak_period=26 | …
 seqengine=0.7 render=0.7 buildvm=0.6 rest=0.5 ctltick=0.4 ctlpoll=0.3
 
-# idle section, BOTH arms — 38 windows each, and no `render` line in either
+# idle section, BOTH arms — 18/19 windows, and no `render` line in either
 calls/tick=0.9 peak=9 ipc_ms=1.8 tick_ms=2.5 period_ms=5.3 peak_period=16 | get overtake_dsp:* n=0.3 ms=0.6 | get synth_module n=0.2 ms=0.4 | …
 ```
 
+(A window is logged TWICE, once `[shadow]` and once `[move-shim]`, so the raw
+line counts are double the window counts — an earlier revision of this entry
+quoted the raw counts as windows. Medians and ranges are unaffected.)
+
 (`perf_phase` prints only the six largest phases, so a phase that is absent is
 not in the top six — i.e. ~0. The two arms' idle `tick_ms` **medians are both
-2.5**, over 38 windows each: identical, not merely overlapping.)
+2.5**: identical, not merely overlapping.)
 
 The idle section is unchanged
 and carries no `render` phase in either arm; the 2.4–2.7 after-arm max is inside
@@ -940,14 +946,30 @@ inside a ~630 ms report window — which is the expected shape, not a weak signa
 Method, commands and the resolution limits: `.superpowers/sdd/schwung-page-migration/sp38-measurement.md`.
 
 **The one way this can invert into a permanent cost, named rather than feared.**
-If any observed key's value string differs on EVERY render, `anim_state` re-stamps
-`since` each tick, `settled()` never returns true, and the page redraws forever
-at the full 0.7 ms/tick instead of standing still. A MODULATED knob cannot do it:
-effective (`:effective`) values reach the renderer through `modValues`, not
-through the `values` map `settled` reads. The residual exposure is a jittery or
-`live` BASE enum, or **a decoration that feeds a raw value back into an animated
-key such as `enumw:` — which is SP-36's territory, so SP-36's work must be
-checked against this predicate before it ships.** The mechanism is written into
+`settled()` is "nothing was stamped within the last 120 ms" and `observe` stamps
+whenever a value's string differs from the last one seen, so **an observed key
+whose value moves inside every 120 ms window never settles** — the page redraws
+forever at the full 0.7 ms/tick instead of standing still. The threshold is a
+FREQUENCY (~8 Hz), not a per-render change: a 10 Hz LFO does it, a 2 Hz LFO does
+not.
+
+**The route is a MODULATED or `live` param the drawn page shows — and an earlier
+revision of this entry said the opposite, which is why the chain is written out.**
+The renderer MERGES BEFORE IT OBSERVES. `render_page_movy.mjs:2441` builds
+`liveValues = {...values, ...modValues}`; the enum path hands
+`shown = liveRaw ?? raw` (`:2161`) into `drawEnumSquare`, which observes `shown`
+at `:1579`; the wave path passes `liveValues` to `drawVizGroup` (`:2516`) and
+`drawWaveform` observes out of it (`viz_draw.mjs:1115`). So **both animated
+widgets observe the MODULATED value**, and `modValues` is re-read from
+`:effective` every tick (`page_controller.mjs:4148`, one key per tick) for every
+key `modCache` flagged (`:2344` — which includes `live: true` params, not only
+modulated ones). A host LFO on an enum-shaped or wave-viz param the drawn page
+shows is therefore a **shipped** route to a permanently-redrawing page. The arc
+knob is the only immune widget, and only because `drawArcKnob` (`:1237`) takes
+no `anim` argument — not because of any `values`/`modValues` split, which does
+not exist on the observe path. Second-order and still worth the check: a jittery
+base enum, or a decoration feeding a raw value back into `enumw:` — **SP-36 must
+be checked against this predicate before it ships.** All of it is written into
 `renderer/schwung-page-anim.ts` beside the predicate.
 
 **Teeth, and a fixture trap worth keeping.** `browser-test/logic/page-freshness.mjs`
@@ -2079,11 +2101,14 @@ the fact a later session would otherwise re-derive.
   both arms). Read the cost as a FLOOR: plaits is 2 pages, the smallest fixture
   shape, and it is n=1 window per arm. Not covered: `settled`'s 120 ms window is
   longer than `WAVE_MORPH_MS` (100), and nothing was measured on a large module —
-  minijv is SP-39's first step. A key whose value string changes on EVERY render
-  would redraw forever; a modulated knob cannot (effective values travel via
-  `modValues`, not `values`), so the exposure is a jittery/`live` base enum or a
-  **decoration** — SP-36's territory, and SP-36 must be checked against this
-  predicate.
+  minijv is SP-39's first step. **The inversion to watch:** an observed key whose
+  value moves inside every 120 ms window (~8 Hz) never settles and the page
+  redraws forever. The renderer merges `modValues` into `liveValues` BEFORE it
+  observes (`render_page_movy.mjs:2441` → `:1579`, and the viz path at
+  `viz_draw.mjs:1115`), so **a host LFO on an enum-shaped or wave-viz param the
+  page shows is a shipped route**; only the arc knob is immune, because
+  `drawArcKnob` takes no `anim`. A decoration feeding `enumw:` is the
+  second-order one — SP-36 must be checked against this predicate.
 
 - **SP-20 ✅ 2026-09-18 — one reader of the declared contract:
   `src/chain/hierarchy-source.ts`.** Three rungs — `ui_hierarchy`, `ui_pages`,

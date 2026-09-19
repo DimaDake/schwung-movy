@@ -13,11 +13,14 @@
  * the moment it landed.
  */
 
-/** The two library functions this asks, both optional — see `SchwungLib`. */
-export interface AnimSources {
-    settled?:     any;
-    buttonPhase?: any;
-}
+import type { SchwungLib } from './schwung-lib.js';
+
+/* THE SAME TWO FIELDS AS `SchwungLib`, picked rather than restated. A
+ * hand-written `{ settled?: any; buttonPhase?: any }` typechecks against
+ * anything carrying those names, so a rename over there would still compile and
+ * this file would quietly stop being asked while every test stayed green.
+ * Type-only, so esbuild erases it and no runtime import is created. */
+type AnimSources = Pick<SchwungLib, 'settled' | 'buttonPhase'>;
 
 /**
  * Build the per-tick predicate, resolved ONCE at binding time and guarded.
@@ -28,22 +31,33 @@ export interface AnimSources {
  *
  * THE ONE COST THIS ADDS, and it is the failure to watch for. `settled` is
  * "nothing was stamped within the last 120 ms", and `observe` stamps whenever a
- * value's string DIFFERS from the last one it saw. So a key whose value string
- * differs on EVERY render never settles: `since` is re-stamped each tick,
- * `settled` never returns true, and the page redraws forever at the full
- * animating cost (~0.7 ms/tick measured) instead of standing still. It is NOT
- * a value that merely changes often — that is the feature. It has to change
- * between the render and the very next render, with no quiet tick at all.
+ * value's string DIFFERS from the last one it saw, so a key whose value moves
+ * inside every 120 ms window never settles: `since` is re-stamped, `settled`
+ * never returns true, and the page redraws forever at the full animating cost
+ * (~0.7 ms/tick measured) instead of standing still. The threshold is a
+ * FREQUENCY, not a per-frame change — the value has to move again within
+ * 120 ms, i.e. faster than ~8 Hz. A 10 Hz LFO does it; a 2 Hz LFO does not.
  *
- * WHAT CANNOT DO IT, checked rather than assumed: a modulated knob. Effective
- * (`:effective`) values travel to the renderer through `modValues`, not
- * `values`, so an LFO or automation lane sweeping a parameter does not touch
- * the map `settled` reads. The residual exposure is therefore a jittery or
- * `live` BASE enum (a key whose raw string is re-rendered non-deterministically,
- * e.g. a noise or meter readout), or a decoration that feeds a raw value back
- * into an animated key such as `enumw:`. **A decoration is the one plausible
- * route, and decorations are SP-36's territory** — whatever SP-36 lands must be
- * checked against this predicate before it ships.
+ * THE ROUTE TO IT IS A MODULATED OR `live` PARAM THE PAGE SHOWS, and this was
+ * got wrong once, so the chain is written out. The renderer MERGES BEFORE IT
+ * OBSERVES: `render_page_movy.mjs:2441` builds `liveValues = {...values,
+ * ...modValues}`; the enum path hands `shown = liveRaw ?? raw` (`:2161`) into
+ * `drawEnumSquare`, which calls `observeLanded(anim, "enumw:" + key, shown, …)`
+ * (`:1579`); the wave path passes `liveValues` into `drawVizGroup` (`:2516`)
+ * and `drawWaveform` observes `values[key]` from it (`viz_draw.mjs:1115`). So
+ * BOTH animated widgets observe the MODULATED value. `modValues` is refreshed
+ * from `:effective` every tick (`page_controller.mjs:4148`, one key per tick —
+ * `MOD_FAST_READS_PER_TICK`), and `modCache` (`:2344`) includes `live: true`
+ * params, not only modulated ones. **A host LFO on an enum-shaped or wave-viz
+ * param the drawn page shows is therefore a shipped route to a page that
+ * redraws forever.** The arc knob is the only immune widget, and only because
+ * `drawArcKnob` (`:1237`) takes no `anim` argument at all — NOT because of any
+ * values/modValues split, which does not exist on the observe path.
+ *
+ * What is left outside that route: a jittery base enum, or a decoration feeding
+ * a raw value back into an animated key such as `enumw:`. Decorations are
+ * SP-36's territory, so **SP-36 must be checked against this predicate before
+ * it ships** — but it is the second-order exposure, not the first.
  */
 export function createPageAnimating(
     ctl: any,
@@ -58,10 +72,15 @@ export function createPageAnimating(
          * same map read by the same rule — movy never needs to build the store,
          * only to ask it.
          *
-         * A STILL PAGE COSTS NOTHING HERE: `observe` stamps a FIRST sighting as
-         * already past, so once a page has been drawn its map holds only
-         * transitions that have started since, and an idle page iterates an
-         * empty map. That is the whole reason the idle cost is unchanged. */
+         * A STILL PAGE IS CHEAP HERE, though not free: `observe` stamps a FIRST
+         * sighting as ALREADY PAST, so every entry a drawn page leaves behind
+         * is past its window and `settled` walks the map without returning
+         * false. The map is NOT emptied — `anim_state` only ever sets, never
+         * deletes, and the store outlives a page change — so a page that has
+         * ever drawn an animated widget carries one entry per such key for the
+         * rest of the session. That walk is a subtraction and a compare per
+         * entry, which is why the idle measurement is unchanged; it is not
+         * because there is nothing to walk. */
         if (animSettled && !animSettled(ctl.state && ctl.state.anim, nowMs)) return true;
         /* 2. THE TRIGGER BANG, which is time-driven the same way and has no
          * value change to announce it. The list is passed to `buttonPhase`

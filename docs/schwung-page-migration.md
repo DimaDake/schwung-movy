@@ -2814,3 +2814,33 @@ the fact a later session would otherwise re-derive.
   `smoke#refresh-blocking` had been red on arrival for every recorded run: it was
   measuring a refresh that was not running and grading it by a wall clock that
   could not tell a descheduled tick from a slow refresh.
+- **2026-09-19 — the same check, red again, and the window was the reason.**
+  The 2026-09-13 fix taught the check to ignore samples with `params=0`, but not
+  where the window should START or END, and the comment said the window was taken
+  *before* the jog while the code read it *after* it. It wanted a loaded module in
+  steady state; it got the stretch on both sides of the jog. The 2026-09-19 red
+  artifact shows the window containing `loadHierarchy: slot=0 module=—` at
+  13:27:44.339 and `ui_hierarchy null — no params` at :44.349, nine seconds after
+  the fixture loaded — nine seconds in which the chain cursor had been jogged onto
+  an empty chain slot, so the window was grading a slot that had been emptied from
+  under it. Three reds in the 35 smoke runs recorded before this task, and no
+  pattern to which sample
+  caught it — `9edec30` went red at 10:18 and green at 10:30 on the same sha,
+  which is the flake in miniature. Fixed by giving the check its OWN window (`refW`,
+  not `w0`) that opens once the fixture's module has demonstrably loaded
+  (`loadHierarchy: chain_params <n>` seen) and closes BEFORE the jog, and by
+  closing it on a COUNT of measuring samples rather than a fixed frame budget, so
+  the close condition and the assertion are the same helper. That second half is
+  robustness, not a proven fix: restoring the old 2400-frame budget under the
+  corrected window still passed on this box, and the code comment says so rather
+  than claiming a red it never produced. The sample cadence is tick-rate-bound
+  (344 ticks — 2.3 s at 151 Hz, 5.5 s at the 63 Hz floor), so the fixed budget is
+  a bet on the device's speed that the count does not make. No threshold moved:
+  `REFRESH_MIN_SAMPLES` is still 3, `REFRESH_MS_MAX` still 10.
+  What it still does not cover, and did not before: `params > 0` proves the
+  refresh had something to READ, not that it READ it — a refresh that stopped
+  altogether emits `perf_refresh_ms=0 params=14` and passes on the median. The
+  median catches a refresh that got slower; nothing here catches one that stopped.
+  The same hole makes the check close to vacuous under `schwunggrid=page`, where
+  SP-12 stops `refreshOneParam` for a delegated component — the tier's note that
+  this check is only meaningful at 0 is load-bearing.

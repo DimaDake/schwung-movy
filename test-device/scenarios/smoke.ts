@@ -33,15 +33,27 @@ const run = promisify(execFile);
  * work, never a wall clock. */
 const ACT = 90;
 
-/* Movy's tick counter emits perf_tick_rate/perf_refresh_ms every
- * NAME_POLL_TICKS (344) ticks, and the FIRST sample needs two windows — the
- * first has no predecessor to diff against. Measured on this device: the first
- * line lands ~6.9 s after open. So this is a `bus.frames` budget sized to that
- * measurement (2400 frames ≈ 7 s), and it is a LET-THE-DEVICE-WORK wait rather
- * than a sleep: the frame counter is the device's own SPI period. The `settled`
- * below still gates on the line actually appearing, so a slower device costs
- * device time, not a false pass. */
-const PERF_SETTLE = 2400;
+/* What the refresh window's wait may spend before it gives up. It is NOT the
+ * window's size: the window is closed by a COUNT of measuring samples
+ * (REFRESH_MIN_SAMPLES below), and this is only how long reaching that count is
+ * allowed to take.
+ *
+ * The sample cadence is set by the TICK rate, not by the clock: movy emits
+ * perf_refresh_ms every NAME_POLL_TICKS (344) ticks, and the tick rate swings
+ * 63-205 Hz with device load — so one sample is 2.3 s at 152 Hz and 5.5 s at
+ * 63 Hz. A fixed frame budget is a bet on the device's speed, and it is a bet
+ * this box currently wins: restoring the old 2400-frame budget under the
+ * corrected window did NOT go red (measured 2026-09-19), because 2400 frames
+ * ≈ 7 s still spans three samples at 151 Hz. At the 63 Hz floor the same budget
+ * buys one. Sizing on the slow case costs nothing, since the count closes the
+ * window the instant the third sample lands — 344 ticks at 63 Hz is 5.5 s, three
+ * of them (one for the phase offset, two for the gaps) is ~16 s, and this is
+ * 6000 frames ≈ 17 s at the shim's ~2.9 ms SPI period.
+ *
+ * It is a LET-THE-DEVICE-WORK budget, not a sleep: the wait returns the moment
+ * the third measuring sample exists, so a fast device pays seconds and only a
+ * genuine failure pays all of it. */
+const PERF_WINDOW_MAX = 6000;
 
 /* The knob turns the bash made: knob 1 up, knob 1 down, knob 2 up. Two knobs so
  * one stuck cache cannot satisfy the CC check, and bidirectional so a turn is
@@ -60,9 +72,9 @@ const REFRESH_MS_MAX = 10;
 /* How many MEASURING refresh samples the window must hold before its median is
  * allowed to mean anything. A sample carries `params=N`; N=0 means the refresh
  * had no populated param to read, so its ms is not a refresh cost and counting
- * it is how this check used to pass over a metric that measured nothing. Two
- * windows is what PERF_SETTLE is sized for, so three is a real floor rather than
- * a formality. */
+ * it is how this check used to pass over a metric that measured nothing. The
+ * window is CLOSED on this count — the same helper both waits for it and
+ * asserts on it, so the two can never disagree about what counts. */
 const REFRESH_MIN_SAMPLES = 3;
 
 /* Everything this suite reads out of the log, in ONE grep. `leds: repaint` is
@@ -103,6 +115,14 @@ const median = (xs: number[]): number => {
     const v = [...xs].sort((a, b) => a - b);
     return v[Math.floor((v.length - 1) / 2)];
 };
+
+/* The refresh samples in a window that MEASURED something, in ms — the only
+ * ones whose number is a refresh cost. One reader, because the window's close
+ * condition and the check's assertion have to be the same rule. */
+const refreshSamples = (w: string[]): number[] =>
+    w.filter((l) => l.includes('perf_refresh_ms='))
+     .filter((l) => at(l, 'params') > 0)
+     .map((l) => at(l, 'perf_refresh_ms'));
 
 /* On a PASS, `actual` says what was measured; the diagnostic chain is only ever
  * reached on the failing side. */
@@ -187,25 +207,47 @@ scenario('smoke', async (t) => {
         await t.bus.frames(ACT);
     }
 
-    /* THE PERF WINDOW IS TAKEN HERE, BEFORE THE JOG, and the order is the whole
-     * reason `refresh-blocking` can mean anything.
+    /* THE PERF WINDOW IS CLOSED HERE, BEFORE THE JOG, and both of its ends are
+     * the whole reason `refresh-blocking` can mean anything. It is a window of
+     * its OWN (`refW`, not `w0`) because the two want opposite things: `w0` is
+     * the whole scenario, and this one has to be a LOADED MODULE IN STEADY
+     * STATE.
      *
-     * The jog below moves the CHAIN cursor — `chain chainIndex=2`, then 3 — and
-     * `loadHierarchy` answers each empty slot it lands on with `ui_hierarchy
-     * null — no params`. From that moment every sample reads
-     * `perf_refresh_ms=0 params=0`: refreshOneParam has no populated param to
-     * read, so it measures NOTHING and reports the best possible number for it.
-     * With the settle after the jog, that was the ENTIRE window — measured on
-     * device 2026-09-13, every sample `params=0` — so the check spent its whole
-     * run grading a refresh that was not running.
+     * It starts where the fixture's module is demonstrably loaded rather than at
+     * `mark0`. From `mark0` the window opens before movy has read any hierarchy
+     * at all, and every sample in that stretch reads `perf_refresh_ms=0
+     * params=0`: there is no populated param to refresh, so the metric measures
+     * NOTHING and reports the best possible number for it.
      *
-     * Re-selecting track 0 afterwards does not undo it: track 0 is already
-     * active, `dev.selectTrack(0)` is a no-op there (`track: active=0 chain=0`
-     * with no `loadHierarchy` behind it), and the chain cursor stays where the
-     * jog left it. Taking the window first is what costs nothing — the jog's own
-     * lines land in `w0` all the same, because `w0` is read from `mark0` after
-     * both. */
-    await t.bus.frames(PERF_SETTLE);
+     * It ends before the jog, and that is the other half. The jog moves the
+     * CHAIN cursor — `chain chainIndex=2`, then 3 — and `loadHierarchy` answers
+     * each empty slot it lands on with `module=—` / `ui_hierarchy null — no
+     * params`. Measured in the 2026-09-19 red run: the jog emptied slot 0 at
+     * 13:27:44.339, ten lines before `w0` closed, so a sample taken after it
+     * measures nothing either — the same empty window, reached from the other
+     * side. The 2026-09-13 window that graded a refresh that was not running was
+     * this failure with the jog INSIDE it, and a window that merely excluded
+     * `params=0` samples from the median would still have been grading the
+     * stretch around it.
+     *
+     * So `refW` is neither `w0` nor a slice of it. `params > 0` (see the check
+     * below) stays the rule for what a sample is worth, and this window is the
+     * belt to that braces: a sample whose params are 0 is now outside the window
+     * rather than merely excluded from the median.
+     *
+     * Re-selecting track 0 afterwards would not undo any of this: track 0 is
+     * already active, `dev.selectTrack(0)` is a no-op there (`track: active=0
+     * chain=0` with no `loadHierarchy` behind it), and the chain cursor stays
+     * where the jog left it. Closing the window first is what costs nothing —
+     * the jog's own lines still land in `w0`, because `w0` is read from `mark0`
+     * after both. */
+    await settled(mark0, (w) => w.some((l) => /loadHierarchy: chain_params [1-9]/.test(l)),
+                  "the fixture's module metadata to be read", 900);
+    const markRef = await mark();
+    const refW = await settled(markRef,
+        (w) => refreshSamples(w).length >= REFRESH_MIN_SAMPLES,
+        'the refresh samples', PERF_WINDOW_MAX);
+    lap('t_4_refreshWindow');
 
     // ── the jog ──────────────────────────────────────────────────────────────
     await dev.tap.jogTurn(1);
@@ -409,11 +451,16 @@ scenario('smoke', async (t) => {
      * window sitting on an empty chain slot every sample read
      * `perf_refresh_ms=0 params=0` and the check called that the best possible
      * result. Too few measuring samples is therefore a FAILURE, not a skip. */
-    const refLines = w0.filter((l) => l.includes('perf_refresh_ms='));
-    const measured = refLines.filter((l) => at(l, 'params') > 0).map((l) => at(l, 'perf_refresh_ms'));
+    const refLines = refW.filter((l) => l.includes('perf_refresh_ms='));
+    const measured = refreshSamples(refW);
     const medRef   = measured.length ? median(measured) : NaN;
     const okRef    = measured.length >= REFRESH_MIN_SAMPLES && medRef <= REFRESH_MS_MAX;
     t.note('refreshSamples', measured);
+    /* The RAW lines, not just the ms. `measured` has already dropped the
+     * `params=0` samples, and those are the ones carrying the reason — a red
+     * here has to name which sample fell outside the loaded stretch, and a bare
+     * "2 of 3" cannot. */
+    t.note('refreshLines', refLines);
     t.check('refresh-blocking',
         `refresh blocking ${medRef} ms median of ${measured.length} measuring sample(s) `
         + `<= ${REFRESH_MS_MAX} ms (threshold)`, okRef, {

@@ -94,8 +94,19 @@ inject() {
 BODY_RE='schwung-body (ok track=[0-9]+ ck=[a-z_0-9:]+ pages=[0-9]+|not-ready[^|]*|mode=[a-z]+|movy-page ck=[a-z_0-9:]+|no-model|step-page-selected)'
 BODY_NOW=""
 
+# SECTIONS NARROWS A RUN TO THE SECTIONS THAT ARE VALID ON THE MODULE IN FRONT
+# OF IT. The jog sections move ten detents; on a component with fewer than ~12
+# pages that walks off the end and every LATER section then measures an
+# undelegated page. The warning above says so but does not stop the run, and a
+# `knob` number taken after the walk-off is not a knob number — measured
+# 2026-09-19 on plaits (2 pages): four of five sections came back INVALID and
+# only `idle` survived. `SECTIONS="idle knob"` is how a small module gets an
+# honest number: the sections named, in the script's order, nothing else.
+WANT="${SECTIONS:-idle jog jogflick knob knobflick}"
+
 sample() {
     local label="$1"; shift
+    case " $WANT " in *" $label "*) ;; *) return 0 ;; esac
     sshd "> $LOG"
     "$@"
     sleep 3
@@ -135,6 +146,12 @@ sample() {
         [ -n "$stray" ] && printf '%s\n' "$stray" | sed 's/^/    /' >> "$OUT"
     fi
     sshd "grep perf_ipc $LOG" | sed -E 's/.*perf_ipc //' >> "$OUT"
+    # `perf_ipc` says the tick is slow; `perf_phase` says WHICH PART of it is,
+    # summed over the same window. Both are needed by anything that has to
+    # attribute a per-tick cost rather than just report one, and they were
+    # written in the same probe for that reason. One line each, so a sample
+    # reads as `ipc` then `phases`.
+    sshd "grep perf_phase $LOG" | sed -E 's/.*perf_phase //' >> "$OUT"
 }
 
 : > "$OUT"

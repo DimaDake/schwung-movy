@@ -70,6 +70,12 @@ export interface SchwungPage {
      *  nothing has been read back. What lights the knob LEDs, and what movy
      *  watches to know the drawn page moved. */
     knobLevels(): (number | null)[];
+    /** SP-38: is the drawn page still MOVING — a widget transition in flight,
+     *  or a trigger bang still flashing — with no value and no page identity
+     *  change to show for it? Asked by the repaint decision when both of those
+     *  have held still, and the only thing that makes an animated widget draw
+     *  more than the one frame its value change bought. */
+    animating(nowMs: number): boolean;
     render(title: string, auto?: AutomationView, touched?: number): void;
     /** What movy's header and footer should say while this page is the body.
      *  `paging` is true only where the jog moves this page set. */
@@ -128,6 +134,13 @@ export function createSchwungPage(
                                         normalizedOf: lib.normalizedOf });
     const input = createPageInput(ctl, lib, port, qualify, hier);
 
+    /* RESOLVED ONCE, at binding time, and guarded — see `SchwungLib.settled`.
+     * An older Schwung without either answers `animating` false, which is
+     * precisely how the page behaved before SP-38, so the missing predicate
+     * costs the feature rather than the tool. */
+    const animSettled = typeof lib.settled === 'function' ? lib.settled : null;
+    const bangPhase = typeof lib.buttonPhase === 'function' ? lib.buttonPhase : null;
+
     return {
         /* `contract.reload()` drops the cache itself — a re-plan reads live,
          * including the retry path this binding cannot see. */
@@ -152,6 +165,34 @@ export function createSchwungPage(
         },
         knobParamInfo: page.knobParamInfo,
         knobLevels: page.knobLevels,
+        animating(nowMs: number) {
+            /* 1. A WIDGET TRANSITION. `ctl.state.anim` is the store the
+             * renderer feeds (`page_controller.mjs` passes `anim: s.anim` and
+             * `nowMs: now()` into every draw), so `settled` here and the
+             * renderer's own observation are the same map read by the same
+             * rule — movy never needs to build the store, only to ask it.
+             *
+             * A STILL PAGE COSTS NOTHING HERE: `observe` stamps a FIRST sighting
+             * as already past, so once a page has been drawn its map holds only
+             * transitions that have started since, and an idle page iterates an
+             * empty map. */
+            if (animSettled && !animSettled(ctl.state && ctl.state.anim, nowMs)) return true;
+            /* 2. THE TRIGGER BANG, which is time-driven the same way and has no
+             * value change to announce it. The list is passed to `buttonPhase`
+             * exactly as the renderer passes it (`render_page_movy.mjs:2617`),
+             * so the flash duration is asked of its one definition rather than
+             * restated — and `BTN_FLASH_MS` moving upstream moves both.
+             *
+             * The map only holds keys that have FIRED, so a page that has never
+             * fired a trigger allocates nothing and loops zero times. */
+            const fired = bangPhase && ctl.triggerFiredAt;
+            if (!fired) return false;
+            for (const k in fired) {
+                const stamps = fired[k];
+                if (stamps && stamps.length && bangPhase(stamps, nowMs, false).bursts.length) return true;
+            }
+            return false;
+        },
         render: page.render,
         chrome: (paging: boolean) => chromeFor(ctl, lib, paging),
         knobTurn: input.knobTurn,

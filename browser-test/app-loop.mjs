@@ -3381,6 +3381,124 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
     resetAutomation();
 }
 
+/* ── SP-38: a value change draws FRAMES until the transition settles ──────── */
+{
+    /*
+     * THE ITEM'S OWN ACCEPTANCE, END TO END: "a value change on a delegated
+     * page produces frames until the transition settles and none after".
+     *
+     * COUNTED AT `render`, NOT AT `dirty`. The bug was never that the value
+     * failed to arrive — it arrived, and the tick drew it, ONCE. The bug is
+     * that nothing asked for the NEXT frame, so the enum square froze halfway
+     * to its new width and stayed there. The only measurement that tells "the
+     * widget animated" from "the widget jumped" is how many times the page was
+     * drawn, and `render` is the call `app/tick.ts`'s body closure makes.
+     *
+     * THE FIXTURE IS AN ENUM, DELIBERATELY. Only the enum square and the
+     * waveform morph feed Schwung's animation store, so on a page of eight
+     * floats there is nothing to animate and this block would pass with the fix
+     * REMOVED. `test_enum`'s knob 0 is `mode`, a four-option enum, so the
+     * transition it starts is the renderer's own observation and not something
+     * this test puts in the store.
+     *
+     * AND IT HAS TO CHANGE THE WIDTH, WHICH IS NOT THE SAME AS CHANGING THE
+     * OPTION. The square's frame travels to the WIDTH OF THE NEW LABEL —
+     * `enumw:<key>` observes `enumSquareWidth(text)`, a pixel count, not the
+     * option index — so a change between two options that render the same width
+     * moves nothing and there is no transition to draw. This block first wrote
+     * mode `0`→`2`, which is "LP"→"HP": same width, `observe` saw no change, and
+     * the check failed against a CORRECT fix. `0`→`3` is "LP"→"Notch", 17px to
+     * the 28px cap, which is the transition the widget actually has.
+     *
+     * THE ARM IS FORCED rather than read from MOVY_APP_LOOP_GRID, so these
+     * checks have teeth in the plain `npm test` run too and not only under
+     * page-mode.mjs. `pageArm` then goes in as the EXPECTED value, which is how
+     * every other block here stays honest with the library unavailable.
+     */
+    setSchwungGridMode('page');
+    const pageArm = schwungGridMode() === 'page';
+    schwungGridReload();
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.test_enum);
+    resetSeqState(); resetSeqEngine();
+    setFlag('setcommit', 0);
+    globalThis.init();
+    appState.currentView = VIEW_KNOBS;
+    appState.activeTrack = trackRef(0);
+    advance(12);
+
+    const owner = () => pageOwnerOf(appState.trackModels[0][1]);
+    for (let i = 0; i < 12 * 60 && !owner().delegated; i++) advance(1);
+    const sp = pageArm ? owner().page : null;
+    eq('the enum page is delegated to Schwung', !!sp, pageArm);
+
+    /* Frames are counted at the page's own render. Wrapped rather than
+     * re-exported so nothing else has to agree about what "a frame" is. */
+    let frames = 0;
+    if (sp) {
+        const realRender = sp.render;
+        sp.render = (...a) => { frames++; return realRender.apply(sp, a); };
+    }
+
+    /* (a) THE CONTROL. A delegated page with nothing moving draws NOTHING —
+     * SP-13's floor, and the thing that makes (b) mean something: if this loop
+     * drew frames on its own, every count below would be measuring the loop and
+     * not the fix. */
+    settleQuiet();
+    frames = 0;
+    advance(40);
+    eq('an idle delegated page draws no frame at all', frames, 0);
+
+    /* (b) THE TEETH. One value change on the drawn page, and MORE than the one
+     * frame the change alone buys — one is the bug. Written through the host
+     * the way the device writes it, behind the page's back, so the page has to
+     * READ it: a value the page set itself could arrive by a path this item
+     * does not touch. */
+    globalThis.shadow_set_param(0, 'synth:mode', '3');
+    frames = 0;
+    /* ARRIVAL FIRST, THEN THE WINDOW. The write lands in the engine, and the
+     * drawn page picks it up on its own read cursor — tens of ticks, not one —
+     * so counting frames from the write would measure the harness's latency
+     * rather than the transition. Count from the tick the changed value is in
+     * the page's own `values`, which is the render that draws it. */
+    let arrived = false;
+    for (let i = 0; i < 400 && !arrived; i++) {
+        advance(1);
+        arrived = String(sp ? sp.ctl.state.values.mode : '') === '3';
+    }
+    eq('the changed value reached the drawn page', arrived, true);
+
+    /* THE WINDOW, BOUNDED BY THE STORE'S OWN ANSWER AND NOT BY A TICK COUNT.
+     * The transition is 120 ms of WALL CLOCK, and how many ticks that is
+     * depends entirely on what a tick costs: this harness runs a tick in ~50 us
+     * when nothing is dirty and ~2 ms when it draws, so a fixed count would
+     * measure the harness's speed rather than the animation. The loop runs
+     * while Schwung's own store says something is still moving — the same
+     * question the fix asks — and the cap exists only so that "it animates"
+     * cannot be satisfied by "it draws forever". */
+    let ticks = 0;
+    while (ticks++ < 5000 && (!sp || sp.animating(Date.now()))) advance(1);
+    eq('a value change draws frames until the transition settles ('
+       + frames + ' frames over ' + ticks + ' ticks)', frames > 1, pageArm);
+
+    /* (c) NONE AFTER. Every transition placed in the past — `anim_state`'s own
+     * field, so this is the input `settled` reads and not a restatement of it —
+     * and the page must go back to drawing nothing at all. Without this half
+     * "it animates" would also be satisfied by "it redraws forever". */
+    if (sp) {
+        for (const k of [...sp.ctl.state.anim.since.keys()]) {
+            sp.ctl.state.anim.since.set(k, Date.now() - 10_000);
+        }
+    }
+    frames = 0;
+    advance(80);
+    eq('and none once it has settled', frames, 0);
+
+    /* The wrapper goes with the page: the reload below drops both together. */
+    setSchwungGridMode(null);
+    schwungGridReload();
+}
+
 
 if (process.env.MOVY_APP_LOOP_LABELS) _log('APP-LOOP-FAILED-LABELS ' + JSON.stringify(failedLabels));
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

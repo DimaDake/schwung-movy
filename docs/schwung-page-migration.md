@@ -110,6 +110,7 @@ changes no mode at all while looking exactly like the fix.
 | SP-28 | Custom module visualisations (`custom:` viz kinds) — the four loader defects fixed, and hank's own waveform is on the panel under `page`. **See SP-34** for the fifth, found in review |
 | SP-20 | `ui_hierarchy` ownership — one reader (`chain/hierarchy-source.ts`) for the page, the model and the undo dump; the manifest rung and the `"{}"` test were each a divergence |
 | SP-35 | A held step keeps the delegated page — SP-33's gate reversed, and the p-lock decoration pass it had made unreachable is reachable again. The "cannot take a lock" filter is movy's chrome at the gesture, not a decoration; the per-cell half is SU-8 |
+| SP-38 | Animated widgets draw until they settle — `anim_state.settled` asked by `pollDrawnPage` only when value and identity held still. Costs **0.7 ms/tick of `render`** in the animating window (0.2 before), no host call, idle unchanged |
 
 ### Open
 
@@ -121,7 +122,6 @@ flip after it and SP-41 conditional on a decision nobody has made.
 | id | item | model | state | order | release gate |
 | --- | --- | --- | --- | --- | --- |
 | SP-36 | **NEW** — the automation channel: the missing dot, and the arc that must not jump | Opus | ⬜ | **1** | ✔ |
-| SP-38 | **NEW** — nothing animates: movy never asks for the next frame | Sonnet | ⬜ | **3** | ✔ |
 | SP-39 | **NEW** — a pad-press page change is slower than movy's | Sonnet | ⬜ | **4** | ✔ |
 | SP-37 | **NEW** — the header says a fixed word where the page name belongs | Sonnet | ⬜ | **5** | ✔ |
 | SP-31 | a knob release that lands on another page latches `touched`, and every later jog click is swallowed | Sonnet | ⬜ | **6** | ✔ (unreportable if shipped) |
@@ -385,57 +385,6 @@ and drum-pad branches are pinned by the same scene set.
 
 **Needs:** nothing. Smallest of the four gate items; do it in the same session as
 something else if it lands first.
-
----
-
-### SP-38 — nothing animates, because movy never asks for the next frame
-
-**Product.** Schwung's widgets move: a switch fills, a waveform morphs into the
-next shape when the page changes, an enum square resizes, the LFO's indicator
-travels. Under `page` they are, in the reporter's words, "completely broken" —
-either frozen or advancing so slowly they read as broken. This is the single
-most visible difference between movy's `page` and Schwung's own host on the same
-module, and it is not a Schwung limitation: upstream's host draws it correctly.
-
-**Cause, read from source, and it is one line of policy.** Schwung's renderer is
-pure and time is passed in: every animated widget guards on
-`anim && typeof nowMs === "number"`, and the controller feeds both from
-`s.anim` + `now()` at the render call. The frames themselves therefore only
-exist if **someone calls render again**. Upstream's host does, unconditionally —
-`MOVY_REDRAW_MIN_MS` is **zero**, with a comment saying the throttle is off and
-an fps line that separates "draws << ticks" from "ticks are slow". movy's rule is
-the opposite: `app/page-poll.ts` repaints only when a **drawn cell's value** or
-the **page identity** moved (`pollDrawnPage`), which is exactly right for a page
-whose only change is data, and gives an animation one frame at its first
-instant and nothing after.
-
-**Design & implementation.** `anim_state.mjs` exports **`settled(state, now)`**
-for this exact purpose — its own comment says so: *"An idle page currently costs
-ZERO draws. Anything that animates makes it draw every tick for the duration of
-every change. `settled()` exists so a caller can ask whether anything is still
-moving and go back to sleep when nothing is"*. The store is reachable as
-`ctl.state.anim`. So the fix is to add `anim_state.mjs` to `schwung-lib.ts`'s
-import list and make `pollDrawnPage` return true while the page is unsettled —
-an idle page keeps costing zero, a moving one draws every tick until it stops.
-Two more redraw sources belong in the same answer: **`ctl.onCanvasPage`**, whose
-contract is *"the host redraws every tick while it is up, so a custom page can
-animate"*, and the trigger flash (`triggerFiredAt`), which is time-driven in the
-same way.
-
-**THIS ITEM AND SP-39 PULL AGAINST SP-13.** A whole-page render is ~1.68 ms
-upstream and the migration has spent three items buying the tick back (SP-26,
-SP-27, SP-13). Animating means drawing every tick for the duration of every
-change, which is a real cost on a device whose tick period IS its MIDI sampling
-interval. Measure with `perf_phase` on the same module before and after, and
-state the number here — "animations work" with an unstated tick cost is how the
-pad latency in SP-39 gets re-earned.
-
-**Closes when:** a value change on a delegated page produces frames until the
-transition settles and none after; the per-tick cost of the animating window is
-measured on device and written here; and the cost with nothing moving is
-unchanged.
-
-**Needs:** nothing. Do it with SP-39 — they share the measurement.
 
 ---
 
@@ -889,6 +838,122 @@ would pin it. Read from source, not measured.
 **Needs:** nothing. No fix landed — the item's suspicion that SP-26 already
 closed it was right, and the freshness rule ("treat a lane-driven key as the
 controller treats a modulated one") was already the implementation.
+
+---
+
+### SP-38 ✅ 2026-09-19 — an animated widget draws until it settles, and costs 0.7 ms/tick while it does
+
+**Symptom.** Under `page` Schwung's animated widgets are "completely broken" —
+the enum square frozen halfway to its new width, a waveform not morphing, a
+trigger bang not flashing out. Finding #3 of the twelve reported from the device
+(2026-09-18).
+
+**Cause, and it is one line of policy.** Schwung's renderer is pure and time is
+passed in: every animated widget guards on `anim && typeof nowMs === "number"`,
+and `page_controller.mjs` feeds both from `s.anim` + `now()` at the render call.
+**The frames only exist if someone renders again.** Upstream's host redraws
+unconditionally (`MOVY_REDRAW_MIN_MS` is zero). `app/page-poll.ts` repainted only
+when a drawn cell's VALUE or the page IDENTITY moved — right for a page whose
+only change is data, and it gives an animation exactly one frame, at the instant
+of the change, and nothing after.
+
+**Fix.** `anim_state.mjs` is imported by `schwung-lib.ts` alongside its siblings
+and its `settled(state, now)` is exposed as `SchwungPage.animating(nowMs)`
+(`renderer/schwung-page.ts`); `pollDrawnPage` asks it **only when the value and
+identity comparisons both held still**, so a page whose values are moving is
+decided exactly as before and an idle page pays one iteration over an empty Map.
+`observe` stamps a FIRST sighting already past, so a page does not animate itself
+in on arrival — only a real change starts a transition.
+
+**The second redraw source, verified and disposed of.** The entry named
+`ctl.onCanvasPage` as one, quoting a contract about the host redrawing every
+tick. Read from the library, that is **wrong twice over.** (1) `onCanvasPage()`
+(`page_controller.mjs:4572`) is `!!(page().canvas)`, a PURE PREDICATE with **zero
+callers anywhere in `schwung/src`** — it is not a redraw source and there is
+nothing to wire. (2) A canvas page is **unreachable under movy**: nobody supplies
+the drawer (`grep -rn drawCanvasPage src/` → no hits, and `drawCanvasPageBody` is
+`if (typeof io.drawCanvasPage !== "function") return;`), and no module in the
+fleet declares one (`grep -c '"as_page"' docs/module-dump/device-dump.json` →
+**0 of 95**; `page_plan.mjs:478` only builds a canvas page from `as_page`).
+Nothing was wired for it. Worth knowing that the library's INTENT there is the
+opposite — "a custom page is redrawn every tick precisely so it can show a live
+value move" — so if SP-24 ever gives movy a canvas body drawer, this is a redraw
+source again and the decision comes back with it. The third source, the trigger
+flash, is real: `ctl.triggerFiredAt` is public, and `animating` asks
+`buttonPhase` — the ONE definition of a bang's duration — about the stamps, so
+`BTN_FLASH_MS` moving upstream moves both rather than being restated.
+
+**The cost, measured on device, and this is the number SP-39 starts from.**
+`scripts/measure-grid-cost.sh page`, `SECTIONS="idle knob" MODULE=plaits`, the
+same instrument on both arms, before = `fff4f25` and after = this commit. Tick is
+~190 Hz. Units: `tick_ms`/`period_ms` are milliseconds averaged over the probe's
+120-tick window; `perf_phase` is **ms per tick, averaged over the same window**
+(the clock is `Date.now()`, so 1 ms granularity — read it as "how much of the
+window went into drawing").
+
+| section | arm | tick_ms | period_ms | calls/tick | `render` phase |
+| --- | --- | --- | --- | --- | --- |
+| idle | before | 2.2–2.6 | 5.2–5.4 | 0.8–0.9 | absent |
+| idle | after | 2.4–2.7 | 5.2–5.5 | 0.8–0.9 | absent |
+| knob | before | 2.4–2.8 | 5.2–5.7 | 0.8–0.9 | 0.2 ms/tick in 1 window |
+| knob | after | 2.4–3.9 | 5.2–6.8 | 0.8–0.9 | **0.7 ms/tick in 1 window** |
+
+**The animating window costs 0.7 ms/tick of `render` against 0.2 before, and the
+knob section's worst tick goes 2.8 → 3.9 ms and its worst period 5.7 → 6.8 ms
+(+19%).** `calls/tick` is identical in every cell: **this adds no host call**, it
+makes more use of the frames movy already draws. The idle section is unchanged
+and carries no `render` phase in either arm; the 2.2–2.6 → 2.4–2.7 tick delta is
+inside the before arm's own spread and below the instrument's resolution, so the
+idle claim rests on `calls/tick` and the absent phase, not on that delta. Exactly
+one `perf_phase` line per section can carry the animation — 120 ms of transition
+inside a ~630 ms report window — which is the expected shape, not a weak signal.
+Method, commands and the resolution limits: `.superpowers/sdd/schwung-page-migration/sp38-measurement.md`.
+
+**Teeth, and a fixture trap worth keeping.** `browser-test/logic/page-freshness.mjs`
+drives `pollDrawnPage` itself (`dist/esm/app/page-poll.js`, a new build entry
+point, because a suite that drove a whole tick could not tell "the term is gone"
+from "the fixture happened not to animate"): a still page asks for no frame; a
+render feeds the store; nothing is stamped at the instant of arrival; and then an
+A/B **on one field** — every `anim.since` stamp placed at `now` vs 10 s in the
+past, which is the `!moved` term and nothing else. `browser-test/app-loop.mjs`
+counts `render` calls end to end: no frame while idle, frames until the
+transition settles, none after. **Removing the term reddens exactly the
+assertions that name it** — logic: `a page mid-transition asks for a frame` and
+`a trigger bang asks for a frame` (`expected true, got false`), every control
+green; app-loop: `...draws frames until the transition settles (1 frames over
+5001 ticks)`, with the idle and settled checks green. Restored, all pass.
+**The trap:** the square's frame travels to the WIDTH OF THE NEW LABEL
+(`enumw:` observes `enumSquareWidth(text)`, a pixel count), so this block first
+wrote `mode` `0`→`2` — "LP"→"HP", the same width — and the check failed against a
+CORRECT fix. `0`→`3` is "LP"→"Notch", 17 px → the 28 px cap. **A fixture for an
+animated widget has to change the thing the widget animates, not merely the
+value.**
+
+**What is NOT covered — the loss, stated.** `settled`'s default window is 120 ms,
+which is LONGER than one of the durations it is asked about (`WAVE_MORPH_MS` 100)
+and equal to `ENUM_ANIM_MS`'s 120; `BTN_FLASH_MS` 300 and `BTN_PRESS_MS` 120 are
+at or above it, so the bang half is unaffected. So a 100 ms wave morph over-draws
+by up to ~20 ms. Bounded,
+self-limiting, and cheaper than re-deriving per-key durations in movy — but it is
+real and it is the one place the two clocks disagree. **Not measured on a large
+module:** plaits is 2 pages and the smallest shape in the fixture, so the
+per-tick cost on minijv (72 pages, where the lag was reported) is unknown and
+should be expected to be HIGHER — it is the first thing SP-39 should re-run.
+Documents: `MANUAL.md`/`README.md` were **not** touched, because under
+`schwunggrid` the row is still internal (`off` is the default; the opt-in release
+is SP-47) and nothing a user reads has changed.
+
+**Closure evidence.** `SCHWUNG=../schwung npm test` exit 0 (typecheck clean);
+`page-mode: 3 of 3 expected failures remain` (the list not edited); the device
+tier with the flag at `off` — **18 scenarios, 143 checks, 0 failed**, exit 0,
+with one `⚠ FLAKY` (`seq`: `capture-fixed-notes` / `capture-select-tempo` did not
+log the fixed-tempo path on attempt 1 and passed on the retry — a MIDI-capture
+flake, nothing this item reaches, and the flag was `off` so the new predicate was
+inert for the whole tier). Baselines: **no scene moved and `--update` was not
+run** — SP-38 changes nothing about what a settled page draws, which is the same
+reason the idle half of the measurement is unchanged.
+
+**Needs:** nothing. SP-39 inherits the method.
 
 ---
 
@@ -1949,6 +2014,25 @@ which is git-ignored scratch deleted with that workspace.
 
 Newest first. The full narrative for each is in git history; what is kept here is
 the fact a later session would otherwise re-derive.
+
+- **SP-38 ✅ 2026-09-19 — an animated widget draws until it settles: `settled`
+  asked by the repaint decision, and only last.** `anim_state.mjs` joined
+  `schwung-lib.ts`'s imports and `SchwungPage.animating(nowMs)` asks it, plus the
+  trigger flash through `buttonPhase`. `pollDrawnPage` asks only when the value
+  and identity comparisons both held still, so an idle page pays one iteration
+  over an empty Map. **Two facts a later session would re-derive.** (1) **The
+  entry's `ctl.onCanvasPage` is not a redraw source** — it is `!!(page().canvas)`,
+  a predicate with ZERO callers in `schwung/src`, and a canvas page is handed no
+  `nowMs` (`{ touched, values }`), so it is a pure function of values and the
+  value comparison already covers it. Nothing was wired. (2) **The clock must
+  stay `Date.now()`** — `page_controller` takes `io.now || (() => Date.now())`
+  and `schwung-page-io.ts` injects no `io.now`, so both sides of `settled` are
+  stamped from the same source; supplying one re-points this line or a transition
+  never appears to end. **Measured cost:** 0.7 ms/tick of `render` in the
+  animating window against 0.2 before, knob-section worst tick 2.8 → 3.9 ms and
+  worst period 5.7 → 6.8 ms; `calls/tick` identical, idle section unchanged with
+  no `render` phase in either arm. Not covered: `settled`'s 120 ms window is
+  longer than `WAVE_MORPH_MS` (100), and nothing was measured on a large module.
 
 - **SP-20 ✅ 2026-09-18 — one reader of the declared contract:
   `src/chain/hierarchy-source.ts`.** Three rungs — `ui_hierarchy`, `ui_pages`,

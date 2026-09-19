@@ -155,6 +155,13 @@ await esbuild.build({
          * can ask the accessor directly, rather than inferring ownership from
          * a router gesture. */
         resolve(root, 'src/app/page-owner.ts'),
+        /* The repaint decision (SP-38): an entry point because that decision IS
+         * the fix — the animated widgets were already drawing correctly and
+         * simply never asked for a second frame. A suite that drove it through
+         * a whole tick could not tell "the term is gone" from "the fixture
+         * happened not to animate", which is the difference between a test and
+         * a coincidence. */
+        resolve(root, 'src/app/page-poll.ts'),
         /* The body/ring decision (SP-18): an entry point so the `page` scenes
          * render through `schwungBodyFor` itself. A scene that re-derived the
          * condition would stay green with it taken out, which is exactly what

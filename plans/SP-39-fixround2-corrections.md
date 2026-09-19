@@ -10,7 +10,7 @@ and their `file:line` evidence live in
 **Reproduction.** `src/renderer/schwung-page-contract.ts` opens
 `perfPhase('ctlreload')` and closes it with `perfPhaseEnd()` after
 `widgets.afterReplan(adopted)`, with two nested `perfPhase(...)` renames between
-(`refreshloaded`, `reloadwidgets`). `perf-phase.ts` keeps the open phase in
+(`refreshloaded`, `reloadwidgets`). `perf-probe.ts` keeps the open phase in
 module state — `perfProbeTick()` deletes the phase TOTALS and never touches
 `phaseName`/`phaseStart`; `resetPerfProbeInstall()` clears only `installed`. A
 throw out of `ctl.reloadIfChanged()`, `refreshLoaded()` or `afterReplan()` leaves

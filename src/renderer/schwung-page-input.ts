@@ -55,25 +55,22 @@ export function createPageInput(ctl: any, lib: any, port: TrackPort,
              * no read looks up and the jump would pay its singles anyway. The
              * mapping is Schwung's own, asked rather than restated.
              *
-             * The index is the voice's, which is the one `focusVoice` has just
-             * written into the module's `child_index_param` — where the level
-             * DECLARES one, which is what makes the two sides agree about which
+             * The index is the voice's, which is the one `focusVoice` has
+             * written into the module's `child_index_param` WHERE THE LEVEL
+             * DECLARES ONE — that is what makes the two sides agree about which
              * child is showing. The controller adopts the value from its own
-             * poll, so for a tick it may still be on the previous one. That
-             * costs the reads that were being paid already — a miss, never a
-             * wrong value.
+             * poll, so for a tick it may still be on the previous one: a miss,
+             * never a wrong value.
              *
-             * ONE MODULE IN THE FLEET REACHES THIS, and it is INSTALLED:
-             * `voice-poc` is the only one of the 95 dumps declaring
-             * `child_note_base`, and it declares NO `child_index_param` on its
-             * `pads` level — so `focusVoice` writes no index at all, the
-             * controller resolves the child at instance 0 while `concrete` below
-             * resolves at `childIndex`, and the keys warmed are the WRONG
-             * child's: the press still pays its singles. NOT a regression
-             * (pre-fix behaviour was identical), no wrong value is ever cached
-             * (entries are keyed by concrete key), and the worst case is at most
-             * four wasted reads per press. Carried as SP-39's ledger NOTE and
-             * opened as SP-50, which is where it is rechecked. */
+             * ONE FLEET MODULE REACHES THIS AND IT IS INSTALLED: `voice-poc` is
+             * the only one of the 95 dumps declaring `child_note_base`, and its
+             * `pads` level declares NO `child_index_param` — so `focusVoice`
+             * writes no index, the controller resolves the child at instance 0
+             * while `concrete` below resolves at `childIndex`, and the keys
+             * warmed are the WRONG child's. NOT a regression (pre-fix behaviour
+             * was identical) and no wrong value is ever cached (entries are
+             * keyed by concrete key). Carried as SP-39's ledger NOTE and opened
+             * as SP-50, which is where it is rechecked. */
             const concrete = (k: string): string =>
                 (p.childLevel && typeof childIndex === 'number'
                  && typeof lib.resolveChildKey === 'function')

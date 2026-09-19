@@ -129,7 +129,7 @@ flip after it and SP-41 conditional on a decision nobody has made.
 | SP-47 | **NEW** — the opt-in release: the row goes in front of users, default still MOVY | Sonnet | ⬜ | **8** | — |
 | SP-48 | **NEW** — a modulated or `live` param the page shows keeps it redrawing forever. **A regression SP-38 introduced**; the flag must not reach testers with it open | Sonnet | ⬜ | **7.5** | ✔ |
 | SP-49 | **NEW** — an IDLE `page` tick costs half again what an `off` tick costs (worst period 6.3 vs 5.0 ms, `calls/tick` 1.4 vs 0.6) and it is there with nothing moving. **A standing LATENCY cost** — the tick period is the MIDI sampling interval — so it is a gate, not just inefficiency | Sonnet | ⬜ | **7.7** | ✔ |
-| SP-50 | **NEW** — on a child-level page, movy and the controller disagree about WHICH child is showing, and a module that counts from a base disagrees by a whole instance. Live under `page`, unreachable under the default `off`; makes SP-39's child-page warm inert on the one fleet module that reaches the branch | Sonnet | ⬜ | **7.8** | ✔ |
+| SP-50 | **NEW** — on a child-level page movy and the controller disagree about WHICH child is showing. **Live under `page` on the missing `child_index_param`**: movy addresses no child at all while the controller resolves at instance 0, so the warm covers the wrong child and a knob can answer for the neighbour — inert on the installed `voice-poc`. (The other half, an off-by-base on the wire value, is real and has NO fleet exhibition.) Unreachable under the default `off` | Sonnet | ⬜ | **7.8** | ✔ |
 | SP-32 | a bank or cell that exists only in movy's config is on no page under `page`: audit before SP-30 flips the default | Sonnet | ⬜ | 9 | — |
 | SP-42 | **NEW** — a .wav has no waveform: `wav_io_qjs.mjs` is never imported | Sonnet | ⬜ | 10 | — |
 | SP-45 | **NEW** — 8w8's pads do not select their pages; the other three racks' do | Sonnet | ⬜ | 11 | — |
@@ -861,45 +861,66 @@ buying.
 
 ---
 
-### SP-50 — on a child-level page, movy and the controller disagree about WHICH child is showing, and a module that counts from a base disagrees by a whole instance
+### SP-50 — on a child-level page, movy and the controller disagree about WHICH child is showing, which makes the one fleet module that reaches the branch inert
 
 **Product.** On a drum- or pad-level page, the parameter a knob turns can belong
 to the NEIGHBOUR of the child the screen is on. Nothing looks wrong — the header,
 the page name and the strip all say the child the user hit — and what answers is
-one instance over, silently, on every turn of every knob on that page.
+the controller's child, not the user's, silently, on every turn on that page.
 
-**Cause, half one: a permanent off-by-base.** `src/renderer/schwung-page-input.ts:167`
-writes `String(v.childIndex)` into the module's child-index param. Schwung
-converts in ONE place, next to the base that defines it: `childIndexToWire(level, i)`
-(`../schwung/src/shared/param_pages/child_key.mjs:181-183`) adds
-`child_index_base`, and the controller reads the value back through
-`childIndexFromWire` (`:194`), which subtracts it. On a level declaring
-`child_index_base: 1` — voice-poc's `pads` — the controller therefore tracks one
-instance BELOW what movy wrote. That is an off-by-base that never corrects
-itself, not the one-tick staleness the comment at that site describes.
+**Cause, half one: a permanent off-by-base — real, and with NO FLEET
+EXHIBITION.** `src/renderer/schwung-page-input.ts:177` writes
+`String(v.childIndex)`, a ZERO-based instance (`voices.mjs:109`), into the
+module's child-index param — but Schwung's wire value counts from
+`child_index_base`. Schwung converts in ONE place, next to the base that defines
+it: `childIndexToWire(level, i)`
+(`../schwung/src/shared/param_pages/child_key.mjs:181-183`) adds the base and
+`childIndexFromWire` (`:194`) subtracts it, and nothing else on either side
+applies it. On a level declaring `child_index_base: 1` the controller would
+therefore track one instance BELOW what movy wrote: an off-by-base that never
+corrects itself, not the one-tick staleness the comment at that site describes.
+
+**No module in the fleet can exhibit half one, and the two halves of the reason
+are two different modules.** The write above is conditional — movy writes the
+param only where the level DECLARES one. Of the 95 dumps, exactly one declares
+`child_index_param`, **sophie** (`ui_hierarchy_legacy` `root`/`ring`:
+`child_index_base: 1`, `child_index_param: "focused_pad"`, `child_count: 16`),
+and it declares no `child_note_base` — so `voicesOf` returns **zero** voices
+(measured on its real dump, not inferred), `focusVoice` returns at its `!v`
+guard, and movy never reaches the write. The one module that HAS voices is
+**voice-poc**, and its `pads` level declares no `child_index_param`, so line
+177's `if (cip)` is false and movy never writes there either. Recorded anyway,
+because the conversion is a trap for the next module that declares both.
 
 **Cause, half two, same root: a level with no `child_index_param` has no channel
-at all.** Where the level declares none (voice-poc's `pads`), movy cannot tell
-the controller which child the UI is on: `syncChildIndexFromModule` returns early
-without one (`page_controller.mjs:1775-1777`; `liveChildIndex` carries the same
-rule at `:3981`), so nothing refreshes `s.childIndex[level]` and the controller
-resolves at instance 0 (`childIndexFor`, `:817-820`) while movy navigates. That
-is why SP-39's child-page warm is INERT on the one fleet module that reaches the
-branch — it warms `p2_vol`…`p4_vol` and the controller reads `p1_vol`.
+at all — and THIS is the live defect.** Where the level declares none (voice-poc's
+`pads`), movy cannot tell the controller which child the UI is on:
+`syncChildIndexFromModule` returns early without one (`page_controller.mjs:1772`,
+early return `:1777`; `liveChildIndex` falls back the same way at `:3981`), so
+nothing refreshes `s.childIndex[level]` and the controller resolves at instance 0
+(`childIndexFor`, `:817-820`) while movy navigates. That is why SP-39's
+child-page warm is INERT on the one fleet module that reaches the branch:
+`concrete` resolves at the voice movy is on while the controller stays on child
+0, so pressing the level's Nth voice warms `p{N}_vol` and only N=1 matches the
+`p1_vol` the controller reads — the other three children pay their singles.
 
-**Pre-existing, and NOT a regression.** `git blame src/renderer/schwung-page-input.ts:167`
-→ `bf94962a` (2026-09-13). **Live under `page`; unreachable under the default
-`off`**, because it needs a module declaring a child note map and the fixture's
-`plaits` is not one — so it was invisible to every device run so far, which is
+**Pre-existing, and NOT a regression.** `git blame
+src/renderer/schwung-page-input.ts:177` → `bf94962a` (2026-09-13). **Live under
+`page`; unreachable under the default `off`** — and it is HALF TWO that makes
+that true: it needs a module declaring a child note map, the fixture's `plaits`
+is not one, and half one's shape (the param AND the base on one level) is one the
+fleet does not contain. So it was invisible to every device run so far, which is
 exactly why SP-30's flip is the deadline.
 
 **Closes when:** a test drives the INSTALLED `voice-poc`
 (`docs/module-dump/modules/sound_generator--voice-poc.json`; the fixture hook is
-already in `browser-test/fleet-expect.json` → `voiceDeclaring`) and pins that the
-child instance movy addresses and the instance the controller resolves are the
-SAME on a level with `child_index_base: 1`, and that the warm covers the keys the
-controller actually reads there. `browser-test/logic/schwung-page-press.mjs` (100
-lines) drives `focusVoice(8)` only through the non-child path today, and
+already in `browser-test/fleet-expect.json` → `voiceDeclaring`) on the `pads`
+level it really publishes, and pins the two halves of the statement above: that
+movy and the controller agree about WHICH child is showing when the level
+declares no `child_index_param`, and that the warm covers the keys the controller
+actually reads there. It must NOT be pinned on `child_index_base: 1` — that is
+half one, which no fleet module can reach. `browser-test/logic/schwung-page-press.mjs`
+(100 lines) drives `focusVoice(8)` only through the non-child path today, and
 `grep -rn "resolveChildKey\|childLevel" browser-test/` returns nothing — **this
 item is where the child-level branch gets its first coverage.**
 
@@ -1376,8 +1397,8 @@ view-model build, i.e. `off`'s own cost and not SP-39's). `MANUAL.md`/`README.md
 were **not** touched: under `schwunggrid` the row is still internal (`off` is the
 default; the opt-in release is SP-47) and nothing a user reads has changed.
 
-**NOTES — one latent gap, two traces, one device fact.** Recorded rather than
-fixed, each for a reason.
+**NOTES — one gap that reaches an INSTALLED module, two traces, one device
+fact.** Recorded rather than fixed, each for a reason.
 
 - **The warm covers the concrete keys only where the rack declares them — and
   the one fleet module that reaches the branch does not.** On a child-level page
@@ -1394,20 +1415,21 @@ fixed, each for a reason.
   `voiceDeclaring`, and its `pads` level declares
   `child_count: 4, child_index_base: 1, child_note_base: 60, child_key_template:
   "p{index}_{key}"` — with **no `child_index_param`**. That last absence is the
-  reason, and it is stronger than "no module arrives": `schwung-page-input.ts:167`
+  reason, and it is stronger than "no module arrives": `schwung-page-input.ts:177`
   writes the index only where the level declares a param, so `focusVoice` writes
   nothing, `syncChildIndexFromModule` returns early without one
-  (`page_controller.mjs:3981`) and the controller resolves the child at instance
+  (`page_controller.mjs:1772`, early return `:1777`; `liveChildIndex` falls back
+  the same way at `:3981`) and the controller resolves the child at instance
   0 (`childIndexFor`, `:817-820`) while `concrete()` resolves at `v.childIndex`.
   On pads 2-4 the warm therefore covers `p2_vol`/`p3_vol`/`p4_vol` while the
   controller reads `p1_vol`: **the press still pays its singles on the only fleet
   module that reaches the branch.** State plainly, because this reads like a
-  regression and is not one: pre-fix behaviour was identical, no wrong value is
-  ever cached (entries are keyed by the CONCRETE key), and the worst case is at
-  most four wasted reads per press.
+  regression and is not one: pre-fix behaviour was identical, and no wrong value
+  is ever cached (entries are keyed by the CONCRETE key).
   **The recheck trigger is SP-50, not a module arriving — the module is already
-  here**, and the two halves are one root (movy and the controller disagreeing
-  about WHICH child is showing). Recheck it there, against the press suite in
+  here.** (SP-50 also carries an off-by-base on the wire value, and THAT half
+  cannot fire in this fleet at all — the missing `child_index_param` above is
+  what is live.) Recheck it there, against the press suite in
   `browser-test/logic/`, not by hand. `browser-test/fleet-pages.mjs` is where
   the module is already COUNTED (`voiceDeclaring` is a baselined census there,
   fed by `fleet-expect.json`) — but that is a plan-level census, and this is the

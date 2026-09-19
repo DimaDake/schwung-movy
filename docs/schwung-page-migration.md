@@ -141,12 +141,12 @@ flip after it and SP-41 conditional on a decision nobody has made.
 | SP-49 | **NEW** — an IDLE `page` tick costs half again what an `off` tick costs (worst period 6.3 vs 5.0 ms, `calls/tick` 1.4 vs 0.6) and it is there with nothing moving. **A standing LATENCY cost** — the tick period is the MIDI sampling interval — so it is a gate, not just inefficiency | Sonnet | ⬜ | **7.7** | ✔ |
 | SP-50 | **NEW** — on a child-level page movy and the controller disagree about WHICH child is showing. **Live under `page` on the missing `child_index_param`**: movy addresses no child at all while the controller resolves at instance 0, so the warm covers the wrong child and a knob can answer for the neighbour — inert on the installed `voice-poc`. (The other half, an off-by-base on the wire value, is real and has NO fleet exhibition.) Unreachable under the default `off` | Sonnet | ⬜ | **7.8** | ✔ |
 | SP-51 | **NEW** — the movy MODEL's own knob touch is still resolved at RELEASE time (`knobModel()?.handleKnobTouch` on the press against `handleKnobRelease` on the release, `src/midi/router.ts`), so a page change mid-hold leaves the model that heard the press with its touched/overlay state armed and hands the other model a release it never had. **Different consequence from SP-31, not the same bug**: the model's touch is movy's own state, `resetHeldInput` clears it, and it does not latch the jog click. Raised by SP-31 as a note; the id was added 2026-09-19 | Sonnet | ⬜ | **7.9** | — |
-| SP-32 | a bank or cell that exists only in movy's config is on no page under `page`: audit before SP-30 flips the default | Sonnet | ⬜ | 9 | — |
+| SP-32 | a bank or cell that exists only in movy's config is on no page under `page`: audit before SP-30 flips the default. **The route is the hierarchy movy already returns** — see The injection surface §2 | Sonnet | ⬜ | 9 | — |
 | SP-42 | **NEW** — a .wav has no waveform: `wav_io_qjs.mjs` is never imported | Sonnet | ⬜ | 10 | — |
 | SP-45 | **NEW** — 8w8's pads do not select their pages; the other three racks' do | Sonnet | ⬜ | 11 | — |
 | SP-43 | **NEW** — the second click on an entered preset page leaves it | Sonnet | ⬜ | 12 | — |
 | SP-44 | **NEW** — knob 1 changes presets with no click first (feature) | Sonnet | ⬜ | 13 | — |
-| SP-46 | **NEW** — a lone attack/decay has no graphic (against the acceptance bar, by request) | Sonnet | ⬜ | 14 | — |
+| SP-46 | **NEW** — a lone attack/decay has no graphic (against the acceptance bar, by request). **Does not wait on SU-10**: `vizOverrides` + movy's own widget registry is a host-side route — see The injection surface §1 | Sonnet | ⬜ | 14 | — |
 | SP-16 | Cause G — graphics return (**shrunk: upstream fixed the hard half**) | Sonnet | 🔨 **movy half done** 2026-09-18; floor bump waits on #509 | 15 | — |
 | SP-21a | Report po32-drum's `kit` range upstream (the 1) | Sonnet | ⬜ | 16 | — |
 | SP-23 | Font parity + enum-overlay double-draw | Sonnet | ⬜ | 17 | — |
@@ -169,8 +169,8 @@ flip after it and SP-41 conditional on a decision nobody has made.
 | SU-6 | The 15-vs-16 widget band that offsets label rows by one row | ⬜ open, cosmetic |
 | SU-7 | `io.getParams(keys)` — an optional BULK read | ❌ **moot** — SP-26 solved it caller-side with no library change |
 | SU-8 | A per-cell channel for "this parameter is AUTOMATED" and "this cell cannot take a lock" — distinct from `locked` (a held step's lock) and from `isModulated` (the tilde) | ⬜ **new, and no longer conditional — both deciders have ruled.** SP-35 put the "cannot take a lock" half in movy's own chrome at the gesture (a toast), and SP-36 shipped the automated half **through `isModulated`**, i.e. wearing the tilde. So what is left for upstream is exactly the GRAMMAR: a lane and an LFO now draw the same mark, and a parameter that is both says it once. The ask is one bit per cell (`decorations[slot].automated`, beside `locked`) plus the 2×2 mark `render_page_movy.mjs` already has the corner for — not a second renderer, and not a value channel: movy already answers the value through `:effective` |
-| SU-9 | A knob drives a door page's list, with `list_knob.mjs`'s feel | ⬜ **new, likely** — SP-44; the list, its length and its commit path are the door's, and movy must not restate them |
-| SU-10 | A viz kind for a LONE envelope stage (attack only, decay only) | ⬜ **new** — SP-46; take the fleet count with the ask, the way SP-22's drop was measured |
+| SU-9 | A knob drives a door page's list, with `list_knob.mjs`'s feel | ⬜ **new, likely** — SP-44; the list, its length and its commit path are the door's, and movy must not restate them. **No host-side route exists** — the feel constants are `export const` and `onKnobTurn` takes a direction, not a magnitude (The injection surface §4) |
+| SU-10 | A viz kind for a LONE envelope stage (attack only, decay only) | ⬜ **new** — SP-46; take the fleet count with the ask, the way SP-22's drop was measured. **Not blocking**: SP-46 can ship on `vizOverrides` first, so the ask can be made against a widget that already draws (The injection surface §1) |
 | SU-11 | A per-key duration in the animation store, so `settled` ages out a value that never rests | ⬜ **new, conditional** — SP-48; the alternative is a movy-side repaint cap, which is the fallback only if this is declined |
 
 ---
@@ -231,6 +231,130 @@ write path. It does not break movy — `applyHeldDecorations` yields explicitly
 ("A CALLER'S OWN DECORATIONS WIN", guarded by `heldDecOwned`) — but it means two
 implementations of the same feature now exist on one box. That is a decision,
 and it belongs in this ledger before SP-30 flips the default.
+
+---
+
+## The injection surface — 2026-09-20
+
+**READ FROM SOURCE, none of it measured, and no run in this repo prints any of
+it yet.** Every claim below is a file:line read of `schwung@1959e661` and of
+movy's own tree; the ledger's rule that "a claim about a page plan that no run
+prints is a claim nobody has checked" applies to this section exactly as it
+applies to a burn-down count. It is here because three open items turn out to
+have a host-side route they did not have when they were written.
+
+**`createController(io)` accepts ELEVEN hooks and movy injects FOUR.**
+`schwung-page-io.ts` supplies `getParam`, `setParam`, `isModulated` and a no-op
+`announce`. The rest default to inert:
+
+| hook | what it buys | movy today |
+| --- | --- | --- |
+| `vizOverrides` | `(key) => vizObj \| false \| null` — force an unclaimed key into any kind, `custom:` included, "without a module release" | **unused** |
+| `formatValue` | `(fullKey, raw, surface) => string\|null`; `surface` is `"cell"` or `"header"`, and null falls through per key | **unused** — movy's own readings reach the body path as `displayFor` and the `page` path not at all |
+| `enableViz: false` | the plain grid, every cell individually addressable | **unused** |
+| `trailingMenus` | append movy's OWN `PAGE_MENU` pages to the module's page set, re-evaluated on every plan (`page_plan.mjs:362`) | **unused** |
+| `loadCard` | module-supplied card drawers, loaded on first touch and cached for the session | **unused** |
+| `now` | the clock every timing path reads — a deterministic seam for the suites | **unused** |
+| `drawCanvasPage` | a custom page body, ticked every frame | **unused, and correctly so** — see SP-38's entry: no fleet module declares `as_page` (0 of 95), so there is no page to draw |
+
+### 1. A new graphic has a host-side route (→ SU-10, SP-46)
+
+`vizOverrides` is consulted **after** the declared groups and **before** the
+detectors (`viz.mjs:1155`), and what it returns may name a `custom:` kind.
+`isWidgetAvailable` checks the registry **movy's own copy holds** —
+`schwung-widgets.ts:50` registers into `schwungLib()`, not into the host's —
+which is the thing SP-28 already made work. The degradation is designed for
+this: an unregistered or broken `custom:` kind leaves the key **in the detector
+pool** rather than leaving a hole (`viz.mjs:256-280`, "a typo, a failed load, an
+older host and a one-strike disable, all on one path"), so a movy widget cannot
+strand a cell.
+
+**The limit is exact.** A key already `claimed` by a DECLARED group is skipped
+before the override is called (`viz.mjs:1157`). So an override ADDS a graphic
+where the module declared none, and `false` SUPPRESSES a detector's guess — it
+does not replace a module's own declaration.
+
+This does not close SU-10, and its own rule stands: take the fleet count with
+the ask, the way SP-22's drop was measured. What it changes is that **SP-46 need
+not wait on it**, and that the upstream ask can be made against a movy-side
+widget that already draws rather than against a description.
+
+### 2. The contract is movy's to write, and `chain_params` wins
+
+Both halves of the contract arrive through the injected `getParam`:
+`${prefix}:ui_hierarchy` at `page_controller.mjs:957` and
+`${prefix}:chain_params` at `:1078`. movy already answers the first
+(`schwung-page-io.ts:137` → `chain/hierarchy-source.ts`, SP-20's one reader);
+the second is passed straight to the port.
+
+**`buildMetaIndex` merges `{ ...inline, ...chain }` (`param_meta.mjs:163`) — the
+chain entry spreads LAST.** So metadata written into the hierarchy movy hands
+over is honoured where `chain_params` declares nothing and **silently shadowed
+where it declares the same field**. Replacing a module's declared `viz`, or its
+range or its enum options, therefore needs the `chain_params` read intercepted
+too — a suffix test beside `isContractKey`, in the same file that already holds
+the other one.
+
+The re-plan needs no new signal: `declSame` compares the RAW BYTES
+(`page_controller.mjs:1024`), so a changed string re-plans by itself.
+
+**→ SP-32.** A bank that exists only in movy's config is on no page under `page`
+because the hierarchy movy returns does not describe it. The route is the string
+movy already owns, not an upstream change — `hierarchy-source.ts` synthesises
+one from movy's config for a rack that published none (SP-14), and that is the
+same rung. Two things it does not buy: the keys must still be params the port
+can read and write (a reorder is free, an invention is not), and SP-20 made this
+the one reader for **the page, the model and the undo dump**, so a rewrite here
+moves all three together.
+
+### 3. A notice is movy's to suppress
+
+Worth writing down before someone opens an item for it. `s.notice` is raised
+**only** by the child-level copy/clear/undo gestures (`page_controller.mjs:4026`
+and its callers at `:4035-4090`) and drawn **only** from `renderOverlays`
+(`:4661`). `drawNotice` centres it in `s.frameRect` (`:4105`) — the rect movy
+passes — so it lands inside movy's body and never over movy's own header or
+footer. Three levels of control, in order of bluntness: skip the
+`renderOverlays` call (`schwung-page-render.ts:148`, which also gives up the
+enum peek and declared cards), null `ctl.state.notice` before it, or
+`dismissHint()` for the hint layer. `ctl.state` is the live object and movy
+already reads it in nine places.
+
+### 4. Knob feel is upstream or it does not happen (→ bounds SU-9)
+
+`onKnobTurn(slot, direction, nowMs, { fine })` takes a **±1 direction**, and
+movy calls it as `ctl.onKnobTurn(slot, dir)` in a loop, once per detent
+(`schwung-page-input.ts:120`) — no `nowMs`, no `fine`. So movy owns **how many
+detents a CC is worth** and nothing about what one detent is worth: the step
+comes from the contract's meta, which under `page` is the module's.
+
+And every tuning constant is an `export const` — `SETPARAM_THROTTLE_MS`,
+`ANNOUNCE_THROTTLE_MS`, `TURN_CLAIM_MS`, `ENUM_PEEK_MS`, `SETTLE_TICKS`,
+`PREFETCH_HOLD_TICKS`, `CONTRACT_*`, and `TRIGGER_KNOB_GESTURE_GAP_MS` which is
+module-private. ES module bindings are readable and **not writable**, so there
+is no host-side route to any of them. A feel ask is an upstream ask.
+
+### 5. Which upstream files move under an ask
+
+Measured off `origin/main` with `git log`, which is the one number in this
+section that is counted rather than read: **199 commits into `param_pages` in
+six months, 153 of them in August.** Last 90 days, by file:
+
+| file | commits |
+| --- | --- |
+| `page_controller.mjs` | 98 |
+| `render_page_movy.mjs` | 62 |
+| `page_plan.mjs` | 31 |
+| `viz_draw.mjs` | 21 |
+| `viz.mjs`, `page_input.mjs` | 14 each |
+| `styles/*.mjs`, `anim_state.mjs` | 4–8 each |
+
+Read it as sequencing, not as a verdict on any ask. An item landing in a **new**
+`styles/viz_*.mjs` plus a one-line registration (SU-10's shape) survives the gap
+between writing it and its release; one landing in `page_controller.mjs` or
+`render_page_movy.mjs` (SU-8's shape, SU-9's) is likely to be overtaken while it
+waits, which is an argument for making those asks small and early rather than
+complete.
 
 ---
 

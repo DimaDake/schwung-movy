@@ -164,7 +164,14 @@ Enumerated and confirmed by a full `screenshot.mjs` run before regenerating;
 - The three app-loop checks replaced in place, the two new blocks red→green.
 - `SCHWUNG=../schwung npm test` → 0 failures.
 - `SCHWUNG=../schwung node browser-test/page-mode.mjs` → `3 of 3`.
-- `npm run test:device` with `prefs.flags.schwunggrid = "off"`.
+- `npm run test:device` with `prefs.flags.schwunggrid = "off"` — **NOT RUN, three
+  attempts.** The box had rebooted onto a cold chain; the shim's boot instantiates
+  slot 0 ONLY and the remote-UI route cannot fill an uninstantiated slot, so
+  `fixture.ensure()` never establishes (`chain is [0 plaits 1 - 2 - 3 -]`, wants
+  `[0 plaits 1 mrdrums 2 - 3 -]`) and no scenario ever starts — `.test-out/` has no
+  artifact newer than the previous evening. Schwung's own shadow UI reports the
+  mismatch 251 times. Nothing in this item touches slot or chain loading. Reported,
+  not waved through; the pref was restored to `2` (`page`) afterwards.
 - `MANUAL.md`/`README.md`: **not** edited — the `page` flag is not user-visible
   yet (SP-47 ships the two-value switch), so there is no user-facing change to
   document.

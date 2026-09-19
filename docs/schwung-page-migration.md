@@ -974,22 +974,33 @@ one baseline file modified. No blanket `--update` was needed to establish that.
 **Gates.** `SCHWUNG=../schwung npm test` → 0 failures, all suites, screenshot
 175/175; `SCHWUNG=../schwung node browser-test/page-mode.mjs` → `page-mode: 3 of 3
 expected failures remain` / `PAGE-MODE LEDGER UP TO DATE` (all three are the
-mrdrums-fixture page-plan limit, unrelated); device tier with
-`prefs.flags.schwunggrid = 0` (`off`). `MANUAL.md`/`README.md` deliberately NOT
-edited: the `page` flag is not user-visible yet (SP-47 ships the two-value switch),
-so there is no user-facing change to document.
+mrdrums-fixture page-plan limit, unrelated). **The device tier did NOT run**, three
+attempts, always blocked before any scenario: the box had rebooted onto a cold
+chain (finding #12's hazard) and the shim's boot instantiates **slot 0 only** —
+schwung's own shadow UI reports the mismatch 251 times (`autosave: slot 1 shim
+reports empty but slot_1.json has chain — preserving (likely shim glitch)`), and
+the remote-UI route cannot fill an uninstantiated slot, so `fixture.ensure()`
+never establishes. `.test-out/` holds no artifact newer than the previous evening,
+which is the proof no scenario started. Nothing in this item touches slot or chain
+loading; the device half of its integration story is **NOT VERIFIED**. The box was
+left quiescent with `prefs.flags.schwunggrid` restored to `2` (`page`).
+`MANUAL.md`/`README.md` deliberately NOT edited: the `page` flag is not
+user-visible yet (SP-47 ships the two-value switch), so there is no user-facing
+change to document.
 
 
 ---
 
 ### SP-33 ✅ 2026-09-18 — a held step moved the screen and not the knobs (review of SP-18)
 
-**ITS DIRECTION IS BEING REVERSED BY SP-35 (2026-09-18), and the fix is not
-being un-done.** What SP-33 established — one accessor, one answer, so the body
-and every gesture site cannot disagree — stands. Which way that one answer points
-under a held step is the reporter's call, and on hardware they want the delegated
-page to stay up. Read this entry for the invariant; read SP-35 for what the
-answer is now.
+**ITS DIRECTION WAS REVERSED BY SP-35 (2026-09-19), and the fix is not being
+un-done.** What SP-33 established — one accessor, one answer, so the body and
+every gesture site cannot disagree — stands; SP-35 removed the second term of
+`live()` and the gate now answers the same way under a hold as at any other time.
+Which way that one answer points under a held step is the reporter's call, and on
+hardware they want the delegated page to stay up. Read this entry for the
+invariant; read SP-35 for what the answer is now and what the old direction cost
+(SP-18's decoration pass, unreachable in production, measured at 0 calls).
 
 **Symptom.** Under `page`, hold an **empty** step and turn a knob: the screen
 shows movy's labels and the lock lands on **Schwung's** parameter — a different

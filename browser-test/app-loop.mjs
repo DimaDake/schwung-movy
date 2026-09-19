@@ -3470,9 +3470,13 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
 
     /* THE WINDOW, BOUNDED BY THE STORE'S OWN ANSWER AND NOT BY A TICK COUNT.
      * The transition is 120 ms of WALL CLOCK, and how many ticks that is
-     * depends entirely on what a tick costs: this harness runs a tick in ~50 us
-     * when nothing is dirty and ~2 ms when it draws, so a fixed count would
-     * measure the harness's speed rather than the animation. The loop runs
+     * depends entirely on what a tick costs: here a tick is ~50 us when nothing
+     * is dirty and a few hundred us when it draws (a whole run of 60 ticks took
+     * ~18 ms), where on the DEVICE a tick in the animating window is 2.4 ms with
+     * 0.7 ms of it in `render` (SP-38's ledger — per-tick, averaged over a
+     * 120-tick window). Those are two different machines by two orders of
+     * magnitude, so a fixed tick count would measure the harness's speed rather
+     * than the animation. The loop runs
      * while Schwung's own store says something is still moving — the same
      * question the fix asks — and the cap exists only so that "it animates"
      * cannot be satisfied by "it draws forever". */

@@ -23,11 +23,12 @@
  * re-pagination moves no lane: it follows its parameter onto whatever page
  * Schwung puts it on. `keyAt` is how movy asks which parameter a knob drives.
  *
- * The four things this file used to hold inline have their own modules now: the
+ * The five things this file used to hold inline have their own modules now: the
  * injected I/O (`schwung-page-io`), the contract lifecycle and its retry budget
- * (`schwung-page-contract`), the render path (`schwung-page-render`) and the
- * gestures forwarded to the controller (`schwung-page-input`). What is left
- * here is the binding and the surface it publishes.
+ * (`schwung-page-contract`), the render path (`schwung-page-render`), the
+ * gestures forwarded to the controller (`schwung-page-input`) and the per-tick
+ * "is it still moving" question (`schwung-page-anim`). What is left here is the
+ * binding and the surface it publishes.
  */
 
 import type { TrackPort } from '../track/port.js';
@@ -39,6 +40,7 @@ import { createPageHierarchy } from './schwung-page-hierarchy.js';
 import { createPageContract } from './schwung-page-contract.js';
 import { createPageRender } from './schwung-page-render.js';
 import { createPageInput } from './schwung-page-input.js';
+import { createPageAnimating } from './schwung-page-anim.js';
 import { chromeFor, type PageChrome } from './schwung-page-chrome.js';
 
 /** What Schwung asks the HOST to do. `open` wants an editor for `key`; `exit`
@@ -134,12 +136,10 @@ export function createSchwungPage(
                                         normalizedOf: lib.normalizedOf });
     const input = createPageInput(ctl, lib, port, qualify, hier);
 
-    /* RESOLVED ONCE, at binding time, and guarded — see `SchwungLib.settled`.
-     * An older Schwung without either answers `animating` false, which is
-     * precisely how the page behaved before SP-38, so the missing predicate
-     * costs the feature rather than the tool. */
-    const animSettled = typeof lib.settled === 'function' ? lib.settled : null;
-    const bangPhase = typeof lib.buttonPhase === 'function' ? lib.buttonPhase : null;
+    /* SP-38's per-tick question, built once here and published below. It reads
+     * the animation store rather than the controller, so it lives in its own
+     * module — which is also what keeps this file inside its size cap. */
+    const animating = createPageAnimating(ctl, lib);
 
     return {
         /* `contract.reload()` drops the cache itself — a re-plan reads live,
@@ -165,34 +165,7 @@ export function createSchwungPage(
         },
         knobParamInfo: page.knobParamInfo,
         knobLevels: page.knobLevels,
-        animating(nowMs: number) {
-            /* 1. A WIDGET TRANSITION. `ctl.state.anim` is the store the
-             * renderer feeds (`page_controller.mjs` passes `anim: s.anim` and
-             * `nowMs: now()` into every draw), so `settled` here and the
-             * renderer's own observation are the same map read by the same
-             * rule — movy never needs to build the store, only to ask it.
-             *
-             * A STILL PAGE COSTS NOTHING HERE: `observe` stamps a FIRST sighting
-             * as already past, so once a page has been drawn its map holds only
-             * transitions that have started since, and an idle page iterates an
-             * empty map. */
-            if (animSettled && !animSettled(ctl.state && ctl.state.anim, nowMs)) return true;
-            /* 2. THE TRIGGER BANG, which is time-driven the same way and has no
-             * value change to announce it. The list is passed to `buttonPhase`
-             * exactly as the renderer passes it (`render_page_movy.mjs:2617`),
-             * so the flash duration is asked of its one definition rather than
-             * restated — and `BTN_FLASH_MS` moving upstream moves both.
-             *
-             * The map only holds keys that have FIRED, so a page that has never
-             * fired a trigger allocates nothing and loops zero times. */
-            const fired = bangPhase && ctl.triggerFiredAt;
-            if (!fired) return false;
-            for (const k in fired) {
-                const stamps = fired[k];
-                if (stamps && stamps.length && bangPhase(stamps, nowMs, false).bursts.length) return true;
-            }
-            return false;
-        },
+        animating,
         render: page.render,
         chrome: (paging: boolean) => chromeFor(ctl, lib, paging),
         knobTurn: input.knobTurn,

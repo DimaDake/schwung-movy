@@ -110,7 +110,7 @@ changes no mode at all while looking exactly like the fix.
 | SP-28 | Custom module visualisations (`custom:` viz kinds) — the four loader defects fixed, and hank's own waveform is on the panel under `page`. **See SP-34** for the fifth, found in review |
 | SP-20 | `ui_hierarchy` ownership — one reader (`chain/hierarchy-source.ts`) for the page, the model and the undo dump; the manifest rung and the `"{}"` test were each a divergence |
 | SP-35 | A held step keeps the delegated page — SP-33's gate reversed, and the p-lock decoration pass it had made unreachable is reachable again. The "cannot take a lock" filter is movy's chrome at the gesture, not a decoration; the per-cell half is SU-8 |
-| SP-38 | Animated widgets draw until they settle — `anim_state.settled` asked by `pollDrawnPage` only when value and identity held still. Costs **0.7 ms/tick of `render`** in the animating window (0.2 before), no host call, idle unchanged |
+| SP-38 | Animated widgets draw until they settle — `anim_state.settled` asked by `pollDrawnPage` only when value and identity held still. Costs **0.7 ms/tick of `render`** in the animating window (0.2 before) — **on plaits, 2 pages, the SMALLEST shape in the fixture, so that is a FLOOR and not a representative**; n=1 window per arm. No host call, idle unchanged |
 
 ### Open
 
@@ -841,7 +841,7 @@ controller treats a modulated one") was already the implementation.
 
 ---
 
-### SP-38 ✅ 2026-09-19 — an animated widget draws until it settles, and costs 0.7 ms/tick while it does
+### SP-38 ✅ 2026-09-19 — an animated widget draws until it settles, and costs 0.7 ms/tick while it does — on the SMALLEST module, so that is a floor
 
 **Symptom.** Under `page` Schwung's animated widgets are "completely broken" —
 the enum square frozen halfway to its new width, a waveform not morphing, a
@@ -859,7 +859,8 @@ of the change, and nothing after.
 
 **Fix.** `anim_state.mjs` is imported by `schwung-lib.ts` alongside its siblings
 and its `settled(state, now)` is exposed as `SchwungPage.animating(nowMs)`
-(`renderer/schwung-page.ts`); `pollDrawnPage` asks it **only when the value and
+(`renderer/schwung-page-anim.ts`, split out of `schwung-page.ts` when that file
+crossed its 200-line cap); `pollDrawnPage` asks it **only when the value and
 identity comparisons both held still**, so a page whose values are moving is
 decided exactly as before and an idle page pays one iteration over an empty Map.
 `observe` stamps a FIRST sighting already past, so a page does not animate itself
@@ -901,13 +902,53 @@ window went into drawing").
 **The animating window costs 0.7 ms/tick of `render` against 0.2 before, and the
 knob section's worst tick goes 2.8 → 3.9 ms and its worst period 5.7 → 6.8 ms
 (+19%).** `calls/tick` is identical in every cell: **this adds no host call**, it
-makes more use of the frames movy already draws. The idle section is unchanged
-and carries no `render` phase in either arm; the 2.2–2.6 → 2.4–2.7 tick delta is
-inside the before arm's own spread and below the instrument's resolution, so the
-idle claim rests on `calls/tick` and the absent phase, not on that delta. Exactly
+makes more use of the frames movy already draws.
+
+**Read that headline as a FLOOR, not a representative.** It is plaits — 2 pages,
+the smallest shape in the fixture — so it is the CHEAPEST page this can be
+measured on, and a 72-page component (minijv, where the lag was reported) draws
+far more per frame. It is also n=1 window per arm at a **1 ms-granularity**
+clock, where `render=0.7` means "~84 of the window's 630 ms went into drawing"
+rather than a per-frame time. The direction of the change is what is solid; the
+magnitude is a lower bound. **This is what SP-39 starts from, and its first step
+is to re-run the same method on minijv.**
+
+**The decisive raw lines**, so the claim can be checked without a device:
+
+```
+# knob section, BEFORE (fff4f25) — 16 windows
+seqengine=0.6 rest=0.5 ctltick=0.4 ctlpoll=0.3 buildvm=0.2 render=0.2
+
+# knob section, AFTER (this commit) — 14 windows
+seqengine=0.7 render=0.7 buildvm=0.6 rest=0.5 ctltick=0.4 ctlpoll=0.3
+
+# idle section, BOTH arms — 38 windows each, and no `render` line in either
+calls/tick=0.9 peak=9 ipc_ms=1.8 tick_ms=2.5 period_ms=5.3 peak_period=16 | get overtake_dsp:* n=0.3 ms=0.6 | get synth_module n=0.2 ms=0.4 | …
+```
+
+(`perf_phase` prints only the six largest phases, so a phase that is absent is
+not in the top six — i.e. ~0. The two arms' idle `tick_ms` **medians are both
+2.5**, over 38 windows each: identical, not merely overlapping.)
+
+The idle section is unchanged
+and carries no `render` phase in either arm; the 2.4–2.7 after-arm max is inside
+the before arm's own 2.2–2.6 spread and at the instrument's resolution, so the
+idle claim rests on the equal medians, `calls/tick` and the absent phase, not on
+that delta. Exactly
 one `perf_phase` line per section can carry the animation — 120 ms of transition
 inside a ~630 ms report window — which is the expected shape, not a weak signal.
 Method, commands and the resolution limits: `.superpowers/sdd/schwung-page-migration/sp38-measurement.md`.
+
+**The one way this can invert into a permanent cost, named rather than feared.**
+If any observed key's value string differs on EVERY render, `anim_state` re-stamps
+`since` each tick, `settled()` never returns true, and the page redraws forever
+at the full 0.7 ms/tick instead of standing still. A MODULATED knob cannot do it:
+effective (`:effective`) values reach the renderer through `modValues`, not
+through the `values` map `settled` reads. The residual exposure is a jittery or
+`live` BASE enum, or **a decoration that feeds a raw value back into an animated
+key such as `enumw:` — which is SP-36's territory, so SP-36's work must be
+checked against this predicate before it ships.** The mechanism is written into
+`renderer/schwung-page-anim.ts` beside the predicate.
 
 **Teeth, and a fixture trap worth keeping.** `browser-test/logic/page-freshness.mjs`
 drives `pollDrawnPage` itself (`dist/esm/app/page-poll.js`, a new build entry
@@ -949,7 +990,10 @@ tier with the flag at `off` — **18 scenarios, 143 checks, 0 failed**, exit 0,
 with one `⚠ FLAKY` (`seq`: `capture-fixed-notes` / `capture-select-tempo` did not
 log the fixed-tempo path on attempt 1 and passed on the retry — a MIDI-capture
 flake, nothing this item reaches, and the flag was `off` so the new predicate was
-inert for the whole tier). Baselines: **no scene moved and `--update` was not
+inert for the whole tier). The tier was re-run after the fix round — which split
+`animating` into `renderer/schwung-page-anim.ts` — and came back **18 scenarios,
+143 checks, 0 failed, no flake at all**, so that split is behaviour-preserving at
+the device tier too. Baselines: **no scene moved and `--update` was not
 run** — SP-38 changes nothing about what a settled page draws, which is the same
 reason the idle half of the measurement is unchanged.
 
@@ -2031,8 +2075,15 @@ the fact a later session would otherwise re-derive.
   never appears to end. **Measured cost:** 0.7 ms/tick of `render` in the
   animating window against 0.2 before, knob-section worst tick 2.8 → 3.9 ms and
   worst period 5.7 → 6.8 ms; `calls/tick` identical, idle section unchanged with
-  no `render` phase in either arm. Not covered: `settled`'s 120 ms window is
-  longer than `WAVE_MORPH_MS` (100), and nothing was measured on a large module.
+  no `render` phase in either arm (**idle `tick_ms` medians equal at 2.5** in
+  both arms). Read the cost as a FLOOR: plaits is 2 pages, the smallest fixture
+  shape, and it is n=1 window per arm. Not covered: `settled`'s 120 ms window is
+  longer than `WAVE_MORPH_MS` (100), and nothing was measured on a large module —
+  minijv is SP-39's first step. A key whose value string changes on EVERY render
+  would redraw forever; a modulated knob cannot (effective values travel via
+  `modValues`, not `values`), so the exposure is a jittery/`live` base enum or a
+  **decoration** — SP-36's territory, and SP-36 must be checked against this
+  predicate.
 
 - **SP-20 ✅ 2026-09-18 — one reader of the declared contract:
   `src/chain/hierarchy-source.ts`.** Three rungs — `ui_hierarchy`, `ui_pages`,

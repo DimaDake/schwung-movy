@@ -117,22 +117,24 @@ _log('\nautomation knob routing:');
     eq('step-auto knob consumed', handleAutomationKnob(0, 0, info, +1, () => true), true);
     eq('aset at held step 4', peekSeqCmdQueue().some((o) => o.startsWith('aset 0 0 4 ')), true);
 
-    // SP-35 reverses this for a HELD step: the cell cannot take a lock, so the
-    // turn is consumed and named instead of falling through to an edit of the
-    // PATCH under a hand that believes it is taking a lock.
+    // SP-35: a cell that cannot take a lock says so — the <STEP_AUTO_MS window
+    // before `stepAutoTick` promotes is the same assign attempt, not a second one.
+    const { editStepDown, resetStepEdit } = await import('../../dist/esm/seq/step-edit.js');
     const { seqToastText } = await import('../../dist/esm/seq/render.js');
     const file = { ...info, ioKey: 'sample', automatable: false };
-    resetAutomation(); resetSeqEngine(); resetSeqState();
+    resetAutomation(); resetSeqEngine(); resetSeqState(); resetStepEdit();
+    editStepDown(0);                        // held; NOT yet promoted
+    eq('non-automatable held-but-unpromoted IS consumed', handleAutomationKnob(0, 0, file, +1, () => true), true);
+    seqState.recording = seqState.playing = true;
+    eq('...but live record is a take, not an assign', handleAutomationKnob(0, 0, file, +1, () => true), false);
+    resetStepEdit(); resetAutomation(); resetSeqEngine(); resetSeqState();
     seqState.stepAutoMode = true; seqState.holdStep = 4;
-    eq('non-automatable under a held step IS consumed',
-        handleAutomationKnob(0, 0, file, +1, () => true), true);
+    eq('non-automatable under a held step IS consumed', handleAutomationKnob(0, 0, file, +1, () => true), true);
     eq('...and says why', seqToastText(), 'NO LOCK: sample');
     eq('...and writes no lock for it', peekSeqCmdQueue().some((o) => o.startsWith('aset')), false);
 
-    // With no step held the base edit still owns it (unchanged).
-    resetAutomation(); resetSeqEngine(); resetSeqState();
-    eq('non-automatable with no step held is not consumed',
-        handleAutomationKnob(0, 0, file, +1, () => true), false);
+    resetAutomation(); resetSeqEngine(); resetSeqState();   // no step held (unchanged)
+    eq('non-automatable with no step held is not consumed', handleAutomationKnob(0, 0, file, +1, () => true), false);
 
     // Normal mode (no step-auto, no Rec): not consumed → normal param path edits
     // the base immediately (no lag).

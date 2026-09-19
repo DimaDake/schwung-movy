@@ -962,6 +962,21 @@ and `...and says why: expected "NO LOCK: sample", got "Length 4"`; green again o
 restore. This is a second app-loop check the ledger did not name, and its
 replacement is what keeps "N must not grow past 3" true.
 
+**Fix round 1 (review).** The refusal's gate was `seqState.stepAutoMode` — "already
+promoted" — and promotion is TIME-based (`stepAutoTick`, `STEP_AUTO_MS = 300`), so
+a turn arriving inside that window was refused-but-not-consumed and edited the
+patch: the exact harm the gesture-site design was chosen to prevent. It is now the
+same admission test the lock itself uses, `stepAutoMode || (!recArmed &&
+heldRange() !== null)`, read without `beginStepAutomation()`'s side effects so a
+refusal does not promote. Deliberately NOT `anyStepHeld()`: `hold` is reused by
+step record, the step page and drum multi-presses, where a turn is a legitimate
+edit — and `heldRange()` is null for a multi-press, while the step page returns in
+`midi/router.ts` before this function, which is what keeps the term no wider than
+the claim. `recArmed` is excluded because under live record a turn is a take, not
+an assign. Teeth: `non-automatable held-but-unpromoted IS consumed` is red with the
+width removed (`expected true, got false`) and green with it, and the two neighbours
+are guards rather than teeth — the live-record one passes either way.
+
 **Baselines.** ONE scene changed, and it is the only one that asks the app for the
 body under a hold: `page_held_unassignable`, 470 px — movy's held-step body (one
 cell, `SENSITIVITY`, every other cell hidden by `hiddenDuringHold`) replaced by

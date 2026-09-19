@@ -210,12 +210,33 @@ export function handleAutomationKnob(
      * `decorations` carries `locked` ("a lane live on this frame holds this
      * PARAMETER") and marking a cell nobody locked is the lie SP-16 removed. This
      * toast is movy's own chrome, drawn after the body, so it survives `page`.
+     *
+     * THE GATE IS THE SAME ADMISSION TEST THE LOCK USES, and that is the point:
+     * `seqState.stepAutoMode` alone is "already promoted", which `stepAutoTick`
+     * only reaches after STEP_AUTO_MS (300 ms) — so a turn inside that window was
+     * refused-but-not-consumed and edited the patch, which is the sentence above.
+     * `heldRange() !== null` is the other half of the SAME admission test the
+     * automatable path applies at `beginStepAutomation() < 0` below — one step
+     * held, so a turn promotes — read without its side effects, so a refusal does
+     * not promote. Neither half is `anyStepHeld()`: that is true for every hold
+     * mode `hold` is reused for (a drum multi-press, a Loop-mode bar, step
+     * record), and in those a turn is a legitimate edit. Two of them are already
+     * unreachable here — the step page returns in `midi/router.ts` before this
+     * function, and a multi-press makes `heldRange()` null — which is what makes
+     * the term narrow enough to be the same claim and no wider.
+     *
+     * `recArmed` is excluded for the same reason the promotion below excludes it:
+     * under live record a turn is a take, not an assign, and a non-automatable
+     * param keeps its long-standing base edit there.
      */
+    const recArmed = seqState.recording && seqState.playing;
     if (!info.automatable) {
-        if (seqState.stepAutoMode) { seqToast('NO LOCK: ' + info.ioKey); return true; }
+        if (seqState.stepAutoMode || (!recArmed && heldRange() !== null)) {
+            seqToast('NO LOCK: ' + info.ioKey);
+            return true;
+        }
         return false;
     }
-    const recArmed = seqState.recording && seqState.playing;
     // Turning a knob while a single step is held enters step-automation mode.
     if (!seqState.stepAutoMode && !recArmed && beginStepAutomation() < 0) {
         return false; // no step held → normal path owns the base (immediate)

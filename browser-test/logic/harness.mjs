@@ -63,6 +63,9 @@ import {
 import { schwungGridMode, setSchwungGridMode, schwungPageFor,
          schwungGridReload } from '../../dist/esm/renderer/schwung-grid.js';
 import { schwungLibAvailable, schwungLibError } from '../../dist/esm/renderer/schwung-lib.js';
+import {
+    batchKeys, fill, KEEP_EPOCHS, BATCH_MAX_KEYS, BATCH_VALUE_MAX,
+} from '../../dist/esm/renderer/schwung-page-batch.js';
 import { resetPorts } from '../../dist/esm/track/registry.js';
 import { serializeUiState, applyUiState, resetUiState } from '../../dist/esm/seq/ui-state.js';
 import { VISIBLE_ROWS, firstVisibleRow, HINT_W, HINT_LINES } from '../../dist/esm/renderer/flags-view.js';
@@ -294,6 +297,7 @@ export {
     flagValue, setFlag, applyFlagsToEngine, resetFlags,
     schwungGridMode, setSchwungGridMode, schwungPageFor, schwungGridReload,
     schwungLibAvailable, schwungLibError,
+    batchKeys, fill, KEEP_EPOCHS, BATCH_MAX_KEYS, BATCH_VALUE_MAX,
     flagsPageState, flagsRowCount, backupsRowSelected, actionRowSelected, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
     migrateRowArmed, armMigrateRow, disarmMigrateRow, runMigrateRow, slotsHaveContent,
     buildFlagsPageVM, VISIBLE_ROWS, firstVisibleRow, readPrefFlags, writePrefFlag,

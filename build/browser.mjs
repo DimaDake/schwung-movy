@@ -29,6 +29,14 @@ await esbuild.build({
          * suite can drive the stale-write hazard at the level it lives at,
          * rather than racing Schwung's settle window through the page. */
         resolve(root, 'src/renderer/schwung-page-cache.ts'),
+        /* WHICH keys that cache spends its round trip on (SP-39). Its own entry
+         * point because the file has no state and no host: the logic suite
+         * seeds a Map and a port and asserts on the request, which is the only
+         * level that can see the batch's COMPOSITION — a folded-in module would
+         * leave the suite failing on a path instead, and the composition bug
+         * (every read counted as an ask, so the cap evicts the live page) is
+         * invisible to every other suite in both tiers. */
+        resolve(root, 'src/renderer/schwung-page-batch.ts'),
         resolve(root, 'src/renderer/schwung-editor.ts'),
         resolve(root, 'src/renderer/schwung-widgets.ts'),
         /* The file side of a module's widget (SP-28): an entry point so the

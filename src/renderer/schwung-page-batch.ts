@@ -125,6 +125,15 @@ function apply(port: TrackPort, entries: Map<string, Entry>, epoch: number,
         }
         const e = entries.get(keys[i]);
         if (!e) { entries.set(keys[i], { value: v, epoch, asked: epoch, len: v.length }); continue; }
-        e.value = v; e.epoch = epoch; e.asked = epoch; e.len = v.length;
+        /* NO `asked` HERE, DELIBERATELY — a READ is not an ASK. Stamping it
+         * would make the batch self-promoting (`batchKeys` selects on `asked`,
+         * so a key would enter the batch by being read and stay by being read),
+         * and then the prune above could never fire for a key in the batch and
+         * past `BATCH_MAX_KEYS` the tie-break compares equal epochs and keeps
+         * INSERTION order — i.e. the oldest keys win and the page on screen
+         * falls out of the request, costing one `port.getParam` round trip per
+         * key, which is the whole of what this file exists to avoid. Only a
+         * caller (`get`, or `warm` above) may stamp it. */
+        e.value = v; e.epoch = epoch; e.len = v.length;
     }
 }

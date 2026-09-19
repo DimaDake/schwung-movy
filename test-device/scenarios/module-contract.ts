@@ -217,7 +217,7 @@ scenario('module-contract', async (t) => {
      * RESTS in (`page`) Schwung owns the component, movy writes nothing, and
      * every one of them reports `writes: none` for a reason that is a setting
      * rather than a defect. No reopen here, so one arm is enough. */
-    t.note('gridMode', await armMovy(probe));
+    t.note('gridMode', await armMovy(t, probe));
 
     /* What the borrowed slot goes back to. Asked of the fixture, never written
      * down: track 0's chain declares a synth and nothing else, so FX 1 is empty

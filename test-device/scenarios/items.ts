@@ -136,7 +136,7 @@ scenario('items', async (t) => {
      * component and movy does neither, so all three checks fail for a reason
      * that is a setting rather than a defect. No reopen here, so one arm is
      * enough. */
-    t.note('gridMode', await armMovy(probe));
+    t.note('gridMode', await armMovy(t, probe));
 
     /* What the borrowed slot goes back to. Asked for, never written down. The
      * fixture has already confirmed it is what the chain holds (`verifyChains`),

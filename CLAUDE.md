@@ -453,6 +453,17 @@ code splitting). Never edit `ui.js` directly — it is a build artifact.
   same reason.** Scenarios run 273–583 lines (`mutes.ts` 583,
   `module-contract.ts` 518, `migrate.ts` 484) — one suite is one coherent
   subsystem. Said explicitly rather than left to inference.
+- **`browser-test/app-loop.mjs` is a named EXCEPTION at 3560 lines** — 5.9× the
+  ceiling, recorded 2026-09-19 so the next agent is not blocked finding it. It is
+  PRE-EXISTING and it is not what the ceiling is about: the file is one
+  straight-line sequence of blocks over shared mock globals (which is what
+  `page-mode.mjs` re-runs per arm), so splitting it is a re-architecture and not
+  a tidy-up. The 2026-09-19 branch added +306 lines to it, all real coverage
+  (SP-31's two latch checks and SP-37's label checks). **What it costs is the
+  read**: after `logic.mjs`'s history it is the most expensive file in the repo
+  to open, so the next change that needs to understand it should split the
+  SP-31/SP-37 blocks into a sibling module first — the exception is for the
+  file as it stands, not a licence to keep growing it.
 
 ### Directory responsibilities
 

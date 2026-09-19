@@ -1,4 +1,5 @@
 import type { Probe } from './probe.js';
+import type { Ctx } from './runner.js';
 
 /* WHICH ARM A SCENARIO GRADES, and who sets it.
  *
@@ -35,12 +36,35 @@ import type { Probe } from './probe.js';
  * stops holding for whichever one moved. */
 export const MOVY_ARM = 'off';
 
-/* Sets the arm and returns the one the RENDERER reports. That is
- * `schwungGridMode()`'s own answer over the probe (`src/test/probe.ts`), not the
- * flag file the arm is derived from, so a scenario that asserts on it asserts
- * what it actually ran in rather than what it asked for. `null` means the probe
- * answered no page at all. */
-export async function armMovy(probe: Probe): Promise<string | null> {
+/* Sets the arm, ASSERTS the arm took, and returns the one the RENDERER reports.
+ * That is `schwungGridMode()`'s own answer over the probe (`src/test/probe.ts`),
+ * not the flag file the arm is derived from, so the check is on what the
+ * scenario actually ran in rather than on what it asked for. `null` means the
+ * probe answered no page at all.
+ *
+ * THE CHECK IS IN HERE, NOT AT THE CALL SITES, and that is the point. This used
+ * to return the renderer and leave the asserting to the caller: `smoke` did it,
+ * `items` and `module-contract` only NOTED it, so a silent arming failure in
+ * either of those graded the wrong renderer and still went green — the same
+ * false-green class as a `SCHWUNG=`-less build, where a suite that measured
+ * nothing reports the fix as working. A return value is only a guard if every
+ * caller spends it, which is not a property one can keep. Registering the check
+ * where the arm is set is also what fixes the callers that do not exist yet.
+ *
+ * `id` is a parameter because `smoke` arms twice around a reopen; a second check
+ * under the same id would aggregate two different moments into one ledger row. */
+export async function armMovy(t: Ctx, probe: Probe, id = 'arm-taken'): Promise<string | null> {
     const p = await probe.setGridMode(MOVY_ARM) as { renderer?: string } | null;
-    return p?.renderer ?? null;
+    const renderer = p?.renderer ?? null;
+    const okArm = renderer === MOVY_ARM;
+    t.check(id, `the renderer is the arm this scenario set ('${MOVY_ARM}')`, okArm, {
+        expected: `the renderer at '${MOVY_ARM}'`,
+        actual: okArm
+            ? `renderer=${renderer}`
+            : `the renderer did not answer '${MOVY_ARM}'${renderer === null
+                ? ' (the probe gave no page at all, so the arm cannot be confirmed)'
+                : `, it answered '${renderer}'`} — everything graded below is movy's OWN work and in any `
+              + `other arm Schwung owns it, so this scenario would grade a renderer it did not set`,
+    });
+    return renderer;
 }

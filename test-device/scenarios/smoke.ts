@@ -145,7 +145,7 @@ scenario('smoke', async (t) => {
     /* ARM THE SCENARIO (see the note above for why, and for what it is not).
      * to be here rather than before the open: the override lives in ui.js's
      * module scope, so there is nothing to set it on until the tool is up. */
-    t.note('gridMode', await armMovy(probe));
+    t.note('gridMode', await armMovy(t, probe));
     lap('t_3_open');
 
     /* Rule: the instrument this suite judges is the one the fixture put there.
@@ -494,7 +494,7 @@ scenario('smoke', async (t) => {
      * this scenario exists not to depend on. Re-armed here so the whole run is in
      * ONE arm, which is what lets the notes name it (MOVY_ARM above; page-lifecycle
      * re-arms after its reopen for the same reason). */
-    t.note('gridModeAfterReopen', await armMovy(probe));
+    t.note('gridModeAfterReopen', await armMovy(t, probe, 'arm-taken-after-reopen'));
 
     await settled(markResume, (w) => w.some((l) => l.includes('resume from background')),
                   'movy to resume from the background', 3000);

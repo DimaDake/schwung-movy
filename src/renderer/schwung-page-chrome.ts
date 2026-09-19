@@ -103,6 +103,14 @@ export function chromeFor(ctl: any, lib: SchwungLib, paging: boolean): PageChrom
 export function pageLabelFor(ctl: any): string | null {
     if (!ctl || typeof ctl.pageLabel !== 'function') return null;
     const name = ctl.pageLabel();
+    /* THE THREE NULL-ISH INPUTS COLLAPSE TO ONE `null` ON PURPOSE, against the
+     * tri-state discipline the rest of this seam keeps: no controller, a
+     * controller that cannot name a page, and a name that is empty all mean the
+     * same thing to the one consumer — movy has no name for this page — and the
+     * header already has a good answer for that (`headerRightText`'s fallback
+     * chain, `knob-view.ts`): a bank or pad name, which beats a blank line. So
+     * there is nothing for a third state to say, and a consumer merging them
+     * back together is what this return does once instead. */
     return (name === undefined || name === null || name === '') ? null : String(name);
 }
 

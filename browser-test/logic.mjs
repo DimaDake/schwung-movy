@@ -67,6 +67,7 @@ import { run as run_schwung_page } from './logic/schwung-page.mjs';
 import { run as run_schwung_page_press } from './logic/schwung-page-press.mjs';
 import { run as run_schwung_widgets } from './logic/schwung-widgets.mjs';
 import { run as run_page_freshness } from './logic/page-freshness.mjs';
+import { run as run_page_batch } from './logic/page-batch.mjs';
 import { run as run_schwung_floor } from './logic/schwung-floor.mjs';
 import { run as run_page_owner } from './logic/page-owner.mjs';
 import { run as run_hierarchy_source } from './logic/hierarchy-source.mjs';
@@ -144,6 +145,7 @@ const SUITES = [
     run_schwung_page_press,
     run_schwung_widgets,
     run_page_freshness,
+    run_page_batch,
     run_schwung_floor,
     run_page_owner,
     run_hierarchy_source,

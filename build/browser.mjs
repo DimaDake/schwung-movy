@@ -136,6 +136,14 @@ await esbuild.build({
         resolve(root, 'src/undo/ui-fields.ts'),
         resolve(root, 'src/chain/set-param.ts'),
         resolve(root, 'src/seq/lane-mapping.ts'),
+        /* The base an automated parameter reverts to (SP-36). Its own entry
+         * point because it is pure — a Map, and two functions over it — and
+         * the suite has to be able to SEED it the way a restored Set does
+         * (`seedFromEngine`), which no other path can drive without a
+         * device. Splitting keeps the map a singleton: every importer
+         * resolves to the one shared chunk, which is the property the
+         * mirror depends on. */
+        resolve(root, 'src/seq/automation-base.ts'),
         resolve(root, 'src/track/mix-persist.ts'),
         resolve(root, 'src/track/send-persist.ts'),
         resolve(root, 'src/track/send-port.ts'),

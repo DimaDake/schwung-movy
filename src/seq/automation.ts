@@ -17,6 +17,7 @@ import { isMixTarget } from './lane-mapping.js';
 import { seqState } from './state.js';
 import { seqToast } from './render.js';
 import { beginStepAutomation, heldRange } from './step-edit.js';
+import { noteLaneBase, clearLaneBase, resetLaneBases } from './automation-base.js';
 import { aliasFromConcrete, type PadScoping } from '../model/pad-scope.js';
 import { mlog } from '../log.js';
 
@@ -56,6 +57,7 @@ export function automationRegistry(): (LaneEntry | null)[][] { return registry; 
 
 export function resetAutomation(): void {
     for (const t of registry) t.fill(null);
+    resetLaneBases();
     liveVal.clear();
     liveCtx.clear();
     liveTurn.clear();
@@ -142,6 +144,10 @@ export function assignLane(
     registry[track][lane] = { targetParam: tp, shortName: info.ioKey, min: info.min, max: info.max, type: info.type };
     seqCmd('alabel ' + track + ' ' + lane + ' ' + tp);
     seqCmd('abase ' + track + ' ' + lane + ' ' + norm7(info.value, info.min, info.max));
+    /* Beside the command, never derived later: this IS the base, in the
+     * parameter's own units, and it is the last moment anything holds it —
+     * from the next step onward the lane owns the value (SP-36). */
+    noteLaneBase(track, lane, info.value);
     // Creating automation on a freshly (re)loaded module hits the same empty host
     // param cache: this new lane's abs-CC would resolve through find_param_info on
     // an empty synth_params and be dropped. Warm it so the first playback is
@@ -158,6 +164,7 @@ export function assignLane(
 export function clearLane(track: number, lane: number, undoable = true): void {
     if (lane < 0 || lane >= 8) return;
     registry[track][lane] = null;
+    clearLaneBase(track, lane);
     liveVal.delete(track + ':' + lane);
     liveCtx.delete(track + ':' + lane);
     liveTurn.delete(track + ':' + lane);
@@ -320,6 +327,7 @@ export function automationKnobReleased(track: number, physK: number, info: KnobP
     // normal (non-automation) edit syncs the engine base, quietly.
     if (!seqState.stepAutoMode) {
         seqCmd('abaseq ' + track + ' ' + lane + ' ' + norm7(info.value, info.min, info.max));
+        noteLaneBase(track, lane, info.value);
     }
 }
 
@@ -477,6 +485,15 @@ export function syncLabelsFromEngine(
         const lanes = tracks[t].split('.');
         for (let l = 0; l < 8 && l < lanes.length; l++) {
             const tp = lanes[l];
+            /* THE BASE BELONGS TO THE PARAMETER, NOT TO THE LANE NUMBER. A lane
+             * that came back pointing somewhere else is a different parameter
+             * on the same slot, and its predecessor's base would put the
+             * pointer at a value this param never held (SP-36). A lane whose
+             * target is unchanged keeps the base movy recorded in the
+             * parameter's own units — the engine's `abases` seed below is the
+             * same number after a 7-bit round trip, so re-seeding it would only
+             * blur it. */
+            if (registry[t][l]?.targetParam !== tp) clearLaneBase(t, l);
             if (!tp || tp === '-') { registry[t][l] = null; continue; }
             const v = validate(t, tp);
             if (v === 'drop') { clearLane(t, l, false); continue; }

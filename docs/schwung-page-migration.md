@@ -123,7 +123,8 @@ changes no mode at all while looking exactly like the fix.
 | SP-38 | Animated widgets draw until they settle — `anim_state.settled` asked by `pollDrawnPage` only when value and identity held still. Costs **0.7 ms/tick of `render`** in the animating window (0.2 before) — **on plaits, 2 pages, the SMALLEST shape in the fixture, so that is a FLOOR and not a representative**; n=1 window per arm. **SP-39 re-ran it on minijv and did NOT measure an animating window there at all** — the 0.2 that appears survives stashing this item's animation term and carries no `buildvm` — so the cost on a large module is **not measured, neither scaled nor falsified**, and the plaits floor above is still the only number there is. No host call, idle unchanged |
 | SP-39 | A pad press onto a page the cache has never read paid one blocking read per cell; `jump` now hands that page's keys to the cache as **ONE bulk request** before `goToPage`. Teeth: the jump costs **1 bulk + 1 single** round trip against **0 bulk + 9 single**. **The call pattern is the whole of the measured win**: on device (`cw78`, the rack, both arms, the same build) the press's effect is **within noise** — `calls/tick` 1.69 → 1.54, `perf_ipc` 4.12 → 3.66 ms, tick 3.66 → 3.49, worst period 6.64 → 6.47 — and the **worst frame is unchanged, 26 → 27 ms**. `padpage` is 0.1–0.2 ms/tick under `page` in the windows that hold presses and absent under `off`. The page-vs-off gap is at IDLE (worst period 6.3 vs 5.0 ms, `calls/tick` 1.4 vs 0.6) — the delegated renderer's STANDING cost, not this gesture, **now opened as SP-49**. **The gesture is measured on a rack pad, not a drum-track pad — the fixture's drum module declares no note map.** The SP-38 re-run on `minijv` (70 pages, **not 72**) **measured no animating window at all** (the 0.2 survives stashing SP-38's term and carries no `buildvm`), so SP-38's cost on a large module is **not measured** |
 | SP-37 | The header names the PAGE, not movy's bank — the right-hand end was `vm.drumPadName \|\| vm.bankName` while the bar above it already paginated Schwung's pages, so one set's name sat under the other set's bar (a constant, on a module whose movy config opens with a preset bank). `PageChrome.pageLabel` (`ctl.pageLabel()`) rides with the chrome `chromeFor` already withholds where the delegated page is not the drawn body, which is what keeps `off` byte-identical; `headerRightText(vm, chrome)` is `chrome?.pageLabel \|\| vm.drumPadName \|\| vm.bankName`, the pad name taking the FALLBACK — a pad name that leads names every page of its module with the same word, which is the same symptom on a declared drum rack (`voice-poc`), so the pad name wins only where the page IS that pad's page and the two words already agree. Teeth, each with the fix removed: the whole `\|\|` chain reverted → 11 logic checks red, `page_body_p2` red (79 px), `page_voice_pad` throws; the pad name put back on top → the same; `pageLabelFor` → null → **6** logic checks red, `page_body_p2` red (79 px), `page_voice_pad` throws — **and 6 is the whole count**: the six per-page `page N draws its own name` assertions SKIP in this arm rather than fail, because a null label is exactly the case the loop's `if (label === null) continue;` guard (`logic/schwung-page.mjs:417`) exists for, so what reddens is the three empty-array structural checks plus the three pre-existing label checks; `off`'s `setSchwungGridMode(null)` dropped → the off check red. **No measurement, and the label is not free:** one `ctl.pageLabel()` per rendered frame — an `s.pages.filter(...)` + template string on a child-level page — also paid and discarded on the chain view (`src/app/tick.ts:919`, `paging: false`); SP-49 owns that cost. **Not covered:** the held-knob branch is SP-17's code, pinned by two pre-existing scenes — demoting the readout below the label reddens `page_chrome_held` (726 px) and `page_chrome_flip` (721 px) — and `page_body`'s baseline did NOT move — test16's page 0 is named *Main*, the same word movy's bank says, so page 0 is the one frame where the two sets agree |
-| SP-31 | A lost knob release latched the controller forever — the release is delivered to the page that heard the PRESS, through a knob-indexed ledger (`midi/knob-page-pin.ts`), never to whatever page is current. The (a)/(b)/(c) question the entry left open is settled **(c)**, with (a) refuted by measurement: the plan line is byte-identical with the pin, without it and at BASE, so this pin does not touch the plan; the `pct=1 ctlPages=1 names=Main` SP-17 recorded against a 3-page fixture was a pin reachable from somewhere other than the gesture, i.e. a stale page served as the current one. The three survivors stay a FIXTURE limit (SP-32). **Not covered:** the movy-MODEL half of the same gesture (`knobModel()?.handleKnobTouch/Release`) is still resolved at release time — a NOTE, not this entry |
+| SP-31 | A lost knob release latched the controller forever — the release is delivered to the page that heard the PRESS, through a knob-indexed ledger (`midi/knob-page-pin.ts`), never to whatever page is current. The (a)/(b)/(c) question the entry left open is settled **(c)**, with (a) refuted by measurement: the plan line is byte-identical with the pin, without it and at BASE, so this pin does not touch the plan; the `pct=1 ctlPages=1 names=Main` SP-17 recorded against a 3-page fixture was a pin reachable from somewhere other than the gesture, i.e. a stale page served as the current one. The three survivors stay a FIXTURE limit (SP-32). **Not covered:** the movy-MODEL half of the same gesture (`knobModel()?.handleKnobTouch/Release`) is still resolved at release time — **SP-51**, not this entry |
+| SP-36 | The automation channel — under `page` an automated parameter is MARKED and its pointer stops chasing the lane: movy reports it through `isModulated`, answers `<key>:base` from its own record of what the user dialled in (`seq/automation-base.ts`, mirroring the `abase`/`abaseq` it already sends, seeded from the engine's new `abases` for a restored Set) and lets the live read answer `<key>:effective`. The controller does the rest — pointer at the base, a 5-pixel plus riding the arc — so **nothing upstream changed**. Two rulings, both the user's: `off` is **unchanged** (a deliberate divergence until SP-30) and the mark is the **tilde**, with the dot-vs-tilde grammar deferred to SU-8. `knobLevels()` now answers the DRIVEN value, without which nothing asks for the frame back and the mark freezes. ENGINE 0.80.0 |
 
 ### Open
 
@@ -134,12 +135,12 @@ flip after it and SP-41 conditional on a decision nobody has made.
 
 | id | item | model | state | order | release gate |
 | --- | --- | --- | --- | --- | --- |
-| SP-36 | **NEW** — the automation channel: the missing dot, and the arc that must not jump | Opus | ⬜ | **1** | ✔ |
 | SP-40 | the flag becomes two values, MOVY and SCHWUNG; `body` and the `.off` stand-ins deleted | Sonnet | ⬜ | **7** | ✔ |
 | SP-47 | **NEW** — the opt-in release: the row goes in front of users, default still MOVY | Sonnet | ⬜ | **8** | — |
 | SP-48 | **NEW** — a modulated or `live` param the page shows keeps it redrawing forever. **A regression SP-38 introduced**; the flag must not reach testers with it open | Sonnet | ⬜ | **7.5** | ✔ |
 | SP-49 | **NEW** — an IDLE `page` tick costs half again what an `off` tick costs (worst period 6.3 vs 5.0 ms, `calls/tick` 1.4 vs 0.6) and it is there with nothing moving. **A standing LATENCY cost** — the tick period is the MIDI sampling interval — so it is a gate, not just inefficiency | Sonnet | ⬜ | **7.7** | ✔ |
 | SP-50 | **NEW** — on a child-level page movy and the controller disagree about WHICH child is showing. **Live under `page` on the missing `child_index_param`**: movy addresses no child at all while the controller resolves at instance 0, so the warm covers the wrong child and a knob can answer for the neighbour — inert on the installed `voice-poc`. (The other half, an off-by-base on the wire value, is real and has NO fleet exhibition.) Unreachable under the default `off` | Sonnet | ⬜ | **7.8** | ✔ |
+| SP-51 | **NEW** — the movy MODEL's own knob touch is still resolved at RELEASE time (`knobModel()?.handleKnobTouch` on the press against `handleKnobRelease` on the release, `src/midi/router.ts`), so a page change mid-hold leaves the model that heard the press with its touched/overlay state armed and hands the other model a release it never had. **Different consequence from SP-31, not the same bug**: the model's touch is movy's own state, `resetHeldInput` clears it, and it does not latch the jog click. Raised by SP-31 as a note; the id was added 2026-09-19 | Sonnet | ⬜ | **7.9** | — |
 | SP-32 | a bank or cell that exists only in movy's config is on no page under `page`: audit before SP-30 flips the default | Sonnet | ⬜ | 9 | — |
 | SP-42 | **NEW** — a .wav has no waveform: `wav_io_qjs.mjs` is never imported | Sonnet | ⬜ | 10 | — |
 | SP-45 | **NEW** — 8w8's pads do not select their pages; the other three racks' do | Sonnet | ⬜ | 11 | — |
@@ -167,7 +168,7 @@ flip after it and SP-41 conditional on a decision nobody has made.
 | SU-5 | Cut-curve viz kind | ❌ **withdrawn** — with SP-22 dropped there is nothing movy needs it for |
 | SU-6 | The 15-vs-16 widget band that offsets label rows by one row | ⬜ open, cosmetic |
 | SU-7 | `io.getParams(keys)` — an optional BULK read | ❌ **moot** — SP-26 solved it caller-side with no library change |
-| SU-8 | A per-cell channel for "this parameter is AUTOMATED" and "this cell cannot take a lock" — distinct from `locked` (a held step's lock) and from `isModulated` (the tilde) | ⬜ **new, conditional** — SP-35/SP-36 decide first whether movy can draw both in its own chrome |
+| SU-8 | A per-cell channel for "this parameter is AUTOMATED" and "this cell cannot take a lock" — distinct from `locked` (a held step's lock) and from `isModulated` (the tilde) | ⬜ **new, and no longer conditional — both deciders have ruled.** SP-35 put the "cannot take a lock" half in movy's own chrome at the gesture (a toast), and SP-36 shipped the automated half **through `isModulated`**, i.e. wearing the tilde. So what is left for upstream is exactly the GRAMMAR: a lane and an LFO now draw the same mark, and a parameter that is both says it once. The ask is one bit per cell (`decorations[slot].automated`, beside `locked`) plus the 2×2 mark `render_page_movy.mjs` already has the corner for — not a second renderer, and not a value channel: movy already answers the value through `:effective` |
 | SU-9 | A knob drives a door page's list, with `list_knob.mjs`'s feel | ⬜ **new, likely** — SP-44; the list, its length and its commit path are the door's, and movy must not restate them |
 | SU-10 | A viz kind for a LONE envelope stage (attack only, decay only) | ⬜ **new** — SP-46; take the fleet count with the ask, the way SP-22's drop was measured |
 | SU-11 | A per-key duration in the animation store, so `settled` ages out a value that never rests | ⬜ **new, conditional** — SP-48; the alternative is a movy-side repaint cap, which is the fallback only if this is declined |
@@ -281,11 +282,13 @@ previous "this needs upstream" in this file has cost a release cycle.
 | 11 | no single attack / single decay visualisations | SP-46 | — |
 | 12 | remove the `body` option: a two-value flag, MOVY and SCHWUNG, visible to users next release | SP-40 + SP-47 | ✔ |
 
-**Proposed order, gate first.** 1 SP-36, 2 SP-35, 3 SP-38, 4 SP-39, 5 SP-37,
+**Proposed order, gate first.** 1 SP-36 ✅ **closed 2026-09-19**, 2 SP-35, 3 SP-38, 4 SP-39, 5 SP-37,
 6 SP-31 ✅ **closed 2026-09-19**, 7 SP-40, **7.5 SP-48 — the regression SP-38 introduced**, **7.7 SP-49 —
 the standing idle tick, which is latency and therefore a gate**, **7.8 SP-50 —
 the child instance movy addresses is not the one the controller resolves, which
-is live under `page`**, 8 **SP-47 —
+is live under `page`**, **7.9 SP-51 — the movy MODEL half of that same gesture is still
+resolved at release time; not a gate (it clears itself and latches nothing), but the
+next `page`-arm fix round should take it**, 8 **SP-47 —
 the release**. Then SP-32, SP-42, SP-45, SP-43,
 SP-44, SP-46, SP-16, SP-21a, SP-23, SP-24, SP-29, SP-30, and SP-41 only if it
 is ever decided. SP-31 (✅ closed 2026-09-19) was in front of the release and the user did
@@ -307,66 +310,107 @@ evidence. **Needs** — its predecessor.
 
 ---
 
-### SP-36 — the automation channel: the dot that is missing, and the arc that must not jump
+### SP-36 ✅ 2026-09-19 — the automation channel: the mark that was missing, and the pointer that chased the lane
 
-**Product.** Two halves of one complaint, both about a parameter movy is
-automating. **(a)** Under `off` an automated parameter wears a 2×2 dot next to
-its label (`renderer/label.ts:39`, `pvm.automated`), so you can see at a glance
-which of the eight the sequencer is driving. Under `page` there is no dot on
-anything unless a step is held, so the page cannot tell you what is automated.
-**(b)** While the transport plays, an automated parameter's knob **jumps** —
-the pointer chases the lane. The reporter's ask is explicit: the pointer should
-**stay where you set it**, and the automation should show as a mark moving
-across the knob, *"like with lfo"*.
+**Symptom, both halves, in the reporter's words.** **(a)** under `off` an
+automated parameter wears a 2×2 dot next to its label (`renderer/label.ts`,
+`pvm.automated`); under `page` nothing marked it, so the page could not tell you
+what the sequencer was driving. **(b)** while the transport plays, an automated
+parameter's knob **jumps** — the pointer chases the lane — and it should
+instead *"stay where you set it"* with the automation showing as *"a mark moving
+across the knob, like with lfo"*.
 
-**(b) is a change of movy's own long-standing behaviour, not only a `page`
-defect.** movy shipped "the on-screen knob arc follows the automation value" as
-a feature, and `off` does exactly that today. The reporter has now watched it on
-hardware and wants the LFO reading instead. Under `off` that is a second piece
-of work in movy's renderer; **decide in this item whether `off` changes too**,
-or whether the two renderers deliberately read differently until SP-30. A silent
-divergence between them is the thing this file exists to prevent.
+**THE MECHANISM WAS ALREADY THERE AND IT IS CALLER-SIDE.** Schwung's controller
+draws exactly (b) for any key movy reports modulated: the **pointer** takes
+`<key>:base` and a five-pixel plus **rides the arc** at `<key>:effective`
+(`page_controller.mjs` `refreshModulatedValues`; `render_page_movy.mjs`
+`drawModDot` — *"the base only moves when you turn the knob, so only the dot
+needs live data"*). Both reads come back to movy's own injected io. So the whole
+item was: answer them.
 
-**Design & implementation — the mechanism is already there, and it is
-caller-side.** Schwung's vocabulary (1.4.0, no floor bump — see the upstream
-refresh table): `io.isModulated(key)` raises a **wave-mark tilde**, and for a
-key it reports true the controller reads `<fullKey>:effective` on a fast lane
-(`MOD_FAST_READS_PER_TICK` keys a tick, ungated by the turn settle on purpose)
-and draws a **5-pixel plus riding the arc while the pointer keeps the base**
-(`page_controller.mjs` `refreshModulatedValues`, v1.4.0 ~4055: *"`values` stays
-the BASE — what the user dialled in and what a turn edits"*). **movy owns both
-sides of that**: `isModulated` is movy's own injected function
-(`renderer/schwung-page-io.ts`, wired by SP-18 from the LFO routing model), and
-`getParam` is movy's too — the epoch cache in front of `portFor(track)` — so
-movy can answer `<key>:effective` with the lane's live value and the plain key
-with the dialled base. That is precisely (b), with no upstream change.
+**THE BASE WAS THE WHOLE ITEM, and it was not lost — it was just never asked
+for.** The engine emits a lane's value as a CC and the chain applies it inside
+the DSP (`movy-dsp/src/lib.rs`, `OutEvent::Cc`), so a read of the plain key
+answers **the lane**: there is no second value on the port. But movy tells the
+engine the base once per edit already — `abase` at `assignLane`, `abaseq` on the
+release that ends a normal turn (`seq/automation.ts`) — and the engine keeps it
+as `lane_base`, which is what playback reverts to. So the base is **mirrored
+where it is already sent** (`seq/automation-base.ts`), in the parameter's own
+units rather than the wire's 7 bits, and the one case a mirror cannot cover — a
+Set the engine restored, whose lanes the UI rebuilds from `alabels` having never
+emitted their bases — is filled by a new engine read-back, **`abases`**, in
+`alabels`' own shape and read on the same sync (`app/tick.ts`). ENGINE_VERSION
+**0.79.0 → 0.80.0**.
 
-**The open question is the BASE, and it is the whole item.** Under `page` the
-plain-key read goes to the engine port, which answers the value the chain's DSP
-currently holds — and for an automated parameter that IS the lane's value
-(`engine/crates/movy-dsp/src/lib.rs:675` emits the CC; the chain applies it
-inside the DSP, which is why no write is ever logged — SP-19, SP-29). So there
-is no base to serve until movy decides where one comes from: the model's stored
-value, the value at the last manual turn, or a lane-recorded base. Establish
-that FIRST; everything else here is wiring.
+**The two open questions were rulings, and the user made both (2026-09-19).**
 
-**(a) needs a decision about grammar, and it may need upstream.** Reporting an
-automated key through `isModulated` gets a mark today — but a **tilde**, movy's
-symbol for modulation, on a parameter that is **automated**, whose symbol is a
-dot. The two readings would collide on a parameter that is both. `decorations`
-cannot carry it: `locked` means a held step's lock and the pass that would
-otherwise set it always-on was removed for exactly this reason (see the
-`decorationsFor` comment — *"a mark that is always there says 'locked' about a
-cell nobody locked"*). So either movy draws its own dot in the chrome it already
-owns, or the third channel becomes **SU-8**. Prefer whichever does not put a
-second implementation of a mark inside Schwung's body.
+- **Does `off` change too? NO — `page` only.** movy's own renderer goes on
+  following the lane until SP-30 flips the default. **This is a deliberate
+  divergence and here is what it is:** under `off` an automated parameter's arc
+  shows the LANE and wears a dot; under `page` it shows the BASE and wears a
+  tilde plus a travelling mark. Whoever does SP-30 owns closing it — `off`'s
+  half is a mod dot on `renderer/knob.ts`'s arc, which movy has never drawn.
+- **Which mark? THE TILDE, with SU-8 filed.** Automated keys answer
+  `isModulated`, which is what buys (b) at all. The cost is the grammar: a lane
+  and an LFO now draw the same mark, so **(a) is satisfied in substance — the
+  page marks what is automated — and not in vocabulary.** The dot is upstream
+  (SU-8, now unconditional and specified: one bit per cell beside `locked`), not
+  a second mark movy paints into Schwung's cell, which is what this entry's own
+  question said to prefer against.
 
-**Closes when:** an automated parameter under `page` is marked; its pointer
-stays at the base while a mark tracks the lane during playback; a logic test
-drives a lane and asserts both (teeth: remove the `:effective` answer and the
-mark freezes); and this entry records what `off` now does and why.
+**The half that nobody asked for and the feature does not work without.**
+`page.knobLevels()` read `ctl.state.values[k]` — the BASE map — and that is the
+only thing `app/page-poll.ts` watches to decide whether to repaint. With the
+base/effective split the base stands still by definition while a lane plays, so
+the mark would have been drawn **once and frozen** — the same defect SP-48
+records from the other direction. `knobLevels` now answers the DRIVEN value
+where there is one, which also makes the knob LED follow what the parameter IS
+doing, as it did under movy's own renderer.
 
-**Needs:** nothing upstream. Pairs with SP-35.
+**Teeth — `browser-test/logic/page-automation.mjs`, ten checks, each removal
+measured.**
+
+| removed | what reddens |
+| --- | --- |
+| the `isModulated` widening | `the key reports as modulated` + the pointer chases (`0.90`, `0.10`) + no mark at all (`modValues` undefined) |
+| the `:base` answer | `expected "0.5", got "0.90"` then `got "0.10"` — **the reported bug, reproduced** |
+| `knobLevels`' live value | `the levels follow the driven value` goes flat |
+| the `:effective` answer | **39 port round trips across 40 ticks, against 0** |
+
+**`:effective` IS A READ, NOT THE DOT, and this is the one thing a later
+simplification will get wrong.** The controller falls back to the plain key when
+`:effective` does not answer, so the dot appears either way — measured, removing
+the answer reddens no value check. What it costs is a live blocking engine GET
+**every tick**, forever: the engine does not serve that key, a null is never
+cached (`schwung-page-cache.ts`), and the controller asks for one modulated key
+per tick. **That cost is pre-existing for LFO keys and is still there for them**
+— deliberately: since schwung #276 a chain-modulation target's PLAIN key answers
+the BASE, so answering `:effective` with the plain read would park the dot on
+the pointer. It is right for an automated key only because movy knows what the
+plain key holds for one. Part of SP-49's standing cost, now smaller by one key
+per tick per automated parameter on the drawn page.
+
+**Checked against SP-48, as SP-38's entry required.** The mark rides the ARC,
+and `drawArcKnob` takes no `anim` — so an automated float cannot reach the
+animation predicate. What it does widen is the route: `modValues` is merged
+before the renderer observes, so an automated **enum-shaped or wave-viz**
+parameter whose value moves faster than ~8 Hz is now a second way into SP-48's
+never-settling page, where before only a host LFO or a `live` param could get
+there. No new mechanism, one more source; SP-48 still owns it and its fix covers
+both.
+
+**No new screenshot baseline, deliberately.** No rendering logic changed: the
+widget, the tilde and the travelling plus are all Schwung's and are already
+pinned by `page_mod_cell` / `page_mod_cell_held`; what movy supplies is the
+three values, which the logic suite asserts directly. The repo rule is the
+cheapest level that reproduces the bug, and a baseline here would re-assert
+Schwung's pixels through a longer path.
+
+**Docs.** `MANUAL.md`/`README.md` untouched, for SP-31's reason: the `page` flag
+is not user-visible yet (SP-47), so no gesture, page or control a user has today
+has changed.
+
+**Needs:** nothing. SU-8 is the follow-up and is not a blocker.
 
 ---
 
@@ -512,12 +556,27 @@ has NOT left session mode, and its jog click was answered by the MASTER page,
 which is never latched. The check passed with the fix removed until the second
 press/release pair was added.
 
+**ON THE DEVICE, 2026-09-19 — and it had never run there.** The item closed on
+the logic suite alone; its device half was not verified, which is exactly the
+gap a reader of this entry would have assumed was covered. It is now
+`page-lifecycle`'s **L4** (`knob-release-does-not-latch`), and it grades the
+SYMPTOM rather than a proxy: hold knob 1 on track 0's delegated page, switch to
+track 1 *while it is down* (`dev.knobHold`, so the release lands on the other
+page), come back, and click the jog — `probe.page().view` must be `browse`, the
+module browser, which a latched `touched` swallows. Two real controllers for two
+real chains, and a track switch only the hardware's own MIDI produces; the
+logic suite models both ends. The click is backed out with Back rather than
+committed, so the fixture's chain is untouched whichever way the check goes.
+
 **Docs.** MANUAL.md and README.md are untouched, and that is the answer rather than an
 omission: the `page` flag is not user-visible yet (that is SP-47's item), so no gesture,
 page or control a user has changed.
 
-**Not covered — a ledger NOTE, not a fix.** The movy-MODEL half of the same
-gesture is still resolved at release time:
+**Not covered — an OPEN ITEM, SP-51, not a footnote here.** It was a ledger NOTE
+without an id until 2026-09-19, which is the thing this ledger's own convention
+exists against: a prose-only note is a finding the next session re-derives from
+scratch instead of picking up. The movy-MODEL half of the same gesture is still
+resolved at release time:
 `knobModel()?.handleKnobTouch(d1, !owner.delegated)` on the press against
 `knobModel()?.handleKnobRelease(d1)` on the release (`src/midi/router.ts`). A
 page change mid-hold therefore leaves the model that heard the press with its own
@@ -763,6 +822,14 @@ Nothing looks wrong, and that is the point: the animation is doing its job and
 the page pays the animating cost on every tick, forever. What a person notices
 is a warm tool and a shorter battery; what the next item that measures tick
 headroom notices is noise it cannot attribute.
+
+**SP-36 ADDED A SECOND SOURCE, NOT A SECOND MECHANISM (2026-09-19).** An
+automated parameter now reports `isModulated`, so its live value rides
+`modValues` the same way an LFO target's does — and the renderer merges before
+it observes. A float is immune (the mark rides the arc, and `drawArcKnob` takes
+no `anim`), so what SP-36 widened is exactly: an automated **enum-shaped or
+wave-viz** parameter whose lane moves it faster than ~8 Hz. The fix below covers
+it unchanged; the count of ways in went from two to three.
 
 **This is a regression, and it is SP-38's.** Before SP-38 the same setup
 **froze**: `pollDrawnPage`'s `moved` came from `page.knobLevels()`, which reads
@@ -2692,7 +2759,9 @@ the fact a later session would otherwise re-derive.
   REGRESSIONs (`5 of 3`, exit 1); removing the drain reddens the ledger check too
   (`expected 0, got 1`). **`CC_NOTE_SESSION` toggles on the PRESS** — a test that releases the
   button once has not left session mode, which is what made the jog-click check toothless until
-  it pressed twice. **Note, not fixed:** the movy MODEL's own touch is still resolved at release
+  it pressed twice. **Note, not fixed — now an item: SP-51** (the id was added 2026-09-19; it
+  spent its first day as prose, and this line is where a later session was expected to find it).
+  The movy MODEL's own touch is still resolved at release
   time (`knobModel()?.handleKnobTouch` vs `handleKnobRelease`); the LFO hold is not affected
   (`holdRelease` keys on the knob index alone).
 - **SP-37 ✅ 2026-09-19 — the header names the page, not movy's bank.**
@@ -3263,7 +3332,19 @@ the fact a later session would otherwise re-derive.
   **One value, in one place.** `test-device/arm.ts` holds `MOVY_ARM = 'off'` and
   `armMovy(probe)` — which returns the renderer the probe reports, so a caller
   can assert the arm it actually got as `smoke` does — together with the argument
-  for the arm in full. Not three copies of a one-liner: the reason is long and
+  for the arm in full. **That "can" was the gap, closed 2026-09-19: `armMovy` now
+  REGISTERS the check itself (`armMovy(t, probe)`, check id `arm-taken`,
+  `arm-taken-after-reopen` for `smoke`'s second arm) so a caller cannot ignore
+  it.** Only `smoke` ever spent the return; `items` and `module-contract` noted
+  it and moved on, which is a false green in this tier's own class — a scenario
+  that grades the wrong renderer reports feature failures that are a setting, or
+  worse, passes on a `body`-arm box where the checks happen to hold. Teeth,
+  measured on the device 2026-09-19 (see the record-corrections bullet below for
+  the run): with `armMovy`'s `setGridMode` call replaced by a no-op — the one
+  real failure mode, since the override writes nothing and does not survive a
+  reopen — `arm-taken` reddens by name in `items` and `module-contract` while the
+  checks below it stay red for the arm's own reason, and restoring the call
+  returns both scenarios to green. Not three copies of a one-liner: the reason is long and
   must exist once, and a literal copied into three files is a set that silently
   drifts, at which point the argument stops holding for whichever scenario moved.
   `smoke.ts` imports it and drops its local block — **522 lines**, down from the
@@ -3287,3 +3368,56 @@ the fact a later session would otherwise re-derive.
   The check asserts the same thing in both arms, but no run can separate the two
   populations, so the printed rate (`8 flaky 0 failed of 39 runs`) blends them
   and is not a single-arm rate.
+- **2026-09-19 — two RECORD NUMBERS were wrong, and they are corrected here
+  because a reported SHA is not rewritten.** Both are from this branch's own
+  commit messages; a message is history, but this file is what the next session
+  reads as truth, so the correction lands where the claim was made.
+  **(1) `871ae07`'s "eleven files name it, all in comments, none parsing it" —
+  it is TWELVE files, and one is not a comment.** `git grep -l
+  schwung-page-migration 871ae07 -- src engine build browser-test test-device
+  scripts` returns 12: seven under `browser-test/`, two under `scripts/`, three
+  under `src/`. Eleven of them name the ledger inside a comment; the twelfth is
+  **`browser-test/page-mode-expected-fail.json`**, a JSON data file whose `note`
+  field ends "Owner: docs/schwung-page-migration.md" — parsed by
+  `page-mode.mjs`, which reads its `labels` array. The substantive claim still
+  holds and was re-checked at that revision: nothing PARSES the ledger path, and
+  `logic/page-owner.mjs`'s `CONTRACT_READ` allowlist really does name
+  `src/chain/hierarchy-source.ts` and `src/modules/loader.ts` and nothing else.
+  A count in a record commit is the class of defect this file exists to catch,
+  which is why it is worth a correction rather than a shrug: at twelve the claim
+  is still true, and at twelve it can be re-checked by one command.
+  **(2) SP-31's reported `capture-fixed-notes 7/50 runs` — the denominator is
+  wrong, and it is exactly the habit `234f7be` removed from the code.** 50 is
+  the flake ledger's total number of recorded RUNS (all scenarios, last 50); a
+  check's own denominator is its SCENARIO's run count, which `summarize`
+  back-fills (`r.runs = rows.get(key.slice(0, hash))?.runs ?? 0`) — 36 for the
+  `seq` scenario at the time. So the number the tooling prints, and the number
+  this ledger should carry, is **`7/36`**; `npm run test:device -- --flakes`
+  owns it. The code dropped the old habit in `234f7be` and the commit message
+  kept it, which is the failure mode a READ-BACK rule is for: the only way a
+  number in a record stays right is if the tool that produces it is asked.
+
+- **2026-09-19 — the sweep's ONE red was a named race the flake ledger already
+  had the rate for, and it is not this branch's.** The full tier on the branch
+  tip came back **18 scenarios · 148 checks · 1 failed**: `smoke#set-param-ipc`,
+  red through its own retry (`attempt 1 failed (assert)`, attempt 2 the same).
+  What it asserts is that no `set_param returned false` appears in the gesture
+  window; one did, out of the three knob writes the scenario makes
+  (`set slot=0 gi=0 key=synth:engine` twice, `gi=1 key=synth:harmonics` once —
+  `set-param-attempted` PASSED, so the writes were made).
+  **The rate was already recorded**: `npm run test:device -- --flakes` says
+  `smoke#set-param-ipc 4 flaky 0 failed of 42 runs (10%)`, and the `smoke`
+  scenario itself `8 failed of 42 runs (19%)` — the check needed a retry on
+  2026-09-17 and failed twice at `871ae07` earlier the same day, both **before**
+  SP-36 existed. **Attribution, not assumption:** `false` is
+  `host_module_set_param_blocking` refusing or timing out on the single-slot
+  `overtake_dsp:` SHM (`src/host/param.ts` `paramSet`), the arm is `off` (so no
+  delegated-page code runs at all), and **three standalone re-runs of the
+  scenario on the same build came back green — 13 checks each, first attempt**.
+  The sweep is where it bites, which is itself a clue: smoke runs 13th there,
+  on a box twelve scenarios' worth of work warmer. **The real defect underneath is not the check:
+  a refused knob write is SILENTLY LOST** — `applyKnobDelta` logs
+  `set_param returned false` and moves on, so the detent the user turned does
+  nothing. A bounded retry there (or a wider budget for this one write) is the
+  fix; it is a movy defect rather than a migration item, which is why it is
+  recorded here and not given an SP number.

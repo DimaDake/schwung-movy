@@ -2385,6 +2385,36 @@ impl Engine {
         out
     }
 
+    /// The value each assigned lane REVERTS to — what the user dialled in,
+    /// which is not what the parameter holds while a lane is driving it.
+    ///
+    /// Same shape as `auto_labels` so the two strings index identically:
+    /// tracks ',', lanes '.', an unassigned lane '-'. The UI knows this number
+    /// already for every base IT sent (`abase`/`abaseq`); this read-back exists
+    /// for the one case it cannot know — a Set the engine restored, whose lanes
+    /// the UI rebuilds from `alabels` without ever having emitted their bases.
+    /// Without it a loaded Set has no base to show until the knob is turned
+    /// once (SP-36).
+    pub fn auto_bases(&self) -> String {
+        let mut out = String::new();
+        for (ti, t) in self.tracks.iter().enumerate() {
+            if ti > 0 {
+                out.push(',');
+            }
+            for lane in 0..8 {
+                if lane > 0 {
+                    out.push('.');
+                }
+                if t.lane_assigned[lane] {
+                    out.push_str(&t.lane_base[lane].to_string());
+                } else {
+                    out.push('-');
+                }
+            }
+        }
+        out
+    }
+
     fn held_len_steps(&self) -> u16 {
         match self.held_query {
             Some((t, step)) if t < NUM_TRACKS => self.tracks[t].active().note_len_steps_at(step),
@@ -3551,6 +3581,34 @@ mod tests {
             OutEvent::Cc { lane, val, track: 0 } => Some((*lane, *val)),
             _ => None,
         }).collect()
+    }
+
+    /* The base read-back indexes like `alabels`, and says `-` where that one
+     * does — the UI zips the two strings lane by lane, so a lane that is a
+     * label in one and a number in the other would shift every lane after it. */
+    #[test]
+    fn auto_bases_indexes_like_auto_labels() {
+        let mut e = engine();
+        e.auto_label(0, 1, "synth:cutoff");
+        let mut out = Vec::new();
+        e.auto_base(0, 1, 70, &mut out);
+        /* Assigned by `auto_label`, so it answers its base; every other lane on
+         * the track is unassigned and answers the same dash `alabels` gives. */
+        let bases = e.auto_bases();
+        let labels = e.auto_labels();
+        let b0: Vec<&str> = bases.split(',').next().unwrap().split('.').collect();
+        let l0: Vec<&str> = labels.split(',').next().unwrap().split('.').collect();
+        assert_eq!(b0.len(), 8);
+        assert_eq!(b0.len(), l0.len());
+        assert_eq!(b0[1], "70");
+        assert_eq!(l0[1], "synth:cutoff");
+        assert_eq!(b0[0], "-");
+        assert_eq!(l0[0], "-");
+        /* A base set on an UNASSIGNED lane is still not a lane: it stays a dash,
+         * so the UI cannot mistake a leftover number for a live lane. */
+        e.auto_base_quiet(0, 5, 99);
+        let b = e.auto_bases();
+        assert_eq!(b.split(',').next().unwrap().split('.').nth(5).unwrap(), "-");
     }
 
     #[test]

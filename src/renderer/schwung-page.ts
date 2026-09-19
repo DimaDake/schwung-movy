@@ -32,6 +32,7 @@
  */
 
 import type { TrackPort } from '../track/port.js';
+import type { PageAutomation } from '../types/page-automation.js';
 import type { AutomationView } from '../types/viewmodel.js';
 import { schwungLib } from './schwung-lib.js';
 import { createPageIo } from './schwung-page-io.js';
@@ -105,6 +106,7 @@ export function createSchwungPage(
      * them can be swapped while the page lives on. Absent means "movy knows of
      * none", which is what a page built outside the app (a test, a probe) gets. */
     modulatedOf: ((track: number, componentKey: string) => ReadonlySet<string> | null) | null = null,
+    automationOf: ((track: number) => PageAutomation) | null = null,
 ): SchwungPage {
     const qualify = (k: string) => (k.indexOf(':') >= 0 ? k : componentKey + ':' + k);
 
@@ -118,8 +120,13 @@ export function createSchwungPage(
      * the planner (through the io below) and `focusVoice`. Built here for the
      * same reason as the cache — its lifetime is the controller's. */
     const hier = createPageHierarchy(port, qualify, cache, componentKey);
+    /* Both are asked as FUNCTIONS for the same reason (see modulated-keys.ts):
+     * a page is cached by (track, component) and outlives the module that built
+     * it, so an answer captured now would be given about a module that has
+     * since been swapped out. */
     const ctl = lib.createController(createPageIo(port, qualify, cache, hier, componentKey,
-        modulatedOf ? () => modulatedOf(port.track.index, componentKey) : null));
+        modulatedOf ? () => modulatedOf(port.track.index, componentKey) : null,
+        automationOf ? () => automationOf(port.track.index) : null));
     ctl.setLayout(lib.LAYOUT_MOVY);
 
     /* The controller's own view of the page it is showing. Both the binding's

@@ -37,6 +37,8 @@ import { updateKnobLEDs, updateKnobLEDsFrom, updateSingleKnobLED, resetKnobLedCa
 import { seqEngineTick, takeLabelSync, requestLabelSync } from '../seq/engine.js';
 import { drumSyncTick, resetDrumSync } from '../seq/drum-sync.js';
 import { applyLaneMapping } from '../seq/lane-mapping.js';
+import { laneRangeOf, anyLaneNeedsBase } from './automated-keys.js';
+import { seedFromEngine } from '../seq/automation-base.js';
 import { syncLabelsFromEngine, validateLane, automationRegistry, denorm7, laneKeysForTrack, automationDisplayDirty, liveTurnValues, poolIsFull, verifyLaneMappings, requestLaneWarm, laneWarmTick } from '../seq/automation.js';
 import type { AutomationView, ViewModel } from '../types/viewmodel.js';
 import type { Model } from '../model/index.js';
@@ -541,6 +543,15 @@ function tickBody(): void {
                     return validateLane(tp, ps, (key) => model.paramRangeByKey(key));
                 },
             );
+            /* The bases the UI never sent (SP-36). After the labels, so every
+             * lane that is staying already has the range that turns the wire's
+             * 7 bits back into the parameter's units — and ASKED FOR AT ALL only
+             * when some assigned lane is missing its base, because this read
+             * shares the single-slot param SHM with movy's own writes. */
+            if (anyLaneNeedsBase()) {
+                const bases = paramGet('abases');
+                if (bases) seedFromEngine(bases, laneRangeOf);
+            }
         }
     }
     // A chain module reload (user swap, dev redeploy) clears the chain-side

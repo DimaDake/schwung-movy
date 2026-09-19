@@ -23,14 +23,16 @@
  * re-pagination moves no lane: it follows its parameter onto whatever page
  * Schwung puts it on. `keyAt` is how movy asks which parameter a knob drives.
  *
- * The four things this file used to hold inline have their own modules now: the
+ * The five things this file used to hold inline have their own modules now: the
  * injected I/O (`schwung-page-io`), the contract lifecycle and its retry budget
- * (`schwung-page-contract`), the render path (`schwung-page-render`) and the
- * gestures forwarded to the controller (`schwung-page-input`). What is left
- * here is the binding and the surface it publishes.
+ * (`schwung-page-contract`), the render path (`schwung-page-render`), the
+ * gestures forwarded to the controller (`schwung-page-input`) and the per-tick
+ * "is it still moving" question (`schwung-page-anim`). What is left here is the
+ * binding and the surface it publishes.
  */
 
 import type { TrackPort } from '../track/port.js';
+import type { PageAutomation } from '../types/page-automation.js';
 import type { AutomationView } from '../types/viewmodel.js';
 import { schwungLib } from './schwung-lib.js';
 import { createPageIo } from './schwung-page-io.js';
@@ -39,6 +41,7 @@ import { createPageHierarchy } from './schwung-page-hierarchy.js';
 import { createPageContract } from './schwung-page-contract.js';
 import { createPageRender } from './schwung-page-render.js';
 import { createPageInput } from './schwung-page-input.js';
+import { createPageAnimating } from './schwung-page-anim.js';
 import { chromeFor, type PageChrome } from './schwung-page-chrome.js';
 
 /** What Schwung asks the HOST to do. `open` wants an editor for `key`; `exit`
@@ -70,6 +73,12 @@ export interface SchwungPage {
      *  nothing has been read back. What lights the knob LEDs, and what movy
      *  watches to know the drawn page moved. */
     knobLevels(): (number | null)[];
+    /** SP-38: is the drawn page still MOVING — a widget transition in flight,
+     *  or a trigger bang still flashing — with no value and no page identity
+     *  change to show for it? Asked by the repaint decision when both of those
+     *  have held still, and the only thing that makes an animated widget draw
+     *  more than the one frame its value change bought. */
+    animating(nowMs: number): boolean;
     render(title: string, auto?: AutomationView, touched?: number): void;
     /** What movy's header and footer should say while this page is the body.
      *  `paging` is true only where the jog moves this page set. */
@@ -97,6 +106,7 @@ export function createSchwungPage(
      * them can be swapped while the page lives on. Absent means "movy knows of
      * none", which is what a page built outside the app (a test, a probe) gets. */
     modulatedOf: ((track: number, componentKey: string) => ReadonlySet<string> | null) | null = null,
+    automationOf: ((track: number) => PageAutomation) | null = null,
 ): SchwungPage {
     const qualify = (k: string) => (k.indexOf(':') >= 0 ? k : componentKey + ':' + k);
 
@@ -110,8 +120,13 @@ export function createSchwungPage(
      * the planner (through the io below) and `focusVoice`. Built here for the
      * same reason as the cache — its lifetime is the controller's. */
     const hier = createPageHierarchy(port, qualify, cache, componentKey);
+    /* Both are asked as FUNCTIONS for the same reason (see modulated-keys.ts):
+     * a page is cached by (track, component) and outlives the module that built
+     * it, so an answer captured now would be given about a module that has
+     * since been swapped out. */
     const ctl = lib.createController(createPageIo(port, qualify, cache, hier, componentKey,
-        modulatedOf ? () => modulatedOf(port.track.index, componentKey) : null));
+        modulatedOf ? () => modulatedOf(port.track.index, componentKey) : null,
+        automationOf ? () => automationOf(port.track.index) : null));
     ctl.setLayout(lib.LAYOUT_MOVY);
 
     /* The controller's own view of the page it is showing. Both the binding's
@@ -126,7 +141,14 @@ export function createSchwungPage(
     const contract = createPageContract(ctl, port, componentKey, cache, hier);
     const page = createPageRender(ctl, { keyAt, keysOf, componentKey,
                                         normalizedOf: lib.normalizedOf });
-    const input = createPageInput(ctl, lib, port, qualify, hier);
+    /* SP-39: `focusVoice` covers the page it is about to turn to before the
+     * controller asks for its cells — see schwung-page-input.ts. */
+    const input = createPageInput(ctl, lib, port, qualify, hier, cache.warm);
+
+    /* SP-38's per-tick question, built once here and published below. It reads
+     * the animation store rather than the controller, so it lives in its own
+     * module — which is also what keeps this file inside its size cap. */
+    const animating = createPageAnimating(ctl, lib);
 
     return {
         /* `contract.reload()` drops the cache itself — a re-plan reads live,
@@ -140,6 +162,18 @@ export function createSchwungPage(
         get ctl() { return ctl; },
         get pageCount() { return ctl.pages ? ctl.pages.length : 0; },
         get pageIndex() { return ctl.pageIndex; },
+        /* UNWARMED ON PURPOSE, and it is not the skip the pad jump looks like.
+         * `changePage` is a JOG, and `onJog` never reaches `goToPage`: it sets
+         * `s.pageIndex` through `page_nav`'s `step()` and calls
+         * `warmCurrentPage()` itself (`page_controller.mjs`), which is the same
+         * per-key walk the jump warms for. The difference is the target: a jump
+         * lands on an ARBITRARY voice's page, a jog lands on the neighbour — the
+         * one page the controller's own neighbour-prefetch lane exists to keep
+         * warm, which is why its comment can say the call is "usually free". A
+         * warm here would also have to name the landing index before `onJog`
+         * computes it (its `step`/`stepLevel`/`restoreSection` choice, plus the
+         * menu and picker branches that return without moving at all). Left as
+         * it is, recorded rather than assumed — see SP-39's ledger entry. */
         changePage(delta: number) { ctl.onJog(delta > 0 ? 1 : -1); },
         goToPage(i: number) { ctl.goToPage(i); },
         keyAt,
@@ -152,6 +186,7 @@ export function createSchwungPage(
         },
         knobParamInfo: page.knobParamInfo,
         knobLevels: page.knobLevels,
+        animating,
         render: page.render,
         chrome: (paging: boolean) => chromeFor(ctl, lib, paging),
         knobTurn: input.knobTurn,

@@ -17,6 +17,7 @@
  */
 
 import { createSchwungPage, type SchwungPage } from './schwung-page.js';
+import type { PageAutomation } from '../types/page-automation.js';
 import { portFor } from '../track/registry.js';
 import { schwungLibAvailable } from './schwung-lib.js';
 import { schwungFloorMetOnce } from './schwung-floor.js';
@@ -110,11 +111,13 @@ export function setSchwungGridMode(m: SchwungGridMode | null): void {
  * caller decide for every page. `app/page-owner.ts` is the only caller. */
 export function schwungPageFor(trackIndex: number, componentKey: string,
                                modulatedOf?: ((track: number, componentKey: string) => ReadonlySet<string> | null) | null,
+                               automationOf?: ((track: number) => PageAutomation) | null,
 ): SchwungPage {
     const id = trackIndex + ':' + componentKey;
     let p = pages.get(id);
     if (!p) {
-        p = createSchwungPage(portFor(trackIndex), componentKey, modulatedOf ?? null);
+        p = createSchwungPage(portFor(trackIndex), componentKey, modulatedOf ?? null,
+                              automationOf ?? null);
         p.reload();
         pages.set(id, p);
     }

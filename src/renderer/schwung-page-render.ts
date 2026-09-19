@@ -103,10 +103,28 @@ export function createPageRender(ctl: any, deps: {
             const out: (number | null)[] = [null, null, null, null, null, null, null, null];
             if (!ctl.metaIndex) return out;
             const keys = keysOf();
+            const live = ctl.state ? ctl.state.modValues : null;
             for (let slot = 0; slot < 8; slot++) {
                 const k = keys[slot];
                 if (!k) continue;
-                const raw = ctl.state && ctl.state.values ? ctl.state.values[k] : null;
+                /*
+                 * THE DRIVEN VALUE WHERE THERE IS ONE, AND THAT IS WHAT MAKES
+                 * THE MARK MOVE (SP-36).
+                 *
+                 * For a key movy reports as modulated — an LFO target, or now a
+                 * parameter a lane is driving — `state.values` holds the BASE
+                 * and stands still by design, while `state.modValues` carries
+                 * the live one. Read only the base and this answer never
+                 * changes while automation plays, so `app/page-poll.ts` sees
+                 * nothing move and never asks for the frame back: the mark
+                 * riding the arc would be drawn once and freeze. The same
+                 * number lights the knob LED, where the live value is also the
+                 * honest reading — the ring shows what the parameter IS doing,
+                 * which is what it showed under movy's own renderer.
+                 */
+                const lv = live ? live[k] : undefined;
+                const raw = lv !== undefined && lv !== null ? lv
+                          : (ctl.state && ctl.state.values ? ctl.state.values[k] : null);
                 out[slot] = normalizedOf(ctl.metaIndex.getOrGuess(k), raw) ?? null;
             }
             return out;

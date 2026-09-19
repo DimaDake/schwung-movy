@@ -31,6 +31,16 @@
  * would promise a thing the button does not do — the exact class of bug the
  * upstream footer's own comments record three times. movy keeps the chain
  * view's footer, so the caller passes `paging: false`.
+ *
+ * THE PAGE LABEL IS THE THIRD THING, AND IT IS NOT A BAND. movy's header names
+ * the page on its right — and under `page` the bank BAR is already Schwung's
+ * (`schwungBankFor`, over `pageIndex`/`pageCount`) while that name was still
+ * movy's bank, so the bar paginated one set and the label named the other. On a
+ * module whose movy config opens with a preset bank the label is a constant.
+ * `pageLabel` rides here because this is the one place that composes what movy
+ * says while a delegated page is the body, and because the whole object is
+ * withheld where the delegated page is not what is drawn (`schwungChromeFor`
+ * returns undefined), which is what keeps `off` byte-identical.
  */
 import type { SchwungLib } from './schwung-lib.js';
 
@@ -41,10 +51,13 @@ export interface PageHeader {
 }
 
 /** What movy draws in the rows Schwung is not asked for. `header` null means
- *  movy's own header stands; `footer` null means movy's own footer does. */
+ *  movy's own header stands; `footer` null means movy's own footer does.
+ *  `pageLabel` is not a band: it is the page's own name, for the right-hand end
+ *  of a header movy is already drawing. */
 export interface PageChrome {
     header: PageHeader | null;
     footer: [string, string][] | null;
+    pageLabel: string | null;
 }
 
 /** Everything movy draws around Schwung's body, in one answer.
@@ -54,6 +67,7 @@ export function chromeFor(ctl: any, lib: SchwungLib, paging: boolean): PageChrom
     const held = !!(ctl && ctl.state && ctl.state.touched >= 0);
     return {
         header: heldHeaderFor(ctl),
+        pageLabel: pageLabelFor(ctl),
         /* A HAND ON A KNOB TAKES THE BOTTOM ROWS, AND THAT IS THE WHOLE RULE.
          *
          * The hint band and the Loop strip occupy overlapping rows — the
@@ -71,6 +85,33 @@ export function chromeFor(ctl: any, lib: SchwungLib, paging: boolean): PageChrom
          * saying so is the least useful line on the screen. */
         footer: held && paging ? pageFooterFor(ctl, lib) : null,
     };
+}
+
+/* THE PAGE'S OWN NAME, from the controller — never `page.name`. A page belonging
+ * to a CHILD level is named after WHICH CHILD it is showing, which the planned
+ * name cannot know: minijv plans "Edit Parts - 2" where the 2 is the second page
+ * OF THE LEVEL, so a user who has just chosen Part 2 reads the wrong number
+ * (`page_controller.mjs` says so at `pageLabel`, and Schwung's own host header
+ * takes the same answer — movy's header must not call the page something the
+ * host would not).
+ *
+ * GUARDED, like every optional read across the movy↔Schwung seam: a Schwung that
+ * cannot answer is the same as a page with no name, which is the header movy
+ * drew before this existed. `''` collapses to null for the same reason — an
+ * empty name must not win the `||` chain and blank the label movy would have
+ * shown. */
+export function pageLabelFor(ctl: any): string | null {
+    if (!ctl || typeof ctl.pageLabel !== 'function') return null;
+    const name = ctl.pageLabel();
+    /* THE THREE NULL-ISH INPUTS COLLAPSE TO ONE `null` ON PURPOSE, against the
+     * tri-state discipline the rest of this seam keeps: no controller, a
+     * controller that cannot name a page, and a name that is empty all mean the
+     * same thing to the one consumer — movy has no name for this page — and the
+     * header already has a good answer for that (`headerRightText`'s fallback
+     * chain, `knob-view.ts`): a bank or pad name, which beats a blank line. So
+     * there is nothing for a third state to say, and a consumer merging them
+     * back together is what this return does once instead. */
+    return (name === undefined || name === null || name === '') ? null : String(name);
 }
 
 export function heldHeaderFor(ctl: any): PageHeader | null {

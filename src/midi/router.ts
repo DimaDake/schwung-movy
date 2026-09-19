@@ -1,5 +1,7 @@
 import { trackRef } from '../track/ref.js';
 import { pageOwnerOf } from '../app/page-owner.js';
+import { pinPage, unpinPage } from './knob-page-pin.js';
+import { perfPhase, perfPhaseEnd } from '../app/perf-probe.js';
 import { openSchwungEditor, schwungEditorActive, schwungEditorJog,
          schwungEditorCommit, schwungEditorCancel } from '../renderer/schwung-editor.js';
 import { openSchwungDive } from '../browser/schwung-dive.js';
@@ -264,6 +266,18 @@ export function onMidiMessageInternal(data: number[]): void {
     /* Capacitive knob touch: NoteOn note=0..7. Hold-Clear (Delete) + touch
      * clears that knob's automation lane. */
     if ((status & 0xF0) === 0x90 && d1 < 8) {
+        /*
+         * A RELEASE IS OWED TO THE PRESS, NOT TO WHAT IS ON SCREEN NOW.
+         *
+         * Delivered here, ABOVE the page overrides below, because they `return`
+         * — a step page or a param page that comes up while a knob is down
+         * would otherwise swallow the release and strand the pressed page's
+         * controller exactly as a page change does. The ledger records the page
+         * at the press; see midi/knob-page-pin.ts for why the latch it prevents
+         * is permanent.
+         */
+        const owed = d2 > 0 ? undefined : unpinPage(d1);
+        owed?.knobTouch(d1, false);
         // Main/Clip Params are pages the user opened deliberately and are what
         // app/tick.ts actually renders, so they own the knobs ahead of the step
         // page. (The other order let a step hold silently steer the knobs away
@@ -331,6 +345,7 @@ export function onMidiMessageInternal(data: number[]): void {
             /* Schwung shows the held param's full name and value in the header
              * strip, and a dive is a click WITH a knob held — both need the same
              * finger movy just saw. */
+            pinPage(d1, owner.page);
             owner.page?.knobTouch(d1, true);
             automationKnobTouched(d1);    // arm tap-to-clear in step-auto mode
             /* Scoped to whichever chain the knobs are editing: hold-to-modulate
@@ -344,7 +359,10 @@ export function onMidiMessageInternal(data: number[]): void {
              * down after the touch did. */
             if (deleteActive()) markDeleteActed();
             if (knobModel()?.handleKnobRelease(d1)) seqToast('Wrong preset type');
-            owner.page?.knobTouch(d1, false);
+            /* Only when the press recorded no page: the pinned page above has
+             * already taken the release, and asking this owner as well would
+             * hand it one it never heard. */
+            if (!owed) owner.page?.knobTouch(d1, false);
             if (info) automationKnobReleased(appState.activeTrack.index, d1, info);
             holdRelease(d1);
         }
@@ -435,17 +453,40 @@ export function onMidiMessageInternal(data: number[]): void {
                 mlog('drumPad note=' + d1 + ' pad=' + pad);
                 if (pad !== null) {
                     model!.updateDrumPad(pad, d1);
-                    /* Pad-follow, for configs that declare `pad` on a bank. A
-                     * no-op for every config that does not. */
-                    model!.selectBankForPad(pad);
-                    /* The same follow for a DECLARED rack: the module said
-                     * which level each voice lives on and Schwung named that
-                     * level on the page it planned, so the pad shows its
-                     * voice's page. Reported from the device as the header
-                     * following the pad while the page stood still. Returns
-                     * false for anything that has not declared, which is where
-                     * selectBankForPad above still answers. */
-                    pageOwnerOf(model).page?.focusVoice(pad);
+                    /* SP-39. THE PAGE-FOLLOW GESTURE, TIMED. A pad press is the
+                     * most-used gesture on a drum track and `off` and `page`
+                     * reach the page by different routes — movy's own bank
+                     * switch, Schwung's `focusVoice`. This is the one place
+                     * both run, so one phase covers both arms and the A/B is a
+                     * flag change rather than a build change. It sits OUTSIDE
+                     * the tick (a press is handled before `tick()`), so without
+                     * it a synchronous cost here is visible only as a
+                     * `peak_period` spike against the host loop's own 12-32 ms
+                     * noise floor. */
+                    perfPhase('padpage');
+                    /* `finally` BECAUSE `perf_phase` IS AN OPEN/CLOSE PAIR WITH
+                     * NO RESET: `perfPhase`/`perfPhaseEnd` share one name and
+                     * one start stamp, so a throw between them leaves the phase
+                     * open and the NEXT window reports this gesture's start as
+                     * its own — a cost attributed to the wrong window, and one
+                     * the probe cannot show you. A phase that is only closed on
+                     * the happy path is a phase that lies exactly when something
+                     * went wrong. */
+                    try {
+                        /* Pad-follow, for configs that declare `pad` on a bank.
+                         * A no-op for every config that does not. */
+                        model!.selectBankForPad(pad);
+                        /* The same follow for a DECLARED rack: the module said
+                         * which level each voice lives on and Schwung named that
+                         * level on the page it planned, so the pad shows its
+                         * voice's page. Reported from the device as the header
+                         * following the pad while the page stood still. Returns
+                         * false for anything that has not declared, which is
+                         * where selectBankForPad above still answers. */
+                        pageOwnerOf(model).page?.focusVoice(pad);
+                    } finally {
+                        perfPhaseEnd();
+                    }
                 }
             } else {
                 noteOn(d1, PAD_MIN, track, vel);

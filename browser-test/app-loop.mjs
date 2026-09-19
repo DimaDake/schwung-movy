@@ -561,6 +561,56 @@ _log('\napp-loop: file-param jog-click opens the browser on the chain page');
     sendMidi([0x90, 1, 0]);
 }
 
+/* ── a knob release that outlives its page must not latch the controller ─── */
+_log('\napp-loop: a knob release that outlives its page does not latch the controller');
+{
+    /* The block above plugs this leak by hand, in the order that avoids it.
+     * This one takes the order the user does not control: the page under the
+     * finger changes WHILE it is down, and the release comes out of order.
+     *
+     * The controller recomputes `touched` from `touchOrder` alone and has no
+     * staleness expiry for a held knob — deliberately, it refuses to re-plan
+     * under a hand — so a release that arrives at a page which never heard the
+     * press strands the slot for the life of that controller. `touched >= 0`
+     * is not a stale highlight: movy's jog-click guard reads it as "a knob is
+     * under the hand" and hands every later click to the page, so the module
+     * browser never opens again. */
+    /* THE FIXTURE IS THE ONE THE BLOCK ABOVE LEFT, deliberately: the page cache
+     * is keyed by (track, component), so swapping the module here would hand
+     * the NEXT block a controller that is still re-planning — which is the
+     * hazard `setup()` above waits out, and the next block does not wait. Same
+     * module, same key, one live plan. */
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.file_param);
+    resetSeqState(); resetSeqEngine();
+    globalThis.init();
+    appState.trackModels[0][1].reload();
+    advance(12);
+    appState.currentView = VIEW_KNOBS;
+    for (let i = 0; i < 12 * 60 && ownerFor().claimed && !ownerFor().delegated; i++) advance(1);
+    const ctl = ownerFor().page?.ctl ?? null;
+
+    sendMidi([0x90, 1, 127]);                  // touch knob 1 — the page hears it
+    sendMidi([0xB0, CC_NOTE_SESSION, 127]);    // Session: the knobs are the master bus now
+    sendMidi([0xB0, CC_NOTE_SESSION, 0]);      // (the release is only the button coming up —
+    advance(1);                                //  Note/Session toggles on the PRESS)
+    sendMidi([0x90, 1, 0]);                    // let go, onto a page that never heard the press
+    sendMidi([0xB0, CC_NOTE_SESSION, 127]);    // Session again: the TRACK page has the knobs
+    sendMidi([0xB0, CC_NOTE_SESSION, 0]);      // back, and it is the page left holding the slot
+    advance(1);
+
+    if (GRID_ARM === 'page') {
+        eq('the pressed page is not left holding the knob', ctl?.state.touched ?? 'no page', -1);
+        /* The ledger itself, not just its effect: a pin that outlives its
+         * release would hold a page object for the rest of the session. */
+        const { pinnedCount } = await import('../dist/esm/midi/knob-page-pin.js');
+        eq('and the ledger is empty again', pinnedCount(), 0);
+    }
+    sendMidi([0xB0, globalThis.MoveMainButton, 127]);   // jog click, nothing held
+    advance(1);
+    eq('...and the next jog click still reaches movy', appState.currentView, VIEW_BROWSE);
+}
+
 _log('\napp-loop: knob turn while a step is held writes automation');
 {
     const { VIEW_KNOBS } = await import('../dist/esm/app/state.js');
@@ -583,12 +633,31 @@ _log('\napp-loop: knob turn while a step is held writes automation');
     eq('step-auto knob auto-assigns a lane', engine.ops.some((o) => o.startsWith('alabel 0 0 ')), true);
     eq('step-auto knob writes a lock at step 4', engine.ops.some((o) => o.startsWith('aset 0 0 4 ')), true);
 
-    // The file param (knob 0 = CC 71) is not automatable → no aset.
+    // The file param (knob 0 = CC 71) is not automatable → no aset, AND (SP-35)
+    // the turn is refused rather than left to fall through as a patch edit.
     engine.reset(); resetAutomation();
     seqState.stepAutoMode = true; seqState.holdStep = 4;
+    const fileKey = pageOwnerOf(appState.trackModels[0][1]).knobParamInfo(0)?.ioKey;
+    eq('(fixture) the refusal can name the cell it is about', typeof fileKey, 'string');
     sendMidi([0xB0, 71, 1]);                  // knob 0 (file param)
     advance(1);
     eq('file param not automated', engine.ops.some((o) => o.startsWith('aset')), false);
+    /*
+     * A HELD STEP CANNOT LOCK THIS CELL, AND MOVY SAYS SO FROM ITS OWN CHROME.
+     * The proactive half — the cell dimmed or hidden — lived in movy's own body
+     * drawer (`renderer/label.ts: hiddenDuringHold`) and draws nothing once a
+     * delegated page owns the screen (SP-35; the upstream channel for it is
+     * SU-8). What movy still owns is the toast band, drawn after the body, so it
+     * is live under `page`: this block's neighbour above proves that channel
+     * survives delegation. NOT a decoration — `locked` means "a lane live on
+     * this frame holds this PARAMETER", and setting it on a cell nobody locked
+     * is the lie SP-16 removed.
+     *
+     * IT HAS TO CONSUME THE TURN. An unconsumed one is handed on to
+     * `owner.page.knobTurn` / `model.handleKnobDelta` — an edit of the PATCH —
+     * under a hand that believes it is taking a lock.
+     */
+    eq('a held step refuses to lock it', seqToastText(), 'NO LOCK: ' + fileKey);
     seqState.stepAutoMode = false; seqState.holdStep = -1;
 }
 
@@ -3174,10 +3243,10 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
     advance(2);
 }
 
-/* ── a held step keeps movy's own values arriving ─────────────────────────── */
+/* ── a held step keeps the DRAWN page's own values arriving ───────────────── */
 {
     /*
-     * THE HELD-STEP SCREEN IS MOVY'S, SO MOVY MUST KEEP READING FOR IT.
+     * WHICHEVER SIDE DRAWS THE HELD-STEP SCREEN MUST KEEP READING FOR IT.
      *
      * SP-18 handed the held-step screen back to movy (schwungBodyFor's `held`
      * gate) but left the refresh gate above it asking the narrower question —
@@ -3187,9 +3256,11 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
      * cells themselves stayed right (they come from the engine's own status
      * poll) which is what made it easy to miss.
      *
-     * The gate now asks the same question the BODY asks. In the `off` arm this
-     * is true for the ordinary reason and is a regression guard; in the `page`
-     * arm it is the whole fix.
+     * SP-35 moves the ownership, so the reader moves with it: under `page` the
+     * delegated page's per-tick poll is what keeps the held-step screen live
+     * (`app/page-poll.ts`), and movy's own bulk refresh stopping is SP-12's
+     * rule rather than a loss. The check is written against "the reader that
+     * draws the cell" so ONE expression grades both arms.
      */
     const { resetAutomation } = await import('../dist/esm/seq/automation.js');
 
@@ -3209,43 +3280,278 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
     for (let i = 0; i < 12 * 60 && !owner().delegated; i++) advance(1);
     const expectDelegated = schwungGridMode() === 'page';
 
+    /* THE PREMISE, and read BEFORE the hold rather than asserted from the mode:
+     * the hold is only meaningful on a page Schwung had actually taken. (It
+     * used to be `eq(expectDelegated, schwungGridMode() === 'page')` — the same
+     * expression on both sides, which cannot fail.) */
+    const preHoldPage = owner().page;
+    eq('the page under the hold was Schwung\'s to begin with',
+       !!preHoldPage, expectDelegated);
+    const drawnKey0 = preHoldPage ? preHoldPage.keyAt(0) : null;
+
     /* THE HOLD IS IN PLACE FIRST, so the only window in which the new value
      * could arrive is a held one. Written behind every reader's back, exactly as
      * the block above does, so the arrival is a re-read and not an echo. */
     seqState.stepAutoMode = true; seqState.holdStep = 4;
-    const p1 = () => m.getKnobParamInfo(0)?.value;
-    const before = p1();
+    /* WHOEVER DRAWS THE CELL IS WHO READS IT — the same expression on both
+     * sides of the arm, so this is one check and not two. Under `page` the
+     * drawn page's own read is the probe (movy's refresh has stopped, which is
+     * SP-12's rule, not a loss). */
+    const drawn0 = () => (owner().page ? owner().page.knobLevels()[0]
+                                       : m.getKnobParamInfo(0)?.value);
+    const before = drawn0();
     globalThis.shadow_set_param(0, 'synth:p1', '0.55');
     advance(6 * REFRESH_BULK_TICKS);         // several full refresh windows
 
-    /* WHILE A STEP IS HELD THE SCREEN IS MOVY'S, SO THE KNOBS MUST BE TOO.
+    /* A HELD STEP KEEPS SCHWUNG'S PAGE, AND THE KNOCK-ON IS THE POINT.
      *
      * SP-18 moved the BODY back to movy for a held step and left the OWNER
-     * saying Schwung. The two are read by different files — `app/tick.ts` draws
-     * from the body, `midi/router.ts` targets from the owner — so under `page`
-     * you looked at movy's labels and locked SCHWUNG's parameters, on every
-     * cell where the two planners disagree (the router's own comment counts 9
-     * across the mock presets). Holding an EMPTY step is where it bit: a step
-     * with an occurrence opens the step page, which returns before either.
+     * saying Schwung; SP-33 closed that by handing the OWNER back too, so the
+     * screen and the gesture agreed — at the cost of the one gesture the
+     * migration's decoration work was built for, because the parameters move
+     * under your hand at the moment you are choosing which to lock. SP-35
+     * reverses the direction and keeps SP-33's ruling: ONE ACCESSOR, ONE
+     * ANSWER. `live()` no longer asks about the hold, so the body, the bank
+     * bar, the chrome, the LEDs and every gesture site all answer "Schwung"
+     * together, and the lock lands on the key the drawn page has in that cell.
      *
-     * The decision is the OWNER's now, and the body is derived from it — the
-     * same rule the bank bar and the chrome already follow. So this asks the
-     * ownership question and then asks whether the parameter under knob 0 is
-     * the one movy would draw there, which is a claim about the two agreeing
-     * rather than about either alone.
+     * THE SAME EXPRESSION IN BOTH ARMS. In the `off` arm nothing is claimed, so
+     * every one of these reads the movy answer it always did and the checks are
+     * the regression guards they were; the expected VALUE is the only thing
+     * that moves between the arms, never the claim.
      */
-    eq('a held step hands the page back to movy', owner().delegated, false);
-    eq('...so the knob targets the parameter movy drew',
-       owner().knobParamInfo(0)?.key, m.getKnobParamInfo(0)?.key);
-    /* The claim the block was built for, unchanged: movy is drawing, so movy
-     * must keep reading. `expectDelegated` is what the page was BEFORE the hold
-     * — the hold is only meaningful on a page Schwung had actually taken. */
-    eq('the page under the hold was Schwung\'s to begin with',
-       expectDelegated, schwungGridMode() === 'page');
-    eq('a held step keeps movy reading its own page', p1() !== before, true);
+    eq('a held step keeps the page the mode delegated', owner().delegated, expectDelegated);
+    eq('...so the knob targets the parameter the drawn page has there',
+       owner().knobParamInfo(0)?.key,
+       expectDelegated ? drawnKey0 : m.getKnobParamInfo(0)?.key);
+    /* ...AND THE ANSWER CAME FROM THE PAGE, not from the model underneath it.
+     * The two planners put the SAME param in knob 0 on this fixture
+     * (`differing slots: 0`), so the key above cannot tell the two answers
+     * apart — the spy is what does, and the next block is where the difference
+     * gets a fixture that shows it. */
+    let askedOf = 0;
+    if (preHoldPage) {
+        const real = preHoldPage.knobParamInfo;
+        preHoldPage.knobParamInfo = (s) => { askedOf++; return real.call(preHoldPage, s); };
+        owner().knobParamInfo(0);
+        preHoldPage.knobParamInfo = real;
+    }
+    eq('...asked of the page, not of the model underneath', askedOf > 0, expectDelegated);
+    eq('a held step keeps the drawn page reading', drawn0() !== before, true);
 
     seqState.stepAutoMode = false; seqState.holdStep = -1;
     resetAutomation();
+}
+
+/* ── SP-35: a held step locks the cell the DRAWN page has ─────────────────── */
+{
+    /*
+     * THE HOLD NO LONGER HANDS THE PAGE BACK, so the two things a hold owns are
+     * both live again on a delegated page: SP-18's p-lock DECORATION — whose
+     * only gate is `auto.held`, the very flag that made `owner.page` null — and
+     * the lane a knob turn writes.
+     *
+     * THE JOG IS THE TEETH. This fixture's two planners put the SAME param in
+     * knob 0 (`differing slots: 0`), so nothing about the two answers can be
+     * told apart at rest. Jog the drawn page a step and that cell has `p9` where
+     * it held `p1`; the lock then has to name the page's key or it is bound to a
+     * parameter that is not on the screen.
+     *
+     * THE DECORATION IS COUNTED AT ITS ONE SEAM INTO SCHWUNG. SP-18's renderer
+     * was only ever proved by handing it the page and the auto view directly —
+     * the failure mode upstream's own `triggerFiredAt` comment warns about
+     * ("the test handed the renderer both directly and so only ever proved the
+     * renderer, never the wiring"). Wrapping `ctl.setDecorations` measures the
+     * wiring, and it read ZERO calls for a whole hold before this change.
+     */
+    const { resetAutomation } = await import('../dist/esm/seq/automation.js');
+
+    schwungGridReload();                     // the cache holds the last block's page
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.test16);
+    resetSeqState(); resetSeqEngine(); resetAutomation();
+    setFlag('setcommit', 0);
+    globalThis.init();
+    const m = appState.trackModels[0][1];
+    m.reload();
+    appState.currentView = VIEW_KNOBS;
+    appState.activeTrack = trackRef(0);
+    advance(12);
+
+    const owner = () => pageOwnerOf(appState.trackModels[0][1]);
+    for (let i = 0; i < 12 * 60 && !owner().delegated; i++) advance(1);
+    const pageArm = schwungGridMode() === 'page';
+
+    /* THE JOG, AND THE PREMISE READ FROM IT rather than asserted from the mode:
+     * the cell has to be somewhere other than where it was, or neither the key
+     * nor its opposite says anything. */
+    const wasKey = m.getKnobParamInfo(0)?.key;      // the cell BEFORE the jog
+    owner().changePage(1);
+    advance(4);
+    const drawnKey = owner().knobParamInfo(0)?.key; // read BEFORE the hold
+    eq('(fixture) the jog moved the drawn cell off the key it held',
+       drawnKey !== wasKey, true);
+    /* ...and under `page` it is the TWO PLANNERS that are apart: movy's own bank
+     * stayed where it was while Schwung's page moved. That is the condition this
+     * block needs to have teeth, so it is asserted where it can exist. */
+    if (pageArm) eq('(fixture) ...because the two planners disagree there',
+                    drawnKey !== m.getKnobParamInfo(0)?.key, true);
+
+    /* THE SEAM, WRAPPED BEFORE THE HOLD. Restored at the end of the block. */
+    const sp = owner().page;
+    let realDec = null, decCalls = 0, decs = null;
+    if (sp) {
+        realDec = sp.ctl.setDecorations;
+        sp.ctl.setDecorations = (d) => { decCalls++; decs = d; return realDec.call(sp.ctl, d); };
+    }
+
+    /* Before the turn, so the frame the turn dirties is drawn with the lane
+     * already live — the engine reports it a poll behind, so the mirror the
+     * automation view actually reads is set alongside the status. */
+    engine.reset();                          // clears ops; it also clears status
+    engine.status.aauto = '1';
+    seqState.autoActive = 1;
+    seqState.stepAutoMode = true; seqState.holdStep = 4;
+    sendMidi([0xB0, 71, 1]);                 // knob 0: whatever the page drew there
+    advance(20);
+
+    eq('a held step keeps Schwung drawing the page', !!owner().page, pageArm);
+    eq('and the p-lock decoration reaches the controller', decCalls > 0, pageArm);
+    eq('...marked on a cell the page drew',
+       !!(decs && decs.some((d) => d && d.locked === true)), pageArm);
+    eq('the knob bound the lane to the parameter the page drew',
+       engine.ops.some((o) => o.startsWith('alabel 0 0 synth:' + drawnKey)), true);
+    eq('...and not to the key movy\'s planner had in that cell',
+       engine.ops.some((o) => o.startsWith('alabel 0 0 synth:' + wasKey)), false);
+
+    seqState.stepAutoMode = false; seqState.holdStep = -1;
+    seqState.autoActive = 0;
+    delete engine.status.aauto;
+    if (sp) sp.ctl.setDecorations = realDec;
+    resetAutomation();
+}
+
+/* ── SP-38: a value change draws FRAMES until the transition settles ──────── */
+{
+    /*
+     * THE ITEM'S OWN ACCEPTANCE, END TO END: "a value change on a delegated
+     * page produces frames until the transition settles and none after".
+     *
+     * COUNTED AT `render`, NOT AT `dirty`. The bug was never that the value
+     * failed to arrive — it arrived, and the tick drew it, ONCE. The bug is
+     * that nothing asked for the NEXT frame, so the enum square froze halfway
+     * to its new width and stayed there. The only measurement that tells "the
+     * widget animated" from "the widget jumped" is how many times the page was
+     * drawn, and `render` is the call `app/tick.ts`'s body closure makes.
+     *
+     * THE FIXTURE IS AN ENUM, DELIBERATELY. Only the enum square and the
+     * waveform morph feed Schwung's animation store, so on a page of eight
+     * floats there is nothing to animate and this block would pass with the fix
+     * REMOVED. `test_enum`'s knob 0 is `mode`, a four-option enum, so the
+     * transition it starts is the renderer's own observation and not something
+     * this test puts in the store.
+     *
+     * AND IT HAS TO CHANGE THE WIDTH, WHICH IS NOT THE SAME AS CHANGING THE
+     * OPTION. The square's frame travels to the WIDTH OF THE NEW LABEL —
+     * `enumw:<key>` observes `enumSquareWidth(text)`, a pixel count, not the
+     * option index — so a change between two options that render the same width
+     * moves nothing and there is no transition to draw. This block first wrote
+     * mode `0`→`2`, which is "LP"→"HP": same width, `observe` saw no change, and
+     * the check failed against a CORRECT fix. `0`→`3` is "LP"→"Notch", 17px to
+     * the 28px cap, which is the transition the widget actually has.
+     *
+     * THE ARM IS FORCED rather than read from MOVY_APP_LOOP_GRID, so these
+     * checks have teeth in the plain `npm test` run too and not only under
+     * page-mode.mjs. `pageArm` then goes in as the EXPECTED value, which is how
+     * every other block here stays honest with the library unavailable.
+     */
+    setSchwungGridMode('page');
+    const pageArm = schwungGridMode() === 'page';
+    schwungGridReload();
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.test_enum);
+    resetSeqState(); resetSeqEngine();
+    setFlag('setcommit', 0);
+    globalThis.init();
+    appState.currentView = VIEW_KNOBS;
+    appState.activeTrack = trackRef(0);
+    advance(12);
+
+    const owner = () => pageOwnerOf(appState.trackModels[0][1]);
+    for (let i = 0; i < 12 * 60 && !owner().delegated; i++) advance(1);
+    const sp = pageArm ? owner().page : null;
+    eq('the enum page is delegated to Schwung', !!sp, pageArm);
+
+    /* Frames are counted at the page's own render. Wrapped rather than
+     * re-exported so nothing else has to agree about what "a frame" is. */
+    let frames = 0;
+    if (sp) {
+        const realRender = sp.render;
+        sp.render = (...a) => { frames++; return realRender.apply(sp, a); };
+    }
+
+    /* (a) THE CONTROL. A delegated page with nothing moving draws NOTHING —
+     * SP-13's floor, and the thing that makes (b) mean something: if this loop
+     * drew frames on its own, every count below would be measuring the loop and
+     * not the fix. */
+    settleQuiet();
+    frames = 0;
+    advance(40);
+    eq('an idle delegated page draws no frame at all', frames, 0);
+
+    /* (b) THE TEETH. One value change on the drawn page, and MORE than the one
+     * frame the change alone buys — one is the bug. Written through the host
+     * the way the device writes it, behind the page's back, so the page has to
+     * READ it: a value the page set itself could arrive by a path this item
+     * does not touch. */
+    globalThis.shadow_set_param(0, 'synth:mode', '3');
+    frames = 0;
+    /* ARRIVAL FIRST, THEN THE WINDOW. The write lands in the engine, and the
+     * drawn page picks it up on its own read cursor — tens of ticks, not one —
+     * so counting frames from the write would measure the harness's latency
+     * rather than the transition. Count from the tick the changed value is in
+     * the page's own `values`, which is the render that draws it. */
+    let arrived = false;
+    for (let i = 0; i < 400 && !arrived; i++) {
+        advance(1);
+        arrived = String(sp ? sp.ctl.state.values.mode : '') === '3';
+    }
+    eq('the changed value reached the drawn page', arrived, true);
+
+    /* THE WINDOW, BOUNDED BY THE STORE'S OWN ANSWER AND NOT BY A TICK COUNT.
+     * The transition is 120 ms of WALL CLOCK, and how many ticks that is
+     * depends entirely on what a tick costs: here a tick is ~50 us when nothing
+     * is dirty and a few hundred us when it draws (a whole run of 60 ticks took
+     * ~18 ms), where on the DEVICE the animating window itself is the worst one:
+     * `tick_ms=3.9 period_ms=6.8` with `render=0.7` of it (SP-38's ledger —
+     * per-tick, averaged over a 120-tick window). Those are two different
+     * machines by two orders of
+     * magnitude, so a fixed tick count would measure the harness's speed rather
+     * than the animation. The loop runs
+     * while Schwung's own store says something is still moving — the same
+     * question the fix asks — and the cap exists only so that "it animates"
+     * cannot be satisfied by "it draws forever". */
+    let ticks = 0;
+    while (ticks++ < 5000 && (!sp || sp.animating(Date.now()))) advance(1);
+    eq('a value change draws frames until the transition settles ('
+       + frames + ' frames over ' + ticks + ' ticks)', frames > 1, pageArm);
+
+    /* (c) NONE AFTER. Every transition placed in the past — `anim_state`'s own
+     * field, so this is the input `settled` reads and not a restatement of it —
+     * and the page must go back to drawing nothing at all. Without this half
+     * "it animates" would also be satisfied by "it redraws forever". */
+    if (sp) {
+        for (const k of [...sp.ctl.state.anim.since.keys()]) {
+            sp.ctl.state.anim.since.set(k, Date.now() - 10_000);
+        }
+    }
+    frames = 0;
+    advance(80);
+    eq('and none once it has settled', frames, 0);
+
+    /* The wrapper goes with the page: the reload below drops both together. */
+    setSchwungGridMode(null);
+    schwungGridReload();
 }
 
 

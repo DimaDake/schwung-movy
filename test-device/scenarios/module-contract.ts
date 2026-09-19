@@ -64,6 +64,7 @@ import { Device } from '../device.js';
 import { Probe } from '../probe.js';
 import * as fixture from '../fixture.js';
 import { until } from '../wait.js';
+import { armMovy } from '../arm.js';
 
 const run = promisify(execFile);
 /* test-device/dist/scenarios/module-contract.js at run time. */
@@ -210,6 +211,13 @@ scenario('module-contract', async (t) => {
     await dev.deployUi();
     await dev.open(probe);
     await dev.selectTrack(0);
+    /* ARM THE SCENARIO — `test-device/arm.ts`, which is where the argument for
+     * this lives. The six trigger-write checks below read movy's OWN `set` lines
+     * and the contract checks read the hierarchy movy fetched; on the arm the box
+     * RESTS in (`page`) Schwung owns the component, movy writes nothing, and
+     * every one of them reports `writes: none` for a reason that is a setting
+     * rather than a defect. No reopen here, so one arm is enough. */
+    t.note('gridMode', await armMovy(t, probe));
 
     /* What the borrowed slot goes back to. Asked of the fixture, never written
      * down: track 0's chain declares a synth and nothing else, so FX 1 is empty

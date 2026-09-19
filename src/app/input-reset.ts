@@ -30,6 +30,7 @@ import { resetTrackSelect } from '../seq/track-select.js';
 import { resetTrackVolume } from '../mixer/track-volume.js';
 import { resetAssignMode } from '../lfo/assign-mode.js';
 import { jogHintTouch } from './jog-hint.js';
+import { clearPins } from '../midi/knob-page-pin.js';
 import { appState } from './state.js';
 
 /* Drop every held-input latch. `notifyEngine` sends the matching `hold -1` so
@@ -70,6 +71,10 @@ export function resetHeldInput(notifyEngine: boolean): void {
     // runs on the open path, so an empty list here is expected, not an error.
     for (const track of appState.trackModels) for (const m of track) m.clearTouch();
     for (const m of appState.masterFxModels) m.clearTouch();
+    /* The knob-touch ledger above is the OTHER half of this: the pins below are
+     * owed releases, and past this point they cannot arrive. A pin carried over
+     * would deliver a release to the page of a session that is over. */
+    clearPins();
 
     if (notifyEngine) seqCmd('hold ' + watchedTrack() + ' -1');
 }

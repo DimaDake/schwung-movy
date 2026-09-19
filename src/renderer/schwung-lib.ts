@@ -75,6 +75,25 @@ export interface SchwungLib {
      * down. */
     focusPressParamOf?: any;
     childPressParam?:   any;
+    /* SP-38, and optional for exactly the same reason as the pair above: an
+     * older Schwung that serves a param_pages without these costs movy the
+     * frames it asks for and nothing else — the call site guards.
+     *
+     * `settled` is the library's OWN "is anything on the drawn page still
+     * moving" (anim_state.mjs) rather than movy re-deriving the animation
+     * window from the durations, and `buttonPhase` is the one definition of how
+     * long a trigger bang draws for. Both are asked rather than restated for
+     * the same purpose: a second copy of `ENUM_ANIM_MS` or `BTN_FLASH_MS` here
+     * would drift from the renderer that actually draws. */
+    settled?:     any;
+    buttonPhase?: any;
+    /* Optional for the same reason, and asked for the same reason `settled` is:
+     * it is the library's OWN bare-key-to-concrete-key mapping, which the
+     * controller applies to every key before it asks the port. A second copy
+     * here would be a second answer to "which key is `start` on pad 4". A page
+     * that is child-level lists aliases, so a warm that prefixes the alias
+     * covers keys no read will look up — see `jump` in schwung-page-input.ts. */
+    resolveChildKey?: any;
 }
 
 /* LITERAL PATHS, NOT A CONCATENATION. esbuild can only apply its resolver to a
@@ -99,7 +118,7 @@ try {
      * error at evaluation, indistinguishable from a missing file to everything
      * above this line, and correctly treated the same way.
      */
-    const [pc, pi, rpm, el, wr, vo, ck, pm, pp] = await Promise.all([
+    const [pc, pi, rpm, el, wr, vo, ck, pm, pp, anm] = await Promise.all([
         // @ts-ignore — absolute device path; external in the device build
         import('/data/UserData/schwung/shared/param_pages/page_controller.mjs'),
         // @ts-ignore
@@ -122,6 +141,13 @@ try {
         import('/data/UserData/schwung/shared/param_pages/param_meta.mjs'),
         // @ts-ignore
         import('/data/UserData/schwung/shared/param_pages/page_plan.mjs'),
+        /* anim_state.mjs — safe to add for the same reason as the three above:
+         * `viz_draw.mjs` and `render_page_movy.mjs` both import it BY NAME, so
+         * wherever the library loads at all this file is already being loaded
+         * alongside it and cannot be the one that makes an otherwise
+         * serviceable Schwung fail. */
+        // @ts-ignore
+        import('/data/UserData/schwung/shared/param_pages/anim_state.mjs'),
     ]);
     lib = {
         createController: pc.createController, LAYOUT_MOVY: pc.LAYOUT_MOVY,
@@ -137,6 +163,8 @@ try {
         padLayoutOf: vo.padLayoutOf, focusParamOf: vo.focusParamOf,
         voicesOf: vo.voicesOf, voiceIndexFromNote: vo.voiceIndexFromNote,
         focusPressParamOf: vo.focusPressParamOf, childPressParam: ck.childPressParam,
+        settled: anm.settled, buttonPhase: rpm.buttonPhase,
+        resolveChildKey: ck.resolveChildKey,
     };
 } catch (e: any) {
     /* Swallowed DELIBERATELY, and this is the whole point of the file: an

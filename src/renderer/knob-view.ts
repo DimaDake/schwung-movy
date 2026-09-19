@@ -12,6 +12,35 @@ import { drawPageFooter } from './schwung-footer.js';
 /** What the bank bar should index, when it is not movy's own banks. */
 export interface BankOverride { index: number; count: number }
 
+/* SP-37 — WHAT THE HEADER'S RIGHT-HAND END SAYS, AND IN WHAT ORDER.
+ *
+ * The page's own name leads. The page IS where you are, and under a delegated
+ * page the bar above already counts Schwung's pages (`bank.index`/`count`),
+ * whose set differs in length from movy's banks — so naming movy's bank here
+ * printed one set's name under another set's bar, a constant on a module whose
+ * config opens with a preset bank. That was the reported symptom.
+ *
+ * THE PAD NAME IS THE FALLBACK, NOT THE WINNER, and the difference is a whole
+ * class of the same symptom. `vm.drumPadName` is the FOCUSED pad's — a
+ * property of the module, not of the page — so letting it lead pins this text
+ * to one word for the entire module: on a declared drum rack the jog moved the
+ * bar and the body and left the one piece of text that says where you are
+ * standing still. It still leads where it is the only name there is: no chrome
+ * at all (`off`, or the delegated page is not the body), or a null label (no
+ * page, or a controller that cannot name one) — which is movy's header before
+ * this item, unchanged.
+ *
+ * ON THE PAGE THAT IS THAT PAD'S PAGE the two agree — the page is named after
+ * the voice — so the pad name still names the header there, and nothing is
+ * lost by having the label in front.
+ *
+ * Exported because this expression is the item: a renderer read only as pixels
+ * cannot say "and it changes when the jog does". `logic/schwung-page.mjs`
+ * asserts the rule; the screenshot scene asserts the frame draws it. */
+export function headerRightText(vm: ViewModel, chrome?: PageChrome): string {
+    return chrome?.pageLabel || vm.drumPadName || vm.bankName;
+}
+
 export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 0,
                                 bodyOverride?: () => void, bank?: BankOverride,
                                 chrome?: PageChrome): void {
@@ -30,9 +59,11 @@ export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 
     } else {
         const showIcon = vm.isPadScoped && vm.drumPadCount > 0;
         const iconW    = showIcon ? PAD_ICON_W : 0;
-        /* Same rule as the chain view: the focused pad outranks the page
-         * label, because the page label is already implied by the bank bar. */
-        const rightText = vm.drumPadName || vm.bankName;
+        /* The rule, and why the pad name is the fallback rather than the
+         * winner, is on `headerRightText` above. The pad ICON below still
+         * carries the focused pad, so the header names the page and the icon
+         * names the voice — the two facts this band can hold at once. */
+        const rightText = headerRightText(vm, chrome);
         const rightW   = rightText ? fontWidth(rightText) + iconW + 4 : 0;
         const maxLeftW = W - rightW - 4;
         const trackLabel = 'T' + (activeSlot + 1);

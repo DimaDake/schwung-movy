@@ -17,6 +17,7 @@ import { isMixTarget } from './lane-mapping.js';
 import { seqState } from './state.js';
 import { seqToast } from './render.js';
 import { beginStepAutomation, heldRange } from './step-edit.js';
+import { noteLaneBase, clearLaneBase, resetLaneBases } from './automation-base.js';
 import { aliasFromConcrete, type PadScoping } from '../model/pad-scope.js';
 import { mlog } from '../log.js';
 
@@ -56,6 +57,7 @@ export function automationRegistry(): (LaneEntry | null)[][] { return registry; 
 
 export function resetAutomation(): void {
     for (const t of registry) t.fill(null);
+    resetLaneBases();
     liveVal.clear();
     liveCtx.clear();
     liveTurn.clear();
@@ -142,6 +144,10 @@ export function assignLane(
     registry[track][lane] = { targetParam: tp, shortName: info.ioKey, min: info.min, max: info.max, type: info.type };
     seqCmd('alabel ' + track + ' ' + lane + ' ' + tp);
     seqCmd('abase ' + track + ' ' + lane + ' ' + norm7(info.value, info.min, info.max));
+    /* Beside the command, never derived later: this IS the base, in the
+     * parameter's own units, and it is the last moment anything holds it —
+     * from the next step onward the lane owns the value (SP-36). */
+    noteLaneBase(track, lane, info.value);
     // Creating automation on a freshly (re)loaded module hits the same empty host
     // param cache: this new lane's abs-CC would resolve through find_param_info on
     // an empty synth_params and be dropped. Warm it so the first playback is
@@ -158,6 +164,7 @@ export function assignLane(
 export function clearLane(track: number, lane: number, undoable = true): void {
     if (lane < 0 || lane >= 8) return;
     registry[track][lane] = null;
+    clearLaneBase(track, lane);
     liveVal.delete(track + ':' + lane);
     liveCtx.delete(track + ':' + lane);
     liveTurn.delete(track + ':' + lane);
@@ -195,8 +202,48 @@ export function handleAutomationKnob(
     track: number, physK: number, info: KnobParamInfo, delta: number,
     setMapping: (lane: number) => boolean,
 ): boolean {
-    if (!info.automatable) return false;
+    /*
+     * A HELD STEP CANNOT LOCK A PARAM THAT CANNOT TAKE A LANE, AND SAYS SO (SP-35).
+     *
+     * Through a hold the turn is not an edit — the hand is choosing what to lock
+     * — so returning false is not neutral: `midi/router.ts` hands an unconsumed
+     * turn to `owner.page.knobTurn` / `model.handleKnobDelta`, i.e. it rewrites
+     * the PATCH under someone who believes they are taking a lock.
+     *
+     * The filter used to be `hiddenDuringHold` in movy's body drawer, which only
+     * works while movy draws the body: under `page` the body is Schwung's, so the
+     * offer was invisible until you turned it. The channel for saying it PER-CELL
+     * on a delegated page is upstream (SU-8) and must not be invented here —
+     * `decorations` carries `locked` ("a lane live on this frame holds this
+     * PARAMETER") and marking a cell nobody locked is the lie SP-16 removed. This
+     * toast is movy's own chrome, drawn after the body, so it survives `page`.
+     *
+     * THE GATE IS THE SAME ADMISSION TEST THE LOCK USES, and that is the point:
+     * `seqState.stepAutoMode` alone is "already promoted", which `stepAutoTick`
+     * only reaches after STEP_AUTO_MS (300 ms) — so a turn inside that window was
+     * refused-but-not-consumed and edited the patch, which is the sentence above.
+     * `heldRange() !== null` is the other half of the SAME admission test the
+     * automatable path applies at `beginStepAutomation() < 0` below — one step
+     * held, so a turn promotes — read without its side effects, so a refusal does
+     * not promote. Neither half is `anyStepHeld()`: that is true for every hold
+     * mode `hold` is reused for (a drum multi-press, a Loop-mode bar, step
+     * record), and in those a turn is a legitimate edit. Two of them are already
+     * unreachable here — the step page returns in `midi/router.ts` before this
+     * function, and a multi-press makes `heldRange()` null — which is what makes
+     * the term narrow enough to be the same claim and no wider.
+     *
+     * `recArmed` is excluded for the same reason the promotion below excludes it:
+     * under live record a turn is a take, not an assign, and a non-automatable
+     * param keeps its long-standing base edit there.
+     */
     const recArmed = seqState.recording && seqState.playing;
+    if (!info.automatable) {
+        if (seqState.stepAutoMode || (!recArmed && heldRange() !== null)) {
+            seqToast('NO LOCK: ' + info.ioKey);
+            return true;
+        }
+        return false;
+    }
     // Turning a knob while a single step is held enters step-automation mode.
     if (!seqState.stepAutoMode && !recArmed && beginStepAutomation() < 0) {
         return false; // no step held → normal path owns the base (immediate)
@@ -280,6 +327,7 @@ export function automationKnobReleased(track: number, physK: number, info: KnobP
     // normal (non-automation) edit syncs the engine base, quietly.
     if (!seqState.stepAutoMode) {
         seqCmd('abaseq ' + track + ' ' + lane + ' ' + norm7(info.value, info.min, info.max));
+        noteLaneBase(track, lane, info.value);
     }
 }
 
@@ -437,6 +485,15 @@ export function syncLabelsFromEngine(
         const lanes = tracks[t].split('.');
         for (let l = 0; l < 8 && l < lanes.length; l++) {
             const tp = lanes[l];
+            /* THE BASE BELONGS TO THE PARAMETER, NOT TO THE LANE NUMBER. A lane
+             * that came back pointing somewhere else is a different parameter
+             * on the same slot, and its predecessor's base would put the
+             * pointer at a value this param never held (SP-36). A lane whose
+             * target is unchanged keeps the base movy recorded in the
+             * parameter's own units — the engine's `abases` seed below is the
+             * same number after a 7-bit round trip, so re-seeding it would only
+             * blur it. */
+            if (registry[t][l]?.targetParam !== tp) clearLaneBase(t, l);
             if (!tp || tp === '-') { registry[t][l] = null; continue; }
             const v = validate(t, tp);
             if (v === 'drop') { clearLane(t, l, false); continue; }

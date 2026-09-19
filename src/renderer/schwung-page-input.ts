@@ -28,7 +28,60 @@ export interface PageInput {
 
 export function createPageInput(ctl: any, lib: any, port: TrackPort,
                                 qualify: (k: string) => string,
-                                hier: PageHierarchy): PageInput {
+                                hier: PageHierarchy,
+                                warm: (keys: readonly string[]) => void): PageInput {
+    /*
+     * SP-39. TURN TO A PAGE AND COVER ITS CELLS IN THE SAME BREATH.
+     *
+     * `ctl.goToPage` runs Schwung's `warmCurrentPage` synchronously, and that
+     * asks for every cell of the arriving page it does not already hold — one
+     * blocking round trip each, up to eight, on the gesture that turned the
+     * page. Measured on device as the whole of the pad-press gap: +0.3 single
+     * reads a tick across the press, and the worst frame in the window 14 ->
+     * 20.5 ms. The cache cannot see this coming (a key enters its batch only by
+     * being asked for), so the one place that does — a jump whose target page is
+     * already in hand — hands the keys over first. It is ONE bulk request for
+     * the page, and it is spent before the controller spends eight.
+     */
+    const jump = (i: number, childIndex?: number | null): void => {
+        const p = ctl.pages && ctl.pages[i];
+        if (p && Array.isArray(p.keys)) {
+            const keys = (p.keys as (string | null)[]).filter((k): k is string => !!k);
+            /* A CHILD-LEVEL PAGE LISTS ALIASES; THE READS ARE CONCRETE. Such a
+             * page carries `start` and the controller asks for `synth:p01_start`
+             * — every key goes through `childResolve`/`fullKey`, and
+             * `installChildAliases` is what makes the metadata follow. `qualify`
+             * only prefixes, so on that shape the aliases below would cover keys
+             * no read looks up and the jump would pay its singles anyway. The
+             * mapping is Schwung's own, asked rather than restated.
+             *
+             * The index is the voice's, which is the one `focusVoice` has
+             * written into the module's `child_index_param` WHERE THE LEVEL
+             * DECLARES ONE — that is what makes the two sides agree about which
+             * child is showing. The controller adopts the value from its own
+             * poll, so for a tick it may still be on the previous one: a miss,
+             * never a wrong value.
+             *
+             * ONE FLEET MODULE REACHES THIS AND IT IS INSTALLED: `voice-poc` is
+             * the only one of the 95 dumps declaring `child_note_base`, and its
+             * `pads` level declares NO `child_index_param` — so `focusVoice`
+             * writes no index, the controller resolves the child at instance 0
+             * while `concrete` below resolves at `childIndex`, and the keys
+             * warmed are the WRONG child's. NOT a regression (pre-fix behaviour
+             * was identical) and no wrong value is ever cached (entries are
+             * keyed by concrete key). Carried as SP-39's ledger NOTE and opened
+             * as SP-50, which is where it is rechecked. */
+            const concrete = (k: string): string =>
+                (p.childLevel && typeof childIndex === 'number'
+                 && typeof lib.resolveChildKey === 'function')
+                    ? (lib.resolveChildKey(p.childLevel, childIndex, k) || k) : k;
+            /* Qualified the same way `io.getParam` qualifies what the controller
+             * asks for, or the warm covers keys the reads will not look up. */
+            warm(keys.map((k) => qualify(concrete(k))));
+        }
+        ctl.goToPage(i);
+    };
+
     return {
         /*
          * ONE DETENT PER UNIT OF DELTA. Move's encoders accumulate: a quick
@@ -132,10 +185,10 @@ export function createPageInput(ctl: any, lib: any, port: TrackPort,
             for (let i = 0; i < pages.length; i++) {
                 const p = pages[i];
                 if (!p) continue;
-                if (p.level === v.level) { ctl.goToPage(i); return true; }
+                if (p.level === v.level) { jump(i, v.childIndex); return true; }
                 if (byName < 0 && want && String(p.name || '').toUpperCase() === want) byName = i;
             }
-            if (byName >= 0) { ctl.goToPage(byName); return true; }
+            if (byName >= 0) { jump(byName); return true; }
             mlog('focusVoice no page for ' + v.level + '/' + v.name
                + ' | keys=' + (pages[1] ? Object.keys(pages[1]).join(',') : '-')
                + ' | p1=' + (pages[1] ? JSON.stringify({n: pages[1].name, l: pages[1].level,

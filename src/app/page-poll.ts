@@ -22,6 +22,16 @@
  *      lane, an LFO or the page's own cursor moving one of them is what asks
  *      for the frame back now.
  *
+ *      SP-38 ADDED THE ONE CASE VALUES CANNOT SEE. A value change is an
+ *      INSTANT, and Schwung's animated widgets — the enum square's frame
+ *      travelling to the option's new width, the waveform morphing shape, a
+ *      trigger bang flashing out — spend the next 100-300 ms DRAWING the
+ *      transition that value change started. Nothing changes again during it,
+ *      so a values-only test renders one frame at the instant of the change and
+ *      then freezes the widget halfway. `page.animating()` is the second
+ *      question, and it is asked only when the first two answered no, so a page
+ *      whose values are moving is decided exactly as it was before.
+ *
  * THE POLL IS NOT UNCONDITIONAL, and that is deliberate. A poll is a read, and a
  * page nobody is addressing is a page whose contract is being re-planned and
  * whose cursor is being advanced for no one, on a view the user may not open for
@@ -107,5 +117,20 @@ export function pollDrawnPage(owner: PageOwner): boolean {
     for (let k = 0; k < 8; k++) {
         if (levels[k] !== next[k]) { levels[k] = next[k]; moved = true; }
     }
+    /* SP-38. ONLY WHEN NOTHING ELSE MOVED, so this is one extra predicate per
+     * idle tick and none at all on a tick a value changed — and the predicate
+     * is `anim_state`'s own. That map is NOT empty on a still page:
+     * `anim_state` only ever sets, never deletes, so it holds one entry per
+     * animated key the page has ever drawn, every one of them already past its
+     * window. Asking costs a subtraction and a compare per entry — cheap, which
+     * is why the idle measurement is unchanged, but not free, and not because
+     * there is nothing to walk. See `renderer/schwung-page-anim.ts`.
+     *
+     * THE CLOCK IS `Date.now()` BECAUSE THE CONTROLLER'S IS. `page_controller`
+     * takes `io.now || (() => Date.now())` and movy injects no `io.now`, so both
+     * sides of the comparison are stamped from the same source; if movy ever
+     * supplies one, this line has to be re-pointed at it or the transition
+     * never appears to end. */
+    if (!moved) moved = page.animating(Date.now());
     return moved;
 }

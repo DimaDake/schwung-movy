@@ -57,6 +57,7 @@ import { Device } from '../device.js';
 import { Probe } from '../probe.js';
 import * as fixture from '../fixture.js';
 import { until } from '../wait.js';
+import { CC_BACK } from '../midi.js';
 
 const run = promisify(execFile);
 /* test-device/dist/scenarios/page-lifecycle.js at run time. */
@@ -98,7 +99,11 @@ const EMPTY_NAME = '—';
 const PAGE_MODE = 'page';
 
 type Page = { module?: string; pageCount?: number; pageIndex?: number;
-              renderer?: string; cells?: ({ name?: string } | null)[] };
+              renderer?: string; cells?: ({ name?: string } | null)[];
+              /* The SCREEN, not the page on it — the one field here that
+               * answers about where movy is rather than about what it drew
+               * (`src/test/probe.ts`). L4 grades it. */
+              view?: string };
 
 scenario('page-lifecycle', async (t) => {
     fixture.setHost(t.host);
@@ -214,6 +219,52 @@ scenario('page-lifecycle', async (t) => {
         !!pg && isDelegatedModules(pg),
         { expected: `a rendered page naming ${MODULE} with knobs on it, under renderer=${PAGE_MODE}`,
           actual: describe(pg) });
+
+    /* ── L4: a knob released onto ANOTHER page does not latch this one ───────
+     * SP-31, on hardware, and it is the whole symptom rather than a proxy: the
+     * controller recomputes `touched` from `touchOrder` and has no staleness
+     * expiry for a held knob (it refuses to re-plan under a hand), so a release
+     * that arrives at a page which never heard the press leaves the pressed
+     * page holding the slot FOREVER. movy's jog-click guard reads
+     * `ctl.state.touched >= 0` as "a knob is under the hand" and gives the
+     * click to the page — so the module browser never opens again.
+     *
+     * WHY THE DEVICE, when `browser-test/app-loop.mjs` already holds it: the
+     * page that hears the press and the one that hears the release are
+     * different CONTROLLERS here, built by the page cache for two real chains
+     * with two real modules on them, and the gesture crosses a track switch
+     * that only the hardware's own MIDI produces. The logic suite models both
+     * ends; this is the one run where they are the device's.
+     *
+     * `knobHold` is press → body → release, so the release lands while track 1
+     * is up: exactly the out-of-order gesture the user cannot avoid. The click
+     * afterwards is the ASSERTION — it is the thing that stops working — and it
+     * is backed out with Back rather than committed, so the fixture's chain is
+     * untouched either way. */
+    await dev.knobHold(1, async () => {
+        await dev.selectTrack(1);
+        await t.bus.frames(ACT);
+    });
+    await dev.selectTrack(0);
+    await t.bus.frames(ACT);
+    const beforeClick = await pageNow();
+    t.note('viewBeforeLatchClick', beforeClick?.view);
+    await dev.tap.jog();
+    await t.bus.frames(ACT);
+    const afterClick = await pageNow();
+    t.note('viewAfterLatchClick', afterClick?.view);
+    t.check('knob-release-does-not-latch',
+        'a knob released while another track´s page is up leaves the click working',
+        afterClick?.view === 'browse',
+        { expected: 'view=browse — the module browser, which a latched `touched` swallows',
+          actual: `view=${afterClick?.view ?? '(movy has not rendered)'} `
+                + `(before the click: ${beforeClick?.view ?? '-'})` });
+    /* Back out of whatever the click opened, so L2 starts on the page again.
+     * Unconditional: the browser is where a PASS lands, and a fail may have
+     * left a dive or a picker instead — both leave on Back. */
+    await dev.tap.cc(CC_BACK);
+    await t.bus.frames(ACT);
+    t.note('viewAfterBack', (await pageNow())?.view);
 
     /* ── L2: None hands the frame back ────────────────────────────────────────
      * The user's own write, not a gesture: `synth:module` = "" is schwung's

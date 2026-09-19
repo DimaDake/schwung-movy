@@ -30,6 +30,8 @@
  * reads here is affordable in a way it would never be on a knob turn. */
 
 import { componentPort } from '../track/registry.js';
+import { declaredContract } from '../chain/hierarchy-source.js';
+import { moduleReadKey } from '../chain/config.js';
 import { mlog } from '../log.js';
 import { laneKeysForTrack } from '../seq/automation.js';
 
@@ -147,16 +149,22 @@ function engineDrivenKeys(slot: number, componentKey: string): Set<string> {
     return out;
 }
 
-/** The module's declared preset-list param, or '' when it declares none. */
+/** The module's declared preset-list param, or '' when it declares none.
+ *
+ * THE SAME LADDER THE PAGE CLIMBS (SP-20). Asking only `ui_hierarchy` meant a
+ * module that publishes its contract under `ui_pages` or in its `module.json`
+ * declared no `list_param` as far as undo was concerned, so its preset param
+ * dropped from tier 1 to tier 2 and was restored AFTER the params it rewrites —
+ * the restore then looked like it had lost the patch. `pending` is not acted on:
+ * these are blocking port reads. */
 function listParamOf(slot: number, componentKey: string): string {
-    const raw = componentPort(slot, componentKey).getParam(componentKey + ':ui_hierarchy');
-    if (!raw) return '';
-    try {
-        const h = JSON.parse(raw) as { levels?: { root?: { list_param?: string } } };
-        return h.levels?.root?.list_param ?? '';
-    } catch {
-        return '';
-    }
+    const port = componentPort(slot, componentKey);
+    const h = declaredContract({
+        read: (k) => port.getParam(componentKey + ':' + k),
+        moduleId: () => port.getParam(moduleReadKey(componentKey)),
+        componentKey,
+    }).levels as { levels?: { root?: { list_param?: string } } } | null;
+    return h?.levels?.root?.list_param ?? '';
 }
 
 /* The slot-LFO fields that POINT AT the module: schwung stores these outside

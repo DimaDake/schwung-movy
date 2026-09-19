@@ -32,6 +32,9 @@ _log('\nlogic: schwung page mode');
 
 const { surfaceOf } = await import('../../dist/esm/renderer/schwung-voices.js');
 const { setSurfaceReader } = await import('../../dist/esm/model/drum-declared.js');
+const { pageOwnerOf } = await import('../../dist/esm/app/page-owner.js');
+const { headerRightText } = await import('../../dist/esm/renderer/knob-view.js');
+const { dumpFixture } = await import('../dump-fixture.mjs');
 
 /* `model/` imports nothing from `renderer/`, so the reader is PUSHED IN at
  * start-up — app/globals.ts does exactly this line. Without it `readSurface`
@@ -374,6 +377,75 @@ _log('\nTest: a module that declares its own hierarchy is never spoken for');
     env.setParams(MOCK_SYNTHS.test16);
 }
 
+_log('\nTest: the header names the page — on a declared drum rack too');
+{
+    /*
+     * WHAT THE HEADER'S RIGHT-HAND END SAYS (SP-37), ON THE MODULE THAT MADE
+     * IT WRONG. `vm.drumPadName` is the focused pad's name — a property of the
+     * MODULE, not of the page — so a precedence that lets it lead prints one
+     * word for the whole module: the jog moves the bar and the body while the
+     * only text that says where you are stands still. That was the report's
+     * symptom, and it was still true on a declared drum rack after the first
+     * fix.
+     *
+     * THE RACK IS THE DEVICE'S OWN. `voice-poc` in `docs/module-dump/` declares
+     * `pad_layout: "drums"` with named voices AND a page per voice, so the
+     * pad's own page and the page on screen are two different names without a
+     * mock inventing the difference — and the assertion below is stated over
+     * WHICH of the two names came out, page by page, so it holds for a rack
+     * whose names change.
+     */
+    setSurfaceReader(surfaceOf);
+    setSchwungGridMode('page');
+    schwungGridReload();
+    const m = bootModel(dumpFixture('voice-poc'));
+    for (let i = 0; i < 20; i++) m.tick();
+    m.updateDrumPad(2, 38);            /* pad 2 is "Snare" on this rack */
+    const p = schwungPageFor(0, 'synth');
+    for (let i = 0; i < 12 * 60 && !p.ready; i++) { p.tick(); m.tick(); }
+    ok('the rack’s page resolved', p.ready);
+
+    const pad = m.getViewModel().drumPadName;
+    ok('the rack named the focused pad', pad.length > 0, JSON.stringify(pad));
+    ok('...and it is not the module’s first page’s name',
+       pad !== p.chrome(true).pageLabel, JSON.stringify(p.chrome(true).pageLabel));
+
+    const own = [], other = [], words = [];
+    for (let i = 0; i < p.pageCount; i++) {
+        p.goToPage(i);
+        const label = p.chrome(true).pageLabel;
+        if (label === null) continue;      /* nothing to name this page with */
+        const drawn = headerRightText(m.getViewModel(), p.chrome(true));
+        eq('page ' + i + ' draws its own name', drawn, label);
+        words.push(drawn);
+        (label === pad ? own : other).push({ label, drawn });
+    }
+    /* Both halves of the ruling, on one module: the page that IS the pad's own
+     * — where the pad's name wins because the page's label carries the same
+     * word — and every page that is not, where the label wins and the pad's
+     * name would have hidden it. */
+    ok('one of those pages IS the pad’s own', own.length > 0, JSON.stringify(own));
+    ok('and another is not', other.length > 0, JSON.stringify(other));
+    for (const q of other) ok('...and there the pad’s name did NOT win',
+        q.drawn !== pad, JSON.stringify(q));
+
+    /* THE REQUIRED BEHAVIOUR, IN ONE LINE: the text MOVES when the jog does.
+     * With the pad's name leading, `words` is one repeated string. */
+    ok('the header’s right-hand end CHANGES across the pages of one module',
+       new Set(words).size > 1, JSON.stringify(words));
+
+    /* AND WHERE THERE IS NO PAGE, THE PAD FALLS BACK IN — `off`, and every
+     * frame whose delegated page is not the body. */
+    eq('no chrome, the pad’s name stands',
+       headerRightText(m.getViewModel(), undefined), pad);
+
+    p.goToPage(0);
+    schwungGridReload();
+    setSchwungGridMode(null);
+    setSurfaceReader(null);
+    env.setParams(MOCK_SYNTHS.test16);
+}
+
 _log('\nTest: the header readout and the footer hints come from the controller');
 {
     /*
@@ -399,6 +471,46 @@ _log('\nTest: the header readout and the footer hints come from the controller')
     const showed = p.chrome(true);
     eq('nothing held, no readout — movy’s own header stands',
        showed.header === null && showed.footer === null, true);
+
+    /* THE HEADER'S RIGHT-HAND END IS THE PAGE'S NAME (SP-37), and it is the
+     * CONTROLLER's answer rather than `page.name`: a page belonging to a child
+     * level is named after WHICH CHILD it shows, which the planned name cannot
+     * know. Checked against the controller at the index that is on screen, and
+     * then against its own earlier value one page later — the reported symptom
+     * is a label that NEVER MOVES while the bar and the body do, and "it equals
+     * the line we just wrote" is not a claim about that. */
+    const label0 = showed.pageLabel;
+    ok('the chrome carries the page’s own name',
+       typeof label0 === 'string' && label0.length > 0, JSON.stringify(label0));
+    eq('...and it is the controller’s, for the page on screen',
+       label0, p.ctl.pageLabel());
+    p.changePage(1);
+    ok('...and the jog moves it',
+       p.chrome(true).pageLabel !== label0,
+       'still ' + JSON.stringify(p.chrome(true).pageLabel) + ' one page on');
+    p.goToPage(0);
+
+    /* AND THE `off` HALF, FROM THE APP'S OWN OWNER. Under `off` there is no
+     * delegated page at all — `owner.page` is null — and the app's
+     * `schwungChromeFor` is `body && owner.page ? owner.page.chrome(paging)
+     * : undefined`, so the renderer is handed no object and its
+     * `chrome?.pageLabel` cannot fire: the header stays the bank name it was
+     * before this item, which is what "where the delegated page is not what is
+     * drawn, nothing changes" means in code.
+     *
+     * THE PAIRED ASSERTION IS WHAT GIVES THIS TEETH: the same model and the
+     * same settled page are delegated while the grid pages them, and movy's own
+     * the moment the grid is off. Asserted on the OWNER rather than on the
+     * renderer's null-coalescing — a blank header test would pass for a label
+     * that was never there. */
+    const offModel = bootModel(MOCK_SYNTHS['6w6']);
+    for (let i = 0; i < 20; i++) offModel.tick();
+    ok('while the grid pages, this model’s page is delegated',
+       pageOwnerOf(offModel).page !== null);
+    setSchwungGridMode(null);
+    eq('the grid off, the page is movy’s own — no chrome can name a page',
+       pageOwnerOf(offModel).page, null);
+    setSchwungGridMode('page');
 
     const bound = [];
     for (let k = 0; k < 8; k++) if (p.keyAt(k)) bound.push(k);

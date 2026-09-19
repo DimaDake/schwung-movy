@@ -92,6 +92,49 @@ else
 fi
 eval "$ts_chain_entries_real"
 
+echo -e "${BLD}=== 7. cold detection is per WANTED slot ===${RST}"
+# Host-only, and the shape the rule exists for. ts_chain_is_cold reads the
+# chain through `node scripts/slots-read.mjs`, so a stub `node` puts that read
+# under the test's control with no device involved — the same override idiom
+# section 6 uses for ts_chain_entries.
+#
+# The rule this pins was "EVERY slot reads empty", which is FALSE for the shape
+# a device rebooted onto an unsaved set actually comes up in: measured
+# `[0 plaits 1 - 2 - 3 -]` against a fixture wanting mrdrums in slot 1. Slot 0
+# occupied masked slot 1 empty, the boot seed never ran, and the apply attempts
+# then spent the whole retry budget on a route that cannot activate an empty
+# slot. A false cold here is just as bad the other way — it restarts the stack.
+cold_case() {   # <label> <cold|warm> <fake slots-read output>
+    local label="$1" want="$2" out="$3" said
+    node() { printf '%s\n' "$out"; }
+    if ts_chain_is_cold; then said=cold; else said=warm; fi
+    unset -f node
+    if [ "$said" = "$want" ]; then pass "$label"; else fail "$label — said $said, want $want"; fi
+}
+cold_case "a partially cold chain is cold"                    cold "0 plaits
+1 -
+2 -
+3 -"
+cold_case "a fully cold chain is still cold"                  cold "0 -
+1 -
+2 -
+3 -"
+cold_case "a warm chain is NOT cold (it would restart the stack)" warm "0 plaits
+1 mrdrums
+2 -
+3 -"
+# Only an EMPTY wanted slot is unreachable: a wrong module sits in an ACTIVE
+# slot, and load_file acts on the existing chain instance, so ordinary apply
+# replaces it.
+cold_case "a wrong module in a wanted slot is not cold"       warm "0 plaits
+1 noisemaker
+2 -
+3 -"
+node() { return 3; }
+if ts_chain_is_cold; then fail "a slot that never answered was read as cold"; else
+    pass "a slot that never answered stays unknown, not cold"; fi
+unset -f node
+
 echo
 if [ $fails -eq 0 ]; then echo -e "${GRN}${BLD}FIXTURE SELFTEST PASSED${RST}"; else
     echo -e "${RED}${BLD}$fails SELFTEST CHECK(S) FAILED${RST}"; exit 1; fi

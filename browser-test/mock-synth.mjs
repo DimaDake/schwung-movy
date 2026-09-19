@@ -1614,3 +1614,9 @@ MOCK_SYNTHS.readouts_hier = {
         { key: "hold",         label: "Hold",   type: "int",   min: 0, max: 16 },
     ]),
 };
+
+/* NO PRESET HERE DECLARES A DRUM RACK, and it is deliberate: `vm.drumPadName`
+ * can only come from a module's own `pad_layout: "drums"` declaration
+ * (`model/hierarchy.ts`), and a mock that invented one would make the SP-37
+ * precedence a question about the mock. The suites use a real rack instead —
+ * `dumpFixture('voice-poc')` out of `docs/module-dump/device-dump.json`. */

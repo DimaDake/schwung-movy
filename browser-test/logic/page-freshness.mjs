@@ -28,7 +28,7 @@
 
 import { schwungLibAvailable, eq, ok, _log,
          env, portFor, MOCK_SYNTHS, schwungPageFor, schwungGridReload,
-         setSchwungGridMode, createModel, appState,
+         setSchwungGridMode, createModel, appState, bootModel, settleModel,
          beginEdit, recordParamOp, endEdit, undoOnce, CLOSE } from './harness.mjs';
 
 export async function run() {
@@ -151,6 +151,106 @@ _log('\nTest: an undo redraws a page whose key the model cannot map');
     eq('and no undo waited for anything but the cursor coming round',
        delays.filter((d) => d <= 0 || d > ROT + 1).length, 0);
     eq('the drawn arc wears the undone value', p.knobLevels()[0], Number(lo));
+
+    appState.trackModels[0] = [];
+    schwungGridReload();
+    setSchwungGridMode(null);
+    env.setParams(MOCK_SYNTHS.test16);
+}
+
+_log('\nTest: SP-38 — the repaint decision while a widget is moving');
+{
+    /* WHY test_enum AND NOT test16. Only TWO widgets ever feed the animation
+     * store — the enum square's frame and the waveform morph — so a page of
+     * eight floats never touches it, `settled` is trivially true, and a test
+     * built on test16 would PASS WITH THE FIX REMOVED. test_enum's knob 0 is
+     * `mode`, a four-option enum, so a render of that page stamps a real entry.
+     * That choice is the difference between this block and a tautology. */
+    const { pageOwnerOf } = await import('../../dist/esm/app/page-owner.js');
+    const { pollDrawnPage } = await import('../../dist/esm/app/page-poll.js');
+
+    setSchwungGridMode('page');
+    schwungGridReload();
+    appState.activeTrack.index = 0;
+    env.setParams(MOCK_SYNTHS.test_enum);
+    const m = settleModel(bootModel(MOCK_SYNTHS.test_enum));
+    appState.trackModels[0] = [m];
+    const owner = pageOwnerOf(m);
+
+    /* Driven through the SAME entry the tick uses, so this also exercises
+     * SP-12's poll half where it lives rather than beside it. */
+    for (let i = 0; i < 12 * 60 && !owner.delegated; i++) pollDrawnPage(owner);
+    ok('the enum page delegated to Schwung', owner.delegated);
+    const p = owner.page;
+
+    /* Is the page quiet for `n` consecutive ticks? Consecutive rather than
+     * once-in-n, because every assertion below turns on the SAME call site
+     * answering the same way twice running. */
+    const stable = (n) => {
+        for (let i = 0; i < n; i++) if (pollDrawnPage(owner)) return false;
+        return true;
+    };
+
+    /* (1) A STILL PAGE, before anything has been drawn: nothing has moved and
+     * the store is empty, so the answer is `false` — once the page has finished
+     * ARRIVING. The read cursor serves one key a tick, so the values are still
+     * landing for the first few dozen ticks. Poll until the decision has been
+     * quiet three ticks running and require that it got there, which is what
+     * makes this an assertion rather than a loop that always ends. */
+    let quiet = false;
+    for (let i = 0; i < 300 && !quiet; i += 3) quiet = stable(3);
+    ok('a still page asks for no frame', quiet);
+
+    /* (2) A RENDER FEEDS THE STORE. Without this the rest of the block would be
+     * testing movy's own book-keeping rather than the renderer's. */
+    p.render('ENUMS');
+    const anim = p.ctl.state.anim;
+    /* The two keys below are FIRST SIGHTINGS — `observe` stamps those already
+     * past, which is why (3) can assert on their age. What is being claimed here
+     * is only that the render is what put them there: the store is the
+     * RENDERER'S, and movy only ever asks it. */
+    ok('the render fed the store: [' + [...anim.since.keys()].join(',') + ']',
+       anim.since.size > 0);
+
+    /* (3) AN ARRIVAL IS NOT A CHANGE, which is `observe`'s rule and the reason
+     * a page does not animate itself in from values nobody set: a first
+     * sighting is stamped ALREADY PAST (`now - durationMs`), never at `now`.
+     * Asserted on the stamp rather than by waiting for it to age out — the
+     * window is wall clock, and waiting on 120 ms of it is a race, not a check. */
+    ok('nothing is stamped at the instant of arrival',
+       [...anim.since.values()].every((t) => Date.now() - t > 0));
+
+    /* (4) THE TEETH, AS AN A/B ON ONE FIELD. The control and the assertion are
+     * the same page, the same values, the same identity and the same call site;
+     * the only difference is that every store entry is placed at NOW instead of
+     * in the past. That field IS what `settled` reads and the only thing it
+     * reads, so the middle line below is the `!moved` term in `pollDrawnPage`
+     * and nothing else. Remove that term and it is the one that reddens while
+     * the two around it stay green — which is what makes it evidence.
+     *
+     * The stamps are PLACED rather than slept on because the elapsed time is
+     * `anim_state`'s own semantics, which movy does not implement: what is
+     * under test is the decision, not the clock that feeds it. */
+    const keys = [...anim.since.keys()];
+    const stampAt = (t) => { for (const k of keys) anim.since.set(k, t); };
+    stampAt(Date.now() - 10_000);
+    ok('control: quiet with every transition in the past', stable(3));
+    stampAt(Date.now());
+    eq('a page mid-transition asks for a frame', pollDrawnPage(owner), true);
+    stampAt(Date.now() - 10_000);
+    eq('and goes quiet again the moment they finish', pollDrawnPage(owner), false);
+
+    /* (5) THE TRIGGER BANG, which is time-driven the same way and has no value
+     * change to announce it. `triggerFiredAt` is the controller's own map and
+     * the predicate is key-agnostic — `buttonPhase` is asked about the STAMPS,
+     * not about what the cell is — so any key exercises it. The duration is
+     * asked of `buttonPhase` too, never restated here as 300 ms. */
+    const firedAt = p.ctl.triggerFiredAt;
+    firedAt.bang = [Date.now()];
+    eq('a trigger bang asks for a frame', pollDrawnPage(owner), true);
+    firedAt.bang = [Date.now() - 1000];
+    ok('and stops once the bang has drawn out', stable(3));
+    delete firedAt.bang;
 
     appState.trackModels[0] = [];
     schwungGridReload();

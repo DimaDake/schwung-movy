@@ -63,6 +63,9 @@ import {
 import { schwungGridMode, setSchwungGridMode, schwungPageFor,
          schwungGridReload } from '../../dist/esm/renderer/schwung-grid.js';
 import { schwungLibAvailable, schwungLibError } from '../../dist/esm/renderer/schwung-lib.js';
+import {
+    batchKeys, fill, KEEP_EPOCHS, BATCH_MAX_KEYS, BATCH_VALUE_MAX,
+} from '../../dist/esm/renderer/schwung-page-batch.js';
 import { resetPorts } from '../../dist/esm/track/registry.js';
 import { serializeUiState, applyUiState, resetUiState } from '../../dist/esm/seq/ui-state.js';
 import { VISIBLE_ROWS, firstVisibleRow, HINT_W, HINT_LINES } from '../../dist/esm/renderer/flags-view.js';
@@ -138,6 +141,7 @@ import { shapeSample, drawWave } from '../../dist/esm/renderer/lfo-wave.js';
 import { CHAIN_SLOTS, LFO_CHAIN_INDEX, isLfoSlot } from '../../dist/esm/chain/config.js';
 import { init } from '../../dist/esm/app/init.js';
 import { appState } from '../../dist/esm/app/state.js';
+import { perfPhase, perfPhaseEnd, perfProbeTick } from '../../dist/esm/app/perf-probe.js';
 import { buildCpuPageVM, buildSendColumns, USABLE_BLOCK } from '../../dist/esm/seq/cpu-page-vm.js';
 import { FULL_SCALE_US, scaleFor, scaleLabel } from '../../dist/esm/seq/cpu-scale.js';
 /* The sequencer's track is the SELECTED track — a suite that wants the step row
@@ -201,26 +205,34 @@ function notMatch(label, str, pattern) {
  * single-key call alone therefore cannot see the thing a read-cost budget is
  * about — it counted 80 before SP-26 and 125 after, while the real cost went
  * the other way. The bulk call's own per-key delegation is suppressed for the
- * same reason: inside one request it is one trip. */
-function countTrips(fn) {
+ * same reason: inside one request it is one trip.
+ *
+ * The two are counted SEPARATELY as well as together, because they are priced
+ * separately on device (~2.3 ms for one key, the same for a whole page) and a
+ * caller asking "did this gesture cost a page of reads" is asking about the
+ * singles: SP-39's warm turns eight of them into one bulk, and the total alone
+ * would hide which of the two it did. */
+function countTripKinds(fn) {
     /* Suites before this one delete the param globals rather than restoring
      * them (SP-02's deferred list), so wrapping whatever is there would wrap
      * `undefined`. The env's own restorer is what that cleanup meant. */
     env.restoreParamGlobals();
     const realGet = globalThis.shadow_get_param;
     const realBulk = globalThis.shadow_get_params;
-    let trips = 0, depth = 0;
+    let bulk = 0, single = 0, depth = 0;
     globalThis.shadow_get_params = (...a) => {
-        trips++; depth++;
+        bulk++; depth++;
         try { return realBulk(...a); } finally { depth--; }
     };
-    globalThis.shadow_get_param = (...a) => { if (!depth) trips++; return realGet(...a); };
+    globalThis.shadow_get_param = (...a) => { if (!depth) single++; return realGet(...a); };
     try { fn(); } finally {
         globalThis.shadow_get_param = realGet;
         globalThis.shadow_get_params = realBulk;
     }
-    return trips;
+    return { trips: bulk + single, bulk, single };
 }
+
+function countTrips(fn) { return countTripKinds(fn).trips; }
 
 /* The last MUSICAL op. Undo brackets every edit with ring bookkeeping
  * (usnap/ucommit/udrop/uswap), which is never what a test asserting "the
@@ -285,6 +297,7 @@ export {
     flagValue, setFlag, applyFlagsToEngine, resetFlags,
     schwungGridMode, setSchwungGridMode, schwungPageFor, schwungGridReload,
     schwungLibAvailable, schwungLibError,
+    batchKeys, fill, KEEP_EPOCHS, BATCH_MAX_KEYS, BATCH_VALUE_MAX,
     flagsPageState, flagsRowCount, backupsRowSelected, actionRowSelected, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
     migrateRowArmed, armMigrateRow, disarmMigrateRow, runMigrateRow, slotsHaveContent,
     buildFlagsPageVM, VISIBLE_ROWS, firstVisibleRow, readPrefFlags, writePrefFlag,
@@ -294,6 +307,7 @@ export {
     readPrefModuleBlacklist,
     buildCpuPageVM, buildSendColumns, FULL_SCALE_US, USABLE_BLOCK, scaleFor, scaleLabel,
     DEBUG_BUILD, openParamPage, closeParamPage, paramPageActive,
+    perfPhase, perfPhaseEnd, perfProbeTick,
     VIEW_FLAGS, VIEW_CHAIN, VIEW_MAIN_PARAMS,
     FACTORY_DEFAULT_QUANT, armQuantOverlay, quantOverlayActive, quantOverlayTickAt, quantOverlayJog, quantOverlayAction,
     buildQuantOverlayVM, dismissQuantOverlay, resetQuantOverlay, installMockEngine, uninstallMockEngine, pushEntry,
@@ -315,7 +329,7 @@ export {
     holdTouch, holdRelease, holdTurnCancel, holdTick, assignActive, assignCycle,
     assignCommit, assignToastText, resetAssignMode, jogHintTouch, jogHintTick, jogHintVisible,
     shapeSample, drawWave, CHAIN_SLOTS, LFO_CHAIN_INDEX, isLfoSlot, init,
-    appState, selectTrack, watchedTrack, countTrips, ok, fail, eq, notMatch, bootModel, settleModel,
+    appState, selectTrack, watchedTrack, countTrips, countTripKinds, ok, fail, eq, notMatch, bootModel, settleModel,
     bankNames, P, lastMusicalOp, musicalOps, UNDO_RING, _log,
     env, mockFsEntries, failureCount,
 };

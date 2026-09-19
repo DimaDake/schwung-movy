@@ -18,9 +18,11 @@
 #   MODULE=minijv ./scripts/measure-grid-cost.sh page
 #
 # MODULE is optional and names what must be loaded. Prefer minijv: it is the
-# largest module in the fleet (433 params, 57 levels, 72 pages), it is where the
-# lag was reported, and it is the only fixture with enough pages for the jog
-# sections to stay on the component — see the preflight.
+# largest module in the fleet (433 params, 57 levels, 70 pages — SP-39 read the
+# count back as `schwung-body ok track=0 ck=synth pages=70` and corrected the 72
+# that stood here), it is where the lag was reported, and it is the only fixture
+# with enough pages for the jog sections to stay on the component — see the
+# preflight.
 #
 # The arm is the `schwunggrid` FLAG now, and this script writes it into the
 # device's prefs and reopens movy to read it back. MOVY_SCHWUNG_GRID used to
@@ -94,8 +96,19 @@ inject() {
 BODY_RE='schwung-body (ok track=[0-9]+ ck=[a-z_0-9:]+ pages=[0-9]+|not-ready[^|]*|mode=[a-z]+|movy-page ck=[a-z_0-9:]+|no-model|step-page-selected)'
 BODY_NOW=""
 
+# SECTIONS NARROWS A RUN TO THE SECTIONS THAT ARE VALID ON THE MODULE IN FRONT
+# OF IT. The jog sections move ten detents; on a component with fewer than ~12
+# pages that walks off the end and every LATER section then measures an
+# undelegated page. The warning above says so but does not stop the run, and a
+# `knob` number taken after the walk-off is not a knob number — measured
+# 2026-09-19 on plaits (2 pages): four of five sections came back INVALID and
+# only `idle` survived. `SECTIONS="idle knob"` is how a small module gets an
+# honest number: the sections named, in the script's order, nothing else.
+WANT="${SECTIONS:-idle jog jogflick knob knobflick}"
+
 sample() {
     local label="$1"; shift
+    case " $WANT " in *" $label "*) ;; *) return 0 ;; esac
     sshd "> $LOG"
     "$@"
     sleep 3
@@ -135,6 +148,12 @@ sample() {
         [ -n "$stray" ] && printf '%s\n' "$stray" | sed 's/^/    /' >> "$OUT"
     fi
     sshd "grep perf_ipc $LOG" | sed -E 's/.*perf_ipc //' >> "$OUT"
+    # `perf_ipc` says the tick is slow; `perf_phase` says WHICH PART of it is,
+    # summed over the same window. Both are needed by anything that has to
+    # attribute a per-tick cost rather than just report one, and they were
+    # written in the same probe for that reason. One line each, so a sample
+    # reads as `ipc` then `phases`.
+    sshd "grep perf_phase $LOG" | sed -E 's/.*perf_phase //' >> "$OUT"
 }
 
 : > "$OUT"
@@ -236,14 +255,20 @@ fi
 # delegated, nothing polls, and the sections come back CHEAPER than idle,
 # reading as "the gesture is free". That invalidated four of the five sections
 # of the 2026-09-16 and 2026-09-17 device runs, and it was found by reading the
-# body reason afterwards rather than by being refused up front. minijv plans 72
+# body reason afterwards rather than by being refused up front. minijv plans 70
 # pages, so it clears this by a wide margin; the check is on the NUMBER, not on
 # the module, because any big module will do.
+#
+# AND IT IS NOT ENOUGH ON minijv EITHER, measured 2026-09-19 (SP-39): on a
+# 70-page component a 10-detent jog does not walk off the end of a small
+# component, it walks the whole CHAIN — midi_fx1 -> fx1 -> fx2 -> lfo -> mix and
+# back — so all four gesture sections come back INVALID and only `idle` and
+# `knob` are usable. `SECTIONS="idle knob"` is the fix until the jog is bounded.
 PAGES=$(printf '%s' "$WHERE" | sed -nE 's/.*pages=([0-9]+).*/\1/p')
 if [ -n "$PAGES" ] && [ "$PAGES" -lt 12 ]; then
     echo "  WARNING: only $PAGES pages — the 10-detent jog sections below will walk off the" | tee -a "$OUT"
     echo "           end of this component and measure an undelegated page, not a gesture." | tee -a "$OUT"
-    echo "           Load a module with more pages (minijv plans 72) for a valid gesture number." | tee -a "$OUT"
+    echo "           Load a module with more pages (minijv plans 70) for a valid gesture number." | tee -a "$OUT"
 fi
 
 # 1. IDLE — the floor. Anything the grid costs per frame with no input shows here.

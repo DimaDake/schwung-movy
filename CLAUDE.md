@@ -21,7 +21,7 @@ movy's own page renderer is being deleted. Read
 item, and update it when you finish one. The design and its rationale are in
 `docs/superpowers/specs/2026-09-13-schwung-page-migration-design.md`.
 
-Three rules, and they bind work that is not itself a migration item:
+Four rules, and they bind work that is not itself a migration item:
 
 1. **No new features in movy's page renderer.** `label.ts`, `knob.ts`,
    `envelope.ts`, the curve renderers, `lfo-wave.ts`, `model/page-layout.ts`,
@@ -38,6 +38,11 @@ Three rules, and they bind work that is not itself a migration item:
    directly for a component that may be delegated — go through the ownership
    accessor. Fifteen ad-hoc seam checks in `src/midi/router.ts` are how eight
    symptoms and one clip-deleting data loss arrived.
+4. **One reader of a module's declared page contract** (SP-20). `ui_hierarchy`,
+   `ui_pages` and `module.json`'s `capabilities.ui_hierarchy` are three ways a
+   module publishes ONE thing; `src/chain/hierarchy-source.ts` is the only place
+   that reads any of them. Never add a key literal or a `loadModuleJson()` call
+   elsewhere — `browser-test/logic/page-owner.mjs` greps for both.
 
 Local suites are only meaningful for this work with a schwung checkout:
 `SCHWUNG=../schwung npm test`. Without it every Schwung assertion is **skipped,
@@ -156,6 +161,37 @@ the user must run it): stop `move-launcher`, pkill the schwung stack, start
 ---
 
 ## Dev loop
+
+**One command, in the foreground, with one verdict: `./scripts/run-gate.sh`.**
+
+```bash
+./scripts/run-gate.sh preflight   # BEFORE starting an item: is the device gate itself green?
+./scripts/run-gate.sh local       # build + every local suite
+./scripts/run-gate.sh device      # the full tier
+./scripts/run-gate.sh both        # local, then device
+```
+
+It finds the schwung checkout and exports `SCHWUNG=` for the BUILD (the trap
+below), prints a heartbeat every 30 s so a live run cannot be mistaken for a
+dead one, and ends with `VERDICT: GREEN` / `RED` / `DEVICE OFFLINE`. Two
+sessions have ended a turn "waiting on the sweep" when the sweep was already
+dead; a command that has not returned cannot be mistaken for one that has.
+
+**Run `preflight` BEFORE the item, not after it.** It is `smoke` alone (~90 s)
+and it answers "is the gate I am about to be judged by green right now". Three
+times in one session the tier turned out to be red for its own reasons — a
+partially cold chain, a check grading the wrong window, an arm that was noted
+but never asserted — and each time an item had already spent an hour before
+anyone found out.
+
+**A gate may be GREEN or RED. "It did not run" is RED.**
+`npm test` now stops at `browser-test/schwung-built.mjs` when the built bundle
+carries no `param_pages`: without it every delegated-page assertion prints
+SKIPPED and the run still ends `ALL LOGIC CHECKS PASSED`, which is a false green
+that has bitten two sessions — and `page-mode.mjs` reports every expected-fail
+label as FIXED, which instructs a maintainer to delete labels that are still
+failing. `SCHWUNG=` is a **BUILD-time** alias, so it must be on the build;
+`ALLOW_SKIPPED=1 npm test` is the deliberate, and loud, opt-out.
 
 Run tests in this order at the end of every task:
 
@@ -283,6 +319,15 @@ Everything below is in `test-device/`; reach for it before writing anything new.
   back, rather than driving every setup gesture through the surface.
 - **Never `kill -9` `shadow_ui`** — MoveOriginal does not respawn it and the
   device UI stays broken until a reboot.
+- **`pgrep -f "<script>"` matches the polling loop that is waiting on it.** A
+  wait written as `until ! pgrep -f "test-device/run.mjs"; do sleep 5; done`
+  carries the pattern in its OWN command line, so `pgrep` keeps finding the loop
+  itself: once the real process is gone the loop never exits, and a later
+  `pgrep` "confirms" a tier that finished minutes ago. It cost a session a
+  stalled wait and a wrong reading of what was still running (2026-09-19). Wait
+  on the child's own exit (`... ; echo done` in a `run_in_background` command),
+  or match something the loop does not contain — `pgrep -f "node .*test-device"`
+  still matches itself, so prefer the exit status over any `pgrep` pattern.
 
 ### The fixture
 
@@ -439,6 +484,17 @@ code splitting). Never edit `ui.js` directly — it is a build artifact.
   same reason.** Scenarios run 273–583 lines (`mutes.ts` 583,
   `module-contract.ts` 518, `migrate.ts` 484) — one suite is one coherent
   subsystem. Said explicitly rather than left to inference.
+- **`browser-test/app-loop.mjs` is a named EXCEPTION at 3560 lines** — 5.9× the
+  ceiling, recorded 2026-09-19 so the next agent is not blocked finding it. It is
+  PRE-EXISTING and it is not what the ceiling is about: the file is one
+  straight-line sequence of blocks over shared mock globals (which is what
+  `page-mode.mjs` re-runs per arm), so splitting it is a re-architecture and not
+  a tidy-up. The 2026-09-19 branch added +306 lines to it, all real coverage
+  (SP-31's two latch checks and SP-37's label checks). **What it costs is the
+  read**: after `logic.mjs`'s history it is the most expensive file in the repo
+  to open, so the next change that needs to understand it should split the
+  SP-31/SP-37 blocks into a sibling module first — the exception is for the
+  file as it stands, not a licence to keep growing it.
 
 ### Directory responsibilities
 

@@ -26,6 +26,9 @@ import { Device } from '../device.js';
 import { Probe } from '../probe.js';
 import * as fixture from '../fixture.js';
 import { until } from '../wait.js';
+import { TICK_RATE_MIN, REFRESH_MS_MAX, REFRESH_MIN_SAMPLES, PERF_WINDOW_MAX,
+         at, lastOf, median, refreshSamples } from '../log-fields.js';
+import { MOVY_ARM, armMovy } from '../arm.js';
 
 const run = promisify(execFile);
 
@@ -33,37 +36,21 @@ const run = promisify(execFile);
  * work, never a wall clock. */
 const ACT = 90;
 
-/* Movy's tick counter emits perf_tick_rate/perf_refresh_ms every
- * NAME_POLL_TICKS (344) ticks, and the FIRST sample needs two windows — the
- * first has no predecessor to diff against. Measured on this device: the first
- * line lands ~6.9 s after open. So this is a `bus.frames` budget sized to that
- * measurement (2400 frames ≈ 7 s), and it is a LET-THE-DEVICE-WORK wait rather
- * than a sleep: the frame counter is the device's own SPI period. The `settled`
- * below still gates on the line actually appearing, so a slower device costs
- * device time, not a false pass. */
-const PERF_SETTLE = 2400;
-
 /* The knob turns the bash made: knob 1 up, knob 1 down, knob 2 up. Two knobs so
  * one stuck cache cannot satisfy the CC check, and bidirectional so a turn is
  * not simply clamped at a rail. */
 const KNOB_TURNS: Array<[number, number]> = [[0, 1], [0, -1], [1, 1]];
 
-/* Thresholds, unchanged from the bash. TICK_RATE_MIN only catches catastrophic
- * starvation — the overtake loop targets ~500 Hz but the schwung host caps it
- * far lower, and a heavy co-running synth drags the achievable rate to ~80 Hz
- * (verified identical on a pre-feature build). REFRESH_MS_MAX is the real
- * per-tick blocking detector: one shadow_get_param measures ~3 ms, so 10 ms
- * allows for shim jitter and any single sample over it fails. */
-const TICK_RATE_MIN  = 60;
-const REFRESH_MS_MAX = 10;
-
-/* How many MEASURING refresh samples the window must hold before its median is
- * allowed to mean anything. A sample carries `params=N`; N=0 means the refresh
- * had no populated param to read, so its ms is not a refresh cost and counting
- * it is how this check used to pass over a metric that measured nothing. Two
- * windows is what PERF_SETTLE is sized for, so three is a real floor rather than
- * a formality. */
-const REFRESH_MIN_SAMPLES = 3;
+/* THE ARM THIS SCENARIO RUNS IN, and it sets the arm itself — `MOVY_ARM` and
+ * `armMovy` in `test-device/arm.ts`, which is where the argument for it lives
+ * (and where `items` and `module-contract` read the same one from). Every check
+ * here grades movy's OWN work: the knob turn has to reach `applyKnobDelta` and
+ * the refresh has to run, and neither happens in the arm the box rests in.
+ *
+ * Set for the WHOLE scenario rather than around the one check that names it:
+ * `set-param-attempted` and `set-param-ipc` are just as arm-dependent, and
+ * leaving them on the ambient arm is what kept this suite red on a box at rest.
+ * Measured 2026-09-19: `smoke` 8/11 at rest, all three reds that one cause. */
 
 /* Everything this suite reads out of the log, in ONE grep. `leds: repaint` is
  * here only so check 8's adjacency is a real adjacency: without it the line
@@ -85,24 +72,6 @@ const LOG_RE = '\\[shadow\\].*\\[movy\\] (' + [
     'perf_tick_rate=',
     'perf_refresh_ms=',
 ].join('|') + ')';
-
-/* A numeric field out of one of those lines. The leading separator keeps `t=`
- * out of `set=`, `k=` out of `chainIndex=`, and so on. NaN for a field that is
- * not there — never 0, because a line that never arrived must not read as a
- * plausible value. */
-const at = (line: string, name: string): number => {
-    const m = line.match(new RegExp('(?:^| )' + name + '=(-?[0-9]+)'));
-    return m ? Number(m[1]) : NaN;
-};
-const lastOf = (ls: string[]): string => (ls.length ? ls[ls.length - 1] : '');
-
-/* Lower median: the middle sample of an odd count, the lower of the middle two
- * of an even count. Deliberately NOT an average — an average is moved by a
- * single 458 ms outlier, which is the exact quantity this check must ignore. */
-const median = (xs: number[]): number => {
-    const v = [...xs].sort((a, b) => a - b);
-    return v[Math.floor((v.length - 1) / 2)];
-};
 
 /* On a PASS, `actual` says what was measured; the diagnostic chain is only ever
  * reached on the failing side. */
@@ -173,6 +142,10 @@ scenario('smoke', async (t) => {
      * feature failures that are really state drift. */
     await dev.selectTrack(0);
     await t.bus.frames(ACT);
+    /* ARM THE SCENARIO (see the note above for why, and for what it is not).
+     * to be here rather than before the open: the override lives in ui.js's
+     * module scope, so there is nothing to set it on until the tool is up. */
+    t.note('gridMode', await armMovy(t, probe));
     lap('t_3_open');
 
     /* Rule: the instrument this suite judges is the one the fixture put there.
@@ -187,25 +160,49 @@ scenario('smoke', async (t) => {
         await t.bus.frames(ACT);
     }
 
-    /* THE PERF WINDOW IS TAKEN HERE, BEFORE THE JOG, and the order is the whole
-     * reason `refresh-blocking` can mean anything.
+    /* THE PERF WINDOW IS CLOSED HERE, BEFORE THE JOG, and both of its ends are
+     * the whole reason `refresh-blocking` can mean anything. It is a window of
+     * its OWN (`refW`, not `w0`) because the two want opposite things: `w0` is
+     * the whole scenario, and this one has to be a LOADED MODULE IN STEADY
+     * STATE.
      *
-     * The jog below moves the CHAIN cursor — `chain chainIndex=2`, then 3 — and
-     * `loadHierarchy` answers each empty slot it lands on with `ui_hierarchy
-     * null — no params`. From that moment every sample reads
-     * `perf_refresh_ms=0 params=0`: refreshOneParam has no populated param to
-     * read, so it measures NOTHING and reports the best possible number for it.
-     * With the settle after the jog, that was the ENTIRE window — measured on
-     * device 2026-09-13, every sample `params=0` — so the check spent its whole
-     * run grading a refresh that was not running.
+     * It starts where the fixture's module is demonstrably loaded rather than at
+     * `mark0`. From `mark0` the window opens before movy has read any hierarchy
+     * at all, and every sample in that stretch reads `perf_refresh_ms=0
+     * params=0`: there is no populated param to refresh, so the metric measures
+     * NOTHING and reports the best possible number for it.
      *
-     * Re-selecting track 0 afterwards does not undo it: track 0 is already
-     * active, `dev.selectTrack(0)` is a no-op there (`track: active=0 chain=0`
-     * with no `loadHierarchy` behind it), and the chain cursor stays where the
-     * jog left it. Taking the window first is what costs nothing — the jog's own
-     * lines land in `w0` all the same, because `w0` is read from `mark0` after
-     * both. */
-    await t.bus.frames(PERF_SETTLE);
+     * It ends before the jog, and that is the other half. The jog moves the
+     * CHAIN cursor — `chain chainIndex=2`, then 3 — and `loadHierarchy` answers
+     * each empty slot it lands on with `module=—` / `ui_hierarchy null — no
+     * params`. Measured in the 2026-09-19 red run: the jog emptied slot 0 at
+     * 13:27:44.339, ten lines before `w0` closed, so a sample taken after it
+     * measures nothing either — the same empty stretch, reached from the other
+     * side. On the 2026-09-13 code those samples were filtered out of `measured`
+     * and the red was `measured.length < 3` — the check was already refusing to
+     * grade them; what it could not do was stop the JOG from being inside the
+     * window it drew them from.
+     *
+     * So `refW` is neither `w0` nor a slice of it, and the two filters do
+     * different jobs: this window decides WHICH STRETCH is graded, and
+     * `refreshSamples` below still drops `params=0` samples that fall inside it.
+     * The window is the fix; the filter is unchanged and still load-bearing —
+     * nothing bounds a `params=0` sample out of `refW`, and the teeth run that
+     * points the window at an empty slot holds eleven of them INSIDE it.
+     *
+     * Re-selecting track 0 afterwards would not undo any of this: track 0 is
+     * already active, `dev.selectTrack(0)` is a no-op there (`track: active=0
+     * chain=0` with no `loadHierarchy` behind it), and the chain cursor stays
+     * where the jog left it. Closing the window first is what costs nothing —
+     * the jog's own lines still land in `w0`, because `w0` is read from `mark0`
+     * after both. */
+    await settled(mark0, (w) => w.some((l) => /loadHierarchy: chain_params [1-9]/.test(l)),
+                  "the fixture's module metadata to be read", 900);
+    const markRef = await mark();
+    const refW = await settled(markRef,
+        (w) => refreshSamples(w).length >= REFRESH_MIN_SAMPLES,
+        'the refresh samples', PERF_WINDOW_MAX);
+    lap('t_4_refreshWindow');
 
     // ── the jog ──────────────────────────────────────────────────────────────
     await dev.tap.jogTurn(1);
@@ -383,7 +380,7 @@ scenario('smoke', async (t) => {
      * them, and the difference is the whole check.
      *
      * `perf_refresh_ms` is a `Date.now()` delta taken around `refreshOneParam()`
-     * (src/model/tick.ts:141-147) on the shadow-UI QuickJS thread, which is NOT
+     * (src/model/tick.ts:156-160) on the shadow-UI QuickJS thread, which is NOT
      * realtime. So the number includes any time the thread spent DESCHEDULED,
      * and requiring every sample under 10 ms asserts that the OS never parks that
      * thread for longer — which is not a property movy has, or that this check
@@ -409,19 +406,57 @@ scenario('smoke', async (t) => {
      * window sitting on an empty chain slot every sample read
      * `perf_refresh_ms=0 params=0` and the check called that the best possible
      * result. Too few measuring samples is therefore a FAILURE, not a skip. */
-    const refLines = w0.filter((l) => l.includes('perf_refresh_ms='));
-    const measured = refLines.filter((l) => at(l, 'params') > 0).map((l) => at(l, 'perf_refresh_ms'));
+    /* WHICH ARM THIS CHECK IS MEASURING — the renderer's own answer, not a read
+     * of the file the renderer is supposed to derive it from (SP-15's pattern:
+     * `page-lifecycle.ts` gates its checks on the arm they ran in the same way).
+     *
+     * The arm is part of the check, not context for it. Under `page` Schwung
+     * owns the component's pages, so the UI passes `!pageOwner.delegated` and
+     * `refreshOneParam` never runs (src/app/tick.ts) — and the samples then read
+     * `perf_refresh_ms=0 params=14`. `params` counts populated params, not
+     * refreshes, so a full window of zeros is a full median of zeros: the check
+     * PASSES, having measured nothing at all. That is the same free green the
+     * 2026-09-13 rewrite killed for the EMPTY window, arriving through the other
+     * door, and the arm is what closes it.
+     *
+     * THE SCENARIO SET THAT ARM ITSELF (MOVY_ARM above), so this is an assertion
+     * not a precondition. It used to read `prefs.flags.schwunggrid` over ssh and
+     * fail unless a HUMAN had set it to 0 — which made a bare `npm run
+     * test:device` red on a box at rest, for a reason that was not movy being
+     * wrong. `renderer` is `schwungGridMode()`'s own answer (src/test/probe.ts),
+     * so it reads the arm the window actually ran in and cannot be satisfied by
+     * a flag file that disagrees with the running UI. The assertion stays HARD:
+     * a red here now means the arm the scenario set is not the arm the renderer
+     * reports, which is a real disagreement and not a setting to go and change. */
+    const armPage = await probe.page().catch(() => null) as { renderer?: string } | null;
+    const arm: string | null = armPage?.renderer ?? null;
+    const okArm = arm === MOVY_ARM;
+    t.note('refreshArm', arm);
+
+    const refLines = refW.filter((l) => l.includes('perf_refresh_ms='));
+    const measured = refreshSamples(refW);
     const medRef   = measured.length ? median(measured) : NaN;
-    const okRef    = measured.length >= REFRESH_MIN_SAMPLES && medRef <= REFRESH_MS_MAX;
+    const okRef    = okArm && measured.length >= REFRESH_MIN_SAMPLES && medRef <= REFRESH_MS_MAX;
     t.note('refreshSamples', measured);
+    /* The RAW lines, not just the ms. `measured` has already dropped the
+     * `params=0` samples, and those are the ones carrying the reason — a red
+     * here has to name which sample fell outside the loaded stretch, and a bare
+     * "2 of 3" cannot. */
+    t.note('refreshLines', refLines);
     t.check('refresh-blocking',
         `refresh blocking ${medRef} ms median of ${measured.length} measuring sample(s) `
         + `<= ${REFRESH_MS_MAX} ms (threshold)`, okRef, {
-            expected: `at least ${REFRESH_MIN_SAMPLES} samples with params>0, and their median at or below ${REFRESH_MS_MAX}`,
-            actual: said(okRef, `${measured.length} measuring sample(s), median ${medRef} ms, max ${Math.max(...measured)} ms`,
-                refLines.length === 0
-                    ? 'perf_refresh_ms not found — timing instrumentation missing or refresh not triggered'
-                    : measured.length < REFRESH_MIN_SAMPLES
+            expected: `the renderer at '${MOVY_ARM}' — the arm this scenario sets — at least `
+                      + `${REFRESH_MIN_SAMPLES} samples with params>0, and their median at or below ${REFRESH_MS_MAX}`,
+            actual: said(okRef, `${measured.length} measuring sample(s), median ${medRef} ms, `
+                + `max ${measured.length ? Math.max(...measured) : NaN} ms, arm renderer=${arm}`,
+                !okArm
+                    ? `the renderer did not answer '${MOVY_ARM}'${arm === null ? ' (the probe gave no page at all, so '
+                      + 'the arm cannot be confirmed)' : `, it answered '${arm}'`} — this scenario arms itself `
+                      + '(`probe.setGridMode`, an override that writes no flag), so this is not a setting to go and '
+                      + `change: in any arm but '${MOVY_ARM}' Schwung owns the component's pages, refreshOneParam does not `
+                      + 'run, and every sample reads perf_refresh_ms=0 with params>0 — a green that measured nothing'
+                    : refLines.length === 0
                         ? `only ${measured.length} of ${refLines.length} sample(s) had params>0 — the refresh was not running `
                           + 'over a loaded module, so this window measured nothing rather than measuring something good'
                         : `refresh blocking ${medRef} ms median over ${measured.length} sample(s) `
@@ -454,6 +489,12 @@ scenario('smoke', async (t) => {
     let backUp = true;
     try { await dev.overtakeReady(); } catch { backUp = false; }
     t.note('resumeReady', backUp);
+    /* RE-ARM. `openTool` re-evaluated ui.js, so the override went with it and
+     * the renderer fell back to the device's own `schwunggrid` — the ambient arm
+     * this scenario exists not to depend on. Re-armed here so the whole run is in
+     * ONE arm, which is what lets the notes name it (MOVY_ARM above; page-lifecycle
+     * re-arms after its reopen for the same reason). */
+    t.note('gridModeAfterReopen', await armMovy(t, probe, 'arm-taken-after-reopen'));
 
     await settled(markResume, (w) => w.some((l) => l.includes('resume from background')),
                   'movy to resume from the background', 3000);

@@ -180,6 +180,39 @@ const { isMovyOwnComponent } = await import('../../dist/esm/chain/config.js');
     const hier = readFileSync('src/renderer/schwung-page-hierarchy.ts', 'utf8');
     ok('the contract source reads only through the cache', !/port\.getParam\(/.test(hier));
     ok('...and it is the same cache the io was handed', /cache\.get\(/.test(hier));
+
+    /* SP-20. ONE READER OF THE DECLARED CONTRACT.
+     *
+     * `ui_hierarchy`, `ui_pages` and `module.json`'s `capabilities.ui_hierarchy`
+     * are three ways a module publishes ONE thing, and movy read them from three
+     * places with three ladders: the delegated page, movy's own model, and the
+     * undo dump's restore order. Two readers of one contract is how a pad press
+     * ended up with no page to jump to (SP-14), and it had already cost two
+     * more — the page could not see a manifest the model could, and `"{}"` was a
+     * declaration to one and nothing to the other.
+     *
+     * Only a grep can hold this: a second reader is not a wrong answer, it is a
+     * second answer, and every test of either one stays green while they drift.
+     * Asked of quoted key literals and of `loadModuleJson(`, over CODE only —
+     * the comments in this tree are where most of what movy knows about the
+     * contract is written down, and a rule that forbade the words would push
+     * that knowledge out of the code (source-rules.mjs follows the same rule). */
+    const stripComments = (src) => src
+        .replace(/\/\*[\s\S]*?\*\//g, ' ')
+        .replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
+    const CONTRACT_READ = /['"][^'"]*ui_(hierarchy|pages)['"]|\bloadModuleJson\s*\(/;
+    const CONTRACT_ALLOWED = {
+        'src/chain/hierarchy-source.ts': 'the one reader — the three rungs live here',
+        'src/modules/loader.ts':         'DEFINES loadModuleJson; it reads no key itself',
+    };
+    const contractOffenders = walkTs('src')
+        .filter((f) => !(f in CONTRACT_ALLOWED))
+        .filter((f) => CONTRACT_READ.test(stripComments(readFileSync(f, 'utf8'))));
+    eq('one reader of the declared contract: ' + contractOffenders.join(','),
+       contractOffenders.length, 0);
+    const staleContract = Object.keys(CONTRACT_ALLOWED)
+        .filter((f) => !CONTRACT_READ.test(stripComments(readFileSync(f, 'utf8'))));
+    eq('no stale contract-reader entries: ' + staleContract.join(','), staleContract.length, 0);
 }
 
 /* ── page identity ────────────────────────────────────────────────────────── */

@@ -37,6 +37,8 @@ import { updateKnobLEDs, updateKnobLEDsFrom, updateSingleKnobLED, resetKnobLedCa
 import { seqEngineTick, takeLabelSync, requestLabelSync } from '../seq/engine.js';
 import { drumSyncTick, resetDrumSync } from '../seq/drum-sync.js';
 import { applyLaneMapping } from '../seq/lane-mapping.js';
+import { laneRangeOf, anyLaneNeedsBase } from './automated-keys.js';
+import { seedFromEngine } from '../seq/automation-base.js';
 import { syncLabelsFromEngine, validateLane, automationRegistry, denorm7, laneKeysForTrack, automationDisplayDirty, liveTurnValues, poolIsFull, verifyLaneMappings, requestLaneWarm, laneWarmTick } from '../seq/automation.js';
 import type { AutomationView, ViewModel } from '../types/viewmodel.js';
 import type { Model } from '../model/index.js';
@@ -166,34 +168,34 @@ export function schwungBodyFor(owner: PageOwner, stepSelected: boolean): (() => 
     };
     if (stepSelected) return why('step-page-selected');
     /*
-     * A HELD STEP IS MOVY'S SCREEN — the whole of it, not just a lock mark.
+     * A HELD STEP IS NOT A REASON TO DECLINE, AND SP-35 IS WHY IT WAS ONE.
      *
-     * Schwung has no held-step filter. Its page is built from the module's
-     * contract, where every declared param is offered, so while a step is held
-     * it draws eight knobs that will do nothing: turning one on the step page
-     * is how a lock is made, and a param that cannot take a lane cannot. movy
-     * already knows which those are — `hiddenDuringHold` in `renderer/label.ts`
-     * — and it is inside movy's body drawer, so the only way to reach it is to
-     * keep drawing the body.
+     * SP-18 kept the held-step BODY here: Schwung has no held-step filter, so its
+     * page draws eight knobs while only some of them will take a lock, and only
+     * movy's own drawer knows which (`hiddenDuringHold` in `renderer/label.ts`).
+     * It cost more than it bought. The gesture sites read OWNERSHIP, not the body,
+     * so the screen moved and the knobs did not — and the p-lock DECORATION, the
+     * whole of SP-18, is gated on `auto.held`, which IS the flag that made
+     * `owner.page` null here: the pass could not run in production at all
+     * (measured: `ctl.setDecorations` called ZERO times across a whole hold).
      *
-     * NOT ONLY THE STEP PAGE. `stepSelected` is a step with an OCCURRENCE under
-     * it (`seq/step-page.ts`); holding an EMPTY step is the same edit against
-     * nothing, and it is the case where the offer is most misleading, because
-     * there is not even a trig to lock against.
+     * The offer that cannot be taken is answered at the gesture instead, from
+     * movy's own chrome (`seq/automation.ts` consumes the turn and says why), so
+     * the body no longer has to move for it — and the parameters stop shifting
+     * under the hand at the exact moment the hand is choosing which to lock.
      *
-     * THE HOLD IS NOT TESTED HERE, AND THAT IS THE FIX. It is part of who OWNS
-     * the page (`app/page-owner.ts`), so `owner.page` is already null under a
-     * held step and the two lines below decline for it — with `owner.reason`
-     * saying `step-held`. Asked here as well, it was asked TWICE: the body moved
-     * to movy and the gesture sites, which read ownership, went on targeting
-     * Schwung's parameters.
+     * THE STEP PAGE STILL DECLINES. `stepSelected` is a step with an OCCURRENCE
+     * under it (`seq/step-page.ts`), and that page IS movy's — intrinsic trig
+     * properties, never chain automation — so it belongs to movy's drawer and to
+     * movy's bank bar either way.
      *
      * WHAT IS NOT LOST IS THE LOCK READING. Both renderers resolve it from the
      * same `auto.heldValues` (`model/viewmodel.ts` for movy's body,
      * `renderer/schwung-page-decorations.ts` for Schwung's decoration), so a held
      * step shows the lock and the value that step will play either way. What
-     * only movy's body can add — and the reason this gate exists — is which
-     * knobs will take a lock in the first place.
+     * only movy's body can still add is which knobs will take a lock in the first
+     * place — under `page` that is now the toast at the gesture, not a dimmed
+     * cell (SU-8; `docs/schwung-page-migration.md`).
      */
     if (!owner.claimed) return why(owner.reason);
     /* The poll moved to `pollDrawnPage` (app/page-poll.ts), which runs once per
@@ -541,6 +543,15 @@ function tickBody(): void {
                     return validateLane(tp, ps, (key) => model.paramRangeByKey(key));
                 },
             );
+            /* The bases the UI never sent (SP-36). After the labels, so every
+             * lane that is staying already has the range that turns the wire's
+             * 7 bits back into the parameter's units — and ASKED FOR AT ALL only
+             * when some assigned lane is missing its base, because this read
+             * shares the single-slot param SHM with movy's own writes. */
+            if (anyLaneNeedsBase()) {
+                const bases = paramGet('abases');
+                if (bases) seedFromEngine(bases, laneRangeOf);
+            }
         }
     }
     // A chain module reload (user swap, dev redeploy) clears the chain-side

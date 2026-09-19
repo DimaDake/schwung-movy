@@ -29,6 +29,14 @@ await esbuild.build({
          * suite can drive the stale-write hazard at the level it lives at,
          * rather than racing Schwung's settle window through the page. */
         resolve(root, 'src/renderer/schwung-page-cache.ts'),
+        /* WHICH keys that cache spends its round trip on (SP-39). Its own entry
+         * point because the file has no state and no host: the logic suite
+         * seeds a Map and a port and asserts on the request, which is the only
+         * level that can see the batch's COMPOSITION — a folded-in module would
+         * leave the suite failing on a path instead, and the composition bug
+         * (every read counted as an ask, so the cap evicts the live page) is
+         * invisible to every other suite in both tiers. */
+        resolve(root, 'src/renderer/schwung-page-batch.ts'),
         resolve(root, 'src/renderer/schwung-editor.ts'),
         resolve(root, 'src/renderer/schwung-widgets.ts'),
         /* The file side of a module's widget (SP-28): an entry point so the
@@ -71,6 +79,11 @@ await esbuild.build({
         resolve(root, 'src/model/env-stage.ts'),
         resolve(root, 'src/model/page-rotation.ts'),
         resolve(root, 'src/model/config-hierarchy.ts'),
+        /* The one reader of a module's declared page contract (SP-20): an entry
+         * point so the logic suite can drive the three rungs, the levels test
+         * and the pending answer directly, rather than inferring the ladder
+         * from a page that was planned from it. */
+        resolve(root, 'src/chain/hierarchy-source.ts'),
         resolve(root, 'src/model/eq-viz.ts'),
         resolve(root, 'src/model/eq-vm.ts'),
         resolve(root, 'src/renderer/eq-curve.ts'),
@@ -123,6 +136,14 @@ await esbuild.build({
         resolve(root, 'src/undo/ui-fields.ts'),
         resolve(root, 'src/chain/set-param.ts'),
         resolve(root, 'src/seq/lane-mapping.ts'),
+        /* The base an automated parameter reverts to (SP-36). Its own entry
+         * point because it is pure — a Map, and two functions over it — and
+         * the suite has to be able to SEED it the way a restored Set does
+         * (`seedFromEngine`), which no other path can drive without a
+         * device. Splitting keeps the map a singleton: every importer
+         * resolves to the one shared chunk, which is the property the
+         * mirror depends on. */
+        resolve(root, 'src/seq/automation-base.ts'),
         resolve(root, 'src/track/mix-persist.ts'),
         resolve(root, 'src/track/send-persist.ts'),
         resolve(root, 'src/track/send-port.ts'),
@@ -146,10 +167,21 @@ await esbuild.build({
         resolve(root, 'src/keyboard/held-notes.ts'),
         resolve(root, 'src/keyboard/release.ts'),
         resolve(root, 'src/keyboard/handler.ts'),
+        /* The knob-touch ledger (SP-31): an entry point so app-loop can assert
+         * the map is EMPTY again after a release, not only that its effect on
+         * the controller went away — the same reason held-notes.ts is one. */
+        resolve(root, 'src/midi/knob-page-pin.ts'),
         /* The delegation boundary (SP-10): an entry point so the logic suite
          * can ask the accessor directly, rather than inferring ownership from
          * a router gesture. */
         resolve(root, 'src/app/page-owner.ts'),
+        /* The repaint decision (SP-38): an entry point because that decision IS
+         * the fix — the animated widgets were already drawing correctly and
+         * simply never asked for a second frame. A suite that drove it through
+         * a whole tick could not tell "the term is gone" from "the fixture
+         * happened not to animate", which is the difference between a test and
+         * a coincidence. */
+        resolve(root, 'src/app/page-poll.ts'),
         /* The body/ring decision (SP-18): an entry point so the `page` scenes
          * render through `schwungBodyFor` itself. A scene that re-derived the
          * condition would stay green with it taken out, which is exactly what

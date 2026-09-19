@@ -21,6 +21,7 @@ import { fileURLToPath } from 'url';
 import { PNG } from 'pngjs';
 import pixelmatch from 'pixelmatch';
 import { installEnv } from './env.mjs';
+import { dumpFixture } from './dump-fixture.mjs';
 import { REFRESH_BULK_TICKS } from '../dist/esm/model/constants.js';
 
 /* Quiet the renderer's [movy] mlog chatter; keep our own status lines. */
@@ -82,7 +83,7 @@ const PRESETS = [
     'wave_cells', 'wave_overlay', 'wave_helm', 'wave_toggles',
     'env_stages', 'eq_bands', 'cut_filters', 'faders', 'wav_sample', 'wav_loop', 'wav_loop_off', 'wav_beside_filter',
     'switches', 'pan_dials', 'spray_saturated',
-    'page_body', 'page_body_p2',
+    'page_body', 'page_body_p2', 'page_voice_pad',
     'page_mod_cell', 'page_mod_cell_held',
     'page_held_lock', 'page_lane_unheld', 'page_held_unassignable',
     'page_chrome_held', 'page_chrome_flip',
@@ -96,7 +97,7 @@ const PRESETS = [
  * it builds or loads anything; the scenes carry their own guard as well, so a
  * name that drifts out of this set fails loudly instead of rendering a body it
  * cannot. */
-const PAGE_SCENES = new Set(['page_body', 'page_body_p2',
+const PAGE_SCENES = new Set(['page_body', 'page_body_p2', 'page_voice_pad',
     'page_mod_cell', 'page_mod_cell_held',
     'page_held_lock', 'page_lane_unheld', 'page_held_unassignable',
     'page_chrome_held', 'page_chrome_flip']);
@@ -170,6 +171,16 @@ const BASE = {
     page_body: 'test16', page_body_p2: 'test16',
 };
 
+/* MODULES THAT ARE NOT MOCKS. `page_voice_pad`'s subject is a DECLARED drum
+ * rack, and the fleet has one: `voice-poc` declares `pad_layout: "drums"` with
+ * named voices and a page per voice, so replaying it out of
+ * `docs/module-dump/device-dump.json` (`dump-fixture.mjs`) gives the scene a
+ * real rack with two different names to choose between. A `drums_hier` mock was
+ * written for it first and deleted — its page names were the mock's own
+ * invention, so a change to Schwung's naming would have moved the fixture
+ * rather than the baseline. */
+const DUMP_BASE = { page_voice_pad: 'voice-poc' };
+
 const STEP_VM_A = {
     holdVel: 100, holdGate: 48, holdGateMixed: false,
     holdProb: 40, holdCondA: 2, holdCondB: 3, holdInvert: true,
@@ -233,7 +244,7 @@ const { buildCaptureVM }     = await import('../dist/esm/seq/capture-vm.js');
 const { setCaptureStateForTest } = await import('../dist/esm/seq/capture.js');
 const { drawVolumeOverlay } = await import('../dist/esm/renderer/volume-overlay.js');
 const { volumeFrac }       = await import('../dist/esm/mixer/track-volume.js');
-const { renderKnobsView }  = await import('../dist/esm/renderer/knob-view.js');
+const { renderKnobsView, headerRightText } = await import('../dist/esm/renderer/knob-view.js');
 /* The `page` scenes' entry points. Imported here, not statically, for the same
  * reason as every other renderer: the file resolves them after installEnv(). */
 const { setSchwungGridMode, schwungPageFor, schwungGridReload } =
@@ -247,6 +258,13 @@ const { schwungBodyFor, schwungBankFor } = await import('../dist/esm/app/tick.js
 const { modulatedKeysOf } = await import('../dist/esm/app/modulated-keys.js');
 const { stepPageAvailable, stepPageState } = await import('../dist/esm/seq/step-page.js');
 const { schwungLibAvailable } = await import('../dist/esm/renderer/schwung-lib.js');
+/* The reader the MODEL asks through and the renderer that answers it. `model/`
+ * imports nothing from `renderer/`, so the dependency is pushed in —
+ * `app/globals.ts` does exactly this line at start-up. Without it `readSurface`
+ * answers null, no module can declare a drum rack whatever its hierarchy says,
+ * and `vm.drumPadName` is '' for every scene in this file. */
+const { setSurfaceReader } = await import('../dist/esm/model/drum-declared.js');
+const { surfaceOf }        = await import('../dist/esm/renderer/schwung-voices.js');
 const { renderKeysView }   = await import('../dist/esm/renderer/keys-view.js');
 const { renderLoadingView } = await import('../dist/esm/renderer/loading-view.js');
 const { renderVersionsView } = await import('../dist/esm/renderer/versions-view.js');
@@ -298,7 +316,7 @@ const chainModels = COMPONENT_KEYS.map(k => createModel(portFor(0), k));
 const model = chainModels[1];   // synth slot — the default knobs view
 
 function loadPreset(id) {
-    env.setParams(MOCK_SYNTHS[id]);
+    env.setParams(DUMP_BASE[id] ? dumpFixture(DUMP_BASE[id]) : MOCK_SYNTHS[id]);
     for (const m of chainModels) { m.reset(); m.reload(); }
 }
 
@@ -1264,15 +1282,20 @@ function applyView(preset) {
         /* PAGE MODE, DRAWN BY SCHWUNG. The rest of the baselines cannot reach it:
          * schwungGridEnabled() is `mode === 'body'`, so under `page` every
          * existing scene renders movy's widgets however the flag is set, and the
-         * suite reports green about a renderer it never ran. These two supply
+         * suite reports green about a renderer it never ran. These supply
          * `bodyOverride` — the same seam the device uses — so Schwung really
          * plans and really draws.
          *
-         * The two differ only by a jog click, which is the point: the bank bar's
-         * index is Schwung's pageIndex, and a frozen 0 there is the Cause A
-         * symptom a screenshot can see. */
+         * `page_body` and `page_body_p2` differ only by a jog click, which is
+         * the point: the bank bar's index is Schwung's pageIndex, and a frozen 0
+         * there is the Cause A symptom a screenshot can see — and the HEADER's
+         * right-hand end is Schwung's page NAME (SP-37), so the pair also pins
+         * that it moves. `page_voice_pad` is the same frame on a module that
+         * declares a drum rack, where the header has a second name to choose
+         * from and the wrong precedence draws that one instead. */
         case 'page_body':
-        case 'page_body_p2': {
+        case 'page_body_p2':
+        case 'page_voice_pad': {
             if (!schwungLibAvailable()) throw new Error(
                 'screenshot: ' + preset + ' needs a bundle built with SCHWUNG=/path/to/schwung');
             setSchwungGridMode('page');
@@ -1299,9 +1322,47 @@ function applyView(preset) {
             for (let i = 0; i < 12 * 60 && !sp.ready; i++) { sp.tick(); model.tick(); }
             if (!sp.ready) throw new Error(preset + ': the contract never resolved');
             if (preset === 'page_body_p2') sp.changePage(1);
+            /* A DRUM RACK UNDER A DELEGATED PAGE, on a page that is NOT the
+             * focused pad's own — which is the shape the pad-name precedence
+             * used to get wrong. `updateDrumPad` is what fills `drumPadName`
+             * (the model reads the names off the module's own declaration, so
+             * nothing here invents one); on `voice-poc` pad 2 is "Snare" and
+             * its own page is page 1, so page 0 — "Kick" — is a page where the
+             * two names on screen differ. */
+            if (preset === 'page_voice_pad') {
+                sp.goToPage(0);
+                model.updateDrumPad(2, 38);
+            }
+            const vm = model.getViewModel();
+            if (preset === 'page_voice_pad') {
+                const label = sp.chrome(true).pageLabel;
+                if (!vm.drumPadName) throw new Error(
+                    'page_voice_pad: the rack declared no pad names, so the shot cannot test the precedence');
+                /* AND THE TWO NAMES MUST DIFFER, or this frame is green whichever
+                 * of them leads and the regression is a clean diff — the
+                 * failure mode a screenshot is worst at seeing. */
+                if (vm.drumPadName === label) throw new Error(
+                    'page_voice_pad: the focused pad and the page are both '
+                    + JSON.stringify(vm.drumPadName)
+                    + ', so the baseline cannot tell the precedence from a coincidence');
+                /* ...AND WHAT IT DRAWS IS THE PAGE'S, asserted through the
+                 * renderer's own chooser so a regression fails naming the rule
+                 * instead of a pixel count. That the name MOVES when the jog
+                 * does is `logic/schwung-page.mjs`'s claim: one frame can only
+                 * witness what is in it. */
+                if (headerRightText(vm, sp.chrome(true)) !== label) throw new Error(
+                    'page_voice_pad: the frame draws '
+                    + JSON.stringify(headerRightText(vm, sp.chrome(true)))
+                    + ' where the page is named ' + JSON.stringify(label));
+            }
+            /* `sp.chrome(true)` is the APP's own call (`schwungChromeFor(owner,
+             * body, true)`) and the reason these scenes exist: the header's
+             * right-hand end is the page's name under `page`, and movy's own
+             * bank name under `off`. Without it the pair is a constant and the
+             * SP-37 symptom is invisible to every baseline in this suite. */
             lastRender = () => renderKnobsView(model.getViewModel(), false, 0,
                 () => sp.render('T1 > ' + model.getModuleName()),
-                { index: sp.pageIndex, count: sp.pageCount });
+                { index: sp.pageIndex, count: sp.pageCount }, sp.chrome(true));
             lastRender();
             /* The mode is a module-level override: leaving it set would silently
              * repaint every scene after this one, and they would still report
@@ -1352,8 +1413,17 @@ function applyView(preset) {
          * A held step on a page most of which cannot take a lock. Rendered
          * through the REAL body decision — `pageOwnerOf` + `schwungBodyFor`,
          * with `seqState.stepAutoMode` set, which is what `vm.automationHeld`
-         * is — so the scene grades movy's held-step filter end to end rather
-         * than a copy of its condition.
+         * is — so the scene grades the body decision end to end rather than a
+         * copy of its condition.
+         *
+         * THE FRAME IS SCHWUNG'S PAGE NOW, AND THE SHOT IS WHERE THE DIFF IS
+         * READ. SP-35 stopped the hold from handing the owner back, so the body
+         * here is the delegated page and the cells movy's own drawer used to
+         * HIDE (`hiddenDuringHold`) are simply drawn — they show the same thing
+         * as any other cell, and the refusal to lock one is said at the gesture
+         * instead (`seq/automation.ts` consumes the turn and toasts). SP-35
+         * regenerated this one baseline for exactly that, and for nothing else:
+         * it is the only scene that asks the app for the body under a hold.
          *
          * ── page_lane_unheld (d) ────────────────────────────────────────────
          * The frame `page_held_lock` is one term away from: the same page, the
@@ -1466,9 +1536,15 @@ function applyView(preset) {
                     seqState.stepAutoMode = true;
                     lastRender = () => {
                         const owner = pageOwnerOf(model);
-                        /* The hold is the OWNER's now — `pageOwnerOf` reads
-                         * `seqState.stepAutoMode` set above — so the body is not
-                         * told it a second time (app/page-owner.ts). */
+                        /* THE HOLD IS NOT AN INPUT TO EITHER CALL, and that is
+                         * SP-35: `pageOwnerOf` no longer reads
+                         * `seqState.stepAutoMode` (app/page-owner.ts) and
+                         * `schwungBodyFor` never did, so the two cannot be told
+                         * the same news twice or told different news. What the
+                         * flags above still decide is the HELD-STEP GRAPHIC the
+                         * body draws (the lock mark and the value that step will
+                         * play), which is movy's `autoView` on one side and
+                         * Schwung's decoration pass on the other. */
                         const body = schwungBodyFor(owner,
                             stepPageAvailable() && stepPageState.selected);
                         renderKnobsView(model.getViewModel(autoView({ held: true })), false, 0,
@@ -1582,6 +1658,11 @@ for (const preset of PRESETS) {
 
     clear_screen();
     nowOverride = null;            // every scene starts on the real clock
+    /* A READER CHANGES WHAT THE MODEL BELIEVES EVERY MODULE DECLARED, so it is
+     * registered for the one scene that needs it and cleared for every other:
+     * each baseline in this file was written with no reader at all, which is
+     * also the state a real movy boots in until `app/globals.ts` runs. */
+    setSurfaceReader(preset === 'page_voice_pad' ? surfaceOf : null);
     loadPreset(BASE[preset] ?? preset);
     lastRender = knobsRepaint;
     settle();          // load hierarchy, render default knobs view

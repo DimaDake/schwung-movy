@@ -160,15 +160,42 @@ async function apply(bus: Bus): Promise<void> {
     }
 }
 
-/* True when every chain slot reads empty while the fixture wants a module in at
- * least one — the single state no number of applies can leave. A device that
- * does not ANSWER is not cold: silence is unknown, and seeding on it would
- * restart the stack for nothing. */
+/* True when a slot the fixture WANTS a module in reads empty — the state no
+ * number of applies can leave (see seedBootState).
+ *
+ * Asking whether EVERY slot is empty was the original rule, and it is false in
+ * the one shape that matters: a device rebooted onto an unsaved set comes up
+ * PARTIALLY cold as often as fully. Measured: the chain read `[0 plaits 1 - 2 -
+ * 3 -]` against a fixture wanting mrdrums in slot 1, so every slot was not
+ * empty, the boot seed never ran, and the six attempts below then burned
+ * minutes each on a route that provably cannot work. Cold is per WANTED slot;
+ * a fully-cold chain is the subset where all of them read empty, so nothing
+ * that was cold under the old rule stopped being cold.
+ *
+ * `got` is one `<slot> <module>` line per slot with "-" for empty
+ * (scripts/slots-read.mjs), so this matches each wanted slot against that
+ * slot's OWN line rather than trusting the order they arrived in.
+ *
+ * A slot with no line at all is NOT cold — matched by "reads empty" and not by
+ * absence, so silence stays unknown. (readSlots already returns null when any
+ * slot fails to answer; this is the second guard, for a caller that passes its
+ * own list.) A device that does not ANSWER is therefore still not cold:
+ * silence is unknown, and seeding on it would restart the stack for nothing. */
+export function chainIsColdFor(want: Array<{ slot: string; mod: string }>,
+                               got: string[]): boolean {
+    const empty = new Set<string>();
+    for (const line of got) {
+        const m = /^(\d+)\s+(.*)$/.exec(line.trim());
+        if (m && m[2].trim() === '-') empty.add(m[1]);
+    }
+    return want.some((e) => e.mod !== 'none' && empty.has(e.slot));
+}
+
 async function chainIsCold(): Promise<boolean> {
     if (!fixtureEntries().some((e) => e.mod !== 'none')) return false;
     const got = await readSlots();
     if (!got) return false;
-    return got.every((l) => l.trim().endsWith(' -'));
+    return chainIsColdFor(fixtureEntries(), got);
 }
 
 /* Seed the shim's BOOT path with the fixture, then restart.

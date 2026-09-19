@@ -127,6 +127,7 @@ flip after it and SP-41 conditional on a decision nobody has made.
 | SP-31 | a knob release that lands on another page latches `touched`, and every later jog click is swallowed | Sonnet | ⬜ | **6** | ✔ (unreportable if shipped) |
 | SP-40 | the flag becomes two values, MOVY and SCHWUNG; `body` and the `.off` stand-ins deleted | Sonnet | ⬜ | **7** | ✔ |
 | SP-47 | **NEW** — the opt-in release: the row goes in front of users, default still MOVY | Sonnet | ⬜ | **8** | — |
+| SP-48 | **NEW** — a modulated or `live` param the page shows keeps it redrawing forever. **A regression SP-38 introduced**; the flag must not reach testers with it open | Sonnet | ⬜ | **7.5** | ✔ |
 | SP-32 | a bank or cell that exists only in movy's config is on no page under `page`: audit before SP-30 flips the default | Sonnet | ⬜ | 9 | — |
 | SP-42 | **NEW** — a .wav has no waveform: `wav_io_qjs.mjs` is never imported | Sonnet | ⬜ | 10 | — |
 | SP-45 | **NEW** — 8w8's pads do not select their pages; the other three racks' do | Sonnet | ⬜ | 11 | — |
@@ -157,6 +158,7 @@ flip after it and SP-41 conditional on a decision nobody has made.
 | SU-8 | A per-cell channel for "this parameter is AUTOMATED" and "this cell cannot take a lock" — distinct from `locked` (a held step's lock) and from `isModulated` (the tilde) | ⬜ **new, conditional** — SP-35/SP-36 decide first whether movy can draw both in its own chrome |
 | SU-9 | A knob drives a door page's list, with `list_knob.mjs`'s feel | ⬜ **new, likely** — SP-44; the list, its length and its commit path are the door's, and movy must not restate them |
 | SU-10 | A viz kind for a LONE envelope stage (attack only, decay only) | ⬜ **new** — SP-46; take the fleet count with the ask, the way SP-22's drop was measured |
+| SU-11 | A per-key duration in the animation store, so `settled` ages out a value that never rests | ⬜ **new, conditional** — SP-48; the alternative is a movy-side repaint cap, which is the fallback only if this is declined |
 
 ---
 
@@ -268,7 +270,8 @@ previous "this needs upstream" in this file has cost a release cycle.
 | 12 | remove the `body` option: a two-value flag, MOVY and SCHWUNG, visible to users next release | SP-40 + SP-47 | ✔ |
 
 **Proposed order, gate first.** 1 SP-36, 2 SP-35, 3 SP-38, 4 SP-39, 5 SP-37,
-6 SP-31, 7 SP-40, 8 **SP-47 — the release**. Then SP-32, SP-42, SP-45, SP-43,
+6 SP-31, 7 SP-40, **7.5 SP-48 — the regression SP-38 introduced**, 8 **SP-47 —
+the release**. Then SP-32, SP-42, SP-45, SP-43,
 SP-44, SP-46, SP-16, SP-21a, SP-23, SP-24, SP-29, SP-30, and SP-41 only if it
 is ever decided. SP-31 is in front of the release and the user did not name it
 because it is not a symptom you can describe — a lost knob release latches the
@@ -752,6 +755,85 @@ entry records the fleet count and the decision to accept the loss.
 
 ---
 
+### SP-48 — a modulated or `live` param the page shows keeps it redrawing forever. **A REGRESSION SP-38 INTRODUCED**
+
+**Product.** A page showing an enum-shaped or waveform parameter with a host LFO
+on it — or any `live` param that keeps moving — **never stops redrawing.**
+Nothing looks wrong, and that is the point: the animation is doing its job and
+the page pays the animating cost on every tick, forever. What a person notices
+is a warm tool and a shorter battery; what the next item that measures tick
+headroom notices is noise it cannot attribute.
+
+**This is a regression, and it is SP-38's.** Before SP-38 the same setup
+**froze**: `pollDrawnPage`'s `moved` came from `page.knobLevels()`, which reads
+`ctl.state.values[k]` — the **BASE** map — so a modulated enum moved no level
+and no key, `moved` stayed `false`, and the widget sat at a stale frame. That
+freeze is the defect SP-38 fixed (finding #3), so the pressure is real and the
+item is not "undo SP-38": the only reason the page redraws at all now is the
+predicate that keeps it redrawing.
+
+**Cause, with the chain, because it was got wrong once.** `settled(state, now)`
+is "nothing was stamped within the last 120 ms" and `observe` re-stamps whenever
+a value's string differs from the last one seen, so **a key that moves again
+inside every 120 ms window never settles** — the threshold is a FREQUENCY, not a
+per-frame change: ~8 Hz. A 10 Hz LFO does it; a 2 Hz LFO does not. The route is
+a modulated or `live` param the DRAWN page shows, and the renderer **merges
+before it observes**: `render_page_movy.mjs:2441` builds
+`liveValues = {...values, ...modValues}`; the enum path hands
+`shown = liveRaw ?? raw` (`:2160`) into `drawEnumSquare`, which observes `shown`
+(`:1579`); the wave path passes `liveValues` to `drawVizGroup` (`:2516`) and
+`drawWaveform` observes out of it (`viz_draw.mjs:1115`). So both animated widgets
+observe the MODULATED value, and `modValues` is re-read from `:effective` every
+tick (`page_controller.mjs:4148`, one key per tick) for every key `modCache`
+flagged (`:2344` — which includes `live: true` params, not only modulated ones).
+The arc knob is the only immune widget, and only because `drawArcKnob` (`:1237`)
+takes no `anim` argument. The store never ages a key out: `since` is overwritten,
+never expired, and the window is one constant, not per-key. Second-order and
+SP-36's to check: a decoration feeding a raw value back into an animated key such
+as `enumw:` is the same exposure by another door.
+
+**The cost, and read it as a FLOOR.** The measured animating window is
+**0.7 ms/tick of `render`** against 0.2 before, its worst tick 3.9 ms against a
+2.8 ms baseline (worst period 5.7 → 6.8 ms, +19%) — measured on **plaits, 2
+pages, the smallest shape in the fixture**, so it is the cheapest page this can
+happen on. A permanently-redrawing page pays it on **every** tick rather than one
+window in seven, and nobody has measured the same page on minijv (72 pages, where
+the lag was reported); expect more there. Raw lines, both arms:
+`### SP-38 ✅` above.
+
+**Fix route, two of them, and the first is not movy's.** (a) **Upstream — the
+preferred one (SU-11).** A **per-key duration** in the store: record the
+transition's own `durationMs` with the stamp and let `settled` age a key out
+against that, so a key that never rests still passes once its transition is older
+than its own duration. That is rule 2's answer — a change Schwung needs is an
+upstream PR, never a local patch — and it is the same shape as the 100 ms
+`WAVE_MORPH_MS` against the 120 ms window that SP-38 already records as a loss.
+(b) **On movy's side, if upstream declines:** a **repaint cap in
+`pollDrawnPage`** — the animating term asks for a frame at most once per N ms, so
+a never-settling page degrades to a bounded frame rate instead of the tick rate.
+N has to be picked against the shortest animation movy draws or the cap visibly
+stutters the animations SP-38 fixed, so this is the fallback, not the plan.
+
+**SP-47 interaction, and it is why this row carries a release gate.** SP-47 puts
+the flag in front of testers, and one host LFO on an enum or waveform parameter
+the page shows is a known way to make every tick pay the animating cost. **The
+flag must not go out with this open** unless SP-47's entry records an explicit
+acceptance and says who accepted it. The row is placed at order **7.5**, between
+SP-40 and SP-47, for that reason; the owner can move it.
+
+**Closes when:** the page goes idle again under a fast-modulated enum or wave
+param, **with a test that proves it** — drive an `:effective` value moving faster
+than the 120 ms window and assert `pollDrawnPage` stops asking for frames once
+the transition has aged out. `browser-test/logic/page-freshness.mjs` already
+drives `pollDrawnPage` directly, so this is a local test, not a device one. Or
+SP-47 records the acceptance.
+
+**Needs:** a decision on (a) versus (b) — the upstream PR first, the cap only if
+it is declined. Nothing from the device; the measurement above is what is on
+record.
+
+---
+
 ### SP-19 ✅ 2026-09-18 — undo redraw, and the arc that follows automation: VERIFIED, NOT BUILT
 
 **Product.** Two invariants a person never thinks about until they break. **Undo
@@ -862,7 +944,9 @@ and its `settled(state, now)` is exposed as `SchwungPage.animating(nowMs)`
 (`renderer/schwung-page-anim.ts`, split out of `schwung-page.ts` when that file
 crossed its 200-line cap); `pollDrawnPage` asks it **only when the value and
 identity comparisons both held still**, so a page whose values are moving is
-decided exactly as before and an idle page pays one iteration over an empty Map.
+decided exactly as before and an idle page pays one walk of the animation store —
+a subtraction and a compare per animated key the page has ever drawn, since
+`anim_state` only ever sets and never deletes. Cheap, but not an empty map.
 `observe` stamps a FIRST sighting already past, so a page does not animate itself
 in on arrival — only a real change starts a transition.
 
@@ -924,23 +1008,30 @@ seqengine=0.6 rest=0.5 ctltick=0.4 ctlpoll=0.3 buildvm=0.2 render=0.2
 calls/tick=0.9 peak=10 ipc_ms=2.0 tick_ms=3.9 period_ms=6.8 peak_period=26 | …
 seqengine=0.7 render=0.7 buildvm=0.6 rest=0.5 ctltick=0.4 ctlpoll=0.3
 
-# idle section, BOTH arms — 18/19 windows, and no `render` line in either
+# idle section, BOTH arms — 19 windows each, and no `render` line in either
 calls/tick=0.9 peak=9 ipc_ms=1.8 tick_ms=2.5 period_ms=5.3 peak_period=16 | get overtake_dsp:* n=0.3 ms=0.6 | get synth_module n=0.2 ms=0.4 | …
 ```
 
-(A window is logged TWICE, once `[shadow]` and once `[move-shim]`, so the raw
-line counts are double the window counts — an earlier revision of this entry
-quoted the raw counts as windows. Medians and ranges are unaffected.)
+(A window is logged TWICE — `[shadow]` and `[move-shim]` print the same line —
+and `measure-grid-cost.sh:148` greps the whole log, so **raw line count ÷ 2 IS
+the window count**, and neither the raw count nor a deduplicated count is.
+Verified against the raw files: all 38 before-arm idle lines are exact adjacent
+duplicate pairs, **19 windows, none mismatched**; the same for the after arm, and
+for the knob section (16 → 8 before, 14 → 7 after). An earlier revision reported
+idle as 18/19 from a `sort -u` of the raw lines; the 18 came from one before-arm
+line text occurring **four** times, i.e. two DISTINCT windows that happen to be
+byte-identical, not a mismatched pair. Medians and ranges are unaffected.)
 
 (`perf_phase` prints only the six largest phases, so a phase that is absent is
 not in the top six — i.e. ~0. The two arms' idle `tick_ms` **medians are both
 2.5**: identical, not merely overlapping.)
 
 The idle section is unchanged
-and carries no `render` phase in either arm; the 2.4–2.7 after-arm max is inside
-the before arm's own 2.2–2.6 spread and at the instrument's resolution, so the
-idle claim rests on the equal medians, `calls/tick` and the absent phase, not on
-that delta. Exactly
+and carries no `render` phase in either arm; the after arm's 2.4–2.7 range
+extends **0.1 ms above** the before arm's 2.2–2.6 (so it is not "inside" it),
+both medians are equal at 2.5, and the delta is below the instrument's 1 ms
+granularity — so the idle claim rests on the equal medians, `calls/tick` and the
+absent phase, not on that delta. Exactly
 one `perf_phase` line per section can carry the animation — 120 ms of transition
 inside a ~630 ms report window — which is the expected shape, not a weak signal.
 Method, commands and the resolution limits: `.superpowers/sdd/schwung-page-migration/sp38-measurement.md`.
@@ -957,7 +1048,7 @@ not.
 revision of this entry said the opposite, which is why the chain is written out.**
 The renderer MERGES BEFORE IT OBSERVES. `render_page_movy.mjs:2441` builds
 `liveValues = {...values, ...modValues}`; the enum path hands
-`shown = liveRaw ?? raw` (`:2161`) into `drawEnumSquare`, which observes `shown`
+`shown = liveRaw ?? raw` (`:2160`) into `drawEnumSquare`, which observes `shown`
 at `:1579`; the wave path passes `liveValues` to `drawVizGroup` (`:2516`) and
 `drawWaveform` observes out of it (`viz_draw.mjs:1115`). So **both animated
 widgets observe the MODULATED value**, and `modValues` is re-read from
@@ -971,6 +1062,12 @@ not exist on the observe path. Second-order and still worth the check: a jittery
 base enum, or a decoration feeding a raw value back into `enumw:` — **SP-36 must
 be checked against this predicate before it ships.** All of it is written into
 `renderer/schwung-page-anim.ts` beside the predicate.
+
+**THIS EXPOSURE IS AN OPEN ITEM — SP-48 — not a footnote here.** It is a
+regression this item introduced, it has a shipped route, a fix route and an
+owner, and it is written up in the Open list below with the rest of them; the
+chain above is its evidence. Its SP-47 interaction is the reason it carries a
+release gate.
 
 **Teeth, and a fixture trap worth keeping.** `browser-test/logic/page-freshness.mjs`
 drives `pollDrawnPage` itself (`dist/esm/app/page-poll.js`, a new build entry
@@ -2085,8 +2182,11 @@ the fact a later session would otherwise re-derive.
   asked by the repaint decision, and only last.** `anim_state.mjs` joined
   `schwung-lib.ts`'s imports and `SchwungPage.animating(nowMs)` asks it, plus the
   trigger flash through `buttonPhase`. `pollDrawnPage` asks only when the value
-  and identity comparisons both held still, so an idle page pays one iteration
-  over an empty Map. **Two facts a later session would re-derive.** (1) **The
+  and identity comparisons both held still, so an idle page pays one walk of the
+  animation store — one entry per animated key the page has drawn, since
+  `anim_state` only ever sets and never deletes. **The exposure this opens is
+  SP-48, an open item, not a note here.** **Two facts a later session would
+  re-derive.** (1) **The
   entry's `ctl.onCanvasPage` is not a redraw source** — it is `!!(page().canvas)`,
   a predicate with ZERO callers in `schwung/src`, and a canvas page is handed no
   `nowMs` (`{ touched, values }`), so it is a pure function of values and the

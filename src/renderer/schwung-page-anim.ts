@@ -41,8 +41,9 @@ type AnimSources = Pick<SchwungLib, 'settled' | 'buttonPhase'>;
  * THE ROUTE TO IT IS A MODULATED OR `live` PARAM THE PAGE SHOWS, and this was
  * got wrong once, so the chain is written out. The renderer MERGES BEFORE IT
  * OBSERVES: `render_page_movy.mjs:2441` builds `liveValues = {...values,
- * ...modValues}`; the enum path hands `shown = liveRaw ?? raw` (`:2161`) into
- * `drawEnumSquare`, which calls `observeLanded(anim, "enumw:" + key, shown, …)`
+ * ...modValues}`; the enum path hands `shown = liveRaw ?? raw` (`:2160`) into
+ * `drawEnumSquare`, which calls
+ * `observeLanded(anim, "enumw:" + key, shown, …)`
  * (`:1579`); the wave path passes `liveValues` into `drawVizGroup` (`:2516`)
  * and `drawWaveform` observes `values[key]` from it (`viz_draw.mjs:1115`). So
  * BOTH animated widgets observe the MODULATED value. `modValues` is refreshed

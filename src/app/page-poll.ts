@@ -119,7 +119,12 @@ export function pollDrawnPage(owner: PageOwner): boolean {
     }
     /* SP-38. ONLY WHEN NOTHING ELSE MOVED, so this is one extra predicate per
      * idle tick and none at all on a tick a value changed — and the predicate
-     * is `anim_state`'s own, which walks an empty map when the page is still.
+     * is `anim_state`'s own. That map is NOT empty on a still page:
+     * `anim_state` only ever sets, never deletes, so it holds one entry per
+     * animated key the page has ever drawn, every one of them already past its
+     * window. Asking costs a subtraction and a compare per entry — cheap, which
+     * is why the idle measurement is unchanged, but not free, and not because
+     * there is nothing to walk. See `renderer/schwung-page-anim.ts`.
      *
      * THE CLOCK IS `Date.now()` BECAUSE THE CONTROLLER'S IS. `page_controller`
      * takes `io.now || (() => Date.now())` and movy injects no `io.now`, so both

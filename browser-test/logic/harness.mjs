@@ -138,6 +138,7 @@ import { shapeSample, drawWave } from '../../dist/esm/renderer/lfo-wave.js';
 import { CHAIN_SLOTS, LFO_CHAIN_INDEX, isLfoSlot } from '../../dist/esm/chain/config.js';
 import { init } from '../../dist/esm/app/init.js';
 import { appState } from '../../dist/esm/app/state.js';
+import { perfPhase, perfPhaseEnd, perfProbeTick } from '../../dist/esm/app/perf-probe.js';
 import { buildCpuPageVM, buildSendColumns, USABLE_BLOCK } from '../../dist/esm/seq/cpu-page-vm.js';
 import { FULL_SCALE_US, scaleFor, scaleLabel } from '../../dist/esm/seq/cpu-scale.js';
 /* The sequencer's track is the SELECTED track — a suite that wants the step row
@@ -302,6 +303,7 @@ export {
     readPrefModuleBlacklist,
     buildCpuPageVM, buildSendColumns, FULL_SCALE_US, USABLE_BLOCK, scaleFor, scaleLabel,
     DEBUG_BUILD, openParamPage, closeParamPage, paramPageActive,
+    perfPhase, perfPhaseEnd, perfProbeTick,
     VIEW_FLAGS, VIEW_CHAIN, VIEW_MAIN_PARAMS,
     FACTORY_DEFAULT_QUANT, armQuantOverlay, quantOverlayActive, quantOverlayTickAt, quantOverlayJog, quantOverlayAction,
     buildQuantOverlayVM, dismissQuantOverlay, resetQuantOverlay, installMockEngine, uninstallMockEngine, pushEntry,

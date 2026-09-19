@@ -20,6 +20,7 @@
 import {
     env, setSchwungGridMode, schwungGridReload, schwungPageFor,
     schwungLibAvailable, MOCK_SYNTHS, countTrips, ok, eq, _log,
+    perfPhase, perfPhaseEnd, perfProbeTick,
 } from './harness.mjs';
 
 export async function run() {
@@ -135,6 +136,68 @@ for (const delay of [0, 100, 719, 721, 1500]) {
     const trips = countTrips(() => { for (let i = 0; i < TICKS; i++) p.tick(); });
     _log(`    (${trips} round trips over ${TICKS} ticks of an empty slot)`);
     ok('an empty slot is not re-read at read pace', trips < 100);
+}
+
+/* ── a throw out of the reload divider must not leave its phase open ──────── */
+
+/* `perf_phase` IS AN OPEN/CLOSE PAIR WITH NO RESET. `perfPhase`/`perfPhaseEnd`
+ * share one name and one start stamp; `perfProbeTick` drops the phase TOTALS
+ * and never the open one; `resetPerfProbeInstall` clears only `installed`. So a
+ * throw out of the divider leaves the phase open and the NEXT window reports
+ * the inter-window gap as `ctlreload`. The gap is the witness: with the phase
+ * open it is charged to `ctlreload`, with it closed it is charged to nothing —
+ * and no other oracle exists, because `perfPhase`'s rename semantics mean a
+ * caller cannot tell an open phase from a closed one.
+ *
+ * Only the divider can throw here: `reloadIfChanged`, `refreshLoaded` and
+ * `afterReplan` sit outside anything that catches.
+ *
+ * PROBE_WINDOW is `perf-probe`'s SAMPLE_TICKS — the flush prints once per that
+ * many `perfProbeTick` calls. A drift there would print nothing, which reads as
+ * a clean `ctlreload=0` in BOTH arms, so the print is asserted rather than
+ * assumed. */
+const PROBE_WINDOW = 120;
+{
+    /* The window BEFORE the one under test: `phases` keeps every name until a
+     * flush clears it, and the flush prints only the top six — so a previous
+     * suite's leftovers could hide `ctlreload` from the very line this reads. */
+    for (let i = 0; i < PROBE_WINDOW; i++) perfProbeTick();
+
+    const p = pageFor(MOCK_SYNTHS.test16);
+    tickUntil(p, () => p.ready, OLD_BUDGET);
+    ok('the divider has a loaded page to run on', p.ready);
+
+    const realReload = p.ctl.reloadIfChanged;
+    p.ctl.reloadIfChanged = () => { throw new Error('the module blew up'); };
+    let threw = false;
+    for (let i = 0; i < 8; i++) { try { p.tick(); } catch { threw = true; } }
+    ok('a throw out of the divider reaches the caller', threw);
+
+    /* The inter-window gap, as wall time, then what the next window's first
+     * `perfPhase` does: closes whatever is open. */
+    const spun = Date.now();
+    while (Date.now() - spun < 250) { /* spin */ }
+    perfPhase('f5sentinel');
+    perfPhaseEnd();
+
+    /* The probe's own line is the only place `phases` is observable. The
+     * harness's console patch drops every `[movy]` line, so this wraps around
+     * it and forwards everything else. */
+    const prevLog = console.log;
+    let line = '';
+    console.log = (...a) => {
+        if (typeof a[0] === 'string' && a[0].startsWith('[movy] perf_phase')) line += a[0];
+        else prevLog(...a);
+    };
+    try { for (let i = 0; i < PROBE_WINDOW; i++) perfProbeTick(); }
+    finally { console.log = prevLog; }
+
+    ok('the probe printed a phase window to read', line.length > 0);
+    const m = / ctlreload=([\d.]+)/.exec(line);
+    ok(`a throw hands the next window nothing (ctlreload=${m ? m[1] : '(absent)'})`,
+       !m || Number(m[1]) < 1);
+
+    p.ctl.reloadIfChanged = realReload;
 }
 
 schwungGridReload();

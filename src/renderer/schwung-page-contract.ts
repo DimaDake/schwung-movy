@@ -175,19 +175,31 @@ export function createPageContract(ctl: any, port: TrackPort, componentKey: stri
          * as a whole and could not say which half. */
         if (++sinceReload >= RELOAD_POLL_TICKS) {
             sinceReload = 0;
+            /* `finally` BECAUSE `perf_phase` IS AN OPEN/CLOSE PAIR WITH NO RESET:
+             * `perfPhase`/`perfPhaseEnd` share one name and one start stamp, and
+             * nothing clears them — `perfProbeTick` drops the phase TOTALS but
+             * not the open one. A throw out of any of the three calls below
+             * would leave this phase open, and the next window would report the
+             * inter-window gap as its own cost, attributed to `ctlreload`. Same
+             * repair, same reason, as the pad-press phase in `midi/router.ts`. */
             perfPhase('ctlreload');
-            /* `load` answers whether it ADOPTED a new plan: the only cheap
-             * evidence that the module in the slot said something new — a swap,
-             * a preset, a module that finished loading. Phased separately from
-             * the reload so its cost is not read as the re-plan's. */
-            const adopted = ctl.reloadIfChanged();
-            perfPhase('refreshloaded');
-            refreshLoaded();        /* the module may have just left the slot */
-            perfPhase('reloadwidgets');
-            /* A re-plan that MOVED is the swap, and the one moment a widget may
-             * belong to a different module — see schwung-page-widget-sync.ts. */
-            widgets.afterReplan(adopted);
-            perfPhaseEnd();
+            try {
+                /* `load` answers whether it ADOPTED a new plan: the only cheap
+                 * evidence that the module in the slot said something new — a
+                 * swap, a preset, a module that finished loading. Phased
+                 * separately from the reload so its cost is not read as the
+                 * re-plan's. */
+                const adopted = ctl.reloadIfChanged();
+                perfPhase('refreshloaded');
+                refreshLoaded();    /* the module may have just left the slot */
+                perfPhase('reloadwidgets');
+                /* A re-plan that MOVED is the swap, and the one moment a widget
+                 * may belong to a different module — see
+                 * schwung-page-widget-sync.ts. */
+                widgets.afterReplan(adopted);
+            } finally {
+                perfPhaseEnd();
+            }
         }
         perfPhase('ctltick');
         ctl.tick();                 /* exactly one get_param */

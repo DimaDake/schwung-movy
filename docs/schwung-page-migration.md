@@ -129,6 +129,7 @@ flip after it and SP-41 conditional on a decision nobody has made.
 | SP-47 | **NEW** — the opt-in release: the row goes in front of users, default still MOVY | Sonnet | ⬜ | **8** | — |
 | SP-48 | **NEW** — a modulated or `live` param the page shows keeps it redrawing forever. **A regression SP-38 introduced**; the flag must not reach testers with it open | Sonnet | ⬜ | **7.5** | ✔ |
 | SP-49 | **NEW** — an IDLE `page` tick costs half again what an `off` tick costs (worst period 6.3 vs 5.0 ms, `calls/tick` 1.4 vs 0.6) and it is there with nothing moving. **A standing LATENCY cost** — the tick period is the MIDI sampling interval — so it is a gate, not just inefficiency | Sonnet | ⬜ | **7.7** | ✔ |
+| SP-50 | **NEW** — on a child-level page, movy and the controller disagree about WHICH child is showing, and a module that counts from a base disagrees by a whole instance. Live under `page`, unreachable under the default `off`; makes SP-39's child-page warm inert on the one fleet module that reaches the branch | Sonnet | ⬜ | **7.8** | ✔ |
 | SP-32 | a bank or cell that exists only in movy's config is on no page under `page`: audit before SP-30 flips the default | Sonnet | ⬜ | 9 | — |
 | SP-42 | **NEW** — a .wav has no waveform: `wav_io_qjs.mjs` is never imported | Sonnet | ⬜ | 10 | — |
 | SP-45 | **NEW** — 8w8's pads do not select their pages; the other three racks' do | Sonnet | ⬜ | 11 | — |
@@ -272,7 +273,9 @@ previous "this needs upstream" in this file has cost a release cycle.
 
 **Proposed order, gate first.** 1 SP-36, 2 SP-35, 3 SP-38, 4 SP-39, 5 SP-37,
 6 SP-31, 7 SP-40, **7.5 SP-48 — the regression SP-38 introduced**, **7.7 SP-49 —
-the standing idle tick, which is latency and therefore a gate**, 8 **SP-47 —
+the standing idle tick, which is latency and therefore a gate**, **7.8 SP-50 —
+the child instance movy addresses is not the one the controller resolves, which
+is live under `page`**, 8 **SP-47 —
 the release**. Then SP-32, SP-42, SP-45, SP-43,
 SP-44, SP-46, SP-16, SP-21a, SP-23, SP-24, SP-29, SP-30, and SP-41 only if it
 is ever decided. SP-31 is in front of the release and the user did not name it
@@ -527,11 +530,13 @@ stay forever**.
 re-derive.** The four gate items (SP-35, SP-36, SP-37, SP-38, SP-39 — five
 entries, four complaints) plus SP-31, whose symptom a tester cannot report
 usefully. Not SP-32: an opt-in tester noticing a missing bank is a report, and
-reports are what the opt-in is for. **Two more rows are gates and are not in that
-count, because neither is one of the four complaints: SP-48 (a modulated or
-`live` param keeps the page redrawing forever) and SP-49 (an idle `page` tick
-costs half again what an `off` tick costs). Both must be closed, or explicitly
-accepted here with the number and the acceptor named, before this item closes.**
+reports are what the opt-in is for. **Three more rows are gates and are not in
+that count, because none is one of the four complaints: SP-48 (a modulated or
+`live` param keeps the page redrawing forever), SP-49 (an idle `page` tick
+costs half again what an `off` tick costs) and SP-50 (on a child-level page movy
+and the controller disagree about which child is showing). All three must be
+closed, or explicitly accepted here with the number and the acceptor named,
+before this item closes.**
 
 **THE DEVICE TIER STAYS GREEN, and that is a consequence of the default rather
 than of luck.** `items`, `module-contract` and `smoke` assert movy's OWN writes
@@ -856,6 +861,53 @@ buying.
 
 ---
 
+### SP-50 — on a child-level page, movy and the controller disagree about WHICH child is showing, and a module that counts from a base disagrees by a whole instance
+
+**Product.** On a drum- or pad-level page, the parameter a knob turns can belong
+to the NEIGHBOUR of the child the screen is on. Nothing looks wrong — the header,
+the page name and the strip all say the child the user hit — and what answers is
+one instance over, silently, on every turn of every knob on that page.
+
+**Cause, half one: a permanent off-by-base.** `src/renderer/schwung-page-input.ts:167`
+writes `String(v.childIndex)` into the module's child-index param. Schwung
+converts in ONE place, next to the base that defines it: `childIndexToWire(level, i)`
+(`../schwung/src/shared/param_pages/child_key.mjs:181-183`) adds
+`child_index_base`, and the controller reads the value back through
+`childIndexFromWire` (`:194`), which subtracts it. On a level declaring
+`child_index_base: 1` — voice-poc's `pads` — the controller therefore tracks one
+instance BELOW what movy wrote. That is an off-by-base that never corrects
+itself, not the one-tick staleness the comment at that site describes.
+
+**Cause, half two, same root: a level with no `child_index_param` has no channel
+at all.** Where the level declares none (voice-poc's `pads`), movy cannot tell
+the controller which child the UI is on: `syncChildIndexFromModule` returns early
+without one (`page_controller.mjs:1775-1777`; `liveChildIndex` carries the same
+rule at `:3981`), so nothing refreshes `s.childIndex[level]` and the controller
+resolves at instance 0 (`childIndexFor`, `:817-820`) while movy navigates. That
+is why SP-39's child-page warm is INERT on the one fleet module that reaches the
+branch — it warms `p2_vol`…`p4_vol` and the controller reads `p1_vol`.
+
+**Pre-existing, and NOT a regression.** `git blame src/renderer/schwung-page-input.ts:167`
+→ `bf94962a` (2026-09-13). **Live under `page`; unreachable under the default
+`off`**, because it needs a module declaring a child note map and the fixture's
+`plaits` is not one — so it was invisible to every device run so far, which is
+exactly why SP-30's flip is the deadline.
+
+**Closes when:** a test drives the INSTALLED `voice-poc`
+(`docs/module-dump/modules/sound_generator--voice-poc.json`; the fixture hook is
+already in `browser-test/fleet-expect.json` → `voiceDeclaring`) and pins that the
+child instance movy addresses and the instance the controller resolves are the
+SAME on a level with `child_index_base: 1`, and that the warm covers the keys the
+controller actually reads there. `browser-test/logic/schwung-page-press.mjs` (100
+lines) drives `focusVoice(8)` only through the non-child path today, and
+`grep -rn "resolveChildKey\|childLevel" browser-test/` returns nothing — **this
+item is where the child-level branch gets its first coverage.**
+
+**Needs:** nothing — the module, its dump and the fixture hook are all in the
+tree already; the pin is a local test.
+
+---
+
 ### SP-19 ✅ 2026-09-18 — undo redraw, and the arc that follows automation: VERIFIED, NOT BUILT
 
 **Product.** Two invariants a person never thinks about until they break. **Undo
@@ -1013,11 +1065,16 @@ makes more use of the frames movy already draws.
 **Read that headline as a FLOOR, not a representative.** It is plaits — 2 pages,
 the smallest shape in the fixture — so it is the CHEAPEST page this can be
 measured on, and a 70-page component (minijv, where the lag was reported — 72 was
-wrong, corrected by SP-39) draws far more per frame. It is also n=1 window per arm at a **1 ms-granularity**
+wrong, corrected by SP-39) is where a larger per-frame draw would be expected.
+**That expectation is NOT a measurement, and SP-39 has since run this method on
+minijv and found no animating window there at all** — so the scaling it implies
+is neither measured nor falsified, and the claim that the cost does not scale
+with page count is WITHDRAWN. See SP-39's entry for the run. It is also n=1 window per arm at a **1 ms-granularity**
 clock, where `render=0.7` means "~84 of the window's 630 ms went into drawing"
 rather than a per-frame time. The direction of the change is what is solid; the
-magnitude is a lower bound. **This is what SP-39 starts from, and its first step
-is to re-run the same method on minijv.**
+magnitude is a lower bound. **This is what SP-39 started from, and it ran the
+same method on minijv: no animating window, so this floor still stands alone and
+no larger-module number replaces it.**
 
 **The decisive raw lines**, so the claim can be checked without a device:
 
@@ -1322,16 +1379,39 @@ default; the opt-in release is SP-47) and nothing a user reads has changed.
 **NOTES — one latent gap, two traces, one device fact.** Recorded rather than
 fixed, each for a reason.
 
-- **The warm covers the concrete keys only where the rack declares them.** On a
-  child-level page `jump` resolves each alias through Schwung's own
-  `resolveChildKey` before qualifying it, so what it warms IS what the controller
-  reads — but only when the page carries a `childLevel` AND the voice carries a
-  `childIndex`; with either absent the alias goes over as-is and the warm covers
-  keys no read looks up. **No fleet module reaches this** (nothing declares a note
-  map, the same fact that makes the measured gesture a rack pad — a latent gap,
-  not a live one). Recheck it **the day any fleet module declares
-  `child_note_base`**, against the press suite in `browser-test/logic/`, not by
-  hand.
+- **The warm covers the concrete keys only where the rack declares them — and
+  the one fleet module that reaches the branch does not.** On a child-level page
+  `jump` resolves each alias through Schwung's own
+  `resolveChildKey(p.childLevel, childIndex, k)` before qualifying it, which is
+  the controller's own mapping (`page_controller.mjs:853`), so what it warms is
+  the SHAPE the controller reads — but only when the page carries a `childLevel`
+  AND the voice carries a `childIndex`; with either absent the alias goes over
+  as-is and the warm covers keys no read looks up.
+  **ONE MODULE IN THE FLEET REACHES THIS, AND IT IS INSTALLED: `voice-poc`.**
+  It is the only one of the 95 modules in `docs/module-dump/` declaring
+  `child_note_base` (`modules/sound_generator--voice-poc.json:165`, `status`
+  `"ok"`), it is already bucketed in `browser-test/fleet-expect.json` →
+  `voiceDeclaring`, and its `pads` level declares
+  `child_count: 4, child_index_base: 1, child_note_base: 60, child_key_template:
+  "p{index}_{key}"` — with **no `child_index_param`**. That last absence is the
+  reason, and it is stronger than "no module arrives": `schwung-page-input.ts:167`
+  writes the index only where the level declares a param, so `focusVoice` writes
+  nothing, `syncChildIndexFromModule` returns early without one
+  (`page_controller.mjs:3981`) and the controller resolves the child at instance
+  0 (`childIndexFor`, `:817-820`) while `concrete()` resolves at `v.childIndex`.
+  On pads 2-4 the warm therefore covers `p2_vol`/`p3_vol`/`p4_vol` while the
+  controller reads `p1_vol`: **the press still pays its singles on the only fleet
+  module that reaches the branch.** State plainly, because this reads like a
+  regression and is not one: pre-fix behaviour was identical, no wrong value is
+  ever cached (entries are keyed by the CONCRETE key), and the worst case is at
+  most four wasted reads per press.
+  **The recheck trigger is SP-50, not a module arriving — the module is already
+  here**, and the two halves are one root (movy and the controller disagreeing
+  about WHICH child is showing). Recheck it there, against the press suite in
+  `browser-test/logic/`, not by hand. `browser-test/fleet-pages.mjs` is where
+  the module is already COUNTED (`voiceDeclaring` is a baselined census there,
+  fed by `fleet-expect.json`) — but that is a plan-level census, and this is the
+  press/input path, which is why it passes today with the gap open.
 - **The jog path is NOT warmed, and that is a traced decision.** `changePage` →
   `ctl.onJog` does not reach `goToPage`: `onJog` sets `s.pageIndex` through
   `page_nav`'s `step`/`stepLevel`/`restoreSection` and calls `warmCurrentPage()`
@@ -1341,14 +1421,20 @@ fixed, each for a reason.
   lands on an arbitrary voice's page. A warm would also have to name the landing
   index before `onJog` computes it (menu and picker branches return without moving
   at all). Left as it is; `schwung-page.ts` carries the comment.
-- **`BATCH_VALUE_MAX` is applied when pruning, not when seeding** — noticed and
-  left alone. `warm` seeds an entry at the current epoch with `len` unset, so a
-  page whose cell is enormous can enter the batch for one window that a cache
-  which had READ it would have kept out. Unintentional, harmless, and it costs
-  exactly the once-per-epoch read the warm was making anyway; `len` is corrected
-  by that read, so the entry drops out from the next window on. A second size
-  policy at the seeding site is not worth its lines; `schwung-page-batch.ts`
-  records it.
+- **`BATCH_VALUE_MAX` is applied when pruning, and that is the only site where
+  it can do anything** — recorded because it reads like an asymmetry and is not
+  one. The claim that stood here (`warm` seeds an entry at the current epoch with
+  `len` unset, so an enormous cell can enter the batch for one window) is false:
+  `warm` pushes keys and calls `apply`, and `apply` records the length from the
+  value it read — `schwung-page-batch.ts:128`,
+  `entries.set(keys[i], { value: v, epoch, asked: epoch, len: v.length })`. There
+  is no other seeding path in `renderer/` (`grep -n "entries.set"` → that line and
+  `schwung-page-cache.ts:124`, both `len: v.length`) and `paramGetMany` returns
+  whole values (`host/param.ts:130-135`), so an entry — warm-created or
+  cache-read — carries `len > BATCH_VALUE_MAX` the moment it exists and is
+  excluded by the pruning check above it. No second size policy is needed
+  because there is nothing for one to catch; `schwung-page-batch.ts` records it
+  at the site.
 - **The device's `prefs.json` carries a stale TOP-LEVEL `"schwunggrid": 0`** from
   an older arm, beside the live `flags.schwunggrid`. It is **INERT** —
   `readPrefFlags()` reads `prefs.flags` only and every script here writes `flags`
@@ -2432,12 +2518,22 @@ the fact a later session would otherwise re-derive.
   facts a later session would otherwise re-derive.** (1) **minijv is 70 pages,
   not 72** — the ledger and `measure-grid-cost.sh` both said 72; read back as
   `schwung-body ok track=0 ck=synth pages=70`, and the module-dump audit agrees.
-  (2) **SP-38's animation cost does not scale with page count**: the minijv
-  animating window is `render = 0.2 ms/tick`, the same as plaits BEFORE SP-38's
-  fix, so the cost is bounded by what the page draws, not by how many pages the
-  module has. **And the measured gesture is a RACK pad (`cw78`), not a drum-track
+  (2) **SP-38's cost on a large module is NOT MEASURED — neither scaled nor
+  falsified**, and the claim that it does not scale with page count is WITHDRAWN
+  (the full statement is in SP-38's own entry above, which is where it belongs).
+  The minijv re-run **measured no animating window at all**: the single
+  `render = 0.2 ms/tick` window that looks like one survives stashing SP-38's
+  `pollDrawnPage` term unchanged and carries **no `buildvm` line**, where a real
+  animation carries `buildvm ≈ render` in both arms on plaits. A window that
+  survives the removal of the animation predicate is the knob turn's own
+  value-change redraw, so it is evidence about the knob and not about animation.
+  What the run DID establish stands: minijv's standing delegated cost
+  (`ctlreload` 0.7 ms/tick at idle) is larger than the whole window the question
+  was about. **And the measured gesture is a RACK pad (`cw78`), not a drum-track
   one** — the fixture's drum module declares no note map, and no drum-class module
-  in `docs/module-dump/` declares one either, so the literal gesture is
+  in `docs/module-dump/` declares one either (the ONE module that does,
+  `voice-poc`, is a sound generator and is not in the fixture — see the NOTE
+  below and SP-50), so the literal gesture is
   unreachable without changing the fixture. Per-cell/per-frame behaviour
   transfers; `focusVoice`'s ladder walk and voice count may not. **SP-48 checked,
   not assumed:** the cw78 page arm emits no `render` phase in any window, so the

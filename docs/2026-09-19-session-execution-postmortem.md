@@ -85,7 +85,13 @@ line of code is the number to keep in mind while reading the proposals.**
 Ordered by (time saved) ÷ (effort). Each one is a change in this repo — none of
 them is "try harder".
 
-### P1 — `npm run gate:preflight`: prove the gate is green BEFORE dispatching an item
+### P1 — prove the gate is green BEFORE dispatching an item ✅ **SHIPPED 2026-09-19**
+
+Shipped as `./scripts/run-gate.sh preflight [host]` — reachability, then `smoke`
+alone (~90 s), then one verdict. Documented in `CLAUDE.md`'s Dev loop as the
+thing to run *before* an item rather than after it. No new harness code was
+needed: the tier already had `--scenario`, and what was missing was the habit
+and a name for it.
 
 **Problem it kills:** #2 above, worth ~2 h in this session alone.
 
@@ -98,7 +104,20 @@ A red preflight means "fix the harness, then start the item" — which is what
 happened three times anyway, except each time it was discovered by an item that
 had already spent an hour.
 
-### P2 — make a skipped half a FAILURE, not a green run
+### P2 — make a skipped half a FAILURE, not a green run ✅ **SHIPPED 2026-09-19**
+
+Shipped as `browser-test/schwung-built.mjs`, wired into `npm test` immediately
+after the build. It asks the BUILT ARTEFACT (`schwungLibAvailable()`), never the
+environment variable — a `SCHWUNG=` set on the run but not on the build is the
+exact shape of the trap — and stops the run with the rebuild command. The
+opt-out is `ALLOW_SKIPPED=1`, which is loud rather than silent. Verified in all
+three states: stub build → exit 1; `ALLOW_SKIPPED=1` → exit 0 with the warning;
+built with `SCHWUNG=` → exit 0, "the Schwung half will RUN".
+
+**The rule is now in `CLAUDE.md`: a gate may be GREEN or RED, and "it did not
+run" is RED.**
+
+The original proposal, kept because the reasoning is the record:
 
 **Problem it kills:** the `SCHWUNG=` build-time trap, which bit two agents in
 one session and is the same class as the arm gap the final review found.
@@ -153,7 +172,12 @@ a fix round as today. `RECORD` findings are collected and land in **one
 documentation pass at the end of the branch** — not a per-item re-review cycle.
 Three of this session's fix rounds would have been one.
 
-### P6 — a foreground gate runner, so no agent can wait on a dead job
+### P6 — a foreground gate runner, so no agent can wait on a dead job ✅ **SHIPPED 2026-09-19**
+
+Shipped as `./scripts/run-gate.sh {local|preflight|device|both} [host]`: it
+exports `SCHWUNG=` for the build from the sibling checkout, prints a heartbeat
+every 30 s, and ends with `VERDICT: GREEN` / `RED` / `DEVICE OFFLINE`. The
+original proposal:
 
 **Problem it kills:** #4.
 
@@ -185,6 +209,21 @@ the report path. Put that in `docs/dispatch-contract.md` and let a brief be the
 ITEM plus a one-line pointer. Shorter briefs, and a single place to fix when a
 trap is discovered — this session discovered two and had to remember to fold
 them into every later brief by hand.
+
+---
+
+## 3b. What shipped, and what is still a proposal
+
+**Shipped the same day (2026-09-19):** P1 (preflight), P2 (a skipped half is a
+failure), P6 (the foreground gate runner) — the three with the best ratio of
+time saved to code written, and the only three that are enforced by the repo
+rather than by anyone remembering them.
+
+**Still proposals:** P3 (split the ledger), P4 (numbers produced by a command),
+P5 (CODE vs RECORD review), P7 (`--since` scenario selection), P8 (a dispatch
+contract file). P3 and P7 are the next two worth doing and both are real work —
+a 3 400-line doc restructure, and a path→scenario map — which is exactly why
+they did not ride along with the cheap three.
 
 ---
 

@@ -162,6 +162,37 @@ the user must run it): stop `move-launcher`, pkill the schwung stack, start
 
 ## Dev loop
 
+**One command, in the foreground, with one verdict: `./scripts/run-gate.sh`.**
+
+```bash
+./scripts/run-gate.sh preflight   # BEFORE starting an item: is the device gate itself green?
+./scripts/run-gate.sh local       # build + every local suite
+./scripts/run-gate.sh device      # the full tier
+./scripts/run-gate.sh both        # local, then device
+```
+
+It finds the schwung checkout and exports `SCHWUNG=` for the BUILD (the trap
+below), prints a heartbeat every 30 s so a live run cannot be mistaken for a
+dead one, and ends with `VERDICT: GREEN` / `RED` / `DEVICE OFFLINE`. Two
+sessions have ended a turn "waiting on the sweep" when the sweep was already
+dead; a command that has not returned cannot be mistaken for one that has.
+
+**Run `preflight` BEFORE the item, not after it.** It is `smoke` alone (~90 s)
+and it answers "is the gate I am about to be judged by green right now". Three
+times in one session the tier turned out to be red for its own reasons — a
+partially cold chain, a check grading the wrong window, an arm that was noted
+but never asserted — and each time an item had already spent an hour before
+anyone found out.
+
+**A gate may be GREEN or RED. "It did not run" is RED.**
+`npm test` now stops at `browser-test/schwung-built.mjs` when the built bundle
+carries no `param_pages`: without it every delegated-page assertion prints
+SKIPPED and the run still ends `ALL LOGIC CHECKS PASSED`, which is a false green
+that has bitten two sessions — and `page-mode.mjs` reports every expected-fail
+label as FIXED, which instructs a maintainer to delete labels that are still
+failing. `SCHWUNG=` is a **BUILD-time** alias, so it must be on the build;
+`ALLOW_SKIPPED=1 npm test` is the deliberate, and loud, opt-out.
+
 Run tests in this order at the end of every task:
 
 Run `npm run build:browser` first (refreshes `dist/esm`), then in order

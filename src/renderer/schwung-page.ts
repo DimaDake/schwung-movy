@@ -155,6 +155,18 @@ export function createSchwungPage(
         get ctl() { return ctl; },
         get pageCount() { return ctl.pages ? ctl.pages.length : 0; },
         get pageIndex() { return ctl.pageIndex; },
+        /* UNWARMED ON PURPOSE, and it is not the skip the pad jump looks like.
+         * `changePage` is a JOG, and `onJog` never reaches `goToPage`: it sets
+         * `s.pageIndex` through `page_nav`'s `step()` and calls
+         * `warmCurrentPage()` itself (`page_controller.mjs`), which is the same
+         * per-key walk the jump warms for. The difference is the target: a jump
+         * lands on an ARBITRARY voice's page, a jog lands on the neighbour — the
+         * one page the controller's own neighbour-prefetch lane exists to keep
+         * warm, which is why its comment can say the call is "usually free". A
+         * warm here would also have to name the landing index before `onJog`
+         * computes it (its `step`/`stepLevel`/`restoreSection` choice, plus the
+         * menu and picker branches that return without moving at all). Left as
+         * it is, recorded rather than assumed — see SP-39's ledger entry. */
         changePage(delta: number) { ctl.onJog(delta > 0 ? 1 : -1); },
         goToPage(i: number) { ctl.goToPage(i); },
         keyAt,

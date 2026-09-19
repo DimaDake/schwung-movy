@@ -87,6 +87,13 @@ export interface SchwungLib {
      * would drift from the renderer that actually draws. */
     settled?:     any;
     buttonPhase?: any;
+    /* Optional for the same reason, and asked for the same reason `settled` is:
+     * it is the library's OWN bare-key-to-concrete-key mapping, which the
+     * controller applies to every key before it asks the port. A second copy
+     * here would be a second answer to "which key is `start` on pad 4". A page
+     * that is child-level lists aliases, so a warm that prefixes the alias
+     * covers keys no read will look up — see `jump` in schwung-page-input.ts. */
+    resolveChildKey?: any;
 }
 
 /* LITERAL PATHS, NOT A CONCATENATION. esbuild can only apply its resolver to a
@@ -157,6 +164,7 @@ try {
         voicesOf: vo.voicesOf, voiceIndexFromNote: vo.voiceIndexFromNote,
         focusPressParamOf: vo.focusPressParamOf, childPressParam: ck.childPressParam,
         settled: anm.settled, buttonPhase: rpm.buttonPhase,
+        resolveChildKey: ck.resolveChildKey,
     };
 } catch (e: any) {
     /* Swallowed DELIBERATELY, and this is the whole point of the file: an

@@ -43,13 +43,34 @@ export function createPageInput(ctl: any, lib: any, port: TrackPort,
      * already in hand — hands the keys over first. It is ONE bulk request for
      * the page, and it is spent before the controller spends eight.
      */
-    const jump = (i: number): void => {
+    const jump = (i: number, childIndex?: number | null): void => {
         const p = ctl.pages && ctl.pages[i];
         if (p && Array.isArray(p.keys)) {
             const keys = (p.keys as (string | null)[]).filter((k): k is string => !!k);
+            /* A CHILD-LEVEL PAGE LISTS ALIASES; THE READS ARE CONCRETE. Such a
+             * page carries `start` and the controller asks for `synth:p01_start`
+             * — every key goes through `childResolve`/`fullKey`, and
+             * `installChildAliases` is what makes the metadata follow. `qualify`
+             * only prefixes, so on that shape the aliases below would cover keys
+             * no read looks up and the jump would pay its singles anyway. The
+             * mapping is Schwung's own, asked rather than restated.
+             *
+             * The index is the voice's, which is the one `focusVoice` has just
+             * written into the module's `child_index_param`; the controller
+             * adopts it from its own poll, so for a tick it may still be on the
+             * previous one. That costs the reads that were being paid already —
+             * a miss, never a wrong value.
+             *
+             * NO MODULE IN THE FLEET REACHES THIS: none declares a child note
+             * map, so no page in the fixture is child-level. Recorded as a limit
+             * in SP-39's ledger entry, with the day to recheck it. */
+            const concrete = (k: string): string =>
+                (p.childLevel && typeof childIndex === 'number'
+                 && typeof lib.resolveChildKey === 'function')
+                    ? (lib.resolveChildKey(p.childLevel, childIndex, k) || k) : k;
             /* Qualified the same way `io.getParam` qualifies what the controller
              * asks for, or the warm covers keys the reads will not look up. */
-            warm(keys.map(qualify));
+            warm(keys.map((k) => qualify(concrete(k))));
         }
         ctl.goToPage(i);
     };
@@ -157,7 +178,7 @@ export function createPageInput(ctl: any, lib: any, port: TrackPort,
             for (let i = 0; i < pages.length; i++) {
                 const p = pages[i];
                 if (!p) continue;
-                if (p.level === v.level) { jump(i); return true; }
+                if (p.level === v.level) { jump(i, v.childIndex); return true; }
                 if (byName < 0 && want && String(p.name || '').toUpperCase() === want) byName = i;
             }
             if (byName >= 0) { jump(byName); return true; }

@@ -110,8 +110,8 @@ changes no mode at all while looking exactly like the fix.
 | SP-28 | Custom module visualisations (`custom:` viz kinds) — the four loader defects fixed, and hank's own waveform is on the panel under `page`. **See SP-34** for the fifth, found in review |
 | SP-20 | `ui_hierarchy` ownership — one reader (`chain/hierarchy-source.ts`) for the page, the model and the undo dump; the manifest rung and the `"{}"` test were each a divergence |
 | SP-35 | A held step keeps the delegated page — SP-33's gate reversed, and the p-lock decoration pass it had made unreachable is reachable again. The "cannot take a lock" filter is movy's chrome at the gesture, not a decoration; the per-cell half is SU-8 |
-| SP-38 | Animated widgets draw until they settle — `anim_state.settled` asked by `pollDrawnPage` only when value and identity held still. Costs **0.7 ms/tick of `render`** in the animating window (0.2 before) — **on plaits, 2 pages, the SMALLEST shape in the fixture, so that is a FLOOR and not a representative**; n=1 window per arm. No host call, idle unchanged |
-| SP-39 | A pad press onto a page the cache has never read paid one blocking read per cell; `jump` now hands that page's keys to the cache as **ONE bulk request** before `goToPage`. Teeth: the jump costs **1 bulk + 1 single** round trip against **0 bulk + 9 single**. On device (`cw78`, the rack, both arms) `padpage` is **0.1–0.2 ms/tick** under `page` and absent under `off`; the page-vs-off gap at IDLE (worst period 6.3 vs 5.0 ms) is the delegated renderer's standing cost, not the gesture. **The gesture is measured on a rack pad, not a drum-track pad — the fixture's drum module declares no note map.** The SP-38 re-run on `minijv` (70 pages, **not 72**) puts its animation at 0.2 ms/tick in the animating window, so that cost does **not** scale with page count |
+| SP-38 | Animated widgets draw until they settle — `anim_state.settled` asked by `pollDrawnPage` only when value and identity held still. Costs **0.7 ms/tick of `render`** in the animating window (0.2 before) — **on plaits, 2 pages, the SMALLEST shape in the fixture, so that is a FLOOR and not a representative**; n=1 window per arm. **SP-39 re-ran it on minijv and did NOT measure an animating window there at all** — the 0.2 that appears survives stashing this item's animation term and carries no `buildvm` — so the cost on a large module is **not measured, neither scaled nor falsified**, and the plaits floor above is still the only number there is. No host call, idle unchanged |
+| SP-39 | A pad press onto a page the cache has never read paid one blocking read per cell; `jump` now hands that page's keys to the cache as **ONE bulk request** before `goToPage`. Teeth: the jump costs **1 bulk + 1 single** round trip against **0 bulk + 9 single**. **The call pattern is the whole of the measured win**: on device (`cw78`, the rack, both arms, the same build) the press's effect is **within noise** — `calls/tick` 1.69 → 1.54, `perf_ipc` 4.12 → 3.66 ms, tick 3.66 → 3.49, worst period 6.64 → 6.47 — and the **worst frame is unchanged, 26 → 27 ms**. `padpage` is 0.1–0.2 ms/tick under `page` in the windows that hold presses and absent under `off`. The page-vs-off gap is at IDLE (worst period 6.3 vs 5.0 ms, `calls/tick` 1.4 vs 0.6) — the delegated renderer's STANDING cost, not this gesture, **now opened as SP-49**. **The gesture is measured on a rack pad, not a drum-track pad — the fixture's drum module declares no note map.** The SP-38 re-run on `minijv` (70 pages, **not 72**) **measured no animating window at all** (the 0.2 survives stashing SP-38's term and carries no `buildvm`), so SP-38's cost on a large module is **not measured** |
 
 ### Open
 
@@ -128,6 +128,7 @@ flip after it and SP-41 conditional on a decision nobody has made.
 | SP-40 | the flag becomes two values, MOVY and SCHWUNG; `body` and the `.off` stand-ins deleted | Sonnet | ⬜ | **7** | ✔ |
 | SP-47 | **NEW** — the opt-in release: the row goes in front of users, default still MOVY | Sonnet | ⬜ | **8** | — |
 | SP-48 | **NEW** — a modulated or `live` param the page shows keeps it redrawing forever. **A regression SP-38 introduced**; the flag must not reach testers with it open | Sonnet | ⬜ | **7.5** | ✔ |
+| SP-49 | **NEW** — an IDLE `page` tick costs half again what an `off` tick costs (worst period 6.3 vs 5.0 ms, `calls/tick` 1.4 vs 0.6) and it is there with nothing moving. **A standing LATENCY cost** — the tick period is the MIDI sampling interval — so it is a gate, not just inefficiency | Sonnet | ⬜ | **7.7** | ✔ |
 | SP-32 | a bank or cell that exists only in movy's config is on no page under `page`: audit before SP-30 flips the default | Sonnet | ⬜ | 9 | — |
 | SP-42 | **NEW** — a .wav has no waveform: `wav_io_qjs.mjs` is never imported | Sonnet | ⬜ | 10 | — |
 | SP-45 | **NEW** — 8w8's pads do not select their pages; the other three racks' do | Sonnet | ⬜ | 11 | — |
@@ -270,7 +271,8 @@ previous "this needs upstream" in this file has cost a release cycle.
 | 12 | remove the `body` option: a two-value flag, MOVY and SCHWUNG, visible to users next release | SP-40 + SP-47 | ✔ |
 
 **Proposed order, gate first.** 1 SP-36, 2 SP-35, 3 SP-38, 4 SP-39, 5 SP-37,
-6 SP-31, 7 SP-40, **7.5 SP-48 — the regression SP-38 introduced**, 8 **SP-47 —
+6 SP-31, 7 SP-40, **7.5 SP-48 — the regression SP-38 introduced**, **7.7 SP-49 —
+the standing idle tick, which is latency and therefore a gate**, 8 **SP-47 —
 the release**. Then SP-32, SP-42, SP-45, SP-43,
 SP-44, SP-46, SP-16, SP-21a, SP-23, SP-24, SP-29, SP-30, and SP-41 only if it
 is ever decided. SP-31 is in front of the release and the user did not name it
@@ -525,7 +527,11 @@ stay forever**.
 re-derive.** The four gate items (SP-35, SP-36, SP-37, SP-38, SP-39 — five
 entries, four complaints) plus SP-31, whose symptom a tester cannot report
 usefully. Not SP-32: an opt-in tester noticing a missing bank is a report, and
-reports are what the opt-in is for.
+reports are what the opt-in is for. **Two more rows are gates and are not in that
+count, because neither is one of the four complaints: SP-48 (a modulated or
+`live` param keeps the page redrawing forever) and SP-49 (an idle `page` tick
+costs half again what an `off` tick costs). Both must be closed, or explicitly
+accepted here with the number and the acceptor named, before this item closes.**
 
 **THE DEVICE TIER STAYS GREEN, and that is a consequence of the default rather
 than of luck.** `items`, `module-contract` and `smoke` assert movy's OWN writes
@@ -785,6 +791,68 @@ SP-47 records the acceptance.
 **Needs:** a decision on (a) versus (b) — the upstream PR first, the cap only if
 it is declined. Nothing from the device; the measurement above is what is on
 record.
+
+---
+
+### SP-49 — under `page` an IDLE tick costs half again what `off` charges. **A standing per-tick cost, with nothing moving**
+
+**Product.** Nothing is wrong on screen, and that is the whole problem. Under
+`page`, with no gesture, no automation and nothing animating, a tick costs half
+again what the same tick costs under `off` on the same module and the same
+build: worst idle period **6.3 vs 5.0 ms**, `calls/tick` **1.4 vs 0.6**, tick
+**3.2–3.3 vs 1.8 ms**, `perf_ipc` **3.2 vs 1.3 ms** (`cw78`, track 0, both arms,
+`sp39-measurement.md`; the same gap shows on minijv as 5.9–7.7 vs 4.8–5.0). What
+a person would notice is not a stutter — it is a tool that is a little heavier
+to hold, permanently.
+
+**Why this is a LATENCY cost and therefore a release gate — the call this row
+makes.** `perf_ipc`'s tick period **IS the MIDI sampling interval** (SP-13's
+finding, and the reason the probe exists): a pad press is only seen on a tick,
+so +1.3 ms of standing period is +1.3 ms before the press is even read, on every
+gesture, including gestures nobody is making. That is the shape the release
+would ship — SP-47 puts the row in front of testers who will judge it by
+gestures — and **a per-tick cost half again the `off` arm's, present at idle, is
+exactly what SP-47 must not discover on its own**: what it hears is "everything
+under SCHWUNG feels a bit sluggish", a symptom no one can attribute to a page, a
+module or a gesture. Recorded as a gate on that basis, at order **7.7**, between
+SP-48 and the release. The counter-reading, stated so the call is visible and
+reversible: the absolute numbers are small (6.3 ms ≈ 159 Hz), nothing has ever
+been reported against it, and a reader could call this ordinary inefficiency.
+The judgement above is that a latency the release would ship is a gate; an owner
+who disagrees should MOVE this row, not delete it.
+
+**Where it comes from, and it is not a defect.** The `page` arm runs a delegated
+renderer, and all of its idle cost is by design. The phase lines, idle, `page`:
+`ctltick` 0.8, `seqengine` 0.6, `rest` 0.6, `ctlpoll` 0.5, `ctlreload` 0.2–0.3
+(`modeltick` 0.3 is gone; under `off` it is `seqengine` 0.5, `rest` 0.5,
+`modeltick` 0.3, `ctlpoll` 0.0). The two IPC lines it adds are the largest two
+in the window — `get overtake_dsp:*` **n=0.5 ms=1.2** and `mget ch0:*` **n=0.4
+ms=0.8**, against n=0.2/ms=0.4 and n=0.0/ms=0.1 under `off`. The gap has been
+known since SP-13 and bought back twice already: **SP-26** put the epoch cache in
+front of the port, **SP-27** stopped the whole module being re-planned every 8
+ticks (67.5 ms → 3.0). **The migration has already spent two items on this tick;
+this row is the remainder, not a new discovery.** SP-39 met it while measuring a
+gesture, and correctly refused to call it the gesture's cost — the numbers are in
+its entry and in its Done row.
+
+**Fix route, and step one is attribution, not a fix.** No phase owns the whole
+1.5 ms: the phases above account for most of it and the IPC side for the rest, so
+(a) **attribute it on a big module first** — minijv idles at 5.9–7.7 ms against
+`off`'s 4.8–5.0 and its `ctlreload` 0.7–0.8 ms/tick at idle is the single largest
+line anywhere in that run, which makes the reload the first suspect; (b) then ask
+per phase whether a tick must carry it — a reload that need not happen every
+tick, a poll that can be paced, a read the epoch cache can serve. Do **not**
+re-derive the instrument: `sp38-measurement.md` and `sp39-measurement.md` are the
+method, and `measure-grid-cost.sh`'s `idle` section is the run.
+
+**Closes when:** the idle `page` tick is within ~10% of the `off` tick on the same
+module and build, measured with the existing probe and recorded in a third
+measurement handover — **or** SP-47 records an explicit acceptance that names the
+number and who accepted it.
+
+**Needs:** nothing from the plan, and no decision from anyone else. Device time,
+and a judgement on how much of the delegated renderer's idle cost is worth
+buying.
 
 ---
 
@@ -1053,13 +1121,25 @@ real and it is the one place the two clocks disagree. **Not measured on a large
 module:** plaits is 2 pages and the smallest shape in the fixture, so the
 per-tick cost on minijv (70 pages, where the lag was reported) is unknown and
 should be expected to be HIGHER — it is the first thing SP-39 should re-run.
-**SP-39 re-ran it, and the expectation is WRONG**: on minijv `SECTIONS="idle
-knob"` the animating window costs `render = 0.2 ms/tick` in one 120-tick window —
-the same 0.2 this entry records for plaits BEFORE the fix — and the knob
-section's worst period moves 5.7–6.1 → 6.4 ms (~+10%, against +19% on plaits).
-**The cost does not scale with the page count**: what an animating frame costs is
-what the drawn page's widgets draw, and minijv's standing delegated cost
-(`ctlreload` 0.7 ms/tick, present at idle) is larger than the animation is.
+**SP-39 re-ran it, and the re-run did NOT MEASURE an animating window — so the
+large-module expectation above is neither confirmed nor falsified.** On minijv
+`SECTIONS="idle knob"` (70 pages) the only `render` that clears the six-phase
+cutoff anywhere in the run is `0.2 ms/tick` in one 120-tick window — the same 0.2
+this entry records for plaits BEFORE the fix. **An identical run with this
+entry's `pollDrawnPage` term stashed (`page-poll.ts`'s `page.animating(...)`
+removed) came back with the SAME single window** —
+`ctlreload=0.7 rest=0.6 seqengine=0.6 ctlpoll=0.4 render=0.2 ctltick=0.2` — and
+**no `buildvm` line in either run**. That accompaniment is what says an animation
+actually happened: on plaits the animating window carries `buildvm ≈ render` in
+BOTH arms (`buildvm=0.2 render=0.2` before the fix, `render=0.7 buildvm=0.6`
+after). **A window that survives the removal of the animation predicate is the
+knob turn's own value-change redraw**, and a section that never triggered a
+transition is indistinguishable from a cheap one. So the cost on a large module
+is **NOT MEASURED — neither scaled nor falsified** — and the 2-page floor below
+is still the only number this item has. (A plausible reason nothing animated:
+`drawArcKnob` takes no `anim` argument, so a knob section whose cells draw as
+arcs triggers no transition at all — recorded as the likely cause, not as a
+finding.)
 Documents: `MANUAL.md`/`README.md` were **not** touched, because under
 `schwunggrid` the row is still internal (`off` is the default; the opt-in release
 is SP-47) and nothing a user reads has changed.
@@ -1135,23 +1215,60 @@ bulk / 9 single** and both assertions red (`expected 1, got 0`, `expected 1, got
 unserved and so uncached — a null is never cached); it is asserted as exactly 1
 so a second one appearing is visible.
 
-**What the device numbers say the fix did and did not change.** The press's
-synchronous cost is `padpage` = 0.1–0.2 ms/tick in the three windows that hold
-presses under `page`, and absent under `off` where the code path does not exist.
-**The remaining page-vs-off gap is present at IDLE** — worst period 6.3 vs 5.0,
-calls/tick 1.4 vs 0.6, tick 3.2 vs 1.7 — so it is the delegated renderer's
-standing per-tick cost (`ctlreload` 0.3, `ctlpoll` 0.4–0.5, and the extra
-`overtake_dsp:*` reads), **not** this gesture, and closing it is not this item.
-The gesture-shaped cost was the eight per-cell reads, and that is what the warm
+**What the device numbers say the fix did and did not change — and the honest
+headline is: the CALL PATTERN is fixed, the device effect is WITHIN NOISE, and
+the worst frame is UNCHANGED.** The pre-fix run stands beside the post-fix one
+here; both arms, same module (`cw78`), same script, means of the window lines
+each section printed (`perf_phase` is ms/tick averaged over a 120-tick window):
+
+| section | arm | calls/tick | ipc_ms | tick_ms | period_ms | worst `peak_period` |
+| --- | --- | --- | --- | --- | --- | --- |
+| idle | `page` | 1.34 | 3.22 | 3.22 | 6.11 | 23 |
+| idle | `off` | 0.60 | 1.25 | 1.68 | 4.84 | 16 |
+| press | `page` **PRE** | 1.69 | 4.12 | 3.66 | 6.64 | 26 |
+| press | `page` **POST** | 1.54 | 3.66 | 3.49 | 6.47 | **27** |
+| press | `off` **PRE** | 0.62 | 1.35 | 1.80 | 4.98 | 21 |
+| press | `off` **POST** | 0.63 | 1.35 | 1.81 | 4.95 | 15 |
+
+`calls/tick` 1.69 → 1.54 and `perf_ipc` 4.12 → 3.66 ms move the right way and sit
+inside the spread BETWEEN SECTIONS of the same arm (idle `page` is 1.34/3.22 and
+press `page` is 1.54/3.66), so they bound the fix rather than measure it. **The
+worst frame did not move: 26 → 27 ms.** The section alternates TWO pages, so at
+most the first press onto each page is cold — the other ten presses were already
+warm, and were always going to be: what this item removed was the cold one, and
+there are two of them per section. That is why the mock is where the win shows
+and the device is where it does not.
+
+The press's synchronous cost is `padpage` = 0.1–0.2 ms/tick in the three windows
+that hold presses under `page` (one window at 0.2 before the fix, three at
+0.1–0.2 after — more presses clearing the cutoff, not a dearer press), and absent
+under `off`, where the code path does not exist. **The page-vs-off gap is present
+at IDLE** — worst period 6.3 vs 5.0, `calls/tick` 1.4 vs 0.6, tick 3.2 vs 1.8 —
+so it is the delegated renderer's standing per-tick cost (`ctltick` 0.8,
+`ctlpoll` 0.5, `ctlreload` 0.2–0.3 and the extra `overtake_dsp:*` / `ch0:*`
+reads), **not** this gesture, and it is **not a claim about this fix**: it is
+opened as **SP-49**, and the numbers above are that row's evidence too. The
+gesture-shaped cost was the eight per-cell reads, and that is what the warm
 removes.
 
-**The SP-38 re-run this item owed, on a large module.** `MODULE=minijv
-SECTIONS="idle knob"`, 70 pages: the animating window costs **`render = 0.2
-ms/tick` in exactly one 120-tick window** (the same 0.2 SP-38 measured on plaits
-BEFORE its fix, where it went to 0.7), worst period 5.7–6.1 idle → 6.4 knob
-(~+10%, against +19% on plaits). **SP-38's animation cost does not scale with the
-page count** — it is bounded by what the drawn page's widgets draw, and minijv's
-standing delegated cost (`ctlreload` 0.7 ms/tick, at idle) is an order larger.
+**The SP-38 re-run this item owed, on a large module — and it MEASURED NO
+ANIMATION, so SP-38's large-module cost is not measured here in either
+direction.** `MODULE=minijv SECTIONS="idle knob"`, 70 pages: the only `render`
+that clears the cutoff in the whole run is **`render = 0.2 ms/tick` in exactly
+one 120-tick window**, the same 0.2 SP-38 measured on plaits BEFORE its fix (where
+it went to 0.7). That was read as SP-38's animation on the first pass and it is
+not: **the run was repeated with SP-38's `pollDrawnPage` term stashed and the
+same single window came back unchanged** —
+`ctlreload=0.7 rest=0.6 seqengine=0.6 ctlpoll=0.4 render=0.2 ctltick=0.2` — with
+**no `buildvm` line anywhere in the run**. The `buildvm ≈ render` accompaniment is
+what says an animation actually happened (on plaits: `buildvm=0.2 render=0.2`
+before the fix, `render=0.7 buildvm=0.6` after), and a window that survives the
+removal of the animation predicate is the knob turn's own value-change redraw. So
+**"the animation cost does not scale with the page count" is WITHDRAWN — it is
+NOT MEASURED, not falsified**, and SP-38's own entry now says so. What the run
+DID establish stands: minijv's standing delegated cost (`ctlreload` 0.7 ms/tick at
+idle) is larger than the whole window it was being asked about, and the probe's
+clock cannot resolve below it.
 The default five sections were NOT usable here: on a 70-page component a
 10-detent jog does not walk off a small component, it walks the CHAIN
 (`midi_fx1 → fx1 → fx2 → lfo → mix` and back), so all four gesture sections came
@@ -1185,7 +1302,8 @@ page actually redraws; under `off` on the same module it appears as `render=0.0`
 so the cw78 page is not modulated and the A/B above is not contaminated. The one
 `render` that does appear anywhere in this item's data is `0.2` in a single
 minijv `page / knob` window, i.e. a redraw a knob turn caused — not a
-never-settling page.
+never-settling page. The control run confirms it by removing the other
+candidate: with SP-38's animating term stashed the same window is still there.
 
 **Not covered.** (1) A drum-track pad, as above — the number is a rack's. (2) The
 mock serves a value for every cell of every page; a module that answers `null`
@@ -1200,6 +1318,45 @@ section cannot be told from the log — the minijv `off / knob` window with
 view-model build, i.e. `off`'s own cost and not SP-39's). `MANUAL.md`/`README.md`
 were **not** touched: under `schwunggrid` the row is still internal (`off` is the
 default; the opt-in release is SP-47) and nothing a user reads has changed.
+
+**NOTES — one latent gap, two traces, one device fact.** Recorded rather than
+fixed, each for a reason.
+
+- **The warm covers the concrete keys only where the rack declares them.** On a
+  child-level page `jump` resolves each alias through Schwung's own
+  `resolveChildKey` before qualifying it, so what it warms IS what the controller
+  reads — but only when the page carries a `childLevel` AND the voice carries a
+  `childIndex`; with either absent the alias goes over as-is and the warm covers
+  keys no read looks up. **No fleet module reaches this** (nothing declares a note
+  map, the same fact that makes the measured gesture a rack pad — a latent gap,
+  not a live one). Recheck it **the day any fleet module declares
+  `child_note_base`**, against the press suite in `browser-test/logic/`, not by
+  hand.
+- **The jog path is NOT warmed, and that is a traced decision.** `changePage` →
+  `ctl.onJog` does not reach `goToPage`: `onJog` sets `s.pageIndex` through
+  `page_nav`'s `step`/`stepLevel`/`restoreSection` and calls `warmCurrentPage()`
+  itself (`page_controller.mjs`), so it pays the same singles — but it lands on
+  the NEIGHBOUR, the one page the controller's own neighbour-prefetch lane exists
+  to keep warm (`PREFETCH_HOLD_TICKS = 12` after a page change), where a pad jump
+  lands on an arbitrary voice's page. A warm would also have to name the landing
+  index before `onJog` computes it (menu and picker branches return without moving
+  at all). Left as it is; `schwung-page.ts` carries the comment.
+- **`BATCH_VALUE_MAX` is applied when pruning, not when seeding** — noticed and
+  left alone. `warm` seeds an entry at the current epoch with `len` unset, so a
+  page whose cell is enormous can enter the batch for one window that a cache
+  which had READ it would have kept out. Unintentional, harmless, and it costs
+  exactly the once-per-epoch read the warm was making anyway; `len` is corrected
+  by that read, so the entry drops out from the next window on. A second size
+  policy at the seeding site is not worth its lines; `schwung-page-batch.ts`
+  records it.
+- **The device's `prefs.json` carries a stale TOP-LEVEL `"schwunggrid": 0`** from
+  an older arm, beside the live `flags.schwunggrid`. It is **INERT** —
+  `readPrefFlags()` reads `prefs.flags` only and every script here writes `flags`
+  — but it reads like a second source of truth. Recorded so the next session does
+  not chase it, and does not "tidy" it by hand on the box either.
+- **The idle gap is SP-49's**, not this item's: it was opened as its own row
+  rather than left here, because it is present with nothing moving and is a
+  latency cost rather than this gesture's.
 
 **Needs:** nothing. Measurement handover: `sp39-measurement.md`.
 

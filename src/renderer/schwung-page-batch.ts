@@ -51,6 +51,15 @@ export function batchKeys(entries: Map<string, Entry>, epoch: number): string[] 
     const keys: string[] = [];
     for (const [k, e] of entries) {
         if (epoch - e.asked > KEEP_EPOCHS) { entries.delete(k); continue; }
+        /* THE SIZE POLICY IS APPLIED HERE AND NOT AT SEEDING, which is a real
+         * asymmetry and a deliberate one to leave alone: `warm` (SP-39) seeds an
+         * entry directly at the current epoch with `len` unset, so a page whose
+         * cell is enormous can enter the batch for one window that a cache which
+         * had READ it would have kept out. It costs the once-per-epoch read the
+         * warm was making anyway, and `len` is corrected by that read, so the
+         * entry drops out of the batch from the next window on. Not fixed: the
+         * fix is a second size policy at the seeding site, and the ledger records
+         * why it is not worth one (SP-39, "noticed and left alone"). */
         if (e.len > BATCH_VALUE_MAX) continue;
         live.push(e);
         keys.push(k);

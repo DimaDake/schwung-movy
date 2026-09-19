@@ -644,7 +644,7 @@ wide.
 
 **The evidence channel already exists**: `focusVoice` logs
 `focusVoice no page for <level>/<name> | keys=… | p1=…` when it cannot resolve
-(`schwung-page-input.ts:139`). One device run with 8w8 loaded and a pad pressed
+(`focusVoice`'s own `mlog`, `src/renderer/schwung-page-input.ts`). One device run with 8w8 loaded and a pad pressed
 either produces that line — in which case the audit is over and the fix is in
 the matching — or it does not, in which case the press never reached
 `focusVoice` and the fault is upstream of it in movy's own pad routing.
@@ -833,7 +833,7 @@ the page name and the strip all say the child the user hit — and what answers 
 the controller's child, not the user's, silently, on every turn on that page.
 
 **Cause, half one: a permanent off-by-base — real, and with NO FLEET
-EXHIBITION.** `src/renderer/schwung-page-input.ts:177` writes
+EXHIBITION.** `focusVoice` in `src/renderer/schwung-page-input.ts` writes
 `String(v.childIndex)`, a ZERO-based instance (`voices.mjs:109`), into the
 module's child-index param — but Schwung's wire value counts from
 `child_index_base`. Schwung converts in ONE place, next to the base that defines
@@ -868,8 +868,8 @@ child-page warm is INERT on the one fleet module that reaches the branch:
 0, so pressing the level's Nth voice warms `p{N}_vol` and only N=1 matches the
 `p1_vol` the controller reads — the other three children pay their singles.
 
-**Pre-existing, and NOT a regression.** `git blame
-src/renderer/schwung-page-input.ts:177` → `bf94962a` (2026-09-13). **Live under
+**Pre-existing, and NOT a regression.** `git blame` on `focusVoice`'s write
+above (`src/renderer/schwung-page-input.ts`) → `bf94962a` (2026-09-13). **Live under
 `page`; unreachable under the default `off`** — and it is HALF TWO that makes
 that true: it needs a module declaring a child note map, the fixture's `plaits`
 is not one, and half one's shape (the param AND the base on one level) is one the
@@ -1495,8 +1495,8 @@ fact.** Recorded rather than fixed, each for a reason.
   `voiceDeclaring`, and its `pads` level declares
   `child_count: 4, child_index_base: 1, child_note_base: 60, child_key_template:
   "p{index}_{key}"` — with **no `child_index_param`**. That last absence is the
-  reason, and it is stronger than "no module arrives": `schwung-page-input.ts:177`
-  writes the index only where the level declares a param, so `focusVoice` writes
+  reason, and it is stronger than "no module arrives": `focusVoice`
+  (`src/renderer/schwung-page-input.ts`) writes the index only where the level declares a param, so `focusVoice` writes
   nothing, `syncChildIndexFromModule` returns early without one
   (`page_controller.mjs:1772`, early return `:1777`; `liveChildIndex` falls back
   the same way at `:3981`) and the controller resolves the child at instance

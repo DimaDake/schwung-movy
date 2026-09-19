@@ -201,26 +201,34 @@ function notMatch(label, str, pattern) {
  * single-key call alone therefore cannot see the thing a read-cost budget is
  * about — it counted 80 before SP-26 and 125 after, while the real cost went
  * the other way. The bulk call's own per-key delegation is suppressed for the
- * same reason: inside one request it is one trip. */
-function countTrips(fn) {
+ * same reason: inside one request it is one trip.
+ *
+ * The two are counted SEPARATELY as well as together, because they are priced
+ * separately on device (~2.3 ms for one key, the same for a whole page) and a
+ * caller asking "did this gesture cost a page of reads" is asking about the
+ * singles: SP-39's warm turns eight of them into one bulk, and the total alone
+ * would hide which of the two it did. */
+function countTripKinds(fn) {
     /* Suites before this one delete the param globals rather than restoring
      * them (SP-02's deferred list), so wrapping whatever is there would wrap
      * `undefined`. The env's own restorer is what that cleanup meant. */
     env.restoreParamGlobals();
     const realGet = globalThis.shadow_get_param;
     const realBulk = globalThis.shadow_get_params;
-    let trips = 0, depth = 0;
+    let bulk = 0, single = 0, depth = 0;
     globalThis.shadow_get_params = (...a) => {
-        trips++; depth++;
+        bulk++; depth++;
         try { return realBulk(...a); } finally { depth--; }
     };
-    globalThis.shadow_get_param = (...a) => { if (!depth) trips++; return realGet(...a); };
+    globalThis.shadow_get_param = (...a) => { if (!depth) single++; return realGet(...a); };
     try { fn(); } finally {
         globalThis.shadow_get_param = realGet;
         globalThis.shadow_get_params = realBulk;
     }
-    return trips;
+    return { trips: bulk + single, bulk, single };
 }
+
+function countTrips(fn) { return countTripKinds(fn).trips; }
 
 /* The last MUSICAL op. Undo brackets every edit with ring bookkeeping
  * (usnap/ucommit/udrop/uswap), which is never what a test asserting "the
@@ -315,7 +323,7 @@ export {
     holdTouch, holdRelease, holdTurnCancel, holdTick, assignActive, assignCycle,
     assignCommit, assignToastText, resetAssignMode, jogHintTouch, jogHintTick, jogHintVisible,
     shapeSample, drawWave, CHAIN_SLOTS, LFO_CHAIN_INDEX, isLfoSlot, init,
-    appState, selectTrack, watchedTrack, countTrips, ok, fail, eq, notMatch, bootModel, settleModel,
+    appState, selectTrack, watchedTrack, countTrips, countTripKinds, ok, fail, eq, notMatch, bootModel, settleModel,
     bankNames, P, lastMusicalOp, musicalOps, UNDO_RING, _log,
     env, mockFsEntries, failureCount,
 };

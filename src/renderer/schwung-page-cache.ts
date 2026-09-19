@@ -14,9 +14,15 @@
  * epoch advances and one `port.getMany()` refills every tracked key; a read
  * inside the epoch is a map lookup. Nothing about Schwung changes — it still
  * asks one key at a time, and it still gets an answer no older than one fill.
+ *
+ * WHICH keys that round trip asks for is `schwung-page-batch.ts`, together with
+ * `warm` — the way a page that has just ARRIVED gets covered before the
+ * controller asks for it (SP-39).
  */
 
 import type { TrackPort } from '../track/port.js';
+import type { Entry } from './schwung-page-batch.js';
+import { fill, warm as warmKeys } from './schwung-page-batch.js';
 
 /*
  * THE SAME DIVIDER `reloadIfChanged` ALREADY RUNS ON, and Schwung's own host
@@ -28,46 +34,28 @@ import type { TrackPort } from '../track/port.js';
  */
 const FILL_TICKS = 8;
 
-/* A key asked within this many epochs stays in the batch. Two, because the
- * cursor's rotation (page keys + 1) can outlast one fill, so a key can go
- * unasked for a whole epoch and still be on screen. */
-const KEEP_EPOCHS = 2;
-
-/* The shim caps a bulk request at SHADOW_BULK_MAX_ITEMS = 64
- * (schwung_shim.c:4689) and drops the whole request above it; the overflow here
- * is read live rather than lost. */
-const BATCH_MAX_KEYS = 48;
-
-/* A BIG VALUE IS READ ALONE. The whole bulk RESPONSE shares
- * SHADOW_PARAM_VALUE_LEN (131072) and the fleet's heaviest contract (minijv) is
- * 39 KB of `ui_hierarchy` plus 45 KB of `chain_params`. An overflow is not a
- * correctness problem — `paramGetMany` falls back to one read per key — but it
- * costs exactly what this file removes. Plaits is 2.3 KB for both, so an
- * ordinary module's contract still rides the batch. */
-const BATCH_VALUE_MAX = 16384;
-
-interface Entry {
-    value: string | null;
-    /** The epoch this answer was read in; anything older is a miss. */
-    epoch: number;
-    /** The last epoch someone asked for this key — what keeps it in the batch. */
-    asked: number;
-    /** Last seen value length, so an oversized value stays out of the batch. */
-    len: number;
-}
-
 export interface PageReadCache {
     /** Read a component-qualified key, from this epoch's fill where possible. */
     get(key: string): string | null;
     /** One movy tick. Advances the epoch and refills on the divider. */
     tick(): void;
+    /**
+     * Cover a set of keys — a page that is about to be shown — in ONE request.
+     *
+     * THE MOMENT MATTERS. Schwung's `warmCurrentPage` asks for every cell of the
+     * page it has just turned to, synchronously, inside the gesture that turned
+     * it; on a pad press that is the whole user-visible cost (SP-39). Warming
+     * here, before that runs, turns the page's first read into one bulk request
+     * instead of one blocking round trip per cell.
+     */
+    warm(keys: readonly string[]): void;
     /** Everything this port holds is suspect — a re-plan, or a module swap. */
     invalidateAll(): void;
 }
 
 /** Off: every read is a live read, which is what a non-bulk port wants. */
 function passthrough(port: TrackPort): PageReadCache {
-    return { get: (k) => port.getParam(k), tick() {}, invalidateAll() {} };
+    return { get: (k) => port.getParam(k), tick() {}, warm() {}, invalidateAll() {} };
 }
 
 export function createPageReadCache(port: TrackPort): PageReadCache {
@@ -114,53 +102,6 @@ export function createPageReadCache(port: TrackPort): PageReadCache {
         for (const k of entries.keys()) if (k.startsWith(prefix)) entries.delete(k);
     }
 
-    /** The keys worth asking for in one round trip, most recently asked first. */
-    function batchKeys(): string[] {
-        const live: Entry[] = [];
-        const keys: string[] = [];
-        for (const [k, e] of entries) {
-            if (epoch - e.asked > KEEP_EPOCHS) { entries.delete(k); continue; }
-            if (e.len > BATCH_VALUE_MAX) continue;
-            live.push(e);
-            keys.push(k);
-        }
-        if (keys.length <= BATCH_MAX_KEYS) return keys;
-        const order = keys.map((k, i) => [k, live[i].asked] as const)
-                          .sort((a, b) => b[1] - a[1]);
-        return order.slice(0, BATCH_MAX_KEYS).map(([k]) => k);
-    }
-
-    function fill(): void {
-        const keys = batchKeys();
-        if (keys.length === 0) return;
-        const values = port.getMany(keys);
-        for (let i = 0; i < keys.length; i++) {
-            const v = values[i];
-            /*
-             * A BATCH NULL IS NOT AN ANSWER, and caching it would be the granny
-             * `--` bug wearing a new hat. `paramGetMany` maps "" to null, so a
-             * bulk answer cannot tell "served and empty" — which is what a module
-             * says when there is no file — from "the read did not complete",
-             * which is what the controller holds and retries on. Leaving it
-             * absent costs one live read, which IS faithful, and that answer is
-             * what gets cached.
-             */
-            if (v === null) {
-                /* ...but a batch null over a value that is ALREADY "" says what
-                 * the live read said, so that entry stays current rather than
-                 * costing a round trip every epoch — on device an unserved key
-                 * answers "" and `preset_name` is unserved on plenty of
-                 * modules. A batch null over a REAL value still expires. */
-                const e0 = entries.get(keys[i]);
-                if (e0 && e0.value === '') e0.epoch = epoch;
-                continue;
-            }
-            const e = entries.get(keys[i]);
-            if (!e) continue;
-            e.value = v; e.epoch = epoch; e.len = v.length;
-        }
-    }
-
     return {
         get(key: string): string | null {
             drainWrites();
@@ -191,7 +132,11 @@ export function createPageReadCache(port: TrackPort): PageReadCache {
             if (++sinceFill < FILL_TICKS) return;
             sinceFill = 0;
             epoch++;
-            fill();
+            fill(port, entries, epoch);
+        },
+        warm(keys: readonly string[]): void {
+            drainWrites();
+            warmKeys(port, entries, epoch, keys);
         },
         invalidateAll(): void { entries.clear(); },
     };

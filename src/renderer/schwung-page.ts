@@ -134,7 +134,9 @@ export function createSchwungPage(
     const contract = createPageContract(ctl, port, componentKey, cache, hier);
     const page = createPageRender(ctl, { keyAt, keysOf, componentKey,
                                         normalizedOf: lib.normalizedOf });
-    const input = createPageInput(ctl, lib, port, qualify, hier);
+    /* SP-39: `focusVoice` covers the page it is about to turn to before the
+     * controller asks for its cells — see schwung-page-input.ts. */
+    const input = createPageInput(ctl, lib, port, qualify, hier, cache.warm);
 
     /* SP-38's per-tick question, built once here and published below. It reads
      * the animation store rather than the controller, so it lives in its own

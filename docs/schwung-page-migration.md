@@ -111,6 +111,7 @@ changes no mode at all while looking exactly like the fix.
 | SP-20 | `ui_hierarchy` ownership — one reader (`chain/hierarchy-source.ts`) for the page, the model and the undo dump; the manifest rung and the `"{}"` test were each a divergence |
 | SP-35 | A held step keeps the delegated page — SP-33's gate reversed, and the p-lock decoration pass it had made unreachable is reachable again. The "cannot take a lock" filter is movy's chrome at the gesture, not a decoration; the per-cell half is SU-8 |
 | SP-38 | Animated widgets draw until they settle — `anim_state.settled` asked by `pollDrawnPage` only when value and identity held still. Costs **0.7 ms/tick of `render`** in the animating window (0.2 before) — **on plaits, 2 pages, the SMALLEST shape in the fixture, so that is a FLOOR and not a representative**; n=1 window per arm. No host call, idle unchanged |
+| SP-39 | A pad press onto a page the cache has never read paid one blocking read per cell; `jump` now hands that page's keys to the cache as **ONE bulk request** before `goToPage`. Teeth: the jump costs **1 bulk + 1 single** round trip against **0 bulk + 9 single**. On device (`cw78`, the rack, both arms) `padpage` is **0.1–0.2 ms/tick** under `page` and absent under `off`; the page-vs-off gap at IDLE (worst period 6.3 vs 5.0 ms) is the delegated renderer's standing cost, not the gesture. **The gesture is measured on a rack pad, not a drum-track pad — the fixture's drum module declares no note map.** The SP-38 re-run on `minijv` (70 pages, **not 72**) puts its animation at 0.2 ms/tick in the animating window, so that cost does **not** scale with page count |
 
 ### Open
 
@@ -122,7 +123,6 @@ flip after it and SP-41 conditional on a decision nobody has made.
 | id | item | model | state | order | release gate |
 | --- | --- | --- | --- | --- | --- |
 | SP-36 | **NEW** — the automation channel: the missing dot, and the arc that must not jump | Opus | ⬜ | **1** | ✔ |
-| SP-39 | **NEW** — a pad-press page change is slower than movy's | Sonnet | ⬜ | **4** | ✔ |
 | SP-37 | **NEW** — the header says a fixed word where the page name belongs | Sonnet | ⬜ | **5** | ✔ |
 | SP-31 | a knob release that lands on another page latches `touched`, and every later jog click is swallowed | Sonnet | ⬜ | **6** | ✔ (unreportable if shipped) |
 | SP-40 | the flag becomes two values, MOVY and SCHWUNG; `body` and the `.off` stand-ins deleted | Sonnet | ⬜ | **7** | ✔ |
@@ -388,53 +388,6 @@ and drum-pad branches are pinned by the same scene set.
 
 **Needs:** nothing. Smallest of the four gate items; do it in the same session as
 something else if it lands first.
-
----
-
-### SP-39 — a page change on a drum track is slower than movy's was
-
-**Product.** On a drum track, pressing a pad to switch to that voice's page is
-noticeably slower under `page` than movy's own page switch. The reporter names
-forge, on a page that supports switching, as where to look. A pad press is the
-most-used gesture on a drum track and it is the one that must feel instant; this
-is a performance complaint about a gesture, not a frame-rate number.
-
-**First suspects, read from source — none of them measured.**
-
-1. **The new page's cells are all cache misses.** movy's epoch cache
-   (`renderer/schwung-page-cache.ts`) refills every `FILL_TICKS = 8`, and a
-   `goToPage` does not refill. The arriving page's keys are not in `entries`, so
-   each is a live read — `port.getParam` at ~3.4 ms on a movy chain — served one
-   per tick by the controller's cursor. Eight cells is ~9 ticks before the page
-   is populated. Upstream's own controller carries a **neighbour lane** for
-   exactly this ("jog to it and you watch it populate a cell at a time"), which
-   prefetches the ±1 page; movy's cache replaced the rotation it rides on, so
-   it is not obvious movy still gets it.
-2. **`focusVoice` re-reads and re-matches.** `renderer/schwung-page-input.ts:98`
-   parses the hierarchy (memoized by `schwung-page-hierarchy.ts` — check that the
-   memo actually holds across a pad press) and walks every page twice.
-3. **There is no frame until something moves.** Same policy as SP-38: the page
-   identity change does dirty the frame (`pollDrawnPage` compares the key), so
-   the LABELS should be instant — if they are not, the suspect is a tick spent
-   elsewhere, not the cache.
-
-Which of these it is decides the fix, and they have different ones: a refill on
-page change (cheap, one `getMany`), a prefetch of adjacent pages (costlier, and
-the upstream comment bounds it to UNCACHED keys only), or neither.
-
-**Design & implementation.** Measure first, on device, with `perf_phase`'s
-existing `ctlpoll` / `knoblevels` split and a pad press as the event — that split
-exists because minijv's 67 ms of a 70 ms tick could not otherwise be attributed.
-Compare against the same module under `off`, since "slower than movy's pages" is
-the claim to reproduce. Then fix the half the measurement names, and keep the
-number here.
-
-**Closes when:** the pad-press-to-populated-page interval is measured under both
-modes on the same module, the gap is closed or explained, and a check guards
-whatever was added (a refill on page change is trivially testable: count
-`getMany` calls across a `goToPage`).
-
-**Needs:** nothing. Share the measurement session with SP-38.
 
 ---
 
@@ -797,8 +750,9 @@ as `enumw:` is the same exposure by another door.
 2.8 ms baseline (worst period 5.7 → 6.8 ms, +19%) — measured on **plaits, 2
 pages, the smallest shape in the fixture**, so it is the cheapest page this can
 happen on. A permanently-redrawing page pays it on **every** tick rather than one
-window in seven, and nobody has measured the same page on minijv (72 pages, where
-the lag was reported); expect more there. Raw lines, both arms:
+window in seven, and nobody has measured the same page on minijv (70 pages, where
+the lag was reported — **SP-39 measured the count and corrected the 72 that stood
+here**); expect more there. Raw lines, both arms:
 `### SP-38 ✅` above.
 
 **Fix route, two of them, and the first is not movy's.** (a) **Upstream — the
@@ -990,8 +944,8 @@ makes more use of the frames movy already draws.
 
 **Read that headline as a FLOOR, not a representative.** It is plaits — 2 pages,
 the smallest shape in the fixture — so it is the CHEAPEST page this can be
-measured on, and a 72-page component (minijv, where the lag was reported) draws
-far more per frame. It is also n=1 window per arm at a **1 ms-granularity**
+measured on, and a 70-page component (minijv, where the lag was reported — 72 was
+wrong, corrected by SP-39) draws far more per frame. It is also n=1 window per arm at a **1 ms-granularity**
 clock, where `render=0.7` means "~84 of the window's 630 ms went into drawing"
 rather than a per-frame time. The direction of the change is what is solid; the
 magnitude is a lower bound. **This is what SP-39 starts from, and its first step
@@ -1097,8 +1051,15 @@ by up to ~20 ms. Bounded,
 self-limiting, and cheaper than re-deriving per-key durations in movy — but it is
 real and it is the one place the two clocks disagree. **Not measured on a large
 module:** plaits is 2 pages and the smallest shape in the fixture, so the
-per-tick cost on minijv (72 pages, where the lag was reported) is unknown and
+per-tick cost on minijv (70 pages, where the lag was reported) is unknown and
 should be expected to be HIGHER — it is the first thing SP-39 should re-run.
+**SP-39 re-ran it, and the expectation is WRONG**: on minijv `SECTIONS="idle
+knob"` the animating window costs `render = 0.2 ms/tick` in one 120-tick window —
+the same 0.2 this entry records for plaits BEFORE the fix — and the knob
+section's worst period moves 5.7–6.1 → 6.4 ms (~+10%, against +19% on plaits).
+**The cost does not scale with the page count**: what an animating frame costs is
+what the drawn page's widgets draw, and minijv's standing delegated cost
+(`ctlreload` 0.7 ms/tick, present at idle) is larger than the animation is.
 Documents: `MANUAL.md`/`README.md` were **not** touched, because under
 `schwunggrid` the row is still internal (`off` is the default; the opt-in release
 is SP-47) and nothing a user reads has changed.
@@ -1117,6 +1078,130 @@ run** — SP-38 changes nothing about what a settled page draws, which is the sa
 reason the idle half of the measurement is unchanged.
 
 **Needs:** nothing. SP-39 inherits the method.
+
+---
+
+### SP-39 ✅ 2026-09-19 — a pad press onto an unread page paid eight blocking reads; it pays one bulk request, and the rest of the gap is not the gesture
+
+**Symptom.** On a drum track, a pad press turns the page to that voice's page.
+Under `page` that switch is reported as noticeably slower than movy's own
+(`off`). It is the most-used gesture on a drum track, so the complaint is about
+a gesture, not a frame rate.
+
+**Measured first, and the measurement named suspect 1.** `perf_phase`'s
+`ctlpoll` / `knoblevels` split with a pad press as the event, the same build
+under both arms, `scripts/measure-pad-page-latency.sh` (`MODULE=cw78`, track 0,
+ms/tick averaged over the probe's 120-tick window):
+
+| section | arm | calls/tick | ipc_ms | tick_ms | period_ms | peak_period | `padpage` |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| idle | off | 0.6 | 1.0–1.4 | 1.6–1.8 | 4.7–5.0 | 16 | — |
+| press | off | 0.6–0.7 | 1.2–1.5 | 1.5–2.0 | 4.8–5.1 | 15 | — |
+| idle | page | 1.3–1.4 | 3.0–3.5 | 3.1–3.4 | 6.0–6.3 | 23 | — |
+| press | page | 1.3–1.7 | 3.1–3.9 | 3.1–3.8 | 6.0–6.8 | 27 | **0.1–0.2** |
+
+Twelve alternating presses per section; the page arm's preflight asserts the
+gesture, not just the module — `drumPad note=71 pad=4` (the pad addressed a
+voice) and the body's `at=` changing (`at=0 -> at=4`, the page turned). Suspect 1
+was the mechanism: `ctl.goToPage` runs Schwung's `warmCurrentPage()`
+synchronously, which asks for every key of the arriving page it does not hold,
+**one `getParam` at a time**, and movy's epoch cache cannot see it coming —
+`batchKeys()` iterates `entries`, and a key enters `entries` only by being asked
+for, so the first read of every cell of a new page is a live single round trip.
+Suspect 2 (`focusVoice` re-reading) is the 0.1–0.2 ms/tick of `padpage` and is
+the small half; suspect 3 (no frame until something moves) is not in the numbers
+— the page identity change does dirty the frame.
+
+**Fix.** `schwung-page-cache.ts` gains `warm(keys)` — one `port.getMany()`, ONE
+bulk round trip, seeded at the current epoch so the controller's asks are hits —
+and `focusVoice` reaches a page through a new `jump(i)` helper
+(`renderer/schwung-page-input.ts`) that hands the target page's keys over BEFORE
+`ctl.goToPage(i)`, qualified the way `io.getParam` qualifies what the controller
+asks for. `renderer/schwung-page-batch.ts` holds the batch policy (`fill` and
+`warm`), split out of the cache so both files stay under the 200-line cap.
+Schwung's behaviour is unchanged — it still asks one key at a time; the warm is
+the cache's own half of the same contract (SP-26), so this is movy's file and not
+an upstream PR.
+
+**Teeth, measured.** `browser-test/logic/schwung-page-press.mjs` (moved out of
+`schwung-page.mjs`, which was at the browser-test ceiling with the block in it)
+counts the round trips across a `focusVoice` onto a page the session has never
+read, with the harness's `countTripKinds` — bulk and single counted SEPARATELY,
+because a total alone cannot tell "moved off the single-key channel" from "got
+cheaper for another reason". With the `warm` call replaced by `void keys`: **0
+bulk / 9 single** and both assertions red (`expected 1, got 0`, `expected 1, got
+9`). Restored: **1 bulk / 1 single** and green. The one residual single is
+`focusVoice`'s own contract lookup (`synth:ui_pages`, rung 2 of the ladder,
+unserved and so uncached — a null is never cached); it is asserted as exactly 1
+so a second one appearing is visible.
+
+**What the device numbers say the fix did and did not change.** The press's
+synchronous cost is `padpage` = 0.1–0.2 ms/tick in the three windows that hold
+presses under `page`, and absent under `off` where the code path does not exist.
+**The remaining page-vs-off gap is present at IDLE** — worst period 6.3 vs 5.0,
+calls/tick 1.4 vs 0.6, tick 3.2 vs 1.7 — so it is the delegated renderer's
+standing per-tick cost (`ctlreload` 0.3, `ctlpoll` 0.4–0.5, and the extra
+`overtake_dsp:*` reads), **not** this gesture, and closing it is not this item.
+The gesture-shaped cost was the eight per-cell reads, and that is what the warm
+removes.
+
+**The SP-38 re-run this item owed, on a large module.** `MODULE=minijv
+SECTIONS="idle knob"`, 70 pages: the animating window costs **`render = 0.2
+ms/tick` in exactly one 120-tick window** (the same 0.2 SP-38 measured on plaits
+BEFORE its fix, where it went to 0.7), worst period 5.7–6.1 idle → 6.4 knob
+(~+10%, against +19% on plaits). **SP-38's animation cost does not scale with the
+page count** — it is bounded by what the drawn page's widgets draw, and minijv's
+standing delegated cost (`ctlreload` 0.7 ms/tick, at idle) is an order larger.
+The default five sections were NOT usable here: on a 70-page component a
+10-detent jog does not walk off a small component, it walks the CHAIN
+(`midi_fx1 → fx1 → fx2 → lfo → mix` and back), so all four gesture sections came
+back INVALID — a finding about `measure-grid-cost.sh`'s documented model, left as
+a NOTE for whoever owns it. **The page count is 70, not the 72 the ledger and
+that script's header claimed** (`schwung-body ok track=0 ck=synth pages=70`, and
+`docs/module-dump/params-exposure-audit.md:106` agrees); the stale 72 was
+corrected here and in the script's comments.
+
+**Read the cw78 measurement as a PROXY, and say so out loud.** The measured
+gesture is a **rack pad on `cw78`, not a drum-track pad.** The device fixture's
+drum module (`mrdrums`, track 1) declares no note map at all — no `child_note_base`,
+no note hierarchy — so `voicesOf` finds nothing, `focusVoice` has no page to
+follow and the literal gesture does not exist there; and of the 95 modules in
+`docs/module-dump/`, only `sound_generator--voice-poc.json` declares a note map,
+so **no faithful drum-track substitute exists without changing the fixture,
+which is out of this item's scope.** What transfers from a rack pad: the per-cell
+and per-frame mechanism (`goToPage` → `warmCurrentPage` → one `getParam` per
+unread key → movy's cache), which is the same code path for any voice-declaring
+module, and the shape of the cache miss. What does NOT transfer: `focusVoice`'s
+own ladder walk and VOICE COUNT (a drum module would have more voices, more
+levels and possibly a different page set), and anything specific to the drum
+path's voice count or config translation (SP-14). A drum-track number could
+still differ in magnitude; nothing here bounds it.
+
+**The SP-48 trap, checked rather than assumed.** SP-48 says a modulated or
+`live` param the drawn page shows redraws the page forever at ~0.7 ms/tick, which
+would make any window I compared unfair. The cw78 page arm emits **no `render`
+phase in any window at all** (the phase only clears the six-phase cutoff when the
+page actually redraws; under `off` on the same module it appears as `render=0.0`),
+so the cw78 page is not modulated and the A/B above is not contaminated. The one
+`render` that does appear anywhere in this item's data is `0.2` in a single
+minijv `page / knob` window, i.e. a redraw a knob turn caused — not a
+never-settling page.
+
+**Not covered.** (1) A drum-track pad, as above — the number is a rack's. (2) The
+mock serves a value for every cell of every page; a module that answers `null`
+stops Schwung's walk at that key, which the mock deliberately does not do. (3)
+The 120-tick window at a 1 ms clock: `render = 0.2` means ~24 ms of a ~700 ms
+window, not a per-frame time, and `padpage` is an average over ~3 presses per
+window, so it bounds a press rather than timing one. (4) `off`'s body guard is
+the constant `schwung-body mode=off`, so an unattributed stall inside an `off`
+section cannot be told from the log — the minijv `off / knob` window with
+`peak_period = 483 ms` is recorded and left unexplained (its size matches its
+`modeltick = 4.2` × 120 ticks to within 4%, which is why it reads as the module's
+view-model build, i.e. `off`'s own cost and not SP-39's). `MANUAL.md`/`README.md`
+were **not** touched: under `schwunggrid` the row is still internal (`off` is the
+default; the opt-in release is SP-47) and nothing a user reads has changed.
+
+**Needs:** nothing. Measurement handover: `sp39-measurement.md`.
 
 ---
 
@@ -2177,6 +2262,29 @@ which is git-ignored scratch deleted with that workspace.
 
 Newest first. The full narrative for each is in git history; what is kept here is
 the fact a later session would otherwise re-derive.
+
+- **SP-39 ✅ 2026-09-19 — a pad press onto an unread page paid eight blocking
+  reads; it pays one bulk request.** `warm(keys)` on the epoch cache + a `jump(i)`
+  helper in `focusVoice` that hands the target page's keys over BEFORE
+  `goToPage`, qualified as `io.getParam` qualifies them. Teeth: the jump costs
+  **1 bulk + 1 single** against **0 bulk + 9 single** (`countTripKinds`, in
+  `browser-test/logic/schwung-page-press.mjs`). On device (`cw78`, both arms,
+  same build) `padpage` is **0.1–0.2 ms/tick** under `page` and absent under
+  `off`, and **the rest of the page-vs-off gap is at IDLE too** (worst period 6.3
+  vs 5.0 ms) — the delegated renderer's standing cost, not the gesture. **Two
+  facts a later session would otherwise re-derive.** (1) **minijv is 70 pages,
+  not 72** — the ledger and `measure-grid-cost.sh` both said 72; read back as
+  `schwung-body ok track=0 ck=synth pages=70`, and the module-dump audit agrees.
+  (2) **SP-38's animation cost does not scale with page count**: the minijv
+  animating window is `render = 0.2 ms/tick`, the same as plaits BEFORE SP-38's
+  fix, so the cost is bounded by what the page draws, not by how many pages the
+  module has. **And the measured gesture is a RACK pad (`cw78`), not a drum-track
+  one** — the fixture's drum module declares no note map, and no drum-class module
+  in `docs/module-dump/` declares one either, so the literal gesture is
+  unreachable without changing the fixture. Per-cell/per-frame behaviour
+  transfers; `focusVoice`'s ladder walk and voice count may not. **SP-48 checked,
+  not assumed:** the cw78 page arm emits no `render` phase in any window, so the
+  comparison is not against a forever-redrawing page.
 
 - **SP-38 ✅ 2026-09-19 — an animated widget draws until it settles: `settled`
   asked by the repaint decision, and only last.** `anim_state.mjs` joined

@@ -1,5 +1,6 @@
 import { trackRef } from '../track/ref.js';
 import { pageOwnerOf } from '../app/page-owner.js';
+import { perfPhase, perfPhaseEnd } from '../app/perf-probe.js';
 import { openSchwungEditor, schwungEditorActive, schwungEditorJog,
          schwungEditorCommit, schwungEditorCancel } from '../renderer/schwung-editor.js';
 import { openSchwungDive } from '../browser/schwung-dive.js';
@@ -435,6 +436,17 @@ export function onMidiMessageInternal(data: number[]): void {
                 mlog('drumPad note=' + d1 + ' pad=' + pad);
                 if (pad !== null) {
                     model!.updateDrumPad(pad, d1);
+                    /* SP-39. THE PAGE-FOLLOW GESTURE, TIMED. A pad press is the
+                     * most-used gesture on a drum track and `off` and `page`
+                     * reach the page by different routes — movy's own bank
+                     * switch, Schwung's `focusVoice`. This is the one place
+                     * both run, so one phase covers both arms and the A/B is a
+                     * flag change rather than a build change. It sits OUTSIDE
+                     * the tick (a press is handled before `tick()`), so without
+                     * it a synchronous cost here is visible only as a
+                     * `peak_period` spike against the host loop's own 12-32 ms
+                     * noise floor. */
+                    perfPhase('padpage');
                     /* Pad-follow, for configs that declare `pad` on a bank. A
                      * no-op for every config that does not. */
                     model!.selectBankForPad(pad);
@@ -446,6 +458,7 @@ export function onMidiMessageInternal(data: number[]): void {
                      * false for anything that has not declared, which is where
                      * selectBankForPad above still answers. */
                     pageOwnerOf(model).page?.focusVoice(pad);
+                    perfPhaseEnd();
                 }
             } else {
                 noteOn(d1, PAD_MIN, track, vel);

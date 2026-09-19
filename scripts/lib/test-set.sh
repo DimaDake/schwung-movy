@@ -153,17 +153,35 @@ ts_push_fixture() {
     done < <(ts_fixture_entries)
 }
 
-# True when every chain slot reads empty while the fixture wants a module in at
-# least one — the single state no number of applies can leave (see
-# ts_seed_boot_state). A device that does not answer is NOT cold: silence is
-# unknown, and seeding on it would restart the stack for nothing.
+# True when a slot the fixture WANTS a module in reads empty — the state no
+# number of applies can leave (see ts_seed_boot_state).
+#
+# Asking whether EVERY slot is empty was the original rule, and it is false in
+# the one shape that matters: a device rebooted onto an unsaved set comes up
+# PARTIALLY cold as often as fully. Measured: the chain read `[0 plaits 1 - 2 -
+# 3 -]` against a fixture wanting mrdrums in slot 1, so every slot was not
+# empty, the boot seed never ran, and the attempts below then burned minutes
+# each on a route that provably cannot work. Cold is per WANTED slot; a
+# fully-cold chain is the subset where all of them read empty, so nothing that
+# was cold under the old rule stopped being cold.
+#
+# slots-read.mjs prints `<slot> <module>` with "-" for empty, so each wanted
+# slot is matched against that slot's OWN line. A slot with no line at all is
+# not matched — silence stays unknown, and a device that does not answer is NOT
+# cold: seeding on it would restart the stack for nothing.
 ts_chain_is_cold() {
-    local got
-    ts_fixture_entries | qgrep -vE '[[:space:]]none$' || return 1
+    local want got slot mod
+    want=$(ts_fixture_entries) || return 1
+    [ -n "$want" ] || return 1
+    printf '%s\n' "$want" | qgrep -vE '[[:space:]]none$' || return 1
     got=$(node "$MOVY_DIR/scripts/slots-read.mjs" </dev/null 2>/dev/null) || return 1
     [ -n "$got" ] || return 1
-    echo "$got" | qgrep -vE '[[:space:]]-$' && return 1
-    return 0
+    while read -r slot mod; do
+        [ -z "${slot:-}" ] && continue
+        [ "$mod" = "none" ] && continue
+        printf '%s\n' "$got" | qgrep -E "^${slot}[[:space:]]+-$" && return 0
+    done <<< "$want"
+    return 1
 }
 
 # Seed the shim's BOOT path with the fixture, then restart the stack.

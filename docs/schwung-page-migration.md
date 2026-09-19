@@ -104,11 +104,12 @@ changes no mode at all while looking exactly like the fix.
 | SP-27 | The delegated page re-planned the whole module every 8 ticks — 67.5 ms → 3.0 |
 | SP-14 | Cause E — drum/voice pages planned from movy's config |
 | SP-15 | Cause D — contract lifecycle: the asking never stops, only its pace |
-| SP-18 | The decoration channel: modulation tilde, mod dot, p-lock highlight, held-step filter — **see SP-33** for the half of the held-step gate it left undone, and **SP-35** for why its p-lock pass reaches no screen today |
+| SP-18 | The decoration channel: modulation tilde, mod dot, p-lock highlight, held-step filter — **see SP-33** for the half of the held-step gate it left undone, and **SP-35** for the gate that made its p-lock pass unreachable in production until SP-35 removed it |
 | SP-17 | Cause C/B — the filepath dive, the header readout, the footer hints |
 | SP-19 | Undo redraw + automation-follows-arc — **verified, not built**: SP-26's write-log drain delivers the **undo** half; a playing lane's arc is served by the 8-tick fill and nothing tests that path (SP-29) |
 | SP-28 | Custom module visualisations (`custom:` viz kinds) — the four loader defects fixed, and hank's own waveform is on the panel under `page`. **See SP-34** for the fifth, found in review |
 | SP-20 | `ui_hierarchy` ownership — one reader (`chain/hierarchy-source.ts`) for the page, the model and the undo dump; the manifest rung and the `"{}"` test were each a divergence |
+| SP-35 | A held step keeps the delegated page — SP-33's gate reversed, and the p-lock decoration pass it had made unreachable is reachable again. The "cannot take a lock" filter is movy's chrome at the gesture, not a decoration; the per-cell half is SU-8 |
 
 ### Open
 
@@ -120,7 +121,6 @@ flip after it and SP-41 conditional on a decision nobody has made.
 | id | item | model | state | order | release gate |
 | --- | --- | --- | --- | --- | --- |
 | SP-36 | **NEW** — the automation channel: the missing dot, and the arc that must not jump | Opus | ⬜ | **1** | ✔ |
-| SP-35 | **NEW** — a held step hands the page back to movy; the reporter wants the delegated page (reverses SP-33's direction) | Sonnet | ⬜ | **2** | ✔ |
 | SP-38 | **NEW** — nothing animates: movy never asks for the next frame | Sonnet | ⬜ | **3** | ✔ |
 | SP-39 | **NEW** — a pad-press page change is slower than movy's | Sonnet | ⬜ | **4** | ✔ |
 | SP-37 | **NEW** — the header says a fixed word where the page name belongs | Sonnet | ⬜ | **5** | ✔ |
@@ -286,61 +286,6 @@ It goes back in front of SP-30, where it always belonged.
 Each entry: **Product** — what a person gets, and what they lose today without
 it. **Design & implementation** — how to build it. **Closes when** — the
 evidence. **Needs** — its predecessor.
-
----
-
-### SP-35 — a held step hands the page back to movy, and the reporter wants it not to
-
-**Product.** Hold a step to edit automation under `page` and the screen shows
-**movy's** parameter page, not the one you were just looking at. The parameters
-move under your hand at the exact moment you are trying to lock one, which is
-the worst moment for them to move: what you lock is chosen by pointing at it.
-
-**This reverses a ruling made two days ago, deliberately, and the reversal is
-the reporter's.** SP-33 found the opposite defect — the screen said movy and the
-LOCK landed on Schwung's parameter — and closed it by handing the whole page
-back to movy while a step is held (`app/page-owner.ts:121`,
-`live = page.ready && !seqState.stepAutoMode`). That made the screen and the
-gesture agree; it also made `page` stop being `page` for the one gesture the
-migration's decoration work was built for. The ruling to keep from SP-33 is
-**one accessor, one answer** — not the direction it answered in.
-
-**What that gate is currently costing, read from source.** `decorationsFor`
-(`renderer/schwung-page-decorations.ts:51`) returns null unless `auto.held`, and
-`auto.held` **is** `seqState.stepAutoMode` (`app/tick.ts:137`). The delegated
-render path that calls it (`schwung-page-render.ts:116`) runs only when
-`owner.page` is non-null, which the same flag makes null. So **SP-18's whole
-p-lock decoration pass — the 2×2 mark, the inverted band, the decoration's value
-replacing the live one — is unreachable in production today.** It is covered by
-tests that call the renderer directly, which is precisely the failure mode
-upstream's own `triggerFiredAt` comment warns about ("the test handed the
-renderer both directly and so only ever proved the renderer, never the wiring").
-Verify this before building anything: it is read from source, not measured.
-
-**Design & implementation.** Drop `!seqState.stepAutoMode` from `live()` so the
-delegated page stays up under a held step, and carry into the delegated page the
-one thing movy's body adds there, which `app/tick.ts:196` already names: **which
-knobs can take a lock at all**. movy's own body dims a non-automatable cell and
-hides it at the 8-lane limit (`renderer/label.ts:52-56`, `hiddenDuringHold`); the
-delegated page has no equivalent, and without one a person locks a knob that
-silently does nothing — which is worse than the page swapping. `decorations`
-carries `{locked, value}` and nothing else, so "this cell cannot be locked" has
-no channel: either movy draws that filter in its own chrome, or it becomes an
-upstream ask (**SU-8**). Decide which in the plan, not in the code. The gesture
-half is then the same routing SP-33 fixed in the other direction — every site
-reads `pageOwnerOf`, so the lock targets the key the delegated page drew.
-
-**Watch the burn-down and the app-loop check SP-33 left.** `a held step hands
-the page back to movy` and `...so the knob targets the parameter movy drew`
-(`browser-test/app-loop.mjs`) both assert the behaviour being reversed. They are
-not to be deleted quietly: replace each with its opposite in the same commit, so
-the diff shows a decision rather than a lost assertion.
-
-**Closes when:** a held step under `page` keeps the delegated page on screen,
-the lock lands on the parameter that page drew, a cell that cannot be locked
-says so, and the two app-loop checks have been replaced by their opposites.
-
-**Needs:** nothing. Pairs with SP-36 — they are one gesture from the user's side.
 
 ---
 
@@ -944,6 +889,96 @@ would pin it. Read from source, not measured.
 **Needs:** nothing. No fix landed — the item's suspicion that SP-26 already
 closed it was right, and the freshness rule ("treat a lane-driven key as the
 controller treats a modulated one") was already the implementation.
+
+---
+
+### SP-35 ✅ 2026-09-19 — a held step keeps the page, and the lock lands on the drawn cell
+
+**Symptom.** Hold a step to edit automation under `page` and the screen showed
+**movy's** parameter page, not the one you were just looking at — the parameters
+move under your hand at the exact moment you are choosing which one to lock, and
+what you lock is chosen by POINTING at it. Finding #1 of the twelve reported from
+the device (2026-09-18). It is the one gate item that is a REVERSAL: SP-33 had
+closed the opposite defect — the screen said movy and the lock landed on
+Schwung's parameter — by handing the held step's whole page back to movy.
+
+**Cause.** SP-33's gate was `live = page.ready && !seqState.stepAutoMode`
+(`app/page-owner.ts`). `seqState.stepAutoMode` **is** `auto.held` (the automation
+view, `app/tick.ts`), and `decorationsFor` (`renderer/schwung-page-decorations.ts`)
+returns null unless `auto.held` — so it could only ever be non-null on a frame
+where the delegated page did not render. **SP-18's whole p-lock decoration pass —
+the 2×2 mark, the inverted band, the decoration's value replacing the live one —
+was unreachable in production.** The entry said "verify this before building
+anything: it is read from source, not measured", and it was right to: as a failing
+test first, wrapping `ctl.setDecorations` and holding a step with a lock live gave
+**0 calls for the entire hold** — the seam SP-18 reaches Schwung through is never
+called. Two more things the gate was costing, both measured: a knob turn under the
+hold bound the lane to MOVY's key while the page drew another (`alabel 0 0
+synth:p1` with `p9` on screen — the mis-target SP-33 was supposed to have ended),
+and the screen changed identity at the moment of the gesture.
+
+**Fix.** **(1)** `live()` is `page.ready`; the `step-held` reason branch went with
+it, and ONE accessor keeps ONE answer — SP-33's invariant is kept, only its
+direction reversed. **(2)** The "cannot take a lock" filter is **movy's own chrome
+at the gesture site**, which was the ruling. No decoration is written for it:
+`locked` means a lane holds this PARAMETER, and setting it on a cell nobody locked
+is the lie SP-16 removed; `renderer/label.ts` is not grown (standing rule 1). A
+held-step turn on a non-automatable param is **consumed and toasted** — `NO LOCK:
+<key>`, from `seq/automation.ts`'s `!info.automatable` branch, so there is still
+exactly one statement of "this param can take a lock". That is also where the real
+harm was: an unconsumed turn falls through to `owner.page.knobTurn` /
+`model.handleKnobDelta`, i.e. it **rewrote the patch** under a hand that believed
+it was taking a lock. `info.ioKey` is what is named, because under `page` that is
+the key the person is looking at.
+
+**What is NOT covered — the loss, stated.** The PROACTIVE half of the filter is
+gone under `page`: a non-automatable cell is no longer dimmed or hidden, because
+that only ever existed inside movy's body drawer (`hiddenDuringHold`) and the body
+is Schwung's now. movy's chrome can say the refusal at the moment of the gesture
+and cannot say it per-cell without writing the lie above. **SU-8 is the recorded
+follow-up**, not an invented channel here. Two halves that DID need nothing: the
+pool-full case is already said by movy's own `8 AUTOMATION LANES — FULL` toast
+(its app-loop check passes in the `page` arm today, which is the evidence that the
+toast channel survives delegation), and the live lock reading is untouched — both
+renderers resolve it from the same `auto.heldValues`.
+
+**Teeth.** `browser-test/app-loop.mjs`: the SP-33 block's checks replaced by their
+opposites **in the same commit** — the ledger named two, there were **three**
+(`a held step keeps movy reading its own page` also asserted the reversed
+behaviour, and left alone it would have taken the burn-down to 4) — plus a new
+block that holds a step and counts `ctl.setDecorations` at its one seam into
+Schwung and asserts `alabel 0 0 synth:<the page's key>` and NOT `<movy's key>`.
+**The jog is the teeth**: this fixture's two planners agree on all eight cells
+(`differing slots: 0`), so the block jogs the delegated page first and the two are
+then apart (`p9` on the page, `p1` in movy's bank 0 — the fixture premise is
+asserted, gated on the arm that can have it). RED before the fix, `page` arm: 11
+failures, all eight new/replaced checks among them — `expected true, got false`
+for the page, the decoration and the lock target, and `...and not to the key
+movy's planner had in that cell: expected false, got true`. `browser-test/
+logic/automation.mjs`: `non-automatable not consumed` is inverted under a held
+step and keeps its old answer with no step held. Teeth proven by REMOVING the
+refusal: `non-automatable under a held step IS consumed: expected true, got false`
+and `...and says why: expected "NO LOCK: sample", got "Length 4"`; green again on
+restore. This is a second app-loop check the ledger did not name, and its
+replacement is what keeps "N must not grow past 3" true.
+
+**Baselines.** ONE scene changed, and it is the only one that asks the app for the
+body under a hold: `page_held_unassignable`, 470 px — movy's held-step body (one
+cell, `SENSITIVITY`, every other cell hidden by `hiddenDuringHold`) replaced by
+Schwung's page (`KEY` / `INVL` / `SENS` / `HOLD`), with the scene's comment
+rewritten to say what it now grades. The other **174** scenes are pixel-identical,
+and the other eight `page_*` scenes call `sp.render()` directly and grade the
+renderer, which is not what changed; `git status` after the update shows exactly
+one baseline file modified. No blanket `--update` was needed to establish that.
+
+**Gates.** `SCHWUNG=../schwung npm test` → 0 failures, all suites, screenshot
+175/175; `SCHWUNG=../schwung node browser-test/page-mode.mjs` → `page-mode: 3 of 3
+expected failures remain` / `PAGE-MODE LEDGER UP TO DATE` (all three are the
+mrdrums-fixture page-plan limit, unrelated); device tier with
+`prefs.flags.schwunggrid = 0` (`off`). `MANUAL.md`/`README.md` deliberately NOT
+edited: the `page` flag is not user-visible yet (SP-47 ships the two-value switch),
+so there is no user-facing change to document.
+
 
 ---
 

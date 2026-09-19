@@ -1352,8 +1352,17 @@ function applyView(preset) {
          * A held step on a page most of which cannot take a lock. Rendered
          * through the REAL body decision — `pageOwnerOf` + `schwungBodyFor`,
          * with `seqState.stepAutoMode` set, which is what `vm.automationHeld`
-         * is — so the scene grades movy's held-step filter end to end rather
-         * than a copy of its condition.
+         * is — so the scene grades the body decision end to end rather than a
+         * copy of its condition.
+         *
+         * THE FRAME IS SCHWUNG'S PAGE NOW, AND THE SHOT IS WHERE THE DIFF IS
+         * READ. SP-35 stopped the hold from handing the owner back, so the body
+         * here is the delegated page and the cells movy's own drawer used to
+         * HIDE (`hiddenDuringHold`) are simply drawn — they show the same thing
+         * as any other cell, and the refusal to lock one is said at the gesture
+         * instead (`seq/automation.ts` consumes the turn and toasts). SP-35
+         * regenerated this one baseline for exactly that, and for nothing else:
+         * it is the only scene that asks the app for the body under a hold.
          *
          * ── page_lane_unheld (d) ────────────────────────────────────────────
          * The frame `page_held_lock` is one term away from: the same page, the
@@ -1466,9 +1475,15 @@ function applyView(preset) {
                     seqState.stepAutoMode = true;
                     lastRender = () => {
                         const owner = pageOwnerOf(model);
-                        /* The hold is the OWNER's now — `pageOwnerOf` reads
-                         * `seqState.stepAutoMode` set above — so the body is not
-                         * told it a second time (app/page-owner.ts). */
+                        /* THE HOLD IS NOT AN INPUT TO EITHER CALL, and that is
+                         * SP-35: `pageOwnerOf` no longer reads
+                         * `seqState.stepAutoMode` (app/page-owner.ts) and
+                         * `schwungBodyFor` never did, so the two cannot be told
+                         * the same news twice or told different news. What the
+                         * flags above still decide is the HELD-STEP GRAPHIC the
+                         * body draws (the lock mark and the value that step will
+                         * play), which is movy's `autoView` on one side and
+                         * Schwung's decoration pass on the other. */
                         const body = schwungBodyFor(owner,
                             stepPageAvailable() && stepPageState.selected);
                         renderKnobsView(model.getViewModel(autoView({ held: true })), false, 0,

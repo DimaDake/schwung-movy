@@ -583,12 +583,31 @@ _log('\napp-loop: knob turn while a step is held writes automation');
     eq('step-auto knob auto-assigns a lane', engine.ops.some((o) => o.startsWith('alabel 0 0 ')), true);
     eq('step-auto knob writes a lock at step 4', engine.ops.some((o) => o.startsWith('aset 0 0 4 ')), true);
 
-    // The file param (knob 0 = CC 71) is not automatable → no aset.
+    // The file param (knob 0 = CC 71) is not automatable → no aset, AND (SP-35)
+    // the turn is refused rather than left to fall through as a patch edit.
     engine.reset(); resetAutomation();
     seqState.stepAutoMode = true; seqState.holdStep = 4;
+    const fileKey = pageOwnerOf(appState.trackModels[0][1]).knobParamInfo(0)?.ioKey;
+    eq('(fixture) the refusal can name the cell it is about', typeof fileKey, 'string');
     sendMidi([0xB0, 71, 1]);                  // knob 0 (file param)
     advance(1);
     eq('file param not automated', engine.ops.some((o) => o.startsWith('aset')), false);
+    /*
+     * A HELD STEP CANNOT LOCK THIS CELL, AND MOVY SAYS SO FROM ITS OWN CHROME.
+     * The proactive half — the cell dimmed or hidden — lived in movy's own body
+     * drawer (`renderer/label.ts: hiddenDuringHold`) and draws nothing once a
+     * delegated page owns the screen (SP-35; the upstream channel for it is
+     * SU-8). What movy still owns is the toast band, drawn after the body, so it
+     * is live under `page`: this block's neighbour above proves that channel
+     * survives delegation. NOT a decoration — `locked` means "a lane live on
+     * this frame holds this PARAMETER", and setting it on a cell nobody locked
+     * is the lie SP-16 removed.
+     *
+     * IT HAS TO CONSUME THE TURN. An unconsumed one is handed on to
+     * `owner.page.knobTurn` / `model.handleKnobDelta` — an edit of the PATCH —
+     * under a hand that believes it is taking a lock.
+     */
+    eq('a held step refuses to lock it', seqToastText(), 'NO LOCK: ' + fileKey);
     seqState.stepAutoMode = false; seqState.holdStep = -1;
 }
 
@@ -3174,10 +3193,10 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
     advance(2);
 }
 
-/* ── a held step keeps movy's own values arriving ─────────────────────────── */
+/* ── a held step keeps the DRAWN page's own values arriving ───────────────── */
 {
     /*
-     * THE HELD-STEP SCREEN IS MOVY'S, SO MOVY MUST KEEP READING FOR IT.
+     * WHICHEVER SIDE DRAWS THE HELD-STEP SCREEN MUST KEEP READING FOR IT.
      *
      * SP-18 handed the held-step screen back to movy (schwungBodyFor's `held`
      * gate) but left the refresh gate above it asking the narrower question —
@@ -3187,9 +3206,11 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
      * cells themselves stayed right (they come from the engine's own status
      * poll) which is what made it easy to miss.
      *
-     * The gate now asks the same question the BODY asks. In the `off` arm this
-     * is true for the ordinary reason and is a regression guard; in the `page`
-     * arm it is the whole fix.
+     * SP-35 moves the ownership, so the reader moves with it: under `page` the
+     * delegated page's per-tick poll is what keeps the held-step screen live
+     * (`app/page-poll.ts`), and movy's own bulk refresh stopping is SP-12's
+     * rule rather than a loss. The check is written against "the reader that
+     * draws the cell" so ONE expression grades both arms.
      */
     const { resetAutomation } = await import('../dist/esm/seq/automation.js');
 
@@ -3209,42 +3230,154 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
     for (let i = 0; i < 12 * 60 && !owner().delegated; i++) advance(1);
     const expectDelegated = schwungGridMode() === 'page';
 
+    /* THE PREMISE, and read BEFORE the hold rather than asserted from the mode:
+     * the hold is only meaningful on a page Schwung had actually taken. (It
+     * used to be `eq(expectDelegated, schwungGridMode() === 'page')` — the same
+     * expression on both sides, which cannot fail.) */
+    const preHoldPage = owner().page;
+    eq('the page under the hold was Schwung\'s to begin with',
+       !!preHoldPage, expectDelegated);
+    const drawnKey0 = preHoldPage ? preHoldPage.keyAt(0) : null;
+
     /* THE HOLD IS IN PLACE FIRST, so the only window in which the new value
      * could arrive is a held one. Written behind every reader's back, exactly as
      * the block above does, so the arrival is a re-read and not an echo. */
     seqState.stepAutoMode = true; seqState.holdStep = 4;
-    const p1 = () => m.getKnobParamInfo(0)?.value;
-    const before = p1();
+    /* WHOEVER DRAWS THE CELL IS WHO READS IT — the same expression on both
+     * sides of the arm, so this is one check and not two. Under `page` the
+     * drawn page's own read is the probe (movy's refresh has stopped, which is
+     * SP-12's rule, not a loss). */
+    const drawn0 = () => (owner().page ? owner().page.knobLevels()[0]
+                                       : m.getKnobParamInfo(0)?.value);
+    const before = drawn0();
     globalThis.shadow_set_param(0, 'synth:p1', '0.55');
     advance(6 * REFRESH_BULK_TICKS);         // several full refresh windows
 
-    /* WHILE A STEP IS HELD THE SCREEN IS MOVY'S, SO THE KNOBS MUST BE TOO.
+    /* A HELD STEP KEEPS SCHWUNG'S PAGE, AND THE KNOCK-ON IS THE POINT.
      *
      * SP-18 moved the BODY back to movy for a held step and left the OWNER
-     * saying Schwung. The two are read by different files — `app/tick.ts` draws
-     * from the body, `midi/router.ts` targets from the owner — so under `page`
-     * you looked at movy's labels and locked SCHWUNG's parameters, on every
-     * cell where the two planners disagree (the router's own comment counts 9
-     * across the mock presets). Holding an EMPTY step is where it bit: a step
-     * with an occurrence opens the step page, which returns before either.
+     * saying Schwung; SP-33 closed that by handing the OWNER back too, so the
+     * screen and the gesture agreed — at the cost of the one gesture the
+     * migration's decoration work was built for, because the parameters move
+     * under your hand at the moment you are choosing which to lock. SP-35
+     * reverses the direction and keeps SP-33's ruling: ONE ACCESSOR, ONE
+     * ANSWER. `live()` no longer asks about the hold, so the body, the bank
+     * bar, the chrome, the LEDs and every gesture site all answer "Schwung"
+     * together, and the lock lands on the key the drawn page has in that cell.
      *
-     * The decision is the OWNER's now, and the body is derived from it — the
-     * same rule the bank bar and the chrome already follow. So this asks the
-     * ownership question and then asks whether the parameter under knob 0 is
-     * the one movy would draw there, which is a claim about the two agreeing
-     * rather than about either alone.
+     * THE SAME EXPRESSION IN BOTH ARMS. In the `off` arm nothing is claimed, so
+     * every one of these reads the movy answer it always did and the checks are
+     * the regression guards they were; the expected VALUE is the only thing
+     * that moves between the arms, never the claim.
      */
-    eq('a held step hands the page back to movy', owner().delegated, false);
-    eq('...so the knob targets the parameter movy drew',
-       owner().knobParamInfo(0)?.key, m.getKnobParamInfo(0)?.key);
-    /* The claim the block was built for, unchanged: movy is drawing, so movy
-     * must keep reading. `expectDelegated` is what the page was BEFORE the hold
-     * — the hold is only meaningful on a page Schwung had actually taken. */
-    eq('the page under the hold was Schwung\'s to begin with',
-       expectDelegated, schwungGridMode() === 'page');
-    eq('a held step keeps movy reading its own page', p1() !== before, true);
+    eq('a held step keeps the page the mode delegated', owner().delegated, expectDelegated);
+    eq('...so the knob targets the parameter the drawn page has there',
+       owner().knobParamInfo(0)?.key,
+       expectDelegated ? drawnKey0 : m.getKnobParamInfo(0)?.key);
+    /* ...AND THE ANSWER CAME FROM THE PAGE, not from the model underneath it.
+     * The two planners put the SAME param in knob 0 on this fixture
+     * (`differing slots: 0`), so the key above cannot tell the two answers
+     * apart — the spy is what does, and the next block is where the difference
+     * gets a fixture that shows it. */
+    let askedOf = 0;
+    if (preHoldPage) {
+        const real = preHoldPage.knobParamInfo;
+        preHoldPage.knobParamInfo = (s) => { askedOf++; return real.call(preHoldPage, s); };
+        owner().knobParamInfo(0);
+        preHoldPage.knobParamInfo = real;
+    }
+    eq('...asked of the page, not of the model underneath', askedOf > 0, expectDelegated);
+    eq('a held step keeps the drawn page reading', drawn0() !== before, true);
 
     seqState.stepAutoMode = false; seqState.holdStep = -1;
+    resetAutomation();
+}
+
+/* ── SP-35: a held step locks the cell the DRAWN page has ─────────────────── */
+{
+    /*
+     * THE HOLD NO LONGER HANDS THE PAGE BACK, so the two things a hold owns are
+     * both live again on a delegated page: SP-18's p-lock DECORATION — whose
+     * only gate is `auto.held`, the very flag that made `owner.page` null — and
+     * the lane a knob turn writes.
+     *
+     * THE JOG IS THE TEETH. This fixture's two planners put the SAME param in
+     * knob 0 (`differing slots: 0`), so nothing about the two answers can be
+     * told apart at rest. Jog the drawn page a step and that cell has `p9` where
+     * it held `p1`; the lock then has to name the page's key or it is bound to a
+     * parameter that is not on the screen.
+     *
+     * THE DECORATION IS COUNTED AT ITS ONE SEAM INTO SCHWUNG. SP-18's renderer
+     * was only ever proved by handing it the page and the auto view directly —
+     * the failure mode upstream's own `triggerFiredAt` comment warns about
+     * ("the test handed the renderer both directly and so only ever proved the
+     * renderer, never the wiring"). Wrapping `ctl.setDecorations` measures the
+     * wiring, and it read ZERO calls for a whole hold before this change.
+     */
+    const { resetAutomation } = await import('../dist/esm/seq/automation.js');
+
+    schwungGridReload();                     // the cache holds the last block's page
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.test16);
+    resetSeqState(); resetSeqEngine(); resetAutomation();
+    setFlag('setcommit', 0);
+    globalThis.init();
+    const m = appState.trackModels[0][1];
+    m.reload();
+    appState.currentView = VIEW_KNOBS;
+    appState.activeTrack = trackRef(0);
+    advance(12);
+
+    const owner = () => pageOwnerOf(appState.trackModels[0][1]);
+    for (let i = 0; i < 12 * 60 && !owner().delegated; i++) advance(1);
+    const pageArm = schwungGridMode() === 'page';
+
+    /* THE JOG, AND THE PREMISE READ FROM IT rather than asserted from the mode:
+     * the cell has to be somewhere other than where it was, or neither the key
+     * nor its opposite says anything. */
+    const wasKey = m.getKnobParamInfo(0)?.key;      // the cell BEFORE the jog
+    owner().changePage(1);
+    advance(4);
+    const drawnKey = owner().knobParamInfo(0)?.key; // read BEFORE the hold
+    eq('(fixture) the jog moved the drawn cell off the key it held',
+       drawnKey !== wasKey, true);
+    /* ...and under `page` it is the TWO PLANNERS that are apart: movy's own bank
+     * stayed where it was while Schwung's page moved. That is the condition this
+     * block needs to have teeth, so it is asserted where it can exist. */
+    if (pageArm) eq('(fixture) ...because the two planners disagree there',
+                    drawnKey !== m.getKnobParamInfo(0)?.key, true);
+
+    /* THE SEAM, WRAPPED BEFORE THE HOLD. Restored at the end of the block. */
+    const sp = owner().page;
+    let realDec = null, decCalls = 0, decs = null;
+    if (sp) {
+        realDec = sp.ctl.setDecorations;
+        sp.ctl.setDecorations = (d) => { decCalls++; decs = d; return realDec.call(sp.ctl, d); };
+    }
+
+    /* Before the turn, so the frame the turn dirties is drawn with the lane
+     * already live — the engine reports it a poll behind, so the mirror the
+     * automation view actually reads is set alongside the status. */
+    engine.reset();                          // clears ops; it also clears status
+    engine.status.aauto = '1';
+    seqState.autoActive = 1;
+    seqState.stepAutoMode = true; seqState.holdStep = 4;
+    sendMidi([0xB0, 71, 1]);                 // knob 0: whatever the page drew there
+    advance(20);
+
+    eq('a held step keeps Schwung drawing the page', !!owner().page, pageArm);
+    eq('and the p-lock decoration reaches the controller', decCalls > 0, pageArm);
+    eq('...marked on a cell the page drew',
+       !!(decs && decs.some((d) => d && d.locked === true)), pageArm);
+    eq('the knob bound the lane to the parameter the page drew',
+       engine.ops.some((o) => o.startsWith('alabel 0 0 synth:' + drawnKey)), true);
+    eq('...and not to the key movy\'s planner had in that cell',
+       engine.ops.some((o) => o.startsWith('alabel 0 0 synth:' + wasKey)), false);
+
+    seqState.stepAutoMode = false; seqState.holdStep = -1;
+    seqState.autoActive = 0;
+    delete engine.status.aauto;
+    if (sp) sp.ctl.setDecorations = realDec;
     resetAutomation();
 }
 

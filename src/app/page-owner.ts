@@ -24,22 +24,28 @@
  * the old `p.ready ? p : null` said at each call site — and the page must go on
  * being ticked or its first empty answer stands for the whole session.
  *
- * A HELD STEP IS THE SECOND SUCH WINDOW, and it is here for the reason the
- * first one is: the answer must be given ONCE. SP-18 handed the held-step SCREEN
- * back to movy in `app/tick.ts` — Schwung has no held-step filter, so its page
- * offers eight knobs while only some of them will take a lock, and only movy's
- * body drawer knows which (`hiddenDuringHold` in `renderer/label.ts`). But the
- * gesture sites read OWNERSHIP, not the body, so the screen moved and the knobs
- * did not: under `page` you read movy's labels and locked Schwung's parameters,
- * on every cell where the two planners put different keys — nine of them across
- * the mock presets, by the router's own count. Holding an EMPTY step is where it
- * bit, a step with an occurrence being taken by the step page before either.
+ * A HELD STEP WAS THE SECOND SUCH WINDOW — SP-35 TOOK IT OUT, AND THE REASON IS
+ * THE COST OF PUTTING IT THERE. SP-18 handed the held-step SCREEN back to movy for
+ * the reason above: Schwung has no held-step filter, so its page offers eight knobs
+ * while only some will take a lock, and only movy's body drawer knows which
+ * (`hiddenDuringHold` in `renderer/label.ts`). But moving the SCREEN does not move
+ * the gesture sites, which read ownership — and the p-lock DECORATION the whole of
+ * SP-18 was built for is gated on `auto.held`, which IS `seqState.stepAutoMode`,
+ * the same flag that made `page` null here. The pass could therefore not run in
+ * production at all: `ctl.setDecorations` measured ZERO calls across a whole hold.
+ * And the turn that has to make the lock bound the lane to MOVY's key while the
+ * page drew another (`alabel 0 0 synth:p1` where the page had `p9` — measured).
  *
- * So the hold belongs to the accessor, and the body is derived from it like the
- * bank bar and the chrome already are. The page is still POLLED through it —
- * `poll()` is outside the gate, exactly as it is for the pre-ready window — so
- * the contract keeps settling under the finger and the page is current when the
- * step is let go.
+ * THE HOLD NEEDED ONE ANSWER, NOT A DIFFERENT OWNER. The offer that cannot be
+ * taken is answered where the gesture is, from movy's own chrome
+ * (`seq/automation.ts`: a held step consumes the turn and says why), so nothing
+ * has to move the page for it. The proactive half of the filter — the dimmed cell —
+ * is NOT carried over; `docs/schwung-page-migration.md` records it as SU-8's
+ * territory, because `decorations` carries `locked` (a lane HOLDS this param) and
+ * marking a cell nobody locked is the lie SP-16 removed.
+ *
+ * The page is still POLLED — `poll()` is outside the gate, exactly as it is for
+ * the pre-ready window — so the contract keeps settling under the finger.
  *
  * Lives in `app/` because page identity is `appState.activeTrack` and the page
  * cache is `renderer/schwung-grid`: `model/` may not import `renderer/`, and
@@ -47,7 +53,6 @@
  */
 
 import { appState } from './state.js';
-import { seqState } from '../seq/state.js';
 import { schwungGridMode, schwungPageFor } from '../renderer/schwung-grid.js';
 import { modulatedKeysOf } from './modulated-keys.js';
 import type { SchwungPage } from '../renderer/schwung-page.js';
@@ -115,10 +120,12 @@ function movyOwner(ref: PageRef | null, model: any, reason: string): PageOwner {
  * until then every question falls through to the movy owner underneath — the
  * same object, so the pre-ready window cannot drift from the movy-owned case. */
 function delegateOwner(ref: PageRef, page: SchwungPage, fallback: PageOwner): PageOwner {
-    /* THE ONE GATE. Both windows in which a claimed page is not the live one —
-     * the contract has not resolved, or a step is held — answer here, so no
-     * caller can be given one of them and not the other. */
-    const live = () => page.ready && !seqState.stepAutoMode;
+    /* THE ONE GATE. A claimed page is not the live one in exactly one window —
+     * the contract has not resolved — and every question answers here, so no
+     * caller can be given one answer and not the other. The hold is deliberately
+     * NOT a second term: it was one (SP-33), and SP-18's decoration pass is the
+     * price it charged (see the header). */
+    const live = () => page.ready;
     return {
         ref,
         claimed: true,
@@ -129,10 +136,8 @@ function delegateOwner(ref: PageRef, page: SchwungPage, fallback: PageOwner): Pa
                 return `ok track=${ref.track} ck=${ref.componentKey} `
                      + `pages=${page.pageCount} at=${page.pageIndex}`;
             }
-            return page.ready
-                ? `step-held track=${ref.track} ck=${ref.componentKey}`
-                : `not-ready track=${ref.track} ck=${ref.componentKey} `
-                  + `pages=${page.pageCount}`;
+            return `not-ready track=${ref.track} ck=${ref.componentKey} `
+                 + `pages=${page.pageCount}`;
         },
         get pageIndex() { return live() ? page.pageIndex : fallback.pageIndex; },
         get pageCount() { return live() ? page.pageCount : fallback.pageCount; },

@@ -195,7 +195,26 @@ export function handleAutomationKnob(
     track: number, physK: number, info: KnobParamInfo, delta: number,
     setMapping: (lane: number) => boolean,
 ): boolean {
-    if (!info.automatable) return false;
+    /*
+     * A HELD STEP CANNOT LOCK A PARAM THAT CANNOT TAKE A LANE, AND SAYS SO (SP-35).
+     *
+     * Through a hold the turn is not an edit — the hand is choosing what to lock
+     * — so returning false is not neutral: `midi/router.ts` hands an unconsumed
+     * turn to `owner.page.knobTurn` / `model.handleKnobDelta`, i.e. it rewrites
+     * the PATCH under someone who believes they are taking a lock.
+     *
+     * The filter used to be `hiddenDuringHold` in movy's body drawer, which only
+     * works while movy draws the body: under `page` the body is Schwung's, so the
+     * offer was invisible until you turned it. The channel for saying it PER-CELL
+     * on a delegated page is upstream (SU-8) and must not be invented here —
+     * `decorations` carries `locked` ("a lane live on this frame holds this
+     * PARAMETER") and marking a cell nobody locked is the lie SP-16 removed. This
+     * toast is movy's own chrome, drawn after the body, so it survives `page`.
+     */
+    if (!info.automatable) {
+        if (seqState.stepAutoMode) { seqToast('NO LOCK: ' + info.ioKey); return true; }
+        return false;
+    }
     const recArmed = seqState.recording && seqState.playing;
     // Turning a knob while a single step is held enters step-automation mode.
     if (!seqState.stepAutoMode && !recArmed && beginStepAutomation() < 0) {

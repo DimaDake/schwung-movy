@@ -32,6 +32,7 @@ _log('\nlogic: schwung page mode');
 
 const { surfaceOf } = await import('../../dist/esm/renderer/schwung-voices.js');
 const { setSurfaceReader } = await import('../../dist/esm/model/drum-declared.js');
+const { pageOwnerOf } = await import('../../dist/esm/app/page-owner.js');
 
 /* `model/` imports nothing from `renderer/`, so the reader is PUSHED IN at
  * start-up — app/globals.ts does exactly this line. Without it `readSurface`
@@ -399,6 +400,46 @@ _log('\nTest: the header readout and the footer hints come from the controller')
     const showed = p.chrome(true);
     eq('nothing held, no readout — movy’s own header stands',
        showed.header === null && showed.footer === null, true);
+
+    /* THE HEADER'S RIGHT-HAND END IS THE PAGE'S NAME (SP-37), and it is the
+     * CONTROLLER's answer rather than `page.name`: a page belonging to a child
+     * level is named after WHICH CHILD it shows, which the planned name cannot
+     * know. Checked against the controller at the index that is on screen, and
+     * then against its own earlier value one page later — the reported symptom
+     * is a label that NEVER MOVES while the bar and the body do, and "it equals
+     * the line we just wrote" is not a claim about that. */
+    const label0 = showed.pageLabel;
+    ok('the chrome carries the page’s own name',
+       typeof label0 === 'string' && label0.length > 0, JSON.stringify(label0));
+    eq('...and it is the controller’s, for the page on screen',
+       label0, p.ctl.pageLabel());
+    p.changePage(1);
+    ok('...and the jog moves it',
+       p.chrome(true).pageLabel !== label0,
+       'still ' + JSON.stringify(p.chrome(true).pageLabel) + ' one page on');
+    p.goToPage(0);
+
+    /* AND THE `off` HALF, FROM THE APP'S OWN OWNER. Under `off` there is no
+     * delegated page at all — `owner.page` is null — and the app's
+     * `schwungChromeFor` is `body && owner.page ? owner.page.chrome(paging)
+     * : undefined`, so the renderer is handed no object and its
+     * `chrome?.pageLabel` cannot fire: the header stays the bank name it was
+     * before this item, which is what "where the delegated page is not what is
+     * drawn, nothing changes" means in code.
+     *
+     * THE PAIRED ASSERTION IS WHAT GIVES THIS TEETH: the same model and the
+     * same settled page are delegated while the grid pages them, and movy's own
+     * the moment the grid is off. Asserted on the OWNER rather than on the
+     * renderer's null-coalescing — a blank header test would pass for a label
+     * that was never there. */
+    const offModel = bootModel(MOCK_SYNTHS['6w6']);
+    for (let i = 0; i < 20; i++) offModel.tick();
+    ok('while the grid pages, this model’s page is delegated',
+       pageOwnerOf(offModel).page !== null);
+    setSchwungGridMode(null);
+    eq('the grid off, the page is movy’s own — no chrome can name a page',
+       pageOwnerOf(offModel).page, null);
+    setSchwungGridMode('page');
 
     const bound = [];
     for (let k = 0; k < 8; k++) if (p.keyAt(k)) bound.push(k);

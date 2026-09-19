@@ -1614,3 +1614,43 @@ MOCK_SYNTHS.readouts_hier = {
         { key: "hold",         label: "Hold",   type: "int",   min: 0, max: 16 },
     ]),
 };
+
+/* A module that DECLARES a drum rack.
+ *
+ * `vm.drumPadName` is filled from the module's own declaration and from nowhere
+ * else (`model/hierarchy.ts` — only a surface with `layout: 'drums'` produces
+ * names), and the module may not infer one: "has notes on its pages" is wrong
+ * (key zones, multitimbral parts and chord modules all carry notes on melodic
+ * pages). No other preset here declares `pad_layout`, so no other preset can
+ * reach the header branch that prefers the focused pad's name over the page's.
+ *
+ * TWO LEVELS, and the reason is TEETH rather than realism: a child level (the
+ * four named pads, root IS the rack — mrdrums' own shape) gives the delegate a
+ * page whose planned name is the level SELECTOR's, and the root's own knobs give
+ * a second page. With a pad focused and the ROOT page shown, the pad's name and
+ * the page's name differ — which is the only way a screenshot can tell the
+ * precedence from a coincidence. */
+MOCK_SYNTHS.drums_hier = {
+    "synth:name": "Drums Hier",
+    "synth_module": "drums-hier",
+    "synth:ui_hierarchy": JSON.stringify({
+        pad_layout: "drums",
+        focus_param: "ui_voice",
+        levels: {
+            root: {
+                name: "Kit",
+                knobs: ["g_vol", "g_tune", "g_dec", "g_pan", "g_a", "g_b", "g_c", "g_d"],
+                child_count: 4,
+                child_key_template: "p{index}_{key}",
+                child_names: ["Kick", "Snare", "Hat", "Tom"],
+                child_note_base: 36,
+            },
+        },
+    }),
+    ...Object.fromEntries([...[
+        "g_vol", "g_tune", "g_dec", "g_pan", "g_a", "g_b", "g_c", "g_d",
+    ].map(k => [`synth:${k}`, "0.50"]),
+        ...["vol", "tune", "dec", "pan"].flatMap(k =>
+            [1, 2, 3, 4].map(i => [`synth:p${i}_${k}`, "0.50"])),
+    ]),
+};

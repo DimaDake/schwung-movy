@@ -31,8 +31,17 @@ export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 
         const showIcon = vm.isPadScoped && vm.drumPadCount > 0;
         const iconW    = showIcon ? PAD_ICON_W : 0;
         /* Same rule as the chain view: the focused pad outranks the page
-         * label, because the page label is already implied by the bank bar. */
-        const rightText = vm.drumPadName || vm.bankName;
+         * label, because the page label is already implied by the bank bar.
+         *
+         * ...AND UNDER A DELEGATED PAGE THE LABEL IS SCHWUNG'S, NOT MOVY'S BANK.
+         * The bar above already counts Schwung's pages (`bank.index`/`count`)
+         * because the two page sets differ in length, so naming movy's bank here
+         * printed one set's name under another set's bar — a constant, on a
+         * module whose movy config opens with a preset bank. `chrome` is absent
+         * wherever the delegated page is not the body, so `off` is unchanged;
+         * a null label (no page, or a controller that cannot name one) falls
+         * through to movy's bank rather than blanking the header. */
+        const rightText = vm.drumPadName || chrome?.pageLabel || vm.bankName;
         const rightW   = rightText ? fontWidth(rightText) + iconW + 4 : 0;
         const maxLeftW = W - rightW - 4;
         const trackLabel = 'T' + (activeSlot + 1);

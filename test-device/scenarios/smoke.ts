@@ -28,6 +28,7 @@ import * as fixture from '../fixture.js';
 import { until } from '../wait.js';
 import { TICK_RATE_MIN, REFRESH_MS_MAX, REFRESH_MIN_SAMPLES, PERF_WINDOW_MAX,
          at, lastOf, median, refreshSamples } from '../log-fields.js';
+import { MOVY_ARM, armMovy } from '../arm.js';
 
 const run = promisify(execFile);
 
@@ -40,33 +41,16 @@ const ACT = 90;
  * not simply clamped at a rail. */
 const KNOB_TURNS: Array<[number, number]> = [[0, 1], [0, -1], [1, 1]];
 
-/* THE ARM THIS SCENARIO RUNS IN, and it sets the arm itself.
+/* THE ARM THIS SCENARIO RUNS IN, and it sets the arm itself — `MOVY_ARM` and
+ * `armMovy` in `test-device/arm.ts`, which is where the argument for it lives
+ * (and where `items` and `module-contract` read the same one from). Every check
+ * here grades movy's OWN work: the knob turn has to reach `applyKnobDelta` and
+ * the refresh has to run, and neither happens in the arm the box rests in.
  *
- * `off` is the only arm in which movy is the renderer, and every check here
- * grades movy's OWN work — the knob turn has to reach `applyKnobDelta` and the
- * refresh has to run. Under `page` Schwung plans AND draws, so `pageOwnerOf`
- * hands the component over (src/app/page-owner.ts), movy takes no knob input
- * and refreshes nothing. That is the arm the device RESTS in, and it is not a
- * defect: `prefs.flags.schwunggrid` is a user-visible setting, read back as `2`
- * on 2026-09-19.
- *
- * Measured at that resting value on 2026-09-19, a bare `npm run test:device` was
- * `smoke` 8/11 — `set-param-attempted`, `set-param-ipc` and `refresh-blocking`
- * red, every one of them for that one reason. So the arm is the SCENARIO's to
- * set (see the note at `refresh-blocking`), and it is set for the whole scenario
- * rather than around the one check that names it: the other two are just as
- * dependent, and leaving them on the ambient arm is what kept this suite red on
- * a box at rest.
- *
- * AN OVERRIDE, NOT THE FLAG. `probe.setGridMode` writes nothing — it is the same
- * seam page-lifecycle.ts arms through — so the device's own prefs are never
- * touched. What it does not survive is a reopen: `openTool` re-evaluates ui.js
- * and the override is a module-level `let`, so it is RE-ARMED after this
- * scenario's reopen.
- *
- * A check that demands a human set a flag is a check that gets run wrong. A
- * check that sets and reads its own arm cannot be. */
-const ARM = 'off';
+ * Set for the WHOLE scenario rather than around the one check that names it:
+ * `set-param-attempted` and `set-param-ipc` are just as arm-dependent, and
+ * leaving them on the ambient arm is what kept this suite red on a box at rest.
+ * Measured 2026-09-19: `smoke` 8/11 at rest, all three reds that one cause. */
 
 /* Everything this suite reads out of the log, in ONE grep. `leds: repaint` is
  * here only so check 8's adjacency is a real adjacency: without it the line
@@ -158,10 +142,10 @@ scenario('smoke', async (t) => {
      * feature failures that are really state drift. */
     await dev.selectTrack(0);
     await t.bus.frames(ACT);
-    /* ARM THE SCENARIO (see ARM above for why, and for what it is not). It has
+    /* ARM THE SCENARIO (see the note above for why, and for what it is not).
      * to be here rather than before the open: the override lives in ui.js's
      * module scope, so there is nothing to set it on until the tool is up. */
-    t.note('gridMode', (await probe.setGridMode(ARM)).renderer);
+    t.note('gridMode', await armMovy(probe));
     lap('t_3_open');
 
     /* Rule: the instrument this suite judges is the one the fixture put there.
@@ -435,7 +419,7 @@ scenario('smoke', async (t) => {
      * 2026-09-13 rewrite killed for the EMPTY window, arriving through the other
      * door, and the arm is what closes it.
      *
-     * THE SCENARIO SET THAT ARM ITSELF (ARM above), so this is an assertion and
+     * THE SCENARIO SET THAT ARM ITSELF (MOVY_ARM above), so this is an assertion
      * not a precondition. It used to read `prefs.flags.schwunggrid` over ssh and
      * fail unless a HUMAN had set it to 0 — which made a bare `npm run
      * test:device` red on a box at rest, for a reason that was not movy being
@@ -446,7 +430,7 @@ scenario('smoke', async (t) => {
      * reports, which is a real disagreement and not a setting to go and change. */
     const armPage = await probe.page().catch(() => null) as { renderer?: string } | null;
     const arm: string | null = armPage?.renderer ?? null;
-    const okArm = arm === ARM;
+    const okArm = arm === MOVY_ARM;
     t.note('refreshArm', arm);
 
     const refLines = refW.filter((l) => l.includes('perf_refresh_ms='));
@@ -462,15 +446,15 @@ scenario('smoke', async (t) => {
     t.check('refresh-blocking',
         `refresh blocking ${medRef} ms median of ${measured.length} measuring sample(s) `
         + `<= ${REFRESH_MS_MAX} ms (threshold)`, okRef, {
-            expected: `the renderer at '${ARM}' — the arm this scenario sets — at least `
+            expected: `the renderer at '${MOVY_ARM}' — the arm this scenario sets — at least `
                       + `${REFRESH_MIN_SAMPLES} samples with params>0, and their median at or below ${REFRESH_MS_MAX}`,
             actual: said(okRef, `${measured.length} measuring sample(s), median ${medRef} ms, `
                 + `max ${measured.length ? Math.max(...measured) : NaN} ms, arm renderer=${arm}`,
                 !okArm
-                    ? `the renderer did not answer '${ARM}'${arm === null ? ' (the probe gave no page at all, so '
+                    ? `the renderer did not answer '${MOVY_ARM}'${arm === null ? ' (the probe gave no page at all, so '
                       + 'the arm cannot be confirmed)' : `, it answered '${arm}'`} — this scenario arms itself `
                       + '(`probe.setGridMode`, an override that writes no flag), so this is not a setting to go and '
-                      + `change: in any arm but '${ARM}' Schwung owns the component's pages, refreshOneParam does not `
+                      + `change: in any arm but '${MOVY_ARM}' Schwung owns the component's pages, refreshOneParam does not `
                       + 'run, and every sample reads perf_refresh_ms=0 with params>0 — a green that measured nothing'
                     : refLines.length === 0
                         ? `only ${measured.length} of ${refLines.length} sample(s) had params>0 — the refresh was not running `
@@ -508,9 +492,9 @@ scenario('smoke', async (t) => {
     /* RE-ARM. `openTool` re-evaluated ui.js, so the override went with it and
      * the renderer fell back to the device's own `schwunggrid` — the ambient arm
      * this scenario exists not to depend on. Re-armed here so the whole run is in
-     * ONE arm, which is what lets the notes name it (ARM above; page-lifecycle
+     * ONE arm, which is what lets the notes name it (MOVY_ARM above; page-lifecycle
      * re-arms after its reopen for the same reason). */
-    t.note('gridModeAfterReopen', (await probe.setGridMode(ARM)).renderer);
+    t.note('gridModeAfterReopen', await armMovy(probe));
 
     await settled(markResume, (w) => w.some((l) => l.includes('resume from background')),
                   'movy to resume from the background', 3000);

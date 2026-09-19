@@ -45,6 +45,7 @@ import { Device } from '../device.js';
 import { Probe } from '../probe.js';
 import * as fixture from '../fixture.js';
 import { until } from '../wait.js';
+import { armMovy } from '../arm.js';
 
 const run = promisify(execFile);
 /* test-device/dist/scenarios/items.js at run time. */
@@ -128,6 +129,14 @@ scenario('items', async (t) => {
     await dev.deployUi();
     await dev.open(probe);
     await dev.selectTrack(0);
+    /* ARM THE SCENARIO — `test-device/arm.ts`, which is where the argument for
+     * this lives. Everything graded below is movy's OWN work: the selection is
+     * read back from a `loadHierarchy` movy performs and the commit is a `set`
+     * line movy writes. On the arm the box RESTS in (`page`) Schwung owns the
+     * component and movy does neither, so all three checks fail for a reason
+     * that is a setting rather than a defect. No reopen here, so one arm is
+     * enough. */
+    t.note('gridMode', await armMovy(probe));
 
     /* What the borrowed slot goes back to. Asked for, never written down. The
      * fixture has already confirmed it is what the chain holds (`verifyChains`),

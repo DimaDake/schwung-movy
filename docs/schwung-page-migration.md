@@ -78,14 +78,18 @@ writes, and under `schwunggrid=page` movy is not the renderer: the knob CC
 arrives, `applyKnobDelta` is never reached, and the sweep reports failures that
 all read `writes: none` (or `0 commits`). Measured 2026-09-18 — the same `ui.js`
 is `smoke` 9/11 at `schwunggrid=2` and 11/11 at `0`.
-**`smoke` no longer depends on this** — as of 2026-09-19 it arms its own renderer
-(`probe.setGridMode`, which writes no flag) and is 11/11 at the resting `2`; see
-the arm entry below. `items` and `module-contract` do NOT, and re-measured on
-2026-09-19 at the resting `2` they are the two that still go red: `items` 4/7
-(`commit-once`, `reread-after-commit`, `selection-stuck`) and `module-contract`
-4/10 (the six trigger-write checks). Until they take the same one-line arm, put
-the flag back to `off` before `npm run test:device`, or read those two scenarios
-as page-mode results rather than as regressions. **The key is `flags.schwunggrid`**, because
+**None of the three depends on this any more.** As of 2026-09-19 each one arms
+its OWN renderer through `test-device/arm.ts` (`probe.setGridMode(MOVY_ARM)` — the
+override `page-lifecycle.ts` arms through, which writes no flag and so touches no
+prefs), so the sweep no longer reads ambient `schwunggrid` state at all and
+nobody has to set the flag before `npm run test:device`. Measured at the resting
+`2`: `smoke` 8/11 → 11/11, `items` 4/7 → 7/7 (`commit-once`,
+`reread-after-commit`, `selection-stuck`), `module-contract` 4/10 → 10/10 (the
+six trigger-write checks), and the whole sweep is **18 scenarios · 143 checks ·
+0 failed**, exit 0. `page-dive` and `page-lifecycle` arm `page` DELIBERATELY —
+they grade the delegated path — and `widgets` arms its own; every other scenario
+is arm-independent, which is why `mutes`, `sends` and the rest were already green
+at rest. **The key is `flags.schwunggrid`**, because
 `readPrefFlags()` reads `prefs.flags` and nothing else: a top-level
 `"schwunggrid"` in that file is inert, and a hand-edit that writes one there
 changes no mode at all while looking exactly like the fix.
@@ -508,12 +512,15 @@ and the controller disagree about which child is showing). All three must be
 closed, or explicitly accepted here with the number and the acceptor named,
 before this item closes.**
 
-**THE DEVICE TIER STAYS GREEN, and that is a consequence of the default rather
-than of luck.** `items`, `module-contract` and `smoke` assert movy's OWN writes
-and report eleven `writes: none` failures when the box is armed to `page` (see
-the burn-down section) — shipping with MOVY as the default means the tier keeps
-measuring what it always measured. That protection ends at SP-30, which is where
-those three scenarios have to be taught the mode.
+**THE DEVICE TIER MEASURES MOVY'S OWN WORK AT EVERY VALUE, and as of
+2026-09-19 that is the scenarios' doing rather than the default's.** `items`,
+`module-contract` and `smoke` assert movy's OWN writes and report `writes: none`
+/ `0 commits` failures when the box is armed to `page` (see the burn-down
+section) — the earlier wording here said the tier stayed green because MOVY was
+the default, and that was only ever true of a box someone had already set to
+`off`: red at rest predates this migration work, not a consequence of it. All
+three now arm themselves through `test-device/arm.ts`, so the tier is 0 failed
+at rest whatever the flag says, and SP-30 no longer has to teach them the mode.
 
 **Closes when:** a release build shows the row, the default is MOVY, the device
 tier is green on that build, MANUAL.md carries the setting and its revert, and
@@ -3155,3 +3162,46 @@ the fact a later session would otherwise re-derive.
   `smoke.ts` paid for the addition by extraction rather than length: the
   log-field readers and the refresh window's arithmetic and thresholds moved to
   `test-device/log-fields.ts` (583 → 538 lines against the ~600 ceiling).
+- **2026-09-19 — the arm is ONE shared thing, and the tier is green at rest
+  because of it.** Fix round 2 on the entry above. It corrects two things that
+  entry got wrong, both of them the coordinator's premise rather than the code:
+  **the red-at-rest tier PREDATES this work.** `items` and `module-contract`
+  have no `setGridMode` call at HEAD *or* at `234f7be^` — re-measured, they were
+  failing at rest before the arm assertion existed at all — so `234f7be` did not
+  make the tier red by design; it added `smoke`'s three failures to nine that
+  were already there (`items` 3, `module-contract` 6, and `page-dive`'s single
+  one which is the tracked race and not this class). "Red by design" was
+  stronger than the evidence. What this work actually contributed is that
+  `smoke` stopped grading a median of zeros and passing.
+  **And the fix is all three scenarios', not `smoke`'s.** Arming one of them left
+  the property the round was justified by — a bare `npm run test:device` that is
+  green on a box at rest — untrue, so `items` and `module-contract` now arm too,
+  one call each, immediately after `selectTrack(0)`. Neither reopens the tool
+  mid-scenario, so neither needs the re-arm `smoke` does.
+  **One value, in one place.** `test-device/arm.ts` holds `MOVY_ARM = 'off'` and
+  `armMovy(probe)` — which returns the renderer the probe reports, so a caller
+  can assert the arm it actually got as `smoke` does — together with the argument
+  for the arm in full. Not three copies of a one-liner: the reason is long and
+  must exist once, and a literal copied into three files is a set that silently
+  drifts, at which point the argument stops holding for whichever scenario moved.
+  `smoke.ts` imports it and drops its local block — **522 lines**, down from the
+  538 the extraction left it at and 61 fewer than before this whole fix round
+  (`items.ts` 360, `module-contract.ts` 526; all under the ~600 ceiling).
+  **Measured on 2026-09-19 at the resting `2`, box untouched, before and after
+  the source restore: 18 scenarios · 143 checks · 0 failed**, exit 0 — `smoke`
+  11/11, `items` 7/7, `module-contract` 10/10, every one first attempt, no
+  `⚠ FLAKY` anywhere in the sweep. Teeth, from a source edit and not a
+  device-forced state: with each `armMovy` call replaced by a no-op note, the two
+  scenarios redden again to exactly their pre-fix sets — `items` 4/7
+  (`commit-once`, `reread-after-commit`, `selection-stuck`), `module-contract`
+  4/10 (the five trigger-write checks `writes: none`, plus `non-wide-unaffected`,
+  which reads as its own unmet precondition rather than as a missing write) —
+  and both go back to green when the call is restored. **`page-dive` was left
+  alone**: it arms `page` deliberately and its one failure is the race this
+  ledger already tracks, a different cause.
+  **One number to read with care: `smoke#refresh-blocking`'s `--flakes` row now
+  has a MIXED denominator.** The historical rows were taken with the box set to
+  `schwunggrid=0` and the recent ones with the scenario arming itself at rest.
+  The check asserts the same thing in both arms, but no run can separate the two
+  populations, so the printed rate (`8 flaky 0 failed of 39 runs`) blends them
+  and is not a single-arm rate.

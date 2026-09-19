@@ -561,6 +561,56 @@ _log('\napp-loop: file-param jog-click opens the browser on the chain page');
     sendMidi([0x90, 1, 0]);
 }
 
+/* ── a knob release that outlives its page must not latch the controller ─── */
+_log('\napp-loop: a knob release that outlives its page does not latch the controller');
+{
+    /* The block above plugs this leak by hand, in the order that avoids it.
+     * This one takes the order the user does not control: the page under the
+     * finger changes WHILE it is down, and the release comes out of order.
+     *
+     * The controller recomputes `touched` from `touchOrder` alone and has no
+     * staleness expiry for a held knob — deliberately, it refuses to re-plan
+     * under a hand — so a release that arrives at a page which never heard the
+     * press strands the slot for the life of that controller. `touched >= 0`
+     * is not a stale highlight: movy's jog-click guard reads it as "a knob is
+     * under the hand" and hands every later click to the page, so the module
+     * browser never opens again. */
+    /* THE FIXTURE IS THE ONE THE BLOCK ABOVE LEFT, deliberately: the page cache
+     * is keyed by (track, component), so swapping the module here would hand
+     * the NEXT block a controller that is still re-planning — which is the
+     * hazard `setup()` above waits out, and the next block does not wait. Same
+     * module, same key, one live plan. */
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.file_param);
+    resetSeqState(); resetSeqEngine();
+    globalThis.init();
+    appState.trackModels[0][1].reload();
+    advance(12);
+    appState.currentView = VIEW_KNOBS;
+    for (let i = 0; i < 12 * 60 && ownerFor().claimed && !ownerFor().delegated; i++) advance(1);
+    const ctl = ownerFor().page?.ctl ?? null;
+
+    sendMidi([0x90, 1, 127]);                  // touch knob 1 — the page hears it
+    sendMidi([0xB0, CC_NOTE_SESSION, 127]);    // Session: the knobs are the master bus now
+    sendMidi([0xB0, CC_NOTE_SESSION, 0]);      // (the release is only the button coming up —
+    advance(1);                                //  Note/Session toggles on the PRESS)
+    sendMidi([0x90, 1, 0]);                    // let go, onto a page that never heard the press
+    sendMidi([0xB0, CC_NOTE_SESSION, 127]);    // Session again: the TRACK page has the knobs
+    sendMidi([0xB0, CC_NOTE_SESSION, 0]);      // back, and it is the page left holding the slot
+    advance(1);
+
+    if (GRID_ARM === 'page') {
+        eq('the pressed page is not left holding the knob', ctl?.state.touched ?? 'no page', -1);
+        /* The ledger itself, not just its effect: a pin that outlives its
+         * release would hold a page object for the rest of the session. */
+        const { pinnedCount } = await import('../dist/esm/midi/knob-page-pin.js');
+        eq('and the ledger is empty again', pinnedCount(), 0);
+    }
+    sendMidi([0xB0, globalThis.MoveMainButton, 127]);   // jog click, nothing held
+    advance(1);
+    eq('...and the next jog click still reaches movy', appState.currentView, VIEW_BROWSE);
+}
+
 _log('\napp-loop: knob turn while a step is held writes automation');
 {
     const { VIEW_KNOBS } = await import('../dist/esm/app/state.js');

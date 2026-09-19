@@ -123,6 +123,7 @@ changes no mode at all while looking exactly like the fix.
 | SP-38 | Animated widgets draw until they settle — `anim_state.settled` asked by `pollDrawnPage` only when value and identity held still. Costs **0.7 ms/tick of `render`** in the animating window (0.2 before) — **on plaits, 2 pages, the SMALLEST shape in the fixture, so that is a FLOOR and not a representative**; n=1 window per arm. **SP-39 re-ran it on minijv and did NOT measure an animating window there at all** — the 0.2 that appears survives stashing this item's animation term and carries no `buildvm` — so the cost on a large module is **not measured, neither scaled nor falsified**, and the plaits floor above is still the only number there is. No host call, idle unchanged |
 | SP-39 | A pad press onto a page the cache has never read paid one blocking read per cell; `jump` now hands that page's keys to the cache as **ONE bulk request** before `goToPage`. Teeth: the jump costs **1 bulk + 1 single** round trip against **0 bulk + 9 single**. **The call pattern is the whole of the measured win**: on device (`cw78`, the rack, both arms, the same build) the press's effect is **within noise** — `calls/tick` 1.69 → 1.54, `perf_ipc` 4.12 → 3.66 ms, tick 3.66 → 3.49, worst period 6.64 → 6.47 — and the **worst frame is unchanged, 26 → 27 ms**. `padpage` is 0.1–0.2 ms/tick under `page` in the windows that hold presses and absent under `off`. The page-vs-off gap is at IDLE (worst period 6.3 vs 5.0 ms, `calls/tick` 1.4 vs 0.6) — the delegated renderer's STANDING cost, not this gesture, **now opened as SP-49**. **The gesture is measured on a rack pad, not a drum-track pad — the fixture's drum module declares no note map.** The SP-38 re-run on `minijv` (70 pages, **not 72**) **measured no animating window at all** (the 0.2 survives stashing SP-38's term and carries no `buildvm`), so SP-38's cost on a large module is **not measured** |
 | SP-37 | The header names the PAGE, not movy's bank — the right-hand end was `vm.drumPadName \|\| vm.bankName` while the bar above it already paginated Schwung's pages, so one set's name sat under the other set's bar (a constant, on a module whose movy config opens with a preset bank). `PageChrome.pageLabel` (`ctl.pageLabel()`) rides with the chrome `chromeFor` already withholds where the delegated page is not the drawn body, which is what keeps `off` byte-identical; `headerRightText(vm, chrome)` is `chrome?.pageLabel \|\| vm.drumPadName \|\| vm.bankName`, the pad name taking the FALLBACK — a pad name that leads names every page of its module with the same word, which is the same symptom on a declared drum rack (`voice-poc`), so the pad name wins only where the page IS that pad's page and the two words already agree. Teeth, each with the fix removed: the whole `\|\|` chain reverted → 11 logic checks red, `page_body_p2` red (79 px), `page_voice_pad` throws; the pad name put back on top → the same; `pageLabelFor` → null → **6** logic checks red, `page_body_p2` red (79 px), `page_voice_pad` throws — **and 6 is the whole count**: the six per-page `page N draws its own name` assertions SKIP in this arm rather than fail, because a null label is exactly the case the loop's `if (label === null) continue;` guard (`logic/schwung-page.mjs:417`) exists for, so what reddens is the three empty-array structural checks plus the three pre-existing label checks; `off`'s `setSchwungGridMode(null)` dropped → the off check red. **No measurement, and the label is not free:** one `ctl.pageLabel()` per rendered frame — an `s.pages.filter(...)` + template string on a child-level page — also paid and discarded on the chain view (`src/app/tick.ts:919`, `paging: false`); SP-49 owns that cost. **Not covered:** the held-knob branch is SP-17's code, pinned by two pre-existing scenes — demoting the readout below the label reddens `page_chrome_held` (726 px) and `page_chrome_flip` (721 px) — and `page_body`'s baseline did NOT move — test16's page 0 is named *Main*, the same word movy's bank says, so page 0 is the one frame where the two sets agree |
+| SP-31 | A lost knob release latched the controller forever — the release is delivered to the page that heard the PRESS, through a knob-indexed ledger (`midi/knob-page-pin.ts`), never to whatever page is current. The (a)/(b)/(c) question the entry left open is settled **(c)**, with (a) refuted by measurement: the plan line is byte-identical with the pin, without it and at BASE, so this pin does not touch the plan; the `pct=1 ctlPages=1 names=Main` SP-17 recorded against a 3-page fixture was a pin reachable from somewhere other than the gesture, i.e. a stale page served as the current one. The three survivors stay a FIXTURE limit (SP-32). **Not covered:** the movy-MODEL half of the same gesture (`knobModel()?.handleKnobTouch/Release`) is still resolved at release time — a NOTE, not this entry |
 
 ### Open
 
@@ -134,7 +135,6 @@ flip after it and SP-41 conditional on a decision nobody has made.
 | id | item | model | state | order | release gate |
 | --- | --- | --- | --- | --- | --- |
 | SP-36 | **NEW** — the automation channel: the missing dot, and the arc that must not jump | Opus | ⬜ | **1** | ✔ |
-| SP-31 | a knob release that lands on another page latches `touched`, and every later jog click is swallowed | Sonnet | ⬜ | **6** | ✔ (unreportable if shipped) |
 | SP-40 | the flag becomes two values, MOVY and SCHWUNG; `body` and the `.off` stand-ins deleted | Sonnet | ⬜ | **7** | ✔ |
 | SP-47 | **NEW** — the opt-in release: the row goes in front of users, default still MOVY | Sonnet | ⬜ | **8** | — |
 | SP-48 | **NEW** — a modulated or `live` param the page shows keeps it redrawing forever. **A regression SP-38 introduced**; the flag must not reach testers with it open | Sonnet | ⬜ | **7.5** | ✔ |
@@ -282,14 +282,14 @@ previous "this needs upstream" in this file has cost a release cycle.
 | 12 | remove the `body` option: a two-value flag, MOVY and SCHWUNG, visible to users next release | SP-40 + SP-47 | ✔ |
 
 **Proposed order, gate first.** 1 SP-36, 2 SP-35, 3 SP-38, 4 SP-39, 5 SP-37,
-6 SP-31, 7 SP-40, **7.5 SP-48 — the regression SP-38 introduced**, **7.7 SP-49 —
+6 SP-31 ✅ **closed 2026-09-19**, 7 SP-40, **7.5 SP-48 — the regression SP-38 introduced**, **7.7 SP-49 —
 the standing idle tick, which is latency and therefore a gate**, **7.8 SP-50 —
 the child instance movy addresses is not the one the controller resolves, which
 is live under `page`**, 8 **SP-47 —
 the release**. Then SP-32, SP-42, SP-45, SP-43,
 SP-44, SP-46, SP-16, SP-21a, SP-23, SP-24, SP-29, SP-30, and SP-41 only if it
-is ever decided. SP-31 is in front of the release and the user did not name it
-because it is not a symptom you can describe — a lost knob release latches the
+is ever decided. SP-31 (✅ closed 2026-09-19) was in front of the release and the user did
+not name it because it is not a symptom you can describe — a lost knob release latches the
 controller and **every later jog click is swallowed**, so a tester whose box is
 in that state reports "the jog stopped working" and nobody can reproduce it.
 SP-32 is NOT in front of the opt-in release, and that is a deliberate change
@@ -430,46 +430,103 @@ is a report, and reports are the point of shipping the flag (SP-47).
 
 ---
 
-### SP-31 — a lost knob release latches the controller, forever
+### SP-31 ✅ 2026-09-19 — a lost knob release latched the controller, forever
 
-**Product.** A gesture goes dead. Touch a knob, and while it is held the page
-under it changes — a chain switch, a module swap, a bank the fixture moved,
-anything that resolves `knobOwner()` to a different page on the way up. The
-release is routed to whatever screen is up now, so the pressed page never hears
-it and keeps the slot in `touchOrder`. `touched` therefore stays ≥ 0 for the
-rest of the session, and movy's router guard treats the controller as "a knob is
-under the hand" — so **every later jog click is handed to the page instead of
-movy**, and with SP-17's chrome the hint band also pins itself over the Loop
-strip. Measured while working SP-17: `touched=1 order=[1]`, and the swallowed
-jog click moved the CHAIN index rather than paging (measured with the latch on:
-`ck=4 modelCk=lfo`).
+**Symptom.** A gesture goes dead. Touch a knob, and while it is held the page
+under it changes — a chain switch, a module swap, or Session taking the knobs to
+the master bus. The release is then routed to whatever screen is up NOW, so the
+pressed page never hears it and keeps the slot in `touchOrder`. `touched` is
+recomputed from `touchOrder` alone (`page_controller.mjs`), and the controller
+has no staleness expiry for a held knob on purpose (it refuses to settle a
+contract under a hand, and `onKnobTouch` zeroes `turnClaimMs`), so nothing ages
+it out: `touched` stays ≥ 0 for the life of that controller. That is not a stale
+highlight — movy's jog-click guard (`src/midi/router.ts`) reads it as "a knob is
+under the hand", so every later jog click is handed to the page instead of movy.
+Measured while working SP-17: `touched=1 order=[1]`.
 
-**Design & implementation.** The controller has no staleness expiry for a held
-knob on purpose — `page_controller.mjs` ~1499 returns early while
-`touchOrder.length`, and `onKnobTouch` zeroes `turnClaimMs`, so nothing ages a
-touch out. **The fix is on movy's side: pin the page at press and deliver the
-release to THAT page.** A `Map<knobIndex, page>` filled in the router's
-knob-touch branch and drained on release is ~15 lines, and it is the same shape
-as the note-off ledger (`keyboard/held-notes.ts`) — the release must come from
-what the press recorded, never from current state. SP-17 implemented exactly
-that and reverted it, because it is not SP-17's to make: the pin cleared the
-latch and took the burn-down 5 → **7** (`shift+jog: plain jog steps one page`
-reddens whenever the pin is active — measured `pcount=1 ctlPages=1 names=Main`
-pinned against `pcount=3 names=Main>Main - 2>Effects` unpinned), so the pin is
-entangled with the FIXTURE limit rather than with the latch.
+**Cause.** One gesture, two answers: the press is recorded against the page that
+owns the knobs at press time, the release is delivered to whoever owns them at
+release time. Every other held-input latch in movy already answers this way —
+`keyboard/held-notes.ts`'s header states the rule (*the release must come from
+what the PRESS recorded, never from current state*) — and this was the one seek
+that still derived its answer at the end.
 
-**Closes when:** a device or app-loop check holds a knob, changes the page under
-it, releases out of order, and asserts the next jog click still reaches movy —
-and the burn-down has not grown.
+**Fix.** `src/midi/knob-page-pin.ts` — a `Map<knobIndex, page>`, the shape of
+`held-notes.ts`: `pinPage(knob, page | null)` at the press (a `null` page
+DELETES, so a movy-owned page or an unsettled contract cannot leave a pin for
+the next gesture to inherit), `unpinPage(knob)` at the release, `clearPins()`
+where releases provably cannot come back (`app/input-reset.ts`, next to the
+`clearTouch()` loop it is the other half of). The drain sits at the TOP of the
+router's `0x90 && d1 < 8` block, ABOVE the Main/Clip/Flags/Step overrides,
+because they `return` — a param page that comes up while a knob is down would
+otherwise strand the pressed page exactly as a page change does. The release is
+then skipped on the current owner when the pin already took it. Keyed by knob
+INDEX because that is the only identifier the two halves of the gesture share.
+Not changed, deliberately: the controller's touch semantics (a Schwung change is
+an upstream PR) and `pageOwnerOf` — the pin is consulted only at the two gesture
+sites, so ownership stays the one accessor's answer.
 
-**Needs:** nothing. Do it after the fixture limit is understood, or it will look
-like the fix that broke paging.
+**The (a)/(b)/(c) ruling is (c), and (a) is refuted by measurement.** The entry
+said the pin was entangled with the fixture limit because SP-17's record has it
+taking the burn-down 5 → 7. It is not, and it does not. The burn-down is
+**3 of 3** with this pin — the same three labels as BASE — and the plan line is
+**byte-identical** with the pin, with the pin removed, and at BASE:
+`[page-plan] mrdrums fixture ck=synth mode=page lib=true movyBanks=4
+claimed=true delegated=true ctlPages=1 names=["Main"]`. So (a) is false: this
+pin does not change the controller's planned page set. (b) is the correct
+description of the three survivors and needs no fixture change — `movyBanks=4`
+against `ctlPages=1 names=["Main"]` is the whole limit, one mechanism, owned by
+SP-32. And the record itself cannot describe this design: `pct=1 ctlPages=1
+names=Main` pinned AGAINST `pct=3 names=Main>Main - 2>Effects` unpinned is a pin
+that changed `ctlPages` on the `hier_params_overflow_two_levels` fixture — but
+that block sends no `0x90` note below 8 at all, and a knob-indexed map drained in
+that branch is unreachable from it (`shift+jog: plain jog steps one page` is
+green at BASE, green with this pin, and green with this pin removed). So SP-17's
+pin was reachable from somewhere the entry's own description does not name —
+most plausibly `pageOwnerOf` or the cache lookup behind it, where a pin left over
+from an earlier block answers for the PREVIOUS fixture: one page, named *Main*,
+exactly what the record shows — a stale page served as the current one, which is
+why reverting it was right. **Limitation:** SP-17's code is unrecoverable (it was
+reverted before commit; `git log --all -G"pinPage|heldPage|pinnedPage|touchOrder|knobPin"`,
+`-S "Map<number,"` and a rev-list `git grep` over every `router.ts` revision
+return no such blob), so that last paragraph is an inference from two records
+that cannot both describe one piece of code. What is measured is the plan line
+and that this pin cannot reach that check.
 
-**MOVED IN FRONT OF THE RELEASE (2026-09-18).** It was ordered against SP-30's
-flip; with SP-47 putting the flag in front of users first, this is the defect a
-tester cannot usefully report — the symptom they see is "the jog stopped
-working", with no gesture to describe and nothing to reproduce from. A bug
-report that cannot be acted on is worse than the bug.
+**Teeth — `browser-test/app-loop.mjs`, "a knob release that outlives its page
+does not latch the controller".** The block holds knob 1 on `VIEW_KNOBS`, presses
+Session (the knobs are the master bus now), **releases the knob while Session is
+still down**, toggles Session off, and asserts three things: the pressed page is
+not left holding the knob (`ctl.state.touched === -1`), the ledger is empty again
+(`pinnedCount() === 0`), and the next jog click still reaches movy
+(`currentView === VIEW_BROWSE`). Removing the fix's delivery reddens the first
+and the third (`expected -1, got 1` / `expected 2, got 1`) and
+`page-mode.mjs` reports both as **REGRESSION under page — not in the expected-fail
+list**, `5 of 3`, exit 1; removing the DRAIN reddens all three
+(`and the ledger is empty again: expected 0, got 1`). Restored: the three green,
+`3 of 3`, `PAGE-MODE LEDGER UP TO DATE`, and the `off` arm clean in every state.
+**The detail that cost this test its teeth** — the first version of it got this
+wrong, and every later reader should know: **`CC_NOTE_SESSION` toggles on the PRESS** — the release
+is only the button coming up — so a test that presses and releases Session once
+has NOT left session mode, and its jog click was answered by the MASTER page,
+which is never latched. The check passed with the fix removed until the second
+press/release pair was added.
+
+**Docs.** MANUAL.md and README.md are untouched, and that is the answer rather than an
+omission: the `page` flag is not user-visible yet (that is SP-47's item), so no gesture,
+page or control a user has changed.
+
+**Not covered — a ledger NOTE, not a fix.** The movy-MODEL half of the same
+gesture is still resolved at release time:
+`knobModel()?.handleKnobTouch(d1, !owner.delegated)` on the press against
+`knobModel()?.handleKnobRelease(d1)` on the release (`src/midi/router.ts`). A
+page change mid-hold therefore leaves the model that heard the press with its own
+touched/overlay state armed and hands the other model a release it never had.
+Different consequence, not the same bug: the model's touch is movy's own state,
+`resetHeldInput` clears it, and it does not latch the jog click — the permanence
+above is a property of the CONTROLLER. The LFO hold is NOT affected, checked
+rather than assumed: `lfo/assign-mode.ts`'s `holdRelease(physK)` keys on the knob
+index alone, so the release clears it whichever model is current.
 
 ---
 
@@ -502,8 +559,8 @@ stay forever**.
 
 **What must be TRUE before it ships, and this is the list to re-read rather than
 re-derive.** The four gate items (SP-35, SP-36, SP-37, SP-38, SP-39 — five
-entries, four complaints) plus SP-31, whose symptom a tester cannot report
-usefully. Not SP-32: an opt-in tester noticing a missing bank is a report, and
+entries, four complaints) plus SP-31 ✅, whose symptom a tester could not report
+usefully (closed 2026-09-19). Not SP-32: an opt-in tester noticing a missing bank is a report, and
 reports are what the opt-in is for. **Three more rows are gates and are not in
 that count, because none is one of the four complaints: SP-48 (a modulated or
 `live` param keeps the page redrawing forever), SP-49 (an idle `page` tick
@@ -596,7 +653,9 @@ tick, and `mlog` is on the click path.
 **Closes when:** entering a preset page and clicking again stays on that page and
 does what the footer promises (`CLK EDIT`), with an app-loop check.
 
-**Needs:** SP-31, which is the other suspect on the same gesture.
+**Needs:** nothing. SP-31 ✅ (closed 2026-09-19) was the other suspect on the same
+gesture — a stale `touched` making clicks reach Schwung that should not — and it
+is fixed, so the remaining candidate above is Schwung's own rung.
 
 ---
 
@@ -2374,12 +2433,12 @@ and in MANUAL.md, by flag name.
 tier included and a rack verified on hardware, docs and release notes are
 updated, and the revert path is written where a user can find it.
 
-**Needs:** every Phase 1 and Phase 2 item, SP-29's decision, and **SP-31**. SP-31
-is a `page`-mode defect — a lost knob release latches the controller and swallows
+**Needs:** every Phase 1 and Phase 2 item and SP-29's decision. **SP-31 ✅ is
+closed (2026-09-19)** — a `page`-mode defect — a lost knob release latches the controller and swallows
 every later jog click — so it cannot happen while `off` is the default. This is
 the item that makes `page` the default, which makes SP-31 a precondition of it.
-SP-32's own row already carries the same "before SP-30" dependency; this makes
-SP-31's explicit too.
+SP-32's own row already carries the same "before SP-30" dependency; SP-31's is
+now satisfied.
 
 ---
 
@@ -2621,6 +2680,21 @@ which is git-ignored scratch deleted with that workspace.
 Newest first. The full narrative for each is in git history; what is kept here is
 the fact a later session would otherwise re-derive.
 
+- **SP-31 ✅ 2026-09-19 — a lost knob release latched the controller, forever.**
+  The release is delivered to the page that heard the PRESS: `midi/knob-page-pin.ts` is a
+  `Map<knobIndex, page>` filled in the router's knob-touch branch and drained at the top of it
+  (above the page overrides, which `return`), cleared where releases cannot come back. **The
+  entry's open question is settled (c), with (a) refuted by measurement:** the `[page-plan]`
+  line is byte-identical with the pin, without it and at BASE, so the pin does not touch the
+  plan, and the `pct=1 ctlPages=1 names=Main` SP-17 recorded against a three-page fixture cannot
+  come from a knob-indexed map drained in the `0x90 d1<8` branch — that block sends no knob note.
+  Teeth: removing the delivery reddens two app-loop checks and `page-mode.mjs` calls both
+  REGRESSIONs (`5 of 3`, exit 1); removing the drain reddens the ledger check too
+  (`expected 0, got 1`). **`CC_NOTE_SESSION` toggles on the PRESS** — a test that releases the
+  button once has not left session mode, which is what made the jog-click check toothless until
+  it pressed twice. **Note, not fixed:** the movy MODEL's own touch is still resolved at release
+  time (`knobModel()?.handleKnobTouch` vs `handleKnobRelease`); the LFO hold is not affected
+  (`holdRelease` keys on the knob index alone).
 - **SP-37 ✅ 2026-09-19 — the header names the page, not movy's bank.**
   `PageChrome.pageLabel` (`ctl.pageLabel()`, never `page.name`) rides with the
   chrome `schwungChromeFor` already withholds where the delegated page is not the
@@ -2858,6 +2932,14 @@ the fact a later session would otherwise re-derive.
   with the pin: `pcount=1 ctlPages=1 names=Main`; without it:
   `pcount=3 names=Main>Main - 2>Effects`). Reverted in full. A fix that grows the
   ledger is not SP-17's to make.
+  **[Cross-reference added 2026-09-19 by SP-31: do not re-cite this figure as a
+  property of that design.** SP-31 ✅ closed by implementing the entry's own
+  description of the pin — `Map<knobIndex, page>` filled and drained inside the
+  router's `0x90 && d1 < 8` branch — and measured the plan line BYTE-IDENTICAL
+  with the pin and without it, with `shift+jog: plain jog steps one page` green
+  in both. A map drained in that branch cannot be reached by a block that sends
+  no knob-touch note, so what was measured here was a pin reachable from
+  somewhere this description does not name. See the SP-31 entry.**]
   **Tests, and what they can see.** `browser-test/logic/schwung-page.mjs` walks
   every bound slot of the `switches` mock and asserts the footer's CLK verb
   equals what the click actually DID (`OPEN` from a returned intent, `FIRE` from

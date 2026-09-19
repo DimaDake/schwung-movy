@@ -151,6 +151,10 @@ await esbuild.build({
         resolve(root, 'src/keyboard/held-notes.ts'),
         resolve(root, 'src/keyboard/release.ts'),
         resolve(root, 'src/keyboard/handler.ts'),
+        /* The knob-touch ledger (SP-31): an entry point so app-loop can assert
+         * the map is EMPTY again after a release, not only that its effect on
+         * the controller went away — the same reason held-notes.ts is one. */
+        resolve(root, 'src/midi/knob-page-pin.ts'),
         /* The delegation boundary (SP-10): an entry point so the logic suite
          * can ask the accessor directly, rather than inferring ownership from
          * a router gesture. */

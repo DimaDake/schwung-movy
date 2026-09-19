@@ -52,7 +52,16 @@ const ACT = 90;
  *
  * It is a LET-THE-DEVICE-WORK budget, not a sleep: the wait returns the moment
  * the third measuring sample exists, so a fast device pays seconds and only a
- * genuine failure pays all of it. */
+ * genuine failure pays all of it.
+ *
+ * AND IT IS STILL A FRAME BUDGET, so the rate-dependence has not gone away — it
+ * has moved from the window's SIZE to its TIMEOUT. On a healthy but loaded
+ * device (63-90 Hz) three samples can legitimately take most of this, and the
+ * tier will print `! wait near budget` for this check (`NEAR_BUDGET = 0.7` in
+ * runner.ts). That is the tier's own "next month's flake" signal and it is
+ * expected here, not a fault to go and widen: the fix would be waiting on a
+ * sample COUNT without any ceiling, which cannot terminate on a device whose
+ * refresh genuinely stopped — the case this check exists to red. */
 const PERF_WINDOW_MAX = 6000;
 
 /* The knob turns the bash made: knob 1 up, knob 1 down, knob 2 up. Two knobs so
@@ -74,7 +83,15 @@ const REFRESH_MS_MAX = 10;
  * had no populated param to read, so its ms is not a refresh cost and counting
  * it is how this check used to pass over a metric that measured nothing. The
  * window is CLOSED on this count — the same helper both waits for it and
- * asserts on it, so the two can never disagree about what counts. */
+ * asserts on it, so the two can never disagree about what counts.
+ *
+ * CLOSING AT EXACTLY THIS COUNT IS DELIBERATE, and it makes the graded number
+ * the most sensitive it can be rather than the least: a median of 3 is moved by
+ * 2 of its 3 samples, where a median of 5 needs 3. So the window stops as soon
+ * as the check can mean anything, and every sample it does grade counts. The
+ * cost is noise, and the 10 ms budget is what absorbs it — steady state is 4-5
+ * ms (measured 2026-09-13), so a single slow sample cannot carry the median
+ * over on its own. */
 const REFRESH_MIN_SAMPLES = 3;
 
 /* Everything this suite reads out of the log, in ONE grep. `leds: repaint` is
@@ -97,6 +114,11 @@ const LOG_RE = '\\[shadow\\].*\\[movy\\] (' + [
     'perf_tick_rate=',
     'perf_refresh_ms=',
 ].join('|') + ')';
+
+/* Movy's machine-level prefs — the same file `page-dive.ts` snapshots and
+ * restores, and the one `src/seq/prefs.ts` reads its flags from. Read here for
+ * the ARM the refresh check ran in; see the note at the check. */
+const PREFS = '/data/UserData/schwung/modules/tools/movy/prefs.json';
 
 /* A numeric field out of one of those lines. The leading separator keeps `t=`
  * out of `set=`, `k=` out of `chainIndex=`, and so on. NaN for a field that is
@@ -224,16 +246,18 @@ scenario('smoke', async (t) => {
      * each empty slot it lands on with `module=—` / `ui_hierarchy null — no
      * params`. Measured in the 2026-09-19 red run: the jog emptied slot 0 at
      * 13:27:44.339, ten lines before `w0` closed, so a sample taken after it
-     * measures nothing either — the same empty window, reached from the other
-     * side. The 2026-09-13 window that graded a refresh that was not running was
-     * this failure with the jog INSIDE it, and a window that merely excluded
-     * `params=0` samples from the median would still have been grading the
-     * stretch around it.
+     * measures nothing either — the same empty stretch, reached from the other
+     * side. On the 2026-09-13 code those samples were filtered out of `measured`
+     * and the red was `measured.length < 3` — the check was already refusing to
+     * grade them; what it could not do was stop the JOG from being inside the
+     * window it drew them from.
      *
-     * So `refW` is neither `w0` nor a slice of it. `params > 0` (see the check
-     * below) stays the rule for what a sample is worth, and this window is the
-     * belt to that braces: a sample whose params are 0 is now outside the window
-     * rather than merely excluded from the median.
+     * So `refW` is neither `w0` nor a slice of it, and the two filters do
+     * different jobs: this window decides WHICH STRETCH is graded, and
+     * `refreshSamples` below still drops `params=0` samples that fall inside it.
+     * The window is the fix; the filter is unchanged and still load-bearing —
+     * nothing bounds a `params=0` sample out of `refW`, and the teeth run that
+     * points the window at an empty slot holds eleven of them INSIDE it.
      *
      * Re-selecting track 0 afterwards would not undo any of this: track 0 is
      * already active, `dev.selectTrack(0)` is a no-op there (`track: active=0
@@ -425,7 +449,7 @@ scenario('smoke', async (t) => {
      * them, and the difference is the whole check.
      *
      * `perf_refresh_ms` is a `Date.now()` delta taken around `refreshOneParam()`
-     * (src/model/tick.ts:141-147) on the shadow-UI QuickJS thread, which is NOT
+     * (src/model/tick.ts:156-160) on the shadow-UI QuickJS thread, which is NOT
      * realtime. So the number includes any time the thread spent DESCHEDULED,
      * and requiring every sample under 10 ms asserts that the OS never parks that
      * thread for longer — which is not a property movy has, or that this check
@@ -451,10 +475,36 @@ scenario('smoke', async (t) => {
      * window sitting on an empty chain slot every sample read
      * `perf_refresh_ms=0 params=0` and the check called that the best possible
      * result. Too few measuring samples is therefore a FAILURE, not a skip. */
+    /* WHICH ARM THIS CHECK IS MEASURING, read off the box rather than assumed
+     * (SP-15's pattern — `page-lifecycle.ts` gates its checks on the arm they
+     * ran in for the same reason).
+     *
+     * `prefs.flags.schwunggrid` is `2` at rest, and NOTHING under `test-device/`
+     * sets it: every scenario that needs `0` relies on someone having set it by
+     * hand first. At `2` (the `page` arm) Schwung owns the component's pages, so
+     * the UI passes `!pageOwner.delegated` and `refreshOneParam` never runs
+     * (src/app/tick.ts) — and the samples then read `perf_refresh_ms=0
+     * params=14`. `params` counts populated params, not refreshes, so a full
+     * window of zeros is a full median of zeros: the check PASSES, having
+     * measured nothing at all. That is the same free green the 2026-09-13
+     * rewrite killed for the EMPTY window, arriving through the other door.
+     *
+     * So the arm is part of the check, not context for it. A run in the wrong
+     * arm FAILS here and says which arm and what to do, rather than reporting a
+     * green that means "not measured". */
+    let arm: number | null = null;
+    try {
+        const { stdout } = await run('ssh', ['-o', 'ConnectTimeout=5', '-o', 'BatchMode=yes',
+            `ableton@${t.host}`, `cat ${PREFS} 2>/dev/null || echo '{}'`]);
+        arm = Number(JSON.parse(stdout).flags?.schwunggrid);
+    } catch { arm = null; }   /* unreadable prefs is NOT the off arm */
+    const okArm = arm === 0;
+    t.note('refreshArm', arm);
+
     const refLines = refW.filter((l) => l.includes('perf_refresh_ms='));
     const measured = refreshSamples(refW);
     const medRef   = measured.length ? median(measured) : NaN;
-    const okRef    = measured.length >= REFRESH_MIN_SAMPLES && medRef <= REFRESH_MS_MAX;
+    const okRef    = okArm && measured.length >= REFRESH_MIN_SAMPLES && medRef <= REFRESH_MS_MAX;
     t.note('refreshSamples', measured);
     /* The RAW lines, not just the ms. `measured` has already dropped the
      * `params=0` samples, and those are the ones carrying the reason — a red
@@ -464,11 +514,16 @@ scenario('smoke', async (t) => {
     t.check('refresh-blocking',
         `refresh blocking ${medRef} ms median of ${measured.length} measuring sample(s) `
         + `<= ${REFRESH_MS_MAX} ms (threshold)`, okRef, {
-            expected: `at least ${REFRESH_MIN_SAMPLES} samples with params>0, and their median at or below ${REFRESH_MS_MAX}`,
-            actual: said(okRef, `${measured.length} measuring sample(s), median ${medRef} ms, max ${Math.max(...measured)} ms`,
-                refLines.length === 0
-                    ? 'perf_refresh_ms not found — timing instrumentation missing or refresh not triggered'
-                    : measured.length < REFRESH_MIN_SAMPLES
+            expected: `prefs.flags.schwunggrid at 0, at least ${REFRESH_MIN_SAMPLES} samples with params>0, `
+                      + `and their median at or below ${REFRESH_MS_MAX}`,
+            actual: said(okRef, `${measured.length} measuring sample(s), median ${medRef} ms, `
+                + `max ${measured.length ? Math.max(...measured) : NaN} ms, arm schwunggrid=${arm}`,
+                !okArm
+                    ? `prefs.flags.schwunggrid is ${arm === null ? 'unreadable' : arm}, not 0 — in that arm Schwung owns the `
+                      + 'component\'s pages, refreshOneParam does not run, and every sample reads perf_refresh_ms=0 '
+                      + 'with params>0. The check would pass having measured nothing. Set prefs.flags.schwunggrid to 0 '
+                      + '(and restore it afterwards) to run this check.'
+                    : refLines.length === 0
                         ? `only ${measured.length} of ${refLines.length} sample(s) had params>0 — the refresh was not running `
                           + 'over a loaded module, so this window measured nothing rather than measuring something good'
                         : `refresh blocking ${medRef} ms median over ${measured.length} sample(s) `

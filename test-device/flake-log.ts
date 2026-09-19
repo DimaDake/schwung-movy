@@ -39,8 +39,19 @@ function headSha(): string {
 
 export function readLog(path = defaultLogPath()): RunEntry[] {
     if (!existsSync(path)) return [];
-    try { return JSON.parse(readFileSync(path, 'utf8')) as RunEntry[]; }
-    catch { return []; }   /* a truncated log must never fail a run */
+    try {
+        const v = JSON.parse(readFileSync(path, 'utf8'));
+        /* THE SHAPE CHECK IS THE GUARD, not defensive dressing. Parsing is not
+         * reading: `recordRun` SPREADS this (`[...readLog(path), entry]`), and
+         * spreading an OBJECT throws — which on 2026-09-19 took a whole tier
+         * down AFTER all 18 scenarios had run and BEFORE the summary printed:
+         * no summary, no `→ .test-out/run.md` pointer, no exit code. The
+         * ledger had been re-serialised as `{"0":…,"41":…}` by a hand-edit, and
+         * nothing stopped it, because this cast is the only thing standing
+         * between the file on disk and `RunEntry[]` — TypeScript checks the
+         * cast, not the bytes. */
+        return Array.isArray(v) ? v as RunEntry[] : [];
+    } catch { return []; }   /* a truncated log must never fail a run */
 }
 
 export function recordRun(results: ScenarioResult[], host: string,
@@ -59,14 +70,28 @@ export function recordRun(results: ScenarioResult[], host: string,
     };
     const log = [...readLog(path), entry].slice(-KEEP_RUNS);
     try { writeFileSync(path, JSON.stringify(log, null, 1)); }
-    catch { /* the ledger is a diagnostic, never a reason a sweep fails */ }
+    catch { /* the WRITE is a diagnostic, never a reason a sweep fails — the
+             * READ is guarded in readLog, because an unreadable ledger must not
+             * reach the spread above and turn a whole sweep into a TypeError */ }
 }
 
 export type FlakeRow = { key: string; runs: number; flaky: number; failed: number };
 
 /* One row per scenario and one per check id that has ever flaked, so a scenario
  * that flakes for a different reason each time reads differently from one that
- * always trips the same check. */
+ * always trips the same check.
+ *
+ * A CHECK ID'S DENOMINATOR IS ITS SCENARIO'S RUN COUNT, and it has to be filled
+ * in from the scenario row rather than counted here. A check id is only ever
+ * recorded when it flaked (`ScenarioEntry.flaked` holds nothing else), so
+ * incrementing `runs` beside `flaky` would make `runs === flaky` by
+ * construction, `rate` would read 100% for every check row without exception —
+ * down to `1 flaky of 1 runs (100%)` — and the number could never carry a
+ * denominator of passing runs. It was read that way once: "8 flaky 0 failed of 8
+ * runs" was taken to mean the check had never passed, when it means only that
+ * the eight runs it appears in are the eight it flaked in, and it had passed
+ * first try twenty times in between. The scenario row counts EVERY run, so it is
+ * the honest denominator. */
 export function summarize(log: RunEntry[]): FlakeRow[] {
     const rows = new Map<string, FlakeRow>();
     const bump = (key: string, f: (r: FlakeRow) => void) => {
@@ -80,8 +105,13 @@ export function summarize(log: RunEntry[]): FlakeRow[] {
                 if (s.status === 'flaky') r.flaky++;
                 if (s.status === 'fail') r.failed++;
             });
-            for (const id of s.flaked) bump(`${s.name}#${id}`, (r) => { r.runs++; r.flaky++; });
+            for (const id of s.flaked) bump(`${s.name}#${id}`, (r) => { r.flaky++; });
         }
+    }
+    for (const [key, r] of rows) {
+        const hash = key.indexOf('#');
+        if (hash < 0) continue;
+        r.runs = rows.get(key.slice(0, hash))?.runs ?? 0;
     }
     return [...rows.values()]
         .filter((r) => r.flaky > 0 || r.failed > 0)

@@ -2937,6 +2937,30 @@ the fact a later session would otherwise re-derive.
   refresh had something to READ, not that it READ it — a refresh that stopped
   altogether emits `perf_refresh_ms=0 params=14` and passes on the median. The
   median catches a refresh that got slower; nothing here catches one that stopped.
-  The same hole makes the check close to vacuous under `schwunggrid=page`, where
-  SP-12 stops `refreshOneParam` for a delegated component — the tier's note that
-  this check is only meaningful at 0 is load-bearing.
+  **The check now GATES ON THE ARM IT RAN IN.** Under `schwunggrid=page` (the
+  device's resting value, `prefs.flags.schwunggrid = 2`) Schwung owns the
+  component's pages, so the UI stops calling `refreshOneParam` for it
+  (`src/app/tick.ts` passes `!pageOwner.delegated`), `params` still counts
+  populated params, and the samples read `perf_refresh_ms=0 params=14` — a full
+  median of zeros that PASSED. That was this check's second vacuity hole, reached
+  through the other door from the one 2026-09-13 closed, and nothing under
+  `test-device/` sets the flag; it depended on someone having set `0` by hand
+  first. The scenario now reads `prefs.flags.schwunggrid` and FAILS when it is
+  not `0`, naming the arm and the fix, so a run in the wrong arm can no longer
+  report a green that means "not measured".
+- **2026-09-19 — the flake ledger could kill a whole tier, and its headline
+  number was a tautology.** Fix round on the entry above, both found by review.
+  The ledger (`test-device/.flake-log.json`) was re-serialised as a JSON OBJECT
+  by a hand-edit; `readLog` cast the parse to `RunEntry[]` with no shape check
+  and `recordRun` spread it, so `[...readLog(p), entry]` threw **after all 18
+  scenarios had run and before the summary printed** — no summary, no
+  `→ .test-out/run.md` pointer, no exit code. `readLog` now returns `[]` for
+  anything that is not an array, and `selftest/flake.mjs` covers valid-JSON-
+  wrong-shape (its old corrupt-log case only ever wrote invalid JSON, which is
+  why `npm test` stayed green while the real ledger was broken). Separately,
+  `summarize` bumped `runs` and `flaky` in the same statement for a check-id row,
+  so `runs === flaky` by construction, every check row printed `(100%)`, and such
+  a row could never carry a denominator of passing runs — `smoke#refresh-blocking
+  8 flaky 0 failed of 8 runs` was read as "never passed first try" when it had
+  passed first try twenty times in between. A check row's denominator is now its
+  scenario's run count.

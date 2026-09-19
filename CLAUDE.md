@@ -288,6 +288,15 @@ Everything below is in `test-device/`; reach for it before writing anything new.
   back, rather than driving every setup gesture through the surface.
 - **Never `kill -9` `shadow_ui`** — MoveOriginal does not respawn it and the
   device UI stays broken until a reboot.
+- **`pgrep -f "<script>"` matches the polling loop that is waiting on it.** A
+  wait written as `until ! pgrep -f "test-device/run.mjs"; do sleep 5; done`
+  carries the pattern in its OWN command line, so `pgrep` keeps finding the loop
+  itself: once the real process is gone the loop never exits, and a later
+  `pgrep` "confirms" a tier that finished minutes ago. It cost a session a
+  stalled wait and a wrong reading of what was still running (2026-09-19). Wait
+  on the child's own exit (`... ; echo done` in a `run_in_background` command),
+  or match something the loop does not contain — `pgrep -f "node .*test-device"`
+  still matches itself, so prefer the exit status over any `pgrep` pattern.
 
 ### The fixture
 

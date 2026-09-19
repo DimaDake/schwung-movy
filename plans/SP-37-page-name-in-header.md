@@ -74,7 +74,7 @@ and reads only `chrome.header`/`chrome.footer`, so it never USES the field — b
 it is now PAID for there (`src/app/tick.ts:919` calls `chromeFor`, which calls
 `ctl.pageLabel()`), and on a child-level knob page that call is an
 `s.pages.filter(...)` plus a template string
-(`param_pages/page_controller.mjs:877-898`). A lazy getter would have paid it
+(`param_pages/page_controller.mjs:877-900`). A lazy getter would have paid it
 nowhere; the cost is SP-49's subject, not this item's, and it is stated rather
 than claimed to be zero.
 
@@ -146,7 +146,7 @@ tier runs at.
 | the page's own name reaches the header, and page 2 shows a different one | `node browser-test/screenshot.mjs` | revert `knob-view.ts` to `vm.drumPadName \|\| vm.bankName` → `page_body_p2` **FAIL (79 px differ)**; restore → 176 passed, 0 failed |
 | the drum rack draws the PAGE's name, not the pad's | same | the same revert → `page_voice_pad` **throws** (`the frame draws "Snare" where the page is named "Kick"`), and the pad name put back on top throws identically; restore → green |
 | the held-knob readout still outranks the label | `node browser-test/screenshot.mjs` | demote it: `if (chrome?.header && !chrome.pageLabel)` → `page_chrome_held` **FAIL (726 px differ)**, `page_chrome_flip` **FAIL (721 px differ)**; restore → green |
-| the label is Schwung's, for the page on screen, and it moves | `SCHWUNG=../schwung npm test` (`logic/schwung-page.mjs`) | `pageLabelFor` → `null` → **12** logic checks red, incl. `the chrome carries the page's own name: null` and `…and the jog moves it: still null one page on`; restore → green |
+| the label is Schwung's, for the page on screen, and it moves | `SCHWUNG=../schwung npm test` (`logic/schwung-page.mjs`) | `pageLabelFor` → `null` → **6** logic checks red — NOT 12: the six per-page `page N draws its own name` checks SKIP in this arm (the loop's `if (label === null) continue;` guard, `logic/schwung-page.mjs:417`, is exactly the case a nulled label creates), so the six are the three empty-array structural checks plus `the chrome carries the page's own name: null`, `…for the page on screen: expected "Kick", got null` and `…and the jog moves it: still null one page on`; restore → green |
 | on a declared rack the right-hand text CHANGES across the pages of one module | same | the pad-first precedence → **11** logic checks red, the headline one printing `["Snare","Snare","Snare","Snare","Snare","Snare"]` where the pages are named *Kick*/*Snare*/*Hat*/*Reverb*/*Selected Pad*/*Tom Lo*; restore → green |
 | `off` is unchanged | `SCHWUNG=../schwung npm test` | the PAIRED assertion: the same model's owner is delegated while the grid pages (`page !== null`) and movy's own the moment the mode goes off (`page === null`). Dropping `setSchwungGridMode(null)` → red, and the failure prints the live page — which is what says the second half is not vacuous |
 | …and nothing else moved | `node browser-test/screenshot.mjs` | 175 of the 176 baselines byte-identical, `page_body` among them. **`page_body` did NOT change**: test16's page 0 is named *Main*, the same word movy's bank says |
@@ -157,7 +157,7 @@ None, and no claim that the change is free. This is a string in a header on a
 path that already runs every frame, and what it adds is one `ctl.pageLabel()`
 per rendered frame — a getter on the controller, which on a CHILD-level knob
 page is an `s.pages.filter(...)` plus a template string
-(`param_pages/page_controller.mjs:877-898`), and which is also paid and
+(`param_pages/page_controller.mjs:877-900`), and which is also paid and
 discarded on the chain view. Nothing here is a latency claim, so nothing here is
 a number; the standing per-tick cost of `page` is SP-49's item.
 

@@ -21,6 +21,7 @@ import { fileURLToPath } from 'url';
 import { PNG } from 'pngjs';
 import pixelmatch from 'pixelmatch';
 import { installEnv } from './env.mjs';
+import { dumpFixture } from './dump-fixture.mjs';
 import { REFRESH_BULK_TICKS } from '../dist/esm/model/constants.js';
 
 /* Quiet the renderer's [movy] mlog chatter; keep our own status lines. */
@@ -168,12 +169,17 @@ const BASE = {
      * the bank bar. A one-page mock would make the pair identical and the second
      * scene assert nothing. */
     page_body: 'test16', page_body_p2: 'test16',
-    /* A DECLARED DRUM RACK, because `vm.drumPadName` can come from nowhere else.
-     * The scene's subject is the header's precedence — the focused pad's name
-     * against the page's own — so the two have to be different on screen, which
-     * needs a rack the delegate can also plan pages for. */
-    page_voice_pad: 'drums_hier',
 };
+
+/* MODULES THAT ARE NOT MOCKS. `page_voice_pad`'s subject is a DECLARED drum
+ * rack, and the fleet has one: `voice-poc` declares `pad_layout: "drums"` with
+ * named voices and a page per voice, so replaying it out of
+ * `docs/module-dump/device-dump.json` (`dump-fixture.mjs`) gives the scene a
+ * real rack with two different names to choose between. A `drums_hier` mock was
+ * written for it first and deleted — its page names were the mock's own
+ * invention, so a change to Schwung's naming would have moved the fixture
+ * rather than the baseline. */
+const DUMP_BASE = { page_voice_pad: 'voice-poc' };
 
 const STEP_VM_A = {
     holdVel: 100, holdGate: 48, holdGateMixed: false,
@@ -238,7 +244,7 @@ const { buildCaptureVM }     = await import('../dist/esm/seq/capture-vm.js');
 const { setCaptureStateForTest } = await import('../dist/esm/seq/capture.js');
 const { drawVolumeOverlay } = await import('../dist/esm/renderer/volume-overlay.js');
 const { volumeFrac }       = await import('../dist/esm/mixer/track-volume.js');
-const { renderKnobsView }  = await import('../dist/esm/renderer/knob-view.js');
+const { renderKnobsView, headerRightText } = await import('../dist/esm/renderer/knob-view.js');
 /* The `page` scenes' entry points. Imported here, not statically, for the same
  * reason as every other renderer: the file resolves them after installEnv(). */
 const { setSchwungGridMode, schwungPageFor, schwungGridReload } =
@@ -310,7 +316,7 @@ const chainModels = COMPONENT_KEYS.map(k => createModel(portFor(0), k));
 const model = chainModels[1];   // synth slot — the default knobs view
 
 function loadPreset(id) {
-    env.setParams(MOCK_SYNTHS[id]);
+    env.setParams(DUMP_BASE[id] ? dumpFixture(DUMP_BASE[id]) : MOCK_SYNTHS[id]);
     for (const m of chainModels) { m.reset(); m.reload(); }
 }
 
@@ -1284,8 +1290,9 @@ function applyView(preset) {
          * the point: the bank bar's index is Schwung's pageIndex, and a frozen 0
          * there is the Cause A symptom a screenshot can see — and the HEADER's
          * right-hand end is Schwung's page NAME (SP-37), so the pair also pins
-         * that it moves. `page_voice_pad` is the same frame on a module whose
-         * focused pad has a name of its own. */
+         * that it moves. `page_voice_pad` is the same frame on a module that
+         * declares a drum rack, where the header has a second name to choose
+         * from and the wrong precedence draws that one instead. */
         case 'page_body':
         case 'page_body_p2':
         case 'page_voice_pad': {
@@ -1315,32 +1322,38 @@ function applyView(preset) {
             for (let i = 0; i < 12 * 60 && !sp.ready; i++) { sp.tick(); model.tick(); }
             if (!sp.ready) throw new Error(preset + ': the contract never resolved');
             if (preset === 'page_body_p2') sp.changePage(1);
-            /* A DRUM RACK UNDER A DELEGATED PAGE (SP-37's second condition). The
-             * focused pad's name must still outrank the page's. `updateDrumPad`
-             * is what fills it — the model reads the pad names off the module's
-             * own declaration, so nothing here invents one — and the ROOT page
-             * is what is shown, which is what makes the two names differ on
-             * screen and the shot able to tell the precedence from a
-             * coincidence. */
+            /* A DRUM RACK UNDER A DELEGATED PAGE, on a page that is NOT the
+             * focused pad's own — which is the shape the pad-name precedence
+             * used to get wrong. `updateDrumPad` is what fills `drumPadName`
+             * (the model reads the names off the module's own declaration, so
+             * nothing here invents one); on `voice-poc` pad 2 is "Snare" and
+             * its own page is page 1, so page 0 — "Kick" — is a page where the
+             * two names on screen differ. */
             if (preset === 'page_voice_pad') {
                 sp.goToPage(0);
                 model.updateDrumPad(2, 38);
             }
             const vm = model.getViewModel();
             if (preset === 'page_voice_pad') {
+                const label = sp.chrome(true).pageLabel;
                 if (!vm.drumPadName) throw new Error(
                     'page_voice_pad: the rack declared no pad names, so the shot cannot test the precedence');
-                /* AND THE TWO NAMES MUST DIFFER. The pad's name is only evidence
-                 * of the precedence if the label it beats says something else —
-                 * with one name equal to the other the shot is green whichever
-                 * side wins, which is the failure mode a screenshot is worst at
-                 * seeing. `mock-synth.mjs`'s `drums_hier` is shaped for this:
-                 * the root page is named after the level, the pads after their
-                 * voices. */
-                if (vm.drumPadName === sp.chrome(true).pageLabel) throw new Error(
+                /* AND THE TWO NAMES MUST DIFFER, or this frame is green whichever
+                 * of them leads and the regression is a clean diff — the
+                 * failure mode a screenshot is worst at seeing. */
+                if (vm.drumPadName === label) throw new Error(
                     'page_voice_pad: the focused pad and the page are both '
                     + JSON.stringify(vm.drumPadName)
-                    + ', so the shot cannot tell the precedence from a coincidence');
+                    + ', so the baseline cannot tell the precedence from a coincidence');
+                /* ...AND WHAT IT DRAWS IS THE PAGE'S, asserted through the
+                 * renderer's own chooser so a regression fails naming the rule
+                 * instead of a pixel count. That the name MOVES when the jog
+                 * does is `logic/schwung-page.mjs`'s claim: one frame can only
+                 * witness what is in it. */
+                if (headerRightText(vm, sp.chrome(true)) !== label) throw new Error(
+                    'page_voice_pad: the frame draws '
+                    + JSON.stringify(headerRightText(vm, sp.chrome(true)))
+                    + ' where the page is named ' + JSON.stringify(label));
             }
             /* `sp.chrome(true)` is the APP's own call (`schwungChromeFor(owner,
              * body, true)`) and the reason these scenes exist: the header's

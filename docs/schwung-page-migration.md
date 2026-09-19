@@ -112,7 +112,7 @@ changes no mode at all while looking exactly like the fix.
 | SP-35 | A held step keeps the delegated page — SP-33's gate reversed, and the p-lock decoration pass it had made unreachable is reachable again. The "cannot take a lock" filter is movy's chrome at the gesture, not a decoration; the per-cell half is SU-8 |
 | SP-38 | Animated widgets draw until they settle — `anim_state.settled` asked by `pollDrawnPage` only when value and identity held still. Costs **0.7 ms/tick of `render`** in the animating window (0.2 before) — **on plaits, 2 pages, the SMALLEST shape in the fixture, so that is a FLOOR and not a representative**; n=1 window per arm. **SP-39 re-ran it on minijv and did NOT measure an animating window there at all** — the 0.2 that appears survives stashing this item's animation term and carries no `buildvm` — so the cost on a large module is **not measured, neither scaled nor falsified**, and the plaits floor above is still the only number there is. No host call, idle unchanged |
 | SP-39 | A pad press onto a page the cache has never read paid one blocking read per cell; `jump` now hands that page's keys to the cache as **ONE bulk request** before `goToPage`. Teeth: the jump costs **1 bulk + 1 single** round trip against **0 bulk + 9 single**. **The call pattern is the whole of the measured win**: on device (`cw78`, the rack, both arms, the same build) the press's effect is **within noise** — `calls/tick` 1.69 → 1.54, `perf_ipc` 4.12 → 3.66 ms, tick 3.66 → 3.49, worst period 6.64 → 6.47 — and the **worst frame is unchanged, 26 → 27 ms**. `padpage` is 0.1–0.2 ms/tick under `page` in the windows that hold presses and absent under `off`. The page-vs-off gap is at IDLE (worst period 6.3 vs 5.0 ms, `calls/tick` 1.4 vs 0.6) — the delegated renderer's STANDING cost, not this gesture, **now opened as SP-49**. **The gesture is measured on a rack pad, not a drum-track pad — the fixture's drum module declares no note map.** The SP-38 re-run on `minijv` (70 pages, **not 72**) **measured no animating window at all** (the 0.2 survives stashing SP-38's term and carries no `buildvm`), so SP-38's cost on a large module is **not measured** |
-| SP-37 | The header names the PAGE, not movy's bank — the right-hand end was `vm.drumPadName \|\| vm.bankName` while the bar above it already paginated Schwung's pages, so one set's name sat under the other set's bar (a constant, on a module whose movy config opens with a preset bank). `PageChrome.pageLabel` (`ctl.pageLabel()`) rides with the chrome `chromeFor` already withholds where the delegated page is not the drawn body, which is what keeps `off` byte-identical; the focused pad still outranks it (the chain view's rule). Teeth, each with the fix removed: `page_body_p2` red (79 px), the precedence swapped → `page_voice_pad` red (185 px) with both page-label scenes green, `pageLabelFor` → null → three logic checks red, `off`'s `setSchwungGridMode(null)` dropped → the off check red. **No measurement: the item adds no per-tick work.** **Not covered:** the held-knob branch is SP-17's code, pinned by two pre-existing scenes — demoting the readout below the label reddens `page_chrome_held` (726 px) and `page_chrome_flip` (721 px) — and `page_body`'s baseline did NOT move — test16's page 0 is named *Main*, the same word movy's bank says, so page 0 is the one frame where the two sets agree |
+| SP-37 | The header names the PAGE, not movy's bank — the right-hand end was `vm.drumPadName \|\| vm.bankName` while the bar above it already paginated Schwung's pages, so one set's name sat under the other set's bar (a constant, on a module whose movy config opens with a preset bank). `PageChrome.pageLabel` (`ctl.pageLabel()`) rides with the chrome `chromeFor` already withholds where the delegated page is not the drawn body, which is what keeps `off` byte-identical; `headerRightText(vm, chrome)` is `chrome?.pageLabel \|\| vm.drumPadName \|\| vm.bankName`, the pad name taking the FALLBACK — a pad name that leads names every page of its module with the same word, which is the same symptom on a declared drum rack (`voice-poc`), so the pad name wins only where the page IS that pad's page and the two words already agree. Teeth, each with the fix removed: the whole `\|\|` chain reverted → 11 logic checks red, `page_body_p2` red (79 px), `page_voice_pad` throws; the pad name put back on top → the same; `pageLabelFor` → null → 12 logic checks red, `page_body_p2` red (79 px), `page_voice_pad` throws; `off`'s `setSchwungGridMode(null)` dropped → the off check red. **No measurement, and the label is not free:** one `ctl.pageLabel()` per rendered frame — an `s.pages.filter(...)` + template string on a child-level page — also paid and discarded on the chain view (`src/app/tick.ts:919`, `paging: false`); SP-49 owns that cost. **Not covered:** the held-knob branch is SP-17's code, pinned by two pre-existing scenes — demoting the readout below the label reddens `page_chrome_held` (726 px) and `page_chrome_flip` (721 px) — and `page_body`'s baseline did NOT move — test16's page 0 is named *Main*, the same word movy's bank says, so page 0 is the one frame where the two sets agree |
 
 ### Open
 
@@ -1000,15 +1000,34 @@ with a preset bank that label is a constant.
 **Fix.** `PageChrome` gained a third field, `pageLabel`, filled by
 `pageLabelFor(ctl)` from `ctl.pageLabel()` — the controller's own name for the
 page on screen, never `page.name`, because a page belonging to a CHILD level is
-named after WHICH child it shows and the planned name cannot know.
-`knob-view.ts`'s right-hand text became
-`vm.drumPadName || chrome?.pageLabel || vm.bankName`.
+named after WHICH child it shows and the planned name cannot know. It now LEADS
+the header's right-hand text, through `headerRightText(vm, chrome)`:
 
-**The two rulings the entry left open, both kept.** The held-knob header still
-outranks the label (`chrome?.header` is tested FIRST, and `heldHeaderFor` is
-untouched), and the drum pad name still outranks it — the chain view's own rule
-(`vm.drumPadName || vm.moduleName`). A null or empty label falls through to
-`vm.bankName` rather than blanking the header.
+```
+chrome?.pageLabel || vm.drumPadName || vm.bankName
+```
+
+**The precedence, and the finding that fixed it.** The brief asked for "the
+**drum pad name** still outranks the page label **on a voice page**". The first
+fix implemented the bold half and dropped the qualifier, so `vm.drumPadName` —
+the FOCUSED pad's name, a property of the MODULE and not of the page — led on
+every page: the §1 symptom one class wider, still standing on any module that
+declares a rack. The repo's own metadata had the witness all along: `voice-poc`
+in `docs/module-dump/device-dump.json` declares `pad_layout: "drums"` with a page
+per voice, so with pad 2 focused its six pages read *Kick* / *Snare* / *Hat* /
+*Reverb* / *Selected Pad* / *Tom Lo* while the pad's name said *Snare* on all
+six. The ruling that closes it: **the pad name wins on the page that IS that
+pad's page — where the page label already carries the same word — and the page
+label wins otherwise, with the pad name as the fallback.** That is exactly the
+`||` chain above, because on the pad's own page the two ARE the same word; the
+pad therefore still names the header there, the pad ICON names it on every other
+page, and where no page can be named at all (`off`, a chrome withheld because
+the delegated page is not the body, a controller that cannot name one) the pad
+name and then movy's bank follow — movy's header before this item, unchanged.
+
+**The held-knob ruling, kept.** The held-knob header still outranks the label
+(`chrome?.header` is tested FIRST, and `heldHeaderFor` is untouched). A null or
+empty label falls through rather than blanking the header.
 
 **Departure from the entry's route.** The entry said to expose the name on the
 `SchwungPage` facade beside `pageCount`/`pageIndex`. It went on `PageChrome`
@@ -1017,29 +1036,44 @@ delegated page is the body, and the one place that already knows whether it
 should say ANYTHING — the whole object is withheld where the delegated page is
 not what is drawn (`schwungChromeFor` returns undefined), and that single guard
 is what keeps `off` byte-identical. A facade getter would have been a second seam
-for one fact, and the renderer has no page object to ask.
+for one fact, and the renderer has no page object to ask. The expression itself
+is exported (`headerRightText`) for the same reason: a renderer read only as
+pixels cannot say "and it changes when the jog does".
 
-**Teeth.** Each with the fix removed and the suite re-run. The `||` chain
-reverted → `page_body_p2` red (**79 px**). The precedence swapped →
-`page_voice_pad` red (**185 px**) with both page-label scenes green.
-`pageLabelFor` returning null → three logic checks red plus `page_body_p2`. The
-`off` check's `setSchwungGridMode(null)` dropped → that check red, with the live
-delegated page printed in the failure. `page_body_p2` is `test16` one jog click
-on: its page is named *Main - 2* where movy's bank says *Main*. `page_voice_pad`
-is the new `drums_hier` mock, whose root page is named after the LEVEL ("Selected
-Item") and whose pads carry their voices' names, so the shot can tell the
-precedence from a coincidence — the scene asserts the two names differ, so it
-cannot pass by that accident either. The screen was also read back as pixels:
-`T1 > DRUMS HIER` … `SNARE`.
+**Teeth.** Each with the fix removed and the suite re-run — both tiers, because
+the logic assertions are about the rule and the baseline is the proof that the
+view draws it. The whole `||` chain reverted to `vm.drumPadName || vm.bankName`
+→ **11 logic checks red**, `page_body_p2` red (**79 px**) and `page_voice_pad`
+**throws** ("the frame draws \"Snare\" where the page is named \"Kick\""). The
+first fix's precedence (`vm.drumPadName || chrome?.pageLabel || …`) put back →
+the same 11 and the same throw. `pageLabelFor` returning null → **12 logic
+checks red**, `page_body_p2` red (**79 px**), `page_voice_pad` throws. The `off`
+check's `setSchwungGridMode(null)` dropped → that check red, with the live
+delegated page printed in the failure. `page_body` is green in every arm:
+`test16`'s page 0 is named *Main*, the same word movy's bank says, so page 0 is
+the one frame where the two sets agree and this bug is invisible. `page_body_p2`
+is `test16` one jog click on — *Main - 2* where movy's bank says *Main*.
+`page_voice_pad` is the real rack, replayed by `dump-fixture.mjs` from the dump
+(a mock was written for it first and deleted: its page names were the mock's own
+invention, so a change to Schwung's naming would have moved the fixture rather
+than the baseline). The scene asserts the two names DIFFER — the pad's name is
+only evidence of the precedence if the label it beats says something else — and
+that the frame draws the page's, so it cannot pass by coincidence. The screen was
+also read back as pixels: `T1 > VOICE-POC` … `KICK`, where the focused pad is
+*Snare*.
 
-**Not covered.** No measurement — the item adds no per-tick work (the label is
-read inside `chromeFor`, which the frame already calls). The held-knob branch is
-pinned only by the pre-existing `page_chrome_held` scene, which never had a label
-to show. And **`page_body`'s baseline did NOT move**: `test16`'s page 0 is named
-*Main*, the same word movy's bank says, so page 0 is the one frame where the two
-sets agree and this bug is invisible — **only `page_body_p2` was regenerated**
-(surgically: the baseline removed and re-saved by the next run, never a blanket
-`--update`).
+**Not covered.** No measurement of a saving, and the cost is not nothing: one
+`ctl.pageLabel()` per rendered FRAME, which on a child-level knob page is an
+`s.pages.filter(...)` plus a template string
+(`param_pages/page_controller.mjs:877-898`), and it is paid and discarded on the
+chain view too (`src/app/tick.ts:919`, `paging: false` — `chain-view.ts` reads
+only `chrome.header`/`chrome.footer`). Not gated on `paging`, because `paging`
+answers a different question; SP-49 is the item about `page`'s standing per-tick
+cost. The held-knob branch is pinned only by two pre-existing scenes —
+demoting the readout below the label reddens `page_chrome_held` (**726 px**) and
+`page_chrome_flip` (**721 px**). And **only `page_body_p2` and
+`page_voice_pad` were ever regenerated**, both surgically (the baseline removed
+and re-saved by the next ordinary run, never a blanket `--update`).
 
 ---
 
@@ -2556,33 +2590,41 @@ the fact a later session would otherwise re-derive.
 - **SP-37 ✅ 2026-09-19 — the header names the page, not movy's bank.**
   `PageChrome.pageLabel` (`ctl.pageLabel()`, never `page.name`) rides with the
   chrome `schwungChromeFor` already withholds where the delegated page is not the
-  drawn body; `knob-view.ts`'s right text is now
-  `vm.drumPadName || chrome?.pageLabel || vm.bankName`. **Departure from the
-  entry:** it named the `SchwungPage` facade; `chromeFor` is the one composition
-  point AND the one place that already knows whether to speak at all. Teeth, each
-  with the fix removed: reverted `||` chain → `page_body_p2` red (**79 px**);
-  swapped precedence → `page_voice_pad` red (**185 px**); `pageLabelFor` → null →
-  three logic checks red; the `off` check without `setSchwungGridMode(null)` → red
-  with the live delegated page printed in the failure. **Four facts a later
+  drawn body; `headerRightText(vm, chrome)` in `renderer/knob-view.ts` is
+  `chrome?.pageLabel || vm.drumPadName || vm.bankName` — the page's name LEADS
+  and the pad name falls back, because a pad name that leads is a property of the
+  module and not of the page, which pins the header to one word for the module
+  (the reported symptom, one class wider). **Departure from the entry:** it named
+  the `SchwungPage` facade; `chromeFor` is the one composition point AND the one
+  place that already knows whether to speak at all. Teeth, each with the fix
+  removed: reverted `||` chain → **11 logic checks** red, `page_body_p2` red
+  (**79 px**), `page_voice_pad` throws; the first fix's pad-first precedence back
+  → the same; `pageLabelFor` → null → **12** red, `page_body_p2` red (79 px),
+  `page_voice_pad` throws; the `off` check without `setSchwungGridMode(null)` →
+  red with the live delegated page printed in the failure. **Four facts a later
   session would otherwise re-derive.** (1) **`page_body`'s baseline did NOT
   move** — test16's page 0 is named *Main* and movy's bank is *Main* too, so page
   0 is the one frame where the two sets agree and the bug is invisible; only
-  `page_body_p2` was regenerated (*Main - 2*), surgically and never by a blanket
-  `--update`. (2) **`vm.drumPadName` can only come from a module that DECLARES
-  `pad_layout: "drums"` with named voices**, and no mock in `mock-synth.mjs` did,
-  so the second precedence condition was unreachable until this item added
-  `drums_hier` — whose ROOT page is named after the LEVEL and whose pads after
-  their voices, which is what lets a shot tell precedence from coincidence. (3)
-  **The screenshot harness had no surface reader at all** —
+  `page_body_p2` (*Main - 2*) and `page_voice_pad` were regenerated, both
+  surgically and never by a blanket `--update`. (2) **`vm.drumPadName` can only
+  come from a module that DECLARES `pad_layout: "drums"` with named voices**
+  (`model/hierarchy.ts`, via `readSurface`), so `mock-synth.mjs` can never supply
+  one — and **"no mock does" is not "it does not happen": `voice-poc` in
+  `docs/module-dump/` reaches that branch on a real device today**, which is why
+  the witness is `dumpFixture('voice-poc')` and the `drums_hier` mock written
+  first is gone. (3) **The screenshot harness had no surface reader at all** —
   `setSurfaceReader(surfaceOf)` (`app/globals.ts`'s own start-up line) is now
   registered for `page_voice_pad` only and cleared for every other scene, because
   every other baseline was written without one; without it the scene throws "the
   rack declared no pad names". (4) **`ctl.pageLabel()` returns the CHILD's name
   on a child-level page**, so the planned name would print the wrong number — the
   header takes the controller's answer, as Schwung's own host header does. **Not
-  covered:** no measurement (no per-tick work is added); the held-knob precedence
-  is pinned by two pre-existing scenes — demoting the readout below the label
-  reddens `page_chrome_held` (**726 px**) and `page_chrome_flip` (**721 px**).
+  covered:** no measurement (and the label is not free — one `ctl.pageLabel()`
+  per rendered frame, an `s.pages.filter(...)` + template string on a child-level
+  page, also paid and discarded on the chain view at `src/app/tick.ts:919`);
+  the held-knob precedence is pinned by two pre-existing scenes — demoting the
+  readout below the label reddens `page_chrome_held` (**726 px**) and
+  `page_chrome_flip` (**721 px**).
   `MANUAL.md`/`README.md` were NOT edited: the `page` flag is not user-visible yet
   (SP-47).
 

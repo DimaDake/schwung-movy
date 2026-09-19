@@ -33,6 +33,8 @@ _log('\nlogic: schwung page mode');
 const { surfaceOf } = await import('../../dist/esm/renderer/schwung-voices.js');
 const { setSurfaceReader } = await import('../../dist/esm/model/drum-declared.js');
 const { pageOwnerOf } = await import('../../dist/esm/app/page-owner.js');
+const { headerRightText } = await import('../../dist/esm/renderer/knob-view.js');
+const { dumpFixture } = await import('../dump-fixture.mjs');
 
 /* `model/` imports nothing from `renderer/`, so the reader is PUSHED IN at
  * start-up — app/globals.ts does exactly this line. Without it `readSurface`
@@ -372,6 +374,75 @@ _log('\nTest: a module that declares its own hierarchy is never spoken for');
 
     schwungGridReload();
     setSchwungGridMode(null);
+    env.setParams(MOCK_SYNTHS.test16);
+}
+
+_log('\nTest: the header names the page — on a declared drum rack too');
+{
+    /*
+     * WHAT THE HEADER'S RIGHT-HAND END SAYS (SP-37), ON THE MODULE THAT MADE
+     * IT WRONG. `vm.drumPadName` is the focused pad's name — a property of the
+     * MODULE, not of the page — so a precedence that lets it lead prints one
+     * word for the whole module: the jog moves the bar and the body while the
+     * only text that says where you are stands still. That was the report's
+     * symptom, and it was still true on a declared drum rack after the first
+     * fix.
+     *
+     * THE RACK IS THE DEVICE'S OWN. `voice-poc` in `docs/module-dump/` declares
+     * `pad_layout: "drums"` with named voices AND a page per voice, so the
+     * pad's own page and the page on screen are two different names without a
+     * mock inventing the difference — and the assertion below is stated over
+     * WHICH of the two names came out, page by page, so it holds for a rack
+     * whose names change.
+     */
+    setSurfaceReader(surfaceOf);
+    setSchwungGridMode('page');
+    schwungGridReload();
+    const m = bootModel(dumpFixture('voice-poc'));
+    for (let i = 0; i < 20; i++) m.tick();
+    m.updateDrumPad(2, 38);            /* pad 2 is "Snare" on this rack */
+    const p = schwungPageFor(0, 'synth');
+    for (let i = 0; i < 12 * 60 && !p.ready; i++) { p.tick(); m.tick(); }
+    ok('the rack’s page resolved', p.ready);
+
+    const pad = m.getViewModel().drumPadName;
+    ok('the rack named the focused pad', pad.length > 0, JSON.stringify(pad));
+    ok('...and it is not the module’s first page’s name',
+       pad !== p.chrome(true).pageLabel, JSON.stringify(p.chrome(true).pageLabel));
+
+    const own = [], other = [], words = [];
+    for (let i = 0; i < p.pageCount; i++) {
+        p.goToPage(i);
+        const label = p.chrome(true).pageLabel;
+        if (label === null) continue;      /* nothing to name this page with */
+        const drawn = headerRightText(m.getViewModel(), p.chrome(true));
+        eq('page ' + i + ' draws its own name', drawn, label);
+        words.push(drawn);
+        (label === pad ? own : other).push({ label, drawn });
+    }
+    /* Both halves of the ruling, on one module: the page that IS the pad's own
+     * — where the pad's name wins because the page's label carries the same
+     * word — and every page that is not, where the label wins and the pad's
+     * name would have hidden it. */
+    ok('one of those pages IS the pad’s own', own.length > 0, JSON.stringify(own));
+    ok('and another is not', other.length > 0, JSON.stringify(other));
+    for (const q of other) ok('...and there the pad’s name did NOT win',
+        q.drawn !== pad, JSON.stringify(q));
+
+    /* THE REQUIRED BEHAVIOUR, IN ONE LINE: the text MOVES when the jog does.
+     * With the pad's name leading, `words` is one repeated string. */
+    ok('the header’s right-hand end CHANGES across the pages of one module',
+       new Set(words).size > 1, JSON.stringify(words));
+
+    /* AND WHERE THERE IS NO PAGE, THE PAD FALLS BACK IN — `off`, and every
+     * frame whose delegated page is not the body. */
+    eq('no chrome, the pad’s name stands',
+       headerRightText(m.getViewModel(), undefined), pad);
+
+    p.goToPage(0);
+    schwungGridReload();
+    setSchwungGridMode(null);
+    setSurfaceReader(null);
     env.setParams(MOCK_SYNTHS.test16);
 }
 

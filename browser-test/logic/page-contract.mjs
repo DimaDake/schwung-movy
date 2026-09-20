@@ -22,6 +22,7 @@ import {
     schwungLibAvailable, MOCK_SYNTHS, countTrips, ok, eq, _log,
     perfPhase, perfPhaseEnd, perfProbeTick,
 } from './harness.mjs';
+import { RELOAD_POLL_TICKS } from '../../dist/esm/renderer/schwung-page.js';
 
 export async function run() {
 
@@ -170,7 +171,9 @@ const PROBE_WINDOW = 120;
     const realReload = p.ctl.reloadIfChanged;
     p.ctl.reloadIfChanged = () => { throw new Error('the module blew up'); };
     let threw = false;
-    for (let i = 0; i < 8; i++) { try { p.tick(); } catch { threw = true; } }
+    // The real divider width (SP-49 widened it 8->16) — not a copy of the
+    // number, so this stops meaning "8 ticks" the moment that constant moves.
+    for (let i = 0; i < RELOAD_POLL_TICKS; i++) { try { p.tick(); } catch { threw = true; } }
     ok('a throw out of the divider reaches the caller', threw);
 
     /* The inter-window gap, as wall time, then what the next window's first

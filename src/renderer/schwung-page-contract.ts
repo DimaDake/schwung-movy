@@ -13,6 +13,49 @@ import { createWidgetSync } from './schwung-page-widget-sync.js';
 import type { PageReadCache } from './schwung-page-cache.js';
 import type { PageHierarchy } from './schwung-page-hierarchy.js';
 
+/*
+ * `reloadIfChanged` IS POLLED ON A DIVIDER, NOT EVERY TICK.
+ *
+ * It is a full contract read — `load()` unconditionally, with the fingerprint
+ * compare deciding only whether to re-PLAN — so on device it is a synchronous
+ * round trip per call, for a question whose answer changes once: has the module
+ * in this slot been swapped. Schwung's own host (shadow_ui_param_pages.mjs)
+ * paces the same question on a divider of 8 and says why: "every one of these
+ * is a synchronous round trip (~2.8ms) ... for an edge that fires once".
+ *
+ * It was every tick here, and that was survivable only because the tick itself
+ * was rare: the poll used to hang off movy's repaint, which in a steady state
+ * never came. SP-12 made the poll per-tick — it had to, or the page's read
+ * cursor never advances — and that turned this line into the page's largest
+ * standing cost. Measured in `scripts/grid-call-cost.mjs`: every tick, the
+ * `page` arm idles at 3.00 host calls/tick; on this divider, 1.25, against
+ * movy's own refresh at the 1.13 it replaces.
+ *
+ * SP-49 measured WHY it is the largest idle-tick cost anywhere the migration
+ * has looked: `reloadIfChanged()`'s own re-plan is SU-14 (schwung PR #519,
+ * filed, unreviewed) — it re-walks the whole module even when nothing
+ * changed — and stashing this divider out to 100000 (so it never fires in a
+ * measurement window) on `minijv` (70 pages) made the ENTIRE idle `page` vs
+ * `off` gap collapse to noise: calls/tick 1.1->0.6 (off's own 0.6), ipc_ms
+ * 2.8->1.3 (off's 1.3), worst period 6.1->5.4ms (off's 5.1). The two IPC lines
+ * SP-49 could not otherwise attribute (`mget ch0:*`, `get overtake_dsp:*`) rode
+ * the SAME divider tick and vanished with it, so they are not a separate movy
+ * defect to chase — they are this re-plan's own reads. There is no local fix
+ * for the re-plan itself (rule: never patch `../schwung`) — only for how often
+ * movy asks for one, which is this constant. Doubling it to 16 (confirmed on
+ * device, same module) roughly HALVES the standing cost — `ctlreload`
+ * 0.8->0.4ms/tick, worst period 6.1->5.7ms — for a module-swap notice delay of
+ * at most ~16 ticks (~100ms on this device's tick rate) against a module LOAD
+ * costing hundreds of ms. Widen further only against a fresh device
+ * measurement: the win is `sinceReload`-linear, the swap latency is too, and
+ * doubling once is the bounded, reversible step the plan asked for, not a
+ * standing invitation to keep turning the knob.
+ *
+ * The delay it costs is at most RELOAD_POLL_TICKS before a departed module
+ * hands the frame back — tens of milliseconds, against a module load.
+ */
+export const RELOAD_POLL_TICKS = 16;
+
 export function createPageContract(ctl: any, port: TrackPort, componentKey: string,
                                    cache: PageReadCache, hier: PageHierarchy) {
     let loaded = false;
@@ -123,28 +166,8 @@ export function createPageContract(ctl: any, port: TrackPort, componentKey: stri
      */
     const IDLE_RETRY_TICKS = MODULE_LOAD_TICKS;
 
-    /*
-     * `reloadIfChanged` IS POLLED ON A DIVIDER, NOT EVERY TICK.
-     *
-     * It is a full contract read — `load()` unconditionally, with the fingerprint
-     * compare deciding only whether to re-PLAN — so on device it is a synchronous
-     * round trip per call, for a question whose answer changes once: has the module
-     * in this slot been swapped. Schwung's own host (shadow_ui_param_pages.mjs)
-     * paces the same question on a divider of 8 and says why: "every one of these
-     * is a synchronous round trip (~2.8ms) ... for an edge that fires once".
-     *
-     * It was every tick here, and that was survivable only because the tick itself
-     * was rare: the poll used to hang off movy's repaint, which in a steady state
-     * never came. SP-12 made the poll per-tick — it had to, or the page's read
-     * cursor never advances — and that turned this line into the page's largest
-     * standing cost. Measured in `scripts/grid-call-cost.mjs`: every tick, the
-     * `page` arm idles at 3.00 host calls/tick; on this divider, 1.25, against
-     * movy's own refresh at the 1.13 it replaces.
-     *
-     * The delay it costs is at most RELOAD_POLL_TICKS before a departed module
-     * hands the frame back — tens of milliseconds, against a module load.
-     */
-    const RELOAD_POLL_TICKS = 8;
+    // See the module-level comment on `RELOAD_POLL_TICKS` (SP-12, SP-49) — the
+    // divider itself now lives there so a test can import the real value.
     let sinceReload = 0;
 
     function tick(): void {

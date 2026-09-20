@@ -156,7 +156,8 @@ _log('\nTest: nothing is translated for a config that declares no voice run');
 
 _log('\nTest: the same config translates to the same thing every time');
 {
-    /* `reloadIfChanged` fingerprints the contract every 8 ticks. A translation
+    /* `reloadIfChanged` fingerprints the contract every RELOAD_POLL_TICKS
+     * ticks (SP-49 widened this from 8 to 16). A translation
      * that differed run to run — a Set's iteration order, a Date, an object
      * identity — would re-plan the page forever, which is the shape of the bug
      * SP-27 measured the cost of. */

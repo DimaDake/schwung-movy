@@ -147,7 +147,7 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | SP-40 | the flag becomes two values, MOVY and SCHWUNG; `body` and the `.off` stand-ins deleted | Sonnet | ✅ | **7** | ✔ |
 | SP-47 | **NEW** — the opt-in release: the row goes in front of users, default still MOVY | Sonnet | ⬜ | **8** | — |
 | SP-48 | a modulated or `live` param the page shows keeps it redrawing forever. **A regression SP-38 introduced** — fixed with a movy-side repaint cap (`src/app/repaint-cap.ts`), the flag must not reach testers with it open (now satisfied) | Sonnet | ✅ | **7.5** | ✔ |
-| SP-49 | **NEW** — an IDLE `page` tick costs half again what an `off` tick costs (worst period 6.3 vs 5.0 ms, `calls/tick` 1.4 vs 0.6) and it is there with nothing moving. **A standing LATENCY cost** — the tick period is the MIDI sampling interval — so it is a gate, not just inefficiency | Sonnet | ⬜ | **7.7** | ✔ |
+| SP-49 | An IDLE `page` tick costs half again what an `off` tick costs. **Attributed on `minijv` (70 pages): the WHOLE gap is downstream of `ctl.reloadIfChanged()` (SU-14) — stashing that divider out collapsed calls/tick 1.1→0.6, worst period 6.1→5.4ms, both matching `off` exactly.** Local fix landed: `RELOAD_POLL_TICKS` 8→16 (`src/renderer/schwung-page-contract.ts`), confirmed on device to roughly halve `ctlreload` (0.8→0.4ms/tick) and the standing gap (worst period 6.1→5.7ms). **Does not clear the ~10% closure bar** — residual is SU-14's own cost, amortized wider; needs SP-47's explicit acceptance or SU-14 landing | Sonnet | 🔨 **partial, 2026-09-20** | **7.7** | ✔ |
 | SP-50 | **NEW** — on a child-level page movy and the controller disagree about WHICH child is showing. **Live under `page` on the missing `child_index_param`**: movy addresses no child at all while the controller resolves at instance 0, so the warm covers the wrong child and a knob can answer for the neighbour — inert on the installed `voice-poc`. (The other half, an off-by-base on the wire value, is real and has NO fleet exhibition.) Unreachable under the default `off` | Sonnet | ⬜ | **7.8** | ✔ |
 | SP-51 | **NEW** — the movy MODEL's own knob touch is still resolved at RELEASE time (`knobModel()?.handleKnobTouch` on the press against `handleKnobRelease` on the release, `src/midi/router.ts`), so a page change mid-hold leaves the model that heard the press with its touched/overlay state armed and hands the other model a release it never had. **Different consequence from SP-31, not the same bug**: the model's touch is movy's own state, `resetHeldInput` clears it, and it does not latch the jog click. Raised by SP-31 as a note; the id was added 2026-09-19 | Sonnet | ⬜ | **7.9** | — |
 | SP-32 | a bank or cell that exists only in movy's config is on no page under `page`: audit before SP-30 flips the default. **The route is the hierarchy movy already returns** — see The injection surface §2 | Sonnet | ⬜ | 9 | — |
@@ -188,7 +188,7 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | SU-11 | A per-key duration in the animation store, so `settled` ages out a value that never rests | ⬜ **new** — SP-48 shipped the movy-side repaint cap fallback instead (2026-09-20); this ask is written (SP-48's own writeup has the PR-ready text) but **not yet filed** as a branch/PR, same as SU-9/SU-10/SU-12/SU-13. Not blocking anything — the cap makes no assumption that survives this landing later |
 | SU-12 | A caller-supplied trailing page of kind `knobs`, not only `menu` — so movy's own pages can join a module's page set | ⬜ **new, expected to close without work.** `buildTrailingPages` hard-codes `kind: PAGE_MENU` (`page_plan.mjs:381`), so appending a KNOB page is upstream — but movy already owns the contract string, and folding the page into that is the host-side route (SP-54, route 1). Open this only if the fold is measured too expensive |
 | SU-13 | A host-owned page's write throttle and knob feel | ⬜ **new, conditional, and bounded by The injection surface §4.** `SETPARAM_THROTTLE_MS = 20` and the acceleration constants are `export const` bindings — readable, not writable — so a feel complaint about a migrated Set Params page (the tempo knob) is an upstream ask or it does not happen. Do not open it before a complaint exists |
-| SU-14 | The re-plan skip: `param_pages` re-plans the whole module even when the contract has not changed | 🔨 **FILED — schwung PR #519, OPEN and unreviewed since 2026-09-17** (head `DimaDake:perf/page-reload-skip-unchanged-contract-upstream`, `3bca6d68`; the local `1959e661` is its working copy). 87 lines of `page_controller.mjs` + one host test. **The action is to chase it, not to write it**, and it lands in the highest-churn file in the library (98 commits/90 days), so it is overtaken the longer it waits. Until it ships, a host-owned contract pays the FULL unconditional re-plan — see the correction in *The pages that are not a track module's* |
+| SU-14 | The re-plan skip: `param_pages` re-plans the whole module even when the contract has not changed | 🔨 **FILED — schwung PR #519, OPEN and unreviewed since 2026-09-17** (head `DimaDake:perf/page-reload-skip-unchanged-contract-upstream`, `3bca6d68`; the local `1959e661` is its working copy). 87 lines of `page_controller.mjs` + one host test. **The action is to chase it, not to write it**, and it lands in the highest-churn file in the library (98 commits/90 days), so it is overtaken the longer it waits. Until it ships, a host-owned contract pays the FULL unconditional re-plan — see the correction in *The pages that are not a track module's*. **SP-49 measured how much: on `minijv` (70 pages), stashing movy's own reload-poll divider out to where it never fires collapsed the ENTIRE idle `page`-vs-`off` gap to noise — this is not one line among several, it is the whole of what SP-49 could still see once SP-26/27/48 had already been paid for** (`sp49-measurement.md`) |
 
 ---
 
@@ -1314,6 +1314,70 @@ number and who accepted it.
 **Needs:** nothing from the plan, and no decision from anyone else. Device time,
 and a judgement on how much of the delegated renderer's idle cost is worth
 buying.
+
+**Resolution, 2026-09-20 — attributed, partially bought back, not closed.**
+Full method and every number: `sp49-measurement.md`. Summary:
+
+Ran the plan's three unmeasured items on `minijv` (70 pages — the big module
+the plan's own §2.1 asked for first) rather than guessing further from `cw78`'s
+numbers: (1) idle baseline, both arms; (2) `TRACE_LABEL` traces on the two
+previously-unattributed IPC lines; (3) stashing the reload divider
+(`RELOAD_POLL_TICKS`) out to where it never fires in a window, to isolate its
+true share.
+
+**Result: on this fixture the entire idle gap is downstream of
+`ctl.reloadIfChanged()` — SU-14.** With the divider stashed out, `page`'s idle
+numbers (calls/tick 0.6, ipc_ms 1.3, worst period 5.4ms) match `off`'s
+(0.6 / 1.3 / 5.1ms) within noise. The two IPC lines SP-38/39/49 could not
+attribute — `mget ch0:*` (movy's own `loadHierarchy`/`pollModuleName`/
+`buildViewModel`, per the trace) and `get overtake_dsp:*` (traced to
+`schwung/shadow/shadow_ui.js:8905`, **not movy's code — schwung's own**) —
+vanished together with `ctlreload`'s ms cost, meaning both ride the SAME
+divider tick as reads the re-plan itself makes, not separate standing costs.
+The earlier hypothesis that movy's own reads were bypassing a warm cache
+(§1/§3 of the plan) does **not** survive this isolation — there was nothing
+independently movy's to fix on the read side.
+
+**What shipped: `RELOAD_POLL_TICKS` widened 8 → 16**
+(`src/renderer/schwung-page-contract.ts`, `RELOAD_POLL_TICKS` moved to module
+scope so a test can import the real value instead of copying the number).
+This is the one lever the plan's own §4 sanctioned once SU-14 was confirmed
+dominant: it cannot fix the re-plan's per-call cost (that is schwung's own
+function body, upstream, rule 1 — do not patch `../schwung`), only how often
+movy pays for one. Confirmed on device, same module/build: `ctlreload`
+0.8→0.4ms/tick, worst idle period 6.1→5.7ms, calls/tick 1.1→0.8-0.9. Module-
+swap notice delay doubles to at most 16 ticks (~100ms on this device's tick
+rate) against a module LOAD costing hundreds of ms — the plan's own bar for
+"small, bounded, reversible," and matched the earlier `RETRY_TICKS`-family
+precedent already accepted in this file.
+
+**Does not close outright.** Residual against `off` (worst period 5.7 vs
+5.1ms, calls/tick 0.8-0.9 vs 0.6) is smaller but outside the plan's ~10%
+closure bar — the remainder is SU-14's own cost, amortized over a wider
+divider, not a new movy term. Per the plan's own closure rule, this needs
+**either** SU-14 (schwung PR #519) landing, **or** SP-47 recording an explicit
+acceptance naming this residual number. Widening `RELOAD_POLL_TICKS` further is
+possible (the win is `1/RELOAD_POLL_TICKS`-linear) but was not done blind —
+a second widening wants its own fresh device measurement, not a repeat of this
+one's math.
+
+**Teeth, local — `browser-test/logic/schwung-page-idle-cost.mjs`.** Ticks the
+REAL contract/cache (real `param_pages` via `SCHWUNG=`, mock `TrackPort`) 96
+idle ticks (a multiple of both `FILL_TICKS`=8 and `RELOAD_POLL_TICKS`=16) and
+asserts total host calls stay at or under a literal, hand-computed bound (not
+derived from the runtime constants, so a broken divider and a broken bound
+cannot move together) — measured 12 bulk + 31 single = 43 against a bound of
+48. Breaking the divider (`sinceReload >= 1` instead of `>= RELOAD_POLL_TICKS`,
+reverted after) reddened it at **133 calls vs the unchanged 48 bound** — and
+also reddened `schwung-page.mjs`'s pre-existing "under one round trip per two
+ticks" budget, confirming both catch the same regression shape. Also updated:
+`page-contract.mjs`'s divider-throw test (hardcoded loop of 8 ticks would never
+reach a 16-wide divider) now imports the real `RELOAD_POLL_TICKS` instead of
+copying the number.
+
+**Not movy's, scoped out:** `get overtake_dsp:*`'s extra idle rate — confirmed
+schwung's own `shadow_ui.js`, not a movy call site, so there is nothing here
+for movy to route through a cache or narrow.
 
 ---
 

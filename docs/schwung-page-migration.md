@@ -149,7 +149,7 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | SP-48 | a modulated or `live` param the page shows keeps it redrawing forever. **A regression SP-38 introduced** — fixed with a movy-side repaint cap (`src/app/repaint-cap.ts`), the flag must not reach testers with it open (now satisfied) | Sonnet | ✅ | **7.5** | ✔ |
 | SP-49 | An IDLE `page` tick costs half again what an `off` tick costs. **Attributed on `minijv` (70 pages): the WHOLE gap is downstream of `ctl.reloadIfChanged()` (SU-14) — stashing that divider out collapsed calls/tick 1.1→0.6, worst period 6.1→5.4ms, both matching `off` exactly.** Local fix landed: `RELOAD_POLL_TICKS` 8→16 (`src/renderer/schwung-page-contract.ts`), confirmed on device to roughly halve `ctlreload` (0.8→0.4ms/tick) and the standing gap (worst period 6.1→5.7ms). **Does not clear the ~10% closure bar** — residual is SU-14's own cost, amortized wider; needs SP-47's explicit acceptance or SU-14 landing | Sonnet | 🔨 **partial, 2026-09-20** | **7.7** | ✔ |
 | SP-50 | On a child-level page movy and the controller disagree about WHICH child is showing. **Fixed movy-side, both halves**: `jump`'s `concrete()` now warms at `ctl.childIndexOf(level)` when the level owns no write channel (agreement, not pad-follow — that needs `voice-poc` to gain `child_index_param` upstream, **SU-15**); the wire write goes through `childIndexToWire`. Half one (missing channel) is tested against the real `voice-poc` dump; half two (off-by-base) has **no fleet exhibition**, pinned by a synthetic fixture only | Sonnet | ✅ | **7.8** | ✔ |
-| SP-51 | **NEW** — the movy MODEL's own knob touch is still resolved at RELEASE time (`knobModel()?.handleKnobTouch` on the press against `handleKnobRelease` on the release, `src/midi/router.ts`), so a page change mid-hold leaves the model that heard the press with its touched/overlay state armed and hands the other model a release it never had. **Different consequence from SP-31, not the same bug**: the model's touch is movy's own state, `resetHeldInput` clears it, and it does not latch the jog click. Raised by SP-31 as a note; the id was added 2026-09-19 | Sonnet | ⬜ | **7.9** | — |
+| SP-51 | The movy MODEL's own knob touch was resolved at RELEASE time (`knobModel()?.handleKnobTouch` on the press against `handleKnobRelease` on the release, `src/midi/router.ts`), so a page change mid-hold left the model that heard the press with its touched/overlay state armed and handed the other model a release it never had. **Different consequence from SP-31, not the same bug**: the model's touch is movy's own state — fixed with a second small ledger (`midi/knob-model-pin.ts`), not a shared Map with SP-31's page pin (incompatible `null`-clears rule). Teeth: `app-loop.mjs`, flag-independent, `3 of 3` unchanged. Raised by SP-31 as a note; the id was added 2026-09-19 | Sonnet | ✅ | **7.9** | — |
 | SP-32 | a bank or cell that exists only in movy's config is on no page under `page`: audit before SP-30 flips the default. **The route is the hierarchy movy already returns** — see The injection surface §2 | Sonnet | ⬜ | 9 | — |
 | SP-42 | **NEW** — a .wav has no waveform: `wav_io_qjs.mjs` is never imported | Sonnet | ⬜ | 10 | — |
 | SP-45 | **NEW** — 8w8's pads do not select their pages; the other three racks' do | Sonnet | ⬜ | 11 | — |
@@ -586,9 +586,9 @@ previous "this needs upstream" in this file has cost a release cycle.
 6 SP-31 ✅ **closed 2026-09-19**, 7 SP-40, **7.5 SP-48 — the regression SP-38 introduced**, **7.7 SP-49 —
 the standing idle tick, which is latency and therefore a gate**, **7.8 SP-50 —
 the child instance movy addresses is not the one the controller resolves, which
-is live under `page`**, **7.9 SP-51 — the movy MODEL half of that same gesture is still
-resolved at release time; not a gate (it clears itself and latches nothing), but the
-next `page`-arm fix round should take it**, 8 **SP-47 —
+is live under `page`**, **7.9 SP-51 ✅ closed 2026-09-20 — the movy MODEL half of that
+same gesture was resolved at release time; not a gate (it does not latch the
+controller), fixed alongside this fix round**, 8 **SP-47 —
 the release**. Then SP-32, SP-42, SP-45,
 SP-44, SP-46, SP-16, SP-21a, SP-23, SP-24, SP-29, SP-30, and SP-41 only if it
 is ever decided. SP-31 (✅ closed 2026-09-19) was in front of the release and the user did
@@ -872,20 +872,92 @@ committed, so the fixture's chain is untouched whichever way the check goes.
 omission: the `page` flag is not user-visible yet (that is SP-47's item), so no gesture,
 page or control a user has changed.
 
-**Not covered — an OPEN ITEM, SP-51, not a footnote here.** It was a ledger NOTE
-without an id until 2026-09-19, which is the thing this ledger's own convention
-exists against: a prose-only note is a finding the next session re-derives from
-scratch instead of picking up. The movy-MODEL half of the same gesture is still
-resolved at release time:
-`knobModel()?.handleKnobTouch(d1, !owner.delegated)` on the press against
-`knobModel()?.handleKnobRelease(d1)` on the release (`src/midi/router.ts`). A
-page change mid-hold therefore leaves the model that heard the press with its own
-touched/overlay state armed and hands the other model a release it never had.
+**Not covered here — CLOSED as SP-51.** It was a ledger NOTE without an id until
+2026-09-19, which is the thing this ledger's own convention exists against: a
+prose-only note is a finding the next session re-derives from scratch instead of
+picking up. The movy-MODEL half of the same gesture was still resolved at
+release time: `knobModel()?.handleKnobTouch(d1, !owner.delegated)` on the press
+against `knobModel()?.handleKnobRelease(d1)` on the release (`src/midi/router.ts`).
+A page change mid-hold left the model that heard the press with its own
+touched/overlay state armed and handed the other model a release it never had.
 Different consequence, not the same bug: the model's touch is movy's own state,
-`resetHeldInput` clears it, and it does not latch the jog click — the permanence
-above is a property of the CONTROLLER. The LFO hold is NOT affected, checked
-rather than assumed: `lfo/assign-mode.ts`'s `holdRelease(physK)` keys on the knob
-index alone, so the release clears it whichever model is current.
+not the controller's, so it never latched a jog click. **Correction to this
+entry's own earlier framing:** the claim that `resetHeldInput` clears the leak
+was true but incomplete, and would have misled an implementer into thinking the
+everyday case was covered — `resetHeldInput` runs only at cold boot and on
+Leave-Movy, never on an ordinary track switch or Session toggle, which is
+exactly the scenario this note names. What actually self-healed the everyday
+case was `app/tick.ts`'s `shownKey` check, and only *reactively*: it clears
+`touchedSlots`/`enumOverlay` on whichever model is shown NOW, not the one that
+just lost the knobs, so the pressed model's open overlay sat live and
+uncommitted until the next time IT was shown again — after the user's roll was
+already lost, never because the release landed right. See SP-51 below for the
+fix. The LFO hold is NOT affected, checked rather than assumed:
+`lfo/assign-mode.ts`'s `holdRelease(physK)` keys on the knob index alone, so the
+release clears it whichever model is current.
+
+---
+
+### SP-51 ✅ 2026-09-20 — the movy MODEL's own knob touch was still resolved at RELEASE time
+
+**Symptom.** Hold a knob whose cell is an enum/item-selector (>6 options) or a
+file param — the overlay opens and the user rolls to a different item — then
+switch tracks (or toggle Session, or swap the module in the focused slot)
+*while still holding the knob*, then let go. The newly-rolled selection is
+silently discarded: the release lands on whichever model is now on screen (a
+no-op there), and the model that actually holds the open overlay never hears a
+release at all. Flag-independent, unlike SP-31: `knobModel()?.handleKnobTouch`/
+`handleKnobRelease` run unconditionally in the router's fallback branch,
+delegated or not.
+
+**Cause.** `knobModel()` (`masterChainActive() ? masterModel() : activeModel()`)
+is resolved fresh on every call — once at press, again at release. A track
+switch, chain-slot swap, or Session toggle between the two resolves it to a
+DIFFERENT `Model` instance, so the release commits nothing on the model that
+opened the overlay.
+
+**Fix.** `src/midi/knob-model-pin.ts` — a second small ledger, not a shared Map
+with SP-31's `knob-page-pin.ts`: that ledger's `pinPage(knob, null)` means
+"delegated, so forget it," which is correct for a PAGE (a movy-owned or
+unsettled page has nothing to hand a release to) but wrong for a MODEL — there
+is always one to pin whenever there was a press to react to, `off` included,
+which is the flag state this bug is most reachable in. Applying the page rule
+here would delete the model pin right after every press under `off`. The two
+ledgers share only their `Map<knobIndex, T>` bookkeeping, factored out as
+`createKnobLedger<T>()` in `knob-page-pin.ts` (rule 6: no duplication without
+conflating the two lifetimes). `pinModel(knob, model)` at the press (capturing
+`knobModel()` once, alongside `pinPage`), `unpinModel(knob)` drained
+UNCONDITIONALLY at the top of the `0x90 && d1 < 8` block — same site as SP-31's
+page drain, before the Main/Clip/Flags/Step `return`s — and `clearModelPins()`
+in `app/input-reset.ts` next to `clearPins()`. The release branch's own
+`knobModel()?.handleKnobRelease(d1)` call was deleted entirely (not left beside
+the drain) — keeping both would double-fire.
+
+**Teeth — `browser-test/app-loop.mjs`, "a knob release outliving its model does
+not strand its overlay."** Two tracks loaded with `MOCK_SYNTHS.name_enum`
+(knob 0 = a 10-option enum, opens on touch with no turn needed): touch knob 0
+on track 0, `selectTrack(1)` mid-hold, release. Asserts
+`trackModels[0][1].getViewModel().overlay === null`. Unconditional — no
+`GRID_ARM` guard — since the bug is flag-independent; it fails identically in
+`off`, default and `page`. Removing the `pinModel`/`owedModel` wiring reddens it:
+`expected null, got {"slot":0,...}` — the release reached track 1's fresh model,
+a genuine no-op there, so track 0's overlay was never committed. Restored: green,
+burn-down unchanged at `3 of 3`.
+
+**A test-hygiene trap the first draft of this block hit, worth recording:**
+inserting a module swap (`env.setParams(MOCK_SYNTHS.name_enum)`) between two
+existing blocks that assumed the SAME module carried over
+(`renderer/schwung-grid.ts`'s `pages` cache is keyed by `track:component`, not
+by synth identity, and a bare `model.reload()` does not drop a stale cached
+`SchwungPage`) turned three UNRELATED, downstream `page`-arm checks red
+("file param not automated", "a held step refuses to lock it", "shift+jog:
+plain jog steps one page") — none of them touch track 1, the track this block
+switches to. `schwungGridReload()` at both ends of the block (dropping the
+prior block's cache before swapping in, and this block's own half-resolved
+track-1 page before handing off) fixed it; every other block in this file that
+swaps modules follows the same pattern. Recorded so the next session does not
+have to re-diagnose it from a page-mode regression with no apparent connection
+to the change that caused it.
 
 ---
 

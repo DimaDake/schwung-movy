@@ -611,6 +611,51 @@ _log('\napp-loop: a knob release that outlives its page does not latch the contr
     eq('...and the next jog click still reaches movy', appState.currentView, VIEW_BROWSE);
 }
 
+/* ── a knob release must land on the MODEL that heard the press ─────────── */
+_log('\napp-loop: a knob release outliving its model does not strand its overlay');
+{
+    /* Same shape of gesture as the block above (press, page/model changes
+     * mid-hold, release out of order) but for the SP-51 bug: `knobModel()`
+     * (`masterChainActive() ? masterModel() : activeModel()`) is re-resolved
+     * at release time, so a track switch between press and release hands the
+     * release to a different Model instance than the one whose
+     * handleKnobTouch opened its enum overlay. Flag-independent (unlike the
+     * SP-31 block above) — no GRID_ARM guard, since knobModel() touch/release
+     * runs unconditionally in the fallback branch regardless of delegation. */
+    schwungGridReload();    // drop the previous block's cached page before swapping modules
+    engine.reset();
+    env.setParams(MOCK_SYNTHS.name_enum);   // knob 0 = division, 10 options → overlay on touch
+    resetSeqState(); resetSeqEngine();
+    globalThis.init();
+    appState.trackModels[0][1].reload();
+    appState.trackModels[1][1].reload();
+    advance(12);                              // settle both models' hierarchy
+    selectTrack(0);
+    appState.currentView = VIEW_KNOBS;
+
+    sendMidi([0x90, 0, 127]);   // touch knob 0 on track 0 — opens its enumOverlay
+    selectTrack(1);             // the page changes mid-hold; no MIDI needed —
+                                 // this is the state knobModel() reads
+    sendMidi([0x90, 0, 0]);     // release — must land on track 0's model, not track 1's
+
+    eq('the pressed track\'s overlay is closed by its own release',
+       appState.trackModels[0][1].getViewModel().overlay, null);
+    eq('track 1 was not perturbed by the stray release',
+       appState.trackModels[1][1].getViewModel().overlay, null);
+
+    /* This block is the only one in the file that ever asks track 1's page
+     * (selectTrack(1) mid-hold, above) — every other block only ever touches
+     * track 0. Leaving track 1's half-resolved SchwungPage cached under
+     * `1:<componentKey>` is invisible here but not free: it is picked up
+     * later by anything that walks every cached page (idle-cost accounting,
+     * a background poll), which shifted timing-sensitive assertions in
+     * blocks far downstream that never touch track 1 themselves. Dropping
+     * the whole cache — mine and the SP-31 block's before it — leaves the
+     * next block to build fresh, exactly as if this one had not run. */
+    schwungGridReload();
+    selectTrack(0);
+}
+
 _log('\napp-loop: knob turn while a step is held writes automation');
 {
     const { VIEW_KNOBS } = await import('../dist/esm/app/state.js');

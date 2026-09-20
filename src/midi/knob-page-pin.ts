@@ -28,10 +28,33 @@ export interface TouchablePage {
     knobTouch(slot: number, down: boolean): void;
 }
 
-const pinned = new Map<number, TouchablePage>();   /* knobIndex → the page that heard the press */
+/* Shared `Map<knobIndex, T>` bookkeeping for a "what heard the press" ledger.
+ * `knob-model-pin.ts` reuses this rather than copying it (rule: no
+ * duplication) — the two ledgers' SHAPE is identical, only their `null`
+ * semantics at press time differ (see that file for why they cannot merge
+ * into one Map). */
+export function createKnobLedger<T>() {
+    const pinned = new Map<number, T>();
+    return {
+        set(knob: number, value: T): void { pinned.set(knob, value); },
+        delete(knob: number): void { pinned.delete(knob); },
+        take(knob: number): T | undefined {
+            const v = pinned.get(knob);
+            if (v !== undefined) pinned.delete(knob);
+            return v;
+        },
+        get size(): number { return pinned.size; },
+        clear(): void { pinned.clear(); },
+    };
+}
+
+const pinned = createKnobLedger<TouchablePage>();
 
 /* Record what the press landed on. `null` clears any entry for that knob, so a
- * fresh press can never inherit a pin from an earlier gesture. */
+ * fresh press can never inherit a pin from an earlier gesture. This rule is
+ * PAGE-specific: a movy-owned page and an unclaimed contract both answer
+ * `null` here, and that is legitimately "nothing owed" for a page (see
+ * knob-model-pin.ts for why the model ledger cannot share this rule). */
 export function pinPage(knob: number, page: TouchablePage | null): void {
     if (page) pinned.set(knob, page);
     else pinned.delete(knob);
@@ -40,9 +63,7 @@ export function pinPage(knob: number, page: TouchablePage | null): void {
 /* Remove and return the page owed this release, or undefined if the press
  * recorded none (a movy-owned page, or a release with no press). */
 export function unpinPage(knob: number): TouchablePage | undefined {
-    const p = pinned.get(knob);
-    if (p !== undefined) pinned.delete(knob);
-    return p;
+    return pinned.take(knob);
 }
 
 export function pinnedCount(): number { return pinned.size; }

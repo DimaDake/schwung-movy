@@ -10,8 +10,9 @@
  */
 
 import { schwungLibAvailable, eq, ok, _log,
-         env, MOCK_SYNTHS, schwungPageFor, schwungGridReload,
+         env, portFor, MOCK_SYNTHS, schwungPageFor, schwungGridReload,
          setSchwungGridMode, countTripKinds } from './harness.mjs';
+import { dumpFixture } from '../dump-fixture.mjs';
 
 export async function run() {
 
@@ -91,6 +92,115 @@ _log('\nTest: a pad press covers its page in ONE bulk request');
      * gesture rather than the warm. */
     const again = countTripKinds(() => { p.focusVoice(8); });
     eq('...and the same press again spends no request on the page', again.bulk, 0);
+
+    schwungGridReload();
+    setSchwungGridMode(null);
+    env.setParams(MOCK_SYNTHS.test16);
+}
+
+_log('\nTest: a level with no child-index channel warms the key the controller '
+   + 'will read, not the pressed voice (SP-50)');
+{
+    /* THE ONLY FLEET MODULE THAT REACHES THIS: voice-poc's `pads` declares
+     * child_note_base (so it has voices) but no child_index_param (so no
+     * channel ever moves `s.childIndex['pads']`). Pinned first so a future
+     * dump update that adds the param doesn't quietly make the rest moot. */
+    setSchwungGridMode('page');
+    schwungGridReload();
+    env.setParams(dumpFixture('voice-poc'));
+    const p = schwungPageFor(0, 'synth');
+    for (let i = 0; i < 12 * 60 && !p.ready; i++) p.tick();
+    ok('the rack’s page resolved', p.ready);
+
+    const knobsIdx = p.ctl.pages.findIndex(
+        (pg) => pg && pg.level === 'pads' && Array.isArray(pg.keys));
+    const pickerIdx = p.ctl.pages.findIndex(
+        (pg) => pg && pg.level === 'pads' && !Array.isArray(pg.keys));
+    ok('the fixture still has both a pads picker and a pads knobs page',
+       knobsIdx >= 0 && pickerIdx >= 0);
+    ok('...and the pinned shape: pads declares no child_index_param',
+       !(p.ctl.pages[knobsIdx].childLevel || {}).child_index_param);
+
+    /* THE PICKER ALWAYS WINS FIRST MATCH, SO THE WARM NEVER FIRES AS-IS.
+     * Schwung's own planner inserts an items-kind picker page ahead of the
+     * knobs page for ANY level lacking `child_index_param`
+     * (`childPickerNeeded`'s `if (!idxParam) return true`, page_plan.mjs), so
+     * `focusVoice`'s first-match-by-level loop lands THERE, and that page
+     * carries no `keys` at all -- `jump`'s whole warm block is skipped before
+     * `concrete()` ever runs (confirmed empirically while writing this test:
+     * on the untouched fixture `focusVoice(5)` reads NOTHING at all). Spliced
+     * out here so the fix under test -- which index `concrete()` warms at --
+     * is reachable: the real planner cannot produce a first-match knobs page
+     * for this shape today, so this exercises movy's own jump/concrete logic
+     * in isolation, not a sequence a device press can currently produce. That
+     * gap is recorded in the ledger alongside this item, not fixed here --
+     * changing which page a press lands on is a different bug. */
+    p.ctl.pages.splice(pickerIdx, 1);
+
+    env.restoreParamGlobals();
+    const realGet = globalThis.host_module_get_param;
+    const gets = [];
+    globalThis.host_module_get_param = (k) => { gets.push(k); return realGet(k); };
+    /* pad 5 = "Tom Hi" (voicesOf order: kick, snare, hat, reverb (no voice,
+     * no note), then the 4 pads children) -- childIndex 1. */
+    const pressed = p.focusVoice(5);
+    globalThis.host_module_get_param = realGet;
+
+    ok('the press resolved onto the pads page',
+       pressed && p.ctl.pages[p.pageIndex].level === 'pads');
+    eq('the controller genuinely never moved off instance 0 -- no channel to move it',
+       p.ctl.childIndexOf('pads'), 0);
+    ok('the warm covers instance 0’s key, which is what will really be read',
+       gets.some((k) => k.endsWith('synth:p1_vol')));
+    ok('...and NOT the pressed voice’s key, which the controller will never read',
+       !gets.some((k) => k.endsWith('synth:p2_vol')));
+
+    schwungGridReload();
+    setSchwungGridMode(null);
+    env.setParams(MOCK_SYNTHS.test16);
+}
+
+_log('\nTest: the child-index write adds child_index_base, not a raw index (SP-50)');
+{
+    /* NO FLEET MODULE EXERCISES THIS. The only dumped module declaring
+     * child_index_param (`sophie`) has no note map on either child level, so
+     * voicesOf/surfaceOf gives it zero voices and focusVoice never reaches the
+     * write. Hand-built so a level has BOTH at once -- costs real-module
+     * fidelity, proves the arithmetic only. */
+    const hier = {
+        pad_layout: 'drums',
+        levels: {
+            root: { params: [{ level: 'pads', label: 'Pads' }] },
+            pads: {
+                child_count: 2, child_key_template: 'p{index}_{key}',
+                child_index_base: 1, child_index_param: 'focused_pad',
+                child_note_base: 60, knobs: ['vol'],
+            },
+        },
+    };
+    setSchwungGridMode('page');
+    schwungGridReload();
+    env.setParams({
+        'synth:ui_hierarchy': JSON.stringify(hier),
+        synth_module: 'sp50-fixture',
+        'synth:p1_vol': '0.5', 'synth:p2_vol': '0.5',
+        'synth:focused_pad': '1',
+    });
+    const p = schwungPageFor(0, 'synth');
+    for (let i = 0; i < 12 * 60 && !p.ready; i++) p.tick();
+    ok('the synthetic page resolved', p.ready);
+
+    const port = portFor(0);
+    const realSet = port.setParam.bind(port);
+    const calls = [];
+    port.setParam = (k, v) => { calls.push([k, v]); return realSet(k, v); };
+    /* pad 2 -> childIndex 1, "instance 2" once child_index_base 1 is added. */
+    p.focusVoice(2);
+    port.setParam = realSet;
+
+    const wrote = (calls.find(([k]) => k === 'synth:focused_pad') || [])[1];
+    eq('the wire value is childIndexToWire(level, childIndex), not String(childIndex)',
+       wrote, '2');
 
     schwungGridReload();
     setSchwungGridMode(null);

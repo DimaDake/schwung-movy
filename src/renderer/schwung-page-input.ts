@@ -49,32 +49,24 @@ export function createPageInput(ctl: any, lib: any, port: TrackPort,
             const keys = (p.keys as (string | null)[]).filter((k): k is string => !!k);
             /* A CHILD-LEVEL PAGE LISTS ALIASES; THE READS ARE CONCRETE. Such a
              * page carries `start` and the controller asks for `synth:p01_start`
-             * — every key goes through `childResolve`/`fullKey`, and
-             * `installChildAliases` is what makes the metadata follow. `qualify`
-             * only prefixes, so on that shape the aliases below would cover keys
-             * no read looks up and the jump would pay its singles anyway. The
-             * mapping is Schwung's own, asked rather than restated.
+             * — every key goes through `childResolve`/`fullKey`. `qualify` only
+             * prefixes, so warming the alias would cover a key no read looks up.
              *
-             * The index is the voice's, which is the one `focusVoice` has
-             * written into the module's `child_index_param` WHERE THE LEVEL
-             * DECLARES ONE — that is what makes the two sides agree about which
-             * child is showing. The controller adopts the value from its own
-             * poll, so for a tick it may still be on the previous one: a miss,
-             * never a wrong value.
-             *
-             * ONE FLEET MODULE REACHES THIS AND IT IS INSTALLED: `voice-poc` is
-             * the only one of the 95 dumps declaring `child_note_base`, and its
-             * `pads` level declares NO `child_index_param` — so `focusVoice`
-             * writes no index, the controller resolves the child at instance 0
-             * while `concrete` below resolves at `childIndex`, and the keys
-             * warmed are the WRONG child's. NOT a regression (pre-fix behaviour
-             * was identical) and no wrong value is ever cached (entries are
-             * keyed by concrete key). Carried as SP-39's ledger NOTE and opened
-             * as SP-50, which is where it is rechecked. */
-            const concrete = (k: string): string =>
-                (p.childLevel && typeof childIndex === 'number'
-                 && typeof lib.resolveChildKey === 'function')
-                    ? (lib.resolveChildKey(p.childLevel, childIndex, k) || k) : k;
+             * WARM THE INDEX THE CONTROLLER WILL ACTUALLY READ (SP-50), not
+             * always the voice movy just pressed. A level with its own
+             * `child_index_param` is one movy is about to move — warm at
+             * `childIndex`, optimistic, settling on the next poll (unchanged
+             * since SP-39). A level with NO such param has no channel movy can
+             * drive (`voice-poc`'s `pads`, the one fleet module reaching here):
+             * `childIndexFor` never moves off what it already held, so warm at
+             * `ctl.childIndexOf(level)` instead — the controller's own answer. */
+            const concrete = (k: string): string => {
+                if (!p.childLevel || typeof lib.resolveChildKey !== 'function') return k;
+                const cip = (p.childLevel as any).child_index_param;
+                const at = cip ? childIndex
+                    : (typeof ctl.childIndexOf === 'function' ? ctl.childIndexOf(p.level) : 0);
+                return (typeof at === 'number') ? (lib.resolveChildKey(p.childLevel, at, k) || k) : k;
+            };
             /* Qualified the same way `io.getParam` qualifies what the controller
              * asks for, or the warm covers keys the reads will not look up. */
             warm(keys.map((k) => qualify(concrete(k))));
@@ -171,7 +163,14 @@ export function createPageInput(ctl: any, lib: any, port: TrackPort,
             if (v.childIndex !== null && v.childIndex !== undefined) {
                 const lvl = hierarchy.levels && hierarchy.levels[v.level];
                 const cip = lvl && lvl.child_index_param;
-                if (cip) port.setParam(qualify(cip), String(v.childIndex));
+                if (cip) {
+                    /* `child_index_base` shifts the wire value (SP-50): a raw
+                     * `String()` is one below a level declaring base 1. Same
+                     * pairing the read path already trusts (`childIndexFromWire`). */
+                    const wire = typeof lib.childIndexToWire === 'function'
+                        ? lib.childIndexToWire(lvl, v.childIndex) : String(v.childIndex);
+                    port.setParam(qualify(cip), wire);
+                }
             }
             if (s.focusParam) port.setParam(qualify(s.focusParam), v.level);
 

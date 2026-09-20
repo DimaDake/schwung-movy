@@ -94,6 +94,9 @@ export interface SchwungLib {
      * that is child-level lists aliases, so a warm that prefixes the alias
      * covers keys no read will look up — see `jump` in schwung-page-input.ts. */
     resolveChildKey?: any;
+    /* Same pairing, WRITE side (SP-50): adds `child_index_base`, which a raw
+     * `String(index)` skips. */
+    childIndexToWire?: any;
 }
 
 /* LITERAL PATHS, NOT A CONCATENATION. esbuild can only apply its resolver to a
@@ -164,7 +167,7 @@ try {
         voicesOf: vo.voicesOf, voiceIndexFromNote: vo.voiceIndexFromNote,
         focusPressParamOf: vo.focusPressParamOf, childPressParam: ck.childPressParam,
         settled: anm.settled, buttonPhase: rpm.buttonPhase,
-        resolveChildKey: ck.resolveChildKey,
+        resolveChildKey: ck.resolveChildKey, childIndexToWire: ck.childIndexToWire,
     };
 } catch (e: any) {
     /* Swallowed DELIBERATELY, and this is the whole point of the file: an

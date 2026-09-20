@@ -148,7 +148,7 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | SP-47 | **NEW** — the opt-in release: the row goes in front of users, default still MOVY | Sonnet | ⬜ | **8** | — |
 | SP-48 | a modulated or `live` param the page shows keeps it redrawing forever. **A regression SP-38 introduced** — fixed with a movy-side repaint cap (`src/app/repaint-cap.ts`), the flag must not reach testers with it open (now satisfied) | Sonnet | ✅ | **7.5** | ✔ |
 | SP-49 | An IDLE `page` tick costs half again what an `off` tick costs. **Attributed on `minijv` (70 pages): the WHOLE gap is downstream of `ctl.reloadIfChanged()` (SU-14) — stashing that divider out collapsed calls/tick 1.1→0.6, worst period 6.1→5.4ms, both matching `off` exactly.** Local fix landed: `RELOAD_POLL_TICKS` 8→16 (`src/renderer/schwung-page-contract.ts`), confirmed on device to roughly halve `ctlreload` (0.8→0.4ms/tick) and the standing gap (worst period 6.1→5.7ms). **Does not clear the ~10% closure bar** — residual is SU-14's own cost, amortized wider; needs SP-47's explicit acceptance or SU-14 landing | Sonnet | 🔨 **partial, 2026-09-20** | **7.7** | ✔ |
-| SP-50 | **NEW** — on a child-level page movy and the controller disagree about WHICH child is showing. **Live under `page` on the missing `child_index_param`**: movy addresses no child at all while the controller resolves at instance 0, so the warm covers the wrong child and a knob can answer for the neighbour — inert on the installed `voice-poc`. (The other half, an off-by-base on the wire value, is real and has NO fleet exhibition.) Unreachable under the default `off` | Sonnet | ⬜ | **7.8** | ✔ |
+| SP-50 | On a child-level page movy and the controller disagree about WHICH child is showing. **Fixed movy-side, both halves**: `jump`'s `concrete()` now warms at `ctl.childIndexOf(level)` when the level owns no write channel (agreement, not pad-follow — that needs `voice-poc` to gain `child_index_param` upstream, **SU-15**); the wire write goes through `childIndexToWire`. Half one (missing channel) is tested against the real `voice-poc` dump; half two (off-by-base) has **no fleet exhibition**, pinned by a synthetic fixture only | Sonnet | ✅ | **7.8** | ✔ |
 | SP-51 | **NEW** — the movy MODEL's own knob touch is still resolved at RELEASE time (`knobModel()?.handleKnobTouch` on the press against `handleKnobRelease` on the release, `src/midi/router.ts`), so a page change mid-hold leaves the model that heard the press with its touched/overlay state armed and hands the other model a release it never had. **Different consequence from SP-31, not the same bug**: the model's touch is movy's own state, `resetHeldInput` clears it, and it does not latch the jog click. Raised by SP-31 as a note; the id was added 2026-09-19 | Sonnet | ⬜ | **7.9** | — |
 | SP-32 | a bank or cell that exists only in movy's config is on no page under `page`: audit before SP-30 flips the default. **The route is the hierarchy movy already returns** — see The injection surface §2 | Sonnet | ⬜ | 9 | — |
 | SP-42 | **NEW** — a .wav has no waveform: `wav_io_qjs.mjs` is never imported | Sonnet | ⬜ | 10 | — |
@@ -189,6 +189,7 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | SU-12 | A caller-supplied trailing page of kind `knobs`, not only `menu` — so movy's own pages can join a module's page set | ⬜ **new, expected to close without work.** `buildTrailingPages` hard-codes `kind: PAGE_MENU` (`page_plan.mjs:381`), so appending a KNOB page is upstream — but movy already owns the contract string, and folding the page into that is the host-side route (SP-54, route 1). Open this only if the fold is measured too expensive |
 | SU-13 | A host-owned page's write throttle and knob feel | ⬜ **new, conditional, and bounded by The injection surface §4.** `SETPARAM_THROTTLE_MS = 20` and the acceleration constants are `export const` bindings — readable, not writable — so a feel complaint about a migrated Set Params page (the tempo knob) is an upstream ask or it does not happen. Do not open it before a complaint exists |
 | SU-14 | The re-plan skip: `param_pages` re-plans the whole module even when the contract has not changed | 🔨 **FILED — schwung PR #519, OPEN and unreviewed since 2026-09-17** (head `DimaDake:perf/page-reload-skip-unchanged-contract-upstream`, `3bca6d68`; the local `1959e661` is its working copy). 87 lines of `page_controller.mjs` + one host test. **The action is to chase it, not to write it**, and it lands in the highest-churn file in the library (98 commits/90 days), so it is overtaken the longer it waits. Until it ships, a host-owned contract pays the FULL unconditional re-plan — see the correction in *The pages that are not a track module's*. **SP-49 measured how much: on `minijv` (70 pages), stashing movy's own reload-poll divider out to where it never fires collapsed the ENTIRE idle `page`-vs-`off` gap to noise — this is not one line among several, it is the whole of what SP-49 could still see once SP-26/27/48 had already been paid for** (`sp49-measurement.md`) |
+| SU-15 | **NEW, SP-50.** The reference module `voice-poc`'s `pads` level to declare `child_index_param`, matching `sophie`'s, so the already-correct `child_index_param` machinery closes the loop for a shipping example — today no dumped module has both a child note map AND `child_index_param` on one level, so SP-50's half two (the off-by-base write) has no fleet exhibition at all | ⬜ **new, ask only — an example-module change, not a defect in the library itself** |
 
 ---
 
@@ -925,8 +926,10 @@ that count, because none is one of the four complaints: SP-48 (a modulated or
 movy-side repaint cap; this row no longer needs an explicit acceptance for it** —
 SP-49 (an idle `page` tick costs half again what an `off` tick costs) and SP-50
 (on a child-level page movy and the controller disagree about which child is
-showing). The remaining two must be closed, or explicitly accepted here with the
-number and the acceptor named, before this item closes.**
+showing) — **✅ closed 2026-09-20, both halves fixed movy-side; half two's
+fleet exhibition is dormant behind a separate, unopened page-landing question
+(see the entry) and half one has no fleet exhibition at all (SU-15)**. SP-49
+remains open — partial, needs SP-47's acceptance or SU-14 landing.
 
 **THE DEVICE TIER MEASURES MOVY'S OWN WORK AT EVERY VALUE, and as of
 2026-09-19 that is the scenarios' doing rather than the default's.** `items`,
@@ -1381,7 +1384,7 @@ for movy to route through a cache or narrow.
 
 ---
 
-### SP-50 — on a child-level page, movy and the controller disagree about WHICH child is showing, which makes the one fleet module that reaches the branch inert
+### SP-50 — on a child-level page, movy and the controller disagree about WHICH child is showing, which makes the one fleet module that reaches the branch inert — CLOSED, both halves movy-side
 
 **Product.** On a drum- or pad-level page, the parameter a knob turns can belong
 to the NEIGHBOUR of the child the screen is on. Nothing looks wrong — the header,
@@ -1444,8 +1447,51 @@ half one, which no fleet module can reach. `browser-test/logic/schwung-page-pres
 `grep -rn "resolveChildKey\|childLevel" browser-test/` returns nothing — **this
 item is where the child-level branch gets its first coverage.**
 
-**Needs:** nothing — the module, its dump and the fixture hook are all in the
-tree already; the pin is a local test.
+**Fixed, 2026-09-20, movy-side only — `../schwung` untouched.**
+
+- **Half two (the live one), fixed.** `jump`'s `concrete()`
+  (`src/renderer/schwung-page-input.ts`) now warms at
+  `ctl.childIndexOf(level)` — the controller's own oracle, already exported —
+  whenever the level's `childLevel` declares no `child_index_param`, instead
+  of always warming at the voice movy just pressed. This does **not** make
+  the controller follow the pressed pad (no channel exists for that without
+  the upstream change below) — it makes movy stop lying to itself: the warm
+  now targets the cell `childIndexFor` will actually answer with. Tested
+  against the real `docs/module-dump` `voice-poc` fixture in
+  `browser-test/logic/schwung-page-press.mjs`. **Teeth**: reverting `concrete()`
+  to the old unconditional `childIndex` turns the warmed key from `p1_vol`
+  (instance 0, correct) to `p2_vol` (the pressed voice, wrong) — verified by
+  hand before landing.
+  **Found while writing that test, recorded here because it changes what the
+  fix is worth today:** Schwung's own planner (`page_plan.mjs`'s
+  `childPickerNeeded`, `if (!idxParam) return true`) inserts an items-kind
+  picker page ahead of the level's knobs page for ANY level lacking
+  `child_index_param` — and `focusVoice`'s first-match-by-level loop lands
+  there. That page carries no `keys`, so `jump`'s whole warm block — old code
+  or new — never runs at all on an unmodified press of `voice-poc`'s `pads`
+  (measured: `focusVoice(5)` on the untouched fixture reads nothing). The test
+  above splices that picker page out of the real, device-shaped page list to
+  reach the branch; the real planner cannot produce a first-match knobs page
+  for this shape today. **This means the fix is currently dormant on the
+  fleet**, same as the bug it replaces — both are real once a module's
+  `focusVoice` press can land directly on a childless-index level's knobs
+  page, which today requires either an upstream planner change or a movy-side
+  fix to which page a press selects (a different bug, not opened here).
+- **Half one (the off-by-base), fixed, no fleet exhibition.** The write in
+  `focusVoice` now routes through `lib.childIndexToWire(lvl, v.childIndex)`
+  (added to `SchwungLib` in `src/renderer/schwung-lib.ts`, guarded optional
+  like `resolveChildKey`) instead of `String(v.childIndex)`. No dumped module
+  declares both `child_index_param` and a note map on one level, so this is
+  pinned by a **hand-built synthetic hierarchy** in the same test file, not a
+  real dump — the cost stated plainly: it proves the arithmetic
+  (`childIndexToWire` applied, with the right level/index), not that a
+  shipping module round-trips it. **Teeth**: reverting to
+  `String(v.childIndex)` turns the wire write from `'2'` (instance 1 +
+  `child_index_base: 1`, correct) to `'1'` (wrong) — verified by hand before
+  landing.
+
+**Needs:** nothing further on movy's side. `SU-15` below, if the maintainer
+wants the fleet-exhibition gap closed for real.
 
 ---
 

@@ -142,7 +142,7 @@ export function createSchwungPage(
     }
     const keyAt = (slot: number) => (keysOf()[slot] as string) || null;
 
-    const contract = createPageContract(ctl, port, componentKey, cache, hier);
+    const contract = createPageContract(ctl, port, componentKey, cache, hier, lib);
     const page = createPageRender(ctl, { keyAt, keysOf, componentKey,
                                         normalizedOf: lib.normalizedOf });
     /* SP-39: `focusVoice` covers the page it is about to turn to before the

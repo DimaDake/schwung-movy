@@ -151,7 +151,7 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | SP-50 | On a child-level page movy and the controller disagree about WHICH child is showing. **Fixed movy-side, both halves**: `jump`'s `concrete()` now warms at `ctl.childIndexOf(level)` when the level owns no write channel (agreement, not pad-follow — that needs `voice-poc` to gain `child_index_param` upstream, **SU-15**); the wire write goes through `childIndexToWire`. Half one (missing channel) is tested against the real `voice-poc` dump; half two (off-by-base) has **no fleet exhibition**, pinned by a synthetic fixture only | Sonnet | ✅ | **7.8** | ✔ |
 | SP-51 | The movy MODEL's own knob touch was resolved at RELEASE time (`knobModel()?.handleKnobTouch` on the press against `handleKnobRelease` on the release, `src/midi/router.ts`), so a page change mid-hold left the model that heard the press with its touched/overlay state armed and handed the other model a release it never had. **Different consequence from SP-31, not the same bug**: the model's touch is movy's own state — fixed with a second small ledger (`midi/knob-model-pin.ts`), not a shared Map with SP-31's page pin (incompatible `null`-clears rule). Teeth: `app-loop.mjs`, flag-independent, `3 of 3` unchanged. Raised by SP-31 as a note; the id was added 2026-09-19 | Sonnet | ✅ | **7.9** | — |
 | SP-32 | a bank or cell that exists only in movy's config is on no page under `page`: audit before SP-30 flips the default. **The route is the hierarchy movy already returns** — see The injection surface §2 | Sonnet | ⬜ | 9 | — |
-| SP-42 | **NEW** — a .wav has no waveform: `wav_io_qjs.mjs` is never imported | Sonnet | ⬜ | 10 | — |
+| SP-42 | a .wav has no waveform: **two independent defects**, not the one the headline named — the IO was never registered (`wav_io_qjs.mjs` unimported), and even registered, nothing ever advanced the resumable peak job (movy's own tick loop never called `ctl.vizGroups()`/`wavPeaksTick`, only Schwung's own host did). Both fixed: the ladder now imports `wav_io_qjs.mjs`/`wav_peaks.mjs`/`viz.mjs` (`schwung-lib.ts`), and a new `schwung-page-sample.ts`'s `advanceSample` runs after `ctl.tick()` in `schwung-page-contract.ts`, mirroring `shadow_ui_param_pages.mjs`'s block exactly. **Device tier not yet run** — deferred to the wave's device agent; the recipe is in this entry | Sonnet | ✅ **movy-side, 2026-09-20** | 10 | — |
 | SP-45 | **NEW** — 8w8's pads do not select their pages; the other three racks' do | Sonnet | ⬜ | 11 | — |
 | SP-44 | **NEW** — knob 1 changes presets with no click first (feature) | Sonnet | ⬜ | 13 | — |
 | SP-46 | **NEW** — a lone attack/decay has no graphic (against the acceptance bar, by request). **Does not wait on SU-10**: `vizOverrides` + movy's own widget registry is a host-side route — see The injection surface §1 | Sonnet | ⬜ | 14 | — |
@@ -1021,41 +1021,113 @@ the release notes name it.
 
 ---
 
-### SP-42 — a .wav has no waveform, because movy never registered the file reader
+### SP-42 ✅ movy-side, 2026-09-20 — a .wav has no waveform: TWO independent defects, not the one the headline named
 
 **Product.** Select a sample in a parameter page and the waveform that should
 draw it is blank. The waveform is one of the strongest arguments for delegated
 pages — it is drawn from the FILE, which movy's own renderer could only do for
 its own widgets.
 
-**Cause, read from source, and it is one missing import.** `wav_peaks.mjs`
-computes the peak envelope, and it does **no I/O of its own**: *"THE I/O IS
-INJECTED... `std` and `os` are QuickJS MODULES, so importing them here statically
-would make this file unloadable under node"*. The device wires the real pair in
-**`wav_io_qjs.mjs`**, which Schwung's own `shadow_ui.js` imports for its side
-effect (`src/shadow/shadow_ui.js:307`). movy's `ui.js` is a different QuickJS
-program: `renderer/schwung-lib.ts` imports ten `param_pages` modules and
-`wav_io_qjs.mjs` is not one of them. So in movy's process `IO` is null,
-`wavPeaks` reports an error rather than throwing — *"Without an IO this reports
-an error rather than drawing nothing"* — and the graphic draws empty. Present in
-**v1.4.0**; no floor bump.
+**Cause, read from source — and it turned out to be two defects, verified
+independently, each load-bearing on its own.**
 
-**Design & implementation.** Add the side-effect import to `schwung-lib.ts`'s
-ladder, where every other `param_pages` import already lives with the one
-failure path. Three things to check while doing it: it must NOT break the
-browser build (the file names `std`/`os`, so it needs the same `.off` /
-build-alias treatment the rest of the layer has — this is why it is not a
-one-liner); the peak job is **resumable and per-tick** (`BLOCKS_PER_TICK = 2`),
-so something has to advance it, which is the same frame-clock question as SP-38
-and is why `ctl.vizGroups()` is exposed ("so the host can advance a sample's
-peak-envelope job from its TICK") and movy calls it nowhere; and `MAX_BLOCKS`
-bounds a huge file to ~2 MB of reading.
+**Defect A — the IO is never registered**, which is the one the headline named.
+`wav_peaks.mjs` computes the peak envelope and does **no I/O of its own**: *"THE
+I/O IS INJECTED... `std` and `os` are QuickJS MODULES, so importing them here
+statically would make this file unloadable under node"*. The device wires the
+real pair in **`wav_io_qjs.mjs`**, a side-effect-only module Schwung's own
+`shadow_ui.js` imports (`src/shadow/shadow_ui.js:307`). movy's `ui.js` is a
+different QuickJS program: `renderer/schwung-lib.ts` imported ten `param_pages`
+modules and `wav_io_qjs.mjs` was not one of them, so in movy's process `IO`
+stayed `null` forever and `startJob`/`fileSignature` (`wav_peaks.mjs:98,116`)
+both guard `if (!IO) return null` — the cache entry becomes `{error: "unreadable
+wav"}` forever.
 
-**Closes when:** a page with a selected .wav draws its envelope on device, and a
-logic test asserts the IO is registered when the layer loads (teeth: drop the
-import and it reddens).
+**Defect B — even registered, nothing ever advances the job**, which the
+original entry's "Design & implementation" section had already half-noticed
+(the `ctl.vizGroups()` clue) but buried as a footnote rather than naming as a
+second defect. `wav_peaks.mjs` is **resumable**: `wavPeaksTick(path)` does
+`BLOCKS_PER_TICK = 2` blocks per call and returns; `viz_draw.mjs`'s `drawSample`
+is explicit — *"No I/O here: wavPeaks never reads, and the job is advanced from
+the tick."* The ONLY caller of `wavPeaksTick` anywhere in the schwung tree is
+Schwung's own host loop (`src/shadow/shadow_ui_param_pages.mjs`'s
+`tickParamPages`), which movy does not run — movy ticks its own
+`schwung-page-contract.ts`, and nothing there ever called `ctl.vizGroups()`.
+So even with Defect A fixed, a selected sample drew the "no envelope" flat
+fallback (`viz_draw.mjs:1466`, `halfAt = () => 0`) forever — the picture never
+starts, not "starts and stalls".
 
-**Needs:** nothing, but the tick half is SP-38's clock — do it after.
+**So:** not "registered too late" — genuinely unregistered, plus a second,
+independent missing wire. Both had to land for the product claim to be true.
+Present in **v1.4.0** (the device's current version); no floor bump — none of
+`wav_peaks.mjs`, `viz.mjs`, `wav_io_qjs.mjs` are new.
+
+**Fix.**
+1. `renderer/schwung-lib.ts`'s `Promise.all` ladder gained three entries —
+   `wav_io_qjs.mjs` (side effect, unused binding), `wav_peaks.mjs`
+   (`wavPeaksTick`/`wavPeaksDone`/read-only `wavPeaks`) and `viz.mjs`
+   (`VIZ_SAMPLE`) — all four optional on the `SchwungLib` interface, same
+   convention as `settled`/`buttonPhase`. `wavPeaks` itself is exposed even
+   though nothing in `src/` calls it, because it is the ONE door and a test
+   proving the job actually filled in (not just finished) has no other way to
+   ask.
+2. New `renderer/schwung-page-sample.ts` (`schwung-page-contract.ts` was
+   already over its 200-line budget from SP-49; the advance is a sibling file,
+   not inline) exports `advanceSample(ctl, lib)`, mirroring
+   `shadow_ui_param_pages.mjs`'s block exactly, including skipping a settled
+   sample cell to find the next unfinished one (breakbeat's A/B pair). Wired
+   into `schwung-page-contract.ts`'s `tick()`, right after `ctl.tick()`.
+3. `build/browser.mjs`'s `onResolve` gained a branch: `wav_io_qjs.mjs`
+   resolves to a new movy-authored `browser-test/stubs/wav-io-qjs.mjs` instead
+   of the real checkout file when `SCHWUNG=` is set — the real file's static
+   `import * as std from "std"` cannot resolve under esbuild/node. The stub is
+   backed by the SAME `globalThis.std/os` mocks `browser-test/env.mjs` already
+   installs for movy's own `model/wav-peaks.ts` suite, and imports
+   `setWavPeaksIO` from the real schwung path so the registration lands on the
+   SAME `wav_peaks.mjs` instance `schwung-lib.ts` itself resolves to.
+
+**Cost, measured, not estimated.** `wav_peaks.mjs` and `viz.mjs` were already
+loaded transitively (`render_page_movy.mjs` → `viz_draw.mjs` → both), so asking
+for them by name is not new parse work — same argument as the existing
+`child_key.mjs`/`param_meta.mjs` entries. `wav_io_qjs.mjs` itself is new: the
+whole `dist/esm` browser-test bundle grew **1290257 → 1304566 bytes (+14309 B,
+~1.1%)** for one ~35-line file with two host-native imports. The standing
+per-tick cost (`advanceSample` running unconditionally after every
+`ctl.tick()`) measured **zero** against SP-49's own idle-tick budget: the
+`schwung-page-idle-cost.mjs` suite (test16, no sample param) still reports
+**43 ≤ 48** — unchanged — because an empty `vizGroups()` read is a cached map
+lookup and a `for` over an empty array, exactly as the plan predicted.
+
+**Teeth, each defect reddening a DIFFERENT way (new suite
+`browser-test/logic/schwung-sample.mjs`, mock `wav_beside_filter` — mrsample's
+real shape, `filepath_param` included):**
+- Defect A alone (import removed from the ladder): the job STARTS but
+  `wavPeaks(path)` comes back with a non-empty error (`IO` missing) and no
+  points — "the envelope job reached a resolved cache entry" still passes, "no
+  read error" fails.
+- Defect B alone (`advanceSample`'s call site removed): `wavPeaksTick` is
+  never called at all, so `wavPeaks(path)` stays `null` — "the envelope job
+  reached a resolved cache entry" itself fails, a different assertion than A's.
+- Screenshot teeth: a new delegated scene `page_sample` (mrsample's mock, a
+  real WAV via `env.setFiles`, reusing `makeSceneWav()`) — with Defect B
+  reintroduced, **72 px differ** from the accepted baseline (the waveform
+  collapses to the flat fallback line). Reviewed by eye before accepting.
+
+**Not covered — deferred to the wave's device-tier agent, per the dispatch's
+own instruction not to run that tier here.** `test-device/scenarios/widgets.ts`
+needs a second block: `mrdrums` (already the fixture's track-1 module) with
+`p01_sample_path` set to a real on-device file
+(`find /data/CoreLibrary -name '*.wav' | head -1`, not hard-coded), the
+delegated renderer armed the same way `widgets.ts` already arms it
+(`probe.setGridMode`), navigate to pad 1's sample page, and read the
+FRAMEBUFFER for the sample cell — the same "read the panel" reasoning SP-28
+used, since a dump-replay assertion has no registry/IO to read off-device.
+
+**Closes when:** the device-tier scenario above lands and shows a page with a
+selected .wav drawing its envelope on hardware — the local half is done.
+
+**Needs:** nothing blocking; independent of SP-38's clock question (this item
+supplies its own per-tick driver).
 
 ---
 

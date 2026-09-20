@@ -8,30 +8,11 @@ import {
     MOCK_SYNTHS, wavPeaksTick, wavPeaks, resetWavPeaks, resamplePeaks, PEAK_WIDTH,
     drawWavForm, fail, eq, bootModel, _log, env,
 } from './harness.mjs';
+import { makeWav } from './wav-fixture.mjs';
 
 export async function run() {
 _log('\nTest: WAV peaks — accuracy, chunking and caching');
 {
-    /* A real 16-bit mono WAV: silent, then a loud burst in the middle third.
-     * Building the bytes rather than mocking the parser is the point — an
-     * off-by-one in a chunk header or a stride would sail past a fake. */
-    const makeWav = (frames, amplitudeAt) => {
-        const dataBytes = frames * 2;
-        const b = new Uint8Array(44 + dataBytes);
-        const ws = (o, str) => { for (let i = 0; i < str.length; i++) b[o + i] = str.charCodeAt(i); };
-        const w32 = (o, v) => { b[o] = v & 255; b[o+1] = (v>>8)&255; b[o+2] = (v>>16)&255; b[o+3] = (v>>>24)&255; };
-        const w16 = (o, v) => { b[o] = v & 255; b[o+1] = (v>>8)&255; };
-        ws(0, 'RIFF'); w32(4, 36 + dataBytes); ws(8, 'WAVE');
-        ws(12, 'fmt '); w32(16, 16); w16(20, 1); w16(22, 1);      // PCM, mono
-        w32(24, 44100); w32(28, 88200); w16(32, 2); w16(34, 16);  // blockAlign 2, 16-bit
-        ws(36, 'data'); w32(40, dataBytes);
-        for (let i = 0; i < frames; i++) {
-            const v = Math.round(amplitudeAt(i / frames) * 32767);
-            w16(44 + i * 2, v < 0 ? v + 65536 : v);
-        }
-        return b;
-    };
-
     /* Big enough to need several ticks: 300k frames = 600 KB = 19 blocks at
      * 32 KB, and the reader does 2 blocks per tick. */
     const FRAMES = 300000;

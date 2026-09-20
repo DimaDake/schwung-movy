@@ -97,6 +97,21 @@ export interface SchwungLib {
     /* Same pairing, WRITE side (SP-50): adds `child_index_base`, which a raw
      * `String(index)` skips. */
     childIndexToWire?: any;
+    /* SP-42, optional for the same reason as the pair above: a sample cell's
+     * envelope job is advanced from schwung-page-sample.ts, which no-ops
+     * without these rather than throwing — an older Schwung costs movy only
+     * the waveform graphic, not the whole grid. `VIZ_SAMPLE` is the group-kind
+     * tag `vizGroups()` entries carry; `wavPeaksTick`/`wavPeaksDone` drive and
+     * query the resumable peak-build job in wav_peaks.mjs. */
+    VIZ_SAMPLE?:   any;
+    wavPeaksTick?: any;
+    wavPeaksDone?: any;
+    /* Read-only, and reachable no other way: this is the ONE door to
+     * param_pages, so a test proving the envelope job actually filled in
+     * (rather than just finishing) has to ask through here, same as movy's
+     * own renderer would if it ever needed the raw array. Nothing in src/
+     * calls it — drawSample reads it inside Schwung's own render path. */
+    wavPeaks?: any;
 }
 
 /* LITERAL PATHS, NOT A CONCATENATION. esbuild can only apply its resolver to a
@@ -121,7 +136,7 @@ try {
      * error at evaluation, indistinguishable from a missing file to everything
      * above this line, and correctly treated the same way.
      */
-    const [pc, pi, rpm, el, wr, vo, ck, pm, pp, anm] = await Promise.all([
+    const [pc, pi, rpm, el, wr, vo, ck, pm, pp, anm, _wio, wp, vz] = await Promise.all([
         // @ts-ignore — absolute device path; external in the device build
         import('/data/UserData/schwung/shared/param_pages/page_controller.mjs'),
         // @ts-ignore
@@ -151,6 +166,22 @@ try {
          * serviceable Schwung fail. */
         // @ts-ignore
         import('/data/UserData/schwung/shared/param_pages/anim_state.mjs'),
+        /* wav_io_qjs.mjs — side-effect only: it calls setWavPeaksIO() on
+         * wav_peaks.mjs at the top level, registering the real file reader.
+         * Without this import `IO` inside wav_peaks.mjs stays null forever
+         * and every sample cell caches "unreadable wav" (SP-42, defect A).
+         * Nothing here reads its namespace object — the import itself is the
+         * whole point — so the binding is prefixed `_` and unused. Already
+         * paid for: render_page_movy.mjs (imported above) already pulls in
+         * wav_peaks.mjs and viz.mjs transitively via viz_draw.mjs, so asking
+         * for them here by name adds no new parse work, only wav_io_qjs.mjs
+         * itself (~35 lines, two host-native imports) is new. */
+        // @ts-ignore
+        import('/data/UserData/schwung/shared/param_pages/wav_io_qjs.mjs'),
+        // @ts-ignore
+        import('/data/UserData/schwung/shared/param_pages/wav_peaks.mjs'),
+        // @ts-ignore
+        import('/data/UserData/schwung/shared/param_pages/viz.mjs'),
     ]);
     lib = {
         createController: pc.createController, LAYOUT_MOVY: pc.LAYOUT_MOVY,
@@ -168,6 +199,9 @@ try {
         focusPressParamOf: vo.focusPressParamOf, childPressParam: ck.childPressParam,
         settled: anm.settled, buttonPhase: rpm.buttonPhase,
         resolveChildKey: ck.resolveChildKey, childIndexToWire: ck.childIndexToWire,
+        VIZ_SAMPLE: vz.VIZ_SAMPLE,
+        wavPeaksTick: wp.wavPeaksTick, wavPeaksDone: wp.wavPeaksDone,
+        wavPeaks: wp.wavPeaks,
     };
 } catch (e: any) {
     /* Swallowed DELIBERATELY, and this is the whole point of the file: an

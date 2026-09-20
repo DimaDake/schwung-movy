@@ -83,7 +83,7 @@ const PRESETS = [
     'wave_cells', 'wave_overlay', 'wave_helm', 'wave_toggles',
     'env_stages', 'eq_bands', 'cut_filters', 'faders', 'wav_sample', 'wav_loop', 'wav_loop_off', 'wav_beside_filter',
     'switches', 'pan_dials', 'spray_saturated',
-    'page_body', 'page_body_p2', 'page_voice_pad',
+    'page_body', 'page_body_p2', 'page_voice_pad', 'page_sample',
     'page_mod_cell', 'page_mod_cell_held',
     'page_held_lock', 'page_lane_unheld', 'page_held_unassignable',
     'page_chrome_held', 'page_chrome_flip',
@@ -97,7 +97,7 @@ const PRESETS = [
  * it builds or loads anything; the scenes carry their own guard as well, so a
  * name that drifts out of this set fails loudly instead of rendering a body it
  * cannot. */
-const PAGE_SCENES = new Set(['page_body', 'page_body_p2', 'page_voice_pad',
+const PAGE_SCENES = new Set(['page_body', 'page_body_p2', 'page_voice_pad', 'page_sample',
     'page_mod_cell', 'page_mod_cell_held',
     'page_held_lock', 'page_lane_unheld', 'page_held_unassignable',
     'page_chrome_held', 'page_chrome_flip']);
@@ -169,6 +169,12 @@ const BASE = {
      * the bank bar. A one-page mock would make the pair identical and the second
      * scene assert nothing. */
     page_body: 'test16', page_body_p2: 'test16',
+    /* wav_beside_filter: mrsample's real shape (sample_path + a wav_position
+     * marker declaring filepath_param), the same mock schwung-sample.mjs
+     * reuses — SP-42 is specifically about THIS cell drawn through Schwung's
+     * OWN delegated renderer, not movy's (that path already has baselines:
+     * wav_sample/wav_loop/wav_beside_filter above). */
+    page_sample: 'wav_beside_filter',
 };
 
 /* MODULES THAT ARE NOT MOCKS. `page_voice_pad`'s subject is a DECLARED drum
@@ -1369,6 +1375,42 @@ function applyView(preset) {
             /* The mode is a module-level override: leaving it set would silently
              * repaint every scene after this one, and they would still report
              * green. */
+            setSchwungGridMode(null);
+            break;
+        }
+
+        /* SP-42: the sample cell drawn through SCHWUNG'S OWN render path
+         * (viz_draw.mjs's drawSample), not movy's — that path already has
+         * baselines (wav_sample/wav_loop/wav_beside_filter). A waveform is
+         * pixels, so this is the only baseline that can show the difference
+         * between "wired" and "the flat no-envelope fallback" by eye. */
+        case 'page_sample': {
+            if (!schwungLibAvailable()) throw new Error(
+                'screenshot: page_sample needs a bundle built with SCHWUNG=/path/to/schwung');
+            setSchwungGridMode('page');
+            schwungGridReload();
+            /* Backed BEFORE the contract resolves: `advanceSample` only ever
+             * sees the path once `ctl.state.values` has it, which is itself
+             * gated behind the page being ready, so ordering here does not
+             * matter — but doing it up front matches every other WAV scene in
+             * this file (makeSceneWav is called before the tick loop there
+             * too) and keeps this scene reusing the SAME fixture rather than
+             * inventing a second one. */
+            makeSceneWav();
+            const sp = schwungPageFor(0, 'synth');
+            for (let i = 0; i < 12 * 60 && !sp.ready; i++) { sp.tick(); model.tick(); }
+            if (!sp.ready) throw new Error('page_sample: the contract never resolved');
+            /* Past resolving, the tick loop above already ran `advanceSample`
+             * every pass (schwung-page-contract.ts), so the envelope job has
+             * had hundreds of ticks — far more than the ~2 it needs for this
+             * fixture's size. A short extra run just covers the case where the
+             * contract resolved before the page's own state.values batch
+             * picked up sample_path. */
+            for (let i = 0; i < 60; i++) { sp.tick(); model.tick(); }
+            lastRender = () => renderKnobsView(model.getViewModel(), false, 0,
+                () => sp.render('T1 > ' + model.getModuleName()),
+                { index: sp.pageIndex, count: sp.pageCount }, sp.chrome(true));
+            lastRender();
             setSchwungGridMode(null);
             break;
         }

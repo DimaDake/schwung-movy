@@ -153,7 +153,6 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | SP-32 | a bank or cell that exists only in movy's config is on no page under `page`: audit before SP-30 flips the default. **The route is the hierarchy movy already returns** — see The injection surface §2 | Sonnet | ⬜ | 9 | — |
 | SP-42 | **NEW** — a .wav has no waveform: `wav_io_qjs.mjs` is never imported | Sonnet | ⬜ | 10 | — |
 | SP-45 | **NEW** — 8w8's pads do not select their pages; the other three racks' do | Sonnet | ⬜ | 11 | — |
-| SP-43 | **NEW** — the second click on an entered preset page leaves it | Sonnet | ⬜ | 12 | — |
 | SP-44 | **NEW** — knob 1 changes presets with no click first (feature) | Sonnet | ⬜ | 13 | — |
 | SP-46 | **NEW** — a lone attack/decay has no graphic (against the acceptance bar, by request). **Does not wait on SU-10**: `vizOverrides` + movy's own widget registry is a host-side route — see The injection surface §1 | Sonnet | ⬜ | 14 | — |
 | SP-16 | Cause G — graphics return (**shrunk: upstream fixed the hard half**) | Sonnet | 🔨 **movy half done** 2026-09-18; floor bump waits on #509 | 15 | — |
@@ -170,6 +169,7 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | SP-56 | **NEW** — Settings, CPU and Backups: a scope decision, not a build | Opus | ⬜ | 26 | — |
 | SP-21 | Metadata correction overlay | Sonnet | ❌ **dropped** — the audit found 1 real correction in 555 | — | — |
 | SP-22 | Cut-curve viz kind | Sonnet | ❌ **dropped** — a movy extension; Schwung draws plain dials natively | — | — |
+| SP-43 | The second click on an entered preset page leaves it | Sonnet | ❌ **dropped** 2026-09-20 — it is upstream's DOCUMENTED design, not a defect; the user's ruling is to drop it and correct the record | — | — |
 
 ### Upstream
 
@@ -575,7 +575,7 @@ previous "this needs upstream" in this file has cost a release cycle.
 | 5 | animations are completely broken — the LFO indicator, a waveform changing on a page change — Schwung supports them and they are very slow | SP-38 | ✔ |
 | 6 | on a drum track, switching page by pressing a PAD is noticeably slower than movy's pages (check forge, on a page that supports switching) | SP-39 | ✔ |
 | 7 | no waveform for a selected .wav in a parameter page | SP-42 | — |
-| 8 | on the preset selector page the first jog click focuses the page (correct); the second jumps to the MAIN page to the right | SP-43 | — |
+| 8 | on the preset selector page the first jog click focuses the page (correct); the second jumps to the MAIN page to the right | SP-43 ❌ **dropped** — Schwung's documented design, refuted 2026-09-20; the want is served by SP-44 | — |
 | 9 | feature: knob 1 should change presets with no jog click to focus first | SP-44 | — |
 | 10 | pad page selection does not work for **8w8**; it works for the other xwx modules | SP-45 | — |
 | 11 | no single attack / single decay visualisations | SP-46 | — |
@@ -588,7 +588,7 @@ the child instance movy addresses is not the one the controller resolves, which
 is live under `page`**, **7.9 SP-51 — the movy MODEL half of that same gesture is still
 resolved at release time; not a gate (it clears itself and latches nothing), but the
 next `page`-arm fix round should take it**, 8 **SP-47 —
-the release**. Then SP-32, SP-42, SP-45, SP-43,
+the release**. Then SP-32, SP-42, SP-45,
 SP-44, SP-46, SP-16, SP-21a, SP-23, SP-24, SP-29, SP-30, and SP-41 only if it
 is ever decided. SP-31 (✅ closed 2026-09-19) was in front of the release and the user did
 not name it because it is not a symptom you can describe — a lost knob release latches the
@@ -983,37 +983,47 @@ import and it reddens).
 
 ---
 
-### SP-43 — the second click on an entered preset page leaves it
+### SP-43 ❌ — the second click leaves the preset page: DROPPED, 2026-09-20
 
-**Product.** On the preset selector page the jog click enters the page, which is
-correct. Click again and the screen jumps to the **main page to its right** —
-the click that should be doing something inside the list instead leaves it. A
-door you can only stay inside for one click is a door that does not work.
+**It is not a defect. It is Schwung's documented design, and this entry's whole
+premise — "a door you can only stay inside for one click is a door that does not
+work" — was wrong about whose door it is.**
 
-**Not yet reproduced, and the first task is the repro.** Both plausible causes
-are one read away and they have different fixes:
+The repro this entry asked for was never needed: the answer is readable in the
+library. `page_controller.mjs`'s `onClick` PAGE_PRESET branch jumps to
+`firstGrid` deliberately, and says so in **two** independent comments — its own,
+and `restorePage`'s. The behaviour is byte-identical between `origin/main`
+(:3911-3917) and the 1.4.0 the device runs (:3632-3638), so it is not drift
+either.
 
-- **movy's ladder handed the click on.** `midi/router.ts` ~760 takes a click for
-  Schwung when `pickerOpen || isDoor() || touched >= 0`. `isDoor()` asks about
-  the CURRENT page — which does not change on entering — so the second click
-  should also reach Schwung. If it did not, the suspect is an earlier rung of
-  movy's own ladder consuming it, and SP-31's latch (a stale `touched`) is a
-  candidate for the opposite reason: it makes clicks reach Schwung that should
-  not.
-- **Schwung took it and moved.** A preset commit re-plans, and a re-plan can
-  land `pageIndex` somewhere else. That is Schwung's behaviour and the fix is a
-  host one — restore the page across the re-plan (`ctl.restorePage` exists) —
-  or an upstream report.
+**Both of this entry's candidate causes are refuted, not merely unchosen:**
 
-Instrument before choosing: `owner.reason` already prints the page index every
-tick, and `mlog` is on the click path.
+- *movy's ladder handed the click on* — it does, and that is CORRECT.
+  `router.ts:834-838` delegates with `isDoor()` true on both clicks. No earlier
+  rung consumes it; SP-31's latch is not involved.
+- *Schwung took it and moved* — Schwung took it and moved **on purpose**.
+  `applyInput`'s door branch calls `onClick(-1)` unconditionally; it mutates
+  state synchronously and returns null. There is no re-plan, no double delivery
+  and no movy-side leak, so there is nothing for `ctl.restorePage` to restore.
 
-**Closes when:** entering a preset page and clicking again stays on that page and
-does what the footer promises (`CLK EDIT`), with an app-loop check.
+Confirmed against real fleet metadata rather than reasoning alone: `obxd`'s root
+level (`docs/module-dump/modules/sound_generator--obxd.json`) plans
+`[Presets, Main, …]`, so the second click lands on *Main* — exactly the "main
+page to its right" this entry described as the symptom. movy's own footer
+already advertises the behaviour correctly (`CLK EDIT`,
+`schwung-page-chrome.ts:132`).
 
-**Needs:** nothing. SP-31 ✅ (closed 2026-09-19) was the other suspect on the same
-gesture — a stale `touched` making clicks reach Schwung that should not — and it
-is fixed, so the remaining candidate above is Schwung's own rung.
+**The ruling (the user's, 2026-09-20): drop it, and do not pin it.** No test, no
+upstream ask, no host-side override. An override was considered and rejected —
+keeping the door open against the controller's own page model is precisely the
+kind of divergence SP-41 would later have to reconcile, and no clean seam for it
+exists. **SP-44 is unaffected** and is where the underlying want is served: knob
+1 changes presets with no click at all, so the door's click ladder stops
+mattering.
+
+**Plan retained** at `plans/sp-43-second-click-leaves-preset-page.md` for the
+evidence trail — its §4 states what SP-44 inherits, and it names `obxd` as a
+reusable fixture for it.
 
 ---
 

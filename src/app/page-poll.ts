@@ -51,6 +51,7 @@ import { sessionReady } from '../seq/set-session.js';
 import { schwungEditorActive } from '../renderer/schwung-editor.js';
 import type { PageOwner } from './page-owner.js';
 import { perfPhase, perfPhaseEnd } from './perf-probe.js';
+import { createRepaintCap } from './repaint-cap.js';
 
 /**
  * Is the module grid what the eight knobs are addressing?
@@ -75,6 +76,12 @@ export function moduleGridOnScreen(): boolean {
 const levels: (number | null)[] = new Array(8).fill(null);
 let lastKey = '';
 
+/* SP-48. One instance for the one drawn page's lifetime, same reasoning as
+ * `levels`/`lastKey` above: it self-resets on `animating()` going false, so a
+ * page swap needs no explicit reset — the new page's first `animating()` call
+ * starts its own grace window cold. */
+const animCap = createRepaintCap();
+
 /** The drawn page's normalised values, as last read by `pollDrawnPage`. */
 export function drawnKnobLevels(): readonly (number | null)[] { return levels; }
 
@@ -85,7 +92,7 @@ export function drawnKnobLevels(): readonly (number | null)[] { return levels; }
  * a page whose cells happen to hold the same numbers still changes every label
  * on screen, and a values-only check would leave the old page drawn.
  */
-export function pollDrawnPage(owner: PageOwner): boolean {
+export function pollDrawnPage(owner: PageOwner, nowFn: () => number = Date.now): boolean {
     /* BEFORE the ready check, so an unready page keeps asking: the page is
      * built while the module is still loading, and without this its first
      * empty answer stood for the whole session. */
@@ -130,7 +137,13 @@ export function pollDrawnPage(owner: PageOwner): boolean {
      * takes `io.now || (() => Date.now())` and movy injects no `io.now`, so both
      * sides of the comparison are stamped from the same source; if movy ever
      * supplies one, this line has to be re-pointed at it or the transition
-     * never appears to end. */
-    if (!moved) moved = page.animating(Date.now());
+     * never appears to end.
+     *
+     * SP-48. `animating()` answers true forever for a modulated/`live`/
+     * automated key (see `repaint-cap.ts`'s header) — a real transition is
+     * never held back (`animCap` is unthrottled for `ANIM_GRACE_MS`, which
+     * outlasts every real one), but a page stuck past that window degrades to
+     * one repaint per `REPAINT_CAP_MS` instead of asking every tick forever. */
+    if (!moved) { const now = nowFn(); moved = animCap(page.animating(now), now); }
     return moved;
 }

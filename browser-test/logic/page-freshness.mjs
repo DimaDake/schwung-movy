@@ -258,4 +258,105 @@ _log('\nTest: SP-38 — the repaint decision while a widget is moving');
     env.setParams(MOCK_SYNTHS.test16);
 }
 
+_log('\nTest: SP-48 — a never-settling animation is capped, not forever-repainted');
+{
+    /* Unit level: `repaintCap` alone, no schwung/model/device — the cheapest
+     * level that reproduces this bug (a synchronous state machine over one
+     * boolean and one clock), so it runs unconditionally. */
+    const { createRepaintCap, ANIM_GRACE_MS, REPAINT_CAP_MS } =
+        await import('../../dist/esm/app/repaint-cap.js');
+
+    const cap = createRepaintCap(ANIM_GRACE_MS, REPAINT_CAP_MS);
+    /* Synthetic clock: `animating()` says true at every one of these instants,
+     * simulating a modulated/live/automated key that never lets `settled()`
+     * win. Boundaries computed from the constants, not hardcoded, so a later
+     * constant change cannot silently desynchronise the test from the code. */
+    const g = ANIM_GRACE_MS, c = REPAINT_CAP_MS;
+    const ts = [0, g / 5, (2 * g) / 5, (3 * g) / 5, (4 * g) / 5, g, g + 1,
+                g + c, g + 2 * c, g + 2 * c + 1, g + 3 * c, g + 3 * c + 1];
+    const asked = ts.map((t) => cap(true, t));
+
+    /* Grace window (<= graceMs): every call passes through unthrottled — the
+     * SAME behaviour as before the fix, i.e. zero regression risk for a real
+     * transition, which never runs anywhere near this long. */
+    eq('every ask inside the grace window is let through',
+       asked.slice(0, 6).every(Boolean), true);
+
+    /* Past the grace window: bounded, not continuous. g+1 is the first ask
+     * after the cap engages and it is allowed (lastFrame starts unset); each
+     * following pair is one capMs window opening (>= capMs since the last
+     * allowed ask — a fresh window) and one ask 1ms inside it (refused).
+     * Three independent windows, so a fix that only throttles the FIRST one
+     * (an off-by-one in the reset logic) still shows up. */
+    eq('just past grace still asks once', asked[6], true);
+    eq('one capMs window later is refused', asked[7], false);
+    eq('a fresh capMs window asks again', asked[8], true);
+    eq('inside that window is refused', asked[9], false);
+    eq('a third fresh capMs window asks again', asked[10], true);
+    eq('inside the third window is refused too', asked[11], false);
+
+    /* THE TEETH (this block): the three `false` checks above depend on the
+     * cap's own throttling — replacing `repaintCap`'s body with a passthrough
+     * (`return animating`, i.e. what the call site did before this fix) makes
+     * all three read `true` instead of `false`, while the grace-window and
+     * `true` checks stay green (they were never false to begin with). Proven
+     * below, restored immediately after. The SEPARATE integration block below
+     * proves the wiring itself — that `page-poll.ts` really calls this cap —
+     * by reverting `page-poll.ts:134` instead. */
+    ok('a source still animating far past the window keeps asking, at the cap rate',
+       cap(true, g + 100 * c));
+
+    /* Recovery: once `animating()` reports false, the next true starts a
+     * fresh grace window rather than being permanently capped — a real
+     * animation starting after a long-stuck one is not punished for the
+     * page's past. */
+    cap(false, g + 100 * c + 1);
+    eq('animating() going false resets the escalation',
+       cap(true, g + 100 * c + 2), true);
+}
+
+{
+    /* Integration level: proves `pollDrawnPage` actually calls the cap — that
+     * a regression in the WIRING (someone inlines `page.animating(Date.now())`
+     * again) is caught even though the unit test above still passes. Reuses
+     * the SP-38 block's fixture immediately above. */
+    const { pageOwnerOf } = await import('../../dist/esm/app/page-owner.js');
+    const { pollDrawnPage } = await import('../../dist/esm/app/page-poll.js');
+    const { createRepaintCap, ANIM_GRACE_MS, REPAINT_CAP_MS } =
+        await import('../../dist/esm/app/repaint-cap.js');
+
+    setSchwungGridMode('page');
+    schwungGridReload();
+    appState.activeTrack.index = 0;
+    env.setParams(MOCK_SYNTHS.test_enum);
+    const m = settleModel(bootModel(MOCK_SYNTHS.test_enum));
+    appState.trackModels[0] = [m];
+    const owner = pageOwnerOf(m);
+    for (let i = 0; i < 12 * 60 && !owner.delegated; i++) pollDrawnPage(owner);
+    ok('the enum page delegated to Schwung (integration fixture)', owner.delegated);
+
+    /* Stub `animating` to always answer true — bypassing the real anim_state
+     * timing entirely, which the SP-38 block above already covers — so this
+     * block isolates the wiring, not the store. */
+    owner.page.animating = () => true;
+
+    const g = ANIM_GRACE_MS, c = REPAINT_CAP_MS;
+    const ts = [0, g / 5, (2 * g) / 5, (3 * g) / 5, (4 * g) / 5, g, g + 1,
+                g + c, g + 2 * c, g + 2 * c + 1, g + 3 * c, g + 4 * c, g + 4 * c + 1];
+    const expect = createRepaintCap(g, c);
+    let allMatch = true;
+    for (const t of ts) {
+        const want = expect(true, t);
+        const got = pollDrawnPage(owner, () => t);
+        if (got !== want) allMatch = false;
+    }
+    ok('pollDrawnPage matches repaintCap one-for-one through the real call site',
+       allMatch);
+
+    appState.trackModels[0] = [];
+    schwungGridReload();
+    setSchwungGridMode(null);
+    env.setParams(MOCK_SYNTHS.test16);
+}
+
 }

@@ -180,6 +180,10 @@ await esbuild.build({
          * happened not to animate", which is the difference between a test and
          * a coincidence. */
         resolve(root, 'src/app/page-poll.ts'),
+        /* The repaint cap (SP-48): an entry point so the logic suite can drive
+         * the escalation state machine directly, and separately assert that
+         * `page-poll.ts` actually calls it rather than a parallel copy. */
+        resolve(root, 'src/app/repaint-cap.ts'),
         /* The body/ring decision (SP-18): an entry point so the `page` scenes
          * render through `schwungBodyFor` itself. A scene that re-derived the
          * condition would stay green with it taken out, which is exactly what

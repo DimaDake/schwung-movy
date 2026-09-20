@@ -146,7 +146,7 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | --- | --- | --- | --- | --- | --- |
 | SP-40 | the flag becomes two values, MOVY and SCHWUNG; `body` and the `.off` stand-ins deleted | Sonnet | ✅ | **7** | ✔ |
 | SP-47 | **NEW** — the opt-in release: the row goes in front of users, default still MOVY | Sonnet | ⬜ | **8** | — |
-| SP-48 | **NEW** — a modulated or `live` param the page shows keeps it redrawing forever. **A regression SP-38 introduced**; the flag must not reach testers with it open | Sonnet | ⬜ | **7.5** | ✔ |
+| SP-48 | a modulated or `live` param the page shows keeps it redrawing forever. **A regression SP-38 introduced** — fixed with a movy-side repaint cap (`src/app/repaint-cap.ts`), the flag must not reach testers with it open (now satisfied) | Sonnet | ✅ | **7.5** | ✔ |
 | SP-49 | **NEW** — an IDLE `page` tick costs half again what an `off` tick costs (worst period 6.3 vs 5.0 ms, `calls/tick` 1.4 vs 0.6) and it is there with nothing moving. **A standing LATENCY cost** — the tick period is the MIDI sampling interval — so it is a gate, not just inefficiency | Sonnet | ⬜ | **7.7** | ✔ |
 | SP-50 | **NEW** — on a child-level page movy and the controller disagree about WHICH child is showing. **Live under `page` on the missing `child_index_param`**: movy addresses no child at all while the controller resolves at instance 0, so the warm covers the wrong child and a knob can answer for the neighbour — inert on the installed `voice-poc`. (The other half, an off-by-base on the wire value, is real and has NO fleet exhibition.) Unreachable under the default `off` | Sonnet | ⬜ | **7.8** | ✔ |
 | SP-51 | **NEW** — the movy MODEL's own knob touch is still resolved at RELEASE time (`knobModel()?.handleKnobTouch` on the press against `handleKnobRelease` on the release, `src/midi/router.ts`), so a page change mid-hold leaves the model that heard the press with its touched/overlay state armed and hands the other model a release it never had. **Different consequence from SP-31, not the same bug**: the model's touch is movy's own state, `resetHeldInput` clears it, and it does not latch the jog click. Raised by SP-31 as a note; the id was added 2026-09-19 | Sonnet | ⬜ | **7.9** | — |
@@ -185,7 +185,7 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | SU-8 | A per-cell channel for "this parameter is AUTOMATED" and "this cell cannot take a lock" — distinct from `locked` (a held step's lock) and from `isModulated` (the tilde) | ⬜ **new, and no longer conditional — both deciders have ruled.** SP-35 put the "cannot take a lock" half in movy's own chrome at the gesture (a toast), and SP-36 shipped the automated half **through `isModulated`**, i.e. wearing the tilde. So what is left for upstream is exactly the GRAMMAR: a lane and an LFO now draw the same mark, and a parameter that is both says it once. The ask is one bit per cell (`decorations[slot].automated`, beside `locked`) plus the 2×2 mark `render_page_movy.mjs` already has the corner for — not a second renderer, and not a value channel: movy already answers the value through `:effective` |
 | SU-9 | A knob drives a door page's list, with `list_knob.mjs`'s feel | ⬜ **new, likely** — SP-44; the list, its length and its commit path are the door's, and movy must not restate them. **No host-side route exists** — the feel constants are `export const` and `onKnobTurn` takes a direction, not a magnitude (The injection surface §4) |
 | SU-10 | A viz kind for a LONE envelope stage (attack only, decay only) | ⬜ **new** — SP-46; take the fleet count with the ask, the way SP-22's drop was measured. **Not blocking**: SP-46 can ship on `vizOverrides` first, so the ask can be made against a widget that already draws (The injection surface §1) |
-| SU-11 | A per-key duration in the animation store, so `settled` ages out a value that never rests | ⬜ **new, conditional** — SP-48; the alternative is a movy-side repaint cap, which is the fallback only if this is declined |
+| SU-11 | A per-key duration in the animation store, so `settled` ages out a value that never rests | ⬜ **new** — SP-48 shipped the movy-side repaint cap fallback instead (2026-09-20); this ask is written (SP-48's own writeup has the PR-ready text) but **not yet filed** as a branch/PR, same as SU-9/SU-10/SU-12/SU-13. Not blocking anything — the cap makes no assumption that survives this landing later |
 | SU-12 | A caller-supplied trailing page of kind `knobs`, not only `menu` — so movy's own pages can join a module's page set | ⬜ **new, expected to close without work.** `buildTrailingPages` hard-codes `kind: PAGE_MENU` (`page_plan.mjs:381`), so appending a KNOB page is upstream — but movy already owns the contract string, and folding the page into that is the host-side route (SP-54, route 1). Open this only if the fold is measured too expensive |
 | SU-13 | A host-owned page's write throttle and knob feel | ⬜ **new, conditional, and bounded by The injection surface §4.** `SETPARAM_THROTTLE_MS = 20` and the acceleration constants are `export const` bindings — readable, not writable — so a feel complaint about a migrated Set Params page (the tempo knob) is an upstream ask or it does not happen. Do not open it before a complaint exists |
 | SU-14 | The re-plan skip: `param_pages` re-plans the whole module even when the contract has not changed | 🔨 **FILED — schwung PR #519, OPEN and unreviewed since 2026-09-17** (head `DimaDake:perf/page-reload-skip-unchanged-contract-upstream`, `3bca6d68`; the local `1959e661` is its working copy). 87 lines of `page_controller.mjs` + one host test. **The action is to chase it, not to write it**, and it lands in the highest-churn file in the library (98 commits/90 days), so it is overtaken the longer it waits. Until it ships, a host-owned contract pays the FULL unconditional re-plan — see the correction in *The pages that are not a track module's* |
@@ -921,11 +921,12 @@ entries, four complaints) plus SP-31 ✅, whose symptom a tester could not repor
 usefully (closed 2026-09-19). Not SP-32: an opt-in tester noticing a missing bank is a report, and
 reports are what the opt-in is for. **Three more rows are gates and are not in
 that count, because none is one of the four complaints: SP-48 (a modulated or
-`live` param keeps the page redrawing forever), SP-49 (an idle `page` tick
-costs half again what an `off` tick costs) and SP-50 (on a child-level page movy
-and the controller disagree about which child is showing). All three must be
-closed, or explicitly accepted here with the number and the acceptor named,
-before this item closes.**
+`live` param keeps the page redrawing forever) — **✅ closed 2026-09-20, a
+movy-side repaint cap; this row no longer needs an explicit acceptance for it** —
+SP-49 (an idle `page` tick costs half again what an `off` tick costs) and SP-50
+(on a child-level page movy and the controller disagree about which child is
+showing). The remaining two must be closed, or explicitly accepted here with the
+number and the acceptor named, before this item closes.**
 
 **THE DEVICE TIER MEASURES MOVY'S OWN WORK AT EVERY VALUE, and as of
 2026-09-19 that is the scenarios' doing rather than the default's.** `items`,
@@ -1123,7 +1124,7 @@ entry records the fleet count and the decision to accept the loss.
 
 ---
 
-### SP-48 — a modulated or `live` param the page shows keeps it redrawing forever. **A REGRESSION SP-38 INTRODUCED**
+### SP-48 ✅ 2026-09-20 — a modulated or `live` param the page shows keeps it redrawing forever. **A REGRESSION SP-38 INTRODUCED**
 
 **Product.** A page showing an enum-shaped or waveform parameter with a host LFO
 on it — or any `live` param that keeps moving — **never stops redrawing.**
@@ -1198,16 +1199,59 @@ flag must not go out with this open** unless SP-47's entry records an explicit
 acceptance and says who accepted it. The row is placed at order **7.5**, between
 SP-40 and SP-47, for that reason; the owner can move it.
 
-**Closes when:** the page goes idle again under a fast-modulated enum or wave
-param, **with a test that proves it** — drive an `:effective` value moving faster
-than the 120 ms window and assert `pollDrawnPage` stops asking for frames once
-the transition has aged out. `browser-test/logic/page-freshness.mjs` already
-drives `pollDrawnPage` directly, so this is a local test, not a device one. Or
-SP-47 records the acceptance.
+**Closed: route (b), the movy-side fallback — plan `plans/sp-48-endless-redraw.md`.**
+`src/app/repaint-cap.ts` (new, `createRepaintCap`) is an **escalate-then-cap**
+state machine, not a flat throttle: unthrottled for `ANIM_GRACE_MS = 500` (chosen
+> `BTN_FLASH_MS = 300`, the longest of the four known transition constants, so no
+real one-shot transition SP-38 fixed can still be running when the grace window
+ends), then bounded to one ask per `REPAINT_CAP_MS = 200` (5 Hz) for as long as
+`page.animating()` keeps saying true past that point; it self-resets the moment
+`animating()` goes false, so a real transition after a stuck page is never
+punished for the page's past. Wired into the one call site,
+`src/app/page-poll.ts:134`
+(`if (!moved) { const now = nowFn(); moved = animCap(page.animating(now), now); }`),
+which also gained an optional `nowFn: () => number = Date.now` parameter so the
+test can drive it with a synthetic clock — the default keeps every existing
+caller (`app/tick.ts:769`) byte-identical.
 
-**Needs:** a decision on (a) versus (b) — the upstream PR first, the cap only if
-it is declined. Nothing from the device; the measurement above is what is on
-record.
+**Teeth, at two levels, both proven by reverting and restoring.**
+`browser-test/logic/page-freshness.mjs`'s SP-48 block has a unit test
+(`repaintCap` alone, no schwung/model/device) and an integration test
+(`pollDrawnPage` with `page.animating` stubbed true and a synthetic `nowFn`,
+asserted one-for-one against a fresh `repaintCap`). Reverting `repaintCap`'s body
+to a passthrough (`return animating`) reddened exactly the three "refused"
+assertions in the unit test (the three capMs-window checks) while the
+grace-window and positive checks stayed green — proving the test discriminates
+the real throttle from a broken-but-passing stub, not just from total removal.
+Separately, reverting `page-poll.ts:134` to
+`if (!moved) moved = page.animating(Date.now());` (the pre-fix wiring) left the
+unit test green (it never touches `page-poll.ts`) and reddened the integration
+test's one assertion — proving the wiring itself, not just the standalone cap
+function, is covered. Both reverts were restored before the gates below ran.
+
+**Gates:** `SCHWUNG=../schwung npm test` — 0 failures. `SCHWUNG=../schwung node
+browser-test/page-mode.mjs` — still **3 of 3** expected failures, unmoved (this
+item touches no page-plan behaviour). `screenshot.mjs` — 176/176, no baseline
+diffs (the cap changes *how often* an already-drawn frame repaints, never *what*
+is drawn). No `engine/` change.
+
+**Cost bound — DERIVED, not measured.** SP-38 measured the animating window at
+0.7 ms/tick of `render` **on plaits**, which SP-38 and SP-39 both record as a
+**floor, not a representative** (SP-39 could not find an animating window on
+minijv at all). Taking that floor and `REPAINT_CAP_MS = 200` against SP-38's own
+idle `tick_ms` median (~5.3 ms), the fix reduces the *floor's* steady state from
+0.7 ms on every tick forever to 0.7 ms roughly once every 38 ticks — call it
+≈0.02 ms/tick averaged. This is **arithmetic on SP-38's own recorded number, not
+a new device reading**, and inherits every one of SP-38's caveats. No device
+measurement was taken for this item (optional per the plan, not required to
+close it).
+
+**SU-11 stays UNFILED — the fallback is what shipped.** See the Upstream table:
+the per-key duration ask (§3.3 of the plan, ready to paste into a PR) is written
+but no fork branch or PR exists yet, same "new" wording as SU-9/SU-10/SU-12/SU-13
+rather than SU-14's "FILED". The movy-side cap makes no assumption that survives
+SU-11 landing later — it simply stops mattering once `settled()` ages a
+never-resting key out on its own.
 
 ---
 

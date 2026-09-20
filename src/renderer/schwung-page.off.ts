@@ -7,11 +7,17 @@
  * esbuild erases — so this carries the shape without putting the module (and
  * its param_pages import) back into the bundle. */
 import type { SchwungPage } from './schwung-page.js';
-import type { TrackPort } from '../track/port.js';
+import type { PageParamSource } from './schwung-page-source.js';
+import type { PageAutomation } from '../types/page-automation.js';
 
 export type { SchwungPage };
 
-export function createSchwungPage(_port: TrackPort, _componentKey = 'synth'): SchwungPage {
+export function createSchwungPage(
+    _port: PageParamSource, _componentKey = 'synth',
+    _modulatedOf?: ((track: number, componentKey: string) => ReadonlySet<string> | null) | null,
+    _automationOf?: ((track: number) => PageAutomation) | null,
+    _trackIndex?: number,
+): SchwungPage {
     throw new Error(
         'movy: a Schwung page was requested in a build that excluded it '
         + '(MOVY_SCHWUNG_GRID=off). Rebuild with MOVY_SCHWUNG_GRID=page.');

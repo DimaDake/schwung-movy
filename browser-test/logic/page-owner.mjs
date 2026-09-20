@@ -43,6 +43,9 @@ const { modulatedKeysOf } = await import('../../dist/esm/app/modulated-keys.js')
     const ALLOWED = {
         'src/renderer/schwung-grid.ts': 'the mode and the (track, component) page cache',
         'src/app/page-owner.ts':        'the accessor itself — the only caller',
+        'src/app/page-owner-virtual.ts': 'page-owner.ts\'s sibling for a page with '
+            + 'no MODEL object (SP-53) — split out to keep page-owner.ts under the '
+            + '200-line cap, the same accessor question, not a second one',
     };
     const offenders = walkTs('src')
         .filter((f) => !(f in ALLOWED))
@@ -205,6 +208,9 @@ const { modulatedKeysOf } = await import('../../dist/esm/app/modulated-keys.js')
     const CONTRACT_ALLOWED = {
         'src/chain/hierarchy-source.ts': 'the one reader — the three rungs live here',
         'src/modules/loader.ts':         'DEFINES loadModuleJson; it reads no key itself',
+        'src/renderer/schwung-virtual-source.ts': 'SP-53: WRITES the contract for a '
+            + 'component with no module at all — there is no declaration to read a '
+            + 'second way, only movy\'s own answer to synthesise once',
     };
     const contractOffenders = walkTs('src')
         .filter((f) => !(f in CONTRACT_ALLOWED))

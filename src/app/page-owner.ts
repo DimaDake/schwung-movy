@@ -50,6 +50,11 @@
  * Lives in `app/` because page identity is `appState.activeTrack` and the page
  * cache is `renderer/schwung-grid`: `model/` may not import `renderer/`, and
  * `renderer/` must not grow app state (R12). `app/` already sees both.
+ *
+ * `page-owner-virtual.ts` is this file's sibling for a page with no MODEL
+ * object at all (SP-53) — split out to keep this file under the 200-line cap,
+ * not because the question is a different one; it imports `delegateOwner` and
+ * `MASTER_PAGE_TRACK` from here rather than restating either.
  */
 
 import { appState } from './state.js';
@@ -57,16 +62,19 @@ import { schwungGridMode, schwungPageFor } from '../renderer/schwung-grid.js';
 import { modulatedKeysOf } from './modulated-keys.js';
 import { automationFor } from './automated-keys.js';
 import type { SchwungPage } from '../renderer/schwung-page.js';
-import { isMovyOwnComponent, isMasterComponent, isSendComponent } from '../chain/config.js';
+import { isMovyOwnComponent, isMasterComponent, isSendComponent, isVirtualPageComponent } from '../chain/config.js';
 
-/* A master or send component is not track-scoped: it rides on slot 0 as a
- * carrier the way `componentPort` addresses it, and it is the SAME component
+/* A master, send or VIRTUAL component is not track-scoped: it rides on slot 0
+ * as a carrier the way `componentPort` (or, for a virtual component,
+ * `schwungPageFor`'s own routing) addresses it, and it is the SAME component
  * regardless of which track the user is looking at. Stamping the active
  * track onto its ref (the only track this file used to know about) gave a
  * master component sixteen distinct page identities — one per track — so a
  * track switch silently swapped in a different cached SchwungPage and a
- * different read cache for the module the user never left (SP-52). */
-const MASTER_PAGE_TRACK = 0;
+ * different read cache for the module the user never left (SP-52). A virtual
+ * component (SP-53) has no track at all, so it is pinned for the same
+ * reason on a component that never HAD one. */
+export const MASTER_PAGE_TRACK = 0;
 
 /** Page identity: whose component's parameter pages these are. */
 export interface PageRef {
@@ -108,7 +116,8 @@ export interface PageOwner {
 export function pageRefOf(model: any): PageRef | null {
     if (!model || typeof model.getComponentKey !== 'function') return null;
     const componentKey = model.getComponentKey();
-    const track = (isMasterComponent(componentKey) || isSendComponent(componentKey))
+    const track = (isMasterComponent(componentKey) || isSendComponent(componentKey)
+                    || isVirtualPageComponent(componentKey))
         ? MASTER_PAGE_TRACK : appState.activeTrack.index;
     return { track, componentKey };
 }
@@ -132,7 +141,7 @@ function movyOwner(ref: PageRef | null, model: any, reason: string): PageOwner {
 /* Schwung has claimed the component. It answers once its contract resolves, and
  * until then every question falls through to the movy owner underneath — the
  * same object, so the pre-ready window cannot drift from the movy-owned case. */
-function delegateOwner(ref: PageRef, page: SchwungPage, fallback: PageOwner): PageOwner {
+export function delegateOwner(ref: PageRef, page: SchwungPage, fallback: PageOwner): PageOwner {
     /* THE ONE GATE. A claimed page is not the live one in exactly one window —
      * the contract has not resolved — and every question answers here, so no
      * caller can be given one answer and not the other. The hold is deliberately

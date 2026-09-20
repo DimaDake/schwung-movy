@@ -78,6 +78,7 @@ import { run as run_schwung_page_idle_cost } from './logic/schwung-page-idle-cos
 import { run as run_cpu_page } from './logic/cpu-page.mjs';
 import { run as run_mixer } from './logic/mixer.mjs';
 import { run as run_pan_viz } from './logic/pan-viz.mjs';
+import { run as run_clip_params_source } from './logic/clip-params-source.mjs';
 import { run as run_env_identity } from './logic/env-identity.mjs';
 
 /* Awaited one at a time: the suites share the mock device globals, and the
@@ -159,6 +160,7 @@ const SUITES = [
     run_cpu_page,
     run_mixer,
     run_pan_viz,
+    run_clip_params_source,
 ];
 
 /* Between suites, back to the world movy boots in: no Set has said yet which

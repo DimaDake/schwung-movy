@@ -89,6 +89,19 @@ export function isMovyOwnComponent(componentKey: string): boolean {
     return componentKey === 'mix' || componentKey.endsWith('lfo');
 }
 
+/* A component with NO port at all — its params live in movy's own sequencer
+ * state, never behind any track's chain, host slot or engine root (SP-53).
+ * Distinct from `isMovyOwnComponent`: those three ALSO have no module behind
+ * them but DO have a real port (`portFor`/`hostPort`), so they are refused
+ * delegation by name (SP-55 removes that refusal once they carry their own
+ * `ui_hierarchy`/`chain_params`). A virtual component is refused nothing —
+ * it has no port for `componentPort` to resolve, so `schwungPageFor` checks
+ * this FIRST and builds a `PageParamSource` from `virtualSourceFor` instead. */
+export const CLIP_PARAMS_COMPONENT = 'clipparams';
+export function isVirtualPageComponent(componentKey: string): boolean {
+    return componentKey === CLIP_PARAMS_COMPONENT;
+}
+
 /* A send bus is hosted by MOVY, not by schwung's master bus. It rides the master
  * page because that is where a user looks for it, but its params live in movy's
  * engine under `snd<n>:` and its port must not be a shadow slot. */

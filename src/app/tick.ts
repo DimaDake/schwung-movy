@@ -17,7 +17,7 @@ import { cpuPageActive } from '../seq/cpu-page.js';
 import { keyboardState, baseNoteFor, padMapFor } from '../keyboard/state.js';
 import { isSounding } from '../keyboard/held-notes.js';
 import { browserState } from '../browser/state.js';
-import { MASTER_FX_SLOTS } from '../chain/config.js';
+import { MASTER_FX_SLOTS, CLIP_PARAMS_COMPONENT } from '../chain/config.js';
 import { drumPadLedColor } from '../keyboard/leds.js';
 import { drumNoteOfPhys } from '../keyboard/drum-grid.js';
 import { padVoiceSilent } from '../mixer/pad-mutes.js';
@@ -26,6 +26,7 @@ import { padColor } from '../seq/pads.js';
 import { midiNoteName } from '../keyboard/notes.js';
 import { renderKnobsView } from '../renderer/knob-view.js';
 import { pageOwnerOf, type PageOwner } from './page-owner.js';
+import { pageOwnerForComponent } from './page-owner-virtual.js';
 import { moduleGridOnScreen, pollDrawnPage, drawnKnobLevels } from './page-poll.js';
 import { schwungEditorActive, renderSchwungEditor } from '../renderer/schwung-editor.js';
 import { renderKeysView }  from '../renderer/keys-view.js';
@@ -726,6 +727,13 @@ function tickBody(): void {
     const masterPageOwner = seqState.sessionMode ? pageOwnerOf(masterModel) : null;
     const masterDirty = masterModel?.tick(!masterPageOwner?.delegated) ?? false;
 
+    /* SP-53: Clip Params has no MODEL at all (it answers out of `seqState`
+     * directly), so it is not `pageOwner` above and there is no `.tick()` to
+     * gate the way `activeModel`/`masterModel` are — only asked while the page
+     * is actually on screen, same reasoning as `masterPageOwner`. */
+    const clipParamsOwner = appState.currentView === VIEW_CLIP_PARAMS
+        ? pageOwnerForComponent(CLIP_PARAMS_COMPONENT) : null;
+
     // Reset knob touch/hold state whenever the shown param page changes, so a
     // held knob's highlight never persists after navigating away and back (e.g.
     // after assigning an LFO from a held knob — the release lands on the LFO
@@ -759,11 +767,12 @@ function tickBody(): void {
     const stepSelected = stepPageAvailable() && stepPageState.selected;
     const gridOnScreen = moduleGridOnScreen();
     /* WHICH OWNER THE GRID BEING ON SCREEN REFERS TO. `gridOnScreen` is true
-     * either for the track's own module page or for the master slot's DETAIL
-     * page (never both — session mode and the track views are mutually
-     * exclusive branches of the same ladder in `app/tick.ts` below), so the
-     * owner it polls and draws must follow the same branch. */
-    const drawnPageOwner = seqState.sessionMode ? masterPageOwner! : pageOwner;
+     * for the track's own module page, the master slot's DETAIL page, or Clip
+     * Params (SP-53) — never more than one of the three, since they are
+     * mutually exclusive branches of the same ladder in `app/tick.ts` below —
+     * so the owner it polls and draws must follow the same branch. */
+    const drawnPageOwner = seqState.sessionMode ? masterPageOwner!
+        : clipParamsOwner ?? pageOwner;
     /* THE POLL COMES BEFORE THE BODY IS ASKED FOR, because the body is what
      * readiness gates and the poll is what resolves readiness. Gating the poll
      * on the body instead is a deadlock that looks exactly like the feature
@@ -820,10 +829,6 @@ function tickBody(): void {
             const vm = buildMainPageVM();
             renderKnobsView(vm, false, appState.activeTrack.index);
             updateKnobLEDs(vm); // knobs 0-3 reflect value; 4-7 (null cells) off
-        } else if (appState.currentView === VIEW_CLIP_PARAMS) {
-            const vm = buildClipPageVM();
-            renderKnobsView(vm, false, appState.activeTrack.index);
-            updateKnobLEDs(vm); // knobs 0-2 reflect value; 3-7 (null cells) off
         } else if (appState.currentView === VIEW_FLAGS) {
             const vm = buildFlagsPageVM();
             renderFlagsView(vm);
@@ -842,6 +847,17 @@ function tickBody(): void {
             clear_screen();
             renderSchwungEditor();
             updateSingleKnobLED(-1, 0);
+        } else if (appState.currentView === VIEW_CLIP_PARAMS) {
+            /* AFTER `schwungEditorActive()` on purpose (SP-53): SCALE's
+             * long-enum dive is Schwung's own list picker under delegation
+             * (`owner.page.click()`), which raises exactly that editor — tested
+             * before this branch is, or the dive would never draw, the same way
+             * VIEW_KNOBS sits after it for a module's own divable params. */
+            const vm = buildClipPageVM();
+            const chrome = schwungChromeFor(drawnPageOwner, schwungBody, false);
+            renderKnobsView(vm, false, appState.activeTrack.index,
+                            schwungBody, schwungBankFor(drawnPageOwner, schwungBody), chrome);
+            lightKnobRow(vm, schwungBody);
         } else if (appState.currentView === VIEW_CPU) {
             renderCpuView(buildCpuPageVM());
             // Nothing on this page is editable, so every knob goes dark. A knob

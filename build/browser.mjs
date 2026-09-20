@@ -27,6 +27,12 @@ await esbuild.build({
          * suite can drive the stale-write hazard at the level it lives at,
          * rather than racing Schwung's settle window through the page. */
         resolve(root, 'src/renderer/schwung-page-cache.ts'),
+        /* A virtual component's contract (SP-53): an entry point so the logic
+         * suite can assert on the synthesised `ui_hierarchy`/`chain_params`
+         * JSON directly — the shape the real planner requires (an ARRAY, not
+         * a keyed object) is exactly what a chunk-folded module would leave
+         * unreachable to test at this level. */
+        resolve(root, 'src/renderer/schwung-virtual-source.ts'),
         /* WHICH keys that cache spends its round trip on (SP-39). Its own entry
          * point because the file has no state and no host: the logic suite
          * seeds a Map and a port and asserts on the request, which is the only
@@ -297,6 +303,11 @@ await esbuild.build({
         resolve(root, 'src/seq/clip-scale.ts'),
         resolve(root, 'src/seq/clip-page.ts'),
         resolve(root, 'src/seq/clip-page-vm.ts'),
+        /* SP-53's virtual-component seam, pinned at Clip Params: an entry
+         * point so the logic suite can drive the synthesised contract and the
+         * one-writer invariant directly, rather than folded into a chunk with
+         * no `dist/esm/seq/clip-params-contract.js` to import. */
+        resolve(root, 'src/seq/clip-params-contract.ts'),
         resolve(root, 'src/seq/drum-sync.ts'),
         resolve(root, 'src/seq/quant.ts'),
         resolve(root, 'src/seq/prefs.ts'),

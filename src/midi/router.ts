@@ -1,5 +1,7 @@
 import { trackRef } from '../track/ref.js';
 import { pageOwnerOf } from '../app/page-owner.js';
+import { pageOwnerForComponent } from '../app/page-owner-virtual.js';
+import { CLIP_PARAMS_COMPONENT } from '../chain/config.js';
 import { pinPage, unpinPage } from './knob-page-pin.js';
 import { pinModel, unpinModel } from './knob-model-pin.js';
 import { perfPhase, perfPhaseEnd } from '../app/perf-probe.js';
@@ -22,6 +24,11 @@ import { openSchwungDive } from '../browser/schwung-dive.js';
  */
 function knobOwner() { return pageOwnerOf(knobModel()); }
 function knobInfoFor(k: number): any | null { return knobOwner().knobParamInfo(k); }
+
+/* Clip Params (SP-53) has no MODEL for `knobOwner()`'s `pageOwnerOf` to ask —
+ * see `pageOwnerForComponent`'s own header. Its own accessor, asked only from
+ * the two gesture sites below that already gate on `clipPageActive()`. */
+function clipParamsOwner() { return pageOwnerForComponent(CLIP_PARAMS_COMPONENT); }
 import { focusedTrack, focusGroupStep, GROUP_DIR_UP, GROUP_DIR_DOWN } from '../track/focus.js';
 import { beginTrackSwitch, restoreTrackState, switchToTrack } from '../track/switch.js';
 import { portFor } from '../track/registry.js';
@@ -29,7 +36,7 @@ import { mappingFor } from '../seq/lane-mapping.js';
 import { setButtonHeld } from '../seq/button-held.js';
 import { currentSetUuid, reloadCurrentSet, sessionFailScope, sessionFlush, sessionPhase, sessionReady } from '../seq/set-session.js';
 import { sessionStartFromScratch } from '../seq/set-fail.js';
-import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS } from '../app/state.js';
+import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS } from '../app/state.js';
 import { mainPageActive, mainPageKnob, mainPageTouch, mainPageRelease } from '../seq/main-page.js';
 import { clipPageActive, clipPageKnob, clipPageTouch, clipPageRelease } from '../seq/clip-page.js';
 import { actionRowSelected, backupsRowSelected, flagsPageActive, flagsPageJog, flagsPageKnob } from '../seq/flags-page.js';
@@ -301,8 +308,14 @@ export function onMidiMessageInternal(data: number[]): void {
         }
         if (clipPageActive()) {
             if (d1 < 4) {
-                if (d2 > 0) clipPageTouch(d1, true);
-                else clipPageRelease(d1, appState.activeTrack.index);
+                /* SP-53: Clip Params has no per-track model to re-pin against
+                 * (its owner is the same fixed component whoever is touching
+                 * it), so — unlike the module page above — asking fresh at
+                 * touch and at release is safe: nothing about the answer can
+                 * change mid-hold the way a track switch changes `knobModel()`. */
+                const owner = clipParamsOwner();
+                if (d2 > 0) { clipPageTouch(d1, true, !!owner.page); owner.page?.knobTouch(d1, true); }
+                else { owner.page?.knobTouch(d1, false); clipPageRelease(d1, appState.activeTrack.index, !!owner.page); }
             }
             appState.dirty = true;
             return;
@@ -555,7 +568,17 @@ export function onMidiMessageInternal(data: number[]): void {
             return;
         }
         if (clipPageActive()) {
-            if (k < 4) { clipPageKnob(k, delta, appState.activeTrack.index); appState.dirty = true; }
+            /* One writer, two callers, never both for the same turn (SP-53):
+             * `owner.page` is the SAME test the render path used to decide
+             * whether Schwung drew this tick, so draw and write agree about
+             * who owns the page. Undelegated, this is byte-identical to
+             * before — `clipPageKnob` unchanged. */
+            if (k < 4) {
+                const owner = clipParamsOwner();
+                if (owner.page) owner.page.knobTurn(k, delta);
+                else clipPageKnob(k, delta, appState.activeTrack.index);
+                appState.dirty = true;
+            }
             return;
         }
         if (flagsPageActive()) {
@@ -677,8 +700,12 @@ export function onMidiMessageInternal(data: number[]): void {
              * everywhere else. Found on device, backing out of the module
              * browser. */
             const onSchwungView = appState.currentView === VIEW_KNOBS
-                               || appState.currentView === VIEW_CHAIN;
-            const spb = onSchwungView ? knobOwner().page : null;
+                               || appState.currentView === VIEW_CHAIN
+                               || appState.currentView === VIEW_CLIP_PARAMS;
+            /* Clip Params (SP-53) has no model for `knobOwner()` to resolve —
+             * its own accessor answers the same question. */
+            const spb = appState.currentView === VIEW_CLIP_PARAMS ? clipParamsOwner().page
+                      : onSchwungView ? knobOwner().page : null;
             if (spb) {
                 const intent = spb.back();
                 appState.dirty = true;
@@ -820,7 +847,10 @@ export function onMidiMessageInternal(data: number[]): void {
          * module browser reachable everywhere else.
          */
         {
-            const spc = knobOwner().page;
+            /* Clip Params (SP-53) has no model for `knobOwner()` to resolve —
+             * its own accessor answers the same question. */
+            const spc = appState.currentView === VIEW_CLIP_PARAMS
+                ? clipParamsOwner().page : knobOwner().page;
             /*
              * Schwung takes the click when it has something to do with it: a
              * door page to enter, its own picker to choose from, or a KNOB
@@ -846,7 +876,8 @@ export function onMidiMessageInternal(data: number[]): void {
             /* Same gate as Back: a page that exists is not a page you are
              * looking at, and a click on movy's own screens is movy's. */
             const onSchwungView = appState.currentView === VIEW_KNOBS
-                               || appState.currentView === VIEW_CHAIN;
+                               || appState.currentView === VIEW_CHAIN
+                               || appState.currentView === VIEW_CLIP_PARAMS;
             if (onSchwungView && spc
                 && (wantPicker || spc.ctl.pickerOpen || spc.ctl.isDoor()
                     || spc.ctl.state.touched >= 0)) {

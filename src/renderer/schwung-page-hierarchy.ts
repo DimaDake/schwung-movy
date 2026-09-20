@@ -28,7 +28,7 @@
  * through SP-26's cache, where a null is a read in flight.
  */
 
-import type { TrackPort } from '../track/port.js';
+import type { PageParamSource } from './schwung-page-source.js';
 import type { PageReadCache } from './schwung-page-cache.js';
 import { moduleReadKey } from '../chain/config.js';
 import { createContractSource } from '../chain/hierarchy-source.js';
@@ -45,7 +45,7 @@ export interface PageHierarchy {
     invalidate(): void;
 }
 
-export function createPageHierarchy(port: TrackPort, qualify: (k: string) => string,
+export function createPageHierarchy(port: PageParamSource, qualify: (k: string) => string,
                                     cache: PageReadCache,
                                     componentKey: string): PageHierarchy {
     /* EVERY READ GOES THROUGH THE CACHE (SP-26), including the module id. A

@@ -45,7 +45,7 @@
  * so the two cannot drift.
  */
 
-import { appState, VIEW_KNOBS, VIEW_CHAIN } from './state.js';
+import { appState, VIEW_KNOBS, VIEW_CHAIN, VIEW_CLIP_PARAMS } from './state.js';
 import { seqState } from '../seq/state.js';
 import { sessionReady } from '../seq/set-session.js';
 import { schwungEditorActive } from '../renderer/schwung-editor.js';
@@ -69,10 +69,16 @@ import { createRepaintCap } from './repaint-cap.js';
  * of falling through to the `currentView` test below, which it would pass or
  * fail by accident depending on whatever view was on screen when Session was
  * opened.
+ *
+ * CLIP PARAMS IS A THIRD GRID (SP-53) — a page with no module behind it, but
+ * still one Schwung may plan and draw under the flag. Tested here rather than
+ * folded into the `VIEW_KNOBS`/`VIEW_CHAIN` pair so a future virtual page
+ * (Set Params) is one more `||`, not a second question.
  */
 export function moduleGridOnScreen(): boolean {
     if (!sessionReady() || schwungEditorActive()) return false;
     if (seqState.sessionMode) return appState.masterDetail;
+    if (appState.currentView === VIEW_CLIP_PARAMS) return true;
     return appState.currentView === VIEW_KNOBS || appState.currentView === VIEW_CHAIN;
 }
 

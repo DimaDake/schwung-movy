@@ -12,7 +12,7 @@
  * own path for that.
  */
 
-import type { TrackPort } from '../track/port.js';
+import type { PageParamSource } from './schwung-page-source.js';
 import type { SchwungIntent } from './schwung-page.js';
 import type { PageHierarchy } from './schwung-page-hierarchy.js';
 import { mlog } from '../log.js';
@@ -26,7 +26,7 @@ export interface PageInput {
     focusVoice(pad: number): boolean;
 }
 
-export function createPageInput(ctl: any, lib: any, port: TrackPort,
+export function createPageInput(ctl: any, lib: any, port: PageParamSource,
                                 qualify: (k: string) => string,
                                 hier: PageHierarchy,
                                 warm: (keys: readonly string[]) => void): PageInput {

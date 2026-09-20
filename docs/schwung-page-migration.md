@@ -163,7 +163,7 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | SP-30 | Default-on: flip, device tier, docs, release, stated revert path | Sonnet | ⬜ | 20 | — |
 | SP-41 | Delete `off`, movy's page renderer, model page planning. **CONDITIONAL — may never happen** | Opus | ⬜ | 21 | — |
 | SP-52 | the master chain: MFX 1–4 and SEND 1–3 are on movy's renderer under every flag value. **FIXED, movy-side, 2026-09-20**: four defects, all in the seam between the INPUT half (already delegated) and the draw/poll half (never asked) — `schwungPageFor` now builds on `componentPort(trackIndex, componentKey)`, not `portFor(trackIndex)` (`renderer/schwung-grid.ts`); `pageRefOf` pins a master/send ref's track to a fixed carrier (0) instead of `appState.activeTrack.index`, which also fixes the per-track cache-id bug one layer up (`app/page-owner.ts`); `moduleGridOnScreen` answers session mode off `masterDetail`, not off `!sessionMode`, so the master DETAIL page now gets a body/chrome/poll from its own `masterPageOwner` (built off `masterModel()`, kept apart from the track's `pageOwner` so gating one component's refresh never reads another's delegation) (`app/page-poll.ts`, `app/tick.ts`); `modulatedKeysOf` reads `masterFxModels` for a `master_fx:` key instead of `trackModels[track]`, which held no such component and always answered unmodulated (`app/modulated-keys.ts`). No upstream PRs, matching the wave's own finding. Teeth: 4 targeted checks, each proven red with its fix reverted and green restored (`browser-test/logic/schwung-grid.mjs`, `tracks-refs.mjs`, `page-owner.mjs`, `set-session.mjs`). **Not yet covered**: a `page`-mode screenshot scene for a master FX/send page (all 177 existing baselines are track-scoped) and the device `sndlog`/probe read-back for the draw+poll half — named, not built, deferred to the wave's device agent (same as SP-42) | Sonnet | ✅ **movy-side, 2026-09-20** | 22 | — |
-| SP-53 | **NEW** — Set Params and Clip Params become a host-owned contract (the virtual-component seam) | Sonnet | ⬜ | 23 | — |
+| SP-53 | Set Params and Clip Params become a host-owned contract (the virtual-component seam). **PARTIAL, movy-side, 2026-09-20**: the seam (`PageParamSource`, `createVirtualSource`, `isVirtualPageComponent`, `pageOwnerForComponent`) built and wired end-to-end for **Clip Params only** — all four cells declared native (no widget), delegated knob-turn/touch/release/click/back/jog, one writer (`applyClip*` in `seq/clip-page.ts`) shared by the delta path and the virtual source, `formatValue` first exercised for TRANSPOSE's drum-track "n/a". Set Params NOT wired this pass (same seam, mechanical follow-up — see the plan). Gates: `npm test` 0 failures (new suite `browser-test/logic/clip-params-source.mjs`, teeth proven by reverting `chain_params`'s array shape and watching the real planner throw), `page-mode.mjs` 3 of 3 unchanged, `screenshot.mjs` 177/177 unchanged (no new `page`-mode scene added — named as a gap, not built). See `plans/sp-53-virtual-component-seam.md` | Sonnet | 🟡 **partial, movy-side, 2026-09-20** | 23 | — |
 | SP-54 | **NEW** — the step page: a contract that exists only while a step is held | Sonnet | ⬜ | 24 | — |
 | SP-55 | **NEW** — MIX and the two LFO pages: they have a port and a key, and are refused delegation by name. The easiest of the wave | Sonnet | ⬜ | 25 | — |
 | SP-56 | **NEW** — Settings, CPU and Backups: a scope decision, not a build | Opus | ⬜ | 26 | — |
@@ -1922,6 +1922,83 @@ asserted through the existing page logic tests and not only by screenshot; `off`
 is byte-identical; and each page has a `page`-mode screenshot scene.
 
 **Needs:** SP-40, SP-47. Independent of SP-52.
+
+**PARTIAL — the seam shipped, Clip Params shipped on it, Set Params did not
+(movy-side, 2026-09-20).** Plan: `plans/sp-53-virtual-component-seam.md`.
+
+- **The seam is general, not bespoke.** `PageParamSource`
+  (`renderer/schwung-page-source.ts`) is the shape `createSchwungPage`'s whole
+  pipeline actually dereferences on `port` — `TrackPort` satisfies it
+  structurally, so every real-module call site is unchanged. Two more optional
+  members ride on it: `vizOverrides`/`formatValue`, the two `createController`
+  hooks the injection surface names as never-injected — now wired through
+  `schwung-page-io.ts` for the first time. `createVirtualSource`
+  (`renderer/schwung-virtual-source.ts`) turns a flat `VirtualCellSpec[]` table
+  into both halves of the contract (`ui_hierarchy`, `chain_params`) and the
+  read/write for each key. **`chain_params` must be an ARRAY of `{key,...}`,
+  never a keyed object** — `param_meta.mjs`'s `buildMetaIndex` does `for (const
+  p of (chainParams || []))`; a keyed object is not iterable and throws inside
+  `planPages` before a single cell draws. Cost a full device-less debug cycle
+  to find; pinned as the teeth of the new logic suite (below), which reddens
+  on exactly this if reverted.
+- **Addressing reuses SP-52 whole.** `chain/config.ts`'s
+  `isVirtualPageComponent`/`CLIP_PARAMS_COMPONENT`; `app/page-owner.ts`'s
+  `pageRefOf` pins a virtual component to the SAME `MASTER_PAGE_TRACK` fixed
+  carrier SP-52 introduced; `pageOwnerForComponent`
+  (`app/page-owner-virtual.ts`, split out only to keep `page-owner.ts` under
+  the 200-line cap) answers the ownership question for a page with no `model`
+  object at all — Set Params/Clip Params have no `getKnobPage()` to fall back
+  to, so the movy-owned answer is always page 0 of 1.
+- **`port.track.index` decoupled.** The three places `createSchwungPage`'s
+  pipeline read it (two callback shapes, `ctl.load({slot})`) now take an
+  explicit `trackIndex` argument instead — a virtual source makes no claim
+  about a track at all, cleaner than `EngineRootPort`'s existing
+  `track: {index: 0}` fake.
+- **Clip Params, fully wired**, native first (no `vizOverrides`/widget this
+  round — SCALE and QUANT are Schwung's ordinary enum-square, LENGTH and
+  TRANSPOSE its ordinary numeric dial, not movy's big-font "preset" look; a
+  restyle is a separable, untested-without-a-device follow-up). `formatValue`
+  answers TRANSPOSE's "n/a on a drum track" — first real caller of that hook.
+  Knob turn, touch, release, jog-click (SCALE's long-enum dive, which
+  Schwung's own list picker now owns — SU-4) and Back are all delegation-aware
+  in `midi/router.ts`, gated on the SAME `pageOwnerForComponent(...).page` the
+  render path in `app/tick.ts` reads, so draw and write cannot disagree about
+  who owns the page — one writer (`applyClip*` in `seq/clip-page.ts`), shared
+  by the delta path and the virtual source's absolute-value `set()`.
+  `app/tick.ts`'s `VIEW_CLIP_PARAMS` branch was moved to AFTER
+  `schwungEditorActive()` in the view ladder (it used to sit before), which it
+  has to for the SCALE dive to ever draw — the same reason `VIEW_KNOBS` sits
+  there.
+- **Set Params NOT wired this pass** — same seam, same shapes (more presets, a
+  `toggle` cell for LINK, one dynamic-option enum for LAYOUT gated on MODE),
+  deliberately left as the mechanical follow-up: Clip Params alone already
+  exercises every shape (native enum, native int, the drum-refusal `format()`,
+  the long-enum dive, the single-writer invariant), and touching TWO
+  gesture-heavy pages in one pass raised the regression risk on a currently-
+  shipping feature (Set Params/Clip Params work today for every user,
+  independent of the experimental `schwunggrid` flag) further than this pass
+  chose to take on without a device to verify.
+- **Teeth**, cheapest level: `browser-test/logic/clip-params-source.mjs`
+  (new) — pure-function assertions on the synthesised contract need no schwung
+  checkout at all; a guarded block (real `schwungLibAvailable()`) additionally
+  proves the real planner resolves the page (`ready`, `pageCount>=1`,
+  `keyAt(1)==='length'`). Reverting `chainParamsJson()`'s array shape back to
+  a keyed object reddened both the shape assertion and, further down, crashed
+  the suite outright (`params.map is not a function`) — restored before the
+  gates below ran.
+- **Not built**: a `page`-mode screenshot scene for Clip Params (all 177
+  existing baselines are `off`-mode or track-module `page` scenes; none
+  exercise this component) — named as a gap here rather than rushed without a
+  device to confirm the native rendering actually looks right. The device
+  `sndlog`-equivalent read-back (a Clip Params knob turn landing on
+  `clipparams:length` verbatim) is likewise named, not built, per the wave's
+  own device-agent boundary.
+
+**Gates:** `SCHWUNG=../schwung npm test` — 0 failures. `SCHWUNG=../schwung node
+browser-test/page-mode.mjs` — still 3 of 3 expected failures, unmoved.
+`screenshot.mjs` — 177/177, 0 diffs (Clip Params under `off`, the default, is
+byte-identical — the only arm any existing scene exercises). No `engine/`
+change.
 
 ---
 

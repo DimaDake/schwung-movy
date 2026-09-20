@@ -26,6 +26,9 @@ import { componentPort } from '../track/registry.js';
 import { schwungLibAvailable } from './schwung-lib.js';
 import { schwungFloorMetOnce } from './schwung-floor.js';
 import { flagValue } from '../seq/flags.js';
+import { isVirtualPageComponent } from '../chain/config.js';
+import { virtualSourceFor } from '../seq/virtual-page-sources.js';
+import { mlog } from '../log.js';
 
 export type SchwungGridMode = 'off' | 'page';
 
@@ -120,20 +123,48 @@ export function schwungPageFor(trackIndex: number, componentKey: string,
     const id = trackIndex + ':' + componentKey;
     let p = pages.get(id);
     if (!p) {
-        /* `componentPort`, not `portFor(trackIndex)`: a `master_fx:` key is
-         * schwung's own and global, and a `snd<n>` key is movy's engine root —
-         * neither is the track's own chain. Reaching either through the plain
-         * track port namespaces the key `ch<N>:…`, which is the one
+        /* A VIRTUAL COMPONENT (SP-53) HAS NO PORT AT ALL — its io answers out
+         * of movy's own state, never a track's chain, so it is resolved
+         * BEFORE `componentPort` rather than through it: `componentPort`'s own
+         * contract is "the port a component's params actually live behind",
+         * and a virtual component's params live behind no port.
+         *
+         * Otherwise `componentPort`, not `portFor(trackIndex)`: a `master_fx:`
+         * key is schwung's own and global, and a `snd<n>` key is movy's engine
+         * root — neither is the track's own chain. Reaching either through the
+         * plain track port namespaces the key `ch<N>:…`, which is the one
          * `componentPort` exists to prevent (`track/registry.ts`). Correct here
          * only because `trackIndex` is already the fixed carrier `pageRefOf`
-         * hands master/send components (`app/page-owner.ts`), not the active
-         * track. */
-        p = createSchwungPage(componentPort(trackIndex, componentKey), componentKey,
-                              modulatedOf ?? null, automationOf ?? null);
+         * hands a non-track component (master/send/virtual —
+         * `app/page-owner.ts`), not the active track. */
+        const source = isVirtualPageComponent(componentKey)
+            ? virtualSourceFor(componentKey)
+            : componentPort(trackIndex, componentKey);
+        if (!source) return pages.get(id) ?? deadPage(componentKey);
+        p = createSchwungPage(source, componentKey,
+                              modulatedOf ?? null, automationOf ?? null, trackIndex);
         p.reload();
         pages.set(id, p);
     }
     return p;
+}
+
+/* A registered virtual key with no source (a config bug, not a runtime one —
+ * `isVirtualPageComponent` and `virtualSourceFor` are meant to agree on every
+ * key) still has to return SOMETHING typed `SchwungPage`, never throw: this
+ * runs on the render path. `ready` stays false forever, which is the same
+ * "not claimed yet" state a module still loading shows — never drawn, never
+ * mistaken for an empty page. */
+function deadPage(componentKey: string): SchwungPage {
+    mlog('schwung-grid: no virtual source for ' + componentKey);
+    return {
+        reload() {}, tick() {}, pageCount: 0, pageIndex: 0,
+        changePage() {}, goToPage() {}, keyAt: () => null, targetAt: () => null,
+        labelAt: () => null, knobParamInfo: () => null, knobLevels: () => new Array(8).fill(null),
+        animating: () => false, render() {}, chrome: () => ({ header: null, footer: null, pageLabel: null }),
+        knobTurn() {}, knobTouch() {}, click: () => null, back: () => null,
+        focusVoice: () => false, ready: false, ctl: null,
+    };
 }
 
 /** Drop cached pages for a track — its module changed, so its contract has. */

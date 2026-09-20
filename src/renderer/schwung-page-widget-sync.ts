@@ -37,13 +37,13 @@
  * registerModuleWidgets takes the id as a READ, so the common case — a contract
  * declaring no custom kind — settles without asking for it at all.
  */
-import type { TrackPort } from '../track/port.js';
+import type { PageParamSource } from './schwung-page-source.js';
 import { moduleReadKey } from '../chain/config.js';
 import { registerModuleWidgets } from './schwung-widgets.js';
 
 const WIDGET_TRIES = 3;
 
-export function createWidgetSync(ctl: any, port: TrackPort, componentKey: string) {
+export function createWidgetSync(ctl: any, port: PageParamSource, componentKey: string) {
     let widgetDone = false;
     let widgetTries = 0;
 

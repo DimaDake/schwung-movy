@@ -133,6 +133,15 @@ four release blockers come first, then the two-value flag, then the **opt-in
 release** — which is now the milestone this ledger runs at, with SP-30's default
 flip after it and SP-41 conditional on a decision nobody has made.
 
+**SP-52…SP-56 were added 2026-09-20 and are a WAVE, not five more items in the
+queue.** They extend delegation to the seven knob surfaces the flag has never
+reached — the master chain, movy's own parameter pages — and they are ordered
+after the release deliberately: none of them is a release gate, and the seam
+SP-53 builds is worth designing against a renderer that has already been in front
+of users. Their inventory, their route and the answer to "does this need upstream
+PRs" (**no — zero are required**) are in *The pages that are not a track module's
+— 2026-09-20*, below.
+
 | id | item | model | state | order | release gate |
 | --- | --- | --- | --- | --- | --- |
 | SP-40 | the flag becomes two values, MOVY and SCHWUNG; `body` and the `.off` stand-ins deleted | Sonnet | ⬜ | **7** | ✔ |
@@ -154,6 +163,11 @@ flip after it and SP-41 conditional on a decision nobody has made.
 | SP-29 | Schwung ships its own automation lanes and p-locks. Decide movy's position | Opus | ⬜ | 19 | — |
 | SP-30 | Default-on: flip, device tier, docs, release, stated revert path | Sonnet | ⬜ | 20 | — |
 | SP-41 | Delete `off`, movy's page renderer, model page planning. **CONDITIONAL — may never happen** | Opus | ⬜ | 21 | — |
+| SP-52 | **NEW** — the master chain: MFX 1–4 and SEND 1–3 are on movy's renderer under every flag value. The INPUT half already delegates; nothing draws or polls it, and the page it would build is on the wrong port | Sonnet | ⬜ | 22 | — |
+| SP-53 | **NEW** — Set Params and Clip Params become a host-owned contract (the virtual-component seam) | Sonnet | ⬜ | 23 | — |
+| SP-54 | **NEW** — the step page: a contract that exists only while a step is held | Sonnet | ⬜ | 24 | — |
+| SP-55 | **NEW** — MIX and the two LFO pages: they have a port and a key, and are refused delegation by name. The easiest of the wave | Sonnet | ⬜ | 25 | — |
+| SP-56 | **NEW** — Settings, CPU and Backups: a scope decision, not a build | Opus | ⬜ | 26 | — |
 | SP-21 | Metadata correction overlay | Sonnet | ❌ **dropped** — the audit found 1 real correction in 555 | — | — |
 | SP-22 | Cut-curve viz kind | Sonnet | ❌ **dropped** — a movy extension; Schwung draws plain dials natively | — | — |
 
@@ -172,6 +186,9 @@ flip after it and SP-41 conditional on a decision nobody has made.
 | SU-9 | A knob drives a door page's list, with `list_knob.mjs`'s feel | ⬜ **new, likely** — SP-44; the list, its length and its commit path are the door's, and movy must not restate them. **No host-side route exists** — the feel constants are `export const` and `onKnobTurn` takes a direction, not a magnitude (The injection surface §4) |
 | SU-10 | A viz kind for a LONE envelope stage (attack only, decay only) | ⬜ **new** — SP-46; take the fleet count with the ask, the way SP-22's drop was measured. **Not blocking**: SP-46 can ship on `vizOverrides` first, so the ask can be made against a widget that already draws (The injection surface §1) |
 | SU-11 | A per-key duration in the animation store, so `settled` ages out a value that never rests | ⬜ **new, conditional** — SP-48; the alternative is a movy-side repaint cap, which is the fallback only if this is declined |
+| SU-12 | A caller-supplied trailing page of kind `knobs`, not only `menu` — so movy's own pages can join a module's page set | ⬜ **new, expected to close without work.** `buildTrailingPages` hard-codes `kind: PAGE_MENU` (`page_plan.mjs:381`), so appending a KNOB page is upstream — but movy already owns the contract string, and folding the page into that is the host-side route (SP-54, route 1). Open this only if the fold is measured too expensive |
+| SU-13 | A host-owned page's write throttle and knob feel | ⬜ **new, conditional, and bounded by The injection surface §4.** `SETPARAM_THROTTLE_MS = 20` and the acceleration constants are `export const` bindings — readable, not writable — so a feel complaint about a migrated Set Params page (the tempo knob) is an upstream ask or it does not happen. Do not open it before a complaint exists |
+| SU-14 | **The re-plan skip that is already WRITTEN and never sent.** `perf/page-reload-skip-unchanged-contract` (`1959e661`) is an 87-line `page_controller.mjs` change plus `tests/host/test_page_reload_skips_unchanged_contract.sh`, on a LOCAL branch that is not pushed and not an ancestor of `origin/main` | ⬜ **new, and the cheapest upstream action available.** It lands in the highest-churn file in the library (98 commits/90 days), so it is overtaken the longer it waits — see the correction in *The pages that are not a track module's* |
 
 ---
 
@@ -355,6 +372,157 @@ between writing it and its release; one landing in `page_controller.mjs` or
 `render_page_movy.mjs` (SU-8's shape, SU-9's) is likely to be overtaken while it
 waits, which is an argument for making those asks small and early rather than
 complete.
+
+---
+
+## The pages that are not a track module's — 2026-09-20
+
+**READ FROM SOURCE, none of it measured.** Every claim here is a file:line read
+of movy's tree and of `schwung@origin/main` (`6977c4c6`); the ledger's rule that
+an unprinted claim is an unchecked claim applies exactly as it does to a
+burn-down count. Raised by the reporter: *"we should eventually migrate all
+parameter pages to schwung — send fx, mfx and custom pages like step params,
+clip params, set params."*
+
+**This ledger has only ever been about ONE surface**: the parameter pages of a
+module sitting in a TRACK chain slot, drawn from `VIEW_KNOBS` or `VIEW_CHAIN`.
+`moduleGridOnScreen()` says so in four clauses (`app/page-poll.ts:64`), and
+everything the flag does is behind it. Seven other knob surfaces exist and the
+flag reaches none of them.
+
+### The inventory
+
+| surface | who draws it today | what its eight knobs are | item |
+| --- | --- | --- | --- |
+| **MFX 1–4** (`master_fx:fx1..fx4`) | movy's renderer, under every flag value — the session branch (`app/tick.ts:838`) calls `renderKnobsView` with no body and no chrome | a **real module's contract**, behind `hostPort(0)` | **SP-52** |
+| **SEND 1–3** (`snd0..snd2`) | the same branch | a **real module's contract**, behind `engineRootPort()` | **SP-52** |
+| **MIX** (`mix`) | movy's model; delegation refused by name at `chain/config.ts:89` | movy's own params, real port | **SP-55** |
+| **TRACK LFO** (`<prefix>lfo`), **MASTER LFO** (`master_fx:lfo`) | movy's scoped LFO model; refused by the same line | movy's own params, real port | **SP-55** |
+| **Step Params** | `seq/step-page-vm.ts`; `schwungBodyFor` declines on `stepSelected` (`app/tick.ts:161`) | trig properties held in the engine — **no port param exists for any of them** | **SP-54** |
+| **Clip Params** (`VIEW_CLIP_PARAMS`) | `seq/clip-page-vm.ts` | `seqState` fields | **SP-53** |
+| **Set Params** (`VIEW_MAIN_PARAMS`) | `seq/main-page-vm.ts` | `seqState` + `keyboardState` fields | **SP-53** |
+| Settings, CPU, Backups | `flags-view.ts`, `cpu-view.ts`, `versions-view.ts` | **not parameters** — a list, a meter and a restore picker | **SP-56**, a scope decision |
+
+**The master chain is already HALF migrated, and nobody did it on purpose.** The
+input side delegates: `knobModel()` returns the master model in session mode
+(`midi/router.ts:131`), the knob-CC branch resolves `pageOwnerOf(model)`
+(`:577`), and the jog calls `pageOwnerOf(masterModel()).changePage` in three
+places (`:980`, `:1038`, `:1054`). The render side does not, and cannot — the
+poll that makes a page `ready` is gated on `moduleGridOnScreen()`, which is
+false in session mode, so the contract never resolves, `owner.page` stays null
+and every question falls through to movy. **Inert today, and wrong underneath:**
+`schwungPageFor` builds that page on `portFor(trackIndex)` (`renderer/schwung-grid.ts:119`),
+not on `componentPort`, so a `master_fx:` key would be read as
+`ch<N>:master_fx:…` — the exact namespacing mistake `componentPort` exists to
+prevent (`track/registry.ts:64`) — and the cache id is `trackIndex + ':' + componentKey`
+(`:116`), which gives a GLOBAL component sixteen pages. That is SP-52's first
+paragraph, not a separate finding.
+
+### Do these need upstream PRs? — no, and the reason is structural
+
+**Minimum upstream PRs to migrate every surface above: ZERO.** Not "probably
+none" — the two things a host page needs are both already injected, and neither
+touches Schwung:
+
+1. **The contract is a string movy writes.** `page_controller.mjs` reads
+   `${s.prefix}:ui_hierarchy` (`:1025`) and `${s.prefix}:chain_params` (`:1130`)
+   **through the injected `getParam`**, and movy already intercepts the first
+   (`renderer/schwung-page-io.ts`, `isContractKey`). Nothing makes the library
+   ask a port, a module or a file: `s.prefix` is whatever string
+   `setComponent` was handed. A page with **no module behind it at all** is
+   therefore already expressible — the planner cannot tell.
+2. **Every read and write is movy's.** Rule 1 of `param_pages` is that the
+   library does no I/O. So `getParam`/`setParam` over `seqState`, over
+   `keyboardState`, or over the held trig is the same injection the port
+   already uses; the io simply answers from a different place.
+
+And the plan settles immediately for a host-owned contract: `armContractSettle`
+(`page_controller.mjs:1300`) is called on a **selection**, never on first load,
+so the 500 ms `CONTRACT_SETTLE_MS` window is not paid by a contract that was
+never read off a device.
+
+**The three gaps that look like upstream asks, and the host-side route for each:**
+
+| gap | looks like | the route that exists |
+| --- | --- | --- |
+| movy's own cell shapes — `len`'s stacked fraction, `cond`'s big font, `vbar` | a new viz kind (an SU-10-shaped ask) | `vizOverrides` may return a `custom:` kind, resolved against **movy's own** widget registry (`renderer/schwung-widgets.ts:50`) — the thing SP-28 already made work. See The injection surface §1 |
+| a reading only movy can compute — `1/4`, `+3 ct`, `n/a on drums`, `120 EXT` | `displayValue` has no delegated equivalent | `formatValue(fullKey, raw, surface)`, injected, null-falls-through per key (`page_controller.mjs` ~`:632`). **Unused today** |
+| a cell that must not be turned — transpose on a drum track | SU-8's per-cell channel | movy owns `setParam`. Dropping the write is movy's; only the **dim** is upstream, and SP-35 already ruled that movy answers a refused turn at the gesture rather than with a dimmed cell |
+
+**What IS worth an upstream PR, and it is the same short list already in the
+table above.** This wave adds no new blocking ask. It strengthens two:
+
+- **SU-8** gains a third caller. `automated` vs modulated (SP-36), "cannot take
+  a lock" (SP-35) and now "this cell is inert on this track" are one bit per
+  cell, beside `locked`. Still grammar, still not blocking.
+- **SU-9** gains the tempo knob. `SETPARAM_THROTTLE_MS = 20` and the
+  acceleration curve are `export const` bindings — readable, not writable — so a
+  feel complaint about a migrated Set Params page is an upstream ask or it does
+  not happen (The injection surface §4).
+
+Two new rows, **both expected to close without work**, recorded so a later
+session does not re-derive them: **SU-12** (a caller-supplied trailing page of
+kind `knobs`) and **SU-13** (host-owned throttle). See the Upstream table.
+
+### Why this wave is a precondition of SP-41, not a successor to it
+
+SP-41's deletion list includes `src/renderer/label.ts` and `knob.ts`. Step
+Params, Clip Params and Set Params all draw through `renderKnobsView`, which
+draws through both. **So SP-41 cannot be done while these pages are movy's** —
+SP-24 says as much in its *Closes when*, without naming the consequence. Either
+this wave lands first, or SP-41 keeps movy's renderer alive for three pages and
+deletes nothing.
+
+### The one thing that is genuinely undecided
+
+Where do movy's own pages live in the page SET? Today the step page is page 0 of
+movy's bank indicator and the module's banks follow it
+(`seq/step-page-vm.ts:104`, `bankCount` mirrors the module's). Under `page` the
+bar is Schwung's page set. Three routes, in order of preference:
+
+1. **Fold them into the contract movy already writes.** `hierarchy-source.ts`
+   synthesises a hierarchy for a rack that published none (SP-14); a level whose
+   knobs are the step page's five keys is the same rung, and the contract movy
+   hands over is a string movy can change on a step hold. Zero upstream.
+   **The cost to measure is the re-plan.** On `origin/main` `load()` re-plans
+   unconditionally — there is no byte compare (see the correction below) — and
+   movy already calls `ctl.reloadIfChanged()` every 8 ticks
+   (`renderer/schwung-page-contract.ts:147,182`), so a contract that changes on
+   a hold costs **one extra re-plan of a cost the page already pays every 8 ticks**. SP-27 measured that re-plan at up to
+   67.5 ms on minijv (70 pages) and near-nothing on plaits (2 pages), so this
+   route is cheap on a small page and has to be measured on a large one.
+2. **A `knobs`-kind trailing page.** `buildTrailingPages` hard-codes
+   `kind: PAGE_MENU` (`page_plan.mjs:381`), so this is upstream — **SU-12**, and
+   route 1 is why it is expected to close without work.
+3. **Two page sets side by side**, with the jog handing off. This is the shape
+   SP-31 and SP-50 are both bugs in. Not recommended.
+
+---
+
+### A correction to The injection surface §2 — `declSame` is not upstream
+
+Left visible rather than quietly edited, because §2's route for SP-32 rests on
+it. §2 says *"the re-plan needs no new signal: `declSame` compares the RAW BYTES
+(`page_controller.mjs:1024`), so a changed string re-plans by itself"*, read off
+`schwung@1959e661`. **`1959e661` is a LOCAL branch, `perf/page-reload-skip-unchanged-contract`,
+that has never been pushed** — `git merge-base --is-ancestor 1959e661 origin/main`
+answers no, `git ls-remote --heads origin` does not list it, and `declSame`
+appears nowhere in `origin/main:page_controller.mjs` or in the 1.4.0 the device
+runs. What it is: an 87-line change to `page_controller.mjs` plus
+`tests/host/test_page_reload_skips_unchanged_contract.sh`, written and never
+sent.
+
+Two consequences, and neither changes §2's conclusion:
+
+1. **A changed contract still re-plans**, because on main `load()` re-plans every
+   time it is called, byte compare or not. §2's *route* is intact; only its
+   *reason* was wrong — the re-plan happens because nothing skips it, not because
+   something detects the change.
+2. **It is the one upstream PR this project has already written.** Sending it is
+   the cheapest upstream action available and it lands in the highest-churn file
+   in the library (98 commits in 90 days — The injection surface §5), which is
+   the argument for sending it now rather than after this wave. Tracked as
+   **SU-14**.
 
 ---
 
@@ -1153,6 +1321,264 @@ item is where the child-level branch gets its first coverage.**
 
 **Needs:** nothing — the module, its dump and the fixture hook are all in the
 tree already; the pin is a local test.
+
+---
+
+### SP-52 — the master chain: MFX and the sends are on movy's renderer under every flag value (NEW, 2026-09-20)
+
+**Product.** Four master FX slots and three send buses hold ordinary audio-FX
+modules with ordinary contracts — the same modules a track slot holds, and often
+literally the same module. Under `page` a track's copy is drawn by Schwung and
+the master's copy is drawn by movy, on the same screen session, from the same
+`chain_params`. That is the migration's worst kind of half-state: not a
+regression anyone can point at, but two renderers for one module, and a user who
+has been told the setting changes how module pages look will find a page it does
+not change.
+
+**This one is already half done, by accident, and the half that exists is the
+INPUT half.** `knobModel()` returns the master model while the master chain is
+on screen (`midi/router.ts:131`), the knob-CC branch resolves
+`pageOwnerOf(model)` (`:577`), and the jog calls
+`pageOwnerOf(masterModel()).changePage` at `:980`, `:1038` and `:1054`. So the
+gestures already ask the delegated owner. Nothing draws it and nothing polls it:
+`moduleGridOnScreen()` is false in session mode by an explicit clause
+(`app/page-poll.ts:66`), so `contract.tick()` never runs, `page.ready` never goes
+true, `owner.page` stays null and every question falls through to the movy owner
+underneath. **Inert, and that is the only reason this has not been a bug report.**
+
+**Design & implementation.** Four defects, all movy's, and the first two are live
+the moment the third lands — fix them in that order or the first frame reads the
+wrong chain.
+
+1. **The port.** `schwungPageFor` builds the page on `portFor(trackIndex)`
+   (`renderer/schwung-grid.ts:119`). A `master_fx:` key belongs to `hostPort(0)`
+   and a `snd<n>` key to `engineRootPort()` — `componentPort` is the one place
+   that rule is written down (`track/registry.ts:64`), and reaching a master key
+   through `portFor` namespaces it `ch<N>:master_fx:…`, which is the exact
+   failure that comment exists to prevent. Take `componentPort(trackIndex, componentKey)`.
+2. **The cache id.** `trackIndex + ':' + componentKey`
+   (`renderer/schwung-grid.ts:116`) gives a GLOBAL component sixteen pages, one
+   per track, each with its own controller and its own read cache, and a track
+   switch silently shows a different one. A master component's id must not carry
+   a track. `pageRefOf` has the same problem one layer up — it stamps
+   `appState.activeTrack.index` onto every ref (`app/page-owner.ts:101`) — and
+   the two must be fixed together or the id and the ref disagree.
+3. **The render.** The session branch calls `renderKnobsView(vm, ...)` with no
+   body and no chrome (`app/tick.ts:838-846`). It needs the same three arguments
+   the `VIEW_KNOBS` branch passes, from a `pageOwner` built off `masterModel()`
+   — and `moduleGridOnScreen()` has to stop excluding session mode, which means
+   its `!seqState.sessionMode` clause becomes `sessionMode → masterDetail`
+   (the master slot GRID is a chain view, not a param page).
+4. **The tilde.** `modulatedKeysOf` walks `appState.trackModels[track]`
+   (`app/modulated-keys.ts:27`) and the master models are in
+   `appState.masterFxModels`, so a master FX parameter driven by a master LFO
+   would report unmodulated forever. One branch on `isMasterComponent`, in that
+   file, next to the existing walk.
+
+**No upstream change, and none is conceivable for this item** — these are seven
+ordinary module contracts reached through three ports movy already owns.
+
+**The send's key form is the trap.** A send's component key IS its namespace —
+`snd0:cutoff`, with `EngineRootPort` adding nothing — and `qualify`
+(`renderer/schwung-page.ts:111`) passes any key containing a colon through
+untouched, which is correct here by luck rather than by design. Pin it: a test
+that asserts a send page's write lands on `snd0:<key>` and not on
+`ch0:snd0:<key>` or `snd0:snd0:<key>`.
+
+**Closes when:** under `page`, MFX 1–4 and SEND 1–3 draw Schwung's body with
+Schwung's chrome; a master page's reads and writes are asserted to go through
+`componentPort`'s destination and not the active track's; one master component
+holds ONE page across a track switch (asserted, not reasoned); a master LFO
+target wears the tilde; `page-mode.mjs` does not grow; and a `page`-mode
+screenshot scene covers a master FX page and a send page.
+
+**Needs:** SP-40 (so the flag has two values) and SP-47 (so there is a release
+this can be reported against). Not blocked by SP-30.
+
+---
+
+### SP-53 — Set Params and Clip Params become a host-owned contract (NEW, 2026-09-20)
+
+**Product.** The two global parameter pages — tempo/swing/link/quantize/root/key/
+mode/layout, and scale/length/transpose/quantize — are knob grids with labels,
+values and under-knob LEDs, drawn by movy's own renderer through
+`renderKnobsView`. They are indistinguishable from a module page to look at and
+completely different underneath. Migrating them is what makes "Schwung draws the
+knobs" true of the whole product rather than of one view, and it is the
+precondition for deleting movy's renderer at all (see SP-41, below).
+
+**Start with Clip Params.** Four cells, one of which (`QUANT`) is already the
+same enum-square treatment a module enum gets, and one of which (`TRANS`) is the
+only `n/a` case in either page. Set Params is the same work at twice the width
+plus three long enums and the tempo knob's feel.
+
+**Design & implementation.** The seam is a **virtual component**: a page whose
+`prefix` names no module and whose io answers out of movy's own state.
+
+- **The contract.** movy writes `ui_hierarchy` and `chain_params` as strings and
+  answers them from `getParam` — `page_controller.mjs` reads both through the
+  injection (`:1025`, `:1130`) and `schwung-page-io.ts` already intercepts the
+  first. `chain_params` carries min/max/step/`options`/`short_options`; the
+  documented types are enough for every cell on both pages (`validate_contract.mjs`
+  lists `float int enum string filepath file canvas wav_position note rate
+  module_picker parameter_picker`, plus `toggle` in use).
+- **The io.** `getParam`/`setParam` over `seqState` and `keyboardState` instead
+  of over a port. This is where the page's identity stops being a `TrackPort`,
+  so `createSchwungPage` has to take a param SOURCE rather than a port — today
+  it takes `port` and threads it into the cache, the hierarchy reader, the io and
+  the input (`renderer/schwung-page.ts:118-146`). Introduce the interface; do
+  not widen `TrackPort`, which means something specific.
+- **The read cache is the question to answer first.** SP-26's cache exists
+  because a port read is a ~2.8 ms blocking round trip. A `seqState` read is a
+  field access. Either the source declares itself cheap and the cache becomes a
+  passthrough, or a whole page's worth of synchronous reads per tick appears on
+  a page that had none. Decide it in the plan, with a number.
+- **Three cell readings need `formatValue`**, which movy has never injected
+  (`page_controller.mjs:635`): tempo's `120 EXT`, transpose's `n/a` on a drum
+  track, and the toast's `+3 ct` / `N steps` / `%` units. `formatValue` takes the
+  FULL key and a `surface` of `"cell"` or `"header"`, and null falls through per
+  key, so it answers exactly these three and ignores everything else.
+- **Two cell SHAPES are movy's own** — `preset`'s big number (tempo, swing, root,
+  length, transpose) and `switch` (LINK). Route: `vizOverrides` returning a
+  `custom:` kind against movy's own widget registry
+  (`renderer/schwung-widgets.ts:50`), which SP-28 already proved works and which
+  degrades to a detector guess rather than a hole (`viz.mjs:256-280`). **Take
+  Schwung's native drawing first and only reach for a widget where the reading
+  is genuinely worse** — the acceptance bar at the top of this file is native
+  Schwung, and a big-font number that Schwung would draw as a dial is a movy
+  extension, not a regression.
+- **The long-enum overlay stays movy's.** KEY, MODE, LAYOUT and SCALE open
+  movy's scrollable overlay today. Under a delegated page they become a dive
+  intent, which the controller raises and **never opens itself** — the editor is
+  the host's, which is SP-17's code and SU-4's ruling. So this is wiring to an
+  existing screen, not a new one.
+- **The writes are not free of the sequencer.** `mainPageKnob` and `clipPageKnob`
+  (`midi/router.ts:538,542`) do more than set a field — tempo talks to the
+  transport, length talks to the engine's loop window, scale re-quantises. The io's
+  `setParam` calls those functions; it does not assign.
+
+**Closes when:** both pages plan and draw under `page` with no movy body; every
+cell's reading matches the `off` arm or is justified against the acceptance bar
+in the commit message; a knob turn on each page has the same effect it has today,
+asserted through the existing page logic tests and not only by screenshot; `off`
+is byte-identical; and each page has a `page`-mode screenshot scene.
+
+**Needs:** SP-40, SP-47. Independent of SP-52.
+
+---
+
+### SP-54 — the step page: a contract that exists only while a step is held (NEW, 2026-09-20)
+
+**Product.** Velocity, length, probability, condition and invert, for the trig
+under the finger. This is the page that makes movy an Elektron-style sequencer
+rather than a knob box, and it is the one in this wave with a real reason to stay
+movy's: it is contextual, its cells are shapes Schwung has no kind for, and it
+shares a screen with the held-step gesture that SP-35 spent an item getting
+right.
+
+**Design & implementation.** Do SP-53 first — this is the same seam under harder
+conditions, and doing it first would design the seam around the hardest case.
+
+- **The contract appears and disappears.** A step hold adds a level; releasing
+  removes it. `hierarchy-source.ts` synthesising a level is the same rung SP-14
+  established. **The cost is a re-plan on every hold**, and on `origin/main`
+  `load()` re-plans unconditionally — see the correction in *The pages that are
+  not a track module's*. Measure it on a large module (minijv, 70 pages) before
+  committing to the shape; the fallback is route 3 there (movy keeps the screen,
+  Schwung keeps the module's page set) at the cost SP-31 and SP-50 describe.
+- **Three shapes have no Schwung kind**: `vbar` (velocity), `len`'s stacked
+  fraction (`1/16`), and `cond`'s big `A:B`. `vizOverrides` + movy's widget
+  registry is the route, exactly as SP-53's two are — and unlike SP-53's, these
+  three are not a restyle of something Schwung draws adequately. They are the
+  page.
+- **`holdGateMixed` has no contract expression.** A multi-step hold shows `...`
+  for a length that differs between the held steps. There is no "indeterminate"
+  in `chain_params`; `formatValue` can return the string, and the *widget* has to
+  agree not to draw a position for it. Name this in the plan — it is the one
+  reading that cannot be inferred from a value.
+- **`hiddenDuringHold` does not come along.** SP-35 ruled that the offer that
+  cannot be taken is answered at the gesture, from movy's own chrome, not by a
+  dimmed cell — and these five params are intrinsic trig properties which take no
+  lane at all, so the filter has nothing to say about them. Confirm that reading
+  in the plan rather than assuming it.
+
+**Closes when:** the step page plans and draws under `page`; a held step still
+shows the trig's five properties and editing each one still writes the trig; the
+hold's re-plan cost is MEASURED on a large module and recorded here; `off` is
+unchanged; a `page`-mode screenshot scene covers a held step.
+
+**Needs:** SP-53 (the seam), SP-35 (done).
+
+---
+
+### SP-55 — MIX, the track LFO page and the master LFO page (NEW, 2026-09-20)
+
+**Product.** Three pages that already occupy chain slots, already have a
+component key and already have a port — and are refused delegation by name:
+`isMovyOwnComponent` answers true for `mix` and for anything ending `lfo`
+(`chain/config.ts:89`). The refusal is correct today and for a stated reason: no
+module declares them, so Schwung's planner had nothing to plan and was handed
+them anyway, building a controller whose contract never resolved.
+
+**These are the EASIEST case in the wave, not the hardest**, and worth doing
+right after SP-53's seam exists. Unlike Set Params and Clip Params they need no
+virtual param source at all: their keys are real params behind
+`portFor(track)` and `hostPort(0)`. All that is missing is the contract — which
+is the string movy writes.
+
+**Design & implementation.** Write `ui_hierarchy` for each of the three out of
+what movy's own model already knows (`mixer/mix-model.ts`, `lfo/model.ts`), hand
+it back from `hierarchy-source.ts`, and delete the corresponding clause from
+`isMovyOwnComponent`. Three specifics:
+
+- **The LFO page is addressed by TRACK, not by component.** It is a fifth chain
+  slot exposing the track's two schwung slot LFOs, and the slot-addressed APIs
+  refuse `slot >= 4` — write through `portFor(track)` (carried ruling, also
+  SP-24's). The master LFO page is the same shape on `hostPort(0)`.
+- **The LFO target cell is exactly what `formatValue` exists for.** A target is
+  stored as `fx1` and reads `FX 1: Room Size`; only movy knows what is loaded in
+  `fx1`, and the library's own comment on `formatValue` (`page_controller.mjs:617-635`)
+  names this case verbatim. Inject it here.
+- **The mix page's sends must not become a second write path.** A send amount
+  lives in movy's engine under `snd<n>:`; the io writes through the existing
+  mix-model setter, not by assigning a param.
+
+**Closes when:** the three pages plan and draw under `page`;
+`isMovyOwnComponent` is gone or reduced to whatever genuinely has no contract;
+an LFO target cell reads its resolved name; `off` is unchanged; a `page`-mode
+scene covers each of the three.
+
+**Needs:** SP-53 (`formatValue` and the widget route are established there).
+
+---
+
+### SP-56 — Settings, CPU and Backups: a scope decision, not a build (NEW, 2026-09-20)
+
+**Product.** Three screens reached by Shift+Step that are NOT parameter pages:
+Settings is a scrolling list of flags with one live knob, CPU is a meter, Backups
+is a restore picker with a confirm. Calling them "parameter pages" and putting
+them in this wave would be the scope creep this ledger's acceptance bar exists to
+prevent.
+
+**Output is a ruling recorded in this ledger, and if it implies work, new
+items — not an implementation.** What to establish:
+
+- **Settings** is the only plausible candidate. Schwung has a list page kind
+  (`PAGE_ITEMS`) and a caller-supplied menu kind (`PAGE_MENU` via
+  `trailingMenus`, `page_plan.mjs:381`), and a flag row is an enum with a name. It
+  is also the page that carries the `schwunggrid` flag itself, so a delegated
+  Settings page is a page that can turn off the renderer drawing it. **That
+  circularity is the reason to decide rather than to build.**
+- **CPU and Backups** have no parameter reading at all and the only route is
+  `drawCanvasPage` — a custom page body ticked every frame, which movy correctly
+  does not inject today. Recommend: out of scope, permanently, and say so here so
+  it is not re-derived.
+
+**Closes when:** the ruling is written into this file and any implied items are
+opened with ids.
+
+**Needs:** nothing. Can be done at any time; cheapest done before SP-41 is
+seriously considered.
 
 ---
 
@@ -2528,6 +2954,15 @@ and an ownership assertion; removing an ownership declaration reddens its scene.
 
 **Needs:** SP-24 runs last in Phase 2 — it is the parity sweep.
 
+**RESCOPED BY THE 2026-09-20 WAVE, and the scope SHRANK.** SP-53, SP-54 and
+SP-55 migrate the step page, Clip Params, Set Params, MIX and the two LFO pages
+to a host-owned contract. A page that has migrated is no longer a movy-only page
+kind and needs no ownership declaration here — it is a delegated page like any
+other. What is left for this entry is whatever does NOT migrate: the trigger
+badge and its 700 ms re-arm debounce, and whatever SP-56 rules out of scope. Read
+this entry against the wave's outcome, not against the page list above, which was
+written when every one of them was staying.
+
 ---
 
 ### SP-29 — Schwung ships its own automation lanes and p-locks: decide movy's position (NEW, 2026-09-17)
@@ -2708,9 +3143,13 @@ before the commit; this is the one item in the project with no revert.
 **Closes when:** the files are gone, the whole gate is green including the device
 tier, and the floor is a released Schwung.
 
-**Needs:** SP-40, SP-30 having been live long enough to trust, and an explicit
+**Needs:** SP-40, SP-30 having been live long enough to trust, an explicit
 decision that both renderers are NOT being kept — see the note at the top of this
-entry.
+entry — **and SP-53, SP-54 and SP-55.** That last one was implicit and is now
+written down: the deletion list above includes `src/renderer/label.ts` and
+`knob.ts`, and Set Params, Clip Params and the step page all draw through
+`renderKnobsView`, which draws through both. So either that wave lands first or
+SP-41 keeps movy's renderer alive for three pages and deletes nothing.
 
 ---
 

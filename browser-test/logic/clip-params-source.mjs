@@ -67,6 +67,11 @@ _log('\nTest: the synthesised contract');
     const length = params.find((p) => p.key === 'length');
     eq('LENGTH is an int ranged 1..MAX_STEPS', length.type + ':' + length.min + ':' + length.max,
        'int:1:256');
+    /* short_name — without it Schwung's own auto-abbreviator mangles a
+     * multi-word name into running letters (measured: "Play Link" ->
+     * "PLLINK" on the Set Params baseline before this was added). */
+    eq('every cell declares its own short_name', params.map((p) => p.short_name).join(','),
+       'SCALE,LEN,TRANS,QUANT');
 }
 
 /* ── one writer: the virtual source's set() and the delta path agree ─────── */

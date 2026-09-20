@@ -1,36 +1,22 @@
 /* Main Parameters page: a global sequencer settings view opened with
  * Shift+Step 5/7/9 and exited with Back. Row 0 is TEMPO / SWING / LINK, row 1
  * the four musical params ROOT / KEY / MODE / LAYOUT.
- * Mirrors the step-parameter page's structure; rendering reads main-page-vm. */
+ * Mirrors the step-parameter page's structure; rendering reads main-page-vm.
+ * The absolute-value writers (`applyTempoX100` etc, shared with the
+ * virtual-component seam's `set()` — SP-53) live in `main-page-apply.ts`,
+ * split out to keep this file under the 200-line cap. */
 
 import { appState, VIEW_MAIN_PARAMS } from '../app/state.js';
 import { seqState } from './state.js';
-import { beginGesture } from '../undo/edit.js';
-import { recordUiOp } from '../undo/record.js';
-import { readUiField, writeUiField } from '../undo/ui-fields.js';
 import { endEdit } from '../undo/group.js';
-import { seqCmd } from './engine.js';
-import { scheduleTempoOverride } from './tempo-override.js';
 import { SCALE_NAMES } from './scales.js';
 import { MODE_NAMES, layoutNames } from '../keyboard/layouts.js';
 import { keyboardState } from '../keyboard/state.js';
-import { setRootPc } from '../keyboard/handler.js';
 import { countDetents } from './detent.js';
-import { QUANT_VALUES, quantIndexForPct } from './quant.js';
-import { markUiStateDirty } from './ui-dirty.js';
-
-const BPM_MIN_X100 = 2000, BPM_MAX_X100 = 30000;
-const SWING_MIN = 50, SWING_MAX = 80;
-
-/* Knob map: 0 TEMPO, 1 SWING, 2 LINK, 3 unused, 4 ROOT, 5 KEY, 6 MODE,
- * 7 LAYOUT — the four musical params share the bottom row. */
-const K_TEMPO = 0, K_SWING = 1, K_LINK = 2, K_QUANT = 3;
-const K_ROOT = 4, K_KEY = 5, K_MODE = 6, K_LAYOUT = 7;
-/* Toast verbs, indexed by knob slot. */
-const KNOB_VERBS: Record<number, string> = {
-    [K_TEMPO]: 'TEMPO', [K_SWING]: 'SWING', [K_QUANT]: 'DEFAULT QUANT',
-    [K_ROOT]: 'ROOT', [K_KEY]: 'KEY',
-};
+import { quantIndexForPct } from './quant.js';
+import { applyTempoX100, applySwing, applyLink, applyDefaultQuantIdx,
+         applyRootPc, applyScaleIdx, applyModeIdx, applyLayoutIdx } from './main-page-apply.js';
+import { K_TEMPO, K_SWING, K_LINK, K_QUANT, K_ROOT, K_KEY, K_MODE, K_LAYOUT } from './main-page-constants.js';
 
 const OVERLAY_KNOBS = [K_KEY, K_MODE, K_LAYOUT];
 
@@ -62,17 +48,6 @@ function overlayCurrent(k: number): number {
     return Math.min(keyboardState.layout, layoutNames(keyboardState.mode).length - 1);
 }
 
-function overlayCommit(k: number, sel: number): void {
-    if (k === K_KEY) keyboardState.scale = sel;
-    else if (k === K_MODE) {
-        keyboardState.mode = sel;
-        // Chromatic and In Key both offer two layouts, so the index carries
-        // over; the clamp is here so adding a third option later can't strand it.
-        keyboardState.layout = Math.min(keyboardState.layout, layoutNames(sel).length - 1);
-    } else keyboardState.layout = sel;
-    markUiStateDirty();
-}
-
 export function mainPageActive(): boolean {
     return appState.currentView === VIEW_MAIN_PARAMS;
 }
@@ -86,23 +61,25 @@ export function clearMainPage(): void {
     accum.fill(0);
 }
 
-export function mainPageTouch(k: number, down: boolean): void {
+/** @param delegated Schwung owns this knob's page (SP-53) — the long-enum
+ *  scroll-and-commit-on-release overlay below is movy's OWN dive editor, and
+ *  under delegation Schwung's own click-to-list-picker replaces it (SU-4: "the
+ *  editor is the host's"). Touch/release bookkeeping (the toast, the undo
+ *  boundary) still runs either way. */
+export function mainPageTouch(k: number, down: boolean, delegated = false): void {
     mainPageState.touchedKnob = down ? k : -1;
-    if (down && OVERLAY_KNOBS.indexOf(k) >= 0) {
+    if (!delegated && down && OVERLAY_KNOBS.indexOf(k) >= 0) {
         mainPageState.overlayKnob = k;
         mainPageState.overlaySel = overlayCurrent(k);
         accum[k] = 0;
     }
 }
 
-export function mainPageRelease(k: number): void {
-    if (mainPageState.overlayKnob === k) {
-        /* KEY commits on release, so it must be recorded BEFORE the gesture
-         * group closes. MODE and LAYOUT commit here too but are keyboard
-         * layout, which design §1 excludes from undo. */
-        const before = k === K_KEY ? readUiField('scale') : '';
-        overlayCommit(k, mainPageState.overlaySel);
-        if (k === K_KEY) recordUiOp('scale', before, readUiField('scale'));
+export function mainPageRelease(k: number, delegated = false): void {
+    if (!delegated && mainPageState.overlayKnob === k) {
+        if (k === K_KEY) applyScaleIdx(mainPageState.overlaySel);
+        else if (k === K_MODE) applyModeIdx(mainPageState.overlaySel);
+        else applyLayoutIdx(mainPageState.overlaySel);
         mainPageState.overlayKnob = -1;
     }
     endEdit('mainknob:' + k);
@@ -113,47 +90,14 @@ export function mainPageKnob(k: number, delta: number): void {
     mainPageState.touchedKnob = k;
     const n = countDetents(accum, k, delta);
     if (n === 0) return;
-    /* The gesture, not the detent, is the undo unit: re-entering with the same
-     * key coalesces a whole knob turn into one entry. LINK is excluded from
-     * undo entirely (design §1) — it is not a musical edit. */
-    if (KNOB_VERBS[k]) beginGesture('mainknob:' + k, KNOB_VERBS[k], '');
-    if (k === K_TEMPO) {
-        const next = Math.max(BPM_MIN_X100, Math.min(BPM_MAX_X100, seqState.bpmX100 + n * 100));
-        if (next !== seqState.bpmX100) {
-            seqState.bpmX100 = next;
-            seqCmd('bpm ' + next);
-            // Also drive Move's device-wide tempo via the Link override, so a
-            // following Move tracks the knob (design §7 Phase 3).
-            scheduleTempoOverride(next);
-        }
-    } else if (k === K_SWING) {
-        const next = Math.max(SWING_MIN, Math.min(SWING_MAX, seqState.swingPct + n));
-        if (next !== seqState.swingPct) { seqState.swingPct = next; seqCmd('swing ' + next); }
-    } else if (k === K_LINK) {
-        // LINK toggle: turn right = ON, left = OFF. Persisted per set.
-        const on = n > 0;
-        if (on !== seqState.linkEnabled) {
-            seqState.linkEnabled = on;
-            seqCmd('link ' + (on ? 1 : 0));
-            markUiStateDirty();
-        }
-    } else if (k === K_QUANT) {
-        /* Goes through writeUiField so the three places the default lives —
-         * seqState, the engine (which stamps new clips) and prefs.json (which
-         * carries it into the next new set) — can never drift apart. */
-        const before = readUiField('defaultQuant');
-        const i = Math.max(0, Math.min(QUANT_VALUES.length - 1,
-            quantIndexForPct(seqState.defaultQuant) + n));
-        if (QUANT_VALUES[i] !== seqState.defaultQuant) {
-            writeUiField('defaultQuant', String(QUANT_VALUES[i]));
-            recordUiOp('defaultQuant', before, readUiField('defaultQuant'));
-        }
-    } else if (k === K_ROOT) {
-        // Cycles the pitch class, wrapping B↔C; the +/- buttons own the octave.
-        const before = readUiField('rootPc');
-        setRootPc(keyboardState.rootPc + n);
-        recordUiOp('rootPc', before, readUiField('rootPc'));
-    } else if (mainPageState.overlayKnob === k) {
+    if (k === K_TEMPO) applyTempoX100(seqState.bpmX100 + n * 100);
+    else if (k === K_SWING) applySwing(seqState.swingPct + n);
+    else if (k === K_LINK) applyLink(n > 0);   // turn right = ON, left = OFF
+    else if (k === K_QUANT) applyDefaultQuantIdx(quantIndexForPct(seqState.defaultQuant) + n);
+    else if (k === K_ROOT) applyRootPc(keyboardState.rootPc + n);
+    else if (mainPageState.overlayKnob === k) {
+        // Scrolling the overlay only moves a selection; the edit happens on
+        // release (mainPageRelease), same shape as Clip Params' SCALE.
         const max = overlayOptions(k).length - 1;
         mainPageState.overlaySel = Math.max(0, Math.min(max, mainPageState.overlaySel + n));
     }

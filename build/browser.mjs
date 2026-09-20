@@ -179,6 +179,11 @@ await esbuild.build({
          * can ask the accessor directly, rather than inferring ownership from
          * a router gesture. */
         resolve(root, 'src/app/page-owner.ts'),
+        /* SP-53's sibling accessor for a page with no model (Set/Clip Params)
+         * — an entry point so a screenshot scene can drive it the same way
+         * app/tick.ts and midi/router.ts do, rather than a folded chunk with
+         * no dist/esm/app/page-owner-virtual.js to import. */
+        resolve(root, 'src/app/page-owner-virtual.ts'),
         /* The repaint decision (SP-38): an entry point because that decision IS
          * the fix — the animated widgets were already drawing correctly and
          * simply never asked for a second frame. A suite that drove it through
@@ -297,6 +302,15 @@ await esbuild.build({
         resolve(root, 'src/seq/param-page.ts'),
         resolve(root, 'src/seq/main-page.ts'),
         resolve(root, 'src/seq/main-page-vm.ts'),
+        /* SP-53's absolute-value writers, shared with the virtual-component
+         * seam's set() — an entry point so the logic suite can drive them
+         * directly (the one-writer invariant needs to call the SAME function
+         * the delta path calls, not a copy folded into a chunk). */
+        resolve(root, 'src/seq/main-page-apply.ts'),
+        resolve(root, 'src/seq/main-page-constants.ts'),
+        /* Set Params' virtual-component contract (SP-53) — an entry point for
+         * the same reason as its sibling, clip-params-contract.ts. */
+        resolve(root, 'src/seq/set-params-contract.ts'),
         resolve(root, 'src/seq/tempo-override.ts'),
         resolve(root, 'src/seq/capture.ts'),
         resolve(root, 'src/seq/capture-vm.ts'),

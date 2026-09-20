@@ -98,8 +98,9 @@ export function isMovyOwnComponent(componentKey: string): boolean {
  * it has no port for `componentPort` to resolve, so `schwungPageFor` checks
  * this FIRST and builds a `PageParamSource` from `virtualSourceFor` instead. */
 export const CLIP_PARAMS_COMPONENT = 'clipparams';
+export const SET_PARAMS_COMPONENT = 'setparams';
 export function isVirtualPageComponent(componentKey: string): boolean {
-    return componentKey === CLIP_PARAMS_COMPONENT;
+    return componentKey === CLIP_PARAMS_COMPONENT || componentKey === SET_PARAMS_COMPONENT;
 }
 
 /* A send bus is hosted by MOVY, not by schwung's master bus. It rides the master

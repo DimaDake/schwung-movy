@@ -34,17 +34,17 @@ const asIndex = (v: string): number => Math.round(Number(v)) || 0;
 
 const cells: VirtualCellSpec[] = [
     {
-        key: 'scale', name: 'Scale', type: 'enum', options: SCALE_LABELS,
+        key: 'scale', name: 'Scale', shortName: 'SCALE', type: 'enum', options: SCALE_LABELS,
         get: () => String(seqState.clipScaleIdx),
         set: (v) => applyClipScaleIdx(activeTrack(), asIndex(v)),
     },
     {
-        key: 'length', name: 'Length', type: 'int', min: 1, max: MAX_STEPS, step: 1,
+        key: 'length', name: 'Length', shortName: 'LEN', type: 'int', min: 1, max: MAX_STEPS, step: 1,
         get: () => String(seqState.lenSteps),
         set: (v) => applyClipLength(activeTrack(), asIndex(v)),
     },
     {
-        key: 'transpose', name: 'Transpose', type: 'int',
+        key: 'transpose', name: 'Transpose', shortName: 'TRANS', type: 'int',
         min: TRANSPOSE_MIN, max: TRANSPOSE_MAX, step: 1,
         /* Reports '0' on a drum track — the arc rests at its centre, matching
          * the `off` arm's own `normalizedValue: isDrum ? 0 : ...` (clip-page-vm.ts) —
@@ -56,7 +56,7 @@ const cells: VirtualCellSpec[] = [
         format: (_raw, _surface) => trackIsDrum(activeTrack()) ? 'n/a' : null,
     },
     {
-        key: 'quant', name: 'Clip Quantize', type: 'enum', options: QUANT_LABELS,
+        key: 'quant', name: 'Clip Quantize', shortName: 'QUANT', type: 'enum', options: QUANT_LABELS,
         get: () => String(quantIndexForPct(seqState.clipQuant)),
         set: (v) => applyClipQuantIdx(activeTrack(), asIndex(v)),
     },

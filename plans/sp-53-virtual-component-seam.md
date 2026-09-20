@@ -186,13 +186,26 @@ close to today's, but not byte-identical; a new `page`-mode scene covers it
 rather than the existing `off` baselines). No `engine/` change. Device tier
 not run here (wave boundary).
 
-## Scope note
+## Scope note — UPDATED: Set Params shipped same day
 
-Set Params is the SAME seam (more cells, one dynamic-option enum, one
-`toggle` cell) and is deliberately **not wired into `app/tick.ts`/
-`midi/router.ts` this pass** — Clip Params alone already exercises every
-shape the seam needs to prove (native enum, native int, the drum-refusal
-`format()` case, the long-enum click-to-list dive, the single writer
-invariant). Wiring Set Params is mechanical follow-up against the same
-`applyClip*`/`createVirtualSource` pattern, named here so the next session
-does not re-derive the design.
+Set Params landed on the same seam right after this plan's first pass closed
+Clip Params (`seq/set-params-contract.ts`, `seq/main-page-apply.ts` +
+`main-page-constants.ts`). It needed no new mechanism — `VirtualCellSpec`
+gained one field (`options` as a function, for LAYOUT's mode-dependent list)
+and one more (`shortName`, for BOTH contracts, see below) — but it did
+surface two things Clip Params could not:
+
+- **`SETPARAM_THROTTLE_MS` (SU-13) is real**, caught by `page-mode.mjs`'s own
+  regression gate on the pre-existing LINK test (two rapid opposite-direction
+  turns, no release between them, asserted synchronously). Not a production
+  bug — the fix was making the test bracket each turn with a touch/release,
+  which is what a real gesture always has anyway.
+- **`short_name` matters.** The first screenshot baselines (reviewed at 8×,
+  not blessed blind) showed Schwung's own label auto-abbreviator mangling
+  "Play Link" into "PLLINK" and "Pad Layout" into "PLAYOU". `VirtualCellSpec`
+  gained a `shortName` field, threaded into `chain_params` as `short_name`,
+  populated from movy's own existing short labels
+  (`main-page-vm.ts`/`clip-page-vm.ts`) rather than invented again.
+
+See the ledger's SP-53 entry for the full writeup, the teeth, and what no
+device has confirmed yet.

@@ -163,7 +163,7 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | SP-30 | Default-on: flip, device tier, docs, release, stated revert path | Sonnet | ⬜ | 20 | — |
 | SP-41 | Delete `off`, movy's page renderer, model page planning. **CONDITIONAL — may never happen** | Opus | ⬜ | 21 | — |
 | SP-52 | the master chain: MFX 1–4 and SEND 1–3 are on movy's renderer under every flag value. **FIXED, movy-side, 2026-09-20**: four defects, all in the seam between the INPUT half (already delegated) and the draw/poll half (never asked) — `schwungPageFor` now builds on `componentPort(trackIndex, componentKey)`, not `portFor(trackIndex)` (`renderer/schwung-grid.ts`); `pageRefOf` pins a master/send ref's track to a fixed carrier (0) instead of `appState.activeTrack.index`, which also fixes the per-track cache-id bug one layer up (`app/page-owner.ts`); `moduleGridOnScreen` answers session mode off `masterDetail`, not off `!sessionMode`, so the master DETAIL page now gets a body/chrome/poll from its own `masterPageOwner` (built off `masterModel()`, kept apart from the track's `pageOwner` so gating one component's refresh never reads another's delegation) (`app/page-poll.ts`, `app/tick.ts`); `modulatedKeysOf` reads `masterFxModels` for a `master_fx:` key instead of `trackModels[track]`, which held no such component and always answered unmodulated (`app/modulated-keys.ts`). No upstream PRs, matching the wave's own finding. Teeth: 4 targeted checks, each proven red with its fix reverted and green restored (`browser-test/logic/schwung-grid.mjs`, `tracks-refs.mjs`, `page-owner.mjs`, `set-session.mjs`). **Not yet covered**: a `page`-mode screenshot scene for a master FX/send page (all 177 existing baselines are track-scoped) and the device `sndlog`/probe read-back for the draw+poll half — named, not built, deferred to the wave's device agent (same as SP-42) | Sonnet | ✅ **movy-side, 2026-09-20** | 22 | — |
-| SP-53 | Set Params and Clip Params become a host-owned contract (the virtual-component seam). **PARTIAL, movy-side, 2026-09-20**: the seam (`PageParamSource`, `createVirtualSource`, `isVirtualPageComponent`, `pageOwnerForComponent`) built and wired end-to-end for **Clip Params only** — all four cells declared native (no widget), delegated knob-turn/touch/release/click/back/jog, one writer (`applyClip*` in `seq/clip-page.ts`) shared by the delta path and the virtual source, `formatValue` first exercised for TRANSPOSE's drum-track "n/a". Set Params NOT wired this pass (same seam, mechanical follow-up — see the plan). Gates: `npm test` 0 failures (new suite `browser-test/logic/clip-params-source.mjs`, teeth proven by reverting `chain_params`'s array shape and watching the real planner throw), `page-mode.mjs` 3 of 3 unchanged, `screenshot.mjs` 177/177 unchanged (no new `page`-mode scene added — named as a gap, not built). See `plans/sp-53-virtual-component-seam.md` | Sonnet | 🟡 **partial, movy-side, 2026-09-20** | 23 | — |
+| SP-53 | Set Params and Clip Params become a host-owned contract (the virtual-component seam). **BOTH HALVES SHIPPED, movy-side, 2026-09-20**: the seam (`PageParamSource`, `createVirtualSource`, `isVirtualPageComponent`, `pageOwnerForComponent`) wired end-to-end for **Clip Params and Set Params** — every cell declared native (no widget), delegated knob-turn/touch/release/click/back/jog, one writer per page (`applyClip*`/`applyTempoX100` etc.) shared by the delta path and the virtual source, `formatValue` exercised for TRANSPOSE's "n/a" and TEMPO's "EXT" suffix, `short_name` declared per cell after the FIRST baseline showed Schwung's own auto-abbreviator mangling a multi-word name into running letters ("Play Link" → "PLLINK", measured by eye, not assumed). Found and fixed along the way: LINK's write is throttled (`SETPARAM_THROTTLE_MS`, SU-13) and a test asserting the state synchronously between two turns with no release in between caught it — real gesture always brackets a turn with touch/release, so the fix is realism in the test, not a production bug (device tier below will confirm). Gates: `npm test` 0 failures (`browser-test/logic/clip-params-source.mjs` + `set-params-source.mjs`, teeth proven three ways — the array-shape bug, LAYOUT's live-option-list, and `short_name` — each reverted and watched red), `page-mode.mjs` 3 of 3 unchanged, `schwung-page-idle-cost.mjs` unmoved at 43/48, `screenshot.mjs` 179/179 (2 new `page`-mode scenes, reviewed by eye at 8×, not blessed blind). See `plans/sp-53-virtual-component-seam.md` | Sonnet | ✅ **movy-side, 2026-09-20** | 23 | — |
 | SP-54 | **NEW** — the step page: a contract that exists only while a step is held | Sonnet | ⬜ | 24 | — |
 | SP-55 | **NEW** — MIX and the two LFO pages: they have a port and a key, and are refused delegation by name. The easiest of the wave | Sonnet | ⬜ | 25 | — |
 | SP-56 | **NEW** — Settings, CPU and Backups: a scope decision, not a build | Opus | ⬜ | 26 | — |
@@ -1986,19 +1986,97 @@ is byte-identical; and each page has a `page`-mode screenshot scene.
   a keyed object reddened both the shape assertion and, further down, crashed
   the suite outright (`params.map is not a function`) — restored before the
   gates below ran.
-- **Not built**: a `page`-mode screenshot scene for Clip Params (all 177
-  existing baselines are `off`-mode or track-module `page` scenes; none
-  exercise this component) — named as a gap here rather than rushed without a
-  device to confirm the native rendering actually looks right. The device
-  `sndlog`-equivalent read-back (a Clip Params knob turn landing on
-  `clipparams:length` verbatim) is likewise named, not built, per the wave's
-  own device-agent boundary.
+- **Not built** (as of the first landing): a `page`-mode screenshot scene for
+  Clip Params, and Set Params itself. Both closed in a follow-up the same day,
+  below.
+
+**SET PARAMS SHIPPED, same day, same seam — `seq/set-params-contract.ts` +
+`seq/main-page-apply.ts`/`main-page-constants.ts` (the absolute-value writers
+and the knob-index constants, split out of `main-page.ts` to stay under the
+200-line cap; `main-page.ts` keeps the delta/overlay gesture and imports both).
+Every wiring point Clip Params proved — `pageOwnerForComponent`,
+delegation-aware touch/release/turn/click/back in `midi/router.ts`, the
+`VIEW_MAIN_PARAMS` render branch moved to after `schwungEditorActive()` in
+`app/tick.ts` — is now doubled for `VIEW_MAIN_PARAMS`/`SET_PARAMS_COMPONENT`.
+Two things Set Params adds that Clip Params could not exercise:
+
+- **LAYOUT's option list is a FUNCTION** (`() => layoutNames(keyboardState.mode)`),
+  the seam's first cell whose enum options depend on another cell's live
+  value — `createVirtualSource` already resolved options fresh per read, so
+  this needed no new mechanism, only a spec field wide enough to carry a
+  function (`VirtualCellSpec.options: readonly string[] | (() => readonly string[])`).
+- **LINK (`type: 'toggle'`) is the seam's first two-option control.**
+  `param_meta.mjs` normalises it to a 2-option enum and `viz.mjs`'s
+  `isBooleanMeta`/`detectSwitch` correctly draws it as a native SWITCH widget
+  (confirmed by eye on the baseline: a track-and-thumb graphic, thumb left =
+  off) — no widget needed, matching "native first."
+
+**Found along the way, not assumed: `SETPARAM_THROTTLE_MS` (SU-13) is real.**
+`browser-test/app-loop.mjs`'s existing LINK test (predating this item, written
+when the page was movy-only) turned the knob CW then immediately CCW with no
+release in between and asserted the state synchronously — this passed under
+`off` (movy applies synchronously) and FAILED under `page`
+(`page-mode.mjs`'s burn-down grew 3→4, caught by the "must never grow" gate).
+Traced with a throwaway repro against the real `schwung` checkout: the second
+write lands in Schwung's `pendingWrite` and needs either 20ms of real
+wall-clock time or a release to flush — neither happens in a synchronous test.
+**Not a production bug** — a release always eventually flushes the last
+write, so the end state after a real gesture is correct; the fix is realism in
+the test (bracket each turn with a knob touch/release, matching what a real
+gesture always has), not a workaround in the seam. Recorded here because it is
+the first time this migration's own local suite caught a throttle interaction
+that only a delegated page has — the device tier below is what actually
+confirms the real-hardware timing.
+
+**`short_name` is the seam's second real "config-first" lesson.** The FIRST
+`page_setparams`/`page_clipparams` baselines (reviewed by eye at 8× before
+being accepted, not blessed on "saved baseline" text alone) showed Schwung's
+own label auto-abbreviator mangling every multi-word `name` into running
+letters: "Play Link" → "PLLINK", "Pad Layout" → "PLAYOU", "Note Mode" →
+"NMODE", "Clip Quantize" → "CLIQNT". `render_page_movy.mjs` reads a per-param
+`short_name` field ahead of that fallback; `VirtualCellSpec` gained one and
+every cell in both contracts now carries the exact short label movy's own
+`main-page-vm.ts`/`clip-page-vm.ts` already uses (TEMPO, SWING, LINK, QUANT,
+ROOT, KEY, MODE, LAYOUT / SCALE, LEN, TRANS, QUANT) — reused, not invented a
+second time. A left-open, accepted cosmetic: the enum-square's VALUE text for
+a long option ("Major", "Chromatic") still wraps across two lines inside the
+cell — legible, and the same native behaviour any module with long option
+names gets, so left alone rather than adding `short_options` on a first pass.
+
+**What no device confirmed (named, not hidden):**
+- Whether `SETPARAM_THROTTLE_MS`'s window ever matters against a REAL human
+  gesture (a synchronous test proved it exists; the timing case for it
+  mattering — two opposite-direction detents inside 20ms with no release
+  between — has not been measured on hardware).
+- Whether Move's continuous knobs generate a touch/release pair around every
+  turn gesture the way the fixed test now assumes, or turn without ever
+  registering contact.
+- Pixel legibility of the wrapped long-enum value and the switch/dial
+  graphics on the actual display (brightness, contrast, the real font) — the
+  screenshot suite diffs a simulated framebuffer, not the hardware.
+- ROOT's clamp-vs-wrap knob feel at the B/C boundary under delegation (named
+  in `main-page-apply.ts`'s own comment; SU-9/13 posture — an upstream ask if
+  it becomes a complaint, not pre-emptively fixed).
+
+**Teeth, three separate reverts, each proven red and restored:**
+`browser-test/logic/clip-params-source.mjs` + `set-params-source.mjs` — the
+`chain_params` array-shape bug (shared by both contracts, reddens both
+suites and crashes the planner), LAYOUT's live-option-list (reverting the
+function to a snapshot reddens "LAYOUT tracks MODE live" only), and
+`short_name` (reverting the JSON field reddens both suites' new assertion).
+`browser-test/app-loop.mjs`'s LINK test is itself the fourth: fixed forward
+(touch/release bracket), verified green in BOTH arms, not reverted separately
+since page-mode.mjs's own regression detection already proved it red-then-green.
 
 **Gates:** `SCHWUNG=../schwung npm test` — 0 failures. `SCHWUNG=../schwung node
-browser-test/page-mode.mjs` — still 3 of 3 expected failures, unmoved.
-`screenshot.mjs` — 177/177, 0 diffs (Clip Params under `off`, the default, is
-byte-identical — the only arm any existing scene exercises). No `engine/`
-change.
+browser-test/page-mode.mjs` — 3 of 3 expected failures, unmoved (the LINK
+regression surfaced and was fixed within this item, never landed on `main`).
+`browser-test/logic/schwung-page-idle-cost.mjs` — unmoved at 43/48 (Set/Clip
+Params add no idle cost to a page neither one is showing). `screenshot.mjs` —
+179/179: 177 unchanged (confirmed by `git status` showing zero baseline bytes
+changed outside the two new files, not merely "diff reported none"), plus
+`page_clipparams`/`page_setparams` new, each reviewed at 8× before accepting.
+No `engine/` change.
 
 ---
 

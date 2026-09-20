@@ -1952,9 +1952,20 @@ _log('\napp-loop: LINK toggle routes through knob 2 on the Set page');
     eq('Set page open', mainPageActive(), true);
     // Regression: the knob-dispatch gate must span the whole page, or cells
     // are dead on device. Clockwise → LINK on (LINK is knob 2 = CC 73).
+    // Touch/release bracket each turn (as a real gesture always has one): under
+    // `page` a write is throttled (SETPARAM_THROTTLE_MS, SU-13) and only the
+    // RELEASE flushes it synchronously — two turns fired back-to-back with no
+    // release in between (this test's original shape, written for the `off`
+    // arm's synchronous apply) leaves the second one sitting in Schwung's
+    // pendingWrite, unobservable until a real tick's worth of wall-clock time
+    // has passed. Both arms read `seqState.linkEnabled` at the same points.
+    sendMidi([0x90, 2, 127]);
     sendMidi([0xB0, 73, 40]); advance(1);
+    sendMidi([0x90, 2, 0]);
     eq('knob 2 CW enables link', seqState.linkEnabled, true);
+    sendMidi([0x90, 2, 127]);
     sendMidi([0xB0, 73, 88]); advance(1);   // counter-clockwise → LINK off
+    sendMidi([0x90, 2, 0]);
     eq('knob 2 CCW disables link', seqState.linkEnabled, false);
 }
 

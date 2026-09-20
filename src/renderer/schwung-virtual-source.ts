@@ -26,14 +26,25 @@ export interface VirtualCellSpec {
      *  read/write arrives as once the component prefix is stripped. */
     key: string;
     name: string;
+    /** The under-knob cell label — schwung's own `short_name` field. Without
+     *  one, `render_page_movy.mjs` auto-abbreviates `name`/`key` to fit a
+     *  5-char cell, and the algorithm reads a multi-word name as running
+     *  letters (measured: "Play Link" -> "PLLINK", "Pad Layout" -> "PLAYOU").
+     *  movy already has a hand-picked short label for every one of these
+     *  cells (`main-page-vm.ts`/`clip-page-vm.ts`'s own `shortName`) — reused
+     *  here rather than left to the auto-fitter a second time. */
+    shortName?: string;
     type: 'int' | 'float' | 'enum' | 'toggle';
     min?: number;
     max?: number;
     step?: number;
     /** Index-addressed, matching movy's own convention (`quantIndexForPct`,
      *  `rationalToIdx`) so an enum's wire value never needs a second
-     *  translation between "movy's index" and "the wire's index". */
-    options?: readonly string[];
+     *  translation between "movy's index" and "the wire's index". A FUNCTION
+     *  for a list whose length depends on another cell's current value (Set
+     *  Params' LAYOUT, gated on MODE) — resolved fresh on every contract
+     *  read, same reasoning as the rest of this file. */
+    options?: readonly string[] | (() => readonly string[]);
     /** Current value as the wire wants it — an int, or an enum's index, as a
      *  decimal string. */
     get(): string;
@@ -68,8 +79,10 @@ export function createVirtualSource(componentKey: string,
     function chainParamsJson(): string {
         const out = cells.map((c) => {
             const entry: Record<string, unknown> = { key: c.key, name: c.name, type: c.type };
-            if (c.type === 'enum') entry.options = c.options ?? [];
-            else {
+            if (c.shortName) entry.short_name = c.shortName;
+            if (c.type === 'enum') {
+                entry.options = (typeof c.options === 'function' ? c.options() : c.options) ?? [];
+            } else {
                 if (c.min !== undefined) entry.min = c.min;
                 if (c.max !== undefined) entry.max = c.max;
                 if (c.step !== undefined) entry.step = c.step;

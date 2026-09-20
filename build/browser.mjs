@@ -335,6 +335,16 @@ await esbuild.build({
             const SCHWUNG = process.env.SCHWUNG;
             build.onResolve({ filter: /^\/data\/UserData\/schwung\/shared\/param_pages\// }, (a) => {
                 if (SCHWUNG) {
+                    /* wav_io_qjs.mjs (SP-42) statically imports QuickJS's built-in
+                     * `std`/`os` modules, which esbuild/node cannot resolve — the
+                     * real file is unusable here. Redirect to a movy-authored
+                     * stand-in backed by the same globalThis.std/os mocks
+                     * browser-test/env.mjs already installs, rather than skipping
+                     * the module (which would leave Schwung's IO unregistered and
+                     * every sample-cell assertion silently vacuous). */
+                    if (a.path.endsWith('wav_io_qjs.mjs')) {
+                        return { path: resolve(root, 'browser-test/stubs/wav-io-qjs.mjs') };
+                    }
                     const tail = a.path.replace('/data/UserData/schwung/', '');
                     return { path: resolve(SCHWUNG, 'src/' + tail) };
                 }

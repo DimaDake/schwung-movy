@@ -12,6 +12,7 @@ import { MODULE_LOAD_TICKS } from '../model/constants.js';
 import { createWidgetSync } from './schwung-page-widget-sync.js';
 import type { PageReadCache } from './schwung-page-cache.js';
 import type { PageHierarchy } from './schwung-page-hierarchy.js';
+import { advanceSample } from './schwung-page-sample.js';
 
 /*
  * `reloadIfChanged` IS POLLED ON A DIVIDER, NOT EVERY TICK.
@@ -57,7 +58,7 @@ import type { PageHierarchy } from './schwung-page-hierarchy.js';
 export const RELOAD_POLL_TICKS = 16;
 
 export function createPageContract(ctl: any, port: TrackPort, componentKey: string,
-                                   cache: PageReadCache, hier: PageHierarchy) {
+                                   cache: PageReadCache, hier: PageHierarchy, lib: any) {
     let loaded = false;
     let attempts = 0;
     let sinceRetry = 0;
@@ -216,6 +217,7 @@ export function createPageContract(ctl: any, port: TrackPort, componentKey: stri
         perfPhase('ctltick');
         ctl.tick();                 /* exactly one get_param */
         perfPhaseEnd();
+        advanceSample(ctl, lib);    /* no-op off a sample page — see the sibling file */
     }
 
     return { reload, tick, isReady: () => loaded };

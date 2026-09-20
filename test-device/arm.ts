@@ -3,9 +3,12 @@ import type { Ctx } from './runner.js';
 
 /* WHICH ARM A SCENARIO GRADES, and who sets it.
  *
- * `prefs.flags.schwunggrid` has three values (`off`/`body`/`page`), and it is a
- * user-visible setting the device RESTS at — read back as `2`, the `page` arm,
- * on 2026-09-19. In that arm Schwung plans AND draws: `pageOwnerOf` hands the
+ * `prefs.flags.schwunggrid` has two values (`off`/`page`), and it is a
+ * user-visible setting the device RESTS at — read back as `2` (the old
+ * three-value `page` arm) on 2026-09-19; SP-40 remaps that stored `2` to `1`
+ * on the same device the first time it boots a build with `FLAGS_REV` 5, so
+ * expect `1` after that ships, still meaning the same `page` arm. In that arm
+ * Schwung plans AND draws: `pageOwnerOf` hands the
  * component over (`src/app/page-owner.ts`), movy takes no knob input (`src/
  * midi/router.ts` sends the turn to `owner.page.knobTurn` instead of
  * `applyKnobDelta`) and refreshes nothing (`src/app/tick.ts` skips

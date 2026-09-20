@@ -741,7 +741,7 @@ function applyView(preset) {
             resetFlags(); resetFlagsPage();
             const scrolled = preset === 'flags-scrolled';
             setFlag('setcommit', scrolled ? 0 : 1);
-            setFlag('schwunggrid', scrolled ? 2 : 0);
+            setFlag('schwunggrid', scrolled ? 1 : 0);
             flagsPageState.selected = scrolled ? flagsRowCount() - 1 : 0;
             lastRender = () => renderFlagsView(buildFlagsPageVM());
             lastRender();
@@ -1280,11 +1280,13 @@ function applyView(preset) {
             break;
         }
         /* PAGE MODE, DRAWN BY SCHWUNG. The rest of the baselines cannot reach it:
-         * schwungGridEnabled() is `mode === 'body'`, so under `page` every
-         * existing scene renders movy's widgets however the flag is set, and the
-         * suite reports green about a renderer it never ran. These supply
-         * `bodyOverride` — the same seam the device uses — so Schwung really
-         * plans and really draws.
+         * `renderKnobsView` only ever draws Schwung's widgets through a supplied
+         * `bodyOverride` (SP-40 deleted the flag-driven `body` mode that used to
+         * read `schwunggrid` on its own), so every existing scene renders movy's
+         * own widgets regardless of the flag, and the suite would report green
+         * about a renderer it never ran. These scenes supply `bodyOverride` —
+         * the same seam the device uses — so Schwung really plans and really
+         * draws.
          *
          * `page_body` and `page_body_p2` differ only by a jog click, which is
          * the point: the bank bar's index is Schwung's pageIndex, and a frozen 0

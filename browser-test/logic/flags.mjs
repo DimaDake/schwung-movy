@@ -6,7 +6,7 @@
 
 import {
     installMockFs, uninstallMockFs, PREFS_PATH,
-    FLAGS, flagDef, clampFlag, flagValueLabel, flagNormalized,
+    FLAGS, FLAGS_REV, flagDef, clampFlag, flagValueLabel, flagNormalized,
     flagValue, setFlag, applyFlagsToEngine, resetFlags,
     flagsPageState, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
     flagsRowCount, backupsRowSelected, actionRowSelected,
@@ -111,8 +111,8 @@ export async function run() {
     eq('and survives a reopen', flagValue('schwunggrid'), 1);
 
     setFlag('schwunggrid', 99);
-    eq('a write past the range is clamped, not refused', flagValue('schwunggrid'), 2);
-    eq('and the clamped value is what is stored', readPrefFlags().schwunggrid, 2);
+    eq('a write past the range is clamped, not refused', flagValue('schwunggrid'), 1);
+    eq('and the clamped value is what is stored', readPrefFlags().schwunggrid, 1);
 
     eq('an unknown flag cannot be written', setFlag('nope', 1), 0);
     ok('and leaves no trace in prefs', !('nope' in readPrefFlags()));
@@ -135,26 +135,56 @@ export async function run() {
      * beats a changed default forever. Without this the release that turns
      * engine-owned saves on turns them on for nobody who was involved. */
     installMockFs({
-        [PREFS_PATH]: JSON.stringify({ flagsRev: 3, flags: { engpersist: 0, schwunggrid: 1 } }),
+        /* `setcommit` is the control here, not `schwunggrid` — SP-40 gave
+         * schwunggrid its own `revisedAt` (its VALUES were renumbered, DRAW
+         * deleted), so it is no longer a flag with "no revision" to prove the
+         * point with. `setcommit` has none. */
+        [PREFS_PATH]: JSON.stringify({ flagsRev: 3, flags: { engpersist: 0, setcommit: 0 } }),
     });
     resetFlags();
     eq('a stored value from before the revision is superseded', flagValue('engpersist'), 1);
-    eq('a flag with no revision keeps its stored value', flagValue('schwunggrid'), 1);
+    eq('a flag with no revision keeps its stored value', flagValue('setcommit'), 0);
     /* Written back, so the adoption happens exactly once — a user who then
      * turns it off again must keep it off. */
     const adopted = JSON.parse(globalThis.host_read_file(PREFS_PATH));
     eq('the adoption is recorded', adopted.flags.engpersist, 1);
-    eq('at the new revision', adopted.flagsRev, 4);
+    eq('at the new revision', adopted.flagsRev, FLAGS_REV);
     setFlag('engpersist', 0);
     resetFlags();
     eq('and a later opinion at the current revision stands', flagValue('engpersist'), 0);
     uninstallMockFs();
 
     installMockFs({   // no flagsRev key at all, which reads as rev 0
-        [PREFS_PATH]: JSON.stringify({ flags: { schwunggrid: 1 } }),
+        [PREFS_PATH]: JSON.stringify({ flags: { setcommit: 0 } }),
     });
     resetFlags();
-    eq('a rev-less prefs file still reads its unrevised flags', flagValue('schwunggrid'), 1);
+    eq('a rev-less prefs file still reads its unrevised flags', flagValue('setcommit'), 0);
+    uninstallMockFs();
+
+    /* SP-40 — the flag's VALUES were renumbered (DRAW deleted), not only its
+     * default, so a stored value needs a REMAP, not just a new default. A plain
+     * clampFlag to the new max would get 2->1 right by coincidence and 1->1
+     * wrong (an old DRAW user would land on SCHWUNG, not MOVY). */
+    installMockFs({
+        [PREFS_PATH]: JSON.stringify({ flagsRev: 4, flags: { schwunggrid: 2 } }),
+    });
+    resetFlags();
+    eq('old PAGE (2) remaps to new SCHWUNG (1)', flagValue('schwunggrid'), 1);
+    uninstallMockFs();
+
+    installMockFs({
+        [PREFS_PATH]: JSON.stringify({ flagsRev: 4, flags: { schwunggrid: 1 } }),
+    });
+    resetFlags();
+    eq('old DRAW (1) remaps to new MOVY (0), not to new SCHWUNG (1)',
+       flagValue('schwunggrid'), 0);
+    uninstallMockFs();
+
+    installMockFs({
+        [PREFS_PATH]: JSON.stringify({ flagsRev: 4, flags: { schwunggrid: 0 } }),
+    });
+    resetFlags();
+    eq('old MOVY (0) stays MOVY (0)', flagValue('schwunggrid'), 0);
     uninstallMockFs();
 
     installMockFs({ [PREFS_PATH]: '{not json' });
@@ -275,9 +305,9 @@ export async function run() {
     /* Knob 1 edits whatever the jog selected — that is the whole interaction,
      * and it is what lets the list grow past eight entries. */
     flagsPageState.selected = visibleFlags().findIndex((f) => f.key === 'schwunggrid');
-    setFlag('schwunggrid', 1);
+    setFlag('schwunggrid', 0);
     turn(FLAG_KNOB, 6);
-    ok('knob 1 raises the selected flag', flagValue('schwunggrid') > 1);
+    ok('knob 1 raises the selected flag', flagValue('schwunggrid') > 0);
     turn(FLAG_KNOB, -20);
     eq('and lowers it to its floor, never past', flagValue('schwunggrid'), flagDef('schwunggrid').min);
 
@@ -306,7 +336,7 @@ export async function run() {
     resetFlags();
     resetFlagsPage();
 
-    setFlag('schwunggrid', 2);
+    setFlag('schwunggrid', 1);
     setFlag('setcommit', 1);
     const vm = buildFlagsPageVM();
     /* ONE DRAWN ROW PER SELECTABLE ROW, and this is the assertion that was
@@ -321,7 +351,7 @@ export async function run() {
        'BACKUPS,MIGRATE TRACKS');
     eq('the name column is the readable name', vm.rows[0].name, visibleFlags()[0].name);
     eq('exactly one row is selected', vm.rows.filter((r) => r.selected).length, 1);
-    ok('a labelled flag shows its word', vm.rows.some((r) => r.value === 'PAGE'));
+    ok('a labelled flag shows its word', vm.rows.some((r) => r.value === 'SCHWUNG'));
     ok('a numeric flag shows its number', vm.rows.some((r) => r.value === '1'));
 
     /* Selecting the action row: it draws as selected, the hint explains it
@@ -343,7 +373,7 @@ export async function run() {
     flagsPageState.selected = visibleFlags().findIndex((f) => f.key === 'schwunggrid');
     setFlag('schwunggrid', 0);
     eq('the knob LED is dim at the bottom of the range', buildFlagsPageVM().knobNormalized, 0);
-    setFlag('schwunggrid', 2);
+    setFlag('schwunggrid', 1);
     eq('and full at the top', buildFlagsPageVM().knobNormalized, 1);
 
     /* Scrolling. The list is short today and will not be, so the window is

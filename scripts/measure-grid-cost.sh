@@ -63,7 +63,7 @@ scp -q "$(dirname "$0")/inject-any.py" "ableton@$HOST:/data/UserData/inject-any.
 # 0 = MOVY, 1 = BODY, 2 = PAGE. There is no build that selects any of them.
 case "$ARM" in
     off)  SCHWUNGGRID=0 ;;
-    page) SCHWUNGGRID=2 ;;
+    page) SCHWUNGGRID=1 ;;
     *)    echo "usage: measure-grid-cost.sh off|page" >&2; exit 2 ;;
 esac
 

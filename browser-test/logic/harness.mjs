@@ -45,7 +45,7 @@ import {
     PREFS_PATH, FACTORY_DEFAULT_QUANT,
 } from '../../dist/esm/seq/prefs.js';
 import {
-    FLAGS, flagDef, clampFlag, flagValueLabel, flagNormalized,
+    FLAGS, FLAGS_REV, flagDef, clampFlag, flagValueLabel, flagNormalized,
 } from '../../dist/esm/seq/flags-def.js';
 import {
     flagValue, setFlag, applyFlagsToEngine, resetFlags,
@@ -293,7 +293,7 @@ export {
     readUiBlob, writeStateBlob, resetStoreRotation, shadowPath, keyboardState, quantCandidates,
     nextQuantCandidate, quantIndexForPct, candidateIndex, readPrefDefaultQuant, writePrefDefaultQuant,
     readPrefFileDir, writePrefFileDir, PREFS_PATH,
-    FLAGS, flagDef, clampFlag, flagValueLabel, flagNormalized,
+    FLAGS, FLAGS_REV, flagDef, clampFlag, flagValueLabel, flagNormalized,
     flagValue, setFlag, applyFlagsToEngine, resetFlags,
     schwungGridMode, setSchwungGridMode, schwungPageFor, schwungGridReload,
     schwungLibAvailable, schwungLibError,

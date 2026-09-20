@@ -65,8 +65,8 @@ export class Probe {
     browse() { return this.ask({ key: 'browse' }); }
 
     /* The internal mode strings, NOT the flag's display labels (the Settings
-     * page shows MOVY/DRAW/PAGE for off/body/page). */
-    setGridMode(m: 'off' | 'body' | 'page' | null) {
+     * page shows MOVY/SCHWUNG for off/page). */
+    setGridMode(m: 'off' | 'page' | null) {
         return this.ask({ verb: 'setGridMode', arg: m });
     }
 

@@ -7,8 +7,12 @@
  *
  * MODE
  *   'off'   movy plans and draws (unchanged)
- *   'body'  movy plans, Schwung draws the widgets (schwung-body.ts)
  *   'page'  SCHWUNG plans AND draws; movy targets the parameters
+ *
+ * There used to be a third mode, 'body' (movy plans, Schwung only draws the
+ * widgets) — deleted in SP-40 along with its renderer, schwung-body.ts. It
+ * never earned a release opinion, and it differed from 'page' only in which
+ * side drew pixels, never in what was decided.
  *
  * 'page' is the one this exists for. Under it the Schwung page index is the
  * truth and movy's own bank index is not consulted for drawing, because the two
@@ -23,13 +27,13 @@ import { schwungLibAvailable } from './schwung-lib.js';
 import { schwungFloorMetOnce } from './schwung-floor.js';
 import { flagValue } from '../seq/flags.js';
 
-export type SchwungGridMode = 'off' | 'body' | 'page';
+export type SchwungGridMode = 'off' | 'page';
 
 /* One SchwungPage per (track, component). */
 const pages = new Map<string, SchwungPage>();
 
-/* The flag's three values, in the order the Settings row lists them. */
-const MODES: SchwungGridMode[] = ['off', 'body', 'page'];
+/* The flag's two values, in the order the Settings row lists them. */
+const MODES: SchwungGridMode[] = ['off', 'page'];
 
 /*
  * THE MODE IS A SETTING NOW, NOT A BUILD.

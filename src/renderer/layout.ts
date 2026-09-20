@@ -11,9 +11,9 @@ export const LBL_H    = 7;
 export const KW       = 16;
 export const TOAST_Y  = 58;
 
-/* WHERE an embedded Schwung grid goes — shared by `body` and `page` modes and
- * by the off stand-in, which is why it lives here and not beside either of
- * them: three copies of two numbers is how they came to disagree by 2 px.
+/* WHERE an embedded Schwung grid goes — shared by `page` mode and by the off
+ * stand-in, which is why it lives here and not beside either of them: three
+ * copies of two numbers is how they came to disagree by 2 px.
  *
  * `bands` says WHAT to draw; this says WHERE, and they are not the same
  * question. movyBandLayout reflows ONLY when a rect is supplied

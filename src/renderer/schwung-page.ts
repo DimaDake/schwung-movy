@@ -38,7 +38,11 @@ import { schwungLib } from './schwung-lib.js';
 import { createPageIo } from './schwung-page-io.js';
 import { createPageReadCache } from './schwung-page-cache.js';
 import { createPageHierarchy } from './schwung-page-hierarchy.js';
-import { createPageContract } from './schwung-page-contract.js';
+import { createPageContract, RELOAD_POLL_TICKS } from './schwung-page-contract.js';
+// Re-exported so a test can assert against the REAL divider width (SP-49)
+// instead of a copy of the number — `schwung-page-contract.js` is not its own
+// entry point in the bundle, so nothing else surfaces it.
+export { RELOAD_POLL_TICKS };
 import { createPageRender } from './schwung-page-render.js';
 import { createPageInput } from './schwung-page-input.js';
 import { createPageAnimating } from './schwung-page-anim.js';

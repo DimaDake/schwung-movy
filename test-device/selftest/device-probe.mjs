@@ -58,7 +58,7 @@ ok('page answers with eight cells or a clear reason',
     (Array.isArray(page.cells) && page.cells.length === 8) || typeof page.error === 'string',
     JSON.stringify(page).slice(0, 200));
 if (Array.isArray(page.cells)) {
-    ok('page names the renderer', ['off', 'body', 'page'].includes(page.renderer), page.renderer);
+    ok('page names the renderer', ['off', 'page'].includes(page.renderer), page.renderer);
 }
 
 /* A real close, driven off the modal rather than a fixed number of Backs. */

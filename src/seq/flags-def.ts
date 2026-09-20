@@ -52,6 +52,14 @@ export type FlagDef = {
      *  than that has its stored value ignored once, so the new default actually
      *  reaches a device that already has an opinion. */
     revisedAt?: number;
+    /** How a value stored under an OLD numbering survives a renumbered range,
+     *  applied once on the same `revisedAt` trigger — for a flag whose VALUES
+     *  were renumbered, not only its default. Absent means "no stored value
+     *  survives the revision, take `def`" (the ordinary `revisedAt` shape,
+     *  unchanged). A plain clamp to the new range is not the same thing: it
+     *  gets a shrunk top value right only by coincidence and can land an old
+     *  middle value on a new one that means something else entirely. */
+    remapAt?: (old: number) => number;
 };
 
 /** Bumped whenever a shipped default changes; see `revisedAt`.
@@ -61,7 +69,7 @@ export type FlagDef = {
  *  happen on any device that has ever opened the page. It has already bitten
  *  once: a flag left off during a measurement session kept its stored 0, and
  *  the new default reached nobody who had run one. */
-export const FLAGS_REV = 4;
+export const FLAGS_REV = 5;
 
 /* Release rows first: a release build lists only these, and a debug build reads
  * top-down the same way. */
@@ -82,18 +90,20 @@ export const FLAGS: FlagDef[] = [
     },
     {
         key: 'schwunggrid', name: 'Param Pages',
-        hint: 'Who draws module knobs. PAGE re-paginates.',
+        hint: 'Who draws module knobs. SCHWUNG re-paginates.',
         // WHICH RENDERER DRAWS A MODULE'S PARAMETER PAGE.
         //
-        //   MOVY    movy plans the pages and draws them (what always shipped)
-        //   DRAW    movy plans, Schwung draws the widgets  (a restyle)
-        //   PAGE    Schwung plans AND draws; movy targets the parameters
+        //   MOVY     movy plans the pages and draws them (what always shipped)
+        //   SCHWUNG  Schwung plans AND draws; movy targets the parameters
         //
-        // Three values rather than a bool because DRAW and PAGE are separate
-        // decisions and only one of them moves parameters between pages. PAGE
-        // is the one that re-paginates, which is a data-shaped change (the
-        // sequencer targets parameters, never page/slot, so lanes follow — but
-        // what is on which page visibly moves).
+        // Used to be three values: DRAW (movy plans, Schwung only draws the
+        // widgets — a restyle) sat between these two, and it is gone (SP-40)
+        // — it never earned a release opinion of its own, and carrying a
+        // third mode that only ever differed from SCHWUNG by which side drew
+        // the pixels was cost with no decision riding on it. What is left is
+        // one real decision: re-paginate or don't. The sequencer targets
+        // parameters, never page/slot, so lanes follow either way — but what
+        // is on which page visibly moves under SCHWUNG.
         //
         // uiOnly with NOTHING FOLDED, which is the rare honest case for that
         // field: the engine has no parameter-page concept at all, so unlike
@@ -103,11 +113,18 @@ export const FLAGS: FlagDef[] = [
         //
         // Debug-only for now (no `release`): it is an experiment against movy's
         // own renderer, and the Schwung side still has open gaps — see
-        // docs/plans/ and browser-test/app-loop.mjs, which fails on PAGE.
+        // docs/plans/ and browser-test/app-loop.mjs, which fails on SCHWUNG.
         //
-        // No `revisedAt`: a brand-new key has no stored value anywhere, so def 0
-        // reaches every device without help.
-        min: 0, max: 2, def: 0, labels: ['MOVY', 'DRAW', 'PAGE'], uiOnly: true,
+        // revisedAt/remapAt: the VALUES were renumbered, not only the default
+        // — DRAW's deletion means old 1 must land on new MOVY (0), not on new
+        // SCHWUNG (1) where a plain range clamp would put it (see flags.ts's
+        // `ensure()`). Old 0 (MOVY) stays 0; old 2 (PAGE) becomes new 1
+        // (SCHWUNG). Do not reuse FLAGS_REV 4 — `engpersist` already adopted
+        // against it, and a device past rev 4 must not re-trigger that a
+        // second time.
+        min: 0, max: 1, def: 0, labels: ['MOVY', 'SCHWUNG'], uiOnly: true,
+        revisedAt: 5,
+        remapAt: (old) => (old >= 2 ? 1 : 0),
     },
     {
         key: 'engpersist', name: 'Engine Saves',

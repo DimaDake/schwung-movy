@@ -1,6 +1,7 @@
 import { trackRef } from '../track/ref.js';
 import { pageOwnerOf } from '../app/page-owner.js';
 import { pinPage, unpinPage } from './knob-page-pin.js';
+import { pinModel, unpinModel } from './knob-model-pin.js';
 import { perfPhase, perfPhaseEnd } from '../app/perf-probe.js';
 import { openSchwungEditor, schwungEditorActive, schwungEditorJog,
          schwungEditorCommit, schwungEditorCancel } from '../renderer/schwung-editor.js';
@@ -275,9 +276,17 @@ export function onMidiMessageInternal(data: number[]): void {
          * controller exactly as a page change does. The ledger records the page
          * at the press; see midi/knob-page-pin.ts for why the latch it prevents
          * is permanent.
+         *
+         * The MODEL underneath owes the same debt, independently: it is movy's
+         * own Model that opened an enum/file overlay on the press, and
+         * knobModel() re-resolved at release time can name a different one
+         * (track switch, chain-slot swap, Session toggle) - that model's
+         * overlay would otherwise never commit. See knob-model-pin.ts.
          */
         const owed = d2 > 0 ? undefined : unpinPage(d1);
+        const owedModel = d2 > 0 ? undefined : unpinModel(d1);
         owed?.knobTouch(d1, false);
+        if (owedModel?.handleKnobRelease(d1)) seqToast('Wrong preset type');
         // Main/Clip Params are pages the user opened deliberately and are what
         // app/tick.ts actually renders, so they own the knobs ahead of the step
         // page. (The other order let a step hold silently steer the knobs away
@@ -341,7 +350,11 @@ export function onMidiMessageInternal(data: number[]): void {
              * the release, the header readout and the file-browse gesture all
              * read it.
              */
-            knobModel()?.handleKnobTouch(d1, !owner.delegated);
+            const model = knobModel();
+            model?.handleKnobTouch(d1, !owner.delegated);
+            /* Pinned so the release goes back to THIS model, not whatever
+             * knobModel() resolves to later (see knob-model-pin.ts). */
+            pinModel(d1, model ?? null);
             /* Schwung shows the held param's full name and value in the header
              * strip, and a dive is a click WITH a knob held — both need the same
              * finger movy just saw. */
@@ -358,7 +371,10 @@ export function onMidiMessageInternal(data: number[]): void {
              * Clear is held is still the knob's gesture, even when Clear went
              * down after the touch did. */
             if (deleteActive()) markDeleteActed();
-            if (knobModel()?.handleKnobRelease(d1)) seqToast('Wrong preset type');
+            /* The model's release is delivered above, from owedModel (the pin
+             * taken at the top of this block) — NOT by re-resolving
+             * knobModel() here, which is exactly the bug this pin exists to
+             * avoid (see knob-model-pin.ts). */
             /* Only when the press recorded no page: the pinned page above has
              * already taken the release, and asking this owner as well would
              * hand it one it never heard. */

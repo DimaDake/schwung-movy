@@ -144,16 +144,15 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 
 | id | item | model | state | order | release gate |
 | --- | --- | --- | --- | --- | --- |
-| SP-40 | the flag becomes two values, MOVY and SCHWUNG; `body` and the `.off` stand-ins deleted | Sonnet | ⬜ | **7** | ✔ |
+| SP-40 | the flag becomes two values, MOVY and SCHWUNG; `body` and the `.off` stand-ins deleted | Sonnet | ✅ | **7** | ✔ |
 | SP-47 | **NEW** — the opt-in release: the row goes in front of users, default still MOVY | Sonnet | ⬜ | **8** | — |
-| SP-48 | **NEW** — a modulated or `live` param the page shows keeps it redrawing forever. **A regression SP-38 introduced**; the flag must not reach testers with it open | Sonnet | ⬜ | **7.5** | ✔ |
-| SP-49 | **NEW** — an IDLE `page` tick costs half again what an `off` tick costs (worst period 6.3 vs 5.0 ms, `calls/tick` 1.4 vs 0.6) and it is there with nothing moving. **A standing LATENCY cost** — the tick period is the MIDI sampling interval — so it is a gate, not just inefficiency | Sonnet | ⬜ | **7.7** | ✔ |
-| SP-50 | **NEW** — on a child-level page movy and the controller disagree about WHICH child is showing. **Live under `page` on the missing `child_index_param`**: movy addresses no child at all while the controller resolves at instance 0, so the warm covers the wrong child and a knob can answer for the neighbour — inert on the installed `voice-poc`. (The other half, an off-by-base on the wire value, is real and has NO fleet exhibition.) Unreachable under the default `off` | Sonnet | ⬜ | **7.8** | ✔ |
-| SP-51 | **NEW** — the movy MODEL's own knob touch is still resolved at RELEASE time (`knobModel()?.handleKnobTouch` on the press against `handleKnobRelease` on the release, `src/midi/router.ts`), so a page change mid-hold leaves the model that heard the press with its touched/overlay state armed and hands the other model a release it never had. **Different consequence from SP-31, not the same bug**: the model's touch is movy's own state, `resetHeldInput` clears it, and it does not latch the jog click. Raised by SP-31 as a note; the id was added 2026-09-19 | Sonnet | ⬜ | **7.9** | — |
+| SP-48 | a modulated or `live` param the page shows keeps it redrawing forever. **A regression SP-38 introduced** — fixed with a movy-side repaint cap (`src/app/repaint-cap.ts`), the flag must not reach testers with it open (now satisfied) | Sonnet | ✅ | **7.5** | ✔ |
+| SP-49 | An IDLE `page` tick costs half again what an `off` tick costs. **Attributed on `minijv` (70 pages): the WHOLE gap is downstream of `ctl.reloadIfChanged()` (SU-14) — stashing that divider out collapsed calls/tick 1.1→0.6, worst period 6.1→5.4ms, both matching `off` exactly.** Local fix landed: `RELOAD_POLL_TICKS` 8→16 (`src/renderer/schwung-page-contract.ts`), confirmed on device to roughly halve `ctlreload` (0.8→0.4ms/tick) and the standing gap (worst period 6.1→5.7ms). **Does not clear the ~10% closure bar** — residual is SU-14's own cost, amortized wider; needs SP-47's explicit acceptance or SU-14 landing | Sonnet | 🔨 **partial, 2026-09-20** | **7.7** | ✔ |
+| SP-50 | On a child-level page movy and the controller disagree about WHICH child is showing. **Fixed movy-side, both halves**: `jump`'s `concrete()` now warms at `ctl.childIndexOf(level)` when the level owns no write channel (agreement, not pad-follow — that needs `voice-poc` to gain `child_index_param` upstream, **SU-15**); the wire write goes through `childIndexToWire`. Half one (missing channel) is tested against the real `voice-poc` dump; half two (off-by-base) has **no fleet exhibition**, pinned by a synthetic fixture only | Sonnet | ✅ | **7.8** | ✔ |
+| SP-51 | The movy MODEL's own knob touch was resolved at RELEASE time (`knobModel()?.handleKnobTouch` on the press against `handleKnobRelease` on the release, `src/midi/router.ts`), so a page change mid-hold left the model that heard the press with its touched/overlay state armed and handed the other model a release it never had. **Different consequence from SP-31, not the same bug**: the model's touch is movy's own state — fixed with a second small ledger (`midi/knob-model-pin.ts`), not a shared Map with SP-31's page pin (incompatible `null`-clears rule). Teeth: `app-loop.mjs`, flag-independent, `3 of 3` unchanged. Raised by SP-31 as a note; the id was added 2026-09-19 | Sonnet | ✅ | **7.9** | — |
 | SP-32 | a bank or cell that exists only in movy's config is on no page under `page`: audit before SP-30 flips the default. **The route is the hierarchy movy already returns** — see The injection surface §2 | Sonnet | ⬜ | 9 | — |
 | SP-42 | **NEW** — a .wav has no waveform: `wav_io_qjs.mjs` is never imported | Sonnet | ⬜ | 10 | — |
 | SP-45 | **NEW** — 8w8's pads do not select their pages; the other three racks' do | Sonnet | ⬜ | 11 | — |
-| SP-43 | **NEW** — the second click on an entered preset page leaves it | Sonnet | ⬜ | 12 | — |
 | SP-44 | **NEW** — knob 1 changes presets with no click first (feature) | Sonnet | ⬜ | 13 | — |
 | SP-46 | **NEW** — a lone attack/decay has no graphic (against the acceptance bar, by request). **Does not wait on SU-10**: `vizOverrides` + movy's own widget registry is a host-side route — see The injection surface §1 | Sonnet | ⬜ | 14 | — |
 | SP-16 | Cause G — graphics return (**shrunk: upstream fixed the hard half**) | Sonnet | 🔨 **movy half done** 2026-09-18; floor bump waits on #509 | 15 | — |
@@ -170,6 +169,7 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | SP-56 | **NEW** — Settings, CPU and Backups: a scope decision, not a build | Opus | ⬜ | 26 | — |
 | SP-21 | Metadata correction overlay | Sonnet | ❌ **dropped** — the audit found 1 real correction in 555 | — | — |
 | SP-22 | Cut-curve viz kind | Sonnet | ❌ **dropped** — a movy extension; Schwung draws plain dials natively | — | — |
+| SP-43 | The second click on an entered preset page leaves it | Sonnet | ❌ **dropped** 2026-09-20 — it is upstream's DOCUMENTED design, not a defect; the user's ruling is to drop it and correct the record | — | — |
 
 ### Upstream
 
@@ -185,10 +185,11 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | SU-8 | A per-cell channel for "this parameter is AUTOMATED" and "this cell cannot take a lock" — distinct from `locked` (a held step's lock) and from `isModulated` (the tilde) | ⬜ **new, and no longer conditional — both deciders have ruled.** SP-35 put the "cannot take a lock" half in movy's own chrome at the gesture (a toast), and SP-36 shipped the automated half **through `isModulated`**, i.e. wearing the tilde. So what is left for upstream is exactly the GRAMMAR: a lane and an LFO now draw the same mark, and a parameter that is both says it once. The ask is one bit per cell (`decorations[slot].automated`, beside `locked`) plus the 2×2 mark `render_page_movy.mjs` already has the corner for — not a second renderer, and not a value channel: movy already answers the value through `:effective` |
 | SU-9 | A knob drives a door page's list, with `list_knob.mjs`'s feel | ⬜ **new, likely** — SP-44; the list, its length and its commit path are the door's, and movy must not restate them. **No host-side route exists** — the feel constants are `export const` and `onKnobTurn` takes a direction, not a magnitude (The injection surface §4) |
 | SU-10 | A viz kind for a LONE envelope stage (attack only, decay only) | ⬜ **new** — SP-46; take the fleet count with the ask, the way SP-22's drop was measured. **Not blocking**: SP-46 can ship on `vizOverrides` first, so the ask can be made against a widget that already draws (The injection surface §1) |
-| SU-11 | A per-key duration in the animation store, so `settled` ages out a value that never rests | ⬜ **new, conditional** — SP-48; the alternative is a movy-side repaint cap, which is the fallback only if this is declined |
+| SU-11 | A per-key duration in the animation store, so `settled` ages out a value that never rests | ⬜ **new** — SP-48 shipped the movy-side repaint cap fallback instead (2026-09-20); this ask is written (SP-48's own writeup has the PR-ready text) but **not yet filed** as a branch/PR, same as SU-9/SU-10/SU-12/SU-13. Not blocking anything — the cap makes no assumption that survives this landing later |
 | SU-12 | A caller-supplied trailing page of kind `knobs`, not only `menu` — so movy's own pages can join a module's page set | ⬜ **new, expected to close without work.** `buildTrailingPages` hard-codes `kind: PAGE_MENU` (`page_plan.mjs:381`), so appending a KNOB page is upstream — but movy already owns the contract string, and folding the page into that is the host-side route (SP-54, route 1). Open this only if the fold is measured too expensive |
 | SU-13 | A host-owned page's write throttle and knob feel | ⬜ **new, conditional, and bounded by The injection surface §4.** `SETPARAM_THROTTLE_MS = 20` and the acceleration constants are `export const` bindings — readable, not writable — so a feel complaint about a migrated Set Params page (the tempo knob) is an upstream ask or it does not happen. Do not open it before a complaint exists |
-| SU-14 | The re-plan skip: `param_pages` re-plans the whole module even when the contract has not changed | 🔨 **FILED — schwung PR #519, OPEN and unreviewed since 2026-09-17** (head `DimaDake:perf/page-reload-skip-unchanged-contract-upstream`, `3bca6d68`; the local `1959e661` is its working copy). 87 lines of `page_controller.mjs` + one host test. **The action is to chase it, not to write it**, and it lands in the highest-churn file in the library (98 commits/90 days), so it is overtaken the longer it waits. Until it ships, a host-owned contract pays the FULL unconditional re-plan — see the correction in *The pages that are not a track module's* |
+| SU-14 | The re-plan skip: `param_pages` re-plans the whole module even when the contract has not changed | 🔨 **FILED — schwung PR #519, OPEN and unreviewed since 2026-09-17** (head `DimaDake:perf/page-reload-skip-unchanged-contract-upstream`, `3bca6d68`; the local `1959e661` is its working copy). 87 lines of `page_controller.mjs` + one host test. **The action is to chase it, not to write it**, and it lands in the highest-churn file in the library (98 commits/90 days), so it is overtaken the longer it waits. Until it ships, a host-owned contract pays the FULL unconditional re-plan — see the correction in *The pages that are not a track module's*. **SP-49 measured how much: on `minijv` (70 pages), stashing movy's own reload-poll divider out to where it never fires collapsed the ENTIRE idle `page`-vs-`off` gap to noise — this is not one line among several, it is the whole of what SP-49 could still see once SP-26/27/48 had already been paid for** (`sp49-measurement.md`) |
+| SU-15 | **NEW, SP-50.** The reference module `voice-poc`'s `pads` level to declare `child_index_param`, matching `sophie`'s, so the already-correct `child_index_param` machinery closes the loop for a shipping example — today no dumped module has both a child note map AND `child_index_param` on one level, so SP-50's half two (the off-by-base write) has no fleet exhibition at all | ⬜ **new, ask only — an example-module change, not a defect in the library itself** |
 
 ---
 
@@ -575,7 +576,7 @@ previous "this needs upstream" in this file has cost a release cycle.
 | 5 | animations are completely broken — the LFO indicator, a waveform changing on a page change — Schwung supports them and they are very slow | SP-38 | ✔ |
 | 6 | on a drum track, switching page by pressing a PAD is noticeably slower than movy's pages (check forge, on a page that supports switching) | SP-39 | ✔ |
 | 7 | no waveform for a selected .wav in a parameter page | SP-42 | — |
-| 8 | on the preset selector page the first jog click focuses the page (correct); the second jumps to the MAIN page to the right | SP-43 | — |
+| 8 | on the preset selector page the first jog click focuses the page (correct); the second jumps to the MAIN page to the right | SP-43 ❌ **dropped** — Schwung's documented design, refuted 2026-09-20; the want is served by SP-44 | — |
 | 9 | feature: knob 1 should change presets with no jog click to focus first | SP-44 | — |
 | 10 | pad page selection does not work for **8w8**; it works for the other xwx modules | SP-45 | — |
 | 11 | no single attack / single decay visualisations | SP-46 | — |
@@ -585,10 +586,10 @@ previous "this needs upstream" in this file has cost a release cycle.
 6 SP-31 ✅ **closed 2026-09-19**, 7 SP-40, **7.5 SP-48 — the regression SP-38 introduced**, **7.7 SP-49 —
 the standing idle tick, which is latency and therefore a gate**, **7.8 SP-50 —
 the child instance movy addresses is not the one the controller resolves, which
-is live under `page`**, **7.9 SP-51 — the movy MODEL half of that same gesture is still
-resolved at release time; not a gate (it clears itself and latches nothing), but the
-next `page`-arm fix round should take it**, 8 **SP-47 —
-the release**. Then SP-32, SP-42, SP-45, SP-43,
+is live under `page`**, **7.9 SP-51 ✅ closed 2026-09-20 — the movy MODEL half of that
+same gesture was resolved at release time; not a gate (it does not latch the
+controller), fixed alongside this fix round**, 8 **SP-47 —
+the release**. Then SP-32, SP-42, SP-45,
 SP-44, SP-46, SP-16, SP-21a, SP-23, SP-24, SP-29, SP-30, and SP-41 only if it
 is ever decided. SP-31 (✅ closed 2026-09-19) was in front of the release and the user did
 not name it because it is not a symptom you can describe — a lost knob release latches the
@@ -871,20 +872,92 @@ committed, so the fixture's chain is untouched whichever way the check goes.
 omission: the `page` flag is not user-visible yet (that is SP-47's item), so no gesture,
 page or control a user has changed.
 
-**Not covered — an OPEN ITEM, SP-51, not a footnote here.** It was a ledger NOTE
-without an id until 2026-09-19, which is the thing this ledger's own convention
-exists against: a prose-only note is a finding the next session re-derives from
-scratch instead of picking up. The movy-MODEL half of the same gesture is still
-resolved at release time:
-`knobModel()?.handleKnobTouch(d1, !owner.delegated)` on the press against
-`knobModel()?.handleKnobRelease(d1)` on the release (`src/midi/router.ts`). A
-page change mid-hold therefore leaves the model that heard the press with its own
-touched/overlay state armed and hands the other model a release it never had.
+**Not covered here — CLOSED as SP-51.** It was a ledger NOTE without an id until
+2026-09-19, which is the thing this ledger's own convention exists against: a
+prose-only note is a finding the next session re-derives from scratch instead of
+picking up. The movy-MODEL half of the same gesture was still resolved at
+release time: `knobModel()?.handleKnobTouch(d1, !owner.delegated)` on the press
+against `knobModel()?.handleKnobRelease(d1)` on the release (`src/midi/router.ts`).
+A page change mid-hold left the model that heard the press with its own
+touched/overlay state armed and handed the other model a release it never had.
 Different consequence, not the same bug: the model's touch is movy's own state,
-`resetHeldInput` clears it, and it does not latch the jog click — the permanence
-above is a property of the CONTROLLER. The LFO hold is NOT affected, checked
-rather than assumed: `lfo/assign-mode.ts`'s `holdRelease(physK)` keys on the knob
-index alone, so the release clears it whichever model is current.
+not the controller's, so it never latched a jog click. **Correction to this
+entry's own earlier framing:** the claim that `resetHeldInput` clears the leak
+was true but incomplete, and would have misled an implementer into thinking the
+everyday case was covered — `resetHeldInput` runs only at cold boot and on
+Leave-Movy, never on an ordinary track switch or Session toggle, which is
+exactly the scenario this note names. What actually self-healed the everyday
+case was `app/tick.ts`'s `shownKey` check, and only *reactively*: it clears
+`touchedSlots`/`enumOverlay` on whichever model is shown NOW, not the one that
+just lost the knobs, so the pressed model's open overlay sat live and
+uncommitted until the next time IT was shown again — after the user's roll was
+already lost, never because the release landed right. See SP-51 below for the
+fix. The LFO hold is NOT affected, checked rather than assumed:
+`lfo/assign-mode.ts`'s `holdRelease(physK)` keys on the knob index alone, so the
+release clears it whichever model is current.
+
+---
+
+### SP-51 ✅ 2026-09-20 — the movy MODEL's own knob touch was still resolved at RELEASE time
+
+**Symptom.** Hold a knob whose cell is an enum/item-selector (>6 options) or a
+file param — the overlay opens and the user rolls to a different item — then
+switch tracks (or toggle Session, or swap the module in the focused slot)
+*while still holding the knob*, then let go. The newly-rolled selection is
+silently discarded: the release lands on whichever model is now on screen (a
+no-op there), and the model that actually holds the open overlay never hears a
+release at all. Flag-independent, unlike SP-31: `knobModel()?.handleKnobTouch`/
+`handleKnobRelease` run unconditionally in the router's fallback branch,
+delegated or not.
+
+**Cause.** `knobModel()` (`masterChainActive() ? masterModel() : activeModel()`)
+is resolved fresh on every call — once at press, again at release. A track
+switch, chain-slot swap, or Session toggle between the two resolves it to a
+DIFFERENT `Model` instance, so the release commits nothing on the model that
+opened the overlay.
+
+**Fix.** `src/midi/knob-model-pin.ts` — a second small ledger, not a shared Map
+with SP-31's `knob-page-pin.ts`: that ledger's `pinPage(knob, null)` means
+"delegated, so forget it," which is correct for a PAGE (a movy-owned or
+unsettled page has nothing to hand a release to) but wrong for a MODEL — there
+is always one to pin whenever there was a press to react to, `off` included,
+which is the flag state this bug is most reachable in. Applying the page rule
+here would delete the model pin right after every press under `off`. The two
+ledgers share only their `Map<knobIndex, T>` bookkeeping, factored out as
+`createKnobLedger<T>()` in `knob-page-pin.ts` (rule 6: no duplication without
+conflating the two lifetimes). `pinModel(knob, model)` at the press (capturing
+`knobModel()` once, alongside `pinPage`), `unpinModel(knob)` drained
+UNCONDITIONALLY at the top of the `0x90 && d1 < 8` block — same site as SP-31's
+page drain, before the Main/Clip/Flags/Step `return`s — and `clearModelPins()`
+in `app/input-reset.ts` next to `clearPins()`. The release branch's own
+`knobModel()?.handleKnobRelease(d1)` call was deleted entirely (not left beside
+the drain) — keeping both would double-fire.
+
+**Teeth — `browser-test/app-loop.mjs`, "a knob release outliving its model does
+not strand its overlay."** Two tracks loaded with `MOCK_SYNTHS.name_enum`
+(knob 0 = a 10-option enum, opens on touch with no turn needed): touch knob 0
+on track 0, `selectTrack(1)` mid-hold, release. Asserts
+`trackModels[0][1].getViewModel().overlay === null`. Unconditional — no
+`GRID_ARM` guard — since the bug is flag-independent; it fails identically in
+`off`, default and `page`. Removing the `pinModel`/`owedModel` wiring reddens it:
+`expected null, got {"slot":0,...}` — the release reached track 1's fresh model,
+a genuine no-op there, so track 0's overlay was never committed. Restored: green,
+burn-down unchanged at `3 of 3`.
+
+**A test-hygiene trap the first draft of this block hit, worth recording:**
+inserting a module swap (`env.setParams(MOCK_SYNTHS.name_enum)`) between two
+existing blocks that assumed the SAME module carried over
+(`renderer/schwung-grid.ts`'s `pages` cache is keyed by `track:component`, not
+by synth identity, and a bare `model.reload()` does not drop a stale cached
+`SchwungPage`) turned three UNRELATED, downstream `page`-arm checks red
+("file param not automated", "a held step refuses to lock it", "shift+jog:
+plain jog steps one page") — none of them touch track 1, the track this block
+switches to. `schwungGridReload()` at both ends of the block (dropping the
+prior block's cache before swapping in, and this block's own half-resolved
+track-1 page before handing off) fixed it; every other block in this file that
+swaps modules follows the same pattern. Recorded so the next session does not
+have to re-diagnose it from a page-mode regression with no apparent connection
+to the change that caused it.
 
 ---
 
@@ -921,11 +994,14 @@ entries, four complaints) plus SP-31 ✅, whose symptom a tester could not repor
 usefully (closed 2026-09-19). Not SP-32: an opt-in tester noticing a missing bank is a report, and
 reports are what the opt-in is for. **Three more rows are gates and are not in
 that count, because none is one of the four complaints: SP-48 (a modulated or
-`live` param keeps the page redrawing forever), SP-49 (an idle `page` tick
-costs half again what an `off` tick costs) and SP-50 (on a child-level page movy
-and the controller disagree about which child is showing). All three must be
-closed, or explicitly accepted here with the number and the acceptor named,
-before this item closes.**
+`live` param keeps the page redrawing forever) — **✅ closed 2026-09-20, a
+movy-side repaint cap; this row no longer needs an explicit acceptance for it** —
+SP-49 (an idle `page` tick costs half again what an `off` tick costs) and SP-50
+(on a child-level page movy and the controller disagree about which child is
+showing) — **✅ closed 2026-09-20, both halves fixed movy-side; half two's
+fleet exhibition is dormant behind a separate, unopened page-landing question
+(see the entry) and half one has no fleet exhibition at all (SU-15)**. SP-49
+remains open — partial, needs SP-47's acceptance or SU-14 landing.
 
 **THE DEVICE TIER MEASURES MOVY'S OWN WORK AT EVERY VALUE, and as of
 2026-09-19 that is the scenarios' doing rather than the default's.** `items`,
@@ -983,37 +1059,47 @@ import and it reddens).
 
 ---
 
-### SP-43 — the second click on an entered preset page leaves it
+### SP-43 ❌ — the second click leaves the preset page: DROPPED, 2026-09-20
 
-**Product.** On the preset selector page the jog click enters the page, which is
-correct. Click again and the screen jumps to the **main page to its right** —
-the click that should be doing something inside the list instead leaves it. A
-door you can only stay inside for one click is a door that does not work.
+**It is not a defect. It is Schwung's documented design, and this entry's whole
+premise — "a door you can only stay inside for one click is a door that does not
+work" — was wrong about whose door it is.**
 
-**Not yet reproduced, and the first task is the repro.** Both plausible causes
-are one read away and they have different fixes:
+The repro this entry asked for was never needed: the answer is readable in the
+library. `page_controller.mjs`'s `onClick` PAGE_PRESET branch jumps to
+`firstGrid` deliberately, and says so in **two** independent comments — its own,
+and `restorePage`'s. The behaviour is byte-identical between `origin/main`
+(:3911-3917) and the 1.4.0 the device runs (:3632-3638), so it is not drift
+either.
 
-- **movy's ladder handed the click on.** `midi/router.ts` ~760 takes a click for
-  Schwung when `pickerOpen || isDoor() || touched >= 0`. `isDoor()` asks about
-  the CURRENT page — which does not change on entering — so the second click
-  should also reach Schwung. If it did not, the suspect is an earlier rung of
-  movy's own ladder consuming it, and SP-31's latch (a stale `touched`) is a
-  candidate for the opposite reason: it makes clicks reach Schwung that should
-  not.
-- **Schwung took it and moved.** A preset commit re-plans, and a re-plan can
-  land `pageIndex` somewhere else. That is Schwung's behaviour and the fix is a
-  host one — restore the page across the re-plan (`ctl.restorePage` exists) —
-  or an upstream report.
+**Both of this entry's candidate causes are refuted, not merely unchosen:**
 
-Instrument before choosing: `owner.reason` already prints the page index every
-tick, and `mlog` is on the click path.
+- *movy's ladder handed the click on* — it does, and that is CORRECT.
+  `router.ts:834-838` delegates with `isDoor()` true on both clicks. No earlier
+  rung consumes it; SP-31's latch is not involved.
+- *Schwung took it and moved* — Schwung took it and moved **on purpose**.
+  `applyInput`'s door branch calls `onClick(-1)` unconditionally; it mutates
+  state synchronously and returns null. There is no re-plan, no double delivery
+  and no movy-side leak, so there is nothing for `ctl.restorePage` to restore.
 
-**Closes when:** entering a preset page and clicking again stays on that page and
-does what the footer promises (`CLK EDIT`), with an app-loop check.
+Confirmed against real fleet metadata rather than reasoning alone: `obxd`'s root
+level (`docs/module-dump/modules/sound_generator--obxd.json`) plans
+`[Presets, Main, …]`, so the second click lands on *Main* — exactly the "main
+page to its right" this entry described as the symptom. movy's own footer
+already advertises the behaviour correctly (`CLK EDIT`,
+`schwung-page-chrome.ts:132`).
 
-**Needs:** nothing. SP-31 ✅ (closed 2026-09-19) was the other suspect on the same
-gesture — a stale `touched` making clicks reach Schwung that should not — and it
-is fixed, so the remaining candidate above is Schwung's own rung.
+**The ruling (the user's, 2026-09-20): drop it, and do not pin it.** No test, no
+upstream ask, no host-side override. An override was considered and rejected —
+keeping the door open against the controller's own page model is precisely the
+kind of divergence SP-41 would later have to reconcile, and no clean seam for it
+exists. **SP-44 is unaffected** and is where the underlying want is served: knob
+1 changes presets with no click at all, so the door's click ladder stops
+mattering.
+
+**Plan retained** at `plans/sp-43-second-click-leaves-preset-page.md` for the
+evidence trail — its §4 states what SP-44 inherits, and it names `obxd` as a
+reusable fixture for it.
 
 ---
 
@@ -1113,7 +1199,7 @@ entry records the fleet count and the decision to accept the loss.
 
 ---
 
-### SP-48 — a modulated or `live` param the page shows keeps it redrawing forever. **A REGRESSION SP-38 INTRODUCED**
+### SP-48 ✅ 2026-09-20 — a modulated or `live` param the page shows keeps it redrawing forever. **A REGRESSION SP-38 INTRODUCED**
 
 **Product.** A page showing an enum-shaped or waveform parameter with a host LFO
 on it — or any `live` param that keeps moving — **never stops redrawing.**
@@ -1188,16 +1274,59 @@ flag must not go out with this open** unless SP-47's entry records an explicit
 acceptance and says who accepted it. The row is placed at order **7.5**, between
 SP-40 and SP-47, for that reason; the owner can move it.
 
-**Closes when:** the page goes idle again under a fast-modulated enum or wave
-param, **with a test that proves it** — drive an `:effective` value moving faster
-than the 120 ms window and assert `pollDrawnPage` stops asking for frames once
-the transition has aged out. `browser-test/logic/page-freshness.mjs` already
-drives `pollDrawnPage` directly, so this is a local test, not a device one. Or
-SP-47 records the acceptance.
+**Closed: route (b), the movy-side fallback — plan `plans/sp-48-endless-redraw.md`.**
+`src/app/repaint-cap.ts` (new, `createRepaintCap`) is an **escalate-then-cap**
+state machine, not a flat throttle: unthrottled for `ANIM_GRACE_MS = 500` (chosen
+> `BTN_FLASH_MS = 300`, the longest of the four known transition constants, so no
+real one-shot transition SP-38 fixed can still be running when the grace window
+ends), then bounded to one ask per `REPAINT_CAP_MS = 200` (5 Hz) for as long as
+`page.animating()` keeps saying true past that point; it self-resets the moment
+`animating()` goes false, so a real transition after a stuck page is never
+punished for the page's past. Wired into the one call site,
+`src/app/page-poll.ts:134`
+(`if (!moved) { const now = nowFn(); moved = animCap(page.animating(now), now); }`),
+which also gained an optional `nowFn: () => number = Date.now` parameter so the
+test can drive it with a synthetic clock — the default keeps every existing
+caller (`app/tick.ts:769`) byte-identical.
 
-**Needs:** a decision on (a) versus (b) — the upstream PR first, the cap only if
-it is declined. Nothing from the device; the measurement above is what is on
-record.
+**Teeth, at two levels, both proven by reverting and restoring.**
+`browser-test/logic/page-freshness.mjs`'s SP-48 block has a unit test
+(`repaintCap` alone, no schwung/model/device) and an integration test
+(`pollDrawnPage` with `page.animating` stubbed true and a synthetic `nowFn`,
+asserted one-for-one against a fresh `repaintCap`). Reverting `repaintCap`'s body
+to a passthrough (`return animating`) reddened exactly the three "refused"
+assertions in the unit test (the three capMs-window checks) while the
+grace-window and positive checks stayed green — proving the test discriminates
+the real throttle from a broken-but-passing stub, not just from total removal.
+Separately, reverting `page-poll.ts:134` to
+`if (!moved) moved = page.animating(Date.now());` (the pre-fix wiring) left the
+unit test green (it never touches `page-poll.ts`) and reddened the integration
+test's one assertion — proving the wiring itself, not just the standalone cap
+function, is covered. Both reverts were restored before the gates below ran.
+
+**Gates:** `SCHWUNG=../schwung npm test` — 0 failures. `SCHWUNG=../schwung node
+browser-test/page-mode.mjs` — still **3 of 3** expected failures, unmoved (this
+item touches no page-plan behaviour). `screenshot.mjs` — 176/176, no baseline
+diffs (the cap changes *how often* an already-drawn frame repaints, never *what*
+is drawn). No `engine/` change.
+
+**Cost bound — DERIVED, not measured.** SP-38 measured the animating window at
+0.7 ms/tick of `render` **on plaits**, which SP-38 and SP-39 both record as a
+**floor, not a representative** (SP-39 could not find an animating window on
+minijv at all). Taking that floor and `REPAINT_CAP_MS = 200` against SP-38's own
+idle `tick_ms` median (~5.3 ms), the fix reduces the *floor's* steady state from
+0.7 ms on every tick forever to 0.7 ms roughly once every 38 ticks — call it
+≈0.02 ms/tick averaged. This is **arithmetic on SP-38's own recorded number, not
+a new device reading**, and inherits every one of SP-38's caveats. No device
+measurement was taken for this item (optional per the plan, not required to
+close it).
+
+**SU-11 stays UNFILED — the fallback is what shipped.** See the Upstream table:
+the per-key duration ask (§3.3 of the plan, ready to paste into a PR) is written
+but no fork branch or PR exists yet, same "new" wording as SU-9/SU-10/SU-12/SU-13
+rather than SU-14's "FILED". The movy-side cap makes no assumption that survives
+SU-11 landing later — it simply stops mattering once `settled()` ages a
+never-resting key out on its own.
 
 ---
 
@@ -1261,9 +1390,73 @@ number and who accepted it.
 and a judgement on how much of the delegated renderer's idle cost is worth
 buying.
 
+**Resolution, 2026-09-20 — attributed, partially bought back, not closed.**
+Full method and every number: `sp49-measurement.md`. Summary:
+
+Ran the plan's three unmeasured items on `minijv` (70 pages — the big module
+the plan's own §2.1 asked for first) rather than guessing further from `cw78`'s
+numbers: (1) idle baseline, both arms; (2) `TRACE_LABEL` traces on the two
+previously-unattributed IPC lines; (3) stashing the reload divider
+(`RELOAD_POLL_TICKS`) out to where it never fires in a window, to isolate its
+true share.
+
+**Result: on this fixture the entire idle gap is downstream of
+`ctl.reloadIfChanged()` — SU-14.** With the divider stashed out, `page`'s idle
+numbers (calls/tick 0.6, ipc_ms 1.3, worst period 5.4ms) match `off`'s
+(0.6 / 1.3 / 5.1ms) within noise. The two IPC lines SP-38/39/49 could not
+attribute — `mget ch0:*` (movy's own `loadHierarchy`/`pollModuleName`/
+`buildViewModel`, per the trace) and `get overtake_dsp:*` (traced to
+`schwung/shadow/shadow_ui.js:8905`, **not movy's code — schwung's own**) —
+vanished together with `ctlreload`'s ms cost, meaning both ride the SAME
+divider tick as reads the re-plan itself makes, not separate standing costs.
+The earlier hypothesis that movy's own reads were bypassing a warm cache
+(§1/§3 of the plan) does **not** survive this isolation — there was nothing
+independently movy's to fix on the read side.
+
+**What shipped: `RELOAD_POLL_TICKS` widened 8 → 16**
+(`src/renderer/schwung-page-contract.ts`, `RELOAD_POLL_TICKS` moved to module
+scope so a test can import the real value instead of copying the number).
+This is the one lever the plan's own §4 sanctioned once SU-14 was confirmed
+dominant: it cannot fix the re-plan's per-call cost (that is schwung's own
+function body, upstream, rule 1 — do not patch `../schwung`), only how often
+movy pays for one. Confirmed on device, same module/build: `ctlreload`
+0.8→0.4ms/tick, worst idle period 6.1→5.7ms, calls/tick 1.1→0.8-0.9. Module-
+swap notice delay doubles to at most 16 ticks (~100ms on this device's tick
+rate) against a module LOAD costing hundreds of ms — the plan's own bar for
+"small, bounded, reversible," and matched the earlier `RETRY_TICKS`-family
+precedent already accepted in this file.
+
+**Does not close outright.** Residual against `off` (worst period 5.7 vs
+5.1ms, calls/tick 0.8-0.9 vs 0.6) is smaller but outside the plan's ~10%
+closure bar — the remainder is SU-14's own cost, amortized over a wider
+divider, not a new movy term. Per the plan's own closure rule, this needs
+**either** SU-14 (schwung PR #519) landing, **or** SP-47 recording an explicit
+acceptance naming this residual number. Widening `RELOAD_POLL_TICKS` further is
+possible (the win is `1/RELOAD_POLL_TICKS`-linear) but was not done blind —
+a second widening wants its own fresh device measurement, not a repeat of this
+one's math.
+
+**Teeth, local — `browser-test/logic/schwung-page-idle-cost.mjs`.** Ticks the
+REAL contract/cache (real `param_pages` via `SCHWUNG=`, mock `TrackPort`) 96
+idle ticks (a multiple of both `FILL_TICKS`=8 and `RELOAD_POLL_TICKS`=16) and
+asserts total host calls stay at or under a literal, hand-computed bound (not
+derived from the runtime constants, so a broken divider and a broken bound
+cannot move together) — measured 12 bulk + 31 single = 43 against a bound of
+48. Breaking the divider (`sinceReload >= 1` instead of `>= RELOAD_POLL_TICKS`,
+reverted after) reddened it at **133 calls vs the unchanged 48 bound** — and
+also reddened `schwung-page.mjs`'s pre-existing "under one round trip per two
+ticks" budget, confirming both catch the same regression shape. Also updated:
+`page-contract.mjs`'s divider-throw test (hardcoded loop of 8 ticks would never
+reach a 16-wide divider) now imports the real `RELOAD_POLL_TICKS` instead of
+copying the number.
+
+**Not movy's, scoped out:** `get overtake_dsp:*`'s extra idle rate — confirmed
+schwung's own `shadow_ui.js`, not a movy call site, so there is nothing here
+for movy to route through a cache or narrow.
+
 ---
 
-### SP-50 — on a child-level page, movy and the controller disagree about WHICH child is showing, which makes the one fleet module that reaches the branch inert
+### SP-50 — on a child-level page, movy and the controller disagree about WHICH child is showing, which makes the one fleet module that reaches the branch inert — CLOSED, both halves movy-side
 
 **Product.** On a drum- or pad-level page, the parameter a knob turns can belong
 to the NEIGHBOUR of the child the screen is on. Nothing looks wrong — the header,
@@ -1326,8 +1519,51 @@ half one, which no fleet module can reach. `browser-test/logic/schwung-page-pres
 `grep -rn "resolveChildKey\|childLevel" browser-test/` returns nothing — **this
 item is where the child-level branch gets its first coverage.**
 
-**Needs:** nothing — the module, its dump and the fixture hook are all in the
-tree already; the pin is a local test.
+**Fixed, 2026-09-20, movy-side only — `../schwung` untouched.**
+
+- **Half two (the live one), fixed.** `jump`'s `concrete()`
+  (`src/renderer/schwung-page-input.ts`) now warms at
+  `ctl.childIndexOf(level)` — the controller's own oracle, already exported —
+  whenever the level's `childLevel` declares no `child_index_param`, instead
+  of always warming at the voice movy just pressed. This does **not** make
+  the controller follow the pressed pad (no channel exists for that without
+  the upstream change below) — it makes movy stop lying to itself: the warm
+  now targets the cell `childIndexFor` will actually answer with. Tested
+  against the real `docs/module-dump` `voice-poc` fixture in
+  `browser-test/logic/schwung-page-press.mjs`. **Teeth**: reverting `concrete()`
+  to the old unconditional `childIndex` turns the warmed key from `p1_vol`
+  (instance 0, correct) to `p2_vol` (the pressed voice, wrong) — verified by
+  hand before landing.
+  **Found while writing that test, recorded here because it changes what the
+  fix is worth today:** Schwung's own planner (`page_plan.mjs`'s
+  `childPickerNeeded`, `if (!idxParam) return true`) inserts an items-kind
+  picker page ahead of the level's knobs page for ANY level lacking
+  `child_index_param` — and `focusVoice`'s first-match-by-level loop lands
+  there. That page carries no `keys`, so `jump`'s whole warm block — old code
+  or new — never runs at all on an unmodified press of `voice-poc`'s `pads`
+  (measured: `focusVoice(5)` on the untouched fixture reads nothing). The test
+  above splices that picker page out of the real, device-shaped page list to
+  reach the branch; the real planner cannot produce a first-match knobs page
+  for this shape today. **This means the fix is currently dormant on the
+  fleet**, same as the bug it replaces — both are real once a module's
+  `focusVoice` press can land directly on a childless-index level's knobs
+  page, which today requires either an upstream planner change or a movy-side
+  fix to which page a press selects (a different bug, not opened here).
+- **Half one (the off-by-base), fixed, no fleet exhibition.** The write in
+  `focusVoice` now routes through `lib.childIndexToWire(lvl, v.childIndex)`
+  (added to `SchwungLib` in `src/renderer/schwung-lib.ts`, guarded optional
+  like `resolveChildKey`) instead of `String(v.childIndex)`. No dumped module
+  declares both `child_index_param` and a note map on one level, so this is
+  pinned by a **hand-built synthetic hierarchy** in the same test file, not a
+  real dump — the cost stated plainly: it proves the arithmetic
+  (`childIndexToWire` applied, with the right level/index), not that a
+  shipping module round-trips it. **Teeth**: reverting to
+  `String(v.childIndex)` turns the wire write from `'2'` (instance 1 +
+  `child_index_base: 1`, correct) to `'1'` (wrong) — verified by hand before
+  landing.
+
+**Needs:** nothing further on movy's side. `SU-15` below, if the maintainer
+wants the fleet-exhibition gap closed for real.
 
 ---
 
@@ -3075,7 +3311,7 @@ now satisfied.
 
 ---
 
-### SP-40 — the flag becomes two values: delete `body`
+### SP-40 ✅ 2026-09-20 — the flag becomes two values: delete `body`
 
 **RESCOPED 2026-09-18, and it moved from last to before the release.** It was
 debt removal owed nothing by anybody and needed SP-30; it is now a
@@ -3317,6 +3553,41 @@ which is git-ignored scratch deleted with that workspace.
 Newest first. The full narrative for each is in git history; what is kept here is
 the fact a later session would otherwise re-derive.
 
+- **SP-40 ✅ 2026-09-20 — `body` deleted; `schwunggrid` is a two-value flag,
+  and a stored value needed a REMAP, not a clamp.** `schwung-body.ts`,
+  `schwung-body.off.ts` and `schwung-flag.ts` are gone; `SchwungGridMode` is
+  `'off' | 'page'`; `knob-view.ts`'s body render is `bodyOverride() :
+  drawKnobParams(vm)` with no third branch. **The precedent this sets for any
+  future flag renumbering:** `FlagDef` gained `remapAt?: (old: number) =>
+  number`, applied in `flags.ts`'s `ensure()` only in the branch a stored value
+  is `superseded` (same `revisedAt` trigger as an ordinary default change) —
+  `clampFlag` alone would have mapped old `DRAW=1` onto new `SCHWUNG=1` by
+  coincidence of range-shrinking, silently handing a restyle-only user the
+  fully delegated, re-paginating renderer on upgrade. `remapAt: (old) => (old
+  >= 2 ? 1 : 0)` (old `PAGE=2`→new `SCHWUNG=1`, old `DRAW=1`→new `MOVY=0`, old
+  `MOVY=0` stays `0`) with a fresh `FLAGS_REV` bump to **5** (not a reused 4 —
+  `engpersist` already adopted against 4, and a device past rev 4 must not
+  re-trigger that a second time). **Teeth:** removing `remapAt` reddens exactly
+  one of the two new assertions (`old PAGE (2) remaps to new SCHWUNG (1):
+  expected 1, got 0`) — the `DRAW=1` case stays green even without the remap,
+  because it coincidentally lands on the same number (`0`) the plain
+  `f.def`-fallback branch would have given it anyway; that asymmetry is exactly
+  what makes the PAGE case the one that would have shipped a silent hazard.
+  **Plan gaps found and fixed while implementing (the plan's inventory was
+  otherwise accurate, verified file:line against the code before touching
+  it):** three more `browser-test/logic/flags.mjs` assertions the plan's
+  "no change needed" list missed, all reddening for real once the range
+  narrowed — a knob-turn test that started `schwunggrid` at the OLD max (1)
+  and turned further expecting a rise (now already at the new ceiling), a
+  second "a flag with no revision keeps its stored value" control test at a
+  different line than the one line the plan caught (both needed `setcommit`,
+  not `schwunggrid`, as the control — `schwunggrid` is no longer revision-less
+  after this item), and the `flagsRev` write-back literal in that same block
+  (`4`→`FLAGS_REV`, since the bump to 5 is unconditional, not tied to which
+  flag the fixture names). Screenshots: only `flags-scrolled.png` moved
+  (`PAGE`→`SCHWUNG` text); `flags-top.png` byte-identical, confirming nothing
+  else renders through the deleted path. `page-mode.mjs` stayed at 3 of 3,
+  `schwung-off-is-free.mjs` stayed non-zero both arms (36.5 KB layer weight).
 - **SP-31 ✅ 2026-09-19 — a lost knob release latched the controller, forever.**
   The release is delivered to the page that heard the PRESS: `midi/knob-page-pin.ts` is a
   `Map<knobIndex, page>` filled in the router's knob-touch branch and drained at the top of it

@@ -188,7 +188,7 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | SU-11 | A per-key duration in the animation store, so `settled` ages out a value that never rests | ⬜ **new, conditional** — SP-48; the alternative is a movy-side repaint cap, which is the fallback only if this is declined |
 | SU-12 | A caller-supplied trailing page of kind `knobs`, not only `menu` — so movy's own pages can join a module's page set | ⬜ **new, expected to close without work.** `buildTrailingPages` hard-codes `kind: PAGE_MENU` (`page_plan.mjs:381`), so appending a KNOB page is upstream — but movy already owns the contract string, and folding the page into that is the host-side route (SP-54, route 1). Open this only if the fold is measured too expensive |
 | SU-13 | A host-owned page's write throttle and knob feel | ⬜ **new, conditional, and bounded by The injection surface §4.** `SETPARAM_THROTTLE_MS = 20` and the acceleration constants are `export const` bindings — readable, not writable — so a feel complaint about a migrated Set Params page (the tempo knob) is an upstream ask or it does not happen. Do not open it before a complaint exists |
-| SU-14 | **The re-plan skip that is already WRITTEN and never sent.** `perf/page-reload-skip-unchanged-contract` (`1959e661`) is an 87-line `page_controller.mjs` change plus `tests/host/test_page_reload_skips_unchanged_contract.sh`, on a LOCAL branch that is not pushed and not an ancestor of `origin/main` | ⬜ **new, and the cheapest upstream action available.** It lands in the highest-churn file in the library (98 commits/90 days), so it is overtaken the longer it waits — see the correction in *The pages that are not a track module's* |
+| SU-14 | The re-plan skip: `param_pages` re-plans the whole module even when the contract has not changed | 🔨 **FILED — schwung PR #519, OPEN and unreviewed since 2026-09-17** (head `DimaDake:perf/page-reload-skip-unchanged-contract-upstream`, `3bca6d68`; the local `1959e661` is its working copy). 87 lines of `page_controller.mjs` + one host test. **The action is to chase it, not to write it**, and it lands in the highest-churn file in the library (98 commits/90 days), so it is overtaken the longer it waits. Until it ships, a host-owned contract pays the FULL unconditional re-plan — see the correction in *The pages that are not a track module's* |
 
 ---
 
@@ -499,29 +499,36 @@ bar is Schwung's page set. Three routes, in order of preference:
 
 ---
 
-### A correction to The injection surface §2 — `declSame` is not upstream
+### A correction to The injection surface §2 — `declSame` is not upstream *yet*
 
 Left visible rather than quietly edited, because §2's route for SP-32 rests on
 it. §2 says *"the re-plan needs no new signal: `declSame` compares the RAW BYTES
 (`page_controller.mjs:1024`), so a changed string re-plans by itself"*, read off
-`schwung@1959e661`. **`1959e661` is a LOCAL branch, `perf/page-reload-skip-unchanged-contract`,
-that has never been pushed** — `git merge-base --is-ancestor 1959e661 origin/main`
-answers no, `git ls-remote --heads origin` does not list it, and `declSame`
-appears nowhere in `origin/main:page_controller.mjs` or in the 1.4.0 the device
-runs. What it is: an 87-line change to `page_controller.mjs` plus
-`tests/host/test_page_reload_skips_unchanged_contract.sh`, written and never
-sent.
+`schwung@1959e661`. **`1959e661` is a local branch,
+`perf/page-reload-skip-unchanged-contract`, and `declSame` appears nowhere in
+`origin/main:page_controller.mjs` nor in the 1.4.0 the device runs** —
+`git merge-base --is-ancestor 1959e661 origin/main` answers no.
+
+**It IS filed, and this entry said otherwise for an hour on 2026-09-20 —
+recorded so the wrong version is not re-derived from the branch name.** The
+local branch is the working copy; its rebased twin, `3bca6d68` on
+`perf/page-reload-skip-unchanged-contract-upstream`, is pushed to the fork and
+is **schwung PR #519, OPEN since 2026-09-17** — no review, no comments, no
+milestone. 87 lines of `page_controller.mjs` plus
+`tests/host/test_page_reload_skips_unchanged_contract.sh`. So the action is
+**chase it**, not write it.
 
 Two consequences, and neither changes §2's conclusion:
 
 1. **A changed contract still re-plans**, because on main `load()` re-plans every
    time it is called, byte compare or not. §2's *route* is intact; only its
    *reason* was wrong — the re-plan happens because nothing skips it, not because
-   something detects the change.
-2. **It is the one upstream PR this project has already written.** Sending it is
-   the cheapest upstream action available and it lands in the highest-churn file
-   in the library (98 commits in 90 days — The injection surface §5), which is
-   the argument for sending it now rather than after this wave. Tracked as
+   something detects the change. **And §2 must not be read as describing the
+   device**: until #519 merges and ships, a host-owned contract's re-plan cost is
+   the full unconditional one, which is what SP-54 has to measure.
+2. **It is the only open upstream PR this project has.** It lands in the
+   highest-churn file in the library (98 commits in 90 days — The injection
+   surface §5), so every week it waits is a week it can be overtaken. Tracked as
    **SU-14**.
 
 ---

@@ -144,7 +144,7 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 
 | id | item | model | state | order | release gate |
 | --- | --- | --- | --- | --- | --- |
-| SP-40 | the flag becomes two values, MOVY and SCHWUNG; `body` and the `.off` stand-ins deleted | Sonnet | ⬜ | **7** | ✔ |
+| SP-40 | the flag becomes two values, MOVY and SCHWUNG; `body` and the `.off` stand-ins deleted | Sonnet | ✅ | **7** | ✔ |
 | SP-47 | **NEW** — the opt-in release: the row goes in front of users, default still MOVY | Sonnet | ⬜ | **8** | — |
 | SP-48 | **NEW** — a modulated or `live` param the page shows keeps it redrawing forever. **A regression SP-38 introduced**; the flag must not reach testers with it open | Sonnet | ⬜ | **7.5** | ✔ |
 | SP-49 | **NEW** — an IDLE `page` tick costs half again what an `off` tick costs (worst period 6.3 vs 5.0 ms, `calls/tick` 1.4 vs 0.6) and it is there with nothing moving. **A standing LATENCY cost** — the tick period is the MIDI sampling interval — so it is a gate, not just inefficiency | Sonnet | ⬜ | **7.7** | ✔ |
@@ -3075,7 +3075,7 @@ now satisfied.
 
 ---
 
-### SP-40 — the flag becomes two values: delete `body`
+### SP-40 ✅ 2026-09-20 — the flag becomes two values: delete `body`
 
 **RESCOPED 2026-09-18, and it moved from last to before the release.** It was
 debt removal owed nothing by anybody and needed SP-30; it is now a
@@ -3317,6 +3317,41 @@ which is git-ignored scratch deleted with that workspace.
 Newest first. The full narrative for each is in git history; what is kept here is
 the fact a later session would otherwise re-derive.
 
+- **SP-40 ✅ 2026-09-20 — `body` deleted; `schwunggrid` is a two-value flag,
+  and a stored value needed a REMAP, not a clamp.** `schwung-body.ts`,
+  `schwung-body.off.ts` and `schwung-flag.ts` are gone; `SchwungGridMode` is
+  `'off' | 'page'`; `knob-view.ts`'s body render is `bodyOverride() :
+  drawKnobParams(vm)` with no third branch. **The precedent this sets for any
+  future flag renumbering:** `FlagDef` gained `remapAt?: (old: number) =>
+  number`, applied in `flags.ts`'s `ensure()` only in the branch a stored value
+  is `superseded` (same `revisedAt` trigger as an ordinary default change) —
+  `clampFlag` alone would have mapped old `DRAW=1` onto new `SCHWUNG=1` by
+  coincidence of range-shrinking, silently handing a restyle-only user the
+  fully delegated, re-paginating renderer on upgrade. `remapAt: (old) => (old
+  >= 2 ? 1 : 0)` (old `PAGE=2`→new `SCHWUNG=1`, old `DRAW=1`→new `MOVY=0`, old
+  `MOVY=0` stays `0`) with a fresh `FLAGS_REV` bump to **5** (not a reused 4 —
+  `engpersist` already adopted against 4, and a device past rev 4 must not
+  re-trigger that a second time). **Teeth:** removing `remapAt` reddens exactly
+  one of the two new assertions (`old PAGE (2) remaps to new SCHWUNG (1):
+  expected 1, got 0`) — the `DRAW=1` case stays green even without the remap,
+  because it coincidentally lands on the same number (`0`) the plain
+  `f.def`-fallback branch would have given it anyway; that asymmetry is exactly
+  what makes the PAGE case the one that would have shipped a silent hazard.
+  **Plan gaps found and fixed while implementing (the plan's inventory was
+  otherwise accurate, verified file:line against the code before touching
+  it):** three more `browser-test/logic/flags.mjs` assertions the plan's
+  "no change needed" list missed, all reddening for real once the range
+  narrowed — a knob-turn test that started `schwunggrid` at the OLD max (1)
+  and turned further expecting a rise (now already at the new ceiling), a
+  second "a flag with no revision keeps its stored value" control test at a
+  different line than the one line the plan caught (both needed `setcommit`,
+  not `schwunggrid`, as the control — `schwunggrid` is no longer revision-less
+  after this item), and the `flagsRev` write-back literal in that same block
+  (`4`→`FLAGS_REV`, since the bump to 5 is unconditional, not tied to which
+  flag the fixture names). Screenshots: only `flags-scrolled.png` moved
+  (`PAGE`→`SCHWUNG` text); `flags-top.png` byte-identical, confirming nothing
+  else renders through the deleted path. `page-mode.mjs` stayed at 3 of 3,
+  `schwung-off-is-free.mjs` stayed non-zero both arms (36.5 KB layer weight).
 - **SP-31 ✅ 2026-09-19 — a lost knob release latched the controller, forever.**
   The release is delivered to the page that heard the PRESS: `midi/knob-page-pin.ts` is a
   `Map<knobIndex, page>` filled in the router's knob-touch branch and drained at the top of it

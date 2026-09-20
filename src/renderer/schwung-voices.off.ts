@@ -1,5 +1,7 @@
 /* The stand-in for schwung-voices.ts in a build with the grid switched off.
- * See schwung-body.off.ts for why the module has to leave the graph.
+ * See build/device.mjs's gridOffStubs comment ("THE OFF SWITCH HAS TO BE
+ * FREE") for why the module has to leave the graph rather than merely be
+ * unreachable.
  *
  * "Has not said" is the honest answer with no grid, and it is also the answer
  * every undeclared module gets — so callers already handle it and movy falls

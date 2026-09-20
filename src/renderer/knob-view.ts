@@ -4,8 +4,6 @@ import { drawHeader, drawBankBar, drawHeaderWithPadIcon, PAD_ICON_W } from './he
 import { drawKnobParams } from './label.js';
 import { drawEnumOverlay, drawJogToast } from './overlay.js';
 import { W } from './layout.js';
-import { drawKnobParamsSchwung } from './schwung-body.js';
-import { schwungGridEnabled } from './schwung-flag.js';
 import type { PageChrome } from './schwung-page-chrome.js';
 import { drawPageFooter } from './schwung-footer.js';
 
@@ -101,7 +99,6 @@ export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 
      * the WIDGETS move: the header is movy's in both cases, and so are the
      * overlays below. */
     if (bodyOverride) bodyOverride();
-    else if (schwungGridEnabled()) drawKnobParamsSchwung(vm);
     else drawKnobParams(vm);
 
     if (vm.overlay) drawEnumOverlay(vm);

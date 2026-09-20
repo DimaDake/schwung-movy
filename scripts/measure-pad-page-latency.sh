@@ -51,7 +51,7 @@ scp -q "$(dirname "$0")/inject-any.py" "ableton@$HOST:/data/UserData/inject-any.
 
 case "$ARM" in
     off)  SCHWUNGGRID=0 ;;
-    page) SCHWUNGGRID=2 ;;
+    page) SCHWUNGGRID=1 ;;
     *)    echo "usage: measure-pad-page-latency.sh off|page" >&2; exit 2 ;;
 esac
 

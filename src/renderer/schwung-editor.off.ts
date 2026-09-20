@@ -1,6 +1,7 @@
 /* The stand-in for schwung-editor.ts in a build with the grid switched off.
- * See schwung-body.off.ts for why the module has to leave the graph rather than
- * merely be unreachable.
+ * See build/device.mjs's gridOffStubs comment ("THE OFF SWITCH HAS TO BE
+ * FREE") for why the module has to leave the graph rather than merely be
+ * unreachable.
  *
  * UNLIKE THE OTHER TWO STUBS, MOST OF THIS DOES NOT THROW. The router asks
  * `schwungEditorActive()` on every Back, click and jog, whatever the mode, so

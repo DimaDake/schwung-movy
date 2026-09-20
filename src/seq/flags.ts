@@ -101,6 +101,14 @@ function ensure(): Record<string, number> {
         const superseded = f.revisedAt !== undefined && rev < f.revisedAt;
         if (f.key in stored && !superseded) {
             v[f.key] = clampFlag(f, stored[f.key]);
+        } else if (superseded && f.key in stored && f.remapAt) {
+            /* The range was RENUMBERED, not just re-defaulted — a plain clamp
+             * would land an old middle value on a new one that means something
+             * else (SP-40: old schwunggrid DRAW=1 must not clamp onto new
+             * SCHWUNG=1). `remapAt` maps the old number before the ordinary
+             * clamp runs. */
+            v[f.key] = clampFlag(f, f.remapAt(stored[f.key]));
+            if (v[f.key] !== f.def) adopted++;
         } else {
             v[f.key] = f.def;
             if (superseded && f.key in stored && stored[f.key] !== f.def) adopted++;

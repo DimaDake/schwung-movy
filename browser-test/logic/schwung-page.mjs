@@ -650,15 +650,12 @@ _log('\nTest: under `page` the plan is the module’s declaration, and nothing e
     env.setParams(MOCK_SYNTHS.test16);
 }
 
-_log('\nTest: both embedded modes, and the off stand-in, use ONE rect');
-{
-    /* `body` and `page` embed the same grid under the same chrome, and the off
-     * stand-in has to stay surface-identical. Three copies of two numbers is
-     * how they came to disagree by 2 px in the first place. */
-    const { GRID_BODY_RECT } = await import('../../dist/esm/renderer/layout.js');
-    const { BODY_Y, BODY_H } = await import('../../dist/esm/renderer/schwung-body.js');
-    eq('body mode shares the rect’s y', BODY_Y, GRID_BODY_RECT.y);
-    eq('body mode shares the rect’s h', BODY_H, GRID_BODY_RECT.h);
-}
+/* SP-40 deleted `body` mode and schwung-body.ts/.off.ts, the pair this block
+ * used to pin ("both embedded modes... use ONE rect"). The rect's own
+ * correctness (the arithmetic against BAND_H, ROW0_Y/ROW1_Y, BAR_Y+BAR_H,
+ * TOAST_Y) is not a coverage loss — it is independently pinned above, by "the
+ * embedded body rect seats Schwung's widget rows on movy's own rows", which
+ * reads GRID_BODY_RECT straight from layout.ts and was never about
+ * schwung-body.ts at all. */
 
 }

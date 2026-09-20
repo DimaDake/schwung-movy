@@ -18,12 +18,10 @@ rmSync(resolve(root, 'dist/esm'), { recursive: true, force: true });
 await esbuild.build({
     entryPoints: [
         resolve(root, 'src/model/index.ts'),
-        /* Entry points so the browser tests can toggle the grid and call the
-         * adapter directly; without these esbuild folds them into a chunk and
-         * there is no dist/esm/renderer/schwung-flag.js to import. */
-        resolve(root, 'src/renderer/schwung-flag.ts'),
+        /* Entry point so the browser tests can call the adapter directly;
+         * without this esbuild folds it into a chunk and there is no
+         * dist/esm/renderer/schwung-lib.js to import. */
         resolve(root, 'src/renderer/schwung-lib.ts'),
-        resolve(root, 'src/renderer/schwung-body.ts'),
         resolve(root, 'src/renderer/schwung-page.ts'),
         /* The delegated page's read cache (SP-26): an entry point so the logic
          * suite can drive the stale-write hazard at the level it lives at,
@@ -318,7 +316,7 @@ await esbuild.build({
     bundle:    true,
     splitting: true,
     plugins: [{
-        /* renderer/schwung-body.ts imports Schwung's shared param_pages by its
+        /* renderer/schwung-page.ts imports Schwung's shared param_pages by its
          * absolute device path, which the device build leaves external (it is
          * already in build/device.mjs's `external` list, alongside
          * constants.mjs and input_filter.mjs). Off device there is no such

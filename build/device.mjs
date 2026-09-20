@@ -40,13 +40,13 @@ const NO_GRID = process.env.MOVY_NO_SCHWUNG_GRID === '1';
  *
  * `__MOVY_SCHWUNG_GRID__` makes the grid's CODE unreachable in an ordinary
  * build, but unreachable is not absent: esbuild keeps an EXTERNAL import
- * whatever the importing code does, so schwung-body.ts's
+ * whatever the importing code does, so schwung-page.ts's
  *
  *     import { renderPageMovy, BAND_H } from ".../param_pages/render_page_movy.mjs"
  *
- * survived into a flag-off ui.js. That is 13.5 KB of dead widget code and, far
- * worse, a load-time dependency on a Schwung new enough to serve the file — on
- * an older one an ORDINARY movy fails to start.
+ * survived into a flag-off ui.js. That is dead widget code and, far worse, a
+ * load-time dependency on a Schwung new enough to serve the file — on an
+ * older one an ORDINARY movy fails to start.
  *
  * A define cannot fix it; the modules have to leave the graph. These five are
  * the only importers of param_pages, so swapping them for their `.off`
@@ -58,13 +58,12 @@ const gridOffStubs = {
     name: 'schwung-grid-off',
     setup(build) {
         if (!NO_GRID) return;
-        build.onResolve({ filter: /\/schwung-(body|page|editor|widgets|voices|lib)\.js$/ }, (a) => {
+        build.onResolve({ filter: /\/schwung-(page|editor|widgets|voices|lib)\.js$/ }, (a) => {
             /* `lib` is the one that matters: it is the only module that names
              * param_pages now, so leaving it out of this list left the whole
              * layer in a build that had asked for none of it. The other four
              * still swap so their code goes too. */
-            const which = a.path.includes('schwung-body') ? 'body'
-                        : a.path.includes('schwung-editor') ? 'editor'
+            const which = a.path.includes('schwung-editor') ? 'editor'
                         : a.path.includes('schwung-widgets') ? 'widgets'
                         : a.path.includes('schwung-voices') ? 'voices'
                         : a.path.includes('schwung-lib') ? 'lib' : 'page';

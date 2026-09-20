@@ -152,7 +152,7 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | SP-51 | The movy MODEL's own knob touch was resolved at RELEASE time (`knobModel()?.handleKnobTouch` on the press against `handleKnobRelease` on the release, `src/midi/router.ts`), so a page change mid-hold left the model that heard the press with its touched/overlay state armed and handed the other model a release it never had. **Different consequence from SP-31, not the same bug**: the model's touch is movy's own state — fixed with a second small ledger (`midi/knob-model-pin.ts`), not a shared Map with SP-31's page pin (incompatible `null`-clears rule). Teeth: `app-loop.mjs`, flag-independent, `3 of 3` unchanged. Raised by SP-31 as a note; the id was added 2026-09-19 | Sonnet | ✅ | **7.9** | — |
 | SP-32 | a bank or cell that exists only in movy's config is on no page under `page`: audit before SP-30 flips the default. **The route is the hierarchy movy already returns** — see The injection surface §2 | Sonnet | ⬜ | 9 | — |
 | SP-42 | a .wav has no waveform: **two independent defects**, not the one the headline named — the IO was never registered (`wav_io_qjs.mjs` unimported), and even registered, nothing ever advanced the resumable peak job (movy's own tick loop never called `ctl.vizGroups()`/`wavPeaksTick`, only Schwung's own host did). Both fixed: the ladder now imports `wav_io_qjs.mjs`/`wav_peaks.mjs`/`viz.mjs` (`schwung-lib.ts`), and a new `schwung-page-sample.ts`'s `advanceSample` runs after `ctl.tick()` in `schwung-page-contract.ts`, mirroring `shadow_ui_param_pages.mjs`'s block exactly. **Device tier not yet run** — deferred to the wave's device agent; the recipe is in this entry | Sonnet | ✅ **movy-side, 2026-09-20** | 10 | — |
-| SP-45 | **NEW** — 8w8's pads do not select their pages; the other three racks' do | Sonnet | ⬜ | 11 | — |
+| SP-45 | 8w8's pads do not select their pages; the other three racks' do. **DIAGNOSED, STILL OPEN, not what anyone predicted**: on device, all four racks' `probe.page().cells` follow every pad correctly RIGHT NOW — but disabling `focusVoice` entirely changes nothing, while disabling movy's own `selectBankForPad` breaks the follow on all four. The probe is proven blind to Schwung's own page cursor (`ctl.pageIndex`, read via the `schwung-body ok…at=` log) — it never advanced across 16 presses on 8w8/9w9/cw78 in the SAME run where it advanced once on 6w6, using unmodified code. No fix shipped — see the entry | Sonnet | 🔨 **diagnosed, blocked on real-screen ground truth** | 11 | — |
 | SP-44 | **NEW** — knob 1 changes presets with no click first (feature) | Sonnet | ⬜ | 13 | — |
 | SP-46 | **NEW** — a lone attack/decay has no graphic (against the acceptance bar, by request). **Does not wait on SU-10**: `vizOverrides` + movy's own widget registry is a host-side route — see The injection surface §1 | Sonnet | ⬜ | 14 | — |
 | SP-16 | Cause G — graphics return (**shrunk: upstream fixed the hard half**) | Sonnet | 🔨 **movy half done** 2026-09-18; floor bump waits on #509 | 15 | — |
@@ -1242,6 +1242,68 @@ plans all four racks from their shipped configs and asserts every pad resolves
 to a page (teeth: it must fail for 8w8 before the fix).
 
 **Needs:** nothing.
+
+**DIAGNOSED 2026-09-20, STILL OPEN — the device evidence contradicts the
+plan's own hypothesis, and `movy/plans/sp-45-8w8-pads-select-pages.md`'s
+first-suspects paragraph is corrected here rather than in the plan file.**
+
+**SP-50's lead does not apply, checked structurally, not just by running
+`fleet-pages.mjs` again.** SP-50's picker-page trap fires only for a level
+Schwung's own `hasChildren()` sees, i.e. one declaring `children`
+(`../schwung/src/shared/param_pages/child_key.mjs`, `page_plan.mjs:903`).
+`model/config-hierarchy.ts`'s `hierarchyFromConfig` never sets `children` on
+any level it builds for these four racks — each voice is its own named level
+with a `note`, not a repeated child of one indexed level — so
+`childPickerNeeded` is never even reached for 6w6/8w8/9w9/cw78. SP-45 and
+SP-50 are two different shapes of bug; they do not merge.
+
+**Built a device scenario (`pad-follow.ts`, Snare — pad 2, never pad 1 —
+across all four racks) to do the STEP 0 log-first diagnosis the plan asked
+for, and it is what overturned the plan's hypothesis; it is not being kept.**
+Unmodified: all four racks' `probe.page().cells` correctly show Snare's own
+short label (SNAPY/SNAP) after the press, 8w8 included — the reported
+symptom did not reproduce.
+
+Two targeted teeth checks, each a one-line `router.ts` no-op with a rebuild
+and redeploy in between (both reverted, nothing committed):
+
+1. **Disabling `pageOwnerOf(model).page?.focusVoice(pad)` entirely** (the
+   Schwung-delegated call SP-45 is nominally about) changed **nothing** — all
+   four racks still showed Snare's cells correctly.
+2. **Disabling `model!.selectBankForPad(pad)` instead** (movy's own,
+   arm-independent pad-follow, Section 3 of the plan) **broke the follow on
+   all four racks** — cells stayed on Kick's after a Snare press.
+
+**So the observable the plan's closing test would have graded —
+`probe.page().cells` after a pad press — is driven entirely by movy's own
+generic mechanism, never by `focusVoice`, on this build.** A test built on
+that observable (this item's own `pad-follow.ts` included) cannot have teeth
+against the code SP-45 is about, and was deleted rather than committed with
+false coverage.
+
+**A second, independent signal makes this worse, not better.** `app/tick.ts`'s
+`schwung-body ok track=… ck=synth pages=… at=<ctl.pageIndex>` line is written
+once per DISTINCT reason — a real per-press page change reads `ctl.pageIndex`
+live and would change the trailing `at=`. Across the SAME unmodified run: 6w6
+logged a new `ok … at=` line after its Snare press (`bodyOkDelta: 1`); 8w8,
+9w9 and cw78 did not (`bodyOkDelta: 0` on all three) — the identical count as
+the run with `focusVoice` fully disabled. That reads as Schwung's own page
+cursor advancing for 6w6 and NOT for the other three, which is not the
+partition the product report names (8w8 alone) and not one this plan
+predicted for any of the four.
+
+**What is missing to close this**, in order: (1) a probe verb that reads
+`ctl.pageIndex`/`ctl.page` directly — `case 'page'` in `src/test/probe.ts`
+answers `pageIndex: vm.bankIndex` and builds `cells` from `lastVm.rows`, i.e.
+movy's OWN last-rendered view model, not Schwung's controller, on EVERY arm;
+this is why disabling `focusVoice` was invisible to it. (2) A read of the real
+framebuffer (`Display`, `/dev/shm/schwung-display`) across the same gesture,
+to learn what the PHYSICAL screen actually shows when `ctl.pageIndex` does
+not advance — never reached this session. Do not re-guess the first-suspects
+paragraph above (`buildRotation`, the name-match fallback, the 48-key budget)
+without one of these two readings first; this session's evidence already
+rules out `focusVoice` reaching a broken match on 8w8 specifically, since it
+is provably not exercised by the observable available today.
 
 ---
 

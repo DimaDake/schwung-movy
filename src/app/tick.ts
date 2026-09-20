@@ -717,7 +717,14 @@ function tickBody(): void {
 
     const mIdx        = appState.masterChainIndex;
     const masterModel = seqState.sessionMode ? appState.masterFxModels[mIdx] : null;
-    const masterDirty = masterModel?.tick() ?? false;
+    /* SP-52: the master slot's OWN owner, never `pageOwner` above — that one is
+     * built from the TRACK's `activeModel` and gating the master model's
+     * refresh on ITS delegation would tie one component's dual-drive rule to a
+     * different component's answer. Only asked in session mode: `masterModel`
+     * is null outside it, and `pageOwnerOf(null)` is cheap but there is nothing
+     * for it to answer here. */
+    const masterPageOwner = seqState.sessionMode ? pageOwnerOf(masterModel) : null;
+    const masterDirty = masterModel?.tick(!masterPageOwner?.delegated) ?? false;
 
     // Reset knob touch/hold state whenever the shown param page changes, so a
     // held knob's highlight never persists after navigating away and back (e.g.
@@ -751,6 +758,12 @@ function tickBody(): void {
      */
     const stepSelected = stepPageAvailable() && stepPageState.selected;
     const gridOnScreen = moduleGridOnScreen();
+    /* WHICH OWNER THE GRID BEING ON SCREEN REFERS TO. `gridOnScreen` is true
+     * either for the track's own module page or for the master slot's DETAIL
+     * page (never both — session mode and the track views are mutually
+     * exclusive branches of the same ladder in `app/tick.ts` below), so the
+     * owner it polls and draws must follow the same branch. */
+    const drawnPageOwner = seqState.sessionMode ? masterPageOwner! : pageOwner;
     /* THE POLL COMES BEFORE THE BODY IS ASKED FOR, because the body is what
      * readiness gates and the poll is what resolves readiness. Gating the poll
      * on the body instead is a deadlock that looks exactly like the feature
@@ -766,8 +779,8 @@ function tickBody(): void {
      * page's poll (which advances Schwung's controller tick) is one of the two
      * places that time can be; the other is the render, phased below. */
     perfPhase('pagepoll');
-    if (gridOnScreen && !stepSelected && pollDrawnPage(pageOwner)) appState.dirty = true;
-    const schwungBody = gridOnScreen ? schwungBodyFor(pageOwner, stepSelected) : undefined;
+    if (gridOnScreen && !stepSelected && pollDrawnPage(drawnPageOwner)) appState.dirty = true;
+    const schwungBody = gridOnScreen ? schwungBodyFor(drawnPageOwner, stepSelected) : undefined;
     perfPhaseEnd();
 
     /* Whether this tick repainted the view. The song band sits on top of it,
@@ -839,13 +852,18 @@ function tickBody(): void {
             const vm = masterModel!.getViewModel();
             if (appState.masterDetail) {
                 // Drilled into the focused master slot's module: show its knob
-                // detail page (param banks scroll via jog), same as a track slot.
-                renderKnobsView(vm, jogHintVisible(), appState.activeTrack.index);
+                // detail page (param banks scroll via jog), same as a track
+                // slot — including Schwung's body/chrome when it is delegated
+                // (SP-52: `gridOnScreen` is true here for exactly this branch).
+                const chrome = schwungChromeFor(drawnPageOwner, schwungBody, true);
+                renderKnobsView(vm, jogHintVisible(), appState.activeTrack.index,
+                                schwungBody, schwungBankFor(drawnPageOwner, schwungBody), chrome);
+                jogToastShown = jogHintVisible() || !!(chrome && chrome.footer);
             } else {
                 renderChainView(vm, mIdx, jogHintVisible(), 'MASTER', MASTER_FX_SLOTS[mIdx]?.label, MASTER_FX_SLOTS);
+                jogToastShown = jogHintVisible();
             }
-            jogToastShown = jogHintVisible();
-            updateKnobLEDs(vm);
+            lightKnobRow(vm, schwungBody);
         } else if (appState.currentView === VIEW_KEYS) {
             renderKeysView(activeModel?.getModuleName() ?? '—', baseNoteFor(appState.activeTrack.index), midiNoteName);
         } else if (appState.currentView === VIEW_KNOBS) {

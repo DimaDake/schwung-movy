@@ -25,6 +25,7 @@ export async function run() {
 
 const { pageRefOf, pageOwnerOf } = await import('../../dist/esm/app/page-owner.js');
 const { isMovyOwnComponent } = await import('../../dist/esm/chain/config.js');
+const { modulatedKeysOf } = await import('../../dist/esm/app/modulated-keys.js');
 
 /* ── the structural rule: ownership is derived in ONE place ───────────────── */
 {
@@ -236,6 +237,56 @@ const { isMovyOwnComponent } = await import('../../dist/esm/chain/config.js');
     eq('no model has no identity', pageRefOf(null), null);
     eq('a model that cannot name its component has none either',
        pageRefOf({ getKnobPage: () => 0 }), null);
+
+    /* SP-52: a master or send component is NOT track-scoped, and the ref must
+     * say so regardless of which track the user is looking at — the opposite
+     * of the "follows the active track" rule just above. Before this fix the
+     * ref stamped `appState.activeTrack.index` onto EVERY component, which
+     * gave a master component sixteen distinct page identities (one per
+     * track) and, downstream, sixteen cached SchwungPages for the one module
+     * that is actually there — a track switch silently swapped in a
+     * different cached page and read cache. */
+    const master = { getComponentKey: () => 'master_fx:fx1' };
+    const send = { getComponentKey: () => 'snd0' };
+    appState.activeTrack.index = 0;
+    eq('a master FX ref is not the active track', pageRefOf(master).track, 0);
+    eq('a send ref is not the active track either', pageRefOf(send).track, 0);
+    appState.activeTrack.index = 9;
+    eq('...and a master FX ref does not move when the active track does',
+       pageRefOf(master).track, 0);
+    eq('...nor does a send ref', pageRefOf(send).track, 0);
+    appState.activeTrack.index = 0;
+}
+
+/* ── a master component's modulation is not on any track's chain ─────────── */
+{
+    _log('\nlogic: modulatedKeysOf answers a master FX component from masterFxModels (SP-52)');
+
+    /* `modulatedKeysOf(track, componentKey)` is asked with `track` = the fixed
+     * carrier `componentPort` addresses a master component through (0), never
+     * the active track — see the ref test above. Before this fix it walked
+     * `appState.trackModels[0]` for a `master_fx:` key, which is track 0's OWN
+     * chain and holds no such component: the answer was silently "unmodulated",
+     * forever, which is the one failure mode indistinguishable from "correctly
+     * not modulated" without a test that actually seeds a master model. */
+    const origMaster = appState.masterFxModels;
+    const origTrack0 = appState.trackModels[0];
+    appState.masterFxModels = [
+        { getComponentKey: () => 'master_fx:fx1', modulatedKeys: () => new Set(['cutoff']) },
+    ];
+    appState.trackModels[0] = [
+        { getComponentKey: () => 'synth', modulatedKeys: () => new Set(['should-not-be-seen']) },
+    ];
+
+    ok('a master component\'s tilde reads off masterFxModels',
+       modulatedKeysOf(0, 'master_fx:fx1')?.has('cutoff') === true);
+    eq('and not off track 0\'s own chain',
+       modulatedKeysOf(0, 'master_fx:fx1')?.has('should-not-be-seen'), false);
+    eq('an ordinary component still reads its track\'s chain',
+       modulatedKeysOf(0, 'synth')?.has('should-not-be-seen'), true);
+
+    appState.masterFxModels = origMaster;
+    appState.trackModels[0] = origTrack0;
 }
 
 /* ── movy owns it ─────────────────────────────────────────────────────────── */

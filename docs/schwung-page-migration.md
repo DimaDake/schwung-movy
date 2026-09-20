@@ -162,7 +162,7 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | SP-29 | Schwung ships its own automation lanes and p-locks. Decide movy's position | Opus | ⬜ | 19 | — |
 | SP-30 | Default-on: flip, device tier, docs, release, stated revert path | Sonnet | ⬜ | 20 | — |
 | SP-41 | Delete `off`, movy's page renderer, model page planning. **CONDITIONAL — may never happen** | Opus | ⬜ | 21 | — |
-| SP-52 | **NEW** — the master chain: MFX 1–4 and SEND 1–3 are on movy's renderer under every flag value. The INPUT half already delegates; nothing draws or polls it, and the page it would build is on the wrong port | Sonnet | ⬜ | 22 | — |
+| SP-52 | the master chain: MFX 1–4 and SEND 1–3 are on movy's renderer under every flag value. **FIXED, movy-side, 2026-09-20**: four defects, all in the seam between the INPUT half (already delegated) and the draw/poll half (never asked) — `schwungPageFor` now builds on `componentPort(trackIndex, componentKey)`, not `portFor(trackIndex)` (`renderer/schwung-grid.ts`); `pageRefOf` pins a master/send ref's track to a fixed carrier (0) instead of `appState.activeTrack.index`, which also fixes the per-track cache-id bug one layer up (`app/page-owner.ts`); `moduleGridOnScreen` answers session mode off `masterDetail`, not off `!sessionMode`, so the master DETAIL page now gets a body/chrome/poll from its own `masterPageOwner` (built off `masterModel()`, kept apart from the track's `pageOwner` so gating one component's refresh never reads another's delegation) (`app/page-poll.ts`, `app/tick.ts`); `modulatedKeysOf` reads `masterFxModels` for a `master_fx:` key instead of `trackModels[track]`, which held no such component and always answered unmodulated (`app/modulated-keys.ts`). No upstream PRs, matching the wave's own finding. Teeth: 4 targeted checks, each proven red with its fix reverted and green restored (`browser-test/logic/schwung-grid.mjs`, `tracks-refs.mjs`, `page-owner.mjs`, `set-session.mjs`). **Not yet covered**: a `page`-mode screenshot scene for a master FX/send page (all 177 existing baselines are track-scoped) and the device `sndlog`/probe read-back for the draw+poll half — named, not built, deferred to the wave's device agent (same as SP-42) | Sonnet | ✅ **movy-side, 2026-09-20** | 22 | — |
 | SP-53 | **NEW** — Set Params and Clip Params become a host-owned contract (the virtual-component seam) | Sonnet | ⬜ | 23 | — |
 | SP-54 | **NEW** — the step page: a contract that exists only while a step is held | Sonnet | ⬜ | 24 | — |
 | SP-55 | **NEW** — MIX and the two LFO pages: they have a port and a key, and are refused delegation by name. The easiest of the wave | Sonnet | ⬜ | 25 | — |
@@ -1771,6 +1771,87 @@ screenshot scene covers a master FX page and a send page.
 
 **Needs:** SP-40 (so the flag has two values) and SP-47 (so there is a release
 this can be reported against). Not blocked by SP-30.
+
+**FIXED, movy-side, 2026-09-20 — all four defects, in the order above.**
+
+**Decision gate checked first.** SP-53 builds a virtual-component seam for a
+page with NO module behind it (Set Params, Clip Params). MFX 1–4 and SEND 1–3
+are the opposite case — seven ordinary module contracts behind three ports
+movy already owns (`hostPort(0)`, `engineRootPort()`, `portFor`) — so this item
+does not consume that seam and was safe to ship independently, exactly as *The
+pages that are not a track module's* already concluded.
+
+1. **The port** — `schwungPageFor` takes `componentPort(trackIndex, componentKey)`
+   (`renderer/schwung-grid.ts`), not `portFor(trackIndex)`.
+2. **The cache id / the ref** — `pageRefOf` pins a master or send component's
+   `track` to a fixed carrier (0) regardless of `appState.activeTrack.index`
+   (`app/page-owner.ts`). Fixing the ref alone also fixes the cache id, because
+   `schwungPageFor`'s id is built from `ref.track` — the two were never two
+   separate edits.
+3. **The render** — `moduleGridOnScreen()`'s session-mode clause is now
+   `sessionMode → masterDetail`, not `!sessionMode` (`app/page-poll.ts`).
+   `app/tick.ts` gives the master slot its OWN owner, `masterPageOwner =
+   pageOwnerOf(masterModel())`, kept apart from the track's `pageOwner` — a
+   `drawnPageOwner` picks whichever is on screen for the poll/body/LED calls,
+   and `masterModel.tick()` is now gated on `!masterPageOwner.delegated` the
+   same way the track's own model already was (dual-drive, rule 3, extended to
+   the master's own refresh — not named as a defect above, but the same rule).
+   The session-mode `VIEW_KNOBS`-equivalent branch now passes `schwungBody`,
+   `schwungBankFor(...)` and `schwungChromeFor(...)` exactly like the track
+   branch, and lights the row through `lightKnobRow` instead of an
+   unconditional `updateKnobLEDs`.
+4. **The tilde** — `modulatedKeysOf` walks `appState.masterFxModels` for a
+   `master_fx:` component key instead of `appState.trackModels[track]`
+   (`app/modulated-keys.ts`).
+
+**The send trap, pinned as asked.** `browser-test/logic/tracks-refs.mjs` now
+asserts `componentPort(9, 'snd0').getParam('snd0:cutoff')` reaches
+`host_module_get_param` as `'snd0:cutoff'` verbatim — never `ch9:snd0:cutoff`
+nor `snd0:snd0:cutoff` — and the master-FX equivalent against
+`shadow_get_param(0, 'master_fx:fx1:cutoff')`. Track index 9 is deliberate:
+production always calls this with the fixed carrier (0), so a test that also
+used 0 could not tell "addressed correctly" from "addressed by accident".
+
+**The JS-mirror hazard (checked, not a blocker here).** The four fixes are all
+on the READ/ownership side — which port a page is built on, whose model a page
+belongs to, whether modulation is reported. None of them writes a value
+Schwung's own mirror could then overwrite on save; a delegated MFX/SEND page's
+WRITES already went through `ctl.setParam` → the injected io → the same port,
+unchanged by this item. So the hazard the ledger's Master FX Mirror finding
+names does not apply to what shipped here — it would matter for a movy-side
+write path this item does not add.
+
+**Teeth — four checks, each proven red with its own fix reverted and green
+with it restored** (method: `cp` the pre-fix source back in, rebuild, confirm
+the corresponding assertion fails, restore, rebuild, confirm it passes again):
+
+| defect | test | reverted-state result |
+| --- | --- | --- |
+| 1. the port | `schwung-grid.mjs` — "a send page reads verbatim off the engine root" / "a master FX page reads shadow slot 0" | both red (engine/shim capture saw `ch5:…`-shaped or absent reads) |
+| 2. the cache id / ref | `page-owner.mjs` — "…a master FX ref does not move when the active track does" / "…nor does a send ref" | both red (`track` followed `appState.activeTrack.index`, expected 0 got 9) |
+| 3. the render | `set-session.mjs` — "the master DETAIL page is [the grid]" / "…regardless of what currentView says" | both red (`moduleGridOnScreen()` stayed false in session mode) |
+| 4. the tilde | `page-owner.mjs` — "a master component's tilde reads off masterFxModels" / "and not off track 0's own chain" | both red (read `trackModels[0]`, found no match, answered unmodulated) |
+
+**Local gates:** `SCHWUNG=../schwung npm test` — 0 failures (schwung
+`param_pages` in the bundle, not skipped). `page-mode.mjs` — 3 of 3 expected
+failures, unchanged. `screenshot.mjs` — 177/177 unchanged, 0 diffs (none of the
+existing baselines exercise session mode, so there was nothing for this change
+to move — see below for what a NEW scene would need).
+
+**Not yet covered, named rather than built, same as SP-42's device half:**
+- A `page`-mode screenshot scene for an MFX or SEND page. Every existing
+  `page_*` scene builds its fixture on a track slot (`schwungPageFor(0,
+  'synth')`); a master-FX scene needs the mock env's slot-0 shadow store seeded
+  with a `master_fx:fx1:*` contract and `seqState.sessionMode` +
+  `appState.masterDetail` driven the way `set-session.mjs`'s new checks do.
+  Worth a scene, not done here.
+- **Device check (name, not build):** `sndlog` is the only read-back for a
+  send's actual write destination on the device — a scenario that loads a
+  module into SEND 1 under the SCHWUNG flag, turns a knob, and asserts the
+  logged param key is `snd0:<key>` (never `ch0:snd0:<key>`) is the end-to-end
+  half this item's unit tests cannot reach. The device tier runs once for the
+  whole wave, per the briefing, so this is a note for that run rather than a
+  script added here.
 
 ---
 

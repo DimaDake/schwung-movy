@@ -14,6 +14,7 @@
  */
 
 import { appState } from './state.js';
+import { isMasterComponent } from '../chain/config.js';
 
 /**
  * The params a slot LFO drives on `componentKey`'s model in `track`, or null
@@ -24,7 +25,13 @@ import { appState } from './state.js';
  * — one source, so the two marks cannot disagree.
  */
 export function modulatedKeysOf(track: number, componentKey: string): ReadonlySet<string> | null {
-    const chain = appState.trackModels[track];
+    /* A `master_fx:` component's model is not in any track's chain — it lives
+     * in `masterFxModels`, addressed by slot, and the port that reaches it
+     * reports `track` as a fixed carrier (0), not a real track (SP-52). Reading
+     * `trackModels[0]` for it would walk track 0's OWN chain, find no match,
+     * and answer "unmodulated" forever — silently, since a stale tilde looks
+     * exactly like a correct one. */
+    const chain = isMasterComponent(componentKey) ? appState.masterFxModels : appState.trackModels[track];
     if (!chain) return null;
     for (const m of chain) {
         /* Guarded member by member: this walks models of every kind — a module,

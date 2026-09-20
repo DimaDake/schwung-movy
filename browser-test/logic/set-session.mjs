@@ -247,6 +247,37 @@ export async function run() {
         run();
         eq('R5 ready once loaded', sessionPhase(), 'ready');
         eq('R5 and live', sessionReady(), true);
+
+        /* R5b — SP-52: session mode has no `currentView` of its own, so the
+         * module grid must answer off `masterDetail`, never off whatever view
+         * was on screen when Session was entered. Before this fix the clause
+         * was `!seqState.sessionMode`, which excluded the master DETAIL page
+         * too — a real module's knob page, same shape as a track slot's — and
+         * left it drawn with no Schwung body and no chrome, forever, because
+         * `moduleGridOnScreen()` never went true for it. */
+        const { appState, VIEW_KNOBS, VIEW_CHAIN, VIEW_BROWSE } =
+            await import('../../dist/esm/app/state.js');
+        const { moduleGridOnScreen } = await import('../../dist/esm/app/page-poll.js');
+        const savedView = appState.currentView;
+
+        seqState.sessionMode = false;
+        appState.currentView = VIEW_KNOBS;
+        ok('the track module page is the grid', moduleGridOnScreen());
+        appState.currentView = VIEW_BROWSE;
+        ok('a different track view is not', !moduleGridOnScreen());
+
+        seqState.sessionMode = true;
+        appState.masterDetail = false;
+        appState.currentView = VIEW_CHAIN; // leftover from before Session opened
+        ok('the master GRID is not a param page', !moduleGridOnScreen());
+        appState.masterDetail = true;
+        ok('the master DETAIL page is', moduleGridOnScreen());
+        appState.currentView = VIEW_KNOBS; // leftover the other way — must not matter
+        ok('...regardless of what currentView says', moduleGridOnScreen());
+
+        seqState.sessionMode = false;
+        appState.masterDetail = false;
+        appState.currentView = savedView;
         teardown();
     }
 

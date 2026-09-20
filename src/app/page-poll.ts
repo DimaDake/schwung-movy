@@ -58,15 +58,22 @@ import { createRepaintCap } from './repaint-cap.js';
  *
  * Mirrors the two branches of `app/tick.ts`'s view ladder that draw a module's
  * parameters, and the modal cases that sit in FRONT of them there: the loading
- * splash, session mode's master chain, and Schwung's own dive editor. Every
- * other branch is a different `currentView` and so is excluded by the test
- * itself.
+ * splash and Schwung's own dive editor. Every other branch is a different
+ * `currentView` and so is excluded by the test itself.
+ *
+ * SESSION MODE HAS NO `currentView` OF ITS OWN (SP-52). `appState.currentView`
+ * keeps whatever it held before Session was entered — `masterDetail`, not
+ * `currentView`, is what tells the master GRID (a chain view, no param page
+ * under it) from the master DETAIL page (a real module's knob page, same
+ * shape as a track slot's). So session mode answers off `masterDetail` instead
+ * of falling through to the `currentView` test below, which it would pass or
+ * fail by accident depending on whatever view was on screen when Session was
+ * opened.
  */
 export function moduleGridOnScreen(): boolean {
-    return sessionReady()
-        && !seqState.sessionMode
-        && !schwungEditorActive()
-        && (appState.currentView === VIEW_KNOBS || appState.currentView === VIEW_CHAIN);
+    if (!sessionReady() || schwungEditorActive()) return false;
+    if (seqState.sessionMode) return appState.masterDetail;
+    return appState.currentView === VIEW_KNOBS || appState.currentView === VIEW_CHAIN;
 }
 
 /* The drawn cells as of this tick. Module-level because it is read again at

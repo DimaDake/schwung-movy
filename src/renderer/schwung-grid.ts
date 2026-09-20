@@ -22,7 +22,7 @@
 
 import { createSchwungPage, type SchwungPage } from './schwung-page.js';
 import type { PageAutomation } from '../types/page-automation.js';
-import { portFor } from '../track/registry.js';
+import { componentPort } from '../track/registry.js';
 import { schwungLibAvailable } from './schwung-lib.js';
 import { schwungFloorMetOnce } from './schwung-floor.js';
 import { flagValue } from '../seq/flags.js';
@@ -120,8 +120,16 @@ export function schwungPageFor(trackIndex: number, componentKey: string,
     const id = trackIndex + ':' + componentKey;
     let p = pages.get(id);
     if (!p) {
-        p = createSchwungPage(portFor(trackIndex), componentKey, modulatedOf ?? null,
-                              automationOf ?? null);
+        /* `componentPort`, not `portFor(trackIndex)`: a `master_fx:` key is
+         * schwung's own and global, and a `snd<n>` key is movy's engine root —
+         * neither is the track's own chain. Reaching either through the plain
+         * track port namespaces the key `ch<N>:…`, which is the one
+         * `componentPort` exists to prevent (`track/registry.ts`). Correct here
+         * only because `trackIndex` is already the fixed carrier `pageRefOf`
+         * hands master/send components (`app/page-owner.ts`), not the active
+         * track. */
+        p = createSchwungPage(componentPort(trackIndex, componentKey), componentKey,
+                              modulatedOf ?? null, automationOf ?? null);
         p.reload();
         pages.set(id, p);
     }

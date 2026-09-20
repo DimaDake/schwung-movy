@@ -57,7 +57,16 @@ import { schwungGridMode, schwungPageFor } from '../renderer/schwung-grid.js';
 import { modulatedKeysOf } from './modulated-keys.js';
 import { automationFor } from './automated-keys.js';
 import type { SchwungPage } from '../renderer/schwung-page.js';
-import { isMovyOwnComponent } from '../chain/config.js';
+import { isMovyOwnComponent, isMasterComponent, isSendComponent } from '../chain/config.js';
+
+/* A master or send component is not track-scoped: it rides on slot 0 as a
+ * carrier the way `componentPort` addresses it, and it is the SAME component
+ * regardless of which track the user is looking at. Stamping the active
+ * track onto its ref (the only track this file used to know about) gave a
+ * master component sixteen distinct page identities — one per track — so a
+ * track switch silently swapped in a different cached SchwungPage and a
+ * different read cache for the module the user never left (SP-52). */
+const MASTER_PAGE_TRACK = 0;
 
 /** Page identity: whose component's parameter pages these are. */
 export interface PageRef {
@@ -98,7 +107,10 @@ export interface PageOwner {
  */
 export function pageRefOf(model: any): PageRef | null {
     if (!model || typeof model.getComponentKey !== 'function') return null;
-    return { track: appState.activeTrack.index, componentKey: model.getComponentKey() };
+    const componentKey = model.getComponentKey();
+    const track = (isMasterComponent(componentKey) || isSendComponent(componentKey))
+        ? MASTER_PAGE_TRACK : appState.activeTrack.index;
+    return { track, componentKey };
 }
 
 /* movy plans, pages and answers. */

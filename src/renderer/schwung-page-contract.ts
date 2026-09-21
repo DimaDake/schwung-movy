@@ -6,7 +6,7 @@
  * how long it keeps asking, and how often once the answer stops being news (SP-15).
  */
 
-import type { TrackPort } from '../track/port.js';
+import type { PageParamSource } from './schwung-page-source.js';
 import { perfPhase, perfPhaseEnd } from '../app/perf-probe.js';
 import { MODULE_LOAD_TICKS } from '../model/constants.js';
 import { createWidgetSync } from './schwung-page-widget-sync.js';
@@ -57,8 +57,14 @@ import { advanceSample } from './schwung-page-sample.js';
  */
 export const RELOAD_POLL_TICKS = 16;
 
-export function createPageContract(ctl: any, port: TrackPort, componentKey: string,
-                                   cache: PageReadCache, hier: PageHierarchy, lib: any) {
+export function createPageContract(ctl: any, port: PageParamSource, componentKey: string,
+                                   cache: PageReadCache, hier: PageHierarchy, lib: any,
+                                   /* The page's own carrier index — NOT read off `port.track.index`,
+                                    * because a virtual source (SP-53) makes no claim about a track at
+                                    * all. The caller already knows this (it is the same index
+                                    * `schwungPageFor` was asked for), so it is threaded through
+                                    * rather than re-derived from a field only a real module's port has. */
+                                   trackIndex: number) {
     let loaded = false;
     let attempts = 0;
     let sinceRetry = 0;
@@ -116,7 +122,7 @@ export function createPageContract(ctl: any, port: TrackPort, componentKey: stri
          * a memo keyed by the DEPARTED module's id would plan the new one from
          * the old one's banks. */
         hier.invalidate();
-        ctl.load({ slot: port.track.index, component: componentKey });
+        ctl.load({ slot: trackIndex, component: componentKey });
         refreshLoaded();
         /* A MODULE'S OWN WIDGET, REGISTERED WHEN ITS CONTRACT ARRIVES. Here rather
          * than on a gesture: upstream registered widgets from the canvas-open path,

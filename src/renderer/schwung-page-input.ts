@@ -12,7 +12,7 @@
  * own path for that.
  */
 
-import type { TrackPort } from '../track/port.js';
+import type { PageParamSource } from './schwung-page-source.js';
 import type { SchwungIntent } from './schwung-page.js';
 import type { PageHierarchy } from './schwung-page-hierarchy.js';
 import { mlog } from '../log.js';
@@ -26,7 +26,7 @@ export interface PageInput {
     focusVoice(pad: number): boolean;
 }
 
-export function createPageInput(ctl: any, lib: any, port: TrackPort,
+export function createPageInput(ctl: any, lib: any, port: PageParamSource,
                                 qualify: (k: string) => string,
                                 hier: PageHierarchy,
                                 warm: (keys: readonly string[]) => void): PageInput {
@@ -74,6 +74,44 @@ export function createPageInput(ctl: any, lib: any, port: TrackPort,
         ctl.goToPage(i);
     };
 
+    /*
+     * SP-44. A preset door has no knobs (`p.keys` is empty), so `keyAt` — and
+     * therefore `onKnobTurn` — bails at the top for EVERY slot on this page
+     * kind, entered or not: turning knob 1 there has never done anything.
+     *
+     * `ctl.onJog` already walks the list once the door is entered
+     * (`stepPreset`, the door's own commit path: flush, write, re-read the
+     * name, arm the contract settle) — that part is not restated here, only
+     * REACHED from a second gesture. What onJog does not have is a knob's
+     * feel: it moves exactly one entry per call, which is the jog's
+     * 1-detent-is-1-entry rule and is "way too fast" applied to a knob's
+     * dozens-of-detents-per-flick (`list_knob.mjs`'s own opening comment).
+     * `listKnobStep` (imported wholesale, not reimplemented) turns the raw
+     * signed delta into a step count first; this loop then spends that many
+     * `onJog` calls, one per entry, same as a jog would.
+     *
+     * One state per page name, not one per controller: `stepPreset` resets
+     * nothing about the turn rate on a re-plan, so neither does this.
+     */
+    const presetKnobState = new Map<string, any>();
+    const turnPresetDoor = (p: any, delta: number): boolean => {
+        if (!p || p.kind !== lib.PAGE_PRESET) return false;
+        if (typeof lib.listKnobInit !== 'function' || typeof lib.listKnobStep !== 'function') return false;
+        if (typeof ctl.menuEntered === 'function' && !ctl.menuEntered()) ctl.enterMenu();
+        let st = presetKnobState.get(p.name);
+        if (!st) { st = lib.listKnobInit(); presetKnobState.set(p.name, st); }
+        /* The count is the door's, read the SAME way the controller reads it
+         * — through the port every value on this page already comes from —
+         * not re-derived or cached a second time here. */
+        const raw = port.getParam(qualify(p.countParam));
+        const length = raw ? (parseInt(raw, 10) || 0) : 0;
+        const steps = lib.listKnobStep(st, delta, Date.now(), length);
+        if (!steps) return true;
+        const dir = steps > 0 ? 1 : -1;
+        for (let i = 0; i < Math.abs(steps); i++) ctl.onJog(dir, { shift: false });
+        return true;
+    };
+
     return {
         /*
          * ONE DETENT PER UNIT OF DELTA. Move's encoders accumulate: a quick
@@ -93,6 +131,9 @@ export function createPageInput(ctl: any, lib: any, port: TrackPort,
          * cost a bounded number of steps, not 63 of them.
          */
         knobTurn: (slot: number, delta: number) => {
+            /* SP-44: knob 1 only — the product ask is specifically "knob 1
+             * changes presets", not every knob touching an inert door. */
+            if (slot === 0 && turnPresetDoor(ctl.page, delta)) return;
             const dir = delta > 0 ? 1 : -1;
             /*
              * THE CAP MUST NOT BITE A REAL GESTURE. `onKnobTurn` moves one

@@ -87,6 +87,7 @@ const PRESETS = [
     'page_mod_cell', 'page_mod_cell_held',
     'page_held_lock', 'page_lane_unheld', 'page_held_unassignable',
     'page_chrome_held', 'page_chrome_flip',
+    'page_clipparams', 'page_setparams', 'page_stepparams',
 ];
 
 /* The scenes that render Schwung's own body. Only reachable from a bundle built
@@ -100,7 +101,8 @@ const PRESETS = [
 const PAGE_SCENES = new Set(['page_body', 'page_body_p2', 'page_voice_pad', 'page_sample',
     'page_mod_cell', 'page_mod_cell_held',
     'page_held_lock', 'page_lane_unheld', 'page_held_unassignable',
-    'page_chrome_held', 'page_chrome_flip']);
+    'page_chrome_held', 'page_chrome_flip',
+    'page_clipparams', 'page_setparams', 'page_stepparams']);
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
 const BASE = {
@@ -175,6 +177,13 @@ const BASE = {
      * OWN delegated renderer, not movy's (that path already has baselines:
      * wav_sample/wav_loop/wav_beside_filter above). */
     page_sample: 'wav_beside_filter',
+    /* Virtual components (SP-53) — no module port at all, so the mock is
+     * irrelevant; movy's own state IS the contract. `test8` only because
+     * every OTHER scene needs a named mock and the runner asks for one. */
+    page_clipparams: 'test8', page_setparams: 'test8',
+    // SP-54: the step page's five cells are the held-trig mirror, never a
+    // module's own params — same reasoning as its two Set/Clip Params siblings.
+    page_stepparams: 'test8',
 };
 
 /* MODULES THAT ARE NOT MOCKS. `page_voice_pad`'s subject is a DECLARED drum
@@ -260,7 +269,12 @@ const { setSchwungGridMode, schwungPageFor, schwungGridReload } =
  * re-derived — a scene that re-implements a condition the app owns stays green
  * with that condition taken out, which is the one thing these have to not do. */
 const { pageOwnerOf } = await import('../dist/esm/app/page-owner.js');
-const { schwungBodyFor, schwungBankFor } = await import('../dist/esm/app/tick.js');
+/* SP-53's virtual-component owner — the same accessor `midi/router.ts`/
+ * `app/tick.ts` use for Set/Clip Params, so a `page_*` scene for either is
+ * driven by the real ownership question, not a re-implementation of it. */
+const { pageOwnerForComponent } = await import('../dist/esm/app/page-owner-virtual.js');
+const { CLIP_PARAMS_COMPONENT, SET_PARAMS_COMPONENT, STEP_PARAMS_COMPONENT } = await import('../dist/esm/chain/config.js');
+const { schwungBodyFor, schwungBankFor, schwungChromeFor } = await import('../dist/esm/app/tick.js');
 const { modulatedKeysOf } = await import('../dist/esm/app/modulated-keys.js');
 const { stepPageAvailable, stepPageState } = await import('../dist/esm/seq/step-page.js');
 const { schwungLibAvailable } = await import('../dist/esm/renderer/schwung-lib.js');
@@ -282,6 +296,7 @@ const { buildMainPageVM }  = await import('../dist/esm/seq/main-page-vm.js');
 const { mainPageState, resetMainPage } = await import('../dist/esm/seq/main-page.js');
 const { buildClipPageVM }  = await import('../dist/esm/seq/clip-page-vm.js');
 const { clipPageState, resetClipPage } = await import('../dist/esm/seq/clip-page.js');
+const { setStepPageSelected, resetStepPage } = await import('../dist/esm/seq/step-page.js');
 const { seqState, resetSeqState }      = await import('../dist/esm/seq/state.js');
 const { appState }                     = await import('../dist/esm/app/state.js');
 const { keyboardState }                = await import('../dist/esm/keyboard/state.js');
@@ -1412,6 +1427,88 @@ function applyView(preset) {
                 { index: sp.pageIndex, count: sp.pageCount }, sp.chrome(true));
             lastRender();
             setSchwungGridMode(null);
+            break;
+        }
+
+        /* SP-53: Clip Params and Set Params under `page` — a component with
+         * NO module port at all, so the page is built through
+         * `pageOwnerForComponent` (the exact accessor `app/tick.ts` and
+         * `midi/router.ts` use), never a re-implementation of the ownership
+         * question. `schwungBodyFor`/`schwungBankFor`/`schwungChromeFor` are
+         * the same three functions the real render branch calls, so a
+         * regression in any of them shows here as a pixel diff, not just in
+         * the logic suite's assertions. */
+        case 'page_clipparams': {
+            if (!schwungLibAvailable()) throw new Error(
+                'screenshot: ' + preset + ' needs a bundle built with SCHWUNG=/path/to/schwung');
+            resetSeqState(); resetClipPage();
+            seqState.clipScaleIdx = 4; seqState.lenSteps = 16; seqState.clipTranspose = 0;
+            setSchwungGridMode('page');
+            schwungGridReload();
+            const owner = pageOwnerForComponent(CLIP_PARAMS_COMPONENT);
+            for (let i = 0; i < 12 * 60 && !owner.page; i++) owner.poll();
+            if (!owner.page) throw new Error(preset + ': the contract never resolved');
+            const body = schwungBodyFor(owner, false);
+            if (!body) throw new Error(preset + ': claimed but no body — schwungBodyFor declined');
+            lastRender = () => renderKnobsView(buildClipPageVM(), false, 0,
+                body, schwungBankFor(owner, body), schwungChromeFor(owner, body, false));
+            lastRender();
+            setSchwungGridMode(null);
+            break;
+        }
+        case 'page_setparams': {
+            if (!schwungLibAvailable()) throw new Error(
+                'screenshot: ' + preset + ' needs a bundle built with SCHWUNG=/path/to/schwung');
+            resetSeqState(); resetMainPage();
+            keyboardState.rootPc = 0; keyboardState.octave = [4, 4, 4, 4];
+            keyboardState.mode = 0; keyboardState.layout = 0; keyboardState.scale = 0;
+            seqState.bpmX100 = 12000; seqState.swingPct = 50;
+            setSchwungGridMode('page');
+            schwungGridReload();
+            const owner = pageOwnerForComponent(SET_PARAMS_COMPONENT);
+            for (let i = 0; i < 12 * 60 && !owner.page; i++) owner.poll();
+            if (!owner.page) throw new Error(preset + ': the contract never resolved');
+            const body = schwungBodyFor(owner, false);
+            if (!body) throw new Error(preset + ': claimed but no body — schwungBodyFor declined');
+            lastRender = () => renderKnobsView(buildMainPageVM(), false, 0,
+                body, schwungBankFor(owner, body), schwungChromeFor(owner, body, false));
+            lastRender();
+            setSchwungGridMode(null);
+            break;
+        }
+        /* SP-54: the step page under `page` — same shape as its two siblings
+         * above (a virtual component with no module port), through the same
+         * `pageOwnerForComponent` accessor `app/tick.ts` uses. `vm` still
+         * comes from `buildStepPageVM` (the header fallback and the "step is
+         * a bank of its own" bar read it regardless of who draws the body —
+         * see `app/tick.ts`'s own comment on this), only its ROWS are
+         * replaced by Schwung's `body`. */
+        case 'page_stepparams': {
+            if (!schwungLibAvailable()) throw new Error(
+                'screenshot: ' + preset + ' needs a bundle built with SCHWUNG=/path/to/schwung');
+            resetSeqState(); resetStepPage();
+            seqState.holdVel = 100; seqState.holdGate = 96; seqState.holdGateMixed = false;
+            seqState.holdProb = 100; seqState.holdCondA = 1; seqState.holdCondB = 1;
+            seqState.holdInvert = false;
+            setStepPageSelected(true);
+            setSchwungGridMode('page');
+            schwungGridReload();
+            const owner = pageOwnerForComponent(STEP_PARAMS_COMPONENT);
+            for (let i = 0; i < 12 * 60 && !owner.page; i++) owner.poll();
+            if (!owner.page) throw new Error(preset + ': the contract never resolved');
+            const body = schwungBodyFor(owner);
+            if (!body) throw new Error(preset + ': claimed but no body — schwungBodyFor declined');
+            const heldTrig = () => ({
+                holdVel: seqState.holdVel, holdGate: seqState.holdGate,
+                holdGateMixed: seqState.holdGateMixed, holdProb: seqState.holdProb,
+                holdCondA: seqState.holdCondA, holdCondB: seqState.holdCondB,
+                holdInvert: seqState.holdInvert,
+            });
+            lastRender = () => renderKnobsView(buildStepPageVM(heldTrig(), 1), false, 0,
+                body, schwungBankFor(owner, body), schwungChromeFor(owner, body, false));
+            lastRender();
+            setSchwungGridMode(null);
+            resetStepPage();
             break;
         }
 

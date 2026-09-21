@@ -25,6 +25,7 @@ export async function run() {
 
 const { pageRefOf, pageOwnerOf } = await import('../../dist/esm/app/page-owner.js');
 const { isMovyOwnComponent } = await import('../../dist/esm/chain/config.js');
+const { modulatedKeysOf } = await import('../../dist/esm/app/modulated-keys.js');
 
 /* ── the structural rule: ownership is derived in ONE place ───────────────── */
 {
@@ -42,6 +43,9 @@ const { isMovyOwnComponent } = await import('../../dist/esm/chain/config.js');
     const ALLOWED = {
         'src/renderer/schwung-grid.ts': 'the mode and the (track, component) page cache',
         'src/app/page-owner.ts':        'the accessor itself — the only caller',
+        'src/app/page-owner-virtual.ts': 'page-owner.ts\'s sibling for a page with '
+            + 'no MODEL object (SP-53) — split out to keep page-owner.ts under the '
+            + '200-line cap, the same accessor question, not a second one',
     };
     const offenders = walkTs('src')
         .filter((f) => !(f in ALLOWED))
@@ -204,6 +208,9 @@ const { isMovyOwnComponent } = await import('../../dist/esm/chain/config.js');
     const CONTRACT_ALLOWED = {
         'src/chain/hierarchy-source.ts': 'the one reader — the three rungs live here',
         'src/modules/loader.ts':         'DEFINES loadModuleJson; it reads no key itself',
+        'src/renderer/schwung-virtual-source.ts': 'SP-53: WRITES the contract for a '
+            + 'component with no module at all — there is no declaration to read a '
+            + 'second way, only movy\'s own answer to synthesise once',
     };
     const contractOffenders = walkTs('src')
         .filter((f) => !(f in CONTRACT_ALLOWED))
@@ -236,6 +243,56 @@ const { isMovyOwnComponent } = await import('../../dist/esm/chain/config.js');
     eq('no model has no identity', pageRefOf(null), null);
     eq('a model that cannot name its component has none either',
        pageRefOf({ getKnobPage: () => 0 }), null);
+
+    /* SP-52: a master or send component is NOT track-scoped, and the ref must
+     * say so regardless of which track the user is looking at — the opposite
+     * of the "follows the active track" rule just above. Before this fix the
+     * ref stamped `appState.activeTrack.index` onto EVERY component, which
+     * gave a master component sixteen distinct page identities (one per
+     * track) and, downstream, sixteen cached SchwungPages for the one module
+     * that is actually there — a track switch silently swapped in a
+     * different cached page and read cache. */
+    const master = { getComponentKey: () => 'master_fx:fx1' };
+    const send = { getComponentKey: () => 'snd0' };
+    appState.activeTrack.index = 0;
+    eq('a master FX ref is not the active track', pageRefOf(master).track, 0);
+    eq('a send ref is not the active track either', pageRefOf(send).track, 0);
+    appState.activeTrack.index = 9;
+    eq('...and a master FX ref does not move when the active track does',
+       pageRefOf(master).track, 0);
+    eq('...nor does a send ref', pageRefOf(send).track, 0);
+    appState.activeTrack.index = 0;
+}
+
+/* ── a master component's modulation is not on any track's chain ─────────── */
+{
+    _log('\nlogic: modulatedKeysOf answers a master FX component from masterFxModels (SP-52)');
+
+    /* `modulatedKeysOf(track, componentKey)` is asked with `track` = the fixed
+     * carrier `componentPort` addresses a master component through (0), never
+     * the active track — see the ref test above. Before this fix it walked
+     * `appState.trackModels[0]` for a `master_fx:` key, which is track 0's OWN
+     * chain and holds no such component: the answer was silently "unmodulated",
+     * forever, which is the one failure mode indistinguishable from "correctly
+     * not modulated" without a test that actually seeds a master model. */
+    const origMaster = appState.masterFxModels;
+    const origTrack0 = appState.trackModels[0];
+    appState.masterFxModels = [
+        { getComponentKey: () => 'master_fx:fx1', modulatedKeys: () => new Set(['cutoff']) },
+    ];
+    appState.trackModels[0] = [
+        { getComponentKey: () => 'synth', modulatedKeys: () => new Set(['should-not-be-seen']) },
+    ];
+
+    ok('a master component\'s tilde reads off masterFxModels',
+       modulatedKeysOf(0, 'master_fx:fx1')?.has('cutoff') === true);
+    eq('and not off track 0\'s own chain',
+       modulatedKeysOf(0, 'master_fx:fx1')?.has('should-not-be-seen'), false);
+    eq('an ordinary component still reads its track\'s chain',
+       modulatedKeysOf(0, 'synth')?.has('should-not-be-seen'), true);
+
+    appState.masterFxModels = origMaster;
+    appState.trackModels[0] = origTrack0;
 }
 
 /* ── movy owns it ─────────────────────────────────────────────────────────── */
@@ -319,14 +376,15 @@ const { isMovyOwnComponent } = await import('../../dist/esm/chain/config.js');
     setSchwungGridMode('off');
 }
 
-/* ── movy's own pages are never claimed ───────────────────────────────────── */
+/* ── movy's own pages ARE now claimed under PAGE (SP-55) ─────────────────── */
 {
-    _log('\nlogic: movy\'s own pages are never claimed, whatever the mode');
+    _log('\nlogic: movy\'s own pages (mix, the two LFOs) are routed, not refused (SP-55)');
 
-    /* The mix page and the two LFO pages are movy's, not a module's declared
-     * contract — there is nothing for a planner to plan. They were claimed
-     * before this item: a controller was built for each and its contract never
-     * resolved, so the ANSWER was right by accident and the cost was real. */
+    /* `isMovyOwnComponent` is a ROUTING signal now, not a refusal: MIX and the
+     * two LFO pages have a real port but no per-cell engine keys Schwung's
+     * flat namespace can use directly (`chain/config.ts`'s own comment on the
+     * function), so `schwungPageFor` builds a translating source for them
+     * instead of a bare `componentPort` — see `own-component-source.ts`. */
     ok('mix is movy\'s own', isMovyOwnComponent('mix'));
     ok('the track LFO page is movy\'s own', isMovyOwnComponent('lfo'));
     ok('the master LFO page is movy\'s own', isMovyOwnComponent('master_lfo'));
@@ -336,16 +394,18 @@ const { isMovyOwnComponent } = await import('../../dist/esm/chain/config.js');
 
     /* PAGE is only reachable with the library: `schwungGridMode` pins itself to
      * 'off' when param_pages cannot load, so without a SCHWUNG checkout the
-     * override below answers 'mode=off' and these two say nothing about the
-     * rule. Skipped, not failed — the standing contract for every Schwung
-     * assertion in the local suites (movy/CLAUDE.md). */
+     * override below answers 'mode=off' and this says nothing about the rule.
+     * Skipped, not failed — the standing contract for every Schwung assertion
+     * in the local suites (movy/CLAUDE.md). */
     if (!schwungLibAvailable()) {
         _log('  (the PAGE half SKIPPED — no param_pages; set SCHWUNG=)');
     } else {
         setSchwungGridMode('page');
         const o = pageOwnerOf({ getComponentKey: () => 'mix' });
-        eq('a movy page is not claimed under PAGE', o.claimed, false);
-        eq('and the log says which component it kept', o.reason, 'movy-page ck=mix');
+        ok('a mix page IS claimed under PAGE', o.claimed);
+        ok('and it settles delegated (the source planned a page)', o.delegated);
+        eq('the log names the component it delegated', o.reason,
+           'ok track=0 ck=mix pages=1 at=0');
         setSchwungGridMode('off');
     }
 }

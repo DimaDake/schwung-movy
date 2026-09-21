@@ -76,17 +76,53 @@ export function isMasterComponent(componentKey: string): boolean {
     return componentKey.startsWith('master_fx');
 }
 
-/* A component movy draws out of its OWN model, never out of a module contract.
+/** Either LFO page — the track's own or the master's (`master_fx:lfo`). Its own
+ *  test because two callers need it for two different reasons (SP-55): routing
+ *  (`schwung-grid.ts`, below) and the automation guard (`schwung-page-render.ts`
+ *  — an LFO cell is a real ranged param but was never automatable, and nothing
+ *  in `chain_params` can tell schwung's own metaIndex otherwise). */
+export function isLfoComponent(componentKey: string): boolean {
+    return componentKey.endsWith('lfo');
+}
+
+/* A component movy draws out of its OWN model, never out of a module contract
+ * OR a full virtual source (SP-53's seam) — it is drawn from movy's own state
+ * behind a REAL PORT (`portFor`/`hostPort`), unlike Clip/Set/Step Params, which
+ * have no port at all (`isVirtualPageComponent`).
  *
  * The mix page and the two LFO pages occupy chain slots and answer the same
  * model surface as a module, but no module declares them — there is nothing for
- * a page planner to plan. They were handed to Schwung's planner anyway while
- * ownership was decided at each call site: a controller was built per (track,
- * component), its contract never resolved, and the right answer came back for
- * the wrong reason. Asked by the ownership accessor (`app/page-owner.ts`), so a
- * delegated component is one a MODULE declares. */
+ * a page planner to plan, and their engine keys do not line up with the flat
+ * per-cell namespace Schwung's contract wants (MIX's five fields are ONE
+ * composite engine param; an LFO's eight are addressed `lfo1:*`/`lfo2:*`, not
+ * `lfo:*`). SP-55 answers both by building a `PageParamSource` whose cells
+ * translate to/from the real keys (`mixer/mix-schwung-cells.ts`,
+ * `lfo/lfo-schwung-cells.ts`) — `schwung-grid.ts`'s `schwungPageFor` asks this
+ * BEFORE falling through to a bare `componentPort`, the same way it already
+ * asks `isVirtualPageComponent` first. Before SP-55 this same test was used to
+ * REFUSE delegation outright (`app/page-owner.ts`); that refusal is gone —
+ * the name is now a routing question, not a gate. */
 export function isMovyOwnComponent(componentKey: string): boolean {
-    return componentKey === 'mix' || componentKey.endsWith('lfo');
+    return componentKey === 'mix' || isLfoComponent(componentKey);
+}
+
+/* A component with NO port at all — its params live in movy's own sequencer
+ * state, never behind any track's chain, host slot or engine root (SP-53).
+ * Distinct from `isMovyOwnComponent`: those three ALSO have no module behind
+ * them but DO have a real port (`portFor`/`hostPort`), so they are refused
+ * delegation by name (SP-55 removes that refusal once they carry their own
+ * `ui_hierarchy`/`chain_params`). A virtual component is refused nothing —
+ * it has no port for `componentPort` to resolve, so `schwungPageFor` checks
+ * this FIRST and builds a `PageParamSource` from `virtualSourceFor` instead. */
+export const CLIP_PARAMS_COMPONENT = 'clipparams';
+export const SET_PARAMS_COMPONENT = 'setparams';
+/* The held-step trig contract (SP-54) — velocity/length/probability/
+ * condition/invert live in the engine's held-trig mirror (`seqState.hold*`),
+ * never behind a port, exactly like Clip/Set Params' seqState fields. */
+export const STEP_PARAMS_COMPONENT = 'stepparams';
+export function isVirtualPageComponent(componentKey: string): boolean {
+    return componentKey === CLIP_PARAMS_COMPONENT || componentKey === SET_PARAMS_COMPONENT
+        || componentKey === STEP_PARAMS_COMPONENT;
 }
 
 /* A send bus is hosted by MOVY, not by schwung's master bus. It rides the master

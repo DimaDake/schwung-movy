@@ -112,6 +112,19 @@ export interface SchwungLib {
      * own renderer would if it ever needed the raw array. Nothing in src/
      * calls it — drawSample reads it inside Schwung's own render path. */
     wavPeaks?: any;
+    /* SP-44: a knob turned on a preset door has no route to the list at all
+     * (`onKnobTurn` bails at `keyAt`, which returns null for a page with no
+     * knobs) — `schwung-page-input.ts` reuses `ctl.onJog`'s existing preset
+     * step instead, but ITS feel is the jog's (one entry per call), and
+     * calibrating that for a knob is the one thing *The injection surface*
+     * §4 says movy must not restate: DETENTS_PER_ENTRY and the
+     * length-aware acceleration ceiling are `export const`, tuned against the
+     * real fleet (Braids' 47 models, `clap`'s 519). Importing the module
+     * itself avoids restating them — the feel comes from the same file
+     * Schwung's own shadow_ui uses for its filepath browser knob, not a
+     * second copy. */
+    listKnobInit?: any;
+    listKnobStep?: any;
 }
 
 /* LITERAL PATHS, NOT A CONCATENATION. esbuild can only apply its resolver to a
@@ -136,7 +149,7 @@ try {
      * error at evaluation, indistinguishable from a missing file to everything
      * above this line, and correctly treated the same way.
      */
-    const [pc, pi, rpm, el, wr, vo, ck, pm, pp, anm, _wio, wp, vz] = await Promise.all([
+    const [pc, pi, rpm, el, wr, vo, ck, pm, pp, anm, _wio, wp, vz, lk] = await Promise.all([
         // @ts-ignore — absolute device path; external in the device build
         import('/data/UserData/schwung/shared/param_pages/page_controller.mjs'),
         // @ts-ignore
@@ -182,6 +195,11 @@ try {
         import('/data/UserData/schwung/shared/param_pages/wav_peaks.mjs'),
         // @ts-ignore
         import('/data/UserData/schwung/shared/param_pages/viz.mjs'),
+        /* list_knob.mjs — SP-44. Pure and tiny (no imports of its own), so
+         * adding it costs nothing an otherwise-serviceable Schwung would not
+         * already pay, same reasoning as anim_state.mjs above. */
+        // @ts-ignore
+        import('/data/UserData/schwung/shared/param_pages/list_knob.mjs'),
     ]);
     lib = {
         createController: pc.createController, LAYOUT_MOVY: pc.LAYOUT_MOVY,
@@ -202,6 +220,7 @@ try {
         VIZ_SAMPLE: vz.VIZ_SAMPLE,
         wavPeaksTick: wp.wavPeaksTick, wavPeaksDone: wp.wavPeaksDone,
         wavPeaks: wp.wavPeaks,
+        listKnobInit: lk.listKnobInit, listKnobStep: lk.listKnobStep,
     };
 } catch (e: any) {
     /* Swallowed DELIBERATELY, and this is the whole point of the file: an

@@ -93,6 +93,48 @@ export async function run() {
 }
 
 {
+  _log('\ncomponent ports — a master/send key is not a chain key (SP-52):');
+  const { componentPort, hostPort, engineRootPort, resetPorts } =
+    await import('../../dist/esm/track/registry.js');
+
+  resetPorts();
+  /* A wrong port is a pure function of the addressing — no model, no page,
+   * no device, just `componentKey` in and a port instance out. This is what
+   * `renderer/schwung-grid.ts` calls now instead of `portFor(trackIndex)`
+   * (SP-52); the identity checks below fail the moment it regresses to the
+   * plain track port for either kind. TRACK INDEX 9 IS DELIBERATE, NOT
+   * TRACK 0: a master/send component's port must not depend on WHICH track
+   * happens to be active when its ref is built (`app/page-owner.ts`). */
+  eq('a master FX component resolves to the host slot', componentPort(9, 'master_fx:fx1'), hostPort(0));
+  eq('a send bus resolves to the engine root', componentPort(9, 'snd0'), engineRootPort());
+  eq('an ordinary component still resolves to its own track', componentPort(9, 'synth'), portFor(9));
+
+  /* THE SEND TRAP, pinned as the ledger asks: a send's component key IS its
+   * namespace (`snd0:cutoff`, no port prefix to add), so reaching it through
+   * ANY chain-prefixing port would double it — `ch9:snd0:cutoff` through the
+   * wrong track port, or `snd0:snd0:cutoff` if a port prefixed it a second
+   * time on top of qualify(). `engineRootPort` must pass it through verbatim. */
+  const engineGets = [];
+  const origEngineGet = globalThis.host_module_get_param;
+  globalThis.host_module_get_param = (key) => { engineGets.push(key); return null; };
+  componentPort(9, 'snd0').getParam('snd0:cutoff');
+  globalThis.host_module_get_param = origEngineGet;
+  eq('a send read lands verbatim, not chain-prefixed', engineGets[0], 'snd0:cutoff');
+
+  /* The master FX side of the same trap: `hostPort(0)` addresses schwung's
+   * shadow slot 0 directly, never a movy chain — `ch9:master_fx:fx1:cutoff`
+   * would ask the engine for a chain that does not own this key at all. */
+  const shimGets = [];
+  const origShimGet = globalThis.shadow_get_param;
+  globalThis.shadow_get_param = (slot, key) => { shimGets.push(slot + ':' + key); return null; };
+  componentPort(9, 'master_fx:fx1').getParam('master_fx:fx1:cutoff');
+  globalThis.shadow_get_param = origShimGet;
+  eq('a master FX read lands on shadow slot 0, not a chain', shimGets[0], '0:master_fx:fx1:cutoff');
+
+  resetPorts();
+}
+
+{
   _log('\nmodel state — reads go through the port:');
   const { createModelState } = await import('../../dist/esm/model/state.js');
   const { resetPorts } = await import('../../dist/esm/track/registry.js');

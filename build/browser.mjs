@@ -27,6 +27,12 @@ await esbuild.build({
          * suite can drive the stale-write hazard at the level it lives at,
          * rather than racing Schwung's settle window through the page. */
         resolve(root, 'src/renderer/schwung-page-cache.ts'),
+        /* A virtual component's contract (SP-53): an entry point so the logic
+         * suite can assert on the synthesised `ui_hierarchy`/`chain_params`
+         * JSON directly — the shape the real planner requires (an ARRAY, not
+         * a keyed object) is exactly what a chunk-folded module would leave
+         * unreachable to test at this level. */
+        resolve(root, 'src/renderer/schwung-virtual-source.ts'),
         /* WHICH keys that cache spends its round trip on (SP-39). Its own entry
          * point because the file has no state and no host: the logic suite
          * seeds a Map and a port and asserts on the request, which is the only
@@ -149,6 +155,11 @@ await esbuild.build({
         resolve(root, 'src/mixer/mix-cells.ts'),
         resolve(root, 'src/mixer/mix-io.ts'),
         resolve(root, 'src/mixer/mix-model.ts'),
+        /* MIX's virtual-component source (SP-55) — an entry point for the
+         * same reason as Clip/Set/Step Params: the logic suite drives the
+         * synthesised contract and the read-modify-write directly. */
+        resolve(root, 'src/mixer/mix-apply.ts'),
+        resolve(root, 'src/mixer/mix-schwung-cells.ts'),
         resolve(root, 'src/mixer/track-volume.ts'),
         resolve(root, 'src/mixer/track-mutes.ts'),
         resolve(root, 'src/mixer/pad-mutes.ts'),
@@ -173,6 +184,11 @@ await esbuild.build({
          * can ask the accessor directly, rather than inferring ownership from
          * a router gesture. */
         resolve(root, 'src/app/page-owner.ts'),
+        /* SP-53's sibling accessor for a page with no model (Set/Clip Params)
+         * — an entry point so a screenshot scene can drive it the same way
+         * app/tick.ts and midi/router.ts do, rather than a folded chunk with
+         * no dist/esm/app/page-owner-virtual.js to import. */
+        resolve(root, 'src/app/page-owner-virtual.ts'),
         /* The repaint decision (SP-38): an entry point because that decision IS
          * the fix — the animated widgets were already drawing correctly and
          * simply never asked for a second frame. A suite that drove it through
@@ -202,6 +218,9 @@ await esbuild.build({
         resolve(root, 'src/chain/config.ts'),
         resolve(root, 'src/lfo/params.ts'),
         resolve(root, 'src/lfo/model.ts'),
+        /* The LFO page's virtual-component source (SP-55) — same reason as
+         * MIX's above: the logic suite drives it directly. */
+        resolve(root, 'src/lfo/lfo-schwung-cells.ts'),
         resolve(root, 'src/lfo/assign.ts'),
         resolve(root, 'src/lfo/assign-mode.ts'),
         resolve(root, 'src/lfo/scope.ts'),
@@ -291,12 +310,29 @@ await esbuild.build({
         resolve(root, 'src/seq/param-page.ts'),
         resolve(root, 'src/seq/main-page.ts'),
         resolve(root, 'src/seq/main-page-vm.ts'),
+        /* SP-53's absolute-value writers, shared with the virtual-component
+         * seam's set() — an entry point so the logic suite can drive them
+         * directly (the one-writer invariant needs to call the SAME function
+         * the delta path calls, not a copy folded into a chunk). */
+        resolve(root, 'src/seq/main-page-apply.ts'),
+        resolve(root, 'src/seq/main-page-constants.ts'),
+        /* Set Params' virtual-component contract (SP-53) — an entry point for
+         * the same reason as its sibling, clip-params-contract.ts. */
+        resolve(root, 'src/seq/set-params-contract.ts'),
         resolve(root, 'src/seq/tempo-override.ts'),
         resolve(root, 'src/seq/capture.ts'),
         resolve(root, 'src/seq/capture-vm.ts'),
         resolve(root, 'src/seq/clip-scale.ts'),
         resolve(root, 'src/seq/clip-page.ts'),
         resolve(root, 'src/seq/clip-page-vm.ts'),
+        /* SP-53's virtual-component seam, pinned at Clip Params: an entry
+         * point so the logic suite can drive the synthesised contract and the
+         * one-writer invariant directly, rather than folded into a chunk with
+         * no `dist/esm/seq/clip-params-contract.js` to import. */
+        resolve(root, 'src/seq/clip-params-contract.ts'),
+        /* The step page's virtual-component contract (SP-54) — an entry point
+         * for the same reason as its two siblings above. */
+        resolve(root, 'src/seq/step-params-contract.ts'),
         resolve(root, 'src/seq/drum-sync.ts'),
         resolve(root, 'src/seq/quant.ts'),
         resolve(root, 'src/seq/prefs.ts'),

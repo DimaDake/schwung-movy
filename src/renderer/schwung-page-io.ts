@@ -7,7 +7,7 @@
  * scrolling past it.
  */
 
-import type { TrackPort } from '../track/port.js';
+import type { PageParamSource } from './schwung-page-source.js';
 import type { PageReadCache } from './schwung-page-cache.js';
 import type { PageHierarchy } from './schwung-page-hierarchy.js';
 import { isContractKey } from '../chain/hierarchy-source.js';
@@ -17,7 +17,7 @@ import type { PageAutomation } from '../types/page-automation.js';
  * otherwise spend a blocking engine GET on each — SP-26, and
  * `browser-test/logic/page-owner.mjs` greps this file for a `port.getParam`
  * that walks around it. */
-export function createPageIo(port: TrackPort, qualify: (k: string) => string,
+export function createPageIo(port: PageParamSource, qualify: (k: string) => string,
                              cache: PageReadCache, hierarchy: PageHierarchy,
                              componentKey: string,
                              modulatedKeys: (() => ReadonlySet<string> | null) | null,
@@ -164,5 +164,14 @@ export function createPageIo(port: TrackPort, qualify: (k: string) => string,
         isModulated,
         /* movy has its own screen-reader path; nothing to say from here yet. */
         announce: () => {},
+        /* Both undefined for a real module's port today, unchanged — only a
+         * source that declares them (SP-53's virtual components) supplies
+         * anything here. Passed straight through: the SOURCE decides what a
+         * key looks like, this file only wires the hook up. */
+        vizOverrides: port.vizOverrides ? (k: string) => port.vizOverrides!(k) : undefined,
+        formatValue: port.formatValue
+            ? (fullKey: string, raw: string | null, surface: 'cell' | 'header') =>
+                  port.formatValue!(fullKey, raw, surface)
+            : undefined,
     };
 }

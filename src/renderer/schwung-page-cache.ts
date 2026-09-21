@@ -21,6 +21,7 @@
  */
 
 import type { TrackPort } from '../track/port.js';
+import type { PageParamSource } from './schwung-page-source.js';
 import type { Entry } from './schwung-page-batch.js';
 import { fill, warm as warmKeys } from './schwung-page-batch.js';
 
@@ -53,15 +54,24 @@ export interface PageReadCache {
     invalidateAll(): void;
 }
 
-/** Off: every read is a live read, which is what a non-bulk port wants. */
-function passthrough(port: TrackPort): PageReadCache {
+/** Off: every read is a live read, which is what a non-bulk port (or a
+ *  virtual source, always `bulkReads: false`) wants. */
+function passthrough(port: PageParamSource): PageReadCache {
     return { get: (k) => port.getParam(k), tick() {}, warm() {}, invalidateAll() {} };
 }
 
-export function createPageReadCache(port: TrackPort): PageReadCache {
+export function createPageReadCache(port: PageParamSource): PageReadCache {
     /* A shadow slot read is served from schwung's own cache at ~0.3 ms, so
-     * batching buys nothing there and the staleness would be a pure cost. */
+     * batching buys nothing there and the staleness would be a pure cost. A
+     * virtual source (SP-53) declares `bulkReads: false` unconditionally and
+     * takes this same passthrough branch — no epoch, no fill, because there
+     * is nothing here a field access does not already answer as fast. */
     if (!port.bulkReads || typeof port.getMany !== 'function') return passthrough(port);
+    /* Past the guard, only a real TrackPort answers `bulkReads: true` — a
+     * virtual source never does — so `fill`/`warm` below (which take the
+     * narrower TrackPort, for `getMany`) are safe on the cast the guard above
+     * already proved at runtime. */
+    const trackPort = port as TrackPort;
 
     const entries = new Map<string, Entry>();
     let epoch = 1;
@@ -132,11 +142,11 @@ export function createPageReadCache(port: TrackPort): PageReadCache {
             if (++sinceFill < FILL_TICKS) return;
             sinceFill = 0;
             epoch++;
-            fill(port, entries, epoch);
+            fill(trackPort, entries, epoch);
         },
         warm(keys: readonly string[]): void {
             drainWrites();
-            warmKeys(port, entries, epoch, keys);
+            warmKeys(trackPort, entries, epoch, keys);
         },
         invalidateAll(): void { entries.clear(); },
     };

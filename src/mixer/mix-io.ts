@@ -178,6 +178,14 @@ export function packMixValue(v: MixVals): string {
     return out.join(',');
 }
 
+/** One undo group per (track, field) — shared by the delta gesture
+ *  (`mix-model.ts`) and the virtual-component seam's absolute setter
+ *  (`mix-apply.ts`, SP-55), so whichever wrote the value is the one whose
+ *  release closes it (`Model.handleKnobRelease` calls this same key). */
+export function mixGestureKey(track: number, field: MixFieldName): string {
+    return 'mix:' + track + ':' + field;
+}
+
 export function readMix(track: number): MixVals {
     return parseMixValue(portFor(track).getParam(MIX_KEY));
 }

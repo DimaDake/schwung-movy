@@ -153,7 +153,7 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | SP-32 | a bank or cell that exists only in movy's config is on no page under `page`: audit before SP-30 flips the default. **The route is the hierarchy movy already returns** — see The injection surface §2 | Sonnet | ⬜ | 9 | — |
 | SP-42 | a .wav has no waveform: **two independent defects**, not the one the headline named — the IO was never registered (`wav_io_qjs.mjs` unimported), and even registered, nothing ever advanced the resumable peak job (movy's own tick loop never called `ctl.vizGroups()`/`wavPeaksTick`, only Schwung's own host did). Both fixed: the ladder now imports `wav_io_qjs.mjs`/`wav_peaks.mjs`/`viz.mjs` (`schwung-lib.ts`), and a new `schwung-page-sample.ts`'s `advanceSample` runs after `ctl.tick()` in `schwung-page-contract.ts`, mirroring `shadow_ui_param_pages.mjs`'s block exactly. **Device tier not yet run** — deferred to the wave's device agent; the recipe is in this entry | Sonnet | ✅ **movy-side, 2026-09-20** | 10 | — |
 | SP-45 | 8w8's pads do not select their pages; the other three racks' do. **DIAGNOSED, STILL OPEN, not what anyone predicted**: on device, all four racks' `probe.page().cells` follow every pad correctly RIGHT NOW — but disabling `focusVoice` entirely changes nothing, while disabling movy's own `selectBankForPad` breaks the follow on all four. The probe is proven blind to Schwung's own page cursor (`ctl.pageIndex`, read via the `schwung-body ok…at=` log) — it never advanced across 16 presses on 8w8/9w9/cw78 in the SAME run where it advanced once on 6w6, using unmodified code. No fix shipped — see the entry | Sonnet | 🔨 **diagnosed, blocked on real-screen ground truth** | 11 | — |
-| SP-44 | **NEW** — knob 1 changes presets with no click first (feature) | Sonnet | ⬜ | 13 | — |
+| SP-44 | knob 1 changes presets with no click first (feature). **Host-side route found and shipped, 2026-09-21**: not `onKnobTurn` (SU-9 correctly ruled that out — a preset door has no page keys, so `keyAt` always returns null), but `ctl.enterMenu()` + `ctl.onJog()`, composed with `list_knob.mjs`'s own feel (imported wholesale into `schwung-lib.ts`, not restated). See SU-9's row, now corrected | Sonnet | ✅ **movy-side, 2026-09-21** | 13 | — |
 | SP-46 | **NEW** — a lone attack/decay has no graphic (against the acceptance bar, by request). **Does not wait on SU-10**: `vizOverrides` + movy's own widget registry is a host-side route — see The injection surface §1 | Sonnet | ⬜ | 14 | — |
 | SP-16 | Cause G — graphics return (**shrunk: upstream fixed the hard half**) | Sonnet | 🔨 **movy half done** 2026-09-18; floor bump waits on #509 | 15 | — |
 | SP-21a | Report po32-drum's `kit` range upstream (the 1) | Sonnet | ⬜ | 16 | — |
@@ -162,10 +162,10 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | SP-29 | Schwung ships its own automation lanes and p-locks. Decide movy's position | Opus | ⬜ | 19 | — |
 | SP-30 | Default-on: flip, device tier, docs, release, stated revert path | Sonnet | ⬜ | 20 | — |
 | SP-41 | Delete `off`, movy's page renderer, model page planning. **CONDITIONAL — may never happen** | Opus | ⬜ | 21 | — |
-| SP-52 | **NEW** — the master chain: MFX 1–4 and SEND 1–3 are on movy's renderer under every flag value. The INPUT half already delegates; nothing draws or polls it, and the page it would build is on the wrong port | Sonnet | ⬜ | 22 | — |
-| SP-53 | **NEW** — Set Params and Clip Params become a host-owned contract (the virtual-component seam) | Sonnet | ⬜ | 23 | — |
-| SP-54 | **NEW** — the step page: a contract that exists only while a step is held | Sonnet | ⬜ | 24 | — |
-| SP-55 | **NEW** — MIX and the two LFO pages: they have a port and a key, and are refused delegation by name. The easiest of the wave | Sonnet | ⬜ | 25 | — |
+| SP-52 | the master chain: MFX 1–4 and SEND 1–3 are on movy's renderer under every flag value. **FIXED, movy-side, 2026-09-20**: four defects, all in the seam between the INPUT half (already delegated) and the draw/poll half (never asked) — `schwungPageFor` now builds on `componentPort(trackIndex, componentKey)`, not `portFor(trackIndex)` (`renderer/schwung-grid.ts`); `pageRefOf` pins a master/send ref's track to a fixed carrier (0) instead of `appState.activeTrack.index`, which also fixes the per-track cache-id bug one layer up (`app/page-owner.ts`); `moduleGridOnScreen` answers session mode off `masterDetail`, not off `!sessionMode`, so the master DETAIL page now gets a body/chrome/poll from its own `masterPageOwner` (built off `masterModel()`, kept apart from the track's `pageOwner` so gating one component's refresh never reads another's delegation) (`app/page-poll.ts`, `app/tick.ts`); `modulatedKeysOf` reads `masterFxModels` for a `master_fx:` key instead of `trackModels[track]`, which held no such component and always answered unmodulated (`app/modulated-keys.ts`). No upstream PRs, matching the wave's own finding. Teeth: 4 targeted checks, each proven red with its fix reverted and green restored (`browser-test/logic/schwung-grid.mjs`, `tracks-refs.mjs`, `page-owner.mjs`, `set-session.mjs`). **Not yet covered**: a `page`-mode screenshot scene for a master FX/send page (all 177 existing baselines are track-scoped) and the device `sndlog`/probe read-back for the draw+poll half — named, not built, deferred to the wave's device agent (same as SP-42) | Sonnet | ✅ **movy-side, 2026-09-20** | 22 | — |
+| SP-53 | Set Params and Clip Params become a host-owned contract (the virtual-component seam). **BOTH HALVES SHIPPED, movy-side, 2026-09-20**: the seam (`PageParamSource`, `createVirtualSource`, `isVirtualPageComponent`, `pageOwnerForComponent`) wired end-to-end for **Clip Params and Set Params** — every cell declared native (no widget), delegated knob-turn/touch/release/click/back/jog, one writer per page (`applyClip*`/`applyTempoX100` etc.) shared by the delta path and the virtual source, `formatValue` exercised for TRANSPOSE's "n/a" and TEMPO's "EXT" suffix, `short_name` declared per cell after the FIRST baseline showed Schwung's own auto-abbreviator mangling a multi-word name into running letters ("Play Link" → "PLLINK", measured by eye, not assumed). Found and fixed along the way: LINK's write is throttled (`SETPARAM_THROTTLE_MS`, SU-13) and a test asserting the state synchronously between two turns with no release in between caught it — real gesture always brackets a turn with touch/release, so the fix is realism in the test, not a production bug (device tier below will confirm). Gates: `npm test` 0 failures (`browser-test/logic/clip-params-source.mjs` + `set-params-source.mjs`, teeth proven three ways — the array-shape bug, LAYOUT's live-option-list, and `short_name` — each reverted and watched red), `page-mode.mjs` 3 of 3 unchanged, `schwung-page-idle-cost.mjs` unmoved at 43/48, `screenshot.mjs` 179/179 (2 new `page`-mode scenes, reviewed by eye at 8×, not blessed blind). See `plans/sp-53-virtual-component-seam.md` | Sonnet | ✅ **movy-side, 2026-09-20** | 23 | — |
+| SP-54 | The step page: a contract that exists only while a step is held. **SHIPPED, movy-side, 2026-09-20, no device**: `STEP_PARAMS_COMPONENT` on the SAME virtual-component seam SP-53 built (`stepParamsSource()`, `seq/step-params-contract.ts`) — velocity/length/probability/condition/invert, delegated touch/turn exactly like Clip/Set Params (`applyStep*` in `step-edit.ts`, one writer, two callers). **Further native than SP-53 could go**: LENGTH/PROBABILITY/CONDITION already had a fixed label array, so all three are plain Schwung enums with no widget at all — only VELOCITY loses its `vbar` picture (a stated follow-up), a correction of the ledger's own assumption below that these five "are the page". **The lifetime claim verified, not just trusted**: `createVirtualSource` stays a singleton (cheap either way); what actually needs a per-hold reset is the cached `SchwungPage`'s controller (touch-claim timers, an open enum peek), dropped by a new surgical `schwungGridDrop(track, componentKey)` (`schwung-grid.ts`) — NOT the coarse `schwungGridReload(track)`, which would evict a co-located real module sharing the same fixed carrier and force an unrelated re-plan on every step release. Hooked into BOTH `onSessionEnd` (happy-path release) and `resetStepPage` (the lost-release recovery path `app/input-reset.ts` already runs on tool-open/Leave-Movy) — non-latching by construction, proven by removing each hook independently and watching a dedicated identity check redden. **The re-plan cost question the entry below raised is MOOT for this route**: a virtual component is its own tiny cache entry, independent of whatever module is loaded on the track, so "measure it on minijv" does not apply — that caveat is about route 1 (folding into the module's OWN hierarchy), which this does not do. **One real upstream-shaped hazard found and fixed on the movy side**: `param_meta.mjs`'s `learnEnumWireFormat` latches "this plugin writes NAMES" the first time a read matches one of its own option LABELS — LENGTH's options include bare numerals ("1".."16"), so index 3 ("1/4") read back as the string "3", which is also option 7's label, and latched name-mode for the rest of the session (every enum cell showed the wrong option after that first read). Fixed by declaring `wire_format: 'index'` on every enum cell in `createVirtualSource` — pinned, not learned, for all three virtual components' enums, not a LENGTH-specific patch. PROB additionally needed its wire index REVERSED (`schwung's CW always increases the index`; `PROB_VALUES` is stored descending to match the delta path's own "CW raises probability" math) or a delegated CW turn would have lowered probability. Gates: `npm test` 0 failures (`browser-test/logic/step-params-source.mjs`, teeth: both drop hooks reverted independently and watched the lifecycle test redden), `page-mode.mjs` 3 of 3 unchanged (the one step-hold label there never selects the step page), `schwung-page-idle-cost.mjs` unmoved at 43/48 (the step-params owner is only ever asked for while a step is held+selected, so idle pays nothing by construction), `screenshot.mjs` 180/180 (1 new `page`-mode scene, `page_stepparams`, reviewed by eye). `hiddenDuringHold`/SP-33/SP-35 confirmed unaffected — a different render branch entirely, never touched. `step-edit.ts` grew from a pre-existing 345 lines (already over the 200-line cap before this item) to 377 — the SAME kind of named, deliberate exception `app-loop.mjs` carries; splitting it is a follow-up, not done here. See `plans/sp-54-step-page-contract.md` | Sonnet | ✅ **movy-side, 2026-09-20** | 24 | — |
+| SP-55 | MIX and the two LFO pages: they have a port and a key, and are refused delegation by name | Sonnet | ✅ | 25 | — |
 | SP-56 | **NEW** — Settings, CPU and Backups: a scope decision, not a build | Opus | ⬜ | 26 | — |
 | SP-21 | Metadata correction overlay | Sonnet | ❌ **dropped** — the audit found 1 real correction in 555 | — | — |
 | SP-22 | Cut-curve viz kind | Sonnet | ❌ **dropped** — a movy extension; Schwung draws plain dials natively | — | — |
@@ -183,7 +183,7 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | SU-6 | The 15-vs-16 widget band that offsets label rows by one row | ⬜ open, cosmetic |
 | SU-7 | `io.getParams(keys)` — an optional BULK read | ❌ **moot** — SP-26 solved it caller-side with no library change |
 | SU-8 | A per-cell channel for "this parameter is AUTOMATED" and "this cell cannot take a lock" — distinct from `locked` (a held step's lock) and from `isModulated` (the tilde) | ⬜ **new, and no longer conditional — both deciders have ruled.** SP-35 put the "cannot take a lock" half in movy's own chrome at the gesture (a toast), and SP-36 shipped the automated half **through `isModulated`**, i.e. wearing the tilde. So what is left for upstream is exactly the GRAMMAR: a lane and an LFO now draw the same mark, and a parameter that is both says it once. The ask is one bit per cell (`decorations[slot].automated`, beside `locked`) plus the 2×2 mark `render_page_movy.mjs` already has the corner for — not a second renderer, and not a value channel: movy already answers the value through `:effective` |
-| SU-9 | A knob drives a door page's list, with `list_knob.mjs`'s feel | ⬜ **new, likely** — SP-44; the list, its length and its commit path are the door's, and movy must not restate them. **No host-side route exists** — the feel constants are `export const` and `onKnobTurn` takes a direction, not a magnitude (The injection surface §4) |
+| SU-9 | A knob drives a door page's list, with `list_knob.mjs`'s feel | ❌ **refuted, 2026-09-21 — a host-side route DOES exist, just not through `onKnobTurn`.** *The injection surface* §4 was right that `onKnobTurn` takes a direction and the feel constants are unwritable `export const`s — but `onKnobTurn` was never reachable here anyway: `keyAt(slot)` returns null for a `PAGE_PRESET` page (no page keys), so it bails at the top whichever door owns the fix. The route SP-44 shipped is a DIFFERENT pair, both already public on the controller's return object: `ctl.enterMenu()` (auto-enter, no click) and `ctl.onJog(dir)` (already the door's own preset-stepping path, entered) — composing them reaches the list, its length (read through movy's own already-injected `getParam`, not a second source) and its commit path (`stepPreset`, untouched) without restating any of the three. The residual `export const` problem is real but moot for THIS ask: `list_knob.mjs` is a pure, dependency-free module movy can import wholesale (one more of the ten `param_pages` modules `schwung-lib.ts` already dynamically imports), so the unwritable constants are simply used as shipped, the same file Schwung's own `shadow_ui.js` imports for its filepath browser knob. **No residue is left open by this ask** — closed by SP-44, not standing as a future upstream item. Verified against `origin/main` (not device — the box was not used for this item) |
 | SU-10 | A viz kind for a LONE envelope stage (attack only, decay only) | ⬜ **new** — SP-46; take the fleet count with the ask, the way SP-22's drop was measured. **Not blocking**: SP-46 can ship on `vizOverrides` first, so the ask can be made against a widget that already draws (The injection surface §1) |
 | SU-11 | A per-key duration in the animation store, so `settled` ages out a value that never rests | ⬜ **new** — SP-48 shipped the movy-side repaint cap fallback instead (2026-09-20); this ask is written (SP-48's own writeup has the PR-ready text) but **not yet filed** as a branch/PR, same as SU-9/SU-10/SU-12/SU-13. Not blocking anything — the cap makes no assumption that survives this landing later |
 | SU-12 | A caller-supplied trailing page of kind `knobs`, not only `menu` — so movy's own pages can join a module's page set | ⬜ **new, expected to close without work.** `buildTrailingPages` hard-codes `kind: PAGE_MENU` (`page_plan.mjs:381`), so appending a KNOB page is upstream — but movy already owns the contract string, and folding the page into that is the host-side route (SP-54, route 1). Open this only if the fold is measured too expensive |
@@ -577,7 +577,7 @@ previous "this needs upstream" in this file has cost a release cycle.
 | 6 | on a drum track, switching page by pressing a PAD is noticeably slower than movy's pages (check forge, on a page that supports switching) | SP-39 | ✔ |
 | 7 | no waveform for a selected .wav in a parameter page | SP-42 | — |
 | 8 | on the preset selector page the first jog click focuses the page (correct); the second jumps to the MAIN page to the right | SP-43 ❌ **dropped** — Schwung's documented design, refuted 2026-09-20; the want is served by SP-44 | — |
-| 9 | feature: knob 1 should change presets with no jog click to focus first | SP-44 | — |
+| 9 | feature: knob 1 should change presets with no jog click to focus first | SP-44 ✅ **closed 2026-09-21** — `enterMenu()`+`onJog()`, not `onKnobTurn`; see SU-9 | — |
 | 10 | pad page selection does not work for **8w8**; it works for the other xwx modules | SP-45 | — |
 | 11 | no single attack / single decay visualisations | SP-46 | — |
 | 12 | remove the `body` option: a two-value flag, MOVY and SCHWUNG, visible to users next release | SP-40 + SP-47 | ✔ |
@@ -1175,31 +1175,63 @@ reusable fixture for it.
 
 ---
 
-### SP-44 — knob 1 should change presets with no click first
+### SP-44 ✅ — knob 1 should change presets with no click first, 2026-09-21
 
 **Product.** A feature request: on the preset page, turn knob 1 and the preset
 changes — no jog click to focus the page first. One gesture instead of two, for
 the thing people do most on that page.
 
-**Design & implementation.** Do NOT write a stepper for this. Upstream already
-has `list_knob.mjs` (present in v1.4.0), whose entire subject is that a knob and
-a jog are not the same input: `DETENTS_PER_ENTRY = 6` for a deliberate turn, and
-a length-aware acceleration ceiling so a 519-entry list is crossable and a
-6-option enum does not jump. A movy-side stepper would be a second copy of a
-feel that has been calibrated against the real fleet, and it would drift.
+**The central question this entry opened with — is `onKnobTurn` the route —
+was answered "no," and SU-9 recorded that answer as "no host-side route
+exists." That second half was wrong.** `onKnobTurn` really does bail
+immediately: `keyAt(slot)` returns null for a `PAGE_PRESET` page (it has no
+`p.keys`, so `pageHasKnobs` is false), true whether or not the door is
+entered. But the controller exposes a second pair on its return object, both
+already public and already used by the controller itself outside the click
+ladder: `ctl.enterMenu()` (called from `restorePage` under a condition) and
+`ctl.onJog(dir, {shift})`, whose entered-`PAGE_PRESET` branch already calls
+`stepPreset` — flush pending writes, write the list index, re-read the name,
+arm the contract re-read. Composing the two — auto-enter, then drive
+`onJog` — reaches the list, its length and its commit path without restating
+any of them: length is read through `port.getParam(qualify(countParam))`,
+the SAME injected hook that already answers every read the controller makes,
+and the commit path is 100% `stepPreset`, untouched.
 
-The open question is whether the controller already accepts a knob turn on a
-door page. `onKnobTurn` starts at `keyAt(slot)` and returns immediately when the
-slot has no key, and a preset door's knob list is not its page keys — so the
-likely answer is "no, and the routing is the ask". If so this is an **upstream**
-request (SU-9) rather than a movy patch: the door page knows its list, its
-length and its commit path, and none of those should be restated in movy. Read
-`page_input.mjs` and the LAYOUT_LIST path first — a knobs-as-list page exists
-upstream, and the feature may be one layout call away.
+**What `onJog` does not have is a knob's feel** — it moves exactly one entry
+per call, calibrated for a jog detent, and applying that 1:1 to a knob's
+dozens-of-detents-per-flick is precisely the "way too fast" problem
+`list_knob.mjs`'s own opening comment names. So the feel is not rebuilt:
+`list_knob.mjs` (pure, no imports of its own) is imported wholesale as an
+eleventh `param_pages` module in `schwung-lib.ts` — the same file Schwung's
+own `shadow_ui.js` imports for its filepath browser knob — and its
+`listKnobStep(state, delta, nowMs, length)` decides how many `onJog` calls one
+knob-turn event is worth.
+
+**Precedent for this shape of fix already existed in this file**:
+`focusVoice()` translates a pad press into `ctl.goToPage()` + a param write,
+the same "host composes exposed, public primitives for a new physical
+gesture" pattern — not dual-driving (nothing here fights a decision the
+controller made on its own), and not restating (nothing here is a second copy
+of the list, the count, or the write sequence).
+
+**Shipped**: `src/renderer/schwung-page-input.ts`'s `knobTurn(slot, delta)`
+routes slot 0 (knob 1) through `turnPresetDoor()` when the current page is
+`PAGE_PRESET`, instead of the ordinary per-detent `onKnobTurn` loop. Scope is
+knob 1 only, per the product ask — other knobs on a preset door are
+unchanged. Teeth: `browser-test/logic/schwung-page.mjs`, reusing SP-43's
+`obxd` fixture (a real dumped module with a `PAGE_PRESET` root) — `goToPage`
+the door, tick until `tickPreset`'s read-every-third-tick cycle has read the
+count once, `knobTurn(0, 6)`, assert entered with no click and the index
+moved. Reverting the input-routing half alone and rebuilding reddened both
+new assertions ("expected true, got false", "expected a truthy value");
+restoring returned both to green. Gates: `SCHWUNG=../schwung npm test` 0
+failures, `page-mode.mjs` 3 of 3 unchanged, idle-cost bound unchanged at
+`43 <= 48` (the new import is load-time, not per-tick). No rendering touched,
+so no screenshot update. **Not run on device** — this item never needed the
+box, and it was not used.
 
 **Closes when:** knob 1 walks the preset list with `list_knob`'s feel and no
-click first, with the routing owned by whichever side of the boundary the read
-above says owns it.
+click first. Closed.
 
 **Needs:** nothing. After the release.
 
@@ -1772,6 +1804,87 @@ screenshot scene covers a master FX page and a send page.
 **Needs:** SP-40 (so the flag has two values) and SP-47 (so there is a release
 this can be reported against). Not blocked by SP-30.
 
+**FIXED, movy-side, 2026-09-20 — all four defects, in the order above.**
+
+**Decision gate checked first.** SP-53 builds a virtual-component seam for a
+page with NO module behind it (Set Params, Clip Params). MFX 1–4 and SEND 1–3
+are the opposite case — seven ordinary module contracts behind three ports
+movy already owns (`hostPort(0)`, `engineRootPort()`, `portFor`) — so this item
+does not consume that seam and was safe to ship independently, exactly as *The
+pages that are not a track module's* already concluded.
+
+1. **The port** — `schwungPageFor` takes `componentPort(trackIndex, componentKey)`
+   (`renderer/schwung-grid.ts`), not `portFor(trackIndex)`.
+2. **The cache id / the ref** — `pageRefOf` pins a master or send component's
+   `track` to a fixed carrier (0) regardless of `appState.activeTrack.index`
+   (`app/page-owner.ts`). Fixing the ref alone also fixes the cache id, because
+   `schwungPageFor`'s id is built from `ref.track` — the two were never two
+   separate edits.
+3. **The render** — `moduleGridOnScreen()`'s session-mode clause is now
+   `sessionMode → masterDetail`, not `!sessionMode` (`app/page-poll.ts`).
+   `app/tick.ts` gives the master slot its OWN owner, `masterPageOwner =
+   pageOwnerOf(masterModel())`, kept apart from the track's `pageOwner` — a
+   `drawnPageOwner` picks whichever is on screen for the poll/body/LED calls,
+   and `masterModel.tick()` is now gated on `!masterPageOwner.delegated` the
+   same way the track's own model already was (dual-drive, rule 3, extended to
+   the master's own refresh — not named as a defect above, but the same rule).
+   The session-mode `VIEW_KNOBS`-equivalent branch now passes `schwungBody`,
+   `schwungBankFor(...)` and `schwungChromeFor(...)` exactly like the track
+   branch, and lights the row through `lightKnobRow` instead of an
+   unconditional `updateKnobLEDs`.
+4. **The tilde** — `modulatedKeysOf` walks `appState.masterFxModels` for a
+   `master_fx:` component key instead of `appState.trackModels[track]`
+   (`app/modulated-keys.ts`).
+
+**The send trap, pinned as asked.** `browser-test/logic/tracks-refs.mjs` now
+asserts `componentPort(9, 'snd0').getParam('snd0:cutoff')` reaches
+`host_module_get_param` as `'snd0:cutoff'` verbatim — never `ch9:snd0:cutoff`
+nor `snd0:snd0:cutoff` — and the master-FX equivalent against
+`shadow_get_param(0, 'master_fx:fx1:cutoff')`. Track index 9 is deliberate:
+production always calls this with the fixed carrier (0), so a test that also
+used 0 could not tell "addressed correctly" from "addressed by accident".
+
+**The JS-mirror hazard (checked, not a blocker here).** The four fixes are all
+on the READ/ownership side — which port a page is built on, whose model a page
+belongs to, whether modulation is reported. None of them writes a value
+Schwung's own mirror could then overwrite on save; a delegated MFX/SEND page's
+WRITES already went through `ctl.setParam` → the injected io → the same port,
+unchanged by this item. So the hazard the ledger's Master FX Mirror finding
+names does not apply to what shipped here — it would matter for a movy-side
+write path this item does not add.
+
+**Teeth — four checks, each proven red with its own fix reverted and green
+with it restored** (method: `cp` the pre-fix source back in, rebuild, confirm
+the corresponding assertion fails, restore, rebuild, confirm it passes again):
+
+| defect | test | reverted-state result |
+| --- | --- | --- |
+| 1. the port | `schwung-grid.mjs` — "a send page reads verbatim off the engine root" / "a master FX page reads shadow slot 0" | both red (engine/shim capture saw `ch5:…`-shaped or absent reads) |
+| 2. the cache id / ref | `page-owner.mjs` — "…a master FX ref does not move when the active track does" / "…nor does a send ref" | both red (`track` followed `appState.activeTrack.index`, expected 0 got 9) |
+| 3. the render | `set-session.mjs` — "the master DETAIL page is [the grid]" / "…regardless of what currentView says" | both red (`moduleGridOnScreen()` stayed false in session mode) |
+| 4. the tilde | `page-owner.mjs` — "a master component's tilde reads off masterFxModels" / "and not off track 0's own chain" | both red (read `trackModels[0]`, found no match, answered unmodulated) |
+
+**Local gates:** `SCHWUNG=../schwung npm test` — 0 failures (schwung
+`param_pages` in the bundle, not skipped). `page-mode.mjs` — 3 of 3 expected
+failures, unchanged. `screenshot.mjs` — 177/177 unchanged, 0 diffs (none of the
+existing baselines exercise session mode, so there was nothing for this change
+to move — see below for what a NEW scene would need).
+
+**Not yet covered, named rather than built, same as SP-42's device half:**
+- A `page`-mode screenshot scene for an MFX or SEND page. Every existing
+  `page_*` scene builds its fixture on a track slot (`schwungPageFor(0,
+  'synth')`); a master-FX scene needs the mock env's slot-0 shadow store seeded
+  with a `master_fx:fx1:*` contract and `seqState.sessionMode` +
+  `appState.masterDetail` driven the way `set-session.mjs`'s new checks do.
+  Worth a scene, not done here.
+- **Device check (name, not build):** `sndlog` is the only read-back for a
+  send's actual write destination on the device — a scenario that loads a
+  module into SEND 1 under the SCHWUNG flag, turns a knob, and asserts the
+  logged param key is `snd0:<key>` (never `ch0:snd0:<key>`) is the end-to-end
+  half this item's unit tests cannot reach. The device tier runs once for the
+  whole wave, per the briefing, so this is a note for that run rather than a
+  script added here.
+
 ---
 
 ### SP-53 — Set Params and Clip Params become a host-owned contract (NEW, 2026-09-20)
@@ -1842,6 +1955,161 @@ is byte-identical; and each page has a `page`-mode screenshot scene.
 
 **Needs:** SP-40, SP-47. Independent of SP-52.
 
+**PARTIAL — the seam shipped, Clip Params shipped on it, Set Params did not
+(movy-side, 2026-09-20).** Plan: `plans/sp-53-virtual-component-seam.md`.
+
+- **The seam is general, not bespoke.** `PageParamSource`
+  (`renderer/schwung-page-source.ts`) is the shape `createSchwungPage`'s whole
+  pipeline actually dereferences on `port` — `TrackPort` satisfies it
+  structurally, so every real-module call site is unchanged. Two more optional
+  members ride on it: `vizOverrides`/`formatValue`, the two `createController`
+  hooks the injection surface names as never-injected — now wired through
+  `schwung-page-io.ts` for the first time. `createVirtualSource`
+  (`renderer/schwung-virtual-source.ts`) turns a flat `VirtualCellSpec[]` table
+  into both halves of the contract (`ui_hierarchy`, `chain_params`) and the
+  read/write for each key. **`chain_params` must be an ARRAY of `{key,...}`,
+  never a keyed object** — `param_meta.mjs`'s `buildMetaIndex` does `for (const
+  p of (chainParams || []))`; a keyed object is not iterable and throws inside
+  `planPages` before a single cell draws. Cost a full device-less debug cycle
+  to find; pinned as the teeth of the new logic suite (below), which reddens
+  on exactly this if reverted.
+- **Addressing reuses SP-52 whole.** `chain/config.ts`'s
+  `isVirtualPageComponent`/`CLIP_PARAMS_COMPONENT`; `app/page-owner.ts`'s
+  `pageRefOf` pins a virtual component to the SAME `MASTER_PAGE_TRACK` fixed
+  carrier SP-52 introduced; `pageOwnerForComponent`
+  (`app/page-owner-virtual.ts`, split out only to keep `page-owner.ts` under
+  the 200-line cap) answers the ownership question for a page with no `model`
+  object at all — Set Params/Clip Params have no `getKnobPage()` to fall back
+  to, so the movy-owned answer is always page 0 of 1.
+- **`port.track.index` decoupled.** The three places `createSchwungPage`'s
+  pipeline read it (two callback shapes, `ctl.load({slot})`) now take an
+  explicit `trackIndex` argument instead — a virtual source makes no claim
+  about a track at all, cleaner than `EngineRootPort`'s existing
+  `track: {index: 0}` fake.
+- **Clip Params, fully wired**, native first (no `vizOverrides`/widget this
+  round — SCALE and QUANT are Schwung's ordinary enum-square, LENGTH and
+  TRANSPOSE its ordinary numeric dial, not movy's big-font "preset" look; a
+  restyle is a separable, untested-without-a-device follow-up). `formatValue`
+  answers TRANSPOSE's "n/a on a drum track" — first real caller of that hook.
+  Knob turn, touch, release, jog-click (SCALE's long-enum dive, which
+  Schwung's own list picker now owns — SU-4) and Back are all delegation-aware
+  in `midi/router.ts`, gated on the SAME `pageOwnerForComponent(...).page` the
+  render path in `app/tick.ts` reads, so draw and write cannot disagree about
+  who owns the page — one writer (`applyClip*` in `seq/clip-page.ts`), shared
+  by the delta path and the virtual source's absolute-value `set()`.
+  `app/tick.ts`'s `VIEW_CLIP_PARAMS` branch was moved to AFTER
+  `schwungEditorActive()` in the view ladder (it used to sit before), which it
+  has to for the SCALE dive to ever draw — the same reason `VIEW_KNOBS` sits
+  there.
+- **Set Params NOT wired this pass** — same seam, same shapes (more presets, a
+  `toggle` cell for LINK, one dynamic-option enum for LAYOUT gated on MODE),
+  deliberately left as the mechanical follow-up: Clip Params alone already
+  exercises every shape (native enum, native int, the drum-refusal `format()`,
+  the long-enum dive, the single-writer invariant), and touching TWO
+  gesture-heavy pages in one pass raised the regression risk on a currently-
+  shipping feature (Set Params/Clip Params work today for every user,
+  independent of the experimental `schwunggrid` flag) further than this pass
+  chose to take on without a device to verify.
+- **Teeth**, cheapest level: `browser-test/logic/clip-params-source.mjs`
+  (new) — pure-function assertions on the synthesised contract need no schwung
+  checkout at all; a guarded block (real `schwungLibAvailable()`) additionally
+  proves the real planner resolves the page (`ready`, `pageCount>=1`,
+  `keyAt(1)==='length'`). Reverting `chainParamsJson()`'s array shape back to
+  a keyed object reddened both the shape assertion and, further down, crashed
+  the suite outright (`params.map is not a function`) — restored before the
+  gates below ran.
+- **Not built** (as of the first landing): a `page`-mode screenshot scene for
+  Clip Params, and Set Params itself. Both closed in a follow-up the same day,
+  below.
+
+**SET PARAMS SHIPPED, same day, same seam — `seq/set-params-contract.ts` +
+`seq/main-page-apply.ts`/`main-page-constants.ts` (the absolute-value writers
+and the knob-index constants, split out of `main-page.ts` to stay under the
+200-line cap; `main-page.ts` keeps the delta/overlay gesture and imports both).
+Every wiring point Clip Params proved — `pageOwnerForComponent`,
+delegation-aware touch/release/turn/click/back in `midi/router.ts`, the
+`VIEW_MAIN_PARAMS` render branch moved to after `schwungEditorActive()` in
+`app/tick.ts` — is now doubled for `VIEW_MAIN_PARAMS`/`SET_PARAMS_COMPONENT`.
+Two things Set Params adds that Clip Params could not exercise:
+
+- **LAYOUT's option list is a FUNCTION** (`() => layoutNames(keyboardState.mode)`),
+  the seam's first cell whose enum options depend on another cell's live
+  value — `createVirtualSource` already resolved options fresh per read, so
+  this needed no new mechanism, only a spec field wide enough to carry a
+  function (`VirtualCellSpec.options: readonly string[] | (() => readonly string[])`).
+- **LINK (`type: 'toggle'`) is the seam's first two-option control.**
+  `param_meta.mjs` normalises it to a 2-option enum and `viz.mjs`'s
+  `isBooleanMeta`/`detectSwitch` correctly draws it as a native SWITCH widget
+  (confirmed by eye on the baseline: a track-and-thumb graphic, thumb left =
+  off) — no widget needed, matching "native first."
+
+**Found along the way, not assumed: `SETPARAM_THROTTLE_MS` (SU-13) is real.**
+`browser-test/app-loop.mjs`'s existing LINK test (predating this item, written
+when the page was movy-only) turned the knob CW then immediately CCW with no
+release in between and asserted the state synchronously — this passed under
+`off` (movy applies synchronously) and FAILED under `page`
+(`page-mode.mjs`'s burn-down grew 3→4, caught by the "must never grow" gate).
+Traced with a throwaway repro against the real `schwung` checkout: the second
+write lands in Schwung's `pendingWrite` and needs either 20ms of real
+wall-clock time or a release to flush — neither happens in a synchronous test.
+**Not a production bug** — a release always eventually flushes the last
+write, so the end state after a real gesture is correct; the fix is realism in
+the test (bracket each turn with a knob touch/release, matching what a real
+gesture always has), not a workaround in the seam. Recorded here because it is
+the first time this migration's own local suite caught a throttle interaction
+that only a delegated page has — the device tier below is what actually
+confirms the real-hardware timing.
+
+**`short_name` is the seam's second real "config-first" lesson.** The FIRST
+`page_setparams`/`page_clipparams` baselines (reviewed by eye at 8× before
+being accepted, not blessed on "saved baseline" text alone) showed Schwung's
+own label auto-abbreviator mangling every multi-word `name` into running
+letters: "Play Link" → "PLLINK", "Pad Layout" → "PLAYOU", "Note Mode" →
+"NMODE", "Clip Quantize" → "CLIQNT". `render_page_movy.mjs` reads a per-param
+`short_name` field ahead of that fallback; `VirtualCellSpec` gained one and
+every cell in both contracts now carries the exact short label movy's own
+`main-page-vm.ts`/`clip-page-vm.ts` already uses (TEMPO, SWING, LINK, QUANT,
+ROOT, KEY, MODE, LAYOUT / SCALE, LEN, TRANS, QUANT) — reused, not invented a
+second time. A left-open, accepted cosmetic: the enum-square's VALUE text for
+a long option ("Major", "Chromatic") still wraps across two lines inside the
+cell — legible, and the same native behaviour any module with long option
+names gets, so left alone rather than adding `short_options` on a first pass.
+
+**What no device confirmed (named, not hidden):**
+- Whether `SETPARAM_THROTTLE_MS`'s window ever matters against a REAL human
+  gesture (a synchronous test proved it exists; the timing case for it
+  mattering — two opposite-direction detents inside 20ms with no release
+  between — has not been measured on hardware).
+- Whether Move's continuous knobs generate a touch/release pair around every
+  turn gesture the way the fixed test now assumes, or turn without ever
+  registering contact.
+- Pixel legibility of the wrapped long-enum value and the switch/dial
+  graphics on the actual display (brightness, contrast, the real font) — the
+  screenshot suite diffs a simulated framebuffer, not the hardware.
+- ROOT's clamp-vs-wrap knob feel at the B/C boundary under delegation (named
+  in `main-page-apply.ts`'s own comment; SU-9/13 posture — an upstream ask if
+  it becomes a complaint, not pre-emptively fixed).
+
+**Teeth, three separate reverts, each proven red and restored:**
+`browser-test/logic/clip-params-source.mjs` + `set-params-source.mjs` — the
+`chain_params` array-shape bug (shared by both contracts, reddens both
+suites and crashes the planner), LAYOUT's live-option-list (reverting the
+function to a snapshot reddens "LAYOUT tracks MODE live" only), and
+`short_name` (reverting the JSON field reddens both suites' new assertion).
+`browser-test/app-loop.mjs`'s LINK test is itself the fourth: fixed forward
+(touch/release bracket), verified green in BOTH arms, not reverted separately
+since page-mode.mjs's own regression detection already proved it red-then-green.
+
+**Gates:** `SCHWUNG=../schwung npm test` — 0 failures. `SCHWUNG=../schwung node
+browser-test/page-mode.mjs` — 3 of 3 expected failures, unmoved (the LINK
+regression surfaced and was fixed within this item, never landed on `main`).
+`browser-test/logic/schwung-page-idle-cost.mjs` — unmoved at 43/48 (Set/Clip
+Params add no idle cost to a page neither one is showing). `screenshot.mjs` —
+179/179: 177 unchanged (confirmed by `git status` showing zero baseline bytes
+changed outside the two new files, not merely "diff reported none"), plus
+`page_clipparams`/`page_setparams` new, each reviewed at 8× before accepting.
+No `engine/` change.
+
 ---
 
 ### SP-54 — the step page: a contract that exists only while a step is held (NEW, 2026-09-20)
@@ -1888,6 +2156,94 @@ unchanged; a `page`-mode screenshot scene covers a held step.
 
 ---
 
+### SP-54 ✅ 2026-09-20 — closed, movy-side; four corrections to this entry's own assumptions
+
+**1. The re-plan cost is not "measure it on a large module" — that caveat
+belongs to a route this item did not take.** The paragraph above describes
+route 1 from *The pages that are not a track module's* (folding the step
+page's five keys into the ACTIVE MODULE's own hierarchy), where a re-plan
+pays the cost of whatever else is on that page (minijv's 70). SP-53's virtual
+seam is a SEPARATE, tiny cache entry (`STEP_PARAMS_COMPONENT`, its own
+`trackIndex + ':' + componentKey` bucket) — switching the drawn owner between
+the module and the step page never touches the module's own cached
+`SchwungPage`, so its re-plan cost is bounded by its OWN five keys, exactly
+like Clip Params' four ("near-nothing", SP-53's own floor). No minijv
+measurement applies; recorded so a later session does not go looking for one.
+
+**2. The seam's own inherited claim ("fresh `createVirtualSource` per
+hold") was half right.** `createVirtualSource`'s output is stateless (every
+read closes over live `seqState.hold*`), so rebuilding the SOURCE object
+buys nothing — it stays a singleton, like its two siblings. What DOES need
+resetting per hold is the cached `SchwungPage`/controller wrapping it
+(touch-claim timers, an open enum peek — UI-only ephemeral state that must
+not survive into the next physical hold). `renderer/schwung-grid.ts` gained
+`schwungGridDrop(trackIndex, componentKey)` — a single-entry delete — because
+the existing `schwungGridReload(trackIndex)` is track-SCOPED and would evict
+a real module's own cached page sharing the same fixed carrier, forcing an
+unrelated re-plan on every step release. Hooked into both `onSessionEnd`
+(happy path) and `resetStepPage` (the lost-release recovery path
+`app/input-reset.ts` already runs) — non-latching by construction, the same
+shape SP-31 and SP-51 were missing on exactly one of their two paths. Teeth:
+each hook reverted independently, both redden a dedicated identity check in
+`browser-test/logic/step-params-source.mjs`.
+
+**3. `vizOverrides`/custom widgets deferred, same call as SP-53's
+LENGTH/TRANSPOSE restyle — but for a different, better reason than assumed.**
+The entry above says LEN/PROB/COND "are not a restyle of something Schwung
+draws adequately. They are the page" — checked against source and found
+wrong: `LENGTH_LABELS`/`PROB_LABELS`/`COND_LABELS` (`step-page-vm.ts`) already
+existed as plain string arrays, so all three map straight onto Schwung's
+native enum-square with no widget at all. Only VELOCITY loses its `vbar`
+picture (reads as a plain numeric dial) — a real, stated scope cut, deferred
+for the same reason SP-53 deferred its own restyle: no device this session to
+verify a hand-drawn canvas widget, and `renderer/schwung-widgets.ts`'s
+`registerWidget` has zero non-module callers today, so this would have been
+the mechanism's first real use. `holdGateMixed`'s "..." is handled via
+`format()` overriding the printed text only (arc rests on whichever length
+the first held step reports) — the same tradeoff Clip Params' drum-track
+TRANSPOSE already shipped, not a new mechanism.
+
+**4. One real hazard found that neither Clip nor Set Params had hit.**
+`param_meta.mjs`'s `learnEnumWireFormat` latches "this plugin writes NAMES"
+the first time a read's raw string equals one of the enum's own option
+LABELS — LENGTH's options include bare numerals ("1".."16" for whole-bar
+counts), so index 3's wire value ("3") collided with option 7's label ("3"
+bars) on the very first read, latching name-mode for the rest of the session
+and showing the wrong option on every turn thereafter (measured: a screenshot
+scene showed `3` instead of `1/4`). None of Clip/Set Params' enums (SCALE,
+QUANT, ROOT, KEY, MODE, LAYOUT) have a numeral-shaped option, which is why
+this is the first time the seam hit it. Fixed at the SEAM, not the cell:
+`createVirtualSource` now declares `wire_format: 'index'` on every enum cell
+it emits, pinning the convention our contract has always intended
+(`VirtualCellSpec.options`'s own doc: "index-addressed... an enum's wire
+value never needs a second translation") rather than leaving it to a latch
+that can mislearn. PROB additionally needed its wire index REVERSED —
+Schwung's own turn convention is fixed (CW always increases the wire index),
+while `PROB_VALUES` is stored descending to match the delta path's "CW
+raises probability" math — so the wire presents `[...PROB_LABELS].reverse()`
+and translates at the boundary; internal state (`seqState.holdProb`) is
+unchanged.
+
+**Measured, not assumed, once fixed:** the SAME raw CC delta is 1 movy detent
+(`DETENT_DIV=8`) and 2 Schwung steps (`ENUM_DELTA_DIV=4`, `knob_engine.mjs`)
+— a delegated turn lands on a DIFFERENT option count than the `off` arm for
+the identical gesture. This is SU-9's territory (knob feel is upstream's) and
+is bounded, not fixed: `app-loop.mjs`'s step-page assertions now branch on
+`schwungGridMode()` for PROB/COND's exact landing, matching Set Params'
+TEMPO precedent rather than chasing Schwung's own acceleration curve.
+
+**What no device has confirmed:** the whole of the above — the wire-format
+fix, the reversed PROB index, Schwung's own knob feel on real hardware, and
+whether `schwungGridDrop` behaves identically under the device's actual tick
+rate (63-205 Hz) rather than the logic suite's synchronous calls. Device tier
+runs once for the wave, after SP-55.
+
+**Needs:** SP-53 (done). SP-55 needs nothing new from this item — it reuses
+the SAME `pageOwnerForComponent`/`createVirtualSource` seam, already proven
+by three consumers now.
+
+---
+
 ### SP-55 — MIX, the track LFO page and the master LFO page (NEW, 2026-09-20)
 
 **Product.** Three pages that already occupy chain slots, already have a
@@ -1926,6 +2282,80 @@ an LFO target cell reads its resolved name; `off` is unchanged; a `page`-mode
 scene covers each of the three.
 
 **Needs:** SP-53 (`formatValue` and the widget route are established there).
+
+**Resolution, 2026-09-21 — done, "easiest case" was wrong, and it was wrong
+usefully.** Full writeup: `plans/sp-55-mix-and-lfo-pages.md`. Summary:
+
+**Checked against the engine boundary before writing code, and the carried
+claim ("real ports already satisfy `PageParamSource`") did not hold for
+either page** — for two different reasons, not one:
+
+- MIX has no per-field engine key at all. The engine parses
+  `gain,pan,muted,send1..sendN` as ONE composite param (confirmed in
+  `engine/crates/movy-dsp/src/lib.rs` — `rest == "mix"` is caught before it
+  reaches the chain instance), so a bare `componentPort` cannot answer
+  `mix:gain` — nothing anywhere parses that key.
+- The LFO's fields ARE individually real (`lfo1:rate_hz`, confirmed
+  forwarded straight to the schwung chain host's own plugin instance, not
+  intercepted by movy's Rust engine) — but Schwung's contract wants ONE
+  flat per-component namespace, and the model shows TWO banks of the same
+  8 knob positions, which a bare port has no way to translate.
+
+**So both pages needed a source, built with the SAME `createVirtualSource`
+machinery SP-53 built** (`chain/own-component-source.ts` routes `mix` to
+`mixer/mix-schwung-cells.ts`, either LFO key to `lfo/lfo-schwung-cells.ts`)
+— just with cells whose `get()`/`set()` close over the REAL port
+(`portFor`/`hostPort`) instead of `seqState`. `isMovyOwnComponent` is kept,
+not deleted: it is now the ROUTING signal `schwungPageFor` asks (alongside
+`isVirtualPageComponent`) before falling through to a bare `componentPort`,
+rather than the refusal `app/page-owner.ts` used to apply — a repurposing
+the function's own comment now states explicitly. What WAS right in the
+carried note: neither page needed `seqState`, and RATE's dual shape (Hz vs
+a division index, depending on the live `sync` flag) needed no
+`VirtualCellSpec.type`-as-function extension — a fixed `enum` whose
+`options()` swaps the label list is the SAME dynamic-options precedent Set
+Params' LAYOUT already established, just applied to a harder case.
+
+**`formatValue` on the LFO target cell — deviated from the ledger's own
+suggestion, deliberately.** The target is a plain `enum` whose OPTION
+LABELS are already the resolved "Comp:Param" text (`buildTargetOptions`),
+so it prints correctly with no extra hook — more consistent with the
+LAYOUT precedent than adding a second mechanism for the same job.
+
+**One real fix outside the two new source files:**
+`renderer/schwung-page-render.ts`'s `knobParamInfo` computed
+`automatable` generically from a numeric range, which would have made
+every LFO knob accept a hold-to-modulate lane that `off` has never
+offered (`lfo/inert.ts`). Forced false for `isLfoComponent`, proven by
+removing the clause and watching `own-component-source.mjs`'s automation
+check redden, then restoring it.
+
+**Two pre-existing `app-loop.mjs` checks needed fixing, not listing as
+expected failures** — both because a page that used to be permanently
+un-delegated is now a real Schwung page with real state: a bank-index
+check read through `model.getKnobPage()` (correctly inert under
+delegation — the jog now moves Schwung's own page index) instead of
+`pageOwnerOf(...).pageIndex`; and a Back-press check landed on Schwung's
+own transient enum "peek" panel (`ENUM_PEEK_MS = 1500`, wall-clock;
+`page_input.mjs`'s `dismissPeek()` runs ahead of `exit` in the library's
+own Back ladder — deliberate upstream behaviour, not a bug) — fixed by
+aging the mocked clock past it before a single press, the same technique
+this file's own hold-knob test already uses.
+
+**Gates:** `SCHWUNG=../schwung npm test` 0 failures. `page-mode.mjs` 3 of 3
+expected failures, unchanged. `schwung-page-idle-cost.mjs` 43 ≤ 48,
+unchanged. `screenshot.mjs` 180/0, no diffs.
+
+**What no device has confirmed:** all of the above — MIX's linear-vs-dB
+knob feel under delegation (SU-9/13 posture, not fixed), the LFO cell's
+per-field read cost against a real port (no `bulkReads`/`getMany`
+batching built this pass — bounded to "one real call per field per
+Schwung rotation slot", not measured on device), and whether
+`ENUM_DELTA_DIV=4` (Schwung) vs movy's `DETENT_DIV=8` or the two-way-latch
+toggle gap (both carried from SP-54) are noticeable on RATE/TARGET/MODE/
+SHAPE (enums) or SYNC/RETRIGGER (toggles) under a real hand. No `page`-mode
+screenshot scene added for MIX or either LFO page — visual review
+deferred, same posture as SP-53's LENGTH/TRANSPOSE restyle deferral.
 
 ---
 

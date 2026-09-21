@@ -5,6 +5,9 @@
  * that intent). Knob/value editing lives in step-edit.ts; rendering reads this. */
 
 import { seqState, occHasStep } from './state.js';
+import { schwungGridDrop } from '../renderer/schwung-grid.js';
+import { MASTER_PAGE_TRACK } from '../app/page-owner.js';
+import { STEP_PARAMS_COMPONENT } from '../chain/config.js';
 
 export const stepPageState = {
     /** The step page (page 0) is the currently selected page this session. */
@@ -17,6 +20,19 @@ export const stepPageState = {
 
 export function setStepTouchedKnob(k: number): void { stepPageState.touchedKnob = k; }
 
+/* SP-54: the step page's own SchwungPage (its `ctl`, carrying UI-only ephemeral
+ * state — a touch-claim timer, an open enum peek) must not survive past the
+ * hold it was built for, or that state bleeds into the NEXT hold. Called from
+ * both `onSessionEnd` (the happy-path release) and `resetStepPage` (the
+ * lost-release recovery path `app/input-reset.ts` runs on tool open and on
+ * every foreground handoff) — those are the only two ways a step-hold session
+ * ends, so the page's lifetime cannot latch by missing a release the way
+ * SP-31's controller and SP-51's overlay once did. A no-op `Map.delete` when
+ * nothing was ever cached (mode was `off`, or the page was never selected). */
+function dropStepParamsPage(): void {
+    schwungGridDrop(MASTER_PAGE_TRACK, STEP_PARAMS_COMPONENT);
+}
+
 /** Session (parameter lock) begins: open the step page iff the last one did. */
 export function onSessionStart(): void {
     stepPageState.selected = stepPageState.lastSessionStepPage;
@@ -26,6 +42,7 @@ export function onSessionStart(): void {
 export function onSessionEnd(): void {
     stepPageState.lastSessionStepPage = stepPageState.selected;
     stepPageState.selected = false;
+    dropStepParamsPage();
 }
 
 export function setStepPageSelected(v: boolean): void {
@@ -49,4 +66,5 @@ export function resetStepPage(): void {
     stepPageState.selected = false;
     stepPageState.lastSessionStepPage = false;
     stepPageState.touchedKnob = -1;
+    dropStepParamsPage();
 }

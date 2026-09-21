@@ -31,7 +31,7 @@
  * binding and the surface it publishes.
  */
 
-import type { TrackPort } from '../track/port.js';
+import type { PageParamSource } from './schwung-page-source.js';
 import type { PageAutomation } from '../types/page-automation.js';
 import type { AutomationView } from '../types/viewmodel.js';
 import { schwungLib } from './schwung-lib.js';
@@ -101,7 +101,7 @@ export interface SchwungPage {
 }
 
 export function createSchwungPage(
-    port: TrackPort, componentKey = 'synth',
+    port: PageParamSource, componentKey = 'synth',
     /* WHICH MODEL ANSWERS FOR THIS PAGE'S MODULATION. Injected, not imported:
      * the LFO routing lives on the model and the model is app state (R12), and
      * the page is created here from a (track, component) pair that no model owns
@@ -111,6 +111,15 @@ export function createSchwungPage(
      * none", which is what a page built outside the app (a test, a probe) gets. */
     modulatedOf: ((track: number, componentKey: string) => ReadonlySet<string> | null) | null = null,
     automationOf: ((track: number) => PageAutomation) | null = null,
+    /* The page's own carrier index. NOT `port.track.index`: a virtual source
+     * (SP-53) makes no claim about a track, so this is threaded in explicitly
+     * by the one caller that already knows it (`schwungPageFor`) rather than
+     * re-derived from a field only a real module's port has. Defaults to 0 so
+     * every existing direct caller (a test, a probe) that built a page from a
+     * real port without ever reading this argument keeps working — those
+     * always meant slot 0 anyway, since `port.track.index` was `trackIndex`
+     * for a real `TrackPort` too. */
+    trackIndex = 0,
 ): SchwungPage {
     const qualify = (k: string) => (k.indexOf(':') >= 0 ? k : componentKey + ':' + k);
 
@@ -129,8 +138,8 @@ export function createSchwungPage(
      * it, so an answer captured now would be given about a module that has
      * since been swapped out. */
     const ctl = lib.createController(createPageIo(port, qualify, cache, hier, componentKey,
-        modulatedOf ? () => modulatedOf(port.track.index, componentKey) : null,
-        automationOf ? () => automationOf(port.track.index) : null));
+        modulatedOf ? () => modulatedOf(trackIndex, componentKey) : null,
+        automationOf ? () => automationOf(trackIndex) : null));
     ctl.setLayout(lib.LAYOUT_MOVY);
 
     /* The controller's own view of the page it is showing. Both the binding's
@@ -142,7 +151,7 @@ export function createSchwungPage(
     }
     const keyAt = (slot: number) => (keysOf()[slot] as string) || null;
 
-    const contract = createPageContract(ctl, port, componentKey, cache, hier, lib);
+    const contract = createPageContract(ctl, port, componentKey, cache, hier, lib, trackIndex);
     const page = createPageRender(ctl, { keyAt, keysOf, componentKey,
                                         normalizedOf: lib.normalizedOf });
     /* SP-39: `focusVoice` covers the page it is about to turn to before the

@@ -15,13 +15,8 @@ import { trackScope, type LfoScope } from './scope.js';
 import { inertModelSurface } from './inert.js';
 import {
     LFO_SHAPES, LFO_DIVISIONS, LFO_BANK_COUNT, RATE_HZ_MIN, RATE_HZ_MAX, RATE_HZ_FACTOR,
-    buildTargetOptions, targetIndex,
+    DEPTH_STEP, PHASE_DIVISIONS, buildTargetOptions, targetIndex,
 } from './params.js';
-
-/* Continuous-knob sensitivity for the arc params (device delta ≈ ±1..3/tick).
- * Full sweep ≈ range / step ticks; tuned for feel on device. */
-const DEPTH_STEP = 0.02;         // continuous; range 2.0 → ~100 ticks
-const PHASE_DIVISIONS = 24;      // phase snaps to a 15° grid (exact 45/90/180)
 
 const clampI = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 const clampF = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));

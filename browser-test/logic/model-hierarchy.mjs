@@ -5,7 +5,7 @@
  */
 
 import {
-    MOCK_SYNTHS, NAME_POLL_TICKS, META_RETRY_LIMIT, fail, eq, notMatch,
+    MOCK_SYNTHS, NAME_POLL_TICKS, META_RETRY_LIMIT, HIERARCHY_RETRY_TICKS, fail, eq, notMatch,
     bootModel, bankNames, _log, env, mockFsEntries, installMockFs, uninstallMockFs,
 } from './harness.mjs';
 
@@ -353,6 +353,40 @@ _log('\nTest: the async retry latches off and does not poll forever');
     eq(`async: probes stop after the retry budget (${reads} reads in 40 polls)`,
         reads <= 10, true);
     eq('async: META_RETRY_LIMIT is a small budget', META_RETRY_LIMIT <= 16, true);
+}
+
+/* ── mfx-slot-params-stale: a named module read back with NOTHING ─────────
+ *
+ * A master FX slot loads by DSP path under a BLOCKING write sized for
+ * dlopen + create_instance (browser/handler.ts, MASTER_LOAD_TIMEOUT_MS) — not
+ * for the module's OWN first publish of its ui_hierarchy/chain_params, so
+ * movy's first read can land in that gap: name resolved, nothing else has.
+ * Reproduced on device (4k-eq into an empty master FX slot, `off` arm — one
+ * run in several came back with `cells=[]`, module named correctly). Not
+ * master-specific in movy's own model: hierarchy.ts's B1 bail — "genuinely
+ * nothing: no hierarchy, no config, no chain_params" — is the same code for
+ * every component, so a plain synth slot proves it here. */
+_log('\nTest: a NAMED module with nothing published yet gets its params (mfx-slot-params-stale)');
+{
+    const RACING  = { 'synth:name': 'raceload', 'synth_module': 'raceload' };
+    const SETTLED = {
+        'synth:name': 'raceload', 'synth_module': 'raceload',
+        'synth:chain_params': JSON.stringify([
+            { key: 'bypass', name: 'Bypass', type: 'int', min: 0, max: 1 },
+        ]),
+        'synth:ui_hierarchy': JSON.stringify({ levels: { root: { knobs: ['bypass'] } } }),
+        'synth:bypass': '0',
+    };
+
+    const m = bootModel(RACING);
+    eq('race: the empty read draws nothing yet',
+        m.getViewModel().rows.flat().filter(Boolean).length, 0);
+
+    env.setParams(SETTLED);   // the module finishes publishing, same load
+    for (let i = 0; i < HIERARCHY_RETRY_TICKS + 1; i++) m.tick();
+    const names = m.getViewModel().rows.flat().filter(Boolean).map((c) => c.fullName);
+    eq('race: the retry catches the module once it publishes (no reopen)',
+        JSON.stringify(names), JSON.stringify(['Bypass']));
 }
 
 }

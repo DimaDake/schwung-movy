@@ -60,6 +60,7 @@ import { Probe } from '../probe.js';
 import * as fixture from '../fixture.js';
 import { CC_BACK } from '../midi.js';
 import { until } from '../wait.js';
+import { armMovy } from '../arm.js';
 
 const run = promisify(execFile);
 /* test-device/dist/scenarios/master-fx.js at run time. */
@@ -228,6 +229,16 @@ scenario('master-fx', async (t) => {
     await ssh(`> ${LOG}`);
     await dev.open(probe);
 
+    /* mfx-slot-params-stale is movy's OWN model race (hierarchy.ts's B1 bail —
+     * a named module read back with nothing): `page` arm hits the identical
+     * race from the delegated side and already retries it (SP-15), at a pace
+     * that beat this check in every trial. So the arm is forced `off` here,
+     * the way `smoke`/`items`/`module-contract` force it for the same reason
+     * (arm.ts) — otherwise the check would grade whichever renderer the
+     * device happens to rest at, and under `page` it reads movy's OWN
+     * (unused) `vm.rows` as empty regardless of what is actually on screen. */
+    await armMovy(t, probe);
+
     // ── C2: the browser opens on a master FX slot ────────────────────────────
     const MFX1 = mfx1Slot();
     t.note('mfx1SlotIndex', MFX1);
@@ -280,6 +291,45 @@ scenario('master-fx', async (t) => {
     await t.bus.frames(ACT);
     await dev.tap.jog();
     await t.bus.frames(LOAD);
+
+    /* A loaded slot on the grid still shows the CHAIN overview, not the
+     * module's own knob page — one more press drills in (router.ts:
+     * masterChainActive, "a loaded slot drills into its detail page"), and it
+     * is the detail page's render (app/tick.ts's `masterDetail` branch) that
+     * this check needs: the grid never calls `noteRendered`, so the probe
+     * would otherwise still answer with whatever a track's VIEW_KNOBS last
+     * left in `lastVm` (measured: `module=plaits` while the master slot held
+     * the module actually loaded — app/tick.ts now calls `noteRendered` there
+     * too, for exactly this). */
+    await dev.tap.jog();
+    await t.bus.frames(ACT);
+
+    /* mfx-slot-params-stale (docs/schwung-page-migration.md): a master FX
+     * slot loads by DSP path under a BLOCKING write sized for dlopen +
+     * create_instance (browser/handler.ts, MASTER_LOAD_TIMEOUT_MS) — not for
+     * the module's OWN first publish of its ui_hierarchy/chain_params, so
+     * movy's first read can land in that gap and (pre-fix) latch empty for
+     * the rest of the session. Budget covers the retry's own worst case
+     * (HIERARCHY_RETRY_TICKS x HIERARCHY_RETRY_LIMIT) with margin, so a
+     * timeout here means "does not settle on its own", not "was about to". */
+    const PARAMS_WAIT = { within: 3500, every: 60 };
+    let paramsPage: any = null;
+    try {
+        paramsPage = await until(t.bus, 'the loaded module to draw its params',
+            () => probe.page(),
+            (p: any) => !!p && p.module && p.module !== '—'
+                     && p.cells.some((c: any) => c && c.name),
+            PARAMS_WAIT);
+    } catch (e) {
+        paramsPage = (e as any).last ?? null;
+    }
+    t.check('mfx-load-shows-params', 'the module loaded into the empty master FX slot draws its parameters',
+        !!paramsPage && paramsPage.module && paramsPage.module !== '—'
+            && (paramsPage.cells ?? []).some((c: any) => c && c.name), {
+        expected: 'cells with names once the module has had time to settle',
+        actual: paramsPage ? `module=${paramsPage.module} cells=${JSON.stringify((paramsPage.cells ?? []).map((c: any) => c?.name ?? null))}`
+                            : 'no page answer at all',
+    });
 
     // ── C3: movy exits, so schwung's autosave can arm ────────────────────────
     /* The periodic autosave only ARMS when overtake is inactive, so the save

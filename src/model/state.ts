@@ -105,6 +105,13 @@ export interface ModelState {
      * scans its ROM asynchronously). These drive a bounded re-probe; both reset
      * on a genuine module change, like paramGestures. */
     metaRetries:         number;
+    /* A NAMED module read back with ZERO params — the master-FX load race
+     * (hierarchy.ts's B1 bail). -1 = not armed; reset on a genuine module
+     * change alongside metaRetries. Ticks down at its OWN faster pace
+     * (HIERARCHY_RETRY_TICKS) in processTick, independent of pollCountdown —
+     * see hierarchy.ts and model/constants.ts. */
+    hierarchyRetryCountdown: number;
+    hierarchyRetries:    number;
     presetDeclared:      boolean;
     /* params[] keys left off the pages because the module reported an
      * unturnable range. Re-checked by the metadata retry — osirus widens
@@ -190,6 +197,8 @@ export function createModelState(port: TrackPort, componentKey: string): ModelSt
         hierarchyKey:        '',
         pollCountdown:       NAME_POLL_TICKS,
         metaRetries:         0,
+        hierarchyRetryCountdown: -1,
+        hierarchyRetries:    0,
         presetDeclared:      false,
         degenerateKeys:      [],
         refreshParamCursor:  0,

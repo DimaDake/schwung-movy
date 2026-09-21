@@ -8,6 +8,19 @@ export const MODULE_LOAD_TICKS      = 344;  /* ~1 s at device tick rate */
  * arrive after load) before movy stops asking. One probe per name poll. */
 export const META_RETRY_LIMIT       = 8;
 export const NAME_POLL_TICKS        = MODULE_LOAD_TICKS;
+/* A hierarchy read that lands EMPTY right after a load is not a verdict — the
+ * same race renderer/schwung-page-contract.ts's own RETRY_TICKS/RETRY_LIMIT
+ * exist for (SP-15), measured there against the identical "module still
+ * publishing" window. Restated rather than imported (model/ must not depend
+ * on renderer/, R12), so a re-tune of one is not automatically the other's —
+ * they are the same NUMBER because it is the same window, not because one
+ * file feeds the other. Meta-retry's OWN NAME_POLL_TICKS cadence (~1 s, 8
+ * tries) is left alone for preset/enum settling — nobody is watching an
+ * osirus ROM scan — but a master FX load is watched the instant it happens,
+ * and waiting for that slow cadence is the "parameters appear after a
+ * delay" a user reported (docs/schwung-page-migration.md, mfx-slot-params). */
+export const HIERARCHY_RETRY_TICKS  = 12;
+export const HIERARCHY_RETRY_LIMIT  = 60;
 export const LONG_PRESS_TICKS       = 172;  /* ~0.5 s */
 /* How often a visible_if controller is re-read. movy's tick period IS its MIDI
  * sampling interval, so an IPC read on EVERY tick is paid for in input latency

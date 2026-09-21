@@ -105,6 +105,17 @@ export function processTick(s: ModelState, refreshValues = true): boolean {
 
     syncHierarchy(s);
 
+    /* HIERARCHY-PENDING RETRY (meta-retry.ts's armHierarchyRetry). Its OWN
+     * faster pace, independent of pollCountdown's ~1 s cadence below: that
+     * cadence is fine for a background scan nobody is watching (osirus's ROM),
+     * but this fires the instant a load lands empty on screen, and waiting for
+     * the next pollCountdown tick would be the very "delay" this exists to
+     * remove. Clearing hierarchyKey only re-arms syncHierarchy's rebuild for
+     * NEXT tick — this tick already ran it above. */
+    if (s.hierarchyRetryCountdown >= 0 && --s.hierarchyRetryCountdown < 0) {
+        s.hierarchyKey = '';
+    }
+
     let hadDelta = false;
     for (let k = 0; k < KNOBS_PER_PAGE; k++) {
         if (s.pendingDeltas[k] !== 0) {

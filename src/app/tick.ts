@@ -895,6 +895,14 @@ function tickBody(): void {
                 // detail page (param banks scroll via jog), same as a track
                 // slot — including Schwung's body/chrome when it is delegated
                 // (SP-52: `gridOnScreen` is true here for exactly this branch).
+                /* Every render path that can put params on screen must call this —
+                 * see the comment on noteRendered above. Without it the probe's
+                 * `page()` answer (and the frame counter `Probe.settled()` waits
+                 * on) never moves for a master-detail render: it keeps whatever a
+                 * track's VIEW_KNOBS last left in `lastVm`, so a check reading the
+                 * master slot's own params reads the wrong module's (measured:
+                 * `module=plaits` while the master slot held `4k-eq`). */
+                noteRendered(vm);
                 const chrome = schwungChromeFor(drawnPageOwner, schwungBody, true);
                 renderKnobsView(vm, jogHintVisible(), appState.activeTrack.index,
                                 schwungBody, schwungBankFor(drawnPageOwner, schwungBody), chrome);

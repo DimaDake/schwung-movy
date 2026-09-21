@@ -20,7 +20,7 @@ import { enumRawToIndex, enumUsesIndex, enumSetValue } from '../../dist/esm/mode
 import { MOCK_SYNTHS }    from '../mock-synth.mjs';
 import { drumPadOn, drumPadOff } from '../../dist/esm/keyboard/drum-handler.js';
 import { ENGINE_VERSION } from '../../dist/esm/seq/constants.js';
-import { NAME_POLL_TICKS, META_RETRY_LIMIT, KNOBS_PER_PAGE } from '../../dist/esm/model/constants.js';
+import { NAME_POLL_TICKS, META_RETRY_LIMIT, KNOBS_PER_PAGE, HIERARCHY_RETRY_TICKS } from '../../dist/esm/model/constants.js';
 import { OVERRIDES_MODULE_FILE } from '../../dist/esm/modules/loader.js';
 import {
     readActiveSet, uuidToStatePath, uuidToUiStatePath,
@@ -285,7 +285,7 @@ const P = (key, label, env) => ({ key, label, shortLabel: null, type: 'float',
 export {
     readFileSync, readdirSync, createModel, portFor, trackRef, TRACK_COUNT,
     dedupShortNames, LABEL_BUDGET, detectEnvelopes, planPageLayout, enumRawToIndex, enumUsesIndex, enumSetValue,
-    MOCK_SYNTHS, drumPadOn, drumPadOff, ENGINE_VERSION, NAME_POLL_TICKS, META_RETRY_LIMIT,
+    MOCK_SYNTHS, drumPadOn, drumPadOff, ENGINE_VERSION, NAME_POLL_TICKS, META_RETRY_LIMIT, HIERARCHY_RETRY_TICKS,
     KNOBS_PER_PAGE, OVERRIDES_MODULE_FILE,
     readActiveSet, uuidToStatePath, uuidToUiStatePath, loadNameIndex, rememberSet, BLANK_STATE,
     stripCopySuffix, findInheritCandidates, resolveState, sessionTick, resetSetSession, wrapState,

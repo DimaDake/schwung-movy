@@ -4,8 +4,32 @@
  * without this the Preset knob is dropped forever and the enum shows the
  * placeholder for the life of the session. */
 import type { ModelState } from './state.js';
-import { META_RETRY_LIMIT } from './constants.js';
+import { META_RETRY_LIMIT, HIERARCHY_RETRY_TICKS, HIERARCHY_RETRY_LIMIT } from './constants.js';
 import { mlog } from '../log.js';
+
+/* A NAMED module read back with NOTHING (no ui_hierarchy, no config, no
+ * chain_params — hierarchy.ts's B1 bail) is not a verdict — it is the
+ * master-FX load race: a master slot's write blocks for dlopen +
+ * create_instance (browser/handler.ts, MASTER_LOAD_TIMEOUT_MS), not for the
+ * module's OWN first publish of its hierarchy, so this read can land in that
+ * gap. Without a re-arm, `hierarchyKey` (set at the top of loadHierarchy,
+ * before the empty read is even known) latches "loaded" for the rest of the
+ * session and the slot shows nothing until the tool is reopened. Measured on
+ * device: 4k-eq into an empty master FX slot, `off` arm — one run in several
+ * came back empty. `page` arm never needed this: renderer/
+ * schwung-page-contract.ts hits the identical race from the delegated side
+ * and already retries at this pace (SP-15) — same numbers, restated rather
+ * than imported (model/ must not depend on renderer/, R12; see
+ * model/constants.ts). Lives here, not in hierarchy.ts, because this file is
+ * already "is metadata unsettled, arm a bounded re-probe" and hierarchy.ts is
+ * past the 200-line file cap. */
+export function armHierarchyRetry(s: ModelState): void {
+    if (s.moduleId === '' || s.hierarchyRetries >= HIERARCHY_RETRY_LIMIT) return;
+    s.hierarchyRetries++;
+    s.hierarchyRetryCountdown = HIERARCHY_RETRY_TICKS;
+    mlog('hierarchy-retry: no params yet for ' + s.activeModuleName
+       + ' — re-reading (' + s.hierarchyRetries + '/' + HIERARCHY_RETRY_LIMIT + ')');
+}
 
 /* A not-yet-ready module publishes a single parenthesised option — "(loading)",
  * "(scanning)". A real one-option enum is vanishingly rare and would cost only

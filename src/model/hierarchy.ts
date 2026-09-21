@@ -9,6 +9,7 @@ import { buildGenericPages } from './generic-pages.js';
 import { conditionHolds, collectRules } from './visible-if.js';
 import { physPadOfDrumPad } from '../keyboard/drum-grid.js';
 import { PAD_MIN } from '../seq/constants.js';
+import { armHierarchyRetry } from './meta-retry.js';
 import type { RawMeta } from './param-build.js';
 
 type HierParam = RawMeta;
@@ -34,6 +35,10 @@ export function loadHierarchy(s: ModelState): void {
     s.slotMapCache = null;
     s.detentAccum  = [];
     s.hierarchyKey = s.activeModuleName;
+    /* Cleared on EVERY call, armed again below only if this read is the empty
+     * one — otherwise a retry armed by a PRIOR empty read outlives the success
+     * that followed it and forces one pointless extra rebuild. */
+    s.hierarchyRetryCountdown = -1;
 
     mlog('loadHierarchy: slot=' + s.port.track.index + ' module=' + s.activeModuleName);
     const prevModuleId = s.moduleId;
@@ -50,6 +55,7 @@ export function loadHierarchy(s: ModelState): void {
         // A same-module rebuild is what the metadata retry itself triggers —
         // resetting the budget there would loop forever.
         s.metaRetries   = 0;
+        s.hierarchyRetries = 0;
     }
 
     /* Params movy wants to own from load (e.g. ui_auto_select_pad=off so the DSP
@@ -207,6 +213,7 @@ export function loadHierarchy(s: ModelState): void {
     if (Object.keys(allLevels).length === 0 && !s.moduleConfig && cpOrder.length === 0) {
         mlog('loadHierarchy: ui_hierarchy null — no params');
         s.dirty = true;
+        armHierarchyRetry(s);
         return;
     }
 

@@ -23,6 +23,12 @@ export const RATE_HZ_FACTOR = Math.pow(RATE_HZ_MAX / RATE_HZ_MIN, 1 / 40);
 
 export const LFO_BANK_COUNT = 2;
 
+/* Continuous-knob sensitivity for the arc params (device delta ≈ ±1..3/tick).
+ * Shared with the delegated page's cells (SP-55), which resolve phase/depth
+ * to the SAME index space so a turn lands on the same value either way. */
+export const DEPTH_STEP = 0.02;         // continuous; range 2.0 → ~100 ticks
+export const PHASE_DIVISIONS = 24;      // phase snaps to a 15° grid (exact 45/90/180)
+
 export function lfoPrefix(lfoIdx: number): string { return 'lfo' + (lfoIdx + 1) + ':'; }
 
 /* Short display tag for a target component (matches the schwung-side idea of a

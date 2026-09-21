@@ -62,7 +62,7 @@ import { schwungGridMode, schwungPageFor } from '../renderer/schwung-grid.js';
 import { modulatedKeysOf } from './modulated-keys.js';
 import { automationFor } from './automated-keys.js';
 import type { SchwungPage } from '../renderer/schwung-page.js';
-import { isMovyOwnComponent, isMasterComponent, isSendComponent, isVirtualPageComponent } from '../chain/config.js';
+import { isMasterComponent, isSendComponent, isVirtualPageComponent } from '../chain/config.js';
 
 /* A master, send or VIRTUAL component is not track-scoped: it rides on slot 0
  * as a carrier the way `componentPort` (or, for a virtual component,
@@ -190,9 +190,6 @@ export function pageOwnerOf(model: any): PageOwner {
 
     const mode = schwungGridMode();
     if (mode !== 'page') return movyOwner(ref, model, 'mode=' + mode);
-    if (isMovyOwnComponent(ref.componentKey)) {
-        return movyOwner(ref, model, 'movy-page ck=' + ref.componentKey);
-    }
     return delegateOwner(ref, schwungPageFor(ref.track, ref.componentKey, modulatedKeysOf,
                                              automationFor),
                          movyOwner(ref, model, ''));

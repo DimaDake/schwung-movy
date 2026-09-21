@@ -155,6 +155,11 @@ await esbuild.build({
         resolve(root, 'src/mixer/mix-cells.ts'),
         resolve(root, 'src/mixer/mix-io.ts'),
         resolve(root, 'src/mixer/mix-model.ts'),
+        /* MIX's virtual-component source (SP-55) — an entry point for the
+         * same reason as Clip/Set/Step Params: the logic suite drives the
+         * synthesised contract and the read-modify-write directly. */
+        resolve(root, 'src/mixer/mix-apply.ts'),
+        resolve(root, 'src/mixer/mix-schwung-cells.ts'),
         resolve(root, 'src/mixer/track-volume.ts'),
         resolve(root, 'src/mixer/track-mutes.ts'),
         resolve(root, 'src/mixer/pad-mutes.ts'),
@@ -213,6 +218,9 @@ await esbuild.build({
         resolve(root, 'src/chain/config.ts'),
         resolve(root, 'src/lfo/params.ts'),
         resolve(root, 'src/lfo/model.ts'),
+        /* The LFO page's virtual-component source (SP-55) — same reason as
+         * MIX's above: the logic suite drives it directly. */
+        resolve(root, 'src/lfo/lfo-schwung-cells.ts'),
         resolve(root, 'src/lfo/assign.ts'),
         resolve(root, 'src/lfo/assign-mode.ts'),
         resolve(root, 'src/lfo/scope.ts'),

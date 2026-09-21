@@ -26,8 +26,9 @@ import { componentPort } from '../track/registry.js';
 import { schwungLibAvailable } from './schwung-lib.js';
 import { schwungFloorMetOnce } from './schwung-floor.js';
 import { flagValue } from '../seq/flags.js';
-import { isVirtualPageComponent } from '../chain/config.js';
+import { isMovyOwnComponent, isVirtualPageComponent } from '../chain/config.js';
 import { virtualSourceFor } from '../seq/virtual-page-sources.js';
+import { ownComponentSourceFor } from '../chain/own-component-source.js';
 import { mlog } from '../log.js';
 
 export type SchwungGridMode = 'off' | 'page';
@@ -137,9 +138,16 @@ export function schwungPageFor(trackIndex: number, componentKey: string,
          * only because `trackIndex` is already the fixed carrier `pageRefOf`
          * hands a non-track component (master/send/virtual —
          * `app/page-owner.ts`), not the active track. */
+        /* MIX/LFO (SP-55) have a real port but no per-cell engine keys that
+         * line up with Schwung's flat namespace (see `isMovyOwnComponent`'s
+         * own comment in chain/config.ts) — resolved before `componentPort`
+         * for the same reason a virtual component is: there is a translation
+         * to do that a bare port cannot do for itself. */
         const source = isVirtualPageComponent(componentKey)
             ? virtualSourceFor(componentKey)
-            : componentPort(trackIndex, componentKey);
+            : isMovyOwnComponent(componentKey)
+                ? ownComponentSourceFor(trackIndex, componentKey)
+                : componentPort(trackIndex, componentKey);
         if (!source) return pages.get(id) ?? deadPage(componentKey);
         p = createSchwungPage(source, componentKey,
                               modulatedOf ?? null, automationOf ?? null, trackIndex);

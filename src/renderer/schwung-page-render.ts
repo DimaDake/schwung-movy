@@ -11,6 +11,7 @@ import type { AutomationView } from '../types/viewmodel.js';
 import { GRID_BODY_RECT } from './layout.js';
 import { decorationsFor } from './schwung-page-decorations.js';
 import { movyCtx } from './schwung-ctx.js';
+import { isLfoComponent } from '../chain/config.js';
 
 /* movy draws its own header, bank bar and footer; Schwung is asked for the
  * widgets between them.
@@ -73,8 +74,17 @@ export function createPageRender(ctl: any, deps: {
                 min, max,
                 type: m.type || (m.kind === 'enum' ? 'enum' : 'float'),
                 /* Same rule movy applies: a numeric range is automatable, a
-                 * door or a trigger is not. */
-                automatable: m.kind !== 'opaque' && !m.writeOnly && !m.readOnly
+                 * door or a trigger is not — EXCEPT the LFO page (SP-55): its
+                 * cells are real ranged params (so the generic rule below
+                 * would say yes) but the movy model has always answered
+                 * `automatable: false` for them (`lfo/inert.ts` — an LFO
+                 * modulating another LFO's own knob has no engine support).
+                 * `chain_params` carries no field schwung's own metaIndex
+                 * would read as an override (checked: `param_meta.mjs` has
+                 * no `automatable` key), so the component key is the one
+                 * signal available here, same test `isMovyOwnComponent` uses. */
+                automatable: !isLfoComponent(componentKey) && m.kind !== 'opaque'
+                             && !m.writeOnly && !m.readOnly
                              && typeof m.min === 'number' && typeof m.max === 'number',
             };
         },

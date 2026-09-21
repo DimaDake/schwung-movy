@@ -21,7 +21,7 @@ import { SEND_TOP_DB, VOL_TOP_DB, stepAmpDb } from './db-ladder.js';
 import { buildMixVM } from './mix-cells.js';
 import {
     FIELD_AT, LANE_RANGE, PAN_MAX, PAN_MIN, busOfField, defaultMix, fieldFrac,
-    packMixValue, readMix, writeMix, type MixFieldName, type MixVals,
+    mixGestureKey, packMixValue, readMix, writeMix, type MixFieldName, type MixVals,
 } from './mix-io.js';
 import { CONTINUOUS_TICK_FRAC } from '../model/constants.js';
 
@@ -64,8 +64,13 @@ export function createMixModel(track: number): Model {
     }
 
     /* One undo group per knob: the key has to survive every detent of a turn
-     * and close only on release. */
-    function gestureKey(k: number): string { return 'mix:' + track + ':' + FIELD_AT[k]; }
+     * and close only on release. Shared with the delegated-page setter
+     * (`mix-apply.ts`, SP-55) so a turn started under Schwung and released
+     * after a mode flip — or vice versa — still closes the group it opened. */
+    function gestureKey(k: number): string {
+        const f = FIELD_AT[k];
+        return f === undefined ? 'mix:' + track + ':?' : mixGestureKey(track, f);
+    }
 
     function edit(k: number, delta: number): void {
         const field = FIELD_AT[k];

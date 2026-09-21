@@ -165,7 +165,7 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | SP-52 | the master chain: MFX 1–4 and SEND 1–3 are on movy's renderer under every flag value. **FIXED, movy-side, 2026-09-20**: four defects, all in the seam between the INPUT half (already delegated) and the draw/poll half (never asked) — `schwungPageFor` now builds on `componentPort(trackIndex, componentKey)`, not `portFor(trackIndex)` (`renderer/schwung-grid.ts`); `pageRefOf` pins a master/send ref's track to a fixed carrier (0) instead of `appState.activeTrack.index`, which also fixes the per-track cache-id bug one layer up (`app/page-owner.ts`); `moduleGridOnScreen` answers session mode off `masterDetail`, not off `!sessionMode`, so the master DETAIL page now gets a body/chrome/poll from its own `masterPageOwner` (built off `masterModel()`, kept apart from the track's `pageOwner` so gating one component's refresh never reads another's delegation) (`app/page-poll.ts`, `app/tick.ts`); `modulatedKeysOf` reads `masterFxModels` for a `master_fx:` key instead of `trackModels[track]`, which held no such component and always answered unmodulated (`app/modulated-keys.ts`). No upstream PRs, matching the wave's own finding. Teeth: 4 targeted checks, each proven red with its fix reverted and green restored (`browser-test/logic/schwung-grid.mjs`, `tracks-refs.mjs`, `page-owner.mjs`, `set-session.mjs`). **Not yet covered**: a `page`-mode screenshot scene for a master FX/send page (all 177 existing baselines are track-scoped) and the device `sndlog`/probe read-back for the draw+poll half — named, not built, deferred to the wave's device agent (same as SP-42) | Sonnet | ✅ **movy-side, 2026-09-20** | 22 | — |
 | SP-53 | Set Params and Clip Params become a host-owned contract (the virtual-component seam). **BOTH HALVES SHIPPED, movy-side, 2026-09-20**: the seam (`PageParamSource`, `createVirtualSource`, `isVirtualPageComponent`, `pageOwnerForComponent`) wired end-to-end for **Clip Params and Set Params** — every cell declared native (no widget), delegated knob-turn/touch/release/click/back/jog, one writer per page (`applyClip*`/`applyTempoX100` etc.) shared by the delta path and the virtual source, `formatValue` exercised for TRANSPOSE's "n/a" and TEMPO's "EXT" suffix, `short_name` declared per cell after the FIRST baseline showed Schwung's own auto-abbreviator mangling a multi-word name into running letters ("Play Link" → "PLLINK", measured by eye, not assumed). Found and fixed along the way: LINK's write is throttled (`SETPARAM_THROTTLE_MS`, SU-13) and a test asserting the state synchronously between two turns with no release in between caught it — real gesture always brackets a turn with touch/release, so the fix is realism in the test, not a production bug (device tier below will confirm). Gates: `npm test` 0 failures (`browser-test/logic/clip-params-source.mjs` + `set-params-source.mjs`, teeth proven three ways — the array-shape bug, LAYOUT's live-option-list, and `short_name` — each reverted and watched red), `page-mode.mjs` 3 of 3 unchanged, `schwung-page-idle-cost.mjs` unmoved at 43/48, `screenshot.mjs` 179/179 (2 new `page`-mode scenes, reviewed by eye at 8×, not blessed blind). See `plans/sp-53-virtual-component-seam.md` | Sonnet | ✅ **movy-side, 2026-09-20** | 23 | — |
 | SP-54 | The step page: a contract that exists only while a step is held. **SHIPPED, movy-side, 2026-09-20, no device**: `STEP_PARAMS_COMPONENT` on the SAME virtual-component seam SP-53 built (`stepParamsSource()`, `seq/step-params-contract.ts`) — velocity/length/probability/condition/invert, delegated touch/turn exactly like Clip/Set Params (`applyStep*` in `step-edit.ts`, one writer, two callers). **Further native than SP-53 could go**: LENGTH/PROBABILITY/CONDITION already had a fixed label array, so all three are plain Schwung enums with no widget at all — only VELOCITY loses its `vbar` picture (a stated follow-up), a correction of the ledger's own assumption below that these five "are the page". **The lifetime claim verified, not just trusted**: `createVirtualSource` stays a singleton (cheap either way); what actually needs a per-hold reset is the cached `SchwungPage`'s controller (touch-claim timers, an open enum peek), dropped by a new surgical `schwungGridDrop(track, componentKey)` (`schwung-grid.ts`) — NOT the coarse `schwungGridReload(track)`, which would evict a co-located real module sharing the same fixed carrier and force an unrelated re-plan on every step release. Hooked into BOTH `onSessionEnd` (happy-path release) and `resetStepPage` (the lost-release recovery path `app/input-reset.ts` already runs on tool-open/Leave-Movy) — non-latching by construction, proven by removing each hook independently and watching a dedicated identity check redden. **The re-plan cost question the entry below raised is MOOT for this route**: a virtual component is its own tiny cache entry, independent of whatever module is loaded on the track, so "measure it on minijv" does not apply — that caveat is about route 1 (folding into the module's OWN hierarchy), which this does not do. **One real upstream-shaped hazard found and fixed on the movy side**: `param_meta.mjs`'s `learnEnumWireFormat` latches "this plugin writes NAMES" the first time a read matches one of its own option LABELS — LENGTH's options include bare numerals ("1".."16"), so index 3 ("1/4") read back as the string "3", which is also option 7's label, and latched name-mode for the rest of the session (every enum cell showed the wrong option after that first read). Fixed by declaring `wire_format: 'index'` on every enum cell in `createVirtualSource` — pinned, not learned, for all three virtual components' enums, not a LENGTH-specific patch. PROB additionally needed its wire index REVERSED (`schwung's CW always increases the index`; `PROB_VALUES` is stored descending to match the delta path's own "CW raises probability" math) or a delegated CW turn would have lowered probability. Gates: `npm test` 0 failures (`browser-test/logic/step-params-source.mjs`, teeth: both drop hooks reverted independently and watched the lifecycle test redden), `page-mode.mjs` 3 of 3 unchanged (the one step-hold label there never selects the step page), `schwung-page-idle-cost.mjs` unmoved at 43/48 (the step-params owner is only ever asked for while a step is held+selected, so idle pays nothing by construction), `screenshot.mjs` 180/180 (1 new `page`-mode scene, `page_stepparams`, reviewed by eye). `hiddenDuringHold`/SP-33/SP-35 confirmed unaffected — a different render branch entirely, never touched. `step-edit.ts` grew from a pre-existing 345 lines (already over the 200-line cap before this item) to 377 — the SAME kind of named, deliberate exception `app-loop.mjs` carries; splitting it is a follow-up, not done here. See `plans/sp-54-step-page-contract.md` | Sonnet | ✅ **movy-side, 2026-09-20** | 24 | — |
-| SP-55 | **NEW** — MIX and the two LFO pages: they have a port and a key, and are refused delegation by name. The easiest of the wave | Sonnet | ⬜ | 25 | — |
+| SP-55 | MIX and the two LFO pages: they have a port and a key, and are refused delegation by name | Sonnet | ✅ | 25 | — |
 | SP-56 | **NEW** — Settings, CPU and Backups: a scope decision, not a build | Opus | ⬜ | 26 | — |
 | SP-21 | Metadata correction overlay | Sonnet | ❌ **dropped** — the audit found 1 real correction in 555 | — | — |
 | SP-22 | Cut-curve viz kind | Sonnet | ❌ **dropped** — a movy extension; Schwung draws plain dials natively | — | — |
@@ -2250,6 +2250,80 @@ an LFO target cell reads its resolved name; `off` is unchanged; a `page`-mode
 scene covers each of the three.
 
 **Needs:** SP-53 (`formatValue` and the widget route are established there).
+
+**Resolution, 2026-09-21 — done, "easiest case" was wrong, and it was wrong
+usefully.** Full writeup: `plans/sp-55-mix-and-lfo-pages.md`. Summary:
+
+**Checked against the engine boundary before writing code, and the carried
+claim ("real ports already satisfy `PageParamSource`") did not hold for
+either page** — for two different reasons, not one:
+
+- MIX has no per-field engine key at all. The engine parses
+  `gain,pan,muted,send1..sendN` as ONE composite param (confirmed in
+  `engine/crates/movy-dsp/src/lib.rs` — `rest == "mix"` is caught before it
+  reaches the chain instance), so a bare `componentPort` cannot answer
+  `mix:gain` — nothing anywhere parses that key.
+- The LFO's fields ARE individually real (`lfo1:rate_hz`, confirmed
+  forwarded straight to the schwung chain host's own plugin instance, not
+  intercepted by movy's Rust engine) — but Schwung's contract wants ONE
+  flat per-component namespace, and the model shows TWO banks of the same
+  8 knob positions, which a bare port has no way to translate.
+
+**So both pages needed a source, built with the SAME `createVirtualSource`
+machinery SP-53 built** (`chain/own-component-source.ts` routes `mix` to
+`mixer/mix-schwung-cells.ts`, either LFO key to `lfo/lfo-schwung-cells.ts`)
+— just with cells whose `get()`/`set()` close over the REAL port
+(`portFor`/`hostPort`) instead of `seqState`. `isMovyOwnComponent` is kept,
+not deleted: it is now the ROUTING signal `schwungPageFor` asks (alongside
+`isVirtualPageComponent`) before falling through to a bare `componentPort`,
+rather than the refusal `app/page-owner.ts` used to apply — a repurposing
+the function's own comment now states explicitly. What WAS right in the
+carried note: neither page needed `seqState`, and RATE's dual shape (Hz vs
+a division index, depending on the live `sync` flag) needed no
+`VirtualCellSpec.type`-as-function extension — a fixed `enum` whose
+`options()` swaps the label list is the SAME dynamic-options precedent Set
+Params' LAYOUT already established, just applied to a harder case.
+
+**`formatValue` on the LFO target cell — deviated from the ledger's own
+suggestion, deliberately.** The target is a plain `enum` whose OPTION
+LABELS are already the resolved "Comp:Param" text (`buildTargetOptions`),
+so it prints correctly with no extra hook — more consistent with the
+LAYOUT precedent than adding a second mechanism for the same job.
+
+**One real fix outside the two new source files:**
+`renderer/schwung-page-render.ts`'s `knobParamInfo` computed
+`automatable` generically from a numeric range, which would have made
+every LFO knob accept a hold-to-modulate lane that `off` has never
+offered (`lfo/inert.ts`). Forced false for `isLfoComponent`, proven by
+removing the clause and watching `own-component-source.mjs`'s automation
+check redden, then restoring it.
+
+**Two pre-existing `app-loop.mjs` checks needed fixing, not listing as
+expected failures** — both because a page that used to be permanently
+un-delegated is now a real Schwung page with real state: a bank-index
+check read through `model.getKnobPage()` (correctly inert under
+delegation — the jog now moves Schwung's own page index) instead of
+`pageOwnerOf(...).pageIndex`; and a Back-press check landed on Schwung's
+own transient enum "peek" panel (`ENUM_PEEK_MS = 1500`, wall-clock;
+`page_input.mjs`'s `dismissPeek()` runs ahead of `exit` in the library's
+own Back ladder — deliberate upstream behaviour, not a bug) — fixed by
+aging the mocked clock past it before a single press, the same technique
+this file's own hold-knob test already uses.
+
+**Gates:** `SCHWUNG=../schwung npm test` 0 failures. `page-mode.mjs` 3 of 3
+expected failures, unchanged. `schwung-page-idle-cost.mjs` 43 ≤ 48,
+unchanged. `screenshot.mjs` 180/0, no diffs.
+
+**What no device has confirmed:** all of the above — MIX's linear-vs-dB
+knob feel under delegation (SU-9/13 posture, not fixed), the LFO cell's
+per-field read cost against a real port (no `bulkReads`/`getMany`
+batching built this pass — bounded to "one real call per field per
+Schwung rotation slot", not measured on device), and whether
+`ENUM_DELTA_DIV=4` (Schwung) vs movy's `DETENT_DIV=8` or the two-way-latch
+toggle gap (both carried from SP-54) are noticeable on RATE/TARGET/MODE/
+SHAPE (enums) or SYNC/RETRIGGER (toggles) under a real hand. No `page`-mode
+screenshot scene added for MIX or either LFO page — visual review
+deferred, same posture as SP-53's LENGTH/TRANSPOSE restyle deferral.
 
 ---
 

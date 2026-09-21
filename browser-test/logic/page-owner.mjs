@@ -376,14 +376,15 @@ const { modulatedKeysOf } = await import('../../dist/esm/app/modulated-keys.js')
     setSchwungGridMode('off');
 }
 
-/* ── movy's own pages are never claimed ───────────────────────────────────── */
+/* ── movy's own pages ARE now claimed under PAGE (SP-55) ─────────────────── */
 {
-    _log('\nlogic: movy\'s own pages are never claimed, whatever the mode');
+    _log('\nlogic: movy\'s own pages (mix, the two LFOs) are routed, not refused (SP-55)');
 
-    /* The mix page and the two LFO pages are movy's, not a module's declared
-     * contract — there is nothing for a planner to plan. They were claimed
-     * before this item: a controller was built for each and its contract never
-     * resolved, so the ANSWER was right by accident and the cost was real. */
+    /* `isMovyOwnComponent` is a ROUTING signal now, not a refusal: MIX and the
+     * two LFO pages have a real port but no per-cell engine keys Schwung's
+     * flat namespace can use directly (`chain/config.ts`'s own comment on the
+     * function), so `schwungPageFor` builds a translating source for them
+     * instead of a bare `componentPort` — see `own-component-source.ts`. */
     ok('mix is movy\'s own', isMovyOwnComponent('mix'));
     ok('the track LFO page is movy\'s own', isMovyOwnComponent('lfo'));
     ok('the master LFO page is movy\'s own', isMovyOwnComponent('master_lfo'));
@@ -393,16 +394,18 @@ const { modulatedKeysOf } = await import('../../dist/esm/app/modulated-keys.js')
 
     /* PAGE is only reachable with the library: `schwungGridMode` pins itself to
      * 'off' when param_pages cannot load, so without a SCHWUNG checkout the
-     * override below answers 'mode=off' and these two say nothing about the
-     * rule. Skipped, not failed — the standing contract for every Schwung
-     * assertion in the local suites (movy/CLAUDE.md). */
+     * override below answers 'mode=off' and this says nothing about the rule.
+     * Skipped, not failed — the standing contract for every Schwung assertion
+     * in the local suites (movy/CLAUDE.md). */
     if (!schwungLibAvailable()) {
         _log('  (the PAGE half SKIPPED — no param_pages; set SCHWUNG=)');
     } else {
         setSchwungGridMode('page');
         const o = pageOwnerOf({ getComponentKey: () => 'mix' });
-        eq('a movy page is not claimed under PAGE', o.claimed, false);
-        eq('and the log says which component it kept', o.reason, 'movy-page ck=mix');
+        ok('a mix page IS claimed under PAGE', o.claimed);
+        ok('and it settles delegated (the source planned a page)', o.delegated);
+        eq('the log names the component it delegated', o.reason,
+           'ok track=0 ck=mix pages=1 at=0');
         setSchwungGridMode('off');
     }
 }

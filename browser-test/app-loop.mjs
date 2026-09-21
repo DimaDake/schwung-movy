@@ -1507,7 +1507,26 @@ _log('\napp-loop: the master chain reaches its LFO page');
     eq('a master LFO knob writes the namespaced key', env.params['master_fx:lfo1:polarity'], '1');
     eq('and not the track form', env.params['lfo1:polarity'], undefined);
 
+    /* Under `page` (SP-55) the turn just above opened Schwung's own transient
+     * "peek" panel for the enum cell it landed on, and the library's own Back
+     * ladder takes that layer down FIRST (`page_input.mjs`'s `dismissPeek()`,
+     * ahead of `exitMenu`/`exit` — "Back here means I have read it, go away",
+     * same one-layer-at-a-time rule the picker and an entered menu follow).
+     * A real gesture is never this fast on the peek's own heels, so a second
+     * press — not a wait — is what a user's next Back would be. */
+    /* Under `page` (SP-55) the turn just above opened Schwung's own transient
+     * "peek" panel for the enum cell it landed on (`page_controller.mjs`'s
+     * `ENUM_PEEK_MS = 1500`, wall-clock) — Back's own ladder takes that layer
+     * down FIRST (`page_input.mjs`'s `dismissPeek()`, ahead of `exit` —
+     * "Back here means I have read it, go away", the same one-layer-at-a-time
+     * rule the picker and an entered menu follow). A real gesture is never
+     * this fast on the peek's own heels, so age the mocked clock past it
+     * rather than pressing Back twice — same technique the hold-knob test
+     * below uses for its own wall-clock gesture. */
+    const realNow = Date.now;
+    Date.now = () => realNow() + 1600;
     sendMidi([0xB0, globalThis.MoveBack, 127]);
+    Date.now = realNow;
     eq('Back returns to the master grid', appState.masterDetail, false);
 }
 
@@ -1701,9 +1720,15 @@ _log('\napp-loop: LFO chain slot reachable + drill');
     eq('LFO jog-click drills to VIEW_KNOBS', appState.currentView, VIEW_KNOBS);
     eq('active model is the LFO', appState.trackModels[0][4].getComponentKey(), 'lfo');
 
-    // Jog in detail scrolls banks LFO1↔LFO2.
+    // Jog in detail scrolls banks LFO1↔LFO2. Read back through the OWNER
+    // (`shownPage`), not `model.getKnobPage()` directly: under `page` (SP-55)
+    // the jog moves SCHWUNG's own page index and the movy model's bank
+    // counter is correctly inert (same reason a real module's own bank index
+    // is never consulted for drawing under delegation — schwung-grid.ts's
+    // own header). `shownPage` falls back to `getKnobPage()` under `off`, so
+    // this assertion is mode-agnostic.
     sendMidi([0xB0, 14, 1]); advance(1);
-    eq('detail jog scrolls to LFO 2', appState.trackModels[0][4].getKnobPage(), 1);
+    eq('detail jog scrolls to LFO 2', shownPage(appState.trackModels[0][4]), 1);
 
     // Shift+jog-click on the LFO chain page also drills (no browser to swap).
     appState.currentView = VIEW_CHAIN;

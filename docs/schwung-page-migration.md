@@ -153,7 +153,7 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | SP-32 | a bank or cell that exists only in movy's config is on no page under `page`: audit before SP-30 flips the default. **The route is the hierarchy movy already returns** — see The injection surface §2 | Sonnet | ⬜ | 9 | — |
 | SP-42 | a .wav has no waveform: **two independent defects**, not the one the headline named — the IO was never registered (`wav_io_qjs.mjs` unimported), and even registered, nothing ever advanced the resumable peak job (movy's own tick loop never called `ctl.vizGroups()`/`wavPeaksTick`, only Schwung's own host did). Both fixed: the ladder now imports `wav_io_qjs.mjs`/`wav_peaks.mjs`/`viz.mjs` (`schwung-lib.ts`), and a new `schwung-page-sample.ts`'s `advanceSample` runs after `ctl.tick()` in `schwung-page-contract.ts`, mirroring `shadow_ui_param_pages.mjs`'s block exactly. **Device tier not yet run** — deferred to the wave's device agent; the recipe is in this entry | Sonnet | ✅ **movy-side, 2026-09-20** | 10 | — |
 | SP-45 | 8w8's pads do not select their pages; the other three racks' do. **DIAGNOSED, STILL OPEN, not what anyone predicted**: on device, all four racks' `probe.page().cells` follow every pad correctly RIGHT NOW — but disabling `focusVoice` entirely changes nothing, while disabling movy's own `selectBankForPad` breaks the follow on all four. The probe is proven blind to Schwung's own page cursor (`ctl.pageIndex`, read via the `schwung-body ok…at=` log) — it never advanced across 16 presses on 8w8/9w9/cw78 in the SAME run where it advanced once on 6w6, using unmodified code. No fix shipped — see the entry | Sonnet | 🔨 **diagnosed, blocked on real-screen ground truth** | 11 | — |
-| SP-44 | **NEW** — knob 1 changes presets with no click first (feature) | Sonnet | ⬜ | 13 | — |
+| SP-44 | knob 1 changes presets with no click first (feature). **Host-side route found and shipped, 2026-09-21**: not `onKnobTurn` (SU-9 correctly ruled that out — a preset door has no page keys, so `keyAt` always returns null), but `ctl.enterMenu()` + `ctl.onJog()`, composed with `list_knob.mjs`'s own feel (imported wholesale into `schwung-lib.ts`, not restated). See SU-9's row, now corrected | Sonnet | ✅ **movy-side, 2026-09-21** | 13 | — |
 | SP-46 | **NEW** — a lone attack/decay has no graphic (against the acceptance bar, by request). **Does not wait on SU-10**: `vizOverrides` + movy's own widget registry is a host-side route — see The injection surface §1 | Sonnet | ⬜ | 14 | — |
 | SP-16 | Cause G — graphics return (**shrunk: upstream fixed the hard half**) | Sonnet | 🔨 **movy half done** 2026-09-18; floor bump waits on #509 | 15 | — |
 | SP-21a | Report po32-drum's `kit` range upstream (the 1) | Sonnet | ⬜ | 16 | — |
@@ -183,7 +183,7 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | SU-6 | The 15-vs-16 widget band that offsets label rows by one row | ⬜ open, cosmetic |
 | SU-7 | `io.getParams(keys)` — an optional BULK read | ❌ **moot** — SP-26 solved it caller-side with no library change |
 | SU-8 | A per-cell channel for "this parameter is AUTOMATED" and "this cell cannot take a lock" — distinct from `locked` (a held step's lock) and from `isModulated` (the tilde) | ⬜ **new, and no longer conditional — both deciders have ruled.** SP-35 put the "cannot take a lock" half in movy's own chrome at the gesture (a toast), and SP-36 shipped the automated half **through `isModulated`**, i.e. wearing the tilde. So what is left for upstream is exactly the GRAMMAR: a lane and an LFO now draw the same mark, and a parameter that is both says it once. The ask is one bit per cell (`decorations[slot].automated`, beside `locked`) plus the 2×2 mark `render_page_movy.mjs` already has the corner for — not a second renderer, and not a value channel: movy already answers the value through `:effective` |
-| SU-9 | A knob drives a door page's list, with `list_knob.mjs`'s feel | ⬜ **new, likely** — SP-44; the list, its length and its commit path are the door's, and movy must not restate them. **No host-side route exists** — the feel constants are `export const` and `onKnobTurn` takes a direction, not a magnitude (The injection surface §4) |
+| SU-9 | A knob drives a door page's list, with `list_knob.mjs`'s feel | ❌ **refuted, 2026-09-21 — a host-side route DOES exist, just not through `onKnobTurn`.** *The injection surface* §4 was right that `onKnobTurn` takes a direction and the feel constants are unwritable `export const`s — but `onKnobTurn` was never reachable here anyway: `keyAt(slot)` returns null for a `PAGE_PRESET` page (no page keys), so it bails at the top whichever door owns the fix. The route SP-44 shipped is a DIFFERENT pair, both already public on the controller's return object: `ctl.enterMenu()` (auto-enter, no click) and `ctl.onJog(dir)` (already the door's own preset-stepping path, entered) — composing them reaches the list, its length (read through movy's own already-injected `getParam`, not a second source) and its commit path (`stepPreset`, untouched) without restating any of the three. The residual `export const` problem is real but moot for THIS ask: `list_knob.mjs` is a pure, dependency-free module movy can import wholesale (one more of the ten `param_pages` modules `schwung-lib.ts` already dynamically imports), so the unwritable constants are simply used as shipped, the same file Schwung's own `shadow_ui.js` imports for its filepath browser knob. **No residue is left open by this ask** — closed by SP-44, not standing as a future upstream item. Verified against `origin/main` (not device — the box was not used for this item) |
 | SU-10 | A viz kind for a LONE envelope stage (attack only, decay only) | ⬜ **new** — SP-46; take the fleet count with the ask, the way SP-22's drop was measured. **Not blocking**: SP-46 can ship on `vizOverrides` first, so the ask can be made against a widget that already draws (The injection surface §1) |
 | SU-11 | A per-key duration in the animation store, so `settled` ages out a value that never rests | ⬜ **new** — SP-48 shipped the movy-side repaint cap fallback instead (2026-09-20); this ask is written (SP-48's own writeup has the PR-ready text) but **not yet filed** as a branch/PR, same as SU-9/SU-10/SU-12/SU-13. Not blocking anything — the cap makes no assumption that survives this landing later |
 | SU-12 | A caller-supplied trailing page of kind `knobs`, not only `menu` — so movy's own pages can join a module's page set | ⬜ **new, expected to close without work.** `buildTrailingPages` hard-codes `kind: PAGE_MENU` (`page_plan.mjs:381`), so appending a KNOB page is upstream — but movy already owns the contract string, and folding the page into that is the host-side route (SP-54, route 1). Open this only if the fold is measured too expensive |
@@ -577,7 +577,7 @@ previous "this needs upstream" in this file has cost a release cycle.
 | 6 | on a drum track, switching page by pressing a PAD is noticeably slower than movy's pages (check forge, on a page that supports switching) | SP-39 | ✔ |
 | 7 | no waveform for a selected .wav in a parameter page | SP-42 | — |
 | 8 | on the preset selector page the first jog click focuses the page (correct); the second jumps to the MAIN page to the right | SP-43 ❌ **dropped** — Schwung's documented design, refuted 2026-09-20; the want is served by SP-44 | — |
-| 9 | feature: knob 1 should change presets with no jog click to focus first | SP-44 | — |
+| 9 | feature: knob 1 should change presets with no jog click to focus first | SP-44 ✅ **closed 2026-09-21** — `enterMenu()`+`onJog()`, not `onKnobTurn`; see SU-9 | — |
 | 10 | pad page selection does not work for **8w8**; it works for the other xwx modules | SP-45 | — |
 | 11 | no single attack / single decay visualisations | SP-46 | — |
 | 12 | remove the `body` option: a two-value flag, MOVY and SCHWUNG, visible to users next release | SP-40 + SP-47 | ✔ |
@@ -1175,31 +1175,63 @@ reusable fixture for it.
 
 ---
 
-### SP-44 — knob 1 should change presets with no click first
+### SP-44 ✅ — knob 1 should change presets with no click first, 2026-09-21
 
 **Product.** A feature request: on the preset page, turn knob 1 and the preset
 changes — no jog click to focus the page first. One gesture instead of two, for
 the thing people do most on that page.
 
-**Design & implementation.** Do NOT write a stepper for this. Upstream already
-has `list_knob.mjs` (present in v1.4.0), whose entire subject is that a knob and
-a jog are not the same input: `DETENTS_PER_ENTRY = 6` for a deliberate turn, and
-a length-aware acceleration ceiling so a 519-entry list is crossable and a
-6-option enum does not jump. A movy-side stepper would be a second copy of a
-feel that has been calibrated against the real fleet, and it would drift.
+**The central question this entry opened with — is `onKnobTurn` the route —
+was answered "no," and SU-9 recorded that answer as "no host-side route
+exists." That second half was wrong.** `onKnobTurn` really does bail
+immediately: `keyAt(slot)` returns null for a `PAGE_PRESET` page (it has no
+`p.keys`, so `pageHasKnobs` is false), true whether or not the door is
+entered. But the controller exposes a second pair on its return object, both
+already public and already used by the controller itself outside the click
+ladder: `ctl.enterMenu()` (called from `restorePage` under a condition) and
+`ctl.onJog(dir, {shift})`, whose entered-`PAGE_PRESET` branch already calls
+`stepPreset` — flush pending writes, write the list index, re-read the name,
+arm the contract re-read. Composing the two — auto-enter, then drive
+`onJog` — reaches the list, its length and its commit path without restating
+any of them: length is read through `port.getParam(qualify(countParam))`,
+the SAME injected hook that already answers every read the controller makes,
+and the commit path is 100% `stepPreset`, untouched.
 
-The open question is whether the controller already accepts a knob turn on a
-door page. `onKnobTurn` starts at `keyAt(slot)` and returns immediately when the
-slot has no key, and a preset door's knob list is not its page keys — so the
-likely answer is "no, and the routing is the ask". If so this is an **upstream**
-request (SU-9) rather than a movy patch: the door page knows its list, its
-length and its commit path, and none of those should be restated in movy. Read
-`page_input.mjs` and the LAYOUT_LIST path first — a knobs-as-list page exists
-upstream, and the feature may be one layout call away.
+**What `onJog` does not have is a knob's feel** — it moves exactly one entry
+per call, calibrated for a jog detent, and applying that 1:1 to a knob's
+dozens-of-detents-per-flick is precisely the "way too fast" problem
+`list_knob.mjs`'s own opening comment names. So the feel is not rebuilt:
+`list_knob.mjs` (pure, no imports of its own) is imported wholesale as an
+eleventh `param_pages` module in `schwung-lib.ts` — the same file Schwung's
+own `shadow_ui.js` imports for its filepath browser knob — and its
+`listKnobStep(state, delta, nowMs, length)` decides how many `onJog` calls one
+knob-turn event is worth.
+
+**Precedent for this shape of fix already existed in this file**:
+`focusVoice()` translates a pad press into `ctl.goToPage()` + a param write,
+the same "host composes exposed, public primitives for a new physical
+gesture" pattern — not dual-driving (nothing here fights a decision the
+controller made on its own), and not restating (nothing here is a second copy
+of the list, the count, or the write sequence).
+
+**Shipped**: `src/renderer/schwung-page-input.ts`'s `knobTurn(slot, delta)`
+routes slot 0 (knob 1) through `turnPresetDoor()` when the current page is
+`PAGE_PRESET`, instead of the ordinary per-detent `onKnobTurn` loop. Scope is
+knob 1 only, per the product ask — other knobs on a preset door are
+unchanged. Teeth: `browser-test/logic/schwung-page.mjs`, reusing SP-43's
+`obxd` fixture (a real dumped module with a `PAGE_PRESET` root) — `goToPage`
+the door, tick until `tickPreset`'s read-every-third-tick cycle has read the
+count once, `knobTurn(0, 6)`, assert entered with no click and the index
+moved. Reverting the input-routing half alone and rebuilding reddened both
+new assertions ("expected true, got false", "expected a truthy value");
+restoring returned both to green. Gates: `SCHWUNG=../schwung npm test` 0
+failures, `page-mode.mjs` 3 of 3 unchanged, idle-cost bound unchanged at
+`43 <= 48` (the new import is load-time, not per-tick). No rendering touched,
+so no screenshot update. **Not run on device** — this item never needed the
+box, and it was not used.
 
 **Closes when:** knob 1 walks the preset list with `list_knob`'s feel and no
-click first, with the routing owned by whichever side of the boundary the read
-above says owns it.
+click first. Closed.
 
 **Needs:** nothing. After the release.
 

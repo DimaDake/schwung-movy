@@ -658,4 +658,47 @@ _log('\nTest: under `page` the plan is the module’s declaration, and nothing e
  * reads GRID_BODY_RECT straight from layout.ts and was never about
  * schwung-body.ts at all. */
 
+_log('\nTest: SP-44 — knob 1 walks a preset door with no click first');
+{
+    /* Reuses SP-43's fixture and reasoning (`plans/sp-43-second-click-leaves-
+     * preset-page.md` §4): `obxd`'s root level is a real dumped module with a
+     * PAGE_PRESET door (`list_param`/`count_param`), so the door's count comes
+     * from the same fixture data `stepPreset` itself reads on device, not a
+     * number this test invents. */
+    setSchwungGridMode('page');
+    schwungGridReload();
+    env.setParams(dumpFixture('obxd'));
+    schwungGridReload();
+    const { schwungLib } = await import('../../dist/esm/renderer/schwung-lib.js');
+    const lib = schwungLib();
+    const pg = schwungPageFor(0, 'synth');
+    for (let i = 0; i < 12 * 60 && !pg.ready; i++) pg.tick();
+    ok('obxd resolved', pg.ready);
+
+    const presetIdx = pg.ctl.pages.findIndex((p) => p.kind === lib.PAGE_PRESET);
+    ok('the fixture has a preset door', presetIdx >= 0);
+    pg.ctl.goToPage(presetIdx);
+    /* `tickPreset` cycles count/list/name across three ticks (`read % 3`) —
+     * give it enough to have read the count at least once, or `stepPreset`
+     * bails on `st.count <= 0` and the turn would look inert for a reason
+     * that has nothing to do with the route under test. */
+    for (let i = 0; i < 5; i++) pg.tick();
+    eq('not entered yet', pg.ctl.menuEntered(), false);
+
+    const before = pg.ctl.state.preset[pg.ctl.page.name]
+        ? pg.ctl.state.preset[pg.ctl.page.name].index : 0;
+    /* One CC's worth of raw detents — well under DETENTS_PER_ENTRY (6), so a
+     * single call proves entry+route without depending on the acceleration
+     * ceiling, which is a separate, already-imported feel this test does not
+     * re-derive. */
+    pg.knobTurn(0, 6);
+    eq('the first knob turn enters the door with no click', pg.ctl.menuEntered(), true);
+    const after = pg.ctl.state.preset[pg.ctl.page.name].index;
+    ok('...and the preset index moved', after !== before);
+
+    schwungGridReload();
+    setSchwungGridMode(null);
+    env.setParams(MOCK_SYNTHS.test16);
+}
+
 }

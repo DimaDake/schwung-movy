@@ -80,6 +80,7 @@ import { run as run_mixer } from './logic/mixer.mjs';
 import { run as run_pan_viz } from './logic/pan-viz.mjs';
 import { run as run_clip_params_source } from './logic/clip-params-source.mjs';
 import { run as run_set_params_source } from './logic/set-params-source.mjs';
+import { run as run_step_params_source } from './logic/step-params-source.mjs';
 import { run as run_env_identity } from './logic/env-identity.mjs';
 
 /* Awaited one at a time: the suites share the mock device globals, and the
@@ -163,6 +164,7 @@ const SUITES = [
     run_pan_viz,
     run_clip_params_source,
     run_set_params_source,
+    run_step_params_source,
 ];
 
 /* Between suites, back to the world movy boots in: no Set has said yet which

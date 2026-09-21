@@ -11,12 +11,14 @@
  */
 
 import type { PageParamSource } from '../renderer/schwung-page-source.js';
-import { CLIP_PARAMS_COMPONENT, SET_PARAMS_COMPONENT } from '../chain/config.js';
+import { CLIP_PARAMS_COMPONENT, SET_PARAMS_COMPONENT, STEP_PARAMS_COMPONENT } from '../chain/config.js';
 import { clipParamsSource } from './clip-params-contract.js';
 import { setParamsSource } from './set-params-contract.js';
+import { stepParamsSource } from './step-params-contract.js';
 
 export function virtualSourceFor(componentKey: string): PageParamSource | null {
     if (componentKey === CLIP_PARAMS_COMPONENT) return clipParamsSource();
     if (componentKey === SET_PARAMS_COMPONENT) return setParamsSource();
+    if (componentKey === STEP_PARAMS_COMPONENT) return stepParamsSource();
     return null;
 }

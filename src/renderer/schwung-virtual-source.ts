@@ -82,6 +82,20 @@ export function createVirtualSource(componentKey: string,
             if (c.shortName) entry.short_name = c.shortName;
             if (c.type === 'enum') {
                 entry.options = (typeof c.options === 'function' ? c.options() : c.options) ?? [];
+                /* PINNED, never LEARNED. `param_meta.mjs`'s `learnEnumWireFormat`
+                 * latches "this plugin writes NAMES" the first time a read's raw
+                 * string happens to equal one of its OWN option labels — and an
+                 * index-addressed cell (every one of ours, by construction: see
+                 * `VirtualCellSpec.options`'s own doc) can trip that by accident
+                 * whenever an option's TEXT looks like another option's INDEX.
+                 * SP-54's LEN is the first real case: index 3 ("1/4") reads back
+                 * as the string "3", which is ALSO the label of index 7 ("3"
+                 * bars) — so the first read latched name-mode and every cell
+                 * after showed the wrong option forever. `wire_format` is read
+                 * before the guess (`learnEnumWireFormat`'s first check), so
+                 * declaring it here is not a workaround for one cell, it removes
+                 * the ambiguity for every enum this seam will ever add. */
+                entry.wire_format = 'index';
             } else {
                 if (c.min !== undefined) entry.min = c.min;
                 if (c.max !== undefined) entry.max = c.max;

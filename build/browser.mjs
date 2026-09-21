@@ -322,6 +322,9 @@ await esbuild.build({
          * one-writer invariant directly, rather than folded into a chunk with
          * no `dist/esm/seq/clip-params-contract.js` to import. */
         resolve(root, 'src/seq/clip-params-contract.ts'),
+        /* The step page's virtual-component contract (SP-54) — an entry point
+         * for the same reason as its two siblings above. */
+        resolve(root, 'src/seq/step-params-contract.ts'),
         resolve(root, 'src/seq/drum-sync.ts'),
         resolve(root, 'src/seq/quant.ts'),
         resolve(root, 'src/seq/prefs.ts'),

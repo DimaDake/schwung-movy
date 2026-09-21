@@ -99,8 +99,13 @@ export function isMovyOwnComponent(componentKey: string): boolean {
  * this FIRST and builds a `PageParamSource` from `virtualSourceFor` instead. */
 export const CLIP_PARAMS_COMPONENT = 'clipparams';
 export const SET_PARAMS_COMPONENT = 'setparams';
+/* The held-step trig contract (SP-54) — velocity/length/probability/
+ * condition/invert live in the engine's held-trig mirror (`seqState.hold*`),
+ * never behind a port, exactly like Clip/Set Params' seqState fields. */
+export const STEP_PARAMS_COMPONENT = 'stepparams';
 export function isVirtualPageComponent(componentKey: string): boolean {
-    return componentKey === CLIP_PARAMS_COMPONENT || componentKey === SET_PARAMS_COMPONENT;
+    return componentKey === CLIP_PARAMS_COMPONENT || componentKey === SET_PARAMS_COMPONENT
+        || componentKey === STEP_PARAMS_COMPONENT;
 }
 
 /* A send bus is hosted by MOVY, not by schwung's master bus. It rides the master

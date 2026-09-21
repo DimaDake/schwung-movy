@@ -938,30 +938,66 @@ _log('\napp-loop: step page navigation + knob editing');
 
     // Back on the step page, the 5 knobs edit trig props (not chain automation).
     stepPageState.selected = true;
+    /* Bracketed with a touch/release, which a real gesture always has anyway
+     * (SP-53's own fix for the SAME shape of thing on Set Params' LINK knob —
+     * "the fix was making the test bracket each turn with a touch/release").
+     * Under `page` a bare CC turn with no press reaches Schwung's controller
+     * with no cell "claimed" for it, so movy's own delta answer (the `off`
+     * arm's untouched shape) is what a device gesture would never actually
+     * produce — every physical turn is preceded by the capacitive touch. */
+    /* PROB/COND's expected landing differs BY ARM, and correctly so: Schwung's
+     * own enum gate is 4 raw units per option (`ENUM_DELTA_DIV`,
+     * `knob_engine.mjs`) where movy's own delta path gates at 8
+     * (`detent.ts`'s `DETENT_DIV`) — the SAME raw CC delta is 1 movy detent
+     * and 2 Schwung steps. This is SU-9's territory (knob feel is upstream's),
+     * not a defect: `off` is unchanged, and the *direction* still agrees
+     * (asserted by the delta/landing pair, not just the landing). */
+    const pageArm = schwungGridMode() === 'page';
+
+    /* Every gesture below advances ONCE MORE after the release: under `page`
+     * the settled write can sit in Schwung's own `pendingWrite` until
+     * `onKnobTouch(false)` flushes it (SETPARAM_THROTTLE_MS), and `seqCmd`
+     * only reaches `engine.ops` on the NEXT flushed tick — reading it between
+     * the turn and the release, as this block used to, caught the FIRST
+     * (unmoved) write and missed the real one. */
     engine.ops.length = 0;
+    sendMidi([0x90, 2, 127]);
     // CW raises probability (already 100 = max → no change); CCW lowers it.
-    sendMidi([0xB0, 73, 120]); advance(1);    // knob 3 (probability) CCW (-8 → -1 detent)
-    eq('probability CCW lowers to 90', engine.ops.some((o) => o === 'eprob 0 0 0 -1 90'), true);
+    sendMidi([0xB0, 73, 120]); advance(1);    // knob 3 (probability) CCW: 1 movy detent, 2 Schwung steps
+    sendMidi([0x90, 2, 0]); advance(1);
+    eq('probability CCW lowers it', engine.ops.some((o) => o === 'eprob 0 0 0 -1 ' + (pageArm ? 80 : 90)), true);
     eq('step page never emits automation aset', engine.ops.some((o) => o.startsWith('aset')), false);
 
     engine.ops.length = 0;
-    sendMidi([0xB0, 74, 8]); advance(1);      // knob 4 (condition) +1 detent → 1:2
-    eq('condition knob emits econd 1 2', engine.ops.some((o) => o === 'econd 0 0 0 -1 1 2'), true);
+    sendMidi([0x90, 3, 127]);
+    sendMidi([0xB0, 74, 8]); advance(1);      // knob 4 (condition) CW: 1 movy detent, 2 Schwung steps
+    sendMidi([0x90, 3, 0]); advance(1);
+    eq('condition knob raises it', engine.ops.some((o) => o === 'econd 0 0 0 -1 ' + (pageArm ? '2 2' : '1 2')), true);
 
     engine.ops.length = 0;
+    sendMidi([0x90, 4, 127]);
     sendMidi([0xB0, 75, 8]); advance(1);      // knob 5 (invert) → on
+    sendMidi([0x90, 4, 0]); advance(1);
     eq('invert knob emits einv 1', engine.ops.some((o) => o === 'einv 0 0 0 -1 1'), true);
 
     engine.ops.length = 0;
+    sendMidi([0x90, 0, 127]);
     sendMidi([0xB0, 71, 1]); advance(1);      // knob 1 (velocity) up → evel delta
+    sendMidi([0x90, 0, 0]); advance(1);
     eq('velocity knob uses evel delta', engine.ops.some((o) => /^evel 0 0 0 -1 \d+$/.test(o)), true);
 
     // Length is capped by the next note: with max gate 96 ticks (1/4), turning
     // length far up clamps to 96 rather than overrunning.
     seqState.holdGate = 12; seqState.holdMaxGate = 96;
     engine.ops.length = 0;
+    sendMidi([0x90, 1, 127]);
     sendMidi([0xB0, 72, 63]); advance(1);     // knob 2 (length) hard CW
-    const slen = engine.ops.find((o) => o.startsWith('slen'));
+    sendMidi([0x90, 1, 0]); advance(1);
+    /* The LAST slen, not the first: under `page` a hard CW turn is many
+     * Schwung detents, each capable of its own throttled write (settled on
+     * release) — the cap must hold on whichever one the engine actually
+     * keeps, and the engine keeps the last. */
+    const slen = engine.ops.filter((o) => o.startsWith('slen')).pop();
     eq('length clamps to the cap (96 ticks)', slen, 'slen 0 0 0 -1 96');
 
     // A held step with NO note has no per-trig params → the step page is not

@@ -1,7 +1,7 @@
 import { trackRef } from '../track/ref.js';
 import { pageOwnerOf } from '../app/page-owner.js';
 import { pageOwnerForComponent } from '../app/page-owner-virtual.js';
-import { CLIP_PARAMS_COMPONENT, SET_PARAMS_COMPONENT } from '../chain/config.js';
+import { CLIP_PARAMS_COMPONENT, SET_PARAMS_COMPONENT, STEP_PARAMS_COMPONENT } from '../chain/config.js';
 import { pinPage, unpinPage } from './knob-page-pin.js';
 import { pinModel, unpinModel } from './knob-model-pin.js';
 import { perfPhase, perfPhaseEnd } from '../app/perf-probe.js';
@@ -31,6 +31,8 @@ function knobInfoFor(k: number): any | null { return knobOwner().knobParamInfo(k
  * `mainPageActive()`/`clipPageActive()`. */
 function mainParamsOwner() { return pageOwnerForComponent(SET_PARAMS_COMPONENT); }
 function clipParamsOwner() { return pageOwnerForComponent(CLIP_PARAMS_COMPONENT); }
+/* SP-54: same shape, for the step page's five intrinsic trig cells. */
+function stepParamsOwner() { return pageOwnerForComponent(STEP_PARAMS_COMPONENT); }
 import { focusedTrack, focusGroupStep, GROUP_DIR_UP, GROUP_DIR_DOWN } from '../track/focus.js';
 import { beginTrackSwitch, restoreTrackState, switchToTrack } from '../track/switch.js';
 import { portFor } from '../track/registry.js';
@@ -335,6 +337,12 @@ export function onMidiMessageInternal(data: number[]): void {
         // Step page owns the knobs: a touch shows that param's top toast; the
         // step params are intrinsic (no automation lane / model touch).
         if (stepPageAvailable() && stepPageState.selected) {
+            /* SP-54: movy's OWN touch bookkeeping runs either way (it drives
+             * the `off`-arm top toast and is harmless when Schwung is also
+             * drawing its own); the delegated touch is an ADDITION, gated to
+             * the 5 real cells so knobs 5-7 (blank) never reach a component
+             * with no such keys. */
+            if (d1 < 5) stepParamsOwner().page?.knobTouch(d1, d2 > 0);
             setStepTouchedKnob(d2 > 0 && d1 < 5 ? d1 : -1);
             appState.dirty = true;
             return;
@@ -611,7 +619,14 @@ export function onMidiMessageInternal(data: number[]): void {
         // Step page owns the knobs while it is selected (intrinsic trig props,
         // never chain automation). Knobs 5..7 are blank → ignored.
         if (stepPageAvailable() && stepPageState.selected) {
-            if (k < 5) editStepPageKnob(k, delta);
+            /* One writer, two callers, never both for the same turn (SP-54) —
+             * same shape as Set/Clip Params above. Undelegated, byte-identical
+             * to before — `editStepPageKnob` unchanged. */
+            if (k < 5) {
+                const owner = stepParamsOwner();
+                if (owner.page) owner.page.knobTurn(k, delta);
+                else editStepPageKnob(k, delta);
+            }
             return;
         }
         mlog('knobCC k=' + k + ' d2=' + d2 + ' delta=' + delta);

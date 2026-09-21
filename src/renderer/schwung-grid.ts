@@ -173,6 +173,17 @@ export function schwungGridReload(trackIndex?: number): void {
     for (const k of [...pages.keys()]) if (k.startsWith(trackIndex + ':')) pages.delete(k);
 }
 
+/** Drop exactly ONE cached page, never its neighbours (SP-54). A track-scoped
+ *  `schwungGridReload(trackIndex)` is too coarse for a component whose
+ *  lifetime is shorter than the track's own: the step page shares its fixed
+ *  carrier with Clip Params/Set Params/MFX/SEND (or, addressed by the watched
+ *  track instead, with that track's own module page), so evicting by track
+ *  would force an unrelated re-plan every time a step is released — the exact
+ *  cost this exists to avoid paying for nothing. */
+export function schwungGridDrop(trackIndex: number, componentKey: string): void {
+    pages.delete(trackIndex + ':' + componentKey);
+}
+
 /*
  * WHETHER SCHWUNG IS DRIVING IS NOT ASKED HERE.
  *

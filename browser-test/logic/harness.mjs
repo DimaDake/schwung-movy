@@ -61,7 +61,7 @@ import {
     migrateRowArmed, armMigrateRow, disarmMigrateRow, runMigrateRow, slotsHaveContent,
 } from '../../dist/esm/seq/migrate-action.js';
 import { schwungGridMode, setSchwungGridMode, schwungPageFor,
-         schwungGridReload } from '../../dist/esm/renderer/schwung-grid.js';
+         schwungGridReload, schwungGridDrop } from '../../dist/esm/renderer/schwung-grid.js';
 import { schwungLibAvailable, schwungLibError } from '../../dist/esm/renderer/schwung-lib.js';
 import {
     batchKeys, fill, KEEP_EPOCHS, BATCH_MAX_KEYS, BATCH_VALUE_MAX,
@@ -295,7 +295,7 @@ export {
     readPrefFileDir, writePrefFileDir, PREFS_PATH,
     FLAGS, FLAGS_REV, flagDef, clampFlag, flagValueLabel, flagNormalized,
     flagValue, setFlag, applyFlagsToEngine, resetFlags,
-    schwungGridMode, setSchwungGridMode, schwungPageFor, schwungGridReload,
+    schwungGridMode, setSchwungGridMode, schwungPageFor, schwungGridReload, schwungGridDrop,
     schwungLibAvailable, schwungLibError,
     batchKeys, fill, KEEP_EPOCHS, BATCH_MAX_KEYS, BATCH_VALUE_MAX,
     flagsPageState, flagsRowCount, backupsRowSelected, actionRowSelected, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,

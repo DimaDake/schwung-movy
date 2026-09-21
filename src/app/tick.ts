@@ -17,7 +17,7 @@ import { cpuPageActive } from '../seq/cpu-page.js';
 import { keyboardState, baseNoteFor, padMapFor } from '../keyboard/state.js';
 import { isSounding } from '../keyboard/held-notes.js';
 import { browserState } from '../browser/state.js';
-import { MASTER_FX_SLOTS, CLIP_PARAMS_COMPONENT, SET_PARAMS_COMPONENT } from '../chain/config.js';
+import { MASTER_FX_SLOTS, CLIP_PARAMS_COMPONENT, SET_PARAMS_COMPONENT, STEP_PARAMS_COMPONENT } from '../chain/config.js';
 import { drumPadLedColor } from '../keyboard/leds.js';
 import { drumNoteOfPhys } from '../keyboard/drum-grid.js';
 import { padVoiceSilent } from '../mixer/pad-mutes.js';
@@ -159,7 +159,7 @@ let _schwungDiag = '';
  * indexes CHAIN SLOTS, not param pages, so replacing it with Schwung's page
  * indicator would be a lie about what the jog does there.
  */
-export function schwungBodyFor(owner: PageOwner, stepSelected: boolean): (() => void) | undefined {
+export function schwungBodyFor(owner: PageOwner): (() => void) | undefined {
     /* Says WHY it declined, once per distinct reason. Reporting only that the
      * grid "is still movy's" cost two device round trips; the reason comes from
      * the owner and none of them is visible from the screen. */
@@ -167,7 +167,6 @@ export function schwungBodyFor(owner: PageOwner, stepSelected: boolean): (() => 
         if (r !== _schwungWhy) { _schwungWhy = r; mlog('schwung-body ' + r); }
         return undefined;
     };
-    if (stepSelected) return why('step-page-selected');
     /*
      * A HELD STEP IS NOT A REASON TO DECLINE, AND SP-35 IS WHY IT WAS ONE.
      *
@@ -185,10 +184,18 @@ export function schwungBodyFor(owner: PageOwner, stepSelected: boolean): (() => 
      * the body no longer has to move for it — and the parameters stop shifting
      * under the hand at the exact moment the hand is choosing which to lock.
      *
-     * THE STEP PAGE STILL DECLINES. `stepSelected` is a step with an OCCURRENCE
-     * under it (`seq/step-page.ts`), and that page IS movy's — intrinsic trig
-     * properties, never chain automation — so it belongs to movy's drawer and to
-     * movy's bank bar either way.
+     * THE STEP PAGE USED TO STILL DECLINE HERE, AND SP-54 IS WHY IT NO LONGER
+     * DOES. A step with an OCCURRENCE under it (`seq/step-page.ts`) opens the
+     * step page — five intrinsic trig properties, never chain automation —
+     * which is a DIFFERENT owner (`pageOwnerForComponent(STEP_PARAMS_COMPONENT)`,
+     * folded into `drawnPageOwner` in `app/tick.ts`'s caller) from the module's,
+     * so this function needs no special case for it: `owner` already IS the
+     * step-params owner on that frame, and the generic `!owner.claimed`/`!sp`
+     * fallthrough below declines correctly whenever the mode is `off` or the
+     * step-params contract has not resolved yet. The bank bar stays movy's
+     * regardless (`app/tick.ts` derives it from the MODULE's own owner, not
+     * whichever owner drew the body) — "step + the module's own bank count" is
+     * unaffected by who is drawing the step page's five cells.
      *
      * WHAT IS NOT LOST IS THE LOCK READING. Both renderers resolve it from the
      * same `auto.heldValues` (`model/viewmodel.ts` for movy's body,
@@ -768,14 +775,23 @@ function tickBody(): void {
      * polled shows values that stopped moving.
      */
     const stepSelected = stepPageAvailable() && stepPageState.selected;
+    /* SP-54: only asked while a step is actually held AND the step page is
+     * the one selected — an unheld tick never builds or polls it, which is
+     * what keeps the idle-cost bound this file's comment above cites
+     * unaffected BY CONSTRUCTION rather than by a separate measurement. */
+    const stepParamsOwner = stepSelected ? pageOwnerForComponent(STEP_PARAMS_COMPONENT) : null;
     const gridOnScreen = moduleGridOnScreen();
     /* WHICH OWNER THE GRID BEING ON SCREEN REFERS TO. `gridOnScreen` is true
-     * for the track's own module page, the master slot's DETAIL page, or
-     * Set/Clip Params (SP-53) — never more than one at once, since they are
-     * mutually exclusive branches of the same ladder in `app/tick.ts` below —
-     * so the owner it polls and draws must follow the same branch. */
+     * for the track's own module page, the master slot's DETAIL page, the step
+     * page (SP-54), or Set/Clip Params (SP-53) — never more than one at once,
+     * since they are mutually exclusive branches of the same ladder in
+     * `app/tick.ts` below — so the owner it polls and draws must follow the
+     * same branch. Step-params is checked FIRST: a held step's own page always
+     * outranks whatever the track's module or Set/Clip Params would otherwise
+     * answer, the same precedence the pre-SP-54 render branches already gave
+     * it by building `buildStepPageVM` ahead of the module view. */
     const drawnPageOwner = seqState.sessionMode ? masterPageOwner!
-        : clipParamsOwner ?? mainParamsOwner ?? pageOwner;
+        : stepParamsOwner ?? clipParamsOwner ?? mainParamsOwner ?? pageOwner;
     /* THE POLL COMES BEFORE THE BODY IS ASKED FOR, because the body is what
      * readiness gates and the poll is what resolves readiness. Gating the poll
      * on the body instead is a deadlock that looks exactly like the feature
@@ -791,8 +807,8 @@ function tickBody(): void {
      * page's poll (which advances Schwung's controller tick) is one of the two
      * places that time can be; the other is the render, phased below. */
     perfPhase('pagepoll');
-    if (gridOnScreen && !stepSelected && pollDrawnPage(drawnPageOwner)) appState.dirty = true;
-    const schwungBody = gridOnScreen ? schwungBodyFor(drawnPageOwner, stepSelected) : undefined;
+    if (gridOnScreen && pollDrawnPage(drawnPageOwner)) appState.dirty = true;
+    const schwungBody = gridOnScreen ? schwungBodyFor(drawnPageOwner) : undefined;
     perfPhaseEnd();
 
     /* Whether this tick repainted the view. The song band sits on top of it,
@@ -918,15 +934,30 @@ function tickBody(): void {
              * nothing for a module planner to plan. Routing them here would
              * have replaced the sequencer's own screens with an empty grid.
              *
-             * The step page is movy's too, so it keeps its own renderer.
+             * The step page is movy's too (SP-54's virtual STEP_PARAMS_COMPONENT,
+             * not a module's declared contract either) — but under `page` it now
+             * gets Schwung's OWN body, chrome included, exactly like Clip/Set
+             * Params. `vm` is still built above regardless: the header fallback
+             * and the "step is a bank of its own" bar (`vm.stepPagePresent`)
+             * come from it either way, only its ROWS are skipped when
+             * `schwungBody` is set (`renderKnobsView`'s own `bodyOverride`).
              */
             /* The chrome's footer band overlaps the Loop strip's rows, so the
              * frame that draws it has to claim them the way a bottom-row toast
              * does — otherwise the strip's per-tick clear takes the bottoms off
              * every pill a few milliseconds later. `chromeFor` decides WHEN it
              * is drawn (a knob under the hand); this only has to make the strip
-             * yield on that frame. */
-            const chrome = schwungChromeFor(pageOwner, schwungBody, true);
+             * yield on that frame.
+             *
+             * CHROME FOLLOWS `drawnPageOwner` (whichever owner supplied
+             * `schwungBody` this frame — the step-params owner while a step is
+             * held and selected, the module's own otherwise), so a touched step
+             * cell's toast reaches the header. THE BANK STAYS `pageOwner`'s
+             * (the MODULE's), because the bar must always read "step + the
+             * module's own bank count" (`step-page-vm.ts`) regardless of who is
+             * drawing the body this frame — the two questions are independent
+             * and always were, this just names which owner answers each. */
+            const chrome = schwungChromeFor(drawnPageOwner, schwungBody, !stepSelected);
             const chromeFooter = !!(chrome && chrome.footer);
             renderKnobsView(vm, jogHintVisible(), appState.activeTrack.index,
                             schwungBody, schwungBankFor(pageOwner, schwungBody), chrome);
@@ -966,10 +997,12 @@ function tickBody(): void {
             noteRendered(vm);
             perfPhase('render');
             /* `paging: false` — the jog moves CHAIN SLOTS here, so Schwung owes
-             * this view no hint band (see schwung-page-chrome.ts). */
+             * this view no hint band (see schwung-page-chrome.ts). CHROME follows
+             * `drawnPageOwner`, same reasoning as the VIEW_KNOBS branch above —
+             * so a touched step-page cell's toast reaches the header here too. */
             renderChainView(vm, chainIdx, jogHintVisible(), 'T' + (appState.activeTrack.index + 1),
                             undefined, undefined as any, schwungBody,
-                            schwungChromeFor(pageOwner, schwungBody, false));
+                            schwungChromeFor(drawnPageOwner, schwungBody, false));
             perfPhaseEnd();
             /* Must match what renderChainView actually drew: the Loop strip
              * clears rows 60-63 every tick and would erase a toast it was not

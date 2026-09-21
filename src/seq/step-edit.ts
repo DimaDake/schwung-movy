@@ -286,60 +286,92 @@ function clampIdx(i: number, len: number): number {
     return Math.max(0, Math.min(len - 1, i));
 }
 
+/* The ABSOLUTE half of each cell's edit — SP-54's virtual source `set()`
+ * calls these directly (Schwung hands an absolute value, computed by its own
+ * knob-feel math, never a delta), and `editStepPageKnob` below calls them too
+ * once it has turned its OWN relative accumulation into a target index/value.
+ * One writer, two callers, same shape as `clip-page.ts`'s `applyClip*`. */
+export function applyStepVelocityAbs(target: number): void {
+    const t = watchedTrack(), ln = lane();
+    const d = Math.round(target) - seqState.holdVel;
+    if (d === 0) return;   // nothing to send — also what stops a redundant
+                            // Schwung set() (e.g. a re-plan) from re-emitting.
+    beginGesture(heldKey('tvel'), 'VELOCITY', trackLabel(t));
+    forEach((r) => seqCmd(`evel ${t} ${r.s0} ${r.s1} ${ln} ${d}`));
+}
+
+export function applyStepLenIdx(idx: number): void {
+    const t = watchedTrack(), ln = lane();
+    let clamped = clampIdx(idx, LENGTH_TICKS.length);
+    let ticks = LENGTH_TICKS[clamped];
+    // The engine caps a note's length at the next same-pitch note / clip end.
+    // When the request exceeds that cap, clamp to the longest length that
+    // fits and tell the user why it can't grow further.
+    const cap = seqState.holdMaxGate;
+    if (cap > 0 && ticks > cap) {
+        for (let i = LENGTH_TICKS.length - 1; i >= 0; i--) {
+            if (LENGTH_TICKS[i] <= cap) { clamped = i; break; }
+        }
+        ticks = LENGTH_TICKS[clamped];
+        seqToast('Max — blocked by next note');
+    }
+    beginGesture(heldKey('tlen'), 'NOTE LENGTH', trackLabel(t));
+    forEach((r) => seqCmd(`slen ${t} ${r.s0} ${r.s1} ${ln} ${ticks}`));
+    seqState.holdGate = ticks; seqState.holdGateMixed = false;
+}
+
+export function applyStepProbIdx(idx: number): void {
+    const t = watchedTrack(), ln = lane();
+    const clamped = clampIdx(idx, PROB_VALUES.length);
+    const pct = PROB_VALUES[clamped];
+    beginGesture(heldKey('tprob'), 'PROBABILITY', trackLabel(t));
+    forEach((r) => seqCmd(`eprob ${t} ${r.s0} ${r.s1} ${ln} ${pct}`));
+    seqState.holdProb = pct;
+}
+
+export function applyStepCondIdx(idx: number): void {
+    const t = watchedTrack(), ln = lane();
+    const clamped = clampIdx(idx, COND_PAIRS.length);
+    const [a, b] = COND_PAIRS[clamped];
+    beginGesture(heldKey('tcond'), 'CONDITION', trackLabel(t));
+    forEach((r) => seqCmd(`econd ${t} ${r.s0} ${r.s1} ${ln} ${a} ${b}`));
+    seqState.holdCondA = a; seqState.holdCondB = b;
+}
+
+export function applyStepInvertOn(on: boolean): void {
+    const t = watchedTrack(), ln = lane();
+    beginGesture(heldKey('tinv'), 'INVERT', trackLabel(t));
+    forEach((r) => seqCmd(`einv ${t} ${r.s0} ${r.s1} ${ln} ${on ? 1 : 0}`));
+    seqState.holdInvert = on;
+}
+
 /* Route a knob turn on the step page to the trig-property edit it represents.
- * Returns true if consumed. Uses forEach over the held range(s) so multi-step
- * and Loop-bar holds all get the edit (and their release won't toggle a note). */
+ * Returns true if consumed. Delta-only: turns the movy-side relative
+ * accumulation into an absolute target and hands it to the apply function
+ * above, which is what actually emits (and what the virtual source's set()
+ * calls too — see its own header). */
 export function editStepPageKnob(knob: number, delta: number): boolean {
     if (!anyStepHeld()) return false;
-    const t = watchedTrack();
-    const ln = lane();
     setStepTouchedKnob(knob);             // drives the top param toast
     if (knob === 0) {
         // Velocity: delta nudge (preserves chord spread; full CW clamps to max).
         const d = (delta > 0 ? 1 : -1) * VEL_STEP;
-        beginGesture(heldKey('tvel'), 'VELOCITY', trackLabel(t));
-        forEach((r) => seqCmd(`evel ${t} ${r.s0} ${r.s1} ${ln} ${d}`));
+        applyStepVelocityAbs(seqState.holdVel + d);
         return true;
     }
     const n = countDetents(enumAccum, knob, delta);
     if (n === 0) { markGestured(); return true; } // consumed; below detent threshold
     if (knob === 1) {
-        let idx = clampIdx(lengthIndexForTicks(seqState.holdGate) + n, LENGTH_TICKS.length);
-        let ticks = LENGTH_TICKS[idx];
-        // The engine caps a note's length at the next same-pitch note / clip end.
-        // When the request exceeds that cap, clamp to the longest length that
-        // fits and tell the user why it can't grow further.
-        const cap = seqState.holdMaxGate;
-        if (cap > 0 && ticks > cap) {
-            for (let i = LENGTH_TICKS.length - 1; i >= 0; i--) {
-                if (LENGTH_TICKS[i] <= cap) { idx = i; break; }
-            }
-            ticks = LENGTH_TICKS[idx];
-            seqToast('Max — blocked by next note');
-        }
-        beginGesture(heldKey('tlen'), 'NOTE LENGTH', trackLabel(t));
-        forEach((r) => seqCmd(`slen ${t} ${r.s0} ${r.s1} ${ln} ${ticks}`));
-        seqState.holdGate = ticks; seqState.holdGateMixed = false;
+        applyStepLenIdx(lengthIndexForTicks(seqState.holdGate) + n);
     } else if (knob === 2) {
         // CW (n>0) raises probability; PROB_VALUES is descending, so subtract n.
-        const idx = clampIdx(probIndexForPct(seqState.holdProb) - n, PROB_VALUES.length);
-        const pct = PROB_VALUES[idx];
-        beginGesture(heldKey('tprob'), 'PROBABILITY', trackLabel(t));
-        forEach((r) => seqCmd(`eprob ${t} ${r.s0} ${r.s1} ${ln} ${pct}`));
-        seqState.holdProb = pct;
+        applyStepProbIdx(probIndexForPct(seqState.holdProb) - n);
     } else if (knob === 3) {
-        const idx = clampIdx(condIndexFor(seqState.holdCondA, seqState.holdCondB) + n, COND_PAIRS.length);
-        const [a, b] = COND_PAIRS[idx];
-        beginGesture(heldKey('tcond'), 'CONDITION', trackLabel(t));
-        forEach((r) => seqCmd(`econd ${t} ${r.s0} ${r.s1} ${ln} ${a} ${b}`));
-        seqState.holdCondA = a; seqState.holdCondB = b;
+        applyStepCondIdx(condIndexFor(seqState.holdCondA, seqState.holdCondB) + n);
     } else if (knob === 4) {
         // Boolean: CW = on, CCW = off. Never toggle, so holding the turn doesn't
         // cycle the value back and forth.
-        const on = n > 0;
-        beginGesture(heldKey('tinv'), 'INVERT', trackLabel(t));
-        forEach((r) => seqCmd(`einv ${t} ${r.s0} ${r.s1} ${ln} ${on ? 1 : 0}`));
-        seqState.holdInvert = on;
+        applyStepInvertOn(n > 0);
     }
     return true;
 }

@@ -169,7 +169,7 @@ function deadPage(componentKey: string): SchwungPage {
         reload() {}, tick() {}, pageCount: 0, pageIndex: 0,
         changePage() {}, goToPage() {}, keyAt: () => null, targetAt: () => null,
         labelAt: () => null, knobParamInfo: () => null, knobLevels: () => new Array(8).fill(null),
-        animating: () => false, render() {}, chrome: () => ({ header: null, footer: null, pageLabel: null }),
+        animating: () => false, peekOpen: () => false, render() {}, chrome: () => ({ header: null, footer: null, pageLabel: null }),
         knobTurn() {}, knobTouch() {}, click: () => null, back: () => null,
         focusVoice: () => false, ready: false, ctl: null,
     };

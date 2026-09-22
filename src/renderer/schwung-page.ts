@@ -83,6 +83,15 @@ export interface SchwungPage {
      *  have held still, and the only thing that makes an animated widget draw
      *  more than the one frame its value change bought. */
     animating(nowMs: number): boolean;
+    /** Is Schwung's enum peek — the option list a turn raises over the grid —
+     *  up right now?
+     *
+     *  Asked by the repaint decision because it is invisible to everything
+     *  else that decision compares: it appears on a turn that need not change
+     *  any value (at a clamped end it cannot), and it EXPIRES on a clock with
+     *  nothing moving at all. Neither edge would otherwise ask for a frame, so
+     *  the list would be drawn late, or left on screen after it was gone. */
+    peekOpen(): boolean;
     render(title: string, auto?: AutomationView, touched?: number): void;
     /** What movy's header and footer should say while this page is the body.
      *  `paging` is true only where the jog moves this page set. */
@@ -200,6 +209,11 @@ export function createSchwungPage(
         knobParamInfo: page.knobParamInfo,
         knobLevels: page.knobLevels,
         animating,
+        /* `enumPeek()` is also the reader that RETIRES an expired peek
+         * (`page_controller.mjs` clears it past ENUM_PEEK_MS on the way out),
+         * so asking the question is what keeps the answer honest as well as
+         * what answers it. */
+        peekOpen: () => (typeof ctl.enumPeek === 'function' ? !!ctl.enumPeek() : false),
         render: page.render,
         chrome: (paging: boolean) => chromeFor(ctl, lib, paging),
         knobTurn: input.knobTurn,

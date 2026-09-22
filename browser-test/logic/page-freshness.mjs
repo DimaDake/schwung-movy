@@ -359,4 +359,60 @@ _log('\nTest: SP-48 — a never-settling animation is capped, not forever-repain
     env.setParams(MOCK_SYNTHS.test16);
 }
 
+
+/* ── SP-57 H5: the enum peek asks for its own frames ──────────────────────── */
+
+_log('\nTest: the option list a turn raises moves the repaint decision');
+{
+    const { pageOwnerOf } = await import('../../dist/esm/app/page-owner.js');
+    const { pollDrawnPage } = await import('../../dist/esm/app/page-poll.js');
+
+    setSchwungGridMode('page');
+    schwungGridReload();
+    appState.activeTrack.index = 0;
+    /* test_enum, not test16: knob 0 is a four-option enum, and an enum is the
+     * only thing that raises a peek at all. */
+    env.setParams(MOCK_SYNTHS.test_enum);
+    const m = settleModel(bootModel(MOCK_SYNTHS.test_enum));
+    appState.trackModels[0] = [m];
+    const owner = pageOwnerOf(m);
+    for (let i = 0; i < 12 * 60 && !owner.delegated; i++) pollDrawnPage(owner);
+    ok('the enum page delegated to Schwung', owner.delegated);
+
+    const p = owner.page;
+    const stable = (n) => { for (let i = 0; i < n; i++) if (pollDrawnPage(owner)) return false; return true; };
+
+    /* THE ISOLATION IS THE POINT. A turn normally moves a knob level too, so
+     * `pollDrawnPage` would answer true whether the peek counted or not. Walk
+     * to the LAST option first: from there a clockwise turn clamps — the value
+     * cannot move — while the peek is raised all the same, so the only thing
+     * left that can move the answer is the overlay. */
+    p.knobTouch(0, true);
+    for (let i = 0; i < 40; i++) { p.knobTurn(0, 1); pollDrawnPage(owner); }
+    let quiet = false;
+    for (let i = 0; i < 12 * 60 && !(quiet = stable(3)); i++) pollDrawnPage(owner);
+    ok('the page went quiet at the last option', quiet);
+
+    /* The walk above LEFT A PEEK UP — its 1500 ms clock does not elapse inside a
+     * test loop — so take it down and consume that edge first, or the "going
+     * up" assertion below has no edge to see and fails for the wrong reason.
+     * `dismissPeek` is the controller's own public way down, which also keeps
+     * both edges off the wall clock. */
+    p.ctl.dismissPeek();
+    pollDrawnPage(owner);
+    ok('quiet again with the list down', stable(2));
+
+    p.knobTurn(0, 1);
+    ok('a peek going up asks for a frame', pollDrawnPage(owner) === true);
+    ok('a peek that stays up asks for nothing', stable(2));
+
+    p.ctl.dismissPeek();
+    ok('a peek coming down asks for a frame', pollDrawnPage(owner) === true);
+    p.knobTouch(0, false);
+
+    appState.trackModels[0] = [];
+    schwungGridReload();
+    setSchwungGridMode(null);
+    env.setParams(MOCK_SYNTHS.test16);
+}
 }

@@ -345,6 +345,28 @@ already reads it in nine places.
 
 ### 4. Knob feel is upstream or it does not happen (→ bounds SU-9)
 
+> **CORRECTED TWICE, 2026-09-22 — read the heading as "on a MODULE's page".**
+> This section is right about a module page and wrong as a general statement,
+> and both halves of it have now been refuted by an item that shipped:
+>
+> - **SU-9 (the door's list):** a host-side route exists — not through
+>   `onKnobTurn`, which never runs on a preset door, but through
+>   `ctl.enterMenu()` + `ctl.onJog()` composed with `list_knob.mjs` imported
+>   wholesale. Shipped as SP-44.
+> - **SP-57 (the detent's cost):** the paragraph below already says movy owns
+>   "how many detents a CC is worth" and that the step "comes from the
+>   contract's meta, which under `page` is the module's". **On a VIRTUAL
+>   component the contract's meta is MOVY'S** — this seam did not exist when
+>   this section was written — so on Set/Clip/Step Params movy owns *both*
+>   halves and the feel is entirely host-side. That is how SP-57 put all three
+>   pages back on 8 raw units per step with nothing upstream.
+>
+> What survives unrefuted is the narrow claim in the second paragraph: the
+> `export const` tuning constants are unwritable, so changing THOSE is an
+> upstream ask (SU-13). Do not read this section as "a feel complaint is
+> always upstream" — that reading cost SP-57's own A/B suite a
+> parameterised divergence it should have been catching.
+
 `onKnobTurn(slot, direction, nowMs, { fine })` takes a **±1 direction**, and
 movy calls it as `ctl.onKnobTurn(slot, dir)` in a loop, once per detent
 (`schwung-page-input.ts:120`) — no `nowMs`, no `fine`. So movy owns **how many

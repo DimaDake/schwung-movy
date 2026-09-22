@@ -136,6 +136,44 @@ if (!schwungLibAvailable()) {
     ok('the page resolved (>=1 page planned)', p.ready && p.pageCount >= 1);
     eq('knob 2 is LINK', p.keyAt(2), 'link');
 
+    /* SP-57 H3. A 2-option enum that is not Off/On falls through isSwitchMeta
+     * into isTwoWayMeta, which TOGGLES on every detent behind a 270 ms latch —
+     * so a continued turn walks the value back and forth instead of setting it.
+     * Reported from the device as the Pad Layout knob cycling through values.
+     *
+     * Direction-absolute is what the delta path always did (`applyLink(n > 0)`),
+     * and it is what a knob with a direction should do. Each turn is a whole
+     * gesture: the write is throttled and the RELEASE is what flushes it. */
+    keyboardState.mode = 0;        // Chromatic: layouts are ['4th', 'Piano']
+    keyboardState.layout = 0;
+    const turnLayout = (raw) => { p.knobTouch(7, true); p.knobTurn(7, raw); p.knobTouch(7, false); };
+    eq('knob 7 is LAYOUT', p.keyAt(7), 'layout');
+
+    for (let i = 0; i < 6; i++) turnLayout(8);
+    eq('six clockwise turns land on the second option and STAY there',
+       keyboardState.layout, 1);
+    for (let i = 0; i < 6; i++) turnLayout(-8);
+    eq('six counter-clockwise turns land on the first', keyboardState.layout, 0);
+
+    /* THE NO-OP GUARD IS WHAT REPLACES THE 270 ms LATCH — without it a held
+     * turn re-emits the same write on every detent, which is why the latch
+     * existed. So this says dropping it was safe rather than convenient.
+     *
+     * COUNTED AT THE PORT, not at the engine queue. `applyLayoutIdx` only
+     * marks UI state dirty (no command at all), and `applyLink` has its OWN
+     * early return — so an engine-op count would sit at zero either way and
+     * pass with this guard deleted. The write this guard actually suppresses
+     * is the controller's, so the controller's write is what gets counted. */
+    const src = setParamsSource();
+    const realSet = src.setParam.bind(src);
+    let writes = 0;
+    src.setParam = (k, v) => { if (k.endsWith(':layout')) writes++; return realSet(k, v); };
+    turnLayout(8);                                  // 0 -> 1: a real change
+    eq('the counter is live — a real change does write', writes, 1);
+    for (let i = 0; i < 5; i++) turnLayout(8);
+    eq('a turn that changes nothing writes nothing', writes, 1);
+    src.setParam = realSet;
+
     setSchwungGridMode(savedMode);
     schwungGridReload();
 }

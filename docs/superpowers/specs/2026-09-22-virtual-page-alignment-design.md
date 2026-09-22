@@ -142,8 +142,10 @@ their own comments). Schwung's peek is the opposite by design: *"the detent
 ALREADY WROTE. The list is an ANSWER"* (`enum_list.mjs:11`), and its picker —
 the commit-on-click half — is reached by holding and clicking, not by turning.
 
-Accepted as a divergence under ruling 1, and recorded because it is the one
-behavioural difference in this pass that a user can feel without being told:
+**Accepted as a divergence, with no work attached** (ruling 1, and the user's
+own call on 2026-09-22: we do not change back to commit-on-release). Recorded
+because it is the one behavioural difference in this pass that a user can feel
+without being told:
 turning past `Dorian` on the way to `Mixolydian` now writes `Dorian` in
 passing. It is also why H2's rate matters more here than it would have under
 the old pages — a scroll that writes every step is one a slower knob makes
@@ -313,6 +315,8 @@ Folded into the same branch because they are additive and have been waiting:
 - Restoring movy's old cell styles as such (ruling 1). Where Schwung's native
   widget is merely *different*, it stays.
 - Storing a step length the engine would refuse (F6).
+- Restoring commit-on-release for the overlays (F8). Schwung's peek writes on
+  the detent and that is what it stays; the ruling is the user's.
 - Any change to how module pages feel or draw (H2's gate, ruling 3).
 - Touching `off` mode. These pages' movy-renderer path is unchanged; SP-30/SP-41
   own its fate.

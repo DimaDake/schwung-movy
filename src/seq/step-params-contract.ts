@@ -41,7 +41,7 @@ const asIndex = (v: string): number => Math.round(Number(v)) || 0;
 
 const cells: VirtualCellSpec[] = [
     {
-        key: 'vel', name: 'Velocity', shortName: 'VEL', type: 'int', min: 0, max: 127, step: 4,
+        key: 'vel', name: 'Velocity', shortName: 'VEL', type: 'int', min: 0, max: 127, step: 8,
         /* The `vbar` picture this file's header recorded as lost, taken back as
          * SCHWUNG'S OWN fader rather than a movy widget — the page stays native
          * and nothing has to be registered or drawn here.

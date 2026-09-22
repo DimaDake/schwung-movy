@@ -45,4 +45,22 @@ export interface PageParamSource {
      *  track", the tempo knob's "120 EXT"). `surface` is 'cell' or 'header';
      *  null falls through to Schwung's own formatting, per key. */
     formatValue?(fullKey: string, raw: string | null, surface: 'cell' | 'header'): string | null;
+
+    /** How many raw CC units make ONE `ctl.onKnobTurn` call for this key.
+     *
+     *  movy expands an encoder's accumulated magnitude into that many detents
+     *  (`schwung-page-input.ts`) — the fix for "knobs move very very slowly
+     *  like shift is held", and right for a module page, whose step comes from
+     *  the module's own contract.
+     *
+     *  On movy's OWN pages it is not: those charged 8 raw units per step before
+     *  delegation (`seq/detent.ts`'s `DETENT_DIV`, and every `*PageKnob`
+     *  writer), and one-detent-per-unit into `ENUM_DELTA_DIV = 4` makes every
+     *  enum twice as fast as it was. So the source that owns those cells says
+     *  what a detent costs.
+     *
+     *  Absent or null means 1 — today's behaviour, and what every real port
+     *  answers. That is what keeps module pages out of this by construction
+     *  rather than by a flag. */
+    rawPerDetent?(fullKey: string): number | null;
 }

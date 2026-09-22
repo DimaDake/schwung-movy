@@ -17,6 +17,10 @@ import type { SchwungIntent } from './schwung-page.js';
 import type { PageHierarchy } from './schwung-page-hierarchy.js';
 import { mlog } from '../log.js';
 import { surfaceOf } from './schwung-voices.js';
+/* The detent accumulator the sequencer pages have always used. Imported rather
+ * than reimplemented: one rule for "how much raw CC is one click", stated once
+ * (`seq/detent.ts`). */
+import { countDetents } from '../seq/detent.js';
 
 export interface PageInput {
     knobTurn(slot: number, delta: number): void;
@@ -94,6 +98,15 @@ export function createPageInput(ctl: any, lib: any, port: PageParamSource,
      * nothing about the turn rate on a re-plan, so neither does this.
      */
     const presetKnobState = new Map<string, any>();
+
+    /* One banked remainder per knob, for a source that charges more than one
+     * raw unit per detent (`PageParamSource.rawPerDetent`). It lives in the
+     * binding because that is where a gesture's state already lives, beside
+     * `presetKnobState` — and it is `seq/detent.ts`'s accumulator, reused
+     * rather than restated: a remainder that carries across CC events is the
+     * whole rule, and dropping one is what made a movy knob move on one turn
+     * direction and not the other. */
+    const turnAccum: number[] = [];
     const turnPresetDoor = (p: any, delta: number): boolean => {
         if (!p || p.kind !== lib.PAGE_PRESET) return false;
         if (typeof lib.listKnobInit !== 'function' || typeof lib.listKnobStep !== 'function') return false;
@@ -149,7 +162,25 @@ export function createPageInput(ctl: any, lib: any, port: PageParamSource,
              * still a bound, because a corrupt CC must not spin this loop, but
              * one no honest gesture can reach.
              */
-            const n = Math.min(Math.abs(delta) | 0, 63) || 1;
+            /*
+             * A SOURCE MAY CHARGE MORE THAN ONE RAW UNIT PER DETENT (SP-57).
+             *
+             * movy's own pages do, because they charged 8 per step before
+             * delegation and one-per-unit into `ENUM_DELTA_DIV` made every enum
+             * on them twice as fast. A real module's port answers nothing, so
+             * the expansion below — and the module feel it was measured
+             * against — is untouched.
+             */
+            const key = typeof ctl.keyAt === 'function' ? ctl.keyAt(slot) : null;
+            const per = (key && port.rawPerDetent) ? (port.rawPerDetent(qualify(key)) || 1) : 1;
+            let n: number;
+            if (per > 1) {
+                const steps = countDetents(turnAccum, slot, delta, per);
+                if (steps === 0) return;      // banked, not lost — the remainder carries
+                n = Math.abs(steps);
+            } else {
+                n = Math.min(Math.abs(delta) | 0, 63) || 1;
+            }
             for (let i = 0; i < n; i++) ctl.onKnobTurn(slot, dir);
         },
         knobTouch: (slot: number, down: boolean) => { ctl.onKnobTouch(slot, down); },

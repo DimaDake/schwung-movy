@@ -137,5 +137,19 @@ export function createVirtualSource(componentKey: string,
             const c = byKey.get(bare(fullKey));
             return c?.format ? c.format(raw, surface) : null;
         },
+        /* THE RULE IS STATED IN RAW UNITS PER STEP — 8 of them, the number
+         * every one of these pages charged before delegation — because that is
+         * the quantity a hand measures. It is SPENT per detent, and a detent is
+         * worth different amounts by kind: Schwung burns `ENUM_DELTA_DIV` (4)
+         * of them per enum option and one per int step. So the two divisors
+         * differ precisely so that the felt rate does not.
+         *
+         * A key this source does not own answers null rather than a default,
+         * so a caller can tell "one raw unit, as always" from "not mine". */
+        rawPerDetent(fullKey: string): number | null {
+            const c = byKey.get(bare(fullKey));
+            if (!c) return null;
+            return (c.type === 'enum' || c.type === 'toggle') ? 2 : 8;
+        },
     };
 }

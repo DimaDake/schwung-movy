@@ -23,7 +23,7 @@ _log('\nlogic: step page virtual source (SP-54)');
 
 const { STEP_PARAMS_COMPONENT, isVirtualPageComponent } = await import('../../dist/esm/chain/config.js');
 const { stepParamsSource } = await import('../../dist/esm/seq/step-params-contract.js');
-const { LENGTH_LABELS, PROB_LABELS, COND_LABELS, LENGTH_TICKS, PROB_VALUES }
+const { LENGTH_LABELS, PROB_LABELS, COND_LABELS, LENGTH_TICKS, PROB_VALUES, lengthIndexForTicks }
     = await import('../../dist/esm/seq/step-page-vm.js');
 const { seqState, resetSeqState } = await import('../../dist/esm/seq/state.js');
 const { peekSeqCmdQueue, resetSeqEngine } = await import('../../dist/esm/seq/engine.js');
@@ -83,6 +83,23 @@ _log('\nTest: the synthesised contract');
      * pixels are pinned by the `page_stepparams` baseline. */
     ok('VELOCITY declares the fader viz', !!vel.viz && vel.viz.kind === 'fader');
     ok('no other cell declares a viz', params.filter((p) => p.viz).length === 1);
+
+    /* SP-57 H2, the DIVISOR half of the knob rule. Stated in raw CC units per
+     * STEP — 8, the number `seq/detent.ts` has always charged on these pages —
+     * but spent per DETENT, and a detent is worth different amounts by kind:
+     * Schwung burns 4 of them per enum option and 1 per int step. So the
+     * divisors differ and the felt rate does not. */
+    const per = (k) => source.rawPerDetent(key(k));
+    eq('an enum cell costs 2 raw units per detent', per('len') + ',' + per('prob'), '2,2');
+    eq('a toggle costs the same as an enum', per('invert'), 2);
+    eq('an int cell costs 8 raw units per detent', per('vel'), 8);
+    eq('a key this source does not own falls through', per('nosuchkey'), null);
+
+    /* The STEP half. `perDetentStep` is round(max(step, range * 0.01) * 0.5),
+     * so the declared 4 moved velocity by TWO per detent — half a step, and
+     * half what every neighbouring cell moves. */
+    const perDetentStep = Math.round(Math.max(vel.step, (vel.max - vel.min) * 0.01) * 0.5);
+    eq('one detent moves velocity by a whole VEL_STEP', perDetentStep, 4);
 }
 
 /* ── one writer: the virtual source's set() and editStepPageKnob agree ───── */
@@ -199,6 +216,48 @@ if (!schwungLibAvailable()) {
     const third = grab();
     ok('the recovery path drops the same cache entry', second !== third);
 
+    setSchwungGridMode(savedMode);
+    schwungGridDrop(MASTER_PAGE_TRACK, STEP_PARAMS_COMPONENT);
+}
+
+/* ── SP-57 H2: the knob rule, end to end through the real controller ────── */
+
+if (!schwungLibAvailable()) {
+    _log('\nlogic: step page knob feel — SKIPPED (no param_pages; set SCHWUNG=)');
+} else {
+    _log('\nTest: eight raw units are one step, through the real page');
+    const savedMode = schwungGridMode();
+    setSchwungGridMode('page');
+    reset();
+
+    editStepDown(0); beginStepAutomation(); setStepPageSelected(true);
+    const page = schwungPageFor(MASTER_PAGE_TRACK, STEP_PARAMS_COMPONENT, null, null);
+    /* The contract resolves over a few ticks (the read cursor serves one key at
+     * a time), so wait for the cell rather than for a tick count. */
+    for (let i = 0; i < 12 * 60 && page.keyAt(1) !== 'len'; i++) page.tick();
+    eq('knob 1 drives LEN', page.keyAt(1), 'len');
+
+    /* THE ASSERTION THAT CATCHES EITHER HALF BEING WRONG — this divisor, or
+     * ENUM_DELTA_DIV upstream. Four raw units is half a step and must move
+     * NOTHING; the next four complete it. That is old movy's DETENT_DIV = 8,
+     * which is what these pages felt like before delegation. */
+    /* EVERY MEASUREMENT IS A WHOLE GESTURE — touch, turn, release — and that is
+     * not ceremony. A turn's write is throttled (`SETPARAM_THROTTLE_MS = 20`)
+     * and parked in `pendingWrite`; the RELEASE is what flushes it
+     * unconditionally. Asserting between two turns with no release reads the
+     * state before the write lands, which is the trap SP-53 already fell into
+     * and recorded — and it would make the first assertion below pass for the
+     * wrong reason, since an unflushed write looks exactly like no write. */
+    const idx = () => lengthIndexForTicks(seqState.holdGate);
+    const turn = (raw) => { page.knobTouch(1, true); page.knobTurn(1, raw); page.knobTouch(1, false); };
+
+    const before = idx();
+    turn(4);
+    eq('four raw units do not move an enum cell', idx(), before);
+    turn(4);
+    eq('eight move it exactly one option', idx(), before + 1);
+
+    editStepUp(0); endStepAutomation();
     setSchwungGridMode(savedMode);
     schwungGridDrop(MASTER_PAGE_TRACK, STEP_PARAMS_COMPONENT);
 }

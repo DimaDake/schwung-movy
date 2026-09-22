@@ -295,18 +295,64 @@ scenario('smoke', async (t) => {
                     : 'applyKnobDelta never reached — the knob turn produced no write at all'),
         });
 
-    /* Both halves of the bash's chain: a true and no false. The bash accepted a
-     * rejected write as long as an accepted one was also in the log — and the
-     * rejected write is exactly what this check exists to catch. */
-    const ipcTrue  = w0.filter((l) => l.includes('set_param returned true'));
-    const ipcFalse = w0.filter((l) => l.includes('set_param returned false'));
-    const okIpc = ipcTrue.length > 0 && ipcFalse.length === 0;
+    /* Both halves of the bash's chain, tightened once to a true and NO false —
+     * and now loosened back, on evidence the zero-false bar does not hold.
+     *
+     * The channel under test is `overtake_dsp:`, a SINGLE SLOT shared with
+     * every other schwung param reader/writer on the device (host/param.ts's
+     * own header). This scenario's own `pollModuleName` (model/tick.ts) polls
+     * that exact slot on a ~1 s cadence while the knob-turn burst runs, so
+     * movy contends with ITSELF for it, let alone anything else on the box.
+     *
+     * Measured 2026-09-22 09:49: device debug.log carries `set_param returned
+     * false` at 07.268, 77 ms after shadow_ui.c's own telemetry logged
+     * `param_giveup: claim=2 ... blocked=112ms` for a GET on the same channel
+     * — schwung's own instrumentation, not movy's, reporting the slot as
+     * genuinely contended at that moment, not a key refused for cause. The
+     * device measured live at diagnosis time carried a load average of 4.5 on
+     * 4 cores (`MoveOriginal` alone at 133% CPU) — sustained oversubscription,
+     * not a spike. `test-device/.flake-log.json` puts this check's hit rate at
+     * 6/50 runs over three days and five different commits (unrelated to any
+     * one of them), and 5 of those 6 failed on BOTH the scenario's own attempt
+     * 1 and its retried attempt 2 — far above the ~1% a per-attempt-independent
+     * race would predict, which is why "restart the stack and retry" already
+     * measured no different (see this file's task notes) — the condition
+     * outlives one retry, it does not un-happen.
+     *
+     * What still has to hold: the write eventually got through. A knob stream
+     * is last-write-wins by design (host/param.ts's own reason for not
+     * retrying: "the value after it supersedes the one that was lost") — so an
+     * EARLIER refusal the user never saw, because the next turn already
+     * superseded it, is not a bug. The knob's FINAL position never reaching the
+     * DSP still is, so the last write in the burst is the one held to account.
+     *
+     * The refusal COUNT is noted on every run, not just a failing one, rather
+     * than dropped once the last-write gate is satisfied. host/param.ts's own
+     * header is explicit about why: "it makes the failure COUNTABLE. A dropped
+     * write is otherwise perfectly silent, which is why a green test run never
+     * proved the channel was healthy." A ratio is not asserted here — it is not
+     * a stable invariant on a contended single slot, which is the whole finding
+     * above — but a SILENT drop rate is exactly what this channel has
+     * historically hidden, so it is measured every run and left for a human to
+     * read (this note, and `.flake-log.json` over many runs) rather than
+     * dropped on the floor a second time. */
+    const ipcLines = w0.filter((l) => l.includes('set_param returned '));
+    const ipcTrue  = ipcLines.filter((l) => l.includes('returned true'));
+    const ipcFalse = ipcLines.filter((l) => l.includes('returned false'));
+    const lastIpc  = lastOf(ipcLines);
+    const okIpc = ipcTrue.length > 0 && lastIpc.includes('returned true');
+    t.note('ipcWrites', ipcLines.length);
+    t.note('ipcRefused', ipcFalse.length);
     t.check('set-param-ipc', 'shadow_set_param returned true — the IPC accepted the write', okIpc, {
-        expected: 'at least one "set_param returned true" and no "returned false"',
-        actual: said(okIpc, `${ipcTrue.length} write(s) accepted, none rejected`,
+        expected: 'at least one "set_param returned true", and the LAST write in the burst to land '
+                  + '(an earlier refusal under single-slot contention is tolerated — see the note above — '
+                  + 'the final one is not)',
+        actual: said(okIpc,
+            `${ipcTrue.length} write(s) accepted, ${ipcFalse.length} refused, last write accepted`,
             ipcTrue.length === 0
                 ? 'no IPC for the knob turn — the write never reached the host'
-                : `${ipcFalse.length} write(s) returned false — IPC timeout or key rejected`),
+                : `${ipcFalse.length} write(s) returned false, and the LAST write in the burst was also refused `
+                  + '— the knob\'s final position never reached the DSP'),
     });
 
     // ── 7. the jog wheel navigates ───────────────────────────────────────────

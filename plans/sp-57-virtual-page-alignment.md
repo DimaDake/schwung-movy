@@ -434,8 +434,12 @@ by 4` goes red. Restore it.
 
 ```bash
 SCHWUNG=../schwung node browser-test/logic.mjs 2>&1 | tail -5
-SCHWUNG=../schwung node browser-test/schwung-page-idle-cost.mjs 2>&1 | tail -3
+SCHWUNG=../schwung node browser-test/logic.mjs 2>&1 | grep "idle host calls"
 ```
+
+(The idle-cost suite lives under `logic/` and runs INSIDE `logic.mjs` — there is
+no top-level `browser-test/schwung-page-idle-cost.mjs` to invoke. Corrected
+2026-09-22, during execution.)
 
 Expected: 0 failures, and the idle-cost suite unmoved at its recorded count. A
 real port answers no `rawPerDetent`, so no module page can have moved — this
@@ -484,7 +488,10 @@ of identical commands — which is what makes dropping the 270 ms latch safe.
 
 **Files:**
 - Modify: `src/renderer/schwung-page-input.ts` (`knobTurn`)
-- Test: `browser-test/logic/knob-input.mjs`
+- Test: `browser-test/logic/set-params-source.mjs` — **corrected from
+  `knob-input.mjs` during execution**: the set-params suite already builds a real
+  delegated page and knows which knob is LAYOUT, so putting the test there reuses
+  that setup instead of duplicating it.
 
 **Interfaces:**
 - Consumes: `port.rawPerDetent` and `turnAccum` from Task 2; `ctl.metaAt(slot)`,
@@ -1061,22 +1068,25 @@ The verdict is recorded in the ledger with the build it was measured on."
 - Modify: `docs/superpowers/specs/2026-09-22-virtual-page-alignment-design.md`
   (H3's scope, if Task 3's refinement stands)
 
-- [ ] **Step 1: Update `MANUAL.md`**
+- [ ] **Step 1: Do NOT update `MANUAL.md` — and record why**
 
-In the step-params, clip-params and set-params sections, document what a user
-can now see and feel: velocity draws a fader; every knob on these pages moves
-one step per eight detents of the encoder, the same rate as before the
-migration; Pad Layout and Note Mode are set by turn direction; swing, tempo and
-clip length name their units. Match the file's existing voice — it explains
-gestures step by step, not release notes.
+**Corrected during execution, 2026-09-22.** This step originally said to
+document the fader, the knob rule, the direction-absolute cells and the three
+readings in `MANUAL.md`. That was written without checking the flag: `schwunggrid`
+is `def: 0` (MOVY) and carries **no `release` field**, i.e. it is debug-only and
+not exposed in a shipped build at all (`src/seq/flags-def.ts`). None of this
+work is visible to a user today.
 
-- [ ] **Step 2: Refresh the doc screenshots from the baselines**
+`MANUAL.md` documents what ships. Pre-documenting a flag nobody can turn on
+would be a lie of tense. The correct move is a line on **SP-30's** checklist —
+the default flip is what makes all five items user-facing, and the manual is
+written there, with screenshots taken from the baselines this work moved.
 
-```bash
-node scripts/make-doc-assets.mjs page_stepparams page_clipparams page_setparams
-```
+- [ ] **Step 2: Leave the doc assets alone for the same reason**
 
-Reference them as `docs/assets/<name>.png`.
+`docs/assets/` is for images the manual references. Regenerating
+`page_stepparams.png` there now would ship an asset no prose points at. It is
+regenerated at SP-30, from the baseline, by `make-doc-assets.mjs`.
 
 - [ ] **Step 3: Open SP-57 in the ledger**
 

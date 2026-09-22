@@ -167,6 +167,7 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | SP-54 | The step page: a contract that exists only while a step is held. **SHIPPED, movy-side, 2026-09-20, no device**: `STEP_PARAMS_COMPONENT` on the SAME virtual-component seam SP-53 built (`stepParamsSource()`, `seq/step-params-contract.ts`) — velocity/length/probability/condition/invert, delegated touch/turn exactly like Clip/Set Params (`applyStep*` in `step-edit.ts`, one writer, two callers). **Further native than SP-53 could go**: LENGTH/PROBABILITY/CONDITION already had a fixed label array, so all three are plain Schwung enums with no widget at all — only VELOCITY loses its `vbar` picture (a stated follow-up), a correction of the ledger's own assumption below that these five "are the page". **The lifetime claim verified, not just trusted**: `createVirtualSource` stays a singleton (cheap either way); what actually needs a per-hold reset is the cached `SchwungPage`'s controller (touch-claim timers, an open enum peek), dropped by a new surgical `schwungGridDrop(track, componentKey)` (`schwung-grid.ts`) — NOT the coarse `schwungGridReload(track)`, which would evict a co-located real module sharing the same fixed carrier and force an unrelated re-plan on every step release. Hooked into BOTH `onSessionEnd` (happy-path release) and `resetStepPage` (the lost-release recovery path `app/input-reset.ts` already runs on tool-open/Leave-Movy) — non-latching by construction, proven by removing each hook independently and watching a dedicated identity check redden. **The re-plan cost question the entry below raised is MOOT for this route**: a virtual component is its own tiny cache entry, independent of whatever module is loaded on the track, so "measure it on minijv" does not apply — that caveat is about route 1 (folding into the module's OWN hierarchy), which this does not do. **One real upstream-shaped hazard found and fixed on the movy side**: `param_meta.mjs`'s `learnEnumWireFormat` latches "this plugin writes NAMES" the first time a read matches one of its own option LABELS — LENGTH's options include bare numerals ("1".."16"), so index 3 ("1/4") read back as the string "3", which is also option 7's label, and latched name-mode for the rest of the session (every enum cell showed the wrong option after that first read). Fixed by declaring `wire_format: 'index'` on every enum cell in `createVirtualSource` — pinned, not learned, for all three virtual components' enums, not a LENGTH-specific patch. PROB additionally needed its wire index REVERSED (`schwung's CW always increases the index`; `PROB_VALUES` is stored descending to match the delta path's own "CW raises probability" math) or a delegated CW turn would have lowered probability. Gates: `npm test` 0 failures (`browser-test/logic/step-params-source.mjs`, teeth: both drop hooks reverted independently and watched the lifecycle test redden), `page-mode.mjs` 3 of 3 unchanged (the one step-hold label there never selects the step page), `schwung-page-idle-cost.mjs` unmoved at 43/48 (the step-params owner is only ever asked for while a step is held+selected, so idle pays nothing by construction), `screenshot.mjs` 180/180 (1 new `page`-mode scene, `page_stepparams`, reviewed by eye). `hiddenDuringHold`/SP-33/SP-35 confirmed unaffected — a different render branch entirely, never touched. `step-edit.ts` grew from a pre-existing 345 lines (already over the 200-line cap before this item) to 377 — the SAME kind of named, deliberate exception `app-loop.mjs` carries; splitting it is a follow-up, not done here. See `plans/sp-54-step-page-contract.md` | Sonnet | ✅ **movy-side, 2026-09-20** | 24 | — |
 | SP-55 | MIX and the two LFO pages: they have a port and a key, and are refused delegation by name | Sonnet | ✅ | 25 | — |
 | SP-56 | **NEW** — Settings, CPU and Backups: a scope decision, not a build | Opus | ⬜ | 26 | — |
+| SP-57 | **NEW** — alignment pass over the three virtual pages (step/clip/set): the fader, one knob rule, direction-absolute two-way cells, the readings, the peek's frames | Opus | 🔨 **5 of 7 movy-side, 2026-09-22** | 27 | — |
 | SP-21 | Metadata correction overlay | Sonnet | ❌ **dropped** — the audit found 1 real correction in 555 | — | — |
 | SP-22 | Cut-curve viz kind | Sonnet | ❌ **dropped** — a movy extension; Schwung draws plain dials natively | — | — |
 | SP-43 | The second click on an entered preset page leaves it | Sonnet | ❌ **dropped** 2026-09-20 — it is upstream's DOCUMENTED design, not a defect; the user's ruling is to drop it and correct the record | — | — |
@@ -190,6 +191,10 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | SU-13 | A host-owned page's write throttle and knob feel | ⬜ **new, conditional, and bounded by The injection surface §4.** `SETPARAM_THROTTLE_MS = 20` and the acceleration constants are `export const` bindings — readable, not writable — so a feel complaint about a migrated Set Params page (the tempo knob) is an upstream ask or it does not happen. Do not open it before a complaint exists |
 | SU-14 | The re-plan skip: `param_pages` re-plans the whole module even when the contract has not changed | 🔨 **FILED — schwung PR #519, OPEN and unreviewed since 2026-09-17** (head `DimaDake:perf/page-reload-skip-unchanged-contract-upstream`, `3bca6d68`; the local `1959e661` is its working copy). 87 lines of `page_controller.mjs` + one host test. **The action is to chase it, not to write it**, and it lands in the highest-churn file in the library (98 commits/90 days), so it is overtaken the longer it waits. Until it ships, a host-owned contract pays the FULL unconditional re-plan — see the correction in *The pages that are not a track module's*. **SP-49 measured how much: on `minijv` (70 pages), stashing movy's own reload-poll divider out to where it never fires collapsed the ENTIRE idle `page`-vs-`off` gap to noise — this is not one line among several, it is the whole of what SP-49 could still see once SP-26/27/48 had already been paid for** (`sp49-measurement.md`) |
 | SU-15 | **NEW, SP-50.** The reference module `voice-poc`'s `pads` level to declare `child_index_param`, matching `sophie`'s, so the already-correct `child_index_param` machinery closes the loop for a shipping example — today no dumped module has both a child note map AND `child_index_param` on one level, so SP-50's half two (the off-by-base write) has no fleet exhibition at all | ⬜ **new, ask only — an example-module change, not a defect in the library itself** |
+| SU-16 | **NEW, SP-57.** A 2-option enum may declare `turn: "absolute"` — stepped by direction instead of toggled on every detent. The toggle stays the default and stays right (a boxed two-way shows a state, not a direction); it is wrong only where the pair is ORDERED and the caller knows it | ⬜ **new, opt-in by construction** |
+| SU-17 | **NEW, SP-57.** `io.enumPeek(key, meta)` — a host may decline the option panel per key. Generalises the rule `page_controller.mjs` ALREADY applies to a list layout ("a list row already prints the option in full") to a grid cell whose box fits the whole option. Can only decline, never force | ⬜ **new, opt-in by construction** |
+| SU-18 | **NEW, SP-57.** A param may declare `display: "big"` — the value is read, not aimed, whatever it looks like. Lifts the span cap AND the blanket enum refusal for declaring params only; draws the text the page already resolved instead of recomputing it from the raw number; replaces the three-digit guard with a measured width. Needs `font_big_num.mjs` to gain `:` `%` `/` `.` — transcribed from the same MIT source its header already names (movy's `src/font/glyphs-big.ts`, a full ASCII atlas this project vendored twelve glyphs of) | ⬜ **new, opt-in by construction** |
+| SU-19 | **CONDITIONAL, SP-57.** `onKnobTouch` nulls `s.peek` on press AND release (`page_controller.mjs:3623`), and movy must keep forwarding touch. Whether that is what costs movy the overlay is a DEVICE question — SP-57's Task 6. If the box exonerates the touch, this item does not exist | ⬜ **not opened until the device says so** |
 
 ---
 
@@ -2356,6 +2361,138 @@ toggle gap (both carried from SP-54) are noticeable on RATE/TARGET/MODE/
 SHAPE (enums) or SYNC/RETRIGGER (toggles) under a real hand. No `page`-mode
 screenshot scene added for MIX or either LFO page — visual review
 deferred, same posture as SP-53's LENGTH/TRANSPOSE restyle deferral.
+
+---
+
+### SP-57 — the alignment pass over the three virtual pages (NEW, 2026-09-22)
+
+SP-53/SP-54 put Clip Params, Set Params and the step page on the seam. They
+worked; they did not FEEL like the pages they replaced. Five items shipped
+movy-side, two remain. Design:
+`docs/superpowers/specs/2026-09-22-virtual-page-alignment-design.md`; plans:
+`plans/sp-57-virtual-page-alignment.md` and
+`plans/su-16-19-upstream-page-bundle.md`.
+
+**Three rulings shaped it, all the user's.** Native first, not pixel identity —
+reuse Schwung's own widgets, do not restore movy's old cell styles through a
+host widget layer. Upstream only what is valuable to every param page. And the
+upstream bundle must not alter ANY existing rendering, which is satisfiable
+without touching the draw path: `normalize()` is `{ ...raw, key }`
+(`param_meta.mjs:242`), so an undeclared field is invisible, and
+`createController` already defaults its optional hooks inert.
+
+**Four findings, read from source or produced by a node probe, before anything
+was designed.**
+
+1. **No viz group claims ANY virtual cell** — probed by building all three
+   contracts' `chain_params` and running `buildMetaIndex` + `resolveViz` under
+   node: three empty group lists. So velocity gets no fader by detection, and
+   `drawnWide()` is NOT why the enum overlay is missing. That hypothesis died
+   before it cost anything.
+2. **The peek is cleared by the TOUCH, not the turn.** `onKnobTouch` nulls
+   `s.peek` unconditionally (`page_controller.mjs:3623`) on press *and* release,
+   and movy forwards both. Compounding it, movy's repaint gate never asked for
+   the frame in which the 1500 ms expiry should take the list down.
+3. **MODE and LAYOUT toggle because they are 2-option enums that are not
+   Off/On.** `isTwoWayMeta` flips on every detent behind a 270 ms latch; LINK and
+   INVERT escape only because `Off`/`On` makes them switches, which are
+   direction-absolute. Measured: six clockwise turns land on option 1 and six
+   counter-clockwise turns cannot get back off it — half the control is dead.
+4. **Big numbers are name-gated.** `shouldDrawBigNumber` refuses a span over
+   24/48 unless the key or name matches `COUNTED_WORDS`, so `tempo` already
+   passes and swing (span 30) and clip length (span 63) cannot — and no module
+   can opt in. It also refuses `KIND_ENUM` outright, which is why a `2:4` trig
+   condition was never reachable by any declaration.
+
+**What shipped (5 tasks, each with its teeth proven by reverting the fix):**
+
+- **H1 — velocity draws Schwung's own fader.** `VirtualCellSpec` gains an
+  optional `viz`, carried verbatim into `chain_params`; `param_meta` spreads it
+  onto the meta and `viz.mjs` builds a single-key group. No movy widget, nothing
+  registered. SP-54 had costed this as a hand-drawn canvas widget and recorded
+  the `vbar` as lost; it was one field. **Verified as a picture, not a diff** —
+  at velocity 100 the dithered lattice fills the band, at 20 it is a stub
+  between the dashed rails. A declared kind that fails to draw degrades to the
+  built-in silently, so a changed baseline proves nothing on its own.
+- **H2 — one knob rule: 8 raw CC units per step, on every cell of all three
+  pages.** Old movy charged exactly that (`detent.ts`'s `DETENT_DIV`, and every
+  `*PageKnob` writer); delegation fed one detent per raw unit into
+  `ENUM_DELTA_DIV = 4`, so every enum ran at TWICE its old rate, and velocity
+  changed shape as well (a flat ±4 per CC event became 2× the event's
+  magnitude). Implemented as `PageParamSource.rawPerDetent`, answered only by the
+  virtual source (2 for an enum, 8 for an int), plus VEL's declared `step`
+  4 → 8, because `perDetentStep` is `round(max(step, range × 0.01) × 0.5)` and a
+  declared 4 moved velocity by TWO — half a step, and half what every
+  neighbouring cell moved. **A real module's port answers nothing, so module
+  pages are out of this by construction, not by a flag.**
+- **H3 — a two-option choice is set by direction, not toggled.** Every 2-option
+  cell on a virtual page takes the rule the delta path always used
+  (`applyLink(n > 0)`), including its gate: the detent accumulator runs first, so
+  a sub-detent nudge banks rather than flipping. The write is skipped when the
+  value is already there, and THAT is what replaces the 270 ms latch. **A
+  stopgap with a named end — SU-16 is the general version and this branch is
+  deleted when it ships.**
+- **H4 — swing `54%`, tempo `120 bpm`, clip length `16 steps`**, through the
+  `formatValue` hook that already carried TRANSPOSE's `n/a` and TEMPO's `EXT`.
+  Surface-aware: `54%` fits the 30px cell, the other two ride the header. EXT
+  keeps precedence over the bpm unit — when the clock is external, where the
+  tempo comes from is the more useful of the two and they do not both fit.
+- **H5 — the enum peek asks for its own frames.** `pollDrawnPage` compared page
+  identity, knob levels and animation; the peek is in none of them. Both edges
+  now count, BEFORE the animation predicate, so `animCap` (which exists for a
+  page that never settles) cannot hold an appearing overlay back.
+
+**Three tests would have been false greens, and that is the part worth carrying
+forward:**
+
+- The idempotence check for H3 first counted ENGINE ops — but `applyLayoutIdx`
+  emits no command at all (it marks UI state dirty) and `applyLink` has its own
+  early return, so the count sat at zero with the guard deleted and PASSED. What
+  the guard suppresses is the CONTROLLER's write, so that is what is counted
+  now, and the test asserts the counter is live before asserting it stays put.
+- H5's "a peek going up asks for a frame" failed for the wrong reason: the walk
+  that sets up the test leaves a peek UP (its 1500 ms clock never elapses inside
+  a fast loop), so there was no edge to see. It now takes the list down and
+  consumes that edge first, and gets its isolation by turning at a CLAMPED end
+  where the value cannot move and only the overlay can move the answer.
+- H2's end-to-end check asserted state between two turns with no release. The
+  write is throttled (`SETPARAM_THROTTLE_MS`) and the RELEASE is what flushes
+  it — **the same trap SP-53 already recorded, hit again**. Every measurement is
+  now a whole gesture.
+
+**THE A/B SUITE HAD THE DIVERGENCE WRITTEN IN AS EXPECTED BEHAVIOUR.**
+`app-loop.mjs` carried `pageArm ? 80 : 90` for probability and `'2 2' : '1 2'`
+for condition, with a comment attributing the 2× gap to SU-9 because "knob feel
+is upstream or it does not happen". That was wrong about the ROUTE — movy owns
+how many raw units one detent costs — and *The injection surface* §4 should be
+read with that correction beside it. The parameter is gone; both arms assert the
+same landing, so a re-divergence is now something the suite CATCHES rather than
+documents. Its velocity check was also passing on a SUB-DETENT nudge (delta 1,
+where a real detent is 8) and only because the `off` path ignores magnitude
+entirely — the hair trigger this pass removed.
+
+**Gates:** `npm test` exit 0 and ALL LOGIC CHECKS PASSED after every task;
+screenshots 180/180 with `page_stepparams` the only baseline moved; `page-mode`
+3 of 3 expected failures unchanged; the idle budget unmoved at 43 ≤ 48 (H5 adds
+one boolean read per tick).
+
+**NOT DONE, and neither is blocked by the other:**
+
+- **Task 6 — F2 on the box.** Which of the two causes costs the overlay decides
+  whether SU-19 exists at all. **Blocked as of 2026-09-22 on a device gate that
+  is red for its OWN reasons**: `./scripts/run-gate.sh preflight` fails
+  `smoke#set-param-ipc` ("1 write(s) returned false — IPC timeout or key
+  rejected") with nothing from this branch deployed, and the same check failed on
+  this device in an earlier session where a clean restart did not clear it.
+  Preflight earning its keep exactly as intended — the item was never allowed to
+  spend an hour being blamed for someone else's red.
+- **Task 7's user docs.** **Deliberately NOT written.** `schwunggrid` is
+  `def: 0` (MOVY) and carries no `release` field — debug-only — so nothing here
+  is visible to a user on a shipped build. `MANUAL.md` documents what ships;
+  pre-documenting a flag nobody can turn on would be wrong. **This is a line for
+  SP-30's checklist**: the default flip is what makes the fader, the knob rule,
+  the direction-absolute cells and the three readings user-facing, and the manual
+  is updated there, with screenshots from the baselines.
 
 ---
 

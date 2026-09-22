@@ -5,10 +5,13 @@
  * have a fixed label array (`LENGTH_LABELS`/`PROB_LABELS`/`COND_LABELS` in
  * `step-page-vm.ts`), so all three map straight onto Schwung's own
  * enum-square with no widget at all — INVERT is `toggle`, exactly like Set
- * Params' LINK. Only VELOCITY loses its `vbar` picture (reads as a plain
- * numeric dial); building and pixel-verifying a hand-drawn canvas widget with
- * no device this session is the same call SP-53 made for LENGTH/TRANSPOSE's
- * restyle, recorded as a follow-up in the plan rather than shipped unverified.
+ * Params' LINK.
+ *
+ * VELOCITY'S PICTURE CAME BACK WITHOUT A MOVY WIDGET (SP-57). This entry used
+ * to record the `vbar` as lost, on the reasoning that taking it back meant
+ * hand-drawing and pixel-verifying a canvas widget. It did not: `chain_params`
+ * is movy's string to write, a declared `viz` reaches `viz.mjs` through it, and
+ * Schwung ships a fader of its own. The follow-up was one field, not a widget.
  *
  * WRITES GO THROUGH THE SAME FIVE FUNCTIONS THE DELTA PATH USES
  * (`seq/step-edit.ts`'s `applyStep*`) — one writer, two callers; see that
@@ -39,6 +42,17 @@ const asIndex = (v: string): number => Math.round(Number(v)) || 0;
 const cells: VirtualCellSpec[] = [
     {
         key: 'vel', name: 'Velocity', shortName: 'VEL', type: 'int', min: 0, max: 127, step: 4,
+        /* The `vbar` picture this file's header recorded as lost, taken back as
+         * SCHWUNG'S OWN fader rather than a movy widget — the page stays native
+         * and nothing has to be registered or drawn here.
+         *
+         * Declared because nothing detects it: the fader detector matches on
+         * NAME against a closed list of fourteen, `vel` is not among them, and
+         * measured over this contract no detector claims any cell at all. A
+         * unipolar 0..127 level is what `drawFader` draws honestly — the
+         * detector's own "no negative minimum" rule is about guessing, and does
+         * not gate a declaration. */
+        viz: { kind: 'fader' },
         get: () => String(seqState.holdVel),
         set: (v) => applyStepVelocityAbs(asIndex(v)),
     },

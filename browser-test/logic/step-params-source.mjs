@@ -73,8 +73,16 @@ _log('\nTest: the synthesised contract');
     const invert = params.find((p) => p.key === 'invert');
     eq('INVERT is a toggle', invert.type, 'toggle');
     const vel = params.find((p) => p.key === 'vel');
-    eq('VELOCITY is a plain int 0-127 — the vbar restyle is a stated follow-up',
-       vel.type + ':' + vel.min + ':' + vel.max, 'int:0:127');
+    eq('VELOCITY is an int 0-127', vel.type + ':' + vel.min + ':' + vel.max, 'int:0:127');
+
+    /* SP-57 H1. The fader is DECLARED, not detected: no detector claims `vel`
+     * (the fader detector matches on NAME and `vel` is not one of the fourteen
+     * it takes), so without this the cell draws Schwung's ordinary arc — which
+     * is what made SP-54 record the vbar as lost. The assertion is on the
+     * contract string because that is the whole of movy's side of it; the
+     * pixels are pinned by the `page_stepparams` baseline. */
+    ok('VELOCITY declares the fader viz', !!vel.viz && vel.viz.kind === 'fader');
+    ok('no other cell declares a viz', params.filter((p) => p.viz).length === 1);
 }
 
 /* ── one writer: the virtual source's set() and editStepPageKnob agree ───── */

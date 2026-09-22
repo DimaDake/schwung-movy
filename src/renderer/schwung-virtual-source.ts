@@ -35,6 +35,18 @@ export interface VirtualCellSpec {
      *  here rather than left to the auto-fitter a second time. */
     shortName?: string;
     type: 'int' | 'float' | 'enum' | 'toggle';
+    /** A DECLARED graphic, carried verbatim into `chain_params`.
+     *
+     *  `param_meta`'s `normalize` spreads a chain entry whole, so this lands on
+     *  the meta, and `viz.mjs`'s `collectDeclared` builds a single-key group
+     *  from it — Schwung's own widget, with no `vizOverrides` hook and no
+     *  widget registration.
+     *
+     *  IT IS THE ONLY WAY A VIRTUAL CELL GETS ONE. The detectors work on NAME
+     *  (`vel`, `len`, `prob` are none of the words they know) and measured over
+     *  all three contracts they claim NOTHING, so an undeclared cell is an arc
+     *  or an enum square by construction rather than by choice. */
+    viz?: Record<string, unknown>;
     min?: number;
     max?: number;
     step?: number;
@@ -80,6 +92,7 @@ export function createVirtualSource(componentKey: string,
         const out = cells.map((c) => {
             const entry: Record<string, unknown> = { key: c.key, name: c.name, type: c.type };
             if (c.shortName) entry.short_name = c.shortName;
+            if (c.viz) entry.viz = c.viz;
             if (c.type === 'enum') {
                 entry.options = (typeof c.options === 'function' ? c.options() : c.options) ?? [];
                 /* PINNED, never LEARNED. `param_meta.mjs`'s `learnEnumWireFormat`

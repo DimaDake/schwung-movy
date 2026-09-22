@@ -42,6 +42,11 @@ const cells: VirtualCellSpec[] = [
         key: 'length', name: 'Length', shortName: 'LEN', type: 'int', min: 1, max: MAX_STEPS, step: 1,
         get: () => String(seqState.lenSteps),
         set: (v) => applyClipLength(activeTrack(), asIndex(v)),
+        /* HEADER ONLY: the word is what tells 16 STEPS from 16 bars, and the
+         * 30px cell has no room for it under a label that already says LEN.
+         * Same split as TEMPO's bpm. */
+        format: (raw, surface) =>
+            (raw !== null && surface === 'header') ? raw + ' steps' : null,
     },
     {
         key: 'transpose', name: 'Transpose', shortName: 'TRANS', type: 'int',

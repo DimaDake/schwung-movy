@@ -122,6 +122,32 @@ _log('\nTest: TEMPO reads "<bpm> EXT" while following Move');
     eq('format() appends EXT to the text only', source.formatValue(key, source.getParam(key), 'cell'), '120 EXT');
 }
 
+/* ── SP-57 H4: the readings these cells lost in the migration ─────────────── */
+_log('\nTest: swing and tempo say what their numbers ARE');
+{
+    reset();
+    const source = setParamsSource();
+    const f = (k, raw, surface) => source.formatValue(SET_PARAMS_COMPONENT + ':' + k, raw, surface);
+
+    /* The percent sign is the READING, not decoration — swing is the one value
+     * on this page whose bare number could be read as a count. Short enough for
+     * the 30px cell, so both surfaces get it. */
+    eq('swing reads as a percentage in the cell', f('swing', '54', 'cell'), '54%');
+    eq('swing reads as a percentage in the header', f('swing', '54', 'header'), '54%');
+
+    /* "120 bpm" does NOT fit the cell, so the unit rides the header alone —
+     * which is also what the screen reader speaks. */
+    seqState.extSync = false;
+    eq('tempo carries its unit in the header', f('tempo', '120', 'header'), '120 bpm');
+    eq('tempo stays bare in the cell', f('tempo', '120', 'cell'), null);
+
+    /* EXT WINS OVER THE UNIT. When the clock is external, WHERE the tempo comes
+     * from is the more useful of the two readings and they do not both fit. */
+    seqState.extSync = true;
+    eq('EXT beats the unit in the header', f('tempo', '120', 'header'), '120 EXT');
+    eq('and still reaches the cell', f('tempo', '120', 'cell'), '120 EXT');
+}
+
 /* ── the page actually plans (guarded: needs a real schwung checkout) ────── */
 if (!schwungLibAvailable()) {
     _log('\nlogic: Set Params page plan — SKIPPED (no param_pages; set SCHWUNG=)');

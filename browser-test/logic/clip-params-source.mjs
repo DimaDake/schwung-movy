@@ -137,4 +137,15 @@ if (!schwungLibAvailable()) {
 closeParamPage();
 appState.trackModels = savedModels;
 resetPorts();
+
+/* ── SP-57 H4: the clip length's unit ─────────────────────────────────────── */
+_log('\nTest: the clip length names its unit');
+{
+    const source = clipParamsSource();
+    const f = (k, raw, surface) => source.formatValue(CLIP_PARAMS_COMPONENT + ':' + k, raw, surface);
+    /* The word is what tells 16 STEPS from 16 bars, and the 30px cell has no
+     * room for it — so it rides the header, like tempo's bpm. */
+    eq('clip length names its unit in the header', f('length', '16', 'header'), '16 steps');
+    eq('clip length stays bare in the cell', f('length', '16', 'cell'), null);
+}
 }

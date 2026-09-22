@@ -38,14 +38,30 @@ const cells: VirtualCellSpec[] = [
         get: () => String(Math.round(seqState.bpmX100 / 100)),
         set: (v) => applyTempoX100(asIndex(v) * 100),
         /* The raw value stays a plain bpm number (so the arc/knob-state math
-         * stays sane); only the PRINTED text carries the EXT suffix, matching
-         * the `off` arm's own displayValue (`main-page-vm.ts`). */
-        format: (raw) => (seqState.extSync && raw !== null) ? raw + ' EXT' : null,
+         * stays sane); only the PRINTED text carries a suffix, matching the
+         * `off` arm's own displayValue (`main-page-vm.ts`).
+         *
+         * EXT WINS OVER THE UNIT, and only one of them can be shown: when the
+         * clock is external, WHERE the tempo comes from is the more useful
+         * reading of the two. The unit then rides the HEADER alone — "120 bpm"
+         * does not fit a 30px cell, where the label underneath already says
+         * TEMPO. */
+        format: (raw, surface) => {
+            if (raw === null) return null;
+            if (seqState.extSync) return raw + ' EXT';
+            return surface === 'header' ? raw + ' bpm' : null;
+        },
     },
     {
         key: 'swing', name: 'Swing', shortName: 'SWING', type: 'int', min: 50, max: 80, step: 1,
         get: () => String(seqState.swingPct),
         set: (v) => applySwing(asIndex(v)),
+        /* THE PERCENT SIGN IS THE READING, not decoration. Swing is the one
+         * value on this page whose bare number reads as a count — 54 of what?
+         * — and it is short enough for the 30px cell, so unlike tempo's unit it
+         * goes on both surfaces. The `off` arm printed it the same way
+         * (`main-page-vm.ts`'s `swing + '%'`). */
+        format: (raw) => (raw === null ? null : raw + '%'),
     },
     {
         key: 'link', name: 'Play Link', shortName: 'LINK', type: 'toggle',

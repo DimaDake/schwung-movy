@@ -103,6 +103,29 @@ So tempo is already right and needs nothing. Swing and clip length are dials
 where movy showed numbers, and **no module can opt into the number** — the only
 door is a name the library happens to recognise.
 
+### F9 — the big face is twelve glyphs, and movy ships the whole one
+
+`font_big_num.mjs:34` declares `CHARS = '0123456789+-'` — twelve glyphs, "matching
+what `bigNumberText` can emit". `missingGlyphs` reports anything else rather
+than drawing it wrong, and `tests/host/test_big_number_font.sh` sweeps the fleet
+against that. So `50%` and `2:4` cannot be drawn in it at all today.
+
+Its own header records where it came from: transcribed from movy's
+`src/font/glyphs-big.ts`, MIT, © megadake — and **movy's copy is a full ASCII
+atlas**, `%` `:` `/` `.` included (verified by reading it). Upstream vendored a
+subset of a face this project already owns in full.
+
+Two more gates sit in front of a non-numeric big value:
+
+- `shouldDrawBigNumber` returns false for `kind === KIND_ENUM` outright
+  (`render_page_movy.mjs:1807`), so COND's `2:4` was never reachable by any
+  declaration.
+- `bigNumberText(meta, raw)` computes its own text from the raw number, so a
+  cell drawn big ignores whatever `short_options`/`options`/`formatValue`
+  already resolved.
+
+This is what makes U3 a capability rather than a rename.
+
 ### F5 — knob feel: 2× on enums, magnitude-scaled on velocity
 
 Old movy charged `DETENT_DIV = 8` raw CC units per enum step
@@ -230,6 +253,10 @@ The hook is already wired and already exercised (TRANSPOSE's `n/a`, TEMPO's
 `EXT`). Add: swing `54%`, tempo `120 bpm` on the `header` surface only, clip
 length `16 steps` on `header`. Cell surfaces stay bare where the box is 30px.
 
+**Pairs with U3, and stands without it.** Once U3 ships, part 2 of it means the
+cell draws exactly these strings in the big face; until then they read in the
+header while the cell keeps Schwung's dial. Nothing here waits on the release.
+
 ### H5 — the peek's expiry asks for a frame
 
 Pending F2's diagnosis: add the controller's live peek (`ctl.enumPeek()`, or its
@@ -271,17 +298,44 @@ default, and the test that proves the default.
 - **File:** `page_controller.mjs` (98 commits/90d — file the ask small and
   early; see *Which upstream files move under an ask*).
 
-### U3 — a param may declare that it reads as a number
+### U3 — a param may declare that its value is drawn in the big face
 
-- **Door:** per-param `display: "number"`.
-- **Default:** absent → the 24/48 span cap and `COUNTED_WORDS`, as today.
+**Not `display: "number"`** — the user's note, and F9 says why it would have
+been a lie: the values that most want this cell are `50%`, `2:4`, `1/16`. The
+door is therefore about the FACE, not about the type.
+
+- **Door:** per-param `display: "big"`.
+- **Default:** absent → the `COUNTED_WORDS` name match and the 24/48 span cap,
+  exactly as today. No fleet module declares it, so no fleet cell moves.
+- **Four parts, each additive:**
+  1. `shouldDrawBigNumber` honours the declaration ahead of its name/span rules,
+     and stops excluding `KIND_ENUM` **for a declaring param only** — the blanket
+     `kind === KIND_ENUM` refusal stays for everything else.
+  2. The cell draws the text the page already resolved (`short_options` →
+     `options` → `formatValue` → `bigNumberText`), instead of recomputing it from
+     the raw number. Undeclared params keep reaching `bigNumberText` unchanged.
+  3. The atlas gains the glyphs those strings need — `%` `:` `/` `.` — taken from
+     movy's `src/font/glyphs-big.ts`, the same MIT source the twelve already came
+     from, so this is completing a vendoring rather than drawing new letterforms.
+  4. `BIG_NUM_MAX_DIGITS`'s three-digit guard becomes a **measured width** guard
+     (`fontWidth(text) <= cell width`), falling back to the ordinary widget when
+     the string does not fit. Strictly safer than counting digits, which is a
+     proxy for the same question, and it is what keeps a declared `Mixolydian`
+     from smearing across its neighbour.
 - **Why general:** `isCountedQuantity` already concedes the principle — some
-  numbers are read, not aimed — but the only way in is a name the library
-  recognises. A swing percentage, a clip length in steps and a pattern length
-  are the same shape and cannot ask. The three-digit guard
-  (`BIG_NUM_MAX_DIGITS`) still applies, so a declaration cannot smear digits
-  across the next cell.
-- **File:** `render_page_movy.mjs` (62 commits/90d).
+  values are read, not aimed — but the only way in is a name the library happens
+  to recognise, and the face can only spell integers. A ratio, a percentage, a
+  note division and a two-character mode are the same shape and none of them can
+  ask.
+- **Covers:** set SWING (`50%`), clip LENGTH (`16`), step COND (`2:4`) — the
+  "big font where we need it" asks across all three pages, which no other item
+  in this bundle reaches.
+- **Files:** `render_page_movy.mjs` (62 commits/90d), `font_big_num.mjs` (low
+  churn).
+- **Risk to ruling 3, named:** part 3 touches a shared atlas. It is additive —
+  no existing glyph changes — and `test_big_number_font.sh` already asserts that
+  the fleet emits nothing outside the declared set, so the sweep proves the
+  claim rather than the diff having to.
 
 ### U4 — whatever F2 proves to be upstream
 

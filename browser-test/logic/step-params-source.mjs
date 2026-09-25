@@ -82,7 +82,16 @@ _log('\nTest: the synthesised contract');
      * contract string because that is the whole of movy's side of it; the
      * pixels are pinned by the `page_stepparams` baseline. */
     ok('VELOCITY declares the fader viz', !!vel.viz && vel.viz.kind === 'fader');
-    ok('no other cell declares a viz', params.filter((p) => p.viz).length === 1);
+    /* TWO cells declare a graphic, and no more: VEL's fader and COND's big
+     * face. LEN and PROB stay Schwung's plain enum square — the page is still
+     * native everywhere a native widget reads right. */
+    eq('exactly two cells declare a viz', params.filter((p) => p.viz).length, 2);
+
+    /* SP-57: COND draws in the big face (Schwung's own refuses enums), and the
+     * three cells whose values fit their square raise no option panel. */
+    ok('COND declares the big-value widget', cond.viz?.kind === 'custom:movy_big_value');
+    const sup = (k) => source.peekSuppressed(key(k));
+    ok('LEN, PROB and COND suppress the panel', sup('len') && sup('prob') && sup('cond'));
 
     /* SP-57 H2, the DIVISOR half of the knob rule. Stated in raw CC units per
      * STEP — 8, the number `seq/detent.ts` has always charged on these pages —

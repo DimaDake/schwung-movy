@@ -10,6 +10,15 @@ each one defaulting to today's behaviour.
 executed (see the constraint below): the missing enum overlay was movy's own
 repaint gate, and nothing about it is upstream's.
 
+**And none of the three blocks a user any more.** SP-57 shipped host-side
+equivalents for U2 and U3 on 2026-09-25 (`ctl.dismissPeek()` for the panel,
+`custom:movy_big_value` for the face), because both asks were visibly wrong on
+the device and an upstream item reaches a device only when Schwung releases.
+That changes what this plan is FOR: it is no longer the only route to those two
+behaviours, it is the route that makes them available to **every** module and
+lets movy delete its stopgaps. Write the PR that way — the movy widget's own
+header names SU-18 as its deletion condition.
+
 **Architecture:** Two doors, both already established upstream. A per-param
 field declared in `chain_params` or the inline hierarchy (`normalize()` is
 `{ ...raw, key }`, so an undeclared field is invisible to every module that

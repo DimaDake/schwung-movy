@@ -63,4 +63,17 @@ export interface PageParamSource {
      *  answers. That is what keeps module pages out of this by construction
      *  rather than by a flag. */
     rawPerDetent?(fullKey: string): number | null;
+
+    /** True when this cell's own square ALREADY shows the whole value, so the
+     *  option panel a turn raises would cover a legible answer with the same
+     *  answer.
+     *
+     *  Schwung's controller applies exactly this rule to a LIST layout already
+     *  ("a list row already prints the option in full") but cannot apply it to
+     *  a grid cell, because whether the box fits the text is a question about
+     *  the HOST's own drawing. So the source that owns these cells answers it.
+     *
+     *  Absent or false means "raise it", which is today's behaviour and what
+     *  every real port answers. SU-17 is the general version of this. */
+    peekSuppressed?(fullKey: string): boolean;
 }

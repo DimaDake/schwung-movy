@@ -214,6 +214,31 @@ export function createPageInput(ctl: any, lib: any, port: PageParamSource,
                 n = Math.min(Math.abs(delta) | 0, 63) || 1;
             }
             for (let i = 0; i < n; i++) ctl.onKnobTurn(slot, dir);
+
+            /*
+             * AND TAKE THE PANEL BACK DOWN WHERE THE CELL ALREADY SAYS IT.
+             *
+             * A turn on a divable enum raises the option list over the grid.
+             * That is right when a 30px box cannot show the value — a scale
+             * name, a key — and wrong when it can: "3:4", "80%", "1/4" are
+             * drawn in full underneath, so the panel covers a legible answer
+             * with the same answer and hides the rest of the row with it.
+             * Schwung's controller already declines on a LIST layout for
+             * exactly that reason; it cannot make the call for a grid cell,
+             * because whether the box fits the text is a fact about the HOST's
+             * drawing. So the cell declares it (`VirtualCellSpec.peek`).
+             *
+             * DISMISSED RATHER THAN NEVER RAISED, because `onKnobTurn` is the
+             * only thing that writes the value and it raises the peek on its
+             * way through — there is no seam between them from out here. The
+             * peek is state, not a frame: nothing has been drawn yet when this
+             * runs, so taking it down now means it never appears, rather than
+             * appearing and flickering away.
+             */
+            if (key && port.peekSuppressed && port.peekSuppressed(qualify(key))
+                && typeof ctl.dismissPeek === 'function') {
+                ctl.dismissPeek();
+            }
         },
         knobTouch: (slot: number, down: boolean) => { ctl.onKnobTouch(slot, down); },
         /*

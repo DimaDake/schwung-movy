@@ -36,6 +36,7 @@ import {
 import { createVirtualSource, type VirtualCellSpec } from '../renderer/schwung-virtual-source.js';
 import type { PageParamSource } from '../renderer/schwung-page-source.js';
 import { STEP_PARAMS_COMPONENT } from '../chain/config.js';
+import { BIG_VALUE_KIND } from '../renderer/schwung-big-value.js';
 
 const asIndex = (v: string): number => Math.round(Number(v)) || 0;
 
@@ -58,6 +59,10 @@ const cells: VirtualCellSpec[] = [
     },
     {
         key: 'len', name: 'Length', shortName: 'LEN', type: 'enum', options: LENGTH_LABELS,
+        /* "1/4" and "16" fit the square whole, so the option panel would cover
+         * a legible answer with the same answer. The old page raised no
+         * overlay here at all (`step-page-vm.ts` built `overlay: null`). */
+        peek: false,
         get: () => String(lengthIndexForTicks(seqState.holdGate)),
         set: (v) => applyStepLenIdx(asIndex(v)),
         /* No "indeterminate" shape in `chain_params` (the ledger's own
@@ -77,11 +82,18 @@ const cells: VirtualCellSpec[] = [
          * to present the REVERSED list, or a delegated CW turn would LOWER
          * probability, backwards from every other arm of this control. */
         options: [...PROB_LABELS].reverse(),
+        peek: false,          /* "80%" fits the square — see LEN */
         get: () => String(PROB_VALUES.length - 1 - probIndexForPct(seqState.holdProb)),
         set: (v) => applyStepProbIdx(PROB_VALUES.length - 1 - asIndex(v)),
     },
     {
         key: 'cond', name: 'Condition', shortName: 'COND', type: 'enum', options: COND_LABELS,
+        /* THE BIG FACE, as the old page drew it (`renderStyle: 'preset'`).
+         * Schwung's own big-number widget cannot take this cell — it refuses
+         * KIND_ENUM outright and its face has no ':' — so this is movy's
+         * widget until SU-18 lands. See schwung-big-value.ts. */
+        viz: { kind: BIG_VALUE_KIND },
+        peek: false,          /* "3:4" is fully drawn, and now in 11px */
         get: () => String(condIndexFor(seqState.holdCondA, seqState.holdCondB)),
         set: (v) => applyStepCondIdx(asIndex(v)),
     },

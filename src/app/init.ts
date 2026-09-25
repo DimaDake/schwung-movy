@@ -29,6 +29,7 @@ import { leaveModalActive, leaveModalLabels, leaveModalSel } from './leave-modal
 import { sessionReady } from '../seq/set-session.js';
 import { schwungGridMode, setSchwungGridMode } from '../renderer/schwung-grid.js';
 import { clearWidgets, isWidgetAvailable } from '../renderer/schwung-widgets.js';
+
 import { laneKeysForTrack } from '../seq/automation.js';
 
 export function init(): void {

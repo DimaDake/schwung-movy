@@ -47,6 +47,12 @@ export interface VirtualCellSpec {
      *  all three contracts they claim NOTHING, so an undeclared cell is an arc
      *  or an enum square by construction rather than by choice. */
     viz?: Record<string, unknown>;
+    /** Set false where the cell's square already shows the whole value, so the
+     *  turn does not also raise the option panel over it — the old pages
+     *  raised an overlay only for SCALE and KEY/MODE/LAYOUT, whose values are
+     *  words that do not fit a 30px box, and never for a "3:4" or an "80%".
+     *  Default (absent) is to raise it. */
+    peek?: boolean;
     min?: number;
     max?: number;
     step?: number;
@@ -146,6 +152,13 @@ export function createVirtualSource(componentKey: string,
          *
          * A key this source does not own answers null rather than a default,
          * so a caller can tell "one raw unit, as always" from "not mine". */
+        /* The cell's own declaration, not a measurement: movy writes these
+         * option lists, so whether a value fits its box is settled here rather
+         * than re-derived from a font metric at every turn. */
+        peekSuppressed(fullKey: string): boolean {
+            const c = byKey.get(bare(fullKey));
+            return !!c && c.peek === false;
+        },
         rawPerDetent(fullKey: string): number | null {
             const c = byKey.get(bare(fullKey));
             if (!c) return null;

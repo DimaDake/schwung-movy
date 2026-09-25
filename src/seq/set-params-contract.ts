@@ -29,6 +29,7 @@ import { applyTempoX100, applySwing, applyLink, applyDefaultQuantIdx,
 import { createVirtualSource, type VirtualCellSpec } from '../renderer/schwung-virtual-source.js';
 import type { PageParamSource } from '../renderer/schwung-page-source.js';
 import { SET_PARAMS_COMPONENT } from '../chain/config.js';
+import { BIG_VALUE_KIND } from '../renderer/schwung-big-value.js';
 
 const asIndex = (v: string): number => Math.round(Number(v)) || 0;
 
@@ -62,6 +63,12 @@ const cells: VirtualCellSpec[] = [
          * goes on both surfaces. The `off` arm printed it the same way
          * (`main-page-vm.ts`'s `swing + '%'`). */
         format: (raw) => (raw === null ? null : raw + '%'),
+        /* "Show swing the same way as before": the old page drew it in the big
+         * preset face with its percent sign. Schwung's big number cannot —
+         * span 30 is over the 24 cap, and its twelve-glyph face has no '%'.
+         * The suffix rides the declaration so the widget prints the same
+         * reading `format()` gives every other surface. */
+        viz: { kind: BIG_VALUE_KIND, suffix: '%' },
     },
     {
         key: 'link', name: 'Play Link', shortName: 'LINK', type: 'toggle',
@@ -70,11 +77,17 @@ const cells: VirtualCellSpec[] = [
     },
     {
         key: 'quant', name: 'Default Quantize', shortName: 'QUANT', type: 'enum', options: QUANT_LABELS,
+        peek: false,          /* the labels fit their square */
         get: () => String(quantIndexForPct(seqState.defaultQuant)),
         set: (v) => applyDefaultQuantIdx(asIndex(v)),
     },
     {
         key: 'root', name: 'Root', shortName: 'ROOT', type: 'enum', options: NOTE_NAMES,
+        /* Big, as the old page drew it; "C#" fits whole, so no overlay either.
+         * KEY below keeps its overlay — scale names are words that do not fit
+         * a 30px box, which is exactly the case the panel exists for. */
+        viz: { kind: BIG_VALUE_KIND },
+        peek: false,
         get: () => String(keyboardState.rootPc),
         set: (v) => applyRootPc(asIndex(v)),
     },

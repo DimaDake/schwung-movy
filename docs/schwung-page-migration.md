@@ -192,8 +192,8 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | SU-14 | The re-plan skip: `param_pages` re-plans the whole module even when the contract has not changed | 🔨 **FILED — schwung PR #519, OPEN and unreviewed since 2026-09-17** (head `DimaDake:perf/page-reload-skip-unchanged-contract-upstream`, `3bca6d68`; the local `1959e661` is its working copy). 87 lines of `page_controller.mjs` + one host test. **The action is to chase it, not to write it**, and it lands in the highest-churn file in the library (98 commits/90 days), so it is overtaken the longer it waits. Until it ships, a host-owned contract pays the FULL unconditional re-plan — see the correction in *The pages that are not a track module's*. **SP-49 measured how much: on `minijv` (70 pages), stashing movy's own reload-poll divider out to where it never fires collapsed the ENTIRE idle `page`-vs-`off` gap to noise — this is not one line among several, it is the whole of what SP-49 could still see once SP-26/27/48 had already been paid for** (`sp49-measurement.md`) |
 | SU-15 | **NEW, SP-50.** The reference module `voice-poc`'s `pads` level to declare `child_index_param`, matching `sophie`'s, so the already-correct `child_index_param` machinery closes the loop for a shipping example — today no dumped module has both a child note map AND `child_index_param` on one level, so SP-50's half two (the off-by-base write) has no fleet exhibition at all | ⬜ **new, ask only — an example-module change, not a defect in the library itself** |
 | SU-16 | **NEW, SP-57.** A 2-option enum may declare `turn: "absolute"` — stepped by direction instead of toggled on every detent. The toggle stays the default and stays right (a boxed two-way shows a state, not a direction); it is wrong only where the pair is ORDERED and the caller knows it | ⬜ **new, opt-in by construction** |
-| SU-17 | **NEW, SP-57.** `io.enumPeek(key, meta)` — a host may decline the option panel per key. Generalises the rule `page_controller.mjs` ALREADY applies to a list layout ("a list row already prints the option in full") to a grid cell whose box fits the whole option. Can only decline, never force | ⬜ **new, opt-in by construction** |
-| SU-18 | **NEW, SP-57.** A param may declare `display: "big"` — the value is read, not aimed, whatever it looks like. Lifts the span cap AND the blanket enum refusal for declaring params only; draws the text the page already resolved instead of recomputing it from the raw number; replaces the three-digit guard with a measured width. Needs `font_big_num.mjs` to gain `:` `%` `/` `.` — transcribed from the same MIT source its header already names (movy's `src/font/glyphs-big.ts`, a full ASCII atlas this project vendored twelve glyphs of) | ⬜ **new, opt-in by construction** |
+| SU-17 | **NEW, SP-57 — and NOT blocking: movy ships a host-side equivalent.** `ctl.dismissPeek()` is public, so the host can take the panel down on the turn that raised it (SP-57 H6); the upstream hook is still worth having so a module need not re-implement the dismissal, but nothing waits on it. `io.enumPeek(key, meta)` — a host may decline the option panel per key. Generalises the rule `page_controller.mjs` ALREADY applies to a list layout ("a list row already prints the option in full") to a grid cell whose box fits the whole option. Can only decline, never force | ⬜ **new, opt-in by construction** |
+| SU-18 | **NEW, SP-57 — and NOT blocking: movy ships a host-side widget meanwhile** (`custom:movy_big_value`, SP-57 H7), which is deleted when this lands. A param may declare `display: "big"` — the value is read, not aimed, whatever it looks like. Lifts the span cap AND the blanket enum refusal for declaring params only; draws the text the page already resolved instead of recomputing it from the raw number; replaces the three-digit guard with a measured width. Needs `font_big_num.mjs` to gain `:` `%` `/` `.` — transcribed from the same MIT source its header already names (movy's `src/font/glyphs-big.ts`, a full ASCII atlas this project vendored twelve glyphs of) | ⬜ **new, opt-in by construction** |
 | SU-19 | **SP-57 — DOES NOT EXIST.** The candidate was `onKnobTouch` nulling `s.peek` on press AND release (`page_controller.mjs:3623`). The box exonerated it: with H5 in, turning an enum on the step page takes the list band from 0.105 to 0.205 lit; with H5's two lines reverted the fill is **byte-identical to the grid** (0.10461956521739131 both), i.e. nothing was drawn at all. movy's repaint gate was the whole of it and nothing goes upstream | ❌ **closed by measurement, 2026-09-25** |
 
 ---
@@ -2463,6 +2463,52 @@ was designed.**
   identity, knob levels and animation; the peek is in none of them. Both edges
   now count, BEFORE the animation predicate, so `animCap` (which exists for a
   page that never settles) cannot hold an appearing overlay back.
+
+**H6 — THE PANEL COMES DOWN WHERE THE CELL ALREADY SAYS IT (added 2026-09-25,
+on the user's report).** SP-57's first pass made the enum overlay *appear*,
+which was half the ask; the other half was the user's original "if the enum
+value is fully shown in a box we can omit overlay as well". That was routed to
+SU-17 as an upstream hook — **wrongly**: `ctl.dismissPeek()` is already public,
+so movy can take the panel down itself on the turn that raised it. A cell now
+declares `peek: false` (`VirtualCellSpec`) and the input binding dismisses it.
+
+Which cells, and the rule is the OLD PAGES' own: an overlay stays where the
+value is a WORD that cannot fit a 30px box — clip SCALE, set KEY — and goes
+where the square already prints it in full: step LEN/PROB/COND, clip QUANT, set
+QUANT/ROOT. That is exactly the set the old pages raised an overlay for, which
+is why this reads as alignment rather than preference. MODE/LAYOUT raise none
+either, because H3 routes a two-option cell around `onKnobTurn` entirely.
+
+**H7 — THE BIG FACE, as a movy widget, and it is meant to be deleted.** The
+user's "big font where we had it" asks (trig condition, swing, clip length,
+root) cannot be met with Schwung's own big-number cell for two reasons in
+upstream's code: `shouldDrawBigNumber` refuses `KIND_ENUM` outright, so a "3:4"
+or a "C#" can never draw big however it is declared, and the face is twelve
+glyphs (`0123456789+-`) so it cannot spell "50%" at all.
+
+SU-18 is the general fix and stays open. But it reaches a device only when
+Schwung releases, and these cells read wrong TODAY — so `renderer/
+schwung-big-value.ts` registers `custom:movy_big_value`, which draws the cell's
+value in movy's own 11px face (`src/font/big.ts`, the atlas SU-18 would take
+its new glyphs from anyway). **A deliberate, dated exception to ruling 1**, with
+its own deletion condition written in the file: when SU-18 ships, the three
+declarations become `display: "big"` and the widget goes.
+
+Two details worth keeping. The text is the CONTRACT's — an enum draws its
+option, an int its number plus a declared `viz.suffix` — so the big cell and
+the held-knob header cannot disagree about the same value. And the glyph walker
+(`font/blit.ts`) gained an `emit` sink rather than a second copy: a widget draws
+through Schwung's frame-local `fillRect`, where the global blitter would land in
+absolute screen coordinates and escape the clip.
+
+**REGISTERED WHERE PAGES ARE BUILT, NOT AT INIT — and the first attempt hid
+itself.** An unregistered `custom:` kind does not claim its cell and the
+built-in draws instead, silently, by design. Registering in `app/init.ts`
+covered the device and left every local suite drawing the fallback, so the
+screenshots showed **no baseline moving at all** — a change that appeared to do
+nothing rather than a failure. Moved into `createSchwungPage`, all three
+baselines moved and the faces are on screen (`50%`, `C`, `1:1`, verified by eye
+at 8×).
 
 **Three tests would have been false greens, and that is the part worth carrying
 forward:**

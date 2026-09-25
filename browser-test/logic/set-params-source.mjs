@@ -47,6 +47,12 @@ _log('\nTest: the synthesised contract');
        'tempo,swing,link,quant,root,key,mode,layout');
 
     const params = JSON.parse(source.getParam(SET_PARAMS_COMPONENT + ':chain_params'));
+    /* SP-57: the big face, and the reading it prints. SWING carries its unit in
+     * the declaration so the widget and `format()` cannot disagree. */
+    const swingCell = params.find((x) => x.key === 'swing');
+    ok('SWING declares the big-value widget', swingCell.viz?.kind === 'custom:movy_big_value');
+    eq('and declares the unit it prints', swingCell.viz?.suffix, '%');
+    ok('ROOT draws big too', params.find((x) => x.key === 'root').viz?.kind === 'custom:movy_big_value');
     ok('chain_params is an ARRAY, not a keyed object (the same bug class Clip Params found)',
        Array.isArray(params));
     eq('one entry per cell', params.length, 8);
@@ -199,6 +205,23 @@ if (!schwungLibAvailable()) {
     for (let i = 0; i < 5; i++) turnLayout(8);
     eq('a turn that changes nothing writes nothing', writes, 1);
     src.setParam = realSet;
+
+    /* SP-57. THE PANEL COMES DOWN WHERE THE CELL ALREADY SAYS IT — and stays
+     * up where it does not. This is the pair that makes the rule an assertion
+     * rather than a preference: QUANT's labels fit their square, KEY's scale
+     * names are words that do not, so one must suppress and the other must
+     * not. Read through the controller's own `enumPeek()`, which is what the
+     * overlay is drawn from. */
+    const turnKnob = (slot, raw) => {
+        p.knobTouch(slot, true); p.knobTurn(slot, raw); 
+        const peek = p.ctl.enumPeek();
+        p.knobTouch(slot, false);
+        return peek;
+    };
+    eq('knob 4 is QUANT', p.keyAt(3), 'quant');
+    eq('knob 6 is KEY', p.keyAt(5), 'key');
+    ok('a cell that shows its value in full raises no panel', turnKnob(3, 8) === null);
+    ok('a cell whose words do not fit still raises one', !!turnKnob(5, 8));
 
     setSchwungGridMode(savedMode);
     schwungGridReload();

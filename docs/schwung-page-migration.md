@@ -2498,6 +2498,14 @@ screenshots 180/180 with `page_stepparams` the only baseline moved; `page-mode`
 3 of 3 expected failures unchanged; the idle budget unmoved at 43 ≤ 48 (H5 adds
 one boolean read per tick).
 
+**Device tier, whole sweep, 2026-09-25: 19 scenarios · 155 checks · 0 failed**,
+`virtual-pages` among them at 5 checks — so the new scenario costs the tier
+nothing and disturbs none of the other eighteen. One `⚠ FLAKY` (`seq`, attempt
+1 `testd: ERR param SET error from peer`, green on the retry): the same
+single-slot `overtake_dsp:` contention class the `smoke#set-param-ipc` fix
+documented earlier the same day, recorded in the flake ledger rather than
+waved through.
+
 **TASK 6 — F2, SETTLED ON THE BOX 2026-09-25. The overlay works, and SU-19
 does not exist.**
 

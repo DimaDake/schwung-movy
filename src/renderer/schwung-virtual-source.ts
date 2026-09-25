@@ -35,6 +35,24 @@ export interface VirtualCellSpec {
      *  here rather than left to the auto-fitter a second time. */
     shortName?: string;
     type: 'int' | 'float' | 'enum' | 'toggle';
+    /** A DECLARED graphic, carried verbatim into `chain_params`.
+     *
+     *  `param_meta`'s `normalize` spreads a chain entry whole, so this lands on
+     *  the meta, and `viz.mjs`'s `collectDeclared` builds a single-key group
+     *  from it — Schwung's own widget, with no `vizOverrides` hook and no
+     *  widget registration.
+     *
+     *  IT IS THE ONLY WAY A VIRTUAL CELL GETS ONE. The detectors work on NAME
+     *  (`vel`, `len`, `prob` are none of the words they know) and measured over
+     *  all three contracts they claim NOTHING, so an undeclared cell is an arc
+     *  or an enum square by construction rather than by choice. */
+    viz?: Record<string, unknown>;
+    /** Set false where the cell's square already shows the whole value, so the
+     *  turn does not also raise the option panel over it — the old pages
+     *  raised an overlay only for SCALE and KEY/MODE/LAYOUT, whose values are
+     *  words that do not fit a 30px box, and never for a "3:4" or an "80%".
+     *  Default (absent) is to raise it. */
+    peek?: boolean;
     min?: number;
     max?: number;
     step?: number;
@@ -80,6 +98,7 @@ export function createVirtualSource(componentKey: string,
         const out = cells.map((c) => {
             const entry: Record<string, unknown> = { key: c.key, name: c.name, type: c.type };
             if (c.shortName) entry.short_name = c.shortName;
+            if (c.viz) entry.viz = c.viz;
             if (c.type === 'enum') {
                 entry.options = (typeof c.options === 'function' ? c.options() : c.options) ?? [];
                 /* PINNED, never LEARNED. `param_meta.mjs`'s `learnEnumWireFormat`
@@ -123,6 +142,27 @@ export function createVirtualSource(componentKey: string,
         formatValue(fullKey: string, raw: string | null, surface: 'cell' | 'header'): string | null {
             const c = byKey.get(bare(fullKey));
             return c?.format ? c.format(raw, surface) : null;
+        },
+        /* THE RULE IS STATED IN RAW UNITS PER STEP — 8 of them, the number
+         * every one of these pages charged before delegation — because that is
+         * the quantity a hand measures. It is SPENT per detent, and a detent is
+         * worth different amounts by kind: Schwung burns `ENUM_DELTA_DIV` (4)
+         * of them per enum option and one per int step. So the two divisors
+         * differ precisely so that the felt rate does not.
+         *
+         * A key this source does not own answers null rather than a default,
+         * so a caller can tell "one raw unit, as always" from "not mine". */
+        /* The cell's own declaration, not a measurement: movy writes these
+         * option lists, so whether a value fits its box is settled here rather
+         * than re-derived from a font metric at every turn. */
+        peekSuppressed(fullKey: string): boolean {
+            const c = byKey.get(bare(fullKey));
+            return !!c && c.peek === false;
+        },
+        rawPerDetent(fullKey: string): number | null {
+            const c = byKey.get(bare(fullKey));
+            if (!c) return null;
+            return (c.type === 'enum' || c.type === 'toggle') ? 2 : 8;
         },
     };
 }

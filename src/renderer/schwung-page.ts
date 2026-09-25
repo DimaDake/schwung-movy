@@ -47,6 +47,9 @@ import { createPageRender } from './schwung-page-render.js';
 import { createPageInput } from './schwung-page-input.js';
 import { createPageAnimating } from './schwung-page-anim.js';
 import { chromeFor, type PageChrome } from './schwung-page-chrome.js';
+/* movy's own big-font cell, for the three values Schwung's big-number widget
+ * cannot reach (an enum, or a reading with a unit in it). */
+import { registerBigValueWidget } from './schwung-big-value.js';
 
 /** What Schwung asks the HOST to do. `open` wants an editor for `key`; `exit`
  *  means every layer is down and Back now belongs to movy. */
@@ -83,6 +86,15 @@ export interface SchwungPage {
      *  have held still, and the only thing that makes an animated widget draw
      *  more than the one frame its value change bought. */
     animating(nowMs: number): boolean;
+    /** Is Schwung's enum peek — the option list a turn raises over the grid —
+     *  up right now?
+     *
+     *  Asked by the repaint decision because it is invisible to everything
+     *  else that decision compares: it appears on a turn that need not change
+     *  any value (at a clamped end it cannot), and it EXPIRES on a clock with
+     *  nothing moving at all. Neither edge would otherwise ask for a frame, so
+     *  the list would be drawn late, or left on screen after it was gone. */
+    peekOpen(): boolean;
     render(title: string, auto?: AutomationView, touched?: number): void;
     /** What movy's header and footer should say while this page is the body.
      *  `paging` is true only where the jog moves this page set. */
@@ -124,6 +136,13 @@ export function createSchwungPage(
     const qualify = (k: string) => (k.indexOf(':') >= 0 ? k : componentKey + ':' + k);
 
     const lib = schwungLib();
+    /* REGISTERED WHERE PAGES ARE BUILT, not at app init. A custom kind that is
+     * not in the registry when `collectDeclared` walks the contract simply does
+     * not claim its cell, and the built-in draws instead — silently, by design
+     * (`widget_registry.mjs`). Registering at init covered the device and left
+     * every local suite drawing the fallback, so the screenshots could not have
+     * shown this widget failing. Idempotent: it is a Map set. */
+    registerBigValueWidget();
     /* The cache IS movy's half of the read contract (SP-26): Schwung asks one
      * key a tick, movy answers from a page-sized batch it refills on a divider.
      * It is created here, beside the controller it serves, because its lifetime
@@ -200,6 +219,11 @@ export function createSchwungPage(
         knobParamInfo: page.knobParamInfo,
         knobLevels: page.knobLevels,
         animating,
+        /* `enumPeek()` is also the reader that RETIRES an expired peek
+         * (`page_controller.mjs` clears it past ENUM_PEEK_MS on the way out),
+         * so asking the question is what keeps the answer honest as well as
+         * what answers it. */
+        peekOpen: () => (typeof ctl.enumPeek === 'function' ? !!ctl.enumPeek() : false),
         render: page.render,
         chrome: (paging: boolean) => chromeFor(ctl, lib, paging),
         knobTurn: input.knobTurn,

@@ -17,6 +17,10 @@ import type { SchwungIntent } from './schwung-page.js';
 import type { PageHierarchy } from './schwung-page-hierarchy.js';
 import { mlog } from '../log.js';
 import { surfaceOf } from './schwung-voices.js';
+/* The detent accumulator the sequencer pages have always used. Imported rather
+ * than reimplemented: one rule for "how much raw CC is one click", stated once
+ * (`seq/detent.ts`). */
+import { countDetents } from '../seq/detent.js';
 
 export interface PageInput {
     knobTurn(slot: number, delta: number): void;
@@ -94,6 +98,15 @@ export function createPageInput(ctl: any, lib: any, port: PageParamSource,
      * nothing about the turn rate on a re-plan, so neither does this.
      */
     const presetKnobState = new Map<string, any>();
+
+    /* One banked remainder per knob, for a source that charges more than one
+     * raw unit per detent (`PageParamSource.rawPerDetent`). It lives in the
+     * binding because that is where a gesture's state already lives, beside
+     * `presetKnobState` — and it is `seq/detent.ts`'s accumulator, reused
+     * rather than restated: a remainder that carries across CC events is the
+     * whole rule, and dropping one is what made a movy knob move on one turn
+     * direction and not the other. */
+    const turnAccum: number[] = [];
     const turnPresetDoor = (p: any, delta: number): boolean => {
         if (!p || p.kind !== lib.PAGE_PRESET) return false;
         if (typeof lib.listKnobInit !== 'function' || typeof lib.listKnobStep !== 'function') return false;
@@ -149,8 +162,83 @@ export function createPageInput(ctl: any, lib: any, port: PageParamSource,
              * still a bound, because a corrupt CC must not spin this loop, but
              * one no honest gesture can reach.
              */
-            const n = Math.min(Math.abs(delta) | 0, 63) || 1;
+            /*
+             * A SOURCE MAY CHARGE MORE THAN ONE RAW UNIT PER DETENT (SP-57).
+             *
+             * movy's own pages do, because they charged 8 per step before
+             * delegation and one-per-unit into `ENUM_DELTA_DIV` made every enum
+             * on them twice as fast. A real module's port answers nothing, so
+             * the expansion below — and the module feel it was measured
+             * against — is untouched.
+             */
+            const key = typeof ctl.keyAt === 'function' ? ctl.keyAt(slot) : null;
+            const per = (key && port.rawPerDetent) ? (port.rawPerDetent(qualify(key)) || 1) : 1;
+            let n: number;
+            if (per > 1) {
+                const steps = countDetents(turnAccum, slot, delta, per);
+                if (steps === 0) return;      // banked, not lost — the remainder carries
+                n = Math.abs(steps);
+                /*
+                 * A TWO-OPTION CHOICE IS SET BY DIRECTION, NOT TOGGLED.
+                 *
+                 * `isTwoWayMeta` flips any 2-option enum on every detent behind
+                 * a 270 ms latch, on the reasoning that a boxed value shows a
+                 * state and not a direction — so with nothing on screen saying
+                 * which way is which, a direction-absolute turn would have a
+                 * dead half. That is right for Mix/Reverb and wrong for an
+                 * ORDERED pair: turning Pad Layout walked it back and forth
+                 * instead of setting it, reported as the knob cycling.
+                 *
+                 * So these cells take the rule the delta path always used
+                 * (`applyLink(n > 0)`), including its gate: the accumulator
+                 * above has already run, so a sub-detent nudge banks rather
+                 * than flipping. Off/On pairs come through here too and are
+                 * unaffected — `isSwitchMeta` already made them
+                 * direction-absolute — which keeps ONE rule for every
+                 * two-option cell on these pages rather than two that agree.
+                 *
+                 * The write is SKIPPED when the value is already there, so a
+                 * continued turn emits nothing. That is what replaces the
+                 * latch, and it is why dropping the latch is safe.
+                 *
+                 * Virtual components only: `per > 1` is true for no real port.
+                 */
+                const meta = typeof ctl.metaAt === 'function' ? ctl.metaAt(slot) : null;
+                if (key && meta && Array.isArray(meta.options) && meta.options.length === 2) {
+                    const target = steps > 0 ? 1 : 0;
+                    const cur = Math.round(Number(port.getParam(qualify(key))));
+                    if (cur !== target) ctl.commitEnum(key, target);
+                    return;
+                }
+            } else {
+                n = Math.min(Math.abs(delta) | 0, 63) || 1;
+            }
             for (let i = 0; i < n; i++) ctl.onKnobTurn(slot, dir);
+
+            /*
+             * AND TAKE THE PANEL BACK DOWN WHERE THE CELL ALREADY SAYS IT.
+             *
+             * A turn on a divable enum raises the option list over the grid.
+             * That is right when a 30px box cannot show the value — a scale
+             * name, a key — and wrong when it can: "3:4", "80%", "1/4" are
+             * drawn in full underneath, so the panel covers a legible answer
+             * with the same answer and hides the rest of the row with it.
+             * Schwung's controller already declines on a LIST layout for
+             * exactly that reason; it cannot make the call for a grid cell,
+             * because whether the box fits the text is a fact about the HOST's
+             * drawing. So the cell declares it (`VirtualCellSpec.peek`).
+             *
+             * DISMISSED RATHER THAN NEVER RAISED, because `onKnobTurn` is the
+             * only thing that writes the value and it raises the peek on its
+             * way through — there is no seam between them from out here. The
+             * peek is state, not a frame: nothing has been drawn yet when this
+             * runs, so taking it down now means it never appears, rather than
+             * appearing and flickering away.
+             */
+            if (key && port.peekSuppressed && port.peekSuppressed(qualify(key))
+                && typeof ctl.dismissPeek === 'function') {
+                ctl.dismissPeek();
+            }
         },
         knobTouch: (slot: number, down: boolean) => { ctl.onKnobTouch(slot, down); },
         /*

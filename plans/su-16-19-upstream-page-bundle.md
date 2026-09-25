@@ -1,10 +1,23 @@
-# SU-16…SU-19 — The opt-in upstream page bundle Implementation Plan
+# SU-16…SU-18 — The opt-in upstream page bundle Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** One Schwung PR carrying every `param_pages` capability movy's
 migrated pages need and cannot reach from the host — each one parametrized,
 each one defaulting to today's behaviour.
+
+**Three items, not four.** SU-19 was closed by measurement before this plan was
+executed (see the constraint below): the missing enum overlay was movy's own
+repaint gate, and nothing about it is upstream's.
+
+**And none of the three blocks a user any more.** SP-57 shipped host-side
+equivalents for U2 and U3 on 2026-09-25 (`ctl.dismissPeek()` for the panel,
+`custom:movy_big_value` for the face), because both asks were visibly wrong on
+the device and an upstream item reaches a device only when Schwung releases.
+That changes what this plan is FOR: it is no longer the only route to those two
+behaviours, it is the route that makes them available to **every** module and
+lets movy delete its stopgaps. Write the PR that way — the movy widget's own
+header names SU-18 as its deletion condition.
 
 **Architecture:** Two doors, both already established upstream. A per-param
 field declared in `chain_params` or the inline hierarchy (`normalize()` is
@@ -35,12 +48,14 @@ host tests, `tests/host/test_*.sh` (CI runs every one of them: `.github/workflow
   commits in 90 days and `render_page_movy.mjs` 62; an ask that waits is an ask
   that gets overtaken. File the PR as soon as Task 6 is green, and iterate in
   review rather than holding it back.
-- **U4 (SU-19) is conditional and has no task here.** It exists only if the
-  host plan's Task 6 proves on the device that `onKnobTouch`'s peek-clear is
-  what costs movy the overlay. If it does, add it to this branch before Task 7
-  as a fifth item, shaped like U2: a hook or a declaration that keeps a peek
-  alive across the touch that raised it, defaulting to today's clear. If the
-  device exonerates the touch, drop SU-19 from the PR title and the ledger.
+- **U4 (SU-19) DOES NOT EXIST — settled on the device 2026-09-25, do not open
+  it.** The candidate was `onKnobTouch` nulling `s.peek` on press and release.
+  `test-device/scenarios/virtual-pages.ts` measured the list band at
+  **0.105 → 0.205** lit with SP-57's H5 in, and **byte-identical**
+  (0.10461956521739131 both) with H5's two lines reverted — so movy's own
+  repaint gate was the entire cause and the touch-clear costs nothing while the
+  knob is still held. **The branch and the PR are U1–U3 plus the carried asks;
+  retitle accordingly (SU-16…SU-18).**
 - **Do not change `SU-6`** (the 15-vs-16 widget band). It is a layout
   correction, cannot be opt-in, and is deliberately out of this bundle.
 - **No apostrophes inside the node scripts in `tests/host/*.sh`** — they are

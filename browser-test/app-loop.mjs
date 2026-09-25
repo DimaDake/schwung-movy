@@ -945,14 +945,19 @@ _log('\napp-loop: step page navigation + knob editing');
      * with no cell "claimed" for it, so movy's own delta answer (the `off`
      * arm's untouched shape) is what a device gesture would never actually
      * produce — every physical turn is preceded by the capacitive touch. */
-    /* PROB/COND's expected landing differs BY ARM, and correctly so: Schwung's
-     * own enum gate is 4 raw units per option (`ENUM_DELTA_DIV`,
-     * `knob_engine.mjs`) where movy's own delta path gates at 8
-     * (`detent.ts`'s `DETENT_DIV`) — the SAME raw CC delta is 1 movy detent
-     * and 2 Schwung steps. This is SU-9's territory (knob feel is upstream's),
-     * not a defect: `off` is unchanged, and the *direction* still agrees
-     * (asserted by the delta/landing pair, not just the landing). */
-    const pageArm = schwungGridMode() === 'page';
+    /* THE TWO ARMS NOW LAND ON THE SAME VALUE, and that is the assertion
+     * (SP-57 H2).
+     *
+     * They used to differ by exactly 2x and this block said so: Schwung gates
+     * an enum at 4 raw units per option (`ENUM_DELTA_DIV`) where movy's delta
+     * path gates at 8 (`detent.ts`'s `DETENT_DIV`), so one movy detent was two
+     * Schwung steps. It was written up as SU-9's territory — knob feel is
+     * upstream's — which turned out to be wrong about the ROUTE: movy owns how
+     * many raw units one detent costs, and a virtual source now says so
+     * (`rawPerDetent`). Nothing upstream was needed.
+     *
+     * So there is no `pageArm` landing any more. A divergence that used to be
+     * parameterised here is now a thing the suite would CATCH. */
 
     /* Every gesture below advances ONCE MORE after the release: under `page`
      * the settled write can sit in Schwung's own `pendingWrite` until
@@ -963,16 +968,16 @@ _log('\napp-loop: step page navigation + knob editing');
     engine.ops.length = 0;
     sendMidi([0x90, 2, 127]);
     // CW raises probability (already 100 = max → no change); CCW lowers it.
-    sendMidi([0xB0, 73, 120]); advance(1);    // knob 3 (probability) CCW: 1 movy detent, 2 Schwung steps
+    sendMidi([0xB0, 73, 120]); advance(1);    // knob 3 (probability) CCW: one detent, both arms
     sendMidi([0x90, 2, 0]); advance(1);
-    eq('probability CCW lowers it', engine.ops.some((o) => o === 'eprob 0 0 0 -1 ' + (pageArm ? 80 : 90)), true);
+    eq('probability CCW lowers it', engine.ops.some((o) => o === 'eprob 0 0 0 -1 90'), true);
     eq('step page never emits automation aset', engine.ops.some((o) => o.startsWith('aset')), false);
 
     engine.ops.length = 0;
     sendMidi([0x90, 3, 127]);
-    sendMidi([0xB0, 74, 8]); advance(1);      // knob 4 (condition) CW: 1 movy detent, 2 Schwung steps
+    sendMidi([0xB0, 74, 8]); advance(1);      // knob 4 (condition) CW: one detent, both arms
     sendMidi([0x90, 3, 0]); advance(1);
-    eq('condition knob raises it', engine.ops.some((o) => o === 'econd 0 0 0 -1 ' + (pageArm ? '2 2' : '1 2')), true);
+    eq('condition knob raises it', engine.ops.some((o) => o === 'econd 0 0 0 -1 1 2'), true);
 
     engine.ops.length = 0;
     sendMidi([0x90, 4, 127]);
@@ -982,7 +987,13 @@ _log('\napp-loop: step page navigation + knob editing');
 
     engine.ops.length = 0;
     sendMidi([0x90, 0, 127]);
-    sendMidi([0xB0, 71, 1]); advance(1);      // knob 1 (velocity) up → evel delta
+    /* ONE WHOLE DETENT (8 raw units), not the sub-detent nudge of 1 this used
+     * to send. The `off` path ignores magnitude entirely — any delta is one
+     * VEL_STEP — so a fraction of a click moved velocity there, which is the
+     * hair trigger SP-57's one-rule pass removed. Under `page` a partial turn
+     * now banks its remainder like every other cell, so a whole detent is what
+     * both arms are asked for, and both answer with the same step. */
+    sendMidi([0xB0, 71, 8]); advance(1);      // knob 1 (velocity) up → evel delta
     sendMidi([0x90, 0, 0]); advance(1);
     eq('velocity knob uses evel delta', engine.ops.some((o) => /^evel 0 0 0 -1 \d+$/.test(o)), true);
 

@@ -88,6 +88,10 @@ export function moduleGridOnScreen(): boolean {
  * not. */
 const levels: (number | null)[] = new Array(8).fill(null);
 let lastKey = '';
+/* Module-level beside `lastKey` and `levels`, for the same reason they are:
+ * this is a comparison against the LAST answer, and one drawn page is what the
+ * whole module is about. */
+let lastPeek = false;
 
 /* SP-48. One instance for the one drawn page's lifetime, same reasoning as
  * `levels`/`lastKey` above: it self-resets on `animating()` going false, so a
@@ -123,6 +127,7 @@ export function pollDrawnPage(owner: PageOwner, nowFn: () => number = Date.now):
         if (lastKey === '') return false;
         lastKey = '';
         levels.fill(null);
+        lastPeek = false;
         return true;
     }
 
@@ -157,6 +162,19 @@ export function pollDrawnPage(owner: PageOwner, nowFn: () => number = Date.now):
      * never held back (`animCap` is unthrottled for `ANIM_GRACE_MS`, which
      * outlasts every real one), but a page stuck past that window degrades to
      * one repaint per `REPAINT_CAP_MS` instead of asking every tick forever. */
+    /* SP-57. THE ENUM PEEK IS A REAL CHANGE, and it is invisible to everything
+     * above: the overlay goes up on a turn that need not move any level (at a
+     * clamped end it cannot move one at all) and comes down on a 1500 ms clock
+     * with nothing moving whatsoever.
+     *
+     * BEFORE the animation predicate, deliberately. `animCap` throttles a page
+     * that never settles down to one repaint per REPAINT_CAP_MS, which is right
+     * for a value that will not rest and wrong for an overlay appearing or
+     * disappearing — a peek held back by the cap would be drawn late or left on
+     * screen after it expired. */
+    const peek = typeof page.peekOpen === 'function' ? page.peekOpen() : false;
+    if (peek !== lastPeek) { lastPeek = peek; moved = true; }
+
     if (!moved) { const now = nowFn(); moved = animCap(page.animating(now), now); }
     return moved;
 }

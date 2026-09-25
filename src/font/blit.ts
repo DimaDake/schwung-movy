@@ -16,10 +16,21 @@ export function glyphRunWidth(str: string, glyphFor: GlyphLookup, fallbackAdv: n
     return w;
 }
 
+/* Where a glyph's pixel runs go. Defaults to the device blitter, which is what
+ * every screen-drawing caller wants. A WIDGET does not: Schwung hands a custom
+ * widget a frame-local context with its own `fillRect` and its own clipping
+ * (`frame_ctx.mjs`), so drawing through the global would land in absolute
+ * screen coordinates and escape the clip. One walker, two sinks — the
+ * alternative was a second copy of this loop, which is how two fonts come to
+ * disagree about their own advance. */
+export type RunEmit = (x: number, y: number, w: number, h: number, color: number) => void;
+
 export function drawGlyphRun(
     x: number, y: number, str: string, color: number,
     glyphFor: GlyphLookup, fallbackAdv: number, gap: number,
+    emit?: RunEmit,
 ): void {
+    const put: RunEmit = emit ?? ((rx, ry, rw, rh, c) => fill_rect(rx, ry, rw, rh, c));
     let cx = x;
     for (let i = 0; i < str.length; i++) {
         const g = glyphFor(str.charCodeAt(i));
@@ -32,7 +43,7 @@ export function drawGlyphRun(
                 if (bits & (1 << col)) {
                     const s = col;
                     while (col < w && (bits & (1 << col))) col++;
-                    fill_rect(cx + s, y + yOff + row, col - s, 1, color);
+                    put(cx + s, y + yOff + row, col - s, 1, color);
                 } else { col++; }
             }
         }

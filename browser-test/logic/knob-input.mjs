@@ -6,7 +6,8 @@
 
 import {
     createModel, portFor, enumRawToIndex, enumUsesIndex, enumSetValue, MOCK_SYNTHS,
-    eq, bootModel, _log, env,
+    eq, ok, bootModel, _log, env, appState,
+    schwungLibAvailable, schwungPageFor, setSchwungGridMode, schwungGridReload,
 } from './harness.mjs';
 
 export async function run() {
@@ -484,4 +485,21 @@ _log('\nTest: wide acceleration scales a unit step, not the accumulated delta');
 /* A one-shot control has to say what it did. The badge phase drives the widget:
  * ARMED (turn CW to fire) → FIRED (momentary confirmation) → COOLING (latched
  * while the gesture-end debounce runs) → ARMED again. */
+
+/* ── SP-57 H2/H3: the feel of movy's OWN pages ───────────────────────────── */
+
+_log('\nTest: virtual-page knob feel (SP-57)');
+
+{
+    const { countDetents } = await import('../../dist/esm/seq/detent.js');
+    /* THE ACCUMULATOR IS `seq/detent.ts`, REUSED rather than restated — the
+     * remainder carrying across CC events is the whole point, and a second
+     * implementation of that rule is how two knobs come to feel different. */
+    const accum = [];
+    eq('8 raw units are one detent', countDetents(accum, 0, 8, 8), 1);
+    eq('4 + 4 is one detent, the remainder carried',
+       countDetents(accum, 1, 4, 8) + countDetents(accum, 1, 4, 8), 1);
+    eq('7 raw units are none of one', countDetents(accum, 2, 7, 8), 0);
+    eq('and the direction survives the division', countDetents(accum, 3, -8, 8), -1);
+}
 }

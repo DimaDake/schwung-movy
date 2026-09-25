@@ -167,7 +167,7 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | SP-54 | The step page: a contract that exists only while a step is held. **SHIPPED, movy-side, 2026-09-20, no device**: `STEP_PARAMS_COMPONENT` on the SAME virtual-component seam SP-53 built (`stepParamsSource()`, `seq/step-params-contract.ts`) — velocity/length/probability/condition/invert, delegated touch/turn exactly like Clip/Set Params (`applyStep*` in `step-edit.ts`, one writer, two callers). **Further native than SP-53 could go**: LENGTH/PROBABILITY/CONDITION already had a fixed label array, so all three are plain Schwung enums with no widget at all — only VELOCITY loses its `vbar` picture (a stated follow-up), a correction of the ledger's own assumption below that these five "are the page". **The lifetime claim verified, not just trusted**: `createVirtualSource` stays a singleton (cheap either way); what actually needs a per-hold reset is the cached `SchwungPage`'s controller (touch-claim timers, an open enum peek), dropped by a new surgical `schwungGridDrop(track, componentKey)` (`schwung-grid.ts`) — NOT the coarse `schwungGridReload(track)`, which would evict a co-located real module sharing the same fixed carrier and force an unrelated re-plan on every step release. Hooked into BOTH `onSessionEnd` (happy-path release) and `resetStepPage` (the lost-release recovery path `app/input-reset.ts` already runs on tool-open/Leave-Movy) — non-latching by construction, proven by removing each hook independently and watching a dedicated identity check redden. **The re-plan cost question the entry below raised is MOOT for this route**: a virtual component is its own tiny cache entry, independent of whatever module is loaded on the track, so "measure it on minijv" does not apply — that caveat is about route 1 (folding into the module's OWN hierarchy), which this does not do. **One real upstream-shaped hazard found and fixed on the movy side**: `param_meta.mjs`'s `learnEnumWireFormat` latches "this plugin writes NAMES" the first time a read matches one of its own option LABELS — LENGTH's options include bare numerals ("1".."16"), so index 3 ("1/4") read back as the string "3", which is also option 7's label, and latched name-mode for the rest of the session (every enum cell showed the wrong option after that first read). Fixed by declaring `wire_format: 'index'` on every enum cell in `createVirtualSource` — pinned, not learned, for all three virtual components' enums, not a LENGTH-specific patch. PROB additionally needed its wire index REVERSED (`schwung's CW always increases the index`; `PROB_VALUES` is stored descending to match the delta path's own "CW raises probability" math) or a delegated CW turn would have lowered probability. Gates: `npm test` 0 failures (`browser-test/logic/step-params-source.mjs`, teeth: both drop hooks reverted independently and watched the lifecycle test redden), `page-mode.mjs` 3 of 3 unchanged (the one step-hold label there never selects the step page), `schwung-page-idle-cost.mjs` unmoved at 43/48 (the step-params owner is only ever asked for while a step is held+selected, so idle pays nothing by construction), `screenshot.mjs` 180/180 (1 new `page`-mode scene, `page_stepparams`, reviewed by eye). `hiddenDuringHold`/SP-33/SP-35 confirmed unaffected — a different render branch entirely, never touched. `step-edit.ts` grew from a pre-existing 345 lines (already over the 200-line cap before this item) to 377 — the SAME kind of named, deliberate exception `app-loop.mjs` carries; splitting it is a follow-up, not done here. See `plans/sp-54-step-page-contract.md` | Sonnet | ✅ **movy-side, 2026-09-20** | 24 | — |
 | SP-55 | MIX and the two LFO pages: they have a port and a key, and are refused delegation by name | Sonnet | ✅ | 25 | — |
 | SP-56 | **NEW** — Settings, CPU and Backups: a scope decision, not a build | Opus | ⬜ | 26 | — |
-| SP-57 | **NEW** — alignment pass over the three virtual pages (step/clip/set): the fader, one knob rule, direction-absolute two-way cells, the readings, the peek's frames | Opus | 🔨 **5 of 7 movy-side, 2026-09-22** | 27 | — |
+| SP-57 | alignment pass over the three virtual pages (step/clip/set): the fader, one knob rule, direction-absolute two-way cells, the readings, the peek's frames. **F2 settled on device 2026-09-25 — the overlay works and SU-19 does not exist** | Opus | ✅ **movy-side, device-verified** | 27 | — |
 | SP-21 | Metadata correction overlay | Sonnet | ❌ **dropped** — the audit found 1 real correction in 555 | — | — |
 | SP-22 | Cut-curve viz kind | Sonnet | ❌ **dropped** — a movy extension; Schwung draws plain dials natively | — | — |
 | SP-43 | The second click on an entered preset page leaves it | Sonnet | ❌ **dropped** 2026-09-20 — it is upstream's DOCUMENTED design, not a defect; the user's ruling is to drop it and correct the record | — | — |
@@ -194,7 +194,7 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | SU-16 | **NEW, SP-57.** A 2-option enum may declare `turn: "absolute"` — stepped by direction instead of toggled on every detent. The toggle stays the default and stays right (a boxed two-way shows a state, not a direction); it is wrong only where the pair is ORDERED and the caller knows it | ⬜ **new, opt-in by construction** |
 | SU-17 | **NEW, SP-57.** `io.enumPeek(key, meta)` — a host may decline the option panel per key. Generalises the rule `page_controller.mjs` ALREADY applies to a list layout ("a list row already prints the option in full") to a grid cell whose box fits the whole option. Can only decline, never force | ⬜ **new, opt-in by construction** |
 | SU-18 | **NEW, SP-57.** A param may declare `display: "big"` — the value is read, not aimed, whatever it looks like. Lifts the span cap AND the blanket enum refusal for declaring params only; draws the text the page already resolved instead of recomputing it from the raw number; replaces the three-digit guard with a measured width. Needs `font_big_num.mjs` to gain `:` `%` `/` `.` — transcribed from the same MIT source its header already names (movy's `src/font/glyphs-big.ts`, a full ASCII atlas this project vendored twelve glyphs of) | ⬜ **new, opt-in by construction** |
-| SU-19 | **CONDITIONAL, SP-57.** `onKnobTouch` nulls `s.peek` on press AND release (`page_controller.mjs:3623`), and movy must keep forwarding touch. Whether that is what costs movy the overlay is a DEVICE question — SP-57's Task 6. If the box exonerates the touch, this item does not exist | ⬜ **not opened until the device says so** |
+| SU-19 | **SP-57 — DOES NOT EXIST.** The candidate was `onKnobTouch` nulling `s.peek` on press AND release (`page_controller.mjs:3623`). The box exonerated it: with H5 in, turning an enum on the step page takes the list band from 0.105 to 0.205 lit; with H5's two lines reverted the fill is **byte-identical to the grid** (0.10461956521739131 both), i.e. nothing was drawn at all. movy's repaint gate was the whole of it and nothing goes upstream | ❌ **closed by measurement, 2026-09-25** |
 
 ---
 
@@ -2498,16 +2498,46 @@ screenshots 180/180 with `page_stepparams` the only baseline moved; `page-mode`
 3 of 3 expected failures unchanged; the idle budget unmoved at 43 ≤ 48 (H5 adds
 one boolean read per tick).
 
-**NOT DONE, and neither is blocked by the other:**
+**TASK 6 — F2, SETTLED ON THE BOX 2026-09-25. The overlay works, and SU-19
+does not exist.**
 
-- **Task 6 — F2 on the box.** Which of the two causes costs the overlay decides
-  whether SU-19 exists at all. **Blocked as of 2026-09-22 on a device gate that
-  is red for its OWN reasons**: `./scripts/run-gate.sh preflight` fails
-  `smoke#set-param-ipc` ("1 write(s) returned false — IPC timeout or key
-  rejected") with nothing from this branch deployed, and the same check failed on
-  this device in an earlier session where a clean restart did not clear it.
-  Preflight earning its keep exactly as intended — the item was never allowed to
-  spend an hour being blamed for someone else's red.
+`test-device/scenarios/virtual-pages.ts` holds an occupied step under the page
+arm, jogs to the step page and turns PROB, reading the list band's lit fraction
+**between the knob's touch-on and touch-off** — the peek dies on the release, so
+a grab taken after the gesture would find the grid whether the feature worked or
+not.
+
+Measured: **0.105 → 0.205** with H5 in. With H5's two lines reverted,
+**0.10461956521739131 → 0.10461956521739131** — byte-identical, nothing drawn.
+So movy's repaint gate was the entire cause, `onKnobTouch`'s peek-clear costs
+nothing while the knob is still held, and there is no upstream ask.
+
+**Five wrong turns getting there, each one a real property of the device that a
+checkout cannot show, and all five now encoded in the scenario:**
+
+1. The first run held a step and graded the page it found — which was
+   **plaits**, not the step page. `renderer=page` alone was a precondition that
+   passes on a module page; the module NAME is the half that matters.
+2. The step page is a KNOBS page. `dev.open` lands in the CHAIN view, whose
+   ViewModel names the selected slot's module whatever the knobs are doing, so
+   no run that stayed there could ever read `module=step`.
+3. A held step is promoted to step-automation mode on a CLOCK
+   (`STEP_AUTO_MS = 300`, `stepAutoTick`), not on the press. Waiting six frames
+   is 30–95 ms at the device's 63–205 Hz and never promoted.
+4. `stepPageAvailable()` also needs the held step to CARRY A NOTE, and the
+   scenario was tapping one in — which TOGGLES, so it deleted the fixture's own
+   note and every run held an empty step. The engine answers this directly:
+   `status`'s `occ=` is the watched clip's occupancy bitmap, and the scenario
+   now CHOOSES its step from it (measured `8888…` → steps 0, 4, 8, 12).
+5. Left (CC 62, read out of schwung's `constants.mjs`) moved nothing at all —
+   six presses, not even a page index. The jog reaches the same rule
+   (`router.ts` states it in both branches) and is a first-class harness
+   gesture, so one `jogTurn(-1)` does it: `plaits@0 → step@0`.
+
+The cost of those five was five device runs, and what made each one cheap was
+NOTING the state rather than asserting only the verdict — `promoted`,
+`viewDuringHold`, `occHex`, the jog trail. A check that only says "no list was
+drawn" cannot distinguish any of the five from each other.
 - **Task 7's user docs.** **Deliberately NOT written.** `schwunggrid` is
   `def: 0` (MOVY) and carries no `release` field — debug-only — so nothing here
   is visible to a user on a shipped build. `MANUAL.md` documents what ships;

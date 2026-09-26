@@ -41,6 +41,11 @@ await esbuild.build({
          * (every read counted as an ask, so the cap evicts the live page) is
          * invisible to every other suite in both tiers. */
         resolve(root, 'src/renderer/schwung-page-batch.ts'),
+        /* The io movy injects and the held-step decorations (SP-59): entry
+         * points so the logic suite can assert which channel a lane rides, and
+         * which cells a held step decorates, at the level the decision lives. */
+        resolve(root, 'src/renderer/schwung-page-io.ts'),
+        resolve(root, 'src/renderer/schwung-page-decorations.ts'),
         resolve(root, 'src/renderer/schwung-editor.ts'),
         resolve(root, 'src/renderer/schwung-widgets.ts'),
         /* The file side of a module's widget (SP-28): an entry point so the

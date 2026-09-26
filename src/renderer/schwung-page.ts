@@ -158,7 +158,8 @@ export function createSchwungPage(
      * since been swapped out. */
     const ctl = lib.createController(createPageIo(port, qualify, cache, hier, componentKey,
         modulatedOf ? () => modulatedOf(trackIndex, componentKey) : null,
-        automationOf ? () => automationOf(trackIndex) : null));
+        automationOf ? () => automationOf(trackIndex) : null,
+        typeof lib.drawAutomatedMark === 'function'));
     ctl.setLayout(lib.LAYOUT_MOVY);
 
     /* The controller's own view of the page it is showing. Both the binding's

@@ -70,6 +70,47 @@ _log('\nlogic: the base an automated parameter reverts to (SP-36)');
     resetAutomation(); resetLaneBases();
 }
 
+/* ── SP-59: the lane's own channel, and no mark without a lock ───────────── */
+
+_log('\nlogic: a lane is `isAutomated`, not `isModulated`, when the library draws its mark (SP-59)');
+{
+    const { createPageIo } = await import('../../dist/esm/renderer/schwung-page-io.js');
+    const auto = { isAutomated: (k) => k === 'synth:cutoff', baseOf: () => null, noteBase: () => {} };
+    const io = (own) => createPageIo(
+        { setParam: () => {} }, (k) => (String(k).startsWith('synth:') ? k : 'synth:' + k),
+        { get: () => null }, { raw: () => null }, 'synth',
+        () => new Set(['res']), () => auto, own);
+
+    const mark = io(true);
+    eq('with the mark: the lane is NOT reported modulated (no tilde)', mark.isModulated('synth:cutoff'), false);
+    eq('with the mark: the lane IS reported automated (its own 2x2)', mark.isAutomated('synth:cutoff'), true);
+    eq('with the mark: an LFO target is still modulated', mark.isModulated('synth:res'), true);
+    eq('with the mark: an LFO target is not automated', mark.isAutomated('synth:res'), false);
+
+    /* An older library ignores `isAutomated`, so the lane has to keep riding
+     * `isModulated` there — or its pointer/base motion goes with the mark. */
+    const legacy = io(false);
+    eq('without the mark: the lane falls back to the tilde', legacy.isModulated('synth:cutoff'), true);
+    eq('without the mark: no isAutomated hook is offered', legacy.isAutomated, undefined);
+}
+
+_log('\nlogic: a held step decorates only the cells it locks (SP-59)');
+{
+    const { decorationsFor } = await import('../../dist/esm/renderer/schwung-page-decorations.js');
+    const view = (heldValues) => ({
+        held: true, activeLanes: 0b11, heldValues,
+        laneForKey: (k) => (k === 'cutoff' ? 0 : k === 'res' ? 1 : -1),
+    });
+    /* Lane 1 (res) is live on the track, but THIS step locks only lane 0. */
+    const decs = decorationsFor(view(new Map([[0, 0.8]])), ['cutoff', 'res', 'env', null]);
+    eq('the locked cell carries its value, and asks for no corner mark (exact: false)',
+       JSON.stringify(decs && decs[0]), JSON.stringify({ locked: true, value: 0.8, exact: false }));
+    eq('a lane this step does not lock gets NO decoration (was a bare corner mark)',
+       decs && decs[1], null);
+    eq('a step that locks nothing on the page decorates nothing',
+       decorationsFor(view(new Map()), ['cutoff', 'res']), null);
+}
+
 if (!schwungLibAvailable()) {
     _log('\nlogic: page automation — SKIPPED (no param_pages; set SCHWUNG=)');
     return;
@@ -137,8 +178,18 @@ _log('\nlogic: an automated parameter under `page` — the pointer keeps the bas
     port.getParam = realGet;
 
     const key = 'cutoff';
-    ok('the key reports as modulated, so the cell is marked at all',
-       !!page.ctl.isModulatedCached(key));
+    /* SP-59: which channel carries the lane depends on the library; the
+     * MOTION asserted below is the same either way, which is the point. */
+    const { schwungLib } = await import('../../dist/esm/renderer/schwung-lib.js');
+    if (typeof schwungLib().drawAutomatedMark === 'function') {
+        ok('the key reports as AUTOMATED, so the cell wears the lane mark',
+           !!page.ctl.isAutomatedCached(key));
+        ok('and NOT as modulated, so it does not also wear the LFO tilde',
+           !page.ctl.isModulatedCached(key));
+    } else {
+        ok('the key reports as modulated, so the cell is marked at all',
+           !!page.ctl.isModulatedCached(key));
+    }
     eq('the POINTER keeps the base the user dialled in',
        String(page.ctl.state.values[key]), String(0.5));
     eq('and the MARK is at the value the lane is driving',

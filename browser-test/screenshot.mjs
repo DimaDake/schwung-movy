@@ -88,6 +88,7 @@ const PRESETS = [
     'page_held_lock', 'page_lane_unheld', 'page_held_unassignable',
     'page_chrome_held', 'page_chrome_flip',
     'page_clipparams', 'page_setparams', 'page_stepparams', 'page_master_chain',
+    'page_lane_mark', 'page_lane_mark_held',
 ];
 
 /* The scenes that render Schwung's own body. Only reachable from a bundle built
@@ -102,7 +103,8 @@ const PAGE_SCENES = new Set(['page_body', 'page_body_p2', 'page_voice_pad', 'pag
     'page_mod_cell', 'page_mod_cell_held',
     'page_held_lock', 'page_lane_unheld', 'page_held_unassignable',
     'page_chrome_held', 'page_chrome_flip',
-    'page_clipparams', 'page_setparams', 'page_stepparams', 'page_master_chain']);
+    'page_clipparams', 'page_setparams', 'page_stepparams', 'page_master_chain',
+    'page_lane_mark', 'page_lane_mark_held']);
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
 const BASE = {
@@ -125,6 +127,7 @@ const BASE = {
      * `access: "read"`, which is non-automatable by declaration. */
     page_mod_cell: 'test8', page_mod_cell_held: 'test8',
     page_held_lock: 'test8', page_lane_unheld: 'test8',
+    page_lane_mark: 'test8', page_lane_mark_held: 'test8',
     page_held_unassignable: 'readouts_hier',
     /* The chrome scenes need the two click kinds that never reach movy — a
      * trigger and a two-way enum — and `switches` is the mock that declares
@@ -277,6 +280,7 @@ const { pageOwnerForComponent } = await import('../dist/esm/app/page-owner-virtu
 const { CLIP_PARAMS_COMPONENT, SET_PARAMS_COMPONENT, STEP_PARAMS_COMPONENT } = await import('../dist/esm/chain/config.js');
 const { schwungBodyFor, schwungBankFor, schwungChromeFor } = await import('../dist/esm/app/tick.js');
 const { modulatedKeysOf } = await import('../dist/esm/app/modulated-keys.js');
+const { assignLane, resetAutomation } = await import('../dist/esm/seq/automation.js');
 const { stepPageAvailable, stepPageState } = await import('../dist/esm/seq/step-page.js');
 const { schwungLibAvailable } = await import('../dist/esm/renderer/schwung-lib.js');
 /* The reader the MODEL asks through and the renderer that answers it. `model/`
@@ -1724,6 +1728,65 @@ function applyView(preset) {
                  * green. */
                 setSchwungGridMode(null);
                 seqState.stepAutoMode = false;
+                appState.trackModels = savedModels;
+            }
+            break;
+        }
+        /* ── page_lane_mark / page_lane_mark_held (SP-59) ─────────────────────
+         * A LANE through the app's own wiring: the owner's page (which is
+         * where `automationFor` is injected), a
+         * lane assigned in the real registry, the port answering the value the
+         * lane drives. Everything the earlier page scenes hand the renderer as
+         * an auto VIEW is here asked for the way the device asks — which is the
+         * only way a scene sees the io's channel choice at all.
+         *
+         * What it shows depends on the library, and that is the point of
+         * feature-detecting it: against a Schwung with `drawAutomatedMark` the
+         * cell wears the 2x2 beside its label and no tilde; against an older
+         * one it wears the tilde (the SP-36 fold). Both keep the pointer at the
+         * base and the dot on the lane. `_held` adds the step: the lock's value
+         * where the name was (inverted from #509 on), the mark beside it. */
+        case 'page_lane_mark':
+        case 'page_lane_mark_held': {
+            if (!schwungLibAvailable()) throw new Error(
+                'screenshot: ' + preset + ' needs a bundle built with SCHWUNG=/path/to/schwung');
+            const savedModels = appState.trackModels;
+            appState.trackModels = [chainModels];
+            try {
+                setSchwungGridMode('page');
+                schwungGridReload();
+                resetAutomation();
+                /* Through the owner, which is where `automationFor` is wired —
+                 * the device's own path to the page, not a copy of it. */
+                for (let i = 0; i < 20; i++) model.tick();
+                const sp = pageOwnerOf(model).page;
+                if (!sp) throw new Error(preset + ': the page is not delegated');
+                for (let i = 0; i < 12 * 60 && !sp.ready; i++) { sp.tick(); model.tick(); }
+                if (!sp.ready) throw new Error(preset + ': the contract never resolved');
+                const info = pageOwnerOf(model).knobParamInfo(0);
+                if (!info) throw new Error(preset + ': no parameter at knob 0');
+                if (assignLane(0, 0, info, () => true) !== 0) throw new Error(preset + ': no lane');
+                seqState.autoActive |= 1;
+                /* Playback as the port sees it: the lane's value, away from the
+                 * 0.50 base, so the dot and the pointer are two marks. */
+                portFor(0).setParam('synth:' + info.ioKey, '0.85');
+                const k = sp.keyAt(0);
+                for (let i = 0; i < 400 && !(sp.ctl.isAutomatedCached?.(k) || sp.ctl.isModulatedCached(k)); i++) {
+                    sp.tick(); model.tick();
+                }
+                for (let i = 0; i < 24; i++) { sp.tick(); model.tick(); }
+                const auto = preset === 'page_lane_mark_held'
+                    ? { ...autoView({ held: true, heldVal: info.max }),
+                        laneForKey: (key) => (key === info.key ? 0 : -1) }
+                    : undefined;
+                lastRender = () => renderKnobsView(model.getViewModel(auto), false, 0,
+                    () => sp.render('T1 > ' + model.getModuleName(), auto),
+                    { index: sp.pageIndex, count: sp.pageCount });
+                lastRender();
+            } finally {
+                setSchwungGridMode(null);
+                seqState.autoActive = 0;
+                resetAutomation();
                 appState.trackModels = savedModels;
             }
             break;

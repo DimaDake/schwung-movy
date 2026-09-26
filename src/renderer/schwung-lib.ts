@@ -125,6 +125,12 @@ export interface SchwungLib {
      * second copy. */
     listKnobInit?: any;
     listKnobStep?: any;
+    /* SP-59, optional for the same reason as everything above it: its PRESENCE
+     * is the answer to "does this library take `io.isAutomated`". An older
+     * Schwung has neither, so movy keeps folding lanes into `isModulated` there
+     * (the tilde) rather than handing a hook nothing reads — which would take
+     * the lane's pointer/base motion away with it. */
+    drawAutomatedMark?: any;
 }
 
 /* LITERAL PATHS, NOT A CONCATENATION. esbuild can only apply its resolver to a
@@ -221,6 +227,7 @@ try {
         wavPeaksTick: wp.wavPeaksTick, wavPeaksDone: wp.wavPeaksDone,
         wavPeaks: wp.wavPeaks,
         listKnobInit: lk.listKnobInit, listKnobStep: lk.listKnobStep,
+        drawAutomatedMark: rpm.drawAutomatedMark,
     };
 } catch (e: any) {
     /* Swallowed DELIBERATELY, and this is the whole point of the file: an

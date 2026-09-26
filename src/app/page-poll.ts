@@ -97,6 +97,7 @@ let lastKey = '';
  * this is a comparison against the LAST answer, and one drawn page is what the
  * whole module is about. */
 let lastPeek = false;
+let lastMarks = 0;
 
 /* SP-48. One instance for the one drawn page's lifetime, same reasoning as
  * `levels`/`lastKey` above: it self-resets on `animating()` going false, so a
@@ -133,6 +134,7 @@ export function pollDrawnPage(owner: PageOwner, nowFn: () => number = Date.now):
         lastKey = '';
         levels.fill(null);
         lastPeek = false;
+        lastMarks = 0;
         return true;
     }
 
@@ -179,6 +181,8 @@ export function pollDrawnPage(owner: PageOwner, nowFn: () => number = Date.now):
      * screen after it expired. */
     const peek = typeof page.peekOpen === 'function' ? page.peekOpen() : false;
     if (peek !== lastPeek) { lastPeek = peek; moved = true; }
+    const marks = page.marks();
+    if (marks !== lastMarks) { lastMarks = marks; moved = true; }
 
     if (!moved) { const now = nowFn(); moved = animCap(page.animating(now), now); }
     return moved;

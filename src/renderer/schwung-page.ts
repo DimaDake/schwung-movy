@@ -80,6 +80,9 @@ export interface SchwungPage {
      *  nothing has been read back. What lights the knob LEDs, and what movy
      *  watches to know the drawn page moved. */
     knobLevels(): (number | null)[];
+    /** Which drawn cells wear a modulation / lane mark, as a bitmask — so a
+     *  mark flipping with no value change still asks for the frame back. */
+    marks(): number;
     /** SP-38: is the drawn page still MOVING — a widget transition in flight,
      *  or a trigger bang still flashing — with no value and no page identity
      *  change to show for it? Asked by the repaint decision when both of those
@@ -219,6 +222,7 @@ export function createSchwungPage(
         },
         knobParamInfo: page.knobParamInfo,
         knobLevels: page.knobLevels,
+        marks: page.marks,
         animating,
         /* `enumPeek()` is also the reader that RETIRES an expired peek
          * (`page_controller.mjs` clears it past ENUM_PEEK_MS on the way out),

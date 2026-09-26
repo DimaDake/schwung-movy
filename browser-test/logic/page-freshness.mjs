@@ -252,6 +252,27 @@ _log('\nTest: SP-38 — the repaint decision while a widget is moving');
     ok('and stops once the bang has drawn out', stable(3));
     delete firedAt.bang;
 
+    /* (6) A CELL'S MARK FLIPPING IS A CHANGE. Clear + knob frees a lane; the
+     * controller learns it on its read rotation, a few ticks later, and by then
+     * the frame the gesture bought is already drawn — so the dot stayed until
+     * something else moved. The flag is placed on the controller's own cache,
+     * the thing the renderer draws from, so this is the decision alone. */
+    const k0 = p.keyAt(0);
+    const st = p.ctl.state;
+    /* The read cursor rewrites these caches on its own rotation, so each flip
+     * is put back to what the cursor holds before the next assertion — never
+     * toggled blind, or the cursor's correction lands as a second change. */
+    const flip = (cache, label) => {
+        const was = !!cache[k0];
+        ok('control: quiet before the ' + label + ' flips', stable(3));
+        cache[k0] = !was;
+        eq('a ' + label + ' flipping asks for a frame', pollDrawnPage(owner), true);
+        cache[k0] = was;
+        pollDrawnPage(owner);
+    };
+    flip(st.modCache, 'mod mark');
+    if (st.autoCache) flip(st.autoCache, 'lane mark');
+
     appState.trackModels[0] = [];
     schwungGridReload();
     setSchwungGridMode(null);

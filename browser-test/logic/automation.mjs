@@ -51,6 +51,8 @@ _log('\nautomation pool-full (lane count):');
     eq('8 lanes → pool full', poolIsFull(0), true);
     clearLane(0, 3);                                   // freeing a lane → not full
     eq('after freeing one → not full', poolIsFull(0), false);
+    const { seqToastText } = await import('../../dist/esm/seq/render.js');
+    eq('a user lane clear says so', seqToastText(), 'k3 lane cleared');
 }
 
 /* ── automation: lane param-cache warm after a chain reload ───────────────── */
@@ -116,6 +118,14 @@ _log('\nautomation knob routing:');
     seqState.stepAutoMode = true; seqState.holdStep = 4;
     eq('step-auto knob consumed', handleAutomationKnob(0, 0, info, +1, () => true), true);
     eq('aset at held step 4', peekSeqCmdQueue().some((o) => o.startsWith('aset 0 0 4 ')), true);
+    /* A held-step edit is not a performance: the lock is stored QUIET (trailing
+     * 1) so the live parameter does not move until the step itself plays. */
+    eq('held-step lock is quiet', peekSeqCmdQueue().some((o) => /^aset 0 0 4 \d+ 1$/.test(o)), true);
+    resetAutomation(); resetSeqEngine(); resetSeqState();
+    seqState.recording = seqState.playing = true; seqState.curStep = 7;
+    handleAutomationKnob(0, 0, info, +1, () => true);
+    eq('live-record lock auditions (no quiet flag)',
+       peekSeqCmdQueue().some((o) => /^aset 0 0 7 \d+$/.test(o)), true);
 
     // SP-35: a cell that cannot take a lock says so — the <STEP_AUTO_MS window
     // before `stepAutoTick` promotes is the same assign attempt, not a second one.

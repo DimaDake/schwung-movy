@@ -2316,22 +2316,24 @@ impl Engine {
         }
     }
 
-    pub fn auto_set(&mut self, track: usize, lane: usize, step: u16, val: u8, out: &mut Vec<OutEvent>) {
+    pub fn auto_set(&mut self, track: usize, lane: usize, step: u16, val: u8, audition: bool,
+                    out: &mut Vec<OutEvent>) {
         if track < NUM_TRACKS && lane < 8 {
             self.tracks[track].active_mut().set_lock(lane as u8, step, val);
             // Audition: apply now (stopped) / refresh (playing) for the edited lane.
-            if self.tracks[track].lane_assigned[lane] {
+            if audition && self.tracks[track].lane_assigned[lane] {
                 out.push(OutEvent::Cc { track: track as u8, lane: lane as u8, val });
             }
         }
     }
 
     /// Set one lane's lock for every step in [s0, s1] (hold-a-bar set). Emits a
-    /// single audition CC with the value if the lane is assigned.
-    pub fn auto_set_range(&mut self, track: usize, lane: usize, s0: u16, s1: u16, val: u8, out: &mut Vec<OutEvent>) {
+    /// single audition CC with the value if the lane is assigned and `audition`.
+    pub fn auto_set_range(&mut self, track: usize, lane: usize, s0: u16, s1: u16, val: u8,
+                          audition: bool, out: &mut Vec<OutEvent>) {
         if track < NUM_TRACKS && lane < 8 {
             self.tracks[track].active_mut().set_lock_range(lane as u8, s0, s1, val);
-            if self.tracks[track].lane_assigned[lane] {
+            if audition && self.tracks[track].lane_assigned[lane] {
                 out.push(OutEvent::Cc { track: track as u8, lane: lane as u8, val });
             }
         }

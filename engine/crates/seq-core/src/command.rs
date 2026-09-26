@@ -619,13 +619,19 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                 engine.auto_base_quiet(t as usize, lane as usize, v.clamp(0, 127) as u8);
             }
         }
+        // aset <t> <lane> <step> <val> [quiet] — set one step's lock. A trailing
+        // non-zero `quiet` stores the lock without auditioning it: a held-step
+        // edit must not move the live parameter, only the step that plays it
+        // may. Live record omits it — there the audition IS the take you hear.
         "aset" => {
             if let (Some(t), Some(lane), Some(s), Some(v)) = (next(), next(), next(), next()) {
+                let audition = next().unwrap_or(0) == 0;
                 engine.auto_set(
                     t as usize,
                     lane as usize,
                     s.clamp(0, 255) as u16,
                     v.clamp(0, 127) as u8,
+                    audition,
                     out,
                 );
             }
@@ -645,17 +651,20 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                 engine.auto_clear_step_all(t as usize, s.clamp(0, 255) as u16);
             }
         }
-        // asetr <t> <lane> <s0> <s1> <val> — set a lane's lock over a step range.
+        // asetr <t> <lane> <s0> <s1> <val> [quiet] — set a lane's lock over a
+        // step range. `quiet` as for `aset`.
         "asetr" => {
             if let (Some(t), Some(lane), Some(s0), Some(s1), Some(v)) =
                 (next(), next(), next(), next(), next())
             {
+                let audition = next().unwrap_or(0) == 0;
                 engine.auto_set_range(
                     t as usize,
                     lane as usize,
                     s0.clamp(0, 255) as u16,
                     s1.clamp(0, 255) as u16,
                     v.clamp(0, 127) as u8,
+                    audition,
                     out,
                 );
             }
@@ -1123,6 +1132,28 @@ mod tests {
         apply_batch(&mut e, "aclr 0 1", &mut out);
         assert!(!e.tracks[0].lane_assigned[1]);
         assert_eq!(e.tracks[0].active().lock_at(1, 6), None);
+    }
+
+    #[test]
+    fn a_quiet_lock_is_stored_but_not_applied_until_its_step_plays() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "alabel 0 1 synth:cutoff;abaseq 0 1 30", &mut out);
+        out.clear();
+        // A live-record take is heard as it is turned: the audition stays.
+        apply_batch(&mut e, "aset 0 1 5 90", &mut out);
+        assert!(out.iter().any(|x| matches!(x, OutEvent::Cc { track: 0, lane: 1, val: 90 })));
+        // A held-step edit only writes the lock; the step applies it when it plays.
+        out.clear();
+        apply_batch(&mut e, "aset 0 1 6 80 1", &mut out);
+        assert_eq!(e.tracks[0].active().lock_at(1, 6), Some(80));
+        assert!(out.is_empty());
+        apply_batch(&mut e, "asetr 0 1 8 11 70 1", &mut out);
+        assert_eq!(e.tracks[0].active().lock_at(1, 8), Some(70));
+        assert_eq!(e.tracks[0].active().lock_at(1, 11), Some(70));
+        assert!(out.is_empty());
+        apply_batch(&mut e, "asetr 0 1 8 11 60", &mut out);
+        assert!(out.iter().any(|x| matches!(x, OutEvent::Cc { track: 0, lane: 1, val: 60 })));
 
         // aclrstep removes every lane's lock at one step, leaving other steps.
         apply_batch(&mut e, "aset 0 0 3 50;aset 0 2 3 60;aset 0 1 9 70", &mut out);

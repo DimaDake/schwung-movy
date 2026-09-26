@@ -163,6 +163,7 @@ export function assignLane(
  * snapshot already holds the lane state, so the cleanup needs no entry at all. */
 export function clearLane(track: number, lane: number, undoable = true): void {
     if (lane < 0 || lane >= 8) return;
+    const name = registry[track][lane]?.shortName;
     registry[track][lane] = null;
     clearLaneBase(track, lane);
     liveVal.delete(track + ':' + lane);
@@ -171,6 +172,9 @@ export function clearLane(track: number, lane: number, undoable = true): void {
     const clear = () => seqCmd('aclr ' + track + ' ' + lane);
     if (!undoable) { seqSideEffect(clear); return; }
     undoableEdit('CLEAR LANE', 'T' + (track + 1), clear);
+    /* Clear + knob-touch changes nothing else on screen but the lane mark, so
+     * without this a working clear is indistinguishable from a missed touch. */
+    if (name) seqToast(name + ' lane cleared');
 }
 
 /* Seed/accumulate the live value for (track, lane) in the given context. */
@@ -276,10 +280,14 @@ export function handleAutomationKnob(
     /* One undo per automation gesture: the turn coalesces until the knob is
      * released (automationKnobReleased closes this key). */
     beginGesture('stepauto:' + track + ':' + tp, 'AUTOMATION', 'T' + (track + 1));
+    /* A held-step lock is QUIET: the engine stores it without applying it, so
+     * the parameter only moves when the step itself plays. A live take keeps
+     * the audition — there the turn is what you are recording. */
+    const quiet = held ? ' 1' : '';
     if (r && r.s1 > r.s0) {
-        seqCmd('asetr ' + track + ' ' + lane + ' ' + r.s0 + ' ' + r.s1 + ' ' + next);
+        seqCmd('asetr ' + track + ' ' + lane + ' ' + r.s0 + ' ' + r.s1 + ' ' + next + quiet);
     } else {
-        seqCmd('aset ' + track + ' ' + lane + ' ' + step + ' ' + next);
+        seqCmd('aset ' + track + ' ' + lane + ' ' + step + ' ' + next + quiet);
     }
     if (held) seqState.heldLocks.set(lane, next); // optimistic held-step display
     // Live take (no step held): let the on-screen knob follow the turn. The

@@ -1621,6 +1621,17 @@ This is Movy's take on Elektron-style **parameter locks**: a per-step,
 per-parameter override. (While a step is held, jog/Left/Right can still roam the
 module pages so a single held step can automate across the chain.)
 
+Turning a module knob while a step is held **writes a lock for that step only**:
+the sound you hear now does not change. The locked value plays when the
+sequencer reaches that step, with the transport running. The cell shows the
+step's locked value, including any graphic (envelope, filter) that covers it.
+Recording automation live (Rec + Play) is different: there you hear the turn as
+you make it.
+
+**Hold Clear and touch a knob** to delete that parameter's whole automation
+lane. A `<param> lane cleared` prompt confirms it, and the lane's mark next to
+the label goes away.
+
 ### Clip parameters — Shift + Step 3
 
 In Track view, **Shift + Step 3** opens the **Clip** page for the active clip:

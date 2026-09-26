@@ -30,6 +30,7 @@ const BANDS = { header: false, bank: false, footer: false };
 export interface PageRender {
     knobParamInfo(slot: number): any | null;
     knobLevels(): (number | null)[];
+    marks(): number;
     render(title: string, auto?: AutomationView, touched?: number): void;
 }
 
@@ -138,6 +139,29 @@ export function createPageRender(ctl: any, deps: {
                 out[slot] = normalizedOf(ctl.metaIndex.getOrGuess(k), raw) ?? null;
             }
             return out;
+        },
+
+        /*
+         * WHICH CELLS WEAR A MODULATION OR LANE MARK, as one number: bit `slot`
+         * for modulated, bit `8 + slot` for a lane.
+         *
+         * Read off the controller's CACHE, the thing the renderer draws from,
+         * because that is what lags: a lane cleared under the hand is learnt on
+         * the read rotation a few ticks after the gesture's own frame was drawn,
+         * and none of the values move, so without this the dot stayed until
+         * something else asked for a frame. `isAutomatedCached` is #541's —
+         * absent, that half reads zero, as the mark itself does.
+         */
+        marks() {
+            const keys = keysOf();
+            let m = 0;
+            for (let slot = 0; slot < 8; slot++) {
+                const k = keys[slot];
+                if (!k) continue;
+                if (ctl.isModulatedCached && ctl.isModulatedCached(k)) m |= 1 << slot;
+                if (ctl.isAutomatedCached && ctl.isAutomatedCached(k)) m |= 1 << (8 + slot);
+            }
+            return m;
         },
 
         render(title: string, auto?: AutomationView, _touched = -1) {

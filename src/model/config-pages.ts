@@ -8,7 +8,7 @@ import { KNOBS_PER_PAGE } from './constants.js';
 import { buildPresetParam } from './preset-param.js';
 import { buildItemSelectParam } from './items-param.js';
 import type { RawMeta } from './param-build.js';
-import { inferBehavior, inferAcceleration, parseFilter, applyAutoStyle, declaredShortName } from './param-build.js';
+import { inferBehavior, inferAcceleration, parseFilter, applyAutoStyle, declaredShortName, optionList } from './param-build.js';
 import { cellStyleFor } from './step-labels.js';
 import { readAccess } from './access.js';
 
@@ -98,7 +98,7 @@ export function buildConfigPages(
                  * param-build.ts. Keeping it as a type broke the write path. */
                 const normType = rawType === 'wav_position' ? 'float' : rawType;
                 let type = (normType === 'filepath' ? 'file' : normType) as KnobParam['type'];
-                const options = slot.options ?? hier.options ?? cp.options ?? null;
+                const options = optionList(slot.options, hier.options, cp.options);
                 let min  = cp.min  != null ? cp.min  : (hier.min  != null ? hier.min  : (slot.min  != null ? slot.min  : 0));
                 let max  = cp.max  != null ? cp.max  : (hier.max  != null ? hier.max  : (slot.max  != null ? slot.max  : 1));
                 let step = cp.step != null ? cp.step : (hier.step != null ? hier.step : (slot.step != null ? slot.step : (type === 'float' ? 0.01 : 1)));

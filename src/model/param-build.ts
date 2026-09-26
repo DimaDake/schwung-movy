@@ -56,6 +56,20 @@ export function declaredShortName(level: RawMeta, param: RawMeta): string | null
     return null;
 }
 
+/** The first candidate that is actually an option LIST, else null.
+ *
+ *  Module metadata is not typed by anyone movy can hold to it: mrdrums's
+ *  module.json puts an OBJECT under `options` on its wav_position param
+ *  (`{"mode":"start","filepath_param":…}` — configuration for its sample view,
+ *  not choices). Taken as a list, `.map`/`.length` on it threw inside tick(),
+ *  and schwung answers a tick exception by ejecting the tool. A non-list is
+ *  skipped rather than ending the search, so a real list from a lower-priority
+ *  source still counts. */
+export function optionList(...candidates: unknown[]): string[] | null {
+    for (const c of candidates) if (Array.isArray(c)) return c as string[];
+    return null;
+}
+
 export function inferBehavior(explicit: unknown, options: string[] | null,
                               access: 'read' | 'write' | null = null): KnobParam['behavior'] | undefined {
     /* Ahead of everything else: `access: "write"` is the module STATING that
@@ -109,7 +123,7 @@ export function buildGenericParam(key: string, cp: RawMeta, def: RawMeta): KnobP
             fileStartPath: String(cp.start_path ?? def.start_path ?? root),
         };
     }
-    const options  = cp.options ?? def.options ?? null;
+    const options  = optionList(cp.options, def.options);
     const hasRange = cp.min != null || cp.max != null || def.min != null || def.max != null;
     let min  = cp.min  != null ? cp.min  : (def.min  != null ? def.min  : 0);
     let max  = cp.max  != null ? cp.max  : (def.max  != null ? def.max  : 1);

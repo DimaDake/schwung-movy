@@ -11,6 +11,7 @@ import { physPadOfDrumPad } from '../keyboard/drum-grid.js';
 import { PAD_MIN } from '../seq/constants.js';
 import { armHierarchyRetry } from './meta-retry.js';
 import type { RawMeta } from './param-build.js';
+import { optionList } from './param-build.js';
 
 type HierParam = RawMeta;
 
@@ -225,7 +226,7 @@ export function loadHierarchy(s: ModelState): void {
         /* One read per rule, at LOAD only. After this the value cache carries
          * it (see hiddenNow in tick.ts) and no further host call is made. */
         const raw = s.port.getParam(s.componentKey + ':' + r.param);
-        const opts = (cpMap[r.param]?.options ?? paramDefs[r.param]?.options) ?? null;
+        const opts = optionList(cpMap[r.param]?.options, paramDefs[r.param]?.options);
         if (!conditionHolds(r, raw, opts)) s.hiddenKeys.add(r.key);
     }
 

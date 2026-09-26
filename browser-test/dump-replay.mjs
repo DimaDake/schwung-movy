@@ -989,6 +989,25 @@ for (const [label, got0, want0] of [
         noLead.length === 0);
 }
 
+/* Every module also boots from its module.json ALONE — the path movy takes
+ * when the host serves no ui_hierarchy, which the loop above never walks
+ * because the dump carries the host's. Module manifests are not typed by
+ * anyone movy can hold to them: mrdrums's puts an OBJECT under `options`, and
+ * on this path it reached `.map` inside tick(), so schwung ejected movy
+ * mid-set (seen on device as seq's drum leg losing the tool). A boot that
+ * throws here is that crash. */
+for (const entry of dump.modules) {
+    if (!entry.module_json || typeof entry.params?.ui_hierarchy !== 'string') continue;
+    const bare = structuredClone(entry);
+    delete bare.params.ui_hierarchy;
+    try {
+        bootFromDumpEntry(bare);
+    } catch (e) {
+        check(`${entry.category}--${entry.id}: boots from module.json alone`, false);
+        _log(`  ${e.stack ?? e}`);
+    }
+}
+
 /* Snapshot keys must exactly track the dump (no stale/missing modules). */
 if (!UPDATE) {
     const expectKeys = Object.keys(expect).sort().join(',');

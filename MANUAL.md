@@ -1818,6 +1818,14 @@ Step 2 lights dim under Shift and full bright while the page is open.
 
 ![Settings](docs/assets/flags-release.png)
 
+**PARAM PAGES** picks who draws a module's parameter pages. **MOVY** (the
+default) is Movy's own layout. **SCHWUNG** hands the pages to Schwung, which
+plans them from the module's own declaration and draws them the way Schwung's
+own slot editor does — so what sits on which page can move, and a bank that
+exists only in Movy's config for that module may not appear. Sequencer lanes
+follow the parameter, not the page, so recorded automation keeps playing
+either way. The choice is saved on the device, not per set.
+
 Movy always renders its chains on several threads and always skips chains that
 are silent. Together those are worth roughly 2× on a heavy set — the difference
 between a big set staying inside the audio frame and crackling. There is

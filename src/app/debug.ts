@@ -1,6 +1,6 @@
 /* Whether this bundle exposes the debug-only surfaces — today, the measurement
  * flags on the Settings page (`seq/flags-visible.ts`). The page itself ships in
- * every build; a release one lists only the two flags marked `release`.
+ * every build; a release one lists only the flags marked `release`.
  *
  * A build-time constant substituted by esbuild, so every `DEBUG_BUILD &&` is a
  * literal `false` in a release build and the gated paths can never run. The

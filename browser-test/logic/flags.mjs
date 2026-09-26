@@ -410,16 +410,19 @@ export async function run() {
     installMockFs();
     resetFlags();
 
-    /* No shipped flag is `release` today — the mechanism's one user, `chtracks`,
-     * is gone with the schwung host, and the Settings page's flag section is
-     * empty in a release build (MIGRATE TRACKS and BACKUPS still draw: they are
-     * action rows, not flags, and are not filtered by this list at all). */
-    ok('neither debug flag is a release row',
-       !flagDef('setcommit').release && !flagDef('schwunggrid').release);
-    eq('a release build lists no flags', visibleFlags(false).length, 0);
+    /* One flag ships: Param Pages is a user's choice of renderer. The others
+     * are instruments — `setcommit` and `engpersist` stay debug-only. */
+    ok('Param Pages is a release row', flagDef('schwunggrid').release === true);
+    ok('the instruments are not',
+       !flagDef('setcommit').release && !flagDef('engpersist').release);
+    const rel = visibleFlags(false).map((f) => f.key);
+    eq('a release build lists exactly Param Pages', rel.join(','), 'schwunggrid');
     const dbg = visibleFlags(true).map((f) => f.key);
     eq('a debug build lists every flag', dbg.length, FLAGS.length);
-    ok('including the ones release hides', dbg.indexOf('schwunggrid') >= 0);
+    /* FLAGS lists release rows first, so a release list is a PREFIX of the
+     * debug one and a row keeps its position across the two builds. */
+    eq('release rows lead the debug list', dbg.slice(0, rel.length).join(','), rel.join(','));
+    ok('including the ones release hides', dbg.indexOf('setcommit') >= 0);
 
     /* The page walks the visible list, so a hidden flag can never be selected
      * — a knob turn on a row a release build does not draw would change a

@@ -773,9 +773,9 @@ function applyView(preset) {
             lastRender();
             break;
         }
-        /* And the arrangement that actually SHIPS: the two settings a release
-         * build lists, plus the per-set row the NEW SETS mode brings with it.
-         * The debug scenes above cannot cover this — they render the list this
+        /* And the arrangement that actually SHIPS: the one flag a release
+         * build lists (Param Pages) above the action rows. The debug scenes
+         * above cannot cover this — they render the list this
          * build has compiled in, which is every flag. */
         case 'cpu-movy-tracks':
         case 'cpu-unsplit-module':
@@ -843,7 +843,7 @@ function applyView(preset) {
         }
         case 'flags-release': {
             resetFlags(); resetFlagsPage();
-            flagsPageState.selected = 1;         // the row with the word labels
+            flagsPageState.selected = 0;         // Param Pages, the one release flag
             lastRender = () => renderFlagsView(buildFlagsPageVM(visibleFlags(false)));
             lastRender();
             break;

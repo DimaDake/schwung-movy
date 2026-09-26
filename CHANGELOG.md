@@ -15,6 +15,10 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
+- **Settings → PARAM PAGES now shows in release builds.** The MOVY/SCHWUNG
+  switch for who draws a module's parameter pages was debug-only; it is now a
+  release row (and leads the list). The default is unchanged: MOVY.
+
 - **Module-drawn pages (`type: "canvas"`, `as_page: true`) now show, as they do
   in Schwung.** MonkSynth's face page planned and paged but drew an empty body:
   Schwung's page controller asks its HOST for the body (`io.drawCanvasPage`),

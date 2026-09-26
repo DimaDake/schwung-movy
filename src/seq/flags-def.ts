@@ -75,20 +75,6 @@ export const FLAGS_REV = 5;
  * top-down the same way. */
 export const FLAGS: FlagDef[] = [
     {
-        key: 'setcommit', name: 'Commit New Sets',
-        hint: 'Asks Move to save a new set.',
-        // Move writes a Set to disk only once MOVE itself has something to save
-        // in it, so a pad played entirely through schwung is never a real Set
-        // and BOTH stores lose it. On, movy sends the gesture that commits it.
-        //
-        // A flag because of how it has to be sent: schwung's inject drain
-        // refuses to feed Move while a tool is overtaking, so movy lowers
-        // overtake_mode for the length of one press. That is the transition
-        // schwung carries a 3-frame hold for, and the surface belongs to Move
-        // for ~1.5 s. Worth it against losing the Set, but worth an off switch.
-        min: 0, max: 1, def: 1,
-    },
-    {
         key: 'schwunggrid', name: 'Param Pages',
         hint: 'Who draws module knobs. SCHWUNG re-paginates.',
         // WHICH RENDERER DRAWS A MODULE'S PARAMETER PAGE.
@@ -111,9 +97,10 @@ export const FLAGS: FlagDef[] = [
         // Pushing it under its own name would cost a blocking round trip on the
         // audio thread to be told the key does not exist.
         //
-        // Debug-only for now (no `release`): it is an experiment against movy's
-        // own renderer, and the Schwung side still has open gaps — see
-        // docs/plans/ and browser-test/app-loop.mjs, which fails on SCHWUNG.
+        // `release`: a user-facing choice, not a measurement instrument, so a
+        // shipped build lists it. The default stays MOVY — the Schwung side
+        // still has open gaps (browser-test/page-mode-expected-fail.json), and
+        // listing the switch is not the same claim as recommending it.
         //
         // revisedAt/remapAt: the VALUES were renumbered, not only the default
         // — DRAW's deletion means old 1 must land on new MOVY (0), not on new
@@ -123,8 +110,22 @@ export const FLAGS: FlagDef[] = [
         // against it, and a device past rev 4 must not re-trigger that a
         // second time.
         min: 0, max: 1, def: 0, labels: ['MOVY', 'SCHWUNG'], uiOnly: true,
-        revisedAt: 5,
+        release: true, revisedAt: 5,
         remapAt: (old) => (old >= 2 ? 1 : 0),
+    },
+    {
+        key: 'setcommit', name: 'Commit New Sets',
+        hint: 'Asks Move to save a new set.',
+        // Move writes a Set to disk only once MOVE itself has something to save
+        // in it, so a pad played entirely through schwung is never a real Set
+        // and BOTH stores lose it. On, movy sends the gesture that commits it.
+        //
+        // A flag because of how it has to be sent: schwung's inject drain
+        // refuses to feed Move while a tool is overtaking, so movy lowers
+        // overtake_mode for the length of one press. That is the transition
+        // schwung carries a 3-frame hold for, and the surface belongs to Move
+        // for ~1.5 s. Worth it against losing the Set, but worth an off switch.
+        min: 0, max: 1, def: 1,
     },
     {
         key: 'engpersist', name: 'Engine Saves',

@@ -2,6 +2,19 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+> **EXECUTED 2026-09-26 → charlesvestal/schwung#543** (branch
+> `DimaDake:feat/param-pages-opt-in-bundle`, 7 commits off `407d3041`). Differences
+> from this plan, each for a reason recorded in the ledger's Upstream table:
+> SU-8 left out (already filed alone as #541); SU-13 not filed (still no
+> complaint); SU-11 reshaped to `activity()` (ageing a stream out freezes a
+> fast turn's final tween); SU-17's hook named `io.allowEnumPeek`;
+> `widgetKindFor` kept value-independent (no `cellText` parameter — the fit is
+> asked of the widest static text, and a host reading that does not fit falls
+> back at draw time); the fleet baseline also records a scripted knob gesture,
+> which is what gives SU-16 teeth there. Full `tests/host` green in a Linux
+> container; 14 of them are red on macOS for environment reasons only (bash
+> 3.2, ugrep), identically on `origin/main`.
+
 **Goal:** One Schwung PR carrying every `param_pages` capability movy's
 migrated pages need and cannot reach from the host — each one parametrized,
 each one defaulting to today's behaviour.

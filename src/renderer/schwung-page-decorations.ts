@@ -9,11 +9,12 @@
 
 import type { AutomationView } from '../types/viewmodel.js';
 
-/* The decoration a cell carries, whole. There is no third field and there is no
- * `exact` — see the two meanings below, which is all of it. */
+/* The decoration a cell carries, whole. `value` is never absent (SP-59, see the
+ * return below); upstream's optional `exact` is not sent — every movy lock is a
+ * point on its step, which is what an absent `exact` already means. */
 export interface Decoration {
     locked: true;
-    value?: number;
+    value: number;
 }
 
 /*
@@ -23,26 +24,21 @@ export interface Decoration {
  * THE TWO FIELDS, AND THEIR EXACT MEANINGS — this is the whole contract, and
  * the migration ledger once named a third:
  *
- *   locked  TRUE means "some automation lane that is live on this frame holds
- *           this PARAMETER". The cell gets a mark (a 2x2 top-left corner on the
- *           movy layout, `render_page_movy.mjs` ~2700).
+ *   locked  TRUE means "the held step locks this PARAMETER". The cell gets a
+ *           mark (a 2x2 top-left corner on the movy layout) and, from #509,
+ *           its label band inverts to show the value.
  *
  *   value   SET means "and here is what the step will play". It REPLACES the
  *           live value in the cell — both `raw` and `liveRaw`, so the pointer
- *           moves too (`render_page_movy.mjs` ~2599). ABSENT means "marked, but
- *           the lock has no resolved value"; the live value is drawn as usual.
- *           That is the case for a lock recorded against a lane whose value the
- *           engine has not reported, and it must stay distinguishable from a
- *           lock that resolves to the value the knob already holds.
+ *           moves too (`render_page_movy.mjs` ~2599). Always SET: a lane with no
+ *           held value is a lane this step does not lock, so it gets no
+ *           decoration at all rather than a mark with nothing behind it.
  *
- * THERE IS NO `exact` FLAG, and the migration brief for SP-18 assumed one. The
- * decorations contract in this Schwung version is `{ locked, value }` and
- * nothing else — grep `setDecorations` across `param_pages/`: `render_page.mjs`
- * consumes exactly those two, `render_page_movy.mjs` likewise, and the
- * controller's `setDecorations` is a bare passthrough besides. So "keep
- * `exact`" is the `value === undefined` case above. Nothing here may start
- * writing a third field — the renderer would ignore it and the mark would
- * silently mean the wrong thing.
+ * `exact` IS NOT SENT. Upstream added it with #509 (the corner means "a point
+ * sits here", as against a recorded curve merely passing through) and an absent
+ * `exact` means `locked` — which for movy, whose lanes are per-step locks with
+ * no curve between them, is exactly right. A Schwung older than #509 reads
+ * `{ locked, value }` alone, so sending nothing more keeps both correct.
  *
  * `null` means "no decorations at all", which is also what an empty page gets:
  * an all-null array is the array form of the same statement, and the controller
@@ -72,7 +68,14 @@ export function decorationsFor(
          * show. `decoration.value` is exactly this, and Schwung already prefers
          * it over the live value. */
         const held = auto.heldValues.get(lane);
-        return held === undefined ? { locked: true } : { locked: true, value: held };
+        /* NO VALUE, NO DECORATION (SP-59). `heldValues` is the held step's
+         * own locks, so a lane with no entry is a lane THIS step does not
+         * lock — the "mark that lies" of SP-16, one level down. It drew the
+         * top-left corner on every automated cell of a held step, and against
+         * a Schwung that inverts a locked band (#509) it would show the live
+         * value inverted as though the step played it. That the parameter HAS
+         * a lane is `isAutomated`'s mark, which is always on. */
+        return held === undefined ? null : { locked: true, value: held };
     });
     return decs.some(Boolean) ? decs : null;
 }

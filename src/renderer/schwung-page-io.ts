@@ -21,7 +21,8 @@ export function createPageIo(port: PageParamSource, qualify: (k: string) => stri
                              cache: PageReadCache, hierarchy: PageHierarchy,
                              componentKey: string,
                              modulatedKeys: (() => ReadonlySet<string> | null) | null,
-                             automation: (() => PageAutomation | null) | null = null) {
+                             automation: (() => PageAutomation | null) | null = null,
+                             lanesHaveOwnMark = false) {
     const read = (k: string) => cache.get(qualify(k));
     /*
      * THE KEY FORM IS THE ONE THING THIS FILE HAS TO GET RIGHT ABOUT MODULATION.
@@ -64,12 +65,16 @@ export function createPageIo(port: PageParamSource, qualify: (k: string) => stri
          *
          * WHAT IT COSTS is the grammar: movy's own renderer says tilde for
          * modulation and a 2x2 dot for automation, and this makes both read as
-         * a tilde. The distinction is worth a per-cell channel of its own and
-         * that channel is upstream (SU-8 in `docs/schwung-page-migration.md`),
-         * not a second mark movy paints into Schwung's cell.
+         * a tilde. SU-8 is that channel — `io.isAutomated` below, which drives
+         * the same motion and draws the 2x2 — so a library that has it
+         * (`lanesHaveOwnMark`) gets the lane THERE and not here. An older one
+         * still gets it here: dropping the widening against a library that
+         * ignores `isAutomated` would lose the pointer/base motion too.
          */
-        const auto = automation ? automation() : null;
-        if (auto && auto.isAutomated(qualify(full))) return true;
+        if (!lanesHaveOwnMark) {
+            const auto = automation ? automation() : null;
+            if (auto && auto.isAutomated(qualify(full))) return true;
+        }
         const keys = modulatedKeys ? modulatedKeys() : null;
         if (!keys) return false;
         return keys.has(full.startsWith(prefix) ? full.slice(prefix.length) : full);
@@ -162,6 +167,14 @@ export function createPageIo(port: PageParamSource, qualify: (k: string) => stri
          * reason a tilde and a lock can be told apart at all; under `page` with
          * no `isModulated` both collapsed to the lock mark. */
         isModulated,
+        /* SU-8 (SP-59): the lane's own channel. Asked on the controller's
+         * rotation stop, never per draw — a lane-registry scan of eight. */
+        isAutomated: lanesHaveOwnMark
+            ? (k: string): boolean => {
+                const auto = automation ? automation() : null;
+                return !!auto && auto.isAutomated(qualify(String(k)));
+            }
+            : undefined,
         /* movy has its own screen-reader path; nothing to say from here yet. */
         announce: () => {},
         /* Both undefined for a real module's port today, unchanged — only a

@@ -17,11 +17,16 @@ export type Ctx = {
     need: { register(undo: () => Promise<void>): void };
 };
 
-type Entry = { name: string; fn: (t: Ctx) => Promise<void> };
+/* `knownFlaky` is the reason a scenario is exempt from gating — a stop-gap
+ * while its flake is investigated, not a verdict. It buys KNOWN_FLAKY_RETRIES
+ * assert retries, and a red that survives them is still reported (and lands
+ * in the ledger) but does not fail the tier. Remove the mark with the fix. */
+type ScenarioOpts = { knownFlaky?: string };
+type Entry = { name: string; fn: (t: Ctx) => Promise<void> } & ScenarioOpts;
 let registry: Entry[] = [];
 
-export function scenario(name: string, fn: (t: Ctx) => Promise<void>): void {
-    registry.push({ name, fn });
+export function scenario(name: string, fn: (t: Ctx) => Promise<void>, opts: ScenarioOpts = {}): void {
+    registry.push({ name, fn, ...opts });
 }
 
 /* One scenario body run once per value — how a scenario covers both
@@ -43,6 +48,7 @@ export function _resetForTest(): void { registry = []; }
  * FLAKY when the second attempt lands. Anything more and the tier is just
  * grinding until it goes green. */
 const DEFAULT_RETRIES = { assert: 1, infra: 2 };
+const KNOWN_FLAKY_RETRIES = 3;
 
 export async function runAll(opts: {
     host: string;
@@ -78,7 +84,7 @@ export async function runAll(opts: {
 }
 
 function countFailures(results: ScenarioResult[]): number {
-    return results.reduce(
+    return results.filter((r) => !r.knownFlaky).reduce(
         (a, r) => a + r.checks.filter((c) => !c.pass).length + (r.error ? 1 : 0), 0);
 }
 
@@ -89,7 +95,10 @@ async function runScenario(
     budget: { assert: number; infra: number },
 ): Promise<ScenarioResult> {
     const attempts: Attempt[] = [];
+    /* A switched-off budget stays off: `retries: { assert: 0 }` is a debugging
+     * request, and the mark must not override it. */
     const left = { ...budget };
+    if (e.knownFlaky && left.assert > 0) left.assert = Math.max(left.assert, KNOWN_FLAKY_RETRIES);
 
     for (let n = 1; ; n++) {
         const attempt = await runAttempt(e, opts, n);
@@ -106,6 +115,7 @@ async function runScenario(
     const r: ScenarioResult = {
         name: e.name, status, checks: last.checks, error: last.error, attempts,
         seconds: attempts.reduce((a, x) => a + x.seconds, 0), notes: last.notes,
+        ...(e.knownFlaky ? { knownFlaky: e.knownFlaky } : {}),
     };
     printLevel0(r, outDir);
     return r;

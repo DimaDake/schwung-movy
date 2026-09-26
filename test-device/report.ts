@@ -25,7 +25,9 @@ export function printLevel0(r: ScenarioResult, outDir: string): void {
     const mark = r.status === 'fail' ? RED + '✗' + RST
         : r.status === 'flaky' ? YEL + '⚠' + RST : GRN + '✓' + RST;
     console.log(`${mark} ${r.name.padEnd(18)}${tally.padStart(11)}  ${r.seconds.toFixed(1)}s` +
-                (r.status === 'flaky' ? `  ${YEL}FLAKY${RST} passed on attempt ${r.attempts.length}` : ''));
+                (r.status === 'flaky' ? `  ${YEL}FLAKY${RST} passed on attempt ${r.attempts.length}` : '') +
+                (r.status === 'fail' && r.knownFlaky
+                    ? `  ${YEL}KNOWN FLAKY — not gating${RST} (${r.knownFlaky})` : ''));
     for (const c of failed) {
         console.log(`  ${RED}✗${RST} ${c.id.padEnd(20)} ${detailOf(c)}     ${outDir}/${r.name}.md#${c.id}`);
     }
@@ -59,6 +61,8 @@ export function printSummary(results: ScenarioResult[], failed: number, outDir: 
         && r.attempts.some((a) => a.kind === 'infra'));
     const parts = [`${results.length} scenarios`, `${total} checks`, `${failed} failed`];
     if (flaky.length) parts.push(`${YEL}${flaky.length} FLAKY${RST} (${flaky.map((r) => r.name).join(', ')})`);
+    const known = results.filter((r) => r.status === 'fail' && r.knownFlaky);
+    if (known.length) parts.push(`${YEL}${known.length} KNOWN-FLAKY red, not gating${RST} (${known.map((r) => r.name).join(', ')})`);
     if (infra.length) parts.push(`${infra.length} infra-retried (${infra.map((r) => r.name).join(', ')})`);
     console.log(`\n${parts.join(' · ')}   → ${outDir}/run.md`);
 }
@@ -78,6 +82,7 @@ export function writeReport(outDir: string, results: ScenarioResult[]): void {
     mkdirSync(outDir, { recursive: true });
     for (const r of results) {
         const lines: string[] = [`# ${r.name}`, '', `${r.status.toUpperCase()} · ${r.seconds.toFixed(1)}s`, ''];
+        if (r.knownFlaky) lines.push(`KNOWN FLAKY — does not gate the tier: ${r.knownFlaky}`, '');
         if (r.status === 'flaky') {
             lines.push(`FLAKY: failed on attempt ${r.attempts[0].n}, passed on attempt ${r.attempts.length}.`, '');
         }

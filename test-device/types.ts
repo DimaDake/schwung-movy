@@ -36,4 +36,6 @@ export type ScenarioResult = {
     attempts: Attempt[];
     seconds: number;          // total across attempts
     notes: Record<string, unknown>;
+    /* Why this scenario does not gate the tier (runner.ts `scenario` opts). */
+    knownFlaky?: string;
 };

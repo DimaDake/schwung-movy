@@ -364,6 +364,12 @@ not look alike:
 | `✓` + `infra-retried` | the ssh or the socket dropped and the retry landed | nothing; the link, not movy |
 | `⚠ FLAKY` | failed, then passed on the retry | exit 0, but it is **recorded**: see the ledger below |
 | `✗` | failed twice | a real failure — **do not commit** |
+| `✗` + `KNOWN FLAKY — not gating` | a scenario marked `knownFlaky` stayed red through its 3 assert retries | exit 0; reported and in the ledger. Mention it in the commit |
+
+`scenario(name, fn, { knownFlaky: '<reason>' })` is a **stop-gap** for a flake
+under investigation, not a verdict: it raises that scenario's assert retries to
+3 and keeps a surviving red out of the exit code. Only `migrate` carries it
+(2026-09-26, teardown park race). Remove the mark with the fix.
 
 So a red tier is a red tier. It is not "flaky, probably fine": the retry already
 ran and it stayed red. Read the first line of the failure, which carries

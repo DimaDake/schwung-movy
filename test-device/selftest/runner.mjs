@@ -128,6 +128,30 @@ scenario('no-retry', async (t) => {
 await runAll({ host: 'fake', outDir: OUT2, flakeLog: null, retries: { assert: 0, infra: 0 } });
 ok('retries can be switched off for debugging', noRetryTries === 1, `tries=${noRetryTries}`);
 
+/* A scenario MARKED known-flaky: retried harder, and a red that survives the
+ * retries is reported but does not fail the tier. The mark is per scenario and
+ * carries its reason, so it cannot quietly spread to the others. */
+_resetForTest();
+let kfTries = 0, kfLateTries = 0, plainTries = 0;
+scenario('kf-red', async (t) => { kfTries++; t.check('k', 'never holds', false); },
+         { knownFlaky: 'teardown park race' });
+scenario('kf-late', async (t) => { kfLateTries++; t.check('k', 'third time', kfLateTries >= 3); },
+         { knownFlaky: 'teardown park race' });
+scenario('plain-red', async (t) => { plainTries++; t.check('p', 'never holds', false); });
+const failures3 = await runAll({ host: 'fake', outDir: OUT2, flakeLog: null });
+ok('a known-flaky scenario is retried more than once', kfTries === 4, `tries=${kfTries}`);
+ok('...and can land on a later retry', kfLateTries === 3, `tries=${kfLateTries}`);
+ok('an unmarked scenario keeps the single retry', plainTries === 2, `tries=${plainTries}`);
+ok('a known-flaky red does not fail the run; an unmarked one still does', failures3 === 1,
+   `failures=${failures3}`);
+const byName3 = Object.fromEntries(
+    JSON.parse(readFileSync(`${OUT2}/run.json`, 'utf8')).map((r) => [r.name, r]));
+ok('the known-flaky red is still recorded as a fail, with its reason',
+   byName3['kf-red'].status === 'fail' && byName3['kf-red'].knownFlaky === 'teardown park race',
+   JSON.stringify({ s: byName3['kf-red'].status, k: byName3['kf-red'].knownFlaky }));
+ok('its artifact says it is known-flaky',
+   /KNOWN FLAKY/.test(readFileSync(`${OUT2}/kf-red.md`, 'utf8')));
+
 rmSync(OUT2, { recursive: true, force: true });
 
 rmSync(OUT, { recursive: true, force: true });

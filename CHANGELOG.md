@@ -101,6 +101,13 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **The master chain showed movy's old knob page until you drilled into a slot.**
+  In Session, paging between SEND and MFX slots drew movy's own widgets while
+  the knobs already edited through Schwung's page, so a label could name a
+  different parameter than the one the knob moved. The slot grid now draws
+  Schwung's page, the same as a track's chain view. Behind that, every screen
+  now gets its knob body from one place, which logs `movy-body-under-page` if
+  movy's own body ever draws over a page Schwung owns (SP-58).
 - **Reopening a Set could lose every automation lane it had — the take was on
   disk and the UI came up blank.** No dot, no held value while a step is held,
   and the read-back suppression that keeps a knob from fighting its own

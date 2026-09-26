@@ -71,6 +71,7 @@ import { run as run_page_batch } from './logic/page-batch.mjs';
 import { run as run_page_automation } from './logic/page-automation.mjs';
 import { run as run_schwung_floor } from './logic/schwung-floor.mjs';
 import { run as run_page_owner } from './logic/page-owner.mjs';
+import { run as run_param_body } from './logic/param-body.mjs';
 import { run as run_hierarchy_source } from './logic/hierarchy-source.mjs';
 import { run as run_page_contract } from './logic/page-contract.mjs';
 import { run as run_schwung_sample } from './logic/schwung-sample.mjs';
@@ -156,6 +157,7 @@ const SUITES = [
     run_page_automation,
     run_schwung_floor,
     run_page_owner,
+    run_param_body,
     run_hierarchy_source,
     run_page_contract,
     run_schwung_sample,

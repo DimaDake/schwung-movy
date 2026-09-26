@@ -15,7 +15,7 @@ import { browserState } from '../browser/state.js';
 import { CHAIN_SLOTS, MASTER_FX_SLOTS, isLfoSlot, isMasterLfoSlot } from '../chain/config.js';
 import { resetTrackMutes } from '../mixer/track-mutes.js';
 import { resetDrumSync } from '../seq/drum-sync.js';
-import { loadFullVelocityPref } from '../seq/state.js';
+import { loadFullVelocityPref, seqState } from '../seq/state.js';
 import { claimLedOwnership } from './led-ownership.js';
 import { resetHeldInput } from './input-reset.js';
 import { installEditGuard } from '../undo/record.js';
@@ -29,6 +29,7 @@ import { leaveModalActive, leaveModalLabels, leaveModalSel } from './leave-modal
 import { sessionReady } from '../seq/set-session.js';
 import { schwungGridMode, setSchwungGridMode } from '../renderer/schwung-grid.js';
 import { clearWidgets, isWidgetAvailable } from '../renderer/schwung-widgets.js';
+import { lastParamBody, movyBodyUnderPage } from './param-body.js';
 
 import { laneKeysForTrack } from '../seq/automation.js';
 
@@ -51,6 +52,12 @@ export function init(): void {
          * specifier is a second empty map. See that file's header. */
         widgetAvailable: (k) => isWidgetAvailable(k),
         widgetClear:     () => clearWidgets(),
+        paramBody:       () => {
+            const u = movyBodyUnderPage();
+            return { body: lastParamBody(), trips: u.count, last: u.last,
+                     session: seqState.sessionMode, masterDetail: appState.masterDetail,
+                     masterSlot: appState.masterChainIndex };
+        },
         ready:         () => sessionReady(),
         view:          () => viewName(appState.currentView),
         browse:        () => {

@@ -87,7 +87,7 @@ const PRESETS = [
     'page_mod_cell', 'page_mod_cell_held',
     'page_held_lock', 'page_lane_unheld', 'page_held_unassignable',
     'page_chrome_held', 'page_chrome_flip',
-    'page_clipparams', 'page_setparams', 'page_stepparams',
+    'page_clipparams', 'page_setparams', 'page_stepparams', 'page_master_chain',
 ];
 
 /* The scenes that render Schwung's own body. Only reachable from a bundle built
@@ -102,7 +102,7 @@ const PAGE_SCENES = new Set(['page_body', 'page_body_p2', 'page_voice_pad', 'pag
     'page_mod_cell', 'page_mod_cell_held',
     'page_held_lock', 'page_lane_unheld', 'page_held_unassignable',
     'page_chrome_held', 'page_chrome_flip',
-    'page_clipparams', 'page_setparams', 'page_stepparams']);
+    'page_clipparams', 'page_setparams', 'page_stepparams', 'page_master_chain']);
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
 const BASE = {
@@ -184,6 +184,7 @@ const BASE = {
     // SP-54: the step page's five cells are the held-trig mirror, never a
     // module's own params — same reasoning as its two Set/Clip Params siblings.
     page_stepparams: 'test8',
+    page_master_chain: 'test16',
 };
 
 /* MODULES THAT ARE NOT MOCKS. `page_voice_pad`'s subject is a DECLARED drum
@@ -1390,6 +1391,30 @@ function applyView(preset) {
             /* The mode is a module-level override: leaving it set would silently
              * repaint every scene after this one, and they would still report
              * green. */
+            setSchwungGridMode(null);
+            break;
+        }
+
+        /* SP-58: the master chain GRID with Schwung's body under its slot bar —
+         * the frame the device showed movy's own widgets in. The chain view's
+         * frame (MASTER header, eight slot dots, no page hint band since the
+         * jog moves slots here) around Schwung's cells is what is pinned; the
+         * module behind the body is the mock's, because what differs between a
+         * track slot and a master slot is the port, which a picture cannot
+         * see (that half is app-loop's SP-58 block). */
+        case 'page_master_chain': {
+            if (!schwungLibAvailable()) throw new Error(
+                'screenshot: ' + preset + ' needs a bundle built with SCHWUNG=/path/to/schwung');
+            setSchwungGridMode('page');
+            schwungGridReload();
+            const sp = schwungPageFor(0, 'synth');
+            for (let i = 0; i < 12 * 60 && !sp.ready; i++) { sp.tick(); model.tick(); }
+            if (!sp.ready) throw new Error(preset + ': the contract never resolved');
+            const mfx1 = MASTER_FX_SLOTS.findIndex((sl) => sl.componentKey === 'master_fx:fx1');
+            lastRender = () => renderChainView(model.getViewModel(), mfx1, false, 'MASTER',
+                MASTER_FX_SLOTS[mfx1].label, MASTER_FX_SLOTS,
+                () => sp.render(''), sp.chrome(false));
+            lastRender();
             setSchwungGridMode(null);
             break;
         }

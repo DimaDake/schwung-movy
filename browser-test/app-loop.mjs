@@ -60,6 +60,7 @@ if (GRID_ARM) setSchwungGridMode(GRID_ARM);
  * detail this migration deletes. In the `off` arm the accessor IS movy's bank,
  * so the check is the same check it always was. */
 const { pageOwnerOf } = await import('../dist/esm/app/page-owner.js');
+const { movyBodyUnderPage } = await import('../dist/esm/app/param-body.js');
 const shownPage = (model) => pageOwnerOf(model).pageIndex;
 
 /* The module under the knobs, spelled the way app/tick.ts spells it, and its
@@ -3682,6 +3683,66 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
     schwungGridReload();
 }
 
+
+/* ── SP-58: the master chain GRID draws Schwung's body, not movy's ─────────
+ *
+ * The master grid (session mode, not drilled in) draws the focused slot's knob
+ * body under its slot bar. SP-52 delegated only the DETAIL page, so the grid
+ * kept movy's body while its knobs already wrote through Schwung's page — the
+ * labels were movy's page set, the edits were Schwung's. Forced to the `page`
+ * arm, like the SP-38 block above, so this has teeth in plain `npm test`.
+ *
+ * Two readings, because either alone is satisfiable by a wrong fix: Schwung's
+ * page must actually RENDER on the grid, and movy's body must never draw over
+ * it (`param-body.ts`'s trip counter, which is the general guard).
+ */
+_log('\napp-loop: the master chain grid draws Schwung\'s body (SP-58)');
+{
+    setSchwungGridMode('page');
+    const pageArm = schwungGridMode() === 'page';
+    schwungGridReload();
+    resetApp();
+    /* test_enum declares a hierarchy, re-keyed onto MFX 1's namespace so the
+     * master slot's own port reads it. */
+    const mfx = _MFX_SLOTS[MFX1].componentKey;
+    env.setParams(Object.fromEntries(Object.entries(MOCK_SYNTHS.test_enum)
+        .map(([k, v]) => [k.replace(/^synth:/, mfx + ':'), v])));
+    seqState.sessionMode = true;
+    appState.masterChainIndex = MFX1;
+    appState.currentView = VIEW_CHAIN;
+    appState.masterDetail = false;
+    appState.masterFxModels[MFX1].reload();
+    const tripsBefore = movyBodyUnderPage().count;
+
+    const owner = () => pageOwnerOf(appState.masterFxModels[MFX1]);
+    for (let i = 0; i < 12 * 60 && !owner().delegated; i++) advance(1);
+    const sp = pageArm ? owner().page : null;
+    eq('the master slot\'s page is delegated on the grid', !!sp, pageArm);
+
+    let frames = 0;
+    if (sp) {
+        const realRender = sp.render;
+        sp.render = (...a) => { frames++; return realRender.apply(sp, a); };
+    }
+    appState.dirty = true;
+    advance(3);
+    eq('the grid renders Schwung\'s page', frames > 0, pageArm);
+    eq('the grid never drew movy\'s body over it', movyBodyUnderPage().count - tripsBefore, 0);
+
+    seqState.sessionMode = false;
+    setSchwungGridMode(null);
+    schwungGridReload();
+}
+
+/* THE GENERAL GUARD, over the whole run. Any view the blocks above put on
+ * screen that drew movy's body while its owner was live under Schwung is a
+ * render site that never asked for Schwung's body (SP-58). Only a `page` arm
+ * can trip it — `delegated` is false everywhere else — and the SP-38 and SP-58
+ * blocks force one, so this holds in plain `npm test` too. */
+/* The label stays fixed so page-mode.mjs can ratchet on it; WHERE it tripped
+ * goes to the log beside it. */
+if (movyBodyUnderPage().count) _log('  movy body over a live page, last at ' + movyBodyUnderPage().last);
+eq('movy never drew its own body over a live Schwung page', movyBodyUnderPage().count, 0);
 
 if (process.env.MOVY_APP_LOOP_LABELS) _log('APP-LOOP-FAILED-LABELS ' + JSON.stringify(failedLabels));
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');

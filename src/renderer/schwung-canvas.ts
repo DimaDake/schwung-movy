@@ -78,25 +78,40 @@ function overlayFor(ref: string): any {
  * overlays and say which one it wants drawn (pushnpull does).
  */
 export function loadOverlay(path: string, ref?: string): any {
+    return guardedEval(path, [], () => overlayFor((ref || '').trim()));
+}
+
+/** A named function a script publishes — a param CARD's drawer (`cards.js#fn`).
+ *  The export name is guarded along with movy's own, so reading it cannot leave
+ *  a stray global behind. */
+export function loadExport(path: string, name: string): any {
+    return guardedEval(path, [name], () => {
+        const fn = (globalThis as any)[name];
+        return typeof fn === 'function' ? fn : null;
+    });
+}
+
+function guardedEval(path: string, extra: string[], pick: () => any): any {
     if (typeof shadow_load_ui_module !== 'function') return null;
+    const names = GUARDED.concat(extra);
     const saved: Record<string, any> = {};
     const had: Record<string, boolean> = {};
-    for (const k of GUARDED) {
+    for (const k of names) {
         had[k] = Object.prototype.hasOwnProperty.call(globalThis, k);
         saved[k] = (globalThis as any)[k];
     }
-    let overlay: any = null;
+    let out: any = null;
     try {
-        if (shadow_load_ui_module(path)) overlay = overlayFor((ref || '').trim());
+        if (shadow_load_ui_module(path)) out = pick();
     } catch (_e) {
-        overlay = null;
+        out = null;
     } finally {
-        for (const k of GUARDED) {
+        for (const k of names) {
             if (had[k]) (globalThis as any)[k] = saved[k];
             else delete (globalThis as any)[k];
         }
     }
-    return overlay;
+    return out;
 }
 
 /** `file.js#overlay` — the canvas param's own spelling. The fragment names the
@@ -133,17 +148,36 @@ function scriptOf(meta: any): string {
  * module still being installed looks exactly like this.
  */
 export function findOverlay(moduleId: string): any {
+    const m = moduleDir(moduleId);
+    if (!m) return null;
+    const spec = splitSpec(scriptOf(m.meta));
+    return loadOverlay(joinPath(m.dir, spec.file), spec.ref);
+}
+
+/** A file a module names, resolved against the module's own directory — the
+ *  `canvas_script` of a canvas PAGE, a card's script. Null when the module is
+ *  nowhere, which the caller reads as "not yet", never as an error. */
+export function moduleFilePath(moduleId: string, file: string): string | null {
+    if (file.startsWith('/')) return file;
+    const m = moduleDir(moduleId);
+    return m ? joinPath(m.dir, file) : null;
+}
+
+/* An absolute script path is the module's own business; upstream honours one,
+ * and it is resolved against nothing. */
+function joinPath(dir: string, file: string): string {
+    return file.startsWith('/') ? file : `${dir}/${file}`;
+}
+
+function moduleDir(moduleId: string): { dir: string; meta: any } | null {
+    if (!moduleId) return null;
     for (const sub of SEARCH_DIRS) {
         const dir = `${MODULES_ROOT}/${sub}${moduleId}`;
         const raw = readFile(`${dir}/module.json`);
         if (!raw) continue;              /* not the module's directory — try the next */
         let meta: any = null;
         try { meta = JSON.parse(raw); } catch (_e) { meta = null; }
-        const spec = splitSpec(scriptOf(meta));
-        /* An absolute script path is the module's own business; upstream
-         * honours one, and it is resolved against nothing. */
-        const path = spec.file.startsWith('/') ? spec.file : `${dir}/${spec.file}`;
-        return loadOverlay(path, spec.ref);
+        return { dir, meta };
     }
     return null;
 }

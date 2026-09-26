@@ -15,6 +15,15 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
+- **Module-drawn pages (`type: "canvas"`, `as_page: true`) now show, as they do
+  in Schwung.** MonkSynth's face page planned and paged but drew an empty body:
+  Schwung's page controller asks its HOST for the body (`io.drawCanvasPage`),
+  for an enterable page's gestures (`io.canvasPageHook`) and for a knob's card
+  (`io.loadCard`), and movy supplied none of the three. `schwung-canvas-page.ts`
+  is movy's copy of shadow_ui's seam, kept to the same contract (frame-scoped
+  ctx, one evaluation per script, one strike, per-owner `state`, `handleBack`),
+  so one canvas.js serves both hosts.
+
 - **A module is told when a FINGER hit a pad (`child_press_param` /
   `focus_press_param`).** Move turns a pad press into an ordinary note *before*
   playing it, so by the time it reaches a module's `on_midi` a hit and a

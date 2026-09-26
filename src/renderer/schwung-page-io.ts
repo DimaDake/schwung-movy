@@ -12,6 +12,8 @@ import type { PageReadCache } from './schwung-page-cache.js';
 import type { PageHierarchy } from './schwung-page-hierarchy.js';
 import { isContractKey } from '../chain/hierarchy-source.js';
 import type { PageAutomation } from '../types/page-automation.js';
+import { moduleReadKey } from '../chain/config.js';
+import { createCanvasPageIo } from './schwung-canvas-page.js';
 
 /* EVERY READ GOES THROUGH THE CACHE. Schwung asks one key per tick and would
  * otherwise spend a blocking engine GET on each — SP-26, and
@@ -123,7 +125,14 @@ export function createPageIo(port: PageParamSource, qualify: (k: string) => stri
         }
         return null;
     };
+    /* A module-drawn page and card. The id is asked the way the hierarchy asks
+     * it — through the cache, with the port's own key (no qualify). The owner
+     * is the page cache's (track, component) — see schwung-page-widget-sync. */
+    const canvas = createCanvasPageIo(() => String(cache.get(moduleReadKey(componentKey)) || ''),
+        `${(port as any)?.track?.index ?? '?'}:${componentKey}`,
+        read, (k, v) => port.setParam(qualify(k), v));
     return {
+        ...canvas,
         /*
          * `ui_hierarchy` IS ANSWERED BY schwung-page-hierarchy, not read here.
          * The module's own word comes from `chain/hierarchy-source` — its own

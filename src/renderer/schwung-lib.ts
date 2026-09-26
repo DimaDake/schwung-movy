@@ -131,6 +131,11 @@ export interface SchwungLib {
      * (the tilde) rather than handing a hook nothing reads — which would take
      * the lane's pointer/base motion away with it. */
     drawAutomatedMark?: any;
+    /* The frame a module-drawn canvas PAGE paints into, so (0,0) is the band's
+     * corner and nothing the module draws reaches movy's header or bank bar.
+     * Schwung's own host scopes a page with this same function; a second
+     * clipper here would be a second answer to where a page may draw. */
+    frameCtx?: any;
 }
 
 /* LITERAL PATHS, NOT A CONCATENATION. esbuild can only apply its resolver to a
@@ -155,7 +160,7 @@ try {
      * error at evaluation, indistinguishable from a missing file to everything
      * above this line, and correctly treated the same way.
      */
-    const [pc, pi, rpm, el, wr, vo, ck, pm, pp, anm, _wio, wp, vz, lk] = await Promise.all([
+    const [pc, pi, rpm, el, wr, vo, ck, pm, pp, anm, _wio, wp, vz, lk, fc] = await Promise.all([
         // @ts-ignore — absolute device path; external in the device build
         import('/data/UserData/schwung/shared/param_pages/page_controller.mjs'),
         // @ts-ignore
@@ -206,6 +211,10 @@ try {
          * already pay, same reasoning as anim_state.mjs above. */
         // @ts-ignore
         import('/data/UserData/schwung/shared/param_pages/list_knob.mjs'),
+        /* frame_ctx.mjs — widget_registry.mjs (above) imports it by name, so it
+         * is already loaded wherever the library is. */
+        // @ts-ignore
+        import('/data/UserData/schwung/shared/param_pages/frame_ctx.mjs'),
     ]);
     lib = {
         createController: pc.createController, LAYOUT_MOVY: pc.LAYOUT_MOVY,
@@ -228,6 +237,7 @@ try {
         wavPeaks: wp.wavPeaks,
         listKnobInit: lk.listKnobInit, listKnobStep: lk.listKnobStep,
         drawAutomatedMark: rpm.drawAutomatedMark,
+        frameCtx: fc.frameCtx,
     };
 } catch (e: any) {
     /* Swallowed DELIBERATELY, and this is the whole point of the file: an

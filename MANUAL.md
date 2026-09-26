@@ -556,6 +556,17 @@ touching one opens no list, and none of them is offered for automation — there
 is no value for a lane to record. They still refresh on screen, which is the
 whole reason they are on the page.
 
+**Pages a module draws itself.** A module can ship a page it draws itself, as
+MonkSynth does with its singing face. It sits in the jog rotation like any
+other page, between Movy's header and the hint row, and the eight knobs keep
+editing that section while you watch it. If the page is also the module's
+preset browser, you browse presets the usual way and the module draws the
+picture. If the module lets you *enter* the page, click to go in: from then on
+the jog and the click belong to the module, and Back steps up one level inside
+it until the module has nowhere left to go, then leaves the page. Shift + jog
+still pages out at any point. These are the same pages Schwung shows, drawn by
+the same script.
+
 **The header and the hint row.** These pages are drawn by Schwung, and Movy
 keeps two bands for itself. **While a knob is under your hand** the header
 becomes that parameter — its full name on the left, its current value on the

@@ -66,6 +66,7 @@ import { run as run_schwung_grid } from './logic/schwung-grid.mjs';
 import { run as run_schwung_page } from './logic/schwung-page.mjs';
 import { run as run_schwung_page_press } from './logic/schwung-page-press.mjs';
 import { run as run_schwung_widgets } from './logic/schwung-widgets.mjs';
+import { run as run_schwung_canvas_page } from './logic/schwung-canvas-page.mjs';
 import { run as run_page_freshness } from './logic/page-freshness.mjs';
 import { run as run_page_batch } from './logic/page-batch.mjs';
 import { run as run_page_automation } from './logic/page-automation.mjs';
@@ -152,6 +153,7 @@ const SUITES = [
     run_schwung_page,
     run_schwung_page_press,
     run_schwung_widgets,
+    run_schwung_canvas_page,
     run_page_freshness,
     run_page_batch,
     run_page_automation,

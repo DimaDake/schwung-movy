@@ -1,77 +1,38 @@
-/* New with SP-57 — what movy's OWN pages draw, on hardware.
+/* New with SP-57 — movy's OWN pages, drawn by Schwung, on hardware.
  *
  * Set Params, Clip Params and the step page have no module behind them: movy
  * writes their contract itself (`createVirtualSource`, the SP-53/SP-54 seam)
- * and Schwung plans and draws from it. Everything about that seam is covered
+ * and Schwung plans and draws from it. What the contract says is covered
  * locally — `browser-test/logic/*-params-source.mjs` drives the real
- * controller through the real contract — with ONE exception, and it is the one
- * this file exists for.
+ * controller through it. What only the device can say is that the step page
+ * is actually REACHED under delegation by a real held-step gesture: the
+ * promotion clock, the occupancy rule and the jog walk below are all timing
+ * and state no checkout reproduces.
  *
- * WHAT ONLY THE DEVICE CAN SAY: whether the enum option list actually appears.
- *
- * Turning a divable enum raises a panel over the grid (`enum_list.mjs`'s PEEK
- * — "the detent ALREADY WROTE. The list is an ANSWER"). It was reported
- * missing on these pages, and reading the source gave TWO candidate causes that
- * no local suite can separate, because both are about real gesture timing:
- *
- *   1. movy's repaint gate never asked for the frame. `pollDrawnPage` compares
- *      page identity, knob levels and animation; the peek is none of those.
- *      FIXED locally in SP-57 H5 and pinned by `page-freshness.mjs`.
- *   2. `onKnobTouch` nulls `s.peek` (`page_controller.mjs:3623`) on press AND
- *      release — and movy must keep forwarding touch, since the header claim,
- *      the card warm and the picker dismissal all hang off it.
- *
- * If this check passes, (1) was the whole of it and there is nothing to ask
- * upstream. If it fails with the arm green and the gesture delivered, (2) is
- * real and SU-19 opens with this scenario as its evidence.
- *
- * THE GRAB HAPPENS INSIDE THE HOLD, and that is the crux rather than a detail.
- * The peek dies on the knob's RELEASE, so a screenshot taken after the gesture
- * would find the grid whether the feature works or not — the test would be
- * measuring its own teardown. It is also how a person uses it: you read the
- * list while your fingers are still on the knob.
- *
- * ONE INJECT PER EDGE, for the same reason `Device.hold` exists: a press and a
- * turn sent as two ssh round trips are ~0.5 s apart, which movy reads as a
- * different gesture entirely.
- *
- * A FILL FRACTION, NOT A PIXEL MATCH (`jog-hint.ts`'s own reasoning): the panel
- * clears the screen and draws five rows of list against a grid of cells and
- * labels, so the lit fraction of that band moves a long way without this test
- * re-encoding the font.
+ * THIS SCENARIO ONCE ALSO CHECKED THAT TURNING PROB RAISES THE ENUM PANEL. It
+ * settled SU-19 (the panel was missing only because movy's repaint gate never
+ * asked for the frame — SP-57 H5, pinned by `page-freshness.mjs`), and then
+ * SP-57 H6 made every step-page enum declare `peek: false`, because LEN, PROB
+ * and COND print in full in their square. From then on, the check was asserting
+ * a panel the page is designed not to raise, and it failed for that reason. The
+ * suppression is pinned locally (`step-params-source.mjs`,
+ * `set-params-source.mjs`), so there is nothing left on this page for a
+ * framebuffer grab to judge.
  *
  * Covers:
  *   V1  the step page comes up under delegation while a step is held
- *   V2  turning an enum on it raises the option list
  */
 import { scenario } from '../runner.js';
 import { Device } from '../device.js';
 import { Probe } from '../probe.js';
-import { Display } from '../display.js';
 import * as fixture from '../fixture.js';
 import { STEP_NOTE_BASE } from '../midi.js';
 import { until } from '../wait.js';
 
 /* The arm every check here has to run in: Schwung plans AND draws, which is
  * the only arm in which the virtual contract is on screen at all. Under `off`
- * movy's own renderer draws the step page and there is no peek to look for. */
+ * movy's own renderer draws the step page and there is no delegation to see. */
 const PAGE_MODE = 'page';
-
-/* The list's own rect, from `enum_list.mjs`: ENUM_LIST_TOP_Y is 9 and the
- * bottom is RULE_Y - 1 = 54 (`shared/list_geometry.mjs`), so 46 rows. Read as
- * a band because that is where the two pictures differ most. */
-const PEEK_Y = 9, PEEK_H = 46;
-
-/* `ENUM_PEEK_MS`. A grab is an scp whose latency is not ours to control, so a
- * sample that lands outside the window saw the grid LEGITIMATELY and is not
- * judged — the same rule `jog-hint.ts` had to adopt after failing on one host
- * and passing on another minutes apart. */
-const PEEK_WINDOW_MS = 1500;
-
-/* Knob 3 on the step page is PROB, a ten-option enum (`step-params-contract.ts`
- * declares vel, len, prob, cond, invert in that order). Zero-based here. */
-const PROB_KNOB = 2;
-const HELD_STEP = 0;
 
 /* THE STEP PAGE IS ENTERED, NOT AUTOMATIC — and assuming otherwise is what made
  * the first run of this scenario grade the wrong page.
@@ -111,18 +72,12 @@ const MAX_LEFT_PRESSES = 6;
  * `held`), which is the state the step page becomes reachable from. */
 const PROMOTE_FRAMES = 120;
 
-/* Enough of a change in the lit fraction that no amount of arc/label redraw
- * accounts for it. The panel replaces the whole band, so a real peek moves this
- * far and then some; a grid that merely re-rendered a cell does not. */
-const FILL_DELTA = 0.05;
-
 type HeldPage = { module?: string; renderer?: string; held?: boolean; view?: string; pageIndex?: number };
 
 scenario('virtual-pages', async (t) => {
     fixture.setHost(t.host);
     const dev   = new Device(t.bus, t.agent, t.host);
     const probe = new Probe(t.bus);
-    const disp  = new Display(t.host);
     const open  = () => dev.open(probe);
     const close = () => dev.close(probe);
 
@@ -219,13 +174,12 @@ scenario('virtual-pages', async (t) => {
      * inside the hold's callback, and TypeScript narrows a closure-assigned
      * `let` to its initial type at every read after it. */
     const got: { held: HeldPage | null; promoted: boolean; beforeLeft: HeldPage | null;
-                 gridFill: number; peekFill: number; elapsed: number; trail: string[] } =
-        { held: null, promoted: false, beforeLeft: null, gridFill: -1, peekFill: -1,
-          elapsed: -1, trail: [] };
+                 trail: string[] } =
+        { held: null, promoted: false, beforeLeft: null, trail: [] };
 
     /* ONE WHOLE ATTEMPT: hold, wait for the promotion, walk to the step page,
-     * then read the screen either side of a turn — all inside the same hold,
-     * because the peek dies on the knob's release. */
+     * and read which page is up — inside the hold, because the step page only
+     * exists while a step is held. */
     const attempt = async (): Promise<void> => {
         await dev.hold(stepNote, async () => {
             try {
@@ -251,17 +205,6 @@ scenario('virtual-pages', async (t) => {
                 await t.bus.frames(6);
             }
             got.held = (await probe.page()) as unknown as HeldPage | null;
-            if (got.held?.module !== STEP_PAGE_MODULE) return;
-
-            got.gridFill = await disp.bandFill(PEEK_Y, PEEK_H);
-            const t0 = Date.now();
-            /* `knobHold` is touch-on ... touch-off; the grab sits between them
-             * because the RELEASE is what takes the peek down. */
-            await dev.knobHold(PROB_KNOB, async () => {
-                await dev.tap.knob(PROB_KNOB, 8);
-                got.peekFill = await disp.bandFill(PEEK_Y, PEEK_H);
-            });
-            got.elapsed = Date.now() - t0;
         });
     };
 
@@ -278,9 +221,6 @@ scenario('virtual-pages', async (t) => {
     t.note('moduleBeforeLeft', got.beforeLeft?.module ?? '(none)');
     t.note('heldPageModule', got.held?.module ?? '(none)');
     t.note('heldPageRenderer', got.held?.renderer ?? '(none)');
-    t.note('gridFill', got.gridFill);
-    t.note('peekFill', got.peekFill);
-    t.note('peekSampleMs', got.elapsed);
 
     /* BOTH halves, and the module name is the half that matters. `renderer=page`
      * alone is true of the MODULE's page too, so asserting only that is what let
@@ -289,28 +229,7 @@ scenario('virtual-pages', async (t) => {
         got.held?.module === STEP_PAGE_MODULE && got.held?.renderer === PAGE_MODE,
         { expected: `module=${STEP_PAGE_MODULE} renderer=${PAGE_MODE} while a step is held`,
           actual: `renderer=${got.held?.renderer ?? '(none)'} module=${got.held?.module ?? '(none)'}`
-                  + (got.held?.module === STEP_PAGE_MODULE ? '' :
-                     ' — the step page was never reached, so the peek check below graded nothing') });
-
-    /* Judged only if the sample landed while the panel should still have been
-     * up. Outside the window it proves nothing either way, and a check that
-     * grades a late scp is a check that fails for the network. */
-    if (got.held?.module === STEP_PAGE_MODULE && got.elapsed >= 0 && got.elapsed < PEEK_WINDOW_MS) {
-        const moved = Math.abs(got.peekFill - got.gridFill) > FILL_DELTA;
-        t.check('enum-peek-raised', 'turning an enum raises the option list',
-            moved,
-            { expected: `the list band to differ from the grid's ${got.gridFill.toFixed(3)} `
-                        + `by more than ${FILL_DELTA}`,
-              actual: `${got.peekFill.toFixed(3)} at ${got.elapsed}ms — `
-                      + (moved ? 'the panel is up' : 'the band is unchanged, so no list was drawn') });
-    } else {
-        /* Not graded, and the reason is recorded: a peek check run on the wrong
-         * page, or on a sample that landed after the panel was due down, says
-         * nothing either way. */
-        t.note('peekSkipped', got.held?.module !== STEP_PAGE_MODULE
-            ? `not the step page (module=${got.held?.module ?? '(none)'})`
-            : `sample landed at ${got.elapsed}ms, outside the ${PEEK_WINDOW_MS}ms window`);
-    }
+                  + (got.held?.module === STEP_PAGE_MODULE ? '' : ' — the step page was never reached') });
 
     await probe.setGridMode(null);
 });

@@ -424,10 +424,24 @@ scenario('migrate', async (t) => {
     } catch { emptied = false; }
     t.note('rackEmptied', emptied);
     await seedLegacy();
+    /* Seen failing once with NO `mig:` line at all, which only a set that never
+     * reached the probe can produce — a marked blob, or no set load. Neither
+     * reproduced in six runs, so these notes are what the next failure brings
+     * with it: what the seed left on disk, and whether movy loaded a set. */
+    t.note('seedOnEmptyRack', parseJson(await readSet('ui-state.json'))?.migv ?? 'no migv (legacy)');
     await clearLog();
     await open();
-    const log3 = await migLines();
+    /* The same bounded wait C3 has: `open()` falls back to a quiet window when
+     * "set ready" is late, and a read straight after that fallback can land
+     * ahead of a probe that has not resolved yet. */
+    let log3: string[] = [];
+    try {
+        log3 = await until(t.bus, 'the migration to report on the empty rack',
+            () => migLines(), (l) => l.length > 0, { within: 1500, every: 300 });
+    } catch { log3 = await migLines(); }
     t.note('migLogOnEmptyRack', log3);
+    t.note('setLoadOnEmptyRack', (await dev.logLines('seq: '))
+        .filter((l) => /seq: (loaded set|set ready)/.test(l)));
     t.check('empty-rack-nothing-to-migrate', 'an empty rack reads as nothing to migrate',
         log3.some((l) => MIG.nothing.test(l)),
         { expected: 'a "mig: nothing to migrate" line', actual: log3.join(' | ') || '(none)' });

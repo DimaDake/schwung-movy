@@ -703,6 +703,36 @@ if (parsed) {
 ok('measure-grid-cost.sh ships the injector it depends on',
    /scp[^\n]*inject-any\.py[^\n]*ableton@/.test(injectSrc));
 
+/* ── slot-param.mjs waits for the key, not for the first update ────────────
+ * The migrate canary's intermittent "'slot:volume' still answers" failure: a
+ * periodic `param_update` that does not carry the key can land ahead of the
+ * subscribe snapshot (measured on device: 2 of 15), and a reader that took it
+ * as the start of the burst gave up before the snapshot came. Replayed here with
+ * the measured shape, scaled down: the stray update well before the snapshot.
+ */
+log('\nTest: slot-param.mjs reads through an update that lacks the key');
+{
+    const { readKey } = await import('../scripts/slot-param.mjs');
+    const fakeWs = (schedule) => {
+        const t = new EventTarget();
+        t.send = () => {
+            for (const [ms, params] of schedule) setTimeout(() => {
+                const e = new Event('message');
+                e.data = JSON.stringify({ type: 'param_update', slot: 0, params });
+                t.dispatchEvent(e);
+            }, ms);
+        };
+        return t;
+    };
+    const stray = { 'lfo1:depth': '0.00' };
+    const got = await readKey(fakeWs([[50, stray], [1300, { 'slot:volume': '1.00' }]]), 0, 'slot:volume', 3000);
+    ok('a stray update ahead of the snapshot still yields the key', got === '1.00', `got ${JSON.stringify(got)}`);
+    const absent = await readKey(fakeWs([[50, stray]]), 0, 'slot:volume', 400);
+    ok('an answering device without the key reads as empty, not silent', absent === '', `got ${JSON.stringify(absent)}`);
+    const silent = await readKey(fakeWs([]), 0, 'slot:volume', 200);
+    ok('a device that never answers reads as silent', silent === null, `got ${JSON.stringify(silent)}`);
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 log('');

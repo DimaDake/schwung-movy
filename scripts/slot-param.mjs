@@ -37,11 +37,18 @@ function open() {
     });
 }
 
-/* Returns the value, '' if the snapshot answered but the key was not in it, or
+/* Returns the value, '' if the device answered but the key never appeared, or
  * null if the device never answered at all — module-slot.mjs's three-way
  * distinction, for the same reason: a busy device must not read as an empty
- * key, or a canary would fail claiming a rename that never happened. */
-async function readKey(ws, slot, key) {
+ * key, or a canary would fail claiming a rename that never happened.
+ *
+ * Waits for the KEY, not for the first `param_update`. The snapshot lands
+ * ~2.6 s after the subscribe, and schwung's periodic updates share the message
+ * type: measured, 2 of 15 subscribes saw a 15-key update WITHOUT `slot:volume`
+ * 1.2-2.0 s in, ahead of the snapshot. Taking that as the start of the burst
+ * and allowing 1 s for the rest returned '' before the snapshot arrived — the
+ * migrate canary's intermittent "'slot:volume' still answers" failure. */
+export async function readKey(ws, slot, key, within = 8000) {
     let seenUpdate = false;
     let value = null;
     const h = (ev) => {
@@ -55,28 +62,31 @@ async function readKey(ws, slot, key) {
     };
     ws.addEventListener('message', h);
     ws.send(JSON.stringify({ type: 'subscribe', slot }));
-    const deadline = Date.now() + 8000;
-    while (!seenUpdate && Date.now() < deadline) await sleep(100);
-    if (seenUpdate) await sleep(1000);   // the snapshot burst arrives over a few messages
+    const deadline = Date.now() + within;
+    while (value === null && Date.now() < deadline) await sleep(50);
     ws.removeEventListener('message', h);
-    if (!seenUpdate) return null;
-    return value ?? '';
+    if (value !== null) return value;
+    return seenUpdate ? '' : null;
 }
 
-const [mode, slotArg, key] = process.argv.slice(2);
-if (mode !== 'get' || slotArg === undefined || !key) {
-    console.error('usage: slot-param.mjs get <slot> <key>');
-    process.exit(2);
-}
-const slot = parseInt(slotArg, 10);
-const ws = await open();
-let code = 0;
-try {
-    const v = await readKey(ws, slot, key);
-    if (v === null) { console.error('slot-param: no answer from device'); code = 3; }
-    else console.log(v);
-} finally {
-    ws.close();
-    await sleep(100);
-    process.exit(code);
+/* Imported by browser-test/device-scripts.mjs, which replays the early-update
+ * ordering against readKey without a device. */
+if (import.meta.main) {
+    const [mode, slotArg, key] = process.argv.slice(2);
+    if (mode !== 'get' || slotArg === undefined || !key) {
+        console.error('usage: slot-param.mjs get <slot> <key>');
+        process.exit(2);
+    }
+    const slot = parseInt(slotArg, 10);
+    const ws = await open();
+    let code = 0;
+    try {
+        const v = await readKey(ws, slot, key);
+        if (v === null) { console.error('slot-param: no answer from device'); code = 3; }
+        else console.log(v);
+    } finally {
+        ws.close();
+        await sleep(100);
+        process.exit(code);
+    }
 }

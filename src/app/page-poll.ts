@@ -45,7 +45,8 @@
  * so the two cannot drift.
  */
 
-import { appState, VIEW_KNOBS, VIEW_CHAIN, VIEW_CLIP_PARAMS, VIEW_MAIN_PARAMS } from './state.js';
+import { appState, VIEW_KNOBS, VIEW_CHAIN, VIEW_CLIP_PARAMS, VIEW_MAIN_PARAMS,
+         VIEW_BROWSE, VIEW_FILE_BROWSE, VIEW_FLAGS, VIEW_VERSIONS, VIEW_CPU } from './state.js';
 import { seqState } from '../seq/state.js';
 import { sessionReady } from '../seq/set-session.js';
 import { schwungEditorActive } from '../renderer/schwung-editor.js';
@@ -61,26 +62,30 @@ import { createRepaintCap } from './repaint-cap.js';
  * splash and Schwung's own dive editor. Every other branch is a different
  * `currentView` and so is excluded by the test itself.
  *
- * SESSION MODE HAS NO `currentView` OF ITS OWN (SP-52). `appState.currentView`
- * keeps whatever it held before Session was entered — `masterDetail`, not
- * `currentView`, is what tells the master GRID (a chain view, no param page
- * under it) from the master DETAIL page (a real module's knob page, same
- * shape as a track slot's). So session mode answers off `masterDetail` instead
- * of falling through to the `currentView` test below, which it would pass or
- * fail by accident depending on whatever view was on screen when Session was
- * opened.
- *
  * SET/CLIP PARAMS ARE A THIRD AND FOURTH GRID (SP-53) — pages with no module
  * behind them, but still ones Schwung may plan and draw under the flag.
  * Tested here rather than folded into the `VIEW_KNOBS`/`VIEW_CHAIN` pair so
- * a further virtual page is one more `||`, not a second question.
+ * a further virtual page is one more `||`, not a second question. Tested
+ * BEFORE session mode because the ladder draws them ahead of it.
+ *
+ * SESSION MODE HAS NO `currentView` OF ITS OWN, and BOTH of its screens draw
+ * a module's knobs (SP-58). The master DETAIL page is a knob page; the master
+ * GRID is a chain view, and a chain view draws the focused slot's body under
+ * its slot bar, exactly like a track's VIEW_CHAIN. SP-52 answered off
+ * `masterDetail` on the reading that the grid had no params under it, and so
+ * the grid stayed movy's while its knobs already wrote through Schwung's page.
+ * `currentView` still matters for the views the ladder tests AHEAD of the
+ * session branch — a browser, Settings, CPU, Backups — because those own the
+ * screen; any other value is a leftover from before Session was opened.
  */
 export function moduleGridOnScreen(): boolean {
     if (!sessionReady() || schwungEditorActive()) return false;
-    if (seqState.sessionMode) return appState.masterDetail;
     if (appState.currentView === VIEW_CLIP_PARAMS || appState.currentView === VIEW_MAIN_PARAMS) return true;
+    if (seqState.sessionMode) return !SCREEN_OWNING_VIEWS.has(appState.currentView);
     return appState.currentView === VIEW_KNOBS || appState.currentView === VIEW_CHAIN;
 }
+
+const SCREEN_OWNING_VIEWS = new Set([VIEW_BROWSE, VIEW_FILE_BROWSE, VIEW_FLAGS, VIEW_VERSIONS, VIEW_CPU]);
 
 /* The drawn cells as of this tick. Module-level because it is read again at
  * render time — the LED row is lit from the same eight numbers that decided the

@@ -46,6 +46,7 @@ import type { Model } from '../model/index.js';
 import { concreteKey } from '../model/pad-scope.js';
 import { noteRender } from '../test/probe.js';
 import { mlog } from '../log.js';
+import { paramBodyFor } from './param-body.js';
 import { chainLoadsPending, currentSetUuid, sessionError, sessionFailScope, sessionPhase, sessionReady, sessionTick } from '../seq/set-session.js';
 import { takeSurfaceReturn } from '../seq/set-commit.js';
 import { claimLedOwnership } from './led-ownership.js';
@@ -790,7 +791,12 @@ function tickBody(): void {
      * outranks whatever the track's module or Set/Clip Params would otherwise
      * answer, the same precedence the pre-SP-54 render branches already gave
      * it by building `buildStepPageVM` ahead of the module view. */
-    const drawnPageOwner = seqState.sessionMode ? masterPageOwner!
+    /* Clip/Set Params outrank the master slot in session mode too: the ladder
+     * draws them AHEAD of the session branch, so while one is up it is the page
+     * on screen, and handing it the master's owner would draw a master FX body
+     * under the Clip Params header. */
+    const drawnPageOwner = seqState.sessionMode
+        ? clipParamsOwner ?? mainParamsOwner ?? masterPageOwner!
         : stepParamsOwner ?? clipParamsOwner ?? mainParamsOwner ?? pageOwner;
     /* THE POLL COMES BEFORE THE BODY IS ASKED FOR, because the body is what
      * readiness gates and the poll is what resolves readiness. Gating the poll
@@ -869,7 +875,8 @@ function tickBody(): void {
             const vm = buildMainPageVM();
             const chrome = schwungChromeFor(drawnPageOwner, schwungBody, false);
             renderKnobsView(vm, false, appState.activeTrack.index,
-                            schwungBody, schwungBankFor(drawnPageOwner, schwungBody), chrome);
+                            paramBodyFor(drawnPageOwner, vm, schwungBody),
+                            schwungBankFor(drawnPageOwner, schwungBody), chrome);
             lightKnobRow(vm, schwungBody);
         } else if (appState.currentView === VIEW_CLIP_PARAMS) {
             /* AFTER `schwungEditorActive()` on purpose (SP-53): SCALE's
@@ -880,7 +887,8 @@ function tickBody(): void {
             const vm = buildClipPageVM();
             const chrome = schwungChromeFor(drawnPageOwner, schwungBody, false);
             renderKnobsView(vm, false, appState.activeTrack.index,
-                            schwungBody, schwungBankFor(drawnPageOwner, schwungBody), chrome);
+                            paramBodyFor(drawnPageOwner, vm, schwungBody),
+                            schwungBankFor(drawnPageOwner, schwungBody), chrome);
             lightKnobRow(vm, schwungBody);
         } else if (appState.currentView === VIEW_CPU) {
             renderCpuView(buildCpuPageVM());
@@ -905,10 +913,17 @@ function tickBody(): void {
                 noteRendered(vm);
                 const chrome = schwungChromeFor(drawnPageOwner, schwungBody, true);
                 renderKnobsView(vm, jogHintVisible(), appState.activeTrack.index,
-                                schwungBody, schwungBankFor(drawnPageOwner, schwungBody), chrome);
+                                paramBodyFor(drawnPageOwner, vm, schwungBody),
+                                schwungBankFor(drawnPageOwner, schwungBody), chrome);
                 jogToastShown = jogHintVisible() || !!(chrome && chrome.footer);
             } else {
-                renderChainView(vm, mIdx, jogHintVisible(), 'MASTER', MASTER_FX_SLOTS[mIdx]?.label, MASTER_FX_SLOTS);
+                noteRendered(vm);
+                /* The slot grid draws the focused slot's body too, so it takes
+                 * Schwung's body and chrome exactly as a track's VIEW_CHAIN does
+                 * (SP-58) — `paging: false`, since the jog moves slots here. */
+                renderChainView(vm, mIdx, jogHintVisible(), 'MASTER', MASTER_FX_SLOTS[mIdx]?.label,
+                                MASTER_FX_SLOTS, paramBodyFor(drawnPageOwner, vm, schwungBody),
+                                schwungChromeFor(drawnPageOwner, schwungBody, false));
                 jogToastShown = jogHintVisible();
             }
             lightKnobRow(vm, schwungBody);
@@ -968,7 +983,8 @@ function tickBody(): void {
             const chrome = schwungChromeFor(drawnPageOwner, schwungBody, !stepSelected);
             const chromeFooter = !!(chrome && chrome.footer);
             renderKnobsView(vm, jogHintVisible(), appState.activeTrack.index,
-                            schwungBody, schwungBankFor(pageOwner, schwungBody), chrome);
+                            paramBodyFor(drawnPageOwner, vm, schwungBody),
+                            schwungBankFor(pageOwner, schwungBody), chrome);
             perfPhaseEnd();
             // The pool-full toast shares the bottom rows with the Loop strip;
             // claim them so the strip yields to it (like every other toast).
@@ -1009,7 +1025,7 @@ function tickBody(): void {
              * `drawnPageOwner`, same reasoning as the VIEW_KNOBS branch above —
              * so a touched step-page cell's toast reaches the header here too. */
             renderChainView(vm, chainIdx, jogHintVisible(), 'T' + (appState.activeTrack.index + 1),
-                            undefined, undefined as any, schwungBody,
+                            undefined, undefined as any, paramBodyFor(drawnPageOwner, vm, schwungBody),
                             schwungChromeFor(drawnPageOwner, schwungBody, false));
             perfPhaseEnd();
             /* Must match what renderChainView actually drew: the Loop strip

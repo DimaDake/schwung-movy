@@ -168,6 +168,7 @@ PRs" (**no — zero are required**) are in *The pages that are not a track modul
 | SP-55 | MIX and the two LFO pages: they have a port and a key, and are refused delegation by name | Sonnet | ✅ | 25 | — |
 | SP-56 | **NEW** — Settings, CPU and Backups: a scope decision, not a build | Opus | ⬜ | 26 | — |
 | SP-57 | alignment pass over the three virtual pages (step/clip/set): the fader, one knob rule, direction-absolute two-way cells, the readings, the peek's frames. **F2 settled on device 2026-09-25 — the overlay works and SU-19 does not exist** | Opus | ✅ **movy-side, device-verified** | 27 | — |
+| SP-58 | the master chain GRID (Session, not drilled in) drew movy's body while its knobs already wrote through Schwung's page — SP-52 delegated only the DETAIL page. **Fixed**, plus a general guard: every app render site gets its knob body from `app/param-body.ts`, which reports movy's body drawing over a LIVE (`delegated`) page (`movy-body-under-page` in the log, a counter in the probe). Teeth proven locally AND on device by reverting the predicate. See `plans/sp-58-master-chain-body.md` | Opus | ✅ **movy-side, device-verified 2026-09-26** | 28 | — |
 | SP-21 | Metadata correction overlay | Sonnet | ❌ **dropped** — the audit found 1 real correction in 555 | — | — |
 | SP-22 | Cut-curve viz kind | Sonnet | ❌ **dropped** — a movy extension; Schwung draws plain dials natively | — | — |
 | SP-43 | The second click on an entered preset page leaves it | Sonnet | ❌ **dropped** 2026-09-20 — it is upstream's DOCUMENTED design, not a defect; the user's ruling is to drop it and correct the record | — | — |
@@ -2601,6 +2602,56 @@ drawn" cannot distinguish any of the five from each other.
   is updated there, with screenshots from the baselines.
 
 ---
+
+### SP-58 ✅ 2026-09-26 — the master chain GRID drew movy's body, and nothing said so
+
+**Reported from the device:** SEND and MFX slots showed Schwung's page only once
+drilled into; paging between master slots in Session showed movy's old UI.
+
+**Cause — SP-52's reading of the grid.** SP-52 made `moduleGridOnScreen()` answer
+session mode off `masterDetail`, on the premise that the master GRID is "a chain
+view, no param page under it". It is not: `renderChainView` draws the focused
+slot's knob body under its slot bar, exactly as a track's VIEW_CHAIN does — the
+same site the original delegation missed for tracks (`chain-view.ts`'s own
+comment). So on the grid no body was asked for, `renderChainView` fell back to
+`drawKnobParams`, and the knobs — `knobModel()` is the master model on the grid
+too — wrote through Schwung's page under movy's labels. **Not cosmetic:** the two
+page sets differ, so a label could name a different param than the knob edited.
+
+**Fix.** `moduleGridOnScreen()` answers `true` in session mode unless a view the
+ladder draws AHEAD of the session branch owns the screen (browser, Settings, CPU,
+Backups); Clip/Set Params are tested before session mode, and `drawnPageOwner`
+now prefers their owners in session mode too (it handed them the master's). The
+grid branch passes the body and `schwungChromeFor(…, false)` — `paging: false`,
+the jog moves slots — and calls `noteRendered`, which it never did, so the probe
+went stale on that view.
+
+**The guard, and why it is shaped this way.** A structural rule ("every render
+call passes a body") would NOT have caught this — the call could pass
+`schwungBody` and it would still be `undefined`, because the defect was the
+predicate. So the choice is made in one place, `app/param-body.ts`'s
+`paramBodyFor(owner, vm, schwungBody)`, and its fallback asks the question that
+separates a legitimate movy body from a defect: is the owner LIVE? `delegated` is
+`page.ready`, so mode `off`, unclaimed and not-yet-resolved all fall back quietly;
+a live page reaching the fallback is reported (`movy-body-under-page <ref>`, once
+per ref) and counted. Every app render site goes through it — pinned by a grep in
+`logic/param-body.mjs` — and the renderers' optional body survives only for
+`screenshot.mjs`. The two guards complement: a site that skips `paramBodyFor` is
+caught by the grep; a site that asks but gets nothing is caught by the counter.
+This is also the natural precondition check for **SP-41** (deleting movy's page
+renderer): a run with the counter at zero is the evidence that the fallback
+never draws over a page Schwung owns.
+
+**Teeth.** `logic/set-session.mjs` (predicate, including the browser/CPU cases the
+old clause also got wrong), `logic/param-body.mjs` (the trip's one firing and
+three non-firing cases + the grep), `app-loop.mjs`'s SP-58 block (forced `page`
+arm, MFX 1 grid: page renders, no trip) plus a whole-run `movy never drew its own
+body over a live Schwung page`. Reverting the predicate reddens app-loop with
+`last at 0:master_fx:fx1`; reverting only the render call reddens the grep and
+app-loop. Screenshot `page_master_chain` (181/181). Device: `master-chain` scenario
+(freeverb in SEND 1, Session latched, grid focused) green 4/4; with the old
+predicate deployed it read `module=Freeverb body=movy trips=6 last=0:snd0`.
+`page-mode.mjs` 3 of 3 unchanged.
 
 ### SP-56 — Settings, CPU and Backups: a scope decision, not a build (NEW, 2026-09-20)
 

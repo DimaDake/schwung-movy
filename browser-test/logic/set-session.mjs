@@ -255,7 +255,7 @@ export async function run() {
          * too — a real module's knob page, same shape as a track slot's — and
          * left it drawn with no Schwung body and no chrome, forever, because
          * `moduleGridOnScreen()` never went true for it. */
-        const { appState, VIEW_KNOBS, VIEW_CHAIN, VIEW_BROWSE } =
+        const { appState, VIEW_KNOBS, VIEW_CHAIN, VIEW_BROWSE, VIEW_CPU, VIEW_CLIP_PARAMS } =
             await import('../../dist/esm/app/state.js');
         const { moduleGridOnScreen } = await import('../../dist/esm/app/page-poll.js');
         const savedView = appState.currentView;
@@ -269,11 +269,23 @@ export async function run() {
         seqState.sessionMode = true;
         appState.masterDetail = false;
         appState.currentView = VIEW_CHAIN; // leftover from before Session opened
-        ok('the master GRID is not a param page', !moduleGridOnScreen());
+        /* SP-58: the master GRID draws the focused slot's knob body under the
+         * slot bar, exactly as a track's VIEW_CHAIN does — SP-52 read it as a
+         * list with no params under it, and left it on movy's renderer while
+         * the knobs already wrote through Schwung's page. */
+        ok('the master GRID draws a param body too', moduleGridOnScreen());
         appState.masterDetail = true;
         ok('the master DETAIL page is', moduleGridOnScreen());
         appState.currentView = VIEW_KNOBS; // leftover the other way — must not matter
         ok('...regardless of what currentView says', moduleGridOnScreen());
+        /* Views the render ladder tests AHEAD of the session branch own the
+         * screen, so the master page is not what the knobs address there. */
+        appState.currentView = VIEW_BROWSE;
+        ok('a browser opened from the master chain is not', !moduleGridOnScreen());
+        appState.currentView = VIEW_CPU;
+        ok('the CPU page over Session is not', !moduleGridOnScreen());
+        appState.currentView = VIEW_CLIP_PARAMS;
+        ok('Clip Params over Session is its own grid', moduleGridOnScreen());
 
         seqState.sessionMode = false;
         appState.masterDetail = false;

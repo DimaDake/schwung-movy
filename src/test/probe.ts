@@ -72,6 +72,11 @@ export type ProbeDeps = {
      * built-in, and a cell that goes blank instead is a regression. */
     widgetAvailable: (kind: string) => boolean;
     widgetClear: () => void;
+    /* WHOSE BODY WAS DRAWN, and whether movy's ever drew over a live Schwung
+     * page (SP-58). Session mode is not a `view` — it keeps whatever view it
+     * was entered from — so the master chain is answered here too. */
+    paramBody?: () => { body: string; trips: number; last: string;
+                       session: boolean; masterDetail: boolean; masterSlot: number };
 };
 
 let deps: ProbeDeps | null = null;
@@ -146,6 +151,7 @@ export function answer(requestJson: string): string {
                  * here that answers about the screen instead of about the page
                  * on it. */
                 view:      deps ? deps.view() : 'unknown',
+                ...(deps?.paramBody ? deps.paramBody() : {}),
                 cells,
             });
         }

@@ -82,12 +82,18 @@ function parseInfo(info: string): void {
 }
 
 /* Re-read the capture detail when the engine says it changed. Cheap by
- * construction: one get_param per commit or selection, never per tick. */
+ * construction: one get_param per commit or selection, never per tick.
+ *
+ * The generation is spent only by a read that got through. Marking it seen
+ * first lost a whole overlay to one dropped get — the engine had fitted the
+ * take and movy never showed it — and drops are routine under param IPC
+ * contention. A null retries next tick until one lands. */
 export function captureTick(): void {
     if (seqState.capGen === seenGen || seqState.capGen < 0) return;
-    seenGen = seqState.capGen;
     const info = paramGet('capinfo');
-    if (info !== null) parseInfo(info);
+    if (info === null) return;
+    seenGen = seqState.capGen;
+    parseInfo(info);
 }
 
 /** Drop the buffered input — the view or the gesture has moved on. */

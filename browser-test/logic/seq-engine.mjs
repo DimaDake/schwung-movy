@@ -297,6 +297,27 @@ export async function run() {
     // else dismisses and releases the take.
     const { setCaptureStateForTest, captureJog, captureDismiss, captureOverlayActive, captureState } =
         await import('../../dist/esm/seq/capture.js');
+    // A capinfo read that does not get through must not spend the generation.
+    // It did: the gen was marked seen BEFORE the read, so one dropped get lost
+    // that commit's overlay for good — seen on device as a fitted take the
+    // engine reported and movy never showed, under param IPC contention.
+    {
+        const { captureTick, resetCapture } = await import('../../dist/esm/seq/capture.js');
+        resetCapture();
+        const realGet = globalThis.host_module_get_param;
+        let capinfo = null;
+        globalThis.host_module_get_param = (k) => (k === 'capinfo' ? capinfo : realGet(k));
+        parseStatusForTest('play=0 trk=0 cap=0.20');
+        captureTick();
+        eq('a dropped capinfo read leaves the overlay closed', captureState.overlay, 'none');
+        capinfo = 'mode=fix bpm=102 why=notes bars=2 stretch=133';
+        captureTick();
+        eq('the next tick re-reads the same generation and opens it', captureState.overlay, 'fixed');
+        eq('with the engine\'s reason', captureState.why, 'notes');
+        globalThis.host_module_get_param = realGet;
+        resetCapture();
+    }
+
     setCaptureStateForTest({ overlay: 'select', cands: [85, 120, 170], idx: 1, bpm: 120 });
     captureJog(1);
     eq('jog moves the selection', captureState.idx, 2);

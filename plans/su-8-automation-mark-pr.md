@@ -1,8 +1,8 @@
-# SU-8 — upstream PR text (NOT YET FILED)
+# SU-8 — upstream PR text (FILED: charlesvestal/schwung#541, 2026-09-26)
 
 Branch: `DimaDake/schwung` `feat/automation-mark-lock-strip` (local worktree
-`/Users/dake/git/cld/schwung-lockstrip`, commit `d4fa4c66`, on `origin/main`
-`8c58a376`). Not pushed, not filed — the user asked to hold it.
+`/Users/dake/git/cld/schwung-lockstrip`, commit `c96b7350`, rebased on
+`origin/main` `407d3041`). Filed as https://github.com/charlesvestal/schwung/pull/541.
 
 File with:
 

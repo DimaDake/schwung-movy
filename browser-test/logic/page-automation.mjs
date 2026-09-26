@@ -103,8 +103,8 @@ _log('\nlogic: a held step decorates only the cells it locks (SP-59)');
     });
     /* Lane 1 (res) is live on the track, but THIS step locks only lane 0. */
     const decs = decorationsFor(view(new Map([[0, 0.8]])), ['cutoff', 'res', 'env', null]);
-    eq('the locked cell carries its value', JSON.stringify(decs && decs[0]),
-       JSON.stringify({ locked: true, value: 0.8 }));
+    eq('the locked cell carries its value, and asks for no corner mark (exact: false)',
+       JSON.stringify(decs && decs[0]), JSON.stringify({ locked: true, value: 0.8, exact: false }));
     eq('a lane this step does not lock gets NO decoration (was a bare corner mark)',
        decs && decs[1], null);
     eq('a step that locks nothing on the page decorates nothing',

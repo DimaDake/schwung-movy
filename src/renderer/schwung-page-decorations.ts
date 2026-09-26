@@ -9,12 +9,12 @@
 
 import type { AutomationView } from '../types/viewmodel.js';
 
-/* The decoration a cell carries, whole. `value` is never absent (SP-59, see the
- * return below); upstream's optional `exact` is not sent — every movy lock is a
- * point on its step, which is what an absent `exact` already means. */
+/* The decoration a cell carries, whole. `value` is never absent and `exact` is
+ * always false (SP-59) — see the two notes below. */
 export interface Decoration {
     locked: true;
     value: number;
+    exact: false;
 }
 
 /*
@@ -34,11 +34,20 @@ export interface Decoration {
  *           held value is a lane this step does not lock, so it gets no
  *           decoration at all rather than a mark with nothing behind it.
  *
- * `exact` IS NOT SENT. Upstream added it with #509 (the corner means "a point
- * sits here", as against a recorded curve merely passing through) and an absent
- * `exact` means `locked` — which for movy, whose lanes are per-step locks with
- * no curve between them, is exactly right. A Schwung older than #509 reads
- * `{ locked, value }` alone, so sending nothing more keeps both correct.
+ * `exact` IS ALWAYS FALSE, AND THAT IS A CHOICE ABOUT THE MARK, NOT A CLAIM
+ * ABOUT THE LOCK (SP-59, the user's call). Since #509 `exact` gates only
+ * Schwung's top-left corner ("a point sits on this step"); the inverted value
+ * band keys on `locked` alone. movy cannot use that corner:
+ *   - movy's lane is ALREADY marked, all the time, by `isAutomated`'s 2x2
+ *     beside the label — a second dot on a held step says the same parameter
+ *     twice, in two places, in the same glyph;
+ *   - on a cell a graphic covers (envelope, filter) the corner lands on the
+ *     picture's own pixels and cannot be seen;
+ *   - movy has no curve between locks, so the distinction it draws (a point vs
+ *     a curve passing through) never arises: the inverted value already means
+ *     "this step locks it".
+ * A Schwung older than #509 ignores the field and still draws its corner —
+ * nothing to be done from here, and it goes with the upgrade.
  *
  * `null` means "no decorations at all", which is also what an empty page gets:
  * an all-null array is the array form of the same statement, and the controller
@@ -75,7 +84,7 @@ export function decorationsFor(
          * a Schwung that inverts a locked band (#509) it would show the live
          * value inverted as though the step played it. That the parameter HAS
          * a lane is `isAutomated`'s mark, which is always on. */
-        return held === undefined ? null : { locked: true, value: held };
+        return held === undefined ? null : { locked: true, value: held, exact: false };
     });
     return decs.some(Boolean) ? decs : null;
 }

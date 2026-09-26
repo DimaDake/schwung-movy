@@ -42,6 +42,25 @@ The 140 related host suites pass. Five fail identically on unmodified `origin/ma
 `help_viewer_chrome`, `knob_engine_single`, `knobs_list_layout`,
 `knob_surfaces_access` and `trailing_pages_wiring`.
 
+**Why schwung-movy declines the #509 lock corner (no change asked).** movy
+sends `exact: false` on every held-step decoration, which keeps the inverted
+value band and drops the top-left corner. This needs no library change, since
+`exact` already gates only the corner. It is still worth stating why, because
+the field is documented as "a point sits here". For movy the corner doesn't work:
+
+- An automated parameter already wears this PR's 2x2 beside its label, all the
+  time. On a held step the corner would be a second dot of the same shape, in
+  another place, saying the same thing about the same parameter.
+- On a cell a graphic covers (an envelope, a filter curve) the corner lands on
+  the picture's own pixels and cannot be seen. Those are the cells where a lock
+  most needs to read clearly.
+- movy's lanes are per-step locks with no curve between them, so the
+  point-versus-curve distinction `exact` exists for never comes up. The inverted
+  value already says "this step locks it".
+
+A future option would be for the corner to follow the host's lane mark when
+`isAutomated` is supplied, but that is not asked here.
+
 **Consumer.** schwung-movy feature-detects `drawAutomatedMark`. It moves its
 lanes off `isModulated` only against a library that has the mark.
 

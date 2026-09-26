@@ -1449,6 +1449,80 @@ _log('\napp-loop: master FX slot drills into detail params on jog-click');
     eq('Back stays in session mode', seqState.sessionMode, true);
 }
 
+/* ── Clearing a slot (NONE) leaves the module page for the chain view ────────
+ * The browser returns to whichever view opened it, which for a swap from the
+ * module page is VIEW_KNOBS. After NONE that page has no module behind it, and
+ * under Schwung pages it kept drawing the removed module's params — only the
+ * chain view checks for an empty slot before it draws a body. */
+_log('\napp-loop: clearing a module returns to the chain view');
+{
+    const { browserState } = await import('../dist/esm/browser/state.js');
+    const prevOs = globalThis.os;
+    const prevRead = globalThis.host_read_file;
+    resetApp();
+    /* Installed AFTER resetApp, so the bundled module configs still load. */
+    globalThis.os = {
+        readdir: (p) => (p.endsWith('/sound_generators') ? [['mrdrums'], 0] : [[], 0]),
+        stat: () => [{ mode: 0x4000 }, 0],
+    };
+    globalThis.host_read_file = (p) =>
+        p.endsWith('/sound_generators/mrdrums/module.json')
+            ? JSON.stringify({ id: 'mrdrums', name: 'Mr Drums', component_type: 'sound_generator' })
+            : prevRead(p);
+    /* An earlier block leaves knob 0 touched, and under Schwung pages a
+     * touched knob takes the jog click for its own dive. */
+    sendMidi([0x90, 0, 0]);
+    /* A track no other block uses: a module swap leaves that track's Schwung
+     * page settling its contract on a WALL-CLOCK timer, which this harness's
+     * instant ticks never wait out — track 0 would carry it into later blocks. */
+    selectTrack(9);
+    advance(1);
+
+    const openFromKnobs = () => {
+        appState.currentView = VIEW_CHAIN;
+        sendMidi([0xB0, globalThis.MoveMainButton, 127]); advance(1);   // chain → knobs
+        eq('on the module page', appState.currentView, VIEW_KNOBS);
+        sendMidi([0xB0, globalThis.MoveMainButton, 127]);               // knobs → browser
+        eq('module page opened the browser', appState.currentView, VIEW_BROWSE);
+    };
+
+    /* Control: a real module still returns to the page that opened the browser,
+     * so the NONE case below is not passing because every load goes to chain. */
+    openFromKnobs();
+    browserState.browseIndex = browserState.modules.findIndex((m) => m.id === 'mrdrums');
+    eq('the fixture lists a real module', browserState.browseIndex > 0, true);
+    sendMidi([0xB0, globalThis.MoveMainButton, 127]);                   // load it
+    eq('loading a module returns to the module page', appState.currentView, VIEW_KNOBS);
+
+    openFromKnobs();
+    browserState.browseIndex = 0;                                       // NONE
+    sendMidi([0xB0, globalThis.MoveMainButton, 127]);
+    eq('clearing the slot lands on the chain view', appState.currentView, VIEW_CHAIN);
+    selectTrack(0);
+
+    globalThis.os = prevOs;
+    globalThis.host_read_file = prevRead;
+}
+
+_log('\napp-loop: clearing a master FX slot leaves its detail page');
+{
+    resetApp();
+    env.setParams({ ...MOCK_SYNTHS.mrdrums, 'master_fx:fx1:name': 'Reverb' });
+    seqState.sessionMode = true;
+    appState.masterChainIndex = MFX1;
+    appState.currentView = VIEW_CHAIN;
+    appState.masterDetail = true;
+    appState.masterFxModels[MFX1].reload();
+    advance(2);
+
+    sendMidi([0xB0, globalThis.MoveMainButton, 127]);   // detail → browser
+    eq('detail page opened the browser', appState.currentView, VIEW_BROWSE);
+    sendMidi([0xB0, globalThis.MoveMainButton, 127]);   // index 0 = NONE
+    eq('clearing returns to the master grid', appState.masterDetail, false);
+    eq('on the chain view', appState.currentView, VIEW_CHAIN);
+    seqState.sessionMode = false;
+}
+
 _log('\napp-loop: the track chain reaches its LAST slot');
 {
     /* The jog clamped to LFO_CHAIN_INDEX, which was the last slot until MIX was

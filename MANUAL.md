@@ -664,7 +664,9 @@ In **Chain** view you see the slots of the current track:
 
   ![Module browser](docs/assets/browse_view.png)
 
-  Scroll with the jog wheel; click to load; Back to cancel.
+  Scroll with the jog wheel; click to load; Back to cancel. Choosing **NONE**
+  empties the slot and always lands you on the chain view, even when you opened
+  the browser from the module's pages.
 
 - **Back** returns from a module's pages to the chain, and from the chain it
   exits Movy.

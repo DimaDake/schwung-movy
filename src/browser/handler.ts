@@ -1,6 +1,6 @@
 import { componentPort } from '../track/registry.js';
 import { browserState } from './state.js';
-import { appState, VIEW_BROWSE } from '../app/state.js';
+import { appState, VIEW_BROWSE, VIEW_CHAIN } from '../app/state.js';
 import { isMasterComponent, moduleReadKey, type ChainSlot } from '../chain/config.js';
 import { requestLaneWarm } from '../seq/automation.js';
 import { releaseAllLive } from '../keyboard/release.js';
@@ -155,7 +155,17 @@ export function loadSelectedModule(): void {
     // trip the module-name watcher, so schedule the warm here too (see
     // warmLaneParams) — without it, abs-CC automation is inaudible until restart.
     requestLaneWarm(browserState.paramSlot);
-    appState.currentView = appState.browseOrigin;
+    /* NONE leaves nothing for a module page to show, so it lands on the chain
+     * view whichever page opened the browser. Returning to the origin put the
+     * user back on the knob page of a slot that no longer has a module — and
+     * under Schwung pages that page kept drawing the removed module's params,
+     * because only the chain view checks for an empty slot before the body. */
+    if (value === '') {
+        appState.currentView = VIEW_CHAIN;
+        if (isMaster) appState.masterDetail = false;
+    } else {
+        appState.currentView = appState.browseOrigin;
+    }
     appState.dirty = true;
     browserState.reload?.();
 }

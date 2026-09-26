@@ -3808,6 +3808,35 @@ _log('\napp-loop: the master chain grid draws Schwung\'s body (SP-58)');
     schwungGridReload();
 }
 
+/* The same for a SEND slot: the send buses share the master page and its detail
+ * drill but are movy chains with no `master_fx:` prefix, and a component test
+ * there left the detail page open over the emptied send.
+ *
+ * LAST ON PURPOSE: placed beside the master-FX block it moved the `page` arm's
+ * 'shift+jog: plain jog steps one page' to red — that block starts while track
+ * 0's Schwung page still has a 500 ms WALL-CLOCK contract settle pending, which
+ * this harness's instant ticks never wait out, so it passes or fails on how
+ * much ran before it. */
+_log('\napp-loop: clearing a send slot leaves its detail page');
+{
+    const SND0 = _MFX_SLOTS.findIndex((s) => s.componentKey === 'snd0');
+    resetApp();
+    env.setParams({ ...MOCK_SYNTHS.mrdrums, 'snd0:name': 'Reverb' });
+    seqState.sessionMode = true;
+    appState.masterChainIndex = SND0;
+    appState.currentView = VIEW_CHAIN;
+    appState.masterDetail = true;
+    appState.masterFxModels[SND0].reload();
+    advance(2);
+
+    sendMidi([0xB0, globalThis.MoveMainButton, 127]);   // detail → browser
+    eq('send: detail page opened the browser', appState.currentView, VIEW_BROWSE);
+    sendMidi([0xB0, globalThis.MoveMainButton, 127]);   // index 0 = NONE
+    eq('send: clearing returns to the master grid', appState.masterDetail, false);
+    eq('send: on the chain view', appState.currentView, VIEW_CHAIN);
+    seqState.sessionMode = false;
+}
+
 /* THE GENERAL GUARD, over the whole run. Any view the blocks above put on
  * screen that drew movy's body while its owner was live under Schwung is a
  * render site that never asked for Schwung's body (SP-58). Only a `page` arm

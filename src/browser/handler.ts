@@ -1,7 +1,7 @@
 import { componentPort } from '../track/registry.js';
 import { browserState } from './state.js';
 import { appState, VIEW_BROWSE, VIEW_CHAIN } from '../app/state.js';
-import { isMasterComponent, moduleReadKey, type ChainSlot } from '../chain/config.js';
+import { isMasterComponent, moduleReadKey, MASTER_FX_SLOTS, type ChainSlot } from '../chain/config.js';
 import { requestLaneWarm } from '../seq/automation.js';
 import { releaseAllLive } from '../keyboard/release.js';
 import { captureLfoAssignments, captureModuleState, dumpModuleParams } from '../undo/module-dump.js';
@@ -162,7 +162,11 @@ export function loadSelectedModule(): void {
      * because only the chain view checks for an empty slot before the body. */
     if (value === '') {
         appState.currentView = VIEW_CHAIN;
-        if (isMaster) appState.masterDetail = false;
+        /* By PAGE, not by `isMaster`: the send buses share the master page and
+         * its detail drill but are movy chains, not `master_fx:` components. */
+        if (MASTER_FX_SLOTS.some((s) => s.componentKey === browserState.componentKey)) {
+            appState.masterDetail = false;
+        }
     } else {
         appState.currentView = appState.browseOrigin;
     }

@@ -26,6 +26,7 @@ export function pageOwnerForComponent(componentKey: string): PageOwner {
         poll() { /* movy's own page has nothing to poll — its vm is rebuilt per tick */ },
         knobParamInfo() { return null; },   // no automation on either page today
         changePage() { /* neither page has a jog */ },
+        goToPage() { /* nor a page to land on */ },
     };
     if (schwungGridMode() !== 'page') return single;
     return delegateOwner(ref, schwungPageFor(ref.track, componentKey, null, null), single);

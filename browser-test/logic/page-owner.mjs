@@ -211,6 +211,8 @@ const { modulatedKeysOf } = await import('../../dist/esm/app/modulated-keys.js')
         'src/renderer/schwung-virtual-source.ts': 'SP-53: WRITES the contract for a '
             + 'component with no module at all — there is no declaration to read a '
             + 'second way, only movy\'s own answer to synthesise once',
+        'src/lfo/lfo-schwung-source.ts': 'SP-60: ANSWERS the LFO slot\'s contract with '
+            + 'Schwung\'s own LFO page (lfoLevels) — the slot has no module to read from',
     };
     const contractOffenders = walkTs('src')
         .filter((f) => !(f in CONTRACT_ALLOWED))

@@ -22,3 +22,7 @@ export function schwungLibError(): string {
 export function schwungLib(): SchwungLib {
     throw new Error('schwung param_pages was compiled out of this build');
 }
+
+export interface SchwungLfoPage { [k: string]: any }
+
+export function schwungLfoPage(): SchwungLfoPage | null { return null; }

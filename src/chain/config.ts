@@ -97,7 +97,7 @@ export function isLfoComponent(componentKey: string): boolean {
  * composite engine param; an LFO's eight are addressed `lfo1:*`/`lfo2:*`, not
  * `lfo:*`). SP-55 answers both by building a `PageParamSource` whose cells
  * translate to/from the real keys (`mixer/mix-schwung-cells.ts`,
- * `lfo/lfo-schwung-cells.ts`) — `schwung-grid.ts`'s `schwungPageFor` asks this
+ * `lfo/lfo-schwung-source.ts`, since SP-60 Schwung's own LFO page) — `schwung-grid.ts`'s `schwungPageFor` asks this
  * BEFORE falling through to a bare `componentPort`, the same way it already
  * asks `isVirtualPageComponent` first. Before SP-55 this same test was used to
  * REFUSE delegation outright (`app/page-owner.ts`); that refusal is gone —

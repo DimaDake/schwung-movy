@@ -1,5 +1,5 @@
-/* browser-test/logic/own-component-source.mjs — SP-55's MIX and LFO pages on
- * the virtual-component seam. Unlike Clip/Set/Step Params these wrap a REAL
+/* browser-test/logic/own-component-source.mjs — SP-55's MIX page and SP-60's
+ * LFO page (Schwung's own contract) on the virtual-component seam. Unlike Clip/Set/Step Params these wrap a REAL
  * port (`portFor`/`hostPort`) rather than `seqState` — the teeth here are the
  * translation: MIX's composite engine param survives a read-modify-write, an
  * LFO cell reaches the real `lfoN:key` behind it, and an LFO cell is refused
@@ -71,81 +71,105 @@ _log('\nTest: MIX virtual source (SP-55)');
     resetPorts();
 }
 
-/* ── LFO: two banks, 16 keys, real per-field port translation ─────────────── */
-_log('\nTest: LFO virtual source (SP-55)');
+/* ── LFO: Schwung's own LFO page, over the real keys (SP-60) ─────────────── */
+_log('\nTest: LFO source is Schwung\'s LFO page contract (SP-60)');
 {
-    const { lfoSchwungSource } = await import('../../dist/esm/lfo/lfo-schwung-cells.js');
+    const { lfoSchwungSource } = await import('../../dist/esm/lfo/lfo-schwung-source.js');
     const { trackScope, masterScope } = await import('../../dist/esm/lfo/scope.js');
-    const { LFO_DIVISIONS, RATE_HZ_MIN, RATE_HZ_FACTOR } = await import('../../dist/esm/lfo/params.js');
+    const { schwungLfoPage } = await import('../../dist/esm/renderer/schwung-lib.js');
 
     const eng = mockEngine();
+    /* The master LFOs ride schwung's shim (`hostPort(0)` → shadow_*_param). */
+    const shim = {};
+    const oSG = globalThis.shadow_get_param, oSS = globalThis.shadow_set_param;
+    globalThis.shadow_get_param = (_slot, k) => (k in shim ? shim[k] : null);
+    globalThis.shadow_set_param = (_slot, k, v) => { shim[k] = v; return true; };
     resetPorts();
-    const scope = trackScope(0);
-    const source = lfoSchwungSource(scope);
 
-    const hier = JSON.parse(source.getParam('lfo:ui_hierarchy'));
-    eq('sixteen keys, bank order preserved (8 chunks a Schwung page at)',
-       hier.levels.root.knobs.length, 16);
-    ok('bank 0 first, bank 1 second', hier.levels.root.knobs[0].startsWith('b0_')
-       && hier.levels.root.knobs[8].startsWith('b1_'));
-
-    /* A cell reaches the REAL per-LFO key, not a flat 'lfo:*' one nothing
-     * answers. Reverting `lfoKey`'s use inside `readParam`/`writeLfoParam`'s
-     * caller to the bare cell key would leave `ch0:lfo1:depth` unwritten and
-     * this reads back 0 (the default) instead of what was set. */
-    source.setParam('lfo:b0_depth', '0.5000');
-    eq('depth reached the real lfo1: key', eng.store['ch0:lfo1:depth'], '0.5000');
-    eq('and the cell reads it back', source.getParam('lfo:b0_depth'), '0.5');
-    eq('bank 1 is independent (lfo2:, untouched)', eng.store['ch0:lfo2:depth'], undefined);
-
-    /* RATE, unsynced: the 41-stop ladder round-trips index -> Hz -> index. */
-    eng.store['ch0:lfo1:sync'] = '0';
-    source.setParam('lfo:b0_rate', '10');
-    const hz = parseFloat(eng.store['ch0:lfo1:rate_hz']);
-    ok('index 10 wrote a Hz value on the ladder',
-       Math.abs(hz - RATE_HZ_MIN * Math.pow(RATE_HZ_FACTOR, 10)) < 1e-3);
-    eq('and reads back the SAME index', source.getParam('lfo:b0_rate'), '10');
-
-    /* RATE, synced: the same cell switches to the division ladder. */
-    eng.store['ch0:lfo1:sync'] = '1';
-    const opts = JSON.parse(source.getParam('lfo:chain_params')).find((p) => p.key === 'b0_rate').options;
-    eq('synced options are the division table', opts.length, LFO_DIVISIONS.length);
-    source.setParam('lfo:b0_rate', '3');
-    eq('a synced write lands on rate_div, not rate_hz', eng.store['ch0:lfo1:rate_div'], '3');
-
-    /* NOT AUTOMATABLE, through the real page — the fix is in
-     * `schwung-page-render.ts`, not in this source, so the teeth need the
-     * real page built (`schwungPageFor`), same as SP-53/54's own "plans and
-     * settles under page" checks. */
     if (!schwungLibAvailable()) {
-        _log('  (the automation-guard check SKIPPED — no param_pages; set SCHWUNG=)');
+        eq('without param_pages there is no LFO contract, so no source', lfoSchwungSource(trackScope(0)), null);
+        _log('  (the rest SKIPPED — no param_pages; set SCHWUNG=)');
     } else {
+        const lp = schwungLfoPage();
+        ok('Schwung serves its LFO page builders', !!lp);
+        const source = lfoSchwungSource(trackScope(0));
+
+        /* THE SAME CONTRACT, not a lookalike: the levels are Schwung's own
+         * `lfoLevels`, key for key. Re-declaring cells here (SP-55) is what
+         * this item removed. */
+        const hier = JSON.parse(source.getParam('lfo:ui_hierarchy'));
+        eq('LFO 1 is Schwung\'s LFO 1 level', JSON.stringify(hier.levels.lfo1),
+           JSON.stringify(lp.lfoLevels([1, 2]).lfo1));
+        eq('chain_params are Schwung\'s lfoParams', source.getParam('lfo:chain_params'),
+           JSON.stringify(lp.lfoParams(1).concat(lp.lfoParams(2))));
+
+        /* Keys pass straight through to the track's port. */
+        source.setParam('lfo:lfo1:depth', '0.5');
+        eq('a write reaches the real lfo1: key', eng.store['ch0:lfo1:depth'], '0.5');
+        eq('and reads back through the cell', source.getParam('lfo:lfo1:depth'), '0.5');
+        eq('Target is a door — a knob never writes it', source.setParam('lfo:lfo1:target', 'fx1'), false);
+
+        /* The rate cell Schwung shows is the one Sync selects. */
+        eng.store['ch0:lfo1:sync'] = '0';
+        const hzCond = lp.lfoParams(1).find((p) => p.key === 'lfo1:rate_hz').visible_if;
+        const divCond = lp.lfoParams(1).find((p) => p.key === 'lfo1:rate_div').visible_if;
+        ok('free-running: Hz visible, division hidden', source.visible(hzCond) && !source.visible(divCond));
+        eng.store['ch0:lfo1:sync'] = '1';
+        ok('synced: division visible, Hz hidden', !source.visible(hzCond) && source.visible(divCond));
+        delete eng.store['ch0:lfo1:sync'];
+        ok('an LFO never written reads Free: Hz visible, division hidden (not both)',
+           source.visible(hzCond) && !source.visible(divCond));
+
+        /* Target text and picker come from movy's own target list. */
+        eng.store['ch0:synth:chain_params'] = JSON.stringify([{ key: 'cutoff', name: 'Cutoff', type: 'float' }]);
+        eq('an unrouted LFO reads None', source.formatValue('lfo:lfo1:target', '', 'cell'), 'None');
+        const pick = source.picker('lfo:lfo1:target');
+        ok('the door opens a picker listing the synth param', pick && pick.options.some((o) => /Cutoff/.test(o)));
+        pick.commit(pick.options.findIndex((o) => /Cutoff/.test(o)));
+        eq('choosing a row routes the LFO', eng.store['ch0:lfo1:target'] + ':' + eng.store['ch0:lfo1:target_param'], 'synth:cutoff');
+        eq('and enables it', eng.store['ch0:lfo1:enabled'], '1');
+        eq('the cell names the param', source.formatValue('lfo:lfo1:target', 'synth', 'cell'), 'Cutoff');
+        eq('the header names where it lives', source.formatValue('lfo:lfo1:target', 'synth', 'header'), 'Syn: Cutoff');
+
+        /* Through the real page: two pages, eight cells each, Sync choosing
+         * the rate cell — fail-open `visible` would give nine and a third page. */
         setSchwungGridMode('page');
         schwungGridReload();
+        eng.store['ch0:lfo1:sync'] = '0'; eng.store['ch0:lfo2:sync'] = '1';
         const page = schwungPageFor(0, 'lfo', null, null);
         for (let i = 0; i < 20 && !page.ready; i++) page.tick();
         ok('the page settled', page.ready);
-        const info = page.knobParamInfo(0);
+        eq('LFO 1 and LFO 2 — two pages', page.pageCount, 2);
+        const keysOn = (i) => { page.goToPage(i); return [0, 1, 2, 3, 4, 5, 6, 7].map((k) => page.keyAt(k)); };
+        const p1 = keysOn(0), p2 = keysOn(1);
+        eq('LFO 1: eight cells', p1.filter(Boolean).length, 8);
+        ok('LFO 1 free-running shows rate_hz', p1.includes('lfo1:rate_hz') && !p1.includes('lfo1:rate_div'));
+        ok('LFO 2 synced shows rate_div', p2.includes('lfo2:rate_div') && !p2.includes('lfo2:rate_hz'));
+        const info = page.knobParamInfo(1);
         ok('an LFO cell is never automatable (matches lfo/inert.ts under off)',
            info && info.automatable === false);
+
+        /* The master chain draws the same page over `master_fx:lfoN:*`. */
+        const mSource = lfoSchwungSource(masterScope());
+        eq('master LFO 1 is Schwung\'s master_fx: level',
+           JSON.stringify(JSON.parse(mSource.getParam('master_fx:lfo:ui_hierarchy')).levels.lfo1),
+           JSON.stringify(lp.lfoLevels([1, 2], 'master_fx:').lfo1));
+        mSource.setParam('master_fx:lfo:master_fx:lfo2:depth', '-0.25');
+        eq('a master write reaches the shim key', shim['master_fx:lfo2:depth'], '-0.25');
+        eq('and not a track chain', eng.store['ch0:master_fx:lfo2:depth'], undefined);
+        shim['master_fx:lfo1:sync'] = '1'; shim['master_fx:lfo2:sync'] = '0';
+        const mPage = schwungPageFor(0, 'master_fx:lfo', null, null);
+        for (let i = 0; i < 20 && !mPage.ready; i++) mPage.tick();
+        eq('master: two pages', mPage.pageCount, 2);
+        mPage.goToPage(0);
+        const m1 = [0, 1, 2, 3, 4, 5, 6, 7].map((k) => mPage.keyAt(k));
+        ok('master LFO 1 synced shows its rate_div', m1.includes('master_fx:lfo1:rate_div')
+           && !m1.includes('master_fx:lfo1:rate_hz'));
         setSchwungGridMode('off');
         schwungGridReload();
     }
 
-    /* Master's retrigger is a dead cell, not an absent one — both banks stay
-     * 8 keys so the flat 16-key list still chunks into two aligned pages. */
-    const mScope = masterScope();
-    ok('the master scope has no retrigger', !mScope.hasRetrigger);
-    const mSource = lfoSchwungSource(mScope);
-    eq('sixteen keys even without retrigger (dead, not omitted)',
-       JSON.parse(mSource.getParam('master_fx:lfo:ui_hierarchy')).levels.root.knobs.length, 16);
-    /* `hostPort(0)` (master's channel) has no mocked backing here — the dead
-     * cell must not even ATTEMPT the write (see `retriggerCell`'s override),
-     * so a real `shadow_set_param` global (absent in this harness) is never
-     * asked, and the read stays the fixed '0' whatever was "turned". */
-    mSource.setParam('master_fx:lfo:b0_retrigger', '1');
-    eq('a turn on the dead cell reads back a fixed 0 regardless', mSource.getParam('master_fx:lfo:b0_retrigger'), '0');
-
+    globalThis.shadow_get_param = oSG; globalThis.shadow_set_param = oSS;
     eng.restore();
     resetPorts();
 }

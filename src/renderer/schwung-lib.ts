@@ -266,3 +266,45 @@ export function schwungLib(): SchwungLib {
     if (!lib) throw new Error('schwung param_pages unavailable: ' + failure);
     return lib;
 }
+
+/*
+ * SCHWUNG'S OWN LFO PAGE — the contract its Slot Settings and Master FX
+ * Settings grids draw their LFO 1 / LFO 2 pages from (`lfoParams`,
+ * `lfoLevels`). movy's LFO chain slot edits those same LFOs, so under `page`
+ * it draws THAT page rather than a movy-declared lookalike (SP-60).
+ *
+ * Loaded APART from the set above, and allowed to fail on its own: an absent
+ * LFO contract costs movy the delegated LFO page (movy's own draws instead),
+ * never the renderer as a whole.
+ *
+ * Two homes, newest first. `shared/param_pages/lfo_page.mjs` is where the
+ * builders live once charlesvestal/schwung#549 lands — the supported path
+ * for a tool. Before that they exist only in `shadow/shadow_ui_slot_grid.mjs`
+ * (pure, import-free, on every device that has the grid at all), which
+ * re-exports them afterwards, so the fallback keeps working either way.
+ */
+export interface SchwungLfoPage {
+    lfoParams(lfoIndex: number, keyPrefix?: string): any[];
+    lfoLevels(indices: number[], keyPrefix?: string): Record<string, any>;
+}
+
+let lfoPage: SchwungLfoPage | null = null;
+if (lib) {
+    for (const load of [
+        // @ts-ignore — absolute device path; external in the device build
+        () => import('/data/UserData/schwung/shared/param_pages/lfo_page.mjs'),
+        // @ts-ignore
+        () => import('/data/UserData/schwung/shadow/shadow_ui_slot_grid.mjs'),
+    ]) {
+        try {
+            const m: any = await load();
+            if (typeof m.lfoParams === 'function' && typeof m.lfoLevels === 'function') {
+                lfoPage = { lfoParams: m.lfoParams, lfoLevels: m.lfoLevels };
+                break;
+            }
+        } catch (_e) { /* the next home, or none — see above */ }
+    }
+}
+
+/** Schwung's LFO page builders, or null when this Schwung serves none. */
+export function schwungLfoPage(): SchwungLfoPage | null { return lfoPage; }

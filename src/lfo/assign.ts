@@ -22,6 +22,11 @@ function setBlocking(scope: LfoScope, key: string, val: string): void {
     scope.port.setParamTimeout(key, val, 100);
 }
 
+/* Bumped by every routing movy writes, so a label cached against a routing
+ * (`lfo-schwung-source.ts`) knows to look again without polling for it. */
+let targetEpoch = 0;
+export function lfoTargetEpoch(): number { return targetEpoch; }
+
 export function lfoTargetsParam(scope: LfoScope, lfoIdx: number, comp: string, param: string): boolean {
     return !!comp
         && scope.port.getParam(lfoKey(scope, lfoIdx, 'target')) === comp
@@ -41,6 +46,7 @@ export function assignLfoTarget(scope: LfoScope, lfoIdx: number, comp: string, p
         setBlocking(scope, lfoKey(scope, lfoIdx, 'target_param'), param);
         setBlocking(scope, lfoKey(scope, lfoIdx, 'enabled'), '1');
     });
+    targetEpoch++;
 }
 
 export function clearLfoTarget(scope: LfoScope, lfoIdx: number): void {
@@ -49,4 +55,5 @@ export function clearLfoTarget(scope: LfoScope, lfoIdx: number): void {
         setBlocking(scope, lfoKey(scope, lfoIdx, 'target_param'), '');
         setBlocking(scope, lfoKey(scope, lfoIdx, 'enabled'), '0');
     });
+    targetEpoch++;
 }

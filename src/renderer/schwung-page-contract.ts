@@ -122,7 +122,11 @@ export function createPageContract(ctl: any, port: PageParamSource, componentKey
          * a memo keyed by the DEPARTED module's id would plan the new one from
          * the old one's banks. */
         hier.invalidate();
-        ctl.load({ slot: trackIndex, component: componentKey });
+        /* `visible` rides on the load because the controller keeps it
+         * (`lastLoadOpts`) for every re-plan after this one — the Sync turn
+         * that swaps the LFO's rate cell re-plans without coming back here. */
+        const visible = port.visible ? (c: unknown) => port.visible!(c) : undefined;
+        ctl.load({ slot: trackIndex, component: componentKey, visible });
         refreshLoaded();
         /* A MODULE'S OWN WIDGET, REGISTERED WHEN ITS CONTRACT ARRIVES. Here rather
          * than on a gesture: upstream registered widgets from the canvas-open path,

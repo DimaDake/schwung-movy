@@ -31,7 +31,7 @@
  * binding and the surface it publishes.
  */
 
-import type { PageParamSource } from './schwung-page-source.js';
+import type { PageParamSource, SourcePicker } from './schwung-page-source.js';
 import type { PageAutomation } from '../types/page-automation.js';
 import type { AutomationView } from '../types/viewmodel.js';
 import { schwungLib } from './schwung-lib.js';
@@ -110,6 +110,9 @@ export interface SchwungPage {
     back(): SchwungIntent | null;
     /** Show the page for a 1-based drum pad. False when it cannot be resolved. */
     focusVoice(pad: number): boolean;
+    /** The list a door cell opens, when its SOURCE supplies one (SP-60's LFO
+     *  target) — see `PageParamSource.picker`. */
+    picker(key: string): SourcePicker | null;
     readonly ready: boolean;
     /** The controller itself, for gestures this binding has not wired yet. */
     readonly ctl: any;
@@ -236,5 +239,6 @@ export function createSchwungPage(
         click: input.click,
         back: input.back,
         focusVoice: input.focusVoice,
+        picker: (key: string) => (port.picker ? port.picker(qualify(key)) : null),
     };
 }

@@ -53,7 +53,10 @@ export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: b
          * reported from the device as a header that just read "T4 Voice-POC"
          * however many pads you moved through. Falls back to the module name
          * the moment the module has not declared one. */
-        let right = vm.drumPadName || vm.moduleName;
+        /* A virtual slot (the LFO) has no module to name: its "module name" is
+         * movy's own bank label, which is inert while Schwung draws the page —
+         * so it read LFO 1 over LFO 2's cells. The page names itself (SP-60). */
+        let right = (virtual && chrome?.pageLabel) || vm.drumPadName || vm.moduleName;
         while (right.length > 1 && fontWidth(right) > maxRight) right = right.slice(0, -1);
         if (showIcon) drawHeaderWithPadIcon(trackLabel, right, vm.drumPadCount, vm.drumCurrentPad);
         else          drawHeader(trackLabel, right, false);

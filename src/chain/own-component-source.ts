@@ -10,7 +10,7 @@
 
 import type { PageParamSource } from '../renderer/schwung-page-source.js';
 import { mixSchwungSource } from '../mixer/mix-schwung-cells.js';
-import { lfoSchwungSource } from '../lfo/lfo-schwung-cells.js';
+import { lfoSchwungSource } from '../lfo/lfo-schwung-source.js';
 import { trackScope, masterScope } from '../lfo/scope.js';
 import { isLfoComponent } from './config.js';
 

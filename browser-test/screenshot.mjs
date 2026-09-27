@@ -89,6 +89,7 @@ const PRESETS = [
     'page_chrome_held', 'page_chrome_flip',
     'page_clipparams', 'page_setparams', 'page_stepparams', 'page_master_chain',
     'page_lane_mark', 'page_lane_mark_held',
+    'page_lfo', 'page_lfo_master',
 ];
 
 /* The scenes that render Schwung's own body. Only reachable from a bundle built
@@ -104,7 +105,7 @@ const PAGE_SCENES = new Set(['page_body', 'page_body_p2', 'page_voice_pad', 'pag
     'page_held_lock', 'page_lane_unheld', 'page_held_unassignable',
     'page_chrome_held', 'page_chrome_flip',
     'page_clipparams', 'page_setparams', 'page_stepparams', 'page_master_chain',
-    'page_lane_mark', 'page_lane_mark_held']);
+    'page_lane_mark', 'page_lane_mark_held', 'page_lfo', 'page_lfo_master']);
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
 const BASE = {
@@ -1395,6 +1396,46 @@ function applyView(preset) {
             /* The mode is a module-level override: leaving it set would silently
              * repaint every scene after this one, and they would still report
              * green. */
+            setSchwungGridMode(null);
+            break;
+        }
+
+        /* SP-60: the LFO chain slot under `page` draws SCHWUNG'S OWN LFO page
+         * (Slot Settings / Master FX Settings'), not movy's lookalike — the
+         * waveform across the second row, one Rate cell chosen by Sync, and
+         * Target named. Track: LFO 1 free-running into the synth's Cutoff.
+         * Master: LFO 2 synced, on the chain view's frame. */
+        case 'page_lfo':
+        case 'page_lfo_master': {
+            const master = preset === 'page_lfo_master';
+            const P = master ? 'master_fx:' : '';
+            env.setParams({
+                'synth:chain_params': JSON.stringify([{ key: 'cutoff', name: 'Cutoff', type: 'float' }]),
+                'master_fx:fx1:chain_params': JSON.stringify([{ key: 'mix', name: 'Mix', type: 'float' }]),
+                [P + 'lfo1:sync']: '0', [P + 'lfo1:rate_hz']: '2.0', [P + 'lfo1:depth']: '0.65',
+                [P + 'lfo1:shape']: '0', [P + 'lfo1:polarity']: '1', [P + 'lfo1:enabled']: '1',
+                [P + 'lfo1:target']: master ? 'fx1' : 'synth',
+                [P + 'lfo1:target_param']: master ? 'mix' : 'cutoff',
+                [P + 'lfo2:sync']: '1', [P + 'lfo2:rate_div']: '19', [P + 'lfo2:shape']: '3',
+                [P + 'lfo2:depth']: '-0.4', [P + 'lfo2:polarity']: '0', [P + 'lfo2:enabled']: '0',
+            });
+            resetPorts();
+            setSchwungGridMode('page');
+            schwungGridReload();
+            const ck = P + 'lfo';
+            const sp = schwungPageFor(0, ck);
+            for (let i = 0; i < 12 * 60 && !sp.ready; i++) sp.tick();
+            if (!sp.ready) throw new Error(preset + ': the contract never resolved');
+            if (master) sp.goToPage(1);
+            for (let i = 0; i < 40; i++) sp.tick();
+            const lm = master ? createScopedLfoModel(masterScope()) : createLfoModel(0);
+            lm.tick();
+            lastRender = master
+                ? () => renderChainView(lm.getViewModel(), MASTER_LFO_INDEX, false, 'MASTER', 'LFO',
+                                        MASTER_FX_SLOTS, () => sp.render(''), sp.chrome(false))
+                : () => renderKnobsView(lm.getViewModel(), false, 0, () => sp.render('T1 > LFO'),
+                                        { index: sp.pageIndex, count: sp.pageCount }, sp.chrome(true));
+            lastRender();
             setSchwungGridMode(null);
             break;
         }

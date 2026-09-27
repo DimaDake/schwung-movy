@@ -1,7 +1,7 @@
 // Bundles model + renderer entry points -> dist/esm/ for browser tests.
 // Code splitting puts shared code in chunk files; JSON configs are inlined.
 import * as esbuild from 'esbuild';
-import { rmSync } from 'fs';
+import { rmSync, existsSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -228,7 +228,7 @@ await esbuild.build({
         resolve(root, 'src/lfo/model.ts'),
         /* The LFO page's virtual-component source (SP-55) — same reason as
          * MIX's above: the logic suite drives it directly. */
-        resolve(root, 'src/lfo/lfo-schwung-cells.ts'),
+        resolve(root, 'src/lfo/lfo-schwung-source.ts'),
         resolve(root, 'src/lfo/assign.ts'),
         resolve(root, 'src/lfo/assign-mode.ts'),
         resolve(root, 'src/lfo/scope.ts'),
@@ -377,7 +377,10 @@ await esbuild.build({
         name: 'schwung-param-pages',
         setup(build) {
             const SCHWUNG = process.env.SCHWUNG;
-            build.onResolve({ filter: /^\/data\/UserData\/schwung\/shared\/param_pages\// }, (a) => {
+            /* `shadow/shadow_ui_slot_grid.mjs` too: it is where Schwung's LFO
+             * page contract lives until it moves to param_pages (SP-60), and
+             * movy imports it as the fallback home. */
+            build.onResolve({ filter: /^\/data\/UserData\/schwung\/(shared\/param_pages|shadow)\// }, (a) => {
                 if (SCHWUNG) {
                     /* wav_io_qjs.mjs (SP-42) statically imports QuickJS's built-in
                      * `std`/`os` modules, which esbuild/node cannot resolve — the
@@ -390,7 +393,15 @@ await esbuild.build({
                         return { path: resolve(root, 'browser-test/stubs/wav-io-qjs.mjs') };
                     }
                     const tail = a.path.replace('/data/UserData/schwung/', '');
-                    return { path: resolve(SCHWUNG, 'src/' + tail) };
+                    const real = resolve(SCHWUNG, 'src/' + tail);
+                    /* A file this checkout does not have is what an older
+                     * Schwung on the device looks like: the import FAILS, and
+                     * the caller's fallback has to be what runs. A build error
+                     * here would test a Schwung nobody has. */
+                    if (!existsSync(real)) {
+                        return { path: resolve(root, 'browser-test/stubs/schwung-missing.mjs') };
+                    }
+                    return { path: real };
                 }
                 return { path: resolve(root, 'browser-test/stubs/schwung-param-pages.mjs') };
             });

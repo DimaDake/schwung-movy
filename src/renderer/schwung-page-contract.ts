@@ -122,7 +122,11 @@ export function createPageContract(ctl: any, port: PageParamSource, componentKey
          * a memo keyed by the DEPARTED module's id would plan the new one from
          * the old one's banks. */
         hier.invalidate();
-        ctl.load({ slot: trackIndex, component: componentKey });
+        /* `visible` rides on the load because the controller keeps it
+         * (`lastLoadOpts`) for every re-plan after this one — the Sync turn
+         * that swaps the LFO's rate cell re-plans without coming back here. */
+        const visible = port.visible ? (c: unknown) => port.visible!(c) : undefined;
+        ctl.load({ slot: trackIndex, component: componentKey, visible });
         refreshLoaded();
         /* A MODULE'S OWN WIDGET, REGISTERED WHEN ITS CONTRACT ARRIVES. Here rather
          * than on a gesture: upstream registered widgets from the canvas-open path,
@@ -209,7 +213,13 @@ export function createPageContract(ctl: any, port: PageParamSource, componentKey
                  * that the module in the slot said something new — a swap, a preset, a
                  * module that finished loading. Phased separately so its cost is not
                  * read as the re-plan's. */
-                const adopted = ctl.reloadIfChanged();
+                /* WITH THE LOAD OPTIONS, as the controller's own re-plans pass
+                 * them. `reloadIfChanged(opts)` is `load({...opts})`, and `load`
+                 * REPLACES `lastLoadOpts` with what it was given — so the bare
+                 * call dropped `visible` (and a chosen `mode`) from every plan
+                 * after the first: the LFO page showed both rate cells and
+                 * spilled Phase onto a page of its own (SP-60). */
+                const adopted = ctl.reloadIfChanged(ctl.state && ctl.state.lastLoadOpts);
                 perfPhase('refreshloaded');
                 refreshLoaded();    /* the module may have just left the slot */
                 perfPhase('reloadwidgets');

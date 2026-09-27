@@ -76,4 +76,28 @@ export interface PageParamSource {
      *  Absent or false means "raise it", which is today's behaviour and what
      *  every real port answers. SU-17 is the general version of this. */
     peekSuppressed?(fullKey: string): boolean;
+
+    /** `createController`'s `load({visible})` hook: does a `visible_if`
+     *  condition hold. Schwung's own host answers it for its grids
+     *  (`evaluateVisibilityConditionForContext`); movy's binding passes none,
+     *  and the planner's default is fail-OPEN — every conditional cell shows.
+     *  On the LFO page that is BOTH rate cells, nine keys, and LFO 1 spilling
+     *  onto an "LFO 1 - 2" page (SP-60). Absent means fail-open, as before. */
+    visible?(condition: unknown): boolean;
+
+    /** The list a DOOR cell opens — a string param Schwung declares opaque
+     *  (no knob turns it) and divable, whose editor "belongs to the host".
+     *  Schwung opens its own picker there; this is movy's equivalent, drawn
+     *  with the same list widget. Null when the key has no picker. */
+    picker?(fullKey: string): SourcePicker | null;
+}
+
+/** What a source's door opens: the rows, where the cursor starts, and what
+ *  choosing a row does. The commit is the SOURCE's, not `commitEnum` — a door
+ *  has no option list for the controller to index into. */
+export interface SourcePicker {
+    title: string;
+    options: string[];
+    index: number;
+    commit(index: number): void;
 }

@@ -866,6 +866,33 @@ and click to modulate it.
 These settings are saved with the Set by Schwung itself, so they survive a power
 cycle.
 
+### The LFO pages with Param Pages set to SCHWUNG
+
+With **PARAM PAGES** on **SCHWUNG** (Settings), both LFO pages — a track's and
+the master chain's — are Schwung's own: the same LFO 1 / LFO 2 pages Schwung's
+Slot Settings and Master FX Settings show, so a patch reads the same in both
+places.
+
+![Schwung's LFO page](docs/assets/page_lfo.png)
+
+- **Top row:** **TARG** (what it modulates), **ON**, **MODE** (uni/bipolar),
+  **SYNC** (free/synced).
+- **Bottom row:** **SHAPE**, **RATE**, **DEPTH**, **PHASE**, drawn as one live
+  waveform. **RATE** is in Hz when free-running and a musical division when
+  synced — the one knob changes units as you flip Sync.
+- **Target:** hold its knob and **click the jog** for a list of every parameter
+  the LFO can reach (and **None**); jog to one and click to route it.
+- **Retrigger** is not on this page (Schwung's layout gives its slot to Phase);
+  a setting made on Movy's own page still applies.
+
+The master chain's LFO page names which LFO it is in the header, on the chain
+grid as well as when drilled in:
+
+![Master LFO page under Schwung](docs/assets/page_lfo_master.png)
+
+Hold-to-assign works the same under either setting, and lands on the LFO you
+chose.
+
 ---
 
 ## 4. Keyboard & drums

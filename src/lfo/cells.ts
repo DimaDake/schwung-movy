@@ -97,14 +97,18 @@ export function buildLfoVM(scope: LfoScope, st: LfoPageState): ViewModel {
         primaryCell.touched = true;
         toast = { fullName: primaryCell.fullName, value: primaryCell.displayValue, browseHint: false };
     }
-    const name = 'LFO ' + (st.bank + 1);
+    /* The component in the title, the BANK on the right — the split every
+     * module page has. The bank lived in the title ("T1 > LFO 1"), and under
+     * Schwung pages movy's bank is inert, so the title named LFO 1 over LFO 2's
+     * cells; the right-hand end is where Schwung's own page label goes (SP-60). */
+    const name = 'LFO';
     return {
         moduleName: name,
         /* The master chain is not a track, and the default header would read
-         * "T1 > LFO 1" — on the one page where mistaking whose LFO you are
+         * "T1 > LFO" — on the one page where mistaking whose LFO you are
          * editing is the whole failure mode. */
         headerOverride: scope.keyPrefix ? scope.label + ' > ' + name : undefined,
-        bankName: '',
+        bankName: 'LFO ' + (st.bank + 1),
         bankIndex: st.bank,
         bankCount: LFO_BANK_COUNT,
         rows: [cells.slice(0, 4), cells.slice(4, 8)],

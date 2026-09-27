@@ -17,6 +17,7 @@
  *   M2  Session latched onto the master chain grid, SEND 1 focused
  *   M3  the grid draws the send's body through Schwung
  *   M4  movy never drew its own body over a live Schwung page
+ *   M5  the master LFO slot draws Schwung's own LFO page (SP-60)
  */
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -40,6 +41,9 @@ const SESSION_CC = 50;
 const SEND_FX = 'freeverb';
 const SEND_SLOT = 0;
 const MAX_JOG = 10;
+/* The master chain's LFO slot — last, after the three sends and four MFX
+ * (src/chain/config.ts MASTER_LFO_INDEX). */
+const LFO_SLOT = 7;
 
 type PageAnswer = { module?: string; renderer?: string; body?: string; trips?: number;
                     last?: string; session?: boolean; masterDetail?: boolean;
@@ -105,6 +109,24 @@ scenario('master-chain', async (t) => {
     t.check('no-movy-body', 'movy never drew its own body over a live Schwung page',
         got.trips === 0,
         { expected: 'trips=0', actual: `trips=${got.trips} last=${got.last ?? ''}` });
+
+    /* SP-60: the master LFO slot draws SCHWUNG'S LFO page. It is built from
+     * Schwung's own `lfoLevels`, imported by movy at load — from
+     * shared/param_pages/lfo_page.mjs once schwung serves it, else the
+     * shadow/ copy — so movy's own body here means the import failed ON THE
+     * DEVICE, which no local suite can see. */
+    for (let i = 0; i < MAX_JOG && p.session && p.masterSlot !== LFO_SLOT; i++) {
+        await dev.tap.jogTurn(1);
+        p = await pageUntil('the jog moved toward the LFO slot',
+            (a) => a.masterSlot !== p.masterSlot || a.masterSlot === LFO_SLOT, 600);
+    }
+    const lfo = await pageUntil('the master LFO slot drawn through Schwung',
+        (a) => a.masterSlot === LFO_SLOT && a.body === 'schwung', 3000);
+    t.note('lfo', `slot=${lfo.masterSlot} module=${lfo.module} body=${lfo.body} trips=${lfo.trips}`);
+    t.check('lfo-schwung-body', 'the master LFO slot draws Schwung\'s own LFO page',
+        lfo.masterSlot === LFO_SLOT && lfo.body === 'schwung',
+        { expected: `masterSlot=${LFO_SLOT} body=schwung`,
+          actual: `masterSlot=${lfo.masterSlot} body=${lfo.body ?? '(none)'}` });
 
     /* Leave Session, empty the bus, drop the override — the next suite starts
      * where the fixture expects. */

@@ -103,6 +103,8 @@ export interface PageOwner {
      *  moving movy's index while Schwung draws lands on a page that does not
      *  exist. */
     changePage(delta: number): void;
+    /** Land on page `index` — `changePage(i - at)` jogs one step even at 0 (SP-60). */
+    goToPage(index: number): void;
 }
 
 /**
@@ -135,6 +137,7 @@ function movyOwner(ref: PageRef | null, model: any, reason: string): PageOwner {
         poll() { /* movy's own polling is model.tick(), driven by app/tick.ts */ },
         knobParamInfo(slot: number) { return model?.getKnobParamInfo?.(slot) ?? null; },
         changePage(delta: number) { model?.changePage?.(delta); },
+        goToPage(index: number) { const d = index - (model?.getKnobPage?.() ?? 0); if (d) model?.changePage?.(d); },
     };
 }
 
@@ -175,6 +178,7 @@ export function delegateOwner(ref: PageRef, page: SchwungPage, fallback: PageOwn
         changePage(delta: number) {
             if (live()) page.changePage(delta); else fallback.changePage(delta);
         },
+        goToPage(index: number) { if (live()) page.goToPage(index); else fallback.goToPage(index); },
     };
 }
 

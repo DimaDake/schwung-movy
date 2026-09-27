@@ -438,12 +438,18 @@ export function pollModuleName(s: ModelState): void {
 export function refreshModulatedKeys(s: ModelState): void {
     const prev = s.modulatedKeys.size;
     s.modulatedKeys.clear();
-    if (!s.componentKey.startsWith('master_fx')) {
-        for (let i = 1; i <= 2; i++) {
-            if (s.port.getParam('lfo' + i + ':target') === s.componentKey) {
-                const tp = s.port.getParam('lfo' + i + ':target_param');
-                if (tp) s.modulatedKeys.add(tp);
-            }
+    /* A master FX component is driven by the MASTER LFOs, which store their
+     * target bare (`fx1`, parsed by the shim as a slot number) under
+     * `master_fx:lfoN:`. Skipping master components outright is what left an
+     * assigned MFX knob with no mark (SP-60). */
+    const MASTER = 'master_fx:';
+    const master = s.componentKey.startsWith(MASTER);
+    const lfoPfx = master ? MASTER : '';
+    const want = master ? s.componentKey.slice(MASTER.length) : s.componentKey;
+    for (let i = 1; i <= 2; i++) {
+        if (s.port.getParam(lfoPfx + 'lfo' + i + ':target') === want) {
+            const tp = s.port.getParam(lfoPfx + 'lfo' + i + ':target_param');
+            if (tp) s.modulatedKeys.add(tp);
         }
     }
     if (s.modulatedKeys.size !== prev) s.dirty = true;

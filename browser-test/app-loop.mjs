@@ -91,7 +91,9 @@ const { closeParamPage } = await import('../dist/esm/seq/param-page.js');
 
 let failures = 0;
 const _log = _origLog.bind(console);
-function ok(label)        { _log(`  \x1b[32m✓\x1b[0m ${label}`); }
+/* The condition is HONOURED. It used to be dropped — `ok(label)` only printed —
+ * so an `ok(label, cond)` passed whatever `cond` said (found at SP-60). */
+function ok(label, cond = true) { if (cond) _log(`  \x1b[32m✓\x1b[0m ${label}`); else fail(label, 'expected a truthy value'); }
 /* The LABELS, not the count. page-mode.mjs ratchets on which checks fail, so a
  * count would let one check start failing while another stopped and call it
  * unchanged. */
@@ -1867,6 +1869,110 @@ _log('\napp-loop: hold-knob → assign LFO target');
     eq('module touch cleared on return',
         appState.trackModels[0][1].getViewModel().touchedSlot, null);
     Date.now = realNow;
+}
+
+_log('\napp-loop: hold-knob → assign under Schwung pages lands on, and refreshes, the LFO page (SP-60)');
+{
+    /* Forced to `page` for the same reason as the SP-37 block below: these
+     * checks are ABOUT the delegated pages and must bite in plain `npm test`. */
+    const { resetAssignMode, assignActive } = await import('../dist/esm/lfo/assign-mode.js');
+    const { portFor, hostPort } = await import('../dist/esm/track/registry.js');
+    const { LFO_CHAIN_INDEX, MASTER_LFO_INDEX } = await import('../dist/esm/chain/config.js');
+    const { modulatedKeysOf } = await import('../dist/esm/app/modulated-keys.js');
+    setSchwungGridMode('page');
+    schwungGridReload();
+    if (!schwungLibAvailable()) {
+        _log('  (SKIPPED — no param_pages; set SCHWUNG=)');
+    } else {
+        engine.reset();
+        env.setParams({ ...MOCK_SYNTHS.test8,
+            /* The target picker lists what `chain_params` declares — test8
+             * declares its params only inline in its hierarchy. */
+            'synth:chain_params': JSON.stringify([{ key: 'freq', name: 'Freq', type: 'float', min: 0, max: 1 }]),
+            'master_fx:fx1:name': 'Reverb',
+            'master_fx:fx1:chain_params': JSON.stringify([{ key: 'mix', name: 'Mix', type: 'float', min: 0, max: 1 }]),
+            'master_fx:fx1:mix': '0.5' });
+        resetSeqState(); resetSeqEngine();
+        globalThis.init();
+        appState.trackModels[0][1].reload();
+        advance(12);
+        appState.trackChainIndex[0] = 1;
+        appState.currentView = VIEW_KNOBS;
+        resetAssignMode();
+        advance(4);
+        const synthOwner = pageOwnerOf(appState.trackModels[0][1]);
+        eq('the synth page is Schwung\'s', !!(synthOwner.delegated), true);
+        const held = synthOwner.knobParamInfo(0);
+        eq('knob 1 is an automatable synth param', !!(!!held && held.automatable), true);
+
+        /* The LFO page is ALREADY on LFO 2 — the case the old landing got
+         * wrong: `changePage(1 - 1)` is a jog of -1, not a stay. */
+        const lfoModel = appState.trackModels[0][LFO_CHAIN_INDEX];
+        const lfoOwner = () => pageOwnerOf(lfoModel);
+        portFor(0).setParam('lfo2:enabled', '0');
+        lfoOwner().poll();
+        lfoOwner().goToPage(1);
+        for (let i = 0; i < 12; i++) lfoOwner().poll();
+        eq('the LFO page starts on LFO 2', lfoOwner().pageIndex, 1);
+        eq('and has read LFO 2 as Off', lfoOwner().page.ctl.state.values['lfo2:enabled'], '0');
+
+        const realNow = Date.now; let t = 50000; Date.now = () => t;
+        sendMidi([0x90, 0, 100]); advance(1);
+        t += 1100; advance(1);
+        eq('holding the knob arms assign mode', assignActive(), true);
+        sendMidi([0xB0, 14, 1]); advance(1);           // jog → LFO 2
+        sendMidi([0xB0, 3, 127]); advance(1);          // click commits
+        const port = portFor(0);
+        eq('LFO 2 now targets the held param',
+           port.getParam('lfo2:target') + ':' + port.getParam('lfo2:target_param'), 'synth:' + held.ioKey);
+        eq('landed on the LFO chain slot', appState.trackChainIndex[0], LFO_CHAIN_INDEX);
+        eq('on LFO 2\'s page, not the one before it', lfoOwner().pageIndex, 1);
+        eq('the synth knob wears the modulation mark', !!((modulatedKeysOf(0, 'synth') || new Set()).has(held.ioKey)), true);
+        /* At once — not after the read cursor comes round to it. */
+        const ctl = lfoOwner().page && lfoOwner().page.ctl;
+        eq('the LFO page shows the fresh routing (On) at once', ctl && ctl.state.values['lfo2:enabled'], '1');
+        sendMidi([0x90, 0, 0]); advance(1);
+
+        /* TARGET IS A DOOR: hold its knob and click — the picker opens on the
+         * current routing, and choosing None clears it. */
+        const { schwungEditorActive, schwungEditorIndex } = await import('../dist/esm/renderer/schwung-editor.js');
+        eq('knob 1 on the LFO page is LFO 2\'s Target', lfoOwner().page.keyAt(0), 'lfo2:target');
+        sendMidi([0x90, 0, 100]); advance(1);
+        sendMidi([0xB0, 3, 127]); advance(1);
+        eq('holding Target + click opens the target picker', schwungEditorActive(), true);
+        sendMidi([0x90, 0, 0]); advance(1);            // let go, as a hand does
+        eq('on the current routing, not None', schwungEditorIndex() > 0, true);
+        for (let i = 0; i < 40; i++) sendMidi([0xB0, 14, 127]);
+        sendMidi([0xB0, 3, 127]); advance(1);
+        eq('choosing None clears the routing', port.getParam('lfo2:target'), '');
+        eq('and the picker closes', schwungEditorActive(), false);
+
+        /* MASTER: an MFX knob, the master LFOs, and the MFX's own mark. */
+        seqState.sessionMode = true;
+        appState.masterChainIndex = MFX1;
+        appState.masterDetail = true;
+        appState.masterFxModels[MFX1].reload();
+        advance(12);
+        const mfxOwner = pageOwnerOf(appState.masterFxModels[MFX1]);
+        const mHeld = mfxOwner.knobParamInfo(0);
+        eq('the MFX knob is automatable', !!(!!mHeld && mHeld.automatable), true);
+        t += 5000;
+        sendMidi([0x90, 0, 100]); advance(1);
+        t += 1100; advance(1);
+        eq('holding an MFX knob arms assign mode', assignActive(), true);
+        sendMidi([0xB0, 3, 127]); advance(1);          // LFO 1
+        const shim = hostPort(0);
+        eq('the MASTER LFO 1 targets the bare fx slot',
+           shim.getParam('master_fx:lfo1:target') + ':' + shim.getParam('master_fx:lfo1:target_param'), 'fx1:mix');
+        eq('landed on the master LFO slot', appState.masterChainIndex, MASTER_LFO_INDEX);
+        eq('on the master LFO 1 page', pageOwnerOf(appState.masterFxModels[MASTER_LFO_INDEX]).pageIndex, 0);
+        eq('the MFX knob wears the modulation mark', !!((modulatedKeysOf(0, 'master_fx:fx1') || new Set()).has('mix')), true);
+        sendMidi([0x90, 0, 0]); advance(1);
+        Date.now = realNow;
+        seqState.sessionMode = false;
+    }
+    setSchwungGridMode(GRID_ARM);
+    schwungGridReload();
 }
 
 _log('\napp-loop: jog touch shows the CLICK JOG hint only after a hold');

@@ -1,5 +1,6 @@
 import { trackRef } from '../track/ref.js';
-import { pageOwnerOf } from '../app/page-owner.js';
+import { pageOwnerOf, pageRefOf } from '../app/page-owner.js';
+import { schwungGridDrop } from '../renderer/schwung-grid.js';
 import { pageOwnerForComponent } from '../app/page-owner-virtual.js';
 import { CLIP_PARAMS_COMPONENT, SET_PARAMS_COMPONENT, STEP_PARAMS_COMPONENT } from '../chain/config.js';
 import { pinPage, unpinPage } from './knob-page-pin.js';
@@ -842,13 +843,15 @@ export function onMidiMessageInternal(data: number[]): void {
                         lm = appState.trackModels[appState.activeTrack.index]?.[LFO_CHAIN_INDEX];
                     }
                     if (lm) {
-                        /* Through the owner like every other page move: an LFO
-                         * page is movy's own, so this IS movy's bank — asking
-                         * the accessor is what keeps that a fact the boundary
-                         * states rather than one each site assumes. */
-                        const lo = pageOwnerOf(lm);
-                        lo.changePage(r.lfoIdx - lo.pageIndex);
                         lm.reload();   // re-read the freshly-written target (cache was stale)
+                        /* Under `page` the LFO page is Schwung's, and ITS values
+                         * were read before the write — the controller keeps them
+                         * until its cursor comes round. Dropped, so the owner
+                         * builds it afresh and the landing warms it live, rather
+                         * than showing the LFO Off for a few ticks (SP-60). */
+                        const ref = pageRefOf(lm);
+                        if (ref) schwungGridDrop(ref.track, ref.componentKey);
+                        pageOwnerOf(lm).goToPage(r.lfoIdx);
                     }
                 } else {
                     seqToast('LFO' + (r.lfoIdx + 1) + ' mod removed');

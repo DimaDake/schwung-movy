@@ -42,8 +42,14 @@ export function readLfoVals(scope: LfoScope, lfoIdx: number): LfoVals {
 
 /** One knob-turn's worth of edit: grouped for undo, then written. */
 export function writeLfoParam(scope: LfoScope, lfoIdx: number, key: string, val: string): void {
-    const full = lfoKey(scope, lfoIdx, key);
+    writeLfoKey(scope, lfoKey(scope, lfoIdx, key), val);
+}
+
+/** The same edit addressed by its FULL key (`master_fx:lfo2:depth`) — what
+ *  Schwung's LFO page writes, since its contract declares real keys. */
+export function writeLfoKey(scope: LfoScope, full: string, val: string): void {
     const old = scope.port.getParam(full);
-    beginGesture('lfo:' + scope.id + ':' + full, key.toUpperCase(), scope.label, false);
+    const field = full.slice(full.lastIndexOf(':') + 1);
+    beginGesture('lfo:' + scope.id + ':' + full, field.toUpperCase(), scope.label, false);
     setChainParam(scope.port, full, val, old);
 }

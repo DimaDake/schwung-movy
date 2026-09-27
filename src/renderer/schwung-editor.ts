@@ -18,6 +18,7 @@
  * announce, and the condition re-plan that a changed enum can trigger.
  */
 import type { SchwungIntent, SchwungPage } from './schwung-page.js';
+import type { SourcePicker } from './schwung-page-source.js';
 import { schwungLib } from './schwung-lib.js';
 import { movyCtx } from './schwung-ctx.js';
 
@@ -30,6 +31,9 @@ interface EditorState {
     /** The value that was live when we opened — what Back returns you to, and
      *  what wears the `*` so moving off it reads as having moved. */
     mark: number;
+    /** A DOOR's list is the source's, and so is its commit (SP-60): there is
+     *  no enum for `commitEnum` to index into. Null for an enum's own list. */
+    door: SourcePicker | null;
 }
 
 let state: EditorState | null = null;
@@ -49,11 +53,13 @@ export function closeSchwungEditor(): void { state = null; }
  */
 export function openSchwungEditor(intent: SchwungIntent | null, page: SchwungPage): boolean {
     if (!intent || intent.action !== 'open') return false;
-    const options = intent.options;
+    /* No options of its own: a door. Its source may still have a list. */
+    const door = Array.isArray(intent.options) ? null : (intent.key ? page.picker(intent.key) : null);
+    const options = door ? door.options : intent.options;
     if (!Array.isArray(options) || options.length < 2) return false;
-    const at = typeof intent.index === 'number' ? intent.index : 0;
+    const at = door ? door.index : (typeof intent.index === 'number' ? intent.index : 0);
     const i = Math.max(0, Math.min(options.length - 1, at));
-    state = { intent, page, options, index: i, mark: i };
+    state = { intent, page, options, index: i, mark: i, door };
     return true;
 }
 
@@ -67,9 +73,10 @@ export function schwungEditorJog(dir: number): void {
 /** Take the option under the cursor and close. */
 export function schwungEditorCommit(): void {
     if (!state) return;
-    const { page, intent, index } = state;
+    const { page, intent, index, door } = state;
     state = null;
-    page.ctl.commitEnum(intent.key, index);
+    if (door) door.commit(index);
+    else page.ctl.commitEnum(intent.key, index);
 }
 
 /** Leave without writing. */
@@ -79,7 +86,8 @@ export function renderSchwungEditor(): void {
     if (!state) return;
     const ctx = movyCtx();
     schwungLib().drawEnumList(ctx, {
-        title: state.intent.meta?.label || state.intent.meta?.name || state.intent.key || '',
+        title: state.door?.title || state.intent.meta?.label || state.intent.meta?.name
+            || state.intent.key || '',
         /* "SELECT", not "TURNING": here a choice is pending and a click takes
          * it. The peek says TURNING because its value is already set. */
         headerRight: 'SELECT',

@@ -15,6 +15,15 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
+- **Under PARAM PAGES: SCHWUNG, the LFO pages are Schwung's own (SP-60).** A
+  track's LFO slot and the master chain's now draw the LFO 1 / LFO 2 pages
+  Schwung's Slot Settings and Master FX Settings use — one waveform across
+  Shape/Rate/Depth/Phase, one Rate knob that follows Sync, On, and Target as a
+  door whose list routes the LFO — built from Schwung's own `lfoParams`/
+  `lfoLevels` rather than movy's SP-55 lookalike cells. Loaded from
+  `shared/param_pages/lfo_page.mjs` (charlesvestal/schwung#549), falling back to
+  `shadow/shadow_ui_slot_grid.mjs` on a Schwung without it.
+
 - **Settings → PARAM PAGES now shows in release builds.** The MOVY/SCHWUNG
   switch for who draws a module's parameter pages was debug-only; it is now a
   release row (and leads the list). The default is unchanged: MOVY.
@@ -113,6 +122,32 @@ far. Earlier work is summarised in the timeline below for context.
   looks for them in a file the engine no longer owns.
 
 ### Fixed
+
+- **Schwung pages forgot their `visible_if` and chosen mode after the first
+  plan.** movy's contract poll called `ctl.reloadIfChanged()` bare every 16
+  ticks, and the controller's `load` REPLACES its remembered load options with
+  what it is given — so every later plan ran with no `visible` hook (and a
+  mode the user picked was reset). On the LFO page that showed both Rate cells,
+  pushed Phase onto an "LFO 1 - 2" page and broke the waveform, which read as
+  the knobs driving movy's old page. The poll now passes the controller's own
+  `lastLoadOpts`, as its internal re-plans do.
+
+- **The LFO page's title named movy's bank** ("T1 > LFO 1"), which is inert
+  under Schwung pages. The title now names the component ("T1 > LFO") and the
+  right-hand end names the page, as on every module page.
+
+- **An MFX knob modulated by a master LFO wore no `~` mark.** The modulation
+  cache skipped every master FX component, so the assignment worked but never
+  showed; it now reads the master LFOs (`master_fx:lfoN:target`, stored bare).
+
+- **Hold-to-assign landed on the wrong LFO page under Schwung pages.** The
+  landing jogged by `lfoIdx - pageIndex`, and a delegated page's jog is one
+  step whatever the delta — so assigning to the LFO already on screen stepped
+  BACK to the other one. It now lands by index, and the LFO page is rebuilt so
+  it shows the new routing (On, Target) at once rather than a few ticks later.
+
+- **The master chain's LFO slot named the wrong LFO in its header** under
+  Schwung pages: it showed movy's own (inert) bank, LFO 1, over LFO 2's cells.
 
 - **The master chain showed movy's old knob page until you drilled into a slot.**
   In Session, paging between SEND and MFX slots drew movy's own widgets while

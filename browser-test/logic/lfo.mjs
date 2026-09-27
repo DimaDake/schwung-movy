@@ -66,7 +66,8 @@ _log('\nTest: LFO model');
     m.tick();
     let vm = m.getViewModel();
     eq('lfo bankCount', vm.bankCount, 2);
-    eq('lfo bank 0 name', vm.moduleName, 'LFO 1');
+    eq('lfo bank 0 name', vm.bankName, 'LFO 1');
+    eq('the title names the component, not the bank', vm.moduleName, 'LFO');
     eq('pos0 is RATE', vm.rows[0][0].shortName, 'RATE');
     eq('pos1 is SYNC', vm.rows[0][1].shortName, 'SYNC');
     eq('pos2 is MODE', vm.rows[0][2].shortName, 'MODE');
@@ -140,7 +141,7 @@ _log('\nTest: LFO model');
 
     m.changePage(1);
     vm = m.getViewModel();
-    eq('bank 1 name', vm.moduleName, 'LFO 2');
+    eq('bank 1 name', vm.bankName, 'LFO 2');
     eq('bank index', vm.bankIndex, 1);
     m.handleKnobDelta(2, DETENT);
     eq('lfo2 polarity written', env.params['lfo2:polarity'], '1');
@@ -257,7 +258,7 @@ _log('\nTest: master chain LFO page');
     mm.tick();
 
     const mvm = mm.getViewModel();
-    eq('master LFO page names itself', mvm.moduleName, 'LFO 1');
+    eq('master LFO page names itself', mvm.bankName, 'LFO 1');
     eq('master LFO has two banks', mvm.bankCount, 2);
     eq('master component key is namespaced', mm.getComponentKey(), 'master_fx:lfo');
     /* No notes on the master bus, so no retrigger — and the shim has no key for

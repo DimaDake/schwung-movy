@@ -117,12 +117,16 @@ export function createScopedLfoModel(scope: LfoScope): Model {
             // k === 3 (Target) is overlay-only; a bare turn is ignored.
             dirty = true;
         },
-        handleKnobTouch(k: number): void {
+        /* `dive` false = someone else draws this page (Schwung, SP-60): record
+         * the touch and nothing more. Its knob 4 is Sync, not our Target, and
+         * opening our overlay there raised a second pop-up and re-wrote the
+         * routing on release — the contract the module model already keeps. */
+        handleKnobTouch(k: number, dive = true): void {
             if (overlay && k !== overlay.pos) { commitOverlay(); }
             const idx = touched.indexOf(k);
             if (idx >= 0) touched.splice(idx, 1);
             touched.push(k);
-            if (k === 3) openOverlay(k);
+            if (dive && k === 3) openOverlay(k);
             dirty = true;
         },
         handleKnobRelease(k?: number): boolean {

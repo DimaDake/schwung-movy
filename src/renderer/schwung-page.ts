@@ -46,7 +46,7 @@ export { RELOAD_POLL_TICKS };
 import { createPageRender } from './schwung-page-render.js';
 import { createPageInput } from './schwung-page-input.js';
 import { createPageAnimating } from './schwung-page-anim.js';
-import { chromeFor, type PageChrome } from './schwung-page-chrome.js';
+import { chromeFor, claimsBottomBand, type PageChrome } from './schwung-page-chrome.js';
 /* movy's own big-font cell, for the three values Schwung's big-number widget
  * cannot reach (an enum, or a reading with a unit in it). */
 import { registerBigValueWidget } from './schwung-big-value.js';
@@ -113,6 +113,9 @@ export interface SchwungPage {
     /** The list a door cell opens, when its SOURCE supplies one (SP-60's LFO
      *  target) — see `PageParamSource.picker`. */
     picker(key: string): SourcePicker | null;
+    /** Schwung is drawing into the bottom band (a peek, picker, hint or a
+     *  non-grid page) — movy's Loop strip must yield. See `claimsBottomBand`. */
+    claimsBottomBand(): boolean;
     readonly ready: boolean;
     /** The controller itself, for gestures this binding has not wired yet. */
     readonly ctl: any;
@@ -240,5 +243,6 @@ export function createSchwungPage(
         back: input.back,
         focusVoice: input.focusVoice,
         picker: (key: string) => (port.picker ? port.picker(qualify(key)) : null),
+        claimsBottomBand: () => claimsBottomBand(ctl, lib),
     };
 }

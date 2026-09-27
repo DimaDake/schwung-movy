@@ -1933,6 +1933,46 @@ _log('\napp-loop: hold-knob → assign under Schwung pages lands on, and refresh
         eq('the LFO page shows the fresh routing (On) at once', ctl && ctl.state.values['lfo2:enabled'], '1');
         sendMidi([0x90, 0, 0]); advance(1);
 
+        /* ONE PAGE, ONE DRIVER. Knob 4 is Schwung's Sync and movy's own
+         * Target: touching it raised movy's target overlay beside Schwung's
+         * peek, and its release re-wrote the routing. And Mode must turn. */
+        {
+            const tgtBefore = port.getParam('lfo2:target');
+            const polBefore = port.getParam('lfo2:polarity') || '0';
+            sendMidi([0x90, 2, 100]); advance(1);
+            for (let i = 0; i < 6; i++) { sendMidi([0xB0, 73, polBefore === '1' ? 127 : 1]); advance(1); }
+            sendMidi([0x90, 2, 0]); advance(2);
+            eq('Mode turns', port.getParam('lfo2:polarity'), polBefore === '1' ? '0' : '1');
+            sendMidi([0x90, 3, 100]); advance(1);
+            eq('touching Sync raises no movy overlay', lfoModel.getViewModel().overlay, null);
+            sendMidi([0x90, 3, 0]); advance(1);
+            eq('and its release leaves the routing alone', port.getParam('lfo2:target'), tgtBefore);
+        }
+        /* THE BOTTOM BAND IS THE PAGE'S WHILE IT DRAWS THERE. The Loop strip
+         * clears rows 60-63 every tick (`fill_rect(0, 60, 128, 4, 0)`), and
+         * drew over the footer of Schwung's full-screen lists. Both arms. */
+        {
+            const stripOn = () => {
+                const rects = []; const orig = globalThis.fill_rect;
+                globalThis.fill_rect = (x, y, w, h, v) => rects.push([x, y, w, h, v]);
+                appState.dirty = true; advance(1);
+                globalThis.fill_rect = orig;
+                return rects.some(([x, y, w, h, v]) => x === 0 && y === 60 && w === 128 && h === 4 && v === 0);
+            };
+            t += 5000;                                   // any earlier peek has expired
+            appState.currentView = VIEW_KNOBS;
+            eq('no list up: the Loop strip draws', stripOn(), true);
+            /* Schwung's section picker: a full-screen list with a footer, the
+             * same draw as its enum peek (TURN SET) and a menu page's. */
+            appState.shiftHeld = true;
+            sendMidi([0xB0, 3, 127]); advance(1);
+            appState.shiftHeld = false;
+            eq('Schwung\'s section picker is up', !!lfoOwner().page.ctl.pickerOpen, true);
+            eq('the strip yields to it', stripOn(), false);
+            sendMidi([0xB0, globalThis.MoveBack, 127]); advance(1);
+            eq('picker closed: the strip is back', stripOn(), true);
+            appState.currentView = VIEW_CHAIN;
+        }
         /* TARGET IS A DOOR: hold its knob and click — the picker opens on the
          * current routing, and choosing None clears it. */
         const { schwungEditorActive, schwungEditorIndex } = await import('../dist/esm/renderer/schwung-editor.js');

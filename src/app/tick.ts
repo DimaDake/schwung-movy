@@ -1160,8 +1160,13 @@ function tickBody(): void {
     // The strip repaints every tick, outside the dirty-frame block, so anything
     // that owns the whole screen has to be excluded here or the strip draws back
     // over it a few milliseconds later.
-    if (engineReady() && !seqToastActive() && !jogToastShown && !seqState.sessionMode
-        && !isFullScreenView && !captureOverlayActive()) {
+    /* A Schwung page drawing into the bottom band (peek, picker, hint, a menu
+     * or preset page's footer) or movy's own Schwung list editor claims it —
+     * asked HERE, once, not taught to each branch above (SP-60). */
+    const schwungBottom = schwungEditorActive()
+        || (!!schwungBody && !!drawnPageOwner.page && drawnPageOwner.page.claimsBottomBand());
+    if (engineReady() && !seqToastActive() && !jogToastShown && !schwungBottom
+        && !seqState.sessionMode && !isFullScreenView && !captureOverlayActive()) {
         /* Loop mode's readout runs on the same per-tick schedule as the strip:
          * both track state that moves without a dirty frame (bar navigation, the
          * sweep). While it is up it supersedes the timed announcement. */
@@ -1173,7 +1178,7 @@ function tickBody(): void {
      * view underneath repainted over it, and otherwise only when the
      * arrangement or the position in it changed. A running song must cost
      * nothing per tick. */
-    if (engineReady() && !seqToastActive() && !jogToastShown && !isBrowseView
+    if (engineReady() && !seqToastActive() && !jogToastShown && !schwungBottom && !isBrowseView
         && !captureOverlayActive()) {
         songBandTick(viewRepainted);
     }

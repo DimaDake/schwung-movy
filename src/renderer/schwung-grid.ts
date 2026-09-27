@@ -172,7 +172,8 @@ function deadPage(componentKey: string): SchwungPage {
         marks: () => 0,
         animating: () => false, peekOpen: () => false, render() {}, chrome: () => ({ header: null, footer: null, pageLabel: null }),
         knobTurn() {}, knobTouch() {}, click: () => null, back: () => null,
-        focusVoice: () => false, picker: () => null, ready: false, ctl: null,
+        focusVoice: () => false, picker: () => null, claimsBottomBand: () => false,
+        ready: false, ctl: null,
     };
 }
 

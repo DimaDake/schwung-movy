@@ -123,6 +123,21 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Under Schwung pages the LFO slot was driven twice.** movy's own LFO model
+  still took the knob TOUCH: knob 4 is Schwung's Sync but movy's Target, so
+  touching it raised movy's target list beside Schwung's peek, and letting go
+  re-wrote (or cleared) the LFO's routing. The router already tells a model
+  "record the touch, don't dive" when Schwung owns the page; the LFO model now
+  honours it, as the module model always has.
+
+- **The Loop strip ("bars in clip") drew over the bottom of Schwung's lists.**
+  It repaints rows 60-63 every tick and yielded only to the held-knob footer,
+  so an enum peek's TURN/SET footer, the section picker, a menu / items /
+  preset page's footer and a hint all lost their bottom line — as did movy's
+  own Schwung list editor. The page now answers `claimsBottomBand()` and the
+  strip (and the Session song band) checks it in one place, for every Schwung
+  page.
+
 - **Schwung pages forgot their `visible_if` and chosen mode after the first
   plan.** movy's contract poll called `ctl.reloadIfChanged()` bare every 16
   ticks, and the controller's `load` REPLACES its remembered load options with

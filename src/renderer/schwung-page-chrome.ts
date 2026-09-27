@@ -174,3 +174,22 @@ export function pageFooterFor(ctl: any, lib: SchwungLib): [string, string][] | n
 
     return [['JOG', 'PAGE'], ['CLK', 'MENU']];
 }
+
+/**
+ * Does Schwung's page draw into the BOTTOM BAND right now?
+ *
+ * The Loop strip repaints rows 60-63 on every tick, outside the dirty frame,
+ * so anything drawn there without a claim keeps only its top rows — Schwung's
+ * enum peek list ("TURN SET"), its section picker, a menu / items / preset
+ * page's footer and its hint card all lost their bottom line to the strip.
+ * Asked of the PAGE rather than listed per render branch (SP-60): each branch
+ * that forgot one kind was one more screen with the bug. No reads — state only.
+ */
+export function claimsBottomBand(ctl: any, lib: SchwungLib): boolean {
+    if (!ctl) return false;
+    if (typeof ctl.enumPeek === 'function' && ctl.enumPeek()) return true;
+    if (ctl.pickerOpen) return true;
+    if (ctl.state && ctl.state.hintLines) return true;
+    const p = ctl.page;
+    return !!p && p.kind !== undefined && p.kind !== lib.PAGE_KNOBS;
+}

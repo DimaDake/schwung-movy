@@ -213,7 +213,13 @@ export function createPageContract(ctl: any, port: PageParamSource, componentKey
                  * that the module in the slot said something new — a swap, a preset, a
                  * module that finished loading. Phased separately so its cost is not
                  * read as the re-plan's. */
-                const adopted = ctl.reloadIfChanged();
+                /* WITH THE LOAD OPTIONS, as the controller's own re-plans pass
+                 * them. `reloadIfChanged(opts)` is `load({...opts})`, and `load`
+                 * REPLACES `lastLoadOpts` with what it was given — so the bare
+                 * call dropped `visible` (and a chosen `mode`) from every plan
+                 * after the first: the LFO page showed both rate cells and
+                 * spilled Phase onto a page of its own (SP-60). */
+                const adopted = ctl.reloadIfChanged(ctl.state && ctl.state.lastLoadOpts);
                 perfPhase('refreshloaded');
                 refreshLoaded();    /* the module may have just left the slot */
                 perfPhase('reloadwidgets');

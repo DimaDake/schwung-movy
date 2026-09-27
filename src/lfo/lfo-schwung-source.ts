@@ -51,28 +51,6 @@ export function lfoSchwungSource(scope: LfoScope): PageParamSource | null {
     };
 
     const params = lp.lfoParams(1, scope.keyPrefix).concat(lp.lfoParams(2, scope.keyPrefix));
-
-    /* WHAT A CONDITION KEY (Sync) LAST SAID. An engine chain's read can come
-     * back null (the param channel is one racy slot), and a plan asks about
-     * Sync once PER RATE CELL: null for one and "1" for the other showed BOTH,
-     * pushing Phase to a page of its own and breaking the waveform group — on
-     * the device, not in any mock. Every read and write of the key refreshes
-     * this, so the controller's own gate read, which is what triggers a
-     * re-plan, lands here just before the plan asks. */
-    const gates = new Set(params.filter((p: any) => p.visible_if).map((p: any) => String(p.visible_if.param)));
-    const seen = new Map<string, { v: string; at: number }>();
-    const GATE_FRESH_MS = 50;
-    const note = (k: string, v: string | null): void => {
-        if (v !== null && v !== '' && gates.has(k)) seen.set(k, { v, at: Date.now() });
-    };
-    const gateValue = (k: string): string | null => {
-        const hit = seen.get(k);
-        if (hit && Date.now() - hit.at < GATE_FRESH_MS) return hit.v;
-        let v = read(k);
-        if (v === null || v === '') v = read(k);     /* one retry: the slot races */
-        note(k, v);
-        return v !== null && v !== '' ? v : (hit ? hit.v : null);
-    };
     /* Schwung's own shape — a root that only navigates, and the two LFO
      * levels from the shared builder (`masterGridHierarchy` minus its values
      * and actions, which are Master FX Settings', not the LFOs'). */
@@ -116,16 +94,13 @@ export function lfoSchwungSource(scope: LfoScope): PageParamSource | null {
             const r = real(k);
             if (r === HIER_KEY) return hierarchy;
             if (r === PARAMS_KEY) return chainParams;
-            const v = read(r);
-            note(r, v);
-            return v;
+            return read(r);
         },
         setParam(k: string, v: string): boolean {
             const r = real(k);
             /* Target is a door, never a knob — its write is the picker's. */
             if (targetOf(r) >= 0) return false;
             writeLfoKey(scope, r, v);
-            note(r, v);
             return true;
         },
         formatValue(k: string, raw: string | null, surface: 'cell' | 'header'): string | null {
@@ -143,15 +118,13 @@ export function lfoSchwungSource(scope: LfoScope): PageParamSource | null {
          * onto a page of its own that the jog and an assign then land on. */
         visible(c: any): boolean {
             if (!c || typeof c !== 'object' || !c.param) return true;
-            let v = gateValue(String(c.param));
+            let v = read(String(c.param));
             if (v === null || v === '') {
                 const def = params.find((p: any) => p.key === c.param);
                 if (def && def.default !== undefined) v = String(def.default);
                 else if (def && def.type === 'enum') v = '0';
                 else return true;
             }
-            /* The answer THIS plan used, so its other cell cannot get another. */
-            seen.set(String(c.param), { v: String(v), at: Date.now() });
             if (c.equals !== undefined) return String(v) === String(c.equals);
             if (c.not_equals !== undefined) return String(v) !== String(c.not_equals);
             return true;

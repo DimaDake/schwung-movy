@@ -123,6 +123,19 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Schwung pages forgot their `visible_if` and chosen mode after the first
+  plan.** movy's contract poll called `ctl.reloadIfChanged()` bare every 16
+  ticks, and the controller's `load` REPLACES its remembered load options with
+  what it is given — so every later plan ran with no `visible` hook (and a
+  mode the user picked was reset). On the LFO page that showed both Rate cells,
+  pushed Phase onto an "LFO 1 - 2" page and broke the waveform, which read as
+  the knobs driving movy's old page. The poll now passes the controller's own
+  `lastLoadOpts`, as its internal re-plans do.
+
+- **The LFO page's title named movy's bank** ("T1 > LFO 1"), which is inert
+  under Schwung pages. The title now names the component ("T1 > LFO") and the
+  right-hand end names the page, as on every module page.
+
 - **An MFX knob modulated by a master LFO wore no `~` mark.** The modulation
   cache skipped every master FX component, so the assignment worked but never
   showed; it now reads the master LFOs (`master_fx:lfoN:target`, stored bare).

@@ -77,6 +77,7 @@ _log('\nTest: LFO source is Schwung\'s LFO page contract (SP-60)');
     const { lfoSchwungSource } = await import('../../dist/esm/lfo/lfo-schwung-source.js');
     const { trackScope, masterScope } = await import('../../dist/esm/lfo/scope.js');
     const { schwungLfoPage } = await import('../../dist/esm/renderer/schwung-lib.js');
+    const { RELOAD_POLL_TICKS } = await import('../../dist/esm/renderer/schwung-page.js');
 
     const eng = mockEngine();
     /* The master LFOs ride schwung's shim (`hostPort(0)` → shadow_*_param). */
@@ -114,16 +115,11 @@ _log('\nTest: LFO source is Schwung\'s LFO page contract (SP-60)');
         const hzCond = lp.lfoParams(1).find((p) => p.key === 'lfo1:rate_hz').visible_if;
         const divCond = lp.lfoParams(1).find((p) => p.key === 'lfo1:rate_div').visible_if;
         ok('free-running: Hz visible, division hidden', source.visible(hzCond) && !source.visible(divCond));
-        /* A LATER plan: one plan's answer is pinned for its own cells only. */
-        const realNow = Date.now; let later = realNow();
-        Date.now = () => (later += 100);
         eng.store['ch0:lfo1:sync'] = '1';
         ok('synced: division visible, Hz hidden', !source.visible(hzCond) && source.visible(divCond));
         delete eng.store['ch0:lfo1:sync'];
-        const fresh = lfoSchwungSource(trackScope(0));   /* nothing seen yet */
         ok('an LFO never written reads Free: Hz visible, division hidden (not both)',
-           fresh.visible(hzCond) && !fresh.visible(divCond));
-        Date.now = realNow;
+           source.visible(hzCond) && !source.visible(divCond));
 
         /* Target text and picker come from movy's own target list. */
         eng.store['ch0:synth:chain_params'] = JSON.stringify([{ key: 'cutoff', name: 'Cutoff', type: 'float' }]);
@@ -150,31 +146,25 @@ _log('\nTest: LFO source is Schwung\'s LFO page contract (SP-60)');
         eq('LFO 1: eight cells', p1.filter(Boolean).length, 8);
         ok('LFO 1 free-running shows rate_hz', p1.includes('lfo1:rate_hz') && !p1.includes('lfo1:rate_div'));
         ok('LFO 2 synced shows rate_div', p2.includes('lfo2:rate_div') && !p2.includes('lfo2:rate_hz'));
+        /* PAST THE POLL. Every 16 ticks the contract re-checks itself
+         * (`reloadIfChanged`), and a bare call re-planned WITHOUT `visible`:
+         * right on the first plan, then both rates and Phase on a page of its
+         * own — what the device showed, and what no check above ticked far
+         * enough to see. */
+        for (let i = 0; i < RELOAD_POLL_TICKS * 3; i++) page.tick();
+        eq('still two pages after the contract poll re-plans', page.pageCount, 2);
+        /* ...and the NEXT re-plan still has it: a Schwung that skips an
+         * unchanged re-plan (SU-14) hides the loss until Sync is turned. */
+        eng.store['ch0:lfo1:sync'] = '1';
+        page.goToPage(0);
+        for (let i = 0; i < RELOAD_POLL_TICKS * 3; i++) page.tick();
+        eq('still two pages once Sync is turned', page.pageCount, 2);
+        const p1Later = keysOn(0);
+        ok('synced LFO 1 swaps to the division, and keeps Phase', p1Later.includes('lfo1:rate_div')
+           && !p1Later.includes('lfo1:rate_hz') && p1Later.includes('lfo1:phase_offset'));
         const info = page.knobParamInfo(1);
         ok('an LFO cell is never automatable (matches lfo/inert.ts under off)',
            info && info.automatable === false);
-
-        /* A FLAKY READ must not split the plan. An engine chain's read can come
-         * back null, and each rate cell asks about Sync separately — null for
-         * one and "1" for the other showed BOTH rates on the device, pushed
-         * Phase onto a page of its own and broke the waveform group. */
-        {
-            schwungGridReload();
-            eng.store['ch0:lfo1:sync'] = '1'; eng.store['ch0:lfo2:sync'] = '0';
-            const realGet = globalThis.host_module_get_param;
-            let flip = 0;
-            globalThis.host_module_get_param = (k) =>
-                (/lfo[12]:sync$/.test(k) && (flip++ % 2 === 0)) ? null : realGet(k);
-            const fp = schwungPageFor(0, 'lfo', null, null);
-            for (let i = 0; i < 20 && !fp.ready; i++) fp.tick();
-            globalThis.host_module_get_param = realGet;
-            eq('a flaky Sync read still plans two pages', fp.pageCount, 2);
-            fp.goToPage(0);
-            const f1 = [0, 1, 2, 3, 4, 5, 6, 7].map((k) => fp.keyAt(k));
-            ok('synced LFO 1 shows ONE rate cell, the division', f1.includes('lfo1:rate_div')
-               && !f1.includes('lfo1:rate_hz') && f1.includes('lfo1:phase_offset'));
-            schwungGridReload();
-        }
 
         /* The master chain draws the same page over `master_fx:lfoN:*`. */
         const mSource = lfoSchwungSource(masterScope());

@@ -96,6 +96,27 @@ export function loadModuleJson(moduleId: string, componentKey = 'synth'):
     return null;
 }
 
+/* A module's catalogue NAME, from its module.json — never `<comp>:name`, which
+ * a module may answer with its current PATCH (minijv does). A master FX module
+ * id may arrive as its DSP path; the directory is the id. Cached per id: the
+ * name of an installed module does not change under a running movy. */
+const nameCache = new Map<string, string>();
+export function moduleDisplayName(moduleId: string, componentKey = 'synth'): string {
+    let id = String(moduleId || '');
+    if (id.includes('/')) {
+        const parts = id.split('/').filter(Boolean);
+        const last = parts[parts.length - 1] || '';
+        id = /\.[A-Za-z0-9]+$/.test(last) && parts.length >= 2 ? parts[parts.length - 2] : last;
+    }
+    if (!id) return String(moduleId || '');
+    const hit = nameCache.get(id);
+    if (hit) return hit;
+    const json = loadModuleJson(id, componentKey) as { name?: string } | null;
+    const name = (json && json.name) || id;
+    nameCache.set(id, name);
+    return name;
+}
+
 export function loadModuleConfig(moduleId: string, componentKey = 'synth'): ModuleConfig | null {
     if (!moduleId) return null;
     /* A module that describes itself wins by default; the bundled table is the

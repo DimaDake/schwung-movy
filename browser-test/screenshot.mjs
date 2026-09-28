@@ -89,7 +89,7 @@ const PRESETS = [
     'page_chrome_held', 'page_chrome_flip',
     'page_clipparams', 'page_setparams', 'page_stepparams', 'page_master_chain',
     'page_lane_mark', 'page_lane_mark_held',
-    'page_lfo', 'page_lfo_master',
+    'page_lfo', 'page_lfo_master', 'page_enum_list',
 ];
 
 /* The scenes that render Schwung's own body. Only reachable from a bundle built
@@ -105,7 +105,7 @@ const PAGE_SCENES = new Set(['page_body', 'page_body_p2', 'page_voice_pad', 'pag
     'page_held_lock', 'page_lane_unheld', 'page_held_unassignable',
     'page_chrome_held', 'page_chrome_flip',
     'page_clipparams', 'page_setparams', 'page_stepparams', 'page_master_chain',
-    'page_lane_mark', 'page_lane_mark_held', 'page_lfo', 'page_lfo_master']);
+    'page_lane_mark', 'page_lane_mark_held', 'page_lfo', 'page_lfo_master', 'page_enum_list']);
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
 const BASE = {
@@ -283,7 +283,8 @@ const { schwungBodyFor, schwungBankFor, schwungChromeFor } = await import('../di
 const { modulatedKeysOf } = await import('../dist/esm/app/modulated-keys.js');
 const { assignLane, resetAutomation } = await import('../dist/esm/seq/automation.js');
 const { stepPageAvailable, stepPageState } = await import('../dist/esm/seq/step-page.js');
-const { schwungLibAvailable } = await import('../dist/esm/renderer/schwung-lib.js');
+const { schwungLibAvailable, schwungLib } = await import('../dist/esm/renderer/schwung-lib.js');
+const { movyCtx } = await import('../dist/esm/renderer/schwung-ctx.js');
 /* The reader the MODEL asks through and the renderer that answers it. `model/`
  * imports nothing from `renderer/`, so the dependency is pushed in —
  * `app/globals.ts` does exactly this line at start-up. Without it `readSurface`
@@ -1405,6 +1406,22 @@ function applyView(preset) {
          * waveform across the second row, one Rate cell chosen by Sync, and
          * Target named. Track: LFO 1 free-running into the synth's Cutoff.
          * Master: LFO 2 synced, on the chain view's frame. */
+        /* Schwung's enum list (picker and peek) drawn through MOVY's ctx, whose
+         * 5px face declares its height so the rows are sized to it: 7px rows,
+         * the text centred in the highlight, six options on screen. */
+        case 'page_enum_list': {
+            const opts = ['16 bar', '8 bar', '4 bar', '2 bar', '1/1', '1/2', '1/4', '1/8', '1/16', '1/32'];
+            lastRender = () => {
+                clear_screen();
+                schwungLib().drawEnumList(movyCtx(), {
+                    title: 'Rate', headerRight: 'SELECT', options: opts, index: 6, markIndex: 5,
+                    footer: [['BACK', 'CANCEL'], ['CLICK', 'SET']],
+                });
+            };
+            lastRender();
+            break;
+        }
+
         case 'page_lfo':
         case 'page_lfo_master': {
             const master = preset === 'page_lfo_master';

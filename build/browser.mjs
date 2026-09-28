@@ -47,6 +47,8 @@ await esbuild.build({
         resolve(root, 'src/renderer/schwung-page-io.ts'),
         resolve(root, 'src/renderer/schwung-page-decorations.ts'),
         resolve(root, 'src/renderer/schwung-editor.ts'),
+        resolve(root, 'src/renderer/schwung-ctx.ts'),
+        resolve(root, 'src/renderer/held-header-fit.ts'),
         resolve(root, 'src/renderer/schwung-widgets.ts'),
         /* The file side of a module's widget (SP-28): an entry point so the
          * logic suite can drive the resolution — which script a module names,
@@ -229,6 +231,7 @@ await esbuild.build({
         /* The LFO page's virtual-component source (SP-55) — same reason as
          * MIX's above: the logic suite drives it directly. */
         resolve(root, 'src/lfo/lfo-schwung-source.ts'),
+        resolve(root, 'src/lfo/lfo-target-list.ts'),
         resolve(root, 'src/lfo/assign.ts'),
         resolve(root, 'src/lfo/assign-mode.ts'),
         resolve(root, 'src/lfo/scope.ts'),

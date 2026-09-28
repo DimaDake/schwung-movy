@@ -43,6 +43,7 @@
  * returns undefined), which is what keeps `off` byte-identical.
  */
 import type { SchwungLib } from './schwung-lib.js';
+import { fitHeldHeader } from './held-header-fit.js';
 
 export interface PageHeader {
     left: string;
@@ -117,7 +118,7 @@ export function pageLabelFor(ctl: any): string | null {
 export function heldHeaderFor(ctl: any): PageHeader | null {
     if (!ctl || !ctl.state || ctl.state.touched < 0) return null;
     const h = ctl.describePage({}).header;
-    return h && h.inverted ? h : null;
+    return h && h.inverted ? fitHeldHeader(h) : null;
 }
 
 /* A door is inert until entered, so outside it the jog still pages and the

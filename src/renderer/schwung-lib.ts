@@ -125,6 +125,9 @@ export interface SchwungLib {
      * second copy. */
     listKnobInit?: any;
     listKnobStep?: any;
+    /* A "Module: Param" value shortened HEAD first (render_page.mjs). Absent
+     * on an older Schwung, where the held header falls back to a plain cut. */
+    fitHeadTail?: any;
     /* SP-59, optional for the same reason as everything above it: its PRESENCE
      * is the answer to "does this library take `io.isAutomated`". An older
      * Schwung has neither, so movy keeps folding lanes into `isModulated` there
@@ -160,7 +163,7 @@ try {
      * error at evaluation, indistinguishable from a missing file to everything
      * above this line, and correctly treated the same way.
      */
-    const [pc, pi, rpm, el, wr, vo, ck, pm, pp, anm, _wio, wp, vz, lk, fc] = await Promise.all([
+    const [pc, pi, rpm, el, wr, vo, ck, pm, pp, anm, _wio, wp, vz, lk, fc, rp] = await Promise.all([
         // @ts-ignore — absolute device path; external in the device build
         import('/data/UserData/schwung/shared/param_pages/page_controller.mjs'),
         // @ts-ignore
@@ -215,6 +218,10 @@ try {
          * is already loaded wherever the library is. */
         // @ts-ignore
         import('/data/UserData/schwung/shared/param_pages/frame_ctx.mjs'),
+        /* render_page.mjs — render_page_movy.mjs (above) imports it by name, so
+         * it is already loaded wherever the library is. For fitHeadTail. */
+        // @ts-ignore
+        import('/data/UserData/schwung/shared/param_pages/render_page.mjs'),
     ]);
     lib = {
         createController: pc.createController, LAYOUT_MOVY: pc.LAYOUT_MOVY,
@@ -238,6 +245,7 @@ try {
         listKnobInit: lk.listKnobInit, listKnobStep: lk.listKnobStep,
         drawAutomatedMark: rpm.drawAutomatedMark,
         frameCtx: fc.frameCtx,
+        fitHeadTail: typeof rp.fitHeadTail === 'function' ? rp.fitHeadTail : undefined,
     };
 } catch (e: any) {
     /* Swallowed DELIBERATELY, and this is the whole point of the file: an
@@ -283,9 +291,22 @@ export function schwungLib(): SchwungLib {
  * (pure, import-free, on every device that has the grid at all), which
  * re-exports them afterwards, so the fallback keeps working either way.
  */
+/** One LFO's routings as a flat enum — `lfoTargetOptions`' answer. */
+export interface LfoTargetList {
+    options: string[];
+    short_options: string[];
+    routes: { target: string; param: string }[];
+}
+
 export interface SchwungLfoPage {
-    lfoParams(lfoIndex: number, keyPrefix?: string): any[];
+    lfoParams(lfoIndex: number, keyPrefix?: string, opts?: { targets?: LfoTargetList | null }): any[];
     lfoLevels(indices: number[], keyPrefix?: string): Record<string, any>;
+    /* Both absent on a Schwung older than the knob-turned Target, whose
+     * lfoParams ignores `targets` — Target is then a door (the picker). */
+    lfoTargetOptions?(a: { components: { key: string; label: string }[];
+                           paramsFor: (key: string) => { key: string; label: string }[];
+                           current?: { target: string; param: string } | null }): LfoTargetList;
+    lfoTargetIndex?(routes: LfoTargetList['routes'], target: string, param: string): number;
 }
 
 let lfoPage: SchwungLfoPage | null = null;
@@ -300,6 +321,10 @@ if (lib) {
             const m: any = await load();
             if (typeof m.lfoParams === 'function' && typeof m.lfoLevels === 'function') {
                 lfoPage = { lfoParams: m.lfoParams, lfoLevels: m.lfoLevels };
+                if (typeof m.lfoTargetOptions === 'function' && typeof m.lfoTargetIndex === 'function') {
+                    lfoPage.lfoTargetOptions = m.lfoTargetOptions;
+                    lfoPage.lfoTargetIndex = m.lfoTargetIndex;
+                }
                 break;
             }
         } catch (_e) { /* the next home, or none — see above */ }

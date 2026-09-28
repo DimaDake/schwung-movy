@@ -42,6 +42,17 @@ export function assignLfoTarget(scope: LfoScope, lfoIdx: number, comp: string, p
         const driven = scope.keyPrefix + comp + ':' + param;
         const before = readLfo(scope, driven);
         if (before !== '') recordParamOp(scope.slot, driven, before, before);
+        /* A FRESH LFO starts at full depth, as Schwung's own does. The chain
+         * gives one full depth only when it is ENABLED before it is routed
+         * (chain_host.c's `depth == 0 && !target` guard) — this writes the
+         * routing first, so the guard never fired and every LFO movy assigned
+         * began at 0%: routed, running, and inaudible. Written explicitly
+         * rather than by reordering, so it does not hang on which chain build
+         * the device runs (the master bus's shim gives 50%, not 100%). */
+        if (readLfo(scope, lfoKey(scope, lfoIdx, 'target')) === ''
+            && !(parseFloat(readLfo(scope, lfoKey(scope, lfoIdx, 'depth'))) || 0)) {
+            setBlocking(scope, lfoKey(scope, lfoIdx, 'depth'), '1');
+        }
         setBlocking(scope, lfoKey(scope, lfoIdx, 'target'), comp);
         setBlocking(scope, lfoKey(scope, lfoIdx, 'target_param'), param);
         setBlocking(scope, lfoKey(scope, lfoIdx, 'enabled'), '1');

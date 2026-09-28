@@ -24,5 +24,6 @@ export function schwungLib(): SchwungLib {
 }
 
 export interface SchwungLfoPage { [k: string]: any }
+export interface LfoTargetList { [k: string]: any }
 
 export function schwungLfoPage(): SchwungLfoPage | null { return null; }

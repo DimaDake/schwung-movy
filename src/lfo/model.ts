@@ -70,8 +70,12 @@ export function createScopedLfoModel(scope: LfoScope): Model {
                 clearLfoTarget(scope, bank);
                 v.target = ''; v.targetParam = '';
             } else {
+                const fresh = !v.target && !v.depth;
                 assignLfoTarget(scope, bank, opt.target, opt.param!);
                 v.target = opt.target; v.targetParam = opt.param!;
+                /* assignLfoTarget gave a fresh LFO full depth; the mirror is
+                 * movy's (never re-read), so it has to be told. */
+                if (fresh) v.depth = 1;
             }
         }
         overlay = null;

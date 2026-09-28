@@ -875,15 +875,20 @@ places.
 
 ![Schwung's LFO page](docs/assets/page_lfo.png)
 
-- **Top row:** **TARG** (what it modulates), **ON**, **MODE** (uni/bipolar),
-  **SYNC** (free/synced).
-- **Bottom row:** **SHAPE**, **RATE**, **DEPTH**, **PHASE**, drawn as one live
-  waveform. **RATE** is in Hz when free-running and a musical division when
-  synced — the one knob changes units as you flip Sync.
-- **Target:** hold its knob and **click the jog** for a list of every parameter
-  the LFO can reach (and **None**); jog to one and click to route it.
-- **Retrigger** is not on this page (Schwung's layout gives its slot to Phase);
-  a setting made on Movy's own page still applies.
+- **Top row:** **TARG** (what it modulates), **MODE** (uni/bipolar),
+  **SYNC** (free/synced), **RTG** (retrigger on each new note).
+- **Bottom row:** **SHAPE**, **DEPTH** and **PHASE**, drawn as one live
+  waveform, then **RATE** in a cell of its own — in Hz when free-running, a
+  musical division (`1/4`, `8T`, `2b`) when synced. The waveform still follows
+  it, and a synced rate draws at the speed it plays (1/4 looks like 2 Hz).
+- **Target:** **turn its knob** like any other enum — a list of every parameter
+  the LFO can reach pops up while you turn, and the routing is made when you
+  let go (scrolling past other parameters does not modulate them). Click the
+  jog on it for the same list as a menu. **None** is the first entry.
+- **There is no On switch:** choosing a target turns the LFO on, and **None**
+  turns it off. A newly routed LFO starts at **100%** depth.
+- Turning **MODE** or **SYNC** just flips the value in place, without the
+  pop-up list.
 
 The master chain's LFO page names which LFO it is in the header, on the chain
 grid as well as when drilled in:

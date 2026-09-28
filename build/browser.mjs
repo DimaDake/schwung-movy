@@ -229,6 +229,7 @@ await esbuild.build({
         /* The LFO page's virtual-component source (SP-55) — same reason as
          * MIX's above: the logic suite drives it directly. */
         resolve(root, 'src/lfo/lfo-schwung-source.ts'),
+        resolve(root, 'src/lfo/lfo-target-list.ts'),
         resolve(root, 'src/lfo/assign.ts'),
         resolve(root, 'src/lfo/assign-mode.ts'),
         resolve(root, 'src/lfo/scope.ts'),

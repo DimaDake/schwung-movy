@@ -28,6 +28,7 @@ function mockEngine() {
 export async function run() {
 
 const { resetPorts } = await import('../../dist/esm/track/registry.js');
+const { MODULE_CHECK_MS } = await import('../../dist/esm/lfo/lfo-target-list.js');
 const { mixSchwungSource } = await import('../../dist/esm/mixer/mix-schwung-cells.js');
 const { fieldFrac, fieldFromFrac, formatDb, formatPan, packMixValue } =
     await import('../../dist/esm/mixer/mix-io.js');
@@ -158,6 +159,27 @@ _log('\nTest: LFO source is Schwung\'s LFO page contract (SP-60)');
         tSource.setParam('lfo:lfo1:target', '0');
         eq('None clears the routing', eng.store['ch0:lfo1:target'] + '|' + eng.store['ch0:lfo1:target_param'], '|');
         eq('and switches the LFO off', eng.store['ch0:lfo1:enabled'], '0');
+        /* A MODULE SWAP re-lists Target, with no page drop to tell it: the
+         * poll re-asks the module ids once MODULE_CHECK_MS has passed. */
+        {
+            const realNow = Date.now; let clock = realNow();
+            Date.now = () => clock;
+            eng.store['ch0:synth_module'] = 'braids';
+            tSource.getParam('lfo:chain_params');
+            clock += MODULE_CHECK_MS + 1;
+            tSource.getParam('lfo:chain_params');                 /* signature taken */
+            eng.store['ch0:synth_module'] = 'minijv';
+            eng.store['ch0:synth:name'] = 'MiniJV';
+            eng.store['ch0:synth:chain_params'] = JSON.stringify([{ key: 'res', name: 'Resonance', type: 'enum', options: ['a', 'b'] }]);
+            const tgt = () => JSON.parse(tSource.getParam('lfo:chain_params'))
+                .find((p) => p.key === 'lfo1:target').options;
+            ok('inside the check window the list is kept (no read per poll)', tgt().includes('Braids: Cutoff'));
+            clock += MODULE_CHECK_MS + 1;
+            const after = tgt();
+            ok('after a synth swap Target lists the new synth', after.includes('MiniJV: Resonance'));
+            ok('and not the old one', !after.includes('Braids: Cutoff'));
+            Date.now = realNow;
+        }
         /* A routing the list lacks (made elsewhere) is appended, never None. */
         eng.store['ch0:lfo1:target'] = 'fx2'; eng.store['ch0:lfo1:target_param'] = 'mix';
         const stale = tSource.getParam('lfo:lfo1:target');

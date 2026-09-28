@@ -19,6 +19,7 @@ import type { LfoScope } from './scope.js';
 import { componentKey } from './scope.js';
 import { assignLfoTarget, clearLfoTarget } from './assign.js';
 import { compLabel } from './params.js';
+import { moduleReadKey } from '../chain/config.js';
 
 type Route = { target: string; param: string };
 type Entry = { key: string; label: string };
@@ -32,6 +33,8 @@ const LFO_TARGET_PARAMS: Entry[] = [
 ];
 /* Schwung's modulatable filter (`flatLfoTargetParams`). */
 const MODULATABLE = new Set(['float', 'int', 'enum']);
+/* How often a polled list re-asks which modules are loaded — see `fresh`. */
+export const MODULE_CHECK_MS = 1500;
 
 export interface LfoTargetLists {
     readonly knob: boolean;
@@ -55,13 +58,32 @@ export function lfoTargetLists(scope: LfoScope, lp: SchwungLfoPage, params: any[
 
     /*
      * Built once and KEPT: a chain_params read per component, and the
-     * controller asks for chain_params on every contract poll. The source this
-     * serves lives exactly as long as the modules do (`schwungGridReload`
-     * drops it on a module change). The one staleness left is a routing made
-     * elsewhere that the list lacks — `current` catches it and rebuilds, since
-     * reading None over a live routing would let the next detent replace it.
+     * controller asks for chain_params on every contract poll.
+     *
+     * A MODULE SWAP STALES IT, and nothing tells this source: the page it
+     * serves is cached per track and component and never dropped when the
+     * synth changes, so the knob went on offering the OLD synth's params. So
+     * the poll re-asks which module each component holds — one read each, at
+     * most every MODULE_CHECK_MS, and only while the page is being polled —
+     * and rebuilds on a change. The other staleness is a routing made
+     * elsewhere that the list lacks — `current` catches it and rebuilds,
+     * since reading None over a live routing would let the next detent
+     * replace it.
      */
     const lists: (LfoTargetList | null)[] = [null, null];
+    let modules: string[] | null = null;
+    let checkedAt = -Infinity;
+    function fresh(): void {
+        const now = Date.now();
+        if (now - checkedAt < MODULE_CHECK_MS) return;
+        checkedAt = now;
+        /* A read that did not answer is not news about the module: that
+         * position keeps the id it had. */
+        const sig = scope.components.map((c, i) =>
+            read(moduleReadKey(componentKey(scope, c))) ?? (modules ? modules[i] : '') ?? '');
+        if (modules && sig.join('|') !== modules.join('|')) { lists[0] = null; lists[1] = null; }
+        modules = sig;
+    }
     function build(bank: number, current: Route | null): LfoTargetList {
         const cps = new Map<string, Entry[]>();
         const components: Entry[] = [];
@@ -100,6 +122,7 @@ export function lfoTargetLists(scope: LfoScope, lp: SchwungLfoPage, params: any[
         knob,
         chainParams(): string {
             if (!knob) return JSON.stringify(params);
+            fresh();
             const a = listFor(0, null), b = listFor(1, null);
             if (json && jsonFor[0] === a && jsonFor[1] === b) return json;
             jsonFor = [a, b];

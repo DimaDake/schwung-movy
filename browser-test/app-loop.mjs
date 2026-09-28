@@ -1590,7 +1590,10 @@ _log('\napp-loop: the master chain reaches its LFO page');
     /* The knobs now edit the shim's master LFOs. */
     const lfoModel = appState.masterFxModels[MASTER_LFO_INDEX];
     eq('the LFO slot holds the LFO model', lfoModel.getComponentKey(), 'master_fx:lfo');
-    sendMidi([0xB0, globalThis.MoveKnob1 + 2, 8]);   // knob 3 = MODE → bipolar
+    /* MODE is knob 3 on movy's own page (Rate, Sync, Mode, Target) and
+     * knob 2 on Schwung's (Target, Mode, Sync, Retrig). */
+    const modeKnob = schwungGridMode() === 'page' ? 1 : 2;
+    sendMidi([0xB0, globalThis.MoveKnob1 + modeKnob, 8]);   // MODE → bipolar
     advance(1);
     eq('a master LFO knob writes the namespaced key', env.params['master_fx:lfo1:polarity'], '1');
     eq('and not the track form', env.params['lfo1:polarity'], undefined);
@@ -1909,12 +1912,15 @@ _log('\napp-loop: hold-knob → assign under Schwung pages lands on, and refresh
          * wrong: `changePage(1 - 1)` is a jog of -1, not a stay. */
         const lfoModel = appState.trackModels[0][LFO_CHAIN_INDEX];
         const lfoOwner = () => pageOwnerOf(lfoModel);
-        portFor(0).setParam('lfo2:enabled', '0');
+        /* No Enabled cell any more: an LFO is On by having a target, so
+         * "Off" is Target reading None (option 0). */
+        portFor(0).setParam('lfo2:target', '');
+        portFor(0).setParam('lfo2:target_param', '');
         lfoOwner().poll();
         lfoOwner().goToPage(1);
         for (let i = 0; i < 12; i++) lfoOwner().poll();
         eq('the LFO page starts on LFO 2', lfoOwner().pageIndex, 1);
-        eq('and has read LFO 2 as Off', lfoOwner().page.ctl.state.values['lfo2:enabled'], '0');
+        eq('and has read LFO 2 as Off (Target None)', lfoOwner().page.ctl.state.values['lfo2:target'], '0');
 
         const realNow = Date.now; let t = 50000; Date.now = () => t;
         sendMidi([0x90, 0, 100]); advance(1);
@@ -1930,21 +1936,24 @@ _log('\napp-loop: hold-knob → assign under Schwung pages lands on, and refresh
         eq('the synth knob wears the modulation mark', !!((modulatedKeysOf(0, 'synth') || new Set()).has(held.ioKey)), true);
         /* At once — not after the read cursor comes round to it. */
         const ctl = lfoOwner().page && lfoOwner().page.ctl;
-        eq('the LFO page shows the fresh routing (On) at once', ctl && ctl.state.values['lfo2:enabled'], '1');
+        const shownTarget = ctl && ctl.state.values['lfo2:target'];
+        eq('the LFO page shows the fresh routing at once',
+           shownTarget !== undefined && shownTarget !== null && shownTarget !== '0', true);
         sendMidi([0x90, 0, 0]); advance(1);
 
-        /* ONE PAGE, ONE DRIVER. Knob 4 is Schwung's Sync and movy's own
+        /* ONE PAGE, ONE DRIVER. Knob 4 is Schwung's Retrig and movy's own
          * Target: touching it raised movy's target overlay beside Schwung's
-         * peek, and its release re-wrote the routing. And Mode must turn. */
+         * peek, and its release re-wrote the routing. And Mode (knob 2) must
+         * turn. */
         {
             const tgtBefore = port.getParam('lfo2:target');
             const polBefore = port.getParam('lfo2:polarity') || '0';
-            sendMidi([0x90, 2, 100]); advance(1);
-            for (let i = 0; i < 6; i++) { sendMidi([0xB0, 73, polBefore === '1' ? 127 : 1]); advance(1); }
-            sendMidi([0x90, 2, 0]); advance(2);
+            sendMidi([0x90, 1, 100]); advance(1);
+            for (let i = 0; i < 6; i++) { sendMidi([0xB0, 72, polBefore === '1' ? 127 : 1]); advance(1); }
+            sendMidi([0x90, 1, 0]); advance(2);
             eq('Mode turns', port.getParam('lfo2:polarity'), polBefore === '1' ? '0' : '1');
             sendMidi([0x90, 3, 100]); advance(1);
-            eq('touching Sync raises no movy overlay', lfoModel.getViewModel().overlay, null);
+            eq('touching knob 4 raises no movy overlay', lfoModel.getViewModel().overlay, null);
             sendMidi([0x90, 3, 0]); advance(1);
             eq('and its release leaves the routing alone', port.getParam('lfo2:target'), tgtBefore);
         }

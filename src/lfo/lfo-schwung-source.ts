@@ -14,8 +14,9 @@
  *   - keys pass straight through to the scope's port (the declared key IS the
  *     real key; the controller prefixes the component, stripped here);
  *   - `visible` answers the rate cells' `visible_if` against that port;
- *   - Target's cell/header text (`describeTarget` in Schwung) and its picker
- *     (Schwung's target picker) come from movy's own target list.
+ *   - Target is a KNOB (`lfo-target-list.ts`): the routings movy can reach,
+ *     as one enum. On a Schwung without `lfoTargetOptions` Target stays a door
+ *     and the picker below opens movy's list.
  *
  * NOT AUTOMATABLE, unchanged: `schwung-page-render.ts` answers false for any
  * `isLfoComponent` key — an LFO driving another LFO's knob has no engine lane.
@@ -23,6 +24,7 @@
 
 import type { PageParamSource, SourcePicker } from '../renderer/schwung-page-source.js';
 import { schwungLfoPage } from '../renderer/schwung-lib.js';
+import { lfoTargetLists } from './lfo-target-list.js';
 import type { LfoScope } from './scope.js';
 import { componentKey } from './scope.js';
 import { writeLfoKey } from './io.js';
@@ -51,6 +53,7 @@ export function lfoSchwungSource(scope: LfoScope): PageParamSource | null {
     };
 
     const params = lp.lfoParams(1, scope.keyPrefix).concat(lp.lfoParams(2, scope.keyPrefix));
+    const targets = lfoTargetLists(scope, lp, params);
     /* Schwung's own shape — a root that only navigates, and the two LFO
      * levels from the shared builder (`masterGridHierarchy` minus its values
      * and actions, which are Master FX Settings', not the LFOs'). */
@@ -58,7 +61,6 @@ export function lfoSchwungSource(scope: LfoScope): PageParamSource | null {
         root: { label: 'LFO', knobs: [], params: [
             { level: 'lfo1', label: 'LFO 1' }, { level: 'lfo2', label: 'LFO 2' }] },
     }, lp.lfoLevels([1, 2], scope.keyPrefix)) });
-    const chainParams = JSON.stringify(params);
 
     /* THE DRAW PATH READS NOTHING (Schwung's rule — a read is ~2.8ms on
      * device, more than a whole page render). The target component arrives
@@ -93,19 +95,27 @@ export function lfoSchwungSource(scope: LfoScope): PageParamSource | null {
         getParam(k: string): string | null {
             const r = real(k);
             if (r === HIER_KEY) return hierarchy;
-            if (r === PARAMS_KEY) return chainParams;
+            if (r === PARAMS_KEY) return targets.chainParams();
+            const bank = targetOf(r);
+            if (bank >= 0 && targets.knob) return targets.read(bank);
             return read(r);
         },
         setParam(k: string, v: string): boolean {
             const r = real(k);
-            /* Target is a door, never a knob — its write is the picker's. */
-            if (targetOf(r) >= 0) return false;
+            const bank = targetOf(r);
+            if (bank >= 0) {
+                /* A door's write is the picker's. */
+                if (!targets.knob) return false;
+                targets.commit(bank, v);
+                return true;
+            }
             writeLfoKey(scope, r, v);
             return true;
         },
         formatValue(k: string, raw: string | null, surface: 'cell' | 'header'): string | null {
             const bank = targetOf(real(k));
             if (bank < 0) return null;
+            if (targets.knob) return targets.format(bank, raw, surface);
             const d = describe(bank, raw);
             return surface === 'header' ? d.long : d.short;
         },

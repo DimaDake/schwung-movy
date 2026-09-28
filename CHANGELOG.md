@@ -23,6 +23,15 @@ far. Earlier work is summarised in the timeline below for context.
   `lfoLevels` rather than movy's SP-55 lookalike cells. Loaded from
   `shared/param_pages/lfo_page.mjs` (charlesvestal/schwung#549), falling back to
   `shadow/shadow_ui_slot_grid.mjs` on a Schwung without it.
+- **The Schwung LFO page plays like movy's own.** Target is turned by its knob
+  (a list pops up while you turn; the routing lands when you let go), there is
+  no On switch — a target turns the LFO on and None turns it off — Retrigger is
+  back in its place, and Rate sits last in its own cell so a synced division
+  reads `1/4` instead of hiding in the waveform (which still follows it, at the
+  speed a division plays). Mode and Sync flip without the pop-up list. Needs the
+  matching Schwung change (`lfoTargetOptions`); on an older Schwung Target stays
+  a door.
+
 
 - **Settings → PARAM PAGES now shows in release builds.** The MOVY/SCHWUNG
   switch for who draws a module's parameter pages was debug-only; it is now a
@@ -309,6 +318,10 @@ far. Earlier work is summarised in the timeline below for context.
   0.72.0`.
 
 ### Changed
+
+- **A newly routed LFO starts at 100% depth**, as Schwung's own does. Movy wrote
+  the routing before enabling the LFO, so the chain's fresh-LFO default never
+  fired and every LFO assigned from movy began at 0% — running and inaudible.
 
 - **The CPU settings are gone, and what they were set to is simply what Movy
   does.** Parallel chain render, three render lanes, send co-location and the

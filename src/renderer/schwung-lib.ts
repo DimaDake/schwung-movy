@@ -283,9 +283,22 @@ export function schwungLib(): SchwungLib {
  * (pure, import-free, on every device that has the grid at all), which
  * re-exports them afterwards, so the fallback keeps working either way.
  */
+/** One LFO's routings as a flat enum — `lfoTargetOptions`' answer. */
+export interface LfoTargetList {
+    options: string[];
+    short_options: string[];
+    routes: { target: string; param: string }[];
+}
+
 export interface SchwungLfoPage {
-    lfoParams(lfoIndex: number, keyPrefix?: string): any[];
+    lfoParams(lfoIndex: number, keyPrefix?: string, opts?: { targets?: LfoTargetList | null }): any[];
     lfoLevels(indices: number[], keyPrefix?: string): Record<string, any>;
+    /* Both absent on a Schwung older than the knob-turned Target, whose
+     * lfoParams ignores `targets` — Target is then a door (the picker). */
+    lfoTargetOptions?(a: { components: { key: string; label: string }[];
+                           paramsFor: (key: string) => { key: string; label: string }[];
+                           current?: { target: string; param: string } | null }): LfoTargetList;
+    lfoTargetIndex?(routes: LfoTargetList['routes'], target: string, param: string): number;
 }
 
 let lfoPage: SchwungLfoPage | null = null;
@@ -300,6 +313,10 @@ if (lib) {
             const m: any = await load();
             if (typeof m.lfoParams === 'function' && typeof m.lfoLevels === 'function') {
                 lfoPage = { lfoParams: m.lfoParams, lfoLevels: m.lfoLevels };
+                if (typeof m.lfoTargetOptions === 'function' && typeof m.lfoTargetIndex === 'function') {
+                    lfoPage.lfoTargetOptions = m.lfoTargetOptions;
+                    lfoPage.lfoTargetIndex = m.lfoTargetIndex;
+                }
                 break;
             }
         } catch (_e) { /* the next home, or none — see above */ }

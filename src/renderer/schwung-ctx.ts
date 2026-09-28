@@ -13,12 +13,15 @@
  * than not working: the coercion is invisible until someone passes something
  * that is neither.
  */
-import { fontPrint, fontWidth } from '../font/index.js';
+import { fontPrint, fontWidth, FONT_HEIGHT } from '../font/index.js';
 
 export interface DrawCtx {
     fillRect(x: number, y: number, w: number, h: number, c: any): void;
     print(x: number, y: number, t: string, c: any): void;
     textWidth(t: string): number;
+    /** Glyph height, so Schwung's lists size their rows to movy's 5px face
+     *  rather than the device's 7px one (text was off-centre in the row). */
+    fontHeight?: number;
 }
 
 export function movyCtx(): DrawCtx {
@@ -27,5 +30,6 @@ export function movyCtx(): DrawCtx {
             fill_rect(x, y, w, h, c ? 1 : 0),
         print: (x: number, y: number, t: string, c: any) => fontPrint(x, y, t, c ? 1 : 0),
         textWidth: (t: string) => fontWidth(t),
+        fontHeight: FONT_HEIGHT,
     };
 }

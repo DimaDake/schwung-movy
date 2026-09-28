@@ -20,6 +20,7 @@ import { componentKey } from './scope.js';
 import { assignLfoTarget, clearLfoTarget } from './assign.js';
 import { compLabel } from './params.js';
 import { moduleReadKey } from '../chain/config.js';
+import { moduleDisplayName } from '../modules/loader.js';
 
 type Route = { target: string; param: string };
 type Entry = { key: string; label: string };
@@ -100,7 +101,9 @@ export function lfoTargetLists(scope: LfoScope, lp: SchwungLfoPage, params: any[
                 flat.push({ key: p.key, label: String(p.name || p.label || p.key) });
             }
             cps.set(comp, flat);
-            components.push({ key: comp, label: compLabel(comp) + ': ' + (read(ck + ':name') || comp) });
+            /* The CATALOGUE name — `:name` may be the loaded patch (minijv). */
+            const id = read(moduleReadKey(ck)) || '';
+            components.push({ key: comp, label: compLabel(comp) + ': ' + (id ? moduleDisplayName(id, ck) : comp) });
         }
         const other = bank === 0 ? 2 : 1;
         cps.set('lfo' + other, LFO_TARGET_PARAMS);

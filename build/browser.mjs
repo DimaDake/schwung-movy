@@ -48,6 +48,7 @@ await esbuild.build({
         resolve(root, 'src/renderer/schwung-page-decorations.ts'),
         resolve(root, 'src/renderer/schwung-editor.ts'),
         resolve(root, 'src/renderer/schwung-ctx.ts'),
+        resolve(root, 'src/renderer/held-header-fit.ts'),
         resolve(root, 'src/renderer/schwung-widgets.ts'),
         /* The file side of a module's widget (SP-28): an entry point so the
          * logic suite can drive the resolution — which script a module names,

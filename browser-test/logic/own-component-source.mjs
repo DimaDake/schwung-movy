@@ -135,13 +135,25 @@ _log('\nTest: LFO source is Schwung\'s LFO page contract (SP-60)');
          * lives as long as the modules do (the page is dropped on a module
          * change), so a fresh source sees the synth loaded below. */
         eng.store['ch0:synth:chain_params'] = JSON.stringify([{ key: 'cutoff', name: 'Cutoff', type: 'float' }]);
-        eng.store['ch0:synth:name'] = 'Braids';
+        /* Named by the module's CATALOGUE name (module.json), never by
+         * `:name` — minijv answers that with its current patch. */
+        eng.store['ch0:synth:name'] = 'Grand Piano Layered';
+        eng.store['ch0:synth_module'] = 'braids';
+        const oRead = globalThis.host_read_file;
+        const manifests = { braids: 'Braids', minijv: 'Mini-JV' };
+        globalThis.host_read_file = (path) => {
+            const m = /\/sound_generators\/([^/]+)\/module\.json$/.exec(String(path));
+            return m && manifests[m[1]] ? JSON.stringify({ id: m[1], name: manifests[m[1]] })
+                                         : (oRead ? oRead(path) : null);
+        };
         delete eng.store['ch0:lfo1:depth'];
         const tSource = lfoSchwungSource(trackScope(0));
         const opts = JSON.parse(tSource.getParam('lfo:chain_params'))
             .find((p) => p.key === 'lfo1:target').options;
         const at = opts.indexOf('Braids: Cutoff');
         ok('the knob lists the synth param by module name', at > 0);
+        ok('and never by the patch name the module answers `:name` with',
+           !opts.some((o) => /Grand Piano/.test(o)));
         ok('and the other LFO', opts.includes('LFO 2: Depth'));
         eq('an unrouted LFO reads None (option 0)', tSource.getParam('lfo:lfo1:target'), '0');
         eq('the None cell', tSource.formatValue('lfo:lfo1:target', '0', 'cell'), 'None');
@@ -164,21 +176,32 @@ _log('\nTest: LFO source is Schwung\'s LFO page contract (SP-60)');
         {
             const realNow = Date.now; let clock = realNow();
             Date.now = () => clock;
-            eng.store['ch0:synth_module'] = 'braids';
             tSource.getParam('lfo:chain_params');
             clock += MODULE_CHECK_MS + 1;
             tSource.getParam('lfo:chain_params');                 /* signature taken */
             eng.store['ch0:synth_module'] = 'minijv';
-            eng.store['ch0:synth:name'] = 'MiniJV';
+            eng.store['ch0:synth:name'] = 'Strings Pad';
             eng.store['ch0:synth:chain_params'] = JSON.stringify([{ key: 'res', name: 'Resonance', type: 'enum', options: ['a', 'b'] }]);
             const tgt = () => JSON.parse(tSource.getParam('lfo:chain_params'))
                 .find((p) => p.key === 'lfo1:target').options;
             ok('inside the check window the list is kept (no read per poll)', tgt().includes('Braids: Cutoff'));
             clock += MODULE_CHECK_MS + 1;
             const after = tgt();
-            ok('after a synth swap Target lists the new synth', after.includes('MiniJV: Resonance'));
+            ok('after a synth swap Target lists the new synth', after.includes('Mini-JV: Resonance'));
             ok('and not the old one', !after.includes('Braids: Cutoff'));
             Date.now = realNow;
+        }
+        globalThis.host_read_file = oRead;
+        /* The HELD header is drawn in movy's face, so movy fits it — head
+         * first, so the param survives a long module name. */
+        {
+            const { fitHeldHeader } = await import('../../dist/esm/renderer/held-header-fit.js');
+            const { fontWidth } = await import('../../dist/esm/font/index.js');
+            const h = fitHeldHeader({ left: 'Targ', right: 'Grand Piano Layered: Cutoff', inverted: true });
+            ok('a long routing keeps its param in the held header', /: Cutoff$/.test(h.right));
+            ok('and fits beside the label', fontWidth('Targ') + 4 + fontWidth(h.right) <= 124);
+            const short = { left: 'Targ', right: 'Braids: Cutoff', inverted: true };
+            eq('a value that fits is untouched', fitHeldHeader(short).right, 'Braids: Cutoff');
         }
         /* A routing the list lacks (made elsewhere) is appended, never None. */
         eng.store['ch0:lfo1:target'] = 'fx2'; eng.store['ch0:lfo1:target_param'] = 'mix';

@@ -21,6 +21,7 @@
  */
 
 import { createSchwungPage, type SchwungPage } from './schwung-page.js';
+import { STILL } from './schwung-page-anim.js';
 import type { PageAutomation } from '../types/page-automation.js';
 import { componentPort } from '../track/registry.js';
 import { schwungLibAvailable } from './schwung-lib.js';
@@ -170,7 +171,7 @@ function deadPage(componentKey: string): SchwungPage {
         changePage() {}, goToPage() {}, keyAt: () => null, targetAt: () => null,
         labelAt: () => null, knobParamInfo: () => null, knobLevels: () => new Array(8).fill(null),
         marks: () => 0,
-        animating: () => false, peekOpen: () => false, render() {}, chrome: () => ({ header: null, footer: null, pageLabel: null }),
+        animating: () => STILL, peekOpen: () => false, render() {}, chrome: () => ({ header: null, footer: null, pageLabel: null }),
         knobTurn() {}, knobTouch() {}, click: () => null, back: () => null,
         focusVoice: () => false, picker: () => null, claimsBottomBand: () => false,
         ready: false, ctl: null,

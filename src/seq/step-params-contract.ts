@@ -36,7 +36,6 @@ import {
 import { createVirtualSource, type VirtualCellSpec } from '../renderer/schwung-virtual-source.js';
 import type { PageParamSource } from '../renderer/schwung-page-source.js';
 import { STEP_PARAMS_COMPONENT } from '../chain/config.js';
-import { BIG_VALUE_KIND } from '../renderer/schwung-big-value.js';
 
 const asIndex = (v: string): number => Math.round(Number(v)) || 0;
 
@@ -89,11 +88,8 @@ const cells: VirtualCellSpec[] = [
     {
         key: 'cond', name: 'Condition', shortName: 'COND', type: 'enum', options: COND_LABELS,
         /* THE BIG FACE, as the old page drew it (`renderStyle: 'preset'`).
-         * Schwung's own big-number widget cannot take this cell — it refuses
-         * KIND_ENUM outright and its face has no ':' — so this is movy's
-         * widget until SU-18 lands. See schwung-big-value.ts. */
-        viz: { kind: BIG_VALUE_KIND },
-        peek: false,          /* "3:4" is fully drawn, and now in 11px */
+         * No overlay: a big enum whose options all fit does not peek. */
+        display: 'big',
         get: () => String(condIndexFor(seqState.holdCondA, seqState.holdCondB)),
         set: (v) => applyStepCondIdx(asIndex(v)),
     },

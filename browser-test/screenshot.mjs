@@ -1798,12 +1798,10 @@ function applyView(preset) {
          * an auto VIEW is here asked for the way the device asks — which is the
          * only way a scene sees the io's channel choice at all.
          *
-         * What it shows depends on the library, and that is the point of
-         * feature-detecting it: against a Schwung with `drawAutomatedMark` the
-         * cell wears the 2x2 beside its label and no tilde; against an older
-         * one it wears the tilde (the SP-36 fold). Both keep the pointer at the
-         * base and the dot on the lane. `_held` adds the step: the lock's value
-         * where the name was (inverted from #509 on), the mark beside it. */
+         * The cell wears #541's 2x2 beside its label and no tilde, the
+         * pointer at the base and the dot on the lane. `_held` adds the step:
+         * the lock's value where the name was (inverted, #509), the mark
+         * beside it. */
         case 'page_lane_mark':
         case 'page_lane_mark_held': {
             if (!schwungLibAvailable()) throw new Error(

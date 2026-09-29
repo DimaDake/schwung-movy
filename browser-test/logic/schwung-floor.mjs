@@ -45,7 +45,12 @@ export async function run() {
      * not total.) A floor that cannot fail is the dead feature this task exists
      * to prevent, so the VALUE is pinned here, and the COMPARISON is pinned
      * separately below. */
-    eq('the floor is the version this movy needs', SCHWUNG_FLOOR, '1.3.0');
+    eq('the floor is the version this movy needs', SCHWUNG_FLOOR, '1.5.0');
+
+    /* 1.4.0 is the release before #541/#543 — the one the device ran until
+     * 2026-09-27 — and movy ships no stand-in for either any more. */
+    serve('1.4.0');
+    eq('1.4.0 is under the floor', schwungFloorMet(), false);
 
     /* Per component and NUMERICALLY. A string compare puts '1.10.0' BELOW
      * '1.3.0', which would pin a perfectly good Schwung to MOVY the first time

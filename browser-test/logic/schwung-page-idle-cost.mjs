@@ -11,8 +11,8 @@
  * almost entirely the TWO DIVIDERS' shape: `schwung-page-cache.ts`'s
  * `FILL_TICKS` (bulk value refill) and `schwung-page-contract.ts`'s
  * `RELOAD_POLL_TICKS` (the re-plan poll, widened 8->16 by this same item,
- * since its OWN cost — SU-14, schwung PR #519, unreviewed — cannot be fixed
- * here; only how often movy asks for one can). A tick that pays for either
+ * since its OWN cost — SU-14, fixed upstream in #519 (1.5.0) — could not be fixed
+ * here; only how often movy asked for one could). A tick that pays for either
  * divider on every pass, not on its own turn, is the shape SP-26/27 already
  * fixed twice on the value-refresh side; this is the reload side's equivalent
  * guard.

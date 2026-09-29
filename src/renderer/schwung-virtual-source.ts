@@ -47,6 +47,11 @@ export interface VirtualCellSpec {
      *  all three contracts they claim NOTHING, so an undeclared cell is an arc
      *  or an enum square by construction rather than by choice. */
     viz?: Record<string, unknown>;
+    /** Schwung's `display: "big"` (1.5.0): the value is read, not aimed, so it
+     *  draws in the big face — the text `format()` gives, else the option,
+     *  else the number. A declaration whose widest text cannot fit the cell
+     *  keeps the widget it would have had, so this cannot spill. */
+    display?: 'big';
     /** Set false where the cell's square already shows the whole value, so the
      *  turn does not also raise the option panel over it — the old pages
      *  raised an overlay only for SCALE and KEY/MODE/LAYOUT, whose values are
@@ -77,6 +82,13 @@ export interface VirtualCellSpec {
 }
 
 const HIER_KEY = 'ui_hierarchy';
+
+function isPair(c: VirtualCellSpec): boolean {
+    if (c.type === 'toggle') return true;
+    if (c.type !== 'enum') return false;
+    const opts = typeof c.options === 'function' ? c.options() : c.options;
+    return !!opts && opts.length === 2;
+}
 const PARAMS_KEY = 'chain_params';
 
 export function createVirtualSource(componentKey: string,
@@ -99,7 +111,14 @@ export function createVirtualSource(componentKey: string,
             const entry: Record<string, unknown> = { key: c.key, name: c.name, type: c.type };
             if (c.shortName) entry.short_name = c.shortName;
             if (c.viz) entry.viz = c.viz;
+            if (c.display) entry.display = c.display;
             if (c.type === 'enum') {
+                /* EVERY PAIR ON THESE PAGES IS ORDERED (Pad Layout, Note Mode
+                 * …), so a two-option cell is set by direction rather than
+                 * toggled on each detent — Schwung's toggle is right for a
+                 * boxed CHOICE and walked Pad Layout back and forth here.
+                 * Inert on a list longer than two. */
+                entry.turn = 'absolute';
                 entry.options = (typeof c.options === 'function' ? c.options() : c.options) ?? [];
                 /* PINNED, never LEARNED. `param_meta.mjs`'s `learnEnumWireFormat`
                  * latches "this plugin writes NAMES" the first time a read's raw
@@ -136,6 +155,14 @@ export function createVirtualSource(componentKey: string,
         setParam(k: string, v: string): boolean {
             const c = byKey.get(bare(k));
             if (!c) return false;
+            /* A direction-set pair repeats its value on every detent of a
+             * continued turn (`turn: "absolute"` is idempotent upstream, with
+             * no latch), and the apply functions behind these cells are not
+             * all free to repeat — so a pair that is already there writes
+             * nothing. Pairs only: a multi-step hold reads back the FIRST
+             * step's value, so skipping an equal write on a wider cell would
+             * leave the other held steps unlocked. */
+            if (isPair(c) && Math.round(Number(v)) === Math.round(Number(c.get()))) return true;
             c.set(v);
             return true;
         },

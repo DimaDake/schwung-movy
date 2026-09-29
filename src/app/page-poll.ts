@@ -100,9 +100,9 @@ let lastPeek = false;
 let lastMarks = 0;
 
 /* SP-48. One instance for the one drawn page's lifetime, same reasoning as
- * `levels`/`lastKey` above: it self-resets on `animating()` going false, so a
- * page swap needs no explicit reset — the new page's first `animating()` call
- * starts its own grace window cold. */
+ * `levels`/`lastKey` above. It keeps only the last frame it let a stream
+ * through, so a page swap needs no reset: at worst the new page's first
+ * streamed frame waits out what is left of one REPAINT_CAP_MS. */
 const animCap = createRepaintCap();
 
 /** The drawn page's normalised values, as last read by `pollDrawnPage`. */
@@ -164,18 +164,17 @@ export function pollDrawnPage(owner: PageOwner, nowFn: () => number = Date.now):
      * supplies one, this line has to be re-pointed at it or the transition
      * never appears to end.
      *
-     * SP-48. `animating()` answers true forever for a modulated/`live`/
-     * automated key (see `repaint-cap.ts`'s header) — a real transition is
-     * never held back (`animCap` is unthrottled for `ANIM_GRACE_MS`, which
-     * outlasts every real one), but a page stuck past that window degrades to
-     * one repaint per `REPAINT_CAP_MS` instead of asking every tick forever. */
+     * SP-48. A modulated/`live`/automated key never rests (see
+     * `repaint-cap.ts`'s header) — the store reports it as `streaming`, which
+     * redraws once per `REPAINT_CAP_MS`, while a real transition is `moving`
+     * and is never held back. */
     /* SP-57. THE ENUM PEEK IS A REAL CHANGE, and it is invisible to everything
      * above: the overlay goes up on a turn that need not move any level (at a
      * clamped end it cannot move one at all) and comes down on a 1500 ms clock
      * with nothing moving whatsoever.
      *
-     * BEFORE the animation predicate, deliberately. `animCap` throttles a page
-     * that never settles down to one repaint per REPAINT_CAP_MS, which is right
+     * BEFORE the animation predicate, deliberately. `animCap` throttles a
+     * streaming page to one repaint per REPAINT_CAP_MS, which is right
      * for a value that will not rest and wrong for an overlay appearing or
      * disappearing — a peek held back by the cap would be drawn late or left on
      * screen after it expired. */

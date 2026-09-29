@@ -9,10 +9,14 @@
  * WHY THIS VALUE. `page` mode needs main at or past #405 (widget_registry.mjs),
  * #411 (voices.mjs), #414 and #415; an older install is missing those two files
  * outright. 1.3.0 is where the param contract ceiling became 128 KB, which movy
- * matches in chain_host.rs. Raise this when a feature starts depending on a
- * newer Schwung, and say which feature in the commit.
+ * matches in chain_host.rs. 1.5.0 carries #541 (`io.isAutomated`, the lane's
+ * own mark) and #543 (`display: "big"`, `turn: "absolute"`,
+ * `io.allowEnumPeek`, `activity()`), and movy no longer ships the stand-ins
+ * for any of them — below it the lanes would lose their pointer motion and
+ * the big cells would draw as plain arcs. Raise this when a feature starts
+ * depending on a newer Schwung, and say which feature in the commit.
  */
-export const SCHWUNG_FLOOR = '1.3.0';
+export const SCHWUNG_FLOOR = '1.5.0';
 
 const RELEASE = '/data/UserData/schwung/release.json';
 

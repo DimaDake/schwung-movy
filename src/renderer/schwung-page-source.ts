@@ -73,8 +73,8 @@ export interface PageParamSource {
      *  a grid cell, because whether the box fits the text is a question about
      *  the HOST's own drawing. So the source that owns these cells answers it.
      *
-     *  Absent or false means "raise it", which is today's behaviour and what
-     *  every real port answers. SU-17 is the general version of this. */
+     *  Absent or false means "raise it", which is what every real port
+     *  answers. Reaches Schwung as `io.allowEnumPeek` (SU-17, #543). */
     peekSuppressed?(fullKey: string): boolean;
 
     /** `createController`'s `load({visible})` hook: does a `visible_if`

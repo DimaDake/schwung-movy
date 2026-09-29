@@ -23,8 +23,7 @@ export function createPageIo(port: PageParamSource, qualify: (k: string) => stri
                              cache: PageReadCache, hierarchy: PageHierarchy,
                              componentKey: string,
                              modulatedKeys: (() => ReadonlySet<string> | null) | null,
-                             automation: (() => PageAutomation | null) | null = null,
-                             lanesHaveOwnMark = false) {
+                             automation: (() => PageAutomation | null) | null = null) {
     const read = (k: string) => cache.get(qualify(k));
     /*
      * THE KEY FORM IS THE ONE THING THIS FILE HAS TO GET RIGHT ABOUT MODULATION.
@@ -53,30 +52,6 @@ export function createPageIo(port: PageParamSource, qualify: (k: string) => stri
     const prefix = componentKey + ':';
     const isModulated = (k: string): boolean => {
         const full = String(k);
-        /*
-         * AN AUTOMATED PARAMETER ANSWERS YES HERE, AND THAT IS A DELIBERATE
-         * WIDENING OF THE WORD (SP-36).
-         *
-         * `isModulated` is what buys the whole reading the reporter asked for:
-         * the controller keeps the POINTER at `<key>:base` and rides a mark
-         * along the arc at `<key>:effective` — "the pointer stays where you set
-         * it, and the automation shows as a mark moving across the knob, like
-         * with lfo", in their words. A lane moves a parameter exactly the way
-         * an LFO does, so the channel is the right one and nothing upstream has
-         * to change to get it.
-         *
-         * WHAT IT COSTS is the grammar: movy's own renderer says tilde for
-         * modulation and a 2x2 dot for automation, and this makes both read as
-         * a tilde. SU-8 is that channel — `io.isAutomated` below, which drives
-         * the same motion and draws the 2x2 — so a library that has it
-         * (`lanesHaveOwnMark`) gets the lane THERE and not here. An older one
-         * still gets it here: dropping the widening against a library that
-         * ignores `isAutomated` would lose the pointer/base motion too.
-         */
-        if (!lanesHaveOwnMark) {
-            const auto = automation ? automation() : null;
-            if (auto && auto.isAutomated(qualify(full))) return true;
-        }
         const keys = modulatedKeys ? modulatedKeys() : null;
         if (!keys) return false;
         return keys.has(full.startsWith(prefix) ? full.slice(prefix.length) : full);
@@ -176,13 +151,20 @@ export function createPageIo(port: PageParamSource, qualify: (k: string) => stri
          * reason a tilde and a lock can be told apart at all; under `page` with
          * no `isModulated` both collapsed to the lock mark. */
         isModulated,
-        /* SU-8 (SP-59): the lane's own channel. Asked on the controller's
-         * rotation stop, never per draw — a lane-registry scan of eight. */
-        isAutomated: lanesHaveOwnMark
-            ? (k: string): boolean => {
-                const auto = automation ? automation() : null;
-                return !!auto && auto.isAutomated(qualify(String(k)));
-            }
+        /* SU-8 (SP-59, Schwung #541): the lane's own channel — the 2x2 beside
+         * the label and the same `:base`/`:effective` motion an LFO gets,
+         * without the LFO's tilde. Asked on the controller's rotation stop,
+         * never per draw — a lane-registry scan of eight. */
+        isAutomated: (k: string): boolean => {
+            const auto = automation ? automation() : null;
+            return !!auto && auto.isAutomated(qualify(String(k)));
+        },
+        /* SU-17 (Schwung #543): the source knows which of its cells already
+         * show the whole option, so the panel would cover a legible answer
+         * with the same answer. It can only decline; null leaves Schwung's
+         * own rules to decide, which is what every real module's port gets. */
+        allowEnumPeek: port.peekSuppressed
+            ? (fullKey: string): boolean | null => (port.peekSuppressed!(fullKey) ? false : null)
             : undefined,
         /* movy has its own screen-reader path; nothing to say from here yet. */
         announce: () => {},

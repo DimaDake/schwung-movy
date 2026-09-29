@@ -26,7 +26,6 @@ import { applyClipScaleIdx, applyClipLength, applyClipTranspose, applyClipQuantI
 import { createVirtualSource, type VirtualCellSpec } from '../renderer/schwung-virtual-source.js';
 import type { PageParamSource } from '../renderer/schwung-page-source.js';
 import { CLIP_PARAMS_COMPONENT } from '../chain/config.js';
-import { BIG_VALUE_KIND } from '../renderer/schwung-big-value.js';
 
 const TRANSPOSE_MIN = -36, TRANSPOSE_MAX = 36;
 
@@ -41,10 +40,10 @@ const cells: VirtualCellSpec[] = [
     },
     {
         key: 'length', name: 'Length', shortName: 'LEN', type: 'int', min: 1, max: MAX_STEPS, step: 1,
-        /* The old page drew this big (`clip-page-vm.ts`'s "big preset"), and
-         * Schwung's own big number refuses it on span (1..64 is 63, over the
-         * 24 cap) — SU-18's `display: "big"` is the general fix. */
-        viz: { kind: BIG_VALUE_KIND },
+        /* The old page drew this big (`clip-page-vm.ts`'s "big preset");
+         * the span (1..256) is over the undeclared big number's cap, so it
+         * says so. */
+        display: 'big',
         get: () => String(seqState.lenSteps),
         set: (v) => applyClipLength(activeTrack(), asIndex(v)),
         /* HEADER ONLY: the word is what tells 16 STEPS from 16 bars, and the

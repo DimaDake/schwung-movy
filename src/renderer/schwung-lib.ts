@@ -79,13 +79,13 @@ export interface SchwungLib {
      * older Schwung that serves a param_pages without these costs movy the
      * frames it asks for and nothing else — the call site guards.
      *
-     * `settled` is the library's OWN "is anything on the drawn page still
-     * moving" (anim_state.mjs) rather than movy re-deriving the animation
-     * window from the durations, and `buttonPhase` is the one definition of how
-     * long a trigger bang draws for. Both are asked rather than restated for
-     * the same purpose: a second copy of `ENUM_ANIM_MS` or `BTN_FLASH_MS` here
-     * would drift from the renderer that actually draws. */
-    settled?:     any;
+     * `activity` (SU-11, 1.5.0) is the library's OWN "is anything on the
+     * drawn page still moving, and is it a stream" (anim_state.mjs) rather
+     * than movy re-deriving it from the durations, and `buttonPhase` is the
+     * one definition of how long a trigger bang draws for. Both are asked
+     * rather than restated: a second copy of `ENUM_ANIM_MS` or `BTN_FLASH_MS`
+     * here would drift from the renderer that actually draws. */
+    activity?:    any;
     buttonPhase?: any;
     /* Optional for the same reason, and asked for the same reason `settled` is:
      * it is the library's OWN bare-key-to-concrete-key mapping, which the
@@ -128,12 +128,6 @@ export interface SchwungLib {
     /* A "Module: Param" value shortened HEAD first (render_page.mjs). Absent
      * on an older Schwung, where the held header falls back to a plain cut. */
     fitHeadTail?: any;
-    /* SP-59, optional for the same reason as everything above it: its PRESENCE
-     * is the answer to "does this library take `io.isAutomated`". An older
-     * Schwung has neither, so movy keeps folding lanes into `isModulated` there
-     * (the tilde) rather than handing a hook nothing reads — which would take
-     * the lane's pointer/base motion away with it. */
-    drawAutomatedMark?: any;
     /* The frame a module-drawn canvas PAGE paints into, so (0,0) is the band's
      * corner and nothing the module draws reaches movy's header or bank bar.
      * Schwung's own host scopes a page with this same function; a second
@@ -237,13 +231,12 @@ try {
         padLayoutOf: vo.padLayoutOf, focusParamOf: vo.focusParamOf,
         voicesOf: vo.voicesOf, voiceIndexFromNote: vo.voiceIndexFromNote,
         focusPressParamOf: vo.focusPressParamOf, childPressParam: ck.childPressParam,
-        settled: anm.settled, buttonPhase: rpm.buttonPhase,
+        activity: anm.activity, buttonPhase: rpm.buttonPhase,
         resolveChildKey: ck.resolveChildKey, childIndexToWire: ck.childIndexToWire,
         VIZ_SAMPLE: vz.VIZ_SAMPLE,
         wavPeaksTick: wp.wavPeaksTick, wavPeaksDone: wp.wavPeaksDone,
         wavPeaks: wp.wavPeaks,
         listKnobInit: lk.listKnobInit, listKnobStep: lk.listKnobStep,
-        drawAutomatedMark: rpm.drawAutomatedMark,
         frameCtx: fc.frameCtx,
         fitHeadTail: typeof rp.fitHeadTail === 'function' ? rp.fitHeadTail : undefined,
     };

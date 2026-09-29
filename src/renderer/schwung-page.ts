@@ -45,11 +45,10 @@ import { createPageContract, RELOAD_POLL_TICKS } from './schwung-page-contract.j
 export { RELOAD_POLL_TICKS };
 import { createPageRender } from './schwung-page-render.js';
 import { createPageInput } from './schwung-page-input.js';
-import { createPageAnimating } from './schwung-page-anim.js';
+import { createPageAnimating, type AnimActivity } from './schwung-page-anim.js';
 import { chromeFor, claimsBottomBand, type PageChrome } from './schwung-page-chrome.js';
 /* movy's own big-font cell, for the three values Schwung's big-number widget
  * cannot reach (an enum, or a reading with a unit in it). */
-import { registerBigValueWidget } from './schwung-big-value.js';
 
 /** What Schwung asks the HOST to do. `open` wants an editor for `key`; `exit`
  *  means every layer is down and Back now belongs to movy. */
@@ -88,7 +87,7 @@ export interface SchwungPage {
      *  change to show for it? Asked by the repaint decision when both of those
      *  have held still, and the only thing that makes an animated widget draw
      *  more than the one frame its value change bought. */
-    animating(nowMs: number): boolean;
+    animating(nowMs: number): AnimActivity;
     /** Is Schwung's enum peek — the option list a turn raises over the grid —
      *  up right now?
      *
@@ -145,13 +144,6 @@ export function createSchwungPage(
     const qualify = (k: string) => (k.indexOf(':') >= 0 ? k : componentKey + ':' + k);
 
     const lib = schwungLib();
-    /* REGISTERED WHERE PAGES ARE BUILT, not at app init. A custom kind that is
-     * not in the registry when `collectDeclared` walks the contract simply does
-     * not claim its cell, and the built-in draws instead — silently, by design
-     * (`widget_registry.mjs`). Registering at init covered the device and left
-     * every local suite drawing the fallback, so the screenshots could not have
-     * shown this widget failing. Idempotent: it is a Map set. */
-    registerBigValueWidget();
     /* The cache IS movy's half of the read contract (SP-26): Schwung asks one
      * key a tick, movy answers from a page-sized batch it refills on a divider.
      * It is created here, beside the controller it serves, because its lifetime
@@ -167,8 +159,7 @@ export function createSchwungPage(
      * since been swapped out. */
     const ctl = lib.createController(createPageIo(port, qualify, cache, hier, componentKey,
         modulatedOf ? () => modulatedOf(trackIndex, componentKey) : null,
-        automationOf ? () => automationOf(trackIndex) : null,
-        typeof lib.drawAutomatedMark === 'function'));
+        automationOf ? () => automationOf(trackIndex) : null));
     ctl.setLayout(lib.LAYOUT_MOVY);
 
     /* The controller's own view of the page it is showing. Both the binding's

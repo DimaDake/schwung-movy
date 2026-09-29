@@ -47,12 +47,12 @@ _log('\nTest: the synthesised contract');
        'tempo,swing,link,quant,root,key,mode,layout');
 
     const params = JSON.parse(source.getParam(SET_PARAMS_COMPONENT + ':chain_params'));
-    /* SP-57: the big face, and the reading it prints. SWING carries its unit in
-     * the declaration so the widget and `format()` cannot disagree. */
+    /* SP-57: the big face, and the reading it prints. Schwung's big cell draws
+     * the text `format()` gives, so the unit lives in one place. */
     const swingCell = params.find((x) => x.key === 'swing');
-    ok('SWING declares the big-value widget', swingCell.viz?.kind === 'custom:movy_big_value');
-    eq('and declares the unit it prints', swingCell.viz?.suffix, '%');
-    ok('ROOT draws big too', params.find((x) => x.key === 'root').viz?.kind === 'custom:movy_big_value');
+    eq('SWING declares the big face', swingCell.display, 'big');
+    eq('and format() gives it the unit', source.formatValue(SET_PARAMS_COMPONENT + ':swing', '54', 'cell'), '54%');
+    eq('ROOT draws big too', params.find((x) => x.key === 'root').display, 'big');
     ok('chain_params is an ARRAY, not a keyed object (the same bug class Clip Params found)',
        Array.isArray(params));
     eq('one entry per cell', params.length, 8);
@@ -172,10 +172,9 @@ if (!schwungLibAvailable()) {
      * into isTwoWayMeta, which TOGGLES on every detent behind a 270 ms latch —
      * so a continued turn walks the value back and forth instead of setting it.
      * Reported from the device as the Pad Layout knob cycling through values.
-     *
-     * Direction-absolute is what the delta path always did (`applyLink(n > 0)`),
-     * and it is what a knob with a direction should do. Each turn is a whole
-     * gesture: the write is throttled and the RELEASE is what flushes it. */
+     * The virtual source declares `turn: "absolute"` (Schwung #543), which
+     * sets it by direction. Each turn is a whole gesture: the write is
+     * throttled and the RELEASE is what flushes it. */
     keyboardState.mode = 0;        // Chromatic: layouts are ['4th', 'Piano']
     keyboardState.layout = 0;
     const turnLayout = (raw) => { p.knobTouch(7, true); p.knobTurn(7, raw); p.knobTouch(7, false); };
@@ -187,24 +186,32 @@ if (!schwungLibAvailable()) {
     for (let i = 0; i < 6; i++) turnLayout(-8);
     eq('six counter-clockwise turns land on the first', keyboardState.layout, 0);
 
-    /* THE NO-OP GUARD IS WHAT REPLACES THE 270 ms LATCH — without it a held
-     * turn re-emits the same write on every detent, which is why the latch
-     * existed. So this says dropping it was safe rather than convenient.
-     *
-     * COUNTED AT THE PORT, not at the engine queue. `applyLayoutIdx` only
-     * marks UI state dirty (no command at all), and `applyLink` has its OWN
-     * early return — so an engine-op count would sit at zero either way and
-     * pass with this guard deleted. The write this guard actually suppresses
-     * is the controller's, so the controller's write is what gets counted. */
-    const src = setParamsSource();
-    const realSet = src.setParam.bind(src);
-    let writes = 0;
-    src.setParam = (k, v) => { if (k.endsWith(':layout')) writes++; return realSet(k, v); };
-    turnLayout(8);                                  // 0 -> 1: a real change
-    eq('the counter is live — a real change does write', writes, 1);
-    for (let i = 0; i < 5; i++) turnLayout(8);
-    eq('a turn that changes nothing writes nothing', writes, 1);
-    src.setParam = realSet;
+    /* THE NO-OP GUARD IS WHAT REPLACES THE 270 ms LATCH — `turn: "absolute"`
+     * repeats the value on every detent of a held turn, which is why the
+     * latch existed. So this says dropping it was safe rather than
+     * convenient. COUNTED AT THE CELL'S `set`, behind the port: the guard
+     * lives in the port, and `applyLayoutIdx`/`applyLink` have no engine
+     * command to count either way. */
+    {
+        const { createVirtualSource } = await import('../../dist/esm/renderer/schwung-virtual-source.js');
+        let v = '0', pairSets = 0, intSets = 0;
+        const vs = createVirtualSource('t', [
+            { key: 'pair', name: 'Pair', type: 'enum', options: ['A', 'B'],
+              get: () => v, set: (x) => { pairSets++; v = x; } },
+            { key: 'n', name: 'N', type: 'int', min: 0, max: 9,
+              get: () => '3', set: () => { intSets++; } },
+        ]);
+        vs.setParam('t:pair', '1');
+        eq('the counter is live — a real change does write', pairSets, 1);
+        for (let i = 0; i < 5; i++) vs.setParam('t:pair', '1');
+        eq('a pair that is already there writes nothing', pairSets, 1);
+        /* A multi-step hold reads back only the FIRST step's value, so a wider
+         * cell must still write an equal value to reach the others. */
+        vs.setParam('t:n', '3');
+        eq('a wider cell writes an equal value anyway', intSets, 1);
+        const params = JSON.parse(vs.getParam('t:chain_params'));
+        eq('an enum cell declares turn: absolute', params.find((x) => x.key === 'pair').turn, 'absolute');
+    }
 
     /* SP-57. THE PANEL COMES DOWN WHERE THE CELL ALREADY SAYS IT — and stays
      * up where it does not. This is the pair that makes the rule an assertion

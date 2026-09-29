@@ -33,9 +33,8 @@ import { advanceSample } from './schwung-page-sample.js';
  * movy's own refresh at the 1.13 it replaces.
  *
  * SP-49 measured WHY it is the largest idle-tick cost anywhere the migration
- * has looked: `reloadIfChanged()`'s own re-plan is SU-14 (schwung PR #519,
- * filed, unreviewed) — it re-walks the whole module even when nothing
- * changed — and stashing this divider out to 100000 (so it never fires in a
+ * has looked: `reloadIfChanged()`'s own re-plan (SU-14) re-walked the whole
+ * module even when nothing changed — and stashing this divider out to 100000 (so it never fires in a
  * measurement window) on `minijv` (70 pages) made the ENTIRE idle `page` vs
  * `off` gap collapse to noise: calls/tick 1.1->0.6 (off's own 0.6), ipc_ms
  * 2.8->1.3 (off's 1.3), worst period 6.1->5.4ms (off's 5.1). The two IPC lines
@@ -51,6 +50,12 @@ import { advanceSample } from './schwung-page-sample.js';
  * measurement: the win is `sinceReload`-linear, the swap latency is too, and
  * doubling once is the bounded, reversible step the plan asked for, not a
  * standing invitation to keep turning the knob.
+ *
+ * SU-14 itself is fixed upstream (Schwung #519, in 1.5.0 — movy's floor): an
+ * unchanged contract now skips the re-plan, which took minijv's re-plan from
+ * 65 ms to 0.8 ms. What is left per poll is the contract READ, so 16 is no
+ * longer buying back a re-plan; narrowing it back toward Schwung's own 8 is
+ * a device measurement, not an assumption.
  *
  * The delay it costs is at most RELOAD_POLL_TICKS before a departed module
  * hands the frame back — tens of milliseconds, against a module load.

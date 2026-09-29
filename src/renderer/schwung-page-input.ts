@@ -178,67 +178,10 @@ export function createPageInput(ctl: any, lib: any, port: PageParamSource,
                 const steps = countDetents(turnAccum, slot, delta, per);
                 if (steps === 0) return;      // banked, not lost — the remainder carries
                 n = Math.abs(steps);
-                /*
-                 * A TWO-OPTION CHOICE IS SET BY DIRECTION, NOT TOGGLED.
-                 *
-                 * `isTwoWayMeta` flips any 2-option enum on every detent behind
-                 * a 270 ms latch, on the reasoning that a boxed value shows a
-                 * state and not a direction — so with nothing on screen saying
-                 * which way is which, a direction-absolute turn would have a
-                 * dead half. That is right for Mix/Reverb and wrong for an
-                 * ORDERED pair: turning Pad Layout walked it back and forth
-                 * instead of setting it, reported as the knob cycling.
-                 *
-                 * So these cells take the rule the delta path always used
-                 * (`applyLink(n > 0)`), including its gate: the accumulator
-                 * above has already run, so a sub-detent nudge banks rather
-                 * than flipping. Off/On pairs come through here too and are
-                 * unaffected — `isSwitchMeta` already made them
-                 * direction-absolute — which keeps ONE rule for every
-                 * two-option cell on these pages rather than two that agree.
-                 *
-                 * The write is SKIPPED when the value is already there, so a
-                 * continued turn emits nothing. That is what replaces the
-                 * latch, and it is why dropping the latch is safe.
-                 *
-                 * Virtual components only: `per > 1` is true for no real port.
-                 */
-                const meta = typeof ctl.metaAt === 'function' ? ctl.metaAt(slot) : null;
-                if (key && meta && Array.isArray(meta.options) && meta.options.length === 2) {
-                    const target = steps > 0 ? 1 : 0;
-                    const cur = Math.round(Number(port.getParam(qualify(key))));
-                    if (cur !== target) ctl.commitEnum(key, target);
-                    return;
-                }
             } else {
                 n = Math.min(Math.abs(delta) | 0, 63) || 1;
             }
             for (let i = 0; i < n; i++) ctl.onKnobTurn(slot, dir);
-
-            /*
-             * AND TAKE THE PANEL BACK DOWN WHERE THE CELL ALREADY SAYS IT.
-             *
-             * A turn on a divable enum raises the option list over the grid.
-             * That is right when a 30px box cannot show the value — a scale
-             * name, a key — and wrong when it can: "3:4", "80%", "1/4" are
-             * drawn in full underneath, so the panel covers a legible answer
-             * with the same answer and hides the rest of the row with it.
-             * Schwung's controller already declines on a LIST layout for
-             * exactly that reason; it cannot make the call for a grid cell,
-             * because whether the box fits the text is a fact about the HOST's
-             * drawing. So the cell declares it (`VirtualCellSpec.peek`).
-             *
-             * DISMISSED RATHER THAN NEVER RAISED, because `onKnobTurn` is the
-             * only thing that writes the value and it raises the peek on its
-             * way through — there is no seam between them from out here. The
-             * peek is state, not a frame: nothing has been drawn yet when this
-             * runs, so taking it down now means it never appears, rather than
-             * appearing and flickering away.
-             */
-            if (key && port.peekSuppressed && port.peekSuppressed(qualify(key))
-                && typeof ctl.dismissPeek === 'function') {
-                ctl.dismissPeek();
-            }
         },
         knobTouch: (slot: number, down: boolean) => { ctl.onKnobTouch(slot, down); },
         /*

@@ -319,6 +319,27 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Changed
 
+- **PARAM PAGES: SCHWUNG now needs Schwung 1.5.0**, which ships four things
+  Movy used to imitate on its own (charlesvestal/schwung#541, #543), so Movy's
+  stand-ins are gone and those pages draw through Schwung's own code:
+
+  - **An automated parameter wears the automation dot** beside its label — the
+    same mark Movy's own pages use — instead of borrowing the LFO's `~`. A
+    parameter that is both automated and modulated shows both.
+  - **Condition, clip Length, Swing and Root draw in Schwung's big face.** They
+    look the same as before (the face is Movy's own glyphs, now upstream).
+  - **Two-way settings** on the Set, Clip and step pages (Pad Layout, Note Mode,
+    Link…) are set by the knob's direction, and a value whose cell already shows
+    it in full raises no option list — both now declared to Schwung rather than
+    patched in afterwards.
+  - **A parameter an LFO keeps moving** redraws five times a second, while a real
+    transition still draws every frame. Movy now asks Schwung which is which
+    instead of guessing from how long something has been moving.
+
+  With 1.5.0 a held step also keeps its envelope and filter graphics on screen,
+  drawn at the step's locked value, which shows inverted. On an older Schwung
+  the row stays on MOVY.
+
 - **A newly routed LFO starts at 100% depth**, as Schwung's own does. Movy wrote
   the routing before enabling the LFO, so the chain's fresh-LFO default never
   fired and every LFO assigned from movy began at 0% — running and inaudible.

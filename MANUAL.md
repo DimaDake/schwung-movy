@@ -1860,6 +1860,9 @@ exists only in Movy's config for that module may not appear. Sequencer lanes
 follow the parameter, not the page, so recorded automation keeps playing
 either way. The choice is saved on the device, not per set.
 
+**SCHWUNG needs Schwung 1.5.0 or newer.** On an older Schwung the row stays on
+MOVY and its hint names the version it needs, next to the one you have.
+
 Movy always renders its chains on several threads and always skips chains that
 are silent. Together those are worth roughly 2× on a heavy set — the difference
 between a big set staying inside the audio frame and crackling. There is

@@ -1,45 +1,35 @@
-/* repaint-cap.ts — once "is anything still animating?" has said yes for
- * longer than any real transition can run, stop asking every tick and ask
- * on a bounded schedule instead.
+/* repaint-cap.ts — a page whose picture never rests is redrawn on a bounded
+ * schedule, not every tick.
  *
- * SP-48. `page.animating()` (schwung-page-anim.ts) answers true for the
- * whole 100-300ms a real enum/waveform/trigger transition draws itself out —
- * that is SP-38, working as designed. But the same predicate also answers
- * true, FOREVER, for a modulated/`live`/automated key: `anim_state.settled()`
- * re-stamps every time the driven value differs from its last observation
- * (page_controller.mjs:2344/4148, render_page_movy.mjs:2441), and anything
- * moving faster than ~8Hz never lets 120ms of quiet accumulate. Patching
- * that is an upstream fix (SU-11, per-key duration aging in
- * `anim_state.mjs`) that rule 1 forbids touching from here, so this is the
- * movy-side fallback: bound the cost instead of eliminating the cause.
+ * SP-48. A modulated/`live`/automated key moving faster than its transition
+ * duration never lets the page settle, and before Schwung 1.5.0 movy could not
+ * tell that from a real 100-300 ms transition: `settled()` measures every key
+ * against one duration and cannot see a stream. So this used to INFER one — a
+ * 500 ms grace window, then a cap.
  *
- * A FLAT cap on every `animating()`-true tick would also throttle the three
- * real one-shot transitions SP-38 exists to make smooth — reintroducing the
- * regression SP-38 fixed. So this escalates instead of capping outright:
- * unthrottled for `graceMs` (comfortably longer than any real transition),
- * then bounded to one ask per `capMs` for as long as `animating()` keeps
- * saying true past that point. `graceMs` > `BTN_FLASH_MS` (300ms, the
- * longest of the four known transition constants) is what makes "provably
- * never entered by a legitimate animation" true rather than assumed.
+ * SU-11 (Schwung #543) made it a question the store answers: `activity()`
+ * judges each key by the duration it was observed with and reports
+ * `{ moving, streaming }`. A transition is `moving` and always draws; only a
+ * stream is capped. The cap is still a cap and not a stop: a stream is
+ * reported rather than aged out upstream precisely so the host keeps drawing
+ * the value as it moves.
  *
- * Pure given `now` — no clock, no page, no anim store — so it is tested as
- * a plain state machine in `browser-test/logic/page-freshness.mjs`.
+ * Pure given `now` — no clock, no page, no anim store — so it is tested as a
+ * plain state machine in `browser-test/logic/page-freshness.mjs`.
  */
-export const ANIM_GRACE_MS = 500;   // > BTN_FLASH_MS (300, the longest known transition)
-export const REPAINT_CAP_MS = 200;  // degrades to 5Hz once past the grace window
+import type { AnimActivity } from '../renderer/schwung-page-anim.js';
 
-export function createRepaintCap(graceMs = ANIM_GRACE_MS, capMs = REPAINT_CAP_MS) {
-    let since = -1;      // when the CURRENT animating streak started, or -1
-    let lastFrame = -1;  // last tick this cap itself allowed through
+export const REPAINT_CAP_MS = 200;  // a stream redraws at 5Hz
 
-    /** `animating`: page.animating(now)'s answer this tick. `now`: the same
-     *  clock the caller already has (movy's Date.now(), or a synthetic one
-     *  in tests). Returns whether THIS predicate alone should ask for a frame. */
-    return function repaintCap(animating: boolean, now: number): boolean {
-        if (!animating) { since = -1; return false; }
-        if (since < 0) since = now;
-        if (now - since <= graceMs) return true;          // unthrottled: SP-38's behaviour
-        if (now - lastFrame < capMs) return false;         // capped: bounded, not zero
+export function createRepaintCap(capMs = REPAINT_CAP_MS) {
+    let lastFrame = -Infinity;   // last tick this cap let a STREAM through
+
+    /** Returns whether THIS predicate alone should ask for a frame. `now` is
+     *  the caller's clock (movy's Date.now(), or a synthetic one in tests). */
+    return function repaintCap(a: AnimActivity, now: number): boolean {
+        if (a.moving) return true;
+        if (!a.streaming) return false;
+        if (now - lastFrame < capMs) return false;
         lastFrame = now;
         return true;
     };

@@ -3890,7 +3890,7 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
      * question the fix asks — and the cap exists only so that "it animates"
      * cannot be satisfied by "it draws forever". */
     let ticks = 0;
-    while (ticks++ < 5000 && (!sp || sp.animating(Date.now()))) advance(1);
+    while (ticks++ < 5000 && (!sp || sp.animating(Date.now()).moving)) advance(1);
     eq('a value change draws frames until the transition settles ('
        + frames + ' frames over ' + ticks + ' ticks)', frames > 1, pageArm);
 

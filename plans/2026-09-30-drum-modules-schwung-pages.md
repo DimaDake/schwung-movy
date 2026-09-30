@@ -74,7 +74,7 @@ focused_pad from DSP note-ons").
 | # | Decision | Rationale |
 |---|---|---|
 | D1 | **Automation lanes write the param directly** (`chains.set_param(c, "<component>:<key>", v)`), not CC 102+lane. **All lanes, not only drums.** **Only movy-owned chains are automatable**; the CC path is deleted. | Removes the 256 cap and the table-miss failure in one move; no module or schwung change. **Zero added latency is a hard requirement** (the user's "otherwise strong NO"): it runs in `drain_out` in the same block as today's `chains.on_midi` CC; `apply_mix_lane` is the existing precedent. Resolution rises above 7 bits as a side effect. |
-| D2 | **A track on a schwung-hosted chain (`chtracks=SCHWUNG`) takes no automation at all**: every knob turn that would lock or record is refused with the existing `NO LOCK` toast; **MANUAL.md explains why** (the 256-param chain table, and that movy chains have no such limit). | The user's ruling (2026-09-30, revising Q6b): one automation path, not two. **Regression to accept knowingly:** a set on schwung-hosted chains that has lanes today loses their playback — Phase 2 must decide what happens to those stored lanes (keep them dormant, never purge) and say so in the CHANGELOG. |
+| D2 | **No CC fallback is needed.** Tracks always run on movy-owned chains; schwung-hosted chains carry only the master, which is not automated. | The user's ruling (2026-09-30). So the 256-param table never limits a track lane, and no `NO LOCK`-for-cap path or MANUAL note is required. |
 | D3 | **Scope: SCHWUNG grid mode.** MOVY mode gets bug fixes only. D1 lives in the engine, so it fixes both modes. | Migration rule 1. |
 | D4 | **Precedence:** a module's declared **drum surface** > module-shipped `movy_config.json` > movy's bundled config > generic. A declaration counts as a drum surface only if it has `pad_layout: "drums"` or a child level with `child_index_param` (D9). movy_config becomes a **frozen compatibility reader** — no new fields. | The user's first instinct was config-first (true for forge/weird-dreams); this ordering keeps that for them, because neither declares a drum surface, so they fall through to their configs. The user accepted trying it this way. |
 | D5 | **One per-pad seat, built in movy's seam.** For sibling racks the voice pages collapse into a single rotating seat; template racks already have one per child level. movy owns the page index, Schwung draws the page. | Upstream is likely to push back and Schwung will not expose it anyway; nothing user-facing is lost. The cost is coupling to `pages[i].level` / `voicesOf`, which is paid for with a logic test against the real schwung checkout. |
@@ -123,10 +123,8 @@ pad N and only pad N, **(d)** whether the held arc and the lane mark draw.
 - **Latency gate:** measure with `perf-probe.ts` that the lane-to-sound path is
   no slower than CC (same block). If it is slower, stop — D1 is conditional on
   this.
-- Delete the CC 102+lane emit and the `knob_<N>_set` lane mapping. Schwung-hosted
-  tracks refuse every lock/record with `NO LOCK`; their stored lanes stay
-  **dormant, never purged**, so moving the set to movy chains brings them back.
-  MANUAL.md paragraph on why; CHANGELOG entry for the regression.
+- Delete the CC 102+lane emit and the `knob_<N>_set` lane mapping — tracks are
+  always movy chains (D2), so nothing needs the CC path.
 - ENGINE_VERSION bump.
 
 ### Phase 3 — Held-step and lane visuals on drum pages
@@ -174,8 +172,6 @@ for the held state.
 ---
 
 ## 4. Per-module acceptance
-
-Automation columns assume the track runs on a movy-owned chain (D2).
 
 | Module | Pages | Pad → page | Automation sounds | Automation draws |
 |---|---|---|---|---|

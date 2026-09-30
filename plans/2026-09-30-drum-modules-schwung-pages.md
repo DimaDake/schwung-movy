@@ -120,6 +120,14 @@ pad N and only pad N, **(d)** whether the held arc and the lane mark draw.
   (`chain_mod_update_base_from_set_param`) — check it composes with an LFO on
   the same param exactly as the CC path does, and that float smoothing behaves
   the same.
+- **Why the latency is the same (checked 2026-09-30):** `drain_out`
+  (`lib.rs:784`) runs before `chains.render` (`lib.rs:791`) in the same
+  `render_block`, so a value is heard in the block it is due, exactly as the CC
+  is today. The chain's float smoother does not slew it:
+  `smoother_set_target` jumps `current = target` (`chain_params.c:92`). The
+  extra work on the `set_param` path (mod-target scan of ≤64, smoother slot,
+  `lane_on_set_param`) is about what the CC path spends on its knob-mapping
+  scan and its 256-entry table lookup.
 - **Latency gate:** measure with `perf-probe.ts` that the lane-to-sound path is
   no slower than CC (same block). If it is slower, stop — D1 is conditional on
   this.

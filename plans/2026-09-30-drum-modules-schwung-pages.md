@@ -88,6 +88,8 @@ focused_pad from DSP note-ons").
 | D13 | **32 automation lanes per track** (from 8). | The 8 came from CC 102–109; direct writes (D1) remove that reason. 32 matches Schwung's own `LANE_MAX`. |
 | D14 | **Enums and booleans are automatable, in both grid modes.** Equal bins (option = ⌊v·n/128⌋, n = 2 for a boolean), stepped and never interpolated; the engine writes the form the module's `get_param` emits (option name or index), detected at bind; one detent moves one option on a held step. | The old scaling problem was the chain's CC scaling against a min/max that is not the option count. With direct writes the engine converts. MOVY mode gets the one rule change in `param-build.ts` / `config-pages.ts` by the user's explicit ruling, despite migration rule 1. |
 | D15 | **No data migration.** Stored values stay 7-bit; lane index and target key are already explicit in the set file (`au <track> <lane> <base> <label>`, locks `lane:step:val`). | Old sets load unchanged. Going above 7 bits WOULD need a format change and a migration; deferred so this release adds none on top of the ones already since the last public release. **Downgrade hazard:** an older movy loads lane ≥ 8 as `lane & 7` (merging into lanes 0–7) — release notes; from now on the parser drops out-of-range lanes instead of masking. |
+| D16 | **Per-voice locks on drum tracks via Schwung's `lane_voice_map.mjs`** (pure, imported through `schwung-lib`, never re-spelled): a step copy/paste on a drum track moves only the selected voice's locks, and the held-step display can show only the focused pad's locks. | Matches Move's own per-voice paste (measured by Schwung) and keeps one definition of "which keys are which pad" — the module's declaration. |
+| D17 | **Stale lanes keep today's purge** when the module changes (`seq/automation.ts:449`); Schwung's keep-dormant rule is NOT adopted. | The user's ruling. |
 
 ---
 
@@ -142,6 +144,12 @@ pad N and only pad N, **(d)** whether the held arc and the lane mark draw.
   option list and the value form. It is rebuilt whenever the module (re)loads
   and never persisted, so a param a module changes from float to enum is read
   as what it is now.
+- **Lock precedes its note** (Schwung's `lane_lookahead.h` lesson: a drum voice
+  latches pitch at note-on, so a lock one block late lands on the NEXT hit).
+  movy is ahead by one tick on the grid by construction (`engine.rs` emits notes,
+  advances `pos_tick`, then the entered step's automation) — add a seq-core test
+  that pins it, including microtimed/nudged notes, the first step after Play and
+  the loop wrap.
 - ENGINE_VERSION bump.
 
 ### Phase 3 — Held-step and lane visuals on drum pages
@@ -172,6 +180,13 @@ for the held state.
   schwung's page cursor.
 - Existing movy-config voice rotation (`model/page-rotation.ts`) is MOVY-mode
   and frozen; do not extend it.
+
+### Phase 5b — Per-voice locks (D16)
+
+- Expose `lane_voice_map.mjs` through `schwung-lib`; step copy/paste on a drum
+  track filters locks to the copied voice's keys; held-step display filters to
+  the focused pad.
+- Logic test over the declared racks (sibling and template shapes).
 
 ### Phase 6 — Config-free rack rule (D4, D9)
 
@@ -211,5 +226,11 @@ for the held state.
   and bus routing (`docs/MODULES.md` → *Rendering voices apart*), and movy has
   send buses (`project_movy-send-fx-and-mix-page`). A later phase.
 - **dr32 beyond D10** (engine switching, resample, kit browser) — not targeted.
+- **Automation follows edits** — compare movy's step copy/paste/delete/undo
+  with the Move semantics Schwung measured (`lane_edit.h`, `docs/MOVE_MODEL.md`).
+- **Live record semantics** — Schwung's "a pass erases the span it sweeps" and
+  punch-until-wrap, against movy's live take.
+- **Smooth (breakpoint) lanes** — Schwung's beat-positioned points with
+  hold/ramp. A different model from per-step locks; needs a real migration.
 - **Right-half pad function** on drum tracks — none today; if added, an on/off
   switch over D10.

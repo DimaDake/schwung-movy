@@ -85,6 +85,9 @@ focused_pad from DSP note-ons").
 | D10 | **More than 16 voices ⇒ the drum grid goes 8 wide over all 32 pads**, bottom-left upward. Generic — no dr32 code. The right half has no drum function today; if one is added later it gets an on/off switch that overlays this. | The user's ruling (R5). dr32's page count stays low through D5/D6 (its four child levels are one block). |
 | D11 | **forge, weird-dreams, libpo32 stay on their movy_configs permanently** as a supported legacy path. | No upstream PRs to modules (Q7). |
 | D12 | **No pad-switch query.** All per-pad pages' values stay in memory; a pad switch reads nothing blocking. For template racks that means warming every pad's concrete keys in the background, not on the press. | The user's requirement, pending the latency investigation (§5). SP-39 already bulk-warms on `jump`; this moves the warm off the press entirely. |
+| D13 | **32 automation lanes per track** (from 8). | The 8 came from CC 102–109; direct writes (D1) remove that reason. 32 matches Schwung's own `LANE_MAX`. |
+| D14 | **Enums and booleans are automatable, in both grid modes.** Equal bins (option = ⌊v·n/128⌋, n = 2 for a boolean), stepped and never interpolated; the engine writes the form the module's `get_param` emits (option name or index), detected at bind; one detent moves one option on a held step. | The old scaling problem was the chain's CC scaling against a min/max that is not the option count. With direct writes the engine converts. MOVY mode gets the one rule change in `param-build.ts` / `config-pages.ts` by the user's explicit ruling, despite migration rule 1. |
+| D15 | **No data migration.** Stored values stay 7-bit; lane index and target key are already explicit in the set file (`au <track> <lane> <base> <label>`, locks `lane:step:val`). | Old sets load unchanged. Going above 7 bits WOULD need a format change and a migration; deferred so this release adds none on top of the ones already since the last public release. **Downgrade hazard:** an older movy loads lane ≥ 8 as `lane & 7` (merging into lanes 0–7) — release notes; from now on the parser drops out-of-range lanes instead of masking. |
 
 ---
 
@@ -133,6 +136,12 @@ pad N and only pad N, **(d)** whether the held arc and the lane mark draw.
   this.
 - Delete the CC 102+lane emit and the `knob_<N>_set` lane mapping — tracks are
   always movy chains (D2), so nothing needs the CC path.
+- D13: lane arrays 8 → 32 (`track.rs`, `persist.rs` `lane < 8` / `lane & 7`,
+  the UI lane pool); revisit `MAX_LOCKS = 1024` per clip, shared by all lanes.
+- D14: the bind-time descriptor carries type, range and, for an enum, the
+  option list and the value form. It is rebuilt whenever the module (re)loads
+  and never persisted, so a param a module changes from float to enum is read
+  as what it is now.
 - ENGINE_VERSION bump.
 
 ### Phase 3 — Held-step and lane visuals on drum pages

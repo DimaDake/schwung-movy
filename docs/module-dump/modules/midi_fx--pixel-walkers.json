@@ -1,0 +1,496 @@
+{
+ "id": "pixel-walkers",
+ "name": "Pixel Walkers",
+ "version": "0.2.0",
+ "author": "mestela",
+ "category": "midi_fx",
+ "status": "ok",
+ "load_ms": 44,
+ "dsp_size": 71032,
+ "capabilities": {
+  "audio_out": false,
+  "audio_in": false,
+  "midi_in": true,
+  "midi_out": true,
+  "chainable": true,
+  "component_type": "midi_fx",
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "name": "Pixel Walkers",
+     "params": [
+      {
+       "key": "birth_note",
+       "name": "Birth Note",
+       "short_name": "Birth",
+       "type": "enum",
+       "options": [
+        "Off",
+        "On"
+       ],
+       "default": 1
+      },
+      {
+       "key": "birth_level",
+       "name": "Birth Level",
+       "short_name": "Birth Lv",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "step": 0.01,
+       "default": 1,
+       "unit": "%"
+      },
+      {
+       "key": "hit_level",
+       "name": "Collision Level",
+       "short_name": "Hit Lv",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "step": 0.01,
+       "default": 0.7,
+       "unit": "%"
+      },
+      {
+       "key": "hit_decay",
+       "name": "Collision Decay",
+       "short_name": "Decay",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "step": 0.01,
+       "default": 0.01,
+       "unit": "%"
+      },
+      {
+       "key": "randomize",
+       "name": "Randomize Platforms",
+       "short_name": "Random",
+       "type": "enum",
+       "options": [
+        "-",
+        "Rnd!"
+       ],
+       "access": "write"
+      },
+      {
+       "key": "bounce",
+       "name": "Bounce",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "step": 0.01,
+       "default": 0.7,
+       "unit": "%"
+      },
+      {
+       "key": "hardness",
+       "name": "Hardness",
+       "short_name": "Hard",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "step": 0.01,
+       "default": 1,
+       "unit": "%"
+      },
+      {
+       "key": "kill_all",
+       "name": "Kill All",
+       "short_name": "Kill",
+       "type": "enum",
+       "options": [
+        "-",
+        "Kill!"
+       ],
+       "access": "write"
+      },
+      {
+       "key": "tombola",
+       "name": "Pixel Walkers",
+       "type": "canvas",
+       "canvas_script": "canvas.js",
+       "as_page": true,
+       "show_value": false,
+       "extra_keys": [
+        "viz_state"
+       ]
+      }
+     ],
+     "knobs": [
+      "birth_note",
+      "birth_level",
+      "hit_level",
+      "hit_decay",
+      "randomize",
+      "bounce",
+      "hardness",
+      "kill_all"
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root"
+  ],
+  "params": [
+   {
+    "key": "birth_note",
+    "name": "Birth Note",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "On"
+   },
+   {
+    "key": "birth_level",
+    "name": "Birth Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.000"
+   },
+   {
+    "key": "hit_level",
+    "name": "Collision Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.700"
+   },
+   {
+    "key": "hit_decay",
+    "name": "Collision Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.010"
+   },
+   {
+    "key": "randomize",
+    "name": "Randomize Platforms",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "-",
+     "Rnd!"
+    ],
+    "default": "-"
+   },
+   {
+    "key": "bounce",
+    "name": "Bounce",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.700"
+   },
+   {
+    "key": "hardness",
+    "name": "Hardness",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.000"
+   },
+   {
+    "key": "kill_all",
+    "name": "Kill All",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "-",
+     "Kill!"
+    ],
+    "default": "-"
+   },
+   {
+    "key": "tombola",
+    "name": "Pixel Walkers",
+    "type": "canvas",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": null,
+    "default": null
+   },
+   {
+    "key": "viz_state",
+    "name": "Activity",
+    "type": "string",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": null,
+    "default": "I5896B0A7T0000001DP061A0B10221A0F360E1A3A1B0D6E0E0D6A1B0FW00"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "BIRTH",
+       "fullName": "Birth Note",
+       "renderStyle": "switch",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BIRTH",
+       "fullName": "Birth Level",
+       "renderStyle": "vbar",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HIT LV",
+       "fullName": "Collision Level",
+       "renderStyle": "vbar",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Collision Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "RANDO",
+       "fullName": "Randomize Platforms",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BOUNC",
+       "fullName": "Bounce",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HARD",
+       "fullName": "Hardness",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "KILL",
+       "fullName": "Kill All",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "birth_note",
+    "label": "Birth Note",
+    "shortLabel": "Birth",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "switch",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "birth_level",
+    "label": "Birth Level",
+    "shortLabel": "Birth Lv",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "hit_level",
+    "label": "Collision Level",
+    "shortLabel": "Hit Lv",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "hit_decay",
+    "label": "Collision Decay",
+    "shortLabel": "Decay",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "randomize",
+    "label": "Randomize Platforms",
+    "shortLabel": "Random",
+    "type": "enum",
+    "options": [
+     "-",
+     "Rnd!"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "behavior": "trigger",
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "bounce",
+    "label": "Bounce",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "hardness",
+    "label": "Hardness",
+    "shortLabel": "Hard",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "kill_all",
+    "label": "Kill All",
+    "shortLabel": "Kill",
+    "type": "enum",
+    "options": [
+     "-",
+     "Kill!"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "behavior": "trigger",
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   }
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "tombola",
+   "viz_state"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "2 chain_params not reachable in movy: tombola, viz_state",
+   "page \"\": duplicate on-screen names BIRTH"
+  ]
+ }
+}

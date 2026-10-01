@@ -172,6 +172,50 @@
   "stepCells": [],
   "slowCells": []
  },
+ "audio_fx--busdriver": {
+  "pageCount": 2,
+  "pageNames": [
+   "Shape",
+   "Mix"
+  ],
+  "pageShortNames": [
+   [
+    "DRIVE",
+    "CHAR",
+    "CRUNC",
+    "DAMP",
+    "TRANS",
+    "BOOM",
+    "B",
+    "DECAY"
+   ],
+   [
+    "COMP",
+    "TRIM",
+    "OUT",
+    "MIX"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 0,
+  "shownKeys": [
+   "boom",
+   "boom_decay",
+   "boom_freq",
+   "comp",
+   "crunch",
+   "damp",
+   "drive",
+   "drive_type",
+   "drywet",
+   "output",
+   "transients",
+   "trim"
+  ],
+  "stepCells": [],
+  "slowCells": []
+ },
  "audio_fx--capicola": {
   "pageCount": 4,
   "pageNames": [
@@ -1026,9 +1070,10 @@
     "TIME",
     "IN GAIN",
     "OUT",
-    "LH"
+    "TAME"
    ],
    [
+    "LH",
     "MID/HI"
    ],
    [
@@ -1083,6 +1128,7 @@
    "mix",
    "out_gain",
    "rel_time",
+   "tame",
    "time",
    "upward"
   ],
@@ -1286,6 +1332,31 @@
    "shift",
    "slope",
    "volume"
+  ],
+  "stepCells": [],
+  "slowCells": []
+ },
+ "audio_fx--rrverb10": {
+  "pageCount": 1,
+  "pageNames": [
+   ""
+  ],
+  "pageShortNames": [
+   [
+    "MODE",
+    "DECAY/",
+    "PRE-EQ",
+    "MIX"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 0,
+  "shownKeys": [
+   "mix",
+   "mode",
+   "pre_eq",
+   "time"
   ],
   "stepCells": [],
   "slowCells": []
@@ -2240,6 +2311,100 @@
    "track"
   ]
  },
+ "midi_fx--acid": {
+  "pageCount": 4,
+  "pageNames": [
+   "Main",
+   "Sequence B",
+   "Global",
+   "Global/Advanced"
+  ],
+  "pageShortNames": [
+   [
+    "GENER",
+    "MUTATE",
+    "DENSIT",
+    "ACCENT",
+    "SLIDE",
+    "OCTAVE",
+    "LENGTH",
+    "GATE"
+   ],
+   [
+    "GENER",
+    "MUTATE",
+    "DENSIT",
+    "ACCENT",
+    "SLIDE",
+    "OCTAVE",
+    "LENGTH",
+    "GATE"
+   ],
+   [
+    "SCALE",
+    "ROOT",
+    "TUNE B",
+    "RESET",
+    "ALGOA",
+    "ALGOB",
+    "MODE",
+    "BLEND"
+   ],
+   [
+    "OFFSET",
+    "OFFSET",
+    "JITTER",
+    "SWING",
+    "AUTOGE",
+    "DIRA",
+    "DIRB"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 0,
+  "shownKeys": [
+   "a_accent",
+   "a_algo",
+   "a_density",
+   "a_dir",
+   "a_gate",
+   "a_generate",
+   "a_length",
+   "a_mutate",
+   "a_octaves",
+   "a_offset",
+   "a_slide",
+   "auto_gen",
+   "b_accent",
+   "b_algo",
+   "b_density",
+   "b_dir",
+   "b_gate",
+   "b_generate",
+   "b_length",
+   "b_mutate",
+   "b_octaves",
+   "b_offset",
+   "b_slide",
+   "b_tune",
+   "blend",
+   "blend_mode",
+   "jitter",
+   "reset_bars",
+   "root",
+   "scale",
+   "swing"
+  ],
+  "stepCells": [
+   "a_octaves",
+   "b_octaves"
+  ],
+  "slowCells": [
+   "a_octaves",
+   "b_octaves"
+  ]
+ },
  "midi_fx--arp": {
   "pageCount": 1,
   "pageNames": [
@@ -3074,6 +3239,101 @@
   "slowCells": [
    "articulate"
   ]
+ },
+ "midi_fx--maze_seq_lite": {
+  "pageCount": 3,
+  "pageNames": [
+   "Main",
+   "Sequencer 2",
+   "Global"
+  ],
+  "pageShortNames": [
+   [
+    "CORRU",
+    "RANGE",
+    "LENGTH",
+    "BIT",
+    "ADVAN",
+    "RESET",
+    "TRIG"
+   ],
+   [
+    "CORRU",
+    "RANGE",
+    "LENGTH",
+    "BIT",
+    "ADVAN",
+    "RESET",
+    "TRIG"
+   ],
+   [
+    "SCALE",
+    "RATE",
+    "LEN",
+    "RESET"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 5,
+  "shownKeys": [
+   "g_reset",
+   "note_length",
+   "note_rate",
+   "s1_advance",
+   "s1_bit_flip",
+   "s1_corrupt",
+   "s1_cv_range",
+   "s1_length",
+   "s1_reset",
+   "s2_advance",
+   "s2_bit_flip",
+   "s2_corrupt",
+   "s2_cv_range",
+   "s2_length",
+   "s2_reset",
+   "scale",
+   "trig_mix",
+   "trig_mix_b"
+  ],
+  "stepCells": [],
+  "slowCells": [
+   "s1_length",
+   "s2_length"
+  ]
+ },
+ "midi_fx--pixel-walkers": {
+  "pageCount": 1,
+  "pageNames": [
+   ""
+  ],
+  "pageShortNames": [
+   [
+    "BIRTH",
+    "BIRTH",
+    "HIT LV",
+    "DECAY",
+    "RANDO",
+    "BOUNC",
+    "HARD",
+    "KILL"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 2,
+  "shownKeys": [
+   "birth_level",
+   "birth_note",
+   "bounce",
+   "hardness",
+   "hit_decay",
+   "hit_level",
+   "kill_all",
+   "randomize"
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "midi_fx--superarp": {
   "pageCount": 7,
@@ -4016,6 +4276,48 @@
   "stepCells": [],
   "slowCells": []
  },
+ "sound_generator--bouba-kiki": {
+  "pageCount": 2,
+  "pageNames": [
+   "Main",
+   "Envelope"
+  ],
+  "pageShortNames": [
+   [
+    "MRPH",
+    "BLGE",
+    "PNCH",
+    "SPKE",
+    "ATK",
+    "REL",
+    "TILT",
+    "WOBL"
+   ],
+   [
+    "ATK",
+    "DEC",
+    "SUS",
+    "REL"
+   ]
+  ],
+  "envelopeLines": 2,
+  "lfoViz": 0,
+  "hidden": 3,
+  "shownKeys": [
+   "attack",
+   "bulge",
+   "decay",
+   "morph",
+   "pinch",
+   "release",
+   "spikes",
+   "sustain",
+   "tilt",
+   "wobble"
+  ],
+  "stepCells": [],
+  "slowCells": []
+ },
  "sound_generator--braids": {
   "pageCount": 6,
   "pageNames": [
@@ -4578,7 +4880,7 @@
   ],
   "envelopeLines": 0,
   "lfoViz": 0,
-  "hidden": 2,
+  "hidden": 3,
   "shownKeys": [
    "bd_decay",
    "bd_dist_type",
@@ -5325,6 +5627,719 @@
    "op6_vel_sens"
   ]
  },
+ "sound_generator--dr32": {
+  "pageCount": 49,
+  "pageNames": [
+   "Main",
+   "Pad",
+   "Shape",
+   "Tone",
+   "Noise",
+   "Drum",
+   "Shell",
+   "Chop",
+   "Media",
+   "Drum",
+   "Shell",
+   "Chop",
+   "Media",
+   "Cymbal",
+   "Chop",
+   "Media",
+   "Voice",
+   "Voice - 2",
+   "Voice",
+   "Voice",
+   "Voice - 2",
+   "Voice",
+   "Pulse",
+   "Body",
+   "Noise",
+   "Tone",
+   "FM",
+   "Noise",
+   "Output",
+   "Velocity",
+   "Tone",
+   "FM",
+   "Noise",
+   "Output",
+   "Velocity",
+   "Tone",
+   "Metal",
+   "Noise",
+   "Output",
+   "Velocity",
+   "Tone",
+   "FM",
+   "Noise",
+   "Mangle",
+   "Output",
+   "Velocity",
+   "Mix",
+   "Stereo",
+   "Master"
+  ],
+  "pageShortNames": [
+   [
+    "CATEGO"
+   ],
+   [
+    "ENGN",
+    "STRT",
+    "END",
+    "PAD",
+    "TRSP",
+    "DETN",
+    "CHOKE",
+    "VOL"
+   ],
+   [
+    "ATK",
+    "DCY",
+    "HOLD",
+    "ENV",
+    "CUT",
+    "RES",
+    "TYPE",
+    "FILT"
+   ],
+   [
+    "PITCH",
+    "WAVE",
+    "BEND",
+    "BDYN",
+    "DECAY",
+    "PUNCH",
+    "T/NSE",
+    "CLICK"
+   ],
+   [
+    "CUTOF",
+    "RES",
+    "LPBND",
+    "LPDYN",
+    "SAT",
+    "VGAIN"
+   ],
+   [
+    "PITCH",
+    "DECAY",
+    "BEATR",
+    "DETUN",
+    "PUNCH",
+    "STRKE",
+    "STONE"
+   ],
+   [
+    "SHELL",
+    "SDAMP",
+    "RING",
+    "RHEAD",
+    "RTUNE",
+    "RMIX"
+   ],
+   [
+    "LOPAS",
+    "TFREQ",
+    "TGAIN",
+    "SLICE",
+    "SPEED",
+    "LATE"
+   ],
+   [
+    "TYPE",
+    "NOISE",
+    "SAT",
+    "RATE",
+    "BITS"
+   ],
+   [
+    "PITCH",
+    "DECAY",
+    "BEATR",
+    "DETUN",
+    "PUNCH",
+    "STRKE",
+    "STONE",
+    "RIM"
+   ],
+   [
+    "SHELL",
+    "SDAMP",
+    "RING",
+    "RHEAD",
+    "RTUNE",
+    "RMIX"
+   ],
+   [
+    "LOPAS",
+    "TFREQ",
+    "TGAIN",
+    "SLICE",
+    "SPEED",
+    "LATE"
+   ],
+   [
+    "TYPE",
+    "NOISE",
+    "SAT",
+    "RATE",
+    "BITS"
+   ],
+   [
+    "SIZE",
+    "CRASH",
+    "DAMP",
+    "CLOSD",
+    "PUNCH",
+    "STRKE",
+    "STONE"
+   ],
+   [
+    "LOPAS",
+    "TFREQ",
+    "TGAIN",
+    "SLICE",
+    "SPEED",
+    "LATE"
+   ],
+   [
+    "TYPE",
+    "NOISE",
+    "SAT",
+    "RATE",
+    "BITS"
+   ],
+   [
+    "TUNE",
+    "DECAY",
+    "ATTCK",
+    "PDPTH",
+    "PITCH",
+    "SNAPY",
+    "ATTCK",
+    "ATTCK"
+   ],
+   [
+    "ATTCK",
+    "DRIVE",
+    "DIST",
+    "VEL"
+   ],
+   [
+    "TUNE",
+    "DECAY",
+    "ATTCK",
+    "SNAPY",
+    "NOISE",
+    "DRIVE",
+    "DIST",
+    "VEL"
+   ],
+   [
+    "TUNE",
+    "DECAY",
+    "ATTCK",
+    "TONE",
+    "SNAPY",
+    "ATTCK",
+    "DRIVE",
+    "DIST"
+   ],
+   [
+    "VEL"
+   ],
+   [
+    "TUNE",
+    "DECAY",
+    "SNAPY",
+    "RATE",
+    "DRIVE",
+    "DIST",
+    "VEL"
+   ],
+   [
+    "WIDTH",
+    "AMP",
+    "DECAY",
+    "SUST",
+    "VSENS",
+    "TONE"
+   ],
+   [
+    "FREQ",
+    "Q",
+    "DAMP",
+    "TIGHT",
+    "BOUNC",
+    "MODE",
+    "PORTA"
+   ],
+   [
+    "NOISE",
+    "NDCY",
+    "NCUT",
+    "NTYPE"
+   ],
+   [
+    "LEVEL",
+    "PITCH",
+    "DECAY",
+    "SWEEP",
+    "SWDEC"
+   ],
+   [
+    "RATIO",
+    "MOD",
+    "MDEC",
+    "FB",
+    "TRACK"
+   ],
+   [
+    "LEVEL",
+    "NDEC",
+    "NFREQ",
+    "NRES",
+    "NFILT"
+   ],
+   [
+    "LOCUT",
+    "HICUT",
+    "TN-NS",
+    "DRIVE"
+   ],
+   [
+    "VLVL",
+    "VMOD",
+    "VSWP",
+    "VPTCH",
+    "VDEC",
+    "VNSE",
+    "VNFRQ"
+   ],
+   [
+    "LEVEL",
+    "PITCH",
+    "DECAY",
+    "SWEEP",
+    "SWDEC"
+   ],
+   [
+    "RATIO",
+    "MOD",
+    "MDEC",
+    "FB",
+    "TRACK"
+   ],
+   [
+    "LEVEL",
+    "NDEC",
+    "NFREQ",
+    "NRES",
+    "NFILT",
+    "BRSTS",
+    "GAP"
+   ],
+   [
+    "LOCUT",
+    "HICUT",
+    "TN-NS",
+    "DRIVE"
+   ],
+   [
+    "VLVL",
+    "VMOD",
+    "VSWP",
+    "VPTCH",
+    "VDEC",
+    "VNSE",
+    "VNFRQ"
+   ],
+   [
+    "LEVEL",
+    "PITCH",
+    "DECAY"
+   ],
+   [
+    "SPRD",
+    "MOD",
+    "MDEC",
+    "FB"
+   ],
+   [
+    "LEVEL",
+    "NDEC",
+    "NFREQ",
+    "NRES",
+    "NFILT"
+   ],
+   [
+    "LOCUT",
+    "HICUT",
+    "TN-NS",
+    "DRIVE"
+   ],
+   [
+    "VLVL",
+    "VMOD",
+    "VPTCH",
+    "VDEC",
+    "VNSE",
+    "VNFRQ"
+   ],
+   [
+    "LEVEL",
+    "PITCH",
+    "DECAY",
+    "SWEEP",
+    "SWDEC"
+   ],
+   [
+    "RATIO",
+    "MOD",
+    "MDEC",
+    "FB",
+    "TRACK"
+   ],
+   [
+    "LEVEL",
+    "NDEC",
+    "NFREQ",
+    "NRES",
+    "NFILT",
+    "BRSTS",
+    "GAP"
+   ],
+   [
+    "NZFM",
+    "RING",
+    "CRUSH",
+    "BITS"
+   ],
+   [
+    "LOCUT",
+    "HICUT",
+    "TN-NS",
+    "DRIVE"
+   ],
+   [
+    "VLVL",
+    "VMOD",
+    "VSWP",
+    "VPTCH",
+    "VDEC",
+    "VNSE",
+    "VNFRQ"
+   ],
+   [
+    "VVOL",
+    "VOL",
+    "PAN",
+    "LINK",
+    "SNDA",
+    "SNDB",
+    "PUNCH",
+    "PTIME"
+   ],
+   [
+    "WMODE",
+    "WIDE",
+    "WFREQ",
+    "TIME",
+    "COMP"
+   ],
+   [
+    "MASTR"
+   ]
+  ],
+  "envelopeLines": 1,
+  "lfoViz": 0,
+  "hidden": 3,
+  "shownKeys": [
+   "atk_knob",
+   "c7_decay",
+   "c7_dist",
+   "c7_drive",
+   "c7_gu_rate",
+   "c7_sd_snappy",
+   "c7_tune",
+   "c7_vel",
+   "choke",
+   "ck_amp",
+   "ck_bounce",
+   "ck_damp",
+   "ck_decay",
+   "ck_freq",
+   "ck_mode",
+   "ck_ncut",
+   "ck_ndecay",
+   "ck_noise",
+   "ck_ntype",
+   "ck_porta",
+   "ck_q",
+   "ck_sustain",
+   "ck_tight",
+   "ck_tone",
+   "ck_velo",
+   "ck_width",
+   "cutoff",
+   "dcy_knob",
+   "detune",
+   "e8_bd_attack",
+   "e8_bd_tone",
+   "e8_decay",
+   "e8_dist",
+   "e8_drive",
+   "e8_ma_attack",
+   "e8_sd_snappy",
+   "e8_tune",
+   "e8_vel",
+   "end",
+   "env_mode",
+   "filter_on",
+   "filter_type",
+   "fk_decay",
+   "fk_drive",
+   "fk_fb",
+   "fk_hicut",
+   "fk_lowcut",
+   "fk_mdec",
+   "fk_mix",
+   "fk_mod",
+   "fk_ndec",
+   "fk_nfreq",
+   "fk_nmode",
+   "fk_noise",
+   "fk_nres",
+   "fk_pitch",
+   "fk_ratio",
+   "fk_swdec",
+   "fk_sweep",
+   "fk_tone",
+   "fk_track",
+   "fk_vdecay",
+   "fk_vel",
+   "fk_vmod",
+   "fk_vnfreq",
+   "fk_vnoise",
+   "fk_vpitch",
+   "fk_vsweep",
+   "fp_bits",
+   "fp_bursts",
+   "fp_crush",
+   "fp_decay",
+   "fp_drive",
+   "fp_fb",
+   "fp_gap",
+   "fp_hicut",
+   "fp_lowcut",
+   "fp_mdec",
+   "fp_mix",
+   "fp_mod",
+   "fp_ndec",
+   "fp_nfreq",
+   "fp_nmode",
+   "fp_noise",
+   "fp_nres",
+   "fp_nzfm",
+   "fp_pitch",
+   "fp_ratio",
+   "fp_ring",
+   "fp_swdec",
+   "fp_sweep",
+   "fp_tone",
+   "fp_track",
+   "fp_vdecay",
+   "fp_vel",
+   "fp_vmod",
+   "fp_vnfreq",
+   "fp_vnoise",
+   "fp_vpitch",
+   "fp_vsweep",
+   "fs_bursts",
+   "fs_decay",
+   "fs_drive",
+   "fs_fb",
+   "fs_gap",
+   "fs_hicut",
+   "fs_lowcut",
+   "fs_mdec",
+   "fs_mix",
+   "fs_mod",
+   "fs_ndec",
+   "fs_nfreq",
+   "fs_nmode",
+   "fs_noise",
+   "fs_nres",
+   "fs_pitch",
+   "fs_ratio",
+   "fs_swdec",
+   "fs_sweep",
+   "fs_tone",
+   "fs_track",
+   "fs_vdecay",
+   "fs_vel",
+   "fs_vmod",
+   "fs_vnfreq",
+   "fs_vnoise",
+   "fs_vpitch",
+   "fs_vsweep",
+   "fx_decay",
+   "fx_drive",
+   "fx_fb",
+   "fx_hicut",
+   "fx_lowcut",
+   "fx_mdec",
+   "fx_mix",
+   "fx_mod",
+   "fx_ndec",
+   "fx_nfreq",
+   "fx_nmode",
+   "fx_noise",
+   "fx_nres",
+   "fx_pitch",
+   "fx_spread",
+   "fx_tone",
+   "fx_vdecay",
+   "fx_vel",
+   "fx_vmod",
+   "fx_vnfreq",
+   "fx_vnoise",
+   "fx_vpitch",
+   "hold_knob",
+   "kit_cat",
+   "link",
+   "master",
+   "n9_bd_attack",
+   "n9_bd_pdepth",
+   "n9_bd_pitch",
+   "n9_decay",
+   "n9_dist",
+   "n9_drive",
+   "n9_ht_attack",
+   "n9_lt_attack",
+   "n9_mt_attack",
+   "n9_sd_snappy",
+   "n9_tune",
+   "n9_vel",
+   "pan",
+   "punch",
+   "punch_time",
+   "resonance",
+   "s6_bd_attack",
+   "s6_cp_noise",
+   "s6_decay",
+   "s6_dist",
+   "s6_drive",
+   "s6_sd_snappy",
+   "s6_tune",
+   "s6_vel",
+   "sample",
+   "send_a",
+   "send_b",
+   "sm_bend",
+   "sm_bend_dyn",
+   "sm_click",
+   "sm_cutoff",
+   "sm_decay",
+   "sm_lp_bend",
+   "sm_lp_dyn",
+   "sm_noise",
+   "sm_pitch",
+   "sm_punch",
+   "sm_res",
+   "sm_sat",
+   "sm_vel_gain",
+   "sm_wave",
+   "start",
+   "transpose",
+   "uc_bits",
+   "uc_chop_speed",
+   "uc_closed",
+   "uc_crash",
+   "uc_damp",
+   "uc_late",
+   "uc_lowpass",
+   "uc_noise",
+   "uc_noise_type",
+   "uc_punch",
+   "uc_rate",
+   "uc_sat",
+   "uc_size",
+   "uc_slice",
+   "uc_strike",
+   "uc_strike_br",
+   "uc_tone_freq",
+   "uc_tone_gain",
+   "ud_beater",
+   "ud_bits",
+   "ud_chop_speed",
+   "ud_decay",
+   "ud_detune",
+   "ud_late",
+   "ud_lowpass",
+   "ud_noise",
+   "ud_noise_type",
+   "ud_pitch",
+   "ud_punch",
+   "ud_rate",
+   "ud_reso_head",
+   "ud_reso_mix",
+   "ud_reso_tune",
+   "ud_ring",
+   "ud_sat",
+   "ud_shell",
+   "ud_shell_damp",
+   "ud_slice",
+   "ud_strike",
+   "ud_strike_br",
+   "ud_tone_freq",
+   "ud_tone_gain",
+   "ui_current_pad",
+   "us_beater",
+   "us_bits",
+   "us_chop_speed",
+   "us_decay",
+   "us_detune",
+   "us_late",
+   "us_lowpass",
+   "us_noise",
+   "us_noise_type",
+   "us_pitch",
+   "us_punch",
+   "us_rate",
+   "us_reso_head",
+   "us_reso_mix",
+   "us_reso_tune",
+   "us_rim",
+   "us_ring",
+   "us_sat",
+   "us_shell",
+   "us_shell_damp",
+   "us_slice",
+   "us_strike",
+   "us_strike_br",
+   "us_tone_freq",
+   "us_tone_gain",
+   "vel_vol",
+   "volume",
+   "volume_clone",
+   "wide",
+   "wide_comp",
+   "wide_freq",
+   "wide_mode",
+   "wide_time"
+  ],
+  "stepCells": [],
+  "slowCells": [
+   "fp_bursts",
+   "fs_bursts",
+   "uc_tone_gain",
+   "ud_tone_gain",
+   "us_tone_gain"
+  ]
+ },
  "sound_generator--essaim": {
   "pageCount": 3,
   "pageNames": [
@@ -5397,10 +6412,9 @@
   "slowCells": []
  },
  "sound_generator--fizzik": {
-  "pageCount": 10,
+  "pageCount": 9,
   "pageNames": [
    "Main",
-   "Patch",
    "Exciter",
    "Reson A",
    "Reson B",
@@ -5418,10 +6432,7 @@
     "RR",
     "CUTOFF",
     "RESON",
-    "ALL",
-    "FILTER"
-   ],
-   [
+    "FILTER",
     "VOICING"
    ],
    [
@@ -5573,7 +6584,6 @@
    "rev_damp",
    "rev_mix",
    "rev_size",
-   "rnd_all",
    "rnd_exc",
    "rnd_patch",
    "rnd_reson",
@@ -8297,6 +9307,109 @@
   "stepCells": [],
   "slowCells": []
  },
+ "sound_generator--maze-voice": {
+  "pageCount": 6,
+  "pageNames": [
+   "Main",
+   "WaveFolder",
+   "Filter",
+   "Tone",
+   "Mod Routing",
+   "Randomise"
+  ],
+  "pageShortNames": [
+   [
+    "TUNE",
+    "FREQ",
+    "DEPTH",
+    "FE",
+    "VE",
+    "ME",
+    "ENV1",
+    "VCA"
+   ],
+   [
+    "DRIVE",
+    "BIAS",
+    "ROUTE",
+    "EG1",
+    "KEY",
+    "BLEND"
+   ],
+   [
+    "CUTOFF",
+    "RESON",
+    "LP-BP",
+    "EG1",
+    "KEY",
+    "BLEND",
+    "FILT"
+   ],
+   [
+    "VCO",
+    "MOD",
+    "LVL",
+    "TONE",
+    "RING",
+    "TONE/S",
+    "OUT",
+    "OUTPUT"
+   ],
+   [
+    "VCO",
+    "MOD"
+   ],
+   [
+    "VOICE",
+    "FOLD",
+    "FILT",
+    "TONE",
+    "GENER"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 0,
+  "shownKeys": [
+   "blend",
+   "cutoff",
+   "cutoff_eg1",
+   "cutoff_key",
+   "env1_decay",
+   "env2_decay",
+   "filt_drive",
+   "filter_mode",
+   "fm_depth",
+   "fm_eg1",
+   "fold_bias",
+   "fold_drive",
+   "fold_eg1",
+   "fold_key",
+   "level",
+   "mod_eg1",
+   "mod_freq",
+   "mod_key",
+   "mod_lvl",
+   "noise_lvl",
+   "noise_tone",
+   "out_mode",
+   "reso",
+   "ring_lvl",
+   "rnd_filter",
+   "rnd_go",
+   "rnd_tone",
+   "rnd_voice",
+   "rnd_wavefolder",
+   "route",
+   "sat",
+   "vco_eg1",
+   "vco_key",
+   "vco_lvl",
+   "vco_tune"
+  ],
+  "stepCells": [],
+  "slowCells": []
+ },
  "sound_generator--minijv": {
   "pageCount": 72,
   "pageNames": [
@@ -9414,6 +10527,75 @@
    "nvram_tone_3_tvaenvvelocitycurve",
    "octave_transpose"
   ]
+ },
+ "sound_generator--monksynth": {
+  "pageCount": 4,
+  "pageNames": [
+   "Preset",
+   "Main",
+   "Voice Effects",
+   "Envelope"
+  ],
+  "pageShortNames": [
+   [
+    "PRESET"
+   ],
+   [
+    "VOW",
+    "HEAD",
+    "BRTH",
+    "GLD",
+    "VIB",
+    "UNI",
+    "DLY",
+    "LVL"
+   ],
+   [
+    "VIB",
+    "VBRT",
+    "DLY",
+    "DLRT",
+    "UNI",
+    "DET",
+    "SPR"
+   ],
+   [
+    "ATK",
+    "DEC",
+    "SUS",
+    "REL",
+    "PRS",
+    "DPTH",
+    "BEND"
+   ]
+  ],
+  "envelopeLines": 1,
+  "lfoViz": 0,
+  "hidden": 2,
+  "shownKeys": [
+   "aspiration",
+   "attack",
+   "bend_range",
+   "decay",
+   "delay",
+   "delay_rate",
+   "glide",
+   "head_size",
+   "level",
+   "preset",
+   "pressure_depth",
+   "pressure_routing",
+   "release",
+   "sustain",
+   "unison",
+   "unison_detune",
+   "unison_spread",
+   "vibrato",
+   "vibrato_rate",
+   "vowel"
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "sound_generator--mono-voice": {
   "pageCount": 15,
@@ -12087,6 +13269,88 @@
   "slowCells": [
    "cv_sub_div"
   ]
+ },
+ "sound_generator--simian": {
+  "pageCount": 4,
+  "pageNames": [
+   "Tone",
+   "Noise",
+   "Mix",
+   "Master"
+  ],
+  "pageShortNames": [
+   [
+    "VOICE",
+    "TUNE",
+    "PITCH",
+    "WAVE",
+    "BEND",
+    "DYN",
+    "DECAY",
+    "PUNCH"
+   ],
+   [
+    "CUTOFF",
+    "RES",
+    "BEND",
+    "DYN",
+    "NOISE",
+    "CLICK"
+   ],
+   [
+    "VOLUM",
+    "PAN",
+    "VEL",
+    "SAT",
+    "REVER",
+    "SENDA",
+    "SENDB"
+   ],
+   [
+    "GAIN",
+    "DRIVE",
+    "SAT",
+    "SIZE",
+    "GATE",
+    "VEL",
+    "TRANSP"
+   ]
+  ],
+  "envelopeLines": 0,
+  "lfoViz": 0,
+  "hidden": 206,
+  "shownKeys": [
+   "bend",
+   "bend_dyn",
+   "click",
+   "cutoff",
+   "decay",
+   "drive",
+   "gain",
+   "lp_bend",
+   "lp_dyn",
+   "master_sat",
+   "noise",
+   "pan",
+   "pitch",
+   "punch",
+   "res",
+   "rev_gate",
+   "rev_size",
+   "reverb",
+   "sat",
+   "send_a",
+   "send_b",
+   "sens",
+   "transpose",
+   "tune",
+   "ui_current_voice",
+   "vel_vol",
+   "volume",
+   "wave"
+  ],
+  "stepCells": [],
+  "slowCells": []
  },
  "sound_generator--slicer": {
   "pageCount": 3,

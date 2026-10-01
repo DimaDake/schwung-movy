@@ -1,0 +1,1151 @@
+{
+ "id": "monksynth",
+ "name": "MonkSynth",
+ "version": "0.1.1",
+ "author": "Jonathan Taylor (DSP), Charles Vestal (port)",
+ "category": "sound_generator",
+ "status": "ok",
+ "load_ms": 46,
+ "dsp_size": 54368,
+ "capabilities": {
+  "chainable": true,
+  "audio_out": true,
+  "audio_in": false,
+  "midi_in": true,
+  "aftertouch": true,
+  "canvas_script": "canvas.js",
+  "chain_params": [
+   {
+    "key": "face",
+    "name": "Character",
+    "short_name": "Char",
+    "type": "int",
+    "min": 0,
+    "max": 11,
+    "step": 1,
+    "default": 0,
+    "access": "read",
+    "show_value": false
+   },
+   {
+    "key": "vowel",
+    "name": "Vowel",
+    "short_name": "Vow",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0.5,
+    "live": true,
+    "viz": {
+     "kind": "custom:monkmouth",
+     "extra_keys": [
+      "face"
+     ]
+    },
+    "card_script": "cards.js#vowel_card",
+    "card_w": 104,
+    "card_h": 46
+   },
+   {
+    "key": "head_size",
+    "name": "Head Size",
+    "short_name": "Head",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0.5
+   },
+   {
+    "key": "aspiration",
+    "name": "Breath",
+    "short_name": "Brth",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0.5
+   },
+   {
+    "key": "glide",
+    "name": "Glide",
+    "short_name": "Gld",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0.5
+   },
+   {
+    "key": "vibrato",
+    "name": "Vibrato",
+    "short_name": "Vib",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0
+   },
+   {
+    "key": "delay",
+    "name": "Delay",
+    "short_name": "Dly",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0.8
+   },
+   {
+    "key": "level",
+    "name": "Level",
+    "short_name": "Lvl",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 1
+   },
+   {
+    "key": "vibrato_rate",
+    "name": "Vibrato Rate",
+    "short_name": "VbRt",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0.5
+   },
+   {
+    "key": "attack",
+    "name": "Attack",
+    "short_name": "Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0
+   },
+   {
+    "key": "decay",
+    "name": "Decay",
+    "short_name": "Dec",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0
+   },
+   {
+    "key": "sustain",
+    "name": "Sustain",
+    "short_name": "Sus",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 1
+   },
+   {
+    "key": "release",
+    "name": "Release",
+    "short_name": "Rel",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0
+   },
+   {
+    "key": "unison",
+    "name": "Unison",
+    "short_name": "Uni",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0
+   },
+   {
+    "key": "unison_detune",
+    "name": "Detune",
+    "short_name": "Det",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0
+   },
+   {
+    "key": "unison_spread",
+    "name": "Spread",
+    "short_name": "Spr",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0
+   },
+   {
+    "key": "delay_rate",
+    "name": "Delay Rate",
+    "short_name": "DlRt",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0.5
+   },
+   {
+    "key": "pressure_routing",
+    "name": "Pressure Target",
+    "short_name": "Prs",
+    "type": "enum",
+    "options": [
+     "Vowel",
+     "Pitch",
+     "Both",
+     "Both Inv"
+    ],
+    "default": 0
+   },
+   {
+    "key": "bend_range",
+    "name": "Bend Range",
+    "short_name": "Bend",
+    "type": "float",
+    "min": 0,
+    "max": 12,
+    "step": 0.5,
+    "default": 2,
+    "unit": "st"
+   },
+   {
+    "key": "pressure_depth",
+    "name": "Pressure Depth",
+    "short_name": "Dpth",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0.5
+   },
+   {
+    "key": "big_face",
+    "name": "Face",
+    "short_name": "Face",
+    "type": "canvas",
+    "canvas_script": "canvas.js",
+    "as_page": true,
+    "preset_browser": true,
+    "show_value": false
+   }
+  ]
+ },
+ "presets": {
+  "count": 12,
+  "sample": []
+ },
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "envelope",
+   "effects"
+  ],
+  "params": [
+   {
+    "key": "face",
+    "name": "Character",
+    "type": "int",
+    "min": 0,
+    "max": 11,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "vowel",
+    "name": "Vowel",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "head_size",
+    "name": "Head Size",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "aspiration",
+    "name": "Breath",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "glide",
+    "name": "Glide",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "vibrato",
+    "name": "Vibrato",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "delay",
+    "name": "Delay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.8000"
+   },
+   {
+    "key": "level",
+    "name": "Level",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "vibrato_rate",
+    "name": "Vibrato Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "attack",
+    "name": "Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "decay",
+    "name": "Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "sustain",
+    "name": "Sustain",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1.0000"
+   },
+   {
+    "key": "release",
+    "name": "Release",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "unison",
+    "name": "Unison",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "unison_detune",
+    "name": "Detune",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "unison_spread",
+    "name": "Spread",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "delay_rate",
+    "name": "Delay Rate",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "pressure_routing",
+    "name": "Pressure Target",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Vowel",
+     "Pitch",
+     "Both",
+     "Both Inv"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "bend_range",
+    "name": "Bend Range",
+    "type": "float",
+    "min": 0,
+    "max": 12,
+    "step": 0.5,
+    "options": null,
+    "default": "2.00"
+   },
+   {
+    "key": "pressure_depth",
+    "name": "Pressure Depth",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5000"
+   },
+   {
+    "key": "big_face",
+    "name": "Face",
+    "type": "canvas",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": null,
+    "default": null
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Preset",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Voice Effects",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Envelope",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Preset",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PRESET",
+       "fullName": "Preset",
+       "renderStyle": "preset",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "VOW",
+       "fullName": "Vowel",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HEAD",
+       "fullName": "Head Size",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BRTH",
+       "fullName": "Breath",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GLD",
+       "fullName": "Glide",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "VIB",
+       "fullName": "Vibrato",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "UNI",
+       "fullName": "Unison",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DLY",
+       "fullName": "Delay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LVL",
+       "fullName": "Level",
+       "renderStyle": "vbar",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Voice Effects",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "VIB",
+       "fullName": "Vibrato",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VBRT",
+       "fullName": "Vibrato Rate",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DLY",
+       "fullName": "Delay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DLRT",
+       "fullName": "Delay Rate",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "UNI",
+       "fullName": "Unison",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DET",
+       "fullName": "Detune",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SPR",
+       "fullName": "Spread",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Envelope",
+    "envelopeLines": [
+     true,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ATK",
+       "fullName": "Attack",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DEC",
+       "fullName": "Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SUS",
+       "fullName": "Sustain",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "REL",
+       "fullName": "Release",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "PRS",
+       "fullName": "Pressure Target",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DPTH",
+       "fullName": "Pressure Depth",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BEND",
+       "fullName": "Bend Range",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "preset",
+    "label": "Preset",
+    "shortLabel": null,
+    "type": "enum",
+    "min": 0,
+    "max": 11,
+    "step": 1,
+    "options": null,
+    "nameKey": "preset_name",
+    "renderStyle": "preset",
+    "capturesModuleState": true,
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 12
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "vowel",
+    "label": "Vowel",
+    "shortLabel": "Vow",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "head_size",
+    "label": "Head Size",
+    "shortLabel": "Head",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "aspiration",
+    "label": "Breath",
+    "shortLabel": "Brth",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "glide",
+    "label": "Glide",
+    "shortLabel": "Gld",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "vibrato",
+    "label": "Vibrato",
+    "shortLabel": "Vib",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "unison",
+    "label": "Unison",
+    "shortLabel": "Uni",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "delay",
+    "label": "Delay",
+    "shortLabel": "Dly",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "level",
+    "label": "Level",
+    "shortLabel": "Lvl",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "vibrato",
+    "label": "Vibrato",
+    "shortLabel": "Vib",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "vibrato_rate",
+    "label": "Vibrato Rate",
+    "shortLabel": "VbRt",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "delay",
+    "label": "Delay",
+    "shortLabel": "Dly",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "delay_rate",
+    "label": "Delay Rate",
+    "shortLabel": "DlRt",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "unison",
+    "label": "Unison",
+    "shortLabel": "Uni",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "unison_detune",
+    "label": "Detune",
+    "shortLabel": "Det",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "unison_spread",
+    "label": "Spread",
+    "shortLabel": "Spr",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   {
+    "key": "attack",
+    "label": "Attack",
+    "shortLabel": "Atk",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "decay",
+    "label": "Decay",
+    "shortLabel": "Dec",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "sustain",
+    "label": "Sustain",
+    "shortLabel": "Sus",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "release",
+    "label": "Release",
+    "shortLabel": "Rel",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "pressure_routing",
+    "label": "Pressure Target",
+    "shortLabel": "Prs",
+    "type": "enum",
+    "options": [
+     "Vowel",
+     "Pitch",
+     "Both",
+     "Both Inv"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "pressure_depth",
+    "label": "Pressure Depth",
+    "shortLabel": "Dpth",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "bend_range",
+    "label": "Bend Range",
+    "shortLabel": "Bend",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 12,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 48
+    }
+   },
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "face",
+   "big_face"
+  ],
+  "noMetadata": [
+   "preset"
+  ],
+  "warnings": [
+   "2 chain_params not reachable in movy: face, big_face",
+   "1 shown params lack chain_params metadata (movy guesses type/range): preset"
+  ]
+ }
+}

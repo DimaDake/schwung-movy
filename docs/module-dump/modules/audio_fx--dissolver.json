@@ -5,7 +5,7 @@
  "author": "fillioning",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 55,
+ "load_ms": 45,
  "dsp_size": 74976,
  "capabilities": {
   "chain_params": [

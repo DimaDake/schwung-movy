@@ -5,7 +5,7 @@
  "author": "fillioning (port of OpenWurli by hal0zer0)",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 109,
+ "load_ms": 42,
  "dsp_size": 73336,
  "capabilities": {
   "audio_out": true,

@@ -1,12 +1,12 @@
 {
  "id": "verglas",
  "name": "Verglas",
- "version": "1.2.2",
+ "version": "1.2.3",
  "author": "Emilie Gillet (DSP) / fillioning (port)",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 55,
- "dsp_size": 122904,
+ "load_ms": 41,
+ "dsp_size": 122984,
  "capabilities": {
   "chainable": true,
   "component_type": "audio_fx",

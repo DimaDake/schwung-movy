@@ -5,7 +5,7 @@
  "author": "dsp56300/gearmulator (port: charlesvestal)",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 141,
+ "load_ms": 42,
  "dsp_size": 4628016,
  "capabilities": {
   "audio_out": true,

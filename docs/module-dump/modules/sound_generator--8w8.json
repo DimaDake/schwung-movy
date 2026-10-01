@@ -1,12 +1,12 @@
 {
  "id": "8w8",
  "name": "8W8",
- "version": "1.4.0",
+ "version": "1.5.0",
  "author": "athousanddetails; circuit models from the TR-808 service notes and Werner/Abel/Smith; rim shot transcribed from sc808 (Yoshinosuke Horiuchi / Sam Aaron, Sonic Pi)",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 41,
- "dsp_size": 93856,
+ "load_ms": 42,
+ "dsp_size": 102152,
  "capabilities": {
   "audio_out": true,
   "audio_in": false,

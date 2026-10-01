@@ -5,7 +5,7 @@
  "author": "Charles Vestal (DSP: thement/midiverb_emulator)",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 66,
+ "load_ms": 42,
  "dsp_size": 392456,
  "capabilities": {
   "chainable": true,
@@ -351,9 +351,9 @@
     "max": 2,
     "step": 1,
     "options": [
-     "* Midiverb",
-     "Midifex",
-     "Midiverb II"
+     "* Midiverb (ROM)",
+     "Midifex (ROM)",
+     "Midiverb II (ROM)"
     ],
     "itemIndices": [
      0,

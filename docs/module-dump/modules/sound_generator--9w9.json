@@ -1,11 +1,11 @@
 {
  "id": "9w9",
  "name": "9W9",
- "version": "2.6.0",
+ "version": "2.7.0",
  "author": "athousanddetails; after ER-99 (Matthew Cieplak)",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 42,
+ "load_ms": 46,
  "dsp_size": 85352,
  "capabilities": {
   "audio_out": true,

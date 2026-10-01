@@ -5,7 +5,7 @@
  "author": "Andre Louis (DSP: Martin Eastwood)",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 68,
+ "load_ms": 45,
  "dsp_size": 25824,
  "capabilities": {
   "chainable": true,

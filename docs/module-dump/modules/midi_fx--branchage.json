@@ -5,7 +5,7 @@
  "author": "Mutable Instruments ideas / port for Schwung Move",
  "category": "midi_fx",
  "status": "ok",
- "load_ms": 36,
+ "load_ms": 43,
  "dsp_size": 72240,
  "capabilities": {
   "midi_in": true,

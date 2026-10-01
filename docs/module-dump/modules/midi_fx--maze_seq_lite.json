@@ -1,0 +1,967 @@
+{
+ "id": "maze_seq_lite",
+ "name": "Maze Lite",
+ "version": "1.4.0",
+ "author": "sd88me",
+ "category": "midi_fx",
+ "status": "ok",
+ "load_ms": 43,
+ "dsp_size": 71024,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "midi_fx",
+  "midi_in": true,
+  "ui_hierarchy": {
+   "levels": {
+    "global": {
+     "knobs": [
+      "scale",
+      "note_rate",
+      "note_length",
+      "g_reset"
+     ],
+     "name": "Global",
+     "params": [
+      "scale",
+      "note_rate",
+      "note_length",
+      "g_reset"
+     ]
+    },
+    "root": {
+     "knobs": [
+      "s1_corrupt",
+      "s1_cv_range",
+      "s1_length",
+      "s1_bit_flip",
+      "s1_advance",
+      "s1_reset",
+      "trig_mix"
+     ],
+     "name": "Sequencer 1",
+     "params": [
+      "s1_corrupt",
+      "s1_cv_range",
+      "s1_length",
+      "s1_bit_flip",
+      "s1_advance",
+      "s1_reset",
+      "trig_mix",
+      {
+       "label": "Seq 2",
+       "level": "seq2"
+      },
+      {
+       "label": "Global",
+       "level": "global"
+      }
+     ]
+    },
+    "seq2": {
+     "knobs": [
+      "s2_corrupt",
+      "s2_cv_range",
+      "s2_length",
+      "s2_bit_flip",
+      "s2_advance",
+      "s2_reset",
+      "trig_mix_b"
+     ],
+     "name": "Sequencer 2",
+     "params": [
+      "s2_corrupt",
+      "s2_cv_range",
+      "s2_length",
+      "s2_bit_flip",
+      "s2_advance",
+      "s2_reset",
+      "trig_mix_b"
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "global",
+   "root",
+   "seq2"
+  ],
+  "params": [
+   {
+    "key": "s1_corrupt",
+    "name": "1 Corrupt",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "s1_cv_range",
+    "name": "1 Range",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "50"
+   },
+   {
+    "key": "s1_length",
+    "name": "1 Length",
+    "type": "int",
+    "min": 1,
+    "max": 8,
+    "step": null,
+    "options": null,
+    "default": "8"
+   },
+   {
+    "key": "s1_bit_flip",
+    "name": "1 Bit Flip",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "off",
+     "go"
+    ],
+    "default": "off"
+   },
+   {
+    "key": "s1_advance",
+    "name": "1 Advance",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "off",
+     "go"
+    ],
+    "default": "off"
+   },
+   {
+    "key": "s1_reset",
+    "name": "1 Reset",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "1 bar",
+     "2 bars",
+     "4 bars",
+     "8 bars",
+     "Off"
+    ],
+    "default": "4"
+   },
+   {
+    "key": "s2_corrupt",
+    "name": "2 Corrupt",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "s2_cv_range",
+    "name": "2 Range",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "50"
+   },
+   {
+    "key": "s2_length",
+    "name": "2 Length",
+    "type": "int",
+    "min": 1,
+    "max": 8,
+    "step": null,
+    "options": null,
+    "default": "8"
+   },
+   {
+    "key": "s2_bit_flip",
+    "name": "2 Bit Flip",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "off",
+     "go"
+    ],
+    "default": "off"
+   },
+   {
+    "key": "s2_advance",
+    "name": "2 Advance",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "off",
+     "go"
+    ],
+    "default": "off"
+   },
+   {
+    "key": "s2_reset",
+    "name": "2 Reset",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "1 bar",
+     "2 bars",
+     "4 bars",
+     "8 bars",
+     "Off"
+    ],
+    "default": "4"
+   },
+   {
+    "key": "trig_mix",
+    "name": "Trig Mix",
+    "type": "int",
+    "min": -63,
+    "max": 64,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "trig_mix_b",
+    "name": "Trig Mix",
+    "type": "int",
+    "min": -63,
+    "max": 64,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "g_reset",
+    "name": "Reset Both",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "1 bar",
+     "2 bars",
+     "4 bars",
+     "8 bars",
+     "Off"
+    ],
+    "default": "4"
+   },
+   {
+    "key": "scale",
+    "name": "Scale",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Chromatic",
+     "Major",
+     "Minor",
+     "Pentatonic Maj",
+     "Pentatonic Min",
+     "Melodic Minor",
+     "Harmonic Minor",
+     "Whole Tone",
+     "Hirajoshi",
+     "Major 7",
+     "Minor 7",
+     "Unquantized"
+    ],
+    "default": "1"
+   },
+   {
+    "key": "note_rate",
+    "name": "Note Rate",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "1/32",
+     "1/16",
+     "1/8",
+     "1/4",
+     "1/2",
+     "1 bar"
+    ],
+    "default": "1"
+   },
+   {
+    "key": "note_length",
+    "name": "Note Len",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "1/4",
+     "2/4",
+     "3/4",
+     "4/4",
+     "5/4",
+     "6/4",
+     "7/4",
+     "8/4"
+    ],
+    "default": "3"
+   },
+   {
+    "key": "running",
+    "name": "Running",
+    "type": "int",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "s1_bits",
+    "name": "1 Bits",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "10000001"
+   },
+   {
+    "key": "s2_bits",
+    "name": "2 Bits",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "11010101"
+   },
+   {
+    "key": "s1_play",
+    "name": "1 Play",
+    "type": "int",
+    "min": -1,
+    "max": 7,
+    "step": null,
+    "options": null,
+    "default": "-1"
+   },
+   {
+    "key": "s2_play",
+    "name": "2 Play",
+    "type": "int",
+    "min": -1,
+    "max": 7,
+    "step": null,
+    "options": null,
+    "default": "-1"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Sequencer 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Global",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "CORRU",
+       "fullName": "1 Corrupt",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RANGE",
+       "fullName": "1 Range",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LENGTH",
+       "fullName": "1 Length",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BIT",
+       "fullName": "1 Bit Flip",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "ADVAN",
+       "fullName": "1 Advance",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RESET",
+       "fullName": "1 Reset",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TRIG",
+       "fullName": "Trig Mix",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Sequencer 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "CORRU",
+       "fullName": "2 Corrupt",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RANGE",
+       "fullName": "2 Range",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LENGTH",
+       "fullName": "2 Length",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BIT",
+       "fullName": "2 Bit Flip",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "ADVAN",
+       "fullName": "2 Advance",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RESET",
+       "fullName": "2 Reset",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TRIG",
+       "fullName": "Trig Mix",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Global",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "SCALE",
+       "fullName": "Scale",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RATE",
+       "fullName": "Note Rate",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LEN",
+       "fullName": "Note Len",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RESET",
+       "fullName": "Reset Both",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "s1_corrupt",
+    "label": "1 Corrupt",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "s1_cv_range",
+    "label": "1 Range",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "s1_length",
+    "label": "1 Length",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 8,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 14
+    }
+   },
+   {
+    "key": "s1_bit_flip",
+    "label": "1 Bit Flip",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "go"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "s1_advance",
+    "label": "1 Advance",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "go"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "s1_reset",
+    "label": "1 Reset",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1 bar",
+     "2 bars",
+     "4 bars",
+     "8 bars",
+     "Off"
+    ],
+    "min": 0,
+    "max": 4,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 5
+    }
+   },
+   {
+    "key": "trig_mix",
+    "label": "Trig Mix",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -63,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   null,
+   {
+    "key": "s2_corrupt",
+    "label": "2 Corrupt",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "s2_cv_range",
+    "label": "2 Range",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "s2_length",
+    "label": "2 Length",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 8,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 14
+    }
+   },
+   {
+    "key": "s2_bit_flip",
+    "label": "2 Bit Flip",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "go"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "s2_advance",
+    "label": "2 Advance",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "off",
+     "go"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "s2_reset",
+    "label": "2 Reset",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1 bar",
+     "2 bars",
+     "4 bars",
+     "8 bars",
+     "Off"
+    ],
+    "min": 0,
+    "max": 4,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 5
+    }
+   },
+   {
+    "key": "trig_mix_b",
+    "label": "Trig Mix",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -63,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   null,
+   {
+    "key": "scale",
+    "label": "Scale",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Chromatic",
+     "Major",
+     "Minor",
+     "Pentatonic Maj",
+     "Pentatonic Min",
+     "Melodic Minor",
+     "Harmonic Minor",
+     "Whole Tone",
+     "Hirajoshi",
+     "Major 7",
+     "Minor 7",
+     "Unquantized"
+    ],
+    "min": 0,
+    "max": 11,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 12
+    }
+   },
+   {
+    "key": "note_rate",
+    "label": "Note Rate",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1/32",
+     "1/16",
+     "1/8",
+     "1/4",
+     "1/2",
+     "1 bar"
+    ],
+    "min": 0,
+    "max": 5,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 6
+    }
+   },
+   {
+    "key": "note_length",
+    "label": "Note Len",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1/4",
+     "2/4",
+     "3/4",
+     "4/4",
+     "5/4",
+     "6/4",
+     "7/4",
+     "8/4"
+    ],
+    "min": 0,
+    "max": 7,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 8
+    }
+   },
+   {
+    "key": "g_reset",
+    "label": "Reset Both",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1 bar",
+     "2 bars",
+     "4 bars",
+     "8 bars",
+     "Off"
+    ],
+    "min": 0,
+    "max": 4,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 5
+    }
+   },
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "running",
+   "s1_bits",
+   "s2_bits",
+   "s1_play",
+   "s2_play"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "5 chain_params not reachable in movy: running, s1_bits, s2_bits, s1_play, s2_play"
+  ]
+ }
+}

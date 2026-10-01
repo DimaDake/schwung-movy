@@ -5,7 +5,7 @@
  "author": "nukeykt/giulioz (port: charlesvestal)",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 55,
+ "load_ms": 42,
  "dsp_size": 204552,
  "capabilities": {
   "audio_out": true,
@@ -572,7 +572,7 @@
     "max": 127,
     "step": 1,
     "options": null,
-    "default": "127"
+    "default": "14"
    },
    {
     "key": "macro_resonance",
@@ -592,7 +592,7 @@
     "max": 127,
     "step": 1,
     "options": null,
-    "default": "32"
+    "default": "0"
    },
    {
     "key": "macro_decay",
@@ -602,7 +602,7 @@
     "max": 127,
     "step": 1,
     "options": null,
-    "default": "0"
+    "default": "70"
    },
    {
     "key": "macro_release",
@@ -612,7 +612,7 @@
     "max": 127,
     "step": 1,
     "options": null,
-    "default": "60"
+    "default": "40"
    },
    {
     "key": "macro_sustain",
@@ -622,7 +622,7 @@
     "max": 127,
     "step": 1,
     "options": null,
-    "default": "127"
+    "default": "0"
    },
    {
     "key": "macro_tvf_env_depth",
@@ -632,7 +632,7 @@
     "max": 63,
     "step": 1,
     "options": null,
-    "default": "0"
+    "default": "23"
    },
    {
     "key": "macro_lfo_depth",
@@ -652,7 +652,7 @@
     "max": 127,
     "step": null,
     "options": null,
-    "default": "85"
+    "default": "127"
    },
    {
     "key": "nvram_patchCommon_patchpan",
@@ -672,7 +672,7 @@
     "max": 127,
     "step": 1,
     "options": null,
-    "default": "100"
+    "default": "91"
    },
    {
     "key": "nvram_patchCommon_reverbtime",
@@ -682,7 +682,7 @@
     "max": 127,
     "step": null,
     "options": null,
-    "default": "82"
+    "default": "89"
    },
    {
     "key": "nvram_patchCommon_choruslevel",
@@ -692,7 +692,7 @@
     "max": 127,
     "step": 1,
     "options": null,
-    "default": "127"
+    "default": "90"
    },
    {
     "key": "nvram_patchCommon_chorusdepth",
@@ -702,7 +702,7 @@
     "max": 127,
     "step": null,
     "options": null,
-    "default": "120"
+    "default": "16"
    },
    {
     "key": "nvram_patchCommon_chorusrate",
@@ -712,7 +712,7 @@
     "max": 127,
     "step": null,
     "options": null,
-    "default": "22"
+    "default": "0"
    },
    {
     "key": "nvram_patchCommon_analogfeel",
@@ -722,7 +722,7 @@
     "max": 127,
     "step": null,
     "options": null,
-    "default": "11"
+    "default": "8"
    },
    {
     "key": "nvram_patchCommon_reverbtype",
@@ -741,7 +741,7 @@
      "Delay",
      "Pan-Dly"
     ],
-    "default": "3"
+    "default": "12"
    },
    {
     "key": "nvram_patchCommon_reverbfeedback",
@@ -834,7 +834,7 @@
      "Legato",
      "Normal"
     ],
-    "default": "1"
+    "default": "0"
    },
    {
     "key": "nvram_patchCommon_portamentotype",
@@ -857,7 +857,7 @@
     "max": 127,
     "step": null,
     "options": null,
-    "default": "102"
+    "default": "93"
    },
    {
     "key": "nvram_patchCommon_keyassign",
@@ -934,7 +934,7 @@
     "max": 255,
     "step": null,
     "options": null,
-    "default": "40"
+    "default": "0"
    },
    {
     "key": "nvram_tone_0_fxmswitch",
@@ -967,7 +967,7 @@
     "max": 127,
     "step": null,
     "options": null,
-    "default": "71"
+    "default": "127"
    },
    {
     "key": "nvram_tone_0_pan",
@@ -977,7 +977,7 @@
     "max": 63,
     "step": null,
     "options": null,
-    "default": "12"
+    "default": "0"
    },
    {
     "key": "nvram_tone_0_levelkeyfollow",
@@ -987,7 +987,7 @@
     "max": 15,
     "step": null,
     "options": null,
-    "default": "1"
+    "default": "8"
    },
    {
     "key": "nvram_tone_0_panningkeyfollow",
@@ -997,7 +997,7 @@
     "max": 15,
     "step": null,
     "options": null,
-    "default": "7"
+    "default": "10"
    },
    {
     "key": "nvram_tone_0_cutofffrequency",
@@ -1007,7 +1007,7 @@
     "max": 127,
     "step": null,
     "options": null,
-    "default": "127"
+    "default": "14"
    },
    {
     "key": "nvram_tone_0_resonance",
@@ -1054,7 +1054,7 @@
     "max": 127,
     "step": null,
     "options": null,
-    "default": "117"
+    "default": "150"
    },
    {
     "key": "nvram_tone_0_pitchcoarse",
@@ -1074,7 +1074,7 @@
     "max": 50,
     "step": null,
     "options": null,
-    "default": "-2"
+    "default": "0"
    },
    {
     "key": "nvram_tone_0_randompitchdepth",

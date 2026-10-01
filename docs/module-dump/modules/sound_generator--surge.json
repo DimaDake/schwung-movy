@@ -5,7 +5,7 @@
  "author": "Surge Synth Team (port: charlesvestal)",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 517,
+ "load_ms": 247,
  "dsp_size": 9672640,
  "capabilities": {
   "audio_out": true,

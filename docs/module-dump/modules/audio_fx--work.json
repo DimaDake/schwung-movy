@@ -5,7 +5,7 @@
  "author": "timncox",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 90,
+ "load_ms": 53,
  "dsp_size": 514080,
  "capabilities": {
   "chainable": true,

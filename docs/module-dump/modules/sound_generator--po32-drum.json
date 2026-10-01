@@ -5,7 +5,7 @@
  "author": "mestela",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 48,
+ "load_ms": 43,
  "dsp_size": 105688,
  "capabilities": {
   "chainable": true,

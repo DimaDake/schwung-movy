@@ -5,7 +5,7 @@
  "author": "Emilie Gillet (port: charlesvestal)",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 44,
+ "load_ms": 40,
  "dsp_size": 533808,
  "capabilities": {
   "audio_out": true,

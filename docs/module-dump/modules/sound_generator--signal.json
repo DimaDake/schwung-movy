@@ -1,12 +1,12 @@
 {
  "id": "signal",
  "name": "Signal",
- "version": "0.2.1",
+ "version": "0.2.2",
  "author": "fillioning",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 70,
- "dsp_size": 142456,
+ "load_ms": 375,
+ "dsp_size": 142488,
  "capabilities": {
   "audio_out": true,
   "midi_in": true,
@@ -2623,7 +2623,7 @@
      "99%",
      "100%"
     ],
-    "default": "0%"
+    "default": "0"
    },
    {
     "key": "v2_preset",
@@ -2862,7 +2862,7 @@
      "99%",
      "100%"
     ],
-    "default": "0%"
+    "default": "0"
    },
    {
     "key": "v3_preset",
@@ -3101,7 +3101,7 @@
      "99%",
      "100%"
     ],
-    "default": "0%"
+    "default": "0"
    },
    {
     "key": "v4_preset",
@@ -3340,7 +3340,7 @@
      "99%",
      "100%"
     ],
-    "default": "0%"
+    "default": "0"
    },
    {
     "key": "patch",

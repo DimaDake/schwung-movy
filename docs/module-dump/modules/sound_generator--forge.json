@@ -1,12 +1,12 @@
 {
  "id": "forge",
  "name": "Forge",
- "version": "0.2.1",
+ "version": "0.2.7",
  "author": "Vincent Fillion",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 81,
- "dsp_size": 208456,
+ "load_ms": 64,
+ "dsp_size": 208968,
  "capabilities": {
   "audio_out": true,
   "midi_in": true,
@@ -29,12 +29,16 @@
      ],
      "params": [
       {
+       "level": "Perf",
+       "label": "Perf"
+      },
+      {
        "level": "Patch",
        "label": "Patch"
       },
       {
-       "level": "Perf",
-       "label": "Perf"
+       "level": "morph_copy",
+       "label": "Morph & Copy"
       },
       {
        "level": "Voice",
@@ -51,6 +55,10 @@
       {
        "level": "General",
        "label": "General"
+      },
+      {
+       "level": "eq",
+       "label": "EQ"
       }
      ]
     },
@@ -77,42 +85,13 @@
       "all_fx"
      ]
     },
-    "Patch": {
-     "name": "Patch",
-     "knobs": [
-      "kit",
-      "rnd_kit",
-      "rnd_kit_params",
-      "rnd_voice",
-      "morph",
-      "all_decay",
-      "rnd_pan",
-      "save_kit"
-     ],
-     "params": [
-      "kit",
-      "rnd_kit",
-      "rnd_kit_params",
-      "rnd_voice",
-      "morph",
-      "all_decay",
-      "rnd_pan",
-      "save_kit",
-      "all_mono",
-      "init_decay",
-      "rnd_pitch",
-      "init_freq",
-      "same_freq",
-      "copy_a_b",
-      "copy_b_a",
-      "swap_ab",
-      "rnd_b_from_a",
-      "morph_src",
-      "morph_curve"
-     ]
-    },
     "Voice": {
      "name": "Voice",
+     "child_count": 16,
+     "child_index_base": 1,
+     "child_label": "Voice",
+     "child_key_template": "{key}",
+     "child_index_param": "focused_voice",
      "knobs": [
       "cv_m1",
       "cv_m2",
@@ -278,6 +257,11 @@
     },
     "Osc": {
      "name": "Osc",
+     "child_count": 16,
+     "child_index_base": 1,
+     "child_label": "Voice",
+     "child_key_template": "{key}",
+     "child_index_param": "focused_voice",
      "knobs": [
       "cv_wave",
       "cv_ratio_c",
@@ -483,6 +467,11 @@
     },
     "Filter": {
      "name": "Filter",
+     "child_count": 16,
+     "child_index_base": 1,
+     "child_label": "Voice",
+     "child_key_template": "{key}",
+     "child_index_param": "focused_voice",
      "knobs": [
       "cv_f1_cut",
       "cv_f1_res",
@@ -684,6 +673,11 @@
     },
     "Env": {
      "name": "Env",
+     "child_count": 16,
+     "child_index_base": 1,
+     "child_label": "Voice",
+     "child_key_template": "{key}",
+     "child_index_param": "focused_voice",
      "knobs": [
       "cv_e1_atk",
       "cv_e1_dec",
@@ -886,6 +880,11 @@
     },
     "Mod": {
      "name": "Mod",
+     "child_count": 16,
+     "child_index_base": 1,
+     "child_label": "Voice",
+     "child_key_template": "{key}",
+     "child_index_param": "focused_voice",
      "knobs": [
       "cv_lfo_w",
       "cv_lfo_r",
@@ -1087,6 +1086,11 @@
     },
     "Setup": {
      "name": "Setup",
+     "child_count": 16,
+     "child_index_base": 1,
+     "child_label": "Voice",
+     "child_key_template": "{key}",
+     "child_index_param": "focused_voice",
      "knobs": [
       "cv_algo",
       "cv_choke",
@@ -1331,32 +1335,83 @@
      "knobs": [
       "comp",
       "drive",
+      "drive_type",
       "bit",
       "rate",
-      "eq_lo",
-      "eq_mid",
-      "eq_hi",
-      "master"
+      "limiter",
+      "master",
+      "master_tune"
      ],
      "params": [
       "comp",
       "drive",
+      "drive_type",
       "bit",
       "rate",
-      "eq_lo",
-      "eq_mid",
-      "eq_hi",
-      "master",
-      "drive_type",
-      "lo_freq",
-      "mid_freq",
-      "hi_freq",
-      "q_lo",
-      "q_mid",
-      "q_hi",
       "limiter",
+      "master",
       "master_tune",
       "midi_ch"
+     ]
+    },
+    "morph_copy": {
+     "name": "Morph & Copy",
+     "knobs": [
+      "morph_src",
+      "morph_curve",
+      "copy_a_b",
+      "copy_b_a",
+      "swap_ab",
+      "rnd_b_from_a"
+     ],
+     "params": [
+      "morph_src",
+      "morph_curve",
+      "copy_a_b",
+      "copy_b_a",
+      "swap_ab",
+      "rnd_b_from_a"
+     ]
+    },
+    "eq": {
+     "name": "EQ",
+     "knobs": [
+      "eq_lo",
+      "lo_freq",
+      "q_lo",
+      "eq_mid",
+      "mid_freq",
+      "q_mid",
+      "eq_hi",
+      "hi_freq"
+     ],
+     "params": [
+      "eq_lo",
+      "lo_freq",
+      "q_lo",
+      "eq_mid",
+      "mid_freq",
+      "q_mid",
+      "eq_hi",
+      "hi_freq",
+      "q_hi"
+     ]
+    },
+    "Patch": {
+     "name": "Patch",
+     "knobs": [
+      "all_mono",
+      "same_freq",
+      "init_decay",
+      "init_freq",
+      "rnd_pitch"
+     ],
+     "params": [
+      "all_mono",
+      "same_freq",
+      "init_decay",
+      "init_freq",
+      "rnd_pitch"
      ]
     }
    }
@@ -1377,7 +1432,8 @@
     "options": [
      "Play",
      "Save"
-    ]
+    ],
+    "access": "write"
    },
    {
     "key": "rnd_kit",
@@ -1386,7 +1442,8 @@
     "options": [
      "0",
      "1"
-    ]
+    ],
+    "access": "write"
    },
    {
     "key": "rnd_kit_params",
@@ -1395,7 +1452,8 @@
     "options": [
      "0",
      "1"
-    ]
+    ],
+    "access": "write"
    },
    {
     "key": "rnd_voice",
@@ -1404,7 +1462,8 @@
     "options": [
      "0",
      "1"
-    ]
+    ],
+    "access": "write"
    },
    {
     "key": "rnd_pitch",
@@ -1413,7 +1472,8 @@
     "options": [
      "0",
      "1"
-    ]
+    ],
+    "access": "write"
    },
    {
     "key": "morph",
@@ -1438,7 +1498,8 @@
     "options": [
      "0",
      "1"
-    ]
+    ],
+    "access": "write"
    },
    {
     "key": "all_punch",
@@ -1503,7 +1564,8 @@
     "options": [
      "0",
      "1"
-    ]
+    ],
+    "access": "write"
    },
    {
     "key": "init_decay",
@@ -1512,7 +1574,8 @@
     "options": [
      "0",
      "1"
-    ]
+    ],
+    "access": "write"
    },
    {
     "key": "init_freq",
@@ -1521,7 +1584,8 @@
     "options": [
      "0",
      "1"
-    ]
+    ],
+    "access": "write"
    },
    {
     "key": "same_freq",
@@ -1538,7 +1602,8 @@
     "options": [
      "0",
      "1"
-    ]
+    ],
+    "access": "write"
    },
    {
     "key": "copy_b_a",
@@ -1547,7 +1612,8 @@
     "options": [
      "0",
      "1"
-    ]
+    ],
+    "access": "write"
    },
    {
     "key": "swap_ab",
@@ -1556,7 +1622,8 @@
     "options": [
      "0",
      "1"
-    ]
+    ],
+    "access": "write"
    },
    {
     "key": "rnd_b_from_a",
@@ -1565,7 +1632,8 @@
     "options": [
      "0",
      "1"
-    ]
+    ],
+    "access": "write"
    },
    {
     "key": "morph_src",
@@ -3246,7 +3314,6 @@
   "hierarchy_levels": [
    "root",
    "Perf",
-   "Patch",
    "Voice",
    "Osc",
    "Filter",
@@ -3255,7 +3322,10 @@
    "Setup",
    "Mix",
    "FX",
-   "General"
+   "General",
+   "morph_copy",
+   "eq",
+   "Patch"
   ],
   "params": [
    {
@@ -7742,6 +7812,7 @@
     "step": 1,
     "renderStyle": "arc",
     "automatable": false,
+    "behavior": "trigger",
     "capturesModuleState": false,
     "increment": {
      "kind": "enum",
@@ -8386,6 +8457,7 @@
     "step": 1,
     "renderStyle": "switch",
     "automatable": false,
+    "behavior": "trigger",
     "capturesModuleState": false,
     "increment": {
      "kind": "enum",

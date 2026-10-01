@@ -5,7 +5,7 @@
  "author": "charlesvestal",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 64,
+ "load_ms": 41,
  "dsp_size": 28968,
  "capabilities": {
   "chainable": true,

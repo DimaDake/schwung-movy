@@ -5,7 +5,7 @@
  "author": "jpcima (port: charlesvestal)",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 90,
+ "load_ms": 48,
  "dsp_size": 651256,
  "capabilities": {
   "audio_out": true,

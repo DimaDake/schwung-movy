@@ -114,6 +114,73 @@ pad N and only pad N, **(d)** whether the held arc and the lane mark draw.
   never matches — verify, do not assume).
 - The matrix stays as the regression test for Phases 2–3.
 
+#### Phase 1 — findings (2026-10-01)
+
+Measured, not read: `browser-test/logic/drum-automation.mjs` boots the real
+controller over the 2026-10-01 capture (105 modules) through movy's io and
+asks the real code for each column; the chain table comes from schwung's own
+`chain_params.c` compiled natively (`browser-test/chain-table.mjs`). Snapshot
+in `browser-test/drum-automation-expect.json` (`UPDATE_DRUM_MATRIX=1` to
+re-baseline). Teeth: binding the lane to the concrete child key in the built
+bundle turns simian/dr32 rows red as named cell diffs.
+
+**The CC path's lookup.** `knob_find_param` → `find_param_info` is an EXACT
+scan — no child-template alias, no suffix match, no refresh. The table is
+`module.json` at load (`static`), replaced by the plugin's `chain_params`
+(`dynamic`) on the first `find_param_by_key` miss, both capped at 256.
+
+| module | (a) lane binds | pad N's key | (b) table | (c) pad N only | (d) arc / mark / sync |
+|---|---|---|---|---|---|
+| 6w6 8w8 9w9 cw78 | concrete (`lt_tune`) | same | dynamic | ✔ | ✔ ✔ ✔ — **all good** |
+| mrdrums | alias `pad_vol` | `p03_vol` | dynamic | ✘ focused pad | ✘ arc, mark on every pad, purged |
+| weird-dreams | alias `cv_vol` | `v3_vol` | dynamic | ✘ focused voice | ✘ arc, mark on every pad, purged |
+| forge | alias `cv_m1` (`{key}` template) | `pv3_m1` | static | ✘ focused voice | ✘ arc, mark on every pad, purged |
+| sophie | template `tune` | `p03_tune` | **none** | ✘ | arc on every pad, no mark, purged |
+| simian | template `tune` | `pad3_tune` | **none** | ✘ | arc on every pad, no mark |
+| dr32 | template `start` | `pad3_start` | **none** | ✘ | arc on every pad, no mark |
+| libpo32 | — no per-pad page in SCHWUNG mode (plans `Presets | Main: level/decay` from its module.json root) | | | | |
+| krautdrums | — no per-pad key anywhere (one level per voice) | | | | |
+
+**Named causes.**
+
+- **C1 — the lane binds the page's TEMPLATE/ALIAS key, never pad N's.**
+  `schwung-page-render.ts` `knobParamInfo` returns `ioKey: ctl.page.keys[slot]`
+  raw. On a child level that is the template (`tune`) — the controller resolves
+  `pad3_tune` only inside its own reads/writes (`childResolve`) and exports no
+  resolved-key accessor (only `childIndexOf(level)`). On alias racks it is the
+  focused-voice alias. Every non-sibling row fails (c) on this alone.
+- **C2 — sophie, simian, dr32 are silent because the bare template key is in
+  NO table.** Their tables hold only concrete per-pad keys (sophie, simian) or
+  base keys without the per-pad ones (dr32), and the CC path matches exactly.
+  This is the "more than the cap" cause the plan predicted. The cap is real
+  but secondary: sophie's dynamic table ends at `p15_ring_tone` (pad 16 gone);
+  simian's own `chain_params` stops at `pad14_*` (pads 15-16 never listed);
+  dr32 lists no per-pad key; forge's static table is full at 256. D1
+  (direct `set_param`, no table) removes all of it.
+- **C3 — weird-dreams' held arc: the REVERSE of the hypothesis.** The lock is
+  recorded on the ALIAS (`synth:cv_vol`, C1) and the decoration looks it up by
+  the CONCRETE key — `buildAutomationView.laneForKey` (`app/tick.ts`) maps the
+  cell through `concreteKey(ps, pad, key)` → `synth:v3_vol` → no lane, no arc.
+  The mark uses `automationFor` → `laneForParam(alias)`, which matches, so the
+  mark draws on every pad. Same for mrdrums and forge.
+- **C4 — `validateLane` purges alias and template lanes at the next label
+  sync.** A bare alias is dropped by rule; sophie's `tune` is unknown to movy's
+  config-built model. So even the mis-bound lane does not survive a sync.
+- **C5 — template marks.** The controller asks `isAutomated` with the RESOLVED
+  key (`fullKey`), the lane holds the template → no mark on simian/dr32/sophie,
+  while `decorationsFor` (template vs template) leaks the arc onto every pad.
+
+**What Phases 2-3 must also cover (found by the teeth run).** With the lane
+bound to the correct concrete key: `validateLane` would PURGE it (movy's model
+does not know `pad16_start`), and `laneForKey` would miss it (it does not
+resolve child templates) — both need the child-level resolution, not only the
+alias one. Unverified, recorded only: in the mock, `ctl.childIndexOf(level)`
+did not follow `focusVoice` on simian (pad 3 read back as index 0); resolve pad
+N from movy's own pad (D8), not from the controller's read-back.
+
+**libpo32 and krautdrums** are new findings for the best-effort pair: under
+SCHWUNG neither exposes a single per-pad parameter today.
+
 ### Phase 2 — Direct-write lanes (D1, D2)
 
 - Engine: on lane bind (`knob_<N>_set` today, `seq/lane-mapping.ts`), also hand

@@ -5,7 +5,7 @@
  "author": "mestela",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 65,
+ "load_ms": 43,
  "dsp_size": 51664,
  "capabilities": {
   "audio_out": true,

@@ -1,12 +1,12 @@
 {
  "id": "denis",
  "name": "Denis",
- "version": "0.1.1",
+ "version": "0.1.2",
  "author": "Vincent Fillion",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 62,
- "dsp_size": 72808,
+ "load_ms": 41,
+ "dsp_size": 72992,
  "capabilities": {
   "audio_out": true,
   "midi_in": true,

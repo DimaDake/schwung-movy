@@ -1,11 +1,11 @@
 {
  "id": "spectra",
  "name": "Spectra",
- "version": "0.2.1",
+ "version": "0.2.2",
  "author": "fillioning",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 59,
+ "load_ms": 44,
  "dsp_size": 73408,
  "capabilities": {
   "chainable": true,
@@ -1200,7 +1200,7 @@
     "max": 1,
     "step": 0.01,
     "options": null,
-    "default": "100%"
+    "default": "1.0000"
    }
   ]
  },

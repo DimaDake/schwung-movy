@@ -5,7 +5,7 @@
  "author": "4K EQ 2 by Dusk Audio (GPL-3.0); port: athousanddetails",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 64,
+ "load_ms": 44,
  "dsp_size": 410824,
  "capabilities": {
   "audio_out": true,

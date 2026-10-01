@@ -5,7 +5,7 @@
  "author": "athousanddetails; after Wavetable (Roland Rabien / FigBug, BSD-3)",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 111,
+ "load_ms": 74,
  "dsp_size": 696280,
  "capabilities": {
   "audio_out": true,

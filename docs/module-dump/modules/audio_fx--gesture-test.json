@@ -5,7 +5,7 @@
  "author": null,
  "category": "audio_fx",
  "status": "load_timeout",
- "load_ms": 12034,
+ "load_ms": 12026,
  "dsp_size": 0,
  "capabilities": {
   "chainable": true,

@@ -1,11 +1,11 @@
 {
  "id": "sophie",
  "name": "Sophie",
- "version": "0.5.0",
+ "version": "0.5.1",
  "author": "mestela",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 76,
+ "load_ms": 46,
  "dsp_size": 70968,
  "capabilities": {
   "audio_out": true,

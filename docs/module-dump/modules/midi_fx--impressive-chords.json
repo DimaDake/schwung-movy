@@ -1,11 +1,11 @@
 {
  "id": "impressive-chords",
  "name": "Impressive Chords",
- "version": "0.1.24",
+ "version": "0.1.25",
  "author": "mestela",
  "category": "midi_fx",
  "status": "ok",
- "load_ms": 68,
+ "load_ms": 53,
  "dsp_size": 114896,
  "capabilities": {
   "chainable": true,
@@ -180,7 +180,7 @@
   }
  },
  "presets": {
-  "count": 52,
+  "count": 152,
   "sample": []
  },
  "native": {
@@ -540,7 +540,7 @@
     "shortLabel": null,
     "type": "enum",
     "min": 0,
-    "max": 51,
+    "max": 151,
     "step": 1,
     "options": null,
     "nameKey": "preset_name",
@@ -550,7 +550,7 @@
     "increment": {
      "kind": "enum",
      "detentsPerStep": 4,
-     "steps": 52
+     "steps": 152
     }
    },
    null,

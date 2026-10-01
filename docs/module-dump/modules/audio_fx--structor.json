@@ -1,12 +1,12 @@
 {
  "id": "structor",
  "name": "Structor",
- "version": "0.3.1",
+ "version": "0.3.2",
  "author": "fillioning",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 57,
- "dsp_size": 110088,
+ "load_ms": 41,
+ "dsp_size": 114272,
  "capabilities": {
   "chainable": true,
   "component_type": "audio_fx",

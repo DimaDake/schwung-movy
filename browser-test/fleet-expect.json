@@ -41,6 +41,8 @@
     ]
   },
   "voiceDeclaring": [
+    "dr32",
+    "simian",
     "voice-poc"
   ],
   "unplannable": [

@@ -1,0 +1,294 @@
+{
+ "id": "rrverb10",
+ "name": "RRVerb-10",
+ "version": "0.3.2",
+ "author": "Schwung RRVerb-10 port; chip emulation by Sergey V. Mikayev (MUNT), ROM research by giulioz",
+ "category": "audio_fx",
+ "status": "ok",
+ "load_ms": 44,
+ "dsp_size": 72136,
+ "capabilities": {
+  "audio_in": true,
+  "audio_out": true,
+  "chainable": true,
+  "component_type": "audio_fx",
+  "ui_hierarchy": {
+   "modes": null,
+   "_comment": "MUST stay in sync with the ui_hierarchy served by get_param() in rrverb10.cpp -- neither one is authoritative everywhere. A chain slot (fx1-4) reads THIS copy first; the Master FX bus and send slots read the PLUGIN. Drift shows a different module on each surface, silently. tests/hierarchy.test.mjs asserts they agree.",
+   "levels": {
+    "root": {
+     "name": "RRVerb-10",
+     "knobs": [
+      "mode",
+      "time",
+      "pre_eq",
+      "mix"
+     ],
+     "params": [
+      {
+       "key": "mode",
+       "name": "Mode",
+       "type": "enum",
+       "default": 2,
+       "options": [
+        "Room 1",
+        "Room 2",
+        "Hall 1",
+        "Hall 2",
+        "Plate 1",
+        "Plate 2",
+        "M-Tap 1",
+        "M-Tap 2",
+        "Gate"
+       ],
+       "_short_comment": "The grid draws an enum as a two-line 3-char square; without these, M-Tap 1 and M-Tap 2 render as the same cell.",
+       "short_options": [
+        "RM1",
+        "RM2",
+        "HL1",
+        "HL2",
+        "PL1",
+        "PL2",
+        "MT1",
+        "MT2",
+        "GAT"
+       ]
+      },
+      {
+       "key": "time",
+       "name": "Decay/Gate",
+       "type": "int",
+       "min": 0,
+       "max": 15,
+       "default": 8
+      },
+      {
+       "key": "pre_eq",
+       "name": "Pre-EQ",
+       "type": "int",
+       "min": 0,
+       "max": 100,
+       "default": 50
+      },
+      {
+       "key": "mix",
+       "name": "Mix",
+       "type": "int",
+       "min": 0,
+       "max": 100,
+       "default": 30,
+       "unit": "%"
+      }
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root"
+  ],
+  "params": [
+   {
+    "key": "mode",
+    "name": "Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Room 1",
+     "Room 2",
+     "Hall 1",
+     "Hall 2",
+     "Plate 1",
+     "Plate 2",
+     "M-Tap 1",
+     "M-Tap 2",
+     "Gate"
+    ],
+    "default": "2"
+   },
+   {
+    "key": "time",
+    "name": "Decay/Gate",
+    "type": "int",
+    "min": 0,
+    "max": 15,
+    "step": null,
+    "options": null,
+    "default": "8"
+   },
+   {
+    "key": "pre_eq",
+    "name": "Pre-EQ",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "50"
+   },
+   {
+    "key": "mix",
+    "name": "Mix",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "30"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MODE",
+       "fullName": "Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY/",
+       "fullName": "Decay/Gate",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PRE-EQ",
+       "fullName": "Pre-EQ",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MIX",
+       "fullName": "Mix",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "mode",
+    "label": "Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Room 1",
+     "Room 2",
+     "Hall 1",
+     "Hall 2",
+     "Plate 1",
+     "Plate 2",
+     "M-Tap 1",
+     "M-Tap 2",
+     "Gate"
+    ],
+    "min": 0,
+    "max": 8,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 9
+    }
+   },
+   {
+    "key": "time",
+    "label": "Decay/Gate",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 15,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 30
+    }
+   },
+   {
+    "key": "pre_eq",
+    "label": "Pre-EQ",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "mix",
+    "label": "Mix",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [],
+  "noMetadata": [],
+  "warnings": []
+ }
+}

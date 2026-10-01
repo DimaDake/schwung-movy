@@ -1,11 +1,11 @@
 {
  "id": "ottx",
  "name": "OTTx",
- "version": "0.2.0",
+ "version": "0.2.1",
  "author": "Schwung OTTx port; DSP by Matt Tytel (Vital), Yegor Suslin (vitOTT)",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 81,
+ "load_ms": 40,
  "dsp_size": 30096,
  "capabilities": {
   "chainable": true,
@@ -84,6 +84,16 @@
        "unit": "dB"
       },
       {
+       "key": "tame",
+       "name": "Tame",
+       "type": "float",
+       "min": -12,
+       "max": 12,
+       "default": 0,
+       "step": 1,
+       "unit": "dB"
+      },
+      {
        "key": "low_cross",
        "name": "Low/Mid Hz",
        "type": "float",
@@ -115,7 +125,8 @@
       "downward",
       "time",
       "in_gain",
-      "out_gain"
+      "out_gain",
+      "tame"
      ]
     },
     "advanced": {
@@ -377,6 +388,16 @@
     "min": -60,
     "max": 30,
     "step": 0.5,
+    "options": null,
+    "default": "0.0000"
+   },
+   {
+    "key": "tame",
+    "name": "Tame",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "step": 1,
     "options": null,
     "default": "0.0000"
    },
@@ -665,8 +686,8 @@
        "displayValue": "..."
       },
       {
-       "shortName": "LH",
-       "fullName": "Low/Mid Hz",
+       "shortName": "TAME",
+       "fullName": "Tame",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
@@ -684,13 +705,19 @@
     "rows": [
      [
       {
+       "shortName": "LH",
+       "fullName": "Low/Mid Hz",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
        "shortName": "MID/HI",
        "fullName": "Mid/Hi Hz",
        "renderStyle": "arc",
        "type": "float",
        "displayValue": "..."
       },
-      null,
       null,
       null
      ],
@@ -992,6 +1019,23 @@
     }
    },
    {
+    "key": "tame",
+    "label": "Tame",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -12,
+    "max": 12,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 48
+    }
+   },
+   {
     "key": "low_cross",
     "label": "Low/Mid Hz",
     "shortLabel": null,
@@ -1025,7 +1069,6 @@
      "detentsFullSweep": 3596
     }
    },
-   null,
    null,
    null,
    null,

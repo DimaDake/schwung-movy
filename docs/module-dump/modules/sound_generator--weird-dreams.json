@@ -1,12 +1,12 @@
 {
  "id": "weird-dreams",
  "name": "Weird Dreams",
- "version": "0.2.6",
+ "version": "0.2.8",
  "author": "Vincent Fillion (DSP: Daniele Filaretti, MIT)",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 59,
- "dsp_size": 139368,
+ "load_ms": 41,
+ "dsp_size": 94872,
  "capabilities": {
   "audio_out": true,
   "midi_in": true,

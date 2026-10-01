@@ -1,12 +1,12 @@
 {
  "id": "sfz",
  "name": "Multisampler",
- "version": "0.6.4",
+ "version": "0.6.5",
  "author": "charlesvestal",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 176,
- "dsp_size": 7160296,
+ "load_ms": 40,
+ "dsp_size": 7144200,
  "capabilities": {
   "audio_out": true,
   "audio_in": false,

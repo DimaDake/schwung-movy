@@ -5,8 +5,8 @@
  "author": null,
  "category": "midi_fx",
  "status": "ok",
- "load_ms": 40,
- "dsp_size": 93488,
+ "load_ms": 44,
+ "dsp_size": 93480,
  "capabilities": {
   "chainable": true,
   "component_type": "midi_fx",

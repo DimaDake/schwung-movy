@@ -5,7 +5,7 @@
  "author": "Tape Echo 2 by Dusk Audio (GPL-3.0); port: athousanddetails",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 67,
+ "load_ms": 40,
  "dsp_size": 400488,
  "capabilities": {
   "audio_in": true,

@@ -125,6 +125,10 @@ function capture(mod, status) {
     const hierRaw = grab('ui_hierarchy');
     const cpRaw   = grab('chain_params');
     grab('name');
+    /* Rung 2 of the contract (chain/hierarchy-source): a module that keeps its
+     * hierarchy private serves it here instead — sophie does, so without this
+     * the dump recorded sophie as a module with no contract at all. */
+    grab('ui_pages');
 
     let hier = null, cp = null;
     try { hier = hierRaw ? JSON.parse(hierRaw) : null; } catch (e) { params.__hier_parse_error = String(e); }

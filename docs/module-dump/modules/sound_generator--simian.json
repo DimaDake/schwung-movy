@@ -1,0 +1,5464 @@
+{
+ "id": "simian",
+ "name": "SIMIAN",
+ "version": "0.1.0",
+ "author": "legsmechanical",
+ "category": "sound_generator",
+ "status": "ok",
+ "load_ms": 45,
+ "dsp_size": 423280,
+ "capabilities": {
+  "audio_out": true,
+  "audio_in": false,
+  "midi_in": true,
+  "midi_out": false,
+  "aftertouch": false,
+  "chainable": true,
+  "component_type": "sound_generator",
+  "chain_params": [
+   {
+    "key": "gain",
+    "name": "Gain",
+    "type": "int",
+    "min": -60,
+    "max": 6,
+    "default": 0,
+    "unit": "dB"
+   },
+   {
+    "key": "drive",
+    "name": "Drive",
+    "type": "int",
+    "min": -60,
+    "max": 6,
+    "default": -6,
+    "unit": "dB"
+   },
+   {
+    "key": "master_sat",
+    "name": "Sat",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "rev_size",
+    "name": "Rev Size",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 50,
+    "unit": "%"
+   },
+   {
+    "key": "rev_gate",
+    "name": "Rev Gate",
+    "type": "int",
+    "min": -100,
+    "max": 0,
+    "default": -100,
+    "unit": "dB"
+   },
+   {
+    "key": "sens",
+    "name": "Vel Sens",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "transpose",
+    "name": "Transpose",
+    "type": "int",
+    "min": -12,
+    "max": 12,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "ui_current_voice",
+    "name": "Voice",
+    "type": "int",
+    "min": 1,
+    "max": 16,
+    "default": 1,
+    "viz": {
+     "kind": "custom:voicelink"
+    }
+   },
+   {
+    "key": "pad1_tune",
+    "name": "Kick Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad2_tune",
+    "name": "Rim Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad3_tune",
+    "name": "Snare Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad4_tune",
+    "name": "Snare 2 Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "default": 2,
+    "unit": "st"
+   },
+   {
+    "key": "pad5_tune",
+    "name": "Clap Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad6_tune",
+    "name": "Lo Tom Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad7_tune",
+    "name": "HH Cl Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad8_tune",
+    "name": "HH Cl 2 Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "default": 3,
+    "unit": "st"
+   },
+   {
+    "key": "pad9_tune",
+    "name": "Hi Tom Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad10_tune",
+    "name": "Lo Tom 2 Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "default": 2,
+    "unit": "st"
+   },
+   {
+    "key": "pad11_tune",
+    "name": "HH Open Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad12_tune",
+    "name": "Mid Tom Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad13_tune",
+    "name": "Hi Tom 2 Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "default": 2,
+    "unit": "st"
+   },
+   {
+    "key": "pad14_tune",
+    "name": "Cymbal Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad15_tune",
+    "name": "Cymbal 2 Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "default": 7,
+    "unit": "st"
+   },
+   {
+    "key": "pad16_tune",
+    "name": "Mid Tom2 Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "default": 2,
+    "unit": "st"
+   },
+   {
+    "key": "pad1_pitch",
+    "name": "Kick Pitch",
+    "type": "int",
+    "min": 30,
+    "max": 4400,
+    "default": 220,
+    "unit": "hz"
+   },
+   {
+    "key": "pad1_wave",
+    "name": "Kick Wave",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad1_bend",
+    "name": "Kick Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad1_bend_dyn",
+    "name": "Kick Bend Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad1_cutoff",
+    "name": "Kick Cutoff",
+    "type": "int",
+    "min": 440,
+    "max": 15000,
+    "default": 10000,
+    "unit": "hz"
+   },
+   {
+    "key": "pad1_res",
+    "name": "Kick Res",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad1_lp_bend",
+    "name": "Kick LP Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad1_lp_dyn",
+    "name": "Kick LP Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad1_decay",
+    "name": "Kick Decay",
+    "type": "int",
+    "min": 10,
+    "max": 2000,
+    "default": 200,
+    "unit": "ms"
+   },
+   {
+    "key": "pad1_punch",
+    "name": "Kick Punch",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad1_noise",
+    "name": "Kick Tone/Nse",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 25,
+    "unit": "%"
+   },
+   {
+    "key": "pad1_click",
+    "name": "Kick Click",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 50,
+    "unit": "%"
+   },
+   {
+    "key": "pad1_volume",
+    "name": "Kick Volume",
+    "type": "int",
+    "min": -60,
+    "max": 6,
+    "default": 0,
+    "unit": "dB"
+   },
+   {
+    "key": "pad1_pan",
+    "name": "Kick Pan",
+    "type": "int",
+    "min": -100,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad1_vel_vol",
+    "name": "Kick Vel Vol",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad1_sat",
+    "name": "Kick Sat",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad1_reverb",
+    "name": "Kick Reverb",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad1_send_a",
+    "name": "Kick Send A",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad1_send_b",
+    "name": "Kick Send B",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad2_pitch",
+    "name": "Rimshot Pitch",
+    "type": "int",
+    "min": 30,
+    "max": 4400,
+    "default": 220,
+    "unit": "hz"
+   },
+   {
+    "key": "pad2_wave",
+    "name": "Rimshot Wave",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad2_bend",
+    "name": "Rimshot Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad2_bend_dyn",
+    "name": "Rimshot Bend Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad2_cutoff",
+    "name": "Rimshot Cutoff",
+    "type": "int",
+    "min": 440,
+    "max": 15000,
+    "default": 10000,
+    "unit": "hz"
+   },
+   {
+    "key": "pad2_res",
+    "name": "Rimshot Res",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad2_lp_bend",
+    "name": "Rimshot LP Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad2_lp_dyn",
+    "name": "Rimshot LP Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad2_decay",
+    "name": "Rimshot Decay",
+    "type": "int",
+    "min": 10,
+    "max": 2000,
+    "default": 200,
+    "unit": "ms"
+   },
+   {
+    "key": "pad2_punch",
+    "name": "Rimshot Punch",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad2_noise",
+    "name": "Rimshot Tone/Nse",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 25,
+    "unit": "%"
+   },
+   {
+    "key": "pad2_click",
+    "name": "Rimshot Click",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 50,
+    "unit": "%"
+   },
+   {
+    "key": "pad2_volume",
+    "name": "Rimshot Volume",
+    "type": "int",
+    "min": -60,
+    "max": 6,
+    "default": 0,
+    "unit": "dB"
+   },
+   {
+    "key": "pad2_pan",
+    "name": "Rimshot Pan",
+    "type": "int",
+    "min": -100,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad2_vel_vol",
+    "name": "Rimshot Vel Vol",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad2_sat",
+    "name": "Rimshot Sat",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad2_reverb",
+    "name": "Rimshot Reverb",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad2_send_a",
+    "name": "Rimshot Send A",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad2_send_b",
+    "name": "Rimshot Send B",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad3_pitch",
+    "name": "Snare Pitch",
+    "type": "int",
+    "min": 30,
+    "max": 4400,
+    "default": 220,
+    "unit": "hz"
+   },
+   {
+    "key": "pad3_wave",
+    "name": "Snare Wave",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad3_bend",
+    "name": "Snare Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad3_bend_dyn",
+    "name": "Snare Bend Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad3_cutoff",
+    "name": "Snare Cutoff",
+    "type": "int",
+    "min": 440,
+    "max": 15000,
+    "default": 10000,
+    "unit": "hz"
+   },
+   {
+    "key": "pad3_res",
+    "name": "Snare Res",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad3_lp_bend",
+    "name": "Snare LP Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad3_lp_dyn",
+    "name": "Snare LP Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad3_decay",
+    "name": "Snare Decay",
+    "type": "int",
+    "min": 10,
+    "max": 2000,
+    "default": 200,
+    "unit": "ms"
+   },
+   {
+    "key": "pad3_punch",
+    "name": "Snare Punch",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad3_noise",
+    "name": "Snare Tone/Nse",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 25,
+    "unit": "%"
+   },
+   {
+    "key": "pad3_click",
+    "name": "Snare Click",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 50,
+    "unit": "%"
+   },
+   {
+    "key": "pad3_volume",
+    "name": "Snare Volume",
+    "type": "int",
+    "min": -60,
+    "max": 6,
+    "default": 0,
+    "unit": "dB"
+   },
+   {
+    "key": "pad3_pan",
+    "name": "Snare Pan",
+    "type": "int",
+    "min": -100,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad3_vel_vol",
+    "name": "Snare Vel Vol",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad3_sat",
+    "name": "Snare Sat",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad3_reverb",
+    "name": "Snare Reverb",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad3_send_a",
+    "name": "Snare Send A",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad3_send_b",
+    "name": "Snare Send B",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad5_pitch",
+    "name": "Clap Pitch",
+    "type": "int",
+    "min": 30,
+    "max": 4400,
+    "default": 220,
+    "unit": "hz"
+   },
+   {
+    "key": "pad5_wave",
+    "name": "Clap Wave",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad5_bend",
+    "name": "Clap Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad5_bend_dyn",
+    "name": "Clap Bend Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad5_cutoff",
+    "name": "Clap Cutoff",
+    "type": "int",
+    "min": 440,
+    "max": 15000,
+    "default": 10000,
+    "unit": "hz"
+   },
+   {
+    "key": "pad5_res",
+    "name": "Clap Res",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad5_lp_bend",
+    "name": "Clap LP Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad5_lp_dyn",
+    "name": "Clap LP Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad5_decay",
+    "name": "Clap Decay",
+    "type": "int",
+    "min": 10,
+    "max": 2000,
+    "default": 200,
+    "unit": "ms"
+   },
+   {
+    "key": "pad5_punch",
+    "name": "Clap Punch",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad5_noise",
+    "name": "Clap Tone/Nse",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 25,
+    "unit": "%"
+   },
+   {
+    "key": "pad5_click",
+    "name": "Clap Click",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 50,
+    "unit": "%"
+   },
+   {
+    "key": "pad5_volume",
+    "name": "Clap Volume",
+    "type": "int",
+    "min": -60,
+    "max": 6,
+    "default": 0,
+    "unit": "dB"
+   },
+   {
+    "key": "pad5_pan",
+    "name": "Clap Pan",
+    "type": "int",
+    "min": -100,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad5_vel_vol",
+    "name": "Clap Vel Vol",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad5_sat",
+    "name": "Clap Sat",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad5_reverb",
+    "name": "Clap Reverb",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad5_send_a",
+    "name": "Clap Send A",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad5_send_b",
+    "name": "Clap Send B",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad6_pitch",
+    "name": "Low Tom Pitch",
+    "type": "int",
+    "min": 30,
+    "max": 4400,
+    "default": 220,
+    "unit": "hz"
+   },
+   {
+    "key": "pad6_wave",
+    "name": "Low Tom Wave",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad6_bend",
+    "name": "Low Tom Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad6_bend_dyn",
+    "name": "Low Tom Bend Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad6_cutoff",
+    "name": "Low Tom Cutoff",
+    "type": "int",
+    "min": 440,
+    "max": 15000,
+    "default": 10000,
+    "unit": "hz"
+   },
+   {
+    "key": "pad6_res",
+    "name": "Low Tom Res",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad6_lp_bend",
+    "name": "Low Tom LP Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad6_lp_dyn",
+    "name": "Low Tom LP Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad6_decay",
+    "name": "Low Tom Decay",
+    "type": "int",
+    "min": 10,
+    "max": 2000,
+    "default": 200,
+    "unit": "ms"
+   },
+   {
+    "key": "pad6_punch",
+    "name": "Low Tom Punch",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad6_noise",
+    "name": "Low Tom Tone/Nse",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 25,
+    "unit": "%"
+   },
+   {
+    "key": "pad6_click",
+    "name": "Low Tom Click",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 50,
+    "unit": "%"
+   },
+   {
+    "key": "pad6_volume",
+    "name": "Low Tom Volume",
+    "type": "int",
+    "min": -60,
+    "max": 6,
+    "default": 0,
+    "unit": "dB"
+   },
+   {
+    "key": "pad6_pan",
+    "name": "Low Tom Pan",
+    "type": "int",
+    "min": -100,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad6_vel_vol",
+    "name": "Low Tom Vel Vol",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad6_sat",
+    "name": "Low Tom Sat",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad6_reverb",
+    "name": "Low Tom Reverb",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad6_send_a",
+    "name": "Low Tom Send A",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad6_send_b",
+    "name": "Low Tom Send B",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad7_pitch",
+    "name": "HH Closed Pitch",
+    "type": "int",
+    "min": 30,
+    "max": 4400,
+    "default": 220,
+    "unit": "hz"
+   },
+   {
+    "key": "pad7_wave",
+    "name": "HH Closed Wave",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad7_bend",
+    "name": "HH Closed Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad7_bend_dyn",
+    "name": "HH Closed Bend Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad7_cutoff",
+    "name": "HH Closed Cutoff",
+    "type": "int",
+    "min": 440,
+    "max": 15000,
+    "default": 10000,
+    "unit": "hz"
+   },
+   {
+    "key": "pad7_res",
+    "name": "HH Closed Res",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad7_lp_bend",
+    "name": "HH Closed LP Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad7_lp_dyn",
+    "name": "HH Closed LP Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad7_decay",
+    "name": "HH Closed Decay",
+    "type": "int",
+    "min": 10,
+    "max": 2000,
+    "default": 200,
+    "unit": "ms"
+   },
+   {
+    "key": "pad7_punch",
+    "name": "HH Closed Punch",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad7_noise",
+    "name": "HH Closed Tone/Nse",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 25,
+    "unit": "%"
+   },
+   {
+    "key": "pad7_click",
+    "name": "HH Closed Click",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 50,
+    "unit": "%"
+   },
+   {
+    "key": "pad7_volume",
+    "name": "HH Closed Volume",
+    "type": "int",
+    "min": -60,
+    "max": 6,
+    "default": 0,
+    "unit": "dB"
+   },
+   {
+    "key": "pad7_pan",
+    "name": "HH Closed Pan",
+    "type": "int",
+    "min": -100,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad7_vel_vol",
+    "name": "HH Closed Vel Vol",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad7_sat",
+    "name": "HH Closed Sat",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad7_reverb",
+    "name": "HH Closed Reverb",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad7_send_a",
+    "name": "HH Closed Send A",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad7_send_b",
+    "name": "HH Closed Send B",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad12_pitch",
+    "name": "Mid Tom Pitch",
+    "type": "int",
+    "min": 30,
+    "max": 4400,
+    "default": 220,
+    "unit": "hz"
+   },
+   {
+    "key": "pad12_wave",
+    "name": "Mid Tom Wave",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad12_bend",
+    "name": "Mid Tom Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad12_bend_dyn",
+    "name": "Mid Tom Bend Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad12_cutoff",
+    "name": "Mid Tom Cutoff",
+    "type": "int",
+    "min": 440,
+    "max": 15000,
+    "default": 10000,
+    "unit": "hz"
+   },
+   {
+    "key": "pad12_res",
+    "name": "Mid Tom Res",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad12_lp_bend",
+    "name": "Mid Tom LP Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad12_lp_dyn",
+    "name": "Mid Tom LP Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad12_decay",
+    "name": "Mid Tom Decay",
+    "type": "int",
+    "min": 10,
+    "max": 2000,
+    "default": 200,
+    "unit": "ms"
+   },
+   {
+    "key": "pad12_punch",
+    "name": "Mid Tom Punch",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad12_noise",
+    "name": "Mid Tom Tone/Nse",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 25,
+    "unit": "%"
+   },
+   {
+    "key": "pad12_click",
+    "name": "Mid Tom Click",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 50,
+    "unit": "%"
+   },
+   {
+    "key": "pad12_volume",
+    "name": "Mid Tom Volume",
+    "type": "int",
+    "min": -60,
+    "max": 6,
+    "default": 0,
+    "unit": "dB"
+   },
+   {
+    "key": "pad12_pan",
+    "name": "Mid Tom Pan",
+    "type": "int",
+    "min": -100,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad12_vel_vol",
+    "name": "Mid Tom Vel Vol",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad12_sat",
+    "name": "Mid Tom Sat",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad12_reverb",
+    "name": "Mid Tom Reverb",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad12_send_a",
+    "name": "Mid Tom Send A",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad12_send_b",
+    "name": "Mid Tom Send B",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad11_pitch",
+    "name": "HH Open Pitch",
+    "type": "int",
+    "min": 30,
+    "max": 4400,
+    "default": 220,
+    "unit": "hz"
+   },
+   {
+    "key": "pad11_wave",
+    "name": "HH Open Wave",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad11_bend",
+    "name": "HH Open Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad11_bend_dyn",
+    "name": "HH Open Bend Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad11_cutoff",
+    "name": "HH Open Cutoff",
+    "type": "int",
+    "min": 440,
+    "max": 15000,
+    "default": 10000,
+    "unit": "hz"
+   },
+   {
+    "key": "pad11_res",
+    "name": "HH Open Res",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad11_lp_bend",
+    "name": "HH Open LP Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad11_lp_dyn",
+    "name": "HH Open LP Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad11_decay",
+    "name": "HH Open Decay",
+    "type": "int",
+    "min": 10,
+    "max": 2000,
+    "default": 200,
+    "unit": "ms"
+   },
+   {
+    "key": "pad11_punch",
+    "name": "HH Open Punch",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad11_noise",
+    "name": "HH Open Tone/Nse",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 25,
+    "unit": "%"
+   },
+   {
+    "key": "pad11_click",
+    "name": "HH Open Click",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 50,
+    "unit": "%"
+   },
+   {
+    "key": "pad11_volume",
+    "name": "HH Open Volume",
+    "type": "int",
+    "min": -60,
+    "max": 6,
+    "default": 0,
+    "unit": "dB"
+   },
+   {
+    "key": "pad11_pan",
+    "name": "HH Open Pan",
+    "type": "int",
+    "min": -100,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad11_vel_vol",
+    "name": "HH Open Vel Vol",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad11_sat",
+    "name": "HH Open Sat",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad11_reverb",
+    "name": "HH Open Reverb",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad11_send_a",
+    "name": "HH Open Send A",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad11_send_b",
+    "name": "HH Open Send B",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad9_pitch",
+    "name": "High Tom Pitch",
+    "type": "int",
+    "min": 30,
+    "max": 4400,
+    "default": 220,
+    "unit": "hz"
+   },
+   {
+    "key": "pad9_wave",
+    "name": "High Tom Wave",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad9_bend",
+    "name": "High Tom Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad9_bend_dyn",
+    "name": "High Tom Bend Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad9_cutoff",
+    "name": "High Tom Cutoff",
+    "type": "int",
+    "min": 440,
+    "max": 15000,
+    "default": 10000,
+    "unit": "hz"
+   },
+   {
+    "key": "pad9_res",
+    "name": "High Tom Res",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad9_lp_bend",
+    "name": "High Tom LP Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad9_lp_dyn",
+    "name": "High Tom LP Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad9_decay",
+    "name": "High Tom Decay",
+    "type": "int",
+    "min": 10,
+    "max": 2000,
+    "default": 200,
+    "unit": "ms"
+   },
+   {
+    "key": "pad9_punch",
+    "name": "High Tom Punch",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad9_noise",
+    "name": "High Tom Tone/Nse",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 25,
+    "unit": "%"
+   },
+   {
+    "key": "pad9_click",
+    "name": "High Tom Click",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 50,
+    "unit": "%"
+   },
+   {
+    "key": "pad9_volume",
+    "name": "High Tom Volume",
+    "type": "int",
+    "min": -60,
+    "max": 6,
+    "default": 0,
+    "unit": "dB"
+   },
+   {
+    "key": "pad9_pan",
+    "name": "High Tom Pan",
+    "type": "int",
+    "min": -100,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad9_vel_vol",
+    "name": "High Tom Vel Vol",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad9_sat",
+    "name": "High Tom Sat",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad9_reverb",
+    "name": "High Tom Reverb",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad9_send_a",
+    "name": "High Tom Send A",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad9_send_b",
+    "name": "High Tom Send B",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad14_pitch",
+    "name": "Cymbal Pitch",
+    "type": "int",
+    "min": 30,
+    "max": 4400,
+    "default": 220,
+    "unit": "hz"
+   },
+   {
+    "key": "pad14_wave",
+    "name": "Cymbal Wave",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad14_bend",
+    "name": "Cymbal Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad14_bend_dyn",
+    "name": "Cymbal Bend Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad14_cutoff",
+    "name": "Cymbal Cutoff",
+    "type": "int",
+    "min": 440,
+    "max": 15000,
+    "default": 10000,
+    "unit": "hz"
+   },
+   {
+    "key": "pad14_res",
+    "name": "Cymbal Res",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad14_lp_bend",
+    "name": "Cymbal LP Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "default": 0,
+    "unit": "st"
+   },
+   {
+    "key": "pad14_lp_dyn",
+    "name": "Cymbal LP Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad14_decay",
+    "name": "Cymbal Decay",
+    "type": "int",
+    "min": 10,
+    "max": 2000,
+    "default": 200,
+    "unit": "ms"
+   },
+   {
+    "key": "pad14_punch",
+    "name": "Cymbal Punch",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad14_noise",
+    "name": "Cymbal Tone/Nse",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 25,
+    "unit": "%"
+   },
+   {
+    "key": "pad14_click",
+    "name": "Cymbal Click",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 50,
+    "unit": "%"
+   },
+   {
+    "key": "pad14_volume",
+    "name": "Cymbal Volume",
+    "type": "int",
+    "min": -60,
+    "max": 6,
+    "default": 0,
+    "unit": "dB"
+   },
+   {
+    "key": "pad14_pan",
+    "name": "Cymbal Pan",
+    "type": "int",
+    "min": -100,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad14_vel_vol",
+    "name": "Cymbal Vel Vol",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 100,
+    "unit": "%"
+   },
+   {
+    "key": "pad14_sat",
+    "name": "Cymbal Sat",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad14_reverb",
+    "name": "Cymbal Reverb",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad14_send_a",
+    "name": "Cymbal Send A",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   },
+   {
+    "key": "pad14_send_b",
+    "name": "Cymbal Send B",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "default": 0,
+    "unit": "%"
+   }
+  ],
+  "ui_hierarchy": {
+   "pad_layout": "drums",
+   "levels": {
+    "root": {
+     "name": "SIMIAN",
+     "knobs": [],
+     "params": [
+      {
+       "level": "kits",
+       "label": "Kit"
+      },
+      {
+       "level": "pads",
+       "label": "Tone"
+      },
+      {
+       "level": "pad_noise",
+       "label": "Noise"
+      },
+      {
+       "level": "pad_mix",
+       "label": "Mix"
+      },
+      {
+       "level": "output",
+       "label": "Master"
+      }
+     ]
+    },
+    "kits": {
+     "name": "Kit",
+     "list_param": "preset",
+     "count_param": "preset_count",
+     "name_param": "preset_name"
+    },
+    "pads": {
+     "name": "Tone",
+     "child_prefix": "pad",
+     "child_count": 16,
+     "child_index_base": 1,
+     "child_label": "Voice",
+     "child_index_param": "ui_current_voice",
+     "child_names": [
+      "Kick",
+      "Rim",
+      "Snare",
+      "Snare 2",
+      "Clap",
+      "Lo Tom",
+      "HH Cl",
+      "HH Cl 2",
+      "Hi Tom",
+      "Lo Tom 2",
+      "HH Open",
+      "Mid Tom",
+      "Hi Tom 2",
+      "Cymbal",
+      "Cymbal 2",
+      "Mid Tom2"
+     ],
+     "child_roles": [
+      "kick",
+      "rim",
+      "snare",
+      "snare",
+      "clap",
+      "tom",
+      "hihat_closed",
+      "hihat_closed",
+      "tom",
+      "tom",
+      "hihat_open",
+      "tom",
+      "tom",
+      "cymbal",
+      "cymbal",
+      "tom"
+     ],
+     "child_copy_keys": [
+      "tune",
+      "pitch",
+      "wave",
+      "bend",
+      "bend_dyn",
+      "cutoff",
+      "res",
+      "lp_bend",
+      "lp_dyn",
+      "decay",
+      "punch",
+      "noise",
+      "click",
+      "volume",
+      "pan",
+      "vel_vol",
+      "sat",
+      "reverb",
+      "send_a",
+      "send_b"
+     ],
+     "child_key_overrides": {
+      "ui_current_voice": "ui_current_voice"
+     },
+     "child_notes": [
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51
+     ],
+     "child_press_param": "ui_live_press",
+     "child_press_note_param": "ui_live_note",
+     "knobs": [
+      "ui_current_voice",
+      "tune",
+      "pitch",
+      "wave",
+      "bend",
+      "bend_dyn",
+      "decay",
+      "punch"
+     ],
+     "params": [
+      "ui_current_voice",
+      "tune",
+      "pitch",
+      "wave",
+      "bend",
+      "bend_dyn",
+      "decay",
+      "punch"
+     ]
+    },
+    "pad_noise": {
+     "name": "Noise",
+     "child_prefix": "pad",
+     "child_count": 16,
+     "child_index_base": 1,
+     "child_label": "Voice",
+     "child_index_param": "ui_current_voice",
+     "child_names": [
+      "Kick",
+      "Rim",
+      "Snare",
+      "Snare 2",
+      "Clap",
+      "Lo Tom",
+      "HH Cl",
+      "HH Cl 2",
+      "Hi Tom",
+      "Lo Tom 2",
+      "HH Open",
+      "Mid Tom",
+      "Hi Tom 2",
+      "Cymbal",
+      "Cymbal 2",
+      "Mid Tom2"
+     ],
+     "child_roles": [
+      "kick",
+      "rim",
+      "snare",
+      "snare",
+      "clap",
+      "tom",
+      "hihat_closed",
+      "hihat_closed",
+      "tom",
+      "tom",
+      "hihat_open",
+      "tom",
+      "tom",
+      "cymbal",
+      "cymbal",
+      "tom"
+     ],
+     "child_copy_keys": [
+      "tune",
+      "pitch",
+      "wave",
+      "bend",
+      "bend_dyn",
+      "cutoff",
+      "res",
+      "lp_bend",
+      "lp_dyn",
+      "decay",
+      "punch",
+      "noise",
+      "click",
+      "volume",
+      "pan",
+      "vel_vol",
+      "sat",
+      "reverb",
+      "send_a",
+      "send_b"
+     ],
+     "child_key_overrides": {
+      "ui_current_voice": "ui_current_voice"
+     },
+     "knobs": [
+      "cutoff",
+      "res",
+      "lp_bend",
+      "lp_dyn",
+      "noise",
+      "click"
+     ],
+     "params": [
+      "cutoff",
+      "res",
+      "lp_bend",
+      "lp_dyn",
+      "noise",
+      "click"
+     ]
+    },
+    "pad_mix": {
+     "name": "Mix",
+     "child_prefix": "pad",
+     "child_count": 16,
+     "child_index_base": 1,
+     "child_label": "Voice",
+     "child_index_param": "ui_current_voice",
+     "child_names": [
+      "Kick",
+      "Rim",
+      "Snare",
+      "Snare 2",
+      "Clap",
+      "Lo Tom",
+      "HH Cl",
+      "HH Cl 2",
+      "Hi Tom",
+      "Lo Tom 2",
+      "HH Open",
+      "Mid Tom",
+      "Hi Tom 2",
+      "Cymbal",
+      "Cymbal 2",
+      "Mid Tom2"
+     ],
+     "child_roles": [
+      "kick",
+      "rim",
+      "snare",
+      "snare",
+      "clap",
+      "tom",
+      "hihat_closed",
+      "hihat_closed",
+      "tom",
+      "tom",
+      "hihat_open",
+      "tom",
+      "tom",
+      "cymbal",
+      "cymbal",
+      "tom"
+     ],
+     "child_copy_keys": [
+      "tune",
+      "pitch",
+      "wave",
+      "bend",
+      "bend_dyn",
+      "cutoff",
+      "res",
+      "lp_bend",
+      "lp_dyn",
+      "decay",
+      "punch",
+      "noise",
+      "click",
+      "volume",
+      "pan",
+      "vel_vol",
+      "sat",
+      "reverb",
+      "send_a",
+      "send_b"
+     ],
+     "child_key_overrides": {
+      "ui_current_voice": "ui_current_voice"
+     },
+     "knobs": [
+      "volume",
+      "pan",
+      "vel_vol",
+      "sat",
+      "reverb",
+      "send_a",
+      "send_b"
+     ],
+     "params": [
+      "volume",
+      "pan",
+      "vel_vol",
+      "sat",
+      "reverb",
+      "send_a",
+      "send_b"
+     ]
+    },
+    "output": {
+     "name": "Master",
+     "knobs": [
+      "gain",
+      "drive",
+      "master_sat",
+      "rev_size",
+      "rev_gate",
+      "sens",
+      "transpose"
+     ],
+     "params": [
+      "gain",
+      "drive",
+      "master_sat",
+      "rev_size",
+      "rev_gate",
+      "sens",
+      "transpose"
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "kits",
+   "pads",
+   "pad_noise",
+   "pad_mix",
+   "output"
+  ],
+  "params": [
+   {
+    "key": "gain",
+    "name": "Gain",
+    "type": "int",
+    "min": -60,
+    "max": 6,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "drive",
+    "name": "Drive",
+    "type": "int",
+    "min": -60,
+    "max": 6,
+    "step": null,
+    "options": null,
+    "default": "-6.000"
+   },
+   {
+    "key": "master_sat",
+    "name": "Sat",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "14.990"
+   },
+   {
+    "key": "rev_size",
+    "name": "Rev Size",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "50.000"
+   },
+   {
+    "key": "rev_gate",
+    "name": "Rev Gate",
+    "type": "int",
+    "min": -100,
+    "max": 0,
+    "step": null,
+    "options": null,
+    "default": "-100.000"
+   },
+   {
+    "key": "sens",
+    "name": "Vel Sens",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "transpose",
+    "name": "Transpose",
+    "type": "int",
+    "min": -12,
+    "max": 12,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "ui_current_voice",
+    "name": "Voice",
+    "type": "int",
+    "min": 1,
+    "max": 16,
+    "step": null,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "pad1_tune",
+    "name": "Kick Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad2_tune",
+    "name": "Rim Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad3_tune",
+    "name": "Snare Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad4_tune",
+    "name": "Snare 2 Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": "2.000"
+   },
+   {
+    "key": "pad5_tune",
+    "name": "Clap Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad6_tune",
+    "name": "Lo Tom Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad7_tune",
+    "name": "HH Cl Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad8_tune",
+    "name": "HH Cl 2 Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": "3.000"
+   },
+   {
+    "key": "pad9_tune",
+    "name": "Hi Tom Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad10_tune",
+    "name": "Lo Tom 2 Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": "2.000"
+   },
+   {
+    "key": "pad11_tune",
+    "name": "HH Open Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad12_tune",
+    "name": "Mid Tom Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad13_tune",
+    "name": "Hi Tom 2 Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": "2.000"
+   },
+   {
+    "key": "pad14_tune",
+    "name": "Cymbal Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad15_tune",
+    "name": "Cymbal 2 Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": "7.000"
+   },
+   {
+    "key": "pad16_tune",
+    "name": "Mid Tom2 Tune",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": null,
+    "options": null,
+    "default": "2.000"
+   },
+   {
+    "key": "pad1_pitch",
+    "name": "Kick Pitch",
+    "type": "int",
+    "min": 30,
+    "max": 4400,
+    "step": null,
+    "options": null,
+    "default": "59.480"
+   },
+   {
+    "key": "pad1_wave",
+    "name": "Kick Wave",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad1_bend",
+    "name": "Kick Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "step": null,
+    "options": null,
+    "default": "3.970"
+   },
+   {
+    "key": "pad1_bend_dyn",
+    "name": "Kick Bend Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "33.650"
+   },
+   {
+    "key": "pad1_cutoff",
+    "name": "Kick Cutoff",
+    "type": "int",
+    "min": 440,
+    "max": 15000,
+    "step": null,
+    "options": null,
+    "default": "4245.800"
+   },
+   {
+    "key": "pad1_res",
+    "name": "Kick Res",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad1_lp_bend",
+    "name": "Kick LP Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad1_lp_dyn",
+    "name": "Kick LP Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad1_decay",
+    "name": "Kick Decay",
+    "type": "int",
+    "min": 10,
+    "max": 2000,
+    "step": null,
+    "options": null,
+    "default": "209.000"
+   },
+   {
+    "key": "pad1_punch",
+    "name": "Kick Punch",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "19.760"
+   },
+   {
+    "key": "pad1_noise",
+    "name": "Kick Tone/Nse",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "10.020"
+   },
+   {
+    "key": "pad1_click",
+    "name": "Kick Click",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "78.590"
+   },
+   {
+    "key": "pad1_volume",
+    "name": "Kick Volume",
+    "type": "int",
+    "min": -60,
+    "max": 6,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad1_pan",
+    "name": "Kick Pan",
+    "type": "int",
+    "min": -100,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad1_vel_vol",
+    "name": "Kick Vel Vol",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad1_sat",
+    "name": "Kick Sat",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad1_reverb",
+    "name": "Kick Reverb",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "16.240"
+   },
+   {
+    "key": "pad1_send_a",
+    "name": "Kick Send A",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad1_send_b",
+    "name": "Kick Send B",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad2_pitch",
+    "name": "Rimshot Pitch",
+    "type": "int",
+    "min": 30,
+    "max": 4400,
+    "step": null,
+    "options": null,
+    "default": "368.720"
+   },
+   {
+    "key": "pad2_wave",
+    "name": "Rimshot Wave",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad2_bend",
+    "name": "Rimshot Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad2_bend_dyn",
+    "name": "Rimshot Bend Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad2_cutoff",
+    "name": "Rimshot Cutoff",
+    "type": "int",
+    "min": 440,
+    "max": 15000,
+    "step": null,
+    "options": null,
+    "default": "6602.210"
+   },
+   {
+    "key": "pad2_res",
+    "name": "Rimshot Res",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "49.650"
+   },
+   {
+    "key": "pad2_lp_bend",
+    "name": "Rimshot LP Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad2_lp_dyn",
+    "name": "Rimshot LP Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad2_decay",
+    "name": "Rimshot Decay",
+    "type": "int",
+    "min": 10,
+    "max": 2000,
+    "step": null,
+    "options": null,
+    "default": "266.000"
+   },
+   {
+    "key": "pad2_punch",
+    "name": "Rimshot Punch",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "58.350"
+   },
+   {
+    "key": "pad2_noise",
+    "name": "Rimshot Tone/Nse",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "37.240"
+   },
+   {
+    "key": "pad2_click",
+    "name": "Rimshot Click",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad2_volume",
+    "name": "Rimshot Volume",
+    "type": "int",
+    "min": -60,
+    "max": 6,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad2_pan",
+    "name": "Rimshot Pan",
+    "type": "int",
+    "min": -100,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "10.070"
+   },
+   {
+    "key": "pad2_vel_vol",
+    "name": "Rimshot Vel Vol",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad2_sat",
+    "name": "Rimshot Sat",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "26.590"
+   },
+   {
+    "key": "pad2_reverb",
+    "name": "Rimshot Reverb",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "24.260"
+   },
+   {
+    "key": "pad2_send_a",
+    "name": "Rimshot Send A",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad2_send_b",
+    "name": "Rimshot Send B",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad3_pitch",
+    "name": "Snare Pitch",
+    "type": "int",
+    "min": 30,
+    "max": 4400,
+    "step": null,
+    "options": null,
+    "default": "126.390"
+   },
+   {
+    "key": "pad3_wave",
+    "name": "Snare Wave",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad3_bend",
+    "name": "Snare Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "step": null,
+    "options": null,
+    "default": "5.280"
+   },
+   {
+    "key": "pad3_bend_dyn",
+    "name": "Snare Bend Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad3_cutoff",
+    "name": "Snare Cutoff",
+    "type": "int",
+    "min": 440,
+    "max": 15000,
+    "step": null,
+    "options": null,
+    "default": "6712.760"
+   },
+   {
+    "key": "pad3_res",
+    "name": "Snare Res",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "50.220"
+   },
+   {
+    "key": "pad3_lp_bend",
+    "name": "Snare LP Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad3_lp_dyn",
+    "name": "Snare LP Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad3_decay",
+    "name": "Snare Decay",
+    "type": "int",
+    "min": 10,
+    "max": 2000,
+    "step": null,
+    "options": null,
+    "default": "297.000"
+   },
+   {
+    "key": "pad3_punch",
+    "name": "Snare Punch",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "59.760"
+   },
+   {
+    "key": "pad3_noise",
+    "name": "Snare Tone/Nse",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "37.510"
+   },
+   {
+    "key": "pad3_click",
+    "name": "Snare Click",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad3_volume",
+    "name": "Snare Volume",
+    "type": "int",
+    "min": -60,
+    "max": 6,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad3_pan",
+    "name": "Snare Pan",
+    "type": "int",
+    "min": -100,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "10.070"
+   },
+   {
+    "key": "pad3_vel_vol",
+    "name": "Snare Vel Vol",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad3_sat",
+    "name": "Snare Sat",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "25.410"
+   },
+   {
+    "key": "pad3_reverb",
+    "name": "Snare Reverb",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "24.240"
+   },
+   {
+    "key": "pad3_send_a",
+    "name": "Snare Send A",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad3_send_b",
+    "name": "Snare Send B",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad5_pitch",
+    "name": "Clap Pitch",
+    "type": "int",
+    "min": 30,
+    "max": 4400,
+    "step": null,
+    "options": null,
+    "default": "220.000"
+   },
+   {
+    "key": "pad5_wave",
+    "name": "Clap Wave",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad5_bend",
+    "name": "Clap Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad5_bend_dyn",
+    "name": "Clap Bend Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad5_cutoff",
+    "name": "Clap Cutoff",
+    "type": "int",
+    "min": 440,
+    "max": 15000,
+    "step": null,
+    "options": null,
+    "default": "2574.790"
+   },
+   {
+    "key": "pad5_res",
+    "name": "Clap Res",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "27.290"
+   },
+   {
+    "key": "pad5_lp_bend",
+    "name": "Clap LP Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad5_lp_dyn",
+    "name": "Clap LP Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad5_decay",
+    "name": "Clap Decay",
+    "type": "int",
+    "min": 10,
+    "max": 2000,
+    "step": null,
+    "options": null,
+    "default": "250.000"
+   },
+   {
+    "key": "pad5_punch",
+    "name": "Clap Punch",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "49.410"
+   },
+   {
+    "key": "pad5_noise",
+    "name": "Clap Tone/Nse",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad5_click",
+    "name": "Clap Click",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad5_volume",
+    "name": "Clap Volume",
+    "type": "int",
+    "min": -60,
+    "max": 6,
+    "step": null,
+    "options": null,
+    "default": "-1.600"
+   },
+   {
+    "key": "pad5_pan",
+    "name": "Clap Pan",
+    "type": "int",
+    "min": -100,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad5_vel_vol",
+    "name": "Clap Vel Vol",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad5_sat",
+    "name": "Clap Sat",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "30.350"
+   },
+   {
+    "key": "pad5_reverb",
+    "name": "Clap Reverb",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "20.470"
+   },
+   {
+    "key": "pad5_send_a",
+    "name": "Clap Send A",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad5_send_b",
+    "name": "Clap Send B",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad6_pitch",
+    "name": "Low Tom Pitch",
+    "type": "int",
+    "min": 30,
+    "max": 4400,
+    "step": null,
+    "options": null,
+    "default": "73.920"
+   },
+   {
+    "key": "pad6_wave",
+    "name": "Low Tom Wave",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad6_bend",
+    "name": "Low Tom Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "step": null,
+    "options": null,
+    "default": "8.000"
+   },
+   {
+    "key": "pad6_bend_dyn",
+    "name": "Low Tom Bend Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad6_cutoff",
+    "name": "Low Tom Cutoff",
+    "type": "int",
+    "min": 440,
+    "max": 15000,
+    "step": null,
+    "options": null,
+    "default": "4937.100"
+   },
+   {
+    "key": "pad6_res",
+    "name": "Low Tom Res",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad6_lp_bend",
+    "name": "Low Tom LP Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "step": null,
+    "options": null,
+    "default": "9.120"
+   },
+   {
+    "key": "pad6_lp_dyn",
+    "name": "Low Tom LP Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "33.010"
+   },
+   {
+    "key": "pad6_decay",
+    "name": "Low Tom Decay",
+    "type": "int",
+    "min": 10,
+    "max": 2000,
+    "step": null,
+    "options": null,
+    "default": "209.000"
+   },
+   {
+    "key": "pad6_punch",
+    "name": "Low Tom Punch",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad6_noise",
+    "name": "Low Tom Tone/Nse",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "15.020"
+   },
+   {
+    "key": "pad6_click",
+    "name": "Low Tom Click",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad6_volume",
+    "name": "Low Tom Volume",
+    "type": "int",
+    "min": -60,
+    "max": 6,
+    "step": null,
+    "options": null,
+    "default": "-5.000"
+   },
+   {
+    "key": "pad6_pan",
+    "name": "Low Tom Pan",
+    "type": "int",
+    "min": -100,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "-20.000"
+   },
+   {
+    "key": "pad6_vel_vol",
+    "name": "Low Tom Vel Vol",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad6_sat",
+    "name": "Low Tom Sat",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad6_reverb",
+    "name": "Low Tom Reverb",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "40.940"
+   },
+   {
+    "key": "pad6_send_a",
+    "name": "Low Tom Send A",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad6_send_b",
+    "name": "Low Tom Send B",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad7_pitch",
+    "name": "HH Closed Pitch",
+    "type": "int",
+    "min": 30,
+    "max": 4400,
+    "step": null,
+    "options": null,
+    "default": "1215.970"
+   },
+   {
+    "key": "pad7_wave",
+    "name": "HH Closed Wave",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad7_bend",
+    "name": "HH Closed Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad7_bend_dyn",
+    "name": "HH Closed Bend Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad7_cutoff",
+    "name": "HH Closed Cutoff",
+    "type": "int",
+    "min": 440,
+    "max": 15000,
+    "step": null,
+    "options": null,
+    "default": "6669.550"
+   },
+   {
+    "key": "pad7_res",
+    "name": "HH Closed Res",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "50.120"
+   },
+   {
+    "key": "pad7_lp_bend",
+    "name": "HH Closed LP Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad7_lp_dyn",
+    "name": "HH Closed LP Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad7_decay",
+    "name": "HH Closed Decay",
+    "type": "int",
+    "min": 10,
+    "max": 2000,
+    "step": null,
+    "options": null,
+    "default": "169.000"
+   },
+   {
+    "key": "pad7_punch",
+    "name": "HH Closed Punch",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "71.060"
+   },
+   {
+    "key": "pad7_noise",
+    "name": "HH Closed Tone/Nse",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "40.140"
+   },
+   {
+    "key": "pad7_click",
+    "name": "HH Closed Click",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "51.290"
+   },
+   {
+    "key": "pad7_volume",
+    "name": "HH Closed Volume",
+    "type": "int",
+    "min": -60,
+    "max": 6,
+    "step": null,
+    "options": null,
+    "default": "-6.500"
+   },
+   {
+    "key": "pad7_pan",
+    "name": "HH Closed Pan",
+    "type": "int",
+    "min": -100,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "20.000"
+   },
+   {
+    "key": "pad7_vel_vol",
+    "name": "HH Closed Vel Vol",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad7_sat",
+    "name": "HH Closed Sat",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad7_reverb",
+    "name": "HH Closed Reverb",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "20.000"
+   },
+   {
+    "key": "pad7_send_a",
+    "name": "HH Closed Send A",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad7_send_b",
+    "name": "HH Closed Send B",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad12_pitch",
+    "name": "Mid Tom Pitch",
+    "type": "int",
+    "min": 30,
+    "max": 4400,
+    "step": null,
+    "options": null,
+    "default": "98.140"
+   },
+   {
+    "key": "pad12_wave",
+    "name": "Mid Tom Wave",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad12_bend",
+    "name": "Mid Tom Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "step": null,
+    "options": null,
+    "default": "8.010"
+   },
+   {
+    "key": "pad12_bend_dyn",
+    "name": "Mid Tom Bend Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad12_cutoff",
+    "name": "Mid Tom Cutoff",
+    "type": "int",
+    "min": 440,
+    "max": 15000,
+    "step": null,
+    "options": null,
+    "default": "4600.650"
+   },
+   {
+    "key": "pad12_res",
+    "name": "Mid Tom Res",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad12_lp_bend",
+    "name": "Mid Tom LP Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "step": null,
+    "options": null,
+    "default": "7.680"
+   },
+   {
+    "key": "pad12_lp_dyn",
+    "name": "Mid Tom LP Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "33.110"
+   },
+   {
+    "key": "pad12_decay",
+    "name": "Mid Tom Decay",
+    "type": "int",
+    "min": 10,
+    "max": 2000,
+    "step": null,
+    "options": null,
+    "default": "209.000"
+   },
+   {
+    "key": "pad12_punch",
+    "name": "Mid Tom Punch",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad12_noise",
+    "name": "Mid Tom Tone/Nse",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "15.020"
+   },
+   {
+    "key": "pad12_click",
+    "name": "Mid Tom Click",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad12_volume",
+    "name": "Mid Tom Volume",
+    "type": "int",
+    "min": -60,
+    "max": 6,
+    "step": null,
+    "options": null,
+    "default": "-4.500"
+   },
+   {
+    "key": "pad12_pan",
+    "name": "Mid Tom Pan",
+    "type": "int",
+    "min": -100,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "-10.020"
+   },
+   {
+    "key": "pad12_vel_vol",
+    "name": "Mid Tom Vel Vol",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad12_sat",
+    "name": "Mid Tom Sat",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad12_reverb",
+    "name": "Mid Tom Reverb",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "40.000"
+   },
+   {
+    "key": "pad12_send_a",
+    "name": "Mid Tom Send A",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad12_send_b",
+    "name": "Mid Tom Send B",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad11_pitch",
+    "name": "HH Open Pitch",
+    "type": "int",
+    "min": 30,
+    "max": 4400,
+    "step": null,
+    "options": null,
+    "default": "1203.350"
+   },
+   {
+    "key": "pad11_wave",
+    "name": "HH Open Wave",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad11_bend",
+    "name": "HH Open Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad11_bend_dyn",
+    "name": "HH Open Bend Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad11_cutoff",
+    "name": "HH Open Cutoff",
+    "type": "int",
+    "min": 440,
+    "max": 15000,
+    "step": null,
+    "options": null,
+    "default": "7055.490"
+   },
+   {
+    "key": "pad11_res",
+    "name": "HH Open Res",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "50.120"
+   },
+   {
+    "key": "pad11_lp_bend",
+    "name": "HH Open LP Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad11_lp_dyn",
+    "name": "HH Open LP Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad11_decay",
+    "name": "HH Open Decay",
+    "type": "int",
+    "min": 10,
+    "max": 2000,
+    "step": null,
+    "options": null,
+    "default": "643.000"
+   },
+   {
+    "key": "pad11_punch",
+    "name": "HH Open Punch",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "50.350"
+   },
+   {
+    "key": "pad11_noise",
+    "name": "HH Open Tone/Nse",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "40.000"
+   },
+   {
+    "key": "pad11_click",
+    "name": "HH Open Click",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "49.650"
+   },
+   {
+    "key": "pad11_volume",
+    "name": "HH Open Volume",
+    "type": "int",
+    "min": -60,
+    "max": 6,
+    "step": null,
+    "options": null,
+    "default": "-6.500"
+   },
+   {
+    "key": "pad11_pan",
+    "name": "HH Open Pan",
+    "type": "int",
+    "min": -100,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "20.000"
+   },
+   {
+    "key": "pad11_vel_vol",
+    "name": "HH Open Vel Vol",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad11_sat",
+    "name": "HH Open Sat",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad11_reverb",
+    "name": "HH Open Reverb",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "20.000"
+   },
+   {
+    "key": "pad11_send_a",
+    "name": "HH Open Send A",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad11_send_b",
+    "name": "HH Open Send B",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad9_pitch",
+    "name": "High Tom Pitch",
+    "type": "int",
+    "min": 30,
+    "max": 4400,
+    "step": null,
+    "options": null,
+    "default": "131.260"
+   },
+   {
+    "key": "pad9_wave",
+    "name": "High Tom Wave",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad9_bend",
+    "name": "High Tom Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "step": null,
+    "options": null,
+    "default": "8.010"
+   },
+   {
+    "key": "pad9_bend_dyn",
+    "name": "High Tom Bend Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad9_cutoff",
+    "name": "High Tom Cutoff",
+    "type": "int",
+    "min": 440,
+    "max": 15000,
+    "step": null,
+    "options": null,
+    "default": "4253.640"
+   },
+   {
+    "key": "pad9_res",
+    "name": "High Tom Res",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad9_lp_bend",
+    "name": "High Tom LP Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "step": null,
+    "options": null,
+    "default": "10.400"
+   },
+   {
+    "key": "pad9_lp_dyn",
+    "name": "High Tom LP Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "33.010"
+   },
+   {
+    "key": "pad9_decay",
+    "name": "High Tom Decay",
+    "type": "int",
+    "min": 10,
+    "max": 2000,
+    "step": null,
+    "options": null,
+    "default": "209.000"
+   },
+   {
+    "key": "pad9_punch",
+    "name": "High Tom Punch",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad9_noise",
+    "name": "High Tom Tone/Nse",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "14.990"
+   },
+   {
+    "key": "pad9_click",
+    "name": "High Tom Click",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad9_volume",
+    "name": "High Tom Volume",
+    "type": "int",
+    "min": -60,
+    "max": 6,
+    "step": null,
+    "options": null,
+    "default": "-4.000"
+   },
+   {
+    "key": "pad9_pan",
+    "name": "High Tom Pan",
+    "type": "int",
+    "min": -100,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "15.010"
+   },
+   {
+    "key": "pad9_vel_vol",
+    "name": "High Tom Vel Vol",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad9_sat",
+    "name": "High Tom Sat",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad9_reverb",
+    "name": "High Tom Reverb",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "40.000"
+   },
+   {
+    "key": "pad9_send_a",
+    "name": "High Tom Send A",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad9_send_b",
+    "name": "High Tom Send B",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad14_pitch",
+    "name": "Cymbal Pitch",
+    "type": "int",
+    "min": 30,
+    "max": 4400,
+    "step": null,
+    "options": null,
+    "default": "666.110"
+   },
+   {
+    "key": "pad14_wave",
+    "name": "Cymbal Wave",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad14_bend",
+    "name": "Cymbal Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad14_bend_dyn",
+    "name": "Cymbal Bend Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad14_cutoff",
+    "name": "Cymbal Cutoff",
+    "type": "int",
+    "min": 440,
+    "max": 15000,
+    "step": null,
+    "options": null,
+    "default": "5099.130"
+   },
+   {
+    "key": "pad14_res",
+    "name": "Cymbal Res",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "49.110"
+   },
+   {
+    "key": "pad14_lp_bend",
+    "name": "Cymbal LP Bend",
+    "type": "int",
+    "min": -36,
+    "max": 36,
+    "step": null,
+    "options": null,
+    "default": "10.400"
+   },
+   {
+    "key": "pad14_lp_dyn",
+    "name": "Cymbal LP Dyn",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "67.060"
+   },
+   {
+    "key": "pad14_decay",
+    "name": "Cymbal Decay",
+    "type": "int",
+    "min": 10,
+    "max": 2000,
+    "step": null,
+    "options": null,
+    "default": "1074.000"
+   },
+   {
+    "key": "pad14_punch",
+    "name": "Cymbal Punch",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad14_noise",
+    "name": "Cymbal Tone/Nse",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "27.490"
+   },
+   {
+    "key": "pad14_click",
+    "name": "Cymbal Click",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "48.240"
+   },
+   {
+    "key": "pad14_volume",
+    "name": "Cymbal Volume",
+    "type": "int",
+    "min": -60,
+    "max": 6,
+    "step": null,
+    "options": null,
+    "default": "-7.500"
+   },
+   {
+    "key": "pad14_pan",
+    "name": "Cymbal Pan",
+    "type": "int",
+    "min": -100,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "-20.000"
+   },
+   {
+    "key": "pad14_vel_vol",
+    "name": "Cymbal Vel Vol",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "100.000"
+   },
+   {
+    "key": "pad14_sat",
+    "name": "Cymbal Sat",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad14_reverb",
+    "name": "Cymbal Reverb",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "19.760"
+   },
+   {
+    "key": "pad14_send_a",
+    "name": "Cymbal Send A",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "pad14_send_b",
+    "name": "Cymbal Send B",
+    "type": "int",
+    "min": 0,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": "0.000"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Tone",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Noise",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Mix",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Master",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Tone",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "VOICE",
+       "fullName": "Voice",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TUNE",
+       "fullName": "tune",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PITCH",
+       "fullName": "pitch",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WAVE",
+       "fullName": "wave",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "BEND",
+       "fullName": "bend",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DYN",
+       "fullName": "bend_dyn",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "decay",
+       "renderStyle": "envstage",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PUNCH",
+       "fullName": "punch",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Noise",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "CUTOFF",
+       "fullName": "cutoff",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RES",
+       "fullName": "res",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BEND",
+       "fullName": "lp_bend",
+       "renderStyle": "cut",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DYN",
+       "fullName": "lp_dyn",
+       "renderStyle": "cut",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "NOISE",
+       "fullName": "noise",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CLICK",
+       "fullName": "click",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Mix",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "VOLUM",
+       "fullName": "volume",
+       "renderStyle": "vbar",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PAN",
+       "fullName": "pan",
+       "renderStyle": "pan",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VEL",
+       "fullName": "vel_vol",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SAT",
+       "fullName": "sat",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "REVER",
+       "fullName": "reverb",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SENDA",
+       "fullName": "send_a",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SENDB",
+       "fullName": "send_b",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Master",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "GAIN",
+       "fullName": "Gain",
+       "renderStyle": "vbar",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRIVE",
+       "fullName": "Drive",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SAT",
+       "fullName": "Sat",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SIZE",
+       "fullName": "Rev Size",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "GATE",
+       "fullName": "Rev Gate",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VEL",
+       "fullName": "Vel Sens",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TRANSP",
+       "fullName": "Transpose",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "ui_current_voice",
+    "label": "Voice",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 16,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 30
+    }
+   },
+   {
+    "key": "tune",
+    "label": "tune",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "metaGuessed": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "pitch",
+    "label": "pitch",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "metaGuessed": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "wave",
+    "label": "wave",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "metaGuessed": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "bend",
+    "label": "bend",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "metaGuessed": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "bend_dyn",
+    "label": "bend_dyn",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "metaGuessed": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "decay",
+    "label": "decay",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "metaGuessed": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "punch",
+    "label": "punch",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "metaGuessed": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "cutoff",
+    "label": "cutoff",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "metaGuessed": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "res",
+    "label": "res",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "metaGuessed": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "lp_bend",
+    "label": "lp_bend",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "metaGuessed": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "lp_dyn",
+    "label": "lp_dyn",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "metaGuessed": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "noise",
+    "label": "noise",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "metaGuessed": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "click",
+    "label": "click",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "metaGuessed": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   null,
+   null,
+   {
+    "key": "volume",
+    "label": "volume",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "metaGuessed": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
+    }
+   },
+   {
+    "key": "pan",
+    "label": "pan",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "pan",
+    "automatable": true,
+    "metaGuessed": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.02,
+     "detentsFullSweep": 50
+    }
+   },
+   {
+    "key": "vel_vol",
+    "label": "vel_vol",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "metaGuessed": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "sat",
+    "label": "sat",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "metaGuessed": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "reverb",
+    "label": "reverb",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "metaGuessed": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "send_a",
+    "label": "send_a",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "metaGuessed": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "send_b",
+    "label": "send_b",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "metaGuessed": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 100
+    }
+   },
+   null,
+   {
+    "key": "gain",
+    "label": "Gain",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -60,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 66
+    }
+   },
+   {
+    "key": "drive",
+    "label": "Drive",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -60,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 132
+    }
+   },
+   {
+    "key": "master_sat",
+    "label": "Sat",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "rev_size",
+    "label": "Rev Size",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "rev_gate",
+    "label": "Rev Gate",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -100,
+    "max": 0,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "sens",
+    "label": "Vel Sens",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "transpose",
+    "label": "Transpose",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -12,
+    "max": 12,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 48
+    }
+   },
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "pad1_tune",
+   "pad2_tune",
+   "pad3_tune",
+   "pad4_tune",
+   "pad5_tune",
+   "pad6_tune",
+   "pad7_tune",
+   "pad8_tune",
+   "pad9_tune",
+   "pad10_tune",
+   "pad11_tune",
+   "pad12_tune",
+   "pad13_tune",
+   "pad14_tune",
+   "pad15_tune",
+   "pad16_tune",
+   "pad1_pitch",
+   "pad1_wave",
+   "pad1_bend",
+   "pad1_bend_dyn",
+   "pad1_cutoff",
+   "pad1_res",
+   "pad1_lp_bend",
+   "pad1_lp_dyn",
+   "pad1_decay",
+   "pad1_punch",
+   "pad1_noise",
+   "pad1_click",
+   "pad1_volume",
+   "pad1_pan",
+   "pad1_vel_vol",
+   "pad1_sat",
+   "pad1_reverb",
+   "pad1_send_a",
+   "pad1_send_b",
+   "pad2_pitch",
+   "pad2_wave",
+   "pad2_bend",
+   "pad2_bend_dyn",
+   "pad2_cutoff",
+   "pad2_res",
+   "pad2_lp_bend",
+   "pad2_lp_dyn",
+   "pad2_decay",
+   "pad2_punch",
+   "pad2_noise",
+   "pad2_click",
+   "pad2_volume",
+   "pad2_pan",
+   "pad2_vel_vol",
+   "pad2_sat",
+   "pad2_reverb",
+   "pad2_send_a",
+   "pad2_send_b",
+   "pad3_pitch",
+   "pad3_wave",
+   "pad3_bend",
+   "pad3_bend_dyn",
+   "pad3_cutoff",
+   "pad3_res",
+   "pad3_lp_bend",
+   "pad3_lp_dyn",
+   "pad3_decay",
+   "pad3_punch",
+   "pad3_noise",
+   "pad3_click",
+   "pad3_volume",
+   "pad3_pan",
+   "pad3_vel_vol",
+   "pad3_sat",
+   "pad3_reverb",
+   "pad3_send_a",
+   "pad3_send_b",
+   "pad5_pitch",
+   "pad5_wave",
+   "pad5_bend",
+   "pad5_bend_dyn",
+   "pad5_cutoff",
+   "pad5_res",
+   "pad5_lp_bend",
+   "pad5_lp_dyn",
+   "pad5_decay",
+   "pad5_punch",
+   "pad5_noise",
+   "pad5_click",
+   "pad5_volume",
+   "pad5_pan",
+   "pad5_vel_vol",
+   "pad5_sat",
+   "pad5_reverb",
+   "pad5_send_a",
+   "pad5_send_b",
+   "pad6_pitch",
+   "pad6_wave",
+   "pad6_bend",
+   "pad6_bend_dyn",
+   "pad6_cutoff",
+   "pad6_res",
+   "pad6_lp_bend",
+   "pad6_lp_dyn",
+   "pad6_decay",
+   "pad6_punch",
+   "pad6_noise",
+   "pad6_click",
+   "pad6_volume",
+   "pad6_pan",
+   "pad6_vel_vol",
+   "pad6_sat",
+   "pad6_reverb",
+   "pad6_send_a",
+   "pad6_send_b",
+   "pad7_pitch",
+   "pad7_wave",
+   "pad7_bend",
+   "pad7_bend_dyn",
+   "pad7_cutoff",
+   "pad7_res",
+   "pad7_lp_bend",
+   "pad7_lp_dyn",
+   "pad7_decay",
+   "pad7_punch",
+   "pad7_noise",
+   "pad7_click",
+   "pad7_volume",
+   "pad7_pan",
+   "pad7_vel_vol",
+   "pad7_sat",
+   "pad7_reverb",
+   "pad7_send_a",
+   "pad7_send_b",
+   "pad12_pitch",
+   "pad12_wave",
+   "pad12_bend",
+   "pad12_bend_dyn",
+   "pad12_cutoff",
+   "pad12_res",
+   "pad12_lp_bend",
+   "pad12_lp_dyn",
+   "pad12_decay",
+   "pad12_punch",
+   "pad12_noise",
+   "pad12_click",
+   "pad12_volume",
+   "pad12_pan",
+   "pad12_vel_vol",
+   "pad12_sat",
+   "pad12_reverb",
+   "pad12_send_a",
+   "pad12_send_b",
+   "pad11_pitch",
+   "pad11_wave",
+   "pad11_bend",
+   "pad11_bend_dyn",
+   "pad11_cutoff",
+   "pad11_res",
+   "pad11_lp_bend",
+   "pad11_lp_dyn",
+   "pad11_decay",
+   "pad11_punch",
+   "pad11_noise",
+   "pad11_click",
+   "pad11_volume",
+   "pad11_pan",
+   "pad11_vel_vol",
+   "pad11_sat",
+   "pad11_reverb",
+   "pad11_send_a",
+   "pad11_send_b",
+   "pad9_pitch",
+   "pad9_wave",
+   "pad9_bend",
+   "pad9_bend_dyn",
+   "pad9_cutoff",
+   "pad9_res",
+   "pad9_lp_bend",
+   "pad9_lp_dyn",
+   "pad9_decay",
+   "pad9_punch",
+   "pad9_noise",
+   "pad9_click",
+   "pad9_volume",
+   "pad9_pan",
+   "pad9_vel_vol",
+   "pad9_sat",
+   "pad9_reverb",
+   "pad9_send_a",
+   "pad9_send_b",
+   "pad14_pitch",
+   "pad14_wave",
+   "pad14_bend",
+   "pad14_bend_dyn",
+   "pad14_cutoff",
+   "pad14_res",
+   "pad14_lp_bend",
+   "pad14_lp_dyn",
+   "pad14_decay",
+   "pad14_punch",
+   "pad14_noise",
+   "pad14_click",
+   "pad14_volume",
+   "pad14_pan",
+   "pad14_vel_vol",
+   "pad14_sat",
+   "pad14_reverb",
+   "pad14_send_a",
+   "pad14_send_b"
+  ],
+  "noMetadata": [
+   "tune",
+   "pitch",
+   "wave",
+   "bend",
+   "bend_dyn",
+   "decay",
+   "punch",
+   "cutoff",
+   "res",
+   "lp_bend",
+   "lp_dyn",
+   "noise",
+   "click",
+   "volume",
+   "pan",
+   "vel_vol",
+   "sat",
+   "reverb",
+   "send_a",
+   "send_b"
+  ],
+  "warnings": [
+   "206 chain_params not reachable in movy: pad1_tune, pad2_tune, pad3_tune, pad4_tune, pad5_tune, pad6_tune, pad7_tune, pad8_tune, pad9_tune, pad10_tune, pad11_tune, pad12_tune, …",
+   "20 shown params lack chain_params metadata (movy guesses type/range): tune, pitch, wave, bend, bend_dyn, decay, punch, cutoff, res, lp_bend, lp_dyn, noise, …"
+  ]
+ }
+}

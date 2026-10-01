@@ -1,11 +1,11 @@
 {
  "id": "6w6",
  "name": "6W6",
- "version": "1.7.0",
+ "version": "1.8.0",
  "author": "athousanddetails; voices after 606-Inspired-Synth-Drums (Matthew Fecher / AudioKit Pro)",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 36,
+ "load_ms": 48,
  "dsp_size": 107992,
  "capabilities": {
   "audio_out": true,

@@ -5,7 +5,7 @@
  "author": "Ghost Note Audio (port: charlesvestal)",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 126,
+ "load_ms": 97,
  "dsp_size": 36272,
  "capabilities": {
   "chainable": true,

@@ -5,7 +5,7 @@
  "author": "Robin Schmidt / midilab / davemollen / Charles Vestal",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 48,
+ "load_ms": 220,
  "dsp_size": 154568,
  "capabilities": {
   "audio_out": true,

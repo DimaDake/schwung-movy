@@ -1,11 +1,11 @@
 {
  "id": "euclidrum",
  "name": "Euclidrum",
- "version": "0.1.1",
+ "version": "0.1.2",
  "author": "Vincent Fillion",
  "category": "midi_fx",
  "status": "ok",
- "load_ms": 53,
+ "load_ms": 42,
  "dsp_size": 53232,
  "capabilities": {
   "chainable": true,

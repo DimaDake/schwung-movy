@@ -5,7 +5,7 @@
  "author": null,
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 41,
+ "load_ms": 49,
  "dsp_size": 125400,
  "capabilities": {
   "audio_in": true,
@@ -14,6 +14,7 @@
   "midi_out": false,
   "chainable": true,
   "component_type": "sound_generator",
+  "requires_continuous_processing": true,
   "ui_hierarchy": {
    "levels": {
     "root": {

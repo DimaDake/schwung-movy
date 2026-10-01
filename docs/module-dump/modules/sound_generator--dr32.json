@@ -1,0 +1,10277 @@
+{
+ "id": "dr32",
+ "name": "DrumRack32",
+ "version": "0.4.1",
+ "author": "legsmechanical",
+ "category": "sound_generator",
+ "status": "ok",
+ "load_ms": 47,
+ "dsp_size": 840856,
+ "capabilities": {
+  "audio_out": true,
+  "audio_in": false,
+  "midi_in": true,
+  "midi_out": false,
+  "aftertouch": false,
+  "chainable": true,
+  "claims_edit_ccs": true,
+  "component_type": "sound_generator",
+  "chain_params": [
+   {
+    "key": "kit",
+    "name": "Kit",
+    "type": "filepath",
+    "root": "/data",
+    "start_path": "/data/UserData/UserLibrary/Track Presets",
+    "filter": [
+     ".ablpreset",
+     ".json"
+    ],
+    "default": "",
+    "live_preview": true,
+    "browser_hooks": {
+     "on_open": [
+      {
+       "key": "kit_mark",
+       "value": "1"
+      }
+     ],
+     "on_cancel": [
+      {
+       "key": "kit_restore",
+       "value": "1"
+      }
+     ],
+     "on_commit": [
+      {
+       "key": "kit_mark",
+       "value": "0"
+      }
+     ]
+    }
+   },
+   {
+    "key": "master",
+    "name": "Master",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": 0.02,
+    "default": 1
+   },
+   {
+    "key": "ui_engine",
+    "name": "Engine",
+    "type": "int",
+    "min": 0,
+    "max": 58,
+    "default": 0
+   },
+   {
+    "key": "ui_family",
+    "name": "Instrument",
+    "type": "int",
+    "min": 0,
+    "max": 8,
+    "default": 0
+   }
+  ],
+  "ui_hierarchy": {
+   "pad_layout": "drums",
+   "levels": {
+    "root": {
+     "name": "DrumRack32",
+     "params": [
+      {
+       "level": "kits",
+       "label": "Category"
+      },
+      {
+       "level": "pads",
+       "label": "Pad"
+      },
+      {
+       "level": "pad_shape",
+       "label": "Shape"
+      },
+      {
+       "level": "pad_mix",
+       "label": "Mix"
+      },
+      {
+       "level": "pad_stereo",
+       "label": "Stereo"
+      },
+      {
+       "level": "output",
+       "label": "Master"
+      },
+      {
+       "level": "resample",
+       "label": "Resample"
+      }
+     ],
+     "knobs": []
+    },
+    "pads": {
+     "name": "Pad",
+     "child_prefix": "pad",
+     "child_count": 32,
+     "child_index_base": 1,
+     "child_label": "Pad",
+     "child_index_param": "ui_current_pad",
+     "child_note_base": 36,
+     "child_copy_keys": [
+      "sample",
+      "model",
+      "sm_pitch",
+      "sm_wave",
+      "sm_bend",
+      "sm_bend_dyn",
+      "sm_decay",
+      "sm_punch",
+      "sm_noise",
+      "sm_click",
+      "sm_cutoff",
+      "sm_res",
+      "sm_lp_bend",
+      "sm_lp_dyn",
+      "sm_sat",
+      "sm_vel_gain",
+      "ud_pitch",
+      "ud_decay",
+      "ud_beater",
+      "ud_detune",
+      "ud_punch",
+      "ud_strike",
+      "ud_strike_br",
+      "ud_shell",
+      "ud_shell_damp",
+      "ud_ring",
+      "ud_reso_head",
+      "ud_reso_tune",
+      "ud_reso_mix",
+      "ud_lowpass",
+      "ud_tone_freq",
+      "ud_tone_gain",
+      "ud_slice",
+      "ud_chop_speed",
+      "ud_late",
+      "ud_noise_type",
+      "ud_noise",
+      "ud_sat",
+      "ud_rate",
+      "ud_bits",
+      "us_pitch",
+      "us_decay",
+      "us_beater",
+      "us_detune",
+      "us_punch",
+      "us_strike",
+      "us_strike_br",
+      "us_shell",
+      "us_shell_damp",
+      "us_ring",
+      "us_reso_head",
+      "us_reso_tune",
+      "us_reso_mix",
+      "us_lowpass",
+      "us_tone_freq",
+      "us_tone_gain",
+      "us_slice",
+      "us_chop_speed",
+      "us_late",
+      "us_rim",
+      "us_noise_type",
+      "us_noise",
+      "us_sat",
+      "us_rate",
+      "us_bits",
+      "uc_size",
+      "uc_crash",
+      "uc_damp",
+      "uc_closed",
+      "uc_punch",
+      "uc_strike",
+      "uc_strike_br",
+      "uc_lowpass",
+      "uc_tone_freq",
+      "uc_tone_gain",
+      "uc_slice",
+      "uc_chop_speed",
+      "uc_late",
+      "uc_noise_type",
+      "uc_noise",
+      "uc_sat",
+      "uc_rate",
+      "uc_bits",
+      "n9_tune",
+      "n9_decay",
+      "n9_bd_attack",
+      "n9_bd_pdepth",
+      "n9_bd_pitch",
+      "n9_drive",
+      "n9_dist",
+      "n9_vel",
+      "n9_sd_snappy",
+      "n9_lt_attack",
+      "n9_mt_attack",
+      "n9_ht_attack",
+      "s6_tune",
+      "s6_decay",
+      "s6_bd_attack",
+      "s6_drive",
+      "s6_dist",
+      "s6_vel",
+      "s6_sd_snappy",
+      "s6_cp_noise",
+      "e8_tune",
+      "e8_decay",
+      "e8_bd_attack",
+      "e8_bd_tone",
+      "e8_drive",
+      "e8_dist",
+      "e8_vel",
+      "e8_sd_snappy",
+      "e8_ma_attack",
+      "c7_tune",
+      "c7_decay",
+      "c7_drive",
+      "c7_dist",
+      "c7_vel",
+      "c7_sd_snappy",
+      "c7_gu_rate",
+      "ck_width",
+      "ck_amp",
+      "ck_decay",
+      "ck_sustain",
+      "ck_velo",
+      "ck_tone",
+      "ck_freq",
+      "ck_q",
+      "ck_damp",
+      "ck_tight",
+      "ck_bounce",
+      "ck_mode",
+      "ck_porta",
+      "ck_noise",
+      "ck_ndecay",
+      "ck_ncut",
+      "ck_ntype",
+      "fk_tone",
+      "fk_pitch",
+      "fk_decay",
+      "fk_sweep",
+      "fk_swdec",
+      "fk_ratio",
+      "fk_mod",
+      "fk_mdec",
+      "fk_fb",
+      "fk_track",
+      "fk_noise",
+      "fk_ndec",
+      "fk_nfreq",
+      "fk_nres",
+      "fk_nmode",
+      "fk_mix",
+      "fk_drive",
+      "fk_lowcut",
+      "fk_hicut",
+      "fk_vel",
+      "fk_vmod",
+      "fk_vsweep",
+      "fk_vpitch",
+      "fk_vdecay",
+      "fk_vnoise",
+      "fk_vnfreq",
+      "fs_tone",
+      "fs_pitch",
+      "fs_decay",
+      "fs_sweep",
+      "fs_swdec",
+      "fs_ratio",
+      "fs_mod",
+      "fs_mdec",
+      "fs_fb",
+      "fs_track",
+      "fs_noise",
+      "fs_ndec",
+      "fs_nfreq",
+      "fs_nres",
+      "fs_nmode",
+      "fs_bursts",
+      "fs_gap",
+      "fs_mix",
+      "fs_drive",
+      "fs_lowcut",
+      "fs_hicut",
+      "fs_vel",
+      "fs_vmod",
+      "fs_vsweep",
+      "fs_vpitch",
+      "fs_vdecay",
+      "fs_vnoise",
+      "fs_vnfreq",
+      "fx_tone",
+      "fx_pitch",
+      "fx_decay",
+      "fx_spread",
+      "fx_mod",
+      "fx_mdec",
+      "fx_fb",
+      "fx_noise",
+      "fx_ndec",
+      "fx_nfreq",
+      "fx_nres",
+      "fx_nmode",
+      "fx_mix",
+      "fx_drive",
+      "fx_lowcut",
+      "fx_hicut",
+      "fx_vel",
+      "fx_vmod",
+      "fx_vpitch",
+      "fx_vdecay",
+      "fx_vnoise",
+      "fx_vnfreq",
+      "fp_tone",
+      "fp_pitch",
+      "fp_decay",
+      "fp_sweep",
+      "fp_swdec",
+      "fp_ratio",
+      "fp_mod",
+      "fp_mdec",
+      "fp_fb",
+      "fp_track",
+      "fp_noise",
+      "fp_ndec",
+      "fp_nfreq",
+      "fp_nres",
+      "fp_nmode",
+      "fp_bursts",
+      "fp_gap",
+      "fp_nzfm",
+      "fp_ring",
+      "fp_crush",
+      "fp_bits",
+      "fp_mix",
+      "fp_drive",
+      "fp_lowcut",
+      "fp_hicut",
+      "fp_vel",
+      "fp_vmod",
+      "fp_vsweep",
+      "fp_vpitch",
+      "fp_vdecay",
+      "fp_vnoise",
+      "fp_vnfreq",
+      "start",
+      "end",
+      "transpose",
+      "detune",
+      "choke",
+      "gain",
+      "cell_volume",
+      "vel_vol",
+      "attack",
+      "hold",
+      "decay",
+      "env_mode",
+      "volume",
+      "pan",
+      "punch",
+      "punch_time",
+      "filter_on",
+      "filter_type",
+      "cutoff",
+      "resonance",
+      "peak_gain",
+      "mod_target",
+      "mod_amount",
+      "pitch_env",
+      "send_a",
+      "send_b",
+      "wide",
+      "wide_freq",
+      "wide_mode",
+      "wide_time",
+      "wide_comp",
+      "wide_late"
+     ],
+     "child_press_param": "ui_live_press",
+     "child_press_note_param": "ui_live_note",
+     "params": [
+      {
+       "key": "ui_current_pad",
+       "name": "Pad",
+       "short_name": "PAD",
+       "type": "int",
+       "min": 1,
+       "max": 32,
+       "default": 1
+      },
+      {
+       "key": "sample",
+       "name": "Engine",
+       "short_name": "ENGN",
+       "type": "canvas",
+       "canvas_script": "browser.js",
+       "enterable": true,
+       "show_footer": false
+      },
+      {
+       "key": "start",
+       "name": "Start",
+       "type": "wav_position",
+       "min": 0,
+       "max": 1,
+       "step": 0.01,
+       "short_name": "STRT",
+       "mode": "start",
+       "display_unit": "percent",
+       "filepath_param": "sample",
+       "default": 0,
+       "visible_if": {
+        "param": "ui_engine",
+        "equals": 0
+       }
+      },
+      {
+       "key": "end",
+       "name": "End",
+       "short_name": "END",
+       "type": "wav_position",
+       "mode": "end",
+       "display_unit": "percent",
+       "filepath_param": "sample",
+       "min": 0,
+       "max": 1,
+       "step": 0.01,
+       "default": 1,
+       "visible_if": {
+        "param": "ui_engine",
+        "equals": 0
+       }
+      },
+      {
+       "key": "transpose",
+       "name": "Transpose",
+       "type": "int",
+       "min": -48,
+       "max": 48,
+       "unit": "st",
+       "short_name": "TRSP",
+       "default": 0
+      },
+      {
+       "key": "detune",
+       "name": "Detune",
+       "type": "float",
+       "min": -50,
+       "max": 50,
+       "step": 1,
+       "unit": "ct",
+       "short_name": "DETN",
+       "default": 0
+      },
+      {
+       "key": "choke",
+       "name": "Choke",
+       "type": "int",
+       "min": 0,
+       "max": 16,
+       "short_name": "CHOKE",
+       "default": 0
+      },
+      {
+       "key": "volume_clone",
+       "name": "Volume",
+       "type": "float",
+       "min": -36,
+       "max": 12,
+       "step": 0.5,
+       "unit": "dB",
+       "short_name": "VOL",
+       "viz": {
+        "kind": "fader"
+       },
+       "default": 0
+      }
+     ],
+     "knobs": [
+      "ui_current_pad",
+      "sample",
+      "start",
+      "end",
+      "transpose",
+      "detune",
+      "choke",
+      "volume_clone"
+     ],
+     "child_key_overrides": {
+      "ui_current_pad": "ui_current_pad"
+     }
+    },
+    "pad_shape": {
+     "name": "Shape",
+     "child_prefix": "pad",
+     "child_count": 32,
+     "child_index_base": 1,
+     "child_label": "Pad",
+     "child_index_param": "ui_current_pad",
+     "child_copy_keys": [
+      "sample",
+      "model",
+      "sm_pitch",
+      "sm_wave",
+      "sm_bend",
+      "sm_bend_dyn",
+      "sm_decay",
+      "sm_punch",
+      "sm_noise",
+      "sm_click",
+      "sm_cutoff",
+      "sm_res",
+      "sm_lp_bend",
+      "sm_lp_dyn",
+      "sm_sat",
+      "sm_vel_gain",
+      "ud_pitch",
+      "ud_decay",
+      "ud_beater",
+      "ud_detune",
+      "ud_punch",
+      "ud_strike",
+      "ud_strike_br",
+      "ud_shell",
+      "ud_shell_damp",
+      "ud_ring",
+      "ud_reso_head",
+      "ud_reso_tune",
+      "ud_reso_mix",
+      "ud_lowpass",
+      "ud_tone_freq",
+      "ud_tone_gain",
+      "ud_slice",
+      "ud_chop_speed",
+      "ud_late",
+      "ud_noise_type",
+      "ud_noise",
+      "ud_sat",
+      "ud_rate",
+      "ud_bits",
+      "us_pitch",
+      "us_decay",
+      "us_beater",
+      "us_detune",
+      "us_punch",
+      "us_strike",
+      "us_strike_br",
+      "us_shell",
+      "us_shell_damp",
+      "us_ring",
+      "us_reso_head",
+      "us_reso_tune",
+      "us_reso_mix",
+      "us_lowpass",
+      "us_tone_freq",
+      "us_tone_gain",
+      "us_slice",
+      "us_chop_speed",
+      "us_late",
+      "us_rim",
+      "us_noise_type",
+      "us_noise",
+      "us_sat",
+      "us_rate",
+      "us_bits",
+      "uc_size",
+      "uc_crash",
+      "uc_damp",
+      "uc_closed",
+      "uc_punch",
+      "uc_strike",
+      "uc_strike_br",
+      "uc_lowpass",
+      "uc_tone_freq",
+      "uc_tone_gain",
+      "uc_slice",
+      "uc_chop_speed",
+      "uc_late",
+      "uc_noise_type",
+      "uc_noise",
+      "uc_sat",
+      "uc_rate",
+      "uc_bits",
+      "n9_tune",
+      "n9_decay",
+      "n9_bd_attack",
+      "n9_bd_pdepth",
+      "n9_bd_pitch",
+      "n9_drive",
+      "n9_dist",
+      "n9_vel",
+      "n9_sd_snappy",
+      "n9_lt_attack",
+      "n9_mt_attack",
+      "n9_ht_attack",
+      "s6_tune",
+      "s6_decay",
+      "s6_bd_attack",
+      "s6_drive",
+      "s6_dist",
+      "s6_vel",
+      "s6_sd_snappy",
+      "s6_cp_noise",
+      "e8_tune",
+      "e8_decay",
+      "e8_bd_attack",
+      "e8_bd_tone",
+      "e8_drive",
+      "e8_dist",
+      "e8_vel",
+      "e8_sd_snappy",
+      "e8_ma_attack",
+      "c7_tune",
+      "c7_decay",
+      "c7_drive",
+      "c7_dist",
+      "c7_vel",
+      "c7_sd_snappy",
+      "c7_gu_rate",
+      "ck_width",
+      "ck_amp",
+      "ck_decay",
+      "ck_sustain",
+      "ck_velo",
+      "ck_tone",
+      "ck_freq",
+      "ck_q",
+      "ck_damp",
+      "ck_tight",
+      "ck_bounce",
+      "ck_mode",
+      "ck_porta",
+      "ck_noise",
+      "ck_ndecay",
+      "ck_ncut",
+      "ck_ntype",
+      "fk_tone",
+      "fk_pitch",
+      "fk_decay",
+      "fk_sweep",
+      "fk_swdec",
+      "fk_ratio",
+      "fk_mod",
+      "fk_mdec",
+      "fk_fb",
+      "fk_track",
+      "fk_noise",
+      "fk_ndec",
+      "fk_nfreq",
+      "fk_nres",
+      "fk_nmode",
+      "fk_mix",
+      "fk_drive",
+      "fk_lowcut",
+      "fk_hicut",
+      "fk_vel",
+      "fk_vmod",
+      "fk_vsweep",
+      "fk_vpitch",
+      "fk_vdecay",
+      "fk_vnoise",
+      "fk_vnfreq",
+      "fs_tone",
+      "fs_pitch",
+      "fs_decay",
+      "fs_sweep",
+      "fs_swdec",
+      "fs_ratio",
+      "fs_mod",
+      "fs_mdec",
+      "fs_fb",
+      "fs_track",
+      "fs_noise",
+      "fs_ndec",
+      "fs_nfreq",
+      "fs_nres",
+      "fs_nmode",
+      "fs_bursts",
+      "fs_gap",
+      "fs_mix",
+      "fs_drive",
+      "fs_lowcut",
+      "fs_hicut",
+      "fs_vel",
+      "fs_vmod",
+      "fs_vsweep",
+      "fs_vpitch",
+      "fs_vdecay",
+      "fs_vnoise",
+      "fs_vnfreq",
+      "fx_tone",
+      "fx_pitch",
+      "fx_decay",
+      "fx_spread",
+      "fx_mod",
+      "fx_mdec",
+      "fx_fb",
+      "fx_noise",
+      "fx_ndec",
+      "fx_nfreq",
+      "fx_nres",
+      "fx_nmode",
+      "fx_mix",
+      "fx_drive",
+      "fx_lowcut",
+      "fx_hicut",
+      "fx_vel",
+      "fx_vmod",
+      "fx_vpitch",
+      "fx_vdecay",
+      "fx_vnoise",
+      "fx_vnfreq",
+      "fp_tone",
+      "fp_pitch",
+      "fp_decay",
+      "fp_sweep",
+      "fp_swdec",
+      "fp_ratio",
+      "fp_mod",
+      "fp_mdec",
+      "fp_fb",
+      "fp_track",
+      "fp_noise",
+      "fp_ndec",
+      "fp_nfreq",
+      "fp_nres",
+      "fp_nmode",
+      "fp_bursts",
+      "fp_gap",
+      "fp_nzfm",
+      "fp_ring",
+      "fp_crush",
+      "fp_bits",
+      "fp_mix",
+      "fp_drive",
+      "fp_lowcut",
+      "fp_hicut",
+      "fp_vel",
+      "fp_vmod",
+      "fp_vsweep",
+      "fp_vpitch",
+      "fp_vdecay",
+      "fp_vnoise",
+      "fp_vnfreq",
+      "start",
+      "end",
+      "transpose",
+      "detune",
+      "choke",
+      "gain",
+      "cell_volume",
+      "vel_vol",
+      "attack",
+      "hold",
+      "decay",
+      "env_mode",
+      "volume",
+      "pan",
+      "punch",
+      "punch_time",
+      "filter_on",
+      "filter_type",
+      "cutoff",
+      "resonance",
+      "peak_gain",
+      "mod_target",
+      "mod_amount",
+      "pitch_env",
+      "send_a",
+      "send_b",
+      "wide",
+      "wide_freq",
+      "wide_mode",
+      "wide_time",
+      "wide_comp",
+      "wide_late"
+     ],
+     "params": [
+      {
+       "key": "atk_knob",
+       "name": "Attack",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "step": 0.0001,
+       "short_name": "ATK",
+       "default": 0,
+       "card_script": "env_card.js#dr32_atk_card",
+       "card_w": 90,
+       "card_h": 15,
+       "viz": {
+        "group": "amp",
+        "role": "attack"
+       }
+      },
+      {
+       "key": "hold_knob",
+       "name": "Hold",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "step": 0.0001,
+       "short_name": "HOLD",
+       "default": 0.3569,
+       "card_script": "env_card.js#dr32_hold_card",
+       "card_w": 90,
+       "card_h": 15,
+       "viz": {
+        "group": "amp",
+        "role": "hold"
+       }
+      },
+      {
+       "key": "dcy_knob",
+       "name": "Decay",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "step": 0.0001,
+       "short_name": "DCY",
+       "default": 0.5,
+       "card_script": "env_card.js#dr32_dcy_card",
+       "card_w": 90,
+       "card_h": 15,
+       "viz": {
+        "group": "amp",
+        "role": "decay"
+       }
+      },
+      {
+       "key": "env_mode",
+       "name": "Envelope",
+       "type": "enum",
+       "options": [
+        "Trigger",
+        "Gate"
+       ],
+       "short_options": [
+        "Triggr",
+        "Gate"
+       ],
+       "short_name": "ENV",
+       "default": "Trigger",
+       "viz": {
+        "group": "amp",
+        "role": "mode",
+        "span": false
+       }
+      },
+      {
+       "key": "cutoff",
+       "name": "Filter Freq",
+       "type": "float",
+       "min": 30,
+       "max": 22000,
+       "step": 50,
+       "unit": "Hz",
+       "short_name": "CUT",
+       "viz": {
+        "group": "flt",
+        "role": "cutoff"
+       },
+       "default": 22000
+      },
+      {
+       "key": "resonance",
+       "name": "Filter Reso",
+       "type": "float",
+       "min": 0,
+       "max": 0.9,
+       "step": 0.01,
+       "short_name": "RES",
+       "viz": {
+        "group": "flt",
+        "role": "resonance"
+       },
+       "default": 0,
+       "visible_if": {
+        "param": "filter_type",
+        "not_equals": "Peak"
+       }
+      },
+      {
+       "key": "peak_db",
+       "name": "Filter Gain",
+       "type": "float",
+       "min": -12,
+       "max": 12,
+       "step": 0.5,
+       "unit": "dB",
+       "short_name": "GAIN",
+       "viz": {
+        "group": "flt",
+        "role": "resonance"
+       },
+       "default": 0,
+       "visible_if": {
+        "param": "filter_type",
+        "equals": "Peak"
+       }
+      },
+      {
+       "key": "filter_type",
+       "name": "Filter Type",
+       "type": "enum",
+       "options": [
+        "Lowpass 12dB",
+        "Lowpass",
+        "Highpass",
+        "Peak"
+       ],
+       "short_name": "TYPE",
+       "viz": {
+        "group": "flt",
+        "role": "mode",
+        "span": false
+       },
+       "default": "Lowpass"
+      },
+      {
+       "key": "filter_on",
+       "name": "Filter On",
+       "short_name": "FILT",
+       "type": "int",
+       "min": 0,
+       "max": 1,
+       "viz": {
+        "kind": "switch"
+       },
+       "default": 0
+      }
+     ],
+     "knobs": [
+      "atk_knob",
+      "hold_knob",
+      "dcy_knob",
+      "env_mode",
+      "cutoff",
+      "resonance",
+      "peak_db",
+      "filter_type",
+      "filter_on"
+     ],
+     "child_key_overrides": {
+      "ui_current_pad": "ui_current_pad"
+     },
+     "visible_if": {
+      "param": "ui_engine",
+      "equals": 0
+     }
+    },
+    "pad_mix": {
+     "name": "Mix",
+     "child_prefix": "pad",
+     "child_count": 32,
+     "child_index_base": 1,
+     "child_label": "Pad",
+     "child_index_param": "ui_current_pad",
+     "child_copy_keys": [
+      "sample",
+      "model",
+      "sm_pitch",
+      "sm_wave",
+      "sm_bend",
+      "sm_bend_dyn",
+      "sm_decay",
+      "sm_punch",
+      "sm_noise",
+      "sm_click",
+      "sm_cutoff",
+      "sm_res",
+      "sm_lp_bend",
+      "sm_lp_dyn",
+      "sm_sat",
+      "sm_vel_gain",
+      "ud_pitch",
+      "ud_decay",
+      "ud_beater",
+      "ud_detune",
+      "ud_punch",
+      "ud_strike",
+      "ud_strike_br",
+      "ud_shell",
+      "ud_shell_damp",
+      "ud_ring",
+      "ud_reso_head",
+      "ud_reso_tune",
+      "ud_reso_mix",
+      "ud_lowpass",
+      "ud_tone_freq",
+      "ud_tone_gain",
+      "ud_slice",
+      "ud_chop_speed",
+      "ud_late",
+      "ud_noise_type",
+      "ud_noise",
+      "ud_sat",
+      "ud_rate",
+      "ud_bits",
+      "us_pitch",
+      "us_decay",
+      "us_beater",
+      "us_detune",
+      "us_punch",
+      "us_strike",
+      "us_strike_br",
+      "us_shell",
+      "us_shell_damp",
+      "us_ring",
+      "us_reso_head",
+      "us_reso_tune",
+      "us_reso_mix",
+      "us_lowpass",
+      "us_tone_freq",
+      "us_tone_gain",
+      "us_slice",
+      "us_chop_speed",
+      "us_late",
+      "us_rim",
+      "us_noise_type",
+      "us_noise",
+      "us_sat",
+      "us_rate",
+      "us_bits",
+      "uc_size",
+      "uc_crash",
+      "uc_damp",
+      "uc_closed",
+      "uc_punch",
+      "uc_strike",
+      "uc_strike_br",
+      "uc_lowpass",
+      "uc_tone_freq",
+      "uc_tone_gain",
+      "uc_slice",
+      "uc_chop_speed",
+      "uc_late",
+      "uc_noise_type",
+      "uc_noise",
+      "uc_sat",
+      "uc_rate",
+      "uc_bits",
+      "n9_tune",
+      "n9_decay",
+      "n9_bd_attack",
+      "n9_bd_pdepth",
+      "n9_bd_pitch",
+      "n9_drive",
+      "n9_dist",
+      "n9_vel",
+      "n9_sd_snappy",
+      "n9_lt_attack",
+      "n9_mt_attack",
+      "n9_ht_attack",
+      "s6_tune",
+      "s6_decay",
+      "s6_bd_attack",
+      "s6_drive",
+      "s6_dist",
+      "s6_vel",
+      "s6_sd_snappy",
+      "s6_cp_noise",
+      "e8_tune",
+      "e8_decay",
+      "e8_bd_attack",
+      "e8_bd_tone",
+      "e8_drive",
+      "e8_dist",
+      "e8_vel",
+      "e8_sd_snappy",
+      "e8_ma_attack",
+      "c7_tune",
+      "c7_decay",
+      "c7_drive",
+      "c7_dist",
+      "c7_vel",
+      "c7_sd_snappy",
+      "c7_gu_rate",
+      "ck_width",
+      "ck_amp",
+      "ck_decay",
+      "ck_sustain",
+      "ck_velo",
+      "ck_tone",
+      "ck_freq",
+      "ck_q",
+      "ck_damp",
+      "ck_tight",
+      "ck_bounce",
+      "ck_mode",
+      "ck_porta",
+      "ck_noise",
+      "ck_ndecay",
+      "ck_ncut",
+      "ck_ntype",
+      "fk_tone",
+      "fk_pitch",
+      "fk_decay",
+      "fk_sweep",
+      "fk_swdec",
+      "fk_ratio",
+      "fk_mod",
+      "fk_mdec",
+      "fk_fb",
+      "fk_track",
+      "fk_noise",
+      "fk_ndec",
+      "fk_nfreq",
+      "fk_nres",
+      "fk_nmode",
+      "fk_mix",
+      "fk_drive",
+      "fk_lowcut",
+      "fk_hicut",
+      "fk_vel",
+      "fk_vmod",
+      "fk_vsweep",
+      "fk_vpitch",
+      "fk_vdecay",
+      "fk_vnoise",
+      "fk_vnfreq",
+      "fs_tone",
+      "fs_pitch",
+      "fs_decay",
+      "fs_sweep",
+      "fs_swdec",
+      "fs_ratio",
+      "fs_mod",
+      "fs_mdec",
+      "fs_fb",
+      "fs_track",
+      "fs_noise",
+      "fs_ndec",
+      "fs_nfreq",
+      "fs_nres",
+      "fs_nmode",
+      "fs_bursts",
+      "fs_gap",
+      "fs_mix",
+      "fs_drive",
+      "fs_lowcut",
+      "fs_hicut",
+      "fs_vel",
+      "fs_vmod",
+      "fs_vsweep",
+      "fs_vpitch",
+      "fs_vdecay",
+      "fs_vnoise",
+      "fs_vnfreq",
+      "fx_tone",
+      "fx_pitch",
+      "fx_decay",
+      "fx_spread",
+      "fx_mod",
+      "fx_mdec",
+      "fx_fb",
+      "fx_noise",
+      "fx_ndec",
+      "fx_nfreq",
+      "fx_nres",
+      "fx_nmode",
+      "fx_mix",
+      "fx_drive",
+      "fx_lowcut",
+      "fx_hicut",
+      "fx_vel",
+      "fx_vmod",
+      "fx_vpitch",
+      "fx_vdecay",
+      "fx_vnoise",
+      "fx_vnfreq",
+      "fp_tone",
+      "fp_pitch",
+      "fp_decay",
+      "fp_sweep",
+      "fp_swdec",
+      "fp_ratio",
+      "fp_mod",
+      "fp_mdec",
+      "fp_fb",
+      "fp_track",
+      "fp_noise",
+      "fp_ndec",
+      "fp_nfreq",
+      "fp_nres",
+      "fp_nmode",
+      "fp_bursts",
+      "fp_gap",
+      "fp_nzfm",
+      "fp_ring",
+      "fp_crush",
+      "fp_bits",
+      "fp_mix",
+      "fp_drive",
+      "fp_lowcut",
+      "fp_hicut",
+      "fp_vel",
+      "fp_vmod",
+      "fp_vsweep",
+      "fp_vpitch",
+      "fp_vdecay",
+      "fp_vnoise",
+      "fp_vnfreq",
+      "start",
+      "end",
+      "transpose",
+      "detune",
+      "choke",
+      "gain",
+      "cell_volume",
+      "vel_vol",
+      "attack",
+      "hold",
+      "decay",
+      "env_mode",
+      "volume",
+      "pan",
+      "punch",
+      "punch_time",
+      "filter_on",
+      "filter_type",
+      "cutoff",
+      "resonance",
+      "peak_gain",
+      "mod_target",
+      "mod_amount",
+      "pitch_env",
+      "send_a",
+      "send_b",
+      "wide",
+      "wide_freq",
+      "wide_mode",
+      "wide_time",
+      "wide_comp",
+      "wide_late"
+     ],
+     "params": [
+      {
+       "key": "vel_vol",
+       "name": "Vel Vol",
+       "short_name": "VVOL",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "step": 0.01,
+       "default": 0.35,
+       "viz": false
+      },
+      {
+       "key": "volume",
+       "name": "Volume",
+       "type": "float",
+       "min": -36,
+       "max": 12,
+       "step": 0.5,
+       "unit": "dB",
+       "short_name": "VOL",
+       "viz": {
+        "kind": "fader"
+       },
+       "default": 0
+      },
+      {
+       "key": "pan",
+       "name": "Pan",
+       "type": "float",
+       "min": -50,
+       "max": 50,
+       "step": 1,
+       "short_name": "PAN",
+       "default": 0
+      },
+      {
+       "key": "link",
+       "name": "Link",
+       "short_name": "LINK",
+       "type": "enum",
+       "options": [
+        "One",
+        "All"
+       ],
+       "default": "One",
+       "viz": {
+        "kind": "switch"
+       }
+      },
+      {
+       "key": "send_a",
+       "name": "Send A",
+       "type": "float",
+       "min": -70,
+       "max": 6,
+       "step": 0.5,
+       "unit": "dB",
+       "short_name": "SNDA",
+       "default": -70
+      },
+      {
+       "key": "send_b",
+       "name": "Send B",
+       "type": "float",
+       "min": -70,
+       "max": 6,
+       "step": 0.5,
+       "unit": "dB",
+       "short_name": "SNDB",
+       "default": -70
+      },
+      {
+       "key": "punch",
+       "name": "Punch",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "step": 0.01,
+       "default": 0,
+       "short_name": "PUNCH",
+       "visible_if": {
+        "param": "ui_engine",
+        "equals": 0
+       }
+      },
+      {
+       "key": "punch_time",
+       "name": "Punch Time",
+       "type": "float",
+       "min": 0.06,
+       "max": 1,
+       "step": 0.01,
+       "unit": "s",
+       "default": 0.3,
+       "short_name": "PTIME",
+       "visible_if": {
+        "param": "ui_engine",
+        "equals": 0
+       }
+      }
+     ],
+     "knobs": [
+      "vel_vol",
+      "volume",
+      "pan",
+      "link",
+      "send_a",
+      "send_b",
+      "punch",
+      "punch_time"
+     ],
+     "child_key_overrides": {
+      "ui_current_pad": "ui_current_pad",
+      "link": "link"
+     }
+    },
+    "pad_stereo": {
+     "name": "Stereo",
+     "child_prefix": "pad",
+     "child_count": 32,
+     "child_index_base": 1,
+     "child_label": "Pad",
+     "child_index_param": "ui_current_pad",
+     "child_copy_keys": [
+      "sample",
+      "model",
+      "sm_pitch",
+      "sm_wave",
+      "sm_bend",
+      "sm_bend_dyn",
+      "sm_decay",
+      "sm_punch",
+      "sm_noise",
+      "sm_click",
+      "sm_cutoff",
+      "sm_res",
+      "sm_lp_bend",
+      "sm_lp_dyn",
+      "sm_sat",
+      "sm_vel_gain",
+      "ud_pitch",
+      "ud_decay",
+      "ud_beater",
+      "ud_detune",
+      "ud_punch",
+      "ud_strike",
+      "ud_strike_br",
+      "ud_shell",
+      "ud_shell_damp",
+      "ud_ring",
+      "ud_reso_head",
+      "ud_reso_tune",
+      "ud_reso_mix",
+      "ud_lowpass",
+      "ud_tone_freq",
+      "ud_tone_gain",
+      "ud_slice",
+      "ud_chop_speed",
+      "ud_late",
+      "ud_noise_type",
+      "ud_noise",
+      "ud_sat",
+      "ud_rate",
+      "ud_bits",
+      "us_pitch",
+      "us_decay",
+      "us_beater",
+      "us_detune",
+      "us_punch",
+      "us_strike",
+      "us_strike_br",
+      "us_shell",
+      "us_shell_damp",
+      "us_ring",
+      "us_reso_head",
+      "us_reso_tune",
+      "us_reso_mix",
+      "us_lowpass",
+      "us_tone_freq",
+      "us_tone_gain",
+      "us_slice",
+      "us_chop_speed",
+      "us_late",
+      "us_rim",
+      "us_noise_type",
+      "us_noise",
+      "us_sat",
+      "us_rate",
+      "us_bits",
+      "uc_size",
+      "uc_crash",
+      "uc_damp",
+      "uc_closed",
+      "uc_punch",
+      "uc_strike",
+      "uc_strike_br",
+      "uc_lowpass",
+      "uc_tone_freq",
+      "uc_tone_gain",
+      "uc_slice",
+      "uc_chop_speed",
+      "uc_late",
+      "uc_noise_type",
+      "uc_noise",
+      "uc_sat",
+      "uc_rate",
+      "uc_bits",
+      "n9_tune",
+      "n9_decay",
+      "n9_bd_attack",
+      "n9_bd_pdepth",
+      "n9_bd_pitch",
+      "n9_drive",
+      "n9_dist",
+      "n9_vel",
+      "n9_sd_snappy",
+      "n9_lt_attack",
+      "n9_mt_attack",
+      "n9_ht_attack",
+      "s6_tune",
+      "s6_decay",
+      "s6_bd_attack",
+      "s6_drive",
+      "s6_dist",
+      "s6_vel",
+      "s6_sd_snappy",
+      "s6_cp_noise",
+      "e8_tune",
+      "e8_decay",
+      "e8_bd_attack",
+      "e8_bd_tone",
+      "e8_drive",
+      "e8_dist",
+      "e8_vel",
+      "e8_sd_snappy",
+      "e8_ma_attack",
+      "c7_tune",
+      "c7_decay",
+      "c7_drive",
+      "c7_dist",
+      "c7_vel",
+      "c7_sd_snappy",
+      "c7_gu_rate",
+      "ck_width",
+      "ck_amp",
+      "ck_decay",
+      "ck_sustain",
+      "ck_velo",
+      "ck_tone",
+      "ck_freq",
+      "ck_q",
+      "ck_damp",
+      "ck_tight",
+      "ck_bounce",
+      "ck_mode",
+      "ck_porta",
+      "ck_noise",
+      "ck_ndecay",
+      "ck_ncut",
+      "ck_ntype",
+      "fk_tone",
+      "fk_pitch",
+      "fk_decay",
+      "fk_sweep",
+      "fk_swdec",
+      "fk_ratio",
+      "fk_mod",
+      "fk_mdec",
+      "fk_fb",
+      "fk_track",
+      "fk_noise",
+      "fk_ndec",
+      "fk_nfreq",
+      "fk_nres",
+      "fk_nmode",
+      "fk_mix",
+      "fk_drive",
+      "fk_lowcut",
+      "fk_hicut",
+      "fk_vel",
+      "fk_vmod",
+      "fk_vsweep",
+      "fk_vpitch",
+      "fk_vdecay",
+      "fk_vnoise",
+      "fk_vnfreq",
+      "fs_tone",
+      "fs_pitch",
+      "fs_decay",
+      "fs_sweep",
+      "fs_swdec",
+      "fs_ratio",
+      "fs_mod",
+      "fs_mdec",
+      "fs_fb",
+      "fs_track",
+      "fs_noise",
+      "fs_ndec",
+      "fs_nfreq",
+      "fs_nres",
+      "fs_nmode",
+      "fs_bursts",
+      "fs_gap",
+      "fs_mix",
+      "fs_drive",
+      "fs_lowcut",
+      "fs_hicut",
+      "fs_vel",
+      "fs_vmod",
+      "fs_vsweep",
+      "fs_vpitch",
+      "fs_vdecay",
+      "fs_vnoise",
+      "fs_vnfreq",
+      "fx_tone",
+      "fx_pitch",
+      "fx_decay",
+      "fx_spread",
+      "fx_mod",
+      "fx_mdec",
+      "fx_fb",
+      "fx_noise",
+      "fx_ndec",
+      "fx_nfreq",
+      "fx_nres",
+      "fx_nmode",
+      "fx_mix",
+      "fx_drive",
+      "fx_lowcut",
+      "fx_hicut",
+      "fx_vel",
+      "fx_vmod",
+      "fx_vpitch",
+      "fx_vdecay",
+      "fx_vnoise",
+      "fx_vnfreq",
+      "fp_tone",
+      "fp_pitch",
+      "fp_decay",
+      "fp_sweep",
+      "fp_swdec",
+      "fp_ratio",
+      "fp_mod",
+      "fp_mdec",
+      "fp_fb",
+      "fp_track",
+      "fp_noise",
+      "fp_ndec",
+      "fp_nfreq",
+      "fp_nres",
+      "fp_nmode",
+      "fp_bursts",
+      "fp_gap",
+      "fp_nzfm",
+      "fp_ring",
+      "fp_crush",
+      "fp_bits",
+      "fp_mix",
+      "fp_drive",
+      "fp_lowcut",
+      "fp_hicut",
+      "fp_vel",
+      "fp_vmod",
+      "fp_vsweep",
+      "fp_vpitch",
+      "fp_vdecay",
+      "fp_vnoise",
+      "fp_vnfreq",
+      "start",
+      "end",
+      "transpose",
+      "detune",
+      "choke",
+      "gain",
+      "cell_volume",
+      "vel_vol",
+      "attack",
+      "hold",
+      "decay",
+      "env_mode",
+      "volume",
+      "pan",
+      "punch",
+      "punch_time",
+      "filter_on",
+      "filter_type",
+      "cutoff",
+      "resonance",
+      "peak_gain",
+      "mod_target",
+      "mod_amount",
+      "pitch_env",
+      "send_a",
+      "send_b",
+      "wide",
+      "wide_freq",
+      "wide_mode",
+      "wide_time",
+      "wide_comp",
+      "wide_late"
+     ],
+     "params": [
+      {
+       "key": "wide_mode",
+       "name": "Wide Mode",
+       "short_name": "WMODE",
+       "type": "enum",
+       "options": [
+        "Comb",
+        "Haas",
+        "Disperse"
+       ],
+       "default": "Comb"
+      },
+      {
+       "key": "wide",
+       "name": "Wide",
+       "short_name": "WIDE",
+       "type": "int",
+       "min": -100,
+       "max": 100,
+       "unit": "%",
+       "default": 0
+      },
+      {
+       "key": "wide_freq",
+       "name": "Wide Freq",
+       "short_name": "WFREQ",
+       "type": "int",
+       "min": 20,
+       "max": 4000,
+       "unit": "Hz",
+       "default": 150
+      },
+      {
+       "key": "wide_time",
+       "name": "Wide Time",
+       "short_name": "TIME",
+       "type": "float",
+       "min": 0,
+       "max": 12,
+       "step": 0.1,
+       "unit": "ms",
+       "default": 0
+      },
+      {
+       "key": "wide_comp",
+       "name": "Wide Comp",
+       "short_name": "COMP",
+       "type": "enum",
+       "options": [
+        "Off",
+        "On"
+       ],
+       "default": "Off"
+      },
+      {
+       "key": "wide_late",
+       "name": "Late Level",
+       "short_name": "LATE",
+       "type": "float",
+       "min": -12,
+       "max": 12,
+       "step": 0.1,
+       "unit": "dB",
+       "default": 0,
+       "visible_if": {
+        "param": "wide_mode",
+        "equals": "Haas"
+       }
+      }
+     ],
+     "knobs": [
+      "wide_mode",
+      "wide",
+      "wide_freq",
+      "wide_time",
+      "wide_comp",
+      "wide_late"
+     ],
+     "child_key_overrides": {
+      "ui_current_pad": "ui_current_pad"
+     }
+    },
+    "output": {
+     "name": "Master",
+     "params": [
+      {
+       "key": "master",
+       "name": "Master",
+       "short_name": "MASTR",
+       "type": "float",
+       "min": 0,
+       "max": 2,
+       "step": 0.02,
+       "default": 1
+      }
+     ],
+     "knobs": [
+      "master"
+     ]
+    },
+    "resample": {
+     "name": "Resample",
+     "params": [
+      {
+       "key": "resample",
+       "name": "Resample",
+       "type": "canvas",
+       "canvas_script": "resample.js",
+       "as_page": true,
+       "enterable": true,
+       "extra_keys": [
+        "rs_status"
+       ]
+      }
+     ],
+     "knobs": [
+      "master"
+     ]
+    },
+    "kits": {
+     "name": "Category",
+     "items_param": "kit_cat_items",
+     "select_param": "kit_cat",
+     "navigate_to": "kit_list",
+     "params": [
+      {
+       "level": "kit_list",
+       "label": "Kit"
+      }
+     ]
+    },
+    "kit_list": {
+     "name": "Kit",
+     "list_param": "kit_index",
+     "count_param": "kit_count",
+     "name_param": "kit_name"
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "pads",
+   "pad_shape",
+   "pad_mix",
+   "pad_stereo",
+   "output",
+   "resample",
+   "kits",
+   "kit_list",
+   "eng_sm_tone",
+   "eng_sm_noise",
+   "eng_ud_drum",
+   "eng_ud_shell",
+   "eng_ud_chop",
+   "eng_ud_media",
+   "eng_us_drum",
+   "eng_us_shell",
+   "eng_us_chop",
+   "eng_us_media",
+   "eng_uc_cymbal",
+   "eng_uc_chop",
+   "eng_uc_media",
+   "eng_n9_voice",
+   "eng_s6_voice",
+   "eng_e8_voice",
+   "eng_c7_voice",
+   "eng_ck_pulse",
+   "eng_ck_body",
+   "eng_ck_noise",
+   "eng_fk_tone",
+   "eng_fk_fm",
+   "eng_fk_noise",
+   "eng_fk_output",
+   "eng_fk_velocity",
+   "eng_fs_tone",
+   "eng_fs_fm",
+   "eng_fs_noise",
+   "eng_fs_output",
+   "eng_fs_velocity",
+   "eng_fx_tone",
+   "eng_fx_metal",
+   "eng_fx_noise",
+   "eng_fx_output",
+   "eng_fx_velocity",
+   "eng_fp_tone",
+   "eng_fp_fm",
+   "eng_fp_noise",
+   "eng_fp_mangle",
+   "eng_fp_output",
+   "eng_fp_velocity"
+  ],
+  "params": [
+   {
+    "key": "ui_current_pad",
+    "name": "Pad",
+    "type": "int",
+    "min": 1,
+    "max": 32,
+    "step": null,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "transpose",
+    "name": "Transpose",
+    "type": "int",
+    "min": -48,
+    "max": 48,
+    "step": null,
+    "options": null,
+    "default": ""
+   },
+   {
+    "key": "detune",
+    "name": "Detune",
+    "type": "float",
+    "min": -50,
+    "max": 50,
+    "step": 1,
+    "options": null,
+    "default": ""
+   },
+   {
+    "key": "choke",
+    "name": "Choke",
+    "type": "int",
+    "min": 0,
+    "max": 16,
+    "step": null,
+    "options": null,
+    "default": ""
+   },
+   {
+    "key": "volume_clone",
+    "name": "Volume",
+    "type": "float",
+    "min": -36,
+    "max": 12,
+    "step": 0.5,
+    "options": null,
+    "default": ""
+   },
+   {
+    "key": "atk_knob",
+    "name": "Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.0001,
+    "options": null,
+    "default": ""
+   },
+   {
+    "key": "hold_knob",
+    "name": "Hold",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.0001,
+    "options": null,
+    "default": ""
+   },
+   {
+    "key": "dcy_knob",
+    "name": "Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.0001,
+    "options": null,
+    "default": ""
+   },
+   {
+    "key": "env_mode",
+    "name": "Envelope",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Trigger",
+     "Gate"
+    ],
+    "default": ""
+   },
+   {
+    "key": "cutoff",
+    "name": "Filter Freq",
+    "type": "float",
+    "min": 30,
+    "max": 22000,
+    "step": 50,
+    "options": null,
+    "default": ""
+   },
+   {
+    "key": "resonance",
+    "name": "Filter Reso",
+    "type": "float",
+    "min": 0,
+    "max": 0.9,
+    "step": 0.01,
+    "options": null,
+    "default": ""
+   },
+   {
+    "key": "peak_db",
+    "name": "Filter Gain",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "step": 0.5,
+    "options": null,
+    "default": ""
+   },
+   {
+    "key": "filter_type",
+    "name": "Filter Type",
+    "type": "enum",
+    "min": 0,
+    "max": 3,
+    "step": null,
+    "options": [
+     "Lowpass 12dB",
+     "Lowpass",
+     "Highpass",
+     "Peak"
+    ],
+    "default": ""
+   },
+   {
+    "key": "filter_on",
+    "name": "Filter On",
+    "type": "int",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": ""
+   },
+   {
+    "key": "vel_vol",
+    "name": "Vel Vol",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": ""
+   },
+   {
+    "key": "volume",
+    "name": "Volume",
+    "type": "float",
+    "min": -36,
+    "max": 12,
+    "step": 0.5,
+    "options": null,
+    "default": ""
+   },
+   {
+    "key": "pan",
+    "name": "Pan",
+    "type": "float",
+    "min": -50,
+    "max": 50,
+    "step": 1,
+    "options": null,
+    "default": ""
+   },
+   {
+    "key": "link",
+    "name": "Link",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "One",
+     "All"
+    ],
+    "default": "One"
+   },
+   {
+    "key": "send_a",
+    "name": "Send A",
+    "type": "float",
+    "min": -70,
+    "max": 6,
+    "step": 0.5,
+    "options": null,
+    "default": ""
+   },
+   {
+    "key": "send_b",
+    "name": "Send B",
+    "type": "float",
+    "min": -70,
+    "max": 6,
+    "step": 0.5,
+    "options": null,
+    "default": ""
+   },
+   {
+    "key": "punch",
+    "name": "Punch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": ""
+   },
+   {
+    "key": "punch_time",
+    "name": "Punch Time",
+    "type": "float",
+    "min": 0.06,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": ""
+   },
+   {
+    "key": "wide_mode",
+    "name": "Wide Mode",
+    "type": "enum",
+    "min": 0,
+    "max": 2,
+    "step": null,
+    "options": [
+     "Comb",
+     "Haas",
+     "Disperse"
+    ],
+    "default": ""
+   },
+   {
+    "key": "wide",
+    "name": "Wide",
+    "type": "int",
+    "min": -100,
+    "max": 100,
+    "step": null,
+    "options": null,
+    "default": ""
+   },
+   {
+    "key": "wide_freq",
+    "name": "Wide Freq",
+    "type": "int",
+    "min": 20,
+    "max": 4000,
+    "step": null,
+    "options": null,
+    "default": ""
+   },
+   {
+    "key": "wide_time",
+    "name": "Wide Time",
+    "type": "float",
+    "min": 0,
+    "max": 12,
+    "step": 0.1,
+    "options": null,
+    "default": ""
+   },
+   {
+    "key": "wide_comp",
+    "name": "Wide Comp",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": ""
+   },
+   {
+    "key": "wide_late",
+    "name": "Late Level",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "step": 0.1,
+    "options": null,
+    "default": ""
+   },
+   {
+    "key": "master",
+    "name": "Master",
+    "type": "float",
+    "min": 0,
+    "max": 2,
+    "step": 0.02,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "resample",
+    "name": "Resample",
+    "type": "canvas",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": null,
+    "default": ""
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Pad",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Shape",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Tone",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Noise",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Drum",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Shell",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Chop",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Media",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Drum",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Shell",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Chop",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Media",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Cymbal",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Chop",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Media",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Voice",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Voice - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Voice",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Voice",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Voice - 2",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Voice",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Pulse",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Body",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Noise",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Tone",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "FM",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Noise",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Output",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Velocity",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Tone",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "FM",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Noise",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Output",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Velocity",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Tone",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Metal",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Noise",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Output",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Velocity",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Tone",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "FM",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Noise",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Mangle",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Output",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Velocity",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Mix",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Stereo",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Master",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "CATEGO",
+       "fullName": "Category",
+       "renderStyle": "items",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Pad",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ENGN",
+       "fullName": "sample",
+       "renderStyle": "arc",
+       "type": "canvas",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "STRT",
+       "fullName": "start",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "END",
+       "fullName": "end",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PAD",
+       "fullName": "Pad",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "TRSP",
+       "fullName": "Transpose",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DETN",
+       "fullName": "Detune",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CHOKE",
+       "fullName": "Choke",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOL",
+       "fullName": "Volume",
+       "renderStyle": "vbar",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Shape",
+    "envelopeLines": [
+     true,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ATK",
+       "fullName": "Attack",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DCY",
+       "fullName": "Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HOLD",
+       "fullName": "Hold",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ENV",
+       "fullName": "Envelope",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "CUT",
+       "fullName": "Filter Freq",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RES",
+       "fullName": "Filter Reso",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TYPE",
+       "fullName": "Filter Type",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FILT",
+       "fullName": "Filter On",
+       "renderStyle": "switch",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Tone",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PITCH",
+       "fullName": "sm_pitch",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WAVE",
+       "fullName": "sm_wave",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BEND",
+       "fullName": "sm_bend",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BDYN",
+       "fullName": "sm_bend_dyn",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "DECAY",
+       "fullName": "sm_decay",
+       "renderStyle": "envstage",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PUNCH",
+       "fullName": "sm_punch",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "T/NSE",
+       "fullName": "sm_noise",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CLICK",
+       "fullName": "sm_click",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Noise",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "CUTOF",
+       "fullName": "sm_cutoff",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RES",
+       "fullName": "sm_res",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LPBND",
+       "fullName": "sm_lp_bend",
+       "renderStyle": "cut",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LPDYN",
+       "fullName": "sm_lp_dyn",
+       "renderStyle": "cut",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "SAT",
+       "fullName": "sm_sat",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VGAIN",
+       "fullName": "sm_vel_gain",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Drum",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PITCH",
+       "fullName": "ud_pitch",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "ud_decay",
+       "renderStyle": "envstage",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BEATR",
+       "fullName": "ud_beater",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DETUN",
+       "fullName": "ud_detune",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "PUNCH",
+       "fullName": "ud_punch",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "STRKE",
+       "fullName": "ud_strike",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "STONE",
+       "fullName": "ud_strike_br",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Shell",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "SHELL",
+       "fullName": "ud_shell",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SDAMP",
+       "fullName": "ud_shell_damp",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RING",
+       "fullName": "ud_ring",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RHEAD",
+       "fullName": "ud_reso_head",
+       "renderStyle": "switch",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "RTUNE",
+       "fullName": "ud_reso_tune",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RMIX",
+       "fullName": "ud_reso_mix",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Chop",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LOPAS",
+       "fullName": "ud_lowpass",
+       "renderStyle": "cut",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TFREQ",
+       "fullName": "ud_tone_freq",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TGAIN",
+       "fullName": "ud_tone_gain",
+       "renderStyle": "vbar",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SLICE",
+       "fullName": "ud_slice",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "SPEED",
+       "fullName": "ud_chop_speed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LATE",
+       "fullName": "ud_late",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Media",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "TYPE",
+       "fullName": "ud_noise_type",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NOISE",
+       "fullName": "ud_noise",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SAT",
+       "fullName": "ud_sat",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RATE",
+       "fullName": "ud_rate",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "BITS",
+       "fullName": "ud_bits",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Drum",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "PITCH",
+       "fullName": "us_pitch",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "us_decay",
+       "renderStyle": "envstage",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BEATR",
+       "fullName": "us_beater",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DETUN",
+       "fullName": "us_detune",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "PUNCH",
+       "fullName": "us_punch",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "STRKE",
+       "fullName": "us_strike",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "STONE",
+       "fullName": "us_strike_br",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RIM",
+       "fullName": "us_rim",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Shell",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "SHELL",
+       "fullName": "us_shell",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SDAMP",
+       "fullName": "us_shell_damp",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RING",
+       "fullName": "us_ring",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RHEAD",
+       "fullName": "us_reso_head",
+       "renderStyle": "switch",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "RTUNE",
+       "fullName": "us_reso_tune",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RMIX",
+       "fullName": "us_reso_mix",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Chop",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LOPAS",
+       "fullName": "us_lowpass",
+       "renderStyle": "cut",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TFREQ",
+       "fullName": "us_tone_freq",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TGAIN",
+       "fullName": "us_tone_gain",
+       "renderStyle": "vbar",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SLICE",
+       "fullName": "us_slice",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "SPEED",
+       "fullName": "us_chop_speed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LATE",
+       "fullName": "us_late",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Media",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "TYPE",
+       "fullName": "us_noise_type",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NOISE",
+       "fullName": "us_noise",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SAT",
+       "fullName": "us_sat",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RATE",
+       "fullName": "us_rate",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "BITS",
+       "fullName": "us_bits",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Cymbal",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "SIZE",
+       "fullName": "uc_size",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CRASH",
+       "fullName": "uc_crash",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DAMP",
+       "fullName": "uc_damp",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CLOSD",
+       "fullName": "uc_closed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "PUNCH",
+       "fullName": "uc_punch",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "STRKE",
+       "fullName": "uc_strike",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "STONE",
+       "fullName": "uc_strike_br",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Chop",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LOPAS",
+       "fullName": "uc_lowpass",
+       "renderStyle": "cut",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TFREQ",
+       "fullName": "uc_tone_freq",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TGAIN",
+       "fullName": "uc_tone_gain",
+       "renderStyle": "vbar",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SLICE",
+       "fullName": "uc_slice",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "SPEED",
+       "fullName": "uc_chop_speed",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LATE",
+       "fullName": "uc_late",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Media",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "TYPE",
+       "fullName": "uc_noise_type",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NOISE",
+       "fullName": "uc_noise",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SAT",
+       "fullName": "uc_sat",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RATE",
+       "fullName": "uc_rate",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "BITS",
+       "fullName": "uc_bits",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Voice",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "TUNE",
+       "fullName": "n9_tune",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "n9_decay",
+       "renderStyle": "envstage",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ATTCK",
+       "fullName": "n9_bd_attack",
+       "renderStyle": "envstage",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PDPTH",
+       "fullName": "n9_bd_pdepth",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "PITCH",
+       "fullName": "n9_bd_pitch",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SNAPY",
+       "fullName": "n9_sd_snappy",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ATTCK",
+       "fullName": "n9_lt_attack",
+       "renderStyle": "envstage",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ATTCK",
+       "fullName": "n9_mt_attack",
+       "renderStyle": "envstage",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Voice - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ATTCK",
+       "fullName": "n9_ht_attack",
+       "renderStyle": "envstage",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRIVE",
+       "fullName": "n9_drive",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DIST",
+       "fullName": "n9_dist",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VEL",
+       "fullName": "n9_vel",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Voice",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "TUNE",
+       "fullName": "s6_tune",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "s6_decay",
+       "renderStyle": "envstage",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ATTCK",
+       "fullName": "s6_bd_attack",
+       "renderStyle": "envstage",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SNAPY",
+       "fullName": "s6_sd_snappy",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "NOISE",
+       "fullName": "s6_cp_noise",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRIVE",
+       "fullName": "s6_drive",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DIST",
+       "fullName": "s6_dist",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VEL",
+       "fullName": "s6_vel",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Voice",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "TUNE",
+       "fullName": "e8_tune",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "e8_decay",
+       "renderStyle": "envstage",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ATTCK",
+       "fullName": "e8_bd_attack",
+       "renderStyle": "envstage",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TONE",
+       "fullName": "e8_bd_tone",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "SNAPY",
+       "fullName": "e8_sd_snappy",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ATTCK",
+       "fullName": "e8_ma_attack",
+       "renderStyle": "envstage",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRIVE",
+       "fullName": "e8_drive",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DIST",
+       "fullName": "e8_dist",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Voice - 2",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "VEL",
+       "fullName": "e8_vel",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Voice",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "TUNE",
+       "fullName": "c7_tune",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "c7_decay",
+       "renderStyle": "envstage",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SNAPY",
+       "fullName": "c7_sd_snappy",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RATE",
+       "fullName": "c7_gu_rate",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "DRIVE",
+       "fullName": "c7_drive",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DIST",
+       "fullName": "c7_dist",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VEL",
+       "fullName": "c7_vel",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Pulse",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "WIDTH",
+       "fullName": "ck_width",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "AMP",
+       "fullName": "ck_amp",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "ck_decay",
+       "renderStyle": "envstage",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SUST",
+       "fullName": "ck_sustain",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "VSENS",
+       "fullName": "ck_velo",
+       "renderStyle": "switch",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TONE",
+       "fullName": "ck_tone",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Body",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "FREQ",
+       "fullName": "ck_freq",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "Q",
+       "fullName": "ck_q",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DAMP",
+       "fullName": "ck_damp",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TIGHT",
+       "fullName": "ck_tight",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "BOUNC",
+       "fullName": "ck_bounce",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MODE",
+       "fullName": "ck_mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PORTA",
+       "fullName": "ck_porta",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Noise",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "NOISE",
+       "fullName": "ck_noise",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NDCY",
+       "fullName": "ck_ndecay",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NCUT",
+       "fullName": "ck_ncut",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NTYPE",
+       "fullName": "ck_ntype",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Tone",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LEVEL",
+       "fullName": "fk_tone",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PITCH",
+       "fullName": "fk_pitch",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "fk_decay",
+       "renderStyle": "envstage",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SWEEP",
+       "fullName": "fk_sweep",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "SWDEC",
+       "fullName": "fk_swdec",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "FM",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "RATIO",
+       "fullName": "fk_ratio",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MOD",
+       "fullName": "fk_mod",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MDEC",
+       "fullName": "fk_mdec",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FB",
+       "fullName": "fk_fb",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "TRACK",
+       "fullName": "fk_track",
+       "renderStyle": "switch",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Noise",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LEVEL",
+       "fullName": "fk_noise",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NDEC",
+       "fullName": "fk_ndec",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NFREQ",
+       "fullName": "fk_nfreq",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NRES",
+       "fullName": "fk_nres",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "NFILT",
+       "fullName": "fk_nmode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Output",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LOCUT",
+       "fullName": "fk_lowcut",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HICUT",
+       "fullName": "fk_hicut",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TN-NS",
+       "fullName": "fk_mix",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRIVE",
+       "fullName": "fk_drive",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Velocity",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "VLVL",
+       "fullName": "fk_vel",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VMOD",
+       "fullName": "fk_vmod",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VSWP",
+       "fullName": "fk_vsweep",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VPTCH",
+       "fullName": "fk_vpitch",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "VDEC",
+       "fullName": "fk_vdecay",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VNSE",
+       "fullName": "fk_vnoise",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VNFRQ",
+       "fullName": "fk_vnfreq",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Tone",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LEVEL",
+       "fullName": "fs_tone",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PITCH",
+       "fullName": "fs_pitch",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "fs_decay",
+       "renderStyle": "envstage",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SWEEP",
+       "fullName": "fs_sweep",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "SWDEC",
+       "fullName": "fs_swdec",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "FM",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "RATIO",
+       "fullName": "fs_ratio",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MOD",
+       "fullName": "fs_mod",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MDEC",
+       "fullName": "fs_mdec",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FB",
+       "fullName": "fs_fb",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "TRACK",
+       "fullName": "fs_track",
+       "renderStyle": "switch",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Noise",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LEVEL",
+       "fullName": "fs_noise",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NDEC",
+       "fullName": "fs_ndec",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NFREQ",
+       "fullName": "fs_nfreq",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NRES",
+       "fullName": "fs_nres",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "NFILT",
+       "fullName": "fs_nmode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BRSTS",
+       "fullName": "fs_bursts",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GAP",
+       "fullName": "fs_gap",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Output",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LOCUT",
+       "fullName": "fs_lowcut",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HICUT",
+       "fullName": "fs_hicut",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TN-NS",
+       "fullName": "fs_mix",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRIVE",
+       "fullName": "fs_drive",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Velocity",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "VLVL",
+       "fullName": "fs_vel",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VMOD",
+       "fullName": "fs_vmod",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VSWP",
+       "fullName": "fs_vsweep",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VPTCH",
+       "fullName": "fs_vpitch",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "VDEC",
+       "fullName": "fs_vdecay",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VNSE",
+       "fullName": "fs_vnoise",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VNFRQ",
+       "fullName": "fs_vnfreq",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Tone",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LEVEL",
+       "fullName": "fx_tone",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PITCH",
+       "fullName": "fx_pitch",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "fx_decay",
+       "renderStyle": "envstage",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Metal",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "SPRD",
+       "fullName": "fx_spread",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MOD",
+       "fullName": "fx_mod",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MDEC",
+       "fullName": "fx_mdec",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FB",
+       "fullName": "fx_fb",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Noise",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LEVEL",
+       "fullName": "fx_noise",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NDEC",
+       "fullName": "fx_ndec",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NFREQ",
+       "fullName": "fx_nfreq",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NRES",
+       "fullName": "fx_nres",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "NFILT",
+       "fullName": "fx_nmode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Output",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LOCUT",
+       "fullName": "fx_lowcut",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HICUT",
+       "fullName": "fx_hicut",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TN-NS",
+       "fullName": "fx_mix",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRIVE",
+       "fullName": "fx_drive",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Velocity",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "VLVL",
+       "fullName": "fx_vel",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VMOD",
+       "fullName": "fx_vmod",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VPTCH",
+       "fullName": "fx_vpitch",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VDEC",
+       "fullName": "fx_vdecay",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "VNSE",
+       "fullName": "fx_vnoise",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VNFRQ",
+       "fullName": "fx_vnfreq",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Tone",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LEVEL",
+       "fullName": "fp_tone",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PITCH",
+       "fullName": "fp_pitch",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "fp_decay",
+       "renderStyle": "envstage",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SWEEP",
+       "fullName": "fp_sweep",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "SWDEC",
+       "fullName": "fp_swdec",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "FM",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "RATIO",
+       "fullName": "fp_ratio",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MOD",
+       "fullName": "fp_mod",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MDEC",
+       "fullName": "fp_mdec",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "FB",
+       "fullName": "fp_fb",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "TRACK",
+       "fullName": "fp_track",
+       "renderStyle": "switch",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Noise",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LEVEL",
+       "fullName": "fp_noise",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NDEC",
+       "fullName": "fp_ndec",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NFREQ",
+       "fullName": "fp_nfreq",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "NRES",
+       "fullName": "fp_nres",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "NFILT",
+       "fullName": "fp_nmode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BRSTS",
+       "fullName": "fp_bursts",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GAP",
+       "fullName": "fp_gap",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Mangle",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "NZFM",
+       "fullName": "fp_nzfm",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RING",
+       "fullName": "fp_ring",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CRUSH",
+       "fullName": "fp_crush",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BITS",
+       "fullName": "fp_bits",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Output",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "LOCUT",
+       "fullName": "fp_lowcut",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "HICUT",
+       "fullName": "fp_hicut",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TN-NS",
+       "fullName": "fp_mix",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DRIVE",
+       "fullName": "fp_drive",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Velocity",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "VLVL",
+       "fullName": "fp_vel",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VMOD",
+       "fullName": "fp_vmod",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VSWP",
+       "fullName": "fp_vsweep",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VPTCH",
+       "fullName": "fp_vpitch",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "VDEC",
+       "fullName": "fp_vdecay",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VNSE",
+       "fullName": "fp_vnoise",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VNFRQ",
+       "fullName": "fp_vnfreq",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Mix",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "VVOL",
+       "fullName": "Vel Vol",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "VOL",
+       "fullName": "Volume",
+       "renderStyle": "vbar",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PAN",
+       "fullName": "Pan",
+       "renderStyle": "pan",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LINK",
+       "fullName": "Link",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "SNDA",
+       "fullName": "Send A",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SNDB",
+       "fullName": "Send B",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PUNCH",
+       "fullName": "Punch",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PTIME",
+       "fullName": "Punch Time",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Stereo",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "WMODE",
+       "fullName": "Wide Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WIDE",
+       "fullName": "Wide",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WFREQ",
+       "fullName": "Wide Freq",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TIME",
+       "fullName": "Wide Time",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "COMP",
+       "fullName": "Wide Comp",
+       "renderStyle": "switch",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ]
+    ]
+   },
+   {
+    "name": "Master",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MASTR",
+       "fullName": "Master",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      null,
+      null,
+      null
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "kit_cat",
+    "label": "Category",
+    "shortLabel": null,
+    "type": "enum",
+    "min": 0,
+    "max": 0,
+    "step": 1,
+    "options": [
+     "Init"
+    ],
+    "itemIndices": [
+     0
+    ],
+    "itemsKey": "kit_cat_items",
+    "renderStyle": "items",
+    "capturesModuleState": true,
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 1
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "ui_current_pad",
+    "label": "Pad",
+    "shortLabel": "PAD",
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 32,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 62
+    }
+   },
+   {
+    "key": "sample",
+    "label": "sample",
+    "shortLabel": "ENGN",
+    "type": "canvas",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "canvas",
+     "perDetent": 0.5,
+     "detentsFullSweep": 2
+    }
+   },
+   {
+    "key": "start",
+    "label": "start",
+    "shortLabel": "STRT",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "uiType": "wav_position",
+    "filepathParam": "sample",
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "end",
+    "label": "end",
+    "shortLabel": "END",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "uiType": "wav_position",
+    "filepathParam": "sample",
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "transpose",
+    "label": "Transpose",
+    "shortLabel": "TRSP",
+    "type": "int",
+    "options": null,
+    "min": -48,
+    "max": 48,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 192
+    }
+   },
+   {
+    "key": "detune",
+    "label": "Detune",
+    "shortLabel": "DETN",
+    "type": "float",
+    "options": null,
+    "min": -50,
+    "max": 50,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "choke",
+    "label": "Choke",
+    "shortLabel": "CHOKE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 16,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 32
+    }
+   },
+   {
+    "key": "volume_clone",
+    "label": "Volume",
+    "shortLabel": "VOL",
+    "type": "float",
+    "options": null,
+    "min": -36,
+    "max": 12,
+    "step": 0.5,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 96
+    }
+   },
+   {
+    "key": "atk_knob",
+    "label": "Attack",
+    "shortLabel": "ATK",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.0001,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.00005,
+     "detentsFullSweep": 20000
+    }
+   },
+   {
+    "key": "hold_knob",
+    "label": "Hold",
+    "shortLabel": "HOLD",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.0001,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.00005,
+     "detentsFullSweep": 20000
+    }
+   },
+   {
+    "key": "dcy_knob",
+    "label": "Decay",
+    "shortLabel": "DCY",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.0001,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.00005,
+     "detentsFullSweep": 20000
+    }
+   },
+   {
+    "key": "env_mode",
+    "label": "Envelope",
+    "shortLabel": "ENV",
+    "type": "enum",
+    "options": [
+     "Trigger",
+     "Gate"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "cutoff",
+    "label": "Filter Freq",
+    "shortLabel": "CUT",
+    "type": "float",
+    "options": null,
+    "min": 30,
+    "max": 22000,
+    "step": 50,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 25,
+     "detentsFullSweep": 879
+    }
+   },
+   {
+    "key": "resonance",
+    "label": "Filter Reso",
+    "shortLabel": "RES",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 0.9,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 180
+    }
+   },
+   {
+    "key": "filter_type",
+    "label": "Filter Type",
+    "shortLabel": "TYPE",
+    "type": "enum",
+    "options": [
+     "Lowpass 12dB",
+     "Lowpass",
+     "Highpass",
+     "Peak"
+    ],
+    "min": 0,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 4
+    }
+   },
+   {
+    "key": "filter_on",
+    "label": "Filter On",
+    "shortLabel": "FILT",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "switch",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 1
+    }
+   },
+   {
+    "key": "sm_pitch",
+    "label": "sm_pitch",
+    "shortLabel": "PITCH",
+    "type": "int",
+    "options": null,
+    "min": 30,
+    "max": 4400,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 8740
+    }
+   },
+   {
+    "key": "sm_wave",
+    "label": "sm_wave",
+    "shortLabel": "WAVE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "sm_bend",
+    "label": "sm_bend",
+    "shortLabel": "BEND",
+    "type": "int",
+    "options": null,
+    "min": -36,
+    "max": 36,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 144
+    }
+   },
+   {
+    "key": "sm_bend_dyn",
+    "label": "sm_bend_dyn",
+    "shortLabel": "BDYN",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "sm_decay",
+    "label": "sm_decay",
+    "shortLabel": "DECAY",
+    "type": "int",
+    "options": null,
+    "min": 10,
+    "max": 2000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 3980
+    }
+   },
+   {
+    "key": "sm_punch",
+    "label": "sm_punch",
+    "shortLabel": "PUNCH",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "sm_noise",
+    "label": "sm_noise",
+    "shortLabel": "T/NSE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "sm_click",
+    "label": "sm_click",
+    "shortLabel": "CLICK",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "sm_cutoff",
+    "label": "sm_cutoff",
+    "shortLabel": "CUTOF",
+    "type": "int",
+    "options": null,
+    "min": 440,
+    "max": 15000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 29120
+    }
+   },
+   {
+    "key": "sm_res",
+    "label": "sm_res",
+    "shortLabel": "RES",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "sm_lp_bend",
+    "label": "sm_lp_bend",
+    "shortLabel": "LPBND",
+    "type": "int",
+    "options": null,
+    "min": -36,
+    "max": 36,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 144
+    }
+   },
+   {
+    "key": "sm_lp_dyn",
+    "label": "sm_lp_dyn",
+    "shortLabel": "LPDYN",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "sm_sat",
+    "label": "sm_sat",
+    "shortLabel": "SAT",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "sm_vel_gain",
+    "label": "sm_vel_gain",
+    "shortLabel": "VGAIN",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null,
+   {
+    "key": "ud_pitch",
+    "label": "ud_pitch",
+    "shortLabel": "PITCH",
+    "type": "int",
+    "options": null,
+    "min": 40,
+    "max": 240,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "ud_decay",
+    "label": "ud_decay",
+    "shortLabel": "DECAY",
+    "type": "int",
+    "options": null,
+    "min": 150,
+    "max": 5000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 9700
+    }
+   },
+   {
+    "key": "ud_beater",
+    "label": "ud_beater",
+    "shortLabel": "BEATR",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "ud_detune",
+    "label": "ud_detune",
+    "shortLabel": "DETUN",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 32,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 64
+    }
+   },
+   {
+    "key": "ud_punch",
+    "label": "ud_punch",
+    "shortLabel": "PUNCH",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "ud_strike",
+    "label": "ud_strike",
+    "shortLabel": "STRKE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "ud_strike_br",
+    "label": "ud_strike_br",
+    "shortLabel": "STONE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   {
+    "key": "ud_shell",
+    "label": "ud_shell",
+    "shortLabel": "SHELL",
+    "type": "int",
+    "options": null,
+    "min": 5,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 38
+    }
+   },
+   {
+    "key": "ud_shell_damp",
+    "label": "ud_shell_damp",
+    "shortLabel": "SDAMP",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "ud_ring",
+    "label": "ud_ring",
+    "shortLabel": "RING",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "ud_reso_head",
+    "label": "ud_reso_head",
+    "shortLabel": "RHEAD",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "switch",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 1
+    }
+   },
+   {
+    "key": "ud_reso_tune",
+    "label": "ud_reso_tune",
+    "shortLabel": "RTUNE",
+    "type": "int",
+    "options": null,
+    "min": -6,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 24
+    }
+   },
+   {
+    "key": "ud_reso_mix",
+    "label": "ud_reso_mix",
+    "shortLabel": "RMIX",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null,
+   {
+    "key": "ud_lowpass",
+    "label": "ud_lowpass",
+    "shortLabel": "LOPAS",
+    "type": "int",
+    "options": null,
+    "min": 2000,
+    "max": 20000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 36000
+    }
+   },
+   {
+    "key": "ud_tone_freq",
+    "label": "ud_tone_freq",
+    "shortLabel": "TFREQ",
+    "type": "int",
+    "options": null,
+    "min": 1000,
+    "max": 12000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 22000
+    }
+   },
+   {
+    "key": "ud_tone_gain",
+    "label": "ud_tone_gain",
+    "shortLabel": "TGAIN",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 6
+    }
+   },
+   {
+    "key": "ud_slice",
+    "label": "ud_slice",
+    "shortLabel": "SLICE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 3000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 6000
+    }
+   },
+   {
+    "key": "ud_chop_speed",
+    "label": "ud_chop_speed",
+    "shortLabel": "SPEED",
+    "type": "int",
+    "options": null,
+    "min": -12,
+    "max": 12,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 48
+    }
+   },
+   {
+    "key": "ud_late",
+    "label": "ud_late",
+    "shortLabel": "LATE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 20,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 40
+    }
+   },
+   null,
+   null,
+   {
+    "key": "ud_noise_type",
+    "label": "ud_noise_type",
+    "shortLabel": "TYPE",
+    "type": "enum",
+    "options": [
+     "Vinyl",
+     "Tape"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "ud_noise",
+    "label": "ud_noise",
+    "shortLabel": "NOISE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "ud_sat",
+    "label": "ud_sat",
+    "shortLabel": "SAT",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "ud_rate",
+    "label": "ud_rate",
+    "shortLabel": "RATE",
+    "type": "int",
+    "options": null,
+    "min": 11025,
+    "max": 44100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 66150
+    }
+   },
+   {
+    "key": "ud_bits",
+    "label": "ud_bits",
+    "shortLabel": "BITS",
+    "type": "int",
+    "options": null,
+    "min": 4,
+    "max": 16,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 24
+    }
+   },
+   null,
+   null,
+   null,
+   {
+    "key": "us_pitch",
+    "label": "us_pitch",
+    "shortLabel": "PITCH",
+    "type": "int",
+    "options": null,
+    "min": 40,
+    "max": 240,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "us_decay",
+    "label": "us_decay",
+    "shortLabel": "DECAY",
+    "type": "int",
+    "options": null,
+    "min": 150,
+    "max": 5000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 9700
+    }
+   },
+   {
+    "key": "us_beater",
+    "label": "us_beater",
+    "shortLabel": "BEATR",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "us_detune",
+    "label": "us_detune",
+    "shortLabel": "DETUN",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 32,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 64
+    }
+   },
+   {
+    "key": "us_punch",
+    "label": "us_punch",
+    "shortLabel": "PUNCH",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "us_strike",
+    "label": "us_strike",
+    "shortLabel": "STRKE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "us_strike_br",
+    "label": "us_strike_br",
+    "shortLabel": "STONE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "us_rim",
+    "label": "us_rim",
+    "shortLabel": "RIM",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "us_shell",
+    "label": "us_shell",
+    "shortLabel": "SHELL",
+    "type": "int",
+    "options": null,
+    "min": 5,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 38
+    }
+   },
+   {
+    "key": "us_shell_damp",
+    "label": "us_shell_damp",
+    "shortLabel": "SDAMP",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "us_ring",
+    "label": "us_ring",
+    "shortLabel": "RING",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "us_reso_head",
+    "label": "us_reso_head",
+    "shortLabel": "RHEAD",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "switch",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 1
+    }
+   },
+   {
+    "key": "us_reso_tune",
+    "label": "us_reso_tune",
+    "shortLabel": "RTUNE",
+    "type": "int",
+    "options": null,
+    "min": -6,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 24
+    }
+   },
+   {
+    "key": "us_reso_mix",
+    "label": "us_reso_mix",
+    "shortLabel": "RMIX",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null,
+   {
+    "key": "us_lowpass",
+    "label": "us_lowpass",
+    "shortLabel": "LOPAS",
+    "type": "int",
+    "options": null,
+    "min": 2000,
+    "max": 20000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 36000
+    }
+   },
+   {
+    "key": "us_tone_freq",
+    "label": "us_tone_freq",
+    "shortLabel": "TFREQ",
+    "type": "int",
+    "options": null,
+    "min": 1000,
+    "max": 12000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 22000
+    }
+   },
+   {
+    "key": "us_tone_gain",
+    "label": "us_tone_gain",
+    "shortLabel": "TGAIN",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 6
+    }
+   },
+   {
+    "key": "us_slice",
+    "label": "us_slice",
+    "shortLabel": "SLICE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 3000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 6000
+    }
+   },
+   {
+    "key": "us_chop_speed",
+    "label": "us_chop_speed",
+    "shortLabel": "SPEED",
+    "type": "int",
+    "options": null,
+    "min": -12,
+    "max": 12,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 48
+    }
+   },
+   {
+    "key": "us_late",
+    "label": "us_late",
+    "shortLabel": "LATE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 20,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 40
+    }
+   },
+   null,
+   null,
+   {
+    "key": "us_noise_type",
+    "label": "us_noise_type",
+    "shortLabel": "TYPE",
+    "type": "enum",
+    "options": [
+     "Vinyl",
+     "Tape"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "us_noise",
+    "label": "us_noise",
+    "shortLabel": "NOISE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "us_sat",
+    "label": "us_sat",
+    "shortLabel": "SAT",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "us_rate",
+    "label": "us_rate",
+    "shortLabel": "RATE",
+    "type": "int",
+    "options": null,
+    "min": 11025,
+    "max": 44100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 66150
+    }
+   },
+   {
+    "key": "us_bits",
+    "label": "us_bits",
+    "shortLabel": "BITS",
+    "type": "int",
+    "options": null,
+    "min": 4,
+    "max": 16,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 24
+    }
+   },
+   null,
+   null,
+   null,
+   {
+    "key": "uc_size",
+    "label": "uc_size",
+    "shortLabel": "SIZE",
+    "type": "int",
+    "options": null,
+    "min": 10,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 28
+    }
+   },
+   {
+    "key": "uc_crash",
+    "label": "uc_crash",
+    "shortLabel": "CRASH",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "uc_damp",
+    "label": "uc_damp",
+    "shortLabel": "DAMP",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "uc_closed",
+    "label": "uc_closed",
+    "shortLabel": "CLOSD",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "uc_punch",
+    "label": "uc_punch",
+    "shortLabel": "PUNCH",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "uc_strike",
+    "label": "uc_strike",
+    "shortLabel": "STRKE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "uc_strike_br",
+    "label": "uc_strike_br",
+    "shortLabel": "STONE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   {
+    "key": "uc_lowpass",
+    "label": "uc_lowpass",
+    "shortLabel": "LOPAS",
+    "type": "int",
+    "options": null,
+    "min": 2000,
+    "max": 20000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 36000
+    }
+   },
+   {
+    "key": "uc_tone_freq",
+    "label": "uc_tone_freq",
+    "shortLabel": "TFREQ",
+    "type": "int",
+    "options": null,
+    "min": 1000,
+    "max": 12000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 22000
+    }
+   },
+   {
+    "key": "uc_tone_gain",
+    "label": "uc_tone_gain",
+    "shortLabel": "TGAIN",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 6
+    }
+   },
+   {
+    "key": "uc_slice",
+    "label": "uc_slice",
+    "shortLabel": "SLICE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 3000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 6000
+    }
+   },
+   {
+    "key": "uc_chop_speed",
+    "label": "uc_chop_speed",
+    "shortLabel": "SPEED",
+    "type": "int",
+    "options": null,
+    "min": -12,
+    "max": 12,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 48
+    }
+   },
+   {
+    "key": "uc_late",
+    "label": "uc_late",
+    "shortLabel": "LATE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 20,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 40
+    }
+   },
+   null,
+   null,
+   {
+    "key": "uc_noise_type",
+    "label": "uc_noise_type",
+    "shortLabel": "TYPE",
+    "type": "enum",
+    "options": [
+     "Vinyl",
+     "Tape"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "uc_noise",
+    "label": "uc_noise",
+    "shortLabel": "NOISE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "uc_sat",
+    "label": "uc_sat",
+    "shortLabel": "SAT",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "uc_rate",
+    "label": "uc_rate",
+    "shortLabel": "RATE",
+    "type": "int",
+    "options": null,
+    "min": 11025,
+    "max": 44100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 66150
+    }
+   },
+   {
+    "key": "uc_bits",
+    "label": "uc_bits",
+    "shortLabel": "BITS",
+    "type": "int",
+    "options": null,
+    "min": 4,
+    "max": 16,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 24
+    }
+   },
+   null,
+   null,
+   null,
+   {
+    "key": "n9_tune",
+    "label": "n9_tune",
+    "shortLabel": "TUNE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "n9_decay",
+    "label": "n9_decay",
+    "shortLabel": "DECAY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "n9_bd_attack",
+    "label": "n9_bd_attack",
+    "shortLabel": "ATTCK",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "n9_bd_pdepth",
+    "label": "n9_bd_pdepth",
+    "shortLabel": "PDPTH",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "n9_bd_pitch",
+    "label": "n9_bd_pitch",
+    "shortLabel": "PITCH",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "n9_sd_snappy",
+    "label": "n9_sd_snappy",
+    "shortLabel": "SNAPY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "n9_lt_attack",
+    "label": "n9_lt_attack",
+    "shortLabel": "ATTCK",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "n9_mt_attack",
+    "label": "n9_mt_attack",
+    "shortLabel": "ATTCK",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "n9_ht_attack",
+    "label": "n9_ht_attack",
+    "shortLabel": "ATTCK",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "n9_drive",
+    "label": "n9_drive",
+    "shortLabel": "DRIVE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "n9_dist",
+    "label": "n9_dist",
+    "shortLabel": "DIST",
+    "type": "enum",
+    "options": [
+     "Diode (909)",
+     "Hard Clip",
+     "SAT",
+     "BFZ",
+     "PDIST",
+     "Wavefolder",
+     "Bitcrush"
+    ],
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 7
+    }
+   },
+   {
+    "key": "n9_vel",
+    "label": "n9_vel",
+    "shortLabel": "VEL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "s6_tune",
+    "label": "s6_tune",
+    "shortLabel": "TUNE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "s6_decay",
+    "label": "s6_decay",
+    "shortLabel": "DECAY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "s6_bd_attack",
+    "label": "s6_bd_attack",
+    "shortLabel": "ATTCK",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "s6_sd_snappy",
+    "label": "s6_sd_snappy",
+    "shortLabel": "SNAPY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "s6_cp_noise",
+    "label": "s6_cp_noise",
+    "shortLabel": "NOISE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "s6_drive",
+    "label": "s6_drive",
+    "shortLabel": "DRIVE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "s6_dist",
+    "label": "s6_dist",
+    "shortLabel": "DIST",
+    "type": "enum",
+    "options": [
+     "Diode",
+     "Clip",
+     "SAT",
+     "BFZ",
+     "PDIST",
+     "Fold",
+     "Crush"
+    ],
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 7
+    }
+   },
+   {
+    "key": "s6_vel",
+    "label": "s6_vel",
+    "shortLabel": "VEL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "e8_tune",
+    "label": "e8_tune",
+    "shortLabel": "TUNE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "e8_decay",
+    "label": "e8_decay",
+    "shortLabel": "DECAY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "e8_bd_attack",
+    "label": "e8_bd_attack",
+    "shortLabel": "ATTCK",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "e8_bd_tone",
+    "label": "e8_bd_tone",
+    "shortLabel": "TONE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "e8_sd_snappy",
+    "label": "e8_sd_snappy",
+    "shortLabel": "SNAPY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "e8_ma_attack",
+    "label": "e8_ma_attack",
+    "shortLabel": "ATTCK",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "e8_drive",
+    "label": "e8_drive",
+    "shortLabel": "DRIVE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "e8_dist",
+    "label": "e8_dist",
+    "shortLabel": "DIST",
+    "type": "enum",
+    "options": [
+     "Diode",
+     "Clip",
+     "SAT",
+     "BFZ",
+     "PDIST",
+     "Fold",
+     "Crush"
+    ],
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 7
+    }
+   },
+   {
+    "key": "e8_vel",
+    "label": "e8_vel",
+    "shortLabel": "VEL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "c7_tune",
+    "label": "c7_tune",
+    "shortLabel": "TUNE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "c7_decay",
+    "label": "c7_decay",
+    "shortLabel": "DECAY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "c7_sd_snappy",
+    "label": "c7_sd_snappy",
+    "shortLabel": "SNAPY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "c7_gu_rate",
+    "label": "c7_gu_rate",
+    "shortLabel": "RATE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "c7_drive",
+    "label": "c7_drive",
+    "shortLabel": "DRIVE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "c7_dist",
+    "label": "c7_dist",
+    "shortLabel": "DIST",
+    "type": "enum",
+    "options": [
+     "Diode",
+     "Clip",
+     "SAT",
+     "BFZ",
+     "PDIST",
+     "Fold",
+     "Crush"
+    ],
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 7
+    }
+   },
+   {
+    "key": "c7_vel",
+    "label": "c7_vel",
+    "shortLabel": "VEL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 127,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   null,
+   {
+    "key": "ck_width",
+    "label": "ck_width",
+    "shortLabel": "WIDTH",
+    "type": "float",
+    "options": null,
+    "min": 0.025,
+    "max": 2.5,
+    "step": 0.025,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.0125,
+     "detentsFullSweep": 198
+    }
+   },
+   {
+    "key": "ck_amp",
+    "label": "ck_amp",
+    "shortLabel": "AMP",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "ck_decay",
+    "label": "ck_decay",
+    "shortLabel": "DECAY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "ck_sustain",
+    "label": "ck_sustain",
+    "shortLabel": "SUST",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "ck_velo",
+    "label": "ck_velo",
+    "shortLabel": "VSENS",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "switch",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "ck_tone",
+    "label": "ck_tone",
+    "shortLabel": "TONE",
+    "type": "int",
+    "options": null,
+    "min": 300,
+    "max": 7000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 13400
+    }
+   },
+   null,
+   null,
+   {
+    "key": "ck_freq",
+    "label": "ck_freq",
+    "shortLabel": "FREQ",
+    "type": "int",
+    "options": null,
+    "min": 30,
+    "max": 500,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 940
+    }
+   },
+   {
+    "key": "ck_q",
+    "label": "ck_q",
+    "shortLabel": "Q",
+    "type": "float",
+    "options": null,
+    "min": 0.1,
+    "max": 2,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 380
+    }
+   },
+   {
+    "key": "ck_damp",
+    "label": "ck_damp",
+    "shortLabel": "DAMP",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "ck_tight",
+    "label": "ck_tight",
+    "shortLabel": "TIGHT",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "ck_bounce",
+    "label": "ck_bounce",
+    "shortLabel": "BOUNC",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "ck_mode",
+    "label": "ck_mode",
+    "shortLabel": "MODE",
+    "type": "enum",
+    "options": [
+     "Linear",
+     "Basic",
+     "Bouncy"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "ck_porta",
+    "label": "ck_porta",
+    "shortLabel": "PORTA",
+    "type": "float",
+    "options": null,
+    "min": 0.1,
+    "max": 200,
+    "step": 0.1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.05,
+     "detentsFullSweep": 3998
+    }
+   },
+   null,
+   {
+    "key": "ck_noise",
+    "label": "ck_noise",
+    "shortLabel": "NOISE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "ck_ndecay",
+    "label": "ck_ndecay",
+    "shortLabel": "NDCY",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "ck_ncut",
+    "label": "ck_ncut",
+    "shortLabel": "NCUT",
+    "type": "int",
+    "options": null,
+    "min": 20,
+    "max": 20000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 39960
+    }
+   },
+   {
+    "key": "ck_ntype",
+    "label": "ck_ntype",
+    "shortLabel": "NTYPE",
+    "type": "enum",
+    "options": [
+     "Uniform",
+     "Normal",
+     "Pink"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "fk_tone",
+    "label": "fk_tone",
+    "shortLabel": "LEVEL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fk_pitch",
+    "label": "fk_pitch",
+    "shortLabel": "PITCH",
+    "type": "int",
+    "options": null,
+    "min": 20,
+    "max": 300,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 560
+    }
+   },
+   {
+    "key": "fk_decay",
+    "label": "fk_decay",
+    "shortLabel": "DECAY",
+    "type": "int",
+    "options": null,
+    "min": 10,
+    "max": 1500,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 2980
+    }
+   },
+   {
+    "key": "fk_sweep",
+    "label": "fk_sweep",
+    "shortLabel": "SWEEP",
+    "type": "int",
+    "options": null,
+    "min": -48,
+    "max": 48,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 192
+    }
+   },
+   {
+    "key": "fk_swdec",
+    "label": "fk_swdec",
+    "shortLabel": "SWDEC",
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 200,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 398
+    }
+   },
+   null,
+   null,
+   null,
+   {
+    "key": "fk_ratio",
+    "label": "fk_ratio",
+    "shortLabel": "RATIO",
+    "type": "float",
+    "options": null,
+    "min": 0.25,
+    "max": 8,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 1550
+    }
+   },
+   {
+    "key": "fk_mod",
+    "label": "fk_mod",
+    "shortLabel": "MOD",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fk_mdec",
+    "label": "fk_mdec",
+    "shortLabel": "MDEC",
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 500,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 998
+    }
+   },
+   {
+    "key": "fk_fb",
+    "label": "fk_fb",
+    "shortLabel": "FB",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fk_track",
+    "label": "fk_track",
+    "shortLabel": "TRACK",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "switch",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
+   null,
+   {
+    "key": "fk_noise",
+    "label": "fk_noise",
+    "shortLabel": "LEVEL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fk_ndec",
+    "label": "fk_ndec",
+    "shortLabel": "NDEC",
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 200,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 398
+    }
+   },
+   {
+    "key": "fk_nfreq",
+    "label": "fk_nfreq",
+    "shortLabel": "NFREQ",
+    "type": "int",
+    "options": null,
+    "min": 100,
+    "max": 16000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 31800
+    }
+   },
+   {
+    "key": "fk_nres",
+    "label": "fk_nres",
+    "shortLabel": "NRES",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fk_nmode",
+    "label": "fk_nmode",
+    "shortLabel": "NFILT",
+    "type": "enum",
+    "options": [
+     "LP",
+     "BP",
+     "HP"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   null,
+   null,
+   null,
+   {
+    "key": "fk_mix",
+    "label": "fk_mix",
+    "shortLabel": "TN-NS",
+    "type": "int",
+    "options": null,
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "fk_drive",
+    "label": "fk_drive",
+    "shortLabel": "DRIVE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fk_lowcut",
+    "label": "fk_lowcut",
+    "shortLabel": "LOCUT",
+    "type": "int",
+    "options": null,
+    "min": 20,
+    "max": 1000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 1960
+    }
+   },
+   {
+    "key": "fk_hicut",
+    "label": "fk_hicut",
+    "shortLabel": "HICUT",
+    "type": "int",
+    "options": null,
+    "min": 200,
+    "max": 20000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 39600
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "fk_vel",
+    "label": "fk_vel",
+    "shortLabel": "VLVL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fk_vmod",
+    "label": "fk_vmod",
+    "shortLabel": "VMOD",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fk_vsweep",
+    "label": "fk_vsweep",
+    "shortLabel": "VSWP",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fk_vpitch",
+    "label": "fk_vpitch",
+    "shortLabel": "VPTCH",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 12,
+    "step": 0.1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.05,
+     "detentsFullSweep": 240
+    }
+   },
+   {
+    "key": "fk_vdecay",
+    "label": "fk_vdecay",
+    "shortLabel": "VDEC",
+    "type": "int",
+    "options": null,
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "fk_vnoise",
+    "label": "fk_vnoise",
+    "shortLabel": "VNSE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fk_vnfreq",
+    "label": "fk_vnfreq",
+    "shortLabel": "VNFRQ",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   {
+    "key": "fs_tone",
+    "label": "fs_tone",
+    "shortLabel": "LEVEL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fs_pitch",
+    "label": "fs_pitch",
+    "shortLabel": "PITCH",
+    "type": "int",
+    "options": null,
+    "min": 60,
+    "max": 1000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 1880
+    }
+   },
+   {
+    "key": "fs_decay",
+    "label": "fs_decay",
+    "shortLabel": "DECAY",
+    "type": "int",
+    "options": null,
+    "min": 5,
+    "max": 1000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 1990
+    }
+   },
+   {
+    "key": "fs_sweep",
+    "label": "fs_sweep",
+    "shortLabel": "SWEEP",
+    "type": "int",
+    "options": null,
+    "min": -48,
+    "max": 48,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 192
+    }
+   },
+   {
+    "key": "fs_swdec",
+    "label": "fs_swdec",
+    "shortLabel": "SWDEC",
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 200,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 398
+    }
+   },
+   null,
+   null,
+   null,
+   {
+    "key": "fs_ratio",
+    "label": "fs_ratio",
+    "shortLabel": "RATIO",
+    "type": "float",
+    "options": null,
+    "min": 0.25,
+    "max": 16,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 3150
+    }
+   },
+   {
+    "key": "fs_mod",
+    "label": "fs_mod",
+    "shortLabel": "MOD",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fs_mdec",
+    "label": "fs_mdec",
+    "shortLabel": "MDEC",
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 1000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 1998
+    }
+   },
+   {
+    "key": "fs_fb",
+    "label": "fs_fb",
+    "shortLabel": "FB",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fs_track",
+    "label": "fs_track",
+    "shortLabel": "TRACK",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "switch",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
+   null,
+   {
+    "key": "fs_noise",
+    "label": "fs_noise",
+    "shortLabel": "LEVEL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fs_ndec",
+    "label": "fs_ndec",
+    "shortLabel": "NDEC",
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 1000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 1998
+    }
+   },
+   {
+    "key": "fs_nfreq",
+    "label": "fs_nfreq",
+    "shortLabel": "NFREQ",
+    "type": "int",
+    "options": null,
+    "min": 100,
+    "max": 16000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 31800
+    }
+   },
+   {
+    "key": "fs_nres",
+    "label": "fs_nres",
+    "shortLabel": "NRES",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fs_nmode",
+    "label": "fs_nmode",
+    "shortLabel": "NFILT",
+    "type": "enum",
+    "options": [
+     "LP",
+     "BP",
+     "HP"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "fs_bursts",
+    "label": "fs_bursts",
+    "shortLabel": "BRSTS",
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 10
+    }
+   },
+   {
+    "key": "fs_gap",
+    "label": "fs_gap",
+    "shortLabel": "GAP",
+    "type": "int",
+    "options": null,
+    "min": 2,
+    "max": 40,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 76
+    }
+   },
+   null,
+   {
+    "key": "fs_mix",
+    "label": "fs_mix",
+    "shortLabel": "TN-NS",
+    "type": "int",
+    "options": null,
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "fs_drive",
+    "label": "fs_drive",
+    "shortLabel": "DRIVE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fs_lowcut",
+    "label": "fs_lowcut",
+    "shortLabel": "LOCUT",
+    "type": "int",
+    "options": null,
+    "min": 20,
+    "max": 2000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 3960
+    }
+   },
+   {
+    "key": "fs_hicut",
+    "label": "fs_hicut",
+    "shortLabel": "HICUT",
+    "type": "int",
+    "options": null,
+    "min": 500,
+    "max": 20000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 39000
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "fs_vel",
+    "label": "fs_vel",
+    "shortLabel": "VLVL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fs_vmod",
+    "label": "fs_vmod",
+    "shortLabel": "VMOD",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fs_vsweep",
+    "label": "fs_vsweep",
+    "shortLabel": "VSWP",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fs_vpitch",
+    "label": "fs_vpitch",
+    "shortLabel": "VPTCH",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 12,
+    "step": 0.1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.05,
+     "detentsFullSweep": 240
+    }
+   },
+   {
+    "key": "fs_vdecay",
+    "label": "fs_vdecay",
+    "shortLabel": "VDEC",
+    "type": "int",
+    "options": null,
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "fs_vnoise",
+    "label": "fs_vnoise",
+    "shortLabel": "VNSE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fs_vnfreq",
+    "label": "fs_vnfreq",
+    "shortLabel": "VNFRQ",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   {
+    "key": "fx_tone",
+    "label": "fx_tone",
+    "shortLabel": "LEVEL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx_pitch",
+    "label": "fx_pitch",
+    "shortLabel": "PITCH",
+    "type": "int",
+    "options": null,
+    "min": 100,
+    "max": 1000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 1800
+    }
+   },
+   {
+    "key": "fx_decay",
+    "label": "fx_decay",
+    "shortLabel": "DECAY",
+    "type": "int",
+    "options": null,
+    "min": 5,
+    "max": 1500,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 2990
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "fx_spread",
+    "label": "fx_spread",
+    "shortLabel": "SPRD",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx_mod",
+    "label": "fx_mod",
+    "shortLabel": "MOD",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx_mdec",
+    "label": "fx_mdec",
+    "shortLabel": "MDEC",
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 1500,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 2998
+    }
+   },
+   {
+    "key": "fx_fb",
+    "label": "fx_fb",
+    "shortLabel": "FB",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "fx_noise",
+    "label": "fx_noise",
+    "shortLabel": "LEVEL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx_ndec",
+    "label": "fx_ndec",
+    "shortLabel": "NDEC",
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 1500,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 2998
+    }
+   },
+   {
+    "key": "fx_nfreq",
+    "label": "fx_nfreq",
+    "shortLabel": "NFREQ",
+    "type": "int",
+    "options": null,
+    "min": 1000,
+    "max": 16000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 30000
+    }
+   },
+   {
+    "key": "fx_nres",
+    "label": "fx_nres",
+    "shortLabel": "NRES",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx_nmode",
+    "label": "fx_nmode",
+    "shortLabel": "NFILT",
+    "type": "enum",
+    "options": [
+     "LP",
+     "BP",
+     "HP"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   null,
+   null,
+   null,
+   {
+    "key": "fx_mix",
+    "label": "fx_mix",
+    "shortLabel": "TN-NS",
+    "type": "int",
+    "options": null,
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "fx_drive",
+    "label": "fx_drive",
+    "shortLabel": "DRIVE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx_lowcut",
+    "label": "fx_lowcut",
+    "shortLabel": "LOCUT",
+    "type": "int",
+    "options": null,
+    "min": 20,
+    "max": 10000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 19960
+    }
+   },
+   {
+    "key": "fx_hicut",
+    "label": "fx_hicut",
+    "shortLabel": "HICUT",
+    "type": "int",
+    "options": null,
+    "min": 1000,
+    "max": 20000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 38000
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "fx_vel",
+    "label": "fx_vel",
+    "shortLabel": "VLVL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx_vmod",
+    "label": "fx_vmod",
+    "shortLabel": "VMOD",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx_vpitch",
+    "label": "fx_vpitch",
+    "shortLabel": "VPTCH",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 12,
+    "step": 0.1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.05,
+     "detentsFullSweep": 240
+    }
+   },
+   {
+    "key": "fx_vdecay",
+    "label": "fx_vdecay",
+    "shortLabel": "VDEC",
+    "type": "int",
+    "options": null,
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "fx_vnoise",
+    "label": "fx_vnoise",
+    "shortLabel": "VNSE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fx_vnfreq",
+    "label": "fx_vnfreq",
+    "shortLabel": "VNFRQ",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null,
+   {
+    "key": "fp_tone",
+    "label": "fp_tone",
+    "shortLabel": "LEVEL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fp_pitch",
+    "label": "fp_pitch",
+    "shortLabel": "PITCH",
+    "type": "int",
+    "options": null,
+    "min": 20,
+    "max": 2000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 3960
+    }
+   },
+   {
+    "key": "fp_decay",
+    "label": "fp_decay",
+    "shortLabel": "DECAY",
+    "type": "int",
+    "options": null,
+    "min": 5,
+    "max": 4000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 7990
+    }
+   },
+   {
+    "key": "fp_sweep",
+    "label": "fp_sweep",
+    "shortLabel": "SWEEP",
+    "type": "int",
+    "options": null,
+    "min": -48,
+    "max": 48,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 192
+    }
+   },
+   {
+    "key": "fp_swdec",
+    "label": "fp_swdec",
+    "shortLabel": "SWDEC",
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 1000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 1998
+    }
+   },
+   null,
+   null,
+   null,
+   {
+    "key": "fp_ratio",
+    "label": "fp_ratio",
+    "shortLabel": "RATIO",
+    "type": "float",
+    "options": null,
+    "min": 0.25,
+    "max": 16,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 3150
+    }
+   },
+   {
+    "key": "fp_mod",
+    "label": "fp_mod",
+    "shortLabel": "MOD",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fp_mdec",
+    "label": "fp_mdec",
+    "shortLabel": "MDEC",
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 2000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 3998
+    }
+   },
+   {
+    "key": "fp_fb",
+    "label": "fp_fb",
+    "shortLabel": "FB",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fp_track",
+    "label": "fp_track",
+    "shortLabel": "TRACK",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "switch",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
+   null,
+   {
+    "key": "fp_noise",
+    "label": "fp_noise",
+    "shortLabel": "LEVEL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fp_ndec",
+    "label": "fp_ndec",
+    "shortLabel": "NDEC",
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 2000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 3998
+    }
+   },
+   {
+    "key": "fp_nfreq",
+    "label": "fp_nfreq",
+    "shortLabel": "NFREQ",
+    "type": "int",
+    "options": null,
+    "min": 100,
+    "max": 16000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 31800
+    }
+   },
+   {
+    "key": "fp_nres",
+    "label": "fp_nres",
+    "shortLabel": "NRES",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fp_nmode",
+    "label": "fp_nmode",
+    "shortLabel": "NFILT",
+    "type": "enum",
+    "options": [
+     "LP",
+     "BP",
+     "HP"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "fp_bursts",
+    "label": "fp_bursts",
+    "shortLabel": "BRSTS",
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 10
+    }
+   },
+   {
+    "key": "fp_gap",
+    "label": "fp_gap",
+    "shortLabel": "GAP",
+    "type": "int",
+    "options": null,
+    "min": 2,
+    "max": 40,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 76
+    }
+   },
+   null,
+   {
+    "key": "fp_nzfm",
+    "label": "fp_nzfm",
+    "shortLabel": "NZFM",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fp_ring",
+    "label": "fp_ring",
+    "shortLabel": "RING",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fp_crush",
+    "label": "fp_crush",
+    "shortLabel": "CRUSH",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fp_bits",
+    "label": "fp_bits",
+    "shortLabel": "BITS",
+    "type": "int",
+    "options": null,
+    "min": 2,
+    "max": 16,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 28
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "fp_mix",
+    "label": "fp_mix",
+    "shortLabel": "TN-NS",
+    "type": "int",
+    "options": null,
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "fp_drive",
+    "label": "fp_drive",
+    "shortLabel": "DRIVE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fp_lowcut",
+    "label": "fp_lowcut",
+    "shortLabel": "LOCUT",
+    "type": "int",
+    "options": null,
+    "min": 20,
+    "max": 8000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 15960
+    }
+   },
+   {
+    "key": "fp_hicut",
+    "label": "fp_hicut",
+    "shortLabel": "HICUT",
+    "type": "int",
+    "options": null,
+    "min": 200,
+    "max": 20000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 39600
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   {
+    "key": "fp_vel",
+    "label": "fp_vel",
+    "shortLabel": "VLVL",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fp_vmod",
+    "label": "fp_vmod",
+    "shortLabel": "VMOD",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fp_vsweep",
+    "label": "fp_vsweep",
+    "shortLabel": "VSWP",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fp_vpitch",
+    "label": "fp_vpitch",
+    "shortLabel": "VPTCH",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 12,
+    "step": 0.1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.05,
+     "detentsFullSweep": 240
+    }
+   },
+   {
+    "key": "fp_vdecay",
+    "label": "fp_vdecay",
+    "shortLabel": "VDEC",
+    "type": "int",
+    "options": null,
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "fp_vnoise",
+    "label": "fp_vnoise",
+    "shortLabel": "VNSE",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "fp_vnfreq",
+    "label": "fp_vnfreq",
+    "shortLabel": "VNFRQ",
+    "type": "int",
+    "options": null,
+    "min": 0,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   {
+    "key": "vel_vol",
+    "label": "Vel Vol",
+    "shortLabel": "VVOL",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "volume",
+    "label": "Volume",
+    "shortLabel": "VOL",
+    "type": "float",
+    "options": null,
+    "min": -36,
+    "max": 12,
+    "step": 0.5,
+    "renderStyle": "vbar",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 96
+    }
+   },
+   {
+    "key": "pan",
+    "label": "Pan",
+    "shortLabel": "PAN",
+    "type": "float",
+    "options": null,
+    "min": -50,
+    "max": 50,
+    "step": 1,
+    "renderStyle": "pan",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 1,
+     "detentsFullSweep": 100
+    }
+   },
+   {
+    "key": "link",
+    "label": "Link",
+    "shortLabel": "LINK",
+    "type": "enum",
+    "options": [
+     "One",
+     "All"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "send_a",
+    "label": "Send A",
+    "shortLabel": "SNDA",
+    "type": "float",
+    "options": null,
+    "min": -70,
+    "max": 6,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 304
+    }
+   },
+   {
+    "key": "send_b",
+    "label": "Send B",
+    "shortLabel": "SNDB",
+    "type": "float",
+    "options": null,
+    "min": -70,
+    "max": 6,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 304
+    }
+   },
+   {
+    "key": "punch",
+    "label": "Punch",
+    "shortLabel": "PUNCH",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "punch_time",
+    "label": "Punch Time",
+    "shortLabel": "PTIME",
+    "type": "float",
+    "options": null,
+    "min": 0.06,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 188
+    }
+   },
+   {
+    "key": "wide_mode",
+    "label": "Wide Mode",
+    "shortLabel": "WMODE",
+    "type": "enum",
+    "options": [
+     "Comb",
+     "Haas",
+     "Disperse"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "wide",
+    "label": "Wide",
+    "shortLabel": "WIDE",
+    "type": "int",
+    "options": null,
+    "min": -100,
+    "max": 100,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 400
+    }
+   },
+   {
+    "key": "wide_freq",
+    "label": "Wide Freq",
+    "shortLabel": "WFREQ",
+    "type": "int",
+    "options": null,
+    "min": 20,
+    "max": 4000,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 7960
+    }
+   },
+   {
+    "key": "wide_time",
+    "label": "Wide Time",
+    "shortLabel": "TIME",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 12,
+    "step": 0.1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.05,
+     "detentsFullSweep": 240
+    }
+   },
+   {
+    "key": "wide_comp",
+    "label": "Wide Comp",
+    "shortLabel": "COMP",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "switch",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   null,
+   null,
+   null,
+   {
+    "key": "master",
+    "label": "Master",
+    "shortLabel": "MASTR",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 2,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null,
+   null,
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "peak_db",
+   "wide_late",
+   "resample"
+  ],
+  "noMetadata": [
+   "kit_cat",
+   "sample",
+   "start",
+   "end",
+   "sm_pitch",
+   "sm_wave",
+   "sm_bend",
+   "sm_bend_dyn",
+   "sm_decay",
+   "sm_punch",
+   "sm_noise",
+   "sm_click",
+   "sm_cutoff",
+   "sm_res",
+   "sm_lp_bend",
+   "sm_lp_dyn",
+   "sm_sat",
+   "sm_vel_gain",
+   "ud_pitch",
+   "ud_decay",
+   "ud_beater",
+   "ud_detune",
+   "ud_punch",
+   "ud_strike",
+   "ud_strike_br",
+   "ud_shell",
+   "ud_shell_damp",
+   "ud_ring",
+   "ud_reso_head",
+   "ud_reso_tune",
+   "ud_reso_mix",
+   "ud_lowpass",
+   "ud_tone_freq",
+   "ud_tone_gain",
+   "ud_slice",
+   "ud_chop_speed",
+   "ud_late",
+   "ud_noise_type",
+   "ud_noise",
+   "ud_sat",
+   "ud_rate",
+   "ud_bits",
+   "us_pitch",
+   "us_decay",
+   "us_beater",
+   "us_detune",
+   "us_punch",
+   "us_strike",
+   "us_strike_br",
+   "us_rim",
+   "us_shell",
+   "us_shell_damp",
+   "us_ring",
+   "us_reso_head",
+   "us_reso_tune",
+   "us_reso_mix",
+   "us_lowpass",
+   "us_tone_freq",
+   "us_tone_gain",
+   "us_slice",
+   "us_chop_speed",
+   "us_late",
+   "us_noise_type",
+   "us_noise",
+   "us_sat",
+   "us_rate",
+   "us_bits",
+   "uc_size",
+   "uc_crash",
+   "uc_damp",
+   "uc_closed",
+   "uc_punch",
+   "uc_strike",
+   "uc_strike_br",
+   "uc_lowpass",
+   "uc_tone_freq",
+   "uc_tone_gain",
+   "uc_slice",
+   "uc_chop_speed",
+   "uc_late",
+   "uc_noise_type",
+   "uc_noise",
+   "uc_sat",
+   "uc_rate",
+   "uc_bits",
+   "n9_tune",
+   "n9_decay",
+   "n9_bd_attack",
+   "n9_bd_pdepth",
+   "n9_bd_pitch",
+   "n9_sd_snappy",
+   "n9_lt_attack",
+   "n9_mt_attack",
+   "n9_ht_attack",
+   "n9_drive",
+   "n9_dist",
+   "n9_vel",
+   "s6_tune",
+   "s6_decay",
+   "s6_bd_attack",
+   "s6_sd_snappy",
+   "s6_cp_noise",
+   "s6_drive",
+   "s6_dist",
+   "s6_vel",
+   "e8_tune",
+   "e8_decay",
+   "e8_bd_attack",
+   "e8_bd_tone",
+   "e8_sd_snappy",
+   "e8_ma_attack",
+   "e8_drive",
+   "e8_dist",
+   "e8_vel",
+   "c7_tune",
+   "c7_decay",
+   "c7_sd_snappy",
+   "c7_gu_rate",
+   "c7_drive",
+   "c7_dist",
+   "c7_vel",
+   "ck_width",
+   "ck_amp",
+   "ck_decay",
+   "ck_sustain",
+   "ck_velo",
+   "ck_tone",
+   "ck_freq",
+   "ck_q",
+   "ck_damp",
+   "ck_tight",
+   "ck_bounce",
+   "ck_mode",
+   "ck_porta",
+   "ck_noise",
+   "ck_ndecay",
+   "ck_ncut",
+   "ck_ntype",
+   "fk_tone",
+   "fk_pitch",
+   "fk_decay",
+   "fk_sweep",
+   "fk_swdec",
+   "fk_ratio",
+   "fk_mod",
+   "fk_mdec",
+   "fk_fb",
+   "fk_track",
+   "fk_noise",
+   "fk_ndec",
+   "fk_nfreq",
+   "fk_nres",
+   "fk_nmode",
+   "fk_mix",
+   "fk_drive",
+   "fk_lowcut",
+   "fk_hicut",
+   "fk_vel",
+   "fk_vmod",
+   "fk_vsweep",
+   "fk_vpitch",
+   "fk_vdecay",
+   "fk_vnoise",
+   "fk_vnfreq",
+   "fs_tone",
+   "fs_pitch",
+   "fs_decay",
+   "fs_sweep",
+   "fs_swdec",
+   "fs_ratio",
+   "fs_mod",
+   "fs_mdec",
+   "fs_fb",
+   "fs_track",
+   "fs_noise",
+   "fs_ndec",
+   "fs_nfreq",
+   "fs_nres",
+   "fs_nmode",
+   "fs_bursts",
+   "fs_gap",
+   "fs_mix",
+   "fs_drive",
+   "fs_lowcut",
+   "fs_hicut",
+   "fs_vel",
+   "fs_vmod",
+   "fs_vsweep",
+   "fs_vpitch",
+   "fs_vdecay",
+   "fs_vnoise",
+   "fs_vnfreq",
+   "fx_tone",
+   "fx_pitch",
+   "fx_decay",
+   "fx_spread",
+   "fx_mod",
+   "fx_mdec",
+   "fx_fb",
+   "fx_noise",
+   "fx_ndec",
+   "fx_nfreq",
+   "fx_nres",
+   "fx_nmode",
+   "fx_mix",
+   "fx_drive",
+   "fx_lowcut",
+   "fx_hicut",
+   "fx_vel",
+   "fx_vmod",
+   "fx_vpitch",
+   "fx_vdecay",
+   "fx_vnoise",
+   "fx_vnfreq",
+   "fp_tone",
+   "fp_pitch",
+   "fp_decay",
+   "fp_sweep",
+   "fp_swdec",
+   "fp_ratio",
+   "fp_mod",
+   "fp_mdec",
+   "fp_fb",
+   "fp_track",
+   "fp_noise",
+   "fp_ndec",
+   "fp_nfreq",
+   "fp_nres",
+   "fp_nmode",
+   "fp_bursts",
+   "fp_gap",
+   "fp_nzfm",
+   "fp_ring",
+   "fp_crush",
+   "fp_bits",
+   "fp_mix",
+   "fp_drive",
+   "fp_lowcut",
+   "fp_hicut",
+   "fp_vel",
+   "fp_vmod",
+   "fp_vsweep",
+   "fp_vpitch",
+   "fp_vdecay",
+   "fp_vnoise",
+   "fp_vnfreq"
+  ],
+  "warnings": [
+   "3 chain_params not reachable in movy: peak_db, wide_late, resample",
+   "246 shown params lack chain_params metadata (movy guesses type/range): kit_cat, sample, start, end, sm_pitch, sm_wave, sm_bend, sm_bend_dyn, sm_decay, sm_punch, sm_noise, sm_click, …",
+   "page \"Voice\": duplicate on-screen names ATTCK",
+   "page \"Voice\": duplicate on-screen names ATTCK"
+  ]
+ }
+}

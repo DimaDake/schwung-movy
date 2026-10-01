@@ -5,7 +5,7 @@
  "author": "Dexed/MSFA by google/asb2m10 (port: charlesvestal)",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 53,
+ "load_ms": 40,
  "dsp_size": 538792,
  "capabilities": {
   "audio_out": true,

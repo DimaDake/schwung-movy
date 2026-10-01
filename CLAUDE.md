@@ -363,7 +363,7 @@ not look alike:
 | `✓` | passed first time | nothing |
 | `✓` + `infra-retried` | the ssh or the socket dropped and the retry landed | nothing; the link, not movy |
 | `⚠ FLAKY` | failed, then passed on the retry | exit 0, but it is **recorded**: see the ledger below |
-| `✗` | failed twice | a real failure — **do not commit** |
+| `✗` | failed twice | a real failure — **do not commit**, unless it is shown to PREDATE the change (same check red on the pre-change build, or the change provably not reaching the device); then commit and name the check + proof in the message |
 | `✗` + `KNOWN FLAKY — not gating` | a scenario marked `knownFlaky` stayed red through its 3 assert retries | exit 0; reported and in the ledger. Mention it in the commit |
 
 `scenario(name, fn, { knownFlaky: '<reason>' })` is a **stop-gap** for a flake

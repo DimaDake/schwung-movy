@@ -5,7 +5,7 @@
  "author": "charlesvestal",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 38,
+ "load_ms": 40,
  "dsp_size": 72080,
  "capabilities": {
   "audio_out": true,

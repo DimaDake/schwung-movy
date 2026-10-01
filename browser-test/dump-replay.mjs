@@ -54,6 +54,13 @@ const UNREACHABLE_OK = new Set([
     'audio_fx--pushnpull::view',
     // Same: noisemaker's preset-bank editor is a canvas (canvas.js#bank_editor).
     'sound_generator--noisemaker::editor',
+    // Same, four more canvases arriving with the 2026-10-01 capture: each is an
+    // `as_page` drawing surface (pixel-walkers' tombola, bouba-kiki's shape,
+    // monksynth's face, dr32's resampler), not a knob.
+    'midi_fx--pixel-walkers::tombola',
+    'sound_generator--bouba-kiki::shape',
+    'sound_generator--monksynth::big_face',
+    'sound_generator--dr32::resample',
 ]);
 
 const KNOWN_COLLIDING_PAGES = new Set([
@@ -64,6 +71,12 @@ const KNOWN_COLLIDING_PAGES = new Set([
     // page (stutter_sync / stutter_resample_sync are both "Stutter Sync", same
     // for tempo), so no shortener can tell them apart — an upstream fix.
     'sound_generator--helm::Stutter',
+    // New with the 2026-10-01 capture. movy's renderer is frozen for deletion
+    // (CLAUDE.md, Schwung page migration rule 1) and these modules page under
+    // Schwung, so the collisions are recorded rather than fixed here.
+    'midi_fx--acid::Global/Advanced',
+    'midi_fx--pixel-walkers::',
+    'sound_generator--dr32::Voice',
     // jp8000's Performance page is NOT here any more (SP-25, closed
     // 2026-09-14). It used to collide on "MODE"/"MODE" because a
     // hierarchy-wide flattened map let perf_setup/perf_arp's later
@@ -375,6 +388,28 @@ const ENV_STAGES_EXPECTED = [
     'sound_generator--signal::mod_decay d',
     'sound_generator--sophie::pad_decay d',
     'sound_generator--weird-dreams::cv_decay d',
+    'sound_generator--dr32::c7_decay d',
+    'sound_generator--dr32::ck_decay d',
+    'sound_generator--dr32::e8_bd_attack a',
+    'sound_generator--dr32::e8_decay d',
+    'sound_generator--dr32::e8_ma_attack a',
+    'sound_generator--dr32::fk_decay d',
+    'sound_generator--dr32::fp_decay d',
+    'sound_generator--dr32::fs_decay d',
+    'sound_generator--dr32::fx_decay d',
+    'sound_generator--dr32::n9_bd_attack a',
+    'sound_generator--dr32::n9_decay d',
+    'sound_generator--dr32::n9_ht_attack a',
+    'sound_generator--dr32::n9_lt_attack a',
+    'sound_generator--dr32::n9_mt_attack a',
+    'sound_generator--dr32::s6_bd_attack a',
+    'sound_generator--dr32::s6_decay d',
+    'sound_generator--dr32::sm_decay d',
+    'sound_generator--dr32::ud_decay d',
+    'sound_generator--dr32::us_decay d',
+    'sound_generator--maze-voice::env1_decay d',
+    'sound_generator--maze-voice::env2_decay d',
+    'sound_generator--simian::decay d',
 ];
 
 /* EQ band groups drawn as one response curve. Pinned like the others; the
@@ -390,6 +425,10 @@ const CUT_PAIRS_EXPECTED = [
     'sound_generator--aphex esp_lo_cut+esp_hi_cut',
     'sound_generator--noisemaker delay_lo+delay_hi',
     'sound_generator--noisemaker reverb_lo+reverb_hi',
+    'sound_generator--dr32 fk_lowcut+fk_hicut',
+    'sound_generator--dr32 fp_lowcut+fp_hicut',
+    'sound_generator--dr32 fs_lowcut+fs_hicut',
+    'sound_generator--dr32 fx_lowcut+fx_hicut',
 ];
 const CUT_SINGLES_EXPECTED = [
     'audio_fx--4k-eq hpf_freq lowcut',
@@ -410,6 +449,14 @@ const CUT_SINGLES_EXPECTED = [
     'sound_generator--krautdrums hpf_freq lowcut',
     'sound_generator--noisemaker highpass lowcut',
     'sound_generator--surge lowcut lowcut',
+    'sound_generator--dr32 sm_lp_bend highcut',
+    'sound_generator--dr32 sm_lp_dyn highcut',
+    'sound_generator--dr32 uc_lowpass highcut',
+    'sound_generator--dr32 ud_lowpass highcut',
+    'sound_generator--dr32 us_lowpass highcut',
+    'sound_generator--maze-voice filter_mode highcut',
+    'sound_generator--simian lp_bend highcut',
+    'sound_generator--simian lp_dyn highcut',
 ];
 
 const EQ_GROUPS_EXPECTED = [
@@ -483,6 +530,19 @@ const BOOL_ACTIONS_EXPECTED = [
     'sound_generator--forge::rnd_pitch',
     'sound_generator--forge::rnd_voice',
     'sound_generator--tablor::preset_rnd',
+    'midi_fx--acid::a_generate',
+    'midi_fx--acid::a_mutate',
+    'midi_fx--acid::b_generate',
+    'midi_fx--acid::b_mutate',
+    'midi_fx--pixel-walkers::kill_all',
+    'midi_fx--pixel-walkers::randomize',
+    'sound_generator--forge::all_mono',
+    'sound_generator--forge::save_kit',
+    'sound_generator--maze-voice::rnd_filter',
+    'sound_generator--maze-voice::rnd_go',
+    'sound_generator--maze-voice::rnd_tone',
+    'sound_generator--maze-voice::rnd_voice',
+    'sound_generator--maze-voice::rnd_wavefolder',
 ];
 
 /* Every knob the fleet draws as a bipolar pan bar. Two entries look wrong and
@@ -518,6 +578,8 @@ const PANS_EXPECTED = [
     'sound_generator--tablor::wt1_pan',
     'sound_generator--tablor::wt2_pan',
     'sound_generator--weird-dreams::cv_pan',
+    'sound_generator--dr32::pan',
+    'sound_generator--simian::pan',
 ];
 
 const SWITCHES_EXPECTED = [
@@ -601,7 +663,6 @@ const SWITCHES_EXPECTED = [
     'sound_generator--dexed::op5_osc_mode',
     'sound_generator--dexed::op6_osc_mode',
     'sound_generator--dexed::osc_sync',
-    'sound_generator--forge::all_mono',
     'sound_generator--freak::cycle_bipolar',
     'sound_generator--freak::cycle_retrig',
     'sound_generator--freak::cycle_sync',
@@ -754,6 +815,16 @@ const SWITCHES_EXPECTED = [
     'sound_generator--surge::osc3_retrigger',
     'sound_generator--surge::sync_bpm',
     'sound_generator--tablor::legato',
+    'audio_fx--busdriver::comp',
+    'midi_fx--pixel-walkers::birth_note',
+    'sound_generator--dr32::ck_velo',
+    'sound_generator--dr32::filter_on',
+    'sound_generator--dr32::fk_track',
+    'sound_generator--dr32::fp_track',
+    'sound_generator--dr32::fs_track',
+    'sound_generator--dr32::ud_reso_head',
+    'sound_generator--dr32::us_reso_head',
+    'sound_generator--dr32::wide_comp',
 ];
 
 function collectWaveCells(key, model, into, intoToggles, intoStages, intoEqs, intoCuts, intoCutSingles) {

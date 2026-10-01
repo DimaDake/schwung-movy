@@ -5,7 +5,7 @@
  "author": "Emilie Gillet (port: Justin Joe)",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 2511,
+ "load_ms": 2396,
  "dsp_size": 1653896,
  "capabilities": {
   "audio_out": true,

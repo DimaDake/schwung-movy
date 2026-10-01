@@ -5,7 +5,7 @@
  "author": "Charles Vestal",
  "category": "midi_fx",
  "status": "ok",
- "load_ms": 53,
+ "load_ms": 41,
  "dsp_size": 84120,
  "capabilities": {
   "chainable": true,

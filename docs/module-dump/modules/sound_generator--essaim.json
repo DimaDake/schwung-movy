@@ -1,11 +1,11 @@
 {
  "id": "essaim",
  "name": "Essaim",
- "version": "0.2.9",
+ "version": "0.2.10",
  "author": "fillioning",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 45,
+ "load_ms": 43,
  "dsp_size": 73568,
  "capabilities": {
   "audio_out": true,
@@ -152,7 +152,7 @@
      "A#",
      "B"
     ],
-    "default": "G#"
+    "default": "B"
    },
    {
     "key": "scale",
@@ -189,7 +189,7 @@
     "max": 1,
     "step": 0.01,
     "options": null,
-    "default": "0.8228"
+    "default": "0.0367"
    },
    {
     "key": "init_freq",
@@ -209,7 +209,7 @@
     "max": 100,
     "step": 0.05,
     "options": null,
-    "default": "12.2186"
+    "default": "2.0229"
    },
    {
     "key": "rnd_mod",
@@ -341,7 +341,7 @@
     "max": 1,
     "step": 0.01,
     "options": null,
-    "default": "0.1164"
+    "default": "0.0152"
    },
    {
     "key": "filter",
@@ -351,7 +351,7 @@
     "max": 1,
     "step": 0.01,
     "options": null,
-    "default": "0.3063"
+    "default": "0.4289"
    },
    {
     "key": "dly_mix",
@@ -361,7 +361,7 @@
     "max": 1,
     "step": 0.01,
     "options": null,
-    "default": "0.3223"
+    "default": "0.2860"
    },
    {
     "key": "dly_rate",
@@ -371,7 +371,7 @@
     "max": 4,
     "step": 0.001,
     "options": null,
-    "default": "3.4241"
+    "default": "0.9903"
    },
    {
     "key": "dly_feedback",
@@ -381,7 +381,7 @@
     "max": 0.95,
     "step": 0.01,
     "options": null,
-    "default": "0.3084"
+    "default": "0.1943"
    },
    {
     "key": "dly_tone",
@@ -391,7 +391,7 @@
     "max": 1,
     "step": 0.01,
     "options": null,
-    "default": "0.0145"
+    "default": "0.1498"
    },
    {
     "key": "dly_mode",
@@ -405,7 +405,7 @@
      "Stereo",
      "Ping-Pong"
     ],
-    "default": "Stereo"
+    "default": "Mono"
    },
    {
     "key": "speed",
@@ -415,7 +415,7 @@
     "max": 40,
     "step": 0.1,
     "options": null,
-    "default": "12.2186"
+    "default": "2.0229"
    },
    {
     "key": "mod",
@@ -425,7 +425,7 @@
     "max": 1,
     "step": 0.01,
     "options": null,
-    "default": "0.7457"
+    "default": "0.3306"
    },
    {
     "key": "decay",
@@ -435,7 +435,7 @@
     "max": 2,
     "step": 0.005,
     "options": null,
-    "default": "0.0800"
+    "default": "0.0612"
    },
    {
     "key": "timbre",
@@ -445,7 +445,7 @@
     "max": 1,
     "step": 0.01,
     "options": null,
-    "default": "0.7227"
+    "default": "0.1861"
    },
    {
     "key": "frequency",
@@ -455,7 +455,7 @@
     "max": 1,
     "step": 0.01,
     "options": null,
-    "default": "0.8228"
+    "default": "0.0367"
    },
    {
     "key": "noisiness",
@@ -465,7 +465,7 @@
     "max": 1,
     "step": 0.01,
     "options": null,
-    "default": "0.1062"
+    "default": "0.0282"
    },
    {
     "key": "cutoff",
@@ -475,7 +475,7 @@
     "max": 1,
     "step": 0.01,
     "options": null,
-    "default": "0.7796"
+    "default": "0.6972"
    },
    {
     "key": "volume",
@@ -485,7 +485,7 @@
     "max": 1,
     "step": 0.01,
     "options": null,
-    "default": "0.3426"
+    "default": "0.4260"
    },
    {
     "key": "v_attack",
@@ -495,7 +495,7 @@
     "max": 1,
     "step": 0.001,
     "options": null,
-    "default": "0.0183"
+    "default": "0.0446"
    },
    {
     "key": "v_pan",
@@ -505,7 +505,7 @@
     "max": 1,
     "step": 0.01,
     "options": null,
-    "default": "0.0672"
+    "default": "0.4987"
    },
    {
     "key": "v_octave",
@@ -539,7 +539,7 @@
      "Skewed Sine",
      "Warm Pulse"
     ],
-    "default": "Triangle"
+    "default": "Warm Pulse"
    },
    {
     "key": "v_mod_dest",
@@ -553,7 +553,7 @@
      "Vol+Filt",
      "Filter"
     ],
-    "default": "Volume"
+    "default": "Vol+Filt"
    }
   ]
  },

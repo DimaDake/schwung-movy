@@ -1,12 +1,12 @@
 {
  "id": "superboom",
  "name": "Super Boom",
- "version": "1.4.0",
+ "version": "1.4.1",
  "author": "fillioning",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 55,
- "dsp_size": 36296,
+ "load_ms": 40,
+ "dsp_size": 40800,
  "capabilities": {
   "chainable": true,
   "component_type": "audio_fx",

@@ -1,12 +1,12 @@
 {
  "id": "punchfx",
  "name": "Punch-In FX",
- "version": "0.2.0",
+ "version": "0.2.1",
  "author": "fillioning",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 89,
- "dsp_size": 27808,
+ "load_ms": 91,
+ "dsp_size": 23536,
  "capabilities": {
   "chainable": true,
   "component_type": "audio_fx",

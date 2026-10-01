@@ -1,12 +1,12 @@
 {
  "id": "magneto",
  "name": "Magneto",
- "version": "0.1.2",
+ "version": "0.1.4",
  "author": "Filliformes",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 78,
- "dsp_size": 74480,
+ "load_ms": 48,
+ "dsp_size": 75504,
  "capabilities": {
   "chainable": true,
   "component_type": "audio_fx",
@@ -1130,6 +1130,32 @@
   ],
   "params": [
    {
+    "key": "play",
+    "name": "Play",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Stopped",
+     "Playing"
+    ],
+    "default": "Stopped"
+   },
+   {
+    "key": "rec",
+    "name": "Rec",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Stopped",
+     "Rec"
+    ],
+    "default": "Stopped"
+   },
+   {
     "key": "varspeed",
     "name": "Var Speed",
     "type": "float",
@@ -1176,21 +1202,11 @@
     "default": "0.50"
    },
    {
-    "key": "volume",
-    "name": "Volume",
-    "type": "float",
-    "min": 0,
-    "max": 1,
-    "step": null,
-    "options": null,
-    "default": "0.80"
-   },
-   {
     "key": "model",
     "name": "Tape",
     "type": "enum",
     "min": 0,
-    "max": 1,
+    "max": 8,
     "step": null,
     "options": [
      "Type I",
@@ -1206,14 +1222,14 @@
     "default": "Type I"
    },
    {
-    "key": "mix",
-    "name": "Mix",
+    "key": "volume",
+    "name": "Volume",
     "type": "float",
     "min": 0,
     "max": 1,
     "step": null,
     "options": null,
-    "default": "1.00"
+    "default": "0.80"
    },
    {
     "key": "feedback",
@@ -1224,6 +1240,237 @@
     "step": null,
     "options": null,
     "default": "0.50"
+   },
+   {
+    "key": "sync_mode",
+    "name": "Sync Mode",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Free",
+     "Sync"
+    ],
+    "default": "Free"
+   },
+   {
+    "key": "rec_length",
+    "name": "Rec Length",
+    "type": "float",
+    "min": 1,
+    "max": 30,
+    "step": null,
+    "options": null,
+    "default": "15.00"
+   },
+   {
+    "key": "sync_div",
+    "name": "Sync Div",
+    "type": "enum",
+    "min": 0,
+    "max": 6,
+    "step": null,
+    "options": [
+     "1 Beat",
+     "2 Beats",
+     "1 Bar",
+     "2 Bars",
+     "4 Bars",
+     "8 Bars",
+     "16 Bars"
+    ],
+    "default": "4 Bars"
+   },
+   {
+    "key": "tempo",
+    "name": "Tempo",
+    "type": "int",
+    "min": 20,
+    "max": 999,
+    "step": null,
+    "options": null,
+    "default": "120"
+   },
+   {
+    "key": "scrub",
+    "name": "Scrub",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "jump",
+    "name": "Jump",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "scan",
+    "name": "Scan",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "reverse",
+    "name": "Reverse",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Fwd",
+     "Rev"
+    ],
+    "default": "Fwd"
+   },
+   {
+    "key": "stutter",
+    "name": "Stutter",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "failure",
+    "name": "Failure",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "tape_stop",
+    "name": "Tape Stop",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off"
+   },
+   {
+    "key": "stop_speed",
+    "name": "Stop Speed",
+    "type": "float",
+    "min": 60,
+    "max": 10000,
+    "step": null,
+    "options": null,
+    "default": "600.00"
+   },
+   {
+    "key": "trim",
+    "name": "Trim",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "step": null,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "high",
+    "name": "High",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "step": null,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "high_freq",
+    "name": "High Freq",
+    "type": "float",
+    "min": 5000,
+    "max": 12000,
+    "step": null,
+    "options": null,
+    "default": "10000.00"
+   },
+   {
+    "key": "mid_freq",
+    "name": "Mid Freq",
+    "type": "float",
+    "min": 250,
+    "max": 5000,
+    "step": null,
+    "options": null,
+    "default": "1000.00"
+   },
+   {
+    "key": "mid",
+    "name": "Mid",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "step": null,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "low",
+    "name": "Low",
+    "type": "float",
+    "min": -12,
+    "max": 12,
+    "step": null,
+    "options": null,
+    "default": "0.00"
+   },
+   {
+    "key": "input_pan",
+    "name": "Pan",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.50"
+   },
+   {
+    "key": "chan_vol",
+    "name": "Volume",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "1.00"
+   },
+   {
+    "key": "eq_in",
+    "name": "Channel Mode",
+    "type": "enum",
+    "min": 0,
+    "max": 2,
+    "step": null,
+    "options": [
+     "Input",
+     "Tape",
+     "Off"
+    ],
+    "default": "Input"
    },
    {
     "key": "wow",
@@ -1266,16 +1513,6 @@
     "default": "0.62"
    },
    {
-    "key": "hiss",
-    "name": "Hiss",
-    "type": "float",
-    "min": 0,
-    "max": 1,
-    "step": null,
-    "options": null,
-    "default": "0.20"
-   },
-   {
     "key": "lowcut",
     "name": "Low Cut",
     "type": "float",
@@ -1286,6 +1523,16 @@
     "default": "0.05"
    },
    {
+    "key": "hiss",
+    "name": "Hiss",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.20"
+   },
+   {
     "key": "generations",
     "name": "Generations",
     "type": "float",
@@ -1294,250 +1541,6 @@
     "step": null,
     "options": null,
     "default": "0.12"
-   },
-   {
-    "key": "input_pan",
-    "name": "Pan",
-    "type": "float",
-    "min": 0,
-    "max": 1,
-    "step": null,
-    "options": null,
-    "default": "0.50"
-   },
-   {
-    "key": "pan_mode",
-    "name": "Pan Mode",
-    "type": "enum",
-    "min": 0,
-    "max": 1,
-    "step": null,
-    "options": [
-     "Mono",
-     "Stereo"
-    ],
-    "default": "Stereo"
-   },
-   {
-    "key": "stutter",
-    "name": "Stutter",
-    "type": "float",
-    "min": 0,
-    "max": 1,
-    "step": null,
-    "options": null,
-    "default": "0.00"
-   },
-   {
-    "key": "failure",
-    "name": "Failure",
-    "type": "float",
-    "min": 0,
-    "max": 1,
-    "step": null,
-    "options": null,
-    "default": "0.00"
-   },
-   {
-    "key": "scrub",
-    "name": "Scrub",
-    "type": "float",
-    "min": 0,
-    "max": 1,
-    "step": null,
-    "options": null,
-    "default": "0.00"
-   },
-   {
-    "key": "jump",
-    "name": "Jump",
-    "type": "float",
-    "min": 0,
-    "max": 1,
-    "step": null,
-    "options": null,
-    "default": "0.00"
-   },
-   {
-    "key": "scan",
-    "name": "Scan",
-    "type": "float",
-    "min": 0,
-    "max": 1,
-    "step": null,
-    "options": null,
-    "default": "0.00"
-   },
-   {
-    "key": "tape_stop",
-    "name": "Tape Stop",
-    "type": "enum",
-    "min": 0,
-    "max": 1,
-    "step": null,
-    "options": [
-     "Off",
-     "On"
-    ],
-    "default": "Off"
-   },
-   {
-    "key": "stop_speed",
-    "name": "Stop Speed",
-    "type": "float",
-    "min": 60,
-    "max": 10000,
-    "step": null,
-    "options": null,
-    "default": "600.00"
-   },
-   {
-    "key": "trim",
-    "name": "Trim",
-    "type": "float",
-    "min": -12,
-    "max": 12,
-    "step": null,
-    "options": null,
-    "default": "0.00"
-   },
-   {
-    "key": "low",
-    "name": "Low",
-    "type": "float",
-    "min": -12,
-    "max": 12,
-    "step": null,
-    "options": null,
-    "default": "0.00"
-   },
-   {
-    "key": "mid",
-    "name": "Mid",
-    "type": "float",
-    "min": -12,
-    "max": 12,
-    "step": null,
-    "options": null,
-    "default": "0.00"
-   },
-   {
-    "key": "mid_freq",
-    "name": "Mid Freq",
-    "type": "float",
-    "min": 250,
-    "max": 5000,
-    "step": null,
-    "options": null,
-    "default": "1000.00"
-   },
-   {
-    "key": "high",
-    "name": "High",
-    "type": "float",
-    "min": -12,
-    "max": 12,
-    "step": null,
-    "options": null,
-    "default": "0.00"
-   },
-   {
-    "key": "high_freq",
-    "name": "High Freq",
-    "type": "float",
-    "min": 5000,
-    "max": 12000,
-    "step": null,
-    "options": null,
-    "default": "10000.00"
-   },
-   {
-    "key": "chan_vol",
-    "name": "Volume",
-    "type": "float",
-    "min": 0,
-    "max": 1,
-    "step": null,
-    "options": null,
-    "default": "1.00"
-   },
-   {
-    "key": "eq_in",
-    "name": "Channel Mode",
-    "type": "enum",
-    "min": 0,
-    "max": 1,
-    "step": null,
-    "options": [
-     "Input",
-     "Tape",
-     "Off"
-    ],
-    "default": "Input"
-   },
-   {
-    "key": "rec_mode",
-    "name": "Rec Mode",
-    "type": "enum",
-    "min": 0,
-    "max": 1,
-    "step": null,
-    "options": [
-     "Monitor",
-     "Loop Only"
-    ],
-    "default": "Monitor"
-   },
-   {
-    "key": "rec_length",
-    "name": "Rec Length",
-    "type": "float",
-    "min": 1,
-    "max": 30,
-    "step": null,
-    "options": null,
-    "default": "15.00"
-   },
-   {
-    "key": "sync_mode",
-    "name": "Sync Mode",
-    "type": "enum",
-    "min": 0,
-    "max": 1,
-    "step": null,
-    "options": [
-     "Free",
-     "Sync"
-    ],
-    "default": "Free"
-   },
-   {
-    "key": "sync_div",
-    "name": "Sync Div",
-    "type": "enum",
-    "min": 0,
-    "max": 1,
-    "step": null,
-    "options": [
-     "1 Beat",
-     "2 Beats",
-     "1 Bar",
-     "2 Bars",
-     "4 Bars",
-     "8 Bars",
-     "16 Bars"
-    ],
-    "default": "4 Bars"
-   },
-   {
-    "key": "tempo",
-    "name": "Tempo",
-    "type": "int",
-    "min": 20,
-    "max": 999,
-    "step": null,
-    "options": null,
-    "default": "120"
    },
    {
     "key": "fwd",
@@ -1566,24 +1569,53 @@
     "default": "Off"
    },
    {
-    "key": "load_a",
-    "name": "Load A",
-    "type": "float",
+    "key": "clear",
+    "name": "Clear",
+    "type": "enum",
     "min": 0,
     "max": 1,
     "step": null,
-    "options": null,
-    "default": ""
+    "options": [
+     "Clear",
+     "Cleared"
+    ],
+    "default": "Clear"
    },
    {
-    "key": "load_b",
-    "name": "Load B",
+    "key": "pan_mode",
+    "name": "Pan Mode",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Mono",
+     "Stereo"
+    ],
+    "default": "Stereo"
+   },
+   {
+    "key": "mix",
+    "name": "Mix",
     "type": "float",
     "min": 0,
     "max": 1,
     "step": null,
     "options": null,
-    "default": ""
+    "default": "1.00"
+   },
+   {
+    "key": "rec_mode",
+    "name": "Rec Mode",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Monitor",
+     "Loop Only"
+    ],
+    "default": "Monitor"
    },
    {
     "key": "blank_a",
@@ -1623,58 +1655,6 @@
      "Saved"
     ],
     "default": "Save"
-   },
-   {
-    "key": "play",
-    "name": "Play",
-    "type": "enum",
-    "min": 0,
-    "max": 1,
-    "step": null,
-    "options": [
-     "Stopped",
-     "Playing"
-    ],
-    "default": "Stopped"
-   },
-   {
-    "key": "rec",
-    "name": "Rec",
-    "type": "enum",
-    "min": 0,
-    "max": 1,
-    "step": null,
-    "options": [
-     "Stopped",
-     "Rec"
-    ],
-    "default": "Stopped"
-   },
-   {
-    "key": "reverse",
-    "name": "Reverse",
-    "type": "enum",
-    "min": 0,
-    "max": 1,
-    "step": null,
-    "options": [
-     "Fwd",
-     "Rev"
-    ],
-    "default": "Fwd"
-   },
-   {
-    "key": "clear",
-    "name": "Clear",
-    "type": "enum",
-    "min": 0,
-    "max": 1,
-    "step": null,
-    "options": [
-     "Clear",
-     "Cleared"
-    ],
-    "default": "Clear"
    },
    {
     "key": "recover",
@@ -2188,15 +2168,15 @@
        "shortName": "LOADA",
        "fullName": "Load A",
        "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
+       "type": "file",
+       "displayValue": "—"
       },
       {
        "shortName": "LOADB",
        "fullName": "Load B",
        "renderStyle": "arc",
-       "type": "float",
-       "displayValue": "..."
+       "type": "file",
+       "displayValue": "—"
       },
       {
        "shortName": "BLANA",
@@ -3121,34 +3101,40 @@
     "key": "load_a",
     "label": "Load A",
     "shortLabel": null,
-    "type": "float",
-    "options": null,
+    "type": "file",
     "min": 0,
-    "max": 1,
-    "step": 0.02,
+    "max": 0,
+    "step": 0,
+    "options": null,
     "renderStyle": "arc",
-    "automatable": true,
+    "automatable": false,
+    "fileRoot": "/data/UserData/UserLibrary",
+    "fileFilter": [
+     ".wav"
+    ],
+    "fileStartPath": "/data/UserData/UserLibrary",
     "increment": {
-     "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "kind": "file-browse"
     }
    },
    {
     "key": "load_b",
     "label": "Load B",
     "shortLabel": null,
-    "type": "float",
-    "options": null,
+    "type": "file",
     "min": 0,
-    "max": 1,
-    "step": 0.02,
+    "max": 0,
+    "step": 0,
+    "options": null,
     "renderStyle": "arc",
-    "automatable": true,
+    "automatable": false,
+    "fileRoot": "/data/UserData/UserLibrary",
+    "fileFilter": [
+     ".wav"
+    ],
+    "fileStartPath": "/data/UserData/UserLibrary",
     "increment": {
-     "kind": "float",
-     "perDetent": 0.01,
-     "detentsFullSweep": 100
+     "kind": "file-browse"
     }
    },
    {

@@ -5,7 +5,7 @@
  "author": "move-anything contributors",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 39,
+ "load_ms": 44,
  "dsp_size": 768200,
  "capabilities": {
   "audio_out": true,

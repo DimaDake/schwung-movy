@@ -1,11 +1,11 @@
 {
  "id": "hank",
  "name": "Hank",
- "version": "0.5.0",
+ "version": "0.6.0",
  "author": "charlesvestal",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 40,
+ "load_ms": 43,
  "dsp_size": 74976,
  "capabilities": {
   "audio_out": true,

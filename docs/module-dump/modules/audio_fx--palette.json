@@ -5,7 +5,7 @@
  "author": "Filliformes",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 67,
+ "load_ms": 44,
  "dsp_size": 139152,
  "capabilities": {
   "chainable": true,

@@ -1,0 +1,809 @@
+{
+ "id": "busdriver",
+ "name": "Bus Driver",
+ "version": "0.3.0",
+ "author": "legsmechanical",
+ "category": "audio_fx",
+ "status": "ok",
+ "load_ms": 41,
+ "dsp_size": 44616,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "audio_fx",
+  "audio_in": true,
+  "chain_params": [
+   {
+    "key": "drive",
+    "name": "Drive",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0
+   },
+   {
+    "key": "drive_type",
+    "name": "Char",
+    "type": "enum",
+    "options": [
+     "Soft",
+     "Medium",
+     "Hard"
+    ],
+    "default": "Soft"
+   },
+   {
+    "key": "crunch",
+    "name": "Crunch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0
+   },
+   {
+    "key": "damp",
+    "name": "Damp",
+    "type": "float",
+    "min": 500,
+    "max": 20000,
+    "step": 100,
+    "default": 20000,
+    "unit": "Hz"
+   },
+   {
+    "key": "transients",
+    "name": "Trans",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "default": 0
+   },
+   {
+    "key": "boom",
+    "name": "Boom",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0
+   },
+   {
+    "key": "boom_freq",
+    "name": "B Freq",
+    "type": "float",
+    "min": 30,
+    "max": 90,
+    "step": 0.5,
+    "default": 50,
+    "unit": "Hz"
+   },
+   {
+    "key": "boom_decay",
+    "name": "Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 1
+   },
+   {
+    "key": "comp",
+    "name": "Comp",
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "Off",
+    "viz": {
+     "kind": "switch"
+    }
+   },
+   {
+    "key": "trim",
+    "name": "Trim",
+    "type": "float",
+    "min": -70,
+    "max": 0,
+    "step": 0.5,
+    "default": 0,
+    "unit": "dB",
+    "viz": {
+     "kind": "fader"
+    }
+   },
+   {
+    "key": "output",
+    "name": "Out",
+    "type": "float",
+    "min": -40,
+    "max": 3,
+    "step": 0.5,
+    "default": 0,
+    "unit": "dB",
+    "viz": {
+     "kind": "fader"
+    }
+   },
+   {
+    "key": "drywet",
+    "name": "Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 1,
+    "viz": {
+     "kind": "fader"
+    }
+   }
+  ],
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "name": "Bus Driver",
+     "params": [
+      {
+       "level": "shape",
+       "label": "Shape"
+      },
+      {
+       "level": "mix",
+       "label": "Mix"
+      }
+     ],
+     "knobs": []
+    },
+    "shape": {
+     "name": "Shape",
+     "params": [
+      {
+       "key": "drive",
+       "name": "Drive",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "step": 0.01,
+       "default": 0
+      },
+      {
+       "key": "drive_type",
+       "name": "Char",
+       "type": "enum",
+       "options": [
+        "Soft",
+        "Medium",
+        "Hard"
+       ],
+       "default": "Soft"
+      },
+      {
+       "key": "crunch",
+       "name": "Crunch",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "step": 0.01,
+       "default": 0
+      },
+      {
+       "key": "damp",
+       "name": "Damp",
+       "type": "float",
+       "min": 500,
+       "max": 20000,
+       "step": 100,
+       "default": 20000,
+       "unit": "Hz"
+      },
+      {
+       "key": "transients",
+       "name": "Trans",
+       "type": "float",
+       "min": -1,
+       "max": 1,
+       "step": 0.02,
+       "default": 0
+      },
+      {
+       "key": "boom",
+       "name": "Boom",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "step": 0.01,
+       "default": 0
+      },
+      {
+       "key": "boom_freq",
+       "name": "B Freq",
+       "type": "float",
+       "min": 30,
+       "max": 90,
+       "step": 0.5,
+       "default": 50,
+       "unit": "Hz"
+      },
+      {
+       "key": "boom_decay",
+       "name": "Decay",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "step": 0.01,
+       "default": 1
+      }
+     ],
+     "knobs": [
+      "drive",
+      "drive_type",
+      "crunch",
+      "damp",
+      "transients",
+      "boom",
+      "boom_freq",
+      "boom_decay"
+     ]
+    },
+    "mix": {
+     "name": "Mix",
+     "params": [
+      {
+       "key": "comp",
+       "name": "Comp",
+       "type": "enum",
+       "options": [
+        "Off",
+        "On"
+       ],
+       "default": "Off",
+       "viz": {
+        "kind": "switch"
+       }
+      },
+      {
+       "key": "trim",
+       "name": "Trim",
+       "type": "float",
+       "min": -70,
+       "max": 0,
+       "step": 0.5,
+       "default": 0,
+       "unit": "dB",
+       "viz": {
+        "kind": "fader"
+       }
+      },
+      {
+       "key": "output",
+       "name": "Out",
+       "type": "float",
+       "min": -40,
+       "max": 3,
+       "step": 0.5,
+       "default": 0,
+       "unit": "dB",
+       "viz": {
+        "kind": "fader"
+       }
+      },
+      {
+       "key": "drywet",
+       "name": "Mix",
+       "type": "float",
+       "min": 0,
+       "max": 1,
+       "step": 0.01,
+       "default": 1,
+       "viz": {
+        "kind": "fader"
+       }
+      }
+     ],
+     "knobs": [
+      "comp",
+      "trim",
+      "output",
+      "drywet"
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "shape",
+   "mix"
+  ],
+  "params": [
+   {
+    "key": "drive",
+    "name": "Drive",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.000000"
+   },
+   {
+    "key": "drive_type",
+    "name": "Char",
+    "type": "enum",
+    "min": 0,
+    "max": 2,
+    "step": null,
+    "options": [
+     "Soft",
+     "Medium",
+     "Hard"
+    ],
+    "default": "0.000000"
+   },
+   {
+    "key": "crunch",
+    "name": "Crunch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.000000"
+   },
+   {
+    "key": "damp",
+    "name": "Damp",
+    "type": "float",
+    "min": 500,
+    "max": 20000,
+    "step": null,
+    "options": null,
+    "default": "20000.000000"
+   },
+   {
+    "key": "transients",
+    "name": "Trans",
+    "type": "float",
+    "min": -1,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.000000"
+   },
+   {
+    "key": "boom",
+    "name": "Boom",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "0.000000"
+   },
+   {
+    "key": "boom_freq",
+    "name": "B Freq",
+    "type": "float",
+    "min": 30,
+    "max": 90,
+    "step": null,
+    "options": null,
+    "default": "50.000000"
+   },
+   {
+    "key": "boom_decay",
+    "name": "Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "1.000000"
+   },
+   {
+    "key": "comp",
+    "name": "Comp",
+    "type": "enum",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": [
+     "Off",
+     "On"
+    ],
+    "default": "0.000000"
+   },
+   {
+    "key": "trim",
+    "name": "Trim",
+    "type": "float",
+    "min": -70,
+    "max": 0,
+    "step": null,
+    "options": null,
+    "default": "0.000000"
+   },
+   {
+    "key": "output",
+    "name": "Out",
+    "type": "float",
+    "min": -40,
+    "max": 3,
+    "step": null,
+    "options": null,
+    "default": "0.000000"
+   },
+   {
+    "key": "drywet",
+    "name": "Mix",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": null,
+    "options": null,
+    "default": "1.000000"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Shape",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Mix",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Shape",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "DRIVE",
+       "fullName": "Drive",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CHAR",
+       "fullName": "Char",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "CRUNC",
+       "fullName": "Crunch",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DAMP",
+       "fullName": "Damp",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "TRANS",
+       "fullName": "Trans",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BOOM",
+       "fullName": "Boom",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "B",
+       "fullName": "B Freq",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DECAY",
+       "fullName": "Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Mix",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "COMP",
+       "fullName": "Comp",
+       "renderStyle": "switch",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TRIM",
+       "fullName": "Trim",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OUT",
+       "fullName": "Out",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MIX",
+       "fullName": "Mix",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "drive",
+    "label": "Drive",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "drive_type",
+    "label": "Char",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Soft",
+     "Medium",
+     "Hard"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "crunch",
+    "label": "Crunch",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "damp",
+    "label": "Damp",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 500,
+    "max": 20000,
+    "step": 100,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 50,
+     "detentsFullSweep": 390
+    }
+   },
+   {
+    "key": "transients",
+    "label": "Trans",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -1,
+    "max": 1,
+    "step": 0.02,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.01,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "boom",
+    "label": "Boom",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "boom_freq",
+    "label": "B Freq",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 30,
+    "max": 90,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 240
+    }
+   },
+   {
+    "key": "boom_decay",
+    "label": "Decay",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "comp",
+    "label": "Comp",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Off",
+     "On"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "switch",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "trim",
+    "label": "Trim",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -70,
+    "max": 0,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 280
+    }
+   },
+   {
+    "key": "output",
+    "label": "Out",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": -40,
+    "max": 3,
+    "step": 0.5,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.25,
+     "detentsFullSweep": 172
+    }
+   },
+   {
+    "key": "drywet",
+    "label": "Mix",
+    "shortLabel": null,
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [],
+  "noMetadata": [],
+  "warnings": []
+ }
+}

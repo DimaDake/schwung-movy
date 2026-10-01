@@ -1,12 +1,12 @@
 {
  "id": "fizzik",
  "name": "Fizzik",
- "version": "0.1.0",
+ "version": "0.1.1",
  "author": "Filliformes",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 56,
- "dsp_size": 74160,
+ "load_ms": 43,
+ "dsp_size": 74128,
  "capabilities": {
   "audio_out": true,
   "midi_in": true,
@@ -22,16 +22,20 @@
       "rnd_patch",
       "rnd_exc",
       "rnd_reson",
-      "rnd_all",
       "cutoff",
       "resonance",
-      "ftype"
+      "ftype",
+      "voicing"
      ],
      "params": [
-      {
-       "level": "Patch",
-       "label": "Patch"
-      },
+      "preset",
+      "rnd_patch",
+      "rnd_exc",
+      "rnd_reson",
+      "cutoff",
+      "resonance",
+      "ftype",
+      "voicing",
       {
        "level": "Exciter",
        "label": "Exciter"
@@ -249,34 +253,78 @@
       "at_vrate",
       "at_curve"
      ]
-    },
-    "Patch": {
-     "name": "Patch",
-     "knobs": [
-      "preset",
-      "rnd_patch",
-      "rnd_exc",
-      "rnd_reson",
-      "rnd_all",
-      "cutoff",
-      "resonance",
-      "ftype"
-     ],
-     "params": [
-      "preset",
-      "rnd_patch",
-      "rnd_exc",
-      "rnd_reson",
-      "rnd_all",
-      "cutoff",
-      "resonance",
-      "ftype",
-      "voicing"
-     ]
     }
    }
   },
   "chain_params": [
+   {
+    "key": "preset",
+    "name": "Preset",
+    "type": "enum",
+    "options": [
+     "AlienChurch",
+     "BowedGlass",
+     "CaveStrings",
+     "CouncilsPiano",
+     "DistortedBass",
+     "FeedbackHarp",
+     "JudgementAwaits",
+     "OldResonances",
+     "PreparedPiano",
+     "RythmicBow",
+     "SensitiveSkin",
+     "Sharp",
+     "ShockingPluck",
+     "Slappy",
+     "SurroundedByBells",
+     "XyloStyle",
+     "GlassKalimba",
+     "IronLullaby",
+     "TidalGong",
+     "HollowReed",
+     "StarlightPad",
+     "BrokenMusicBox",
+     "DeepDiveBass",
+     "CopperTongue",
+     "GhostSitar",
+     "MarbleDrum",
+     "WhisperHarp",
+     "TitaniumBell",
+     "FrozenLake",
+     "PulseEngine",
+     "Init"
+    ]
+   },
+   {
+    "key": "rnd_patch",
+    "name": "Rnd Patch",
+    "type": "enum",
+    "options": [
+     "idle",
+     "trigger"
+    ],
+    "access": "write"
+   },
+   {
+    "key": "rnd_exc",
+    "name": "Rnd Exciter",
+    "type": "enum",
+    "options": [
+     "idle",
+     "trigger"
+    ],
+    "access": "write"
+   },
+   {
+    "key": "rnd_reson",
+    "name": "Rnd Reson",
+    "type": "enum",
+    "options": [
+     "idle",
+     "trigger"
+    ],
+    "access": "write"
+   },
    {
     "key": "exc_mix",
     "name": "Exc Mix",
@@ -719,7 +767,12 @@
     "type": "float",
     "min": 0,
     "max": 1,
-    "step": 0.01
+    "step": 0.01,
+    "viz": {
+     "group": "lfo1",
+     "role": "rate",
+     "kind": "lfo"
+    }
    },
    {
     "key": "lfo1_depth",
@@ -727,7 +780,11 @@
     "type": "float",
     "min": 0,
     "max": 1,
-    "step": 0.01
+    "step": 0.01,
+    "viz": {
+     "group": "lfo1",
+     "role": "depth"
+    }
    },
    {
     "key": "lfo1_shape",
@@ -739,7 +796,11 @@
      "Saw",
      "Square",
      "S&H"
-    ]
+    ],
+    "viz": {
+     "group": "lfo1",
+     "role": "shape"
+    }
    },
    {
     "key": "lfo1_target",
@@ -762,7 +823,12 @@
     "type": "float",
     "min": 0,
     "max": 1,
-    "step": 0.01
+    "step": 0.01,
+    "viz": {
+     "group": "lfo2",
+     "role": "rate",
+     "kind": "lfo"
+    }
    },
    {
     "key": "lfo2_depth",
@@ -770,7 +836,11 @@
     "type": "float",
     "min": 0,
     "max": 1,
-    "step": 0.01
+    "step": 0.01,
+    "viz": {
+     "group": "lfo2",
+     "role": "depth"
+    }
    },
    {
     "key": "lfo2_shape",
@@ -782,7 +852,11 @@
      "Saw",
      "Square",
      "S&H"
-    ]
+    ],
+    "viz": {
+     "group": "lfo2",
+     "role": "shape"
+    }
    },
    {
     "key": "lfo2_target",
@@ -871,11 +945,30 @@
     "min": 0,
     "max": 1,
     "step": 0.01
-   },
+   }
+  ]
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "Exciter",
+   "ResonA",
+   "ResonB",
+   "Voice",
+   "FX",
+   "FX2",
+   "Mod",
+   "Touch"
+  ],
+  "params": [
    {
     "key": "preset",
     "name": "Preset",
     "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
     "options": [
      "AlienChurch",
      "BowedGlass",
@@ -906,58 +999,50 @@
      "WhisperHarp",
      "TitaniumBell",
      "FrozenLake",
-     "PulseEngine"
-    ]
+     "PulseEngine",
+     "Init"
+    ],
+    "default": "CaveStrings"
    },
    {
     "key": "rnd_patch",
     "name": "Rnd Patch",
-    "type": "int",
-    "min": 0,
-    "max": 127,
-    "step": 1
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "idle",
+     "trigger"
+    ],
+    "default": "0"
    },
    {
     "key": "rnd_exc",
     "name": "Rnd Exciter",
-    "type": "int",
-    "min": 0,
-    "max": 127,
-    "step": 1
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "idle",
+     "trigger"
+    ],
+    "default": "0"
    },
    {
     "key": "rnd_reson",
     "name": "Rnd Reson",
-    "type": "int",
-    "min": 0,
-    "max": 127,
-    "step": 1
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "idle",
+     "trigger"
+    ],
+    "default": "0"
    },
-   {
-    "key": "rnd_all",
-    "name": "Rnd All",
-    "type": "int",
-    "min": 0,
-    "max": 127,
-    "step": 1
-   }
-  ]
- },
- "presets": null,
- "native": {
-  "hierarchy_levels": [
-   "root",
-   "Exciter",
-   "ResonA",
-   "ResonB",
-   "Voice",
-   "FX",
-   "FX2",
-   "Mod",
-   "Touch",
-   "Patch"
-  ],
-  "params": [
    {
     "key": "exc_mix",
     "name": "Exc Mix",
@@ -1706,87 +1791,6 @@
     "step": 0.01,
     "options": null,
     "default": "0.50000"
-   },
-   {
-    "key": "preset",
-    "name": "Preset",
-    "type": "enum",
-    "min": null,
-    "max": null,
-    "step": null,
-    "options": [
-     "AlienChurch",
-     "BowedGlass",
-     "CaveStrings",
-     "CouncilsPiano",
-     "DistortedBass",
-     "FeedbackHarp",
-     "JudgementAwaits",
-     "OldResonances",
-     "PreparedPiano",
-     "RythmicBow",
-     "SensitiveSkin",
-     "Sharp",
-     "ShockingPluck",
-     "Slappy",
-     "SurroundedByBells",
-     "XyloStyle",
-     "GlassKalimba",
-     "IronLullaby",
-     "TidalGong",
-     "HollowReed",
-     "StarlightPad",
-     "BrokenMusicBox",
-     "DeepDiveBass",
-     "CopperTongue",
-     "GhostSitar",
-     "MarbleDrum",
-     "WhisperHarp",
-     "TitaniumBell",
-     "FrozenLake",
-     "PulseEngine"
-    ],
-    "default": "CaveStrings"
-   },
-   {
-    "key": "rnd_patch",
-    "name": "Rnd Patch",
-    "type": "int",
-    "min": 0,
-    "max": 127,
-    "step": 1,
-    "options": null,
-    "default": "0"
-   },
-   {
-    "key": "rnd_exc",
-    "name": "Rnd Exciter",
-    "type": "int",
-    "min": 0,
-    "max": 127,
-    "step": 1,
-    "options": null,
-    "default": "0"
-   },
-   {
-    "key": "rnd_reson",
-    "name": "Rnd Reson",
-    "type": "int",
-    "min": 0,
-    "max": 127,
-    "step": 1,
-    "options": null,
-    "default": "0"
-   },
-   {
-    "key": "rnd_all",
-    "name": "Rnd All",
-    "type": "int",
-    "min": 0,
-    "max": 127,
-    "step": 1,
-    "options": null,
-    "default": "0"
    }
   ]
  },
@@ -1797,11 +1801,6 @@
   "banks": [
    {
     "name": "Main",
-    "global": false,
-    "padSpecific": false
-   },
-   {
-    "name": "Patch",
     "global": false,
     "padSpecific": false
    },
@@ -1867,21 +1866,21 @@
        "shortName": "PATCH",
        "fullName": "Rnd Patch",
        "renderStyle": "arc",
-       "type": "int",
+       "type": "enum",
        "displayValue": "..."
       },
       {
        "shortName": "EXCITE",
        "fullName": "Rnd Exciter",
        "renderStyle": "arc",
-       "type": "int",
+       "type": "enum",
        "displayValue": "..."
       },
       {
        "shortName": "RR",
        "fullName": "Rnd Reson",
        "renderStyle": "arc",
-       "type": "int",
+       "type": "enum",
        "displayValue": "..."
       }
      ],
@@ -1901,47 +1900,19 @@
        "displayValue": "..."
       },
       {
-       "shortName": "ALL",
-       "fullName": "Rnd All",
-       "renderStyle": "arc",
-       "type": "int",
-       "displayValue": "..."
-      },
-      {
        "shortName": "FILTER",
        "fullName": "Filter Type",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
-      }
-     ]
-    ]
-   },
-   {
-    "name": "Patch",
-    "envelopeLines": [
-     false,
-     false
-    ],
-    "lfoViz": false,
-    "rows": [
-     [
+      },
       {
        "shortName": "VOICING",
        "fullName": "Voicing",
        "renderStyle": "arc",
        "type": "enum",
        "displayValue": "..."
-      },
-      null,
-      null,
-      null
-     ],
-     [
-      null,
-      null,
-      null,
-      null
+      }
      ]
     ]
    },
@@ -2542,85 +2513,81 @@
      "WhisperHarp",
      "TitaniumBell",
      "FrozenLake",
-     "PulseEngine"
+     "PulseEngine",
+     "Init"
     ],
     "min": 0,
-    "max": 29,
+    "max": 30,
     "step": 1,
     "renderStyle": "arc",
     "automatable": false,
     "increment": {
      "kind": "enum",
      "detentsPerStep": 4,
-     "steps": 30
+     "steps": 31
     }
    },
    {
     "key": "rnd_patch",
     "label": "Rnd Patch",
     "shortLabel": null,
-    "type": "int",
-    "options": null,
+    "type": "enum",
+    "options": [
+     "idle",
+     "trigger"
+    ],
     "min": 0,
-    "max": 127,
+    "max": 1,
     "step": 1,
     "renderStyle": "arc",
-    "automatable": true,
+    "automatable": false,
+    "behavior": "trigger",
     "increment": {
-     "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
     }
    },
    {
     "key": "rnd_exc",
     "label": "Rnd Exciter",
     "shortLabel": null,
-    "type": "int",
-    "options": null,
+    "type": "enum",
+    "options": [
+     "idle",
+     "trigger"
+    ],
     "min": 0,
-    "max": 127,
+    "max": 1,
     "step": 1,
     "renderStyle": "arc",
-    "automatable": true,
+    "automatable": false,
+    "behavior": "trigger",
     "increment": {
-     "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
     }
    },
    {
     "key": "rnd_reson",
     "label": "Rnd Reson",
     "shortLabel": null,
-    "type": "int",
-    "options": null,
+    "type": "enum",
+    "options": [
+     "idle",
+     "trigger"
+    ],
     "min": 0,
-    "max": 127,
+    "max": 1,
     "step": 1,
     "renderStyle": "arc",
-    "automatable": true,
+    "automatable": false,
+    "behavior": "trigger",
     "increment": {
-     "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
-    }
-   },
-   {
-    "key": "rnd_all",
-    "label": "Rnd All",
-    "shortLabel": null,
-    "type": "int",
-    "options": null,
-    "min": 0,
-    "max": 127,
-    "step": 1,
-    "renderStyle": "arc",
-    "automatable": true,
-    "increment": {
-     "kind": "int",
-     "perDetent": 0.5,
-     "detentsFullSweep": 254
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
     }
    },
    {
@@ -2709,13 +2676,6 @@
      "steps": 12
     }
    },
-   null,
-   null,
-   null,
-   null,
-   null,
-   null,
-   null,
    {
     "key": "exc_mix",
     "label": "Exc Mix",

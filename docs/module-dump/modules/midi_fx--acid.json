@@ -1,0 +1,1494 @@
+{
+ "id": "acid",
+ "name": "Acid",
+ "version": "1.2.0",
+ "author": "sd88me",
+ "category": "midi_fx",
+ "status": "ok",
+ "load_ms": 41,
+ "dsp_size": 71176,
+ "capabilities": {
+  "chainable": true,
+  "component_type": "midi_fx",
+  "midi_in": true,
+  "midi_out": true,
+  "ui_hierarchy": {
+   "levels": {
+    "root": {
+     "name": "Sequence A",
+     "params": [
+      "a_generate",
+      "a_mutate",
+      "a_density",
+      "a_accent",
+      "a_slide",
+      "a_octaves",
+      "a_length",
+      "a_gate",
+      {
+       "label": "Seq B",
+       "level": "seqB"
+      },
+      {
+       "label": "Global",
+       "level": "global"
+      },
+      {
+       "label": "Advanced",
+       "level": "advanced"
+      }
+     ],
+     "knobs": [
+      {
+       "key": "a_generate",
+       "short_name": "Generate"
+      },
+      {
+       "key": "a_mutate",
+       "short_name": "Mutate"
+      },
+      {
+       "key": "a_density",
+       "short_name": "Density"
+      },
+      {
+       "key": "a_accent",
+       "short_name": "Accent"
+      },
+      {
+       "key": "a_slide",
+       "short_name": "Slide"
+      },
+      {
+       "key": "a_octaves",
+       "short_name": "Octaves"
+      },
+      {
+       "key": "a_length",
+       "short_name": "Length"
+      },
+      {
+       "key": "a_gate",
+       "short_name": "Gate"
+      }
+     ]
+    },
+    "seqB": {
+     "name": "Sequence B",
+     "params": [
+      "b_generate",
+      "b_mutate",
+      "b_density",
+      "b_accent",
+      "b_slide",
+      "b_octaves",
+      "b_length",
+      "b_gate"
+     ],
+     "knobs": [
+      {
+       "key": "b_generate",
+       "short_name": "Generate"
+      },
+      {
+       "key": "b_mutate",
+       "short_name": "Mutate"
+      },
+      {
+       "key": "b_density",
+       "short_name": "Density"
+      },
+      {
+       "key": "b_accent",
+       "short_name": "Accent"
+      },
+      {
+       "key": "b_slide",
+       "short_name": "Slide"
+      },
+      {
+       "key": "b_octaves",
+       "short_name": "Octaves"
+      },
+      {
+       "key": "b_length",
+       "short_name": "Length"
+      },
+      {
+       "key": "b_gate",
+       "short_name": "Gate"
+      }
+     ]
+    },
+    "global": {
+     "name": "Global",
+     "params": [
+      "scale",
+      "root",
+      "b_tune",
+      "reset_bars",
+      "a_algo",
+      "b_algo",
+      "blend_mode",
+      "blend",
+      {
+       "label": "Advanced",
+       "level": "advanced"
+      }
+     ],
+     "knobs": [
+      "scale",
+      "root",
+      "b_tune",
+      "reset_bars",
+      "a_algo",
+      "b_algo",
+      "blend_mode",
+      "blend"
+     ]
+    },
+    "advanced": {
+     "name": "Advanced",
+     "params": [
+      "a_offset",
+      "b_offset",
+      "jitter",
+      "swing",
+      "auto_gen",
+      "a_dir",
+      "b_dir"
+     ],
+     "knobs": [
+      {
+       "key": "a_offset",
+       "short_name": "OffsetA"
+      },
+      {
+       "key": "b_offset",
+       "short_name": "OffsetB"
+      },
+      {
+       "key": "jitter",
+       "short_name": "Jitter"
+      },
+      {
+       "key": "swing",
+       "short_name": "Swing"
+      },
+      {
+       "key": "auto_gen",
+       "short_name": "AutoGen"
+      },
+      {
+       "key": "a_dir",
+       "short_name": "DirA"
+      },
+      {
+       "key": "b_dir",
+       "short_name": "DirB"
+      }
+     ]
+    }
+   }
+  }
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "seqB",
+   "global",
+   "advanced"
+  ],
+  "params": [
+   {
+    "key": "a_generate",
+    "name": "Generate A",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "off",
+     "go"
+    ],
+    "default": "off"
+   },
+   {
+    "key": "a_mutate",
+    "name": "Mutate A",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "off",
+     "go"
+    ],
+    "default": "off"
+   },
+   {
+    "key": "a_density",
+    "name": "Density A",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.700"
+   },
+   {
+    "key": "a_accent",
+    "name": "Accent A",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.400"
+   },
+   {
+    "key": "a_slide",
+    "name": "Slide A",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.250"
+   },
+   {
+    "key": "a_octaves",
+    "name": "Octaves A",
+    "type": "int",
+    "min": 1,
+    "max": 3,
+    "step": 1,
+    "options": null,
+    "default": "2"
+   },
+   {
+    "key": "a_length",
+    "name": "Length A",
+    "type": "float",
+    "min": 2,
+    "max": 32,
+    "step": 1,
+    "options": null,
+    "default": "16"
+   },
+   {
+    "key": "a_gate",
+    "name": "Gate A",
+    "type": "float",
+    "min": 0.05,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.500"
+   },
+   {
+    "key": "b_generate",
+    "name": "Generate B",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "off",
+     "go"
+    ],
+    "default": "off"
+   },
+   {
+    "key": "b_mutate",
+    "name": "Mutate B",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "off",
+     "go"
+    ],
+    "default": "off"
+   },
+   {
+    "key": "b_density",
+    "name": "Density B",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.700"
+   },
+   {
+    "key": "b_accent",
+    "name": "Accent B",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.400"
+   },
+   {
+    "key": "b_slide",
+    "name": "Slide B",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.250"
+   },
+   {
+    "key": "b_octaves",
+    "name": "Octaves B",
+    "type": "int",
+    "min": 1,
+    "max": 3,
+    "step": 1,
+    "options": null,
+    "default": "2"
+   },
+   {
+    "key": "b_length",
+    "name": "Length B",
+    "type": "float",
+    "min": 2,
+    "max": 32,
+    "step": 1,
+    "options": null,
+    "default": "16"
+   },
+   {
+    "key": "b_gate",
+    "name": "Gate B",
+    "type": "float",
+    "min": 0.05,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.500"
+   },
+   {
+    "key": "scale",
+    "name": "Scale",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Minor",
+     "Phrygian",
+     "HarmMinor",
+     "MinPent",
+     "Dorian",
+     "Major",
+     "PhrygDom",
+     "Locrian",
+     "WholeTone",
+     "HungMinor",
+     "MinBlues",
+     "Chromatic"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "root",
+    "name": "Root",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "C",
+     "C#",
+     "D",
+     "D#",
+     "E",
+     "F",
+     "F#",
+     "G",
+     "G#",
+     "A",
+     "A#",
+     "B"
+    ],
+    "default": "9"
+   },
+   {
+    "key": "b_tune",
+    "name": "Tune B",
+    "type": "int",
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "blend_mode",
+    "name": "Blend Mode",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Morph",
+     "Split",
+     "Fill",
+     "XOR",
+     "Lock",
+     "Chain"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "blend",
+    "name": "Blend",
+    "type": "int",
+    "min": -63,
+    "max": 64,
+    "step": 1,
+    "options": null,
+    "default": "-63"
+   },
+   {
+    "key": "a_algo",
+    "name": "Algo A",
+    "type": "int",
+    "min": 1,
+    "max": 16,
+    "step": 1,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "b_algo",
+    "name": "Algo B",
+    "type": "int",
+    "min": 1,
+    "max": 16,
+    "step": 1,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "reset_bars",
+    "name": "Reset Both",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "1 bar",
+     "2 bars",
+     "4 bars",
+     "8 bars",
+     "Off"
+    ],
+    "default": "4"
+   },
+   {
+    "key": "swing",
+    "name": "Swing",
+    "type": "float",
+    "min": 50,
+    "max": 75,
+    "step": 1,
+    "options": null,
+    "default": "50"
+   },
+   {
+    "key": "a_offset",
+    "name": "Offset A",
+    "type": "float",
+    "min": 0,
+    "max": 31,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "b_offset",
+    "name": "Offset B",
+    "type": "float",
+    "min": 0,
+    "max": 31,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "a_dir",
+    "name": "Direction A",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Fwd",
+     "Rev",
+     "Pendulum"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "b_dir",
+    "name": "Direction B",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Fwd",
+     "Rev",
+     "Pendulum"
+    ],
+    "default": "0"
+   },
+   {
+    "key": "jitter",
+    "name": "Jitter",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.000"
+   },
+   {
+    "key": "auto_gen",
+    "name": "Auto Gen",
+    "type": "enum",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": [
+     "Off",
+     "1 bar",
+     "2 bars",
+     "4 bars",
+     "8 bars",
+     "16 bars",
+     "32 bars"
+    ],
+    "default": "0"
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Sequence B",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Global",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Global/Advanced",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "GENER",
+       "fullName": "Generate A",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MUTATE",
+       "fullName": "Mutate A",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DENSIT",
+       "fullName": "Density A",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ACCENT",
+       "fullName": "Accent A",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "SLIDE",
+       "fullName": "Slide A",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OCTAVE",
+       "fullName": "Octaves A",
+       "renderStyle": "steps",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LENGTH",
+       "fullName": "Length A",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GATE",
+       "fullName": "Gate A",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Sequence B",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "GENER",
+       "fullName": "Generate B",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MUTATE",
+       "fullName": "Mutate B",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DENSIT",
+       "fullName": "Density B",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ACCENT",
+       "fullName": "Accent B",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "SLIDE",
+       "fullName": "Slide B",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OCTAVE",
+       "fullName": "Octaves B",
+       "renderStyle": "steps",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "LENGTH",
+       "fullName": "Length B",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "GATE",
+       "fullName": "Gate B",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Global",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "SCALE",
+       "fullName": "Scale",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ROOT",
+       "fullName": "Root",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TUNE B",
+       "fullName": "Tune B",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "RESET",
+       "fullName": "Reset Both",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "ALGOA",
+       "fullName": "Algo A",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "ALGOB",
+       "fullName": "Algo B",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "MODE",
+       "fullName": "Blend Mode",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BLEND",
+       "fullName": "Blend",
+       "renderStyle": "arc",
+       "type": "int",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Global/Advanced",
+    "envelopeLines": [
+     false,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "OFFSET",
+       "fullName": "Offset A",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "OFFSET",
+       "fullName": "Offset B",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "JITTER",
+       "fullName": "Jitter",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SWING",
+       "fullName": "Swing",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "AUTOGE",
+       "fullName": "Auto Gen",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DIRA",
+       "fullName": "Direction A",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DIRB",
+       "fullName": "Direction B",
+       "renderStyle": "arc",
+       "type": "enum",
+       "displayValue": "..."
+      },
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "a_generate",
+    "label": "Generate A",
+    "shortLabel": "Generate",
+    "type": "enum",
+    "options": [
+     "off",
+     "go"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "behavior": "trigger",
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "a_mutate",
+    "label": "Mutate A",
+    "shortLabel": "Mutate",
+    "type": "enum",
+    "options": [
+     "off",
+     "go"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "behavior": "trigger",
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "a_density",
+    "label": "Density A",
+    "shortLabel": "Density",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "a_accent",
+    "label": "Accent A",
+    "shortLabel": "Accent",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "a_slide",
+    "label": "Slide A",
+    "shortLabel": "Slide",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "a_octaves",
+    "label": "Octaves A",
+    "shortLabel": "Octaves",
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "steps",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 2
+    }
+   },
+   {
+    "key": "a_length",
+    "label": "Length A",
+    "shortLabel": "Length",
+    "type": "float",
+    "options": null,
+    "min": 2,
+    "max": 32,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 60
+    }
+   },
+   {
+    "key": "a_gate",
+    "label": "Gate A",
+    "shortLabel": "Gate",
+    "type": "float",
+    "options": null,
+    "min": 0.05,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 190
+    }
+   },
+   {
+    "key": "b_generate",
+    "label": "Generate B",
+    "shortLabel": "Generate",
+    "type": "enum",
+    "options": [
+     "off",
+     "go"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "behavior": "trigger",
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "b_mutate",
+    "label": "Mutate B",
+    "shortLabel": "Mutate",
+    "type": "enum",
+    "options": [
+     "off",
+     "go"
+    ],
+    "min": 0,
+    "max": 1,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "behavior": "trigger",
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 2
+    }
+   },
+   {
+    "key": "b_density",
+    "label": "Density B",
+    "shortLabel": "Density",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "b_accent",
+    "label": "Accent B",
+    "shortLabel": "Accent",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "b_slide",
+    "label": "Slide B",
+    "shortLabel": "Slide",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "b_octaves",
+    "label": "Octaves B",
+    "shortLabel": "Octaves",
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 3,
+    "step": 1,
+    "renderStyle": "steps",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 1,
+     "detentsFullSweep": 2
+    }
+   },
+   {
+    "key": "b_length",
+    "label": "Length B",
+    "shortLabel": "Length",
+    "type": "float",
+    "options": null,
+    "min": 2,
+    "max": 32,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 60
+    }
+   },
+   {
+    "key": "b_gate",
+    "label": "Gate B",
+    "shortLabel": "Gate",
+    "type": "float",
+    "options": null,
+    "min": 0.05,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 190
+    }
+   },
+   {
+    "key": "scale",
+    "label": "Scale",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Minor",
+     "Phrygian",
+     "HarmMinor",
+     "MinPent",
+     "Dorian",
+     "Major",
+     "PhrygDom",
+     "Locrian",
+     "WholeTone",
+     "HungMinor",
+     "MinBlues",
+     "Chromatic"
+    ],
+    "min": 0,
+    "max": 11,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 12
+    }
+   },
+   {
+    "key": "root",
+    "label": "Root",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "C",
+     "C#",
+     "D",
+     "D#",
+     "E",
+     "F",
+     "F#",
+     "G",
+     "G#",
+     "A",
+     "A#",
+     "B"
+    ],
+    "min": 0,
+    "max": 11,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 12
+    }
+   },
+   {
+    "key": "b_tune",
+    "label": "Tune B",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -24,
+    "max": 24,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 96
+    }
+   },
+   {
+    "key": "reset_bars",
+    "label": "Reset Both",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "1 bar",
+     "2 bars",
+     "4 bars",
+     "8 bars",
+     "Off"
+    ],
+    "min": 0,
+    "max": 4,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 5
+    }
+   },
+   {
+    "key": "a_algo",
+    "label": "Algo A",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 16,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 30
+    }
+   },
+   {
+    "key": "b_algo",
+    "label": "Algo B",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": 1,
+    "max": 16,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 30
+    }
+   },
+   {
+    "key": "blend_mode",
+    "label": "Blend Mode",
+    "shortLabel": null,
+    "type": "enum",
+    "options": [
+     "Morph",
+     "Split",
+     "Fill",
+     "XOR",
+     "Lock",
+     "Chain"
+    ],
+    "min": 0,
+    "max": 5,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 6
+    }
+   },
+   {
+    "key": "blend",
+    "label": "Blend",
+    "shortLabel": null,
+    "type": "int",
+    "options": null,
+    "min": -63,
+    "max": 64,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "int",
+     "perDetent": 0.5,
+     "detentsFullSweep": 254
+    }
+   },
+   {
+    "key": "a_offset",
+    "label": "Offset A",
+    "shortLabel": "OffsetA",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 31,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 62
+    }
+   },
+   {
+    "key": "b_offset",
+    "label": "Offset B",
+    "shortLabel": "OffsetB",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 31,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 62
+    }
+   },
+   {
+    "key": "jitter",
+    "label": "Jitter",
+    "shortLabel": "Jitter",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "swing",
+    "label": "Swing",
+    "shortLabel": "Swing",
+    "type": "float",
+    "options": null,
+    "min": 50,
+    "max": 75,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.5,
+     "detentsFullSweep": 50
+    }
+   },
+   {
+    "key": "auto_gen",
+    "label": "Auto Gen",
+    "shortLabel": "AutoGen",
+    "type": "enum",
+    "options": [
+     "Off",
+     "1 bar",
+     "2 bars",
+     "4 bars",
+     "8 bars",
+     "16 bars",
+     "32 bars"
+    ],
+    "min": 0,
+    "max": 6,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 7
+    }
+   },
+   {
+    "key": "a_dir",
+    "label": "Direction A",
+    "shortLabel": "DirA",
+    "type": "enum",
+    "options": [
+     "Fwd",
+     "Rev",
+     "Pendulum"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   {
+    "key": "b_dir",
+    "label": "Direction B",
+    "shortLabel": "DirB",
+    "type": "enum",
+    "options": [
+     "Fwd",
+     "Rev",
+     "Pendulum"
+    ],
+    "min": 0,
+    "max": 2,
+    "step": 1,
+    "renderStyle": "arc",
+    "automatable": false,
+    "increment": {
+     "kind": "enum",
+     "detentsPerStep": 4,
+     "steps": 3
+    }
+   },
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [],
+  "noMetadata": [],
+  "warnings": [
+   "page \"Global/Advanced\": duplicate on-screen names OFFSET"
+  ]
+ }
+}

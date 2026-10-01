@@ -1,0 +1,659 @@
+{
+ "id": "bouba-kiki",
+ "name": "Bouba-Kiki",
+ "version": "0.5.0",
+ "author": "Charles Vestal",
+ "category": "sound_generator",
+ "status": "ok",
+ "load_ms": 40,
+ "dsp_size": 44696,
+ "capabilities": {
+  "chainable": true,
+  "audio_out": true,
+  "audio_in": false,
+  "midi_in": true,
+  "aftertouch": true,
+  "canvas_script": "canvas.js",
+  "chain_params": [
+   {
+    "key": "morph",
+    "name": "Morph",
+    "short_name": "Mrph",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0
+   },
+   {
+    "key": "bulge",
+    "name": "Bulge",
+    "short_name": "Blge",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0
+   },
+   {
+    "key": "pinch",
+    "name": "Pinch",
+    "short_name": "Pnch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0
+   },
+   {
+    "key": "spikes",
+    "name": "Spikes",
+    "short_name": "Spke",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0
+   },
+   {
+    "key": "tilt",
+    "name": "Tilt",
+    "short_name": "Tilt",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0.5
+   },
+   {
+    "key": "wobble",
+    "name": "Wobble",
+    "short_name": "Wobl",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0
+   },
+   {
+    "key": "attack",
+    "name": "Attack",
+    "short_name": "Atk",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0.05,
+    "viz": {
+     "group": "amp",
+     "role": "attack"
+    }
+   },
+   {
+    "key": "decay",
+    "name": "Decay",
+    "short_name": "Dec",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0.25,
+    "viz": {
+     "group": "amp",
+     "role": "decay"
+    }
+   },
+   {
+    "key": "sustain",
+    "name": "Sustain",
+    "short_name": "Sus",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 1,
+    "viz": {
+     "group": "amp",
+     "role": "sustain"
+    }
+   },
+   {
+    "key": "release",
+    "name": "Release",
+    "short_name": "Rel",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "default": 0.25,
+    "viz": {
+     "group": "amp",
+     "role": "release"
+    }
+   },
+   {
+    "key": "preset",
+    "name": "Preset",
+    "type": "int",
+    "min": 0,
+    "max": 5,
+    "step": 1,
+    "default": 0
+   },
+   {
+    "key": "visual",
+    "name": "Activity",
+    "type": "string",
+    "access": "read"
+   },
+   {
+    "key": "shape",
+    "name": "Shape",
+    "short_name": "Shpe",
+    "type": "canvas",
+    "canvas_script": "canvas.js",
+    "as_page": true,
+    "extra_keys": [
+     "visual"
+    ],
+    "show_value": false
+   }
+  ]
+ },
+ "presets": null,
+ "native": {
+  "hierarchy_levels": [
+   "root",
+   "envelope",
+   "presets"
+  ],
+  "params": [
+   {
+    "key": "morph",
+    "name": "Morph",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "bulge",
+    "name": "Bulge",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "pinch",
+    "name": "Pinch",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "spikes",
+    "name": "Spikes",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "tilt",
+    "name": "Tilt",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.5"
+   },
+   {
+    "key": "wobble",
+    "name": "Wobble",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "attack",
+    "name": "Attack",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.05"
+   },
+   {
+    "key": "decay",
+    "name": "Decay",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.25"
+   },
+   {
+    "key": "sustain",
+    "name": "Sustain",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "1"
+   },
+   {
+    "key": "release",
+    "name": "Release",
+    "type": "float",
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "options": null,
+    "default": "0.25"
+   },
+   {
+    "key": "preset",
+    "name": "Preset",
+    "type": "int",
+    "min": 0,
+    "max": 5,
+    "step": 1,
+    "options": null,
+    "default": "0"
+   },
+   {
+    "key": "visual",
+    "name": "Activity",
+    "type": "string",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": null,
+    "default": "1,0,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.0000,0.5000,0.0000,0.5963,0.0000,0.0000,0.0000,0.0000,0.5000,0.0000,0.0"
+   },
+   {
+    "key": "shape",
+    "name": "Shape",
+    "type": "canvas",
+    "min": null,
+    "max": null,
+    "step": null,
+    "options": null,
+    "default": null
+   }
+  ]
+ },
+ "movy": {
+  "hasConfig": false,
+  "usesMovyConfigFile": false,
+  "drum": null,
+  "banks": [
+   {
+    "name": "Main",
+    "global": false,
+    "padSpecific": false
+   },
+   {
+    "name": "Envelope",
+    "global": false,
+    "padSpecific": false
+   }
+  ],
+  "pages": [
+   {
+    "name": "Main",
+    "envelopeLines": [
+     false,
+     true
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "MRPH",
+       "fullName": "Morph",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "BLGE",
+       "fullName": "Bulge",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "PNCH",
+       "fullName": "Pinch",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SPKE",
+       "fullName": "Spikes",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      {
+       "shortName": "ATK",
+       "fullName": "Attack",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "REL",
+       "fullName": "Release",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "TILT",
+       "fullName": "Tilt",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "WOBL",
+       "fullName": "Wobble",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ]
+    ]
+   },
+   {
+    "name": "Envelope",
+    "envelopeLines": [
+     true,
+     false
+    ],
+    "lfoViz": false,
+    "rows": [
+     [
+      {
+       "shortName": "ATK",
+       "fullName": "Attack",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "DEC",
+       "fullName": "Decay",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "SUS",
+       "fullName": "Sustain",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      },
+      {
+       "shortName": "REL",
+       "fullName": "Release",
+       "renderStyle": "arc",
+       "type": "float",
+       "displayValue": "..."
+      }
+     ],
+     [
+      null,
+      null,
+      null,
+      null
+     ]
+    ]
+   }
+  ],
+  "params": [
+   {
+    "key": "morph",
+    "label": "Morph",
+    "shortLabel": "Mrph",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "bulge",
+    "label": "Bulge",
+    "shortLabel": "Blge",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "pinch",
+    "label": "Pinch",
+    "shortLabel": "Pnch",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "spikes",
+    "label": "Spikes",
+    "shortLabel": "Spke",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "tilt",
+    "label": "Tilt",
+    "shortLabel": "Tilt",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "wobble",
+    "label": "Wobble",
+    "shortLabel": "Wobl",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "attack",
+    "label": "Attack",
+    "shortLabel": "Atk",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "release",
+    "label": "Release",
+    "shortLabel": "Rel",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "attack",
+    "label": "Attack",
+    "shortLabel": "Atk",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "decay",
+    "label": "Decay",
+    "shortLabel": "Dec",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "sustain",
+    "label": "Sustain",
+    "shortLabel": "Sus",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   {
+    "key": "release",
+    "label": "Release",
+    "shortLabel": "Rel",
+    "type": "float",
+    "options": null,
+    "min": 0,
+    "max": 1,
+    "step": 0.01,
+    "renderStyle": "arc",
+    "automatable": true,
+    "increment": {
+     "kind": "float",
+     "perDetent": 0.005,
+     "detentsFullSweep": 200
+    }
+   },
+   null,
+   null,
+   null,
+   null
+  ]
+ },
+ "analysis": {
+  "hiddenParams": [
+   "preset",
+   "visual",
+   "shape"
+  ],
+  "noMetadata": [],
+  "warnings": [
+   "3 chain_params not reachable in movy: preset, visual, shape"
+  ]
+ }
+}

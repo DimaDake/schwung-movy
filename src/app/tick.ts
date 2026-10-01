@@ -112,7 +112,7 @@ const chromaticCache = new Uint8Array(32);
 
 /* Assemble the automation snapshot for the param viewmodel from the seq mirror
  * + the lane registry. Kept here (app layer) so model/ stays free of seq/. */
-function buildAutomationView(track: number, model: Model): AutomationView {
+export function buildAutomationView(track: number, model: Model): AutomationView {
     const reg = automationRegistry()[track];
     const heldValues = new Map<number, number>();
     for (const [lane, v] of seqState.heldLocks) {

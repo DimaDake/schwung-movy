@@ -5,7 +5,7 @@
  "author": "charlesvestal, Chris Johnson (Airwindows)",
  "category": "audio_fx",
  "status": "ok",
- "load_ms": 251,
+ "load_ms": 109,
  "dsp_size": 95000,
  "capabilities": {
   "audio_out": true,

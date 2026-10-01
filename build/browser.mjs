@@ -216,6 +216,9 @@ await esbuild.build({
          * the scene exists to catch. */
         resolve(root, 'src/app/tick.ts'),
         resolve(root, 'src/app/modulated-keys.ts'),
+        /* The lane view a delegated page's mark reads: an entry point so the
+         * drum automation matrix asks the SAME lookup the page does. */
+        resolve(root, 'src/app/automated-keys.ts'),
         resolve(root, 'src/app/globals.ts'),
         resolve(root, 'src/app/init.ts'),
         resolve(root, 'src/app/resume.ts'),

@@ -5,7 +5,7 @@
  "author": "Vincent Filliforme",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 7539,
+ "load_ms": 7495,
  "dsp_size": 73664,
  "capabilities": {
   "audio_out": true,

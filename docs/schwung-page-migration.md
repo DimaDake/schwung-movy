@@ -4358,10 +4358,19 @@ which is git-ignored scratch deleted with that workspace.
 
 ## Environment facts a fresh session needs
 
-- **The fleet dump is `2026-09-13T16:33:12.253Z`, 95 modules, `complete: true`.**
-  `audio_fx--gesture-test` is captured `load_timeout` — its directory holds a
-  `module.json` and no `.so`, so it is an incomplete install, not a stalled
-  module.
+- **The fleet dump is `2026-10-01T18:15:25.472Z`, 105 modules, `complete: true`**
+  (was 2026-09-13, 95). `audio_fx--gesture-test` is still captured
+  `load_timeout` — its directory holds a `module.json` and no `.so`, so it is an
+  incomplete install, not a stalled module. The collector now also captures
+  `ui_pages` (contract rung 2): sophie serves its hierarchy ONLY there, and the
+  device's 6W6/8W8/9W9/CW-78 serve a `pad_layout: drums` declaration there too —
+  so on this device those four plan from their OWN `ui_pages`, not SP-14's
+  translation. **Voice census (SP-14):** `voice-poc`, now joined by `dr32` and
+  `simian`. **SU-15 / SP-50 half two now HAS a fleet exhibition:** `simian`
+  (`child_notes`) and `dr32` (`child_note_base`) each declare a child note map
+  AND `child_index_param` on one level. Drum automation per module is measured
+  by `browser-test/logic/drum-automation.mjs` (plan
+  `plans/2026-09-30-drum-modules-schwung-pages.md`, Phase 1).
 - **The real planner runs offline.** `SCHWUNG=/path/to/schwung node build/browser.mjs`
   resolves `/data/UserData/schwung/shared/param_pages/*` to the checkout instead
   of the deliberately-throwing stub. Without it every Schwung assertion is

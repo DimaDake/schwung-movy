@@ -1,12 +1,12 @@
 {
  "id": "aphex",
  "name": "Aphex",
- "version": "0.1.0",
+ "version": "0.1.1",
  "author": "Filliformes",
  "category": "sound_generator",
  "status": "ok",
- "load_ms": 51,
- "dsp_size": 75288,
+ "load_ms": 42,
+ "dsp_size": 75312,
  "capabilities": {
   "audio_out": true,
   "audio_in": true,

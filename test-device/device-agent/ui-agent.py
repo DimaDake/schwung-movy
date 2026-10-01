@@ -20,6 +20,7 @@ Protocol (line-based ASCII, mirroring schwung-testd so the client is uniform):
 import socket
 import mmap
 import sys
+import time
 
 UI_MIDI = '/dev/shm/schwung-ui-midi'
 CONTROL = '/dev/shm/schwung-control'
@@ -29,19 +30,35 @@ OFF_MIDI_READY = 3      # shmconfig.go: offMidiReady
 OFF_UI_FLAGS = 7        # shmconfig.go: offUIFlags
 
 
+# The ring's producer cursor. Since schwung 1dfd31f5 (v1.5.0, src/host/
+# ui_midi_ring.h) shadow_ui reads the segment as a RING from its own cursor, not
+# lowest-index-first, so a producer must write CONTIGUOUSLY from a cursor of its
+# own. Filling the lowest free slot, as this agent used to, put a gesture's
+# first packets ahead of the reader and the rest behind it whenever shadow_ui
+# was a few packets late (a ~230 ms param claim wedge is enough): it read
+# "pad off, Right, pad on" and only then, one lap later, "Rec on" — a Rec hold
+# that never landed, at random, on every multi-press seq gesture.
+wr = 0
+# How long to wait for the reader to free the slot at the cursor. Never skip
+# ahead instead: a packet written past an unread one is read before it.
+FULL_WAIT_S = 1.0
+
+
 def inject(mm_midi, mm_ctl, pkt):
-    """Claim a free slot and publish. head is written LAST: shadow_ui treats a
-    non-zero head as 'slot ready', so writing it first would let the reader see
-    the previous occupant's status/d1/d2."""
-    for slot in range(0, UI_MIDI_BYTES, 4):
-        if mm_midi[slot] == 0:
-            mm_midi[slot + 1] = pkt[1]
-            mm_midi[slot + 2] = pkt[2]
-            mm_midi[slot + 3] = pkt[3]
-            mm_midi[slot] = pkt[0]
-            break
-    else:
-        return 'ERR ui ring full (shadow_ui not draining?)'
+    """Publish at the cursor. head is written LAST: shadow_ui treats a non-zero
+    head as 'slot ready', so writing it first would let the reader see the
+    previous occupant's status/d1/d2."""
+    global wr
+    deadline = time.monotonic() + FULL_WAIT_S
+    while mm_midi[wr] != 0:
+        if time.monotonic() > deadline:
+            return 'ERR ui ring full at the cursor (shadow_ui not draining?)'
+        time.sleep(0.001)
+    mm_midi[wr + 1] = pkt[1]
+    mm_midi[wr + 2] = pkt[2]
+    mm_midi[wr + 3] = pkt[3]
+    mm_midi[wr] = pkt[0]
+    wr = (wr + 4) % UI_MIDI_BYTES
     # midi_ready is a counter, not a boolean: the shim notices the change.
     mm_ctl[OFF_MIDI_READY] = (mm_ctl[OFF_MIDI_READY] + 1) % 256
     return 'OK'

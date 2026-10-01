@@ -13,3 +13,4 @@ browser-test/screenshots/actual/
 .test-out/
 test-device/dist/
 test-device/.flake-log.json
+test-device/.last-schwung-version

@@ -185,9 +185,8 @@ ssh -o ConnectTimeout=3 ableton@move.local echo ok 2>/dev/null \
 
 ### Device testing
 
-**`CLAUDE.md` is the single source for this** — see its *The device tier is
-`test-device/`*, *What the harness can do*, *Rules that were each paid for
-once*, *The fixture*, and *Device tests are a smoke check, not the gate*.
+**`test-device/README.md` is the single source for this**, and `CLAUDE.md`'s
+*Device gate* holds the rules a commit is judged by.
 
 This file used to carry a second copy, and the copies drifted: after the
 migration it was still naming `./scripts/test.sh` and two sweep scripts that no

@@ -111,6 +111,16 @@ RESTORE_NEEDED=0
 ssh "ableton@$HOST" "rm -f $REMOTE_DUMP" >/dev/null 2>&1
 pass "movy restored, device dump removed"
 
+# Loading every module in a row leaves the stack in a state the device tier
+# cannot be judged on: on 2026-10-01 a sweep right after this script failed
+# automation and page-dive, which passed on a re-run with nothing changed
+# (and in 2026-07 the MIDI inject wedged outright). Restart it here so the
+# next gate measures movy, not the churn.
+info "Restarting the Move stack (post-churn)..."
+source "$MOVY_DIR/scripts/lib/restart-stack.sh"
+restart_move_stack "$HOST" || die "Stack restart failed - restart it (as root) before any device gate run"
+pass "Stack restarted"
+
 info "Generating movy layouts..."
 (cd "$MOVY_DIR" && npm run build:browser >/dev/null 2>&1 && node scripts/dump-movy-layout.mjs)
 pass "Done. Review docs/module-dump/ and commit."

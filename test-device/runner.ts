@@ -72,7 +72,7 @@ export async function runAll(opts: {
     const results: ScenarioResult[] = [];
 
     for (const e of registry) {
-        if (opts.only && !e.name.startsWith(opts.only)) continue;
+        if (opts.only && !opts.only.split(',').some((o) => e.name.startsWith(o))) continue;
         results.push(await runScenario(e, opts, outDir, budget));
     }
 

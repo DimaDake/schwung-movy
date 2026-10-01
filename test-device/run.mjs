@@ -1,11 +1,12 @@
 #!/usr/bin/env node
-/* Device scenario entry point.  npm run test:device [-- --scenario <name>] */
+/* Device scenario entry point.  npm run test:device [-- --scenario <name>[,<name>...]] */
 import { Bus } from './dist/bus.js';
 import { Agent } from './dist/agent.js';
 import { ensureServers, stopServers } from './dist/daemon.js';
 import { deployEngine, deployUi, setRunMute } from './dist/engine.js';
 import { runAll } from './dist/runner.js';
 import { printFlakes } from './dist/flake-log.js';
+import { noteSchwungVersion, reportKnownRed } from './dist/gate-checks.js';
 import './dist/scenarios/automation.js';
 import './dist/scenarios/unload.js';
 import './dist/scenarios/reselect.js';
@@ -82,6 +83,7 @@ if (noEngine) {
  * engine and the tier hung there. */
 await deployUi(HOST);
 console.log('ui.js: deployed');
+await noteSchwungVersion(HOST);
 
 const started = await ensureServers(HOST);
 const bus = new Bus(HOST);   await bus.connect();
@@ -121,4 +123,5 @@ try {
 
 bus.close(); agent.close();
 await stopServers(HOST, started);
-process.exit(failures === 0 ? 0 : 1);
+const overdue = reportKnownRed();
+process.exit(failures === 0 && overdue === 0 ? 0 : 1);

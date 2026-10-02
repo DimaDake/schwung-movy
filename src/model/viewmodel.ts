@@ -100,7 +100,6 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
         const renorm = (val: number) => (p.min === p.max)
             ? 0 : Math.max(0, Math.min(1, (val - p.min) / (p.max - p.min)));
         const nv = (v === null || v === undefined) ? 0 : renorm(v);
-        const enumIdx = (p.type === 'enum' && typeof v === 'number') ? Math.round(v) : 0;
         const dv = p.type === 'file'
             ? (s.fileValues[gi] ? basename(s.fileValues[gi] as string) : '—')
             : p.nameKey
@@ -116,13 +115,19 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
         let touched = s.touchedSlots.includes(screenSlot);
         let displayValue = dv;
         let arcValue = nv;
+        /* The value the cell's GRAPHIC shows — an enum box, a wave shape, a
+         * toggle — follows the automation edit too, not only the label and the
+         * arc: a held enum lock drew its option in the label band and the live
+         * option in the box beside it. */
+        let shown = v;
         if (auto.held && lane >= 0 && auto.heldValues.has(lane)) {
             const hv = auto.heldValues.get(lane) as number;
-            touched = true; displayValue = formatValue(p, hv); arcValue = renorm(hv);
+            touched = true; displayValue = formatValue(p, hv); arcValue = renorm(hv); shown = hv;
         } else if (!auto.held && lane >= 0 && auto.liveValues.has(lane)) {
             const lv = auto.liveValues.get(lane) as number;
-            touched = true; displayValue = formatValue(p, lv); arcValue = renorm(lv);
+            touched = true; displayValue = formatValue(p, lv); arcValue = renorm(lv); shown = lv;
         }
+        const enumIdx = (p.type === 'enum' && typeof shown === 'number') ? Math.round(shown) : 0;
         rows[cell.line][cell.col] = {
             shortName:       shortNames[localIdx],
             fullName:        p.label,
@@ -148,7 +153,7 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
                 ? (() => {
                     const t = waveToggles.get(localIdx) as import('./wave-toggle.js').WaveToggle;
                     /* A Mute reads the other way round: its ON value is silent. */
-                    const on = (v === null || v === undefined ? 0 : Math.round(v)) > 0;
+                    const on = (shown === null || shown === undefined ? 0 : Math.round(shown)) > 0;
                     return { waveShape: t.shape, waveOff: t.invert ? on : !on };
                 })()
                 : {}),

@@ -15,6 +15,7 @@ import { seqSideEffect } from '../undo/record.js';
 import { seqCmd, requestLabelSync } from './engine.js';
 import type { LaneBindInfo } from './lane-mapping.js';
 import { AUTO_LANES } from './constants.js';
+import { toLane7, stepLane7, type LaneShape } from './lane-value.js';
 import { seqState } from './state.js';
 import { seqToast } from './render.js';
 import { beginStepAutomation, heldRange } from './step-edit.js';
@@ -92,16 +93,9 @@ export function automationDisplayDirty(): boolean {
     return true;
 }
 
-/* 7-bit conversion; the engine's lane write (auto_lane.rs) uses the same scaling. */
-export function norm7(v: number, min: number, max: number): number {
-    if (max <= min) return 0;
-    return Math.max(0, Math.min(127, Math.round((v - min) / (max - min) * 127)));
-}
-export function denorm7(n: number, min: number, max: number): number {
-    return min + (n / 127) * (max - min);
-}
-
-function clamp7(n: number): number { return Math.max(0, Math.min(127, n)); }
+/* The 7-bit conversions live in lane-value.ts; re-exported for the callers
+ * that have always found them here. */
+export { norm7, denorm7 } from './lane-value.js';
 
 /* Param keys assigned to a lane on `track` (for the page's read-back suppression). */
 export function laneKeysForTrack(track: number): string[] {
@@ -141,7 +135,7 @@ export function assignLane(
         options: info.options, wiresNames: info.wiresNames,
     };
     seqCmd('alabel ' + track + ' ' + lane + ' ' + tp);
-    seqCmd('abase ' + track + ' ' + lane + ' ' + norm7(info.value, info.min, info.max));
+    seqCmd('abase ' + track + ' ' + lane + ' ' + toLane7(info.value, info));
     /* Beside the command, never derived later: this IS the base, in the
      * parameter's own units, and it is the last moment anything holds it —
      * from the next step onward the lane owns the value (SP-36). */
@@ -171,13 +165,14 @@ export function clearLane(track: number, lane: number, undoable = true): void {
 }
 
 /* Seed/accumulate the live value for (track, lane) in the given context. */
-function accumLive(track: number, lane: number, ctx: string, seed: number, delta: number): number {
+function accumLive(track: number, lane: number, ctx: string, seed: number, delta: number,
+                   shape: LaneShape): number {
     const k = track + ':' + lane;
     if (liveCtx.get(k) !== ctx) {
         liveVal.set(k, seed);
         liveCtx.set(k, ctx);
     }
-    const next = clamp7((liveVal.get(k) ?? seed) + delta);
+    const next = stepLane7(liveVal.get(k) ?? seed, delta, shape);
     liveVal.set(k, next);
     return next;
 }
@@ -265,9 +260,9 @@ export function handleAutomationKnob(
     // snap back to base on every turn).
     const ctx = held ? 'h' + step : 'r';
     const seed = held
-        ? (seqState.heldLocks.get(lane) ?? norm7(info.value, info.min, info.max))
-        : norm7(info.value, info.min, info.max);
-    const next = accumLive(track, lane, ctx, seed, delta);
+        ? (seqState.heldLocks.get(lane) ?? toLane7(info.value, info))
+        : toLane7(info.value, info);
+    const next = accumLive(track, lane, ctx, seed, delta, info);
     // Holding a bar in Loop mode writes the value across the whole bar.
     const r = held ? heldRange() : null;
     /* One undo per automation gesture: the turn coalesces until the knob is
@@ -327,7 +322,7 @@ export function automationKnobReleased(track: number, physK: number, info: KnobP
     // different step, or next lock) — no revert-to-base on release. Only a
     // normal (non-automation) edit syncs the engine base, quietly.
     if (!seqState.stepAutoMode) {
-        seqCmd('abaseq ' + track + ' ' + lane + ' ' + norm7(info.value, info.min, info.max));
+        seqCmd('abaseq ' + track + ' ' + lane + ' ' + toLane7(info.value, info));
         noteLaneBase(track, lane, info.value);
     }
 }

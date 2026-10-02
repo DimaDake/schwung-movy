@@ -40,10 +40,11 @@ import { drumSyncTick, resetDrumSync } from '../seq/drum-sync.js';
 import { bindLanes } from '../seq/lane-mapping.js';
 import { laneRangeOf, anyLaneNeedsBase } from './automated-keys.js';
 import { seedFromEngine } from '../seq/automation-base.js';
-import { type LaneEntry, syncLabelsFromEngine, validateLane, automationRegistry, denorm7, laneKeysForTrack, automationDisplayDirty, liveTurnValues, poolIsFull } from '../seq/automation.js';
+import { type LaneEntry, syncLabelsFromEngine, validateLane, automationRegistry, laneKeysForTrack, automationDisplayDirty, liveTurnValues, poolIsFull } from '../seq/automation.js';
 import type { AutomationView, ViewModel } from '../types/viewmodel.js';
 import type { Model } from '../model/index.js';
 import { concreteKey } from '../model/pad-scope.js';
+import { fromLane7 } from '../seq/lane-value.js';
 import { noteRender } from '../test/probe.js';
 import { mlog } from '../log.js';
 import { paramBodyFor } from './param-body.js';
@@ -117,12 +118,12 @@ export function buildAutomationView(track: number, model: Model): AutomationView
     const heldValues = new Map<number, number>();
     for (const [lane, v] of seqState.heldLocks) {
         const e = reg[lane];
-        if (e) heldValues.set(lane, denorm7(v, e.min, e.max));
+        if (e) heldValues.set(lane, fromLane7(v, e));
     }
     const liveValues = new Map<number, number>();
     for (const [lane, v] of liveTurnValues(track)) {
         const e = reg[lane];
-        if (e) liveValues.set(lane, denorm7(v, e.min, e.max));
+        if (e) liveValues.set(lane, fromLane7(v, e));
     }
     // Resolve the dot/value lane through the focused pad's concrete key, so a
     // lane belonging to a different pad matches no key on the current page (its

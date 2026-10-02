@@ -147,7 +147,7 @@ export function buildGenericParam(key: string, cp: RawMeta, def: RawMeta): KnobP
         // bank.global instead (see the config path in hierarchy.ts).
         automatable: behavior === 'trigger' || access === 'read' ? false
             : (cp.automatable ?? def.automatable ??
-               ((type === 'float' || type === 'int') && max > min && !key.startsWith('g_'))),
+               (shapeAutomatable(type, min, max, options) && !key.startsWith('g_'))),
         behavior,
         /* A readout has no value to record: an automation lane would replay
          * writes the module ignores, over a knob that cannot be turned. */
@@ -163,6 +163,17 @@ export function buildGenericParam(key: string, cp: RawMeta, def: RawMeta): KnobP
             ? { filepathParam: String(cp.filepath_param ?? def.filepath_param) } : {}),
         ...(metaGuessed ? { metaGuessed: true } : {}),
     };
+}
+
+/* Whether a param's SHAPE can hold an automation lane: a numeric range, or an
+ * enum with at least two options (drum-modules plan D14 — a lane writes the
+ * option directly, stepped over equal bins, so the old reason to refuse enums,
+ * the chain scaling a CC against a min/max that was not the option count, is
+ * gone). Behaviour, access and the global-bank guard are the callers'. */
+export function shapeAutomatable(type: string, min: number, max: number,
+                                 options: string[] | null | undefined): boolean {
+    if (type === 'enum') return !!options && options.length >= 2;
+    return (type === 'float' || type === 'int') && max > min;
 }
 
 /* The name-driven cell styles, applied AFTER the param is built so each rule

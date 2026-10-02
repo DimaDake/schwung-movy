@@ -1673,6 +1673,12 @@ step's locked value, including any graphic (envelope, filter) that covers it.
 Recording automation live (Rec + Play) is different: there you hear the turn as
 you make it.
 
+**Choices and switches can be locked too** — a filter type, a waveform, an
+on/off. On a held step each knob detent moves **one option**, and the cell shows
+the option the step will play:
+
+![A held step locking an enum](docs/assets/auto_held_enum.png)
+
 Each track has **32 automation lanes**, one per parameter you lock or record.
 When all 32 are taken, a held step only offers the parameters that already have
 a lane, and says `32 AUTOMATION LANES — FULL`. A step's locks are applied before

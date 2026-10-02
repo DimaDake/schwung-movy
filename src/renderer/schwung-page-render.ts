@@ -12,6 +12,8 @@ import { GRID_BODY_RECT } from './layout.js';
 import { decorationsFor } from './schwung-page-decorations.js';
 import { movyCtx } from './schwung-ctx.js';
 import { isLfoComponent } from '../chain/config.js';
+import { schwungLib, schwungLibAvailable } from './schwung-lib.js';
+import { enumRawToIndex, enumUsesIndex } from '../model/enum-value.js';
 
 /* movy draws its own header, bank bar and footer; Schwung is asked for the
  * widgets between them.
@@ -32,6 +34,27 @@ export interface PageRender {
     knobLevels(): (number | null)[];
     marks(): number;
     render(title: string, auto?: AutomationView, touched?: number): void;
+}
+
+/* An enum cell as an automation lane needs it: its options, the option the
+ * cell shows now, and whether the module reads options BY NAME. Null for
+ * anything that is not an enum of two or more options. The wire form is the
+ * one Schwung has learned for this param when it has (`options_as_string`,
+ * `wire_format`); before its first read it is inferred from the raw value the
+ * same way (`enumUsesIndex` is that rule). */
+function enumLane(m: any, raw: unknown): { options: string[]; index: number; wiresNames: boolean } | null {
+    if (m.type !== 'enum' || !Array.isArray(m.options) || m.options.length < 2) return null;
+    const options: string[] = m.options.map(String);
+    const s = raw === undefined || raw === null ? null : String(raw);
+    const wiresNames = !!m.options_as_string || m.wire_format === 'name'
+        || (m.wire_format !== 'index' && s !== null && !enumUsesIndex(options, s));
+    let index = 0;
+    if (s !== null) {
+        const lib = schwungLibAvailable() ? schwungLib() : null;
+        const i = lib && lib.enumIndexOf ? lib.enumIndexOf(m, s) : enumRawToIndex(options, s);
+        index = Math.max(0, Math.min(options.length - 1, typeof i === 'number' && i >= 0 ? i : 0));
+    }
+    return { options, index, wiresNames };
 }
 
 export function createPageRender(ctl: any, deps: {
@@ -62,10 +85,12 @@ export function createPageRender(ctl: any, deps: {
             if (!k || !ctl.metaIndex) return null;
             const m = ctl.metaIndex.getOrGuess(k);
             if (!m) return null;
-            const min = typeof m.min === 'number' ? m.min : 0;
-            const max = typeof m.max === 'number' ? m.max : 1;
             const raw = ctl.state && ctl.state.values ? ctl.state.values[k] : undefined;
-            const value = raw === undefined || raw === null ? min : parseFloat(String(raw));
+            const enumOf = enumLane(m, raw);
+            const min = enumOf ? 0 : (typeof m.min === 'number' ? m.min : 0);
+            const max = enumOf ? enumOf.options.length - 1 : (typeof m.max === 'number' ? m.max : 1);
+            const value = enumOf ? enumOf.index
+                : (raw === undefined || raw === null ? min : parseFloat(String(raw)));
             return {
                 gi: slot,
                 key: k,
@@ -73,9 +98,11 @@ export function createPageRender(ctl: any, deps: {
                 target: componentKey,
                 value: isNaN(value) ? min : value,
                 min, max,
-                type: m.type || (m.kind === 'enum' ? 'enum' : 'float'),
-                /* Same rule movy applies: a numeric range is automatable, a
-                 * door or a trigger is not — EXCEPT the LFO page (SP-55): its
+                type: enumOf ? 'enum' : (m.type || (m.kind === 'enum' ? 'enum' : 'float')),
+                ...(enumOf ? { options: enumOf.options, wiresNames: enumOf.wiresNames } : {}),
+                /* Same rule movy applies: a numeric range or an enum with two
+                 * or more options is automatable (D14), a door or a trigger is
+                 * not — EXCEPT the LFO page (SP-55): its
                  * cells are real ranged params (so the generic rule below
                  * would say yes) but the movy model has always answered
                  * `automatable: false` for them (`lfo/inert.ts` — an LFO
@@ -83,10 +110,13 @@ export function createPageRender(ctl: any, deps: {
                  * `chain_params` carries no field schwung's own metaIndex
                  * would read as an override (checked: `param_meta.mjs` has
                  * no `automatable` key), so the component key is the one
-                 * signal available here, same test `isMovyOwnComponent` uses. */
+                 * signal available here, same test `isMovyOwnComponent` uses.
+                 * An inferred trigger is `writeOnly` in Schwung's meta, so a
+                 * two-option ACTION never gets here as an enum lane. */
                 automatable: !isLfoComponent(componentKey) && m.kind !== 'opaque'
                              && !m.writeOnly && !m.readOnly
-                             && typeof m.min === 'number' && typeof m.max === 'number',
+                             && (enumOf !== null
+                                 || (typeof m.min === 'number' && typeof m.max === 'number')),
             };
         },
 

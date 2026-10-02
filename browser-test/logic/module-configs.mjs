@@ -329,8 +329,9 @@ _log('\nTest: chunk-7 module configs (krautdrums/weird-dreams banks)');
         // Mix bank renders level faders as vertical bars.
         eq('forge: Mix v1_lvl is vbar', byKey(d, 'v1_lvl')?.renderStyle, 'vbar');
 
-        // Automatable set: continuous Kit-A params yes; set-and-forget/enum no;
-        // Kit B (pad > automatablePads=8) never automatable — no dead dot.
+        // Automatable set: continuous Kit-A params and enums yes (D14);
+        // set-and-forget no; Kit B (pad > automatablePads=8) never automatable
+        // — no dead dot.
         const infoByKey = (m, key) => {
             for (let k = 0; k < 8; k++) { const i = m.getKnobParamInfo(k); if (i?.key === key) return i; }
             return null;
@@ -340,7 +341,10 @@ _log('\nTest: chunk-7 module configs (krautdrums/weird-dreams banks)');
         fa.updateDrumPad(1, 36);               // Kit A voice 1
         eq('forge: pad1 f1_cut automatable', infoByKey(fa, 'cv_f1_cut').automatable, true);
         eq('forge: pad1 f1_drv automatable', infoByKey(fa, 'cv_f1_drv').automatable, true);
-        eq('forge: f1_type (enum) not automatable', infoByKey(fa, 'cv_f1_type').automatable, false);
+        eq('forge: f1_type (enum) is automatable (D14)', infoByKey(fa, 'cv_f1_type').automatable, true);
+        /* Forge reports enums by NAME but writes them by INDEX (enumSetIndex),
+         * so its lane must bind the index form or every lock plays option 0. */
+        eq('forge: and its lane binds by index', infoByKey(fa, 'cv_f1_type').wiresNames, false);
         eq('forge: bw_cut (set-and-forget) not automatable', infoByKey(fa, 'cv_bw_cut').automatable, false);
         fa.updateDrumPad(9, 44);               // Kit B voice 1 → past automatablePads
         eq('forge: pad9 (Kit B) f1_cut NOT automatable', infoByKey(fa, 'cv_f1_cut').automatable, false);

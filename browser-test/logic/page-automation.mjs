@@ -208,4 +208,53 @@ _log('\nlogic: an automated parameter under `page` — the pointer keeps the bas
     env.setParams(MOCK_SYNTHS.test16);
 }
 
+
+/* ── enum + boolean cells are lanes, in BOTH grid modes (D14) ─────────────── */
+_log('\nlogic: enum and boolean cells take a lane in both grid modes (D14)');
+{
+    const preset = {
+        'synth:name': 'Mock',
+        'synth:ui_hierarchy': JSON.stringify({
+            levels: { root: { name: 'Main', knobs: ['wave', 'mode', 'sw', 'fire', 'cut'],
+                              params: ['wave', 'mode', 'sw', 'fire', 'cut'] } },
+        }),
+        'synth:chain_params': JSON.stringify([
+            { key: 'wave', name: 'Wave', type: 'enum', options: ['Saw', 'Square', 'Tri'] },
+            { key: 'mode', name: 'Mode', type: 'enum', options: ['Poly', 'Mono'] },
+            { key: 'sw', name: 'Glide On', type: 'int', min: 0, max: 1 },
+            { key: 'fire', name: 'Fire', type: 'enum', options: ['idle', 'trigger'] },
+            { key: 'cut', name: 'Cutoff', type: 'float', min: 0, max: 1 },
+        ]),
+        // `wave` speaks NAMES, `mode` speaks indices.
+        'synth:wave': 'Square', 'synth:mode': '1', 'synth:sw': '0', 'synth:fire': 'idle', 'synth:cut': '0.5',
+    };
+    for (const mode of [null, 'page']) {
+        const tag = mode ? 'SCHWUNG' : 'MOVY';
+        setSchwungGridMode(mode);
+        schwungGridReload();
+        const model = bootModel(preset);
+        for (let i = 0; i < 20; i++) model.tick();
+        const owner = pageOwnerOf(model);
+        if (mode) {
+            ok(tag + ': the page is delegated', !!owner.page);
+            if (!owner.page) continue;
+            for (let i = 0; i < 12 * 60 && !owner.page.ready; i++) owner.page.tick();
+        }
+        const byKey = {};
+        for (let k = 0; k < 8; k++) { const i = owner.knobParamInfo(k); if (i) byKey[i.key] = i; }
+        const w = byKey.wave, m = byKey.mode, sw = byKey.sw;
+        eq(tag + ': an enum is automatable', !!(w && w.automatable), true);
+        eq(tag + ': it carries its options', JSON.stringify(w && w.options), JSON.stringify(['Saw', 'Square', 'Tri']));
+        eq(tag + ': its value is the option it shows (read as a NAME)', w && w.value, 1);
+        eq(tag + ': a name-wired enum binds by name', !!(w && w.wiresNames), true);
+        eq(tag + ': an index-wired enum binds by index', !!(m && m.wiresNames), false);
+        eq(tag + ': its value is the index', m && m.value, 1);
+        eq(tag + ': a 0..1 switch is automatable', !!(sw && sw.automatable), true);
+        eq(tag + ': a two-state ACTION is not', !!(byKey.fire && byKey.fire.automatable), false);
+        eq(tag + ': a float still is', !!(byKey.cut && byKey.cut.automatable), true);
+    }
+    setSchwungGridMode(null);
+    env.setParams(MOCK_SYNTHS.test16);
+}
+
 }

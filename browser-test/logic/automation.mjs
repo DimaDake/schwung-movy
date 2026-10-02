@@ -59,6 +59,61 @@ _log('\nautomation pool-full (lane count):');
 }
 
 /* ── automation: knob-turn routing (hold-step / Rec / base) ──────────────── */
+/* ── automation: enum + boolean lanes are stepped (D14) ─────────────────── */
+/* The engine plays a stepped lane as option = ⌊v·n/128⌋ (auto_lane.rs); the UI
+ * stores an option at its bin's centre, so what a lock draws is what it plays,
+ * and a held-step detent moves one option, not one 128th. */
+_log('\nautomation enum/boolean lanes (D14):');
+{
+    const { stepCount, binCentre, binOf, toLane7, fromLane7, stepLane7 } =
+        await import('../../dist/esm/seq/lane-value.js');
+    const enumOf = (n) => ({ type: 'enum', min: 0, max: n - 1, options: Array.from({ length: n }, (_, i) => 'o' + i) });
+
+    let roundTrip = true, binsOk = true;
+    for (let n = 2; n <= 64; n++) {
+        for (let i = 0; i < n; i++) {
+            if (fromLane7(toLane7(i, enumOf(n)), enumOf(n)) !== i) roundTrip = false;
+            if (binOf(binCentre(i, n), n) !== i) binsOk = false;
+        }
+    }
+    eq('every option of every enum (2..64) survives the 7-bit round trip', roundTrip, true);
+    eq('every bin centre plays its own option', binsOk, true);
+    /* The engine's rule, restated as numbers so a drift on either side shows. */
+    eq('2 options: 0-63 → 0, 64-127 → 1', [binOf(63, 2), binOf(64, 2)].join(','), '0,1');
+    eq('3 options split at 43 and 86', [binOf(42, 3), binOf(43, 3), binOf(85, 3), binOf(86, 3)].join(','), '0,1,1,2');
+
+    eq('a boolean is an int over 0..1 and steps in two', stepCount({ type: 'int', min: 0, max: 1 }), 2);
+    eq('any other int stays linear', stepCount({ type: 'int', min: 0, max: 4 }), 0);
+    eq('a float stays linear', stepCount({ type: 'float', min: 0, max: 1 }), 0);
+    eq('a linear lane still round-trips as before', toLane7(1, { type: 'float', min: 0, max: 2 }), 64);
+    eq('an enum with no option list counts its range', stepCount({ type: 'enum', min: 0, max: 3 }), 4);
+
+    const e3 = enumOf(3);
+    eq('one detent up moves one option', fromLane7(stepLane7(toLane7(0, e3), 1, e3), e3), 1);
+    eq('two detents down from the top', fromLane7(stepLane7(toLane7(2, e3), -2, e3), e3), 0);
+    eq('past the last option it holds', fromLane7(stepLane7(toLane7(2, e3), 5, e3), e3), 2);
+    const sw = { type: 'int', min: 0, max: 1 };
+    eq('a switch flips on ONE detent (was 64)', fromLane7(stepLane7(toLane7(0, sw), 1, sw), sw), 1);
+
+    // Through the real held-step path: the lock written is the option's centre.
+    const { resetAutomation, handleAutomationKnob, automationRegistry } = await import('../../dist/esm/seq/automation.js');
+    const { resetSeqEngine, peekSeqCmdQueue } = await import('../../dist/esm/seq/engine.js');
+    const { seqState, resetSeqState } = await import('../../dist/esm/seq/state.js');
+    const wave = { gi: 0, key: 'wave', ioKey: 'wave', target: 'synth', value: 1, min: 0, max: 2,
+                   type: 'enum', options: ['Saw', 'Square', 'Tri'], wiresNames: true, automatable: true };
+    resetAutomation(); resetSeqEngine(); resetSeqState();
+    seqState.stepAutoMode = true; seqState.holdStep = 4;
+    const binds = [];
+    handleAutomationKnob(0, 0, wave, +1, (lane) => { binds.push(lane); return true; });
+    const q = peekSeqCmdQueue();
+    eq('the base is the current option\'s centre', q.includes('abase 0 0 64'), true);
+    eq('one detent locks the NEXT option (Tri), quietly', q.includes('aset 0 0 4 106 1'), true);
+    eq('the lane keeps the options and the wire form for its bind',
+       JSON.stringify(automationRegistry()[0][0] && [automationRegistry()[0][0].options, automationRegistry()[0][0].wiresNames]),
+       JSON.stringify([['Saw', 'Square', 'Tri'], true]));
+    resetSeqState(); resetAutomation(); resetSeqEngine();
+}
+
 _log('\nautomation knob routing:');
 {
     const { resetAutomation, handleAutomationKnob, automationKnobReleased, liveTurnValues } = await import('../../dist/esm/seq/automation.js');

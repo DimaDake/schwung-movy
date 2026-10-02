@@ -23,6 +23,7 @@
  */
 
 import { AUTO_LANES } from './constants.js';
+import { fromLane7, type LaneShape } from './lane-value.js';
 
 /* track:lane → the parameter's own value. Not a nested array: the map is
  * empty on most tracks and is read once per drawn cell. */
@@ -65,7 +66,7 @@ export function resetLaneBases(): void { bases.clear(); }
  */
 export function seedFromEngine(
     abases: string,
-    rangeOf: (track: number, lane: number) => { min: number, max: number } | null,
+    rangeOf: (track: number, lane: number) => LaneShape | null,
 ): void {
     const tracks = abases.split(',');
     for (let t = 0; t < tracks.length; t++) {
@@ -78,7 +79,7 @@ export function seedFromEngine(
             if (!isFinite(v7)) continue;
             const r = rangeOf(t, l);
             if (!r) continue;
-            bases.set(id(t, l), r.min + (Math.max(0, Math.min(127, v7)) / 127) * (r.max - r.min));
+            bases.set(id(t, l), fromLane7(Math.max(0, Math.min(127, v7)), r));
         }
     }
 }

@@ -25,6 +25,7 @@
 import { seqState } from '../seq/state.js';
 import { automationRegistry, laneForParam } from '../seq/automation.js';
 import { laneBase, noteLaneBase } from '../seq/automation-base.js';
+import type { LaneShape } from '../seq/lane-value.js';
 
 import type { PageAutomation } from '../types/page-automation.js';
 
@@ -84,9 +85,8 @@ export function automationFor(track: number): PageAutomation {
 }
 
 /** The registry range for a lane, for the engine's 7-bit base seed. */
-export function laneRangeOf(track: number, lane: number): { min: number, max: number } | null {
-    const e = automationRegistry()[track]?.[lane];
-    return e ? { min: e.min, max: e.max } : null;
+export function laneRangeOf(track: number, lane: number): LaneShape | null {
+    return automationRegistry()[track]?.[lane] ?? null;
 }
 
 /**

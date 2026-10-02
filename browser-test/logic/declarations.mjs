@@ -27,11 +27,10 @@ _log('\nTest: access "read" makes a param a readout, not a knob');
             { key: 'detected_key', name: 'Detected Key', type: 'enum',
               options: ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G'], access: 'read' },
             { key: 'sens', name: 'Sensitivity', type: 'float', min: 0, max: 1 },
-            /* A FLOAT readout, because the automatable assertion below is
-             * vacuous on the enum: an enum is not automatable by movy's default
-             * heuristic either, so `access` could be ignored entirely and the
-             * check would still pass. A float in range is automatable unless
-             * something says otherwise, and here the module does. */
+            /* A FLOAT readout beside the enum one: a float in range is
+             * automatable unless something says otherwise, and here the module
+             * does. (Enums are automatable too since D14, so the enum readout
+             * below is a second witness, not a vacuous one.) */
             { key: 'level_in', name: 'Input Level', type: 'float', min: 0, max: 1, access: 'read' },
         ]),
         'synth:detected_key': 'D', 'synth:sens': '0.5', 'synth:level_in': '0.7',
@@ -43,6 +42,7 @@ _log('\nTest: access "read" makes a param a readout, not a knob');
     eq('the readout reaches the ParamVM as one', vm().rows[0][0].readOnly, true);
     eq('an ordinary param is not marked', vm().rows[0][1].readOnly, undefined);
     eq('a float readout is not automatable', vm().rows[0][2].automatable, false);
+    eq('an enum readout is not automatable either', vm().rows[0][0].automatable, false);
     eq('its identically-typed neighbour still is', vm().rows[0][1].automatable, true);
 
     /* The whole point: a turn must not write. A readout's value is the module's

@@ -55,7 +55,7 @@ const PRESETS = [
     'params-overflow-page', 'params-extras-settings',
     'file_browse',
     'bankbar-mid', 'bankbar-surge', 'bankbar-dense',
-    'auto_dot', 'auto_held', 'auto_live', 'auto_limit',
+    'auto_dot', 'auto_held', 'auto_live', 'auto_limit', 'auto_held_enum',
     'step_page_knobs', 'step_page_chain', 'step_indicator', 'step_rec_header',
     'loop_strip_midclip', 'loop_strip_outside', 'loop_header',
     'song_band', 'song_band_overflow', 'song_band_end',
@@ -85,7 +85,7 @@ const PRESETS = [
     'switches', 'pan_dials', 'spray_saturated',
     'page_body', 'page_body_p2', 'page_voice_pad', 'page_sample',
     'page_mod_cell', 'page_mod_cell_held',
-    'page_held_lock', 'page_lane_unheld', 'page_held_unassignable',
+    'page_held_lock', 'page_lane_unheld', 'page_held_unassignable', 'page_held_enum',
     'page_chrome_held', 'page_chrome_flip',
     'page_clipparams', 'page_setparams', 'page_stepparams', 'page_master_chain',
     'page_lane_mark', 'page_lane_mark_held',
@@ -102,7 +102,7 @@ const PRESETS = [
  * cannot. */
 const PAGE_SCENES = new Set(['page_body', 'page_body_p2', 'page_voice_pad', 'page_sample',
     'page_mod_cell', 'page_mod_cell_held',
-    'page_held_lock', 'page_lane_unheld', 'page_held_unassignable',
+    'page_held_lock', 'page_lane_unheld', 'page_held_unassignable', 'page_held_enum',
     'page_chrome_held', 'page_chrome_flip',
     'page_clipparams', 'page_setparams', 'page_stepparams', 'page_master_chain',
     'page_lane_mark', 'page_lane_mark_held', 'page_lfo', 'page_lfo_master', 'page_enum_list']);
@@ -122,6 +122,8 @@ const BASE = {
     'params-overflow-page': 'hier_params_overflow',
     'params-extras-settings': 'hier_params_extras',
     auto_dot: 'test8', auto_held: 'test8', auto_live: 'test8', auto_limit: 'test8',
+    /* D14: knob 0 is an enum (Mode, at rest LP); the held step locks HP. */
+    auto_held_enum: 'test_enum', page_held_enum: 'test_enum',
     /* The page scenes' mocks. `page_mod_cell*` need a page whose first param an
      * LFO can be pointed at; `page_held_unassignable` needs a page only SOME of
      * which can take a lock — `readouts` declares three of its four params
@@ -924,6 +926,7 @@ function applyView(preset) {
         case 'auto_held':        showKnobsAuto(autoView({ held: true, heldVal: model.getKnobParamInfo(0).max })); break;
         case 'auto_live':        showKnobsAuto(autoView({ held: false, liveVal: model.getKnobParamInfo(0).max })); break;
         case 'auto_limit':       showKnobsAuto(autoView({ held: true, poolFull: true, assignedLanes: 0xFF })); break;
+        case 'auto_held_enum':   showKnobsAuto(autoView({ held: true, heldVal: 2 })); break;
         case 'step_page_knobs':  lastRender = () => renderKnobsView(buildStepPageVM(STEP_VM_A, 4), false, 0); lastRender(); break;
         case 'step_page_chain':  lastRender = () => renderChainView(buildStepPageVM(STEP_VM_B), 1, false, 'T1'); lastRender(); break;
         case 'step_rec_header': {
@@ -1665,6 +1668,7 @@ function applyView(preset) {
         case 'page_mod_cell':
         case 'page_mod_cell_held':
         case 'page_held_lock':
+        case 'page_held_enum':
         case 'page_lane_unheld':
         case 'page_held_unassignable': {
             if (!schwungLibAvailable()) throw new Error(
@@ -1721,7 +1725,7 @@ function applyView(preset) {
                     lastRender = () => renderKnobsView(model.getViewModel(), false, 0,
                         () => sp.render('T1 > ' + model.getModuleName()),
                         { index: sp.pageIndex, count: sp.pageCount });
-                } else if (preset === 'page_held_lock') {
+                } else if (preset === 'page_held_lock' || preset === 'page_held_enum') {
                     /* THE KEY THE PAGE PLANNED, resolved the way the app resolves
                      * it: through the owner, which under delegation answers with
                      * Schwung's key. A lane built from movy's own knob 0 would
@@ -1733,7 +1737,10 @@ function applyView(preset) {
                     /* The auto view the app builds for a held step, with knob
                      * 0's lane locked at its maximum: `test8` reads 0.50 at
                      * rest, so a lock at 1.00 is unmistakable. */
-                    const auto = { ...autoView({ held: true, heldVal: info.max }),
+                    /* `page_held_enum`: an enum lock is its OPTION INDEX (D14) —
+                     * HP, two past the LP the page shows at rest. */
+                    const heldVal = preset === 'page_held_enum' ? 2 : info.max;
+                    const auto = { ...autoView({ held: true, heldVal }),
                                    laneForKey: (k) => (k === info.key ? 0 : -1) };
                     lastRender = () => renderKnobsView(model.getViewModel(auto), false, 0,
                         () => sp.render('T1 > ' + model.getModuleName(), auto),

@@ -147,6 +147,7 @@ await esbuild.build({
         resolve(root, 'src/undo/ui-fields.ts'),
         resolve(root, 'src/chain/set-param.ts'),
         resolve(root, 'src/seq/lane-mapping.ts'),
+        resolve(root, 'src/seq/lane-value.ts'),
         /* The base an automated parameter reverts to (SP-36). Its own entry
          * point because it is pure — a Map, and two functions over it — and
          * the suite has to be able to SEED it the way a restored Set does

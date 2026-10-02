@@ -266,13 +266,19 @@ alone). ENGINE_VERSION 0.82.0.
   `MAX_LOCKS` 1024 → 4096, and `emit_automation` is one pass over the locks
   (was one `lock_at` scan per lane). Persist drops `lane >= 32` instead of
   `lane & 7`.
-- **D14 is half done.** The engine and the bind handle enums (by index or by
-  name, equal bins) and booleans. NOT done: the UI still marks schwung-page
-  enums non-automatable, `KnobParamInfo.options`/`wiresNames` are not filled
-  by either page owner, the held-step detent is not one-option-per-detent,
-  and the held arc denormalizes an enum lock with `denorm7` (rounding), not
-  the engine's bins. Until then an enum a movy config forces automatable
-  binds as `i|min|max` — the same rounding the CC path used.
+- **D14 done (2026-10-02, second commit).** Enums of 2+ options and 0..1
+  switches are automatable in both grid modes (`shapeAutomatable` in
+  `param-build.ts`, shared by `config-pages.ts`; `enumLane` in
+  `schwung-page-render.ts`). Every 7-bit conversion goes through
+  `seq/lane-value.ts`: a stepped value is stored at its bin CENTRE so
+  `⌊v·n/128⌋` — the engine's rule — returns the same option; a held-step detent
+  moves one option. Both page owners hand the bind the options and the wire
+  form (`enumLaneInfo` honours forge's `enumSetIndex`); a restored lane gets
+  them from `paramRangeByKey`. The MOVY enum box, wave shape and toggle now
+  follow a held/live value like the arc did. Inferred two-state ACTIONS stay
+  non-automatable (Schwung marks them `writeOnly`; movy's `applyAutoStyle`).
+  Not device-verified beyond P5's generic "playback moves the param" — no
+  scenario drives an enum knob on the device.
 - **Device check added:** `automation` P5 reads the binds and samples the bound
   param through the chain while the clip plays — the first check that
   automation is actually applied, not just drawn.

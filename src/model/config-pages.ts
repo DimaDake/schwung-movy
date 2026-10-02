@@ -8,7 +8,7 @@ import { KNOBS_PER_PAGE } from './constants.js';
 import { buildPresetParam } from './preset-param.js';
 import { buildItemSelectParam } from './items-param.js';
 import type { RawMeta } from './param-build.js';
-import { inferBehavior, inferAcceleration, parseFilter, applyAutoStyle, declaredShortName, optionList } from './param-build.js';
+import { inferBehavior, inferAcceleration, parseFilter, applyAutoStyle, declaredShortName, optionList, shapeAutomatable } from './param-build.js';
 import { cellStyleFor } from './step-labels.js';
 import { readAccess } from './access.js';
 
@@ -140,7 +140,7 @@ export function buildConfigPages(
                     automatable: behavior === 'trigger' || access === 'read' ? false
                         : slot.automatable ?? (bank.global ? false
                             : (cp.automatable ?? hier.automatable ??
-                                ((type === 'float' || type === 'int') && max > min))),
+                                shapeAutomatable(type, min, max, options))),
                     behavior,
                     ...(access === 'read' ? { readOnly: true } : {}),
                     knobAcceleration: inferAcceleration(

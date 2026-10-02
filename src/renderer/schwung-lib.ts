@@ -133,6 +133,12 @@ export interface SchwungLib {
      * Schwung's own host scopes a page with this same function; a second
      * clipper here would be a second answer to where a page may draw. */
     frameCtx?: any;
+    /* An enum's raw value (an option name or an index) → its option index, by
+     * the plugin's known wire convention — the one definition of how a raw
+     * reads, which matters for enums whose option NAMES are numerals. Used to
+     * hand an automation lane the option the cell shows. Optional: absent on a
+     * Schwung that predates it, where movy's own enumRawToIndex stands in. */
+    enumIndexOf?: any;
 }
 
 /* LITERAL PATHS, NOT A CONCATENATION. esbuild can only apply its resolver to a
@@ -238,6 +244,7 @@ try {
         wavPeaks: wp.wavPeaks,
         listKnobInit: lk.listKnobInit, listKnobStep: lk.listKnobStep,
         frameCtx: fc.frameCtx,
+        enumIndexOf: typeof pm.enumIndexOf === 'function' ? pm.enumIndexOf : undefined,
         fitHeadTail: typeof rp.fitHeadTail === 'function' ? rp.fitHeadTail : undefined,
     };
 } catch (e: any) {

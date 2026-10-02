@@ -6,7 +6,7 @@ import { createModelState } from './state.js';
 import type { TrackPort } from '../track/port.js';
 import type { KnobParam } from '../types/param.js';
 import { loadHierarchy }    from './hierarchy.js';
-import { applyKnobDelta, knobParamInfo, reseedPadParams, refreshModulatedKeys, slotToLocal }   from './store.js';
+import { applyKnobDelta, knobParamInfo, reseedPadParams, refreshModulatedKeys, slotToLocal, enumLaneInfo }   from './store.js';
 import { buildViewModel }   from './viewmodel.js';
 import { processTick, reReadModule } from './tick.js';
 import { KNOBS_PER_PAGE, LONG_PRESS_TICKS, NAME_POLL_TICKS, ENUM_DELTA_DIV, ITEMS_RELOAD_TICKS } from './constants.js';
@@ -480,9 +480,12 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
         /* Range of a loaded param by key (for automation-lane validation), or
          * null if this module has no such param. Authoritative for config-driven
          * drum modules, where chain_params may be absent. */
-        paramRangeByKey(key: string): { min: number; max: number; type: string } | null {
-            const p = s.knobParams.find((p) => p?.key === key);
-            return p ? { min: p.min, max: p.max, type: p.type } : null;
+        paramRangeByKey(key: string): { min: number; max: number; type: string; options?: string[]; wiresNames?: boolean } | null {
+            const gi = s.knobParams.findIndex((p) => p?.key === key);
+            const p = gi >= 0 ? s.knobParams[gi] : null;
+            /* An enum lane restored from a Set is re-bound from this answer, so
+             * it has to carry the options and the wire form the bind writes. */
+            return p ? { min: p.min, max: p.max, type: p.type, ...(enumLaneInfo(s, gi) ?? {}) } : null;
         },
 
         /* True once this slot's module hierarchy has loaded (params known). */

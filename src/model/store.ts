@@ -81,6 +81,17 @@ function enumFmtFor(s: ModelState, gi: number, p: KnobParam, ioKey: string): boo
     return s.enumFmt[gi] as boolean;
 }
 
+/* What an automation lane's bind needs to write an enum the way this module
+ * reads it: the option names, and whether it reads them BY NAME. Null for a
+ * param that is not an enum. The format is the cached one, probed at most once
+ * per param — the same cache the knob's own writes use, so a lane cannot speak
+ * a different convention from the knob. */
+export function enumLaneInfo(s: ModelState, gi: number): { options: string[]; wiresNames: boolean } | null {
+    const p = s.knobParams[gi];
+    if (!p || p.type !== 'enum' || !p.options || p.options.length === 0) return null;
+    return { options: p.options, wiresNames: !enumFmtFor(s, gi, p, paramIoKey(s, p)) };
+}
+
 export function formatValue(p: KnobParam, v: number | null | undefined): string {
     if (p.type === 'file') return '...';
     if (v === null || v === undefined) return '...';
@@ -141,6 +152,7 @@ export function knobParamInfo(s: ModelState, physK: number): KnobParamInfo | nul
         gi, key: p.key, ioKey: paramIoKey(s, p), target: s.componentKey,
         value: (v === null || v === undefined) ? p.min : (v as number),
         min: p.min, max: p.max, type: p.type, automatable: paramAutomatable(s, p),
+        ...(enumLaneInfo(s, gi) ?? {}),
     };
 }
 

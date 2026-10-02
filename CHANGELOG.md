@@ -129,6 +129,12 @@ far. Earlier work is summarised in the timeline below for context.
   the flag ON and then opened by an OLDER movy keeps its sequencer, keyboard
   state and version history while losing its movy chains, because that build
   looks for them in a file the engine no longer owns.
+- **Choices and switches are automatable, in both grid modes.** An enum (a
+  filter type, a waveform) or an on/off switch can be locked on a held step or
+  recorded live. Each knob detent on a held step moves one option, the engine
+  plays the option exactly (never between two), and it is written in whichever
+  form the module reads — option name or index. Two-state action buttons (Rnd,
+  Copy…) still cannot be locked.
 - **32 automation lanes per track (was 8).** A held step or a live take can
   lock up to 32 parameters on one track. Downgrade hazard: an OLDER movy opens
   a lane above 8 as `lane & 7`, merging its locks into a low lane's parameter.

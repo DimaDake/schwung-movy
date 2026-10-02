@@ -206,6 +206,15 @@ _log('\nTest: automating a mix param');
     ]);
     eq('one write for the whole track', writes.length, 1);
     eq('carrying every bindable lane', writes[0], 'lanes=0|m|gain\n31|i|0|9|synth:x');
+    /* An enum lane assigned from a knob binds in the form its module reads. */
+    writes.length = 0;
+    mappingFor({ ...info, target: 'synth', ioKey: 'wave', type: 'enum', min: 0, max: 2,
+                 options: ['Saw', 'Square', 'Tri'], wiresNames: true }, w)(5);
+    eq('a name-wired enum binds its names', writes.join('|'), 'lane=5|n|synth:wave|Saw|Square|Tri');
+    writes.length = 0;
+    mappingFor({ ...info, target: 'synth', ioKey: 'wave', type: 'enum', min: 0, max: 2,
+                 options: ['Saw', 'Square', 'Tri'], wiresNames: false }, w)(5);
+    eq('an index-wired enum binds its count', writes.join('|'), 'lane=5|e|3|synth:wave');
     eq('and counting the refused one', refused, 1);
     writes.length = 0;
     bindLanes(w, []);

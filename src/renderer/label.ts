@@ -49,7 +49,7 @@ export function drawLabelCell(col: number, lblY: number, pvm: ParamVM): void {
     }
 }
 
-/* While a step is held, only automatable params are editable; at the 8-lane
+/* While a step is held, only automatable params are editable; at the lane
  * limit, only already-assigned lanes are shown. */
 function hiddenDuringHold(pvm: ParamVM, held: boolean, poolFull: boolean): boolean {
     if (!held) return false;

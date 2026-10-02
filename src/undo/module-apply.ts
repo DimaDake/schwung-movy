@@ -19,7 +19,6 @@
 
 import { mlog } from '../log.js';
 import { requestLabelSync } from '../seq/engine.js';
-import { requestLaneWarm } from '../seq/automation.js';
 import { setChainParamUntracked } from '../chain/set-param.js';
 import { componentPort } from '../track/registry.js';
 import { moduleReadKey } from '../chain/config.js';
@@ -214,9 +213,6 @@ function finish(op: ModuleOp): void {
         componentPort(op.slot, op.componentKey).setParamTimeout(key, val, 100);
     }
     if ((op.oldLfo?.length ?? 0) > 0) mlog('undo: restored ' + op.oldLfo!.length + ' LFO assignment fields');
-    /* The reload emptied the host's static param cache; without the warm,
-     * abs-CC automation is inaudible until a restart (see requestLaneWarm). */
-    requestLaneWarm(op.slot);
     requestLabelSync();
     pending = null;
 }

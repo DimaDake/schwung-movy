@@ -106,6 +106,10 @@ export interface KnobParamInfo {
     max: number;
     type: string;
     automatable: boolean;
+    /* An enum's option names and whether its module reads them by name — what
+     * an automation lane's bind needs to write the form the module speaks. */
+    options?: string[];
+    wiresNames?: boolean;
 }
 
 /* Per-knob param facts the automation layer needs. Automatable = numeric range,

@@ -599,7 +599,7 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                 }
             }
         }
-        // Parameter automation. lane 0..8, val 0..=127.
+        // Parameter automation. lane 0..LANES, val 0..=127.
         // alabel <t> <lane> <target:param> — assign a lane to a chain param.
         "alabel" => {
             let t = it.next().and_then(|s| s.parse::<i64>().ok());
@@ -1114,7 +1114,7 @@ mod tests {
         apply_batch(&mut e, "abase 0 1 64", &mut out);
         assert_eq!(e.tracks[0].lane_base[1], 64);
         // abase emits a live CC immediately (audition / stopped apply).
-        assert!(out.iter().any(|x| matches!(x, OutEvent::Cc { track: 0, lane: 1, val: 64 })));
+        assert!(out.iter().any(|x| matches!(x, OutEvent::Auto { track: 0, lane: 1, val: 64 })));
         // abaseq updates the base WITHOUT emitting a CC.
         out.clear();
         apply_batch(&mut e, "abaseq 0 1 30", &mut out);
@@ -1142,7 +1142,7 @@ mod tests {
         out.clear();
         // A live-record take is heard as it is turned: the audition stays.
         apply_batch(&mut e, "aset 0 1 5 90", &mut out);
-        assert!(out.iter().any(|x| matches!(x, OutEvent::Cc { track: 0, lane: 1, val: 90 })));
+        assert!(out.iter().any(|x| matches!(x, OutEvent::Auto { track: 0, lane: 1, val: 90 })));
         // A held-step edit only writes the lock; the step applies it when it plays.
         out.clear();
         apply_batch(&mut e, "aset 0 1 6 80 1", &mut out);
@@ -1153,7 +1153,7 @@ mod tests {
         assert_eq!(e.tracks[0].active().lock_at(1, 11), Some(70));
         assert!(out.is_empty());
         apply_batch(&mut e, "asetr 0 1 8 11 60", &mut out);
-        assert!(out.iter().any(|x| matches!(x, OutEvent::Cc { track: 0, lane: 1, val: 60 })));
+        assert!(out.iter().any(|x| matches!(x, OutEvent::Auto { track: 0, lane: 1, val: 60 })));
 
         // aclrstep removes every lane's lock at one step, leaving other steps.
         apply_batch(&mut e, "aset 0 0 3 50;aset 0 2 3 60;aset 0 1 9 70", &mut out);
@@ -1216,6 +1216,23 @@ mod tests {
     }
 
     #[test]
+    fn the_top_lane_plays_and_reports() {
+        let mut e = engine();
+        let mut out = Vec::new();
+        apply_batch(&mut e, "alabel 0 31 synth:a;abase 0 31 12", &mut out);
+        assert!(out.iter().any(|x| matches!(x, OutEvent::Auto { track: 0, lane: 31, val: 12 })));
+        e.tracks[0].active_mut().set_lock(31, 4, 50);
+        let s = e.status();
+        assert!(s.contains("alanes=80000000"), "{s}");
+        assert!(s.contains("aauto=80000000"), "{s}");
+        // Lane 32 does not exist: no label, no event.
+        out.clear();
+        apply_batch(&mut e, "alabel 0 32 synth:b;abase 0 32 9", &mut out);
+        assert!(out.is_empty());
+        assert!(!e.auto_labels().contains("synth:b"));
+    }
+
+    #[test]
     fn status_reports_automation_fields() {
         let mut e = engine();
         let mut out = Vec::new();
@@ -1223,8 +1240,8 @@ mod tests {
         e.tracks[0].active_mut().set_lock(2, 4, 50);
         apply_batch(&mut e, "hold 0 4", &mut out);
         let s = e.status();
-        assert!(s.contains("alanes=05")); // lanes 0 and 2 assigned
-        assert!(s.contains("aauto=04")); // lane 2 has a lock
+        assert!(s.contains("alanes=00000005")); // lanes 0 and 2 assigned
+        assert!(s.contains("aauto=00000004")); // lane 2 has a lock
         let hauto = s.split("hauto=").nth(1).unwrap().split(' ').next().unwrap();
         assert_eq!(hauto, "2:50");
     }

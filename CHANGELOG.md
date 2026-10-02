@@ -129,8 +129,28 @@ far. Earlier work is summarised in the timeline below for context.
   the flag ON and then opened by an OLDER movy keeps its sequencer, keyboard
   state and version history while losing its movy chains, because that build
   looks for them in a file the engine no longer owns.
+- **32 automation lanes per track (was 8).** A held step or a live take can
+  lock up to 32 parameters on one track. Downgrade hazard: an OLDER movy opens
+  a lane above 8 as `lane & 7`, merging its locks into a low lane's parameter.
+  This build drops an out-of-range lane instead of folding it.
+
+### Changed
+
+- **Automation writes its parameter directly.** A lane used to be a CC
+  (102+lane) the chain resolved through a knob mapping and a 256-entry param
+  table; a key missing from that table was dropped in silence, which is why
+  per-pad keys on large drum modules could not be automated. The engine now
+  writes the lane's parameter itself, in the same audio block, with no table.
+  Side effect: a lane and an LFO on the same parameter now combine — the lane
+  moves the LFO's base — where the LFO used to overwrite the lane.
 
 ### Fixed
+
+- **A lock could land after its note.** A note nudged early, one nudged onto
+  the end of the previous loop pass, and the first step after Play fired before
+  their step's automation was applied, so a drum voice (which takes its sound at
+  the hit) played the PREVIOUS value. The step's automation is now applied
+  before its note, wherever the note falls.
 
 - **Under Schwung pages the LFO slot was driven twice.** movy's own LFO model
   still took the knob TOUCH: knob 4 is Schwung's Sync but movy's Target, so

@@ -109,7 +109,7 @@ export function anyLaneNeedsBase(): boolean {
     for (let t = 0; t < reg.length; t++) {
         const lanes = reg[t];
         if (!lanes) continue;
-        for (let l = 0; l < 8; l++) {
+        for (let l = 0; l < lanes.length; l++) {
             if (lanes[l] && laneBase(t, l) === null) return true;
         }
     }

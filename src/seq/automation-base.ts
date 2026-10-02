@@ -15,12 +15,14 @@
  * own `abases` read-back, which is why that key exists.
  *
  * RAW UNITS, NOT THE WIRE'S 7 BITS, wherever movy knows them. The wire is
- * `norm7` (0..127) because that is what a chain CC carries, and coming back the
+ * `norm7` (0..127) because that is what a stored lock carries, and coming back the
  * other way it costs precision the display can see: on a 3-option enum the
  * round trip lands between options. So a base movy itself recorded is kept in
  * the parameter's own units, and the 7-bit form is used only for the seed,
  * where it is the only number there is.
  */
+
+import { AUTO_LANES } from './constants.js';
 
 /* track:lane → the parameter's own value. Not a nested array: the map is
  * empty on most tracks and is read once per drawn cell. */
@@ -30,7 +32,7 @@ const id = (track: number, lane: number): string => track + ':' + lane;
 
 /** Record the base movy just told the engine about. */
 export function noteLaneBase(track: number, lane: number, raw: number): void {
-    if (lane < 0 || lane >= 8 || !isFinite(raw)) return;
+    if (lane < 0 || lane >= AUTO_LANES || !isFinite(raw)) return;
     bases.set(id(track, lane), raw);
 }
 
@@ -68,7 +70,7 @@ export function seedFromEngine(
     const tracks = abases.split(',');
     for (let t = 0; t < tracks.length; t++) {
         const lanes = tracks[t].split('.');
-        for (let l = 0; l < 8 && l < lanes.length; l++) {
+        for (let l = 0; l < AUTO_LANES && l < lanes.length; l++) {
             const s = lanes[l];
             if (!s || s === '-') continue;
             if (bases.has(id(t, l))) continue;

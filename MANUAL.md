@@ -1673,6 +1673,12 @@ step's locked value, including any graphic (envelope, filter) that covers it.
 Recording automation live (Rec + Play) is different: there you hear the turn as
 you make it.
 
+Each track has **32 automation lanes**, one per parameter you lock or record.
+When all 32 are taken, a held step only offers the parameters that already have
+a lane, and says `32 AUTOMATION LANES — FULL`. A step's locks are applied before
+its note — also for a note nudged early and for the first step after Play — so a
+drum voice that takes its sound at the hit plays the locked value on that hit.
+
 **Hold Clear and touch a knob** to delete that parameter's whole automation
 lane. A `<param> lane cleared` prompt confirms it, and the lane's mark next to
 the label goes away.

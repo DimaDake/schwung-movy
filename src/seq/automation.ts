@@ -1,7 +1,7 @@
-/* UI-side automation registry: maps each track's 8 lanes to a chain param
+/* UI-side automation registry: maps each track's lanes to a chain param
  * (target:param) and caches its range for rendering/denormalization. The engine
- * owns lock data + playback; this layer assigns lanes (a pool of 8 per track,
- * mirroring the chain's knob mappings) and feeds the engine commands.
+ * owns lock data + playback; this layer assigns lanes (a pool of AUTO_LANES per
+ * track), binds each to its param in the engine and feeds it commands.
  *
  * Live value accumulation: knob turns arrive as many small deltas, faster than
  * the ~24 Hz status poll, so we can't reseed from `heldLocks` each turn. We keep
@@ -13,25 +13,21 @@ import { endEdit } from '../undo/group.js';
 import { beginGesture, undoableEdit } from '../undo/edit.js';
 import { seqSideEffect } from '../undo/record.js';
 import { seqCmd, requestLabelSync } from './engine.js';
-import { isMixTarget } from './lane-mapping.js';
+import type { LaneBindInfo } from './lane-mapping.js';
+import { AUTO_LANES } from './constants.js';
 import { seqState } from './state.js';
 import { seqToast } from './render.js';
 import { beginStepAutomation, heldRange } from './step-edit.js';
 import { noteLaneBase, clearLaneBase, resetLaneBases } from './automation-base.js';
 import { aliasFromConcrete, type PadScoping } from '../model/pad-scope.js';
-import { mlog } from '../log.js';
 
-export interface LaneEntry {
-    targetParam: string;   // "synth:cutoff"
+export interface LaneEntry extends LaneBindInfo {
     shortName: string;     // param key for display
-    min: number;
-    max: number;
-    type: string;
 }
 
 /* registry[track][lane] = entry | null */
 const registry: (LaneEntry | null)[][] =
-    Array.from({ length: TRACK_COUNT }, () => new Array<LaneEntry | null>(8).fill(null));
+    Array.from({ length: TRACK_COUNT }, () => new Array<LaneEntry | null>(AUTO_LANES).fill(null));
 
 /* Live accumulators, keyed "track:lane" → current 0..127 value, plus the edit
  * context they were seeded for ("h<step>" or "b"). */
@@ -62,7 +58,6 @@ export function resetAutomation(): void {
     liveCtx.clear();
     liveTurn.clear();
     touchedNotTurned.clear();
-    warmPending.fill(0);
     lastDisplaySig = '';
 }
 
@@ -97,7 +92,7 @@ export function automationDisplayDirty(): boolean {
     return true;
 }
 
-/* 7-bit conversion matching the chain's abs-CC scaling. */
+/* 7-bit conversion; the engine's lane write (auto_lane.rs) uses the same scaling. */
 export function norm7(v: number, min: number, max: number): number {
     if (max <= min) return 0;
     return Math.max(0, Math.min(127, Math.round((v - min) / (max - min) * 127)));
@@ -115,8 +110,8 @@ export function laneKeysForTrack(track: number): string[] {
     return out;
 }
 
-/* All 8 lanes assigned? Derived live from the registry so the "pool full" state
- * (which hides non-assigned params on a step-hold) flips the instant the 8th
+/* Every lane assigned? Derived live from the registry so the "pool full" state
+ * (which hides non-assigned params on a step-hold) flips the instant the last
  * lane is assigned and clears the instant a lane is freed — unlike a sticky flag. */
 export function poolIsFull(track: number): boolean {
     return registry[track].every((e) => e !== null);
@@ -124,13 +119,13 @@ export function poolIsFull(track: number): boolean {
 
 export function laneForParam(track: number, targetParam: string): number {
     const lanes = registry[track];
-    for (let l = 0; l < 8; l++) if (lanes[l]?.targetParam === targetParam) return l;
+    for (let l = 0; l < AUTO_LANES; l++) if (lanes[l]?.targetParam === targetParam) return l;
     return -1;
 }
 
-/* Assign `info`'s param to a free lane on `track`. `setMapping(lane)` issues the
- * chain knob_<lane+1>_set (returns false on failure). Returns the lane, or -1 if
- * the pool of 8 is full / mapping failed. Seeds the engine label + base. */
+/* Assign `info`'s param to a free lane on `track`. `setMapping(lane)` binds the
+ * lane to the param in the engine (returns false on failure). Returns the lane,
+ * or -1 if the pool is full / the bind failed. Seeds the engine label + base. */
 export function assignLane(
     track: number, slot: number, info: KnobParamInfo,
     setMapping: (lane: number) => boolean,
@@ -141,18 +136,16 @@ export function assignLane(
     const lane = registry[track].findIndex((e) => e === null);
     if (lane < 0) return -1; // pool full
     if (!setMapping(lane)) return -1;
-    registry[track][lane] = { targetParam: tp, shortName: info.ioKey, min: info.min, max: info.max, type: info.type };
+    registry[track][lane] = {
+        targetParam: tp, shortName: info.ioKey, min: info.min, max: info.max, type: info.type,
+        options: info.options, wiresNames: info.wiresNames,
+    };
     seqCmd('alabel ' + track + ' ' + lane + ' ' + tp);
     seqCmd('abase ' + track + ' ' + lane + ' ' + norm7(info.value, info.min, info.max));
     /* Beside the command, never derived later: this IS the base, in the
      * parameter's own units, and it is the last moment anything holds it —
      * from the next step onward the lane owns the value (SP-36). */
     noteLaneBase(track, lane, info.value);
-    // Creating automation on a freshly (re)loaded module hits the same empty host
-    // param cache: this new lane's abs-CC would resolve through find_param_info on
-    // an empty synth_params and be dropped. Warm it so the first playback is
-    // audible (the reselect-time warm can't cover a lane that doesn't exist yet).
-    requestLaneWarm(track);
     return lane;
 }
 
@@ -162,7 +155,7 @@ export function assignLane(
  * so Undo cleared a lane instead of restoring the module. The swap's own
  * snapshot already holds the lane state, so the cleanup needs no entry at all. */
 export function clearLane(track: number, lane: number, undoable = true): void {
-    if (lane < 0 || lane >= 8) return;
+    if (lane < 0 || lane >= AUTO_LANES) return;
     const name = registry[track][lane]?.shortName;
     registry[track][lane] = null;
     clearLaneBase(track, lane);
@@ -353,99 +346,7 @@ export function clearLaneForKnob(track: number, info: KnobParamInfo): void {
     if (lane >= 0) clearLane(track, lane);
 }
 
-/* Chain knob mappings are chain-side state: a module reload (user swap from
- * the shadow UI, or a dev redeploy) silently clears them while the lane
- * registry and the engine's lanes live on — automation then no-ops with a
- * fully intact UI. Called on a slow cadence; verifies ONE track per call
- * (round-robin over all TRACK_COUNT of them) by reading the first assigned lane's knob_<N>_name and
- * re-issuing every lane's knob_<N>_set on mismatch. The name check matches
- * the chain's "target: param" format loosely (both halves present) so a
- * formatting tweak can't trigger a re-apply storm. */
-let verifyTrack = 0;
-export function verifyLaneMappings(
-    readKnobName: (slot: number, lane: number) => string | null,
-    apply: (slot: number, lane: number, targetParam: string) => void,
-): void {
-    const t = verifyTrack;
-    verifyTrack = (verifyTrack + 1) % TRACK_COUNT;
-    const lanes = registry[t];
-    /* A mix lane is not mapped inside the chain, so `knob_<N>_name` says nothing
-     * about it — probing one would read null, call the mapping cleared, and
-     * re-apply every lane on the track on every sweep. */
-    const first = lanes.findIndex((e) => e !== null && !isMixTarget(e.targetParam));
-    if (first < 0) return; // no lanes on this track → no IPC
-    const e = lanes[first]!;
-    const name = readKnobName(t, first);
-    const sep = e.targetParam.indexOf(':');
-    const target = e.targetParam.slice(0, sep);
-    const param  = e.targetParam.slice(sep + 1);
-    if (name && name.indexOf(target) >= 0 && name.indexOf(param) >= 0) return;
-    for (let l = 0; l < 8; l++) {
-        const le = lanes[l];
-        if (le) apply(t, l, le.targetParam);
-    }
-}
-
-/* A chain module (re)load leaves the host's per-component param-metadata cache
- * (synth_params etc.) EMPTY for self-describing modules — they ship no static
- * params in module.json, so the host only fills the cache from the plugin's
- * DYNAMIC chain_params via a throttled runtime refresh. abs-CC playback resolves
- * its target through find_param_info (the STATIC cache, no refresh), so it reads
- * empty and silently drops the CC while the UI, manual edits and the plugin's
- * own chain_params all still work — automation goes inaudible until a full
- * chain re-init (what a tool reopen/"restart" does). Reading a mapped knob's
- * `_value` routes through the host's find_param_by_key, which DOES run that
- * refresh and repopulates the cache; one read per (track, component) is enough.
- * Verified on device: obxd reselect → cache empty → one knob_N_value read →
- * cache repopulated (POPULATED=false → true). */
-function warmLaneParams(track: number, readValue: (track: number, lane: number) => void): void {
-    const lanes = registry[track];
-    const seen = new Set<string>();
-    for (let l = 0; l < 8; l++) {
-        const e = lanes[l];
-        if (!e) continue;
-        const comp = e.targetParam.slice(0, e.targetParam.indexOf(':'));
-        if (seen.has(comp)) continue; // the refresh is per-component, not per-lane
-        seen.add(comp);
-        readValue(track, l);
-    }
-}
-
-/* A reselect's chain reload is async, so the warm must span a short window after
- * it (not a single tick that might fire before the host finishes v2_load_synth).
- * Event-driven — nothing runs when no reload is pending, so there is no idle IPC
- * cost — and reads are strided so the window is a handful of reads, not a burst. */
-const warmPending = new Array(TRACK_COUNT).fill(0) as number[];
-const WARM_WINDOW = 96;   // ~0.5 s at the ~205 Hz device tick
-const WARM_STRIDE = 16;   // → ~6 reads across the window
-
-/* Schedule `track`'s lane param-cache warm after a chain (re)load. */
-export function requestLaneWarm(track: number): void {
-    if (track < 0 || track >= 4) return;
-    warmPending[track] = WARM_WINDOW;
-    if (registry[track].some((e) => e !== null)) mlog('auto warm req t=' + track);
-}
-
-/* Per-tick pump for scheduled warms. Cheap when idle (all counters 0). `verify`,
- * if given, is called once as each window closes with the track's first assigned
- * lane — used to log/confirm the host cache actually repopulated. */
-export function laneWarmTick(
-    readValue: (track: number, lane: number) => void,
-    verify?: (track: number, lane: number) => void,
-): void {
-    for (let t = 0; t < TRACK_COUNT; t++) {
-        const c = warmPending[t];
-        if (c <= 0) continue;
-        warmPending[t] = c - 1;
-        if (c % WARM_STRIDE === 0) warmLaneParams(t, readValue);
-        if (c === 1 && verify) {                       // window just closed
-            const first = registry[t].findIndex((e) => e !== null);
-            if (first >= 0) verify(t, first);
-        }
-    }
-}
-
-export type LaneRange = { min: number; max: number; type: string };
+export type LaneRange = { min: number; max: number; type: string; options?: string[]; wiresNames?: boolean };
 /* `drop` = purge the persisted lane (stale param / obsolete alias key);
  * `unknown` = chain not loaded yet, keep the lane untouched this pass. */
 export type LaneVerdict = LaneRange | 'drop' | 'unknown';
@@ -473,16 +374,22 @@ export function validateLane(
     return paramRange(lookup) ?? 'drop';
 }
 
-/* Rebuild the registry from the engine's `alabels` and re-apply each assigned
- * lane's chain mapping. `apply(slot, lane, targetParam)` issues knob_<N>_set.
- * `validate(track, tp)` decides each lane's fate (see `validateLane`): a `drop`
- * verdict purges the lane (engine + persistence, via `clearLane` → `aclr`) so
- * stale/obsolete lanes can't permanently occupy the 8-lane pool. */
+/* Rebuild the registry from the engine's `alabels` and bind each assigned lane
+ * in the engine. `apply(slot, lane, entry)` issues the bind. `validate(track,
+ * tp)` decides each lane's fate (see `validateLane`): a `drop` verdict purges
+ * the lane (engine + persistence, via `clearLane` → `aclr`) so stale/obsolete
+ * lanes can't permanently occupy the pool.
+ *
+ * An `unknown` lane (its module not loaded yet) is kept but NOT bound: the bind
+ * carries the param's range, and a guessed one would write wrong values. It
+ * plays nothing until a later sync binds it, so the return value says one is
+ * owed — true while any lane is still waiting for its module. */
 export function syncLabelsFromEngine(
     alabels: string,
-    apply: (slot: number, lane: number, targetParam: string) => void,
+    apply: (slot: number, lane: number, entry: LaneEntry) => void,
     validate: (track: number, targetParam: string) => LaneVerdict,
-): void {
+): boolean {
+    let pending = false;
     const tracks = alabels.split(',');
     /* Every track, not the first four. The engine emits labels for all of them
      * and always has; the cap here was a leftover from when movy had four
@@ -491,7 +398,7 @@ export function syncLabelsFromEngine(
      * in the next. */
     for (let t = 0; t < TRACK_COUNT && t < tracks.length; t++) {
         const lanes = tracks[t].split('.');
-        for (let l = 0; l < 8 && l < lanes.length; l++) {
+        for (let l = 0; l < AUTO_LANES && l < lanes.length; l++) {
             const tp = lanes[l];
             /* THE BASE BELONGS TO THE PARAMETER, NOT TO THE LANE NUMBER. A lane
              * that came back pointing somewhere else is a different parameter
@@ -506,11 +413,15 @@ export function syncLabelsFromEngine(
             const v = validate(t, tp);
             if (v === 'drop') { clearLane(t, l, false); continue; }
             const r: LaneRange = v === 'unknown' ? { min: 0, max: 1, type: 'float' } : v;
-            registry[t][l] = {
+            const e: LaneEntry = {
                 targetParam: tp, shortName: tp.split(':')[1] ?? tp,
                 min: r.min, max: r.max, type: r.type,
+                options: r.options, wiresNames: r.wiresNames,
             };
-            apply(t, l, tp);
+            registry[t][l] = e;
+            if (v === 'unknown') { pending = true; continue; }
+            apply(t, l, e);
         }
     }
+    return pending;
 }

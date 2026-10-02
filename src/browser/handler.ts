@@ -2,7 +2,6 @@ import { componentPort } from '../track/registry.js';
 import { browserState } from './state.js';
 import { appState, VIEW_BROWSE, VIEW_CHAIN } from '../app/state.js';
 import { isMasterComponent, moduleReadKey, MASTER_FX_SLOTS, type ChainSlot } from '../chain/config.js';
-import { requestLaneWarm } from '../seq/automation.js';
 import { releaseAllLive } from '../keyboard/release.js';
 import { captureLfoAssignments, captureModuleState, dumpModuleParams } from '../undo/module-dump.js';
 import { mlog } from '../log.js';
@@ -151,10 +150,6 @@ export function loadSelectedModule(): void {
         port.setParam(browserState.componentKey + ':module', value);
     }
     if (changed) endEdit();
-    // The reload empties the host's static param cache; a same-id reselect won't
-    // trip the module-name watcher, so schedule the warm here too (see
-    // warmLaneParams) — without it, abs-CC automation is inaudible until restart.
-    requestLaneWarm(browserState.paramSlot);
     /* NONE leaves nothing for a module page to show, so it lands on the chain
      * view whichever page opened the browser. Returning to the origin put the
      * user back on the knob page of a slot that no longer has a module — and

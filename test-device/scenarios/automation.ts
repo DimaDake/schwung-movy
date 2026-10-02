@@ -12,6 +12,11 @@
  *       (an empty registry = no dot, no held value, knob jumps on playback)
  *   P4  a LIVE take (recording, no step held) repaints and ACCUMULATES —
  *       a different path from P1: it is driven by liveTurn, not heldLocks
+ *   P5  playback MOVES the param: every restored lane is bound in the engine
+ *       (`ch0:lanes`), and the bound param, read back through the chain, takes
+ *       the take's distinct values while the clip plays. Lanes write their
+ *       param directly (drum-modules plan D1); nothing else here listens to
+ *       whether automation is heard at all.
  */
 import { scenario } from '../runner.js';
 import { Device } from '../device.js';
@@ -230,7 +235,45 @@ scenario('automation', async (t) => {
         (page.cells ?? []).some((c: any) => c && c.automated),
         { expected: 'a cell with automated=true', actual: JSON.stringify(page.cells) });
 
-    /* Leave the transport as we found it. */
-    await dev.tap.cc(CC_PLAY);
+    // ── P5: playback writes the bound param ─────────────────────────────────
+    /* The binds are re-sent by the label sync that rebuilt the registry above,
+     * so they are read after it. A mix lane has no chain param to read. */
+    const binds = (await t.bus.getParam('overtake_dsp:ch0:lanes').catch(() => ''))
+        .split(';').filter((b) => b.includes('=')).map((b) => b.slice(b.indexOf('=') + 1));
+    t.note('binds', binds);
+    const unbound = (after.lanes ?? []).filter((k: string) => !binds.some((b) => b.endsWith(':' + k)));
+    t.check('p5-bound', 'every restored lane is bound in the engine',
+        binds.length > 0 && unbound.length === 0,
+        { expected: 'ch0:lanes naming every registry lane', actual: unbound.length ? `unbound: ${unbound.join(', ')}` : '(none bound)' });
+
+    /* The take swept the knob upward one step at a time, so its locks differ
+     * step to step and a played bar must move the param through several of
+     * them. Sampled, not waited on: the value is SUPPOSED to keep changing.
+     * The reopen reloaded the engine, so the transport is started here if it
+     * is not already running. */
+    const playing = async () => /(^| )play=1( |$)/.test(await t.bus.getParam('overtake_dsp:status').catch(() => ''));
+    if (!(await playing())) {
+        await dev.tap.cc(CC_PLAY);
+        try {
+            await until(t.bus, 'the transport to start', playing, (p) => p, { within: 2000, every: 60 });
+        } catch { /* p5-plays says what happened */ }
+    }
+    const seen = new Map<string, Set<string>>();
+    for (let i = 0; i < 24; i++) {
+        for (const key of binds.filter((b) => !b.startsWith('mix:'))) {
+            const v = await t.bus.getParam(`overtake_dsp:ch0:${key}`).catch(() => '');
+            if (v !== '') (seen.get(key) ?? seen.set(key, new Set()).get(key)!).add(v);
+        }
+        await t.bus.frames(20);
+    }
+    const moved = [...seen].filter(([, vs]) => vs.size >= 2).map(([k]) => k);
+    t.note('playedValues', Object.fromEntries([...seen].map(([k, vs]) => [k, [...vs]])));
+    t.check('p5-plays', 'playback moves the automated param through its locks',
+        moved.length > 0,
+        { expected: 'a bound param read back with >=2 distinct values while playing',
+          actual: JSON.stringify(Object.fromEntries([...seen].map(([k, vs]) => [k, [...vs]]))) });
+
+    /* Leave the transport stopped. */
+    if (await playing()) await dev.tap.cc(CC_PLAY);
     void CC_BACK;
 });

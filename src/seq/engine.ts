@@ -15,7 +15,7 @@
 
 import { paramAvailable, paramGet, paramSet } from '../host/param.js';
 import { mlog } from '../log.js';
-import { CHAIN_MODULE_DIR, ENGINE_DSP_PATH, ENGINE_VERSION, MOVY_MODULE_DIR } from './constants.js';
+import { AUTO_LANES, CHAIN_MODULE_DIR, ENGINE_DSP_PATH, ENGINE_VERSION, MOVY_MODULE_DIR } from './constants.js';
 import { activeFromStr, adoptLoopWindow, muteFromStr, occFromHex, padMutesFromStr, seqState, sessionFromStr, songFromStr } from './state.js';
 import { rationalToIdx } from './clip-scale.js';
 import { noteProbeGen, probeBridgeTick } from './probe-bridge.js';
@@ -432,7 +432,7 @@ function parseStatus(s: string): void {
             seqState.heldLocks.clear();
             if (val) for (const pair of val.split('.')) {
                 const [l, v] = pair.split(':').map(Number);
-                if (l >= 0 && l < 8) seqState.heldLocks.set(l, v);
+                if (l >= 0 && l < AUTO_LANES) seqState.heldLocks.set(l, v);
             }
         }
     }

@@ -37,10 +37,10 @@ import { renderFileBrowseView } from '../renderer/file-browse-view.js';
 import { updateKnobLEDs, updateKnobLEDsFrom, updateSingleKnobLED, resetKnobLedCache } from '../renderer/knob-leds.js';
 import { seqEngineTick, takeLabelSync, requestLabelSync } from '../seq/engine.js';
 import { drumSyncTick, resetDrumSync } from '../seq/drum-sync.js';
-import { applyLaneMapping } from '../seq/lane-mapping.js';
+import { bindLanes } from '../seq/lane-mapping.js';
 import { laneRangeOf, anyLaneNeedsBase } from './automated-keys.js';
 import { seedFromEngine } from '../seq/automation-base.js';
-import { syncLabelsFromEngine, validateLane, automationRegistry, denorm7, laneKeysForTrack, automationDisplayDirty, liveTurnValues, poolIsFull, verifyLaneMappings, requestLaneWarm, laneWarmTick } from '../seq/automation.js';
+import { type LaneEntry, syncLabelsFromEngine, validateLane, automationRegistry, denorm7, laneKeysForTrack, automationDisplayDirty, liveTurnValues, poolIsFull } from '../seq/automation.js';
 import type { AutomationView, ViewModel } from '../types/viewmodel.js';
 import type { Model } from '../model/index.js';
 import { concreteKey } from '../model/pad-scope.js';
@@ -132,7 +132,7 @@ export function buildAutomationView(track: number, model: Model): AutomationView
     const ck   = model.getComponentKey();
     const laneForKey = (key: string): number => {
         const tp = ck + ':' + concreteKey(ps, pad, key);
-        for (let l = 0; l < 8; l++) if (reg[l] && reg[l]!.targetParam === tp) return l;
+        for (let l = 0; l < reg.length; l++) if (reg[l] && reg[l]!.targetParam === tp) return l;
         return -1;
     };
     return {
@@ -395,16 +395,15 @@ let drumCacheStale = false;
 let lastActiveSlot   = -1;
 let lastShownKey     = '';   // identity of the on-screen param page (for touch reset)
 
-/* Device ticks ~90-205 Hz → verify one track's lane mappings every ~2-5 s;
- * full 4-track coverage inside ~20 s of a module reload. */
-const LANE_VERIFY_TICKS = 400;
-let laneVerifyTicks = 0;
-
-/* Reading a mapped knob's `_value` routes through the host's find_param_by_key,
- * which repopulates the per-component param cache abs-CC needs after a reload. */
-const warmReadValue = (slot: number, lane: number): void => {
-    portFor(slot).getParam( 'knob_' + (lane + 1) + '_value');
-};
+/* A restored lane whose module has not loaded yet cannot be bound (the bind
+ * carries the param's range), so the label sync is asked for again — backing off
+ * from ~0.5 s to ~10 s, because a lane whose module never comes back would
+ * otherwise cost an `alabels` read every half second for the rest of the
+ * session. A module swap on the focused component asks for a sync of its own. */
+const LABEL_RETRY_MIN = 64;
+const LABEL_RETRY_MAX = 2048;
+let labelRetryIn = 0;
+let labelRetryGap = LABEL_RETRY_MIN;
 
 /* Return from background: the host restored the suspend-time LED snapshot to
  * hardware, but the sequencer advanced while we were parked, so every on-change
@@ -530,16 +529,20 @@ function tickBody(): void {
     // suppression are dead — the device automation test asserts it is populated.
     const laneKeys = laneKeysForTrack(appState.activeTrack.index).join(',');
     if (laneKeys !== _autoLanesLog) { _autoLanesLog = laneKeys; mlog('auto lanes t=' + appState.activeTrack.index + ' [' + laneKeys + ']'); }
-    // Engine (re)booted: rebuild the automation registry from its labels and
-    // re-apply each lane's chain knob mapping so playback CCs land.
+    if (labelRetryIn > 0 && --labelRetryIn === 0) requestLabelSync();
+    // Engine (re)booted, a Set applied, an undo: rebuild the automation registry
+    // from the engine's labels and bind each lane to its param in the engine.
     if (engineReady() && takeLabelSync()) {
         resetDrumSync();   // a rebooted engine has lost the drum flags too
         const labels = paramGet('alabels');
         if (labels) {
-            syncLabelsFromEngine(
+            const binds = new Map<number, { lane: number, e: LaneEntry }[]>();
+            const pending = syncLabelsFromEngine(
                 labels,
-                (slot, lane, tp) =>
-                    applyLaneMapping((k, v) => portFor(slot).setParam(k, v), lane, tp),
+                (slot, lane, e) => {
+                    const l = binds.get(slot);
+                    if (l) l.push({ lane, e }); else binds.set(slot, [{ lane, e }]);
+                },
                 (track, tp) => {
                     // Validate against the lane's own (track, component) model param
                     // set — authoritative even for config-driven drum modules. Keep
@@ -561,32 +564,19 @@ function tickBody(): void {
                 const bases = paramGet('abases');
                 if (bases) seedFromEngine(bases, laneRangeOf);
             }
+            for (const [slot, lanes] of binds) {
+                const refused = bindLanes((k, v) => portFor(slot).setParam(k, v), lanes);
+                if (refused > 0) mlog('auto bind refused t=' + slot + ' n=' + refused);
+            }
+            if (pending) {
+                labelRetryIn = labelRetryGap;
+                labelRetryGap = Math.min(LABEL_RETRY_MAX, labelRetryGap * 2);
+            } else {
+                labelRetryIn = 0;
+                labelRetryGap = LABEL_RETRY_MIN;
+            }
         }
     }
-    // A chain module reload (user swap, dev redeploy) clears the chain-side
-    // knob mappings while the lane registry lives on — automation then no-ops
-    // with an intact UI. Slow round-robin verify + re-apply (1 IPC read per
-    // window, tracks with no lanes cost nothing).
-    if (++laneVerifyTicks >= LANE_VERIFY_TICKS) {
-        laneVerifyTicks = 0;
-        verifyLaneMappings(
-            (slot, lane) => portFor(slot).getParam( 'knob_' + (lane + 1) + '_name'),
-            (slot, lane, tp) => {
-                mlog('auto remap t=' + slot + ' lane=' + lane + ' ' + tp);
-                applyLaneMapping((k, v) => portFor(slot).setParam(k, v), lane, tp);
-            },
-        );
-    }
-    // Drive any scheduled param-cache warms (spread across a short window after a
-    // reselect/reload; idle-cheap). Recovers abs-CC audibility without a restart.
-    // On window close, log the resulting cache state (knob_N_max is the fallback
-    // "1.00"/float when the host cache is still empty → abs-CC would be silent):
-    // field observability for this failure mode, and the reselect e2e's assertion.
-    laneWarmTick(warmReadValue, (t, l) => {
-        mlog('auto warm t=' + t
-            + ' cache=' + portFor(t).getParam( 'knob_' + (l + 1) + '_max')
-            + ' type=' + portFor(t).getParam( 'knob_' + (l + 1) + '_type'));
-    });
     sessionTick();
     /* A phase change is a view change, and the render below is gated on
      * something being dirty — neither entering the splash nor leaving it makes
@@ -717,9 +707,6 @@ function tickBody(): void {
     if (mn && lastModuleName.get(mnKey) !== mn) {
         if (lastModuleName.has(mnKey)) {
             requestLabelSync();
-            // The reload emptied the host's static param cache; schedule the warm
-            // so abs-CC automation becomes audible again (see warmLaneParams).
-            requestLaneWarm(appState.activeTrack.index);
         }
         lastModuleName.set(mnKey, mn);
     }

@@ -219,6 +219,64 @@ SCHWUNG neither exposes a single per-pad parameter today.
   the loop wrap.
 - ENGINE_VERSION bump.
 
+#### Phase 2 — results (2026-10-02)
+
+Built against schwung `origin/main` cfeb2b0a (the `schwung-main` worktree —
+`schwung/` itself is diverged from a rewritten `origin/main` and was left
+alone). ENGINE_VERSION 0.82.0.
+
+- **Wire.** `ch<N>:lane` = `<lane>|<spec>`, spec one of `-`, `m|<field>`,
+  `f|min|max|key`, `i|min|max|key`, `e|n|key`, `n|key|opt|…`
+  (`engine/crates/movy-dsp/src/auto_lane.rs`). It replaces both `knob_<N>_set`
+  and `mixlane`. The UI sends it on assign and on EVERY label sync
+  (`seq/lane-mapping.ts` `bindLane`), so a bind survives an engine restart,
+  a Set load and an undo without a verify loop. `ch<N>:lanes` reads the binds
+  back (device tests use it). A new Set document clears every bind.
+- **Deleted:** the CC 102+lane emit, `verifyLaneMappings` (the
+  `knob_<N>_name` round-robin), and the `knob_<N>_value` param-cache warm
+  (`requestLaneWarm` / `laneWarmTick`) — all three existed only because the
+  chain resolved the CC through its param table. `reselect`'s C2 now asserts
+  the binds survive a reselect instead of the warm.
+- **A restored lane whose module is not loaded is kept but not bound** (the
+  bind carries the range; a guess would write wrong values). The label sync
+  reports it and `app/tick.ts` retries with backoff (64 → 2048 ticks).
+- **Modulation, verified in source:** the old CC path wrote the plugin
+  directly (`knob_forward_value`), so an LFO on the same param overwrote the
+  lane at its next tick. The direct path is the chain's `set_param`, which
+  calls `chain_mod_update_base_from_set_param` — the lane moves the LFO's
+  base and the two compose. That is a behaviour CHANGE (better), recorded in
+  the changelog. Smoothing: same (`smoother_set_target` jumps). Schwung's own
+  lane recording (`lane_on_set_param`) is gated off by `lanes_enabled`.
+- **Latency gate — how it was met.** `perf-probe.ts` measures the UI's host
+  IPC, not the engine, so it cannot see this path. Instead
+  `a_lane_value_reaches_its_param_in_the_block_it_is_due` (movy-dsp) asserts
+  that in every block where the sequencer's applied value moves, the chain's
+  `set_param` receives it in that same `render()` call; teeth shown by
+  draining one block late (fails with `[]`). The per-write CPU was NOT A/B'd
+  against the CC path on device — the CC path's cost lived in the chain
+  (256-entry `strcmp` scan + knob-mapping scan) and is gone.
+- **Lock before note — the plan's premise was wrong for three cases.** On the
+  grid the lock is one tick early by construction, but the first step after
+  Play, an early-nudged note and an early note wrapped onto the previous pass
+  all fired BEFORE their step's automation. Fixed in `seq-core`: before a
+  note-on, if the applied step (`Track::auto_step`) is not the note's step,
+  that step's automation is applied first (on-change, so step entry adds
+  nothing). Two tests pin it; both failed before the fix.
+- **D13:** `LANES = 32` (`seq-core/track.rs`), status masks are 8 hex digits,
+  `MAX_LOCKS` 1024 → 4096, and `emit_automation` is one pass over the locks
+  (was one `lock_at` scan per lane). Persist drops `lane >= 32` instead of
+  `lane & 7`.
+- **D14 is half done.** The engine and the bind handle enums (by index or by
+  name, equal bins) and booleans. NOT done: the UI still marks schwung-page
+  enums non-automatable, `KnobParamInfo.options`/`wiresNames` are not filled
+  by either page owner, the held-step detent is not one-option-per-detent,
+  and the held arc denormalizes an enum lock with `denorm7` (rounding), not
+  the engine's bins. Until then an enum a movy config forces automatable
+  binds as `i|min|max` — the same rounding the CC path used.
+- **Device check added:** `automation` P5 reads the binds and samples the bound
+  param through the chain while the clip plays — the first check that
+  automation is actually applied, not just drawn.
+
 ### Phase 3 — Held-step and lane visuals on drum pages
 
 Fix whatever Phase 1(d) names. Acceptance: hold a step, turn a per-pad knob on

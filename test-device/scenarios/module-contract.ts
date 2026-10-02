@@ -396,9 +396,9 @@ scenario('module-contract', async (t) => {
     /* THE REGISTRY, not a log grep.
      *
      * The bash condition was `qgrep -E "knob_[0-9]+_set .*reroll"` over movy's
-     * own lines — and movy emits no such line: `applyLaneMapping` writes
-     * `knob_<N>_set` straight to the chain port with no mlog
-     * (src/seq/lane-mapping.ts), so that arm could never match and this check
+     * own lines — and movy emits no such line: the lane bind (then
+     * `knob_<N>_set`, now `ch<N>:lane`) goes straight to the chain port with no
+     * mlog (src/seq/lane-mapping.ts), so that arm could never match and this check
      * passed whatever the code did. What a bound lane IS is an entry in the UI's
      * automation registry, so that is what is read — `probe.auto()` returns each
      * lane's param key, which for a chain param is its io key.

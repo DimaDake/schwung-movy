@@ -20,6 +20,7 @@ mod render_plan;
 mod render_pool;
 mod load_queue;
 mod mixer;
+mod auto_lane;
 mod send_bus;
 mod pad_route;
 mod set_envelope;
@@ -126,7 +127,7 @@ pub(crate) fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.81.0";
+const ENGINE_VERSION: &str = "0.82.0";
 
 /* Blocks between autosaves. The callback runs at ~344 Hz, so this is ~2 s —
  * flash on this device is not free and the sequencer is dirty constantly while
@@ -506,17 +507,23 @@ impl Instance {
                         if let Some(mix) = parse_mix(val) {
                             self.chains.set_mix(slot, mix);
                         }
-                    } else if rest == "mixlane" {
-                        /* "<lane>,<field>", or "<lane>,-" to release the lane
-                         * back to the chain. The UI owns lane assignment; the
-                         * engine only has to know which lanes stop being CCs. */
-                        let mut it = val.split(',');
-                        if let (Some(l), Some(f)) = (it.next(), it.next()) {
-                            if let Ok(lane) = l.trim().parse::<u8>() {
-                                match mixer::MixField::parse(f.trim()) {
-                                    Some(field) => self.chains.set_mix_lane(slot, lane, field),
-                                    None => self.chains.clear_mix_lane(slot, lane),
-                                }
+                    } else if rest == "lane" {
+                        /* What an automation lane writes — see auto_lane.rs.
+                         * The UI owns lane assignment and knows each param's
+                         * range and type; the engine fixes the key and the
+                         * value form here so the audio thread only formats. */
+                        if let Some((lane, target)) = auto_lane::parse(val) {
+                            self.chains.bind_lane(slot, lane, target);
+                        }
+                    } else if rest == "lanes" {
+                        /* Several binds in one write, newline-separated: a
+                         * label sync re-binds every lane, and each param write
+                         * is a blocking round trip (~one audio frame), so one
+                         * write per lane stalled the UI per lane. A malformed
+                         * line is skipped without costing the others. */
+                        for line in val.split('\n').filter(|l| !l.is_empty()) {
+                            if let Some((lane, target)) = auto_lane::parse(line) {
+                                self.chains.bind_lane(slot, lane, target);
                             }
                         }
                     } else if rest == "midi" {
@@ -628,6 +635,11 @@ impl Instance {
                 if rest == "mix" {
                     return self.chains.mix_csv(slot);
                 }
+                /* The lane binds, which live here and nowhere else — the only
+                 * way a test can see what a lane will write. */
+                if rest == "lanes" {
+                    return Some(self.chains.lane_binds(slot));
+                }
                 self.chains.get_param(slot, rest)
             }
             _ => None,
@@ -674,23 +686,12 @@ impl Instance {
                 OutEvent::Click { accent } => {
                     self.click.trigger(accent);
                 }
-                OutEvent::Cc { track, lane, val } => {
-                    match chain_for(track) {
-                        None => {
-                            host::midi_send_internal(0xB0 | track, 102 + lane, val);
-                        }
-                        Some(c) => {
-                            /* A mix lane drives movy's own mixer, which is not
-                             * a param the chain can be told about — see
-                             * MixField. Anything else is an ordinary CC. */
-                            if !self.chains.apply_mix_lane(c, lane, val) {
-                                self.chains.on_midi(
-                                    c,
-                                    &[0xB0, 102 + lane, val],
-                                    MOVE_MIDI_SOURCE_INTERNAL,
-                                );
-                            }
-                        }
+                /* Written straight to the lane's bound param (D1). Every
+                 * track is a movy chain, so there is no CC fallback: a lane
+                 * the UI has not bound yet writes nothing. */
+                OutEvent::Auto { track, lane, val } => {
+                    if let Some(c) = chain_for(track) {
+                        self.chains.apply_lane(c, lane, val);
                     }
                 }
                 OutEvent::Start => {
@@ -1094,25 +1095,76 @@ mod tests {
      * ROUTING one, and a unit test of the map cannot see a key that never
      * reaches it. */
     #[test]
-    fn a_mix_lane_is_declared_over_the_param_wire() {
+    fn a_lane_is_bound_over_the_param_wire() {
         let mut inst = Instance::new();
-        inst.set_param("ch4:mixlane", "0,send1");
+        inst.set_param("ch4:lane", "0|m|send1");
         inst.set_param("ch4:mix", "1,0,0,0,0");
         // Drive the lane the way the engine's own automation does.
-        assert!(inst.chains.apply_mix_lane(4, 0, 127));
+        assert!(inst.chains.apply_lane(4, 0, 127));
         assert_eq!(inst.get_param("ch4:mix").as_deref(), Some("1.0000,0.0000,0,1.0000,0.0000"));
         // And released again.
-        inst.set_param("ch4:mixlane", "0,-");
-        assert!(!inst.chains.apply_mix_lane(4, 0, 0));
+        inst.set_param("ch4:lane", "0|-");
+        assert!(!inst.chains.apply_lane(4, 0, 0));
+        inst.set_param("ch4:lane", "3|f|0|1|synth:cutoff");
+        assert_eq!(inst.get_param("ch4:lanes").as_deref(), Some("3=synth:cutoff"));
+        // Batched: one write, several lanes; a bad line costs only itself.
+        inst.set_param("ch4:lanes", "0|m|gain\nbad\n31|i|0|9|fx1:mix\n");
+        assert_eq!(inst.get_param("ch4:lanes").as_deref(), Some("0=mix:gain;3=synth:cutoff;31=fx1:mix"));
+    }
+
+    std::thread_local! {
+        static LANE_WRITES: core::cell::RefCell<Vec<String>> = const { core::cell::RefCell::new(Vec::new()) };
+    }
+
+    unsafe extern "C" fn record_lane_write(_i: *mut c_void, key: *const c_char, val: *const c_char) {
+        let (k, v) = unsafe { (CStr::from_ptr(key), CStr::from_ptr(val)) };
+        LANE_WRITES.with(|w| w.borrow_mut().push(format!("{}={}", k.to_string_lossy(), v.to_string_lossy())));
+    }
+
+    /* D1's latency requirement, pinned: a lane value reaches its param in the
+     * SAME render call the sequencer produced it in — drain_out runs before the
+     * chains render, so it is heard in that block, exactly as the CC was. A
+     * write deferred by even one block would show here as a block where the
+     * engine's applied value moved and the chain heard nothing. */
+    #[test]
+    fn a_lane_value_reaches_its_param_in_the_block_it_is_due() {
+        let api: &'static ffi::plugin_api_v2_t = Box::leak(Box::new(ffi::plugin_api_v2_t {
+            api_version: 0, create_instance: None, destroy_instance: None, on_midi: None,
+            set_param: Some(record_lane_write), get_param: None, get_error: None, render_block: None,
+        }));
+        let mut inst = Instance::new();
+        inst.chains.install_for_test(0, chain_host::ChainInstance::for_test(api));
+        inst.set_param("ch0:lane", "0|i|0|127|synth:x");
+        inst.set_param("cmd", "alabel 0 0 synth:x;abaseq 0 0 10;tog 0 0 60 100");
+        for (step, v) in [(2u16, 40u8), (5, 90), (9, 7)] {
+            inst.engine.tracks[0].active_mut().set_lock(0, step, v);
+        }
+        inst.set_param("cmd", "play");
+        let mut audio = [0i16; 256];
+        let mut moves = 0;
+        for _ in 0..4000 {
+            let before = inst.engine.tracks[0].auto_cur[0];
+            LANE_WRITES.with(|w| w.borrow_mut().clear());
+            inst.render(&mut audio);
+            let after = inst.engine.tracks[0].auto_cur[0];
+            let heard = LANE_WRITES.with(|w| w.borrow().clone());
+            if after != before {
+                moves += 1;
+                assert_eq!(heard, vec![format!("synth:x={after}")], "written in the block it was due");
+            } else {
+                assert!(heard.is_empty(), "nothing written when nothing moved: {heard:?}");
+            }
+        }
+        assert!(moves >= 4, "the lane moved through its locks ({moves})");
     }
 
     #[test]
-    fn a_malformed_mix_lane_declaration_changes_nothing() {
+    fn a_malformed_lane_bind_changes_nothing() {
         let mut inst = Instance::new();
-        for bad in ["", "0", "x,gain", "0,cutoff", "99,gain"] {
-            inst.set_param("ch4:mixlane", bad);
+        for bad in ["", "0", "x|m|gain", "0|m|cutoff", "99|m|gain", "0,send1"] {
+            inst.set_param("ch4:lane", bad);
         }
-        assert!(!inst.chains.apply_mix_lane(4, 0, 127), "no lane was ever bound");
+        assert!(!inst.chains.apply_lane(4, 0, 127), "no lane was ever bound");
     }
 
     #[test]
@@ -1377,7 +1429,8 @@ mod tests {
                 .expect("status must carry sapl").parse().expect("a number")
         };
         let before = sapl(&mut inst);
-        assert_eq!(inst.engine.auto_labels().split(',').next(), Some("-.-.-.-.-.-.-.-"),
+        let dashes = vec!["-"; auto_lane::AUTO_LANES].join(".");
+        assert_eq!(inst.engine.auto_labels().split(',').next(), Some(dashes.as_str()),
                    "no Set open yet, so track 0 has no labels");
 
         inst.set_param("set", "open u1");
@@ -1392,7 +1445,7 @@ mod tests {
         /* The invariant, asserted at the FIRST poll that saw the change — a
          * later one would pass even if the counter had run ahead of the bytes. */
         assert_eq!(inst.engine.auto_labels().split(',').next(),
-                   Some("-.synth:cutoff.-.-.-.-.-.-"),
+                   Some(format!("-.synth:cutoff{}", ".-".repeat(auto_lane::AUTO_LANES - 2)).as_str()),
                    "the labels must be the applied Set's, not the previous one's");
 
         /* And it is an EVENT, not a level: nothing else moves it, or the UI

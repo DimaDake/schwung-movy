@@ -1083,10 +1083,11 @@ _log('\napp-loop: pool-full toast wins the bottom rows over the loop strip');
 {
     const { resetAutomation, assignLane } = await import('../dist/esm/seq/automation.js');
     resetApp();
-    // "8 AUTOMATION LANES — FULL" shows while a step is held and all 8 lanes are
+    // "32 AUTOMATION LANES — FULL" shows while a step is held and every lane is
     // assigned (pool full is derived live from the registry).
     resetAutomation();
-    for (let i = 0; i < 8; i++) {
+    const { AUTO_LANES } = await import('../dist/esm/seq/constants.js');
+    for (let i = 0; i < AUTO_LANES; i++) {
         assignLane(0, 0, { gi: 0, key: 'p' + i, ioKey: 'p' + i, target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true }, () => true);
     }
     seqState.stepAutoMode = true;

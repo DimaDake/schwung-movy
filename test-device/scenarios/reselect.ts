@@ -1,29 +1,29 @@
-/* Migrated from scripts/test-reselect.sh — a module reselect re-warms the chain
- * host's per-component param cache (synth_params), which abs-CC automation
- * playback resolves through. When that cache is empty, recorded automation is
- * silently dropped (UI fine, audio dead) until a restart; the warm repopulates
- * it.
+/* Migrated from scripts/test-reselect.sh — a module reselect must leave the
+ * track's automation able to play.
+ *
+ * It used to be about the chain host's param cache: lanes were CCs resolved
+ * through `synth_params`, which a reload left EMPTY, so recorded automation was
+ * silently dropped until a warm repopulated it. Lanes now write their param
+ * straight through `set_param` (engine `ch<N>:lane`, drum-modules plan D1), so
+ * there is no cache to warm. What a reload could still break is the BIND — the
+ * engine's record of what each lane writes — so C2 reads it back.
  *
  * SCOPE / honesty: this drives the REAL browser reselect (jog-click open,
- * jog-click confirm → loadSelectedModule) and asserts movy logs
- * `auto warm t=<trk> cache=<max> type=<type>` populated (not the empty fallback
- * `1.00`/`float`) — knob_N_max is the SAME find_param_info(synth_params) lookup
- * abs-CC uses, and cache-populated was device-proven necessary AND sufficient
- * for audibility (fix ON → cutoff swings across locked steps; OFF → flat).
+ * jog-click confirm → loadSelectedModule) and reads the engine's own binds
+ * (`ch0:lanes`). It does not listen to the audio.
  *
  * The bash suite put a fixed sleep in front of every read — ~22 s of the 49 s
  * it took — because the three facts it asserts on have no ViewModel behind
- * them: the warm's window-close line, the browser's open trace and the undo's
- * staged restore are all log-only. It reads the same lines out of band over
+ * them: the browser's open trace and the undo's staged restore are log-only. It reads the same lines out of band over
  * SSH; what changed is that every wait is now a condition, and the gesture is
  * one round trip rather than a press and a release half a second apart.
  *
  * Covers:
- *   C1  the fixture's automation lane is present on track 0 — the warm has
- *       nothing to warm without it, and the bash suite treated its absence as a
- *       hard failure rather than a skip
- *   C2  a reselect of the SAME module repopulates the param cache rather than
- *       leaving the empty 1.00/float fallback abs-CC reads as "no such param"
+ *   C1  the fixture's automation lane is present on track 0 — C2 has nothing
+ *       to check without it, and the bash suite treated its absence as a hard
+ *       failure rather than a skip
+ *   C2  after a reselect of the SAME module every lane is still bound to its
+ *       param in the engine
  *   C3  a real swap is undone, rather than refused as module drift
  *   C4  the restore completed, by one of its two paths
  *   C5  on the state-blob path, that blob was captured BEFORE the swap
@@ -45,14 +45,8 @@ const ACT = 90;
  * wait on and the LAST entry is the one to read. Nothing truncates the log
  * mid-scenario, so a count only ever grows. */
 const BROWSE = 'browse: open t=0';       // openBrowser's only trace
-const WARM   = 'auto warm t=0';          // laneWarmTick's window-close line
 const HIER   = 'loadHierarchy: slot=0';  // the model re-read the new module
 const UNDO   = 'undo:';
-
-/* `cache=1.00 type=float` is what knob_N_max reads while the host's static
- * synth_params cache is still empty — the state in which abs-CC automation is
- * silently dropped. */
-const EMPTY_CACHE = /cache=1\.00 type=float/;
 
 /* The undo's TERMINAL lines: the blob path writes the whole module state, the
  * replay path writes its params, and a module that never comes back times out.
@@ -120,9 +114,9 @@ scenario('reselect', async (t) => {
         { expected: 'a non-empty lane registry for the active track',
           actual: JSON.stringify(auto?.lanes ?? null) });
 
-    /* ── C2: a SAME-module reselect re-warms the param cache ──────────────── */
-    const warmBefore   = (await dev.logLines(WARM)).length;
+    /* ── C2: a SAME-module reselect leaves every lane bound ─────────────── */
     const browseBefore = (await dev.logLines(BROWSE)).length;
+    const hierBefore   = (await dev.logLines(HIER)).length;
 
     await dev.tap.jog();                      // open the module browser
     /* The confirm must arrive with the browser UP: a click delivered while the
@@ -135,19 +129,21 @@ scenario('reselect', async (t) => {
     t.note('browserOpened', browsed);
     await dev.tap.jog();                      // confirm → loadSelectedModule
 
-    /* The warm window is ~96 ticks and the chain reload drops the tick rate, so
-     * the bash suite allowed 3.5 s of wall time for ~2 s of work. */
-    await moreLines(t.bus, dev, WARM, warmBefore, 'the param-cache warm', 1500);
-    const warmLines = await dev.logLines(WARM);
-    const warmLine  = warmLines.length > warmBefore ? warmLines[warmLines.length - 1] : '';
-    t.note('warmLine', warmLine);
-    const warmFired  = warmLine !== '';
-    t.check('warm-cache',
-        'the param cache is repopulated after the reselect (not the empty 1.00/float fallback)',
-        warmFired && !EMPTY_CACHE.test(warmLine),
-        { expected: 'an "auto warm t=0" line whose cache is not the 1.00/float fallback',
-          actual: warmFired ? warmLine
-                            : `no "auto warm t=0" line at all (${warmLines.length} in the log)` });
+    /* The reload is what could drop a bind, so wait for it to have happened —
+     * loadHierarchy is the model re-reading the reloaded module. */
+    const reloaded = await moreLines(t.bus, dev, HIER, hierBefore, 'the module reload', 1500);
+    t.note('reloaded', reloaded);
+    await t.bus.frames(ACT);
+    const binds = await t.bus.getParam('overtake_dsp:ch0:lanes').catch(() => '');
+    t.note('binds', binds);
+    const lanes: string[] = Array.isArray(auto?.lanes) ? auto.lanes : [];
+    const unbound = lanes.filter((k) => !binds.split(';').some((b) => b.endsWith(':' + k)));
+    t.check('lanes-bound',
+        'every automation lane is still bound to its param after the reselect',
+        reloaded && lanes.length > 0 && unbound.length === 0,
+        { expected: `ch0:lanes naming ${lanes.join(', ') || '(no lanes)'} after a reload`,
+          actual: !reloaded ? 'the module never reloaded'
+                            : (unbound.length ? `unbound: ${unbound.join(', ')} (binds "${binds}")` : binds) });
 
     /* ── C3–C6: a real swap, twice, then Undo ───────────────────────────────
      * A same-module reselect records nothing (loadSelectedModule skips the

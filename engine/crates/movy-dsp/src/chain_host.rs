@@ -326,6 +326,14 @@ impl ChainInstance {
         }
     }
 
+    /// `set_param` for strings that are already NUL-terminated — the audio
+    /// thread's form, which must not allocate a `CString` per write.
+    pub fn set_param_c(&mut self, key: &CStr, val: &CStr) {
+        if let Some(f) = self.api.set_param {
+            unsafe { f(self.inst, key.as_ptr(), val.as_ptr()) };
+        }
+    }
+
     pub fn get_param(&mut self, key: &str) -> Option<String> {
         let k = CString::new(key).ok()?;
         let f = self.api.get_param?;

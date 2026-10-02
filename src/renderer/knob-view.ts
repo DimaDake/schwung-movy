@@ -4,6 +4,7 @@ import { drawHeader, drawBankBar, drawHeaderWithPadIcon, PAD_ICON_W } from './he
 import { drawKnobParams } from './label.js';
 import { drawEnumOverlay, drawJogToast } from './overlay.js';
 import { W } from './layout.js';
+import { AUTO_LANES } from '../seq/constants.js';
 import type { PageChrome } from './schwung-page-chrome.js';
 import { drawPageFooter } from './schwung-footer.js';
 
@@ -102,8 +103,8 @@ export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 
     else drawKnobParams(vm);
 
     if (vm.overlay) drawEnumOverlay(vm);
-    // Limit reached + a step held: tell the user only the 8 lanes are editable.
-    if (vm.automationHeld && vm.automationPoolFull) drawJogToast('8 AUTOMATION LANES — FULL');
+    // Limit reached + a step held: tell the user only the assigned lanes are editable.
+    if (vm.automationHeld && vm.automationPoolFull) drawJogToast(AUTO_LANES + ' AUTOMATION LANES — FULL');
     else if (vm.toast?.browseHint) drawJogToast('JOG: BROWSE');
     else if (jogTouched)      drawJogToast('CLICK JOG: SWAP MODULE');
     /* THE FOOTER IS THE LAST RESORT FOR THOSE ROWS, not a layer over them. A

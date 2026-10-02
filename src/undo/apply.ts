@@ -6,12 +6,12 @@
  *   3. engine uswap  (atomic capture-then-restore)
  *   4. requestLabelSync()
  *
- * Step 4 is not optional. An automation lane is bound on TWO sides: the engine
- * holds lane_assigned/base/label (inside the snapshot), and schwung holds the
- * chain-knob mapping `knob_<N>_set` (NOT in the snapshot). Restoring a snapshot
- * that changes lane assignment therefore leaves schwung pointing at the old
- * param — automation drives the wrong thing, or silently nothing, with an
- * intact-looking UI. seq/persist.ts pairs every state restore with a label sync
+ * Step 4 is not optional. An automation lane is bound on TWO sides: the
+ * sequencer holds lane_assigned/base/label (inside the snapshot), and the
+ * engine's chain side holds the lane's bind — key, range, value form (NOT in
+ * the snapshot, see seq/lane-mapping.ts). Restoring a snapshot that changes lane
+ * assignment therefore leaves the bind pointing at the old param — automation
+ * drives the wrong thing, or silently nothing, with an intact-looking UI. seq/persist.ts pairs every state restore with a label sync
  * for exactly this reason; an undo restore is the same operation. */
 
 import { componentPort, portFor } from '../track/registry.js';

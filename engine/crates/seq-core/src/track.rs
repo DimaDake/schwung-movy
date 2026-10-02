@@ -5,6 +5,9 @@ use crate::clip::Clip;
 
 pub const NUM_TRACKS: usize = 16;
 pub const CLIPS_PER_TRACK: usize = 8;
+/// Automation lanes per track. Lanes are written straight to their param, so
+/// nothing outside the engine caps them; 32 is Schwung's own `LANE_MAX`.
+pub const LANES: usize = 32;
 
 #[derive(Debug, Clone)]
 pub struct Track {
@@ -47,16 +50,20 @@ pub struct Track {
     /// overwritten and un-soloing needs no bookkeeping to undo.
     pub pad_solo: Option<u8>,
     /// Automation lane state (per track, shared across the track's clips —
-    /// mirrors the chain slot's 8 knob mappings). label = "target:param".
-    pub lane_assigned: [bool; 8],
-    pub lane_base: [u8; 8],
-    pub lane_label: [String; 8],
+    /// one per bound param). label = "target:param".
+    pub lane_assigned: [bool; LANES],
+    pub lane_base: [u8; LANES],
+    pub lane_label: [String; LANES],
     /// Last step automation was emitted for (per track) — see engine emission.
     pub last_auto_step: i32,
+    /// The step whose automation is APPLIED right now. Not `last_auto_step`:
+    /// a note can fire outside its own step (nudged early, or the first tick
+    /// after Play), and its step is applied for it before the note-on.
+    pub auto_step: i32,
     /// Per-lane value currently applied during playback (`-1` = none emitted
     /// yet → force emit). The latch carry: an unlocked, note-free step holds
     /// this. Runtime-only (derived; not persisted).
-    pub auto_cur: [i16; 8],
+    pub auto_cur: [i16; LANES],
     /// 1-based pattern play count for the playing clip, for A:B trig conditions.
     /// Reset to 1 on (re)start/launch, incremented on each loop wrap. Not persisted.
     pub cycle: u32,
@@ -86,11 +93,12 @@ impl Track {
             muted: false,
             pad_mutes: Vec::new(),
             pad_solo: None,
-            lane_assigned: [false; 8],
-            lane_base: [0u8; 8],
+            lane_assigned: [false; LANES],
+            lane_base: [0u8; LANES],
             lane_label: Default::default(),
             last_auto_step: -1,
-            auto_cur: [-1; 8],
+            auto_step: -1,
+            auto_cur: [-1; LANES],
             cycle: 1,
             scale_acc: 0,
         }
@@ -158,8 +166,8 @@ mod tests {
     #[test]
     fn new_track_has_unassigned_lanes() {
         let t = Track::new();
-        assert_eq!(t.lane_assigned, [false; 8]);
-        assert_eq!(t.lane_base, [0u8; 8]);
+        assert_eq!(t.lane_assigned, [false; LANES]);
+        assert_eq!(t.lane_base, [0u8; LANES]);
         assert!(t.lane_label.iter().all(|s| s.is_empty()));
     }
 }

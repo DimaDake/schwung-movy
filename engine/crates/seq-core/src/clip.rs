@@ -31,15 +31,15 @@ pub struct Note {
     pub fired: bool,
 }
 
-/// Max automation locks per clip (8 lanes × generous step budget).
-pub const MAX_LOCKS: usize = 1024;
+/// Max automation locks per clip, shared by all lanes (32 lanes × 128 steps).
+pub const MAX_LOCKS: usize = 4096;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Lock {
-    /// Automation lane 0..8 (maps to chain knob lane / abs CC 102+lane).
+    /// Automation lane 0..LANES; the engine writes it to the lane's bound param.
     pub lane: u8,
     pub step: u16,
-    /// 7-bit value (0..=127), scaled to the param range by the chain.
+    /// 7-bit value (0..=127), scaled to the param range at the write.
     pub val: u8,
 }
 
@@ -264,8 +264,8 @@ impl Clip {
     }
 
     /// Bitmask of lanes (bit `lane`) that have ≥1 lock — drives the UI dots.
-    pub fn automated_lanes(&self) -> u8 {
-        self.locks.iter().fold(0u8, |m, l| m | (1u8 << (l.lane & 7)))
+    pub fn automated_lanes(&self) -> u32 {
+        self.locks.iter().fold(0u32, |m, l| m | (1u32 << (l.lane & 31)))
     }
 
     /// (lane, val) pairs at `step` — for the held-step display.

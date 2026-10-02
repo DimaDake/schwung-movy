@@ -8,7 +8,7 @@ use crate::capture::{
 };
 use crate::clip::{Clip, Lock, MAX_STEPS};
 use crate::clock::Clock;
-use crate::track::{Track, CLIPS_PER_TRACK, NUM_TRACKS};
+use crate::track::{Track, CLIPS_PER_TRACK, LANES, NUM_TRACKS};
 use crate::{PPQN, STEPS_PER_BAR, TICKS_PER_BAR, TICKS_PER_STEP};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -17,8 +17,9 @@ pub enum OutEvent {
     NoteOff { track: u8, pitch: u8 },
     /// Metronome click; `accent` marks the downbeat (bar start).
     Click { accent: bool },
-    /// Parameter automation: chain abs-CC 102+lane, value 0..=127.
-    Cc { track: u8, lane: u8, val: u8 },
+    /// Parameter automation, value 0..=127. The DSP writes it to the lane's
+    /// bound param directly; it is not a CC.
+    Auto { track: u8, lane: u8, val: u8 },
     /// MIDI transport out (schwung transport service): 0xFA on play,
     /// 0xF8 at 24 PPQN while playing, 0xFC on stop — so schwung's synced
     /// LFOs/params phase-lock to this sequencer's grid.
@@ -430,12 +431,12 @@ impl Engine {
     /// Free any assigned lane that no clip on the track locks any more (after a
     /// clip delete or automation clear). A lane with zero locks anywhere is
     /// inert — its base equals the static param value — so it's released back to
-    /// the 8-lane pool, matching "clear lanes not used on other clips".
+    /// the lane pool, matching "clear lanes not used on other clips".
     fn free_unused_lanes(&mut self, track: usize) {
         if track >= NUM_TRACKS {
             return;
         }
-        for lane in 0..8 {
+        for lane in 0..LANES {
             if !self.tracks[track].lane_assigned[lane] {
                 continue;
             }
@@ -586,7 +587,8 @@ impl Engine {
                 t.clips[slot].release_pass_flags();
             }
             t.last_auto_step = -1; // re-emit automation from step 0 on (re)start
-            t.auto_cur = [-1; 8];
+            t.auto_step = -1;
+            t.auto_cur = [-1; LANES];
             t.cycle = 1;           // restart the A:B trig-condition play count
             t.scale_acc = 0;       // phase-align the clip-scale accumulator
         }
@@ -975,7 +977,8 @@ impl Engine {
         self.song_armed_launch = None;
         for t in &mut self.tracks {
             t.last_auto_step = -1;
-            t.auto_cur = [-1; 8];
+            t.auto_step = -1;
+            t.auto_cur = [-1; LANES];
         }
         self.flush_gates(out);
     }
@@ -2011,7 +2014,8 @@ impl Engine {
                     // silence the first bar of the take we just launched.
                     t.clips[slot].release_pass_flags();
                     t.last_auto_step = -1;
-                    t.auto_cur = [-1; 8];
+                    t.auto_step = -1;
+                    t.auto_cur = [-1; LANES];
                     t.cycle = 1;
                 }
                 if t.pending_stop {
@@ -2211,6 +2215,18 @@ impl Engine {
                         if self.tracks[ti].pad_voice_silent(emit_pitch) {
                             continue;
                         }
+                        /* THE LOCK MUST PRECEDE ITS NOTE. A drum voice
+                         * latches its params at note-on, so a lock applied
+                         * after it is heard on the NEXT hit. Step entry covers
+                         * a note on the grid (it is applied a tick early); a
+                         * note nudged early, one wrapped onto the previous
+                         * pass, and the first tick after Play all fire before
+                         * their step is entered, so they apply it here.
+                         * Emission is on-change, so the entry that follows
+                         * adds nothing. */
+                        if self.tracks[ti].auto_step != n.step as i32 {
+                            self.emit_automation(ti, slot, n.step, out);
+                        }
                         out.push(OutEvent::NoteOn { track: ti as u8, pitch: emit_pitch, vel: n.vel });
                         self.gates.push(Gate {
                             track: ti as u8,
@@ -2254,32 +2270,42 @@ impl Engine {
         }
     }
 
-    /// Emit automation CCs for `track` entering `step` (the latch). Each
+    /// Emit automation values for `track` entering `step` (the latch). Each
     /// assigned lane resolves to: its lock at this step (a new automation
     /// point), else base if a note is anchored here (a note on a step other
     /// than the latch origin ends it), else the carried value (latch holds).
     /// Emits only when the value changes; carry persists across the loop
     /// boundary because `auto_cur` is not reset on wrap.
     fn emit_automation(&mut self, track: usize, slot: usize, step: u16, out: &mut Vec<OutEvent>) {
-        for lane in 0..8u8 {
-            if !self.tracks[track].lane_assigned[lane as usize] {
+        /* One pass over the clip's locks, not one `lock_at` scan per lane: with
+         * 32 lanes and up to MAX_LOCKS locks that is the difference between
+         * O(locks) and O(lanes × locks) on the audio thread, every step. */
+        let mut here = [-1i16; LANES];
+        let has_notes = {
+            let clip = &self.tracks[track].clips[slot];
+            for l in clip.locks.iter().filter(|l| l.step == step) {
+                if let Some(h) = here.get_mut(l.lane as usize) {
+                    *h = l.val as i16;
+                }
+            }
+            clip.step_has_notes(step)
+        };
+        let t = &mut self.tracks[track];
+        t.auto_step = step as i32;
+        for lane in 0..LANES {
+            if !t.lane_assigned[lane] {
                 continue;
             }
-            let base = self.tracks[track].lane_base[lane as usize];
-            let v: u8 = {
-                let clip = &self.tracks[track].clips[slot];
-                if let Some(lv) = clip.lock_at(lane, step) {
-                    lv
-                } else if clip.step_has_notes(step) {
-                    base
-                } else {
-                    let cur = self.tracks[track].auto_cur[lane as usize];
-                    if cur >= 0 { cur as u8 } else { base }
-                }
+            let v: i16 = if here[lane] >= 0 {
+                here[lane]
+            } else if has_notes || t.auto_cur[lane] < 0 {
+                t.lane_base[lane] as i16
+            } else {
+                t.auto_cur[lane]
             };
-            if v as i16 != self.tracks[track].auto_cur[lane as usize] {
-                self.tracks[track].auto_cur[lane as usize] = v as i16;
-                out.push(OutEvent::Cc { track: track as u8, lane, val: v });
+            if v != t.auto_cur[lane] {
+                t.auto_cur[lane] = v;
+                out.push(OutEvent::Auto { track: track as u8, lane: lane as u8, val: v as u8 });
             }
         }
     }
@@ -2288,20 +2314,20 @@ impl Engine {
         self.held_query = q;
     }
 
-    // ── Parameter automation commands (lane 0..8, val 0..=127) ─────────────
+    // ── Parameter automation commands (lane 0..LANES, val 0..=127) ─────────────
 
     pub fn auto_label(&mut self, track: usize, lane: usize, label: &str) {
-        if track < NUM_TRACKS && lane < 8 {
+        if track < NUM_TRACKS && lane < LANES {
             self.tracks[track].lane_assigned[lane] = true;
             self.tracks[track].lane_label[lane] = label.to_string();
         }
     }
 
     pub fn auto_base(&mut self, track: usize, lane: usize, val: u8, out: &mut Vec<OutEvent>) {
-        if track < NUM_TRACKS && lane < 8 {
+        if track < NUM_TRACKS && lane < LANES {
             self.tracks[track].lane_base[lane] = val;
             if self.tracks[track].lane_assigned[lane] {
-                out.push(OutEvent::Cc { track: track as u8, lane: lane as u8, val });
+                out.push(OutEvent::Auto { track: track as u8, lane: lane as u8, val });
             }
         }
     }
@@ -2311,18 +2337,18 @@ impl Engine {
     /// it to the synth) — the base only needs to update so playback reverts to
     /// it on un-locked steps.
     pub fn auto_base_quiet(&mut self, track: usize, lane: usize, val: u8) {
-        if track < NUM_TRACKS && lane < 8 {
+        if track < NUM_TRACKS && lane < LANES {
             self.tracks[track].lane_base[lane] = val;
         }
     }
 
     pub fn auto_set(&mut self, track: usize, lane: usize, step: u16, val: u8, audition: bool,
                     out: &mut Vec<OutEvent>) {
-        if track < NUM_TRACKS && lane < 8 {
+        if track < NUM_TRACKS && lane < LANES {
             self.tracks[track].active_mut().set_lock(lane as u8, step, val);
             // Audition: apply now (stopped) / refresh (playing) for the edited lane.
             if audition && self.tracks[track].lane_assigned[lane] {
-                out.push(OutEvent::Cc { track: track as u8, lane: lane as u8, val });
+                out.push(OutEvent::Auto { track: track as u8, lane: lane as u8, val });
             }
         }
     }
@@ -2331,16 +2357,16 @@ impl Engine {
     /// single audition CC with the value if the lane is assigned and `audition`.
     pub fn auto_set_range(&mut self, track: usize, lane: usize, s0: u16, s1: u16, val: u8,
                           audition: bool, out: &mut Vec<OutEvent>) {
-        if track < NUM_TRACKS && lane < 8 {
+        if track < NUM_TRACKS && lane < LANES {
             self.tracks[track].active_mut().set_lock_range(lane as u8, s0, s1, val);
             if audition && self.tracks[track].lane_assigned[lane] {
-                out.push(OutEvent::Cc { track: track as u8, lane: lane as u8, val });
+                out.push(OutEvent::Auto { track: track as u8, lane: lane as u8, val });
             }
         }
     }
 
     pub fn auto_clear(&mut self, track: usize, lane: usize) {
-        if track < NUM_TRACKS && lane < 8 {
+        if track < NUM_TRACKS && lane < LANES {
             for c in &mut self.tracks[track].clips {
                 c.clear_lane(lane as u8);
             }
@@ -2352,7 +2378,7 @@ impl Engine {
     /// Remove one lane's lock at a single step (active clip). The step reverts
     /// to base; the lane is freed if that was its last lock across all clips.
     pub fn auto_clear_step(&mut self, track: usize, lane: usize, step: u16) {
-        if track < NUM_TRACKS && lane < 8 {
+        if track < NUM_TRACKS && lane < LANES {
             self.tracks[track].active_mut().clear_lock(lane as u8, step);
             self.free_unused_lanes(track);
         }
@@ -2376,7 +2402,7 @@ impl Engine {
             if ti > 0 {
                 out.push(',');
             }
-            for lane in 0..8 {
+            for lane in 0..LANES {
                 if lane > 0 {
                     out.push('.');
                 }
@@ -2403,7 +2429,7 @@ impl Engine {
             if ti > 0 {
                 out.push(',');
             }
-            for lane in 0..8 {
+            for lane in 0..LANES {
                 if lane > 0 {
                     out.push('.');
                 }
@@ -2550,7 +2576,7 @@ impl Engine {
             .lane_assigned
             .iter()
             .enumerate()
-            .fold(0u8, |m, (i, &a)| if a { m | (1 << i) } else { m });
+            .fold(0u32, |m, (i, &a)| if a { m | (1 << i) } else { m });
         let aauto = clip.automated_lanes();
         let hauto = match self.held_query {
             Some((t, step)) if t < NUM_TRACKS => {
@@ -2570,7 +2596,7 @@ impl Engine {
         let htp = self.held_trig();
         let hlmax = self.held_max_gate();
         format!(
-            "play={} tick={} bpm={} ext={} link={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} wpad={} hlen={} hnotes={} occ={} alanes={:02x} aauto={:02x} hauto={} hvel={} hgate={} hgmix={} hprob={} hcond={}:{} hinv={} hlmax={} swing={} csc={}/{} ctr={} quant={} dquant={} cap={}.{} song={}",
+            "play={} tick={} bpm={} ext={} link={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} wpad={} hlen={} hnotes={} occ={} alanes={:08x} aauto={:08x} hauto={} hvel={} hgate={} hgmix={} hprob={} hcond={}:{} hinv={} hlmax={} swing={} csc={}/{} ctr={} quant={} dquant={} cap={}.{} song={}",
             self.playing as u8,
             self.master_tick,
             self.clock.bpm_x100(),
@@ -3580,7 +3606,7 @@ mod tests {
     // Collect (lane, val) CCs for track 0 from an event list.
     fn ccs0(ev: &[OutEvent]) -> Vec<(u8, u8)> {
         ev.iter().filter_map(|x| match x {
-            OutEvent::Cc { lane, val, track: 0 } => Some((*lane, *val)),
+            OutEvent::Auto { lane, val, track: 0 } => Some((*lane, *val)),
             _ => None,
         }).collect()
     }
@@ -3600,7 +3626,7 @@ mod tests {
         let labels = e.auto_labels();
         let b0: Vec<&str> = bases.split(',').next().unwrap().split('.').collect();
         let l0: Vec<&str> = labels.split(',').next().unwrap().split('.').collect();
-        assert_eq!(b0.len(), 8);
+        assert_eq!(b0.len(), LANES);
         assert_eq!(b0.len(), l0.len());
         assert_eq!(b0[1], "70");
         assert_eq!(l0[1], "synth:cutoff");
@@ -3689,6 +3715,71 @@ mod tests {
         }
     }
 
+    /* A drum voice latches its params at note-on, so a lock that lands after
+     * its note is heard on the NEXT hit (Schwung's `lane_lookahead.h` lesson).
+     * Walks the event stream in order — the order `drain_out` applies it in —
+     * and checks the value in force on lane 0 at every NoteOn is that note's
+     * step's lock. Each step's note has its own pitch so the check knows which
+     * step fired. */
+    fn assert_lock_precedes_note(e: &mut Engine, ticks: u64, want: &[(u8, u8)]) {
+        let ev = run_ticks(e, ticks);
+        let mut cur: Option<u8> = None;
+        let mut fired = 0;
+        for x in &ev {
+            match *x {
+                OutEvent::Auto { track: 0, lane: 0, val } => cur = Some(val),
+                OutEvent::NoteOn { track: 0, pitch, .. } => {
+                    let (_, lock) = want.iter().find(|(p, _)| *p == pitch)
+                        .unwrap_or_else(|| panic!("unexpected note {pitch}"));
+                    assert_eq!(cur, Some(*lock), "note {pitch} fired before its lock");
+                    fired += 1;
+                }
+                _ => {}
+            }
+        }
+        assert!(fired >= 2 * want.len(), "every note fired on both passes ({fired})");
+    }
+
+    fn lock_order_engine() -> Engine {
+        let mut e = engine();
+        e.tracks[0].lane_assigned[0] = true;
+        e.tracks[0].lane_base[0] = 5;
+        let c = e.tracks[0].active_mut();
+        c.set_loop(0, 16);
+        c.quant = 0; // keep the nudges: quantization would pull them back
+        e
+    }
+
+    #[test]
+    fn a_lock_precedes_its_note_on_the_grid_after_play_and_across_the_wrap() {
+        let mut e = lock_order_engine();
+        let tps = TICKS_PER_STEP;
+        let c = e.tracks[0].active_mut();
+        for (step, pitch, lock) in [(0u16, 60u8, 10u8), (4, 61, 20), (15, 62, 30)] {
+            c.add_note_raw(step, step as u32 * tps, 6, pitch, 100);
+            c.set_lock(0, step, lock);
+        }
+        e.play();
+        assert_lock_precedes_note(&mut e, 32 * tps as u64 + 2, &[(60, 10), (61, 20), (62, 30)]);
+    }
+
+    #[test]
+    fn a_lock_precedes_a_nudged_note() {
+        let mut e = lock_order_engine();
+        let tps = TICKS_PER_STEP;
+        let c = e.tracks[0].active_mut();
+        // Early on step 4, late on step 8, and early on step 0 — which wraps to
+        // the END of the previous pass, the hardest case for the latch.
+        c.add_note_raw(0, 16 * tps - 3, 6, 60, 100);
+        c.set_lock(0, 0, 10);
+        c.add_note_raw(4, 4 * tps - 5, 6, 61, 100);
+        c.set_lock(0, 4, 20);
+        c.add_note_raw(8, 8 * tps + 7, 6, 62, 100);
+        c.set_lock(0, 8, 30);
+        e.play();
+        assert_lock_precedes_note(&mut e, 48 * tps as u64 + 2, &[(60, 10), (61, 20), (62, 30)]);
+    }
+
     #[test]
     fn no_cc_for_unassigned_lane() {
         let mut e = engine();
@@ -3696,7 +3787,7 @@ mod tests {
         e.tracks[0].active_mut().set_lock(0, 0, 50); // lock but lane unassigned
         e.play();
         let ev = run_ticks(&mut e, TICKS_PER_STEP as u64 + 2);
-        assert!(!ev.iter().any(|x| matches!(x, OutEvent::Cc { .. })));
+        assert!(!ev.iter().any(|x| matches!(x, OutEvent::Auto { .. })));
     }
 
     #[test]

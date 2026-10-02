@@ -186,10 +186,14 @@ export async function run() {
     const { parseStatusForTest } = await import('../../dist/esm/seq/engine.js');
     const { seqState, resetSeqState } = await import('../../dist/esm/seq/state.js');
     resetSeqState();
-    parseStatusForTest('play=0 trk=0 alanes=05 aauto=04 hauto=2:50');
-    eq('autoAssigned parsed', seqState.autoAssigned, 0x05);
-    eq('autoActive parsed', seqState.autoActive, 0x04);
+    parseStatusForTest('play=0 trk=0 alanes=80000005 aauto=80000004 hauto=2:50.31:9');
+    eq('autoAssigned parsed', seqState.autoAssigned, 0x80000005);
+    eq('autoActive parsed', seqState.autoActive, 0x80000004);
+    // D13: lane 31 is the sign bit of the int32 the bit tests run in.
+    eq('lane 31 reads as assigned', (seqState.autoAssigned & (1 << 31)) !== 0, true);
+    eq('lane 1 does not', (seqState.autoAssigned & (1 << 1)) !== 0, false);
     eq('heldLocks lane 2 = 50', seqState.heldLocks.get(2), 50);
+    eq('heldLocks lane 31 = 9', seqState.heldLocks.get(31), 9);
     // Empty hauto clears the map.
     parseStatusForTest('play=0 trk=0 hauto=');
     eq('empty hauto clears heldLocks', seqState.heldLocks.size, 0);

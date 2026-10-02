@@ -37,7 +37,7 @@ export interface AutomationView {
     assignedLanes: number;                 // bitmask, active track
     activeLanes:   number;                  // bitmask of lanes with locks
     held:          boolean;                 // a step is currently held
-    poolFull:      boolean;                 // all 8 lanes used (limit toast)
+    poolFull:      boolean;                 // every lane used (limit toast)
     heldValues:    Map<number, number>;     // lane -> display value at held step
     liveValues:    Map<number, number>;     // lane -> value of a knob being turned live (cleared on release)
     laneForKey:    (key: string) => number; // param key -> lane (-1 none)
@@ -162,7 +162,7 @@ export interface ViewModel {
     drumPadName:       string;
     isPadScoped:       boolean;
     automationHeld:    boolean;   // a step is held → automation-edit view
-    automationPoolFull: boolean;  // 8-lane cap reached (limit toast)
+    automationPoolFull: boolean;  // lane cap reached (limit toast)
     stepPagePresent:   boolean;   // a parameter-lock session is active → indicator prepends dotted segment
     stepPageSelected:  boolean;   // the step page is the selected page (render step params)
 }

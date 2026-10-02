@@ -22,6 +22,7 @@
 
 use crate::clip::Clip;
 use crate::engine::Engine;
+use crate::track::LANES;
 
 pub const FORMAT_TAG: &str = "movy1";
 
@@ -53,7 +54,7 @@ pub fn serialize(engine: &Engine) -> String {
         if let Some(note) = t.pad_solo {
             s.push_str(&format!("ps {} {}\n", ti, note));
         }
-        for lane in 0..8 {
+        for lane in 0..LANES {
             if t.lane_assigned[lane] {
                 s.push_str(&format!("au {} {} {} {}\n", ti, lane, t.lane_base[lane], t.lane_label[lane]));
             }
@@ -126,8 +127,8 @@ pub fn load(engine: &mut Engine, data: &str) -> bool {
         t.queued_slot = None;
         t.pending_stop = false;
         t.pending_select = None;
-        t.lane_assigned = [false; 8];
-        t.lane_base = [0u8; 8];
+        t.lane_assigned = [false; LANES];
+        t.lane_base = [0u8; LANES];
         t.lane_label = Default::default();
     }
     // Link defaults off; a legacy save without a `link` line loads with it off.
@@ -223,7 +224,7 @@ pub fn load(engine: &mut Engine, data: &str) -> bool {
                 let base = it.next().and_then(|x| x.parse::<u8>().ok());
                 let label = it.next().unwrap_or("");
                 if let (Some(track), Some(lane), Some(base)) = (track, lane, base) {
-                    if track < engine.tracks.len() && lane < 8 {
+                    if track < engine.tracks.len() && lane < LANES {
                         engine.tracks[track].lane_assigned[lane] = true;
                         engine.tracks[track].lane_base[lane] = base;
                         engine.tracks[track].lane_label[lane] = label.to_string();
@@ -271,7 +272,12 @@ fn load_locks<'a>(engine: &mut Engine, it: &mut impl Iterator<Item = &'a str>) {
                 if let (Ok(lane), Ok(step), Ok(val)) =
                     (p[0].parse::<u8>(), p[1].parse::<u16>(), p[2].parse::<u8>())
                 {
-                    engine.tracks[track].clips[slot].set_lock(lane & 7, step, val.min(127));
+                    /* Out of range is DROPPED, never masked: an older build
+                     * folded lane 9 into lane 1 with `& 7`, merging two
+                     * params' locks into one lane. */
+                    if (lane as usize) < LANES {
+                        engine.tracks[track].clips[slot].set_lock(lane, step, val.min(127));
+                    }
                 }
             }
         }
@@ -538,6 +544,34 @@ mod tests {
         assert_eq!(e2.tracks[0].lane_label[1], "synth:cutoff");
         assert_eq!(e2.tracks[0].lane_base[1], 70);
         assert_eq!(e2.tracks[0].active().lock_at(1, 3), Some(55));
+    }
+
+    /* D13/D15: lanes 8-31 persist as themselves, and a lane past the end is
+     * dropped rather than masked into a low lane — `lane & 7` used to merge
+     * lane 9's locks into lane 1's param. */
+    #[test]
+    fn high_lanes_round_trip_and_out_of_range_lanes_are_dropped() {
+        let mut e = Engine::new(44100, 12000);
+        let mut out = Vec::new();
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        crate::command::apply_batch(&mut e, "alabel 0 31 synth:x;abase 0 31 9;alabel 0 9 synth:y", &mut out);
+        e.tracks[0].active_mut().set_lock(31, 2, 44);
+        e.tracks[0].active_mut().set_lock(9, 3, 33);
+        let s = serialize(&e);
+        let mut e2 = Engine::new(44100, 12000);
+        assert!(load(&mut e2, &s));
+        assert_eq!(e2.tracks[0].lane_label[31], "synth:x");
+        assert_eq!(e2.tracks[0].lane_base[31], 9);
+        assert_eq!(e2.tracks[0].active().lock_at(31, 2), Some(44));
+        assert_eq!(e2.tracks[0].active().lock_at(9, 3), Some(33));
+        assert_eq!(e2.tracks[0].active().lock_at(1, 3), None, "lane 9 is not lane 1");
+
+        let bad = s.replace("lk 0 0 ", "lk 0 0 40:5:77;") + "au 0 32 1 synth:z\n";
+        let mut e3 = Engine::new(44100, 12000);
+        assert!(load(&mut e3, &bad));
+        assert_eq!(e3.tracks[0].active().lock_at(40 & 7, 5), None, "lane 40 not masked to 0");
+        assert_eq!(e3.tracks[0].active().locks.len(), 2);
+        assert!(e3.tracks[0].lane_label.iter().all(|l| l != "synth:z"));
     }
 
     #[test]

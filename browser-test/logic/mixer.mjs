@@ -158,35 +158,58 @@ _log('\nTest: MIX page values and ranges');
 _log('\nTest: automating a mix param');
 
 {
-    const { mappingFor, applyLaneMapping, isMixTarget } =
+    const { mappingFor, bindLane, bindLanes, laneBindSpec, isMixTarget } =
         await import('../../dist/esm/seq/lane-mapping.js');
 
-    /* A mix param is not a chain-host param, so the ordinary knob_<N>_set
-     * mapping has nowhere to land — the lane has to be declared to movy's own
-     * mixer instead. Assert the WRITE, not that a callback ran: a mapping
-     * issued to the wrong key works perfectly, on nothing. */
+    /* A lane is bound in the engine (`ch<N>:lane`) with everything it needs to
+     * write: a mix param binds to movy's own mixer, a module param to its key
+     * with its range. Assert the WRITE, not that a callback ran: a bind issued
+     * in the wrong form works perfectly, on nothing. */
     const writes = [];
     const w = (k, v) => { writes.push(k + '=' + v); return true; };
     const info = { target: 'mix', ioKey: 'send1', min: 0, max: 1, value: 0,
                    type: 'float', automatable: true, gi: 2, key: 'send1' };
     mappingFor(info, w)(3);
-    eq('a mix param declares a mix lane', writes.join('|'), 'mixlane=3,send1');
+    eq('a mix param binds a mix lane', writes.join('|'), 'lane=3|m|send1');
 
     writes.length = 0;
-    mappingFor({ ...info, target: 'synth', ioKey: 'cutoff' }, w)(3);
-    ok('a module param still uses the chain mapping',
-       writes.includes('knob_4_set=synth:cutoff'));
-    /* A lane reassigned from a send to a module param would otherwise keep
-     * being swallowed by the mixer, with a lane, a label and a drawn arc all
-     * saying the module param should be moving. */
-    ok('and releases any mix binding the lane still carried',
-       writes.indexOf('mixlane=3,-') === 0);
+    mappingFor({ ...info, target: 'synth', ioKey: 'cutoff', min: 20, max: 20000 }, w)(3);
+    eq('a module param binds its key and range — one write, no CC mapping',
+       writes.join('|'), 'lane=3|f|20|20000|synth:cutoff');
 
-    /* The restore and verify paths go through the same writer, so they cannot
-     * re-apply a mix lane as a chain mapping that silently does nothing. */
+    /* The restore path goes through the same writer, so it cannot bind a mix
+     * lane as a chain param that silently does nothing. */
     writes.length = 0;
-    applyLaneMapping(w, 0, 'mix:gain');
-    eq('a restored mix lane is re-declared to the mixer', writes.join('|'), 'mixlane=0,gain');
+    bindLane(w, 0, { targetParam: 'mix:gain', min: 0, max: 1, type: 'float' });
+    eq('a restored mix lane is re-bound to the mixer', writes.join('|'), 'lane=0|m|gain');
+
+    /* D14's forms: ints round, an enum by index needs only its count, an enum
+     * the module reads by name carries its names. */
+    const spec = (e) => laneBindSpec(31, { targetParam: 'synth:k', min: 0, max: 3, type: 'float', ...e });
+    eq('int', spec({ type: 'int' }), '31|i|0|3|synth:k');
+    eq('bool is a 0..1 int', spec({ type: 'bool', max: 1 }), '31|i|0|1|synth:k');
+    eq('enum by index', spec({ type: 'enum', options: ['a', 'b', 'c'] }), '31|e|3|synth:k');
+    eq('enum by name', spec({ type: 'enum', options: ['a', 'b, c'], wiresNames: true }), '31|n|synth:k|a|b, c');
+    eq('an option holding the separator cannot bind', spec({ type: 'enum', options: ['a|b'], wiresNames: true }), null);
+    eq('a key with no component cannot bind', laneBindSpec(0, { targetParam: 'cutoff', min: 0, max: 1, type: 'float' }), null);
+    writes.length = 0;
+    eq('a refused bind writes nothing', bindLane(w, 0, { targetParam: 'cutoff', min: 0, max: 1, type: 'float' }), false);
+    eq('nothing written', writes.length, 0);
+
+    /* A label sync binds a track's lanes in ONE write — each write is a
+     * blocking round trip — and a refused lane costs only itself. */
+    writes.length = 0;
+    const refused = bindLanes(w, [
+        { lane: 0, e: { targetParam: 'mix:gain', min: 0, max: 1, type: 'float' } },
+        { lane: 1, e: { targetParam: 'nokey', min: 0, max: 1, type: 'float' } },
+        { lane: 31, e: { targetParam: 'synth:x', min: 0, max: 9, type: 'int' } },
+    ]);
+    eq('one write for the whole track', writes.length, 1);
+    eq('carrying every bindable lane', writes[0], 'lanes=0|m|gain\n31|i|0|9|synth:x');
+    eq('and counting the refused one', refused, 1);
+    writes.length = 0;
+    bindLanes(w, []);
+    eq('no lanes, no write', writes.length, 0);
 
     ok('a mix target is recognised from its label', isMixTarget('mix:pan'));
     ok('and a chain one is not', !isMixTarget('synth:pan'));

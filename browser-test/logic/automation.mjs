@@ -30,9 +30,11 @@ _log('\nautomation registry:');
     eq('abase queued', q.includes('abase 0 0 64'), true);
     // Re-assigning the same param returns the same lane.
     eq('same param → same lane', assignLane(0, 0, info, () => true), 0);
-    // Pool of 8: filling all returns -1.
-    for (let i = 1; i < 8; i++) assignLane(0, 0, { ...info, key: 'k' + i, ioKey: 'k' + i }, () => true);
-    eq('pool full → -1', assignLane(0, 0, { ...info, key: 'k8', ioKey: 'k8' }, () => true), -1);
+    // Pool of AUTO_LANES (D13): filling all returns -1.
+    const { AUTO_LANES } = await import('../../dist/esm/seq/constants.js');
+    for (let i = 1; i < AUTO_LANES; i++) assignLane(0, 0, { ...info, key: 'k' + i, ioKey: 'k' + i }, () => true);
+    eq('the 32nd lane is assigned', laneForParam(0, 'synth:k' + (AUTO_LANES - 1)), AUTO_LANES - 1);
+    eq('pool full → -1', assignLane(0, 0, { ...info, key: 'kx', ioKey: 'kx' }, () => true), -1);
 }
 
 /* ── automation: pool-full derives from the live lane count ───────────────── */
@@ -44,65 +46,16 @@ _log('\nautomation pool-full (lane count):');
     const { resetSeqEngine } = await import('../../dist/esm/seq/engine.js');
     resetAutomation(); resetSeqEngine();
     const mk = (k) => ({ gi: 0, key: k, ioKey: k, target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true });
+    const { AUTO_LANES } = await import('../../dist/esm/seq/constants.js');
     eq('empty pool not full', poolIsFull(0), false);
-    for (let i = 0; i < 7; i++) assignLane(0, 0, mk('k' + i), () => true);
-    eq('7 lanes not full yet', poolIsFull(0), false);
-    assignLane(0, 0, mk('k7'), () => true);            // 8th → full immediately
-    eq('8 lanes → pool full', poolIsFull(0), true);
+    for (let i = 0; i < AUTO_LANES - 1; i++) assignLane(0, 0, mk('k' + i), () => true);
+    eq('one short of the pool is not full', poolIsFull(0), false);
+    assignLane(0, 0, mk('klast'), () => true);          // last → full immediately
+    eq('a full pool reads full', poolIsFull(0), true);
     clearLane(0, 3);                                   // freeing a lane → not full
     eq('after freeing one → not full', poolIsFull(0), false);
     const { seqToastText } = await import('../../dist/esm/seq/render.js');
     eq('a user lane clear says so', seqToastText(), 'k3 lane cleared');
-}
-
-/* ── automation: lane param-cache warm after a chain reload ───────────────── */
-/* A reselect empties the host's static param cache (find_param_info source) for
- * self-describing modules → abs-CC playback silently drops. Reading a mapped
- * knob's _value triggers the host's refreshing lookup; warmLaneParams does that,
- * scheduled over a short strided window so it spans the async reload. */
-_log('\nautomation lane warm:');
-{
-    const { resetAutomation, assignLane, requestLaneWarm, laneWarmTick } =
-        await import('../../dist/esm/seq/automation.js');
-    const { resetSeqEngine } = await import('../../dist/esm/seq/engine.js');
-    const mk = (k) => ({ gi: 0, key: k, ioKey: k, target: 'synth', value: 1, min: 0, max: 2, type: 'float', automatable: true });
-
-    // Idle: no pending warm → no reads (zero idle IPC cost).
-    resetAutomation(); resetSeqEngine();
-    let reads = [];
-    const rec = (t, l) => reads.push(t + ':' + l);
-    for (let i = 0; i < 200; i++) laneWarmTick(rec);
-    eq('idle warm does nothing', reads.length, 0);
-
-    // One synth lane on track 0 → a scheduled window warms it a handful of times.
-    assignLane(0, 0, mk('cutoff'), () => true);
-    requestLaneWarm(0);
-    reads = [];
-    for (let i = 0; i < 96; i++) laneWarmTick(rec);
-    eq('warm window fires ~6 strided reads', reads.length, 6);
-    eq('warm reads the lane on its track', reads.every((r) => r === '0:0'), true);
-    // Window closes: further ticks are silent until the next request.
-    reads = [];
-    for (let i = 0; i < 96; i++) laneWarmTick(rec);
-    eq('warm stops after the window', reads.length, 0);
-
-    // Two lanes on the SAME component → deduped to one read per warm (the refresh
-    // repopulates the whole component's params, not just one param's).
-    resetAutomation(); resetSeqEngine();
-    assignLane(0, 0, mk('cutoff'), () => true);
-    assignLane(0, 0, mk('attack'), () => true);
-    requestLaneWarm(0);
-    reads = [];
-    for (let i = 0; i < 96; i++) laneWarmTick(rec);
-    eq('same-component lanes deduped to one read/warm', reads.length, 6);
-    eq('dedup keeps the first lane', reads.every((r) => r === '0:0'), true);
-
-    // A track with no lanes costs nothing even when a warm is requested.
-    resetAutomation(); resetSeqEngine();
-    requestLaneWarm(2);
-    reads = [];
-    for (let i = 0; i < 96; i++) laneWarmTick(rec);
-    eq('no-lane track warm is a no-op', reads.length, 0);
 }
 
 /* ── automation: knob-turn routing (hold-step / Rec / base) ──────────────── */
@@ -477,45 +430,6 @@ _log('\nautomation validateLane:');
     eq('undeclared voice key dropped', validateLane('synth:zz_c_tune', tblPs, tblLookup), 'drop');
 }
 
-/* ── automation: chain-mapping verify/re-apply after a module reload ──────── */
-_log('\nautomation verifyLaneMappings:');
-{
-    const { verifyLaneMappings, automationRegistry, resetAutomation } =
-        await import('../../dist/esm/seq/automation.js');
-    const { TRACK_COUNT } = await import('../../dist/esm/track/ref.js');
-    resetAutomation();
-    const reg = automationRegistry();
-    reg[0][0] = { targetParam: 'synth:pv1_f1_cut', shortName: 'pv1_f1_cut', min: 0, max: 1, type: 'float' };
-    reg[0][3] = { targetParam: 'synth:v5_fx2', shortName: 'v5_fx2', min: 0, max: 1, type: 'float' };
-
-    // Mapping intact ("target: param" format) → no re-apply.
-    let applied = [];
-    let reads = 0;
-    const run = (name) => verifyLaneMappings(
-        () => { reads++; return name; },
-        (slot, lane, tp) => applied.push(slot + ':' + lane + ':' + tp),
-    );
-    /* One full sweep round-robins every track; only track 0 has lanes, so it is
-     * also the only track that costs a read. */
-    reads = 0; applied = [];
-    for (let i = 0; i < TRACK_COUNT; i++) run('synth: pv1_f1_cut');
-    eq('intact mapping: no re-apply', applied.length, 0);
-    eq('only lane-bearing track reads', reads, 1);
-
-    // Mapping cleared (null name = chain returned "knob not mapped") → every
-    // assigned lane on that track re-applied.
-    applied = [];
-    for (let i = 0; i < TRACK_COUNT; i++) run(null);
-    eq('cleared mapping: re-applies all lanes',
-        applied.join('|'), '0:0:synth:pv1_f1_cut|0:3:synth:v5_fx2');
-
-    // Foreign mapping (module swapped, knob remapped elsewhere) → re-apply.
-    applied = [];
-    for (let i = 0; i < TRACK_COUNT; i++) run('synth: cutoff');
-    eq('foreign mapping: re-applies', applied.length, 2);
-    resetAutomation();
-}
-
 /* ── automation: clearing a clip's automation re-requests a label sync ─────── */
 /* The engine frees a lane when its last lock is removed; the UI must re-sync so
  * the freed lane leaves the registry (no phantom assigned lane). */
@@ -556,7 +470,7 @@ _log('\nautomation label sync:');
     // Lane 1 valid (cutoff), lane 2 obsolete-alias (pad_vol), lane 3 stale (timbre).
     syncLabelsFromEngine(
         '-.synth:cutoff.synth:pad_vol.synth:timbre.-.-.-.-,-.-.-.-.-.-.-.-,-.-.-.-.-.-.-.-,-.-.-.-.-.-.-.-',
-        (slot, lane, tp) => applied.push(slot + ':' + lane + ':' + tp),
+        (slot, lane, e) => applied.push(slot + ':' + lane + ':' + e.targetParam),
         (track, tp) => {
             if (tp === 'synth:cutoff') return { min: 0, max: 1, type: 'float' };
             if (tp === 'synth:pad_vol') return 'drop';   // obsolete alias
@@ -565,7 +479,7 @@ _log('\nautomation label sync:');
         },
     );
     eq('valid lane synced into registry', laneForParam(0, 'synth:cutoff'), 1);
-    eq('re-applied valid knob mapping', applied.includes('0:1:synth:cutoff'), true);
+    eq('re-bound the valid lane', applied.includes('0:1:synth:cutoff'), true);
     eq('obsolete-alias lane purged', laneForParam(0, 'synth:pad_vol'), -1);
     eq('stale lane purged', laneForParam(0, 'synth:timbre'), -1);
     // Purge emits aclr so the engine + persistence drop the lane too.
@@ -578,33 +492,51 @@ _log('\nautomation label sync:');
 /* ── automation: lane restore reaches every track ─────────────────────────── */
 _log('\nautomation lane restore covers 16 tracks:');
 {
-    const { resetAutomation, syncLabelsFromEngine, verifyLaneMappings, automationRegistry } =
+    const { resetAutomation, syncLabelsFromEngine, automationRegistry } =
         await import('../../dist/esm/seq/automation.js');
     const { resetSeqEngine } = await import('../../dist/esm/seq/engine.js');
     const { TRACK_COUNT } = await import('../../dist/esm/track/ref.js');
+    const { AUTO_LANES } = await import('../../dist/esm/seq/constants.js');
 
     /* The engine emits labels for all 16 tracks (engine.rs auto_labels), but the
      * UI read only the first four — a leftover from when movy had four. Lanes on
-     * tracks 5-16 were therefore never rebuilt after a Set load and never
-     * re-applied after a module reload: automation that plays back in one
-     * session and is silently gone in the next. */
+     * tracks 5-16 were therefore never rebuilt after a Set load: automation that
+     * plays back in one session and is silently gone in the next. */
     resetAutomation(); resetSeqEngine();
-    const lanes = ['synth:cutoff', '-', '-', '-', '-', '-', '-', '-'].join('.');
-    const labels = Array.from({ length: TRACK_COUNT }, () => lanes).join(',');
+    const row = Array.from({ length: AUTO_LANES }, (_, l) => l === 0 || l === AUTO_LANES - 1 ? 'synth:cutoff' + l : '-');
+    const labels = Array.from({ length: TRACK_COUNT }, () => row.join('.')).join(',');
     const applied = [];
-    syncLabelsFromEngine(labels, (slot) => applied.push(slot),
+    syncLabelsFromEngine(labels, (slot, lane) => applied.push(slot + ':' + lane),
                          () => ({ min: 0, max: 1, type: 'float' }));
-    eq('every track is restored', applied.length, TRACK_COUNT);
-    eq('the last track is restored', applied.includes(TRACK_COUNT - 1), true);
+    eq('every track is restored', applied.filter((a) => a.endsWith(':0')).length, TRACK_COUNT);
+    eq('the last track is restored', applied.includes((TRACK_COUNT - 1) + ':0'), true);
+    eq('the last lane is restored (D13)', applied.includes('0:' + (AUTO_LANES - 1)), true);
+    eq('the registry holds the last lane', automationRegistry()[0][AUTO_LANES - 1]?.targetParam,
+       'synth:cutoff' + (AUTO_LANES - 1));
+}
 
-    /* verifyLaneMappings round-robins one track per call, so a full sweep must
-     * visit all of them — otherwise a module reload on track 9 leaves its lanes
-     * mapped to nothing, with a fully intact UI on top. */
-    const seen = new Set();
-    for (let i = 0; i < TRACK_COUNT; i++) {
-        verifyLaneMappings((slot) => { seen.add(slot); return 'synth: cutoff'; }, () => {});
-    }
-    eq('the round-robin visits every track', seen.size, TRACK_COUNT);
+/* ── automation: a lane whose module is not loaded is kept, unbound ────────── */
+/* The bind carries the param's range; binding a guessed one would write wrong
+ * values. The lane waits, and the sync says a retry is owed. */
+_log('\nautomation unknown lane waits for its module:');
+{
+    const { resetAutomation, syncLabelsFromEngine, laneForParam } =
+        await import('../../dist/esm/seq/automation.js');
+    const { resetSeqEngine, peekSeqCmdQueue } = await import('../../dist/esm/seq/engine.js');
+    resetAutomation(); resetSeqEngine();
+    const applied = [];
+    const verdict = { 'synth:a': { min: 0, max: 1, type: 'float' }, 'synth:b': 'unknown' };
+    const pending = syncLabelsFromEngine('synth:a.synth:b', (s, l, e) => applied.push(e.targetParam),
+                                         (t, tp) => verdict[tp]);
+    eq('an unknown lane is not bound', applied.join('|'), 'synth:a');
+    eq('but it is kept', laneForParam(0, 'synth:b'), 1);
+    eq('and not purged', peekSeqCmdQueue().includes('aclr 0 1'), false);
+    eq('the sync reports a retry owed', pending, true);
+    verdict['synth:b'] = { min: 0, max: 10, type: 'int' };
+    applied.length = 0;
+    eq('a later sync with the module loaded owes nothing',
+       syncLabelsFromEngine('synth:a.synth:b', (s, l, e) => applied.push(e.targetParam), (t, tp) => verdict[tp]), false);
+    eq('and binds it', applied.includes('synth:b'), true);
 }
 
 }

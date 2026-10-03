@@ -67,6 +67,20 @@ struct Bus {
     ui_max_ns: u64,
 }
 
+impl Bus {
+    /// The one place a bus is fed, so `dirty` and `in_peak` mean the same
+    /// thing whichever source fed it.
+    fn sum(&mut self, src: &[i16], gl: f32, gr: f32) {
+        if gl == 0.0 && gr == 0.0 {
+            return; // zero send: the buffer is not even touched
+        }
+        let len = self.buf.len().min(src.len());
+        mix_into_gains(&mut self.buf[..len], &src[..len], gl, gr);
+        self.dirty = true;
+        self.in_peak = self.buf[..len].iter().fold(0i32, |m, &s| m.max((s as i32).abs()));
+    }
+}
+
 pub struct SendBuses {
     buses: Vec<Bus>,
     /// The same 1/16 mean as `cost_ns`, kept apart because `cost_reset` must not
@@ -130,14 +144,16 @@ impl SendBuses {
                 continue;
             }
             let (gl, gr) = mix.send_gains(n);
-            if gl == 0.0 && gr == 0.0 {
-                continue; // zero send: the buffer is not even touched
-            }
-            let len = bus.buf.len().min(src.len());
-            mix_into_gains(&mut bus.buf[..len], &src[..len], gl, gr);
-            bus.dirty = true;
-            let peak = bus.buf[..len].iter().fold(0i32, |m, &s| m.max((s as i32).abs()));
-            bus.in_peak = peak;
+            bus.sum(src, gl, gr);
+        }
+    }
+
+    /// Sum one block into bus `n` at the given gains — a track's per-pad sends
+    /// (`voice_send.rs`), which carry their own levels and only borrow the
+    /// track's fader.
+    pub fn accumulate_bus(&mut self, n: usize, src: &[i16], gl: f32, gr: f32) {
+        if let Some(bus) = self.buses.get_mut(n) {
+            bus.sum(src, gl, gr);
         }
     }
 
@@ -424,6 +440,23 @@ mod tests {
         b.accumulate(&[1000, 1000], &sending(1.0), 0);
         b.accumulate(&[500, 500], &sending(1.0), 0);
         assert_eq!(&b.buf_mut(0)[..2], &[1500, 1500], "a bus is a sum, not a replace");
+    }
+
+    /// Per-pad sends feed one named bus and keep the same bookkeeping a track
+    /// send does — a bus fed only by pads must still run its FX.
+    #[test]
+    fn a_pad_send_feeds_its_bus_and_marks_it_to_run() {
+        let mut b = SendBuses::new();
+        b.accumulate_bus(1, &[800, -400], 0.5, 1.0);
+        assert_eq!(&b.buf_mut(1)[..2], &[400, -400]);
+        assert_eq!(&b.buf_mut(0)[..2], &[0, 0], "only the named bus");
+        assert_eq!(b.take_plan(), {
+            let mut p = [false; SEND_BUSES];
+            p[1] = true;
+            p
+        });
+        b.accumulate_bus(0, &[30000, 30000], 0.0, 0.0);
+        assert!(!b.take_plan()[0], "a muted track's pads do not wake the bus");
     }
 
     #[test]

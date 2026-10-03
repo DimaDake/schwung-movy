@@ -52,6 +52,11 @@
  *   S12 the last bus was fed
  *   S13 and audio came out of it
  *   S14 and bus 0 was left alone
+ *   S15 a Simian loads into a spare chain
+ *   S16 the engine recognises its per-pad sends (`vsnd=` declares mask)
+ *   S17 a pad's Send A alone — track send at zero — reaches SEND 1
+ *   S18 and nothing reaches SEND 2 (Send B is at zero)
+ *   S19 Send A back at zero sends nothing
  */
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -76,6 +81,11 @@ const SEND_FX = 'freeverb';
  * every other track is empty, so a send from one would measure silence and
  * report it as a routing bug. Track 0 is movy chain 0. */
 const TRACK = 0;
+
+/* The per-pad arm's module: Simian publishes split voices and declares
+ * `{id}_send_a` / `{id}_send_b`; `pad1` is its kick, on note 36. */
+const PAD_SYNTH = 'simian';
+const PAD_SEND_A = 'pad1_send_a';
 
 /* Frames of device work. A frame is the shim's SPI period (~2.9 ms), so these
  * are quantities of device work and not wall clocks. */
@@ -115,6 +125,13 @@ const moduleAt = (line: string, bus: number): string =>
  * numbers, and a top-level import of a build artifact would take the WHOLE
  * scenario runner down on a tree where `npm run test:device` (which does not
  * run `build:browser`) is the first thing anyone runs. */
+/** `vsnd=<declares>/<feeds0>,<feeds1>`, all hex chain masks. */
+const vsndAt = (line: string): { declares: number; feeds0: number; feeds1: number } => {
+    const m = line.match(/vsnd=([0-9a-f]+)\/([0-9a-f]+),([0-9a-f]+)/);
+    return m ? { declares: parseInt(m[1], 16), feeds0: parseInt(m[2], 16), feeds1: parseInt(m[3], 16) }
+             : { declares: 0, feeds0: 0, feeds1: 0 };
+};
+
 const busCount = (line: string): number =>
     (line.match(/(?:^| )\d+:in=\d+,out=\d+,blocks=\d+/g) ?? []).length;
 
@@ -410,6 +427,77 @@ scenario('sends', async (t) => {
         { expected: '0:in=0',
           actual: wide !== '' ? `0:${group(other)} — the send landed on the wrong bus`
                               : 'no report line' });
+
+    // ── S15–S19: per-pad sends (plans/2026-10-03-per-pad-sends.md) ───────────
+    /* The one claim no host build can reach: `ChainSlots::render` returns
+     * before the send phase without a chain host, so whether a drum module's
+     * Send A really arrives in SEND 1 is only provable here. Chain 5, not 4:
+     * `lfo.ts` owns chain 4. The track's OWN send stays at zero throughout, so
+     * anything bus 0 receives came through the pads. */
+    const PADS = 5;
+    const loadedLine = `chain ${PADS}: synth = ${PAD_SYNTH}`;
+    t.need.register(async () => {
+        await ep(`ch${PADS}:synth:module`, '');
+        await ep(`ch${PADS}:mix`, unity(BUSES, -1));
+    });
+    const padsBefore = (await dev.logLines(loadedLine)).length;
+    await ep(`ch${PADS}:synth:module`, PAD_SYNTH);
+    let padsLoaded = true;
+    try {
+        await until(t.bus, `chain ${PADS} to load ${PAD_SYNTH}`,
+            () => dev.logLines(loadedLine), (v) => v.length > padsBefore,
+            { within: 3500, every: 120 });
+    } catch { padsLoaded = false; }
+    t.check('pad-synth-loaded', `a ${PAD_SYNTH} loads into chain ${PADS}`, padsLoaded,
+        { expected: `a "${loadedLine}" line`, actual: padsLoaded ? 'loaded' : 'never loaded' });
+
+    await ep(`ch${PADS}:mix`, unity(BUSES, -1));
+    const declared = await reportUntil((l) => (vsndAt(l).declares & (1 << PADS)) !== 0,
+                                       `chain ${PADS} to declare per-pad sends`);
+    t.note('padDeclaredReport', declared);
+    t.check('pad-sends-declared', 'the engine recognises its per-pad sends',
+        (vsndAt(declared).declares & (1 << PADS)) !== 0,
+        { expected: `vsnd= declares bit ${PADS}`, actual: declared || 'no report line' });
+
+    /* `in=` is the LAST block's input, and a default kick (200 ms) is over
+     * before a report's round trip lands — measured: the bus ran, `in` read 0.
+     * So the kick rings for its longest decay, and is struck again before
+     * every read. */
+    await ep(`ch${PADS}:synth:pad1_decay`, '2000');
+    const kick = `ch${PADS}:midi`;
+    const strikeAndReport = async (what: string) => {
+        await ep(kick, '144.36.127');
+        await t.bus.frames(2);
+        const l = await report(what);
+        await ep(kick, '128.36.0');
+        return l;
+    };
+    await ep(`ch${PADS}:synth:${PAD_SEND_A}`, '100');
+    let padFed = '';
+    try {
+        padFed = await until(t.bus, 'a pad send to reach bus 0',
+            () => strikeAndReport('the pad-send report'),
+            (l) => (busAt(l, 0)?.in ?? 0) > 0, { within: 4000, every: 50 });
+    } catch (e: any) { padFed = typeof e?.last === 'string' ? e.last : ''; }
+    t.note('padFedReport', padFed);
+    const pf0 = busAt(padFed, 0);
+    t.check('pad-send-reached-bus', "a pad's Send A reaches SEND 1 with the track send at zero",
+        (pf0?.in ?? 0) > 0 && (vsndAt(padFed).feeds0 & (1 << PADS)) !== 0,
+        { expected: `0:in>0 and vsnd feeds0 bit ${PADS}`,
+          actual: padFed !== '' ? `0:${group(pf0)} ${padFed.match(/vsnd=\S+/)?.[0] ?? '<no vsnd>'}`
+                                : 'no report line' });
+    t.check('pad-send-b-silent', 'and nothing reaches SEND 2 (Send B is at zero)',
+        (busAt(padFed, 1)?.in ?? 0) === 0 && (vsndAt(padFed).feeds1 & (1 << PADS)) === 0,
+        { expected: '1:in=0, no feeds1 bit', actual: padFed || 'no report line' });
+
+    await ep(`ch${PADS}:synth:${PAD_SEND_A}`, '0');
+    await t.bus.frames(SETTLE);
+    const offs: string[] = [];
+    for (let i = 0; i < 3; i++) offs.push(await strikeAndReport('the pad-send-off report'));
+    t.note('padOffReports', offs);
+    t.check('pad-send-off-silent', 'Send A back at zero sends nothing',
+        offs.every((l) => l !== '' && (busAt(l, 0)?.in ?? 1) === 0),
+        { expected: '0:in=0 on every struck block', actual: offs.map((l) => `0:${group(busAt(l, 0))}`).join(' | ') });
 
     /* Leave the device as the suite found it.
      *

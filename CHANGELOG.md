@@ -15,6 +15,14 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
+- **Per-pad sends from drum modules.** Simian's and DR32's per-pad Send A /
+  Send B now feed Movy's SEND 1 / SEND 2, post the track's fader and pan, on top
+  of the track's own send. Until now those knobs wrote a level nothing in Movy
+  read. The engine drains schwung's chain-host voice pool
+  (`chain_drain_sends`); a chain whose pads are sending counts as a feeder of
+  the bus, so co-located send rendering stays race-free. `sndlog` gains
+  `vsnd=`. ENGINE 0.84.0.
+
 - **Under PARAM PAGES: SCHWUNG, the LFO pages are Schwung's own (SP-60).** A
   track's LFO slot and the master chain's now draw the LFO 1 / LFO 2 pages
   Schwung's Slot Settings and Master FX Settings use — one waveform across

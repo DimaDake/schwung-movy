@@ -49,6 +49,23 @@ pub fn feeders(mixes: &[TrackMix], working: &[bool]) -> [u16; SEND_BUSES] {
     out
 }
 
+/// OR the chains whose PADS feed a bus (`voice_send`) into `feeders`.
+///
+/// A chain can feed SEND 1 with its own send at zero, through a drum module's
+/// per-pad Send A. Left out, the bus could be co-located on a lane that chain
+/// is not on — and then the chain's lane and the bus's lane both write its
+/// buffer. Same `working` gate: a sleeping chain drains nothing.
+pub fn add_voice_feeders(
+    feeders: &mut [u16; SEND_BUSES],
+    voice: &crate::voice_send::VoiceSends,
+    working: &[bool],
+) {
+    let awake = working.iter().take(16).enumerate().fold(0u16, |m, (c, &w)| if w { m | (1 << c) } else { m });
+    for (k, f) in feeders.iter_mut().enumerate().take(crate::voice_send::VOICE_SENDS) {
+        *f |= voice.feeds(k) & awake;
+    }
+}
+
 /// Whether co-locating a bus earns its place, comparing what a block would
 /// actually cost each way.
 ///
@@ -101,6 +118,23 @@ mod tests {
         let mut m = TrackMix::default();
         m.send = sends;
         m
+    }
+
+    /// A Simian with track SND1 at zero still feeds SEND 1 through its pads, and
+    /// must be in the group — or two lanes write one bus buffer.
+    #[test]
+    fn a_sending_pad_is_a_feeder_with_the_track_send_at_zero() {
+        let mut v = crate::voice_send::VoiceSends::new(16);
+        v.observe(2, [500, 0]);
+        v.observe(5, [0, 500]);
+        let mut f = feeders(&[mix([0.0; SEND_BUSES]); 16], &[true; 16]);
+        assert_eq!(f, [0; SEND_BUSES]);
+        let mut working = [true; 16];
+        working[5] = false;
+        add_voice_feeders(&mut f, &v, &working);
+        assert_eq!(f[0], 1 << 2);
+        assert_eq!(f[1], 0, "a sleeping chain drains nothing, so it feeds nothing");
+        assert!(SEND_BUSES < 3 || f[2] == 0, "no pad source for SEND 3");
     }
 
     #[test]

@@ -48,6 +48,13 @@ impl TrackMix {
         (g * (1.0 - p.max(0.0)), g * (1.0 + p.min(0.0)))
     }
 
+    /// The gains a per-pad send leaves the track at (`voice_send.rs`):
+    /// post-fader and post-pan, exactly as the track's own sends — a pad's send
+    /// level is the module's, the fader and pan are still the track's.
+    pub fn voice_send_gains(&self) -> (f32, f32) {
+        self.channel_gains()
+    }
+
     /// This track's contribution to send bus `n`.
     ///
     /// Post-fader and post-pan: the send follows the fader and the pan
@@ -192,6 +199,18 @@ mod tests {
     /// A lane's 0-127 is a POSITION on the control's travel. Linear-over-
     /// amplitude put unity a quarter of the way up and left the automated
     /// fader stuck against one end; these pin the curve to the UI's.
+    /// A pad's send follows the track fader, pan and mute — and NOT the
+    /// track's own send level, which is a different control.
+    #[test]
+    fn a_pad_send_is_post_fader_post_pan_and_ignores_the_track_send() {
+        let mix = TrackMix { gain: 0.5, pan: 1.0, ..TrackMix::default() };
+        assert_eq!(mix.voice_send_gains(), (0.0, 0.5), "hard right");
+        let muted = TrackMix { muted: true, ..TrackMix::default() };
+        assert_eq!(muted.voice_send_gains(), (0.0, 0.0));
+        assert_eq!(TrackMix::default().send[0], 0.0);
+        assert_eq!(TrackMix::default().voice_send_gains(), (1.0, 1.0));
+    }
+
     #[test]
     fn a_gain_lane_walks_the_fader_curve() {
         let g = MixField::Gain;

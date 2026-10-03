@@ -153,6 +153,9 @@ pub struct ChainFxApi {
     process_fx: Option<FxFn>,
     requires_continuous: Option<FxContinuousFn>,
     take_midi_tick_wake: Option<TickWakeFn>,
+    /// Per-pad sends (`voice_send.rs`). Independently optional: a chain host
+    /// older than 1.3.0 has no voice pool to drain, and its modules no sends.
+    drain_sends: Option<DrainFn>,
 }
 
 impl ChainFxApi {
@@ -241,10 +244,15 @@ impl ChainHost {
             let proc_fx = CString::new("chain_process_fx").unwrap();
             let cont = CString::new("chain_fx_requires_continuous").unwrap();
             let wake = CString::new("chain_take_midi_tick_wake").unwrap();
+            let drain = CString::new("chain_drain_sends").unwrap();
             let m = dlsym(handle, mode.as_ptr());
             let p = dlsym(handle, proc_fx.as_ptr());
             let c = dlsym(handle, cont.as_ptr());
             let w = dlsym(handle, wake.as_ptr());
+            let d = dlsym(handle, drain.as_ptr());
+            if !d.is_null() {
+                fx.drain_sends = Some(core::mem::transmute::<*mut c_void, DrainFn>(d));
+            }
             if !m.is_null() {
                 fx.set_external_fx_mode = Some(core::mem::transmute::<*mut c_void, FxModeFn>(m));
             }
@@ -262,6 +270,9 @@ impl ChainHost {
         }
         if !fx.complete() {
             host::log("chain host exports no split render — idle skip limited to whole chains");
+        }
+        if fx.drain_sends.is_none() {
+            host::log("chain host exports no chain_drain_sends — per-pad sends are off");
         }
         if fx.take_midi_tick_wake.is_none() {
             host::log("chain host exports no midi tick wake — a sleeping chain's MIDI FX \
@@ -438,6 +449,27 @@ impl ChainInstance {
         }
     }
 
+    /// Whether this chain's synth declares per-pad sends (`voice_send_params`).
+    ///
+    /// Asked on the audio thread, one chain per block, so no `CString`: the key
+    /// is a literal carrying its own NUL, and the answer lands in the
+    /// preallocated scratch.
+    pub fn declares_voice_sends(&mut self) -> bool {
+        const KEY: &[u8] = b"synth:voice_send_params\0";
+        let (Some(f), Some(_)) = (self.api.get_param, self.fx.drain_sends) else { return false };
+        let cap = self.scratch.len();
+        let n = unsafe {
+            f(self.inst, KEY.as_ptr() as *const c_char, self.scratch.as_mut_ptr() as *mut c_char, cap as c_int)
+        };
+        n > 0 && (n as usize) < cap && crate::voice_send::declares(&self.scratch[..n as usize])
+    }
+
+    /// `chain_drain_sends`, for the pool to call on the lane that rendered the
+    /// chain. `None` on a chain host without it.
+    pub fn drain_fn(&self) -> Option<DrainFn> {
+        self.fx.drain_sends
+    }
+
     /// Instance pointer and both entry points, for the pool to call from a
     /// helper thread. The instance comes back even when the synth is asleep:
     /// the lane still owes it a zeroed buffer and possibly an FX pass.
@@ -453,6 +485,10 @@ pub type RenderFn = unsafe extern "C" fn(*mut c_void, *mut i16, c_int);
 pub type FxFn = unsafe extern "C" fn(*mut c_void, *mut i16, c_int);
 type FxModeFn = unsafe extern "C" fn(*mut c_void, c_int);
 type FxContinuousFn = unsafe extern "C" fn(*mut c_void) -> c_int;
+
+/// `chain_drain_sends(inst, accum, n_sends, frames, slot_volume_0_127)` — sums
+/// every bus send and per-voice send of THIS frame's render into `accum`.
+pub type DrainFn = unsafe extern "C" fn(*mut c_void, *const *mut i16, c_int, c_int, c_int);
 
 /// `chain_take_midi_tick_wake` — one-shot, and reading it clears it.
 type TickWakeFn = unsafe extern "C" fn(*mut c_void) -> c_int;

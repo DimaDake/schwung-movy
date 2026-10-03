@@ -780,6 +780,25 @@ does to the sound, not of what it costs.
 
 Sends are **saved with the Set**, module and preset alike.
 
+#### Per-pad sends from drum modules
+
+A drum module with its own per-pad **Send A** / **Send B** knobs feeds the same
+buses, one pad at a time: **Send A goes to SEND 1, Send B to SEND 2**. Turn up
+the snare's Send A on the module's own pad page and only the snare reaches
+the reverb on SEND 1, even with the track's SND1 at zero. SEND 3 has no per-pad
+source; it is fed from the MIX page only.
+
+- A pad's send is added to whatever the track's own SND1/SND2 already sends.
+- It follows the **track's** volume, pan and mute, like the track's own send.
+  It is taken from the pad's dry sound, before the track's FX.
+- The levels belong to the module and are saved in its preset, like any other
+  module parameter.
+
+Two modules support this today: **Simian** (Send A/B on each of its ten drums)
+and **DR32** (on each of its 32 pads). Other modules' "send" knobs (Surge,
+Weird Dreams, Forge, MiniJV, Mono Voice, Osirus) drive effects built into the
+module itself and never reach Movy's sends.
+
 ### The LFO page
 
 The last page in the chain is **LFO** — two low-frequency oscillators that can

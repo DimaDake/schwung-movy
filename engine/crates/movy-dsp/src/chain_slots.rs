@@ -22,7 +22,8 @@ use crate::auto_lane::{LaneTarget, ValBuf, AUTO_LANES};
 use crate::mixer::{mix_into, TrackMix};
 use crate::send_bus::{SendBuses, SEND_BUSES};
 use crate::render_plan::{worth_fanning_out, Planner};
-use crate::render_pool::{Pre, RenderPool, Tap, Task, MAX_TAPS, NO_TAPS};
+use crate::render_pool::{drain_voices, Pre, RenderPool, Tap, Task, VoiceTask, MAX_TAPS, NO_TAPS};
+use crate::voice_send::{VoiceSends, VOICE_SENDS};
 
 /// Chains movy hosts itself: **one per track, and `ch<N>` IS track N.**
 ///
@@ -228,6 +229,9 @@ pub struct ChainSlots {
     /// asks the chain host across FFI and needs `&mut self` — neither of which
     /// belongs in a status line built 24 times a second.
     send_loaded: Vec<bool>,
+    /// Per-pad sends: which chains drain, their drained blocks, and which of
+    /// them currently feed SEND 1 / SEND 2. See `voice_send`.
+    voice: VoiceSends,
 }
 
 impl ChainSlots {
@@ -281,6 +285,7 @@ impl ChainSlots {
             auto_lanes: (0..MOVY_CHAINS).map(|_| core::array::from_fn(|_| LaneTarget::None)).collect(),
             send_slots: (0..SEND_BUSES).map(|_| None).collect(),
             send_loaded: vec![false; SEND_BUSES],
+            voice: VoiceSends::new(MOVY_CHAINS),
         }
     }
 
@@ -482,13 +487,19 @@ impl ChainSlots {
             }
         }
         format!(
-            "{}{} par={} plan={} colo={:x} ran={:x}",
+            "{}{} par={} plan={} colo={:x} ran={:x} vsnd={:x}/{:x},{:x}",
             self.sends.report(),
             out,
             u8::from(self.send_fanned),
             plan.join("|"),
             self.colocated_mask(),
-            ran
+            ran,
+            /* Per-pad sends: chains whose module declares them / chains whose
+             * pads are feeding SEND 1, SEND 2. Separates "the module was never
+             * recognised" from "recognised, but nothing was drained". */
+            self.voice.declares_mask(),
+            self.voice.feeds(0),
+            self.voice.feeds(1)
         )
     }
 
@@ -1057,6 +1068,19 @@ impl ChainSlots {
             }
         }
 
+        /* One chain a block is asked whether its module declares per-pad sends
+         * — a synth swap is a plain param write, so there is no event to hang
+         * this on. Then, like `work`, the drain is decided before anything
+         * renders, and only for a synth that renders (`VoiceSends::plan`). */
+        let probe = self.voice.next_probe();
+        let declares = self.slots[probe].as_mut().is_some_and(|s| s.declares_voice_sends());
+        if self.voice.set_declares(probe, declares) {
+            self.plan_dirty = true;
+        }
+        for i in 0..MOVY_CHAINS {
+            self.voice.plan(i, self.slots[i].is_some() && self.work[i].synth);
+        }
+
         /* Decided BEFORE anything renders, like `work` above and for the same
          * reason: the parallel path builds its whole task list up front, and a
          * bus that joined it later could not be given the taps that feed it.
@@ -1133,6 +1157,7 @@ impl ChainSlots {
             }
             self.sends.accumulate(scratch, &self.mixes[i], skip);
         }
+        self.mix_voice_sends(frames);
         // Folded back after the mix, so the borrow of `scratch` is done with.
         for i in 0..MOVY_CHAINS {
             let w = self.work[i];
@@ -1259,6 +1284,61 @@ impl ChainSlots {
         m
     }
 
+    /// The lane half of chain `c`'s per-pad sends, or `None` when it does not
+    /// drain this block. Taps only the buses co-located WITH it — exactly the
+    /// predicate `mix_voice_sends` skips on, so a block is summed once.
+    fn voice_task(&mut self, c: usize, renders: bool, bus_buf: &[*mut i16; SEND_BUSES]) -> Option<VoiceTask> {
+        if !renders || !self.voice.drained(c) {
+            return None;
+        }
+        let drain = self.slots[c].as_ref()?.drain_fn()?;
+        let (gl, gr) = self.mixes[c].voice_send_gains();
+        let taps = core::array::from_fn(|k| {
+            let on_lane = self.colo_ran[k] && self.colo_feeders[k] & (1 << c) != 0;
+            (on_lane && (gl != 0.0 || gr != 0.0)).then_some(Tap { buf: bus_buf[k], gl, gr })
+        });
+        Some(VoiceTask { drain, scratch: self.voice.raw_ptrs(c), taps })
+    }
+
+    /// After the join: fold every chain's drained per-pad sends into the feed
+    /// state, and sum the ones no lane already summed into their bus.
+    ///
+    /// A pad sending into a co-located bus it is not yet a feeder of is DROPPED
+    /// for this block: that bus's FX already ran on its lane, so summing here
+    /// would add dry signal to its output — and before the join it would have
+    /// been two threads on one buffer. The replan puts the chain on the bus's
+    /// lane from the next block. One block, once, at onset.
+    fn mix_voice_sends(&mut self, frames: usize) {
+        for i in 0..MOVY_CHAINS {
+            let drained = self.voice.drained(i);
+            let mut peaks = [0i32; VOICE_SENDS];
+            if drained {
+                for (k, p) in peaks.iter_mut().enumerate() {
+                    *p = self.voice.buf(i, k)[..frames].iter().fold(0, |m, &s| m.max((s as i32).abs()));
+                }
+            }
+            if self.voice.observe(i, peaks) {
+                self.plan_dirty = true;
+            }
+            if !drained {
+                continue;
+            }
+            let (gl, gr) = self.mixes[i].voice_send_gains();
+            for k in 0..VOICE_SENDS {
+                if peaks[k] == 0 {
+                    continue;
+                }
+                if self.colo_ran[k] {
+                    if self.colo_feeders[k] & (1 << i) == 0 {
+                        self.plan_dirty = true;
+                    }
+                    continue;
+                }
+                self.sends.accumulate_bus(k, &self.voice.buf(i, k)[..frames], gl, gr);
+            }
+        }
+    }
+
     /// Serial render is no longer a setting — it is the fallback for a pool
     /// that has not been spawned yet (nothing hosts chains) or that poisoned
     /// itself when a helper panicked. Deleting it would turn either into
@@ -1284,6 +1364,16 @@ impl ChainSlots {
             let scope = crate::midi_out::Scope::enter(i);
             if w.synth {
                 inst.render_block(&mut self.scratch[i][..frames]);
+                /* Straight after the render, as the lane does it. No taps:
+                 * nothing is co-located on the serial path, so every bus is
+                 * fed after the join by `mix_voice_sends`. */
+                if let (true, Some(drain)) = (self.voice.drained(i), inst.drain_fn()) {
+                    let v = VoiceTask { drain, scratch: self.voice.raw_ptrs(i), taps: [None; VOICE_SENDS] };
+                    let (ptr, _, _) = inst.raw_parts();
+                    // Safe: the audio thread owns this chain's scratch on the
+                    // serial path, and it holds a full block.
+                    unsafe { drain_voices(&v, ptr, (frames / 2) as i32) };
+                }
             } else {
                 // The FX is owed silence to decay into, not the last block.
                 self.scratch[i][..frames].fill(0);
@@ -1342,6 +1432,7 @@ impl ChainSlots {
                     self.lanes[lane].push(Task {
                         pre: Pre::Keep,
                         taps: NO_TAPS,
+                        voice: None,
                         process_fx: Some(fx),
                         inst,
                         buf: self.sends.buf_ptr(n),
@@ -1382,9 +1473,11 @@ impl ChainSlots {
                         t += 1;
                     }
                 }
+                let voice = self.voice_task(c, render.is_some(), &bus_buf);
                 self.lanes[lane].push(Task {
                     pre: render.map_or(Pre::Silence, Pre::Render),
                     taps,
+                    voice,
                     process_fx: fx,
                     inst: ptr,
                     buf: self.scratch[c].as_mut_ptr(),
@@ -1494,6 +1587,7 @@ impl ChainSlots {
                 self.send_lanes[lane].push(Task {
                     pre: Pre::Keep,
                     taps: NO_TAPS,
+                    voice: None,
                     process_fx: Some(fx),
                     inst,
                     buf: self.sends.buf_ptr(n),
@@ -1542,7 +1636,8 @@ impl ChainSlots {
         }
         self.planner.plan(&self.colo_keys, &self.colo_cost, &self.colo_loaded);
         let mut best = self.planner.makespan();
-        let feeders = crate::chain_colo::feeders(&self.mixes, &self.loaded);
+        let mut feeders = crate::chain_colo::feeders(&self.mixes, &self.loaded);
+        crate::chain_colo::add_voice_feeders(&mut feeders, &self.voice, &self.loaded);
 
         // Heaviest bus first: it has the fewest lanes it can fit on, and a
         // lighter one accepted before it could take the only place it had.

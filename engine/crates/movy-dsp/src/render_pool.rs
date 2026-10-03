@@ -41,6 +41,10 @@ pub struct Task {
     /// A tap is only ever built for a bus co-located on this same lane — see
     /// `chain_colo`; every other bus is still summed on the audio thread.
     pub taps: [Option<Tap>; MAX_TAPS],
+    /// Per-pad sends, drained on this lane right after the render — see
+    /// `VoiceTask`. `None` for a chain whose module declares none, or whose
+    /// synth is not rendering this block.
+    pub voice: Option<VoiceTask>,
     /// `None` when the FX is asleep, or when the chain is not being split at
     /// all and `render` already did the FX itself.
     pub process_fx: Option<unsafe extern "C" fn(*mut c_void, *mut i16, i32)>,
@@ -65,6 +69,19 @@ pub struct Tap {
     pub buf: *mut i16,
     pub gl: f32,
     pub gr: f32,
+}
+
+/// A chain's per-pad sends, drained by the lane that rendered it.
+///
+/// `scratch` is the chain's OWN pair of buffers (`voice_send::VoiceSends`), so
+/// the partition argument for `buf` covers it unchanged. `taps[k]` sums
+/// `scratch[k]` into send bus `k` when that bus is co-located on this lane —
+/// the same rule, and the same reason, as `Task::taps`.
+#[derive(Clone, Copy)]
+pub struct VoiceTask {
+    pub drain: crate::chain_host::DrainFn,
+    pub scratch: [*mut i16; crate::voice_send::VOICE_SENDS],
+    pub taps: [Option<Tap>; crate::voice_send::VOICE_SENDS],
 }
 
 /// Where a task's input comes from.
@@ -368,9 +385,39 @@ fn run(tasks: &[Task], shared: &Shared) {
             let src = unsafe { core::slice::from_raw_parts(t.buf, samples) };
             crate::mixer::mix_into_gains(dst, src, tap.gl, tap.gr);
         }
+        if let (Some(v), true) = (t.voice, rendered) {
+            unsafe { drain_voices(&v, t.inst, t.frames) };
+        }
         if let Some(c) = shared.cost_ns.get(t.chain) {
             c.store(t0.elapsed().as_nanos() as u64, Ordering::Relaxed);
         }
+    }
+}
+
+/// Drain one chain's per-pad sends into its scratch and tap the co-located
+/// buses. Shared by the lane and the audio thread's serial path, so the two
+/// cannot disagree about what a drained block is.
+///
+/// Only after a render that happened THIS block — the chain host's voice mask
+/// is cleared by a render and by nothing else, so a drain without one re-sends
+/// the last block. Volume 127: the chain host's post-fader scale is the shim's
+/// slot volume, which a movy chain does not have; movy's own fader is applied
+/// by the taps, at the same gains as the rest of the track.
+///
+/// # Safety
+/// `v.scratch` and every tap's buffer must be owned by the calling thread for
+/// the round, and hold at least `frames * 2` samples.
+pub unsafe fn drain_voices(v: &VoiceTask, inst: *mut c_void, frames: i32) {
+    let samples = (frames as usize) * 2;
+    for p in v.scratch {
+        core::ptr::write_bytes(p, 0, samples);
+    }
+    (v.drain)(inst, v.scratch.as_ptr(), v.scratch.len() as i32, frames, 127);
+    for (k, tap) in v.taps.iter().enumerate() {
+        let Some(tap) = tap else { continue };
+        let dst = core::slice::from_raw_parts_mut(tap.buf, samples);
+        let src = core::slice::from_raw_parts(v.scratch[k], samples);
+        crate::mixer::mix_into_gains(dst, src, tap.gl, tap.gr);
     }
 }
 
@@ -492,6 +539,7 @@ mod tests {
         let mk = |chain: usize| Task {
             pre: Pre::Render(sends_midi),
             taps: NO_TAPS,
+            voice: None,
             process_fx: None,
             inst: (0x40 + chain) as *mut c_void,
             buf: core::ptr::null_mut(),
@@ -522,6 +570,7 @@ mod tests {
             vec![Task {
                 pre: Pre::Render(fill),
                 taps: NO_TAPS,
+            voice: None,
                 process_fx: None,
                 inst: 7 as *mut c_void,
                 buf: buf.as_mut_ptr(),
@@ -552,6 +601,7 @@ mod tests {
         pool.render_block(&[vec![Task {
             pre: Pre::Render(sends_midi),
             taps: NO_TAPS,
+            voice: None,
             process_fx: None,
             inst: 0x41 as *mut c_void,
             buf: core::ptr::null_mut(),
@@ -574,6 +624,7 @@ mod tests {
             .map(|c| Task {
                 pre: Pre::Render(fill),
                 taps: NO_TAPS,
+            voice: None,
                 process_fx: None,
                 inst: (c + 1) as *mut c_void,
                 buf: bufs[c].as_mut_ptr(),
@@ -601,6 +652,7 @@ mod tests {
         let lanes = vec![vec![Task {
             pre: Pre::Silence,
             taps: NO_TAPS,
+            voice: None,
             process_fx: Some(assert_zero_then_mark),
             inst: 1 as *mut c_void,
             buf: b[0].as_mut_ptr(),
@@ -630,6 +682,7 @@ mod tests {
         let mk = |buf: *mut i16, chain: usize| Task {
             pre: Pre::Keep,
             taps: NO_TAPS,
+            voice: None,
             process_fx: Some(double_it),
             inst: 1 as *mut c_void,
             buf,
@@ -666,6 +719,7 @@ mod tests {
         pool.render_block(&[vec![Task {
             pre: Pre::Keep,
             taps: NO_TAPS,
+            voice: None,
             process_fx: Some(loud),
             inst: 1 as *mut c_void,
             buf: b[0].as_mut_ptr(),
@@ -697,6 +751,7 @@ mod tests {
         pool.render_block(&[vec![Task {
             pre: Pre::Render(synth),
             taps: [Some(Tap { buf: bus.as_mut_ptr(), gl: 0.5, gr: 0.5 }), None, None, None],
+            voice: None,
             process_fx: None,
             inst: 1 as *mut c_void,
             buf: b[0].as_mut_ptr(),
@@ -728,6 +783,7 @@ mod tests {
         pool.render_block(&[vec![Task {
             pre: Pre::Render(synth),
             taps: [Some(Tap { buf: bus.as_mut_ptr(), gl: 1.0, gr: 1.0 }), None, None, None],
+            voice: None,
             process_fx: Some(boost),
             inst: 1 as *mut c_void,
             buf: b[0].as_mut_ptr(),
@@ -740,6 +796,55 @@ mod tests {
     /// `MAX_TAPS` is this module's own constant so it stays free of the mixer's
     /// types, which makes it a number that can drift. A bus that could not be
     /// tapped would simply never sound.
+    /* Per-pad sends. The fake drain stands in for `chain_drain_sends`: it
+     * ACCUMULATES a fixed value per send, as `bus_mix_send` does, so a scratch
+     * the lane forgot to clear would read 2x. */
+    unsafe extern "C" fn fake_drain(_i: *mut c_void, accum: *const *mut i16, n: i32, f: i32, vol: i32) {
+        assert_eq!(vol, 127, "movy applies its own fader; the chain must not");
+        for k in 0..n as usize {
+            let p = *accum.add(k);
+            for s in 0..(f as usize) * 2 {
+                *p.add(s) += 100 * (k as i16 + 1);
+            }
+        }
+    }
+
+    fn voice_task(scratch: &mut [[i16; BLOCK]; 2], bus: Option<&mut [i16; BLOCK]>) -> VoiceTask {
+        VoiceTask {
+            drain: fake_drain,
+            scratch: [scratch[0].as_mut_ptr(), scratch[1].as_mut_ptr()],
+            taps: [bus.map(|b| Tap { buf: b.as_mut_ptr(), gl: 0.5, gr: 0.5 }), None],
+        }
+    }
+
+    /// The chain host clears its voice mask only on a render, so a lane that
+    /// drained a sleeping synth would re-send its last block of pads forever.
+    #[test]
+    fn a_voice_drain_runs_only_after_a_real_render() {
+        let mut b = bufs();
+        let mut scratch = [[7i16; BLOCK]; 2];
+        let mut t = tasks(&mut b, 0..1);
+        t[0].pre = Pre::Silence;
+        t[0].voice = Some(voice_task(&mut scratch, None));
+        RenderPool::new(0, CHAINS).render_block(&[t]);
+        assert_eq!(scratch[0][0], 7, "no render, no drain — the scratch is not even touched");
+    }
+
+    #[test]
+    fn a_voice_drain_clears_then_taps_its_colocated_bus() {
+        unsafe extern "C" fn synth(_i: *mut c_void, _b: *mut i16, _f: i32) {}
+        let mut b = bufs();
+        let mut scratch = [[9999i16; BLOCK]; 2];
+        let mut bus = [10i16; BLOCK];
+        let mut t = tasks(&mut b, 0..1);
+        t[0].pre = Pre::Render(synth);
+        t[0].voice = Some(voice_task(&mut scratch, Some(&mut bus)));
+        RenderPool::new(0, CHAINS).render_block(&[t]);
+        assert_eq!(scratch[0][0], 100, "cleared before an accumulating drain");
+        assert_eq!(scratch[1][0], 200, "send B is its own buffer");
+        assert_eq!(bus[0], 10 + 50, "summed into the co-located bus at the track gain");
+    }
+
     #[test]
     fn taps_cover_every_bus() {
         assert!(MAX_TAPS >= crate::send_bus::SEND_BUSES);
@@ -760,6 +865,7 @@ mod tests {
         let lanes = vec![vec![Task {
             pre: Pre::Render(quiet_synth),
             taps: NO_TAPS,
+            voice: None,
             process_fx: Some(loud_fx),
             inst: 1 as *mut c_void,
             buf: b[0].as_mut_ptr(),
@@ -861,6 +967,7 @@ mod tests {
             vec![Task {
                 pre: Pre::Render(fill),
                 taps: NO_TAPS,
+            voice: None,
                 process_fx: None,
                 inst: 7 as *mut c_void,
                 buf: buf.as_mut_ptr(),
@@ -879,6 +986,7 @@ mod tests {
             vec![Task {
                 pre: Pre::Silence,
                 taps: NO_TAPS,
+            voice: None,
                 process_fx: None,
                 inst: 7 as *mut c_void,
                 buf: buf.as_mut_ptr(),

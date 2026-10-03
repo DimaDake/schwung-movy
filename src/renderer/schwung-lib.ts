@@ -47,13 +47,14 @@ export interface SchwungLib {
     normalizedOf: any;
     /* movy's chrome composes the two bands Schwung is not asked to draw, and
      * the footer is drawn with Schwung's own widget so there is one definition
-     * of a hint pill. `flipsOnClick` is what decides whether a click on a
-     * two-option enum flips it (no intent comes back at all) or opens its list,
-     * and the page kinds say which verbs a door's footer owes — the same
-     * questions the controller's own onClick and shadow footer answer, taken
-     * from the same source rather than restated. */
+     * of a hint pill. `isTurnable` and `KIND_ENUM` say which held cells are
+     * REGULAR knobs — the ones hold-to-modulate may re-bind the click on — and
+     * the page kinds say which verbs a door's footer owes: the same questions
+     * the controller's own onClick and shadow footer answer, taken from the
+     * same source rather than restated. */
     drawFooter: any;
-    flipsOnClick: any;
+    isTurnable: any;
+    KIND_ENUM: any;
     PAGE_KNOBS: any;
     PAGE_PRESET: any;
     PAGE_ITEMS: any;
@@ -235,7 +236,7 @@ try {
         applyInput: pi.applyInput,
         renderPageMovy: rpm.renderPageMovy, BAND_H: rpm.BAND_H,
         normalizedOf: rpm.normalizedOf,
-        drawFooter: rpm.drawFooter, flipsOnClick: pm.flipsOnClick,
+        drawFooter: rpm.drawFooter, isTurnable: pm.isTurnable, KIND_ENUM: pm.KIND_ENUM,
         PAGE_KNOBS: pp.PAGE_KNOBS, PAGE_PRESET: pp.PAGE_PRESET,
         PAGE_ITEMS: pp.PAGE_ITEMS, PAGE_MENU: pp.PAGE_MENU,
         drawEnumList: el.drawEnumList,

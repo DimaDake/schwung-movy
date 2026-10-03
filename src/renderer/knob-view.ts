@@ -105,7 +105,10 @@ export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 
     if (vm.overlay) drawEnumOverlay(vm);
     // Limit reached + a step held: tell the user only the assigned lanes are editable.
     if (vm.automationHeld && vm.automationPoolFull) drawJogToast(AUTO_LANES + ' AUTOMATION LANES — FULL');
-    else if (vm.toast?.browseHint) drawJogToast('JOG: BROWSE');
+    /* movy's browse hint reads movy's OWN bank layout; while Schwung draws the
+     * body the cell under the hand is Schwung's, and the chrome's footer is the
+     * one that knows whether it is a file (`pageFooterFor`). */
+    else if (vm.toast?.browseHint && !chrome) drawJogToast('JOG: BROWSE');
     else if (jogTouched)      drawJogToast('CLICK JOG: SWAP MODULE');
     /* THE FOOTER IS THE LAST RESORT FOR THOSE ROWS, not a layer over them. A
      * toast and a Schwung hint band occupy the same six rows (TOAST_Y 58 and

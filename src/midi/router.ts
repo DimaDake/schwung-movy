@@ -392,7 +392,10 @@ export function onMidiMessageInternal(data: number[]): void {
             /* Scoped to whichever chain the knobs are editing: hold-to-modulate
              * works on the master FX pages too, and a master knob's target
              * belongs to the master LFOs, not the active track's. */
-            holdTouch(knobLfoScope(), d1, info);   // arm hold-to-modulate
+            /* On a Schwung page only a REGULAR knob arms it: every other
+             * kind's click already means something (`regularKnob`). */
+            const armable = !owner.delegated || !!owner.page?.regularKnobAt(d1);
+            holdTouch(knobLfoScope(), d1, armable ? info : null);   // arm hold-to-modulate
         } else {
             const info = owner.knobParamInfo(d1);
             /* The same rule from the other end: letting go of a knob while

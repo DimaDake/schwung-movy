@@ -86,7 +86,7 @@ const PRESETS = [
     'page_body', 'page_body_p2', 'page_voice_pad', 'page_voice_global', 'page_sample',
     'page_mod_cell', 'page_mod_cell_held',
     'page_held_lock', 'page_lane_unheld', 'page_held_unassignable', 'page_held_enum',
-    'page_chrome_held', 'page_chrome_flip',
+    'page_chrome_held', 'page_chrome_flip', 'page_chrome_file',
     'page_clipparams', 'page_setparams', 'page_stepparams', 'page_master_chain',
     'page_lane_mark', 'page_lane_mark_held', 'page_held_drum',
     'page_lfo', 'page_lfo_master', 'page_enum_list',
@@ -103,7 +103,7 @@ const PRESETS = [
 const PAGE_SCENES = new Set(['page_body', 'page_body_p2', 'page_voice_pad', 'page_voice_global', 'page_sample',
     'page_mod_cell', 'page_mod_cell_held',
     'page_held_lock', 'page_lane_unheld', 'page_held_unassignable', 'page_held_enum',
-    'page_chrome_held', 'page_chrome_flip',
+    'page_chrome_held', 'page_chrome_flip', 'page_chrome_file',
     'page_clipparams', 'page_setparams', 'page_stepparams', 'page_master_chain',
     'page_lane_mark', 'page_lane_mark_held', 'page_held_drum',
     'page_lfo', 'page_lfo_master', 'page_enum_list']);
@@ -136,7 +136,7 @@ const BASE = {
     /* The chrome scenes need the two click kinds that never reach movy — a
      * trigger and a two-way enum — and `switches` is the mock that declares
      * both. */
-    page_chrome_held: 'switches', page_chrome_flip: 'switches',
+    page_chrome_held: 'switches', page_chrome_flip: 'switches', page_chrome_file: 'wav_sample',
     step_page_knobs: 'test8', step_page_chain: 'test8', step_indicator: 'test8',
     step_rec_header: 'test8',
     loop_strip_midclip: 'test8', loop_strip_outside: 'test8', loop_header: 'test8',
@@ -1938,7 +1938,8 @@ function applyView(preset) {
          * instead, and these are the frames where it does.
          */
         case 'page_chrome_held':
-        case 'page_chrome_flip': {
+        case 'page_chrome_flip':
+        case 'page_chrome_file': {
             if (!schwungLibAvailable()) throw new Error(
                 'screenshot: ' + preset + ' needs a bundle built with SCHWUNG=/path/to/schwung');
             const savedModels = appState.trackModels;
@@ -1953,7 +1954,10 @@ function applyView(preset) {
                 /* By KEY, not by slot: which cell a param lands in is the
                  * planner's business, and a scene pinned to slot 0 would keep
                  * rendering green if the planner moved it. */
-                const WANT = preset === 'page_chrome_held' ? 'rnd_patch' : 'legato';
+                /* A trigger and a two-way draw NO hint — the knob does what
+                 * the click would — and a file is the one cell that keeps it. */
+                const WANT = { page_chrome_held: 'rnd_patch', page_chrome_flip: 'legato',
+                               page_chrome_file: 'sample_path' }[preset];
                 let slot = -1;
                 for (let pg = 0; pg < sp.pageCount && slot < 0; pg++) {
                     sp.goToPage(pg);

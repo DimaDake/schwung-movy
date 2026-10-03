@@ -188,6 +188,17 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Held-knob hints on Schwung pages no longer promise the wrong click.**
+  Holding an ordinary knob showed `JOG PAGE · CLK MENU`, but the click did
+  nothing (and after a second it assigned an LFO instead). Option, switch and
+  action knobs named a click the knob itself already does. The hint row now
+  appears only over a **file** knob (`CLK BROWSE`), where the click is the only
+  way in. It is also hidden while a step is held, because the step takes the
+  click. Movy's own `JOG: BROWSE` toast, which read movy's bank layout rather
+  than the Schwung cell under the hand, gives way to it.
+- **Hold-to-modulate on a Schwung page arms on number knobs only**, so it no
+  longer takes over the click of an option, switch, action or file knob a
+  second after the touch.
 - **The pad icon only on per-pad pages under Schwung pages.** A drum module's
   header showed the pad-grid icon on every page, Reverb, Kit and Master
   included, because the flag was set for the whole rack. It now follows the

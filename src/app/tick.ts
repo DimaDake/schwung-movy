@@ -58,7 +58,7 @@ import { captureTick } from '../seq/capture.js';
 import { seqLedsTick, seqLedsInvalidate, displayHoldNotes } from '../seq/leds.js';
 import { ledBudgetTake, ledFrameReset } from '../seq/led-cache.js';
 import { seqSetLane } from '../seq/router.js';
-import { stepAutoTick } from '../seq/step-edit.js';
+import { stepAutoTick, anyStepHeld } from '../seq/step-edit.js';
 import { stepRecTick } from '../seq/step-rec-view.js';
 import { holdTick, assignActive, assignToastText } from '../lfo/assign-mode.js';
 import { jogHintTick, jogHintVisible } from './jog-hint.js';
@@ -259,7 +259,12 @@ export function schwungBankFor(owner: PageOwner, body: (() => void) | undefined)
  */
 export function schwungChromeFor(owner: PageOwner, body: (() => void) | undefined,
                                 paging: boolean): PageChrome | undefined {
-    return body && owner.page ? owner.page.chrome(paging) : undefined;
+    if (!body || !owner.page) return undefined;
+    const chrome = owner.page.chrome(paging);
+    /* A HELD STEP TAKES THE JOG CLICK before Schwung's ladder sees it (the
+     * router's held-step branch sits above the page's door), so a footer naming
+     * a click would describe a press that cannot happen. */
+    return chrome.footer && anyStepHeld() ? { ...chrome, footer: null } : chrome;
 }
 
 /*
@@ -967,7 +972,7 @@ function tickBody(): void {
             // The pool-full toast shares the bottom rows with the Loop strip;
             // claim them so the strip yields to it (like every other toast).
             jogToastShown = (vm.automationHeld && vm.automationPoolFull)
-                || !!vm.toast?.browseHint || jogHintVisible() || chromeFooter;
+                || (!!vm.toast?.browseHint && !chrome) || jogHintVisible() || chromeFooter;
             perfPhase('leds');
             lightKnobRow(vm, schwungBody);
             perfPhaseEnd();

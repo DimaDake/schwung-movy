@@ -34,6 +34,9 @@ const { surfaceOf } = await import('../../dist/esm/renderer/schwung-voices.js');
 const { setSurfaceReader } = await import('../../dist/esm/model/drum-declared.js');
 const { pageOwnerOf } = await import('../../dist/esm/app/page-owner.js');
 const { headerRightText } = await import('../../dist/esm/renderer/knob-view.js');
+const { isFileParam } = await import('../../dist/esm/renderer/schwung-file-param.js');
+const { schwungChromeFor } = await import('../../dist/esm/app/tick.js');
+const { editStepDown, editStepUp, resetStepEdit } = await import('../../dist/esm/seq/step-edit.js');
 const { dumpFixture } = await import('../dump-fixture.mjs');
 
 /* `model/` imports nothing from `renderer/`, so the reader is PUSHED IN at
@@ -529,31 +532,30 @@ _log('\nTest: the header readout and the footer hints come from the controller')
     eq('...and its second half too', held.header && held.header.right, own.right);
     ok('...and it is the branch that says a param is under the hand',
        !!(held.header && held.header.inverted));
-    ok('...beside a hint band', Array.isArray(held.footer) && held.footer.length > 0);
+    eq('...and no hint band over a plain knob, whose click does nothing',
+       held.footer, null);
     eq('the chain view keeps its own footer, where the jog is not paging',
        p.chrome(false).footer, null);
     eq('...but the readout is still the page’s',
        p.chrome(false).header.left, held.header.left);
     p.knobTouch(k, false);
     eq('and letting go takes the band with it', p.chrome(true).footer, null);
-    /* THE CLICK IS THE SUBJECT. One knob at a time, and the verb printed for it
-     * has to match what pressing the jog DOES to the parameter — an `open`
-     * intent, a flip, a write, or nothing at all. Asserting the verb the code
-     * chose would be the code read back to itself; asserting it against the
-     * consequence is what catches a footer that promises OPEN on a cell whose
-     * click does nothing.
+    /* THE CLICK IS THE SUBJECT, AND THE HINT IS FOR THE CLICK THAT IS THE ONLY
+     * WAY. One knob at a time: the footer must name a click exactly where the
+     * click reaches movy's file browser — not turnable, so nothing else gets
+     * there — and say nothing everywhere else. Asserted against the CONSEQUENCE
+     * of pressing the jog, never against the verb the code chose.
      *
-     * A page of floats exercises only the fallback, so the walk runs over a
-     * whole module's pages and the tally at the end is the point: a run where
-     * every verb was MENU proves the default and nothing about the branches
-     * this file exists for.
+     * THE SECOND HALF IS WHY SILENCE IS SAFE: every cell whose click does
+     * something other than open a file must also be drivable by the knob. A
+     * value the click flips or opens something for has to move when turned, and a
+     * trigger fires on its first detent (read from the declaration, since a
+     * bang leaves no trace in the value map).
      *
-     * A TRIGGER'S WRITE LEAVES NO TRACE — it bangs and returns to idle — so the
-     * fire branch is read from the parameter's own declaration, not from the
-     * value map. The flip branch IS read from the consequence, and that is the
-     * half with teeth: a two-way enum that moved while the footer said
-     * something else fails here. */
-    const verbs = new Set();
+     * The tally at the end is the point: a walk that never reached a file, a
+     * flip, an open (an enum list, or granny's waveform editor that movy has no
+     * screen for) and a trigger proves the default and nothing else. */
+    const seen = new Set();
     const walk = (name, params) => {
         env.setParams(params);
         schwungGridReload();
@@ -565,28 +567,96 @@ _log('\nTest: the header readout and the footer hints come from the controller')
             for (let slot = 0; slot < 8; slot++) {
                 const key = pg.keyAt(slot);
                 if (!key) continue;
+                const meta = pg.ctl.metaAt(slot);
                 pg.knobTouch(slot, true);
-                const foot = pg.chrome(true).footer.find((h) => h[0] === 'CLK');
+                const foot = pg.chrome(true).footer;
+                const clk = foot ? foot.find((h) => h[0] === 'CLK') : null;
+                /* Up, back, then down: a value parked at either end still
+                 * moves on one of the two legs. */
+                const snap = () => JSON.stringify(pg.ctl.state.values);
+                const at = snap();
+                pg.knobTurn(slot, 5);
+                const up = snap();
+                pg.knobTurn(slot, -5);
+                pg.knobTurn(slot, -5);
+                const turned = up !== at || snap() !== at;
                 const before = JSON.stringify(pg.ctl.state.values);
                 const intent = pg.click();
                 const wrote = before !== JSON.stringify(pg.ctl.state.values);
-                const meta = pg.ctl.metaAt(slot);
-                const twoWay = !!(meta && Array.isArray(meta.options)
-                                  && meta.options.length === 2);
-                const want = (intent && intent.action === 'open') ? 'OPEN'
-                           : (meta && meta.writeOnly) ? 'FIRE'
-                           : (twoWay && wrote) ? 'FLIP' : 'MENU';
-                eq(name + ' ' + key + ' hands the click to ' + want,
-                   foot ? foot[1] : null, want);
-                verbs.add(want);
+                const opened = !!(intent && intent.action === 'open');
+                const file = opened && isFileParam(intent.meta);
+                const kind = file ? 'file' : (meta && meta.writeOnly) ? 'trigger'
+                           : opened ? 'open' : wrote ? 'flip' : 'nothing';
+                seen.add(kind);
+                eq(name + ' ' + key + ' (' + kind + ') hints the click only for a file',
+                   clk ? clk[1] : null, file ? 'BROWSE' : null);
+                if (!file) eq(name + ' ' + key + ' is the whole footer — no pair at all',
+                              foot, null);
+                if (kind === 'open' || kind === 'flip') {
+                    ok(name + ' ' + key + ' (' + kind + ') also moves when turned', turned);
+                }
                 pg.knobTouch(slot, false);
             }
         }
+        return pg;
     };
     walk('switches', MOCK_SYNTHS.switches);
-    ok('a two-way enum was reached, so the flip branch ran (' + [...verbs].join('/') + ')',
-       verbs.has('FLIP'));
-    ok('and a trigger, so the fire branch ran', verbs.has('FIRE'));
+    walk('enums', MOCK_SYNTHS.test_enum);
+    const filePage = walk('granny', MOCK_SYNTHS.wav_sample);
+    for (const k of ['file', 'flip', 'open', 'trigger', 'nothing']) {
+        ok('the walk reached a ' + k + ' cell (' + [...seen].join('/') + ')', seen.has(k));
+    }
+
+    /* A HELD STEP TAKES THE CLICK before Schwung's ladder (the router's
+     * held-step branch), so even the file hint would promise a press that
+     * cannot happen. Asked through `schwungChromeFor`, the one door every
+     * render path takes. */
+    {
+        let fileSlot = -1;
+        for (let slot = 0; slot < 8 && fileSlot < 0; slot++) {
+            if (isFileParam(filePage.ctl.metaAt(slot))) fileSlot = slot;
+        }
+        ok('granny has a file knob to hold', fileSlot >= 0);
+        const owner = { page: filePage };
+        const body = () => {};
+        filePage.knobTouch(fileSlot, true);
+        eq('held over a file, the click is hinted',
+           JSON.stringify(schwungChromeFor(owner, body, true).footer), '[["CLK","BROWSE"]]');
+        editStepDown(0);
+        eq('...and with a step held, it is not', schwungChromeFor(owner, body, true).footer, null);
+        ok('...while the readout stays', !!schwungChromeFor(owner, body, true).header);
+        editStepUp(0);
+        resetStepEdit();
+        eq('letting the step go brings it back',
+           JSON.stringify(schwungChromeFor(owner, body, true).footer), '[["CLK","BROWSE"]]');
+        filePage.knobTouch(fileSlot, false);
+    }
+
+    /* HOLD-TO-MODULATE ARMS ON A REGULAR KNOB ONLY: a number the knob scrubs,
+     * whose click is free. Every other kind's click already means something,
+     * and the hold would take it away a second after the touch. */
+    const regular = [];
+    for (let slot = 0; slot < 8; slot++) {
+        const meta = filePage.ctl.metaAt(slot);
+        if (!meta) continue;
+        const want = meta.kind === 'number' && !meta.writeOnly && !meta.readOnly;
+        eq('granny ' + filePage.keyAt(slot) + ' arms hold-to-modulate: ' + want,
+           filePage.regularKnobAt(slot), want);
+        if (want) regular.push(slot);
+    }
+    ok('a regular knob was among them', regular.length > 0);
+    env.setParams(MOCK_SYNTHS.test_enum);
+    schwungGridReload();
+    const enumPage = schwungPageFor(0, 'synth');
+    for (let i = 0; i < 12 * 60 && !enumPage.ready; i++) enumPage.tick();
+    let enumSlot = -1;
+    for (let slot = 0; slot < 8 && enumSlot < 0; slot++) {
+        const m = enumPage.ctl.metaAt(slot);
+        if (m && m.kind === 'enum') enumSlot = slot;
+    }
+    ok('the enum page has an enum to hold', enumSlot >= 0);
+    eq('an enum does not arm it — its click opens the list',
+       enumPage.regularKnobAt(enumSlot), false);
 
     schwungGridReload();
     setSchwungGridMode(null);

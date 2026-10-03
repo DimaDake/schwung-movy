@@ -32,18 +32,17 @@
  */
 import { appState } from '../app/state.js';
 import { openFileBrowser } from './file-handler.js';
+import { isFileParam } from '../renderer/schwung-file-param.js';
 import type { SchwungIntent, SchwungPage } from '../renderer/schwung-page.js';
 
 /* What movy's own model defaults a file param's root to when nothing declares
  * one (`model/index.ts`, getFileBrowseTarget). */
 const DEFAULT_ROOT = '/data/UserData';
 
-/* The two opaque types movy has a screen for. A `canvas`, a `string` and a
- * `wav_position` are divable too, and movy draws none of them: a wav_position
- * is a FLOAT with a picture to movy, not a marker to open. Declining keeps the
- * caller's `schwung-open unhandled` log line, which is the honest report —
- * asserting the dive happened would be worse than the gap. */
-const FILE_TYPES = { filepath: true, file: true };
+/* Only the file types have a screen here (`isFileParam` says why the rest do
+ * not). Declining keeps the caller's `schwung-open unhandled` log line, which
+ * is the honest report — asserting the dive happened would be worse than the
+ * gap. */
 
 function str(v: any): string { return typeof v === 'string' ? v : ''; }
 
@@ -51,7 +50,7 @@ export function openSchwungDive(intent: SchwungIntent | null, page: SchwungPage,
                                 model: any): boolean {
     if (!intent || intent.action !== 'open') return false;
     const meta = intent.meta;
-    if (!meta || !FILE_TYPES[meta.type as 'filepath']) return false;
+    if (!isFileParam(meta)) return false;
 
     const fullKey = str(intent.fullKey) || str(intent.key);
     const colon = fullKey.indexOf(':');

@@ -22,9 +22,20 @@
  * shadow-side HOST, which movy may not import — so the verbs below are a second
  * copy, and the project's rule about second copies ("ask the controller; do not
  * restate") is answered by taking every CONDITION from the controller: which
- * page kind, whether it is entered, whether the picker is over it, and whether
- * the cell under the hand is a trigger, a two-way or a door. Only the words are
- * restated, and the verbs chosen are the ladder `onClick` actually walks.
+ * page kind, whether it is entered, whether the picker is over it, and what the
+ * cell under the hand is.
+ *
+ * A HELD KNOB EARNS A HINT ONLY WHERE THE CLICK IS THE ONLY WAY IN. Schwung's
+ * footer names a verb for every held cell — OPEN, FLIP, FIRE, and MENU for the
+ * rest — and movy copied it, which made the hint both noise and wrong: a plain
+ * knob's click does NOTHING (`applyInput` hands a held click to
+ * `onClick(held)`, which returns null for a non-divable cell, and movy's
+ * no-knob-held click is its module browser, not Schwung's menu), and a
+ * wav_position's OPEN reaches no screen in movy. Every other verb has a knob
+ * gesture that does the same thing — an enum steps as it turns, a two-way
+ * toggles, a trigger fires on its first detent — so naming the click only
+ * covered the Loop strip on every touch. What is left is a FILE param: not
+ * turnable, and the click is the one road to the browser.
  *
  * IT IS ONLY THE KNOBS VIEW'S. On the chain view the jog moves CHAIN SLOTS, not
  * pages (`chain-view.ts` argues this at length), so a `JOG PAGE` pill there
@@ -44,6 +55,7 @@
  */
 import type { SchwungLib } from './schwung-lib.js';
 import { fitHeldHeader } from './held-header-fit.js';
+import { isFileParam } from './schwung-file-param.js';
 
 export interface PageHeader {
     left: string;
@@ -75,21 +87,19 @@ export function chromeFor(ctl: any, lib: SchwungLib, paging: boolean,
         header: heldHeaderFor(ctl),
         pageLabel: pageLabelFor(ctl),
         padScoped,
-        /* A HAND ON A KNOB TAKES THE BOTTOM ROWS, AND THAT IS THE WHOLE RULE.
+        /* A HAND ON A KNOB MAY TAKE THE BOTTOM ROWS — only for a hint it
+         * cannot do without (see the header: the click is the only way in).
          *
          * The hint band and the Loop strip occupy overlapping rows — the
          * footer's 57..63 against the strip's 60..63, which it clears on EVERY
          * tick, outside the dirty-frame block, so anything drawn there without
          * the claim below keeps only its top three rows. They cannot both have
-         * it, and the persistent readout is not the one that should lose: the
-         * strip is live musical feedback.
+         * it, and the persistent readout is not the one that should lose
+         * without reason: the strip is live musical feedback.
          *
          * So the footer is a TRANSIENT occupant, on exactly the terms movy's
          * own bottom-row toasts already take the row (`jogHintVisible()` —
-         * the jog under a finger). It is also when the hints are worth the
-         * room: a knob under the hand is what changes what the click means
-         * (OPEN, FLIP, FIRE), while with nothing held the click is MENU and
-         * saying so is the least useful line on the screen. */
+         * the jog under a finger). */
         footer: held && paging ? pageFooterFor(ctl, lib) : null,
     };
 }
@@ -155,31 +165,26 @@ export function pageFooterFor(ctl: any, lib: SchwungLib): [string, string][] | n
         return entered ? verbs : [['JOG', 'PAGE'], ['CLK', 'ENTER']];
     }
 
+    /* The page set is not in question here — the jog pages, as it does with
+     * no knob held — so the one pair is the click, and only for a file. */
     const held = ctl.state ? ctl.state.touched : -1;
-    if (held >= 0) {
-        const meta = ctl.metaAt ? ctl.metaAt(held) : null;
-        /* A trigger is a BUTTON: the click does the thing and returns no
-         * intent at all, so the footer has to name the consequence. */
-        if (meta && meta.writeOnly) {
-            return [['JOG', 'PAGE'], ['CLK', 'FIRE'], ['KNB', 'FIRE']];
-        }
-        /* A two-option divable enum FLIPS in the controller and returns no
-         * intent either — and worse, it never reaches `openSchwungEditor`, so
-         * a footer promising OPEN here would be the one pair of the three this
-         * file cannot be told apart from by what it does. `flipsOnClick` is
-         * Schwung's own predicate, so the two cannot disagree about WHICH
-         * params those are. */
-        if (lib.flipsOnClick && lib.flipsOnClick(meta)) {
-            return [['JOG', 'PAGE'], ['CLK', 'FLIP']];
-        }
-        /* ...or divable through the picture it is drawn in, which is what a
-         * viz dive target is. Same accessor the click uses. */
-        if ((meta && meta.divable) || (ctl.diveTargetAt && ctl.diveTargetAt(held))) {
-            return [['JOG', 'PAGE'], ['CLK', 'OPEN']];
-        }
-    }
+    const meta = held >= 0 && ctl.metaAt ? ctl.metaAt(held) : null;
+    return meta && meta.divable && isFileParam(meta) ? [['CLK', 'BROWSE']] : null;
+}
 
-    return [['JOG', 'PAGE'], ['CLK', 'MENU']];
+/**
+ * Is this a REGULAR knob — a number the knob scrubs, whose click does nothing?
+ *
+ * Hold-to-modulate (`lfo/assign-mode.ts`) re-binds the click and the jog after
+ * HOLD_MS, and on a Schwung page the click already means something for every
+ * other kind: an enum opens its list or flips, a trigger fires, a file opens
+ * the browser. Arming there takes that click away a second after the touch,
+ * which is about how long reading the cell takes. A regular knob's click is
+ * free, so the hold costs nothing there. An LFO can still target the rest from
+ * the LFO page's own Target knob.
+ */
+export function regularKnob(meta: any, lib: SchwungLib): boolean {
+    return !!meta && !!lib.isTurnable && lib.isTurnable(meta) && meta.kind !== lib.KIND_ENUM;
 }
 
 /**

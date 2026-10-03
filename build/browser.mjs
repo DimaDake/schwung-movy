@@ -61,6 +61,9 @@ await esbuild.build({
         resolve(root, 'src/renderer/schwung-page-widget-sync.ts'),
         resolve(root, 'src/renderer/schwung-voices.ts'),
         resolve(root, 'src/renderer/schwung-grid.ts'),
+        /* The file-param predicate: the logic suite classifies a click's
+         * consequence with the same rule the footer and the dive use. */
+        resolve(root, 'src/renderer/schwung-file-param.ts'),
         /* The version floor. Entry point for the same reason as its siblings:
          * the logic suite drives `schwungFloorMet`/`schwungFloorReason`
          * directly, and folded into a chunk there would be no module to import

@@ -3363,29 +3363,32 @@ _log('\napp-loop: CPU page is not painted over by the loop strip');
     eq('loop strip suppressed on the CPU page', cleared(cpu), false);
     eq('and the page actually painted', cpu.length > 0, true);
 
-    /* A HAND ON A KNOB TAKES THE BOTTOM ROWS. The footer band is 57..63 and
-     * the strip clears 60..63 on every tick, so they cannot both have them —
-     * the same terms movy's own bottom-row toasts already take the row on.
-     * Only meaningful where there IS a controller to hint about: with the grid
-     * off there is no page, no chrome, and the strip keeps its rows. */
+    /* A HAND ON A KNOB TAKES THE BOTTOM ROWS ONLY FOR A HINT IT NEEDS. The
+     * footer band is 57..63 and the strip clears 60..63 on every tick, so they
+     * cannot both have them. A plain knob's click does nothing, so it gets no
+     * hint and the strip keeps its rows; a FILE knob's click is the only way to
+     * the browser, so its hint takes them. Only meaningful where there IS a
+     * controller to hint about: with the grid off there is no page, no chrome,
+     * and the strip keeps its rows. */
     if (GRID_ARM === 'page') {
-        /* Knob 1, not 0: on this model knob 0 is the `file` param, and movy's
-         * own browse hint ("JOG: BROWSE", a full-width band at 58) legitimately
-         * wins the row for it — it is a rung ABOVE the footer in the same yield
-         * chain, and that is not the rung this arm is about. Every other knob
-         * reaches the footer. */
-        const touched = stripRectsFor(VIEW_KNOBS, 1);
-        eq('a knob under the hand takes the bottom rows from the strip',
-           cleared(touched), false);
         const isPill = ([x, y, w, h, v]) => y === 57 && h === 7 && v === 1 && x < 128;
-        eq('...which the hint band is what took',
-           touched.some(isPill), true);
+        const isToast = ([x, y, w, h, v]) => x === 0 && y === 58 && w === 128 && h === 6 && v === 1;
+        /* Knob 1: a plain float on this model. */
+        const plain = stripRectsFor(VIEW_KNOBS, 1);
+        eq('a plain knob under the hand leaves the strip its rows', cleared(plain), true);
+        eq('...with no hint band', plain.some(isPill), false);
+        /* Knob 0: the `file` param. movy's own "JOG: BROWSE" toast used to win
+         * the row here, from movy's OWN bank layout — which is not the cell
+         * under the hand once Schwung draws the body — so the chrome answers. */
+        const file = stripRectsFor(VIEW_KNOBS, 0);
+        eq('a file knob under the hand takes the bottom rows from the strip',
+           cleared(file), false);
+        eq('...which the hint band is what took', file.some(isPill), true);
         /* A toast would have taken them just as effectively, and one is a full
          * width inverted band one row lower. Without this the check passes on
          * the wrong painter. */
         eq('...and not one of movy\'s own bottom-row toasts instead',
-           touched.some(([x, y, w, h, v]) => x === 0 && y === 58 && w === 128 && h === 6 && v === 1),
-           false);
+           file.some(isToast), false);
     }
 }
 

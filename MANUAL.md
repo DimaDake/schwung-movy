@@ -570,25 +570,25 @@ the same script.
 **The header and the hint row.** These pages are drawn by Schwung, and Movy
 keeps two bands for itself. **While a knob is under your hand** the header
 becomes that parameter — its full name on the left, its current value on the
-right, drawn inverted — and the bottom row of hints changes to match, because
-the click is what changes meaning:
+right, drawn inverted:
 
-![A held knob takes the header and the hint row](docs/assets/page_chrome_held.png)
+![A held knob takes the header](docs/assets/page_chrome_held.png)
 
-Here `RND PATCH` is under the hand; `JOG PAGE` still moves the page, while the
-two action knobs beside it offer `CLK FIRE` and `KNB FIRE`. Those are named as
-*consequences* rather than as clicks on purpose: a trigger fires inside the
-controller and hands nothing back, so "click to fire" is the only true thing the
-row can say. An ordinary control reads `CLK OPEN`, and a two-way setting that
-flips in place reads `CLK FLIP`. Let go and Movy's own header and footer come
-back — the track, the module and the pad grid say more than a page title does,
-and with nothing held the click is the same everywhere.
+Here `RND PATCH` is under the hand. The bottom row stays the Loop strip: the
+knob itself already does everything a click on it would — an option list steps
+as you turn, a two-way setting toggles, an action knob fires on its first
+click — so there is nothing the hint row needs to tell you. Let go and Movy's
+own header comes back — the track, the module and the pad grid say more than a
+page title does.
 
 **Files.** A parameter that points at a file — a sample, a wavetable, a
-soundfont, an SFZ — has no list to open, so it opens **Movy's file browser**
-instead. Hold the knob and the header names the parameter and the file it is set
-to; the bottom row says so — `JOG PAGE` still moves the page, and `CLK OPEN`
-(click the jog) opens the browser in that parameter's folder:
+soundfont, an SFZ — cannot be turned, so the click is the only way in, and it
+is the one knob that gets a hint. Hold it and the header names the parameter
+and the file it is set to, and the bottom row reads `CLK BROWSE`:
+
+![A held file knob offers the browser](docs/assets/page_chrome_file.png)
+
+Click the jog and **Movy's file browser** opens in that parameter's folder:
 
 ![The file browser a file parameter opens](docs/assets/file_browse.png)
 
@@ -841,7 +841,10 @@ in the chain), but the easy way is to assign it from the parameter itself:
 ### Modulating a parameter with an LFO
 
 On any module's parameter page, **hold an (automatable) knob** for about a second
-without turning it. A prompt appears at the bottom:
+without turning it. A prompt appears at the bottom. On a page Schwung draws,
+this works on ordinary number knobs only: an option, a switch, an action or a
+file knob already uses the click, so holding one never takes it over (point an
+LFO at those from the LFO page's **Target** instead).
 
 ![Assign an LFO](docs/assets/lfo_assign_toast.png)
 
@@ -2092,8 +2095,8 @@ behaviour you'd like — or, better, a PR.
 | **Turn an action knob clockwise** | Fire a one-shot action (Capture, Reroll, …) once per turn, however far you keep turning. The circle blinks and the knob LED flashes. |
 | **Turn an action knob counter-clockwise** | Re-arm it immediately instead of waiting for the drain bar to run out. |
 | **Touch a bank / soundfont / model knob** | Open the collection list. Turn to scroll, release to load — scrolling on its own loads nothing. |
-| **Hold a file knob, then jog-click** | Open the file browser for a sample / wavetable / preset parameter (the header names the file, the bottom row reads `CLK OPEN`). Turn to move, click to load, Back to cancel. |
-| **Hold a knob (~1 s)** | Assign that parameter as an **LFO target**: jog picks LFO 1/2, jog-click assigns (hold again to remove). Automatable parameters only. |
+| **Hold a file knob, then jog-click** | Open the file browser for a sample / wavetable / preset parameter (the header names the file, the bottom row reads `CLK BROWSE`). Turn to move, click to load, Back to cancel. |
+| **Hold a knob (~1 s)** | Assign that parameter as an **LFO target**: jog picks LFO 1/2, jog-click assigns (hold again to remove). Automatable parameters only — and on a Schwung-drawn page, number knobs only. |
 | **Jog wheel — turn** | Scroll chain slots (Chain view) or module pages (Knobs view) / browser list. On either LFO page — a track's or the master chain's — scroll between LFO 1 and LFO 2. |
 | **Jog wheel — click** | Drill Chain → module pages; on Knobs (or an empty slot) open the module browser; in a browser, load the selection. |
 | **Shift + jog wheel — turn** | Knobs view: jump to the previous/next **section**, skipping that section's overflow pages. |

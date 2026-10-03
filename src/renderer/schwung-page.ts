@@ -48,7 +48,7 @@ import { createPageInput } from './schwung-page-input.js';
 import { createPageFocus } from './schwung-page-focus.js';
 import { createPageSeat } from './schwung-page-seat.js';
 import { createPageAnimating, type AnimActivity } from './schwung-page-anim.js';
-import { chromeFor, claimsBottomBand, type PageChrome } from './schwung-page-chrome.js';
+import { chromeFor, claimsBottomBand, regularKnob, type PageChrome } from './schwung-page-chrome.js';
 /* movy's own big-font cell, for the three values Schwung's big-number widget
  * cannot reach (an enum, or a reading with a unit in it). */
 
@@ -103,6 +103,8 @@ export interface SchwungPage {
     /** What movy's header and footer should say while this page is the body.
      *  `paging` is true only where the jog moves this page set. */
     chrome(paging: boolean): PageChrome;
+    /** May hold-to-modulate arm on this cell? See `regularKnob`. */
+    regularKnobAt(slot: number): boolean;
     knobTurn(slot: number, delta: number): void;
     knobTouch(slot: number, down: boolean): void;
     /** Jog click. Returns a host intent ("open") when Schwung asks for one. */
@@ -240,6 +242,7 @@ export function createSchwungPage(
         peekOpen: () => (typeof ctl.enumPeek === 'function' ? !!ctl.enumPeek() : false),
         render: page.render,
         chrome: (paging: boolean) => chromeFor(ctl, lib, paging, seat.onBlock()),
+        regularKnobAt: (slot: number) => regularKnob(ctl.metaAt ? ctl.metaAt(slot) : null, lib),
         knobTurn: input.knobTurn,
         knobTouch: input.knobTouch,
         click: input.click,

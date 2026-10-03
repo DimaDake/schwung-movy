@@ -26,7 +26,7 @@
 # so `focusVoice` finds nothing and the gesture does not exist there — measured,
 # `drumPad note=71 pad=4` with no `at=` change.
 #
-# LEFT-HALF PADS ONLY: `drumPadOfPhys` returns -1 for `col >= DRUM_COLS`, so a
+# LEFT-HALF PADS ONLY: `drumPadOfPhys` returns -1 for a column past `drumCols(cfg)`, so a
 # right-half pad addresses no voice. Note 71 is rack pad 4, note 68 is rack pad 1.
 #
 # Usage:

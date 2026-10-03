@@ -73,6 +73,7 @@ import { run as run_page_automation } from './logic/page-automation.mjs';
 import { run as run_drum_automation } from './logic/drum-automation.mjs';
 import { run as run_drum_focus } from './logic/drum-focus.mjs';
 import { run as run_drum_seat } from './logic/drum-seat.mjs';
+import { run as run_drum_racks } from './logic/drum-racks.mjs';
 import { run as run_schwung_floor } from './logic/schwung-floor.mjs';
 import { run as run_page_owner } from './logic/page-owner.mjs';
 import { run as run_param_body } from './logic/param-body.mjs';
@@ -163,6 +164,7 @@ const SUITES = [
     run_drum_automation,
     run_drum_focus,
     run_drum_seat,
+    run_drum_racks,
     run_schwung_floor,
     run_page_owner,
     run_param_body,

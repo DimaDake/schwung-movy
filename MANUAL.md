@@ -965,7 +965,9 @@ already sounding, so you can keep jamming on a silenced track.
 
 When a **drum module** is loaded, Movy switches the pads to a **4×4 drum rack**
 and the screen to drum-oriented parameter pages, including **per-pad pages** (a
-page that controls just the selected drum voice — marked with a pad icon):
+page that controls just the selected drum voice — marked with a pad icon).
+A kit with **more than 16 voices** (dr32 has 32) uses **all 32 pads**, eight
+across, numbered from the bottom-left pad upwards:
 
 ![Drum module page](docs/assets/drum-mrdrums-global.png)
 
@@ -1134,7 +1136,7 @@ for the concepts:
   its notes and the automation on that pad's own parameters, the way Move does
   it. A paste replaces only that pad at the destination, and every other pad's
   notes and locks there stay as they were. This needs a drum module that
-  declares its pads to Schwung (6W6, 8W8, 9W9, CW-78, simian, dr32) and Schwung
+  declares its pads to Schwung (6W6, 8W8, 9W9, CW-78, simian, dr32, sophie) and Schwung
   1.6.0 or newer. On any other module, or an older Schwung, a step copy takes
   the whole step as before.
 - **Quantize** — **Shift + Step 16**. See [Quantization](#quantization).
@@ -1893,8 +1895,16 @@ Forge). The per-pad knobs always edit the pad you last pressed.
 The **pad's own pages come first**. On a drum machine with one page per voice
 (6W6, 8W8, 9W9, CW-78) those pages fold into a single **pad page**, which shows the
 pad you last pressed. The jog then reaches the module's other pages (Main,
-Reverb, Delay…). On a rack whose pages edit the selected pad (simian, dr32) the
-pad pages are all of those. A drum module opens on its pad page.
+Reverb, Delay…). On a rack whose pages edit the selected pad (simian, dr32,
+sophie, Forge's voice pages) the pad pages are all of those. A drum module opens
+on its pad page.
+
+A module needs no Movy config file to be played as a drum rack here. One that
+says it is a drum kit, or whose pages switch between instances by their own
+"selected pad" parameter, gets a rack of its own: its pads start at C1 (note 36)
+unless it names the notes itself. When a module does ship a Movy config, or
+Movy ships one for it (6W6, 8W8, 9W9, CW-78), the config decides the pads and
+their notes.
 
 ![Simian's pad page, first of five in the bank bar](docs/assets/page_held_drum.png)
 

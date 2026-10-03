@@ -14,6 +14,8 @@ export interface VoiceSurface { layout: string | null; voices: Voice[]; focusPar
 const EMPTY: VoiceSurface = { layout: null, voices: [], focusParam: null };
 
 export function surfaceOf(_hierarchy: any): VoiceSurface { return EMPTY; }
+export function declaredRack(hierarchy: any): any { return hierarchy; }
+export function rackVoiceMap(_hierarchy: any): string { return ''; }
 export function isDrumRack(_s: VoiceSurface): boolean { return false; }
 export function padCount(_s: VoiceSurface): number { return 0; }
 export function noteForPad(_s: VoiceSurface, _i: number): number | null { return null; }

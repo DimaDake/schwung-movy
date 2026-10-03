@@ -22,7 +22,7 @@
  * 36, so five of the seven would address the wrong voice and two would address
  * nothing. So the pad->note relation is carried as the module stated it.
  */
-import { schwungLib } from './schwung-lib.js';
+import { schwungLib, schwungLaneVoiceMap } from './schwung-lib.js';
 
 export interface Voice {
     index: number;
@@ -73,12 +73,71 @@ function pressParamOf(lib: any, hierarchy: any): string | null {
     return null;
 }
 
+/* D9 (plan 2026-09-30-drum-modules-schwung-pages.md): A CHILD LEVEL WITH ITS
+ * OWN `child_index_param` IS A DRUM RACK, even when the module never said so.
+ *
+ * Schwung will not infer a layout (voices.mjs: "LAYOUT IS DECLARED, NEVER
+ * INFERRED"), and is right to for a sampler's key zones — but those carry no
+ * index param: one that does is a level whose instances the module switches
+ * between, which is what a rack's pads are. So movy, not Schwung, takes the
+ * step, and takes it here, ONCE, by handing Schwung's own readers the contract
+ * the module would have written: `pad_layout: "drums"`, and the rack level's
+ * notes as `child_note_base` 36 where it states none. voicesOf, laneVoiceMap
+ * and every ordering rule then stay Schwung's.
+ *
+ * Only the FIRST such level in Schwung's voice order is seated: sophie's
+ * `ring` shares `root`'s `focused_pad`, and noting both would double the pads.
+ * Levels sharing that index param join it the way they do on a declared rack
+ * (the seat's blocks, lane_voice_map's noteOf). An explicit `chromatic` always
+ * wins, and a rack that already has voices is left exactly as declared.
+ *
+ * Memoised per contract object: every pad press asks (focusVoice). */
+const asRack = new WeakMap<object, any>();
+export function declaredRack(hierarchy: any): any {
+    if (!hierarchy || typeof hierarchy !== 'object' || !hierarchy.levels) return hierarchy;
+    const hit = asRack.get(hierarchy);
+    if (hit) return hit;
+    let out = hierarchy;
+    try { out = inferRack(schwungLib(), hierarchy); } catch (_e) { /* "has not said" */ }
+    asRack.set(hierarchy, out);
+    return out;
+}
+
+function inferRack(lib: any, h: any): any {
+    if (lib.padLayoutOf(h) === 'chromatic' || (lib.voicesOf(h) || []).length) return h;
+    const noted = (lvl: any): boolean =>
+        Array.isArray(lvl.child_notes) || Number.isFinite(lvl.child_note_base);
+    const withNotes = (only: string | null): any => {
+        const levels: Record<string, any> = {};
+        for (const name of Object.keys(h.levels)) {
+            const lvl = h.levels[name];
+            const take = lvl && lib.childIndexParam(lvl) && lib.childCount(lvl) > 0
+                && !noted(lvl) && (only === null || only === name);
+            levels[name] = take ? { ...lvl, child_note_base: 36 } : lvl;
+        }
+        return { ...h, pad_layout: 'drums', levels };
+    };
+    /* Schwung's voice order picks the level, rather than a second spelling of
+     * it here: note every candidate, keep the one it lists first. */
+    const first = (lib.voicesOf(withNotes(null)) || [])[0];
+    if (!first) return h;
+    return withNotes(first.level);
+}
+
+/** Schwung's per-voice key map (`lane_voice_map.mjs`, plan D16) for the rack
+ *  as `declaredRack` reads it, so a D9 rack maps its keys too. "" for none. */
+export function rackVoiceMap(hierarchy: any): string {
+    const fn = schwungLaneVoiceMap();
+    return fn && hierarchy ? fn(declaredRack(hierarchy)) || '' : '';
+}
+
 /** Read a module's declared performance surface. Never throws: a malformed
  *  contract is "has not said", the same as no contract at all. */
 export function surfaceOf(hierarchy: any): VoiceSurface {
     if (!hierarchy) return EMPTY;
     try {
         const lib = schwungLib();
+        hierarchy = declaredRack(hierarchy);
         return {
             layout: lib.padLayoutOf(hierarchy) ?? null,
             voices: lib.voicesOf(hierarchy) || [],

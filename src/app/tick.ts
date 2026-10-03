@@ -1056,7 +1056,7 @@ function tickBody(): void {
         const drumCfg = synthModel!.getDrumConfig();
         if (drumCfg) {
             // On entry from a non-drum track, force a full repaint so non-grid pads
-            // (col >= 4 → Black) overwrite any stale chromatic colors left behind.
+            // (past the rack's width → Black) overwrite any stale chromatic colors left behind.
             // On entry from a non-drum view (e.g. Session clip grid → Note), open
             // a repaint window too, so the grid fully overwrites whatever owned the
             // pads. (A track switch already opened one above.)
@@ -1065,7 +1065,7 @@ function tickBody(): void {
                 setButtonLED(MoveUp, Black, true);
                 setButtonLED(MoveDown, Black, true);
             }
-            // Invalidate once so non-grid pads (col >= 4 → Black) and every grid
+            // Invalidate once so non-grid pads (past the rack's width → Black) and every grid
             // pad overwrite colours left by the previous layout, which the
             // per-pad cache would otherwise treat as already correct.
             if (drumCacheStale) {

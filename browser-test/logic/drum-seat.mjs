@@ -26,11 +26,10 @@ if (!schwungLibAvailable()) {
 const sh = resolve(process.env.SCHWUNG, 'src', 'shared');
 const { voicesOf } = await import(join(sh, 'param_pages', 'voices.mjs'));
 const { resolveChildKey, childCount } = await import(join(sh, 'param_pages', 'child_key.mjs'));
-const { laneVoiceMap } = await import(join(sh, 'lane_voice_map.mjs'));
 const { automationFor } = await import('../../dist/esm/app/automated-keys.js');
 const { setVoiceMapReader } = await import('../../dist/esm/model/voice-keys.js');
 const { setSurfaceReader } = await import('../../dist/esm/model/drum-declared.js');
-const { surfaceOf } = await import('../../dist/esm/renderer/schwung-voices.js');
+const { surfaceOf, rackVoiceMap } = await import('../../dist/esm/renderer/schwung-voices.js');
 const { setChildKeyResolver } = await import('../../dist/esm/model/child-keys.js');
 const { resetAutomation, assignLane, automationRegistry } = await import('../../dist/esm/seq/automation.js');
 const { seqState } = await import('../../dist/esm/seq/state.js');
@@ -39,7 +38,7 @@ const { voiceCopyArgs } = await import('../../dist/esm/seq/voice-copy.js');
 /* What app/globals.ts registers at start-up. */
 setSurfaceReader(surfaceOf);
 setChildKeyResolver(resolveChildKey, childCount);
-setVoiceMapReader(laneVoiceMap);
+setVoiceMapReader(rackVoiceMap);
 
 const prevModels = appState.trackModels[0];
 function boot(id, edit = null) {

@@ -5,11 +5,12 @@
  * list, which exist precisely because a module had no way to say. Schwung #411
  * gives it one, so a rack movy has never heard of can seat itself.
  *
- * DECLARATION WINS, THE TABLE IS THE FALLBACK. A module that has said nothing
- * is the common case — all 100 captured fleet modules — and it must keep
- * behaving exactly as it did, so this returns the override untouched there.
- * Where both exist the module is believed: the table was only ever movy's
- * guess at what the module now states outright.
+ * A CONFIG ALWAYS WINS (plan 2026-09-30-drum-modules-schwung-pages.md, D4 as
+ * revised 2026-10-03, the user's ruling): movy's bundled override, then a
+ * module-shipped movy_config, then the module's declared drum surface. The
+ * simpler rule to follow and to explain; the first version (declaration over
+ * config) was tried and superseded. The config is a frozen legacy reader —
+ * future modules are expected to declare, and those reach the declared branch.
  *
  * PURE, AND FREE OF SCHWUNG. It takes the surface as plain data, so `model/`
  * keeps its rule of importing nothing from `renderer/` and this stays testable
@@ -17,6 +18,7 @@
  * deciding what movy does with it is here.
  */
 import type { DrumConfig } from '../types/param.js';
+import { drumNoteOfPad } from '../keyboard/drum-grid.js';
 
 /*
  * THE READER IS PUSHED IN, NOT IMPORTED.
@@ -62,36 +64,53 @@ export interface DeclaredSurface {
  */
 export function effectiveDrumConfig(
     declared: DeclaredSurface | null,
-    fallback: DrumConfig | null,
+    config: DrumConfig | null,
 ): DrumConfig | null {
-    if (!declared || declared.layout !== 'drums' || !declared.voices.length) return fallback;
+    /* D4: the config decides the whole drum setup — pads, notes, scoping, the
+     * focus write. Nothing is merged in from the declaration: a half-and-half
+     * rack is two sources disagreeing in one object. */
+    if (config) return config;
+    if (!declared || declared.layout !== 'drums' || !declared.voices.length) return null;
 
     const padNotes = declared.voices.map((v) => v.note);
     return {
-        /* Carried from the override where there is one, so a module that
-         * declares its voices does not silently lose the facts movy knew and
-         * the contract has no word for — pad scoping, the automatable-pad cap. */
-        ...(fallback || {}),
         padCount: padNotes.length,
         /* Kept meaningful for the rawMidi path and for anything still reading
          * it, but NOT what pad notes are derived from — see padNotes. */
         padNoteStart: padNotes[0],
-        rawMidi: fallback ? fallback.rawMidi : false,
+        rawMidi: false,
         padNotes,
-        /* The module names the param holding its focused voice; movy's own
-         * `currentPadParam` said the same thing by hand. */
-        currentPadParam: declared.focusParam || fallback?.currentPadParam,
+        /* The module names the param holding its focused voice. */
+        ...(declared.focusParam ? { currentPadParam: declared.focusParam } : {}),
         /* WHAT to write into it, which the two sources spell differently.
          *
-         * A hand-written `currentPadParam` is the template shape's instance
-         * number, so movy writes the pad number. A declared `focus_param` is
-         * the SIBLING shape, and its value is a LEVEL NAME — "snare", never
-         * "2". movy wrote the pad number into both, so every declared rack was
-         * told to focus a voice called "1", which is not a level and which the
-         * module can only ignore. Carried per pad because the levels are the
-         * module's own names in its own order. */
+         * A hand-written `currentPadParam` (a config's) is the template
+         * shape's instance number, so movy writes the pad number. A declared
+         * `focus_param` is the SIBLING shape, and its value is a LEVEL NAME —
+         * "snare", never "2". movy wrote the pad number into both, so every
+         * declared rack was told to focus a voice called "1", which is not a
+         * level and which the module can only ignore. Carried per pad because
+         * the levels are the module's own names in its own order. */
         ...(declared.focusParam
             ? { padFocusValues: declared.voices.map((v) => v.level) }
             : {}),
     };
+}
+
+/**
+ * The declared voice each of the rack's pads plays, matched by NOTE — or null
+ * for a pad no voice declares.
+ *
+ * By note, not by position, because a config that wins (D4) may number the
+ * same voices differently: 9w9 declares 36..44, 46, 45 and movy's bundled
+ * config plays 36 + i, so by position pad 10 would sound one voice while its
+ * name, its page and its copied keys belonged to the other.
+ */
+export function padVoices<V extends { note: number }>(cfg: DrumConfig, voices: readonly V[]): (V | null)[] {
+    const out: (V | null)[] = [];
+    for (let pad = 1; pad <= cfg.padCount; pad++) {
+        const note = drumNoteOfPad(pad, cfg);
+        out.push(voices.find((v) => v.note === note) ?? null);
+    }
+    return out;
 }

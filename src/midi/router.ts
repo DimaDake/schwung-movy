@@ -58,7 +58,7 @@ import { noteOn, noteOff, changeOctave } from '../keyboard/handler.js';
 import { soundingPitch, soundingTrack } from '../keyboard/held-notes.js';
 import { releaseAllLive } from '../keyboard/release.js';
 import { drumPadOn, drumPadOff, padFocusWrite } from '../keyboard/drum-handler.js';
-import { drumNoteOfPhys } from '../keyboard/drum-grid.js';
+import { drumNoteOfPad, drumNoteOfPhys } from '../keyboard/drum-grid.js';
 import { padsPlayNotes } from '../seq/router-pads.js';
 import { padMuteGesture } from '../mixer/pad-mutes.js';
 import { openBrowser, loadSelectedModule } from '../browser/handler.js';
@@ -533,7 +533,7 @@ export function onMidiMessageInternal(data: number[]): void {
                          * at movy's pad, never at the module's report (D8). */
                         const fw = padFocusWrite(drumCfg, pad);
                         if (fw) page?.focusWritten(model!.getComponentKey() + ':' + fw.key, fw.value);
-                        page?.focusVoice(pad);
+                        page?.focusVoice(pad, drumNoteOfPad(pad, drumCfg));
                     } finally {
                         perfPhaseEnd();
                     }

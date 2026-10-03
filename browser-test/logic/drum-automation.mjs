@@ -153,7 +153,9 @@ for (const id of DRUM_MODULES) {
         : ps ? (k.startsWith(ps.aliasPrefix) || aliasFromConcrete(ps, k) !== null) : probe);
     const slotOn = (pg) => (Array.isArray(pg.keys) ? pg.keys : []).findIndex((k, s) => perPad(pg, k)
         && p.ctl.pages[p.ctl.pageIndex] === pg && p.knobParamInfo(s)?.automatable);
-    const pageIdx = probe ? p.ctl.pageIndex
+    /* The page the press landed on, unless it carries no per-pad knob — a
+     * seat may open on a door (forge's "Selected Voice" preset page). */
+    const pageIdx = probe && slotOn(p.ctl.pages[p.ctl.pageIndex]) >= 0 ? p.ctl.pageIndex
         : p.ctl.pages.findIndex((pg) => Array.isArray(pg.keys) && pg.keys.some((k) => perPad(pg, k)));
     if (pageIdx < 0) {
         /* A rack with no per-pad key anywhere (krautdrums: one level per
@@ -162,7 +164,7 @@ for (const id of DRUM_MODULES) {
                     pages: p.ctl.pages.map((pg) => pg.name) });
         restoreFs(); continue;
     }
-    if (!probe) { p.ctl.goToPage(pageIdx); for (let i = 0; i < 4; i++) p.tick(); }
+    if (pageIdx !== p.ctl.pageIndex) { p.ctl.goToPage(pageIdx); for (let i = 0; i < 4; i++) p.tick(); }
     const slot = slotOn(p.ctl.pages[pageIdx]);
     if (slot < 0) { fail(`drum matrix: ${id} has no automatable per-pad cell`); restoreFs(); continue; }
     const cell = { pageIdx, slot };
@@ -227,12 +229,10 @@ for (const r of rows) {
 
 /* PHASE 3'S ACCEPTANCE, asserted outright rather than only through the
  * snapshot: a lock on pad N's per-pad knob sounds on pad N alone, and the held
- * arc and the lane mark draw on pad N's page alone and survive a sync. sophie
- * declares no voices, so a pad press cannot move its page yet — plan Phase 6
- * (D9) — and its lane binds whichever pad the page shows. */
-const NOT_YET = new Set(['sophie']);
+ * arc and the lane mark draw on pad N's page alone and survive a sync. Every
+ * module, sophie included since plan Phase 6 seated it (D9). */
 for (const r of rows) {
-    if (r.noPerPadPage || NOT_YET.has(r.module)) continue;
+    if (r.noPerPadPage) continue;
     ok(`${r.module} pad ${r.pad}: the lock sounds on pad ${r.pad} only and draws there`, r.sounds && r.draws);
 }
 

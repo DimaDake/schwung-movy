@@ -505,11 +505,72 @@ are kept for now and also win. Phase 6 work:
 - Test: sophie **with its movy_config removed** is a 16-pad rack with correct
   pads, pages and automation.
 
+#### Phase 6 — results (2026-10-03)
+
+Built against schwung `origin/main` ecf1c828 (`schwung-main` worktree;
+`schwung/` is still diverged and was left alone). No ENGINE change.
+
+- **The flip** (`model/drum-declared.ts`): a config, bundled or shipped, is
+  returned untouched; the declaration is read only when there is none. Nothing
+  is merged in from it any more (the old merge carried the config's scoping into
+  the declared rack, and the declaration's `focus_param` into the config).
+- **The flip exposed a numbering clash, so pads map to voices BY NOTE.** 9w9
+  declares 36..44, **46, 45**; its bundled config plays 36 + i. By position,
+  pad 10 sounded 45 (Crash) while its name, its page and its copied keys were
+  the voice at index 9 (46, Ride). `padVoices(cfg, voices)` matches each pad's
+  sounding note to the declared voice, and is what names the pads and indexes
+  the D16 voice keys; the router passes the pad's note to `focusVoice`, which
+  picks the voice declaring it (by position only when no note is given). The
+  user-visible change: 9w9 pads 10/11 are back in the config's order.
+- **D9 lives in the seam's one reader** (`renderer/schwung-voices.ts`,
+  `declaredRack`): with no voices and no explicit `chromatic`, the first level
+  in Schwung's own voice order that has children and a `child_index_param` is
+  given `pad_layout: "drums"` and `child_note_base: 36` (unless it states
+  notes), and everything downstream — `voicesOf`, `laneVoiceMap`, the seat — is
+  Schwung's code reading that contract. Memoised per contract object. The voice
+  map reader is `rackVoiceMap` (same normaliser), registered in globals and
+  reused by the tests rather than re-spelled.
+- **sophie with its config** therefore gets voices from D9 for NAVIGATION (the
+  seat, D7, `focusVoice` writing `focused_pad`) while the drum setup stays the
+  config's (`pad_` scoping, `currentPadParam`). The router still also writes the
+  config's `focused_pad` (`padFocusWrite`), the same value; left as is.
+- **Not as the plan said: forge is reached too.** Its six voice levels carry
+  `child_index_param: focused_voice` with no layout, so D9 seats its Voice
+  block (Selected Voice, Voice, Osc, Filter, Env, Mod, Setup) first and a press
+  writes `focused_voice`. Its config still decides pads and the `cv_*`→`pv*`
+  scoping, so lanes are unchanged (`pv3_m1`). Its voice map is empty (every
+  voice shares `{key}`), so its copy stays whole-step.
+- **MOVY-mode side effect of the flip:** 6w6/8w8/9w9/cw78 no longer get the
+  declared `focus_param` merged into their config, so a press under MOVY pages
+  no longer writes `ui_focus_level`. movy's own pages for them name concrete
+  keys, so nothing reads it; under SCHWUNG `focusVoice` still writes it.
+- **Tests**: `browser-test/logic/drum-racks.mjs` (pure precedence, by-note
+  pads, chromatic guard; sophie without and with its config, 9w9 under its
+  bundled config). The matrix now passes sophie on pads 3 and 16 and asserts it
+  (the `NOT_YET` exemption is gone); it looks for the per-pad cell past a seat
+  that opens on a door (forge's Selected Voice). Teeth: no D9, declaration
+  first, page by position, names by position, chromatic inferred, voice map
+  unwrapped — each turns named checks red.
+
 ### Phase 7 — 32-pad grid (D10)
 
 - `drum-grid.ts`: 8-wide when `padCount > 16`; LEDs, pad-route, mutes follow the
   one geometry module.
 - Test with dr32's shipped hierarchy.
+
+#### Phase 7 — results (2026-10-03)
+
+- `drumCols(cfg)` in `keyboard/drum-grid.ts` replaces the `DRUM_COLS` constant:
+  8 for a non-rawMidi rack of more than 16 pads, else 4. Input, LEDs, the
+  engine's pad map (`pad-route`), mutes and the model's initial focus already
+  went through `drumPadOfPhys` / `physPadOfDrumPad`, so nothing else changed.
+- Tests in `drum-racks.mjs`: the 32-pad round trip and row order, 16 pads stay
+  4 wide, a right-half pad lights only on a 32-pad rack, and dr32's dumped
+  contract plays 32 distinct voices across the whole grid. Teeth: always-4-wide
+  turns 8 checks red.
+- Not done: the header pad icon (`drawPadGridIcon`, frozen renderer) still
+  assumes 4 across. It is drawn only for a config-scoped rack (`isPadScoped`),
+  and no config in the fleet has more than 16 pads.
 
 ---
 
@@ -519,7 +580,7 @@ are kept for now and also win. Phase 6 work:
 |---|---|---|---|---|
 | 6w6 / 8w8 / 9w9 / cw78 | one voice seat + rest | D7; 9w9 no self-jumping | ✔ (movy chain) | ✔ |
 | mrdrums | template, one block | D7 | ✔ | ✔ |
-| sophie | its own `ui_pages` | D7 via its movy_config (`focused_pad` written on press; D4 revised). D9 only without the config | ✔ incl. pad 16 | ✔ |
+| sophie | its own `ui_pages` | D7 through D9's voices, with or without its config; the config still sets pads and scoping (D4) | ✔ incl. pad 16 | ✔ |
 | simian | template, 3 child levels = block | D7 | ✔ | ✔ |
 | forge / weird-dreams | movy_config (D11) | D7 | ✔ | ✔ |
 | libpo32 / krautdrums | movy_config | best effort | best effort | best effort |

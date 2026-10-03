@@ -142,6 +142,20 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Changed
 
+- **A drum module's Movy config always decides its pads.** Where a module
+  ships a `movy_config.json`, or Movy ships one for it (6W6, 8W8, 9W9, CW-78),
+  that config sets the pad count and each pad's note, over anything the module
+  declares to Schwung. The page still follows the voice the pad plays. On 9W9
+  this swaps pads 10 and 11 back to the config's order (Crash, then Ride).
+- **A drum module needs no Movy config to be a drum rack.** One whose pages
+  switch between instances by a "selected pad" parameter (`child_index_param`)
+  is played as a rack of that many pads from C1, unless it says it is
+  chromatic. sophie is the module this reaches today.
+- **sophie and Forge get the pad-first drum pages under Schwung.** Their pad
+  (voice) pages come first, a press on one keeps your place, and on sophie a
+  step copy takes only the selected pad.
+- **A drum kit with more than 16 voices uses all 32 pads**, eight across from
+  the bottom-left. dr32's pads 17-32 were unreachable.
 - **Drum pages under Schwung put the pad first.** A drum machine with one page
   per voice (6W6, 8W8, 9W9, CW-78) used to make you jog past every voice to reach
   Reverb. Those pages now fold into one pad page at the front, showing the pad

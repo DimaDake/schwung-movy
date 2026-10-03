@@ -16,7 +16,7 @@ import type { PageParamSource } from './schwung-page-source.js';
 import type { SchwungIntent } from './schwung-page.js';
 import type { PageHierarchy } from './schwung-page-hierarchy.js';
 import { mlog } from '../log.js';
-import { surfaceOf } from './schwung-voices.js';
+import { surfaceOf, padForNote } from './schwung-voices.js';
 import type { PageFocus } from './schwung-page-focus.js';
 import type { PageSeat } from './schwung-page-seat.js';
 /* The detent accumulator the sequencer pages have always used. Imported rather
@@ -29,7 +29,7 @@ export interface PageInput {
     knobTouch(slot: number, down: boolean): void;
     click(shift?: boolean): SchwungIntent | null;
     back(): SchwungIntent | null;
-    focusVoice(pad: number): boolean;
+    focusVoice(pad: number, note?: number): boolean;
     /** The instance of `level` movy's last pad press chose, or null. */
     focusedChild(level: string): number | null;
     /** One jog detent — through movy's seat order where there is one. */
@@ -216,7 +216,7 @@ export function createPageInput(ctl: any, lib: any, port: PageParamSource,
          * happened when it did: the engine's playback-drifted pad leaked into
          * the UI and moved the page under the user's hands.
          */
-        focusVoice(pad: number): boolean {
+        focusVoice(pad: number, note?: number): boolean {
             /* THE CONTRACT THE PAGES WERE PLANNED FROM, from the one place that
              * knows it. The controller keeps its own copy but does not publish
              * it, and its planned pages do not carry the level they came from —
@@ -234,7 +234,12 @@ export function createPageInput(ctl: any, lib: any, port: PageParamSource,
              * one its pages were planned from. */
             const hierarchy = hier.peek() ?? hier.parsed();
             const s = surfaceOf(hierarchy);
-            const v = s.voices[pad - 1];
+            /* BY THE NOTE THE PAD SOUNDED where the caller knows it: a config
+             * that wins (D4) may number the declared voices differently (9w9's
+             * 45/46), and the page must show the voice the pad played. */
+            const byNote = note === undefined ? null : padForNote(s, note);
+            const vi = byNote ?? pad - 1;
+            const v = s.voices[vi];
             if (!hierarchy || !v) return false;
             /* MOVY'S PRESS IS THE ANSWER, NOT THE MODULE'S REPORT (plan D8).
              * The controller learns the new instance when it reads
@@ -267,7 +272,7 @@ export function createPageInput(ctl: any, lib: any, port: PageParamSource,
              * the same pages for every pad, so it usually stays put and the
              * controller re-keys the cells. `remember: false` — the offset is
              * the rule, not the section's remembered sub-page. */
-            const to = seat.press(pad);
+            const to = seat.press(vi + 1);
             if (to >= 0 && to !== ctl.pageIndex) jump(to, v.childIndex, { remember: false });
             else if (to < 0 && !seat.active()) mlog('focusVoice no page for ' + v.level + '/' + v.name);
             return true;

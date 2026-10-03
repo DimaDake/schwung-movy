@@ -109,8 +109,9 @@ export interface SchwungPage {
     click(shift?: boolean): SchwungIntent | null;
     /** Back. Null once a layer has been taken down; {action:'exit'} when none was. */
     back(): SchwungIntent | null;
-    /** Show the page for a 1-based drum pad. False when it cannot be resolved. */
-    focusVoice(pad: number): boolean;
+    /** Show the page for a 1-based drum pad — the voice declaring `note`, the
+     *  note the pad sounded, where given. False when it cannot be resolved. */
+    focusVoice(pad: number, note?: number): boolean;
     /** movy wrote the module's focus param outside the page (a config rack's
      *  press) — the page's focus follows it, not the module (plan D8). */
     focusWritten(fullKey: string, value: string): void;

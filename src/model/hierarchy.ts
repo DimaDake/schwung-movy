@@ -1,6 +1,6 @@
 import type { ModelState } from './state.js';
 import { loadModuleConfig } from '../modules/loader.js';
-import { effectiveDrumConfig, readSurface } from './drum-declared.js';
+import { effectiveDrumConfig, padVoices, readSurface } from './drum-declared.js';
 import { mlog } from '../log.js';
 import { moduleReadKey } from '../chain/config.js';
 import { declaredContract } from '../chain/hierarchy-source.js';
@@ -198,16 +198,12 @@ export function loadHierarchy(s: ModelState): void {
        + ' press=' + (declaredSurface?.pressParam || '-')
        + ' hier=' + (declaredHierarchy ? 'yes' : 'none')
        + ' keys=' + (declaredHierarchy ? Object.keys(declaredHierarchy).join('|') : '-'));
-    s.drumPadNames = (declaredSurface && declaredSurface.layout === 'drums')
-        ? declaredSurface.voices.map((v) => v.name || '')
-        : [];
     /* Alongside the drum config, not inside it: the vouch is not drum-only.
      * See ModelState.pressParam. */
     s.pressParam = declaredSurface?.pressParam ?? null;
     /* Kept past the load for the label sync (`childTemplateOf`): a lane on a
      * template rack names a concrete instance key, which no page lists. */
     s.childLevels = childLevelsOf(declaredHierarchy?.levels);
-    s.voiceKeys = voiceKeysOf(declaredHierarchy, declaredSurface?.voices ?? []);
     /* ...and every key the module declares, for the same sync. Under the
      * Schwung grid a lane binds what SCHWUNG planned — forge's Voice macros
      * (`cv_m1`) are on no movy page — so "a param movy's pages show" is the
@@ -215,6 +211,13 @@ export function loadHierarchy(s: ModelState): void {
      * this. */
     s.declared = { cp: cpMap, defs: { ...knobInline, ...paramDefs }, keys: declaredKeysOf(cpOrder, allLevels) };
     s.drumConfig = effectiveDrumConfig(declaredSurface, s.moduleConfig?.drum ?? null);
+    /* The declared voices, one per PAD of the rack that won (D4) — matched by
+     * the note the pad plays, so a config's own numbering cannot hand pad 10
+     * pad 11's name or keys. */
+    const voices = (s.drumConfig && declaredSurface && declaredSurface.layout === 'drums')
+        ? padVoices(s.drumConfig, declaredSurface.voices) : [];
+    s.drumPadNames = voices.map((v) => (v && v.name) || '');
+    s.voiceKeys = voiceKeysOf(declaredHierarchy, voices.map((v) => ({ note: v ? v.note : NaN })));
     if (s.drumConfig) {
         s.isDrum       = true;
         s.drumPadCount = s.drumConfig.padCount;

@@ -374,6 +374,16 @@ pad's tune".
 
 ### Phase 6 — Config-free rack rule (D4, D9)
 
+**Ruling (user, 2026-10-03): a module-shipped `movy_config.json` takes
+priority over the D9 inferred rule.** sophie plays today because its shipped
+config makes it a drum track (pads, notes, pad scoping). The D9 rule
+(`child_index_param` ⇒ drum rack) is still built, but only for modules that do
+NOT ship a config, so sophie keeps its config path and a configless module of
+the same shape still gets a rack. This narrows D4 for the inferred case only. An
+explicit `pad_layout: "drums"` declaration keeps D4's order unless the user
+rules otherwise. The Phase 6 test therefore runs sophie with its config REMOVED
+(as planned). With the config present it must stay on the config path.
+
 - Extend `effectiveDrumConfig` / the surface reader with the
   `child_index_param` rule and the precedence in D4.
 - Test: sophie **with its movy_config removed** is a 16-pad rack with correct

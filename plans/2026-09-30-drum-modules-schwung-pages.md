@@ -76,7 +76,7 @@ focused_pad from DSP note-ons").
 | D1 | **Automation lanes write the param directly** (`chains.set_param(c, "<component>:<key>", v)`), not CC 102+lane. **All lanes, not only drums.** **Only movy-owned chains are automatable**; the CC path is deleted. | Removes the 256 cap and the table-miss failure in one move; no module or schwung change. **Zero added latency is a hard requirement** (the user's "otherwise strong NO"): it runs in `drain_out` in the same block as today's `chains.on_midi` CC; `apply_mix_lane` is the existing precedent. Resolution rises above 7 bits as a side effect. |
 | D2 | **No CC fallback is needed.** Tracks always run on movy-owned chains; schwung-hosted chains carry only the master, which is not automated. | The user's ruling (2026-09-30). So the 256-param table never limits a track lane, and no `NO LOCK`-for-cap path or MANUAL note is required. |
 | D3 | **Scope: SCHWUNG grid mode.** MOVY mode gets bug fixes only. D1 lives in the engine, so it fixes both modes. | Migration rule 1. |
-| D4 | **Precedence:** a module's declared **drum surface** > module-shipped `movy_config.json` > movy's bundled config > generic. A declaration counts as a drum surface only if it has `pad_layout: "drums"` or a child level with `child_index_param` (D9). movy_config becomes a **frozen compatibility reader** — no new fields. | The user's first instinct was config-first (true for forge/weird-dreams); this ordering keeps that for them, because neither declares a drum surface, so they fall through to their configs. The user accepted trying it this way. |
+| D4 | **Precedence (revised 2026-10-03): a module-shipped `movy_config.json` ALWAYS wins**, over any declaration. Then a module's declared **drum surface**, then movy's bundled config, then generic. A declaration counts as a drum surface only if it has `pad_layout: "drums"` or a child level with `child_index_param` (D9). movy_config is a **frozen legacy reader**: no new fields, and future modules are not expected to ship one. | The user's ruling: "config wins all the time" is the simpler rule to follow and explain. The first version (declaration > config) was "tried this way" and is superseded. Today's code (`effectiveDrumConfig`) still lets a declared `pad_layout: "drums"` override the shipped config; Phase 6 flips it. |
 | D5 | **One per-pad seat, built in movy's seam.** For sibling racks the voice pages collapse into a single rotating seat; template racks already have one per child level. movy owns the page index, Schwung draws the page. | Upstream is likely to push back and Schwung will not expose it anyway; nothing user-facing is lost. The cost is coupling to `pages[i].level` / `voicesOf`, which is paid for with a logic test against the real schwung checkout. |
 | D6 | **Per-pad pages first** in the jog, everything else after. The per-pad block = voice levels (sibling) or every page of every child level (template). | Makes the pad-switch rule (D7) well defined. |
 | D7 | **Pad-switch rule.** On a per-pad page, a pad press moves to that pad and **keeps the page offset** within the block, **clamped** to the new voice's last page. On any other page the press does not move the page, but **the focus still updates**: jogging back to the seat shows the last pad hit. | The user's rule, option (a). Diverges from native schwung (which follows from any page) on purpose. |
@@ -374,15 +374,16 @@ pad's tune".
 
 ### Phase 6 — Config-free rack rule (D4, D9)
 
-**Ruling (user, 2026-10-03): a module-shipped `movy_config.json` takes
-priority over the D9 inferred rule.** sophie plays today because its shipped
-config makes it a drum track (pads, notes, pad scoping). The D9 rule
-(`child_index_param` ⇒ drum rack) is still built, but only for modules that do
-NOT ship a config, so sophie keeps its config path and a configless module of
-the same shape still gets a rack. This narrows D4 for the inferred case only. An
-explicit `pad_layout: "drums"` declaration keeps D4's order unless the user
-rules otherwise. The Phase 6 test therefore runs sophie with its config REMOVED
-(as planned). With the config present it must stay on the config path.
+**Ruling (user, 2026-10-03): a module-shipped `movy_config.json` always wins
+(D4 revised).** sophie plays today because its shipped config makes it a drum
+track. The declaration-based rules (`pad_layout: "drums"`, and D9's
+`child_index_param` ⇒ drum rack) are still built, but they apply only to
+modules that do NOT ship a config. That is the expected path for future modules;
+the config is legacy. Phase 6 work:
+- flip `effectiveDrumConfig`, so a shipped config beats a declared surface
+  (today a declaration overrides it);
+- test sophie both ways: with its config removed it is a 16-pad rack via D9;
+  with the config present it stays on the config path.
 
 - Extend `effectiveDrumConfig` / the surface reader with the
   `child_index_param` rule and the precedence in D4.

@@ -100,6 +100,10 @@ export interface SchwungLib {
     /* Same pairing, WRITE side (SP-50): adds `child_index_base`, which a raw
      * `String(index)` skips. */
     childIndexToWire?: any;
+    /* ...and the READ side and the level's index param, for movy's own answer
+     * to the controller's focus reads (schwung-page-focus.ts, plan D8). */
+    childIndexFromWire?: any;
+    childIndexParam?: any;
     /* SP-42, optional for the same reason as the pair above: a sample cell's
      * envelope job is advanced from schwung-page-sample.ts, which no-ops
      * without these rather than throwing — an older Schwung costs movy only
@@ -243,6 +247,7 @@ try {
         activity: anm.activity, buttonPhase: rpm.buttonPhase,
         resolveChildKey: ck.resolveChildKey, childIndexToWire: ck.childIndexToWire,
         childCount: ck.childCount,
+        childIndexFromWire: ck.childIndexFromWire, childIndexParam: ck.childIndexParam,
         VIZ_SAMPLE: vz.VIZ_SAMPLE,
         wavPeaksTick: wp.wavPeaksTick, wavPeaksDone: wp.wavPeaksDone,
         wavPeaks: wp.wavPeaks,

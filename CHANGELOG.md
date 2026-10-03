@@ -152,6 +152,15 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Under Schwung pages, a playing pattern turned the drum page.** 6W6, 8W8,
+  9W9 and CW-78 move their own selection on every note unless Move's transport
+  is running, and Movy's sequencer is not Move's transport. So every sequenced
+  hit jumped the page to that voice. mrdrums (auto-select) and Forge also moved
+  their selected pad with each note, and their per-pad knobs then edited
+  whichever pad the pattern played last. Movy now owns the drum selection. The
+  page and its knobs follow only the pads you press, or a pad you pick from the
+  page's own list, and never the module's own selection.
+
 - **Under Schwung pages, drum automation followed the pad you pressed last.**
   On racks whose per-pad page edits "the selected pad" — simian, dr32, mrdrums,
   weird-dreams, forge — a lane was bound to the page's shared knob (`tune`,

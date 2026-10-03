@@ -48,7 +48,7 @@ const ROOT = '/data/UserData/schwung/modules/sound_generators/';
 /* Serve the module's own files from the capture — the movy_config.json it
  * ships and its module.json — over whatever the env already serves (movy's
  * override configs). Returns the restore. */
-function serveModuleFiles(e) {
+export function serveModuleFiles(e) {
     const prev = globalThis.host_read_file;
     const files = { [ROOT + e.id + '/module.json']: JSON.stringify(e.module_json ?? {}) };
     if (e.movy_config) files[ROOT + e.id + '/movy_config.json'] = JSON.stringify(e.movy_config);

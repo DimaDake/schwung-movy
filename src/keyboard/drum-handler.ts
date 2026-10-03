@@ -34,14 +34,22 @@ export function drumPadOn(
             portFor(slot).sendMidi(MidiNoteOn, midiNote, shiftHeld ? 1 : vel);
         }
     }
-    if (drumConfig.currentPadParam) {
-        /* A declared `focus_param` takes the voice's LEVEL NAME; a hand-written
-         * `currentPadParam` takes the instance number. Same key, two spellings
-         * — see DrumConfig.padFocusValues. */
-        const focusValue = drumConfig.padFocusValues?.[drumPad - 1] ?? String(drumPad);
-        portFor(slot).setParam(componentKey + ':' + drumConfig.currentPadParam, focusValue);
-    }
+    const fw = padFocusWrite(drumConfig, drumPad);
+    if (fw) portFor(slot).setParam(componentKey + ':' + fw.key, fw.value);
     return drumPad;
+}
+
+/* The module-focus write a press of `drumPad` makes, or null. Shared with the
+ * SCHWUNG page, which answers the controller's focus reads from what movy
+ * wrote (plan D8), so the two cannot name different values.
+ *
+ * A declared `focus_param` takes the voice's LEVEL NAME; a hand-written
+ * `currentPadParam` takes the instance number. Same key, two spellings — see
+ * DrumConfig.padFocusValues. */
+export function padFocusWrite(drumConfig: DrumConfig, drumPad: number): { key: string; value: string } | null {
+    if (!drumConfig.currentPadParam) return null;
+    return { key: drumConfig.currentPadParam,
+             value: drumConfig.padFocusValues?.[drumPad - 1] ?? String(drumPad) };
 }
 
 /* Release takes no config: the pitch and channel come from the ledger. Deriving

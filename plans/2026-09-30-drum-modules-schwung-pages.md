@@ -353,6 +353,50 @@ pad's tune".
 - Write `child_index_param` on press where declared.
 - Test: a sequenced note on 9w9 does not move the page; a finger press does.
 
+#### Phase 4 — results (2026-10-03)
+
+Built against schwung `origin/main` ecf1c828 (`schwung-main` worktree;
+`schwung/` is still diverged and was left alone). No ENGINE change.
+
+- **The seam is the io, not the input handler.** Schwung's controller follows
+  the module through two READS: `syncVoiceFromModule` navigates on
+  `focus_param` (sibling racks; 6w6/8w8/9w9/cw78 move it on every note-on while
+  Move's clock is stopped, and mrdrums auto-selects), and
+  `syncChildIndexFromModule` adopts `child_index_param` (template racks). Both
+  go through movy's io, so `renderer/schwung-page-focus.ts` answers them:
+  `focus_param` is always null ("no information": the controller does nothing
+  and leaves its latch alone, and navigation is `focusVoice`'s alone), and a
+  level's `child_index_param` answers what movy last WROTE, which is a pad press
+  (`focusVoice` → `choose`), the controller's own picker or index knob
+  (`io.setParam` → `wrote`), or a config rack's press write (`focusWritten`,
+  from the router via `padFocusWrite`, which is shared with `drumPadOn`, so
+  sophie's `focused_pad` is one value). Before any press it answers null, so the
+  controller keeps instance 0, which is movy's model pad 1.
+- **One focus per index PARAM, not per level.** simian's `pads`, `pad_noise`
+  and `pad_mix` share `ui_current_voice`. Keyed per level (Phase 3's map),
+  `pad_noise` never saw the press and fell back to the controller's index.
+- **Alias racks resolve at movy's pad.** `focus.ioKey` routes every page
+  read and write of a movy-config alias (`pad_vol`, `cv_vol`) through
+  `PageAutomation.laneKey`, so it uses the concrete key MOVY mode's `paramIoKey`
+  has always used. mrdrums and forge both move their focus on notes, so the
+  alias edited the pad the pattern last played.
+- **Cost, caught by SP-39's press test.** The first version asked
+  `hier.parsed()` on every controller read, and for a rack that serves no
+  `ui_pages` that is an uncached live read per ask (6w6's jump: 9 singles
+  instead of 1). `PageHierarchy.peek()` parses the contract as last read, with
+  no read of its own. The controller re-reads the contract on its own poll.
+- **Test:** `browser-test/logic/drum-focus.mjs`, with the real controller and
+  the dumped contracts for 9w9, simian, sophie and mrdrums. The module's report
+  is staged through the track's port, because the mock port remembers movy's
+  press write, so editing `env.params` never reached the controller and the
+  first version of the test passed with the fix removed. Teeth: five mutations
+  (focus_param falls through, child index falls through, alias not
+  concretised, focus keyed per level, and the `peek` cost), and each turns
+  named checks red.
+- Not done here: a picker pick does not move movy's model pad
+  (`drumCurrentPad`), so an ALIAS lane bound after a picker pick resolves at the
+  last pressed pad. Template lanes follow `focusedChild` and are right.
+
 ### Phase 5 — The seat, ordering and pad-switch rule (D5, D6, D7, D12)
 
 - A rotation layer in the seam over `ctl.pages`: the per-pad block first,

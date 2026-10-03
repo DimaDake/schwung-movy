@@ -14,6 +14,7 @@ import { isContractKey } from '../chain/hierarchy-source.js';
 import type { PageAutomation } from '../types/page-automation.js';
 import { moduleReadKey } from '../chain/config.js';
 import { createCanvasPageIo } from './schwung-canvas-page.js';
+import type { PageFocus } from './schwung-page-focus.js';
 
 /* EVERY READ GOES THROUGH THE CACHE. Schwung asks one key per tick and would
  * otherwise spend a blocking engine GET on each — SP-26, and
@@ -23,8 +24,10 @@ export function createPageIo(port: PageParamSource, qualify: (k: string) => stri
                              cache: PageReadCache, hierarchy: PageHierarchy,
                              componentKey: string,
                              modulatedKeys: (() => ReadonlySet<string> | null) | null,
-                             automation: (() => PageAutomation | null) | null = null) {
-    const read = (k: string) => cache.get(qualify(k));
+                             automation: (() => PageAutomation | null) | null = null,
+                             focus: PageFocus | null = null) {
+    const io = (k: string) => (focus ? focus.ioKey(qualify(k)) : qualify(k));
+    const read = (k: string) => cache.get(io(k));
     /*
      * THE KEY FORM IS THE ONE THING THIS FILE HAS TO GET RIGHT ABOUT MODULATION.
      *
@@ -124,6 +127,9 @@ export function createPageIo(port: PageParamSource, qualify: (k: string) => stri
              * and a key literal here would be a second reader of the contract
              * in the one file that must not have one. */
             if (isContractKey(k)) return hierarchy.raw();
+            /* The focus is movy's (plan D8) — see schwung-page-focus.ts. */
+            const f = focus ? focus.answer(k) : undefined;
+            if (f !== undefined) return f;
             const d = decorated(String(k));
             return d === null ? read(k) : d;
         },
@@ -138,7 +144,8 @@ export function createPageIo(port: PageParamSource, qualify: (k: string) => stri
                 const n = parseFloat(v);
                 if (!isNaN(n)) auto.noteBase(qualify(k), n);
             }
-            port.setParam(qualify(k), v);
+            if (focus) focus.wrote(k, v);
+            port.setParam(io(k), v);
         },
         /* THE THREE MARKS ON A CELL, and which channel each one rides.
          *

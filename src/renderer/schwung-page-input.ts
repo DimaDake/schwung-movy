@@ -17,6 +17,7 @@ import type { SchwungIntent } from './schwung-page.js';
 import type { PageHierarchy } from './schwung-page-hierarchy.js';
 import { mlog } from '../log.js';
 import { surfaceOf } from './schwung-voices.js';
+import type { PageFocus } from './schwung-page-focus.js';
 /* The detent accumulator the sequencer pages have always used. Imported rather
  * than reimplemented: one rule for "how much raw CC is one click", stated once
  * (`seq/detent.ts`). */
@@ -35,7 +36,8 @@ export interface PageInput {
 export function createPageInput(ctl: any, lib: any, port: PageParamSource,
                                 qualify: (k: string) => string,
                                 hier: PageHierarchy,
-                                warm: (keys: readonly string[]) => void): PageInput {
+                                warm: (keys: readonly string[]) => void,
+                                focus: PageFocus): PageInput {
     /*
      * SP-39. TURN TO A PAGE AND COVER ITS CELLS IN THE SAME BREATH.
      *
@@ -100,12 +102,6 @@ export function createPageInput(ctl: any, lib: any, port: PageParamSource,
      * nothing about the turn rate on a re-plan, so neither does this.
      */
     const presetKnobState = new Map<string, any>();
-    /* The instance each child level was last focused on by a pad press, and
-     * the contract that was true of. The page outlives its module, so a
-     * choice made against another contract — another module, or the same one
-     * re-declared — answers nothing; the parse is a new object exactly then. */
-    const focused = new Map<string, number>();
-    let focusedOf: any = null;
 
     /* One banked remainder per knob, for a source that charges more than one
      * raw unit per detent (`PageParamSource.rawPerDetent`). It lives in the
@@ -237,13 +233,13 @@ export function createPageInput(ctl: any, lib: any, port: PageParamSource,
             const s = surfaceOf(hierarchy);
             const v = s.voices[pad - 1];
             if (!hierarchy || !v) return false;
-            /* MOVY'S PRESS IS THE ANSWER, NOT THE CONTROLLER'S READ-BACK (plan
-             * D8). The controller learns the new instance only when it reads
-             * `child_index_param` back, several ticks on; a lane bound in that
-             * window took the PREVIOUS pad's key. */
+            /* MOVY'S PRESS IS THE ANSWER, NOT THE MODULE'S REPORT (plan D8).
+             * The controller learns the new instance when it reads
+             * `child_index_param` back — from movy's focus, not the module —
+             * a tick on; a lane bound in that window took the PREVIOUS pad's
+             * key, so the page asks `focus.focusedChild` first. */
             if (v.level && v.childIndex !== null && v.childIndex !== undefined) {
-                if (focusedOf !== hierarchy) { focused.clear(); focusedOf = hierarchy; }
-                focused.set(v.level, v.childIndex);
+                focus.choose(v.level, v.childIndex);
             }
 
             /* A level with several voices addresses them by its own child index
@@ -282,7 +278,6 @@ export function createPageInput(ctl: any, lib: any, port: PageParamSource,
                                                         t: pages[1].title, k: pages[1].kind}) : '-'));
             return false;
         },
-        focusedChild: (level: string) =>
-            (focusedOf !== null && hier.parsed() === focusedOf ? focused.get(level) ?? null : null),
+        focusedChild: focus.focusedChild,
     };
 }

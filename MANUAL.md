@@ -1877,6 +1877,11 @@ exists only in Movy's config for that module may not appear. Sequencer lanes
 follow the parameter, not the page, so recorded automation keeps playing
 either way. The choice is saved on the device, not per set.
 
+On a drum track under **SCHWUNG**, the page follows the pad **you** press and
+nothing else. A playing pattern never turns the page, even on a drum machine
+that moves its own selection with every hit (6W6, 8W8, 9W9, CW-78, mrdrums,
+Forge). The per-pad knobs always edit the pad you last pressed.
+
 **SCHWUNG needs Schwung 1.5.0 or newer.** On an older Schwung the row stays on
 MOVY and its hint names the version it needs, next to the one you have.
 

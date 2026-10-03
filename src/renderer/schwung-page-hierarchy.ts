@@ -41,6 +41,10 @@ export interface PageHierarchy {
     raw(): string | null;
     /** The same contract, parsed — null when there is none. */
     parsed(): any | null;
+    /** The contract as LAST read, parsed, with no read of its own — for a
+     *  question asked on every controller read (schwung-page-focus.ts). The
+     *  controller re-reads the contract on its own poll, which keeps it fresh. */
+    peek(): any | null;
     /** Forget the translation. A re-plan, or a module swap. */
     invalidate(): void;
 }
@@ -92,7 +96,23 @@ export function createPageHierarchy(port: PageParamSource, qualify: (k: string) 
         return synthText;
     }
 
+    /* Kept only when there IS an answer: a read in flight is not "no
+     * contract", and `peek` must not flicker to null across it. */
+    let lastRaw: string | null = null;
     function raw(): string | null {
+        const r = readRaw();
+        if (r) lastRaw = r;
+        return r;
+    }
+    function parse(s: string | null): any {
+        if (!s) { parsedFrom = null; parsedVal = null; return null; }
+        if (s === parsedFrom) return parsedVal;
+        parsedFrom = s;
+        try { parsedVal = JSON.parse(s); } catch (_e) { parsedVal = null; }
+        return parsedVal;
+    }
+
+    function readRaw(): string | null {
         const d = declared.get();
         if (d.text) return d.text;
 
@@ -105,16 +125,10 @@ export function createPageHierarchy(port: PageParamSource, qualify: (k: string) 
 
     return {
         raw,
-        parsed() {
-            const s = raw();
-            if (!s) { parsedFrom = null; parsedVal = null; return null; }
-            if (s === parsedFrom) return parsedVal;
-            parsedFrom = s;
-            try { parsedVal = JSON.parse(s); } catch (_e) { parsedVal = null; }
-            return parsedVal;
-        },
+        parsed: () => parse(raw()),
+        peek: () => parse(lastRaw),
         invalidate() {
-            synthId = null; synthText = null; parsedFrom = null; parsedVal = null;
+            synthId = null; synthText = null; parsedFrom = null; parsedVal = null; lastRaw = null;
             declared.invalidate();
         },
     };

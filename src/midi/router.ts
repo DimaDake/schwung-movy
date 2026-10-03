@@ -57,7 +57,7 @@ import { browserState } from '../browser/state.js';
 import { noteOn, noteOff, changeOctave } from '../keyboard/handler.js';
 import { soundingPitch, soundingTrack } from '../keyboard/held-notes.js';
 import { releaseAllLive } from '../keyboard/release.js';
-import { drumPadOn, drumPadOff } from '../keyboard/drum-handler.js';
+import { drumPadOn, drumPadOff, padFocusWrite } from '../keyboard/drum-handler.js';
 import { drumNoteOfPhys } from '../keyboard/drum-grid.js';
 import { padsPlayNotes } from '../seq/router-pads.js';
 import { padMuteGesture } from '../mixer/pad-mutes.js';
@@ -527,7 +527,13 @@ export function onMidiMessageInternal(data: number[]): void {
                          * following the pad while the page stood still. Returns
                          * false for anything that has not declared, which is
                          * where selectBankForPad above still answers. */
-                        pageOwnerOf(model).page?.focusVoice(pad);
+                        const page = pageOwnerOf(model).page;
+                        /* A config rack's focus write (sophie's `focused_pad`)
+                         * is the press too: the page resolves its child level
+                         * at movy's pad, never at the module's report (D8). */
+                        const fw = padFocusWrite(drumCfg, pad);
+                        if (fw) page?.focusWritten(model!.getComponentKey() + ':' + fw.key, fw.value);
+                        page?.focusVoice(pad);
                     } finally {
                         perfPhaseEnd();
                     }

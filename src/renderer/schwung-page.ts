@@ -45,6 +45,7 @@ import { createPageContract, RELOAD_POLL_TICKS } from './schwung-page-contract.j
 export { RELOAD_POLL_TICKS };
 import { createPageRender } from './schwung-page-render.js';
 import { createPageInput } from './schwung-page-input.js';
+import { createPageFocus } from './schwung-page-focus.js';
 import { createPageAnimating, type AnimActivity } from './schwung-page-anim.js';
 import { chromeFor, claimsBottomBand, type PageChrome } from './schwung-page-chrome.js';
 /* movy's own big-font cell, for the three values Schwung's big-number widget
@@ -109,6 +110,9 @@ export interface SchwungPage {
     back(): SchwungIntent | null;
     /** Show the page for a 1-based drum pad. False when it cannot be resolved. */
     focusVoice(pad: number): boolean;
+    /** movy wrote the module's focus param outside the page (a config rack's
+     *  press) — the page's focus follows it, not the module (plan D8). */
+    focusWritten(fullKey: string, value: string): void;
     /** The list a door cell opens, when its SOURCE supplies one (SP-60's LFO
      *  target) — see `PageParamSource.picker`. */
     picker(key: string): SourcePicker | null;
@@ -158,8 +162,11 @@ export function createSchwungPage(
      * it, so an answer captured now would be given about a module that has
      * since been swapped out. */
     const automation = automationOf ? () => automationOf(trackIndex) : null;
+    /* movy's drum focus (plan D8): the pad press writes it, the controller's
+     * focus reads are answered from it — see schwung-page-focus.ts. */
+    const focus = createPageFocus(hier, lib, qualify, automation);
     const ctl = lib.createController(createPageIo(port, qualify, cache, hier, componentKey,
-        modulatedOf ? () => modulatedOf(trackIndex, componentKey) : null, automation));
+        modulatedOf ? () => modulatedOf(trackIndex, componentKey) : null, automation, focus));
     ctl.setLayout(lib.LAYOUT_MOVY);
 
     /* The controller's own view of the page it is showing. Both the binding's
@@ -174,7 +181,7 @@ export function createSchwungPage(
     const contract = createPageContract(ctl, port, componentKey, cache, hier, lib, trackIndex);
     /* SP-39: `focusVoice` covers the page it is about to turn to before the
      * controller asks for its cells — see schwung-page-input.ts. */
-    const input = createPageInput(ctl, lib, port, qualify, hier, cache.warm);
+    const input = createPageInput(ctl, lib, port, qualify, hier, cache.warm, focus);
     const page = createPageRender(ctl, { keyAt, keysOf, componentKey,
                                         normalizedOf: lib.normalizedOf, automation,
                                         focusedChild: input.focusedChild });
@@ -234,6 +241,7 @@ export function createSchwungPage(
         click: input.click,
         back: input.back,
         focusVoice: input.focusVoice,
+        focusWritten: focus.wrote,
         picker: (key: string) => (port.picker ? port.picker(qualify(key)) : null),
         claimsBottomBand: () => claimsBottomBand(ctl, lib),
     };

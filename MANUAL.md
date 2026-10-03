@@ -1685,6 +1685,11 @@ a lane, and says `32 AUTOMATION LANES — FULL`. A step's locks are applied befo
 its note — also for a note nudged early and for the first step after Play — so a
 drum voice that takes its sound at the hit plays the locked value on that hit.
 
+**On a drum track a lock belongs to the pad you locked it on.** A knob on a
+pad's page is that pad's parameter, even on a rack whose page edits "the
+selected pad": the lock plays on that pad only, and its value and lane mark show
+on that pad's page, whichever pad you press next.
+
 **Hold Clear and touch a knob** to delete that parameter's whole automation
 lane. A `<param> lane cleared` prompt confirms it, and the lane's mark next to
 the label goes away.

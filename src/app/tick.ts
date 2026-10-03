@@ -38,9 +38,9 @@ import { updateKnobLEDs, updateKnobLEDsFrom, updateSingleKnobLED, resetKnobLedCa
 import { seqEngineTick, takeLabelSync, requestLabelSync } from '../seq/engine.js';
 import { drumSyncTick, resetDrumSync } from '../seq/drum-sync.js';
 import { bindLanes } from '../seq/lane-mapping.js';
-import { laneRangeOf, anyLaneNeedsBase } from './automated-keys.js';
+import { laneRangeOf, anyLaneNeedsBase, validateTrackLane } from './automated-keys.js';
 import { seedFromEngine } from '../seq/automation-base.js';
-import { type LaneEntry, syncLabelsFromEngine, validateLane, automationRegistry, laneKeysForTrack, automationDisplayDirty, liveTurnValues, poolIsFull } from '../seq/automation.js';
+import { type LaneEntry, syncLabelsFromEngine, automationRegistry, laneKeysForTrack, automationDisplayDirty, liveTurnValues, poolIsFull } from '../seq/automation.js';
 import type { AutomationView, ViewModel } from '../types/viewmodel.js';
 import type { Model } from '../model/index.js';
 import { concreteKey } from '../model/pad-scope.js';
@@ -544,17 +544,7 @@ function tickBody(): void {
                     const l = binds.get(slot);
                     if (l) l.push({ lane, e }); else binds.set(slot, [{ lane, e }]);
                 },
-                (track, tp) => {
-                    // Validate against the lane's own (track, component) model param
-                    // set — authoritative even for config-driven drum modules. Keep
-                    // the lane (`unknown`) when that model isn't loaded yet, so a
-                    // transient never wipes valid automation.
-                    const comp  = tp.slice(0, tp.indexOf(':'));
-                    const model = appState.trackModels[track]?.find((m) => m.getComponentKey() === comp);
-                    if (!model || !model.hasLoadedParams()) return 'unknown';
-                    const ps = model.getDrumConfig()?.padScoping ?? null;
-                    return validateLane(tp, ps, (key) => model.paramRangeByKey(key));
-                },
+                validateTrackLane,
             );
             /* The bases the UI never sent (SP-36). After the labels, so every
              * lane that is staying already has the range that turns the wire's

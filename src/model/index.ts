@@ -6,6 +6,8 @@ import { createModelState } from './state.js';
 import type { TrackPort } from '../track/port.js';
 import type { KnobParam } from '../types/param.js';
 import { loadHierarchy }    from './hierarchy.js';
+import { childTemplateOf } from './child-keys.js';
+import { buildGenericParam } from './param-build.js';
 import { applyKnobDelta, knobParamInfo, reseedPadParams, refreshModulatedKeys, slotToLocal, enumLaneInfo }   from './store.js';
 import { buildViewModel }   from './viewmodel.js';
 import { processTick, reReadModule } from './tick.js';
@@ -485,8 +487,20 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
             const p = gi >= 0 ? s.knobParams[gi] : null;
             /* An enum lane restored from a Set is re-bound from this answer, so
              * it has to carry the options and the wire form the bind writes. */
-            return p ? { min: p.min, max: p.max, type: p.type, ...(enumLaneInfo(s, gi) ?? {}) } : null;
+            if (p) return { min: p.min, max: p.max, type: p.type, ...(enumLaneInfo(s, gi) ?? {}) };
+            /* A key the module declares but no movy page shows: built the way
+             * a config-less module's cell is, from the same metadata. */
+            const d = s.declared;
+            if (!d || !d.keys.has(key)) return null;
+            const g = buildGenericParam(key, d.cp[key] ?? {}, d.defs[key] ?? {});
+            if (g.type === 'file') return null;
+            return { min: g.min, max: g.max, type: g.type,
+                     ...(g.type === 'enum' && g.options ? { options: g.options } : {}) };
         },
+
+        /* The child-level template a concrete key instantiates
+         * (`pad16_start` → `start`), or null. See model/child-keys.ts. */
+        childTemplateOf(key: string): string | null { return childTemplateOf(s.childLevels, key); },
 
         /* True once this slot's module hierarchy has loaded (params known). */
         hasLoadedParams(): boolean { return s.knobParams.some((p) => p != null); },

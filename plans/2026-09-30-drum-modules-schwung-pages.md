@@ -290,6 +290,59 @@ weird-dreams / mrdrums / sophie / 6w6 — the arc shows the lock value, the lane
 mark appears, playback moves the arc on the right pad only. Screenshot scenes
 for the held state.
 
+#### Phase 3 — results (2026-10-03)
+
+Built against schwung `origin/main` 2467bcc2 (`schwung-main` worktree; `schwung/`
+is still diverged and was left alone). No ENGINE change. The user's report that
+drove it: "on the simian automation currently applying to whatever pad is
+active, so it changes when i press the pad" — C1 under D1, since the engine now
+writes the bound key straight to the module and `synth:tune` IS "the focused
+pad's tune".
+
+- **C1 — the lane binds pad N's concrete key.** `schwung-page-render.ts`
+  `knobParamInfo().ioKey` is now `laneKeyOf(cell)`: a child-level template is
+  resolved with Schwung's own `resolveChildKey` at the instance **movy's pad
+  press chose** (`focusVoice` records it per level, keyed to the contract parse
+  so another module's choice answers nothing), falling back to
+  `ctl.childIndexOf(level)` for a level movy never focused; then a movy-config
+  alias goes through `PageAutomation.laneKey` (`app/automated-keys.ts`), i.e.
+  `concreteKey(padScoping, drumCurrentPad)` on the track's model
+  (`componentModelOf`, factored out of `modulated-keys.ts`). Measured: the
+  controller's own index lags the press by 4-10 ticks (it learns it by reading
+  `child_index_param` back), which is why simian pad 16 bound `pad4_tune` when
+  the controller's index was trusted — D8's rule, taken early for the lane.
+- **C3/C5 — arc and mark.** The page decorates its cells by the RESOLVED key
+  (`render()` maps `keysOf()` through `childKeyOf`), and `automationFor`'s
+  `isAutomated`/`baseOf`/`noteBase` resolve an alias through `laneKey` before
+  the registry lookup. `buildAutomationView.laneForKey` already concretised
+  aliases and is unchanged.
+- **C4 — the sync keeps them.** `validateTrackLane` (moved out of `app/tick.ts`
+  so the matrix calls the real judge) passes `model.childTemplateOf`:
+  `pad16_start` validates as `start` (`model/child-keys.ts`, Schwung's resolver
+  pushed in from `app/globals.ts` like the surface reader). `paramRangeByKey`
+  falls back to every key the module DECLARES (chain_params + every level's
+  knobs/params, built by `buildGenericParam`) — forge's Voice macros `cv_m1..8`
+  are on no movy page. A bare template lane (the pre-fix binding) is NOT dropped:
+  it keeps playing into the focused pad, as it did, rather than vanish from
+  users' Sets; re-recording binds the pad.
+- **Found on the way:** `aliasFromConcrete` read `padDigits` as an EXACT width,
+  while `concreteKey` pads with `padStart` — forge's one-digit `pv{pad}` wrote
+  pad 16 as `pv16_m1` and the reverse map missed it, purging every forge lane on
+  pads 10-16 at the next sync. Now a minimum width.
+- **Matrix:** column (b) and `chain-table.mjs`/`native/chain-table.c` deleted
+  (the CC path they modelled is gone). Arc read off `ctl.decorations` after the
+  page's own `render()`. Every row but sophie asserts sounds+draws outright.
+  Teeth: seven mutations, one per piece above, each turns named rows red.
+- **Screenshot:** `page_held_drum` (simian, pad 3's Tone page, lock on
+  `pad3_tune` through the real registry and `buildAutomationView`); throws if
+  the lane binds the template, 216 px differ if decorated by template.
+- **Not done — sophie.** It declares no voices, so `focusVoice` cannot move its
+  page and its `focused_pad` is never written by movy: under SCHWUNG the page
+  edits whichever pad the module has focused, and the lane binds THAT pad
+  (consistent with what the knob edits). Its row stays NO until Phase 6 (D9).
+- Not device-verified per module: the tier has no drum-module scenario, and
+  loading simian/dr32/forge on the box churns the set the gate runs on.
+
 ### Phase 4 — movy owns drum focus (D8)
 
 - Seat follows physical presses only; module focus reads are ignored for

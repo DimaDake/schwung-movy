@@ -12,6 +12,17 @@ import { setSurfaceReader } from '../model/drum-declared.js';
 import { surfaceOf } from '../renderer/schwung-voices.js';
 setSurfaceReader(surfaceOf);
 
+/* Same direction, same reason: which child-level template a concrete lane key
+ * instantiates is Schwung's `child_key.mjs` (model/child-keys.ts). */
+import { setChildKeyResolver } from '../model/child-keys.js';
+import { schwungLib, schwungLibAvailable } from '../renderer/schwung-lib.js';
+if (schwungLibAvailable()) {
+    const lib = schwungLib();
+    if (typeof lib.resolveChildKey === 'function' && typeof lib.childCount === 'function') {
+        setChildKeyResolver(lib.resolveChildKey, lib.childCount);
+    }
+}
+
 import { init } from './init.js';
 import { tick } from './tick.js';
 import { onMidiMessageInternal } from '../midi/router.js';

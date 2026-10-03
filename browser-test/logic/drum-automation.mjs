@@ -6,38 +6,33 @@
  *
  *   (a) laneKey   which key the lane binds to — `knobParamInfo(slot).ioKey`,
  *                 the very value `handleAutomationKnob` hands `assignLane`;
- *   (b) table     whether a CC 102+lane for that key reaches the module: the
- *                 chain's `knob_find_param` is an EXACT scan of its param
- *                 table, built here by schwung's own C parser (chain-table.mjs),
- *                 in both its lives — `static` (module.json at load) and
- *                 `dynamic` (the plugin's chain_params after a refresh);
- *   (c) padExact  whether that key IS pad N's own key, so playback reaches pad
- *                 N and only pad N;
+ *   (c) padExact  whether that key IS pad N's own key. The engine writes a
+ *                 lane's key straight to the module (plan D1), so this alone
+ *                 decides whether playback reaches pad N and only pad N. (b),
+ *                 the chain's CC param table, went with the CC path in Phase 2;
  *   (d) arc/mark  whether the held step's decoration and the lane mark draw on
  *                 pad N's cell, whether they leak onto another pad's page, and
  *                 whether the lane survives the next label sync.
  *
  * NOTHING HERE RE-STATES A RULE. Every column is the real code path's answer:
  * the real controller planning the dumped contract through movy's io, movy's
- * own lane registry, `buildAutomationView` (app/tick.ts), `decorationsFor`,
- * the controller's own `marks()` after its read rotation, and `validateLane`.
+ * own lane registry, `buildAutomationView` (app/tick.ts), the page's render,
+ * the controller's own `marks()` after its read rotation, and `validateTrackLane` — the label sync's own judge.
  *
- * THE SNAPSHOT IS THE REGRESSION TEST for Phases 2-3: today's verdicts,
+ * THE SNAPSHOT IS THE REGRESSION TEST for the later phases: the verdicts,
  * failures included, are frozen in drum-automation-expect.json, so a fix and a
  * regression both show up as a named cell change. After an intentional change:
  *   UPDATE_DRUM_MATRIX=1 npm test   (or just the logic suite)
  *
- * Run by browser-test/logic.mjs. SKIPPED without a SCHWUNG checkout or a C
- * compiler — an empty table must never read as a finding.
+ * Run by browser-test/logic.mjs. SKIPPED without a SCHWUNG checkout.
  */
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { schwungLibAvailable, bootModel, settleModel, ok, fail, _log, env, MOCK_SYNTHS,
+import { schwungLibAvailable, bootModel, settleModel, ok, fail, _log, env, MOCK_SYNTHS, appState,
          setSchwungGridMode, schwungGridReload, schwungPageFor, resetSeqEngine } from './harness.mjs';
 import { dumpEntry, dumpFixture } from '../dump-fixture.mjs';
-import { chainTables, chainTableUnavailable } from '../chain-table.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const EXPECT = join(HERE, '..', 'drum-automation-expect.json');
@@ -61,18 +56,10 @@ function serveModuleFiles(e) {
     return () => { globalThis.host_read_file = prev; };
 }
 
-/** Where key `k` sits in the chain table: 'static', 'dynamic' or 'none'. */
-export function tableHit(t, k) {
-    if (!t || !k) return 'none';
-    if (t.static && t.static.includes(k)) return 'static';
-    if (t.dynamic && t.dynamic.includes(k)) return 'dynamic';
-    return 'none';
-}
-
 /** The headline verdicts a row adds up to — pure, so it can be proven. */
 export function verdicts(r) {
     return {
-        sounds: r.table !== 'none' && r.padExact,
+        sounds: r.padExact,
         draws: r.arc && r.mark && !r.arcOther && !r.markOther && r.survivesSync,
     };
 }
@@ -83,33 +70,29 @@ if (!schwungLibAvailable()) {
     _log('\nlogic: drum automation matrix — SKIPPED (no param_pages; set SCHWUNG=)');
     return;
 }
-if (!chainTables({ id: 'probe', module_json: {}, params: {} })) {
-    _log('\nlogic: drum automation matrix — SKIPPED (' + chainTableUnavailable() + ')');
-    return;
-}
 
-const { resetAutomation, assignLane, validateLane } = await import('../../dist/esm/seq/automation.js');
+const { resetAutomation, assignLane } = await import('../../dist/esm/seq/automation.js');
 const { seqState } = await import('../../dist/esm/seq/state.js');
 const { buildAutomationView } = await import('../../dist/esm/app/tick.js');
-const { automationFor } = await import('../../dist/esm/app/automated-keys.js');
-const { decorationsFor } = await import('../../dist/esm/renderer/schwung-page-decorations.js');
+const { automationFor, validateTrackLane } = await import('../../dist/esm/app/automated-keys.js');
 const { concreteKey, aliasFromConcrete } = await import('../../dist/esm/model/pad-scope.js');
-const { resolveChildKey } = await import(
+const { resolveChildKey, childCount } = await import(
     join(resolve(process.env.SCHWUNG), 'src', 'shared', 'param_pages', 'child_key.mjs'));
+/* What app/globals.ts registers at start-up — the label sync's child-level
+ * reader (model/child-keys.ts). */
+const { setChildKeyResolver } = await import('../../dist/esm/model/child-keys.js');
+setChildKeyResolver(resolveChildKey, childCount);
 
 /* ── the teeth of the pure verdicts ──────────────────────────────────────── */
 _log('\nlogic: drum automation matrix — verdict teeth');
 {
-    const good = { table: 'dynamic', padExact: true, arc: true, mark: true,
+    const good = { padExact: true, arc: true, mark: true,
                    arcOther: false, markOther: false, survivesSync: true };
-    ok('a row bound to pad N’s own key, in the table, sounds', verdicts(good).sounds);
+    ok('a row bound to pad N’s own key sounds', verdicts(good).sounds);
     ok('...and one marked on its own pad only, that survives a sync, draws', verdicts(good).draws);
-    ok('a key the chain cannot find does not sound', !verdicts({ ...good, table: 'none' }).sounds);
     ok('a key that is not pad N’s own does not sound right', !verdicts({ ...good, padExact: false }).sounds);
     ok('an arc that leaks onto another pad is not drawing right', !verdicts({ ...good, arcOther: true }).draws);
     ok('a lane the next sync purges is not drawing right', !verdicts({ ...good, survivesSync: false }).draws);
-    ok('tableHit prefers the static table', tableHit({ static: ['a'], dynamic: ['a'] }, 'a') === 'static');
-    ok('tableHit misses a key in neither', tableHit({ static: [], dynamic: ['b'] }, 'a') === 'none');
 }
 
 const dump = JSON.parse(readFileSync(join(HERE, '..', '..', 'docs', 'module-dump', 'device-dump.json'), 'utf8'));
@@ -127,24 +110,30 @@ function lockOnPad(p, model, pad, cell) {
     return { jumped, page: p.ctl.pages[pageIdx] };
 }
 
-function looksAt(p, model, slot, keys) {
+/* The arc is what the page's own render hands the controller — the cells as
+ * it resolves them, not the planned keys — read back off `ctl.decorations`. */
+function looksAt(p, model, slot) {
     const view = buildAutomationView(0, model);
-    const decs = decorationsFor(view, keys);
+    p.render('T', view);
+    const decs = p.ctl.decorations;
     for (let i = 0; i < 80; i++) p.tick();
     return { arc: !!(decs && decs[slot]), mark: ((p.marks() >> (8 + slot)) & 1) === 1 };
 }
 
 const rows = [];
+const prevModels = appState.trackModels[0];
 for (const id of DRUM_MODULES) {
     if (!have.has(id)) { fail(`drum matrix: ${id} is not in the capture — refresh docs/module-dump`); continue; }
     const e = dumpEntry(id);
-    const tables = chainTables(e);
     const restoreFs = serveModuleFiles(e);
     resetAutomation(); resetSeqEngine();
     setSchwungGridMode('page');
     schwungGridReload();
     const fixture = dumpFixture(id);
     const model = settleModel(bootModel(fixture));
+    /* Where the app keeps it: the page resolves an alias to pad N through the
+     * track's model (`automationFor` → `componentModelOf`). */
+    appState.trackModels[0] = [model];
     env.setParams(fixture);
     const p = schwungPageFor(0, 'synth', null, automationFor);
     for (let i = 0; i < 12 * 60 && !p.ready; i++) p.tick();
@@ -199,24 +188,24 @@ for (const id of DRUM_MODULES) {
         seqState.stepAutoMode = true;
         seqState.heldLocks = new Map([[lane, 64]]);
         seqState.autoActive = 1 << lane; seqState.autoAssigned = 1 << lane;
-        const here = looksAt(p, model, slot, page.keys);
+        const here = looksAt(p, model, slot);
         /* Another pad's page, same lock: a pad-scoped lane must not show. */
         const other = pad === 3 ? 4 : 3;
         const o = lockOnPad(p, model, other, cell);
-        const there = looksAt(p, model, slot, o.page.keys);
+        const there = looksAt(p, model, slot);
         const tp = info.target + ':' + laneKey;
         const row = {
             module: id, pad, page: page.name, jumped, cell: key, laneKey, want,
-            table: tableHit(tables, laneKey), wantTable: tableHit(tables, want),
             padExact: laneKey === want,
             arc: here.arc, mark: here.mark, arcOther: there.arc, markOther: there.mark,
-            survivesSync: validateLane(tp, ps, (k) => model.paramRangeByKey(k)) !== 'drop',
+            survivesSync: validateTrackLane(0, tp) !== 'drop',
         };
         rows.push({ ...row, ...verdicts(row) });
     }
     restoreFs();
 }
 
+appState.trackModels[0] = prevModels;
 resetAutomation(); resetSeqEngine();
 seqState.heldLocks = new Map(); seqState.stepAutoMode = false;
 seqState.autoActive = 0; seqState.autoAssigned = 0;
@@ -226,14 +215,25 @@ env.setParams(MOCK_SYNTHS.test16);
 
 _log('\nlogic: drum automation matrix (SCHWUNG grid mode)');
 const yn = (b) => (b ? 'y' : '-');
-_log('    module        pad page         jump laneKey            want               table   exact arc mark leakA leakM sync | SOUNDS DRAWS');
+_log('    module        pad page         jump laneKey            want               exact arc mark leakA leakM sync | SOUNDS DRAWS');
 for (const r of rows) {
     if (r.noPerPadPage) { _log('    ' + r.module.padEnd(13) + '   — no per-pad page; planned: ' + r.pages.join(' | ')); continue; }
     _log('    ' + [r.module.padEnd(13), String(r.pad).padStart(3), String(r.page).slice(0, 12).padEnd(12),
-        yn(r.jumped).padEnd(4), r.laneKey.padEnd(18), r.want.padEnd(18), r.table.padEnd(7),
+        yn(r.jumped).padEnd(4), r.laneKey.padEnd(18), r.want.padEnd(18),
         yn(r.padExact).padEnd(5), yn(r.arc).padEnd(3), yn(r.mark).padEnd(4), yn(r.arcOther).padEnd(5),
         yn(r.markOther).padEnd(5), yn(r.survivesSync).padEnd(4)].join(' ')
         + ' | ' + (r.sounds ? 'yes' : 'NO ').padEnd(6) + ' ' + (r.draws ? 'yes' : 'NO'));
+}
+
+/* PHASE 3'S ACCEPTANCE, asserted outright rather than only through the
+ * snapshot: a lock on pad N's per-pad knob sounds on pad N alone, and the held
+ * arc and the lane mark draw on pad N's page alone and survive a sync. sophie
+ * declares no voices, so a pad press cannot move its page yet — plan Phase 6
+ * (D9) — and its lane binds whichever pad the page shows. */
+const NOT_YET = new Set(['sophie']);
+for (const r of rows) {
+    if (r.noPerPadPage || NOT_YET.has(r.module)) continue;
+    ok(`${r.module} pad ${r.pad}: the lock sounds on pad ${r.pad} only and draws there`, r.sounds && r.draws);
 }
 
 if (UPDATE || !existsSync(EXPECT)) {

@@ -357,15 +357,22 @@ export type LaneVerdict = LaneRange | 'drop' | 'unknown';
  *     since the param set lists only the alias, never the concrete key;
  *   - otherwise the key itself must be a known param;
  *   - known → keep (its range); unknown → stale (drop).
+ *   - a CONCRETE child-level key (`pad16_start`) is validated by the template
+ *     it instantiates (`start`), which `childTemplate` names; a BARE template
+ *     (`childTemplate` answers 'bare') is the template rack's bare alias — it
+ *     played into whichever pad had focus — and is dropped like one.
  * The caller returns `unknown` (keep) when the module isn't loaded yet, so this
  * only ever runs against an authoritative param set. */
 export function validateLane(
     tp: string, ps: PadScoping | null,
     paramRange: (key: string) => LaneRange | null,
+    childTemplate: ((key: string) => string | 'bare' | null) | null = null,
 ): LaneRange | 'drop' {
     const key = tp.slice(tp.indexOf(':') + 1);
     if (ps && key.startsWith(ps.aliasPrefix)) return 'drop'; // bare alias (obsolete)
-    const lookup = (ps && aliasFromConcrete(ps, key)) || key;
+    const template = childTemplate ? childTemplate(key) : null;
+    if (template === 'bare') return 'drop';
+    const lookup = template ?? ((ps && aliasFromConcrete(ps, key)) || key);
     return paramRange(lookup) ?? 'drop';
 }
 

@@ -14,7 +14,10 @@ function templateRegex(tpl: string | undefined, padDigits: number | undefined, s
     const pre  = escRe(tpl.slice(0, padIdx));
     const mid  = escRe(tpl.slice(padIdx + 5, sufIdx));
     const post = escRe(tpl.slice(sufIdx + 8));
-    return new RegExp('^' + pre + '\\d{' + padDigits + '}' + mid + suffixPat + post + '$');
+    /* `padDigits` is a MINIMUM width — `concreteKey` pads with `padStart`, so
+     * forge's one-digit `pv{pad}` writes pad 16 as `pv16`. An exact count
+     * left every pad past 9 unrecognised, and its lane purged as stale. */
+    return new RegExp('^' + pre + '\\d{' + Math.max(1, padDigits) + ',}' + mid + suffixPat + post + '$');
 }
 
 /* Build the concrete per-pad key for a pad-scoped alias (e.g. pad 3 + "pad_vol"

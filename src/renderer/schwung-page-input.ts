@@ -28,6 +28,8 @@ export interface PageInput {
     click(shift?: boolean): SchwungIntent | null;
     back(): SchwungIntent | null;
     focusVoice(pad: number): boolean;
+    /** The instance of `level` movy's last pad press chose, or null. */
+    focusedChild(level: string): number | null;
 }
 
 export function createPageInput(ctl: any, lib: any, port: PageParamSource,
@@ -98,6 +100,12 @@ export function createPageInput(ctl: any, lib: any, port: PageParamSource,
      * nothing about the turn rate on a re-plan, so neither does this.
      */
     const presetKnobState = new Map<string, any>();
+    /* The instance each child level was last focused on by a pad press, and
+     * the contract that was true of. The page outlives its module, so a
+     * choice made against another contract — another module, or the same one
+     * re-declared — answers nothing; the parse is a new object exactly then. */
+    const focused = new Map<string, number>();
+    let focusedOf: any = null;
 
     /* One banked remainder per knob, for a source that charges more than one
      * raw unit per detent (`PageParamSource.rawPerDetent`). It lives in the
@@ -229,6 +237,14 @@ export function createPageInput(ctl: any, lib: any, port: PageParamSource,
             const s = surfaceOf(hierarchy);
             const v = s.voices[pad - 1];
             if (!hierarchy || !v) return false;
+            /* MOVY'S PRESS IS THE ANSWER, NOT THE CONTROLLER'S READ-BACK (plan
+             * D8). The controller learns the new instance only when it reads
+             * `child_index_param` back, several ticks on; a lane bound in that
+             * window took the PREVIOUS pad's key. */
+            if (v.level && v.childIndex !== null && v.childIndex !== undefined) {
+                if (focusedOf !== hierarchy) { focused.clear(); focusedOf = hierarchy; }
+                focused.set(v.level, v.childIndex);
+            }
 
             /* A level with several voices addresses them by its own child index
              * param — four toms on one page are one page, four children. */
@@ -266,5 +282,7 @@ export function createPageInput(ctl: any, lib: any, port: PageParamSource,
                                                         t: pages[1].title, k: pages[1].kind}) : '-'));
             return false;
         },
+        focusedChild: (level: string) =>
+            (focusedOf !== null && hier.parsed() === focusedOf ? focused.get(level) ?? null : null),
     };
 }

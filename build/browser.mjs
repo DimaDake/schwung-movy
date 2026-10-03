@@ -179,6 +179,7 @@ await esbuild.build({
         resolve(root, 'src/keyboard/drum-handler.ts'),
         resolve(root, 'src/keyboard/drum-grid.ts'),
         resolve(root, 'src/model/drum-declared.ts'),
+        resolve(root, 'src/model/child-keys.ts'),
         resolve(root, 'src/keyboard/layouts.ts'),
         resolve(root, 'src/keyboard/state.ts'),
         resolve(root, 'src/keyboard/held-notes.ts'),

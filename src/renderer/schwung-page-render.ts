@@ -14,6 +14,7 @@ import { movyCtx } from './schwung-ctx.js';
 import { isLfoComponent } from '../chain/config.js';
 import { schwungLib, schwungLibAvailable } from './schwung-lib.js';
 import { enumRawToIndex, enumUsesIndex } from '../model/enum-value.js';
+import type { PageAutomation } from '../types/page-automation.js';
 
 /* movy draws its own header, bank bar and footer; Schwung is asked for the
  * widgets between them.
@@ -62,8 +63,38 @@ export function createPageRender(ctl: any, deps: {
     keysOf: () => (string | null)[];
     componentKey: string;
     normalizedOf: (meta: any, raw: any) => number | null;
+    automation: (() => PageAutomation | null) | null;
+    focusedChild: (level: string) => number | null;
 }): PageRender {
-    const { keyAt, keysOf, componentKey, normalizedOf } = deps;
+    const { keyAt, keysOf, componentKey, normalizedOf, automation, focusedChild } = deps;
+    const prefix = componentKey + ':';
+    const lib = schwungLibAvailable() ? schwungLib() : null;
+
+    /* THE PAD'S OWN KEY FOR A CELL. A child-level page lists templates
+     * (`tune`) and the controller resolves each against the level's focused
+     * instance (`childResolve` in page_controller.mjs) — the same library
+     * call, at the instance movy's pad press chose. The controller reaches
+     * that instance a few ticks later, when it reads the module's index back;
+     * until then this is the newer answer, and after it the two agree, so the
+     * lane, the arc and the controller's own `isAutomated` ask name one key.
+     * A level movy never focused (no declared voices) is the controller's. */
+    const childKeyOf = (k: string): string => {
+        const p = ctl.page;
+        if (!p || !p.childLevel || !lib || typeof lib.resolveChildKey !== 'function') return k;
+        if (!Array.isArray(p.keys) || p.keys.indexOf(k) < 0) return k;
+        const at = focusedChild(p.level)
+            ?? (typeof ctl.childIndexOf === 'function' ? ctl.childIndexOf(p.level) : 0);
+        return lib.resolveChildKey(p.childLevel, at, k) || k;
+    };
+    /* ...and the key a lane on it binds: pad N's own. A template resolves to
+     * it above; a movy-config alias only through movy's scoping (C1). */
+    const laneKeyOf = (k: string): string => {
+        const ck = childKeyOf(k);
+        const auto = automation ? automation() : null;
+        if (!auto) return ck;
+        const full = auto.laneKey(prefix + ck);
+        return full.startsWith(prefix) ? full.slice(prefix.length) : ck;
+    };
 
     return {
         /*
@@ -76,6 +107,13 @@ export function createPageRender(ctl: any, deps: {
          * a knob to create a lane would have bound the lane to whatever movy
          * thought was there, which is a silent mis-target rather than a visible
          * failure — the lane would work perfectly, on the wrong param.
+         *
+         * AND IT MUST TARGET PAD N'S PARAMETER, not the cell's template. The
+         * engine writes a lane's key straight to the module (plan D1), so a lane
+         * bound to `tune` on a template rack, or to `pad_vol` on an alias rack,
+         * played into whichever pad had focus when the step came round — the
+         * lock followed the last pad pressed. `ioKey` is the concrete key;
+         * `key` stays the cell's own, which is what the router asks for.
          *
          * Shaped as movy's KnobParamInfo (store.ts) so the automation layer
          * needs no special case for where it came from.
@@ -94,7 +132,7 @@ export function createPageRender(ctl: any, deps: {
             return {
                 gi: slot,
                 key: k,
-                ioKey: k,
+                ioKey: laneKeyOf(k),
                 target: componentKey,
                 value: isNaN(value) ? min : value,
                 min, max,
@@ -195,7 +233,9 @@ export function createPageRender(ctl: any, deps: {
         },
 
         render(title: string, auto?: AutomationView, _touched = -1) {
-            ctl.setDecorations(decorationsFor(auto, keysOf()));
+            /* Asked by the cell's RESOLVED key, so a template rack's lane on
+             * pad 3 marks pad 3's page and not every pad's (C5). */
+            ctl.setDecorations(decorationsFor(auto, keysOf().map((k) => (k ? childKeyOf(k) : k))));
 
             const ctx = movyCtx();
             /* No `footer` argument: movy draws its own. Every page kind honours

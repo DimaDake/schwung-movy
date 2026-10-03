@@ -14,4 +14,8 @@ export interface PageAutomation {
     baseOf(fullKey: string): number | null;
     /** A turn under the page IS an edit of the base — keep the record exact. */
     noteBase(fullKey: string, value: number): void;
+    /** The key a lane on this cell binds to: an alias the focused pad resolves
+     *  (`synth:pad_vol`) becomes that pad's own key (`synth:p03_vol`); any
+     *  other key is returned as given. */
+    laneKey(fullKey: string): string;
 }

@@ -23,21 +23,24 @@
  */
 
 import { seqState } from '../seq/state.js';
-import { automationRegistry, laneForParam } from '../seq/automation.js';
+import { automationRegistry, laneForParam, validateLane, type LaneVerdict } from '../seq/automation.js';
 import { laneBase, noteLaneBase } from '../seq/automation-base.js';
 import type { LaneShape } from '../seq/lane-value.js';
+import { concreteKey } from '../model/pad-scope.js';
+import { componentModelOf } from './modulated-keys.js';
 
 import type { PageAutomation } from '../types/page-automation.js';
 
 /**
  * The lane view for `track`, as the page's keys address it.
  *
- * THE KEY FORM IS THE REGISTRY'S, WITH NOTHING TO TRANSLATE. A lane's
- * `targetParam` is `component:concreteKey` (`assignLane`), and the controller
- * asks its io with the component already on the key and a child level already
- * resolved — so the two are the same string and a lane belonging to another
- * pad's voice simply matches nothing, which is exactly what should happen to
- * its mark.
+ * THE KEY FORM IS THE REGISTRY'S. A lane's `targetParam` is
+ * `component:concreteKey` (`assignLane`), and the controller asks its io with
+ * the component already on the key and a child level already resolved — so the
+ * two are the same string, and a lane belonging to another pad's voice matches
+ * nothing, which is exactly what should happen to its mark. The one key the
+ * controller cannot resolve is a movy-config ALIAS (`pad_vol`): that goes
+ * through `laneKey` first.
  */
 const cache: (PageAutomation | undefined)[] = [];
 
@@ -49,8 +52,24 @@ const cache: (PageAutomation | undefined)[] = [];
 export function automationFor(track: number): PageAutomation {
     const hit = cache[track];
     if (hit) return hit;
+    /* AN ALIAS NAMES WHICHEVER PAD HAS FOCUS; A LANE NAMES ONE PAD (plan
+     * 2026-09-30, Phase 1 C1/C3). An alias rack's page lists `pad_vol` and the
+     * module applies it to the focused pad, so a lane bound to the alias wrote
+     * to whatever pad was hit last — the lock followed the finger. The lane
+     * binds the concrete key instead, resolved through the same scoping and
+     * the same focused pad movy's own renderer resolves its cells with
+     * (`buildAutomationView`), read live because the pad moves under a page
+     * that is cached for the track. */
+    const laneKey = (fullKey: string): string => {
+        const colon = fullKey.indexOf(':');
+        if (colon < 0) return fullKey;
+        const m = componentModelOf(track, fullKey.slice(0, colon));
+        const ps = m && typeof m.getDrumConfig === 'function' ? m.getDrumConfig()?.padScoping : undefined;
+        if (!ps) return fullKey;
+        return fullKey.slice(0, colon + 1) + concreteKey(ps, m.getDrumCurrentPad(), fullKey.slice(colon + 1));
+    };
     const laneOf = (fullKey: string): number => {
-        const lane = laneForParam(track, fullKey);
+        const lane = laneForParam(track, laneKey(fullKey));
         if (lane < 0) return -1;
         /* `autoActive` is the engine's own bitmask, mirrored by the status
          * poll — a lane is ACTIVE when it has automation to play.
@@ -76,9 +95,10 @@ export function automationFor(track: number): PageAutomation {
              * not the lane has a lock recorded yet, and the mirror going stale
              * for the window before the first lock is what would make the
              * pointer jump back the moment automation started. */
-            const lane = laneForParam(track, fullKey);
+            const lane = laneForParam(track, laneKey(fullKey));
             if (lane >= 0) noteLaneBase(track, lane, value);
         },
+        laneKey,
     };
     cache[track] = view;
     return view;
@@ -114,4 +134,23 @@ export function anyLaneNeedsBase(): boolean {
         }
     }
     return false;
+}
+
+/**
+ * A persisted lane's fate at the label sync (`syncLabelsFromEngine`).
+ *
+ * Judged by the lane's own (track, component) model — authoritative even for
+ * config-driven drum modules, and since Phase 3 of the drum-modules plan also
+ * for the keys only Schwung's pages bind: a template rack's concrete instance
+ * key (through `childTemplateOf`) and any key the module declares. `unknown`
+ * keeps the lane when that model isn't loaded yet, so a transient never wipes
+ * valid automation.
+ */
+export function validateTrackLane(track: number, tp: string): LaneVerdict {
+    const comp  = tp.slice(0, tp.indexOf(':'));
+    const model = componentModelOf(track, comp);
+    if (!model || !model.hasLoadedParams()) return 'unknown';
+    const ps = model.getDrumConfig()?.padScoping ?? null;
+    return validateLane(tp, ps, (key) => model.paramRangeByKey(key),
+                        (key) => model.childTemplateOf(key));
 }

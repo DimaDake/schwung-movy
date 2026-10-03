@@ -12,6 +12,7 @@ import { PAD_MIN } from '../seq/constants.js';
 import { armHierarchyRetry } from './meta-retry.js';
 import type { RawMeta } from './param-build.js';
 import { optionList } from './param-build.js';
+import { childLevelsOf, declaredKeysOf } from './child-keys.js';
 
 type HierParam = RawMeta;
 
@@ -27,6 +28,7 @@ interface HierLevel {
 export function loadHierarchy(s: ModelState): void {
     s.knobParams   = [];
     s.knobValues   = [];
+    s.declared     = null;
     s.moduleConfig = null;
     s.bankNames    = [];
     s.bankGroups   = [];
@@ -201,6 +203,15 @@ export function loadHierarchy(s: ModelState): void {
     /* Alongside the drum config, not inside it: the vouch is not drum-only.
      * See ModelState.pressParam. */
     s.pressParam = declaredSurface?.pressParam ?? null;
+    /* Kept past the load for the label sync (`childTemplateOf`): a lane on a
+     * template rack names a concrete instance key, which no page lists. */
+    s.childLevels = childLevelsOf(declaredHierarchy?.levels);
+    /* ...and every key the module declares, for the same sync. Under the
+     * Schwung grid a lane binds what SCHWUNG planned — forge's Voice macros
+     * (`cv_m1`) are on no movy page — so "a param movy's pages show" is the
+     * wrong test for whether a lane is stale. `paramRangeByKey` falls back to
+     * this. */
+    s.declared = { cp: cpMap, defs: { ...knobInline, ...paramDefs }, keys: declaredKeysOf(cpOrder, allLevels) };
     s.drumConfig = effectiveDrumConfig(declaredSurface, s.moduleConfig?.drum ?? null);
     if (s.drumConfig) {
         s.isDrum       = true;

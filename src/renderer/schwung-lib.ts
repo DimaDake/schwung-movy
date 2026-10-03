@@ -94,6 +94,9 @@ export interface SchwungLib {
      * that is child-level lists aliases, so a warm that prefixes the alias
      * covers keys no read will look up — see `jump` in schwung-page-input.ts. */
     resolveChildKey?: any;
+    /* How many instances a child level declares — the bound a concrete key is
+     * searched over when a persisted lane is validated (model/child-keys.ts). */
+    childCount?: any;
     /* Same pairing, WRITE side (SP-50): adds `child_index_base`, which a raw
      * `String(index)` skips. */
     childIndexToWire?: any;
@@ -239,6 +242,7 @@ try {
         focusPressParamOf: vo.focusPressParamOf, childPressParam: ck.childPressParam,
         activity: anm.activity, buttonPhase: rpm.buttonPhase,
         resolveChildKey: ck.resolveChildKey, childIndexToWire: ck.childIndexToWire,
+        childCount: ck.childCount,
         VIZ_SAMPLE: vz.VIZ_SAMPLE,
         wavPeaksTick: wp.wavPeaksTick, wavPeaksDone: wp.wavPeaksDone,
         wavPeaks: wp.wavPeaks,

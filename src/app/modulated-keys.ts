@@ -17,14 +17,14 @@ import { appState } from './state.js';
 import { isMasterComponent } from '../chain/config.js';
 
 /**
- * The params a slot LFO drives on `componentKey`'s model in `track`, or null
- * when no model there owns that component.
+ * The model that owns `componentKey` in `track`, or null when none does.
  *
- * The same resolution `app/tick.ts` does for its own module lookups, and the
- * same set the `~` mark on movy's own page is drawn from (`model/viewmodel.ts`)
- * — one source, so the two marks cannot disagree.
+ * The same resolution `app/tick.ts` does for its own module lookups. Shared by
+ * the two answers a delegated page asks of a model — "is this key modulated"
+ * below, and "which pad's key is this alias" (`automated-keys.ts`) — so both
+ * find the same model.
  */
-export function modulatedKeysOf(track: number, componentKey: string): ReadonlySet<string> | null {
+export function componentModelOf(track: number, componentKey: string): any | null {
     /* A `master_fx:` component's model is not in any track's chain — it lives
      * in `masterFxModels`, addressed by slot, and the port that reaches it
      * reports `track` as a fixed carrier (0), not a real track (SP-52). Reading
@@ -38,8 +38,19 @@ export function modulatedKeysOf(track: number, componentKey: string): ReadonlySe
          * a scoped LFO, the mix page — and the app tick hands `pageOwnerOf`
          * stubs as well as real models. */
         if (!m || typeof m.getComponentKey !== 'function') continue;
-        if (m.getComponentKey() !== componentKey) continue;
-        return typeof m.modulatedKeys === 'function' ? m.modulatedKeys() : null;
+        if (m.getComponentKey() === componentKey) return m;
     }
     return null;
+}
+
+/**
+ * The params a slot LFO drives on `componentKey`'s model in `track`, or null
+ * when no model there owns that component.
+ *
+ * The same set the `~` mark on movy's own page is drawn from
+ * (`model/viewmodel.ts`) — one source, so the two marks cannot disagree.
+ */
+export function modulatedKeysOf(track: number, componentKey: string): ReadonlySet<string> | null {
+    const m = componentModelOf(track, componentKey);
+    return m && typeof m.modulatedKeys === 'function' ? m.modulatedKeys() : null;
 }

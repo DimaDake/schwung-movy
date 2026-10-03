@@ -157,9 +157,9 @@ export function createSchwungPage(
      * a page is cached by (track, component) and outlives the module that built
      * it, so an answer captured now would be given about a module that has
      * since been swapped out. */
+    const automation = automationOf ? () => automationOf(trackIndex) : null;
     const ctl = lib.createController(createPageIo(port, qualify, cache, hier, componentKey,
-        modulatedOf ? () => modulatedOf(trackIndex, componentKey) : null,
-        automationOf ? () => automationOf(trackIndex) : null));
+        modulatedOf ? () => modulatedOf(trackIndex, componentKey) : null, automation));
     ctl.setLayout(lib.LAYOUT_MOVY);
 
     /* The controller's own view of the page it is showing. Both the binding's
@@ -172,11 +172,12 @@ export function createSchwungPage(
     const keyAt = (slot: number) => (keysOf()[slot] as string) || null;
 
     const contract = createPageContract(ctl, port, componentKey, cache, hier, lib, trackIndex);
-    const page = createPageRender(ctl, { keyAt, keysOf, componentKey,
-                                        normalizedOf: lib.normalizedOf });
     /* SP-39: `focusVoice` covers the page it is about to turn to before the
      * controller asks for its cells — see schwung-page-input.ts. */
     const input = createPageInput(ctl, lib, port, qualify, hier, cache.warm);
+    const page = createPageRender(ctl, { keyAt, keysOf, componentKey,
+                                        normalizedOf: lib.normalizedOf, automation,
+                                        focusedChild: input.focusedChild });
 
     /* SP-38's per-tick question, built once here and published below. It reads
      * the animation store rather than the controller, so it lives in its own

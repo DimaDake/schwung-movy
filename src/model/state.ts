@@ -140,6 +140,12 @@ export interface ModelState {
     /* What the MODULE calls each pad, pad-ordered. Only a declared rack has
      * these; movy's own table names banks, never voices. */
     drumPadNames:        string[];
+    /* The declared hierarchy's per-instance levels (`model/child-keys.ts`). */
+    childLevels:         any[];
+    /* What the last hierarchy load read about every declared key — chain_params
+     * metadata, the levels' own definitions, and the key list. Null before a
+     * load. Read by `paramRangeByKey` for a key no movy page shows. */
+    declared:            { cp: Record<string, any>; defs: Record<string, any>; keys: Set<string> } | null;
     /* The module's declared live-press param (schwung's `child_press_param` /
      * `focus_press_param`), or null.
      *
@@ -210,6 +216,8 @@ export function createModelState(port: TrackPort, componentKey: string): ModelSt
         drumPadCount:        0,
         drumConfig:          null,
         drumPadNames:        [],
+        childLevels:         [],
+        declared:            null,
         pressParam:          null,
         drumCurrentPad:      1,
         drumCurrentPhysPad:  0,

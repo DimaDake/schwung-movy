@@ -19,7 +19,7 @@ const NO_MODULATION: ReadonlySet<string> = new Set();
 export type InertModelSurface = Pick<Model,
     'getFileBrowseTarget' | 'fileBrowseTargetForKey' | 'clearFileOverlay' | 'setFileValue' |
     'getKnobParamInfo' | 'setNoRefreshKeys' | 'refreshModulation' | 'modulatedKeys' |
-    'paramRangeByKey' | 'getValueByKey' |
+    'paramRangeByKey' | 'getValueByKey' | 'childTemplateOf' |
     'getDrumConfig' | 'getDrumPadCount' | 'getDrumPadNames' | 'getDrumCurrentPad' |
     'getDrumCurrentPhysPad' | 'updateDrumPad' | 'dumpLayout'>;
 
@@ -39,6 +39,7 @@ export function inertModelSurface(id: string, name: string, componentKey: string
          * is a different claim from "this model has nothing modulated". */
         modulatedKeys(): ReadonlySet<string> { return NO_MODULATION; },
         paramRangeByKey(_key: string) { return null; },
+        childTemplateOf(_key: string) { return null; },     // no child levels
         getValueByKey(_key: string) { return null; },
         getDrumConfig() { return null; },
         /* Never a drum module; mirrors the module model's cheap accessors so the

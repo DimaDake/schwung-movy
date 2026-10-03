@@ -152,6 +152,18 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Under Schwung pages, drum automation followed the pad you pressed last.**
+  On racks whose per-pad page edits "the selected pad" — simian, dr32, mrdrums,
+  weird-dreams, forge — a lane was bound to the page's shared knob (`tune`,
+  `pad_vol`), so on playback the module applied it to whichever pad had focus:
+  press another pad and the automation moved with it. A lane now binds the
+  pad's own parameter (`pad3_tune`, `p03_vol`), so it plays on that pad only.
+  The held step's value and the lane mark show on that pad's page alone, and the
+  lane survives a Set load or undo (they used to be dropped as stale). Lanes
+  recorded before this fix stay on the shared knob and keep following the
+  focused pad; clear and re-record them. sophie still edits one pad under
+  Schwung pages, and is fixed in a later step.
+
 - **A lock could land after its note.** A note nudged early, one nudged onto
   the end of the previous loop pass, and the first step after Play fired before
   their step's automation was applied, so a drum voice (which takes its sound at

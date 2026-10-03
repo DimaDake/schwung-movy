@@ -88,7 +88,7 @@ const PRESETS = [
     'page_held_lock', 'page_lane_unheld', 'page_held_unassignable', 'page_held_enum',
     'page_chrome_held', 'page_chrome_flip',
     'page_clipparams', 'page_setparams', 'page_stepparams', 'page_master_chain',
-    'page_lane_mark', 'page_lane_mark_held',
+    'page_lane_mark', 'page_lane_mark_held', 'page_held_drum',
     'page_lfo', 'page_lfo_master', 'page_enum_list',
 ];
 
@@ -105,7 +105,8 @@ const PAGE_SCENES = new Set(['page_body', 'page_body_p2', 'page_voice_pad', 'pag
     'page_held_lock', 'page_lane_unheld', 'page_held_unassignable', 'page_held_enum',
     'page_chrome_held', 'page_chrome_flip',
     'page_clipparams', 'page_setparams', 'page_stepparams', 'page_master_chain',
-    'page_lane_mark', 'page_lane_mark_held', 'page_lfo', 'page_lfo_master', 'page_enum_list']);
+    'page_lane_mark', 'page_lane_mark_held', 'page_held_drum',
+    'page_lfo', 'page_lfo_master', 'page_enum_list']);
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
 const BASE = {
@@ -201,7 +202,7 @@ const BASE = {
  * written for it first and deleted — its page names were the mock's own
  * invention, so a change to Schwung's naming would have moved the fixture
  * rather than the baseline. */
-const DUMP_BASE = { page_voice_pad: 'voice-poc' };
+const DUMP_BASE = { page_voice_pad: 'voice-poc', page_held_drum: 'simian' };
 
 const STEP_VM_A = {
     holdVel: 100, holdGate: 48, holdGateMixed: false,
@@ -284,6 +285,7 @@ const { CLIP_PARAMS_COMPONENT, SET_PARAMS_COMPONENT, STEP_PARAMS_COMPONENT } = a
 const { schwungBodyFor, schwungBankFor, schwungChromeFor } = await import('../dist/esm/app/tick.js');
 const { modulatedKeysOf } = await import('../dist/esm/app/modulated-keys.js');
 const { assignLane, resetAutomation } = await import('../dist/esm/seq/automation.js');
+const { buildAutomationView } = await import('../dist/esm/app/tick.js');
 const { stepPageAvailable, stepPageState } = await import('../dist/esm/seq/step-page.js');
 const { schwungLibAvailable, schwungLib } = await import('../dist/esm/renderer/schwung-lib.js');
 const { movyCtx } = await import('../dist/esm/renderer/schwung-ctx.js');
@@ -1854,6 +1856,60 @@ function applyView(preset) {
             }
             break;
         }
+        /* ── page_held_drum (drum-modules plan, Phase 3) ───────────────────────
+         * A held step on a TEMPLATE drum rack's per-pad page: simian, pad 3's
+         * Tone page, the lock on pad 3's own `pad3_tune`. The cell is a template
+         * (`tune`) the controller resolves per pad, and before Phase 3 the lane
+         * bound that template — it played into whichever pad had focus, and the
+         * decoration matched every pad's page alike. Everything here is the
+         * app's own path: the owner's page, a lane in the real registry, the
+         * automation view `app/tick.ts` builds. Bound to the template again,
+         * the scene throws; decorated by template, the cell loses its lock. */
+        case 'page_held_drum': {
+            if (!schwungLibAvailable()) throw new Error(
+                'screenshot: ' + preset + ' needs a bundle built with SCHWUNG=/path/to/schwung');
+            const savedModels = appState.trackModels;
+            appState.trackModels = [chainModels];
+            try {
+                setSchwungGridMode('page');
+                schwungGridReload();
+                resetAutomation();
+                for (let i = 0; i < 20; i++) model.tick();
+                const sp = pageOwnerOf(model).page;
+                if (!sp) throw new Error(preset + ': the page is not delegated');
+                for (let i = 0; i < 12 * 60 && !sp.ready; i++) { sp.tick(); model.tick(); }
+                if (!sp.ready) throw new Error(preset + ': the contract never resolved');
+                if (!sp.focusVoice(3)) throw new Error(preset + ': pad 3 has no page');
+                model.updateDrumPad(3, 3);
+                for (let i = 0; i < 24; i++) { sp.tick(); model.tick(); }
+                const slot = sp.ctl.page.keys.indexOf('tune');
+                if (slot < 0) throw new Error(preset + ': no tune cell on ' + sp.ctl.page.name);
+                const info = pageOwnerOf(model).knobParamInfo(slot);
+                if (!info || info.ioKey !== 'pad3_tune') throw new Error(
+                    preset + ': the lane binds ' + (info && info.ioKey) + ', not pad 3’s own pad3_tune');
+                const lane = assignLane(0, 0, info, () => true);
+                if (lane < 0) throw new Error(preset + ': no lane');
+                seqState.autoActive |= 1 << lane;
+                seqState.stepAutoMode = true;
+                seqState.heldLocks = new Map([[lane, 127]]);
+                for (let i = 0; i < 80; i++) { sp.tick(); model.tick(); }
+                lastRender = () => {
+                    const auto = buildAutomationView(0, model);
+                    renderKnobsView(model.getViewModel(auto), false, 0,
+                        () => sp.render('T1 > ' + model.getModuleName(), auto),
+                        { index: sp.pageIndex, count: sp.pageCount }, sp.chrome(true));
+                };
+                lastRender();
+            } finally {
+                setSchwungGridMode(null);
+                seqState.autoActive = 0;
+                seqState.stepAutoMode = false;
+                seqState.heldLocks = new Map();
+                resetAutomation();
+                appState.trackModels = savedModels;
+            }
+            break;
+        }
         /* ── THE TWO BANDS MOVY KEEPS (SP-17) ─────────────────────────────────
          * `bands.header`/`bands.footer` are false for LAYOUT reasons, so movy
          * draws both — the readout from the controller's own `describePage()`,
@@ -1954,7 +2010,7 @@ for (const preset of PRESETS) {
      * registered for the one scene that needs it and cleared for every other:
      * each baseline in this file was written with no reader at all, which is
      * also the state a real movy boots in until `app/globals.ts` runs. */
-    setSurfaceReader(preset === 'page_voice_pad' ? surfaceOf : null);
+    setSurfaceReader(preset === 'page_voice_pad' || preset === 'page_held_drum' ? surfaceOf : null);
     loadPreset(BASE[preset] ?? preset);
     lastRender = knobsRepaint;
     settle();          // load hierarchy, render default knobs view

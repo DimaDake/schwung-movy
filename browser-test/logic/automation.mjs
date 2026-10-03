@@ -436,6 +436,8 @@ _log('\npad-scope aliasFromConcrete:');
     eq('override concrete → alias', aliasFromConcrete(ov, 'v3_fx1'), 'cv_fx1');
     eq('foreign key sharing shape → null', aliasFromConcrete(ov, 'v3_lvl'), null);
     eq('main template still maps', aliasFromConcrete(ov, 'pv3_pwm'), 'cv_pwm');
+    /* padDigits is a MINIMUM width: concreteKey writes forge's pad 16 as pv16. */
+    eq('pad past the digit count maps', aliasFromConcrete(ov, 'pv16_pwm'), 'cv_pwm');
     /* padKeys entries are the module's OWN declared params, so they are NOT
      * reverse-mapped: bd_c_tune validates as itself. Aliasing it to pad_pitch —
      * a key 9W9 never declares — would purge every per-voice lane as stale. */
@@ -483,6 +485,43 @@ _log('\nautomation validateLane:');
     eq('per-voice lane kept', validateLane('synth:bd_c_tune', tblPs, tblLookup).max, 127);
     eq('alias lane dropped', validateLane('synth:pad_pitch', tblPs, tblLookup), 'drop');
     eq('undeclared voice key dropped', validateLane('synth:zz_c_tune', tblPs, tblLookup), 'drop');
+    /* A template rack (simian, dr32): the lane names pad N's concrete key,
+     * which the model never lists — it validates through the child-level
+     * template it instantiates, with that template's range. */
+    const tmplMeta = { tune: { min: -24, max: 24, type: 'float' } };
+    const tmpl = (k) => (k === 'pad16_tune' ? 'tune' : null);
+    eq('concrete child key kept by its template', validateLane('synth:pad16_tune', null, (k) => tmplMeta[k] ?? null, tmpl).max, 24);
+    eq('child key with no template still dropped', validateLane('synth:pad16_zz', null, (k) => tmplMeta[k] ?? null, tmpl), 'drop');
+}
+
+/* ── model/child-keys: concrete instance key → its child-level template ──── */
+_log('\nmodel child-keys:');
+if (process.env.SCHWUNG) {
+    const { join, resolve } = await import('node:path');
+    const ck = await import(join(resolve(process.env.SCHWUNG), 'src', 'shared', 'param_pages', 'child_key.mjs'));
+    const { setChildKeyResolver, childLevelsOf, childTemplateOf, declaredKeysOf } =
+        await import('../../dist/esm/model/child-keys.js');
+    const levels = {
+        root: { knobs: ['master'], params: [{ level: 'pads' }] },
+        pads: { child_count: 16, child_index_base: 1, child_key_template: 'pad{index}_{key}',
+                knobs: ['tune', { key: 'decay' }], params: [{ key: 'pan' }] },
+    };
+    setChildKeyResolver(null, null);
+    eq('no resolver registered → no child levels', childLevelsOf(levels).length, 0);
+    setChildKeyResolver(ck.resolveChildKey, ck.childCount);
+    const kids = childLevelsOf(levels);
+    eq('only the repeating level is a child level', kids.length, 1);
+    eq('pad16_tune → tune', childTemplateOf(kids, 'pad16_tune'), 'tune');
+    eq('an object knob resolves too', childTemplateOf(kids, 'pad1_decay'), 'decay');
+    eq('a level param resolves too', childTemplateOf(kids, 'pad3_pan'), 'pan');
+    eq('past the instance count → null', childTemplateOf(kids, 'pad17_tune'), null);
+    eq('the bare template is not an instance', childTemplateOf(kids, 'tune'), null);
+    const keys = declaredKeysOf(['cutoff'], levels);
+    eq('declared keys: chain_params, knobs and params, no level links',
+       keys.has('cutoff') && keys.has('master') && keys.has('tune') && keys.has('decay')
+       && keys.has('pan') && !keys.has('pads') && keys.size === 5, true);
+} else {
+    _log('    SKIPPED (no SCHWUNG checkout)');
 }
 
 /* ── automation: clearing a clip's automation re-requests a label sync ─────── */

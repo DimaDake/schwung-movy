@@ -239,7 +239,7 @@ export function createSchwungPage(
          * what answers it. */
         peekOpen: () => (typeof ctl.enumPeek === 'function' ? !!ctl.enumPeek() : false),
         render: page.render,
-        chrome: (paging: boolean) => chromeFor(ctl, lib, paging),
+        chrome: (paging: boolean) => chromeFor(ctl, lib, paging, seat.onBlock()),
         knobTurn: input.knobTurn,
         knobTouch: input.knobTouch,
         click: input.click,

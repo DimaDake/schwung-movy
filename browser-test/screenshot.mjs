@@ -83,7 +83,7 @@ const PRESETS = [
     'wave_cells', 'wave_overlay', 'wave_helm', 'wave_toggles',
     'env_stages', 'eq_bands', 'cut_filters', 'faders', 'wav_sample', 'wav_loop', 'wav_loop_off', 'wav_beside_filter',
     'switches', 'pan_dials', 'spray_saturated',
-    'page_body', 'page_body_p2', 'page_voice_pad', 'page_sample',
+    'page_body', 'page_body_p2', 'page_voice_pad', 'page_voice_global', 'page_sample',
     'page_mod_cell', 'page_mod_cell_held',
     'page_held_lock', 'page_lane_unheld', 'page_held_unassignable', 'page_held_enum',
     'page_chrome_held', 'page_chrome_flip',
@@ -100,7 +100,7 @@ const PRESETS = [
  * it builds or loads anything; the scenes carry their own guard as well, so a
  * name that drifts out of this set fails loudly instead of rendering a body it
  * cannot. */
-const PAGE_SCENES = new Set(['page_body', 'page_body_p2', 'page_voice_pad', 'page_sample',
+const PAGE_SCENES = new Set(['page_body', 'page_body_p2', 'page_voice_pad', 'page_voice_global', 'page_sample',
     'page_mod_cell', 'page_mod_cell_held',
     'page_held_lock', 'page_lane_unheld', 'page_held_unassignable', 'page_held_enum',
     'page_chrome_held', 'page_chrome_flip',
@@ -202,7 +202,7 @@ const BASE = {
  * written for it first and deleted — its page names were the mock's own
  * invention, so a change to Schwung's naming would have moved the fixture
  * rather than the baseline. */
-const DUMP_BASE = { page_voice_pad: 'voice-poc', page_held_drum: 'simian' };
+const DUMP_BASE = { page_voice_pad: 'voice-poc', page_voice_global: 'voice-poc', page_held_drum: 'simian' };
 
 const STEP_VM_A = {
     holdVel: 100, holdGate: 48, holdGateMixed: false,
@@ -1330,7 +1330,8 @@ function applyView(preset) {
          * from and the wrong precedence draws that one instead. */
         case 'page_body':
         case 'page_body_p2':
-        case 'page_voice_pad': {
+        case 'page_voice_pad':
+        case 'page_voice_global': {
             if (!schwungLibAvailable()) throw new Error(
                 'screenshot: ' + preset + ' needs a bundle built with SCHWUNG=/path/to/schwung');
             setSchwungGridMode('page');
@@ -1367,6 +1368,20 @@ function applyView(preset) {
             if (preset === 'page_voice_pad') {
                 sp.goToPage(0);
                 model.updateDrumPad(2, 38);
+            }
+            /* THE SAME RACK ON ITS REVERB PAGE, which no pad press re-targets:
+             * the header draws no pad icon there. The model's `isPadScoped` is
+             * rack-wide and still says yes, so the frame is the seat's answer
+             * and not a coincidence. */
+            if (preset === 'page_voice_global') {
+                const onReverb = () => /reverb/i.test(sp.ctl.pages[sp.ctl.pageIndex]?.name || '');
+                for (let i = 0; i < sp.pageCount && !onReverb(); i++) { sp.goToPage(i); sp.tick(); model.tick(); }
+                if (!onReverb()) throw new Error('page_voice_global: voice-poc no longer plans a Reverb page');
+                model.updateDrumPad(2, 38);
+                if (sp.chrome(true).padScoped) throw new Error(
+                    'page_voice_global: the seat calls Reverb a per-pad page');
+                if (!model.getViewModel().isPadScoped) throw new Error(
+                    'page_voice_global: the model no longer flags the rack, so the frame cannot tell the gate apart');
             }
             const vm = model.getViewModel();
             if (preset === 'page_voice_pad') {
@@ -2010,7 +2025,7 @@ for (const preset of PRESETS) {
      * registered for the one scene that needs it and cleared for every other:
      * each baseline in this file was written with no reader at all, which is
      * also the state a real movy boots in until `app/globals.ts` runs. */
-    setSurfaceReader(preset === 'page_voice_pad' || preset === 'page_held_drum' ? surfaceOf : null);
+    setSurfaceReader(preset === 'page_voice_pad' || preset === 'page_voice_global' || preset === 'page_held_drum' ? surfaceOf : null);
     loadPreset(BASE[preset] ?? preset);
     lastRender = knobsRepaint;
     settle();          // load hierarchy, render default knobs view

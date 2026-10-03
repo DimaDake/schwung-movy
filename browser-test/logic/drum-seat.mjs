@@ -219,6 +219,37 @@ _log('\nTest: per-voice keys come from Schwung’s voice map (D16)');
     done(restoreFs);
 }
 
+_log('\nTest: the header pad icon only on pages a pad press re-targets');
+/* The icon asks "do these knobs belong to the selected pad?". The model's
+ * `isPadScoped` is rack-wide (any declared voices), so on a rack's Reverb or
+ * Kit page it says yes; only the seat knows which of Schwung's pages are the
+ * pad's. Expected blocks are spelled independently of the seat: a sibling
+ * rack's voice levels, a template rack's child-level pages, and every page of
+ * sophie, which has nothing global. */
+for (const [id, perPad] of [
+    ['9w9',       (pg, voices) => voices.some((v) => v.level === pg.level)],
+    ['voice-poc', (pg, voices) => voices.some((v) => v.level === pg.level)],
+    ['simian',    (pg) => !!pg.childLevel],
+    ['sophie',    () => true],
+]) {
+    const { p, model, fixture, restoreFs } = boot(id);
+    const voices = voicesOf(JSON.parse(fixture['synth:ui_pages'] || fixture['synth:ui_hierarchy']));
+    let on = 0, off = 0;
+    for (let i = 0; i < p.pageCount; i++) {
+        p.goToPage(i); ticks(p, 2);
+        const want = perPad(shown(p), voices);
+        want ? on++ : off++;
+        eq(`${id}: ${shown(p).name || shown(p).level} ${want ? 'shows' : 'hides'} the pad icon`,
+           p.chrome(true).padScoped, want);
+    }
+    ok(`${id}: has a per-pad page`, on > 0);
+    if (id !== 'sophie') {
+        ok(`${id}: has a global page`, off > 0);
+        ok(`${id}: ...where the rack-wide model flag would still say yes`, model.getViewModel().isPadScoped);
+    }
+    done(restoreFs);
+}
+
 _log('\nTest: a module with no voice map copies whole steps (D16)');
 {
     const { restoreFs } = boot('weird-dreams');

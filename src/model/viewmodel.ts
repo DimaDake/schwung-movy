@@ -327,8 +327,9 @@ export function buildViewModel(s: ModelState, auto: AutomationView = NO_AUTOMATI
          * DECLARES a rack has said exactly that — it just has no entry in
          * movy's table to say it through. Reading only the table meant a
          * declared rack drew no pad-grid icon at all, reported from the device
-         * as "no minimap". Display-only: both header renderers gate the icon on
-         * this and nothing else consults it. */
+         * as "no minimap". Display-only, and only for movy's own pages: under
+         * a Schwung page the seat answers instead (`padIconShown`), since this
+         * flag is rack-wide and the rack's global pages are on screen too. */
         /* WHAT THE MODULE CALLS THE FOCUSED PAD, for the header.
          *
          * Its own field rather than borrowed from `bankName`: bankName is the

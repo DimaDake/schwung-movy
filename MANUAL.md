@@ -1011,7 +1011,8 @@ chain's own left-to-right order:
 ![A page per voice, selected by pad](docs/assets/8w8_voice.png)
 
 The pad icon is lit on the pad you last hit; on a kit like this it is the only
-thing on screen telling you which voice the knobs are holding. **Shift + pad**
+thing on screen telling you which voice the knobs are holding. It appears only
+on the pages a pad press switches: Reverb, Delay and Master show none. **Shift + pad**
 picks a voice without sounding it.
 
 As with a per-pad page, **a pad only turns the page while you are on the voice

@@ -188,6 +188,12 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **The pad icon only on per-pad pages under Schwung pages.** A drum module's
+  header showed the pad-grid icon on every page, Reverb, Kit and Master
+  included, because the flag was set for the whole rack. It now follows the
+  per-pad seat: the icon is on the pages a pad press switches and nowhere else
+  (sophie, with no global pages, keeps it everywhere).
+
 - **Under Schwung pages, a playing pattern turned the drum page.** 6W6, 8W8,
   9W9 and CW-78 move their own selection on every note unless Move's transport
   is running, and Movy's sequencer is not Move's transport. So every sequenced

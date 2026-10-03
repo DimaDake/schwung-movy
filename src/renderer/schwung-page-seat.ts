@@ -47,6 +47,9 @@ export interface PageSeat {
     /** Once per contract: the seat's first page, if the controller is still
      *  where it landed by itself; else -1. */
     landing(): number;
+    /** Is the controller's page on the seated voice's block — a page a pad
+     *  press re-targets? False without a seat. */
+    onBlock(): boolean;
 }
 
 interface Plan {
@@ -185,6 +188,10 @@ export function createPageSeat(ctl: any, lib: any, hier: PageHierarchy,
             landedFor = landFor;
             const b = p.blocks[seat];
             return ctl.pageIndex === landFrom && b.indexOf(ctl.pageIndex) < 0 ? b[0] : -1;
+        },
+        onBlock() {
+            const p = current();
+            return !!p && seat >= 0 && p.blocks[seat].indexOf(ctl.pageIndex) >= 0;
         },
     };
 }

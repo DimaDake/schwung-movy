@@ -59,16 +59,22 @@ export interface PageChrome {
     header: PageHeader | null;
     footer: [string, string][] | null;
     pageLabel: string | null;
+    /** Does a pad press re-target this page? The header's pad icon answers
+     *  that, and only the seat knows which of Schwung's pages are per-pad:
+     *  movy's own `isPadScoped` reads movy's banks, which are not on screen. */
+    padScoped: boolean;
 }
 
 /** Everything movy draws around Schwung's body, in one answer.
  *  `paging` is false wherever the jog moves something that is not Schwung's
  *  page set — the chain view, where it moves chain slots. */
-export function chromeFor(ctl: any, lib: SchwungLib, paging: boolean): PageChrome {
+export function chromeFor(ctl: any, lib: SchwungLib, paging: boolean,
+                          padScoped = false): PageChrome {
     const held = !!(ctl && ctl.state && ctl.state.touched >= 0);
     return {
         header: heldHeaderFor(ctl),
         pageLabel: pageLabelFor(ctl),
+        padScoped,
         /* A HAND ON A KNOB TAKES THE BOTTOM ROWS, AND THAT IS THE WHOLE RULE.
          *
          * The hint band and the Loop strip occupy overlapping rows — the

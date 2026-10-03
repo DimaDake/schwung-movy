@@ -1,6 +1,6 @@
 import type { ViewModel } from '../types/viewmodel.js';
 import { fontPrint, fontWidth } from '../font/index.js';
-import { drawHeader, drawBankBar, drawHeaderWithPadIcon, PAD_ICON_W } from './header.js';
+import { drawHeader, drawBankBar, drawHeaderWithPadIcon, PAD_ICON_W, padIconShown } from './header.js';
 import { drawKnobParams } from './label.js';
 import { drawEnumOverlay, drawJogToast } from './overlay.js';
 import { W } from './layout.js';
@@ -56,7 +56,7 @@ export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 
     } else if (vm.toast) {
         drawHeader(vm.toast.fullName, vm.overlay ? null : vm.toast.value, true);
     } else {
-        const showIcon = vm.isPadScoped && vm.drumPadCount > 0;
+        const showIcon = padIconShown(vm, chrome);
         const iconW    = showIcon ? PAD_ICON_W : 0;
         /* The rule, and why the pad name is the fallback rather than the
          * winner, is on `headerRightText` above. The pad ICON below still

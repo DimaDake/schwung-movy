@@ -1,5 +1,7 @@
 import { fontPrint, fontWidth } from '../font/index.js';
 import { W, HEADER_H, BAR_Y } from './layout.js';
+import type { ViewModel } from '../types/viewmodel.js';
+import type { PageChrome } from './schwung-page-chrome.js';
 
 export function drawHeader(left: string, right: string | null, inverted = false): void {
     if (inverted) fill_rect(0, 0, W, HEADER_H, 1);
@@ -11,6 +13,13 @@ export function drawHeader(left: string, right: string | null, inverted = false)
 /* Width the pad-grid icon claims ahead of the right-hand text: 6px icon + 1px
  * gap. Callers subtract it when they decide how much room the other side gets. */
 export const PAD_ICON_W = 7;
+
+/* Under a Schwung page the chrome decides: the model's `isPadScoped` reads
+ * movy's banks and the rack as a whole, so it would put the icon on a rack's
+ * Reverb page, which no pad press re-targets. */
+export function padIconShown(vm: ViewModel, chrome?: PageChrome): boolean {
+    return (chrome ? chrome.padScoped : vm.isPadScoped) && vm.drumPadCount > 0;
+}
 
 /* Header with the pad-grid icon tucked in front of the right-hand text.
  *

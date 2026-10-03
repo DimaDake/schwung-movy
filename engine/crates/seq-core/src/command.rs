@@ -532,10 +532,17 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                 engine.delete_clip_at(t as usize, s.max(0) as usize);
             }
         }
-        // cpy <t> <s0> <s1> ; pst <t> <destStep> ; cpyclr
+        // cpy <t> <s0> <s1> [<pitch> <laneMask>] ; pst <t> <destStep> ; cpyclr
+        // The optional pair makes it a per-voice copy (a drum track's selected
+        // pad and the lanes bound to that voice's keys).
         "cpy" => {
             if let (Some(t), Some(s0), Some(s1)) = (next(), next(), next()) {
-                engine.copy_steps(t as usize, s0.clamp(0, 255) as u16, s1.clamp(0, 255) as u16);
+                let voice = match (next(), next()) {
+                    (Some(p), Some(m)) if (0..128).contains(&p) && (0..=u32::MAX as i64).contains(&m) =>
+                        Some((p as u8, m as u32)),
+                    _ => None,
+                };
+                engine.copy_steps_voice(t as usize, s0.clamp(0, 255) as u16, s1.clamp(0, 255) as u16, voice);
             }
         }
         "pst" => {

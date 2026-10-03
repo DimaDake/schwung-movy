@@ -2,12 +2,14 @@
  * destination, REPLACING the destination. One gesture across views — the unit
  * is a clip (Session), a step (Note view) or a bar (Loop view). The source
  * stays armed while Copy is held, so it can be stamped to several destinations.
- * The engine owns the clipboard; this module only emits commands + toasts. */
+ * The engine owns the clipboard; this module only emits commands + toasts. A
+ * drum track's step/bar copy takes the selected voice only (voice-copy.ts). */
 
 import { undoableEdit } from '../undo/edit.js';
 import { trackLabel } from '../undo/label.js';
 import { seqCmd, requestLabelSync } from './engine.js';
 import { seqToast } from './render.js';
+import { voiceCopyArgs } from './voice-copy.js';
 
 export type DupUnit =
     | { kind: 'clip'; track: number; slot: number }
@@ -44,8 +46,8 @@ export function onUnit(u: DupUnit): void {
 
 function copySource(u: DupUnit): void {
     if (u.kind === 'clip') seqCmd(`clipcopy ${u.track} ${u.slot}`);
-    else if (u.kind === 'step') seqCmd(`cpy ${u.track} ${u.step} ${u.step}`);
-    else seqCmd(`cpy ${u.track} ${u.bar * 16} ${u.bar * 16 + 15}`);
+    else if (u.kind === 'step') seqCmd(`cpy ${u.track} ${u.step} ${u.step}${voiceCopyArgs(u.track)}`);
+    else seqCmd(`cpy ${u.track} ${u.bar * 16} ${u.bar * 16 + 15}${voiceCopyArgs(u.track)}`);
 }
 
 function pasteTo(dest: DupUnit): void {

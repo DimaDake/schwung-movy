@@ -77,6 +77,11 @@ pub struct Engine {
     /// Width in steps of the last `copy_steps` source range, so a paste replaces
     /// the destination span even when the source had no notes.
     clipboard_span: u16,
+    /// The drum voice the clipboard was copied from, as (pitch, lane mask):
+    /// Move's per-voice paste. A paste then replaces only that pitch's notes
+    /// and those lanes' locks, leaving every other voice on the step alone.
+    /// None = whole-step (melodic, or a rack with no voice map).
+    clipboard_voice: Option<(u8, u32)>,
     /// Whole-clip clipboard for Session copy/paste.
     clip_clipboard: Option<Clip>,
     /// Recording state (live capture into the active clip).
@@ -255,6 +260,7 @@ impl Engine {
             clipboard: Vec::new(),
             lock_clipboard: Vec::new(),
             clipboard_span: 0,
+            clipboard_voice: None,
             clip_clipboard: None,
             recording: false,
             song: Vec::new(),
@@ -506,16 +512,24 @@ impl Engine {
     // ── Note clipboard (copy/paste steps + ranges) ────────────────────────
 
     pub fn copy_steps(&mut self, track: usize, s0: u16, s1: u16) {
-        if track >= NUM_TRACKS {
+        self.copy_steps_voice(track, s0, s1, None);
+    }
+
+    /// `voice` = (pitch, lane mask): copy only that drum voice's notes and the
+    /// locks on its lanes (the UI knows which lanes are the voice's keys).
+    pub fn copy_steps_voice(&mut self, track: usize, s0: u16, s1: u16, voice: Option<(u8, u32)>) {
+        if track >= NUM_TRACKS || s1 < s0 {
             return;
         }
         self.clipboard_span = s1 - s0 + 1;
+        self.clipboard_voice = voice;
         let base_tick = s0 as u32 * TICKS_PER_STEP;
         self.clipboard = self.tracks[track]
             .active()
             .notes
             .iter()
             .filter(|n| n.step >= s0 && n.step <= s1)
+            .filter(|n| voice.map_or(true, |(p, _)| n.pitch == p))
             .map(|n| ClipboardNote {
                 rel_step: n.step - s0,
                 rel_tick: n.tick.saturating_sub(base_tick),
@@ -529,6 +543,7 @@ impl Engine {
             .locks
             .iter()
             .filter(|l| l.step >= s0 && l.step <= s1)
+            .filter(|l| voice.map_or(true, |(_, m)| lane_in(m, l.lane)))
             .map(|l| Lock { lane: l.lane, step: l.step - s0, val: l.val })
             .collect();
     }
@@ -538,13 +553,16 @@ impl Engine {
             return;
         }
         let span = self.clipboard_span;
-        // Replace, not merge: clear the destination span (notes + locks) first.
+        let voice = self.clipboard_voice;
+        // Replace, not merge: clear the destination span (notes + locks) first
+        // — only the copied voice's, for a per-voice copy.
         {
             let clip = self.tracks[track].active_mut();
-            clip.delete_range(dest_step, dest_step + span - 1, None);
-            for s in dest_step..dest_step + span {
-                clip.clear_step_locks(s);
-            }
+            clip.delete_range(dest_step, dest_step + span - 1, voice.map(|(p, _)| p));
+            let end = dest_step + span;
+            clip.locks.retain(|l| {
+                l.step < dest_step || l.step >= end || voice.map_or(false, |(_, m)| !lane_in(m, l.lane))
+            });
         }
         let base_tick = dest_step as u32 * TICKS_PER_STEP;
         let cb = self.clipboard.clone();
@@ -568,6 +586,7 @@ impl Engine {
     pub fn clear_clipboard(&mut self) {
         self.clipboard.clear();
         self.lock_clipboard.clear();
+        self.clipboard_voice = None;
     }
 
     pub fn watched_clip(&self) -> &Clip {
@@ -2754,6 +2773,11 @@ impl Engine {
     }
 }
 
+/// Is `lane` one of the lanes in `mask` (bit `lane`)?
+fn lane_in(mask: u32, lane: u8) -> bool {
+    lane < 32 && mask & (1u32 << lane) != 0
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -3832,6 +3856,49 @@ mod tests {
         let at4: Vec<u8> = e.tracks[0].active().notes.iter()
             .filter(|n| n.step == 4).map(|n| n.pitch).collect();
         assert_eq!(at4, vec![60], "destination replaced, not merged");
+    }
+
+    #[test]
+    fn voice_paste_moves_only_that_voice() {
+        let mut e = engine();
+        // Step 0: kick (36) + snare (38), a lock on lane 1 (kick's) and lane 2
+        // (snare's). Step 4: snare only, with its own lane-2 lock.
+        e.tracks[0].active_mut().toggle_step(0, &[(36, 100), (38, 100)]);
+        e.tracks[0].active_mut().toggle_step(4, &[(38, 90)]);
+        e.tracks[0].active_mut().set_lock(1, 0, 10);
+        e.tracks[0].active_mut().set_lock(2, 0, 20);
+        e.tracks[0].active_mut().set_lock(2, 4, 99);
+        e.copy_steps_voice(0, 0, 0, Some((36, 1 << 1)));   // kick, lane 1
+        e.paste_steps(0, 4);
+        let c = e.tracks[0].active();
+        let mut at4: Vec<u8> = c.notes.iter().filter(|n| n.step == 4).map(|n| n.pitch).collect();
+        at4.sort();
+        assert_eq!(at4, vec![36, 38], "the kick lands, the snare already there stays");
+        let lock = |lane: u8| c.locks.iter().find(|l| l.lane == lane && l.step == 4).map(|l| l.val);
+        assert_eq!(lock(1), Some(10), "the kick's lock is pasted");
+        assert_eq!(lock(2), Some(99), "the snare's own lock is untouched");
+    }
+
+    #[test]
+    fn voice_paste_replaces_the_voice_at_the_destination() {
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(4, &[(36, 100)]);
+        e.tracks[0].active_mut().set_lock(1, 4, 50);
+        e.copy_steps_voice(0, 0, 0, Some((36, 1 << 1)));   // step 0: no kick, no lock
+        e.paste_steps(0, 4);
+        let c = e.tracks[0].active();
+        assert!(!c.step_has_notes(4), "an empty voice copy clears that voice");
+        assert!(c.locks.iter().all(|l| !(l.lane == 1 && l.step == 4)), "...and its lock");
+    }
+
+    #[test]
+    fn cpy_with_a_voice_pair_parses() {
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(36, 100), (38, 100)]);
+        apply_batch(&mut e, "cpy 0 0 0 38 4294967295", &mut Vec::new());
+        e.paste_steps(0, 8);
+        let at8: Vec<u8> = e.tracks[0].active().notes.iter().filter(|n| n.step == 8).map(|n| n.pitch).collect();
+        assert_eq!(at8, vec![38]);
     }
 
     #[test]

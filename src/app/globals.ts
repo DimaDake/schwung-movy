@@ -15,7 +15,10 @@ setSurfaceReader(surfaceOf);
 /* Same direction, same reason: which child-level template a concrete lane key
  * instantiates is Schwung's `child_key.mjs` (model/child-keys.ts). */
 import { setChildKeyResolver } from '../model/child-keys.js';
-import { schwungLib, schwungLibAvailable } from '../renderer/schwung-lib.js';
+import { schwungLib, schwungLibAvailable, schwungLaneVoiceMap } from '../renderer/schwung-lib.js';
+/* ...and which keys are which pad's, for the per-voice paste (model/voice-keys.ts). */
+import { setVoiceMapReader } from '../model/voice-keys.js';
+setVoiceMapReader(schwungLaneVoiceMap());
 if (schwungLibAvailable()) {
     const lib = schwungLib();
     if (typeof lib.resolveChildKey === 'function' && typeof lib.childCount === 'function') {

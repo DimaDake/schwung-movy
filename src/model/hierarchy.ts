@@ -13,6 +13,7 @@ import { armHierarchyRetry } from './meta-retry.js';
 import type { RawMeta } from './param-build.js';
 import { optionList } from './param-build.js';
 import { childLevelsOf, declaredKeysOf } from './child-keys.js';
+import { voiceKeysOf } from './voice-keys.js';
 
 type HierParam = RawMeta;
 
@@ -206,6 +207,7 @@ export function loadHierarchy(s: ModelState): void {
     /* Kept past the load for the label sync (`childTemplateOf`): a lane on a
      * template rack names a concrete instance key, which no page lists. */
     s.childLevels = childLevelsOf(declaredHierarchy?.levels);
+    s.voiceKeys = voiceKeysOf(declaredHierarchy, declaredSurface?.voices ?? []);
     /* ...and every key the module declares, for the same sync. Under the
      * Schwung grid a lane binds what SCHWUNG planned — forge's Voice macros
      * (`cv_m1`) are on no movy page — so "a param movy's pages show" is the

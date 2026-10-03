@@ -24,6 +24,7 @@ import type { TrackPort } from '../track/port.js';
 import type { PageParamSource } from './schwung-page-source.js';
 import type { Entry } from './schwung-page-batch.js';
 import { fill, warm as warmKeys } from './schwung-page-batch.js';
+import { createPrefetch } from './schwung-page-prefetch.js';
 
 /*
  * THE SAME DIVIDER `reloadIfChanged` ALREADY RUNS ON, and Schwung's own host
@@ -52,12 +53,15 @@ export interface PageReadCache {
     warm(keys: readonly string[]): void;
     /** Everything this port holds is suspect — a re-plan, or a module swap. */
     invalidateAll(): void;
+    /** Keys to keep read in the background, so a pad switch reads none of
+     *  them on the press (D12) — `schwung-page-prefetch.ts`. */
+    prefetch(keys: readonly string[]): void;
 }
 
 /** Off: every read is a live read, which is what a non-bulk port (or a
  *  virtual source, always `bulkReads: false`) wants. */
 function passthrough(port: PageParamSource): PageReadCache {
-    return { get: (k) => port.getParam(k), tick() {}, warm() {}, invalidateAll() {} };
+    return { get: (k) => port.getParam(k), tick() {}, warm() {}, invalidateAll() {}, prefetch() {} };
 }
 
 export function createPageReadCache(port: PageParamSource): PageReadCache {
@@ -74,6 +78,7 @@ export function createPageReadCache(port: PageParamSource): PageReadCache {
     const trackPort = port as TrackPort;
 
     const entries = new Map<string, Entry>();
+    const bg = createPrefetch();
     let epoch = 1;
     let sinceFill = 0;
     /* Where the port's write log was last drained from. Starting at the port's
@@ -97,19 +102,28 @@ export function createPageReadCache(port: PageParamSource): PageReadCache {
         if (seq === seenWrites) return;
         const keys = port.writesSince(seenWrites);
         seenWrites = seq;
-        if (keys === null) { entries.clear(); return; }
+        if (keys === null) { entries.clear(); bg.clear(); return; }
         for (const k of keys) invalidate(k);
     }
 
     function invalidate(key: string): void {
         /* A MODULE SWAP CHANGES EVERY VALUE ON THE PAGE — the hierarchy, the
          * param list and all eight cells belong to a module that has gone. */
-        if (key.endsWith(':module')) { entries.clear(); return; }
+        if (key.endsWith(':module')) { entries.clear(); bg.clear(); return; }
         entries.delete(key);
+        bg.drop(key);
         /* `k:base` and `k:effective` are the same parameter seen two other ways,
          * and Schwung reads both — a write to `k` invalidates all three. */
         const prefix = key + ':';
         for (const k of entries.keys()) if (k.startsWith(prefix)) entries.delete(k);
+    }
+
+    /* Promote a background value into this epoch's entries, or undefined. */
+    function adopt(key: string): string | undefined {
+        const v = bg.get(key, epoch);
+        if (v === undefined) return undefined;
+        entries.set(key, { value: v, epoch, asked: epoch, len: v.length });
+        return v;
     }
 
     return {
@@ -117,6 +131,10 @@ export function createPageReadCache(port: PageParamSource): PageReadCache {
             drainWrites();
             let e = entries.get(key);
             if (e && e.epoch === epoch) { e.asked = epoch; return e.value; }
+            /* A background answer stands for this epoch; the next fill, which
+             * now asks for the key, replaces it with a fresh one. */
+            const pre = adopt(key);
+            if (pre !== undefined) return pre;
             const v = port.getParam(key);
             /*
              * A NULL IS NEVER CACHED — not even one a live read just returned.
@@ -142,12 +160,14 @@ export function createPageReadCache(port: PageParamSource): PageReadCache {
             if (++sinceFill < FILL_TICKS) return;
             sinceFill = 0;
             epoch++;
-            fill(trackPort, entries, epoch);
+            fill(trackPort, entries, epoch, bg);
         },
         warm(keys: readonly string[]): void {
             drainWrites();
-            warmKeys(trackPort, entries, epoch, keys);
+            const ask = keys.filter((k) => entries.get(k)?.epoch === epoch || adopt(k) === undefined);
+            warmKeys(trackPort, entries, epoch, ask);
         },
-        invalidateAll(): void { entries.clear(); },
+        invalidateAll(): void { entries.clear(); bg.clear(); },
+        prefetch: (keys: readonly string[]) => bg.want(keys),
     };
 }

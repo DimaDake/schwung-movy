@@ -322,9 +322,9 @@ _log('\nTest: a rack that declares nothing is paged from movy’s own config');
      * this false and the page parked on the kick. */
     p.goToPage(0);
     ok('a pad press moves the page', p.focusVoice(3));
-    eq('...to the voice it hit', p.ctl.pages[p.pageIndex].name, 'Lo Tom');
+    eq('...to the voice it hit', p.ctl.pages[p.ctl.pageIndex].name, 'Lo Tom');
     ok('and the last pad reaches the last voice', p.focusVoice(8));
-    eq('...which is the clap', p.ctl.pages[p.pageIndex].name, 'Clap');
+    eq('...which is the clap', p.ctl.pages[p.ctl.pageIndex].name, 'Clap');
 
     /* A PAGE IS NOT A VOICE. Reverb sits at bank 9 with no pad behind it; a
      * ninth pad addresses nothing, and must not scroll the page to it. */
@@ -404,11 +404,13 @@ _log('\nTest: the header names the page — on a declared drum rack too');
     const p = schwungPageFor(0, 'synth');
     for (let i = 0; i < 12 * 60 && !p.ready; i++) { p.tick(); m.tick(); }
     ok('the rack’s page resolved', p.ready);
-
     const pad = m.getViewModel().drumPadName;
     ok('the rack named the focused pad', pad.length > 0, JSON.stringify(pad));
     ok('...and it is not the module’s first page’s name',
        pad !== p.chrome(true).pageLabel, JSON.stringify(p.chrome(true).pageLabel));
+    /* The press, as the router makes it: the seat (plan D5) shows pad 2's
+     * voice, so the jog below reaches its page. */
+    p.focusVoice(2);
 
     const own = [], other = [], words = [];
     for (let i = 0; i < p.pageCount; i++) {

@@ -71,7 +71,7 @@ _log('\nTest: a pad press covers its page in ONE bulk request');
     const jump = countTripKinds(() => { p.focusVoice(8); });
     _log(`    (${jump.trips} round trips for the jump: `
        + `${jump.bulk} bulk, ${jump.single} single)`);
-    eq('...and it arrived', p.ctl.pages[p.pageIndex].name, 'Clap');
+    eq('...and it arrived', p.ctl.pages[p.ctl.pageIndex].name, 'Clap');
 
     /* ONE BULK REQUEST FOR THE PAGE, AND NO CELL READ ONE AT A TIME. Without
      * the warm this is the arriving page's eight cells read singly — measured 8
@@ -79,16 +79,15 @@ _log('\nTest: a pad press covers its page in ONE bulk request');
      * `single` count is what has teeth: the warm does not make the total
      * smaller by accident, it moves the page off the single-key channel. */
     eq('a pad press onto an unread page is one bulk request', jump.bulk, 1);
-    /* THE ONE SINGLE IS NOT A CELL. `focusVoice` reads the module's contract
-     * first, off the same cache, and rung 1 answers `''` for this rack — a real
-     * answer, but not a plan — so rung 2's `ui_pages` is asked for, is not
-     * served, and a null is never cached. Every press pays it, warm or not; it
-     * is the price of the lookup, not of the page. */
-    eq('...and reads no cell of it one at a time', jump.single, 1);
+    /* NOT EVEN THE CONTRACT. `focusVoice` used to read it first, off the same
+     * cache — rung 2's unserved `ui_pages`, a null never cached, one single on
+     * every press. It now PEEKS at the contract the controller last planned
+     * from (plan D12: a press reads nothing blocking). */
+    eq('...and reads no cell of it one at a time', jump.single, 0);
 
     /* The SECOND press is the control: page 10 is in the cache now, so the same
-     * gesture spends nothing on the page at all, and the one single left is the
-     * contract read above. A ceiling both presses satisfy would be testing the
+     * gesture spends nothing on the page at all. A ceiling both presses satisfy
+     * would be testing the
      * gesture rather than the warm. */
     const again = countTripKinds(() => { p.focusVoice(8); });
     eq('...and the same press again spends no request on the page', again.bulk, 0);
@@ -147,7 +146,7 @@ _log('\nTest: a level with no child-index channel warms the key the controller '
     globalThis.host_module_get_param = realGet;
 
     ok('the press resolved onto the pads page',
-       pressed && p.ctl.pages[p.pageIndex].level === 'pads');
+       pressed && p.ctl.pages[p.ctl.pageIndex].level === 'pads');
     eq('the controller genuinely never moved off instance 0 -- no channel to move it',
        p.ctl.childIndexOf('pads'), 0);
     ok('the warm covers instance 0’s key, which is what will really be read',

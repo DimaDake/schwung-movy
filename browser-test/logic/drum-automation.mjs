@@ -105,8 +105,8 @@ function lockOnPad(p, model, pad, cell) {
     const jumped = p.focusVoice(pad);
     model.updateDrumPad(pad, pad);
     for (let i = 0; i < 4; i++) p.tick();
-    const pageIdx = jumped ? p.pageIndex : cell.pageIdx;
-    if (!jumped) { p.goToPage(pageIdx); for (let i = 0; i < 4; i++) p.tick(); }
+    const pageIdx = jumped ? p.ctl.pageIndex : cell.pageIdx;
+    if (!jumped) { p.ctl.goToPage(pageIdx); for (let i = 0; i < 4; i++) p.tick(); }
     return { jumped, page: p.ctl.pages[pageIdx] };
 }
 
@@ -152,8 +152,8 @@ for (const id of DRUM_MODULES) {
     const perPad = (pg, k) => !!k && (pg.childLevel ? k !== pg.childLevel.child_index_param
         : ps ? (k.startsWith(ps.aliasPrefix) || aliasFromConcrete(ps, k) !== null) : probe);
     const slotOn = (pg) => (Array.isArray(pg.keys) ? pg.keys : []).findIndex((k, s) => perPad(pg, k)
-        && p.ctl.pages[p.pageIndex] === pg && p.knobParamInfo(s)?.automatable);
-    const pageIdx = probe ? p.pageIndex
+        && p.ctl.pages[p.ctl.pageIndex] === pg && p.knobParamInfo(s)?.automatable);
+    const pageIdx = probe ? p.ctl.pageIndex
         : p.ctl.pages.findIndex((pg) => Array.isArray(pg.keys) && pg.keys.some((k) => perPad(pg, k)));
     if (pageIdx < 0) {
         /* A rack with no per-pad key anywhere (krautdrums: one level per
@@ -162,7 +162,7 @@ for (const id of DRUM_MODULES) {
                     pages: p.ctl.pages.map((pg) => pg.name) });
         restoreFs(); continue;
     }
-    if (!probe) { p.goToPage(pageIdx); for (let i = 0; i < 4; i++) p.tick(); }
+    if (!probe) { p.ctl.goToPage(pageIdx); for (let i = 0; i < 4; i++) p.tick(); }
     const slot = slotOn(p.ctl.pages[pageIdx]);
     if (slot < 0) { fail(`drum matrix: ${id} has no automatable per-pad cell`); restoreFs(); continue; }
     const cell = { pageIdx, slot };

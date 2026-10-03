@@ -18,6 +18,7 @@ import type { PageHierarchy } from './schwung-page-hierarchy.js';
 import { mlog } from '../log.js';
 import { surfaceOf } from './schwung-voices.js';
 import type { PageFocus } from './schwung-page-focus.js';
+import type { PageSeat } from './schwung-page-seat.js';
 /* The detent accumulator the sequencer pages have always used. Imported rather
  * than reimplemented: one rule for "how much raw CC is one click", stated once
  * (`seq/detent.ts`). */
@@ -31,13 +32,15 @@ export interface PageInput {
     focusVoice(pad: number): boolean;
     /** The instance of `level` movy's last pad press chose, or null. */
     focusedChild(level: string): number | null;
+    /** One jog detent — through movy's seat order where there is one. */
+    jog(dir: number): void;
 }
 
 export function createPageInput(ctl: any, lib: any, port: PageParamSource,
                                 qualify: (k: string) => string,
                                 hier: PageHierarchy,
                                 warm: (keys: readonly string[]) => void,
-                                focus: PageFocus): PageInput {
+                                focus: PageFocus, seat: PageSeat): PageInput {
     /*
      * SP-39. TURN TO A PAGE AND COVER ITS CELLS IN THE SAME BREATH.
      *
@@ -51,7 +54,7 @@ export function createPageInput(ctl: any, lib: any, port: PageParamSource,
      * already in hand — hands the keys over first. It is ONE bulk request for
      * the page, and it is spent before the controller spends eight.
      */
-    const jump = (i: number, childIndex?: number | null): void => {
+    const jump = (i: number, childIndex?: number | null, opts?: { remember: boolean }): void => {
         const p = ctl.pages && ctl.pages[i];
         if (p && Array.isArray(p.keys)) {
             const keys = (p.keys as (string | null)[]).filter((k): k is string => !!k);
@@ -79,7 +82,7 @@ export function createPageInput(ctl: any, lib: any, port: PageParamSource,
              * asks for, or the warm covers keys the reads will not look up. */
             warm(keys.map((k) => qualify(concrete(k))));
         }
-        ctl.goToPage(i);
+        ctl.goToPage(i, opts);
     };
 
     /*
@@ -201,11 +204,8 @@ export function createPageInput(ctl: any, lib: any, port: PageParamSource,
         back: () => lib.applyInput(ctl, { type: 'back' }, { nowMs: Date.now() }) ?? null,
 
         /*
-         * A PAD PRESS SHOWS THAT VOICE'S PAGE.
-         *
-         * The rack declares its voices in order and each names the LEVEL it
-         * lives on; the planner names the same level on the page it built for
-         * it. So the jump is a lookup, not a guess: voice -> level -> page.
+         * A PAD PRESS FOCUSES THAT VOICE, and turns the page by the seat's
+         * rule (D7) — `schwung-page-seat.ts` maps voice -> level -> pages.
          *
          * The module's own focus param is written too, so the module agrees
          * about which voice is selected rather than only movy's screen moving.
@@ -229,7 +229,10 @@ export function createPageInput(ctl: any, lib: any, port: PageParamSource,
              * (SP-14) would have had its named pages here and NO voices, so the
              * page would not follow the pad — the exact symptom, one layer
              * further in. */
-            const hierarchy = hier.parsed();
+            /* PEEK FIRST (D12): the press must not read. The controller
+             * re-reads the contract on its own poll, so the last read is the
+             * one its pages were planned from. */
+            const hierarchy = hier.peek() ?? hier.parsed();
             const s = surfaceOf(hierarchy);
             const v = s.voices[pad - 1];
             if (!hierarchy || !v) return false;
@@ -258,26 +261,33 @@ export function createPageInput(ctl: any, lib: any, port: PageParamSource,
             }
             if (s.focusParam) port.setParam(qualify(s.focusParam), v.level);
 
-            /* Level first, NAME second. The planner names a page after the
-             * level it built it from, so when the level itself is not carried
-             * the name still identifies it — "Snare" the voice and "Snare" the
-             * page are the same declaration read twice. */
-            const pages = ctl.pages || [];
-            const want = String(v.name || '').toUpperCase();
-            let byName = -1;
-            for (let i = 0; i < pages.length; i++) {
-                const p = pages[i];
-                if (!p) continue;
-                if (p.level === v.level) { jump(i, v.childIndex); return true; }
-                if (byName < 0 && want && String(p.name || '').toUpperCase() === want) byName = i;
-            }
-            if (byName >= 0) { jump(byName); return true; }
-            mlog('focusVoice no page for ' + v.level + '/' + v.name
-               + ' | keys=' + (pages[1] ? Object.keys(pages[1]).join(',') : '-')
-               + ' | p1=' + (pages[1] ? JSON.stringify({n: pages[1].name, l: pages[1].level,
-                                                        t: pages[1].title, k: pages[1].kind}) : '-'));
-            return false;
+            /* THE PAD-SWITCH RULE (D7), the seat's: on a per-pad page the press
+             * keeps the offset within the block, clamped; anywhere else the
+             * page stays and only the seat moves. A template rack's block is
+             * the same pages for every pad, so it usually stays put and the
+             * controller re-keys the cells. `remember: false` — the offset is
+             * the rule, not the section's remembered sub-page. */
+            const to = seat.press(pad);
+            if (to >= 0 && to !== ctl.pageIndex) jump(to, v.childIndex, { remember: false });
+            else if (to < 0 && !seat.active()) mlog('focusVoice no page for ' + v.level + '/' + v.name);
+            return true;
         },
         focusedChild: focus.focusedChild,
+        /* The seat re-orders only the PAGE step. A picker or an entered door
+         * owns the jog itself — `onJog`'s own ladder, all of it behind those
+         * two questions — so those go to it untouched. The page step's own
+         * side effects (`onJog` drops a hint and the enum peek) are kept. */
+        jog(dir: number) {
+            const entered = typeof ctl.menuEntered === 'function' && ctl.menuEntered();
+            if (!seat.active() || ctl.pickerOpen || entered) { ctl.onJog(dir); return; }
+            const to = seat.step(dir);
+            if (to < 0) return;
+            if (ctl.state && ctl.state.hintLines && typeof ctl.dismissHint === 'function') ctl.dismissHint();
+            if (typeof ctl.dismissPeek === 'function') ctl.dismissPeek();
+            const p = ctl.pages[to];
+            const lvl = p && p.childLevel && hier.peek()?.levels?.[p.level];
+            const at = lvl && lvl.child_index_param ? focus.focusedChild(p.level) : null;
+            jump(to, at, { remember: false });
+        },
     };
 }

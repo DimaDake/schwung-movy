@@ -16,6 +16,7 @@
  */
 
 import type { TrackPort } from '../track/port.js';
+import type { Prefetch } from './schwung-page-prefetch.js';
 
 /* A key asked within this many epochs stays in the batch. Two, because the
  * cursor's rotation (page keys + 1) can outlast one fill, so a key can go
@@ -69,10 +70,17 @@ export function batchKeys(entries: Map<string, Entry>, epoch: number): string[] 
     return order.slice(0, BATCH_MAX_KEYS).map(([k]) => k);
 }
 
-export function fill(port: TrackPort, entries: Map<string, Entry>, epoch: number): void {
+export function fill(port: TrackPort, entries: Map<string, Entry>, epoch: number,
+                     prefetch: Prefetch | null = null): void {
     const keys = batchKeys(entries, epoch);
-    if (keys.length === 0) return;
-    apply(port, entries, epoch, keys);
+    /* The spare room in the same request carries the background set (D12). */
+    const extra = prefetch ? prefetch.take(BATCH_MAX_KEYS - keys.length, new Set(keys)) : [];
+    if (keys.length === 0 && extra.length === 0) return;
+    const values = apply(port, entries, epoch, keys, extra);
+    for (let i = 0; i < extra.length; i++) {
+        const v = values[keys.length + i];
+        if (typeof v === 'string' && v !== '') prefetch!.store(extra[i], v, epoch);
+    }
 }
 
 /**
@@ -98,10 +106,11 @@ export function warm(port: TrackPort, entries: Map<string, Entry>, epoch: number
     apply(port, entries, epoch, ask.slice(0, BATCH_MAX_KEYS));
 }
 
-/** One request for `keys`, and what a short or refused answer means for each. */
+/** One request for `keys` (plus `extra`, returned unapplied), and what a short
+ *  or refused answer means for each. */
 function apply(port: TrackPort, entries: Map<string, Entry>, epoch: number,
-               keys: string[]): void {
-    const values = port.getMany(keys);
+               keys: string[], extra: readonly string[] = []): (string | null | undefined)[] {
+    const values = port.getMany(extra.length ? keys.concat(extra) : keys);
     for (let i = 0; i < keys.length; i++) {
         const v = values[i];
         /*
@@ -136,4 +145,5 @@ function apply(port: TrackPort, entries: Map<string, Entry>, epoch: number,
          * caller (`get`, or `warm` above) may stamp it. */
         e.value = v; e.epoch = epoch; e.len = v.length;
     }
+    return values;
 }

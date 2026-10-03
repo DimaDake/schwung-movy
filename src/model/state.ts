@@ -142,6 +142,9 @@ export interface ModelState {
     drumPadNames:        string[];
     /* The declared hierarchy's per-instance levels (`model/child-keys.ts`). */
     childLevels:         any[];
+    /* Per pad, the keys only that pad's voice owns (`model/voice-keys.ts`);
+     * empty for a module that is not a declared rack. */
+    voiceKeys:           string[][];
     /* What the last hierarchy load read about every declared key — chain_params
      * metadata, the levels' own definitions, and the key list. Null before a
      * load. Read by `paramRangeByKey` for a key no movy page shows. */
@@ -217,6 +220,7 @@ export function createModelState(port: TrackPort, componentKey: string): ModelSt
         drumConfig:          null,
         drumPadNames:        [],
         childLevels:         [],
+        voiceKeys:           [],
         declared:            null,
         pressParam:          null,
         drumCurrentPad:      1,

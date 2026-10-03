@@ -67,16 +67,16 @@ _log('\nTest: 9w9 — the module moving its own focus does not turn the page (D8
     ok('9w9 declares a focus param and voices', !!fp && voices.length >= 5);
     ok('a finger on pad 3 turns to its voice', p.focusVoice(3));
     ticks(p, 4);
-    const at = p.pageIndex;
+    const at = p.ctl.pageIndex;
     eq('...the voice’s page', p.ctl.pages[at].level, voices[2].level);
     /* A sequenced hit on pad 5: 9w9 moves `focus_voice` and bumps its count,
      * answering "<count>:<level>" — a fresh token the controller would follow. */
     moduleSays(fp, '9:' + voices[4].level);
     ticks(p, 80);
-    eq('a sequenced note does not move the page', p.pageIndex, at);
+    eq('a sequenced note does not move the page', p.ctl.pageIndex, at);
     ok('a finger on pad 5 does', p.focusVoice(5));
     ticks(p, 4);
-    eq('...to pad 5’s voice', p.ctl.pages[p.pageIndex].level, voices[4].level);
+    eq('...to pad 5’s voice', p.ctl.pages[p.ctl.pageIndex].level, voices[4].level);
     done(restoreFs);
 }
 
@@ -85,7 +85,7 @@ _log('\nTest: simian — the module’s index report does not re-key the pad’s
     const { p, restoreFs } = boot('simian');
     p.focusVoice(3);
     ticks(p, 80);
-    const pg = p.ctl.pages[p.pageIndex];
+    const pg = p.ctl.pages[p.ctl.pageIndex];
     const cip = pg.childLevel.child_index_param;
     const slot = pg.keys.findIndex((k) => k && k !== cip);
     const want = (i) => resolveChildKey(pg.childLevel, i, pg.keys[slot]);
@@ -100,7 +100,7 @@ _log('\nTest: simian — the module’s index report does not re-key the pad’s
     const other = p.ctl.pages.findIndex((q) => q && q.childLevel && q.level !== pg.level
         && q.childLevel.child_index_param === cip && Array.isArray(q.keys));
     ok('simian has a second level on the same index param', other >= 0);
-    p.goToPage(other);
+    p.ctl.goToPage(other);
     ticks(p, 80);
     const q = p.ctl.pages[other];
     const s2 = q.keys.findIndex((k) => k && k !== cip);
@@ -120,7 +120,7 @@ _log('\nTest: sophie — its config’s press write is the focus, its reports ar
     p.focusWritten('synth:' + fw.key, fw.value);
     moduleSays('focused_pad', '2');
     ticks(p, 80);
-    const pg = p.ctl.pages[p.pageIndex];
+    const pg = p.ctl.pages[p.ctl.pageIndex];
     ok('sophie’s page is a child level', !!(pg && pg.childLevel));
     eq('the page edits movy’s pad 5, not the module’s pad 2', p.ctl.childIndexOf(pg.level), 4);
     done(restoreFs);

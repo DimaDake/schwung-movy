@@ -142,6 +142,20 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Changed
 
+- **Drum pages under Schwung put the pad first.** A drum machine with one page
+  per voice (6W6, 8W8, 9W9, CW-78) used to make you jog past every voice to reach
+  Reverb. Those pages now fold into one pad page at the front, showing the pad
+  you last pressed. On simian and dr32 the pad pages come first. On a pad page
+  a pad press keeps your place (the same page of the new pad). On any other
+  page it no longer moves the page at all, only the selected pad.
+- **Switching drum pads under Schwung no longer waits on the module.** Every
+  pad's values are read in the background, so a press shows the new pad
+  without a blocking read.
+- **On a drum track, Copy takes only the selected pad**, as on Move: its notes
+  and the automation on its own parameters. A paste leaves the other pads at
+  the destination alone. Needs a module that declares its pads (6W6, 8W8,
+  9W9, CW-78, simian, dr32) and Schwung 1.6.0. Engine 0.83.0.
+
 - **Automation writes its parameter directly.** A lane used to be a CC
   (102+lane) the chain resolved through a knob mapping and a 256-entry param
   table; a key missing from that table was dropped in silence, which is why

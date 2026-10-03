@@ -27,3 +27,5 @@ export interface SchwungLfoPage { [k: string]: any }
 export interface LfoTargetList { [k: string]: any }
 
 export function schwungLfoPage(): SchwungLfoPage | null { return null; }
+
+export function schwungLaneVoiceMap(): ((hierarchy: any) => string) | null { return null; }

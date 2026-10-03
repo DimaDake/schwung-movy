@@ -1129,6 +1129,14 @@ for the concepts:
   pad from the whole clip — one lane emptied without touching the others,
   wherever its notes fall. A pad that plays nothing (outside the drum grid, or
   a gap in a piano layout) clears nothing.
+
+  On a **drum track**, copying a step or a bar copies **only the selected pad**:
+  its notes and the automation on that pad's own parameters, the way Move does
+  it. A paste replaces only that pad at the destination, and every other pad's
+  notes and locks there stay as they were. This needs a drum module that
+  declares its pads to Schwung (6W6, 8W8, 9W9, CW-78, simian, dr32) and Schwung
+  1.6.0 or newer. On any other module, or an older Schwung, a step copy takes
+  the whole step as before.
 - **Quantize** — **Shift + Step 16**. See [Quantization](#quantization).
 - **Mute** — press **Mute** on its own to mute the current track; or hold
   **Mute** and press a track button to mute that one instead. Using the
@@ -1881,6 +1889,26 @@ On a drum track under **SCHWUNG**, the page follows the pad **you** press and
 nothing else. A playing pattern never turns the page, even on a drum machine
 that moves its own selection with every hit (6W6, 8W8, 9W9, CW-78, mrdrums,
 Forge). The per-pad knobs always edit the pad you last pressed.
+
+The **pad's own pages come first**. On a drum machine with one page per voice
+(6W6, 8W8, 9W9, CW-78) those pages fold into a single **pad page**, which shows the
+pad you last pressed. The jog then reaches the module's other pages (Main,
+Reverb, Delay…). On a rack whose pages edit the selected pad (simian, dr32) the
+pad pages are all of those. A drum module opens on its pad page.
+
+![Simian's pad page, first of five in the bank bar](docs/assets/page_held_drum.png)
+
+How a pad press moves the page:
+
+- **On a pad page**, a press switches to that pad and stays on the same pad
+  page: the second page of one voice becomes the second page of the next. A
+  voice with fewer pages lands on its last one.
+- **On any other page** (Main, Reverb…), a press leaves the page where it is.
+  It still selects the pad, so jogging back to the pad page shows the pad you
+  hit last.
+
+Switching pads does not wait on the module. Every pad's values are read in the
+background, so the knobs show the new pad on the press itself.
 
 **SCHWUNG needs Schwung 1.5.0 or newer.** On an older Schwung the row stays on
 MOVY and its hint names the version it needs, next to the one you have.

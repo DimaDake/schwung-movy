@@ -502,6 +502,12 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
          * (`pad16_start` → `start`), or null. See model/child-keys.ts. */
         childTemplateOf(key: string): string | null { return childTemplateOf(s.childLevels, key); },
 
+        /* The keys only pad `pad`'s voice owns (1-based), or null when the
+         * module declares no voice map. See model/voice-keys.ts. */
+        voiceKeysOf(pad: number): readonly string[] | null {
+            return s.voiceKeys.length ? (s.voiceKeys[pad - 1] ?? []) : null;
+        },
+
         /* True once this slot's module hierarchy has loaded (params known). */
         hasLoadedParams(): boolean { return s.knobParams.some((p) => p != null); },
 

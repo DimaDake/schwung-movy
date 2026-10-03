@@ -46,6 +46,7 @@ export { RELOAD_POLL_TICKS };
 import { createPageRender } from './schwung-page-render.js';
 import { createPageInput } from './schwung-page-input.js';
 import { createPageFocus } from './schwung-page-focus.js';
+import { createPageSeat } from './schwung-page-seat.js';
 import { createPageAnimating, type AnimActivity } from './schwung-page-anim.js';
 import { chromeFor, claimsBottomBand, type PageChrome } from './schwung-page-chrome.js';
 /* movy's own big-font cell, for the three values Schwung's big-number widget
@@ -181,7 +182,9 @@ export function createSchwungPage(
     const contract = createPageContract(ctl, port, componentKey, cache, hier, lib, trackIndex);
     /* SP-39: `focusVoice` covers the page it is about to turn to before the
      * controller asks for its cells — see schwung-page-input.ts. */
-    const input = createPageInput(ctl, lib, port, qualify, hier, cache.warm, focus);
+    /* movy's jog order over the controller's pages (plan D5/D6/D7). */
+    const seat = createPageSeat(ctl, lib, hier, qualify);
+    const input = createPageInput(ctl, lib, port, qualify, hier, cache.warm, focus, seat);
     const page = createPageRender(ctl, { keyAt, keysOf, componentKey,
                                         normalizedOf: lib.normalizedOf, automation,
                                         focusedChild: input.focusedChild });
@@ -198,25 +201,25 @@ export function createSchwungPage(
         /* The fill happens BEFORE the controller's tick, so the cursor's one
          * read this tick is served from the batch rather than arriving a tick
          * ahead of it. */
-        tick() { cache.tick(); contract.tick(); },
+        tick() {
+            cache.prefetch(seat.keys());
+            cache.tick(); contract.tick();
+            const land = seat.landing();
+            if (land >= 0) ctl.goToPage(land, { remember: false });
+        },
         get ready() { return contract.isReady(); },
         get ctl() { return ctl; },
-        get pageCount() { return ctl.pages ? ctl.pages.length : 0; },
-        get pageIndex() { return ctl.pageIndex; },
-        /* UNWARMED ON PURPOSE, and it is not the skip the pad jump looks like.
-         * `changePage` is a JOG, and `onJog` never reaches `goToPage`: it sets
-         * `s.pageIndex` through `page_nav`'s `step()` and calls
-         * `warmCurrentPage()` itself (`page_controller.mjs`), which is the same
-         * per-key walk the jump warms for. The difference is the target: a jump
-         * lands on an ARBITRARY voice's page, a jog lands on the neighbour — the
-         * one page the controller's own neighbour-prefetch lane exists to keep
-         * warm, which is why its comment can say the call is "usually free". A
-         * warm here would also have to name the landing index before `onJog`
-         * computes it (its `step`/`stepLevel`/`restoreSection` choice, plus the
-         * menu and picker branches that return without moving at all). Left as
-         * it is, recorded rather than assumed — see SP-39's ledger entry. */
-        changePage(delta: number) { ctl.onJog(delta > 0 ? 1 : -1); },
-        goToPage(i: number) { ctl.goToPage(i); },
+        /* The SEAT's order, not the planner's: the bank bar and every caller
+         * indexing pages count the jog movy actually runs. */
+        get pageCount() { return seat.count(); },
+        get pageIndex() { return seat.index(); },
+        /* A jog without a seat is the controller's own `onJog`, unwarmed on
+         * purpose (SP-39's ledger entry: its neighbour-prefetch lane keeps the
+         * next page warm). A seat jog is a JUMP — the next page in movy's order
+         * need not be the planner's neighbour — so it is warmed like a pad
+         * jump. See `jog` in schwung-page-input.ts. */
+        changePage(delta: number) { input.jog(delta > 0 ? 1 : -1); },
+        goToPage(i: number) { ctl.goToPage(seat.realOf(i)); },
         keyAt,
         targetAt: (slot: number) => { const k = keyAt(slot); return k ? qualify(k) : null; },
         labelAt: (slot: number) => {

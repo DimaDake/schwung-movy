@@ -419,6 +419,69 @@ Built against schwung `origin/main` ecf1c828 (`schwung-main` worktree;
   the focused pad.
 - Logic test over the declared racks (sibling and template shapes).
 
+#### Phases 5 + 5b — results (2026-10-03)
+
+Built and tested together (one device run), against schwung `origin/main`
+ecf1c828 (`schwung-main` worktree; `schwung/` is still diverged and was left
+alone). ENGINE 0.83.0.
+
+- **The seat is `renderer/schwung-page-seat.ts`**, a pure re-ordering of the
+  controller's own page indices; Schwung still plans and draws every page. Per
+  declared voice, its block: a sibling voice's level pages (6w6/8w8/9w9/cw78),
+  or, for a child voice, every page of every level on its level's
+  `child_index_param` (simian's Tone/Noise/Mix, dr32's 48 pad pages), which is
+  lane_voice_map.mjs's grouping. Jog order = the seat's block + everything on no
+  block. `SchwungPage.pageIndex/pageCount/goToPage/changePage` are now the
+  SEAT's (the bank bar follows); tests that index `ctl.pages` read
+  `ctl.pageIndex`.
+- **The seat is adopted, not imposed**: a section-picker jump onto another
+  voice's page makes that voice the seat, so every real page keeps a place in
+  the order.
+- **D6 landing**: a drum module opens on its seat, once per contract and only
+  while the controller is still on the page it chose itself (a replan or a
+  page the user jogged to is never yanked back). Without it a press from the
+  module's default page (Main) would, by D7, move nothing.
+- **The jog**: the seat re-orders only the PAGE step. A picker or an entered
+  door owns the jog (`onJog`'s ladder, all of it behind `pickerOpen` /
+  `menuEntered()`), so those go to `ctl.onJog` untouched; a seat step is a
+  warmed jump (`goToPage(…, {remember:false})`), dropping the hint and peek
+  as `onJog` would.
+- **D7** is `seat.press`: offset within the block kept, clamped; off-block
+  press returns -1 (no move) but moves the seat. `focusVoice` returns true for
+  any declared voice now, moved or not.
+- **D12**: `renderer/schwung-page-prefetch.ts`. Every voice's block keys,
+  resolved per voice, ride the SPARE ROOM of the existing epoch fill (no new
+  round trip; simian's ~380 keys cycle in ~13 fills), and a cache miss is
+  served from it when read within 48 epochs. A write through the port drops
+  the key; `:module` and `invalidateAll` clear it. `focusVoice` peeks the
+  contract instead of reading it, so the SP-39 press test's one contract
+  single is now 0. Measured: simian pad switch 7 live cell reads → 0; 9w9 one
+  warm bulk → 0. Bound, by design: dr32's set is too big to cycle inside the
+  age bound, so its uncovered keys fall back to the old warm.
+- **D16 copy**: `cpy <t> <s0> <s1> [<pitch> <laneMask>]`. The engine copies
+  only that pitch's notes and the mask's locks, and the paste replaces only
+  those at the destination (`copy_steps_voice`, three Rust tests). The UI
+  (`seq/voice-copy.ts`) sends the pair on a drum view (`watchLane ≥ 0`) when
+  the module has a voice map: `model.voiceKeysOf(pad)`, built at hierarchy load
+  from Schwung's own `laneVoiceMap` (loaded optionally beside param_pages; it
+  is 1.6.0, past SCHWUNG_FLOOR), indexed by PAD through the declared voice
+  list, so a bundled config's different notes (6w6) do not matter. Notes are
+  per-voice too, which is Move's measured behaviour and what movy's drum step
+  LEDs already show. No map (config-only racks, melodic) = whole-step copy, as
+  before.
+- **D16 display** needs no new filter. Decorations are keyed by the page's
+  RESOLVED keys, and a pad page resolves at the focused pad, so a held step
+  shows only that pad's locks. Asserted (simian pads 3/4) rather than coded
+  twice.
+- **Tests**: `browser-test/logic/drum-seat.mjs`. Teeth: six mutations (no
+  prefetch, offset not kept, planner jog, all lanes copied, no landing,
+  off-block press moves), each turning named checks red; the contract peek's
+  teeth are the SP-39 press test. Baselines `page_voice_pad` and
+  `page_held_drum` changed in the bank bar only (seat count/position).
+- **Not done**: config-only racks (forge, weird-dreams, mrdrums, sophie with
+  its config) have no declared voices, so no seat and whole-step copy. Phase 6
+  (D9) gives sophie voices; the alias racks stay on their config (D11).
+
 ### Phase 6 — Config-free rack rule (D4, D9)
 
 **Ruling (user, 2026-10-03): a module-shipped `movy_config.json` always wins

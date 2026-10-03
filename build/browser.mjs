@@ -180,6 +180,7 @@ await esbuild.build({
         resolve(root, 'src/keyboard/drum-grid.ts'),
         resolve(root, 'src/model/drum-declared.ts'),
         resolve(root, 'src/model/child-keys.ts'),
+        resolve(root, 'src/model/voice-keys.ts'),
         resolve(root, 'src/keyboard/layouts.ts'),
         resolve(root, 'src/keyboard/state.ts'),
         resolve(root, 'src/keyboard/held-notes.ts'),
@@ -274,6 +275,7 @@ await esbuild.build({
         resolve(root, 'src/seq/step-page-vm.ts'),
         resolve(root, 'src/seq/edit-ops.ts'),
         resolve(root, 'src/seq/duplicate.ts'),
+        resolve(root, 'src/seq/voice-copy.ts'),
         resolve(root, 'src/seq/session.ts'),
         resolve(root, 'src/seq/song.ts'),
         resolve(root, 'src/seq/persist-blob.ts'),
@@ -388,7 +390,7 @@ await esbuild.build({
             /* `shadow/shadow_ui_slot_grid.mjs` too: it is where Schwung's LFO
              * page contract lives until it moves to param_pages (SP-60), and
              * movy imports it as the fallback home. */
-            build.onResolve({ filter: /^\/data\/UserData\/schwung\/(shared\/param_pages|shadow)\// }, (a) => {
+            build.onResolve({ filter: /^\/data\/UserData\/schwung\/(shared\/param_pages\/|shadow\/|shared\/lane_voice_map\.mjs$)/ }, (a) => {
                 if (SCHWUNG) {
                     /* wav_io_qjs.mjs (SP-42) statically imports QuickJS's built-in
                      * `std`/`os` modules, which esbuild/node cannot resolve — the

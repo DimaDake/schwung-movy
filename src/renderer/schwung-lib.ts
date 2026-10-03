@@ -342,3 +342,25 @@ if (lib) {
 
 /** Schwung's LFO page builders, or null when this Schwung serves none. */
 export function schwungLfoPage(): SchwungLfoPage | null { return lfoPage; }
+
+/*
+ * WHICH KEYS ARE WHICH DRUM VOICE'S — Schwung's `laneVoiceMap` (plan D16), the
+ * map its own chain uses for Move's per-voice paste. Taken whole so there is
+ * one definition of "a pad's keys": the module's declaration, read by
+ * voices.mjs and child_key.mjs.
+ *
+ * Loaded APART from the set, like the LFO page: it lives beside param_pages
+ * rather than in it, and arrived in Schwung 1.6.0, after SCHWUNG_FLOOR. An older
+ * Schwung costs only the per-voice paste; a copy stays whole-step.
+ */
+let laneVoiceMapFn: ((hierarchy: any) => string) | null = null;
+if (lib) {
+    try {
+        // @ts-ignore — absolute device path; external in the device build
+        const m: any = await import('/data/UserData/schwung/shared/lane_voice_map.mjs');
+        if (typeof m.laneVoiceMap === 'function') laneVoiceMapFn = m.laneVoiceMap;
+    } catch (_e) { /* absent: whole-step paste */ }
+}
+
+/** Schwung's `laneVoiceMap(hierarchy)` wire string builder, or null. */
+export function schwungLaneVoiceMap(): ((hierarchy: any) => string) | null { return laneVoiceMapFn; }

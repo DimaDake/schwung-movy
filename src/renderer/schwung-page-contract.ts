@@ -10,6 +10,7 @@ import type { PageParamSource } from './schwung-page-source.js';
 import { perfPhase, perfPhaseEnd } from '../app/perf-probe.js';
 import { MODULE_LOAD_TICKS } from '../model/constants.js';
 import { createWidgetSync } from './schwung-page-widget-sync.js';
+import { createPageVisible } from './schwung-page-visible.js';
 import type { PageReadCache } from './schwung-page-cache.js';
 import type { PageHierarchy } from './schwung-page-hierarchy.js';
 import { advanceSample } from './schwung-page-sample.js';
@@ -106,6 +107,8 @@ export function createPageContract(ctl: any, port: PageParamSource, componentKey
     /* A MODULE'S OWN WIDGET — the trigger, the rules and the budget are in
      * schwung-page-widget-sync.ts; `sync` after a reload, `afterReplan` below. */
     const widgets = createWidgetSync(ctl, port, componentKey);
+    const moduleVisible = createPageVisible(ctl, lib, cache.get,
+        (k: string) => (k.indexOf(':') >= 0 ? k : componentKey + ':' + k));
 
     function reload(): void {
         /*
@@ -129,8 +132,10 @@ export function createPageContract(ctl: any, port: PageParamSource, componentKey
         hier.invalidate();
         /* `visible` rides on the load because the controller keeps it
          * (`lastLoadOpts`) for every re-plan after this one — the Sync turn
-         * that swaps the LFO's rate cell re-plans without coming back here. */
-        const visible = port.visible ? (c: unknown) => port.visible!(c) : undefined;
+         * that swaps the LFO's rate cell re-plans without coming back here.
+         * A source with no answer of its own (every real module) gets
+         * Schwung's grid rules; absent, the planner fails open. */
+        const visible = port.visible ? (c: unknown) => port.visible!(c) : moduleVisible;
         ctl.load({ slot: trackIndex, component: componentKey, visible });
         refreshLoaded();
         /* A MODULE'S OWN WIDGET, REGISTERED WHEN ITS CONTRACT ARRIVES. Here rather

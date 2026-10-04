@@ -49,6 +49,9 @@ import { createPageFocus } from './schwung-page-focus.js';
 import { createPageSeat } from './schwung-page-seat.js';
 import { createPageAnimating, type AnimActivity } from './schwung-page-anim.js';
 import { chromeFor, claimsBottomBand, regularKnob, type PageChrome } from './schwung-page-chrome.js';
+import { openCanvasDive } from './schwung-canvas-dive.js';
+import { markGatesDue } from './schwung-page-visible.js';
+import { moduleReadKey } from '../chain/config.js';
 /* movy's own big-font cell, for the three values Schwung's big-number widget
  * cannot reach (an enum, or a reading with a unit in it). */
 
@@ -120,6 +123,9 @@ export interface SchwungPage {
     /** The list a door cell opens, when its SOURCE supplies one (SP-60's LFO
      *  target) — see `PageParamSource.picker`. */
     picker(key: string): SourcePicker | null;
+    /** Open the fullscreen screen a held canvas cell's click asks for (DR32's
+     *  ENGN picker). False when the intent is not a canvas. */
+    canvasDive?(intent: SchwungIntent): boolean;
     /** Schwung is drawing into the bottom band (a peek, picker, hint or a
      *  non-grid page) — movy's Loop strip must yield. See `claimsBottomBand`. */
     claimsBottomBand(): boolean;
@@ -250,6 +256,18 @@ export function createSchwungPage(
         focusVoice: input.focusVoice,
         focusWritten: focus.wrote,
         picker: (key: string) => (port.picker ? port.picker(qualify(key)) : null),
+        canvasDive: (intent: SchwungIntent) => openCanvasDive(intent.fullKey || intent.key || '', intent.meta, {
+            moduleId: () => String(cache.get(moduleReadKey(componentKey)) || ''),
+            owner: `${trackIndex}:${componentKey}`,
+            /* LIVE, as upstream's dive ctx is: a script vouches and reads back
+             * in one hook (DR32's pad follow), which a cached read would miss. */
+            read: (k: string) => port.getParam(qualify(k)),
+            write: (k: string, v: string) => port.setParam(qualify(k), v),
+            /* Upstream re-enters the grid on the way out (enterParamPages).
+             * Here: re-read live, and re-ask the gates — a new engine changes
+             * no contract byte, only which pages its gates admit. */
+            closed: () => { contract.reload(); markGatesDue(ctl); },
+        }),
         claimsBottomBand: () => claimsBottomBand(ctl, lib),
     };
 }

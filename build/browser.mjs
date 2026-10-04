@@ -55,6 +55,11 @@ await esbuild.build({
          * and which global the `#ref` points at — through the real function
          * rather than through a re-implementation of it. */
         resolve(root, 'src/renderer/schwung-canvas.ts'),
+        /* A canvas knob's fullscreen dive and the input it takes (DR32's ENGN):
+         * the suite drives the open, the hooks and the router's one gate
+         * directly — shared chunk state with app/tick.ts and midi/router.ts. */
+        resolve(root, 'src/renderer/schwung-canvas-dive.ts'),
+        resolve(root, 'src/midi/canvas-dive-input.ts'),
         /* The widget trigger (SP-28 defect 3): same reason — the suite asserts
          * WHEN the question is asked, which is behaviour the device tier can
          * only confirm after the fact. */

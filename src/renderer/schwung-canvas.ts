@@ -117,7 +117,7 @@ function guardedEval(path: string, extra: string[], pick: () => any): any {
 /** `file.js#overlay` — the canvas param's own spelling. The fragment names the
  *  global holding the overlay, not a property of the file; an empty script part
  *  falls back to the default, as upstream's parser does. */
-function splitSpec(value: string): { file: string; ref: string } {
+export function splitSpec(value: string): { file: string; ref: string } {
     const raw = value.trim();
     const hash = raw.indexOf('#');
     if (hash < 0) return { file: raw, ref: '' };

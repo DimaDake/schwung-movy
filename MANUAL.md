@@ -604,6 +604,20 @@ module says what a valid file contains — a drum-rack preset as opposed to a
 synth one, say — a file that fails that test is refused with a toast instead of
 loaded, and the browser stays open so you can pick another.
 
+**Module screens.** Some modules draw a whole screen of their own for one knob —
+DR32's **ENGN** knob opens its engine picker (Sample, Simian, Urchin, 9W9…, each
+with its own list), and its **Resample** knob its resampler. Hold the knob and
+click the jog, exactly as for a file. The module then owns the jog, the click and
+the eight knobs; the pads still play, and a pad you hit is the pad the screen
+fills. **Back** climbs out one level at a time and leaves from the top;
+**Shift + jog** always leaves at once. Some modules close the screen themselves
+when you pick something.
+
+**Pages that follow a setting.** A module can hide pages that do not apply right
+now — DR32 shows only the pages of the engine the selected pad runs (a sample
+pad's Shape, a 9W9 kick's Voice), not every engine's at once. Pick a different
+engine, or hit a pad that runs one, and the pages change with it.
+
 **Cell labels.** A module may also declare a short name for the cell separate
 from the parameter's full name — *Osc 1 Pitch* in the header, *PITCH* in the
 cell. Movy uses it as typed when it fits, and only falls back to its own
@@ -2097,6 +2111,7 @@ behaviour you'd like — or, better, a PR.
 | **Turn an action knob counter-clockwise** | Re-arm it immediately instead of waiting for the drain bar to run out. |
 | **Touch a bank / soundfont / model knob** | Open the collection list. Turn to scroll, release to load — scrolling on its own loads nothing. |
 | **Hold a file knob, then jog-click** | Open the file browser for a sample / wavetable / preset parameter (the header names the file, the bottom row reads `CLK BROWSE`). Turn to move, click to load, Back to cancel. |
+| **Hold a module-screen knob, then jog-click** | Open the module's own screen (DR32's ENGN engine picker). Back climbs out a level at a time; Shift + jog leaves at once. |
 | **Hold a knob (~1 s)** | Assign that parameter as an **LFO target**: jog picks LFO 1/2, jog-click assigns (hold again to remove). Automatable parameters only — and on a Schwung-drawn page, number knobs only. |
 | **Jog wheel — turn** | Scroll chain slots (Chain view) or module pages (Knobs view) / browser list. On either LFO page — a track's or the master chain's — scroll between LFO 1 and LFO 2. |
 | **Jog wheel — click** | Drill Chain → module pages; on Knobs (or an empty slot) open the module browser; in a browser, load the selection. |

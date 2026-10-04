@@ -608,3 +608,27 @@ Built against schwung `origin/main` ecf1c828 (`schwung-main` worktree;
   hold/ramp. A different model from per-step locks; needs a real migration.
 - **Right-half pad function** on drum tracks — none today; if added, an on/off
   switch over D10.
+
+---
+
+## 6. 2026-10-04 — DR32 follow-ups (generic)
+
+- **Page bloat was `visible_if`, not the seat.** Module pages got no `visible`
+  hook, so the planner failed open and planned every gated level: DR32 52 pages
+  (every engine's) vs Schwung's 8-11. `renderer/schwung-page-visible.ts` now
+  answers it by Schwung's grid rules (controller values first, then the page
+  cache; a condition key is per-instance only when its level lists it — DR32's
+  `ui_engine`/`ui_family` are read bare; an unread or "" key fails open). A pad
+  press re-plans via the controller's gate lane (7 ticks in the test). Side
+  effect for D12: the seat's block now holds only the visible engine's pages, so
+  DR32's prefetch set shrinks to something the age bound can cycle.
+  Test: `browser-test/logic/page-visible.mjs` (7 checks red without the hook).
+- **ENGN did nothing**: a held `type: "canvas"` cell's click intent had no host
+  screen in movy. `renderer/schwung-canvas-dive.ts` hosts the module's
+  fullscreen script to upstream's contract; `midi/canvas-dive-input.ts` is the
+  router's one gate. Closing re-reads live and marks the controller's gates due
+  (`markGatesDue` sets `state.gatesDue` — upstream has no public verb; wanted:
+  `selectionChanged()` marking gates due too). Test:
+  `browser-test/logic/schwung-canvas-dive.mjs`.
+- **Still open, generic:** `browser_hooks` + `live_preview` on filepath params
+  (DR32 Kit, granny, magneto) are not honoured by movy's file browser.

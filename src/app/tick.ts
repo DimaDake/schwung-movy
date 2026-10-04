@@ -29,6 +29,8 @@ import { pageOwnerOf, type PageOwner } from './page-owner.js';
 import { pageOwnerForComponent } from './page-owner-virtual.js';
 import { moduleGridOnScreen, pollDrawnPage, drawnKnobLevels } from './page-poll.js';
 import { schwungEditorActive, renderSchwungEditor } from '../renderer/schwung-editor.js';
+import { canvasDiveActive, renderCanvasDive, tickCanvasDive } from '../renderer/schwung-canvas-dive.js';
+import { canvasDiveDeliverPads } from '../midi/canvas-dive-input.js';
 import { renderKeysView }  from '../renderer/keys-view.js';
 import { renderBrowseView } from '../renderer/browse-view.js';
 import { renderChainView }    from '../renderer/chain-view.js';
@@ -519,6 +521,9 @@ function tickBody(): void {
     stepRecTick();  // keep the step-record header band alive while Rec is held
     if (holdTick()) appState.dirty = true;    // knob-hold → LFO assign mode
     if (jogHintTick()) appState.dirty = true; // jog rested without turning → CLICK JOG hint
+    /* A module canvas animates and owns its own state: tick and redraw it
+     * every frame while it is up, as upstream's CANVAS view does. */
+    if (canvasDiveActive()) { canvasDiveDeliverPads(); tickCanvasDive(); appState.dirty = true; }
     // The held-step value display is driven by stepAutoMode + heldLocks, which
     // change via consumed knob turns and the status poll — both outside the
     // param page's normal dirty path. Repaint when that display state changes.
@@ -844,6 +849,10 @@ function tickBody(): void {
             vm.selected = versionsPageState.selected;
             vm.confirming = versionsPageState.confirming;
             renderVersionsView(vm);
+        } else if (canvasDiveActive()) {
+            /* The module draws the whole screen; modal, like the editor below. */
+            renderCanvasDive();
+            updateSingleKnobLED(-1, 0);
         } else if (schwungEditorActive()) {
             /* A divable parameter's list, drawn over whatever view opened it.
              * Ahead of every view branch because it is modal — the page beneath
@@ -1146,7 +1155,7 @@ function tickBody(): void {
     /* A Schwung page drawing into the bottom band (peek, picker, hint, a menu
      * or preset page's footer) or movy's own Schwung list editor claims it —
      * asked HERE, once, not taught to each branch above (SP-60). */
-    const schwungBottom = schwungEditorActive()
+    const schwungBottom = schwungEditorActive() || canvasDiveActive()
         || (!!schwungBody && !!drawnPageOwner.page && drawnPageOwner.page.claimsBottomBand());
     if (engineReady() && !seqToastActive() && !jogToastShown && !schwungBottom
         && !seqState.sessionMode && !isFullScreenView && !captureOverlayActive()) {

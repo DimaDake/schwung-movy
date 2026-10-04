@@ -9,6 +9,7 @@ import { perfPhase, perfPhaseEnd } from '../app/perf-probe.js';
 import { openSchwungEditor, schwungEditorActive, schwungEditorJog,
          schwungEditorCommit, schwungEditorCancel } from '../renderer/schwung-editor.js';
 import { openSchwungDive } from '../browser/schwung-dive.js';
+import { canvasDiveTakes } from './canvas-dive-input.js';
 
 /*
  * WHICH PARAMETER IS UNDER KNOB k — one answer, for every gesture.
@@ -223,6 +224,10 @@ export function onMidiMessageInternal(data: number[]): void {
     // no undo — a step button that both dismissed this and wrote a note into
     // the clip you just captured is not a trade worth offering. Releases fall
     // through so no handler is left holding a button that never came up.
+    /* A module's fullscreen canvas (DR32's engine picker) owns the jog
+     * assembly, Back and the knobs while it is up — canvas-dive-input.ts. */
+    if (canvasDiveTakes(data)) { appState.dirty = true; return; }
+
     if (captureOverlayActive()) {
         const action = captureOverlayAction(data);
         if (action === 'jog') { captureJog(decodeDelta(data[2])); return; }
@@ -930,12 +935,14 @@ export function onMidiMessageInternal(data: number[]): void {
                 appState.dirty = true;
                 /* A divable param opens its list, or — with no options, as a
                  * filepath has none — movy's file browser, bound to the
-                 * intent's own key. What is left after both is still logged
-                 * rather than dropped: a canvas or a string has no screen here
-                 * yet, and a param that appears inert is exactly the failure a
-                 * silent drop would hide. */
+                 * intent's own key; a canvas opens the module's own screen
+                 * (schwung-canvas-dive.ts). What is left is still logged rather
+                 * than dropped: a string has no screen here yet, and a param
+                 * that appears inert is exactly the failure a silent drop
+                 * would hide. */
                 if (intent && intent.action === 'open'
                     && !openSchwungEditor(intent, spc)
+                    && !(spc.canvasDive && spc.canvasDive(intent))
                     && !openSchwungDive(intent, spc, activeModel())) {
                     mlog('schwung-open unhandled ' + (intent.key || '?')
                        + ' kind=' + (intent.meta ? intent.meta.kind : '?')

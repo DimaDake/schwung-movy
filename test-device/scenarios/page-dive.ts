@@ -266,8 +266,18 @@ scenario('page-dive', async (t) => {
      * moment the screen changes, so a device that is working costs two pages. */
     let view = await viewNow();
     let found = { pg: -1, slot: -1 };
+    /* EACH CELL ONCE, BY NAME, RE-READ BEFORE EVERY CLICK. A click on a
+     * two-way enum flips it, and mrsample's Loop gates three cells
+     * (`visible_if`): flipping it re-plans the page and moves `sample_path` to
+     * another slot. A sweep by slot index walked past it — the page changed
+     * under the walk — so the sweep follows the cells, not the positions. */
     for (let pg = 0; pg < 3 && view !== 'file-browse'; pg++) {
-        for (let slot = 0; slot < 8 && view !== 'file-browse'; slot++) {
+        const clicked = new Set<string>();
+        for (let n = 0; n < 12 && view !== 'file-browse'; n++) {
+            const cells = (await pageNow())?.cells ?? [];
+            const slot = cells.findIndex((c) => !!c?.name && !clicked.has(c.name));
+            if (slot < 0) break;
+            clicked.add(cells[slot]!.name!);
             /* The knob is really TOUCHED, not merely held down: the controller
              * routes a click to its own grid only while one of its cells is
              * under a finger, and the release is a note-on with d2 = 0 — see

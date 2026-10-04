@@ -15,6 +15,12 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
+- **Module screens open.** A held `type: "canvas"` knob's jog click opens the
+  module's own fullscreen screen, to upstream's contract (jog/knobs/pads to the
+  script, enterable click, Back through `handleBack`, Shift+jog out, `ctx.close`).
+  It was logged and dropped, so DR32's ENGN knob — the only way to pick a pad's
+  sample or engine — did nothing (`renderer/schwung-canvas-dive.ts`).
+
 - **Per-pad sends from drum modules.** Simian's and DR32's per-pad Send A /
   Send B now feed Movy's SEND 1 / SEND 2, post the track's fader and pan, on top
   of the track's own send. Until now those knobs wrote a level nothing in Movy
@@ -188,6 +194,12 @@ far. Earlier work is summarised in the timeline below for context.
   moves the LFO's base — where the LFO used to overwrite the lane.
 
 ### Fixed
+
+- **A module's hidden pages stayed visible.** Schwung pages for a real module
+  got no `visible_if` answer, and the planner fails open, so every gated page
+  showed: DR32 planned 52 pages (every engine's) where Schwung plans 8-11. Module
+  pages now evaluate gates by Schwung's own rules (`renderer/schwung-page-visible.ts`),
+  and leaving a module screen re-asks them.
 
 - **Held-knob hints on Schwung pages no longer promise the wrong click.**
   Holding an ordinary knob showed `JOG PAGE · CLK MENU`, but the click did

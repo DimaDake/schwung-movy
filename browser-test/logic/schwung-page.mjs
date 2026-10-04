@@ -767,6 +767,11 @@ _log('\nTest: SP-44 — knob 1 walks a preset door with no click first');
     eq('the first knob turn enters the door with no click', pg.ctl.menuEntered(), true);
     const after = pg.ctl.state.preset[pg.ctl.page.name].index;
     ok('...and the preset index moved', after !== before);
+    /* A knob that does something is lit: on a door the only live knob is the
+     * preset one, so it is the one LED in the row, brightness = position. */
+    const lv = pg.knobLevels();
+    ok('knob 1 lights its LED while it drives the preset', typeof lv[0] === 'number');
+    eq('...and no other knob does', lv.slice(1).every((v) => v === null), true);
 
     schwungGridReload();
     setSchwungGridMode(null);

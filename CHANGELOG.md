@@ -203,6 +203,13 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Knob 1 on a module-drawn preset page is the module's knob again.**
+  MonkSynth's face page maps all eight knobs, but knob 1 stepped the preset
+  (the rule for a preset page with no knobs), so Vowel was unreachable there.
+  Knob 1 now browses presets only where the page binds nothing to it — click
+  and jog still browse everywhere — and on such a page its LED lights, at the
+  list position, so the one working knob is visible
+  (`renderer/schwung-page-input.ts`).
 - **The Schwung-drawn MIX page's knobs turn at the movy MIX page's rate.** One
   detent cost 8 CC units, the int rate of Set/Clip Params, so a VOL, PAN or
   send turn took about 8× the wrist movement it takes on movy's own MIX page.

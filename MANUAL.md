@@ -560,8 +560,10 @@ whole reason they are on the page.
 MonkSynth does with its singing face. It sits in the jog rotation like any
 other page, between Movy's header and the hint row, and the eight knobs keep
 editing that section while you watch it. If the page is also the module's
-preset browser, you browse presets the usual way and the module draws the
-picture. If the module lets you *enter* the page, click to go in: from then on
+preset browser, the module draws the picture and its knobs stay its knobs —
+knob 1 edits the module's first parameter, not the preset; click and jog to
+browse. (On a preset page with no knobs of its own, knob 1 steps the preset
+list, and its LED lights to say so.) If the module lets you *enter* the page, click to go in: from then on
 the jog and the click belong to the module, and Back steps up one level inside
 it until the module has nowhere left to go, then leaves the page. Shift + jog
 still pages out at any point. These are the same pages Schwung shows, drawn by

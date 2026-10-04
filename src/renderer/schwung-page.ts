@@ -238,7 +238,12 @@ export function createSchwungPage(
             return String((m && (m.label || m.key)) || k);
         },
         knobParamInfo: page.knobParamInfo,
-        knobLevels: page.knobLevels,
+        knobLevels: () => {
+            const lv = page.knobLevels();
+            const preset = input.presetKnobLevel();
+            if (preset !== null) lv[0] = preset;
+            return lv;
+        },
         marks: page.marks,
         animating,
         /* `enumPeek()` is also the reader that RETIRES an expired peek

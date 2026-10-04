@@ -124,6 +124,28 @@ _log('\nTest: an as_page canvas that is also the preset browser draws the module
     ok('movy’s own globals survived the evaluation', typeof globalThis.canvas_overlay === 'undefined');
 }
 
+_log('\nTest: a module-drawn preset browser with knobs — knob 1 is the knob, not the preset');
+{
+    /* monksynth's root level maps all eight knobs on its face/preset page.
+     * SP-44 gave knob 1 to the preset list on a door with NO knobs; here the
+     * module has spoken for knob 1, so it edits Vowel and the jog (after a
+     * click) is the way to browse. */
+    scripts[`${DIR}/canvas.js`] = { canvas_overlay: { drawPage() {} } };
+    const pg = pageFor(faceParams({ preset_browser: true, canvas_overlay: 'knobs' }));
+    pg.goToPage(pg.ctl.pages.findIndex((p) => p.canvas));
+    for (let i = 0; i < 60; i++) pg.tick();
+    eq('knob 1 carries the module’s mapping', pg.keyAt(0), 'vowel');
+    const presetBefore = env.params['synth:preset'];
+    pg.knobTurn(0, 6);
+    for (let i = 0; i < 10; i++) pg.tick();
+    eq('knob 1 did not step the preset', env.params['synth:preset'], presetBefore);
+    ok('...and did not enter the browser', !pg.ctl.menuEntered());
+    ok('...it moved Vowel instead', parseFloat(env.params['synth:vowel']) > 0.25);
+    const lv = pg.knobLevels();
+    ok('the mapped knobs light their LEDs', lv[0] !== null && lv[1] !== null);
+    eq('...and the unmapped ones stay dark', lv[2], null);
+}
+
 _log('\nTest: a drawPage that throws is retired, not retried every frame');
 {
     let n = 0;

@@ -60,6 +60,11 @@ await esbuild.build({
          * directly — shared chunk state with app/tick.ts and midi/router.ts. */
         resolve(root, 'src/renderer/schwung-canvas-dive.ts'),
         resolve(root, 'src/midi/canvas-dive-input.ts'),
+        /* The file browser's preview + browser_hooks: driven directly, with the
+         * real DR32/granny declarations. */
+        resolve(root, 'src/browser/file-handler.ts'),
+        resolve(root, 'src/browser/file-preview.ts'),
+        resolve(root, 'src/model/file-decl.ts'),
         /* The widget trigger (SP-28 defect 3): same reason — the suite asserts
          * WHEN the question is asked, which is behaviour the device tier can
          * only confirm after the fact. */

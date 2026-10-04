@@ -241,4 +241,14 @@ export interface KnobParam {
     viewGroup?:     string;
     fileStartPath?: string;
     fileRequireContains?: string;
+    /* The browser's preview + hooks, when the module declares any
+     * (model/file-decl.ts). */
+    fileBrowse?:    FileBrowseDecl;
+}
+
+export interface FileHookAction { key: string; value: string; restore: boolean }
+export interface FileBrowseDecl {
+    live: boolean;
+    hooks: { onOpen: FileHookAction[]; onPreview: FileHookAction[];
+             onCancel: FileHookAction[]; onCommit: FileHookAction[] };
 }

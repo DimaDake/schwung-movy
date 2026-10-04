@@ -63,7 +63,7 @@ import { drumNoteOfPad, drumNoteOfPhys } from '../keyboard/drum-grid.js';
 import { padsPlayNotes } from '../seq/router-pads.js';
 import { padMuteGesture } from '../mixer/pad-mutes.js';
 import { openBrowser, loadSelectedModule } from '../browser/handler.js';
-import { openFileBrowser, navigateFileBrowser, activateFileBrowserItem } from '../browser/file-handler.js';
+import { openFileBrowser, navigateFileBrowser, activateFileBrowserItem, cancelFileBrowser } from '../browser/file-handler.js';
 import { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased, muteHeld, muteMarkGestured, muteShiftHeld, muteTrack } from '../seq/router.js';
 import { anyStepHeld, editStepPageKnob } from '../seq/step-edit.js';
 import { stepPageState, setStepPageSelected, setStepTouchedKnob, stepPageAvailable } from '../seq/step-page.js';
@@ -772,7 +772,7 @@ export function onMidiMessageInternal(data: number[]): void {
             appState.currentView = appState.browseOrigin;
             appState.dirty = true;
         } else if (appState.currentView === VIEW_FILE_BROWSE) {
-            appState.fileBrowserState = null;
+            cancelFileBrowser();
             appState.currentView      = appState.browseOrigin;
             appState.dirty = true;
         } else if (appState.currentView === VIEW_KEYS || appState.currentView === VIEW_KNOBS) {
@@ -1026,6 +1026,7 @@ export function onMidiMessageInternal(data: number[]): void {
                     fileTarget.startPath,
                     fileTarget.currentPath,
                     fileTarget.requireContains,
+                    fileTarget.browse,
                 );
             } else if (appState.currentView === VIEW_CHAIN) {
                 const isEmpty = activeModel()?.getViewModel().isEmpty ?? false;

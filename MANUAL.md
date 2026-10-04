@@ -599,6 +599,14 @@ parameter is remembered, so the second visit starts where the first one ended �
 per parameter rather than per module, because a drum module has one of these for
 every pad.
 
+**Preview.** Some modules ask to be heard while you browse — mrdrums' and
+MrSample's samples, granny's, tablor's wavetables. There, the file under the
+cursor loads once the cursor rests, so you hear it before you choose; **Back**
+puts back what was loaded before you opened the browser. A module can also ask
+for something to change while it is open — mrdrums stops a pad you hit from
+moving the selected pad, so you can audition other pads without losing the one
+you are filling — and that is put back when you leave.
+
 Loading is **one undo step**, named after the parameter it went into. When a
 module says what a valid file contains — a drum-rack preset as opposed to a
 synth one, say — a file that fails that test is refused with a toast instead of

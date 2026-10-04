@@ -31,6 +31,8 @@ import { moduleGridOnScreen, pollDrawnPage, drawnKnobLevels } from './page-poll.
 import { schwungEditorActive, renderSchwungEditor } from '../renderer/schwung-editor.js';
 import { canvasDiveActive, renderCanvasDive, tickCanvasDive } from '../renderer/schwung-canvas-dive.js';
 import { canvasDiveDeliverPads } from '../midi/canvas-dive-input.js';
+import { cancelFileBrowser } from '../browser/file-handler.js';
+import { previewTick } from '../browser/file-preview.js';
 import { renderKeysView }  from '../renderer/keys-view.js';
 import { renderBrowseView } from '../renderer/browse-view.js';
 import { renderChainView }    from '../renderer/chain-view.js';
@@ -524,6 +526,13 @@ function tickBody(): void {
     /* A module canvas animates and owns its own state: tick and redraw it
      * every frame while it is up, as upstream's CANVAS view does. */
     if (canvasDiveActive()) { canvasDiveDeliverPads(); tickCanvasDive(); appState.dirty = true; }
+    /* The browser previews once its cursor rests. Left any way but Back or a
+     * pick (a track button, a view change), it is CANCELLED here — a preview
+     * left standing would keep a file nobody chose. */
+    if (appState.fileBrowserState) {
+        if (appState.currentView !== VIEW_FILE_BROWSE) cancelFileBrowser();
+        else previewTick(appState.fileBrowserState, Date.now());
+    }
     // The held-step value display is driven by stepAutoMode + heldLocks, which
     // change via consumed knob turns and the status poll — both outside the
     // param page's normal dirty path. Repaint when that display state changes.

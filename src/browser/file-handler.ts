@@ -6,6 +6,8 @@ import { appState, VIEW_FILE_BROWSE } from '../app/state.js';
 import { dirname } from '../model/path.js';
 import { fileContentAllows } from '../model/file-validate.js';
 import { seqToast } from '../seq/render.js';
+import type { FileBrowseDecl } from '../types/param.js';
+import { previewBegin, previewCursorMoved, previewDirEntered, previewEnd, previewOriginal } from './file-preview.js';
 
 function isDir(path: string): boolean {
     try {
@@ -51,6 +53,7 @@ export function openFileBrowser(
     startPath:    string,
     currentPath:  string | null,
     requireContains?: string,
+    browse?: FileBrowseDecl | null,
 ): void {
     const startDir = currentPath ? dirname(currentPath) : (startPath || root);
     const items    = scanDir(startDir, root, filter);
@@ -66,6 +69,7 @@ export function openFileBrowser(
         root, filter, currentDir: startDir,
         items, selectedIndex, requireContains,
     };
+    previewBegin(appState.fileBrowserState, browse);
     appState.currentView = VIEW_FILE_BROWSE;
     appState.dirty = true;
 }
@@ -74,6 +78,7 @@ export function navigateFileBrowser(delta: number): void {
     const state = appState.fileBrowserState;
     if (!state) return;
     state.selectedIndex = Math.max(0, Math.min(state.items.length - 1, state.selectedIndex + delta));
+    previewCursorMoved(state, Date.now());
     appState.dirty = true;
 }
 
@@ -88,6 +93,7 @@ export function activateFileBrowserItem(): void {
         state.items      = scanDir(newDir, state.root, state.filter);
         state.currentDir = newDir;
         state.selectedIndex = 0;
+        previewDirEntered(state);
         appState.dirty = true;
     } else {
         /* Reject a preset built for a different instrument before committing —
@@ -98,7 +104,9 @@ export function activateFileBrowserItem(): void {
         }
         const key = state.componentKey + ':' + state.paramKey;
         const port = componentPort(state.paramSlot, state.componentKey);
-        const old = port.getParam(key);
+        /* A preview already wrote the param: the undo returns to the value
+         * from before the browser opened, not to the last file previewed. */
+        const old = previewOriginal(state) ?? port.getParam(key);
         const chainIdx = appState.trackChainIndex[state.paramSlot];
         /* Name the param that was loaded into, not just "LOAD FILE": a drum
          * module has one of these per pad, so the slot is the only thing that
@@ -109,8 +117,16 @@ export function activateFileBrowserItem(): void {
             'T' + (state.paramSlot + 1) + ' ' + state.componentKey.toUpperCase(),
             () => setChainParam(port, key, item.path, old));
         appState.trackModels[state.paramSlot]?.[chainIdx]?.setFileValue(state.gi, item.path);
+        previewEnd(state, item.path);
         appState.fileBrowserState = null;
         appState.currentView      = appState.browseOrigin;
         appState.dirty = true;
     }
+}
+
+/** Leave without a pick: a preview is undone and the module's cancel hooks run. */
+export function cancelFileBrowser(): void {
+    const state = appState.fileBrowserState;
+    if (state) previewEnd(state, null);
+    appState.fileBrowserState = null;
 }

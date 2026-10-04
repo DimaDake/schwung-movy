@@ -15,6 +15,14 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
+- **File browsers preview, and run the module's browser hooks.** A filepath
+  param's `live_preview` loads the file under the cursor once it rests (150 ms,
+  Schwung's figure) and Back restores the original; `browser_hooks` run on
+  open / preview / commit / cancel, `restore: true` ones put back on close.
+  mrdrums, MrSample, granny and tablor declare them; movy ignored both. A pick
+  is still one undo step, back to the value from before the browser opened
+  (`browser/file-preview.ts`, `model/file-decl.ts`).
+
 - **Module screens open.** A held `type: "canvas"` knob's jog click opens the
   module's own fullscreen screen, to upstream's contract (jog/knobs/pads to the
   script, enterable click, Back through `handleBack`, Shift+jog out, `ctx.close`).

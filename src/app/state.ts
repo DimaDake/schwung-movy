@@ -52,6 +52,8 @@ export interface FileBrowserState {
     items:         FileBrowserItem[];
     selectedIndex: number;
     requireContains?: string;
+    /* Live preview + the module's browser hooks, while open (browser/file-preview.ts). */
+    preview?: import('../browser/file-preview.js').FilePreview;
 }
 
 export const appState = {

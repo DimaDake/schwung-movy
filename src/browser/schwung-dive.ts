@@ -33,6 +33,7 @@
 import { appState } from '../app/state.js';
 import { openFileBrowser } from './file-handler.js';
 import { isFileParam } from '../renderer/schwung-file-param.js';
+import { fileBrowseDeclOf } from '../model/file-decl.js';
 import type { SchwungIntent, SchwungPage } from '../renderer/schwung-page.js';
 
 /* What movy's own model defaults a file param's root to when nothing declares
@@ -91,6 +92,8 @@ export function openSchwungDive(intent: SchwungIntent | null, page: SchwungPage,
         str(meta.start_path) || (own ? own.startPath : DEFAULT_ROOT),
         currentPath,
         own ? own.requireContains : undefined,
+        /* The page's declaration first, as for root and filter above. */
+        fileBrowseDeclOf(meta) ?? (own ? own.browse : null),
     );
 
     /* THE KNOB UNDER YOUR HAND DOES NOT COME BACK. The release for it is routed

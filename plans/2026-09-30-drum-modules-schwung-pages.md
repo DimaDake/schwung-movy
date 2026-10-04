@@ -630,5 +630,11 @@ Built against schwung `origin/main` ecf1c828 (`schwung-main` worktree;
   (`markGatesDue` sets `state.gatesDue` — upstream has no public verb; wanted:
   `selectionChanged()` marking gates due too). Test:
   `browser-test/logic/schwung-canvas-dive.mjs`.
-- **Still open, generic:** `browser_hooks` + `live_preview` on filepath params
-  (DR32 Kit, granny, magneto) are not honoured by movy's file browser.
+- **File browser preview + `browser_hooks`** (done, same day): honoured by
+  movy's browser (`browser/file-preview.ts`). Correction to the first note: the
+  modules that SERVE them are mrdrums (preview + `ui_auto_select_pad=off`,
+  restored), MrSample, granny and tablor. DR32 0.4.1 declares its Kit browser
+  only in module.json's fallback chain_params; on the device it browses kits
+  through its Category/Kit list pages, which are Schwung's own and already
+  worked. MOVY-mode config file params (config-pages.ts, frozen) carry no
+  declaration and are unchanged. Test: `browser-test/logic/file-preview.mjs`.

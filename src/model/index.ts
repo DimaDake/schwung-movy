@@ -26,6 +26,7 @@ import { isDivable } from './access.js';
 export interface FileBrowseTarget {
     key: string; gi: number; root: string; filter: string[]; startPath: string;
     currentPath: string | null; requireContains?: string;
+    browse?: import('../types/param.js').FileBrowseDecl;
 }
 
 // Fractional accumulator: returns whole steps consumed and the leftover fraction
@@ -109,6 +110,7 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
             startPath:   defaultDirFor(s.moduleId, p),
             currentPath: s.fileValues[gi] ?? null,
             requireContains: p.fileRequireContains,
+            browse: p.fileBrowse,
         };
     }
 

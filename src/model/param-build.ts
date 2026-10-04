@@ -7,6 +7,7 @@ import { isPanParam } from './pan.js';
 import { isActionParam, isToggleParam } from './toggle.js';
 import { cellStyleFor } from './step-labels.js';
 import { readAccess } from './access.js';
+import { fileBrowseDeclOf } from './file-decl.js';
 
 /* One param's metadata as published by a module — either a chain_params entry
  * or a ui_hierarchy params[]/knobs[] entry. Both shapes are partial and the
@@ -109,6 +110,7 @@ export function buildGenericParam(key: string, cp: RawMeta, def: RawMeta): KnobP
          * hierarchy-declared browser rooted at /data/UserData with no
          * extension filter — every file on the device, none of them relevant. */
         const root = String(cp.root ?? def.root ?? '/data/UserData');
+        const browse = fileBrowseDeclOf(cp, def);
         return {
             key,
             label:      String(cp.name ?? def.name ?? def.label ?? key),
@@ -121,6 +123,7 @@ export function buildGenericParam(key: string, cp: RawMeta, def: RawMeta): KnobP
             fileRoot:      root,
             fileFilter:    parseFilter(cp.filter ?? def.filter),
             fileStartPath: String(cp.start_path ?? def.start_path ?? root),
+            ...(browse ? { fileBrowse: browse } : {}),
         };
     }
     const options  = optionList(cp.options, def.options);

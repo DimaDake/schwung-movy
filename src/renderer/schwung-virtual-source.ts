@@ -58,6 +58,12 @@ export interface VirtualCellSpec {
      *  words that do not fit a 30px box, and never for a "3:4" or an "80%".
      *  Default (absent) is to raise it. */
     peek?: boolean;
+    /** Raw CC units one detent costs, overriding the by-kind default below
+     *  (`rawPerDetent`). The 8 a number cell pays by default is the
+     *  pre-delegation INT rate; a float whose position units are already
+     *  movy's own knob units (MIX) pays 1, or it crawls at an eighth of the
+     *  page it replaced. */
+    rawPerDetent?: number;
     min?: number;
     max?: number;
     step?: number;
@@ -189,6 +195,7 @@ export function createVirtualSource(componentKey: string,
         rawPerDetent(fullKey: string): number | null {
             const c = byKey.get(bare(fullKey));
             if (!c) return null;
+            if (c.rawPerDetent !== undefined) return c.rawPerDetent;
             return (c.type === 'enum' || c.type === 'toggle') ? 2 : 8;
         },
     };

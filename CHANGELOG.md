@@ -203,6 +203,13 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **The Schwung-drawn MIX page's knobs turn at the movy MIX page's rate.** One
+  detent cost 8 CC units, the int rate of Set/Clip Params, so a VOL, PAN or
+  send turn took about 8× the wrist movement it takes on movy's own MIX page.
+  A virtual cell can now declare its own `rawPerDetent`; the MIX cells charge
+  one unit per detent. Other virtual pages are unchanged
+  (`mixer/mix-schwung-cells.ts`).
+
 - **A module's hidden pages stayed visible.** Schwung pages for a real module
   got no `visible_if` answer, and the planner fails open, so every gated page
   showed: DR32 planned 52 pages (every engine's) where Schwung plans 8-11. Module

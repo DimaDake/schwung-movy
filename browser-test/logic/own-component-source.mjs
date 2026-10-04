@@ -72,6 +72,41 @@ _log('\nTest: MIX virtual source (SP-55)');
     resetPorts();
 }
 
+/* ── MIX: a turn crosses the travel at movy's own MIX rate ────────────────── */
+_log('\nTest: MIX page knob rate matches movy\'s MIX page');
+if (!schwungLibAvailable()) {
+    _log('  SKIPPED — no param_pages; set SCHWUNG=');
+} else {
+    const { stepAmpDb, VOL_TOP_DB } = await import('../../dist/esm/mixer/db-ladder.js');
+    const { readMix } = await import('../../dist/esm/mixer/mix-io.js');
+    const eng = mockEngine();
+    resetPorts();
+    setSchwungGridMode('page');
+    schwungGridReload();
+    eng.store['ch0:mix'] = packMixValue({ gain: 1, pan: 0, muted: false, send: [0, 0, 0] });
+    const page = schwungPageFor(0, 'mix', null, null);
+    for (let i = 0; i < 12 * 60 && page.keyAt(0) !== 'gain'; i++) page.tick();
+    eq('knob 1 drives VOL', page.keyAt(0), 'gain');
+    for (let i = 0; i < 60; i++) page.tick();   // let the warm read land before stepping from it
+
+    /* THE TEETH: twenty CC units, the same gesture fed to movy's own MIX model
+     * (`stepAmpDb`, one CC unit per step). At the virtual source's default of
+     * eight units per detent this moved two detents — an eighth of the travel
+     * movy's page covers — which is the "different sensitivity" reported. */
+    const turn = (slot, raw) => { page.knobTouch(slot, true); page.knobTurn(slot, raw); page.knobTouch(slot, false); };
+    const fracBefore = fieldFrac('gain', readMix(0).gain);
+    turn(0, 20);
+    const got = fieldFrac('gain', readMix(0).gain) - fracBefore;
+    const want = fieldFrac('gain', stepAmpDb(1, 20, VOL_TOP_DB)) - fracBefore;
+    ok('20 CC units move VOL as far as on movy\'s MIX page (got ' + got.toFixed(4) + ', want ' + want.toFixed(4) + ')',
+       want > 0 && Math.abs(got - want) < want * 0.1);
+
+    setSchwungGridMode('off');
+    schwungGridReload();
+    eng.restore();
+    resetPorts();
+}
+
 /* ── LFO: Schwung's own LFO page, over the real keys (SP-60) ─────────────── */
 _log('\nTest: LFO source is Schwung\'s LFO page contract (SP-60)');
 {

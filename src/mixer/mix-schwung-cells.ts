@@ -15,13 +15,15 @@
  * pan/arc-with-unity-notch widgets are not reproduced — a restyle, deferred
  * like SP-53's LENGTH/TRANSPOSE, not a correctness gap.
  *
- * KNOWN FEEL DIFFERENCE, RECORDED, NOT FIXED: `off` steps this page on
- * `stepAmpDb`'s non-linear dB ladder (`db-ladder.ts`'s own header explains
- * why — a linear step is unusable near the floor). Schwung's own knob math
- * steps `min..max` LINEARLY by `step`, so a delegated turn's granularity
- * differs from `off`'s near the quiet end of the travel. Same posture as
- * SU-9/13 (Set Params' TEMPO): an upstream ask if it becomes a complaint,
- * not pre-emptively fixed here.
+ * KNOB RATE: one CC unit is one detent (`rawPerDetent: 1`). Schwung steps a
+ * float by `MIN_STEP_RANGE_FRAC × ARC_DELTA_SCALE` of its range per detent —
+ * the same fraction movy's own MIX page moves per CC unit (`stepAmpDb`,
+ * `stepPan`) — and the range here is the control's POSITION, which is already
+ * dB-linear for VOL and the sends. So at one unit per detent the two pages
+ * cross the travel in the same wrist movement; at the virtual source's
+ * default of 8 (the int rate of Set/Clip Params) this page took 1600 units for
+ * a sweep the movy page did in 200. The declared `step` does not enter into
+ * it: Schwung's float step is range-normalised and ignores it.
  */
 
 import { createVirtualSource, type VirtualCellSpec } from '../renderer/schwung-virtual-source.js';
@@ -55,7 +57,7 @@ function cellFor(track: number, field: MixFieldName): VirtualCellSpec {
     const label = LABELS[field];
     return {
         key: field, name: label.name, shortName: label.short,
-        type: 'float', min: 0, max: 1, step: 1 / 64,
+        type: 'float', min: 0, max: 1, step: 1 / 64, rawPerDetent: 1,
         get: () => fieldFrac(field, valueOf(readMix(track), field)).toFixed(4),
         set: (v: string) => applyMixFieldAbs(track, field, fieldFromFrac(field, clamp01(Number(v)))),
         format: (raw) => raw === null ? null : label.format(fieldFromFrac(field, clamp01(Number(raw)))),

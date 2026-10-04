@@ -162,8 +162,9 @@ far. Earlier work is summarised in the timeline below for context.
 - **sophie and Forge get the pad-first drum pages under Schwung.** Their pad
   (voice) pages come first, a press on one keeps your place, and on sophie a
   step copy takes only the selected pad.
-- **A drum kit with more than 16 voices uses all 32 pads**, eight across from
-  the bottom-left. dr32's pads 17-32 were unreachable.
+- **A drum kit with more than 16 voices uses all 32 pads**: voices 1-16 on
+  the left 4x4 as on any kit, 17-32 on the right 4x4, each half from its
+  bottom-left. dr32's pads 17-32 were unreachable.
 - **Drum pages under Schwung put the pad first.** A drum machine with one page
   per voice (6W6, 8W8, 9W9, CW-78) used to make you jog past every voice to reach
   Reverb. Those pages now fold into one pad page at the front, showing the pad

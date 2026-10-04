@@ -988,8 +988,9 @@ already sounding, so you can keep jamming on a silenced track.
 When a **drum module** is loaded, Movy switches the pads to a **4×4 drum rack**
 and the screen to drum-oriented parameter pages, including **per-pad pages** (a
 page that controls just the selected drum voice — marked with a pad icon).
-A kit with **more than 16 voices** (dr32 has 32) uses **all 32 pads**, eight
-across, numbered from the bottom-left pad upwards:
+A kit with **more than 16 voices** (dr32 has 32) uses **all 32 pads**: voices
+1–16 fill the left 4×4 exactly as on any other kit, and voices 17–32 fill the
+right 4×4 the same way, each half numbered from its bottom-left pad upwards:
 
 ![Drum module page](docs/assets/drum-mrdrums-global.png)
 

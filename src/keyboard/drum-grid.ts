@@ -15,10 +15,15 @@
 import type { DrumConfig } from '../types/param.js';
 
 /** Rack width for a non-`rawMidi` module: the grid's left half — or, for a
- *  rack of more than 16 pads, all 8 columns, which is 32 pads (plan
+ *  rack of more than 16 pads, both halves, which is 32 pads (plan
  *  2026-09-30-drum-modules-schwung-pages.md, D10). Generic: dr32 is the rack
  *  that has them, not a case here. The right half has no drum function today;
- *  one added later gets an on/off switch that overlays this. */
+ *  one added later gets an on/off switch that overlays this.
+ *
+ *  The rack is laid out as 4x4 banks, NOT as 8-wide rows: pads 1-16 fill the
+ *  left half exactly as on a 16-pad module, and 17-32 then fill the right half
+ *  the same way — so a 32-pad kit's first 16 voices sit where every other drum
+ *  module puts them. */
 export function drumCols(cfg: DrumConfig): number {
     return !cfg.rawMidi && cfg.padCount > 16 ? 8 : 4;
 }
@@ -32,9 +37,8 @@ export function drumPadOfPhys(physPad: number, padMin: number, cfg: DrumConfig):
     } else {
         const idx = physPad - padMin;
         const col = idx % 8;
-        const cols = drumCols(cfg);
-        if (col >= cols) return -1;
-        pad = Math.floor(idx / 8) * cols + col + 1;
+        if (col >= drumCols(cfg)) return -1;
+        pad = Math.floor(col / 4) * 16 + Math.floor(idx / 8) * 4 + (col % 4) + 1;
     }
     return pad >= 1 && pad <= cfg.padCount ? pad : -1;
 }
@@ -76,8 +80,8 @@ export function drumNoteOfPhys(physPad: number, padMin: number, cfg: DrumConfig)
  *  grid LED without either side re-deriving the other's mapping. */
 export function physPadOfDrumPad(pad: number, padMin: number, cfg: DrumConfig): number {
     if (cfg.rawMidi) return drumNoteOfPad(pad, cfg);
-    const cols = drumCols(cfg);
-    return padMin + Math.floor((pad - 1) / cols) * 8 + ((pad - 1) % cols);
+    const i = pad - 1;
+    return padMin + Math.floor((i % 16) / 4) * 8 + Math.floor(i / 16) * 4 + (i % 4);
 }
 
 /** True while Shift makes the drum pads a SELECTOR rather than an instrument.

@@ -571,6 +571,9 @@ Built against schwung `origin/main` ecf1c828 (`schwung-main` worktree;
 - Not done: the header pad icon (`drawPadGridIcon`, frozen renderer) still
   assumes 4 across. It is drawn only for a config-scoped rack (`isPadScoped`),
   and no config in the fleet has more than 16 pads.
+- **Revised 2026-10-04 (user):** the 32 pads were numbered in 8-wide rows, so
+  pads 5-8 landed on the right half. Now two 4x4 banks: 1-16 fill the left half
+  exactly like a 16-pad rack, 17-32 the right half the same way.
 
 ---
 

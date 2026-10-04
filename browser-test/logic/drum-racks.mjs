@@ -49,7 +49,7 @@ _log('\nTest: a pad is the voice it SOUNDS, matched by note (D4)');
     eq('a pad no voice declares has none', pv[11], null);
 }
 
-_log('\nTest: more than 16 pads ⇒ the rack is 8 wide over all 32 pads (D10)');
+_log('\nTest: more than 16 pads ⇒ the rack takes both 4x4 halves, left half first (D10)');
 {
     const rack = (n) => ({ padCount: n, padNoteStart: 36, rawMidi: false });
     eq('16 pads stay in the left half', drumCols(rack(16)), 4);
@@ -62,9 +62,15 @@ _log('\nTest: more than 16 pads ⇒ the rack is 8 wide over all 32 pads (D10)');
         if (drumPadOfPhys(phys, 68, cfg) === pad && drumNoteOfPhys(phys, 68, cfg) === 35 + pad) trips++;
     }
     eq('every pad round-trips through its grid position', trips, 32);
-    eq('the bottom row runs left to right', drumPadOfPhys(75, 68, cfg), 8);
-    eq('the second row starts at pad 9', drumPadOfPhys(76, 68, cfg), 9);
+    /* Like a 16-pad rack, pads 1-16 fill the left 4x4 bottom-left upward; only
+     * then does the right 4x4 start, at its own bottom-left. */
+    eq('the left half\'s bottom row is pads 1-4', [68, 69, 70, 71].map((p) => drumPadOfPhys(p, 68, cfg)).join(), '1,2,3,4');
+    eq('the left half\'s second row starts at pad 5', drumPadOfPhys(76, 68, cfg), 5);
+    eq('the left half\'s top-right pad is pad 16', drumPadOfPhys(95, 68, cfg), 16);
+    eq('the right half starts at its bottom-left with pad 17', drumPadOfPhys(72, 68, cfg), 17);
+    eq('the right half\'s second row starts at pad 21', drumPadOfPhys(80, 68, cfg), 21);
     eq('the top-right pad is pad 32', drumPadOfPhys(99, 68, cfg), 32);
+    eq('pad 17 sits on the right half\'s bottom-left', physPadOfDrumPad(17, 68, cfg), 72);
     const dark = drumPadLedColor(75, 68, rack(16), 0, 0, false, false);
     ok('a right-half pad is dark on a 16-pad rack', drumPadOfPhys(75, 68, rack(16)) === -1);
     ok('...and lit on a 32-pad one', drumPadLedColor(75, 68, cfg, 0, 0, false, false) !== dark);

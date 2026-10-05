@@ -340,40 +340,42 @@ _log('\nTest: a rack that declares nothing is paged from movy’s own config');
     env.setParams(MOCK_SYNTHS.test16);
 }
 
-_log('\nTest: a module that declares its own hierarchy is never spoken for');
+_log('\nTest: a rack config outvotes a plain contract, never a modern one');
 {
     /*
-     * THE TRANSLATION IS A FALLBACK, AND THIS IS WHERE THAT IS ENFORCED. Same
-     * module, same shipped config — but the module now publishes a contract of
-     * its own, and it must be the one that plans. movy filling in where a module
-     * said nothing is the migration's direction; movy OVERRIDING what a module
-     * said would be the second implementation this whole exercise removes,
-     * reinstalled one layer down.
+     * THE USER'S RULING OF 2026-10-05. Same module, same shipped config, two
+     * contracts. A contract that declares no drum rack (a plain level) loses to
+     * the config: the older drum modules play better from movy's banks. A
+     * contract that declares its rack the modern way (`pad_layout: "drums"`)
+     * keeps its own pages.
      *
      * 6W6 is the subject precisely because its config WOULD translate: a module
      * whose config movy cannot use proves nothing here.
      */
-    setSchwungGridMode('page');
-    schwungGridReload();
-    env.setParams({
-        ...MOCK_SYNTHS['6w6'],
-        'synth:ui_hierarchy': JSON.stringify({
-            levels: { root: { name: 'Mine', knobs: ['bd_tune', 'bd_decay'] } },
-        }),
-    });
+    const plan = (hier) => {
+        setSchwungGridMode('page');
+        schwungGridReload();
+        env.setParams({ ...MOCK_SYNTHS['6w6'], 'synth:ui_hierarchy': JSON.stringify(hier) });
+        const p = schwungPageFor(0, 'synth');
+        for (let i = 0; i < 12 * 60 && !p.ready; i++) p.tick();
+        return p;
+    };
+    const mine = { levels: { root: { name: 'Mine', knobs: ['bd_tune', 'bd_decay'] } } };
 
-    const p = schwungPageFor(0, 'synth');
-    for (let i = 0; i < 12 * 60 && !p.ready; i++) p.tick();
-    ok('the page resolved', p.ready);
+    const legacy = plan(mine);
+    ok('the legacy page resolved', legacy.ready);
+    eq('the config plans it: a page per bank, in the config’s order',
+       legacy.ctl.pages.map((x) => x.name).join(','),
+       'Kick,Snare,Lo Tom,Hi Tom,Cl Hat,Op Hat,Cymbal,Clap,Reverb,Delay,Master');
+    eq('and a pad has a voice to follow', legacy.focusVoice(1), true);
+
     /* The KEYS, not the page name: the planner titles a root-only contract
      * "Main" itself, so a name check would assert its chrome rather than whose
-     * contract it planned. Two knobs the module declared, against the eight the
-     * config's Kick bank would have put here \u2014 and one page, not eleven. */
-    eq('the module\u2019s own contract plans it', p.pageCount, 1);
+     * contract it planned. */
+    const modern = plan({ pad_layout: 'drums', ...mine });
+    eq('a modern contract plans itself', modern.pageCount, 1);
     eq('...with the knobs IT declared',
-       [p.keyAt(0), p.keyAt(1), p.keyAt(2)].join(','), 'bd_tune,bd_decay,');
-    eq('a pad has no voice to follow, because the module declared none',
-       p.focusVoice(1), false);
+       [modern.keyAt(0), modern.keyAt(1), modern.keyAt(2)].join(','), 'bd_tune,bd_decay,');
 
     schwungGridReload();
     setSchwungGridMode(null);
@@ -663,59 +665,52 @@ _log('\nTest: the header readout and the footer hints come from the controller')
     env.setParams(MOCK_SYNTHS.test16);
 }
 
-_log('\nTest: under `page` the plan is the module’s declaration, and nothing else');
+_log('\nTest: under `page` a drum rack plans from movy’s config unless it declares a modern rack');
 {
-    /* The burn-down's remaining labels are a FIXTURE limit: the suite's mrdrums
-     * mock declares no `ui_hierarchy`, so the plan is one fallback page named
-     * Main while movy's config has four banks. That is a statement about the
-     * MOCK unless the REAL shape is read back too — and the real shape is what
-     * SP-30's default flip will meet. `docs/module-dump/…--mrdrums.json` has it:
-     * `ui_preset_path` (root level, in `params`) and `pad_sample_path` (the
-     * `pad_settings` level) are both `type: "filepath"` — real DSP params
-     * mrdrums declares for ITSELF. So "a movy-config file param can never be on
-     * a Schwung page" is false, and the true statement is narrower: what has no
-     * page under `page` is whatever exists ONLY in movy's config. Both halves
-     * are asserted here because only the pair says which is which. */
-    setSchwungGridMode('page');
-    schwungGridReload();
-    env.setParams({ ...MOCK_SYNTHS.mrdrums,
-        'synth:ui_hierarchy': JSON.stringify({
-            levels: {
-                root: { name: 'MrDrums', knobs: ['pad_vol'],
-                        params: [{ label: 'Pad Settings', level: 'pad_settings' },
-                                 'ui_preset_path'] },
-                pad_settings: { name: 'Pad Settings', knobs: ['pad_vol'],
-                                params: ['pad_sample_path', 'pad_vol'] },
-            },
-        }),
-        'synth:chain_params': JSON.stringify([
-            { key: 'ui_preset_path',  name: 'Load Preset', type: 'filepath', default: '' },
-            { key: 'pad_sample_path', name: 'Sample',      type: 'filepath', default: '' },
-            { key: 'pad_vol',         name: 'Volume',      type: 'float', min: 0, max: 2, step: 0.01 },
-        ]),
-    });
-    const declared = schwungPageFor(0, 'synth');
-    for (let i = 0; i < 12 * 60 && !declared.ready; i++) declared.tick();
+    /* The user's ruling of 2026-10-05: an older drum module that ships a
+     * contract with no per-pad surface (mrdrums' real shape: a Pad Settings
+     * level and filepath params, `docs/module-dump/…--mrdrums.json`) plays from
+     * movy's curated banks. The SAME module declaring its rack the modern way
+     * keeps its own pages. Both halves, because only the pair says the rule is
+     * the declaration's shape and not the module id.
+     *
+     * And the declared filepath stays divable either way: it is a real DSP
+     * param mrdrums declares in chain_params, which outranks the config's
+     * inline entry. */
+    const levels = {
+        root: { name: 'MrDrums', knobs: ['pad_vol'],
+                params: [{ label: 'Pad Settings', level: 'pad_settings' }, 'ui_preset_path'] },
+        pad_settings: { name: 'Pad Settings', knobs: ['pad_vol'],
+                        params: ['pad_sample_path', 'pad_vol'] },
+    };
+    const plan = (hier) => {
+        setSchwungGridMode('page');
+        schwungGridReload();
+        env.setParams({ ...MOCK_SYNTHS.mrdrums,
+            'synth:ui_hierarchy': JSON.stringify(hier),
+            'synth:chain_params': JSON.stringify([
+                { key: 'ui_preset_path',  name: 'Load Preset', type: 'filepath', default: '' },
+                { key: 'pad_sample_path', name: 'Sample',      type: 'filepath', default: '' },
+                { key: 'pad_vol',         name: 'Volume',      type: 'float', min: 0, max: 2, step: 0.01 },
+            ]),
+        });
+        const pg = schwungPageFor(0, 'synth');
+        for (let i = 0; i < 12 * 60 && !pg.ready; i++) pg.tick();
+        return pg;
+    };
 
-    eq('the declared plan resolved', declared.ready, true);
-    eq('a declared level becomes its own page',
-       declared.ctl.pages.map((x) => x.name).join(','), 'Main,Pad Settings');
-    eq('and the declared filepath IS a page key',
-       declared.ctl.pages.map((x) => (x.keys || []).join('+')).join(','),
-       'pad_vol,pad_sample_path');
-    const fm = declared.ctl.metaIndex.getOrGuess('pad_sample_path');
-    eq('so a click on it is a dive, which is the route `off` gets from movy’s config',
-       !!(fm && fm.divable), true);
+    const legacy = plan({ levels });
+    eq('the legacy plan resolved', legacy.ready, true);
+    eq('its pages are movy’s banks, in movy’s order',
+       legacy.ctl.pages.map((x) => x.name).join(','), 'Main,Rand,Global,Preset');
+    ok('the declared filepath is on a page',
+       legacy.ctl.pages.some((x) => (x.keys || []).includes('pad_sample_path')));
+    const fm = legacy.ctl.metaIndex.getOrGuess('pad_sample_path');
+    eq('and a click on it is a dive', !!(fm && fm.divable), true);
 
-    /* THE OTHER HALF IS NOT HERE, and deliberately. A page built for a module
-     * that declares NOTHING does not resolve outside the app (measured: this
-     * harness leaves `ready=false` and `pages=[]` for `MOCK_SYNTHS.mrdrums`),
-     * so its half of the pair is read back where the app is running:
-     * `app-loop.mjs`'s permanent `[page-plan]` line prints `ctlPages=1
-     * names=["Main"]` against `movyBanks=4` for exactly this fixture, on BOTH
-     * arms. That line is cited by the burn-down section and by
-     * `page-mode-expected-fail.json`; this test is the other half — the
-     * declaration that makes the route exist. */
+    const modern = plan({ pad_layout: 'drums', levels });
+    eq('a modern declaration keeps its own pages',
+       modern.ctl.pages.map((x) => x.name).join(','), 'Main,Pad Settings');
 
     schwungGridReload();
     setSchwungGridMode(null);

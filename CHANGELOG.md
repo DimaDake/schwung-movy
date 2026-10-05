@@ -164,6 +164,18 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Changed
 
+- **Older drum modules use their Movy template on Schwung pages.** Forge,
+  mrdrums, weird-dreams, signal and libpo32 ship a contract that declares no
+  per-pad surface, and Schwung planned from it: forge's sixteen-voice levels,
+  mrdrums' two pages, a single page for libpo32. Now a rack config (one with
+  per-pad alias keys or a focus param) outvotes a declaration that is not a
+  modern drum rack (`pad_layout: "drums"`, a `child_prefix` level, or a
+  `p{index}_…` template). The config's min/max/options go inline, because the
+  alias keys have no `chain_params` entry. Simian, DR32, Sophie, 6W6 and 9W9
+  keep their own pages. libpo32's lanes on pads 3 and 16 now sound and draw
+  (`model/config-hierarchy.ts`, `model/modern-rack.ts`,
+  `renderer/schwung-page-hierarchy.ts`).
+
 - **A drum module's Movy config always decides its pads.** Where a module
   ships a `movy_config.json`, or Movy ships one for it (6W6, 8W8, 9W9, CW-78),
   that config sets the pad count and each pad's note, over anything the module

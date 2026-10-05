@@ -585,8 +585,8 @@ Built against schwung `origin/main` ecf1c828 (`schwung-main` worktree;
 | mrdrums | template, one block | D7 | ✔ | ✔ |
 | sophie | its own `ui_pages` | D7 through D9's voices, with or without its config; the config still sets pads and scoping (D4) | ✔ incl. pad 16 | ✔ |
 | simian | template, 3 child levels = block | D7 | ✔ | ✔ |
-| forge / weird-dreams | movy_config (D11) | D7 | ✔ | ✔ |
-| libpo32 / krautdrums | movy_config | best effort | best effort | best effort |
+| forge / weird-dreams | movy_config (D11, §7: pages too) | D7 (no jump, §7) | ✔ | ✔ |
+| libpo32 / krautdrums | movy_config (libpo32 pages §7) | best effort | ✔ libpo32 | ✔ libpo32 |
 | dr32 | 4 child levels = block, 32 pads | D7, D10 | ✔ | ✔ |
 
 ---
@@ -638,3 +638,39 @@ Built against schwung `origin/main` ecf1c828 (`schwung-main` worktree;
   through its Category/Kit list pages, which are Schwung's own and already
   worked. MOVY-mode config file params (config-pages.ts, frozen) carry no
   declaration and are unchanged. Test: `browser-test/logic/file-preview.mjs`.
+
+---
+
+## 7. 2026-10-05 — legacy racks plan from their movy_config (user's ruling)
+
+"Old modules behave better with movy_config." Under SCHWUNG pages, a module's
+config now **outvotes its declaration for PAGES** when both hold:
+
+- the config describes a rack: a sibling voice run (6w6/8w8/9w9/cw78, as
+  before), or a **pad-scoped** drum config (`padScoping` or `currentPadParam`,
+  not `rawMidi`), which translates to one plain page per bank, in bank order;
+- the declaration is not a **modern rack** (`model/modern-rack.ts`):
+  `pad_layout: "drums"`, a level with `child_prefix`, or a `child_key_template`
+  containing `{index}`.
+
+In: forge (its voice levels are `{key}` passthroughs), mrdrums, weird-dreams,
+signal (user: include), libpo32. Out: simian, dr32, sophie (user: keep its
+declared pages; its `p{index}_{key}` template is what separates it from forge),
+6w6/9w9 (`pad_layout`), krautdrums/essaim/slicer (raw-MIDI note maps). A synth
+config never translates, so it never outvotes anything.
+
+- Slots go inline (`{key, type, label, min, max, options, …}`): the alias keys
+  have no `chain_params` entry, and a real entry still outranks inline.
+- The verdict is memoized per declared text, module id included, and gives up
+  waiting for an id after 3 unanswered asks. Asking the id on every ask cost
+  `schwung-page-idle-cost` one trip per reload poll (43 → 49 against a 48
+  budget, before the fix).
+- Matrix: weird-dreams opens on Voice, forge on Osc (lanes `pv3_wave` /
+  `pv16_wave`, exact), libpo32 gains rows 3/16 that sound and draw. forge no
+  longer **jumps** on a pad press. That matches MOVY mode (its banks carry no
+  `pad`), and D7 for forge now means "the page edits the pressed voice".
+- Tests: `config-hierarchy.mjs` (pad-scoped translation, inline enum metadata,
+  raw-MIDI/synth → null, the modern-rack cases); `schwung-page.mjs` (6w6 and
+  mrdrums, each against a plain and a modern contract). Teeth: with the
+  override removed, 10 checks go red.
+

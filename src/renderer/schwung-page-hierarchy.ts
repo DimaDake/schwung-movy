@@ -13,10 +13,15 @@
  * model and the undo dump so the three cannot answer differently. What is left
  * here is the rung that belongs to the DELEGATED PAGE alone:
  *
- *   4. movy's own config, translated (SP-14). Only for a module that published
- *      NOTHING on any of the three — never over a module that described itself
- *      — and only here, because Schwung's planner needs a contract or it has
- *      nothing to plan. movy's own model reads the same config natively.
+ *   4. movy's own config, translated (SP-14). For a module that published
+ *      nothing on any of the three, and — the user's ruling of 2026-10-05 —
+ *      ALSO over a module that published a contract but not a modern drum rack
+ *      (`declaresModernRack`), when movy's config describes a rack: the older
+ *      drum modules (forge, mrdrums, weird-dreams, signal, libpo32) play better
+ *      from movy's curated banks. A config that describes no rack translates
+ *      to nothing, so a synth's own declaration is never outvoted. Only here,
+ *      because Schwung's planner needs a contract or it has nothing to plan;
+ *      movy's own model reads the same config natively.
  *
  * THE TRI-STATE SURVIVES ALL FOUR. The controller reads this key with three
  * answers: JSON = declared, "" = served and empty (give up now), null = the read
@@ -34,6 +39,7 @@ import { moduleReadKey } from '../chain/config.js';
 import { createContractSource } from '../chain/hierarchy-source.js';
 import { loadModuleConfig } from '../modules/loader.js';
 import { hierarchyFromConfig } from '../model/config-hierarchy.js';
+import { declaresModernRack } from '../model/modern-rack.js';
 
 export interface PageHierarchy {
     /** The contract to plan from, as the controller wants it: a JSON string,
@@ -48,6 +54,9 @@ export interface PageHierarchy {
     /** Forget the translation. A re-plan, or a module swap. */
     invalidate(): void;
 }
+
+/** Unanswered module-id asks before a declaration is taken as final. */
+const ID_MISS_LIMIT = 3;
 
 export function createPageHierarchy(port: PageParamSource, qualify: (k: string) => string,
                                     cache: PageReadCache,
@@ -112,9 +121,34 @@ export function createPageHierarchy(port: PageParamSource, qualify: (k: string) 
         return parsedVal;
     }
 
+    /* THE VERDICT ON A DECLARATION IS MEMOIZED AGAINST ITS TEXT, module id
+     * included. Asking the id per ask put one more host trip on every reload
+     * poll of every synth that declares a contract (schwung-page-idle-cost),
+     * for an answer that changes only with the contract or a module swap —
+     * and a swap calls `invalidate`. */
+    let verdictFrom: string | null = null;
+    let verdictVal: string | null = null;
+    let idMisses = 0;
+    function latch(text: string, val: string): string {
+        verdictFrom = text; verdictVal = val; idMisses = 0;
+        return val;
+    }
+    function overDeclared(text: string, levels: unknown): string {
+        if (text === verdictFrom) return verdictVal as string;
+        if (declaresModernRack(levels)) return latch(text, text);
+        /* NOT a hold while the id is in flight: that would delay every synth's
+         * first plan for five racks. The id rides the same cache as the
+         * contract and is normally already there; until it is, the declaration
+         * stands. A cache null is never cached, so an id that never answers
+         * would be one live read per ask, forever — after a few, the
+         * declaration latches. */
+        if (!moduleId()) return ++idMisses >= ID_MISS_LIMIT ? latch(text, text) : text;
+        return latch(text, translated() ?? text);
+    }
+
     function readRaw(): string | null {
         const d = declared.get();
-        if (d.text) return d.text;
+        if (d.text) return overDeclared(d.text, d.levels);
 
         /* THE MODULE HAS TO HAVE ANSWERED before movy speaks for it. `pending`
          * is a read in flight: hold, and the controller asks again. */
@@ -129,6 +163,7 @@ export function createPageHierarchy(port: PageParamSource, qualify: (k: string) 
         peek: () => parse(lastRaw),
         invalidate() {
             synthId = null; synthText = null; parsedFrom = null; parsedVal = null; lastRaw = null;
+            verdictFrom = null; verdictVal = null; idMisses = 0;
             declared.invalidate();
         },
     };

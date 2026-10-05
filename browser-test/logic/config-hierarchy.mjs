@@ -116,12 +116,12 @@ _log('\nTest: the params a bank draws are the params its level declares');
     const h = hierarchyFromConfig(c);
     const kick = h.levels[Object.keys(h.levels).find((k) => h.levels[k].name === 'Kick')];
     const declared = c.banks[0].rows.flat().filter(Boolean).map((p) => p.key);
-    eq('the kick level lists the kick bank\'s keys', kick.params.join(','), declared.join(','));
+    eq('the kick level lists the kick bank\'s keys', kick.params.map((x) => x.key).join(','), declared.join(','));
     eq('and puts them under the same eight knobs', kick.knobs.join(','), declared.join(','));
 
     /* A config row pads with nulls to fill a page; a null is not a param and a
      * level that claimed one would plan an empty cell. */
-    ok('no empty slot survives the translation', kick.params.every((k) => !!k));
+    ok('no empty slot survives the translation', kick.params.every((x) => !!(x && x.key)));
 }
 
 _log('\nTest: nothing is translated for a config that declares no voice run');
@@ -164,6 +164,70 @@ _log('\nTest: the same config translates to the same thing every time');
     const a = JSON.stringify(hierarchyFromConfig(cfg('cw78')));
     const b = JSON.stringify(hierarchyFromConfig(cfg('cw78')));
     eq('byte-identical', a, b);
+}
+
+
+const bundled = (id) => JSON.parse(readFileSync(
+    new URL(`../../src/modules/${id}.json`, import.meta.url), 'utf8'));
+const { declaresModernRack } = await import('../../dist/esm/model/modern-rack.js');
+
+_log('\nTest: a pad-scoped rack translates to its banks as plain pages (2026-10-05)');
+{
+    /* The older drum racks edit the focused pad through alias keys; under
+     * Schwung pages they play from movy's banks, in movy's order. */
+    for (const id of ['mrdrums', 'weird-dreams', 'signal']) {
+        const c = bundled(id);
+        const h = hierarchyFromConfig(c);
+        ok(`${id}: translates`, !!h);
+        if (!h) continue;
+        eq(`${id}: root links every bank in order`,
+           h.levels.root.params.map((x) => x.label).join(','),
+           c.banks.map((b) => b.name).join(','));
+        /* No voices and no layout: the config decides the pads (D4), and a
+         * voice here would seat a rack the config does not describe. */
+        eq(`${id}: no pad_layout`, h.pad_layout, undefined);
+        ok(`${id}: no level carries a note`,
+           Object.values(h.levels).every((l) => l.note === undefined));
+    }
+}
+
+_log('\nTest: an alias carries the config\'s metadata inline');
+{
+    /* `cv_*` keys have no chain_params entry, so without the inline entry the
+     * planner guesses a 0..1 float and an enum becomes a bare knob. */
+    const c = bundled('weird-dreams');
+    const slot = c.banks.flatMap((b) => b.rows.flat()).find((x) => x && x.options);
+    ok('the fixture has an enum slot', !!slot);
+    const h = hierarchyFromConfig(c);
+    const p = Object.values(h.levels).flatMap((l) => l.params)
+        .find((x) => x && x.key === slot.key);
+    eq('its options survive', JSON.stringify(p.options), JSON.stringify(slot.options));
+    eq('and its type', p.type, slot.type);
+}
+
+_log('\nTest: a config that is not a pad-scoped rack still translates to nothing');
+{
+    /* A raw-MIDI note map has no per-pad pages, and a synth's config must
+     * never outvote its own declaration. */
+    eq('krautdrums (raw-MIDI note map)', hierarchyFromConfig(bundled('krautdrums')), null);
+    eq('slicer (raw-MIDI note map)', hierarchyFromConfig(bundled('slicer')), null);
+    eq('303 (a synth)', hierarchyFromConfig(bundled('303')), null);
+}
+
+_log('\nTest: which declarations count as a modern drum rack');
+{
+    eq('pad_layout drums', declaresModernRack({ pad_layout: 'drums', levels: {} }), true);
+    eq('a child_prefix level (simian, dr32)', declaresModernRack({ levels: {
+        pads: { child_prefix: 'pad', child_count: 16 } } }), true);
+    eq('an {index} template (sophie)', declaresModernRack({ levels: {
+        root: { child_key_template: 'p{index}_{key}', child_index_param: 'focused_pad' } } }), true);
+    /* forge: a voice level that passes `{key}` straight through to the
+     * module's own focused voice declares nothing per pad. */
+    eq('a {key} passthrough (forge)', declaresModernRack({ levels: {
+        Voice: { child_key_template: '{key}', child_index_param: 'focused_voice' } } }), false);
+    eq('plain levels (mrdrums, weird-dreams)', declaresModernRack({ levels: {
+        root: { knobs: ['a'] }, global: { knobs: ['b'] } } }), false);
+    eq('nothing', declaresModernRack(null), false);
 }
 
 }

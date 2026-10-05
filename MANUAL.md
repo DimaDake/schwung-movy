@@ -1093,6 +1093,14 @@ Signal ship Movy templates; Forge and Libpo32 are **self-describing** — they
 carry their own layout in the module. Other drum modules may need one
 contributed (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
+On pages Schwung draws, an older drum module still follows its Movy template:
+**Forge, Mr Drums, Weird Dreams, Signal and Libpo32** show the template's
+pages, in the template's order, so they look the same as on Movy's own pages.
+The knobs on them edit the pad you last pressed, as before. A drum module that
+describes its pads itself (Simian, DR32, Sophie, and the 6W6/9W9 kits) shows its
+own pages. On Forge, a pad press no longer jumps to a voice page. It picks the
+voice the page edits, the same as on Movy's own pages.
+
 #### Muting one voice
 
 A drum track's voices can be silenced one at a time, with the same gesture that

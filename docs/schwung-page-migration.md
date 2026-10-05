@@ -3836,7 +3836,9 @@ three callers already import. The file name in the closes-when moved with it.
 
 - **movy's config translation is not a rung.** It is the delegated page's own
   last resort (SP-14), because Schwung's planner needs a contract or it has
-  nothing to plan. The model consumes `movy_config` natively through
+  nothing to plan. (2026-10-05, the user's ruling: it also outvotes a contract
+  that declares no modern drum rack, for rack configs only. See the drum plan,
+  §7.) The model consumes `movy_config` natively through
   `buildConfigPages`, and handing it a translated hierarchy would make movy's own
   table indistinguishable from the module's own declaration — `readSurface` would
   read it as declared voices and outvote the table it was translated from.

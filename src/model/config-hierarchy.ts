@@ -13,18 +13,21 @@
  * the translation is movy's: it already knows these racks, and what it knows is
  * expressible in the declaration a module would ship.
  *
- * ONLY WHERE THE MODULE SAID NOTHING. A module with its own `ui_hierarchy` is
- * authoritative and is never overridden — that is the direction this whole
- * migration runs in, and a movy table that outvoted a module's own words would
- * be the second implementation being removed, re-installed one layer down. The
- * caller (renderer/schwung-page-hierarchy) reaches here only after the module's
- * own contract has come back RESOLVED and empty.
+ * WHERE IT APPLIES (user's ruling, 2026-10-05). A rack movy has a config for
+ * is planned from that config unless the module declares its rack the MODERN
+ * way (`declaresModernRack`). The older drum modules — forge, mrdrums,
+ * weird-dreams, signal, libpo32 — publish a contract with no per-pad surface in
+ * it (forge's voice levels address `{key}`, i.e. the module's own focus), and
+ * they play better from movy's curated banks. A module that DOES declare its
+ * pads (simian, dr32, sophie, 6w6/9w9's `pad_layout`) keeps its own pages. A
+ * config that describes no rack (a synth's) is never translated, so it never
+ * outvotes anything. The caller is renderer/schwung-page-hierarchy.
  *
  * PURE, AND FREE OF SCHWUNG. Plain config in, plain object out: `model/` may not
  * import `renderer/`, and this has to be testable without a schwung checkout —
  * the same rule drum-declared.ts follows for the opposite direction of travel.
  */
-import type { ModuleConfig, BankConfig } from '../types/param.js';
+import type { ModuleConfig, BankConfig, KnobSlot } from '../types/param.js';
 import { buildRotation } from './page-rotation.js';
 
 /** A level key movy invents, from the bank name the user already sees. */
@@ -33,21 +36,58 @@ function slug(name: string): string {
         .replace(/^_+|_+$/g, '') || 'bank';
 }
 
-/** The keys a bank draws, with the row padding dropped. A config pads its rows
+/** The slots a bank draws, with the row padding dropped. A config pads its rows
  *  with nulls to fill a page (config-pages.ts does the same downstream); a null
  *  is not a parameter, and a level claiming one plans an empty cell. */
-function keysOf(bank: BankConfig): string[] {
-    const out: string[] = [];
+function slotsOf(bank: BankConfig): KnobSlot[] {
+    const out: KnobSlot[] = [];
     for (const row of bank.rows || []) {
-        for (const slot of row || []) if (slot && slot.key) out.push(slot.key);
+        for (const slot of row || []) if (slot && slot.key) out.push(slot);
     }
     return out;
+}
+
+/** A slot as a Schwung inline param entry.
+ *
+ *  INLINE BECAUSE AN ALIAS IS DECLARED NOWHERE ELSE. forge's 43 `cv_*`, libpo32's
+ *  `v_*`, mrdrums' `pad_*` have no `chain_params` entry (SP-21's audit), so
+ *  without this the planner guesses a 0..1 float and an enum turns into a bare
+ *  knob. Schwung's metaIndex lets a real `chain_params` entry win over an inline
+ *  one, so a key the module does declare keeps the module's metadata. */
+function paramOf(slot: KnobSlot): Record<string, unknown> {
+    const p: Record<string, unknown> = { key: slot.key, type: slot.type };
+    const label = slot.full || slot.short;
+    if (label) p.label = label;
+    if (slot.options) p.options = slot.options;
+    if (slot.min !== undefined) p.min = slot.min;
+    if (slot.max !== undefined) p.max = slot.max;
+    if (slot.step !== undefined) p.step = slot.step;
+    if (slot.uiType) p.ui_type = slot.uiType;
+    if (slot.filepathParam) p.filepath_param = slot.filepathParam;
+    if (slot.fileRoot) p.root = slot.fileRoot;
+    if (slot.fileFilter) p.filter = slot.fileFilter;
+    if (slot.fileStartPath) p.start_path = slot.fileStartPath;
+    return p;
+}
+
+/** A config that edits the focused pad through alias keys or a focus param —
+ *  forge, mrdrums, weird-dreams, signal, libpo32, sophie. A raw-MIDI note map
+ *  (krautdrums, essaim, slicer) has no per-pad pages to give. */
+function isPadScopedRack(cfg: ModuleConfig): boolean {
+    const d = cfg.drum;
+    return !!d && !d.rawMidi && !!(d.padScoping || d.currentPadParam);
 }
 
 /**
  * The Schwung hierarchy a movy config describes, or null when it describes no
  * rack — which is most configs, and must stay null so nothing starts planning
- * voice pages for a synth.
+ * voice pages for a synth (nor outvotes a synth's own declaration).
+ *
+ * Two rack shapes. A SIBLING rack (6w6/8w8/9w9/cw78) has a voice run, and its
+ * leading banks become voice levels with a note each. A PAD-SCOPED rack (forge,
+ * mrdrums, ...) has one set of banks that edits whichever pad is focused; its
+ * banks become plain pages, and movy's seam resolves each alias at movy's pad
+ * (schwung-page-focus `ioKey`), exactly as MOVY mode's config pages do.
  *
  * THE VOICE RUN IS `buildRotation`'S, NOT A SECOND COPY OF IT. movy's own
  * renderer already decides which banks are voices — the LEADING run of
@@ -63,7 +103,7 @@ export function hierarchyFromConfig(cfg: ModuleConfig | null | undefined): any |
     if (!banks || !banks.length) return null;
 
     const { voiceCount } = buildRotation(banks.map((b) => b.pad), 0);
-    if (voiceCount === 0) return null;
+    if (voiceCount === 0) return isPadScopedRack(cfg!) ? padScopedHierarchy(cfg!, banks) : null;
 
     /* The note a pad plays is the config's arithmetic, `padNoteStart + pad - 1`
      * — the same one movy's drum grid uses. Without a start note there is no
@@ -72,10 +112,45 @@ export function hierarchyFromConfig(cfg: ModuleConfig | null | undefined): any |
     const start = cfg!.drum && cfg!.drum.padNoteStart;
     if (!Number.isFinite(start as number)) return null;
 
+    /* A note is what makes a level a VOICE — 9W9's Reverb and Delay are pages
+     * precisely because they declare none (voices.mjs). Only the leading run
+     * gets one; a `pad` on a later bank is an ordinary page, which is the rule
+     * buildRotation just applied. */
+    const levels = levelsOf(cfg!, banks, (bank, i) =>
+        i < voiceCount ? (start as number) + (bank.pad as number) - 1 : undefined);
+
+    /* Declared, never inferred (voices.mjs): movy is stating on the config's
+     * behalf that this is a rack. It is also what lights Schwung's pad icon for
+     * the voice a page edits. */
+    return { pad_layout: 'drums', levels };
+}
+
+function levelOf(bank: BankConfig): any {
+    const slots = slotsOf(bank);
+    return { name: bank.name, params: slots.map(paramOf), knobs: slots.map((p) => p.key) };
+}
+
+/* Root is a signpost and nothing else. Its nav links are what page_plan walks,
+ * in array order, so THIS is the jog order — the bank order movy already draws.
+ * It carries no knobs, and the planner drops a knobs page whose every slot is
+ * empty, so root costs no jog step of its own. */
+function rootOf(cfg: ModuleConfig, nav: { label: string; level: string }[]): any {
+    return { name: (cfg.name || cfg.id || 'Module'), params: nav, knobs: [] };
+}
+
+/** A pad-scoped rack's banks as plain pages, in bank order. No `pad_layout` and
+ *  no notes: the config, not this contract, decides the pads (D4), and a voice
+ *  here would seat a rack the config does not describe. */
+function padScopedHierarchy(cfg: ModuleConfig, banks: BankConfig[]): any {
+    return { levels: levelsOf(cfg, banks, () => undefined) };
+}
+
+/** One level per bank, plus root. */
+function levelsOf(cfg: ModuleConfig, banks: BankConfig[],
+                  noteOf: (bank: BankConfig, i: number) => number | undefined): Record<string, any> {
     const levels: Record<string, any> = {};
     const nav: { label: string; level: string }[] = [];
     const taken = new Set<string>(['root']);
-
     banks.forEach((bank, i) => {
         /* THE LEVEL KEY IS AN IDENTITY, not chrome: `focusVoice` matches a voice
          * to its page by level, so two banks named alike collapsing into one
@@ -83,26 +158,12 @@ export function hierarchyFromConfig(cfg: ModuleConfig | null | undefined): any |
         let key = slug(bank.name);
         while (taken.has(key)) key += '_';
         taken.add(key);
-
-        const keys = keysOf(bank);
-        const level: any = { name: bank.name, params: keys, knobs: keys };
-        /* A note is what makes a level a VOICE — 9W9's Reverb and Delay are
-         * pages precisely because they declare none (voices.mjs). Only the
-         * leading run gets one; a `pad` on a later bank is an ordinary page,
-         * which is the rule buildRotation just applied. */
-        if (i < voiceCount) level.note = (start as number) + (bank.pad as number) - 1;
+        const level = levelOf(bank);
+        const note = noteOf(bank, i);
+        if (note !== undefined) level.note = note;
         levels[key] = level;
         nav.push({ label: bank.name, level: key });
     });
-
-    /* Root is a signpost and nothing else. Its nav links are what page_plan
-     * walks, in array order, so THIS is the jog order — the bank order movy
-     * already draws. It carries no knobs, and the planner drops a knobs page
-     * whose every slot is empty, so root costs no jog step of its own. */
-    levels.root = { name: (cfg!.name || cfg!.id || 'Module'), params: nav, knobs: [] };
-
-    /* Declared, never inferred (voices.mjs): movy is stating on the config's
-     * behalf that this is a rack. It is also what lights Schwung's pad icon for
-     * the voice a page edits. */
-    return { pad_layout: 'drums', levels };
+    levels.root = rootOf(cfg, nav);
+    return levels;
 }

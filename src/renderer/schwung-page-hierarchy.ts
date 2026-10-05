@@ -38,7 +38,7 @@ import type { PageReadCache } from './schwung-page-cache.js';
 import { moduleReadKey } from '../chain/config.js';
 import { createContractSource } from '../chain/hierarchy-source.js';
 import { loadModuleConfig } from '../modules/loader.js';
-import { hierarchyFromConfig } from '../model/config-hierarchy.js';
+import { hierarchyFromConfig, PAD_SCOPED_FIELD } from '../model/config-hierarchy.js';
 import { declaresModernRack } from '../model/modern-rack.js';
 
 export interface PageHierarchy {
@@ -51,6 +51,9 @@ export interface PageHierarchy {
      *  question asked on every controller read (schwung-page-focus.ts). The
      *  controller re-reads the contract on its own poll, which keeps it fresh. */
     peek(): any | null;
+    /** Is this level one of a translated config's per-pad banks? The seat
+     *  answers for declared voices; a pad-scoped config rack has none. */
+    padScopedLevel(level: string | null | undefined): boolean;
     /** Forget the translation. A re-plan, or a module swap. */
     invalidate(): void;
 }
@@ -161,6 +164,10 @@ export function createPageHierarchy(port: PageParamSource, qualify: (k: string) 
         raw,
         parsed: () => parse(raw()),
         peek: () => parse(lastRaw),
+        padScopedLevel(level) {
+            const h = level ? parse(lastRaw) : null;
+            return !!(h && h.levels && h.levels[level as string] && h.levels[level as string][PAD_SCOPED_FIELD]);
+        },
         invalidate() {
             synthId = null; synthText = null; parsedFrom = null; parsedVal = null; lastRaw = null;
             verdictFrom = null; verdictVal = null; idMisses = 0;

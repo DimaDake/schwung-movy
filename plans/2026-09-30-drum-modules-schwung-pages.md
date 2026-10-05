@@ -674,3 +674,19 @@ config never translates, so it never outvotes anything.
   mrdrums, each against a plain and a modern contract). Teeth: with the
   override removed, 10 checks go red.
 
+### §7 follow-ups (same day)
+
+- **Pad icon.** A translated `padSpecific` bank carries `movy_pad_scoped` on its
+  level, and the chrome lights the icon on it (`hier.padScopedLevel`). The seat
+  still answers for declared voices. Test: `drum-seat.mjs` (forge, mrdrums,
+  weird-dreams page by page; 9 red without it). Screenshot `page_config_pad`.
+- **Graphics.** `model/config-viz.ts` turns `env`/`filter`/`lfo`/`render: vbar|hbar`
+  /`env: false` into declared `viz` on the inline entries, grouped per config
+  row. lfo `mode`/`retrig`/`deform` have no Schwung role and stay undeclared.
+  Checked through Schwung's own `resolveViz` in `fleet-pages.mjs`: forge Filter
+  is a declared filter, Mix 8 declared faders, and Mod's LFO is refused for
+  adjacency (Speed sits between rate and depth). movy draws no wave there
+  either. Screenshots `page_config_filter`, `page_config_mix`. The dump fixture
+  serves no values for forge's concrete per-pad keys, so the filter curve in the
+  shot sits at its floor.
+

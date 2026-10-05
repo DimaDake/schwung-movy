@@ -231,6 +231,11 @@ for (const [id, perPad] of [
     ['voice-poc', (pg, voices) => voices.some((v) => v.level === pg.level)],
     ['simian',    (pg) => !!pg.childLevel],
     ['sophie',    () => true],
+    /* Config racks (plan §7) have no voices; their per-pad pages are the
+     * config's `padSpecific` banks, named here rather than read back. */
+    ['forge',        (pg) => ['Osc', 'Filter', 'Env', 'Mod', 'Setup', 'Send'].includes(pg.name)],
+    ['mrdrums',      (pg) => ['Main', 'Rand'].includes(pg.name)],
+    ['weird-dreams', (pg) => pg.name === 'Voice'],
 ]) {
     const { p, model, fixture, restoreFs } = boot(id);
     const voices = voicesOf(JSON.parse(fixture['synth:ui_pages'] || fixture['synth:ui_hierarchy']));

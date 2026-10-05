@@ -29,6 +29,7 @@
  */
 import type { ModuleConfig, BankConfig, KnobSlot } from '../types/param.js';
 import { buildRotation } from './page-rotation.js';
+import { vizOf } from './config-viz.js';
 
 /** A level key movy invents, from the bank name the user already sees. */
 function slug(name: string): string {
@@ -39,11 +40,11 @@ function slug(name: string): string {
 /** The slots a bank draws, with the row padding dropped. A config pads its rows
  *  with nulls to fill a page (config-pages.ts does the same downstream); a null
  *  is not a parameter, and a level claiming one plans an empty cell. */
-function slotsOf(bank: BankConfig): KnobSlot[] {
-    const out: KnobSlot[] = [];
-    for (const row of bank.rows || []) {
-        for (const slot of row || []) if (slot && slot.key) out.push(slot);
-    }
+function slotsOf(bank: BankConfig): { slot: KnobSlot; row: number }[] {
+    const out: { slot: KnobSlot; row: number }[] = [];
+    (bank.rows || []).forEach((row, r) => {
+        for (const slot of row || []) if (slot && slot.key) out.push({ slot, row: r });
+    });
     return out;
 }
 
@@ -54,7 +55,7 @@ function slotsOf(bank: BankConfig): KnobSlot[] {
  *  without this the planner guesses a 0..1 float and an enum turns into a bare
  *  knob. Schwung's metaIndex lets a real `chain_params` entry win over an inline
  *  one, so a key the module does declare keeps the module's metadata. */
-function paramOf(slot: KnobSlot): Record<string, unknown> {
+function paramOf(slot: KnobSlot, group: string): Record<string, unknown> {
     const p: Record<string, unknown> = { key: slot.key, type: slot.type };
     const label = slot.full || slot.short;
     if (label) p.label = label;
@@ -67,6 +68,8 @@ function paramOf(slot: KnobSlot): Record<string, unknown> {
     if (slot.fileRoot) p.root = slot.fileRoot;
     if (slot.fileFilter) p.filter = slot.fileFilter;
     if (slot.fileStartPath) p.start_path = slot.fileStartPath;
+    const viz = vizOf(slot, group);
+    if (viz !== undefined) p.viz = viz;
     return p;
 }
 
@@ -127,8 +130,21 @@ export function hierarchyFromConfig(cfg: ModuleConfig | null | undefined): any |
 
 function levelOf(bank: BankConfig): any {
     const slots = slotsOf(bank);
-    return { name: bank.name, params: slots.map(paramOf), knobs: slots.map((p) => p.key) };
+    const level: any = {
+        name: bank.name,
+        params: slots.map((x) => paramOf(x.slot, bank.name + ':' + x.row)),
+        knobs: slots.map((x) => x.slot.key),
+    };
+    /* movy's own mark, for movy's header: the bank re-targets with the focused
+     * pad, which is what the pad icon says. Schwung's planner ignores a level
+     * field it does not know, and a pad-scoped rack has no voices for the
+     * seat to answer from. */
+    if (bank.padSpecific) level[PAD_SCOPED_FIELD] = true;
+    return level;
 }
+
+/** The level field marking a translated bank as per-pad (`bank.padSpecific`). */
+export const PAD_SCOPED_FIELD = 'movy_pad_scoped';
 
 /* Root is a signpost and nothing else. Its nav links are what page_plan walks,
  * in array order, so THIS is the jog order — the bank order movy already draws.

@@ -230,4 +230,30 @@ _log('\nTest: which declarations count as a modern drum rack');
     eq('nothing', declaresModernRack(null), false);
 }
 
+
+_log('\nTest: a slot\'s graphic tag becomes Schwung\'s viz, row by row');
+{
+    const h = hierarchyFromConfig({
+        id: 'tags', name: 'Tags', drum: { padCount: 2, padNoteStart: 36, padScoping: { aliasPrefix: 'cv_' } },
+        banks: [{ name: 'All', rows: [
+            [{ key: 'a', env: 'a' }, { key: 'd', env: 'd' }, { key: 's', env: 's' }, { key: 'r', env: 'r' }],
+            [{ key: 'cut', filter: 'cutoff' }, { key: 'res', filter: 'resonance' },
+             { key: 'w', lfo: 'shape' }, { key: 'm', lfo: 'mode' }],
+            [{ key: 'bar', render: 'vbar' }, { key: 'clk', env: false }, { key: 'plain' }],
+        ] }],
+    });
+    const v = (k) => Object.values(h.levels).flatMap((l) => l.params).find((x) => x && x.key === k).viz;
+    eq('attack is an envelope attack', JSON.stringify(v('a')), JSON.stringify({ group: 'All:0:env', role: 'attack', kind: 'envelope' }));
+    eq('release too, in the same group', v('r').group, v('a').group);
+    eq('cutoff is a filter role', v('cut').role, 'cutoff');
+    /* One graphic per config row, like movy's own: row 1's filter is not row
+     * 0's envelope's group, and could not be drawn across the row gap anyway. */
+    ok('a different row is a different group', v('cut').group !== v('a').group);
+    eq('an LFO shape is an LFO role', v('w').kind, 'lfo');
+    eq('a role Schwung lacks stays undeclared', v('m'), undefined);
+    eq('a bar is a fader', v('bar').kind, 'fader');
+    eq('env:false vetoes the detector', v('clk'), false);
+    eq('an untagged slot is left to the detector', v('plain'), undefined);
+}
+
 }

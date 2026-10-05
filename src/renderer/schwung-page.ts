@@ -252,7 +252,8 @@ export function createSchwungPage(
          * what answers it. */
         peekOpen: () => (typeof ctl.enumPeek === 'function' ? !!ctl.enumPeek() : false),
         render: page.render,
-        chrome: (paging: boolean) => chromeFor(ctl, lib, paging, seat.onBlock()),
+        chrome: (paging: boolean) => chromeFor(ctl, lib, paging,
+            seat.onBlock() || hier.padScopedLevel(ctl.pages?.[ctl.pageIndex]?.level)),
         regularKnobAt: (slot: number) => regularKnob(ctl.metaAt ? ctl.metaAt(slot) : null, lib),
         knobTurn: input.knobTurn,
         knobTouch: input.knobTouch,

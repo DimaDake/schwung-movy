@@ -1096,7 +1096,14 @@ contributed (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 On pages Schwung draws, an older drum module still follows its Movy template:
 **Forge, Mr Drums, Weird Dreams, Signal and Libpo32** show the template's
 pages, in the template's order, so they look the same as on Movy's own pages.
-The knobs on them edit the pad you last pressed, as before. A drum module that
+The knobs on them edit the pad you last pressed, as before. A page that edits the
+selected pad shows the **pad icon** next to its name (Forge's Osc to Send pages,
+Mr Drums' Main and Rand, Weird Dreams' Voice). Global pages such as Mix or
+Master don't show it. The template's graphics carry over too, wherever Schwung can draw them: Forge's
+Filter page shows a filter curve, and its Mix page shows eight faders. Envelope,
+filter and LFO tags are drawn when their knobs sit next to each other in one
+row. Forge's Mod page has Speed between the LFO's rate and depth, so it stays
+as separate knobs, as it is on Movy's own pages. A drum module that
 describes its pads itself (Simian, DR32, Sophie, and the 6W6/9W9 kits) shows its
 own pages. On Forge, a pad press no longer jumps to a voice page. It picks the
 voice the page edits, the same as on Movy's own pages.

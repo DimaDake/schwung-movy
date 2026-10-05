@@ -296,6 +296,45 @@ async function main() {
         else ok(`${id}: ${r.pages.length} pages named for its banks, ${voices.length} voices at ${notes}`);
     }
 
+    /*
+     * A CONFIG'S GRAPHIC TAGS, THROUGH SCHWUNG'S OWN RESOLVER (drum plan §7).
+     * The translation declares `viz` on its inline entries; this asks
+     * `resolveViz` what it would draw, against the captured chain_params, so a
+     * shape Schwung rejects (roles split across a row, an unknown role) fails
+     * here rather than drawing nothing on the device. forge is the subject: its
+     * config tags a filter, an LFO and eight bars.
+     */
+    {
+        const { resolveViz } = await import(join(PP, 'viz.mjs'));
+        const { buildMetaIndex } = await import(join(PP, 'param_meta.mjs'));
+        console.log('\nfleet-pages: movy-config graphic tags, resolved by Schwung');
+        const m = dump.modules.find((x) => x.id === 'forge');
+        const cfg = m && P(m.movy_config);
+        const h = cfg && hierarchyFromConfig(cfg);
+        if (!h) fail('forge', 'no translated config to resolve');
+        else {
+            const cp = P(m.chain_params);
+            const r = planPages({ hierarchy: h, chainParams: cp, unresolved: false });
+            const mi = buildMetaIndex({ hierarchy: h, chainParams: cp });
+            const on = (name) => {
+                const pg = r.pages.find((x) => x.name === name);
+                return pg ? resolveViz({ keys: pg.keys, metaIndex: mi }) : { groups: [], invalid: [] };
+            };
+            const filter = on('Filter').groups.find((g) => g.kind === 'filter');
+            if (!filter || filter.source !== 'declared') fail('forge', 'Filter page: no declared filter graphic');
+            else ok(`forge: Filter draws a declared filter over ${filter.keys.join(',')}`);
+            const faders = on('Mix').groups.filter((g) => g.kind === 'fader' && g.source === 'declared');
+            if (faders.length !== 8) fail('forge', `Mix page: ${faders.length} declared faders, want 8`);
+            else ok('forge: Mix draws 8 declared faders');
+            /* movy's own Mod page draws no wave either: the shape, rate and
+             * depth are split by Speed, so Schwung's adjacency rule refuses the
+             * group. Pinned, so a change in either direction is noticed. */
+            const mod = on('Mod');
+            if (!mod.invalid.some((x) => x.kind === 'lfo')) fail('forge', 'Mod page: the split LFO is no longer refused');
+            else ok('forge: Mod refuses the split LFO, as movy does');
+        }
+    }
+
     if (failures === 0) console.log(`\n${ESC}[32m${ESC}[1mALL FLEET-PAGE CHECKS PASSED${ESC}[0m`);
     else { console.log(`\n${ESC}[31m${ESC}[1m${failures} FLEET-PAGE CHECK(S) FAILED${ESC}[0m`); process.exit(1); }
 }

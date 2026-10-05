@@ -172,7 +172,13 @@ far. Earlier work is summarised in the timeline below for context.
   modern drum rack (`pad_layout: "drums"`, a `child_prefix` level, or a
   `p{index}_…` template). The config's min/max/options go inline, because the
   alias keys have no `chain_params` entry. Simian, DR32, Sophie, 6W6 and 9W9
-  keep their own pages. libpo32's lanes on pads 3 and 16 now sound and draw
+  keep their own pages. A per-pad bank (`padSpecific`) shows the header's pad
+  icon, as in MOVY mode. The config's graphic tags become Schwung `viz`
+  declarations (`model/config-viz.ts`): `env`, `filter` and `lfo` roles map to
+  envelope/filter/LFO groups, one per config row, `vbar`/`hbar` to a fader,
+  and `env: false` to `viz: false`. Forge's Filter now draws a filter
+  response and its Mix page eight faders. A module's own `viz` still wins.
+  libpo32's lanes on pads 3 and 16 now sound and draw
   (`model/config-hierarchy.ts`, `model/modern-rack.ts`,
   `renderer/schwung-page-hierarchy.ts`).
 

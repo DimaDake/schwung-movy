@@ -177,7 +177,9 @@ far. Earlier work is summarised in the timeline below for context.
   declarations (`model/config-viz.ts`): `env`, `filter` and `lfo` roles map to
   envelope/filter/LFO groups, one per config row, `vbar`/`hbar` to a fader,
   and `env: false` to `viz: false`. Forge's Filter now draws a filter
-  response and its Mix page eight faders. A module's own `viz` still wins.
+  response, its Mix page eight faders, and its Mod page an LFO wave. A role
+  past an untagged knob is declared `span: false`, so it keeps its own cell
+  and still feeds the picture. A module's own `viz` still wins.
   libpo32's lanes on pads 3 and 16 now sound and draw
   (`model/config-hierarchy.ts`, `model/modern-rack.ts`,
   `renderer/schwung-page-hierarchy.ts`).

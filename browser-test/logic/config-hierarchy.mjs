@@ -256,4 +256,21 @@ _log('\nTest: a slot\'s graphic tag becomes Schwung\'s viz, row by row');
     eq('an untagged slot is left to the detector', v('plain'), undefined);
 }
 
+
+_log('\nTest: a group split by an untagged knob keeps its first run and lends the rest');
+{
+    /* forge's Mod row: Sync sits between Rate and Depth. */
+    const h = hierarchyFromConfig({
+        id: 'split', name: 'Split', drum: { padCount: 2, padNoteStart: 36, padScoping: { aliasPrefix: 'cv_' } },
+        banks: [{ name: 'Mod', rows: [[{ key: 'w', lfo: 'shape' }, { key: 'r', lfo: 'rate' },
+                                       { key: 's' }, { key: 'd', lfo: 'depth' }]] }],
+    });
+    const v = (k) => h.levels.mod.params.find((x) => x.key === k).viz;
+    eq('shape spans', v('w').span, undefined);
+    eq('rate spans', v('r').span, undefined);
+    eq('depth is lent, not spanned', v('d').span, false);
+    eq('and stays in the group', v('d').group, v('w').group);
 }
+
+}
+

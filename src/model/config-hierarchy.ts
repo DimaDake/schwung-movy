@@ -29,7 +29,7 @@
  */
 import type { ModuleConfig, BankConfig, KnobSlot } from '../types/param.js';
 import { buildRotation } from './page-rotation.js';
-import { vizOf } from './config-viz.js';
+import { vizOf, settleSpans } from './config-viz.js';
 
 /** A level key movy invents, from the bank name the user already sees. */
 function slug(name: string): string {
@@ -135,6 +135,7 @@ function levelOf(bank: BankConfig): any {
         params: slots.map((x) => paramOf(x.slot, bank.name + ':' + x.row)),
         knobs: slots.map((x) => x.slot.key),
     };
+    settleSpans(level.params);
     /* movy's own mark, for movy's header: the bank re-targets with the focused
      * pad, which is what the pad icon says. Schwung's planner ignores a level
      * field it does not know, and a pad-scoped rack has no voices for the

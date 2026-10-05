@@ -684,9 +684,11 @@ config never translates, so it never outvotes anything.
   /`env: false` into declared `viz` on the inline entries, grouped per config
   row. lfo `mode`/`retrig`/`deform` have no Schwung role and stay undeclared.
   Checked through Schwung's own `resolveViz` in `fleet-pages.mjs`: forge Filter
-  is a declared filter, Mix 8 declared faders, and Mod's LFO is refused for
-  adjacency (Speed sits between rate and depth). movy draws no wave there
-  either. Screenshots `page_config_filter`, `page_config_mix`. The dump fixture
+  is a declared filter and Mix 8 declared faders. Mod's row is Shape, Rate,
+  Sync, Depth, and Sync broke Schwung's adjacency rule. `settleSpans` declares
+  every role after the first adjacent run `span: false` (the contract's own
+  lend-a-value role), so the wave spans Shape+Rate and Depth feeds it from its
+  own cell. MOVY mode draws no wave there. Screenshot `page_config_mod`. Screenshots `page_config_filter`, `page_config_mix`. The dump fixture
   serves no values for forge's concrete per-pad keys, so the filter curve in the
   shot sits at its floor.
 

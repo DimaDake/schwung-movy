@@ -326,12 +326,14 @@ async function main() {
             const faders = on('Mix').groups.filter((g) => g.kind === 'fader' && g.source === 'declared');
             if (faders.length !== 8) fail('forge', `Mix page: ${faders.length} declared faders, want 8`);
             else ok('forge: Mix draws 8 declared faders');
-            /* movy's own Mod page draws no wave either: the shape, rate and
-             * depth are split by Speed, so Schwung's adjacency rule refuses the
-             * group. Pinned, so a change in either direction is noticed. */
-            const mod = on('Mod');
-            if (!mod.invalid.some((x) => x.kind === 'lfo')) fail('forge', 'Mod page: the split LFO is no longer refused');
-            else ok('forge: Mod refuses the split LFO, as movy does');
+            /* Mod's row is Shape, Rate, Sync, Depth. Sync breaks the run, so
+             * Depth is declared `span: false`: the wave covers Shape+Rate and
+             * Depth still feeds it from its own cell. */
+            const lfo = on('Mod').groups.find((g) => g.kind === 'lfo');
+            if (!lfo) fail('forge', 'Mod page: the split LFO draws nothing');
+            else if (lfo.slotSpan !== 2 || lfo.roles.depth !== 'cv_lfo_d')
+                fail('forge', `Mod page: LFO spans ${lfo.slotSpan} with roles ${JSON.stringify(lfo.roles)}`);
+            else ok('forge: Mod draws the LFO over Shape+Rate, Depth lent from its own cell');
         }
     }
 

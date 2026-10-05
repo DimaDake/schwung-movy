@@ -1100,10 +1100,11 @@ The knobs on them edit the pad you last pressed, as before. A page that edits th
 selected pad shows the **pad icon** next to its name (Forge's Osc to Send pages,
 Mr Drums' Main and Rand, Weird Dreams' Voice). Global pages such as Mix or
 Master don't show it. The template's graphics carry over too, wherever Schwung can draw them: Forge's
-Filter page shows a filter curve, and its Mix page shows eight faders. Envelope,
-filter and LFO tags are drawn when their knobs sit next to each other in one
-row. Forge's Mod page has Speed between the LFO's rate and depth, so it stays
-as separate knobs, as it is on Movy's own pages. A drum module that
+Filter page shows a filter curve, its Mix page eight faders, and its Mod page an
+LFO wave. When another knob sits inside a graphic's group (Forge's LFO Sync
+between Rate and Depth), the picture covers the knobs before it. The ones after
+it keep their own knob and still shape the picture: Depth sets the wave's
+height. A drum module that
 describes its pads itself (Simian, DR32, Sophie, and the 6W6/9W9 kits) shows its
 own pages. On Forge, a pad press no longer jumps to a voice page. It picks the
 voice the page edits, the same as on Movy's own pages.

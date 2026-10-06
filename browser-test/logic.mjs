@@ -70,6 +70,7 @@ import { run as run_schwung_canvas_page } from './logic/schwung-canvas-page.mjs'
 import { run as run_page_freshness } from './logic/page-freshness.mjs';
 import { run as run_page_batch } from './logic/page-batch.mjs';
 import { run as run_page_automation } from './logic/page-automation.mjs';
+import { run as run_schwung_page_undo } from './logic/schwung-page-undo.mjs';
 import { run as run_drum_automation } from './logic/drum-automation.mjs';
 import { run as run_drum_focus } from './logic/drum-focus.mjs';
 import { run as run_drum_seat } from './logic/drum-seat.mjs';
@@ -164,6 +165,7 @@ const SUITES = [
     run_page_freshness,
     run_page_batch,
     run_page_automation,
+    run_schwung_page_undo,
     run_drum_automation,
     run_drum_focus,
     run_drum_seat,

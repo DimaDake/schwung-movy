@@ -14,7 +14,7 @@
  * drives the wrong thing, or silently nothing, with an intact-looking UI. seq/persist.ts pairs every state restore with a label sync
  * for exactly this reason; an undo restore is the same operation. */
 
-import { componentPort, portFor } from '../track/registry.js';
+import { componentPort } from '../track/registry.js';
 import { mlog } from '../log.js';
 import { seqCmd, engineGeneration, requestLabelSync } from '../seq/engine.js';
 import { currentSetUuid } from '../seq/set-session.js';
@@ -36,8 +36,12 @@ import { captureModuleState, dumpModuleParams, stateIsParsable } from './module-
  * separate high range keeps the two from ever colliding. */
 let nextRestoreId = 1_000_000;
 
+/* By COMPONENT, not by slot alone: a master FX or send write is recorded under
+ * slot 0 / the root port's index, and `portFor(0)` would namespace it into
+ * whatever track 0 holds (`ch0:master_fx:…`) — see `componentPort`. */
 function setChain(slot: number, key: string, value: string): void {
-    portFor(slot).setParam(key, value);
+    const colon = key.indexOf(':');
+    componentPort(slot, colon > 0 ? key.slice(0, colon) : key).setParam(key, value);
 }
 
 /** Free engine slots the stacks have let go of. Called from the app tick. */

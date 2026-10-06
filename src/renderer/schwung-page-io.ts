@@ -15,6 +15,32 @@ import type { PageAutomation } from '../types/page-automation.js';
 import { moduleReadKey } from '../chain/config.js';
 import { createCanvasPageIo } from './schwung-canvas-page.js';
 import type { PageFocus } from './schwung-page-focus.js';
+import type { TrackPort } from '../track/port.js';
+import { isMasterComponent } from '../chain/config.js';
+import { setChainParam } from '../chain/set-param.js';
+import { beginGesture } from '../undo/edit.js';
+
+/*
+ * EVERY USER WRITE FROM A SCHWUNG PAGE IS AN UNDOABLE EDIT, and this is its one
+ * door. The controller turns numbers, enums, toggles and file picks into the
+ * same `io.setParam`, so recording here covers every knob kind at once — which
+ * is also why a per-kind fix in movy's own model code never reached these pages.
+ *
+ * Same gesture key as `model/store.ts`'s knob path (`knob:<track>:<full key>`),
+ * so a whole turn coalesces into one undo and two knobs split. A VIRTUAL source
+ * (SP-53, no `track`) is skipped: its cells are movy's own setters, which open
+ * their own gestures, and recording here too would double every entry.
+ */
+export function pageWriter(port: PageParamSource, readOld: (fullKey: string) => string | null) {
+    const track = (port as Partial<TrackPort>).track;
+    if (!track) return (key: string, v: string): boolean => port.setParam(key, v);
+    return (key: string, v: string): boolean => {
+        const field = key.slice(key.lastIndexOf(':') + 1).toUpperCase();
+        beginGesture('knob:' + track.index + ':' + key, field,
+            isMasterComponent(key) ? 'MASTER' : 'T' + (track.index + 1), false);
+        return setChainParam(port as TrackPort, key, v, readOld(key));
+    };
+}
 
 /* EVERY READ GOES THROUGH THE CACHE. Schwung asks one key per tick and would
  * otherwise spend a blocking engine GET on each — SP-26, and
@@ -28,6 +54,9 @@ export function createPageIo(port: PageParamSource, qualify: (k: string) => stri
                              focus: PageFocus | null = null) {
     const io = (k: string) => (focus ? focus.ioKey(qualify(k)) : qualify(k));
     const read = (k: string) => cache.get(io(k));
+    /* The old value through the cache too: the page has just drawn this cell,
+     * so it is already there and the write costs no extra engine GET. */
+    const write = pageWriter(port, (full) => cache.get(full));
     /*
      * THE KEY FORM IS THE ONE THING THIS FILE HAS TO GET RIGHT ABOUT MODULATION.
      *
@@ -108,7 +137,7 @@ export function createPageIo(port: PageParamSource, qualify: (k: string) => stri
      * is the page cache's (track, component) — see schwung-page-widget-sync. */
     const canvas = createCanvasPageIo(() => String(cache.get(moduleReadKey(componentKey)) || ''),
         `${(port as any)?.track?.index ?? '?'}:${componentKey}`,
-        read, (k, v) => port.setParam(qualify(k), v));
+        read, (k, v) => write(qualify(k), v));
     return {
         ...canvas,
         /*
@@ -145,7 +174,7 @@ export function createPageIo(port: PageParamSource, qualify: (k: string) => stri
                 if (!isNaN(n)) auto.noteBase(qualify(k), n);
             }
             if (focus) focus.wrote(k, v);
-            port.setParam(io(k), v);
+            write(io(k), v);
         },
         /* THE THREE MARKS ON A CELL, and which channel each one rides.
          *

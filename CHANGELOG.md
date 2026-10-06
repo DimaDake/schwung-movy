@@ -223,6 +223,13 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Knobs on Schwung pages are undoable.** A turn there wrote straight to the
+  track and recorded nothing, so Undo skipped it. Every cell kind (number,
+  enum, toggle, module canvas) now goes through one recorded writer, one undo
+  per gesture like movy's own knobs (`renderer/schwung-page-io.ts`). Undo also
+  replays a master FX or send edit to the master chain / engine root rather
+  than into track 1's chain (`undo/apply.ts`).
+
 - **Knob 1 on a module-drawn preset page is the module's knob again.**
   MonkSynth's face page maps all eight knobs, but knob 1 stepped the preset
   (the rule for a preset page with no knobs), so Vowel was unreachable there.

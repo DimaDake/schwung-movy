@@ -35,7 +35,7 @@ import type { PageParamSource, SourcePicker } from './schwung-page-source.js';
 import type { PageAutomation } from '../types/page-automation.js';
 import type { AutomationView } from '../types/viewmodel.js';
 import { schwungLib } from './schwung-lib.js';
-import { createPageIo } from './schwung-page-io.js';
+import { createPageIo, pageWriter } from './schwung-page-io.js';
 import { createPageReadCache } from './schwung-page-cache.js';
 import { createPageHierarchy } from './schwung-page-hierarchy.js';
 import { createPageContract, RELOAD_POLL_TICKS } from './schwung-page-contract.js';
@@ -163,6 +163,7 @@ export function createSchwungPage(
      * It is created here, beside the controller it serves, because its lifetime
      * is the controller's — `schwungGridReload()` drops both together. */
     const cache = createPageReadCache(port);
+    const diveWrite = pageWriter(port, (full) => cache.get(full));
     /* The one reader of the module's contract, for the two things that need it:
      * the planner (through the io below) and `focusVoice`. Built here for the
      * same reason as the cache — its lifetime is the controller's. */
@@ -268,7 +269,7 @@ export function createSchwungPage(
             /* LIVE, as upstream's dive ctx is: a script vouches and reads back
              * in one hook (DR32's pad follow), which a cached read would miss. */
             read: (k: string) => port.getParam(qualify(k)),
-            write: (k: string, v: string) => port.setParam(qualify(k), v),
+            write: (k: string, v: string) => diveWrite(qualify(k), v),
             /* Upstream re-enters the grid on the way out (enterParamPages).
              * Here: re-read live, and re-ask the gates — a new engine changes
              * no contract byte, only which pages its gates admit. */

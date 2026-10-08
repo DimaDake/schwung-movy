@@ -6,7 +6,7 @@
 use crate::capture::{
     estimate_tempos, CapEvent, CapMode, CapWhy, CaptureRing, TempoGuess, CAPTURE_MAX_BARS,
 };
-use crate::clip::{Clip, Lock, MAX_STEPS};
+use crate::clip::{Clip, Lock, Trig, MAX_STEPS};
 use crate::clock::Clock;
 use crate::track::{Track, CLIPS_PER_TRACK, LANES, NUM_TRACKS};
 use crate::{PPQN, STEPS_PER_BAR, TICKS_PER_BAR, TICKS_PER_STEP};
@@ -74,6 +74,9 @@ pub struct Engine {
     /// Automation locks captured alongside `clipboard`, steps stored relative
     /// to the copy start so an empty (note-less) step's automation copies too.
     lock_clipboard: Vec<Lock>,
+    /// Per-trig probability/condition/invert captured alongside `clipboard`
+    /// (the step page's props; velocity and length ride on the notes).
+    trig_clipboard: Vec<Trig>,
     /// Width in steps of the last `copy_steps` source range, so a paste replaces
     /// the destination span even when the source had no notes.
     clipboard_span: u16,
@@ -259,6 +262,7 @@ impl Engine {
             watch_lane: None,
             clipboard: Vec::new(),
             lock_clipboard: Vec::new(),
+            trig_clipboard: Vec::new(),
             clipboard_span: 0,
             clipboard_voice: None,
             clip_clipboard: None,
@@ -546,6 +550,7 @@ impl Engine {
             .filter(|l| voice.map_or(true, |(_, m)| lane_in(m, l.lane)))
             .map(|l| Lock { lane: l.lane, step: l.step - s0, val: l.val })
             .collect();
+        self.trig_clipboard = self.tracks[track].active().trigs_for_copy(s0, s1, voice.map(|(p, _)| p));
     }
 
     pub fn paste_steps(&mut self, track: usize, dest_step: u16) {
@@ -563,6 +568,7 @@ impl Engine {
             clip.locks.retain(|l| {
                 l.step < dest_step || l.step >= end || voice.map_or(false, |(_, m)| !lane_in(m, l.lane))
             });
+            clip.paste_trigs(dest_step, span, voice.map(|(p, _)| p), &self.trig_clipboard);
         }
         let base_tick = dest_step as u32 * TICKS_PER_STEP;
         let cb = self.clipboard.clone();
@@ -586,6 +592,7 @@ impl Engine {
     pub fn clear_clipboard(&mut self) {
         self.clipboard.clear();
         self.lock_clipboard.clear();
+        self.trig_clipboard.clear();
         self.clipboard_voice = None;
     }
 
@@ -2781,6 +2788,7 @@ fn lane_in(mask: u32, lane: u8) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::clip::TrigProps;
     use crate::command::apply_batch;
     use crate::TICKS_PER_STEP;
 
@@ -3877,6 +3885,62 @@ mod tests {
         let lock = |lane: u8| c.locks.iter().find(|l| l.lane == lane && l.step == 4).map(|l| l.val);
         assert_eq!(lock(1), Some(10), "the kick's lock is pasted");
         assert_eq!(lock(2), Some(99), "the snare's own lock is untouched");
+    }
+
+    #[test]
+    fn paste_steps_carries_the_step_page_props() {
+        let mut e = engine();
+        {
+            let c = e.tracks[0].active_mut();
+            c.add_note_raw(0, 0, 30, 60, 77);           // velocity 77, length 30
+            c.set_trig_prob(0, 0, None, 40);
+            c.set_trig_cond(0, 0, None, 2, 4);
+            c.set_trig_invert(0, 0, None, true);
+            c.set_lock(3, 0, 64);
+            c.toggle_step(5, &[(62, 100)]);
+            c.set_trig_prob(5, 5, None, 10);            // destination's own row
+        }
+        e.copy_steps(0, 0, 0);
+        e.paste_steps(0, 5);
+        let c = e.tracks[0].active();
+        let n: Vec<_> = c.notes.iter().filter(|n| n.step == 5).collect();
+        assert_eq!(n.len(), 1);
+        assert_eq!((n[0].pitch, n[0].vel, n[0].gate), (60, 77, 30));
+        assert_eq!(c.governing_trig(5, 60),
+            TrigProps { prob: 40, cond_a: 2, cond_b: 4, invert: true });
+        assert_eq!(c.trigs.iter().filter(|t| t.step == 5).count(), 1, "the dest row is replaced");
+        assert_eq!(c.lock_at(3, 5), Some(64), "automation still travels");
+    }
+
+    #[test]
+    fn paste_of_a_default_step_resets_the_destination_props() {
+        let mut e = engine();
+        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
+        e.tracks[0].active_mut().toggle_step(4, &[(60, 100)]);
+        e.tracks[0].active_mut().set_trig_prob(4, 4, None, 25);
+        e.copy_steps(0, 0, 0);
+        e.paste_steps(0, 4);
+        assert_eq!(e.tracks[0].active().governing_trig(4, 60), TrigProps::DEFAULT);
+    }
+
+    #[test]
+    fn voice_paste_carries_that_voices_governing_props_only() {
+        let mut e = engine();
+        {
+            let c = e.tracks[0].active_mut();
+            c.toggle_step(0, &[(36, 100), (38, 100)]);
+            c.set_trig_prob(0, 0, None, 30);            // whole-step row governs the kick
+            c.toggle_step(4, &[(38, 100)]);
+            c.set_trig_cond(4, 4, None, 1, 2);          // dest whole-step row (snare's)
+        }
+        e.copy_steps_voice(0, 0, 0, Some((36, 0)));
+        e.paste_steps(0, 4);
+        let c = e.tracks[0].active();
+        assert_eq!(c.governing_trig(4, 36).prob, 30, "the kick's resolved prob lands");
+        assert_eq!((c.governing_trig(4, 36).cond_a, c.governing_trig(4, 36).cond_b), (1, 1),
+            "the dest whole-step condition does not leak onto the pasted kick");
+        assert_eq!(c.governing_trig(4, 38),
+            TrigProps { prob: 100, cond_a: 1, cond_b: 2, invert: false }, "the snare keeps its row");
     }
 
     #[test]

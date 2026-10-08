@@ -194,6 +194,43 @@ impl Clip {
         self.edit_trig(s0, s1, lane, |p| p.invert = inv);
     }
 
+    /// The trig rows of [s0, s1] for the step clipboard, steps relative to s0.
+    /// A per-voice copy (`voice` = Some(pitch)) resolves the voice's GOVERNING
+    /// props on every step — a whole-step (None) row may be what governs it,
+    /// and that row belongs to the other voices too, so it can't travel as is.
+    pub fn trigs_for_copy(&self, s0: u16, s1: u16, voice: Option<u8>) -> Vec<Trig> {
+        match voice {
+            None => self.trigs.iter()
+                .filter(|t| t.step >= s0 && t.step <= s1)
+                .map(|t| Trig { step: t.step - s0, ..*t })
+                .collect(),
+            Some(p) => (s0..=s1)
+                .map(|s| Trig { step: s - s0, lane: Some(p), props: self.governing_trig(s, p) })
+                .collect(),
+        }
+    }
+
+    /// Replace the trig rows of the `span` steps at `dest` with `rows` from
+    /// `trigs_for_copy` (only `voice`'s own rows for a per-voice paste).
+    pub fn paste_trigs(&mut self, dest: u16, span: u16, voice: Option<u8>, rows: &[Trig]) {
+        let end = dest as u32 + span as u32;
+        let in_span = |s: u16| s >= dest && (s as u32) < end;
+        self.trigs.retain(|t| !in_span(t.step) || voice.map_or(false, |p| t.lane != Some(p)));
+        for r in rows {
+            let step = dest as u32 + r.step as u32;
+            if step >= MAX_STEPS as u32 || self.trigs.len() >= MAX_TRIGS {
+                continue;
+            }
+            let step = step as u16;
+            // A default row is noise, except where a destination whole-step
+            // row would otherwise govern the pasted voice.
+            let shadows = self.trigs.iter().any(|t| t.step == step && t.lane.is_none());
+            if !r.props.is_default() || (r.lane.is_some() && shadows) {
+                self.trigs.push(Trig { step, ..*r });
+            }
+        }
+    }
+
     /// Upsert a lock for (lane, step). Caps at MAX_LOCKS (drops new ones over).
     pub fn set_lock(&mut self, lane: u8, step: u16, val: u8) {
         if let Some(l) = self.locks.iter_mut().find(|l| l.lane == lane && l.step == step) {

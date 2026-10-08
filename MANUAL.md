@@ -1196,8 +1196,14 @@ for the concepts:
   wherever its notes fall. A pad that plays nothing (outside the drum grid, or
   a gap in a piano layout) clears nothing.
 
+  A step or bar copy carries **everything on the step**: the notes with their
+  velocity and length, the step page's probability, condition and invert, and
+  the step's automation. A paste replaces all of it at the destination — a
+  plain source step resets the destination's probability and condition too.
+
   On a **drum track**, copying a step or a bar copies **only the selected pad**:
-  its notes and the automation on that pad's own parameters, the way Move does
+  its notes, its probability/condition/invert, and the automation on that
+  pad's own parameters, the way Move does
   it. A paste replaces only that pad at the destination, and every other pad's
   notes and locks there stay as they were. This needs a drum module that
   declares its pads to Schwung (6W6, 8W8, 9W9, CW-78, simian, dr32, sophie) and Schwung

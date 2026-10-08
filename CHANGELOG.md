@@ -228,6 +228,13 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **A step copy carries the step page's props.** Copy + step (or bar) took the
+  notes — velocity and length with them — and the automation, but dropped each
+  trig's probability, condition and invert, so a pasted step played every time.
+  The clipboard now holds the trig rows too, and a paste replaces the
+  destination's; a drum per-voice copy takes the voice's resolved props, never
+  a whole-step row that also governs the other pads. ENGINE 0.85.0.
+
 - **A Set copied in Move keeps its instruments.** The engine seeded the copy's
   sequence and chains but not movy's UI half, so the copy looked brand new: the
   one-time track migration ran on it, found schwung's leftover slots, and

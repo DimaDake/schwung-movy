@@ -514,7 +514,7 @@ _log('\nTest: the header readout and the footer hints come from the controller')
     for (let i = 0; i < 20; i++) offModel.tick();
     ok('while the grid pages, this model’s page is delegated',
        pageOwnerOf(offModel).page !== null);
-    setSchwungGridMode(null);
+    setSchwungGridMode('off');
     eq('the grid off, the page is movy’s own — no chrome can name a page',
        pageOwnerOf(offModel).page, null);
     setSchwungGridMode('page');

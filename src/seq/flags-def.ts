@@ -52,14 +52,6 @@ export type FlagDef = {
      *  than that has its stored value ignored once, so the new default actually
      *  reaches a device that already has an opinion. */
     revisedAt?: number;
-    /** How a value stored under an OLD numbering survives a renumbered range,
-     *  applied once on the same `revisedAt` trigger — for a flag whose VALUES
-     *  were renumbered, not only its default. Absent means "no stored value
-     *  survives the revision, take `def`" (the ordinary `revisedAt` shape,
-     *  unchanged). A plain clamp to the new range is not the same thing: it
-     *  gets a shrunk top value right only by coincidence and can land an old
-     *  middle value on a new one that means something else entirely. */
-    remapAt?: (old: number) => number;
 };
 
 /** Bumped whenever a shipped default changes; see `revisedAt`.
@@ -69,7 +61,7 @@ export type FlagDef = {
  *  happen on any device that has ever opened the page. It has already bitten
  *  once: a flag left off during a measurement session kept its stored 0, and
  *  the new default reached nobody who had run one. */
-export const FLAGS_REV = 5;
+export const FLAGS_REV = 6;
 
 /* Release rows first: a release build lists only these, and a debug build reads
  * top-down the same way. */
@@ -98,20 +90,17 @@ export const FLAGS: FlagDef[] = [
         // audio thread to be told the key does not exist.
         //
         // `release`: a user-facing choice, not a measurement instrument, so a
-        // shipped build lists it. The default stays MOVY — the Schwung side
-        // still has open gaps (browser-test/page-mode-expected-fail.json), and
-        // listing the switch is not the same claim as recommending it.
+        // shipped build lists it — and MOVY stays selectable for anyone who
+        // hits a gap on the Schwung side.
         //
-        // revisedAt/remapAt: the VALUES were renumbered, not only the default
-        // — DRAW's deletion means old 1 must land on new MOVY (0), not on new
-        // SCHWUNG (1) where a plain range clamp would put it (see flags.ts's
-        // `ensure()`). Old 0 (MOVY) stays 0; old 2 (PAGE) becomes new 1
-        // (SCHWUNG). Do not reuse FLAGS_REV 4 — `engpersist` already adopted
-        // against it, and a device past rev 4 must not re-trigger that a
-        // second time.
-        min: 0, max: 1, def: 0, labels: ['MOVY', 'SCHWUNG'], uiOnly: true,
-        release: true, revisedAt: 5,
-        remapAt: (old) => (old >= 2 ? 1 : 0),
+        // Default SCHWUNG since FLAGS_REV 6 (2026-10-08). revisedAt 6 is what
+        // makes that arrive: the rev-5 adoption (SP-40's renumbering) wrote a
+        // stored 0 to every device that booted it, and a stored value beats a
+        // changed default forever. Any value stored before rev 6 — including
+        // the pre-SP-40 three-value numbering — is superseded by the new
+        // default once, so no remap is needed any more.
+        min: 0, max: 1, def: 1, labels: ['MOVY', 'SCHWUNG'], uiOnly: true,
+        release: true, revisedAt: 6,
     },
     {
         key: 'setcommit', name: 'Commit New Sets',

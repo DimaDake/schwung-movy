@@ -24,7 +24,7 @@ export async function run() {
     setSchwungGridMode(null);          // production path: ask the flag
 
     /* ── the flag IS the mode ─────────────────────────────────────────────── */
-    eq('default is movy\'s own renderer', flagValue('schwunggrid'), 0);
+    eq('default is Schwung\'s renderer', flagValue('schwunggrid'), 1);
 
     if (schwungLibAvailable()) {
         setFlag('schwunggrid', 0);

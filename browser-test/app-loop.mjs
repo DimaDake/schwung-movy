@@ -45,13 +45,14 @@ const { appState, VIEW_KNOBS, VIEW_CHAIN, VIEW_BROWSE, VIEW_FILE_BROWSE, VIEW_MA
 /* THE ARM IS SELECTED HERE, NOT BY A BUILD DEFINE. The grid is a setting now
  * (src/renderer/schwung-grid.ts), and MOVY_SCHWUNG_GRID — still in two scripts'
  * usage lines — reaches no build at all, so selecting a mode that way ran `off`
- * twice and called it an A/B. Unset means the default, which is what every
- * existing `npm test` run wants. */
+ * twice and called it an A/B. Unset means `off`, pinned rather than read from
+ * the flag: this run grades movy's own pages, and since FLAGS_REV 6 the flag
+ * defaults to SCHWUNG, whose known gaps page-mode.mjs owns. */
 const { setSchwungGridMode, schwungGridMode, schwungGridReload, schwungPageFor } =
     await import('../dist/esm/renderer/schwung-grid.js');
 const { schwungLibAvailable } = await import('../dist/esm/renderer/schwung-lib.js');
-const GRID_ARM = process.env.MOVY_APP_LOOP_GRID || null;
-if (GRID_ARM) setSchwungGridMode(GRID_ARM);
+const GRID_ARM = process.env.MOVY_APP_LOOP_GRID || 'off';
+setSchwungGridMode(GRID_ARM);
 
 /* WHICH PAGE IS UNDER THE KNOBS, asked the way the app asks it. A gesture whose
  * visible effect is "the param page moved" is asserted through the ownership
@@ -3912,7 +3913,7 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
     eq('and none once it has settled', frames, 0);
 
     /* The wrapper goes with the page: the reload below drops both together. */
-    setSchwungGridMode(null);
+    setSchwungGridMode(GRID_ARM);
     schwungGridReload();
 }
 
@@ -3963,7 +3964,7 @@ _log('\napp-loop: the master chain grid draws Schwung\'s body (SP-58)');
     eq('the grid never drew movy\'s body over it', movyBodyUnderPage().count - tripsBefore, 0);
 
     seqState.sessionMode = false;
-    setSchwungGridMode(null);
+    setSchwungGridMode(GRID_ARM);
     schwungGridReload();
 }
 

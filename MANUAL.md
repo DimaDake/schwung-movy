@@ -1943,13 +1943,15 @@ Step 2 lights dim under Shift and full bright while the page is open.
 
 ![Settings](docs/assets/flags-release.png)
 
-**PARAM PAGES** picks who draws a module's parameter pages. **MOVY** (the
-default) is Movy's own layout. **SCHWUNG** hands the pages to Schwung, which
+**PARAM PAGES** picks who draws a module's parameter pages. **MOVY** is
+Movy's own layout. **SCHWUNG** (the default) hands the pages to Schwung, which
 plans them from the module's own declaration and draws them the way Schwung's
 own slot editor does — so what sits on which page can move, and a bank that
 exists only in Movy's config for that module may not appear. Sequencer lanes
 follow the parameter, not the page, so recorded automation keeps playing
-either way. The choice is saved on the device, not per set.
+either way. The choice is saved on the device, not per set. Updating to this
+release switches it to **SCHWUNG** once, even if you had set **MOVY** before;
+set it back to **MOVY** and that choice sticks.
 
 On a drum track under **SCHWUNG**, the page follows the pad **you** press and
 nothing else. A playing pattern never turns the page, even on a drum machine

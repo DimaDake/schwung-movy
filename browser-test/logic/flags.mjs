@@ -64,7 +64,7 @@ export async function run() {
      * — every suite below sets the flags it cares about explicitly, and the
      * screenshot scenes do too. */
     eq('new sets are committed to disk', flagDef('setcommit').def, 1);
-    eq('movy draws its own param pages', flagDef('schwunggrid').def, 0);
+    eq('Schwung draws param pages', flagDef('schwunggrid').def, 1);
 
     /* `bool` presentation has no user in the shipped table — every flag there
      * carries word labels or reads as a number — so it is exercised against a
@@ -135,10 +135,9 @@ export async function run() {
      * beats a changed default forever. Without this the release that turns
      * engine-owned saves on turns them on for nobody who was involved. */
     installMockFs({
-        /* `setcommit` is the control here, not `schwunggrid` — SP-40 gave
-         * schwunggrid its own `revisedAt` (its VALUES were renumbered, DRAW
-         * deleted), so it is no longer a flag with "no revision" to prove the
-         * point with. `setcommit` has none. */
+        /* `setcommit` is the control here, not `schwunggrid` — schwunggrid
+         * has its own `revisedAt`, so it is no longer a flag with "no
+         * revision" to prove the point with. `setcommit` has none. */
         [PREFS_PATH]: JSON.stringify({ flagsRev: 3, flags: { engpersist: 0, setcommit: 0 } }),
     });
     resetFlags();
@@ -161,30 +160,23 @@ export async function run() {
     eq('a rev-less prefs file still reads its unrevised flags', flagValue('setcommit'), 0);
     uninstallMockFs();
 
-    /* SP-40 — the flag's VALUES were renumbered (DRAW deleted), not only its
-     * default, so a stored value needs a REMAP, not just a new default. A plain
-     * clampFlag to the new max would get 2->1 right by coincidence and 1->1
-     * wrong (an old DRAW user would land on SCHWUNG, not MOVY). */
+    /* FLAGS_REV 6 flipped the default to SCHWUNG. Every device that booted
+     * rev 5 has a stored MOVY (0) — that adoption wrote it — so without the
+     * revision the new default would reach nobody. Any older value, including
+     * the pre-SP-40 three-value numbering, takes the new default too. */
+    for (const [rev, old] of [[5, 0], [4, 0], [4, 1], [4, 2]]) {
+        installMockFs({
+            [PREFS_PATH]: JSON.stringify({ flagsRev: rev, flags: { schwunggrid: old } }),
+        });
+        resetFlags();
+        eq(`rev ${rev} stored ${old} adopts SCHWUNG`, flagValue('schwunggrid'), 1);
+        uninstallMockFs();
+    }
     installMockFs({
-        [PREFS_PATH]: JSON.stringify({ flagsRev: 4, flags: { schwunggrid: 2 } }),
+        [PREFS_PATH]: JSON.stringify({ flagsRev: 6, flags: { schwunggrid: 0 } }),
     });
     resetFlags();
-    eq('old PAGE (2) remaps to new SCHWUNG (1)', flagValue('schwunggrid'), 1);
-    uninstallMockFs();
-
-    installMockFs({
-        [PREFS_PATH]: JSON.stringify({ flagsRev: 4, flags: { schwunggrid: 1 } }),
-    });
-    resetFlags();
-    eq('old DRAW (1) remaps to new MOVY (0), not to new SCHWUNG (1)',
-       flagValue('schwunggrid'), 0);
-    uninstallMockFs();
-
-    installMockFs({
-        [PREFS_PATH]: JSON.stringify({ flagsRev: 4, flags: { schwunggrid: 0 } }),
-    });
-    resetFlags();
-    eq('old MOVY (0) stays MOVY (0)', flagValue('schwunggrid'), 0);
+    eq('a MOVY chosen at rev 6 stands', flagValue('schwunggrid'), 0);
     uninstallMockFs();
 
     installMockFs({ [PREFS_PATH]: '{not json' });

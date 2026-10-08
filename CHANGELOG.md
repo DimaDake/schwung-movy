@@ -164,6 +164,11 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Changed
 
+- **Param Pages now defaults to SCHWUNG.** Schwung plans and draws module
+  parameter pages out of the box. The update moves every device to SCHWUNG
+  once (`FLAGS_REV` 6), including ones that had MOVY stored; choose MOVY in
+  Settings to go back, and that choice is kept.
+
 - **Older drum modules use their Movy template on Schwung pages.** Forge,
   mrdrums, weird-dreams, signal and libpo32 ship a contract that declares no
   per-pad surface, and Schwung planned from it: forge's sixteen-voice levels,

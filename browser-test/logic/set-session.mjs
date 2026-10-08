@@ -194,6 +194,43 @@ export async function run() {
         teardown();
     }
 
+    /* E7 — a Set duplicated in Move, engine-owned. The engine seeds only its
+     * own half (seq-state + chains.json); a copy that came up without the
+     * UI half looked brand new, so the one-time migration ran on it, found
+     * schwung's leftover slots and re-stated the chain set from them alone —
+     * Set 35 Copy lost noisemaker, dr32 and its hall. The seed's UI blob,
+     * `migv` included, has to come across with the bytes the engine copies. */
+    {
+        const { setFlag } = await import('../../dist/esm/seq/flags.js');
+        const { uuidToUiStatePath, MOVE_SETS_DIR } = await import('../../dist/esm/seq/set-context.js');
+        const PARENT_UI = '{"rootPc":5,"oct":[4],"scale":2,"migv":1,"flags":{},"chains":[]}';
+        const { fs, eng } = boot({ [ACTIVE]: 'P\nSong\n',
+                                   [uuidToStatePath('P')]: SAVED,
+                                   [uuidToUiStatePath('P')]: PARENT_UI,
+                                   [MOVE_SETS_DIR + '/P']: '',
+                                   [MOVE_SETS_DIR + '/C']: '' });
+        setFlag('engpersist', 1);
+        eng.setCmds.length = 0;
+
+        fs.files[ACTIVE] = 'C\nSong Copy\n';      // Move's Copy/Paste, then open it
+        run();
+
+        eq('E7 we are on the copy', currentSetUuid(), 'C');
+        ok('E7 the engine was told to seed it', eng.setCmds.some((c) => c === 'open C seed=P'));
+        eq('E7 the copy carries the seed\'s UI half', fs.files[uuidToUiStatePath('C')] !== undefined
+            && JSON.parse(fs.files[uuidToUiStatePath('C')]).migv, 1);
+        eq('E7 and it was applied', keyboardState.rootPc, 5);
+
+        /* A copy that already owns its UI half keeps it: a seed is a fallback. */
+        fs.files[ACTIVE] = 'P\nSong\n'; run();
+        fs.files[uuidToUiStatePath('C')] = '{"rootPc":7,"oct":[4],"migv":1}';
+        fs.files[ACTIVE] = 'C\nSong Copy\n'; run();
+        eq('E7 an owned UI half is not overwritten', keyboardState.rootPc, 7);
+
+        setFlag('engpersist', 0);
+        teardown();
+    }
+
     /* R2 — the counterpart: an incoming Set that HAS state is a real switch. */
     {
         const { fs, eng } = boot({ [ACTIVE]: '__pending-13-3\nNew Set\n' });

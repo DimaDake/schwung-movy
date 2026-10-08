@@ -228,6 +228,13 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **A Set copied in Move keeps its instruments.** The engine seeded the copy's
+  sequence and chains but not movy's UI half, so the copy looked brand new: the
+  one-time track migration ran on it, found schwung's leftover slots, and
+  re-stated the chain set from them alone. Set 35 Copy came up with plaits
+  where noisemaker was and lost dr32 and its hall. The UI half (with its
+  migration marker) is now copied alongside, under the same rule as the
+  engine's seed: never over a Set that owns state (`seq/set-load.ts`).
 - **Knobs on Schwung pages are undoable.** A turn there wrote straight to the
   track and recorded nothing, so Undo skipped it. Every cell kind (number,
   enum, toggle, module canvas) now goes through one recorded writer, one undo

@@ -11,7 +11,7 @@ import { SETS_DIR, loadNameIndex } from './set-context.js';
 import { paramAvailable, paramGet, paramSet } from '../host/param.js';
 import { mlog } from '../log.js';
 import { noteRestore } from './restore-gate.js';
-import { readBestState, readUiBlob } from './persist-store.js';
+import { readBestState, readUiBlob, writeUiBlob } from './persist-store.js';
 import { resolveState } from './set-inherit.js';
 import { applyUiState } from './ui-state.js';
 
@@ -102,7 +102,17 @@ export function loadSet(id: string, name: string): { payload: string; gen: numbe
      * lose — and the UI blob still applies, because its half is still the
      * UI's (the chains inside it are a mirror, ui-state.ts). */
     if (flagValue('engpersist')) {
-        openSet(id, seedFor(name));
+        const seed = seedFor(name);
+        /* The engine seeds only the half it owns. The UI half has to come too,
+         * and under the engine's own rule (a seed never overrides a Set that
+         * owns state) — judged BEFORE the open, whose seed may land first. A
+         * copy left without it looks brand new, and the migration then
+         * re-states its chains from schwung's leftover slots alone. */
+        if (seed && !setHasState(id) && !readUiBlob(id)) {
+            const seedUi = readUiBlob(seed);
+            if (seedUi) writeUiBlob(id, seedUi);
+        }
+        openSet(id, seed);
         const ui = readUiBlob(id);
         if (ui && ui.length > 0) applyUiState(ui);
         return { payload: '', gen: 0, ok: true };

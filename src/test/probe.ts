@@ -76,6 +76,8 @@ export type ProbeDeps = {
      * page (SP-58). Session mode is not a `view` — it keeps whatever view it
      * was entered from — so the master chain is answered here too. */
     paramBody?: () => { body: string; trips: number; last: string;
+                       schwung?: { pageIndex: number; pageCount: number;
+                                   keys: (string | null)[] } | null;
                        session: boolean; masterDetail: boolean; masterSlot: number };
 };
 

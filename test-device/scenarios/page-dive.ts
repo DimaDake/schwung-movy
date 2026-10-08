@@ -73,7 +73,17 @@ const FILTER = ['.wav', '.mp3', '.flac', '.aif', '.aiff'];
 const SAMPLE_PARAM = 'overtake_dsp:ch0:synth:sample_path';
 
 type Page = { module?: string; pageIndex?: number; pageCount?: number;
-              renderer?: string; view?: string; cells?: ({ name?: string } | null)[] };
+              renderer?: string; view?: string; cells?: ({ name?: string } | null)[];
+              schwung?: { pageIndex: number; pageCount: number;
+                          keys: (string | null)[] } | null };
+
+/* THE CELLS UNDER THE KNOBS ARE SCHWUNG'S WHEN SCHWUNG DRAWS THEM. `cells` is
+ * movy's own view model, which keeps describing movy's bank while the jog pages
+ * Schwung's grid: for mrsample the two plans differ (movy 8 banks, Schwung 7
+ * pages), so a sweep by those names saw page 0's names on every page, marked
+ * them all clicked and never reached the Sample page that holds the file. */
+const knobCells = (p: Page | null): ({ name?: string } | null)[] =>
+    p?.schwung ? p.schwung.keys.map((k) => (k ? { name: k } : null)) : (p?.cells ?? []);
 
 scenario('page-dive', async (t) => {
     fixture.setHost(t.host);
@@ -266,6 +276,7 @@ scenario('page-dive', async (t) => {
      * moment the screen changes, so a device that is working costs two pages. */
     let view = await viewNow();
     let found = { pg: -1, slot: -1 };
+    const swept: string[] = [];
     /* EACH CELL ONCE, BY NAME, RE-READ BEFORE EVERY CLICK. A click on a
      * two-way enum flips it, and mrsample's Loop gates three cells
      * (`visible_if`): flipping it re-plans the page and moves `sample_path` to
@@ -274,9 +285,12 @@ scenario('page-dive', async (t) => {
     for (let pg = 0; pg < 3 && view !== 'file-browse'; pg++) {
         const clicked = new Set<string>();
         for (let n = 0; n < 12 && view !== 'file-browse'; n++) {
-            const cells = (await pageNow())?.cells ?? [];
+            const now = await pageNow();
+            const cells = knobCells(now);
             const slot = cells.findIndex((c) => !!c?.name && !clicked.has(c.name));
             if (slot < 0) break;
+            swept.push(`${now?.schwung ? 's' + now.schwung.pageIndex : 'm' + now?.pageIndex}`
+                       + `:${cells[slot]!.name}`);
             clicked.add(cells[slot]!.name!);
             /* The knob is really TOUCHED, not merely held down: the controller
              * routes a click to its own grid only while one of its cells is
@@ -294,6 +308,7 @@ scenario('page-dive', async (t) => {
         await dev.tap.jogTurn(1);
         await t.bus.frames(ACT);
     }
+    t.note('swept', swept);
     t.note('diveAt', found);
     t.note('viewAfterDive', view);
     t.check('file-param-click-opens-the-browser',

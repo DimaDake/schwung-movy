@@ -29,10 +29,16 @@ let lastTrip = '';
  * a screen grab cannot tell Schwung's cells from movy's without re-encoding
  * both renderers. */
 let lastBody: 'schwung' | 'movy' = 'movy';
+/* WHICH Schwung page that body was. movy's view model goes on describing movy's
+ * own bank while Schwung draws, and the two plans disagree (mrsample: movy has
+ * 8 banks, Schwung 7 pages, different keys on each) — so a harness that sweeps
+ * cells by the view model's names never sees the jog page Schwung's grid. */
+let lastOwner: PageOwner | null = null;
 
 export function paramBodyFor(owner: PageOwner, vm: ViewModel,
                              schwungBody: (() => void) | undefined): () => void {
     lastBody = schwungBody ? 'schwung' : 'movy';
+    lastOwner = schwungBody ? owner : null;
     if (schwungBody) return schwungBody;
     if (owner.delegated) {
         trips++;
@@ -51,5 +57,15 @@ export function movyBodyUnderPage(): { count: number; last: string } {
 
 /** Whose body the most recent param frame drew. */
 export function lastParamBody(): 'schwung' | 'movy' { return lastBody; }
+
+/** The Schwung page the last frame drew, read live; null when movy drew it. */
+export function lastSchwungPage(): { pageIndex: number; pageCount: number;
+                                     keys: (string | null)[] } | null {
+    const page = lastOwner && lastOwner.page;
+    if (!page) return null;
+    const keys: (string | null)[] = [];
+    for (let slot = 0; slot < 8; slot++) keys.push(page.keyAt(slot));
+    return { pageIndex: page.pageIndex, pageCount: page.pageCount, keys };
+}
 
 export function resetMovyBodyUnderPage(): void { trips = 0; lastTrip = ''; }

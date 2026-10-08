@@ -29,7 +29,7 @@ import { leaveModalActive, leaveModalLabels, leaveModalSel } from './leave-modal
 import { sessionReady } from '../seq/set-session.js';
 import { schwungGridMode, setSchwungGridMode } from '../renderer/schwung-grid.js';
 import { clearWidgets, isWidgetAvailable } from '../renderer/schwung-widgets.js';
-import { lastParamBody, movyBodyUnderPage } from './param-body.js';
+import { lastParamBody, lastSchwungPage, movyBodyUnderPage } from './param-body.js';
 
 import { laneKeysForTrack } from '../seq/automation.js';
 
@@ -54,7 +54,8 @@ export function init(): void {
         widgetClear:     () => clearWidgets(),
         paramBody:       () => {
             const u = movyBodyUnderPage();
-            return { body: lastParamBody(), trips: u.count, last: u.last,
+            return { body: lastParamBody(), schwung: lastSchwungPage(),
+                     trips: u.count, last: u.last,
                      session: seqState.sessionMode, masterDetail: appState.masterDetail,
                      masterSlot: appState.masterChainIndex };
         },

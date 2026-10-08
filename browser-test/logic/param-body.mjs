@@ -15,7 +15,7 @@ import { readFileSync, ok, eq, _log } from './harness.mjs';
 
 export async function run() {
 
-const { paramBodyFor, movyBodyUnderPage, resetMovyBodyUnderPage } =
+const { paramBodyFor, movyBodyUnderPage, resetMovyBodyUnderPage, lastSchwungPage } =
     await import('../../dist/esm/app/param-body.js');
 
 const owner = (claimed, delegated) => ({
@@ -45,6 +45,23 @@ const vm = { rows: [[], []] };
     eq('a LIVE delegated owner reaching the fallback trips', movyBodyUnderPage().count, 1);
     eq('...and names the page it happened on', movyBodyUnderPage().last, '0:snd0');
     resetMovyBodyUnderPage();
+}
+
+{
+    _log('\nlogic: param body — the probe reads the Schwung page that was drawn');
+    /* The device's page-dive sweep pages Schwung's grid with the jog, and
+     * movy's view model keeps describing movy's own bank meanwhile — so the
+     * keys under the knobs have to come from the page that DREW them. */
+    const page = { pageIndex: 1, pageCount: 7,
+                   keyAt: (s) => ['sample_start', 'loop_mode', 'sample_path'][s] ?? null };
+    paramBodyFor({ ...owner(true, true), page }, vm, () => {});
+    eq('a Schwung-drawn frame reports that page\'s keys and position',
+       JSON.stringify(lastSchwungPage()),
+       JSON.stringify({ pageIndex: 1, pageCount: 7,
+                        keys: ['sample_start', 'loop_mode', 'sample_path',
+                               null, null, null, null, null] }));
+    paramBodyFor({ ...owner(true, false), page }, vm, undefined);
+    eq('a movy-drawn frame reports none', lastSchwungPage(), null);
 }
 
 {

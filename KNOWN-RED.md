@@ -12,4 +12,3 @@ state, not a bug, so there is nothing to list.
 
 | since | check | owner | why / next step |
 | --- | --- | --- | --- |
-| 2026-10-04 | page-dive#file-param-click-opens-the-browser, page-dive#dive-commit-lands-in-the-parameter | claude | Red on a302efa with no change applied (re-run twice). Appeared with the device's Schwung going 1.5.0 → 1.7.3: no cell on the first three pages opens the file browser. Next: diff the 1.7.3 file-param/dive path against the harness's assumptions. |

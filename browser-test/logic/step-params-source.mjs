@@ -266,6 +266,35 @@ if (!schwungLibAvailable()) {
     turn(4);
     eq('eight move it exactly one option', idx(), before + 1);
 
+    /* THE FINGER IS ON THE STEP, as it always is on hardware — and the shim
+     * says so (`shadow_get_held_step`). The controller's own fallback reads
+     * that byte and, with a step down, sends every write as Schwung's p-lock
+     * (`lanes:plock_step`) instead of to the cell, so the turn above moved
+     * nothing on the device while every injected test passed: an injected
+     * step press never reaches the shim's held mask. */
+    const savedHeld = globalThis.shadow_get_held_step;
+    const realNow = Date.now;
+    globalThis.shadow_get_held_step = () => 0;
+    try {
+        for (let i = 0; i < 4; i++) page.tick();   // the controller re-reads the held step on its rotation
+        /* A HAND'S TURN: detents spread past the write throttle, read BEFORE
+         * the release. A turn inside the window is parked and the release
+         * flush writes it to the cell directly — the one path the p-lock
+         * branch never touches, which is the shape a fast test turn has and
+         * a hand does not. How FAR it moves is the knob-feel test's business
+         * (above); this one asks only whether the cell hears it at all. */
+        let clock = realNow() + 1000;
+        Date.now = () => clock;
+        const held = idx();
+        page.knobTouch(1, true);
+        for (let i = 0; i < 6; i++) { clock += 30; page.knobTurn(1, 4); page.tick(); }
+        ok('a physically held step does not divert the turn', idx() > held);
+        page.knobTouch(1, false);
+    } finally {
+        Date.now = realNow;
+        globalThis.shadow_get_held_step = savedHeld;
+    }
+
     editStepUp(0); endStepAutomation();
     setSchwungGridMode(savedMode);
     schwungGridDrop(MASTER_PAGE_TRACK, STEP_PARAMS_COMPONENT);

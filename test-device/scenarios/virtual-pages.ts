@@ -72,6 +72,14 @@ const MAX_LEFT_PRESSES = 6;
  * `held`), which is the state the step page becomes reachable from. */
 const PROMOTE_FRAMES = 120;
 
+/* Knob 3 is PROBABILITY, and a step entered without one is at 100%, so CCW is
+ * the direction that always has room to move. */
+const PROB_KNOB = 2;
+/* Whole option steps: the page charges 8 raw units per step, and one more
+ * than that so a rounding remainder cannot leave the value where it was. */
+const TURN_RAW = 12;
+const SETTLE_FRAMES = 120;
+
 type HeldPage = { module?: string; renderer?: string; held?: boolean; view?: string; pageIndex?: number };
 
 scenario('virtual-pages', async (t) => {
@@ -174,12 +182,25 @@ scenario('virtual-pages', async (t) => {
      * inside the hold's callback, and TypeScript narrows a closure-assigned
      * `let` to its initial type at every read after it. */
     const got: { held: HeldPage | null; promoted: boolean; beforeLeft: HeldPage | null;
-                 trail: string[] } =
-        { held: null, promoted: false, beforeLeft: null, trail: [] };
+                 trail: string[]; probBefore: number; probAfter: number; probRestored: number } =
+        { held: null, promoted: false, beforeLeft: null, trail: [],
+          probBefore: NaN, probAfter: NaN, probRestored: NaN };
 
     /* ONE WHOLE ATTEMPT: hold, wait for the promotion, walk to the step page,
      * and read which page is up — inside the hold, because the step page only
      * exists while a step is held. */
+    const heldProb = async (): Promise<number> => {
+        const st = await t.bus.getParam('overtake_dsp:status');
+        return Number(/(?:^|\s)hprob=(-?\d+)/.exec(st)?.[1] ?? NaN);
+    };
+    /* Touch, single-unit clicks with frames between, release — the shape a
+     * hand makes. A whole-detent CC value in one message is not. */
+    const turnKnob = (k: number, dir: 1 | -1) => dev.knobHold(k, async () => {
+        await t.bus.frames(4);
+        for (let i = 0; i < TURN_RAW; i++) { await dev.tap.knob(k, dir); await t.bus.frames(2); }
+        await t.bus.frames(4);
+    });
+
     const attempt = async (): Promise<void> => {
         await dev.hold(stepNote, async () => {
             try {
@@ -205,6 +226,17 @@ scenario('virtual-pages', async (t) => {
                 await t.bus.frames(6);
             }
             got.held = (await probe.page()) as unknown as HeldPage | null;
+            if (got.held?.module !== STEP_PAGE_MODULE) return;
+
+            got.probBefore = await heldProb();
+            await turnKnob(PROB_KNOB, -1);
+            got.probAfter = await until(t.bus, 'probability follows the turn', heldProb,
+                (v) => v !== got.probBefore, { within: SETTLE_FRAMES, every: 4 })
+                .catch(heldProb);
+            await turnKnob(PROB_KNOB, +1);
+            got.probRestored = await until(t.bus, 'probability turned back', heldProb,
+                (v) => v === got.probBefore, { within: SETTLE_FRAMES, every: 4 })
+                .catch(heldProb);
         });
     };
 
@@ -230,6 +262,25 @@ scenario('virtual-pages', async (t) => {
         { expected: `module=${STEP_PAGE_MODULE} renderer=${PAGE_MODE} while a step is held`,
           actual: `renderer=${got.held?.renderer ?? '(none)'} module=${got.held?.module ?? '(none)'}`
                   + (got.held?.module === STEP_PAGE_MODULE ? '' : ' — the step page was never reached') });
+
+    /* A TURN, not just a touch: the step page answered touches (the top toast)
+     * while every turn was dropped, and a check on which page is drawn could
+     * not tell. Read back from the ENGINE's `hprob`, the held trig itself.
+     *
+     * NOT the regression that motivated it, and cannot be: that one needed a
+     * PHYSICALLY held step (the shim's held-step byte diverted every write to
+     * Schwung's p-lock), and an injected step press never reaches the shim.
+     * `step-params-source.mjs` stubs that byte and is the guard for it; this
+     * is the end-to-end half — the turn reaches the engine at all. */
+    t.note('probBefore', got.probBefore);
+    t.note('probAfter', got.probAfter);
+    t.check('step-knob-turns', 'a knob turn on the step page edits the held trig',
+        got.probAfter < got.probBefore,
+        { expected: `hprob below ${got.probBefore} after a CCW turn of knob ${PROB_KNOB + 1}`,
+          actual: `hprob=${got.probAfter}` });
+    t.check('step-knob-restored', 'the CW turn puts the probability back',
+        got.probRestored === got.probBefore,
+        { expected: `hprob=${got.probBefore}`, actual: `hprob=${got.probRestored}` });
 
     await probe.setGridMode(null);
 });

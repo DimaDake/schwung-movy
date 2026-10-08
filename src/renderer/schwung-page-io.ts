@@ -187,6 +187,22 @@ export function createPageIo(port: PageParamSource, qualify: (k: string) => stri
          * reason a tilde and a lock can be told apart at all; under `page` with
          * no `isModulated` both collapsed to the lock mark. */
         isModulated,
+        /*
+         * NO SCHWUNG STEP IS EVER HELD UNDER A MOVY PAGE, whatever the finger
+         * is doing.
+         *
+         * Left unanswered, the controller asks the shim
+         * (`shadow_get_held_step`), which reports the PHYSICAL step button —
+         * and with one down it turns every write into Schwung's own p-lock
+         * (`lanes:plock_step …`) and draws Schwung's lanes as the cell's
+         * locks. A held step is movy's gesture: movy's engine records the
+         * lock (seq/automation.ts) and the step page edits the trig itself.
+         * Under the shim's answer the step page's every turn went to
+         * `lanes:plock_step`, which no movy source owns, and was dropped —
+         * touches worked, turns did nothing. The device harness could not see
+         * it: an injected step press never reaches the shim's held mask.
+         */
+        heldStep: (): number => -1,
         /* SU-8 (SP-59, Schwung #541): the lane's own channel — the 2x2 beside
          * the label and the same `:base`/`:effective` motion an LFO gets,
          * without the LFO's tilde. Asked on the controller's rotation stop,

@@ -49,11 +49,11 @@ echo "announcement: $ANN ($ANN_LEN/2000 chars)"
 # The one release path for the store tarball. The bundle and its gate assertion
 # live in scripts/lib/build-release-ui.sh, shared with `deploy.sh --release`.
 build_release_ui "$(pwd)"
-./scripts/build-dsp.sh         # cross-compiles the Rust engine → dist/dsp.so (GLIBC<=2.35 gate)
+./scripts/build-dsp.sh         # cross-compiles the Rust engine → dist/dsp.so (GLIBC<=2.35 gate) + dist/chain-host.so
 
 rm -rf "dist/${MODULE_ID}"
 mkdir -p "dist/${MODULE_ID}/configs"
-cp module.json ui.js "dist/dsp.so" "dist/${MODULE_ID}/"
+cp module.json ui.js "dist/dsp.so" "dist/chain-host.so" "dist/${MODULE_ID}/"
 # Override configs for the modules whose own movy_config.json movy cannot use
 # (OVERRIDES_MODULE_FILE in src/modules/loader.ts). They are DATA FILES rather
 # than imports so ui.js does not carry ~90 KB of JSON through the QuickJS parser

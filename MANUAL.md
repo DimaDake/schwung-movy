@@ -852,12 +852,11 @@ start when Retrigger is on.
 **Synced LFOs phase-lock to the transport.** With **Sync** on, a running
 transport drives the LFO's phase directly from song position — the cycle is
 bar-aligned and stays drift-free no matter how long it plays. It follows
-whichever transport is playing: Movy's own sequencer, or Move's native
-sequencer when that is running. **Phase** then becomes a musical offset against
-the bar. When the transport **stops**, the LFO keeps breathing — it free-runs
-from where it was, at the tempo it was last playing (it does not snap to a
-different rate). One caveat: changing the tempo *while stopped* doesn't change a
-free-running synced LFO's rate until you play again.
+Movy's own sequencer — and so Move's too while LINK has Movy following it.
+Move playing on its own, with Movy stopped, does not drive it. **Phase** then
+becomes a musical offset against the bar. When the transport **stops**, the LFO
+keeps breathing — it free-runs from where it was, at Movy's tempo, and a tempo
+change while stopped changes its rate straight away.
 
 You can pick an LFO's Target here (an overlay lists every modulatable parameter
 in the chain), but the easy way is to assign it from the parameter itself:

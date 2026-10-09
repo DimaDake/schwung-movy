@@ -79,15 +79,22 @@ export async function deployEngine(host: string): Promise<EngineDeploy> {
         return { built: false, detail: msg.split('\n').slice(0, 6).join('\n') };
     }
 
-    const md5 = (u: string) => ssh(host, u, `md5sum ${REMOTE}/dsp.so 2>/dev/null | cut -d' ' -f1`);
+    /* chain-host.so (the pinned chain host, built by build-dsp.sh) counts as
+     * engine: the engine dlopens a copy of it once per process, so a changed
+     * one needs the same restart a changed dsp.so does. */
+    const files = ['dsp.so', 'chain-host.so'];
+    const md5 = (u: string) => ssh(host, u,
+        `md5sum ${files.map((f) => `${REMOTE}/${f}`).join(' ')} 2>/dev/null | md5sum | cut -d' ' -f1`);
     const before = await md5('ableton').catch(() => '');
 
     /* Never scp over a dlopen'd .so in place — overwriting a mapped .so's inode
      * corrupts its pages and crashes MoveOriginal. A temp name plus mv gives
      * the new file a fresh inode while the old mapping stays intact. */
-    await run('scp', ['-q', ...SSH_OPTS,
-                      join(repoRoot(), 'dist', 'dsp.so'), `ableton@${host}:${REMOTE}/dsp.so.new`]);
-    await ssh(host, 'ableton', `mv ${REMOTE}/dsp.so.new ${REMOTE}/dsp.so`);
+    for (const f of files) {
+        await run('scp', ['-q', ...SSH_OPTS,
+                          join(repoRoot(), 'dist', f), `ableton@${host}:${REMOTE}/${f}.new`]);
+    }
+    await ssh(host, 'ableton', files.map((f) => `mv ${REMOTE}/${f}.new ${REMOTE}/${f}`).join(' && '));
     const after = await md5('ableton');
 
     if (before === after) return { built: true, changed: false, restarted: false, detail: after };

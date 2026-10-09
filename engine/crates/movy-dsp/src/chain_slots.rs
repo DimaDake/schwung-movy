@@ -1116,7 +1116,7 @@ impl ChainSlots {
         // sees exactly one producer again, and slot order makes the emission
         // deterministic. Costs nothing when no chain sent anything, which today
         // is every chain in the fleet.
-        crate::midi_out::QUEUE.drain(crate::chain_host::send_direct);
+        crate::midi_out::QUEUE.drain(crate::host_vtable::send_direct);
 
         for i in 0..MOVY_CHAINS {
             if self.slots[i].is_none() {
@@ -1216,7 +1216,7 @@ impl ChainSlots {
             // Same rule as the chain phase, one phase later: every lane is idle
             // again, so schwung sees one producer, and bus order makes the
             // emission deterministic.
-            crate::midi_out::QUEUE.drain(crate::chain_host::send_direct);
+            crate::midi_out::QUEUE.drain(crate::host_vtable::send_direct);
         }
         /* Summed into the output AFTER the whole phase, in bus order — never in
          * the order the lanes happened to finish. That is what makes the

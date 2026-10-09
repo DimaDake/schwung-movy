@@ -1831,6 +1831,22 @@ impl Engine {
         }
     }
 
+    /// Where the transport is, in quarter notes since it started; None while
+    /// stopped. This is what movy's chains lock synced LFOs to, so it matches
+    /// schwung's transport service, which they were written against: beat 0 is
+    /// the moment tick 0 is SERVICED (where the first 0xF8 used to go out), and
+    /// between ticks the accumulator supplies the fraction. A tick fires when
+    /// the accumulator fills, so tick 0 lands one period after Play — hence the
+    /// `- 1`, and the clamp for the block before it.
+    pub fn beat_position(&self) -> Option<f64> {
+        if !self.playing {
+            return None;
+        }
+        // While following, ticks come from Move's clock, not the accumulator.
+        let frac = if self.follow_active() { 0.0 } else { self.clock.tick_fraction() };
+        Some(((self.master_tick as f64 + frac - 1.0).max(0.0)) / PPQN as f64)
+    }
+
     /// Follow is automatic (design §7 Phase 3): engaged while we play and
     /// Move's transport runs.
     fn follow_active(&self) -> bool {
@@ -2828,6 +2844,86 @@ mod tests {
         assert_eq!(sess.split(',').count(), 16, "sess= carries one group per track");
         let act = s.split("act=").nth(1).unwrap().split(' ').next().unwrap();
         assert_eq!(act.split(',').count(), 16, "act= carries one group per track");
+    }
+
+    /* `beat_position` is what movy's chains lock synced LFOs to (the vtable
+     * movy-dsp synthesises). One block of 128 frames at 120 BPM is ~0.0058
+     * beats, so "within a block" below means within that. */
+    const BLOCK_BEATS_120: f64 = FRAMES as f64 / RATE as f64 * 2.0;
+
+    #[test]
+    fn beat_position_is_none_while_stopped() {
+        let mut e = engine();
+        assert_eq!(e.beat_position(), None);
+        let mut out = Vec::new();
+        e.advance_block(FRAMES, &mut out);
+        assert_eq!(e.beat_position(), None, "a stopped clock has no position");
+    }
+
+    #[test]
+    fn beat_position_counts_quarter_notes_at_the_tempo() {
+        let mut e = engine();
+        e.play();
+        assert_eq!(e.beat_position(), Some(0.0), "Play is beat 0");
+        let mut out = Vec::new();
+        let blocks = RATE / FRAMES; // ~1 s at 120 BPM = 2 beats
+        for _ in 0..blocks {
+            e.advance_block(FRAMES, &mut out);
+        }
+        let want = blocks as f64 * FRAMES as f64 / RATE as f64 * 2.0;
+        let got = e.beat_position().unwrap();
+        // Beat 0 is tick 0 serviced, one tick after Play.
+        let tick = 1.0 / PPQN as f64;
+        assert!((got - (want - tick)).abs() < 1e-9, "got {got}, want {}", want - tick);
+    }
+
+    #[test]
+    fn beat_position_lands_on_the_beat_its_midi_clock_marks() {
+        // The 0xF8 stream schwung counted is the old source of truth: the
+        // block that emits clock #24 is the block that crosses beat 1.
+        let mut e = engine();
+        e.play();
+        let mut clocks = 0;
+        let mut out = Vec::new();
+        while clocks < 25 {
+            out.clear();
+            e.advance_block(FRAMES, &mut out);
+            clocks += out.iter().filter(|ev| matches!(ev, OutEvent::Clock)).count();
+        }
+        let b = e.beat_position().unwrap();
+        assert!((1.0..1.0 + BLOCK_BEATS_120).contains(&b), "clock #24 at beat {b}");
+    }
+
+    #[test]
+    fn beat_position_does_not_jump_on_a_tempo_change() {
+        let mut e = engine();
+        e.play();
+        let mut out = Vec::new();
+        for _ in 0..200 {
+            e.advance_block(FRAMES, &mut out);
+        }
+        let before = e.beat_position().unwrap();
+        e.clock.set_bpm_x100(24000);
+        e.advance_block(FRAMES, &mut out);
+        let after = e.beat_position().unwrap();
+        // One block at the NEW tempo is 2x the 120 BPM block.
+        assert!(after > before && after - before < 2.0 * BLOCK_BEATS_120 + 1e-9,
+                "{before} -> {after}");
+    }
+
+    #[test]
+    fn beat_position_restarts_from_zero_on_the_next_play() {
+        let mut e = engine();
+        e.play();
+        let mut out = Vec::new();
+        for _ in 0..500 {
+            e.advance_block(FRAMES, &mut out);
+        }
+        e.stop(&mut out);
+        assert_eq!(e.beat_position(), None);
+        e.play();
+        e.advance_block(FRAMES, &mut out);
+        assert!(e.beat_position().unwrap() < BLOCK_BEATS_120, "a new Play is a new song position");
     }
 
     /// Run blocks until `ticks` master ticks have elapsed; collect events.

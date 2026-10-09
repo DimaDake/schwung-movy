@@ -63,3 +63,8 @@ case "$MAXGLIBC" in
     GLIBC_2.3[6-9]*|GLIBC_2.[4-9]*|GLIBC_3*) echo "ERROR: $MAXGLIBC exceeds device glibc 2.35"; exit 1 ;;
 esac
 echo "dist/dsp.so built ($MAXGLIBC max)"
+
+# The chain host movy ships beside the engine (the `chpinhost` flag). Built
+# here so every path that ships dsp.so — deploy.sh, the device tier, the store
+# tarball — ships the matching chain host with it.
+"$DIR/scripts/build-chain-host.sh"

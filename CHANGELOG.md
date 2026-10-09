@@ -13,6 +13,16 @@ far. Earlier work is summarised in the timeline below for context.
 
 ## [Unreleased]
 
+### Changed
+
+- **Movy's tracks run the chain host Movy ships.** It is built from a pinned
+  Schwung release, so a Schwung update can no longer change how Movy's tracks
+  sound without a Movy update. The debug flag **Pinned Chain Host** switches
+  back to Schwung's installed one. (Engine 0.86.0.)
+- **Synced LFOs on Movy's tracks follow Movy's transport only.** Move playing on
+  its own no longer drives them. While stopped they free-run at Movy's current
+  tempo, so a tempo change takes effect at once.
+
 ## [0.35.0] — 2026-10-09
 
 ### Added

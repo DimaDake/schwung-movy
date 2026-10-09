@@ -143,6 +143,22 @@ export const FLAGS: FlagDef[] = [
         // default forever, and during rollout everyone who tested this had one.
         min: 0, max: 1, def: 1, revisedAt: 4,
     },
+    {
+        key: 'chpinhost', name: 'Pinned Chain Host',
+        hint: 'Tracks run the chain host movy ships. Next open.',
+        // WHICH CHAIN HOST MOVY'S TRACKS RUN THROUGH.
+        //
+        // On, the one movy ships, built from the schwung tag it pins
+        // (scripts/build-chain-host.sh). Off, the one schwung installed — which
+        // a schwung update can change under movy with no movy change at all,
+        // as it did to dbxhost overnight. Upstream chain fixes arrive by
+        // bumping the pin instead.
+        //
+        // The engine reads it when the chain host loads, once per engine boot,
+        // so a change applies the next time movy opens. Kept as an escape
+        // hatch while the pin is new; deleted with the coexistence code (WP9).
+        min: 0, max: 1, def: 1, bool: true,
+    },
 ];
 
 export function flagDef(key: string): FlagDef | null {

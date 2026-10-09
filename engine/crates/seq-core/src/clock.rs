@@ -64,6 +64,12 @@ impl Clock {
         fired
     }
 
+    /// How far toward the next tick the accumulator is, 0..1. Lets a reader
+    /// place itself between ticks without a second clock.
+    pub fn tick_fraction(&self) -> f64 {
+        self.accum as f64 / self.threshold as f64
+    }
+
     /// Seconds per tick at the current tempo (for host-side diagnostics).
     pub fn tick_period_secs(&self) -> f64 {
         60.0 / (self.bpm_x100 as f64 / 100.0 * PPQN as f64)

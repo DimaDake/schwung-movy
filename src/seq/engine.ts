@@ -276,6 +276,9 @@ function probeTick(): void {
          * queued: an engine reload mid-session must hear this before it can be
          * handed a `play`. */
         engineSet('cmd', 'minject ' + (moveInjectReachesMove() ? 1 : 0));
+        /* Whether there is a Move and schwung slots beside movy to send to.
+         * Before `chain_host` for the same reason as the flags. */
+        engineSet('hostmode', platform.caps.coexistsWithMove ? 'overtake' : 'standalone');
         engineSet('chain_host', CHAIN_MODULE_DIR + '|' + MOVY_MODULE_DIR);
         /* A re-dlopened engine has no pad map; believing otherwise would leave
          * the pads dead until something happened to change the mapping. */

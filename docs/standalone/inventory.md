@@ -73,8 +73,8 @@ starts from it.
 | `log` | `host.rs log` (+ chain host via `host::raw()`) | to the lab log | unified_log |
 | `midi_send_internal` | notes/clock to schwung slots | counted (0 calls) | stub; retire with schwung-slot routing |
 | `midi_send_external` | chain host | counted (0 calls) | out ring cable 2 |
-| `get_clock_status`, `get_bpm`, `get_beat_position` | chain LFO sync | NULL (chain host null-checks) | the engine's clock (WP2) |
-| `midi_inject_to_move` | LINK | NULL | NULL (retire) |
+| `get_clock_status`, `get_bpm`, `get_beat_position` | chain LFO sync | NULL (chain host null-checks) | the engine's clock: done in WP2 (`host_vtable.rs`), whatever the host passes |
+| `midi_inject_to_move` | LINK | NULL | NULL (retire); skipped under `hostmode=standalone` since WP2 |
 | `slot_recv_channel` | chain host (null-checked) | NULL | NULL |
 | `mod_emit_value`, `mod_clear_source`, `mod_host_ctx` | not used by movy | NULL | NULL |
 

@@ -62,10 +62,15 @@ scp "$DIR/module.json" "ableton@$HOST:$REMOTE/"
 # for ever. Hence the md5 comparison and the restart below — without it a
 # redeployed engine is simply not the one running, which cost a whole session of
 # "the fix is deployed and does nothing".
-BEFORE=$(ssh "ableton@$HOST" "md5sum $REMOTE/dsp.so 2>/dev/null | cut -d' ' -f1" || true)
+#
+# chain-host.so rides the same rule and the same restart: the engine dlopens a
+# copy of it once per process, so a changed one is equally not the one running.
+ENGINE_MD5="md5sum $REMOTE/dsp.so $REMOTE/chain-host.so 2>/dev/null | md5sum | cut -d' ' -f1"
+BEFORE=$(ssh "ableton@$HOST" "$ENGINE_MD5" || true)
 scp "$DIR/dist/dsp.so" "ableton@$HOST:$REMOTE/dsp.so.new"
-ssh "ableton@$HOST" "mv $REMOTE/dsp.so.new $REMOTE/dsp.so"
-AFTER=$(ssh "ableton@$HOST" "md5sum $REMOTE/dsp.so | cut -d' ' -f1")
+scp "$DIR/dist/chain-host.so" "ableton@$HOST:$REMOTE/chain-host.so.new"
+ssh "ableton@$HOST" "mv $REMOTE/dsp.so.new $REMOTE/dsp.so && mv $REMOTE/chain-host.so.new $REMOTE/chain-host.so"
+AFTER=$(ssh "ableton@$HOST" "$ENGINE_MD5")
 echo "deployed $([[ "$RELEASE" == 1 ]] && echo 'RELEASE' || echo 'debug') build to $HOST"
 
 if [[ "$BEFORE" == "$AFTER" ]]; then

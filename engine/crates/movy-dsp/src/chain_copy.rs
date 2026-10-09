@@ -1,5 +1,5 @@
-//! Keeping movy's private copy of schwung's `chain/dsp.so` in step with the
-//! installed one.
+//! Keeping movy's private copy of the chain host in step with its source —
+//! the pinned build movy ships, or schwung's installed `chain/dsp.so`.
 //!
 //! movy dlopens a COPY so it gets its own mapping and its own `g_host`
 //! (see chain_host.rs). A copy can drift from its source, so this makes it a
@@ -64,10 +64,47 @@ pub fn ensure_copy(src: &str, dst: &str) -> Result<bool, String> {
     Ok(true)
 }
 
+/// Which chain host movy runs, as `(source, private copy)`.
+///
+/// `pinned` picks `chain-host.so`, which movy ships built from the schwung tag
+/// it pins (scripts/build-chain-host.sh), so a schwung update cannot change how
+/// movy's tracks render. It is still COPIED, not dlopened in place: a store
+/// update untars over the shipped file at the same inode, and the copy is what
+/// keeps a running engine's mapping out of that. Each source has its own copy,
+/// so flipping the flag never rewrites a library some process still maps.
+///
+/// A pinned build missing from the payload falls back to the installed one
+/// rather than leaving movy with no chains: a dev deploy of dsp.so alone is
+/// exactly that payload.
+pub fn chain_host_source(schwung_chain_dir: &str, movy_dir: &str, pinned: bool) -> (String, String) {
+    let shipped = format!("{}/chain-host.so", movy_dir);
+    if pinned && Path::new(&shipped).exists() {
+        return (shipped, format!("{}/chain-pinned.so", movy_dir));
+    }
+    (format!("{}/dsp.so", schwung_chain_dir), format!("{}/chain-dsp.so", movy_dir))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::io::Write;
+
+    #[test]
+    fn pinned_chain_host_is_used_when_shipped_and_falls_back_when_not() {
+        let d = tmpdir("pin-source");
+        let movy = d.to_str().unwrap();
+        let (src, dst) = chain_host_source("/schwung/chain", movy, true);
+        assert_eq!(src, "/schwung/chain/dsp.so", "nothing shipped: the installed host");
+        assert_eq!(dst, format!("{}/chain-dsp.so", movy));
+
+        write(&d.join("chain-host.so"), b"pinned");
+        let (src, dst) = chain_host_source("/schwung/chain", movy, true);
+        assert_eq!(src, format!("{}/chain-host.so", movy));
+        assert_eq!(dst, format!("{}/chain-pinned.so", movy), "its own copy, never the stock one's");
+
+        let (src, _) = chain_host_source("/schwung/chain", movy, false);
+        assert_eq!(src, "/schwung/chain/dsp.so", "flag off: the installed host");
+    }
 
     fn tmpdir(name: &str) -> std::path::PathBuf {
         let d = std::env::temp_dir().join(format!("movy-chain-copy-{}", name));

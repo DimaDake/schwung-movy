@@ -381,6 +381,40 @@ fed by movy's own transport, so standalone needs nothing from schwung's clock.
 
 **Gates:** both tiers plus `cargo test`.
 
+**Done 2026-10-09** (branch `standalone-migration`, ENGINE 0.86.0):
+- `movy-dsp/src/host_vtable.rs` holds the one vtable, moved out of
+  `chain_host.rs`. It keeps the parked MIDI sends, and `get_bpm`,
+  `get_beat_position` and `get_clock_status` answer from atomics that
+  `Instance::render` publishes after `advance_block`. The beat comes from
+  `seq_core::Engine::beat_position()`: quarter notes since Play, None while
+  stopped. Beat 0 is tick 0 *serviced*, which is where the first 0xF8 used to
+  go, so the phase matches what schwung's transport service gave. While
+  following Move it moves in whole ticks.
+- **Behaviour change (accepted as WP2's point):** a synced LFO in a movy chain
+  now follows movy's transport only. Move playing while movy is stopped no
+  longer drives it, and while stopped it free-runs at movy's live tempo. The
+  MANUAL LFO paragraph says so. Master FX and schwung slots still run on
+  schwung's vtable and are unchanged.
+- **Pinned chain host:** `scripts/lib/schwung-pin.sh` holds the tag (v1.7.3), and
+  `scripts/build-chain-host.sh` builds it from `git archive` with upstream's
+  compile lines. Its exported symbols are identical to the stock build;
+  the compiler differs (GCC 15 vs Debian 12). `build-dsp.sh` calls it, so
+  deploy.sh, the device tier and the store tarball all ship `chain-host.so`.
+  deploy.sh and `test-device/engine.ts` count it as engine: temp+mv, plus a
+  restart when it changes. The engine still loads a COPY (`chain-pinned.so`,
+  separate from the stock copy `chain-dsp.so`), because a store update untars
+  over the shipped file at the same inode. The `chpinhost` flag (debug, default
+  ON) selects it, and a payload without the file falls back to stock.
+- The engine param is `hostmode`, not `host_mode`: source-rules Rule 3 reads
+  any `host_*` token outside `src/platform/` as a host global. Under
+  `standalone`, `host::midi_send_internal` and `midi_inject_to_move` return
+  false before reaching the host.
+- Tests: cargo tests for `beat_position` (stopped, rate, alignment with clock
+  #24, tempo change, restart; each one was shown to fail with the fix removed),
+  the vtable, the host-mode skip and the source pick. Smoke check
+  `chain-host-pinned` reads `/proc/<MoveOriginal>/maps` as root. Before this
+  change it showed `chain-dsp.so`.
+
 ### WP3: movy-owned master chain and master volume
 
 **Goal:** finish and implement the parked

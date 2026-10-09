@@ -6,6 +6,7 @@
 mod click;
 mod ffi;
 mod host;
+mod host_vtable;
 mod chain_copy;
 mod chain_doc;
 mod chain_cost;
@@ -128,7 +129,7 @@ pub(crate) fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.85.0";
+const ENGINE_VERSION: &str = "0.86.0";
 
 /* Blocks between autosaves. The callback runs at ~344 Hz, so this is ~2 s —
  * flash on this device is not free and the sequencer is dirty constantly while
@@ -180,6 +181,8 @@ struct Instance {
     /// `persist-store.ts` made the same comparison with `lastGoodPayload`.
     last_saved: Option<(String, String)>,
     engpersist: bool,
+    /// `chpinhost`: load the pinned chain host movy ships. See `chain_copy`.
+    pin_chain_host: bool,
     set_uuid: String,
     set_gen: u32,
     /// How many Set payloads this engine has APPLIED — not requested, not read
@@ -213,6 +216,7 @@ impl Instance {
             saver: None,
             last_saved: None,
             engpersist: false,
+            pin_chain_host: true,
             set_uuid: String::new(),
             set_gen: 0,
             set_applied: 0,
@@ -395,8 +399,8 @@ impl Instance {
             "chain_host" => {
                 let mut parts = val.splitn(2, '|');
                 if let (Some(src_dir), Some(movy_dir)) = (parts.next(), parts.next()) {
-                    let src = format!("{}/dsp.so", src_dir);
-                    let dst = format!("{}/chain-dsp.so", movy_dir);
+                    let (src, dst) =
+                        chain_copy::chain_host_source(src_dir, movy_dir, self.pin_chain_host);
                     match chain_copy::ensure_copy(&src, &dst) {
                         Ok(_) => self.chains.configure(src_dir, &dst),
                         Err(e) => host::log(&format!("chain host copy failed: {}", e)),
@@ -429,6 +433,19 @@ impl Instance {
              * the autosave below is gated on it and not merely preferred. */
             "engpersist" => {
                 self.engpersist = val != "0";
+            }
+            /* Run the chain host movy ships (built from its pinned schwung tag)
+             * instead of the installed one. Read only by `chain_host` below,
+             * which the UI sends after the flags, so it takes effect at the
+             * next engine boot — never under chains that already exist. */
+            "chpinhost" => {
+                self.pin_chain_host = val != "0";
+            }
+            /* Which host movy runs under; see `host::set_standalone`. */
+            "hostmode" => {
+                let standalone = val.trim() == "standalone";
+                host::set_standalone(standalone);
+                host::log(&format!("host mode: {}", if standalone { "standalone" } else { "overtake" }));
             }
             /* Commands, not payloads. A lost command is harmless and idempotent
              * on retry — an engine that has not opened a Set cannot overwrite
@@ -783,6 +800,12 @@ impl Instance {
         self.blocks += 1;
         self.engine
             .advance_block((out_audio.len() / 2) as u32, &mut self.out);
+        /* Before the chains render: a synced chain LFO reads this block's
+         * position through the vtable movy hands its chains. */
+        host_vtable::publish_clock(
+            self.engine.clock.bpm_x100() as f32 / 100.0,
+            self.engine.beat_position(),
+        );
         self.drain_out();
         self.click.render(out_audio);
         /* At most ONE queued module load per block. This is the blocking call —

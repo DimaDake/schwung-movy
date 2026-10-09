@@ -54,6 +54,13 @@ toolchain that `build-dsp.sh` already requires.
   installed schwung, guarded by `SCHWUNG_FLOOR` and parity tests.
 - `ENGINE_VERSION` rules, atomic `dsp.so` deploy and engine-owned persistence
   (`engpersist`, ON since rev 4) all stand as written in `movy/CLAUDE.md`.
+- **Copy forward, never clean up.** A migration step reads legacy state
+  (schwung master FX, schwung slot state, Move-bound `sets/<uuid>/`, root-owned
+  files, stored flags) and writes *new* state beside it. It never clears,
+  moves, deletes or rewrites the source, and it never "enforces" the legacy
+  side empty. A temporarily odd state is accepted in exchange for zero data
+  loss and less code. Downgrading to the overtake build therefore still finds
+  everything it left, and deleting *code* (WP9) never deletes *data*.
 - File size limits (200 lines in `src/`, ~600 in tests) apply to `movy-host/`
   as well: one responsibility per `.c` file.
 
@@ -356,19 +363,29 @@ needed in both futures, and it is the only pre-work item users see.
   volume** gain stage and a safety limiter after it. In overtake mode, master
   volume stays at unity, and Move's knob keeps driving Move's own volume. The
   stage exists so that standalone only changes who turns it.
-- UI: the MASTER page rebinds from `master_fx:*` schwung slots to the movy
-  master port. Undo covers it.
-- Migration: on the first load of an old Set, read schwung's `master_fx` slots,
-  load those modules into the movy master, clear schwung's, and mark the Set
-  migrated. Then enforce-empty on every load (the design's ~30-line rule).
+- UI: **the binding follows the host mode.** Under `host_mode=overtake` the
+  MASTER page stays on schwung's `master_fx:*`, exactly as today, so overtake
+  users see no change. Under `host_mode=standalone`, or the test flag
+  `mstown=1` in overtake, it binds to the movy master port. Undo covers both.
+- Import (copy only): the first time a Set is opened with the movy master
+  bound, and that Set's movy master has never been imported, read schwung's
+  saved master for it (`set_state/<uuid>/master_fx_*.json`, a **file read**, so
+  it also works in standalone with no shim) and load those modules and params
+  into the movy master. Mark the movy side as imported. **Schwung's master is
+  never cleared and never enforced empty**, and nothing is written back.
+  Consequence, accepted: with `mstown=1` in overtake, an imported Set runs its
+  master FX twice (movy's, then schwung's). That only ever happens in a test
+  mode, and in standalone schwung's master is not in the audio path at all.
 - Tests: cargo tests (LFO ticks on an FX-only chain, idle tail, digest folds
   before the master), `master-chain.ts`/`master-fx.ts` device scenarios
-  rewritten against the movy master, plus a migration scenario. Update the
+  run once per binding (overtake: schwung master; `mstown=1`: movy master), plus
+  an import scenario that also asserts schwung's files are **byte-identical**
+  afterwards. Update the
   MANUAL master-chain section.
 - Bump `ENGINE_VERSION`.
 
-**Split point if it overruns:** engine+doc+keys (one session), then UI rebind
-and migration (the next).
+**Split point if it overruns:** engine+doc+keys (one session), then UI binding
+and import (the next).
 
 ### WP4: set manager core (after its separate design)
 
@@ -384,12 +401,22 @@ What the migration needs from the design, at minimum:
   module reinstall.
 - list / open / new / rename / duplicate / delete; the last-open Set
   reopens at launch; version history (`version_store.rs`) carries over.
-- One-time import of every existing Move-bound Set (`sets/<uuid>/`) with its
-  Move name.
-- **File ownership normalisation:** the engine runs as root today and leaves
-  root-owned 644 files. A boot-target movy may run as ableton (R2), so the
-  engine `chown`s everything it writes, and on import, to ableton. Ship this in
-  overtake movy so that by the switch no root-owned files remain.
+- Import of every existing Move-bound Set (`sets/<uuid>/`) with its Move
+  name, as a **copy** into the new library. The legacy `sets/<uuid>/` stays
+  where it is, and so does schwung's `set_state/<uuid>/`. Re-running the import
+  skips Sets already imported and never overwrites a library Set. Accepted
+  oddity: after the switch, edits live only in the library, so a downgrade
+  opens the pre-import state.
+- **Set GC is keyed on Move's Sets** (`set_gc.rs` deletes `sets/<uuid>/` once
+  Move's Set is gone). It must never touch the new library, and under
+  `host_mode=standalone` it does not run at all; the library has its own
+  explicit delete.
+- **Ownership comes from the copy, not a chown.** The import runs as whatever
+  uid writes the library, so the new files are owned correctly. Root-owned
+  legacy files only need to be readable, and 644 is. If WP0 shows movy-host
+  runs as root in both doors (R1's helper), there is nothing to do. If it
+  runs as ableton, the import runs at standalone's first launch (WP8), never
+  as root.
 - Device fixture: seed movy Sets directly (no `set_state/<uuid>`, no Move Set
   materialisation, no stack restart to seed). This is the first concrete win
   for goal 8.
@@ -524,8 +551,10 @@ regression; MANUAL draft for the standalone behaviours.
   `boot-entry.sh`, `ui.js`, `dsp.so` and `bin/heal.new`. Verify the store-update
   path against a **running** movy (the dsp.so-inode lesson; the executable gets
   `ETXTBSY`) per `docs/schwung-atomic-module-install.md`.
-- First standalone launch: run WP4's import if it never ran; refuse to start
-  over root-owned Sets it cannot write, and say why on screen.
+- First standalone launch: run WP4's copy-import for any Set not yet in the
+  library (and WP3's master import happens on each Set's first open). Legacy
+  files are only read. If the library itself is not writable, refuse with an
+  on-screen reason and never fall back to writing the legacy tree.
 - Docs: MANUAL ("Opening Movy", boot into movy, Leave/Close, volume, master,
   Sets), README headline ("boots straight into Movy"), CHANGELOG, Discord note,
   `movy/CLAUDE.md` (the module type, the dev loop, "restart the stack" → "restart
@@ -549,15 +578,22 @@ release after WP8** so a user can downgrade; WP9 starts after that.
 `src/platform/overtake.ts`, background mode (`leave-modal` Background,
 `resume.ts`, `overtakeParked`), LINK and `midi_inject_to_move`,
 `track/shim-port.ts` and schwung-slot ports, MIGRATE TRACKS, Move-Set identity
-(`active_set.txt`, pending-sets, materialisation), schwung master-FX mirror and
-migration (after the window), LED ownership/suppress, `set-commit` overtake
+(`active_set.txt`, pending-sets, materialisation), the schwung master-FX
+mirror and binding, LED ownership/suppress, `set-commit` overtake
 lowering, `host_mode=overtake` in the engine, `needs: 'move'` scenarios,
-`transport-overtake.ts`, the related flags (with a `FLAGS_REV` bump), and the
+`transport-overtake.ts`, the related flags (removed from the table with **no**
+`FLAGS_REV` bump: unknown stored keys are ignored, so the user's other
+settings survive), and the
 docs that describe them (`docs/persistence-hazards.md` entries that no longer
 apply). The source rule from WP1 shrinks to `standalone.ts` only. **Delete every
 `typeof shadow_*/host_*` gate.** Host and UI now ship as one payload, so a gate
 can only ever be true. `browser-test/logic/source-rules.mjs` gains a
 **ratchet** on the count, which may fall and never rise *(dbx)*.
+
+**Code only.** WP9 deletes no user data: legacy `sets/<uuid>/`, schwung's
+`set_state/` and master files, the `ui-state` chains mirror and slot state all
+stay on disk. The import code also stays, because a Set nobody has opened
+since the switch still needs it.
 
 ### WP10: a direct UI↔engine channel (motivation 1)
 
@@ -616,7 +652,7 @@ split points), one gate run each, and 9 of them before the switch.
 | # | Risk | Where answered | Mitigation |
 |---|---|---|---|
 | R1 | A boot target runs as ableton and cannot get `SCHED_FIFO` → glitches | WP0 | per-tool root launcher via `schwung-heal` staging (`bin/heal.new`); U3 if staging needs a verb |
-| R2 | Sets written as root by today's engine are unwritable as ableton | WP0/WP4 | engine chowns in overtake releases; WP8 refuses with a message, never silently fails a save |
+| R2 | Sets written as root by today's engine are unwritable as ableton | WP0/WP4 | never chown legacy files: the copy-import writes new files as the running uid; WP8 refuses with a message if the library is unwritable |
 | R3 | Power button is handled by MoveOriginal; unknown signature | WP0 | capture it; shutdown via helper; U3 upstream if it needs a shared path |
 | R4 | A schwung update makes param_pages call a global movy-host lacks | WP1/WP6 | globals manifest + C-side registration test; no-op-and-log stubs mean a degraded page, not a crash |
 | R5 | QuickJS / host-ABI drift between pinned host and installed schwung | WP6 | pinned tag printed in the log; `abi-parity.mjs`; `SCHWUNG_FLOOR` check at startup |
@@ -640,3 +676,7 @@ split points), one gate run each, and 9 of them before the switch.
 6. **Every dbxhost-derived item marked *(dbx)*** is accepted as part of the
    plan. The shared JS (`param_pages`) still loads from the installed schwung,
    because movy's no-vendoring rule stands.
+7. **Copy forward, never clean up** (see *Global constraints*). Schwung's master
+   FX is never cleared or enforced empty, and legacy Sets and files are only
+   read. The MASTER binding follows the host mode, so overtake users see no
+   change.

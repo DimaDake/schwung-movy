@@ -1393,9 +1393,7 @@ Two things worth knowing:
   movy is what renders them.
 
 Their modules and settings are saved with the set, so a track comes back the
-way you left it. An older set that still has Schwung holding tracks 1-4 is
-pulled onto movy's own chains automatically, the first time you open it — see
-[Settings](#settings--shift--step-2).
+way you left it.
 
 ### The Loop view
 
@@ -2001,28 +1999,6 @@ between a big set staying inside the audio frame and crackling. There is
 nothing to turn on or tune; the **CPU meter** (Shift + Step 12) is where you
 see what it buys you.
 
-**Bringing an older set across.** Tracks 1-4 used to have a choice of host —
-Schwung's own four slots, or Movy's chains. That choice is gone: every track is
-a Movy chain now. The first time you open a set that still has Schwung holding
-tracks 1-4, Movy pulls them onto its own chains for you, automatically, behind
-a **MIGRATING TRACKS** splash:
-
-![Migrating tracks](docs/assets/session_migrating.png)
-
-Modules, presets, volume and LFO assignments come across. A chain position
-Movy's own UI never shows — a second MIDI FX slot, say — is left as it was and
-reported as a warning rather than silently dropped. The Schwung slot itself is
-never cleared; it just stops being the thing that plays. This runs once per
-set — opening it again does nothing, whether or not there was anything to pull
-across.
-
-**MIGRATE TRACKS**, the last row on this page, reruns it by hand. Unlike the
-automatic pass, it **overwrites** whatever a Movy chain already holds, which is
-the way to redo a track after something changed on the Schwung side. It's a
-two-step press: the first click **arms** it, the second **confirms** —
-jog away or press anything else in between and it disarms instead. Confirming
-saves and reloads the set.
-
 ---
 
 ## 6a. Undo & redo
@@ -2112,7 +2088,7 @@ missing or simplified. **All of these are candidates for future work — and
 - **No automation capture.** [Capture](#capture--keep-what-you-just-played)
   keeps notes; knob moves made before you press it are not captured. Record
   automation live instead.
-- **Schwung tracks only.** Movy sequences its own 16 chains — not Move's native
+- **Schwung modules only.** Movy sequences its own 16 chains — not Move's native
   instruments, drum racks, or sampler.
 - **The CPU runs out long before 16 tracks do.** Move will typically give up
   somewhere around 6-7 tracks of ordinary synth modules playing notes. Pick
@@ -2213,7 +2189,7 @@ only.
 
 | Combo | Action |
 | --- | --- |
-| **Shift + Step 2** | Open **Settings** (older versions of this set, MIGRATE TRACKS). |
+| **Shift + Step 2** | Open **Settings** (older versions of this set). |
 | **Shift + Step 3** | Open **Clip parameters** (scale, length, transpose, quantize; Track view). |
 | **Shift + Step 5 / 7 / 9** | Open **Set parameters** (tempo/swing/link/quantize, root/key/mode/layout). |
 | **Shift + Step 6** | Toggle the **metronome**. |

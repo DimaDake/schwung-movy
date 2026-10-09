@@ -32,6 +32,7 @@ import { clearWidgets, isWidgetAvailable } from '../renderer/schwung-widgets.js'
 import { lastParamBody, lastSchwungPage, movyBodyUnderPage } from './param-body.js';
 
 import { laneKeysForTrack } from '../seq/automation.js';
+import { platform } from '../platform/index.js';
 
 export function init(): void {
     installPerfProbe();   // wrap the host globals before anything calls them
@@ -81,7 +82,7 @@ export function init(): void {
      * that, opening on track 2 left the step row on track 1, so the module you
      * selected and heard was track 2's while step recording wrote into track
      * 1's clip. */
-    selectTrack((typeof shadow_get_ui_slot === 'function') ? shadow_get_ui_slot() : 0);
+    selectTrack(platform.uiSlot());
     mlog('init: activeTrack=' + appState.activeTrack.index);
 
     claimLedOwnership();

@@ -6,6 +6,7 @@
  * See the transport/beat-clock design §7.4. */
 
 import { CC_PLAY, CC_REC } from '../seq/constants.js';
+import { platform } from '../platform/index.js';
 
 export type LeaveAction = 'background' | 'close';
 
@@ -15,7 +16,7 @@ interface LeaveOption { label: string; action: LeaveAction; }
  * older hosts show Close Movy only. */
 function options(): LeaveOption[] {
     const opts: LeaveOption[] = [];
-    if (typeof host_suspend_overtake === 'function') {
+    if (platform.caps.canSuspend) {
         opts.push({ label: 'Background', action: 'background' });
     }
     opts.push({ label: 'Close Movy', action: 'close' });

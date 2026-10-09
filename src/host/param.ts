@@ -33,15 +33,12 @@
  * where its six other callers already import it from, rather than moved here
  * for tidiness. */
 import { decodeBulk, encodeBulk } from '../track/bulk.js';
+import { platform } from '../platform/index.js';
 
 /* Blocking writes need a timeout, and a UI tick is the budget. 50 ms is long
  * enough for the shim's SPI frame and short enough that a contended slot costs
  * one late frame rather than a visible stall. */
 const DEFAULT_SET_TIMEOUT_MS = 50;
-
-/* Routing marker for the bulk channel: the shim dispatches on this prefix and
- * hands the payload to whichever DSP is loaded as overtake — movy's engine. */
-const BULK_MARKER = 'overtake_dsp:';
 
 export type ParamStats = {
     /** Writes attempted. */
@@ -76,14 +73,13 @@ export function resetParamStats(): void {
 
 /** Both halves of the channel are present — i.e. we are on a host at all. */
 export function paramAvailable(): boolean {
-    return typeof host_module_set_param === 'function'
-        && typeof host_module_get_param === 'function';
+    return platform.engineAvailable();
 }
 
 export function paramGet(key: string): string | null {
-    if (typeof host_module_get_param !== 'function') return null;
+    const v = platform.engineGet(key);
+    if (v === undefined) return null;
     gets++;
-    const v = host_module_get_param(key);
     if (v === null) getNulls++;
     return v;
 }
@@ -93,24 +89,20 @@ export function paramGet(key: string): string | null {
 export function paramSet(key: string, value: string,
                          timeoutMs: number = DEFAULT_SET_TIMEOUT_MS): boolean {
     sets++;
-    if (typeof host_module_set_param_blocking === 'function') {
-        /* An explicit false is a REFUSAL. Anything else — including a host that
-         * returns nothing at all — counts as delivered, because a host with no
-         * answer gives us no grounds to claim a loss. */
-        if (host_module_set_param_blocking(key, value, timeoutMs) === false) {
-            refused++;
-            lastRefusedKey = key;
-            return false;
-        }
-        return true;
+    /* An explicit false is a REFUSAL. Anything else — including a host that
+     * returns nothing at all — counts as delivered, because a host with no
+     * answer gives us no grounds to claim a loss (the platform maps that).
+     * `undefined` is the host lacking the blocking call altogether. */
+    const r = platform.engineSetBlocking(key, value, timeoutMs);
+    if (r === false) {
+        refused++;
+        lastRefusedKey = key;
+        return false;
     }
-    if (typeof host_module_set_param === 'function') {
-        /* Fire-and-forget: no answer, so no verdict. Counted as delivered for
-         * the same reason as above, and this path is not what runs on device. */
-        host_module_set_param(key, value);
-        return true;
-    }
-    return false;
+    if (r === true) return true;
+    /* Fire-and-forget: no answer, so no verdict. Counted as delivered for the
+     * same reason as above, and this path is not what runs on device. */
+    return platform.engineSet(key, value) !== undefined;
 }
 
 /** Read many params in ONE round trip.
@@ -120,8 +112,9 @@ export function paramSet(key: string, value: string,
  *  that IS movy's MIDI sampling interval. */
 export function paramGetMany(keys: string[]): (string | null)[] {
     if (keys.length === 0) return [];
-    if (typeof shadow_get_params !== 'function') return keys.map(paramGet);
-    const items = decodeBulk(shadow_get_params(0, BULK_MARKER, encodeBulk(keys)));
+    const raw = platform.engineGetBulk(encodeBulk(keys));
+    if (raw === undefined) return keys.map(paramGet);
+    const items = decodeBulk(raw);
     /* A malformed or short response must not read as "every param is empty" —
      * that would paint a whole page of zeroed knobs over the real values. */
     if (!items || items.length !== keys.length) {
@@ -134,15 +127,16 @@ export function paramGetMany(keys: string[]): (string | null)[] {
 /** Write many params in ONE round trip. */
 export function paramSetMany(pairs: [string, string][]): boolean {
     if (pairs.length === 0) return true;
-    if (typeof shadow_set_params !== 'function') {
+    const flat: string[] = [];
+    for (const [k, v] of pairs) { flat.push(k); flat.push(v); }
+    const r = platform.engineSetBulk(encodeBulk(flat));
+    if (r === undefined) {
         let ok = true;
         for (const [k, v] of pairs) if (!paramSet(k, v)) ok = false;
         return ok;
     }
-    const flat: string[] = [];
-    for (const [k, v] of pairs) { flat.push(k); flat.push(v); }
     sets += pairs.length;
-    if (shadow_set_params(0, BULK_MARKER, encodeBulk(flat)) === true) return true;
+    if (r === true) return true;
     refused += pairs.length;
     lastRefusedKey = pairs[pairs.length - 1][0];
     return false;

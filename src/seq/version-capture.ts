@@ -13,6 +13,7 @@ import { readUiBlob } from './persist-store.js';
 import { shadowPath, uuidToStatePath } from './set-context.js';
 import { readVersionIndex, readVersionState, writeVersion } from './version-store.js';
 import type { VersionWhy } from './version-index.js';
+import { platform } from '../platform/index.js';
 
 /** ~10 minutes. The autosave runs every few seconds forever, so `auto` needs a
  *  floor or the history is just the rotation with extra steps. */
@@ -25,7 +26,7 @@ export function resetVersionCapture(): void {
 }
 
 function read(path: string): string | null {
-    return (typeof host_read_file === 'function') ? host_read_file(path) : null;
+    return platform.readFile(path);
 }
 
 /** Is this payload already the newest version? The autosave rewrites the same

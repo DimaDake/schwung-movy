@@ -52,18 +52,15 @@ function stripComments(src) {
  * a dropped write is otherwise perfectly silent, and a test run that never sees
  * one cannot tell a healthy channel from a lucky one.
  */
-log('\nRule 1: only src/host/param.ts talks to the param globals');
+log('\nRule 1: only src/host/param.ts talks to the engine param channel');
 
-const GLOBALS = /\b(host_module_set_param|host_module_set_param_blocking|host_module_get_param|shadow_get_params|shadow_set_params)\b/;
+/* The channel's host half is the platform's engine calls (Rule 3 keeps the raw
+ * globals inside src/platform/), so the door is the only caller of those. */
+const GLOBALS = /\bplatform\.engine(Available|Get|Set|SetBlocking|GetBulk|SetBulk)\b/;
 
 const ALLOWED = new Set([
     /* The door itself. */
     'src/host/param.ts',
-    /* Ambient declarations, not calls. */
-    'src/types/schwung.d.ts',
-    /* Wraps the globals to TIME them. It has to reach the real functions: a
-     * probe that measured the wrapper would measure itself. */
-    'src/app/perf-probe.ts',
 ]);
 
 const offenders = [];
@@ -73,7 +70,7 @@ for (const f of walk(SRC)) {
     const code = stripComments(readFileSync(f, 'utf8'));
     if (GLOBALS.test(code)) offenders.push(rel);
 }
-ok('no module outside the door calls the param globals', offenders.length === 0,
+ok('no module outside the door calls the engine param channel', offenders.length === 0,
    offenders.length
        ? `${offenders.join(', ')} — go through src/host/param.ts (paramGet/paramSet/paramGetMany/paramSetMany)`
        : `${ALLOWED.size} allowed, everything else clean`);
@@ -125,6 +122,34 @@ const staleExemptions = [...SLEEP_ALLOWED.keys()]
     .filter((f) => !SLEEP.test(stripComments(readFileSync(f, 'utf8'))));
 ok('and the named exceptions still need to be exceptions', staleExemptions.length === 0,
    staleExemptions.length ? `${staleExemptions.join(', ')} no longer sleeps — drop it from the list` : '');
+
+
+/* ── Rule 3: the host is reached through src/platform/ only ─────────────────
+ *
+ * movy is moving from overtaking Move (schwung's shadow_ui hosts ui.js) to a
+ * standalone host of its own, and the SAME ui.js runs on both until the switch
+ * (plans/2026-10-09-standalone-migration.md, WP1). That only stays one file
+ * per host if no other module names a host global: one stray `shadow_*` call
+ * is a feature that silently does nothing — or throws — on the other host.
+ *
+ * A name after `/` is a path into schwung's tree (`shadow_ui_slot_grid.mjs`),
+ * not a call, so it is skipped. Comments are free to name anything, as above.
+ */
+log('\nRule 3: host globals are named only in src/platform/');
+
+const HOST_GLOBAL = /(?<![\w/$])(shadow_|host_|move_midi_)[A-Za-z0-9_]+/g;
+
+const hostOffenders = [];
+for (const f of walk(SRC)) {
+    const rel = relative('.', f);
+    if (rel.startsWith('src/platform/')) continue;
+    const hits = stripComments(readFileSync(f, 'utf8')).match(HOST_GLOBAL);
+    if (hits) hostOffenders.push(`${rel} (${[...new Set(hits)].join(', ')})`);
+}
+ok('no module outside src/platform/ names a host global', hostOffenders.length === 0,
+   hostOffenders.length
+       ? `${hostOffenders.join('; ')} — add it to the Platform interface (src/platform/platform.ts)`
+       : 'everything outside src/platform/ is clean');
 
 console.log(fails === 0
     ? '\n\x1b[32m\x1b[1mALL SOURCE RULES PASSED\x1b[0m'

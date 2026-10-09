@@ -3,6 +3,8 @@
  * set is identified by /data/UserData/schwung/active_set.txt (line 1 = UUID,
  * line 2 = name) — the same source davebox's seq8 tool reads. */
 
+import { platform } from '../platform/index.js';
+
 export const SETS_DIR = '/data/UserData/schwung/modules/tools/movy/sets';
 const NAME_INDEX    = SETS_DIR + '/name-index.json';
 const ACTIVE_SET    = '/data/UserData/schwung/active_set.txt';
@@ -15,13 +17,14 @@ export const MOVE_SETS_DIR = '/data/UserData/UserLibrary/Sets';
 export const BLANK_STATE = 'movy1\n';
 
 function readFile(path: string): string | null {
-    return (typeof host_read_file === 'function') ? host_read_file(path) : null;
+    return platform.readFile(path);
 }
 function writeFile(path: string, content: string): void {
-    if (typeof host_write_file === 'function') host_write_file(path, content);
+    platform.writeFile(path, content);
 }
 export function fileExists(path: string): boolean {
-    if (typeof host_file_exists === 'function') return host_file_exists(path);
+    const known = platform.fileExists(path);
+    if (known !== undefined) return known;
     const d = readFile(path);            // fallback: non-empty read == exists
     return d !== null && d.length > 0;
 }
@@ -30,8 +33,7 @@ export function fileExists(path: string): boolean {
  * `_default` fallback has to be spelled the same way the path helpers spell it,
  * or the directory made here is not the one written into. */
 export function ensureDir(uuid: string): void {
-    if (typeof host_ensure_dir === 'function')
-        host_ensure_dir(SETS_DIR + '/' + (uuid || '_default'));
+    platform.ensureDir(SETS_DIR + '/' + (uuid || '_default'));
 }
 
 export function uuidToStatePath(uuid: string): string {
@@ -87,8 +89,8 @@ export function isProvisionalUuid(uuid: string): boolean {
  * registered for module JS and permits any path under `modules/`, which is
  * where this tree lives (schwung js_host_common.c). */
 export function removeSetState(uuid: string): boolean {
-    if (!uuid || typeof host_remove_dir !== 'function') return false;
-    return host_remove_dir(SETS_DIR + '/' + uuid);
+    if (!uuid) return false;
+    return platform.removeDir(SETS_DIR + '/' + uuid);
 }
 
 export interface SetId { uuid: string; name: string; }

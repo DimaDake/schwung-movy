@@ -12,7 +12,8 @@
  * the registry answers with a built-in. That fall-through is the point of the
  * whole path, so a miss must never be an exception.
  */
-declare const shadow_load_ui_module: ((path: string) => boolean) | undefined;
+
+import { platform } from '../platform/index.js';
 
 /* Where a module's files live, in the order schwung's own resolver tries. */
 const MODULES_ROOT = '/data/UserData/schwung/modules';
@@ -32,7 +33,7 @@ const GUARDED = ['init', 'tick', 'onMidiMessageInternal', 'onMidiMessageExternal
  * a MISS, which is the answer this file already gives for everything else — the
  * registry draws a built-in. */
 function readFile(path: string): string | null {
-    try { return (typeof host_read_file === 'function') ? host_read_file(path) : null; }
+    try { return platform.readFile(path); }
     catch (_e) { return null; }
 }
 
@@ -92,7 +93,7 @@ export function loadExport(path: string, name: string): any {
 }
 
 function guardedEval(path: string, extra: string[], pick: () => any): any {
-    if (typeof shadow_load_ui_module !== 'function') return null;
+    if (!platform.canLoadUiModule()) return null;
     const names = GUARDED.concat(extra);
     const saved: Record<string, any> = {};
     const had: Record<string, boolean> = {};
@@ -102,7 +103,7 @@ function guardedEval(path: string, extra: string[], pick: () => any): any {
     }
     let out: any = null;
     try {
-        if (shadow_load_ui_module(path)) out = pick();
+        if (platform.loadUiModule(path)) out = pick();
     } catch (_e) {
         out = null;
     } finally {

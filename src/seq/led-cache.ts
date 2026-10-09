@@ -13,6 +13,7 @@ import { WHITE_BRIGHT, WHITE_DIM } from './colors.js';
  * the knob LEDs painted later in the same app tick. */
 
 import { ANIM_NONE } from './colors.js';
+import { platform } from '../platform/index.js';
 
 const lastNoteLed = new Map<number, number>();
 const lastButtonLed = new Map<number, number>();
@@ -68,11 +69,9 @@ interface AnimState { base: number; anim: number; animColor: number; }
 const lastAnimLed = new Map<number, AnimState>();
 
 function emitLed(note: number, color: number, channel: number): void {
-    // move_midi_internal_send is a shadow_ui global; absent in browser tests of
-    // the device build and in DSP-less installs. Fall back to channel-0 setLED.
-    if (typeof move_midi_internal_send === 'function') {
-        move_midi_internal_send([0x09, 0x90 | channel, note, color]);
-    } else {
+    // The surface send is absent in browser tests of the device build and in
+    // DSP-less installs. Fall back to channel-0 setLED.
+    if (!platform.surfaceSend([0x09, 0x90 | channel, note, color])) {
         setLED(note, color, true);
     }
 }

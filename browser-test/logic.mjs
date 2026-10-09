@@ -18,6 +18,7 @@ import { run as run_declarations } from './logic/declarations.mjs';
 import { run as run_trigger_badge } from './logic/trigger-badge.mjs';
 import { run as run_drums } from './logic/drums.mjs';
 import { run as run_host_param } from './logic/host-param.mjs';
+import { run as run_platform_caps } from './logic/platform-caps.mjs';
 import { run as run_seq_engine } from './logic/seq-engine.mjs';
 import { run as run_seq_router } from './logic/seq-router.mjs';
 import { run as run_seq_edit } from './logic/seq-edit.mjs';
@@ -113,6 +114,7 @@ const SUITES = [
     run_trigger_badge,
     run_drums,
     run_host_param,
+    run_platform_caps,
     run_seq_engine,
     run_seq_router,
     run_seq_edit,

@@ -14,6 +14,7 @@ import chiptuneJson    from './chiptune.json';
 import hush1Json       from './hush1.json';
 import signalJson      from './signal.json';
 import slicerJson      from './slicer.json';
+import { platform } from '../platform/index.js';
 
 const MOVY_MODULE_ROOT = '/data/UserData/schwung/modules';
 /* movy's own install dir. The override configs below are DATA FILES shipped
@@ -65,9 +66,8 @@ const CONFIGS: Record<string, ModuleConfig> = {
 };
 
 function tryFile(path: string): ModuleConfig | null {
-    if (typeof host_read_file !== 'function') return null;
     try {
-        const s = host_read_file(path);
+        const s = platform.readFile(path);
         if (s) return JSON.parse(s) as ModuleConfig;
     } catch {}
     return null;
@@ -87,9 +87,8 @@ function componentCategory(componentKey: string): string {
 export function loadModuleJson(moduleId: string, componentKey = 'synth'):
     { capabilities?: { ui_hierarchy?: unknown } } | null {
     if (!moduleId) return null;
-    if (typeof host_read_file !== 'function') return null;
     try {
-        const raw = host_read_file(
+        const raw = platform.readFile(
             `${MOVY_MODULE_ROOT}/${componentCategory(componentKey)}/${moduleId}/module.json`);
         if (raw) return JSON.parse(raw) as { capabilities?: { ui_hierarchy?: unknown } };
     } catch {}

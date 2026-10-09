@@ -16,6 +16,9 @@
  * the big cells would draw as plain arcs. Raise this when a feature starts
  * depending on a newer Schwung, and say which feature in the commit.
  */
+
+import { platform } from '../platform/index.js';
+
 export const SCHWUNG_FLOOR = '1.5.0';
 
 const RELEASE = '/data/UserData/schwung/release.json';
@@ -62,7 +65,7 @@ function atLeast(have: string, want: string): boolean {
 /** The installed version, or '' when it cannot be read. */
 export function schwungVersion(): string {
     try {
-        const raw = host_read_file(RELEASE);
+        const raw = platform.readFile(RELEASE);
         /* A release.json that PARSES but carries no `version` is not a version
          * either, so it falls through to the host's own file exactly as an
          * absent or corrupt one does. Returning its empty string here
@@ -72,7 +75,7 @@ export function schwungVersion(): string {
         if (v) return v;
     } catch { /* a corrupt release.json is not a version — try the host's own */ }
     try {
-        const raw = host_read_file(HOST_VERSION);
+        const raw = platform.readFile(HOST_VERSION);
         return raw ? raw.trim() : '';
     } catch { return ''; }
 }

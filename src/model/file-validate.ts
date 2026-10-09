@@ -6,10 +6,12 @@
  *
  * Unreadable files pass: on device host_read_file should always succeed, and
  * failing open means a transient read error never blocks a legitimate preset. */
+
+import { platform } from '../platform/index.js';
+
 export function fileContentAllows(path: string, requireContains?: string): boolean {
     if (!requireContains) return true;
-    if (typeof host_read_file !== 'function') return true;
-    const content = host_read_file(path);
+    const content = platform.readFile(path);
     if (content === null) return true;
     return content.indexOf(requireContains) >= 0;
 }

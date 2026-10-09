@@ -47,6 +47,7 @@ export { volumeFrac };
  */
 
 import { mlog } from '../log.js';
+import { platform } from '../platform/index.js';
 
 export const MASTER_CC         = 79;   /* MoveMaster — raw relative encoder */
 export const MASTER_TOUCH_NOTE = 8;    /* MoveMasterTouch (note 9 is the jog) */
@@ -62,16 +63,16 @@ let value     = 1;       /* live slot:volume for the gesture in progress */
 let volIdx    = ampToIdx(1);  /* its position on the dB ladder */
 
 function injectHold(track: number, pressed: boolean): void {
-    if (typeof move_midi_inject_to_move !== 'function') return;
-    move_midi_inject_to_move([0x0B, 0xB0, trackCc(track), pressed ? 127 : 0]);
+    if (!platform.caps.coexistsWithMove) return;
+    platform.injectToMove([0x0B, 0xB0, trackCc(track), pressed ? 127 : 0]);
 }
 
 /* New-schwung path: ask the shim to exclude Move from the gesture entirely
  * instead of fooling it with injectHold. Absent on a pre-merge shim — see the
  * module header. */
 function setMoveExcluded(excluded: boolean): void {
-    if (typeof shadow_set_overtake_suppress_master_volume !== 'function') return;
-    shadow_set_overtake_suppress_master_volume(excluded ? 1 : 0);
+    if (!platform.caps.coexistsWithMove) return;
+    platform.excludeMoveFromVolume(excluded);
 }
 
 /* Where a track's level lives.
@@ -131,7 +132,7 @@ function beginDivert(): void {
      * undo group's — no touch plumbing needed. */
     volumeBefore = writeValue(heldTrack, value);
     volIdx   = ampToIdx(value);
-    const moveExcluded = typeof shadow_set_overtake_suppress_master_volume === 'function';
+    const moveExcluded = platform.canExcludeMoveFromVolume();
     if (moveExcluded) {
         setMoveExcluded(true);
     } else {
@@ -146,7 +147,7 @@ function beginDivert(): void {
 
 function endDivert(): void {
     if (diverted < 0) return;
-    if (typeof shadow_set_overtake_suppress_master_volume === 'function') {
+    if (platform.canExcludeMoveFromVolume()) {
         setMoveExcluded(false);
     } else {
         injectHold(diverted, false);

@@ -36,6 +36,7 @@ import { loadSet, setHasState } from './set-load.js';
 import { adoptExistingVersions, captureVersion, resetVersionCapture } from './version-capture.js';
 import { resetVersionRestore, restoreTick } from './version-restore.js';
 import { adoptSaved, resetSetSave, saveNeeded, saveSet, savedPayload } from './set-save.js';
+import { platform } from '../platform/index.js';
 
 export type Phase = 'booting' | 'loading' | 'settling' | 'ready' | 'switching' | 'failed';
 export type FailScope = 'set' | 'engine';
@@ -114,7 +115,7 @@ export function resetSetSession(): void {
 }
 
 function filesAvailable(): boolean {
-    return typeof host_read_file === 'function' && typeof host_write_file === 'function';
+    return platform.filesAvailable();
 }
 
 /* Carry the work in hand to a Set that has none of its own — Move having

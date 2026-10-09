@@ -30,6 +30,7 @@ import { changeDetail } from './label.js';
 import { refreshModels, syncParamsToModels } from './param-sync.js';
 import { moduleReadKey } from '../chain/config.js';
 import { captureModuleState, dumpModuleParams, stateIsParsable } from './module-dump.js';
+import { platform } from '../platform/index.js';
 
 /* Snapshot ids allocated for the redo side of a uswap. Shares the counter with
  * group.ts by staying above it — group ids are odd-free and monotonic, so a
@@ -60,7 +61,7 @@ export function flushOrphanedSnaps(): void {
  * because restoring the one already live is simply a no-op. */
 function moduleDrifted(e: UndoEntry, _undoing: boolean): boolean {
     const op = e.moduleOp;
-    if (!op || typeof shadow_get_param !== 'function') return false;
+    if (!op || !platform.slotParamsAvailable()) return false;
     const live = componentPort(op.slot, op.componentKey)
         .getParam(moduleReadKey(op.componentKey)) || '';
     if (live === '') return false;   // unreadable or a cleared slot: can't tell

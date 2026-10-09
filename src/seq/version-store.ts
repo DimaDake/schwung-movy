@@ -18,9 +18,10 @@ import {
     type VersionIndex, type VersionWhy,
 } from './version-index.js';
 import { versionToDrop } from './version-retain.js';
+import { platform } from '../platform/index.js';
 
 function read(path: string): string | null {
-    return (typeof host_read_file === 'function') ? host_read_file(path) : null;
+    return platform.readFile(path);
 }
 
 /** The index, with entries whose files are gone dropped. Self-healing on READ
@@ -55,7 +56,7 @@ export function writeVersion(
 ): boolean {
     const idx = readVersionIndex(uuid);
     const n = idx.next;
-    if (typeof host_ensure_dir === 'function') host_ensure_dir(versionDir(uuid, n));
+    platform.ensureDir(versionDir(uuid, n));
     if (!safeWrite(versionStatePath(uuid, n), wrapState(payload, gen))) {
         mlog('versions: capture failed for ' + uuid + ' (' + why + ')');
         return false;
@@ -84,7 +85,7 @@ export function pruneVersions(uuid: string, now: number): void {
         const idx = readVersionIndex(uuid);
         const n = versionToDrop(idx.v, now);
         if (n === null) return;
-        if (typeof host_remove_dir === 'function') host_remove_dir(versionDir(uuid, n));
+        platform.removeDir(versionDir(uuid, n));
         idx.v = idx.v.filter((r) => r.n !== n);
         if (!safeWrite(versionsIndexPath(uuid), serializeVersionIndex(idx))) return;
         mlog('versions: pruned ' + n + ' from ' + uuid);

@@ -85,6 +85,12 @@ await esbuild.build({
         /* The one door to the param channel: an entry point so the logic suite
          * can drive it directly and assert on its refusal counters. */
         resolve(root, 'src/host/param.ts'),
+        /* The host seam (standalone WP1): an entry point so a suite can swap the
+         * platform with setPlatformForTest and see every caller follow. */
+        resolve(root, 'src/platform/index.ts'),
+        /* Move-only features the platform-caps suite asserts switch off. */
+        resolve(root, 'src/app/led-ownership.ts'),
+        resolve(root, 'src/seq/set-commit.ts'),
         resolve(root, 'src/seq/restore-gate.ts'),
         resolve(root, 'src/model/envelope.ts'),
         resolve(root, 'src/model/lfo-viz.ts'),

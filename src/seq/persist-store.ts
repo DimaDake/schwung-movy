@@ -19,15 +19,15 @@ import { wrapState, parseState, ParsedState } from './persist-blob.js';
 import {
     BLANK_STATE, ensureDir, shadowPath, uuidToChainsPath, uuidToStatePath, uuidToUiStatePath,
 } from './set-context.js';
+import { platform } from '../platform/index.js';
 
 function readFile(path: string): string | null {
-    return (typeof host_read_file === 'function') ? host_read_file(path) : null;
+    return platform.readFile(path);
 }
 
 /** Write and confirm. `false` means the caller must keep the data pending. */
 export function safeWrite(path: string, content: string): boolean {
-    if (typeof host_write_file !== 'function') return false;
-    if (!host_write_file(path, content)) return false;
+    if (!platform.writeFile(path, content)) return false;
     return readFile(path) === content;
 }
 

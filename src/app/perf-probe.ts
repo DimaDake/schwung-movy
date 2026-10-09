@@ -1,4 +1,5 @@
 import { mlog } from '../log.js';
+import { platform } from '../platform/index.js';
 
 /* Host IPC accounting.
  *
@@ -114,22 +115,9 @@ export function installPerfProbe(): void {
     (globalThis as Record<string, unknown>)[SINK] = record;
     if (installed) return;
     installed = true;
-    wrap('shadow_get_param',      'get',  1);
-    wrap('shadow_set_param',      'set',  1);
-    wrap('host_module_get_param', 'mget', 0);
-    wrap('host_module_set_param', 'mset', 0);
-    /* The engine's writes are all BLOCKING (the overtake param SHM is a single
-     * slot, so non-blocking writes are lost) — which is exactly why leaving this
-     * one unwrapped hid the most expensive calls movy makes. A live pad note on
-     * a movy track used to be one of these per note, and `ipc_ms` reported
-     * nothing: the "2.12 ms pad cost" it seemed to show was the chain page's
-     * param refresh standing next to it. */
-    wrap('host_module_set_param_blocking', 'msetb', 0);
-    /* The bulk channel is one round trip for many keys, which is exactly why a
-     * page refresh uses it — and exactly why leaving it out would understate the
-     * tick again, this time by hiding the call that replaced eight. */
-    wrap('shadow_get_params', 'bget', 1);
-    wrap('shadow_set_params', 'bset', 1);
+    /* The host names its own IPC calls: which globals cost a round trip is a
+     * fact about the host, not about the probe. */
+    for (const [name, kind, keyArg] of platform.ipcCalls) wrap(name, kind, keyArg);
 }
 
 /* Coarse in-tick phase timing. tick_ms says the tick is slow; this says which

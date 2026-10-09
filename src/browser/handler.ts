@@ -6,6 +6,7 @@ import { releaseAllLive } from '../keyboard/release.js';
 import { captureLfoAssignments, captureModuleState, dumpModuleParams } from '../undo/module-dump.js';
 import { mlog } from '../log.js';
 import { addModuleOp, beginEdit, endEdit, CLOSE } from '../undo/group.js';
+import { platform } from '../platform/index.js';
 
 const MODULES_BASE = '/data/UserData/schwung/modules';
 
@@ -23,7 +24,7 @@ function scanModules(slot: ChainSlot): { id: string; name: string; path: string 
         for (const entry of entries) {
             if (entry === '.' || entry === '..') continue;
             try {
-                const raw = host_read_file(`${dir}/${entry}/module.json`);
+                const raw = platform.readFile(`${dir}/${entry}/module.json`);
                 if (!raw) continue;
                 const json = JSON.parse(raw) as {
                     id?: string; name?: string; dsp?: string;

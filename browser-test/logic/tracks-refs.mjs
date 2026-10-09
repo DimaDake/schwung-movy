@@ -175,15 +175,14 @@ export async function run() {
     return e.isDirectory() ? walkTs(full) : (full.endsWith('.ts') ? [full] : []);
   });
   const READ_ALLOWED = {
-    'src/types/schwung.d.ts':  'the ambient declaration',
     'src/track/shim-port.ts':  "a schwung slot's one door — reads for master_fx and migration",
   };
   const offenders = walkTs('src')
     .filter((f) => !(f in READ_ALLOWED))
-    .filter((f) => readFileSync(f, 'utf8').includes('shadow_get_param('));
+    .filter((f) => readFileSync(f, 'utf8').includes('platform.slotGet('));
   eq('no file reads params by slot: ' + offenders.join(','), offenders.length, 0);
   const staleReads = Object.keys(READ_ALLOWED)
-    .filter((f) => !readFileSync(f, 'utf8').includes('shadow_get_param('));
+    .filter((f) => !readFileSync(f, 'utf8').includes('platform.slotGet('));
   eq('no stale read-allowlist entries: ' + staleReads.join(','), staleReads.length, 0);
 }
 

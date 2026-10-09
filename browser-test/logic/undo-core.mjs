@@ -394,8 +394,10 @@ export async function run() {
      * work on a movy-hosted track without revisiting the call site. A direct
      * write would compile and pass on host tracks while silently doing nothing
      * on a movy one — the failure this guard exists to prevent. */
+    /* The write is the platform's slot call: source-rules Rule 3 keeps the raw
+     * `shadow_set_param` global inside src/platform/, so this guards the next
+     * layer up. */
     const ALLOWED = {
-        'src/types/schwung.d.ts':       'the ambient declaration',
         'src/track/shim-port.ts':       "a schwung slot's one door — reads for master_fx and migration",
     };
     const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
@@ -404,13 +406,13 @@ export async function run() {
     });
     const offenders = walk('src')
         .filter((f) => !(f in ALLOWED))
-        .filter((f) => readFileSync(f, 'utf8').includes('shadow_set_param('));
+        .filter((f) => readFileSync(f, 'utf8').includes('platform.slotSet('));
     eq('no unlisted file writes chain params directly: ' + offenders.join(','),
         offenders.length, 0);
 
     /* And the allowlist cannot rot into a list of files that no longer write. */
     const stale = Object.keys(ALLOWED)
-        .filter((f) => !readFileSync(f, 'utf8').includes('shadow_set_param('));
+        .filter((f) => !readFileSync(f, 'utf8').includes('platform.slotSet('));
     eq('no stale allowlist entries: ' + stale.join(','), stale.length, 0);
 }
 

@@ -7,6 +7,7 @@
 
 import type { TrackPort } from './port.js';
 import { trackRef, type TrackRef } from './ref.js';
+import { platform } from '../platform/index.js';
 
 export class ShimSlotPort implements TrackPort {
     readonly track: TrackRef;
@@ -21,18 +22,16 @@ export class ShimSlotPort implements TrackPort {
     }
 
     getParam(key: string): string | null {
-        if (typeof shadow_get_param !== 'function') return null;
-        return shadow_get_param(this.track.index, key);
+        return platform.slotGet(this.track.index, key);
     }
 
     setParam(key: string, value: string): boolean {
-        if (typeof shadow_set_param !== 'function') return false;
-        return shadow_set_param(this.track.index, key, value);
+        return platform.slotSet(this.track.index, key, value);
     }
 
     setParamTimeout(key: string, value: string, timeoutMs: number): boolean {
-        if (typeof shadow_set_param_timeout !== 'function') return this.setParam(key, value);
-        return shadow_set_param_timeout(this.track.index, key, value, timeoutMs);
+        return platform.slotSetTimeout(this.track.index, key, value, timeoutMs)
+            ?? this.setParam(key, value);
     }
 
     getMany(keys: string[]): (string | null)[] {
@@ -48,7 +47,6 @@ export class ShimSlotPort implements TrackPort {
     }
 
     sendMidi(statusType: number, d1: number, d2: number): void {
-        if (typeof shadow_send_midi_to_dsp !== 'function') return;
-        shadow_send_midi_to_dsp([statusType | this.track.index, d1, d2]);
+        platform.slotSendMidi([statusType | this.track.index, d1, d2]);
     }
 }

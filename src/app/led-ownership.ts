@@ -1,4 +1,5 @@
 import { mlog } from '../log.js';
+import { platform } from '../platform/index.js';
 
 /* Move paints its RGB pads, steps and grid with cable-0 LED sysex. Full
  * overtake strips its note and CC LED writes but not sysex, so with the Play
@@ -12,8 +13,8 @@ import { mlog } from '../log.js';
  * overtake_suppress_sysex when we park (schwung shadow_ui.js:3180-3187) and
  * resumeOvertakeModule never re-applies it, while init() is not re-run. */
 export function claimLedOwnership(): void {
-    if (typeof shadow_set_overtake_suppress_sysex === 'function') {
-        shadow_set_overtake_suppress_sysex(1);
+    if (!platform.caps.coexistsWithMove) return;
+    if (platform.claimLeds()) {
         mlog('LED ownership claimed (overtake sysex suppression on)');
     }
 }

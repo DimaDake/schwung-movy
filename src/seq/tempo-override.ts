@@ -3,6 +3,9 @@
  * file only while Move is the sole Link peer — with Live connected the
  * session owns tempo, which is correct. Debounce keeps a knob sweep from
  * spamming the file (the sidecar polls its mtime at ~100 Hz). */
+
+import { platform } from '../platform/index.js';
+
 const PATH = '/data/UserData/schwung/desired-tempo';
 const DEBOUNCE_TICKS = 60;   // ~0.3 s at the ~205 Hz device tick
 
@@ -17,8 +20,6 @@ export function scheduleTempoOverride(bpmX100: number): void {
 export function tempoOverrideTick(): void {
     if (!pending) return;
     if (--countdown > 0) return;
-    if (typeof host_write_file === 'function') {
-        host_write_file(PATH, (pending / 100).toFixed(4) + '\n');
-    }
+    platform.writeFile(PATH, (pending / 100).toFixed(4) + '\n');
     pending = 0;
 }

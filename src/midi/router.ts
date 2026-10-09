@@ -86,6 +86,7 @@ import { jogHintTouch } from '../app/jog-hint.js';
 import { MASTER_CC, volumeTrackDown, volumeTrackUp, volumeTouch, volumeKnobDelta } from '../mixer/track-volume.js';
 import { toggleSolo } from '../mixer/track-mutes.js';
 import { mlog } from '../log.js';
+import { platform } from '../platform/index.js';
 
 const PAD_MIN        = MovePads[0];
 const PAD_MAX        = MovePads[MovePads.length - 1];
@@ -266,8 +267,8 @@ export function onMidiMessageInternal(data: number[]): void {
                  * need no equivalent only because everything that sounds one
                  * dismisses first; move a pad to `through` and that changes. */
                 resetHeldInput(true);
-                if (action === 'background') host_suspend_overtake();
-                else if (action === 'close') host_exit_module();
+                if (action === 'background') platform.suspend();
+                else if (action === 'close') platform.exit();
                 return;
             }
         }

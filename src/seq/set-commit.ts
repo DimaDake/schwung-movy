@@ -43,6 +43,7 @@
  * none of this applies: the press just goes. */
 
 import { mlog } from '../log.js';
+import { platform } from '../platform/index.js';
 import { claimLedOwnership } from '../app/led-ownership.js';
 import { flagValue } from './flags.js';
 import { isProvisionalUuid } from './set-context.js';
@@ -108,14 +109,13 @@ export function resetSetCommit(): void {
 }
 
 function send(pressed: boolean): void {
-    move_midi_inject_to_move([0x0B, 0xB0, TRACK_CC, pressed ? 127 : 0]);
+    platform.injectToMove([0x0B, 0xB0, TRACK_CC, pressed ? 127 : 0]);
 }
 
 /* Hand the surface to Move so the drain will run, or take it back. Only when
  * movy is actually in front: parked, the flag is already 0 and is not ours. */
 function surface(toMove: boolean): void {
-    if (typeof shadow_set_overtake_mode !== 'function') return;
-    shadow_set_overtake_mode(toMove ? 0 : 2);
+    if (!platform.lendSurfaceToMove(toMove)) return;
     /* Lowering the flag clears overtake_suppress_sysex (shadow_ui.c), which is
      * movy's claim on the LEDs — take it back with the surface, and ask for the
      * full repaint that a resume does, since Move has been painting over us. */
@@ -151,7 +151,7 @@ export function setCommitTick(id: string, ready: boolean, chainsDrained = true):
     if (!ready || !id || !isProvisionalUuid(id)) return;
     if (id === askedFor) return;                       // asked once; Move said no
     if (flagValue('setcommit') === 0) return;
-    if (typeof move_midi_inject_to_move !== 'function') return;
+    if (!platform.caps.coexistsWithMove || !platform.canInjectToMove()) return;
     /* Only from the front. Parked, movy could press without borrowing anything
      * — the drain is already open — but that press is swallowed: Move is still
      * loading the Set the user just picked, and the pad they picked it with is

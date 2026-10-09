@@ -23,6 +23,7 @@ import { markUiStateDirty } from './ui-dirty.js';
 import { applyFlagsToEngine } from './flags.js';
 import { resetPadRoute, syncPadRoute } from '../track/pad-route.js';
 import { noteReportedTrack, resetWatchPush, syncWatch } from './watch.js';
+import { platform } from '../platform/index.js';
 
 /* -1 until the first poll: the opening value is not a change, and treating it
  * as one would mark every fresh open dirty and rewrite the set for nothing. */
@@ -237,8 +238,7 @@ export function seqEngineTick(): void {
  * reach Move, and this sentinel to recognise it by. On anything older the
  * link's movy→Move half stays switched off — Move's Play still drives movy. */
 function moveInjectReachesMove(): boolean {
-    const ok = typeof shadow_overtake_move_inject_active === 'function'
-        && shadow_overtake_move_inject_active() === 1;
+    const ok = platform.caps.coexistsWithMove && platform.engineInjectReachesMove();
     if (!ok) mlog('seq: host cannot inject to Move — play link is Move→movy only');
     return ok;
 }

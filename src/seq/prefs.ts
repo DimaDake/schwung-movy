@@ -11,6 +11,7 @@
  * write is enough, and a read that fails falls back rather than throwing. */
 
 import { safeWrite } from './persist-store.js';
+import { platform } from '../platform/index.js';
 
 export const PREFS_PATH = '/data/UserData/schwung/modules/tools/movy/prefs.json';
 
@@ -30,8 +31,7 @@ type PrefsFile = {
 };
 
 function readPrefs(): PrefsFile {
-    if (typeof host_read_file !== 'function') return {};
-    const raw = host_read_file(PREFS_PATH);
+    const raw = platform.readFile(PREFS_PATH);
     if (!raw) return {};
     try {
         const obj = JSON.parse(raw) as unknown;

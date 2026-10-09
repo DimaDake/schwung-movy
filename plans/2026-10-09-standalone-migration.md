@@ -330,6 +330,29 @@ standalone flavour is one new file, not a sweep.
 **Behaviour change:** none. **Gates:** both tiers. **Size:** mechanical but
 broad; the source-rule makes it self-checking.
 
+**Done 2026-10-09** (branch `standalone-migration`): `src/platform/`
+(`platform.ts`, `caps.ts`, `overtake.ts`, `index.ts`, and `host-globals.d.ts`,
+which now holds every `shadow_*`/`host_*`/`move_midi_*` declaration). Every call
+site goes through `platform`. `source-rules.mjs` Rule 3 bans those names outside
+`src/platform/`, and Rule 1 now guards `platform.engine*` instead of the raw
+globals. `scripts/host-globals.mjs` writes `browser-test/host-globals.json`
+(56 movy globals and 13 shared). It finds unresolved names with the TypeScript
+checker plus a walk over `globalThis.<name>`, because `page_controller` reaches
+the held-step state that way. `browser-test/host-globals.mjs` is in `npm test`.
+`logic/platform-caps.mjs` checks that a platform with `coexistsWithMove: false`
+silences background mode, the LED claim, set-commit and the volume divert.
+Notes for WP6:
+- A platform method returns `undefined` only when the host *lacks* the call.
+  A present call that answers nothing maps to its call site's old verdict
+  (for example `engineSetBlocking` → `!== false`). The param door depends on
+  that distinction.
+- **Deviation:** the browser suites still mock the raw globals instead of one
+  mock `Platform`. `overtake.ts` reads each global at call time, so those mocks
+  now exercise the real overtake implementation. Converting 57 suites would
+  have tested less. The standalone platform gets its own suite in WP6, and
+  `setPlatformForTest` is how it gets in.
+- `perf-probe` wraps `platform.ipcCalls`, so the host names its own round trips.
+
 ### WP2: the engine owns its host vtable and clock
 
 **Goal:** the chain host and every module see a vtable **movy synthesises**,

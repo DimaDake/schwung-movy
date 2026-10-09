@@ -45,9 +45,7 @@ that gap with two things:
    step recording, automation), but driving Schwung modules instead of Move's
    instruments. Every track hosts its own module chain inside Movy, summed to
    one stereo output — one host for all sixteen, which is also what lets every
-   track share Movy's CPU optimization. An older set that still has Schwung
-   holding tracks 1-4 is pulled onto Movy's chains automatically, the first
-   time you open it. The 16 are arranged as **four groups of four**: in Session
+   track share Movy's CPU optimization. The 16 are arranged as **four groups of four**: in Session
    view the +/− buttons move between groups, and the step buttons pick a
    track.
 
@@ -58,7 +56,7 @@ Movy stands on the shoulders of several projects:
 | Aspect | Inspired by |
 | --- | --- |
 | **Screen UI** | [Elektron](https://www.elektron.se/) boxes (knob pages, parameter locks), with a nod to [Dronage](https://github.com/charlesvestal/schwung) |
-| **Sequencer behaviour** | Ableton **Move**'s native sequencer — Movy tries to feel the same, just for 16 Schwung tracks |
+| **Sequencer behaviour** | Ableton **Move**'s native sequencer — Movy tries to feel the same, just for 16 tracks of Schwung modules |
 | **Sequencer architecture** | [Davebox](https://github.com/legsmechanical/schwung-davebox) — the proven engine/transport approach (without copying its code, and without inheriting its deviations from native Move) |
 | **Concept** | Native Move + Davebox + Dronage, distilled into one tool |
 
@@ -131,9 +129,7 @@ Movy stands on the shoulders of several projects:
 
 - **Sixteen tracks in four groups.** Every track loads a module the way any
   track button does, and Movy hosts the whole chain itself, saved with the
-  set. An older set that still has Schwung holding tracks 1-4 is pulled onto
-  Movy's chains automatically, the first time you open it (see **Settings**
-  below). In Session view, **octave +/−** moves between the
+  set. In Session view, **octave +/−** moves between the
   four groups and **a step button selects a track** — or hold **Session** and
   press a step from anywhere. Hold **Mute** anywhere — the pads, Loop mode,
   Session view — and the step row becomes a **16-track mute map**; add **Shift**
@@ -188,10 +184,8 @@ Movy stands on the shoulders of several projects:
 
   ![Step parameters](docs/assets/step_page_knobs.png)
 
-- **Settings — Shift + Step 2** — a scrolling list, older versions of the set
-  (**BACKUPS**) and **MIGRATE TRACKS** for a set that still has Schwung holding
-  tracks 1-4 (this normally happens on its own, the first time you open it).
-  Each row explains itself on screen.
+- **Settings — Shift + Step 2** — a scrolling list and older versions of the
+  set (**BACKUPS**). Each row explains itself on screen.
 
   ![Settings](docs/assets/flags-release.png)
 
@@ -276,7 +270,7 @@ reimplementation. Notable gaps (all candidates for future work — contributions
 welcome):
 
 - **No automation capture** — Capture keeps notes; knob moves are not captured.
-- **Schwung tracks only** — not Move's native instruments, drum racks or
+- **Schwung modules only** — not Move's native instruments, drum racks or
   sampler.
 - Sequencer **resolution and some clip-level features** are simplified.
 

@@ -202,6 +202,8 @@ toolchain that `build-dsp.sh` already requires.
 - **U5** `launch-standalone.sh`: mute before teardown, give Move a graceful
   shutdown, and clear stale `/dev/shm/schwung-*`, if WP0 measures a handoff
   burst *(dbx)*.
+- **U6** `open_tool_cmd` → `launchToolConfirmed`, so a standalone tool can be
+  opened programmatically (WP0 finding 3; filed with WP6).
 - **U4** If param_pages grows a `shadow_*` dependency, an injectable
   "host adapter" argument instead of a bare global (raised only if WP1's
   manifest shows churn).
@@ -278,6 +280,16 @@ deleted in WP6.
 
 **Exit:** every risk R1–R6 has a verdict; WP6's design choices (RT path, uid
 path, power handling) are fixed in the findings doc.
+
+**Done 2026-10-09** (branch `standalone-migration`): `docs/standalone/inventory.md`
+and `docs/standalone/spike-findings.md`. Plan-changing results, all in the
+findings doc §3. (1) ableton cannot get SCHED_FIFO (Move uses file caps), so
+movy-host runs as ableton and a staged `bin/heal` helper promotes its threads.
+(2) `open_tool_cmd` cannot open a standalone tool (new upstream **U6**). (3)
+WP8 must change `component_type` off `overtake`: overtake is scanned before
+`standalone`. (4) No systemd on the device, so the launcher pause never runs.
+(5) The shared JS needs quickjs-libc `std`/`os`. (6) The speaker EQ is a shim
+feature (R8).
 
 ---
 

@@ -13,47 +13,21 @@ far. Earlier work is summarised in the timeline below for context.
 
 ## [Unreleased]
 
+## [0.35.0] — 2026-10-09
+
 ### Added
 
-- **File browsers preview, and run the module's browser hooks.** A filepath
-  param's `live_preview` loads the file under the cursor once it rests (150 ms,
-  Schwung's figure) and Back restores the original; `browser_hooks` run on
-  open / preview / commit / cancel, `restore: true` ones put back on close.
-  mrdrums, MrSample, granny and tablor declare them; movy ignored both. A pick
-  is still one undo step, back to the value from before the browser opened
-  (`browser/file-preview.ts`, `model/file-decl.ts`).
-
-- **Module screens open.** A held `type: "canvas"` knob's jog click opens the
-  module's own fullscreen screen, to upstream's contract (jog/knobs/pads to the
-  script, enterable click, Back through `handleBack`, Shift+jog out, `ctx.close`).
-  It was logged and dropped, so DR32's ENGN knob — the only way to pick a pad's
-  sample or engine — did nothing (`renderer/schwung-canvas-dive.ts`).
-
-- **Per-pad sends from drum modules.** Simian's and DR32's per-pad Send A /
-  Send B now feed Movy's SEND 1 / SEND 2, post the track's fader and pan, on top
-  of the track's own send. Until now those knobs wrote a level nothing in Movy
-  read. The engine drains schwung's chain-host voice pool
-  (`chain_drain_sends`); a chain whose pads are sending counts as a feeder of
-  the bus, so co-located send rendering stays race-free. `sndlog` gains
-  `vsnd=`. ENGINE 0.84.0.
-
-- **Under PARAM PAGES: SCHWUNG, the LFO pages are Schwung's own (SP-60).** A
-  track's LFO slot and the master chain's now draw the LFO 1 / LFO 2 pages
-  Schwung's Slot Settings and Master FX Settings use — one waveform across
-  Shape/Rate/Depth/Phase, one Rate knob that follows Sync, On, and Target as a
-  door whose list routes the LFO — built from Schwung's own `lfoParams`/
-  `lfoLevels` rather than movy's SP-55 lookalike cells. Loaded from
-  `shared/param_pages/lfo_page.mjs` (charlesvestal/schwung#549), falling back to
-  `shadow/shadow_ui_slot_grid.mjs` on a Schwung without it.
-- **The Schwung LFO page plays like movy's own.** Target is turned by its knob
-  (a list pops up while you turn; the routing lands when you let go), there is
-  no On switch — a target turns the LFO on and None turns it off — Retrigger is
-  back in its place, and Rate sits last in its own cell so a synced division
-  reads `1/4` instead of hiding in the waveform (which still follows it, at the
-  speed a division plays). Mode and Sync flip without the pop-up list. Needs the
-  matching Schwung change (`lfoTargetOptions`); on an older Schwung Target stays
-  a door.
-
+- **Tracks 1-4 leave Schwung's slots automatically.** The **TRACKS 1-4 HOST**
+  choice is gone — every track is a Movy chain now. A set that still has
+  Schwung holding tracks 1-4 is migrated the first time it's opened, behind a
+  **MIGRATING TRACKS** splash so no edit can race it: module, preset, volume
+  and LFO assignments come across, a chain position Movy's UI never shows is
+  left alone and reported as a warning, and the Schwung slot itself is never
+  cleared — it just stops being played. The set is marked migrated whether or
+  not the pass finds anything to pull across, so a bad read never retries
+  forever; the Settings page's new **MIGRATE TRACKS** row reruns it by hand and,
+  unlike the automatic pass, overwrites whatever a chain already holds. `ENGINE
+  0.72.0`.
 
 - **Settings → PARAM PAGES now shows in release builds.** The MOVY/SCHWUNG
   switch for who draws a module's parameter pages was debug-only; it is now a
@@ -68,29 +42,37 @@ far. Earlier work is summarised in the timeline below for context.
   ctx, one evaluation per script, one strike, per-owner `state`, `handleBack`),
   so one canvas.js serves both hosts.
 
-- **A module is told when a FINGER hit a pad (`child_press_param` /
-  `focus_press_param`).** Move turns a pad press into an ordinary note *before*
-  playing it, so by the time it reaches a module's `on_midi` a hit and a
-  sequenced note are the same bytes — same status, channel, note and source.
-  That is the one fact a drum module cannot work out for itself, and Schwung's
-  contract answers it with a vouch: a write of `"1"`, note-on only, one per
-  press, saying *a finger did that* and deliberately not saying which pad (the
-  pad-to-note map is Move's, and a module told "pad 68" could only address one
-  bank, mis-strided).
+- **Module screens open.** A held `type: "canvas"` knob's jog click opens the
+  module's own fullscreen screen, to upstream's contract (jog/knobs/pads to the
+  script, enterable click, Back through `handleBack`, Shift+jog out, `ctx.close`).
+  It was logged and dropped, so DR32's ENGN knob — the only way to pick a pad's
+  sample or engine — did nothing (`renderer/schwung-canvas-dive.ts`).
 
-  Schwung's own vouch fires from its shadow UI reading raw cable 0. Under
-  overtake **movy** owns the surface, so the controller movy embeds never sees a
-  pad and only movy can send it. Under the `page` renderer this completes a
-  follow that was half-built: `focusVoice()` already moved the Schwung page to
-  the voice you hit, but nothing moved the *module's* own focus, which is what
-  its per-voice keys resolve against — so the page turned to the snare while the
-  knobs still edited the kick.
+- **File browsers preview, and run the module's browser hooks.** A filepath
+  param's `live_preview` loads the file under the cursor once it rests (150 ms,
+  Schwung's figure) and Back restores the original; `browser_hooks` run on
+  open / preview / commit / cancel, `restore: true` ones put back on close.
+  mrdrums, MrSample, granny and tablor declare them; movy ignored both. A pick
+  is still one undo step, back to the value from before the browser opened
+  (`browser/file-preview.ts`, `model/file-decl.ts`).
 
-  It lives on `ModelState`, not `DrumConfig`: `focus_press_param` is a hierarchy
-  root field, so a melodic module can declare one too, and folding it into the
-  drum config would have silently skipped every module that does. No module in
-  the captured fleet declares one yet, so this costs every existing module
-  exactly nothing — no read, no write.
+- **Under PARAM PAGES: SCHWUNG, the LFO pages are Schwung's own (SP-60).** A
+  track's LFO slot and the master chain's now draw the LFO 1 / LFO 2 pages
+  Schwung's Slot Settings and Master FX Settings use — one waveform across
+  Shape/Rate/Depth/Phase, one Rate knob that follows Sync, On, and Target as a
+  door whose list routes the LFO — built from Schwung's own `lfoParams`/
+  `lfoLevels` rather than movy's SP-55 lookalike cells. Loaded from
+  `shared/param_pages/lfo_page.mjs` (charlesvestal/schwung#549), falling back to
+  `shadow/shadow_ui_slot_grid.mjs` on a Schwung without it.
+
+- **The Schwung LFO page plays like movy's own.** Target is turned by its knob
+  (a list pops up while you turn; the routing lands when you let go), there is
+  no On switch — a target turns the LFO on and None turns it off — Retrigger is
+  back in its place, and Rate sits last in its own cell so a synced division
+  reads `1/4` instead of hiding in the waveform (which still follows it, at the
+  speed a division plays). Mode and Sync flip without the pop-up list. Needs the
+  matching Schwung change (`lfoTargetOptions`); on an older Schwung Target stays
+  a door.
 
 - **Per-voice mute and solo for drum tracks.** Hold **Mute** and press a pad to
   silence that drum voice; **Shift + Mute + pad** solos it. It is the track
@@ -117,7 +99,27 @@ far. Earlier work is summarised in the timeline below for context.
   that never touched a pad mute saves byte-identically to before.
   (`ENGINE_VERSION` 0.79.0.)
 
-- **Engine-owned persistence — now the default, with `engpersist` (Settings) to turn it off.**
+- **Per-pad sends from drum modules.** Simian's and DR32's per-pad Send A /
+  Send B now feed Movy's SEND 1 / SEND 2, post the track's fader and pan, on top
+  of the track's own send. Until now those knobs wrote a level nothing in Movy
+  read. The engine drains schwung's chain-host voice pool
+  (`chain_drain_sends`); a chain whose pads are sending counts as a feeder of
+  the bus, so co-located send rendering stays race-free. `sndlog` gains
+  `vsnd=`. ENGINE 0.84.0.
+
+- **Choices and switches are automatable, in both grid modes.** An enum (a
+  filter type, a waveform) or an on/off switch can be locked on a held step or
+  recorded live. Each knob detent on a held step moves one option, the engine
+  plays the option exactly (never between two), and it is written in whichever
+  form the module reads — option name or index. Two-state action buttons (Rnd,
+  Copy…) still cannot be locked.
+
+- **32 automation lanes per track (was 8).** A held step or a live take can
+  lock up to 32 parameters on one track. Downgrade hazard: an OLDER movy opens
+  a lane above 8 as `lane & 7`, merging its locks into a low lane's parameter.
+  This build drops an out-of-range lane instead of folding it.
+
+- **Engine-owned persistence — now the default** (`engpersist`, a debug-build setting, turns it off).
   The engine now reads and writes a Set's files itself — `seq-state.json` and a
   new `chains.json` — atomically (temp → fsync → rename) on its own thread, and
   the UI sends commands (`open`, `rename`, `blank`, `flush`) instead of pushing
@@ -151,16 +153,48 @@ far. Earlier work is summarised in the timeline below for context.
   the flag ON and then opened by an OLDER movy keeps its sequencer, keyboard
   state and version history while losing its movy chains, because that build
   looks for them in a file the engine no longer owns.
-- **Choices and switches are automatable, in both grid modes.** An enum (a
-  filter type, a waveform) or an on/off switch can be locked on a held step or
-  recorded live. Each knob detent on a held step moves one option, the engine
-  plays the option exactly (never between two), and it is written in whichever
-  form the module reads — option name or index. Two-state action buttons (Rnd,
-  Copy…) still cannot be locked.
-- **32 automation lanes per track (was 8).** A held step or a live take can
-  lock up to 32 parameters on one track. Downgrade hazard: an OLDER movy opens
-  a lane above 8 as `lane & 7`, merging its locks into a low lane's parameter.
-  This build drops an out-of-range lane instead of folding it.
+
+- **Movy reads three more things a module says about itself**, instead of
+  guessing them:
+
+  - `access: "read"` — a **readout**: a value worth watching that writing means
+    nothing to. Drawn in a dotted frame, never turnable, never opens a list, and
+    not offered for automation. Previously these were ordinary knobs over values
+    the module discards.
+  - `access: "write"` — an **action**, declared rather than inferred from the
+    parameter's name. Movy's own rule needs a name like `rnd_` on an off/on
+    shaped control, so a randomiser offering `"—"` / `"Rnd!"` read as an
+    ordinary two-item setting — and its "do nothing" option is one the module
+    fires on.
+  - `short_name` — the module's own **cell label**, where it wants the cell to
+    say something shorter than the header. Used as typed when it fits; Movy's
+    abbreviator only gets a say when the declared label is too wide.
+
+  A module that declares none of them behaves exactly as before.
+
+- **A module is told when a FINGER hit a pad (`child_press_param` /
+  `focus_press_param`).** Move turns a pad press into an ordinary note *before*
+  playing it, so by the time it reaches a module's `on_midi` a hit and a
+  sequenced note are the same bytes — same status, channel, note and source.
+  That is the one fact a drum module cannot work out for itself, and Schwung's
+  contract answers it with a vouch: a write of `"1"`, note-on only, one per
+  press, saying *a finger did that* and deliberately not saying which pad (the
+  pad-to-note map is Move's, and a module told "pad 68" could only address one
+  bank, mis-strided).
+
+  Schwung's own vouch fires from its shadow UI reading raw cable 0. Under
+  overtake **movy** owns the surface, so the controller movy embeds never sees a
+  pad and only movy can send it. Under the `page` renderer this completes a
+  follow that was half-built: `focusVoice()` already moved the Schwung page to
+  the voice you hit, but nothing moved the *module's* own focus, which is what
+  its per-voice keys resolve against — so the page turned to the snare while the
+  knobs still edited the kick.
+
+  It lives on `ModelState`, not `DrumConfig`: `focus_press_param` is a hierarchy
+  root field, so a melodic module can declare one too, and folding it into the
+  drum config would have silently skipped every module that does. No module in
+  the captured fleet declares one yet, so this costs every existing module
+  exactly nothing — no read, no write.
 
 ### Changed
 
@@ -168,6 +202,67 @@ far. Earlier work is summarised in the timeline below for context.
   parameter pages out of the box. The update moves every device to SCHWUNG
   once (`FLAGS_REV` 6), including ones that had MOVY stored; choose MOVY in
   Settings to go back, and that choice is kept.
+
+- **PARAM PAGES: SCHWUNG now needs Schwung 1.5.0**, which ships four things
+  Movy used to imitate on its own (charlesvestal/schwung#541, #543), so Movy's
+  stand-ins are gone and those pages draw through Schwung's own code:
+
+  - **An automated parameter wears the automation dot** beside its label — the
+    same mark Movy's own pages use — instead of borrowing the LFO's `~`. A
+    parameter that is both automated and modulated shows both.
+  - **Condition, clip Length, Swing and Root draw in Schwung's big face.** They
+    look the same as before (the face is Movy's own glyphs, now upstream).
+  - **Two-way settings** on the Set, Clip and step pages (Pad Layout, Note Mode,
+    Link…) are set by the knob's direction, and a value whose cell already shows
+    it in full raises no option list — both now declared to Schwung rather than
+    patched in afterwards.
+  - **A parameter an LFO keeps moving** redraws five times a second, while a real
+    transition still draws every frame. Movy now asks Schwung which is which
+    instead of guessing from how long something has been moving.
+
+  With 1.5.0 a held step also keeps its envelope and filter graphics on screen,
+  drawn at the step's locked value, which shows inverted. On an older Schwung
+  the row stays on MOVY.
+
+- **The CPU settings are gone, and what they were set to is simply what Movy
+  does.** Parallel chain render, three render lanes, send co-location and the
+  full idle skip were each a switch on the Settings page or a hidden engine
+  param; every one of them shipped at a measured default that nobody had reason
+  to move. They are now unconditional. The **CPU OPTIMIZE** row is removed.
+  (Settings' track-host row is also gone as of this release — see below.)
+
+  The CPU meter's header no longer reads **CPU OPT OFF**, because there is no
+  longer a state it could report. A chain whose module cannot be split into a
+  synth stage and an effects stage still draws as one solid bar — that picture
+  survives; only the flag that also produced it is gone.
+
+  Serial render survives as a *fallback*, not a setting: it is what runs before
+  the helper threads exist and what takes over if one of them panics. Deleting
+  it would have turned either into silence.
+
+  The one containment left for a module that misbehaves under threading is the
+  `moduleBlacklist` list in `prefs.json`, which pins every instance of a named
+  module to one lane. It has no UI.
+
+- **Drum pages under Schwung put the pad first.** A drum machine with one page
+  per voice (6W6, 8W8, 9W9, CW-78) used to make you jog past every voice to reach
+  Reverb. Those pages now fold into one pad page at the front, showing the pad
+  you last pressed. On simian and dr32 the pad pages come first. On a pad page
+  a pad press keeps your place (the same page of the new pad). On any other
+  page it no longer moves the page at all, only the selected pad.
+
+- **sophie and Forge get the pad-first drum pages under Schwung.** Their pad
+  (voice) pages come first, a press on one keeps your place, and on sophie a
+  step copy takes only the selected pad.
+
+- **On a drum track, Copy takes only the selected pad**, as on Move: its notes
+  and the automation on its own parameters. A paste leaves the other pads at
+  the destination alone. Needs a module that declares its pads (6W6, 8W8,
+  9W9, CW-78, simian, dr32) and Schwung 1.6.0. Engine 0.83.0.
+
+- **A drum kit with more than 16 voices uses all 32 pads**: voices 1-16 on
+  the left 4x4 as on any kit, 17-32 on the right 4x4, each half from its
+  bottom-left. dr32's pads 17-32 were unreachable.
 
 - **Older drum modules use their Movy template on Schwung pages.** Forge,
   mrdrums, weird-dreams, signal and libpo32 ship a contract that declares no
@@ -194,29 +289,15 @@ far. Earlier work is summarised in the timeline below for context.
   that config sets the pad count and each pad's note, over anything the module
   declares to Schwung. The page still follows the voice the pad plays. On 9W9
   this swaps pads 10 and 11 back to the config's order (Crash, then Ride).
+
 - **A drum module needs no Movy config to be a drum rack.** One whose pages
   switch between instances by a "selected pad" parameter (`child_index_param`)
   is played as a rack of that many pads from C1, unless it says it is
   chromatic. sophie is the module this reaches today.
-- **sophie and Forge get the pad-first drum pages under Schwung.** Their pad
-  (voice) pages come first, a press on one keeps your place, and on sophie a
-  step copy takes only the selected pad.
-- **A drum kit with more than 16 voices uses all 32 pads**: voices 1-16 on
-  the left 4x4 as on any kit, 17-32 on the right 4x4, each half from its
-  bottom-left. dr32's pads 17-32 were unreachable.
-- **Drum pages under Schwung put the pad first.** A drum machine with one page
-  per voice (6W6, 8W8, 9W9, CW-78) used to make you jog past every voice to reach
-  Reverb. Those pages now fold into one pad page at the front, showing the pad
-  you last pressed. On simian and dr32 the pad pages come first. On a pad page
-  a pad press keeps your place (the same page of the new pad). On any other
-  page it no longer moves the page at all, only the selected pad.
+
 - **Switching drum pads under Schwung no longer waits on the module.** Every
   pad's values are read in the background, so a press shows the new pad
   without a blocking read.
-- **On a drum track, Copy takes only the selected pad**, as on Move: its notes
-  and the automation on its own parameters. A paste leaves the other pads at
-  the destination alone. Needs a module that declares its pads (6W6, 8W8,
-  9W9, CW-78, simian, dr32) and Schwung 1.6.0. Engine 0.83.0.
 
 - **Automation writes its parameter directly.** A lane used to be a CC
   (102+lane) the chain resolved through a knob mapping and a 256-entry param
@@ -226,14 +307,56 @@ far. Earlier work is summarised in the timeline below for context.
   Side effect: a lane and an LFO on the same parameter now combine — the lane
   moves the LFO's base — where the LFO used to overwrite the lane.
 
+- **A newly routed LFO starts at 100% depth**, as Schwung's own does. Movy wrote
+  the routing before enabling the LFO, so the chain's fresh-LFO default never
+  fired and every LFO assigned from movy began at 0% — running and inaudible.
+
 ### Fixed
 
-- **A step copy carries the step page's props.** Copy + step (or bar) took the
-  notes — velocity and length with them — and the automation, but dropped each
-  trig's probability, condition and invert, so a pasted step played every time.
-  The clipboard now holds the trig rows too, and a paste replaces the
-  destination's; a drum per-voice copy takes the voice's resolved props, never
-  a whole-step row that also governs the other pads. ENGINE 0.85.0.
+- **Clear + knob could delete the clip.** The gesture counted as used only when
+  the knob had a parameter under it, so on an empty cell (a page that does not
+  fill all 8, or a Schwung page still resolving) letting go of Clear ran the
+  clip delete. Clear + knob now never deletes the clip, and clears a lane only
+  when there is one.
+
+- **A send FX was never saved with the Set — and would not have loaded if it
+  had been.** Both directions go through one document, the chain set the engine
+  answers with, and that document was built from the engine's list of *tracks*:
+  sixteen slots, while the send buses live at 16–18. A send was loaded by a path
+  that never touched that list, so the module and its patch were missing from
+  every save, and a send *named* in a Set file was dropped at the door by a
+  guard that stopped at sixteen. Silent in both directions, and the feature was
+  born this way — the saves are correct for a Set that never had a send. Sends
+  are saved and restored now, which is what the manual has claimed all along.
+
+  **A send that did load came back with its knobs at the module's defaults.**
+  The engine writes its own `chains.json` by asking each chain for its preset
+  blob, and it asked through the chain-slot accessor — which holds sixteen
+  instances, so a bus's slot is past the end of it and every send was written
+  down with an empty patch. The module was re-created and its settings were
+  never applied. A bus's preset is read through the send accessor the UI half
+  already used, so what a send sounds like now survives the round trip.
+
+  **Sets saved before this build have no send in them, in any copy or version:
+  re-add the send FX once and it will persist from then on.**
+
+- **Reopening a Set could lose every automation lane it had — the take was on
+  disk and the UI came up blank.** No dot, no held value while a step is held,
+  and the read-back suppression that keeps a knob from fighting its own
+  automation switched off with it. The lanes themselves were never gone: they
+  were in the file and in the engine, and a second Set switch usually brought
+  them back, which is what made it look random.
+
+  Opening a Set is asynchronous — movy asks the engine by name and the bytes
+  land on the engine's own thread a few hundred milliseconds later — and movy
+  rebuilt its automation registry once, at the moment it ASKED. So it routinely
+  read the outgoing Set's lane labels: all empty on a cold open. One read, spent
+  on the wrong Set, and nothing ever asked again. On device the whole race is
+  two log lines apart: both label reads landed before `seq: set ready`, and the
+  registry stayed empty for the session. The engine now counts the Sets it has
+  applied and reports that on the status poll movy already makes, so movy asks
+  again once the Set is actually in — a moment that cannot, by construction,
+  come before the labels answer for it. (`ENGINE_VERSION` 0.78.0.)
 
 - **A Set copied in Move keeps its instruments.** The engine seeded the copy's
   sequence and chains but not movy's UI half, so the copy looked brand new: the
@@ -242,12 +365,103 @@ far. Earlier work is summarised in the timeline below for context.
   where noisemaker was and lost dr32 and its hall. The UI half (with its
   migration marker) is now copied alongside, under the same rule as the
   engine's seed: never over a Set that owns state (`seq/set-load.ts`).
+
+- **A sequencer gesture could go nowhere at all — a Play press, an undo group, a
+  step toggle — and nothing said so.** Every command Movy sends the engine
+  travels as one batched write into Schwung's `overtake_dsp` param slot, which is
+  a single slot shared with every other writer on the device. A blocking write
+  that cannot claim it inside its timeout returns `false`; Movy discarded that
+  return and cleared the batch anyway, so a contended write was a silently lost
+  gesture. Measured on device: of 24 Play presses that all reached the router,
+  **15 had their batch dropped this way** — which is what "the transport ignored
+  the button" looked like from the front. A refused batch is now kept and
+  rewritten until it lands, tagged with a sequence number the engine deduplicates
+  on, because a refusal cannot say whether the request had already been taken and
+  a step toggle applied twice toggles itself back off. (`ENGINE_VERSION` 0.76.0.)
+
+- **A chain synth could crash the device at load.** Movy hands the Schwung chain
+  host a copy of Schwung's host callback table, and that table gained a reserved
+  tail of null pointers in August — precisely because a module's own copy of the
+  header can declare a callback the host does not have, and the module's
+  `if (host->fn)` guard then tests memory belonging to somebody else. Movy's
+  mirror stopped one field earlier, so on a module that does this (breakbeat
+  ships exactly such a header) the guard read past the end of Movy's allocation,
+  found whatever the allocator had left there, and jumped into the heap. That is
+  a SIGSEGV on the audio callback, which takes Move's own audio down with it and
+  boot-loops the device if the slot is restored on the next start.
+
+  The ABI parity test reported green throughout: its C parser matched function
+  pointers and plain fields, and a reserved *array* was neither, so it counted
+  17 members where the header has 18 and agreed with Movy. It can see array
+  members now, and the tail is written as nulls rather than copied, so an older
+  Schwung cannot hand Movy garbage there either.
+
+- **mrdrums in a Movy chain could close Movy.** Its `module.json` puts an object
+  under `options` on one param; reading it threw inside the tick, and Schwung
+  answers a tick exception by exiting the tool. Module metadata options are now
+  used only when they are a list.
+
+- **A lock could land after its note.** A note nudged early, one nudged onto
+  the end of the previous loop pass, and the first step after Play fired before
+  their step's automation was applied, so a drum voice (which takes its sound at
+  the hit) played the PREVIOUS value. The step's automation is now applied
+  before its note, wherever the note falls.
+
+- **Turning a knob on a held step no longer changes the live sound.** The lock
+  write also sent an audition, so the sound jumped until the next note. A
+  held-step lock now applies only when its step plays (ENGINE 0.81.0); live
+  record still auditions, because there the audition is the take. Hold Clear +
+  knob-touch now says `<param> lane cleared`.
+
 - **Knobs on Schwung pages are undoable.** A turn there wrote straight to the
   track and recorded nothing, so Undo skipped it. Every cell kind (number,
   enum, toggle, module canvas) now goes through one recorded writer, one undo
   per gesture like movy's own knobs (`renderer/schwung-page-io.ts`). Undo also
   replays a master FX or send edit to the master chain / engine root rather
   than into track 1's chain (`undo/apply.ts`).
+
+- **A step copy carries the step page's props.** Copy + step (or bar) took the
+  notes — velocity and length with them — and the automation, but dropped each
+  trig's probability, condition and invert, so a pasted step played every time.
+  The clipboard now holds the trig rows too, and a paste replaces the
+  destination's; a drum per-voice copy takes the voice's resolved props, never
+  a whole-step row that also governs the other pads. ENGINE 0.85.0.
+
+- **Under Schwung pages, drum automation followed the pad you pressed last.**
+  On racks whose per-pad page edits "the selected pad" — simian, dr32, mrdrums,
+  weird-dreams, forge — a lane was bound to the page's shared knob (`tune`,
+  `pad_vol`), so on playback the module applied it to whichever pad had focus:
+  press another pad and the automation moved with it. A lane now binds the
+  pad's own parameter (`pad3_tune`, `p03_vol`), so it plays on that pad only.
+  The held step's value and the lane mark show on that pad's page alone, and the
+  lane survives a Set load or undo (they used to be dropped as stale). Lanes
+  recorded before this fix stay on the shared knob and keep following the
+  focused pad; clear and re-record them. sophie still edits one pad under
+  Schwung pages, and is fixed in a later step.
+
+- **Under Schwung pages, a playing pattern turned the drum page.** 6W6, 8W8,
+  9W9 and CW-78 move their own selection on every note unless Move's transport
+  is running, and Movy's sequencer is not Move's transport. So every sequenced
+  hit jumped the page to that voice. mrdrums (auto-select) and Forge also moved
+  their selected pad with each note, and their per-pad knobs then edited
+  whichever pad the pattern played last. Movy now owns the drum selection. The
+  page and its knobs follow only the pads you press, or a pad you pick from the
+  page's own list, and never the module's own selection.
+
+- **A sleeping chain lost notes its own MIDI FX generated.** A chain that has
+  been silent for a second stops rendering and is only probed every half second;
+  while parked, its timers are still advanced so LFOs and arpeggiators keep
+  running. If one of those timers *emits a note* on such a block, that block has
+  to render — otherwise the note reaches a synth nobody hears until the next
+  probe, up to half a second later. Movy was advancing the timers and discarding
+  the chain host's answer about whether anything came of it. An arp, a euclidean
+  generator or a strummed chord on an otherwise idle track is what this was
+  costing.
+
+- **Step page knob turns were dropped while a step was physically held.**
+  Schwung's controller read the hardware's held-step mask and sent each turn
+  as its own p-lock, which nothing in Movy owns. Movy's pages now answer that a
+  held step is Movy's gesture.
 
 - **Knob 1 on a module-drawn preset page is the module's knob again.**
   MonkSynth's face page maps all eight knobs, but knob 1 stepped the preset
@@ -256,12 +470,25 @@ far. Earlier work is summarised in the timeline below for context.
   and jog still browse everywhere — and on such a page its LED lights, at the
   list position, so the one working knob is visible
   (`renderer/schwung-page-input.ts`).
+
 - **The Schwung-drawn MIX page's knobs turn at the movy MIX page's rate.** One
   detent cost 8 CC units, the int rate of Set/Clip Params, so a VOL, PAN or
   send turn took about 8× the wrist movement it takes on movy's own MIX page.
   A virtual cell can now declare its own `rawPerDetent`; the MIX cells charge
   one unit per detent. Other virtual pages are unchanged
   (`mixer/mix-schwung-cells.ts`).
+
+- **Choosing NONE in the module browser lands on the chain view**, rather than
+  on the knob page of the now-empty slot (which under Schwung pages kept
+  drawing the removed module). Clearing a master FX or send slot also leaves
+  its detail page.
+
+- **A module loaded into an empty master FX slot showed no parameters** until
+  the slot was revisited; its page is now retried until it resolves.
+
+- **The capture overlay could go missing.** One failed read of the capture
+  info spent that capture, so its overlay never opened under param IPC
+  contention. Only a read that got through counts now.
 
 - **A module's hidden pages stayed visible.** Schwung pages for a real module
   got no `visible_if` answer, and the planner fails open, so every gated page
@@ -277,41 +504,16 @@ far. Earlier work is summarised in the timeline below for context.
   way in. It is also hidden while a step is held, because the step takes the
   click. Movy's own `JOG: BROWSE` toast, which read movy's bank layout rather
   than the Schwung cell under the hand, gives way to it.
+
 - **Hold-to-modulate on a Schwung page arms on number knobs only**, so it no
   longer takes over the click of an option, switch, action or file knob a
   second after the touch.
+
 - **The pad icon only on per-pad pages under Schwung pages.** A drum module's
   header showed the pad-grid icon on every page, Reverb, Kit and Master
   included, because the flag was set for the whole rack. It now follows the
   per-pad seat: the icon is on the pages a pad press switches and nowhere else
   (sophie, with no global pages, keeps it everywhere).
-
-- **Under Schwung pages, a playing pattern turned the drum page.** 6W6, 8W8,
-  9W9 and CW-78 move their own selection on every note unless Move's transport
-  is running, and Movy's sequencer is not Move's transport. So every sequenced
-  hit jumped the page to that voice. mrdrums (auto-select) and Forge also moved
-  their selected pad with each note, and their per-pad knobs then edited
-  whichever pad the pattern played last. Movy now owns the drum selection. The
-  page and its knobs follow only the pads you press, or a pad you pick from the
-  page's own list, and never the module's own selection.
-
-- **Under Schwung pages, drum automation followed the pad you pressed last.**
-  On racks whose per-pad page edits "the selected pad" — simian, dr32, mrdrums,
-  weird-dreams, forge — a lane was bound to the page's shared knob (`tune`,
-  `pad_vol`), so on playback the module applied it to whichever pad had focus:
-  press another pad and the automation moved with it. A lane now binds the
-  pad's own parameter (`pad3_tune`, `p03_vol`), so it plays on that pad only.
-  The held step's value and the lane mark show on that pad's page alone, and the
-  lane survives a Set load or undo (they used to be dropped as stale). Lanes
-  recorded before this fix stay on the shared knob and keep following the
-  focused pad; clear and re-record them. sophie still edits one pad under
-  Schwung pages, and is fixed in a later step.
-
-- **A lock could land after its note.** A note nudged early, one nudged onto
-  the end of the previous loop pass, and the first step after Play fired before
-  their step's automation was applied, so a drum voice (which takes its sound at
-  the hit) played the PREVIOUS value. The step's automation is now applied
-  before its note, wherever the note falls.
 
 - **Under Schwung pages the LFO slot was driven twice.** movy's own LFO model
   still took the knob TOUCH: knob 4 is Schwung's Sync but movy's Target, so
@@ -361,23 +563,6 @@ far. Earlier work is summarised in the timeline below for context.
   Schwung's page, the same as a track's chain view. Behind that, every screen
   now gets its knob body from one place, which logs `movy-body-under-page` if
   movy's own body ever draws over a page Schwung owns (SP-58).
-- **Reopening a Set could lose every automation lane it had — the take was on
-  disk and the UI came up blank.** No dot, no held value while a step is held,
-  and the read-back suppression that keeps a knob from fighting its own
-  automation switched off with it. The lanes themselves were never gone: they
-  were in the file and in the engine, and a second Set switch usually brought
-  them back, which is what made it look random.
-
-  Opening a Set is asynchronous — movy asks the engine by name and the bytes
-  land on the engine's own thread a few hundred milliseconds later — and movy
-  rebuilt its automation registry once, at the moment it ASKED. So it routinely
-  read the outgoing Set's lane labels: all empty on a cold open. One read, spent
-  on the wrong Set, and nothing ever asked again. On device the whole race is
-  two log lines apart: both label reads landed before `seq: set ready`, and the
-  registry stayed empty for the session. The engine now counts the Sets it has
-  applied and reports that on the status poll movy already makes, so movy asks
-  again once the Set is actually in — a moment that cannot, by construction,
-  come before the labels answer for it. (`ENGINE_VERSION` 0.78.0.)
 
 - **The Schwung-rendered knob grid drew 2 px too high, on top of movy's bank
   bar.** `movyBandLayout` reflows **only when a rect is supplied** — so passing
@@ -390,57 +575,6 @@ far. Earlier work is summarised in the timeline below for context.
   needs. Affects the debug-only `schwunggrid` setting in `DRAW` and `PAGE`;
   `MOVY`, the default, is unchanged.
 
-- **A send FX was never saved with the Set — and would not have loaded if it
-  had been.** Both directions go through one document, the chain set the engine
-  answers with, and that document was built from the engine's list of *tracks*:
-  sixteen slots, while the send buses live at 16–18. A send was loaded by a path
-  that never touched that list, so the module and its patch were missing from
-  every save, and a send *named* in a Set file was dropped at the door by a
-  guard that stopped at sixteen. Silent in both directions, and the feature was
-  born this way — the saves are correct for a Set that never had a send. Sends
-  are saved and restored now, which is what the manual has claimed all along.
-
-  **A send that did load came back with its knobs at the module's defaults.**
-  The engine writes its own `chains.json` by asking each chain for its preset
-  blob, and it asked through the chain-slot accessor — which holds sixteen
-  instances, so a bus's slot is past the end of it and every send was written
-  down with an empty patch. The module was re-created and its settings were
-  never applied. A bus's preset is read through the send accessor the UI half
-  already used, so what a send sounds like now survives the round trip.
-
-  **Sets saved before this build have no send in them, in any copy or version:
-  re-add the send FX once and it will persist from then on.**
-
-- **A sequencer gesture could go nowhere at all — a Play press, an undo group, a
-  step toggle — and nothing said so.** Every command Movy sends the engine
-  travels as one batched write into Schwung's `overtake_dsp` param slot, which is
-  a single slot shared with every other writer on the device. A blocking write
-  that cannot claim it inside its timeout returns `false`; Movy discarded that
-  return and cleared the batch anyway, so a contended write was a silently lost
-  gesture. Measured on device: of 24 Play presses that all reached the router,
-  **15 had their batch dropped this way** — which is what "the transport ignored
-  the button" looked like from the front. A refused batch is now kept and
-  rewritten until it lands, tagged with a sequence number the engine deduplicates
-  on, because a refusal cannot say whether the request had already been taken and
-  a step toggle applied twice toggles itself back off. (`ENGINE_VERSION` 0.76.0.)
-
-- **A chain synth could crash the device at load.** Movy hands the Schwung chain
-  host a copy of Schwung's host callback table, and that table gained a reserved
-  tail of null pointers in August — precisely because a module's own copy of the
-  header can declare a callback the host does not have, and the module's
-  `if (host->fn)` guard then tests memory belonging to somebody else. Movy's
-  mirror stopped one field earlier, so on a module that does this (breakbeat
-  ships exactly such a header) the guard read past the end of Movy's allocation,
-  found whatever the allocator had left there, and jumped into the heap. That is
-  a SIGSEGV on the audio callback, which takes Move's own audio down with it and
-  boot-loops the device if the slot is restored on the next start.
-
-  The ABI parity test reported green throughout: its C parser matched function
-  pointers and plain fields, and a reserved *array* was neither, so it counted
-  17 members where the header has 18 and agreed with Movy. It can see array
-  members now, and the tail is written as nulls rather than copied, so an older
-  Schwung cannot hand Movy garbage there either.
-
 - **A big synth's parameter list was read truncated.** A module describes its
   whole page layout in one parameter value, and Schwung doubled the ceiling on
   those to 128 KB because 64 KB was not enough for a real synth. Movy still read
@@ -450,100 +584,11 @@ far. Earlier work is summarised in the timeline below for context.
   the last time it happened. The buffer now tracks Schwung's constant, and a
   test fails if the two drift apart again.
 
-- **A sleeping chain lost notes its own MIDI FX generated.** A chain that has
-  been silent for a second stops rendering and is only probed every half second;
-  while parked, its timers are still advanced so LFOs and arpeggiators keep
-  running. If one of those timers *emits a note* on such a block, that block has
-  to render — otherwise the note reaches a synth nobody hears until the next
-  probe, up to half a second later. Movy was advancing the timers and discarding
-  the chain host's answer about whether anything came of it. An arp, a euclidean
-  generator or a strummed chord on an otherwise idle track is what this was
-  costing.
-
 - **A declared drum rack was told to focus a voice that does not exist.** A
   module that declares its own voices names the parameter holding the focused
   one, and its value is a **level name** — `snare`, never `2`. Movy wrote the
   pad number into it, which the module could only ignore, so pressing a pad
   moved Movy's page and left the module's own focus where it was.
-
-### Added
-
-- **Movy reads three more things a module says about itself**, instead of
-  guessing them:
-
-  - `access: "read"` — a **readout**: a value worth watching that writing means
-    nothing to. Drawn in a dotted frame, never turnable, never opens a list, and
-    not offered for automation. Previously these were ordinary knobs over values
-    the module discards.
-  - `access: "write"` — an **action**, declared rather than inferred from the
-    parameter's name. Movy's own rule needs a name like `rnd_` on an off/on
-    shaped control, so a randomiser offering `"—"` / `"Rnd!"` read as an
-    ordinary two-item setting — and its "do nothing" option is one the module
-    fires on.
-  - `short_name` — the module's own **cell label**, where it wants the cell to
-    say something shorter than the header. Used as typed when it fits; Movy's
-    abbreviator only gets a say when the declared label is too wide.
-
-  A module that declares none of them behaves exactly as before.
-
-- **Tracks 1-4 leave Schwung's slots automatically.** The **TRACKS 1-4 HOST**
-  choice is gone — every track is a Movy chain now. A set that still has
-  Schwung holding tracks 1-4 is migrated the first time it's opened, behind a
-  **MIGRATING TRACKS** splash so no edit can race it: module, preset, volume
-  and LFO assignments come across, a chain position Movy's UI never shows is
-  left alone and reported as a warning, and the Schwung slot itself is never
-  cleared — it just stops being played. The set is marked migrated whether or
-  not the pass finds anything to pull across, so a bad read never retries
-  forever; the Settings page's new **MIGRATE TRACKS** row reruns it by hand and,
-  unlike the automatic pass, overwrites whatever a chain already holds. `ENGINE
-  0.72.0`.
-
-### Changed
-
-- **PARAM PAGES: SCHWUNG now needs Schwung 1.5.0**, which ships four things
-  Movy used to imitate on its own (charlesvestal/schwung#541, #543), so Movy's
-  stand-ins are gone and those pages draw through Schwung's own code:
-
-  - **An automated parameter wears the automation dot** beside its label — the
-    same mark Movy's own pages use — instead of borrowing the LFO's `~`. A
-    parameter that is both automated and modulated shows both.
-  - **Condition, clip Length, Swing and Root draw in Schwung's big face.** They
-    look the same as before (the face is Movy's own glyphs, now upstream).
-  - **Two-way settings** on the Set, Clip and step pages (Pad Layout, Note Mode,
-    Link…) are set by the knob's direction, and a value whose cell already shows
-    it in full raises no option list — both now declared to Schwung rather than
-    patched in afterwards.
-  - **A parameter an LFO keeps moving** redraws five times a second, while a real
-    transition still draws every frame. Movy now asks Schwung which is which
-    instead of guessing from how long something has been moving.
-
-  With 1.5.0 a held step also keeps its envelope and filter graphics on screen,
-  drawn at the step's locked value, which shows inverted. On an older Schwung
-  the row stays on MOVY.
-
-- **A newly routed LFO starts at 100% depth**, as Schwung's own does. Movy wrote
-  the routing before enabling the LFO, so the chain's fresh-LFO default never
-  fired and every LFO assigned from movy began at 0% — running and inaudible.
-
-- **The CPU settings are gone, and what they were set to is simply what Movy
-  does.** Parallel chain render, three render lanes, send co-location and the
-  full idle skip were each a switch on the Settings page or a hidden engine
-  param; every one of them shipped at a measured default that nobody had reason
-  to move. They are now unconditional. The **CPU OPTIMIZE** row is removed.
-  (Settings' track-host row is also gone as of this release — see below.)
-
-  The CPU meter's header no longer reads **CPU OPT OFF**, because there is no
-  longer a state it could report. A chain whose module cannot be split into a
-  synth stage and an effects stage still draws as one solid bar — that picture
-  survives; only the flag that also produced it is gone.
-
-  Serial render survives as a *fallback*, not a setting: it is what runs before
-  the helper threads exist and what takes over if one of them panics. Deleting
-  it would have turned either into silence.
-
-  The one containment left for a module that misbehaves under threading is the
-  `moduleBlacklist` list in `prefs.json`, which pins every instance of a named
-  module to one lane. It has no UI.
 
 ### Removed
 

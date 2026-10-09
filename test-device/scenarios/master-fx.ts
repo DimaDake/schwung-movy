@@ -61,6 +61,7 @@ import * as fixture from '../fixture.js';
 import { CC_BACK } from '../midi.js';
 import { until } from '../wait.js';
 import { armMovy } from '../arm.js';
+import { SSH_OPTS } from '../ssh.js';
 
 const run = promisify(execFile);
 /* test-device/dist/scenarios/master-fx.js at run time. */
@@ -147,8 +148,7 @@ scenario('master-fx', async (t) => {
     const close = () => dev.close(probe);
 
     const ssh = async (cmd: string): Promise<string> => {
-        const { stdout } = await run('ssh', ['-o', 'ConnectTimeout=8', '-o', 'BatchMode=yes',
-            `ableton@${t.host}`, cmd], { maxBuffer: 16 * 1024 * 1024 });
+        const { stdout } = await run('ssh', [...SSH_OPTS, `ableton@${t.host}`, cmd], { maxBuffer: 16 * 1024 * 1024 });
         return stdout;
     };
 

@@ -157,9 +157,8 @@ probe and have the fewest traps.
 | 12 | `test-versions.sh` | 147 | lifecycle-heavy: real closes and reopens |
 | 13 | `test-migrate.sh` | 169 | lifecycle + legacy slot seeding; hardest |
 
-`test-jog-hint.mjs` is **blocked** — it asserts on the framebuffer, and
-`SNAPSHOT_DISPLAY` was never built (we chose to make no schwung changes). Leave
-it as the last bash-era script.
+`test-jog-hint.mjs` was listed here as blocked on `SNAPSHOT_DISPLAY`; it never
+was (see `MIGRATION-STATUS.md`) and now lives in `smoke` as `jog-hint-hold`.
 
 Do **one suite per commit**. Keep the bash script until its scenario is green,
 then delete both in the same commit.

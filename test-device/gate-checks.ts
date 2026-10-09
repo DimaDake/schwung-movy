@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { SSH_OPTS } from './ssh.js';
 
 const run = promisify(execFile);
 
@@ -54,7 +55,7 @@ const LAST_PATH = () => fileURLToPath(new URL('../.last-schwung-version', import
 export async function noteSchwungVersion(host: string, path = LAST_PATH()): Promise<void> {
     let v = '';
     try {
-        const { stdout } = await run('ssh', ['-o', 'ConnectTimeout=5', '-o', 'BatchMode=yes', `ableton@${host}`,
+        const { stdout } = await run('ssh', [...SSH_OPTS, `ableton@${host}`,
             'cat /data/UserData/schwung/host/version.txt']);
         v = stdout.trim();
     } catch { console.log('schwung: version unreadable'); return; }

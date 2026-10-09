@@ -3,6 +3,7 @@ import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import net from 'node:net';
+import { SSH_OPTS } from './ssh.js';
 
 const run = promisify(execFile);
 
@@ -12,7 +13,6 @@ const AGENT_REMOTE = '/tmp/movy-ui-agent.py';
 export const TESTD_PORT = 47777;
 export const AGENT_PORT = 47778;
 
-const SSH_OPTS = ['-o', 'ConnectTimeout=5', '-o', 'BatchMode=yes'];
 
 async function ssh(host: string, cmd: string): Promise<string> {
     const { stdout } = await run('ssh', [...SSH_OPTS, `ableton@${host}`, cmd]);

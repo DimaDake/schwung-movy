@@ -50,6 +50,7 @@ import { Probe } from '../probe.js';
 import * as fixture from '../fixture.js';
 import { cc, noteOn, noteOff } from '../midi.js';
 import { until } from '../wait.js';
+import { SSH_OPTS } from '../ssh.js';
 
 const run = promisify(execFile);
 
@@ -95,8 +96,7 @@ const word = (line: string, name: string): string =>
  * reported by the check that wanted the number, not abort the run before it. */
 async function ringCursor(host: string): Promise<number> {
     try {
-        const { stdout } = await run('ssh', ['-o', 'ConnectTimeout=5', '-o', 'BatchMode=yes',
-            `ableton@${host}`,
+        const { stdout } = await run('ssh', [...SSH_OPTS, `ableton@${host}`,
             `python3 -c 'import mmap,struct` +
             `;f=open("/dev/shm/schwung-midi-inject","r+b")` +
             `;print(struct.unpack_from("<II",mmap.mmap(f.fileno(),0),0)[1])'`]);

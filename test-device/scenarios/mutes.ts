@@ -3,9 +3,9 @@
  *   Mute                → mute the current track (any press length)
  *   Shift + Mute        → solo the current track
  *   Shift + Mute + track→ solo that track
- *   Session view        → both standalone forms are modifiers only
- *   Mute + step         → mute any of the 16 tracks, no group scrolling
- *   Shift + Mute + step → solo that track instead
+ *
+ * The Session-view and Mute+step forms are asserted locally
+ * (logic/mute-solo.mjs, logic/seq-router.mjs) — see the note at the end.
  *
  * The bash suite slept ~55 s of the 85 s it took, ran every gesture as
  * `inject … sleep:N` in a device-side script, and read its answers back with
@@ -39,12 +39,12 @@ import { Device } from '../device.js';
 import { Probe } from '../probe.js';
 import * as fixture from '../fixture.js';
 import { until } from '../wait.js';
+import { SSH_OPTS } from '../ssh.js';
 
 const run = promisify(execFile);
 
 const MUTE_CC    = 88;
 const SHIFT_CC   = 49;
-const SESSION_CC = 50;
 const STEP_BASE  = 16;   // step buttons are notes 16..31
 const NTRACKS    = 16;
 
@@ -108,9 +108,6 @@ const oneHot = (t: number): string =>
 const invert = (m: string): string => m.replace(/[01]/g, (c) => (c === '1' ? '0' : '1'));
 const none = (): string => '0'.repeat(NTRACKS);
 
-/* Track 10 (index 9) is two groups past the track buttons: the step row is the
- * only surface that reaches it, and it is where the old `track > 3` ceiling bit. */
-const FAR = 9;
 /* The track the group's second button addresses. Named so the group assumption
  * above is visible at the point that depends on it. */
 const TAP_TRACK = 1;
@@ -126,8 +123,7 @@ scenario('mutes', async (t) => {
      * starts. */
     const logEvents = async (): Promise<string[]> => {
         try {
-            const { stdout } = await run('ssh', ['-o', 'ConnectTimeout=5', '-o', 'BatchMode=yes',
-                `ableton@${t.host}`,
+            const { stdout } = await run('ssh', [...SSH_OPTS, `ableton@${t.host}`,
                 `grep -E '${LOG_RE}' /data/UserData/schwung/debug.log 2>/dev/null || true`],
                 { maxBuffer: 8 * 1024 * 1024 });
             return stdout.split('\n').filter(Boolean);
@@ -173,8 +169,7 @@ scenario('mutes', async (t) => {
         try {
             const uuid = await fixture.activeUuid().catch(() => '');
             const p = `/data/UserData/schwung/modules/tools/movy/sets/${uuid || '_default'}/ui-state.json`;
-            const { stdout } = await run('ssh', ['-o', 'ConnectTimeout=5', '-o', 'BatchMode=yes',
-                `ableton@${t.host}`, `cat '${p}' 2>/dev/null || true`],
+            const { stdout } = await run('ssh', [...SSH_OPTS, `ableton@${t.host}`, `cat '${p}' 2>/dev/null || true`],
                 { maxBuffer: 4 * 1024 * 1024 });
             out = stdout;
         } catch { return ''; }
@@ -193,9 +188,9 @@ scenario('mutes', async (t) => {
     const shiftMute     = () => dev.holdCc(SHIFT_CC, () => dev.tap.cc(MUTE_CC));
     const shiftMuteTrack = (n: number) =>
         dev.holdCc(SHIFT_CC, () => dev.holdCc(MUTE_CC, () => dev.tap.cc(tapButtonFor(n))));
+    /* Only the baseline clean-up uses the 16-wide map now: it reaches every
+     * track from any view, which the track buttons do not. */
     const muteStep      = (n: number) => dev.holdCc(MUTE_CC, () => dev.tap.note(STEP_BASE + n, 127));
-    const shiftMuteStep = (n: number) =>
-        dev.holdCc(SHIFT_CC, () => dev.holdCc(MUTE_CC, () => dev.tap.note(STEP_BASE + n, 127)));
 
     await fixture.ensure(t.bus, open, close);
     await dev.deployUi();
@@ -387,197 +382,14 @@ scenario('mutes', async (t) => {
     await settle(b6b, (e) => e.solo.length > 0, 'the un-solo to land');
     await engineMutes(none(), 'the release to unmute everything');
 
-    // ── 7. Session view: the standalone forms are modifiers only ─────────────
-    /* One tap to latch Session, and it only LATCHES from Track view (a tap
-     * toggles), which is where the check above left us — if the view did not
-     * change, the Mute tap below mutes the current track and this fails loudly
-     * rather than passing on a state it never reached. */
-    await dev.tap.cc(SESSION_CC);
-    await t.bus.frames(ACT);
-    const b7 = await mark();
-    await dev.tap.cc(MUTE_CC);
-    await t.bus.frames(ACT);
-    await shiftMute();
-    await t.bus.frames(400);   // both gestures are non-events; let movy get through them
-    const ev7 = await window(b7);
-    const mutes7 = await engineMutes(none(), 'the engine to still report every track unmuted');
-    const ok7 = ev7.mute.length === 0 && ev7.solo.length === 0 && mutes7 === none();
-    t.note('sessionViewWindow', [...ev7.mute, ...ev7.solo]);
-    t.check('session-view-inert', 'Session view: Mute and Shift+Mute are modifiers only',
-        ok7,
-        { expected: 'no mute and no solo line, and the engine’s mask unchanged',
-          actual: said(ok7, `both gestures produced nothing and the mask is still ${none()}`,
-              ev7.mute.length || ev7.solo.length
-              ? `fired while in Session view: ${[...ev7.mute, ...ev7.solo].join(' / ')}`
-              : `no line, but the engine holds mute=${mutes7 || '<no status>'} — the release `
-                + 'muted the current track silently') });
-
-    await dev.tap.cc(SESSION_CC);   // back to Track view
-    await t.bus.frames(ACT);
-
-    // ── 8-10. Mute + step in TRACK view — the same map, without leaving the pads
-    /* The map used to be gated on the row already being the track selector, so in
-     * Track view the press fell through to the step path: it entered a NOTE and
-     * muted nothing. Track view is where you play, so this is the form that gets
-     * used, and the gate it removed sat in the router above every other row
-     * owner. */
-    const b8 = await mark();
-    await muteStep(FAR);
-    const ev8 = await settle(b8, (e) => e.mute.length > 0, 'Mute+step to mute the track');
-    const line8 = last(ev8.mute);
-    const mutes8 = await engineMutes(oneHot(FAR), 'the engine to hold that track muted');
-    const ok8 = at(line8, 't') === FAR && arrow(line8) === '1' && mutes8 === oneHot(FAR);
-    t.note('trackViewLines', ev8.mute);
-    t.check('track-view-mute-step', `Track view: Mute + step mutes track ${FAR + 1} without going to Session`,
-        ok8,
-        { expected: `mute t=${FAR} -> 1 and mute=${oneHot(FAR)}`,
-          actual: said(ok8, `${line8} and the engine holds mute=${mutes8}`,
-              line8 === '' ? 'the Mute+step press muted nothing'
-              : at(line8, 't') !== FAR ? `${line8} — muted the wrong track`
-              : arrow(line8) !== '1' ? `${line8} — toggled the wrong way`
-              : `${line8} but the engine holds mute=${mutes8 || '<no status>'}`) });
-
-    /* Mute's own release must not mute the active track on top of it: the map
-     * press is the gesture that suppresses it (router-steps.ts muteMarkGestured).
-     * The bash took the LAST mute line and asked whether it named track 0, which a
-     * second line erases. Exactly one line arrived, and it is the map's — so this
-     * fails both when the release adds a toggle AND when the map press is dropped
-     * and the release is all that is left. */
-    const one8 = ev8.mute.length === 1 ? ev8.mute[0] : '';
-    const ok9 = ev8.mute.length === 1 && at(one8, 't') === FAR;
-    t.check('no-stray-active-mute', 'and the Mute release did not also mute the active track',
-        ok9,
-        { expected: `exactly one mute line, and it is the map's (t=${FAR})`,
-          actual: said(ok9, `one mute line, t=${FAR} — the release added nothing`,
-              ev8.mute.length === 0 ? 'no mute line at all — nothing carried the gesture'
-              : `${ev8.mute.length} mute lines: ${ev8.mute.join(' / ')} — the release toggled `
-                + `track ${active} as well as the map`) });
-
-    const b10 = await mark();
-    await muteStep(FAR);
-    const ev10 = await settle(b10, (e) => e.mute.length > 0, 'the second map press to land');
-    const line10 = last(ev10.mute);
-    const mutes10 = await engineMutes(none(), 'the second press to unmute it');
-    const ok10 = at(line10, 't') === FAR && arrow(line10) === '0' && mutes10 === none();
-    t.note('trackViewLatchLine', line10);
-    t.check('track-view-latch', 'Track-view map is a latch too',
-        ok10,
-        { expected: `mute t=${FAR} -> 0 and mute=${none()}`,
-          actual: said(ok10, `${line10} and the engine holds mute=${mutes10}`,
-              line10 === '' ? 'the second press did nothing'
-              : at(line10, 't') !== FAR || arrow(line10) !== '0'
-                  ? `${line10} — expected track ${FAR} toggled off`
-              : `${line10} but the engine holds mute=${mutes10 || '<no status>'}`) });
-
-    // ── 11-13. Mute + step in Session view — the 16-track mute map ───────────
-    /* This is the only surface that reaches tracks 5-16 without scrolling the
-     * focus group, and it is where the old `track > 3` ceiling's teeth live: with
-     * the guard back in place the gesture is silently dropped and no line appears.
-     * The single-file bundle is exercised here too — router-steps.ts reaches
-     * mixer/track-mutes.ts, and an import cycle there breaks only the device
-     * build. */
-    await dev.tap.cc(SESSION_CC);
-    await t.bus.frames(ACT);
-    /* Read WHILE Mute is still down, so the line this finds is the map's own — and
-     * it has to be. With the map refused, the press falls through to the step
-     * path, which in Session view SELECTS this track; the Mute release then
-     * toggles the newly-current track and writes a mute line naming exactly this
-     * track. A whole-gesture window is satisfied by that impostor. The
-     * fall-through is what the next check catches; this one must see only what
-     * the map itself wrote. */
-    const b11 = await mark();
-    let ev11: Ev = { mute: [], solo: [], track: [] };
-    await dev.holdCc(MUTE_CC, async () => {
-        await dev.tap.note(STEP_BASE + FAR, 127);
-        ev11 = await settle(b11, (e) => e.mute.length > 0, 'Mute+step to mute the high track');
-    });
-    /* The whole gesture, release included, for the no-switch half below. */
-    const whole11 = await window(b11);
-    const line11 = last(ev11.mute);
-    const mutes11 = await engineMutes(oneHot(FAR), 'the engine to hold that track muted');
-    const ok11 = at(line11, 't') === FAR && arrow(line11) === '1' && mutes11 === oneHot(FAR);
-    t.note('sessionMapLines', ev11.mute);
-    t.check('mute-step-past-4', `Mute + step mutes track ${FAR + 1} — past the old 4-track ceiling`,
-        ok11,
-        { expected: `mute t=${FAR} -> 1 and mute=${oneHot(FAR)}`,
-          actual: said(ok11, `${line11} and the engine holds mute=${mutes11}`,
-              line11 === '' ? `Mute + step on track ${FAR + 1} did nothing — no mute line `
-                  + 'while Mute was held'
-              : at(line11, 't') !== FAR ? `${line11} — muted the wrong track`
-              : arrow(line11) !== '1' ? `${line11} — toggled the wrong way`
-              : `${line11} but the engine holds mute=${mutes11 || '<no status>'}`) });
-
-    /* The same press must not ALSO switch tracks: with Mute held the row is a mute
-     * map, not the track selector. A switch logs its own line, whichever track it
-     * went to — the bash asked only about track 10. */
-    const ok12 = whole11.track.length === 0;
-    t.check('mute-step-no-switch', 'and it did not switch to that track',
-        ok12,
-        { expected: 'no "track: active=" line',
-          actual: said(ok12, 'the row stayed on the track it was on',
-              `the row also selected a track: ${whole11.track.join(' / ')}`) });
-
-    const b13 = await mark();
-    await muteStep(FAR);
-    const ev13 = await settle(b13, (e) => e.mute.length > 0, 'the second map press to land');
-    const line13 = last(ev13.mute);
-    const mutes13 = await engineMutes(none(), 'the second press to unmute it');
-    const ok13 = at(line13, 't') === FAR && arrow(line13) === '0' && mutes13 === none();
-    t.note('sessionLatchLine', line13);
-    t.check('session-map-latch', 'pressing it again unmutes — every form of the gesture is a latch',
-        ok13,
-        { expected: `mute t=${FAR} -> 0 and mute=${none()}`,
-          actual: said(ok13, `${line13} and the engine holds mute=${mutes13}`,
-              line13 === '' ? 'the second press did nothing'
-              : at(line13, 't') !== FAR || arrow(line13) !== '0'
-                  ? `${line13} — expected track ${FAR} toggled off`
-              : `${line13} but the engine holds mute=${mutes13 || '<no status>'}`) });
-
-    // ── 14-15. Shift+Mute+step solos that track, on the same 16-wide surface ──
-    const b14 = await mark();
-    await shiftMuteStep(FAR);
-    const ev14 = await settle(b14, (e) => e.solo.length > 0, 'Shift+Mute+step to solo');
-    const line14 = last(ev14.solo);
-    const want14 = invert(oneHot(FAR));
-    const mutes14 = await engineMutes(want14, 'the engine to hold the other 15 muted');
-    const ok14 = at(line14, 't') === FAR && arrow(line14) === '1'
-        && maskOf(line14, 'set') === oneHot(FAR) && maskOf(line14, 'mutes') === want14
-        && mutes14 === want14;
-    t.note('soloStepLine', line14);
-    t.check('shift-mute-step-solo', `Shift + Mute + step solos track ${FAR + 1}, muting the other 15`,
-        ok14,
-        { expected: `solo t=${FAR} -> 1 set=${oneHot(FAR)} mutes=${want14} and mute=${want14}`,
-          actual: said(ok14, `${line14} and the engine holds mute=${mutes14}`,
-              line14 === '' ? 'no solo line at all'
-              : at(line14, 't') !== FAR || arrow(line14) !== '1' ? `${line14} — expected track ${FAR} soloed`
-              : maskOf(line14, 'set') !== oneHot(FAR) || maskOf(line14, 'mutes') !== want14
-                  ? `${line14} — expected set=${oneHot(FAR)} mutes=${want14}`
-              : `${line14} but the engine holds mute=${mutes14 || '<no status>'}`) });
-
-    const b15 = await mark();
-    await shiftMuteStep(FAR);                              // un-solo
-    const ev15 = await settle(b15, (e) => e.solo.length > 0, 'the un-solo to land');
-    const line15 = last(ev15.solo);
-    const mutes15 = await engineMutes(none(), 'the release to unmute all 16');
-    const ok15 = at(line15, 't') === FAR && arrow(line15) === '0'
-        && maskOf(line15, 'set') === none() && maskOf(line15, 'mutes') === none()
-        && mutes15 === none();
-    t.note('unsoloStepLine', line15);
-    t.check('un-solo-releases-16', 'un-solo from the step row releases all 16',
-        ok15,
-        { expected: `solo t=${FAR} -> 0 set=${none()} mutes=${none()} and mute=${none()}`,
-          actual: said(ok15, `${line15} and the engine holds mute=${mutes15}`,
-              line15 === '' ? 'the second Shift+Mute+step did nothing — the mutes are stranded'
-              : at(line15, 't') !== FAR || arrow(line15) !== '0' ? `${line15} — expected track ${FAR} un-soloed`
-              : maskOf(line15, 'set') !== none() || maskOf(line15, 'mutes') !== none()
-                  ? `${line15} — expected set=${none()} mutes=${none()}`
-              : `${line15} but the engine still holds mute=${mutes15 || '<no status>'}`) });
-
-    /* Leave the surface in Track view, where a user would find it. The mute/solo
-     * state itself needs no teardown: the fixture reseeds both halves from disk
-     * (seq-state.json carries no `tk` mute lines, ui-state.json carries an
-     * all-zero solo), so a run that dies mid-gesture cannot poison the next
-     * suite — which is the point of fixture.ensure() running last. */
-    await dev.tap.cc(SESSION_CC);
-    await t.bus.frames(ACT);
+    /* Sections 7-15 (Session view inert, Mute+step in both views, step-row
+     * solo) were cut 2026-10-09 to shorten the tier: the gesture logic is the
+     * local suites' — logic/mute-solo.mjs and logic/seq-router.mjs ("session
+     * mute by step", the Track-view map, the step-row un-solo). What only the
+     * device can show stays above: the real Mute CC, the engine's mask, and the
+     * solo surviving a real close and reopen.
+     *
+     * No teardown: the fixture reseeds both halves from disk (seq-state.json
+     * carries no `tk` mute lines, ui-state.json an all-zero solo), and the
+     * check above already left every track unmuted in Track view. */
 });

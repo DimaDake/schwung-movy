@@ -29,6 +29,9 @@ import { until } from '../wait.js';
 import { TICK_RATE_MIN, REFRESH_MS_MAX, REFRESH_MIN_SAMPLES, PERF_WINDOW_MAX,
          at, lastOf, median, refreshSamples } from '../log-fields.js';
 import { MOVY_ARM, armMovy } from '../arm.js';
+import { SSH_OPTS } from '../ssh.js';
+import { Display } from '../display.js';
+import { noteOn, noteOff, NOTE_JOG_TOUCH } from '../midi.js';
 
 const run = promisify(execFile);
 
@@ -95,8 +98,7 @@ scenario('smoke', async (t) => {
      * instead of coming back empty forever. */
     const logSince = async (from: number): Promise<string[]> => {
         try {
-            const { stdout } = await run('ssh', ['-o', 'ConnectTimeout=5', '-o', 'BatchMode=yes',
-                `ableton@${t.host}`,
+            const { stdout } = await run('ssh', [...SSH_OPTS, `ableton@${t.host}`,
                 `F=/data/UserData/schwung/debug.log; SZ=$(stat -c %s "$F" 2>/dev/null || echo 0); `
                 + `O=${from}; [ "$SZ" -lt "$O" ] && O=0; `
                 + `tail -c +$((O+1)) "$F" 2>/dev/null | grep -E '${LOG_RE}' || true`],
@@ -106,8 +108,7 @@ scenario('smoke', async (t) => {
     };
     const mark = async (): Promise<number> => {
         try {
-            const { stdout } = await run('ssh', ['-o', 'ConnectTimeout=5', '-o', 'BatchMode=yes',
-                `ableton@${t.host}`,
+            const { stdout } = await run('ssh', [...SSH_OPTS, `ableton@${t.host}`,
                 'stat -c %s /data/UserData/schwung/debug.log 2>/dev/null || echo 0']);
             return Number(stdout.trim()) || 0;
         } catch { return 0; }
@@ -214,6 +215,33 @@ scenario('smoke', async (t) => {
                              'the first tick-rate sample', 3000);
     t.note('windowLines', w0.length);
     lap('t_4_gesturesAndSample');
+
+    // ── the jog hint, on the real framebuffer ────────────────────────────────
+    /* What used to be the jog-hint scenario, cut to the part only the device
+     * can show: the hold timing and the turn-clears rule are app-loop.mjs's
+     * ("jog touch shows the CLICK JOG hint only after a hold"); this proves the
+     * touch note reaches movy and the hint reaches the panel. The idle read is
+     * what keeps the held read honest — a band already lit would pass it.
+     * The hint is an inverted full-width bar on rows 58..63, so a lit FRACTION
+     * is the assertion and the font is not re-encoded. HOLD_MS (1000 in
+     * model/constants.ts) is a wall clock in movy; 600 frames is ~1.7 s of
+     * device time, and only "at least HOLD_MS" matters here, so frames serve. */
+    const disp = new Display(t.host);
+    const band = () => disp.bandFill(58, 6);
+    const LIT = 0.5;
+    const hintIdle = await band();
+    await t.agent.inject(noteOn(NOTE_JOG_TOUCH, 127));
+    await t.bus.frames(600);
+    const hintHeld = await band();
+    await dev.tap.jogTurn(-1);   // back where the jog turns above left the cursor
+    await t.bus.frames(ACT);
+    const hintTurned = await band();
+    await t.agent.inject(noteOff(NOTE_JOG_TOUCH));
+    t.note('jogHintFill', { idle: hintIdle, held: hintHeld, turned: hintTurned });
+    t.check('jog-hint-hold', 'resting on the jog draws the hint; a turn removes it',
+        hintIdle < LIT && hintHeld > LIT && hintTurned < LIT,
+        { expected: `toast band under ${LIT * 100}% lit idle, over it after a ~1.7 s rest, under it after a turn`,
+          actual: [hintIdle, hintHeld, hintTurned].map((v) => `${(v * 100).toFixed(0)}%`).join(' → ') });
 
     // ── 1. the module loaded ─────────────────────────────────────────────────
     /* The bash printed the slot it opened on but asserted nothing about it. It

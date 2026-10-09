@@ -1,6 +1,7 @@
 # Device tier runtime — what to cut
 
-**Status:** proposed 2026-10-09, not implemented. Estimated from the last full
+**Status:** IMPLEMENTED 2026-10-09 (A1, A2, B1, B2, B3, and C's module-contract
+trim; page-dive left alone — green). Results at the end. Originally Estimated from the last full
 run (`.test-out/run.json`, 2026-10-08, sha 610ba73: 20 scenarios, 168 checks,
 green), the flake ledger (`test-device/.flake-log.json`, 50 runs) and the
 source. The device was offline: **no timing below was measured** — take a
@@ -110,3 +111,31 @@ reboot/restore or real third-party modules that no local suite reaches.
 | **total** | **~3.5–5.5 min of ~15.6** |
 
 Order: A1, B1, B2 (cheap, no risk) → A2 (measure) → B3 → C.
+
+## Result (measured 2026-10-09, device gate GREEN)
+
+| | before (2026-10-08) | after |
+|---|---|---|
+| scenario time | 937 s | **536 s** |
+| scenarios / checks | 20 / 168 | 18 / 138 (+1 opt-in) |
+| `smoke` fixture (`t_1_fixture`) | 12.3 s | 7.9 s |
+| automation | 84 s | 53 s |
+| sweep wall clock (build + deploy + tier) | — | 8 m 59 s |
+
+ssh multiplexing (A2) paid far more than estimated: almost every scenario lost
+a third or more (reselect 40→16 s, versions 26→16 s, sends 90→48 s), because
+`fixture.ensure()` and every `logLines` poll had been paying a ~1.1 s handshake.
+
+What was done beyond the plan's letter:
+- **module-contract:** dropped C4-C7 and C10 (re-arm, pause re-arm, no lane/dot
+  on a trigger, non-wide contrast) — local in `trigger-badge.mjs` /
+  `knob-input.mjs`, smack's metadata replayed by `dump-replay.mjs`. Kept C1-C3
+  and C8/C9: real detent timing through shadow_ui is device-only.
+- **mutes:** Track-view Mute+step turned out to be covered already in
+  `logic/seq-router.mjs`; the one gap, the step-row un-solo releasing all 16,
+  was added there.
+- **jog hint:** moved to `smoke` as `jog-hint-hold` on a frames wait, so the
+  `source-rules.mjs` sleep exemption for `jog-hint.ts` was deleted, not moved.
+
+The run had one FLAKY: `lfo` attempt 1 hit `ws connect timeout` in
+`scripts/engine-param.mjs` (the param WebSocket, not ssh); attempt 2 passed.

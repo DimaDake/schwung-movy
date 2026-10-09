@@ -149,20 +149,11 @@ scenario('automation', async (t) => {
     const lanesBefore = (await probe.auto()).lanes ?? [];
     t.note('lanesBeforeReopen', lanesBefore);
 
-    /* WAIT FOR THE SAVE before closing. Movy persists on its own schedule
-     * (~8 s of device time), so closing straight after the take can leave
-     * nothing on disk to restore — indistinguishable from a broken restore
-     * unless we check. This is the difference between "the test closed too
-     * early" and "the restore is broken", and P3 exists to tell us the latter. */
-    const mtimeBefore = await fixture.seqStateMtime();
-    let saved = true;
-    try {
-        await until(t.bus, 'movy to persist the take',
-            () => fixture.seqStateMtime(), (m) => m !== mtimeBefore,
-            { within: 6000, every: 200 });
-    } catch { saved = false; }
-    t.note('persistedBeforeClose', saved);
-
+    /* No wait for an autosave here: close() saves, and blob_afterClose below
+     * records what that left on disk, so "closed too early" and "the restore
+     * is broken" stay distinguishable without one. The old wait compared
+     * `ls -l` (minute resolution on BusyBox) after the takes had already
+     * saved, so it ran its whole ~6000-frame budget out on every run. */
     await dev.close(probe);
     t.note('blob_afterClose', await fixture.blobInfo());
     await dev.open(probe);

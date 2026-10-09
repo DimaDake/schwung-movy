@@ -135,6 +135,13 @@ under investigation, not a verdict: it raises that scenario's assert retries to
 3 and keeps a surviving red out of the exit code. Only `migrate` carries it
 (2026-09-26, teardown park race). Remove the mark with the fix.
 
+`{ optIn: '<reason>' }` keeps a scenario out of the default sweep: it runs only
+when named with `--scenario`, and every sweep prints the skip and its reason.
+For a scenario that cannot gate anyway and whose logic a local suite owns.
+`migrate` carries it (2026-10-09, alongside its `knownFlaky`): run
+`npm run test:device -- --scenario migrate` after touching `src/track/migrate.ts`.
+Drop both marks with the flake fix.
+
 So a red tier is a red tier. It is not "flaky, probably fine": the retry already
 ran and it stayed red. Read the first line of the failure, which carries
 `actual, want expected` and a path to the artifact in `.test-out/`. Then

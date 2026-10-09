@@ -46,6 +46,7 @@ import { Device } from '../device.js';
 import { Probe } from '../probe.js';
 import * as fixture from '../fixture.js';
 import { until } from '../wait.js';
+import { SSH_OPTS } from '../ssh.js';
 
 const run = promisify(execFile);
 /* test-device/dist/scenarios/versions.js at run time. */
@@ -81,21 +82,18 @@ scenario('versions', async (t) => {
     const close = () => dev.close(probe);
 
     const ssh = async (cmd: string): Promise<string> => {
-        const { stdout } = await run('ssh', ['-o', 'ConnectTimeout=8', '-o', 'BatchMode=yes',
-            `ableton@${t.host}`, cmd], { maxBuffer: 16 * 1024 * 1024 });
+        const { stdout } = await run('ssh', [...SSH_OPTS, `ableton@${t.host}`, cmd], { maxBuffer: 16 * 1024 * 1024 });
         return stdout;
     };
     /* Movy's saves go through the host, which runs as ROOT, so the version store
      * it leaves behind is root-owned DIRECTORY trees the ableton user cannot
      * unlink inside. Clearing it is the one fixture step that can need root. */
     const sshRoot = async (cmd: string): Promise<string> => {
-        const { stdout } = await run('ssh', ['-o', 'ConnectTimeout=8', '-o', 'BatchMode=yes',
-            `root@${t.host}`, cmd], { maxBuffer: 16 * 1024 * 1024 });
+        const { stdout } = await run('ssh', [...SSH_OPTS, `root@${t.host}`, cmd], { maxBuffer: 16 * 1024 * 1024 });
         return stdout;
     };
     const scpTo = async (local: string, remote: string): Promise<void> => {
-        await run('scp', ['-q', '-o', 'ConnectTimeout=8', '-o', 'BatchMode=yes',
-            local, `ableton@${t.host}:${remote}`]);
+        await run('scp', ['-q', ...SSH_OPTS, local, `ableton@${t.host}:${remote}`]);
     };
 
     /* Movy is closed when ensure() returns (verifyChains opens and closes it),

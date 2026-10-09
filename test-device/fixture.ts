@@ -19,13 +19,13 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import type { Bus } from './bus.js';
 import { until } from './wait.js';
+import { SSH_OPTS } from './ssh.js';
 
 const run = promisify(execFile);
 const HERE = dirname(fileURLToPath(import.meta.url));
 const MOVY = join(HERE, '..', '..');
 const FIXTURE_DIR = join(MOVY, 'scripts', 'fixtures', 'device-set');
 export const DEVICE_DIR = '/data/UserData/schwung/_movy-fixture';
-const SSH_OPTS = ['-o', 'ConnectTimeout=8', '-o', 'BatchMode=yes'];
 
 let HOST = 'move.local';
 export function setHost(h: string): void { HOST = h; }
@@ -274,16 +274,6 @@ export async function installMovyState(): Promise<void> {
      * — which is also what every Set written before this feature looks like.
      * Mirrors scripts/lib/test-set.sh, which carries the same fix. */
     await ssh(`rm -f '${dir}/chains.json'`);
-}
-
-/* The per-set sequencer blob's mtime. Movy persists on its own schedule (~8 s
- * of device time), so a scenario that closes right after a take can find there
- * was nothing saved to restore — which looks exactly like a broken restore.
- * Watching the mtime tells the two apart. */
-export async function seqStateMtime(): Promise<string> {
-    const uuid = await activeUuid();
-    const p = `/data/UserData/schwung/modules/tools/movy/sets/${uuid || '_default'}/seq-state.json`;
-    return (await ssh(`ls -l '${p}' 2>/dev/null || true`)).trim();
 }
 
 /* A one-line summary of the per-set blob: how many automation lanes and clips

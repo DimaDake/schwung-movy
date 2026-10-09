@@ -10,6 +10,7 @@ import {
     cc, noteOn, noteOff, knobDelta,
     CC_JOG_CLICK, CC_JOG_TURN, CC_BACK, CC_KNOB_BASE, CC_TRACK_BASE,
 } from './midi.js';
+import { SSH_OPTS } from './ssh.js';
 
 const run = promisify(execFile);
 const REMOTE = '/data/UserData/schwung/modules/tools/movy';
@@ -140,8 +141,7 @@ export class Device {
      * probe answers on the way out. */
     async logLines(pattern: string): Promise<string[]> {
         try {
-            const { stdout } = await run('ssh', ['-o', 'ConnectTimeout=5', '-o', 'BatchMode=yes',
-                `ableton@${this.host}`,
+            const { stdout } = await run('ssh', [...SSH_OPTS, `ableton@${this.host}`,
                 `grep '${pattern}' /data/UserData/schwung/debug.log 2>/dev/null || true`]);
             return stdout.split('\n').filter(Boolean);
         } catch { return []; }
@@ -240,8 +240,8 @@ export class Device {
         await this.close(probe);
         /* Never scp over a dlopen'd .so in place — overwriting a mapped .so's
          * inode corrupts its pages and crashes MoveOriginal. */
-        await run('scp', ['-q', localPath, `ableton@${this.host}:${REMOTE}/dsp.so.new`]);
-        await run('ssh', [`ableton@${this.host}`, `mv ${REMOTE}/dsp.so.new ${REMOTE}/dsp.so`]);
+        await run('scp', ['-q', ...SSH_OPTS, localPath, `ableton@${this.host}:${REMOTE}/dsp.so.new`]);
+        await run('ssh', [...SSH_OPTS, `ableton@${this.host}`, `mv ${REMOTE}/dsp.so.new ${REMOTE}/dsp.so`]);
         await this.restartStack();
         await this.open(probe);
     }

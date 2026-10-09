@@ -38,9 +38,11 @@ Every finished suite is faster than the bash it replaced, and the assertion coun
 was predicted from each parent commit **before any bash was deleted** and matched
 exactly in all eleven.
 
-`test-jog-hint.mjs` is **not migrating** — it asserts on the framebuffer and
-`SNAPSHOT_DISPLAY` was never built (we chose to make no schwung changes). It
-stays as the last bash-era script, by design, per `MIGRATION.md`.
+`test-jog-hint.mjs` did migrate after all — `test-device/display.ts` reads the
+framebuffer over scp, no `SNAPSHOT_DISPLAY` needed — and its scenario was then
+folded into `smoke`'s `jog-hint-hold` check (2026-10-09): the hold timing is
+asserted locally by `browser-test/app-loop.mjs`, so the device keeps only the
+framebuffer half.
 
 ---
 

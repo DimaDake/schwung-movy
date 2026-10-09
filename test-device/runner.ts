@@ -21,7 +21,12 @@ export type Ctx = {
  * while its flake is investigated, not a verdict. It buys KNOWN_FLAKY_RETRIES
  * assert retries, and a red that survives them is still reported (and lands
  * in the ledger) but does not fail the tier. Remove the mark with the fix. */
-type ScenarioOpts = { knownFlaky?: string };
+/* `optIn` keeps a scenario out of the default sweep: it runs only when named
+ * with --scenario. For a scenario that cannot gate anyway (knownFlaky) and
+ * whose logic a local suite owns, so the sweep stops paying its minutes for an
+ * advisory signal. The reason is printed on every skip, so the absence is
+ * visible rather than inferred. */
+type ScenarioOpts = { knownFlaky?: string; optIn?: string };
 type Entry = { name: string; fn: (t: Ctx) => Promise<void> } & ScenarioOpts;
 let registry: Entry[] = [];
 
@@ -72,7 +77,12 @@ export async function runAll(opts: {
     const results: ScenarioResult[] = [];
 
     for (const e of registry) {
-        if (opts.only && !opts.only.split(',').some((o) => e.name.startsWith(o))) continue;
+        const named = !!opts.only && opts.only.split(',').some((o) => e.name.startsWith(o));
+        if (opts.only && !named) continue;
+        if (e.optIn && !named) {
+            console.log(`- ${e.name}: opt-in, not in the sweep (${e.optIn}) — --scenario ${e.name} runs it`);
+            continue;
+        }
         results.push(await runScenario(e, opts, outDir, budget));
     }
 

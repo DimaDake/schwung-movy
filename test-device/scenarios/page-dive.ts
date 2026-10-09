@@ -41,6 +41,7 @@ import { Device } from '../device.js';
 import { Probe } from '../probe.js';
 import * as fixture from '../fixture.js';
 import { until, WaitBudgetExceeded, PARAM_POLL_GAP } from '../wait.js';
+import { SSH_OPTS } from '../ssh.js';
 
 const run = promisify(execFile);
 /* test-device/dist/scenarios/page-dive.js at run time. */
@@ -128,8 +129,7 @@ scenario('page-dive', async (t) => {
      * inode, so movy cannot read a half-written file. */
     const PREFS = '/data/UserData/schwung/modules/tools/movy/prefs.json';
     const sshBox = async (cmd: string): Promise<string> => {
-        const { stdout } = await run('ssh', ['-o', 'ConnectTimeout=5', '-o', 'BatchMode=yes',
-                                             `ableton@${t.host}`, cmd],
+        const { stdout } = await run('ssh', [...SSH_OPTS, `ableton@${t.host}`, cmd],
                                      { maxBuffer: 8 * 1024 * 1024 });
         return stdout;
     };
@@ -155,7 +155,7 @@ scenario('page-dive', async (t) => {
         if (present === 'no') { await sshBox(`rm -f '${PREFS}'`); return; }
         const snap = join(tmpdir(), `movy-prefs-${process.pid}.json`);
         writeFileSync(snap, prefsBefore);
-        await run('scp', ['-q', snap, `ableton@${t.host}:${PREFS}.new`]);
+        await run('scp', ['-q', ...SSH_OPTS, snap, `ableton@${t.host}:${PREFS}.new`]);
         await sshBox(`mv '${PREFS}.new' '${PREFS}'`);
         rmSync(snap, { force: true });
         /* READ BACK, because a restore that silently did nothing is the very

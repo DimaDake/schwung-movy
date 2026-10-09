@@ -19,6 +19,7 @@ export const knobDelta = (d: number): number =>
 /* Movy CC/note map (shared/constants.mjs + scripts/grab-screen.mjs). */
 export const CC_JOG_CLICK = 3;
 export const CC_JOG_TURN  = 14;
+export const NOTE_JOG_TOUCH = 9;   // capacitive touch on the jog: note-on = finger down
 export const CC_BACK      = 51;
 export const CC_PLAY      = 85;
 export const CC_REC       = 86;

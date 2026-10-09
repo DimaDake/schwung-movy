@@ -72,6 +72,7 @@ import { Probe } from '../probe.js';
 import * as fixture from '../fixture.js';
 import { PARAM_POLL_GAP, until } from '../wait.js';
 import { cc, noteOn, noteOff, CC_PLAY, CC_REC, CC_UNDO, STEP_NOTE_BASE } from '../midi.js';
+import { SSH_OPTS } from '../ssh.js';
 
 const run = promisify(execFile);
 
@@ -211,8 +212,7 @@ scenario('seq', async (t) => {
             setsDir = `/data/UserData/schwung/modules/tools/movy/sets/${uuid || '_default'}`;
         }
         try {
-            const { stdout } = await run('ssh', ['-o', 'ConnectTimeout=8', '-o', 'BatchMode=yes',
-                `ableton@${t.host}`, `cat '${setsDir}/seq-state.json' 2>/dev/null || true`],
+            const { stdout } = await run('ssh', [...SSH_OPTS, `ableton@${t.host}`, `cat '${setsDir}/seq-state.json' 2>/dev/null || true`],
                 { maxBuffer: 4 * 1024 * 1024 });
             return stdout;
         } catch { return ''; }
@@ -228,8 +228,7 @@ scenario('seq', async (t) => {
 
     const logEvents = async (): Promise<string[]> => {
         try {
-            const { stdout } = await run('ssh', ['-o', 'ConnectTimeout=8', '-o', 'BatchMode=yes',
-                `ableton@${t.host}`, `grep -E '${LOG_RE}' ${LOG} 2>/dev/null || true`],
+            const { stdout } = await run('ssh', [...SSH_OPTS, `ableton@${t.host}`, `grep -E '${LOG_RE}' ${LOG} 2>/dev/null || true`],
                 { maxBuffer: 8 * 1024 * 1024 });
             return stdout.split('\n').filter(Boolean);
         } catch { return []; }
@@ -347,7 +346,7 @@ scenario('seq', async (t) => {
      * per boot "input refused" line in particular, which would otherwise be
      * found in any earlier run's leavings. */
     try {
-        await run('ssh', ['-o', 'ConnectTimeout=8', '-o', 'BatchMode=yes', `ableton@${t.host}`,
+        await run('ssh', [...SSH_OPTS, `ableton@${t.host}`,
             `touch /data/UserData/schwung/debug_log_on; : > ${LOG}`]);
     } catch { /* the windows below stay deltas even so */ }
 

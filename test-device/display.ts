@@ -3,6 +3,7 @@ import { promisify } from 'node:util';
 import { readFileSync, mkdtempSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { SSH_OPTS } from './ssh.js';
 
 const run = promisify(execFile);
 
@@ -16,15 +17,8 @@ export const H = 64;
  * screen, which is when a test wants a shot. */
 const FB = '/dev/shm/schwung-display';
 
-/* One multiplexed connection, reused. Not a speed indulgence — the jog-hint
- * touch check has a 1 s deadline and a fresh ssh handshake costs ~1.1 s on this
- * link, so every unmultiplexed sample lands after the hold and the check can
- * never observe the thing it asserts. Multiplexed, a grab is well under 100 ms.
- *
- * A socket path under the OS temp dir overruns macOS's 104-char sun_path limit,
- * so this one is short and %C-hashed. */
-const MUX = ['-o', 'ControlMaster=auto', '-o', 'ControlPath=/tmp/movy-disp-%C',
-             '-o', 'ControlPersist=60', '-o', 'ConnectTimeout=5'];
+/* Multiplexed through ssh.ts — the jog-hint touch check has a 1 s deadline,
+ * and an unmultiplexed grab (~1.1 s handshake) always lands after the hold. */
 
 /* The device's framebuffer, as bytes.
  *
@@ -40,7 +34,7 @@ export class Display {
 
     async grab(): Promise<Buffer> {
         const out = join(this.dir, `fb-${this.n++}.bin`);
-        await run('scp', ['-q', ...MUX, `ableton@${this.host}:${FB}`, out]);
+        await run('scp', ['-q', ...SSH_OPTS, `ableton@${this.host}:${FB}`, out]);
         return readFileSync(out);
     }
 

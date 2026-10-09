@@ -106,10 +106,6 @@ const SLEEP_ALLOWED = new Map([
     /* Polls for a device server's port to open. The frame clock is served BY
      * that server, so there is no frame to wait on until it answers. */
     ['test-device/daemon.ts', 'waits for the frame clock itself to come up'],
-    /* The behaviour under test is defined in milliseconds in movy's own model
-     * (HOLD_MS), and the checks assert an ABSENCE across that window. A frame
-     * budget would re-express the deadline in a unit the feature does not use. */
-    ['test-device/scenarios/jog-hint.ts', 'the hold delay under test IS a wall clock'],
 ]);
 
 const sleepers = [];

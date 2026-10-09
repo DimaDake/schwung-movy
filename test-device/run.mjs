@@ -24,7 +24,6 @@ import './dist/scenarios/mutes.js';
 import './dist/scenarios/smoke.js';
 import './dist/scenarios/versions.js';
 import './dist/scenarios/migrate.js';
-import './dist/scenarios/jog-hint.js';
 import './dist/scenarios/seq.js';
 import './dist/scenarios/widgets.js';
 

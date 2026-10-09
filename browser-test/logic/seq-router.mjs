@@ -426,6 +426,16 @@ export async function run() {
     seqHandleMidi([0xB0, CC_NOTE_SESSION, 0], false);     // release Session
     eq('the peek still reverts', seqState.sessionMode, false);
 
+    /* A step-row solo is undone from the step row, releasing every track —
+     * asserted here since the device mutes scenario stopped (2026-10-09). */
+    fresh();
+    seqState.sessionMode = true;
+    muteStep(9, true);
+    eq('step solo mutes the other 15', seqState.muted.filter((m, i) => i !== 9 && m).length, 15);
+    muteStep(9, true);
+    eq('step un-solo clears the solo', isSoloed(9), false);
+    eq('step un-solo releases all 16', seqState.muted.some(Boolean), false);
+
     uninstallMockEngine(); resetSeqEngine(); resetSeqState(); resetTrackMutes();
 }
 

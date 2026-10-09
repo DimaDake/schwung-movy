@@ -58,13 +58,13 @@ import { Device } from '../device.js';
 import { Probe } from '../probe.js';
 import * as fixture from '../fixture.js';
 import { until } from '../wait.js';
+import { SSH_OPTS } from '../ssh.js';
 
 const run = promisify(execFile);
 /* test-device/dist/scenarios/migrate.js at run time. */
 const MOVY = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 
 const SETS = '/data/UserData/schwung/modules/tools/movy/sets';
-const SSH = ['-o', 'ConnectTimeout=8', '-o', 'BatchMode=yes'];
 
 /* Shift is CC 49 (schwung: "49 (shift)"); Settings is Shift+Step 2, and step
  * buttons are notes 16..31 with STEP_FLAGS = 1. */
@@ -124,11 +124,11 @@ scenario('migrate', async (t) => {
     };
 
     const ssh = async (cmd: string): Promise<string> =>
-        (await run('ssh', [...SSH, `ableton@${t.host}`, cmd], { maxBuffer: 16 * 1024 * 1024 })).stdout;
+        (await run('ssh', [...SSH_OPTS, `ableton@${t.host}`, cmd], { maxBuffer: 16 * 1024 * 1024 })).stdout;
     /* Movy's saves go through the host, which runs as ROOT, so a set movy has
      * saved holds root-owned files the ableton user cannot open for writing. */
     const sshRoot = async (cmd: string): Promise<string> =>
-        (await run('ssh', [...SSH, `root@${t.host}`, cmd], { maxBuffer: 16 * 1024 * 1024 })).stdout;
+        (await run('ssh', [...SSH_OPTS, `root@${t.host}`, cmd], { maxBuffer: 16 * 1024 * 1024 })).stdout;
     /* The node helpers read the address from the ENVIRONMENT while the suites
      * pass it as an argument — without this a run against another box would ssh
      * to the right device and WebSocket to move.local. */
@@ -258,7 +258,7 @@ scenario('migrate', async (t) => {
         const tmp = mkdtempSync(join(tmpdir(), 'movy-mig-'));
         const f = join(tmp, 'slot_0.json');
         writeFileSync(f, JSON.stringify(doc));
-        try { await run('scp', ['-q', ...SSH, f, `ableton@${t.host}:${fixture.DEVICE_DIR}/migrate-slot_0.json`]); }
+        try { await run('scp', ['-q', ...SSH_OPTS, f, `ableton@${t.host}:${fixture.DEVICE_DIR}/migrate-slot_0.json`]); }
         finally { rmSync(tmp, { recursive: true, force: true }); }
         await node('slot-state.mjs', ['load', '0', `${fixture.DEVICE_DIR}/migrate-slot_0.json`]);
 
@@ -502,4 +502,8 @@ scenario('migrate', async (t) => {
      * that. State left by an earlier scenario, not the migration; the device
      * log had rotated past it. */
     knownFlaky: 'close() → park wait times out in-sweep; passes alone',
+    /* 2026-10-09: out of the sweep. Non-gating while knownFlaky, ~67 s a run
+     * (up to four attempts when it flakes), and the migration logic is
+     * browser-test/logic/track-migrate.mjs's. Drop this with the flake fix. */
+    optIn: 'knownFlaky and covered by logic/track-migrate.mjs',
 });

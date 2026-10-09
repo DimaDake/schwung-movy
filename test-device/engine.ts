@@ -4,11 +4,11 @@ import { createReadStream, existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { spawn } from 'node:child_process';
+import { SSH_OPTS } from './ssh.js';
 
 const run = promisify(execFile);
 
 const REMOTE = '/data/UserData/schwung/modules/tools/movy';
-const SSH_OPTS = ['-o', 'ConnectTimeout=5', '-o', 'BatchMode=yes'];
 
 /* Walk up to the directory holding package.json. This module is imported from
  * test-device/dist/ at runtime but lives in test-device/ as source, so a fixed

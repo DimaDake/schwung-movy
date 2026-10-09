@@ -58,6 +58,7 @@ import { Probe } from '../probe.js';
 import * as fixture from '../fixture.js';
 import { until } from '../wait.js';
 import { CC_BACK } from '../midi.js';
+import { SSH_OPTS } from '../ssh.js';
 
 const run = promisify(execFile);
 /* test-device/dist/scenarios/page-lifecycle.js at run time. */
@@ -130,8 +131,7 @@ scenario('page-lifecycle', async (t) => {
      * reason is unchanged adds no line, and a rotated log takes lines away. */
     let watermark = '00:00:00';
     try {
-        const { stdout } = await run('ssh', ['-o', 'ConnectTimeout=5', '-o', 'BatchMode=yes',
-            `ableton@${t.host}`, 'date +%H:%M:%S']);
+        const { stdout } = await run('ssh', [...SSH_OPTS, `ableton@${t.host}`, 'date +%H:%M:%S']);
         watermark = stdout.trim();
     } catch { /* no watermark: the notes below fall back to the raw tail */ }
     const bodyLines = async (): Promise<string[]> =>

@@ -152,6 +152,18 @@ ok('the known-flaky red is still recorded as a fail, with its reason',
 ok('its artifact says it is known-flaky',
    /KNOWN FLAKY/.test(readFileSync(`${OUT2}/kf-red.md`, 'utf8')));
 
+/* An opt-in scenario stays out of the sweep and runs only when named. */
+_resetForTest();
+let optTries = 0, sweepTries = 0;
+scenario('opt', async () => { optTries++; }, { optIn: 'covered locally' });
+scenario('swept', async () => { sweepTries++; });
+await runAll({ host: 'fake', outDir: OUT2, flakeLog: null });
+ok('an opt-in scenario is skipped by the default sweep', optTries === 0 && sweepTries === 1,
+   `opt=${optTries} swept=${sweepTries}`);
+await runAll({ host: 'fake', outDir: OUT2, flakeLog: null, only: 'opt' });
+ok('...and runs when named with --scenario', optTries === 1 && sweepTries === 1,
+   `opt=${optTries} swept=${sweepTries}`);
+
 rmSync(OUT2, { recursive: true, force: true });
 
 rmSync(OUT, { recursive: true, force: true });

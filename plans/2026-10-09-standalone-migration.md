@@ -702,7 +702,7 @@ split points), one gate run each, and 9 of them before the switch.
 1. **The "Retired by design" table** is the reading of goal #1.
 2. **C host built from schwung's C libraries** at a pinned tag; the Rust engine
    stays an unchanged `plugin_api_v2` plugin.
-3. **Side-by-side `movy-sa` dev flavour until WP8**; `movy` switches only then `movy-sa` is dev-only and never goes in
+3. **Side-by-side `movy-sa` dev flavour until WP8**; `movy` switches only then. `movy-sa` is dev-only and never goes in
    the catalog: users get the standalone build as an **update of the same `movy`
    module**, beta channel first.
 4. **Set data root `/data/UserData/UserLibrary/Movy/`**; the set-manager design

@@ -634,3 +634,9 @@ split points), one gate run each, and 9 of them before the switch.
 3. **Side-by-side `movy-sa` dev flavour until WP8**; `movy` switches only then.
 4. **Set data root `/data/UserData/UserLibrary/Movy/`**; the set-manager design
    builds on it.
+5. **Pinned chain host** (WP2): movy ships its own chain host, built from the
+   pinned schwung tag, instead of loading stock `modules/chain/dsp.so`. Upstream
+   chain fixes arrive by bumping the pin.
+6. **Every dbxhost-derived item marked *(dbx)*** is accepted as part of the
+   plan. The shared JS (`param_pages`) still loads from the installed schwung,
+   because movy's no-vendoring rule stands.

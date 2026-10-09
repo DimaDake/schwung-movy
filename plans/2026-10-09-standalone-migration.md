@@ -90,6 +90,41 @@ toolchain that `build-dsp.sh` already requires.
 - `schwung_host.c` (the old standalone runtime) is dev-only and never runs on
   the device (`package.sh`: "shadow mode only"). It is **not** a base to build
   on. Its single-threaded loop is the wrong shape for movy's render pool.
+- **dbxhost (legsmechanical, read 2026-10-09 at `934b87d0`)** takes the
+  opposite route. It forks all of schwung (shim + shadow_ui) into one repo with
+  davebox, and its "standalone" binary is a launcher that brings **MoveOriginal
+  back up under the fork's shim**, so Move keeps running. That is the right
+  route for davebox, which uses Move's own instruments. It is the wrong one for
+  movy, whose goals 3 and 6 are to drop Move. Its operational lessons transfer
+  almost one-to-one and are folded in below, marked *(dbx)*:
+  - **Tool dispatch is first-match.** `tool_config.interactive` /
+    `skip_file_browser` were tested *before* `standalone` on some stock
+    versions, so `standalone` was silently ignored. `standalone` is read at the
+    **top level** of `module.json`, not under capabilities.
+  - **At boot, the process *is* `move-launcher.service`.** Exiting reads as
+    "Move crashed" whatever the exit code, so quitting must `exec` onward
+    (`schwung-entry.sh`, then the selector, then `MoveOriginal`). Never sweep
+    MoveLauncher at boot, and never pause the unit (that is yourself).
+  - **Use one launcher body for both doors**, selected by a positional
+    `--boot` argument. An env var leaked across `exec` into the next session.
+  - Boot-time stdout is not journaled, so redirect to a log first.
+  - **Handoff audio burst.** Killing Move ungracefully leaves the audio
+    hardware driverless, and it bursts at about −3 dBFS for ~1.5 s. dbxhost
+    mutes first (control shm byte 49), then sends a graceful thread-directed
+    SIGTERM.
+  - **A stock update swapped `modules/chain/dsp.so`** under dbxhost and changed
+    its behaviour overnight. The chain host is *code*, not shared content.
+  - **The blessed helper can be un-setuid'd** by a reinstall (ableton owns the
+    module dir). Check it on every launch and re-stage. Never `chown -R` the
+    tree, because chown clears setuid.
+  - **Hold a single-instance session lock** (`flock` on a `/dev/shm` dotfile).
+    Use a **private shm namespace**, and clear stale rings on start:
+    `launch-standalone.sh` does not.
+  - **Delete capability probes once host and module ship together.** dbxhost
+    deleted 378 `typeof host_*` gates, and a ratchet test keeps the count
+    falling. Two gates crept back once and nobody noticed for a week.
+  - **Run the host C tests in a Linux container.** macOS and glibc disagree on
+    opaque types (`sigset_t` is 4 vs 128 bytes).
 
 ### What movy depends on today
 
@@ -137,7 +172,8 @@ toolchain that `build-dsp.sh` already requires.
 | SPI open/mmap/ioctl, offsets, sysinfo | `src/lib/schwung_spi_lib.{c,h}`, `boot-select.c` frame loop + LED-show reset | compiled in / pattern | no |
 | Plugin ABI | `src/host/plugin_api_v1.h` | compiled in; `abi-parity.mjs` | caught by test |
 | Param pages, slot grid, lane map | `shared/**/*.mjs` on device | runtime import (as today) | **yes**, guarded by WP1's globals manifest + `schwung-built.mjs` |
-| Chain host + every module | `modules/chain/dsp.so`, `modules/**` | runtime dlopen (as today) | **yes**, guarded by `abi-parity.mjs` (exact match) |
+| Chain host | `src/modules/chain/dsp/*.c` | **compiled from the pinned tag into movy's payload** (WP2), not dlopened from stock *(dbx)* | no |
+| Every other module | `modules/**` | runtime dlopen (shared content) | ABI only, guarded by `abi-parity.mjs` |
 | Launch / kill Move / restart Move | `launch-standalone.sh` + `schwung-heal --pause-launcher` | runtime, documented contract | low (documented, upstream-tested) |
 | Boot directly into movy | boot selector + `boot_target` block + recipe | runtime contract | low (upstream-tested recipe) |
 | Root for RT priority and file ownership | `schwung-heal` per-tool helper staging | runtime contract | low |
@@ -156,6 +192,9 @@ toolchain that `build-dsp.sh` already requires.
   contracts for standalone tools (WP6).
 - **U3** Whatever WP0 finds missing for power-off or RT priority under a boot
   target (WP0/WP7).
+- **U5** `launch-standalone.sh`: mute before teardown, give Move a graceful
+  shutdown, and clear stale `/dev/shm/schwung-*`, if WP0 measures a handoff
+  burst *(dbx)*.
 - **U4** If param_pages grows a `shadow_*` dependency, an injectable
   "host adapter" argument instead of a bare global (raised only if WP1's
   manifest shows churn).
@@ -210,6 +249,10 @@ is answered by reading code.
      measure `spi_tx_time`, render µs and frame headroom over 60 s;
    - handle SIGTERM within 1 s; on exit, check that `launch-standalone.sh`
      brings Move back;
+   - **record the audio across the Tools→standalone handoff** (USB-C or
+     line-in capture) and measure any burst *(dbx)*; and confirm which of
+     `tool_config` / `standalone` wins in the installed schwung's tool
+     dispatch;
    - write `/dev/shm/schwung-display-live` and confirm `display-server` streams
      it (same 1024-byte packing as `js_display_pack`?);
    - record the uid it runs as when launched from Tools (expected root) and as
@@ -278,6 +321,12 @@ fed by movy's own transport, so standalone needs nothing from schwung's clock.
   routes `midi_send_*` as today; and answers `get_bpm`, `get_beat_position` and
   `get_clock_status` from `seq-core`'s clock instead of schwung's. Set
   `slot_recv_channel` and keep the `reserved[8]` tail rule from `ffi.rs`.
+- **Pin the chain host** *(dbx)*: build `chain-host.so` from the pinned
+  schwung tag's `src/modules/chain/dsp/` (with the same `git archive` step
+  WP6 uses) and ship it in movy's payload. The engine loads that instead of
+  stock `modules/chain/dsp.so`. Run it behind a flag first; it defaults ON once
+  the tier is green. This is verifiable in overtake movy, and it removes the
+  coupling that changed dbxhost's behaviour under it.
 - A host-mode param, `host_mode=overtake|standalone`, set by the UI from
   `platform.caps`. In `standalone`, `midi_send_internal` to schwung slots and
   `midi_inject_to_move` are skipped (no slots, no Move); in `overtake` nothing
@@ -386,7 +435,7 @@ movy commit on `--version` and in its first log line.
 
 | File | Responsibility |
 |---|---|
-| `main.c` | args, signals (TERM/INT → clean shutdown ≤1 s, crash handler → backtrace to `debug.log`), thread start, schwung version check vs `SCHWUNG_FLOOR` (refuse with an on-screen message, never a black screen) |
+| `main.c` | single-instance `flock` on `/dev/shm/.movy-session.lock` *(dbx)*; private shm prefix `/movy-` and a stale-ring sweep; output fades in from silence; args, signals (TERM/INT → clean shutdown ≤1 s, crash handler → backtrace to `debug.log`), thread start, schwung version check vs `SCHWUNG_FLOOR` (refuse with an on-screen message, never a black screen) |
 | `spi.c` | open/mmap/`SET_SPEED`, the `WAIT_AND_SEND` loop on the audio thread (RT per WP0), LED-show reset at start |
 | `audio.c` | one block: drain the param queue, `on_midi` for queued MIDI, `render_block`, write to OFF_OUT_AUDIO; audio-in is natively available via `mapped_memory` |
 | `vtable.c` | the `host_api_v1_t` given to `dsp.so`: `log`→unified_log, `midi_send_external`→out ring cable 2, `mapped_memory`=SPI page; clock fields are the engine's (WP2) |
@@ -410,6 +459,11 @@ Also in this WP:
 - `browser-test/host-globals.mjs` extended: every manifest entry must be
   registered by `globals.c` (it greps the C source), so a schwung update that
   adds a shared-JS dependency fails locally, before the device.
+- Unit tests for the C host (`movy/host/tests/`) run natively **and** in a Linux
+  container (`scripts/test-host-linux.sh`, ubuntu image) *(dbx)*. That
+  container is the seed of WP12.
+- If a helper is used, the launcher checks on every start that
+  `bin/heal` is still root 04755, and re-stages `heal.new` if not *(dbx)*.
 - Delete `movy-lab`. File U1 and U2.
 
 **Exit:** on device, `movy-sa` opens from Tools, plays a fixture Set, shows the
@@ -453,9 +507,17 @@ regression; MANUAL draft for the standalone behaviours.
 
 ### WP8: the switch
 
-- `movy` **becomes** the standalone flavour: `module.json` `standalone: true`,
+- `movy` **becomes** the standalone flavour: `module.json` gets a top-level
+  `standalone: true` and **drops `tool_config` and the overtake capabilities**
+  (first-match dispatch *(dbx)*), and `min_host_version` is set to the release
+  WP0 verified. It also gets
   the `boot_target` block placed after `id`/`name` (`{"id":"movy","name":"Movy",
-  "exec":"boot-entry.sh"}`), and `boot-entry.sh` from the upstream recipe. The
+  "exec":"boot-entry.sh"}`), and `boot-entry.sh` from the upstream recipe. Both doors run one body,
+  `standalone` (`--boot` as a positional argument, never an env var). At boot it
+  never exits: on quit it `exec`s `schwung-entry.sh`, then the selector, then
+  `MoveOriginal`. It never sweeps or pauses MoveLauncher, and it redirects
+  stdout to `movy-launch.log` before anything else *(dbx)*. Pin it with a host
+  test like dbxhost's `test_boot_target_second_door.sh`. The
   entry also starts `display-server` and `schwung-manager` when they are not
   running. Retire the `movy-sa` id (`deploy.sh` cleans it up).
 - `build-module.sh`/`release.json`: the tarball carries `standalone`,
@@ -492,7 +554,10 @@ migration (after the window), LED ownership/suppress, `set-commit` overtake
 lowering, `host_mode=overtake` in the engine, `needs: 'move'` scenarios,
 `transport-overtake.ts`, the related flags (with a `FLAGS_REV` bump), and the
 docs that describe them (`docs/persistence-hazards.md` entries that no longer
-apply). The source rule from WP1 shrinks to `standalone.ts` only.
+apply). The source rule from WP1 shrinks to `standalone.ts` only. **Delete every
+`typeof shadow_*/host_*` gate.** Host and UI now ship as one payload, so a gate
+can only ever be true. `browser-test/logic/source-rules.mjs` gains a
+**ratchet** on the count, which may fall and never rise *(dbx)*.
 
 ### WP10: a direct UI↔engine channel (motivation 1)
 
@@ -558,6 +623,8 @@ split points), one gate run each, and 9 of them before the switch.
 | R6 | Open-from-Move/exit-to-Move takes seconds | WP0 | measured and documented; the boot target is the main entry |
 | R7 | Store update replaces a running binary | WP8 | verify the install path; `ETXTBSY` must fail safe |
 | R8 | Hardware behaviour Move used to own (HP/speaker switch, USB-C audio, auto-off) | WP0 | inventory; anything missing → C-opt or a MANUAL limitation |
+| R9 | Audio burst at the Tools→movy handoff | WP0 | measure; movy-host fades in; U5 upstream *(dbx)* |
+| R10 | A stock update changes chain-host behaviour under movy | WP2 | pinned chain host *(dbx)* |
 
 ## Decisions (accepted by the user, 2026-10-09)
 

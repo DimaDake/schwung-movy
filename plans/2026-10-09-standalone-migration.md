@@ -547,6 +547,41 @@ regression; MANUAL draft for the standalone behaviours.
   test like dbxhost's `test_boot_target_second_door.sh`. The
   entry also starts `display-server` and `schwung-manager` when they are not
   running. Retire the `movy-sa` id (`deploy.sh` cleans it up).
+- **Same catalog module, updated in place; no new module id.** Checked
+  against schwung `443466ab`:
+  - The catalog entry (`id: movy`, `component_type: tool`) has no
+    type-specific field. `release.json` in the movy repo drives the download,
+    so a new release shows up as an ordinary **Update**.
+  - The manager's install is an atomic **merge** (`atomic_install.go`): each
+    shipped file is renamed into place with a new inode, and everything else
+    in `tools/movy/` (Sets, leftovers from the overtake build) stays.
+    Replacing a *running* `standalone` binary is therefore safe; the old
+    process keeps its inode.
+  - The Tools menu re-reads every `module.json` on entry
+    (`scanForToolModules`), so the next open after the update launches
+    standalone with no reboot. `standalone` wins over `tool_config` since
+    v1.6.0 (#557); dropping `tool_config` makes that moot on older hosts too.
+  - The manager reconciles `boot_target` on every install and update, so the
+    picker row appears. It never becomes the default by itself; the user picks
+    it once in the boot window (document this in the MANUAL).
+  - **`min_host_version` is per catalog entry, not per release.** Raise it with
+    a catalog PR to the first schwung that has standalone dispatch, the
+    launcher-watchdog pause and per-tool helper blessing. That is ≥ 1.6.0;
+    WP0 confirms the exact release. Users on an older schwung are then refused
+    the update and keep their overtake movy. movy-host still checks
+    `SCHWUNG_FLOOR` at startup, for side-loads and for the time before the
+    catalog PR merges.
+  - **Roll out on the module beta channel first**: `release.json`
+    `channels.beta` carries the standalone build, and `stable` stays overtake
+    until the WP8 gate. Beta is opt-in (`beta_channel_enabled` in the manager),
+    so only volunteers get it. There is no automated downgrade (the store only
+    offers newer), so a rollback is a fix-forward stable release.
+  - Device checks for the update path, each one scripted: update with movy
+    closed; update while overtake movy is **open**; update while it is **parked
+    in Background** (the next Tools open kills that stack, so engine autosave
+    must already hold the state); update while movy-standalone is running
+    (the restart prompt); and the Tools quick-launch / last-tool paths, in
+    case one of them reads cached metadata.
 - `build-module.sh`/`release.json`: the tarball carries `standalone`,
   `boot-entry.sh`, `ui.js`, `dsp.so` and `bin/heal.new`. Verify the store-update
   path against a **running** movy (the dsp.so-inode lesson; the executable gets
@@ -667,7 +702,9 @@ split points), one gate run each, and 9 of them before the switch.
 1. **The "Retired by design" table** is the reading of goal #1.
 2. **C host built from schwung's C libraries** at a pinned tag; the Rust engine
    stays an unchanged `plugin_api_v2` plugin.
-3. **Side-by-side `movy-sa` dev flavour until WP8**; `movy` switches only then.
+3. **Side-by-side `movy-sa` dev flavour until WP8**; `movy` switches only then `movy-sa` is dev-only and never goes in
+   the catalog: users get the standalone build as an **update of the same `movy`
+   module**, beta channel first.
 4. **Set data root `/data/UserData/UserLibrary/Movy/`**; the set-manager design
    builds on it.
 5. **Pinned chain host** (WP2): movy ships its own chain host, built from the

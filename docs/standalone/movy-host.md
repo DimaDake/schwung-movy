@@ -100,7 +100,17 @@ launcher creates is made usable by the other uid:
 
 A root dev run otherwise locks every later ableton run out.
 
-## Open, carried to WP7
+## Upstream
+
+U6 [schwung#635](https://github.com/charlesvestal/schwung/pull/635)
+(`open_tool_cmd` launches a standalone tool), U2
+[schwung#636](https://github.com/charlesvestal/schwung/pull/636) (the two shm
+contracts, documented), U1
+[schwung#637](https://github.com/charlesvestal/schwung/issues/637) (a
+standalone SDK library). Until #635 ships, the harness runs
+launch-standalone.sh itself.
+
+## Open, carried to WP7 (`plans/2026-10-10-wp7-standalone-parity.md`)
 
 - **Slow frames at chain load.** `chain_host`, `chains`, `padmap` and the
   `mfx:` loads each cost 12–40 ms on the audio thread. The shim services params

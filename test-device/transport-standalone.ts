@@ -129,7 +129,18 @@ export class StandaloneTransport implements Transport {
 
     /* As the stack's uid (WP0 findings §3.2). Without Move (a previous run
      * left none) root launches, since only root can then free the device. */
-    async launch(): Promise<void> {
+    /* Single-flight: two launches in the same instant (a retry overlapping an
+     * open) both ran launch-standalone.sh. The lock kept the second movy-host
+     * out, but ITS launch-standalone.sh then restarted Move underneath the
+     * first one, and the tier hung for 20 min (2026-10-10). Callers share one
+     * launch instead. */
+    private launching: Promise<void> | null = null;
+    launch(): Promise<void> {
+        if (!this.launching) this.launching = this.launchOnce().finally(() => { this.launching = null; });
+        return this.launching;
+    }
+
+    private async launchOnce(): Promise<void> {
         if (await this.running()) return;
         /* From a SETTLED Move only, as a user opens it from Tools: a Move still
          * booting after the last exit re-grabs SPI behind the kill sweep

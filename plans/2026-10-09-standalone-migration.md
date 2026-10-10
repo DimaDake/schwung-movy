@@ -642,6 +642,9 @@ findings for WP7/WP8:
 
 ### WP7: standalone parity
 
+**Session plan, with the first full movy-sa baseline:**
+`plans/2026-10-10-wp7-standalone-parity.md`.
+
 **Goal:** `movy-sa` passes the whole device tier, with the debugging and
 performance surface intact.
 

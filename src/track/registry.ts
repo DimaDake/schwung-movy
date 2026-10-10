@@ -7,7 +7,7 @@ import { ShimSlotPort } from './shim-port.js';
 import { MovyChainPort } from './movy-chain-port.js';
 import { EngineRootPort } from './send-port.js';
 import type { TrackPort } from './port.js';
-import { isMasterComponent, isSendComponent } from '../chain/config.js';
+import { isMovyMasterComponent, isShimMasterComponent, isSendComponent } from '../chain/config.js';
 
 const ports: (TrackPort | undefined)[] = [];
 
@@ -62,8 +62,10 @@ export function hostPort(slot: number): TrackPort {
  *  module dumps, file params — resolves its port here, so the rule is written
  *  down once instead of at each call site that happens to remember it. */
 export function componentPort(index: number, componentKey: string): TrackPort {
-    if (isSendComponent(componentKey)) return engineRootPort();
-    return isMasterComponent(componentKey) ? hostPort(0) : portFor(index);
+    /* movy's own master and the sends are engine-root keys that carry their
+     * own namespace; schwung's master rides a shadow slot. */
+    if (isSendComponent(componentKey) || isMovyMasterComponent(componentKey)) return engineRootPort();
+    return isShimMasterComponent(componentKey) ? hostPort(0) : portFor(index);
 }
 
 /** Drop cached ports. Tests use this to swap the ambient shadow_* globals. */

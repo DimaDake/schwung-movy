@@ -4,6 +4,7 @@ import { KNOBS_PER_PAGE, ENUM_DELTA_DIV, REFRESH_BULK_TICKS, REFRESH_SUPPRESS_TI
 import { detentsPerStep, perDetentStep } from './knob-step.js';
 import { countDetents } from '../seq/detent.js';
 import { moduleReadKey } from '../chain/config.js';
+import { masterSuffix } from '../chain/master-prefix.js';
 import { concreteKey } from './pad-scope.js';
 import { enumRawToIndex, enumUsesIndex, enumSetValue } from './enum-value.js';
 import { isToggleParam } from './toggle.js';
@@ -455,13 +456,13 @@ export function refreshModulatedKeys(s: ModelState): void {
     const prev = s.modulatedKeys.size;
     s.modulatedKeys.clear();
     /* A master FX component is driven by the MASTER LFOs, which store their
-     * target bare (`fx1`, parsed by the shim as a slot number) under
-     * `master_fx:lfoN:`. Skipping master components outright is what left an
+     * target bare (`fx1`, parsed by the shim as a slot number) under the
+     * master's own prefix (`master_fx:lfoN:` or `mfx:lfoN:`). Skipping master components outright is what left an
      * assigned MFX knob with no mark (SP-60). */
-    const MASTER = 'master_fx:';
-    const master = s.componentKey.startsWith(MASTER);
-    const lfoPfx = master ? MASTER : '';
-    const want = master ? s.componentKey.slice(MASTER.length) : s.componentKey;
+    const bare = masterSuffix(s.componentKey);
+    const master = bare !== null;
+    const lfoPfx = master ? s.componentKey.slice(0, s.componentKey.length - bare.length) : '';
+    const want = master ? bare : s.componentKey;
     for (let i = 1; i <= 2; i++) {
         if (s.port.getParam(lfoPfx + 'lfo' + i + ':target') === want) {
             const tp = s.port.getParam(lfoPfx + 'lfo' + i + ':target_param');

@@ -76,6 +76,12 @@ export class Probe {
      * the registry back to the state a module with no widget leaves it in and
      * then look at the screen — which is the only way to watch the built-in
      * draw in a cell a module had claimed. */
+    /* Which master the MASTER page drives (WP3): true movy's own, false
+     * schwung's, null back to host + flag. Writes nothing durable. */
+    bindMaster(movy: boolean | null) {
+        return this.ask({ verb: 'bindMaster', arg: movy });
+    }
+
     widget(kind: string, opts: { clear?: boolean } = {}) {
         return this.ask({ verb: 'widgets', arg: { kind, clear: !!opts.clear } });
     }

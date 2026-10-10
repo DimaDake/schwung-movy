@@ -23,6 +23,7 @@ mod load_queue;
 mod mixer;
 mod auto_lane;
 mod send_bus;
+mod master_chain;
 mod voice_send;
 mod pad_route;
 mod set_envelope;
@@ -129,7 +130,7 @@ pub(crate) fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.86.0";
+const ENGINE_VERSION: &str = "0.87.0";
 
 /* Blocks between autosaves. The callback runs at ~344 Hz, so this is ~2 s —
  * flash on this device is not free and the sequencer is dirty constantly while
@@ -310,6 +311,11 @@ impl Instance {
              * discard the load phase, exactly as `chcostlog` does for a chain. */
             "sndcostlog" => {
                 host::log(&format!("send cost: {}", self.chains.send_cost_report()));
+            }
+            /* `mfxlog` — the master chain's binding, volume, modules, peaks
+             * and limiter depth. Its only read-back, as `sndlog` is a send's. */
+            "mfxlog" => {
+                host::log(&format!("master: {}", self.chains.master_report()));
             }
             "chpeaklog" => {
                 host::log(&format!("chain peaks: {}", self.chains.peaks_csv()));
@@ -495,6 +501,11 @@ impl Instance {
                     self.engine.dirty = false;
                 }
             }
+            /* `mfx:<rest>` addresses the master chain movy owns — schwung's
+             * `master_fx:` key layout with movy's prefix (master_chain.rs). */
+            _ if key.starts_with("mfx:") => {
+                self.chains.master_param(&key[4..], val);
+            }
             /* `snd<n>:<rest>` addresses send bus n. Module loads are diverted
              * into the same queue chain loads use, so a set that opens with two
              * sends cannot stack their dlopens into one audio callback. */
@@ -638,6 +649,7 @@ impl Instance {
                 self.chains.active_count(),
                 self.chains.asleep_count()
             )),
+            _ if key.starts_with("mfx:") => self.chains.master_get(&key[4..]),
             _ if key.starts_with("snd") => {
                 let (bus, rest) = parse_send_key(key)?;
                 if rest == "module" {

@@ -1,3 +1,5 @@
+import { MOVY_MASTER_PREFIX } from './master-prefix.js';
+
 export interface ChainSlot {
     componentKey: string;
     label:        string;
@@ -67,13 +69,23 @@ export function isVirtualSlot(slot: ChainSlot | undefined): boolean {
     return !!slot && slot.scanDir === '';
 }
 
-/* Whether a component belongs to the MASTER chain rather than to a track.
- *
- * A `master_fx:` key is schwung's own and global to the shim: it is not a
- * track's param and only rides on a slot number as a carrier. Anything that
- * turns a component key into a port has to ask this — see `componentPort`. */
+/* Whether a component belongs to the MASTER chain rather than to a track —
+ * either master. Anything that turns a component key into a port has to ask
+ * which one (`componentPort`). */
 export function isMasterComponent(componentKey: string): boolean {
+    return isShimMasterComponent(componentKey) || isMovyMasterComponent(componentKey);
+}
+
+/* schwung's master: global to the shim, riding a slot number only as a carrier,
+ * and loaded by DSP PATH. Bare `master_fx` is what undo's key split hands over. */
+export function isShimMasterComponent(componentKey: string): boolean {
     return componentKey.startsWith('master_fx');
+}
+
+/* movy's own master chain: an engine-root key, loaded by module ID like any
+ * chain FX. Bare `mfx` for the same reason as above. */
+export function isMovyMasterComponent(componentKey: string): boolean {
+    return componentKey === 'mfx' || componentKey.startsWith(MOVY_MASTER_PREFIX);
 }
 
 /** Either LFO page — the track's own or the master's (`master_fx:lfo`). Its own

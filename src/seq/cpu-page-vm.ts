@@ -119,7 +119,7 @@ export function buildCpuPageVM(): CpuPageVM {
         });
     }
 
-    const sends = buildSendColumns(seqState.cpuSend);
+    const sends = buildSendColumns(seqState.cpuSend, seqState.cpuMaster);
     const budgetUs = Math.max(1, Math.round(blockUs * USABLE_BLOCK));
     const ipc = paramStats();
     return {
@@ -150,24 +150,21 @@ export function buildCpuPageVM(): CpuPageVM {
  *  A send has no synth stage — a bus IS an FX pass over a buffer the tracks
  *  filled — so `synthUs` is 0 and the whole column draws as the hatched FX
  *  segment. That is not a gap in the data; it is what a send is. */
-export function buildSendColumns(raw: string): CpuColumn[] {
-    if (!raw) return [];
-    const fields = raw.split(',');
+export function buildSendColumns(raw: string, master = ''): CpuColumn[] {
+    const fields = raw ? raw.split(',') : [];
     const cols: CpuColumn[] = [];
-    for (let n = 0; n < SEND_BUSES; n++) {
-        const f = fields[n];
-        if (f === undefined || f === '-') {
-            cols.push({ kind: 'empty', totalUs: 0, synthUs: 0, peakUs: 0 });
-            continue;
-        }
-        const [total, peak] = f.split('/');
-        const totalUs = num(total);
-        cols.push({
-            kind: totalUs > 0 ? 'live' : 'asleep',
-            totalUs,
-            synthUs: 0,
-            peakUs: num(peak),
-        });
-    }
+    for (let n = 0; n < SEND_BUSES; n++) cols.push(fxColumn(fields[n]));
+    /* movy's own master (` mfxcost=`) joins the region as one more FX column,
+     * after the sends because it runs after them — and only when it holds a
+     * module, so a page without it keeps the three-column layout. */
+    const m = fxColumn(master || undefined);
+    if (m.kind !== 'empty') cols.push(m);
     return cols.some((c) => c.kind !== 'empty') ? cols : [];
+}
+
+function fxColumn(f: string | undefined): CpuColumn {
+    if (f === undefined || f === '-') return { kind: 'empty', totalUs: 0, synthUs: 0, peakUs: 0 };
+    const [total, peak] = f.split('/');
+    const totalUs = num(total);
+    return { kind: totalUs > 0 ? 'live' : 'asleep', totalUs, synthUs: 0, peakUs: num(peak) };
 }

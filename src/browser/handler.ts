@@ -1,7 +1,7 @@
 import { componentPort } from '../track/registry.js';
 import { browserState } from './state.js';
 import { appState, VIEW_BROWSE, VIEW_CHAIN } from '../app/state.js';
-import { isMasterComponent, moduleReadKey, MASTER_FX_SLOTS, type ChainSlot } from '../chain/config.js';
+import { isShimMasterComponent, moduleReadKey, MASTER_FX_SLOTS, type ChainSlot } from '../chain/config.js';
 import { releaseAllLive } from '../keyboard/release.js';
 import { captureLfoAssignments, captureModuleState, dumpModuleParams } from '../undo/module-dump.js';
 import { mlog } from '../log.js';
@@ -87,9 +87,9 @@ export function loadSelectedModule(): void {
     // no-ops.
     //
     // Asked by COMPONENT and not by "does the key contain a colon": movy's own
-    // SEND slots also ride the master page, and they are chains movy hosts — id,
-    // not path, and no master mirror to resync.
-    const isMaster = isMasterComponent(browserState.componentKey);
+    // SEND slots and movy's own master (`mfx:`) also ride the master page, and
+    // they are chains movy hosts — id, not path.
+    const isMaster = isShimMasterComponent(browserState.componentKey);
     const value    = isMaster ? mod.path : mod.id;
     // The outgoing module is about to be torn down; its notes must be released
     // while it is still there to receive the off.

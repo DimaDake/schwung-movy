@@ -14,7 +14,8 @@
 //! Same flat length-prefixed codec as `chain_doc` and `src/track/bulk.ts`: no
 //! escaping, so a preset blob containing anything at all survives.
 
-use crate::chain_slots::{bus_of_slot, ChainSlots, SEND_COMPONENT};
+use crate::chain_slots::{bus_of_slot, master_index, ChainSlots, SEND_COMPONENT};
+use crate::master_chain::fx_position;
 
 const FIELDS: usize = 6;
 
@@ -38,7 +39,15 @@ fn lfo_state(slots: &mut ChainSlots, slot: usize) -> String {
     let mut used = false;
     for i in 1..=LFO_COUNT {
         for k in LFO_KEYS {
-            let v = slots.get_param(slot, &format!("lfo{i}:{k}")).unwrap_or_default();
+            let key = format!("lfo{i}:{k}");
+            /* The master's LFOs live on its own instance, which `get_param`
+             * (tracks only) cannot reach. */
+            let v = if slot == master_index() {
+                slots.master_get(&key)
+            } else {
+                slots.get_param(slot, &key)
+            }
+            .unwrap_or_default();
             if !v.is_empty() {
                 if k == "target" || k == "target_param" {
                     used = true;
@@ -114,6 +123,11 @@ pub fn serialize(slots: &mut ChainSlots) -> String {
          * writes both fields empty for one. */
         let state = match bus_of_slot(e.slot) {
             Some(bus) => slots.send_get_param(bus, "state").unwrap_or_default(),
+            /* The import mark has no module behind it, so no blob either. */
+            None if e.slot == master_index() => match fx_position(&e.component) {
+                Some(_) => slots.master_get(&format!("{}:state", e.component)).unwrap_or_default(),
+                None => String::new(),
+            },
             None => slots
                 .get_param(e.slot, &format!("{}:state", e.component))
                 .unwrap_or_default(),
@@ -136,6 +150,25 @@ pub fn serialize(slots: &mut ChainSlots) -> String {
         items.push(lfo);
     }
     pack(&items)
+}
+
+/// A nested LFO document as `(lfoN:key, value)` writes, empty values skipped.
+fn lfo_pairs(doc: &str) -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    if doc.is_empty() {
+        return out;
+    }
+    let Some(vals) = parse_items_n(doc, 1) else { return out };
+    let mut i = 0;
+    for n in 1..=LFO_COUNT {
+        for k in LFO_KEYS {
+            if let Some(v) = vals.get(i).filter(|v| !v.is_empty()) {
+                out.push((format!("lfo{n}:{k}"), v.clone()));
+            }
+            i += 1;
+        }
+    }
+    out
 }
 
 /// Apply a document read from disk. `false` when it is malformed — the caller
@@ -171,6 +204,18 @@ pub fn restore(slots: &mut ChainSlots, doc: &str) -> bool {
             }
             continue;
         }
+        /* The master: preset per FX position, and its LFOs, through the `mfx:`
+         * path — which holds LFO writes until the queued loads they target are
+         * in. No mixer: the master's level is master volume, not per-Set. */
+        if slot == master_index() {
+            if !c[3].is_empty() && fx_position(&c[1]).is_some() {
+                slots.master_param(&format!("{}:state", c[1]), &c[3]);
+            }
+            for (key, v) in lfo_pairs(&c[5]) {
+                slots.master_param(&key, &v);
+            }
+            continue;
+        }
         if !c[3].is_empty() {
             slots.set_state(slot, &c[1], &c[3]);
         }
@@ -179,20 +224,8 @@ pub fn restore(slots: &mut ChainSlots, doc: &str) -> bool {
                 slots.set_mix(slot, mix);
             }
         }
-        if !c[5].is_empty() {
-            if let Some(vals) = parse_items_n(&c[5], 1) {
-                let mut i = 0;
-                for n in 1..=LFO_COUNT {
-                    for k in LFO_KEYS {
-                        if let Some(v) = vals.get(i) {
-                            if !v.is_empty() {
-                                slots.set_param(slot, &format!("lfo{n}:{k}"), v);
-                            }
-                        }
-                        i += 1;
-                    }
-                }
-            }
+        for (key, v) in lfo_pairs(&c[5]) {
+            slots.set_param(slot, &key, &v);
         }
     }
     true

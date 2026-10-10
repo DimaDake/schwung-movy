@@ -456,6 +456,28 @@ needed in both futures, and it is the only pre-work item users see.
 **Split point if it overruns:** engine+doc+keys (one session), then UI binding
 and import (the next).
 
+**Done 2026-10-10** (branch `standalone-migration`, ENGINE 0.87.0, one session):
+- Spec §5 written (`docs/superpowers/specs/2026-09-10-movy-owned-master-chain-design.md`).
+  `mfx:` is schwung's `master_fx:` key layout with movy's prefix, so binding
+  is a prefix swap (`chain/master-prefix.ts`, `master-binding.ts`).
+- Engine: `master_chain.rs` (stage, volume `mfx:vol`, −1 dBFS limiter, held
+  writes until queued loads land) behind `mfx:own`, default 0, so overtake
+  output is bit-identical. The document slot is `master_index() = RENDER_SLOTS`,
+  outside the pool; only the document and the load queue grew (`DOC_SLOTS`).
+  The import mark rides the chain document as `(master_index, "imported", "1")`.
+  `mfxlog` is the read-back, `mfxcost` the CPU-page column (`M`).
+- UI: `mstown` (debug, `uiOnly`, next open) or no Move beside → `mfx:`. The
+  browser loads `mfx:` by id, schwung's master by path. Import
+  (`chain/master-import.ts`) on `sapl`, two phases, never writes a file.
+- **Deviation:** the plan said to run `master-chain.ts`/`master-fx.ts` once per
+  binding. Those two test schwung's master (persistence through schwung's
+  saver and a reboot), which the movy binding does not use, so instead one new
+  scenario, `master-own.ts`, binds movy's master through a probe seam
+  (`bindMaster`, no prefs write) and covers import, mark, audio through the
+  stage, byte-identical schwung files and unbinding.
+- Master volume is not per-Set and is not saved yet; standalone (WP7) decides
+  where it lives.
+
 ### WP4: set manager core (after its separate design)
 
 **Depends on:** the set manager design, which you said is designed separately.

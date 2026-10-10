@@ -144,6 +144,15 @@ export const FLAGS: FlagDef[] = [
         min: 0, max: 1, def: 1, revisedAt: 4,
     },
     {
+        key: 'mstown', name: 'Movy Master Chain',
+        hint: 'MASTER page runs movy\'s own master. Next open.',
+        // Overtake only: on, the MASTER page drives movy's own master (`mfx:`),
+        // as standalone always does — the device test of the standalone
+        // master. Schwung's stays behind it (design §5.4). `uiOnly`: it
+        // reaches the engine folded into `mfx:own` (chain/master-binding.ts).
+        min: 0, max: 1, def: 0, bool: true, uiOnly: true,
+    },
+    {
         key: 'chpinhost', name: 'Pinned Chain Host',
         hint: 'Tracks run the chain host movy ships. Next open.',
         // WHICH CHAIN HOST MOVY'S TRACKS RUN THROUGH.

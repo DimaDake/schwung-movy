@@ -13,7 +13,8 @@
  * every identity change asks one question — does the incoming Set already have
  * state? — and nothing ever waits on identity. */
 
-import { paramSet } from '../host/param.js';
+import { paramGet, paramSet } from '../host/param.js';
+import { masterImportTick } from '../chain/master-import.js';
 import { mlog } from '../log.js';
 import { engineAbsent, engineAbsentReason, engineGeneration, engineReady } from './engine.js';
 import { seqState } from './state.js';
@@ -325,6 +326,7 @@ export function sessionTick(): void {
      * — a saver thread cannot be awaited from here. */
     if (restoreTick()) { reloadCurrentSet(); return; }
     gcTick();
+    masterImportTick(setId, seqState.chainPending, paramGet, (k, v) => { paramSet(k, v); });
     if (phase === 'failed') return;   // waiting on the user
     if (!engineReady()) {
         if (live()) phase = 'booting';   // the engine went away

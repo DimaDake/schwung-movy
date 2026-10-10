@@ -41,6 +41,9 @@ const TRACKS_END = 16 * NARROW.pitch;
  *  to compare with one — which is the whole point of putting them on this page. */
 const SEND_X = 104;
 const SEND: Geometry = { pitch: 8, colW: 7 };
+/* Three sends plus movy's master: four columns in the same 24 px, at the
+ * tracks' narrow pitch. The master is the last one, labelled `M`. */
+const SEND_M: Geometry = { pitch: 6, colW: 5 };
 
 /** Pixels for `us` at the current scale, clamped to the plot. Exported so the
  *  scaling — and the repaint gate that quantises to it — share one definition. */
@@ -62,8 +65,10 @@ export function renderCpuView(vm: CpuPageVM): void {
     for (let i = 0; i < vm.columns.length && i < 16; i++) {
         drawColumn(i * g.pitch, g.colW, vm.columns[i], vm.scaleUs);
     }
+    const master = vm.sends.length > SEND_BUSES;
+    const sg = master ? SEND_M : SEND;
     for (let n = 0; n < vm.sends.length; n++) {
-        drawColumn(SEND_X + n * SEND.pitch, SEND.colW, vm.sends[n], vm.scaleUs);
+        drawColumn(SEND_X + n * sg.pitch, sg.colW, vm.sends[n], vm.scaleUs);
     }
     /* Every fourth track, because a column cannot hold a two-digit label and a
      * ruler nobody can read is worse than a sparse one. The narrow layout drops
@@ -76,6 +81,7 @@ export function renderCpuView(vm: CpuPageVM): void {
     /* Named once for the group rather than numbered per bus: three columns after
      * a 9 px break would otherwise read as tracks 17 to 19. */
     if (sends) fontPrint5x3(SEND_X, LABEL_Y, 'SND', 1);
+    if (master) fontPrint5x3(SEND_X + SEND_BUSES * sg.pitch, LABEL_Y, 'M', 1);
     /* The scale is not a constant any more — it grows to fit the set — so the
      * label is the only thing telling you what a column's height is worth. */
     const scale = scaleLabel(vm.scaleUs);

@@ -361,7 +361,7 @@ let lastCpuSig = '';
 function cpuRepaintTick(): void {
     if (!cpuPageActive()) return;
     const raw = seqState.cpuCost + '|' + seqState.cpuWall + '|' + seqState.cpuMask
-        + '|' + seqState.cpuSend;
+        + '|' + seqState.cpuSend + '|' + seqState.cpuMaster;
     if (raw === lastCpuRaw) return;
     lastCpuRaw = raw;
     const vm = buildCpuPageVM();

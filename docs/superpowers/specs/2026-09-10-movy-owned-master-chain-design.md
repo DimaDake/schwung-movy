@@ -1,8 +1,10 @@
 # A movy-owned master FX chain
 
-**Status: PARKED mid-design, 2026-09-10.** Architecture settled and agreed;
-sections 2-3 (UI binding, persistence, migration mechanics, testing) are not
-written. No code exists. Resume at "What is still open".
+**Status: design complete 2026-10-10; implemented as WP3 of
+`plans/2026-10-09-standalone-migration.md`.** §1-§4 are the 2026-09-10 design.
+§5 is the part that was open, written when WP3 started. Where §2 and §5
+disagree, §5 wins: the migration plan's copy-forward rule replaced "clears
+schwung's" in decision 2.
 
 Started from one question — *can movy's output bypass schwung's master FX
 chain?* — which turned out to have a "no" worth writing down, and a second
@@ -228,21 +230,118 @@ is needed in *both* futures. A standalone movy cannot inherit
 work required either way, and leaning on schwung's MFX instead is the only
 choice here that would have to be undone.
 
-## 5. What is still open
+## 5. Keys, binding, persistence, import, testing (written 2026-10-10)
 
-- **Design sections 2-3, unwritten.** UI binding and the `mfx:` param namespace
-  (mirroring `parse_send_key`, `lib.rs:53`); persistence in the chain document
-  (`chain_doc.rs`); migration mechanics; testing.
-- **The ownership guarantee, undecided and non-blocking.** Default to
-  enforce-empty: on set load, one read of `master_fx:modules`; if anything is
-  there, clear it and toast what was cleared. ~30 lines, no upstream change, and
-  the failure direction is the safe one — a read that fails looks empty, so the
-  worst case is "movy did not clear it", never "movy deleted something it could
-  not see". That is the inverse of the #311 hazard, which is what makes it safe
-  to do unconditionally. Alternatives were warn-only, or the boot target.
-- **The boot target is its own decision**, on its own merits (roughly 15% frame
-  headroom per `docs/track-performance.md` Section 7, plus full ownership) — not
-  a way to stop someone leaving a reverb in the wrong slot.
+### 5.1 The `mfx:` namespace
+
+The master chain is a chain host instance, so it already has a key space:
+`fx1..fx8:<param>`, `lfo1:`/`lfo2:`, the `fxN_module` read-back alias. Schwung's
+master uses the same layout under `master_fx:`, because the shim's master is a
+chain too. So the movy master's keys are **schwung's master keys with `mfx:`
+in place of `master_fx:`**, and the engine strips the prefix and forwards the
+rest. Nothing is renamed, and a UI that addresses the master by prefix
+switches binding by swapping one string.
+
+| Key | Set | Get |
+|---|---|---|
+| `mfx:fxN:module` (N 1-4) | queue a load (module **id**, as a track FX; never a path) | the loaded id (the engine reads the `fxN_module` alias, as `snd<n>:module` does) |
+| `mfx:fxN:state` | preset blob, attached to a pending load like `set_state` | the blob |
+| `mfx:fxN:<p>`, `mfx:lfoN:<p>` | forwarded to the instance | forwarded |
+| `mfx:own` | `1` binds the stage into the output (see 5.2), `0` takes it out | `0`/`1` |
+| `mfx:vol` | master volume, linear gain 0..1 | the gain |
+| `mfx:imported` | `1` marks this Set as imported (5.4) | `0`/`1` |
+| `mfxlog` | logs `master: own= vol= mod=a,b,c,d in= out= gr= proc=` | |
+
+`fx5..fx8` exist in the chain host but are refused: parity is four (decision
+3), and a key the page cannot show is a key no save should carry.
+
+### 5.2 The stage, and why it is off in overtake
+
+`ChainSlots` gets one `MasterChain` (`master_chain.rs`): the instance, which FX
+positions are loaded, and the stage state. Its document slot is
+`master_index() = RENDER_SLOTS`, one past the last send. It is **not** a pool
+position: it never renders on a lane, so `RENDER_SLOTS` (the pool's and the
+MIDI queue's index space) is unchanged and only the document and the load
+queue grow by one (`DOC_SLOTS`).
+
+At the tail of `render()`, after the send buses are summed in, and only while
+`own=1`:
+
+1. `mod_tick()` every block the instance exists (LFOs advance whether or not the
+   FX run, exactly as a sleeping track chain's do).
+2. `process_fx` when `send_bus::should_process(input non-silent, last output
+   peak, continuous)` says so. A master reverb over a silent Set rings out and
+   then stops costing.
+3. Master volume, then a safety limiter (instant attack, ~50 ms release,
+   ceiling −1 dBFS). The output is already `i16`, so the limiter cannot undo a
+   clip that happened in a mix stage upstream; what it guarantees is that
+   nothing *after* movy's master can be driven past the ceiling by it, which
+   in standalone is the DAC.
+
+`own=0` (the default, and what overtake runs) skips all three: the output is
+bit-identical to a build without the stage, so overtake users get no change.
+The cost is timed into the same `add_wall` as the render and the sends, and
+reported as `mfxcost=<mean>/<peak>` (or `-` when nothing is loaded) beside
+`sndcost` for the CPU page.
+
+### 5.3 Binding (UI)
+
+The MASTER page's four FX slots and its LFO page are addressed by a **master
+prefix**: `master_fx:` (schwung's, through `hostPort(0)`) or `mfx:` (movy's,
+through `engineRootPort()`). The binding is `mfx:` when the platform does not
+coexist with Move (standalone) or the debug flag `mstown` is on, else
+`master_fx:`, so overtake users see today's page unchanged. The UI writes
+`mfx:own` to match on every engine (re)load. Undo, the browser, LFO scope and
+the model store already key on the component, so they follow the prefix.
+Loading differs in one place: schwung's master loads by DSP **path**, the
+chain host by **id**, and the browser picks by the prefix.
+
+### 5.4 Persistence and import
+
+**Persistence** is the chain document, as for sends: the master's FX are
+entries at `master_index()` with components `fx1..fx4`, so `chains.json`
+(engine-owned) and the version history carry them with no new file. Preset
+blobs and the master's LFOs ride `chain_state` exactly as a track's do. The
+import mark is one more entry, `(master_index, "imported", "1")`; a component
+that is not `fxN` is never loaded. A Set document without it reads as "never
+imported". Master volume is not per-Set (it is the device's, as on Move) and
+is not saved here.
+
+**Import**, UI side, copy only. When the movy master is bound and the engine
+has applied a Set (`sapl` moved) whose `mfx:imported` is 0:
+
+1. Read `/data/UserData/schwung/set_state/<uuid>/master_fx_0..3.json` with
+   `host_read_file`. A file read, not a shim query, so it works in standalone.
+2. For each with a `module_id`, write `mfx:fxN:module` (id), then its `state`
+   (re-serialised if it was JSON) or its `params` one by one, then `bypassed`.
+   `master_fx_0.json`'s `lfos` object gives `mfx:lfoN:<field>`; the field
+   names are the same on both sides.
+3. Write `mfx:imported=1`, whatever was found, so a master cleared on purpose
+   stays cleared.
+
+Schwung's files are only read: never cleared, never rewritten, never enforced
+empty. That supersedes decision 2's "clears schwung's" and the
+"enforce-empty" option below. With `mstown=1` in overtake, an imported Set
+runs its master FX twice (movy's, then schwung's). That is accepted: it only
+happens in a test mode, and in standalone schwung's master is not in the
+audio path.
+
+### 5.5 Testing
+
+- cargo: `mfx:` routing and refusals; a master FX entry and the mark round-trip
+  through `chain_doc`/`chain_state`; `own=0` leaves the output bit-identical;
+  the limiter's ceiling and release; the idle rule; the gain stage.
+- local: the binding picks the prefix from caps + flag; the import maps each
+  file field to the right key and never writes a schwung path.
+- device: the master scenarios run once per binding (`mstown` off: schwung
+  master; on: movy master), plus an import scenario that hashes schwung's
+  `master_fx_*.json` before and after and requires them byte-identical.
+
+### Still open (not blocking)
+
+- **The ownership guarantee.** Superseded for overtake by copy-forward (above):
+  movy never clears schwung's master. Standalone makes it moot.
+- **The boot target is its own decision** (WP8 of the migration plan).
 
 ## Cross-references
 

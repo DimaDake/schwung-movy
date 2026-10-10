@@ -18,6 +18,7 @@ use crate::chain_pin::PinPolicy;
 use crate::ffi::MOVE_MIDI_SOURCE_INTERNAL;
 use crate::host;
 use crate::load_queue::{LoadQueue, LoadRequest};
+use crate::master_chain::{fx_position, key_allowed, MasterChain, IMPORT_MARK, MASTER_FX};
 use crate::auto_lane::{LaneTarget, ValBuf, AUTO_LANES};
 use crate::mixer::{mix_into, TrackMix};
 use crate::send_bus::{SendBuses, SEND_BUSES};
@@ -89,6 +90,17 @@ pub fn bus_of_slot(slot: usize) -> Option<usize> {
     let bus = slot.checked_sub(MOVY_CHAINS)?;
     (bus < SEND_BUSES).then_some(bus)
 }
+
+/// The master chain's document slot: one past the last send. NOT a render pool
+/// position — the master runs once, serially, after everything else — so
+/// `RENDER_SLOTS` stays the pool's space and only the document and the load
+/// queue grow by one (`DOC_SLOTS`).
+pub const fn master_index() -> usize {
+    RENDER_SLOTS
+}
+
+/// Every slot a chain-set document may name: the pool's positions plus the master.
+pub const DOC_SLOTS: usize = RENDER_SLOTS + 1;
 
 pub struct ChainSlots {
     host: Option<ChainHost>,
@@ -232,6 +244,9 @@ pub struct ChainSlots {
     /// Per-pad sends: which chains drain, their drained blocks, and which of
     /// them currently feed SEND 1 / SEND 2. See `voice_send`.
     voice: VoiceSends,
+    /// The master chain movy owns (`master_chain`). Its own field for the
+    /// reason `sends` is one: `slots` is exactly the tracks.
+    master: MasterChain,
 }
 
 impl ChainSlots {
@@ -245,7 +260,7 @@ impl ChainSlots {
             slots,
             mixes: vec![TrackMix::default(); MOVY_CHAINS],
             queue: LoadQueue::new(),
-            desired: vec![Vec::new(); RENDER_SLOTS],
+            desired: vec![Vec::new(); DOC_SLOTS],
             scratch: vec![vec![0i16; SCRATCH_SAMPLES]; MOVY_CHAINS],
             pin: PinPolicy::new(RENDER_SLOTS),
             host_failed: false,
@@ -286,6 +301,7 @@ impl ChainSlots {
             send_slots: (0..SEND_BUSES).map(|_| None).collect(),
             send_loaded: vec![false; SEND_BUSES],
             voice: VoiceSends::new(MOVY_CHAINS),
+            master: MasterChain::new(),
         }
     }
 
@@ -357,7 +373,12 @@ impl ChainSlots {
     /// so applying a document has to be able to queue one, and `service_loads`
     /// sends anything above `MOVY_CHAINS` down the send path.
     pub fn request_load(&mut self, slot: usize, component: &str, module: &str) {
-        if slot >= RENDER_SLOTS {
+        if slot >= DOC_SLOTS {
+            return;
+        }
+        /* The master holds four audio FX and nothing else — a synth there would
+         * never render, and a fifth position is one no page shows. */
+        if slot == master_index() && fx_position(component).is_none() {
             return;
         }
         /* The one place the set is updated, for the same reason `generation`
@@ -515,6 +536,13 @@ impl ChainSlots {
                 });
             }
         }
+        if self.master.imported() {
+            entries.push(chain_doc::Entry {
+                slot: master_index(),
+                component: IMPORT_MARK.to_string(),
+                module: "1".to_string(),
+            });
+        }
         chain_doc::encode(&entries)
     }
 
@@ -536,6 +564,18 @@ impl ChainSlots {
          * the UI's `sendsFromDoc` and this file's own `restore` both key a bus
          * on that component — and the send would disappear again on the next
          * save. Dropped here so both halves agree on what a bus entry IS. */
+        /* The master's import mark rides the document so both save paths
+         * carry it, and is taken out here: it is a fact about the Set, not a
+         * component to load. Absent means never imported — a whole-set
+         * replace, like everything else here. */
+        let mi = master_index();
+        self.master.set_imported(
+            wanted.iter().any(|w| w.slot == mi && w.component == IMPORT_MARK),
+        );
+        /* Writes held for the previous Set's master would land on this one's.
+         * The mark and any non-FX master component are refused by
+         * `request_load` below, so neither is ever loaded. */
+        self.master.drop_held();
         let wanted: Vec<_> = wanted
             .into_iter()
             .filter(|w| bus_of_slot(w.slot).is_none() || w.component == SEND_COMPONENT)
@@ -612,7 +652,9 @@ impl ChainSlots {
              * bus is read off the send's own instances: `slots` holds nothing
              * above `MOVY_CHAINS`, so asking it would mark every loaded send
              * with the `?` that means "asked for, never instantiated". */
-            let live = if slot >= MOVY_CHAINS {
+            let live = if slot == master_index() {
+                self.master_get(&format!("{component}:module"))
+            } else if slot >= MOVY_CHAINS {
                 self.send_module(slot - MOVY_CHAINS)
             } else {
                 self.get_param(slot, &format!("{component}_module"))
@@ -722,6 +764,10 @@ impl ChainSlots {
     /// is what stops a twelve-chain restore stacking into a single block.
     pub fn service_loads(&mut self) {
         let Some(req) = self.queue.take_one() else { return };
+        if req.slot == master_index() {
+            self.service_master_load(req);
+            return;
+        }
         /* Ahead of everything: `slots` holds MOVY_CHAINS entries, so a send's
          * synthetic slot number would index past the end of it. */
         if req.slot >= MOVY_CHAINS {
@@ -827,6 +873,107 @@ impl ChainSlots {
             bus,
             if req.module.is_empty() { "(cleared)" } else { req.module.as_str() }
         ));
+    }
+
+    /// Load one master FX position. The send path's shape: one instance, no
+    /// synth, external FX mode, no pin (nothing renders it on a lane).
+    fn service_master_load(&mut self, req: LoadRequest) {
+        let Some(pos) = fx_position(&req.component) else { return };
+        let Some(hostref) = self.host.as_ref() else { return };
+        if self.master.inst.is_none() {
+            match hostref.create_instance(&self.module_dir) {
+                Some(inst) => self.master.inst = Some(inst),
+                None => return,
+            }
+        }
+        let t_set = std::time::Instant::now();
+        if let Some(inst) = self.master.inst.as_mut() {
+            inst.set_param(&format!("{}:module", req.component), &req.module);
+            if let Some(state) = req.state.as_deref() {
+                inst.set_param(&format!("{}:state", req.component), state);
+            }
+            inst.set_external_fx_mode(true);
+        }
+        self.master.note_loaded(pos, &req.module);
+        /* Params and LFO targets written while this load was queued were held
+         * (`master_param`): an LFO cannot bind to a position that is not
+         * loaded yet. Released once the LAST queued master load is in. */
+        if !self.queue.has_slot(master_index()) {
+            self.master.flush_held();
+        }
+        self.generation = self.generation.wrapping_add(1);
+        let set_ms = t_set.elapsed().as_millis();
+        if set_ms >= 20 {
+            host::log(&format!("master {}: load blocked {} ms", req.component, set_ms));
+        }
+        host::log(&format!(
+            "master {}: {}",
+            req.component,
+            if req.module.is_empty() { "(cleared)" } else { req.module.as_str() }
+        ));
+    }
+
+    /// `mfx:<rest>` writes (design §5.1). Module and state go through the
+    /// queue like a track's; everything else is forwarded, or held while the
+    /// instance or a queued master load does not exist yet.
+    pub fn master_param(&mut self, rest: &str, val: &str) {
+        match rest {
+            "own" => return self.master.set_owned(val == "1"),
+            "vol" => return self.master.set_gain(val),
+            "imported" => return self.master.set_imported(val == "1"),
+            _ => {}
+        }
+        if !key_allowed(rest) {
+            return;
+        }
+        if let Some(comp) = rest.strip_suffix(":module") {
+            return self.request_load(master_index(), comp, val);
+        }
+        if let Some(comp) = rest.strip_suffix(":state") {
+            if fx_position(comp).is_none() {
+                return;
+            }
+            if self.queue.attach_state(master_index(), comp, val) {
+                return;
+            }
+            if let Some(inst) = self.master.inst.as_mut() {
+                inst.set_param(rest, val);
+            }
+            return;
+        }
+        if self.master.inst.is_none() || self.queue.has_slot(master_index()) {
+            return self.master.hold(rest, val);
+        }
+        if let Some(inst) = self.master.inst.as_mut() {
+            inst.set_param(rest, val);
+        }
+    }
+
+    /// `mfx:<rest>` reads. A module reads off the chain host's underscore
+    /// alias, as a send's does, because the colon key is write-only.
+    pub fn master_get(&mut self, rest: &str) -> Option<String> {
+        match rest {
+            "own" => return Some(u8::from(self.master.owned()).to_string()),
+            "vol" => return Some(format!("{:.4}", self.master.gain())),
+            "imported" => return Some(u8::from(self.master.imported()).to_string()),
+            _ => {}
+        }
+        if !key_allowed(rest) {
+            return None;
+        }
+        let inst = self.master.inst.as_mut()?;
+        match rest.strip_suffix(":module") {
+            Some(comp) => inst.get_param(&format!("{comp}_module")),
+            None => inst.get_param(rest),
+        }
+    }
+
+    /// `mfxlog` — the master's only read-back for a device test.
+    pub fn master_report(&mut self) -> String {
+        let mods: Vec<String> = (1..=MASTER_FX)
+            .map(|n| self.master_get(&format!("fx{n}:module")).unwrap_or_default())
+            .collect();
+        self.master.report(&mods)
     }
 
     /// Apply a module-preset blob. Rides a pending load when there is one so it
@@ -1234,7 +1381,19 @@ impl ChainSlots {
         }
         let send_ns =
             if send_ran || colo_ran_any { t_send.elapsed().as_nanos() as u64 } else { 0 };
-        self.close_block(render_ns, send_ns, active, send_ran);
+        /* Last, over the finished sum — a master is everything, so it cannot
+         * start before the sends are in. Its time joins the same `add_wall`
+         * (see `close_block`), so the CPU bar sees one whole block. */
+        let t_master = self.cost.start();
+        let master_ran = self.master.run(&mut out[..frames]);
+        let master_ns = if master_ran {
+            let dt = t_master.elapsed().as_nanos() as u64;
+            self.master.add_cost(dt);
+            dt
+        } else {
+            0
+        };
+        self.close_block(render_ns, send_ns + master_ns, active, send_ran || master_ran);
         self.active_last_block = active;
         // The run releases what it struck: a device must never be left holding
         // 48 notes because a benchmark was interrupted between arms.
@@ -1801,6 +1960,8 @@ impl ChainSlots {
             let (mean, peak) = self.sends.ui_costs(n);
             s.push_str(&format!("{}/{}", mean / 1000, peak / 1000));
         }
+        s.push_str(" mfxcost=");
+        s.push_str(&self.master.cost_field());
         s
     }
 
@@ -1830,6 +1991,7 @@ impl ChainSlots {
     pub fn cost_ui_reset(&mut self) {
         self.cost.ui_reset();
         self.sends.ui_reset();
+        self.master.ui_reset();
     }
 
     /// Per-chain render cost since the last call — see `CostMeter::report`.
@@ -1865,6 +2027,7 @@ impl ChainSlots {
             self.send_loaded[n] = false;
             self.sends.ui_clear(n);
         }
+        self.master.teardown();
         // Costs belong to instances that no longer exist — including the ones
         // the planner would otherwise reuse to assign lanes to a different set.
         self.cost.reset_all();
@@ -2169,7 +2332,9 @@ mod tests {
          * thing here any more. One past it is not. */
         slots.request_load(send_index(SEND_BUSES - 1), SEND_COMPONENT, "mverb");
         assert_eq!(slots.pending_loads(), 1, "the last bus is loadable");
-        slots.request_load(RENDER_SLOTS, "synth", "plaits");
+        /* The master's slot exists, but holds audio FX only. */
+        slots.request_load(master_index(), "synth", "plaits");
+        slots.request_load(DOC_SLOTS, "fx1", "mverb");
         slots.request_load(999, "synth", "plaits");
         assert_eq!(slots.pending_loads(), 1, "neither impossible slot joined the one real load");
         slots.set_param(999, "synth:cutoff", "1");
@@ -2491,7 +2656,7 @@ mod tests {
     fn an_out_of_range_slot_never_enters_the_set() {
         let mut slots = ChainSlots::new();
         assert!(slots.set_chain_set(&chain_doc::encode(&[chain_doc::Entry {
-            slot: RENDER_SLOTS, component: "synth".into(), module: "plaits".into() }])));
+            slot: DOC_SLOTS, component: "fx1".into(), module: "plaits".into() }])));
         assert_eq!(chain_doc::decode(&slots.chain_set()), Some(vec![]));
     }
 
@@ -2935,4 +3100,141 @@ mod tests {
         assert_eq!(chain_doc::decode(&slots.chain_set()), Some(vec![]));
     }
 
+    fn master_entry(component: &str, module: &str) -> chain_doc::Entry {
+        chain_doc::Entry { slot: master_index(), component: component.into(), module: module.into() }
+    }
+
+    /* The master is its own document slot, past the sends and outside the pool:
+     * the pool's space stays exactly the tracks and buses it renders. */
+    #[test]
+    fn the_master_slot_is_past_the_pool() {
+        assert_eq!(master_index(), RENDER_SLOTS);
+        assert_eq!(bus_of_slot(master_index()), None, "not a send");
+        assert_eq!(DOC_SLOTS, RENDER_SLOTS + 1);
+    }
+
+    #[test]
+    fn mfx_module_writes_queue_into_the_set_document() {
+        let mut slots = ChainSlots::new();
+        slots.master_param("fx2:module", "freeverb");
+        assert_eq!(slots.pending_loads(), 1);
+        assert_eq!(chain_doc::decode(&slots.chain_set()), Some(vec![master_entry("fx2", "freeverb")]));
+        /* Parity is four, and the master has no synth or MIDI FX. */
+        slots.master_param("fx5:module", "freeverb");
+        slots.master_param("synth:module", "plaits");
+        slots.master_param("midi_fx1:module", "arp");
+        slots.master_param("imported:module", "x");
+        assert_eq!(slots.pending_loads(), 1, "none of the refused keys queued anything");
+        /* And clearing takes it back out of the document. */
+        slots.master_param("fx2:module", "");
+        assert_eq!(chain_doc::decode(&slots.chain_set()), Some(vec![]));
+    }
+
+    #[test]
+    fn the_stage_flags_read_back() {
+        let mut slots = ChainSlots::new();
+        assert_eq!(slots.master_get("own").as_deref(), Some("0"), "off by default: overtake hears no change");
+        slots.master_param("own", "1");
+        slots.master_param("vol", "0.5");
+        assert_eq!(slots.master_get("own").as_deref(), Some("1"));
+        assert_eq!(slots.master_get("vol").as_deref(), Some("0.5000"));
+        assert_eq!(slots.master_get("fx1:module"), None, "no instance yet");
+        assert!(slots.cost_status().ends_with(" mfxcost=-"), "{}", slots.cost_status());
+    }
+
+    /* The import mark rides the document so both save paths carry it, and is
+     * a fact about the Set: a document without it reads as never imported. */
+    #[test]
+    fn the_import_mark_round_trips_and_is_never_loaded() {
+        let mut slots = ChainSlots::new();
+        slots.master_param("imported", "1");
+        let doc = slots.chain_set();
+        assert_eq!(chain_doc::decode(&doc), Some(vec![master_entry(IMPORT_MARK, "1")]));
+
+        let mut reopened = ChainSlots::new();
+        assert!(reopened.set_chain_set(&doc));
+        assert_eq!(reopened.master_get("imported").as_deref(), Some("1"));
+        assert_eq!(reopened.pending_loads(), 0, "the mark is not a component to load");
+
+        assert!(reopened.set_chain_set(&chain_doc::encode(&[])));
+        assert_eq!(reopened.master_get("imported").as_deref(), Some("0"), "a whole-set replace");
+    }
+
+    #[test]
+    fn a_document_naming_a_non_fx_master_component_loads_nothing_of_it() {
+        let mut slots = ChainSlots::new();
+        assert!(slots.set_chain_set(&chain_doc::encode(&[
+            master_entry("synth", "plaits"),
+            master_entry("fx5", "mverb"),
+            master_entry("fx1", "mverb"),
+        ])));
+        assert_eq!(slots.pending_loads(), 1);
+        assert_eq!(chain_doc::decode(&slots.chain_set()), Some(vec![master_entry("fx1", "mverb")]));
+    }
+
+    /* LFO targets and params written before the instance exists would be
+     * dropped by the chain host; they are held until the loads are in. */
+    #[test]
+    fn master_params_wait_for_the_instance() {
+        let mut slots = ChainSlots::new();
+        slots.master_param("fx1:module", "mverb");
+        slots.master_param("lfo1:target", "fx1");
+        slots.master_param("fx1:mix", "0.3");
+        assert!(slots.master_report().contains("held=2"), "{}", slots.master_report());
+        /* A new Set's document drops what the previous Set's restore held. */
+        assert!(slots.set_chain_set(&chain_doc::encode(&[])));
+        assert!(slots.master_report().contains("held=0"));
+    }
+
+    #[test]
+    fn a_master_preset_reaches_the_file_and_comes_back() {
+        unsafe extern "C" fn fake_master_get_param(
+            _inst: *mut c_void, key: *const c_char, buf: *mut c_char, buf_len: c_int,
+        ) -> c_int {
+            let k = unsafe { CStr::from_ptr(key) }.to_str().unwrap_or("");
+            let v = match k {
+                "fx3:state" => "MPATCH",
+                "lfo2:target" => "fx3",
+                _ => "",
+            };
+            let bytes = v.as_bytes();
+            if bytes.len() as c_int >= buf_len {
+                return -1;
+            }
+            unsafe {
+                core::ptr::copy_nonoverlapping(bytes.as_ptr() as *const c_char, buf, bytes.len());
+            }
+            bytes.len() as c_int
+        }
+        let api: &'static plugin_api_v2_t = Box::leak(Box::new(plugin_api_v2_t {
+            api_version: 0,
+            create_instance: None,
+            destroy_instance: None,
+            on_midi: None,
+            set_param: None,
+            get_param: Some(fake_master_get_param),
+            get_error: None,
+            render_block: None,
+        }));
+        let mut slots = ChainSlots::new();
+        slots.master_param("fx3:module", "freeverb");
+        slots.master_param("imported", "1");
+        slots.master.inst = Some(ChainInstance::for_test(api));
+
+        let saved = crate::chain_state::serialize(&mut slots);
+        let items = crate::chain_state::parse_items(&saved).expect("parses");
+        assert_eq!(items.len(), 12, "the FX and the mark");
+        assert_eq!(items[1], "fx3");
+        assert_eq!(items[3], "MPATCH");
+        assert!(!items[5].is_empty(), "the master's LFOs ride its first record");
+        assert_eq!(items[7], IMPORT_MARK);
+
+        let mut reopened = ChainSlots::new();
+        assert!(crate::chain_state::restore(&mut reopened, &saved));
+        let req = reopened.queue.take_one().expect("the master FX is queued again");
+        assert_eq!((req.slot, req.component.as_str()), (master_index(), "fx3"));
+        assert_eq!(req.state.as_deref(), Some("MPATCH"));
+        assert_eq!(reopened.master_get("imported").as_deref(), Some("1"));
+        assert!(reopened.master_report().contains("held=1"), "the LFO target waits for its FX");
+    }
 }

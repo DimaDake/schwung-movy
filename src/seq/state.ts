@@ -70,6 +70,8 @@ export interface SeqUiState {
      * microseconds. Occupancy travels in the same field as the cost so the two
      * cannot arrive out of step — see `cost_status` in `chain_slots.rs`. */
     cpuSend: string;
+    /* The movy master chain's `mean/peak`, or `-` with nothing loaded. */
+    cpuMaster: string;
 
     /* note entry */
     lastPitch: number[];     // per-track: last played pitch (step-entry value)
@@ -167,6 +169,7 @@ function defaults(): SeqUiState {
         cpuWall: '',
         cpuMask: '',
         cpuSend: '',
+        cpuMaster: '',
         lastPitch: new Array(TRACK_COUNT).fill(60) as number[],
         lastVel: new Array(TRACK_COUNT).fill(100) as number[],
         barOffset: 0,

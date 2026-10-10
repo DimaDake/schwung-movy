@@ -10,12 +10,14 @@
  * addressed API is what left tracks 5-16 unable to assign an LFO at all. */
 
 import type { TrackPort } from '../track/port.js';
-import { hostPort, portFor } from '../track/registry.js';
+import { componentPort, portFor } from '../track/registry.js';
+import { masterPrefix } from '../chain/master-prefix.js';
 
 export interface LfoScope {
     /** Where the `lfoN:*` keys live. */
     readonly port: TrackPort;
-    /** '' for a track chain, `master_fx:` for the master chain. */
+    /** '' for a track chain, the bound master prefix (`master_fx:` or `mfx:`)
+     *  for the master chain. */
     readonly keyPrefix: string;
     /** Slot the undo log records against — the master chain rides slot 0, its
      *  keys already being namespaced. */
@@ -52,17 +54,15 @@ export function trackScope(track: number): LfoScope {
     };
 }
 
-/* The master chain is not a track. Its params are global to the shim and reach
- * it through any slot, so slot 0 carries them — the `master_fx:` prefix in the
- * key is what does the addressing.
- *
- * A SLOT, though, not track 0: `chtracks` can make that track a movy chain,
- * whose port would namespace these keys `ch0:master_fx:…` and send the master
- * LFOs' edits into a synth. */
+/* The master chain is not a track. The prefix in the key does the addressing:
+ * schwung's (`master_fx:`) rides a shadow slot as a carrier, movy's (`mfx:`)
+ * is an engine-root key. `componentPort` makes that choice, so this cannot
+ * route a master LFO's edits into track 0's chain. */
 export function masterScope(): LfoScope {
+    const keyPrefix = masterPrefix();
     return {
-        port: hostPort(0),
-        keyPrefix: 'master_fx:',
+        port: componentPort(0, keyPrefix + 'lfo'),
+        keyPrefix,
         slot: 0,
         label: 'MASTER',
         id: 'm',

@@ -1,18 +1,14 @@
-import { createModel }  from '../model/index.js';
 import { resetSong } from '../seq/song.js';
-import { portFor, componentPort } from '../track/registry.js';
 import { TRACK_COUNT } from '../track/ref.js';
 import { selectTrack } from '../track/focus.js';
 import { resetWatchPush } from '../seq/watch.js';
-import { createLfoModel, createScopedLfoModel } from '../lfo/model.js';
-import { masterScope } from '../lfo/scope.js';
 import { appState, viewName, VIEW_CHAIN } from './state.js';
 import { buildTrackModels } from './track-models.js';
 import { jogHintTouch } from './jog-hint.js';
 import { keyboardState, resetOctaves } from '../keyboard/state.js';
 import { drainAll } from '../keyboard/held-notes.js';
 import { browserState } from '../browser/state.js';
-import { CHAIN_SLOTS, MASTER_FX_SLOTS, isLfoSlot, isMasterLfoSlot } from '../chain/config.js';
+import { buildMasterModels, rebindMasterForTest } from './master-models.js';
 import { resetTrackMutes } from '../mixer/track-mutes.js';
 import { resetDrumSync } from '../seq/drum-sync.js';
 import { loadFullVelocityPref, seqState } from '../seq/state.js';
@@ -48,6 +44,7 @@ export function init(): void {
          * through globalThis rather than naming overtakeParked directly. */
         parked:        () => (globalThis as any).overtakeParked === true,
         setGridMode:   (m) => setSchwungGridMode(m as any),
+        bindMaster:    (movy) => rebindMasterForTest(movy),
         /* Through the door in renderer/schwung-widgets.ts, never by importing
          * widget_registry.mjs here: the registry is module state and a second
          * specifier is a second empty map. See that file's header. */
@@ -103,17 +100,7 @@ export function init(): void {
      * ticks (see app/tick.ts and seq/drum-sync.ts), so idle tracks are inert. */
     appState.trackModels = Array.from({ length: TRACK_COUNT },
         (_, slot) => buildTrackModels(slot));
-    /* `componentPort` and not `portFor(0)`: a `master_fx:` key is global, and the
-     * slot it rides on is only a carrier. Track 0 can become a movy chain
-     * (`chtracks`), and the chain port would namespace those keys as
-     * `ch0:master_fx:…` and send the master chain's edits into a synth. The
-     * SEND slots on this page are movy's own and need a third destination
-     * again, which is exactly the choice componentPort exists to make. */
-    appState.masterFxModels  = MASTER_FX_SLOTS.map((s, i) => isMasterLfoSlot(i)
-        ? createScopedLfoModel(masterScope())
-        : createModel(componentPort(0, s.componentKey), s.componentKey));
-    appState.masterChainIndex = 0;
-    appState.masterDetail     = false;
+    buildMasterModels();
     appState.trackChainIndex = new Array(TRACK_COUNT).fill(1) as number[];
     appState.trackView       = new Array(TRACK_COUNT).fill(VIEW_CHAIN) as number[];
     appState.currentView     = VIEW_CHAIN;

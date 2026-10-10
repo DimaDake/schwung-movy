@@ -21,6 +21,8 @@ import { rationalToIdx } from './clip-scale.js';
 import { noteProbeGen, probeBridgeTick } from './probe-bridge.js';
 import { markUiStateDirty } from './ui-dirty.js';
 import { applyFlagsToEngine } from './flags.js';
+import { pushMasterBinding } from '../chain/master-binding.js';
+import { requestMasterImport, resetMasterImport } from '../chain/master-import.js';
 import { resetPadRoute, syncPadRoute } from '../track/pad-route.js';
 import { noteReportedTrack, resetWatchPush, syncWatch } from './watch.js';
 import { platform } from '../platform/index.js';
@@ -270,6 +272,8 @@ function probeTick(): void {
          * once — a re-dlopened engine has default flags and has never heard of
          * prefs.json. */
         applyFlagsToEngine(engineSet);
+        /* Every boot, like the flags: a re-dlopened engine starts unbound. */
+        pushMasterBinding(engineSet);
         /* Whether the engine may push a MovePlay press at Move is a property of
          * the SHIM, not of the set, so the engine cannot know it and is told
          * here on every boot (it defaults to "no"). Sent directly rather than
@@ -283,6 +287,7 @@ function probeTick(): void {
         /* A re-dlopened engine has no pad map; believing otherwise would leave
          * the pads dead until something happened to change the mapping. */
         resetPadRoute();
+        resetMasterImport();
         /* Same for the watched track and drum lane: a brand new engine watches
          * track 0 with every lane merged, and would go on doing so until the
          * user happened to change tracks. */
@@ -332,6 +337,7 @@ function parseStatus(s: string): void {
     seqState.cpuWall = '';
     seqState.cpuMask = '';
     seqState.cpuSend = '';
+    seqState.cpuMaster = '';
     for (const kv of s.split(' ')) {
         const eq = kv.indexOf('=');
         if (eq <= 0) continue;
@@ -386,7 +392,12 @@ function parseStatus(s: string): void {
              * — its registry starts empty and the engine may have been holding
              * this Set since before movy launched. Swallowing the first value
              * would leave exactly the cold open this fixes unsynced. */
-            if (a !== lastSetApplied) requestLabelSync();
+            if (a !== lastSetApplied) {
+                requestLabelSync();
+                /* Same moment, same reason: only now does `mfx:imported`
+                 * answer for the Set that just landed. */
+                requestMasterImport();
+            }
             lastSetApplied = a;
         }
         else if (key === 'prq') noteProbeGen(Number(val) || 0);
@@ -395,6 +406,7 @@ function parseStatus(s: string): void {
         else if (key === 'chwall') seqState.cpuWall = val;
         else if (key === 'chmask') seqState.cpuMask = val;
         else if (key === 'sndcost') seqState.cpuSend = val;
+        else if (key === 'mfxcost') seqState.cpuMaster = val;
         else if (key === 'rec') seqState.recording = val === '1';
         else if (key === 'cin') seqState.countingIn = val === '1';
         else if (key === 'cap') {

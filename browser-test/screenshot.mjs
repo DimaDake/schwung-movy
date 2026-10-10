@@ -66,7 +66,7 @@ const PRESETS = [
     'main-quant', 'quant-overlay-three', 'quant-overlay-two',
     'flags-top', 'flags-scrolled', 'flags-release',
     'cpu-movy-tracks', 'cpu-unsplit-module', 'cpu-overscale', 'cpu-empty',
-    'cpu-sends', 'cpu-sends-quiet', 'cpu-ipc-refused',
+    'cpu-sends', 'cpu-sends-quiet', 'cpu-master', 'cpu-ipc-refused',
     'env_dual', 'env_touched', 'env_ad', 'env_asr', 'lfo_mod',
     'filter_lp', 'filter_lp_reso', 'filter_hp', 'filter_bp', 'filter_notch',
     'filter_slope24', 'filter_dual', 'filter_open',
@@ -797,6 +797,9 @@ function applyView(preset) {
          * as empty. */
         case 'cpu-sends':
         case 'cpu-sends-quiet':
+        /* movy's own master chain holding a module: a fourth FX column joins
+         * the send region at the narrow pitch, labelled `M`. */
+        case 'cpu-master':
         /* Writes the single-slot param SHM refused. Drawn ONLY when there were
          * some, which is why it needs a baseline of its own: every other CPU
          * baseline is the proof that a healthy channel adds nothing to the page. */
@@ -834,8 +837,9 @@ function applyView(preset) {
                 seqState.cpuWall = preset === 'cpu-overscale' ? '2210/2680/2902' : '1491/2180/2902';
                 seqState.cpuMask = '01ff/0100';
             }
+            seqState.cpuMaster = preset === 'cpu-master' ? '420/610' : '-';
             seqState.cpuSend =
-                preset === 'cpu-sends' ? '760/1180,190/240,-'
+                preset === 'cpu-sends' || preset === 'cpu-master' ? '760/1180,190/240,-'
                 : preset === 'cpu-sends-quiet' ? '0/1180,-,-'
                 : '-,-,-';
             resetParamStats();

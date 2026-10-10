@@ -695,10 +695,22 @@ In **Chain** view you see the slots of the current track:
 - **Back** returns from a module's pages to the chain, and from the chain it
   exits Movy.
 
-In **Session** view, the same navigation applies to the **master chain**: two
+In **Session** view, the same navigation applies to the **master chain**: three
 **send FX** slots, then **MFX 1–4** processing the whole mix, then an **LFO**
 page — see [Send FX](#send-fx) and
 [The master chain's LFOs](#the-master-chains-lfos).
+
+**Whose master MFX 1–4 drive.** On a Move they drive Schwung's own master FX,
+so a Set's master sounds and saves exactly as it does in Schwung. Movy also has
+a master chain of its own (four FX and two LFOs, then master volume and a
+safety limiter at −1 dBFS), which the standalone Movy uses. On a Move it stays
+out of the audio path unless the debug flag **Movy Master Chain** is on (it
+takes effect the next time Movy opens). Then MFX 1–4 and the LFO page drive
+Movy's chain, it is saved with the Set's chains, and the first time each Set
+opens Movy copies that Set's Schwung master FX into it. Schwung's master is
+only read, never changed, so turning the flag off gives you Schwung's master
+exactly as you left it. While the flag is on, a Set whose master was copied
+runs those FX twice (Movy's, then Schwung's); it is a test mode.
 
 ### Track volume
 
@@ -908,8 +920,8 @@ It works exactly like a track's, with two differences:
 Hold-to-assign works here too: hold any automatable knob on an MFX slot's page
 and click to modulate it.
 
-These settings are saved with the Set by Schwung itself, so they survive a power
-cycle.
+These settings are saved with the Set (by Schwung, or by Movy when its own
+master chain is on), so they survive a power cycle.
 
 ### The LFO pages with Param Pages set to SCHWUNG
 

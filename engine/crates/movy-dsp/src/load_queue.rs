@@ -85,6 +85,11 @@ impl LoadQueue {
         self.pending.is_empty()
     }
 
+    /// Whether any load is queued for `slot`.
+    pub fn has_slot(&self, slot: usize) -> bool {
+        self.pending.iter().any(|r| r.slot == slot)
+    }
+
     /// Attach a state blob to a pending load, if one is queued for this
     /// slot+component. Returns false when there is nothing pending — the caller
     /// then applies the state directly, because the module is already loaded.

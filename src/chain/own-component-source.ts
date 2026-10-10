@@ -12,7 +12,7 @@ import type { PageParamSource } from '../renderer/schwung-page-source.js';
 import { mixSchwungSource } from '../mixer/mix-schwung-cells.js';
 import { lfoSchwungSource } from '../lfo/lfo-schwung-source.js';
 import { trackScope, masterScope } from '../lfo/scope.js';
-import { isLfoComponent } from './config.js';
+import { isLfoComponent, isMasterComponent } from './config.js';
 
 export function ownComponentSourceFor(track: number, componentKey: string): PageParamSource | null {
     if (componentKey === 'mix') return mixSchwungSource(track);
@@ -22,7 +22,7 @@ export function ownComponentSourceFor(track: number, componentKey: string): Page
          * (`MASTER_PAGE_TRACK`, already what `trackIndex` IS here for this
          * component — see `pageRefOf`'s `isMasterComponent` branch); the
          * track's own LFO uses the track actually on screen. */
-        const scope = componentKey.startsWith('master_fx') ? masterScope() : trackScope(track);
+        const scope = isMasterComponent(componentKey) ? masterScope() : trackScope(track);
         return lfoSchwungSource(scope);
     }
     return null;

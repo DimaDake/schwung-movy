@@ -31,6 +31,10 @@ export type ProbeDeps = {
     activeTrack: () => number;
     parked: () => boolean;
     setGridMode: (m: string | null) => void;
+    /* Which master the MASTER page drives (WP3): true movy's, false schwung's,
+     * null back to what host + flag say. An override like `setGridMode`: it
+     * writes nothing to prefs.json. Answers the bound prefix. */
+    bindMaster: (movy: boolean | null) => string;
     /* The Leave modal's state. The harness drives a real close through this:
      * Back is not a close button (at root it OPENS this modal, while it is up
      * it dismisses it), so a fixed number of Backs is ambiguous by parity and
@@ -104,6 +108,8 @@ function runVerb(verb: string, arg: unknown): object {
         case 'setGridMode':
             deps.setGridMode(arg === null ? null : String(arg));
             return { ok: true, renderer: deps.renderer() };
+        case 'bindMaster':
+            return { ok: true, prefix: deps.bindMaster(arg === null ? null : arg === true) };
         /* READ AND CLEAR IN ONE CALL, because they are one question: "is this
          * kind in the registry, and take it out if I ask". Clearing is not a
          * write to anything durable — see ProbeDeps — so it is safe on a

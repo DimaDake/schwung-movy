@@ -4,21 +4,39 @@
 #include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
 
 #include "log.h"
+#include "log_ring.h"
 #include "movy_host.h"
 #include "unified_log.h"
 
+/* The ring's one writer is the only caller of unified_log (log_ring.h says
+ * why). debug.log stamps the line when it is written, up to a few ms after it
+ * was said; stderr (movy-host.log) carries the time it was pushed. */
+static void sink(const log_line_t *l) {
+    unified_log(l->src, LOG_LEVEL_INFO, "%s", l->text);
+    fprintf(stderr, "%lld.%03lld [%s] %s\n", (long long)(l->ms / 1000), (long long)(l->ms % 1000), l->src, l->text);
+}
+
+static void mh_log_shutdown(void) {
+    log_ring_stop();
+    unified_log_shutdown();
+}
+
+void mh_log_init(void) {
+    unified_log_init();
+    log_ring_start(sink);
+    atexit(mh_log_shutdown);
+}
+
 static void vlog(const char *src, const char *fmt, va_list ap) {
-    char line[1024];
+    char line[LOG_RING_TEXT];
     vsnprintf(line, sizeof line, fmt, ap);
-    unified_log(src, LOG_LEVEL_INFO, "%s", line);
-    struct timespec ts;
-    clock_gettime(CLOCK_REALTIME, &ts);
-    fprintf(stderr, "%ld.%03ld [%s] %s\n", (long)ts.tv_sec, ts.tv_nsec / 1000000, src, line);
+    log_ring_push(src, line);
 }
 
 void mh_log(const char *fmt, ...) {
@@ -49,6 +67,10 @@ static void on_crash(int sig) {
     const char *name = sig == SIGSEGV ? "SIGSEGV" : sig == SIGBUS ? "SIGBUS"
                      : sig == SIGILL ? "SIGILL" : sig == SIGFPE ? "SIGFPE" : "SIGABRT";
     int n = snprintf(head, sizeof head, "\n[movy-host] CRASH %s pid %d, backtrace:\n", name, (int)getpid());
+    /* What was said last is the context a backtrace needs, and the writer
+     * thread may not have reached it. */
+    if (g_crash_fd >= 0) log_ring_flush_raw(g_crash_fd);
+    log_ring_flush_raw(STDERR_FILENO);
     if (n > 0) crash_write(head);
     void *frames[48];
     int depth = backtrace(frames, 48);

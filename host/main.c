@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
     self[n > 0 ? n : 0] = '\0';
     snprintf(g_mh_module_dir, sizeof g_mh_module_dir, "%s", argc > 2 && !strcmp(argv[1], "--module-dir") ? argv[2] : dirname(self));
 
-    unified_log_init();
+    mh_log_init();
     mh_crash_install();
     mh_log("=== movy-host %s schwung=%s movy=%s pid=%d uid=%d dir=%s", MH_VERSION, SCHWUNG_TAG, MOVY_COMMIT,
            (int)getpid(), (int)getuid(), g_mh_module_dir);
@@ -158,6 +158,5 @@ int main(int argc, char **argv) {
     } else {
         mh_log("=== movy-host exit %d", rc);
     }
-    unified_log_shutdown();
-    return rc;
+    return rc;   /* mh_log_init's atexit drains the log */
 }

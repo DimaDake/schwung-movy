@@ -18,13 +18,16 @@
  * inactive, and the original bytes go back before movy closes.
  *
  * Covers:
- *   O1 schwung's binding by default: `mfx:own` is 0
+ *   O1 the host mode's binding by default: schwung's (`mfx:own` 0) beside Move,
+ *      movy's own (1) on movy-host, which has no schwung master to drive
+ *      (WP3's design, master-binding.ts)
  *   O2 bound: the probe answers the `mfx:` prefix and the engine has own=1
  *   O3 the import loaded the seeded module into movy's master FX 1
  *   O4 and marked the Set imported
  *   O5 the master processes movy's audio, under the limiter's ceiling
  *   O6 schwung's master files are byte-identical after the import
- *   O7 unbound again: own=0, the stage is out of the path
+ *   O7 the override cleared: back to O1's binding (overtake: own=0, the stage
+ *      is out of the path)
  */
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -108,17 +111,24 @@ scenario('master-own', async (t) => {
     const original = present === 'yes' ? await ssh(`cat '${f0}'`) : '';
     t.need.register(async () => {
         try { await probe.bindMaster(null); } catch { /* movy may be closed */ }
-        await ep('mfx:own', '0');
+        await ep('mfx:own', hostOwn);   // the host mode's binding
         for (let n = 1; n <= 4; n++) await ep(`mfx:fx${n}:module`, '');
         await ep('mfx:imported', '0');
         if (present === 'no') await ssh(`rm -f '${f0}'`);
         else await put(f0, original);
     });
 
-    // ── O1: schwung's master by default ─────────────────────────────────────
+    /* What the host mode binds with no override: the same decision the UI
+     * makes (movyMasterBound), read from the flavour under test. */
+    const hostOwn = t.tx.flavour === 'standalone' ? '1' : '0';
+    const hostPrefix = hostOwn === '1' ? 'mfx:' : 'master_fx:';
+
+    // ── O1: the host mode's master by default ───────────────────────────────
     const own0 = await param('mfx:own');
-    t.check('default-unbound', 'overtake binds schwung\'s master: the engine stage is off',
-        own0 === '0', { expected: 'mfx:own=0', actual: `mfx:own=${own0 || '(no answer)'}` });
+    t.check('default-unbound', hostOwn === '1'
+            ? 'movy-host binds movy\'s own master: the engine stage is on'
+            : 'overtake binds schwung\'s master: the engine stage is off',
+        own0 === hostOwn, { expected: `mfx:own=${hostOwn}`, actual: `mfx:own=${own0 || '(no answer)'}` });
 
     /* A clean slate on movy's side, so the import has something to do. */
     for (let n = 1; n <= 4; n++) await ep(`mfx:fx${n}:module`, '');
@@ -166,10 +176,12 @@ scenario('master-own', async (t) => {
         after === before && before.trim() !== '',
         { expected: before.trim(), actual: after.trim() });
 
-    // ── O7: unbind ──────────────────────────────────────────────────────────
+    // ── O7: the override cleared ────────────────────────────────────────────
     const back = await probe.bindMaster(null) as { prefix?: string } | null;
-    const own2 = await paramUntil('mfx:own', (v) => v === '0', 'the engine to drop its master');
-    t.check('unbound', 'unbound: schwung\'s keys again, and the stage is out of the path',
-        back?.prefix === 'master_fx:' && own2 === '0',
-        { expected: 'prefix=master_fx: own=0', actual: `prefix=${back?.prefix ?? '(none)'} own=${own2}` });
+    const own2 = await paramUntil('mfx:own', (v) => v === hostOwn, 'the engine to follow the host mode');
+    t.check('unbound', hostOwn === '1'
+            ? 'override cleared: movy-host keeps movy\'s own master'
+            : 'unbound: schwung\'s keys again, and the stage is out of the path',
+        back?.prefix === hostPrefix && own2 === hostOwn,
+        { expected: `prefix=${hostPrefix} own=${hostOwn}`, actual: `prefix=${back?.prefix ?? '(none)'} own=${own2}` });
 });

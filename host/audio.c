@@ -12,6 +12,7 @@
 #include "log.h"
 #include "midi_in.h"
 #include "midi_out.h"
+#include "midi_tap.h"
 #include "movy_host.h"
 #include "param_queue.h"
 #include "vtable.h"
@@ -69,6 +70,7 @@ static void *audio_main(void *arg) {
     while (!g_stop) {
         int nout = midi_out_take(out);
         memcpy(map + SCHWUNG_OFF_OUT_MIDI, out, (size_t)nout * 4);
+        for (int i = 0; i < nout; i++) midi_tap_record(g_frame + 1, out[i]);
         spi_pump(spi);
         memset(map + SCHWUNG_OFF_OUT_MIDI, 0, SCHWUNG_MIDI_OUT_MAX * 4);
         __atomic_add_fetch(&g_frame, 1, __ATOMIC_RELEASE);

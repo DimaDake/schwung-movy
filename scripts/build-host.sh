@@ -54,12 +54,15 @@ MOVY_SHA="$(git -C "$DIR" rev-parse --short HEAD)$([[ -z "$(git -C "$DIR" status
 CFLAGS=(-O2 -g -Wall -Wextra -Wno-unused-parameter -Wno-cast-function-type -std=gnu11 -pthread
         -DSCHWUNG_TAG="\"$TAG\"" -DMOVY_COMMIT="\"$MOVY_SHA\"" -DSCHWUNG_FLOOR="\"$FLOOR\""
         -I"$DIR/host" -I"$SRC/src" -I"$SRC/src/host" -I"$SRC/$QJS_DIR")
+# The test bus's UI_EVAL runs arbitrary JS in the UI: dev builds only.
+# movy-sa is dev-only until WP8; the switch's shipping build sets MOVY_RELEASE=1.
+[[ "${MOVY_RELEASE:-0}" = 1 ]] || CFLAGS+=(-DMOVY_TESTBUS_EVAL)
 mkdir -p "$DIR/dist"
 # shellcheck disable=SC2046
 "$CC" "${CFLAGS[@]}" $(ls "$DIR"/host/*.c) \
     "$SRC/src/host/js_display.c" "$SRC/src/host/js_host_common.c" "$SRC/src/host/unified_log.c" \
     -L"$SRC/$QJS_DIR" -lquickjs -lm -ldl -lrt -lpthread \
-    -o "$DIR/dist/movy-host"
+    -rdynamic -o "$DIR/dist/movy-host"   # -rdynamic: the crash backtrace names functions
 "$CC" -O2 -Wall -Wextra -std=gnu11 -I"$DIR/host" "$DIR/host/heal/heal.c" -o "$DIR/dist/movy-heal"
 
 # Device glibc ceiling, the same rule build-dsp.sh applies to dsp.so.

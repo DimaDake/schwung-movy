@@ -25,6 +25,7 @@ const NS = 'overtake_dsp:';
 export class OvertakeTransport implements Transport {
     readonly flavour = 'overtake' as const;
     readonly move: MoveSide;
+    readonly hostBus = null;
     private bus: Bus;
     private agent: Agent;
     private started: Started = { testd: false, agent: false };

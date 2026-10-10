@@ -16,7 +16,9 @@ deploy_sa() {
     scp -q "$dir/dist/dsp.so" "ableton@$host:$remote/dsp.so.new"
     scp -q "$dir/dist/movy-heal" "$dir/ui.js" "ableton@$host:$remote/"
     scp -q "$dir/standalone/module.json" "ableton@$host:$remote/module.json"
-    scp -q "$dir/standalone/launch.sh" "ableton@$host:$remote/standalone"
-    ssh "ableton@$host" "cd $remote && mv movy-host.new movy-host && mv dsp.so.new dsp.so && chmod +x movy-host standalone movy-heal"
+    # The launcher too: sh reads a script as it runs, and a holding launcher
+    # (harness mode) is mid-loop in it.
+    scp -q "$dir/standalone/launch.sh" "ableton@$host:$remote/standalone.new"
+    ssh "ableton@$host" "cd $remote && chmod +x movy-host.new standalone.new movy-heal && mv movy-host.new movy-host && mv dsp.so.new dsp.so && mv standalone.new standalone"
     echo "movy-sa deployed to $host:$remote ($(ssh "ableton@$host" "$remote/movy-host --version"))"
 }

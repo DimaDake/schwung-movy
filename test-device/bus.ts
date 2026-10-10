@@ -66,4 +66,28 @@ export class Bus {
         }
         return evs;
     }
+
+    /* movy-host only (docs/standalone/testbus.md "New"); testd answers ERR. */
+    async logSeq(): Promise<number> { return Number(/seq=(\d+)/.exec(await this.c.send('LOG_SEQ'))?.[1] ?? NaN); }
+
+    async logTail(from: number, pattern = ''): Promise<LogTail> {
+        const lines = await this.c.sendMulti(`LOG_TAIL ${from}${pattern ? ' ' + pattern : ''}`);
+        const head = lines[0] ?? '';
+        const num = (k: string) => Number(new RegExp(`\\b${k}=(\\d+)`).exec(head)?.[1] ?? 0);
+        const out: LogTail = { seq: num('seq'), lost: num('lost'), more: / more=1/.test(head), lines: [] };
+        for (const l of lines.slice(1)) {
+            const m = /^LN (\d+) (.*)$/.exec(l);
+            if (m) out.lines.push({ seq: Number(m[1]), text: m[2] });
+        }
+        return out;
+    }
+
+    /* JSON.parse of the UI's answer; a throw in the UI rejects with its stack. */
+    async uiEval(js: string): Promise<unknown> {
+        const r = await this.c.send(`UI_EVAL ${js.replace(/\n/g, ' ')}`);
+        return JSON.parse(r.slice(3));
+    }
 }
+
+export type LogTail = { seq: number; lost: number; more: boolean; lines: { seq: number; text: string }[] };
+

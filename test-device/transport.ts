@@ -1,3 +1,4 @@
+import type { BusEvent, LogTail } from './bus.js';
 import type { Packet } from './midi.js';
 import type { EngineDeploy } from './engine.js';
 
@@ -6,8 +7,9 @@ import type { EngineDeploy } from './engine.js';
  * slot migration, the Move-volume divert. The standalone flavour retires all of
  * them (plan "Retired by design"), so a scenario that needs one declares it and
  * the runner prints it as N/A there instead of grading a feature that cannot
- * exist. */
-export type Need = 'move';
+ * exist. `testbus` is the reverse: movy-host's own bus verbs (log ring,
+ * midi_out tap, UI_EVAL), which schwung-testd does not have. */
+export type Need = 'move' | 'testbus';
 
 export type Flavour = 'overtake' | 'standalone';
 
@@ -18,6 +20,19 @@ export type Flavour = 'overtake' | 'standalone';
 export interface MoveSide {
     /* Park movy under Move's UI (the Background door), DSP still loaded. */
     park(): Promise<void>;
+}
+
+/* movy-host's own test-bus verbs (docs/standalone/testbus.md "New"), null on
+ * a flavour without them. Reached as `tx.hostBus!` by a scenario that
+ * declared `needs: 'testbus'`. */
+export interface HostBus {
+    logSeq(): Promise<number>;
+    logTail(from: number, pattern?: string): Promise<LogTail>;
+    subscribeMidiOut(): Promise<void>;
+    dumpMidiOut(): Promise<BusEvent[]>;
+    uiEval(js: string): Promise<unknown>;
+    /* Dev builds only: SIGSEGV movy-host, to prove the backtrace path. */
+    crash(): Promise<void>;
 }
 
 /* The device as the scenarios see it: one implementation per flavour.
@@ -35,6 +50,7 @@ export interface Transport {
     readonly host: string;
     has(need: Need): boolean;
     readonly move: MoveSide | null;
+    readonly hostBus: HostBus | null;
 
     connect(): Promise<void>;
     close(): Promise<void>;

@@ -13,6 +13,7 @@
 #include "quickjs-libc.h"
 #include "rt.h"
 #include "ui.h"
+#include "ui_eval.h"
 #include "ui_js.h"
 
 /* shadow_ui's overtake tick period. The tick IS movy's MIDI sampling
@@ -104,12 +105,14 @@ int ui_run(const char *ui_path) {
     for (int tick = 0; !rc && !g_mh_quit; tick++) {
         if (drain_input(ctx, &cb, &d)) { rc = 3; break; }
         if (JS_IsFunction(ctx, cb.tick) && ui_js_call(ctx, cb.tick, NULL, 0, "tick")) { rc = 3; break; }
+        ui_eval_service(ctx);
         display_publish(tick);
         rt_poll();
         sleep_to(&next);
     }
     __atomic_store_n(&g_mh_ui_running, 0, __ATOMIC_RELEASE);
     if (JS_IsFunction(ctx, cb.unload)) ui_js_call(ctx, cb.unload, NULL, 0, "onUnload");
+    ui_eval_stop(ctx);
     mh_log("ui: stopped (rc %d)", rc);
     JS_FreeValue(ctx, cb.init); JS_FreeValue(ctx, cb.tick); JS_FreeValue(ctx, cb.midi_int);
     JS_FreeValue(ctx, cb.midi_ext); JS_FreeValue(ctx, cb.unload);

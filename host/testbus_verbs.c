@@ -8,12 +8,15 @@
 
 #include "audio.h"
 #include "display.h"
+#include "log.h"
 #include "midi_in.h"
 #include "midi_out.h"
+#include "midi_tap.h"
 #include "movy_host.h"
 #include "param_queue.h"
 #include "rt.h"
 #include "testbus.h"
+#include "ui_eval.h"
 #include "vtable.h"
 
 #define NS "overtake_dsp:"
@@ -113,9 +116,18 @@ int testbus_handle(const char *line, tb_reply_t *o) {
     else if (!strcmp(verb, "EXIT")) { reply(o, "OK bye"); close_after = 1; g_mh_quit = 1; }
     else if (!strcmp(verb, "SET_OPEN_TOOL")) reply(o, "ERR SET_OPEN_TOOL: no Move — movy-host is already the tool");
     else if (!strcmp(verb, "RESTART_MOVE")) reply(o, "ERR RESTART_MOVE: no Move — use EXIT and relaunch");
-    else if (!strcmp(verb, "SUBSCRIBE") || !strcmp(verb, "UNSUBSCRIBE") || !strcmp(verb, "DUMP")
-             || !strcmp(verb, "LOG_SEQ") || !strcmp(verb, "LOG_TAIL") || !strcmp(verb, "UI_EVAL"))
-        reply(o, "ERR %s: not in this build (testbus v1 subset, WP7)", verb);
+    else if (!strcmp(verb, "LOG_SEQ")) testbus_log_seq(o);
+    else if (!strcmp(verb, "LOG_TAIL")) testbus_log_tail(args, o);
+    else if (!strcmp(verb, "SUBSCRIBE") || !strcmp(verb, "UNSUBSCRIBE") || !strcmp(verb, "DUMP")) {
+        if (strcmp(args, "midi_out")) reply(o, "ERR %s: unknown channel '%s' (midi_out)", verb, args);
+        else if (!strcmp(verb, "DUMP")) midi_tap_dump(o);
+        else { if (verb[0] == 'S') midi_tap_subscribe(); else midi_tap_unsubscribe(); reply(o, "OK"); }
+    } else if (!strcmp(verb, "UI_EVAL")) ui_eval_request(args, o->buf, o->cap, 5000);
+#ifdef MOVY_TESTBUS_EVAL
+    /* Dev builds only: the proof that a native crash leaves a backtrace in
+     * debug.log (plan WP7 T4). No reply — the process is gone. */
+    else if (!strcmp(verb, "CRASH")) { mh_log("testbus: CRASH requested"); volatile int *p = NULL; *p = 1; }
+#endif
     else reply(o, "ERR %s: unknown verb", verb[0] ? verb : "?");
     free(copy);
     return close_after;

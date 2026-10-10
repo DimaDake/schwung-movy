@@ -6,13 +6,35 @@ import { grepDebugLog } from './device-log.js';
 import { repoRoot, type EngineDeploy } from './engine.js';
 import type { Packet } from './midi.js';
 import { SSH_OPTS } from './ssh.js';
-import type { Need, Transport } from './transport.js';
+import type { HostBus, Need, Transport } from './transport.js';
 
 const run = promisify(execFile);
 
 const SA_DIR = '/data/UserData/schwung/modules/tools/movy-sa';
 const MOVY_DIR = '/data/UserData/schwung/modules/tools/movy';
 const LAUNCH = '/data/UserData/schwung/launch-standalone.sh';
+/* standalone/launch.sh's harness-mode hold (WP7 T1): after a clean close it
+ * keeps Move down and waits for a command, so a close/open pair costs a
+ * process start instead of a Move restart. */
+/* schwung's boot watchdog (host/boot_target_lib.sh): the stamp is
+ * "<target id> <strikes>", and <id>/healthy clears it at the next start. */
+const BOOT_TARGETS = '/data/UserData/boot-targets';
+const moveAge = `P=$(pidof MoveOriginal | cut -d' ' -f1); [ -n "$P" ] `
+    + `&& awk -v u=$(cut -d' ' -f1 /proc/uptime) '{print int(u - $22/100)}' /proc/$P/stat || echo 0`;
+const markHealthy = `read -r id _ < ${BOOT_TARGETS}/.boot-attempt 2>/dev/null `
+    + `&& [ -d "${BOOT_TARGETS}/$id" ] && touch "${BOOT_TARGETS}/$id/healthy"; true`;
+const HOLD_PIDF = '/dev/shm/.movy-sa-launcher';
+const HOLD = '/dev/shm/.movy-sa-hold';
+const HOLD_CMD = '/dev/shm/.movy-sa-cmd';
+/* One ssh round trip: `up` (movy-host runs), `sent` (the launcher was holding
+ * and has the command), `wait` (the launcher lives but has not reached its
+ * hold yet) or `none` (no launcher: Move's side). Written as ableton, so a
+ * later launcher of either uid can remove it from the sticky /dev/shm. */
+const holdSend = (cmd: 'go' | 'quit') =>
+    `if pidof movy-host >/dev/null; then echo up; `
+    + `elif [ -e ${HOLD} ]; then echo ${cmd} > ${HOLD_CMD}; echo sent; `
+    + `else P=$(cat ${HOLD_PIDF} 2>/dev/null); `
+    + `if [ -n "$P" ] && grep -q movy-sa /proc/$P/cmdline 2>/dev/null; then echo wait; else echo none; fi; fi`;
 /* A device frame. Used ONLY while movy-host is down, when there is no frame
  * clock on the box to wait on (the shim's went with Move). */
 const FRAME_MS = 128 / 44.1;
@@ -33,7 +55,17 @@ export class StandaloneTransport implements Transport {
 
     constructor(readonly host: string) {}
 
-    has(_need: Need): boolean { return false; }
+    has(need: Need): boolean { return need === 'testbus'; }
+
+    readonly hostBus: HostBus = {
+        logSeq: () => this.call((bus) => bus.logSeq()),
+        logTail: (from, pattern) => this.call((bus) => bus.logTail(from, pattern)),
+        subscribeMidiOut: () => this.call((bus) => bus.subscribe('midi_out')),
+        dumpMidiOut: () => this.call((bus) => bus.dump('midi_out')),
+        uiEval: (js) => this.call((bus) => bus.uiEval(js)),
+        /* No reply comes: the link closing IS the answer. */
+        crash: () => this.call((bus) => bus.send('CRASH')).then(() => {}, () => {}),
+    };
 
     private async ssh(user: 'ableton' | 'root', cmd: string): Promise<string> {
         const { stdout } = await run('ssh', [...SSH_OPTS, `${user}@${this.host}`, cmd],
@@ -61,6 +93,20 @@ export class StandaloneTransport implements Transport {
         }
         this.bus?.close();
         this.bus = null;
+        /* A holding launcher would keep Move down for its whole timeout. */
+        await this.holdCommand('quit').catch(() => 'none');
+    }
+
+    /* Hand a held launcher its command; see holdSend. `wait` is the gap
+     * between movy-host's exit and the launcher entering its hold. */
+    private async holdCommand(cmd: 'go' | 'quit'): Promise<'up' | 'sent' | 'none'> {
+        const end = Date.now() + 5000;
+        for (;;) {
+            const r = (await this.ssh('ableton', holdSend(cmd))).trim();
+            if (r === 'up' || r === 'sent' || r === 'none') return r;
+            if (Date.now() > end) throw new Error(`standalone: launcher never reached its hold (${r})`);
+            await new Promise((res) => setTimeout(res, 100));
+        }
     }
 
     private async b(): Promise<Bus> {
@@ -142,6 +188,13 @@ export class StandaloneTransport implements Transport {
 
     private async launchOnce(): Promise<void> {
         if (await this.running()) return;
+        if (await this.holdCommand('go') !== 'none') {
+            await this.waitFor('movy-host to run with its engine (from the hold)', async () => {
+                const st = await this.state();
+                return st.running === 1 && st.engine_ready === 1;
+            }, 15000);
+            return;
+        }
         /* From a SETTLED Move only, as a user opens it from Tools: a Move still
          * booting after the last exit re-grabs SPI behind the kill sweep
          * (measured: EBUSY 0.5 s after "Killing SPI holders"). Generous: after
@@ -149,6 +202,19 @@ export class StandaloneTransport implements Transport {
          * took ~60 s to bring shadow_ui up (2026-10-10; usually ~3-4 s). */
         await this.waitFor('Move to be back (shadow_ui up)',
             async () => (await this.ssh('ableton', 'pidof shadow_ui || true')).trim() !== '', 90000);
+        /* ...and past its boot watchdog's 15 s liveness window. /opt/move/Move
+         * counts every start as a boot attempt and clears it only once Move
+         * has lived 15 s; launch-standalone.sh killing it sooner leaves the
+         * strike, and the THIRD strike puts boot-select's forced picker on the
+         * screen with a 60 s backstop. That was the "Move took 60 s" case
+         * (reproduced 2026-10-10: runs 1-2 at 3.6 s, run 3 at 61.5 s). A strike
+         * can also outlive a healthy Move (a start that died without its
+         * watcher), so once Move has proved the watcher's own 15 s, mark the
+         * target healthy: the watchdog's documented "boot was good" file,
+         * which clears the count at the next start. */
+        await this.waitFor('Move to outlive its boot watchdog window (15 s)', async () =>
+            Number((await this.ssh('ableton', moveAge)).trim()) >= 16, 30000);
+        await this.ssh('ableton', markHealthy);
         await this.ssh('root',
             `P=$(pidof MoveOriginal | cut -d' ' -f1); U=$([ -n "$P" ] && stat -c %u /proc/$P || echo 0); `
             + `if [ "$U" = 0 ]; then ${LAUNCH} ${SA_DIR}/standalone; `

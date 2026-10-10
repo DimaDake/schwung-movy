@@ -12,4 +12,8 @@ void testbus_start(void);
 typedef struct { char *buf; int cap; } tb_reply_t;
 int testbus_handle(const char *line, tb_reply_t *out);
 
+/* testbus_log.c */
+int testbus_log_seq(tb_reply_t *o);
+int testbus_log_tail(const char *args, tb_reply_t *o);
+
 #endif

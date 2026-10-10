@@ -32,12 +32,18 @@ scenario('power', async (t) => {
     const leave = async () => await probe.ask({ key: 'leave' }) as any;
     const press = async () => { for (const p of POWER) await t.tx.uiMidi(p); await t.tx.frames(20); };
     /* The exit is out of band: the log (debug.log) outlives the process. */
-    const exitedWith = async (pattern: string, before: number, what: string) => {
+    /* Generous: the wedged case is 2 s of grace, then a Move restart that
+     * competes with every ssh read made here (red once at 6 s, 2026-10-10,
+     * with the line in debug.log 2.0 s after the combo). */
+    const exitedWith = async (pattern: string, before: number, what: string): Promise<string> => {
+        const t0 = Date.now();
         try {
-            await until(t.tx, what, async () => (await dev.logLines(pattern)).length, (n) => n > before, { within: 6000, every: 200 });
+            await until(t.tx, what, async () => (await dev.logLines(pattern)).length, (n) => n > before, { within: 15000, every: 300 });
+        } catch (e: any) { return `no line after ${Date.now() - t0} ms (count ${before} → ${e?.last})`; }
+        try {
             await until(t.tx, 'movy-host to be gone', () => t.tx.running(), (up) => !up, { within: 4000, every: 200 });
-            return true;
-        } catch { return false; }
+        } catch { return `line seen, but movy-host still running after ${Date.now() - t0} ms`; }
+        return '';
     };
 
     await fixture.ensure(t.tx, () => dev.open(probe), () => dev.close(probe));
@@ -76,7 +82,7 @@ scenario('power', async (t) => {
     const off = await exitedWith('power: DRY RUN', dry, 'the power-off request');
     const saved = (await dev.logLines('host_power_off: movy confirmed')).length > 0;
     t.check('power-off', 'Power off closes movy cleanly, then asks com.ableton.system to shut down (dry run)',
-        off && saved, { expected: 'host_power_off, then "power: DRY RUN", movy-host gone', actual: `exited=${off} confirmed=${saved}` });
+        !off && saved, { expected: 'host_power_off, then "power: DRY RUN", movy-host gone', actual: `${off || 'exited'} confirmed=${saved}` });
     await dev.open(probe);
 
     // ── P5: the fallback combo ──────────────────────────────────────────────
@@ -85,8 +91,8 @@ scenario('power', async (t) => {
     await t.tx.uiMidi(noteOn(VOL_TOUCH, 127));
     await t.tx.uiMidi(cc(CC_JOG_CLICK, 127));
     const clean = await exitedWith('fallback exit: Shift + volume touch', fb, 'the fallback exit');
-    t.check('fallback-exit', 'Shift + volume touch + jog click closes movy', clean,
-        { expected: 'a "fallback exit" line and movy-host gone', actual: String(clean) });
+    t.check('fallback-exit', 'Shift + volume touch + jog click closes movy', !clean,
+        { expected: 'a "fallback exit" line and movy-host gone', actual: clean || 'exited' });
     await dev.open(probe);
 
     // ── P6: ...with the UI wedged ───────────────────────────────────────────
@@ -97,8 +103,8 @@ scenario('power', async (t) => {
     await t.tx.uiMidi(noteOn(VOL_TOUCH, 127));
     await t.tx.uiMidi(cc(CC_JOG_CLICK, 127));
     const wedged = await exitedWith('fallback exit: the UI did not let go', hard, 'the hard fallback exit');
-    t.check('fallback-wedged', 'the fallback exit still gets out of a wedged UI', wedged,
-        { expected: 'a hard exit ~2 s after the combo', actual: String(wedged) });
+    t.check('fallback-wedged', 'the fallback exit still gets out of a wedged UI', !wedged,
+        { expected: 'a hard exit ~2 s after the combo', actual: wedged || 'exited' });
     /* A hard exit is not a clean close: the launcher gave the device back to
      * Move, so this open is a full launch. */
     await dev.open(probe);

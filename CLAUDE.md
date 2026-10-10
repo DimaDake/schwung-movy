@@ -172,6 +172,7 @@ the user must run it): stop `move-launcher`, pkill the schwung stack, start
 ./scripts/run-gate.sh local       # build + every local suite
 ./scripts/run-gate.sh device      # the full tier
 ./scripts/run-gate.sh both        # local, then device
+./scripts/run-gate.sh both --flavour all   # ...device on overtake AND movy-sa (standalone work)
 ```
 
 It finds the schwung checkout and exports `SCHWUNG=` for the BUILD (the trap

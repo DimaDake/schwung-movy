@@ -63,6 +63,7 @@ export class StandaloneTransport implements Transport {
         subscribeMidiOut: () => this.call((bus) => bus.subscribe('midi_out')),
         dumpMidiOut: () => this.call((bus) => bus.dump('midi_out')),
         uiEval: (js) => this.call((bus) => bus.uiEval(js)),
+        state: () => this.call((bus) => bus.state()),
         /* No reply comes: the link closing IS the answer. */
         crash: () => this.call((bus) => bus.send('CRASH')).then(() => {}, () => {}),
     };
@@ -150,8 +151,15 @@ export class StandaloneTransport implements Transport {
 
     ping(): Promise<string> { return this.call((bus) => bus.ping()); }
 
+    /* A host that exits DURING the wait (a close, a hard exit) takes its
+     * frame clock with it: that is the down case below, not an infra error
+     * (power's wedged exit threw out of an until() exactly so). */
     async frames(n: number): Promise<number> {
-        if (await this.running()) return this.call((bus) => bus.frames(n));
+        if (await this.running()) {
+            try { return await this.call((bus) => bus.frames(n)); } catch (e) {
+                if (await this.running()) throw e;
+            }
+        }
         await new Promise((r) => setTimeout(r, Math.ceil(n * FRAME_MS)));
         return 0;
     }

@@ -12,13 +12,16 @@ catalog). Plan: `plans/2026-10-09-standalone-migration.md`, WP6.
 | main | `ui.c`, `ui_js.c`, `globals*.c` | QuickJS: loads `ui.js`, ticks it on a 2 ms deadline (shadow_ui's overtake period, because the tick is movy's input sampling interval), drains input, batches encoder deltas (`deltas.c`), packs the screen |
 | `movy-audio` | `audio.c`, `spi.c` | One `WAIT_AND_SEND` per 128-sample block: MIDI out (≤20 packets), display slices, MIDI in, engine notes, the param queue, `render_block`, audio out with a 0.5 s fade-in |
 | `movy-testbus` | `testbus*.c` | `docs/standalone/testbus.md`, only when asked for |
+| `movy-log` | `log_ring.c` | the one writer of debug.log and movy-host.log (below) |
 
 The engine is only ever called from `movy-audio`, or with it locked out
 (`vtable.c`), because `plugin_api_v2` modules assume render and set/get never
 overlap. Supporting modules:
 
-- `midi_in.c`: SPI mailbox, schwung's inject ring (`inject_ring.c`) and the
-  bus's `INJECT_MIDI` are one input. Every packet reaches the UI; cable-0 notes
+- `midi_in.c`: SPI mailbox, schwung's inject ring (`inject_ring.c`), the
+  bus's `INJECT_MIDI` and shadow_ui's own UI ring (`ui_ring.c`, read with
+  schwung's `ui_midi_ring.h` from the pin, so `inject-any.py`, `inject-ui.py`
+  and `dev-probe.sh -i` work unchanged) are one input. Every packet reaches the UI; cable-0 notes
   with d1 ≥ 10 also reach `on_midi` directly, as the shim's pad path does. It
   also tracks the held step (exactly one, 500 ms tap/hold) and Delete for the
   shared JS's `shadow_get_held_step*` / `shadow_get_delete_held`.
@@ -28,7 +31,27 @@ overlap. Supporting modules:
   place. A write whose waiter timed out is still applied; only an abandoned
   read is skipped. `param_bulk.c` is the shim's bulk codec.
 - `display.c`: seqlocked frames, so the XMOS never gets a torn frame. Also
-  `/dev/shm/schwung-display-live`, so display-server streams it unchanged.
+  `/dev/shm/schwung-display-live`, so display-server streams it unchanged, and
+  `/dev/shm/schwung-display` (shadow_ui's frame under the shim), so
+  `grab-screen.mjs` and `capture-screen.mjs` work unchanged.
+- `log.c` + `log_ring.c`: every line from every thread goes into one lock-free
+  4096-line ring, and the `movy-log` thread is the only caller of
+  `unified_log`. schwung's `unified_log` drops a line when another thread holds
+  its mutex (a trylock, so the audio thread never blocks); under the shim the
+  UI and the engine are different processes, here they are one, and a module
+  load logging from the audio thread swallowed the UI's `undo: LOAD MODULE`
+  (reselect red ~2 runs in 3). The same ring answers `LOG_SEQ`/`LOG_TAIL`, and
+  the crash handler writes what the writer has not reached before the
+  backtrace.
+- `surface_keys.c`: the two gestures movy-host answers below the UI. The
+  **power button** (a cable-0 SysEx, `F0 00 21 1D 01 01 3A …`, sent on a hold)
+  calls the UI's `onPowerButton`, which asks "Power off?"; confirming calls
+  `host_power_off`, movy-host shuts down cleanly (onUnload saves), then
+  `power.c` calls `com.ableton.system` `Power.shutDown` over D-Bus — Move's own
+  power service, which ableton may call (`/etc/dbus-1/system.d/move.conf`), so
+  no root helper. A **DRY RUN** whenever the test bus is on. The **fallback
+  exit**, Shift + volume touch + jog click, closes cleanly; if the UI loop has
+  not let go 2 s later (a wedged script) the audio thread exits hard (rc 4).
 - `rt.c` + `heal/heal.c`: real-time priority (below).
 - `globals*.c`: every name in `browser-test/host-globals.json`, native or a
   logged no-op (`globals_stub.c`, the coexistence family).
@@ -51,7 +74,15 @@ npm run test:device -- --flavour sa --scenario smoke
 ```
 
 A standalone run leaves the device as it found it: the transport's `close()`
-EXITs movy-host. A movy-sa left running holds SPI and port 47777, and the
+EXITs movy-host and releases the launcher.
+
+**Harness mode** (the `testbus` file exists, which a shipped build never has):
+after a clean close (rc 0, or 3 for a UI throw) `standalone/launch.sh` does not
+return to Move. It holds, Move still down, until the harness writes `go`
+(start movy-host again, ~0.5 s) or `quit` into `/dev/shm/.movy-sa-cmd`, or 300 s
+pass. A close/open pair is then a process start rather than a Move restart and
+a kill sweep: `smoke` went from ~140 s to 17 s, the whole tier to under 8 min.
+A lock loser (rc 1) or a floor refusal (rc 2) never holds. A movy-sa left running holds SPI and port 47777, and the
 overtake transport now refuses a port-47777 server that is not schwung-testd
 rather than grading through movy-host's bus (which hung a tier for 20 min).
 
@@ -88,7 +119,8 @@ frame for 85 ms. With no usable helper movy-host runs degraded and says so
 | engine param round trip | ~0.3 ms average (`perf_ipc`) |
 | `smoke` on movy-sa | 13/13, stack as root and as ableton |
 | Move back after a root-uid exit | ~3 s |
-| Move back after an ableton-uid exit | under 4 s on one run, **~60 s** to shadow_ui on another (MoveOriginal at once, shadow_ui a minute later). Not yet understood |
+| Move back after an exit | 3.6 s, either uid (2026-10-10: 6 runs) |
+| "Move took 60 s" | **schwung's boot watchdog** (`host/boot_target_lib.sh`): `/opt/move/Move` counts every start as a boot attempt and clears it once Move has lived 15 s. launch-standalone.sh killing Move inside that window leaves the strike, and the third puts `boot-select --forced` on screen with a 60 s backstop. Reproduced: runs 1–2 at 3.6 s, run 3 at 61.5 s. The transport waits out the 15 s and touches the target's `healthy` file. A person opening a standalone tool three times within 15 s of each return hits it too — upstream (U8) |
 
 Uid lessons, each one a bug fixed in this WP. Every file movy-host or its
 launcher creates is made usable by the other uid:
@@ -110,16 +142,24 @@ contracts, documented), U1
 standalone SDK library). Until #635 ships, the harness runs
 launch-standalone.sh itself.
 
-## Open, carried to WP7 (`plans/2026-10-10-wp7-standalone-parity.md`)
+## WP7 (`plans/2026-10-10-wp7-standalone-parity.md`)
 
-- **Slow frames at chain load.** `chain_host`, `chains`, `padmap` and the
-  `mfx:` loads each cost 12–40 ms on the audio thread. The shim services params
-  on its SPI thread too, so this is parity, not a regression. Moving loads off
-  the audio thread is an engine change (the plan's WP0 note). movy-host logs
-  every such frame with its key.
-- The rest of the test bus (`LOG_TAIL`, `DUMP`, `UI_EVAL`), restart without a
-  Move round trip, the power button, the Leave modal, the volume knob, the perf
-  comparison and `--flavour sa` for the whole tier.
-- Not done by a person yet: opening movy-sa from the Tools menu by hand (the
-  harness runs the same `launch-standalone.sh` the menu does), and a listening
-  check (the tier runs muted).
+Done: the launcher hold, the log ring, the rest of the test bus, the volume
+knob as master volume, the power button, the fallback exit, the dev tools on
+movy-host, and the perf comparison (`docs/track-performance.md` §8). Both
+flavours green on the full tier.
+
+Still open:
+
+- **Slow frames at chain load.** `padmap`, `mfx` and `chains` cost 35–40 ms
+  each at every open (the dlopen-ing loads), `chain_host` 17 ms. Parity with
+  the shim, startup only, under the fade-in. Moving loads off the audio thread
+  is an engine change: WP11.
+- **Speaker EQ (R8).** Under the shim MoveOriginal's speaker enhancer, and
+  schwung's emulation of it, colour the built-in speaker. movy-host has
+  neither: a MANUAL limitation for now. schwung's emulation is a static block
+  in `schwung_shim.c`; copying it would be vendoring, so the path is an
+  upstream extraction into `src/host/speaker_eq.c` (U7) that movy-host
+  compiles from the pin.
+- Not done by a person yet: opening movy-sa from the Tools menu by hand, a
+  listening check, and a real power-button press (the tier only dry-runs it).

@@ -673,6 +673,15 @@ performance surface intact.
 **Exit:** both flavours green on the full tier; the perf table shows no
 regression; MANUAL draft for the standalone behaviours.
 
+**Done 2026-10-10** (branch `standalone-migration`, ENGINE 0.89.0). Outcome and
+decisions per task: the session plan's *Outcome*. In short: launcher hold
+(the tier runs without Move round trips), one log writer (fixed reselect's
+dropped line), testbus v1 complete, master volume, power button via
+`com.ableton.system` (no root verb needed), fallback exit, the dev tools
+unchanged on movy-host, perf equal or better (`track-performance.md` §8).
+Carried: chain-load slow frames → WP11; speaker EQ → MANUAL limitation +
+upstream U7; launch-standalone.sh defects → upstream U8 (drafted, not filed).
+
 ### WP8: the switch
 
 - `movy` **becomes** the standalone flavour: `module.json` gets a top-level

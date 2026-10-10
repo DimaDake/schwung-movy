@@ -155,3 +155,74 @@ regression; the MANUAL draft is written.
   under each.
 - A movy-sa left running blocks the overtake tier. The transports guard
   against it now. Keep `close()` exiting.
+
+## Outcome (2026-10-10, branch `standalone-migration`)
+
+Done in one session; commits `30a83ce` (T0-T2), `faa0f3c` (T3-T4) and the T5-T7
+commit. ENGINE 0.89.0 (`padlat`). Gate: `run-gate.sh both --flavour all` GREEN —
+overtake 21 scenarios / 165 checks (3 N/A: the standalone-only scenarios),
+movy-sa 22 / 169 (2 N/A: `volume`, `master-fx`).
+
+- **T0.** `seq` 16/16 and `widgets` 7/7 on movy-sa. `master-own` follows the
+  flavour. **`reselect` undo-swap was a dropped log line, not a missing undo:**
+  schwung's `unified_log` drops a line on mutex contention (trylock), and
+  movy-host puts the UI and the engine in one process, so a module load
+  logging from the audio thread swallowed `undo: LOAD MODULE`. Fixed for every
+  line by the T2 log ring (one writer); regression test in
+  `host/tests/test_log.c` (4 concurrent producers; a trylock mutation loses
+  11 558 of 12 000 lines). reselect 5/5 after, ~2 of 3 red before.
+  Two harness races found on the way: the launcher's `up` answer for a
+  movy-host still tearing down (seq's close-then-open timed out), and an
+  injected press while no movy-host exists (now dropped, as a physical one is),
+  and a frame wait that threw when movy-host exited during it (now falls back
+  to the wall clock, as a down host always did; `power` was flaky on it).
+- **T1.** The launcher hold (harness mode only), `selftest/standalone-hold.mjs`.
+  smoke ~140 s → 17 s; the whole standalone tier under 8 min. **The 60 s case
+  is schwung's boot watchdog**, not a uid effect (details in `movy-host.md`);
+  the transport now waits out Move's 15 s liveness window and marks the target
+  healthy.
+- **T2.** `LOG_SEQ`/`LOG_TAIL`, `SUBSCRIBE`/`DUMP midi_out`, `UI_EVAL`, dev-only
+  `CRASH`. **Deviation:** `logGrep` stays on debug.log, because the ring is per
+  process and the hold relaunches movy-host at every open (`testbus.md`).
+- **T3.** Volume knob → `mfx:vol`, stored in prefs.json (machine-level, −12 dB
+  factory). Track+volume on all 16 tracks without any Move-side call (logic).
+  Power button → "Power off?" → clean close → `com.ableton.system`
+  `Power.shutDown` over D-Bus: **no `heal poweroff` verb was needed**, because
+  `move.conf` lets ableton call Move's own power service (dry run under the
+  test bus). Fallback exit in C on the audio thread, hard after 2 s of a wedged
+  UI loop. Leave modal: Close Movy only, verified. **Speaker EQ: a MANUAL
+  limitation for now**, upstream extraction U7 below.
+- **T4.** `debug-tools` (9 checks, both flavours): dev-probe status/log -i,
+  inject-any.py, inject-to-move.py, grab-screen, capture-screen, CPU page,
+  perf_ipc, engine diag. JS stacks and a named native backtrace: `testbus`
+  B5/B6. movy-host now reads shadow_ui's UI ring and mirrors the frame to
+  `schwung-display`, so the tools needed no flavour branch.
+- **T5. Decision: the standalone tier stays on the Move-bound fixture Set**
+  (`setsrc` legacy) like overtake, so T6 compares one Set on both flavours;
+  `sets-library` (10 checks) already passes on movy-sa and covers the library.
+  The fixture seeds a library Set when WP8 makes the library the default.
+- **T6.** `docs/track-performance.md` §8, `scripts/compare-flavours.mjs`.
+  Equal or better on every number once measured like for like: tick rate
+  175 → 382 Hz, tick period 5.7 → 2.6 ms, IPC 1.9 → 0.7 ms/tick, chains-only
+  render 67 → 53 µs, pad to sound 1 block on both. Two first readings were the
+  instrument (a held peak spanning a cold start, and a poll whose round trip
+  differs by host); both are explained there. Chain-load slow frames: startup
+  only, parity with the shim → **WP11**.
+- **T7.** `run-gate.sh … --flavour overtake|sa|all`. MANUAL draft:
+  `docs/standalone/manual-draft.md` (merged into MANUAL.md with WP8).
+
+### Upstream, drafted, not filed (needs the user's go)
+
+- **U7 — speaker EQ as a library.** Extract `speaker_eq_build/_process` and
+  the CC 115 jack rules from `schwung_shim.c` into `src/host/speaker_eq.c`
+  (+ `.h`), unchanged in behaviour, so a standalone host compiles the same EQ
+  from a pinned tag instead of copying it.
+- **U8 — launch-standalone.sh, two defects.** (a) A second launch (Tools
+  pressed twice) runs the whole kill sweep before the binary can refuse, and
+  then restarts Move under the running tool: it should check a per-tool lock
+  (or `pidof` the binary) BEFORE killing anything. (b) Each Move restart it
+  does counts as a boot attempt (`bt_watchdog_enter`) and is killed again by
+  the next launch inside the 15 s liveness window; three quick open/close
+  cycles put `boot-select --forced` up with its 60 s backstop. A tool-exit
+  restart is not a failed boot: clear the stamp (or touch `<id>/healthy`)
+  before the kill sweep, since the Move being killed was demonstrably alive.

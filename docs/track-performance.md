@@ -480,7 +480,56 @@ the mid-weight fleet** — multiples, as predicted, against the ~15% standalone
 would buy. **It is on by default as of 2026-08-24** and lives on the Global
 Params page, where it can still be turned off for an A/B.
 
-## 8. Caveats
+## 8. Standalone (movy-host) against overtake — WP7
+
+Measured 2026-10-10, `scripts/compare-flavours.mjs`, the same fixture Set on
+both flavours, one after the other on the same box, **with the fixture's clips
+playing** and 20 pad trials each. Four runs; the spread is in the brackets.
+
+| | overtake (shim + shadow_ui) | standalone (movy-host) | |
+|---|---|---|---|
+| UI tick rate | 175 Hz (174–177) | **382 Hz** (382–420) | better |
+| UI IPC per tick (`perf_ipc ipc_ms`) | 1.9 ms | **0.7 ms** | better |
+| UI tick work (`tick_ms`) | 2.6 ms | **2.1 ms** | better |
+| tick period (`period_ms`) — the MIDI sampling interval | 5.7 ms | **2.6 ms** | better |
+| `perf_refresh_ms` median | 0 (sub-ms) | 0 (sub-ms) | equal |
+| chain render wall, chains only (`chwall` − `mfxcost`) | 67 µs | **53 µs** | better |
+| per-chain cost, playing (`chcost`, chain 0 / 1) | 44 / 16 µs | **36 / 11 µs** | better |
+| pad to sound (`padlat`, blocks; 1 = the next render) | 1 (max 1) | 1 (max 1) | equal |
+| whole audio-thread frame work, avg / max of 1024-frame windows | not observable | 260 / 408 µs of 2902 | 86 % headroom at worst |
+
+How to read three of these:
+
+- **The master stage moved; it did not grow.** `chwall` on movy-host is 209 µs,
+  of which 156 µs is `mfxcost`: the Set's master FX (here `4k-eq`, imported
+  from schwung's master by WP3) now runs inside movy's render. Under the shim
+  the same EQ runs in schwung's master slot, outside `chwall`, so only the
+  chains-only figure is like for like. On an idle Set the difference is the
+  master stage alone (≈ 7 µs mean, 30 µs peak): overtake shows 0, because
+  every chain sleeps and its master is not movy's to count.
+- **The held render peak is per instance.** Measured without a reset it read
+  186–254 µs standalone against 101–117: a movy-host open is a fresh process,
+  so its first blocks after the chain loads run on cold caches, while the shim
+  keeps `dsp.so` mapped. The script now resets the peak (`cpurst`) after
+  settling, as the CPU page does when it opens.
+- **Pad latency was first measured from outside, and that measured the
+  poll.** Polling `chpeak` once a frame read 10–13 frames standalone against
+  8–11: movy-host answers a `GET_PARAM` at the next frame boundary and the shim
+  sooner, so each poll cost movy-host an extra frame. The engine now times it
+  itself (`padlat`, `pad_latency.rs`): from the block a pad note reaches
+  `on_midi` — both hosts call it before that frame's render — to the first
+  loud block on its chain. One block on both.
+
+**Chain-load slow frames** (movy-host logs any audio frame over 10 ms with the
+last param it serviced). Over a day of device runs: 157 slow frames, all at an
+open — three per movy-host start (`padmap`, `mfx`, `chains`, 35–40 ms each:
+the dlopen-ing chain loads released in those frames) and four `chain_host`
+loads (17 ms). None mid-session: a module swap did not produce one. The shim
+services the same loads on its SPI thread, so this is parity, and the 0.5 s
+output fade-in covers it. Moving loads off the audio thread is an engine change
+and is **WP11's**, not WP7's.
+
+## 9. Caveats
 
 - **Preset and kit choice dominate.** Every figure is "this synth, this preset",
   not "this synth". noisemaker moves 2.4× between presets.
@@ -501,6 +550,7 @@ scripts/bench-all-tracks.sh        # host slots vs movy chains
 scripts/measure-load-blocking.sh   # what a module load costs
 scripts/measure-pad-latency.sh     # live pad cost, host track vs movy track
 scripts/measure-core-contention.sh # MoveOriginal's threads + the contention ramp
+scripts/compare-flavours.mjs       # §8: overtake against movy-host, same Set
 ```
 
 > **Trust the instrument only as far as it reaches.** `perf_ipc` has twice

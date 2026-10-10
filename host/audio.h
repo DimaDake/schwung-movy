@@ -10,4 +10,7 @@ void audio_stop(void);
 uint64_t audio_frame(void);
 int  audio_tid(void);
 
+/* The audio thread's work per frame, avg and max over the last window (us). */
+void audio_work_us(uint32_t *avg, uint32_t *max);
+
 #endif

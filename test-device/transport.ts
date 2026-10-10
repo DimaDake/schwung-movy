@@ -33,6 +33,8 @@ export interface HostBus {
     subscribeMidiOut(): Promise<void>;
     dumpMidiOut(): Promise<BusEvent[]>;
     uiEval(js: string): Promise<unknown>;
+    /* movy-host's STATE (testbus.md, STATE keys), numbers only. */
+    state(): Promise<Record<string, number>>;
     /* Dev builds only: SIGSEGV movy-host, to prove the backtrace path. */
     crash(): Promise<void>;
 }

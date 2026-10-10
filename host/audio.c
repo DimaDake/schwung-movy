@@ -30,6 +30,30 @@ static uint64_t g_frame;
 static int g_tid;
 
 uint64_t audio_frame(void) { return __atomic_load_n(&g_frame, __ATOMIC_ACQUIRE); }
+
+/* Frame headroom (plan WP7 T6): the audio thread's own work per frame — input,
+ * engine notes, params, render, output — over the last completed window of
+ * WORK_WINDOW frames, against the 2902 us budget. Published whole, so a
+ * reader never sees half a window. */
+#define WORK_WINDOW 1024
+static uint32_t g_work_avg_us, g_work_max_us;
+static uint64_t g_win_sum, g_win_max;
+static int g_win_n;
+
+static void work_note(uint64_t us) {
+    g_win_sum += us;
+    if (us > g_win_max) g_win_max = us;
+    if (++g_win_n < WORK_WINDOW) return;
+    __atomic_store_n(&g_work_avg_us, (uint32_t)(g_win_sum / WORK_WINDOW), __ATOMIC_RELAXED);
+    __atomic_store_n(&g_work_max_us, (uint32_t)g_win_max, __ATOMIC_RELAXED);
+    g_win_sum = g_win_max = 0;
+    g_win_n = 0;
+}
+
+void audio_work_us(uint32_t *avg, uint32_t *max) {
+    *avg = __atomic_load_n(&g_work_avg_us, __ATOMIC_RELAXED);
+    *max = __atomic_load_n(&g_work_max_us, __ATOMIC_RELAXED);
+}
 int audio_tid(void) { return g_tid; }
 
 /* Hardware, the inject ring, the test bus, then shadow_ui's UI ring (the dev
@@ -114,6 +138,7 @@ static void *audio_main(void *arg) {
             memcpy(dst, buf, sizeof buf);
         }
         uint64_t work = mh_now_us() - t0;
+        work_note(work);
         if (work > SLOW_FRAME_US)
             mh_log("audio: slow frame %llu: %llu us (%d notes, %d params, last %s)",
                    (unsigned long long)g_frame, (unsigned long long)work, nn, served, served ? engine_last_key() : "-");

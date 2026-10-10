@@ -670,6 +670,11 @@ impl ChainSlots {
         out
     }
 
+    /// One chain's output peak of the last block (0 for a chain out of range).
+    pub fn peak(&self, i: usize) -> i32 {
+        self.peaks.get(i).copied().unwrap_or(0)
+    }
+
     /// Per-chain output peak of the last block, comma separated.
     pub fn peaks_csv(&self) -> String {
         let mut out = String::with_capacity(MOVY_CHAINS * 6);

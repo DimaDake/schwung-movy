@@ -53,7 +53,19 @@ stays outside the transport, because the filesystem is the same under both.
 { needs: 'move' })`. On a flavour without Move it is not run and prints **N/A**,
 by declaration; it stays out of the flake ledger and fails nothing. Today that
 is `master-fx`, `migrate` and `volume`. A *section* of a scenario that needs Move
-checks `t.tx.has('move')` and notes why it skipped (smoke's park/resume).
+checks `t.tx.has('move')` and notes why it skipped (smoke's park/resume). The
+reverse needs are movy-host's: `testbus` (its own bus verbs, reached as
+`t.tx.hostBus!`: log ring, midi_out tap, `UI_EVAL`, `STATE`, `CRASH`),
+`master-volume` and `power-button` (the volume knob and power button as movy's
+own). Those scenarios — `testbus`, `master-volume`, `power` — print N/A on
+overtake. `debug-tools` runs on both: the dev tools must not care.
+
+**Standalone runs fast because nothing returns to Move between scenarios.**
+With the bus file in place, `standalone/launch.sh` holds after a clean close
+(Move still down) and the transport sends it `go` or `quit`
+(`docs/standalone/movy-host.md`, *Harness mode*). A full launch through Move
+happens once per tier, and waits out Move's 15 s boot-watchdog window first.
+`./scripts/run-gate.sh both --flavour all` gates both flavours in one verdict.
 
 - **Gestures** — `dev.tap.cc/note/knob/jog`, `dev.hold*` for real holds,
   `dev.selectTrack`. One inject is one ssh round trip (~0.5 s), so a

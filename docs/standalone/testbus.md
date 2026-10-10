@@ -34,14 +34,22 @@ Read against schwung-testd 0.1.0 (`src/host/test_daemon/`, schwung `e877ed64`).
 | `engineSetQueued(k, v)` | remote-UI WebSocket (`engine-param.mjs`) | `SET_PARAM k v` (already queued) |
 | `padLeds` | testd `SNAPSHOT_PAD_LEDS` | `SNAPSHOT_PAD_LEDS` |
 | `framebuffer` | scp of `/dev/shm/schwung-display` | `FB` |
-| `logGrep(p)` | ssh `grep p debug.log` | `LOG_TAIL 0 p` |
+| `logGrep(p)` | ssh `grep p debug.log` | ssh `grep p debug.log` (see below) |
 | `launch` | testd `SET_OPEN_TOOL movy` + `overtake_mode==2` + `__ready` | `launch-standalone.sh` over ssh (until U6), then `STATE engine_ready=1` |
 | `running` | `STATE overtake_mode == 2` | `STATE running == 1` |
-| `restart` | root `restart-stack.py` + ping | `EXIT`, relaunch, `PING` |
+| `restart` | root `restart-stack.py` + ping | `EXIT`, then `go` to the held launcher, `PING` |
 | `move` | `{ park }` (ui flag 0x80) | `null` — `needs: 'move'` scenarios print N/A |
 
 Plain ssh to the box (fixture files, reading a saved Set) is not part of the
 transport: the filesystem is the same under both flavours.
+
+**`logGrep` stays on debug.log.** The ring behind `LOG_TAIL` belongs to one
+movy-host process, and in harness mode every close/open is a new process (the
+launcher hold), so a before/after count across an open would compare two
+rings. debug.log spans them, and it no longer drops lines (one writer, see
+`movy-host.md`). `LOG_SEQ`/`LOG_TAIL` are for a check inside one session; the
+transport exposes them as `tx.hostBus`, with `SUBSCRIBE`/`DUMP`, `UI_EVAL`,
+`STATE` and `CRASH`, for scenarios that declare `needs: 'testbus'`.
 
 ## Wire format
 
@@ -67,14 +75,15 @@ transport: the filesystem is the same under both flavours.
 - `ERR` is the device's answer, so the harness grades it as an **assert**. A
   closed socket or a timeout is **infra** (`test-device/errors.ts`).
 
-## What WP6 implements
+## What is implemented
 
-`host/testbus*.c` answers `PING`, `STATE`, `WAIT_FRAME`, `GET_PARAM`,
-`SET_PARAM`, `INJECT_MIDI`, `SNAPSHOT_PAD_LEDS`, `FB`, `QUIT`, `EXIT` and the two
-coexistence `ERR`s. `SUBSCRIBE`/`UNSUBSCRIBE`/`DUMP`, `LOG_SEQ`/`LOG_TAIL` and
-`UI_EVAL` reply `ERR <VERB>: not in this build (testbus v1 subset, WP7)` until
-WP7. `STATE` also carries `param_depth` (requests queued for the engine) and
-`ui_dropped` (input packets the UI ring had no room for).
+All of v1 (WP6 + WP7). `UI_EVAL` and `CRASH` exist only in dev builds
+(`build-host.sh` defines `MOVY_TESTBUS_EVAL` unless `MOVY_RELEASE=1`); a release
+build answers `ERR UI_EVAL: not built in` and `ERR CRASH: unknown verb`.
+`STATE` also carries `param_depth` (requests queued for the engine),
+`ui_dropped` (input packets the UI ring had no room for) and
+`work_avg_us`/`work_max_us` (below). `scenarios/testbus.ts` proves each verb on
+the device; `host/tests/test_log.c` pins the reply shapes.
 
 ## Verbs
 
@@ -106,7 +115,8 @@ does not use them, and the 64 KiB line covers the blob case.
 | `LOG_SEQ` | `OK seq=<n>` | The sequence number of the last line movy-host's `unified_log` wrote. It is the baseline for a delta check. |
 | `LOG_TAIL <from_seq> [<substring>]` | `OK count=<N> seq=<last>`, `LN <seq> <text>` ×N, `END` | The lines after `from_seq`, filtered by a literal substring when one is given. The host keeps the last 4096 lines in a ring. If `from_seq` is older than the ring, the header carries `lost=<k>` and the reply starts at the oldest line still held. It makes the before/after delta rule (`test-device/README.md`: "a `logLines` check must be a delta") exact, where it used to be a count of grep matches, and it needs no ssh. `debug.log` is still written, so the dev tools keep working. |
 | `EXIT` | `OK bye` | Asks movy-host for a clean shutdown: UI `onUnload`, engine flush, out ring drained, process exit within 1 s. That is the same path as SIGTERM. The reply goes out before teardown starts. `restart` is `EXIT`, then a relaunch, then `PING`. |
-| `UI_EVAL <js>` | `OK <json>` / `ERR UI_EVAL: <exception + stack>` | **Dev builds only** (compiled in with `MOVY_TESTBUS_EVAL`; a release build replies `ERR UI_EVAL: not built in`). Evaluates `<js>` on the UI thread between two ticks and replies with `JSON.stringify` of the result (a promise is awaited). This is the direct way to read the ViewModel that the `probereq`/`probersp` engine mailbox (`test-device/probe.ts`) works around today. The probe keeps working unchanged, because it is only engine params. |
+| `CRASH` | (none — the process is gone) | **Dev builds only.** SIGSEGV inside the bus thread, to prove the crash handler: a `CRASH SIGSEGV` line and a named backtrace (`-rdynamic`) land in debug.log. Not a clean close, so the launcher returns to Move. |
+| `UI_EVAL <js>` | `OK <json>` / `ERR UI_EVAL: <exception + stack>` | **Dev builds only** (compiled in with `MOVY_TESTBUS_EVAL`; a release build replies `ERR UI_EVAL: not built in`). Evaluates `<js>` on the UI thread between two ticks and replies with `JSON.stringify` of the result (a promise is awaited). This is the direct way to read the ViewModel that the `probereq`/`probersp` engine mailbox (`test-device/probe.ts`) works around today. The probe keeps working unchanged, because it is only engine params. As built: one request at a time, a 5 s answer limit, and only the eval's own promise is awaited (the UI loop runs the job queue only while one is open; shadow_ui never runs it). |
 
 ### STATE keys
 
@@ -119,6 +129,7 @@ does not use them, and the 64 KiB line covers the blob case.
 | `inject_queued` | `INJECT_MIDI` events not yet applied |
 | `uid`, `rt` | uid movy-host runs as, and the audio thread's scheduling (`fifo<prio>` or `other`), per WP0 findings §3 |
 | `overtake_mode` | **compat**: 2 while `running=1`, else 0, so `Bus`-based waits written for overtake still mean "movy owns the surface" |
+| `work_avg_us`, `work_max_us` | the audio thread's own work per frame (input, notes, params, render, output), mean and max over the last completed window of 1024 frames, against the 2902 µs budget |
 | `shim_counter` | **compat**: equal to `frame` |
 
 ## Rules this protocol keeps from the overtake harness

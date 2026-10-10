@@ -4,6 +4,7 @@
 //! MIDI sends, and renders the metronome click.
 
 mod click;
+mod pad_latency;
 mod ffi;
 mod host;
 mod host_vtable;
@@ -134,7 +135,7 @@ pub(crate) fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.88.0";
+const ENGINE_VERSION: &str = "0.89.0";
 
 /* Blocks between autosaves. The callback runs at ~344 Hz, so this is ~2 s —
  * flash on this device is not free and the sequencer is dirty constantly while
@@ -164,6 +165,7 @@ struct Instance {
     blocks: u64,
     chains: ChainSlots,
     pads: PadRoute,
+    padlat: pad_latency::PadLatency,
     /* Device-test probe mailbox. The engine is only a POSTBOX here: it holds
      * the harness's question and the UI's answer, because the harness can reach
      * the engine's params (schwung-testd's SET_PARAM/GET_PARAM route into the
@@ -216,6 +218,7 @@ impl Instance {
             blocks: 0,
             chains: ChainSlots::new(),
             pads: PadRoute::new(),
+            padlat: pad_latency::PadLatency::new(),
             probe_req: String::new(),
             probe_rsp: String::new(),
             saver: None,
@@ -260,6 +263,7 @@ impl Instance {
                 host::log(&format!("movy-dsp: mute={}", val.trim()));
             }
             "file_path" => {}
+            "padlat" => self.padlat.clear(),
             /* Ask the engine to log each chain's current output peak. The
              * remote-UI socket can WRITE an engine param but has no read verb,
              * so a device benchmark cannot poll `chpeak` — it pokes this and
@@ -670,6 +674,7 @@ impl Instance {
             "chains" => Some(self.chains.chain_set()),
             "chgen" => Some(self.chains.generation().to_string()),
             "chpeak" => Some(self.chains.peaks_csv()),
+            "padlat" => Some(self.padlat.report()),
             "diag" => Some(format!(
                 "blocks={} out_cap={} chains={} pending={} active={} asleep={}",
                 self.blocks,
@@ -856,6 +861,8 @@ impl Instance {
         self.service_set();
         self.chains.service_loads();
         self.chains.render(out_audio);
+        let chains = &self.chains;
+        self.padlat.after_render(self.blocks, |c| chains.peak(c));
     }
 }
 
@@ -943,6 +950,9 @@ unsafe extern "C" fn on_midi(instance: *mut c_void, msg: *const u8, len: c_int, 
             let d2 = unsafe { *msg.add(2) };
             if let Some(i) = inst(instance) {
                 if let Some((chain, pitch, vel, on)) = i.pads.route(status, d1, d2) {
+                    if on {
+                        i.padlat.note_on(i.blocks, chain);
+                    }
                     let m = if on { [0x90, pitch, vel] } else { [0x80, pitch, 0] };
                     i.chains.on_midi(chain, &m, MOVE_MIDI_SOURCE_INTERNAL);
                     return;

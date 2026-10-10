@@ -19,6 +19,9 @@
 #   ./scripts/run-gate.sh preflight [host]   # is the DEVICE gate itself green?
 #   ./scripts/run-gate.sh device [host]      # the full device tier
 #   ./scripts/run-gate.sh both [host]        # local, then device
+#   ... --flavour sa|overtake|all            # the device half's flavour (default
+#                                            # overtake); `all` runs overtake, then
+#                                            # movy-sa (plan WP7: both must be green)
 #
 # PREFLIGHT IS THE ONE TO RUN FIRST, before starting an item rather than after
 # finishing it. Three times in one session the tier turned out to be red for its
@@ -28,8 +31,18 @@
 # "is the gate I am about to be judged by green right now".
 set -uo pipefail
 
-MODE="${1:-local}"
-HOST="${2:-move.local}"
+FLAVOUR=overtake
+ARGS=()
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --flavour) FLAVOUR="${2:-}"; shift 2;;
+        --flavour=*) FLAVOUR="${1#*=}"; shift;;
+        *) ARGS+=("$1"); shift;;
+    esac
+done
+case "$FLAVOUR" in overtake|sa|all) ;; *) echo "--flavour must be overtake, sa or all"; exit 2;; esac
+MODE="${ARGS[0]:-local}"
+HOST="${ARGS[1]:-move.local}"
 MOVY_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$MOVY_DIR" || exit 2
 
@@ -40,7 +53,7 @@ BOLD='\033[1m'; RED='\033[0;31m'; GRN='\033[0;32m'; YLW='\033[1;33m'; RST='\033[
 if [ -z "${SCHWUNG:-}" ] && [ -d "$MOVY_DIR/../schwung/src/shared/param_pages" ]; then
     export SCHWUNG="$MOVY_DIR/../schwung"
 fi
-echo -e "${BOLD}gate:${RST} mode=$MODE host=$HOST SCHWUNG=${SCHWUNG:-<unset — the Schwung half will refuse to run>}"
+echo -e "${BOLD}gate:${RST} mode=$MODE flavour=$FLAVOUR host=$HOST SCHWUNG=${SCHWUNG:-<unset — the Schwung half will refuse to run>}"
 
 # A heartbeat, not a progress bar: it says the process is alive and how long it
 # has been, which is the only thing a reader needs while a 25-minute sweep runs.
@@ -61,7 +74,16 @@ stage() {
 }
 
 local_gate() { npm test; }
-device_tier() { npm run test:device; }
+# One tier per flavour. `all` runs both and is red if either is; the second
+# still runs after a red first, so one verdict carries both answers.
+tier() { if [ "$1" = sa ]; then npm run test:device -- --flavour sa; else npm run test:device; fi; }
+device_tier() {
+    if [ "$FLAVOUR" != all ]; then tier "$FLAVOUR"; return; fi
+    local rc=0
+    stage "device tier: overtake" tier overtake || rc=1
+    stage "device tier: movy-sa" tier sa || rc=1
+    return $rc
+}
 # The canary, and the reachability check it needs. `smoke` is the scenario that
 # opens the tool, arms its own renderer, turns knobs and reads them back — if
 # the harness is broken, it is broken here.
@@ -70,7 +92,8 @@ preflight() {
         echo -e "${YLW}DEVICE OFFLINE ($HOST) — the device gate cannot run${RST}"
         return 3
     fi
-    npm run test:device -- --scenario smoke
+    if [ "$FLAVOUR" = sa ]; then npm run test:device -- --flavour sa --scenario smoke
+    else npm run test:device -- --scenario smoke; fi
 }
 
 rc=0
@@ -80,7 +103,7 @@ case "$MODE" in
     preflight) stage "device preflight (smoke)" preflight; rc=$?;;
     both)      stage "local suites" local_gate; rc=$?
                [ $rc -eq 0 ] && { stage "device tier" device_tier; rc=$?; };;
-    *) echo "usage: $0 {local|preflight|device|both} [host]"; exit 2;;
+    *) echo "usage: $0 {local|preflight|device|both} [host] [--flavour overtake|sa|all]"; exit 2;;
 esac
 
 echo

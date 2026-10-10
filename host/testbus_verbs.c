@@ -82,10 +82,13 @@ static int set_param(char *args, tb_reply_t *o) {
 static int state(tb_reply_t *o) {
     int run = __atomic_load_n(&g_mh_ui_running, __ATOMIC_ACQUIRE);
     unsigned long long f = (unsigned long long)audio_frame();
+    uint32_t wavg, wmax;
+    audio_work_us(&wavg, &wmax);
     return reply(o, "OK frame=%llu running=%d engine_ready=%d inject_queued=%u uid=%d rt=%s "
-                    "param_depth=%d ui_dropped=%u overtake_mode=%d shim_counter=%llu",
+                    "param_depth=%d ui_dropped=%u overtake_mode=%d shim_counter=%llu "
+                    "work_avg_us=%u work_max_us=%u",
                  f, run, engine_loaded(), midi_in_inject_queued(), (int)getuid(), rt_state(),
-                 pq_depth(), midi_in_ui_dropped(), run ? 2 : 0, f);
+                 pq_depth(), midi_in_ui_dropped(), run ? 2 : 0, f, wavg, wmax);
 }
 
 int testbus_handle(const char *line, tb_reply_t *o) {

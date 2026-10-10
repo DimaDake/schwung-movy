@@ -14,10 +14,11 @@ import { fontPrint, fontWidth } from '../font/index.js';
 export type ButtonIcon = 'capture' | 'copy' | 'delete';
 
 const ICONS: Record<ButtonIcon, string[]> = {
-    /* Capture: Move's mark is a ring with a dot. */
-    capture: ['.###.', '#...#', '#.#.#', '#...#', '.###.'],
-    /* Copy: two overlapping squares. */
-    copy:    ['###..', '#.###', '###.#', '..#.#', '..###'],
+    /* Shapes from the Move manual's button figures (Capture p.87, Copy p.45).
+     * Capture: four corner brackets, a viewfinder. */
+    capture: ['##.##', '#...#', '.....', '#...#', '##.##'],
+    /* Copy: a small square, with the open corner of the one behind it. */
+    copy:    ['..###', '....#', '###.#', '#.#..', '###..'],
     /* Delete: the cross. */
     delete:  ['#...#', '.#.#.', '..#..', '.#.#.', '#...#'],
 };

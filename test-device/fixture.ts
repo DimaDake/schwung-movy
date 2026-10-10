@@ -368,6 +368,18 @@ export async function verifyChains(tx: Transport, open: () => Promise<void>,
  * touching the blob. Cheap (two scp) and idempotent. */
 export async function ensure(tx: Transport, open: () => Promise<void>,
                              close: () => Promise<void>): Promise<void> {
+    /* Without Move there are no schwung slots to seed or verify (and the
+     * remote-UI route that would read them is served by the shim, which is
+     * down): the fixture is movy's own half — its Set files and its chains.
+     * The Set is still the Move-bound one under the default `setsrc`, since
+     * active_set.txt outlives Move. WP7 decides what a library-Set fixture is. */
+    if (!tx.has('move')) {
+        await close().catch(() => {});
+        await installMovyState();
+        if (!await verifyChains(tx, open, close)) throw new Error('fixture: movy chains not established');
+        await installMovyState();   // see the note below
+        return;
+    }
     if (await verify(true)) {
         await close().catch(() => {});
         await installMovyState();

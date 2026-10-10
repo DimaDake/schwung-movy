@@ -4,11 +4,11 @@
 
 import type { Platform } from './platform.js';
 import { overtakePlatform } from './overtake.js';
+import { isStandaloneHost, standalonePlatform } from './standalone.js';
 
 export type { Platform } from './platform.js';
 export type { Caps } from './caps.js';
 
-/* Only one flavour exists until movy-host (WP6) adds the standalone one. */
-export let platform: Platform = overtakePlatform;
+export let platform: Platform = isStandaloneHost() ? standalonePlatform : overtakePlatform;
 
 export function setPlatformForTest(p: Platform): void { platform = p; }

@@ -15,8 +15,9 @@
  *     SCHWUNG=../schwung node scripts/host-globals.mjs --write
  */
 
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { readFileSync, readdirSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { dirname, join, resolve } from 'node:path';
 import { MANIFEST, movyGlobals, sharedGlobals } from '../scripts/host-globals.mjs';
 
 let fails = 0;
@@ -54,6 +55,51 @@ if (!process.env.SCHWUNG) {
            : `scanned against manifest from ${manifest.scannedAt}`);
     const stale = Object.keys(manifest.shared).filter((n) => !(n in shared));
     if (stale.length) console.log(`  note: no longer used by the shared JS: ${stale.join(', ')}`);
+}
+
+/* ── movy-host answers every entry (plan WP6) ──
+ *
+ * A manifest name is satisfied when one of these provides it:
+ *   - movy-host's own C (host/*.c registers it by its string name);
+ *   - schwung's compiled-in libraries (js_display, js_host_common), read from
+ *     the PINNED tag the host is built from, never the live checkout;
+ *   - an ES import in ui.js's banner (constants.mjs, input_filter.mjs), which
+ *     the shared JS itself provides;
+ *   - a build define (__MOVY_DEBUG__).
+ * Anything else is a global movy-host would leave undefined: a ReferenceError
+ * at the first call on the standalone flavour. */
+console.log('\nhost-globals: movy-host registers every manifest entry');
+{
+    const hostDir = resolve(dirname(MANIFEST), '..', 'host');
+    const cSrc = readdirSync(hostDir).filter((f) => f.endsWith('.c'))
+        .map((f) => readFileSync(join(hostDir, f), 'utf8')).join('\n');
+    const banner = readFileSync(resolve(hostDir, '..', 'build', 'device.mjs'), 'utf8');
+    const imported = new Set([...banner.matchAll(/import \{([^}]*)\}/g)]
+        .flatMap((m) => m[1].match(/[A-Za-z_]\w*/g) ?? []));
+    const tag = /SCHWUNG_PIN_TAG:-([^}]+)\}/.exec(readFileSync(resolve(hostDir, '..', 'scripts', 'lib', 'schwung-pin.sh'), 'utf8'))[1];
+    let libSrc = null;
+    if (process.env.SCHWUNG) {
+        try {
+            libSrc = ['src/host/js_display.c', 'src/host/js_host_common.c'].map((f) => execFileSync('git',
+                ['-C', resolve(process.env.SCHWUNG), 'show', `${tag}:${f}`], { encoding: 'utf8' })).join('\n');
+        } catch { libSrc = null; }
+    }
+    const names = [...new Set([...manifest.movy, ...Object.keys(manifest.shared)])];
+    const missing = [], unchecked = [];
+    for (const n of names) {
+        if (n === '__MOVY_DEBUG__' || imported.has(n)) continue;
+        if (n.startsWith('module:')) {
+            /* quickjs-libc's std/os, which JS_NewCustomContext registers. */
+            if (!/JS_NewCustomContext\(/.test(cSrc)) missing.push(n);
+            continue;
+        }
+        if (cSrc.includes(`"${n}"`)) continue;
+        if (libSrc === null) { unchecked.push(n); continue; }
+        if (!libSrc.includes(`"${n}"`)) missing.push(n);
+    }
+    ok('every manifest global has a provider on movy-host', missing.length === 0,
+       missing.length ? `unregistered: ${missing.join(', ')} — add it to host/globals_*.c (native or stub)`
+                      : `${names.length} names${unchecked.length ? `; ${unchecked.length} lib names unchecked (set SCHWUNG)` : ''}`);
 }
 
 console.log(fails === 0

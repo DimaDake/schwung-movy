@@ -88,6 +88,8 @@ await esbuild.build({
         /* The host seam (standalone WP1): an entry point so a suite can swap the
          * platform with setPlatformForTest and see every caller follow. */
         resolve(root, 'src/platform/index.ts'),
+        /* The movy-host platform, asserted on its own (platform-caps.mjs). */
+        resolve(root, 'src/platform/standalone.ts'),
         /* Move-only features the platform-caps suite asserts switch off. */
         resolve(root, 'src/app/led-ownership.ts'),
         resolve(root, 'src/seq/set-commit.ts'),

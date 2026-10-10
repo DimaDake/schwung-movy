@@ -67,3 +67,6 @@ declare function move_midi_inject_to_move(data: number[]): void;
 declare function shadow_set_overtake_mode(mode: number): void;
 /* Evaluates a module's own ui.js canvas in this runtime. */
 declare function shadow_load_ui_module(path: string): boolean;
+/* Defined by movy-host (the standalone flavour) before ui.js evaluates;
+ * absent under shadow_ui. Its presence is how src/platform picks a host. */
+declare const movy_host: { flavour: string; version: string; schwung: string; movy: string } | undefined;

@@ -14,3 +14,5 @@ browser-test/screenshots/actual/
 test-device/dist/
 test-device/.flake-log.json
 test-device/.last-schwung-version
+# movy-host: the pinned schwung sources and QuickJS build (scripts/build-host.sh).
+host/build/

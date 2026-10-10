@@ -611,6 +611,35 @@ gates are green.
 **Split point if it overruns:** (a) spi/audio/vtable/param_queue/midi with a JS
 stub UI, then (b) ui/globals/display/testbus.
 
+**Done 2026-10-10** (branch `standalone-migration`, no split). `host/` (40
+files, ~2350 lines, none over 200), `scripts/build-host.sh`, `standalone/` (movy-sa's
+`module.json` and launcher), `deploy.sh --sa`, `src/platform/standalone.ts`,
+`test-device/transport-standalone.ts` and `run.mjs --flavour sa`. The design and
+the measurements are in `docs/standalone/movy-host.md`. Exit: `smoke` passes
+13/13 on movy-sa, with the stack as root and as ableton. SIGTERM → exit takes
+130 ms, Sets save on close, and both overtake gates are green. Deviations and
+findings for WP7/WP8:
+- **Tick period 2 ms** (shadow_ui's overtake period), not ~200 Hz: the tick is
+  movy's input sampling interval. It measures ~380 Hz.
+- `load` reloads the host's own `dsp.so` and never dlcloses (an engine may own
+  threads). The bus file form binds `0.0.0.0`. The UI's console source stays
+  `shadow`, for the greps.
+- **Uid hygiene was four bugs** (lock, shm, log, `bin/`): a root dev run locked
+  later ableton runs out until every created file was made usable by both.
+- **After an ableton-uid exit, Move once took ~60 s to bring shadow_ui back**
+  (another such exit: under 4 s; as root: ~3 s). launch-standalone.sh's bare
+  restart is the path, and the cause is not yet understood. It weighs on WP7's
+  restart (do it without a Move round trip) and on U5.
+- Chain-load frames of 12–40 ms on the audio thread are parity with the shim,
+  which also services params on its SPI thread. Fixing them is an engine
+  change (WP7/WP11).
+- The fixture's standalone branch is movy's half only: Set files plus chains.
+  The Set is still the Move-bound one, since `setsrc` is off by default.
+- `MoveKnob2..7Touch` were declared but never used; dropped from
+  `types/schwung.d.ts` (and so from the manifest).
+- U1 and U2 are drafted, not filed: filing is outward-facing and waits for
+  the user.
+
 ### WP7: standalone parity
 
 **Goal:** `movy-sa` passes the whole device tier, with the debugging and

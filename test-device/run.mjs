@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /* Device scenario entry point.  npm run test:device [-- --scenario <name>[,<name>...]] */
 import { OvertakeTransport } from './dist/transport-overtake.js';
+import { StandaloneTransport } from './dist/transport-standalone.js';
 import { setRunMute } from './dist/engine.js';
 import { runAll } from './dist/runner.js';
 import { printFlakes } from './dist/flake-log.js';
@@ -43,15 +44,17 @@ const HOST = process.env.HOST || flag('--host')
 const only = flag('--scenario');
 const noEngine = argv.includes('--no-engine');
 
-/* Which host the tier talks to (test-device/transport.ts). Only `overtake`
- * exists until movy-host's test bus does (WP6); naming another is an error,
- * never a silent fallback to the flavour the device happens to run. */
-const FLAVOUR = flag('--flavour') ?? 'overtake';
-if (FLAVOUR !== 'overtake') {
-    console.error(`--flavour ${FLAVOUR}: no such transport yet (overtake only; standalone lands with movy-host)`);
+/* Which host the tier talks to (test-device/transport.ts): `overtake` (movy
+ * under shadow_ui, the shipping flavour) or `standalone` (movy-sa on
+ * movy-host; `sa` for short). Anything else is an error, never a silent
+ * fallback to the flavour the device happens to run. */
+const FLAVOUR = { sa: 'standalone' }[flag('--flavour')] ?? flag('--flavour') ?? 'overtake';
+if (FLAVOUR !== 'overtake' && FLAVOUR !== 'standalone') {
+    console.error(`--flavour ${FLAVOUR}: no such transport (overtake | standalone | sa)`);
     process.exit(1);
 }
-const tx = new OvertakeTransport(HOST);
+const tx = FLAVOUR === 'standalone' ? new StandaloneTransport(HOST) : new OvertakeTransport(HOST);
+if (FLAVOUR !== 'overtake') console.log(`flavour: ${FLAVOUR} (movy-sa on movy-host)`);
 
 /* Read-only, and before anything touches the device: what has needed a second
  * attempt lately, and how often. A rate is the thing that turns "flaky" from a

@@ -43,8 +43,10 @@ and `move` (the coexistence door, null without Move). `transport-overtake.ts` is
 today's implementation over schwung-testd + ui-agent + scp/ssh, and the only file
 that may name `overtake_dsp:` or import `bus`/`agent`/`daemon`
 (`browser-test/device-scripts.mjs` enforces it). The standalone flavour is a
-second implementation over movy-host's test bus (`docs/standalone/testbus.md`);
-`run.mjs --flavour` picks one. Plain ssh to the box (fixture files, a saved Set)
+second implementation over movy-host's test bus (`docs/standalone/testbus.md`),
+`transport-standalone.ts`, driving the dev tool movy-sa
+(`docs/standalone/movy-host.md`); `run.mjs --flavour sa` (or `standalone`) picks
+it, `overtake` is the default. Plain ssh to the box (fixture files, a saved Set)
 stays outside the transport, because the filesystem is the same under both.
 
 **A scenario that needs Move beside movy says so**: `scenario(name, fn,

@@ -1,9 +1,0 @@
-{
-    "id": "movy-lab",
-    "name": "Movy Lab",
-    "version": "0.0.1",
-    "description": "WP0 standalone spike (dev only, never in the catalog)",
-    "author": "movy",
-    "component_type": "tool",
-    "standalone": true
-}

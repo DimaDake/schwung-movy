@@ -46,9 +46,10 @@ transport: the filesystem is the same under both flavours.
 ## Wire format
 
 - TCP, one client at a time (a second connect waits in the backlog, as testd's
-  does). Port **47777**. Bound to `127.0.0.1` unless `MOVY_TESTBUS_BIND` names
-  another address (the harness sets `0.0.0.0`, as it sets
-  `SCHWUNG_TEST_BIND` for testd).
+  does). Port **47777**, which schwung-testd also binds: the standalone
+  transport stops testd first. Bound to `127.0.0.1` unless `MOVY_TESTBUS_BIND`
+  names another address; the file form below binds `0.0.0.0`, because the
+  harness that drops the file is on another machine.
 - **Off unless asked for.** The bus thread starts only when `MOVY_TESTBUS=1` is
   in movy-host's environment or `<module dir>/testbus` exists. The file form
   exists because `launch-standalone.sh` does not forward the harness's
@@ -65,6 +66,15 @@ transport: the filesystem is the same under both flavours.
 - Hex is lower-case, two digits per byte, no separators.
 - `ERR` is the device's answer, so the harness grades it as an **assert**. A
   closed socket or a timeout is **infra** (`test-device/errors.ts`).
+
+## What WP6 implements
+
+`host/testbus*.c` answers `PING`, `STATE`, `WAIT_FRAME`, `GET_PARAM`,
+`SET_PARAM`, `INJECT_MIDI`, `SNAPSHOT_PAD_LEDS`, `FB`, `QUIT`, `EXIT` and the two
+coexistence `ERR`s. `SUBSCRIBE`/`UNSUBSCRIBE`/`DUMP`, `LOG_SEQ`/`LOG_TAIL` and
+`UI_EVAL` reply `ERR <VERB>: not in this build (testbus v1 subset, WP7)` until
+WP7. `STATE` also carries `param_depth` (requests queued for the engine) and
+`ui_dropped` (input packets the UI ring had no room for).
 
 ## Verbs
 

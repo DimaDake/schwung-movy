@@ -264,14 +264,16 @@ scenario('smoke', async (t) => {
      * stale copy, a missing payload file (the stock fallback) or an engine that
      * never heard `chpinhost` all show up here as the wrong path. Root, because
      * the stack is root's after a restart and /proc/<pid>/maps is not
-     * world-readable. */
+     * world-readable. The engine lives in MoveOriginal (the shim) or in
+     * movy-host, by flavour. */
+    const engineProc = t.tx.flavour === 'standalone' ? 'movy-host' : 'MoveOriginal';
     const maps = await run('ssh', [...SSH_OPTS, `root@${t.host}`,
-        "grep -ho 'tools/movy/chain-[a-z]*\\.so' /proc/$(pidof MoveOriginal)/maps | sort -u"])
+        `grep -ho 'tools/movy/chain-[a-z]*\\.so' /proc/$(pidof ${engineProc})/maps | sort -u`])
         .then((r) => r.stdout.trim().split('\n').filter(Boolean)).catch(() => [] as string[]);
     const okPin = maps.length === 1 && maps[0] === 'tools/movy/chain-pinned.so';
     t.note('chainHostMaps', maps.join(', ') || '(none)');
     t.check('chain-host-pinned', 'movy\'s chains run the chain host movy ships (chpinhost)', okPin, {
-        expected: 'MoveOriginal maps tools/movy/chain-pinned.so and no other movy chain host',
+        expected: `${engineProc} maps tools/movy/chain-pinned.so and no other movy chain host`,
         actual: said(okPin, 'chain-pinned.so is the one mapped',
             maps.length === 0 ? 'no movy chain host is mapped at all'
                               : `mapped: ${maps.join(', ')}`),

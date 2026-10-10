@@ -103,6 +103,9 @@ const SLEEP_ALLOWED = new Map([
     /* Polls for a device server's port to open. The frame clock is served BY
      * that server, so there is no frame to wait on until it answers. */
     ['test-device/daemon.ts', 'waits for the frame clock itself to come up'],
+    /* movy-host IS the standalone frame clock: while it is down (its launch,
+     * its exit, Move's return between the two) there is no frame to count. */
+    ['test-device/transport-standalone.ts', 'waits across the frame clock being down'],
 ]);
 
 const sleepers = [];

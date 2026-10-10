@@ -72,4 +72,41 @@ export async function run() {
         resetSetCommit();
         resetTrackVolume();
     }
+
+    await standaloneHost();
+}
+
+/* The REAL standalone platform (movy-host, WP6), not a spy: picked only when
+ * movy-host has announced itself, and its Move-only calls never reach a
+ * global even when one is present (movy-host registers them as stubs). */
+async function standaloneHost() {
+    _log('\n── Platform: the standalone host ──');
+    const { standalonePlatform, isStandaloneHost } = await import('../../dist/esm/platform/standalone.js');
+    ok('shadow_ui (no movy_host global) is not the standalone host', !isStandaloneHost());
+    globalThis.movy_host = { flavour: 'standalone', version: 't', schwung: 't', movy: 't' };
+    try {
+        ok('movy-host announces itself through movy_host', isStandaloneHost());
+    } finally {
+        delete globalThis.movy_host;
+    }
+    eq('standalone caps', JSON.stringify(standalonePlatform.caps),
+       JSON.stringify({ coexistsWithMove: false, canSuspend: false, ownsMasterVolume: true }));
+
+    const names = ['host_suspend_overtake', 'shadow_set_overtake_suppress_sysex', 'shadow_set_overtake_mode',
+                   'shadow_set_overtake_suppress_master_volume', 'move_midi_inject_to_move',
+                   'shadow_overtake_move_inject_active'];
+    const saved = names.map((n) => globalThis[n]);
+    const hit = [];
+    for (const n of names) globalThis[n] = () => { hit.push(n); return 1; };
+    try {
+        standalonePlatform.suspend();
+        const answers = [standalonePlatform.claimLeds(), standalonePlatform.lendSurfaceToMove(true),
+                         standalonePlatform.excludeMoveFromVolume(true), standalonePlatform.canExcludeMoveFromVolume(),
+                         standalonePlatform.canInjectToMove(), standalonePlatform.engineInjectReachesMove()];
+        standalonePlatform.injectToMove([0x0b, 0xb0, 85, 127]);
+        eq('standalone: every Move-only call answers "cannot"', answers.join(','), 'false,false,false,false,false,false');
+        eq('standalone: no Move-only global is reached even when present', hit.join(','), '');
+    } finally {
+        names.forEach((n, i) => { if (saved[i] === undefined) delete globalThis[n]; else globalThis[n] = saved[i]; });
+    }
 }

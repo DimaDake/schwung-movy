@@ -151,6 +151,9 @@ if you are opus or fable 5 try to optimize token usage and make it cost efficien
 cd engine && cargo test            # pure seq-core logic (host)
 ./scripts/build-dsp.sh             # cross-compile aarch64 → dist/dsp.so (glibc <= 2.35)
 ./scripts/deploy.sh                # builds ui.js + dsp.so, deploys both (atomic .so)
+./scripts/deploy.sh --sa           # also movy-sa, the standalone dev flavour (movy-host)
+bash host/tests/run.sh             # movy-host unit tests (in npm test); scripts/test-host-linux.sh under glibc
+npm run test:device -- --flavour sa --scenario smoke   # a scenario on movy-sa (docs/standalone/movy-host.md)
 npm run test:device                # device e2e, every scenario (builds + ships dsp.so and ui.js)
 ```
 

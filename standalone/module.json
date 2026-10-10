@@ -1,0 +1,9 @@
+{
+    "id": "movy-sa",
+    "name": "Movy SA (dev)",
+    "version": "0.0.0",
+    "author": "megadake",
+    "description": "Movy on movy-host, the standalone flavour (dev only, never in the catalog)",
+    "component_type": "tool",
+    "standalone": true
+}

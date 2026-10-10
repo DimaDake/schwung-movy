@@ -4,7 +4,9 @@
 # esbuild bundles all TypeScript (model, renderer, font, modules) into ui.js.
 # ui_font.mjs is no longer deployed separately.
 #
-# Usage: ./scripts/deploy.sh [--release] [--no-restart] [host]   (default: move.local)
+# Usage: ./scripts/deploy.sh [--release] [--no-restart] [--sa] [host]   (default: move.local)
+#
+# --sa also installs movy-sa, the standalone dev flavour (scripts/lib/deploy-sa.sh).
 #
 # A CHANGED dsp.so restarts the Move stack, because nothing else makes it run:
 # the shim dlopens the engine by path and glibc keeps handing back the library
@@ -19,10 +21,12 @@
 set -euo pipefail
 RELEASE=0
 RESTART=1
+SA=0
 while [[ "${1:-}" == --* ]]; do
     case "$1" in
         --release)    RELEASE=1 ;;
         --no-restart) RESTART=0 ;;
+        --sa)         SA=1 ;;
         *) echo "unknown option: $1" >&2; exit 1 ;;
     esac
     shift
@@ -36,6 +40,8 @@ cd "$DIR"
 . "$DIR/scripts/lib/build-release-ui.sh"
 # shellcheck source=lib/restart-stack.sh
 . "$DIR/scripts/lib/restart-stack.sh"
+# shellcheck source=lib/deploy-sa.sh
+. "$DIR/scripts/lib/deploy-sa.sh"
 if [[ "$RELEASE" == 1 ]]; then build_release_ui "$DIR"; else node build/device.mjs; fi
 ./scripts/build-dsp.sh
 ssh "ableton@$HOST" "mkdir -p $REMOTE"
@@ -72,6 +78,7 @@ scp "$DIR/dist/chain-host.so" "ableton@$HOST:$REMOTE/chain-host.so.new"
 ssh "ableton@$HOST" "mv $REMOTE/dsp.so.new $REMOTE/dsp.so && mv $REMOTE/chain-host.so.new $REMOTE/chain-host.so"
 AFTER=$(ssh "ableton@$HOST" "$ENGINE_MD5")
 echo "deployed $([[ "$RELEASE" == 1 ]] && echo 'RELEASE' || echo 'debug') build to $HOST"
+if [[ "$SA" == 1 ]]; then deploy_sa "$HOST"; fi
 
 if [[ "$BEFORE" == "$AFTER" ]]; then
     echo "engine unchanged — no restart needed"

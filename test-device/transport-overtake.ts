@@ -2,12 +2,13 @@ import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { join } from 'node:path';
 import { Bus } from './bus.js';
+import { TransportError } from './errors.js';
 import { Agent, UI_FLAG_JUMP_TO_TOOLS } from './agent.js';
 import { ensureServers, stopServers, type Started } from './daemon.js';
+import { grepDebugLog } from './device-log.js';
 import { scpFramebuffer } from './display.js';
 import { deployEngine, deployUi, repoRoot, restartStack } from './engine.js';
 import type { Packet } from './midi.js';
-import { SSH_OPTS } from './ssh.js';
 import type { MoveSide, Need, Transport } from './transport.js';
 import { until } from './wait.js';
 
@@ -41,6 +42,12 @@ export class OvertakeTransport implements Transport {
     async connect(): Promise<void> {
         this.started = await ensureServers(this.host);
         await this.bus.connect();
+        /* movy-host's test bus answers on the same port. Grading the overtake
+         * flavour through it would hang on a Move that is not running. */
+        const banner = await this.bus.ping();
+        if (!banner.startsWith('schwung-testd'))
+            throw new TransportError(`port 47777 is not schwung-testd ("${banner}") — movy-sa still running? `
+                                     + 'run a standalone tier to its end, or EXIT it');
         await this.agent.connect();
     }
 
@@ -68,15 +75,7 @@ export class OvertakeTransport implements Transport {
     padLeds(): Promise<Uint8Array> { return this.bus.padLeds(); }
     framebuffer(): Promise<Buffer> { return scpFramebuffer(this.host); }
 
-    /* Out of band over ssh, so it competes with no param traffic — which is
-     * why waits on a restore read the log rather than the engine. No match is
-     * an empty list; a failed ssh THROWS, because a delta whose baseline read
-     * silently came back empty is satisfied by any old line. */
-    async logGrep(pattern: string): Promise<string[]> {
-        const { stdout } = await run('ssh', [...SSH_OPTS, `ableton@${this.host}`,
-            `grep '${pattern}' /data/UserData/schwung/debug.log 2>/dev/null || true`]);
-        return stdout.split('\n').filter(Boolean);
-    }
+    logGrep(pattern: string): Promise<string[]> { return grepDebugLog(this.host, pattern); }
 
     /* TWO gates, separate budgets.
      *

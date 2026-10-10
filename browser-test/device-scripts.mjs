@@ -617,7 +617,8 @@ const BASH_SUITES_LEFT = [
 
 const deviceSuites = readdirSync(SCRIPTS)
     .filter((f) => f.startsWith('test-') && f.endsWith('.sh'))
-    .filter((f) => f !== 'test-all-device.sh');   // the runner, not a suite
+    .filter((f) => f !== 'test-all-device.sh')    // the runner, not a suite
+    .filter((f) => f !== 'test-host-linux.sh');   // movy-host unit tests in a local container, no device
 
 const added = deviceSuites.filter((f) => !BASH_SUITES_LEFT.includes(f));
 ok('no bash device suite outside the allowlist', added.length === 0,
@@ -736,8 +737,8 @@ log('\nTest: slot-param.mjs reads through an update that lacks the key');
 /* ── The transport seam (standalone migration WP5) ─────────────────────────
  * Scenarios and the shared harness talk to test-device/transport.ts, so the
  * standalone flavour is a second implementation rather than a rewrite. Only
- * transport-overtake.ts may reach the overtake host's own clients, and only it
- * may spell the host's `overtake_dsp:` engine namespace. Comments are stripped:
+ * the transports (transport-*.ts) may reach a host's own clients, and only the
+ * overtake one may spell that host's `overtake_dsp:` engine namespace. Comments are stripped:
  * explaining the overtake host by name is fine; calling it is not.
  */
 log('\nTest: scenarios reach the device only through the transport');

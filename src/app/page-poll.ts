@@ -46,7 +46,7 @@
  */
 
 import { appState, VIEW_KNOBS, VIEW_CHAIN, VIEW_CLIP_PARAMS, VIEW_MAIN_PARAMS,
-         VIEW_BROWSE, VIEW_FILE_BROWSE, VIEW_FLAGS, VIEW_VERSIONS, VIEW_CPU } from './state.js';
+         VIEW_BROWSE, VIEW_FILE_BROWSE, VIEW_FLAGS, VIEW_VERSIONS, VIEW_CPU, VIEW_SETS } from './state.js';
 import { seqState } from '../seq/state.js';
 import { sessionReady } from '../seq/set-session.js';
 import { schwungEditorActive } from '../renderer/schwung-editor.js';
@@ -85,7 +85,7 @@ export function moduleGridOnScreen(): boolean {
     return appState.currentView === VIEW_KNOBS || appState.currentView === VIEW_CHAIN;
 }
 
-const SCREEN_OWNING_VIEWS = new Set([VIEW_BROWSE, VIEW_FILE_BROWSE, VIEW_FLAGS, VIEW_VERSIONS, VIEW_CPU]);
+const SCREEN_OWNING_VIEWS = new Set([VIEW_BROWSE, VIEW_FILE_BROWSE, VIEW_FLAGS, VIEW_VERSIONS, VIEW_CPU, VIEW_SETS]);
 
 /* The drawn cells as of this tick. Module-level because it is read again at
  * render time — the LED row is lit from the same eight numbers that decided the

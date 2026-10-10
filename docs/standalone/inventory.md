@@ -59,6 +59,8 @@ The modules movy imports (`src/renderer/schwung-lib.ts:176-228`, the 16
 | `shadow_get_held_step`, `shadow_get_held_step_is_hold` | page_controller | native: `midi_in.c` keeps the held-step state the shim kept |
 | `shadow_get_delete_held` | page_controller | native, same |
 | `shadow_get_scene_state` | page_controller | native (movy's scene state) or stub |
+| `clear_screen`, `host_read_file` | text_entry (WP4's Set rename) | native |
+| `host_pad_block`, `shadow_get_pad_led_snapshot` | text_entry, pad typing only | native in `midi_in.c` / the LED cache, or stub (pad typing off) |
 | ES modules `"std"` and `"os"` | `wav_io_qjs.mjs:17-18` | **native: movy-host must register quickjs-libc's `std`/`os` modules.** The plan's list did not mention this |
 
 This table is the runtime surface a schwung update can break. WP1's manifest

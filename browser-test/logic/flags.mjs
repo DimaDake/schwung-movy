@@ -402,13 +402,15 @@ export async function run() {
     installMockFs();
     resetFlags();
 
-    /* One flag ships: Param Pages is a user's choice of renderer. The others
-     * are instruments — `setcommit` and `engpersist` stay debug-only. */
+    /* Two flags ship: Param Pages is a user's choice of renderer, Movy Sets a
+     * user's choice of where Sets live (the Sets page sends a Move-mode user
+     * here). The others are instruments — `setcommit` and `engpersist` stay
+     * debug-only. */
     ok('Param Pages is a release row', flagDef('schwunggrid').release === true);
     ok('the instruments are not',
        !flagDef('setcommit').release && !flagDef('engpersist').release);
     const rel = visibleFlags(false).map((f) => f.key);
-    eq('a release build lists exactly Param Pages', rel.join(','), 'schwunggrid');
+    eq('a release build lists exactly Param Pages and Movy Sets', rel.join(','), 'schwunggrid,setsrc');
     const dbg = visibleFlags(true).map((f) => f.key);
     eq('a debug build lists every flag', dbg.length, FLAGS.length);
     /* FLAGS lists release rows first, so a release list is a PREFIX of the

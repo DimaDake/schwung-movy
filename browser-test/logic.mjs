@@ -38,6 +38,7 @@ import { run as run_envelope } from './logic/envelope.mjs';
 import { run as run_set_state } from './logic/set-state.mjs';
 import { run as run_old_set } from './logic/old-set.mjs';
 import { run as run_versions } from './logic/versions.mjs';
+import { run as run_sets } from './logic/sets.mjs';
 import { run as run_probe } from './logic/probe.mjs';
 import { run as run_set_restore_loss } from './logic/set-restore-loss.mjs';
 import { run as run_lfo } from './logic/lfo.mjs';
@@ -135,6 +136,7 @@ const SUITES = [
     run_set_state,
     run_old_set,
     run_versions,
+    run_sets,
     run_probe,
     run_set_restore_loss,
     run_lfo,

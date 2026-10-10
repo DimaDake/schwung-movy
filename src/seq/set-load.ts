@@ -7,7 +7,8 @@
 import { requestLabelSync } from './engine.js';
 import { flagValue } from './flags.js';
 import { findInheritCandidates } from './set-inherit.js';
-import { SETS_DIR, loadNameIndex } from './set-context.js';
+import { loadNameIndex } from './set-context.js';
+import { setSourceMovy, setsDir } from './set-source.js';
 import { paramAvailable, paramGet, paramSet } from '../host/param.js';
 import { mlog } from '../log.js';
 import { noteRestore } from './restore-gate.js';
@@ -80,7 +81,7 @@ export function openSet(id: string, seed: string | null): void {
      * engine comes up knowing nothing, and an engine with no sets directory
      * answers `phase=failed reason=no-setsdir` forever. One extra param write
      * per Set load buys a path that heals itself. */
-    paramSet('setsdir', SETS_DIR, 200);
+    paramSet('setsdir', setsDir(), 200);
     const cmd = 'open ' + id + (seed ? ' seed=' + seed : '');
     paramSet('set', cmd, 200);
     /* The restore carries the lane labels with it either way, so the automation
@@ -102,7 +103,9 @@ export function loadSet(id: string, name: string): { payload: string; gen: numbe
      * lose — and the UI blob still applies, because its half is still the
      * UI's (the chains inside it are a mirror, ui-state.ts). */
     if (flagValue('engpersist')) {
-        const seed = seedFor(name);
+        /* Copy-on-inherit is Move's "X Copy" naming; a library Set is
+         * duplicated by the engine with its bytes already in place. */
+        const seed = setSourceMovy() ? null : seedFor(name);
         /* The engine seeds only the half it owns. The UI half has to come too,
          * and under the engine's own rule (a seed never overrides a Set that
          * owns state) — judged BEFORE the open, whose seed may land first. A

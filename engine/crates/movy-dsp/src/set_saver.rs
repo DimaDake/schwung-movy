@@ -53,6 +53,9 @@ pub enum Job {
     /// The once-per-session sweep. It runs here because it is file work, and
     /// it is pure hygiene: it must never delay an instrument becoming playable.
     Gc { keep: String, paths: crate::set_gc::GcPaths },
+    /// movy's own library (set_lib_jobs.rs): on this thread so a duplicate or
+    /// a delete can never race an autosave of the same Set.
+    Lib(crate::set_lib_jobs::LibCmd),
     Flush,
 }
 
@@ -101,11 +104,15 @@ struct Shared {
     /// uuids. The UI drops those names from `name-index.json`, which is all
     /// that file is for now that the sweep no longer walks it.
     gc: String,
+    /// The library's answer (`set_library::wire`), empty until the first
+    /// `lib` command makes this a library-rooted saver.
+    lib: String,
 }
 
 pub struct Saver {
     tx: Sender<Msg>,
     shared: Arc<Mutex<Shared>>,
+    root: String,
 }
 
 /// Total by construction: this runs on the audio thread, and a malformed
@@ -143,6 +150,7 @@ pub fn parse_cmd(val: &str, cur: &str) -> Option<Job> {
             Some(Job::Gc { keep, paths: crate::set_gc::GcPaths::from_cmd(&sets, &pages) })
         }
         "flush" => Some(Job::Flush),
+        "lib" => crate::set_lib_jobs::parse(val.trim_start().strip_prefix("lib")?).map(Job::Lib),
         _ => None,
     }
 }
@@ -265,6 +273,7 @@ fn worker(root: String, shared: Arc<Mutex<Shared>>, rx: std::sync::mpsc::Receive
      * ~8 s later, and a session opened and played into records its second
      * version within seconds of its first — the rotation's job, not history's. */
     let mut last_auto_ms = 0u64;
+    let mut lib: Option<crate::set_lib_jobs::LibState> = None;
     while let Ok(msg) = rx.recv() {
         match msg {
             Msg::Sync(ack) => {
@@ -273,6 +282,9 @@ fn worker(root: String, shared: Arc<Mutex<Shared>>, rx: std::sync::mpsc::Receive
             Msg::Work(Job::Open { uuid, seed }) => {
                 do_open(&store, &shared, &uuid, seed.as_deref());
                 last_auto_ms = now_ms();
+                if let Some(w) = lib.as_mut().and_then(|l| l.on_open(&uuid)) {
+                    shared.lock().unwrap().lib = w;
+                }
             }
             Msg::Work(Job::Rename { from, to }) => {
                 /* The id changed but the Set did not, so the work in hand moves
@@ -336,6 +348,11 @@ fn worker(root: String, shared: Arc<Mutex<Shared>>, rx: std::sync::mpsc::Receive
                     }
                     res.is_ok()
                 };
+                if saved {
+                    if let Some(w) = lib.as_mut().and_then(|l| l.on_save(&uuid, &payload)) {
+                        shared.lock().unwrap().lib = w;
+                    }
+                }
                 /* Rides the save that just landed, so the history costs no
                  * extra read — and is rate-limited here, because this arm runs
                  * every few seconds for as long as movy is open. */
@@ -398,6 +415,15 @@ fn worker(root: String, shared: Arc<Mutex<Shared>>, rx: std::sync::mpsc::Receive
                 }
             }
             Msg::Work(Job::Gc { keep, paths }) => {
+                /* Refused for a library. The sweep deletes any Set Move does
+                 * not know, and Move knows none of a library's ids — run there,
+                 * it would empty the library. */
+                let library = lib.is_some()
+                    || store.root.parent().is_some_and(|p| p.join("library.json").exists());
+                if library {
+                    shared.lock().unwrap().gc = "collected=0".to_string();
+                    continue;
+                }
                 let removed = crate::set_gc::collect(&store, &paths, &keep);
                 /* The uuids, not just a count: the UI drops those names from
                  * `name-index.json`, and it has no way to list the directory
@@ -408,6 +434,12 @@ fn worker(root: String, shared: Arc<Mutex<Shared>>, rx: std::sync::mpsc::Receive
                     line.push_str(uuid);
                 }
                 shared.lock().unwrap().gc = line;
+            }
+            Msg::Work(Job::Lib(cmd)) => {
+                let open = shared.lock().unwrap().uuid.clone();
+                let st = lib.get_or_insert_with(|| crate::set_lib_jobs::LibState::open(&store.root));
+                let w = st.run(&store, cmd, &open, now_ms());
+                shared.lock().unwrap().lib = w;
             }
             Msg::Work(Job::Flush) => {}
         }
@@ -427,12 +459,15 @@ impl Saver {
             versions: String::new(),
             vui: "none".to_string(),
             gc: "idle".to_string(),
+            lib: String::new(),
         }));
         let w = Arc::clone(&shared);
-        let root = root.to_string();
-        std::thread::spawn(move || worker(root, w, rx));
-        Saver { tx, shared }
+        let r = root.to_string();
+        std::thread::spawn(move || worker(r, w, rx));
+        Saver { tx, shared, root: root.to_string() }
     }
+
+    pub fn root(&self) -> &str { &self.root }
 
     pub fn submit(&self, job: Job) {
         /* Counted BEFORE the send, so a status read between submit and the
@@ -465,6 +500,10 @@ impl Saver {
             s.push_str(&format!(" reason={}", sh.reason));
         }
         s
+    }
+
+    pub fn lib(&self) -> String {
+        self.shared.lock().unwrap().lib.clone()
     }
 
     pub fn versions(&self) -> String {
@@ -878,5 +917,72 @@ mod tests {
         s.submit(Job::Open { uuid: "own".into(), seed: Some("src".into()) });
         s.drain_for_test();
         assert_eq!(s.take_loaded().expect("loaded").0, "movy1\nbpm 90000\n");
+    }
+
+    fn lib_cmd(s: &Saver, cmd: &str) -> String {
+        s.submit(parse_cmd(cmd, "").expect(cmd));
+        s.drain_for_test();
+        s.lib()
+    }
+    fn field<'a>(w: &'a str, k: &str) -> &'a str {
+        w.lines().next().unwrap().split(' ').find_map(|t| t.strip_prefix(k)).unwrap()
+    }
+
+    #[test]
+    fn the_library_runs_on_the_saver_thread() {
+        let base = tmp("lib");
+        let root = format!("{base}/Movy/Sets");
+        let s = Saver::new(&root);
+        assert_eq!(s.lib(), "", "no library until a lib command arrives");
+
+        let w = lib_cmd(&s, &format!("lib import legacy={base}/none move={base}/none"));
+        assert_eq!(field(&w, "rev="), "1");
+        let w = lib_cmd(&s, "lib new 2026-10-10_01");
+        let id = field(&w, "made=").to_string();
+        assert!(w.contains(&format!("{id}\t0\t0\t2026-10-10_01")), "{w}");
+
+        /* The open records the last-open Set; the save caches its clips. */
+        s.submit(Job::Open { uuid: id.clone(), seed: None });
+        s.submit(Job::Save { uuid: id.clone(), payload: "movy1\ncl 0 0 16 0 x\n".into(), gen: 1, chains: "0\n".into() });
+        s.drain_for_test();
+        let w = s.lib();
+        assert_eq!(field(&w, "cur="), id);
+        assert!(w.contains(&format!("{id}\t1\t0\t")), "{w}");
+        let idx = std::fs::read_to_string(format!("{base}/Movy/library.json")).unwrap();
+        assert!(idx.contains(&format!("\"current\":\"{id}\"")), "{idx}");
+
+        /* The open Set cannot be deleted from under the saver. */
+        assert_eq!(field(&lib_cmd(&s, &format!("lib del {id}")), "err="), "busy");
+        let w = lib_cmd(&s, &format!("lib dup {id} 2026-10-10_01 Copy"));
+        let copy = field(&w, "made=").to_string();
+        let w = lib_cmd(&s, &format!("lib del {copy}"));
+        assert_eq!(field(&w, "err="), "-");
+        assert!(!w.lines().skip(1).any(|l| l.starts_with(copy.as_str())), "{w}");
+    }
+
+    /* The Move-keyed sweep must never run over a library: every library id is
+     * one Move has never heard of, so it would delete them all. */
+    #[test]
+    fn the_dead_set_sweep_never_touches_a_library() {
+        let base = tmp("lib-gc");
+        let root = format!("{base}/Movy/Sets");
+        /* A REAL, empty Move Sets dir: an unreadable one makes the sweep
+         * collect nothing, which would pass this test with the guard gone. */
+        std::fs::create_dir_all(format!("{base}/MoveSets/someone-else")).unwrap();
+        let s = Saver::new(&root);
+        lib_cmd(&s, &format!("lib import legacy={base}/none move={base}/none"));
+        let w = lib_cmd(&s, "lib new A");
+        let id = field(&w, "made=").to_string();
+        s.submit(Job::Save { uuid: id.clone(), payload: "movy1\ncl 0 0 16 0 x\n".into(), gen: 1, chains: "0\n".into() });
+        s.submit(parse_cmd(&format!("gc keep=other sets={base}/MoveSets"), "").unwrap());
+        s.drain_for_test();
+        assert!(std::path::Path::new(&format!("{root}/{id}/seq-state.json")).exists(), "the library Set survives");
+        assert_eq!(s.gc(), "collected=0");
+
+        /* A fresh saver on the same library (before any lib command) too. */
+        let s2 = Saver::new(&root);
+        s2.submit(parse_cmd(&format!("gc keep=other sets={base}/MoveSets"), "").unwrap());
+        s2.drain_for_test();
+        assert!(std::path::Path::new(&format!("{root}/{id}/seq-state.json")).exists());
     }
 }

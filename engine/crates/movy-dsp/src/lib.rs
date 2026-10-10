@@ -31,6 +31,10 @@ mod set_store;
 mod chain_state;
 mod set_saver;
 mod set_gc;
+mod mini_json;
+mod set_library;
+mod set_import;
+mod set_lib_jobs;
 mod version_index;
 mod version_retain;
 mod version_store;
@@ -130,7 +134,7 @@ pub(crate) fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.87.0";
+const ENGINE_VERSION: &str = "0.88.0";
 
 /* Blocks between autosaves. The callback runs at ~344 Hz, so this is ~2 s —
  * flash on this device is not free and the sequencer is dirty constantly while
@@ -428,8 +432,12 @@ impl Instance {
              * and tells the engine, rather than the engine hardcoding it: the
              * host tests run against a tmpdir, and a hardcoded device path is
              * untestable anywhere else. */
+            /* A DIFFERENT path re-roots: Move mode and movy's own library are
+             * two trees, and a saver left on the old one would write the next
+             * autosave into the wrong Set. The old saver's thread finishes its
+             * queued jobs and exits when its channel drops. */
             "setsdir" => {
-                if self.saver.is_none() {
+                if self.saver.as_ref().map_or(true, |s| s.root() != val) {
                     self.saver = Some(set_saver::Saver::new(val));
                 }
             }
@@ -478,6 +486,25 @@ impl Instance {
                             let chains = chain_state::serialize(&mut self.chains);
                             carry = Some(set_saver::Job::Save {
                                 uuid: to.clone(),
+                                payload: payload.clone(),
+                                gen: self.set_gen,
+                                chains: chains.clone(),
+                            });
+                            self.last_saved = Some((payload, chains));
+                            self.engine.dirty = false;
+                        }
+                        /* A duplicate of the open Set copies its FILES, which
+                         * lag the engine by up to one autosave interval. Save
+                         * what is in hand first; the saver runs jobs in order,
+                         * so the copy sees it. */
+                        set_saver::Job::Lib(set_lib_jobs::LibCmd::Dup(src, _))
+                            if *src == self.set_uuid && self.engpersist =>
+                        {
+                            self.set_gen += 1;
+                            let payload = seq_core::persist::serialize(&self.engine);
+                            let chains = chain_state::serialize(&mut self.chains);
+                            carry = Some(set_saver::Job::Save {
+                                uuid: src.clone(),
                                 payload: payload.clone(),
                                 gen: self.set_gen,
                                 chains: chains.clone(),
@@ -612,6 +639,9 @@ impl Instance {
              * here would be file I/O on the audio thread — the one thing this
              * module's own doc comment forbids. */
             "versions" => Some(self.saver.as_ref().map_or_else(String::new, |s| s.versions())),
+            /* movy's own library, formatted by the saver thread for the same
+             * reason `versions` is. Empty until a `lib` command arrives. */
+            "lib" => Some(self.saver.as_ref().map_or_else(String::new, |s| s.lib())),
             /* The restored version's ui half. `failed` with no saver, because
              * "no engine to ask" must not read as "this version has no ui". */
             "vui" => Some(self.saver.as_ref().map_or_else(|| "failed".to_string(), |s| s.vui())),
@@ -1432,6 +1462,47 @@ mod tests {
         std::thread::sleep(std::time::Duration::from_millis(200));
         assert!(!std::path::Path::new(&format!("{dir}/__pending-1-2")).exists(),
                 "the provisional directory must not be left behind");
+    }
+
+    #[test]
+    fn a_different_setsdir_re_roots_the_saver() {
+        let a = saver_tmp("reroot-a");
+        let b = saver_tmp("reroot-b");
+        let mut inst = Instance::new();
+        inst.set_param("setsdir", &a);
+        inst.set_param("setsdir", &a);
+        assert_eq!(inst.saver.as_ref().unwrap().root(), a);
+        inst.set_param("setsdir", &b);
+        assert_eq!(inst.saver.as_ref().unwrap().root(), b, "a new tree gets a new saver");
+    }
+
+    /* A duplicate of the open Set must carry the edit made a moment ago, not
+     * the last autosave: the engine saves what it is holding before the copy. */
+    #[test]
+    fn duplicating_the_open_set_copies_the_work_in_hand() {
+        let base = saver_tmp("libdup");
+        let dir = format!("{base}/Sets");
+        let mut inst = Instance::new();
+        inst.set_param("setsdir", &dir);
+        inst.set_param("engpersist", "1");
+        inst.set_param("set", "lib import legacy=/nonexistent move=/nonexistent");
+        inst.set_param("set", "lib new A");
+        let wait = |inst: &mut Instance, ok: &dyn Fn(&str) -> bool| {
+            for _ in 0..400 {
+                if let Some(l) = inst.get_param("lib") { if ok(&l) { return l; } }
+                std::thread::sleep(std::time::Duration::from_millis(5));
+            }
+            panic!("lib never answered");
+        };
+        let w = wait(&mut inst, &|l| !l.contains("made=-") && l.starts_with("rev="));
+        let id = w.split(' ').find_map(|t| t.strip_prefix("made=")).unwrap().to_string();
+        inst.set_param("set", &format!("open {id}"));
+        inst.set_param("cmd", "bpm 14000");
+        inst.set_param("set", &format!("lib dup {id} A Copy"));
+        let w = wait(&mut inst, &|l| !l.contains(&format!("made={id}")));
+        let copy = w.split(' ').find_map(|t| t.strip_prefix("made=")).unwrap().to_string();
+        let got = std::fs::read_to_string(format!("{dir}/{copy}/seq-state.json")).expect("copy has state");
+        assert!(got.contains("bpm 14000"), "the work in hand must travel: {got:?}");
     }
 
     /* `sapl` exists so the UI can tell "the open I asked for has landed" from

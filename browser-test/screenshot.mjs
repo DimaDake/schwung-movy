@@ -40,6 +40,7 @@ const PRESETS = [
     'session_migrating', 'session_failed',
     'session_failed_update',
     'versions_empty', 'versions_list', 'versions_confirm',
+    'sets_list', 'sets_long_names', 'sets_confirm', 'sets_move_mode',
     'obxd_preset_page', 'obxd_main_page', 'obxd_filter_page',
     'items_cell', 'items_overlay',
     'lfo_prefix', 'collide_osc',
@@ -254,6 +255,8 @@ const { drawLeaveModal }   = await import('../dist/esm/renderer/leave-modal-view
 const { drawCaptureOverlay } = await import('../dist/esm/renderer/capture-overlay.js');
 const { drawQuantOverlay } = await import('../dist/esm/renderer/quant-overlay.js');
 const { renderFlagsView } = await import('../dist/esm/renderer/flags-view.js');
+const { renderSetsView }  = await import('../dist/esm/renderer/sets-view.js');
+const { buildSetsPageVM } = await import('../dist/esm/seq/sets-page-vm.js');
 const { renderCpuView }   = await import('../dist/esm/renderer/cpu-view.js');
 const { buildCpuPageVM }  = await import('../dist/esm/seq/cpu-page-vm.js');
 const { paramSet, resetParamStats } = await import('../dist/esm/host/param.js');
@@ -518,6 +521,41 @@ function applyView(preset) {
             lastRender = () => renderVersionsView({
                 rows: [{ age: '2M AGO', why: 'OPENED', clips: '6 CLIPS', seqOnly: false }],
                 selected: 0, confirming: true, empty: false });
+            lastRender(); break;
+        /* movy's own Sets (WP4): [NEW], newest first, a duplicate after its
+         * source, the open Set's dot at the end, the icon footer. */
+        case 'sets_list': {
+            const rows = [
+                { id: 'c', clips: 3, depth: 0, name: '2026-10-10_02' },
+                { id: 'b', clips: 12, depth: 0, name: 'Night Drive' },
+                { id: 'b2', clips: 12, depth: 1, name: 'Night Drive Copy' },
+                { id: 'a', clips: 0, depth: 0, name: '2026-10-10_01' },
+                { id: 'o', clips: 7, depth: 0, name: 'Set 39' },
+            ];
+            lastRender = () => renderSetsView(buildSetsPageVM(true, rows, 'b', 2, false));
+            lastRender(); break;
+        }
+        /* A name too long for its count gives up the count, never its end;
+         * the open Set keeps its dot either way. */
+        case 'sets_long_names': {
+            const rows = [
+                { id: 'l', clips: 4, depth: 0, name: 'A very long set name that runs out of room' },
+                { id: 'm', clips: 9, depth: 0, name: 'Medium length name here' },
+                { id: 's', clips: 1, depth: 0, name: 'Short' },
+            ];
+            lastRender = () => renderSetsView(buildSetsPageVM(true, rows, 'l', 1, false));
+            lastRender(); break;
+        }
+        case 'sets_confirm': {
+            const rows = [
+                { id: 'b', clips: 12, depth: 0, name: 'Night Drive' },
+                { id: 'a', clips: 0, depth: 0, name: '2026-10-10_01' },
+            ];
+            lastRender = () => renderSetsView(buildSetsPageVM(true, rows, 'a', 1, true));
+            lastRender(); break;
+        }
+        case 'sets_move_mode':
+            lastRender = () => renderSetsView(buildSetsPageVM(false, null, '', 0, false));
             lastRender(); break;
         case 'browse_view':      showBrowse([{ name: 'Plaits' }, { name: 'Wurl' }, { name: 'Bass' }], 1); break;
         /* The other browser: the one a FILE parameter opens, which is what "hold

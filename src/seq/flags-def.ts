@@ -103,6 +103,22 @@ export const FLAGS: FlagDef[] = [
         release: true, revisedAt: 6,
     },
     {
+        key: 'setsrc', name: 'Movy Sets',
+        hint: 'MOVY: movy keeps its own Sets. Next open.',
+        // WHERE MOVY'S SETS COME FROM.
+        //
+        //   MOVE  follow Move's active Set (active_set.txt), as always
+        //   MOVY  movy's own library (UserLibrary/Movy), Shift+Step 1
+        //
+        // Standalone movy has no Move to follow, so movy-host is always MOVY;
+        // in overtake this stays MOVE by default until standalone ships (WP4
+        // decision). The first MOVY open copies every Move-bound Set across.
+        // Read once per session (set-source.ts): flipping it mid-session would
+        // move the open Set's files out from under the autosave.
+        // `uiOnly`: the engine learns it as a `setsdir` and `lib` commands.
+        min: 0, max: 1, def: 0, labels: ['MOVE', 'MOVY'], uiOnly: true, release: true,
+    },
+    {
         key: 'setcommit', name: 'Commit New Sets',
         hint: 'Asks Move to save a new set.',
         // Move writes a Set to disk only once MOVE itself has something to save

@@ -60,9 +60,19 @@
     "shadow_set_params"
   ],
   "shared": {
+    "clear_screen": [
+      "src/shared/text_entry.mjs"
+    ],
     "fill_rect": [
       "src/shared/menu_layout.mjs",
-      "src/shared/overlay_card.mjs"
+      "src/shared/overlay_card.mjs",
+      "src/shared/text_entry.mjs"
+    ],
+    "host_pad_block": [
+      "src/shared/text_entry.mjs"
+    ],
+    "host_read_file": [
+      "src/shared/text_entry.mjs"
     ],
     "host_send_screenreader": [
       "src/shared/screen_reader.mjs"
@@ -74,11 +84,13 @@
       "src/shared/param_pages/wav_io_qjs.mjs"
     ],
     "move_midi_internal_send": [
-      "src/shared/input_filter.mjs"
+      "src/shared/input_filter.mjs",
+      "src/shared/text_entry.mjs"
     ],
     "print": [
       "src/shared/menu_layout.mjs",
-      "src/shared/overlay_card.mjs"
+      "src/shared/overlay_card.mjs",
+      "src/shared/text_entry.mjs"
     ],
     "set_pixel": [
       "src/shared/menu_layout.mjs"
@@ -94,6 +106,9 @@
     ],
     "shadow_get_held_step_is_hold": [
       "src/shared/param_pages/page_controller.mjs"
+    ],
+    "shadow_get_pad_led_snapshot": [
+      "src/shared/text_entry.mjs"
     ],
     "shadow_get_scene_state": [
       "src/shared/param_pages/page_controller.mjs"

@@ -38,6 +38,7 @@ official docs first:
 5. [The sequencer (aligned with Move)](#5-the-sequencer-aligned-with-move)
 6. [Beyond Move: Step, Clip & Set parameters](#6-beyond-move-step-clip--set-parameters)
    - [CPU meter](#cpu-meter--shift--step-12)
+   - [Sets](#sets--shift--step-1)
    - [Settings](#settings--shift--step-2)
 6a. [Undo & redo](#6a-undo--redo)
 7. [Limitations vs Move](#7-limitations-vs-move)
@@ -1949,6 +1950,50 @@ finding which track is expensive.
 
 ---
 
+### Sets — Shift + Step 1
+
+Movy can keep **its own Sets**, separate from Move's. Turn it on in
+**Settings → MOVY SETS → MOVY**; it takes effect the next time Movy opens.
+Until you do, Movy's Sets follow Move's Set pads as they always have, and this
+page only says so.
+
+![Sets](docs/assets/sets_list.png)
+
+**Shift + Step 1** opens the list. **[NEW]** comes first, then your Sets,
+newest first. A duplicate sits directly under the Set it was copied from. The
+number on the right is the Set's clip count (it is left out when the name needs
+the room), and the **dot** marks the Set that is open.
+
+| Control | Action |
+| --- | --- |
+| **Jog** | Move the cursor. **Shift + jog** jumps eight rows. |
+| **Jog click on [NEW]** | Make a new, empty Set named for today (`2026-10-10_01`, `_02`, …). The cursor moves to it; it does not open. |
+| **Jog click on a Set** | Open it. The page closes and the Set loads. |
+| **Capture** | Rename the Set under the cursor, with Schwung's on-screen keyboard. |
+| **Copy** | Duplicate the Set under the cursor as "*name* Copy". The copy carries the Set as it is right now, not its backups. |
+| **Delete** | Delete the Set under the cursor. It asks first: **jog click** deletes, **Back** cancels. |
+| **Back** | Close the page. |
+
+![Delete confirm](docs/assets/sets_confirm.png)
+
+Deleting the open Set opens the one below it first (or a new one, if it was
+your only Set). A deleted Set is moved to
+`/data/UserData/UserLibrary/Movy/Trash/`, not erased, so it can still be
+recovered by hand.
+
+**Your existing Sets come with you.** The first time Movy opens with its own
+Sets, it copies every Set it kept for a Move Set into the new library, under
+that Set's Move name, backups included. Sets that only ever existed on an
+unsaved Move pad come across as **Recovered** *date*. Nothing is taken away:
+the originals stay where they were, and switching **MOVY SETS** back to
+**MOVE** finds them exactly as you left them (edits made since then live only
+in the new library). Each Set is copied once; one you delete in the new
+library does not come back.
+
+The library lives in `/data/UserData/UserLibrary/Movy/`, outside Movy's
+module folder, so reinstalling Movy keeps it. The Set that was open when you
+left reopens next time.
+
 ### Settings — Shift + Step 2
 
 **Shift + Step 2** opens **Settings**, a scrolling list rather than a knob page:
@@ -1967,6 +2012,10 @@ follow the parameter, not the page, so recorded automation keeps playing
 either way. The choice is saved on the device, not per set. Updating to this
 release switches it to **SCHWUNG** once, even if you had set **MOVY** before;
 set it back to **MOVY** and that choice sticks.
+
+**MOVY SETS** picks where Sets come from: **MOVE** (the default) follows
+Move's Set pads, **MOVY** keeps Movy's own Sets — see
+[Sets](#sets--shift--step-1). It applies the next time Movy opens.
 
 On a drum track under **SCHWUNG**, the page follows the pad **you** press and
 nothing else. A playing pattern never turns the page, even on a drum machine
@@ -2200,6 +2249,7 @@ only.
 
 | Combo | Action |
 | --- | --- |
+| **Shift + Step 1** | Open **Sets** — Movy's own Sets (when **MOVY SETS** is on). |
 | **Shift + Step 2** | Open **Settings** (older versions of this set). |
 | **Shift + Step 3** | Open **Clip parameters** (scale, length, transpose, quantize; Track view). |
 | **Shift + Step 5 / 7 / 9** | Open **Set parameters** (tempo/swing/link/quantize, root/key/mode/layout). |

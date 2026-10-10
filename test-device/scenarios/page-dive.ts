@@ -33,11 +33,10 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { join, dirname } from 'node:path';
-import { tmpdir } from 'node:os';
-import { writeFileSync, rmSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { scenario } from '../runner.js';
 import { Device } from '../device.js';
+import { guardPrefs } from '../prefs-guard.js';
 import { Probe } from '../probe.js';
 import * as fixture from '../fixture.js';
 import { until, WaitBudgetExceeded, PARAM_POLL_GAP } from '../wait.js';
@@ -125,48 +124,9 @@ scenario('page-dive', async (t) => {
      * `command -v base64` is empty), so an encoded trip through the shell fails
      * there and fails SILENTLY — the `&&` never runs, the file keeps the
      * directory movy remembered, and nothing but a runner `undo_error` note says
-     * so, which is the read-back below's reason to exist. `mv` also replaces the
-     * inode, so movy cannot read a half-written file. */
-    const PREFS = '/data/UserData/schwung/modules/tools/movy/prefs.json';
-    const sshBox = async (cmd: string): Promise<string> => {
-        const { stdout } = await run('ssh', [...SSH_OPTS, `ableton@${t.host}`, cmd],
-                                     { maxBuffer: 8 * 1024 * 1024 });
-        return stdout;
-    };
-    /* ABSENCE IS ESTABLISHED, NEVER INFERRED. The delete below is the one branch
-     * in this teardown that can DAMAGE the box, so it must be reachable only
-     * from a confirmed `no`. `cat … 2>/dev/null || true` does the opposite: it
-     * folds "the read failed" into "there was no file", so one dropped link or
-     * one permission error that still exits 0 would DELETE the machine-level
-     * prefs rather than restore them. Three questions, each answering only into
-     * its own branch: does it exist (with anything other than `yes`/`no` loud),
-     * what does it hold, and did the restore we armed actually land. */
-    const present = (await sshBox(`if [ -f '${PREFS}' ]; then echo yes; else echo no; fi`)).trim();
-    if (present !== 'yes' && present !== 'no') {
-        throw new Error(`page-dive: cannot tell whether ${PREFS} exists `
-            + `(got ${JSON.stringify(present)}) — refusing to arm a teardown that could delete it`);
-    }
-    const prefsBefore = present === 'yes' ? await sshBox(`cat '${PREFS}'`) : '';
-    if (present === 'yes' && !prefsBefore.trim()) {
-        throw new Error(`page-dive: ${PREFS} exists but read back empty — refusing to arm a `
-            + `teardown that would overwrite it with nothing`);
-    }
-    t.need.register(async () => {
-        if (present === 'no') { await sshBox(`rm -f '${PREFS}'`); return; }
-        const snap = join(tmpdir(), `movy-prefs-${process.pid}.json`);
-        writeFileSync(snap, prefsBefore);
-        await run('scp', ['-q', ...SSH_OPTS, snap, `ableton@${t.host}:${PREFS}.new`]);
-        await sshBox(`mv '${PREFS}.new' '${PREFS}'`);
-        rmSync(snap, { force: true });
-        /* READ BACK, because a restore that silently did nothing is the very
-         * defect this block was rewritten for. `mv` replaces the inode, so this
-         * compares two whole files and never a half-written one. */
-        const after = await sshBox(`cat '${PREFS}'`);
-        if (after !== prefsBefore) {
-            throw new Error(`page-dive: prefs restore did not take — read back `
-                + `${after.length} bytes, expected ${prefsBefore.length}`);
-        }
-    });
+     * so. guardPrefs (prefs-guard.ts) owns the snapshot, the restore and the
+     * read-back. */
+    await guardPrefs(t, 'page-dive');
 
     const pageNow = async (): Promise<Page | null> => {
         try {

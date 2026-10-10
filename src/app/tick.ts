@@ -1,6 +1,6 @@
 import { paramGet } from '../host/param.js';
 import { portFor } from '../track/registry.js';
-import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS, VIEW_FLAGS, VIEW_CPU, VIEW_VERSIONS } from './state.js';
+import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS, VIEW_FLAGS, VIEW_CPU, VIEW_VERSIONS, VIEW_SETS } from './state.js';
 import { mainPageActive, mainPageState } from '../seq/main-page.js';
 import { buildMainPageVM } from '../seq/main-page-vm.js';
 import { clipPageActive, clipPageState } from '../seq/clip-page.js';
@@ -10,6 +10,12 @@ import { buildVersionsPageVM } from '../seq/versions-page-vm.js';
 import { versionsPageState } from '../seq/versions-page.js';
 import { FLAG_KNOB } from '../seq/flags-page.js';
 import { renderFlagsView } from '../renderer/flags-view.js';
+import { renderSetsView } from '../renderer/sets-view.js';
+import { buildSetsPageVM } from '../seq/sets-page-vm.js';
+import { setsPageState, setsPageTick } from '../seq/sets-page.js';
+import { libState } from '../seq/sets-lib.js';
+import { setSourceMovy } from '../seq/set-source.js';
+import { textEntry, textEntryActive } from '../renderer/text-entry-lib.js';
 import { renderVersionsView } from '../renderer/versions-view.js';
 import { renderCpuView, barPixels } from '../renderer/cpu-view.js';
 import { buildCpuPageVM } from '../seq/cpu-page-vm.js';
@@ -523,6 +529,9 @@ function tickBody(): void {
     stepRecTick();  // keep the step-record header band alive while Rec is held
     if (holdTick()) appState.dirty = true;    // knob-hold → LFO assign mode
     if (jogHintTick()) appState.dirty = true; // jog rested without turning → CLICK JOG hint
+    if (appState.currentView === VIEW_SETS && setsPageTick()) appState.dirty = true;
+    /* The keyboard animates its own cursor, so it repaints every tick it is up. */
+    if (textEntryActive()) { textEntry()?.tickTextEntry(); appState.dirty = true; }
     /* A module canvas animates and owns its own state: tick and redraw it
      * every frame while it is up, as upstream's CANVAS view does. */
     if (canvasDiveActive()) { canvasDiveDeliverPads(); tickCanvasDive(); appState.dirty = true; }
@@ -853,6 +862,12 @@ function tickBody(): void {
             // Only knob 1 lights, and its brightness is the value — the page is
             // a list, so the LED is the only thing saying which knob edits it.
             updateSingleKnobLED(FLAG_KNOB, vm.knobNormalized);
+        } else if (textEntryActive()) {
+            /* The Sets page's rename: Schwung's keyboard draws the whole screen. */
+            textEntry()?.drawTextEntry();
+        } else if (appState.currentView === VIEW_SETS) {
+            renderSetsView(buildSetsPageVM(setSourceMovy(), libState()?.rows ?? null, currentSetUuid(),
+                                           setsPageState.selected, setsPageState.confirming));
         } else if (appState.currentView === VIEW_VERSIONS) {
             const vm = buildVersionsPageVM(Date.now(), currentSetUuid());
             vm.selected = versionsPageState.selected;
@@ -1157,7 +1172,8 @@ function tickBody(): void {
     const isBrowseView = appState.currentView === VIEW_BROWSE || appState.currentView === VIEW_FILE_BROWSE;
     // The CPU meter owns the whole screen down to row 62, and the strip's
     // per-tick clear would take its label row.
-    const isFullScreenView = isBrowseView || appState.currentView === VIEW_CPU;
+    const isFullScreenView = isBrowseView || appState.currentView === VIEW_CPU
+        || appState.currentView === VIEW_SETS || textEntryActive();
     // The strip repaints every tick, outside the dirty-frame block, so anything
     // that owns the whole screen has to be excluded here or the strip draws back
     // over it a few milliseconds later.

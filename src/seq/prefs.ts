@@ -3,7 +3,7 @@
  * Everything else movy persists is keyed by the active Move set's UUID. The
  * quantization default has to survive into a set that has never been opened
  * before, so it needs storage above that: this file sits one level up from
- * SETS_DIR, where the filesystem shows the distinction.
+ * setsDir(), where the filesystem shows the distinction.
  *
  * Durability is deliberately far cheaper than seq-state's. That file gets
  * shadow rotation and a checksummed envelope because losing it loses the

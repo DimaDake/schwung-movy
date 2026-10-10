@@ -47,6 +47,8 @@ import { mainPageActive, mainPageKnob, mainPageTouch, mainPageRelease } from '..
 import { clipPageActive, clipPageKnob, clipPageTouch, clipPageRelease } from '../seq/clip-page.js';
 import { actionRowSelected, backupsRowSelected, flagsPageActive, flagsPageJog, flagsPageKnob } from '../seq/flags-page.js';
 import { armMigrateRow, migrateRowArmed, runMigrateRow } from '../seq/migrate-action.js';
+import { setsPageActive, setsPageBack, setsPageClick, setsPageJog } from '../seq/sets-page.js';
+import { textEntry, textEntryActive } from '../renderer/text-entry-lib.js';
 import { openVersionsPage, versionsPageActive, versionsPageBack, versionsPageClick, versionsPageJog }
     from '../seq/versions-page.js';
 import { cpuPageActive } from '../seq/cpu-page.js';
@@ -205,6 +207,11 @@ export function onMidiMessageInternal(data: number[]): void {
             return;
         }
     } else refusedThisBoot = false;
+
+    /* Schwung's keyboard (the Sets page's rename) owns every control while it
+     * is up, releases included — it tracks its own presses, a pad would
+     * otherwise play under a screen that is typing, and Back is its cancel. */
+    if (textEntryActive()) { textEntry()?.handleTextEntryMidi(data); appState.dirty = true; return; }
 
     // The Leave-Movy modal owns the jog assembly while it is up: jog turn moves
     // the highlight, jog click confirms (Background parks / Close exits), Back
@@ -731,6 +738,7 @@ export function onMidiMessageInternal(data: number[]): void {
          * one on this page: Back must cancel the restore before it leaves the
          * page, or the only way out of a confirm is to perform it. */
         if (versionsPageActive() && versionsPageBack()) { appState.dirty = true; return; }
+        if (setsPageActive() && setsPageBack()) { appState.dirty = true; return; }
         /* The divable editor is movy's own layer, so it comes down before we
          * ask Schwung about its layers. */
         if (schwungEditorActive()) { schwungEditorCancel(); appState.dirty = true; return; }
@@ -800,6 +808,11 @@ export function onMidiMessageInternal(data: number[]): void {
     if (d1 === MoveMainButton && d2 > 0) {
         /* The two list pages take the click before any of the chain/knob
          * handling below: on them it is the list's own action, not a door. */
+        if (setsPageActive()) {
+            setsPageClick(currentSetUuid());
+            appState.dirty = true;
+            return;
+        }
         if (versionsPageActive()) {
             /* A restore rewrote the files under the open Set, so it has to be
              * re-entered — the same path a set switch takes, which is what
@@ -1066,6 +1079,11 @@ export function onMidiMessageInternal(data: number[]): void {
             /* Shift+jog jumps a screen: 32 versions is eight screens of plain
              * scrolling, and the level-skip idiom is already established by the
              * cursor pagination. */
+            if (setsPageActive()) {
+                setsPageJog(delta > 0 ? 1 : -1, appState.shiftHeld);
+                appState.dirty = true;
+                return;
+            }
             if (versionsPageActive()) {
                 versionsPageJog(delta > 0 ? 1 : -1, appState.shiftHeld, currentSetUuid());
                 appState.dirty = true;

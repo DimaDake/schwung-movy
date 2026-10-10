@@ -20,6 +20,7 @@ import { momentaryDown, momentaryUp } from './momentary.js';
 import { sessionDeleteButton } from './session.js';
 import { sessionButtonDown } from './track-select.js';
 import { seqState } from './state.js';
+import { setsPageActive, setsPageButton } from './sets-page.js';
 
 const CC_LOOP = 58;
 const CC_COPY = 60;
@@ -61,6 +62,15 @@ let sessionPrev = false;
 
 /** Handle a 0xB0 button. Returns false when the CC is not one of ours. */
 export function seqHandleButtonCc(d1: number, d2: number, shiftHeld: boolean): boolean {
+    /* On the SETS page the three edit buttons act on the Set under the cursor
+     * and nothing else — a Delete that also cleared a clip behind the list
+     * would be the worst kind of surprise. Presses only: a release falls
+     * through, so a hold that began before the page opened still ends. */
+    if (setsPageActive() && d2 > 0 && (d1 === CC_CAPTURE || d1 === CC_COPY || d1 === CC_DELETE)) {
+        setsPageButton(d1 === CC_CAPTURE ? 'capture' : d1 === CC_COPY ? 'copy' : 'delete');
+        appState.dirty = true;
+        return true;
+    }
     /* Mute button: held state gates the Mute+track and Mute+step gestures
      * (midi/router.ts, router-steps.ts). In Track view a press with no such
      * gesture used while held instead mutes the active track on release;

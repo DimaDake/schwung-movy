@@ -4,9 +4,10 @@
  * line 2 = name) — the same source davebox's seq8 tool reads. */
 
 import { platform } from '../platform/index.js';
+import { LEGACY_SETS_DIR, setSourceMovy, setsDir } from './set-source.js';
 
-export const SETS_DIR = '/data/UserData/schwung/modules/tools/movy/sets';
-const NAME_INDEX    = SETS_DIR + '/name-index.json';
+/* Move's names for its Sets — a Move-mode record, so always the legacy tree. */
+const NAME_INDEX    = LEGACY_SETS_DIR + '/name-index.json';
 const ACTIVE_SET    = '/data/UserData/schwung/active_set.txt';
 /* Move stores each set's folder under its UUID; used to skip deleted sets. */
 export const MOVE_SETS_DIR = '/data/UserData/UserLibrary/Sets';
@@ -33,25 +34,25 @@ export function fileExists(path: string): boolean {
  * `_default` fallback has to be spelled the same way the path helpers spell it,
  * or the directory made here is not the one written into. */
 export function ensureDir(uuid: string): void {
-    platform.ensureDir(SETS_DIR + '/' + (uuid || '_default'));
+    platform.ensureDir(setsDir() + '/' + (uuid || '_default'));
 }
 
 export function uuidToStatePath(uuid: string): string {
-    return SETS_DIR + '/' + (uuid || '_default') + '/seq-state.json';
+    return setsDir() + '/' + (uuid || '_default') + '/seq-state.json';
 }
 /* The engine's own chain document. Written only by the engine (see
  * chain_state.rs); the UI reads it to mirror into ui-state.json. */
 export function uuidToChainsPath(uuid: string): string {
-    return SETS_DIR + '/' + (uuid || '_default') + '/chains.json';
+    return setsDir() + '/' + (uuid || '_default') + '/chains.json';
 }
 export function uuidToUiStatePath(uuid: string): string {
-    return SETS_DIR + '/' + (uuid || '_default') + '/ui-state.json';
+    return setsDir() + '/' + (uuid || '_default') + '/ui-state.json';
 }
 /* Rotating shadow copies of the state file. The canonical seq-state.json is
  * what older builds read; these two exist only so a torn canonical write never
  * costs more than the generation being written. */
 export function shadowPath(uuid: string, slot: number): string {
-    return SETS_DIR + '/' + (uuid || '_default') + '/seq-state.' + slot + '.json';
+    return setsDir() + '/' + (uuid || '_default') + '/seq-state.' + slot + '.json';
 }
 
 /* Version history lives under the set's own directory so a dead Set takes its
@@ -61,10 +62,10 @@ export function shadowPath(uuid: string, slot: number): string {
  * `host_remove_dir` is the only removal the host offers: a version that cannot
  * be deleted on its own cannot be thinned, and thinning is the whole point. */
 export function versionsIndexPath(uuid: string): string {
-    return SETS_DIR + '/' + (uuid || '_default') + '/versions.json';
+    return setsDir() + '/' + (uuid || '_default') + '/versions.json';
 }
 export function versionDir(uuid: string, n: number): string {
-    return SETS_DIR + '/' + (uuid || '_default') + '/v/' + n;
+    return setsDir() + '/' + (uuid || '_default') + '/v/' + n;
 }
 export function versionStatePath(uuid: string, n: number): string {
     return versionDir(uuid, n) + '/seq-state.json';
@@ -90,7 +91,7 @@ export function isProvisionalUuid(uuid: string): boolean {
  * where this tree lives (schwung js_host_common.c). */
 export function removeSetState(uuid: string): boolean {
     if (!uuid) return false;
-    return platform.removeDir(SETS_DIR + '/' + uuid);
+    return platform.removeDir(setsDir() + '/' + uuid);
 }
 
 export interface SetId { uuid: string; name: string; }
@@ -145,7 +146,9 @@ export function saveNameIndex(idx: Record<string, string>): void {
     writeFile(NAME_INDEX, JSON.stringify(idx));
 }
 export function rememberSet(name: string, uuid: string): void {
-    if (!name || !uuid) return;
+    /* Move's names for Move's ids. A library id here would teach the legacy
+     * index a Set Move has never heard of. */
+    if (!name || !uuid || setSourceMovy()) return;
     const idx = loadNameIndex();
     if (idx[name] === uuid) return;
     idx[name] = uuid;

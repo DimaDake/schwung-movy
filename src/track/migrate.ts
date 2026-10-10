@@ -22,6 +22,7 @@ import { LEGACY_SLOTS, readSlotChain, slotSignature, type SlotChain } from './sl
 import { planMigration, type MigrationResult } from './migrate-plan.js';
 import type { ChainTrackState } from './chain-persist.js';
 import { mlog } from '../log.js';
+import { setSourceMovy } from '../seq/set-source.js';
 
 /** The `migv` value this build writes. A set carrying it is never probed again. */
 export const MIGRATION_VERSION = 1;
@@ -91,6 +92,11 @@ export function beginMigration(
     existing: ChainTrackState[] | undefined | null,
 ): void {
     resetCycle(true);
+    /* In movy's own library the open Set is not Move's active one, so
+     * schwung's slots belong to a DIFFERENT Set — migrating would pour that
+     * Set's instruments into this one. Resolved, so the library copy is
+     * marked; the legacy original is never written in this mode. */
+    if (setSourceMovy()) { forceOverwrite = false; state = 'done'; return; }
     if (typeof marker === 'number' && marker >= MIGRATION_VERSION) {
         forceOverwrite = false; state = 'done'; return;
     }

@@ -13,6 +13,15 @@ far. Earlier work is summarised in the timeline below for context.
 
 ## [Unreleased]
 
+### Added
+
+- **Movy can keep its own Sets.** With **Settings → MOVY SETS → MOVY**,
+  **Shift + Step 1** opens a list of Movy's own Sets: make a new one, open,
+  rename (Capture), duplicate (Copy) and delete (Delete, with a confirm). The
+  first open copies every existing Movy Set across under its Move name, backups
+  included, and leaves the originals untouched. Off by default for now; it is
+  how the standalone Movy will manage Sets. (Engine 0.88.0.)
+
 ### Changed
 
 - **Movy's tracks run the chain host Movy ships.** It is built from a pinned

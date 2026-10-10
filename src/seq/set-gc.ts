@@ -27,7 +27,7 @@ import {
  * The module JS API cannot list a directory, so the pages are probed by name.
  * `SET_PAGES_TOTAL` is 8 (schwung shadow_set_pages.h); the second root is the
  * davebox host's own install. */
-const PAGE_ROOTS = [
+export const PAGE_ROOTS = [
     '/data/UserData/schwung/set_pages',
     '/data/UserData/dbx-host/set_pages',
 ];

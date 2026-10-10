@@ -10,10 +10,12 @@ import { appState, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS, VIEW_FLAGS } from '../app
 import { beginGesture } from '../undo/edit.js';
 import { trackLabel } from '../undo/label.js';
 import {
-    MAIN_PAGE_STEPS, STEP_CLIP_PARAMS, STEP_FLAGS, STEP_METRO,
+    MAIN_PAGE_STEPS, STEP_CLIP_PARAMS, STEP_FLAGS, STEP_METRO, STEP_SETS,
     STEP_FULL_VEL, STEP_DOUBLE_LOOP, STEP_QUANTIZE, STEP_CPU,
 } from './constants.js';
 import { openCpuPage } from './cpu-page.js';
+import { openSetsPage } from './sets-page.js';
+import { currentSetUuid } from './set-session.js';
 import { openParamPage } from './param-page.js';
 import { seqCmd } from './engine.js';
 import { doubleLoop } from './loop-mode.js';
@@ -34,6 +36,13 @@ export function shiftStepFunction(step: number): void {
     }
     /* Settings. Reachable in every build — what a release build hides is the
      * measurement flags on it, not the page (flags-visible.ts). */
+    /* Sets. Global like Settings: which Set is open is not a Track-view
+     * question. */
+    if (step === STEP_SETS) {
+        openSetsPage(currentSetUuid());
+        appState.dirty = true;
+        return;
+    }
     if (step === STEP_FLAGS) {
         openParamPage(VIEW_FLAGS);
         appState.dirty = true;

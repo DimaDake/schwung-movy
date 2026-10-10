@@ -1130,6 +1130,46 @@ _origLog('\nTest: song band steady-state cost');
     resetSeqState(); resetSongBand();
 }
 
+/* ── Test: the SETS page costs nothing per frame ─────────────────────────── */
+/* The library's answer is read on the page's own cadence and parsed only when
+ * it changed; a frame draws from the parsed rows. So 100 idle ticks of the page
+ * must read the engine a handful of times, not 100, and a 200-Set library must
+ * draw no more than a 5-Set one (only the visible rows are drawn). */
+
+_origLog('\nTest: SETS page steady-state cost');
+{
+    const { paramStats, resetParamStats } = await import('../dist/esm/host/param.js');
+    const { latchSetSource } = await import('../dist/esm/seq/set-source.js');
+    const { setFlag } = await import('../dist/esm/seq/flags.js');
+    const { resetLib, libState } = await import('../dist/esm/seq/sets-lib.js');
+    const { setsPageTick } = await import('../dist/esm/seq/sets-page.js');
+    const { renderSetsView } = await import('../dist/esm/renderer/sets-view.js');
+    const { buildSetsPageVM } = await import('../dist/esm/seq/sets-page-vm.js');
+    const wire = (n) => 'rev=1 cur=s0 made=- err=-\n'
+        + Array.from({ length: n }, (_, i) => `s${i}\t${i}\t0\tSet number ${i}\n`).join('');
+    const savedGet = globalThis.host_module_get_param;
+    let answer = wire(200);
+    globalThis.host_module_get_param = (k) => (k === 'lib' ? answer : savedGet(k));
+    setFlag('setsrc', 1); latchSetSource(); resetLib();
+
+    resetParamStats();
+    for (let i = 0; i < 100; i++) setsPageTick();
+    check('engine reads over 100 page ticks', paramStats().gets, 8);
+
+    const draw = (n) => {
+        answer = wire(n); resetLib();
+        for (let i = 0; i < 20; i++) setsPageTick();
+        fillRectCount = 0;
+        renderSetsView(buildSetsPageVM(true, libState().rows, 's0', 3, false));
+        return fillRectCount;
+    };
+    const small = draw(5), big = draw(200);
+    check('fill_rect: 200 Sets vs 5 (extra calls)', big - small, 0);
+
+    globalThis.host_module_get_param = savedGet;
+    setFlag('setsrc', 0); latchSetSource(); resetLib();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _origLog('');

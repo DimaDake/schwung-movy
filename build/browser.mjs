@@ -327,6 +327,13 @@ await esbuild.build({
         resolve(root, 'src/seq/version-wire.ts'),
         resolve(root, 'src/seq/versions-page.ts'),
         resolve(root, 'src/seq/versions-page-vm.ts'),
+        resolve(root, 'src/seq/sets-lib.ts'),
+        resolve(root, 'src/seq/set-source.ts'),
+        resolve(root, 'src/seq/sets-page-vm.ts'),
+        resolve(root, 'src/seq/sets-page.ts'),
+        resolve(root, 'src/seq/set-lib-session.ts'),
+        resolve(root, 'src/renderer/sets-view.ts'),
+        resolve(root, 'src/renderer/button-icons.ts'),
         resolve(root, 'src/renderer/versions-view.ts'),
         resolve(root, 'src/seq/held.ts'),
         resolve(root, 'src/seq/buttons.ts'),
@@ -415,6 +422,10 @@ await esbuild.build({
             /* `shadow/shadow_ui_slot_grid.mjs` too: it is where Schwung's LFO
              * page contract lives until it moves to param_pages (SP-60), and
              * movy imports it as the fallback home. */
+            /* The keyboard is always the stand-in: the real one draws through
+             * Schwung's globals and is Schwung's to test (stubs/text-entry.mjs). */
+            build.onResolve({ filter: /^\/data\/UserData\/schwung\/shared\/text_entry\.mjs$/ },
+                () => ({ path: resolve(root, 'browser-test/stubs/text-entry.mjs') }));
             build.onResolve({ filter: /^\/data\/UserData\/schwung\/(shared\/param_pages\/|shadow\/|shared\/lane_voice_map\.mjs$)/ }, (a) => {
                 if (SCHWUNG) {
                     /* wav_io_qjs.mjs (SP-42) statically imports QuickJS's built-in

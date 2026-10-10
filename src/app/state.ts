@@ -12,6 +12,7 @@ export const VIEW_CLIP_PARAMS = 7;
 export const VIEW_FLAGS       = 8;   // Settings (Shift+Step 2; ships in every build)
 export const VIEW_CPU         = 9;   // CPU meter (Shift+Step 12)
 export const VIEW_VERSIONS    = 10;  // Backups (Settings -> BACKUPS)
+export const VIEW_SETS        = 11;  // movy's own Sets (Shift+Step 1)
 
 /* A stable name for the screen constants above, for anything that has to SAY
  * which one is up: the probe, and whatever device scenario reads it. It lives
@@ -31,6 +32,7 @@ const VIEW_NAMES: Record<number, string> = {
     [VIEW_FLAGS]:       'flags',
     [VIEW_CPU]:         'cpu',
     [VIEW_VERSIONS]:    'versions',
+    [VIEW_SETS]:        'sets',
 };
 
 export function viewName(view: number): string { return VIEW_NAMES[view] ?? 'unknown'; }

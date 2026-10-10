@@ -38,6 +38,9 @@ import { adoptExistingVersions, captureVersion, resetVersionCapture } from './ve
 import { resetVersionRestore, restoreTick } from './version-restore.js';
 import { adoptSaved, resetSetSave, saveNeeded, saveSet, savedPayload } from './set-save.js';
 import { platform } from '../platform/index.js';
+import { latchSetSource, setSourceMovy } from './set-source.js';
+import { resetLib } from './sets-lib.js';
+import { libraryBlocked, libraryIdentity, libraryTick, resetLibSession } from './set-lib-session.js';
 
 export type Phase = 'booting' | 'loading' | 'settling' | 'ready' | 'switching' | 'failed';
 export type FailScope = 'set' | 'engine';
@@ -113,6 +116,9 @@ export function resetSetSession(): void {
     resetVersionRestore();
     resetSetGc();
     clearUiDirty();
+    latchSetSource();
+    resetLib();
+    resetLibSession();
 }
 
 function filesAvailable(): boolean {
@@ -243,7 +249,10 @@ function settleTick(): void {
     mlog('seq: set ready after ' + settleWaited() + 'ms');
     /* After the Set is live, never before: collecting is pure hygiene and must
      * never delay the instrument becoming playable. Once per session. */
-    if (!collected) { collected = true; collectDeadSets(setId); }
+    /* Keyed on MOVE's Sets: in library mode every id is movy's own, the sweep
+     * would read them all as dead, and the library has its own explicit
+     * delete. The engine refuses it there too (set_saver.rs). */
+    if (!collected && !setSourceMovy()) { collected = true; collectDeadSets(setId); }
 }
 
 /* The one rule, and the whole of it: a rename is the ONE transition where the
@@ -271,7 +280,8 @@ function settleTick(): void {
  * common case, and carrying work that did not belong here can be undone where
  * discarding work cannot. */
 function identityChanged(id: string, name: string, provisional: boolean): void {
-    if (!setHasState(id) && isProvisionalUuid(setId) && !provisional) {
+    /* A library has no provisional ids — every change of Set is a switch. */
+    if (!setSourceMovy() && !setHasState(id) && isProvisionalUuid(setId) && !provisional) {
         rename(id, name);
         return;
     }
@@ -350,7 +360,21 @@ export function sessionTick(): void {
         enterLoading(setId, setName);
         return;
     }
-    if (--pollCountdown <= 0) {
+    if (setSourceMovy() && libraryBlocked()) {
+        setFailure(libraryBlocked(), 'engine');
+        return;
+    }
+    libraryTick(setId, live());
+    if (setSourceMovy() && --pollCountdown <= 0) {
+        /* Fast until the library has answered: the splash is up meanwhile. */
+        pollCountdown = live() ? SET_POLL_TICKS : 8;
+        const want = libraryIdentity();
+        if (want) {
+            if (!live()) enterLoading(want.uuid, want.name);
+            else if (want.uuid !== setId) identityChanged(want.uuid, want.name, false);
+        }
+        if (!live()) return;
+    } else if (!setSourceMovy() && --pollCountdown <= 0) {
         pollCountdown = SET_POLL_TICKS;
         const active = readActiveSetAny();
         /* Never wait on identity: the measured pending window is 12-60 s and
@@ -372,7 +396,7 @@ export function sessionTick(): void {
      * Run from `settling` too, and told whether the chain loads have drained:
      * the press borrows the surface, so it must land after the last dlopen but
      * still inside the splash. */
-    setCommitTick(setId, live(), seqState.chainPending === 0);
+    if (!setSourceMovy()) setCommitTick(setId, live(), seqState.chainPending === 0);
 
     if (phase === 'settling') { settleTick(); return; }   // nothing to autosave yet
 

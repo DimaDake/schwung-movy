@@ -28,7 +28,7 @@ export async function run() {
     const real = platform;
     const withCaps = (coexists, extra = {}) => ({
         ...real, ...extra,
-        caps: { coexistsWithMove: coexists, canSuspend: coexists, ownsMasterVolume: !coexists },
+        caps: { coexistsWithMove: coexists, canSuspend: coexists, ownsMasterVolume: !coexists, ownsPowerButton: !coexists },
     });
 
     try {

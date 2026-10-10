@@ -31,6 +31,7 @@
     "host_module_get_param",
     "host_module_set_param",
     "host_module_set_param_blocking",
+    "host_power_off",
     "host_read_file",
     "host_remove_dir",
     "host_suspend_overtake",

@@ -86,6 +86,7 @@ import { captureOverlayActive, captureOverlayAction, captureJog, captureDismiss 
 import { resetHeldInput } from '../app/input-reset.js';
 import { jogHintTouch } from '../app/jog-hint.js';
 import { MASTER_CC, volumeTrackDown, volumeTrackUp, volumeTouch, volumeKnobDelta } from '../mixer/track-volume.js';
+import { masterVolumeKnob, masterVolumeTouch } from '../mixer/master-volume.js';
 import { toggleSolo } from '../mixer/track-mutes.js';
 import { mlog } from '../log.js';
 import { platform } from '../platform/index.js';
@@ -276,6 +277,7 @@ export function onMidiMessageInternal(data: number[]): void {
                 resetHeldInput(true);
                 if (action === 'background') platform.suspend();
                 else if (action === 'close') platform.exit();
+                else if (action === 'poweroff') platform.powerOff();
                 return;
             }
         }
@@ -429,9 +431,11 @@ export function onMidiMessageInternal(data: number[]): void {
         return;
     }
 
-    /* Master (volume) knob touch: note=8 — arms the track-volume gesture. */
+    /* Master (volume) knob touch: note=8 — arms the track-volume gesture, and
+     * shows the master slider where the knob is movy's. */
     if ((status & 0xF0) === 0x90 && d1 === MASTER_TOUCH) {
         volumeTouch(d2 > 0);
+        masterVolumeTouch(d2 > 0);
         appState.dirty = true;
         return;
     }
@@ -582,10 +586,13 @@ export function onMidiMessageInternal(data: number[]): void {
     }
 
     /* Master volume knob (CC 79): with a track button held it edits that track's
-     * slot volume; otherwise it stays Move's master volume and we ignore it. */
+     * slot volume; otherwise it is the master — movy's own where there is no
+     * Move beside it (master-volume.ts), Move's otherwise, and ignored here. */
     if ((status & 0xF0) === 0xB0 && d1 === MASTER_CC) {
         if (volumeKnobDelta(d2)) {
             momentaryGesture();   // a volume edit means the release must not latch
+            appState.dirty = true;
+        } else if (masterVolumeKnob(d2)) {
             appState.dirty = true;
         }
         return;

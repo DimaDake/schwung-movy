@@ -1,5 +1,6 @@
 #include "midi_in.h"
 #include "spsc.h"
+#include "surface_keys.h"
 
 /* shim: STEP_TAP_MS — a press shorter than this is a tap, longer is a hold. */
 #define STEP_TAP_MS 500
@@ -41,6 +42,7 @@ int midi_in_feed(const uint8_t pkt[4], uint64_t now_ms) {
      * reach a module; misc/realtime CINs are dropped. */
     if (cin < 0x04 || cin > 0x0E) return 0;
     if (cable == 0 && cin >= 0x08) track_state(pkt[1], pkt[2], pkt[3], now_ms);
+    surface_keys_feed(pkt, now_ms);
     if (!spsc_push(&g_ui, pkt, SPSC_CAP)) __atomic_fetch_add(&g_ui_dropped, 1, __ATOMIC_RELAXED);
     uint8_t type = pkt[1] & 0xF0;
     return cable == 0 && cin >= 0x08 && (type == 0x90 || type == 0x80) && pkt[2] >= 10;

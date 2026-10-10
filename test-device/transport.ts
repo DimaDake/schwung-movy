@@ -7,9 +7,11 @@ import type { EngineDeploy } from './engine.js';
  * slot migration, the Move-volume divert. The standalone flavour retires all of
  * them (plan "Retired by design"), so a scenario that needs one declares it and
  * the runner prints it as N/A there instead of grading a feature that cannot
- * exist. `testbus` is the reverse: movy-host's own bus verbs (log ring,
- * midi_out tap, UI_EVAL), which schwung-testd does not have. */
-export type Need = 'move' | 'testbus';
+ * exist. `testbus` and `master-volume` are the reverse: movy-host's own bus
+ * verbs (log ring, midi_out tap, UI_EVAL), which schwung-testd does not have,
+ * and the volume knob and power button as movy's own (caps.ownsMasterVolume,
+ * caps.ownsPowerButton). */
+export type Need = 'move' | 'testbus' | 'master-volume' | 'power-button';
 
 export type Flavour = 'overtake' | 'standalone';
 

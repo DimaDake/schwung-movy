@@ -2,12 +2,14 @@
 #include <pthread.h>
 #include <sched.h>
 #include <string.h>
+#include <time.h>
 #include <sys/syscall.h>
 #include <unistd.h>
 
 #include "audio.h"
 #include "display.h"
 #include "inject_ring.h"
+#include "ui_ring.h"
 #include "lib/schwung_spi_lib.h"
 #include "log.h"
 #include "midi_in.h"
@@ -15,6 +17,7 @@
 #include "midi_tap.h"
 #include "movy_host.h"
 #include "param_queue.h"
+#include "surface_keys.h"
 #include "vtable.h"
 
 #define FADE_FRAMES ((int)(0.5 * SCHWUNG_SAMPLE_RATE / SCHWUNG_AUDIO_FRAMES))
@@ -29,7 +32,8 @@ static int g_tid;
 uint64_t audio_frame(void) { return __atomic_load_n(&g_frame, __ATOMIC_ACQUIRE); }
 int audio_tid(void) { return g_tid; }
 
-/* Hardware, the inject ring, then the test bus: all one input (midi_in.h). */
+/* Hardware, the inject ring, the test bus, then shadow_ui's UI ring (the dev
+ * tools'): all one input (midi_in.h). */
 static int gather_input(uint8_t *map, uint8_t notes[][4], int max) {
     int n = 0;
     uint64_t now = mh_now_ms();
@@ -43,6 +47,8 @@ static int gather_input(uint8_t *map, uint8_t notes[][4], int max) {
      * we clear them, or the next frame replays them (boot-select.c). */
     memset(in, 0, SCHWUNG_MIDI_IN_MAX * 8);
     for (int b = 0; b < 16 && inject_ring_pop(pkt); b++)
+        if (midi_in_feed(pkt, now) && n < max) memcpy(notes[n++], pkt, 4);
+    for (int b = 0; b < 64 && ui_ring_pop(pkt); b++)
         if (midi_in_feed(pkt, now) && n < max) memcpy(notes[n++], pkt, 4);
     for (int b = 0; b < 64 && midi_in_inject_pop(pkt); b++)
         if (midi_in_feed(pkt, now) && n < max) memcpy(notes[n++], pkt, 4);
@@ -78,6 +84,19 @@ static void *audio_main(void *arg) {
 
         display_serve(map);
         int nn = gather_input(map, notes, 64);
+        /* The fallback exit asked for a clean close; a UI that has not let go
+         * in time is wedged, and the box must still come back (Move restarts
+         * once this process is gone). */
+        /* Only while the UI loop still runs: once it has left, onUnload is
+         * saving, and that gets the longer bound. */
+        uint64_t fb = surface_fallback_at();
+        uint64_t since = fb ? mh_now_ms() - fb : 0;
+        if (fb && ((g_mh_ui_running && since > FALLBACK_GRACE_MS) || since > 5 * FALLBACK_GRACE_MS)) {
+            mh_log("fallback exit: the UI did not let go in %llu ms; hard exit", (unsigned long long)since);
+            struct timespec ts = { 0, 50000000L };   /* the log writer's turn */
+            nanosleep(&ts, NULL);
+            _exit(4);
+        }
         engine_frame_begin();
         for (int i = 0; i < nn; i++) engine_on_midi(notes[i] + 1, 3);
         int served = pq_service(engine_service, NULL, PARAMS_PER_FRAME);
@@ -105,6 +124,7 @@ static void *audio_main(void *arg) {
 int audio_start(mh_spi_t *spi) {
     engine_set_mapped(spi->map);
     inject_ring_open();
+    ui_ring_open();
     return pthread_create(&g_thread, NULL, audio_main, spi);
 }
 

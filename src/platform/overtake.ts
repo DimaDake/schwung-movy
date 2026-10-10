@@ -19,6 +19,7 @@ export const overtakePlatform: Platform = {
         /* Absent on hosts that predate self-managed suspend. */
         get canSuspend() { return typeof host_suspend_overtake === 'function'; },
         ownsMasterVolume: false,
+        ownsPowerButton: false,
     },
 
     filesAvailable: () => typeof host_read_file === 'function'
@@ -67,6 +68,8 @@ export const overtakePlatform: Platform = {
     loadUiModule: (p) => (typeof shadow_load_ui_module === 'function'
         ? shadow_load_ui_module(p) : false),
     exit: () => { if (typeof host_exit_module === 'function') host_exit_module(); },
+    /* Move owns the power button beside movy (MoveOriginal's prompt). */
+    powerOff: () => {},
     suspend: () => { if (typeof host_suspend_overtake === 'function') host_suspend_overtake(); },
 
     claimLeds: () => {

@@ -11,6 +11,9 @@
 #include "midi_out.h"
 #include "param_bulk.h"
 #include "param_queue.h"
+#include "surface_keys.h"
+
+volatile int g_mh_quit;
 
 static int fails, checks;
 #define CHECK(c, ...) do { checks++; if (!(c)) { fails++; printf("  FAIL %s:%d ", __FILE__, __LINE__); printf(__VA_ARGS__); printf("\n"); } } while (0)
@@ -135,12 +138,50 @@ static void test_bulk(void) {
     CHECK(bulk_set("3\n", 2, fset, NULL) == -1, "odd pair count refused");
 }
 
+static void feed(uint8_t a, uint8_t b, uint8_t c, uint8_t d) { uint8_t p[4] = { a, b, c, d }; surface_keys_feed(p, 1000); }
+static void power_sysex(uint8_t cmd) {
+    feed(0x04, 0xF0, 0x00, 0x21); feed(0x04, 0x1D, 0x01, 0x01); feed(0x04, cmd, 0x07, 0x7F); feed(0x06, 0x00, 0xF7, 0x00);
+}
+
+static void test_surface_keys(void) {
+    surface_keys_reset();
+    power_sysex(0x3A);
+    CHECK(surface_power_take() == 1, "a power-button hold is one event");
+    CHECK(surface_power_take() == 0, "taken once");
+    power_sysex(0x3B);   /* the LED SysEx's command byte: not the button */
+    CHECK(surface_power_take() == 0, "another SysEx with the same head is not the button");
+    feed(0x04, 0xF0, 0x00, 0x21); feed(0x0B, 0xB0, 49, 127);   /* broken by a CC */
+    feed(0x04, 0x1D, 0x01, 0x01); feed(0x04, 0x3A, 0x07, 0x7F); feed(0x06, 0x00, 0xF7, 0x00);
+    CHECK(surface_power_take() == 0, "a run broken by another event does not count");
+    feed(0x04, 0xF0, 0x00, 0x21); power_sysex(0x3A);
+    CHECK(surface_power_take() == 1, "a stray lead packet does not swallow the real run");
+    uint8_t ext[4] = { 0x24, 0xF0, 0x00, 0x21 };
+    surface_keys_feed(ext, 1000);
+    feed(0x04, 0x1D, 0x01, 0x01);
+    CHECK(surface_power_take() == 0, "cable 2 (USB MIDI) is never the button");
+
+    surface_keys_reset();
+    g_mh_quit = 0;
+    feed(0x0B, 0xB0, 3, 127);
+    CHECK(!g_mh_quit && !surface_fallback_at(), "a jog click alone is not the escape");
+    feed(0x0B, 0xB0, 49, 127); feed(0x0B, 0xB0, 3, 127);
+    CHECK(!g_mh_quit, "Shift + jog click is not the escape (no volume touch)");
+    feed(0x09, 0x90, 8, 127); feed(0x0B, 0xB0, 3, 127);
+    CHECK(g_mh_quit && surface_fallback_at() == 1000, "Shift + volume touch + jog click quits");
+    surface_keys_reset();
+    g_mh_quit = 0;
+    feed(0x09, 0x90, 8, 127); feed(0x0B, 0xB0, 49, 127); feed(0x09, 0x90, 8, 0); feed(0x0B, 0xB0, 3, 127);
+    CHECK(!g_mh_quit, "a released touch is not held");
+    g_mh_quit = 0;
+}
+
 int main(void) {
     test_deltas();
     test_midi_in();
     test_midi_out();
     test_params();
     test_bulk();
+    test_surface_keys();
     printf("%s: %d checks, %d failed\n", fails ? "HOST TESTS FAILED" : "HOST TESTS OK", checks, fails);
     return fails != 0;
 }

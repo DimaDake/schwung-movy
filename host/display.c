@@ -15,19 +15,28 @@ typedef struct { uint32_t seq; uint8_t px[SCHWUNG_DISPLAY_SIZE]; } frame_t;
 static frame_t g_published;   /* UI writes, audio reads */
 static frame_t g_glass;       /* audio writes, testbus reads */
 static uint8_t g_serving[SCHWUNG_DISPLAY_SIZE];
-static uint8_t *g_live;
+static uint8_t *g_live, *g_shot;
 
-void display_init(void) {
-    int fd = shm_open("/schwung-display-live", O_RDWR | O_CREAT, 0666);
-    if (fd < 0) { mh_log("display: no schwung-display-live (display-server will not stream)"); return; }
+static uint8_t *map_frame(const char *name, const char *who) {
+    int fd = shm_open(name, O_RDWR | O_CREAT, 0666);
+    if (fd < 0) { mh_log("display: no %s (%s)", name, who); return NULL; }
     /* Whichever uid creates it, the other must be able to open it next. */
     fchmod(fd, 0666);
     struct stat st;
     if (fstat(fd, &st) == 0 && st.st_size < SCHWUNG_DISPLAY_SIZE && ftruncate(fd, SCHWUNG_DISPLAY_SIZE) != 0)
-        mh_log("display: ftruncate schwung-display-live failed");
+        mh_log("display: ftruncate %s failed", name);
     void *p = mmap(NULL, SCHWUNG_DISPLAY_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     close(fd);
-    g_live = p == MAP_FAILED ? NULL : p;
+    return p == MAP_FAILED ? NULL : p;
+}
+
+/* Two copies of the frame, for the two readers the dev tools already have:
+ * display-server streams schwung-display-live (capture-screen.mjs), and
+ * grab-screen.mjs reads schwung-display, shadow_ui's own frame under the
+ * shim. Nothing else writes either while movy-host runs. */
+void display_init(void) {
+    g_live = map_frame("/schwung-display-live", "display-server will not stream");
+    g_shot = map_frame("/schwung-display", "grab-screen.mjs will read a stale frame");
 }
 
 /* Seqlock writer: odd while the bytes are moving. */
@@ -57,6 +66,7 @@ void display_publish(int tick) {
     js_display_screen_dirty = 0;
     frame_write(&g_published, packed);
     if (g_live) memcpy(g_live, packed, SCHWUNG_DISPLAY_SIZE);
+    if (g_shot) memcpy(g_shot, packed, SCHWUNG_DISPLAY_SIZE);
 }
 
 void display_serve(uint8_t *map) {

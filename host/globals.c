@@ -3,6 +3,7 @@
 
 #include "globals.h"
 #include "log.h"
+#include "power.h"
 #include "movy_host.h"
 
 int js_bytes(JSContext *ctx, JSValueConst arr, uint8_t *out, int cap) {
@@ -24,6 +25,15 @@ int js_bytes(JSContext *ctx, JSValueConst arr, uint8_t *out, int cap) {
 
 static JSValue js_host_exit_module(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
     mh_log("host_exit_module: movy asked to close");
+    g_mh_quit = 1;
+    return JS_UNDEFINED;
+}
+
+/* The shutdown dialog's confirm: leave cleanly (onUnload saves), then power
+ * off from main once everything is down (power.c). */
+static JSValue js_host_power_off(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
+    mh_log("host_power_off: movy confirmed power off");
+    g_mh_poweroff = 1;
     g_mh_quit = 1;
     return JS_UNDEFINED;
 }
@@ -55,6 +65,7 @@ static JSValue js_console_log(JSContext *ctx, JSValueConst this_val, int argc, J
 void globals_register(JSContext *ctx) {
     JSValue g = JS_GetGlobalObject(ctx);
     MH_FN(g, "host_exit_module", js_host_exit_module, 0);
+    MH_FN(g, "host_power_off", js_host_power_off, 0);
     MH_FN(g, "shadow_load_ui_module", js_shadow_load_ui_module, 1);
     /* Read by movy as globalThis.overtakeParked; only a host that parks a
      * tool under Move sets it. */

@@ -55,7 +55,7 @@ export class StandaloneTransport implements Transport {
 
     constructor(readonly host: string) {}
 
-    has(need: Need): boolean { return need === 'testbus'; }
+    has(need: Need): boolean { return need !== 'move'; }
 
     readonly hostBus: HostBus = {
         logSeq: () => this.call((bus) => bus.logSeq()),
@@ -97,6 +97,27 @@ export class StandaloneTransport implements Transport {
         await this.holdCommand('quit').catch(() => 'none');
     }
 
+    /* Open from the launcher's hold. `up` is not "running": a movy-host whose
+     * UI has stopped is still tearing down for ~150 ms, and taking that for
+     * the new one left the launcher holding until the run gave up (seq's
+     * close-then-open, 2026-10-10). So keep offering `go` until a movy-host
+     * that RUNS answers. false = no launcher: open the Move way. */
+    private async fromHold(): Promise<boolean> {
+        const end = Date.now() + 15000;
+        let sent = false;
+        while (Date.now() < end) {
+            const st = await this.state();
+            if (st.running === 1 && st.engine_ready === 1) return true;
+            if (!sent) {
+                const r = (await this.ssh('ableton', holdSend('go'))).trim();
+                if (r === 'none') return false;
+                sent = r === 'sent';
+            }
+            await new Promise((res) => setTimeout(res, 150));
+        }
+        throw new Error('standalone: timed out waiting for movy-host to run with its engine (from the hold) (15000 ms)');
+    }
+
     /* Hand a held launcher its command; see holdSend. `wait` is the gap
      * between movy-host's exit and the launcher entering its hold. */
     private async holdCommand(cmd: 'go' | 'quit'): Promise<'up' | 'sent' | 'none'> {
@@ -136,7 +157,16 @@ export class StandaloneTransport implements Transport {
     }
 
     /* One input path: INJECT_MIDI reaches the UI and, for notes, the engine. */
-    uiMidi(p: Packet): Promise<void> { return this.call((bus) => bus.injectShim(p)); }
+    /* While movy-host is down (starting, or held between a close and an
+     * open) there is no input path at all: Move is down too, so a physical
+     * press would go nowhere, and so does this one. seq's boot gate pumps
+     * presses across exactly that window. A press while it RUNS that fails
+     * is a real link loss and still throws. */
+    async uiMidi(p: Packet): Promise<void> {
+        try { await this.call((bus) => bus.injectShim(p)); } catch (e) {
+            if (await this.running()) throw e;
+        }
+    }
     dspMidi(p: Packet): Promise<void> { return this.uiMidi(p); }
 
     engineGet(key: string): Promise<string> { return this.call((bus) => bus.getParam(key)); }
@@ -188,13 +218,7 @@ export class StandaloneTransport implements Transport {
 
     private async launchOnce(): Promise<void> {
         if (await this.running()) return;
-        if (await this.holdCommand('go') !== 'none') {
-            await this.waitFor('movy-host to run with its engine (from the hold)', async () => {
-                const st = await this.state();
-                return st.running === 1 && st.engine_ready === 1;
-            }, 15000);
-            return;
-        }
+        if (await this.fromHold()) return;
         /* From a SETTLED Move only, as a user opens it from Tools: a Move still
          * booting after the last exit re-grabs SPI behind the kill sweep
          * (measured: EBUSY 0.5 s after "Killing SPI holders"). Generous: after

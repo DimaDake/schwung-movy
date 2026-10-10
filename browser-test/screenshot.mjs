@@ -74,9 +74,10 @@ const PRESETS = [
     'deep_page', 'lfo_helm_step', 'lfo_helm_pyramid',
     'signal_voice', 'forge_voice', 'forge_filter', 'forge_mod', 'forge_send', 'forge_mix',
     '8w8_voice', '8w8_master', '8w8_delay', '8w8_chain',
-    'leave_modal', 'capture_select', 'capture_fixed',
+    'leave_modal', 'power_modal', 'capture_select', 'capture_fixed',
     'undo_toast', 'redo_toast', 'undo_empty', 'undo_unavailable', 'clip-undo-toast',
     'track_volume_unity', 'track_volume_quiet', 'track_volume_min', 'track_volume_max',
+    'master_volume',
     'trigger_armed', 'trigger_fired', 'trigger_blink_off', 'trigger_touched',
     'trigger_cooling', 'trigger_cooling_low',
     'readouts', 'readout_touched',
@@ -171,7 +172,8 @@ const BASE = {
     lfo_chain: 'test8', lfo_lfo1: 'test8', lfo_lfo2: 'test8',
     lfo_target_overlay: 'test8', lfo_viz_unipolar: 'test8', lfo_viz_retrig: 'test8',
     lfo_mod_mark: 'test8', lfo_mod_and_auto: 'test8', lfo_assign_toast: 'test8',
-    leave_modal: 'test8',
+    leave_modal: 'test8', power_modal: 'test8',
+    master_volume: 'test8',
     track_volume_unity: 'test8', track_volume_quiet: 'test8',
     track_volume_min: 'test8', track_volume_max: 'test8',
     /* test16, not test8: Schwung plans it into TWO pages ("Main" / "Main - 2"),
@@ -272,6 +274,7 @@ const { buildCaptureVM }     = await import('../dist/esm/seq/capture-vm.js');
 const { setCaptureStateForTest } = await import('../dist/esm/seq/capture.js');
 const { drawVolumeOverlay } = await import('../dist/esm/renderer/volume-overlay.js');
 const { volumeFrac }       = await import('../dist/esm/mixer/track-volume.js');
+const { sendFrac }         = await import('../dist/esm/mixer/db-ladder.js');
 const { renderKnobsView, headerRightText } = await import('../dist/esm/renderer/knob-view.js');
 /* The `page` scenes' entry points. Imported here, not statically, for the same
  * reason as every other renderer: the file resolves them after installEnv(). */
@@ -936,6 +939,14 @@ function applyView(preset) {
             lastRender();
             break;
         }
+        /* Standalone's shutdown dialog: the leave menu, retitled. */
+        case 'power_modal': {
+            showChain(1, false);
+            const base = lastRender;
+            lastRender = () => { base(); drawLeaveModal(['Power off', 'Cancel'], 0, 'Power off?'); };
+            lastRender();
+            break;
+        }
         /* Track-volume slider over the chain view it is invoked from. */
         case 'track_volume_unity':
         case 'track_volume_quiet':
@@ -948,7 +959,18 @@ function applyView(preset) {
             const trk = preset === 'track_volume_unity' ? 1 : 0;
             showChain(1, false, trk);
             const base = lastRender;
-            const vm = { track: trk, value: vol, frac: volumeFrac(vol), unityFrac: volumeFrac(1) };
+            const vm = { title: 'T' + (trk + 1) + ' VOLUME', value: vol, frac: volumeFrac(vol), unityFrac: volumeFrac(1) };
+            lastRender = () => { base(); drawVolumeOverlay(vm); };
+            lastRender();
+            break;
+        }
+        /* Standalone's knob alone (mixer/master-volume.ts): topped at unity,
+         * so the unity mark is the far end. -12 dB is the factory level. */
+        case 'master_volume': {
+            showChain(1, false, 0);
+            const base = lastRender;
+            const vol = 10 ** (-12 / 20);
+            const vm = { title: 'MASTER VOLUME', value: vol, frac: sendFrac(vol), unityFrac: 1 };
             lastRender = () => { base(); drawVolumeOverlay(vm); };
             lastRender();
             break;

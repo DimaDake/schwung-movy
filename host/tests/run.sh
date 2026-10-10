@@ -6,7 +6,7 @@ OUT="${TMPDIR:-/tmp}/movy-host-tests"
 mkdir -p "$OUT"
 "${CC:-cc}" -std=gnu11 -Wall -Wextra -Wno-unused-parameter -pthread -I"$DIR" \
     "$DIR/tests/test_host.c" "$DIR/deltas.c" "$DIR/midi_in.c" "$DIR/midi_out.c" \
-    "$DIR/param_queue.c" "$DIR/param_bulk.c" -o "$OUT/test_host"
+    "$DIR/param_queue.c" "$DIR/param_bulk.c" "$DIR/surface_keys.c" -o "$OUT/test_host"
 "$OUT/test_host"
 "${CC:-cc}" -std=gnu11 -Wall -Wextra -Wno-unused-parameter -pthread -I"$DIR" \
     "$DIR/tests/test_log.c" "$DIR/log_ring.c" "$DIR/testbus_log.c" "$DIR/midi_tap.c" -o "$OUT/test_log"

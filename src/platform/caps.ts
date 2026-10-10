@@ -13,4 +13,7 @@ export interface Caps {
     readonly canSuspend: boolean;
     /** The volume knob is movy's (a master chain), not Move's. */
     readonly ownsMasterVolume: boolean;
+    /** The power button reaches movy (the host calls onPowerButton), which
+     *  asks before powering off. Beside Move, MoveOriginal owns it. */
+    readonly ownsPowerButton: boolean;
 }

@@ -3,7 +3,7 @@ import { W } from './layout.js';
 
 /* Centered "Leave Movy?" modal. Selected option is drawn inverted; a footer
  * hint shows the cancel affordance. Drawn over whatever is on screen. */
-export function drawLeaveModal(labels: string[], sel: number): void {
+export function drawLeaveModal(labels: string[], sel: number, title = 'Leave Movy?'): void {
     const boxW = 96, boxH = 46;
     const x = Math.floor((W - boxW) / 2);      // 16
     const y = 9;
@@ -12,7 +12,6 @@ export function drawLeaveModal(labels: string[], sel: number): void {
     fill_rect(x - 1, y - 1, boxW + 2, boxH + 2, 1);
     fill_rect(x, y, boxW, boxH, 0);
 
-    const title = 'Leave Movy?';
     fontPrint(x + Math.floor((boxW - fontWidth(title)) / 2), y + 3, title, 1);
 
     const ROW_H  = 11;

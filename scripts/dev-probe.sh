@@ -25,17 +25,20 @@
 #                like every test-*.sh does before it acts)
 #
 # status mode:
-#   reachability, deployed ui.js md5 (diffed against the local build if
-#   present), and whether the unified log is enabled (debug_log_on) — the
-#   three things "is my last deploy actually live" needs, in one call.
+#   reachability, which host runs movy (shadow_ui, or movy-host for movy-sa),
+#   that host's ui.js md5 (diffed against the local build if present), and
+#   whether the unified log is enabled (debug_log_on), in one call.
+#
+# Both flavours: -i writes shadow_ui's UI ring, which movy-host reads too.
 set -euo pipefail
 
 MOVY_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 REMOTE_DIR="/data/UserData/schwung/modules/tools/movy"
+SA_DIR="/data/UserData/schwung/modules/tools/movy-sa"
 LOG=/data/UserData/schwung/debug.log
 
 usage() {
-    sed -n '2,29p' "$0" | sed 's/^# \{0,1\}//'
+    sed -n '2,32p' "$0" | sed 's/^# \{0,1\}//'
     exit 1
 }
 
@@ -71,15 +74,24 @@ run_remote() {
 
 case "$MODE" in
 status)
+    # The ui.js that matters is the RUNNING host's: movy-sa has its own copy.
     SCRIPT="
 echo REACHABLE
-md5sum $REMOTE_DIR/ui.js 2>/dev/null || echo 'ui.js: NOT FOUND on device'
+if P=\$(pidof movy-host); then echo HOST=movy-host:\$P; D=$SA_DIR; else echo HOST=shadow_ui; D=$REMOTE_DIR; fi
+md5sum \$D/ui.js 2>/dev/null || echo 'ui.js: NOT FOUND on device'
 if [ -f /data/UserData/schwung/debug_log_on ]; then echo LOG_ENABLED=1; else echo LOG_ENABLED=0; fi
 "
     OUT=$(printf '%s\n' "$SCRIPT" | ssh -o ConnectTimeout=5 "ableton@$HOST" bash -s) || {
         echo -e "${RED}Cannot reach $HOST${RST}" >&2; exit 1; }
 
     echo -e "${GRN}✓${RST} $HOST reachable"
+    RUNNING=$(echo "$OUT" | awk -F= '/^HOST=/{print $2}')
+    if [[ "$RUNNING" == movy-host:* ]]; then
+        echo -e "${GRN}✓${RST} host: movy-host (movy-sa, standalone), pid ${RUNNING#movy-host:}"
+        REMOTE_DIR=$SA_DIR
+    else
+        echo -e "${GRN}✓${RST} host: shadow_ui (overtake)"
+    fi
 
     REMOTE_MD5=$(echo "$OUT" | awk '/ui\.js$/{print $1}')
     if [[ -n "$REMOTE_MD5" ]]; then

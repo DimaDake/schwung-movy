@@ -171,6 +171,43 @@ _log('\nTest: track volume gesture (hold track + CC 79)');
 
     delete globalThis.shadow_set_overtake_suppress_master_volume;
     resetTrackVolume();
+
+    /* Standalone (WP7 T3): no Move to divert, on any of the 16 tracks. Every
+     * track is a movy chain, so the gesture is the same write on each — what
+     * must not survive is a Move-side call (an injected hold or the shim's
+     * suppress flag), or a track index that only reaches the first group. */
+    const { platform, setPlatformForTest } = await import('../../dist/esm/platform/index.js');
+    const real = platform;
+    setPlatformForTest({ ...real, caps: { coexistsWithMove: false, canSuspend: false, ownsMasterVolume: true } });
+    globalThis.shadow_set_overtake_suppress_master_volume = (flag) => { suppressCalls.push(flag); };
+    const realSet = globalThis.host_module_set_param_blocking;
+    const wrote = [];
+    globalThis.host_module_set_param_blocking = (k, v, ...a) => { wrote.push(k); return realSet(k, v, ...a); };
+    try {
+        const missed = [];
+        suppressCalls.length = 0;
+        for (let t = 0; t < 16; t++) {
+            resetTrackVolume();
+            env.setParams({ 'mix': mixOf('1.00') });
+            env.clearInjected();
+            wrote.length = 0;
+            volumeTrackDown(t);
+            volumeTouch(true);
+            const took = volumeKnobDelta(CW);
+            const ov = volumeOverlay();
+            volumeTrackUp(t);
+            if (!took || ov?.title !== 'T' + (t + 1) + ' VOLUME' || !wrote.some((k) => k === 'ch' + t + ':mix'))
+                missed.push(t + 1 + ':' + wrote.join('|'));
+        }
+        eq('standalone: hold any of the 16 tracks + turn writes THAT track\'s mix', missed.join(' '), '');
+        eq('standalone: nothing is injected into Move', env.injected.length, 0);
+        eq('standalone: the shim\'s suppress flag is never touched', suppressCalls.length, 0);
+    } finally {
+        setPlatformForTest(real);
+        globalThis.host_module_set_param_blocking = realSet;
+        delete globalThis.shadow_set_overtake_suppress_master_volume;
+        resetTrackVolume();
+    }
 }
 
 }

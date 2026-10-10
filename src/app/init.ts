@@ -21,7 +21,7 @@ import { resetUndoToast } from '../undo/toast.js';
 import { mlog } from '../log.js';
 import { installPerfProbe } from './perf-probe.js';
 import { setProbeDeps } from '../test/probe.js';
-import { leaveModalActive, leaveModalLabels, leaveModalSel } from './leave-modal.js';
+import { leaveModalActive, leaveModalLabels, leaveModalSel, leaveModalTitle } from './leave-modal.js';
 import { sessionReady } from '../seq/set-session.js';
 import { schwungGridMode, setSchwungGridMode } from '../renderer/schwung-grid.js';
 import { clearWidgets, isWidgetAvailable } from '../renderer/schwung-widgets.js';
@@ -70,6 +70,8 @@ export function init(): void {
             active: leaveModalActive(),
             label:  leaveModalLabels()[leaveModalSel()] ?? '',
             sel:    leaveModalSel(),
+            labels: leaveModalLabels(),
+            title:  leaveModalTitle(),
         }),
     });
     /* Movy opens on the track Move had selected. Through `selectTrack`, not a

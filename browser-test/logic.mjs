@@ -20,6 +20,7 @@ import { run as run_drums } from './logic/drums.mjs';
 import { run as run_host_param } from './logic/host-param.mjs';
 import { run as run_platform_caps } from './logic/platform-caps.mjs';
 import { run as run_master_chain } from './logic/master-chain.mjs';
+import { run as run_master_volume } from './logic/master-volume.mjs';
 import { run as run_seq_engine } from './logic/seq-engine.mjs';
 import { run as run_seq_router } from './logic/seq-router.mjs';
 import { run as run_seq_edit } from './logic/seq-edit.mjs';
@@ -118,6 +119,7 @@ const SUITES = [
     run_host_param,
     run_platform_caps,
     run_master_chain,
+    run_master_volume,
     run_seq_engine,
     run_seq_router,
     run_seq_edit,

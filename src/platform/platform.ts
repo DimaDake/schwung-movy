@@ -53,6 +53,8 @@ export interface Platform {
     /** Load a module's own `ui.js` canvas into this runtime. */
     loadUiModule(path: string): boolean;
     exit(): void;
+    /** Leave cleanly, then power the box off. Only when `caps.ownsPowerButton`. */
+    powerOff(): void;
     /** Park under Move's UI. Only when `caps.canSuspend`. */
     suspend(): void;
 

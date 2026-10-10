@@ -201,9 +201,10 @@ export function volumeKnobDelta(d2: number): boolean {
 /* The slider to draw, or null when no gesture is live. `frac`/`unityFrac` are
  * ladder positions so the renderer stays free of the dB mapping. */
 export function volumeOverlay():
-    { track: number; value: number; frac: number; unityFrac: number } | null {
+    { track: number; title: string; value: number; frac: number; unityFrac: number } | null {
     if (heldTrack < 0 || !touched) return null;
-    return { track: heldTrack, value, frac: idxToFrac(volIdx), unityFrac: UNITY_FRAC };
+    return { track: heldTrack, title: 'T' + (heldTrack + 1) + ' VOLUME', value,
+             frac: idxToFrac(volIdx), unityFrac: UNITY_FRAC };
 }
 
 export function resetTrackVolume(): void {

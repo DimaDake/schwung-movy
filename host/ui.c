@@ -12,6 +12,7 @@
 #include "movy_host.h"
 #include "quickjs-libc.h"
 #include "rt.h"
+#include "surface_keys.h"
 #include "ui.h"
 #include "ui_eval.h"
 #include "ui_js.h"
@@ -106,6 +107,13 @@ int ui_run(const char *ui_path) {
         if (drain_input(ctx, &cb, &d)) { rc = 3; break; }
         if (JS_IsFunction(ctx, cb.tick) && ui_js_call(ctx, cb.tick, NULL, 0, "tick")) { rc = 3; break; }
         ui_eval_service(ctx);
+        if (surface_power_take()) {
+            JSValue f = ui_js_global_fn(ctx, "onPowerButton");
+            if (JS_IsFunction(ctx, f) && ui_js_call(ctx, f, NULL, 0, "onPowerButton")) rc = 3;
+            else if (!JS_IsFunction(ctx, f)) mh_log("power button: the UI has no onPowerButton");
+            JS_FreeValue(ctx, f);
+            if (rc) break;
+        }
         display_publish(tick);
         rt_poll();
         sleep_to(&next);

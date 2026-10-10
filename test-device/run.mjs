@@ -28,6 +28,9 @@ import './dist/scenarios/migrate.js';
 import './dist/scenarios/seq.js';
 import './dist/scenarios/widgets.js';
 import './dist/scenarios/testbus.js';
+import './dist/scenarios/master-volume.js';
+import './dist/scenarios/power.js';
+import './dist/scenarios/debug-tools.js';
 
 const argv = process.argv.slice(2);
 const flag = (n) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : undefined; };

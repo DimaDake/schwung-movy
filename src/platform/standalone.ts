@@ -12,7 +12,9 @@ import { overtakePlatform } from './overtake.js';
 export const standalonePlatform: Platform = {
     ...overtakePlatform,
     name: 'standalone',
-    caps: { coexistsWithMove: false, canSuspend: false, ownsMasterVolume: true },
+    caps: { coexistsWithMove: false, canSuspend: false, ownsMasterVolume: true, ownsPowerButton: true },
+
+    powerOff: () => { if (typeof host_power_off === 'function') host_power_off(); },
 
     suspend: () => {},
     claimLeds: () => false,

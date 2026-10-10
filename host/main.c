@@ -19,6 +19,8 @@
 #include "js_display.h"
 #include "log.h"
 #include "movy_host.h"
+#include "power.h"
+#include "surface_keys.h"
 #include "rt.h"
 #include "spi.h"
 #include "testbus.h"
@@ -149,9 +151,11 @@ int main(int argc, char **argv) {
     int rc = ui_run(path);
 
     g_mh_quit = 1;
+    if (surface_fallback_at()) mh_log("fallback exit: Shift + volume touch + jog click");
     audio_stop();
     engine_unload();
     spi_close(&spi);
+    if (g_mh_poweroff) power_off_now();
     if (g_term_at.tv_sec) {
         uint64_t at = (uint64_t)g_term_at.tv_sec * 1000000u + (uint64_t)g_term_at.tv_nsec / 1000u;
         mh_log("=== movy-host exit %d, %llu ms after the signal", rc, (unsigned long long)((mh_now_us() - at) / 1000));

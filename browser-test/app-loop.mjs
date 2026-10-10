@@ -2097,6 +2097,54 @@ _log('\napp-loop: Leave modal — Back cancels; old host offers only Close Movy'
     globalThis.host_exit_module = realExit;
 }
 
+_log('\napp-loop: Power button (standalone) — ask first, power off only on the jog click');
+{
+    const { leaveModalActive, leaveModalLabels, leaveModalTitle } = await import('../dist/esm/app/leave-modal.js');
+    const { platform, setPlatformForTest } = await import('../dist/esm/platform/index.js');
+    const { standalonePlatform } = await import('../dist/esm/platform/standalone.js');
+    const real = platform;
+    let off = 0;
+    globalThis.host_power_off = () => { off++; };
+    try {
+        /* Beside Move the button is MoveOriginal's: no dialog. */
+        resetApp();
+        globalThis.onPowerButton();
+        eq('beside Move: no shutdown dialog', leaveModalActive(), false);
+
+        setPlatformForTest(standalonePlatform);
+        resetApp();
+        globalThis.onPowerButton();
+        eq('the power button opens the dialog', leaveModalActive(), true);
+        eq('titled Power off?', leaveModalTitle(), 'Power off?');
+        eq('it offers Power off, then Cancel', leaveModalLabels().join(','), 'Power off,Cancel');
+        eq('nothing powers off on the button alone', off, 0);
+        globalThis.onPowerButton();
+        eq('a second press changes nothing', leaveModalActive() && off === 0, true);
+        sendMidi([0xB0, globalThis.MoveMainButton, 127]);   // jog click → Power off (default)
+        eq('the jog click powers off', off, 1);
+        eq('the dialog closed', leaveModalActive(), false);
+
+        globalThis.onPowerButton();
+        sendMidi([0xB0, globalThis.MoveMainKnob, 1]);       // jog turn → Cancel
+        sendMidi([0xB0, globalThis.MoveMainButton, 127]);
+        eq('Cancel does not power off', off, 1);
+        eq('and closes the dialog', leaveModalActive(), false);
+
+        globalThis.onPowerButton();
+        sendMidi([0xB0, globalThis.MoveBack, 127]);
+        eq('Back cancels too', leaveModalActive() === false && off === 1, true);
+
+        /* Back at the root still opens the LEAVE menu, not the power one. */
+        appState.currentView = VIEW_CHAIN;
+        sendMidi([0xB0, globalThis.MoveBack, 127]);
+        eq('Back after it is the Leave menu again', leaveModalTitle(), 'Leave Movy?');
+        sendMidi([0xB0, globalThis.MoveBack, 127]);
+    } finally {
+        setPlatformForTest(real);
+        delete globalThis.host_power_off;
+    }
+}
+
 _log('\napp-loop: Leave modal — the hardware keeps working; using it dismisses the menu');
 {
     const { leaveModalActive } = await import('../dist/esm/app/leave-modal.js');

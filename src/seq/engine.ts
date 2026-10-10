@@ -22,6 +22,7 @@ import { noteProbeGen, probeBridgeTick } from './probe-bridge.js';
 import { markUiStateDirty } from './ui-dirty.js';
 import { applyFlagsToEngine } from './flags.js';
 import { pushMasterBinding } from '../chain/master-binding.js';
+import { pushMasterVolume } from '../mixer/master-volume.js';
 import { requestMasterImport, resetMasterImport } from '../chain/master-import.js';
 import { resetPadRoute, syncPadRoute } from '../track/pad-route.js';
 import { noteReportedTrack, resetWatchPush, syncWatch } from './watch.js';
@@ -274,6 +275,7 @@ function probeTick(): void {
         applyFlagsToEngine(engineSet);
         /* Every boot, like the flags: a re-dlopened engine starts unbound. */
         pushMasterBinding(engineSet);
+        pushMasterVolume(engineSet);
         /* Whether the engine may push a MovePlay press at Move is a property of
          * the SHIM, not of the set, so the engine cannot know it and is told
          * here on every boot (it defaults to "no"). Sent directly rather than

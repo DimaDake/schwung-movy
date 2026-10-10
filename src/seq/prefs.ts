@@ -27,7 +27,7 @@ const clampPct = (v: unknown): number =>
 
 type PrefsFile = {
     defaultQuant?: unknown; fileDirs?: unknown; flags?: unknown; moduleBlacklist?: unknown;
-    fullVelocity?: unknown;
+    fullVelocity?: unknown; masterVolume?: unknown;
 };
 
 function readPrefs(): PrefsFile {
@@ -71,6 +71,21 @@ export function readPrefFullVelocity(): boolean {
 
 export function writePrefFullVelocity(on: boolean): void {
     writePrefs((p) => { p.fullVelocity = on; });
+}
+
+/* Master volume, where movy owns the knob (caps.ownsMasterVolume). Machine-
+ * level, like the Move volume it replaces: it is how loud this box plays, not
+ * part of a piece of music, so a Set must not carry it. -12 dB until the user
+ * turns it: a first launch at unity would be the loudest moment the box has. */
+export const FACTORY_MASTER_VOLUME = 0.2512;
+
+export function readPrefMasterVolume(): number {
+    const v = readPrefs().masterVolume;
+    return typeof v === 'number' && isFinite(v) ? Math.max(0, Math.min(1, v)) : FACTORY_MASTER_VOLUME;
+}
+
+export function writePrefMasterVolume(amp: number): void {
+    writePrefs((p) => { p.masterVolume = Math.max(0, Math.min(1, amp)); });
 }
 
 /* Runtime flags (src/seq/flags-def.ts). They live here, not in the per-set

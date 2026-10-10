@@ -19,6 +19,8 @@ declare function shadow_set_params(slot: number, key: string, payload: string): 
 declare function shadow_get_ui_slot(): number;
 declare function shadow_send_midi_to_dsp(data: number[]): void;
 declare function host_exit_module(): void;
+/** movy-host only: leave cleanly, then power the box off (host/power.c). */
+declare function host_power_off(): void;
 /* Strip Move's cable-0 RGB LED sysex during full overtake. Absent on hosts
  * older than the flag; the framework clears it on overtake exit. */
 declare function shadow_set_overtake_suppress_sysex(flag: number): void;

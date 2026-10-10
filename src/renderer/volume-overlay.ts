@@ -1,16 +1,17 @@
 import { fontPrint, fontWidth } from '../font/index.js';
 
-/* Track-volume slider, drawn over whatever view is on screen while the gesture
- * runs. Spans the full schwung slot range (0-400%) with a tick at unity, since
- * anything above 100% is boost and worth seeing coming. The travel is the
- * knob's dB ladder, not raw amplitude — `frac`/`unityFrac` come from
- * mixer/track-volume.ts so the mapping lives in one place. */
+/* Volume slider, drawn over whatever view is on screen while a volume-knob
+ * gesture runs: hold-track+volume (mixer/track-volume.ts, the full 0-400% slot
+ * range with a tick at unity, since boost is worth seeing coming) and, where
+ * movy owns the knob, the master (mixer/master-volume.ts, topped at unity).
+ * The travel is the knob's dB ladder, not raw amplitude — `frac`/`unityFrac`
+ * come from the gesture so the mapping lives in one place. */
 
 const BOX_X = 4, BOX_Y = 14, BOX_W = 120, BOX_H = 36;
 const BAR_X = BOX_X + 6, BAR_W = BOX_W - 12, BAR_Y = BOX_Y + 14, BAR_H = 8;
 
 export interface VolumeOverlayVM {
-    track: number;
+    title: string;
     value: number;      // linear amplitude, for the readouts
     frac: number;       // 0..1 fill position
     unityFrac: number;  // 0..1 position of the 100% mark
@@ -26,14 +27,13 @@ function dbLabel(value: number): string {
 }
 
 export function drawVolumeOverlay(vm: VolumeOverlayVM): void {
-    const { track, value } = vm;
+    const { title, value } = vm;
     fill_rect(BOX_X, BOX_Y, BOX_W, BOX_H, 0);
     fill_rect(BOX_X, BOX_Y, BOX_W, 1, 1);
     fill_rect(BOX_X, BOX_Y + BOX_H - 1, BOX_W, 1, 1);
     fill_rect(BOX_X, BOX_Y, 1, BOX_H, 1);
     fill_rect(BOX_X + BOX_W - 1, BOX_Y, 1, BOX_H, 1);
 
-    const title = 'T' + (track + 1) + ' VOLUME';
     fontPrint(BOX_X + Math.floor((BOX_W - fontWidth(title)) / 2), BOX_Y + 4, title, 1);
 
     fill_rect(BAR_X, BAR_Y, BAR_W, BAR_H, 1);

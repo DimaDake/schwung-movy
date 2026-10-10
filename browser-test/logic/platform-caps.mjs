@@ -25,7 +25,7 @@ export async function run() {
         const spy = (name, ret) => (...args) => { calls.push(name); return ret; };
         const p = {
             ...real,
-            caps: { coexistsWithMove: coexists, canSuspend: coexists, ownsMasterVolume: !coexists },
+            caps: { coexistsWithMove: coexists, canSuspend: coexists, ownsMasterVolume: !coexists, ownsPowerButton: !coexists },
             claimLeds: spy('claimLeds', true),
             lendSurfaceToMove: spy('lendSurfaceToMove', true),
             excludeMoveFromVolume: spy('excludeMoveFromVolume', true),
@@ -90,7 +90,7 @@ async function standaloneHost() {
         delete globalThis.movy_host;
     }
     eq('standalone caps', JSON.stringify(standalonePlatform.caps),
-       JSON.stringify({ coexistsWithMove: false, canSuspend: false, ownsMasterVolume: true }));
+       JSON.stringify({ coexistsWithMove: false, canSuspend: false, ownsMasterVolume: true, ownsPowerButton: true }));
 
     const names = ['host_suspend_overtake', 'shadow_set_overtake_suppress_sysex', 'shadow_set_overtake_mode',
                    'shadow_set_overtake_suppress_master_volume', 'move_midi_inject_to_move',

@@ -28,6 +28,7 @@ import { resetMuteMap, resetSeqChord, setMuteHeld } from '../seq/router.js';
 import { resetStepRec } from '../seq/step-rec.js';
 import { resetTrackSelect } from '../seq/track-select.js';
 import { resetTrackVolume } from '../mixer/track-volume.js';
+import { resetMasterVolume } from '../mixer/master-volume.js';
 import { resetAssignMode } from '../lfo/assign-mode.js';
 import { jogHintTouch } from './jog-hint.js';
 import { clearPins } from '../midi/knob-page-pin.js';
@@ -54,6 +55,7 @@ export function resetHeldInput(notifyEngine: boolean): void {
     resetStepRec();       // Rec held for step recording
     resetTrackSelect();   // Session held + step-row track selection
     resetTrackVolume();   // track-button + volume-knob gesture
+    resetMasterVolume();  // the knob alone, where movy owns it
     resetAssignMode();    // knob held → LFO assign
     setMuteHeld(false);
     resetMuteMap();   // step presses the mute map consumed, whose release is gone

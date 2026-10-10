@@ -1,6 +1,9 @@
 /* "Leave Movy" modal — opened by Back at the root (Chain) view. It offers
  * Background (park under Move's native UI, sequencer keeps playing) vs Close
- * Movy (full exit). It sits over a live instrument rather than blocking it:
+ * Movy (full exit). The same menu, titled "Power off?", is the shutdown dialog
+ * where movy owns the power button (caps.ownsPowerButton): Power off is the
+ * default, as Move's own "Press wheel to shut down" is, and the jog click is
+ * the confirm — nothing powers off on the button alone. It sits over a live instrument rather than blocking it:
  * see leaveModalPass for what the rest of the hardware does while it is up.
  * The sequencer keeps running on the DSP regardless.
  * See the transport/beat-clock design §7.4. */
@@ -8,13 +11,17 @@
 import { CC_PLAY, CC_REC } from '../seq/constants.js';
 import { platform } from '../platform/index.js';
 
-export type LeaveAction = 'background' | 'close';
+export type LeaveAction = 'background' | 'close' | 'poweroff' | 'cancel';
+type ModalKind = 'leave' | 'power';
 
 interface LeaveOption { label: string; action: LeaveAction; }
 
 /* Background is only offered on a host that supports self-managed suspend;
  * older hosts show Close Movy only. */
 function options(): LeaveOption[] {
+    if (leaveModalState.kind === 'power') {
+        return [{ label: 'Power off', action: 'poweroff' }, { label: 'Cancel', action: 'cancel' }];
+    }
     const opts: LeaveOption[] = [];
     if (platform.caps.canSuspend) {
         opts.push({ label: 'Background', action: 'background' });
@@ -68,7 +75,8 @@ export function leaveModalPass(data: number[]): LeaveModalPass {
     return 'dismiss';
 }
 
-export const leaveModalState = { active: false, sel: 0 };
+export const leaveModalState: { active: boolean; sel: number; kind: ModalKind } =
+    { active: false, sel: 0, kind: 'leave' };
 
 export function leaveModalActive(): boolean { return leaveModalState.active; }
 
@@ -76,9 +84,23 @@ export function leaveModalLabels(): string[] { return options().map((o) => o.lab
 
 export function leaveModalSel(): number { return leaveModalState.sel; }
 
+export function leaveModalTitle(): string {
+    return leaveModalState.kind === 'power' ? 'Power off?' : 'Leave Movy?';
+}
+
 export function openLeaveModal(): void {
     leaveModalState.active = true;
+    leaveModalState.kind   = 'leave';
     leaveModalState.sel    = 0;   // default → Background (Close Movy on old hosts)
+}
+
+/* The host's onPowerButton. A second press while it is up changes nothing. */
+export function openPowerModal(): void {
+    if (!platform.caps.ownsPowerButton) return;
+    if (leaveModalState.active && leaveModalState.kind === 'power') return;
+    leaveModalState.active = true;
+    leaveModalState.kind   = 'power';
+    leaveModalState.sel    = 0;   // default → Power off, confirmed by the jog click
 }
 
 export function closeLeaveModal(): void { leaveModalState.active = false; }

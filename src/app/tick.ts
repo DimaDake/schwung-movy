@@ -74,8 +74,9 @@ import { holdTick, assignActive, assignToastText } from '../lfo/assign-mode.js';
 import { jogHintTick, jogHintVisible } from './jog-hint.js';
 import { drawJogToast } from '../renderer/overlay.js';
 import { volumeOverlay } from '../mixer/track-volume.js';
+import { masterVolumeOverlay } from '../mixer/master-volume.js';
 import { drawVolumeOverlay } from '../renderer/volume-overlay.js';
-import { leaveModalActive, leaveModalLabels, leaveModalSel } from './leave-modal.js';
+import { leaveModalActive, leaveModalLabels, leaveModalSel, leaveModalTitle } from './leave-modal.js';
 import { drawLeaveModal } from '../renderer/leave-modal-view.js';
 import { captureOverlayActive } from '../seq/capture.js';
 import { buildCaptureVM } from '../seq/capture-vm.js';
@@ -1052,11 +1053,12 @@ function tickBody(): void {
             lightKnobRow(vm, schwungBody);
             perfPhaseEnd();
         }
-        /* Track-volume slider sits above the view it was invoked from. Only
-         * visible in the Shift variant — without Shift the shim has handed the
-         * panel to Move for the duration of the knob touch (see
-         * mixer/track-volume.ts), so this frame is drawn but never pushed. */
-        const vol = volumeOverlay();
+        /* Volume slider above the view it was invoked from: a held track's,
+         * else the master's where movy owns the knob. Beside Move, only visible
+         * in the Shift variant — without Shift the shim has handed the panel to
+         * Move for the duration of the knob touch (see mixer/track-volume.ts),
+         * so this frame is drawn but never pushed. */
+        const vol = volumeOverlay() ?? masterVolumeOverlay();
         if (vol) drawVolumeOverlay(vol);
         if (assignActive()) { drawJogToast(assignToastText()); jogToastShown = true; }
         if (toastShowing) drawSeqToast();
@@ -1070,7 +1072,7 @@ function tickBody(): void {
          * leave modal, both of which own the screen while they are up. */
         if (undoToastActive()) drawUndoOverlay(undoToast()!);
         // Leave-Movy modal draws on top of everything else.
-        if (leaveModalActive()) drawLeaveModal(leaveModalLabels(), leaveModalSel());
+        if (leaveModalActive()) drawLeaveModal(leaveModalLabels(), leaveModalSel(), leaveModalTitle());
         lastToastShowing = toastShowing;
         lastHeaderShowing = headerShowing;
         appState.dirty = false;

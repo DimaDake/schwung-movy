@@ -48,19 +48,13 @@
  * 0.7 s per sample of the driven param. Every one is now a wait on the thing it
  * was standing in for.
  */
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { scenario } from '../runner.js';
 import { Device } from '../device.js';
 import { Probe } from '../probe.js';
 import * as fixture from '../fixture.js';
 import { until } from '../wait.js';
 
-const run = promisify(execFile);
 /* test-device/dist/scenarios/lfo.js at run time. */
-const MOVY = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 
 /* The first chain past schwung's four slots — see the header. */
 const CHAIN = 4;
@@ -102,8 +96,8 @@ function parseLfo(line: string, n = LFO): Lfo {
 
 scenario('lfo', async (t) => {
     fixture.setHost(t.host);
-    const dev   = new Device(t.bus, t.agent, t.host);
-    const probe = new Probe(t.bus);
+    const dev   = new Device(t.tx);
+    const probe = new Probe(t.tx);
     const open  = () => dev.open(probe);
     const close = () => dev.close(probe);
 
@@ -117,10 +111,7 @@ scenario('lfo', async (t) => {
      * socket has no such narrowing. The bash suite wrote every one of these
      * this way; keeping one writer keeps the assignment and the clear on the
      * same path. */
-    const ep = async (key: string, value: string): Promise<void> => {
-        await run('node', [join(MOVY, 'scripts', 'engine-param.mjs'),
-                           'set', key, value, t.host], { maxBuffer: 8 * 1024 * 1024 });
-    };
+    const ep = (key: string, value: string): Promise<void> => t.tx.engineSetQueued(key, value);
 
     /* `chlfolog` is write-to-read: the engine logs the report when it is poked,
      * so wait for the poke's OWN line. The previous one describes the chain
@@ -130,18 +121,18 @@ scenario('lfo', async (t) => {
         const before = (await dev.logLines(LOG_LFOS)).length;
         await ep('chlfolog', String(CHAIN));
         try {
-            const ls = await until(t.bus, 'the chlfolog answer',
+            const ls = await until(t.tx, 'the chlfolog answer',
                 () => dev.logLines(LOG_LFOS), (v) => v.length > before,
                 { within: 1400, every: 120 });
             return ls[ls.length - 1];
         } catch { return ''; }
     };
 
-    await fixture.ensure(t.bus, open, close);
+    await fixture.ensure(t.tx, open, close);
     t.note('fixtureSynth', SYNTH);
     await dev.deployUi();
     await dev.open(probe);
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
 
     // ── L1: the chain the rest of the suite runs on ──────────────────────────
     /* A module load into a chain the host has not been configured for is
@@ -152,7 +143,7 @@ scenario('lfo', async (t) => {
     await ep(`ch${CHAIN}:synth:module`, SYNTH);
     let loaded = true;
     try {
-        await until(t.bus, `chain ${CHAIN} to load ${SYNTH}`,
+        await until(t.tx, `chain ${CHAIN} to load ${SYNTH}`,
             () => dev.logLines(LOG_LOADED), (v) => v.length > loadBefore,
             { within: 3500, every: 120 });
     } catch { loaded = false; }
@@ -195,7 +186,7 @@ scenario('lfo', async (t) => {
     let afterRaw = await report();
     if (parseLfo(afterRaw).target !== TARGET) {
         try {
-            afterRaw = await until(t.bus, 'the assignment to reach the chain',
+            afterRaw = await until(t.tx, 'the assignment to reach the chain',
                 () => report(),
                 (l) => parseLfo(l).target === TARGET,
                 { within: 1500, every: 150 });
@@ -223,7 +214,7 @@ scenario('lfo', async (t) => {
      * the spacing between samples is real work, not a wall clock. */
     const samples = [after.value];
     try {
-        await until(t.bus, 'the driven param to move',
+        await until(t.tx, 'the driven param to move',
             async () => { samples.push(parseLfo(await report()).value); return samples; },
             (vs) => vs[0] !== '' && vs.some((v) => v !== vs[0]),
             { within: 6000, every: ACT });
@@ -254,7 +245,7 @@ scenario('lfo', async (t) => {
     let clearedRaw = await report();
     if (parseLfo(clearedRaw).active !== '0' || parseLfo(clearedRaw).target !== '') {
         try {
-            clearedRaw = await until(t.bus, 'the LFO to deactivate',
+            clearedRaw = await until(t.tx, 'the LFO to deactivate',
                 () => report(),
                 (l) => parseLfo(l).active === '0' && parseLfo(l).target === '',
                 { within: 1500, every: 150 });

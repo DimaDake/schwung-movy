@@ -537,6 +537,24 @@ second implementation, not a rewrite.
 **Behaviour change:** none. **Gates:** device tier green on the refactored
 harness.
 
+**Done 2026-10-10** (branch `standalone-migration`). `test-device/transport.ts`
+(interface; `move` is the coexistence door, null without Move) and
+`transport-overtake.ts`; `Ctx` carries `tx` instead of `bus`/`agent`; engine
+keys are unprefixed everywhere outside the overtake transport, and the nine
+copied `engine-param.mjs` helpers are now `tx.engineSetQueued`. `needs: 'move'`
+tags `master-fx`, `migrate` and `volume`; smoke's park/resume section checks
+`tx.has('move')`. `run.mjs --flavour` accepts `overtake` only until WP6.
+`browser-test/device-scripts.mjs` fails a scenario or shared harness file that
+imports `bus`/`agent`/`daemon` or spells `overtake_dsp:`. The protocol is in
+`docs/standalone/testbus.md`; its choices for WP6: `QUIT` keeps testd's
+close-the-connection meaning and `EXIT` stops movy-host; `LOG_SEQ`/`LOG_TAIL`
+make log deltas exact; `STATE` carries `overtake_mode`/`shim_counter` compat
+keys so `Bus` works unmodified; the bus is off unless `MOVY_TESTBUS=1` or a
+`testbus` file sits in the module dir (`launch-standalone.sh` drops the env).
+The fixture's schwung-slot and Move-Set half (`fixture.ts` ssh paths) is still
+overtake-shaped. It is reached by plain ssh, not the transport, and WP7 gives it
+a standalone branch.
+
 ---
 
 ## Phase B: the switch

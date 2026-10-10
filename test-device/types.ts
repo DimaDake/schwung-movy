@@ -26,9 +26,14 @@ export type Attempt = {
  * how often, rather than a reason to stop reading them. */
 export type Status = 'pass' | 'flaky' | 'fail';
 
+export type ScenarioStatus = Status | 'na';
+
 export type ScenarioResult = {
     name: string;
-    status: Status;
+    /* `na`: not run, by declaration — the scenario needs something this
+     * flavour does not have (`needs` in runner.ts). Never a gate state: it is
+     * neither a pass nor a failure, and it is never silent. */
+    status: ScenarioStatus;
     /* The final attempt's, which is what the scenario is graded on. Earlier
      * attempts keep their own in `attempts`. */
     checks: Check[];
@@ -38,4 +43,6 @@ export type ScenarioResult = {
     notes: Record<string, unknown>;
     /* Why this scenario does not gate the tier (runner.ts `scenario` opts). */
     knownFlaky?: string;
+    /* What an `na` scenario needed. */
+    needs?: string;
 };

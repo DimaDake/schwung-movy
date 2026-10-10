@@ -13,7 +13,7 @@ const REMOTE = '/data/UserData/schwung/modules/tools/movy';
 /* Walk up to the directory holding package.json. This module is imported from
  * test-device/dist/ at runtime but lives in test-device/ as source, so a fixed
  * number of '..' segments is right in exactly one of those two places. */
-function repoRoot(): string {
+export function repoRoot(): string {
     let d = dirname(fileURLToPath(import.meta.url));
     for (let i = 0; i < 5; i++) {
         if (existsSync(join(d, 'package.json'))) return d;
@@ -146,7 +146,7 @@ let wantMute = false;
 
 export function setRunMute(on: boolean): void { wantMute = on; }
 
-export async function applyRunMute(bus: { setParam(k: string, v: string): Promise<void> }): Promise<void> {
+export async function applyRunMute(tx: { engineSet(k: string, v: string): Promise<void> }): Promise<void> {
     if (!wantMute) return;
-    try { await bus.setParam('overtake_dsp:mute', '1'); } catch { /* audible, not fatal */ }
+    try { await tx.engineSet('mute', '1'); } catch { /* audible, not fatal */ }
 }

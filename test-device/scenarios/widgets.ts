@@ -57,10 +57,6 @@
  *   W4  swapped away: the departed module's kind is out of the registry
  *   W5  swapped back: registered again, and its art is back on the same page
  */
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { scenario } from '../runner.js';
 import { Device } from '../device.js';
 import { Display, W, H } from '../display.js';
@@ -68,9 +64,7 @@ import { Probe } from '../probe.js';
 import * as fixture from '../fixture.js';
 import { until } from '../wait.js';
 
-const run = promisify(execFile);
 /* test-device/dist/scenarios/widgets.js at run time. */
-const MOVY = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 
 /* Frames of device work, never a wall clock — the same settle the other
  * scenarios give one gesture. A frame is ~2.9 ms of SPI work whatever the load;
@@ -154,19 +148,16 @@ type Page = { module?: string; pageIndex?: number; pageCount?: number;
 
 scenario('widgets', async (t) => {
     fixture.setHost(t.host);
-    const dev   = new Device(t.bus, t.agent, t.host);
-    const probe = new Probe(t.bus);
-    const disp  = new Display(t.host);
+    const dev   = new Device(t.tx);
+    const probe = new Probe(t.tx);
+    const disp  = new Display(t.tx);
     const open  = () => dev.open(probe);
     const close = () => dev.close(probe);
 
     /* A movy track's chain lives in movy's OWN engine: the param is written
      * through `ch0:` and only while movy is open, or the module lands somewhere
      * the track is not (scenarios/items.ts learned this the same way). */
-    const ep = async (key: string, value: string): Promise<void> => {
-        await run('node', [join(MOVY, 'scripts', 'engine-param.mjs'),
-                           'set', key, value, t.host], { maxBuffer: 8 * 1024 * 1024 });
-    };
+    const ep = (key: string, value: string): Promise<void> => t.tx.engineSetQueued(key, value);
 
     /* WHAT THE SLOT GOES BACK TO. Asked of the fixture, never written down: the
      * module this suite swaps away to and the one it restores are the same, and
@@ -182,7 +173,7 @@ scenario('widgets', async (t) => {
     };
     const waitPage = async (pred: (p: Page) => boolean, what: string): Promise<Page | null> => {
         try {
-            return await until(t.bus, what, async () => (await probe.page()) as Page,
+            return await until(t.tx, what, async () => (await probe.page()) as Page,
                                (p) => !!p && pred(p), { within: 4000, every: 150 });
         } catch { return await pageNow(); }
     };
@@ -229,7 +220,7 @@ scenario('widgets', async (t) => {
         let idle = -1;
         for (let i = 0; i < TURNS_MAX; i++) {
             await dev.tap.jogTurn(-1);
-            await t.bus.frames(ACT);
+            await t.tx.frames(ACT);
             const cur = await disp.grab();
             idle = differing(prev, cur).n;
             prev = cur;
@@ -238,13 +229,13 @@ scenario('widgets', async (t) => {
         const frames: Buffer[] = [prev];
         for (let i = 1; i < PAGES; i++) {
             await dev.tap.jogTurn(1);
-            await t.bus.frames(ACT);
+            await t.tx.frames(ACT);
             frames.push(await disp.grab());
         }
         return { frames, idle };
     };
 
-    await fixture.ensure(t.bus, open, close);
+    await fixture.ensure(t.tx, open, close);
     await dev.deployUi();
     await dev.open(probe);
     await dev.selectTrack(0);
@@ -267,7 +258,7 @@ scenario('widgets', async (t) => {
     let pg: Page | null = null;
     for (let i = 0; i < 4 && !isPage(pg, AWAY); i++) {
         await dev.tap.jog();
-        await t.bus.frames(ACT);
+        await t.tx.frames(ACT);
         pg = await waitPage((p) => isPage(p, AWAY), `${AWAY}'s knobs page`);
     }
     t.note('pageAtW1', pg && { module: pg.module, renderer: pg.renderer, view: pg.view,
@@ -297,7 +288,7 @@ scenario('widgets', async (t) => {
     await ep('ch0:synth:module', MODULE);
     let said = false;
     try {
-        await until(t.bus, `movy to register ${WIDGET}`, lines,
+        await until(t.tx, `movy to register ${WIDGET}`, lines,
                     (ls) => ls.length > regBefore, { within: 4000, every: 150 });
         said = true;
     } catch { /* the check below reports what is missing */ }
@@ -325,7 +316,7 @@ scenario('widgets', async (t) => {
     const pagesDiffer = highest(withArt.frames.flatMap((a, i) =>
         withArt.frames.slice(i + 1).map((b) => differing(a, b).n)));
     const cleared = await probe.widget(WIDGET, { clear: true });
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     const without = await walk();
     const moved = withArt.frames.map((b, i) => differing(b, without.frames[i]));
     const widgetPage = highest(moved.map((m) => m.n));
@@ -394,7 +385,7 @@ scenario('widgets', async (t) => {
     await ep('ch0:synth:module', MODULE);
     let said2 = false;
     try {
-        await until(t.bus, `movy to register ${WIDGET} again`, lines,
+        await until(t.tx, `movy to register ${WIDGET} again`, lines,
                     (ls) => ls.length > regBefore2, { within: 4000, every: 150 });
         said2 = true;
     } catch { /* reported below */ }

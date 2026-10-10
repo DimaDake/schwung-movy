@@ -44,16 +44,16 @@ const touchedCell = (page: any) =>
 
 scenario('automation', async (t) => {
     fixture.setHost(t.host);
-    const dev = new Device(t.bus, t.agent, t.host);
-    const probe = new Probe(t.bus);
+    const dev = new Device(t.tx);
+    const probe = new Probe(t.tx);
     const open  = () => dev.open(probe);
     const close = () => dev.close(probe);
 
-    await fixture.ensure(t.bus, open, close);
+    await fixture.ensure(t.tx, open, close);
     t.note('blob_afterEnsure', await fixture.blobInfo());
     await dev.deployUi();
     await dev.open(probe);
-    await t.bus.frames(300);
+    await t.tx.frames(300);
     t.note('blob_afterOpen', await fixture.blobInfo());
     t.note('registry_afterOpen', (await probe.auto()).lanes);
 
@@ -67,20 +67,20 @@ scenario('automation', async (t) => {
      * fails for the wrong reason. The bash version detected this by regex on a
      * log line; the page is readable directly now. */
     await dev.tap.jog();
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     for (let i = 0; i < 3; i++) {
         const p = await probe.page();
         const named = (p.cells ?? []).filter((c: any) => c);
         if (named.length !== 1 || !/^PRESE/.test(named[0].name)) break;
         await dev.tap.jogTurn(1);
-        await t.bus.frames(ACT);
+        await t.tx.frames(ACT);
     }
 
     // ── P1 / P2: hold a step and turn an automatable knob ────────────────────
     await dev.tap.note(PAD, 100);          // set the step-entry pitch
     await dev.tap.note(STEP_FIRST, 127);   // place a note (auto-creates the clip)
     await dev.tap.cc(CC_PLAY);
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
 
     const heldValues = new Set<string>();
     let heldTouched = false;
@@ -91,7 +91,7 @@ scenario('automation', async (t) => {
          * base is, instead of clamping at a rail and yielding exactly one. */
         for (const d of [12, 12, 12, -12, -12, -12]) {
             await dev.tap.knob(KNOB, d);
-            await t.bus.frames(ACT);
+            await t.tx.frames(ACT);
             const page = await probe.page();
             if (page.held) heldTouched = true;
             const cell = touchedCell(page);
@@ -112,8 +112,8 @@ scenario('automation', async (t) => {
     await dev.tap.cc(CC_REC);              // arm; one-bar count-in
     let recording = true;
     try {
-        await until(t.bus, 'the count-in to elapse',
-            () => t.bus.getParam('overtake_dsp:status'),
+        await until(t.tx, 'the count-in to elapse',
+            () => t.tx.engineGet('status'),
             (s) => /(^| )rec=1( |$)/.test(s), { within: 3000, every: 60 });
     } catch { recording = false; }
     t.note('recordingArmed', recording);
@@ -121,13 +121,13 @@ scenario('automation', async (t) => {
     /* Drive to the floor first so the up-sweep has full headroom and a known
      * base. A take that fails to accumulate sticks at base+one-delta — the
      * reported "snaps back" bug — which a sweep from an unknown base can hide. */
-    for (let i = 0; i < 4; i++) { await dev.tap.knob(KNOB, -12); await t.bus.frames(60); }
+    for (let i = 0; i < 4; i++) { await dev.tap.knob(KNOB, -12); await t.tx.frames(60); }
 
     const liveValues = new Set<string>();
     let liveTouched = false;
     for (let i = 0; i < 4; i++) {
         await dev.tap.knob(KNOB, 12);
-        await t.bus.frames(ACT);
+        await t.tx.frames(ACT);
         const page = await probe.page();
         const cell = touchedCell(page);
         if (cell) { liveTouched = true; liveValues.add(String(cell.value)); }
@@ -159,7 +159,7 @@ scenario('automation', async (t) => {
     await dev.open(probe);
     await dev.selectTrack(0);
     await dev.tap.jog();                   // show the params → forces a render
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
 
     /* WAIT for the registry rather than reading it once. It repopulates from
      * the engine's labels after the restore lands, not at the moment the UI
@@ -167,7 +167,7 @@ scenario('automation', async (t) => {
      * reported [] on the next. Waiting is the whole point of the harness. */
     let after: any = { lanes: [] };
     try {
-        after = await until(t.bus, 'the lane registry to repopulate',
+        after = await until(t.tx, 'the lane registry to repopulate',
             () => probe.auto(),
             (v: any) => Array.isArray(v.lanes) && v.lanes.length > 0,
             { within: 4000, every: 150 });
@@ -208,7 +208,7 @@ scenario('automation', async (t) => {
         const named = (p.cells ?? []).filter((c: any) => c);
         if (named.length !== 1 || !/^PRESE/.test(named[0].name)) break;
         await dev.tap.jogTurn(1);
-        await t.bus.frames(ACT);
+        await t.tx.frames(ACT);
     }
     /* The dot is registry-DRIVEN, and the registry repopulates a moment after
      * the page first draws — so the cell's automated flag lands later than the
@@ -216,7 +216,7 @@ scenario('automation', async (t) => {
      * here saw a fully-populated registry and a page with no dot on it. */
     let page: any = await probe.page();
     try {
-        page = await until(t.bus, 'the automation dot to appear',
+        page = await until(t.tx, 'the automation dot to appear',
             () => probe.page(),
             (p: any) => (p.cells ?? []).some((c: any) => c && c.automated),
             { within: 3000, every: 150 });
@@ -229,7 +229,7 @@ scenario('automation', async (t) => {
     // ── P5: playback writes the bound param ─────────────────────────────────
     /* The binds are re-sent by the label sync that rebuilt the registry above,
      * so they are read after it. A mix lane has no chain param to read. */
-    const binds = (await t.bus.getParam('overtake_dsp:ch0:lanes').catch(() => ''))
+    const binds = (await t.tx.engineGet('ch0:lanes').catch(() => ''))
         .split(';').filter((b) => b.includes('=')).map((b) => b.slice(b.indexOf('=') + 1));
     t.note('binds', binds);
     const unbound = (after.lanes ?? []).filter((k: string) => !binds.some((b) => b.endsWith(':' + k)));
@@ -242,20 +242,20 @@ scenario('automation', async (t) => {
      * them. Sampled, not waited on: the value is SUPPOSED to keep changing.
      * The reopen reloaded the engine, so the transport is started here if it
      * is not already running. */
-    const playing = async () => /(^| )play=1( |$)/.test(await t.bus.getParam('overtake_dsp:status').catch(() => ''));
+    const playing = async () => /(^| )play=1( |$)/.test(await t.tx.engineGet('status').catch(() => ''));
     if (!(await playing())) {
         await dev.tap.cc(CC_PLAY);
         try {
-            await until(t.bus, 'the transport to start', playing, (p) => p, { within: 2000, every: 60 });
+            await until(t.tx, 'the transport to start', playing, (p) => p, { within: 2000, every: 60 });
         } catch { /* p5-plays says what happened */ }
     }
     const seen = new Map<string, Set<string>>();
     for (let i = 0; i < 24; i++) {
         for (const key of binds.filter((b) => !b.startsWith('mix:'))) {
-            const v = await t.bus.getParam(`overtake_dsp:ch0:${key}`).catch(() => '');
+            const v = await t.tx.engineGet(`ch0:${key}`).catch(() => '');
             if (v !== '') (seen.get(key) ?? seen.set(key, new Set()).get(key)!).add(v);
         }
-        await t.bus.frames(20);
+        await t.tx.frames(20);
     }
     const moved = [...seen].filter(([, vs]) => vs.size >= 2).map(([k]) => k);
     t.note('playedValues', Object.fromEntries([...seen].map(([k, vs]) => [k, [...vs]])));

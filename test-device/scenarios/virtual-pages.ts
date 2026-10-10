@@ -84,12 +84,12 @@ type HeldPage = { module?: string; renderer?: string; held?: boolean; view?: str
 
 scenario('virtual-pages', async (t) => {
     fixture.setHost(t.host);
-    const dev   = new Device(t.bus, t.agent, t.host);
-    const probe = new Probe(t.bus);
+    const dev   = new Device(t.tx);
+    const probe = new Probe(t.tx);
     const open  = () => dev.open(probe);
     const close = () => dev.close(probe);
 
-    await fixture.ensure(t.bus, open, close);
+    await fixture.ensure(t.tx, open, close);
     await dev.deployUi();
     await dev.open(probe);
     await dev.selectTrack(0);
@@ -130,7 +130,7 @@ scenario('virtual-pages', async (t) => {
      *
      * So the step is CHOSEN from it. Nothing is tapped, nothing is restored,
      * and the scenario stops depending on what the fixture happens to seed. */
-    const status = await t.bus.getParam('overtake_dsp:status');
+    const status = await t.tx.engineGet('status');
     const occHex = /(?:^|\s)occ=([0-9a-fA-F]+)/.exec(status)?.[1] ?? '';
     const occupied: number[] = [];
     for (let i = 0; i * 2 + 1 < occHex.length; i++) {
@@ -167,7 +167,7 @@ scenario('virtual-pages', async (t) => {
     if (await viewNow() !== 'knobs') {
         await dev.tap.jog();
         try {
-            await until(t.bus, 'the knobs view', viewNow, (v) => v === 'knobs',
+            await until(t.tx, 'the knobs view', viewNow, (v) => v === 'knobs',
                         { within: 60, every: 4 });
         } catch { /* reported by the check below, with the view it stalled in */ }
     }
@@ -190,21 +190,21 @@ scenario('virtual-pages', async (t) => {
      * and read which page is up — inside the hold, because the step page only
      * exists while a step is held. */
     const heldProb = async (): Promise<number> => {
-        const st = await t.bus.getParam('overtake_dsp:status');
+        const st = await t.tx.engineGet('status');
         return Number(/(?:^|\s)hprob=(-?\d+)/.exec(st)?.[1] ?? NaN);
     };
     /* Touch, single-unit clicks with frames between, release — the shape a
      * hand makes. A whole-detent CC value in one message is not. */
     const turnKnob = (k: number, dir: 1 | -1) => dev.knobHold(k, async () => {
-        await t.bus.frames(4);
-        for (let i = 0; i < TURN_RAW; i++) { await dev.tap.knob(k, dir); await t.bus.frames(2); }
-        await t.bus.frames(4);
+        await t.tx.frames(4);
+        for (let i = 0; i < TURN_RAW; i++) { await dev.tap.knob(k, dir); await t.tx.frames(2); }
+        await t.tx.frames(4);
     });
 
     const attempt = async (): Promise<void> => {
         await dev.hold(stepNote, async () => {
             try {
-                await until(t.bus, 'step-automation mode',
+                await until(t.tx, 'step-automation mode',
                     async () => (await probe.page()) as unknown as HeldPage | null,
                     (p) => !!p?.held, { within: PROMOTE_FRAMES, every: 4 });
                 got.promoted = true;
@@ -223,18 +223,18 @@ scenario('virtual-pages', async (t) => {
                 got.trail.push(`${got.held?.module ?? '?'}@${got.held?.pageIndex ?? '?'}`);
                 if (got.held?.module === STEP_PAGE_MODULE) break;
                 await dev.tap.jogTurn(-1);
-                await t.bus.frames(6);
+                await t.tx.frames(6);
             }
             got.held = (await probe.page()) as unknown as HeldPage | null;
             if (got.held?.module !== STEP_PAGE_MODULE) return;
 
             got.probBefore = await heldProb();
             await turnKnob(PROB_KNOB, -1);
-            got.probAfter = await until(t.bus, 'probability follows the turn', heldProb,
+            got.probAfter = await until(t.tx, 'probability follows the turn', heldProb,
                 (v) => v !== got.probBefore, { within: SETTLE_FRAMES, every: 4 })
                 .catch(heldProb);
             await turnKnob(PROB_KNOB, +1);
-            got.probRestored = await until(t.bus, 'probability turned back', heldProb,
+            got.probRestored = await until(t.tx, 'probability turned back', heldProb,
                 (v) => v === got.probBefore, { within: SETTLE_FRAMES, every: 4 })
                 .catch(heldProb);
         });

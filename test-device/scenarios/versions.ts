@@ -76,8 +76,8 @@ const RESTORE_WAIT = { within: 8000, every: 400 };
 
 scenario('versions', async (t) => {
     fixture.setHost(t.host);
-    const dev = new Device(t.bus, t.agent, t.host);
-    const probe = new Probe(t.bus);
+    const dev = new Device(t.tx);
+    const probe = new Probe(t.tx);
     const open = () => dev.open(probe);
     const close = () => dev.close(probe);
 
@@ -100,7 +100,7 @@ scenario('versions', async (t) => {
      * which is exactly when the pre-feature files may be seeded: a running tool
      * autosaves over them within seconds. ensure() has also run movy once, so a
      * root-owned versions.json + v/ from its own open/close are in the way. */
-    await fixture.ensure(t.bus, open, close);
+    await fixture.ensure(t.tx, open, close);
     await dev.deployUi();
 
     const uuid = (await fixture.activeUuid()).trim();
@@ -181,10 +181,10 @@ scenario('versions', async (t) => {
         { expected: '>=1 clip', actual: `${have} clip(s)` });
 
     // ── 2. Wipe a clip through the engine, and let the autosave carry it ─────
-    await dev.param.set('overtake_dsp:cmd', 'clipdel 0');
+    await dev.param.set('cmd', 'clipdel 0');
     let landed = false;
     try {
-        await until(t.bus, 'the deletion to reach disk', clipsNow,
+        await until(t.tx, 'the deletion to reach disk', clipsNow,
             (n) => n < have, SAVE_WAIT);
         landed = true;
     } catch { landed = false; }
@@ -202,12 +202,12 @@ scenario('versions', async (t) => {
      * shows. Then three clicks: open the page, arm the confirm on the newest
      * version, perform the restore. */
     await dev.holdCc(CC_SHIFT, async () => { await dev.tap.note(STEP_FLAGS_NOTE, 127); });
-    await t.bus.frames(ACT);
-    for (let i = 0; i < 40; i++) { await dev.tap.jogTurn(1); await t.bus.frames(JOG); }
-    await dev.tap.jogTurn(-1); await t.bus.frames(ACT);   // back up onto BACKUPS
-    await dev.tap.jog(); await t.bus.frames(ACT);          // open BACKUPS
-    await dev.tap.jog(); await t.bus.frames(ACT);          // arm the confirm
-    await dev.tap.jog(); await t.bus.frames(ACT);          // restore
+    await t.tx.frames(ACT);
+    for (let i = 0; i < 40; i++) { await dev.tap.jogTurn(1); await t.tx.frames(JOG); }
+    await dev.tap.jogTurn(-1); await t.tx.frames(ACT);   // back up onto BACKUPS
+    await dev.tap.jog(); await t.tx.frames(ACT);          // open BACKUPS
+    await dev.tap.jog(); await t.tx.frames(ACT);          // arm the confirm
+    await dev.tap.jog(); await t.tx.frames(ACT);          // restore
 
     /* A restore is itself undoable, so it captures the pre-restore state first —
      * unconditionally (the `always` set in version-capture). That entry is the
@@ -215,7 +215,7 @@ scenario('versions', async (t) => {
      * grepped out of the log. */
     let restoreRecorded = false;
     try {
-        await until(t.bus, 'the restore to be recorded', async () => {
+        await until(t.tx, 'the restore to be recorded', async () => {
             const v = await versionsJson();
             return !!(v && Array.isArray(v.v) && v.v.some((r: any) => r && r.why === 'pre-restore'));
         }, (b) => b === true, RESTORE_WAIT);
@@ -233,7 +233,7 @@ scenario('versions', async (t) => {
      * cadence, rather than reading once, is what tells the two apart. */
     let clipsBack = 0;
     try {
-        clipsBack = await until(t.bus, 'the restored clips to come back', clipsNow,
+        clipsBack = await until(t.tx, 'the restored clips to come back', clipsNow,
             (n) => n >= have, SAVE_WAIT);
     } catch { clipsBack = await clipsNow(); }
     t.check('restored-clips-reach-engine', 'the restored clips are what the engine holds',

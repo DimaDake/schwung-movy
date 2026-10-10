@@ -19,6 +19,10 @@ function detailOf(c: { expected?: string; actual?: string; label: string }): str
 }
 
 export function printLevel0(r: ScenarioResult, outDir: string): void {
+    if (r.status === 'na') {
+        console.log(`${DIM}– ${r.name.padEnd(18)}${'N/A'.padStart(11)}  needs ${r.needs}, which this flavour does not have${RST}`);
+        return;
+    }
     const failed = r.checks.filter((c) => !c.pass);
     const n = r.checks.length;
     const tally = failed.length === 0 ? `${n} checks` : `${n - failed.length}/${n} checks`;
@@ -56,6 +60,8 @@ export function printLevel0(r: ScenarioResult, outDir: string): void {
 
 export function printSummary(results: ScenarioResult[], failed: number, outDir: string): void {
     const total = results.reduce((a, r) => a + r.checks.length, 0);
+    const na = results.filter((r) => r.status === 'na');
+    results = results.filter((r) => r.status !== 'na');
     const flaky = results.filter((r) => r.status === 'flaky');
     const infra = results.filter((r) => r.status !== 'flaky'
         && r.attempts.some((a) => a.kind === 'infra'));
@@ -64,6 +70,7 @@ export function printSummary(results: ScenarioResult[], failed: number, outDir: 
     const known = results.filter((r) => r.status === 'fail' && r.knownFlaky);
     if (known.length) parts.push(`${YEL}${known.length} KNOWN-FLAKY red, not gating${RST} (${known.map((r) => r.name).join(', ')})`);
     if (infra.length) parts.push(`${infra.length} infra-retried (${infra.map((r) => r.name).join(', ')})`);
+    if (na.length) parts.push(`${na.length} N/A (${na.map((r) => r.name).join(', ')})`);
     console.log(`\n${parts.join(' · ')}   → ${outDir}/run.md`);
 }
 
@@ -82,6 +89,7 @@ export function writeReport(outDir: string, results: ScenarioResult[]): void {
     mkdirSync(outDir, { recursive: true });
     for (const r of results) {
         const lines: string[] = [`# ${r.name}`, '', `${r.status.toUpperCase()} · ${r.seconds.toFixed(1)}s`, ''];
+        if (r.status === 'na') lines.push(`Not run: needs ${r.needs}, which this flavour does not have.`, '');
         if (r.knownFlaky) lines.push(`KNOWN FLAKY — does not gate the tier: ${r.knownFlaky}`, '');
         if (r.status === 'flaky') {
             lines.push(`FLAKY: failed on attempt ${r.attempts[0].n}, passed on attempt ${r.attempts.length}.`, '');
@@ -105,7 +113,9 @@ export function writeReport(outDir: string, results: ScenarioResult[]): void {
     const total  = results.reduce((a, r) => a + r.checks.length, 0);
     const failed = results.reduce((a, r) => a + r.checks.filter((c) => !c.pass).length, 0);
     const flaky  = results.filter((r) => r.status === 'flaky').map((r) => r.name);
+    const na     = results.filter((r) => r.status === 'na').map((r) => r.name);
     writeFileSync(join(outDir, 'run.md'),
-        `# device run\n\n${results.length} scenarios · ${total} checks · ${failed} failed` +
-        (flaky.length ? ` · ${flaky.length} flaky (${flaky.join(', ')})` : '') + '\n');
+        `# device run\n\n${results.length - na.length} scenarios · ${total} checks · ${failed} failed` +
+        (flaky.length ? ` · ${flaky.length} flaky (${flaky.join(', ')})` : '') +
+        (na.length ? ` · ${na.length} N/A (${na.join(', ')})` : '') + '\n');
 }

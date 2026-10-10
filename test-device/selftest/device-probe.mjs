@@ -1,8 +1,6 @@
 /* Device selftest for the probe transport: harness -> engine mailbox -> movy UI. */
-import { Bus } from '../dist/bus.js';
-import { Agent } from '../dist/agent.js';
+import { OvertakeTransport } from '../dist/transport-overtake.js';
 import { Probe } from '../dist/probe.js';
-import { ensureServers, stopServers } from '../dist/daemon.js';
 import { until } from '../dist/wait.js';
 import { Device } from '../dist/device.js';
 
@@ -11,16 +9,14 @@ let fails = 0;
 const ok = (l, c, d = '') => { if (c) console.log('✓ ' + l);
     else { console.log('✗ ' + l + (d ? '  ' + d : '')); fails++; } };
 
-const started = await ensureServers(HOST);
-const bus = new Bus(HOST); await bus.connect();
-const agent = new Agent(HOST); await agent.connect();
+const tx = new OvertakeTransport(HOST); await tx.connect();
 
-const dev = new Device(bus, agent, HOST);
+const dev = new Device(tx);
 /* open() gates on BOTH the mode and the DSP instance. Gating on the mode alone
  * made the first param SET fail with "param SET error from peer". */
 await dev.open();
 
-const probe = new Probe(bus);
+const probe = new Probe(tx);
 ok('probe is available', await probe.available());
 
 const t = await probe.tick();
@@ -52,7 +48,7 @@ ok('auto reports a track and a lane array', typeof auto.track === 'number' && Ar
 
 /* Drive the UI into the knobs view so a page render exists to read. */
 await dev.tap.jog();
-await bus.frames(120);
+await tx.frames(120);
 const page = await probe.page();
 ok('page answers with eight cells or a clear reason',
     (Array.isArray(page.cells) && page.cells.length === 8) || typeof page.error === 'string',
@@ -65,9 +61,8 @@ if (Array.isArray(page.cells)) {
 let closed = true;
 try { await dev.close(probe); } catch { closed = false; }
 ok('close() actually unloads movy (overtake_mode leaves 2)', closed &&
-    (await bus.state()).overtake_mode !== 2);
+    !(await tx.running()));
 
-bus.close(); agent.close();
-await stopServers(HOST, started);
+await tx.close();
 console.log(fails === 0 ? 'DEVICE PROBE SELFTEST PASSED' : `${fails} DEVICE PROBE CHECK(S) FAILED`);
 process.exit(fails === 0 ? 0 : 1);

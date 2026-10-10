@@ -505,7 +505,7 @@ log('\nTest 14: the stack restart runs as root, from one shared script');
 const restartPy = 'scripts/lib/restart-stack.py';
 const restartSh = readFileSync('scripts/lib/restart-stack.sh', 'utf8');
 const engineTs  = readFileSync('test-device/engine.ts', 'utf8');
-const deviceTs  = readFileSync('test-device/device.ts', 'utf8');
+const deviceTs  = readFileSync('test-device/transport-overtake.ts', 'utf8');
 
 ok('the verified restart body exists as a shared script', existsSync(restartPy));
 
@@ -526,8 +526,8 @@ for (const [who, src] of [['restart-stack.sh', restartSh], ['engine.ts', engineT
 /* Strip comments first. device.ts explains this trap by name, and a guard that
  * matched the explanation would fire on the fix as readily as on the bug. */
 const codeOf = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-ok('device.ts no longer restarts through bus.restartMove()',
-   !codeOf(deviceTs).includes('bus.restartMove()')
+ok('the overtake transport does not restart through testd\'s restartMove()',
+   !codeOf(deviceTs).includes('restartMove()')
    && /restartStack\(this\.host\)/.test(codeOf(deviceTs)));
 
 /* ── Test 15: the tier ships an engine before it grades one ─────────────────
@@ -540,11 +540,11 @@ log('\nTest 15: npm run test:device deploys the engine it is about to test');
 
 const runMjs = readFileSync('test-device/run.mjs', 'utf8');
 
-ok('run.mjs imports the engine deploy', /import \{[^}]*deployEngine[^}]*\}/.test(runMjs));
+ok('run.mjs deploys the engine through its transport', runMjs.includes('tx.deployEngine()'));
 
 /* Order, not presence: a deploy that happens after the scenarios have run
  * tests the old engine just as thoroughly as no deploy at all. */
-const atDeploy = runMjs.indexOf('deployEngine(HOST)');
+const atDeploy = runMjs.indexOf('tx.deployEngine()');
 const atRunAll = runMjs.indexOf('runAll(');
 ok('and calls it BEFORE the scenarios run',
    atDeploy > 0 && atRunAll > 0 && atDeploy < atRunAll);
@@ -564,7 +564,7 @@ ok('--no-engine announces that the engine was not shipped',
  * `dev.deployUi()` is always too late and the fixture phase runs the previous
  * build. Invisible until the UI and the engine had to agree on a version, at
  * which point the tier hung on a fixture that could not establish itself. */
-const atUi = runMjs.search(/^await deployUi\(HOST\);/m);
+const atUi = runMjs.search(/^await tx\.deployUi\(\);/m);
 ok('ui.js is deployed before the scenarios run too',
    atUi > 0 && atRunAll > 0 && atUi < atRunAll);
 
@@ -582,8 +582,8 @@ ok('the run asks for the mute and clears it in a finally',
  * stack had just restarted and movy was not open yet. */
 const deviceSrc = readFileSync('test-device/device.ts', 'utf8');
 ok('and the mute is applied on open, after the restore wait',
-   /applyRunMute\(this\.bus\)/.test(deviceSrc)
-   && deviceSrc.indexOf('applyRunMute(this.bus)') > deviceSrc.indexOf('RESTORE_QUIET'));
+   /applyRunMute\(this\.tx\)/.test(deviceSrc)
+   && deviceSrc.indexOf('applyRunMute(this.tx)') > deviceSrc.indexOf('RESTORE_QUIET'));
 
 /* Every scenario in scenarios/ must be LOADED. The registry is built by import
  * side effect, so a file that exists and is never imported is a suite that
@@ -731,6 +731,37 @@ log('\nTest: slot-param.mjs reads through an update that lacks the key');
     ok('an answering device without the key reads as empty, not silent', absent === '', `got ${JSON.stringify(absent)}`);
     const silent = await readKey(fakeWs([]), 0, 'slot:volume', 200);
     ok('a device that never answers reads as silent', silent === null, `got ${JSON.stringify(silent)}`);
+}
+
+/* ── The transport seam (standalone migration WP5) ─────────────────────────
+ * Scenarios and the shared harness talk to test-device/transport.ts, so the
+ * standalone flavour is a second implementation rather than a rewrite. Only
+ * transport-overtake.ts may reach the overtake host's own clients, and only it
+ * may spell the host's `overtake_dsp:` engine namespace. Comments are stripped:
+ * explaining the overtake host by name is fine; calling it is not.
+ */
+log('\nTest: scenarios reach the device only through the transport');
+{
+    const shared = ['device.ts', 'probe.ts', 'fixture.ts', 'engine.ts', 'arm.ts', 'runner.ts']
+        .map((f) => `test-device/${f}`);
+    const scen = readdirSync('test-device/scenarios').filter((f) => f.endsWith('.ts'))
+        .map((f) => `test-device/scenarios/${f}`);
+    const leaks = [];
+    for (const f of [...shared, ...scen]) {
+        const code = codeOf(readFileSync(f, 'utf8'));
+        if (/from '\.\.?\/(bus|agent|daemon)\.js'/.test(code)) leaks.push(`${f}: imports an overtake client`);
+        if (code.includes('overtake_dsp:')) leaks.push(`${f}: spells overtake_dsp:`);
+        if (/\bt\.(bus|agent)\b/.test(code)) leaks.push(`${f}: uses t.bus/t.agent`);
+    }
+    ok('no scenario or shared harness file bypasses the transport', leaks.length === 0,
+       leaks.length ? leaks.join('; ') : `${shared.length + scen.length} files`);
+    const needsMove = scen.filter((f) => /needs: 'move'/.test(codeOf(readFileSync(f, 'utf8'))))
+        .map((f) => f.replace(/.*\//, '').replace(/\.ts$/, ''));
+    /* The coexistence suites. A tag dropped from one of them would make the
+     * standalone sweep grade a feature that cannot exist there. */
+    for (const n of ['master-fx', 'migrate', 'volume']) {
+        ok(`${n} declares needs: 'move'`, needsMove.includes(n), `tagged: ${needsMove.join(', ')}`);
+    }
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

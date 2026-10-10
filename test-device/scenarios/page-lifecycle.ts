@@ -50,8 +50,6 @@
  */
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { scenario } from '../runner.js';
 import { Device } from '../device.js';
 import { Probe } from '../probe.js';
@@ -62,7 +60,6 @@ import { SSH_OPTS } from '../ssh.js';
 
 const run = promisify(execFile);
 /* test-device/dist/scenarios/page-lifecycle.js at run time. */
-const MOVY = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 
 /* Frames of device work, never a wall clock. ACT is the settle the other
  * scenarios use for one gesture. */
@@ -108,18 +105,15 @@ type Page = { module?: string; pageCount?: number; pageIndex?: number;
 
 scenario('page-lifecycle', async (t) => {
     fixture.setHost(t.host);
-    const dev   = new Device(t.bus, t.agent, t.host);
-    const probe = new Probe(t.bus);
+    const dev   = new Device(t.tx);
+    const probe = new Probe(t.tx);
     const open  = () => dev.open(probe);
     const close = () => dev.close(probe);
 
     /* A movy track's chain lives in movy's OWN engine: the param is written
      * through `ch0:` and only while movy is open, or the module lands somewhere
      * the track is not (scenarios/items.ts learned this the same way). */
-    const ep = async (key: string, value: string): Promise<void> => {
-        await run('node', [join(MOVY, 'scripts', 'engine-param.mjs'),
-                           'set', key, value, t.host], { maxBuffer: 8 * 1024 * 1024 });
-    };
+    const ep = (key: string, value: string): Promise<void> => t.tx.engineSetQueued(key, value);
 
     const MODULE = fixture.fixtureSynth(0);
     t.note('fixtureSynth', MODULE);
@@ -150,7 +144,7 @@ scenario('page-lifecycle', async (t) => {
     const waitPage = async (pred: (p: Page) => boolean, what: string,
                             within: number): Promise<Page | null> => {
         try {
-            return await until(t.bus, what, async () => (await probe.page()) as Page,
+            return await until(t.tx, what, async () => (await probe.page()) as Page,
                                (p) => !!p && pred(p), { within, every: 150 });
         } catch { return await pageNow(); }
     };
@@ -178,7 +172,7 @@ scenario('page-lifecycle', async (t) => {
     const delegated = (p: Page | null): boolean => !!p && p.renderer === PAGE_MODE;
     const isDelegatedModules = (p: Page): boolean => isModules(p) && delegated(p);
 
-    await fixture.ensure(t.bus, open, close);
+    await fixture.ensure(t.tx, open, close);
     await dev.deployUi();
     await dev.open(probe);
     await dev.selectTrack(0);
@@ -210,7 +204,7 @@ scenario('page-lifecycle', async (t) => {
     let pg: Page | null = null;
     for (let i = 0; i < 3 && !(pg && isDelegatedModules(pg)); i++) {
         await dev.tap.jog();
-        await t.bus.frames(ACT);
+        await t.tx.frames(ACT);
         pg = await waitPage(isDelegatedModules, `${MODULE}'s page under page mode`, 1200);
     }
     t.note('pageAtL1', dump(pg));
@@ -243,14 +237,14 @@ scenario('page-lifecycle', async (t) => {
      * untouched either way. */
     await dev.knobHold(1, async () => {
         await dev.selectTrack(1);
-        await t.bus.frames(ACT);
+        await t.tx.frames(ACT);
     });
     await dev.selectTrack(0);
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     const beforeClick = await pageNow();
     t.note('viewBeforeLatchClick', beforeClick?.view);
     await dev.tap.jog();
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     const afterClick = await pageNow();
     t.note('viewAfterLatchClick', afterClick?.view);
     t.check('knob-release-does-not-latch',
@@ -263,7 +257,7 @@ scenario('page-lifecycle', async (t) => {
      * Unconditional: the browser is where a PASS lands, and a fail may have
      * left a dive or a picker instead — both leave on Back. */
     await dev.tap.cc(CC_BACK);
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     t.note('viewAfterBack', (await pageNow())?.view);
 
     /* ── L2: None hands the frame back ────────────────────────────────────────
@@ -312,7 +306,7 @@ scenario('page-lifecycle', async (t) => {
     t.note('gridModeAfterReopen', await probe.setGridMode(PAGE_MODE));
     await dev.selectTrack(0);
     t.note('pageAtColdStart', dump(await pageNow()));
-    await t.bus.frames(PAST_OLD_BUDGET);
+    await t.tx.frames(PAST_OLD_BUDGET);
     /* A contract that is not being asked anything cannot latch, so the run has
      * to show it was live while the slot sat empty. */
     t.note('bodyWhileEmpty', await bodySince());

@@ -164,6 +164,31 @@ await runAll({ host: 'fake', outDir: OUT2, flakeLog: null, only: 'opt' });
 ok('...and runs when named with --scenario', optTries === 1 && sweepTries === 1,
    `opt=${optTries} swept=${sweepTries}`);
 
+/* `needs`: a scenario that requires Move is NOT RUN on a transport without
+ * it, and says so — status `na`, zero failures, in the report, out of the
+ * ledger. On a transport that has it, it runs like any other. */
+_resetForTest();
+let needTries = 0, plainNeedTries = 0;
+scenario('needs-move', async (t) => { needTries++; t.check('m', 'ran', true); }, { needs: 'move' });
+scenario('plain', async () => { plainNeedTries++; });
+const noMove = { has: () => false };
+const LEDGER = `${OUT2}-ledger.json`;
+const naFails = await runAll({ host: 'fake', outDir: OUT2, flakeLog: LEDGER, tx: noMove });
+const naRun = JSON.parse(readFileSync(`${OUT2}/run.json`, 'utf8'));
+const na = naRun.find((r) => r.name === 'needs-move');
+ok('a needs:move scenario is not run without Move', needTries === 0 && plainNeedTries === 1,
+   `needs=${needTries} plain=${plainNeedTries}`);
+ok('...it reports N/A with what it needed, and fails nothing',
+   naFails === 0 && na?.status === 'na' && na?.needs === 'move', JSON.stringify(na));
+ok('...its artifact says why', /needs move/.test(readFileSync(`${OUT2}/needs-move.md`, 'utf8')));
+const ledger = JSON.parse(readFileSync(LEDGER, 'utf8'));
+ok('...and the ledger records no run of it',
+   !ledger.at(-1).scenarios.some((s) => s.name === 'needs-move')
+   && ledger.at(-1).scenarios.some((s) => s.name === 'plain'), JSON.stringify(ledger.at(-1).scenarios));
+await runAll({ host: 'fake', outDir: OUT2, flakeLog: null, tx: { has: (n) => n === 'move' } });
+ok('...and runs on a transport that has Move', needTries === 1, `needs=${needTries}`);
+rmSync(LEDGER, { force: true });
+
 rmSync(OUT2, { recursive: true, force: true });
 
 rmSync(OUT, { recursive: true, force: true });

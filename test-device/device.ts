@@ -1,42 +1,34 @@
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-import type { Bus } from './bus.js';
-import type { Agent } from './agent.js';
-import { UI_FLAG_JUMP_TO_TOOLS } from './agent.js';
 import type { Probe } from './probe.js';
+import type { Transport } from './transport.js';
 import { until } from './wait.js';
-import { applyRunMute, deployUi, restartStack } from './engine.js';
+import { applyRunMute } from './engine.js';
 import {
     cc, noteOn, noteOff, knobDelta,
     CC_JOG_CLICK, CC_JOG_TURN, CC_BACK, CC_KNOB_BASE, CC_TRACK_BASE,
 } from './midi.js';
-import { SSH_OPTS } from './ssh.js';
-
-const run = promisify(execFile);
-const REMOTE = '/data/UserData/schwung/modules/tools/movy';
 
 /* Frames of silence after the host's gates, while movy restores the set.
  * ~900 frames is ~2.6 s. See open(). */
 const RESTORE_QUIET = 900;
 
 export class Device {
-    constructor(private bus: Bus, private agent: Agent, private host: string) {}
+    constructor(private tx: Transport) {}
 
     readonly tap = {
         cc: async (n: number, v = 127) => {
-            await this.agent.inject(cc(n, v));
-            await this.bus.frames(2);
-            await this.agent.inject(cc(n, 0));
+            await this.tx.uiMidi(cc(n, v));
+            await this.tx.frames(2);
+            await this.tx.uiMidi(cc(n, 0));
         },
         note: async (n: number, v = 100) => {
-            await this.agent.inject(noteOn(n, v));
-            await this.bus.frames(2);
-            await this.agent.inject(noteOff(n));
+            await this.tx.uiMidi(noteOn(n, v));
+            await this.tx.frames(2);
+            await this.tx.uiMidi(noteOff(n));
         },
         knob: async (k: number, delta: number) =>
-            this.agent.inject(cc(CC_KNOB_BASE + k, knobDelta(delta))),
+            this.tx.uiMidi(cc(CC_KNOB_BASE + k, knobDelta(delta))),
         jog: async () => this.tap.cc(CC_JOG_CLICK),
-        jogTurn: async (dir: 1 | -1) => this.agent.inject(cc(CC_JOG_TURN, dir > 0 ? 1 : 127)),
+        jogTurn: async (dir: 1 | -1) => this.tx.uiMidi(cc(CC_JOG_TURN, dir > 0 ? 1 : 127)),
     };
 
     /* note-on, body, note-off — a real hold, with the body free to inject other
@@ -45,8 +37,8 @@ export class Device {
      * press/release pair WAS a half-second hold and movy read it as a different
      * gesture entirely. */
     async hold(note: number, body: () => Promise<unknown>): Promise<void> {
-        await this.agent.inject(noteOn(note, 127));
-        try { await body(); } finally { await this.agent.inject(noteOff(note)); }
+        await this.tx.uiMidi(noteOn(note, 127));
+        try { await body(); } finally { await this.tx.uiMidi(noteOff(note)); }
     }
 
     /* A CC HOLD — the same gesture as hold(), for a button that is a control
@@ -56,8 +48,8 @@ export class Device {
      * tap of the button leaves `heldTrack` at -1 and the turn falls through to
      * Move's own master volume. */
     async holdCc(n: number, body: () => Promise<unknown>): Promise<void> {
-        await this.agent.inject(cc(n, 127));
-        try { await body(); } finally { await this.agent.inject(cc(n, 0)); }
+        await this.tx.uiMidi(cc(n, 127));
+        try { await body(); } finally { await this.tx.uiMidi(cc(n, 0)); }
     }
 
     /* A knob HOLD — the gesture hold() above cannot express.
@@ -68,37 +60,15 @@ export class Device {
      * silently — movy never sees the release, and a picker that an item selector
      * opens on touch is never committed. The hold would look like a hang. */
     async knobHold(k: number, body: () => Promise<unknown>): Promise<void> {
-        await this.agent.inject(noteOn(k, 127));
-        try { await body(); } finally { await this.agent.inject(noteOn(k, 0)); }
+        await this.tx.uiMidi(noteOn(k, 127));
+        try { await body(); } finally { await this.tx.uiMidi(noteOn(k, 0)); }
     }
 
-    /* TWO gates, separate budgets.
+    /* Opening is the host's launch gate and then SILENCE.
      *
-     * The overtake DSP load runs on the shim worker, so the mode flips when the
-     * load is REQUESTED and the instance appears up to ~200 ms later; anything
-     * sent in between is dropped against the shim's `overtake_dsp_gen &&
-     * overtake_dsp_gen_inst` guards, and a param SET fails outright with
-     * "param SET error from peer". Gating on the mode alone cost exactly that.
-     *
-     * A bare `__ready` poll is not sufficient either: it answers "1" whenever
-     * NOTHING is loading, which includes the window before the load starts, so
-     * it can pass against the previous module's state.
-     *
-     * Separate budgets rather than one shared deadline: with one, a slow mode
-     * flip could eat the whole budget and report a DSP failure without a single
-     * __ready read having happened. */
-    async overtakeReady(): Promise<void> {
-        await until(this.bus, 'overtake_mode == 2',
-            async () => (await this.bus.state()).overtake_mode, (m) => m === 2, { within: 2000 });
-        await until(this.bus, 'overtake_dsp:__ready',
-            () => this.bus.getParam('overtake_dsp:__ready').catch(() => '0'),
-            (v) => v !== '0', { within: 2000 });
-    }
-
-    /* Opening has two host gates and then SILENCE.
-     *
-     * The host's gates say the module is loaded. Movy then restores the set by
-     * ferrying it through the overtake_dsp param SHM, which is a SINGLE SLOT —
+     * The launch gate says the module is loaded. Movy then restores the set by
+     * ferrying it through the engine param channel, which in overtake is a
+     * SINGLE SLOT (the overtake_dsp param SHM) —
      * and touching that SHM while the restore runs does not merely slow it, it
      * STARVES it, the same way a poll loop starved the probe's own replies.
      *
@@ -113,21 +83,20 @@ export class Device {
      * accepted and unused, so callers need not care which gates exist. */
     async open(_probe?: Probe): Promise<void> {
         const before = await this.readyLineCount();
-        await this.bus.openTool('movy');
-        await this.overtakeReady();
+        await this.tx.launch();
         /* Wait for movy's own "set ready" line, read over SSH — deliberately
          * OUT OF BAND. Every param read would compete with the restore it is
          * waiting for; the log does not. Falls back to the quiet window if the
          * device log is off, so this degrades rather than breaks. */
         try {
-            await until(this.bus, 'movy to report the set ready',
+            await until(this.tx, 'movy to report the set ready',
                 () => this.readyLineCount(), (n) => n > before,
                 { within: 5000, every: 150 });
         } catch {
-            await this.bus.frames(RESTORE_QUIET);
+            await this.tx.frames(RESTORE_QUIET);
         }
         /* After the restore, never during it — see applyRunMute. */
-        await applyRunMute(this.bus);
+        await applyRunMute(this.tx);
     }
 
     /* How many times movy has logged `seq: set ready` (set-session.ts). */
@@ -138,20 +107,15 @@ export class Device {
     /* Lines matching `pattern` in the device's unified log, read out of band
      * over SSH — for signals with no ViewModel to read: a restore in
      * progress, or what fires during unload as the DSP tears down and no
-     * probe answers on the way out. */
-    async logLines(pattern: string): Promise<string[]> {
-        try {
-            const { stdout } = await run('ssh', [...SSH_OPTS, `ableton@${this.host}`,
-                `grep '${pattern}' /data/UserData/schwung/debug.log 2>/dev/null || true`]);
-            return stdout.split('\n').filter(Boolean);
-        } catch { return []; }
-    }
+     * probe answers on the way out. Swallows a failed read as no lines, as it
+     * always has; the fixture, which cannot afford that, calls logGrep. */
+    logLines(pattern: string): Promise<string[]> { return this.tx.logGrep(pattern).catch(() => []); }
 
     /* One SHM write, no gesture. Verified on device: overtake_mode 2 -> 0,
      * logging "suspendOvertakeMode: suspend_keeps_js — parking movy in
      * background". The DSP stays loaded — this is a park, not a close. */
     async park(): Promise<void> {
-        await this.agent.uiFlag(UI_FLAG_JUMP_TO_TOOLS);
+        await this.needMove().park();
         await this.waitParked(1400);
     }
 
@@ -161,13 +125,16 @@ export class Device {
      * only this one also exercises the modal — and the modal is what a park has
      * to survive, since Background is the option that exists only while
      * host_suspend_overtake does. */
-    async parkViaModal(probe: Probe): Promise<void> { await this.leaveVia(probe, 'Background'); }
+    async parkViaModal(probe: Probe): Promise<void> {
+        this.needMove();
+        await this.leaveVia(probe, 'Background');
+    }
 
     async unpark(probe?: Probe): Promise<void> { await this.open(probe); }
 
     private async waitParked(within: number): Promise<void> {
-        await until(this.bus, 'movy to park',
-            async () => (await this.bus.state()).overtake_mode, (m) => m !== 2, { within });
+        await until(this.tx, 'movy to park',
+            () => this.tx.running(), (up) => !up, { within });
     }
 
     /* A FULL close, which unloads the DSP — not the same thing as park().
@@ -193,14 +160,14 @@ export class Device {
             const st = await probe.ask({ key: 'leave' });
             if (st.active) break;
             await this.tap.cc(CC_BACK);
-            await this.bus.frames(20);
+            await this.tx.frames(20);
         }
         for (let i = 0; i < 4; i++) {
             const st = await probe.ask({ key: 'leave' });
             if (!st.active) break;
             if (st.label === want) { await this.tap.cc(CC_JOG_CLICK); break; }
             await this.tap.jogTurn(1);
-            await this.bus.frames(20);
+            await this.tx.frames(20);
         }
         await this.waitParked(2000);
     }
@@ -222,52 +189,28 @@ export class Device {
      * drop-in replacement for a button press. */
     async selectTrack(n: number): Promise<void> {
         await this.tap.cc(CC_TRACK_BASE + (3 - (n % 4)));
-        await this.bus.frames(30);
+        await this.tx.frames(30);
     }
 
     /* Kept as the scenarios' call site; the work and the once-per-sweep rule
      * live in engine.ts next to deployEngine, because the ordering that matters
      * (ui.js on the device BEFORE the first open, not after the fixture) is a
      * property of the sweep rather than of any one scenario. */
-    async deployUi(): Promise<void> {
-        await deployUi(this.host);
-    }
+    async deployUi(): Promise<void> { await this.tx.deployUi(); }
 
-    /* A redeployed dsp.so does NOT hot-reload, measured 2026-09-11: the module
-     * is freed, a fresh inode is deployed, a fresh dlopen runs, and the OLD
-     * build still executes. So this always restarts. */
-    async swapEngine(localPath: string, probe: Probe): Promise<void> {
-        await this.close(probe);
-        /* Never scp over a dlopen'd .so in place — overwriting a mapped .so's
-         * inode corrupts its pages and crashes MoveOriginal. */
-        await run('scp', ['-q', ...SSH_OPTS, localPath, `ableton@${this.host}:${REMOTE}/dsp.so.new`]);
-        await run('ssh', [...SSH_OPTS, `ableton@${this.host}`, `mv ${REMOTE}/dsp.so.new ${REMOTE}/dsp.so`]);
-        await this.restartStack();
-        await this.open(probe);
-    }
+    async restartStack(): Promise<void> { await this.tx.restart(); }
 
-    /* Goes through the ROOT path in engine.ts, not bus.restartMove().
-     *
-     * RESTART_MOVE runs restart-move.sh as whoever owns schwung-testd, and
-     * daemon.ts starts testd as `ableton` whenever the port is closed — which
-     * is the normal case. MoveOriginal is root, so that kill is EPERM, `|| true`
-     * swallows it, and the script exits 0 with the old engine still running.
-     * Worse, the old "wait for the stack to come back" below pinged testd,
-     * which never went down, so the no-op returned green immediately. Measured
-     * 2026-09-12: MoveOriginal held pid 7515 across such a restart.
-     *
-     * restartStack() is non-zero unless the process really went away and a new
-     * one came back; the ping that follows only waits for testd to answer
-     * again. */
-    async restartStack(): Promise<void> {
-        await restartStack(this.host);
-        await until(this.bus, 'the stack to come back',
-            () => this.bus.ping().catch(() => ''),
-            (v) => v.startsWith('schwung-testd'), { within: 6000 });
-    }
-
+    /* Engine params, UNPREFIXED — the host's namespace is the transport's. */
     readonly param = {
-        get: (key: string) => this.bus.getParam(key),
-        set: (key: string, v: string) => this.bus.setParam(key, v),
+        get: (key: string) => this.tx.engineGet(key),
+        set: (key: string, v: string) => this.tx.engineSet(key, v),
     };
+
+    /* The coexistence door, for scenarios that declared `needs: 'move'`. One
+     * that reaches it without declaring fails here, by name, rather than
+     * hanging on a park that a host without Background never performs. */
+    private needMove() {
+        if (!this.tx.move) throw new Error(`park needs Move beside movy; the ${this.tx.flavour} flavour has none — declare needs: 'move'`);
+        return this.tx.move;
+    }
 }

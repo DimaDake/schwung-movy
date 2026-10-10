@@ -109,18 +109,18 @@ const PATCH_VALUE = 0.3125;
 
 scenario('migrate', async (t) => {
     fixture.setHost(t.host);
-    const dev = new Device(t.bus, t.agent, t.host);
-    const probe = new Probe(t.bus);
+    const dev = new Device(t.tx);
+    const probe = new Probe(t.tx);
     const open = () => dev.open(probe);
     /* Idempotent, because this scenario seeds the set between every arm and the
      * first seed happens while movy is ALREADY shut — `fixture.ensure` hands it
      * back that way. The leave modal is read through the probe, and a probe read
      * is a param SET into the overtake DSP, which the host refuses outright when
      * there is no instance: a close on a closed movy is "param SET error from
-     * peer", a harness error dressed as a finding. overtake_mode 2 is exactly
+     * peer", a harness error dressed as a finding. `running()` is exactly
      * "movy owns the screen" — the state leaveVia exists to leave. */
     const close = async (): Promise<void> => {
-        if ((await t.bus.state()).overtake_mode === 2) await dev.close(probe);
+        if (await t.tx.running()) await dev.close(probe);
     };
 
     const ssh = async (cmd: string): Promise<string> =>
@@ -149,7 +149,7 @@ scenario('migrate', async (t) => {
         for (let i = 0; i < 3; i++) {
             const { out, code } = await node('module-slot.mjs', ['get', slot, 'synth']);
             if (code === 0) return out;
-            await t.bus.frames(ACT);
+            await t.tx.frames(ACT);
         }
         return '';
     };
@@ -157,7 +157,7 @@ scenario('migrate', async (t) => {
         for (let i = 0; i < 3; i++) {
             const { out, code } = await node('slot-param.mjs', ['get', slot, key]);
             if (code === 0) return out;
-            await t.bus.frames(ACT);
+            await t.tx.frames(ACT);
         }
         return '';
     };
@@ -166,7 +166,7 @@ scenario('migrate', async (t) => {
         return code === 0 && out ? out.split('\n').map((l) => l.trim()).filter(Boolean).sort() : [];
     };
 
-    await fixture.ensure(t.bus, open, close);
+    await fixture.ensure(t.tx, open, close);
     t.note('blob_afterEnsure', await fixture.blobInfo());
     await dev.deployUi();
 
@@ -268,7 +268,7 @@ scenario('migrate', async (t) => {
          * 2 decimals, which is plenty to tell 0.3125 from the 0.50 default. */
         let live = '';
         try {
-            live = await until(t.bus, `${key} == ~${PATCH_VALUE}`,
+            live = await until(t.tx, `${key} == ~${PATCH_VALUE}`,
                 () => slotParam('0', `synth:${key}`),
                 (v) => v !== '' && Math.abs(Number(v) - PATCH_VALUE) < 0.01, SLOT_WAIT);
         } catch { live = await slotParam('0', `synth:${key}`); }
@@ -291,7 +291,7 @@ scenario('migrate', async (t) => {
      * the settle loop took a different path, not a hope that it arrives. */
     let migLine = '';
     try {
-        migLine = await until(t.bus, 'the migration to report what it adopted',
+        migLine = await until(t.tx, 'the migration to report what it adopted',
             async () => (await migLines()).find((l) => MIG.migrated.test(l)) ?? '',
             (l) => l !== '', { within: 1500, every: 300 });
     } catch { migLine = (await migLines()).find((l) => MIG.migrated.test(l)) ?? ''; }
@@ -315,7 +315,7 @@ scenario('migrate', async (t) => {
      * socket can write an engine param but has no get verb). It is write-to-read
      * — `chLoaded` waits for the poke's OWN line, so this describes the chain
      * now and not one from before the migration. */
-    const chLine = await fixture.chloaded(t.bus);
+    const chLine = await fixture.chloaded(t.tx);
     const chainSynth = fixture.fixtureSynth(0);
     t.note('chloaded', chLine);
     t.check('chain0-adopted-synth', `chain 0 holds the fixture's synth (${chainSynth})`,
@@ -337,7 +337,7 @@ scenario('migrate', async (t) => {
      * that write never landed this fails, and the `slot0PatchLive` note says so. */
     let chains = '';
     try {
-        chains = await until(t.bus, "the set's chains to carry the slot's patch",
+        chains = await until(t.tx, "the set's chains to carry the slot's patch",
             () => readSet('chains.json'), (s) => s.includes(marker), SAVE_WAIT);
     } catch { chains = await readSet('chains.json'); }
     t.note('chainsBytes', chains.length);
@@ -354,7 +354,7 @@ scenario('migrate', async (t) => {
      * one is read from ui-state.json whatever the persistence flag says. */
     let uiBlob = '';
     try {
-        uiBlob = await until(t.bus, 'the set to be marked migrated',
+        uiBlob = await until(t.tx, 'the set to be marked migrated',
             () => readSet('ui-state.json'),
             (s) => { const o = parseJson(s); return !!o && typeof o.migv === 'number' && o.migv >= 1; },
             SAVE_WAIT);
@@ -377,7 +377,7 @@ scenario('migrate', async (t) => {
     let mirrorOk = mirror.length > 0;
     if (!mirrorOk) {
         try {
-            uiBlob = await until(t.bus, 'the saved set to carry its chains',
+            uiBlob = await until(t.tx, 'the saved set to carry its chains',
                 () => readSet('ui-state.json'),
                 (s) => { const o = parseJson(s); return Array.isArray(o?.chains) && o.chains.length > 0; },
                 SAVE_WAIT);
@@ -417,7 +417,7 @@ scenario('migrate', async (t) => {
     for (const slot of ['0', '1', '2', '3']) await node('slot-state.mjs', ['clear', slot]);
     let emptied = false;
     try {
-        const rackNow = await until(t.bus, 'the rack to read empty',
+        const rackNow = await until(t.tx, 'the rack to read empty',
             () => rack(), (r) => r.length > 0 && r.every((l) => l.endsWith(' -')),
             SLOT_WAIT);
         emptied = rackNow.length > 0;
@@ -436,7 +436,7 @@ scenario('migrate', async (t) => {
      * ahead of a probe that has not resolved yet. */
     let log3: string[] = [];
     try {
-        log3 = await until(t.bus, 'the migration to report on the empty rack',
+        log3 = await until(t.tx, 'the migration to report on the empty rack',
             () => migLines(), (l) => l.length > 0, { within: 1500, every: 300 });
     } catch { log3 = await migLines(); }
     t.note('migLogOnEmptyRack', log3);
@@ -455,7 +455,7 @@ scenario('migrate', async (t) => {
     const back0 = fixture.fixtureEntries().find((e) => e.slot === '0')?.mod ?? '';
     await node('slot-state.mjs', ['module', '0', back0]);
     try {
-        await until(t.bus, `slot 0 == ${back0}`, () => slotMod('0'), (v) => v === back0, SLOT_WAIT);
+        await until(t.tx, `slot 0 == ${back0}`, () => slotMod('0'), (v) => v === back0, SLOT_WAIT);
     } catch { /* C11 names what it saw; a slot that would not come back fails there */ }
     await seedLegacy();
     await clearLog();
@@ -467,15 +467,15 @@ scenario('migrate', async (t) => {
      * what makes this independent of how many flags the build ships. Then two
      * clicks: the first arms (the row reads CONFIRM?), the second runs it. */
     await dev.holdCc(CC_SHIFT, async () => { await dev.tap.note(STEP_FLAGS_NOTE, 127); });
-    await t.bus.frames(ACT);
-    for (let i = 0; i < 40; i++) { await dev.tap.jogTurn(1); await t.bus.frames(JOG); }
+    await t.tx.frames(ACT);
+    for (let i = 0; i < 40; i++) { await dev.tap.jogTurn(1); await t.tx.frames(JOG); }
     await clearLog();                        // the row's own migration is the only thing left
-    await dev.tap.jog(); await t.bus.frames(ACT);   // arm
-    await dev.tap.jog(); await t.bus.frames(ACT);   // run: forced save + reload
+    await dev.tap.jog(); await t.tx.frames(ACT);   // arm
+    await dev.tap.jog(); await t.tx.frames(ACT);   // run: forced save + reload
 
     let manualLine = '';
     try {
-        manualLine = await until(t.bus, 'the manual row to re-run the migration',
+        manualLine = await until(t.tx, 'the manual row to re-run the migration',
             async () => (await migLines()).find((l) => MIG.manual.test(l)) ?? '',
             (l) => l !== '', { within: 6000, every: 400 });
     } catch { manualLine = ''; }
@@ -485,7 +485,7 @@ scenario('migrate', async (t) => {
      * (rule 2), so closing on top of one would be the harness breaking the thing
      * it is about to assert. */
     try {
-        await until(t.bus, 'the reloaded set to be playable',
+        await until(t.tx, 'the reloaded set to be playable',
             () => dev.logLines('seq: set ready'), (l) => l.length > 0,
             { within: 6000, every: 400 });
     } catch { /* it is about to be closed either way */ }
@@ -506,4 +506,6 @@ scenario('migrate', async (t) => {
      * (up to four attempts when it flakes), and the migration logic is
      * browser-test/logic/track-migrate.mjs's. Drop this with the flake fix. */
     optIn: 'knownFlaky and covered by logic/track-migrate.mjs',
+    /* It migrates schwung's shadow slots, which only exist beside Move. */
+    needs: 'move',
 });

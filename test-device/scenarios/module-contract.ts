@@ -51,10 +51,6 @@
  *   C9  a fast sweep travels far
  *   (C4-C7, C10: local since 2026-10-09 — see the note after C3)
  */
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { scenario } from '../runner.js';
 import { Device } from '../device.js';
 import { Probe } from '../probe.js';
@@ -62,9 +58,7 @@ import * as fixture from '../fixture.js';
 import { until } from '../wait.js';
 import { armMovy } from '../arm.js';
 
-const run = promisify(execFile);
 /* test-device/dist/scenarios/module-contract.js at run time. */
-const MOVY = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 
 /* The borrowed module and the slot it goes in. Tracks 1-16 are all movy chains,
  * so component operations go through `ch<track>:<comp>:module` — writing a
@@ -164,17 +158,14 @@ const hasCells = (cs: Cell[], names: string[]) => names.every((n) => cellNamed(c
 
 scenario('module-contract', async (t) => {
     fixture.setHost(t.host);
-    const dev   = new Device(t.bus, t.agent, t.host);
-    const probe = new Probe(t.bus);
+    const dev   = new Device(t.tx);
+    const probe = new Probe(t.tx);
     const open  = () => dev.open(probe);
     const close = () => dev.close(probe);
 
     /* A movy ENGINE param write, over the WebSocket the remote UI exposes. NOT
      * the test bus: real traffic for the thing under test. */
-    const ep = async (key: string, value: string): Promise<void> => {
-        await run('node', [join(MOVY, 'scripts', 'engine-param.mjs'),
-                           'set', key, value, t.host], { maxBuffer: 8 * 1024 * 1024 });
-    };
+    const ep = (key: string, value: string): Promise<void> => t.tx.engineSetQueued(key, value);
 
     const shadow = async (pat: string): Promise<string[]> =>
         (await dev.logLines(pat)).filter((l) => l.includes(SHADOW));
@@ -195,12 +186,12 @@ scenario('module-contract', async (t) => {
             return seen;
         };
         try {
-            await until(t.bus, what, read, (v) => v.length - before >= n, LOG_WAIT);
+            await until(t.tx, what, read, (v) => v.length - before >= n, LOG_WAIT);
         } catch { /* the check that wanted these lines reports what is missing */ }
         return seen.slice(before);
     };
 
-    await fixture.ensure(t.bus, open, close);
+    await fixture.ensure(t.tx, open, close);
     await dev.deployUi();
     await dev.open(probe);
     await dev.selectTrack(0);
@@ -230,7 +221,7 @@ scenario('module-contract', async (t) => {
     await ep(`ch0:${SLOT}:module`, MODULE);
     let loaded = true;
     try {
-        await until(t.bus, `chain 0 ${SLOT} to load ${MODULE}`,
+        await until(t.tx, `chain 0 ${SLOT} to load ${MODULE}`,
             () => dev.logLines(CHAIN_LOADED), (ls) => ls.length > loadBefore,
             { within: 4000, every: 120 });
     } catch { loaded = false; }
@@ -241,9 +232,9 @@ scenario('module-contract', async (t) => {
      * click enters that module's knob page. */
     const chainBefore = await count(CHAIN_IDX);
     await dev.tap.jogTurn(1);
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     await dev.tap.jog();
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
 
     /* THE TRACE IS NOT PROOF THE MODULE LOADED. chain_slots.rs logs
      * `chain {slot}: {component} = {module}` from the requested id at the END of
@@ -264,7 +255,7 @@ scenario('module-contract', async (t) => {
     type Page = { cells?: Cell[]; module?: string; pageIndex?: number };
     let pg: Page = {};
     try {
-        pg = await until(t.bus, `the page for ${MODULE}`,
+        pg = await until(t.tx, `the page for ${MODULE}`,
             async () => (await probe.page()) as Page,
             (p) => p.module === MODULE && hasCells((p.cells ?? []) as Cell[], CELLS_FOR),
             { within: 4000, every: 150 });
@@ -304,7 +295,7 @@ scenario('module-contract', async (t) => {
         (await shadow(HIER)).slice(hierBefore).filter((l) => REAL_HIER.test(l));
     let hierLine = '';
     try {
-        const ls = await until(t.bus, 'the hierarchy to be loaded',
+        const ls = await until(t.tx, 'the hierarchy to be loaded',
             realHier, (v) => v.length > 0, LOG_WAIT);
         hierLine = last(ls) ?? '';
     } catch { /* the check below reports what is missing */ }
@@ -325,7 +316,7 @@ scenario('module-contract', async (t) => {
 
     for (let i = 0; i < 4; i++) {
         await dev.tap.knob(REROLL, 1);
-        await t.bus.frames(DETENT);
+        await t.tx.frames(DETENT);
     }
     /* Wait for the BURST TO BE CONSUMED. The four detents are one gesture, and
      * the whole claim is about what one gesture does — so the wait is on the
@@ -365,7 +356,7 @@ scenario('module-contract', async (t) => {
     /* The gap is the point of this check: the wide curve accelerates on turns
      * closer than 180 ms, so two deliberate ones have to be further apart than
      * that or the second is a jump rather than a step. */
-    await t.bus.frames(PAUSE);
+    await t.tx.frames(PAUSE);
     await dev.tap.knob(SEED, 1);
     const B = last(valuesOf(await newLines(SEED_SET, seedBefore, 2, 'the second deliberate turn'),
                             `${SLOT}:seed`));
@@ -384,7 +375,7 @@ scenario('module-contract', async (t) => {
     const sweepBefore = await count(SEED_SET);
     for (let i = 0; i < 8; i++) {
         await dev.tap.knob(SEED, 1);
-        await t.bus.frames(SWEEP);
+        await t.tx.frames(SWEEP);
     }
     const swept = valuesOf(await newLines(SEED_SET, sweepBefore, 1, 'the sweep to land'),
                            `${SLOT}:seed`);

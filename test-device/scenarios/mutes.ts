@@ -114,8 +114,8 @@ const TAP_TRACK = 1;
 
 scenario('mutes', async (t) => {
     fixture.setHost(t.host);
-    const dev   = new Device(t.bus, t.agent, t.host);
-    const probe = new Probe(t.bus);
+    const dev   = new Device(t.tx);
+    const probe = new Probe(t.tx);
     const open  = () => dev.open(probe);
     const close = () => dev.close(probe);
 
@@ -138,7 +138,7 @@ scenario('mutes', async (t) => {
      * a delay, it is a wait for the thing read. */
     const settle = async (before: number, pred: (e: Ev) => boolean, what: string): Promise<Ev> => {
         try {
-            const all = await until(t.bus, what, logEvents,
+            const all = await until(t.tx, what, logEvents,
                 (ls) => pred(bucket(ls.slice(before))), { within: 1500, every: 150 });
             return bucket(all.slice(before));
         } catch { return window(before); }
@@ -150,11 +150,11 @@ scenario('mutes', async (t) => {
      * track the engine is watching, which the UI pushes by comparison every tick
      * (seq/watch.ts), so it is the current track's ack. */
     const status = async (): Promise<string> => {
-        try { return await dev.param.get('overtake_dsp:status'); } catch { return ''; }
+        try { return await dev.param.get('status'); } catch { return ''; }
     };
     const engineMutes = async (want: string, what: string): Promise<string> => {
         try {
-            const s = await until(t.bus, what, status,
+            const s = await until(t.tx, what, status,
                 (x) => maskOf(x, 'mute') === want, { within: 700, every: 60 });
             return maskOf(s, 'mute');
         } catch { return maskOf(await status(), 'mute'); }
@@ -184,7 +184,7 @@ scenario('mutes', async (t) => {
      * solo for the whole gesture. A press and a release delivered as two separate
      * injects is a different gesture to movy (see MIGRATION.md), so these are
      * real press/body/release — with the body measured in device frames. */
-    const longMutePress = () => dev.holdCc(MUTE_CC, () => t.bus.frames(LONG_PRESS_FRAMES));
+    const longMutePress = () => dev.holdCc(MUTE_CC, () => t.tx.frames(LONG_PRESS_FRAMES));
     const shiftMute     = () => dev.holdCc(SHIFT_CC, () => dev.tap.cc(MUTE_CC));
     const shiftMuteTrack = (n: number) =>
         dev.holdCc(SHIFT_CC, () => dev.holdCc(MUTE_CC, () => dev.tap.cc(tapButtonFor(n))));
@@ -192,7 +192,7 @@ scenario('mutes', async (t) => {
      * track from any view, which the track buttons do not. */
     const muteStep      = (n: number) => dev.holdCc(MUTE_CC, () => dev.tap.note(STEP_BASE + n, 127));
 
-    await fixture.ensure(t.bus, open, close);
+    await fixture.ensure(t.tx, open, close);
     await dev.deployUi();
     await dev.open(probe);
 
@@ -202,7 +202,7 @@ scenario('mutes', async (t) => {
      * (switchToTrack sets sessionMode false), and two checks below have teeth
      * only in Track view. Making that explicit costs one gesture. */
     await dev.selectTrack(0);
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     const active = await activeTrack();
     t.note('activeTrack', active);
 
@@ -218,7 +218,7 @@ scenario('mutes', async (t) => {
     if (startMask !== none()) {
         t.note('mutesAtStart', startMask);
         for (let i = 0; i < NTRACKS; i++) {
-            if (startMask[i] === '1') { await muteStep(i); await t.bus.frames(ACT); }
+            if (startMask[i] === '1') { await muteStep(i); await t.tx.frames(ACT); }
         }
         startMask = await engineMutes(none(), 'the un-muting to take');
     }
@@ -298,7 +298,7 @@ scenario('mutes', async (t) => {
      * those mutes as if the user had asked for them. */
     let onDisk = '';
     try {
-        onDisk = await until(t.bus, 'the solo to reach ui-state.json',
+        onDisk = await until(t.tx, 'the solo to reach ui-state.json',
             soloOnDisk, (v) => v === soloSet, { within: 3000, every: 200 });
     } catch { onDisk = await soloOnDisk(); }
     const ok4 = onDisk === soloSet;
@@ -319,7 +319,7 @@ scenario('mutes', async (t) => {
      * distinction: its reopen never unloaded the engine. */
     await close();
     await open();
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     const afterReopen   = await activeTrack();
     const restoredMutes = await engineMutes(soloMut, 'the reopened engine to still hold the derived mutes');
     t.note('activeAfterReopen', afterReopen);

@@ -142,8 +142,8 @@ function mfx1Slot(): number {
 
 scenario('master-fx', async (t) => {
     fixture.setHost(t.host);
-    const dev   = new Device(t.bus, t.agent, t.host);
-    const probe = new Probe(t.bus);
+    const dev   = new Device(t.tx);
+    const probe = new Probe(t.tx);
     const open  = () => dev.open(probe);
     const close = () => dev.close(probe);
 
@@ -178,7 +178,7 @@ scenario('master-fx', async (t) => {
     const rebootWith = async (whileDown = ''): Promise<void> => {
         await ssh(`> ${LOG}`);
         await restartWith(whileDown);
-        await until(t.bus, 'the shim to finish its boot restore',
+        await until(t.tx, 'the shim to finish its boot restore',
             () => dev.logLines(BOOT_DONE), (ls) => ls.length > 0, BOOT_WAIT);
     };
 
@@ -224,7 +224,7 @@ scenario('master-fx', async (t) => {
      * by itself makes every module_id found later unattributable to this run. */
     if (bootMfx.length) throw new Error('scenario: this run cannot prove anything — the slot was not empty');
 
-    await fixture.ensure(t.bus, open, close);
+    await fixture.ensure(t.tx, open, close);
 
     await ssh(`> ${LOG}`);
     await dev.open(probe);
@@ -256,14 +256,14 @@ scenario('master-fx', async (t) => {
     let browseLine = '';
     for (let attempt = 1; attempt <= 3 && !browseLine; attempt++) {
         await dev.tap.cc(CC_SESSION);
-        await t.bus.frames(ACT);
+        await t.tx.frames(ACT);
         for (let i = 0; i < MFX1; i++) {
             await dev.tap.jogTurn(1);
-            await t.bus.frames(JOG);
+            await t.tx.frames(JOG);
         }
         await dev.tap.jog();
         try {
-            const ls = await until(t.bus, 'the browser to open on a master FX slot',
+            const ls = await until(t.tx, 'the browser to open on a master FX slot',
                 () => dev.logLines(BROWSE_OPEN),
                 (v) => v.length > openedBefore && MASTER_BROWSE.test(v[v.length - 1] ?? ''),
                 LOG_WAIT);
@@ -274,7 +274,7 @@ scenario('master-fx', async (t) => {
              * instead, so it is pressed only when something opened. */
             const opened = (await dev.logLines(BROWSE_OPEN)).length > openedBefore;
             t.note(`browseAttempt${attempt}`, opened ? 'opened elsewhere' : 'no browser');
-            if (opened) { await dev.tap.cc(CC_BACK); await t.bus.frames(ACT); }
+            if (opened) { await dev.tap.cc(CC_BACK); await t.tx.frames(ACT); }
         }
     }
     t.note('browseLine', browseLine || '<none>');
@@ -288,9 +288,9 @@ scenario('master-fx', async (t) => {
      * Confirming on NONE would CLEAR the slot, which saves exactly as happily as
      * a load and would pass C4 with nothing loaded. */
     await dev.tap.jogTurn(1);
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     await dev.tap.jog();
-    await t.bus.frames(LOAD);
+    await t.tx.frames(LOAD);
 
     /* A loaded slot on the grid still shows the CHAIN overview, not the
      * module's own knob page — one more press drills in (router.ts:
@@ -302,7 +302,7 @@ scenario('master-fx', async (t) => {
      * the module actually loaded — app/tick.ts now calls `noteRendered` there
      * too, for exactly this). */
     await dev.tap.jog();
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
 
     /* mfx-slot-params-stale (docs/schwung-page-migration.md): a master FX
      * slot loads by DSP path under a BLOCKING write sized for dlopen +
@@ -315,7 +315,7 @@ scenario('master-fx', async (t) => {
     const PARAMS_WAIT = { within: 3500, every: 60 };
     let paramsPage: any = null;
     try {
-        paramsPage = await until(t.bus, 'the loaded module to draw its params',
+        paramsPage = await until(t.tx, 'the loaded module to draw its params',
             () => probe.page(),
             (p: any) => !!p && p.module && p.module !== '—'
                      && p.cells.some((c: any) => c && c.name),
@@ -344,7 +344,7 @@ scenario('master-fx', async (t) => {
     await close();
     let exited = true;
     try {
-        await until(t.bus, 'movy to report its unload',
+        await until(t.tx, 'movy to report its unload',
             () => dev.logLines(UNLOAD), (ls) => ls.length > unloadBefore, LOG_WAIT);
     } catch { exited = false; }
     t.check('movy-exited', 'movy actually exited (unload fired), so autosave can arm', exited,
@@ -359,7 +359,7 @@ scenario('master-fx', async (t) => {
     const mtimeBefore = (await ssh(`stat -c %Y ${state}`)).trim();
     let saved: any = null;
     try {
-        saved = await until(t.bus, 'the set state to keep the module',
+        saved = await until(t.tx, 'the set state to keep the module',
             () => readState(), (s: any) => !!s?.module_id, SAVE_WAIT);
     } catch { saved = await readState(); }
     const mtimeAfter = (await ssh(`stat -c %Y ${state}`)).trim();
@@ -400,4 +400,8 @@ scenario('master-fx', async (t) => {
                   ? 'the state file survived but the shim did not restore it at boot'
                   : 'the slot was never saved, so there was nothing to restore') });
     t.note('bootRestoreLine', restored || '<none>');
+}, {
+    /* Schwung's master FX slots and its per-set saver: retired standalone, where
+     * the master is movy's own chain (master-own). */
+    needs: 'move',
 });

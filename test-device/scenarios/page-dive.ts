@@ -30,21 +30,14 @@
  *   D1  a held knob on a filepath cell, jog-clicked, opens movy's file browser
  *   D2  a click inside that browser commits the file into the parameter
  */
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { scenario } from '../runner.js';
 import { Device } from '../device.js';
 import { guardPrefs } from '../prefs-guard.js';
 import { Probe } from '../probe.js';
 import * as fixture from '../fixture.js';
 import { until, WaitBudgetExceeded, PARAM_POLL_GAP } from '../wait.js';
-import { SSH_OPTS } from '../ssh.js';
 
-const run = promisify(execFile);
 /* test-device/dist/scenarios/page-dive.js at run time. */
-const MOVY = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 
 /* Frames of device work, never a wall clock. ACT is the settle the other
  * scenarios use for one gesture. */
@@ -65,12 +58,10 @@ const MODULE = 'mrsample';
 const ROOT = '/data/UserData/UserLibrary/Samples';
 const FILTER = ['.wav', '.mp3', '.flac', '.aif', '.aiff'];
 
-/* The engine's param map is reached through the `overtake_dsp:` namespace and
- * NOTHING ELSE — the shim routes that prefix and has no route for a bare
- * `ch0:` key, which is a read that times out rather than one that answers
- * empty. `scripts/engine-param.mjs` prefixes for the same reason on the way in;
- * this is the other half of that path. */
-const SAMPLE_PARAM = 'overtake_dsp:ch0:synth:sample_path';
+/* An ENGINE key, unprefixed: the overtake host's `overtake_dsp:` namespace is
+ * added by the transport (transport-overtake.ts), which is the only route the
+ * shim has into the engine's `ch0:` map. */
+const SAMPLE_PARAM = 'ch0:synth:sample_path';
 
 type Page = { module?: string; pageIndex?: number; pageCount?: number;
               renderer?: string; view?: string; cells?: ({ name?: string } | null)[];
@@ -87,22 +78,19 @@ const knobCells = (p: Page | null): ({ name?: string } | null)[] =>
 
 scenario('page-dive', async (t) => {
     fixture.setHost(t.host);
-    const dev   = new Device(t.bus, t.agent, t.host);
-    const probe = new Probe(t.bus);
+    const dev   = new Device(t.tx);
+    const probe = new Probe(t.tx);
     const open  = () => dev.open(probe);
     const close = () => dev.close(probe);
 
     /* A movy track's chain lives in movy's OWN engine: the param is written
      * through `ch0:` and only while movy is open. */
-    const ep = async (key: string, value: string): Promise<void> => {
-        await run('node', [join(MOVY, 'scripts', 'engine-param.mjs'),
-                           'set', key, value, t.host], { maxBuffer: 8 * 1024 * 1024 });
-    };
+    const ep = (key: string, value: string): Promise<void> => t.tx.engineSetQueued(key, value);
 
     const RESTORE = fixture.fixtureSynth(0);
     t.note('fixtureSynth', RESTORE);
 
-    await fixture.ensure(t.bus, open, close);
+    await fixture.ensure(t.tx, open, close);
     await dev.deployUi();
     await dev.open(probe);
     await dev.selectTrack(0);
@@ -137,7 +125,7 @@ scenario('page-dive', async (t) => {
     const waitPage = async (pred: (p: Page) => boolean, what: string,
                             within: number): Promise<Page | null> => {
         try {
-            return await until(t.bus, what, async () => (await probe.page()) as Page,
+            return await until(t.tx, what, async () => (await probe.page()) as Page,
                                (p) => !!p && pred(p), { within, every: 150 });
         } catch { return await pageNow(); }
     };
@@ -167,7 +155,7 @@ scenario('page-dive', async (t) => {
     const paramUntil = async (key: string, ok: (v: string) => boolean,
                               within: number): Promise<string> => {
         try {
-            return await until(t.bus, `${key} to settle`, () => readParam(key), ok,
+            return await until(t.tx, `${key} to settle`, () => readParam(key), ok,
                                { within, every: PARAM_POLL_GAP });
         } catch (e) {
             return e instanceof WaitBudgetExceeded ? String(e.last) : '';
@@ -215,7 +203,7 @@ scenario('page-dive', async (t) => {
     let at = await pageNow();
     for (let i = 0; i < 3 && at && at.view !== 'knobs'; i++) {
         await dev.tap.jog();
-        await t.bus.frames(ACT);
+        await t.tx.frames(ACT);
         at = await waitPage((p) => p.view === 'knobs', 'the knobs view', 1200);
     }
     t.note('viewAfterDrill', at?.view);
@@ -257,16 +245,16 @@ scenario('page-dive', async (t) => {
              * under a finger, and the release is a note-on with d2 = 0 — see
              * Device.knobHold. */
             await dev.knobHold(slot, async () => {
-                await t.bus.frames(4);
+                await t.tx.frames(4);
                 await dev.tap.jog();
             });
-            await t.bus.frames(ACT);
+            await t.tx.frames(ACT);
             view = await viewNow();
             if (view === 'file-browse') found = { pg, slot };
         }
         if (view === 'file-browse') break;
         await dev.tap.jogTurn(1);
-        await t.bus.frames(ACT);
+        await t.tx.frames(ACT);
     }
     t.note('swept', swept);
     t.note('diveAt', found);
@@ -317,11 +305,11 @@ scenario('page-dive', async (t) => {
              * directory the same rule runs in again — so `..` is stepped over
              * and the click is spent on a sibling. */
             await dev.tap.jogTurn(1);
-            await t.bus.frames(ACT);
+            await t.tx.frames(ACT);
             continue;
         }
         await dev.tap.jog();
-        await t.bus.frames(ACT);
+        await t.tx.frames(ACT);
         if (!sel.isDir) expect = sel.path;
     }
     t.note('browseWalk', where);

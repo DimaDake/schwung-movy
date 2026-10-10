@@ -82,8 +82,8 @@ const said = (ok: boolean, evidence: string, why: string): string => (ok ? evide
 
 scenario('smoke', async (t) => {
     fixture.setHost(t.host);
-    const dev   = new Device(t.bus, t.agent, t.host);
-    const probe = new Probe(t.bus);
+    const dev   = new Device(t.tx);
+    const probe = new Probe(t.tx);
     const open  = () => dev.open(probe);
     const close = () => dev.close(probe);
 
@@ -119,7 +119,7 @@ scenario('smoke', async (t) => {
      * red check still reports what it saw. */
     const settled = async (from: number, pred: (w: string[]) => boolean,
                            what: string, within: number): Promise<string[]> => {
-        try { return await until(t.bus, what, () => logSince(from), pred, { within, every: 300 }); }
+        try { return await until(t.tx, what, () => logSince(from), pred, { within, every: 300 }); }
         catch { return logSince(from); }
     };
 
@@ -129,20 +129,20 @@ scenario('smoke', async (t) => {
     const T0 = Date.now();
     const lap = (k: string): void => { t.note(k, `${((Date.now() - T0) / 1000).toFixed(1)}s`); };
 
-    await fixture.ensure(t.bus, open, close);
+    await fixture.ensure(t.tx, open, close);
     lap('t_1_fixture');
     await dev.deployUi();
     lap('t_2_deploy');
 
     const mark0 = await mark();
     await dev.open(probe);
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     /* Movy opens on schwung's focused slot, which is device state this suite
      * does not own. The fixture's synth is on track 0 and every check below
      * reads that track — on any other slot they read an empty chain and report
      * feature failures that are really state drift. */
     await dev.selectTrack(0);
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     /* ARM THE SCENARIO (see the note above for why, and for what it is not).
      * to be here rather than before the open: the override lives in ui.js's
      * module scope, so there is nothing to set it on until the tool is up. */
@@ -158,7 +158,7 @@ scenario('smoke', async (t) => {
     // ── the knob path ────────────────────────────────────────────────────────
     for (const [k, d] of KNOB_TURNS) {
         await dev.tap.knob(k, d);
-        await t.bus.frames(ACT);
+        await t.tx.frames(ACT);
     }
 
     /* THE PERF WINDOW IS CLOSED HERE, BEFORE THE JOG, and both of its ends are
@@ -207,9 +207,9 @@ scenario('smoke', async (t) => {
 
     // ── the jog ──────────────────────────────────────────────────────────────
     await dev.tap.jogTurn(1);
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     await dev.tap.jogTurn(1);
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
 
     const w0 = await settled(mark0, (w) => w.some((l) => l.includes('perf_tick_rate=')),
                              'the first tick-rate sample', 3000);
@@ -226,17 +226,17 @@ scenario('smoke', async (t) => {
      * is the assertion and the font is not re-encoded. HOLD_MS (1000 in
      * model/constants.ts) is a wall clock in movy; 600 frames is ~1.7 s of
      * device time, and only "at least HOLD_MS" matters here, so frames serve. */
-    const disp = new Display(t.host);
+    const disp = new Display(t.tx);
     const band = () => disp.bandFill(58, 6);
     const LIT = 0.5;
     const hintIdle = await band();
-    await t.agent.inject(noteOn(NOTE_JOG_TOUCH, 127));
-    await t.bus.frames(600);
+    await t.tx.uiMidi(noteOn(NOTE_JOG_TOUCH, 127));
+    await t.tx.frames(600);
     const hintHeld = await band();
     await dev.tap.jogTurn(-1);   // back where the jog turns above left the cursor
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     const hintTurned = await band();
-    await t.agent.inject(noteOff(NOTE_JOG_TOUCH));
+    await t.tx.uiMidi(noteOff(NOTE_JOG_TOUCH));
     t.note('jogHintFill', { idle: hintIdle, held: hintHeld, turned: hintTurned });
     t.check('jog-hint-hold', 'resting on the jog draws the hint; a turn removes it',
         hintIdle < LIT && hintHeld > LIT && hintTurned < LIT,
@@ -574,15 +574,18 @@ scenario('smoke', async (t) => {
      * claim removed entirely. `resume from background` followed IMMEDIATELY by
      * `LED ownership claimed` is the line onResume writes, in order; `leds:
      * repaint` is in the grep precisely so that "immediately" means immediately
-     * and not "after the next line we happened to keep". */
+     * and not "after the next line we happened to keep".
+     *
+     * Background exists only beside Move, so on a flavour without it this
+     * section is not run — noted, never silently absent. */
+    if (!t.tx.has('move')) { t.note('ledParkResume', 'N/A: no Background without Move'); return; }
     await dev.parkViaModal(probe);
     lap('t_5_park');
     const markResume = await mark();
-    await t.bus.openTool('movy');
     let backUp = true;
-    try { await dev.overtakeReady(); } catch { backUp = false; }
+    try { await t.tx.launch(); } catch { backUp = false; }
     t.note('resumeReady', backUp);
-    /* RE-ARM. `openTool` re-evaluated ui.js, so the override went with it and
+    /* RE-ARM. The launch re-evaluated ui.js, so the override went with it and
      * the renderer fell back to the device's own `schwunggrid` — the ambient arm
      * this scenario exists not to depend on. Re-armed here so the whole run is in
      * ONE arm, which is what lets the notes name it (MOVY_ARM above; page-lifecycle

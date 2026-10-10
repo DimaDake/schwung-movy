@@ -106,8 +106,8 @@ async function ringCursor(host: string): Promise<number> {
 
 scenario('volume', async (t) => {
     fixture.setHost(t.host);
-    const dev   = new Device(t.bus, t.agent, t.host);
-    const probe = new Probe(t.bus);
+    const dev   = new Device(t.tx);
+    const probe = new Probe(t.tx);
     const open  = () => dev.open(probe);
     const close = () => dev.close(probe);
 
@@ -117,10 +117,10 @@ scenario('volume', async (t) => {
     const since = async (pattern: string, before: number): Promise<string[]> =>
         (await dev.logLines(pattern)).slice(before);
 
-    await fixture.ensure(t.bus, open, close);
+    await fixture.ensure(t.tx, open, close);
     await dev.deployUi();
     await dev.open(probe);
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
 
     /* A track button addresses whichever track the focused GROUP puts under it
      * (router.ts: `focusedTrack(43 - d1)`), so pin the group first. The bash
@@ -129,7 +129,7 @@ scenario('volume', async (t) => {
     await dev.selectTrack(TRACK);
     /* Long enough for the arm line that select's own press writes to reach the
      * log, which the baseline counts below depend on. */
-    await t.bus.frames(30);
+    await t.tx.frames(30);
 
     /* Baselines taken AFTER the track select: it arms and tears down a divert of
      * its own, which writes an arm line. */
@@ -147,14 +147,14 @@ scenario('volume', async (t) => {
      * The turn is ONE injected packet of DETENTS. Touch first, matching the
      * hardware's order and the bash script's. */
     await dev.holdCc(TRACK_CC, async () => {
-        await t.bus.frames(ACT);
-        await t.agent.inject(noteOn(MASTER_TOUCH, 127));   // knob touch
-        await t.bus.frames(ACT);
-        await t.agent.inject(cc(MASTER_CC, DETENTS));      // the turn
-        await t.bus.frames(ACT);
-        await t.agent.inject(noteOff(MASTER_TOUCH));
+        await t.tx.frames(ACT);
+        await t.tx.uiMidi(noteOn(MASTER_TOUCH, 127));   // knob touch
+        await t.tx.frames(ACT);
+        await t.tx.uiMidi(cc(MASTER_CC, DETENTS));      // the turn
+        await t.tx.frames(ACT);
+        await t.tx.uiMidi(noteOff(MASTER_TOUCH));
     });
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
 
     /* Read the ring here, at the far edge of the gesture: on the inject path both
      * halves of the hold have been pushed by now (the release fires on the
@@ -165,7 +165,7 @@ scenario('volume', async (t) => {
 
     let appliedLines: string[] = [];
     try {
-        await until(t.bus, 'the volume gesture to reach the handler',
+        await until(t.tx, 'the volume gesture to reach the handler',
             () => since(APPLIED, appliedBefore),
             (ls) => ls.length > 0, { within: 1200, every: 150 });
     } catch { /* the check below reports what is missing */ }
@@ -214,7 +214,7 @@ scenario('volume', async (t) => {
     try {
         /* The engine's own read of the track's mixer, gain first —
          * "gain,pan,muted[,send1,send2]". Same param the gesture wrote. */
-        slotGain = parseFloat((await dev.param.get(`overtake_dsp:ch${TRACK}:mix`)).split(',')[0]);
+        slotGain = parseFloat((await dev.param.get(`ch${TRACK}:mix`)).split(',')[0]);
     } catch { slotGain = NaN; }
     const slotOk = Number.isFinite(slotGain) && Math.abs(slotGain - newVal) < 0.001;
     t.note('armRead', oldVal);
@@ -269,4 +269,9 @@ scenario('volume', async (t) => {
                         ? `path=inject but the ring advanced by ${moved}, expected >= 2`
                         : `unknown divert path "${path}"`
               : `the inject ring could not be read (before=${ringBefore} after=${ringAfter})` });
+}, {
+    /* The divert's fourth check is about what reaches MOVE (suppress or inject
+     * into its MIDI_IN). Standalone track+volume has no Move to divert from;
+     * WP7 grades it there. */
+    needs: 'move',
 });

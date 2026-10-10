@@ -104,6 +104,9 @@ not parity (C-opt). Not captured live: no device was plugged in.
 
 ## 6. Harness dependencies
 
+The standalone column is specified in `testbus.md` (WP5); scenarios reach all
+of it through `test-device/transport.ts`.
+
 | Dependency | Where | Standalone |
 |---|---|---|
 | `schwung-testd` on 47777 (frame clock, engine params, pad-LED snapshot) | `test-device/daemon.ts`, `bus.ts` | testbus in movy-host (WP5/WP6) |

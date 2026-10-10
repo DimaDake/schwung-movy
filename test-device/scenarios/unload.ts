@@ -35,12 +35,12 @@ const LOOP_SETTLE = 1050;
 
 scenario('unload', async (t) => {
     fixture.setHost(t.host);
-    const dev = new Device(t.bus, t.agent, t.host);
-    const probe = new Probe(t.bus);
+    const dev = new Device(t.tx);
+    const probe = new Probe(t.tx);
     const open  = () => dev.open(probe);
     const close = () => dev.close(probe);
 
-    await fixture.ensure(t.bus, open, close);
+    await fixture.ensure(t.tx, open, close);
     await dev.open(probe);
     await dev.selectTrack(0);
 
@@ -50,31 +50,31 @@ scenario('unload', async (t) => {
     // step press TOGGLES and a long, sparse clip leaves the playhead outside
     // the filled bar for most of the loop.
     await dev.tap.cc(CC_DELETE);
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     for (let s = STEP_NOTE_BASE; s < STEP_NOTE_BASE + 16; s++) {
         await dev.tap.note(s, 127);
-        await t.bus.frames(ACT);
+        await t.tx.frames(ACT);
     }
 
     await dev.tap.cc(CC_PLAY);
     let playing = true;
     try {
-        await until(t.bus, 'the transport to start',
-            () => t.bus.getParam('overtake_dsp:status'),
+        await until(t.tx, 'the transport to start',
+            () => t.tx.engineGet('status'),
             (s) => /(^| )play=1( |$)/.test(s), { within: 3000, every: 60 });
     } catch { playing = false; }
     t.check('u1-transport', 'the transport started (gates can be open at teardown)', playing);
 
     // Let the clip loop for real so gates are open at teardown, not merely
     // requested to be.
-    await t.bus.frames(LOOP_SETTLE);
+    await t.tx.frames(LOOP_SETTLE);
 
     const before = (await dev.logLines('unload: released')).length;
     await dev.close(probe);
 
     let lines: string[] = [];
     try {
-        lines = await until(t.bus, 'movy to log the unload release',
+        lines = await until(t.tx, 'movy to log the unload release',
             () => dev.logLines('unload: released'),
             (ls) => ls.length > before, { within: 3000, every: 150 });
     } catch { lines = await dev.logLines('unload: released'); }

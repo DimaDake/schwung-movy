@@ -19,19 +19,13 @@
  *   M4  movy never drew its own body over a live Schwung page
  *   M5  the master LFO slot draws Schwung's own LFO page (SP-60)
  */
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { scenario } from '../runner.js';
 import { Device } from '../device.js';
 import { Probe } from '../probe.js';
 import * as fixture from '../fixture.js';
 import { until } from '../wait.js';
 
-const run = promisify(execFile);
 /* test-device/dist/scenarios/master-chain.js at run time. */
-const MOVY = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 
 const PAGE_MODE = 'page';
 /* Note/Session. A tap latches Session from Track view and a second tap leaves. */
@@ -51,16 +45,13 @@ type PageAnswer = { module?: string; renderer?: string; body?: string; trips?: n
 
 scenario('master-chain', async (t) => {
     fixture.setHost(t.host);
-    const dev   = new Device(t.bus, t.agent, t.host);
-    const probe = new Probe(t.bus);
+    const dev   = new Device(t.tx);
+    const probe = new Probe(t.tx);
     const open  = () => dev.open(probe);
     const close = () => dev.close(probe);
 
     /* An ENGINE param write — the path sends.ts loads a bus through. */
-    const ep = async (key: string, value: string): Promise<void> => {
-        await run('node', [join(MOVY, 'scripts', 'engine-param.mjs'),
-                           'set', key, value, t.host], { maxBuffer: 8 * 1024 * 1024 });
-    };
+    const ep = (key: string, value: string): Promise<void> => t.tx.engineSetQueued(key, value);
     const page = async (): Promise<PageAnswer> => {
         try { return await probe.page(); } catch { return {}; }
     };
@@ -68,11 +59,11 @@ scenario('master-chain', async (t) => {
      * checks say what is missing. */
     const pageUntil = async (what: string, ok: (p: PageAnswer) => boolean,
                              within = 1500): Promise<PageAnswer> => {
-        try { return await until(t.bus, what, page, ok, { within, every: 150 }); }
+        try { return await until(t.tx, what, page, ok, { within, every: 150 }); }
         catch (e: any) { return (e?.last as PageAnswer) ?? {}; }
     };
 
-    await fixture.ensure(t.bus, open, close);
+    await fixture.ensure(t.tx, open, close);
     await dev.deployUi();
     await dev.open(probe);
     await dev.selectTrack(0);

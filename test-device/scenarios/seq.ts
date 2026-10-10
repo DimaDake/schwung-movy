@@ -172,8 +172,8 @@ const capPending = (line: string): number => {
 
 scenario('seq', async (t) => {
     fixture.setHost(t.host);
-    const dev   = new Device(t.bus, t.agent, t.host);
-    const probe = new Probe(t.bus);
+    const dev   = new Device(t.tx);
+    const probe = new Probe(t.tx);
     const open  = () => dev.open(probe);
     const close = () => dev.close(probe);
 
@@ -184,10 +184,10 @@ scenario('seq', async (t) => {
      * already cover it — what only a device can show is that the ENGINE holds
      * it. */
     const status = async (): Promise<string> => {
-        try { return await dev.param.get('overtake_dsp:status'); } catch { return ''; }
+        try { return await dev.param.get('status'); } catch { return ''; }
     };
     const capinfo = async (): Promise<string> => {
-        try { return await dev.param.get('overtake_dsp:capinfo'); } catch { return ''; }
+        try { return await dev.param.get('capinfo'); } catch { return ''; }
     };
     /* Every read here rides the single-slot overtake_dsp SHM, so the gap
      * between them is PARAM_POLL_GAP and not a number chosen for responsiveness:
@@ -200,7 +200,7 @@ scenario('seq', async (t) => {
     const waitStatus = async (what: string, pred: (s: string) => boolean,
                                within = polls(5),
                                every = PARAM_POLL_GAP): Promise<string> =>
-        until(t.bus, what, status, pred, { within, every }).catch(() => status());
+        until(t.tx, what, status, pred, { within, every }).catch(() => status());
 
     /* The per-set blob, read out of band — no param and no ViewModel exposes the
      * file, and it is the only place "did this survive" or "is this on disk"
@@ -220,7 +220,7 @@ scenario('seq', async (t) => {
     const waitDisk = async (what: string, re: RegExp, within: number): Promise<string> => {
         let blob = '';
         try {
-            blob = await until(t.bus, what, seqDisk, (b) => re.test(b),
+            blob = await until(t.tx, what, seqDisk, (b) => re.test(b),
                 { within, every: 400 });
         } catch { blob = await seqDisk(); }
         return blob;
@@ -241,7 +241,7 @@ scenario('seq', async (t) => {
     const settle = async (before: number, pred: (ls: string[]) => boolean,
                           what: string, within = 1500): Promise<string[]> => {
         try {
-            const all = await until(t.bus, what, logEvents,
+            const all = await until(t.tx, what, logEvents,
                 (ls) => pred(ls.slice(before)), { within, every: 150 });
             return all.slice(before);
         } catch { return lines(before); }
@@ -270,7 +270,7 @@ scenario('seq', async (t) => {
         if (num(s, 'trk') !== n) {
             const via = n === 3 ? 2 : n + 1;   // any other button of the same group
             await dev.selectTrack(via);
-            await t.bus.frames(ACT);
+            await t.tx.frames(ACT);
             await dev.selectTrack(n);
             s = await waitStatus(`track ${n} to be watched (second press)`,
                 (x) => num(x, 'trk') === n, polls(5));
@@ -286,7 +286,7 @@ scenario('seq', async (t) => {
              * (src/track/switch.ts), so this lands on track `n` in Note view —
              * the same place the button press would have. */
             await sessionStep(n);
-            await t.bus.frames(ACT);
+            await t.tx.frames(ACT);
             s = await waitStatus(`track ${n} to be watched (via the Session row)`,
                 (x) => num(x, 'trk') === n, polls(5));
         }
@@ -318,7 +318,7 @@ scenario('seq', async (t) => {
         let tries = 0;
         while (num(s, 'play') === 1 && tries < 3) {
             tries++;
-            await dev.holdCc(CC_PLAY, () => t.bus.frames(PRESS));
+            await dev.holdCc(CC_PLAY, () => t.tx.frames(PRESS));
             s = await waitStatus(`the transport to be stopped for ${what} (press ${tries})`,
                 (x) => num(x, 'play') === 0, polls(4));
         }
@@ -332,14 +332,14 @@ scenario('seq', async (t) => {
      * take of pads that never sounded has no onsets to measure. */
     const phrase = async (n: number, period: number, hold: number): Promise<void> => {
         for (let i = 0; i < n; i++) {
-            await t.agent.inject(noteOn(PAD, 110));
-            await t.bus.frames(hold);
-            await t.agent.inject(noteOff(PAD));
-            await t.bus.frames(period - hold);
+            await t.tx.uiMidi(noteOn(PAD, 110));
+            await t.tx.frames(hold);
+            await t.tx.uiMidi(noteOff(PAD));
+            await t.tx.frames(period - hold);
         }
     };
 
-    await fixture.ensure(t.bus, open, close);
+    await fixture.ensure(t.tx, open, close);
     await dev.deployUi();
 
     /* The log is cleared so every window below belongs to THIS run — the once
@@ -374,10 +374,10 @@ scenario('seq', async (t) => {
      * when the boot starts. */
     for (let round = 0; round < 10 && gateLine === ''; round++) {
         for (let i = 0; i < 24; i++) {          // ~0.3 s of taps
-            await t.agent.inject(cc(SHIFT_CC, 127));
-            await t.bus.frames(1);
-            await t.agent.inject(cc(SHIFT_CC, 0));
-            await t.bus.frames(1);
+            await t.tx.uiMidi(cc(SHIFT_CC, 127));
+            await t.tx.frames(1);
+            await t.tx.uiMidi(cc(SHIFT_CC, 0));
+            await t.tx.frames(1);
         }
         const ls = await logEvents();
         gateLine = ls.find((l) => l.includes('seq: input refused during')) ?? '';
@@ -402,22 +402,22 @@ scenario('seq', async (t) => {
      * it is on rather than inheriting it — the fixture owns the clips, not
      * Move's selection. */
     await goTrack(0);
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
 
     await dev.tap.note(80, 100);                // sets the step-entry pitch
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     await dev.tap.note(STEP(0), 127);           // step 1 — a note on track 0
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     /* Chord: two pads held, one step press. */
     await dev.hold(82, async () => {
-        await t.agent.inject(noteOn(84, 100));
+        await t.tx.uiMidi(noteOn(84, 100));
         try { await dev.tap.note(STEP(4), 127); }
-        finally { await t.agent.inject(noteOff(84)); }
+        finally { await t.tx.uiMidi(noteOff(84)); }
     });
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     await dev.tap.cc(RIGHT_CC);                 // bar navigation
     await dev.tap.cc(LEFT_CC);
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     /* Loop mode: latch, set a bar, double-tap for a 1-bar loop, unlatch. The
      * double tap is interval-bounded only (loop-mode.ts, ≤450 ms), so two taps
      * back to back are one. */
@@ -425,9 +425,9 @@ scenario('seq', async (t) => {
     await dev.tap.note(STEP(0), 127);
     await dev.tap.note(STEP(0), 127);
     await dev.tap.cc(LOOP_CC);
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     await dev.holdCc(SHIFT_CC, () => dev.tap.note(STEP(DOUBLE_LOOP_STEP), 127));
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
 
     /* ── 3. The transport, and the absence of it before now ───────────────────
      * `seq: play=` is the engine's own play byte, edge-logged by the status
@@ -463,7 +463,7 @@ scenario('seq', async (t) => {
      * here because the recording path is real surface, and because the clip it
      * grows is what the later capture legs land beside. */
     await dev.holdCc(SHIFT_CC, () => dev.tap.note(STEP(METRO_STEP), 127));   // metronome on
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     await dev.tap.cc(CC_REC);
     /* The count-in only exists off a STOPPED transport (toggle_record seeds it
      * with count_in_left when it starts the transport itself). Punching into a
@@ -477,7 +477,7 @@ scenario('seq', async (t) => {
             (s) => num(s, 'cin') === 0 && num(s, 'rec') === 1, polls(10));
     }
     await dev.tap.note(PAD, 110);
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     await dev.tap.cc(CC_REC);                    // Rec again stops the take
     await waitStatus('the take to close', (s) => num(s, 'rec') === 0 && num(s, 'cin') === 0, polls(4));
 
@@ -497,7 +497,7 @@ scenario('seq', async (t) => {
         await dev.tap.cc(RIGHT_CC);              // a rest: the head advances
         await dev.tap.note(PAD + 1, 110);
     });
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     const legALines = await settle(legA, (ls) => hits(ls, 'seq: steprec ').length >= 2,
         'both step-record entries to be logged');
     const legASteps = hits(legALines, 'seq: steprec ').map((l) => word(l, 'steprec'));
@@ -554,7 +554,7 @@ scenario('seq', async (t) => {
      * in this suite writes there, and because the bug is specifically about
      * tracks past the first group. */
     await sessionStep(9);
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     const trk9 = await waitStatus('the Session step row to move the watched track',
         (s) => num(s, 'trk') === 9, polls(5));
     await dev.tap.note(STEP(0), 110);            // the step edit must follow it
@@ -573,18 +573,18 @@ scenario('seq', async (t) => {
     /* Back to track 0 through the same gesture: the track buttons address the
      * FOCUSED group, which selecting track 9 moved to group 2. */
     await sessionStep(0);
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     await waitStatus('the selector to bring track 0 back', (s) => num(s, 'trk') === 0, polls(5));
 
     /* ── 8. Session mode: launch a clip, stop a slot ──────────────────────────*/
     await dev.tap.cc(SESSION_CC);
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     await dev.tap.note(92, 127);                 // top-left clip pad = track 0 slot 0
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     await dev.tap.note(68, 127);                 // bottom-left = track 3 slot 0 (empty)
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     await dev.tap.cc(SESSION_CC);
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
 
     /* ── 9. Drum multi-entry: hold one step, tap another ──────────────────────
      * Track 1 is the fixture's drum module, so watchLane >= 0 and the drum
@@ -595,7 +595,7 @@ scenario('seq', async (t) => {
     await goTrack(1);
     const drumFrom = await mark();
     await dev.hold(DRUM_ANCHOR, () => dev.tap.note(DRUM_TAP, 127));
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     const drumLines = await settle(drumFrom, (ls) => hits(ls, 'seq: step ').length >= 2,
         'both drum steps to be entered');
     const drum = hits(drumLines, 'seq: step ')
@@ -632,7 +632,7 @@ scenario('seq', async (t) => {
         (s) => num(s, 'trk') === 3 && num(s, 'len') > 0 && occBit(s, 0) === 1, polls(6));
     let info1 = '';
     try {
-        info1 = await until(t.bus, 'the tempo overlay to open', capinfo,
+        info1 = await until(t.tx, 'the tempo overlay to open', capinfo,
             (i) => raw(i, 'mode') !== 'none',
             { within: polls(5), every: PARAM_POLL_GAP });
     } catch { info1 = await capinfo(); }
@@ -673,7 +673,7 @@ scenario('seq', async (t) => {
      * Dismissed before the next leg reads, or the next capture's own overlay
      * would be the one being asserted. */
     await dev.tap.cc(SHIFT_CC);
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
 
     /* ── 11. Capture, fixed tempo: a clip that already has notes ──────────────
      * The set tempo is not up for grabs: the take is fitted to it and the
@@ -692,7 +692,7 @@ scenario('seq', async (t) => {
     await dev.tap.cc(CAPTURE_CC);
     let info2 = '';
     try {
-        info2 = await until(t.bus, 'the fitted overlay to open', capinfo,
+        info2 = await until(t.tx, 'the fitted overlay to open', capinfo,
             (i) => raw(i, 'mode') === 'fix',
             { within: polls(5), every: PARAM_POLL_GAP });
     } catch { info2 = await capinfo(); }
@@ -740,7 +740,7 @@ scenario('seq', async (t) => {
                     : `the selector opened but movy never logged it: "${select1}"`),
     });
     await dev.tap.cc(SHIFT_CC);                 // dismiss the fixed overlay
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     await stopTransport('the persistence wait');
 
     /* ── 12. Autosave put this run's edit on disk ─────────────────────────────
@@ -808,7 +808,7 @@ scenario('seq', async (t) => {
         (s) => occBit(s, 8) !== occBefore, polls(5));
     t.note('step9Before', occBefore);
     t.note('step9AfterTap', occBit(toggled, 8));
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     await dev.tap.cc(CC_UNDO);
     const undoLines = await settle(undoFrom, (ls) => ls.some((l) => UNDO9.test(l)),
         'the undo of this step to be logged');
@@ -874,7 +874,7 @@ scenario('seq', async (t) => {
      * deliberately not pinned: it is where the song was left, not what was
      * built. */
     await dev.tap.cc(SESSION_CC);
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     await dev.holdCc(LOOP_CC, async () => {
         await dev.tap.note(STEP(0), 127);
         await dev.tap.note(STEP(2), 127);
@@ -898,5 +898,5 @@ scenario('seq', async (t) => {
      * state needs no teardown: fixture.ensure() reseeds both halves from disk at
      * the start of every scenario. */
     await dev.tap.cc(SESSION_CC);
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
 });

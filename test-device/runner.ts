@@ -1,6 +1,5 @@
 import { mkdirSync } from 'node:fs';
-import type { Bus } from './bus.js';
-import type { Agent } from './agent.js';
+import type { Need, Transport } from './transport.js';
 import type { Attempt, Check, FailKind, ScenarioResult, Status } from './types.js';
 import { isInfraError } from './errors.js';
 import { printLevel0, printSummary, writeReport } from './report.js';
@@ -8,8 +7,7 @@ import { drainWaitStats } from './wait.js';
 import { recordRun } from './flake-log.js';
 
 export type Ctx = {
-    bus: Bus;
-    agent: Agent;
+    tx: Transport;
     host: string;
     check(id: string, label: string, pass: boolean,
           detail?: { expected?: string; actual?: string; frame?: number }): void;
@@ -26,7 +24,11 @@ export type Ctx = {
  * whose logic a local suite owns, so the sweep stops paying its minutes for an
  * advisory signal. The reason is printed on every skip, so the absence is
  * visible rather than inferred. */
-type ScenarioOpts = { knownFlaky?: string; optIn?: string };
+/* `needs` declares what the scenario requires beyond movy itself. On a
+ * flavour without it the scenario is not run and prints N/A, by declaration,
+ * so a standalone sweep never grades Background or LINK — and never silently
+ * shrinks either. */
+type ScenarioOpts = { knownFlaky?: string; optIn?: string; needs?: Need };
 type Entry = { name: string; fn: (t: Ctx) => Promise<void> } & ScenarioOpts;
 let registry: Entry[] = [];
 
@@ -59,8 +61,7 @@ export async function runAll(opts: {
     host: string;
     only?: string;
     outDir?: string;
-    bus?: any;
-    agent?: any;
+    tx?: Transport;
     /* Cheap invariant check run before every ATTEMPT. A scenario that corrupts
      * state then costs ONE reseed rather than poisoning the sweep — which is
      * what keeps dirty-tracking isolation honest, and what makes a retry a
@@ -83,11 +84,22 @@ export async function runAll(opts: {
             console.log(`- ${e.name}: opt-in, not in the sweep (${e.optIn}) — --scenario ${e.name} runs it`);
             continue;
         }
+        if (e.needs && !opts.tx?.has(e.needs)) {
+            const r: ScenarioResult = { name: e.name, status: 'na', checks: [], attempts: [],
+                                        seconds: 0, notes: {}, needs: e.needs };
+            printLevel0(r, outDir);
+            results.push(r);
+            continue;
+        }
         results.push(await runScenario(e, opts, outDir, budget));
     }
 
     writeReport(outDir, results);
-    recordRun(results, opts.host, opts.flakeLog === undefined ? undefined : opts.flakeLog);
+    /* An N/A is not a run of that scenario, so it stays out of the ledger:
+     * counted there it would dilute the scenario's flake rate with runs that
+     * never happened. */
+    recordRun(results.filter((r) => r.status !== 'na'), opts.host,
+              opts.flakeLog === undefined ? undefined : opts.flakeLog);
     const failed = countFailures(results);
     printSummary(results, failed, outDir);
     return failed;
@@ -100,7 +112,7 @@ function countFailures(results: ScenarioResult[]): number {
 
 async function runScenario(
     e: Entry,
-    opts: { bus?: any; agent?: any; host: string; beforeEach?: () => Promise<void> },
+    opts: { tx?: Transport; host: string; beforeEach?: () => Promise<void> },
     outDir: string,
     budget: { assert: number; infra: number },
 ): Promise<ScenarioResult> {
@@ -133,7 +145,7 @@ async function runScenario(
 
 async function runAttempt(
     e: Entry,
-    opts: { bus?: any; agent?: any; host: string; beforeEach?: () => Promise<void> },
+    opts: { tx?: Transport; host: string; beforeEach?: () => Promise<void> },
     n: number,
 ): Promise<Attempt> {
     const checks: Check[] = [];
@@ -144,7 +156,7 @@ async function runAttempt(
     let kind: FailKind | undefined;
 
     const ctx: Ctx = {
-        bus: opts.bus, agent: opts.agent, host: opts.host,
+        tx: opts.tx as Transport, host: opts.host,
         check: (id, label, pass, d) => { checks.push({ id, label, pass, ...d }); },
         note: (k, v) => { notes[k] = v; },
         need: { register: (u) => { undos.push(u); } },

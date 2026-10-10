@@ -58,19 +58,13 @@
  *   S18 and nothing reaches SEND 2 (Send B is at zero)
  *   S19 Send A back at zero sends nothing
  */
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { scenario } from '../runner.js';
 import { Device } from '../device.js';
 import { Probe } from '../probe.js';
 import * as fixture from '../fixture.js';
 import { until } from '../wait.js';
 
-const run = promisify(execFile);
 /* test-device/dist/scenarios/sends.js at run time. */
-const MOVY = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 
 /* Cheap, always installed, and audibly wet — measure-send-cost.sh sweeps it too.
  * Not a fixture module: the fixture is about the twelve TRACK chains, and a send
@@ -165,8 +159,8 @@ const group = (b: BusGroup | null): string =>
 
 scenario('sends', async (t) => {
     fixture.setHost(t.host);
-    const dev   = new Device(t.bus, t.agent, t.host);
-    const probe = new Probe(t.bus);
+    const dev   = new Device(t.tx);
+    const probe = new Probe(t.tx);
     const open  = () => dev.open(probe);
     const close = () => dev.close(probe);
 
@@ -178,10 +172,7 @@ scenario('sends', async (t) => {
      * emptying a bus consists of is unreachable through it. The bash suite wrote
      * every one of these this way; keeping one writer keeps the load and the
      * clear on the same path. */
-    const ep = async (key: string, value: string): Promise<void> => {
-        await run('node', [join(MOVY, 'scripts', 'engine-param.mjs'),
-                           'set', key, value, t.host], { maxBuffer: 8 * 1024 * 1024 });
-    };
+    const ep = (key: string, value: string): Promise<void> => t.tx.engineSetQueued(key, value);
 
     const param = async (key: string): Promise<string> => {
         try { return (await dev.param.get(key)).trim(); } catch { return ''; }
@@ -195,7 +186,7 @@ scenario('sends', async (t) => {
                               what: string, within = 1500): Promise<string> => {
         let last = '';
         try {
-            last = await until(t.bus, what, () => param(key), ok,
+            last = await until(t.tx, what, () => param(key), ok,
                                { within, every: 150 });
         } catch (e: any) { last = typeof e?.last === 'string' ? e.last : ''; }
         return last;
@@ -209,7 +200,7 @@ scenario('sends', async (t) => {
         const before = (await dev.logLines(SENDS)).length;
         await ep('sndlog', '1');
         try {
-            const ls = await until(t.bus, what, () => dev.logLines(SENDS),
+            const ls = await until(t.tx, what, () => dev.logLines(SENDS),
                                    (v) => v.length > before,
                                    { within: 1500, every: 100 });
             return ls[ls.length - 1];
@@ -223,7 +214,7 @@ scenario('sends', async (t) => {
      * which a "is anything there" wait cannot satisfy. */
     const reportUntil = async (ok: (l: string) => boolean, what: string): Promise<string> => {
         try {
-            return await until(t.bus, what, () => report(what), ok,
+            return await until(t.tx, what, () => report(what), ok,
                                { within: 1800, every: 100 });
         } catch { return report(what); }
     };
@@ -232,7 +223,7 @@ scenario('sends', async (t) => {
         const before = (await dev.logLines(CPU)).length;
         await ep('cpulog', '1');
         try {
-            const ls = await until(t.bus, what, () => dev.logLines(CPU),
+            const ls = await until(t.tx, what, () => dev.logLines(CPU),
                                    (v) => v.length > before,
                                    { within: 1500, every: 100 });
             return ls[ls.length - 1];
@@ -247,9 +238,9 @@ scenario('sends', async (t) => {
      * guess — `parse_mix` is all-or-nothing, so a refused value leaves the
      * previous one and "changed" can only mean "landed". */
     const setMix = async (value: string, what: string): Promise<string> => {
-        const before = await param(`overtake_dsp:ch${TRACK}:mix`);
+        const before = await param(`ch${TRACK}:mix`);
         await ep(`ch${TRACK}:mix`, value);
-        return paramUntil(`overtake_dsp:ch${TRACK}:mix`,
+        return paramUntil(`ch${TRACK}:mix`,
                           (v) => v !== '' && v !== before, what);
     };
 
@@ -258,10 +249,10 @@ scenario('sends', async (t) => {
     const noteOn  = () => ep(`ch${TRACK}:midi`, '144.60.100');
     const noteOff = () => ep(`ch${TRACK}:midi`, '128.60.0');
 
-    await fixture.ensure(t.bus, open, close);
+    await fixture.ensure(t.tx, open, close);
     await dev.deployUi();
     await dev.open(probe);
-    await t.bus.frames(RESTORE);
+    await t.tx.frames(RESTORE);
 
     // ── S1–S3: a bus with no module and no sender ────────────────────────────
     const base = await report('the first sndlog answer');
@@ -311,7 +302,7 @@ scenario('sends', async (t) => {
     t.note('fedMix', { wrote: fedMix, held: fedHeld });
 
     await noteOn();
-    await t.bus.frames(SETTLE);
+    await t.tx.frames(SETTLE);
     const fed = await report('the fed-bus report');
     /* The CPU page's own field, read while the note is still HELD: `sndcost` is
      * what `service_send_load` sets `send_loaded` for, a path a host build never
@@ -355,7 +346,7 @@ scenario('sends', async (t) => {
     t.note('zeroMix', { wrote: zeroMix, held: zeroHeld });
 
     await noteOn();
-    await t.bus.frames(SETTLE);
+    await t.tx.frames(SETTLE);
     const zero = await report('the zero-send report');
     await noteOff();
     t.note('zeroReport', zero);
@@ -389,7 +380,7 @@ scenario('sends', async (t) => {
     t.note('wideMix', { wrote: wideMix, held: wideHeld });
 
     await noteOn();
-    await t.bus.frames(SETTLE);
+    await t.tx.frames(SETTLE);
     const wide = await report('the widened-mix report');
     await noteOff();
     t.note('wideReport', wide);
@@ -399,7 +390,7 @@ scenario('sends', async (t) => {
      * load it had just requested, so a mix the engine REFUSED — leaving bus 0's
      * zero-send value in place — would have passed the check whose label claims
      * the width was accepted. */
-    const wideRead = await param(`overtake_dsp:ch${TRACK}:mix`);
+    const wideRead = await param(`ch${TRACK}:mix`);
     t.note('wideMixReadback', wideRead);
     t.check('wide-mix-accepted', 'the engine accepted a mix as wide as it has buses',
         wideRead === wideMix && moduleAt(wide, LAST) === SEND_FX,
@@ -444,7 +435,7 @@ scenario('sends', async (t) => {
     await ep(`ch${PADS}:synth:module`, PAD_SYNTH);
     let padsLoaded = true;
     try {
-        await until(t.bus, `chain ${PADS} to load ${PAD_SYNTH}`,
+        await until(t.tx, `chain ${PADS} to load ${PAD_SYNTH}`,
             () => dev.logLines(loadedLine), (v) => v.length > padsBefore,
             { within: 3500, every: 120 });
     } catch { padsLoaded = false; }
@@ -467,7 +458,7 @@ scenario('sends', async (t) => {
     const kick = `ch${PADS}:midi`;
     const strikeAndReport = async (what: string) => {
         await ep(kick, '144.36.127');
-        await t.bus.frames(2);
+        await t.tx.frames(2);
         const l = await report(what);
         await ep(kick, '128.36.0');
         return l;
@@ -475,7 +466,7 @@ scenario('sends', async (t) => {
     await ep(`ch${PADS}:synth:${PAD_SEND_A}`, '100');
     let padFed = '';
     try {
-        padFed = await until(t.bus, 'a pad send to reach bus 0',
+        padFed = await until(t.tx, 'a pad send to reach bus 0',
             () => strikeAndReport('the pad-send report'),
             (l) => (busAt(l, 0)?.in ?? 0) > 0, { within: 4000, every: 50 });
     } catch (e: any) { padFed = typeof e?.last === 'string' ? e.last : ''; }
@@ -491,7 +482,7 @@ scenario('sends', async (t) => {
         { expected: '1:in=0, no feeds1 bit', actual: padFed || 'no report line' });
 
     await ep(`ch${PADS}:synth:${PAD_SEND_A}`, '0');
-    await t.bus.frames(SETTLE);
+    await t.tx.frames(SETTLE);
     const offs: string[] = [];
     for (let i = 0; i < 3; i++) offs.push(await strikeAndReport('the pad-send-off report'));
     t.note('padOffReports', offs);

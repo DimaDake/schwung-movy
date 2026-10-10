@@ -20,23 +20,26 @@ const FB = '/dev/shm/schwung-display';
 /* Multiplexed through ssh.ts — the jog-hint touch check has a 1 s deadline,
  * and an unmultiplexed grab (~1.1 s handshake) always lands after the hold. */
 
-/* The device's framebuffer, as bytes.
+/* The device's framebuffer, as bytes — the overtake transport's `framebuffer`.
  *
  * This is the capability the migration recorded as blocked on a schwung change
  * (`SNAPSHOT_DISPLAY`, MIGRATION.md). It never needed one: the buffer is a file
  * in /dev/shm and scp reads it, which is what scripts/test-jog-hint.mjs did all
  * along. */
+let dir: string | undefined;
+let n = 0;
+
+export async function scpFramebuffer(host: string): Promise<Buffer> {
+    dir ??= mkdtempSync(join(tmpdir(), 'movy-fb-'));
+    const out = join(dir, `fb-${n++}.bin`);
+    await run('scp', ['-q', ...SSH_OPTS, `ableton@${host}:${FB}`, out]);
+    return readFileSync(out);
+}
+
 export class Display {
-    private dir = mkdtempSync(join(tmpdir(), 'movy-fb-'));
-    private n = 0;
+    constructor(private src: { framebuffer(): Promise<Buffer> }) {}
 
-    constructor(private host: string) {}
-
-    async grab(): Promise<Buffer> {
-        const out = join(this.dir, `fb-${this.n++}.bin`);
-        await run('scp', ['-q', ...SSH_OPTS, `ableton@${this.host}:${FB}`, out]);
-        return readFileSync(out);
-    }
+    grab(): Promise<Buffer> { return this.src.framebuffer(); }
 
     /* Fraction of a horizontal band that is lit, 0..1. The toast hint is an
      * INVERTED full-width bar, so a drawn one fills its band almost solid

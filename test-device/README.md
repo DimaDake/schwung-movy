@@ -35,6 +35,24 @@ What is still bash, and why:
 
 Everything below is in `test-device/`; reach for it before writing anything new.
 
+**Scenarios talk to a transport, never to a server.** `transport.ts` is the
+interface (`t.tx`): `frames`, `uiMidi`/`dspMidi`, `engineGet`/`engineSet`/
+`engineSetQueued` with **unprefixed** engine keys (`status`, `ch0:mix`),
+`padLeds`, `framebuffer`, `logGrep`, `launch`/`running`/`restart`, the deploys,
+and `move` (the coexistence door, null without Move). `transport-overtake.ts` is
+today's implementation over schwung-testd + ui-agent + scp/ssh, and the only file
+that may name `overtake_dsp:` or import `bus`/`agent`/`daemon`
+(`browser-test/device-scripts.mjs` enforces it). The standalone flavour is a
+second implementation over movy-host's test bus (`docs/standalone/testbus.md`);
+`run.mjs --flavour` picks one. Plain ssh to the box (fixture files, a saved Set)
+stays outside the transport, because the filesystem is the same under both.
+
+**A scenario that needs Move beside movy says so**: `scenario(name, fn,
+{ needs: 'move' })`. On a flavour without Move it is not run and prints **N/A**,
+by declaration; it stays out of the flake ledger and fails nothing. Today that
+is `master-fx`, `migrate` and `volume`. A *section* of a scenario that needs Move
+checks `t.tx.has('move')` and notes why it skipped (smoke's park/resume).
+
 - **Gestures** — `dev.tap.cc/note/knob/jog`, `dev.hold*` for real holds,
   `dev.selectTrack`. One inject is one ssh round trip (~0.5 s), so a
   press/release pair sent as two injects is a **>500 ms hold** and movy reads it
@@ -45,10 +63,10 @@ Everything below is in `test-device/`; reach for it before writing anything new.
   The one exception is behaviour whose SPEC is a wall clock (the jog hint's
   1 s hold) — and that check then has to defend its own timing.
 - **Reads** — `probe` (movy's own ViewModel), `dev.param.get/set` (engine
-  params), `dev.logLines` (debug.log, always as a before/after delta),
-  `Display` (the real framebuffer, `/dev/shm/schwung-display`).
-- **Engine** — `deployEngine()` (build + deploy + conditional restart),
-  `restartStack()`.
+  params, unprefixed), `dev.logLines` (debug.log, always as a before/after
+  delta), `new Display(t.tx)` (the real framebuffer).
+- **Engine** — `tx.deployEngine()` (build + deploy + conditional restart),
+  `dev.restartStack()` (`tx.restart()`).
 
 ## Rules that were each paid for once
 

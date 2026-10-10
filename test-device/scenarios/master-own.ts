@@ -29,9 +29,8 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { writeFileSync, rmSync } from 'node:fs';
-import { join, dirname } from 'node:path';
+import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { fileURLToPath } from 'node:url';
 import { scenario } from '../runner.js';
 import { Device } from '../device.js';
 import { Probe } from '../probe.js';
@@ -41,7 +40,6 @@ import { SSH_OPTS } from '../ssh.js';
 
 const run = promisify(execFile);
 /* test-device/dist/scenarios/master-own.js at run time. */
-const MOVY = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 
 const FX = 'freeverb';
 const TRACK = 0;
@@ -53,8 +51,8 @@ const SEED = JSON.stringify({ module_path: `/data/UserData/schwung/modules/audio
 
 scenario('master-own', async (t) => {
     fixture.setHost(t.host);
-    const dev   = new Device(t.bus, t.agent, t.host);
-    const probe = new Probe(t.bus);
+    const dev   = new Device(t.tx);
+    const probe = new Probe(t.tx);
     const open  = () => dev.open(probe);
     const close = () => dev.close(probe);
 
@@ -63,16 +61,13 @@ scenario('master-own', async (t) => {
                                      { maxBuffer: 8 * 1024 * 1024 });
         return stdout;
     };
-    const ep = async (key: string, value: string): Promise<void> => {
-        await run('node', [join(MOVY, 'scripts', 'engine-param.mjs'),
-                           'set', key, value, t.host], { maxBuffer: 8 * 1024 * 1024 });
-    };
+    const ep = (key: string, value: string): Promise<void> => t.tx.engineSetQueued(key, value);
     const param = async (key: string): Promise<string> => {
-        try { return (await dev.param.get('overtake_dsp:' + key)).trim(); } catch { return ''; }
+        try { return (await dev.param.get('' + key)).trim(); } catch { return ''; }
     };
     const paramUntil = async (key: string, ok: (v: string) => boolean, what: string,
                               within = 2000): Promise<string> => {
-        try { return await until(t.bus, what, () => param(key), ok, { within, every: 150 }); }
+        try { return await until(t.tx, what, () => param(key), ok, { within, every: 150 }); }
         catch (e: any) { return typeof e?.last === 'string' ? e.last : ''; }
     };
     /* `mfxlog` is write-to-read: wait for the line COUNT to grow. */
@@ -80,7 +75,7 @@ scenario('master-own', async (t) => {
         const before = (await dev.logLines(MASTER)).length;
         await ep('mfxlog', '1');
         try {
-            const ls = await until(t.bus, 'an mfxlog line', () => dev.logLines(MASTER),
+            const ls = await until(t.tx, 'an mfxlog line', () => dev.logLines(MASTER),
                                    (v) => v.length > before, { within: 1500, every: 100 });
             return ls[ls.length - 1];
         } catch { return ''; }
@@ -96,7 +91,7 @@ scenario('master-own', async (t) => {
         rmSync(local, { force: true });
     };
 
-    await fixture.ensure(t.bus, open, close);
+    await fixture.ensure(t.tx, open, close);
     await dev.deployUi();
     await dev.open(probe);
 
@@ -153,7 +148,7 @@ scenario('master-own', async (t) => {
     await ep(`ch${TRACK}:midi`, '144.60.110');
     let r1 = '';
     try {
-        r1 = await until(t.bus, 'the master to process audio', report,
+        r1 = await until(t.tx, 'the master to process audio', report,
             (l) => Number(field(l, 'proc')) > Number(field(r0, 'proc')) && Number(field(l, 'in')) > 0,
             { within: 2500, every: 200 });
     } catch (e: any) { r1 = typeof e?.last === 'string' ? e.last : await report(); }

@@ -1,9 +1,7 @@
 #!/usr/bin/env node
 /* Device scenario entry point.  npm run test:device [-- --scenario <name>[,<name>...]] */
-import { Bus } from './dist/bus.js';
-import { Agent } from './dist/agent.js';
-import { ensureServers, stopServers } from './dist/daemon.js';
-import { deployEngine, deployUi, setRunMute } from './dist/engine.js';
+import { OvertakeTransport } from './dist/transport-overtake.js';
+import { setRunMute } from './dist/engine.js';
 import { runAll } from './dist/runner.js';
 import { printFlakes } from './dist/flake-log.js';
 import { noteSchwungVersion, reportKnownRed } from './dist/gate-checks.js';
@@ -35,7 +33,7 @@ const flag = (n) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : u
 // host — without this, "--scenario smoke" left "smoke" as the only bare argv
 // entry and HOST became "smoke", so the run tried `ssh ableton@smoke`.
 const consumedByFlag = new Set();
-for (const name of ['--host', '--scenario']) {
+for (const name of ['--host', '--scenario', '--flavour']) {
     const i = argv.indexOf(name);
     if (i >= 0) consumedByFlag.add(i + 1);
 }
@@ -44,6 +42,16 @@ const HOST = process.env.HOST || flag('--host')
     || 'move.local';
 const only = flag('--scenario');
 const noEngine = argv.includes('--no-engine');
+
+/* Which host the tier talks to (test-device/transport.ts). Only `overtake`
+ * exists until movy-host's test bus does (WP6); naming another is an error,
+ * never a silent fallback to the flavour the device happens to run. */
+const FLAVOUR = flag('--flavour') ?? 'overtake';
+if (FLAVOUR !== 'overtake') {
+    console.error(`--flavour ${FLAVOUR}: no such transport yet (overtake only; standalone lands with movy-host)`);
+    process.exit(1);
+}
+const tx = new OvertakeTransport(HOST);
 
 /* Read-only, and before anything touches the device: what has needed a second
  * attempt lately, and how often. A rate is the thing that turns "flaky" from a
@@ -66,7 +74,7 @@ if (noRetry) console.log('--no-retry: one attempt per scenario; a race will read
 if (noEngine) {
     console.log('--no-engine: dsp.so NOT built or deployed; results reflect the engine already on the device');
 } else {
-    const r = await deployEngine(HOST);
+    const r = await tx.deployEngine();
     if (!r.built) {
         console.error(`\nengine build FAILED — not running the tier against a stale dsp.so:\n${r.detail}`);
         process.exit(1);
@@ -82,13 +90,11 @@ if (noEngine) {
  * the engine having to agree on a version, that is not merely stale: an
  * ENGINE_VERSION bump left the fixture opening a 0.75.0 ui.js against a 0.76.0
  * engine and the tier hung there. */
-await deployUi(HOST);
+await tx.deployUi();
 console.log('ui.js: deployed');
 await noteSchwungVersion(HOST);
 
-const started = await ensureServers(HOST);
-const bus = new Bus(HOST);   await bus.connect();
-const agent = new Agent(HOST); await agent.connect();
+await tx.connect();
 
 /* Silence the engine for the run. The scenarios press pads and run the
  * transport for real, so a sweep otherwise plays the fixture set out loud for
@@ -112,17 +118,16 @@ console.log(MUTE
 
 let failures;
 try {
-    failures = await runAll({ host: HOST, only, bus, agent,
+    failures = await runAll({ host: HOST, only, tx,
                               retries: noRetry ? { assert: 0, infra: 0 } : undefined });
 } finally {
     /* In `finally`: a scenario that threw is exactly when the device is most
      * likely to be left in a state nobody asked for. */
     setRunMute(false);
-    try { await bus.setParam('overtake_dsp:mute', '0'); }
+    try { await tx.engineSet('mute', '0'); }
     catch { console.log('audio: could not un-mute — a redeploy or restart clears it'); }
 }
 
-bus.close(); agent.close();
-await stopServers(HOST, started);
+await tx.close();
 const overdue = reportKnownRed();
 process.exit(failures === 0 && overdue === 0 ? 0 : 1);

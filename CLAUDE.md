@@ -453,7 +453,7 @@ Param metadata (min/max/step/type) comes from `shadow_get_param(slot, "synth:cha
 ## open_tool_cmd protocol
 
 The only way to open a tool programmatically (the device harness does this
-through `test-device/bus.ts`'s `openTool`, which is how every scenario opens and
+through `test-device/transport-overtake.ts`'s `launch` (testd `SET_OPEN_TOOL`), which is how every scenario opens and
 reopens movy):
 
 ```python

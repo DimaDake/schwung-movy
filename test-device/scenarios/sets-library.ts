@@ -53,8 +53,8 @@ interface Index { current: string; imported: string[]; sets: Entry[]; }
 
 scenario('sets-library', async (t) => {
     fixture.setHost(t.host);
-    const dev = new Device(t.bus, t.agent, t.host);
-    const probe = new Probe(t.bus);
+    const dev = new Device(t.tx);
+    const probe = new Probe(t.tx);
     const open = () => dev.open(probe);
     const close = () => dev.close(probe);
     /* The engine writes the library as root from Move's audio process, so
@@ -62,7 +62,7 @@ scenario('sets-library', async (t) => {
     const root = async (cmd: string): Promise<string> =>
         (await run('ssh', [...SSH_OPTS, `root@${t.host}`, cmd], { maxBuffer: 8 << 20 })).stdout;
 
-    await fixture.ensure(t.bus, open, close);
+    await fixture.ensure(t.tx, open, close);
     await dev.deployUi();
     const uuid = (await fixture.activeUuid()).trim();
     if (!uuid) throw new Error('sets-library: no active set uuid');
@@ -94,14 +94,14 @@ scenario('sets-library', async (t) => {
         try { return JSON.parse(await root(`cat '${ROOT}/library.json'`)); } catch { return null; }
     };
     const libUntil = async (ok: (l: Index) => boolean, what: string): Promise<Index | null> => {
-        try { return await until(t.bus, what, index, (l) => !!l && ok(l), LIB_WAIT); }
+        try { return await until(t.tx, what, index, (l) => !!l && ok(l), LIB_WAIT); }
         catch { return await index(); }
     };
     /* The Set a command made: the one id that was not there before. */
     const madeSince = (before: Index | null, after: Index | null): string =>
         after?.sets.find((e) => !before?.sets.some((b) => b.id === e.id))?.id ?? '';
     const openUuid = async () => {
-        try { return (/(?:^| )uuid=(\S*)/.exec(await dev.param.get('overtake_dsp:set')) ?? [])[1] ?? ''; }
+        try { return (/(?:^| )uuid=(\S*)/.exec(await dev.param.get('set')) ?? [])[1] ?? ''; }
         catch { return ''; }
     };
 
@@ -125,15 +125,15 @@ scenario('sets-library', async (t) => {
 
     // ── The page: [NEW], Copy, Delete ─────────────────────────────────────
     await dev.holdCc(CC_SHIFT, async () => { await dev.tap.note(STEP_NOTE_BASE, 127); });
-    await t.bus.frames(ACT);
-    for (let i = 0; i < 12; i++) { await dev.tap.jogTurn(-1); await t.bus.frames(7); }
+    await t.tx.frames(ACT);
+    for (let i = 0; i < 12; i++) { await dev.tap.jogTurn(-1); await t.tx.frames(7); }
     await dev.tap.jog();   // [NEW]
     const made = await libUntil((l) => l.sets.length > (idx?.sets.length ?? 0), 'a new Set');
     const newId = madeSince(idx, made);
     t.check('new-made', '[NEW] made a Set', !!newId,
         { expected: 'a new id in library.json', actual: JSON.stringify(made?.sets.map((e) => e.name)) });
 
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     await dev.tap.cc(CC_COPY);
     const dup = await libUntil((l) => l.sets.length > (made?.sets.length ?? 0), 'a copy');
     const copyId = madeSince(made, dup);
@@ -141,9 +141,9 @@ scenario('sets-library', async (t) => {
     t.check('copy-made', 'Copy duplicated the Set under the cursor', copyEntry?.parent === newId,
         { expected: `parent ${newId}`, actual: JSON.stringify(copyEntry ?? null) });
 
-    await t.bus.frames(ACT);           // the cursor follows the copy
+    await t.tx.frames(ACT);           // the cursor follows the copy
     await dev.tap.cc(CC_DELETE);
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     await dev.tap.jog();               // confirm
     const gone = await libUntil((l) => !l.sets.some((r) => r.id === copyId), 'the copy to go');
     const trashed = (await root(`ls '${ROOT}/Trash' 2>/dev/null || true`)).includes(copyId);
@@ -153,7 +153,7 @@ scenario('sets-library', async (t) => {
     t.note('copyInTrash', trashed);   // a blank copy has no folder to move
 
     // ── Rename (engine path; typing is the keyboard's and logic-tested) ───
-    await dev.param.set('overtake_dsp:set', `lib rename ${newId} WP4 Device`);
+    await dev.param.set('set', `lib rename ${newId} WP4 Device`);
     const renamed = await libUntil((l) => l.sets.some((r) => r.id === newId && r.name === 'WP4 Device'), 'rename');
     t.check('renamed', 'a rename reached the library',
         !!renamed?.sets.some((r) => r.id === newId && r.name === 'WP4 Device'),
@@ -161,22 +161,22 @@ scenario('sets-library', async (t) => {
 
     // ── Open the new Set, then reopen movy ────────────────────────────────
     await dev.holdCc(CC_SHIFT, async () => { await dev.tap.note(STEP_NOTE_BASE, 127); });
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     /* Display order is the engine's (newest first, copies after their source);
      * the new Set is the newest root, so it is the first Set row. */
     const at = 1;   // row 0 is [NEW]
-    for (let i = 0; i < 12; i++) { await dev.tap.jogTurn(-1); await t.bus.frames(7); }
-    for (let i = 0; i < at; i++) { await dev.tap.jogTurn(1); await t.bus.frames(7); }
+    for (let i = 0; i < 12; i++) { await dev.tap.jogTurn(-1); await t.tx.frames(7); }
+    for (let i = 0; i < at; i++) { await dev.tap.jogTurn(1); await t.tx.frames(7); }
     await dev.tap.jog();
     let nowOpen = '';
-    try { nowOpen = await until(t.bus, 'the switch', openUuid, (u) => u === newId, LIB_WAIT); }
+    try { nowOpen = await until(t.tx, 'the switch', openUuid, (u) => u === newId, LIB_WAIT); }
     catch { nowOpen = await openUuid(); }
     t.check('opened-new', 'jog-click opened the Set', nowOpen === newId, { expected: newId, actual: nowOpen });
 
     await close();
     await open();
     let reopened = '';
-    try { reopened = await until(t.bus, 'the reopen', openUuid, (u) => u === newId, LIB_WAIT); }
+    try { reopened = await until(t.tx, 'the reopen', openUuid, (u) => u === newId, LIB_WAIT); }
     catch { reopened = await openUuid(); }
     t.check('reopens-last', 'reopening movy reopens the last-open Set', reopened === newId,
         { expected: newId, actual: reopened });

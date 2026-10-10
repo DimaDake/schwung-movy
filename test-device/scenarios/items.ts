@@ -36,10 +36,6 @@
  * and another 1.5 s for the re-read. Every one is now a wait on the thing it
  * stood in for.
  */
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
-import { join, dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { scenario } from '../runner.js';
 import { Device } from '../device.js';
 import { Probe } from '../probe.js';
@@ -47,9 +43,7 @@ import * as fixture from '../fixture.js';
 import { until } from '../wait.js';
 import { armMovy } from '../arm.js';
 
-const run = promisify(execFile);
 /* test-device/dist/scenarios/items.js at run time. */
-const MOVY = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 
 const MODULE     = 'dexed';           // see the header: the contract's reference
 const SELECT_KEY = 'syx_bank_index';  // dexed's `banks` level (items_param syx_bank_list)
@@ -107,8 +101,8 @@ const field = (line: string, name: string): string =>
 
 scenario('items', async (t) => {
     fixture.setHost(t.host);
-    const dev   = new Device(t.bus, t.agent, t.host);
-    const probe = new Probe(t.bus);
+    const dev   = new Device(t.tx);
+    const probe = new Probe(t.tx);
     const open  = () => dev.open(probe);
     const close = () => dev.close(probe);
 
@@ -117,15 +111,12 @@ scenario('items', async (t) => {
      * `ch0:synth:module` and while movy is open: writing schwung's slot 0, or
      * writing at all with movy closed, loads the module somewhere the track is
      * not. */
-    const ep = async (key: string, value: string): Promise<void> => {
-        await run('node', [join(MOVY, 'scripts', 'engine-param.mjs'),
-                           'set', key, value, t.host], { maxBuffer: 8 * 1024 * 1024 });
-    };
+    const ep = (key: string, value: string): Promise<void> => t.tx.engineSetQueued(key, value);
     const log    = async (msg: string) => (await dev.logLines(msg)).filter((l) => l.includes(SHADOW));
     const count  = async (msg: string) => (await log(msg)).length;
     const lastOf = async (msg: string) => last(await log(msg));
 
-    await fixture.ensure(t.bus, open, close);
+    await fixture.ensure(t.tx, open, close);
     await dev.deployUi();
     await dev.open(probe);
     await dev.selectTrack(0);
@@ -179,7 +170,7 @@ scenario('items', async (t) => {
     await ep('ch0:synth:module', MODULE);
     let loaded = true;
     try {
-        await until(t.bus, `chain 0 to load ${MODULE}`,
+        await until(t.tx, `chain 0 to load ${MODULE}`,
             () => dev.logLines(CHAIN_LOADED), (ls) => ls.length > loadBefore,
             { within: 4000, every: 120 });
     } catch { loaded = false; }
@@ -188,7 +179,7 @@ scenario('items', async (t) => {
     let pageCells: KnobCell[] = [];
     const hasPreset = (cs: KnobCell[]) => cs.some((c) => c?.style === PRESET_CELL);
     try {
-        pageCells = await until(t.bus, 'the page for the borrowed module',
+        pageCells = await until(t.tx, 'the page for the borrowed module',
             async () => ((await probe.page()).cells ?? []) as KnobCell[],
             hasPreset, { within: 4000, every: 150 });
     } catch { /* the check below reports what is missing */ }
@@ -223,7 +214,7 @@ scenario('items', async (t) => {
         (await log(HIER)).slice(hierBefore).filter((l) => REAL_HIER.test(l));
     let hierLine = '';
     try {
-        const ls = await until(t.bus, 'the hierarchy to be loaded',
+        const ls = await until(t.tx, 'the hierarchy to be loaded',
             realHier, (v) => v.length > 0, { within: 2500, every: 150 });
         hierLine = last(ls);
     } catch { /* the check below reports what is missing */ }
@@ -239,7 +230,7 @@ scenario('items', async (t) => {
     // ── I3: the real module served a list movy could build a cell from ───────
     let selLine = '';
     try {
-        selLine = await until(t.bus, 'the selector cell to be built',
+        selLine = await until(t.tx, 'the selector cell to be built',
             async () => (await count(SEL)) > selBefore ? await lastOf(SEL) : '',
             (l) => l !== '', { within: 2500, every: 150 });
     } catch { /* the check below reports what is missing */ }
@@ -274,10 +265,10 @@ scenario('items', async (t) => {
     await dev.knobHold(KNOB, async () => {
         /* The overlay is opened by the TOUCH, so the detents have to arrive
          * after it. The ring preserves order and movy drains it in order. */
-        await t.bus.frames(ACT);
+        await t.tx.frames(ACT);
         for (let i = 0; i < DETENTS; i++) {
             await dev.tap.knob(KNOB, 1);
-            await t.bus.frames(DETENT);
+            await t.tx.frames(DETENT);
         }
         /* Read INSIDE the hold: this is the count the release has not yet
          * contributed to, and the only moment the two facts are separable. The
@@ -301,11 +292,11 @@ scenario('items', async (t) => {
      * double write. */
     let commitLine = '';
     try {
-        commitLine = await until(t.bus, 'the release to commit',
+        commitLine = await until(t.tx, 'the release to commit',
             async () => (await count(COMMIT)) > commitsBefore ? await lastOf(COMMIT) : '',
             (l) => l !== '', { within: 2000, every: 150 });
     } catch { /* the check below reports what landed */ }
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
     const committed = (await count(COMMIT)) - commitsBefore;
     t.note('commitsOnRelease', committed);
     t.check('commit-once', 'the release commits exactly once',
@@ -317,7 +308,7 @@ scenario('items', async (t) => {
      * cached preset count/names are stale until it re-reads the module. */
     let rereadLine = '';
     try {
-        rereadLine = await until(t.bus, 'the module to be re-read after the commit',
+        rereadLine = await until(t.tx, 'the module to be re-read after the commit',
             async () => (await count(HIER)) > hierBeforeCommit ? await lastOf(HIER) : '',
             (l) => l !== '', { within: 3000, every: 150 });
     } catch { /* the check below reports what is missing */ }
@@ -339,7 +330,7 @@ scenario('items', async (t) => {
      * it: reading before the re-read lands would compare a stale value. */
     let reopened = '';
     try {
-        reopened = await until(t.bus, 'the re-read to report the selection',
+        reopened = await until(t.tx, 'the re-read to report the selection',
             async () => (await count(SEL)) > selCountBefore ? await lastOf(SEL) : '',
             (l) => l !== '', { within: 3000, every: 150 });
     } catch { /* the check below reports what is missing */ }

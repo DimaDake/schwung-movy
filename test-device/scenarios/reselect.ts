@@ -31,6 +31,7 @@
  */
 import { scenario } from '../runner.js';
 import { Device } from '../device.js';
+import type { Transport } from '../transport.js';
 import { Probe } from '../probe.js';
 import * as fixture from '../fixture.js';
 import { CC_UNDO } from '../midi.js';
@@ -66,10 +67,10 @@ async function lastLine(dev: Device, pattern: string): Promise<string> {
 /* Wait for the log to hold one more matching line than it did. Bounded, and it
  * reports whether it got there rather than throwing: a gesture that did not
  * land must leave the checks below to say what is missing, not abort the run. */
-async function moreLines(bus: any, dev: Device, pattern: string, before: number,
+async function moreLines(tx: Transport, dev: Device, pattern: string, before: number,
                          what: string, within: number): Promise<boolean> {
     try {
-        await until(bus, what, () => dev.logLines(pattern),
+        await until(tx, what, () => dev.logLines(pattern),
             (ls) => ls.length > before, { within, every: 120 });
         return true;
     } catch { return false; }
@@ -77,12 +78,12 @@ async function moreLines(bus: any, dev: Device, pattern: string, before: number,
 
 scenario('reselect', async (t) => {
     fixture.setHost(t.host);
-    const dev   = new Device(t.bus, t.agent, t.host);
-    const probe = new Probe(t.bus);
+    const dev   = new Device(t.tx);
+    const probe = new Probe(t.tx);
     const open  = () => dev.open(probe);
     const close = () => dev.close(probe);
 
-    await fixture.ensure(t.bus, open, close);
+    await fixture.ensure(t.tx, open, close);
     t.note('fixtureSynth', fixture.fixtureSynth(0));
     await dev.deployUi();
     await dev.open(probe);
@@ -93,7 +94,7 @@ scenario('reselect', async (t) => {
      * DRILLS into the focused module instead of opening a browser (router.ts:
      * VIEW_CHAIN on a loaded slot goes to VIEW_KNOBS, only VIEW_KNOBS opens). */
     await dev.tap.jog();
-    await t.bus.frames(ACT);
+    await t.tx.frames(ACT);
 
     /* ── C1: the fixture's automation lane ──────────────────────────────────
      * The registry mirrors the engine's assigned lanes and the fixture seeds
@@ -101,7 +102,7 @@ scenario('reselect', async (t) => {
      * means the FIXTURE did not load — a real failure, not a reason to skip. */
     let auto: any = null;
     try {
-        auto = await until(t.bus, 'the lane registry to populate',
+        auto = await until(t.tx, 'the lane registry to populate',
             () => probe.auto(),
             (v: any) => Array.isArray(v?.lanes) && v.lanes.length > 0,
             { within: 2000, every: 150 });
@@ -124,17 +125,17 @@ scenario('reselect', async (t) => {
      * confirming (router.ts). The bash suite covered that gap with
      * `sleep 0.6`; `browse: open` is openBrowser's own trace, so this waits on
      * the thing the gesture is supposed to do. */
-    const browsed = await moreLines(t.bus, dev, BROWSE, browseBefore,
+    const browsed = await moreLines(t.tx, dev, BROWSE, browseBefore,
                                     'the module browser to open', 900);
     t.note('browserOpened', browsed);
     await dev.tap.jog();                      // confirm → loadSelectedModule
 
     /* The reload is what could drop a bind, so wait for it to have happened —
      * loadHierarchy is the model re-reading the reloaded module. */
-    const reloaded = await moreLines(t.bus, dev, HIER, hierBefore, 'the module reload', 1500);
+    const reloaded = await moreLines(t.tx, dev, HIER, hierBefore, 'the module reload', 1500);
     t.note('reloaded', reloaded);
-    await t.bus.frames(ACT);
-    const binds = await t.bus.getParam('overtake_dsp:ch0:lanes').catch(() => '');
+    await t.tx.frames(ACT);
+    const binds = await t.tx.engineGet('ch0:lanes').catch(() => '');
     t.note('binds', binds);
     const lanes: string[] = Array.isArray(auto?.lanes) ? auto.lanes : [];
     const unbound = lanes.filter((k) => !binds.split(';').some((b) => b.endsWith(':' + k)));
@@ -157,9 +158,9 @@ scenario('reselect', async (t) => {
         const wasModule = hierName(await lastLine(dev, HIER));
         const before    = (await dev.logLines(BROWSE)).length;
         await dev.tap.jog();                  // open the browser
-        await moreLines(t.bus, dev, BROWSE, before, `browser open #${swap}`, 900);
+        await moreLines(t.tx, dev, BROWSE, before, `browser open #${swap}`, 900);
         await dev.tap.jogTurn(1);             // jog turn → the next module
-        await t.bus.frames(ACT);
+        await t.tx.frames(ACT);
         await dev.tap.jog();                  // confirm → the swap
 
         /* Wait for the chain to hold a DIFFERENT module. The name comes from
@@ -170,7 +171,7 @@ scenario('reselect', async (t) => {
          * comparison could not, since every line carries its own timestamp. */
         let changed = true;
         try {
-            await until(t.bus, `swap #${swap} to take`,
+            await until(t.tx, `swap #${swap} to take`,
                 () => lastLine(dev, HIER),
                 (l) => { const n = hierName(l); return n !== '' && n !== wasModule; },
                 { within: 1200, every: 120 });
@@ -180,7 +181,7 @@ scenario('reselect', async (t) => {
         /* Margin on top of that line: the next browser open places its cursor
          * from the LIVE `synth:module` param, and the undo has to restore the
          * module this swap left behind. The bash suite waited 3.5 s here. */
-        await t.bus.frames(changed ? 300 : 600);
+        await t.tx.frames(changed ? 300 : 600);
     }
 
     await dev.tap.cc(CC_UNDO);
@@ -190,7 +191,7 @@ scenario('reselect', async (t) => {
      * duration. Falling through to a plain read is deliberate: the checks below
      * then say which part is missing. */
     try {
-        await until(t.bus, 'the module restore to complete',
+        await until(t.tx, 'the module restore to complete',
             () => dev.logLines(UNDO),
             (ls) => ls.length > undoBefore && ls.some(restoreTerminal),
             { within: 2000, every: 120 });

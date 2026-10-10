@@ -1,9 +1,7 @@
 /* Device selftest for fixture.ts. Needs a real Move. */
-import { Bus } from '../dist/bus.js';
-import { Agent } from '../dist/agent.js';
+import { OvertakeTransport } from '../dist/transport-overtake.js';
 import { Probe } from '../dist/probe.js';
 import { Device } from '../dist/device.js';
-import { ensureServers, stopServers } from '../dist/daemon.js';
 import * as fixture from '../dist/fixture.js';
 
 const HOST = process.env.HOST || 'move.local';
@@ -11,13 +9,11 @@ let fails = 0;
 const ok = (l, c, d = '') => { if (c) console.log('✓ ' + l);
     else { console.log('✗ ' + l + (d ? '  ' + d : '')); fails++; } };
 
-const started = await ensureServers(HOST);
-const bus = new Bus(HOST); await bus.connect();
-const agent = new Agent(HOST); await agent.connect();
+const tx = new OvertakeTransport(HOST); await tx.connect();
 fixture.setHost(HOST);
 
-const dev = new Device(bus, agent, HOST);
-const probe = new Probe(bus);
+const dev = new Device(tx);
+const probe = new Probe(tx);
 const open  = () => dev.open();
 const close = () => dev.close(probe);
 
@@ -34,7 +30,7 @@ ok('fixtureSynth reads the same source as chainEntries',
 
 const t0 = Date.now();
 let established = true;
-try { await fixture.ensure(bus, open, close); }
+try { await fixture.ensure(tx, open, close); }
 catch (e) { established = false; console.log('   ' + String(e)); }
 const secs = (Date.now() - t0) / 1000;
 ok('fixture.ensure establishes the state', established, `${secs.toFixed(1)}s`);
@@ -45,7 +41,7 @@ ok('verify agrees afterwards', await fixture.verify());
  * an already-correct chain must not pay for a reload. */
 const t1 = Date.now();
 let again = true;
-try { await fixture.ensure(bus, open, close); } catch { again = false; }
+try { await fixture.ensure(tx, open, close); } catch { again = false; }
 const secs2 = (Date.now() - t1) / 1000;
 ok('a second ensure takes the fast path', again && secs2 < secs + 5,
     `first ${secs.toFixed(1)}s, second ${secs2.toFixed(1)}s`);
@@ -59,17 +55,16 @@ const { promisify } = await import('node:util');
 const run = promisify(execFile);
 await run('node', ['scripts/slot-state.mjs', 'clear', '1'], { env: { ...process.env, HOST } })
     .catch(() => {});
-await bus.frames(600);
+await tx.frames(600);
 
 const noticed = !(await fixture.verify(true));
 ok('verify NOTICES a perturbed slot', noticed);
 
 let repaired = true;
-try { await fixture.ensure(bus, open, close); } catch (e) { repaired = false; console.log('   ' + String(e)); }
+try { await fixture.ensure(tx, open, close); } catch (e) { repaired = false; console.log('   ' + String(e)); }
 ok('ensure REPAIRS a perturbed slot', repaired);
 ok('verify agrees after the repair', await fixture.verify());
 
-bus.close(); agent.close();
-await stopServers(HOST, started);
+await tx.close();
 console.log(fails === 0 ? 'DEVICE FIXTURE SELFTEST PASSED' : `${fails} FIXTURE CHECK(S) FAILED`);
 process.exit(fails === 0 ? 0 : 1);

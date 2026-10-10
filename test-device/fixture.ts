@@ -17,7 +17,7 @@ import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import type { Bus } from './bus.js';
+import type { Transport } from './transport.js';
 import { until } from './wait.js';
 import { SSH_OPTS } from './ssh.js';
 
@@ -128,9 +128,9 @@ async function pushFixture(): Promise<void> {
 /* Wait until a slot reports the module we asked for. Chain loads settle at
  * their own pace — under a second to several — so a fixed sleep either wastes
  * time or gives up too early; both happened before this polled. */
-async function waitSlot(bus: Bus, slot: string, want: string): Promise<boolean> {
+async function waitSlot(tx: Transport, slot: string, want: string): Promise<boolean> {
     try {
-        await until(bus, `slot ${slot} == ${want || 'empty'}`, async () => {
+        await until(tx, `slot ${slot} == ${want || 'empty'}`, async () => {
             const { out, code } = await node('module-slot.mjs', ['get', slot, 'synth']);
             return code === 0 ? out : null;
         }, (v) => v === want, { within: 7000, every: 300 });
@@ -138,11 +138,11 @@ async function waitSlot(bus: Bus, slot: string, want: string): Promise<boolean> 
     } catch { return false; }
 }
 
-async function apply(bus: Bus): Promise<void> {
+async function apply(tx: Transport): Promise<void> {
     for (const { slot, mod } of fixtureEntries()) {
         if (mod === 'none') {
             await node('slot-state.mjs', ['clear', slot]);
-            await waitSlot(bus, slot, '');
+            await waitSlot(tx, slot, '');
             continue;
         }
         /* load_file acts on the slot's EXISTING chain instance: it is a no-op
@@ -153,10 +153,10 @@ async function apply(bus: Bus): Promise<void> {
         const cur = await node('module-slot.mjs', ['get', slot, 'synth']);
         if (cur.out !== mod) {
             await node('slot-state.mjs', ['module', slot, mod]);
-            if (!await waitSlot(bus, slot, mod)) continue;   // let the outer retry re-try
+            if (!await waitSlot(tx, slot, mod)) continue;   // let the outer retry re-try
         }
         await node('slot-state.mjs', ['load', slot, `${DEVICE_DIR}/slot_${slot}.json`]);
-        await waitSlot(bus, slot, mod);
+        await waitSlot(tx, slot, mod);
     }
 }
 
@@ -291,21 +291,19 @@ export async function blobInfo(): Promise<string> {
 /* Ask the engine what each movy chain HOLDS. `chloadedlog` is write-to-read, so
  * wait for the poke's OWN line — the previous one describes a chain from before
  * whatever the caller just did. */
-export async function chloaded(bus: Bus): Promise<string | null> {
-    const countBefore = Number(
-        (await ssh("grep -c 'chain loaded:' /data/UserData/schwung/debug.log 2>/dev/null || echo 0")).trim()) || 0;
-    await node('engine-param.mjs', ['set', 'chloadedlog', '1', HOST]);
+export async function chloaded(tx: Transport): Promise<string | null> {
+    const countBefore = (await tx.logGrep('chain loaded:')).length;
+    await tx.engineSetQueued('chloadedlog', '1');
     try {
-        const line = await until(bus, 'chloadedlog answer', async () => {
-            const out = await ssh("grep 'chain loaded:' /data/UserData/schwung/debug.log 2>/dev/null || true");
-            const lines = out.split('\n').filter((l) => l.includes('chain loaded:'));
+        const line = await until(tx, 'chloadedlog answer', async () => {
+            const lines = await tx.logGrep('chain loaded:');
             return lines.length > countBefore ? lines[lines.length - 1] : null;
         }, (v) => v !== null, { within: 3500, every: 300 });
         return line;
     } catch { return null; }
 }
 
-export async function verifyChains(bus: Bus, open: () => Promise<void>,
+export async function verifyChains(tx: Transport, open: () => Promise<void>,
                                    close: () => Promise<void>): Promise<boolean> {
     const want = chainEntries();
     if (!want.length) return true;
@@ -317,7 +315,7 @@ export async function verifyChains(bus: Bus, open: () => Promise<void>,
     await open();
     let report: string | null = null;
     try {
-        await until(bus, 'movy chains to reach the fixture', async () => {
+        await until(tx, 'movy chains to reach the fixture', async () => {
             /* Swallow a transient here rather than letting it out. The restore
              * takes seconds and this polls across it, so ONE failed ssh or a
              * `chloadedlog` poke that lands mid-restart would otherwise abort
@@ -325,7 +323,7 @@ export async function verifyChains(bus: Bus, open: () => Promise<void>,
              * chain that was about to arrive — measured: the chains restored
              * seven seconds AFTER the report this gave up on. */
             try {
-                report = await chloaded(bus);
+                report = await chloaded(tx);
                 if (!report) return false;
                 /* No trailing `?`: that marks a component the engine was asked
                  * for and never instantiated. */
@@ -368,12 +366,12 @@ export async function verifyChains(bus: Bus, open: () => Promise<void>,
  *
  * So the fixture gets the last word: re-install after movy has finished
  * touching the blob. Cheap (two scp) and idempotent. */
-export async function ensure(bus: Bus, open: () => Promise<void>,
+export async function ensure(tx: Transport, open: () => Promise<void>,
                              close: () => Promise<void>): Promise<void> {
     if (await verify(true)) {
         await close().catch(() => {});
         await installMovyState();
-        if (!await verifyChains(bus, open, close)) throw new Error('fixture: movy chains not established');
+        if (!await verifyChains(tx, open, close)) throw new Error('fixture: movy chains not established');
         await installMovyState();   // see the note below
         return;
     }
@@ -387,13 +385,13 @@ export async function ensure(bus: Bus, open: () => Promise<void>,
     if (await chainIsCold()) await seedBootState();
 
     for (let attempt = 1; attempt <= 6; attempt++) {
-        await apply(bus);
+        await apply(tx);
         if (await verify(attempt === 6 ? false : true)) {
-            if (!await verifyChains(bus, open, close)) throw new Error('fixture: movy chains not established');
+            if (!await verifyChains(tx, open, close)) throw new Error('fixture: movy chains not established');
             await installMovyState();   // see the note below
             return;
         }
-        await bus.frames(1000);   // ~2.9 s of device frames, not a wall clock
+        await tx.frames(1000);   // ~2.9 s of device frames, not a wall clock
     }
     throw new Error('fixture: could not establish the fixture state');
 }

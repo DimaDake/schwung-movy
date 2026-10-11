@@ -69,6 +69,15 @@ far. Earlier work is summarised in the timeline below for context.
   its own no longer drives them. While stopped they free-run at Movy's current
   tempo, so a tempo change takes effect at once.
 
+### Fixed
+
+- **Opening a Set no longer risks overwriting it with the previous one.** If
+  an autosave fell due in the instant between asking for a Set and its
+  contents arriving, the engine saved what it was still holding — the Set
+  being left, or an empty sequence at startup — into the Set being opened. A
+  backup copy usually kept the real Set loadable, but its main file was
+  replaced. Autosave now waits for the open to land (engine 0.92.0).
+
 ## [0.35.0] — 2026-10-09
 
 ### Added

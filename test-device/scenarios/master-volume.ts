@@ -61,6 +61,10 @@ scenario('master-volume', async (t) => {
 
     // ── V1: the knob alone ──────────────────────────────────────────────────
     await t.tx.uiMidi(noteOn(MASTER_TOUCH, 127));
+    /* Up to the unity cap first: the stored level is whatever the device was
+     * left at, and from -48 dB six detents down reached the floor (0), so the
+     * step up read as infinite (2026-10-11). */
+    await turn(63);
     await turn(-6);                 // off the unity cap, so the step up is measurable
     const v0 = await vol();
     await turn(3);

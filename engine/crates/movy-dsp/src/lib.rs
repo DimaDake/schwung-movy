@@ -135,7 +135,7 @@ pub(crate) fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.91.0";
+const ENGINE_VERSION: &str = "0.92.0";
 
 /* Blocks between autosaves. The callback runs at ~344 Hz, so this is ~2 s —
  * flash on this device is not free and the sequencer is dirty constantly while
@@ -190,6 +190,10 @@ struct Instance {
     engpersist: bool,
     set_uuid: String,
     set_gen: u32,
+    /// An open (or blank) was asked for and its bytes are not in the engine
+    /// yet. `set_uuid` already names the new Set, so an autosave now would
+    /// write the PREVIOUS sequence under it.
+    open_pending: bool,
     /// How many Set payloads this engine has APPLIED — not requested, not read
     /// off disk: applied, on this thread, by `service_set`.
     ///
@@ -224,6 +228,7 @@ impl Instance {
             engpersist: false,
             set_uuid: String::new(),
             set_gen: 0,
+            open_pending: false,
             set_applied: 0,
             save_at: 0,
             probe_gen: 0,
@@ -459,6 +464,7 @@ impl Instance {
                     match &job {
                         set_saver::Job::Open { uuid, .. } | set_saver::Job::Blank { uuid } => {
                             self.set_uuid = uuid.clone();
+                            self.open_pending = true;
                         }
                         /* A rename is "the Set I am holding just got its real
                          * name", so what has to travel is the work IN HAND, not
@@ -757,6 +763,7 @@ impl Instance {
                 host::log("set: malformed chains.json ignored");
             }
             self.set_gen = gen;
+            self.open_pending = false;
             /* The payload is IN the engine as of this line, so the labels it
              * carried are answerable now and not before. Bumped even when
              * `persist::load` refused the bytes: the previous Set then still
@@ -775,7 +782,10 @@ impl Instance {
          * out of the engine to find out, which matters because that read used
          * to CLEAR the flag: a write we then failed to complete was an edit
          * nothing would ever ask for again. */
-        if self.engpersist && self.engine.dirty && self.blocks >= self.save_at {
+        /* Not while an open is in flight: see `open_pending`. The flag stays
+         * set, so the edit is saved once the Set is in — or dropped by the
+         * load, which is right, since it belonged to the Set being left. */
+        if self.engpersist && !self.open_pending && self.engine.dirty && self.blocks >= self.save_at {
             let payload = seq_core::persist::serialize(&self.engine);
             let chains = chain_state::serialize(&mut self.chains);
             self.engine.dirty = false;
@@ -1399,6 +1409,39 @@ mod tests {
      * provisional directory cannot supply that — for a Set born blank it holds
      * the blank — so the engine saves what it is HOLDING under the new id.
      */
+    /* An open is two threads: the audio thread takes the new id at once, the
+     * saver reads the bytes a beat later. An engine that was dirty and due a
+     * save in that gap saved its OLD sequence under the NEW id — on device, a
+     * library Set opened at startup had its canonical file replaced by a blank
+     * gen-1 state, kept alive only by a shadow's higher generation (versions
+     * scenario, 2026-10-11). */
+    #[test]
+    fn an_open_in_flight_does_not_save_the_previous_sequence_over_the_set() {
+        const SET: &str = "movy1\nbpm 12300\ncl 0 0 16 0 0:24:60:100\n";
+        let dir = saver_tmp("open-gap");
+        crate::set_store::SetStore::new(&dir).write("s1", SET, 43, "0\n").unwrap();
+        let canon = format!("{dir}/s1/seq-state.json");
+        let before = std::fs::read_to_string(&canon).unwrap();
+
+        let mut inst = Instance::new();
+        inst.set_param("setsdir", &dir);
+        inst.set_param("engpersist", "1");
+        let mut audio = [0i16; 256];
+        for _ in 0..(SAVE_BLOCKS + 2) {
+            inst.render(&mut audio);
+        }
+        inst.engine.dirty = true;
+        inst.set_param("set", "open s1");
+        inst.render(&mut audio);
+        inst.saver.as_ref().unwrap().drain_for_test();
+        let after = std::fs::read_to_string(&canon).unwrap();
+        assert_eq!(after, before, "the open must not overwrite the Set it is opening");
+        /* And once the Set is in, the engine holds it. */
+        inst.render(&mut audio);
+        assert!(inst.get_param("set").is_some_and(|st| st.contains("gen=43")),
+                "the opened Set was applied: {:?}", inst.get_param("set"));
+    }
+
     #[test]
     fn a_rename_carries_the_work_in_hand_not_the_provisional_file() {
         const STALE: &str = "movy1\nbpm 12000\ncl 0 0 16 0 0:24:60:100\n";
@@ -1618,8 +1661,11 @@ mod tests {
         inst.set_param("setsdir", &saver_tmp("on"));
         inst.set_param("engpersist", "1");
         inst.set_param("set", "open u1");
-        inst.engine.dirty = true;
         let mut audio = [0i16; 256];
+        /* Once the open has landed: no save is taken while one is in flight. */
+        inst.saver.as_ref().unwrap().drain_for_test();
+        inst.render(&mut audio);
+        inst.engine.dirty = true;
         for _ in 0..(SAVE_BLOCKS + 2) {
             inst.render(&mut audio);
         }

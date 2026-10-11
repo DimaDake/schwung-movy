@@ -21,8 +21,10 @@ const LAUNCH = '/data/UserData/schwung/launch-standalone.sh';
 /* schwung's boot watchdog (host/boot_target_lib.sh): the stamp is
  * "<target id> <strikes>", and <id>/healthy clears it at the next start. */
 const BOOT_TARGETS = '/data/UserData/boot-targets';
-const moveAge = `P=$(pidof MoveOriginal | cut -d' ' -f1); [ -n "$P" ] `
-    + `&& awk -v u=$(cut -d' ' -f1 /proc/uptime) '{print int(u - $22/100)}' /proc/$P/stat || echo 0`;
+/* Seconds since `pid` started; 0 when it is gone. */
+const ageOf = (pid: string) =>
+    `awk -v u=$(cut -d' ' -f1 /proc/uptime) '{print int(u - $22/100)}' /proc/${pid}/stat 2>/dev/null || echo 0`;
+const moveAge = `P=$(pidof MoveOriginal | cut -d' ' -f1); [ -n "$P" ] && ${ageOf('$P')} || echo 0`;
 const markHealthy = `read -r id _ < ${BOOT_TARGETS}/.boot-attempt 2>/dev/null `
     + `&& [ -d "${BOOT_TARGETS}/$id" ] && touch "${BOOT_TARGETS}/$id/healthy"; true`;
 const HOLD_PIDF = '/dev/shm/.movy-launcher';
@@ -124,6 +126,34 @@ export class StandaloneTransport implements Transport {
         throw new Error('standalone: timed out waiting for movy-host to run with its engine (from the hold) (15000 ms)');
     }
 
+    /* A movy-host the harness did not start has no bus: the flag is read at
+     * startup only, and the boot door (movy as the device's default target)
+     * starts one before connect() writes it. fromHold read its pid as "up,
+     * not ready yet" and spun out every scenario (2026-10-11). TERM is a stop
+     * that hands over nothing. A boot-door one is not always MoveLauncher's
+     * child (a Move restarted by launch-standalone.sh re-enters the selector,
+     * which boots the default), so `move stop` alone left it running: stop the
+     * launcher AND the pid, then start, and the new one reads the flag. A
+     * Tools-door one's launcher brings Move back: the Move way below.
+     * false = none was running. */
+    private async adoptForeignHost(): Promise<boolean> {
+        const pid = (await this.ssh('ableton', 'pidof movy-host || true')).trim().split(/\s+/)[0];
+        if (!pid || Object.keys(await this.state()).length) return false;
+        /* One of ours between exec and its bus's listen() looks the same. */
+        if (Number((await this.ssh('ableton', ageOf(pid))).trim()) < 3) return false;
+        const boot = (await this.ssh('ableton', `tr '\\0' ' ' < /proc/${pid}/cmdline 2>/dev/null || true`)).includes('--boot');
+        await this.ssh('root', `${boot ? '/etc/init.d/move stop >/dev/null 2>&1; ' : ''}kill -TERM ${pid} 2>/dev/null; true`);
+        await this.waitFor('the busless movy-host to exit',
+            async () => (await this.ssh('ableton', 'pidof movy-host || true')).trim() === '', 12000);
+        if (!boot) return false;
+        await this.ssh('root', `touch ${TESTBUS_FLAG}; chown ableton:users ${TESTBUS_FLAG}; /etc/init.d/move start >/dev/null 2>&1; true`);
+        await this.waitFor('movy-host to run with its engine (boot door, restarted)', async () => {
+            const st = await this.state();
+            return st.running === 1 && st.engine_ready === 1;
+        }, 40000);
+        return true;
+    }
+
     /* Hand a held launcher its command; see holdSend. `wait` is the gap
      * between movy-host's exit and the launcher entering its hold. */
     private async holdCommand(cmd: 'go' | 'quit'): Promise<'up' | 'sent' | 'none'> {
@@ -136,12 +166,22 @@ export class StandaloneTransport implements Transport {
         }
     }
 
-    private async b(): Promise<Bus> {
-        if (this.bus) return this.bus;
-        const bus = new Bus(this.host);
-        await bus.connect();
-        this.bus = bus;
-        return bus;
+    /* Single-flight, like launch(): movy-host's bus serves one client at a
+     * time, so two first calls that each connected leaked the link the server
+     * was serving, and every later command queued behind it forever (the tier
+     * hung after versions threw, 2026-10-11). */
+    private connecting: Promise<Bus> | null = null;
+    private b(): Promise<Bus> {
+        if (this.bus) return Promise.resolve(this.bus);
+        if (!this.connecting) {
+            this.connecting = (async () => {
+                const bus = new Bus(this.host);
+                await bus.connect();
+                this.bus = bus;
+                return bus;
+            })().finally(() => { this.connecting = null; });
+        }
+        return this.connecting;
     }
 
     /* A dropped link means movy-host went away; forget it so the next call
@@ -231,14 +271,26 @@ export class StandaloneTransport implements Transport {
 
     private async launchOnce(): Promise<void> {
         if (await this.running()) return;
+        if (await this.adoptForeignHost()) return;
         if (await this.fromHold()) return;
         /* From a SETTLED Move only, as a user opens it from Tools: a Move still
          * booting after the last exit re-grabs SPI behind the kill sweep
          * (measured: EBUSY 0.5 s after "Killing SPI holders"). Generous: after
          * an ableton-uid exit, launch-standalone.sh's bare Move restart once
          * took ~60 s to bring shadow_ui up (2026-10-10; usually ~3-4 s). */
-        await this.waitFor('Move to be back (shadow_ui up)',
-            async () => (await this.ssh('ableton', 'pidof shadow_ui || true')).trim() !== '', 90000);
+        /* ...or for movy itself: with movy as the boot default, a Move
+         * restarted after a crash re-enters the selector and boots movy, so
+         * shadow_ui never comes (testbus/power waited out 90 s, 2026-10-11). */
+        await this.waitFor('Move to be back (shadow_ui up) or movy to boot',
+            async () => (await this.ssh('ableton', 'pidof shadow_ui movy-host || true')).trim() !== '', 90000);
+        if ((await this.ssh('ableton', 'pidof movy-host || true')).trim()) {
+            if (await this.adoptForeignHost()) return;
+            await this.waitFor('the booted movy-host to run with its engine', async () => {
+                const st = await this.state();
+                return st.running === 1 && st.engine_ready === 1;
+            }, 15000);
+            return;
+        }
         /* ...and past its boot watchdog's 15 s liveness window. /opt/move/Move
          * counts every start as a boot attempt and clears it only once Move
          * has lived 15 s; launch-standalone.sh killing it sooner leaves the

@@ -106,6 +106,7 @@ scenario('master-own', async (t) => {
 
     /* Schwung's file goes back exactly as it was, and movy's master is emptied
      * and unbound, whatever happens below. */
+    await ssh(`mkdir -p '${dir}' && chmod 777 '${dir}'`);   // a library Set has no schwung set_state dir
     const present = (await ssh(`if [ -f '${f0}' ]; then echo yes; else echo no; fi`)).trim();
     if (present !== 'yes' && present !== 'no') throw new Error(`master-own: cannot stat ${f0}: ${present}`);
     const original = present === 'yes' ? await ssh(`cat '${f0}'`) : '';

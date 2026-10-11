@@ -3,6 +3,7 @@
 import { OvertakeTransport } from './dist/transport-overtake.js';
 import { StandaloneTransport } from './dist/transport-standalone.js';
 import { setRunMute } from './dist/engine.js';
+import { useLibrary } from './dist/fixture.js';
 import { runAll } from './dist/runner.js';
 import { printFlakes } from './dist/flake-log.js';
 import { noteSchwungVersion, reportKnownRed } from './dist/gate-checks.js';
@@ -58,6 +59,7 @@ if (FLAVOUR !== 'overtake' && FLAVOUR !== 'standalone') {
     process.exit(1);
 }
 const tx = FLAVOUR === 'standalone' ? new StandaloneTransport(HOST) : new OvertakeTransport(HOST);
+if (FLAVOUR === 'standalone') useLibrary(true);
 if (FLAVOUR !== 'overtake') console.log(`flavour: ${FLAVOUR} (movy-sa on movy-host)`);
 
 /* Read-only, and before anything touches the device: what has needed a second

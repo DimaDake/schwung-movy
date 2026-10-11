@@ -20,6 +20,7 @@ import { fileURLToPath } from 'node:url';
 import type { Transport } from './transport.js';
 import { until } from './wait.js';
 import { SSH_OPTS } from './ssh.js';
+import { timed } from './timing.js';
 
 const run = promisify(execFile);
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -81,7 +82,41 @@ export function fixtureSynth(track: number): string {
     return chainEntries().find((e) => e.track === String(track) && e.comp === 'synth')?.mod ?? '';
 }
 
+/* Standalone has no Move: movy-host is always in library mode and opens the
+ * library's `current` Set, not active_set.txt's. Seeding the legacy Set dir
+ * there (what this did) left movy on an empty library Set and the chains
+ * never reached the fixture. In library mode the fixture owns ONE library
+ * Set and pins it as `current` before every open. */
+const LIB_ROOT = '/data/UserData/UserLibrary/Movy';
+export const LIB_FIXTURE_ID = 'movy-fixture';
+let libraryMode = false;
+/* Where movy keeps a Set's seq-state.json / ui-state.json / versions: the
+ * library Set in standalone, the legacy per-uuid dir beside Move. */
+export function movySetDir(uuid: string): string {
+    return libraryMode ? `${LIB_ROOT}/Sets/${LIB_FIXTURE_ID}`
+                       : `/data/UserData/schwung/modules/tools/movy/sets/${uuid || '_default'}`;
+}
+export function useLibrary(on: boolean): void { libraryMode = on; }
+
+/* movy-host must be down (the engine rewrites library.json while it runs). */
+async function pinLibrary(): Promise<void> {
+    let lib: any = { v: 1, current: '', imported: [], sets: [] };
+    try { lib = JSON.parse(await ssh(`cat '${LIB_ROOT}/library.json'`)); } catch { /* none yet */ }
+    lib.current = LIB_FIXTURE_ID;
+    lib.sets = (lib.sets ?? []).filter((e: any) => e.id !== LIB_FIXTURE_ID);
+    lib.sets.push({ id: LIB_FIXTURE_ID, name: 'movy-fixture', created: 1, clips: 0 });
+    const tmp = mkdtempSync(join(tmpdir(), 'movy-lib-'));
+    try {
+        const f = join(tmp, 'library.json');
+        writeFileSync(f, JSON.stringify(lib) + '\n');
+        await ssh(`mkdir -p '${LIB_ROOT}/Sets/${LIB_FIXTURE_ID}' && chmod 777 '${LIB_ROOT}/Sets/${LIB_FIXTURE_ID}'`);
+        await scpTo(f, `${LIB_ROOT}/library.json.new`);
+        await ssh(`mv '${LIB_ROOT}/library.json.new' '${LIB_ROOT}/library.json'`);
+    } finally { rmSync(tmp, { recursive: true, force: true }); }
+}
+
 export async function activeUuid(): Promise<string> {
+    if (libraryMode) return LIB_FIXTURE_ID;
     return (await ssh('head -n 1 /data/UserData/schwung/active_set.txt 2>/dev/null || true')).trim();
 }
 
@@ -236,9 +271,13 @@ async function seedBootState(): Promise<void> {
 /* The sequencer half: known tempo/swing, clips, and a pre-seeded automation
  * lane. Movy must be CLOSED first — prefs are cached for the life of one open
  * and the per-set blobs are autosaved over within seconds of it running. */
-export async function installMovyState(): Promise<void> {
+export function installMovyState(): Promise<void> { return timed('fixture.install', installMovyStateInner); }
+
+async function installMovyStateInner(): Promise<void> {
     const uuid = await activeUuid();
-    const dir = `/data/UserData/schwung/modules/tools/movy/sets/${uuid || '_default'}`;
+    if (libraryMode) await pinLibrary();
+    const dir = libraryMode ? `${LIB_ROOT}/Sets/${LIB_FIXTURE_ID}`
+                            : `/data/UserData/schwung/modules/tools/movy/sets/${uuid || '_default'}`;
     const p = `${dir}/seq-state.json`;
     /* Delete before writing. Movy's own saves go through the host, which runs
      * as ROOT, so a set movy has saved holds root-owned 644 files — and scp
@@ -281,7 +320,7 @@ export async function installMovyState(): Promise<void> {
  * each stage and see exactly where state stops surviving. */
 export async function blobInfo(): Promise<string> {
     const uuid = await activeUuid();
-    const f = `/data/UserData/schwung/modules/tools/movy/sets/${uuid || '_default'}/seq-state.json`;
+    const f = `${libraryMode ? `${LIB_ROOT}/Sets` : '/data/UserData/schwung/modules/tools/movy/sets'}/${uuid || '_default'}/seq-state.json`;
     return (await ssh(
         `F=${f}; printf 'au=%s cl=%s %s size=%s' ` +
         `"$(grep -c '^au ' $F 2>/dev/null)" "$(grep -c '^cl ' $F 2>/dev/null)" ` +
@@ -303,8 +342,13 @@ export async function chloaded(tx: Transport): Promise<string | null> {
     } catch { return null; }
 }
 
-export async function verifyChains(tx: Transport, open: () => Promise<void>,
-                                   close: () => Promise<void>): Promise<boolean> {
+export function verifyChains(tx: Transport, open: () => Promise<void>,
+                             close: () => Promise<void>): Promise<boolean> {
+    return timed('fixture.verifyChains', () => verifyChainsInner(tx, open, close));
+}
+
+async function verifyChainsInner(tx: Transport, open: () => Promise<void>,
+                                  close: () => Promise<void>): Promise<boolean> {
     const want = chainEntries();
     if (!want.length) return true;
 
@@ -366,6 +410,8 @@ export async function verifyChains(tx: Transport, open: () => Promise<void>,
  *
  * So the fixture gets the last word: re-install after movy has finished
  * touching the blob. Cheap (two scp) and idempotent. */
+let chainsProven = false;
+
 export async function ensure(tx: Transport, open: () => Promise<void>,
                              close: () => Promise<void>): Promise<void> {
     /* Without Move there are no schwung slots to seed or verify (and the
@@ -376,8 +422,14 @@ export async function ensure(tx: Transport, open: () => Promise<void>,
     if (!tx.has('move')) {
         await close().catch(() => {});
         await installMovyState();
-        if (!await verifyChains(tx, open, close)) throw new Error('fixture: movy chains not established');
-        await installMovyState();   // see the note below
+        /* The bytes installed are identical every time, and the engine loads
+         * them the same way, so one proof per process is the proof: repeating
+         * it cost an open + poll + close (~8 s) in front of EVERY scenario. */
+        if (!chainsProven) {
+            if (!await verifyChains(tx, open, close)) throw new Error('fixture: movy chains not established');
+            chainsProven = true;
+            await installMovyState();   // see the note below
+        }
         return;
     }
     if (await verify(true)) {

@@ -52,7 +52,6 @@ const run = promisify(execFile);
 /* test-device/dist/scenarios/versions.js at run time. */
 const MOVY = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..');
 
-const SETS = '/data/UserData/schwung/modules/tools/movy/sets';
 const OLD = join(MOVY, 'browser-test', 'fixtures', 'old-sets', 'movy-chains');
 
 /* Shift is CC 49 (schwung: "49 (shift)"). movy has no constant for it in
@@ -105,7 +104,7 @@ scenario('versions', async (t) => {
 
     const uuid = (await fixture.activeUuid()).trim();
     if (!uuid) throw new Error('scenario: no active set uuid');
-    const D = `${SETS}/${uuid}`;
+    const D = fixture.movySetDir(uuid);
     t.note('uuid', uuid);
     t.note('setDir', D);
 

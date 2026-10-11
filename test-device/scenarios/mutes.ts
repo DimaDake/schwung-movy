@@ -168,7 +168,7 @@ scenario('mutes', async (t) => {
         let out = '';
         try {
             const uuid = await fixture.activeUuid().catch(() => '');
-            const p = `/data/UserData/schwung/modules/tools/movy/sets/${uuid || '_default'}/ui-state.json`;
+            const p = `${fixture.movySetDir(uuid)}/ui-state.json`;
             const { stdout } = await run('ssh', [...SSH_OPTS, `ableton@${t.host}`, `cat '${p}' 2>/dev/null || true`],
                 { maxBuffer: 4 * 1024 * 1024 });
             out = stdout;

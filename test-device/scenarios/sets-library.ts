@@ -189,4 +189,9 @@ scenario('sets-library', async (t) => {
     t.check('reopens-last', 'reopening movy reopens the last-open Set', reopened === newId,
         { expected: newId, actual: reopened });
     await close();
+}, {
+    /* Seeds Move's Set folders and legacy sets/<uuid> dirs, then wipes the
+     * library: the import path only exists beside Move. The library gestures
+     * (S5-S10) have no standalone twin yet. */
+    needs: 'move',
 });

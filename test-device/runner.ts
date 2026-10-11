@@ -5,6 +5,7 @@ import { isInfraError } from './errors.js';
 import { printLevel0, printSummary, writeReport } from './report.js';
 import { drainWaitStats } from './wait.js';
 import { recordRun } from './flake-log.js';
+import { drainTimings, summarize } from './timing.js';
 
 export type Ctx = {
     tx: Transport;
@@ -163,6 +164,7 @@ async function runAttempt(
     };
 
     drainWaitStats();   /* anything left over belongs to the previous attempt */
+    drainTimings();
     try {
         if (opts.beforeEach) await opts.beforeEach();
         await e.fn(ctx);
@@ -171,6 +173,9 @@ async function runAttempt(
         kind = isInfraError(err) ? 'infra' : 'assert';
     }
     if (!kind && checks.some((c) => !c.pass)) kind = 'assert';
+
+    const timings = drainTimings();
+    if (timings.length) notes.timings = summarize(timings);
 
     /* Waits that nearly ran out. Not a failure — a forecast of one. */
     const near = drainWaitStats();

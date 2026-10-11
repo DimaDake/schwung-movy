@@ -2,6 +2,7 @@ import type { Probe } from './probe.js';
 import type { Transport } from './transport.js';
 import { until } from './wait.js';
 import { applyRunMute } from './engine.js';
+import { timed } from './timing.js';
 import {
     cc, noteOn, noteOff, knobDelta,
     CC_JOG_CLICK, CC_JOG_TURN, CC_BACK, CC_KNOB_BASE, CC_TRACK_BASE,
@@ -81,9 +82,11 @@ export class Device {
      *
      * So: wait, silently. WAIT_FRAME touches no param. The probe argument is
      * accepted and unused, so callers need not care which gates exist. */
-    async open(_probe?: Probe): Promise<void> {
+    async open(_probe?: Probe): Promise<void> { await timed('open', () => this.openInner()); }
+
+    private async openInner(): Promise<void> {
         const before = await this.readyLineCount();
-        await this.tx.launch();
+        await timed('open.launch', () => this.tx.launch());
         /* Wait for movy's own "set ready" line, read over SSH — deliberately
          * OUT OF BAND. Every param read would compete with the restore it is
          * waiting for; the log does not. Falls back to the quiet window if the
@@ -149,7 +152,7 @@ export class Device {
      *
      * Closed-loop off the probe instead: press Back until the modal is up, jog
      * to the wanted label, confirm. */
-    async close(probe: Probe): Promise<void> { await this.leaveVia(probe, 'Close Movy'); }
+    async close(probe: Probe): Promise<void> { await timed('close', () => this.leaveVia(probe, 'Close Movy')); }
 
     /* Shared by close() and parkViaModal() — the same modal, different label.
      * parkViaModal is a PARK (DSP stays loaded, init() not re-run) so it lands

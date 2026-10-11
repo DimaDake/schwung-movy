@@ -209,7 +209,7 @@ scenario('seq', async (t) => {
     const seqDisk = async (): Promise<string> => {
         if (setsDir === '') {
             const uuid = await fixture.activeUuid().catch(() => '');
-            setsDir = `/data/UserData/schwung/modules/tools/movy/sets/${uuid || '_default'}`;
+            setsDir = fixture.movySetDir(uuid);
         }
         try {
             const { stdout } = await run('ssh', [...SSH_OPTS, `ableton@${t.host}`, `cat '${setsDir}/seq-state.json' 2>/dev/null || true`],

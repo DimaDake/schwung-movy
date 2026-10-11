@@ -209,3 +209,17 @@ ssh ableton@move.local 'touch /data/UserData/schwung/debug_log_on'   # once per 
 ssh ableton@move.local 'tail -f /data/UserData/schwung/debug.log | grep "\[movy\]"'
 ```
 
+
+## Standalone (`--flavour sa`) notes
+
+- **Library-mode fixture.** movy-host always opens the library's `current` Set,
+  so the fixture seeds and pins `UserLibrary/Movy/Sets/movy-fixture`
+  (`fixture.useLibrary`, `fixture.movySetDir()`); scenarios must build Set paths
+  with `movySetDir`, never from `sets/<uuid>`.
+- **Chains are proven once per process** (`chainsProven`), not before every
+  scenario: the installed bytes are identical, so repeating the open/poll/close
+  cost ~8 s each. A full sa sweep went from ~15 min to ~6 min.
+- **`MOVY_TIMING=1`** prints a per-scenario `time:` line (open / open.launch /
+  close / fixture.*), automatically for any scenario over 20 s.
+- `sets-library` is `needs: 'move'` (it seeds legacy dirs + Move's Set folder);
+  its library gestures have no standalone twin yet.

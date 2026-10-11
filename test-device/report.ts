@@ -38,6 +38,8 @@ export function printLevel0(r: ScenarioResult, outDir: string): void {
     if (r.error) {
         console.log(`  ${RED}✗${RST} ${'threw'.padEnd(20)} ${r.error.split('\n')[0]}     ${outDir}/${r.name}.md`);
     }
+    if (typeof r.notes.timings === 'string' && (r.seconds > 20 || process.env.MOVY_TIMING))
+        console.log(`  ${DIM}time: ${r.notes.timings}${RST}`);
     /* A wait that only just landed. Printed on a PASSING scenario too — that
      * is the whole point of it: the warning has to arrive before the red. */
     const near = r.notes.waits_near_budget;

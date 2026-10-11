@@ -11,6 +11,8 @@ import type { HostBus, Need, Transport } from './transport.js';
 const run = promisify(execFile);
 
 const SA_DIR = '/data/UserData/schwung/modules/tools/movy-sa';
+/* Harness mode (standalone/launch.sh): in /dev/shm, so a reboot ends it. */
+const TESTBUS_FLAG = '/dev/shm/.movy-sa-testbus';
 const MOVY_DIR = '/data/UserData/schwung/modules/tools/movy';
 const LAUNCH = '/data/UserData/schwung/launch-standalone.sh';
 /* standalone/launch.sh's harness-mode hold (WP7 T1): after a clean close it
@@ -75,10 +77,12 @@ export class StandaloneTransport implements Transport {
     }
 
     /* schwung-testd binds the same port; the bus file tells movy-host to
-     * listen on every interface (launch-standalone.sh drops the env form). */
+     * listen on every interface (launch-standalone.sh drops the env form).
+     * The old module-dir flag is removed too: it outlived the run, and a
+     * user's next launch then held on close and dry-ran the power button. */
     async connect(): Promise<void> {
-        await this.ssh('root', `kill $(pidof schwung-testd) 2>/dev/null; touch ${SA_DIR}/testbus; `
-                             + `chown ableton:users ${SA_DIR}/testbus; true`);
+        await this.ssh('root', `kill $(pidof schwung-testd) 2>/dev/null; rm -f ${SA_DIR}/testbus; `
+                             + `touch ${TESTBUS_FLAG}; chown ableton:users ${TESTBUS_FLAG}; true`);
     }
 
     /* Leave the device as the run found it — Move up, movy-host gone. A
@@ -96,6 +100,8 @@ export class StandaloneTransport implements Transport {
         this.bus = null;
         /* A holding launcher would keep Move down for its whole timeout. */
         await this.holdCommand('quit').catch(() => 'none');
+        /* Harness mode ends with the run: the device goes back to a user. */
+        await this.ssh('root', `rm -f ${TESTBUS_FLAG}`).catch(() => {});
     }
 
     /* Open from the launcher's hold. `up` is not "running": a movy-host whose

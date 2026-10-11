@@ -138,8 +138,12 @@ export async function run() {
     eq('jog stops at [NEW]', page.setsPageState.selected, 0);
     page.setsPageClick('a');
     ok('[NEW] sends a dated name', /^new \d{4}-\d\d-\d\d_01$/.test(f.st.sent.at(-1)), f.st.sent.at(-1));
+    eq('still on the page while the Set is being made', appState.currentView, VIEW_SETS);
     tick();
-    eq('focus follows the Set just made', lib.libState().rows[page.setsPageState.selected - 1].id, f.st.made);
+    eq('[NEW] opens the Set it made', src.wantedSet(), f.st.made);
+    eq('and closes the page, as opening any Set does', appState.currentView, VIEW_CHAIN);
+    page.openSetsPage(f.st.made);
+    eq('back on the page, focus is on the new Set', lib.libState().rows[page.setsPageState.selected - 1].id, f.st.made);
 
     page.setsPageButton('copy');
     eq('copy names a Copy', f.st.sent.at(-1), `dup ${f.st.sets[0].id} ${f.st.sets[0].name} Copy`);

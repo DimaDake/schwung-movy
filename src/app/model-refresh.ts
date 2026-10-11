@@ -11,7 +11,7 @@
  * it, so that frame was drawn from a cache older than the Set: an empty slot on
  * a cold open, the previous Set's module after a switch. */
 
-import { appState } from './state.js';
+import { appState, VIEW_CHAIN, VIEW_KNOBS } from './state.js';
 import { seqState } from '../seq/state.js';
 import type { Model } from '../model/index.js';
 
@@ -36,6 +36,24 @@ function shownModel(): Model | null {
 export function refreshModelsForSet(): void {
     for (const chain of appState.trackModels) for (const m of chain ?? []) m?.reload();
     for (const m of appState.masterFxModels) m?.reload();
-    shownModel()?.reloadNow();
+    const shown = shownModel();
+    shown?.reloadNow();
+    leaveEmptyModulePages(shown);
     appState.dirty = true;
+}
+
+/* A module page is a view of the PREVIOUS Set's module. Arriving in a Set
+ * whose slot is empty (a new Set has no modules at all) left the screen on a
+ * module page with nothing on it and no module to name. The chain page is
+ * where an empty slot is filled from.
+ *
+ * Other tracks' remembered views go back to the chain page outright: their
+ * models are only scheduled to re-read, so whether their slot is empty is not
+ * known yet, and a remembered module page was the previous Set's anyway. */
+function leaveEmptyModulePages(shown: Model | null): void {
+    const t = appState.activeTrack.index;
+    for (let i = 0; i < appState.trackView.length; i++)
+        if (i !== t && appState.trackView[i] === VIEW_KNOBS) appState.trackView[i] = VIEW_CHAIN;
+    if (seqState.sessionMode || appState.currentView !== VIEW_KNOBS) return;
+    if (!shown || shown.getViewModel().isEmpty) appState.currentView = VIEW_CHAIN;
 }

@@ -62,22 +62,35 @@ fn peak(buf: &[i16]) -> i32 {
 ///
 /// Instant attack, so no sample ever leaves above the ceiling; release rises
 /// toward the next sample's own target and never past it, for the same reason.
+///
+/// A volume change RAMPS across the block it arrives in. Applied as a step,
+/// every knob detent (1 dB) was a discontinuity on a block edge, ~340 times a
+/// second while turning: heard on the device as aliasing on the volume knob.
 pub struct Limiter {
     env: f32,
+    /// The gain the last block ended on; None = nothing played yet, so the
+    /// first block starts where it is asked to rather than fading from unity.
+    last_gain: Option<f32>,
 }
 
 impl Limiter {
     pub fn new() -> Self {
-        Self { env: 1.0 }
+        Self { env: 1.0, last_gain: None }
     }
 
     /// Apply `gain` then the ceiling in place. Returns the deepest gain the
     /// limiter applied this block (1.0 = untouched), for `mfxlog`.
     pub fn process(&mut self, buf: &mut [i16], gain: f32) -> f32 {
         let mut min_env = 1.0f32;
+        let from = self.last_gain.unwrap_or(gain);
+        self.last_gain = Some(gain);
+        let frames = (buf.len() / 2).max(1) as f32;
+        let step = (gain - from) / frames;
+        let mut g = from;
         for frame in buf.chunks_exact_mut(2) {
-            let l = frame[0] as f32 * gain;
-            let r = frame[1] as f32 * gain;
+            g += step;
+            let l = frame[0] as f32 * g;
+            let r = frame[1] as f32 * g;
             let p = l.abs().max(r.abs());
             let target = if p > CEILING { CEILING / p } else { 1.0 };
             if target < self.env {
@@ -335,6 +348,26 @@ mod tests {
         let mut buf = vec![10000i16; 256];
         m.run(&mut buf);
         assert!(buf.iter().all(|&s| s == 5000));
+    }
+
+    #[test]
+    fn a_volume_change_ramps_across_the_block() {
+        let mut m = MasterChain::new();
+        m.set_owned(true);
+        let mut buf = vec![10000i16; 256];
+        m.run(&mut buf);
+        m.set_gain("0.5");
+        let mut buf = vec![10000i16; 256];
+        m.run(&mut buf);
+        /* No step: the first frame is still close to where the last block
+         * ended, the gain falls monotonically and lands exactly on target. */
+        assert!(buf[0] > 9900, "first sample jumped: {}", buf[0]);
+        assert!(buf.windows(2).all(|w| w[1] <= w[0]), "not monotonic");
+        assert!(buf.chunks_exact(2).all(|f| f[0] == f[1]), "channels ramp together");
+        assert_eq!(buf[255], 5000);
+        let mut buf = vec![10000i16; 256];
+        m.run(&mut buf);
+        assert!(buf.iter().all(|&s| s == 5000), "settled after one block");
     }
 
     #[test]

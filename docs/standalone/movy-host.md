@@ -76,7 +76,8 @@ npm run test:device -- --flavour sa --scenario smoke
 A standalone run leaves the device as it found it: the transport's `close()`
 EXITs movy-host and releases the launcher.
 
-**Harness mode** (the `testbus` file exists, which a shipped build never has):
+**Harness mode** (`/dev/shm/.movy-sa-testbus` exists; the transport makes it
+at connect, removes it at close, and a reboot clears it):
 after a clean close (rc 0, or 3 for a UI throw) `standalone/launch.sh` does not
 return to Move. It holds, Move still down, until the harness writes `go`
 (start movy-host again, ~0.5 s) or `quit` into `/dev/shm/.movy-sa-cmd`, or 300 s

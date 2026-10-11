@@ -60,18 +60,48 @@ export function failureLines(reason: string, scope: string): [string, string, st
     return ['CANNOT LOAD THIS SET', reason, 'JOG CLICK = START EMPTY'];
 }
 
+/* A wait shorter than this is a blank screen, without words. On the device
+ * movy-sa went STARTING ENGINE -> PREPARING SET -> its first page in ~50 ms,
+ * one frame each, and the user saw the screen "blink weirdly". Blank, not
+ * untouched: a Set switch must still cover the previous Set's page at once
+ * (app-loop "a session phase change repaints"). A real wait (a Set with
+ * modules to load) still gets its words, just later. */
+export const SPLASH_DELAY_MS = 250;
+
+let waitingSince = 0;
+let splashShown = false;
+
+/** How long movy has been waiting to go live, 0 once it is; `now` in ms. */
+export function loadingWaitMs(ready: boolean, now: number): number {
+    if (ready) { waitingSince = 0; splashShown = false; return 0; }
+    if (waitingSince === 0) waitingSince = now;
+    return now - waitingSince;
+}
+
+/** True once, on the tick the held-back splash becomes due — the repaint
+ *  that draws it, since nothing else marks the screen dirty mid-wait. */
+export function splashDue(waited: number): boolean {
+    if (splashShown || waited < SPLASH_DELAY_MS) return false;
+    splashShown = true;
+    return true;
+}
+
+/** Returns whether any words were drawn. */
 export function renderLoadingView(
     phase: string, error: string, chainPending = 0, failScope = 'set',
-    migrating = false,
-): void {
+    migrating = false, waitedMs = Infinity,
+): boolean {
     clear_screen();
+    /* A failure is never held back: it is waiting on the user. */
+    if (phase !== 'failed' && waitedMs < SPLASH_DELAY_MS) return false;
     if (phase === 'failed') {
         const lines = failureLines(error, failScope);
         /* Two lines sit where three would leave a gap at the bottom, so the
          * block stays vertically centred whichever failure this is. */
         const ys = lines[2] === '' ? [22, 36, 0] : [18, 30, 46];
         for (let i = 0; i < 3; i++) if (lines[i] !== '') centre(ys[i], lines[i], 1);
-        return;
+        return true;
     }
     centre(Math.floor(H / 2) - 3, loadingStage(phase, chainPending, migrating), 1);
+    return true;
 }

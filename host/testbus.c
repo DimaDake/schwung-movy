@@ -63,14 +63,22 @@ static void *bus_main(void *arg) {
     return NULL;
 }
 
-void testbus_start(void) {
+/* In /dev/shm so a reboot clears it (launch.sh says why); MOVY_SA_SHM is the
+ * launcher's selftest override, honoured here so both read one file. */
+int testbus_flag_present(void) {
+    const char *shm = getenv("MOVY_SA_SHM");
     char flag[300];
     struct stat st;
-    snprintf(flag, sizeof flag, "%s/testbus", g_mh_module_dir);
+    snprintf(flag, sizeof flag, "%s/.movy-sa-testbus", shm && *shm ? shm : "/dev/shm");
+    return stat(flag, &st) == 0;
+}
+
+void testbus_start(void) {
     const char *env = getenv("MOVY_TESTBUS");
-    if (!(env && !strcmp(env, "1")) && stat(flag, &st) != 0) return;
+    int flag = testbus_flag_present();
+    if (!(env && !strcmp(env, "1")) && !flag) return;
     const char *bind_to = getenv("MOVY_TESTBUS_BIND");
-    if (!bind_to && stat(flag, &st) == 0) bind_to = "0.0.0.0";   /* the harness's file form */
+    if (!bind_to && flag) bind_to = "0.0.0.0";   /* the harness's file form */
     g_listen = socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC, 0);
     int one = 1;
     setsockopt(g_listen, SOL_SOCKET, SO_REUSEADDR, &one, sizeof one);

@@ -19,6 +19,8 @@ deploy_sa() {
     # The launcher too: sh reads a script as it runs, and a holding launcher
     # (harness mode) is mid-loop in it.
     scp -q "$dir/standalone/launch.sh" "ableton@$host:$remote/standalone.new"
-    ssh "ableton@$host" "cd $remote && chmod +x movy-host.new standalone.new movy-heal && mv movy-host.new movy-host && mv dsp.so.new dsp.so && mv standalone.new standalone"
+    # rm testbus: the harness flag's old home. Left behind, it held every
+    # close and dry-ran the power button; it lives in /dev/shm now.
+    ssh "ableton@$host" "cd $remote && chmod +x movy-host.new standalone.new movy-heal && mv movy-host.new movy-host && mv dsp.so.new dsp.so && mv standalone.new standalone && rm -f testbus"
     echo "movy-sa deployed to $host:$remote ($(ssh "ableton@$host" "$remote/movy-host --version"))"
 }

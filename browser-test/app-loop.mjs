@@ -1783,13 +1783,36 @@ _log('\napp-loop: a session phase change repaints, so the splash actually covers
     const idleRects = painted.length - n;
     eq('repaint: an idle tick paints almost nothing', idleRects < 5, true);
 
-    n = painted.length;
-    resetSess();                             // → 'booting': the splash is owed
-    advance(1);
-    eq('repaint: the phase change is on screen the very next tick',
-        painted.length - n > idleRects * 5, true);
-    eq('repaint: and what is owed is the splash', sessionPhase() !== 'ready', true);
-    _log(`    (idle tick ${idleRects} rects, phase-change tick ${painted.length - n})`);
+    /* The very next tick COVERS the old page (a blank screen); the splash's
+     * words follow only if the wait outlasts SPLASH_DELAY_MS — a ~50 ms boot
+     * that flashed two splashes read on the device as the screen blinking.
+     * Both halves on a held clock, so neither is the wall clock's luck. */
+    const { SPLASH_DELAY_MS } = await import('../dist/esm/renderer/loading-view.js');
+    const realNow = Date.now; let t = 50000; Date.now = () => t;
+    let clears = 0;
+    const origClear = globalThis.clear_screen;
+    globalThis.clear_screen = () => { clears++; };
+    try {
+        resetSess();                         // → 'booting': the splash is owed
+        advance(1);
+        eq('repaint: the phase change covers the old page the very next tick', clears > 0, true);
+        eq('repaint: and what is owed is the splash', sessionPhase() !== 'ready', true);
+        n = painted.length;
+        advance(1);
+        eq('repaint: a short wait draws no words', painted.length - n < idleRects * 5 + 5, true);
+        /* Held in `booting`: the mock engine stays quiet only while asked to,
+         * so the wait is read through the phase rather than assumed. */
+        t += SPLASH_DELAY_MS;
+        n = painted.length;
+        advance(1);
+        if (sessionPhase() !== 'ready') {
+            eq('repaint: a wait that lasts brings the words up', painted.length - n > idleRects * 5, true);
+        }
+        _log(`    (idle tick ${idleRects} rects, splash tick ${painted.length - n})`);
+    } finally {
+        Date.now = realNow;
+        globalThis.clear_screen = origClear;
+    }
 
     resetApp();
     advance(400);

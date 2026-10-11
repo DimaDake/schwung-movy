@@ -132,7 +132,15 @@ scenario('sets-library', async (t) => {
     const newId = madeSince(idx, made);
     t.check('new-made', '[NEW] made a Set', !!newId,
         { expected: 'a new id in library.json', actual: JSON.stringify(made?.sets.map((e) => e.name)) });
+    /* [NEW] opens what it made and closes the page, as Move does. */
+    let afterNew = '';
+    try { afterNew = await until(t.tx, '[NEW] to open its Set', openUuid, (u) => u === newId, LIB_WAIT); }
+    catch { afterNew = await openUuid(); }
+    t.check('new-opens', '[NEW] opened the Set it made', !!newId && afterNew === newId,
+        { expected: newId, actual: afterNew });
 
+    /* Back on the page, the cursor starts on the open Set: the new one. */
+    await dev.holdCc(CC_SHIFT, async () => { await dev.tap.note(STEP_NOTE_BASE, 127); });
     await t.tx.frames(ACT);
     await dev.tap.cc(CC_COPY);
     const dup = await libUntil((l) => l.sets.length > (made?.sets.length ?? 0), 'a copy');

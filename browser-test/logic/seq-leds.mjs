@@ -135,7 +135,7 @@ export async function run() {
     eq('shift shows metro dim',  stepIconColor(5, { shift: true, metro: false, fullVel: false }), 16);
     eq('shift shows dbl-loop dim', stepIconColor(14, { shift: true, metro: false, fullVel: false }), 16);
     eq('shift shows quant dim',  stepIconColor(15, { shift: true, metro: false, fullVel: false }), 16);
-    eq('non-shortcut idx dark',  stepIconColor(0, { shift: true, metro: false, fullVel: false }), 0);
+    eq('non-shortcut idx dark',  stepIconColor(3, { shift: true, metro: false, fullVel: false }), 0);
     // Set Params openers (steps 5/7/9 = idx 4/6/8): dim while Shift held, full bright while page open.
     eq('shift shows set-params step dim', stepIconColor(4, { shift: true, metro: false, fullVel: false }), 16);
     eq('set-params step bright when page open', stepIconColor(6, { shift: false, metro: false, fullVel: false, mainPage: true }), 124);
@@ -160,6 +160,11 @@ export async function run() {
     eq('settings step bright when page open', stepIconColor(1, { shift: false, metro: false, fullVel: false, flagsPage: true }), 124);
     eq('settings step dark when closed+noshift', stepIconColor(1, { shift: false, metro: false, fullVel: false }), 0);
     eq('settings step available in Session too', stepIconColor(1, { shift: true, metro: false, fullVel: false, session: true }), 16);
+    // Shift+Step 1 = Sets: lit like every other shifted page, in every view.
+    eq('shift shows sets step dim', stepIconColor(0, { shift: true, metro: false, fullVel: false }), 16);
+    eq('sets step bright when page open', stepIconColor(0, { shift: false, metro: false, fullVel: false, setsPage: true }), 124);
+    eq('sets step dark when closed+noshift', stepIconColor(0, { shift: false, metro: false, fullVel: false }), 0);
+    eq('sets step available in Session too', stepIconColor(0, { shift: true, metro: false, fullVel: false, session: true }), 16);
 }
 
 /* ── track-button LEDs ───────────────────────────────────────────────────── */

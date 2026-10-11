@@ -7,16 +7,14 @@
 #include "log.h"
 #include "movy_host.h"
 #include "power.h"
+#include "testbus.h"
 
 #define DBUS_SEND "/usr/bin/dbus-send"
 
 volatile int g_mh_poweroff;
 
 void power_off_now(void) {
-    char flag[300];
-    struct stat st;
-    snprintf(flag, sizeof flag, "%s/testbus", g_mh_module_dir);
-    if (stat(flag, &st) == 0) {
+    if (testbus_flag_present()) {
         mh_log("power: DRY RUN (test bus) — would call com.ableton.system Power.shutDown");
         return;
     }

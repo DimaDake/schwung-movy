@@ -61,7 +61,7 @@ import { paramBodyFor } from './param-body.js';
 import { chainLoadsPending, currentSetUuid, sessionError, sessionFailScope, sessionPhase, sessionReady, sessionTick } from '../seq/set-session.js';
 import { takeSurfaceReturn } from '../seq/set-commit.js';
 import { claimLedOwnership } from './led-ownership.js';
-import { renderLoadingView } from '../renderer/loading-view.js';
+import { loadingWaitMs, renderLoadingView, splashDue } from '../renderer/loading-view.js';
 import { migrationPending } from '../track/migrate.js';
 import { tempoOverrideTick } from '../seq/tempo-override.js';
 import { captureTick } from '../seq/capture.js';
@@ -824,6 +824,12 @@ function tickBody(): void {
     const schwungBody = gridOnScreen ? schwungBodyFor(drawnPageOwner) : undefined;
     perfPhaseEnd();
 
+    /* The splash is held back for its first moments (loading-view.ts says
+     * why); this is the one repaint that brings it up if the wait outlasts
+     * that. */
+    const loadingWaited = loadingWaitMs(sessionReady(), Date.now());
+    if (splashDue(loadingWaited)) appState.dirty = true;
+
     /* Whether this tick repainted the view. The song band sits on top of it,
      * so a repaint erases the band and it has to be drawn again. */
     let viewRepainted = false;
@@ -856,7 +862,7 @@ function tickBody(): void {
             /* Ahead of every view: until the Set is in the engine there is
              * nothing truthful to draw, and input is refused anyway. */
             renderLoadingView(sessionPhase(), sessionError(), chainLoadsPending(),
-                              sessionFailScope(), migrationPending());
+                              sessionFailScope(), migrationPending(), loadingWaited);
         } else if (appState.currentView === VIEW_FLAGS) {
             const vm = buildFlagsPageVM();
             renderFlagsView(vm);

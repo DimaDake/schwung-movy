@@ -308,6 +308,7 @@ export async function run() {
         reloadNow() { this.now++; this.phaseAt = sessionPhase(); },
         reload() { this.later++; },
         getDrumConfig() { return null; },     // read off every synth slot each tick
+        getViewModel() { return { isEmpty: false }; },
     });
     const shown = mk();
     const offscreen = mk();
@@ -354,6 +355,65 @@ export async function run() {
     void fs;
     uninstallMockEngine(); uninstallMockFs();
     resetSeqEngine(); resetSeqState(); resetSetSession(); resetSetSave(); resetStoreRotation();
+}
+
+/* ── S10: a Set whose slot is empty does not land on a module page ───────── */
+{
+    const { refreshModelsForSet } = await import('../../dist/esm/app/model-refresh.js');
+    const { appState, VIEW_CHAIN, VIEW_KNOBS } = await import('../../dist/esm/app/state.js');
+    const { seqState } = await import('../../dist/esm/seq/state.js');
+    const mk = (isEmpty) => ({
+        reloadNow() {}, reload() {}, getViewModel() { return { isEmpty }; },
+    });
+    const orig = { models: appState.trackModels, master: appState.masterFxModels,
+                   view: appState.currentView, tv: appState.trackView.slice(),
+                   track: appState.activeTrack.index, ci: appState.trackChainIndex[0],
+                   session: seqState.sessionMode };
+    seqState.sessionMode = false;
+    appState.masterFxModels = [];
+    appState.activeTrack.index = 0;
+    appState.trackChainIndex[0] = 1;
+
+    appState.trackModels = [[mk(false), mk(true)], [mk(false), mk(false)]];
+    appState.currentView = VIEW_KNOBS;
+    appState.trackView[1] = VIEW_KNOBS;
+    refreshModelsForSet();
+    eq('S10 an empty slot on the module page falls back to the chain page', appState.currentView, VIEW_CHAIN);
+    eq('S10 another track\'s remembered module page goes too', appState.trackView[1], VIEW_CHAIN);
+
+    appState.trackModels = [[mk(false), mk(false)], [mk(false), mk(false)]];
+    appState.currentView = VIEW_KNOBS;
+    refreshModelsForSet();
+    eq('S10 a slot with a module keeps its module page', appState.currentView, VIEW_KNOBS);
+
+    appState.trackModels = orig.models; appState.masterFxModels = orig.master;
+    appState.currentView = orig.view; appState.trackView = orig.tv;
+    appState.activeTrack.index = orig.track; appState.trackChainIndex[0] = orig.ci;
+    seqState.sessionMode = orig.session;
+}
+
+/* ── a short wait draws no splash at all ─────────────────────────────────── */
+{
+    _log('\nsplash is held back for short waits:');
+    const lv = await import('../../dist/esm/renderer/loading-view.js');
+    let cleared = 0;
+    const origClear = globalThis.clear_screen;
+    globalThis.clear_screen = () => { cleared++; };
+    lv.loadingWaitMs(true, 0);                      // a fresh wait
+    const w0 = lv.loadingWaitMs(false, 1000);
+    eq('the first frame of a wait draws no words', lv.renderLoadingView('booting', '', 0, 'set', false, w0), false);
+    eq('but still blanks the screen (a switch must cover the old page)', cleared, 1);
+    ok('and is not yet due', !lv.splashDue(w0));
+    const w1 = lv.loadingWaitMs(false, 1000 + lv.SPLASH_DELAY_MS - 1);
+    ok('nor just under the delay', !lv.splashDue(w1));
+    const w2 = lv.loadingWaitMs(false, 1000 + lv.SPLASH_DELAY_MS);
+    ok('a wait that lasts brings it up', lv.splashDue(w2));
+    ok('once', !lv.splashDue(lv.loadingWaitMs(false, 1000 + lv.SPLASH_DELAY_MS + 50)));
+    eq('and then the words are drawn', lv.renderLoadingView('booting', '', 0, 'set', false, w2), true);
+    eq('a failure is never held back', lv.renderLoadingView('failed', 'X', 0, 'set', false, 0), true);
+    eq('live resets the wait', lv.loadingWaitMs(true, 5000), 0);
+    ok('so the next wait is held back again', !lv.splashDue(lv.loadingWaitMs(false, 5001)));
+    globalThis.clear_screen = origClear;
 }
 
 /* ── splash text ─────────────────────────────────────────────────────────── */

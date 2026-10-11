@@ -59,9 +59,12 @@ transport exposes them as `tx.hostBus`, with `SUBSCRIBE`/`DUMP`, `UI_EVAL`,
   names another address; the file form below binds `0.0.0.0`, because the
   harness that drops the file is on another machine.
 - **Off unless asked for.** The bus thread starts only when `MOVY_TESTBUS=1` is
-  in movy-host's environment or `<module dir>/testbus` exists. The file form
-  exists because `launch-standalone.sh` does not forward the harness's
-  environment. A shipped build never contains the file.
+  in movy-host's environment or `/dev/shm/.movy-sa-testbus` exists. The file
+  form exists because `launch-standalone.sh` does not forward the harness's
+  environment. The transport creates it at connect and removes it at close,
+  and a reboot clears it. It used to be `<module dir>/testbus`, which outlived
+  the run: the user's next "Close Movy" then held with a dark screen and the
+  power button dry-ran (2026-10-10).
 - Requests and replies are ASCII lines ending in `\n`, at most **64 KiB** (testd:
   4 KiB). The larger limit lets an engine blob go through `SET_PARAM` without a
   `*_FILE` detour.

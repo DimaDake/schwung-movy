@@ -257,11 +257,22 @@ fn do_open(store: &SetStore, shared: &Arc<Mutex<Shared>>, uuid: &str, seed: Opti
             sh.reason = "unreadable".to_string();
             sh.loaded = None;
         }
+        /* A Set with no files is a NEW Set, and its sequence opens blank.
+         * `None` here applied nothing, so the engine kept the previous Set's
+         * sequence and a new Set came up with its modules gone but its steps
+         * copied. Still writes nothing: the engine's last-saved mirror is the
+         * blank state, so nothing saves until the user plays into it.
+         *
+         * The CHAINS half stays empty (`restore` ignores ""): the UI already
+         * clears them for a Set with no UI blob, and this apply lands on a
+         * later audio callback than the UI's own chain document — an empty
+         * doc here wiped chains queued just after the open (device fixture:
+         * "movy chains not established"). */
         None => {
             sh.gen = 0;
             sh.phase = Phase::Ready;
             sh.reason.clear();
-            sh.loaded = None;
+            sh.loaded = Some((BLANK_STATE.to_string(), String::new(), 0));
         }
     }
 }
@@ -825,14 +836,21 @@ mod tests {
     }
 
     #[test]
-    fn open_of_an_unknown_set_reports_ready_with_no_state() {
-        let s = Saver::new(&tmp("unknown"));
+    fn open_of_an_unknown_set_reports_ready_and_loads_blank() {
+        let root = tmp("unknown");
+        let s = Saver::new(&root);
         s.submit(Job::Open { uuid: "u1".into(), seed: None });
         s.drain_for_test();
         let st = s.status();
         assert!(st.contains("uuid=u1"), "got {st}");
         assert!(st.contains("phase=ready"), "got {st}");
-        assert!(s.take_loaded().is_none(), "no state means nothing to apply");
+        /* Blank, not nothing: applying nothing left the previous Set's steps
+         * in the engine under the new Set's name. */
+        let (payload, chains, gen) = s.take_loaded().expect("a new Set must replace what the engine holds");
+        assert_eq!(payload, BLANK_STATE);
+        assert_eq!(chains, "", "the chains are the UI's to clear; an empty doc here races its own");
+        assert_eq!(gen, 0);
+        assert!(!SetStore::new(&root).has_state("u1"), "a blank Set still writes nothing");
     }
 
     #[test]

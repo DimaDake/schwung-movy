@@ -7,7 +7,7 @@
  * movy-host exactly as it always did.
  */
 import { spawn } from 'node:child_process';
-import { mkdtempSync, writeFileSync, readFileSync, existsSync, chmodSync, copyFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync, readFileSync, existsSync, chmodSync, copyFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -34,8 +34,8 @@ function rig(codes, { testbus = true } = {}) {
         + 'exit $(sed -n "${n}p" "$D/codes")\n');
     chmodSync(join(dir, 'movy-host'), 0o755);
     copyFileSync(join(ROOT, 'standalone', 'launch.sh'), join(dir, 'standalone'));
-    if (testbus) writeFileSync(join(dir, 'testbus'), '');
-    spawn('mkdir', ['-p', shm]);
+    mkdirSync(shm, { recursive: true });
+    if (testbus) writeFileSync(join(shm, '.movy-sa-testbus'), '');
     return { dir, shm, runs: () => +(existsSync(join(dir, 'runs')) ? readFileSync(join(dir, 'runs'), 'utf8') : 0) };
 }
 
@@ -87,6 +87,15 @@ async function everSeen(l, file) {
     await sleep(50);
     const l = launch(r);
     ok('without the test bus file a close returns to Move at once',
+        !await everSeen(l, join(r.shm, '.movy-sa-launcher')) && r.runs() === 1);
+}
+
+{   /* a module-dir testbus file left by an older harness is NOT harness mode */
+    const r = rig([0], { testbus: false });
+    writeFileSync(join(r.dir, 'testbus'), '');
+    await sleep(50);
+    const l = launch(r);
+    ok('a stale module-dir testbus file does not hold a user\'s close',
         !await everSeen(l, join(r.shm, '.movy-sa-launcher')) && r.runs() === 1);
 }
 

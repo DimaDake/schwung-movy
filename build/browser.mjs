@@ -245,6 +245,9 @@ await esbuild.build({
         /* The lane view a delegated page's mark reads: an entry point so the
          * drum automation matrix asks the SAME lookup the page does. */
         resolve(root, 'src/app/automated-keys.ts'),
+        /* The Set-load view fallback (set-settling S10) reads the SAME appState
+         * the settle path writes. */
+        resolve(root, 'src/app/model-refresh.ts'),
         resolve(root, 'src/app/globals.ts'),
         resolve(root, 'src/app/init.ts'),
         resolve(root, 'src/app/resume.ts'),

@@ -31,18 +31,22 @@ if [ -f "$DIR/movy-heal" ]; then
     fi
 fi
 
-# Harness mode only (the test bus file never ships): a clean close does not go
-# back to Move. It HOLDS instead, with SPI free and Move still down, until the
+# Harness mode only: a clean close does not go back to Move. It HOLDS instead, with SPI free and Move still down, until the
 # harness writes "go" (open again: ~0.5 s) or "quit" (back to Move) into
 # $CMD. Every close/open pair otherwise costs a Move restart and a kill sweep
 # (WP7 T1: reselect 280 s against ~70 s on overtake). Bounded, so a harness
 # that died mid-run still gives the device back. A lock loser (rc 1) and a
 # floor refusal (rc 2) never hold: neither is a session of ours.
 # Not /dev/shm/movy-*: movy-host sweeps that prefix as stale at start.
+# The test bus flag lives in /dev/shm, never in the module dir: there it
+# outlived the run that made it, so a user's next launch held after "Close
+# Movy" (dark screen, LEDs on, no Move for 5 min) and the power button dry-ran.
+# A reboot now clears it, and the harness removes it when it is done.
 SHM=${MOVY_SA_SHM:-/dev/shm}   # overridable for selftest/standalone-hold.mjs
 PIDF=$SHM/.movy-sa-launcher HOLD=$SHM/.movy-sa-hold CMD=$SHM/.movy-sa-cmd
+TESTBUS=$SHM/.movy-sa-testbus
 HOLD_S=${MOVY_SA_HOLD_S:-300}
-if [ ! -e "$DIR/testbus" ]; then exec "$DIR/movy-host"; fi
+if [ ! -e "$TESTBUS" ]; then exec "$DIR/movy-host"; fi
 # ableton's whatever uid we run as: /dev/shm is sticky, and a root-owned file
 # there could not be removed by a later ableton launcher (a stale "go").
 own() { chmod 666 "$1" 2>/dev/null; [ "$(id -u)" = 0 ] && chown ableton:users "$1"; }
@@ -52,7 +56,7 @@ while :; do
     "$DIR/movy-host"
     rc=$?
     echo "launch: movy-host exited $rc"
-    { [ $rc = 0 ] || [ $rc = 3 ]; } && [ -e "$DIR/testbus" ] || break
+    { [ $rc = 0 ] || [ $rc = 3 ]; } && [ -e "$TESTBUS" ] || break
     : >"$HOLD"; own "$HOLD"
     n=0 cmd=
     while [ $n -lt $((HOLD_S * 20)) ]; do

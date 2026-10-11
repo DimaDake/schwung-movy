@@ -17,6 +17,7 @@ import { quantIndexForPct } from './quant.js';
 import { applyTempoX100, applySwing, applyLink, applyDefaultQuantIdx,
          applyRootPc, applyScaleIdx, applyModeIdx, applyLayoutIdx } from './main-page-apply.js';
 import { K_TEMPO, K_SWING, K_LINK, K_QUANT, K_ROOT, K_KEY, K_MODE, K_LAYOUT } from './main-page-constants.js';
+import { platform } from '../platform/index.js';
 
 const OVERLAY_KNOBS = [K_KEY, K_MODE, K_LAYOUT];
 
@@ -92,7 +93,7 @@ export function mainPageKnob(k: number, delta: number): void {
     if (n === 0) return;
     if (k === K_TEMPO) applyTempoX100(seqState.bpmX100 + n * 100);
     else if (k === K_SWING) applySwing(seqState.swingPct + n);
-    else if (k === K_LINK) applyLink(n > 0);   // turn right = ON, left = OFF
+    else if (k === K_LINK) { if (platform.caps.coexistsWithMove) applyLink(n > 0); }   // right = ON, left = OFF
     else if (k === K_QUANT) applyDefaultQuantIdx(quantIndexForPct(seqState.defaultQuant) + n);
     else if (k === K_ROOT) applyRootPc(keyboardState.rootPc + n);
     else if (mainPageState.overlayKnob === k) {

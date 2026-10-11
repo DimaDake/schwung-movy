@@ -11,7 +11,7 @@ import { mainPageActive } from './main-page.js';
 import { clipPageActive } from './clip-page.js';
 import { cpuPageActive } from './cpu-page.js';
 import { flagsPageActive } from './flags-page.js';
-import { appState } from '../app/state.js';
+import { appState, VIEW_SETS } from '../app/state.js';
 import { focusedTrack, GROUP_DIR_DOWN, GROUP_DIR_UP } from '../track/focus.js';
 import { GROUP_SIZE } from '../track/ref.js';
 import { sessionPaintGrid } from './session.js';
@@ -41,6 +41,7 @@ const ICON_MAIN: readonly number[] = [4, 6, 8];
 const ICON_CLIP = 2; // Shift+Step 3 opens Clip Params (Track view only)
 const ICON_CPU = 11; // Shift+Step 12 opens the CPU meter (every view)
 const ICON_FLAGS = 1; // Shift+Step 2 opens Settings (every view)
+const ICON_SETS = 0;  // Shift+Step 1 opens Sets (every view)
 
 let lastLoopMode = false;
 let lastSelector = false;
@@ -116,14 +117,15 @@ function paintTransport(): void {
 /* Step-icon LEDs are CC 16..31 (the printed icons under each step), separate
  * from the step buttons' RGB LEDs at notes 16..31. They show latched feature
  * state, and — while Shift is held — the full set of combinable shortcuts. */
-interface IconCtx { shift: boolean; metro: boolean; fullVel: boolean; mainPage?: boolean; clipPage?: boolean; cpuPage?: boolean; flagsPage?: boolean; session?: boolean; }
+interface IconCtx { shift: boolean; metro: boolean; fullVel: boolean; mainPage?: boolean; clipPage?: boolean; cpuPage?: boolean; flagsPage?: boolean; setsPage?: boolean; session?: boolean; }
 
 export function stepIconColor(idx: number, c: IconCtx): number {
     const active = (idx === ICON_METRO && c.metro) || (idx === ICON_FULLVEL && c.fullVel)
                 || (c.mainPage && ICON_MAIN.includes(idx)) // page open → full bright
                 || (c.clipPage && idx === ICON_CLIP)
                 || (c.cpuPage && idx === ICON_CPU)
-                || (c.flagsPage && idx === ICON_FLAGS);
+                || (c.flagsPage && idx === ICON_FLAGS)
+                || (c.setsPage && idx === ICON_SETS);
     if (active) return WHITE_BRIGHT;
     // Clip Params only opens in Track view, so its icon is unavailable in Session.
     const clipAvail = idx === ICON_CLIP && !c.session;
@@ -132,7 +134,7 @@ export function stepIconColor(idx: number, c: IconCtx): number {
                     || ICON_MAIN.includes(idx) || clipAvail
                     // Unlike Clip Params the meter is available in Session view
                     // too: the chains are rendering whichever view is on screen.
-                    || idx === ICON_CPU || idx === ICON_FLAGS)) { // shift held → available
+                    || idx === ICON_CPU || idx === ICON_FLAGS || idx === ICON_SETS)) { // shift held → available
         return WHITE_DIM;
     }
     return WHITE_OFF;
@@ -141,7 +143,7 @@ export function stepIconColor(idx: number, c: IconCtx): number {
 function paintStepIcons(shift: boolean): void {
     const ctx = { shift, metro: seqState.metro, fullVel: seqState.fullVelocity,
         mainPage: mainPageActive(), clipPage: clipPageActive(), cpuPage: cpuPageActive(),
-        flagsPage: flagsPageActive(),
+        flagsPage: flagsPageActive(), setsPage: appState.currentView === VIEW_SETS,
         session: seqState.sessionMode };
     for (let i = 0; i < NUM_STEP_BUTTONS; i++) {
         cachedSetButtonLED(STEP_ICON_CC_BASE + i, stepIconColor(i, ctx));

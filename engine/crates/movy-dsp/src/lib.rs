@@ -135,7 +135,7 @@ pub(crate) fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.89.0";
+const ENGINE_VERSION: &str = "0.90.0";
 
 /* Blocks between autosaves. The callback runs at ~344 Hz, so this is ~2 s —
  * flash on this device is not free and the sequencer is dirty constantly while
@@ -1422,8 +1422,12 @@ mod tests {
         let mut inst = Instance::new();
         inst.set_param("setsdir", &saver_tmp("off"));
         inst.set_param("set", "open u1");
-        inst.engine.dirty = true;
         let mut audio = [0i16; 256];
+        /* Let the open land first: a new Set loads blank, and that load
+         * resets the flag this test sets. */
+        inst.saver.as_ref().unwrap().drain_for_test();
+        inst.render(&mut audio);
+        inst.engine.dirty = true;
         for _ in 0..(SAVE_BLOCKS + 2) {
             inst.render(&mut audio);
         }

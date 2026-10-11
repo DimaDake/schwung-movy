@@ -4,8 +4,11 @@
 #ifndef MH_TESTBUS_H
 #define MH_TESTBUS_H
 
-/* Starts the bus thread when MOVY_TESTBUS=1 or <module dir>/testbus exists. */
+/* Starts the bus thread when MOVY_TESTBUS=1 or the harness flag exists. */
 void testbus_start(void);
+/* The harness flag, /dev/shm/.movy-sa-testbus: harness mode for the launcher's
+ * hold, and a dry run for the power button. */
+int testbus_flag_present(void);
 
 /* One request line → reply (without the trailing newline). Returns 1 when the
  * connection should close after the reply (QUIT/EXIT). Exposed for tests. */

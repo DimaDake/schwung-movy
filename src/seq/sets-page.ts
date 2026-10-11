@@ -6,8 +6,8 @@
  * library's row i, in the engine's display order.
  *
  * Commands land on the engine's saver thread a few ticks later, so anything
- * that must follow one — moving the cursor to a Set just made, opening the Set
- * that replaces a deleted one — waits on the answer's `made` CHANGING (it is
+ * that must follow one — opening a Set just made, moving the cursor to a copy,
+ * opening the Set that replaces a deleted one — waits on the answer's `made` CHANGING (it is
  * sticky; ids are unique), never on the very next answer.
  *
  * The open Set's id arrives as an argument, as the BACKUPS page's does: this
@@ -28,6 +28,10 @@ export const setsPageState = {
 
 /* `made` as it stood when a new/dup went out, or null when none is in flight. */
 let madeBefore: string | null = null;
+/* What to do with the Set when it arrives: open it ([NEW], Move's own
+ * behaviour — a Set you just made is the one you want to play into) or only
+ * put the cursor on it (a copy, which you may want to rename first). */
+let openMade = false;
 /* The open Set to delete once its replacement (being made now) exists. */
 let replaceThenDelete = '';
 let pollIn = 0;
@@ -40,6 +44,7 @@ export function resetSetsPage(): void {
     setsPageState.selected = 0;
     setsPageState.confirming = false;
     madeBefore = null;
+    openMade = false;
     replaceThenDelete = '';
 }
 
@@ -69,6 +74,12 @@ export function setsPageTick(): boolean {
             wantSet(st.made);
             deleteWhenLeft(replaceThenDelete);
             replaceThenDelete = '';
+        } else if (openMade) {
+            openMade = false;
+            wantSet(st.made);
+            if (setsPageActive()) appState.currentView = closeParamPage();
+            appState.dirty = true;
+            return true;
         } else if (i >= 0) {
             setsPageState.selected = i + 1;
         }
@@ -78,8 +89,9 @@ export function setsPageTick(): boolean {
     return true;
 }
 
-function send(cmd: string, awaitMade: boolean): void {
+function send(cmd: string, awaitMade: boolean, open = false): void {
     if (awaitMade) madeBefore = libState()?.made ?? '';
+    openMade = open;
     libSend(cmd);
     pollIn = 1;
 }
@@ -104,7 +116,7 @@ export function setsPageClick(openId: string): boolean {
         return false;
     }
     if (setsPageState.selected === 0) {
-        send('new ' + defaultSetName(new Date(), rows()), true);
+        send('new ' + defaultSetName(new Date(), rows()), true, true);
         return false;
     }
     const t = target();

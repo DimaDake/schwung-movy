@@ -29,6 +29,7 @@ import { applyTempoX100, applySwing, applyLink, applyDefaultQuantIdx,
 import { createVirtualSource, type VirtualCellSpec } from '../renderer/schwung-virtual-source.js';
 import type { PageParamSource } from '../renderer/schwung-page-source.js';
 import { SET_PARAMS_COMPONENT } from '../chain/config.js';
+import { platform } from '../platform/index.js';
 
 const asIndex = (v: string): number => Math.round(Number(v)) || 0;
 
@@ -109,7 +110,18 @@ const cells: VirtualCellSpec[] = [
 /* One instance for the process — see clip-params-contract.ts's own note on
  * why a virtual source needs no per-(track,component) lifetime. */
 let source: PageParamSource | null = null;
+let builtFor: boolean | null = null;
 export function setParamsSource(): PageParamSource {
-    return source ?? (source = createVirtualSource(SET_PARAMS_COMPONENT, cells));
+    /* LINK propagates Play/Stop to and from Move; with no Move beside movy it
+     * has nothing to link to, so the knob goes (the rest repack: schwung's
+     * `knobs[]` has no gaps). Keyed on the caps so a suite that swaps the
+     * platform gets the page that platform shows. */
+    const withMove = platform.caps.coexistsWithMove;
+    if (!source || builtFor !== withMove) {
+        builtFor = withMove;
+        source = createVirtualSource(SET_PARAMS_COMPONENT,
+                                     withMove ? cells : cells.filter((c) => c.key !== 'link'));
+    }
+    return source;
 }
 

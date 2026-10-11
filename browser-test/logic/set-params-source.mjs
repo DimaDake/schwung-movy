@@ -69,6 +69,32 @@ _log('\nTest: the synthesised contract');
        'TEMPO,SWING,LINK,QUANT,ROOT,KEY,MODE,LAYOUT');
 }
 
+/* ── Standalone: no Move to link Play to, so no LINK ──────────────────────── */
+_log('\nTest: standalone drops LINK from both Set Params pages');
+{
+    const { platform, setPlatformForTest } = await import('../../dist/esm/platform/index.js');
+    const { buildMainPageVM } = await import('../../dist/esm/seq/main-page-vm.js');
+    const real = platform;
+    setPlatformForTest({ ...real, caps: { ...real.caps, coexistsWithMove: false } });
+    try {
+        reset();
+        const params = JSON.parse(setParamsSource().getParam(SET_PARAMS_COMPONENT + ':chain_params'));
+        eq('standalone: the contract lists no link', params.map((p) => p.short_name).join(','),
+           'TEMPO,SWING,QUANT,ROOT,KEY,MODE,LAYOUT');
+        const vm = buildMainPageVM();
+        eq('standalone: the legacy page leaves knob 3 empty', vm.rows[0][2].shortName, '');
+        eq('standalone: QUANT keeps knob 4', vm.rows[0][3].shortName, 'QUANT');
+        seqState.linkEnabled = false;
+        mainPageKnob(K_LINK, 8);
+        eq('standalone: turning knob 3 cannot switch link on', seqState.linkEnabled, false);
+    } finally {
+        setPlatformForTest(real);
+    }
+    const params = JSON.parse(setParamsSource().getParam(SET_PARAMS_COMPONENT + ':chain_params'));
+    eq('back beside Move: LINK returns', params.map((p) => p.short_name).join(','),
+       'TEMPO,SWING,LINK,QUANT,ROOT,KEY,MODE,LAYOUT');
+}
+
 /* ── LAYOUT's option list is a FUNCTION, resolved against the CURRENT mode ── */
 _log('\nTest: LAYOUT tracks MODE live');
 {

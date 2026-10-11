@@ -11,6 +11,9 @@ mkdir -p "$OUT"
 "${CC:-cc}" -std=gnu11 -Wall -Wextra -Wno-unused-parameter -pthread -I"$DIR" \
     "$DIR/tests/test_log.c" "$DIR/log_ring.c" "$DIR/testbus_log.c" "$DIR/midi_tap.c" -o "$OUT/test_log"
 "$OUT/test_log"
+"${CC:-cc}" -std=gnu11 -Wall -Wextra -Wno-unused-parameter -I"$DIR" \
+    "$DIR/tests/test_power.c" "$DIR/power.c" -o "$OUT/test_power"
+"$OUT/test_power"
 # plugin_api_v1.h is schwung's: the reference checkout, as the JS suites use it.
 SCHWUNG="${SCHWUNG:-$DIR/../../schwung}"
 INC=(-I"$DIR" -I"$SCHWUNG/src" -I"$SCHWUNG/src/host")

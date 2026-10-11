@@ -1,5 +1,7 @@
 #define _GNU_SOURCE
+#include <signal.h>
 #include <stdio.h>
+#include <time.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -13,10 +15,10 @@
 
 volatile int g_mh_poweroff;
 
-void power_off_now(void) {
+int power_off_now(void) {
     if (testbus_flag_present()) {
         mh_log("power: DRY RUN (test bus) — would call com.ableton.system Power.shutDown");
-        return;
+        return 0;
     }
     mh_log("power: Power.shutDown via com.ableton.system");
     pid_t pid = fork();
@@ -27,6 +29,20 @@ void power_off_now(void) {
         _exit(127);
     }
     int status = 0;
-    if (pid < 0 || waitpid(pid, &status, 0) < 0) { mh_log("power: could not run %s", DBUS_SEND); return; }
-    mh_log("power: dbus-send exited %d", WIFEXITED(status) ? WEXITSTATUS(status) : -1);
+    if (pid < 0 || waitpid(pid, &status, 0) < 0) { mh_log("power: could not run %s", DBUS_SEND); return 0; }
+    int rc = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
+    mh_log("power: dbus-send exited %d", rc);
+    return rc == 0;
+}
+
+void power_hold(int seconds) {
+    /* The shutdown SIGTERMs everyone; launch-standalone.sh's shell dies of
+     * it, and we must outlive the shell or it restarts Move. */
+    signal(SIGTERM, SIG_IGN);
+    signal(SIGINT, SIG_IGN);
+    signal(SIGHUP, SIG_IGN);
+    mh_log("power: holding up to %d s for the power to go", seconds);
+    struct timespec left = { seconds, 0 };
+    while (nanosleep(&left, &left) < 0) {}
+    mh_log("power: still running after %d s — shutdown failed, giving Move back", seconds);
 }

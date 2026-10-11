@@ -49,7 +49,12 @@ overlap. Supporting modules:
   `host_power_off`, movy-host shuts down cleanly (onUnload saves), then
   `power.c` calls `com.ableton.system` `Power.shutDown` over D-Bus — Move's own
   power service, which ableton may call (`/etc/dbus-1/system.d/move.conf`), so
-  no root helper. A **DRY RUN** whenever the test bus is on. The **fallback
+  no root helper. The call answers at once and the power goes seconds later,
+  so movy-host then **holds** (deaf to SIGTERM, up to 120 s) instead of
+  exiting: an exit let `launch-standalone.sh` restart Move, and the power cut
+  killed that Move mid-boot. The boot selector counted each one as a failed
+  boot, and three in a row opened schwung's "failed to start" picker.
+  A **DRY RUN** whenever the test bus is on, which never holds. The **fallback
   exit**, Shift + volume touch + jog click, closes cleanly; if the UI loop has
   not let go 2 s later (a wedged script) the audio thread exits hard (rc 4).
 - `rt.c` + `heal/heal.c`: real-time priority (below).

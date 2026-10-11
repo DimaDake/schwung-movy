@@ -155,7 +155,7 @@ int main(int argc, char **argv) {
     audio_stop();
     engine_unload();
     spi_close(&spi);
-    if (g_mh_poweroff) power_off_now();
+    if (g_mh_poweroff && power_off_now()) power_hold(MH_POWEROFF_HOLD_S);
     if (g_term_at.tv_sec) {
         uint64_t at = (uint64_t)g_term_at.tv_sec * 1000000u + (uint64_t)g_term_at.tv_nsec / 1000u;
         mh_log("=== movy-host exit %d, %llu ms after the signal", rc, (unsigned long long)((mh_now_us() - at) / 1000));

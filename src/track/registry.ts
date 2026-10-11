@@ -3,74 +3,51 @@
  * Ports are looked up on every param read, and reads happen per tick — building
  * one per call would allocate in the hot path. */
 
-import { ShimSlotPort } from './shim-port.js';
 import { MovyChainPort } from './movy-chain-port.js';
 import { EngineRootPort } from './send-port.js';
 import type { TrackPort } from './port.js';
-import { isMovyMasterComponent, isShimMasterComponent, isSendComponent } from '../chain/config.js';
+import { isMasterComponent, isSendComponent } from '../chain/config.js';
 
 const ports: (TrackPort | undefined)[] = [];
 
 export function portFor(index: number): TrackPort {
     let p = ports[index];
     if (!p) {
-        /* One kind. A track is a chain inside movy's own engine, addressed
-         * through the `ch<N>:` param namespace. This used to branch on
-         * `trackKind`, which was a SETTING — so the cache below had to be
-         * dropped whenever it moved. */
+        /* A track is a chain inside movy's own engine, addressed through the
+         * `ch<N>:` param namespace. */
         p = new MovyChainPort(index);
         ports[index] = p;
     }
     return p;
 }
 
-/** A schwung shadow slot, which is not a track.
- *
- *  For keys that are NOT a track's: `master_fx:…` is global to schwung and only
- *  rides on a slot number as a carrier, and the one-time migration reads what a
- *  slot still holds. Reaching either through `portFor(0)` would namespace the
- *  key `ch0:…` and send the master chain's edits into a synth. */
-const hostPorts: (TrackPort | undefined)[] = [];
-
 let enginePort: TrackPort | undefined;
 
-/** Params addressed at movy's engine root — the send buses, whose
- *  component key already names the destination. Not a track and not a shadow
- *  slot; see `EngineRootPort`. */
+/** Params addressed at movy's engine root — the send buses and the master
+ *  chain, whose component key already names the destination. Not a track;
+ *  see `EngineRootPort`. */
 export function engineRootPort(): TrackPort {
     if (!enginePort) enginePort = new EngineRootPort();
     return enginePort;
 }
 
-export function hostPort(slot: number): TrackPort {
-    let p = hostPorts[slot];
-    if (!p) {
-        p = new ShimSlotPort(slot);
-        hostPorts[slot] = p;
-    }
-    return p;
-}
-
 /** The port a component's params actually live behind.
  *
- *  Almost always the track's own — but a `master_fx:` component is schwung's,
- *  global, and merely rides on slot 0. Reaching it through `portFor(0)`
- *  namespaces the key `ch0:master_fx:…`, which movy's engine does not know, so
- *  a master FX module could not be loaded at all.
+ *  Almost always the track's own — but the master chain and the sends are
+ *  engine-root keys that carry their own namespace. Reaching them through
+ *  `portFor(0)` would namespace the key `ch0:mfx:…`, which the engine does not
+ *  know, and send master edits into a synth.
  *
  *  Every path that addresses a component BY KEY — browsing, loading, undo,
  *  module dumps, file params — resolves its port here, so the rule is written
  *  down once instead of at each call site that happens to remember it. */
 export function componentPort(index: number, componentKey: string): TrackPort {
-    /* movy's own master and the sends are engine-root keys that carry their
-     * own namespace; schwung's master rides a shadow slot. */
-    if (isSendComponent(componentKey) || isMovyMasterComponent(componentKey)) return engineRootPort();
-    return isShimMasterComponent(componentKey) ? hostPort(0) : portFor(index);
+    if (isSendComponent(componentKey) || isMasterComponent(componentKey)) return engineRootPort();
+    return portFor(index);
 }
 
-/** Drop cached ports. Tests use this to swap the ambient shadow_* globals. */
+/** Drop cached ports. Tests use this to swap the ambient host globals. */
 export function resetPorts(): void {
     ports.length = 0;
-    hostPorts.length = 0;
     enginePort = undefined;
 }

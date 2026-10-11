@@ -10,11 +10,7 @@
  * knobValues). That is why the param domain journals inverses instead of
  * snapshotting, unlike the engine.
  *
- * The write itself now goes through the track's port, so this file no longer
- * names `shadow_get_param`/`shadow_set_param` at all — `src/track/shim-port.ts`
- * is the one remaining place that does (master_fx, and the migration's read of
- * a schwung slot). `browser-test/logic/tracks-refs.mjs` fails on any direct
- * shadow param read added outside that file and its short allowlist. */
+ * The write itself goes through the track's port. */
 
 import { recordParamOp } from '../undo/record.js';
 import type { TrackPort } from '../track/port.js';
@@ -28,8 +24,6 @@ import type { TrackPort } from '../track/port.js';
  */
 export function setChainParam(port: TrackPort, key: string,
                               value: string, oldVal: string | null): boolean {
-    /* Undo records the track INDEX, which for a host track is its slot number —
-     * so existing undo history stays readable across this refactor. */
     if (oldVal !== null && oldVal !== value) recordParamOp(port.track.index, key, oldVal, value);
     return port.setParam(key, value);
 }

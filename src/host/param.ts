@@ -71,14 +71,8 @@ export function resetParamStats(): void {
     sets = 0; refused = 0; lastRefusedKey = ''; gets = 0; getNulls = 0; bulkFallbacks = 0;
 }
 
-/** Both halves of the channel are present — i.e. we are on a host at all. */
-export function paramAvailable(): boolean {
-    return platform.engineAvailable();
-}
-
 export function paramGet(key: string): string | null {
     const v = platform.engineGet(key);
-    if (v === undefined) return null;
     gets++;
     if (v === null) getNulls++;
     return v;
@@ -89,20 +83,12 @@ export function paramGet(key: string): string | null {
 export function paramSet(key: string, value: string,
                          timeoutMs: number = DEFAULT_SET_TIMEOUT_MS): boolean {
     sets++;
-    /* An explicit false is a REFUSAL. Anything else — including a host that
-     * returns nothing at all — counts as delivered, because a host with no
-     * answer gives us no grounds to claim a loss (the platform maps that).
-     * `undefined` is the host lacking the blocking call altogether. */
-    const r = platform.engineSetBlocking(key, value, timeoutMs);
-    if (r === false) {
-        refused++;
-        lastRefusedKey = key;
-        return false;
-    }
-    if (r === true) return true;
-    /* Fire-and-forget: no answer, so no verdict. Counted as delivered for the
-     * same reason as above, and this path is not what runs on device. */
-    return platform.engineSet(key, value) !== undefined;
+    /* An explicit false is a REFUSAL; the platform maps a host that answers
+     * nothing to delivered, since that gives no grounds to claim a loss. */
+    if (platform.engineSetBlocking(key, value, timeoutMs)) return true;
+    refused++;
+    lastRefusedKey = key;
+    return false;
 }
 
 /** Read many params in ONE round trip.
@@ -113,7 +99,6 @@ export function paramSet(key: string, value: string,
 export function paramGetMany(keys: string[]): (string | null)[] {
     if (keys.length === 0) return [];
     const raw = platform.engineGetBulk(encodeBulk(keys));
-    if (raw === undefined) return keys.map(paramGet);
     const items = decodeBulk(raw);
     /* A malformed or short response must not read as "every param is empty" —
      * that would paint a whole page of zeroed knobs over the real values. */
@@ -130,13 +115,8 @@ export function paramSetMany(pairs: [string, string][]): boolean {
     const flat: string[] = [];
     for (const [k, v] of pairs) { flat.push(k); flat.push(v); }
     const r = platform.engineSetBulk(encodeBulk(flat));
-    if (r === undefined) {
-        let ok = true;
-        for (const [k, v] of pairs) if (!paramSet(k, v)) ok = false;
-        return ok;
-    }
     sets += pairs.length;
-    if (r === true) return true;
+    if (r) return true;
     refused += pairs.length;
     lastRefusedKey = pairs[pairs.length - 1][0];
     return false;

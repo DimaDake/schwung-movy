@@ -17,7 +17,7 @@ import { isLfoComponent, isMasterComponent } from './config.js';
 export function ownComponentSourceFor(track: number, componentKey: string): PageParamSource | null {
     if (componentKey === 'mix') return mixSchwungSource(track);
     if (isLfoComponent(componentKey)) {
-        /* Same rule `componentPort` applies for a real module: `master_fx:`
+        /* Same rule `componentPort` applies for a real module: `mfx:`
          * is schwung's own and global, riding on the fixed carrier slot
          * (`MASTER_PAGE_TRACK`, already what `trackIndex` IS here for this
          * component — see `pageRefOf`'s `isMasterComponent` branch); the

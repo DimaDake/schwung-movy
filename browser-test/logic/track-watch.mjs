@@ -17,9 +17,9 @@ import { env, eq, _log, lastMusicalOp, selectTrack, watchedTrack } from './harne
 
 export async function run() {
 
-/* ── opening movy: the sequencer starts on the track Move handed over ────── */
+/* ── opening movy: the sequencer starts on track 1, and so does the engine ── */
 {
-    _log('\nthe watched track — movy opens on the track Move selected:');
+    _log('\nthe watched track — movy opens on track 1:');
     const { installMockEngine, uninstallMockEngine } = await import('../mock-engine.mjs');
     const { installMockFs, uninstallMockFs } = await import('../mock-fs.mjs');
     const { seqHandleMidi, seqNotePadPlayed } = await import('../../dist/esm/seq/router.js');
@@ -30,35 +30,34 @@ export async function run() {
 
     const engine = installMockEngine();
     installMockFs();
-    const openOn = (slot) => {
+    const open = () => {
         engine.reset(); resetSeqEngine(); resetSeqState();
-        globalThis.shadow_get_ui_slot = () => slot;
         init();
         seqEngineTick();   // probe → ready
         seqEngineTick();   // reconcile + flush, then poll the answer back
     };
 
-    /* Move had track 2 selected when movy was opened. */
-    openOn(1);
-    eq('the knobs and pads are on track 2', appState.activeTrack.index, 1);
-    eq('and so is the step row', watchedTrack(), 1);
-    eq('the engine agrees', engine.status.trk, 1);
+    selectTrack(5);    // whatever the previous open left selected
+    open();
+    eq('the knobs and pads are on track 1', appState.activeTrack.index, 0);
+    eq('and so is the step row', watchedTrack(), 0);
+    eq('the engine agrees', engine.status.trk, 0);
 
     /* The whole point: a step recorded at once belongs to the module you can
      * hear. Asserted on the op the engine receives, because that — not the
      * mirror — decides which clip the note lands in. */
-    seqNotePadPlayed(1, 80, 72, 110);
+    seqNotePadPlayed(0, 80, 72, 110);
     seqHandleMidi([0x90, 16, 127], false);
     seqHandleMidi([0x80, 16, 0], false);
     seqEngineTick();
-    eq('a step recorded at once goes into track 2\'s clip',
-        lastMusicalOp(engine.ops), 'tog 1 0 72 110');
+    eq('a step recorded at once goes into track 1\'s clip',
+        lastMusicalOp(engine.ops), 'tog 0 0 72 110');
 
     /* The engine outlives the tool: closing movy leaves the DSP loaded, still
      * watching the track it was told last. Reopening on track 1 must take it
      * back, even though nothing in the fresh UI disagrees with track 0. */
     engine.status.trk = 2;              // as a previous session left it
-    openOn(0);
+    open();
     eq('reopening on track 1 takes the engine off the old track', engine.status.trk, 0);
 
     /* plans/2026-09-12-test-device-migration-followups.md item 5: a `watch`
@@ -70,19 +69,18 @@ export async function run() {
      * contention clears, not settle for a push it only believes landed. */
     engine.status.trk = 2;
     engine.dropWatchCount = 3;
-    openOn(0);
+    open();
     for (let i = 0; i < 40; i++) seqEngineTick();
     eq('a watch lost to SHM contention during a restore is retried until it lands',
         engine.status.trk, 0);
 
-    /* Move can only hand over one of its four slots, but the focus group has to
-     * follow the track anyway — the four track buttons address the focused
-     * quartet, so a group left behind aims them at other tracks. */
-    openOn(3);
+    /* The focus group follows the track — the four track buttons address the
+     * focused quartet, so a group left behind aims them at other tracks. */
+    selectTrack(9);
+    open();
     eq('the track buttons address the group the open landed in',
        appState.focusGroup, 0);
 
-    env.restoreUiSlot();
     uninstallMockFs();
     uninstallMockEngine();
     engine.reset(); resetSeqEngine(); resetSeqState(); selectTrack(0);

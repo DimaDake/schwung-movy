@@ -238,7 +238,7 @@ export async function run() {
     eq('including its target param',
         lfo.some(([k, v]) => k === 'lfo1:target_param' && v === 'cutoff'), true);
     eq('an idle LFO is not captured', lfo.some(([k]) => k.startsWith('lfo2')), false);
-    eq('a master FX slot has no slot LFOs', captureLfoAssignments(0, 'master_fx:fx1').length, 0);
+    eq('a master FX slot has no slot LFOs', captureLfoAssignments(0, 'mfx:fx1').length, 0);
 
     /* Restoring re-points the LFO — after the params, so the base is in place
      * before the LFO starts swinging around it. */

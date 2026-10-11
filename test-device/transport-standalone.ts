@@ -52,12 +52,11 @@ const FRAME_MS = 128 / 44.1;
  * stack (WP0 findings §3.2: a lower uid cannot kill it and fails safe). */
 export class StandaloneTransport implements Transport {
     readonly flavour = 'standalone' as const;
-    readonly move = null;
     private bus: Bus | null = null;
 
     constructor(readonly host: string) {}
 
-    has(need: Need): boolean { return need !== 'move'; }
+    has(_need: Need): boolean { return true; }
 
     readonly hostBus: HostBus = {
         logSeq: () => this.call((bus) => bus.logSeq()),

@@ -1,34 +1,25 @@
-/* "Leave Movy" modal — opened by Back at the root (Chain) view. It offers
- * Background (park under Move's native UI, sequencer keeps playing) vs Close
- * Movy (full exit). The same menu, titled "Power off?", is the shutdown dialog
- * where movy owns the power button (caps.ownsPowerButton): Power off is the
- * default, as Move's own "Press wheel to shut down" is, and the jog click is
- * the confirm — nothing powers off on the button alone. It sits over a live instrument rather than blocking it:
+/* "Leave Movy" modal — opened by Back at the root (Chain) view; its one
+ * option is Close Movy. The same menu, titled "Power off?", is the shutdown
+ * dialog (the host calls onPowerButton): Power off is the default, as Move's
+ * own "Press wheel to shut down" is, and the jog click is the confirm —
+ * nothing powers off on the button alone. It sits over a live instrument rather than blocking it:
  * see leaveModalPass for what the rest of the hardware does while it is up.
  * The sequencer keeps running on the DSP regardless.
  * See the transport/beat-clock design §7.4. */
 
 import { CC_PLAY, CC_REC } from '../seq/constants.js';
-import { platform } from '../platform/index.js';
 import { appState } from './state.js';
 
-export type LeaveAction = 'background' | 'close' | 'poweroff' | 'cancel';
+export type LeaveAction = 'close' | 'poweroff' | 'cancel';
 type ModalKind = 'leave' | 'power';
 
 interface LeaveOption { label: string; action: LeaveAction; }
 
-/* Background is only offered on a host that supports self-managed suspend;
- * older hosts show Close Movy only. */
+const LEAVE: LeaveOption[] = [{ label: 'Close Movy', action: 'close' }];
+const POWER: LeaveOption[] = [{ label: 'Power off', action: 'poweroff' }, { label: 'Cancel', action: 'cancel' }];
+
 function options(): LeaveOption[] {
-    if (leaveModalState.kind === 'power') {
-        return [{ label: 'Power off', action: 'poweroff' }, { label: 'Cancel', action: 'cancel' }];
-    }
-    const opts: LeaveOption[] = [];
-    if (platform.caps.canSuspend) {
-        opts.push({ label: 'Background', action: 'background' });
-    }
-    opts.push({ label: 'Close Movy', action: 'close' });
-    return opts;
+    return leaveModalState.kind === 'power' ? POWER : LEAVE;
 }
 
 /* What an event that is not one of the modal's own controls (Back, jog turn,
@@ -43,8 +34,8 @@ function options(): LeaveOption[] {
  * - `through`: Shift and the transport run WITHOUT closing the menu. Shift is
  *   a modifier, so treating it as an answer would break every Shift combo the
  *   press was reaching for. Play/Rec are the one thing you plausibly want
- *   while deciding — stopping the music before you park is not a change of
- *   mind, and the sequencer keeps running either way.
+ *   while deciding — stopping the music before you leave is not a change of
+ *   mind.
  * - `swallow`: the eight param knobs and their touches. The menu is drawn over
  *   the whole screen, so a param edit behind it is one the user cannot see
  *   happen — and unlike a pad or a step, a knob has no other feedback to
@@ -92,12 +83,11 @@ export function leaveModalTitle(): string {
 export function openLeaveModal(): void {
     leaveModalState.active = true;
     leaveModalState.kind   = 'leave';
-    leaveModalState.sel    = 0;   // default → Background (Close Movy on old hosts)
+    leaveModalState.sel    = 0;
 }
 
 /* The host's onPowerButton. A second press while it is up changes nothing. */
 export function openPowerModal(): void {
-    if (!platform.caps.ownsPowerButton) return;
     if (leaveModalState.active && leaveModalState.kind === 'power') return;
     leaveModalState.active = true;
     leaveModalState.kind   = 'power';

@@ -29,12 +29,10 @@ if (schwungLibAvailable()) {
 import { init } from './init.js';
 import { tick } from './tick.js';
 import { onMidiMessageInternal } from '../midi/router.js';
-import { onResume } from './resume.js';
 import { onUnload } from './unload.js';
 import { openPowerModal } from './leave-modal.js';
 
-/* movy-host calls onPowerButton on a power-button press (host/surface_keys.h);
- * shadow_ui never does. */
+/* movy-host calls onPowerButton on a power-button press (host/surface_keys.h). */
 const onPowerButton = (): void => { openPowerModal(); };
 
-Object.assign(globalThis, { init, tick, onMidiMessageInternal, onResume, onUnload, onPowerButton });
+Object.assign(globalThis, { init, tick, onMidiMessageInternal, onUnload, onPowerButton });

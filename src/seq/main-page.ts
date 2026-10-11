@@ -1,5 +1,5 @@
 /* Main Parameters page: a global sequencer settings view opened with
- * Shift+Step 5/7/9 and exited with Back. Row 0 is TEMPO / SWING / LINK, row 1
+ * Shift+Step 5/7/9 and exited with Back. Row 0 is TEMPO / SWING / (empty) / QUANT, row 1
  * the four musical params ROOT / KEY / MODE / LAYOUT.
  * Mirrors the step-parameter page's structure; rendering reads main-page-vm.
  * The absolute-value writers (`applyTempoX100` etc, shared with the
@@ -14,10 +14,9 @@ import { MODE_NAMES, layoutNames } from '../keyboard/layouts.js';
 import { keyboardState } from '../keyboard/state.js';
 import { countDetents } from './detent.js';
 import { quantIndexForPct } from './quant.js';
-import { applyTempoX100, applySwing, applyLink, applyDefaultQuantIdx,
+import { applyTempoX100, applySwing, applyDefaultQuantIdx,
          applyRootPc, applyScaleIdx, applyModeIdx, applyLayoutIdx } from './main-page-apply.js';
-import { K_TEMPO, K_SWING, K_LINK, K_QUANT, K_ROOT, K_KEY, K_MODE, K_LAYOUT } from './main-page-constants.js';
-import { platform } from '../platform/index.js';
+import { K_TEMPO, K_SWING, K_QUANT, K_ROOT, K_KEY, K_MODE, K_LAYOUT } from './main-page-constants.js';
 
 const OVERLAY_KNOBS = [K_KEY, K_MODE, K_LAYOUT];
 
@@ -93,7 +92,6 @@ export function mainPageKnob(k: number, delta: number): void {
     if (n === 0) return;
     if (k === K_TEMPO) applyTempoX100(seqState.bpmX100 + n * 100);
     else if (k === K_SWING) applySwing(seqState.swingPct + n);
-    else if (k === K_LINK) { if (platform.caps.coexistsWithMove) applyLink(n > 0); }   // right = ON, left = OFF
     else if (k === K_QUANT) applyDefaultQuantIdx(quantIndexForPct(seqState.defaultQuant) + n);
     else if (k === K_ROOT) applyRootPc(keyboardState.rootPc + n);
     else if (mainPageState.overlayKnob === k) {

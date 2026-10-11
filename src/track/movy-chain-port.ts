@@ -27,11 +27,9 @@ export class MovyChainPort extends EnginePort {
         return 'ch' + this.chain + ':' + k;
     }
 
-    /* Live notes reach the chain through the engine rather than
-     * `shadow_send_midi_to_dsp`, which addresses schwung's slots and knows
-     * nothing about movy's chains. The channel nibble is dropped: a chain
-     * instance has one synth and does not filter by channel (the shim does that
-     * for its own slots), so the chain number in the key is the routing. */
+    /* Live notes reach the chain through the engine. The channel nibble is
+     * dropped: a chain instance has one synth and does not filter by channel,
+     * so the chain number in the key is the routing. */
     sendMidi(statusType: number, d1: number, d2: number): void {
         this.setParam('midi', statusType + '.' + d1 + '.' + d2);
     }

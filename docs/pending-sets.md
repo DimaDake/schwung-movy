@@ -1,5 +1,11 @@
 # Set pads Move never writes to disk
 
+> **Historical (retired in WP9, 2026-10-11).** Everything here is about Move's
+> provisional `__pending-*` Set ids, which only existed while movy followed
+> Move's active Set. movy-host keeps its own library (`src/seq/set-source.ts`),
+> and the commit press, the rename rule and `active_set.txt` were deleted with
+> the overtake host. Kept as the record of why.
+
 Movy deliberately does **not** solve this. The behaviour is aligned with Schwung
 and davebox, both of which have the same gap. This file is the record of what
 the gap is, what it costs, and what a fix would look like — so the next person

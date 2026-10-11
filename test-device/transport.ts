@@ -2,27 +2,13 @@ import type { BusEvent, LogTail } from './bus.js';
 import type { Packet } from './midi.js';
 import type { EngineDeploy } from './engine.js';
 
-/* What a scenario may require of the device beyond movy itself. `move` is
- * Move running beside movy: Background, LINK, schwung's master FX slots, the
- * slot migration, the Move-volume divert. The standalone flavour retires all of
- * them (plan "Retired by design"), so a scenario that needs one declares it and
- * the runner prints it as N/A there instead of grading a feature that cannot
- * exist. `testbus` and `master-volume` are the reverse: movy-host's own bus
- * verbs (log ring, midi_out tap, UI_EVAL), which schwung-testd does not have,
- * and the volume knob and power button as movy's own (caps.ownsMasterVolume,
- * caps.ownsPowerButton). */
-export type Need = 'move' | 'testbus' | 'master-volume' | 'power-button';
+/* What a scenario may require of the device beyond movy itself: movy-host's
+ * own bus verbs (log ring, midi_out tap, UI_EVAL — absent from a release
+ * build), and the volume knob and power button as movy's own. A transport
+ * without one prints the scenario N/A instead of grading it. */
+export type Need = 'testbus' | 'master-volume' | 'power-button';
 
-export type Flavour = 'overtake' | 'standalone';
-
-/* The coexistence-only operations, null on a flavour without Move. Kept apart
- * so that reaching for one is visible at the call site (`tx.move!`) and a
- * scenario that does so without declaring `needs: 'move'` fails loudly rather
- * than parking a host that has no Background. */
-export interface MoveSide {
-    /* Park movy under Move's UI (the Background door), DSP still loaded. */
-    park(): Promise<void>;
-}
+export type Flavour = 'standalone';
 
 /* movy-host's own test-bus verbs (docs/standalone/testbus.md "New"), null on
  * a flavour without them. Reached as `tx.hostBus!` by a scenario that
@@ -39,21 +25,17 @@ export interface HostBus {
     crash(): Promise<void>;
 }
 
-/* The device as the scenarios see it: one implementation per flavour.
- * Overtake (transport-overtake.ts) is schwung-testd + ui-agent + scp; the
- * standalone flavour is movy-host's own test bus (docs/standalone/testbus.md).
+/* The device as the scenarios see it: movy-host's own test bus
+ * (docs/standalone/testbus.md). An interface, not the class, so the selftests
+ * can stand in a fake.
  *
- * Engine keys are UNPREFIXED (`status`, `ch0:mix`): the overtake host's
- * `overtake_dsp:` namespace is a property of that host, not of the engine, and
- * movy-host has no such namespace.
+ * Engine keys are UNPREFIXED (`status`, `ch0:mix`).
  *
- * Plain ssh to the box (fixture files, `cat` of a saved Set) is not here: the
- * device and its filesystem are the same under both flavours. */
+ * Plain ssh to the box (fixture files, `cat` of a saved Set) is not here. */
 export interface Transport {
     readonly flavour: Flavour;
     readonly host: string;
     has(need: Need): boolean;
-    readonly move: MoveSide | null;
     readonly hostBus: HostBus | null;
 
     connect(): Promise<void>;

@@ -820,6 +820,44 @@ can only ever be true. `browser-test/logic/source-rules.mjs` gains a
 stay on disk. The import code also stays, because a Set nobody has opened
 since the switch still needs it.
 
+**Done 2026-10-11, on `standalone-migration`, BEFORE the WP8 release** (the
+user's call: no overtake downgrade window; v0.35.0 is the way back). Engine
+0.91.0.
+
+Deleted, as listed: `platform/overtake.ts` and `caps.ts` (one `Platform`, in
+`standalone.ts`, calling the globals directly — 35 `typeof` gates gone,
+Rule 4 ratchets them at 0, Rule 3 names `standalone.ts` alone), Background
+(`resume.ts`, `onResume`, `overtakeParked`, the probe's `parked`), LED
+ownership, the Move volume divert, `set-commit.ts`, LINK end to end (UI,
+`link`/`minject` verbs, seq-core's MovePlay inject and pending-start, the
+`link` persist line — still read, now ignored), `hostmode` and the engine's
+`midi_send_internal`/`midi_inject_to_move`, `shim-port.ts`/`hostPort`, the
+whole migration (`migrate*.ts`, `slot-read.ts`, `legacy-host.ts`,
+`migrate-action.ts`, the MIGRATE TRACKS row, `migv`), the schwung master
+binding (`master-binding.ts`, `master_fx:` keys, load-by-path, `mfx:own`: the
+master stage always runs), Move-Set identity (`active_set.txt`, the rename
+rule, provisional ids, name index, `setSourceMovy`), the flags `setsrc`,
+`setcommit`, `mstown`, `chpinhost` (no `FLAGS_REV` bump), host
+`globals_stub.c`, `transport-overtake.ts`, `needs: 'move'`, and the docs.
+
+Also deleted, because they only served Move: `tempo-override.ts` (Move's tempo
+following movy's knob), `set-gc.ts` (Move-keyed dead-Set sweep),
+`set-inherit.ts` ("X Copy" seeding), opening on Move's selected track
+(`uiSlot`: movy opens on track 1), the test tier's overtake clients
+(`agent.ts`, `daemon.ts`, `ui-agent.py`), the fixture's slot seeding, the
+`master-fx`, `migrate` and `sets-library` scenarios (the last had no
+standalone form; `logic/sets.mjs` keeps its gestures), and
+`compare-flavours.mjs`. `master-own` was rewritten around a reopen (the import
+fires on a Set being applied); `volume` lost its Move-divert check (V4).
+
+Kept on purpose: the library's copy-import and the master import (they read
+old data); movy-host's native slot API (`shadow_get_param` & co.), which a
+module's own canvas may call; the UI-writer save path (`engpersist` off), still
+reachable from a debug build although the library refuses to run on it; the
+engine's `gc` job (now unsent). Left for later: `scripts/` still holds the bash
+tier's schwung-slot tools (`slot-state.mjs`, `slots-read.mjs`,
+`lib/test-set.sh`, `restart-stack.*`), which nothing in the gates runs.
+
 ### WP10: a direct UI↔engine channel (motivation 1)
 
 Replace the string `status` poll with a shared-memory snapshot the engine

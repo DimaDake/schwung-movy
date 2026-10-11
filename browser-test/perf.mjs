@@ -89,8 +89,13 @@ globalThis.fill_rect          = () => { fillRectCount++; };
 globalThis.clear_screen       = () => {};
 globalThis.shadow_get_param   = (_s, key) => { getParamCount++; return mockState[key] ?? null; };
 globalThis.shadow_set_param   = (_s, key, val) => { mockState[key] = val; return true; };
-globalThis.shadow_get_ui_slot = () => 0;
 globalThis.host_read_file     = () => null;
+/* The rest of movy-host's file surface, as "nothing there": src/platform calls
+ * them without a typeof gate (WP9). */
+globalThis.host_write_file    = () => true;
+globalThis.host_file_exists   = () => false;
+globalThis.host_ensure_dir    = () => true;
+globalThis.host_remove_dir    = () => false;
 
 /* Every track is a movy chain now, so `portFor(0)` in the tests below reaches
  * the engine's own param API (`ch0:<key>`), not the shadow slot API — a chain
@@ -1028,9 +1033,9 @@ _origLog('\nTest: status parse cost, 4 vs 16 tracks');
 {
     _origLog('\nTest: perf probe wraps every host IPC entry point');
 
+    /* What movy calls on movy-host (src/platform/standalone.ts). The slot API
+     * (`shadow_get_param`/`shadow_set_param`) went with the shadow slots, WP9. */
     const IPC_GLOBALS = [
-        'shadow_get_param',
-        'shadow_set_param',
         'host_module_get_param',
         'host_module_set_param',
         'host_module_set_param_blocking',
@@ -1139,7 +1144,6 @@ _origLog('\nTest: song band steady-state cost');
 _origLog('\nTest: SETS page steady-state cost');
 {
     const { paramStats, resetParamStats } = await import('../dist/esm/host/param.js');
-    const { latchSetSource } = await import('../dist/esm/seq/set-source.js');
     const { setFlag } = await import('../dist/esm/seq/flags.js');
     const { resetLib, libState } = await import('../dist/esm/seq/sets-lib.js');
     const { setsPageTick } = await import('../dist/esm/seq/sets-page.js');
@@ -1150,7 +1154,7 @@ _origLog('\nTest: SETS page steady-state cost');
     const savedGet = globalThis.host_module_get_param;
     let answer = wire(200);
     globalThis.host_module_get_param = (k) => (k === 'lib' ? answer : savedGet(k));
-    setFlag('setsrc', 1); latchSetSource(); resetLib();
+    resetLib();
 
     resetParamStats();
     for (let i = 0; i < 100; i++) setsPageTick();
@@ -1160,14 +1164,14 @@ _origLog('\nTest: SETS page steady-state cost');
         answer = wire(n); resetLib();
         for (let i = 0; i < 20; i++) setsPageTick();
         fillRectCount = 0;
-        renderSetsView(buildSetsPageVM(true, libState().rows, 's0', 3, false));
+        renderSetsView(buildSetsPageVM(libState().rows, 's0', 3, false));
         return fillRectCount;
     };
     const small = draw(5), big = draw(200);
     check('fill_rect: 200 Sets vs 5 (extra calls)', big - small, 0);
 
     globalThis.host_module_get_param = savedGet;
-    setFlag('setsrc', 0); latchSetSource(); resetLib();
+    resetLib();
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

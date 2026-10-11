@@ -65,11 +65,9 @@ function passthrough(port: PageParamSource): PageReadCache {
 }
 
 export function createPageReadCache(port: PageParamSource): PageReadCache {
-    /* A shadow slot read is served from schwung's own cache at ~0.3 ms, so
-     * batching buys nothing there and the staleness would be a pure cost. A
-     * virtual source (SP-53) declares `bulkReads: false` unconditionally and
-     * takes this same passthrough branch — no epoch, no fill, because there
-     * is nothing here a field access does not already answer as fast. */
+    /* A virtual source (SP-53) declares `bulkReads: false` unconditionally and
+     * takes this passthrough branch — no epoch, no fill, because there is
+     * nothing here a field access does not already answer as fast. */
     if (!port.bulkReads || typeof port.getMany !== 'function') return passthrough(port);
     /* Past the guard, only a real TrackPort answers `bulkReads: true` — a
      * virtual source never does — so `fill`/`warm` below (which take the

@@ -20,7 +20,6 @@ import { beginGesture } from '../undo/edit.js';
 import { recordUiOp } from '../undo/record.js';
 import { readUiField, writeUiField } from '../undo/ui-fields.js';
 import { seqCmd } from './engine.js';
-import { scheduleTempoOverride } from './tempo-override.js';
 import { SCALE_NAMES } from './scales.js';
 import { MODE_NAMES, layoutNames } from '../keyboard/layouts.js';
 import { keyboardState } from '../keyboard/state.js';
@@ -41,9 +40,6 @@ export function applyTempoX100(bpmX100: number): void {
     beginGesture('mainknob:' + K_TEMPO, KNOB_VERBS[K_TEMPO], '');
     seqState.bpmX100 = next;
     seqCmd('bpm ' + next);
-    // Also drive Move's device-wide tempo via the Link override, so a
-    // following Move tracks the knob (design §7 Phase 3).
-    scheduleTempoOverride(next);
 }
 
 export function applySwing(pct: number): void {
@@ -52,14 +48,6 @@ export function applySwing(pct: number): void {
     beginGesture('mainknob:' + K_SWING, KNOB_VERBS[K_SWING], '');
     seqState.swingPct = next;
     seqCmd('swing ' + next);
-}
-
-/** LINK is excluded from undo entirely (design §1) — it is not a musical edit. */
-export function applyLink(on: boolean): void {
-    if (on === seqState.linkEnabled) return;
-    seqState.linkEnabled = on;
-    seqCmd('link ' + (on ? 1 : 0));
-    markUiStateDirty();
 }
 
 export function applyDefaultQuantIdx(idx: number): void {

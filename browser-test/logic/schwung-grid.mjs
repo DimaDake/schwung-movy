@@ -88,7 +88,7 @@ export async function run() {
     if (schwungLibAvailable()) {
         /* `schwungPageFor` used to build every page on `portFor(trackIndex)` —
          * a track's own chain port. Correct for an ordinary module, wrong for
-         * `master_fx:` (schwung's own, global) and `snd<n>` (movy's engine
+         * `mfx:` (schwung's own, global) and `snd<n>` (movy's engine
          * root, self-namespacing): either reached through a chain port gets
          * `ch<N>:` glued onto a key that already names its destination. The
          * fix takes `componentPort(trackIndex, componentKey)` instead
@@ -119,10 +119,10 @@ export async function run() {
         const shimGets = [];
         const origShimGet = globalThis.shadow_get_param;
         globalThis.shadow_get_param = (slot, key) => { shimGets.push(slot + ':' + key); return null; };
-        schwungPageFor(5, 'master_fx:fx1');
+        schwungPageFor(5, 'mfx:fx1');
         globalThis.shadow_get_param = origShimGet;
         ok('a master FX page reads shadow slot 0, never track 5\'s chain',
-           shimGets.length > 0 && shimGets.every((sk) => sk.startsWith('0:master_fx:fx1')));
+           shimGets.length > 0 && shimGets.every((sk) => sk.startsWith('0:mfx:fx1')));
         schwungGridReload();
 
         setSchwungGridMode(null);

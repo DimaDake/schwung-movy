@@ -75,6 +75,10 @@ export function installMockEngine() {
         versions: '',
         vui: 'none',
         gc: 'idle',
+        /* movy's Set library (set_lib_jobs.rs), which is where a session's
+         * identity comes from: one Set, open, unless a test says otherwise.
+         * `lib` answers in the engine's wire format; `set lib new` adds a Set. */
+        lib: { rev: 1, cur: 'S1', made: '', err: '', sets: [{ id: 'S1', name: 'Song One', clips: 0 }] },
         /* Every other set_param, last value per key — the chain-set document
          * (`chains`) among them. RECORDED ONLY, never served back by
          * get_param: a mock that answered a key the real engine had not been
@@ -98,6 +102,7 @@ export function installMockEngine() {
             this.versions = '';
             this.vui = 'none';
             this.gc = 'idle';
+            this.lib = { rev: 1, cur: 'S1', made: '', err: '', sets: [{ id: 'S1', name: 'Song One', clips: 0 }] };
             this.loadRequests = [];
             this.alabels = null;
             this.stateLoads = [];
@@ -115,6 +120,18 @@ export function installMockEngine() {
          * status comparison notices and re-sends. */
         if (key === 'set') {
             engine.setCmds.push(value);
+            if (value.startsWith('lib ')) {
+                const [verb, ...rest] = value.slice(4).split(' ');
+                const lib = engine.lib;
+                if (verb === 'new') {
+                    lib.made = 'M' + (lib.sets.length + 1);
+                    lib.sets.unshift({ id: lib.made, name: rest.join(' '), clips: 0 });
+                } else if (verb === 'del') {
+                    lib.sets = lib.sets.filter((x) => x.id !== rest[0]);
+                }
+                lib.rev++;
+                return true;
+            }
             const [verb, a, b] = value.split(/\s+/);
             if (verb === 'open' && a) {
                 engine.setState.uuid = a;
@@ -221,6 +238,10 @@ export function reinstallMockEngine(engine) {
  * every param page blank in any suite that installs this mock. Handed back to
  * the ambient shadow mock (env.mjs), which is where those fixtures live. */
 const CHAIN_KEY = /^ch([0-9]+):(.*)$/;
+/* The engine-root components — movy's master chain and the send buses — carry
+ * their own namespace and no `ch<N>:`, but their fixtures live in the same
+ * slot store (slot 0, full key), so they are mirrored the same way. */
+const ROOT_KEY = /^(mfx:|snd[0-9]:)/;
 
 function installGlobals(engine) {
     const setParam = engine._setParam;
@@ -230,7 +251,7 @@ function installGlobals(engine) {
          * engine was told, and a model reading the same track back has to find
          * it where the shadow fixtures live. */
         const recorded = setParam(key, value);
-        if (!CHAIN_KEY.test(key)) return recorded;
+        if (!CHAIN_KEY.test(key) && !ROOT_KEY.test(key)) return recorded;
         /* Handed to env.mjs's own chain writer rather than reimplemented: it
          * knows that `ch<N>:midi` is a note to be SENT, not a param to store,
          * and two copies of that rule would drift. */
@@ -255,6 +276,12 @@ function installGlobals(engine) {
             const v = read ? read(Number(m[1]), m[2]) : null;
             return v !== null ? v : (engine.params[key] ?? null);
         }
+        if (ROOT_KEY.test(key)) {
+            const read = globalThis.shadow_get_param ?? globalThis.__movyEnvSlotGet;
+            const v = read ? read(0, key) : null;
+            if (v !== null && v !== undefined) return v;
+            if (key in engine.params) return engine.params[key];
+        }
         engine.getParamCalls++;
         if (key === 'status') {
             if (engine.statusUnavailable) return null;
@@ -274,6 +301,11 @@ function installGlobals(engine) {
             return `uuid=${st.uuid} phase=${st.phase} gen=${st.gen} dirty=${st.dirty}`;
         }
         if (key === 'versions') return engine.versions;
+        if (key === 'lib') {
+            const l = engine.lib;
+            return `rev=${l.rev} cur=${l.cur || '-'} made=${l.made || '-'} err=${l.err || '-'}\n`
+                + l.sets.map((x) => `${x.id}\t${x.clips}\t0\t${x.name}\n`).join('');
+        }
         /* Taken once, exactly as the engine takes them: a verdict read twice
          * would let a test see a restore or a sweep that never happened. */
         if (key === 'vui') {

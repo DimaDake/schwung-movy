@@ -4,6 +4,11 @@ Everything movy touches that the shim, shadow_ui or Move provides today, with
 what movy-host does about it. Read at movy `276c94f` against schwung `v1.7.3`
 (`911136d7`, what the device runs) on 2026-10-09.
 
+> **After WP9 (2026-10-11)** every *stub* and *retire* row below is done: the
+> stubs (`host/globals_stub.c`) are deleted, movy calls none of those globals,
+> and the live list is `browser-test/host-globals.json`. This file stays the
+> WP0 snapshot it was written as.
+
 **Dispositions:** *native* = movy-host implements it; *stub* = registered as a
 no-op that logs once (WP6 `globals.c`), deleted in WP9; *retire* = the feature
 goes away (see the plan's *Retired by design*); *runtime* = keeps coming from

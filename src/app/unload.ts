@@ -6,17 +6,16 @@ import { seqState } from '../seq/state.js';
 import { sessionFlush } from '../seq/set-session.js';
 import { mlog } from '../log.js';
 
-/* Called by the host on every teardown path — Close Movy, Shift+Back instant
- * exit, and parked-module eviction — immediately before the overtake DSP is
- * unloaded (schwung's invokeModuleOnUnload). Everything sounding has to be
+/* Called by the host on every teardown path — Close Movy, power off, the
+ * fallback exit — immediately before the engine is unloaded. Everything sounding has to be
  * released here: once the DSP is gone the sequencer can no longer close its own
  * gates, so its notes would ring in the chain indefinitely.
  *
  * The engine need not still be responsive: seqState.activeNotes mirrors its open
  * gates from the `act=` status field, so the UI can close them on its own. That
- * mirror is a poll snapshot, so a gate opened since the last poll is missed;
- * the host's CC 123 sweep fires right after this call and covers the residue.
- * We do not depend on that sweep for anything we can account for ourselves. */
+ * mirror is a poll snapshot, so a gate opened since the last poll is missed —
+ * harmless here, since the engine is unloaded right after and takes its
+ * chains with it. */
 export function onUnload(): void {
     /* Before the ledger is drained: closing a held pad's recording capture
      * needs the track it was sounded on, and a note still down at teardown

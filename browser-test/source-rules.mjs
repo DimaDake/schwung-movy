@@ -100,16 +100,13 @@ log('\nRule 2: no new fixed sleeps in test-device/');
 const SLEEP = /(^|[^.\w])setTimeout\s*\(/;
 
 const SLEEP_ALLOWED = new Map([
-    /* Polls for a device server's port to open. The frame clock is served BY
-     * that server, so there is no frame to wait on until it answers. */
-    ['test-device/daemon.ts', 'waits for the frame clock itself to come up'],
     /* movy-host IS the standalone frame clock: while it is down (its launch,
      * its exit, Move's return between the two) there is no frame to count. */
     ['test-device/transport-standalone.ts', 'waits across the frame clock being down'],
 ]);
 
 const sleepers = [];
-for (const f of walk('test-device').filter((p) => !/\/(dist|selftest|device-agent)\//.test(p))) {
+for (const f of walk('test-device').filter((p) => !/\/(dist|selftest)\//.test(p))) {
     const rel = relative('.', f);
     if (SLEEP_ALLOWED.has(rel)) continue;
     if (SLEEP.test(stripComments(readFileSync(f, 'utf8')))) sleepers.push(rel);
@@ -127,32 +124,53 @@ ok('and the named exceptions still need to be exceptions', staleExemptions.lengt
    staleExemptions.length ? `${staleExemptions.join(', ')} no longer sleeps — drop it from the list` : '');
 
 
-/* ── Rule 3: the host is reached through src/platform/ only ─────────────────
+/* ── Rule 3: the host is reached through src/platform/standalone.ts only ────
  *
- * movy is moving from overtaking Move (schwung's shadow_ui hosts ui.js) to a
- * standalone host of its own, and the SAME ui.js runs on both until the switch
- * (plans/2026-10-09-standalone-migration.md, WP1). That only stays one file
- * per host if no other module names a host global: one stray `shadow_*` call
- * is a feature that silently does nothing — or throws — on the other host.
+ * movy-host is the only host (plans/2026-10-09-standalone-migration.md, WP9),
+ * and every global it answers is named in one file, behind the Platform
+ * interface the suites swap. One stray `shadow_*` call elsewhere is a call no
+ * suite can intercept.
  *
  * A name after `/` is a path into schwung's tree (`shadow_ui_slot_grid.mjs`),
  * not a call, so it is skipped. Comments are free to name anything, as above.
  */
-log('\nRule 3: host globals are named only in src/platform/');
+log('\nRule 3: host globals are named only in src/platform/standalone.ts');
 
 const HOST_GLOBAL = /(?<![\w/$])(shadow_|host_|move_midi_)[A-Za-z0-9_]+/g;
+const HOST_FILES = new Set(['src/platform/standalone.ts', 'src/platform/host-globals.d.ts']);
 
 const hostOffenders = [];
 for (const f of walk(SRC)) {
     const rel = relative('.', f);
-    if (rel.startsWith('src/platform/')) continue;
+    if (HOST_FILES.has(rel)) continue;
     const hits = stripComments(readFileSync(f, 'utf8')).match(HOST_GLOBAL);
     if (hits) hostOffenders.push(`${rel} (${[...new Set(hits)].join(', ')})`);
 }
-ok('no module outside src/platform/ names a host global', hostOffenders.length === 0,
+ok('no module but standalone.ts names a host global', hostOffenders.length === 0,
    hostOffenders.length
        ? `${hostOffenders.join('; ')} — add it to the Platform interface (src/platform/platform.ts)`
-       : 'everything outside src/platform/ is clean');
+       : 'everything else is clean');
+
+/* ── Rule 4: no host-presence gates, and a ratchet that keeps it so ─────────
+ *
+ * Host and UI ship as one payload, so `typeof host_x === 'function'` can only
+ * ever be true: a gate is a fallback branch nothing runs, and a place for a
+ * missing registration to hide as a silent no-op instead of a ReferenceError
+ * the first suite would catch. WP9 deleted 35 of them. The ceiling may fall and
+ * never rise (dbxhost's rule).
+ */
+log('\nRule 4: no typeof gates on host globals (ratchet)');
+
+const TYPEOF_GATES_MAX = 0;
+const GATE = /typeof\s+(?:globalThis\.)?(?:shadow_|host_|move_midi_|movy_host\b|overtakeParked\b)/g;
+const gates = [];
+for (const f of walk(SRC)) {
+    const n = (stripComments(readFileSync(f, 'utf8')).match(GATE) ?? []).length;
+    if (n) gates.push(`${relative('.', f)} (${n})`);
+}
+const gateCount = gates.reduce((sum, g) => sum + Number(/\((\d+)\)$/.exec(g)[1]), 0);
+ok(`at most ${TYPEOF_GATES_MAX} typeof gates on host globals`, gateCount <= TYPEOF_GATES_MAX,
+   gateCount ? `${gateCount}: ${gates.join('; ')} — call the global through src/platform/standalone.ts` : 'none');
 
 console.log(fails === 0
     ? '\n\x1b[32m\x1b[1mALL SOURCE RULES PASSED\x1b[0m'

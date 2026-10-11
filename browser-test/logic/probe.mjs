@@ -29,7 +29,7 @@ _log('\nTest: device probe');
         renderer:      () => 'MOVY',
         lanesForTrack: (t) => (t === 0 ? ['octave_transpose', 'decay'] : []),
         activeTrack:   () => 0,
-        parked:        () => false,
+
         setGridMode:   () => {},
         leaveModal:    () => ({ active: false, label: '', sel: 0 }),
         ready:         () => true,
@@ -72,7 +72,7 @@ _log('\nTest: device probe');
      * so it must be reported as empty rather than omitted. */
     setProbeDeps({
         renderer: () => 'PAGE', lanesForTrack: () => [], activeTrack: () => 1,
-        parked: () => true, setGridMode: () => {},
+        setGridMode: () => {},
         leaveModal: () => ({ active: true, label: 'Close Movy', sel: 1 }),
         ready: () => false,
         view: () => 'file-browse',
@@ -83,7 +83,8 @@ _log('\nTest: device probe');
     });
     const empty = JSON.parse(answer(JSON.stringify({ key: 'auto' })));
     eq('an empty lane registry reports as empty', empty.lanes.length, 0);
-    eq('tick reports the parked state', JSON.parse(answer(JSON.stringify({ key: 'tick' }))).parked, true);
+    ok('tick no longer reports a parked state (no Background since WP9)',
+       !('parked' in JSON.parse(answer(JSON.stringify({ key: 'tick' })))));
     eq('page reflects a renderer change',
         JSON.parse(answer(JSON.stringify({ key: 'page' }))).renderer, 'PAGE');
     /* Read live, not off the view model: this is the one field that answers
@@ -132,7 +133,7 @@ _log('\nTest: device probe');
     let gridArg = 'unset';
     setProbeDeps({
         renderer: () => 'DRAW', lanesForTrack: () => [], activeTrack: () => 0,
-        parked: () => false, setGridMode: (m) => { gridArg = m; },
+        setGridMode: (m) => { gridArg = m; },
         leaveModal: () => ({ active: false, label: '', sel: 0 }),
         ready: () => true,
         view: () => 'chain',

@@ -2,17 +2,25 @@
  *
  * The engine owns the index and every file (set_library.rs); this side sends
  * `set lib …` commands, reads the `lib` answer, and decides what new Sets are
- * CALLED — the same split copy-on-inherit already has, where naming is policy
- * and moving bytes is the engine's.
+ * CALLED: naming is policy, and moving bytes is the engine's.
  *
  * The answer is read only when somebody needs it (the Sets page, or a command
  * in flight) and parsed only when its text changed, so an open page costs one
  * string read every few ticks and nothing per frame. */
 
 import { paramGet, paramSet } from '../host/param.js';
-import { PAGE_ROOTS } from './set-gc.js';
 import { LEGACY_SETS_DIR } from './set-source.js';
 import { MOVE_SETS_DIR } from './set-context.js';
+
+/* Where schwung parks the Sets belonging to a set page you are not on, for the
+ * import's "does Move still have this Set" check. A stashed Set is NOT in
+ * `UserLibrary/Sets/`, so a bare check there calls every Set on every other
+ * page deleted (davebox's seq8 carries the same rule: `seq8_set_uuid_alive`).
+ * The second root is the davebox host's own install. */
+const PAGE_ROOTS = [
+    '/data/UserData/schwung/set_pages',
+    '/data/UserData/dbx-host/set_pages',
+];
 
 export interface LibRow { id: string; clips: number; depth: number; name: string; }
 export interface LibState { rev: number; cur: string; made: string; err: string; rows: LibRow[]; }

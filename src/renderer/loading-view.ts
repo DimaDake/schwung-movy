@@ -20,19 +20,9 @@ function centre(y: number, text: string, color: number): void {
  *  things the user is entitled to see the difference between: the Set's state
  *  lands in one blocking write, but its modules arrive one per audio callback
  *  after it. */
-export function loadingStage(
-    phase: string, chainPending: number, migrating = false,
-): string {
+export function loadingStage(phase: string, chainPending: number): string {
     if (phase === 'booting') return 'STARTING ENGINE';
     if (phase !== 'settling') return 'LOADING SET';
-    /* Ahead of the module count, because the one-time move off schwung's slots
-     * is not a load and the count says nothing about it: the chains it is about
-     * to re-state have not been asked for yet, so this would otherwise read
-     * "PREPARING SET" through the whole of it. It is also the only wait a user
-     * meets once per old set and never again, which is worth naming. */
-    if (migrating) return 'MIGRATING TRACKS';
-    /* The tail of the wait is the Set-commit press borrowing the surface, which
-     * is not a load and must not claim to be one. */
     return chainPending > 0 ? 'LOADING MODULES' : 'PREPARING SET';
 }
 
@@ -89,7 +79,7 @@ export function splashDue(waited: number): boolean {
 /** Returns whether any words were drawn. */
 export function renderLoadingView(
     phase: string, error: string, chainPending = 0, failScope = 'set',
-    migrating = false, waitedMs = Infinity,
+    waitedMs = Infinity,
 ): boolean {
     clear_screen();
     /* A failure is never held back: it is waiting on the user. */
@@ -102,6 +92,6 @@ export function renderLoadingView(
         for (let i = 0; i < 3; i++) if (lines[i] !== '') centre(ys[i], lines[i], 1);
         return true;
     }
-    centre(Math.floor(H / 2) - 3, loadingStage(phase, chainPending, migrating), 1);
+    centre(Math.floor(H / 2) - 3, loadingStage(phase, chainPending), 1);
     return true;
 }

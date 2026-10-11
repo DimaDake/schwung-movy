@@ -93,7 +93,6 @@ export function loadExport(path: string, name: string): any {
 }
 
 function guardedEval(path: string, extra: string[], pick: () => any): any {
-    if (!platform.canLoadUiModule()) return null;
     const names = GUARDED.concat(extra);
     const saved: Record<string, any> = {};
     const had: Record<string, boolean> = {};

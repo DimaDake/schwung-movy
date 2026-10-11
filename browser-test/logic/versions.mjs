@@ -4,9 +4,12 @@
  * Run by browser-test/logic.mjs.
  */
 
-import { eq, ok, _log } from './harness.mjs';
+import { eq, ok, _log, setFlag } from './harness.mjs';
 
 export async function run() {
+/* The UI-writer path, which a debug build can still select; the engine-owned
+ * arms switch the flag on for themselves and put it back. */
+setFlag('engpersist', 0);
 {
     _log('\nversion index:');
     const { parseVersionIndex, serializeVersionIndex, countClips }
@@ -14,17 +17,15 @@ export async function run() {
     const { versionsIndexPath, versionDir, versionStatePath, versionUiPath }
         = await import('../../dist/esm/seq/set-context.js');
 
-    const SETS = '/data/UserData/schwung/modules/tools/movy/sets';
+    const SETS = '/data/UserData/UserLibrary/Movy/Sets';
     eq('index path', versionsIndexPath('S1'), `${SETS}/S1/versions.json`);
     eq('version dir', versionDir('S1', 7), `${SETS}/S1/v/7`);
     eq('version state path', versionStatePath('S1', 7), `${SETS}/S1/v/7/seq-state.json`);
     eq('version ui path', versionUiPath('S1', 7), `${SETS}/S1/v/7/ui-state.json`);
-    /* An empty uuid resolves to _default, exactly as uuidToStatePath does —
-     * movy runs under that id until Move materialises the Set. */
+    /* An empty uuid resolves to _default, exactly as uuidToStatePath does. */
     eq('empty uuid → _default', versionDir('', 1), `${SETS}/_default/v/1`);
 
-    /* An unreadable index is NO VERSIONS, never an instruction to delete: the
-     * same rule collectDeadSets applies to an unreadable Sets directory. */
+    /* An unreadable index is NO VERSIONS, never an instruction to delete. */
     eq('null index is empty', parseVersionIndex(null).v.length, 0);
     eq('garbage index is empty', parseVersionIndex('{{{').v.length, 0);
     eq('empty index still counts from 1', parseVersionIndex(null).next, 1);
@@ -525,16 +526,12 @@ export async function run() {
     const { setFlag } = await import('../../dist/esm/seq/flags.js');
     const { restoreVersion, restoreTick, restorePending, resetVersionRestore }
         = await import('../../dist/esm/seq/version-restore.js');
-    const { collectDeadSets, gcTick, resetSetGc } = await import('../../dist/esm/seq/set-gc.js');
     const { readVersionIndex } = await import('../../dist/esm/seq/version-store.js');
-    const { loadNameIndex } = await import('../../dist/esm/seq/set-context.js');
     const { readUiBlob } = await import('../../dist/esm/seq/persist-store.js');
-    const SETS = '/data/UserData/schwung/modules/tools/movy/sets';
-
-    const fs = installMockFs({ [`${SETS}/name-index.json`]: '{"ALIVE":"A1","DEAD":"D1"}' });
+    const fs = installMockFs();
     const engine = installMockEngine();
     setFlag('engpersist', 1);
-    resetVersionRestore(); resetSetGc();
+    resetVersionRestore();
 
     /* Two ladders writing the same directory would interleave version numbers
      * and prune each other's entries. With the flag on the UI keeps none. */
@@ -565,24 +562,10 @@ export async function run() {
     while (restorePending() && spun < 200) { restoreTick(); spun++; }
     ok('a restore that never answers gives up', spun < 200);
 
-    /* The sweep: the engine names what it collected and the UI drops those
-     * names. The aliveness test is gone from TypeScript entirely. */
-    engine.gc = 'pending';
-    collectDeadSets('A1');
-    ok('the sweep was asked for', engine.setCmds.some((c) => c.startsWith('gc ')));
-    ok('with Move\'s own directory named',
-        engine.setCmds.some((c) => c.includes('sets=/data/UserData/UserLibrary/Sets')));
-    gcTick();
-    eq('nothing is dropped while it is pending', Object.keys(loadNameIndex()).length, 2);
-    engine.gc = 'collected=1 D1';
-    gcTick();
-    const idx = loadNameIndex();
-    eq('the collected name is gone', 'DEAD' in idx, false);
-    eq('the live one stays', idx.ALIVE, 'A1');
-
     setFlag('engpersist', 0);
-    resetVersionRestore(); resetSetGc();
+    resetVersionRestore();
     uninstallMockEngine();
     uninstallMockFs();
 }
+setFlag('engpersist', 1);
 }

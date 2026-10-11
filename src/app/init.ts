@@ -8,11 +8,10 @@ import { jogHintTouch } from './jog-hint.js';
 import { keyboardState, resetOctaves } from '../keyboard/state.js';
 import { drainAll } from '../keyboard/held-notes.js';
 import { browserState } from '../browser/state.js';
-import { buildMasterModels, rebindMasterForTest } from './master-models.js';
+import { buildMasterModels } from './master-models.js';
 import { resetTrackMutes } from '../mixer/track-mutes.js';
 import { resetDrumSync } from '../seq/drum-sync.js';
 import { loadFullVelocityPref, seqState } from '../seq/state.js';
-import { claimLedOwnership } from './led-ownership.js';
 import { resetHeldInput } from './input-reset.js';
 import { installEditGuard } from '../undo/record.js';
 import { resetUndoState } from '../undo/state.js';
@@ -28,7 +27,6 @@ import { clearWidgets, isWidgetAvailable } from '../renderer/schwung-widgets.js'
 import { lastParamBody, lastSchwungPage, movyBodyUnderPage } from './param-body.js';
 
 import { laneKeysForTrack } from '../seq/automation.js';
-import { platform } from '../platform/index.js';
 
 export function init(): void {
     installPerfProbe();   // wrap the host globals before anything calls them
@@ -40,11 +38,7 @@ export function init(): void {
         renderer:      () => schwungGridMode(),
         lanesForTrack: (t) => laneKeysForTrack(t),
         activeTrack:   () => appState.activeTrack.index,
-        /* A bare unset global identifier THROWS in QuickJS, so this must go
-         * through globalThis rather than naming overtakeParked directly. */
-        parked:        () => (globalThis as any).overtakeParked === true,
         setGridMode:   (m) => setSchwungGridMode(m as any),
-        bindMaster:    (movy) => rebindMasterForTest(movy),
         /* Through the door in renderer/schwung-widgets.ts, never by importing
          * widget_registry.mjs here: the registry is module state and a second
          * specifier is a second empty map. See that file's header. */
@@ -74,17 +68,12 @@ export function init(): void {
             title:  leaveModalTitle(),
         }),
     });
-    /* Movy opens on the track Move had selected. Through `selectTrack`, not a
-     * bare assignment: the focus group has to follow (or the four track buttons
-     * address a different quartet than the screen), and so does the sequencer —
-     * seq/watch.ts derives the engine's watched track from this one. Before
-     * that, opening on track 2 left the step row on track 1, so the module you
-     * selected and heard was track 2's while step recording wrote into track
-     * 1's clip. */
-    selectTrack(platform.uiSlot());
+    /* Movy opens on track 1. Through `selectTrack`, not a bare assignment:
+     * the focus group has to follow (or the four track buttons address a
+     * different quartet than the screen), and so does the sequencer —
+     * seq/watch.ts derives the engine's watched track from this one. */
+    selectTrack(0);
     mlog('init: activeTrack=' + appState.activeTrack.index);
-
-    claimLedOwnership();
 
     /* Undo history is in-memory and per session: a fresh open starts empty, and
      * the guard that reports un-grouped edits is installed before any input can

@@ -44,7 +44,6 @@ scenario('debug-tools', async (t) => {
     const dev = new Device(t.tx);
     const probe = new Probe(t.tx);
     const root = repoRoot();
-    const sa = t.tx.flavour === 'standalone';
     const sh = async (cmd: string, args: string[], opts: object = {}) => {
         try { const r = await run(cmd, args, { cwd: root, maxBuffer: 8 << 20, ...opts }); return { ok: true, out: r.stdout + r.stderr }; }
         catch (e: any) { return { ok: false, out: String(e?.stdout ?? '') + String(e?.stderr ?? e) }; }
@@ -65,7 +64,7 @@ scenario('debug-tools', async (t) => {
 
     // ── D1 ──────────────────────────────────────────────────────────────────
     const st = await sh('bash', ['scripts/dev-probe.sh', 'status', t.host]);
-    const wantHost = sa ? 'movy is open: movy-host' : 'movy is not open';
+    const wantHost = 'movy is open: movy-host';
     t.check('dev-probe-status', 'dev-probe.sh status names the running host and its ui.js is this build',
         st.ok && st.out.includes(wantHost) && st.out.includes('ui.js matches local build'),
         { expected: `${wantHost}, ui.js matches`, actual: st.out.replace(/\x1b\[[0-9;]*m/g, '').trim() });
@@ -93,9 +92,8 @@ scenario('debug-tools', async (t) => {
     const im = await onDevice('inject-to-move.py', '11 176 43 127 11 176 43 0');
     const d4 = await reached(before);
     t.note('injectToMoveReachedMovy', d4);
-    t.check('inject-to-move', sa ? 'inject-to-move.py (the inject ring) reaches movy-host'
-                                 : 'inject-to-move.py runs (the ring is Move\'s here)',
-        im.ok && (d4 || !sa), { expected: sa ? 'an arm line' : 'the tool ran', actual: `reached=${d4} ${im.out.trim()}` });
+    t.check('inject-to-move', 'inject-to-move.py (the inject ring) reaches movy-host',
+        im.ok && d4, { expected: 'an arm line', actual: `reached=${d4} ${im.out.trim()}` });
 
     // ── D5 ──────────────────────────────────────────────────────────────────
     const png = join(tmpdir(), `movy-grab-${process.pid}.png`);

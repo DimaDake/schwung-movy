@@ -279,23 +279,23 @@ _log('\nTest: LFO source is Schwung\'s LFO page contract (SP-60)');
         ok('an LFO cell is never automatable (matches lfo/inert.ts under off)',
            info && info.automatable === false);
 
-        /* The master chain draws the same page over `master_fx:lfoN:*`. */
+        /* The master chain draws the same page over `mfx:lfoN:*`. */
         const mSource = lfoSchwungSource(masterScope());
-        eq('master LFO 1 is Schwung\'s master_fx: level',
-           JSON.stringify(JSON.parse(mSource.getParam('master_fx:lfo:ui_hierarchy')).levels.lfo1),
-           JSON.stringify(lp.lfoLevels([1, 2], 'master_fx:').lfo1));
-        mSource.setParam('master_fx:lfo:master_fx:lfo2:depth', '-0.25');
-        eq('a master write reaches the shim key', shim['master_fx:lfo2:depth'], '-0.25');
-        eq('and not a track chain', eng.store['ch0:master_fx:lfo2:depth'], undefined);
-        shim['master_fx:lfo1:sync'] = '1'; shim['master_fx:lfo2:sync'] = '0';
-        const mPage = schwungPageFor(0, 'master_fx:lfo', null, null);
+        eq('master LFO 1 is Schwung\'s mfx: level',
+           JSON.stringify(JSON.parse(mSource.getParam('mfx:lfo:ui_hierarchy')).levels.lfo1),
+           JSON.stringify(lp.lfoLevels([1, 2], 'mfx:').lfo1));
+        mSource.setParam('mfx:lfo:mfx:lfo2:depth', '-0.25');
+        eq('a master write reaches the engine-root key', eng.store['mfx:lfo2:depth'], '-0.25');
+        eq('and not a track chain', eng.store['ch0:mfx:lfo2:depth'], undefined);
+        eng.store['mfx:lfo1:sync'] = '1'; eng.store['mfx:lfo2:sync'] = '0';
+        const mPage = schwungPageFor(0, 'mfx:lfo', null, null);
         for (let i = 0; i < 20 && !mPage.ready; i++) mPage.tick();
         eq('master: two pages', mPage.pageCount, 2);
         mPage.goToPage(0);
         const m1 = [0, 1, 2, 3, 4, 5, 6, 7].map((k) => mPage.keyAt(k));
         eq('master LFO: seven cells (no Retrigger on the master bus)', m1.filter(Boolean).length, 7);
-        ok('master LFO 1 synced shows its rate_div', m1.includes('master_fx:lfo1:rate_div')
-           && !m1.includes('master_fx:lfo1:rate_hz'));
+        ok('master LFO 1 synced shows its rate_div', m1.includes('mfx:lfo1:rate_div')
+           && !m1.includes('mfx:lfo1:rate_hz'));
         setSchwungGridMode('off');
         schwungGridReload();
     }

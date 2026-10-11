@@ -923,7 +923,6 @@ impl ChainSlots {
     /// instance or a queued master load does not exist yet.
     pub fn master_param(&mut self, rest: &str, val: &str) {
         match rest {
-            "own" => return self.master.set_owned(val == "1"),
             "vol" => return self.master.set_gain(val),
             "imported" => return self.master.set_imported(val == "1"),
             _ => {}
@@ -958,7 +957,6 @@ impl ChainSlots {
     /// alias, as a send's does, because the colon key is write-only.
     pub fn master_get(&mut self, rest: &str) -> Option<String> {
         match rest {
-            "own" => return Some(u8::from(self.master.owned()).to_string()),
             "vol" => return Some(format!("{:.4}", self.master.gain())),
             "imported" => return Some(u8::from(self.master.imported()).to_string()),
             _ => {}
@@ -1390,15 +1388,12 @@ impl ChainSlots {
          * start before the sends are in. Its time joins the same `add_wall`
          * (see `close_block`), so the CPU bar sees one whole block. */
         let t_master = self.cost.start();
-        let master_ran = self.master.run(&mut out[..frames]);
-        let master_ns = if master_ran {
-            let dt = t_master.elapsed().as_nanos() as u64;
-            self.master.add_cost(dt);
-            dt
-        } else {
-            0
-        };
-        self.close_block(render_ns, send_ns + master_ns, active, send_ran || master_ran);
+        /* Every block: its volume and limiter are on the output whether or not
+         * an FX is loaded, so the block always counts. */
+        self.master.run(&mut out[..frames]);
+        let master_ns = t_master.elapsed().as_nanos() as u64;
+        self.master.add_cost(master_ns);
+        self.close_block(render_ns, send_ns + master_ns, active, true);
         self.active_last_block = active;
         // The run releases what it struck: a device must never be left holding
         // 48 notes because a benchmark was interrupted between arms.
@@ -3138,10 +3133,7 @@ mod tests {
     #[test]
     fn the_stage_flags_read_back() {
         let mut slots = ChainSlots::new();
-        assert_eq!(slots.master_get("own").as_deref(), Some("0"), "off by default: overtake hears no change");
-        slots.master_param("own", "1");
         slots.master_param("vol", "0.5");
-        assert_eq!(slots.master_get("own").as_deref(), Some("1"));
         assert_eq!(slots.master_get("vol").as_deref(), Some("0.5000"));
         assert_eq!(slots.master_get("fx1:module"), None, "no instance yet");
         assert!(slots.cost_status().ends_with(" mfxcost=-"), "{}", slots.cost_status());

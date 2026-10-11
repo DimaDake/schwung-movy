@@ -443,54 +443,6 @@ const unexported = shFiles.filter((f) => {
 ok('every script calling one passes it the address', unexported.length === 0,
    unexported.length ? unexported.join(', ') : `${shFiles.length} scripts checked`);
 
-/* ── Test 13: the migrate scenario keys on phrases the source can emit ───────
- * migrate.ts composes its log lines from pieces at runtime ('mig: ' +
- * (forceOverwrite ? 'manual — ' : '') + 'migrated ' + n + ' track(s)'), the
- * same reason Test 8 above only pins two whole literals rather than scanning
- * every log line in the codebase — a mid-string check is what survives that,
- * checking the PIECES the scenario's regexes depend on actually exist. */
-log('\nTest 13: the migrate scenario keys on phrases the source can actually emit');
-{
-    const migrateSrc = readFileSync('src/track/migrate.ts', 'utf8');
-    const migrateTs = readFileSync('test-device/scenarios/migrate.ts', 'utf8');
-    for (const piece of ["'mig: '", "'migrated '", "'manual — '", "'mig: nothing to migrate'"]) {
-        ok(`src can emit ${piece}`, migrateSrc.includes(piece));
-    }
-    for (const phrase of ['mig: migrated', 'mig: nothing to migrate', 'mig: manual']) {
-        ok(`migrate.ts looks for ${JSON.stringify(phrase)}`, migrateTs.includes(phrase));
-    }
-    /* The contract canary's own claim: it asks the device for slot:volume,
-     * the one key that round-trips over the remote-UI subscribe channel
-     * (verified on device — see scripts/slot-param.mjs). synth:state does not
-     * broadcast there at all; the positive arm is its canary instead, since a
-     * renamed synth:state fails distinctly there (a migrated chain with no
-     * preset blob). */
-    const slotReadSrc = readFileSync('src/track/slot-read.ts', 'utf8');
-    ok('slot-read.ts reads a component\'s :state blob', slotReadSrc.includes("c + ':state'"));
-    ok('slot-read.ts reads slot:volume', slotReadSrc.includes('SLOT_VOLUME_KEY')
-       && slotReadSrc.includes("'slot:volume'"));
-    ok('the canary asks for "slot:volume"', migrateTs.includes("'slot:volume'"));
-
-    /* The positive arm has to assert on a patch a plain module LOAD could not
-     * have produced. The fixture's slot-0 patch is the module's factory
-     * defaults, so keying on any of its own values passes just as happily when
-     * the preset is dropped — measured, with slot-read.ts's preset read
-     * deleted. The scenario therefore moves one param off its default with
-     * slot-state.mjs `load` and asserts on that value. */
-    ok('the positive arm checks the migrated blob, covering synth:state',
-       migrateTs.includes('factory defaults'));
-    /* O3 (final-review.md): `slot-state.mjs` alone is decorative — the scenario
-     * also calls it with `clear` (teardown) and `module` (restore), so the
-     * substring survives even with the actual `load` call deleted. The guard
-     * now requires the `load` VERB specifically, tied to the assignment that
-     * moves the value off the fixture's default. */
-    ok('the asserted patch value is written, not assumed to be the fixture\'s',
-       migrateTs.includes('st[key] = PATCH_VALUE')
-       && /node\('slot-state\.mjs',\s*\[\s*'load'/.test(migrateTs));
-    ok('and read back, so a marker that never landed is visible',
-       migrateTs.includes('slot0PatchLive'));
-}
-
 /* ── Test 14: a stack restart goes through root, and through ONE body ───────
  * MoveOriginal runs as root. restart-move.sh's kill is therefore EPERM for the
  * `ableton` user, and `|| true` swallows it: the script exits 0 and the OLD
@@ -498,41 +450,21 @@ log('\nTest 13: the migrate scenario keys on phrases the source can actually emi
  * across a "successful" ableton-user restart, then changed to 9326 through the
  * root path.
  *
- * The TS harness used to restart via bus.restartMove(), i.e. as whoever owns
- * schwung-testd — and daemon.ts starts testd as `ableton` whenever the port is
- * closed, which is the normal case. It then "confirmed" the restart by pinging
- * that same testd, which had never gone down. A no-op that reports green is
- * worse than a missing feature, so this pins the user and the shared body.
+ * The TS harness once restarted as `ableton` and "confirmed" it by pinging a
+ * daemon that had never gone down; the bash tier's scripts still restart Move
+ * this way, so this pins the user and the shared body.
  */
 log('\nTest 14: the stack restart runs as root, from one shared script');
 
 const restartPy = 'scripts/lib/restart-stack.py';
 const restartSh = readFileSync('scripts/lib/restart-stack.sh', 'utf8');
-const engineTs  = readFileSync('test-device/engine.ts', 'utf8');
-const deviceTs  = readFileSync('test-device/transport-overtake.ts', 'utf8');
 
 ok('the verified restart body exists as a shared script', existsSync(restartPy));
-
-/* Both tiers must name the shared file AND address root. Checked as a pair:
- * either half alone passes with the other one wrong. */
-for (const [who, src] of [['restart-stack.sh', restartSh], ['engine.ts', engineTs]]) {
-    ok(`${who} runs ${restartPy.split('/').pop()} as root`,
-       src.includes('restart-stack.py') && /root@/.test(src));
-}
-
-/* Duplication is what let the two drift before. Neither caller may carry its
- * own copy of the verification loop. */
-for (const [who, src] of [['restart-stack.sh', restartSh], ['engine.ts', engineTs]]) {
-    ok(`${who} does not re-implement the pidof check`, !src.includes("pidof"));
-}
-
-/* The trap this replaces, named so it cannot come back. */
-/* Strip comments first. device.ts explains this trap by name, and a guard that
- * matched the explanation would fire on the fix as readily as on the bug. */
-const codeOf = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-ok('the overtake transport does not restart through testd\'s restartMove()',
-   !codeOf(deviceTs).includes('restartMove()')
-   && /restartStack\(this\.host\)/.test(codeOf(deviceTs)));
+ok(`restart-stack.sh runs ${restartPy.split('/').pop()} as root`,
+   restartSh.includes('restart-stack.py') && /root@/.test(restartSh));
+/* Duplication is what let callers drift before: no copy of the verification
+ * loop. (The TS tier's caller went with the overtake transport, WP9.) */
+ok('restart-stack.sh does not re-implement the pidof check', !restartSh.includes("pidof"));
 
 /* ── Test 15: the tier ships an engine before it grades one ─────────────────
  * No scenario builds or deploys dsp.so. Before run.mjs did it once per sweep,
@@ -739,14 +671,13 @@ log('\nTest: slot-param.mjs reads through an update that lacks the key');
 }
 
 /* ── The transport seam (standalone migration WP5) ─────────────────────────
- * Scenarios and the shared harness talk to test-device/transport.ts, so the
- * standalone flavour is a second implementation rather than a rewrite. Only
- * the transports (transport-*.ts) may reach a host's own clients, and only the
- * overtake one may spell that host's `overtake_dsp:` engine namespace. Comments are stripped:
- * explaining the overtake host by name is fine; calling it is not.
+ * Scenarios and the shared harness talk to test-device/transport.ts; only the
+ * transport may reach movy-host's bus client. Comments are stripped:
+ * explaining a client by name is fine; calling it is not.
  */
 log('\nTest: scenarios reach the device only through the transport');
 {
+    const codeOf = (src) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
     const shared = ['device.ts', 'probe.ts', 'fixture.ts', 'engine.ts', 'arm.ts', 'runner.ts']
         .map((f) => `test-device/${f}`);
     const scen = readdirSync('test-device/scenarios').filter((f) => f.endsWith('.ts'))
@@ -754,19 +685,15 @@ log('\nTest: scenarios reach the device only through the transport');
     const leaks = [];
     for (const f of [...shared, ...scen]) {
         const code = codeOf(readFileSync(f, 'utf8'));
-        if (/from '\.\.?\/(bus|agent|daemon)\.js'/.test(code)) leaks.push(`${f}: imports an overtake client`);
+        if (/from '\.\.?\/bus\.js'/.test(code)) leaks.push(`${f}: imports the bus client`);
         if (code.includes('overtake_dsp:')) leaks.push(`${f}: spells overtake_dsp:`);
-        if (/\bt\.(bus|agent)\b/.test(code)) leaks.push(`${f}: uses t.bus/t.agent`);
+        if (/\bt\.bus\b/.test(code)) leaks.push(`${f}: uses t.bus`);
     }
     ok('no scenario or shared harness file bypasses the transport', leaks.length === 0,
        leaks.length ? leaks.join('; ') : `${shared.length + scen.length} files`);
-    const needsMove = scen.filter((f) => /needs: 'move'/.test(codeOf(readFileSync(f, 'utf8'))))
-        .map((f) => f.replace(/.*\//, '').replace(/\.ts$/, ''));
-    /* The coexistence suites. A tag dropped from one of them would make the
-     * standalone sweep grade a feature that cannot exist there. */
-    for (const n of ['master-fx', 'migrate', 'volume']) {
-        ok(`${n} declares needs: 'move'`, needsMove.includes(n), `tagged: ${needsMove.join(', ')}`);
-    }
+    /* WP9: there is no Move beside movy, so nothing may ask for one. */
+    const needsMove = scen.filter((f) => /needs: 'move'/.test(codeOf(readFileSync(f, 'utf8'))));
+    ok("no scenario declares needs: 'move'", needsMove.length === 0, needsMove.join(', '));
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

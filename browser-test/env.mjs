@@ -49,14 +49,9 @@ let installed = null;
 export function installEnv() {
     if (installed) return installed;
     let params = {};
-    /* USB-MIDI packets a module pushed into Move's MIDI_IN, so tests can assert
-     * the track-hold divert (see src/mixer/track-volume.ts). */
-    const injected = [];
     const env = {
         setParams(preset) { params = { ...preset }; },
         get params() { return params; },
-        get injected() { return injected; },
-        clearInjected() { injected.length = 0; },
     };
 
     /* QuickJS std/os file access, used by wav-peaks.ts. Tests install their own
@@ -214,18 +209,17 @@ export function installEnv() {
      * slot, and no track is. */
     globalThis.__movyEnvEngineGet = engineGet;
     globalThis.__movyEnvEngineSet = engineSet;
-    /* Assigned once and restorable by name, for the same reason as the pair
-     * above. `installEnv` is the only thing that ever installs it, so a suite
-     * that deletes it takes it away from every suite after — and that failure is
-     * SILENT, not red: the bundle's one consumer guards with `typeof … ===
-     * "function" ? shadow_get_ui_slot() : 0`, so the next suite to render a
-     * model would quietly select track 0 instead of throwing. */
-    const uiSlot = () => 0;
-    globalThis.shadow_get_ui_slot = uiSlot;
-    env.restoreUiSlot = () => { globalThis.shadow_get_ui_slot = uiSlot; };
     globalThis.shadow_send_midi_to_dsp = () => {};
     globalThis.host_read_file     = (path) => serveModuleLayout(path);
     globalThis.host_write_file    = () => true;
+    /* The rest of movy-host's surface (host/globals*.c), as "nothing there":
+     * src/platform calls them without a typeof gate, so a suite that never
+     * installs a filesystem must still find them. mock-fs restores these. */
+    globalThis.host_file_exists   = () => false;
+    globalThis.host_ensure_dir    = () => true;
+    globalThis.host_remove_dir    = () => false;
+    globalThis.shadow_load_ui_module = () => false;
+    globalThis.host_power_off     = () => {};
     globalThis.host_exit_module   = () => {};
     globalThis.setLED             = () => {};
     globalThis.setButtonLED       = () => {};
@@ -235,7 +229,6 @@ export function installEnv() {
     /* shadow_ui re-encodes wheel deltas (1-63 = +, 65-127 = -). */
     globalThis.decodeDelta        = (d2) => (d2 < 64 ? d2 : d2 - 128);
     globalThis.move_midi_internal_send = () => {};
-    globalThis.move_midi_inject_to_move = (data) => { injected.push([...data]); };
     /* RGB palette indices used by keyboard/leds.ts (mirror of seq/colors.ts). */
     globalThis.NeonGreen          = 11;   // C_GREEN
     globalThis.White              = 120;  // C_WHITE

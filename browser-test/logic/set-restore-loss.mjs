@@ -38,6 +38,9 @@ const { pushState, openSet, setStatusUuid } = await import('../../dist/esm/seq/s
 const { seqState } = await import('../../dist/esm/seq/state.js');
 const { resetRestoreGate } = await import('../../dist/esm/seq/restore-gate.js');
 const { writeUiBlob, readUiBlob } = await import('../../dist/esm/seq/persist-store.js');
+/* Most of this suite pins the UI-writer path, which a debug build can still
+ * select; the engine-owned arms switch the flag on for themselves. */
+setFlag('engpersist', 0);
 
 /* ── The guard that works ─────────────────────────────────────────────────
  * An engine that answers `null` is one we could not read at all, and saveSet
@@ -248,23 +251,6 @@ const { writeUiBlob, readUiBlob } = await import('../../dist/esm/seq/persist-sto
     uninstallMockEngine(); uninstallMockFs();
 }
 
-/* A host with no blocking API cannot tell us either way. Assuming failure
- * there would block every save on that device — far worse than the hazard. */
-{
-    installMockFs({});
-    const eng = installMockEngine();
-    resetSetSave(); resetStoreRotation(); resetRestoreGate();
-    const real = globalThis.host_module_set_param_blocking;
-    delete globalThis.host_module_set_param_blocking;
-    try {
-        pushState(GOOD);
-        eng.stateBlob = 'movy1\nbpm 15000\n';
-        seqState.dirty = true;
-        eq('an old host without the blocking API still saves', saveSet('O', 0, true).wrote, true);
-    } finally { globalThis.host_module_set_param_blocking = real; }
-    uninstallMockEngine(); uninstallMockFs();
-}
-
 /* ── Engine-owned: a lost COMMAND cannot cost the Set ─────────────────────
  * The safety argument for commands-instead-of-payloads, stated exactly.
  *
@@ -323,4 +309,5 @@ const { writeUiBlob, readUiBlob } = await import('../../dist/esm/seq/persist-sto
     setFlag('engpersist', 0);
     uninstallMockEngine(); uninstallMockFs();
 }
+setFlag('engpersist', 1);
 }

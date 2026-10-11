@@ -18,9 +18,13 @@ arm kept because the old path still ships.
 Design: `docs/superpowers/specs/2026-09-11-engine-owned-persistence-design.md`.
 Plan: `plans/2026-09-12-engine-owned-persistence.md`.
 
-**§1 is NOT closed.** The slot is shared with the shim, shadow_ui, the chain
-forwarder and the remote-UI socket; movy can stop being a contributor and
-nothing more. The rule below still stands for anything that observes movy.
+**§1 closed with the overtake host (WP9).** The slot was shared with the shim,
+shadow_ui, the chain forwarder and the remote-UI socket. movy-host has none of
+them: its param queue (`host/param_queue.c`) serves movy alone and delivers in
+order, so there is no slot left to contend for. The UI-writer path (`engpersist`
+off) is still compiled in for a debug build, but movy's own Set library refuses
+to run without engine saves (`set-lib-session.ts`), so nothing on a device
+takes it.
 
 Everything from §1 on is the record of how these were found. It stays.
 

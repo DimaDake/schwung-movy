@@ -114,33 +114,12 @@ export class Device {
      * always has; the fixture, which cannot afford that, calls logGrep. */
     logLines(pattern: string): Promise<string[]> { return this.tx.logGrep(pattern).catch(() => []); }
 
-    /* One SHM write, no gesture. Verified on device: overtake_mode 2 -> 0,
-     * logging "suspendOvertakeMode: suspend_keeps_js — parking movy in
-     * background". The DSP stays loaded — this is a park, not a close. */
-    async park(): Promise<void> {
-        await this.needMove().park();
-        await this.waitParked(1400);
-    }
-
-    /* Park by the USER'S door rather than the host flag above: Back at the root
-     * opens the Leave modal, whose DEFAULT selection is Background (the router
-     * maps it to host_suspend_overtake). Both routes land in the same state, but
-     * only this one also exercises the modal — and the modal is what a park has
-     * to survive, since Background is the option that exists only while
-     * host_suspend_overtake does. */
-    async parkViaModal(probe: Probe): Promise<void> {
-        this.needMove();
-        await this.leaveVia(probe, 'Background');
-    }
-
-    async unpark(probe?: Probe): Promise<void> { await this.open(probe); }
-
-    private async waitParked(within: number): Promise<void> {
-        await until(this.tx, 'movy to park',
+    private async waitDown(within: number): Promise<void> {
+        await until(this.tx, 'movy to close',
             () => this.tx.running(), (up) => !up, { within });
     }
 
-    /* A FULL close, which unloads the DSP — not the same thing as park().
+    /* A FULL close, which unloads the DSP.
      *
      * Back is not a close button: at the root it opens the Leave modal, while
      * the modal is up it DISMISSES it, and anywhere else it navigates up one
@@ -154,10 +133,6 @@ export class Device {
      * to the wanted label, confirm. */
     async close(probe: Probe): Promise<void> { await timed('close', () => this.leaveVia(probe, 'Close Movy')); }
 
-    /* Shared by close() and parkViaModal() — the same modal, different label.
-     * parkViaModal is a PARK (DSP stays loaded, init() not re-run) so it lands
-     * on the same wait; close is a full unload, but the host drops overtake_mode
-     * either way, so one wait covers both. */
     private async leaveVia(probe: Probe, want: string): Promise<void> {
         for (let i = 0; i < 6; i++) {
             const st = await probe.ask({ key: 'leave' });
@@ -172,7 +147,7 @@ export class Device {
             await this.tap.jogTurn(1);
             await this.tx.frames(20);
         }
-        await this.waitParked(2000);
+        await this.waitDown(2000);
     }
 
     async reopen(probe: Probe): Promise<void> { await this.close(probe); await this.open(probe); }
@@ -208,12 +183,4 @@ export class Device {
         get: (key: string) => this.tx.engineGet(key),
         set: (key: string, v: string) => this.tx.engineSet(key, v),
     };
-
-    /* The coexistence door, for scenarios that declared `needs: 'move'`. One
-     * that reaches it without declaring fails here, by name, rather than
-     * hanging on a park that a host without Background never performs. */
-    private needMove() {
-        if (!this.tx.move) throw new Error(`park needs Move beside movy; the ${this.tx.flavour} flavour has none — declare needs: 'move'`);
-        return this.tx.move;
-    }
 }

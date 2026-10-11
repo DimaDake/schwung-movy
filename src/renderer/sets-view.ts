@@ -36,11 +36,6 @@ export function firstSetsRow(selected: number, count: number): number {
 export function renderSetsView(vm: SetsPageVM): void {
     clear_screen();
     drawHeader('SETS', null, true);
-    if (vm.mode === 'move') {
-        centre(22, 'SETS FOLLOW MOVE', 1);
-        centre(22 + ROW_H + 2, 'SETTINGS > MOVY SETS', 1);
-        return;
-    }
     if (vm.mode === 'loading') {
         centre(26, 'READING SETS...', 1);
         return;

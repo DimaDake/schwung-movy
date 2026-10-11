@@ -1,8 +1,7 @@
 /* The mixer half of a movy-hosted chain's saved state.
  *
- * A host track's level is schwung's `slot:volume` and rides Move's own set
- * file. A movy track's is movy's own summing mixer — the `gain,pan,muted`
- * triple under `mix` — and no component's `:state` blob carries it. So without
+ * A track's level is movy's own summing mixer — the `gain,pan,muted` triple
+ * under `mix` — and no component's `:state` blob carries it. So without
  * this the level was gone the moment the Set was reopened, which is what "movy
  * track volume is not saved" was.
  *

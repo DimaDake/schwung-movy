@@ -89,6 +89,5 @@ void globals_register(JSContext *ctx) {
 
     globals_register_engine(ctx, g);
     globals_register_surface(ctx, g);
-    globals_register_stubs(ctx, g);
     JS_FreeValue(ctx, g);
 }

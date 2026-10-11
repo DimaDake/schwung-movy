@@ -74,7 +74,7 @@ const cells: VirtualCellSpec[] = [
     },
 ];
 
-/* One instance for the process, like `hostPort`/`engineRootPort` — the cell
+/* One instance for the process, like `engineRootPort` — the cell
  * table closes over live state already, so there is nothing session-scoped to
  * rebuild per (track, component) the way a real module's port is. */
 let source: PageParamSource | null = null;

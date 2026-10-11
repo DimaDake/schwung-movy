@@ -35,7 +35,6 @@ globalThis.clear_screen  = () => {
 };
 globalThis.shadow_get_param   = (_slot, key) => mockState[key] ?? null;
 globalThis.shadow_set_param   = (_slot, key, val) => { mockState[key] = val; return true; };
-globalThis.shadow_get_ui_slot = () => 0;
 
 /* ── Model ───────────────────────────────────────────────────────────────── */
 

@@ -14,14 +14,13 @@ export async function run() {
 {
     _log('\nseq engine plumbing:');
     const { installMockEngine, uninstallMockEngine } = await import('../mock-engine.mjs');
-    const { seqCmd, seqEngineTick, resetSeqEngine, engineAvailable } =
+    const { seqCmd, seqEngineTick, resetSeqEngine } =
         await import('../../dist/esm/seq/engine.js');
     const { seqState, resetSeqState } = await import('../../dist/esm/seq/state.js');
 
     const engine = installMockEngine();
     resetSeqEngine(); resetSeqState();
 
-    eq('engine detected via host_module_* globals', engineAvailable(), true);
     seqEngineTick(); // boot probe: ping matches → engine ready
     seqEngineTick(); // first post-boot tick polls status
 
@@ -167,17 +166,8 @@ export async function run() {
     eq('stale engine: reload requested on first probe', e3.loadRequests.length, 1);
     e3.reset();
 
-    // No engine at all: everything is a no-op. The globals are deleted rather
-    // than uninstalled, because `uninstallMockEngine()` now restores the ambient
-    // chain-param mock (env.mjs) — which IS an engine as far as this asks.
     uninstallMockEngine();
-    delete globalThis.host_module_get_param;
-    delete globalThis.host_module_set_param;
-    delete globalThis.host_module_set_param_blocking;
     resetSeqEngine();
-    seqCmd('play');
-    seqEngineTick();
-    eq('no engine: engineAvailable false', engineAvailable(), false);
 }
 
 /* ── automation: status fields parse into the mirror ─────────────────────── */
@@ -387,38 +377,11 @@ export async function run() {
     resetCapture();
 }
 
-/* ── Play-link toggle: link= status field + LINK Set-page cell ────────────── */
+/* ── Main page: knob 2 is empty since LINK was retired (WP9) ─────────────── */
 {
-    _log('\nPlay-link toggle:');
-    const { parseStatusForTest } = await import('../../dist/esm/seq/engine.js');
-    const { seqState, resetSeqState } = await import('../../dist/esm/seq/state.js');
+    _log('\nMain page knob 2:');
     const { buildMainPageVM } = await import('../../dist/esm/seq/main-page-vm.js');
-    resetSeqState();
-    eq('linkEnabled defaults false', seqState.linkEnabled, false);
-    eq('LINK cell shows OFF by default', buildMainPageVM().rows[0][2].displayValue, 'OFF');
-    parseStatusForTest('play=0 ext=0 link=1 trk=0');
-    eq('link=1 sets linkEnabled', seqState.linkEnabled, true);
-    eq('LINK cell shows ON', buildMainPageVM().rows[0][2].displayValue, 'ON');
-    parseStatusForTest('play=0 ext=0 link=0 trk=0');
-    eq('link=0 clears linkEnabled', seqState.linkEnabled, false);
-}
-
-/* ── tempo override: debounced desired-tempo write ───────────────────────── */
-{
-    _log('\ntempo override: debounced desired-tempo write');
-    const { scheduleTempoOverride, tempoOverrideTick } =
-        await import('../../dist/esm/seq/tempo-override.js');
-    const writes = [];
-    globalThis.host_write_file = (p, v) => { writes.push([p, v]); return true; };
-    scheduleTempoOverride(12500);
-    scheduleTempoOverride(12600);           // knob still turning — supersedes
-    for (let i = 0; i < 59; i++) tempoOverrideTick();
-    eq('no write during debounce', writes.length, 0);
-    tempoOverrideTick();
-    eq('single write after debounce', writes.length, 1);
-    eq('path', writes[0][0], '/data/UserData/schwung/desired-tempo');
-    eq('value is the LAST bpm, 4 decimals', writes[0][1], '126.0000\n');
-    delete globalThis.host_write_file;
+    eq('the retired LINK slot draws nothing', buildMainPageVM().rows[0][2].displayValue, '');
 }
 
 /* ── swing: engine swing status field ────────────────────────────────────── */
@@ -429,40 +392,6 @@ export async function run() {
     resetSeqState();
     parseStatusForTest('play=1 bpm=12000 swing=66');
     eq('swing mirrored from status', seqState.swingPct, 66);
-}
-
-/* ── play link: the movy→Move half needs a host that can carry the inject ── */
-{
-    _log('\nplay link capability probe:');
-    const { installMockEngine, uninstallMockEngine } = await import('../mock-engine.mjs');
-    const { seqEngineTick, resetSeqEngine } = await import('../../dist/esm/seq/engine.js');
-    const { resetSeqState } = await import('../../dist/esm/seq/state.js');
-
-    /* An old shim has no sentinel at all. Telling the engine so is what stops
-     * movy's own CC 85 coming back at it as a Play press — the feedback loop
-     * that toggled the transport ~18x/second until movy was closed. */
-    delete globalThis.shadow_overtake_move_inject_active;
-    let engine = installMockEngine();
-    resetSeqEngine(); resetSeqState();
-    seqEngineTick();                       // boot probe → engine ready
-    eq('no sentinel → minject 0', engine.ops.includes('minject 0'), true);
-    uninstallMockEngine();
-
-    globalThis.shadow_overtake_move_inject_active = () => 1;
-    engine = installMockEngine();
-    resetSeqEngine(); resetSeqState();
-    seqEngineTick();
-    eq('sentinel says yes → minject 1', engine.ops.includes('minject 1'), true);
-
-    /* A sentinel that exists but answers 0 is a host that says no. */
-    globalThis.shadow_overtake_move_inject_active = () => 0;
-    engine = installMockEngine();
-    resetSeqEngine(); resetSeqState();
-    seqEngineTick();
-    eq('sentinel says no → minject 0', engine.ops.includes('minject 0'), true);
-
-    delete globalThis.shadow_overtake_move_inject_active;
-    uninstallMockEngine();
 }
 
 /* ── CPU meter fields ────────────────────────────────────────────────────── */

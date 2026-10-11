@@ -1,15 +1,11 @@
-/* Per-set state context. Schwung stores tracks per native Move set; movy
- * mirrors that by keying its state files on the active set's UUID. The active
- * set is identified by /data/UserData/schwung/active_set.txt (line 1 = UUID,
- * line 2 = name) — the same source davebox's seq8 tool reads. */
+/* Per-set state paths: everything movy keeps for a Set lives under
+ * `<library>/Sets/<uuid>/` (set-source.ts). */
 
 import { platform } from '../platform/index.js';
-import { LEGACY_SETS_DIR, setSourceMovy, setsDir } from './set-source.js';
+import { setsDir } from './set-source.js';
 
-/* Move's names for its Sets — a Move-mode record, so always the legacy tree. */
-const NAME_INDEX    = LEGACY_SETS_DIR + '/name-index.json';
-const ACTIVE_SET    = '/data/UserData/schwung/active_set.txt';
-/* Move stores each set's folder under its UUID; used to skip deleted sets. */
+/* Move stores each set's folder under its UUID. Read only by the library's
+ * copy-import (sets-lib.ts), to skip Sets Move has deleted. */
 export const MOVE_SETS_DIR = '/data/UserData/UserLibrary/Sets';
 
 /* Loading this blank (tag-only) blob makes the engine clear all clips/tracks:
@@ -17,17 +13,8 @@ export const MOVE_SETS_DIR = '/data/UserData/UserLibrary/Sets';
  * with only the FORMAT_TAG ("movy1") applies nothing → clean slate. */
 export const BLANK_STATE = 'movy1\n';
 
-function readFile(path: string): string | null {
-    return platform.readFile(path);
-}
-function writeFile(path: string, content: string): void {
-    platform.writeFile(path, content);
-}
 export function fileExists(path: string): boolean {
-    const known = platform.fileExists(path);
-    if (known !== undefined) return known;
-    const d = readFile(path);            // fallback: non-empty read == exists
-    return d !== null && d.length > 0;
+    return platform.fileExists(path);
 }
 /* Per-set writes go under sets/<uuid>/, which host_write_file will NOT create
  * on the device — ensure the directory first (davebox does the same). The
@@ -56,7 +43,7 @@ export function shadowPath(uuid: string, slot: number): string {
 }
 
 /* Version history lives under the set's own directory so a dead Set takes its
- * history with it — `collectDeadSets` removes the whole tree.
+ * history with it.
  *
  * One directory PER VERSION, which looks extravagant until you notice that
  * `host_remove_dir` is the only removal the host offers: a version that cannot
@@ -72,85 +59,4 @@ export function versionStatePath(uuid: string, n: number): string {
 }
 export function versionUiPath(uuid: string, n: number): string {
     return versionDir(uuid, n) + '/ui-state.json';
-}
-
-/* Provisional: an id that names a pad Move has not committed to disk rather
- * than a Set. `_default` (no answer at all) counts — it is not a Set either.
- *
- * schwung mints a fresh `__pending-<index>-<seq>` on every visit to such a pad
- * and movy follows it verbatim, exactly as davebox's seq8 does: it is the id
- * both hosts agree on. What that costs, and what fixing it would take, is
- * `docs/pending-sets.md`. */
-export function isProvisionalUuid(uuid: string): boolean {
-    return uuid === '' || uuid === '_default' || uuid.startsWith('__');
-}
-
-/* Everything movy holds for one Set lives under a single directory, so one
- * removal clears all of it — state, shadows and UI blob. `host_remove_dir` is
- * registered for module JS and permits any path under `modules/`, which is
- * where this tree lives (schwung js_host_common.c). */
-export function removeSetState(uuid: string): boolean {
-    if (!uuid) return false;
-    return platform.removeDir(setsDir() + '/' + uuid);
-}
-
-export interface SetId { uuid: string; name: string; }
-
-/* The active set (line 1 = UUID, line 2 = name), or `null` when we genuinely
- * don't know which set is active: active_set.txt missing, unreadable, or
- * naming one of Move's transient placeholder ids (a set being created shows up
- * as `__pending-0-1` for a moment — a device in the wild grew a whole
- * sets/__pending-0-1/ directory that way).
- *
- * Callers must treat null as "keep the set we already have" and never as a set
- * of its own. The old reader collapsed all three cases to {uuid:''}, which
- * pointed every autosave at the `_default` set and then threw that work away
- * when the real uuid reappeared and its older file was reloaded. */
-export function readActiveSet(): SetId | null {
-    const raw = readFile(ACTIVE_SET);
-    if (!raw) return null;
-    const lines = raw.split('\n');
-    const uuid = (lines[0] || '').trim();
-    if (!uuid || uuid.startsWith('__')) return null;
-    return { uuid, name: (lines[1] || '').trim() };
-}
-
-/* The active set INCLUDING a placeholder id, and whether it is one.
- *
- * `readActiveSet` reports a placeholder as "we don't know", which is right for
- * anything that must not treat it as a set of its own. The set session wants
- * the opposite: schwung works under `__pending-<index>-<seq>` for a measured
- * 12-60 s while Move materialises the real Set, and movy adopts that same id so
- * both sides make the same transition at the same moment. */
-export function readActiveSetAny(): { id: SetId; provisional: boolean } | null {
-    const raw = readFile(ACTIVE_SET);
-    if (!raw) return null;
-    const lines = raw.split('\n');
-    const uuid = (lines[0] || '').trim();
-    if (!uuid) return null;
-    return {
-        id: { uuid, name: (lines[1] || '').trim() },
-        provisional: isProvisionalUuid(uuid),
-    };
-}
-
-export function loadNameIndex(): Record<string, string> {
-    const raw = readFile(NAME_INDEX);
-    if (!raw) return {};
-    try {
-        const o = JSON.parse(raw);
-        return (o && typeof o === 'object') ? o : {};
-    } catch { return {}; }
-}
-export function saveNameIndex(idx: Record<string, string>): void {
-    writeFile(NAME_INDEX, JSON.stringify(idx));
-}
-export function rememberSet(name: string, uuid: string): void {
-    /* Move's names for Move's ids. A library id here would teach the legacy
-     * index a Set Move has never heard of. */
-    if (!name || !uuid || setSourceMovy()) return;
-    const idx = loadNameIndex();
-    if (idx[name] === uuid) return;
-    idx[name] = uuid;
-    saveNameIndex(idx);
 }

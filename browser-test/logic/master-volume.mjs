@@ -1,8 +1,6 @@
-/* browser-test/logic/master-volume.mjs — the volume knob alone, where movy
- * owns it (caps.ownsMasterVolume: standalone). WP7 T3.
+/* browser-test/logic/master-volume.mjs — the volume knob alone. WP7 T3.
  *
- * Beside Move the knob is Move's and movy must not touch the engine stage;
- * on movy-host it walks the same 1 dB ladder as hold-track+volume, topped at
+ * It walks the same 1 dB ladder as hold-track+volume, topped at
  * unity, writes `mfx:vol`, and saves to prefs.json once per gesture. A held
  * track still wins the knob. Run by browser-test/logic.mjs.
  */
@@ -10,7 +8,7 @@
 import { eq, ok, _log } from './harness.mjs';
 
 export async function run() {
-    _log('\n── Master volume: the knob alone drives mfx:vol where movy owns it ──');
+    _log('\n── Master volume: the knob alone drives mfx:vol ──');
     const { platform, setPlatformForTest } = await import('../../dist/esm/platform/index.js');
     const mv = await import('../../dist/esm/mixer/master-volume.js');
     const tv = await import('../../dist/esm/mixer/track-volume.js');
@@ -19,9 +17,8 @@ export async function run() {
     const real = platform;
     const files = {};
     let sets = [], writes = 0;
-    const host = (owns) => ({
+    const host = () => ({
         ...real,
-        caps: { coexistsWithMove: !owns, canSuspend: !owns, ownsMasterVolume: owns },
         engineSetBlocking: (k, v) => { sets.push(k + '=' + v); return true; },
         readFile: (p) => files[p] ?? null,
         writeFile: (p, c) => { files[p] = c; writes++; return true; },
@@ -29,18 +26,8 @@ export async function run() {
     const CW = 1, CCW = 127;
 
     try {
-        /* Beside Move: not ours, nothing sent, nothing drawn. */
-        setPlatformForTest(host(false));
-        mv.resetMasterVolume(); sets = [];
-        ok('overtake: the knob is Move\'s', !mv.masterVolumeKnob(CW));
-        const pushedOt = []; mv.pushMasterVolume((k, v) => pushedOt.push(k));
-        eq('overtake: the engine stage is never set', sets.length + pushedOt.length, 0);
-        mv.masterVolumeTouch(true);
-        eq('overtake: no master slider', mv.masterVolumeOverlay(), null);
-        mv.masterVolumeTouch(false);
-
         /* movy-host, first launch: the factory level reaches the engine. */
-        setPlatformForTest(host(true));
+        setPlatformForTest(host());
         mv.resetMasterVolume(); sets = []; delete files[PREFS_PATH];
         const pushed = []; mv.pushMasterVolume((k, v) => pushed.push(k + '=' + v));
         eq('first boot pushes the factory level (-12 dB)', pushed.join(), 'mfx:vol=' + FACTORY_MASTER_VOLUME.toFixed(4));

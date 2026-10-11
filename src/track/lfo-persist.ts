@@ -1,7 +1,6 @@
 /* The LFO half of a movy-hosted chain's saved state.
  *
- * A host track's LFOs belong to schwung's slot and ride Move's own set file. A
- * movy track's live in the chain instance movy created, and no component's
+ * A track's LFOs live in the chain instance movy created, and no component's
  * `:state` blob carries them — so without this they were gone the moment the
  * tool closed, and an assignment appeared to work right up until you left.
  *

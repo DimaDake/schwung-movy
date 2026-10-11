@@ -263,7 +263,7 @@ _log('\nTest: master send FX slots');
     eq('a send reads back through its bus key', moduleReadKey('snd0'), 'snd0:module');
     eq('a track component still uses the underscore alias', moduleReadKey('fx1'), 'fx1_module');
     eq('a master component still uses the colon key',
-       moduleReadKey('master_fx:fx1'), 'master_fx:fx1:module');
+       moduleReadKey('mfx:fx1'), 'mfx:fx1:module');
 }
 
 _log('\nTest: send slot params reach the engine, not a shadow slot');
@@ -287,8 +287,9 @@ _log('\nTest: send slot params reach the engine, not a shadow slot');
     eq('under the bus key, not a doubled one', writes[0] && writes[0][1], 'snd0:module');
 
     writes.length = 0;
-    componentPort(0, 'master_fx:fx1').setParam('module', 'reverb');
-    eq('a master FX slot still goes to a shadow slot', writes[0] && writes[0][0], 'shadow');
+    componentPort(0, 'mfx:fx1').setParam('mfx:fx1:module', 'reverb');
+    eq('a master FX slot goes to movy\'s engine too', writes[0] && writes[0][0], 'engine');
+    eq('under its own key', writes[0] && writes[0][1], 'mfx:fx1:module');
 
     writes.length = 0;
     componentPort(1, 'snd1').setParam('snd1:chain_params', '[]');

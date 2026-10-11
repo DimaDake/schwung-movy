@@ -32,32 +32,18 @@ _log('\nTest: track volume gesture (hold track + CC 79)');
     const start = (track = 1, vol = '1.00') => {
         resetTrackVolume();
         env.setParams({ 'mix': mixOf(vol) });
-        env.clearInjected();
-        volumeTrackDown(track);   // divert must be injected here, before any touch
+        volumeTrackDown(track);
         volumeTouch(true);
     };
 
     eq('MASTER_CC is 79', MASTER_CC, 79);
     eq('master touch note is 8', MASTER_TOUCH_NOTE, 8);
 
-    // Idle knob belongs to Move: not consumed, nothing written.
+    // Idle knob is the master's (master-volume.ts): not consumed here.
     resetTrackVolume();
     env.setParams({ 'mix': mixOf('1.00') });
     eq('no track held: turn not consumed', volumeKnobDelta(CW), false);
     eq('no track held: volume untouched', env.params['mix'], mixOf('1.00'));
-
-    // The divert must be injected on track-button DOWN, before the knob is
-    // touched: Move decides what the volume knob targets at touch time, so a
-    // hold injected in response to the touch arrives too late and the gesture
-    // moves master volume as well (CC 43 = track 1 → slot 0, so slot 1 = CC 42).
-    resetTrackVolume();
-    env.setParams({ 'mix': mixOf('1.00') });
-    env.clearInjected();
-    volumeTrackDown(1);
-    eq('track-down injects the divert', env.injected.length, 1);
-    eq('injected track-hold press', JSON.stringify(env.injected[0]), JSON.stringify([0x0B, 0xB0, 42, 127]));
-    volumeTouch(true);
-    eq('touch adds no further injection', env.injected.length, 1);
 
     start(1);
 
@@ -103,40 +89,27 @@ _log('\nTest: track volume gesture (hold track + CC 79)');
     eq('overlay fill sits on the unity mark', volumeOverlay()?.frac, volumeOverlay()?.unityFrac);
     volumeKnobDelta(CW);
     eq('overlay tracks the edit', volumeOverlay()?.value.toFixed(4), '1.1220');
-    // Releasing the knob hides the slider but keeps the divert: the track button
-    // is still down, so a second touch-and-turn must not need a re-inject (and
-    // must not leave Move back in master-volume mode in between).
-    env.clearInjected();
+    // Releasing the knob hides the slider but keeps the gesture: the track
+    // button is still down, so a second touch-and-turn edits the same track.
     volumeTouch(false);
     eq('overlay hidden on touch release', volumeOverlay(), null);
-    eq('touch release keeps the divert', env.injected.length, 0);
     volumeTouch(true);
     eq('re-touch shows the slider again', volumeOverlay()?.track, 3);
-    eq('re-touch needs no new injection', env.injected.length, 0);
 
-    // Releasing the track button ends the divert even with the knob still held.
+    // Releasing the track button ends the gesture even with the knob still held.
     start(1);
-    env.clearInjected();
     volumeTrackUp(1);
-    eq('track release injects hold-off', JSON.stringify(env.injected[0]), JSON.stringify([0x0B, 0xB0, 42, 0]));
     eq('overlay hidden after track release', volumeOverlay(), null);
     eq('turn after release not consumed', volumeKnobDelta(CW), false);
 
     // A missed capacitive touch must not lose the gesture (the overlay stays
-    // hidden, but the turn still edits — the divert is already in place).
+    // hidden, but the turn still edits — the track button armed it).
     resetTrackVolume();
     env.setParams({ 'mix': mixOf('1.00') });
-    env.clearInjected();
     volumeTrackDown(2);
-    eq('divert precedes any touch', JSON.stringify(env.injected[0]), JSON.stringify([0x0B, 0xB0, 41, 127]));
     eq('turn without touch is consumed', volumeKnobDelta(CW), true);
     eq('turn without touch edits volume', env.params['mix'], mixOf('1.1220'));
     eq('no overlay without touch', volumeOverlay(), null);
-
-    // Only one divert per gesture, however many detents arrive.
-    env.clearInjected();
-    for (let i = 0; i < 5; i++) volumeKnobDelta(CW);
-    eq('no repeat injection while turning', env.injected.length, 0);
 
     // Missing param reads as unity rather than NaN-ing the gesture.
     resetTrackVolume();
@@ -147,49 +120,17 @@ _log('\nTest: track volume gesture (hold track + CC 79)');
 
     resetTrackVolume();
 
-    // New-schwung path: when the host advertises
-    // shadow_set_overtake_suppress_master_volume, the gesture excludes Move via
-    // that flag instead of injectHold, and needs no Shift to draw — see
-    // movy/plans/2026-08-24-track-volume-unification.md.
-    const suppressCalls = [];
-    globalThis.shadow_set_overtake_suppress_master_volume = (flag) => { suppressCalls.push(flag); };
-
-    resetTrackVolume();
-    env.setParams({ 'mix': mixOf('1.00') });
-    env.clearInjected();
-    volumeTrackDown(1);
-    eq('new path: track-down suppresses Move, no injectHold', JSON.stringify(suppressCalls), '[1]');
-    eq('new path: track-down injects nothing', env.injected.length, 0);
-    volumeTouch(true);
-    eq('new path: overlay shows with no Shift plumbing involved', volumeOverlay()?.track, 1);
-    volumeKnobDelta(CW);
-    eq('new path: edit still lands on the ladder', env.params['mix'], mixOf('1.1220'));
-    suppressCalls.length = 0;
-    volumeTrackUp(1);
-    eq('new path: track-up un-suppresses Move, no injectHold', JSON.stringify(suppressCalls), '[0]');
-    eq('new path: track-up injects nothing', env.injected.length, 0);
-
-    delete globalThis.shadow_set_overtake_suppress_master_volume;
-    resetTrackVolume();
-
-    /* Standalone (WP7 T3): no Move to divert, on any of the 16 tracks. Every
-     * track is a movy chain, so the gesture is the same write on each — what
-     * must not survive is a Move-side call (an injected hold or the shim's
-     * suppress flag), or a track index that only reaches the first group. */
-    const { platform, setPlatformForTest } = await import('../../dist/esm/platform/index.js');
-    const real = platform;
-    setPlatformForTest({ ...real, caps: { coexistsWithMove: false, canSuspend: false, ownsMasterVolume: true } });
-    globalThis.shadow_set_overtake_suppress_master_volume = (flag) => { suppressCalls.push(flag); };
+    /* All 16 tracks (WP7 T3). Every track is a movy chain, so the gesture is
+     * the same write on each — what must not survive is a track index that
+     * only reaches the first group. */
     const realSet = globalThis.host_module_set_param_blocking;
     const wrote = [];
     globalThis.host_module_set_param_blocking = (k, v, ...a) => { wrote.push(k); return realSet(k, v, ...a); };
     try {
         const missed = [];
-        suppressCalls.length = 0;
         for (let t = 0; t < 16; t++) {
             resetTrackVolume();
             env.setParams({ 'mix': mixOf('1.00') });
-            env.clearInjected();
             wrote.length = 0;
             volumeTrackDown(t);
             volumeTouch(true);
@@ -199,13 +140,9 @@ _log('\nTest: track volume gesture (hold track + CC 79)');
             if (!took || ov?.title !== 'T' + (t + 1) + ' VOLUME' || !wrote.some((k) => k === 'ch' + t + ':mix'))
                 missed.push(t + 1 + ':' + wrote.join('|'));
         }
-        eq('standalone: hold any of the 16 tracks + turn writes THAT track\'s mix', missed.join(' '), '');
-        eq('standalone: nothing is injected into Move', env.injected.length, 0);
-        eq('standalone: the shim\'s suppress flag is never touched', suppressCalls.length, 0);
+        eq('hold any of the 16 tracks + turn writes THAT track\'s mix', missed.join(' '), '');
     } finally {
-        setPlatformForTest(real);
         globalThis.host_module_set_param_blocking = realSet;
-        delete globalThis.shadow_set_overtake_suppress_master_volume;
         resetTrackVolume();
     }
 }

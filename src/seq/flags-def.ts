@@ -103,36 +103,6 @@ export const FLAGS: FlagDef[] = [
         release: true, revisedAt: 6,
     },
     {
-        key: 'setsrc', name: 'Movy Sets',
-        hint: 'MOVY: movy keeps its own Sets. Next open.',
-        // WHERE MOVY'S SETS COME FROM.
-        //
-        //   MOVE  follow Move's active Set (active_set.txt), as always
-        //   MOVY  movy's own library (UserLibrary/Movy), Shift+Step 1
-        //
-        // Standalone movy has no Move to follow, so movy-host is always MOVY;
-        // in overtake this stays MOVE by default until standalone ships (WP4
-        // decision). The first MOVY open copies every Move-bound Set across.
-        // Read once per session (set-source.ts): flipping it mid-session would
-        // move the open Set's files out from under the autosave.
-        // `uiOnly`: the engine learns it as a `setsdir` and `lib` commands.
-        min: 0, max: 1, def: 0, labels: ['MOVE', 'MOVY'], uiOnly: true, release: true,
-    },
-    {
-        key: 'setcommit', name: 'Commit New Sets',
-        hint: 'Asks Move to save a new set.',
-        // Move writes a Set to disk only once MOVE itself has something to save
-        // in it, so a pad played entirely through schwung is never a real Set
-        // and BOTH stores lose it. On, movy sends the gesture that commits it.
-        //
-        // A flag because of how it has to be sent: schwung's inject drain
-        // refuses to feed Move while a tool is overtaking, so movy lowers
-        // overtake_mode for the length of one press. That is the transition
-        // schwung carries a 3-frame hold for, and the surface belongs to Move
-        // for ~1.5 s. Worth it against losing the Set, but worth an off switch.
-        min: 0, max: 1, def: 1,
-    },
-    {
         key: 'engpersist', name: 'Engine Saves',
         hint: 'The engine owns the set file. OFF is the old path.',
         // WHO WRITES THE SET FILES.
@@ -158,31 +128,6 @@ export const FLAGS: FlagDef[] = [
         // `revisedAt` is what makes the flip arrive: a stored 0 beats a changed
         // default forever, and during rollout everyone who tested this had one.
         min: 0, max: 1, def: 1, revisedAt: 4,
-    },
-    {
-        key: 'mstown', name: 'Movy Master Chain',
-        hint: 'MASTER page runs movy\'s own master. Next open.',
-        // Overtake only: on, the MASTER page drives movy's own master (`mfx:`),
-        // as standalone always does — the device test of the standalone
-        // master. Schwung's stays behind it (design §5.4). `uiOnly`: it
-        // reaches the engine folded into `mfx:own` (chain/master-binding.ts).
-        min: 0, max: 1, def: 0, bool: true, uiOnly: true,
-    },
-    {
-        key: 'chpinhost', name: 'Pinned Chain Host',
-        hint: 'Tracks run the chain host movy ships. Next open.',
-        // WHICH CHAIN HOST MOVY'S TRACKS RUN THROUGH.
-        //
-        // On, the one movy ships, built from the schwung tag it pins
-        // (scripts/build-chain-host.sh). Off, the one schwung installed — which
-        // a schwung update can change under movy with no movy change at all,
-        // as it did to dbxhost overnight. Upstream chain fixes arrive by
-        // bumping the pin instead.
-        //
-        // The engine reads it when the chain host loads, once per engine boot,
-        // so a change applies the next time movy opens. Kept as an escape
-        // hatch while the pin is new; deleted with the coexistence code (WP9).
-        min: 0, max: 1, def: 1, bool: true,
     },
 ];
 

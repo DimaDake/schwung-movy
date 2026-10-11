@@ -22,20 +22,20 @@ export async function run() {
 /* ── the replay goes to the component's port, not slot N's track ─────────── */
 _log('\nlogic: undo of a master FX write reaches the master chain');
 {
-    const { hostPort, resetPorts } = await import('../../dist/esm/track/registry.js');
+    const { engineRootPort, resetPorts } = await import('../../dist/esm/track/registry.js');
     resetPorts();
     resetUndoState(); resetUndoGroups(); resetUndoRecord();
-    const host = hostPort(0), track0 = portFor(0);
+    const host = engineRootPort(), track0 = portFor(0);
     const hostWrites = [], trackWrites = [];
     const hs = host.setParam.bind(host), ts = track0.setParam.bind(track0);
     host.setParam = (k, v) => { hostWrites.push(k + '=' + v); return hs(k, v); };
     track0.setParam = (k, v) => { trackWrites.push(k + '=' + v); return ts(k, v); };
     beginEdit({ key: 'm', verb: 'MIX', target: 'MASTER', close: CLOSE.IMMEDIATE });
-    recordParamOp(0, 'master_fx:fx1:mix', '0.2', '0.8');
+    recordParamOp(0, 'mfx:fx1:mix', '0.2', '0.8');
     endEdit();
     undoOnce();
-    eq('the inverse is written to the master chain', hostWrites.join(), 'master_fx:fx1:mix=0.2');
-    eq('and NOT into track 0 (ch0:master_fx:…)', trackWrites.join(), '');
+    eq('the inverse is written to the master chain', hostWrites.join(), 'mfx:fx1:mix=0.2');
+    eq('and NOT into track 0 (ch0:mfx:…)', trackWrites.join(), '');
     host.setParam = hs; track0.setParam = ts;
     resetUndoState(); resetUndoGroups(); resetPorts();
 }

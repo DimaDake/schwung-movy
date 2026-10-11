@@ -4,9 +4,7 @@
  * Same shape as `clip-params-contract.ts`: one table feeds both halves of the
  * contract movy hands Schwung and the read/write for each key. NATIVE FIRST,
  * same rule — TEMPO/SWING/ROOT are Schwung's ordinary numeric/enum cells, not
- * movy's big-font "preset" look; LINK is `type: 'toggle'`, which
- * `param_meta.mjs` normalises to a plain two-option enum ("Off"/"On"), so it
- * needs no `switch`-style widget either.
+ * movy's big-font "preset" look.
  *
  * LAYOUT IS THE ONE NEW SHAPE THIS FILE ADDS: its option list is a FUNCTION
  * (`() => layoutNames(keyboardState.mode)`), because it depends on MODE's
@@ -24,12 +22,11 @@ import { SCALE_NAMES } from './scales.js';
 import { MODE_NAMES, layoutNames } from '../keyboard/layouts.js';
 import { NOTE_NAMES } from '../keyboard/notes.js';
 import { QUANT_LABELS, quantIndexForPct } from './quant.js';
-import { applyTempoX100, applySwing, applyLink, applyDefaultQuantIdx,
+import { applyTempoX100, applySwing, applyDefaultQuantIdx,
          applyRootPc, applyScaleIdx, applyModeIdx, applyLayoutIdx } from './main-page-apply.js';
 import { createVirtualSource, type VirtualCellSpec } from '../renderer/schwung-virtual-source.js';
 import type { PageParamSource } from '../renderer/schwung-page-source.js';
 import { SET_PARAMS_COMPONENT } from '../chain/config.js';
-import { platform } from '../platform/index.js';
 
 const asIndex = (v: string): number => Math.round(Number(v)) || 0;
 
@@ -69,11 +66,6 @@ const cells: VirtualCellSpec[] = [
         display: 'big',
     },
     {
-        key: 'link', name: 'Play Link', shortName: 'LINK', type: 'toggle',
-        get: () => (seqState.linkEnabled ? '1' : '0'),
-        set: (v) => applyLink(asIndex(v) === 1),
-    },
-    {
         key: 'quant', name: 'Default Quantize', shortName: 'QUANT', type: 'enum', options: QUANT_LABELS,
         peek: false,          /* the labels fit their square */
         get: () => String(quantIndexForPct(seqState.defaultQuant)),
@@ -110,18 +102,8 @@ const cells: VirtualCellSpec[] = [
 /* One instance for the process — see clip-params-contract.ts's own note on
  * why a virtual source needs no per-(track,component) lifetime. */
 let source: PageParamSource | null = null;
-let builtFor: boolean | null = null;
 export function setParamsSource(): PageParamSource {
-    /* LINK propagates Play/Stop to and from Move; with no Move beside movy it
-     * has nothing to link to, so the knob goes (the rest repack: schwung's
-     * `knobs[]` has no gaps). Keyed on the caps so a suite that swaps the
-     * platform gets the page that platform shows. */
-    const withMove = platform.caps.coexistsWithMove;
-    if (!source || builtFor !== withMove) {
-        builtFor = withMove;
-        source = createVirtualSource(SET_PARAMS_COMPONENT,
-                                     withMove ? cells : cells.filter((c) => c.key !== 'link'));
-    }
+    if (!source) source = createVirtualSource(SET_PARAMS_COMPONENT, cells);
     return source;
 }
 

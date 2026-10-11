@@ -106,7 +106,7 @@ export async function createDumpBoot(dump) {
     const env = installEnv();
     hostBeforeBoot ??= { os: globalThis.os, readFile: globalThis.host_read_file };
     /* A suite that boots a dump gives the pair back in cleanup — this is the
-     * restorer, beside `env.restoreParamGlobals`/`env.restoreUiSlot`, and the
+     * restorer, beside `env.restoreParamGlobals`, and the
      * reason the suite order stopped mattering: without a call to it, every
      * suite after the boot runs on the stubs installed below instead of the
      * harness's. */

@@ -40,9 +40,10 @@ export async function run() {
     // Knob 1 swing.
     mainPageKnob(1, 8);
     eq('swing +1 emits swing 51', peekSeqCmdQueue().some((c) => c === 'swing 51'), true);
-    // Knob 2 is now LINK (moved off knob 4 by the row rearrangement).
+    // Knob 2 is empty since LINK was retired: a turn sends nothing.
+    const queued = peekSeqCmdQueue().length;
     mainPageKnob(2, 8);
-    eq('link on emits link 1', peekSeqCmdQueue().some((c) => c === 'link 1'), true);
+    eq('the empty knob 2 sends nothing', peekSeqCmdQueue().length, queued);
 
     // Knob 4 is ROOT: cycles the pitch class, wrapping B↔C.
     keyboardState.rootPc = 11;
@@ -320,10 +321,10 @@ export async function run() {
     keyboardState.mode = 0; keyboardState.layout = 0;
     mainPageState.active = true; mainPageState.touchedKnob = 0;
     let vm = buildMainPageVM();
-    // Row 0: TEMPO SWING LINK QUANT, row 1: ROOT KEY MODE LAYOUT.
+    // Row 0: TEMPO SWING (empty) QUANT, row 1: ROOT KEY MODE LAYOUT.
     eq('tempo cell shows 120', vm.rows[0][0].displayValue, '120');
     eq('swing cell shows 50%', vm.rows[0][1].displayValue, '50%');
-    eq('link cell shows OFF', vm.rows[0][2].displayValue, 'OFF');
+    eq('the retired LINK cell is empty', vm.rows[0][2].displayValue, '');
     eq('quant cell shows the default', vm.rows[0][3].displayValue, '0%');
     eq('root cell shows C', vm.rows[1][0].displayValue, 'C');
     eq('key cell shows Major', vm.rows[1][1].displayValue, 'Major');

@@ -1,12 +1,11 @@
-/* browser-test/logic/set-state.mjs — per-set state: paths, the state envelope, the durable store, inherit-on-copy
+/* browser-test/logic/set-state.mjs — per-set state: paths, the state envelope, the durable store, the chains mirror
  *
  * Run by browser-test/logic.mjs. The suite body is deliberately left at its
  * original indentation inside run() so blame survives the split.
  */
 
 import {
-    readActiveSet, uuidToStatePath, uuidToUiStatePath, loadNameIndex, rememberSet, BLANK_STATE,
-    stripCopySuffix, findInheritCandidates, resolveState, sessionTick, resetSetSession, wrapState,
+    uuidToStatePath, uuidToUiStatePath, BLANK_STATE, sessionTick, resetSetSession, wrapState,
     parseState, adler32, installMockFs, uninstallMockFs, safeWrite, readBestState,
     readUiBlob, writeStateBlob, resetStoreRotation, shadowPath, keyboardState, installMockEngine,
     uninstallMockEngine, seqEngineTick, resetSeqEngine, ok, eq, _log,
@@ -15,47 +14,13 @@ import {
 export async function run() {
 /* ── Per-set state ───────────────────────────────────────────────────────── */
 
-_log('\nTest: set-context paths + active-set reader + name index');
+_log('\nTest: set-context paths');
 {
-    const fs = {};
-    globalThis.host_read_file  = (p) => (p in fs ? fs[p] : null);
-    globalThis.host_write_file = (p, c) => { fs[p] = c; return true; };
-    globalThis.host_file_exists = (p) => p in fs;
-    globalThis.host_ensure_dir = () => true;
-
-    fs['/data/UserData/schwung/active_set.txt'] = 'abc-123\nMy Song\n';
-    const as = readActiveSet();
-    eq('readActiveSet uuid', as.uuid, 'abc-123');
-    eq('readActiveSet name', as.name, 'My Song');
-
-    eq('state path keyed by uuid', uuidToStatePath('abc-123'),
-        '/data/UserData/schwung/modules/tools/movy/sets/abc-123/seq-state.json');
+    eq('state path keyed by uuid, in the library', uuidToStatePath('abc-123'),
+        '/data/UserData/UserLibrary/Movy/Sets/abc-123/seq-state.json');
     eq('ui path keyed by uuid', uuidToUiStatePath('abc-123'),
-        '/data/UserData/schwung/modules/tools/movy/sets/abc-123/ui-state.json');
-    eq('empty uuid → _default state path', uuidToStatePath(''),
-        '/data/UserData/schwung/modules/tools/movy/sets/_default/seq-state.json');
-
+        '/data/UserData/UserLibrary/Movy/Sets/abc-123/ui-state.json');
     eq('BLANK_STATE is the format tag', BLANK_STATE, 'movy1\n');
-
-    rememberSet('My Song', 'abc-123');
-    eq('name index round-trips', loadNameIndex()['My Song'], 'abc-123');
-
-    // "Unknown" must be distinguishable from "a set called ''". Movy follows
-    // active_set.txt; a transient unreadable file used to resolve to the
-    // `_default` set and quietly redirect every autosave there.
-    delete fs['/data/UserData/schwung/active_set.txt'];
-    eq('missing active_set → null', readActiveSet(), null);
-
-    fs['/data/UserData/schwung/active_set.txt'] = '\n\n';
-    eq('empty active_set → null', readActiveSet(), null);
-
-    // Move reports a placeholder id while a set is being created. A device in
-    // the wild ended up with a whole sets/__pending-0-1/ directory this way.
-    fs['/data/UserData/schwung/active_set.txt'] = '__pending-0-1\nNew Set\n';
-    eq('placeholder set id → null', readActiveSet(), null);
-
-    fs['/data/UserData/schwung/active_set.txt'] = 'abc-123\nMy Song\n';
-    eq('real uuid still resolves', readActiveSet().uuid, 'abc-123');
 }
 
 _log('\nTest: state envelope (truncation is detectable)');
@@ -158,92 +123,6 @@ _log('\nTest: durable store (rotation + verified writes)');
     uninstallMockFs();
 }
 
-_log('\nTest: inherit-on-copy resolution');
-{
-    const fs = {};
-    globalThis.host_read_file  = (p) => (p in fs ? fs[p] : null);
-    globalThis.host_write_file = (p, c) => { fs[p] = c; return true; };
-    globalThis.host_file_exists = (p) => p in fs;
-    globalThis.host_ensure_dir = () => true;
-    const stPath = (u) => '/data/UserData/schwung/modules/tools/movy/sets/' + u + '/seq-state.json';
-    const uiPath = (u) => '/data/UserData/schwung/modules/tools/movy/sets/' + u + '/ui-state.json';
-    const setDir = (u) => '/data/UserData/UserLibrary/Sets/' + u;
-
-    eq('strip " Copy"',   stripCopySuffix('My Song Copy'),   'My Song');
-    eq('strip " Copy 2"', stripCopySuffix('My Song Copy 2'), 'My Song');
-    eq('no suffix → null', stripCopySuffix('My Song'),        null);
-
-    // Parent "p-uuid" (name "My Song") has state + a live Move set.
-    fs[stPath('p-uuid')] = 'movy1\nbpm 12000\n';
-    fs[uiPath('p-uuid')] = '{"root":50,"scale":1}';
-    fs[setDir('p-uuid')] = '';            // dir marker
-    fs[setDir('c-uuid')] = '';            // the copy's Move set exists too
-    const idx = { 'My Song': 'p-uuid' };
-
-    const cands = findInheritCandidates('My Song Copy', idx);
-    eq('one inherit candidate found', cands.length, 1);
-    eq('candidate is the parent', cands[0].uuid, 'p-uuid');
-
-    // Resolving a copy with no own state seeds + returns the parent's blob.
-    fs['/data/UserData/schwung/modules/tools/movy/sets/name-index.json'] = JSON.stringify(idx);
-    const st = resolveState('c-uuid', 'My Song Copy');
-    eq('inherited state payload', st.payload, 'movy1\nbpm 12000\n');
-    eq('seeded copy starts at generation 1', st.gen, 1);
-    eq('copy seeded into dst state file', readBestState('c-uuid').payload, 'movy1\nbpm 12000\n');
-    eq('copy seeded dst ui file', readUiBlob('c-uuid'), '{"root":50,"scale":1}');
-
-    // Unknown brand-new set with no family → blank.
-    eq('unknown set → blank', resolveState('z-uuid', 'Fresh').payload, 'movy1\n');
-
-    // A set that already has its own state returns it (no inherit).
-    fs[stPath('own')] = 'movy1\nswing 60\n';
-    eq('own state wins', resolveState('own', 'Whatever').payload, 'movy1\nswing 60\n');
-}
-
-_log('\nTest: a set switch saves the outgoing set before loading the incoming one');
-{
-    const eng = installMockEngine();         // installs host_module_* on globalThis
-    const { seqState: seqStateForSwitch } = await import('../../dist/esm/seq/state.js');
-    const { seqEngineTick, resetSeqEngine } = await import('../../dist/esm/seq/engine.js');
-    const { sessionTick, resetSetSession, currentSetUuid: curSet } =
-        await import('../../dist/esm/seq/set-session.js');
-    const { resetSetSave } = await import('../../dist/esm/seq/set-save.js');
-    const mock = installMockFs();
-    const fs = mock.files;
-    const ACTIVE_SW = '/data/UserData/schwung/active_set.txt';
-    const stPath = (u) => '/data/UserData/schwung/modules/tools/movy/sets/' + u + '/seq-state.json';
-    const uiPath = (u) => '/data/UserData/schwung/modules/tools/movy/sets/' + u + '/ui-state.json';
-    const spin = (n = 200) => { for (let i = 0; i < n; i++) { seqEngineTick(); sessionTick(); } };
-
-    resetSetSession(); resetSetSession(); resetSetSave(); resetStoreRotation(); resetSeqEngine();
-    eng.reset();
-
-    // Set A has saved state + ui; opening on it loads both.
-    fs[ACTIVE_SW] = 'A\nSong A\n';
-    fs[stPath('A')] = 'movy1\nbpm 13000\n';
-    fs[uiPath('A')] = '{"root":55,"scale":2}';
-    spin();
-    eq('loaded A blob into engine', eng.stateLoads[eng.stateLoads.length - 1], 'movy1\nbpm 13000\n');
-    eq('applied A ui root', keyboardState.rootPc, 7);   // 55 % 12
-    eq('applied A ui scale', keyboardState.scale, 2);
-    eq('current uuid is A', curSet(), 'A');
-
-    /* Switching to a set that ALREADY has state must save A first and then load
-     * B — the rename rule only applies to a set with nothing of its own. */
-    fs[stPath('B')] = 'movy1\nbpm 9000\n';
-    eng.stateBlob = 'movy1\nbpm 13000\nEDITED\n';
-    seqStateForSwitch.dirty = true;
-    fs[ACTIVE_SW] = 'B\nSong B\n';
-    spin();
-    eq('A saved before B load', readBestState('A').payload, 'movy1\nbpm 13000\nEDITED\n');
-    eq('B loaded from its own file', eng.stateLoads[eng.stateLoads.length - 1], 'movy1\nbpm 9000\n');
-    eq('B ui reset to defaults (root C)', keyboardState.rootPc, 0);
-    eq('B ui reset to defaults (scale 0)', keyboardState.scale, 0);
-    eq('current uuid is B', curSet(), 'B');
-    uninstallMockEngine(); uninstallMockFs(); resetSetSession(); resetSeqEngine();
-}
-
-
 /* ── The compatibility mirror ─────────────────────────────────────────────
  * `engpersist` is a runtime switch, so "on, then off again" is an ordinary
  * afternoon during rollout — and a build with the flag OFF looks for the
@@ -315,7 +194,7 @@ _log('\nTest: the chains mirror written from the engine\'s own file');
     eq('leaving engine-owned flushes the engine first', eng2.setState.dirty, 0);
     ok('and the flush is the command that did it', eng2.setCmds.includes('flush'));
 
-    setFlag('engpersist', 0);
+    setFlag('engpersist', 1);
     uninstallMockEngine(); uninstallMockFs();
 }
 }

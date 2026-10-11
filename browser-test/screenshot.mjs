@@ -37,10 +37,10 @@ const PRESETS = [
     'test8', 'test16', 'test_enum', 'test_steps', 'plaits', 'wurl',
     'enum_overlay', 'knob_toast', 'no_params', 'keys_view', 'browse_view',
     'session_booting', 'session_loading', 'session_modules', 'session_preparing',
-    'session_migrating', 'session_failed',
+    'session_failed',
     'session_failed_update',
     'versions_empty', 'versions_list', 'versions_confirm',
-    'sets_list', 'sets_long_names', 'sets_confirm', 'sets_move_mode',
+    'sets_list', 'sets_long_names', 'sets_confirm',
     'obxd_preset_page', 'obxd_main_page', 'obxd_filter_page',
     'items_cell', 'items_overlay',
     'lfo_prefix', 'collide_osc',
@@ -62,7 +62,7 @@ const PRESETS = [
     'song_band', 'song_band_overflow', 'song_band_end',
     'main-default', 'main-tempo-touched', 'main-swing-touched',
     'main-root-touched', 'main-key-overlay', 'main-mode-overlay', 'main-layout-overlay',
-    'main-ext-sync', 'main-link-on',
+    'main-ext-sync',
     'clip-default', 'clip-fraction', 'clip-overlay', 'clip-drum', 'clip-quant',
     'main-quant', 'quant-overlay-three', 'quant-overlay-two',
     'flags-top', 'flags-scrolled', 'flags-release',
@@ -146,7 +146,7 @@ const BASE = {
     'main-swing-touched': 'test8', 'main-root-touched': 'test8',
     'main-key-overlay': 'test8', 'main-mode-overlay': 'test8',
     'main-layout-overlay': 'test8',
-    'main-ext-sync': 'test8', 'main-link-on': 'test8',
+    'main-ext-sync': 'test8',
     'clip-default': 'test8', 'clip-fraction': 'test8', 'clip-overlay': 'test8',
     'clip-drum': 'test8', 'clip-quant': 'test8',
     'quant-overlay-three': 'test8', 'quant-overlay-two': 'test8',
@@ -485,13 +485,10 @@ function applyView(preset) {
         case 'session_booting':  lastRender = () => renderLoadingView('booting', ''); lastRender(); break;
         case 'session_loading':  lastRender = () => renderLoadingView('loading', ''); lastRender(); break;
         /* The two halves of settling: the Set is loaded but its modules are
-         * still arriving one per audio callback, then the tail where the
-         * Set-commit press has the surface. */
+         * still arriving one per audio callback, then the tail where their
+         * payloads land. */
         case 'session_modules':  lastRender = () => renderLoadingView('settling', '', 7); lastRender(); break;
         case 'session_preparing': lastRender = () => renderLoadingView('settling', '', 0); lastRender(); break;
-        case 'session_migrating':
-            lastRender = () => renderLoadingView('settling', '', 0, 'set', true);
-            lastRender(); break;
         case 'session_failed':
             lastRender = () => renderLoadingView('failed', 'SET FILE UNREADABLE', 0, 'set');
             lastRender(); break;
@@ -535,7 +532,7 @@ function applyView(preset) {
                 { id: 'a', clips: 0, depth: 0, name: '2026-10-10_01' },
                 { id: 'o', clips: 7, depth: 0, name: 'Set 39' },
             ];
-            lastRender = () => renderSetsView(buildSetsPageVM(true, rows, 'b', 2, false));
+            lastRender = () => renderSetsView(buildSetsPageVM(rows, 'b', 2, false));
             lastRender(); break;
         }
         /* A name too long for its count gives up the count, never its end;
@@ -546,7 +543,7 @@ function applyView(preset) {
                 { id: 'm', clips: 9, depth: 0, name: 'Medium length name here' },
                 { id: 's', clips: 1, depth: 0, name: 'Short' },
             ];
-            lastRender = () => renderSetsView(buildSetsPageVM(true, rows, 'l', 1, false));
+            lastRender = () => renderSetsView(buildSetsPageVM(rows, 'l', 1, false));
             lastRender(); break;
         }
         case 'sets_confirm': {
@@ -554,12 +551,9 @@ function applyView(preset) {
                 { id: 'b', clips: 12, depth: 0, name: 'Night Drive' },
                 { id: 'a', clips: 0, depth: 0, name: '2026-10-10_01' },
             ];
-            lastRender = () => renderSetsView(buildSetsPageVM(true, rows, 'a', 1, true));
+            lastRender = () => renderSetsView(buildSetsPageVM(rows, 'a', 1, true));
             lastRender(); break;
         }
-        case 'sets_move_mode':
-            lastRender = () => renderSetsView(buildSetsPageVM(false, null, '', 0, false));
-            lastRender(); break;
         case 'browse_view':      showBrowse([{ name: 'Plaits' }, { name: 'Wurl' }, { name: 'Bass' }], 1); break;
         /* The other browser: the one a FILE parameter opens, which is what "hold
          * the knob and click the jog" lands on. The cursor sits on a file rather
@@ -815,7 +809,7 @@ function applyView(preset) {
         case 'flags-scrolled': {
             resetFlags(); resetFlagsPage();
             const scrolled = preset === 'flags-scrolled';
-            setFlag('setcommit', scrolled ? 0 : 1);
+            setFlag('engpersist', scrolled ? 0 : 1);
             setFlag('schwunggrid', scrolled ? 1 : 0);
             flagsPageState.selected = scrolled ? flagsRowCount() - 1 : 0;
             lastRender = () => renderFlagsView(buildFlagsPageVM());
@@ -1180,15 +1174,6 @@ function applyView(preset) {
             lastRender();
             break;
         }
-        case 'main-link-on': {       // Play-link enabled: LINK cell shows ON
-            resetSeqState(); resetMainPage();
-            keyboardState.rootPc = 0; keyboardState.octave = [4, 4, 4, 4];
-            keyboardState.mode = 0; keyboardState.layout = 0; keyboardState.scale = 0;
-            seqState.linkEnabled = true;
-            lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
-            lastRender();
-            break;
-        }
         case 'clip-default': {       // 1X / len 16 / transpose 0
             resetSeqState(); resetClipPage();
             seqState.clipScaleIdx = 4; seqState.lenSteps = 16; seqState.clipTranspose = 0;
@@ -1339,11 +1324,11 @@ function applyView(preset) {
         case 'lfo_master':
         case 'lfo_master_chain': {
             env.setParams({
-                'master_fx:fx1:chain_params': JSON.stringify([{ key: 'mix', name: 'Mix', type: 'float' }]),
-                'master_fx:lfo1:sync': '0', 'master_fx:lfo1:rate_hz': '2.0',
-                'master_fx:lfo1:depth': '0.65', 'master_fx:lfo1:shape': '0',
-                'master_fx:lfo1:polarity': '1', 'master_fx:lfo1:phase_offset': '0',
-                'master_fx:lfo1:target': 'fx1', 'master_fx:lfo1:target_param': 'mix',
+                'mfx:fx1:chain_params': JSON.stringify([{ key: 'mix', name: 'Mix', type: 'float' }]),
+                'mfx:lfo1:sync': '0', 'mfx:lfo1:rate_hz': '2.0',
+                'mfx:lfo1:depth': '0.65', 'mfx:lfo1:shape': '0',
+                'mfx:lfo1:polarity': '1', 'mfx:lfo1:phase_offset': '0',
+                'mfx:lfo1:target': 'fx1', 'mfx:lfo1:target_param': 'mix',
             });
             resetPorts();
             const mlm = createScopedLfoModel(masterScope());
@@ -1532,10 +1517,10 @@ function applyView(preset) {
         case 'page_lfo':
         case 'page_lfo_master': {
             const master = preset === 'page_lfo_master';
-            const P = master ? 'master_fx:' : '';
+            const P = master ? 'mfx:' : '';
             env.setParams({
                 'synth:chain_params': JSON.stringify([{ key: 'cutoff', name: 'Cutoff', type: 'float' }]),
-                'master_fx:fx1:chain_params': JSON.stringify([{ key: 'mix', name: 'Mix', type: 'float' }]),
+                'mfx:fx1:chain_params': JSON.stringify([{ key: 'mix', name: 'Mix', type: 'float' }]),
                 [P + 'lfo1:sync']: '0', [P + 'lfo1:rate_hz']: '2.0', [P + 'lfo1:depth']: '0.65',
                 [P + 'lfo1:shape']: '0', [P + 'lfo1:polarity']: '1', [P + 'lfo1:enabled']: '1',
                 [P + 'lfo1:target']: master ? 'fx1' : 'synth',
@@ -1579,7 +1564,7 @@ function applyView(preset) {
             const sp = schwungPageFor(0, 'synth');
             for (let i = 0; i < 12 * 60 && !sp.ready; i++) { sp.tick(); model.tick(); }
             if (!sp.ready) throw new Error(preset + ': the contract never resolved');
-            const mfx1 = MASTER_FX_SLOTS.findIndex((sl) => sl.componentKey === 'master_fx:fx1');
+            const mfx1 = MASTER_FX_SLOTS.findIndex((sl) => sl.componentKey === 'mfx:fx1');
             lastRender = () => renderChainView(model.getViewModel(), mfx1, false, 'MASTER',
                 MASTER_FX_SLOTS[mfx1].label, MASTER_FX_SLOTS,
                 () => sp.render(''), sp.chrome(false));

@@ -32,7 +32,6 @@ pub fn serialize(engine: &Engine) -> String {
     s.push('\n');
     s.push_str(&format!("bpm {}\n", engine.clock.bpm_x100()));
     s.push_str(&format!("swing {}\n", engine.swing_pct));
-    s.push_str(&format!("link {}\n", engine.link_enabled as u8));
     /* The song is Set-level, like tempo — one line, omitted when there is no
      * song so older builds (and songless Sets) are byte-identical to before. */
     if !engine.song.is_empty() {
@@ -131,8 +130,6 @@ pub fn load(engine: &mut Engine, data: &str) -> bool {
         t.lane_base = [0u8; LANES];
         t.lane_label = Default::default();
     }
-    // Link defaults off; a legacy save without a `link` line loads with it off.
-    engine.link_enabled = false;
     // A Set with no `sg` line has no song — including one loaded over a Set
     // that did.
     engine.clear_song();
@@ -149,11 +146,9 @@ pub fn load(engine: &mut Engine, data: &str) -> bool {
                     engine.swing_pct = v.clamp(50, 80);
                 }
             }
-            Some("link") => {
-                if let Some(v) = it.next().and_then(|x| x.parse::<u8>().ok()) {
-                    engine.link_enabled = v != 0;
-                }
-            }
+            // A Set saved before WP9 carries the retired Move transport link
+            // (`link <0|1>`); it has nothing to configure any more.
+            Some("link") => {}
             Some("sg") => {
                 engine.song = it
                     .filter_map(|x| x.parse::<u8>().ok())
@@ -616,19 +611,11 @@ mod tests {
     }
 
     #[test]
-    fn link_enabled_round_trips_and_defaults_off() {
+    fn a_retired_link_line_still_loads() {
         let mut e = Engine::new(44100, 12000);
-        e.link_enabled = true;
-        let s = serialize(&e);
-        let mut e2 = Engine::new(44100, 12000);
-        assert!(load(&mut e2, &s));
-        assert!(e2.link_enabled, "link state round-trips");
-
-        // A legacy save without a `link` line loads with the link off.
-        let mut e3 = Engine::new(44100, 12000);
-        e3.link_enabled = true; // pre-set to prove load() clears it
-        assert!(load(&mut e3, "movy1\nbpm 12000\n"));
-        assert!(!e3.link_enabled, "legacy save → link off");
+        assert!(load(&mut e, "movy1\nbpm 9000\nlink 1\n"));
+        assert_eq!(e.clock.bpm_x100(), 9000, "the lines around it still apply");
+        assert!(!serialize(&e).contains("link"), "and it is not written back");
     }
 
     #[test]

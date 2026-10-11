@@ -2,8 +2,7 @@
  *
  * Movy's tracks used to be schwung shadow slots, so "track" and "slot" were the
  * same number everywhere. They are not any more: every track is a chain movy
- * hosts itself, and the one-time migration in `track/migrate.ts` is what carried
- * the last schwung-hosted ones across.
+ * hosts itself.
  *
  * A track's kind used to be a SETTING (`chtracks`), which meant nothing here
  * could be cached and every reader had to ask. That is gone — there is one kind. */

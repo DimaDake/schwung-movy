@@ -25,7 +25,7 @@ import { isMasterComponent } from '../chain/config.js';
  * find the same model.
  */
 export function componentModelOf(track: number, componentKey: string): any | null {
-    /* A `master_fx:` component's model is not in any track's chain — it lives
+    /* A `mfx:` component's model is not in any track's chain — it lives
      * in `masterFxModels`, addressed by slot, and the port that reaches it
      * reports `track` as a fixed carrier (0), not a real track (SP-52). Reading
      * `trackModels[0]` for it would walk track 0's OWN chain, find no match,

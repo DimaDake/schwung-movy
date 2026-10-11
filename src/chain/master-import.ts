@@ -2,11 +2,11 @@
  *
  * Copy forward, never clean up: schwung's `set_state/<uuid>/master_fx_N.json`
  * is READ, never written, cleared or enforced empty, so a downgrade to the
- * overtake binding still finds everything it left. A file read rather than a
- * shim query, so it works in standalone where there is no shim to ask.
+ * overtake build still finds everything it left. A file read, because there is
+ * no shim to ask.
  *
  * Runs when the engine has applied a Set (`sapl` moved) whose movy master was
- * never imported, and only while movy's master is the bound one. Two phases:
+ * never imported. Two phases:
  * the modules and their preset blobs first (the engine queues the loads and
  * attaches each blob to its load), then — once nothing is pending — the
  * loose params, bypass and LFOs, because an LFO cannot bind to a position
@@ -17,8 +17,7 @@
 
 import { platform } from '../platform/index.js';
 import { mlog } from '../log.js';
-import { MOVY_MASTER_PREFIX as P } from './master-prefix.js';
-import { movyMasterBound } from './master-binding.js';
+import { MASTER_PREFIX as P } from './master-prefix.js';
 
 const SET_STATE_DIR = '/data/UserData/schwung/set_state/';
 const MASTER_FX = 4;
@@ -115,7 +114,7 @@ export function masterImportTick(uuid: string, pending: number, get: Get, set: S
     }
     if (!armed) return;
     armed = false;
-    if (!uuid || !movyMasterBound() || get(P + 'imported') !== '0') return;
+    if (!uuid || get(P + 'imported') !== '0') return;
     const dir = SET_STATE_DIR + uuid + '/';
     const files: (string | null)[] = [];
     for (let i = 0; i < MASTER_FX; i++) files.push(platform.readFile(dir + 'master_fx_' + i + '.json'));

@@ -23,12 +23,8 @@ import { ENGINE_VERSION } from '../../dist/esm/seq/constants.js';
 import { NAME_POLL_TICKS, META_RETRY_LIMIT, KNOBS_PER_PAGE, HIERARCHY_RETRY_TICKS } from '../../dist/esm/model/constants.js';
 import { OVERRIDES_MODULE_FILE } from '../../dist/esm/modules/loader.js';
 import {
-    readActiveSet, uuidToStatePath, uuidToUiStatePath,
-    loadNameIndex, rememberSet, BLANK_STATE,
+    uuidToStatePath, uuidToUiStatePath, BLANK_STATE,
 } from '../../dist/esm/seq/set-context.js';
-import {
-    stripCopySuffix, findInheritCandidates, resolveState,
-} from '../../dist/esm/seq/set-inherit.js';
 import { sessionTick, resetSetSession } from '../../dist/esm/seq/set-session.js';
 import { wrapState, parseState, adler32 } from '../../dist/esm/seq/persist-blob.js';
 import { installMockFs, uninstallMockFs } from '../mock-fs.mjs';
@@ -57,9 +53,6 @@ import {
 import { buildFlagsPageVM } from '../../dist/esm/seq/flags-page-vm.js';
 import { visibleFlags } from '../../dist/esm/seq/flags-visible.js';
 import { loadPerSetFlags } from '../../dist/esm/seq/flags.js';
-import {
-    migrateRowArmed, armMigrateRow, disarmMigrateRow, runMigrateRow, slotsHaveContent,
-} from '../../dist/esm/seq/migrate-action.js';
 import { schwungGridMode, setSchwungGridMode, schwungPageFor,
          schwungGridReload, schwungGridDrop } from '../../dist/esm/renderer/schwung-grid.js';
 import { schwungLibAvailable, schwungLibError } from '../../dist/esm/renderer/schwung-lib.js';
@@ -287,8 +280,7 @@ export {
     dedupShortNames, LABEL_BUDGET, detectEnvelopes, planPageLayout, enumRawToIndex, enumUsesIndex, enumSetValue,
     MOCK_SYNTHS, drumPadOn, drumPadOff, ENGINE_VERSION, NAME_POLL_TICKS, META_RETRY_LIMIT, HIERARCHY_RETRY_TICKS,
     KNOBS_PER_PAGE, OVERRIDES_MODULE_FILE,
-    readActiveSet, uuidToStatePath, uuidToUiStatePath, loadNameIndex, rememberSet, BLANK_STATE,
-    stripCopySuffix, findInheritCandidates, resolveState, sessionTick, resetSetSession, wrapState,
+    uuidToStatePath, uuidToUiStatePath, BLANK_STATE, sessionTick, resetSetSession, wrapState,
     parseState, adler32, installMockFs, uninstallMockFs, safeWrite, readBestState,
     readUiBlob, writeStateBlob, resetStoreRotation, shadowPath, keyboardState, quantCandidates,
     nextQuantCandidate, quantIndexForPct, candidateIndex, readPrefDefaultQuant, writePrefDefaultQuant,
@@ -299,7 +291,6 @@ export {
     schwungLibAvailable, schwungLibError,
     batchKeys, fill, KEEP_EPOCHS, BATCH_MAX_KEYS, BATCH_VALUE_MAX,
     flagsPageState, flagsRowCount, backupsRowSelected, actionRowSelected, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
-    migrateRowArmed, armMigrateRow, disarmMigrateRow, runMigrateRow, slotsHaveContent,
     buildFlagsPageVM, VISIBLE_ROWS, firstVisibleRow, readPrefFlags, writePrefFlag,
     visibleFlags, loadPerSetFlags, resetPorts,
     wrapWords, HINT_W, HINT_LINES, DETENT_DIV, fontWidth, W,

@@ -4,9 +4,6 @@
 
 declare function fill_rect(x: number, y: number, w: number, h: number, color: number): void;
 declare function clear_screen(): void;
-/* Set true by the host only while a parked module's tick() runs. Read it as
- * `globalThis.overtakeParked`: a bare unset global identifier throws. */
-declare var overtakeParked: boolean | undefined;
 declare function setLED(note: number, color: number, immediate: boolean): void;
 declare function setButtonLED(cc: number, color: number, immediate: boolean): void;
 declare function decodeDelta(d2: number): number;

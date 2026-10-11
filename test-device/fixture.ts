@@ -26,7 +26,6 @@ const run = promisify(execFile);
 const HERE = dirname(fileURLToPath(import.meta.url));
 const MOVY = join(HERE, '..', '..');
 const FIXTURE_DIR = join(MOVY, 'scripts', 'fixtures', 'device-set');
-export const DEVICE_DIR = '/data/UserData/schwung/_movy-fixture';
 
 let HOST = 'move.local';
 export function setHost(h: string): void { HOST = h; }
@@ -41,31 +40,8 @@ async function scpTo(local: string, remote: string): Promise<void> {
     await run('scp', ['-q', ...SSH_OPTS, local, `ableton@${HOST}:${remote}`]);
 }
 
-/* Every node helper inherits HOST from the ENVIRONMENT (process.env.HOST),
- * while the suites pass the address as an argument. Without this a run against
- * another device would ssh to the right box and WebSocket to move.local. */
-async function node(script: string, args: string[]): Promise<{ out: string; code: number }> {
-    try {
-        const { stdout } = await run('node', [join(MOVY, 'scripts', script), ...args],
-                                     { env: { ...process.env, HOST }, maxBuffer: 8 * 1024 * 1024 });
-        return { out: stdout.trim(), code: 0 };
-    } catch (e: any) {
-        return { out: String(e?.stdout ?? '').trim(), code: e?.code ?? 1 };
-    }
-}
-
-/* "<slot> <module>" per line, comments and blanks stripped. ONE parser, so
- * apply and verify can never disagree about what the fixture describes. */
-export function fixtureEntries(): Array<{ slot: string; mod: string }> {
-    return readFileSync(join(FIXTURE_DIR, 'slots.txt'), 'utf8')
-        .split('\n')
-        .map((l) => l.replace(/#.*/, '').trim())
-        .filter(Boolean)
-        .map((l) => { const [slot, mod] = l.split(/\s+/); return { slot, mod }; });
-}
-
-/* The movy-hosted half, read out of the same ui-state.json movy itself restores
- * from — same one-parser rule as fixtureEntries. */
+/* The chains, read out of the same ui-state.json movy itself restores from —
+ * ONE parser, so the fixture and the checks can never disagree about it. */
 export function chainEntries(): Array<{ track: string; comp: string; mod: string }> {
     const o = JSON.parse(readFileSync(join(FIXTURE_DIR, 'ui-state.json'), 'utf8'));
     const out: Array<{ track: string; comp: string; mod: string }> = [];
@@ -82,21 +58,13 @@ export function fixtureSynth(track: number): string {
     return chainEntries().find((e) => e.track === String(track) && e.comp === 'synth')?.mod ?? '';
 }
 
-/* Standalone has no Move: movy-host is always in library mode and opens the
- * library's `current` Set, not active_set.txt's. Seeding the legacy Set dir
- * there (what this did) left movy on an empty library Set and the chains
- * never reached the fixture. In library mode the fixture owns ONE library
+/* movy-host opens the library's `current` Set, so the fixture owns ONE library
  * Set and pins it as `current` before every open. */
 const LIB_ROOT = '/data/UserData/UserLibrary/Movy';
 export const LIB_FIXTURE_ID = 'movy-fixture';
-let libraryMode = false;
-/* Where movy keeps a Set's seq-state.json / ui-state.json / versions: the
- * library Set in standalone, the legacy per-uuid dir beside Move. */
-export function movySetDir(uuid: string): string {
-    return libraryMode ? `${LIB_ROOT}/Sets/${LIB_FIXTURE_ID}`
-                       : `/data/UserData/schwung/modules/tools/movy/sets/${uuid || '_default'}`;
-}
-export function useLibrary(on: boolean): void { libraryMode = on; }
+/* Where movy keeps the fixture Set's seq-state.json / ui-state.json /
+ * versions. `_uuid` is kept for the call sites; there is one library Set. */
+export function movySetDir(_uuid = ''): string { return `${LIB_ROOT}/Sets/${LIB_FIXTURE_ID}`; }
 
 /* movy-host must be down (the engine rewrites library.json while it runs). */
 async function pinLibrary(): Promise<void> {
@@ -115,158 +83,7 @@ async function pinLibrary(): Promise<void> {
     } finally { rmSync(tmp, { recursive: true, force: true }); }
 }
 
-export async function activeUuid(): Promise<string> {
-    if (libraryMode) return LIB_FIXTURE_ID;
-    return (await ssh('head -n 1 /data/UserData/schwung/active_set.txt 2>/dev/null || true')).trim();
-}
-
-/* All four slots over ONE WebSocket. Reading them one at a time meant four
- * connections per pass and two passes per attempt, which is what made
- * establishing the fixture the most expensive thing a device test did.
- *
- * Exit 3 means at least one slot never answered. Silence must NEVER be read as
- * "empty" — that is how a verify accepts a slot that never loaded. */
-async function readSlots(): Promise<string[] | null> {
-    const { out, code } = await node('slots-read.mjs', []);
-    if (code !== 0 || !out) return null;
-    return out.split('\n').map((l) => l.trim()).filter(Boolean).sort();
-}
-
-/* Read every slot back and compare. Never INFER that an apply worked: running
- * on the wrong state while reporting success is the failure this exists to
- * remove. */
-export async function verify(quiet = false): Promise<boolean> {
-    const want = fixtureEntries()
-        .map((e) => `${e.slot} ${e.mod === 'none' ? '-' : e.mod}`).sort();
-    const got = await readSlots();
-    if (!got) { if (!quiet) console.error('fixture: no answer reading the chain'); return false; }
-    if (want.join('|') !== got.join('|')) {
-        if (!quiet) {
-            console.error(`fixture: chain is [${got.join(' ')}], fixture wants [${want.join(' ')}]`);
-        }
-        return false;
-    }
-    return true;
-}
-
-/* Ship the fixture to a directory schwung does not own. Anything kept under
- * set_state/<uuid>/ is autosaved over with whatever is currently loaded, so a
- * fixture stored there quietly becomes a copy of the last test's mess. */
-async function pushFixture(): Promise<void> {
-    await ssh(`mkdir -p ${DEVICE_DIR}`);
-    for (const { slot, mod } of fixtureEntries()) {
-        if (mod === 'none') continue;
-        await scpTo(join(FIXTURE_DIR, `slot_${slot}.json`), `${DEVICE_DIR}/slot_${slot}.json`);
-    }
-}
-
-/* Wait until a slot reports the module we asked for. Chain loads settle at
- * their own pace — under a second to several — so a fixed sleep either wastes
- * time or gives up too early; both happened before this polled. */
-async function waitSlot(tx: Transport, slot: string, want: string): Promise<boolean> {
-    try {
-        await until(tx, `slot ${slot} == ${want || 'empty'}`, async () => {
-            const { out, code } = await node('module-slot.mjs', ['get', slot, 'synth']);
-            return code === 0 ? out : null;
-        }, (v) => v === want, { within: 7000, every: 300 });
-        return true;
-    } catch { return false; }
-}
-
-async function apply(tx: Transport): Promise<void> {
-    for (const { slot, mod } of fixtureEntries()) {
-        if (mod === 'none') {
-            await node('slot-state.mjs', ['clear', slot]);
-            await waitSlot(tx, slot, '');
-            continue;
-        }
-        /* load_file acts on the slot's EXISTING chain instance: it is a no-op
-         * on an empty slot, and on a slot holding a DIFFERENT module it empties
-         * the slot rather than switching it. So put the right module in place
-         * first whenever the slot does not already hold it; load_file then
-         * restores that module's parameter values on top. */
-        const cur = await node('module-slot.mjs', ['get', slot, 'synth']);
-        if (cur.out !== mod) {
-            await node('slot-state.mjs', ['module', slot, mod]);
-            if (!await waitSlot(tx, slot, mod)) continue;   // let the outer retry re-try
-        }
-        await node('slot-state.mjs', ['load', slot, `${DEVICE_DIR}/slot_${slot}.json`]);
-        await waitSlot(tx, slot, mod);
-    }
-}
-
-/* True when a slot the fixture WANTS a module in reads empty — the state no
- * number of applies can leave (see seedBootState).
- *
- * Asking whether EVERY slot is empty was the original rule, and it is false in
- * the one shape that matters: a device rebooted onto an unsaved set comes up
- * PARTIALLY cold as often as fully. Measured: the chain read `[0 plaits 1 - 2 -
- * 3 -]` against a fixture wanting mrdrums in slot 1, so every slot was not
- * empty, the boot seed never ran, and the six attempts below then burned
- * minutes each on a route that provably cannot work. Cold is per WANTED slot;
- * a fully-cold chain is the subset where all of them read empty, so nothing
- * that was cold under the old rule stopped being cold.
- *
- * `got` is one `<slot> <module>` line per slot with "-" for empty
- * (scripts/slots-read.mjs), so this matches each wanted slot against that
- * slot's OWN line rather than trusting the order they arrived in.
- *
- * A slot with no line at all is NOT cold — matched by "reads empty" and not by
- * absence, so silence stays unknown. (readSlots already returns null when any
- * slot fails to answer; this is the second guard, for a caller that passes its
- * own list.) A device that does not ANSWER is therefore still not cold:
- * silence is unknown, and seeding on it would restart the stack for nothing. */
-export function chainIsColdFor(want: Array<{ slot: string; mod: string }>,
-                               got: string[]): boolean {
-    const empty = new Set<string>();
-    for (const line of got) {
-        const m = /^(\d+)\s+(.*)$/.exec(line.trim());
-        if (m && m[2].trim() === '-') empty.add(m[1]);
-    }
-    return want.some((e) => e.mod !== 'none' && empty.has(e.slot));
-}
-
-async function chainIsCold(): Promise<boolean> {
-    if (!fixtureEntries().some((e) => e.mod !== 'none')) return false;
-    const got = await readSlots();
-    if (!got) return false;
-    return chainIsColdFor(fixtureEntries(), got);
-}
-
-/* Seed the shim's BOOT path with the fixture, then restart.
- *
- * The remote-UI route `apply` uses cannot load the FIRST module into a slot: a
- * web set-ring write reaches the chain plugin only when the slot is already
- * active, so `synth:module` into an empty slot is dropped with no error and a
- * cheerful success. A device rebooted on an unsaved set comes up exactly there,
- * and the attempts below then cost ~110 s each while never being able to work.
- *
- * The shim's boot has no such gate — it load_file's each slot_N.json itself. So
- * write the fixture where boot reads it, in the restart's DOWN window, because
- * the running shim autosaves over that directory. */
-async function seedBootState(): Promise<void> {
-    const uuid = await activeUuid();
-    const dir = uuid ? `/data/UserData/schwung/set_state/${uuid}`
-                     : '/data/UserData/schwung/slot_state';
-    await ssh('mkdir -p /tmp/ts-seed');
-    for (const { slot, mod } of fixtureEntries()) {
-        if (mod === 'none') {
-            /* "{}" is what the shim itself autosaves for an empty slot. */
-            await ssh(`echo '{}' > /tmp/ts-seed/slot_${slot}.json`);
-        } else {
-            await scpTo(join(FIXTURE_DIR, `slot_${slot}.json`), `/tmp/ts-seed/slot_${slot}.json`);
-        }
-    }
-    /* The restart-with-a-command-in-the-down-window logic lives in
-     * scripts/lib/restart-stack.sh: it runs as ROOT (MoveOriginal is root's, so
-     * a restart as `ableton` pkills nothing and still exits 0) and compares
-     * PIDs, because restart-move.sh detaches and sleeps before killing
-     * anything — so "a process exists" is not proof a restart happened. */
-    await run('bash', ['-c',
-        `set -e; HOST=${HOST}; . "${join(MOVY, 'scripts/lib/restart-stack.sh')}"; ` +
-        `restart_move_stack "${HOST}" 'mkdir -p ${dir} && cp /tmp/ts-seed/slot_*.json ${dir}/'`],
-        { maxBuffer: 8 * 1024 * 1024 });
-}
+export async function activeUuid(): Promise<string> { return LIB_FIXTURE_ID; }
 
 /* The sequencer half: known tempo/swing, clips, and a pre-seeded automation
  * lane. Movy must be CLOSED first — prefs are cached for the life of one open
@@ -274,10 +91,8 @@ async function seedBootState(): Promise<void> {
 export function installMovyState(): Promise<void> { return timed('fixture.install', installMovyStateInner); }
 
 async function installMovyStateInner(): Promise<void> {
-    const uuid = await activeUuid();
-    if (libraryMode) await pinLibrary();
-    const dir = libraryMode ? `${LIB_ROOT}/Sets/${LIB_FIXTURE_ID}`
-                            : `/data/UserData/schwung/modules/tools/movy/sets/${uuid || '_default'}`;
+    await pinLibrary();
+    const dir = movySetDir();
     const p = `${dir}/seq-state.json`;
     /* Delete before writing. Movy's own saves go through the host, which runs
      * as ROOT, so a set movy has saved holds root-owned 644 files — and scp
@@ -319,8 +134,7 @@ async function installMovyStateInner(): Promise<void> {
  * it holds, its generation and size. Diagnostic — a scenario can note this at
  * each stage and see exactly where state stops surviving. */
 export async function blobInfo(): Promise<string> {
-    const uuid = await activeUuid();
-    const f = `${libraryMode ? `${LIB_ROOT}/Sets` : '/data/UserData/schwung/modules/tools/movy/sets'}/${uuid || '_default'}/seq-state.json`;
+    const f = `${movySetDir()}/seq-state.json`;
     return (await ssh(
         `F=${f}; printf 'au=%s cl=%s %s size=%s' ` +
         `"$(grep -c '^au ' $F 2>/dev/null)" "$(grep -c '^cl ' $F 2>/dev/null)" ` +
@@ -414,48 +228,16 @@ let chainsProven = false;
 
 export async function ensure(tx: Transport, open: () => Promise<void>,
                              close: () => Promise<void>): Promise<void> {
-    /* Without Move there are no schwung slots to seed or verify (and the
-     * remote-UI route that would read them is served by the shim, which is
-     * down): the fixture is movy's own half — its Set files and its chains.
-     * The Set is still the Move-bound one under the default `setsrc`, since
-     * active_set.txt outlives Move. WP7 decides what a library-Set fixture is. */
-    if (!tx.has('move')) {
-        await close().catch(() => {});
-        await installMovyState();
-        /* The bytes installed are identical every time, and the engine loads
-         * them the same way, so one proof per process is the proof: repeating
-         * it cost an open + poll + close (~8 s) in front of EVERY scenario. */
-        if (!chainsProven) {
-            if (!await verifyChains(tx, open, close)) throw new Error('fixture: movy chains not established');
-            chainsProven = true;
-            await installMovyState();   // see the note below
-        }
-        return;
-    }
-    if (await verify(true)) {
-        await close().catch(() => {});
-        await installMovyState();
-        if (!await verifyChains(tx, open, close)) throw new Error('fixture: movy chains not established');
-        await installMovyState();   // see the note below
-        return;
-    }
-
-    await pushFixture();
-    /* Movy must be shut before the sequencer state is written, or it autosaves
-     * its in-memory copy straight back over the fixture within seconds. */
+    /* There are no schwung slots to seed or verify: the fixture is movy's own
+     * half — its library Set's files and its chains. */
     await close().catch(() => {});
     await installMovyState();
-
-    if (await chainIsCold()) await seedBootState();
-
-    for (let attempt = 1; attempt <= 6; attempt++) {
-        await apply(tx);
-        if (await verify(attempt === 6 ? false : true)) {
-            if (!await verifyChains(tx, open, close)) throw new Error('fixture: movy chains not established');
-            await installMovyState();   // see the note below
-            return;
-        }
-        await tx.frames(1000);   // ~2.9 s of device frames, not a wall clock
+    /* The bytes installed are identical every time, and the engine loads them
+     * the same way, so one proof per process is the proof: repeating it cost
+     * an open + poll + close (~8 s) in front of EVERY scenario. */
+    if (!chainsProven) {
+        if (!await verifyChains(tx, open, close)) throw new Error('fixture: movy chains not established');
+        chainsProven = true;
+        await installMovyState();   // see the note above
     }
-    throw new Error('fixture: could not establish the fixture state');
 }

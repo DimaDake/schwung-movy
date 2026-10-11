@@ -115,7 +115,6 @@ export async function run() {
     const store = { ...MOCK_SYNTHS.moog, 'synth:preset': '0' };
     globalThis.shadow_get_param = (slot, key) => store[key] ?? null;
     globalThis.shadow_set_param = (slot, key, v) => { store[key] = v; return true; };
-    globalThis.shadow_get_ui_slot = () => 0;
 
     const { createModel } = await import('../../dist/esm/model/index.js');
     const { appState } = await import('../../dist/esm/app/state.js');
@@ -147,7 +146,6 @@ export async function run() {
         presetVm()?.displayValue !== shown, true);
 
     env.restoreParamGlobals();
-    env.restoreUiSlot();
     appState.trackModels[0] = [];
     resetUndoState(); resetUndoGroups(); resetUndoApply();
 }

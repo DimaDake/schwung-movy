@@ -46,7 +46,6 @@ export function flagsPageActive(): boolean {
  * itself to be wrong, not two copies of it to agree. */
 export const ACTION_ROWS = [
     { name: 'BACKUPS', hint: 'Older versions of this set. Restore one.' },
-    { name: 'MIGRATE TRACKS', hint: 'Pull tracks 1-4 out of Schwung. Reloads the set.' },
 ] as const;
 
 /* Rows are counted through here rather than off `visibleFlags()` directly, so

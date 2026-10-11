@@ -73,7 +73,7 @@ export function writePrefFullVelocity(on: boolean): void {
     writePrefs((p) => { p.fullVelocity = on; });
 }
 
-/* Master volume, where movy owns the knob (caps.ownsMasterVolume). Machine-
+/* Master volume (the volume knob with no track held). Machine-
  * level, like the Move volume it replaces: it is how loud this box plays, not
  * part of a piece of music, so a Set must not carry it. -12 dB until the user
  * turns it: a first launch at unity would be the loudest moment the box has. */

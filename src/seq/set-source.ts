@@ -1,17 +1,12 @@
-/* Where movy's Sets come from: Move's active Set, or movy's own library.
+/* Where movy's Sets live: its own library.
  *
- * Latched on first use — once per open, since ui.js is re-evaluated on every
- * open — rather than read live: every Set path hangs off this answer, and a mid-session flip
- * would point the next autosave at a different tree from the one the open Set
- * was loaded from. The flag says "Next open" for exactly that reason.
- *
- * In library mode the Set that is open is the one the UI WANTS — seeded from
- * the engine's last-open record at boot, changed by the Sets page — and the
- * session's identity poll reads it here instead of active_set.txt. */
+ * The Set that is open is the one the UI WANTS — seeded from the engine's
+ * last-open record at boot, changed by the Sets page — and the session's
+ * identity poll reads it here. */
 
-import { platform } from '../platform/index.js';
-import { flagValue } from './flags.js';
-
+/* The tree the overtake build kept Sets in, keyed by Move's Set ids. Only ever
+ * READ, by the library's copy-import (sets-lib.ts): a Set nobody has opened
+ * since the switch still needs it. */
 export const LEGACY_SETS_DIR = '/data/UserData/schwung/modules/tools/movy/sets';
 /* Outside the module directory on purpose: a reinstall must not take the
  * user's Sets with it (Dronage keeps its projects beside this for the same
@@ -19,27 +14,12 @@ export const LEGACY_SETS_DIR = '/data/UserData/schwung/modules/tools/movy/sets';
 export const LIBRARY_ROOT = '/data/UserData/UserLibrary/Movy';
 export const LIBRARY_SETS_DIR = LIBRARY_ROOT + '/Sets';
 
-let movy: boolean | null = null;
 let wanted = '';
 
-/* With no Move beside it there is no active Set to follow, so standalone movy
- * is always library mode, whatever a stored `setsrc` says — that flag was the
- * overtake opt-in. Its first open copies every Move-bound Set across. */
-const readSource = (): boolean => !platform.caps.coexistsWithMove || flagValue('setsrc') === 1;
+/** A session reset; the suites. */
+export function resetWantedSet(): void { wanted = ''; }
 
-/** Re-read the source now (a session reset; the suites). */
-export function latchSetSource(): void {
-    movy = readSource();
-    wanted = '';
-}
-
-/** True when movy keeps its own Sets (standalone, or `setsrc` = MOVY at session start). */
-export function setSourceMovy(): boolean {
-    if (movy === null) movy = readSource();
-    return movy;
-}
-
-export function setsDir(): string { return setSourceMovy() ? LIBRARY_SETS_DIR : LEGACY_SETS_DIR; }
+export function setsDir(): string { return LIBRARY_SETS_DIR; }
 
 /** The library Set the UI wants open; '' until the library has answered. */
 export function wantedSet(): string { return wanted; }

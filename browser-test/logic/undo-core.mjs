@@ -382,40 +382,6 @@ export async function run() {
 }
 
 
-{
-    _log('\nundo — no param write escapes the chokepoint:');
-    /* Guard layer 3. Every user-facing chain-param write goes through
-     * chain/set-param.ts so undo records its inverse. The files below write
-     * directly on purpose; each is infrastructure or view state, not an edit.
-     * A NEW direct write shows up here as a failure rather than as a param
-     * that silently cannot be undone. */
-    /* Since the TrackPort refactor this list is down to two entries, and that is
-     * the point: every track-addressed write now goes through a port, so it will
-     * work on a movy-hosted track without revisiting the call site. A direct
-     * write would compile and pass on host tracks while silently doing nothing
-     * on a movy one — the failure this guard exists to prevent. */
-    /* The write is the platform's slot call: source-rules Rule 3 keeps the raw
-     * `shadow_set_param` global inside src/platform/, so this guards the next
-     * layer up. */
-    const ALLOWED = {
-        'src/track/shim-port.ts':       "a schwung slot's one door — reads for master_fx and migration",
-    };
-    const walk = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
-        const full = dir + '/' + e.name;
-        return e.isDirectory() ? walk(full) : (full.endsWith('.ts') ? [full] : []);
-    });
-    const offenders = walk('src')
-        .filter((f) => !(f in ALLOWED))
-        .filter((f) => readFileSync(f, 'utf8').includes('platform.slotSet('));
-    eq('no unlisted file writes chain params directly: ' + offenders.join(','),
-        offenders.length, 0);
-
-    /* And the allowlist cannot rot into a list of files that no longer write. */
-    const stale = Object.keys(ALLOWED)
-        .filter((f) => !readFileSync(f, 'utf8').includes('platform.slotSet('));
-    eq('no stale allowlist entries: ' + stale.join(','), stale.length, 0);
-}
-
 
 {
     _log('\nundo — module swaps:');

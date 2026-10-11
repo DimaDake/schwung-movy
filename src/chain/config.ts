@@ -1,4 +1,4 @@
-import { MOVY_MASTER_PREFIX } from './master-prefix.js';
+import { MASTER_PREFIX } from './master-prefix.js';
 
 export interface ChainSlot {
     componentKey: string;
@@ -41,17 +41,17 @@ export const LAST_CHAIN_INDEX = CHAIN_SLOTS.length - 1;
 export const MASTER_FX_SLOTS: ChainSlot[] = [
     /* Movy's own send buses, and deliberately FIRST: they are left of the master
      * FX on the page because they are left of them in the signal path — a send's
-     * output joins movy's stereo out, which schwung's master FX then process. */
+     * output joins movy's stereo out, which the master FX then process. */
     { componentKey: 'snd0', label: 'SEND 1', scanDir: 'audio_fx', expectedType: 'audio_fx' },
     { componentKey: 'snd1', label: 'SEND 2', scanDir: 'audio_fx', expectedType: 'audio_fx' },
     { componentKey: 'snd2', label: 'SEND 3', scanDir: 'audio_fx', expectedType: 'audio_fx' },
-    { componentKey: 'master_fx:fx1', label: 'MFX 1', scanDir: 'audio_fx', expectedType: 'audio_fx' },
-    { componentKey: 'master_fx:fx2', label: 'MFX 2', scanDir: 'audio_fx', expectedType: 'audio_fx' },
-    { componentKey: 'master_fx:fx3', label: 'MFX 3', scanDir: 'audio_fx', expectedType: 'audio_fx' },
-    { componentKey: 'master_fx:fx4', label: 'MFX 4', scanDir: 'audio_fx', expectedType: 'audio_fx' },
-    /* Virtual, exactly as the track chain's is: the shim's two master LFOs
-     * (`master_fx:lfoN:*`), which can modulate any of the four FX above. */
-    { componentKey: 'master_fx:lfo', label: 'LFO',   scanDir: '',         expectedType: ''         },
+    { componentKey: 'mfx:fx1', label: 'MFX 1', scanDir: 'audio_fx', expectedType: 'audio_fx' },
+    { componentKey: 'mfx:fx2', label: 'MFX 2', scanDir: 'audio_fx', expectedType: 'audio_fx' },
+    { componentKey: 'mfx:fx3', label: 'MFX 3', scanDir: 'audio_fx', expectedType: 'audio_fx' },
+    { componentKey: 'mfx:fx4', label: 'MFX 4', scanDir: 'audio_fx', expectedType: 'audio_fx' },
+    /* Virtual, exactly as the track chain's is: the master chain's two LFOs
+     * (`mfx:lfoN:*`), which can modulate any of the four FX above. */
+    { componentKey: 'mfx:lfo', label: 'LFO',   scanDir: '',         expectedType: ''         },
 ];
 
 export const MASTER_LFO_INDEX = MASTER_FX_SLOTS.length - 1;
@@ -69,26 +69,15 @@ export function isVirtualSlot(slot: ChainSlot | undefined): boolean {
     return !!slot && slot.scanDir === '';
 }
 
-/* Whether a component belongs to the MASTER chain rather than to a track —
- * either master. Anything that turns a component key into a port has to ask
- * which one (`componentPort`). */
+/* Whether a component belongs to the MASTER chain rather than to a track: an
+ * engine-root key, loaded by module ID like any chain FX. Anything that turns a
+ * component key into a port has to ask (`componentPort`). Bare `mfx` is what
+ * undo's key split hands over. */
 export function isMasterComponent(componentKey: string): boolean {
-    return isShimMasterComponent(componentKey) || isMovyMasterComponent(componentKey);
+    return componentKey === 'mfx' || componentKey.startsWith(MASTER_PREFIX);
 }
 
-/* schwung's master: global to the shim, riding a slot number only as a carrier,
- * and loaded by DSP PATH. Bare `master_fx` is what undo's key split hands over. */
-export function isShimMasterComponent(componentKey: string): boolean {
-    return componentKey.startsWith('master_fx');
-}
-
-/* movy's own master chain: an engine-root key, loaded by module ID like any
- * chain FX. Bare `mfx` for the same reason as above. */
-export function isMovyMasterComponent(componentKey: string): boolean {
-    return componentKey === 'mfx' || componentKey.startsWith(MOVY_MASTER_PREFIX);
-}
-
-/** Either LFO page — the track's own or the master's (`master_fx:lfo`). Its own
+/** Either LFO page — the track's own or the master's (`mfx:lfo`). Its own
  *  test because two callers need it for two different reasons (SP-55): routing
  *  (`schwung-grid.ts`, below) and the automation guard (`schwung-page-render.ts`
  *  — an LFO cell is a real ranged param but was never automatable, and nothing
@@ -99,7 +88,7 @@ export function isLfoComponent(componentKey: string): boolean {
 
 /* A component movy draws out of its OWN model, never out of a module contract
  * OR a full virtual source (SP-53's seam) — it is drawn from movy's own state
- * behind a REAL PORT (`portFor`/`hostPort`), unlike Clip/Set/Step Params, which
+ * behind a REAL PORT (`portFor`/`engineRootPort`), unlike Clip/Set/Step Params, which
  * have no port at all (`isVirtualPageComponent`).
  *
  * The mix page and the two LFO pages occupy chain slots and answer the same
@@ -121,7 +110,7 @@ export function isMovyOwnComponent(componentKey: string): boolean {
 /* A component with NO port at all — its params live in movy's own sequencer
  * state, never behind any track's chain, host slot or engine root (SP-53).
  * Distinct from `isMovyOwnComponent`: those three ALSO have no module behind
- * them but DO have a real port (`portFor`/`hostPort`), so they are refused
+ * them but DO have a real port (`portFor`/`engineRootPort`), so they are refused
  * delegation by name (SP-55 removes that refusal once they carry their own
  * `ui_hierarchy`/`chain_params`). A virtual component is refused nothing —
  * it has no port for `componentPort` to resolve, so `schwungPageFor` checks
@@ -170,9 +159,9 @@ export function sendBusOf(componentKey: string): number {
 /* Read-back param key for a component's loaded module id. The device sets a
  * module with the colon key (`fx1:module`) but track-chain components expose
  * the loaded id under an underscore alias (`fx1_module`) — while a master FX
- * component (already colon-namespaced, e.g. `master_fx:fx1`) has no underscore
+ * component (already colon-namespaced, e.g. `mfx:fx1`) has no underscore
  * alias and is read with the same colon key it was set with
- * (`master_fx:fx1:module`). Without this distinction a freshly added master FX
+ * (`mfx:fx1:module`). Without this distinction a freshly added master FX
  * module reads back as empty and the slot keeps showing "click jog to add". */
 export function moduleReadKey(componentKey: string): string {
     /* First, because a send key carries no colon and would otherwise take the

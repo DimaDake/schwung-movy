@@ -261,18 +261,16 @@ scenario('smoke', async (t) => {
     // ── 1b. the chain host running is the one movy ships ─────────────────────
     /* Read from the process, not the log: a `chain host loaded from` line says
      * which file was opened, while the maps say which one is RUNNING — and a
-     * stale copy, a missing payload file (the stock fallback) or an engine that
-     * never heard `chpinhost` all show up here as the wrong path. Root, because
-     * the stack is root's after a restart and /proc/<pid>/maps is not
-     * world-readable. The engine lives in MoveOriginal (the shim) or in
-     * movy-host, by flavour. */
-    const engineProc = t.tx.flavour === 'standalone' ? 'movy-host' : 'MoveOriginal';
+     * stale copy or a missing payload file (the stock fallback) shows up here
+     * as the wrong path. Root, because /proc/<pid>/maps is not world-readable
+     * for a process movy-host's helper raised. */
+    const engineProc = 'movy-host';
     const maps = await run('ssh', [...SSH_OPTS, `root@${t.host}`,
         `grep -ho 'tools/movy/chain-[a-z]*\\.so' /proc/$(pidof ${engineProc})/maps | sort -u`])
         .then((r) => r.stdout.trim().split('\n').filter(Boolean)).catch(() => [] as string[]);
     const okPin = maps.length === 1 && maps[0] === 'tools/movy/chain-pinned.so';
     t.note('chainHostMaps', maps.join(', ') || '(none)');
-    t.check('chain-host-pinned', 'movy\'s chains run the chain host movy ships (chpinhost)', okPin, {
+    t.check('chain-host-pinned', 'movy\'s chains run the chain host movy ships', okPin, {
         expected: `${engineProc} maps tools/movy/chain-pinned.so and no other movy chain host`,
         actual: said(okPin, 'chain-pinned.so is the one mapped',
             maps.length === 0 ? 'no movy chain host is mapped at all'
@@ -557,64 +555,4 @@ scenario('smoke', async (t) => {
                         : `refresh blocking ${medRef} ms median over ${measured.length} sample(s) `
                           + `exceeds ${REFRESH_MS_MAX} ms — the refresh path itself is slow, not one descheduled tick`),
         });
-
-    // ── 8. LED ownership survives a park and resume ──────────────────────────
-    /* The host zeroes overtake_suppress_sysex when movy parks, and
-     * resumeOvertakeModule never re-applies it while init() is NOT re-run — so
-     * LED ownership has to be re-claimed from onResume or Move's own RGB
-     * repaints come back over movy's LEDs.
-     *
-     * The park is the user's own gesture, not a flag write: Back at the root
-     * opens the Leave-Movy modal, whose DEFAULT selection is Background (only
-     * offered when the host has host_suspend_overtake), and jog click confirms.
-     * dev.park() writes the host's SHM flag directly, which is a different door
-     * into the same state and would not exercise what the bash exercised.
-     *
-     * What is asserted is the ADJACENCY, not a count. The bash's `claims >= 2`
-     * is satisfied by a claim from anywhere — and ledRepaintWatch claims again
-     * ~200 ms after the resume, so a count is satisfied even with onResume's
-     * claim removed entirely. `resume from background` followed IMMEDIATELY by
-     * `LED ownership claimed` is the line onResume writes, in order; `leds:
-     * repaint` is in the grep precisely so that "immediately" means immediately
-     * and not "after the next line we happened to keep".
-     *
-     * Background exists only beside Move, so on a flavour without it this
-     * section is not run — noted, never silently absent. */
-    if (!t.tx.has('move')) { t.note('ledParkResume', 'N/A: no Background without Move'); return; }
-    await dev.parkViaModal(probe);
-    lap('t_5_park');
-    const markResume = await mark();
-    let backUp = true;
-    try { await t.tx.launch(); } catch { backUp = false; }
-    t.note('resumeReady', backUp);
-    /* RE-ARM. The launch re-evaluated ui.js, so the override went with it and
-     * the renderer fell back to the device's own `schwunggrid` — the ambient arm
-     * this scenario exists not to depend on. Re-armed here so the whole run is in
-     * ONE arm, which is what lets the notes name it (MOVY_ARM above; page-lifecycle
-     * re-arms after its reopen for the same reason). */
-    t.note('gridModeAfterReopen', await armMovy(t, probe, 'arm-taken-after-reopen'));
-
-    await settled(markResume, (w) => w.some((l) => l.includes('resume from background')),
-                  'movy to resume from the background', 3000);
-    /* A second, short wait: the claim is written microseconds after the resume
-     * line but the log read is a whole ssh away, so a read landing between the
-     * two would fail a build that is fine. This waits for the pair. */
-    const wr = await settled(markResume, (w) => {
-        const i = w.findIndex((l) => l.includes('resume from background'));
-        return i >= 0 && (w[i + 1] ?? '').includes('LED ownership claimed');
-    }, 'LED ownership to be re-claimed', 600);
-    const ri    = wr.findIndex((l) => l.includes('resume from background'));
-    lap('t_6_resume');
-    const after = ri >= 0 ? (wr[ri + 1] ?? '') : '';
-    const okLed = ri >= 0 && after.includes('LED ownership claimed');
-    t.note('resumeLine', ri >= 0 ? wr[ri] : '(none)');
-    t.note('lineAfterResume', after);
-    t.check('led-ownership-reclaimed', 'LED ownership is re-claimed on resume', okLed, {
-        expected: '"resume from background" followed by "LED ownership claimed"',
-        actual: said(okLed, `the resume re-claimed it — ${after}`,
-            ri < 0
-                ? 'movy never resumed — the park gesture did not land, so nothing was claimed'
-                : `the resume ran, but the line after it is ${JSON.stringify(after)} — `
-                  + 'LED ownership was not re-claimed, so Move repaints over our LEDs'),
-    });
 });

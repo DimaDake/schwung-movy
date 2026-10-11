@@ -254,7 +254,7 @@ const { modulatedKeysOf } = await import('../../dist/esm/app/modulated-keys.js')
      * track) and, downstream, sixteen cached SchwungPages for the one module
      * that is actually there — a track switch silently swapped in a
      * different cached page and read cache. */
-    const master = { getComponentKey: () => 'master_fx:fx1' };
+    const master = { getComponentKey: () => 'mfx:fx1' };
     const send = { getComponentKey: () => 'snd0' };
     appState.activeTrack.index = 0;
     eq('a master FX ref is not the active track', pageRefOf(master).track, 0);
@@ -273,23 +273,23 @@ const { modulatedKeysOf } = await import('../../dist/esm/app/modulated-keys.js')
     /* `modulatedKeysOf(track, componentKey)` is asked with `track` = the fixed
      * carrier `componentPort` addresses a master component through (0), never
      * the active track — see the ref test above. Before this fix it walked
-     * `appState.trackModels[0]` for a `master_fx:` key, which is track 0's OWN
+     * `appState.trackModels[0]` for a `mfx:` key, which is track 0's OWN
      * chain and holds no such component: the answer was silently "unmodulated",
      * forever, which is the one failure mode indistinguishable from "correctly
      * not modulated" without a test that actually seeds a master model. */
     const origMaster = appState.masterFxModels;
     const origTrack0 = appState.trackModels[0];
     appState.masterFxModels = [
-        { getComponentKey: () => 'master_fx:fx1', modulatedKeys: () => new Set(['cutoff']) },
+        { getComponentKey: () => 'mfx:fx1', modulatedKeys: () => new Set(['cutoff']) },
     ];
     appState.trackModels[0] = [
         { getComponentKey: () => 'synth', modulatedKeys: () => new Set(['should-not-be-seen']) },
     ];
 
     ok('a master component\'s tilde reads off masterFxModels',
-       modulatedKeysOf(0, 'master_fx:fx1')?.has('cutoff') === true);
+       modulatedKeysOf(0, 'mfx:fx1')?.has('cutoff') === true);
     eq('and not off track 0\'s own chain',
-       modulatedKeysOf(0, 'master_fx:fx1')?.has('should-not-be-seen'), false);
+       modulatedKeysOf(0, 'mfx:fx1')?.has('should-not-be-seen'), false);
     eq('an ordinary component still reads its track\'s chain',
        modulatedKeysOf(0, 'synth')?.has('should-not-be-seen'), true);
 

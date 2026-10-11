@@ -1,10 +1,8 @@
-/* New with WP3 — movy's OWN master chain, bound in overtake through the probe.
+/* New with WP3 — movy's OWN master chain, and the import into it.
  *
- * Standalone movy has no schwung master to drive, so the MASTER page binds to
- * an engine-hosted chain (`mfx:`) instead — and the first time a Set opens with
- * it bound, movy copies that Set's schwung master into it. On a Move this is the
- * `mstown` flag; here the probe's `bindMaster` seam does the same without
- * touching prefs.json.
+ * The MASTER page drives an engine-hosted chain (`mfx:`), and the first time a
+ * Set is applied with its import mark clear, movy copies that Set's schwung
+ * master into it.
  *
  * What only the device can show: the import reads schwung's REAL per-Set file
  * and loads a REAL module into a real chain host instance; the stage runs over
@@ -14,20 +12,14 @@
  *
  * The seed is written straight into schwung's per-Set `master_fx_0.json`,
  * shipped over scp + mv like page-dive's prefs restore (the box has no base64).
- * Safe while movy is open: schwung's autosave only arms when overtake is
- * inactive, and the original bytes go back before movy closes.
+ * The import runs on a Set being applied, so the scenario clears the mark,
+ * closes movy (which saves it), seeds the file and opens movy again.
  *
  * Covers:
- *   O1 the host mode's binding by default: schwung's (`mfx:own` 0) beside Move,
- *      movy's own (1) on movy-host, which has no schwung master to drive
- *      (WP3's design, master-binding.ts)
- *   O2 bound: the probe answers the `mfx:` prefix and the engine has own=1
  *   O3 the import loaded the seeded module into movy's master FX 1
  *   O4 and marked the Set imported
  *   O5 the master processes movy's audio, under the limiter's ceiling
  *   O6 schwung's master files are byte-identical after the import
- *   O7 the override cleared: back to O1's binding (overtake: own=0, the stage
- *      is out of the path)
  */
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -104,45 +96,29 @@ scenario('master-own', async (t) => {
     const f0 = `${dir}/master_fx_0.json`;
     const files = [0, 1, 2, 3].map((i) => `${dir}/master_fx_${i}.json`).join(' ');
 
-    /* Schwung's file goes back exactly as it was, and movy's master is emptied
-     * and unbound, whatever happens below. */
+    /* Schwung's file goes back exactly as it was, and movy's master is
+     * emptied, whatever happens below. */
     await ssh(`mkdir -p '${dir}' && chmod 777 '${dir}'`);   // a library Set has no schwung set_state dir
     const present = (await ssh(`if [ -f '${f0}' ]; then echo yes; else echo no; fi`)).trim();
     if (present !== 'yes' && present !== 'no') throw new Error(`master-own: cannot stat ${f0}: ${present}`);
     const original = present === 'yes' ? await ssh(`cat '${f0}'`) : '';
     t.need.register(async () => {
-        try { await probe.bindMaster(null); } catch { /* movy may be closed */ }
-        await ep('mfx:own', hostOwn);   // the host mode's binding
-        for (let n = 1; n <= 4; n++) await ep(`mfx:fx${n}:module`, '');
-        await ep('mfx:imported', '0');
+        try {
+            for (let n = 1; n <= 4; n++) await ep(`mfx:fx${n}:module`, '');
+            await ep('mfx:imported', '0');
+        } catch { /* movy may be closed */ }
         if (present === 'no') await ssh(`rm -f '${f0}'`);
         else await put(f0, original);
     });
 
-    /* What the host mode binds with no override: the same decision the UI
-     * makes (movyMasterBound), read from the flavour under test. */
-    const hostOwn = t.tx.flavour === 'standalone' ? '1' : '0';
-    const hostPrefix = hostOwn === '1' ? 'mfx:' : 'master_fx:';
-
-    // ── O1: the host mode's master by default ───────────────────────────────
-    const own0 = await param('mfx:own');
-    t.check('default-unbound', hostOwn === '1'
-            ? 'movy-host binds movy\'s own master: the engine stage is on'
-            : 'overtake binds schwung\'s master: the engine stage is off',
-        own0 === hostOwn, { expected: `mfx:own=${hostOwn}`, actual: `mfx:own=${own0 || '(no answer)'}` });
-
-    /* A clean slate on movy's side, so the import has something to do. */
+    /* A clean slate on movy's side, saved by the close, so the import has
+     * something to do when the Set is applied again. */
     for (let n = 1; n <= 4; n++) await ep(`mfx:fx${n}:module`, '');
     await ep('mfx:imported', '0');
+    await close();
     await put(f0, SEED + '\n');
     const before = await ssh(`md5sum ${files} 2>/dev/null || true`);
-
-    // ── O2: bind movy's master ──────────────────────────────────────────────
-    const bound = await probe.bindMaster(true) as { prefix?: string } | null;
-    const own1 = await paramUntil('mfx:own', (v) => v === '1', 'the engine to run its master');
-    t.check('bound', 'bound: the page drives mfx: and the engine runs its master',
-        bound?.prefix === 'mfx:' && own1 === '1',
-        { expected: 'prefix=mfx: own=1', actual: `prefix=${bound?.prefix ?? '(none)'} own=${own1}` });
+    await open();
 
     // ── O3 / O4: the import ─────────────────────────────────────────────────
     const mod = await paramUntil('mfx:fx1:module', (v) => v === FX, 'the import to load FX 1', 6000);
@@ -176,13 +152,4 @@ scenario('master-own', async (t) => {
     t.check('schwung-untouched', 'schwung\'s master files are byte-identical after the import',
         after === before && before.trim() !== '',
         { expected: before.trim(), actual: after.trim() });
-
-    // ── O7: the override cleared ────────────────────────────────────────────
-    const back = await probe.bindMaster(null) as { prefix?: string } | null;
-    const own2 = await paramUntil('mfx:own', (v) => v === hostOwn, 'the engine to follow the host mode');
-    t.check('unbound', hostOwn === '1'
-            ? 'override cleared: movy-host keeps movy\'s own master'
-            : 'unbound: schwung\'s keys again, and the stage is out of the path',
-        back?.prefix === hostPrefix && own2 === hostOwn,
-        { expected: `prefix=${hostPrefix} own=${hostOwn}`, actual: `prefix=${back?.prefix ?? '(none)'} own=${own2}` });
 });

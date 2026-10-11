@@ -68,7 +68,7 @@ export function createPageIo(port: PageParamSource, qualify: (k: string) => stri
      * inverse of `qualify` above and for exactly the same reason.
      *
      * Stripping at the FIRST colon would be wrong: a namespaced component
-     * (`master_fx:delay`) would leave `fx:delay:cutoff`. The prefix is the whole
+     * (`mfx:delay`) would leave `fx:delay:cutoff`. The prefix is the whole
      * component key or nothing — the same rule `qualify` applies on the way in.
      *
      * Reading through the port is not available here either — every read in this

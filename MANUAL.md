@@ -742,17 +742,10 @@ In **Session** view, the same navigation applies to the **master chain**: three
 page — see [Send FX](#send-fx) and
 [The master chain's LFOs](#the-master-chains-lfos).
 
-**Whose master MFX 1–4 drive.** On a Move they drive Schwung's own master FX,
-so a Set's master sounds and saves exactly as it does in Schwung. Movy also has
-a master chain of its own (four FX and two LFOs, then master volume and a
-safety limiter at −1 dBFS), which the standalone Movy uses. On a Move it stays
-out of the audio path unless the debug flag **Movy Master Chain** is on (it
-takes effect the next time Movy opens). Then MFX 1–4 and the LFO page drive
-Movy's chain, it is saved with the Set's chains, and the first time each Set
-opens Movy copies that Set's Schwung master FX into it. Schwung's master is
-only read, never changed, so turning the flag off gives you Schwung's master
-exactly as you left it. While the flag is on, a Set whose master was copied
-runs those FX twice (Movy's, then Schwung's); it is a test mode.
+**The master chain is Movy's own**: MFX 1–4 and the LFO page, then master
+volume and a safety limiter at −1 dBFS. It is saved with the Set's chains. The
+first time a Set made by Movy 0.35 or earlier opens, Movy copies that Set's
+Schwung master FX into it; Schwung's own files are only read, never changed.
 
 ### Track volume
 
@@ -961,8 +954,7 @@ It works exactly like a track's, with two differences:
 Hold-to-assign works here too: hold any automatable knob on an MFX slot's page
 and click to modulate it.
 
-These settings are saved with the Set (by Schwung, or by Movy when its own
-master chain is on), so they survive a power cycle.
+These settings are saved with the Set's chains, so they survive a power cycle.
 
 ### The LFO pages with Param Pages set to SCHWUNG
 
@@ -1764,10 +1756,7 @@ elsewhere):
 
 MODE and LAYOUT are covered in [Pad layouts](#pad-layouts).
 
-These are set-wide (they affect all tracks). **TEMPO** also sets Move's
-device-wide tempo through Ableton Link, so a following Move tracks the knob;
-the cell shows **EXT** while Movy is locked to Move's transport (see
-[Syncing with Move's sequencer](#syncing-with-moves-sequencer)).
+These are set-wide (they affect all tracks).
 
 Press **Back** to close any of these pages and return to where you were.
 
@@ -1939,10 +1928,6 @@ either way. The choice is saved on the device, not per set. Updating to this
 release switches it to **SCHWUNG** once, even if you had set **MOVY** before;
 set it back to **MOVY** and that choice sticks.
 
-**MOVY SETS** picks where Sets come from: **MOVE** (the default) follows
-Move's Set pads, **MOVY** keeps Movy's own Sets — see
-[Sets](#sets--shift--step-1). It applies the next time Movy opens.
-
 On a drum track under **SCHWUNG**, the page follows the pad **you** press and
 nothing else. A playing pattern never turns the page, even on a drum machine
 that moves its own selection with every hit (6W6, 8W8, 9W9, CW-78, mrdrums,
@@ -2009,7 +1994,7 @@ LFO assignments, and module or preset loads.
 
 **What isn't.** Anything that only changes what you're looking at — selecting a
 track or clip, moving between bars or pages, Session mode, the browser — plus
-Play, Rec, the metronome, **LINK**, and the keyboard layout. Undo is for edits,
+Play, Rec, the metronome, and the keyboard layout. Undo is for edits,
 not for navigation or performance.
 
 **How edits are grouped.** One gesture is one undo, not one undo per detent:
@@ -2045,9 +2030,6 @@ is what you did the first time.
   absent from its list — can't come back.
 - **Parameters the module derives** rather than stores will not hold a restored
   value. Movy rewrites them a few times and then leaves them.
-- **Nothing outside Movy.** Edits made in Move's own UI while Movy is parked in
-  the background are invisible to it. If a module changed underneath, Movy drops
-  its history rather than apply it to the wrong thing, and says so.
 - **The oldest edits fall off.** History holds 64 entries (and a memory budget);
   past that the oldest are discarded, and undoing that far back does nothing.
 - **A no-op costs nothing.** Quantising an already-quantised clip, or a knob
@@ -2057,9 +2039,7 @@ is what you did the first time.
 **Limits.** History lives in memory and is cleared when you switch sets or
 close Movy. It holds the last 64 edits. Undoing a module load restores the old
 module and its parameters, but anything Movy never sees — a loaded sample's
-contents, a parameter the module doesn't publish — can't come back. If a module
-is changed outside Movy while it's parked in the background, the history is
-dropped rather than applied to the wrong thing, and the overlay says so.
+contents, a parameter the module doesn't publish — can't come back.
 
 ![Undo unavailable](docs/assets/undo_unavailable.png)
 
@@ -2174,7 +2154,7 @@ only.
 
 | Combo | Action |
 | --- | --- |
-| **Shift + Step 1** | Open **Sets** — Movy's own Sets (when **MOVY SETS** is on). |
+| **Shift + Step 1** | Open **Sets** — Movy's own Sets. |
 | **Shift + Step 2** | Open **Settings** (older versions of this set). |
 | **Shift + Step 3** | Open **Clip parameters** (scale, length, transpose, quantize; Track view). |
 | **Shift + Step 5 / 7 / 9** | Open **Set parameters** (tempo/swing/quantize, root/key/mode/layout). |

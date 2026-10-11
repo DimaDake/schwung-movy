@@ -98,7 +98,7 @@ console.log('\nhost-globals: movy-host registers every manifest entry');
         if (!libSrc.includes(`"${n}"`)) missing.push(n);
     }
     ok('every manifest global has a provider on movy-host', missing.length === 0,
-       missing.length ? `unregistered: ${missing.join(', ')} — add it to host/globals_*.c (native or stub)`
+       missing.length ? `unregistered: ${missing.join(', ')} — add it to host/globals_*.c`
                       : `${names.length} names${unchecked.length ? `; ${unchecked.length} lib names unchecked (set SCHWUNG)` : ''}`);
 }
 

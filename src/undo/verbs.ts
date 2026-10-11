@@ -33,7 +33,7 @@ export const UNDOABLE_VERBS: string[] = [
 
 /** Transport, view/selection, bookkeeping, live input, undo machinery. */
 export const CONTROL_VERBS: string[] = [
-    'play', 'stop', 'rec', 'metro', 'link', 'minject', 'launch', 'stoptrk',
+    'play', 'stop', 'rec', 'metro', 'launch', 'stoptrk',
     /* Song mode: building an arrangement is a performance gesture, not an
      * edit — the same call `launch` gets, and for the same reason. */
     'song', 'songadd',

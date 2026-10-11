@@ -61,8 +61,8 @@ export async function noteSchwungVersion(host: string, path = LAST_PATH()): Prom
     } catch { console.log('schwung: version unreadable'); return; }
     const last = existsSync(path) ? readFileSync(path, 'utf8').trim() : '';
     if (last && last !== v) {
-        console.log(`SCHWUNG CHANGED on the device: ${last} -> ${v}. If anything goes red, re-check the harness's `
-            + 'copies of schwung internals first (device-agent/ui-agent.py vs src/host/ui_midi_ring.h, shm offsets).');
+        console.log(`SCHWUNG CHANGED on the device: ${last} -> ${v}. If anything goes red, re-check what `
+            + 'movy still takes from the installed schwung first (shared JS, chain modules) before suspecting movy.');
     } else {
         console.log(`schwung: ${v}`);
     }

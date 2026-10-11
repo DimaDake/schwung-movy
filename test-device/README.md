@@ -38,34 +38,27 @@ Everything below is in `test-device/`; reach for it before writing anything new.
 **Scenarios talk to a transport, never to a server.** `transport.ts` is the
 interface (`t.tx`): `frames`, `uiMidi`/`dspMidi`, `engineGet`/`engineSet`/
 `engineSetQueued` with **unprefixed** engine keys (`status`, `ch0:mix`),
-`padLeds`, `framebuffer`, `logGrep`, `launch`/`running`/`restart`, the deploys,
-and `move` (the coexistence door, null without Move). `transport-overtake.ts` is
-today's implementation over schwung-testd + ui-agent + scp/ssh, and the only file
-that may name `overtake_dsp:` or import `bus`/`agent`/`daemon`
-(`browser-test/device-scripts.mjs` enforces it). The standalone flavour is a
-second implementation over movy-host's test bus (`docs/standalone/testbus.md`),
-`transport-standalone.ts`, driving movy itself (`docs/standalone/movy-host.md`).
-Since WP8 it is the only flavour: `tools/movy` is the standalone module, so
-`--flavour overtake` is refused (WP9 deletes that transport). Plain ssh to the box (fixture files, a saved Set)
-stays outside the transport, because the filesystem is the same under both.
+`padLeds`, `framebuffer`, `logGrep`, `launch`/`running`/`restart` and the
+deploys. Its one implementation is `transport-standalone.ts`, over movy-host's
+test bus (`docs/standalone/testbus.md`), driving movy itself
+(`docs/standalone/movy-host.md`); it is the only file that may import the bus
+client (`browser-test/device-scripts.mjs` enforces it). The overtake transport
+(schwung-testd + ui-agent) and the scenarios that needed Move beside movy
+(`master-fx`, `migrate`, `sets-library`) were deleted in WP9. Plain ssh to the
+box (fixture files, a saved Set) stays outside the transport.
 
-**A scenario that needs Move beside movy says so**: `scenario(name, fn,
-{ needs: 'move' })`. On a flavour without Move it is not run and prints **N/A**,
-by declaration; it stays out of the flake ledger and fails nothing. Today that
-is `master-fx`, `migrate` and `volume`. A *section* of a scenario that needs Move
-checks `t.tx.has('move')` and notes why it skipped (smoke's park/resume). The
-reverse needs are movy-host's: `testbus` (its own bus verbs, reached as
-`t.tx.hostBus!`: log ring, midi_out tap, `UI_EVAL`, `STATE`, `CRASH`),
-`master-volume` and `power-button` (the volume knob and power button as movy's
-own). Those scenarios — `testbus`, `master-volume`, `power` — print N/A on
-overtake. `debug-tools` runs on both: the dev tools must not care.
+**A scenario that needs a host feature says so**: `scenario(name, fn,
+{ needs: 'testbus' })`. On a transport without it, it is not run and prints
+**N/A**, by declaration; it stays out of the flake ledger and fails nothing.
+The needs are movy-host's: `testbus` (its own bus verbs, reached as
+`t.tx.hostBus!`: log ring, midi_out tap, `UI_EVAL`, `STATE`, `CRASH` — absent
+from a release build), `master-volume` and `power-button`.
 
 **Standalone runs fast because nothing returns to Move between scenarios.**
 With the bus file in place, `standalone/launch.sh` holds after a clean close
 (Move still down) and the transport sends it `go` or `quit`
 (`docs/standalone/movy-host.md`, *Harness mode*). A full launch through Move
 happens once per tier, and waits out Move's 15 s boot-watchdog window first.
-`./scripts/run-gate.sh both --flavour all` gates both flavours in one verdict.
 
 - **Gestures** — `dev.tap.cc/note/knob/jog`, `dev.hold*` for real holds,
   `dev.selectTrack`. One inject is one ssh round trip (~0.5 s), so a
@@ -84,16 +77,13 @@ happens once per tier, and waits out Move's 15 s boot-watchdog window first.
 
 ## Rules that were each paid for once
 
-- **A restart must run as root and be verified.** MoveOriginal is root, so
-  `restart-move.sh` as `ableton` is EPERM, `|| true` swallows it, and the script
-  exits **0** with the old engine still running (measured: pid 7515 unchanged).
-  `scripts/lib/restart-stack.py` is the one body both tiers use; it fails unless
-  the process actually went away and a new one came back. Never confirm a
-  restart by asking whether `schwung-testd` answers — testd does not go down
-  with the stack, so it answers instantly and the no-op reports green.
-- **A redeployed `dsp.so` is not the running one** until that restart happens,
+- **A restart is a close and reopen of movy-host** (`restart()`), verified by
+  the bus answering from the NEW process. The bash tier's Move restart
+  (`scripts/lib/restart-stack.py`) must run as root: as `ableton` it is EPERM,
+  `|| true` swallows it, and the script exits **0** with nothing restarted.
+- **A redeployed `dsp.so` is not the running one** until movy-host restarts,
   and it must go to a fresh inode (`scp` to a temp name + `mv`) — overwriting a
-  mapped `.so` corrupts its pages and crashes MoveOriginal.
+  mapped `.so` corrupts its pages.
 - **`dev.selectTrack(n)` taps a group-relative track button.** There are four,
   addressing the focused group of four, so it is right only while that group is
   0. With the focus on track 9, `selectTrack(2)` selects track **10**. The
@@ -110,11 +100,12 @@ happens once per tier, and waits out Move's 15 s boot-watchdog window first.
   a repopulated host cache.
 - **The playhead only advances with a playing clip that HAS notes** (`len>0` in
   `status`); an empty clip freezes `step`/`pos` at 0 even at `play=1`.
-- **MIDI-inject to overtake drops notes and CCs unpredictably.** Build scenes
-  with engine commands (`tog`/`clen`/`aset`/`clipdel`) and read `status`/`diag`
-  back, rather than driving every setup gesture through the surface.
-- **Never `kill -9` `shadow_ui`** — MoveOriginal does not respawn it and the
-  device UI stays broken until a reboot.
+- **Build scenes with engine commands** (`tog`/`clen`/`aset`/`clipdel`) and read
+  `status`/`diag` back, rather than driving every setup gesture through the
+  surface — under the old overtake inject, notes and CCs were dropped, and a
+  scene built from commands does not depend on input timing either way.
+- **Never `kill -9` movy-host at the boot door** — that pid is MoveLauncher's
+  child, and only movy-host's own exit path hands the device over.
 - **`pgrep -f "<script>"` matches the polling loop that is waiting on it.** A
   wait written as `until ! pgrep -f "test-device/run.mjs"; do sleep 5; done`
   carries the pattern in its OWN command line, so `pgrep` keeps finding the loop
@@ -164,15 +155,11 @@ not look alike:
 
 `scenario(name, fn, { knownFlaky: '<reason>' })` is a **stop-gap** for a flake
 under investigation, not a verdict: it raises that scenario's assert retries to
-3 and keeps a surviving red out of the exit code. Only `migrate` carries it
-(2026-09-26, teardown park race). Remove the mark with the fix.
+3 and keeps a surviving red out of the exit code. No scenario carries it today.
 
 `{ optIn: '<reason>' }` keeps a scenario out of the default sweep: it runs only
 when named with `--scenario`, and every sweep prints the skip and its reason.
 For a scenario that cannot gate anyway and whose logic a local suite owns.
-`migrate` carries it (2026-10-09, alongside its `knownFlaky`): run
-`npm run test:device -- --scenario migrate` after touching `src/track/migrate.ts`.
-Drop both marks with the flake fix.
 
 So a red tier is a red tier. It is not "flaky, probably fine": the retry already
 ran and it stayed red. Read the first line of the failure, which carries
@@ -210,16 +197,17 @@ ssh ableton@move.local 'tail -f /data/UserData/schwung/debug.log | grep "\[movy\
 ```
 
 
-## Standalone (`--flavour sa`) notes
+## Standalone notes
 
 - **Library-mode fixture.** movy-host always opens the library's `current` Set,
   so the fixture seeds and pins `UserLibrary/Movy/Sets/movy-fixture`
-  (`fixture.useLibrary`, `fixture.movySetDir()`); scenarios must build Set paths
-  with `movySetDir`, never from `sets/<uuid>`.
+  (`fixture.movySetDir()`); scenarios must build Set paths with `movySetDir`,
+  never from `sets/<uuid>`.
 - **Chains are proven once per process** (`chainsProven`), not before every
   scenario: the installed bytes are identical, so repeating the open/poll/close
   cost ~8 s each. A full sa sweep went from ~15 min to ~6 min.
 - **`MOVY_TIMING=1`** prints a per-scenario `time:` line (open / open.launch /
   close / fixture.*), automatically for any scenario over 20 s.
-- `sets-library` is `needs: 'move'` (it seeds legacy dirs + Move's Set folder);
-  its library gestures have no standalone twin yet.
+- The library's gestures (the Sets page) have no device scenario since
+  `sets-library` went with the Move fixture; `browser-test/logic/sets.mjs`
+  covers them against a fake engine.

@@ -34,9 +34,7 @@ export interface TrackPort {
      *  behind. `writesSince` answers null when more writes happened than the log
      *  holds: the caller cannot know what went stale, so it must drop everything.
      *
-     *  Optional because only a port whose reads are worth caching needs it — a
-     *  shadow slot read is served from schwung's own cache at ~0.3 ms and is
-     *  never batched or cached by movy. */
+     *  Optional because only a port whose reads are worth caching needs it. */
     writeSeq?(): number;
     writesSince?(seq: number): string[] | null;
 

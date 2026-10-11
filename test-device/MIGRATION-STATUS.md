@@ -7,6 +7,11 @@ Branch `feat/test-device-migration`. One commit per suite.
 
 Read `MIGRATION.md` for the recipe and the rules; this file is the result.
 
+> **WP9 (2026-10-11):** the `master-fx`, `migrate` and `sets-library` scenarios
+> were deleted with the overtake host they tested (schwung's master FX, the
+> shadow-slot migration, the Move-bound Set fixture); `volume` lost its
+> Move-divert check. The rows below are the record of the migration itself.
+
 ---
 
 ## Summary

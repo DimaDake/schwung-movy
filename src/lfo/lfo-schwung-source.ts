@@ -3,7 +3,7 @@
  * Schwung's Slot Settings and Master FX Settings grids each carry an LFO 1 and
  * an LFO 2 page, built from `lfoParams`/`lfoLevels` (`schwung-lib.ts`'s
  * `schwungLfoPage`). movy's LFO chain slot edits the SAME two LFOs under the
- * SAME keys — `lfoN:*` on a track, `master_fx:lfoN:*` on the master chain — so
+ * SAME keys — `lfoN:*` on a track, `mfx:lfoN:*` on the master chain — so
  * under `page` it draws that page, not a lookalike: the waveform across the
  * second row, one Rate cell that swaps with Sync, Target as a door.
  *

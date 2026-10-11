@@ -12,9 +12,11 @@ body: the Tools menu (schwung's `launch-standalone.sh`) and the boot picker
 (`standalone/boot-entry.sh` → `standalone --boot`; movy-host then hands the
 device to Schwung on a quit instead of exiting, `host/handover.h`).
 
-The overtake code (`src/platform/overtake.ts`, `transport-overtake.ts`, the
-`needs: 'move'` scenarios) stays for one release so a user can downgrade; WP9
-deletes it. Nothing on the device runs it any more.
+WP9 deleted the overtake code: movy-host is the only host, and
+`src/platform/standalone.ts` is the only file that names its globals
+(`browser-test/source-rules.mjs` Rule 3; Rule 4 ratchets `typeof` gates at 0).
+Old data is only ever READ (the library's copy-import, the master import),
+never deleted.
 
 Device: `ableton@move.local`
 
@@ -91,7 +93,7 @@ mirror in the UI.
   clips/notes, scheduler, recording, sessions, persistence — host-testable
   with `cargo test`) + `movy-dsp` (`cdylib` → `dsp.so`, implements schwung's
   `plugin_api_v2`; every FFI entry point catches panics so an engine bug can
-  never abort MoveOriginal). Spec/design: `plans/2026-06-12-sequencer-*.md`.
+  never abort movy-host). Spec/design: `plans/2026-06-12-sequencer-*.md`.
 - **UI — `src/seq/`:** `engine.ts` (the only IPC: one batched `cmd`
   set_param/tick + a `status` poll), `state.ts` (mirror), `router.ts`
   (first-look MIDI dispatch — sequencer events never touch the param-page
@@ -114,14 +116,15 @@ mirror in the UI.
   the stack" is now "restart movy-host" — close and reopen movy (the harness's
   `restart()`); no Move restart, no root. Bumping ENGINE_VERSION once for two
   different builds still hides a stale engine: both answer `ping` alike.
-- **Engine sets must be blocking** (`host_module_set_param_blocking`): the
-  `overtake_dsp:` param SHM is a single slot, so non-blocking writes (and even
-  schwung's own DSP-load request) are routinely lost.
+- **Engine sets are blocking** (`host_module_set_param_blocking`, through
+  `src/host/param.ts`): a refused write must be countable. (Under the old
+  overtake host the param SHM was a single slot and non-blocking writes were
+  routinely lost; movy-host's queue does not lose them, but the door stays.)
 - **Never scp over a dlopen'd `dsp.so` (or a running `movy-host`) in place** —
   overwriting a mapped file's inode corrupts its pages. `deploy.sh` ships
   scp-to-temp + `mv` (fresh inode); the store's atomic install does the same.
-- Live pad notes are sounded **directly** (`shadow_send_midi_to_dsp`,
-  channel = track) for zero latency; the engine only **records** them (no
+- Live pad notes are sounded **directly** through the track's port
+  (`ch<N>:midi`) for zero latency; the engine only **records** them (no
   double trigger). Recorded notes are suppressed until the clip wraps.
 - **Note-offs come from the ledger, never from current state.**
   `keyboard/held-notes.ts` records `padNote → { track, pitch }` at note-on;
@@ -163,10 +166,13 @@ npm run test:device                # device e2e, every scenario (builds + ships 
 ./scripts/build-module.sh          # the store tarball (release build: MOVY_RELEASE=1, no UI_EVAL)
 ```
 
-If movy-host wedges, the fallback exit (Shift + volume touch + jog click) or
-`kill` of movy-host gives the device back to Move (or, at the boot door, to
-Schwung). Never `kill -9` it at the boot door: that pid is MoveLauncher's
-child, and only movy-host's own exit path hands over.
+If movy-host wedges, the fallback exit (Shift + volume touch + jog click)
+gives the device back to Move (or, at the boot door, to Schwung). From the
+Tools menu a `kill` (TERM) does the same. **At the boot door a TERM is a STOP**
+(rc 5, nothing starts, MoveLauncher shows "Move crashed"): recover with
+`/etc/init.d/move stop; /etc/init.d/move start` as root. Never `kill -9` it at
+the boot door: that pid is MoveLauncher's child, and only movy-host's own exit
+path hands over.
 
 ---
 
@@ -264,8 +270,8 @@ API, fixture, retries, flake ledger, rules learned on device — is in
    2 days turns the tier red until it is fixed or the user extends it.
 4. **Before a gate run, the device must be clean:** restart the stack after
    anything that churns modules (`dump-modules.sh` now does it itself). When the
-   tier prints `SCHWUNG CHANGED`, re-check the harness's copies of schwung
-   internals (`device-agent/ui-agent.py`, shm offsets) before suspecting movy.
+   tier prints `SCHWUNG CHANGED`, re-check what movy still takes from the
+   installed schwung (shared JS, chain modules) before suspecting movy.
 5. **Device unreachable → say DEVICE OFFLINE in CAPS.**
 
 **Build system:** All source lives in `src/` (TypeScript). `npm run build:device`
@@ -273,14 +279,11 @@ bundles everything to `ui.js` via esbuild (single ESM file, no stale-module
 issues). `npm run build:browser` compiles to `dist/esm/` for browser tests.
 Run `node build/device.mjs` before deploying; `scripts/deploy.sh` does this automatically.
 
-**QuickJS module cache:** `shadow_load_ui_module` re-evaluates `ui.js` fresh on
-every tool open, but ES modules **imported by** `ui.js` are cached for the entire
-`shadow_ui` process lifetime (shadow_ui ignores SIGTERM; SIGKILL kills it without
-respawn). The esbuild bundle avoids this: all movy logic is inlined at build time,
-leaving only the Schwung shared imports external (`/data/UserData/schwung/shared/*`).
-
-**Never `kill -9` the shadow_ui process** — MoveOriginal (its parent) does not
-respawn it, so the device UI breaks until a full reboot.
+**QuickJS module cache:** movy-host evaluates `ui.js` once per start, and the ES
+modules it imports (the Schwung shared `.mjs` under
+`/data/UserData/schwung/shared/*`, the only externals the esbuild bundle leaves)
+are cached for that movy-host's lifetime — a swapped shared file runs from the
+next movy open.
 
 ---
 
@@ -392,89 +395,21 @@ Run `ls src/` for the current layout — the boundaries below are what matters.
 
 ---
 
-## shadow_ui.js MIDI contract
+## movy-host's JS surface
 
-These facts are stable across Schwung versions. Knowing them avoids re-reading
-the 16 000-line `schwung/src/shadow/shadow_ui.js`.
+The globals movy calls are declared in `src/platform/host-globals.d.ts` and
+registered by `host/globals*.c`; `browser-test/host-globals.json` is the
+manifest (`SCHWUNG=../schwung node scripts/host-globals.mjs --write`) and
+`browser-test/host-globals.mjs` proves movy-host answers every entry. The
+callbacks movy-host calls into ui.js are `init`, `tick`,
+`onMidiMessageInternal`, `onUnload` and `onPowerButton` (`src/app/globals.ts`).
+Design: `docs/standalone/movy-host.md`; the device harness's bus:
+`docs/standalone/testbus.md`.
 
-**Knob CC routing (CC 71–78):**
-- Hardware knob turns arrive as CC71-78. The shadow UI does NOT forward them
-  directly to the module.
-- Instead: `overtakeKnobDelta[k] += decodeDelta(d2)` (accumulated, not
-  forwarded).
-- On each `tick()`, for each k where delta ≠ 0:
-  ```
-  ccVal = delta > 0 ? Math.min(delta, 63) : Math.max(128 + delta, 65)
-  overtakeModuleCallbacks.onMidiMessageInternal([0xB0, 71 + k, ccVal])
-  overtakeKnobDelta[k] = 0
-  ```
-- Decoded back in movy: `decodeDelta(ccVal)` from `shared/input_filter.mjs`.
-
-**All other MIDI:**  forwarded directly as `onMidiMessageInternal(data)`.
-
-**Guard:** the entire overtake block runs only when:
-```
-view === VIEWS.OVERTAKE_MODULE && overtakeModuleLoaded &&
-overtakeModuleCallbacks && !overtakeInitPending
-```
-
-**Targeted greps** (instead of reading the file):
-```bash
-# Knob accumulation + flush:
-grep -n "overtakeKnobDelta\|KNOB_CC_START" schwung/src/shadow/shadow_ui.js
-
-# Overtake MIDI routing block start:
-grep -n "OVERTAKE_MODULE\|overtakeInitPending\|overtakeModuleCallbacks.onMidi" \
-    schwung/src/shadow/shadow_ui.js
-
-# open_tool_cmd handler + shm offsets:
-grep -n "open_tool_cmd\|offOpenToolCmd" \
-    schwung/src/shadow/shadow_ui.js schwung/schwung-manager/shmconfig.go
-```
-
----
-
-## Host APIs available in JS context
-
-```javascript
-shadow_get_ui_slot()                          // → int  currently focused chain slot (0-3)
-shadow_get_param(slot, "synth:ui_hierarchy")  // → JSON string or null
-shadow_get_param(slot, "synth:<key>")         // → string value or null
-shadow_set_param(slot, "synth:<key>", valStr) // → bool (true = IPC accepted)
-shadow_send_midi_to_dsp([status, d1, d2])     // inject MIDI to active slot's DSP
-host_exit_module()                            // exit movy, return to shadow UI
-```
-
-`ui_hierarchy` JSON shape (from `CLAUDE.md` in the schwung repo):
-```json
-{
-  "levels": {
-    "root": {
-      "knobs": ["param_key1", "param_key2", ...],
-      "params": [{"key": "param_key", "label": "Label"}, ...]
-    }
-  }
-}
-```
-Param metadata (min/max/step/type) comes from `shadow_get_param(slot, "synth:chain_params")`.
-
----
-
-## open_tool_cmd protocol
-
-The only way to open a tool programmatically (the device harness does this
-through `test-device/transport-overtake.ts`'s `launch` (testd `SET_OPEN_TOOL`), which is how every scenario opens and
-reopens movy):
-
-```python
-import mmap, json
-with open("/data/UserData/schwung/open_tool_cmd.json", "w") as f:
-    f.write(json.dumps({"file_path": "/", "tool_id": "movy"}))
-with open("/dev/shm/schwung-control", "r+b") as f:
-    mm = mmap.mmap(f.fileno(), 0)  # use 0 — file is 64 bytes, explicit size fails
-    mm[56] = 1                     # offOpenToolCmd = 56 (shmconfig.go)
-    mm.close()
-```
+**Knob CCs 71–78 arrive accumulated:** movy-host sums a tick's detents and
+re-encodes them (`host/deltas.c`): 1-63 = clockwise, 65-127 =
+counter-clockwise. Decode with `decodeDelta` (`shared/input_filter.mjs`); never
+treat the raw `d2` as a delta.
 
 ---
 
@@ -486,15 +421,6 @@ In `onMidiMessageInternal`, the pad handler must `return` only inside the
 `note-on` / `note-off` branches — not unconditionally. If `return` is at the
 bottom of the pad block, CC71-78 are silently swallowed before the knob handler
 runs.
-
-**`mmap` size on `/dev/shm/schwung-control`.**  
-The shm file is 64 bytes. `mmap.mmap(f.fileno(), 256)` raises
-`ValueError: mmap length is greater than file size`. Always use `mmap(f, 0)`.
-
-**`decodeDelta` for re-encoded knob CCs.**  
-The shadow UI re-encodes accumulated deltas: 1-63 = clockwise, 65-127 =
-counter-clockwise. `decodeDelta` from `shared/input_filter.mjs` handles this.
-Do not treat the raw `d2` value as a delta directly.
 
 ---
 

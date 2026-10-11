@@ -131,7 +131,7 @@ export function schwungPageFor(trackIndex: number, componentKey: string,
          * contract is "the port a component's params actually live behind",
          * and a virtual component's params live behind no port.
          *
-         * Otherwise `componentPort`, not `portFor(trackIndex)`: a `master_fx:`
+         * Otherwise `componentPort`, not `portFor(trackIndex)`: a `mfx:`
          * key is schwung's own and global, and a `snd<n>` key is movy's engine
          * root — neither is the track's own chain. Reaching either through the
          * plain track port namespaces the key `ch<N>:…`, which is the one

@@ -94,7 +94,7 @@ export async function run() {
 
 {
   _log('\ncomponent ports — a master/send key is not a chain key (SP-52):');
-  const { componentPort, hostPort, engineRootPort, resetPorts } =
+  const { componentPort, engineRootPort, resetPorts } =
     await import('../../dist/esm/track/registry.js');
 
   resetPorts();
@@ -105,7 +105,7 @@ export async function run() {
    * plain track port for either kind. TRACK INDEX 9 IS DELIBERATE, NOT
    * TRACK 0: a master/send component's port must not depend on WHICH track
    * happens to be active when its ref is built (`app/page-owner.ts`). */
-  eq('a master FX component resolves to the host slot', componentPort(9, 'master_fx:fx1'), hostPort(0));
+  eq('a master FX component resolves to the engine root', componentPort(9, 'mfx:fx1'), engineRootPort());
   eq('a send bus resolves to the engine root', componentPort(9, 'snd0'), engineRootPort());
   eq('an ordinary component still resolves to its own track', componentPort(9, 'synth'), portFor(9));
 
@@ -121,15 +121,13 @@ export async function run() {
   globalThis.host_module_get_param = origEngineGet;
   eq('a send read lands verbatim, not chain-prefixed', engineGets[0], 'snd0:cutoff');
 
-  /* The master FX side of the same trap: `hostPort(0)` addresses schwung's
-   * shadow slot 0 directly, never a movy chain — `ch9:master_fx:fx1:cutoff`
-   * would ask the engine for a chain that does not own this key at all. */
-  const shimGets = [];
-  const origShimGet = globalThis.shadow_get_param;
-  globalThis.shadow_get_param = (slot, key) => { shimGets.push(slot + ':' + key); return null; };
-  componentPort(9, 'master_fx:fx1').getParam('master_fx:fx1:cutoff');
-  globalThis.shadow_get_param = origShimGet;
-  eq('a master FX read lands on shadow slot 0, not a chain', shimGets[0], '0:master_fx:fx1:cutoff');
+  /* The master FX side of the same trap: `ch9:mfx:fx1:cutoff` would ask the
+   * engine for a chain that does not own this key at all. */
+  engineGets.length = 0;
+  globalThis.host_module_get_param = (key) => { engineGets.push(key); return null; };
+  componentPort(9, 'mfx:fx1').getParam('mfx:fx1:cutoff');
+  globalThis.host_module_get_param = origEngineGet;
+  eq('a master FX read lands verbatim, not chain-prefixed', engineGets[0], 'mfx:fx1:cutoff');
 
   resetPorts();
 }
@@ -157,33 +155,6 @@ export async function run() {
 
   globalThis.host_module_get_param = origGet;
   resetPorts();
-}
-
-{
-  _log('\nparam reads — nothing addresses a slot directly:');
-  /* Guard, not a behaviour test. A direct shadow_get_param(slot, ...) reads
-   * schwung's slot N, which for a MOVY track is a completely different track's
-   * chain — it compiles, passes on tracks 1-4, and silently returns the wrong
-   * synth's values on tracks 5-16. That is the bug this abstraction exists to
-   * prevent, and it is far cheaper to catch here than on device.
-   *
-   * Originally scoped to src/model/, which let 25 reads survive in browser/,
-   * undo/, lfo/, mixer/ and app/ until they were found by hand. Now the whole
-   * tree is checked. */
-  const walkTs = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
-    const full = dir + '/' + e.name;
-    return e.isDirectory() ? walkTs(full) : (full.endsWith('.ts') ? [full] : []);
-  });
-  const READ_ALLOWED = {
-    'src/track/shim-port.ts':  "a schwung slot's one door — reads for master_fx and migration",
-  };
-  const offenders = walkTs('src')
-    .filter((f) => !(f in READ_ALLOWED))
-    .filter((f) => readFileSync(f, 'utf8').includes('platform.slotGet('));
-  eq('no file reads params by slot: ' + offenders.join(','), offenders.length, 0);
-  const staleReads = Object.keys(READ_ALLOWED)
-    .filter((f) => !readFileSync(f, 'utf8').includes('platform.slotGet('));
-  eq('no stale read-allowlist entries: ' + staleReads.join(','), staleReads.length, 0);
 }
 
 {

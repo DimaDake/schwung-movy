@@ -457,7 +457,7 @@ export function refreshModulatedKeys(s: ModelState): void {
     s.modulatedKeys.clear();
     /* A master FX component is driven by the MASTER LFOs, which store their
      * target bare (`fx1`, parsed by the shim as a slot number) under the
-     * master's own prefix (`master_fx:lfoN:` or `mfx:lfoN:`). Skipping master components outright is what left an
+     * master's own prefix (`mfx:lfoN:`). Skipping master components outright is what left an
      * assigned MFX knob with no mark (SP-60). */
     const bare = masterSuffix(s.componentKey);
     const master = bare !== null;

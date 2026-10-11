@@ -135,7 +135,7 @@ pub(crate) fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.90.0";
+const ENGINE_VERSION: &str = "0.91.0";
 
 /* Blocks between autosaves. The callback runs at ~344 Hz, so this is ~2 s —
  * flash on this device is not free and the sequencer is dirty constantly while
@@ -188,8 +188,6 @@ struct Instance {
     /// `persist-store.ts` made the same comparison with `lastGoodPayload`.
     last_saved: Option<(String, String)>,
     engpersist: bool,
-    /// `chpinhost`: load the pinned chain host movy ships. See `chain_copy`.
-    pin_chain_host: bool,
     set_uuid: String,
     set_gen: u32,
     /// How many Set payloads this engine has APPLIED — not requested, not read
@@ -224,7 +222,6 @@ impl Instance {
             saver: None,
             last_saved: None,
             engpersist: false,
-            pin_chain_host: true,
             set_uuid: String::new(),
             set_gen: 0,
             set_applied: 0,
@@ -414,7 +411,7 @@ impl Instance {
                 let mut parts = val.splitn(2, '|');
                 if let (Some(src_dir), Some(movy_dir)) = (parts.next(), parts.next()) {
                     let (src, dst) =
-                        chain_copy::chain_host_source(src_dir, movy_dir, self.pin_chain_host);
+                        chain_copy::chain_host_source(src_dir, movy_dir);
                     match chain_copy::ensure_copy(&src, &dst) {
                         Ok(_) => self.chains.configure(src_dir, &dst),
                         Err(e) => host::log(&format!("chain host copy failed: {}", e)),
@@ -451,19 +448,6 @@ impl Instance {
              * the autosave below is gated on it and not merely preferred. */
             "engpersist" => {
                 self.engpersist = val != "0";
-            }
-            /* Run the chain host movy ships (built from its pinned schwung tag)
-             * instead of the installed one. Read only by `chain_host` below,
-             * which the UI sends after the flags, so it takes effect at the
-             * next engine boot — never under chains that already exist. */
-            "chpinhost" => {
-                self.pin_chain_host = val != "0";
-            }
-            /* Which host movy runs under; see `host::set_standalone`. */
-            "hostmode" => {
-                let standalone = val.trim() == "standalone";
-                host::set_standalone(standalone);
-                host::log(&format!("host mode: {}", if standalone { "standalone" } else { "overtake" }));
             }
             /* Commands, not payloads. A lost command is harmless and idempotent
              * on retry — an engine that has not opened a Set cannot overwrite
@@ -717,35 +701,16 @@ impl Instance {
     fn drain_out(&mut self) {
         for i in 0..self.out.len() {
             match self.out[i] {
-                /* The one place that knows where a track's notes go. A host
-                 * track is addressed by MIDI channel; a movy track is a chain
-                 * movy owns, so its note never leaves this process. */
+                /* The one place that knows where a track's notes go: its
+                 * chain, so a note never leaves this process. */
                 OutEvent::NoteOn { track, pitch, vel } => {
-                    match chain_for(track) {
-                        None => {
-                            host::midi_send_internal(0x90 | track, pitch, vel);
-                        }
-                        Some(c) => {
-                            self.chains.on_midi(
-                                c,
-                                &[0x90, pitch, vel],
-                                MOVE_MIDI_SOURCE_INTERNAL,
-                            );
-                        }
+                    if let Some(c) = chain_for(track) {
+                        self.chains.on_midi(c, &[0x90, pitch, vel], MOVE_MIDI_SOURCE_INTERNAL);
                     }
                 }
                 OutEvent::NoteOff { track, pitch } => {
-                    match chain_for(track) {
-                        None => {
-                            host::midi_send_internal(0x80 | track, pitch, 0);
-                        }
-                        Some(c) => {
-                            self.chains.on_midi(
-                                c,
-                                &[0x80, pitch, 0],
-                                MOVE_MIDI_SOURCE_INTERNAL,
-                            );
-                        }
+                    if let Some(c) = chain_for(track) {
+                        self.chains.on_midi(c, &[0x80, pitch, 0], MOVE_MIDI_SOURCE_INTERNAL);
                     }
                 }
                 OutEvent::Click { accent } => {
@@ -759,20 +724,10 @@ impl Instance {
                         self.chains.apply_lane(c, lane, val);
                     }
                 }
-                OutEvent::Start => {
-                    host::midi_send_internal(0xFA, 0, 0);
-                }
-                OutEvent::Stop => {
-                    host::midi_send_internal(0xFC, 0, 0);
-                }
-                OutEvent::Clock => {
-                    host::midi_send_internal(0xF8, 0, 0);
-                }
-                OutEvent::MoveInject { val } => {
-                    // MovePlay (CC 85) toward Move's firmware — davebox packet
-                    // shape [0x0B, 0xB0, 85, val] (design §7 Phase 4).
-                    host::midi_inject_to_move(0x0B, 0xB0, 85, val);
-                }
+                /* The transport's own clock. It went to schwung's slots, which
+                 * movy-host does not have; MIDI clock out on USB-A would be its
+                 * destination (plan C-opt). */
+                OutEvent::Start | OutEvent::Stop | OutEvent::Clock => {}
             }
         }
         self.out.clear();

@@ -1,7 +1,7 @@
 import { componentPort } from '../track/registry.js';
 import { browserState } from './state.js';
 import { appState, VIEW_BROWSE, VIEW_CHAIN } from '../app/state.js';
-import { isShimMasterComponent, moduleReadKey, MASTER_FX_SLOTS, type ChainSlot } from '../chain/config.js';
+import { moduleReadKey, MASTER_FX_SLOTS, type ChainSlot } from '../chain/config.js';
 import { releaseAllLive } from '../keyboard/release.js';
 import { captureLfoAssignments, captureModuleState, dumpModuleParams } from '../undo/module-dump.js';
 import { mlog } from '../log.js';
@@ -10,14 +10,9 @@ import { platform } from '../platform/index.js';
 
 const MODULES_BASE = '/data/UserData/schwung/modules';
 
-/* How long to wait for the shim to finish loading a master FX module before
- * reading it back. dlopen + init + create_instance, measured worst case on a
- * CLAP host; the shim's own default is 100 ms, which a module load overruns. */
-const MASTER_LOAD_TIMEOUT_MS = 3000;
-
-function scanModules(slot: ChainSlot): { id: string; name: string; path: string }[] {
+function scanModules(slot: ChainSlot): { id: string; name: string }[] {
     const dir    = `${MODULES_BASE}/${slot.scanDir}`;
-    const result: { id: string; name: string; path: string }[] = [];
+    const result: { id: string; name: string }[] = [];
     try {
         const [entries] = os.readdir(dir) as [string[], number];
         if (!Array.isArray(entries)) return result;
@@ -27,16 +22,13 @@ function scanModules(slot: ChainSlot): { id: string; name: string; path: string 
                 const raw = platform.readFile(`${dir}/${entry}/module.json`);
                 if (!raw) continue;
                 const json = JSON.parse(raw) as {
-                    id?: string; name?: string; dsp?: string;
+                    id?: string; name?: string;
                     component_type?: string;
                     capabilities?: { component_type?: string };
                 };
                 const ct = json.component_type || json.capabilities?.component_type;
                 if (ct === slot.expectedType) {
-                    // Master FX slots load by DSP path (see loadSelectedModule); track
-                    // slots load by id. Capture both so either can be written.
-                    const path = `${dir}/${entry}/${json.dsp || 'dsp.so'}`;
-                    result.push({ id: json.id || entry, name: json.name || entry, path });
+                    result.push({ id: json.id || entry, name: json.name || entry });
                 }
             } catch {}
         }
@@ -52,7 +44,7 @@ function scanModules(slot: ChainSlot): { id: string; name: string; path: string 
  * only because it is also the key undo records module ops under. Everything
  * here reaches the track through `componentPort`, so a movy-hosted track browses
  * and loads exactly like a host one; the write lands as `ch<N>:<component>:module`
- * instead of a shadow-slot param. The master bus passes 0 — and its `master_fx:`
+ * instead of a shadow-slot param. The master bus passes 0 — and its `mfx:`
  * keys are schwung's own, so `componentPort` keeps them on a shadow slot however
  * `chtracks` has resolved track 0.
  *
@@ -63,7 +55,7 @@ export function openBrowser(slot: ChainSlot, paramSlot: number, reload: () => vo
     browserState.componentKey = slot.componentKey;
     browserState.paramSlot    = paramSlot;
     browserState.reload       = reload;
-    browserState.modules      = [{ id: '', name: 'NONE', path: '' }, ...scanModules(slot)];
+    browserState.modules      = [{ id: '', name: 'NONE' }, ...scanModules(slot)];
     browserState.browseIndex  = 0;
     const activeId = componentPort(paramSlot, slot.componentKey)
         .getParam(moduleReadKey(slot.componentKey)) || '';
@@ -81,16 +73,8 @@ export function openBrowser(slot: ChainSlot, paramSlot: number, reload: () => vo
 export function loadSelectedModule(): void {
     if (browserState.modules.length === 0) return;
     const mod = browserState.modules[browserState.browseIndex];
-    // Track chain slots load a module by its id (`fx1:module` = "reverb"); master
-    // FX slots instead take the full DSP path — schwung's master bus resolves
-    // `master_fx:fxN:module` as a path, not an id, so writing the id silently
-    // no-ops.
-    //
-    // Asked by COMPONENT and not by "does the key contain a colon": movy's own
-    // SEND slots and movy's own master (`mfx:`) also ride the master page, and
-    // they are chains movy hosts — id, not path.
-    const isMaster = isShimMasterComponent(browserState.componentKey);
-    const value    = isMaster ? mod.path : mod.id;
+    // Every slot loads a module by its id (`fx1:module` = "reverb").
+    const value = mod.id;
     // The outgoing module is about to be torn down; its notes must be released
     // while it is still there to receive the off.
     releaseAllLive();
@@ -99,10 +83,6 @@ export function loadSelectedModule(): void {
      * nothing — it changes no state worth an undo press. */
     const prevId = componentPort(browserState.paramSlot, browserState.componentKey)
         .getParam(moduleReadKey(browserState.componentKey)) || '';
-    /* Compare identities, not the written value: for a master slot `value` is a
-     * path while `prevId` is an id, so comparing them called every reselect a
-     * change. */
-    const prev = browserState.modules.find((m) => m.id === prevId);
     const changed = prevId !== mod.id;
     if (changed) {
         /* Prefer schwung's own whole-module blob; the per-param dump is the
@@ -120,36 +100,22 @@ export function loadSelectedModule(): void {
             detail: (mod.name || value || 'NONE').toUpperCase(),
             close: CLOSE.IMMEDIATE, seq: true,
         });
-        const ids = (id: string, path: string) => [id, path].filter((v) => v !== '');
+        const ids = (id: string) => (id === '' ? [] : [id]);
         addModuleOp({
             slot: browserState.paramSlot,
             componentKey: browserState.componentKey,
-            /* Restoring must write what THIS slot kind loads by — an id for a
-             * track chain slot, a DSP path for master FX. Writing the wrong one
-             * silently no-ops (see the isMaster comment above). */
-            oldWrite: isMaster ? (prev?.path ?? '') : prevId,
+            oldWrite: prevId,
             newWrite: value,
-            oldIds: ids(prevId, prev?.path ?? ''),
-            newIds: ids(mod.id, mod.path),
+            oldIds: ids(prevId),
+            newIds: ids(mod.id),
             oldLfo: captureLfoAssignments(browserState.paramSlot, browserState.componentKey),
             oldState: state ?? undefined,
             oldParams: dump.params,
             leadCount: dump.leadCount,
         });
     }
-    const port = componentPort(browserState.paramSlot, browserState.componentKey);
-    if (isMaster) {
-        /* Blocking, unlike the track path. Under overtake a plain set is
-         * fire-and-forget, so nothing would tell us the slot ever took the
-         * module: the reload below repaints from a read that can still describe
-         * the previous one, and schwung's saver — which asks the shim what each
-         * position holds — can be reached before the write lands. The wait
-         * covers a dlopen plus module init (a CLAP host is the slow case), so it
-         * is far longer than the 100 ms default. */
-        port.setParamTimeout(browserState.componentKey + ':module', value, MASTER_LOAD_TIMEOUT_MS);
-    } else {
-        port.setParam(browserState.componentKey + ':module', value);
-    }
+    componentPort(browserState.paramSlot, browserState.componentKey)
+        .setParam(browserState.componentKey + ':module', value);
     if (changed) endEdit();
     /* NONE leaves nothing for a module page to show, so it lands on the chain
      * view whichever page opened the browser. Returning to the origin put the
@@ -158,8 +124,8 @@ export function loadSelectedModule(): void {
      * because only the chain view checks for an empty slot before the body. */
     if (value === '') {
         appState.currentView = VIEW_CHAIN;
-        /* By PAGE, not by `isMaster`: the send buses share the master page and
-         * its detail drill but are movy chains, not `master_fx:` components. */
+        /* By PAGE, not by component: the send buses share the master page and
+         * its detail drill but are not `mfx:` components. */
         if (MASTER_FX_SLOTS.some((s) => s.componentKey === browserState.componentKey)) {
             appState.masterDetail = false;
         }

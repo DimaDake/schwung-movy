@@ -24,7 +24,6 @@ import { componentPort } from '../track/registry.js';
 import { moduleReadKey } from '../chain/config.js';
 import { invalidateUndo } from './state.js';
 import type { ModuleOp } from './types.js';
-import { platform } from '../platform/index.js';
 
 /* ~1.5 s at the 63-205 Hz device tick. A module that has not appeared by then
  * is not coming, and holding the stack hostage would be worse than dropping it. */
@@ -136,7 +135,6 @@ export function beginParamRestore(
  * written with: a track chain slot is set as `synth:module` but reports under
  * the alias `synth_module`, and reading the colon form there returns null. */
 function liveModuleId(op: ModuleOp): string {
-    if (!platform.slotParamsAvailable()) return '';
     return componentPort(op.slot, op.componentKey)
         .getParam(moduleReadKey(op.componentKey)) || '';
 }
@@ -150,9 +148,7 @@ function moduleIsReady(p: Pending): boolean {
     if (p.wantIds.length === 0) return live === '';        // cleared slot
     if (!p.wantIds.includes(live)) return false;
     if (p.state === null && p.params.length === 0) return true;   // nothing to write
-    const cp = platform.slotParamsAvailable()
-        ? componentPort(p.op.slot, p.op.componentKey).getParam(p.op.componentKey + ':chain_params')
-        : null;
+    const cp = componentPort(p.op.slot, p.op.componentKey).getParam(p.op.componentKey + ':chain_params');
     return !!cp && cp !== '[]';
 }
 
@@ -179,7 +175,6 @@ function sameValue(a: string, b: string): boolean {
 /* Rewrite whatever the DSP has overwritten since we set it. Returns how many
  * needed it — 0 means the restore has actually taken. */
 function rewriteDrifted(p: Pending): number {
-    if (!platform.slotParamsAvailable()) return 0;
     let fixed = 0;
     /* Only the params after the lead: re-writing the preset would re-trigger
      * the very rewrite being corrected for. */

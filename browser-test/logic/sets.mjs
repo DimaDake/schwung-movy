@@ -90,29 +90,8 @@ export async function run() {
 
 {
     _log('\nset source:');
-    setFlag('setsrc', 0);
-    src.latchSetSource();
-    eq('Move mode: the legacy tree', src.setsDir(), src.LEGACY_SETS_DIR);
-    setFlag('setsrc', 1);
-    eq('a flip mid-session waits for the next open', src.setsDir(), src.LEGACY_SETS_DIR);
-    src.latchSetSource();
-    eq('library mode', src.setsDir(), '/data/UserData/UserLibrary/Movy/Sets');
-    ok('library mode reported', src.setSourceMovy());
-
-    /* Standalone (WP8): no Move Set to follow, so a stored MOVE is ignored. */
-    const { platform, setPlatformForTest } = await import('../../dist/esm/platform/index.js');
-    const real = platform;
-    try {
-        setPlatformForTest({ ...real, caps: { ...real.caps, coexistsWithMove: false } });
-        setFlag('setsrc', 0);
-        src.latchSetSource();
-        ok('standalone: library mode whatever setsrc says', src.setSourceMovy());
-        eq('standalone: never the legacy tree', src.setsDir(), '/data/UserData/UserLibrary/Movy/Sets');
-    } finally {
-        setPlatformForTest(real);
-        setFlag('setsrc', 1);
-        src.latchSetSource();
-    }
+    eq('Sets live in the library', src.setsDir(), '/data/UserData/UserLibrary/Movy/Sets');
+    ok('the legacy tree is named only for the import to read', src.LEGACY_SETS_DIR.endsWith('/modules/tools/movy/sets'));
 }
 
 {
@@ -146,23 +125,21 @@ export async function run() {
 {
     _log('\nsets page view model:');
     const rows = [{ id: 'a', clips: 2, depth: 0, name: 'Alpha' }, { id: 'b', clips: 0, depth: 0, name: 'Beta' }];
-    const vm = vmm.buildSetsPageVM(true, rows, 'b', 9, false);
+    const vm = vmm.buildSetsPageVM(rows, 'b', 9, false);
     eq('[NEW] first', vm.rows[0].name, vmm.NEW_ROW);
     eq('selection clamps to the list', vm.selected, 2);
     eq('the open Set is marked', vm.rows.map((r) => r.current).join(','), 'false,false,true');
     eq('clip counts', vm.rows[1].clips, '2');
-    eq('confirm names the Set', vmm.buildSetsPageVM(true, rows, 'b', 1, true).confirm, 'DELETE ALPHA?');
-    eq('no confirm on [NEW]', vmm.buildSetsPageVM(true, rows, 'b', 0, true).confirm, null);
-    eq('Move mode', vmm.buildSetsPageVM(false, rows, 'b', 0, false).mode, 'move');
-    eq('before the first answer', vmm.buildSetsPageVM(true, null, '', 0, false).mode, 'loading');
+    eq('confirm names the Set', vmm.buildSetsPageVM(rows, 'b', 1, true).confirm, 'DELETE ALPHA?');
+    eq('no confirm on [NEW]', vmm.buildSetsPageVM(rows, 'b', 0, true).confirm, null);
+    eq('before the first answer', vmm.buildSetsPageVM(null, '', 0, false).mode, 'loading');
 }
 
 {
     _log('\nsets page gestures:');
     const f = fakeLib();
     const restore = install(f);
-    setFlag('setsrc', 1);
-    src.latchSetSource();
+    src.resetWantedSet();
     lib.resetLib();
     ls.resetLibSession();
     f.st.sets = [{ id: 'b', name: 'Beta', clips: 1 }, { id: 'a', name: 'Alpha', clips: 0 }];
@@ -254,26 +231,10 @@ export async function run() {
 }
 
 {
-    _log('\nno schwung track migration in library mode:');
-    const mig = await import('../../dist/esm/track/migrate.js');
-    setFlag('setsrc', 1);
-    src.latchSetSource();
-    /* A blank Set (no ui blob) is what arms the probe in Move mode. */
-    mig.beginMigration(null, undefined, []);
-    ok('a new library Set never probes schwung\'s slots', !mig.migrationPending());
-    setFlag('setsrc', 0);
-    src.latchSetSource();
-    mig.beginMigration(null, undefined, []);
-    ok('Move mode still does', mig.migrationPending());
-    mig.abandonMigration();
-}
-
-{
     _log('\nlibrary session identity:');
     const f = fakeLib();
     const restore = install(f);
-    setFlag('setsrc', 1);
-    src.latchSetSource();
+    src.resetWantedSet();
     lib.resetLib();
     ls.resetLibSession();
     eq('nothing until the library answers', ls.libraryIdentity(), null);
@@ -290,15 +251,14 @@ export async function run() {
     eq('one import per engine generation', f.st.sent.filter((c) => c.startsWith('import')).length, 1);
 
     /* A library with a last-open Set reopens it. */
-    src.latchSetSource();
+    src.resetWantedSet();
     lib.resetLib();
     ls.resetLibSession();
     f.st.sets = [{ id: 'n', name: 'N', clips: 0 }, { id: 'o', name: 'O', clips: 0 }];
     f.st.cur = 'o';
     f.publish();
     eq('last-open reopens', ls.libraryIdentity()?.uuid, 'o');
-    setFlag('setsrc', 0);
-    src.latchSetSource();
+    src.resetWantedSet();
     restore();
 }
 }

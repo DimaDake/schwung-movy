@@ -24,7 +24,7 @@ const { seqState, resetSeqState } = await import('../../dist/esm/seq/state.js');
 const { keyboardState } = await import('../../dist/esm/keyboard/state.js');
 const { mainPageKnob, mainPageTouch, mainPageRelease, resetMainPage }
     = await import('../../dist/esm/seq/main-page.js');
-const { K_TEMPO, K_SWING, K_LINK, K_QUANT, K_ROOT, K_KEY, K_MODE, K_LAYOUT }
+const { K_TEMPO, K_SWING, K_QUANT, K_ROOT, K_KEY, K_MODE, K_LAYOUT }
     = await import('../../dist/esm/seq/main-page-constants.js');
 const { layoutNames } = await import('../../dist/esm/keyboard/layouts.js');
 const { openParamPage, closeParamPage } = await import('../../dist/esm/seq/param-page.js');
@@ -43,8 +43,8 @@ _log('\nTest: the synthesised contract');
 
     const source = setParamsSource();
     const hier = JSON.parse(source.getParam(SET_PARAMS_COMPONENT + ':ui_hierarchy'));
-    eq('the root level lists all eight keys', hier.levels.root.knobs.join(','),
-       'tempo,swing,link,quant,root,key,mode,layout');
+    eq('the root level lists all seven keys', hier.levels.root.knobs.join(','),
+       'tempo,swing,quant,root,key,mode,layout');
 
     const params = JSON.parse(source.getParam(SET_PARAMS_COMPONENT + ':chain_params'));
     /* SP-57: the big face, and the reading it prints. Schwung's big cell draws
@@ -55,44 +55,26 @@ _log('\nTest: the synthesised contract');
     eq('ROOT draws big too', params.find((x) => x.key === 'root').display, 'big');
     ok('chain_params is an ARRAY, not a keyed object (the same bug class Clip Params found)',
        Array.isArray(params));
-    eq('one entry per cell', params.length, 8);
+    eq('one entry per cell', params.length, 7);
 
-    const link = params.find((p) => p.key === 'link');
-    eq('LINK is a toggle (param_meta.mjs normalises it to a 2-option enum, no widget needed)',
-       link.type, 'toggle');
+    ok('LINK is gone (retired with Move, WP9)', !params.some((p) => p.key === 'link'));
     const root = params.find((p) => p.key === 'root');
     eq('ROOT is an enum with all 12 pitch classes', root.type + ':' + root.options.length, 'enum:12');
     /* short_name — Schwung's own auto-abbreviator mangled "Pad Layout" into
      * "PLAYOU" and "Note Mode" into "NMODE" before this was declared
      * (measured on the first baseline, reviewed by eye before accepting it). */
     eq('every cell declares its own short_name', params.map((p) => p.short_name).join(','),
-       'TEMPO,SWING,LINK,QUANT,ROOT,KEY,MODE,LAYOUT');
+       'TEMPO,SWING,QUANT,ROOT,KEY,MODE,LAYOUT');
 }
 
-/* ── Standalone: no Move to link Play to, so no LINK ──────────────────────── */
-_log('\nTest: standalone drops LINK from both Set Params pages');
+/* ── The legacy page keeps LINK's knob empty, so the numbering holds ─────── */
+_log('\nTest: the legacy Set Params page leaves knob 3 empty');
 {
-    const { platform, setPlatformForTest } = await import('../../dist/esm/platform/index.js');
     const { buildMainPageVM } = await import('../../dist/esm/seq/main-page-vm.js');
-    const real = platform;
-    setPlatformForTest({ ...real, caps: { ...real.caps, coexistsWithMove: false } });
-    try {
-        reset();
-        const params = JSON.parse(setParamsSource().getParam(SET_PARAMS_COMPONENT + ':chain_params'));
-        eq('standalone: the contract lists no link', params.map((p) => p.short_name).join(','),
-           'TEMPO,SWING,QUANT,ROOT,KEY,MODE,LAYOUT');
-        const vm = buildMainPageVM();
-        eq('standalone: the legacy page leaves knob 3 empty', vm.rows[0][2].shortName, '');
-        eq('standalone: QUANT keeps knob 4', vm.rows[0][3].shortName, 'QUANT');
-        seqState.linkEnabled = false;
-        mainPageKnob(K_LINK, 8);
-        eq('standalone: turning knob 3 cannot switch link on', seqState.linkEnabled, false);
-    } finally {
-        setPlatformForTest(real);
-    }
-    const params = JSON.parse(setParamsSource().getParam(SET_PARAMS_COMPONENT + ':chain_params'));
-    eq('back beside Move: LINK returns', params.map((p) => p.short_name).join(','),
-       'TEMPO,SWING,LINK,QUANT,ROOT,KEY,MODE,LAYOUT');
+    reset();
+    const vm = buildMainPageVM();
+    eq('knob 3 is empty', vm.rows[0][2].shortName, '');
+    eq('QUANT keeps knob 4', vm.rows[0][3].shortName, 'QUANT');
 }
 
 /* ── LAYOUT's option list is a FUNCTION, resolved against the CURRENT mode ── */
@@ -192,7 +174,8 @@ if (!schwungLibAvailable()) {
     const p = schwungPageFor(0, SET_PARAMS_COMPONENT, null, null);
     for (let i = 0; i < 60 && !p.ready; i++) p.tick();
     ok('the page resolved (>=1 page planned)', p.ready && p.pageCount >= 1);
-    eq('knob 2 is LINK', p.keyAt(2), 'link');
+    /* Schwung's `knobs[]` has no gaps, so the cells pack: no knob for LINK. */
+    eq('knob 3 is QUANT', p.keyAt(2), 'quant');
 
     /* SP-57 H3. A 2-option enum that is not Off/On falls through isSwitchMeta
      * into isTwoWayMeta, which TOGGLES on every detent behind a 270 ms latch —
@@ -203,8 +186,8 @@ if (!schwungLibAvailable()) {
      * throttled and the RELEASE is what flushes it. */
     keyboardState.mode = 0;        // Chromatic: layouts are ['4th', 'Piano']
     keyboardState.layout = 0;
-    const turnLayout = (raw) => { p.knobTouch(7, true); p.knobTurn(7, raw); p.knobTouch(7, false); };
-    eq('knob 7 is LAYOUT', p.keyAt(7), 'layout');
+    const turnLayout = (raw) => { p.knobTouch(6, true); p.knobTurn(6, raw); p.knobTouch(6, false); };
+    eq('knob 7 is LAYOUT', p.keyAt(6), 'layout');
 
     for (let i = 0; i < 6; i++) turnLayout(8);
     eq('six clockwise turns land on the second option and STAY there',
@@ -216,7 +199,7 @@ if (!schwungLibAvailable()) {
      * repeats the value on every detent of a held turn, which is why the
      * latch existed. So this says dropping it was safe rather than
      * convenient. COUNTED AT THE CELL'S `set`, behind the port: the guard
-     * lives in the port, and `applyLayoutIdx`/`applyLink` have no engine
+     * lives in the port, and `applyLayoutIdx` has no engine
      * command to count either way. */
     {
         const { createVirtualSource } = await import('../../dist/esm/renderer/schwung-virtual-source.js');
@@ -251,10 +234,10 @@ if (!schwungLibAvailable()) {
         p.knobTouch(slot, false);
         return peek;
     };
-    eq('knob 4 is QUANT', p.keyAt(3), 'quant');
-    eq('knob 6 is KEY', p.keyAt(5), 'key');
-    ok('a cell that shows its value in full raises no panel', turnKnob(3, 8) === null);
-    ok('a cell whose words do not fit still raises one', !!turnKnob(5, 8));
+    eq('knob 3 is QUANT', p.keyAt(2), 'quant');
+    eq('knob 5 is KEY', p.keyAt(4), 'key');
+    ok('a cell that shows its value in full raises no panel', turnKnob(2, 8) === null);
+    ok('a cell whose words do not fit still raises one', !!turnKnob(4, 8));
 
     setSchwungGridMode(savedMode);
     schwungGridReload();

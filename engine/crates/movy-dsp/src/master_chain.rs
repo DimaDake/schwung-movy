@@ -1,11 +1,7 @@
 //! The master chain movy owns: four audio FX and two LFOs on one chain host
 //! instance, run over the finished output after the send buses, then master
-//! volume and a safety limiter.
-//!
-//! Off unless the UI binds it (`mfx:own=1`, standalone or the `mstown` test
-//! flag). Off, it touches nothing, so an overtake build's output is
-//! bit-identical to one without it — overtake users still have schwung's master
-//! downstream, and running two masters by default would be a change they hear.
+//! volume and a safety limiter. Always in the path: it is the only master
+//! (WP9 retired the overtake build, where schwung's master sat downstream).
 //!
 //! Design: docs/superpowers/specs/2026-09-10-movy-owned-master-chain-design.md §5.
 
@@ -109,7 +105,6 @@ impl Limiter {
 pub struct MasterChain {
     pub inst: Option<ChainInstance>,
     loaded: [bool; MASTER_FX],
-    owned: bool,
     gain: f32,
     imported: bool,
     continuous: bool,
@@ -133,7 +128,6 @@ impl MasterChain {
         Self {
             inst: None,
             loaded: [false; MASTER_FX],
-            owned: false,
             gain: 1.0,
             imported: false,
             continuous: false,
@@ -151,18 +145,6 @@ impl MasterChain {
 
     pub fn any_loaded(&self) -> bool {
         self.loaded.iter().any(|&l| l)
-    }
-
-    pub fn owned(&self) -> bool {
-        self.owned
-    }
-
-    pub fn set_owned(&mut self, on: bool) {
-        self.owned = on;
-        /* A stage re-entering the path must not resume a release from minutes
-         * ago, nor ring a tail it stopped producing when it left. */
-        self.limiter = Limiter::new();
-        self.last_peak = 0;
     }
 
     pub fn gain(&self) -> f32 {
@@ -232,16 +214,12 @@ impl MasterChain {
         self.held.clear();
     }
 
-    /// The stage, over the finished output. `false` when it did nothing (not
-    /// owned), so the meter can leave the block out.
+    /// The stage, over the finished output.
     ///
     /// `mod_tick` comes first and runs every block the instance exists, FX
     /// processed or not: an FX-only chain never calls the `render_block` that
     /// normally ticks its LFOs, and a frozen master LFO is silent about it.
-    pub fn run(&mut self, out: &mut [i16]) -> bool {
-        if !self.owned {
-            return false;
-        }
+    pub fn run(&mut self, out: &mut [i16]) {
         self.in_peak = peak(out);
         let run_fx = self.any_loaded()
             && should_process(self.in_peak > 0, self.last_peak, self.continuous);
@@ -258,7 +236,6 @@ impl MasterChain {
         self.last_peak = if run_fx { peak(out) } else { 0 };
         self.min_env = self.limiter.process(out, self.gain);
         self.out_peak = peak(out);
-        true
     }
 
     pub fn add_cost(&mut self, dt: u64) {
@@ -283,8 +260,7 @@ impl MasterChain {
     /// `mfxlog`. `mods` is the module per position, read by the caller.
     pub fn report(&self, mods: &[String]) -> String {
         format!(
-            "own={} vol={:.3} imp={} mod={} in={} out={} gr={:.3} proc={} held={}",
-            u8::from(self.owned),
+            "vol={:.3} imp={} mod={} in={} out={} gr={:.3} proc={} held={}",
             self.gain,
             u8::from(self.imported),
             mods.iter().map(|m| if m.is_empty() { "-" } else { m.as_str() }).collect::<Vec<_>>().join(","),
@@ -321,29 +297,17 @@ mod tests {
     }
 
     #[test]
-    fn unowned_stage_leaves_the_output_bit_identical() {
+    fn unity_below_the_ceiling_is_untouched() {
         let mut m = MasterChain::new();
-        m.set_gain("0.5");
-        let mut buf: Vec<i16> = (0..256).map(|i| (i * 251 % 65536 - 32768) as i16).collect();
-        let before = buf.clone();
-        assert!(!m.run(&mut buf));
-        assert_eq!(buf, before);
-    }
-
-    #[test]
-    fn owned_at_unity_below_the_ceiling_is_untouched() {
-        let mut m = MasterChain::new();
-        m.set_owned(true);
         let mut buf: Vec<i16> = (0..256).map(|i| ((i % 64) * 400 - 12800) as i16).collect();
         let before = buf.clone();
-        assert!(m.run(&mut buf));
+        m.run(&mut buf);
         assert_eq!(buf, before);
     }
 
     #[test]
     fn volume_scales() {
         let mut m = MasterChain::new();
-        m.set_owned(true);
         m.set_gain("0.5");
         let mut buf = vec![10000i16; 256];
         m.run(&mut buf);
@@ -353,7 +317,6 @@ mod tests {
     #[test]
     fn a_volume_change_ramps_across_the_block() {
         let mut m = MasterChain::new();
-        m.set_owned(true);
         let mut buf = vec![10000i16; 256];
         m.run(&mut buf);
         m.set_gain("0.5");

@@ -12,7 +12,7 @@ import { eq, ok, _log } from './harness.mjs';
 
 export async function run() {
     const {
-        paramAvailable, paramGet, paramSet, paramGetMany, paramSetMany,
+        paramGet, paramSet, paramGetMany, paramSetMany,
         paramStats, resetParamStats,
     } = await import('../../dist/esm/host/param.js');
     const { encodeBulk } = await import('../../dist/esm/track/bulk.js');
@@ -41,8 +41,6 @@ export async function run() {
 
     _log('\nhost param channel: a refused write is counted, not swallowed');
     resetParamStats();
-
-    eq('the channel reports itself available', paramAvailable(), true);
 
     /* A write that lands. */
     ok('a delivered write reports success', paramSet('cmd', 'play') === true);

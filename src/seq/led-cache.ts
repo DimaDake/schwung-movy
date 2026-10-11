@@ -69,11 +69,7 @@ interface AnimState { base: number; anim: number; animColor: number; }
 const lastAnimLed = new Map<number, AnimState>();
 
 function emitLed(note: number, color: number, channel: number): void {
-    // The surface send is absent in browser tests of the device build and in
-    // DSP-less installs. Fall back to channel-0 setLED.
-    if (!platform.surfaceSend([0x09, 0x90 | channel, note, color])) {
-        setLED(note, color, true);
-    }
+    platform.surfaceSend([0x09, 0x90 | channel, note, color]);
 }
 
 /* Paint a pad with an optional native animation. `base` is the channel-0 color

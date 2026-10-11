@@ -2,7 +2,6 @@
 /* Device scenario entry point.  npm run test:device [-- --scenario <name>[,<name>...]] */
 import { StandaloneTransport } from './dist/transport-standalone.js';
 import { setRunMute } from './dist/engine.js';
-import { useLibrary } from './dist/fixture.js';
 import { runAll } from './dist/runner.js';
 import { printFlakes } from './dist/flake-log.js';
 import { noteSchwungVersion, reportKnownRed } from './dist/gate-checks.js';
@@ -18,13 +17,10 @@ import './dist/scenarios/module-contract.js';
 import './dist/scenarios/page-lifecycle.js';
 import './dist/scenarios/virtual-pages.js';
 import './dist/scenarios/page-dive.js';
-import './dist/scenarios/master-fx.js';
 import './dist/scenarios/master-own.js';
-import './dist/scenarios/sets-library.js';
 import './dist/scenarios/mutes.js';
 import './dist/scenarios/smoke.js';
 import './dist/scenarios/versions.js';
-import './dist/scenarios/migrate.js';
 import './dist/scenarios/seq.js';
 import './dist/scenarios/widgets.js';
 import './dist/scenarios/testbus.js';
@@ -63,7 +59,7 @@ if (FLAVOUR !== 'standalone') {
     process.exit(1);
 }
 const tx = new StandaloneTransport(HOST);
-useLibrary(true);
+
 
 /* Read-only, and before anything touches the device: what has needed a second
  * attempt lately, and how often. A rate is the thing that turns "flaky" from a

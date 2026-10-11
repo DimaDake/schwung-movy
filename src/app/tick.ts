@@ -14,7 +14,6 @@ import { renderSetsView } from '../renderer/sets-view.js';
 import { buildSetsPageVM } from '../seq/sets-page-vm.js';
 import { setsPageState, setsPageTick } from '../seq/sets-page.js';
 import { libState } from '../seq/sets-lib.js';
-import { setSourceMovy } from '../seq/set-source.js';
 import { textEntry, textEntryActive } from '../renderer/text-entry-lib.js';
 import { renderVersionsView } from '../renderer/versions-view.js';
 import { renderCpuView, barPixels } from '../renderer/cpu-view.js';
@@ -44,7 +43,7 @@ import { renderBrowseView } from '../renderer/browse-view.js';
 import { renderChainView }    from '../renderer/chain-view.js';
 import type { PageChrome } from '../renderer/schwung-page-chrome.js';
 import { renderFileBrowseView } from '../renderer/file-browse-view.js';
-import { updateKnobLEDs, updateKnobLEDsFrom, updateSingleKnobLED, resetKnobLedCache } from '../renderer/knob-leds.js';
+import { updateKnobLEDs, updateKnobLEDsFrom, updateSingleKnobLED } from '../renderer/knob-leds.js';
 import { seqEngineTick, takeLabelSync, requestLabelSync } from '../seq/engine.js';
 import { drumSyncTick, resetDrumSync } from '../seq/drum-sync.js';
 import { bindLanes } from '../seq/lane-mapping.js';
@@ -59,11 +58,7 @@ import { noteRender } from '../test/probe.js';
 import { mlog } from '../log.js';
 import { paramBodyFor } from './param-body.js';
 import { chainLoadsPending, currentSetUuid, sessionError, sessionFailScope, sessionPhase, sessionReady, sessionTick } from '../seq/set-session.js';
-import { takeSurfaceReturn } from '../seq/set-commit.js';
-import { claimLedOwnership } from './led-ownership.js';
 import { loadingWaitMs, renderLoadingView, splashDue } from '../renderer/loading-view.js';
-import { migrationPending } from '../track/migrate.js';
-import { tempoOverrideTick } from '../seq/tempo-override.js';
 import { captureTick } from '../seq/capture.js';
 import { seqLedsTick, seqLedsInvalidate, displayHoldNotes } from '../seq/leds.js';
 import { ledBudgetTake, ledFrameReset } from '../seq/led-cache.js';
@@ -422,73 +417,11 @@ const LABEL_RETRY_MAX = 2048;
 let labelRetryIn = 0;
 let labelRetryGap = LABEL_RETRY_MIN;
 
-/* Return from background: the host restored the suspend-time LED snapshot to
- * hardware, but the sequencer advanced while we were parked, so every on-change
- * LED cache is now stale. Drop them all and force a full repaint so the first
- * active frame repaints the pads, knob LEDs, and screen from current state. */
-/* The LED repair is several layers deep — the chromatic init batch, the drum
- * grid, the session painter, the knob rings — and each has its own gate, so a
- * repaint that only half happens says which gate was shut. Logged on both paths
- * that need the repair (resume, and the set-commit surface window), then again
- * once it should have finished. */
-let ledWatchTicks = -1;
-/* schwung clears the LEDs when it observes the overtake re-entry, and that can
- * land AFTER movy has finished repainting — the device showed all 32 pads
- * painted (initIdx=32, twice) with the hardware still dark. Rather than race
- * it, repaint a second time once the entry has settled. One extra pass over 32
- * pads and the step row is nothing next to a surface that looks broken. */
-let ledRepeatTicks = -1;
-const LED_REPEAT_TICKS = 45;
-
-function ledContext(): string {
-    /* The selected track AND the one the engine says it is reporting on. They
-     * are the same number whenever the subscription has landed, which is the
-     * point: a repaint log showing only the first could not tell a working open
-     * from the one that recorded track 2's take into track 1. */
-    return 'session=' + (seqState.sessionMode ? 1 : 0)
-        + ' track=' + appState.activeTrack.index
-        + ' engine=' + seqState.reportedTrack
-        + ' initDone=' + (appState.initLedsDone ? 1 : 0)
-        + ' initIdx=' + appState.initLedIndex
-        + ' drumStale=' + (drumCacheStale ? 1 : 0);
-}
-
-export function logLedRepaint(why: string): void {
-    mlog('leds: repaint (' + why + ') ' + ledContext());
-    ledWatchTicks = 90;
-    ledRepeatTicks = LED_REPEAT_TICKS;
-}
-
-export function ledRepaintWatch(): void {
-    if (ledRepeatTicks >= 0 && --ledRepeatTicks <= 0) {
-        ledRepeatTicks = -1;
-        claimLedOwnership();
-        invalidateLedCachesOnResume();
-        mlog('leds: repainting again ' + ledContext());
-    }
-    if (ledWatchTicks < 0) return;
-    if (--ledWatchTicks > 0) return;
-    ledWatchTicks = -1;
-    mlog('leds: after repaint ' + ledContext());
-}
-
-export function invalidateLedCachesOnResume(): void {
-    chromaticCache.fill(0);
-    drumCache.fill(0);
-    resetKnobLedCache();
-    seqLedsInvalidate();
-    lastActiveSlot = -1;      // forces the grid invalidation on the next tick
-    drumCacheStale = true;
-    appState.drumActive = false;
-    appState.initLedsDone = false;
-    appState.initLedIndex = 0;
-    appState.dirty = true;
-}
 
 export function tick(): void {
     perfProbeEnter();
     tickBody();
-    /* Outside tickBody so the parked early-return is still accounted for. */
+    /* Outside tickBody so its early returns are still accounted for. */
     perfProbeTick();
 }
 
@@ -509,23 +442,9 @@ function tickBody(): void {
     // else and is held through engine boot.
     perfPhase('drumsync');
     drumSyncTick();
-    // Flush a debounced tempo-knob change to Move's Link override before the
-    // parked early-return, so a tempo edit made just before backgrounding
-    // still reaches Move (the write is cheap and independent of the display).
     perfPhase('tempocap');
-    tempoOverrideTick();
     captureTick();
     perfPhase('rest');
-    // Parked in the background: Move's native UI is on screen and the host
-    // no-ops our draw calls. The DSP keeps sequencing + emitting Phase 1 clock
-    // on its own, so the JS side only has to stay synced (above) and keep
-    // autosaving. Skip the whole render + LED pipeline — this saves the
-    // per-frame ViewModel build and LED diffs. onResume() forces a full repaint
-    // when we return, so nothing on screen is stale.
-    if (globalThis.overtakeParked === true) {
-        sessionTick();
-        return;
-    }
     stepAutoTick(); // promote a long single-step hold to step-automation mode
     stepRecTick();  // keep the step-record header band alive while Rec is held
     if (holdTick()) appState.dirty = true;    // knob-hold → LFO assign mode
@@ -604,16 +523,6 @@ function tickBody(): void {
      * stayed on screen through the load, and the first live frame waited on
      * whatever happened to repaint next (the ~1 s module-name poll). */
     if (sessionPhase() !== lastPhase) { lastPhase = sessionPhase(); appState.dirty = true; }
-    /* The set-commit window lends Move the surface for a moment, and Move
-     * repaints the pads while it holds it. Same repair a resume needs, for the
-     * same reason — see seq/set-commit.ts. Only ever armed while movy is in
-     * front, which is why it lives on this side of the parked return. */
-    if (takeSurfaceReturn()) {
-        claimLedOwnership();
-        invalidateLedCachesOnResume();
-        logLedRepaint('surface returned');
-    }
-    ledRepaintWatch();
     /* Undo housekeeping, after seqPersistTick so the set uuid it watches is the
      * one this tick resolved. Order within: close timed-out groups, notice a
      * set/engine change, drop snapshots the stacks have released, retract a
@@ -862,7 +771,7 @@ function tickBody(): void {
             /* Ahead of every view: until the Set is in the engine there is
              * nothing truthful to draw, and input is refused anyway. */
             renderLoadingView(sessionPhase(), sessionError(), chainLoadsPending(),
-                              sessionFailScope(), migrationPending(), loadingWaited);
+                              sessionFailScope(), loadingWaited);
         } else if (appState.currentView === VIEW_FLAGS) {
             const vm = buildFlagsPageVM();
             renderFlagsView(vm);
@@ -873,7 +782,7 @@ function tickBody(): void {
             /* The Sets page's rename: Schwung's keyboard draws the whole screen. */
             textEntry()?.drawTextEntry();
         } else if (appState.currentView === VIEW_SETS) {
-            renderSetsView(buildSetsPageVM(setSourceMovy(), libState()?.rows ?? null, currentSetUuid(),
+            renderSetsView(buildSetsPageVM(libState()?.rows ?? null, currentSetUuid(),
                                            setsPageState.selected, setsPageState.confirming));
         } else if (appState.currentView === VIEW_VERSIONS) {
             const vm = buildVersionsPageVM(Date.now(), currentSetUuid());
@@ -1060,10 +969,7 @@ function tickBody(): void {
             perfPhaseEnd();
         }
         /* Volume slider above the view it was invoked from: a held track's,
-         * else the master's where movy owns the knob. Beside Move, only visible
-         * in the Shift variant — without Shift the shim has handed the panel to
-         * Move for the duration of the knob touch (see mixer/track-volume.ts),
-         * so this frame is drawn but never pushed. */
+         * else the master's. */
         const vol = volumeOverlay() ?? masterVolumeOverlay();
         if (vol) drawVolumeOverlay(vol);
         if (assignActive()) { drawJogToast(assignToastText()); jogToastShown = true; }

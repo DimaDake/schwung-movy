@@ -10,7 +10,6 @@ import {
     flagValue, setFlag, applyFlagsToEngine, resetFlags,
     flagsPageState, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
     flagsRowCount, backupsRowSelected, actionRowSelected,
-    migrateRowArmed, armMigrateRow, disarmMigrateRow, runMigrateRow, slotsHaveContent,
     buildFlagsPageVM, VISIBLE_ROWS, firstVisibleRow, readPrefFlags, writePrefFlag,
     visibleFlags, trackRef, DETENT_DIV,
     wrapWords, HINT_W, HINT_LINES, fontWidth, W,
@@ -63,7 +62,6 @@ export async function run() {
      * lives in a one-character field and would fail no other test in this repo
      * — every suite below sets the flags it cares about explicitly, and the
      * screenshot scenes do too. */
-    eq('new sets are committed to disk', flagDef('setcommit').def, 1);
     eq('Schwung draws param pages', flagDef('schwunggrid').def, 1);
 
     /* `bool` presentation has no user in the shipped table — every flag there
@@ -72,7 +70,7 @@ export async function run() {
     const boolean = { key: 'x', name: 'X', hint: '', min: 0, max: 1, def: 0, bool: true };
     eq('a bool flag reads as OFF', flagValueLabel(boolean, 0), 'OFF');
     eq('a bool flag reads as ON', flagValueLabel(boolean, 1), 'ON');
-    eq('a numeric flag shows its number', flagValueLabel(flagDef('setcommit'), 1), '1');
+    eq('a numeric flag shows its number', flagValueLabel(ranged, 1), '1');
 
     eq('the LED is dark at the bottom of the range', flagNormalized(ranged, 0), 0);
     eq('and full at the top', flagNormalized(ranged, 2), 1);
@@ -135,14 +133,10 @@ export async function run() {
      * beats a changed default forever. Without this the release that turns
      * engine-owned saves on turns them on for nobody who was involved. */
     installMockFs({
-        /* `setcommit` is the control here, not `schwunggrid` — schwunggrid
-         * has its own `revisedAt`, so it is no longer a flag with "no
-         * revision" to prove the point with. `setcommit` has none. */
-        [PREFS_PATH]: JSON.stringify({ flagsRev: 3, flags: { engpersist: 0, setcommit: 0 } }),
+        [PREFS_PATH]: JSON.stringify({ flagsRev: 3, flags: { engpersist: 0 } }),
     });
     resetFlags();
     eq('a stored value from before the revision is superseded', flagValue('engpersist'), 1);
-    eq('a flag with no revision keeps its stored value', flagValue('setcommit'), 0);
     /* Written back, so the adoption happens exactly once — a user who then
      * turns it off again must keep it off. */
     const adopted = JSON.parse(globalThis.host_read_file(PREFS_PATH));
@@ -153,12 +147,6 @@ export async function run() {
     eq('and a later opinion at the current revision stands', flagValue('engpersist'), 0);
     uninstallMockFs();
 
-    installMockFs({   // no flagsRev key at all, which reads as rev 0
-        [PREFS_PATH]: JSON.stringify({ flags: { setcommit: 0 } }),
-    });
-    resetFlags();
-    eq('a rev-less prefs file still reads its unrevised flags', flagValue('setcommit'), 0);
-    uninstallMockFs();
 
     /* FLAGS_REV 6 flipped the default to SCHWUNG. Every device that booted
      * rev 5 has a stored MOVY (0) — that adoption wrote it — so without the
@@ -198,7 +186,7 @@ export async function run() {
 
     installMockFs();
     resetFlags();
-    setFlag('setcommit', 0);
+    setFlag('engpersist', 0);
 
     /* A re-dlopened engine is a brand new one with default flags — nothing the
      * page says about a UI-only setting reaches it until this runs. */
@@ -218,16 +206,16 @@ export async function run() {
            !sent.some((s) => s.indexOf(f.key + '=') === 0), sent.join(' '));
     }
     eq('every engine flag exactly once, plus the blacklist', sent.length, engineFlags.length + 1);
-    ok('including the values that were set', sent.indexOf('setcommit=0') >= 0);
+    ok('including the values that were set', sent.indexOf('engpersist=0') >= 0);
 
     /* And an edit after boot goes straight through, rather than waiting for the
      * next one. */
     sent = [];
-    setFlag('setcommit', 1);
-    eq('a later edit reaches the engine too', sent.join(''), 'setcommit=1');
+    setFlag('engpersist', 1);
+    eq('a later edit reaches the engine too', sent.join(''), 'engpersist=1');
 
     sent = [];
-    setFlag('setcommit', 1);
+    setFlag('engpersist', 1);
     eq('an edit that changes nothing writes nothing', sent.length, 0);
     uninstallMockFs();
 
@@ -287,12 +275,12 @@ export async function run() {
     eq('and back up', flagsPageState.selected, 0);
     flagsPageJog(-1);
     eq('the top is clamped, not wrapped', flagsPageState.selected, 0);
-    /* The list ends past the last flag with two action rows, and counting rows
-     * off `visibleFlags()` alone would put the second one out of the jog's
-     * reach — which is how a row that draws but cannot be selected happens. */
+    /* The list ends past the last flag with an action row, and counting rows
+     * off `visibleFlags()` alone would put it out of the jog's reach — which
+     * is how a row that draws but cannot be selected happens. */
     for (let i = 0; i < FLAGS.length + 5; i++) flagsPageJog(1);
     eq('and so is the bottom', flagsPageState.selected, flagsRowCount() - 1);
-    eq('the last row is the last action row, not a flag', actionRowSelected(), 1);
+    eq('the last row is the action row, not a flag', actionRowSelected(), 0);
 
     /* Knob 1 edits whatever the jog selected — that is the whole interaction,
      * and it is what lets the list grow past eight entries. */
@@ -309,12 +297,12 @@ export async function run() {
 
     /* A half-turn banked on one flag must not spend itself on the next: the
      * detent accumulator is shared, so jogging has to clear it. */
-    flagsPageState.selected = visibleFlags().findIndex((f) => f.key === 'setcommit');
-    setFlag('setcommit', 0);
+    flagsPageState.selected = visibleFlags().findIndex((f) => f.key === 'engpersist');
+    setFlag('engpersist', 0);
     flagsPageKnob(FLAG_KNOB, 1);
     flagsPageJog(1);
     flagsPageJog(-1);
-    eq('a detent banked before a jog does not leak past it', flagValue('setcommit'), 0);
+    eq('a detent banked before a jog does not leak past it', flagValue('engpersist'), 0);
 
     closeParamPage();
     uninstallMockFs();
@@ -329,7 +317,6 @@ export async function run() {
     resetFlagsPage();
 
     setFlag('schwunggrid', 1);
-    setFlag('setcommit', 1);
     const vm = buildFlagsPageVM();
     /* ONE DRAWN ROW PER SELECTABLE ROW, and this is the assertion that was
      * missing when BACKUPS shipped invisible: it was added to the jog's clamp
@@ -339,8 +326,7 @@ export async function run() {
      * not have caught it; comparing against what the gestures walk can. */
     eq('one drawn row per selectable row', vm.rows.length, flagsRowCount());
     eq('the flags come first', vm.rows[0].name, visibleFlags()[0].name);
-    eq('and the action rows come last', vm.rows.slice(-2).map((r) => r.name).join(','),
-       'BACKUPS,MIGRATE TRACKS');
+    eq('and the action row comes last', vm.rows[vm.rows.length - 1].name, 'BACKUPS');
     eq('the name column is the readable name', vm.rows[0].name, visibleFlags()[0].name);
     eq('exactly one row is selected', vm.rows.filter((r) => r.selected).length, 1);
     ok('a labelled flag shows its word', vm.rows.some((r) => r.value === 'SCHWUNG'));
@@ -355,7 +341,7 @@ export async function run() {
         const av = buildFlagsPageVM();
         ok('the action row can be selected', av.rows[av.rows.length - 1].selected);
         eq('exactly one row is still selected', av.rows.filter((r) => r.selected).length, 1);
-        ok('the hint is the action row\'s own', av.hint.toLowerCase().includes('schwung'));
+        ok('the hint is the action row\'s own', av.hint.toLowerCase().includes('older versions'));
         eq('the knob LED is dark on it', av.knobNormalized, 0);
         resetFlagsPage();
     }
@@ -402,21 +388,18 @@ export async function run() {
     installMockFs();
     resetFlags();
 
-    /* Two flags ship: Param Pages is a user's choice of renderer, Movy Sets a
-     * user's choice of where Sets live (the Sets page sends a Move-mode user
-     * here). The others are instruments — `setcommit` and `engpersist` stay
-     * debug-only. */
+    /* One flag ships: Param Pages is a user's choice of renderer. The other is
+     * an instrument — `engpersist` stays debug-only. */
     ok('Param Pages is a release row', flagDef('schwunggrid').release === true);
-    ok('the instruments are not',
-       !flagDef('setcommit').release && !flagDef('engpersist').release);
+    ok('the instrument is not', !flagDef('engpersist').release);
     const rel = visibleFlags(false).map((f) => f.key);
-    eq('a release build lists exactly Param Pages and Movy Sets', rel.join(','), 'schwunggrid,setsrc');
+    eq('a release build lists exactly Param Pages', rel.join(','), 'schwunggrid');
     const dbg = visibleFlags(true).map((f) => f.key);
     eq('a debug build lists every flag', dbg.length, FLAGS.length);
     /* FLAGS lists release rows first, so a release list is a PREFIX of the
      * debug one and a row keeps its position across the two builds. */
     eq('release rows lead the debug list', dbg.slice(0, rel.length).join(','), rel.join(','));
-    ok('including the ones release hides', dbg.indexOf('setcommit') >= 0);
+    ok('including the ones release hides', dbg.indexOf('engpersist') >= 0);
 
     /* The page walks the visible list, so a hidden flag can never be selected
      * — a knob turn on a row a release build does not draw would change a
@@ -467,8 +450,8 @@ export async function run() {
 
     /* The band follows the selection, or it is describing a different row than
      * the one under the inverted band. */
-    flagsPageState.selected = visibleFlags().findIndex((f) => f.key === 'setcommit');
-    eq('the hint is the selected row\'s', buildFlagsPageVM().hint, flagDef('setcommit').hint);
+    flagsPageState.selected = visibleFlags().findIndex((f) => f.key === 'engpersist');
+    eq('the hint is the selected row\'s', buildFlagsPageVM().hint, flagDef('engpersist').hint);
     flagsPageJog(-1);
     const above = visibleFlags()[flagsPageState.selected];
     eq('and it follows the jog', buildFlagsPageVM().hint, above.hint);
@@ -479,85 +462,29 @@ export async function run() {
     uninstallMockFs();
 }
 
-/* ── Settings — the second action row (MIGRATE TRACKS) ────── */
+/* ── Settings — the action row (BACKUPS) ───────────────────── */
 {
     _log('\nSettings action rows');
 
     installMockFs();
     resetFlags();
     resetFlagsPage();
-    disarmMigrateRow();
 
     const flags = visibleFlags(true);
     /* The count is what the jog clamps to AND what the viewmodel draws. A row
      * added to one but not the other is selectable, clickable and undrawn —
      * exactly how BACKUPS shipped the first time. */
-    eq('two action rows past the flags', flagsRowCount(), flags.length + 2);
+    eq('one action row past the flags', flagsRowCount(), flags.length + 1);
 
     flagsPageState.selected = flags.length;
-    eq('vm draws every row', buildFlagsPageVM(flags).rows.length, flags.length + 2);
-    eq('first action row is BACKUPS', buildFlagsPageVM(flags).rows[flags.length].name, 'BACKUPS');
-    eq('backups is action 0', actionRowSelected(), 0);
-    ok('a flag row is action -1', (flagsPageState.selected = 0, actionRowSelected() === -1));
-
-    flagsPageState.selected = flags.length + 1;
     const vm = buildFlagsPageVM(flags);
-    eq('second action row is MIGRATE TRACKS', vm.rows[flags.length + 1].name, 'MIGRATE TRACKS');
-    eq('migrate is action 1', actionRowSelected(), 1);
-    eq('it is selected', vm.rows[flags.length + 1].selected, true);
+    eq('vm draws every row', vm.rows.length, flags.length + 1);
+    eq('the action row is BACKUPS', vm.rows[flags.length].name, 'BACKUPS');
+    eq('backups is action 0', actionRowSelected(), 0);
     ok('its hint is shown', vm.hint.length > 0);
     eq('the knob LED is dark on an action row', vm.knobNormalized, 0);
+    ok('a flag row is action -1', (flagsPageState.selected = 0, actionRowSelected() === -1));
 
-    /* Arming: a stray jog-click stops playback and reloads every module in the
-     * Set, so the row says what the NEXT click will do before it does it. */
-    disarmMigrateRow();
-    eq('unarmed value', buildFlagsPageVM(flags).rows[flags.length + 1].value, '>');
-    armMigrateRow();
-    eq('armed', migrateRowArmed(), true);
-    eq('armed value', buildFlagsPageVM(flags).rows[flags.length + 1].value, 'CONFIRM?');
-    /* Moving away disarms: an arm left standing on a row the user has scrolled
-     * off is a confirmation they did not give. Building the viewmodel is what
-     * notices the move, so the read itself is what expires it. */
-    flagsPageState.selected = 0;
-    buildFlagsPageVM(flags);
-    eq('moving off disarms', migrateRowArmed(), false);
-    flagsPageState.selected = flags.length + 1;
-
-    uninstallMockFs();
-}
-
-/* ── The migrate action itself ─────────────────────────────── */
-{
-    _log('\nMIGRATE TRACKS: what the confirmed press does');
-
-    installMockFs();
-    const origGet = globalThis.shadow_get_param;
-    const origSet = globalThis.shadow_set_param;
-    const store = {};
-    globalThis.shadow_get_param = (s, k) => store[s + '|' + k] ?? null;
-    globalThis.shadow_set_param = (s, k, v) => { store[s + '|' + k] = v; return true; };
-    const clearSlots = () => {
-        for (let s = 0; s < 4; s++) {
-            for (const c of ['midi_fx1', 'synth', 'fx1', 'fx2']) {
-                globalThis.shadow_set_param(s, c + '_module', '');
-            }
-        }
-    };
-
-    clearSlots();
-    eq('nothing in the slots reads as nothing', slotsHaveContent(), false);
-    armMigrateRow();
-    eq('a press with nothing to find does not arm the reload', runMigrateRow(), false);
-    eq('and disarms the row either way', migrateRowArmed(), false);
-
-    globalThis.shadow_set_param(2, 'synth_module', 'plaits');
-    eq('a loaded slot reads as content', slotsHaveContent(), true);
-    armMigrateRow();
-    eq('a press with something to find arms the reload', runMigrateRow(), true);
-    eq('and disarms the row', migrateRowArmed(), false);
-
-    globalThis.shadow_get_param = origGet;
-    globalThis.shadow_set_param = origSet;
     uninstallMockFs();
 }
 

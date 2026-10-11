@@ -46,6 +46,13 @@ far. Earlier work is summarised in the timeline below for context.
   master volume and master FX slots, **Shift + Back**, and tracks on Schwung's
   slots. Each Set's master chain is copied into Movy's own the first time the
   Set opens.
+- With them, their code (plan WP9): the overtake host, the **MIGRATE TRACKS**
+  Settings row and the one-time move off Schwung's slots, the Set-commit press,
+  Move's tempo following Movy's knob, and the debug flags **Movy Sets**,
+  **Commit New Sets**, **Movy Master Chain** and **Pinned Chain Host** (the
+  pinned chain host is now the only one). Stored values of those flags are
+  ignored; nothing on disk is deleted. The Set page's knob 3 is empty where
+  LINK was. (Engine 0.91.0.)
 
 ### Known limitations
 
@@ -57,8 +64,7 @@ far. Earlier work is summarised in the timeline below for context.
 
 - **Movy's tracks run the chain host Movy ships.** It is built from a pinned
   Schwung release, so a Schwung update can no longer change how Movy's tracks
-  sound without a Movy update. The debug flag **Pinned Chain Host** switches
-  back to Schwung's installed one. (Engine 0.86.0.)
+  sound without a Movy update. (Engine 0.86.0.)
 - **Synced LFOs on Movy's tracks follow Movy's transport only.** Move playing on
   its own no longer drives them. While stopped they free-run at Movy's current
   tempo, so a tempo change takes effect at once.

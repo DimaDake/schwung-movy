@@ -45,7 +45,7 @@ export function writeLfoParam(scope: LfoScope, lfoIdx: number, key: string, val:
     writeLfoKey(scope, lfoKey(scope, lfoIdx, key), val);
 }
 
-/** The same edit addressed by its FULL key (`master_fx:lfo2:depth`) — what
+/** The same edit addressed by its FULL key (`mfx:lfo2:depth`) — what
  *  Schwung's LFO page writes, since its contract declares real keys. */
 export function writeLfoKey(scope: LfoScope, full: string, val: string): void {
     const old = scope.port.getParam(full);

@@ -7,11 +7,8 @@
  * #4/#5/#6: a Set resolving after the user had already played into the engine
  * pushed that Set's state — nothing, for a new Set — over the live pattern.
  *
- * Identity is DISCOVERED, not known at open. schwung works under a synthetic
- * `__pending-<index>-<seq>` id for a measured 12-60 s while Move materialises
- * the real Set, and that id can change more than once before it resolves. So
- * every identity change asks one question — does the incoming Set already have
- * state? — and nothing ever waits on identity. */
+ * Identity is the library's: the Set the UI wants (set-lib-session.ts). Every
+ * change of Set is a switch, and nothing ever waits on identity. */
 
 import { paramGet, paramSet } from '../host/param.js';
 import { masterImportTick } from '../chain/master-import.js';
@@ -19,26 +16,18 @@ import { mlog } from '../log.js';
 import { engineAbsent, engineAbsentReason, engineGeneration, engineReady } from './engine.js';
 import { seqState } from './state.js';
 import { beginSettle, resetSettle, settleCheck, settleOutstanding, settleWaited } from './set-settle.js';
-import {
-    BLANK_STATE, fileExists, isProvisionalUuid, readActiveSetAny, rememberSet, removeSetState,
-    uuidToStatePath,
-} from './set-context.js';
+import { fileExists, uuidToStatePath } from './set-context.js';
 import { deliverChainPayloads } from '../track/chain-payload.js';
-import { migrationResult, migrationTick } from '../track/migrate.js';
 import { refreshModelsForSet } from '../app/model-refresh.js';
-import { seqToast } from './render.js';
 import { flagValue } from './flags.js';
-import { collectDeadSets, gcTick, resetSetGc } from './set-gc.js';
-import { resetSetCommit, setCommitTick } from './set-commit.js';
-import { readBestState, readUiBlob, writeStateBlob, writeUiBlob } from './persist-store.js';
-import { clearUiDirty, markUiStateDirty } from './ui-dirty.js';
+import { readBestState, readUiBlob } from './persist-store.js';
+import { clearUiDirty } from './ui-dirty.js';
 import { resetUiState } from './ui-state.js';
-import { loadSet, setHasState } from './set-load.js';
+import { loadSet } from './set-load.js';
 import { adoptExistingVersions, captureVersion, resetVersionCapture } from './version-capture.js';
 import { resetVersionRestore, restoreTick } from './version-restore.js';
 import { adoptSaved, resetSetSave, saveNeeded, saveSet, savedPayload } from './set-save.js';
-import { platform } from '../platform/index.js';
-import { latchSetSource, setSourceMovy } from './set-source.js';
+import { resetWantedSet } from './set-source.js';
 import { resetLib } from './sets-lib.js';
 import { libraryBlocked, libraryIdentity, libraryTick, resetLibSession } from './set-lib-session.js';
 
@@ -46,7 +35,7 @@ export type Phase = 'booting' | 'loading' | 'settling' | 'ready' | 'switching' |
 export type FailScope = 'set' | 'engine';
 
 const SAVE_TICKS = 600;      // ~3-8 s: the device tick is 63-205 Hz and varies with load
-const SET_POLL_TICKS = 96;   // ~0.5 s: catch a set switch, including on resume
+const SET_POLL_TICKS = 96;   // ~0.5 s: catch a set switch
 
 let phase: Phase = 'booting';
 let setId = '';
@@ -63,8 +52,6 @@ let failReason = '';
  * recovery it has is to blank the set — which cannot fix an engine that never
  * started, and would destroy a set that is perfectly fine. */
 let failScope: FailScope = 'set';
-/* Dead-set collection is a once-per-session sweep, not a per-load one. */
-let collected = false;
 
 export function sessionPhase(): Phase { return phase; }
 export function sessionError(): string { return failReason; }
@@ -84,8 +71,7 @@ export function sessionReady(): boolean { return phase === 'ready'; }
 /* The Set is identified and its state is in the engine — true from the moment
  * loading finishes, whether or not the modules have arrived. The lifecycle uses
  * it wherever the question is "do we have a Set?" rather than "can it play?":
- * the identity poll, the engine-reload guard, and the commit press all run
- * during settling. */
+ * the identity poll and the engine-reload guard both run during settling. */
 function live(): boolean { return phase === 'ready' || phase === 'settling'; }
 /* What the splash is waiting on, for the renderer. */
 export function chainLoadsPending(): number {
@@ -109,65 +95,13 @@ export function resetSetSession(): void {
     failReason = '';
     failScope = 'set';
     resetSettle();
-    collected = false;
     resetSetSave();
-    resetSetCommit();
     resetVersionCapture();
     resetVersionRestore();
-    resetSetGc();
     clearUiDirty();
-    latchSetSource();
+    resetWantedSet();
     resetLib();
     resetLibSession();
-}
-
-function filesAvailable(): boolean {
-    return platform.filesAvailable();
-}
-
-/* Carry the work in hand to a Set that has none of its own — Move having
- * finally materialised the Set movy was already working in. */
-function rename(toId: string, toName: string): void {
-    const from = setId;
-    /* Engine-owned: ONE command, because everything the old branch below does
-     * by hand is the engine's now. It saves what it is holding under the new id
-     * and removes the pad's directory itself — the UI cannot do that removal,
-     * since it has no way to know when the seed that may still need those files
-     * has run. Only the ui blob is copied here: that half is still ours. */
-    if (flagValue('engpersist')) {
-        paramSet('set', 'rename ' + from + ' ' + toId, 200);
-        const ui = readUiBlob(from);
-        if (ui) writeUiBlob(toId, ui);
-        setId = toId; setName = toName;
-        rememberSet(toName, toId);
-        mlog('seq: set renamed ' + from + ' -> ' + toId);
-        return;
-    }
-    /* Capture what the engine is holding RIGHT NOW, not what was last written.
-     * The whole point of a rename is the work done since the last autosave —
-     * carrying the durable bytes would hand the new Set the blank state the
-     * provisional one was born with, which is the bug this rewrite exists to
-     * kill, just relocated. */
-    const r = saveSet(from, gen, true);
-    if (r.ok) gen = r.gen;
-    const payload = savedPayload() || readBestState(from)?.payload || '';
-    if (payload && writeStateBlob(toId, payload, gen + 1)) {
-        gen++;
-        adoptSaved(payload);
-        const ui = readUiBlob(from);
-        if (ui) writeUiBlob(toId, ui);
-        /* Only once the bytes are durable under the new id. The pad's directory
-         * is now a stale copy of this Set, and leaving it is how a device grows
-         * a `__pending-*` tree that nothing will ever read. */
-        if (isProvisionalUuid(from)) removeSetState(from);
-    } else {
-        /* Nothing durable yet — the live UI state is still this Set's, so the
-         * next save has to write it rather than assume it is already on disk. */
-        markUiStateDirty();
-    }
-    setId = toId; setName = toName;
-    rememberSet(toName, toId);
-    mlog('seq: set renamed ' + from + ' -> ' + toId);
 }
 
 function enterLoading(id: string, name: string): void {
@@ -195,11 +129,10 @@ function enterLoading(id: string, name: string): void {
         adoptExistingVersions(id);
         if (stored) captureVersion(id, 'open', stored.payload, stored.gen);
     }
-    const st = loadSet(id, name);
+    const st = loadSet(id);
     setId = id; setName = name; gen = st.gen;
     adoptSaved(st.payload);
     if (!readUiBlob(id)) resetUiState();
-    rememberSet(name, id);
     clearUiDirty();
     loadedGen = engineGeneration();
     /* Loaded is not playable. `restoreChains` (via the UI blob above) only
@@ -214,12 +147,6 @@ function enterLoading(id: string, name: string): void {
 
 /* Promote a loaded Set to a playable one — set-settle.ts owns what that means. */
 function settleTick(): void {
-    /* The migration probes once per tick, and this is the only loop that runs
-     * while the splash is up. Movy's tick is called from schwung's, so two
-     * probes on consecutive ticks are separated by a schwung tick by
-     * construction — which is what "schwung has had a chance to load its slots"
-     * actually means. */
-    migrationTick();
     const r = settleCheck();
     if (r === 'wait') return;
     /* The loads have drained, which means the shim's param mailbox is free for
@@ -236,62 +163,20 @@ function settleTick(): void {
      * Set — an empty slot on a cold open, the previous Set's module after a
      * switch, for as long as the poll took to come round. */
     refreshModelsForSet();
-    /* After the splash, never during it: a toast drawn behind the loading view
-     * is a toast nobody sees. What it names is the part of a migration that did
-     * NOT come across — a position movy has no page for, or a blob that would
-     * not read. The detail is in the log; the toast is what stops a quietly
-     * different track reading as a bug. */
-    const mig = migrationResult();
-    if (mig && mig.warnings.length > 0) {
-        seqToast('MIGRATED: ' + mig.warnings.length + ' ISSUE(S) — SEE LOG');
-    }
     phase = 'ready';
     mlog('seq: set ready after ' + settleWaited() + 'ms');
-    /* After the Set is live, never before: collecting is pure hygiene and must
-     * never delay the instrument becoming playable. Once per session. */
-    /* Keyed on MOVE's Sets: in library mode every id is movy's own, the sweep
-     * would read them all as dead, and the library has its own explicit
-     * delete. The engine refuses it there too (set_saver.rs). */
-    if (!collected && !setSourceMovy()) { collected = true; collectDeadSets(setId); }
 }
 
-/* The one rule, and the whole of it: a rename is the ONE transition where the
- * id changed but the Set did not — schwung's provisional id being replaced by
- * the real one Move finally materialised. Everything else is a switch, and a
- * switch into a Set with no state of its own starts blank.
- *
- * It used to turn on "does the incoming Set have state?" alone, which made
- * every switch into an unseen Set a rename: delete a Set in Move, and the Set
- * Move made in its place inherited the deleted one's sequence — the deleted Set
- * appearing to come back. schwung answers the same question the other way
- * (SET_CHANGED seeds an unseen set with empty slots), and a blank load here is
- * that same empty seed in movy's terms.
- *
- * BOTH ends are tested. Leaving a provisional id for another provisional id is
- * a different set PAD, not the same Set arriving late — schwung mints a new
- * `__pending-<index>-<seq>` per pad, and it does not re-mint while you sit on
- * one. Renaming there carried a pad's sequence AND its modules onto the next
- * pad, which is what a user hit switching between two Sets Move had never
- * materialised.
- *
- * The residual: leaving a provisional id for a REAL Set movy has never seen is
- * a rename too, because telling that apart from materialisation needs the
- * incoming Set's song index and no host API exposes it. Materialisation is the
- * common case, and carrying work that did not belong here can be undone where
- * discarding work cannot. */
-function identityChanged(id: string, name: string, provisional: boolean): void {
-    /* A library has no provisional ids — every change of Set is a switch. */
-    if (!setSourceMovy() && !setHasState(id) && isProvisionalUuid(setId) && !provisional) {
-        rename(id, name);
-        return;
-    }
+/* Every change of Set is a switch, and a switch into a Set with no state of
+ * its own starts blank. */
+function identityChanged(id: string, name: string): void {
     phase = 'switching';
     sessionFlush(true);
     enterLoading(id, name);
 }
 
 export function sessionFlush(force = false): void {
-    if (!setId || !filesAvailable()) return;
+    if (!setId) return;
     if (engineGeneration() !== loadedGen) return;   // not our engine — see the tick
     if (!saveNeeded() && !force) return;
     const r = saveSet(setId, gen, force);
@@ -335,23 +220,10 @@ export function sessionTick(): void {
     /* Both answers arrive on a later tick than the command that asked for them
      * — a saver thread cannot be awaited from here. */
     if (restoreTick()) { reloadCurrentSet(); return; }
-    gcTick();
     masterImportTick(setId, seqState.chainPending, paramGet, (k, v) => { paramSet(k, v); });
     if (phase === 'failed') return;   // waiting on the user
     if (!engineReady()) {
         if (live()) phase = 'booting';   // the engine went away
-        return;
-    }
-    /* No file APIs: movy cannot persist anything, but it must still play. Going
-     * ready with no Set keeps the instrument usable instead of gating it
-     * forever behind a load that can never happen — the autosave and the
-     * identity poll below both no-op without a Set. */
-    if (!filesAvailable()) {
-        if (!sessionReady()) {
-            phase = 'ready';
-            loadedGen = engineGeneration();
-            mlog('seq: no file API — running without per-set persistence');
-        }
         return;
     }
     /* A generation we did not load into is an EMPTY engine: push the Set back
@@ -360,43 +232,21 @@ export function sessionTick(): void {
         enterLoading(setId, setName);
         return;
     }
-    if (setSourceMovy() && libraryBlocked()) {
+    if (libraryBlocked()) {
         setFailure(libraryBlocked(), 'engine');
         return;
     }
     libraryTick(setId, live());
-    if (setSourceMovy() && --pollCountdown <= 0) {
+    if (--pollCountdown <= 0) {
         /* Fast until the library has answered: the splash is up meanwhile. */
         pollCountdown = live() ? SET_POLL_TICKS : 8;
         const want = libraryIdentity();
         if (want) {
             if (!live()) enterLoading(want.uuid, want.name);
-            else if (want.uuid !== setId) identityChanged(want.uuid, want.name, false);
+            else if (want.uuid !== setId) identityChanged(want.uuid, want.name);
         }
         if (!live()) return;
-    } else if (!setSourceMovy() && --pollCountdown <= 0) {
-        pollCountdown = SET_POLL_TICKS;
-        const active = readActiveSetAny();
-        /* Never wait on identity: the measured pending window is 12-60 s and
-         * unbounded above, so movy works under whatever id it has — schwung's
-         * provisional one, or `_default` when there is no answer at all — and
-         * the rename carries the work when a real id arrives. */
-        const id = active ? active.id.uuid : '_default';
-        const name = active ? active.id.name : '';
-        const provisional = active ? active.provisional : true;
-        /* Settling counts as having a Set: re-entering the load here would
-         * restart every module load the settle is waiting on, every half
-         * second, and the wait would never end. */
-        if (!live()) enterLoading(id, name);
-        else if (id !== setId) identityChanged(id, name, provisional);
-        if (!live()) return;
     }
-    /* A Set Move never committed loses BOTH stores on the next visit, so ask it
-     * to commit before anything is recorded into a namespace with no future.
-     * Run from `settling` too, and told whether the chain loads have drained:
-     * the press borrows the surface, so it must land after the last dlopen but
-     * still inside the splash. */
-    if (!setSourceMovy()) setCommitTick(setId, live(), seqState.chainPending === 0);
 
     if (phase === 'settling') { settleTick(); return; }   // nothing to autosave yet
 

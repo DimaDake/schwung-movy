@@ -45,8 +45,7 @@ import { sessionStartFromScratch } from '../seq/set-fail.js';
 import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS } from '../app/state.js';
 import { mainPageActive, mainPageKnob, mainPageTouch, mainPageRelease } from '../seq/main-page.js';
 import { clipPageActive, clipPageKnob, clipPageTouch, clipPageRelease } from '../seq/clip-page.js';
-import { actionRowSelected, backupsRowSelected, flagsPageActive, flagsPageJog, flagsPageKnob } from '../seq/flags-page.js';
-import { armMigrateRow, migrateRowArmed, runMigrateRow } from '../seq/migrate-action.js';
+import { backupsRowSelected, flagsPageActive, flagsPageJog, flagsPageKnob } from '../seq/flags-page.js';
 import { setsPageActive, setsPageBack, setsPageClick, setsPageJog } from '../seq/sets-page.js';
 import { textEntry, textEntryActive } from '../renderer/text-entry-lib.js';
 import { openVersionsPage, versionsPageActive, versionsPageBack, versionsPageClick, versionsPageJog }
@@ -267,16 +266,15 @@ export function onMidiMessageInternal(data: number[]): void {
             if (k === MoveMainButton && v > 0) {
                 const action = leaveModalConfirm();
                 appState.dirty = true;
-                /* Confirming hands the foreground to Move, so every release
-                 * still owed to us goes there instead and anything armed under
+                /* Confirming leaves movy, so no release still owed to us will
+                 * arrive and anything armed under
                  * the menu would strand — Rec latches step-record, Shift latches
                  * shiftHeld, and both pass without dismissing. The open path's
                  * reset cannot cover presses that arrived after it. Live notes
                  * need no equivalent only because everything that sounds one
                  * dismisses first; move a pad to `through` and that changes. */
                 resetHeldInput(true);
-                if (action === 'background') platform.suspend();
-                else if (action === 'close') platform.exit();
+                if (action === 'close') platform.exit();
                 else if (action === 'poweroff') platform.powerOff();
                 return;
             }
@@ -586,8 +584,7 @@ export function onMidiMessageInternal(data: number[]): void {
     }
 
     /* Master volume knob (CC 79): with a track button held it edits that track's
-     * slot volume; otherwise it is the master — movy's own where there is no
-     * Move beside it (master-volume.ts), Move's otherwise, and ignored here. */
+     * level; otherwise it is the master (master-volume.ts). */
     if ((status & 0xF0) === 0xB0 && d1 === MASTER_CC) {
         if (volumeKnobDelta(d2)) {
             momentaryGesture();   // a volume edit means the release must not latch
@@ -607,7 +604,7 @@ export function onMidiMessageInternal(data: number[]): void {
         // Main/Clip Params first, for the same reason as the touch branch above:
         // the page on screen owns its knobs, whatever a step hold thinks.
         if (mainPageActive()) {
-            // 0 tempo, 1 swing, 2 LINK, 4 root, 5 key, 6 mode, 7 layout.
+            // 0 tempo, 1 swing, 3 quant, 4 root, 5 key, 6 mode, 7 layout.
             /* One writer, two callers, never both for the same turn (SP-53) —
              * same shape as Clip Params below. Undelegated, byte-identical to
              * before — `mainPageKnob` unchanged. */
@@ -830,21 +827,6 @@ export function onMidiMessageInternal(data: number[]): void {
         }
         if (flagsPageActive() && backupsRowSelected()) {
             openVersionsPage();
-            appState.dirty = true;
-            return;
-        }
-        if (flagsPageActive() && actionRowSelected() === 1) {
-            /* Arm, then act — never both on the same press. A stray click here
-             * stops playback and reloads every module in the Set, so the row
-             * says what the NEXT click will do before it does it. */
-            if (!migrateRowArmed()) {
-                armMigrateRow();
-            } else if (runMigrateRow()) {
-                /* Forced: the autosave is on a ~3-8 s countdown, so reloading
-                 * without this drops whatever was just played. */
-                sessionFlush(true);
-                reloadCurrentSet();
-            }
             appState.dirty = true;
             return;
         }

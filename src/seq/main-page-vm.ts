@@ -1,4 +1,4 @@
-/* Builds the Main Params page ViewModel. Row 0 is TEMPO / SWING / LINK / QUANT, row 1
+/* Builds the Main Params page ViewModel. Row 0 is TEMPO / SWING / (empty) / QUANT, row 1
  * ROOT / KEY / MODE / LAYOUT. Big-font 'preset' cells for tempo/swing/root; key,
  * mode and layout are enums that open the scrollable overlay. Mirrors
  * step-page-vm's cell/toast conventions. */
@@ -12,7 +12,6 @@ import { MODE_NAMES, layoutNames } from '../keyboard/layouts.js';
 import { SCALE_NAMES } from './scales.js';
 import { midiNoteName } from '../keyboard/notes.js';
 import { QUANT_LABELS, quantIndexForPct } from './quant.js';
-import { platform } from '../platform/index.js';
 
 /* Tonic name without the octave suffix — midiNoteName(0) is 'C-1'. */
 function rootName(): string {
@@ -40,17 +39,9 @@ export function buildMainPageVM(): ViewModel {
         shortName: 'SWING', fullName: 'Swing', renderStyle: 'preset',
         displayValue: swing + '%', normalizedValue: clamp01((swing - 50) / 30),
     });
-    // Knob 2: bidirectional Move transport link (Play/Stop propagation). OFF by
-    // default; clock-follow (EXT) works regardless. Drawn as the on/off switch —
-    // this page builds its cells by hand, so it has to name the style that
-    // model/toggle.ts infers for every module boolean.
-    // Nothing to link to without Move beside movy: the slot stays, empty, so
-    // the knob numbering below (main-page-constants.ts) does not move.
-    const linkOn = seqState.linkEnabled;
-    const link = platform.caps.coexistsWithMove ? cell({
-        shortName: 'LINK', fullName: 'Play Link', renderStyle: 'switch',
-        displayValue: linkOn ? 'ON' : 'OFF', normalizedValue: linkOn ? 1 : 0,
-    }) : cell();
+    // Knob 2 was LINK (Play/Stop with Move's sequencer). The slot stays, empty,
+    // so the knob numbering (main-page-constants.ts) does not move.
+    const link = cell();
     // Knob 3: the quantization new clips are born with. Same enum-square
     // treatment as the step page's PROB cell.
     const dq = seqState.defaultQuant;

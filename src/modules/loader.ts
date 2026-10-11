@@ -79,7 +79,7 @@ function tryFile(path: string): ModuleConfig | null {
 function componentCategory(componentKey: string): string {
     if (componentKey === 'synth') return 'sound_generators';
     if (componentKey.startsWith('midi_fx')) return 'midi_fx';
-    return 'audio_fx'; // track FX and master_fx:fxN
+    return 'audio_fx'; // track FX and mfx:fxN
 }
 
 /* The module's own manifest, as JSON — the file schwung's chain host reads for

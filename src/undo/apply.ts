@@ -30,7 +30,6 @@ import { changeDetail } from './label.js';
 import { refreshModels, syncParamsToModels } from './param-sync.js';
 import { moduleReadKey } from '../chain/config.js';
 import { captureModuleState, dumpModuleParams, stateIsParsable } from './module-dump.js';
-import { platform } from '../platform/index.js';
 
 /* Snapshot ids allocated for the redo side of a uswap. Shares the counter with
  * group.ts by staying above it — group ids are odd-free and monotonic, so a
@@ -39,7 +38,7 @@ let nextRestoreId = 1_000_000;
 
 /* By COMPONENT, not by slot alone: a master FX or send write is recorded under
  * slot 0 / the root port's index, and `portFor(0)` would namespace it into
- * whatever track 0 holds (`ch0:master_fx:…`) — see `componentPort`. */
+ * whatever track 0 holds (`ch0:mfx:…`) — see `componentPort`. */
 function setChain(slot: number, key: string, value: string): void {
     const colon = key.indexOf(':');
     componentPort(slot, colon > 0 ? key.slice(0, colon) : key).setParam(key, value);
@@ -61,7 +60,7 @@ export function flushOrphanedSnaps(): void {
  * because restoring the one already live is simply a no-op. */
 function moduleDrifted(e: UndoEntry, _undoing: boolean): boolean {
     const op = e.moduleOp;
-    if (!op || !platform.slotParamsAvailable()) return false;
+    if (!op) return false;
     const live = componentPort(op.slot, op.componentKey)
         .getParam(moduleReadKey(op.componentKey)) || '';
     if (live === '') return false;   // unreadable or a cleared slot: can't tell

@@ -50,8 +50,8 @@ _log('\nTest: buildViewModel marks modulated params (from cache)');
     eq('reso not modulated', vm.rows[0][1].modulated, false);
     env.setParams({}); refreshModulatedKeys(s);
     eq('none modulated when no target', buildViewModel(s).rows[0][0].modulated, false);
-    const sm = { ...s, componentKey: 'master_fx:fx1', modulatedKeys: new Set() };
-    env.setParams({ 'lfo1:target': 'master_fx:fx1', 'lfo1:target_param': 'cutoff' });
+    const sm = { ...s, componentKey: 'mfx:fx1', modulatedKeys: new Set() };
+    env.setParams({ 'lfo1:target': 'mfx:fx1', 'lfo1:target_param': 'cutoff' });
     refreshModulatedKeys(sm);
     eq('master_fx excluded', sm.modulatedKeys.size, 0);
 }
@@ -105,7 +105,7 @@ _log('\nTest: LFO assign-mode gesture');
 _log('\nTest: a knob the LFO cannot reach never arms');
 {
     /* Movy's send buses are hosted by movy's ENGINE; the master LFOs are the
-     * shim's, and it routes `master_fx:lfoN:target` through
+     * shim's, and it routes `mfx:lfoN:target` through
      * master_fx_route_target(), which only parses `fx<N>` (or the other LFO).
      * A `snd0` target is dropped there — so arming the gesture on a send knob
      * offered a modulation that could never happen, and committing it
@@ -125,7 +125,7 @@ _log('\nTest: a knob the LFO cannot reach never arms');
     eq('no assign mode on a send', assignActive(), false);
     eq('no toast on a send', assignToastText(), '');
     eq('commit is a no-op', assignCommit(), null);
-    eq('existing master target survives', env.params['master_fx:lfo1:target'], 'fx2');
+    eq('existing master target survives', env.params['mfx:lfo1:target'], 'fx2');
 
     /* Same rule, same reason, on the track chain: the MIX page's knobs report
      * `target: 'mix'`, and movy's mixer is no more a chain component than a
@@ -142,7 +142,7 @@ _log('\nTest: a knob the LFO cannot reach never arms');
     /* Control: a master FX knob on the same scope still arms. */
     resetAssignMode();
     t = 3000;
-    holdTouch(masterScope(), 0, { ...send, target: 'master_fx:fx1' });
+    holdTouch(masterScope(), 0, { ...send, target: 'mfx:fx1' });
     t = 4200;
     eq('master FX knob still arms', holdTick(), true);
     resetAssignMode();

@@ -16,7 +16,7 @@
 import { appState, VIEW_SETS } from '../app/state.js';
 import { openParamPage, closeParamPage } from './param-page.js';
 import { defaultSetName, dupName, libRefresh, libSend, libState, type LibRow } from './sets-lib.js';
-import { setSourceMovy, wantSet } from './set-source.js';
+import { wantSet } from './set-source.js';
 import { deleteWhenLeft } from './set-lib-session.js';
 import { textEntry } from '../renderer/text-entry-lib.js';
 import { seqToast } from './render.js';
@@ -50,19 +50,16 @@ export function resetSetsPage(): void {
 
 export function openSetsPage(openId: string): void {
     resetSetsPage();
-    if (setSourceMovy()) {
-        libRefresh();
-        /* Open on the Set that is open — it is what you came to act on. */
-        const i = rows().findIndex((r) => r.id === openId);
-        setsPageState.selected = i >= 0 ? i + 1 : 0;
-    }
+    libRefresh();
+    /* Open on the Set that is open — it is what you came to act on. */
+    const i = rows().findIndex((r) => r.id === openId);
+    setsPageState.selected = i >= 0 ? i + 1 : 0;
     openParamPage(VIEW_SETS);
 }
 
 /** Per tick while the page is up: read the answer at a cost that does not
  *  scale with frames, and finish whatever was waiting on it. */
 export function setsPageTick(): boolean {
-    if (!setSourceMovy()) return false;
     if (--pollIn > 0) return false;
     pollIn = madeBefore !== null ? 4 : 16;
     if (!libRefresh()) return false;
@@ -99,7 +96,7 @@ function send(cmd: string, awaitMade: boolean, open = false): void {
 export function setsPageJog(delta: number, shift: boolean): void {
     /* The confirm owns the wheel: a list that scrolled under it would delete
      * whatever the jog happened to land on. */
-    if (setsPageState.confirming || !setSourceMovy()) return;
+    if (setsPageState.confirming) return;
     const step = shift ? 8 : 1;
     setsPageState.selected = Math.max(0, Math.min(rows().length, setsPageState.selected + delta * step));
 }
@@ -108,7 +105,6 @@ function target(): LibRow | null { return rows()[setsPageState.selected - 1] ?? 
 
 /** Jog click. Returns true when the page should close (a Set was opened). */
 export function setsPageClick(openId: string): boolean {
-    if (!setSourceMovy()) return false;
     if (setsPageState.confirming) {
         setsPageState.confirming = false;
         const t = target();
@@ -159,7 +155,7 @@ export type SetsButton = 'capture' | 'copy' | 'delete';
  *  under the cursor; nothing on [NEW]. */
 export function setsPageButton(b: SetsButton): void {
     const t = target();
-    if (!setSourceMovy() || !t || setsPageState.confirming) return;
+    if (!t || setsPageState.confirming) return;
     if (b === 'delete') { setsPageState.confirming = true; return; }
     if (b === 'copy') { send('dup ' + t.id + ' ' + dupName(t.name), true); return; }
     const te = textEntry();

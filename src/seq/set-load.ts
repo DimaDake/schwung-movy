@@ -6,20 +6,13 @@
 
 import { requestLabelSync } from './engine.js';
 import { flagValue } from './flags.js';
-import { findInheritCandidates } from './set-inherit.js';
-import { loadNameIndex } from './set-context.js';
-import { setSourceMovy, setsDir } from './set-source.js';
-import { paramAvailable, paramGet, paramSet } from '../host/param.js';
+import { setsDir } from './set-source.js';
+import { paramGet, paramSet } from '../host/param.js';
 import { mlog } from '../log.js';
 import { noteRestore } from './restore-gate.js';
-import { readBestState, readUiBlob, writeUiBlob } from './persist-store.js';
-import { resolveState } from './set-inherit.js';
+import { readBestState, readUiBlob } from './persist-store.js';
+import { BLANK_STATE } from './set-context.js';
 import { applyUiState } from './ui-state.js';
-
-/** Does this Set already own state? The rename-vs-switch question. */
-export function setHasState(id: string): boolean {
-    return readBestState(id) !== null;
-}
 
 /* Blocking on purpose: the engine must be holding the Set before any input is
  * accepted, and this runs once per Set rather than per tick.
@@ -35,17 +28,11 @@ export function setHasState(id: string): boolean {
  * reasoning the device fixture uses for module loads. */
 export function pushState(payload: string): boolean {
     let ok = false;
-    if (paramAvailable()) {
-        for (let i = 0; i < 3 && !ok; i++) {
-            ok = paramSet('state', payload, 200);
-            if (!ok) mlog('seq: state push attempt ' + (i + 1) + ' did not land');
-        }
-        if (!ok) mlog('seq: RESTORE FAILED — the engine never took this Set');
-    } else {
-        /* No blocking API to ask. Older hosts never reported either way, so
-         * assume it landed rather than blocking every save on this device. */
-        ok = true;
+    for (let i = 0; i < 3 && !ok; i++) {
+        ok = paramSet('state', payload, 200);
+        if (!ok) mlog('seq: state push attempt ' + (i + 1) + ' did not land');
     }
+    if (!ok) mlog('seq: RESTORE FAILED — the engine never took this Set');
     noteRestore(ok);
     /* The restore carries the lane labels and assignments with it, so the
      * automation registry has to be rebuilt from them — without this it stays
@@ -69,58 +56,36 @@ export function setStatusUuid(): string | null {
 }
 
 /* Open a Set by NAME rather than by value: the engine reads its own files, so
- * nothing about the Set crosses the param slot.
- *
- * `seed` carries copy-on-inherit. Which Set may seed this one is name policy
- * (`set-inherit.ts` — a regex over the name index, filtered by what still has
- * a state file and a live Move Set), so it stays here; only the byte copy is
- * the engine's. The engine ignores the seed when the Set owns state already. */
-export function openSet(id: string, seed: string | null): void {
-    if (!paramAvailable()) return;
+ * nothing about the Set crosses the param slot. */
+export function openSet(id: string): void {
     /* Re-stated on every open rather than once per session: a re-dlopen'd
      * engine comes up knowing nothing, and an engine with no sets directory
      * answers `phase=failed reason=no-setsdir` forever. One extra param write
      * per Set load buys a path that heals itself. */
     paramSet('setsdir', setsDir(), 200);
-    const cmd = 'open ' + id + (seed ? ' seed=' + seed : '');
-    paramSet('set', cmd, 200);
+    paramSet('set', 'open ' + id, 200);
     /* The restore carries the lane labels with it either way, so the automation
      * registry still has to be rebuilt from them. */
     requestLabelSync();
 }
 
-/** The Set that would seed `name` if it had no state of its own, or null. */
-export function seedFor(name: string): string | null {
-    const c = findInheritCandidates(name, loadNameIndex());
-    return c.length > 0 ? c[0].uuid : null;
-}
 
 /** Read a Set's state, push it into the engine, and apply its UI blob if it has
  *  one. The caller decides what to do when it does not. */
-export function loadSet(id: string, name: string): { payload: string; gen: number; ok: boolean } {
+export function loadSet(id: string): { payload: string; gen: number; ok: boolean } {
     /* Engine-owned: name the Set and let it read its own files. No payload is
      * read here and none is pushed, so there is nothing for the param slot to
      * lose — and the UI blob still applies, because its half is still the
      * UI's (the chains inside it are a mirror, ui-state.ts). */
     if (flagValue('engpersist')) {
-        /* Copy-on-inherit is Move's "X Copy" naming; a library Set is
-         * duplicated by the engine with its bytes already in place. */
-        const seed = setSourceMovy() ? null : seedFor(name);
-        /* The engine seeds only the half it owns. The UI half has to come too,
-         * and under the engine's own rule (a seed never overrides a Set that
-         * owns state) — judged BEFORE the open, whose seed may land first. A
-         * copy left without it looks brand new, and the migration then
-         * re-states its chains from schwung's leftover slots alone. */
-        if (seed && !setHasState(id) && !readUiBlob(id)) {
-            const seedUi = readUiBlob(seed);
-            if (seedUi) writeUiBlob(id, seedUi);
-        }
-        openSet(id, seed);
+        openSet(id);
         const ui = readUiBlob(id);
         if (ui && ui.length > 0) applyUiState(ui);
         return { payload: '', gen: 0, ok: true };
     }
-    const st = resolveState(id, name);
+    /* The generation comes back with the state so the next save continues the
+     * sequence instead of restarting at 1 and losing to a stale higher copy. */
+    const st = readBestState(id) ?? { payload: BLANK_STATE, gen: 0 };
     const ok = pushState(st.payload);
     const ui = readUiBlob(id);
     if (ui && ui.length > 0) applyUiState(ui);

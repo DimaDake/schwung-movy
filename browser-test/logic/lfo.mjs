@@ -247,11 +247,11 @@ _log('\nTest: master chain LFO page');
     eq('the LFO slot is virtual', isVirtualSlot(MASTER_FX_SLOTS[MASTER_LFO_INDEX]), true);
     eq('an FX slot is not', isVirtualSlot(MASTER_FX_SLOTS[0]), false);
 
-    /* The master LFOs live in the shim under `master_fx:`, reachable through any
+    /* The master LFOs live in the shim under `mfx:`, reachable through any
      * slot — so they are read and written on slot 0 with a namespaced key. */
     env.setParams({
-        'master_fx:fx2:chain_params': JSON.stringify([{ key: 'mix', name: 'Mix', type: 'float' }]),
-        'master_fx:lfo1:target': '', 'master_fx:lfo1:target_param': '',
+        'mfx:fx2:chain_params': JSON.stringify([{ key: 'mix', name: 'Mix', type: 'float' }]),
+        'mfx:lfo1:target': '', 'mfx:lfo1:target_param': '',
     });
     resetPorts();
     const mm = createScopedLfoModel(masterScope());
@@ -260,7 +260,7 @@ _log('\nTest: master chain LFO page');
     const mvm = mm.getViewModel();
     eq('master LFO page names itself', mvm.bankName, 'LFO 1');
     eq('master LFO has two banks', mvm.bankCount, 2);
-    eq('master component key is namespaced', mm.getComponentKey(), 'master_fx:lfo');
+    eq('master component key is namespaced', mm.getComponentKey(), 'mfx:lfo');
     /* No notes on the master bus, so no retrigger — and the shim has no key for
      * it. A blank cell, not a dead knob. */
     eq('knob 7 (RETRIG) is blank on master', mvm.rows[1][2], null);
@@ -270,10 +270,10 @@ _log('\nTest: master chain LFO page');
     /* Turning the blank knob must write nothing: the shim would drop it anyway,
      * and a value the hardware never took is worse than no value. */
     mm.handleKnobDelta(6, DETENT * 4);
-    eq('a turn of the blank knob writes nothing', env.params['master_fx:lfo1:retrigger'], undefined);
+    eq('a turn of the blank knob writes nothing', env.params['mfx:lfo1:retrigger'], undefined);
 
     /* Targets are the four master FX slots, named as the shim parses them —
-     * bare `fx2`, never `master_fx:fx2`, which would match no slot. */
+     * bare `fx2`, never `mfx:fx2`, which would match no slot. */
     const mopts = buildTargetOptions(masterScope(), 0);
     eq('master targets exclude synth', mopts.some(o => o.target === 'synth'), false);
     const mixOpt = mopts.find(o => o.param === 'mix');
@@ -285,15 +285,15 @@ _log('\nTest: master chain LFO page');
     mm.handleKnobTouch(3);
     mm.handleKnobDelta(3, DETENT);
     mm.handleKnobRelease(3);
-    eq('master target committed',       env.params['master_fx:lfo1:target'], 'fx2');
-    eq('master target_param committed', env.params['master_fx:lfo1:target_param'], 'mix');
-    eq('master LFO auto-enabled',       env.params['master_fx:lfo1:enabled'], '1');
+    eq('master target committed',       env.params['mfx:lfo1:target'], 'fx2');
+    eq('master target_param committed', env.params['mfx:lfo1:target_param'], 'mix');
+    eq('master LFO auto-enabled',       env.params['mfx:lfo1:enabled'], '1');
     /* Never the track form: an un-namespaced key would edit track 1's LFO. */
     eq('nothing written to a track LFO key', env.params['lfo1:target'], undefined);
 
     /* A depth turn goes to the same namespace. */
     mm.handleKnobDelta(7, DETENT);
-    eq('master depth written namespaced', typeof env.params['master_fx:lfo1:depth'], 'string');
+    eq('master depth written namespaced', typeof env.params['mfx:lfo1:depth'], 'string');
 
     resetPorts();
 }

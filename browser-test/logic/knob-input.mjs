@@ -412,7 +412,7 @@ _log('\nTest: self-describing layouts resolve from every chain component categor
   globalThis.host_read_file = (path) => { reads.push(path); return null; };
   loadModuleConfig('voice-layout', 'synth');
   loadModuleConfig('fx-layout', 'fx1');
-  loadModuleConfig('master-layout', 'master_fx:fx1');
+  loadModuleConfig('master-layout', 'mfx:fx1');
   loadModuleConfig('midi-layout', 'midi_fx1');
   globalThis.host_read_file = originalRead;
   eq('layout path: sound generator', reads[0],

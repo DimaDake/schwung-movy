@@ -152,7 +152,7 @@ pub fn is_control_verb(verb: &str) -> bool {
     matches!(
         verb,
         // transport and recording mode
-        "play" | "stop" | "rec" | "metro" | "link" | "minject" | "launch" | "stoptrk"
+        "play" | "stop" | "rec" | "metro" | "launch" | "stoptrk"
         // song mode: building an arrangement is a performance gesture, not an
         // edit — the same call `launch` gets, and for the same reason.
         | "song" | "songadd"
@@ -187,26 +187,8 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
     }
 
     match verb {
-        // Transport buttons route through the always-on Move link (design §7
-        // Phase 4); other play()/stop() callers (session auto-start, record)
-        // stay un-propagated.
-        "play" => engine.request_play(out),
-        "stop" => engine.request_stop(out),
-        // link <0|1> — enable/disable the bidirectional Move transport link
-        // (Set-page LINK toggle; persisted per set).
-        "link" => {
-            if let Some(v) = next() {
-                engine.link_enabled = v != 0;
-            }
-        }
-        // minject <0|1> — does this shim carry an overtake DSP's inject to
-        // Move? Sent by the UI on every engine boot from a host capability
-        // probe, not by the user and not from saved state (engine.rs).
-        "minject" => {
-            if let Some(v) = next() {
-                engine.move_inject_ok = v != 0;
-            }
-        }
+        "play" => engine.play(),
+        "stop" => engine.stop(out),
         "bpm" => {
             if let Some(v) = next() {
                 engine.clock.set_bpm_x100(v.clamp(0, u32::MAX as i64) as u32);
@@ -893,24 +875,6 @@ mod tests {
         assert!(!e.playing);
         assert_eq!(e.tracks[0].playing_slot, None, "stopped: note entry must not start playback");
         assert_eq!(e.tracks[0].queued_slot, None, "stopped: nothing queued either");
-    }
-
-    #[test]
-    fn play_stop_commands_route_through_move_link() {
-        // The "play"/"stop" command strings dispatch to the always-on Move link
-        // (design §7 Phase 4): with Move stopped, "play" arms a pending-start
-        // (MovePlay inject) instead of starting immediately, and "stop" cancels.
-        let mut e = engine();
-        e.link_enabled = true;
-        e.move_inject_ok = true;   // a shim that carries the inject to Move
-        let mut out = Vec::new();
-        apply_batch(&mut e, "play", &mut out);
-        assert!(!e.playing, "linked: play waits for Move's FA");
-        e.advance_block(128, &mut out);
-        assert!(out.iter().any(|x| matches!(x, OutEvent::MoveInject { val: 127 })),
-                "play command injects MovePlay toward Move");
-        apply_batch(&mut e, "stop", &mut out);
-        assert!(!e.playing);
     }
 
     #[test]

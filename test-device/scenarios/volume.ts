@@ -14,18 +14,11 @@
  * check reads is the value off that same param, so the suite was always pinning
  * the movy mixer — only the prose moved.
  *
- * The gesture also reaches Move, which is what the fourth check is about. Two
- * shim generations, keyed off `path=` in the arm line rather than inferred:
- * "suppress" excludes Move from the gesture entirely
- * (shadow_set_overtake_suppress_master_volume, 2026-08-24); "inject" is the older
- * fallback, which pushes a track-hold into Move's MIDI_IN so Move routes the
- * turn to its own track volume and leaves master alone.
- *
  * Covers:
  *   V1  CC 79 reached the handler with a track held — without this the rest is
  *       a comparison of two absent numbers
  *   V2  the turn arrived as ONE packet of 5. CC 79 is outside the 71-78 range
- *       shadow_ui accumulates, so it is not re-encoded or split; a handler that
+ *       movy-host accumulates, so it is not re-encoded or split; a handler that
  *       only ever saw single detents would move the level by one detent and no
  *       assertion below could tell that from a broken ladder
  *   V3  the level landed: movy's arithmetic is the ladder's (arm-time read ×
@@ -33,26 +26,15 @@
  *       asserted only the first half — its "slot read-back" compared two numbers
  *       movy itself had logged, so a write the engine silently dropped would
  *       have passed it. Strengthened to the destination itself.
- *   V4  whichever mechanism armed the divert did what its path claims
  *
- * What this CANNOT prove, unchanged from bash: that Move's *master* volume stays
- * put during a real gesture on the "inject" path. Move ignores injected knob
- * events (measured: 120 synthetic detents moved nothing) and the only live
- * master-volume readout schwung has is a pixel scan of Move's overlay, gated on a
- * hardware touch. That needs a physical turn of the knob. On the "suppress" path
- * it is moot — Move never sees the event.
+ * The master is left alone by a held track: master-volume.ts V3 pins that.
  */
-import { execFile } from 'node:child_process';
-import { promisify } from 'node:util';
 import { scenario } from '../runner.js';
 import { Device } from '../device.js';
 import { Probe } from '../probe.js';
 import * as fixture from '../fixture.js';
 import { cc, noteOn, noteOff } from '../midi.js';
 import { until } from '../wait.js';
-import { SSH_OPTS } from '../ssh.js';
-
-const run = promisify(execFile);
 
 /* Track 1. The buttons are CC 40-43 and reversed on the hardware (CC 43 is the
  * focused group's FIRST track), which is why the button is derived from the
@@ -83,26 +65,6 @@ const last = (ls: string[]): string => (ls.length ? ls[ls.length - 1] : '');
  * matching inside `read=`. */
 const field = (line: string, name: string): string =>
     (line.match(new RegExp('(?:^| )' + name + '=(-?[0-9.]+)')) ?? [])[1] ?? '';
-const word = (line: string, name: string): string =>
-    (line.match(new RegExp('(?:^| )' + name + '=(\\S+)')) ?? [])[1] ?? '';
-
-/* The inject ring's second cursor — the write side, and the only place either
- * test tier can see what movy pushed into Move's MIDI_IN. Read out of band over
- * SSH, as the bash suite did with an inline python3; neither a param nor a
- * ViewModel exposes it. It stands still when nothing is injected and advances by
- * two (the press and the release) when the inject path arms.
- *
- * NaN on any failure rather than a throw: a device that will not answer must be
- * reported by the check that wanted the number, not abort the run before it. */
-async function ringCursor(host: string): Promise<number> {
-    try {
-        const { stdout } = await run('ssh', [...SSH_OPTS, `ableton@${host}`,
-            `python3 -c 'import mmap,struct` +
-            `;f=open("/dev/shm/schwung-midi-inject","r+b")` +
-            `;print(struct.unpack_from("<II",mmap.mmap(f.fileno(),0),0)[1])'`]);
-        return Number(stdout.trim());
-    } catch { return NaN; }
-}
 
 scenario('volume', async (t) => {
     fixture.setHost(t.host);
@@ -135,13 +97,11 @@ scenario('volume', async (t) => {
      * its own, which writes an arm line. */
     const armBefore     = (await dev.logLines(ARMED)).length;
     const appliedBefore = (await dev.logLines(APPLIED)).length;
-    const ringBefore    = await ringCursor(t.host);
-    t.note('ringBefore', ringBefore);
 
     // ── The gesture ─────────────────────────────────────────────────────────
     /* Held, not tapped. The divert is armed on the track-button PRESS and torn
      * down on its release, so a tap leaves `heldTrack` at -1 and the turn simply
-     * falls through to Move's own master volume — no trackvol line at all. The
+     * falls through to the master volume — no trackvol line at all. The
      * bash suite's ~1.2 s hold is now the body of this, bounded by frames.
      *
      * The turn is ONE injected packet of DETENTS. Touch first, matching the
@@ -155,13 +115,6 @@ scenario('volume', async (t) => {
         await t.tx.uiMidi(noteOff(MASTER_TOUCH));
     });
     await t.tx.frames(ACT);
-
-    /* Read the ring here, at the far edge of the gesture: on the inject path both
-     * halves of the hold have been pushed by now (the release fires on the
-     * track-up), so a delivery that had not landed yet would read as a path that
-     * delivered nothing. */
-    const ringAfter = await ringCursor(t.host);
-    t.note('ringAfter', ringAfter);
 
     let appliedLines: string[] = [];
     try {
@@ -184,8 +137,8 @@ scenario('volume', async (t) => {
                 + `${appliedBefore} already in the log before the gesture` });
 
     // ── V2: the turn was one packet ─────────────────────────────────────────
-    /* CC 79 is outside the 71-78 range shadow_ui re-encodes and accumulates, so
-     * it reaches movy raw and whole. The number that matters is `d=`, not the
+    /* CC 79 is outside the 71-78 knob range movy-host accumulates, so it
+     * reaches movy raw and whole. The number that matters is `d=`, not the
      * level: five 1-detent packets and one 5-detent packet leave the fader in the
      * same place, and only this tells them apart. */
     const delta = field(applied, 'd');
@@ -237,41 +190,4 @@ scenario('volume', async (t) => {
                 ? `movy logged ${newVal} but ch${TRACK}:mix holds ${slotGain} — the write `
                   + 'did not reach the mixer'
               : `landed: ${oldVal} -> ${slotGain}` });
-
-    // ── V4: the armed divert did what its path claims ───────────────────────
-    /* Keyed off the `path=` tag the arm line carries, not inferred from whether
-     * the ring moved: on the new path the ring legitimately does not move, so
-     * inferring would read a working suppression as a failed injection.
-     *
-     * The "inject" arm needs an older shim (one without
-     * shadow_set_overtake_suppress_master_volume) and so cannot be exercised
-     * here; it is implemented anyway, because the fallback is what runs on every
-     * device that has not taken the fork. */
-    const path  = word(armLine, 'path');
-    const moved = ringAfter - ringBefore;
-    const suppressOk = path === 'suppress' && moved === 0;
-    const injectOk   = path === 'inject' && moved >= 2;
-    t.note('divertPath', path);
-    t.note('ringDelta', moved);
-
-    t.check('divert-path',
-        'the armed divert did what its path claims',
-        suppressOk || injectOk,
-        { expected: 'path=suppress with the inject ring still, or path=inject with >= 2 packets delivered',
-          actual: path === ''
-                ? `no "trackvol arm t=${TRACK} … path=…" line — cannot tell which mechanism ran`
-              : Number.isFinite(moved)
-                ? suppressOk ? `Move excluded, no MIDI_IN injection (${armLine})`
-                : injectOk   ? `divert delivered into Move's MIDI_IN (${moved} packets)`
-                : path === 'suppress'
-                    ? `path=suppress but the inject ring moved ${moved} packets`
-                    : path === 'inject'
-                        ? `path=inject but the ring advanced by ${moved}, expected >= 2`
-                        : `unknown divert path "${path}"`
-              : `the inject ring could not be read (before=${ringBefore} after=${ringAfter})` });
-}, {
-    /* The divert's fourth check is about what reaches MOVE (suppress or inject
-     * into its MIDI_IN). Standalone track+volume has no Move to divert from;
-     * WP7 grades it there. */
-    needs: 'move',
 });

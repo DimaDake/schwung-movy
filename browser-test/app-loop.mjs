@@ -73,8 +73,8 @@ const ownerFor = () => pageOwnerOf(activeModelFor());
 
 /* The first master FX slot, by COMPONENT rather than by position: movy's own
  * send buses sit in front of them on the master page, and these blocks are
- * about what a `master_fx:` slot does, not about what happens to be first. */
-const MFX1 = _MFX_SLOTS.findIndex((s) => s.componentKey.startsWith('master_fx'));
+ * about what a `mfx:` slot does, not about what happens to be first. */
+const MFX1 = _MFX_SLOTS.findIndex((s) => s.componentKey.startsWith('mfx:'));
 const { seqState, resetSeqState, occHasStep } = await import('../dist/esm/seq/state.js');
 const { resetSeqEngine } = await import('../dist/esm/seq/engine.js');
 const { padVoiceSilent } = await import('../dist/esm/mixer/pad-mutes.js');
@@ -119,13 +119,6 @@ function resetApp() {
     /* env.setParams seeds the bare-key store every chain read falls back to
      * (env.mjs), so every track — not just a distinguished four — finds the
      * mocked instrument regardless of which chain it addresses. */
-    /* The Set-commit press is WALL-CLOCK timed (it waits 1.5 s for Move to
-     * finish loading the Set before borrowing the surface), and the loading
-     * splash now waits for it — so with this harness's 12 instant ticks movy
-     * would never leave `settling` and every gesture below would be refused.
-     * The press itself is covered in logic/set-settling.mjs, on a stubbed
-     * clock. */
-    setFlag('setcommit', 0);
     globalThis.init();                       // builds 4×chain models, resets keyboardState
     appState.trackModels[0][1].reload();     // force synth hierarchy/drum-config load
     advance(12);                             // settle engine boot + hierarchy + lane
@@ -239,7 +232,7 @@ _log('\napp-loop: a cold LED frame never overflows the output buffer');
     if (typeof realSetButtonLED === 'function')
         globalThis.setButtonLED = (n, c, i) => { perTick++; realSetButtonLED(n, c, i); };
 
-    globalThis.onResume();                  // exactly what returning from background does
+    globalThis.init();                      // a fresh open repaints every pad
     for (let i = 0; i < 40; i++) {
         perTick = 0;
         advance(1);
@@ -1309,62 +1302,13 @@ _log('\napp-loop: set/clip params replace each other, one level deep');
     eq('Session clears the param layer', paramLayer(), false);
 }
 
-/* ── Master FX: jog-click adds a module by DSP path (not id) ──────────────── */
-_log('\napp-loop: master FX slot adds a module by DSP path');
+/* ── Master FX: jog-click adds a module, by id, at the engine root ────────── */
+_log('\napp-loop: master FX slot adds a module at the engine root');
 {
-    // Master FX modules live under modules/audio_fx; schwung resolves
-    // master_fx:fxN:module as a DSP PATH (track slots use the bare id).
-    const prevOs = globalThis.os;
-    const prevRead = globalThis.host_read_file;
-    globalThis.os = {
-        readdir: (p) => (p.endsWith('/audio_fx') ? [['reverb'], 0] : [[], 0]),
-        stat: () => [{ mode: 0x4000 }, 0],
-    };
-    globalThis.host_read_file = (p) =>
-        p.endsWith('/audio_fx/reverb/module.json')
-            ? JSON.stringify({ id: 'reverb', name: 'Reverb', dsp: 'dsp.so', component_type: 'audio_fx' })
-            : null;
-
-    const sets = [];
-    const realSet = globalThis.shadow_set_param;
-    const realSetT = globalThis.shadow_set_param_timeout;
-    globalThis.shadow_set_param = (s, k, v) => { sets.push(`${s}|${k}=${v}`); return realSet(s, k, v); };
-    /* A master load is a BLOCKING write (browser/handler.ts) — capture that
-     * variant too, or the load looks like it never happened. */
-    globalThis.shadow_set_param_timeout = (s, k, v, t) => { sets.push(`${s}|${k}=${v}`); return realSetT(s, k, v, t); };
-
-    resetApp();
-    seqState.sessionMode = true;          // master FX chain is shown in Session mode
-    appState.masterChainIndex = MFX1;
-    appState.currentView = VIEW_CHAIN;
-    advance(2);
-
-    sendMidi([0xB0, globalThis.MoveMainButton, 127]);   // jog-click on empty master slot
-    eq('master jog-click opens the module browser', appState.currentView, VIEW_BROWSE);
-
-    sendMidi([0xB0, globalThis.MoveMainKnob, 1]);        // jog → select Reverb (index 1; 0 = NONE)
-    sets.length = 0;
-    sendMidi([0xB0, globalThis.MoveMainButton, 127]);    // jog-click → load selection
-
-    const moduleSet = sets.find((s) => s.includes('master_fx:fx1:module='));
-    eq('master load writes master_fx:fx1:module', !!moduleSet, true);
-    eq('master load writes the DSP path, not the id',
-        moduleSet?.endsWith('/audio_fx/reverb/dsp.so'), true);
-
-    globalThis.shadow_set_param = realSet;
-    globalThis.shadow_set_param_timeout = realSetT;
-    globalThis.os = prevOs;
-    globalThis.host_read_file = prevRead;
-}
-
-/* ── Master FX: track 0 being a movy chain must not capture the master bus ── */
-_log('\napp-loop: master FX adds a module while track 0 is a movy chain');
-{
-    /* `master_fx:` keys are schwung's own and global to the shim; they only RIDE
-     * on slot 0 as a carrier. Track 0 is ALWAYS a movy chain now, so a port taken
-     * by track INDEX would namespace the write `ch0:master_fx:…` — a key movy's
-     * engine has never heard of, and the module would silently never load. This
-     * used to be the case only under `chtracks`; it is the only case there is. */
+    /* `mfx:` keys are the engine root's own namespace. Track 0 is a movy
+     * chain, so a port taken by track INDEX would namespace the write
+     * `ch0:mfx:…` — a key the engine has never heard of, and the module would
+     * silently never load. */
     const prevOs = globalThis.os;
     const prevRead = globalThis.host_read_file;
     globalThis.os = {
@@ -1377,18 +1321,9 @@ _log('\napp-loop: master FX adds a module while track 0 is a movy chain');
             : null;
 
     resetApp();
-
-    const sets = [];
-    const engineWrites = [];
-    const realSet  = globalThis.shadow_set_param;
-    const realSetT = globalThis.shadow_set_param_timeout;
-    const realEng  = globalThis.host_module_set_param_blocking;
-    globalThis.shadow_set_param = (s, k, v) => { sets.push(`${s}|${k}=${v}`); return realSet(s, k, v); };
-    globalThis.shadow_set_param_timeout = (s, k, v, t) => { sets.push(`${s}|${k}=${v}`); return realSetT(s, k, v, t); };
-    globalThis.host_module_set_param_blocking = (k, v, t) => {
-        engineWrites.push(k);
-        return realEng ? realEng(k, v, t) : true;
-    };
+    const writes = [];
+    const realEng = globalThis.host_module_set_param_blocking;
+    globalThis.host_module_set_param_blocking = (k, v, t) => { writes.push(k + '=' + v); return realEng(k, v, t); };
 
     seqState.sessionMode = true;          // master FX chain is shown in Session mode
     appState.masterChainIndex = MFX1;
@@ -1399,18 +1334,14 @@ _log('\napp-loop: master FX adds a module while track 0 is a movy chain');
     eq('master jog-click opens the module browser', appState.currentView, VIEW_BROWSE);
 
     sendMidi([0xB0, globalThis.MoveMainKnob, 1]);       // jog → Reverb (0 = NONE)
-    sets.length = 0; engineWrites.length = 0;
+    writes.length = 0;
     sendMidi([0xB0, globalThis.MoveMainButton, 127]);   // jog-click → load selection
 
-    const moduleSet = sets.find((s) => s.includes('master_fx:fx1:module='));
-    eq('the master load still reaches a schwung slot', !!moduleSet, true);
-    eq('on slot 0, the carrier for a global key', moduleSet?.startsWith('0|'), true);
-    eq('carrying the DSP path', moduleSet?.endsWith('/audio_fx/reverb/dsp.so'), true);
+    eq('the master load writes mfx:fx1:module by id', writes.find((w) => w.startsWith('mfx:fx1:module=')),
+       'mfx:fx1:module=reverb');
     eq('and nothing was namespaced to a movy chain',
-        engineWrites.filter((k) => k.indexOf('ch') === 0).join(','), '');
+        writes.filter((w) => w.startsWith('ch')).join(','), '');
 
-    globalThis.shadow_set_param = realSet;
-    globalThis.shadow_set_param_timeout = realSetT;
     globalThis.host_module_set_param_blocking = realEng;
     globalThis.os = prevOs;
     globalThis.host_read_file = prevRead;
@@ -1420,8 +1351,8 @@ _log('\napp-loop: master FX adds a module while track 0 is a movy chain');
 _log('\napp-loop: master FX slot drills into detail params on jog-click');
 {
     resetApp();
-    // master_fx:fx1:name reads back → masterModel[0] polls non-empty (slot loaded).
-    env.setParams({ ...MOCK_SYNTHS.mrdrums, 'master_fx:fx1:name': 'Reverb' });
+    // mfx:fx1:name reads back → masterModel[0] polls non-empty (slot loaded).
+    env.setParams({ ...MOCK_SYNTHS.mrdrums, 'mfx:fx1:name': 'Reverb' });
     seqState.sessionMode = true;
     appState.masterChainIndex = MFX1;
     appState.currentView = VIEW_CHAIN;
@@ -1511,7 +1442,7 @@ _log('\napp-loop: clearing a module returns to the chain view');
 _log('\napp-loop: clearing a master FX slot leaves its detail page');
 {
     resetApp();
-    env.setParams({ ...MOCK_SYNTHS.mrdrums, 'master_fx:fx1:name': 'Reverb' });
+    env.setParams({ ...MOCK_SYNTHS.mrdrums, 'mfx:fx1:name': 'Reverb' });
     seqState.sessionMode = true;
     appState.masterChainIndex = MFX1;
     appState.currentView = VIEW_CHAIN;
@@ -1566,8 +1497,8 @@ _log('\napp-loop: the master chain reaches its LFO page');
     const { MASTER_LFO_INDEX } = await import('../dist/esm/chain/config.js');
     resetApp();
     env.setParams({
-        'master_fx:fx1:name': 'Reverb',
-        'master_fx:fx1:chain_params': JSON.stringify([{ key: 'mix', name: 'Mix', type: 'float' }]),
+        'mfx:fx1:name': 'Reverb',
+        'mfx:fx1:chain_params': JSON.stringify([{ key: 'mix', name: 'Mix', type: 'float' }]),
     });
     seqState.sessionMode = true;
     appState.masterChainIndex = 0;
@@ -1591,13 +1522,13 @@ _log('\napp-loop: the master chain reaches its LFO page');
 
     /* The knobs now edit the shim's master LFOs. */
     const lfoModel = appState.masterFxModels[MASTER_LFO_INDEX];
-    eq('the LFO slot holds the LFO model', lfoModel.getComponentKey(), 'master_fx:lfo');
+    eq('the LFO slot holds the LFO model', lfoModel.getComponentKey(), 'mfx:lfo');
     /* MODE is knob 3 on movy's own page (Rate, Sync, Mode, Target) and
      * knob 2 on Schwung's (Target, Mode, Sync, Retrig). */
     const modeKnob = schwungGridMode() === 'page' ? 1 : 2;
     sendMidi([0xB0, globalThis.MoveKnob1 + modeKnob, 8]);   // MODE → bipolar
     advance(1);
-    eq('a master LFO knob writes the namespaced key', env.params['master_fx:lfo1:polarity'], '1');
+    eq('a master LFO knob writes the namespaced key', env.params['mfx:lfo1:polarity'], '1');
     eq('and not the track form', env.params['lfo1:polarity'], undefined);
 
     /* Under `page` (SP-55) the turn just above opened Schwung's own transient
@@ -1621,69 +1552,6 @@ _log('\napp-loop: the master chain reaches its LFO page');
     sendMidi([0xB0, globalThis.MoveBack, 127]);
     Date.now = realNow;
     eq('Back returns to the master grid', appState.masterDetail, false);
-}
-
-_log('\napp-loop: active-set switch reloads the engine');
-{
-    // Back the host filesystem with an in-memory map and an active set "S1".
-    const fs = {};
-    globalThis.host_read_file  = (p) => (p in fs ? fs[p] : null);
-    globalThis.host_write_file = (p, c) => { fs[p] = c; return true; };
-    globalThis.host_file_exists = (p) => p in fs;
-    globalThis.host_ensure_dir = () => true;
-    const ACTIVE = '/data/UserData/schwung/active_set.txt';
-    const stPath = (u) => '/data/UserData/schwung/modules/tools/movy/sets/' + u + '/seq-state.json';
-
-    fs[ACTIVE] = 's1-uuid\nSet One\n';
-    /* The OLD path: every assertion here is about the UI pushing `state` and
-     * writing seq-state.json, which is what a mock engine can be held to. The
-     * engine-owned path's own mechanics are covered in logic/set-session.mjs
-     * (E1-E6) and on the device; this block keeps the writer it was written
-     * for until the release that deletes it (spec §12 step 6). */
-    setFlag('engpersist', 0);
-    resetSetSession();                       // force a fresh boot-load
-    resetApp();                              // init() + settle; boot-load reads S1
-    advance(4);
-    const loadsAfterBoot = engine.stateLoads.length;
-    eq('boot loaded a set blob', loadsAfterBoot >= 1, true);
-
-    /* Switch to a set that ALREADY HAS state: the poll (~96 ticks) must save the
-     * outgoing set and load the incoming one. The engine reports edited state,
-     * so the switch-out flush is forced rather than trusting the 24 Hz dirty
-     * mirror, which can still read clean for an edit made moments before. */
-    engine.stateBlob = 'movy1\nbpm 13700\ncl 0 0 16 0 0:24:60:100\n';
-    fs[stPath('s2-uuid')] = 'movy1\nbpm 10000\n';
-    fs[ACTIVE] = 's2-uuid\nSet Two\n';
-    advance(120);
-    eq('set switch triggered a fresh engine load', engine.stateLoads.length > loadsAfterBoot, true);
-    eq('S1 saved on switch-out', typeof fs[stPath('s1-uuid')], 'string');
-    eq('S1 kept its edits', fs[stPath('s1-uuid')].includes('bpm 13700'), true);
-
-    /* And the counterpart: moving to another REAL set that has no state is a
-     * switch, and it starts blank. Deleting a set in Move makes exactly this
-     * shape — a fresh uuid movy has never seen — and carrying the work into it
-     * is what made a deleted set appear to come back. */
-    engine.stateBlob = 'movy1\nbpm 14900\ncl 0 0 16 0 0:24:64:100\n';
-    seqState.dirty = true;
-    fs[ACTIVE] = 's3-uuid\nSet Three\n';
-    advance(120);
-    eq('a new set starts blank', engine.stateBlob, 'movy1\n');
-    eq('the work stayed with the set it was made in',
-       (fs[stPath('s2-uuid')] || '').includes('bpm 14900'), true);
-    eq('and did not follow', (fs[stPath('s3-uuid')] || '').includes('bpm 14900'), false);
-
-    /* The one transition that IS a rename: schwung's provisional id being
-     * replaced by the real one Move finally materialised. The id changed; the
-     * set did not. */
-    const loadsBeforeRename = engine.stateLoads.length;
-    fs[ACTIVE] = '__pending-4-2\nNew Set 5\n';
-    advance(120);
-    engine.stateBlob = 'movy1\nbpm 15100\ncl 0 0 16 0 0:24:67:100\n';
-    seqState.dirty = true;
-    fs[ACTIVE] = 's4-uuid\nSet Four\n';
-    advance(120);
-    eq('materialising a set is not loaded over', engine.stateLoads.length, loadsBeforeRename + 1);
-    eq('the work followed it', (fs[stPath('s4-uuid')] || '').includes('bpm 15100'), true);
 }
 
 _log('\napp-loop: nothing is live until the Set is loaded');
@@ -1745,7 +1613,6 @@ _log('\napp-loop: the splash does not lift on a UI that is still catching up');
     engine.reset();
     env.setParams(MOCK_SYNTHS.mrdrums);
     resetSeqState(); resetSeqEngine();
-    setFlag('setcommit', 0);
     globalThis.init();                       // no manual reload(): this is a cold open
     resetSess();
 
@@ -1904,7 +1771,7 @@ _log('\napp-loop: hold-knob → assign under Schwung pages lands on, and refresh
     /* Forced to `page` for the same reason as the SP-37 block below: these
      * checks are ABOUT the delegated pages and must bite in plain `npm test`. */
     const { resetAssignMode, assignActive } = await import('../dist/esm/lfo/assign-mode.js');
-    const { portFor, hostPort } = await import('../dist/esm/track/registry.js');
+    const { portFor, engineRootPort } = await import('../dist/esm/track/registry.js');
     const { LFO_CHAIN_INDEX, MASTER_LFO_INDEX } = await import('../dist/esm/chain/config.js');
     const { modulatedKeysOf } = await import('../dist/esm/app/modulated-keys.js');
     setSchwungGridMode('page');
@@ -1917,9 +1784,9 @@ _log('\napp-loop: hold-knob → assign under Schwung pages lands on, and refresh
             /* The target picker lists what `chain_params` declares — test8
              * declares its params only inline in its hierarchy. */
             'synth:chain_params': JSON.stringify([{ key: 'freq', name: 'Freq', type: 'float', min: 0, max: 1 }]),
-            'master_fx:fx1:name': 'Reverb',
-            'master_fx:fx1:chain_params': JSON.stringify([{ key: 'mix', name: 'Mix', type: 'float', min: 0, max: 1 }]),
-            'master_fx:fx1:mix': '0.5' });
+            'mfx:fx1:name': 'Reverb',
+            'mfx:fx1:chain_params': JSON.stringify([{ key: 'mix', name: 'Mix', type: 'float', min: 0, max: 1 }]),
+            'mfx:fx1:mix': '0.5' });
         resetSeqState(); resetSeqEngine();
         globalThis.init();
         appState.trackModels[0][1].reload();
@@ -2035,12 +1902,12 @@ _log('\napp-loop: hold-knob → assign under Schwung pages lands on, and refresh
         t += 1100; advance(1);
         eq('holding an MFX knob arms assign mode', assignActive(), true);
         sendMidi([0xB0, 3, 127]); advance(1);          // LFO 1
-        const shim = hostPort(0);
+        const shim = engineRootPort();
         eq('the MASTER LFO 1 targets the bare fx slot',
-           shim.getParam('master_fx:lfo1:target') + ':' + shim.getParam('master_fx:lfo1:target_param'), 'fx1:mix');
+           shim.getParam('mfx:lfo1:target') + ':' + shim.getParam('mfx:lfo1:target_param'), 'fx1:mix');
         eq('landed on the master LFO slot', appState.masterChainIndex, MASTER_LFO_INDEX);
         eq('on the master LFO 1 page', pageOwnerOf(appState.masterFxModels[MASTER_LFO_INDEX]).pageIndex, 0);
-        eq('the MFX knob wears the modulation mark', !!((modulatedKeysOf(0, 'master_fx:fx1') || new Set()).has('mix')), true);
+        eq('the MFX knob wears the modulation mark', !!((modulatedKeysOf(0, 'mfx:fx1') || new Set()).has('mix')), true);
         sendMidi([0x90, 0, 0]); advance(1);
         Date.now = realNow;
         seqState.sessionMode = false;
@@ -2079,62 +1946,37 @@ _log('\napp-loop: jog touch shows the CLICK JOG hint only after a hold');
     Date.now = realNow;
 }
 
-_log('\napp-loop: root-view Back → Leave modal → Background parks');
+_log('\napp-loop: root-view Back → Leave modal → Close Movy');
 {
     const { soundingCount } = await import('../dist/esm/keyboard/held-notes.js');
-    const { leaveModalActive } = await import('../dist/esm/app/leave-modal.js');
+    const { leaveModalActive, leaveModalLabels } = await import('../dist/esm/app/leave-modal.js');
     resetApp();
     appState.currentView = VIEW_CHAIN;           // root view
     sendMidi([0x90, PAD_KICK, 100]);             // hold a pad
-    let suspended = 0;
-    globalThis.host_suspend_overtake = () => { suspended++; };
-    sendMidi([0xB0, globalThis.MoveBack, 127]);  // Back → open modal (no instant park)
-    eq('Back opened the Leave modal', leaveModalActive(), true);
-    eq('opening the modal released the held pad', soundingCount(), 0);
-    eq('Back did NOT park instantly', suspended, 0);
-    sendMidi([0xB0, globalThis.MoveMainButton, 127]);  // jog-click → Background (default)
-    eq('jog-click Background parked movy', suspended, 1);
-    eq('modal closed after confirm', leaveModalActive(), false);
-    delete globalThis.host_suspend_overtake;
-}
-
-_log('\napp-loop: Leave modal — Back cancels; old host offers only Close Movy');
-{
-    const { leaveModalActive, leaveModalLabels } = await import('../dist/esm/app/leave-modal.js');
-    resetApp();
-    appState.currentView = VIEW_CHAIN;
-    globalThis.host_suspend_overtake = () => {};
-    sendMidi([0xB0, globalThis.MoveBack, 127]);       // open
-    eq('modal offers Background + Close', leaveModalLabels().join(','), 'Background,Close Movy');
-    sendMidi([0xB0, globalThis.MoveBack, 127]);       // Back again → cancel
-    eq('second Back cancels the modal', leaveModalActive(), false);
-    // Old host: no host_suspend_overtake → only Close Movy → jog-click exits.
     let exited = 0;
     const realExit = globalThis.host_exit_module;
     globalThis.host_exit_module = () => { exited++; };
-    delete globalThis.host_suspend_overtake;
-    sendMidi([0xB0, globalThis.MoveBack, 127]);       // open (Close only)
-    eq('old host: modal offers only Close Movy', leaveModalLabels().join(','), 'Close Movy');
-    sendMidi([0xB0, globalThis.MoveMainButton, 127]); // jog-click → Close
-    eq('old host: jog-click closes movy', exited, 1);
+    sendMidi([0xB0, globalThis.MoveBack, 127]);  // Back → open modal (no instant exit)
+    eq('Back opened the Leave modal', leaveModalActive(), true);
+    eq('opening the modal released the held pad', soundingCount(), 0);
+    eq('the modal offers only Close Movy', leaveModalLabels().join(','), 'Close Movy');
+    eq('Back did NOT exit instantly', exited, 0);
+    sendMidi([0xB0, globalThis.MoveBack, 127]);  // Back again → cancel
+    eq('second Back cancels the modal', leaveModalActive(), false);
+    sendMidi([0xB0, globalThis.MoveBack, 127]);  // open again
+    sendMidi([0xB0, globalThis.MoveMainButton, 127]);  // jog-click → Close Movy
+    eq('jog-click closes movy', exited, 1);
+    eq('modal closed after confirm', leaveModalActive(), false);
     globalThis.host_exit_module = realExit;
 }
 
 _log('\napp-loop: Power button (standalone) — ask first, power off only on the jog click');
 {
     const { leaveModalActive, leaveModalLabels, leaveModalTitle } = await import('../dist/esm/app/leave-modal.js');
-    const { platform, setPlatformForTest } = await import('../dist/esm/platform/index.js');
-    const { standalonePlatform } = await import('../dist/esm/platform/standalone.js');
-    const real = platform;
     let off = 0;
+    const realOff = globalThis.host_power_off;
     globalThis.host_power_off = () => { off++; };
     try {
-        /* Beside Move the button is MoveOriginal's: no dialog. */
-        resetApp();
-        globalThis.onPowerButton();
-        eq('beside Move: no shutdown dialog', leaveModalActive(), false);
-
-        setPlatformForTest(standalonePlatform);
         resetApp();
         (await import('../dist/esm/app/state.js')).appState.dirty = false;
         globalThis.onPowerButton();
@@ -2165,8 +2007,7 @@ _log('\napp-loop: Power button (standalone) — ask first, power off only on the
         eq('Back after it is the Leave menu again', leaveModalTitle(), 'Leave Movy?');
         sendMidi([0xB0, globalThis.MoveBack, 127]);
     } finally {
-        setPlatformForTest(real);
-        delete globalThis.host_power_off;
+        globalThis.host_power_off = realOff;
     }
 }
 
@@ -2187,7 +2028,6 @@ _log('\napp-loop: Leave modal — the hardware keeps working; using it dismisses
         sendMidi([0xB0, globalThis.MoveBack, 0]);
         eq('modal opened', leaveModalActive(), true);
     };
-    globalThis.host_suspend_overtake = () => {};
 
     resetApp();
     selectTrack(0);
@@ -2231,7 +2071,7 @@ _log('\napp-loop: Leave modal — the hardware keeps working; using it dismisses
     openModal();
     sendMidi([0xB0, CC_REC, 127]);                     // held Rec while stopped
     eq('Rec armed step-record under the modal', stepRecActive(), true);
-    sendMidi([0xB0, globalThis.MoveMainButton, 127]);  // jog-click → Background
+    sendMidi([0xB0, globalThis.MoveMainButton, 127]);  // jog-click → Close Movy
     eq('confirming forgot the hold armed under the modal', stepRecActive(), false);
 
     /* The rest of the hardware is the same policy, not a special case: playing
@@ -2251,7 +2091,7 @@ _log('\napp-loop: Leave modal — the hardware keeps working; using it dismisses
     eq('a step button dismissed the modal', leaveModalActive(), false);
     eq('and the step still toggled a note', occHasStep(4), true);
 
-    /* The host trickles [0,0,0] into the overtake callback whether or not
+    /* A host can trickle [0,0,0] into the MIDI callback whether or not
      * anyone touched anything. Dismissing on undecodable traffic killed the
      * menu in the same millisecond Back opened it, on device — no press
      * involved, and Close Movy became unreachable. */
@@ -2271,56 +2111,15 @@ _log('\napp-loop: Leave modal — the hardware keeps working; using it dismisses
     sendMidi([0xB0, globalThis.MoveShift, 127]);
     eq('Shift did NOT dismiss the modal', leaveModalActive(), true);
     eq('Shift still registered', appState.shiftHeld, true);
-    sendMidi([0xB0, globalThis.MoveMainButton, 127]);  // confirm → Background
+    sendMidi([0xB0, globalThis.MoveMainButton, 127]);  // confirm → Close Movy
     eq('confirming forgot the Shift latch too', appState.shiftHeld, false);
-    delete globalThis.host_suspend_overtake;
 }
 
-_log('\napp-loop: parked tick does no LED work, keeps engine synced');
-{
-    const { uiTick } = await import('../dist/esm/seq/engine.js');
-    resetApp();
-    advance(4);                                   // let LEDs settle
-    let ledWrites = 0, fillRects = 0;
-    const realSetLED = globalThis.setLED;
-    const realFillRect = globalThis.fill_rect;
-    globalThis.setLED = (n, c) => { ledWrites++; realSetLED(n, c); };
-    globalThis.fill_rect = (...a) => { fillRects++; if (realFillRect) realFillRect(...a); };
-    const beforeUi = uiTick();
-    globalThis.overtakeParked = true;
-    advance(8);
-    eq('parked: zero LED writes', ledWrites, 0);
-    eq('parked: zero fill_rect (no render)', fillRects, 0);   // perf: parked path skips the draw pipeline
-    eq('parked: engine still ticked (uiTick advanced)', uiTick() - beforeUi, 8);
-    globalThis.overtakeParked = false;
-    globalThis.setLED = realSetLED;
-    globalThis.fill_rect = realFillRect;
-}
-
-_log('\napp-loop: onResume invalidates caches and repaints');
-{
-    resetApp();
-    advance(6);
-    globalThis.overtakeParked = true;             // park, advance blind
-    advance(8);
-    globalThis.overtakeParked = false;
-    let ledWrites = 0;
-    const realSetLED = globalThis.setLED;
-    globalThis.setLED = (n, c) => { ledWrites++; realSetLED(n, c); };
-    globalThis.onResume();
-    eq('onResume set dirty', appState.dirty, true);
-    eq('onResume reset init-LEDs flag', appState.initLedsDone, false);
-    advance(3);
-    if (ledWrites > 0) ok('resume repainted LEDs');
-    else fail('resume repainted LEDs', 'no LED writes after resume');
-    globalThis.setLED = realSetLED;
-}
-
-_log('\napp-loop: LINK toggle routes through knob 2 on the Set page');
+_log('\napp-loop: a Set page knob routes through the dispatch gate');
 {
     const { mainPageActive } = await import('../dist/esm/seq/main-page.js');
     resetApp();
-    eq('link off initially', seqState.linkEnabled, false);
+    const swing0 = seqState.swingPct;
     // Open the Set page: Shift + Step 5 (step-button index 4 = note 20).
     appState.shiftHeld = true;
     sendMidi([0x90, 20, 100]);          // Step 5 press → opens Main Params (page 0)
@@ -2328,22 +2127,19 @@ _log('\napp-loop: LINK toggle routes through knob 2 on the Set page');
     appState.shiftHeld = false;
     eq('Set page open', mainPageActive(), true);
     // Regression: the knob-dispatch gate must span the whole page, or cells
-    // are dead on device. Clockwise → LINK on (LINK is knob 2 = CC 73).
+    // are dead on device. SWING is knob 2 (CC 72) under both arms.
     // Touch/release bracket each turn (as a real gesture always has one): under
     // `page` a write is throttled (SETPARAM_THROTTLE_MS, SU-13) and only the
-    // RELEASE flushes it synchronously — two turns fired back-to-back with no
-    // release in between (this test's original shape, written for the `off`
-    // arm's synchronous apply) leaves the second one sitting in Schwung's
-    // pendingWrite, unobservable until a real tick's worth of wall-clock time
-    // has passed. Both arms read `seqState.linkEnabled` at the same points.
-    sendMidi([0x90, 2, 127]);
-    sendMidi([0xB0, 73, 40]); advance(1);
-    sendMidi([0x90, 2, 0]);
-    eq('knob 2 CW enables link', seqState.linkEnabled, true);
-    sendMidi([0x90, 2, 127]);
-    sendMidi([0xB0, 73, 88]); advance(1);   // counter-clockwise → LINK off
-    sendMidi([0x90, 2, 0]);
-    eq('knob 2 CCW disables link', seqState.linkEnabled, false);
+    // RELEASE flushes it synchronously.
+    sendMidi([0x90, 1, 127]);
+    sendMidi([0xB0, 72, 40]); advance(1);
+    sendMidi([0x90, 1, 0]);
+    ok('knob 2 CW raises swing', seqState.swingPct > swing0);
+    const up = seqState.swingPct;
+    sendMidi([0x90, 1, 127]);
+    sendMidi([0xB0, 72, 88]); advance(1);   // counter-clockwise
+    sendMidi([0x90, 1, 0]);
+    ok('knob 2 CCW lowers it again', seqState.swingPct < up);
 }
 
 /* Note conservation: every note-on movy sends must be answered by a note-off on
@@ -2407,24 +2203,17 @@ _log('\napp-loop: note conservation across context changes');
  * one — the "I left Movy, went back in, and the set is gone" report. */
 _log('\napp-loop: teardown flushes pending state');
 {
-    const fs = {};
-    globalThis.host_read_file  = (p) => (p in fs ? fs[p] : null);
-    globalThis.host_write_file = (p, c) => { fs[p] = c; return true; };
-    globalThis.host_file_exists = (p) => p in fs;
-    globalThis.host_ensure_dir = () => true;
-    const ACTIVE = '/data/UserData/schwung/active_set.txt';
-    const stPath = (u) => '/data/UserData/schwung/modules/tools/movy/sets/' + u + '/seq-state.json';
-
-    fs[ACTIVE] = 'u1-uuid\nUnload Set\n';
     resetSetSession();
     resetApp();
-    advance(4);                                   // boot-load resolves the set
+    advance(4);                                   // the library names the Set
 
-    // An edit lands and movy closes well inside the ~3 s autosave interval.
-    engine.stateBlob = 'movy1\nbpm 15500\ncl 0 0 16 0 0:24:64:100\n';
+    /* The engine owns the files and saves on its own dirty flag; what the
+     * teardown owes it is the one thing it cannot see — that this is the
+     * last moment of the session, worth a version of its own. */
+    engine.setCmds.length = 0;
     globalThis.onUnload();
-    eq('teardown wrote the set', typeof fs[stPath('u1-uuid')], 'string');
-    eq('teardown kept the edit', fs[stPath('u1-uuid')].includes('bpm 15500'), true);
+    ok('teardown asks the engine to keep an exit version', engine.setCmds.includes('keep exit'),
+       engine.setCmds.join(' | '));
 
     /* onUnload() is a teardown: the session it left behind is not live, and the
      * gate means every later test would be talking to a movy that ignores it.
@@ -2671,6 +2460,7 @@ _log('\napp-loop: loop-mode bars pulse on the firmware channels, not on any tick
      * while the transport was stopped; nothing about a bar is JS-timed now, so
      * the guard becomes "a frozen tick and a moving clock change nothing". */
     const msgs = [];
+    const realSurfaceSend = globalThis.move_midi_internal_send;
     globalThis.move_midi_internal_send = (m) => msgs.push(m);
 
     seqState.playing = false;
@@ -2727,7 +2517,7 @@ _log('\napp-loop: loop-mode bars pulse on the firmware channels, not on any tick
     eq('the whole step row is repainted on the way out', stepRowRepainted, 16);
 
     Date.now = realNow;
-    delete globalThis.move_midi_internal_send;
+    globalThis.move_midi_internal_send = realSurfaceSend;
     seqState.loopStart = 0;
     seqState.lenSteps = 0;
     seqState.barOffset = 0;
@@ -3589,7 +3379,6 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
     engine.reset();
     env.setParams(MOCK_SYNTHS.test16);       // p1..p16 = i/15; two pages either way
     resetSeqState(); resetSeqEngine();
-    setFlag('setcommit', 0);
     globalThis.init();
     const m = appState.trackModels[0][1];
     m.reload();
@@ -3668,8 +3457,10 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
     advance(4);
     eq('the main params page is up', appState.currentView, VIEW_MAIN_PARAMS);
     const mainRow = ledRow();
+    /* Seven cells since LINK went (WP9): Schwung's `knobs[]` packs them, and
+     * the legacy page leaves LINK's slot empty — either way one knob is dark. */
     eq('movy\'s own page still lights its knobs',
-       mainRow.every((c) => c > 0), true);
+       mainRow.filter((c) => c > 0).length >= 7, true);
     /* ...and it TOOK the row back from whoever had it: one writer, one diff
      * cache, so leaving a delegated page can never strand a knob on its
      * colour. */
@@ -3704,7 +3495,6 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
     engine.reset();
     env.setParams(MOCK_SYNTHS.test16);       // p1..p16 = i/15
     resetSeqState(); resetSeqEngine(); resetAutomation();
-    setFlag('setcommit', 0);
     globalThis.init();
     const m = appState.trackModels[0][1];
     m.reload();
@@ -3806,7 +3596,6 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
     engine.reset();
     env.setParams(MOCK_SYNTHS.test16);
     resetSeqState(); resetSeqEngine(); resetAutomation();
-    setFlag('setcommit', 0);
     globalThis.init();
     const m = appState.trackModels[0][1];
     m.reload();
@@ -3907,7 +3696,6 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
     engine.reset();
     env.setParams(MOCK_SYNTHS.test_enum);
     resetSeqState(); resetSeqEngine();
-    setFlag('setcommit', 0);
     globalThis.init();
     appState.currentView = VIEW_KNOBS;
     appState.activeTrack = trackRef(0);
@@ -4042,7 +3830,7 @@ _log('\napp-loop: the master chain grid draws Schwung\'s body (SP-58)');
 }
 
 /* The same for a SEND slot: the send buses share the master page and its detail
- * drill but are movy chains with no `master_fx:` prefix, and a component test
+ * drill but are movy chains with no `mfx:` prefix, and a component test
  * there left the detail page open over the emptied send.
  *
  * LAST ON PURPOSE: placed beside the master-FX block it moved the `page` arm's

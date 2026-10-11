@@ -26,15 +26,8 @@ pub enum OutEvent {
     Start,
     Stop,
     Clock,
-    /// MovePlay (CC 85) toward Move's firmware — the always-on transport link
-    /// (design §7 Phase 4). Two-phase toggle: press (val 127) then release
-    /// (val 0). Fire-and-forget; never emitted from a transport-state change.
-    MoveInject { val: u8 },
 }
 
-/// MovePlay press→release gap in audio frames (davebox `MOVE_PLAY_RELEASE_SAMPLES`,
-/// ~50 ms at 44.1 kHz) — reused verbatim so Move sees a clean button tap.
-const MOVE_PLAY_RELEASE_GAP: u64 = 2205;
 
 struct RecPending {
     pitch: u8,
@@ -202,34 +195,6 @@ pub struct Engine {
     resume_anchor_pending: bool,
 
     // --- always-on bidirectional transport link — design §7 Phase 4 ---
-    // All runtime-only (never persisted). Injects fire ONLY from explicit
-    // transport commands (request_play/request_stop), never state changes.
-    /// movy Play issued while Move was stopped: hold silent until Move's 0xFA,
-    /// or the 2-bar timeout starts us on the internal clock.
-    pending_play: bool,
-    /// `frame_now` deadline for the pending-start timeout fallback.
-    pending_play_deadline: u64,
-    /// Queued MovePlay toggles awaiting emission (each = one press+release).
-    /// A counter, not a bool, so back-to-back toggles (start then cancel) both
-    /// reach Move as distinct button taps.
-    move_toggle_queue: u8,
-    /// `frame_now` at which the in-flight toggle's release fires; 0 = no toggle
-    /// currently pressed.
-    inject_release_at: u64,
-    /// User toggle (Set-page LINK cell): when false, the Play/Stop propagation
-    /// above is disabled — movy's transport is independent of Move's (Phase 3
-    /// clock-follow still applies). Persisted per set; default off.
-    pub link_enabled: bool,
-    /// Does this host actually carry `MoveInject` to Move? Set per engine boot
-    /// from the UI's capability probe (`minject`), never persisted — it
-    /// describes the shim movy is running under, not the set.
-    ///
-    /// Default **off**, and deliberately so. On a shim that drains the shared
-    /// inject ring back onto the overtake tool (schwung 2026-07-29 .. #293),
-    /// our CC 85 returns to movy as a Play press: the transport toggles for as
-    /// long as the tool is open and Move never hears a thing. An engine that
-    /// has not been told otherwise must not push that packet.
-    pub move_inject_ok: bool,
     /// Undo snapshots, addressed by the id the UI assigns. Runtime-only: the
     /// UI's stack is in-memory too, so persisting these would restore history
     /// for a stack that no longer exists.
@@ -309,12 +274,6 @@ impl Engine {
             frame_now: 0,
             was_following: false,
             resume_anchor_pending: false,
-            pending_play: false,
-            pending_play_deadline: 0,
-            move_toggle_queue: 0,
-            inject_release_at: 0,
-            link_enabled: false,
-            move_inject_ok: false,
             undo: crate::undo::UndoRing::new(),
         }
     }
@@ -1061,65 +1020,6 @@ impl Engine {
         }
     }
 
-    /// Queue a MovePlay toggle: press next `advance_block`, release after the
-    /// davebox-verified gap. Fire-and-forget — only ever called from a
-    /// transport command (design §7 Phase 4 no-feedback-loop invariant).
-    fn queue_move_play_toggle(&mut self) {
-        self.move_toggle_queue = self.move_toggle_queue.saturating_add(1);
-    }
-
-    /// Can movy's own transport drive Move's? Both halves are needed: the user
-    /// asked for the link, and the host can actually deliver a MovePlay press.
-    /// The other direction (Move's 0xFA/0xFC driving movy) rides on
-    /// `link_enabled` alone — it needs nothing from us.
-    fn link_drives_move(&self) -> bool {
-        self.link_enabled && self.move_inject_ok
-    }
-
-    /// Transport-button Play under the always-on Move link (design §7 Phase 4):
-    /// if Move already runs, start now (Phase 3 bar-quantized join); otherwise
-    /// toggle Move and hold silent until its 0xFA (~1-bar Link grid), with a
-    /// 2-bar timeout fallback onto the internal clock.
-    pub fn request_play(&mut self, out: &mut Vec<OutEvent>) {
-        let _ = out;
-        if !self.link_drives_move() {
-            // Link off (or no route to Move): independent transport, just play
-            // (Phase 3 clock-follow still engages if Move happens to be
-            // running, and Move's own Play still starts us while the link is
-            // on — only the half that needs the inject is withdrawn).
-            self.play();
-            return;
-        }
-        if self.ext_running {
-            self.play();
-            return;
-        }
-        self.queue_move_play_toggle();
-        self.pending_play = true;
-        let frames_per_bar =
-            self.clock.sample_rate() as u64 * 60 * 4 * 100 / self.clock.bpm_x100() as u64;
-        self.pending_play_deadline = self.frame_now + 2 * frames_per_bar;
-    }
-
-    /// Transport-button Stop under the always-on Move link. A pending-start
-    /// cancels (toggling Move back, since it may already be starting);
-    /// otherwise stop, and if Move is running toggle it to stop too.
-    pub fn request_stop(&mut self, out: &mut Vec<OutEvent>) {
-        if !self.link_drives_move() {
-            self.stop(out);
-            return;
-        }
-        if self.pending_play {
-            self.pending_play = false;
-            self.queue_move_play_toggle(); // Move may already be starting: toggle back
-            return;
-        }
-        self.stop(out);
-        if self.ext_running {
-            self.queue_move_play_toggle();
-        }
-    }
-
     // ── Recording (manual §14) ────────────────────────────────────────────
 
     /// Rec button: toggle recording on `track`. From stopped, this arms a
@@ -1853,21 +1753,13 @@ impl Engine {
         self.playing && self.ext_running
     }
 
-    /// Move's cable-0 transport, delivered by the shim to movy-dsp on_midi.
-    /// Follow is automatic: engaged while we play and Move's transport runs
-    /// (design §7 Phase 3). Engage/disengage edges are handled in
+    /// External MIDI transport, delivered to movy-dsp on_midi.
+    /// Follow is automatic: engaged while we play and the external transport
+    /// runs (design §7 Phase 3). Engage/disengage edges are handled in
     /// advance_block; this only maintains the external-clock model.
     pub fn on_external_realtime(&mut self, status: u8, out: &mut Vec<OutEvent>) {
         match status {
             0xFA => {
-                // Linked transport (design §7 Phase 4): Move's Play starts movy
-                // (and resolves a movy-initiated pending-start) — only when the
-                // link is enabled. Note: play() sets ext_base=0 via the anchor
-                // below, so bar 0 stays anchored.
-                if self.link_enabled && !self.playing {
-                    self.pending_play = false;
-                    self.play();
-                }
                 self.ext_running = true;
                 self.ext_awaiting_first = true;
                 self.ext_ticks = 0;
@@ -1881,16 +1773,7 @@ impl Engine {
                 }
             }
             0xFB => self.ext_running = true,
-            0xFC => {
-                // Linked transport: Move's Stop stops movy (only when the link
-                // is enabled; staleness never stops it — that reverts to the
-                // internal clock, handled in advance_block). Stop first, while
-                // gates are still known, then drop the source.
-                if self.link_enabled && self.playing {
-                    self.stop(out);
-                }
-                self.ext_running = false;
-            }
+            0xFC => self.ext_running = false,
             0xF8 => {
                 if !self.ext_running {
                     // Attached mid-song (no 0xFA): tempo is right immediately,
@@ -1927,25 +1810,6 @@ impl Engine {
     /// Advance one audio block; pushes due MIDI into `out`.
     pub fn advance_block(&mut self, frames: u32, out: &mut Vec<OutEvent>) {
         self.frame_now += frames as u64;
-
-        // Drain the MovePlay inject (design §7 Phase 4): press one block, then
-        // release after the davebox gap; the next queued toggle follows once
-        // the release has fired. Render-context only, so injects reach Move.
-        if self.inject_release_at == 0 && self.move_toggle_queue > 0 {
-            self.move_toggle_queue -= 1;
-            out.push(OutEvent::MoveInject { val: 127 });
-            self.inject_release_at = self.frame_now + MOVE_PLAY_RELEASE_GAP;
-        } else if self.inject_release_at > 0 && self.frame_now >= self.inject_release_at {
-            self.inject_release_at = 0;
-            out.push(OutEvent::MoveInject { val: 0 });
-        }
-
-        // Pending-start timeout: Move never answered our MovePlay — start on the
-        // internal clock anyway (davebox fallback, design §7 Phase 4).
-        if self.pending_play && self.frame_now >= self.pending_play_deadline {
-            self.pending_play = false;
-            self.play();
-        }
 
         // Staleness: Move wedged without 0xFC must not freeze the playhead
         // (0.5 s, mirrors schwung's transport service).
@@ -2573,11 +2437,7 @@ impl Engine {
     /// way through. That is right for a set load and wrong for an undo: fixing
     /// a mistake mid-jam must not silence the tracks. So the fields `load`
     /// clobbers are carried across it by hand.
-    ///
-    /// `link_enabled` is restored to its **live** value, not the snapshot's:
-    /// the transport link is not a musical edit and is excluded from undo.
     pub fn undo_restore(&mut self, blob: &str) -> bool {
-        let live_link = self.link_enabled;
         let transport: Vec<(Option<usize>, Option<usize>, bool)> = self
             .tracks
             .iter()
@@ -2588,7 +2448,6 @@ impl Engine {
             return false;
         }
 
-        self.link_enabled = live_link;
         for (t, (playing, queued, pending)) in self.tracks.iter_mut().zip(transport) {
             t.playing_slot = playing;
             t.queued_slot = queued;
@@ -2638,12 +2497,11 @@ impl Engine {
         let htp = self.held_trig();
         let hlmax = self.held_max_gate();
         format!(
-            "play={} tick={} bpm={} ext={} link={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} wpad={} hlen={} hnotes={} occ={} alanes={:08x} aauto={:08x} hauto={} hvel={} hgate={} hgmix={} hprob={} hcond={}:{} hinv={} hlmax={} swing={} csc={}/{} ctr={} quant={} dquant={} cap={}.{} song={}",
+            "play={} tick={} bpm={} ext={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} wpad={} hlen={} hnotes={} occ={} alanes={:08x} aauto={:08x} hauto={} hvel={} hgate={} hgmix={} hprob={} hcond={}:{} hinv={} hlmax={} swing={} csc={}/{} ctr={} quant={} dquant={} cap={}.{} song={}",
             self.playing as u8,
             self.master_tick,
             self.clock.bpm_x100(),
             self.follow_active() as u8,
-            self.link_enabled as u8,
             self.watch_track,
             wt.current_step(),
             wt.pos_tick,
@@ -2983,18 +2841,6 @@ mod tests {
     }
 
     #[test]
-    fn undo_restore_keeps_link_setting() {
-        let mut e = playing_engine();
-        let mut out = Vec::new();
-        apply_batch(&mut e, "link 0", &mut out);
-        let snap = e.undo_snapshot(); // snapshot taken with link OFF
-        apply_batch(&mut e, "link 1", &mut out);
-
-        assert!(e.undo_restore(&snap));
-        assert!(e.link_enabled, "undo must not revert the transport link");
-    }
-
-    #[test]
     fn undo_restore_wraps_playhead_past_shortened_clip() {
         let mut e = playing_engine();
         let mut out = Vec::new();
@@ -3058,22 +2904,6 @@ mod tests {
         run_ext_ticks(&mut e, 24, &mut out);
         let bpm = e.clock.bpm_x100();
         assert!((12450..=12550).contains(&bpm), "captured {bpm}, want ~12500");
-    }
-
-    #[test]
-    fn move_play_starts_movy_when_stopped() {
-        // With the link ON, Move's Play starts movy (design §7 Phase 4).
-        let mut e = engine();
-        e.link_enabled = true;
-        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
-        let mut out = Vec::new();
-        e.on_external_realtime(0xFA, &mut out);
-        e.on_external_realtime(0xF8, &mut out);
-        run_ext_ticks(&mut e, 8, &mut out);
-        assert!(e.playing, "linked transport: Move Play starts movy");
-        assert!(out.iter().any(|x| matches!(x, OutEvent::NoteOn { .. })));
-        assert!(out.iter().all(|x| !matches!(x, OutEvent::MoveInject { .. })),
-                "state-change never injects");
     }
 
     #[test]
@@ -3180,101 +3010,10 @@ mod tests {
         assert!(e.master_tick > frozen, "revived on internal clock");
     }
 
-    // ── Phase 4: always-on bidirectional transport link (design §7 Phase 4) ──
+    // ── External transport does not start or stop movy (Phase 3 semantics) ──
 
     #[test]
-    fn move_stop_stops_movy() {
-        let mut e = engine();
-        e.link_enabled = true;
-        e.play();
-        let mut out = Vec::new();
-        e.on_external_realtime(0xFA, &mut out);
-        run_ext_ticks(&mut e, 8, &mut out);
-        e.on_external_realtime(0xFC, &mut out);
-        assert!(!e.playing, "linked transport: Move Stop stops movy");
-        assert!(out.iter().all(|x| !matches!(x, OutEvent::MoveInject { .. })));
-    }
-
-    #[test]
-    fn movy_play_injects_and_waits_for_moves_fa() {
-        let mut e = engine();
-        e.link_enabled = true;
-        e.move_inject_ok = true;   // a shim that carries the inject to Move
-        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
-        let mut out = Vec::new();
-        e.request_play(&mut out);                 // Move not running
-        assert!(!e.playing, "pending-start: silent until Move's FA");
-        // Press + (after the release gap) release, from advance_block.
-        e.advance_block(FRAMES, &mut out);
-        assert!(out.iter().any(|x| matches!(x, OutEvent::MoveInject { val: 127 })));
-        let mut left = 44100u32; // > release gap
-        while left > 0 { let s = left.min(FRAMES); e.advance_block(s, &mut out); left -= s; }
-        assert!(out.iter().any(|x| matches!(x, OutEvent::MoveInject { val: 0 })));
-        // Move answers with FA -> movy starts.
-        e.on_external_realtime(0xFA, &mut out);
-        assert!(e.playing);
-    }
-
-    #[test]
-    fn pending_start_times_out_to_internal_clock() {
-        let mut e = engine();
-        e.link_enabled = true;
-        e.move_inject_ok = true;   // a shim that carries the inject to Move
-        let mut out = Vec::new();
-        e.request_play(&mut out);
-        // 2 bars at 120 BPM = 4 s = 176400 frames; run 5 s.
-        let mut left = 5 * 44100u32;
-        while left > 0 { let s = left.min(FRAMES); e.advance_block(s, &mut out); left -= s; }
-        assert!(e.playing, "timeout fallback: play internally if Move never starts");
-        assert!(out.iter().any(|x| matches!(x, OutEvent::Start)), "internal clock session opened");
-    }
-
-    #[test]
-    fn movy_stop_injects_when_move_running_and_cancels_pending() {
-        let mut e = engine();
-        e.link_enabled = true;
-        e.move_inject_ok = true;   // a shim that carries the inject to Move
-        let mut out = Vec::new();
-        // Case A: playing + Move running -> stop injects a toggle.
-        e.on_external_realtime(0xFA, &mut out);
-        e.request_play(&mut out);                 // Move running: starts (quantized), no inject
-        assert!(out.iter().all(|x| !matches!(x, OutEvent::MoveInject { .. })));
-        e.request_stop(&mut out);
-        e.advance_block(FRAMES, &mut out);
-        assert!(!e.playing);
-        assert!(out.iter().any(|x| matches!(x, OutEvent::MoveInject { val: 127 })));
-        // Case B: cancel during pending-start toggles Move back.
-        let mut e = engine();
-        e.link_enabled = true;
-        e.move_inject_ok = true;   // a shim that carries the inject to Move
-        let mut out = Vec::new();
-        e.request_play(&mut out);                 // pending, inject armed
-        e.request_stop(&mut out);                 // cancel
-        let mut left = 44100u32;
-        while left > 0 { let s = left.min(FRAMES); e.advance_block(s, &mut out); left -= s; }
-        assert!(!e.playing);
-        let presses = out.iter().filter(|x| matches!(x, OutEvent::MoveInject { val: 127 })).count();
-        assert_eq!(presses, 2, "start toggle + cancel toggle");
-    }
-
-    // ── Link toggle OFF (default): Phase 3 semantics, no Play/Stop propagation ──
-
-    #[test]
-    fn link_off_movy_play_starts_without_inject() {
-        let mut e = engine(); // link_enabled defaults false
-        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
-        let mut out = Vec::new();
-        e.request_play(&mut out);
-        assert!(e.playing, "link off: Play starts movy immediately");
-        e.advance_block(FRAMES, &mut out);
-        assert!(out.iter().all(|x| !matches!(x, OutEvent::MoveInject { .. })),
-                "link off: no MovePlay inject");
-    }
-
-    #[test]
-    fn link_off_move_fa_does_not_start_movy() {
-        // Phase 3 behavior retained while the link is off: Move's Play does not
-        // start a stopped movy.
+    fn external_fa_does_not_start_movy() {
         let mut e = engine();
         e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
         let mut out = Vec::new();
@@ -3285,9 +3024,9 @@ mod tests {
     }
 
     #[test]
-    fn link_off_move_fc_keeps_movy_playing() {
-        // Phase 3 revert-keeps-playing: with the link off, Move's Stop does not
-        // stop movy (it reverts to the internal clock and keeps going).
+    fn external_fc_keeps_movy_playing() {
+        // Revert-keeps-playing: an external Stop does not stop movy (it reverts
+        // to the internal clock and keeps going).
         let mut e = engine();
         e.play();
         let mut out = Vec::new();
@@ -3295,62 +3034,7 @@ mod tests {
         e.on_external_realtime(0xF8, &mut out);
         run_ext_ticks(&mut e, 24, &mut out);
         e.on_external_realtime(0xFC, &mut out);
-        assert!(e.playing, "link off: Move Stop leaves movy playing");
-    }
-
-    // ── The host cannot always carry a MovePlay press to Move ────────────────
-    //
-    // schwung 2026-07-29 (test-bus: let injected MIDI reach overtake modules)
-    // made the shim drain the shared inject ring back onto the OVERTAKE TOOL's
-    // own surface while a takeover is live, instead of into Move. movy's CC 85
-    // therefore came back as a Play press on movy itself: press Play once and
-    // the transport toggled forever, ~18 times a second, and Move never heard
-    // any of it. schwung #293 gives the overtake DSP a dedicated queue that
-    // does reach Move and a sentinel to say so; the UI reads that sentinel and
-    // tells the engine here. Without it the movy→Move half of the link must not
-    // fire at all — the Move→movy half still works and is left alone.
-
-    #[test]
-    fn no_move_inject_capability_play_starts_immediately() {
-        let mut e = engine();
-        e.link_enabled = true;                 // capability defaults off
-        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
-        let mut out = Vec::new();
-        e.request_play(&mut out);
-        assert!(e.playing, "no inject route: Play starts movy now, not on Move's FA");
-        let mut left = 5 * 44100u32;           // past the pending-start deadline
-        while left > 0 { let s = left.min(FRAMES); e.advance_block(s, &mut out); left -= s; }
-        assert!(out.iter().all(|x| !matches!(x, OutEvent::MoveInject { .. })),
-                "no inject route: nothing is pushed at Move (it would echo back as a press)");
-    }
-
-    #[test]
-    fn no_move_inject_capability_stop_stops_without_inject() {
-        let mut e = engine();
-        e.link_enabled = true;
-        let mut out = Vec::new();
-        e.on_external_realtime(0xFA, &mut out); // Move is running
-        e.request_play(&mut out);
-        e.request_stop(&mut out);
-        let mut left = 44100u32;
-        while left > 0 { let s = left.min(FRAMES); e.advance_block(s, &mut out); left -= s; }
-        assert!(!e.playing, "no inject route: Stop stops movy");
-        assert!(out.iter().all(|x| !matches!(x, OutEvent::MoveInject { .. })),
-                "no inject route: Stop does not push at Move either");
-    }
-
-    #[test]
-    fn no_move_inject_capability_keeps_the_move_to_movy_half() {
-        // Only the half that needs the inject is withdrawn: Move's own Play and
-        // Stop still drive movy, which is the half that works on every shim.
-        let mut e = engine();
-        e.link_enabled = true;
-        e.tracks[0].active_mut().toggle_step(0, &[(60, 100)]);
-        let mut out = Vec::new();
-        e.on_external_realtime(0xFA, &mut out);
-        assert!(e.playing, "Move's Play still starts movy");
-        e.on_external_realtime(0xFC, &mut out);
-        assert!(!e.playing, "Move's Stop still stops movy");
+        assert!(e.playing, "external Stop leaves movy playing");
     }
 
     #[test]

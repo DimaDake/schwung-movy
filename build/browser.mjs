@@ -91,8 +91,6 @@ await esbuild.build({
         /* The movy-host platform, asserted on its own (platform-caps.mjs). */
         resolve(root, 'src/platform/standalone.ts'),
         /* Move-only features the platform-caps suite asserts switch off. */
-        resolve(root, 'src/app/led-ownership.ts'),
-        resolve(root, 'src/seq/set-commit.ts'),
         resolve(root, 'src/seq/restore-gate.ts'),
         resolve(root, 'src/model/envelope.ts'),
         resolve(root, 'src/model/lfo-viz.ts'),
@@ -250,7 +248,6 @@ await esbuild.build({
         resolve(root, 'src/app/model-refresh.ts'),
         resolve(root, 'src/app/globals.ts'),
         resolve(root, 'src/app/init.ts'),
-        resolve(root, 'src/app/resume.ts'),
         resolve(root, 'src/app/unload.ts'),
         resolve(root, 'src/renderer/knob-leds.ts'),
         resolve(root, 'src/app/leave-modal.ts'),
@@ -261,7 +258,6 @@ await esbuild.build({
         /* movy's own master chain (WP3): the binding, its prefix and the
          * one-time import, driven directly by browser-test/logic/master-chain.mjs. */
         resolve(root, 'src/chain/master-prefix.ts'),
-        resolve(root, 'src/chain/master-binding.ts'),
         resolve(root, 'src/chain/master-import.ts'),
         resolve(root, 'src/lfo/params.ts'),
         resolve(root, 'src/lfo/model.ts'),
@@ -316,14 +312,12 @@ await esbuild.build({
         resolve(root, 'src/seq/set-session.ts'),
         resolve(root, 'src/seq/set-fail.ts'),
         resolve(root, 'src/renderer/loading-view.ts'),
-        resolve(root, 'src/seq/set-inherit.ts'),
         resolve(root, 'src/seq/ui-state.ts'),
         resolve(root, 'src/seq/set-context.ts'),
         /* Version history. Entry points rather than chunk members so the logic
          * suite can import each layer on its own — the retention ladder in
          * particular is a pure function whose whole value is being testable
          * without a filesystem. */
-        resolve(root, 'src/seq/set-gc.ts'),
         resolve(root, 'src/seq/ui-dirty.ts'),
         resolve(root, 'src/seq/version-index.ts'),
         resolve(root, 'src/seq/version-retain.ts'),
@@ -354,10 +348,6 @@ await esbuild.build({
         resolve(root, 'src/track/pad-route.ts'),
         resolve(root, 'src/track/chain-persist.ts'),
         resolve(root, 'src/track/chain-payload.ts'),
-        resolve(root, 'src/track/legacy-host.ts'),
-        resolve(root, 'src/track/slot-read.ts'),
-        resolve(root, 'src/track/migrate-plan.ts'),
-        resolve(root, 'src/track/migrate.ts'),
         resolve(root, 'src/browser/handler.ts'),
         resolve(root, 'src/browser/state.ts'),
         resolve(root, 'src/seq/track-select.ts'),
@@ -375,7 +365,6 @@ await esbuild.build({
         /* Set Params' virtual-component contract (SP-53) — an entry point for
          * the same reason as its sibling, clip-params-contract.ts. */
         resolve(root, 'src/seq/set-params-contract.ts'),
-        resolve(root, 'src/seq/tempo-override.ts'),
         resolve(root, 'src/seq/capture.ts'),
         resolve(root, 'src/seq/capture-vm.ts'),
         resolve(root, 'src/seq/clip-scale.ts'),
@@ -402,7 +391,6 @@ await esbuild.build({
         resolve(root, 'src/seq/flags-page.ts'),
         resolve(root, 'src/seq/flags-page-vm.ts'),
         resolve(root, 'src/seq/flags-visible.ts'),
-        resolve(root, 'src/seq/migrate-action.ts'),
         resolve(root, 'src/renderer/flags-view.ts'),
         resolve(root, 'src/renderer/wrap.ts'),
         resolve(root, 'src/renderer/layout.ts'),

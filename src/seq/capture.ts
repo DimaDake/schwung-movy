@@ -12,7 +12,6 @@ import { seqCmd, engineReady } from './engine.js';
 import { beginEdit, endEdit, CLOSE } from '../undo/group.js';
 import { noteCount, trackLabel } from '../undo/label.js';
 import { seqToast } from './render.js';
-import { scheduleTempoOverride } from './tempo-override.js';
 import { appState } from '../app/state.js';
 import { mlog } from '../log.js';
 import { markDeleteActed } from './edit-ops.js';
@@ -148,8 +147,6 @@ export function captureJog(delta: number): void {
     captureState.bpm = captureState.cands[next];
     captureState.detected = captureState.bpm;
     seqCmd('capsel ' + next);
-    // Move's tempo follows movy's, exactly as it does for the TEMPO knob.
-    scheduleTempoOverride(captureState.bpm * 100);
     appState.dirty = true;
 }
 

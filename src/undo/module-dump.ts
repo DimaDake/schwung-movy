@@ -34,7 +34,6 @@ import { declaredContract } from '../chain/hierarchy-source.js';
 import { isMasterComponent, moduleReadKey } from '../chain/config.js';
 import { mlog } from '../log.js';
 import { laneKeysForTrack } from '../seq/automation.js';
-import { platform } from '../platform/index.js';
 
 /* Reads can come back empty on a transient shim round-trip; schwung's own
  * getSlotStateWithRetry retries the same way before trusting an empty answer. */
@@ -55,7 +54,6 @@ const STATE_READ_TRIES = 4;
  * state.
  */
 export function captureModuleState(slot: number, componentKey: string): string | null {
-    if (!platform.slotParamsAvailable()) return null;
     for (let i = 0; i < STATE_READ_TRIES; i++) {
         const raw = componentPort(slot, componentKey).getParam(componentKey + ':state');
         /* ANY non-empty blob, not just JSON. schwung's own slot save takes the
@@ -179,7 +177,6 @@ const LFO_ASSIGN_KEYS = ['target', 'target_param', 'enabled'];
 /** Capture which slot LFOs point at this component, for restore after a swap. */
 export function captureLfoAssignments(slot: number, componentKey: string): [string, string][] {
     const out: [string, string][] = [];
-    if (!platform.slotParamsAvailable()) return out;
     if (isMasterComponent(componentKey)) return out;   // slot LFOs are track-only
     for (let i = 1; i <= 2; i++) {
         const prefix = 'lfo' + i + ':';
@@ -245,7 +242,6 @@ export function dumpModuleParams(
     slot: number, componentKey: string, stateBlob?: string | null,
 ): ModuleDump {
     const empty: ModuleDump = { params: [], leadCount: 0 };
-    if (!platform.slotParamsAvailable()) return empty;
     const raw = componentPort(slot, componentKey).getParam(componentKey + ':chain_params');
     if (!raw) return empty;
     let arr: ChainParam[];

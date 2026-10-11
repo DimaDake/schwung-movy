@@ -28,7 +28,7 @@ let logTickCount = 0;
  * the same arrangement seq/led-cache.ts uses. */
 const lastKnobColor = new Array(8).fill(-1);
 
-/* Called from invalidateLedCachesOnResume — see the note above. */
+/* The suites' reset between cases. */
 export function resetKnobLedCache(): void {
     lastKnobColor.fill(-1);
 }

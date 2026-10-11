@@ -13,7 +13,7 @@
  * one `get_param("status")` poll every STATUS_POLL_TICKS; each get blocks
  * ~3-5 ms on device, so the cadence is a deliberate IPC budget. */
 
-import { paramAvailable, paramGet, paramSet } from '../host/param.js';
+import { paramGet, paramSet } from '../host/param.js';
 import { mlog } from '../log.js';
 import { AUTO_LANES, CHAIN_MODULE_DIR, ENGINE_DSP_PATH, ENGINE_VERSION, MOVY_MODULE_DIR } from './constants.js';
 import { activeFromStr, adoptLoopWindow, muteFromStr, occFromHex, padMutesFromStr, seqState, sessionFromStr, songFromStr } from './state.js';
@@ -21,12 +21,10 @@ import { rationalToIdx } from './clip-scale.js';
 import { noteProbeGen, probeBridgeTick } from './probe-bridge.js';
 import { markUiStateDirty } from './ui-dirty.js';
 import { applyFlagsToEngine } from './flags.js';
-import { pushMasterBinding } from '../chain/master-binding.js';
 import { pushMasterVolume } from '../mixer/master-volume.js';
 import { requestMasterImport, resetMasterImport } from '../chain/master-import.js';
 import { resetPadRoute, syncPadRoute } from '../track/pad-route.js';
 import { noteReportedTrack, resetWatchPush, syncWatch } from './watch.js';
-import { platform } from '../platform/index.js';
 
 /* -1 until the first poll: the opening value is not a change, and treating it
  * as one would mark every fresh open dirty and rewrite the set for nothing. */
@@ -72,10 +70,6 @@ let pollCountdown = 1;
 let statusFailures = 0;
 /* Successful status parses this engine session — see statusSeq(). */
 let statusPolls = 0;
-
-export function engineAvailable(): boolean {
-    return paramAvailable();
-}
 
 /* The engine's writes go through the one door, which owns the blocking rule
  * (a non-blocking write shares a single-slot SHM with movy's own blocking GETs
@@ -183,7 +177,6 @@ export function takeNoopSnapId(): number {
 
 export function seqEngineTick(): void {
     uiTickCount++;
-    if (!engineAvailable()) return;
     if (bootState === 'absent') {
         if (--absentCountdown > 0) return;
         mlog('seq: retrying engine probe');
@@ -230,22 +223,6 @@ export function seqEngineTick(): void {
     probeBridgeTick(paramGet, engineSet);
 }
 
-/* Does an inject from the engine actually reach Move?
- *
- * It did until schwung's test bus taught the shim to drain the shared inject
- * ring onto the overtaking TOOL instead (2026-07-29, "let injected MIDI reach
- * overtake modules"): from then on movy's own CC 85 came back to movy as a
- * Play press, so one press on the Play button toggled the transport ~18 times
- * a second for as long as movy stayed open, and Move never heard any of it.
- * schwung #293 (2026-08-27) gives an overtake DSP a dedicated queue that does
- * reach Move, and this sentinel to recognise it by. On anything older the
- * link's movy→Move half stays switched off — Move's Play still drives movy. */
-function moveInjectReachesMove(): boolean {
-    const ok = platform.caps.coexistsWithMove && platform.engineInjectReachesMove();
-    if (!ok) mlog('seq: host cannot inject to Move — play link is Move→movy only');
-    return ok;
-}
-
 function probeTick(): void {
     if (--probeCountdown > 0) return;
     probeCountdown = PROBE_TICKS;
@@ -273,18 +250,8 @@ function probeTick(): void {
          * once — a re-dlopened engine has default flags and has never heard of
          * prefs.json. */
         applyFlagsToEngine(engineSet);
-        /* Every boot, like the flags: a re-dlopened engine starts unbound. */
-        pushMasterBinding(engineSet);
+        /* Every boot, like the flags: a re-dlopened engine starts at unity. */
         pushMasterVolume(engineSet);
-        /* Whether the engine may push a MovePlay press at Move is a property of
-         * the SHIM, not of the set, so the engine cannot know it and is told
-         * here on every boot (it defaults to "no"). Sent directly rather than
-         * queued: an engine reload mid-session must hear this before it can be
-         * handed a `play`. */
-        engineSet('cmd', 'minject ' + (moveInjectReachesMove() ? 1 : 0));
-        /* Whether there is a Move and schwung slots beside movy to send to.
-         * Before `chain_host` for the same reason as the flags. */
-        engineSet('hostmode', platform.caps.coexistsWithMove ? 'overtake' : 'standalone');
         engineSet('chain_host', CHAIN_MODULE_DIR + '|' + MOVY_MODULE_DIR);
         /* A re-dlopened engine has no pad map; believing otherwise would leave
          * the pads dead until something happened to change the mapping. */
@@ -349,7 +316,6 @@ function parseStatus(s: string): void {
         else if (key === 'tick') seqState.engineTick = Number(val) || 0;
         else if (key === 'bpm') seqState.bpmX100 = Number(val) || seqState.bpmX100;
         else if (key === 'ext') seqState.extSync = val === '1';
-        else if (key === 'link') seqState.linkEnabled = val === '1';
         else if (key === 'swing') seqState.swingPct = Number(val) || seqState.swingPct;
         else if (key === 'trk') {
             seqState.reportedTrack = Number(val) || 0;

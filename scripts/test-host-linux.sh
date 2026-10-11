@@ -9,5 +9,6 @@ if ! docker info >/dev/null 2>&1; then
     echo "test-host-linux: no docker daemon (colima start?)" >&2
     exit 1
 fi
-docker run --rm -v "$DIR/host:/host:ro" -e TMPDIR=/tmp ubuntu:22.04 \
+SCHWUNG="${SCHWUNG:-$DIR/../schwung}"
+docker run --rm -v "$DIR/host:/host:ro" -v "$SCHWUNG/src:/schwung/src:ro" -e SCHWUNG=/schwung -e TMPDIR=/tmp ubuntu:22.04 \
     bash -c 'apt-get -qq update >/dev/null && apt-get -qq install -y gcc >/dev/null && CC=gcc /host/tests/run.sh'

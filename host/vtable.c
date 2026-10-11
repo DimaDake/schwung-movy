@@ -88,6 +88,10 @@ void engine_on_midi(const uint8_t *msg, int len) {
 
 int engine_render(int16_t *buf, int frames) {
     if (!g_api || !g_inst || !g_api->render_block) return 0;
+    /* The engine ADDS into this buffer — in overtake it holds Move's mix.
+     * Here nothing sits under movy, and an uncleared buffer played whatever
+     * the stack held as a buzz until the master chain began overwriting it. */
+    memset(buf, 0, (size_t)frames * 2 * sizeof *buf);
     g_api->render_block(g_inst, buf, frames);
     return 1;
 }

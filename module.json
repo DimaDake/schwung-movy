@@ -5,12 +5,6 @@
     "author": "megadake",
     "description": "Elektron-style knob UI + 16-track sequencer for Schwung on Ableton Move",
     "component_type": "tool",
-    "tool_config": {
-        "interactive": true,
-        "skip_file_browser": true
-    },
-    "capabilities": {
-        "claims_master_knob": true,
-        "suspend_self_managed": true
-    }
+    "standalone": true,
+    "boot_target": { "id": "movy", "name": "Movy", "exec": "boot-entry.sh" }
 }

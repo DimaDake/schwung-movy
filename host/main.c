@@ -16,12 +16,14 @@
 
 #include "audio.h"
 #include "display.h"
+#include "handover.h"
 #include "js_display.h"
 #include "log.h"
 #include "movy_host.h"
 #include "power.h"
 #include "surface_keys.h"
 #include "rt.h"
+#include "signals.h"
 #include "spi.h"
 #include "testbus.h"
 #include "ui.h"
@@ -99,24 +101,10 @@ static int schwung_too_old(mh_spi_t *spi, char *installed, size_t cap) {
     return 1;
 }
 
-int main(int argc, char **argv) {
-    if (argc > 1 && !strcmp(argv[1], "--version")) {
-        printf("movy-host %s schwung=%s movy=%s floor=%s\n", MH_VERSION, SCHWUNG_TAG, MOVY_COMMIT, SCHWUNG_FLOOR);
-        return 0;
-    }
-    char self[256];
-    ssize_t n = readlink("/proc/self/exe", self, sizeof self - 1);
-    self[n > 0 ? n : 0] = '\0';
-    snprintf(g_mh_module_dir, sizeof g_mh_module_dir, "%s", argc > 2 && !strcmp(argv[1], "--module-dir") ? argv[2] : dirname(self));
-
-    mh_log_init();
-    mh_crash_install();
-    mh_log("=== movy-host %s schwung=%s movy=%s pid=%d uid=%d dir=%s", MH_VERSION, SCHWUNG_TAG, MOVY_COMMIT,
-           (int)getpid(), (int)getuid(), g_mh_module_dir);
-    struct sigaction sa = { .sa_handler = on_term };
-    sigaction(SIGTERM, &sa, NULL);
-    sigaction(SIGINT, &sa, NULL);
-    signal(SIGPIPE, SIG_IGN);
+/* Everything between the log opening and the way out; main owns both, so
+ * every return here reaches the boot door's handover. */
+static int run(void) {
+    mh_signals_install(on_term);
 
     int lock = session_lock();
     if (lock == -2) { mh_log("another movy-host holds the session lock; exiting"); return 1; }
@@ -158,9 +146,33 @@ int main(int argc, char **argv) {
     if (g_mh_poweroff && power_off_now()) power_hold(MH_POWEROFF_HOLD_S);
     if (g_term_at.tv_sec) {
         uint64_t at = (uint64_t)g_term_at.tv_sec * 1000000u + (uint64_t)g_term_at.tv_nsec / 1000u;
+        if (!rc) rc = MH_RC_TERM;
         mh_log("=== movy-host exit %d, %llu ms after the signal", rc, (unsigned long long)((mh_now_us() - at) / 1000));
     } else {
         mh_log("=== movy-host exit %d", rc);
     }
-    return rc;   /* mh_log_init's atexit drains the log */
+    return rc;
+}
+
+int main(int argc, char **argv) {
+    const char *module_dir = NULL;
+    for (int i = 1; i < argc; i++) {
+        if (!strcmp(argv[i], "--version")) {
+            printf("movy-host %s schwung=%s movy=%s floor=%s\n", MH_VERSION, SCHWUNG_TAG, MOVY_COMMIT, SCHWUNG_FLOOR);
+            return 0;
+        }
+        if (!strcmp(argv[i], "--boot")) handover_arm();
+        else if (!strcmp(argv[i], "--module-dir") && i + 1 < argc) module_dir = argv[++i];
+    }
+    char self[256];
+    ssize_t n = readlink("/proc/self/exe", self, sizeof self - 1);
+    self[n > 0 ? n : 0] = '\0';
+    snprintf(g_mh_module_dir, sizeof g_mh_module_dir, "%s", module_dir ? module_dir : dirname(self));
+
+    mh_log_init();
+    mh_crash_install();
+    mh_log("=== movy-host %s schwung=%s movy=%s pid=%d uid=%d door=%s dir=%s", MH_VERSION, SCHWUNG_TAG, MOVY_COMMIT,
+           (int)getpid(), (int)getuid(), handover_armed() ? "boot" : "tools", g_mh_module_dir);
+    /* mh_log_init's atexit drains the log when this returns. */
+    return handover_or_exit(run());
 }

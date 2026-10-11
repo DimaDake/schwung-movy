@@ -10,6 +10,9 @@ void mh_log_init(void);
 void mh_log(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 void mh_log_src(const char *src, const char *fmt, ...) __attribute__((format(printf, 2, 3)));
 
+/* Drains the ring and closes the log now — before an exec, which skips atexit. */
+void mh_log_close(void);
+
 /* SIGSEGV/SIGBUS/SIGILL/SIGFPE/SIGABRT → a backtrace into debug.log, whatever
  * the flag says: a crash with no trace is the failure this exists to end. */
 void mh_crash_install(void);

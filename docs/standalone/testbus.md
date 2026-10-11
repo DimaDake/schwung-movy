@@ -59,7 +59,7 @@ transport exposes them as `tx.hostBus`, with `SUBSCRIBE`/`DUMP`, `UI_EVAL`,
   names another address; the file form below binds `0.0.0.0`, because the
   harness that drops the file is on another machine.
 - **Off unless asked for.** The bus thread starts only when `MOVY_TESTBUS=1` is
-  in movy-host's environment or `/dev/shm/.movy-sa-testbus` exists. The file
+  in movy-host's environment or `/dev/shm/.movy-testbus` exists. The file
   form exists because `launch-standalone.sh` does not forward the harness's
   environment. The transport creates it at connect and removes it at close,
   and a reboot clears it. It used to be `<module dir>/testbus`, which outlived

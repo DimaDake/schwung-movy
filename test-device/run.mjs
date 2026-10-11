@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 /* Device scenario entry point.  npm run test:device [-- --scenario <name>[,<name>...]] */
-import { OvertakeTransport } from './dist/transport-overtake.js';
 import { StandaloneTransport } from './dist/transport-standalone.js';
 import { setRunMute } from './dist/engine.js';
 import { useLibrary } from './dist/fixture.js';
@@ -49,18 +48,22 @@ const HOST = process.env.HOST || flag('--host')
 const only = flag('--scenario');
 const noEngine = argv.includes('--no-engine');
 
-/* Which host the tier talks to (test-device/transport.ts): `overtake` (movy
- * under shadow_ui, the shipping flavour) or `standalone` (movy-sa on
- * movy-host; `sa` for short). Anything else is an error, never a silent
- * fallback to the flavour the device happens to run. */
-const FLAVOUR = { sa: 'standalone' }[flag('--flavour')] ?? flag('--flavour') ?? 'overtake';
-if (FLAVOUR !== 'overtake' && FLAVOUR !== 'standalone') {
-    console.error(`--flavour ${FLAVOUR}: no such transport (overtake | standalone | sa)`);
+/* Which host the tier talks to (test-device/transport.ts). Since WP8 movy IS
+ * the standalone module, so `standalone` (`sa`) is the tier. `overtake` is
+ * retired with nothing on the device to run it: tools/movy no longer opens
+ * under shadow_ui, and WP9 deletes the transport. Anything else is an error,
+ * never a silent fallback to the flavour the device happens to run. */
+const FLAVOUR = { sa: 'standalone' }[flag('--flavour')] ?? flag('--flavour') ?? 'standalone';
+if (FLAVOUR === 'overtake') {
+    console.error('--flavour overtake: retired at WP8 (movy is a standalone module; no overtake install exists)');
     process.exit(1);
 }
-const tx = FLAVOUR === 'standalone' ? new StandaloneTransport(HOST) : new OvertakeTransport(HOST);
-if (FLAVOUR === 'standalone') useLibrary(true);
-if (FLAVOUR !== 'overtake') console.log(`flavour: ${FLAVOUR} (movy-sa on movy-host)`);
+if (FLAVOUR !== 'standalone') {
+    console.error(`--flavour ${FLAVOUR}: no such transport (standalone | sa)`);
+    process.exit(1);
+}
+const tx = new StandaloneTransport(HOST);
+useLibrary(true);
 
 /* Read-only, and before anything touches the device: what has needed a second
  * attempt lately, and how often. A rate is the thing that turns "flaky" from a

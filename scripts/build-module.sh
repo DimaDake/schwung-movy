@@ -2,7 +2,8 @@
 # build-module.sh — produce dist/movy-module.tar.gz for the Schwung module store.
 #
 # The tarball extracts to a single top-level movy/ folder (module.json + the
-# bundled ui.js + the cross-compiled dsp.so + configs/), which is the layout
+# bundled ui.js + the cross-compiled dsp.so + configs/ + the standalone host:
+# movy-host, movy-heal, `standalone` and boot-entry.sh), which is the layout
 # schwung-manager expects when installing from the catalog.
 #
 # Both ui.js and dsp.so are gitignored build artifacts, so a release must
@@ -50,10 +51,18 @@ echo "announcement: $ANN ($ANN_LEN/2000 chars)"
 # live in scripts/lib/build-release-ui.sh, shared with `deploy.sh --release`.
 build_release_ui "$(pwd)"
 ./scripts/build-dsp.sh         # cross-compiles the Rust engine → dist/dsp.so (GLIBC<=2.35 gate) + dist/chain-host.so
+# movy-host and its RT helper. MOVY_RELEASE drops the test bus's UI_EVAL,
+# which runs arbitrary JS in the UI.
+MOVY_RELEASE=1 ./scripts/build-host.sh
 
 rm -rf "dist/${MODULE_ID}"
 mkdir -p "dist/${MODULE_ID}/configs"
-cp module.json ui.js "dist/dsp.so" "dist/chain-host.so" "dist/${MODULE_ID}/"
+cp module.json ui.js "dist/dsp.so" "dist/chain-host.so" "dist/movy-host" "dist/movy-heal" "dist/${MODULE_ID}/"
+# The standalone module (plan WP8): schwung's Tools menu runs `standalone`, the
+# boot picker runs boot-entry.sh (module.json's boot_target), both the same body.
+cp standalone/launch.sh "dist/${MODULE_ID}/standalone"
+cp standalone/boot-entry.sh "dist/${MODULE_ID}/boot-entry.sh"
+chmod 755 "dist/${MODULE_ID}/"{standalone,boot-entry.sh,movy-host,movy-heal}
 # Override configs for the modules whose own movy_config.json movy cannot use
 # (OVERRIDES_MODULE_FILE in src/modules/loader.ts). They are DATA FILES rather
 # than imports so ui.js does not carry ~90 KB of JSON through the QuickJS parser
@@ -101,4 +110,14 @@ if [[ "$PACKED" != "$WANT" ]]; then
     exit 1
 fi
 echo "(tarball carries $PACKED override configs)"
+# A file the store unpacks without its x bit is a Tools entry that does nothing
+# and a boot row that falls through to stock (the manager chmods only the
+# boot_target's exec).
+for f in standalone boot-entry.sh movy-host movy-heal; do
+    MODE=$(tar -tvzf "dist/${MODULE_ID}-module.tar.gz" "${MODULE_ID}/$f" 2>/dev/null | cut -c1-10)
+    if [[ "$MODE" != -rwx* ]]; then
+        echo "ERROR: ${MODULE_ID}/$f is missing from the tarball or not executable ($MODE)" >&2
+        exit 1
+    fi
+done
 ls -lh "dist/${MODULE_ID}-module.tar.gz"

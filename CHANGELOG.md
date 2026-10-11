@@ -13,14 +13,45 @@ far. Earlier work is summarised in the timeline below for context.
 
 ## [Unreleased]
 
+### Changed
+
+- **Movy runs on its own.** It is now a standalone Schwung tool: while it is
+  open it owns the whole device — pads, screen, audio, the volume knob as
+  master volume (1 dB per detent), and the power button (**Power off?**, saving
+  first). Move's software stops while Movy runs and comes back when you leave.
+  Needs Schwung 1.6.0 or newer. Updating from the store keeps everything the
+  old Movy stored; nothing of the old install is deleted, so an older Movy still
+  finds it.
+- **Leaving:** **Back** at the top opens **Leave Movy?** with **Close Movy**.
+  If Movy stops responding, **Shift + touch volume + jog click** closes it
+  (hard close after two seconds).
+
 ### Added
 
-- **Movy can keep its own Sets.** With **Settings → MOVY SETS → MOVY**,
-  **Shift + Step 1** opens a list of Movy's own Sets: make a new one, open,
-  rename (Capture), duplicate (Copy) and delete (Delete, with a confirm). The
-  first open copies every existing Movy Set across under its Move name, backups
-  included, and leaves the originals untouched. Off by default for now; it is
-  how the standalone Movy will manage Sets. (Engine 0.88.0.)
+- **Boot straight into Movy.** Movy adds a row to Schwung's boot picker: press
+  **Back** in the two-second window at power-on, pick **Movy**, and the Move
+  powers on into Movy from then on. Leaving Movy goes to Schwung; pick Schwung
+  in the same window to go back. Installing never changes the default.
+- **Movy keeps its own Sets.** **Shift + Step 1** opens a list of Movy's own
+  Sets: make a new one, open, rename (Capture), duplicate (Copy) and delete
+  (Delete, with a confirm). The first open copies every existing Movy Set
+  across under its Move name, backups included, and leaves the originals
+  untouched. If the library folder cannot be written, Movy says so on screen
+  instead of starting a Set. (Engine 0.88.0.)
+
+### Removed
+
+- The things that only existed to share the device with Move: **Background**
+  mode, **LINK** to Move's transport, Sets that follow Move's Set pads, Move's
+  master volume and master FX slots, **Shift + Back**, and tracks on Schwung's
+  slots. Each Set's master chain is copied into Movy's own the first time the
+  Set opens.
+
+### Known limitations
+
+- Move's built-in speaker EQ is not applied yet, so the speaker sounds
+  different from the same Set under Move. Headphones and line out are
+  unaffected.
 
 ### Changed
 

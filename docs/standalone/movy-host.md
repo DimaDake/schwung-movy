@@ -1,9 +1,10 @@
-# movy-host (WP6)
+# movy-host (WP6–WP8)
 
-The standalone flavour's C host, in `host/`. It does for movy what the shim and
-shadow_ui do in the overtake flavour, and it runs the **same** `ui.js` and
-`dsp.so`. Until WP8 it ships only as the dev tool **movy-sa** (never in the
-catalog). Plan: `plans/2026-10-09-standalone-migration.md`, WP6.
+movy's C host, in `host/`. It does for movy what the shim and shadow_ui did in
+the overtake flavour, and it runs the **same** `ui.js` and `dsp.so`. In WP6–WP7
+it shipped only as the dev tool movy-sa; since WP8 it **is** the `movy` module
+(`tools/movy`), and movy-sa is retired (`deploy.sh` removes it). Plan:
+`plans/2026-10-09-standalone-migration.md`.
 
 ## Shape
 
@@ -72,35 +73,67 @@ calls that mean the same thing and switches the Move-only ones off.
 
 ```bash
 ./scripts/build-host.sh          # dist/movy-host + dist/movy-heal, from the pinned schwung tag
-./scripts/deploy.sh --sa         # movy as usual, then movy-sa beside it
-bash host/tests/run.sh           # unit tests (part of npm test)
+./scripts/deploy.sh              # ui.js, dsp.so, movy-host, launcher, boot entry → tools/movy
+bash host/tests/run.sh           # unit tests + the boot-door test (part of npm test)
 ./scripts/test-host-linux.sh     # the same under glibc, in docker
-npm run test:device -- --flavour sa --scenario smoke
+npm run test:device -- --scenario smoke
 ```
 
 A standalone run leaves the device as it found it: the transport's `close()`
 EXITs movy-host and releases the launcher.
 
-**Harness mode** (`/dev/shm/.movy-sa-testbus` exists; the transport makes it
+**Harness mode** (`/dev/shm/.movy-testbus` exists; the transport makes it
 at connect, removes it at close, and a reboot clears it):
 after a clean close (rc 0, or 3 for a UI throw) `standalone/launch.sh` does not
 return to Move. It holds, Move still down, until the harness writes `go`
-(start movy-host again, ~0.5 s) or `quit` into `/dev/shm/.movy-sa-cmd`, or 300 s
+(start movy-host again, ~0.5 s) or `quit` into `/dev/shm/.movy-cmd`, or 300 s
 pass. A close/open pair is then a process start rather than a Move restart and
 a kill sweep: `smoke` went from ~140 s to 17 s, the whole tier to under 8 min.
-A lock loser (rc 1) or a floor refusal (rc 2) never holds. A movy-sa left running holds SPI and port 47777, and the
-overtake transport now refuses a port-47777 server that is not schwung-testd
-rather than grading through movy-host's bus (which hung a tier for 20 min).
+A lock loser (rc 1), a floor refusal (rc 2) or a stop (rc 5) never holds. A
+movy-host left running holds SPI and port 47777, so the transport's `close()`
+always EXITs it.
 
-movy-sa holds `module.json` (`standalone: true`, `component_type: tool`),
-`standalone` (= `standalone/launch.sh`), `movy-host`, `movy-heal`, and copies
-of `ui.js` and `dsp.so`. Its data is the overtake install's: `ui.js` names
-`tools/movy` itself (prefs, configs, `chain-host.so`, Sets), and it is the same
-user's movy.
+`tools/movy` holds `module.json` (`standalone: true`, `component_type: tool`,
+`boot_target`), `standalone` (= `standalone/launch.sh`), `boot-entry.sh`,
+`movy-host`, `movy-heal`, `ui.js`, `dsp.so`, `chain-host.so` and `configs/`,
+plus what movy writes there (prefs, `bin/heal`, the legacy `sets/`).
 
 `load` from the UI reloads movy-host's own `dsp.so`, never the path the UI
-names. That path is the overtake install's, and the engine is the host's to
-choose.
+names: the engine is the host's to choose.
+
+## The two doors (WP8)
+
+| | Tools menu | Boot picker |
+|---|---|---|
+| chain | `launch-standalone.sh` → `standalone` | selector → `boot-entry.sh` → `standalone --boot` → **exec** `movy-host --boot` |
+| uid | the stack's (ableton; root after the dev restart) | ableton |
+| quit (rc 0, UI error 3, hard exit 4, crash) | movy-host exits; launch-standalone.sh restarts Move | movy-host **execs** `schwung-entry.sh` (then `/opt/move/Move`, then `MoveOriginal`, each only if the earlier is missing) |
+| stop (SIGTERM/SIGINT → rc 5) | exits | exits — a stop must never start Schwung |
+
+Why movy-host, not the shell, owns the boot exit:
+
+- **The boot pid must never just exit.** At boot there is no
+  launch-standalone.sh: MoveLauncher supervises the pid the selector exec-ed
+  (dbxhost found it reads any exit as "Move crashed"). `boot-entry.sh` and
+  `standalone --boot` both exec, so that pid is movy-host's, and its every way
+  out but a stop is an exec into Schwung (`handover.c`), including the crash
+  handler and the fallback hard exit (execve is async-signal-safe). Every fd
+  from 3 up is closed first: SPI is exclusive.
+- **MoveLauncher blocks SIGTERM, SIGINT and SIGUSR1** in everything it starts
+  (SigBlk 0x4202 on MoveOriginal, read 2026-10-11), and a blocked mask survives
+  fork and exec. A shell cannot unblock it; movy-host does at start
+  (`signals.c`), so a stop's TERM reaches the process that holds SPI.
+- **Which door is an argument**, never an environment variable: an exported one
+  rides the exec into Schwung, and that session's next Tools launch takes the
+  boot branches (dbxhost's split-device bug).
+- The launcher starts `schwung-manager` and `display-server` when they are not
+  running (the selector starts nothing for its targets; the Tools door finds
+  both up). It never sweeps or pauses MoveLauncher: at boot that is our own
+  supervisor.
+
+`host/tests/test_boot_door.sh` runs the real `boot-entry.sh` and launcher
+against a fake movy-host and pins `module.json`'s `boot_target`;
+`test_handover.c` and `test_signals.c` pin the exec chain and the mask.
 
 ## Real-time priority
 

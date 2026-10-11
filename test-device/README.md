@@ -44,9 +44,9 @@ today's implementation over schwung-testd + ui-agent + scp/ssh, and the only fil
 that may name `overtake_dsp:` or import `bus`/`agent`/`daemon`
 (`browser-test/device-scripts.mjs` enforces it). The standalone flavour is a
 second implementation over movy-host's test bus (`docs/standalone/testbus.md`),
-`transport-standalone.ts`, driving the dev tool movy-sa
-(`docs/standalone/movy-host.md`); `run.mjs --flavour sa` (or `standalone`) picks
-it, `overtake` is the default. Plain ssh to the box (fixture files, a saved Set)
+`transport-standalone.ts`, driving movy itself (`docs/standalone/movy-host.md`).
+Since WP8 it is the only flavour: `tools/movy` is the standalone module, so
+`--flavour overtake` is refused (WP9 deletes that transport). Plain ssh to the box (fixture files, a saved Set)
 stays outside the transport, because the filesystem is the same under both.
 
 **A scenario that needs Move beside movy says so**: `scenario(name, fn,

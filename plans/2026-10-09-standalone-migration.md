@@ -751,6 +751,46 @@ upstream U7; launch-standalone.sh defects → upstream U8 (drafted, not filed).
 Back during the window → picker, quit → Schwung); device tier green on the
 release build.
 
+**Done 2026-10-11 except the release** (branch `standalone-migration`; the
+user cuts the release separately). `module.json` is the standalone module
+(`standalone: true`, `boot_target` after id/name, no `tool_config` or
+capabilities); `standalone/boot-entry.sh`; `standalone --boot`. movy-sa is
+retired (`deploy.sh` removes it) and the tier's only flavour is standalone.
+Design of the two doors: `docs/standalone/movy-host.md` *The two doors*.
+Deviations and findings:
+- **movy-host owns the boot exit, not the shell.** MoveLauncher blocks TERM,
+  INT and USR1 in everything it starts (SigBlk 0x4202 on MoveOriginal), and a
+  shell cannot unblock it. So `standalone --boot` EXECs `movy-host --boot`:
+  movy-host unblocks the mask (`signals.c`), exits with rc 5 on a stop (no
+  Schwung), and on every other way out — quit, UI error, fallback hard exit,
+  crash handler — execs `schwung-entry.sh` (then `/opt/move/Move`, then
+  `MoveOriginal`) with every fd ≥ 3 closed (`handover.c`).
+- **Standalone is always library mode** (`set-source.ts`): a stored
+  `setsrc`=MOVE is ignored without Move, so the first open runs WP4's
+  copy-import. An unwritable library (`err=save`) shows **SETS FOLDER NOT
+  WRITABLE** instead of starting a Set; the legacy tree is never written.
+- **No catalog PR needed:** the entry's `min_host_version` is already 1.6.0,
+  which has standalone dispatch, the manager's `boot_target` and `heal.new`
+  staging. Dropping `tool_config` makes 1.7.3's first-match fix moot.
+- **No `bin/heal.new` in the tarball:** the launcher stages `movy-heal` itself
+  on every launch (WP6), which also survives the manager's `chown -R` after an
+  install (it clears the setuid bit).
+- The launcher starts `schwung-manager` and `display-server` if they are not
+  running; at the boot door nothing else does.
+- Verified on hardware by `scripts/check-boot-target.sh` (reboots; restores the
+  default): boot → movy under MoveLauncher as ableton; `init.d/move stop` →
+  rc 5 and nothing starts; `start` → movy again; Close → Schwung in the same
+  MoveLauncher tree. Device tier: 21 scenarios, 160 checks, green after one
+  expectation fix (debug-tools read dev-probe's old wording); 3 N/A
+  (`needs: 'move'`).
+- **Left for the release:** Back in the boot window → picker (a person's
+  check: nothing can inject before the selector); the store-update checks
+  (closed / open / running movy, quick-launch), which need a published
+  tarball — the manager's custom install only pulls from GitHub; the
+  `channels.beta` rollout in `release.json`; the device tier on the release
+  build (`power` and `testbus` use UI_EVAL, which MOVY_RELEASE drops); the
+  Discord note.
+
 ---
 
 ## Phase C: after-work

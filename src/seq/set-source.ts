@@ -9,6 +9,7 @@
  * the engine's last-open record at boot, changed by the Sets page — and the
  * session's identity poll reads it here instead of active_set.txt. */
 
+import { platform } from '../platform/index.js';
 import { flagValue } from './flags.js';
 
 export const LEGACY_SETS_DIR = '/data/UserData/schwung/modules/tools/movy/sets';
@@ -21,15 +22,20 @@ export const LIBRARY_SETS_DIR = LIBRARY_ROOT + '/Sets';
 let movy: boolean | null = null;
 let wanted = '';
 
-/** Re-read the flag now (a session reset; the suites). */
+/* With no Move beside it there is no active Set to follow, so standalone movy
+ * is always library mode, whatever a stored `setsrc` says — that flag was the
+ * overtake opt-in. Its first open copies every Move-bound Set across. */
+const readSource = (): boolean => !platform.caps.coexistsWithMove || flagValue('setsrc') === 1;
+
+/** Re-read the source now (a session reset; the suites). */
 export function latchSetSource(): void {
-    movy = flagValue('setsrc') === 1;
+    movy = readSource();
     wanted = '';
 }
 
-/** True when movy keeps its own Sets (`setsrc` = MOVY at session start). */
+/** True when movy keeps its own Sets (standalone, or `setsrc` = MOVY at session start). */
 export function setSourceMovy(): boolean {
-    if (movy === null) movy = flagValue('setsrc') === 1;
+    if (movy === null) movy = readSource();
     return movy;
 }
 

@@ -7,6 +7,12 @@ parameters land on the 8 knobs as clean, readable pages, and a 16-track
 sequencer — modelled closely on Move's own — sits underneath, driven by a small
 Rust engine. All sixteen tracks are chains Movy hosts itself.
 
+**Movy runs on its own and boots straight into Movy.** It is a standalone
+Schwung tool: while it is open it owns the whole device — pads, screen, audio,
+master volume and the power button — with Move's software out of the way. Open
+it from the Tools menu, or pick **Movy** once in Schwung's boot picker and the
+Move powers on into it.
+
 ![Movy UI tour](docs/assets/demo.gif)
 
 <sub>A tour of Movy's screens — a montage of UI states, not a live capture.</sub>
@@ -198,13 +204,13 @@ Movy stands on the shoulders of several projects:
 
   ![Backups](docs/assets/versions_list.png)
 
-- **Background mode** — Back at the root opens a Leave menu; choose Background
-  to keep Movy sequencing under Move's own screens (synced LFOs stay locked).
-  Shift + Back exits instantly.
-- **One transport with Move** — Movy locks to Move's transport (drift-free),
-  follows its tempo, and shares tempo back through the TEMPO knob. Flip on the
-  **LINK** toggle (Set page) and Play/Stop on either Movy or Move starts and
-  stops both.
+- **Boots straight into Movy** — pick Movy once in Schwung's boot picker
+  (press Back in the two-second window at power-on) and the Move comes up in
+  Movy, with no Move in between. Leaving goes to Schwung; Tools-menu opening
+  works as before.
+- **Its own Sets** — **Shift + Step 1** lists Movy's Sets: new, open, rename,
+  duplicate, delete. The first open copies every Set the Move-side Movy kept,
+  and leaves the originals untouched.
 
 See the [manual](MANUAL.md) for how each of these works.
 
@@ -233,13 +239,14 @@ see [CONTRIBUTING.md](CONTRIBUTING.md).
   framework installed.
 - At least one Schwung sound-generator module to play.
 - On your build machine: **Node.js** and **Rust**, plus a cross-compiler —
-  `deploy.sh` builds two things, a JS UI bundle and a Rust sequencer engine
-  (`dsp.so`) cross-compiled for the Move's aarch64 Linux.
+  `deploy.sh` builds three things, a JS UI bundle, a Rust sequencer engine
+  (`dsp.so`) and `movy-host`, the small C host that runs them, all
+  cross-compiled for the Move's aarch64 Linux.
 
 ## Install
 
-Movy is a Schwung **tool module**. Build and deploy it to a Move reachable at
-`move.local`:
+Movy is a **standalone** Schwung tool module (Schwung 1.6.0 or newer). Build
+and deploy it to a Move reachable at `move.local`:
 
 ```bash
 # Rust toolchain (skip if you already have cargo)
@@ -253,7 +260,7 @@ brew install aarch64-unknown-linux-gnu
 
 cd movy
 npm install
-./scripts/deploy.sh            # builds ui.js + the Rust engine (dsp.so), deploys both
+./scripts/deploy.sh            # builds ui.js, the Rust engine (dsp.so) and movy-host, deploys them
 ```
 
 Building on Linux? Install a `aarch64-linux-gnu-gcc` cross-compiler from your

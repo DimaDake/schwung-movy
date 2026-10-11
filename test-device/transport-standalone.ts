@@ -10,10 +10,10 @@ import type { HostBus, Need, Transport } from './transport.js';
 
 const run = promisify(execFile);
 
-const SA_DIR = '/data/UserData/schwung/modules/tools/movy-sa';
-/* Harness mode (standalone/launch.sh): in /dev/shm, so a reboot ends it. */
-const TESTBUS_FLAG = '/dev/shm/.movy-sa-testbus';
+/* movy itself is the standalone module since WP8; movy-sa is retired. */
 const MOVY_DIR = '/data/UserData/schwung/modules/tools/movy';
+/* Harness mode (standalone/launch.sh): in /dev/shm, so a reboot ends it. */
+const TESTBUS_FLAG = '/dev/shm/.movy-testbus';
 const LAUNCH = '/data/UserData/schwung/launch-standalone.sh';
 /* standalone/launch.sh's harness-mode hold (WP7 T1): after a clean close it
  * keeps Move down and waits for a command, so a close/open pair costs a
@@ -25,9 +25,9 @@ const moveAge = `P=$(pidof MoveOriginal | cut -d' ' -f1); [ -n "$P" ] `
     + `&& awk -v u=$(cut -d' ' -f1 /proc/uptime) '{print int(u - $22/100)}' /proc/$P/stat || echo 0`;
 const markHealthy = `read -r id _ < ${BOOT_TARGETS}/.boot-attempt 2>/dev/null `
     + `&& [ -d "${BOOT_TARGETS}/$id" ] && touch "${BOOT_TARGETS}/$id/healthy"; true`;
-const HOLD_PIDF = '/dev/shm/.movy-sa-launcher';
-const HOLD = '/dev/shm/.movy-sa-hold';
-const HOLD_CMD = '/dev/shm/.movy-sa-cmd';
+const HOLD_PIDF = '/dev/shm/.movy-launcher';
+const HOLD = '/dev/shm/.movy-hold';
+const HOLD_CMD = '/dev/shm/.movy-cmd';
 /* One ssh round trip: `up` (movy-host runs), `sent` (the launcher was holding
  * and has the command), `wait` (the launcher lives but has not reached its
  * hold yet) or `none` (no launcher: Move's side). Written as ableton, so a
@@ -36,7 +36,7 @@ const holdSend = (cmd: 'go' | 'quit') =>
     `if pidof movy-host >/dev/null; then echo up; `
     + `elif [ -e ${HOLD} ]; then echo ${cmd} > ${HOLD_CMD}; echo sent; `
     + `else P=$(cat ${HOLD_PIDF} 2>/dev/null); `
-    + `if [ -n "$P" ] && grep -q movy-sa /proc/$P/cmdline 2>/dev/null; then echo wait; else echo none; fi; fi`;
+    + `if [ -n "$P" ] && grep -q tools/movy/standalone /proc/$P/cmdline 2>/dev/null; then echo wait; else echo none; fi; fi`;
 /* A device frame. Used ONLY while movy-host is down, when there is no frame
  * clock on the box to wait on (the shim's went with Move). */
 const FRAME_MS = 128 / 44.1;
@@ -81,14 +81,14 @@ export class StandaloneTransport implements Transport {
      * The old module-dir flag is removed too: it outlived the run, and a
      * user's next launch then held on close and dry-ran the power button. */
     async connect(): Promise<void> {
-        await this.ssh('root', `kill $(pidof schwung-testd) 2>/dev/null; rm -f ${SA_DIR}/testbus; `
+        await this.ssh('root', `kill $(pidof schwung-testd) 2>/dev/null; rm -f ${MOVY_DIR}/testbus; `
                              + `touch ${TESTBUS_FLAG}; chown ableton:users ${TESTBUS_FLAG}; true`);
     }
 
     /* Leave the device as the run found it — Move up, movy-host gone. A
-     * movy-sa left running holds SPI and port 47777, and the next overtake
-     * run then talked to ITS bus as though it were testd (measured: the tier
-     * hung 20 min). */
+     * movy-host left running holds SPI and port 47777: the device would not be
+     * the user's Move again (in WP6 an overtake run then talked to ITS bus as
+     * though it were testd, and the tier hung 20 min). */
     async close(): Promise<void> {
         if (await this.running()) {
             await this.call((bus) => bus.send('EXIT')).catch(() => {});
@@ -255,8 +255,8 @@ export class StandaloneTransport implements Transport {
         await this.ssh('ableton', markHealthy);
         await this.ssh('root',
             `P=$(pidof MoveOriginal | cut -d' ' -f1); U=$([ -n "$P" ] && stat -c %u /proc/$P || echo 0); `
-            + `if [ "$U" = 0 ]; then ${LAUNCH} ${SA_DIR}/standalone; `
-            + `else su ableton -s /bin/sh -c '${LAUNCH} ${SA_DIR}/standalone'; fi`);
+            + `if [ "$U" = 0 ]; then ${LAUNCH} ${MOVY_DIR}/standalone; `
+            + `else su ableton -s /bin/sh -c '${LAUNCH} ${MOVY_DIR}/standalone'; fi`);
         /* launch-standalone.sh sleeps ~1.8 s before it even kills Move. */
         await this.waitFor('movy-host to run with its engine', async () => {
             const st = await this.state();
@@ -281,21 +281,20 @@ export class StandaloneTransport implements Transport {
         if (!after || after === before) throw new Error(`standalone: restart did not change movy-host (pid ${before} → ${after})`);
     }
 
-    /* dsp.so and movy-host ship to movy-sa (fresh inodes, deploy-sa.sh);
-     * chain-host.so ships to tools/movy, because ui.js names that directory as
-     * the engine's chain host source. Any change → a new process runs it. */
+    /* dsp.so, chain-host.so and movy-host ship to tools/movy (fresh inodes,
+     * deploy-host.sh). Any change → a new process runs it. */
     async deployEngine(): Promise<EngineDeploy> {
         const md5 = () => this.ssh('ableton',
-            `md5sum ${SA_DIR}/dsp.so ${SA_DIR}/movy-host ${MOVY_DIR}/chain-host.so 2>/dev/null | md5sum | cut -d' ' -f1`)
+            `md5sum ${MOVY_DIR}/dsp.so ${MOVY_DIR}/movy-host ${MOVY_DIR}/chain-host.so 2>/dev/null | md5sum | cut -d' ' -f1`)
             .catch(() => '');
         try {
             await run('bash', [join(repoRoot(), 'scripts', 'build-dsp.sh')], { cwd: repoRoot() });
             await run('node', [join(repoRoot(), 'build', 'device.mjs')], { cwd: repoRoot() });
             const before = await md5();
-            await run('scp', ['-q', ...SSH_OPTS, join(repoRoot(), 'dist', 'chain-host.so'),
-                              `ableton@${this.host}:${MOVY_DIR}/chain-host.so.new`]);
-            await this.ssh('ableton', `mv ${MOVY_DIR}/chain-host.so.new ${MOVY_DIR}/chain-host.so`);
-            await run('bash', ['-c', `. scripts/lib/deploy-sa.sh && deploy_sa ${this.host}`],
+            for (const so of ['dsp.so', 'chain-host.so'])
+                await run('scp', ['-q', ...SSH_OPTS, join(repoRoot(), 'dist', so), `ableton@${this.host}:${MOVY_DIR}/${so}.new`]);
+            await this.ssh('ableton', `cd ${MOVY_DIR} && mv dsp.so.new dsp.so && mv chain-host.so.new chain-host.so`);
+            await run('bash', ['-c', `. scripts/lib/deploy-host.sh && deploy_host ${this.host}`],
                       { cwd: repoRoot(), maxBuffer: 8 * 1024 * 1024 });
             const after = await md5();
             if (before === after) return { built: true, changed: false, restarted: false, detail: after };
@@ -308,14 +307,13 @@ export class StandaloneTransport implements Transport {
         }
     }
 
-    /* The same ui.js to both installs (byte-identical flavours). It is read at
-     * launch, so a running movy-host keeps the old one until its next open. */
+    /* ui.js is read at launch, so a running movy-host keeps the old one until
+     * its next open. */
     private uiDeployed = false;
     async deployUi(force = false): Promise<boolean> {
         if (this.uiDeployed && !force) return false;
         await run('node', [join(repoRoot(), 'build', 'device.mjs')], { cwd: repoRoot() });
-        for (const d of [MOVY_DIR, SA_DIR])
-            await run('scp', ['-q', ...SSH_OPTS, join(repoRoot(), 'ui.js'), `ableton@${this.host}:${d}/`]);
+        await run('scp', ['-q', ...SSH_OPTS, join(repoRoot(), 'ui.js'), `ableton@${this.host}:${MOVY_DIR}/`]);
         this.uiDeployed = true;
         return true;
     }

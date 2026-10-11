@@ -27,7 +27,11 @@ export function libraryBlocked(): string {
     /* The library is the engine's (set_library.rs). With the UI writing Set
      * files itself there would be two writers again — the thing `engpersist`
      * exists to end — so refuse rather than guess. */
-    return flagValue('engpersist') ? '' : 'SETS NEED ENGINE SAVES';
+    if (!flagValue('engpersist')) return 'SETS NEED ENGINE SAVES';
+    /* The index could not be written (set_lib_jobs.rs `save`): Sets made or
+     * played now would be lost. Refuse on screen — and never fall back to the
+     * legacy tree, which is the overtake build's to read (plan WP8, R2). */
+    return libState()?.err === 'save' ? 'SETS FOLDER NOT WRITABLE' : '';
 }
 
 /** The Set to have open, or null while the library has not answered. */

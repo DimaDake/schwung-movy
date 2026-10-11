@@ -62,6 +62,75 @@ module slots, plus a per-track **LFO** page:
 MIDI FX  →  SYNTH  →  FX 1  →  FX 2  →  LFO
 ```
 
+### Movy runs on its own
+
+Movy is a **standalone** Schwung tool: while it is open it runs in place of
+Move's own software, not on top of it. Move's screens are not running
+underneath, so there is nothing to switch back to while Movy plays — Movy owns
+the pads, knobs, screen, audio, master volume and the power button. (Movy
+0.35 and earlier ran beside Move; see *What changed from the Move-side Movy*
+below.)
+
+There are two ways in:
+
+- **From the Tools menu**, like any tool. Move's software stops while Movy
+  runs and starts again when you leave, so opening and closing take a few
+  seconds each way.
+- **Straight from power-on.** Installing Movy adds a **Movy** row to Schwung's
+  boot picker. At power-on the screen shows `Loading <name> — press Back to
+  change` for about two seconds: press **Back** there, turn the jog to
+  **Movy** and click. Movy is then the default and opens at every power-on, in
+  a few seconds and with no Move in between. To go back to Schwung, press
+  **Back** in that window again and pick **Schwung**. Installing or updating
+  Movy never makes it the default by itself.
+
+**Leaving.** **Back** at the top level opens **Leave Movy?** with one choice,
+**Close Movy**: turn the jog wheel to it and click. Movy saves the Set first.
+Opened from the Tools menu, Move comes back; opened at power-on, Schwung starts
+(not the boot picker, so leaving never drops you straight back into Movy).
+
+![Leave Movy](docs/assets/leave_modal.png)
+
+**If Movy ever stops responding:** hold **Shift**, touch the **volume knob**,
+and click the **jog wheel**. Movy closes and saves as usual; if it cannot (for
+example a stuck script), it closes anyway after two seconds, without saving,
+so the device always comes back.
+
+**Master volume.** The **volume knob** on its own is the master volume. Touch
+it to see the **MASTER VOLUME** slider; each detent is 1 dB, from silence up to
+0 dB (full scale). Movy remembers the level across Sets and restarts; the
+first time it opens it starts at −12 dB. Holding a **track button** and
+turning the knob still sets that track's volume, on any of the 16 tracks.
+
+![Master volume](docs/assets/master_volume.png)
+
+**Powering off.** Tap the **power button** and Movy asks **Power off?**: click
+the jog wheel to confirm, or turn to **Cancel** (or press **Back**) to carry
+on. On confirm Movy saves the Set first, then the device shuts down. Nothing
+powers off from the button alone.
+
+![Power off](docs/assets/power_modal.png)
+
+**Your Sets.** Movy keeps its own Sets (see [Sets](#sets--shift--step-1)).
+The first time it opens it copies every Set the Move-side Movy kept into that
+library; the originals are left exactly where they were. If the library
+folder cannot be written, Movy says **SETS FOLDER NOT WRITABLE** and does not
+start a Set, rather than letting you play into something it cannot keep.
+
+#### What changed from the Move-side Movy
+
+Movy 0.35 and earlier opened on top of Move. Running on its own retires the
+things that only existed to share the device with Move: **Background** mode
+(parking Movy under Move's screens), **LINK** to Move's transport, Sets tied to
+Move's Set pads, Move's own master volume and master FX slots, and tracks
+played on Schwung's slots. Your existing Sets come across (above), and so does
+the master chain of each Set, the first time that Set opens. Nothing of the
+old install is deleted, so going back to an older Movy finds it as it was.
+
+**Known limitations.** Move shapes the sound of its built-in speaker with its
+own EQ; Movy does not yet, so the speaker sounds different from the same Set
+under Move. Headphones and line out are unaffected.
+
 ### Opening Movy
 
 For the first few seconds Movy shows **STARTING ENGINE**, then **LOADING SET**:
@@ -74,9 +143,7 @@ Reading the Set is only the first half. Its instruments are loaded one at a time
 
 ![Loading the Set's modules](docs/assets/session_modules.png)
 
-and finishes on **PREPARING SET**, which is Movy asking Move to file the Set
-under a real name (see *Which Set your sequence belongs to* below). Move owns
-the pads for about a second there, which is the other reason to wait it out.
+and finishes on **PREPARING SET** while the Set's last pieces settle.
 
 ![Preparing the Set](docs/assets/session_preparing.png)
 
@@ -108,12 +175,11 @@ A different screen means a different problem, and there is no jog click on it:
 
 ![Movy was updated](docs/assets/session_failed_update.png)
 
-This one is about the engine, not your Set. Movy's sequencer runs in a small
-audio engine that Schwung loads once per boot, and it cannot be swapped while
-the Move is running — so straight after a Movy update the previous engine is
-still the one loaded, and the new Movy will not run against it. **Restart your
-Move** (power off and on) and it comes up normally. Your Sets are untouched:
-Movy never became live, so it never wrote anything.
+This one is about the engine, not your Set: the engine Movy found does not
+match the Movy that is running. Movy loads its engine fresh every time it
+opens, so close Movy and open it again; if the screen comes back, **restart
+your Move** (power off and on). Your Sets are untouched: Movy never became
+live, so it never wrote anything.
 
 `ENGINE DID NOT START` on the same screen means the engine did not answer at
 all. The remedy is the same restart.
@@ -145,41 +211,16 @@ now:
 undoable — the state you had is kept as a version first, so a mis-press costs
 you nothing.
 
-**Deleting a Set in Move deletes its backups.** A Set's versions belong to that
-Set, so removing it in Move's own interface takes its whole history with it —
-the next time Movy opens, it clears the state of every Set that no longer
-exists. There is no undo for that, and no way back to it from inside Movy.
-
-Two consequences worth knowing:
-
-- **A new Set made on the same pad starts with an empty history.** Move gives it
-  a new identity, so as far as Movy is concerned it is a different Set that has
-  never been played — not the old one with its backups missing.
-- **If you might want it back, copy it off the device before deleting the Set**,
-  or simply empty the Set rather than deleting it. The files live in
-  `schwung/modules/tools/movy/sets/<set-uuid>/`; see
-  [Troubleshooting & recovery](#9-troubleshooting--recovery).
+A Set's versions belong to that Set and go with it when you delete it on the
+[Sets](#sets--shift--step-1) page — into
+`/data/UserData/UserLibrary/Movy/Trash/`, from where it can still be recovered
+by hand.
 
 ### Which Set your sequence belongs to
 
-Movy stores one sequence per Move Set, and follows Move: pick another Set and
-you get that Set's sequence, or an empty one if it has never had a sequence.
-Deleting a Set in Move takes its Movy sequence with it — the Set Move creates in
-its place starts blank, the same way its instrument slots do. Movy also clears
-out sequences whose Set has been deleted the next time you open it.
-
-Set pads you have never saved anything into from Move itself used to be a
-special case. Move only writes such a Set to disk once *Move* has something to
-save in it, and if you work entirely inside Movy it never does — so neither
-Schwung nor Movy had a Set to file the work under, and what you recorded there
-was not waiting for you next time. **Movy now commits the Set for you**: on the
-first visit it hands Move's own firmware a track-1 press, which is enough for
-Move to write the Set, and Movy's sequence and Schwung's instruments are then
-saved alongside it. It happens once per Set, and the visible cost is that **the
-pads may blink briefly while it happens** — for that moment the surface belongs
-to Move. The workaround lives in Movy today; Schwung is where it belongs, and
-there it could be done without the blink. (`docs/pending-sets.md` has the
-detail.)
+Each Set on Movy's [Sets](#sets--shift--step-1) page is one whole Movy project:
+its sequence, its instruments and their settings, and its master chain. The
+Set that was open when you left reopens next time.
 
 The **screen** is the 128×64 OLED. A typical parameter page looks like this:
 
@@ -865,8 +906,7 @@ start when Retrigger is on.
 **Synced LFOs phase-lock to the transport.** With **Sync** on, a running
 transport drives the LFO's phase directly from song position — the cycle is
 bar-aligned and stays drift-free no matter how long it plays. It follows
-Movy's own sequencer — and so Move's too while LINK has Movy following it.
-Move playing on its own, with Movy stopped, does not drive it. **Phase** then
+Movy's own sequencer. **Phase** then
 becomes a musical offset against the bar. When the transport **stops**, the LFO
 keeps breathing — it free-runs from where it was, at Movy's tempo, and a tempo
 change while stopped changes its rate straight away.
@@ -1401,8 +1441,7 @@ Two things worth knowing:
   with **Shift + hold track + volume encoder** — ⚠️ on tracks 5-16 the plain
   gesture *without* Shift does not work yet and moves Move's master volume
   instead, so use Shift there; tracks 1-4 take either.
-- **They sound only while movy is open** (or parked in Background mode) —
-  movy is what renders them.
+- **They sound only while movy is open** — movy is what renders them.
 
 Their modules and settings are saved with the set, so a track comes back the
 way you left it.
@@ -1605,8 +1644,8 @@ To throw it away by hand, hold **Clear** and press **Capture**.
 
 Movy saves by itself, and there is deliberately nothing to press. Your
 sequence, tempo, swing, automation and the Set-page settings (tonic, scale,
-mode, layout, per-track octave, mutes) are stored **per Move set**, so every set
-recalls its own Movy project. Switch sets on Move and Movy follows.
+mode, layout, per-track octave, mutes) are stored **per Set**, so every Set
+recalls its own Movy project.
 
 Saving happens a few seconds after you stop changing things, when you switch to
 another set, and when you close Movy — so leaving immediately after an edit
@@ -1618,117 +1657,8 @@ the damaged file on the next load and falls back to the newest intact copy
 rather than opening a blank template. Sets saved by older Movy versions load
 normally.
 
-Movy stores only sequencer data. Which instrument is on each track and how it's
-set up belongs to Schwung and the Move set, and is saved by them.
-
-### Background mode — keep playing under Move's UI
-
-Movy can drop into the background and keep sequencing while you use Move's own
-screens (Session, Note, the mixer, etc.). Because the sequencer engine and its
-clock keep running, tempo-synced LFOs stay phase-locked the whole time.
-
-Pressing **Back** at the **root** view (the chain page) opens a **Leave Movy**
-menu — it does *not* leave instantly, so you can't drop into the background by
-accident:
-
-![Leave Movy menu](docs/assets/leave_modal.png)
-
-- **Background** (highlighted by default) — jog-**click** to park Movy: the
-  screen returns to Move but Movy keeps playing. So backgrounding is **Back then
-  jog-click**. Held pad notes are released when the menu opens so nothing hangs.
-- **Close Movy** — jog-**turn** to it, then jog-click, to fully unload Movy.
-- **Back** again **cancels** and returns you to Movy.
-
-**The rest of the instrument keeps working while the menu is up.** Playing a
-pad, hitting a step, changing track, Clear, Capture, octave up/down, Copy,
-Delete, Mute, Loop, the arrows — all of them **dismiss the menu and still do
-their job**, so a menu you opened by mistake never costs you a press. Two
-deliberate exceptions:
-
-- **Shift**, **Play** and **Rec** work *without* closing the menu. Shift is a
-  modifier, so it has to stay one; and stopping the music before you park isn't
-  a change of mind.
-- The eight **parameter knobs** stay inert. The menu covers the screen, so a
-  knob edit behind it would be one you couldn't see happen — and unlike a pad
-  or a step, a knob gives you nothing else to notice it by.
-
-(Back still steps *backwards* through Movy's own sub-views — the browser,
-keyboard/knob pages, the master-FX detail, and the Step/Clip/Set pages — as
-usual; the menu only appears when you press Back at the root.)
-
-- **Return from background:** reopen Movy from the Tools menu (or the last-tool
-  shortcut). The screen and LEDs repaint from the current state; the sequence
-  never stopped.
-- **Fully exit instantly:** **Shift + Back**, from anywhere, unloads Movy
-  without the menu.
-
-> **Host requirement:** the Background option needs a Schwung host that supports
-> self-managed suspend. On an older host the menu shows **Close Movy** only.
-
-### Syncing with Move's sequencer
-
-Turn on **LINK** (the Set page's fifth cell — knob 4; **OFF** by default) and
-Movy and Move share **one transport**: press Play (or Stop) on **either** and
-both start (or stop) together, making Movy four extra tracks of your Move set.
-This is what makes background mode musical: run Move's sequencer and Movy rides
-along, locked. The setting is saved with each set.
-
-![Set page — LINK on](docs/assets/main-link-on.png)
-
-With **LINK on**:
-
-- **Play in Move** starts Movy too (even while Movy is parked in the
-  background); **Stop in Move** stops it.
-- **Play in Movy** starts Move too. Because Move aligns its start to the Link
-  bar grid, Movy waits — silently — up to about a bar for Move's downbeat, then
-  both begin the bar together. (If Move never answers within ~2 bars, Movy
-  starts on its own clock anyway.) **Stop in Movy** stops Move.
-
-With **LINK off** (the default) each transport is independent — Movy's Play/Stop
-never touches Move's, and Move's never starts or stops Movy. The tempo/grid
-locking below still happens automatically whenever both are playing, LINK or not.
-
-> **Movy → Move needs a recent Schwung.** Reaching Move's transport from Movy
-> means handing Move a Play press, and only a Schwung build from **2026-08-27**
-> or later carries one out of a tool that has taken over the surface. On an
-> older build Movy notices and leaves that half switched off: **Play in Movy
-> starts Movy alone**, while Play/Stop in Move still drives both. Everything
-> else on this page — the tempo lock, EXT, background mode — is unaffected.
-> Movy's log says which one you have: `host cannot inject to Move`.
-
-While both run, they lock as one grid:
-
-- Movy rides Move's clock, so both grids stay **drift-free** — their downbeats
-  line up and stay lined up. The Set page's **TEMPO** cell shows **EXT** and
-  displays Move's tempo:
-
-  ![Following Move — EXT](docs/assets/main-ext-sync.png)
-
-- Pressing **Play in Move** re-anchors Movy to the bar — Movy restarts its
-  pattern so both start the bar together.
-- **Change Move's tempo** (from Move's screen) and Movy follows within about a
-  second; the notes stay locked.
-- **Turn Movy's TEMPO knob** and Move's tempo changes to match — Movy writes the
-  device-wide tempo, and both stay locked. (The display may rubber-band briefly
-  as the two converge — that's normal.)
-- If Move's clock simply **drops out** (a glitch, not a Stop), Movy keeps
-  playing at the captured tempo on its own clock; within a bar the synced LFOs
-  re-lock to Movy's grid.
-
-**Working with one transport (LINK on):** for **Movy-only** playback, keep the
-native Move set silent (no clips playing). For **Move-only** playback, stop or
-mute Movy's tracks individually. (The link propagates the Play/Stop
-*buttons*; launching a Session clip does not reach across to Move.)
-
-> **Tempo & Ableton Link:** Movy's TEMPO knob sets the device tempo through
-> Move's Link connection, which only takes effect while Move is the sole Link
-> peer. With Ableton Live (or another Link peer) connected, the session owns the
-> tempo and Movy's knob won't override it — which is the correct behaviour. It
-> also requires schwung's **Link Audio** to be enabled (Global Settings → Audio);
-> with Link Audio off the knob can't reach Move's tempo, so set the tempo from
-> Move instead. (Move → Movy tempo follow is unaffected — it always works.) See
-> [docs/tempo-knob-move-override-not-applied.md](docs/tempo-knob-move-override-not-applied.md)
-> for details.
+The instruments on each track, their settings and the master chain are saved
+with the Set too.
 
 ---
 
@@ -1819,7 +1749,7 @@ that already carried one from before a drum module was loaded onto the track.
 | --- | --- |
 | 1 | **TEMPO** |
 | 2 | **SWING** |
-| 3 | **LINK** — Play/Stop propagation to Move |
+| 3 | — (LINK to Move's transport, in Movy 0.35 and earlier) |
 | 4 | **QUANT** — the [quantization](#quantization) new clips are created with |
 | 5 | **ROOT** — the tonic's pitch class |
 | 6 | **KEY** — scale |
@@ -1952,10 +1882,7 @@ finding which track is expensive.
 
 ### Sets — Shift + Step 1
 
-Movy can keep **its own Sets**, separate from Move's. Turn it on in
-**Settings → MOVY SETS → MOVY**; it takes effect the next time Movy opens.
-Until you do, Movy's Sets follow Move's Set pads as they always have, and this
-page only says so.
+Movy keeps **its own Sets**, separate from Move's Set pads.
 
 ![Sets](docs/assets/sets_list.png)
 
@@ -1985,10 +1912,9 @@ recovered by hand.
 Sets, it copies every Set it kept for a Move Set into the new library, under
 that Set's Move name, backups included. Sets that only ever existed on an
 unsaved Move pad come across as **Recovered** *date*. Nothing is taken away:
-the originals stay where they were, and switching **MOVY SETS** back to
-**MOVE** finds them exactly as you left them (edits made since then live only
-in the new library). Each Set is copied once; one you delete in the new
-library does not come back.
+the originals stay where they were, so an older Movy still finds them exactly
+as you left them (edits made since then live only in the new library). Each
+Set is copied once; one you delete in the new library does not come back.
 
 The library lives in `/data/UserData/UserLibrary/Movy/`, outside Movy's
 module folder, so reinstalling Movy keeps it. The Set that was open when you
@@ -2157,9 +2083,8 @@ missing or simplified. **All of these are candidates for future work — and
   not a promise.
 - **Track + volume needs Shift on tracks 5-16** (see
   [Track volume](#track-volume)).
-- **Tracks are silent while Movy is closed.** Every track needs Movy open, or
-  parked in [Background mode](#background-mode--keep-playing-under-moves-ui),
-  to sound — Movy is what renders them.
+- **Tracks are silent while Movy is closed.** Every track needs Movy open to
+  sound — Movy is what renders them.
 - **Simplified clip model.** Sequencer resolution and some clip-level features
   are reduced compared to Move.
 - **Rough edges.** Expect occasional display glitches or, rarely, a crash that
@@ -2188,9 +2113,10 @@ behaviour you'd like — or, better, a PR.
 | **Shift + jog wheel — turn** | Knobs view: jump to the previous/next **section**, skipping that section's overflow pages. |
 | **Hold the jog (~1 s)** | Touch without turning: a bottom prompt spells out what a click does on this page. A turn or release clears it. |
 | **Shift + jog click** | Open the module browser to swap the current slot's module. |
-| **Back** | Module pages → Chain; browser → cancel; **at the root (Chain) → open the Leave Movy menu** (Background / Close Movy). |
-| **Back then jog-click** | From the root: background Movy (keeps playing under Move's UI). |
-| **Shift + Back** | Fully exit Movy (unload), instantly, from anywhere. |
+| **Back** | Module pages → Chain; browser → cancel; **at the root (Chain) → open the Leave Movy menu** (Close Movy). |
+| **Shift + touch volume + jog click** | Close Movy from anywhere, even when it has stopped responding (hard close after 2 s). |
+| **Volume knob** | Master volume (MASTER VOLUME slider, 1 dB per detent). |
+| **Power button** | Asks **Power off?**; jog click confirms, Back cancels. |
 | **Anything** (Leave menu up) | Dismisses the menu *and* does its normal job — pads, steps, Track, Clear, Capture, octave, Copy/Delete/Mute/Loop, arrows. |
 | **Shift / Play / Rec** (Leave menu up) | Run normally *without* closing the menu. |
 | **Parameter knobs** (Leave menu up) | Inert — the menu covers the screen, so the edit would be invisible. |
@@ -2207,7 +2133,7 @@ behaviour you'd like — or, better, a PR.
 | **Hold a step** | Edit that step; opens its **Step parameters** (page 0). |
 | **Hold step A + press step B** | Set step A's note length up to B. |
 | **Hold a step + pad** | Edit that step's notes from the keyboard. An added note takes the step's existing start and length (melodic only). |
-| **Play** | Start / stop the transport. When **LINK** is on, also starts / stops Move's native sequencer (a Movy-initiated start waits ~1 bar for Move's Link grid). |
+| **Play** | Start / stop the transport. |
 | **Rec** (tap) | Arm recording — one-bar count-in from stopped; while playing, punch in now (overdub) or at the next bar (new clip, Rec flashes). Tapping again stops or cancels; a pad still held is kept and gets its full played length. |
 | **Hold Rec** (stopped) | **Step recording** — play the pads to enter notes step by step. |
 | **Hold Rec + pads** | Enter a note or chord at the head; the head advances when the last pad lifts. |
@@ -2236,9 +2162,8 @@ behaviour you'd like — or, better, a PR.
 | **Mute + pad** (drum track) | Mute / unmute that drum voice in the sequencer — the whole track, every clip. Live pad playing is unaffected, but the press itself is silent (no note, no pad select). Latch. |
 | **Shift + Mute + pad** (drum track) | Solo that drum voice instead — exclusive, press again to clear. |
 | **Track buttons 1–4** | Select a track within the focused group of four (hold = momentary peek). |
-| **Volume encoder** | Adjust held steps' velocity. With a track button held instead, sets that track's volume (**add Shift on tracks 5-16** — see [Track volume](#track-volume)); otherwise it stays Move's master volume. |
-| **TEMPO knob** (Set page) | Set the tempo; also sets Move's device-wide tempo via Link. **EXT** on the cell = locked to Move's transport. |
-| **LINK knob** (Set page) | Turn right = ON, left = OFF. Enables the shared Play/Stop transport with Move (default OFF; saved per set). Clock/tempo follow works regardless. |
+| **Volume encoder** | Adjust held steps' velocity. With a track button held instead, sets that track's volume (**add Shift on tracks 5-16** — see [Track volume](#track-volume)); otherwise it is the master volume. |
+| **TEMPO knob** (Set page) | Set the tempo. |
 
 ### Shift + Step shortcuts
 
@@ -2252,7 +2177,7 @@ only.
 | **Shift + Step 1** | Open **Sets** — Movy's own Sets (when **MOVY SETS** is on). |
 | **Shift + Step 2** | Open **Settings** (older versions of this set). |
 | **Shift + Step 3** | Open **Clip parameters** (scale, length, transpose, quantize; Track view). |
-| **Shift + Step 5 / 7 / 9** | Open **Set parameters** (tempo/swing/link/quantize, root/key/mode/layout). |
+| **Shift + Step 5 / 7 / 9** | Open **Set parameters** (tempo/swing/quantize, root/key/mode/layout). |
 | **Shift + Step 6** | Toggle the **metronome**. |
 | **Shift + Step 10** | Toggle **full velocity** — every pad note at 127. Kept across sets and restarts. |
 | **Shift + Step 12** | Open the **CPU meter** (per-track and per-send cost, block usage). Press again to clear the held peaks. |
@@ -2263,17 +2188,16 @@ only.
 
 ## 9. Troubleshooting & recovery
 
-- **Movy looks frozen or the screen is stale.** Press **Back** to leave and
-  re-open Movy from the Tools menu. Movy keeps running in the background; on most
-  Schwung builds you can re-enter by holding **Shift + Step 13**.
-- **A set you deleted in Move is gone from Backups too.** Backups belong to the
-  Set, so deleting it in Move removes its history along with it, and a new Set
-  on the same pad is a different Set with an empty history. Nothing in Movy can
-  bring it back — copy a Set's folder off the device first if you may want it.
+- **Movy looks frozen or the screen is stale.** Hold **Shift**, touch the
+  **volume knob** and click the **jog wheel**: Movy closes (saving if it can),
+  then open it again.
+- **Movy opens at power-on and you want Schwung.** Press **Back** in the
+  two-second `Loading Movy` window at power-on and pick **Schwung**.
 - **A set opens as a blank template.** Movy keeps rotating backup copies and
   falls back to the newest intact one, so this should no longer follow a freeze
   or a power-cut. If it still happens, the set's files are under
-  `schwung/modules/tools/movy/sets/<set-uuid>/` — `seq-state.json` plus
+  `/data/UserData/UserLibrary/Movy/Sets/<set-id>/` (Movy 0.35 and earlier:
+  `schwung/modules/tools/movy/sets/<set-uuid>/`) — `seq-state.json` plus
   `seq-state.1.json` / `seq-state.2.json`. Attach all of them to a bug report;
   each carries a generation number, which says which was written last.
 - **A set went blank, or you want an earlier version of it.** Open

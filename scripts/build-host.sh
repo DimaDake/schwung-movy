@@ -55,7 +55,7 @@ CFLAGS=(-O2 -g -Wall -Wextra -Wno-unused-parameter -Wno-cast-function-type -std=
         -DSCHWUNG_TAG="\"$TAG\"" -DMOVY_COMMIT="\"$MOVY_SHA\"" -DSCHWUNG_FLOOR="\"$FLOOR\""
         -I"$DIR/host" -I"$SRC/src" -I"$SRC/src/host" -I"$SRC/$QJS_DIR")
 # The test bus's UI_EVAL runs arbitrary JS in the UI: dev builds only.
-# movy-sa is dev-only until WP8; the switch's shipping build sets MOVY_RELEASE=1.
+# Dev deploys keep it; the store tarball (build-module.sh) sets MOVY_RELEASE=1.
 [[ "${MOVY_RELEASE:-0}" = 1 ]] || CFLAGS+=(-DMOVY_TESTBUS_EVAL)
 mkdir -p "$DIR/dist"
 # shellcheck disable=SC2046

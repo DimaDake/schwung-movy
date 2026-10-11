@@ -9,6 +9,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "handover.h"
 #include "log.h"
 #include "log_ring.h"
 #include "movy_host.h"
@@ -22,10 +23,14 @@ static void sink(const log_line_t *l) {
     fprintf(stderr, "%lld.%03lld [%s] %s\n", (long long)(l->ms / 1000), (long long)(l->ms % 1000), l->src, l->text);
 }
 
-static void mh_log_shutdown(void) {
+static int g_log_closed;
+void mh_log_close(void) {
+    if (g_log_closed) return;
+    g_log_closed = 1;
     log_ring_stop();
     unified_log_shutdown();
 }
+static void mh_log_shutdown(void) { mh_log_close(); }
 
 void mh_log_init(void) {
     unified_log_init();
@@ -76,6 +81,8 @@ static void on_crash(int sig) {
     int depth = backtrace(frames, 48);
     if (g_crash_fd >= 0) backtrace_symbols_fd(frames, depth, g_crash_fd);
     backtrace_symbols_fd(frames, depth, STDERR_FILENO);
+    /* At the boot door a crash must still leave the device to Schwung. */
+    if (handover_armed()) handover_exec(MH_HANDOVER_CHAIN);
     signal(sig, SIG_DFL);
     raise(sig);
 }

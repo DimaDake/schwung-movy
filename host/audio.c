@@ -8,10 +8,12 @@
 
 #include "audio.h"
 #include "display.h"
+#include "handover.h"
 #include "inject_ring.h"
 #include "ui_ring.h"
 #include "lib/schwung_spi_lib.h"
 #include "log.h"
+#include "log_ring.h"
 #include "midi_in.h"
 #include "midi_out.h"
 #include "midi_tap.h"
@@ -125,6 +127,7 @@ static void *audio_main(void *arg) {
             mh_log("fallback exit: the UI did not let go in %llu ms; hard exit", (unsigned long long)since);
             struct timespec ts = { 0, 50000000L };   /* the log writer's turn */
             nanosleep(&ts, NULL);
+            if (handover_armed()) { log_ring_flush_raw(STDERR_FILENO); handover_exec(MH_HANDOVER_CHAIN); }
             _exit(4);
         }
         engine_frame_begin();

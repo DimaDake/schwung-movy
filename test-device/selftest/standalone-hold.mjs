@@ -35,12 +35,12 @@ function rig(codes, { testbus = true } = {}) {
     chmodSync(join(dir, 'movy-host'), 0o755);
     copyFileSync(join(ROOT, 'standalone', 'launch.sh'), join(dir, 'standalone'));
     mkdirSync(shm, { recursive: true });
-    if (testbus) writeFileSync(join(shm, '.movy-sa-testbus'), '');
+    if (testbus) writeFileSync(join(shm, '.movy-testbus'), '');
     return { dir, shm, runs: () => +(existsSync(join(dir, 'runs')) ? readFileSync(join(dir, 'runs'), 'utf8') : 0) };
 }
 
 function launch(r) {
-    const p = spawn('sh', [join(r.dir, 'standalone')], { env: { ...process.env, MOVY_SA_SHM: r.shm, MOVY_SA_HOLD_S: '2' } });
+    const p = spawn('sh', [join(r.dir, 'standalone')], { env: { ...process.env, MOVY_SHM: r.shm, MOVY_HOLD_S: '2' } });
     const done = new Promise((res) => p.on('exit', (code) => res(code)));
     return { done };
 }
@@ -59,22 +59,22 @@ async function everSeen(l, file) {
     await sleep(50);
     const l = launch(r);
     ok('a clean close holds instead of returning to Move',
-        await until(() => existsSync(join(r.shm, '.movy-sa-hold'))) && r.runs() === 1);
-    writeFileSync(join(r.shm, '.movy-sa-cmd'), 'go\n');
+        await until(() => existsSync(join(r.shm, '.movy-hold'))) && r.runs() === 1);
+    writeFileSync(join(r.shm, '.movy-cmd'), 'go\n');
     ok('"go" relaunches movy-host from the hold',
-        await until(() => r.runs() === 2) && await until(() => existsSync(join(r.shm, '.movy-sa-hold'))));
-    writeFileSync(join(r.shm, '.movy-sa-cmd'), 'quit\n');
+        await until(() => r.runs() === 2) && await until(() => existsSync(join(r.shm, '.movy-hold'))));
+    writeFileSync(join(r.shm, '.movy-cmd'), 'quit\n');
     ok('"quit" ends the launcher (Move comes back)', await exited(l) && r.runs() === 2);
     ok('the launcher cleans its shm files up',
-        !existsSync(join(r.shm, '.movy-sa-hold')) && !existsSync(join(r.shm, '.movy-sa-launcher'))
-        && !existsSync(join(r.shm, '.movy-sa-cmd')));
+        !existsSync(join(r.shm, '.movy-hold')) && !existsSync(join(r.shm, '.movy-launcher'))
+        && !existsSync(join(r.shm, '.movy-cmd')));
 }
 {   /* a lock loser exits 1 */
     const r = rig([1]);
     await sleep(50);
     const l = launch(r);
     ok('a lock loser (rc 1) never holds, and gives Move back at once',
-        !await everSeen(l, join(r.shm, '.movy-sa-hold')) && await exited(l));
+        !await everSeen(l, join(r.shm, '.movy-hold')) && await exited(l));
 }
 {   /* an unattended hold times out */
     const r = rig([0]);
@@ -87,7 +87,7 @@ async function everSeen(l, file) {
     await sleep(50);
     const l = launch(r);
     ok('without the test bus file a close returns to Move at once',
-        !await everSeen(l, join(r.shm, '.movy-sa-launcher')) && r.runs() === 1);
+        !await everSeen(l, join(r.shm, '.movy-launcher')) && r.runs() === 1);
 }
 
 {   /* a module-dir testbus file left by an older harness is NOT harness mode */
@@ -96,7 +96,7 @@ async function everSeen(l, file) {
     await sleep(50);
     const l = launch(r);
     ok('a stale module-dir testbus file does not hold a user\'s close',
-        !await everSeen(l, join(r.shm, '.movy-sa-launcher')) && r.runs() === 1);
+        !await everSeen(l, join(r.shm, '.movy-launcher')) && r.runs() === 1);
 }
 
 process.exit(fails ? 1 : 0);

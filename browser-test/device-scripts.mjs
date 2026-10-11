@@ -164,6 +164,9 @@ for (const f of shFiles) {
     const src = readFileSync(f, 'utf8');
     if (f.endsWith('lib/test-set.sh')) continue;          // ts_restart_stack lives here
     if (f.endsWith('lib/restart-stack.sh')) continue;    // and this IS the restart
+    // Not a suite: it tests the boot path itself (reboot, init.d stop/start)
+    // and only OBSERVES Move's pids to grade the hand-over to Schwung.
+    if (f.endsWith('check-boot-target.sh')) continue;
     src.split('\n').forEach((line, i) => {
         if (/^\s*#/.test(line)) return;                   // a comment may name it
         if (/restart-move\.sh/.test(line)) rawRestart.push(`${f}:${i + 1}`);
@@ -200,10 +203,11 @@ ok('ts_restart_stack keeps no second copy of it',
    'it delegates to lib/restart-stack.sh');
 
 const deploySrc = readFileSync(join(SCRIPTS, 'deploy.sh'), 'utf8');
-ok('deploy restarts the stack when the engine binary changed',
-   /md5sum/.test(deploySrc) && /restart_move_stack/.test(deploySrc),
-   'a redeployed dsp.so is not the one running until MoveOriginal is gone');
-ok('and says so loudly when it could not', /RESTART FAILED/.test(deploySrc),
+/* Since WP8 movy-host loads dsp.so at every open, so no Move restart delivers
+ * an engine; what can still run a stale one is movy left OPEN across a deploy. */
+ok('deploy ships the engine to fresh inodes', /dsp\.so\.new/.test(deploySrc) && /mv \$REMOTE\/dsp\.so\.new/.test(deploySrc),
+   'clobbering a mapped dsp.so in place corrupts the running movy-host');
+ok('and says so loudly when movy is open on the old build', /OLD build/.test(deploySrc) && /pidof movy-host/.test(deploySrc),
    'a silent stale engine is what makes a real fix look broken');
 
 /* ── Test 6: a benchmark whose engine writes go nowhere must not report ───────

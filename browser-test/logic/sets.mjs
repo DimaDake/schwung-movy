@@ -98,6 +98,49 @@ export async function run() {
     src.latchSetSource();
     eq('library mode', src.setsDir(), '/data/UserData/UserLibrary/Movy/Sets');
     ok('library mode reported', src.setSourceMovy());
+
+    /* Standalone (WP8): no Move Set to follow, so a stored MOVE is ignored. */
+    const { platform, setPlatformForTest } = await import('../../dist/esm/platform/index.js');
+    const real = platform;
+    try {
+        setPlatformForTest({ ...real, caps: { ...real.caps, coexistsWithMove: false } });
+        setFlag('setsrc', 0);
+        src.latchSetSource();
+        ok('standalone: library mode whatever setsrc says', src.setSourceMovy());
+        eq('standalone: never the legacy tree', src.setsDir(), '/data/UserData/UserLibrary/Movy/Sets');
+    } finally {
+        setPlatformForTest(real);
+        setFlag('setsrc', 1);
+        src.latchSetSource();
+    }
+}
+
+{
+    _log('\nan unwritable library is refused on screen:');
+    const { flagValue } = await import('../../dist/esm/seq/flags.js');
+    const before = flagValue('engpersist');
+    const f = fakeLib();
+    const restore = install(f);
+    try {
+        setFlag('engpersist', 1);
+        lib.resetLib();
+        f.publish();
+        lib.libRefresh();
+        eq('a writable library runs', ls.libraryBlocked(), '');
+        f.publish('save');
+        lib.libRefresh();
+        eq('index not saved: refused with a reason', ls.libraryBlocked(), 'SETS FOLDER NOT WRITABLE');
+        f.publish();
+        lib.libRefresh();
+        eq('a later good save lifts it', ls.libraryBlocked(), '');
+        f.publish('missing');
+        lib.libRefresh();
+        eq('a per-command error is not a blocked library', ls.libraryBlocked(), '');
+    } finally {
+        restore();
+        setFlag('engpersist', before);
+        lib.resetLib();
+    }
 }
 
 {

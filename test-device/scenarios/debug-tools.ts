@@ -65,7 +65,7 @@ scenario('debug-tools', async (t) => {
 
     // ── D1 ──────────────────────────────────────────────────────────────────
     const st = await sh('bash', ['scripts/dev-probe.sh', 'status', t.host]);
-    const wantHost = sa ? 'host: movy-host' : 'host: shadow_ui';
+    const wantHost = sa ? 'movy is open: movy-host' : 'movy is not open';
     t.check('dev-probe-status', 'dev-probe.sh status names the running host and its ui.js is this build',
         st.ok && st.out.includes(wantHost) && st.out.includes('ui.js matches local build'),
         { expected: `${wantHost}, ui.js matches`, actual: st.out.replace(/\x1b\[[0-9;]*m/g, '').trim() });

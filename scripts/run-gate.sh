@@ -19,9 +19,9 @@
 #   ./scripts/run-gate.sh preflight [host]   # is the DEVICE gate itself green?
 #   ./scripts/run-gate.sh device [host]      # the full device tier
 #   ./scripts/run-gate.sh both [host]        # local, then device
-#   ... --flavour sa|overtake|all            # the device half's flavour (default
-#                                            # overtake); `all` runs overtake, then
-#                                            # movy-sa (plan WP7: both must be green)
+#   ... --flavour sa                         # accepted for old command lines; since
+#                                            # WP8 movy IS the standalone module and
+#                                            # the tier has one flavour
 #
 # PREFLIGHT IS THE ONE TO RUN FIRST, before starting an item rather than after
 # finishing it. Three times in one session the tier turned out to be red for its
@@ -31,7 +31,7 @@
 # "is the gate I am about to be judged by green right now".
 set -uo pipefail
 
-FLAVOUR=overtake
+FLAVOUR=sa
 ARGS=()
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -40,7 +40,7 @@ while [ $# -gt 0 ]; do
         *) ARGS+=("$1"); shift;;
     esac
 done
-case "$FLAVOUR" in overtake|sa|all) ;; *) echo "--flavour must be overtake, sa or all"; exit 2;; esac
+case "$FLAVOUR" in sa|standalone) ;; *) echo "--flavour $FLAVOUR: retired at WP8 (movy is a standalone module); only sa"; exit 2;; esac
 MODE="${ARGS[0]:-local}"
 HOST="${ARGS[1]:-move.local}"
 MOVY_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -74,16 +74,7 @@ stage() {
 }
 
 local_gate() { npm test; }
-# One tier per flavour. `all` runs both and is red if either is; the second
-# still runs after a red first, so one verdict carries both answers.
-tier() { if [ "$1" = sa ]; then npm run test:device -- --flavour sa; else npm run test:device; fi; }
-device_tier() {
-    if [ "$FLAVOUR" != all ]; then tier "$FLAVOUR"; return; fi
-    local rc=0
-    stage "device tier: overtake" tier overtake || rc=1
-    stage "device tier: movy-sa" tier sa || rc=1
-    return $rc
-}
+device_tier() { npm run test:device; }
 # The canary, and the reachability check it needs. `smoke` is the scenario that
 # opens the tool, arms its own renderer, turns knobs and reads them back — if
 # the harness is broken, it is broken here.
@@ -92,8 +83,7 @@ preflight() {
         echo -e "${YLW}DEVICE OFFLINE ($HOST) — the device gate cannot run${RST}"
         return 3
     fi
-    if [ "$FLAVOUR" = sa ]; then npm run test:device -- --flavour sa --scenario smoke
-    else npm run test:device -- --scenario smoke; fi
+    npm run test:device -- --scenario smoke
 }
 
 rc=0
@@ -103,7 +93,7 @@ case "$MODE" in
     preflight) stage "device preflight (smoke)" preflight; rc=$?;;
     both)      stage "local suites" local_gate; rc=$?
                [ $rc -eq 0 ] && { stage "device tier" device_tier; rc=$?; };;
-    *) echo "usage: $0 {local|preflight|device|both} [host] [--flavour overtake|sa|all]"; exit 2;;
+    *) echo "usage: $0 {local|preflight|device|both} [host]"; exit 2;;
 esac
 
 echo

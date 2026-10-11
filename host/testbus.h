@@ -6,7 +6,7 @@
 
 /* Starts the bus thread when MOVY_TESTBUS=1 or the harness flag exists. */
 void testbus_start(void);
-/* The harness flag, /dev/shm/.movy-sa-testbus: harness mode for the launcher's
+/* The harness flag, /dev/shm/.movy-testbus: harness mode for the launcher's
  * hold, and a dry run for the power button. */
 int testbus_flag_present(void);
 

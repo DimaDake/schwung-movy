@@ -1,10 +1,20 @@
 # CLAUDE.md — Movy
 
-Movy is a Schwung **tool module** for Ableton Move. The UI (TypeScript →
-`ui.js`) runs in the shadow-UI QuickJS context; it presents the active chain
-slot's synth parameters on the 8 knobs and is also a **native-Move-style
-4-track step sequencer**. The sequencer's musical engine is a **Rust DSP**
-(`dsp.so`) that schwung loads as the co-running overtake DSP.
+Movy is a **standalone** Schwung tool module for Ableton Move (since plan
+WP8, `plans/2026-10-09-standalone-migration.md`): `module.json` says
+`"standalone": true` and carries a `boot_target`. Opening it runs `standalone`
+(`standalone/launch.sh`), which starts **`movy-host`** (`host/`, C, built from
+schwung's C libraries at the pinned tag) in place of Move's software. movy-host
+owns SPI, audio, display, LEDs and the power button, runs the UI (TypeScript →
+`ui.js`) in its own QuickJS, and loads the **Rust engine** (`dsp.so`) through
+`plugin_api_v2`. Design: `docs/standalone/movy-host.md`. Two doors run one
+body: the Tools menu (schwung's `launch-standalone.sh`) and the boot picker
+(`standalone/boot-entry.sh` → `standalone --boot`; movy-host then hands the
+device to Schwung on a quit instead of exiting, `host/handover.h`).
+
+The overtake code (`src/platform/overtake.ts`, `transport-overtake.ts`, the
+`needs: 'move'` scenarios) stays for one release so a user can downgrade; WP9
+deletes it. Nothing on the device runs it any more.
 
 Device: `ableton@move.local`
 
@@ -98,22 +108,18 @@ mirror in the UI.
 - **ENGINE_VERSION must match** between `engine/crates/movy-dsp/src/lib.rs`
   and `src/seq/constants.ts` (`build-dsp.sh` fails the build otherwise). The
   UI probes `ping` and re-issues the DSP load until the version matches.
-- **A redeployed `dsp.so` does NOT hot-reload — the stack must restart.** The
-  shim dlopens the engine by path, and glibc returns the library already loaded
-  under that path for as long as MoveOriginal lives, so the version gate above
-  just loops: it re-issues the load and the shim answers with the old binary.
-  `deploy.sh` therefore restarts the stack whenever the shipped `dsp.so`
-  differs (`--no-restart` opts out, and says loudly that the old engine is
-  still running). The restart must run **as root** — MoveOriginal is root's, so
-  `restart-move.sh` as the `ableton` user pkills nothing and still exits 0.
-  Bumping ENGINE_VERSION once for two different builds hides this completely:
-  both answer `ping` with the same string, and the stale one looks current.
+- **A redeployed `dsp.so` runs from the next movy OPEN, not before.** movy-host
+  loads `dsp.so`, `ui.js` and `chain-host.so` when it starts; a movy-host that
+  is running keeps what it started with (`deploy.sh` says so loudly). "Restart
+  the stack" is now "restart movy-host" — close and reopen movy (the harness's
+  `restart()`); no Move restart, no root. Bumping ENGINE_VERSION once for two
+  different builds still hides a stale engine: both answer `ping` alike.
 - **Engine sets must be blocking** (`host_module_set_param_blocking`): the
   `overtake_dsp:` param SHM is a single slot, so non-blocking writes (and even
   schwung's own DSP-load request) are routinely lost.
-- **Never scp over a dlopen'd `dsp.so` in place** — overwriting a mapped
-  `.so`'s inode corrupts its pages and crashes MoveOriginal. `deploy.sh`
-  ships it scp-to-temp + `mv` (fresh inode).
+- **Never scp over a dlopen'd `dsp.so` (or a running `movy-host`) in place** —
+  overwriting a mapped file's inode corrupts its pages. `deploy.sh` ships
+  scp-to-temp + `mv` (fresh inode); the store's atomic install does the same.
 - Live pad notes are sounded **directly** (`shadow_send_midi_to_dsp`,
   channel = track) for zero latency; the engine only **records** them (no
   double trigger). Recorded notes are suppressed until the clip wraps.
@@ -150,16 +156,17 @@ if you are opus or fable 5 try to optimize token usage and make it cost efficien
 ```bash
 cd engine && cargo test            # pure seq-core logic (host)
 ./scripts/build-dsp.sh             # cross-compile aarch64 → dist/dsp.so (glibc <= 2.35)
-./scripts/deploy.sh                # builds ui.js + dsp.so, deploys both (atomic .so)
-./scripts/deploy.sh --sa           # also movy-sa, the standalone dev flavour (movy-host)
-bash host/tests/run.sh             # movy-host unit tests (in npm test); scripts/test-host-linux.sh under glibc
-npm run test:device -- --flavour sa --scenario smoke   # a scenario on movy-sa (docs/standalone/movy-host.md)
-npm run test:device                # device e2e, every scenario (builds + ships dsp.so and ui.js)
+./scripts/deploy.sh                # builds ui.js + dsp.so + movy-host, deploys to tools/movy (fresh inodes)
+bash host/tests/run.sh             # movy-host unit tests + the boot-door test (in npm test); scripts/test-host-linux.sh under glibc
+npm run test:device -- --scenario smoke   # one scenario (docs/standalone/movy-host.md)
+npm run test:device                # device e2e, every scenario (builds + ships dsp.so, movy-host, ui.js)
+./scripts/build-module.sh          # the store tarball (release build: MOVY_RELEASE=1, no UI_EVAL)
 ```
 
-If MoveOriginal dies, recover with the davebox restart sequence (root SSH;
-the user must run it): stop `move-launcher`, pkill the schwung stack, start
-`move-launcher`.
+If movy-host wedges, the fallback exit (Shift + volume touch + jog click) or
+`kill` of movy-host gives the device back to Move (or, at the boot door, to
+Schwung). Never `kill -9` it at the boot door: that pid is MoveLauncher's
+child, and only movy-host's own exit path hands over.
 
 ---
 
@@ -172,7 +179,6 @@ the user must run it): stop `move-launcher`, pkill the schwung stack, start
 ./scripts/run-gate.sh local       # build + every local suite
 ./scripts/run-gate.sh device      # the full tier
 ./scripts/run-gate.sh both        # local, then device
-./scripts/run-gate.sh both --flavour all   # ...device on overtake AND movy-sa (standalone work)
 ```
 
 It finds the schwung checkout and exports `SCHWUNG=` for the BUILD (the trap

@@ -63,13 +63,13 @@ static void *bus_main(void *arg) {
     return NULL;
 }
 
-/* In /dev/shm so a reboot clears it (launch.sh says why); MOVY_SA_SHM is the
+/* In /dev/shm so a reboot clears it (launch.sh says why); MOVY_SHM is the
  * launcher's selftest override, honoured here so both read one file. */
 int testbus_flag_present(void) {
-    const char *shm = getenv("MOVY_SA_SHM");
+    const char *shm = getenv("MOVY_SHM");
     char flag[300];
     struct stat st;
-    snprintf(flag, sizeof flag, "%s/.movy-sa-testbus", shm && *shm ? shm : "/dev/shm");
+    snprintf(flag, sizeof flag, "%s/.movy-testbus", shm && *shm ? shm : "/dev/shm");
     return stat(flag, &st) == 0;
 }
 

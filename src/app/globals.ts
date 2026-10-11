@@ -33,7 +33,7 @@ import { onResume } from './resume.js';
 import { onUnload } from './unload.js';
 import { openPowerModal } from './leave-modal.js';
 
-/* movy-host calls onPowerButton on a power-button hold (host/surface_keys.h);
+/* movy-host calls onPowerButton on a power-button press (host/surface_keys.h);
  * shadow_ui never does. */
 const onPowerButton = (): void => { openPowerModal(); };
 

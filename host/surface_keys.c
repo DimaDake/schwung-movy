@@ -14,12 +14,13 @@ static const int POWER[4][4] = {
 };
 
 static int g_stage, g_shift, g_vol_touch;
-static int g_power;
+static int g_power, g_ack;
 static uint64_t g_fallback_at;
 
 void surface_keys_reset(void) {
     g_stage = g_shift = g_vol_touch = 0;
     __atomic_store_n(&g_power, 0, __ATOMIC_RELAXED);
+    g_ack = 0;
     __atomic_store_n(&g_fallback_at, 0, __ATOMIC_RELAXED);
 }
 
@@ -34,7 +35,7 @@ static int matches(const uint8_t pkt[4], int stage) {
 
 static void power_feed(const uint8_t pkt[4]) {
     if (matches(pkt, g_stage)) {
-        if (++g_stage == 4) { g_stage = 0; __atomic_add_fetch(&g_power, 1, __ATOMIC_RELEASE); }
+        if (++g_stage == 4) { g_stage = 0; __atomic_add_fetch(&g_power, 1, __ATOMIC_RELEASE); g_ack++; }
         return;
     }
     /* A broken run may itself be the start of the next one. */
@@ -59,3 +60,5 @@ void surface_keys_feed(const uint8_t pkt[4], uint64_t now_ms) {
 int surface_power_take(void) { return __atomic_exchange_n(&g_power, 0, __ATOMIC_ACQ_REL); }
 
 uint64_t surface_fallback_at(void) { return __atomic_load_n(&g_fallback_at, __ATOMIC_ACQUIRE); }
+
+int surface_power_ack_take(void) { int n = g_ack; g_ack = 0; return n; }

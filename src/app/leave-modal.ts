@@ -10,6 +10,7 @@
 
 import { CC_PLAY, CC_REC } from '../seq/constants.js';
 import { platform } from '../platform/index.js';
+import { appState } from './state.js';
 
 export type LeaveAction = 'background' | 'close' | 'poweroff' | 'cancel';
 type ModalKind = 'leave' | 'power';
@@ -101,6 +102,8 @@ export function openPowerModal(): void {
     leaveModalState.active = true;
     leaveModalState.kind   = 'power';
     leaveModalState.sel    = 0;   // default → Power off, confirmed by the jog click
+    /* The host calls this between ticks with no MIDI behind it, so nothing else marks the frame stale. */
+    appState.dirty = true;
 }
 
 export function closeLeaveModal(): void { leaveModalState.active = false; }

@@ -3,8 +3,9 @@
  * on the audio thread, so both work while the UI is wedged in a script.
  *
  * - Power button: no CC or note, only a cable-0 SysEx, F0 00 21 1D 01 01 3A
- *   <id> <val> 00 F7 in four USB-MIDI packets (cin 4,4,4,6), sent on a HOLD
- *   (schwung_shim.c, the power_sysex lookahead). Under the shim MoveOriginal
+ *   <id> <val> 00 F7 in four USB-MIDI packets (cin 4,4,4,6), sent on a tap or a hold
+ *   (schwung_shim.c, the power_sysex lookahead), and only ONCE per launch unless
+ *   answered with F0 00 21 1D 01 01 39 02 F7 (audio.c; observed from stock Move). Under the shim MoveOriginal
  *   owns it; here movy-host is the only reader, and hands it to the UI's
  *   onPowerButton (the shutdown dialog, src/app/leave-modal.ts).
  * - Fallback exit: Shift + volume-knob touch + jog click, shadow_ui's own
@@ -20,8 +21,12 @@
 /* Audio thread: one cable-0 packet. */
 void surface_keys_feed(const uint8_t pkt[4], uint64_t now_ms);
 
-/* UI thread: power-button holds since the last call. */
+/* UI thread: power-button presses (tap or hold) since the last call. */
 int surface_power_take(void);
+
+/* Audio thread: power events not yet answered. Move answers each one with a SysEx; the
+ * hardware stops reporting the button until it gets it (device-observed, stock Move). */
+int surface_power_ack_take(void);
 
 /* When the fallback combo fired (0 = never). */
 uint64_t surface_fallback_at(void);

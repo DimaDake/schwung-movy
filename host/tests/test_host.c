@@ -148,8 +148,10 @@ static void test_surface_keys(void) {
     power_sysex(0x3A);
     CHECK(surface_power_take() == 1, "a power-button hold is one event");
     CHECK(surface_power_take() == 0, "taken once");
+    CHECK(surface_power_ack_take() == 1 && surface_power_ack_take() == 0, "each power event is owed exactly one reply");
     power_sysex(0x3B);   /* the LED SysEx's command byte: not the button */
     CHECK(surface_power_take() == 0, "another SysEx with the same head is not the button");
+    CHECK(surface_power_ack_take() == 0, "and is not answered");
     feed(0x04, 0xF0, 0x00, 0x21); feed(0x0B, 0xB0, 49, 127);   /* broken by a CC */
     feed(0x04, 0x1D, 0x01, 0x01); feed(0x04, 0x3A, 0x07, 0x7F); feed(0x06, 0x00, 0xF7, 0x00);
     CHECK(surface_power_take() == 0, "a run broken by another event does not count");

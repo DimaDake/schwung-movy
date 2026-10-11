@@ -38,7 +38,7 @@ volume, on any of the 16 tracks, exactly as before.
 
 ### Powering off
 
-Hold the **power button** as you would on Move. Movy asks **Power off?**:
+Tap the **power button**. Movy asks **Power off?**:
 click the jog wheel to confirm, or turn to **Cancel** (or press **Back**) to
 carry on. On confirm movy saves the Set first, then the device shuts down.
 Nothing powers off from the button alone.

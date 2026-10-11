@@ -2136,8 +2136,10 @@ _log('\napp-loop: Power button (standalone) — ask first, power off only on the
 
         setPlatformForTest(standalonePlatform);
         resetApp();
+        (await import('../dist/esm/app/state.js')).appState.dirty = false;
         globalThis.onPowerButton();
         eq('the power button opens the dialog', leaveModalActive(), true);
+        eq('and marks the frame dirty so it is drawn', (await import('../dist/esm/app/state.js')).appState.dirty, true);
         eq('titled Power off?', leaveModalTitle(), 'Power off?');
         eq('it offers Power off, then Cancel', leaveModalLabels().join(','), 'Power off,Cancel');
         eq('nothing powers off on the button alone', off, 0);

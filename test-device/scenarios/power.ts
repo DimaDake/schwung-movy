@@ -9,7 +9,7 @@
  *
  * Covers:
  *   P1 the Leave menu offers Close Movy only (no Background without Move)
- *   P2 a power-button hold opens "Power off?" and powers nothing off by itself
+ *   P2 a power-button press opens "Power off?" and powers nothing off by itself
  *   P3 Cancel keeps movy running
  *   P4 Power off closes cleanly, then asks for Power.shutDown (dry run)
  *   P5 Shift + volume touch + jog click is a clean exit
@@ -60,9 +60,21 @@ scenario('power', async (t) => {
     await t.tx.frames(20);
 
     // ── P2: the power button asks ───────────────────────────────────────────
+    /* Stock Move answers every power event with F0 00 21 1D 01 01 39 02 F7; without it the
+     * hardware reports the button once per launch and goes quiet. Two presses, two answers. */
+    const hb = t.tx.hostBus!;
+    await hb.subscribeMidiOut();
+    await hb.dumpMidiOut();
+    await press();
+    await press();
+    const acks = (await hb.dumpMidiOut()).filter((e) => e.bytes[0] === 0x07 && e.bytes[1] === 0x39 && e.bytes[2] === 0x02 && e.bytes[3] === 0xF7);
+    t.check('power-ack', 'each power-button press is answered with the hardware SysEx 39 02',
+        acks.length === 2, { expected: '2 answers on the midi_out tap', actual: String(acks.length) });
+    await dev.tap.cc(CC_BACK);
+    await t.tx.frames(20);
     await press();
     const pm = await leave();
-    t.check('power-dialog', 'a power-button hold opens "Power off?" and nothing else happens',
+    t.check('power-dialog', 'a power-button press opens "Power off?" and nothing else happens',
         pm.active && pm.title === 'Power off?' && pm.label === 'Power off' && (await t.tx.running()),
         { expected: 'Power off? with Power off selected, movy still running', actual: JSON.stringify(pm) });
 

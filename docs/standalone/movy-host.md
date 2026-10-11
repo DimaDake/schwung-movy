@@ -44,7 +44,7 @@ overlap. Supporting modules:
   the crash handler writes what the writer has not reached before the
   backtrace.
 - `surface_keys.c`: the two gestures movy-host answers below the UI. The
-  **power button** (a cable-0 SysEx, `F0 00 21 1D 01 01 3A …`, sent on a hold)
+  **power button** (a cable-0 SysEx, `F0 00 21 1D 01 01 3A …`, sent on a tap or a hold; the host must answer each one with `F0 00 21 1D 01 01 39 02 F7`, as stock Move does, or the hardware reports only the first press per launch)
   calls the UI's `onPowerButton`, which asks "Power off?"; confirming calls
   `host_power_off`, movy-host shuts down cleanly (onUnload saves), then
   `power.c` calls `com.ableton.system` `Power.shutDown` over D-Bus — Move's own

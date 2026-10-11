@@ -98,6 +98,12 @@ static void *audio_main(void *arg) {
     uint8_t out[MIDI_OUT_PER_FRAME][4], notes[64][4];
     int fade = 0;
     while (!g_stop) {
+        /* F0 00 21 1D 01 01 39 02 F7: what stock Move sends for every power-button event. Unanswered,
+         * the hardware reports the button once per launch and then goes quiet. */
+        for (int a = surface_power_ack_take(); a > 0; a--) {
+            static const uint8_t ack[3][4] = { { 0x04, 0xF0, 0x00, 0x21 }, { 0x04, 0x1D, 0x01, 0x01 }, { 0x07, 0x39, 0x02, 0xF7 } };
+            for (int i = 0; i < 3; i++) midi_out_send_audio(ack[i]);
+        }
         int nout = midi_out_take(out);
         memcpy(map + SCHWUNG_OFF_OUT_MIDI, out, (size_t)nout * 4);
         for (int i = 0; i < nout; i++) midi_tap_record(g_frame + 1, out[i]);

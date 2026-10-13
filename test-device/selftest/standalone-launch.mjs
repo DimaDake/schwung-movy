@@ -97,7 +97,7 @@ ok('a failed launch does not wedge the next one', calls === 4, `ran ${calls}`);
         let alive = true, started = false;
         tx.ssh = async (user, cmd) => {
             if (user === 'root') { root.push(cmd); if (/kill -TERM/.test(cmd)) alive = false; if (/move start/.test(cmd)) started = true; return ''; }
-            if (cmd.startsWith('pidof movy-host')) return alive ? '4242\n' : '\n';
+            if (cmd.includes('pidof movy-host')) return alive ? '4242\n' : '\n';   // HOST_PIDS
             if (cmd.startsWith('awk')) return age + '\n';
             if (cmd.startsWith('tr ')) return cmdline;
             return '';

@@ -37,7 +37,8 @@ wrong:
   occupies part of it.
 
 Found by ramping obxd from 0 to 12 chains, 4-note chords held
-(`scripts/measure-work-ceiling.sh`):
+(`scripts/measure-work-ceiling.sh`, overtake; deleted in WP11 — on movy-host the
+budget is measured by `measure-render-pool.mjs ceiling`, §8):
 
 | chains | work (`pre`+`post`) | `total` | |
 |---|---|---|---|
@@ -549,6 +550,59 @@ The audio thread pays for the snapshot: formatting `status` costs ~49 µs, so
 publishing it every block took the frame average to 157 µs. Every third block
 (~115 Hz, still above the UI's parse rate) costs +14 µs on average.
 
+### WP11: four lanes, the audio core, and the edge (2026-10-13)
+
+`scripts/measure-render-pool.mjs` (replaces `measure-chain-balance.sh` and
+`measure-work-ceiling.sh`, which drove the shim), engine 0.94.0. Plan:
+`plans/2026-10-13-wp11-latency-cpu-retune.md`.
+
+**Lanes.** The engine's lane count can now be switched in a running engine
+(`chlanes`, a diagnostic), so each set is measured A/B/A/B while it sounds.
+Render wall, mean µs per block:
+
+| set (chords held in every chain) | 3 lanes | 4 lanes |
+|---|---|---|
+| 12 even chains (obxd, noisemaker) | 1030 | **805** |
+| 12 mixed chains (helm-bound: helm alone is 1216) | 1290 | **1250** |
+| the 12 even + osirus + minijv sounding | 1488 | **1247** |
+
+The serial cost barely moves with the fourth lane (2938 → 2985 µs): the
+contention that made a fourth lane lose under overtake was Move's own FIFO 70
+workers, which do not run beside movy-host. Default is now 4 (one per core).
+
+**The audio core.** A module that forks from a chain load inherits the audio
+thread's core pin and FIFO 70: osirus's DSP process sat on core 3 at the audio
+thread's own priority. One Virus playing cost ~200 late transfers per 3.2 s
+with the frame's own work under 1050 µs; moved to cores 0-2, 0-2. movy-host
+now does that move itself (`host/placement.c`); the set saver, which had the
+same inheritance, names itself and leaves the core.
+
+**What an overrun looks like.** Serial render of the even set (2963 µs of work
+per 2902 µs frame) never skips a frame: the transfer runs late and the block
+rate falls to 293.7 Hz, about 15 % of the audio missing. So movy-host counts a
+transfer as late when it comes more than 1/16 frame after the last one
+(`STATE late_frames`), and reports the slack it had (`pump_min_us`: boundary
+wait + ~400 µs DMA).
+
+**The edge.** Surge ramps, one chain per step, 4- and 6-note chords: clean up
+to a render wall of 0.65 of the block (frame work max 2388 µs), late from 0.76
+(work max 2822 µs, 1.9 % late; 5 % at 0.80). The CPU page's `USABLE_BLOCK`
+(0.70) sits inside that bracket and stays; its reason changed (see
+`cpu-page-vm.ts`).
+
+**Pad to sound and the UI** (`measure-ui-ipc.mjs`, fixture playing): pad 1
+block (max 1, 20/20); tick 422 Hz, IPC 0.4 ms/tick, chains wall 60 µs, frame
+work 125 / 303 µs. WP11's "audio-thread pad fast path" was already true: since
+WP6 the pads reach the engine before the frame's render.
+
+**Not done: chain loads still run on the audio thread.** The slow-frame log now
+splits render from params. At an open: the chain host 23 ms (param), a surge
+load **237 ms** (dlopen 120 + init 114, inside render), mrdrums 65 ms, a state
+restore 25 ms. A surge loaded mid-session stalls the audio for ~150 ms. Moving
+loads off the audio thread needs a lock-free hand-over of chain state and a
+rule for a module loading in one chain while the same module renders in
+another (the pin policy's hazard); it is its own design, not a retune.
+
 ## 9. Caveats
 
 - **Preset and kit choice dominate.** Every figure is "this synth, this preset",
@@ -563,7 +617,7 @@ publishing it every block took the frame average to 157 µs. Every third block
 ## Scripts
 
 ```bash
-scripts/measure-work-ceiling.sh    # the ~2000 us budget
+scripts/measure-render-pool.mjs    # movy-host: lane A/B and the late-frame edge (WP11)
 scripts/stress-16-tracks.sh        # all 12 chains, with sounding verification
 scripts/bench-chain-cpu.sh         # per-synth slope from 4 chains
 scripts/bench-all-tracks.sh        # host slots vs movy chains

@@ -20,6 +20,7 @@ mod chain_pin;
 mod chain_colo;
 mod render_plan;
 mod render_pool;
+mod threads;
 mod load_queue;
 mod mixer;
 mod auto_lane;
@@ -135,7 +136,7 @@ pub(crate) fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.93.0";
+const ENGINE_VERSION: &str = "0.94.0";
 
 /* Blocks between autosaves. The callback runs at ~344 Hz, so this is ~2 s —
  * flash on this device is not free and the sequencer is dirty constantly while
@@ -333,12 +334,12 @@ impl Instance {
             /* `chcostlog` — log what each chain cost per block, then start a
              * fresh window. Same write-to-read trick as `chpeaklog`; the reset
              * is what lets a benchmark discard the load phase and measure only
-             * the settled set. Read by scripts/measure-chain-balance.sh. */
+             * the settled set. Read by scripts/measure-render-pool.mjs. */
             "chcostlog" => {
                 host::log(&format!("chain cost: {}", self.chains.cost_report()));
             }
             /* `cpurst` — clear the CPU page's held peaks. Deliberately NOT
-             * `chcostlog`: that closes the window `measure-chain-balance.sh`
+             * `chcostlog`: that closes the window `measure-render-pool.mjs`
              * owns, and a peak the user is looking at must survive a device
              * script reading the log. */
             "cpurst" => {
@@ -404,6 +405,12 @@ impl Instance {
              * drives can write but not read (see scripts/engine-param.mjs), so a
              * write that makes the engine log is the only way to observe a movy
              * chain's internals from outside. Mirrors `chpeaklog`. */
+            "chlanes" => {
+                if let Ok(n) = val.parse::<usize>() {
+                    self.chains.set_lane_count(n);
+                    host::log(&format!("chain lanes: {}", self.chains.render_report()));
+                }
+            }
             "chlfolog" => {
                 let slot: usize = val.parse().unwrap_or(0);
                 host::log(&format!("chain {} lfos: {}", slot, self.chains.lfo_report(slot)));

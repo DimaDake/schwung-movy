@@ -474,7 +474,15 @@ impl Saver {
         }));
         let w = Arc::clone(&shared);
         let r = root.to_string();
-        std::thread::spawn(move || worker(r, w, rx));
+        /* Spawned from `set_param`, so from the audio thread on movy-host:
+         * named and moved off its core rather than inheriting both. */
+        std::thread::Builder::new()
+            .name("movy-saver".into())
+            .spawn(move || {
+                crate::threads::leave_audio_core();
+                worker(r, w, rx)
+            })
+            .expect("set saver thread");
         Saver { tx, shared, root: root.to_string() }
     }
 

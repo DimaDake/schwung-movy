@@ -159,6 +159,28 @@ locked before the audio thread starts: a `mlockall` with audio live stalled one
 frame for 85 ms. With no usable helper movy-host runs degraded and says so
 (`rt: … DEGRADED`, `STATE rt=other`).
 
+## Core placement (WP11)
+
+Core 3 is the audio core: `movy-audio` is pinned there and renders lane 0;
+the engine's three render helpers (`movy-render0..2`, FIFO 68) and its
+`movy-saver` keep to cores 0-2, and the UI, log and bus threads float. A
+thread or process started from the audio thread inherits its pin, and a fork
+its FIFO 70 too — osirus (Virus) forks its DSP emulator from a chain load, and
+that process then held core 3 at the audio thread's own priority: ~200 late
+transfers per 3 s with one Virus playing. `placement.c` walks movy-host's
+tasks and its children's once a second (from the UI loop) and moves any task
+pinned to core 3 alone, other than the audio thread, to 0-2 with its policy
+unchanged (`placement: … moved to 0-2` in the log). With it, the same Virus
+plays with 0-1 late transfers.
+
+`frame_stats.c` keeps the frame's numbers for `STATE`: work avg/max, the
+shortest SPI call (`pump_min_us`, boundary wait + ~400 µs DMA) and the longest
+gap, and `late_frames` (`frame_clock.h`). An overrun never skips a frame: the
+transfer runs late and the block rate falls (serial render of an over-budget
+set ran at 293.7 Hz, not 344.5), so lateness is a gap more than 1/16 frame
+past 2902 µs. The slow-frame log (`audio: slow frame`, > 10 ms) splits the
+frame into render and params and names the slowest param, not the last.
+
 ## Measured on device (2026-10-10, schwung 1.7.3)
 
 | | |

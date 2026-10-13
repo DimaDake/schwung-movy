@@ -4,7 +4,8 @@ How many **movy-hosted tracks** (5-16) can run a given synth, at a given
 polyphony, before the audio frame stops keeping up.
 
 Measured on device 2026-08-15 by `scripts/bench-chain-cpu.sh` (per-synth cost)
-and `scripts/measure-work-ceiling.sh` (the budget itself).
+and `scripts/measure-work-ceiling.sh` (the budget itself; overtake-only, replaced
+in WP11 by `scripts/measure-render-pool.mjs ceiling`).
 
 > Tracks 1-4 are Schwung's own and cost movy **nothing** — the host renders them.
 > Everything here is about the twelve chains movy hosts itself.
@@ -189,7 +190,7 @@ Where the answer is marginal, run the stress test rather than trusting the slope
 
 ```bash
 ./scripts/bench-chain-cpu.sh move.local 4 obxd surge helm   # per-synth cost
-./scripts/measure-work-ceiling.sh move.local obxd 12        # the budget itself
+node scripts/measure-render-pool.mjs ceiling move.local --module obxd   # the budget itself (movy-host)
 ```
 
 Both need movy open on the device with the debug log enabled.

@@ -27,6 +27,12 @@ const ageOf = (pid: string) =>
 const moveAge = `P=$(pidof MoveOriginal | cut -d' ' -f1); [ -n "$P" ] && ${ageOf('$P')} || echo 0`;
 const markHealthy = `read -r id _ < ${BOOT_TARGETS}/.boot-attempt 2>/dev/null `
     + `&& [ -d "${BOOT_TARGETS}/$id" ] && touch "${BOOT_TARGETS}/$id/healthy"; true`;
+/* The movy-host PROCESS, never a module's child: osirus forks its DSP from
+ * the audio thread, and the fork runs the same executable, so `pidof
+ * movy-host` lists it too (and as the FIRST pid). The harness then TERMed the
+ * child and waited 12 s for a host that was never asked to stop (WP11). A
+ * fork keeps the executable but not the main thread's name. */
+const HOST_PIDS = `for p in $(pidof movy-host); do [ "$(cat /proc/$p/comm 2>/dev/null)" = movy-host ] && echo $p; done; true`;
 const HOLD_PIDF = '/dev/shm/.movy-launcher';
 const HOLD = '/dev/shm/.movy-hold';
 const HOLD_CMD = '/dev/shm/.movy-cmd';
@@ -35,7 +41,7 @@ const HOLD_CMD = '/dev/shm/.movy-cmd';
  * hold yet) or `none` (no launcher: Move's side). Written as ableton, so a
  * later launcher of either uid can remove it from the sticky /dev/shm. */
 const holdSend = (cmd: 'go' | 'quit') =>
-    `if pidof movy-host >/dev/null; then echo up; `
+    `if [ -n "$(${HOST_PIDS})" ]; then echo up; `
     + `elif [ -e ${HOLD} ]; then echo ${cmd} > ${HOLD_CMD}; echo sent; `
     + `else P=$(cat ${HOLD_PIDF} 2>/dev/null); `
     + `if [ -n "$P" ] && grep -q tools/movy/standalone /proc/$P/cmdline 2>/dev/null; then echo wait; else echo none; fi; fi`;
@@ -101,7 +107,7 @@ export class StandaloneTransport implements Transport {
         if (await this.running()) {
             await this.call((bus) => bus.send('EXIT')).catch(() => {});
             await this.waitFor('movy-host to exit',
-                async () => (await this.ssh('ableton', 'pidof movy-host || true')).trim() === '', 5000)
+                async () => (await this.ssh('ableton', HOST_PIDS)).trim() === '', 5000)
                 .catch(() => {});
         }
         this.bus?.close();
@@ -144,14 +150,14 @@ export class StandaloneTransport implements Transport {
      * Tools-door one's launcher brings Move back: the Move way below.
      * false = none was running. */
     private async adoptForeignHost(): Promise<boolean> {
-        const pid = (await this.ssh('ableton', 'pidof movy-host || true')).trim().split(/\s+/)[0];
+        const pid = (await this.ssh('ableton', HOST_PIDS)).trim().split(/\s+/)[0];
         if (!pid || Object.keys(await this.state()).length) return false;
         /* One of ours between exec and its bus's listen() looks the same. */
         if (Number((await this.ssh('ableton', ageOf(pid))).trim()) < 3) return false;
         const boot = (await this.ssh('ableton', `tr '\\0' ' ' < /proc/${pid}/cmdline 2>/dev/null || true`)).includes('--boot');
         await this.ssh('root', `${boot ? '/etc/init.d/move stop >/dev/null 2>&1; ' : ''}kill -TERM ${pid} 2>/dev/null; true`);
         await this.waitFor('the busless movy-host to exit',
-            async () => (await this.ssh('ableton', 'pidof movy-host || true')).trim() === '', 12000);
+            async () => (await this.ssh('ableton', HOST_PIDS)).trim() === '', 12000);
         if (!boot) return false;
         await this.ssh('root', `touch ${TESTBUS_FLAG}; chown ableton:users ${TESTBUS_FLAG}; /etc/init.d/move start >/dev/null 2>&1; true`);
         await this.waitFor('movy-host to run with its engine (boot door, restarted)', async () => {
@@ -289,8 +295,8 @@ export class StandaloneTransport implements Transport {
          * restarted after a crash re-enters the selector and boots movy, so
          * shadow_ui never comes (testbus/power waited out 90 s, 2026-10-11). */
         await this.waitFor('Move to be back (shadow_ui up) or movy to boot',
-            async () => (await this.ssh('ableton', 'pidof shadow_ui movy-host || true')).trim() !== '', 90000);
-        if ((await this.ssh('ableton', 'pidof movy-host || true')).trim()) {
+            async () => (await this.ssh('ableton', `pidof shadow_ui; ${HOST_PIDS}`)).trim() !== '', 90000);
+        if ((await this.ssh('ableton', HOST_PIDS)).trim()) {
             if (await this.adoptForeignHost()) return;
             await this.waitFor('the booted movy-host to run with its engine', async () => {
                 const st = await this.state();
@@ -332,7 +338,7 @@ export class StandaloneTransport implements Transport {
             this.bus?.close();
             this.bus = null;
             await this.waitFor('movy-host to exit',
-                async () => (await this.ssh('ableton', 'pidof movy-host || true')).trim() === '', 5000);
+                async () => (await this.ssh('ableton', HOST_PIDS)).trim() === '', 5000);
         }
         await this.launch();
         const after = pidOf(await this.ping());

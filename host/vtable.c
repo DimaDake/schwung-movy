@@ -6,6 +6,7 @@
 
 #include "log.h"
 #include "midi_out.h"
+#include "movy_host.h"
 #include "param_bulk.h"
 #include "status_snap.h"
 #include "plugin_api_v1.h"
@@ -15,6 +16,9 @@
 static pthread_mutex_t g_mu = PTHREAD_MUTEX_INITIALIZER;
 static plugin_api_v2_t *g_api;
 static void *g_inst;
+/* The frame's slowest request, for the slow-frame log. Reset per frame. */
+static char g_slow_key[PQ_KEY_CAP];
+static uint64_t g_slow_us;
 
 static void host_log(const char *msg) { mh_log_src("movy-dsp", "%s", msg); }
 
@@ -80,7 +84,7 @@ int engine_load(const char *dsp_path, const char *module_dir) {
 
 int engine_loaded(void) { return __atomic_load_n(&g_inst, __ATOMIC_ACQUIRE) != NULL; }
 
-void engine_frame_begin(void) { pthread_mutex_lock(&g_mu); }
+void engine_frame_begin(void) { pthread_mutex_lock(&g_mu); g_slow_us = 0; g_slow_key[0] = '\0'; }
 void engine_frame_end(void) { pthread_mutex_unlock(&g_mu); }
 
 void engine_on_midi(const uint8_t *msg, int len) {
@@ -107,15 +111,25 @@ static void set_one(void *ctx, const char *key, const char *val) {
     if (g_api->set_param) g_api->set_param(g_inst, key, val);
 }
 
-static char g_last_key[PQ_KEY_CAP];
-const char *engine_last_key(void) { return g_last_key; }
+const char *engine_slowest_key(void) { return g_slow_key; }
+uint64_t engine_slowest_us(void) { return g_slow_us; }
+
+static void service_one(pq_req_t *r);
 
 /* Called inside engine_frame_begin/end, so g_api cannot change under it. */
 void engine_service(void *ctx, pq_req_t *r) {
     (void)ctx;
-    r->result = -1;
-    snprintf(g_last_key, sizeof g_last_key, "%s",
+    uint64_t t0 = mh_now_us();
+    service_one(r);
+    uint64_t us = mh_now_us() - t0;
+    if (us < g_slow_us) return;
+    g_slow_us = us;
+    snprintf(g_slow_key, sizeof g_slow_key, "%s",
              r->kind == PQ_BULK_GET ? "(bulk get)" : r->kind == PQ_BULK_SET ? "(bulk set)" : r->key);
+}
+
+static void service_one(pq_req_t *r) {
+    r->result = -1;
     if (!g_api || !g_inst) return;
     switch (r->kind) {
     case PQ_GET: r->result = get_one(NULL, r->key, r->value, PQ_VALUE_CAP); break;

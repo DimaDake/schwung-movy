@@ -7,6 +7,7 @@
 #include <unistd.h>
 
 #include "audio.h"
+#include "frame_stats.h"
 #include "display.h"
 #include "log.h"
 #include "midi_in.h"
@@ -84,11 +85,13 @@ static int state(tb_reply_t *o) {
     unsigned long long f = (unsigned long long)audio_frame();
     uint32_t wavg, wmax;
     audio_work_us(&wavg, &wmax);
+    uint32_t pmin, gmax;
+    audio_pump_us(&pmin, &gmax);
     return reply(o, "OK frame=%llu running=%d engine_ready=%d inject_queued=%u uid=%d rt=%s "
                     "param_depth=%d ui_dropped=%u overtake_mode=%d shim_counter=%llu "
-                    "work_avg_us=%u work_max_us=%u",
+                    "work_avg_us=%u work_max_us=%u pump_min_us=%u gap_max_us=%u late_frames=%u",
                  f, run, engine_loaded(), midi_in_inject_queued(), (int)getuid(), rt_state(),
-                 pq_depth(), midi_in_ui_dropped(), run ? 2 : 0, f, wavg, wmax);
+                 pq_depth(), midi_in_ui_dropped(), run ? 2 : 0, f, wavg, wmax, pmin, gmax, audio_late_frames());
 }
 
 int testbus_handle(const char *line, tb_reply_t *o) {

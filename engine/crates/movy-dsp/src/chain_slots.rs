@@ -42,18 +42,21 @@ pub const MOVY_CHAINS: usize = 16;
 /// happen on the audio thread.
 const SCRATCH_SAMPLES: usize = 128 * 2;
 
-/// Lanes including the audio thread's own, so `LANES - 1` helpers.
-/// Three was the design point from `plans/2026-08-22-chain-balance-measurement.md`
-/// — 2.98x against a 3.11x ceiling, with a fourth worker worth 0.13x.
+/// Lanes including the audio thread's own, so `LANES - 1` helpers: one per
+/// core. The audio thread renders lane 0 on core 3, the helpers take 0-2.
 ///
-/// That pricing assumed the chains cost the same however many render at once,
-/// and D1 has since measured them costing **27% more** with three lanes running
-/// (`plans/2026-08-23-parallel-render-prototype.md` §6) — a lane is a *cost* to
-/// the other lanes as well as a gain. Three was therefore swept on the device
-/// rather than assumed, and it won: a fourth lane puts the helpers in
-/// competition for the cores Move's own FIFO 70 workers need immediately after
-/// us, and lost to the rendezvous overhead it added.
-const LANES: usize = 3;
+/// Three was the overtake answer, where a fourth lane competed with Move's own
+/// FIFO 70 workers for the cores they needed right after movy's render. On
+/// movy-host those workers do not exist, and re-swept on the device (WP11,
+/// `scripts/measure-render-pool.mjs lanes`, A/B/A/B on one sounding set):
+/// twelve even chains 1030 -> 805 us of render wall, the serial cost unmoved
+/// (+1.6 %); a helm-bound mixed set 1290 -> 1250 (its largest chain is the
+/// floor); with osirus and minijv sounding beside them 1488 -> 1247. No late
+/// frames in any arm.
+const LANES: usize = 4;
+
+/// The most lanes `chlanes` may ask for: one per core.
+const MAX_LANES: usize = 4;
 
 /// Blocks between replans. The plan follows measured cost, which only exists
 /// after chains have rendered, so it cannot be fixed at load time — but
@@ -348,11 +351,13 @@ impl ChainSlots {
         match ChainHost::load(so_path) {
             Ok(h) => {
                 self.host = Some(h);
-                /* The one place the helpers may be spawned: `configure` is a
-                 * param set, called once and never from a render. Spawning is
-                 * blocking, so the audio thread can never be where it happens —
-                 * and until it has, `parallel_ready` keeps the render serial. */
-                self.pool = Some(RenderPool::new(LANES - 1, RENDER_SLOTS));
+                /* The one place the helpers are spawned (and `chlanes`, a
+                 * diagnostic): `configure` is a param set, called once and never
+                 * from a render. movy-host services params between blocks on its
+                 * audio thread, so this costs one slow frame at the open, under
+                 * the output's fade-in; until it has run, `parallel_ready` keeps
+                 * the render serial. */
+                self.pool = Some(RenderPool::new(self.lanes.len() - 1, RENDER_SLOTS));
             }
             Err(e) => {
                 // Degrade, never panic: movy must keep sequencing its four host
@@ -361,6 +366,27 @@ impl ChainSlots {
                 self.host_failed = true;
             }
         }
+    }
+
+    /// `chlanes`, a diagnostic: change the lane count in a running engine, so
+    /// one movy-host session can A/B it on the same Set (WP11's sweep). The
+    /// frame that applies it joins and spawns the helpers, so it is a slow
+    /// frame; nothing in normal use sends it.
+    pub fn set_lane_count(&mut self, n: usize) {
+        let n = n.clamp(1, MAX_LANES);
+        if n == self.lanes.len() {
+            return;
+        }
+        self.planner = Planner::new(MOVY_CHAINS, n);
+        self.lanes = (0..n).map(|_| Vec::with_capacity(MOVY_CHAINS)).collect();
+        self.send_planner = Planner::new(SEND_BUSES, n);
+        self.send_lanes = (0..n).map(|_| Vec::with_capacity(SEND_BUSES)).collect();
+        if self.pool.take().is_some() {
+            self.pool = Some(RenderPool::new(n - 1, RENDER_SLOTS));
+        }
+        // An empty plan would leave every chain unrendered until the next
+        // scheduled replan, ~3 s away.
+        self.plan_dirty = true;
     }
 
     pub fn is_available(&self) -> bool {
@@ -2354,6 +2380,19 @@ mod tests {
         assert_eq!(slots.send_planner.lane_count(), LANES, "the send phase plans the same lanes");
         assert_eq!(slots.send_lanes.len(), LANES);
         assert!(slots.render_report().contains(&format!("lanes={LANES}")));
+    }
+
+    #[test]
+    fn a_changed_lane_count_resizes_everything_sized_by_it() {
+        let mut slots = ChainSlots::new();
+        for (asked, got) in [(4, 4), (9, MAX_LANES), (0, 1), (LANES, LANES)] {
+            slots.set_lane_count(asked);
+            assert_eq!(slots.planner.lane_count(), got);
+            assert_eq!(slots.lanes.len(), got);
+            assert_eq!(slots.send_planner.lane_count(), got);
+            assert_eq!(slots.send_lanes.len(), got);
+            assert!(slots.render_report().contains(&format!("lanes={got}")));
+        }
     }
 
     /// Spawning blocks, so it may never happen on the audio thread — which is

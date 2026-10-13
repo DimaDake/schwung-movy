@@ -11,6 +11,7 @@ static int fails, checks;
 
 void mh_log(const char *fmt, ...) { (void)fmt; }
 void mh_log_src(const char *src, const char *fmt, ...) { (void)src; (void)fmt; }
+uint64_t mh_now_us(void) { return 0; }
 
 int main(int argc, char **argv) {
     if (argc < 2 || !engine_load(argv[1], ".")) { printf("test_vtable: cannot load the fake engine\n"); return 1; }

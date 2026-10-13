@@ -141,7 +141,7 @@ impl CostMeter {
     /// `blocks=<n> worst=<ns> wall=<mean>/<max> cost=<mean>/<max>,...` —
     /// nanoseconds, one `cost` pair per chain.
     ///
-    /// `wall` stays ahead of `cost=` because `measure-chain-balance.sh` reads
+    /// `wall` stays ahead of `cost=` because `measure-render-pool.mjs` reads
     /// the chain pairs as everything after `cost=`.
     ///
     /// **Reading resets the window.** Successive reads are disjoint, so a
@@ -256,7 +256,7 @@ mod tests {
         );
     }
 
-    /// `measure-chain-balance.sh` takes the per-chain pairs as everything after
+    /// `measure-render-pool.mjs` takes the per-chain pairs as everything after
     /// `cost=`, so a field appended after it would be parsed as chain 0's cost
     /// and silently corrupt every balance measurement.
     #[test]

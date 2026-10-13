@@ -451,13 +451,13 @@ fn configure_thread(lane: usize) {
     set_flush_to_zero();
     #[cfg(target_os = "linux")]
     {
-        // Cores 0-2. Core 3 belongs to Move's SPI audio thread and schwung's
-        // realtime doc forbids putting compute there.
-        let mask: u64 = 0x7;
-        let aff = unsafe { sched_setaffinity(0, core::mem::size_of::<u64>(), &mask) };
-        // Below Move's own FIFO 70 workers, so a helper can never preempt the
-        // audio callback. The price is that Move can preempt US, which is what
-        // `joins_yielded_blocks` counts.
+        // Cores 0-2: core 3 is movy-host's audio thread, which renders lane 0.
+        let aff = crate::threads::leave_audio_core();
+        // FIFO 68, under the audio thread's 70. The two never share a core, so
+        // the order between them is moot; what 68 buys is that a helper always
+        // preempts the UI and the saver (SCHED_OTHER) on cores 0-2. Move's
+        // FIFO 70 workers, which this used to sit under, do not run beside
+        // movy-host.
         let param = SchedParam { sched_priority: 68 };
         let sch = unsafe { sched_setscheduler(0, SCHED_FIFO, &param) };
         if aff != 0 || sch != 0 {
@@ -497,7 +497,6 @@ struct SchedParam {
 
 #[cfg(target_os = "linux")]
 extern "C" {
-    fn sched_setaffinity(pid: i32, len: usize, mask: *const u64) -> i32;
     fn sched_setscheduler(pid: i32, policy: i32, param: *const SchedParam) -> i32;
 }
 

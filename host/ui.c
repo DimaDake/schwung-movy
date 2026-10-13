@@ -11,6 +11,7 @@
 #include "midi_out.h"
 #include "movy_host.h"
 #include "quickjs-libc.h"
+#include "placement.h"
 #include "rt.h"
 #include "surface_keys.h"
 #include "ui.h"
@@ -116,6 +117,7 @@ int ui_run(const char *ui_path) {
         }
         display_publish(tick);
         rt_poll();
+        placement_poll();
         sleep_to(&next);
     }
     __atomic_store_n(&g_mh_ui_running, 0, __ATOMIC_RELEASE);

@@ -33,7 +33,7 @@ MOVY_DIR="$(pwd)"
 # shellcheck source=lib/test-set.sh
 source "$MOVY_DIR/scripts/lib/test-set.sh"
 LOG=/data/UserData/schwung/debug.log
-# Work budget per frame, MEASURED not assumed (scripts/measure-work-ceiling.sh,
+# Work budget per frame, MEASURED not assumed (scripts/measure-render-pool.mjs ceiling,
 # recorded in docs/chain-cpu-benchmarks.md): `total` frame time stays flat while
 # the ioctl wait absorbs added work, and breaks away once work passes ~2000us.
 # The frame is 2900us but most of that is the wait, so neither 2900 nor the

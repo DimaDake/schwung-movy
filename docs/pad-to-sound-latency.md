@@ -11,6 +11,14 @@ not a stopwatch reading. See [Verifying on device](#verifying-on-device).
 Sources: `schwung` @ `b7015e10` (2026-08-01), `movy` @ main, `perf.mjs` run
 locally 2026-08-01.
 
+**On movy-host (standalone, since WP6):** none of the path below exists any
+more. movy-host reads the pads from the SPI mailbox on its audio thread and
+gives them to the engine before that same frame's render; the engine answers
+pads from its pushed pad map, so the UI is not on the path. Measured by the
+engine itself (`padlat`, `pad_latency.rs`): **1 block, max 1** — the note
+sounds in the render right after it arrives (`track-performance.md` §8). What
+follows is the overtake analysis, kept for its method.
+
 **Since measured on device:** `track-performance.md` §6 has real numbers for the
 movy-track pad path, and finds option **#3** below to be the live one — a movy
 track spends 2.4 ms of every ~9 ms tick in the chain page's blocking param

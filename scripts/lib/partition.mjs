@@ -2,7 +2,7 @@
 //
 // A static partition cannot finish before its largest member, so the makespan
 // (the loaded worker's total) is what parallel chain render actually costs —
-// not the mean. Used by `measure-chain-balance.sh` to turn a device measurement
+// not the mean. Used by `measure-render-pool.mjs` to turn a device measurement
 // into a speedup, and by `analyze-isolation-cost.mjs` to price the constraint
 // that keeps same-module chains off each other's threads.
 

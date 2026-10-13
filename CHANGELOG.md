@@ -22,6 +22,12 @@ far. Earlier work is summarised in the timeline below for context.
   Needs Schwung 1.6.0 or newer. Updating from the store keeps everything the
   old Movy stored; nothing of the old install is deleted, so an older Movy still
   finds it.
+- **More tracks before the CPU limit.** Tracks now render across all four
+  cores instead of three: a busy set takes up to a fifth less time per audio
+  block (engine 0.94.0).
+- **Virus (osirus) no longer crackles.** Its emulator ran on the same core and
+  at the same priority as Movy's audio, and kept the audio waiting; Movy now
+  moves it to another core.
 - **Leaving:** **Back** at the top opens **Leave Movy?** with **Close Movy**.
   If Movy stops responding, **Shift + touch volume + jog click** closes it
   (hard close after two seconds).

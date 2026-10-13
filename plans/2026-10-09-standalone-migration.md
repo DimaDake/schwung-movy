@@ -878,6 +878,14 @@ mismatch is a startup error). Keep `cmd` semantics; measure IPC cost with
 
 ### WP11: latency and CPU retune (motivations 4, 5; goal 3)
 
+**Done 2026-10-13** (branch `standalone-migration`, ENGINE 0.94.0):
+`plans/2026-10-13-wp11-latency-cpu-retune.md`. The pad fast path was already
+true (WP6; `padlat` 1 block). Four render lanes (12 even chains 1030 → 805 µs);
+movy-host moves any task that inherited the audio core off it (osirus's DSP
+fork: ~200 late transfers per 3 s → 0-2); late transfers are counted, and the
+CPU page's 0.70 edge re-measured (clean 0.65, late 0.76). Chain loads still run
+on the audio thread (a surge load stalls 237 ms): carried out as its own design.
+
 - Audio-thread pad fast path: hardware pad events go to the engine's padmap in
   the **same frame** they arrive (the engine already owns pads under
   `engineOwnsPads`); the UI only mirrors. Expected: pad-to-sound drops from

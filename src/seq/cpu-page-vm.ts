@@ -17,17 +17,18 @@ import { SEND_BUSES } from '../chain/config.js';
 const DEFAULT_BLOCK_US = 2902;
 
 /** The share of an audio block movy can actually spend before the device starts
- *  dropping samples. MEASURED on hardware, not derived: glitching sets in at
- *  65-69% of the raw block, so the bar is calibrated to 70% of it and 100% on
- *  this page means "at the edge", not "the block is full".
+ *  dropping samples. MEASURED on hardware, not derived — re-measured on
+ *  movy-host in WP11 (`scripts/measure-render-pool.mjs ceiling`, surge ramps,
+ *  late transfers counted by movy-host): clean up to a render wall of 0.65 of
+ *  the block, late from 0.76. 100% on this page means "at the edge", not "the
+ *  block is full".
  *
- *  Two things account for the missing 30%. Move's own engine takes ~240 µs of
- *  the same block (about 8%). The rest is the gap between what this bar shows
- *  and what actually causes a dropout: the bar is a MEAN over blocks, and a
- *  dropout is one block missing its deadline — so a mean sitting at 100% of the
- *  raw block would already have been dropping samples for a long time. The peak
- *  notch is the individual worst block, and it is the one that hits the wall
- *  first. */
+ *  What the missing 30% is on movy-host (Move's own engine, the old 8%, no
+ *  longer runs): the SPI transfer's DMA (~400 µs, 14%), movy-host's own frame
+ *  work outside the render (~120 µs, 4%), and the gap between this bar and a
+ *  dropout — the bar is a MEAN over blocks, a dropout is ONE block late, and
+ *  the worst block runs 350-470 µs over the mean at that load. The peak notch
+ *  is the individual worst block, and it is the one that hits the wall first. */
 export const USABLE_BLOCK = 0.70;
 
 export type CpuColumnKind =

@@ -133,6 +133,8 @@ does not use them, and the 64 KiB line covers the blob case.
 | `uid`, `rt` | uid movy-host runs as, and the audio thread's scheduling (`fifo<prio>` or `other`), per WP0 findings §3 |
 | `overtake_mode` | **compat**: 2 while `running=1`, else 0, so `Bus`-based waits written for overtake still mean "movy owns the surface" |
 | `work_avg_us`, `work_max_us` | the audio thread's own work per frame (input, notes, params, render, output), mean and max over the last completed window of 1024 frames, against the 2902 µs budget |
+| `late_frames` | SPI transfers that ran late since start (`host/frame_clock.h`): the audio thread reached one after its frame boundary, so the converter was short a block's worth of time. The CPU page's edge is calibrated against it |
+| `pump_min_us`, `gap_max_us` | over the same window as `work_*`: the shortest SPI transfer call (boundary wait + ~400 µs DMA; near 400 means no slack left) and the longest transfer-to-transfer gap |
 | `shim_counter` | **compat**: equal to `frame` |
 
 ## Rules this protocol keeps from the overtake harness

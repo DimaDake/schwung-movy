@@ -7,9 +7,11 @@
 #include <unistd.h>
 
 #include "deltas.h"
+#include "frame_clock.h"
 #include "midi_in.h"
 #include "midi_out.h"
 #include "param_bulk.h"
+#include "placement.h"
 #include "param_queue.h"
 #include "status_snap.h"
 #include "surface_keys.h"
@@ -262,6 +264,20 @@ static void test_surface_keys(void) {
     g_mh_quit = 0;
 }
 
+static void test_frame_clock(void) {
+    CHECK(!frame_late(0, 10000), "the first transfer has nothing to be late against");
+    CHECK(!frame_late(1000, 1000 + MH_FRAME_US), "one frame apart is on time");
+    CHECK(!frame_late(1000, 1000 + MH_FRAME_US + 49), "the jitter measured on device is on time");
+    CHECK(frame_late(1000, 1000 + 3364), "an overrun's gap (work + DMA past the frame) is late");
+}
+
+static void test_placement(void) {
+    CHECK(placement_should_move(MH_AUDIO_CORE_MASK, 0), "a task inherited onto the audio core moves");
+    CHECK(!placement_should_move(MH_AUDIO_CORE_MASK, 1), "the audio thread stays");
+    CHECK(!placement_should_move(0xF, 0), "a task free to use every core is the scheduler's");
+    CHECK(!placement_should_move(MH_OFF_AUDIO_MASK, 0), "a task already off the audio core stays");
+}
+
 int main(void) {
     test_deltas();
     test_midi_in();
@@ -271,6 +287,8 @@ int main(void) {
     test_queue_marks();
     test_status_snap();
     test_surface_keys();
+    test_frame_clock();
+    test_placement();
     printf("%s: %d checks, %d failed\n", fails ? "HOST TESTS FAILED" : "HOST TESTS OK", checks, fails);
     return fails != 0;
 }

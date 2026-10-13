@@ -107,7 +107,9 @@ always EXITs it.
 
 `tools/movy` holds `module.json` (`standalone: true`, `component_type: tool`,
 `boot_target`), `standalone` (= `standalone/launch.sh`), `boot-entry.sh`,
-`movy-host`, `movy-heal`, `ui.js`, `dsp.so`, `chain-host.so` and `configs/`,
+`movy-host`, `movy-heal`, `ui.js`, `dsp.so`, `chain-host.so`, `configs/` and
+`schwung/` (the pinned tag's shared JS that movy-host imports in place of the
+installed schwung's, `host/module_path.c`),
 plus what movy writes there (prefs, `bin/heal`, the legacy `sets/`).
 
 `load` from the UI reloads movy-host's own `dsp.so`, never the path the UI

@@ -133,7 +133,7 @@ tier() {
     eval "$(env_for 0)"
     cd "$DIR"
     node build/test-device.mjs >/dev/null && node build/device.mjs >/dev/null
-    ./scripts/build-dsp.sh >/dev/null && MOVY_VDEV=1 ./scripts/build-host.sh
+    ./scripts/build-dsp.sh >/dev/null && MOVY_VDEV=1 ./scripts/build-host.sh && ./scripts/build-schwung-js.sh
     local shards
     shards=$(node -e '
         const fs = require("fs"), [jobs, dir] = [Number(process.argv[1]), process.argv[2]];

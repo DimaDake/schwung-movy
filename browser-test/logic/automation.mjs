@@ -7,6 +7,7 @@
 import {
     takeLabelSync, resetSeqEngine, eq, _log,
 } from './harness.mjs';
+import { pinnedSchwungRoot } from '../../scripts/lib/schwung-pinned.mjs';
 
 export async function run() {
 /* ── automation: registry + lane assignment ──────────────────────────────── */
@@ -498,7 +499,7 @@ _log('\nautomation validateLane:');
 _log('\nmodel child-keys:');
 if (process.env.SCHWUNG) {
     const { join, resolve } = await import('node:path');
-    const ck = await import(join(resolve(process.env.SCHWUNG), 'src', 'shared', 'param_pages', 'child_key.mjs'));
+    const ck = await import(join(pinnedSchwungRoot(), 'src', 'shared', 'param_pages', 'child_key.mjs'));
     const { setChildKeyResolver, childLevelsOf, childTemplateOf, declaredKeysOf } =
         await import('../../dist/esm/model/child-keys.js');
     const levels = {

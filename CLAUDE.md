@@ -40,10 +40,13 @@ Four rules, and they bind work that is not itself a migration item:
    `generic-pages.ts` and `config-pages.ts` are all scheduled for deletion. Fix
    bugs there; do not grow them. A parameter-page feature belongs in Schwung's
    planner or in the movy↔Schwung seam.
-2. **A change Schwung needs is an upstream PR, never a local patch.** Work
-   against a fork branch, record the minimum Schwung version the feature needs,
-   and file the PR in parallel — do not wait on review, and do not vendor
-   `param_pages` into movy.
+2. **A change Schwung needs is an upstream PR, never a local patch.** movy
+   ships Schwung's JS (`param_pages` and what it imports) byte-for-byte from
+   the PINNED tag (`scripts/build-schwung-js.sh` → `tools/movy/schwung/`,
+   `plans/2026-10-13-pin-schwung-js.md`) and never edits that copy. Work
+   against a fork branch, file the PR in parallel — do not wait on review —
+   and the change reaches movy by bumping `scripts/lib/schwung-pin.sh` once it
+   is in a tag. The local suites run the same pinned bytes.
 3. **A delegated component is never dual-driven.** If Schwung owns a
    component's pages, movy must not also page it, poll it, draw its LEDs, or
    handle its knob input. Never read `getKnobPage()` or a `knobPage` index
@@ -273,9 +276,10 @@ containers, ~2 min, `docs/standalone/vdev.md`) and the **real device**
 
 **The virtual device gates by default.** A red vdev tier is fixed, never
 loaned: KNOWN-RED.md is the device's ledger only. Before trusting it, the
-snapshot must carry the device's schwung (`.vdev/image/schwung-version` equal
-to the box's `host/version.txt`); if they differ, `vdev.sh snapshot && vdev.sh
-image` first.
+snapshot only supplies what movy does not ship (the modules, the Tools door's
+`launch-standalone.sh`, the boot-target scripts): movy's own schwung JS and
+chain host are pinned and deployed into it like onto the box. Re-snapshot
+(`vdev.sh snapshot && vdev.sh image`) when the box's modules or schwung change.
 
 **The real device tier is REQUIRED — green, or fixed until it is — for:**
 
@@ -291,13 +295,22 @@ image` first.
 - **what the container stands in for:** LEDs and the display on glass, the
   hardware MIDI path, uid/permission and file ownership (root vs ableton),
   store install/update paths, Move round trips;
-- **a schwung move:** a new pinned tag, `SCHWUNG_FLOOR`, or the device's
-  installed schwung changing;
+- **the device's installed schwung or modules changing** (what is still not
+  pinned: modules, the Tools door, boot targets, the hand-back to Schwung).
+  A pin bump alone is vdev-gated: the vdev runs the pinned C and JS natively;
 - **anything the work itself says only hardware can prove**, a vdev-only
   red/green you cannot explain, or a bug first reported on the device. When in
   doubt, use the device.
 
 Say in the commit message which tier gated the change.
+
+**Deploy at the end of every code change, even a vdev-gated one.** Once the
+gate is green: `ssh -o ConnectTimeout=3 ableton@move.local true &&
+./scripts/deploy.sh`, so the box always runs the latest build and anything
+the vdev cannot see shows up in real use. A deploy is not a gate: say "deployed,
+not device-tested" when the device tier was not run. If movy is open there,
+`deploy.sh` says so: it runs the new build from the next open. Unreachable →
+say so (DEVICE OFFLINE, in CAPS) in the report.
 
 ### Device gate
 
@@ -325,11 +338,14 @@ bundles everything to `ui.js` via esbuild (single ESM file, no stale-module
 issues). `npm run build:browser` compiles to `dist/esm/` for browser tests.
 Run `node build/device.mjs` before deploying; `scripts/deploy.sh` does this automatically.
 
-**QuickJS module cache:** movy-host evaluates `ui.js` once per start, and the ES
-modules it imports (the Schwung shared `.mjs` under
-`/data/UserData/schwung/shared/*`, the only externals the esbuild bundle leaves)
-are cached for that movy-host's lifetime — a swapped shared file runs from the
-next movy open.
+**Schwung's JS is pinned, not the device's.** ui.js imports
+`/data/UserData/schwung/{shared,shadow}/*` (the only externals the esbuild
+bundle leaves), and movy-host resolves every such import to the copy movy
+ships, `tools/movy/schwung/`, built from the pinned tag (`host/module_path.c`;
+the first log lines say `schwung js pinned at <tag>`). The installed schwung's
+copy is never read, so a schwung upgrade on the device does not change movy's
+pages; a pin bump does. QuickJS caches the modules for that movy-host's
+lifetime: a redeployed copy runs from the next movy open.
 
 ---
 

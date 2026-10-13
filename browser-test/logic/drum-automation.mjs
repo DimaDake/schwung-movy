@@ -33,6 +33,7 @@ import { fileURLToPath } from 'node:url';
 import { schwungLibAvailable, bootModel, settleModel, ok, fail, _log, env, MOCK_SYNTHS, appState,
          setSchwungGridMode, schwungGridReload, schwungPageFor, resetSeqEngine } from './harness.mjs';
 import { dumpEntry, dumpFixture } from '../dump-fixture.mjs';
+import { pinnedSchwungRoot } from '../../scripts/lib/schwung-pinned.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const EXPECT = join(HERE, '..', 'drum-automation-expect.json');
@@ -77,7 +78,7 @@ const { buildAutomationView } = await import('../../dist/esm/app/tick.js');
 const { automationFor, validateTrackLane } = await import('../../dist/esm/app/automated-keys.js');
 const { concreteKey, aliasFromConcrete } = await import('../../dist/esm/model/pad-scope.js');
 const { resolveChildKey, childCount } = await import(
-    join(resolve(process.env.SCHWUNG), 'src', 'shared', 'param_pages', 'child_key.mjs'));
+    join(pinnedSchwungRoot(), 'src', 'shared', 'param_pages', 'child_key.mjs'));
 /* What app/globals.ts registers at start-up — the label sync's child-level
  * reader (model/child-keys.ts). */
 const { setChildKeyResolver } = await import('../../dist/esm/model/child-keys.js');

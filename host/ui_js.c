@@ -6,8 +6,31 @@
 
 #include "globals.h"
 #include "log.h"
+#include "module_path.h"
+#include "movy_host.h"
 #include "quickjs-libc.h"
 #include "ui_js.h"
+
+char *ui_js_normalize(JSContext *ctx, const char *base, const char *name, void *opaque) {
+    (void)opaque;
+    char root[300], out[1024];
+    snprintf(root, sizeof root, "%s/schwung", g_mh_module_dir);
+    if (mh_module_path(base, name, root, out, sizeof out) != 0) {
+        JS_ThrowReferenceError(ctx, "module path too long: %s", name);
+        return NULL;
+    }
+    return js_strdup(ctx, out);
+}
+
+void ui_js_log_pin(void) {
+    char path[300], tag[64] = "";
+    snprintf(path, sizeof path, "%s/schwung/PIN", g_mh_module_dir);
+    FILE *f = fopen(path, "r");
+    if (f && fgets(tag, sizeof tag, f)) tag[strcspn(tag, "\n")] = '\0';
+    if (f) fclose(f);
+    if (*tag) mh_log("ui: schwung js pinned at %s (%s/schwung)", tag, g_mh_module_dir);
+    else mh_log("ui: NO pinned schwung js at %s/schwung — every shared import will fail (deploy.sh ships it)", g_mh_module_dir);
+}
 
 void ui_js_log_exception(JSContext *ctx, const char *where) {
     JSValue ex = JS_GetException(ctx);

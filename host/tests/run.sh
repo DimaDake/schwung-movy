@@ -28,3 +28,5 @@ INC=(-I"$DIR" -I"$SCHWUNG/src" -I"$SCHWUNG/src/host")
 bash "$DIR/tests/test_boot_door.sh"
 "${CC:-cc}" -std=gnu11 -Wall -Wextra -I"$DIR" "${INC[@]}" "$DIR/tests/test_spi_fake.c" "$DIR/vdev/spi_fake.c" -o "$OUT/test_spi_fake"
 "$OUT/test_spi_fake"
+"${CC:-cc}" -std=gnu11 -Wall -Wextra -I"$DIR" "$DIR/tests/test_module_path.c" "$DIR/module_path.c" -o "$OUT/test_module_path"
+"$OUT/test_module_path"

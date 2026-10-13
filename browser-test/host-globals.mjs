@@ -19,6 +19,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { dirname, join, resolve } from 'node:path';
 import { MANIFEST, movyGlobals, sharedGlobals } from '../scripts/host-globals.mjs';
+import { pinnedSchwungRoot } from '../scripts/lib/schwung-pinned.mjs';
 
 let fails = 0;
 const ok = (label, cond, detail = '') => {
@@ -42,7 +43,7 @@ ok('the manifest lists every global movy declares', movyNew.length === 0 && movy
 if (!process.env.SCHWUNG) {
     console.log('  shared half: SKIPPED (set SCHWUNG=/path/to/schwung)');
 } else {
-    const shared = sharedGlobals(resolve(process.env.SCHWUNG));
+    const shared = sharedGlobals(pinnedSchwungRoot());
     const names = Object.keys(shared);
     /* A scan that finds nothing would pass the check below vacuously — a moved
      * param_pages directory looks exactly like a schwung with no globals. */

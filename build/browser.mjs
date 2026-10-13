@@ -4,6 +4,7 @@ import * as esbuild from 'esbuild';
 import { rmSync, existsSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { pinnedSchwungRoot } from '../scripts/lib/schwung-pinned.mjs';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const root  = resolve(__dir, '..');
@@ -433,7 +434,8 @@ await esbuild.build({
                         return { path: resolve(root, 'browser-test/stubs/wav-io-qjs.mjs') };
                     }
                     const tail = a.path.replace('/data/UserData/schwung/', '');
-                    const real = resolve(SCHWUNG, 'src/' + tail);
+                    /* The PINNED tag's bytes, the ones movy ships (scripts/lib/schwung-pinned.mjs). */
+                    const real = resolve(pinnedSchwungRoot(), 'src/' + tail);
                     /* A file this checkout does not have is what an older
                      * Schwung on the device looks like: the import FAILS, and
                      * the caller's fallback has to be what runs. A build error

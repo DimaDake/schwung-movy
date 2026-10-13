@@ -16,6 +16,7 @@ import { schwungLibAvailable, bootModel, settleModel, ok, eq, fail, _log, env, M
          setSchwungGridMode, schwungGridReload, schwungPageFor } from './harness.mjs';
 import { dumpEntry, dumpFixture } from '../dump-fixture.mjs';
 import { serveModuleFiles } from './drum-automation.mjs';
+import { pinnedSchwungRoot } from '../../scripts/lib/schwung-pinned.mjs';
 
 export async function run() {
 
@@ -24,7 +25,7 @@ if (!schwungLibAvailable()) {
     return;
 }
 
-const pp = join(resolve(process.env.SCHWUNG), 'src', 'shared', 'param_pages');
+const pp = join(pinnedSchwungRoot(), 'src', 'shared', 'param_pages');
 const { voicesOf } = await import(join(pp, 'voices.mjs'));
 const { resolveChildKey } = await import(join(pp, 'child_key.mjs'));
 const { automationFor } = await import('../../dist/esm/app/automated-keys.js');

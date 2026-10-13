@@ -29,7 +29,7 @@ static JSContext *new_context(JSRuntime *rt) {
     js_std_init_handlers(rt);
     JSContext *ctx = JS_NewCustomContext(rt);   /* registers "std" and "os" */
     js_std_add_helpers(ctx, 0, NULL);
-    JS_SetModuleLoaderFunc(rt, NULL, js_module_loader, NULL);
+    JS_SetModuleLoaderFunc(rt, ui_js_normalize, js_module_loader, NULL);
     JSValue g = JS_GetGlobalObject(ctx);
     js_display_register_bindings(ctx, g);
     JS_FreeValue(ctx, g);
@@ -88,6 +88,7 @@ int ui_run(const char *ui_path) {
     JSRuntime *rt = JS_NewRuntime();
     JSContext *ctx = new_context(rt);
     mh_log("ui: loading %s", ui_path);
+    ui_js_log_pin();
     if (ui_eval_module_file(ctx, ui_path, 0) != 0) return 3;
     callbacks_t cb = {
         ui_js_global_fn(ctx, "init"), ui_js_global_fn(ctx, "tick"),

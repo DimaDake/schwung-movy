@@ -4,7 +4,10 @@ movy-host with no hardware: the same host, built with `host/vdev/spi_fake.c`
 in place of `spi.c`, running in an aarch64 Ubuntu 22.04 container on colima
 (glibc 2.35, the device's). The container carries a copy of a real Move's
 `/data`, so the shared JS, the chain hosts and every module's `dsp.so` are the
-device's own and run natively. The device tier's scenarios run against it
+device's own and run natively. movy's own pinned parts (schwung's shared JS,
+the chain host) are deployed into it exactly as onto the box, so the snapshot
+only matters for what movy does not ship: re-take it when the box's modules or
+schwung change. The device tier's scenarios run against it
 through the **same transport** (`test-device/transport-standalone.ts`), and
 one container per shard runs them in parallel.
 
@@ -15,7 +18,7 @@ the device tier's to judge, and so is every commit (root `CLAUDE.md`).
 ## Use
 
 ```bash
-scripts/vdev.sh snapshot          # once, and after the box's schwung changes: copy move.local:/data (~500 MB, ~35 s)
+scripts/vdev.sh snapshot          # once, and after the box's modules/schwung change: copy move.local:/data (~500 MB, ~35 s)
 scripts/vdev.sh image             # build the image from it (~30 s)
 scripts/vdev.sh tier 3            # every scenario, 3 shards on fresh vdev0..2: GREEN/RED
 scripts/vdev.sh up 0              # one container to work against...

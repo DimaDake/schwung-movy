@@ -27,6 +27,7 @@
 import { readFileSync, readdirSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { pinnedSchwungRoot } from '../scripts/lib/schwung-pinned.mjs';
 
 /* Written as a code point rather than an escape so the source carries no control
  * byte for a formatter, a diff, or an editor round-trip to mangle. */
@@ -91,7 +92,7 @@ async function main() {
      * against THIS FILE, not the cwd — `../schwung` would become
      * browser-test/../schwung and never be found. build/browser.mjs resolves it
      * the same way. */
-    const PP = resolve(process.env.SCHWUNG, 'src', 'shared', 'param_pages');
+    const PP = resolve(pinnedSchwungRoot(), 'src', 'shared', 'param_pages');
     const { planPages, pageSlotKeys } = await import(join(PP, 'page_plan.mjs'));
     const { voicesOf } = await import(join(PP, 'voices.mjs'));
 

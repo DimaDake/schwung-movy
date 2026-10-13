@@ -52,6 +52,8 @@ toolchain that `build-dsp.sh` already requires.
   `CLAUDE.md` refresh rule keeps the checkout itself on `origin/main`. Runtime
   dependencies (shared `.mjs`, chain `dsp.so`, modules) stay on the device's
   installed schwung, guarded by `SCHWUNG_FLOOR` and parity tests.
+  *(Amended 2026-10-13: the shared `.mjs` and the chain host are pinned too —
+  `plans/2026-10-13-pin-schwung-js.md`; modules and the door scripts still float.)*
 - `ENGINE_VERSION` rules, atomic `dsp.so` deploy and engine-owned persistence
   (`engpersist`, ON since rev 4) all stand as written in `movy/CLAUDE.md`.
 - **Copy forward, never clean up.** A migration step reads legacy state
@@ -964,7 +966,9 @@ split points), one gate run each, and 9 of them before the switch.
    chain fixes arrive by bumping the pin.
 6. **Every dbxhost-derived item marked *(dbx)*** is accepted as part of the
    plan. The shared JS (`param_pages`) still loads from the installed schwung,
-   because movy's no-vendoring rule stands.
+   because movy's no-vendoring rule stands. **Reversed 2026-10-13 (user):**
+   movy ships the pinned tag's shared JS unedited
+   (`plans/2026-10-13-pin-schwung-js.md`); upstream-first still stands.
 7. **Copy forward, never clean up** (see *Global constraints*). Schwung's master
    FX is never cleared or enforced empty, and legacy Sets and files are only
    read. The MASTER binding follows the host mode, so overtake users see no

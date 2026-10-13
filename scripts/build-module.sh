@@ -54,10 +54,12 @@ build_release_ui "$(pwd)"
 # movy-host and its RT helper. MOVY_RELEASE drops the test bus's UI_EVAL,
 # which runs arbitrary JS in the UI.
 MOVY_RELEASE=1 ./scripts/build-host.sh
+./scripts/build-schwung-js.sh   # the pinned schwung JS movy-host loads → dist/schwung-js
 
 rm -rf "dist/${MODULE_ID}"
 mkdir -p "dist/${MODULE_ID}/configs"
 cp module.json ui.js "dist/dsp.so" "dist/chain-host.so" "dist/movy-host" "dist/movy-heal" "dist/${MODULE_ID}/"
+cp -R dist/schwung-js "dist/${MODULE_ID}/schwung"
 # The standalone module (plan WP8): schwung's Tools menu runs `standalone`, the
 # boot picker runs boot-entry.sh (module.json's boot_target), both the same body.
 cp standalone/launch.sh "dist/${MODULE_ID}/standalone"
@@ -110,6 +112,14 @@ if [[ "$PACKED" != "$WANT" ]]; then
     exit 1
 fi
 echo "(tarball carries $PACKED override configs)"
+# Without its pinned JS movy-host imports nothing of schwung's: no pages.
+PINNED_JS=$(tar -tzf "dist/${MODULE_ID}-module.tar.gz" | grep -c "^${MODULE_ID}/schwung/.*\.mjs$" || true)
+WANT_JS=$(tail -n +2 dist/schwung-js/PIN | grep -c . || true)
+if [[ "$PINNED_JS" != "$WANT_JS" || "$WANT_JS" = 0 ]]; then
+    echo "ERROR: tarball carries $PINNED_JS pinned schwung JS files, expected $WANT_JS" >&2
+    exit 1
+fi
+echo "(tarball carries $PINNED_JS pinned schwung JS files, $(head -1 dist/schwung-js/PIN))"
 # A file the store unpacks without its x bit is a Tools entry that does nothing
 # and a boot row that falls through to stock (the manager chmods only the
 # boot_target's exec).

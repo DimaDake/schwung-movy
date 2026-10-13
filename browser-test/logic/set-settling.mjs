@@ -129,11 +129,11 @@ export async function run() {
     }
 
     /* S8 — the loads draining is not the end of the wait. A chain's preset
-     * blob, LFOs and mixer level travel on the bulk channel, which cannot be
-     * written while those loads hold the audio thread — so they are delivered
-     * HERE, and the Set does not go playable until they land. Promoting early
-     * is what put a live surface in front of modules sitting at their factory
-     * defaults: the filter reopened, the oscillator octaves reset.
+     * blob, LFOs and mixer level address modules those loads bring in, so
+     * they are delivered HERE, once the loads have drained, and the Set goes
+     * playable with them in the queue. Promoting before them is what put a
+     * live surface in front of modules sitting at their factory defaults: the
+     * filter reopened, the oscillator octaves reset.
      * See plans/2026-08-29-chain-payload-delivery.md. */
     {
         const { armChainPayloads, chainPayloadsPending, resetChainPayloads } =
@@ -141,9 +141,10 @@ export async function run() {
         const arm = () => armChainPayloads(
             [{ t: 4, pairs: [['synth:state', 'BLOB42']], saved: { t: 4, comp: [] } }]);
 
-        let refuse = true;
+        let loaded = true;
+        const delivered = [];
         const oBS = globalThis.shadow_set_params;
-        globalThis.shadow_set_params = () => (refuse ? null : true);
+        globalThis.shadow_set_params = (_s, _m, payload) => { if (!loaded) return false; delivered.push(payload); return true; };
 
         const fs = installMockFs({});
         const eng = installMockEngine();
@@ -154,21 +155,20 @@ export async function run() {
         seqEngineTick(); sessionTick();        // the Set loads; settling begins
         arm();
         run(3);
-        eq('S8 an undelivered payload holds the splash', sessionPhase(), 'settling');
-        eq('S8 and it is still outstanding', chainPayloadsPending(), true);
-        refuse = false;
-        run(2);
+        eq('S8 the payload is delivered before the Set goes live', delivered.length, 1);
         eq('S8 delivering it goes live', sessionPhase(), 'ready');
         eq('S8 with nothing outstanding', chainPayloadsPending(), false);
 
-        /* A payload that will NEVER land must not brick the instrument either —
-         * same rule as the load cap above, and for the same reason. */
+        /* With no engine to take it, a payload must not brick the instrument
+         * either — same rule as the load cap above — and it stays outstanding,
+         * so the capture keeps guarding the set file. */
         resetSetSession(); resetSetSave();
-        refuse = true;
+        loaded = false;
         seqEngineTick(); sessionTick();
         arm();
-        run(60);
-        eq('S8 a payload that never lands still goes live', sessionPhase(), 'ready');
+        run(3);
+        eq('S8 a payload that cannot land still goes live', sessionPhase(), 'ready');
+        eq('S8 and stays outstanding', chainPayloadsPending(), true);
 
         globalThis.shadow_set_params = oBS;
         resetChainPayloads();

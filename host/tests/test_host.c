@@ -11,6 +11,7 @@
 #include "midi_out.h"
 #include "param_bulk.h"
 #include "param_queue.h"
+#include "status_snap.h"
 #include "surface_keys.h"
 
 volatile int g_mh_quit;
@@ -123,6 +124,90 @@ static void test_params(void) {
     CHECK(!strcmp(g_log, "S:late;"), "an abandoned WRITE still applies, an abandoned read is skipped: %s", g_log);
 }
 
+/* WP10: the UI asks "is everything I sent up to here in the engine?" by
+ * comparing a snapshot's `served` stamp with the `submitted` count it took. */
+static void test_queue_marks(void) {
+    pq_service(fake_service, NULL, 64);
+    uint64_t sub0 = pq_submitted(), srv0 = pq_served();
+    CHECK(sub0 == srv0, "drained: served catches submitted (%llu/%llu)", (unsigned long long)sub0, (unsigned long long)srv0);
+    pq_set("m1", "1", 0);
+    pq_set("m2", "2", 0);
+    CHECK(pq_submitted() == sub0 + 2, "each queued request counts as submitted");
+    CHECK(pq_served() == srv0, "nothing is served before the audio thread runs");
+    pq_service(fake_service, NULL, 1);
+    CHECK(pq_served() == srv0 + 1, "served counts in FIFO order, one at a time");
+    pq_service(fake_service, NULL, 8);
+    CHECK(pq_served() == sub0 + 2, "and reaches the mark once all are in");
+
+    /* A bulk set nobody waits for: returns at once, applies on service. */
+    g_log[0] = 0;
+    CHECK(pq_bulk(PQ_BULK_SET, "2\n1\nk1\nv", NULL, 0, 0) == 0, "a non-waiting bulk set returns at once");
+    CHECK(g_log[0] == 0, "and has not been applied yet");
+    pq_service(fake_service, NULL, 8);
+    CHECK(g_log[0] != 0, "it is applied on the next service");
+}
+
+static const char *pattern(int i, char *buf, int *len) {
+    char c = (char)('A' + i % 3);
+    *len = 500 + (i % 3) * 700;
+    memset(buf, c, (size_t)*len);
+    buf[*len] = 0;
+    return buf;
+}
+/* Stamps of their own, so the snapshot published before the race is never
+ * mistaken for one of the writer's. */
+#define WRITER_BASE 1000000u
+static volatile int g_writer_done;
+static void *snap_writer(void *arg) {
+    static char buf[4096];
+    for (int i = 1; i <= 20000; i++) { int n; pattern(i, buf, &n); snap_publish(buf, n, WRITER_BASE + (uint64_t)i); }
+    g_writer_done = 1;
+    return NULL;
+}
+
+static void test_status_snap(void) {
+    char out[STATUS_SNAP_CAP];
+    uint32_t seq = 99;
+    uint64_t served = 99;
+    CHECK(snap_seq() == 0 && snap_read(out, sizeof out, &seq, &served) == -1, "nothing published reads as none");
+    CHECK(snap_publish("play=1", 6, 5) == 1, "a publish is taken");
+    int n = snap_read(out, sizeof out, &seq, &served);
+    CHECK(n == 6 && !strcmp(out, "play=1") && seq == 1 && served == 5, "read back: %d '%s' seq=%u served=%llu",
+          n, out, seq, (unsigned long long)served);
+
+    static char big[STATUS_SNAP_CAP + 10];
+    memset(big, 'x', sizeof big - 1);
+    CHECK(snap_publish(big, (int)sizeof big - 1, 6) == 0, "an over-long status is refused, never truncated");
+    n = snap_read(out, sizeof out, &seq, &served);
+    CHECK(n == 6 && seq == 1, "and the last good snapshot stands");
+
+    /* A reader racing a writer never sees a torn snapshot: every read is one
+     * whole publish, and the stamps never go backwards. */
+    g_writer_done = 0;
+    pthread_t t;
+    pthread_create(&t, NULL, snap_writer, NULL);
+    int torn = 0, back = 0, reads = 0;
+    uint64_t last = 0;
+    while (!g_writer_done || reads < 1000) {
+        n = snap_read(out, sizeof out, &seq, &served);
+        if (n < 0) continue;
+        reads++;
+        int want;
+        char ref[4096];
+        if (served > WRITER_BASE) {
+            pattern((int)(served - WRITER_BASE), ref, &want);
+            if (n != want || memcmp(out, ref, (size_t)n) != 0) torn++;
+        }
+        if (served < last) back++;
+        last = served;
+        if (g_writer_done && reads >= 1000) break;
+    }
+    pthread_join(t, NULL);
+    CHECK(torn == 0, "no torn snapshot in %d reads (%d torn)", reads, torn);
+    CHECK(back == 0, "served never goes backwards (%d)", back);
+    CHECK(snap_seq() >= 20001, "every publish counted (%u)", snap_seq());
+}
+
 static int fget(void *c, const char *k, char *b, int cap) { return sprintf(b, "<%s>", k); }
 static char g_set[256];
 static void fset(void *c, const char *k, const char *v) { strcat(g_set, k); strcat(g_set, "="); strcat(g_set, v); strcat(g_set, ";"); }
@@ -183,6 +268,8 @@ int main(void) {
     test_midi_out();
     test_params();
     test_bulk();
+    test_queue_marks();
+    test_status_snap();
     test_surface_keys();
     printf("%s: %d checks, %d failed\n", fails ? "HOST TESTS FAILED" : "HOST TESTS OK", checks, fails);
     return fails != 0;

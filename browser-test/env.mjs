@@ -209,6 +209,16 @@ export function installEnv() {
      * slot, and no track is. */
     globalThis.__movyEnvEngineGet = engineGet;
     globalThis.__movyEnvEngineSet = engineSet;
+    /* movy-host's status snapshot (host/status_snap.h): this env has no engine
+     * rendering, so nothing is ever published. mock-engine.mjs serves real
+     * ones and puts these back when it is removed. */
+    const installSnapshot = () => {
+        globalThis.movy_engine_snapshot_seq = () => 0;
+        globalThis.movy_engine_snapshot = () => null;
+        globalThis.movy_engine_submitted = () => 0;
+    };
+    installSnapshot();
+    globalThis.__movyEnvInstallSnapshot = installSnapshot;
     globalThis.shadow_send_midi_to_dsp = () => {};
     globalThis.host_read_file     = (path) => serveModuleLayout(path);
     globalThis.host_write_file    = () => true;

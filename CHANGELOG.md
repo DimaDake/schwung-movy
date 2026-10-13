@@ -69,6 +69,11 @@ far. Earlier work is summarised in the timeline below for context.
   its own no longer drives them. While stopped they free-run at Movy's current
   tempo, so a tempo change takes effect at once.
 
+- **A broken install says so.** If Movy's engine is missing or from another
+  build than the rest of Movy, the start screen shows `ENGINE DID NOT START` or
+  `ENGINE MISMATCH` with **REINSTALL MOVY**, instead of asking you to restart
+  the Move (which could not fix it).
+
 ### Fixed
 
 - **Opening a Set no longer risks overwriting it with the previous one.** If

@@ -200,13 +200,12 @@ function toVerify(p: Pending, op: ModuleOp): void {
 
 function finish(op: ModuleOp): void {
     /* LAST, and only after the params: re-pointing an LFO hands it the param we
-     * have just restored, so the base has to be in place first. Blocking writes
-     * — the three fields are one commit and non-blocking writes to the single
-     * param slot clobber each other (see lfo/assign.ts). */
+     * have just restored, so the base has to be in place first. The queue
+     * applies the three fields in the order they are written. */
     for (const [key, val] of op.oldLfo ?? []) {
         /* Through the port: the slot-addressed API refuses a movy track's index
          * and would drop the restore silently (see lfo/assign.ts). */
-        componentPort(op.slot, op.componentKey).setParamTimeout(key, val, 100);
+        componentPort(op.slot, op.componentKey).setParam(key, val);
     }
     if ((op.oldLfo?.length ?? 0) > 0) mlog('undo: restored ' + op.oldLfo!.length + ' LFO assignment fields');
     requestLabelSync();

@@ -66,7 +66,7 @@ export function libRefresh(): boolean {
     return true;
 }
 
-export function libSend(cmd: string): void { paramSet('set', 'lib ' + cmd, 200); }
+export function libSend(cmd: string): void { paramSet('set', 'lib ' + cmd); }
 
 /** A fresh engine (or a fresh session) knows nothing — forget its old answer. */
 export function resetLib(): void { raw = ''; state = null; }

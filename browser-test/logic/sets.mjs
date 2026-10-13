@@ -40,14 +40,11 @@ function fakeLib() {
 }
 
 function install(f) {
-    const saved = [globalThis.host_module_get_param, globalThis.host_module_set_param,
-                   globalThis.host_module_set_param_blocking];
+    const saved = [globalThis.host_module_get_param, globalThis.host_module_set_param];
     globalThis.host_module_get_param = f.get;
     globalThis.host_module_set_param = f.set;
-    globalThis.host_module_set_param_blocking = f.set;
     return () => {
-        [globalThis.host_module_get_param, globalThis.host_module_set_param,
-         globalThis.host_module_set_param_blocking] = saved;
+        [globalThis.host_module_get_param, globalThis.host_module_set_param] = saved;
     };
 }
 

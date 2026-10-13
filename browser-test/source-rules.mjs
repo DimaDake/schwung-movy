@@ -37,26 +37,21 @@ function stripComments(src) {
 
 /* ── Rule 1: the param channel has ONE door ──────────────────────────────────
  *
- * `overtake_dsp`'s param SHM is a single slot shared with every other writer on
- * the device, and its rules are not obvious: writes must block, a blocking
- * write REFUSES under contention and says so by returning false, a bulk read
- * can come back short and must not be read as a page of empty values.
+ * The channel's rules were learned on device and then re-implemented, slightly
+ * differently, by whoever needed it next — two track ports carried verbatim
+ * copies, and `seq/engine.ts` threw a refusal away entirely, which silently
+ * dropped sequencer commands until 2026-09-13 (the overtake host's single-slot
+ * param SHM). movy-host's ordered queue retired those rules (WP10), but a bulk
+ * read can still come back short and must not be read as a page of empty
+ * values, and the next host change must land in ONE place.
  *
- * Every one of those was learned on device, and each was then re-implemented,
- * slightly differently, by whoever needed the channel next — two track ports
- * carried verbatim copies of it, and `seq/engine.ts` threw the refusal away
- * entirely, which silently dropped sequencer commands until 2026-09-13.
- *
- * So: `src/host/param.ts` owns the rules and counts what the slot refuses, and
- * nothing else touches the globals. The count is the other half of the point —
- * a dropped write is otherwise perfectly silent, and a test run that never sees
- * one cannot tell a healthy channel from a lucky one.
+ * So: `src/host/param.ts` owns the rules and nothing else touches the globals.
  */
 log('\nRule 1: only src/host/param.ts talks to the engine param channel');
 
 /* The channel's host half is the platform's engine calls (Rule 3 keeps the raw
  * globals inside src/platform/), so the door is the only caller of those. */
-const GLOBALS = /\bplatform\.engine(Available|Get|Set|SetBlocking|GetBulk|SetBulk)\b/;
+const GLOBALS = /\bplatform\.engine(Available|Get|Set|GetBulk|SetBulk)\b/;
 
 const ALLOWED = new Set([
     /* The door itself. */
@@ -75,12 +70,12 @@ ok('no module outside the door calls the engine param channel', offenders.length
        ? `${offenders.join(', ')} — go through src/host/param.ts (paramGet/paramSet/paramGetMany/paramSetMany)`
        : `${ALLOWED.size} allowed, everything else clean`);
 
-/* The door is only a door if it is actually counting. A refusal that is not
- * recorded is the state this rule exists to prevent, so the counter is checked
- * to exist rather than assumed. */
+/* And the door never WAITS on a write: a set that blocks costs the tick up to
+ * a frame for an answer the queue does not need (WP10). The platform no longer
+ * offers one, so its return here would be a regression, not a choice. */
 const door = readFileSync('src/host/param.ts', 'utf8');
-ok('and the door counts what the slot refuses',
-   /refused\+\+/.test(door) && /export function paramStats/.test(door));
+ok('and the door never waits on a write',
+   !/SetBlocking|set_param_blocking/.test(stripComments(door)) && /export function paramStats/.test(door));
 
 
 /* ── Rule 2: the device tier waits on the device, never on a clock ───────────

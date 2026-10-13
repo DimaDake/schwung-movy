@@ -128,7 +128,7 @@ function ensure(): Record<string, number> {
  * chains.json; then the UI blob is marked dirty so the next save rewrites the
  * mirror from what the engine just landed. */
 function leaveEngineOwned(): void {
-    paramSet('set', 'flush', 500);
+    paramSet('set', 'flush');
     markUiStateDirty();
     mlog('flags: engpersist off — mirror refreshed from the engine\'s file');
 }

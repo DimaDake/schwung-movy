@@ -17,7 +17,6 @@ export interface TrackPort {
 
     getParam(key: string): string | null;
     setParam(key: string, value: string): boolean;
-    setParamTimeout(key: string, value: string, timeoutMs: number): boolean;
 
     /** Read several keys at once. Results are positional: one entry per key, in
      *  the order asked. A host track loops; a movy chain collapses these into a

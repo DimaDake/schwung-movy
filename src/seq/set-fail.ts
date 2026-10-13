@@ -27,7 +27,7 @@ export function sessionStartFromScratch(): void {
      * files untouched, and the Set the user asked to be rid of would come
      * straight back on the next open. */
     if (flagValue('engpersist')) {
-        paramSet('set', 'blank ' + id, 200);
+        paramSet('set', 'blank ' + id);
         bumpGen();
         clearFailure();
         return;

@@ -135,7 +135,7 @@ pub(crate) fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.92.0";
+const ENGINE_VERSION: &str = "0.93.0";
 
 /* Blocks between autosaves. The callback runs at ~344 Hz, so this is ~2 s —
  * flash on this device is not free and the sequencer is dirty constantly while
@@ -594,13 +594,13 @@ impl Instance {
 
     fn get_param(&mut self, key: &str) -> Option<String> {
         match key {
-            /* `unop` rides along here rather than inside status(): draining it
-             * needs &mut, and status() is deliberately a pure read. The UI
-             * pushes undo entries optimistically and retracts on this id when
-             * the engine found the group changed nothing. */
+            /* A pure read: movy-host reads this after every block to publish
+             * its snapshot (WP10). `unop` is the latest group the engine found
+             * changed nothing; the UI pushed it optimistically and retracts it
+             * when this id changes. */
             "status" => {
                 let mut s = self.engine.status();
-                if let Some(id) = self.engine.undo.take_noop() {
+                if let Some(id) = self.engine.undo.last_noop() {
                     s.push_str(&format!(" unop={id}"));
                 }
                 /* Rides the existing poll rather than costing its own IPC: the
@@ -1409,6 +1409,19 @@ mod tests {
      * provisional directory cannot supply that — for a Set born blank it holds
      * the blank — so the engine saves what it is HOLDING under the new id.
      */
+    /* movy-host reads `status` after every block to publish its snapshot, so
+     * the read must be pure: a drained `unop` reached a snapshot the UI could
+     * miss, and the optimistic undo entry was never retracted (WP10). */
+    #[test]
+    fn status_reports_the_last_noop_on_every_read() {
+        let mut inst = Instance::new();
+        inst.set_param("cmd", "usnap 5;ucommit 5");
+        let a = inst.get_param("status").unwrap();
+        let b = inst.get_param("status").unwrap();
+        assert!(a.contains(" unop=5"), "first read: {a}");
+        assert!(b.contains(" unop=5"), "and every read after it: {b}");
+    }
+
     /* An open is two threads: the audio thread takes the new id at once, the
      * saver reads the bytes a beat later. An engine that was dirty and due a
      * save in that gap saved its OLD sequence under the NEW id — on device, a

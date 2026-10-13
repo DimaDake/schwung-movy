@@ -38,7 +38,7 @@ const PRESETS = [
     'enum_overlay', 'knob_toast', 'no_params', 'keys_view', 'browse_view',
     'session_booting', 'session_loading', 'session_modules', 'session_preparing',
     'session_failed',
-    'session_failed_update',
+    'session_failed_mismatch',
     'versions_empty', 'versions_list', 'versions_confirm',
     'sets_list', 'sets_long_names', 'sets_confirm',
     'obxd_preset_page', 'obxd_main_page', 'obxd_filter_page',
@@ -67,7 +67,7 @@ const PRESETS = [
     'main-quant', 'quant-overlay-three', 'quant-overlay-two',
     'flags-top', 'flags-scrolled', 'flags-release',
     'cpu-movy-tracks', 'cpu-unsplit-module', 'cpu-overscale', 'cpu-empty',
-    'cpu-sends', 'cpu-sends-quiet', 'cpu-master', 'cpu-ipc-refused',
+    'cpu-sends', 'cpu-sends-quiet', 'cpu-master',
     'env_dual', 'env_touched', 'env_ad', 'env_asr', 'lfo_mod',
     'filter_lp', 'filter_lp_reso', 'filter_hp', 'filter_bp', 'filter_notch',
     'filter_slope24', 'filter_dual', 'filter_open',
@@ -261,7 +261,6 @@ const { renderSetsView }  = await import('../dist/esm/renderer/sets-view.js');
 const { buildSetsPageVM } = await import('../dist/esm/seq/sets-page-vm.js');
 const { renderCpuView }   = await import('../dist/esm/renderer/cpu-view.js');
 const { buildCpuPageVM }  = await import('../dist/esm/seq/cpu-page-vm.js');
-const { paramSet, resetParamStats } = await import('../dist/esm/host/param.js');
 const { buildFlagsPageVM } = await import('../dist/esm/seq/flags-page-vm.js');
 const { flagsPageState, resetFlagsPage, flagsRowCount } = await import('../dist/esm/seq/flags-page.js');
 const { visibleFlags } = await import('../dist/esm/seq/flags-visible.js');
@@ -494,8 +493,8 @@ function applyView(preset) {
             lastRender(); break;
         /* The other failure, and it must not look like the one above: nothing
          * is wrong with the set, and no button here wipes anything. */
-        case 'session_failed_update':
-            lastRender = () => renderLoadingView('failed', 'MOVY WAS UPDATED', 0, 'engine');
+        case 'session_failed_mismatch':
+            lastRender = () => renderLoadingView('failed', 'ENGINE MISMATCH', 0, 'engine');
             lastRender(); break;
         case 'versions_empty':
             lastRender = () => renderVersionsView(
@@ -834,11 +833,7 @@ function applyView(preset) {
         case 'cpu-sends-quiet':
         /* movy's own master chain holding a module: a fourth FX column joins
          * the send region at the narrow pitch, labelled `M`. */
-        case 'cpu-master':
-        /* Writes the single-slot param SHM refused. Drawn ONLY when there were
-         * some, which is why it needs a baseline of its own: every other CPU
-         * baseline is the proof that a healthy channel adds nothing to the page. */
-        case 'cpu-ipc-refused': {
+        case 'cpu-master': {
             resetFlags();
             /* Every column inside the 1 ms floor, so `cpu-overscale` is the
              * only baseline where the scale has had to GROW — otherwise the two
@@ -877,13 +872,6 @@ function applyView(preset) {
                 preset === 'cpu-sends' || preset === 'cpu-master' ? '760/1180,190/240,-'
                 : preset === 'cpu-sends-quiet' ? '0/1180,-,-'
                 : '-,-,-';
-            resetParamStats();
-            if (preset === 'cpu-ipc-refused') {
-                const saved = globalThis.host_module_set_param_blocking;
-                globalThis.host_module_set_param_blocking = () => false;
-                for (let i = 0; i < 7; i++) paramSet('cmd', 'stop');
-                globalThis.host_module_set_param_blocking = saved;
-            }
             lastRender = () => renderCpuView(buildCpuPageVM());
             lastRender();
             break;

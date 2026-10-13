@@ -6,30 +6,30 @@
 
 import {
     installMockEngine, uninstallMockEngine, seqCmd, seqEngineTick, resetSeqEngine, eq,
-    lastMusicalOp, _log,
+    lastMusicalOp, _log, ok,
 } from './harness.mjs';
 
 export async function run() {
-/* ── seq engine plumbing: cmd batching + status polling ──────────────────── */
+/* ── seq engine plumbing: cmd batching + the status snapshot (WP10) ──────── */
 {
     _log('\nseq engine plumbing:');
     const { installMockEngine, uninstallMockEngine } = await import('../mock-engine.mjs');
-    const { seqCmd, seqEngineTick, resetSeqEngine } =
+    const { seqCmd, seqEngineTick, resetSeqEngine, engineReady, engineAbsent,
+            engineAbsentReason, engineMark, engineCaughtUp, takeNoopSnapId } =
         await import('../../dist/esm/seq/engine.js');
     const { seqState, resetSeqState } = await import('../../dist/esm/seq/state.js');
 
     const engine = installMockEngine();
     resetSeqEngine(); resetSeqState();
 
-    seqEngineTick(); // boot probe: ping matches → engine ready
-    seqEngineTick(); // first post-boot tick polls status
-
-    eq('status poll marks engineOk', seqState.engineOk, true);
+    seqEngineTick(); // boot: one ping, and it matches
+    eq('one ping boots the engine', engineReady(), true);
+    seqEngineTick(); // the first snapshot is parsed
+    eq('the snapshot marks engineOk', seqState.engineOk, true);
     eq('status play=0 parsed', seqState.playing, false);
 
-    /* Boot writes the host's inject capability straight out (engine.ts), which
-     * is traffic of its own — the coalescing assertions below are about the
-     * ops a user gesture queues, so start them from a clean sheet. */
+    /* Boot writes the flags and paths straight out, which is traffic of its
+     * own — the coalescing assertions are about the ops a gesture queues. */
     engine.cmdBatches.length = 0; engine.ops.length = 0;
 
     // Multiple queued ops must flush as ONE batched set_param (coalescing).
@@ -38,12 +38,10 @@ export async function run() {
     seqCmd('nof 0 60');
     seqEngineTick();
     eq('three ops → one set_param call', engine.cmdBatches.length, 1);
-    /* The `#<seq>` tag is what the engine dedupes a resend on (see below), so
-     * the ops are compared behind it rather than against a fixed number — the
-     * boot traffic cleared above has already spent one. */
-    eq('every batch carries a sequence tag', /^#\d+;/.test(engine.cmdBatches[0]), true);
-    eq('batch joins ops with ;',
-        engine.cmdBatches[0].replace(/^#\d+;/, ''), 'watch 0;non 0 60 100;nof 0 60');
+    /* movy-host's queue loses nothing, so a batch is sent once, as written:
+     * no `#<seq>` resend tag for the engine to dedupe on. */
+    eq('the batch is the ops joined with ;, untagged',
+        engine.cmdBatches[0], 'watch 0;non 0 60 100;nof 0 60');
     eq('ops parsed on engine side', engine.ops.length, 3);
 
     // No queued ops → no set_param traffic.
@@ -51,46 +49,8 @@ export async function run() {
     seqEngineTick();
     eq('idle tick sends no cmd', engine.setParamCalls, before);
 
-    /* A batch the device could not deliver must not be lost.
-     *
-     * `host_module_set_param_blocking` returns false when the single-slot param
-     * SHM refuses the write, and until this was checked the batch was cleared
-     * anyway: a transport stop, an undo group or a step toggle simply vanished.
-     * Measured on device 2026-09-13 — 24 Play presses all reached the router and
-     * 15 of their `cmd` batches were dropped this way, which is why `seq`'s
-     * stopTransport could press three times against a transport that never
-     * stopped. The retry carries a `#<seq>` tag so a batch that WAS delivered
-     * but could not be confirmed is recognised and not applied twice. */
-    engine.cmdBatches.length = 0; engine.ops.length = 0; engine.droppedSets.length = 0;
-    engine.dropBlockingSets = true;
-    seqCmd('stop');
-    seqEngineTick();
-    eq('a refused batch is reported dropped', engine.droppedSets.length, 1);
-    eq('a refused batch reaches no op', engine.ops.length, 0);
-    seqEngineTick();
-    eq('the refused batch is retried, not forgotten', engine.droppedSets.length, 2);
-    eq('the retry carries the same tag',
-        engine.droppedSets[0][1], engine.droppedSets[1][1]);
-    /* Ops queued while a batch is unconfirmed must not overtake it. */
-    seqCmd('watch 2');
-    seqEngineTick();
-    eq('a later op does not jump the unconfirmed batch',
-        engine.droppedSets[2][1], engine.droppedSets[0][1]);
-    engine.dropBlockingSets = false;
-    seqEngineTick();
-    eq('the batch lands once the slot frees', engine.ops.includes('stop'), true);
-    eq('nothing else rode in with it', engine.ops.length, 1);
-    seqEngineTick();
-    eq('the ops queued behind it follow', engine.ops.includes('watch 2'), true);
-
-    /* The other half of the contract: a batch the engine DID apply, resent
-     * because the UI could not confirm it, is recognised by its tag. */
-    engine.ops.length = 0;
-    const landed = engine.cmdBatches[engine.cmdBatches.length - 1];
-    globalThis.host_module_set_param_blocking('cmd', landed, 50);
-    eq('a resent batch is applied once', engine.ops.length, 0);
-
-    // Status changes propagate on the next poll cadence.
+    /* Status arrives from the snapshot, not a poll: no `status` get at all. */
+    engine.getParamCalls = 0;
     engine.status.play = 1;
     engine.status.tick = 4321;
     engine.status.bpm = 13350;
@@ -98,6 +58,18 @@ export async function run() {
     eq('play state mirrored', seqState.playing, true);
     eq('engine tick mirrored', seqState.engineTick, 4321);
     eq('bpm mirrored', seqState.bpmX100, 13350);
+    eq('and no status was polled for it', engine.getParamCalls, 0);
+
+    /* A snapshot that has not moved is not re-read: the copy is the cost. */
+    let reads = 0;
+    const realSnap = globalThis.movy_engine_snapshot;
+    globalThis.movy_engine_snapshot = () => { reads++; return { ...realSnap(), seq: 7 }; };
+    const realSeq = globalThis.movy_engine_snapshot_seq;
+    globalThis.movy_engine_snapshot_seq = () => 7;
+    for (let i = 0; i < 20; i++) seqEngineTick();
+    ok('an unmoved snapshot is read at most once', reads <= 1);
+    globalThis.movy_engine_snapshot_seq = realSeq;
+    globalThis.movy_engine_snapshot = realSnap;
 
     // Mock engine serializes arbitrary status keys so tests can inject act=.
     const { activeHasNote } = await import('../../dist/esm/seq/state.js');
@@ -107,64 +79,62 @@ export async function run() {
     delete engine.status.act;
 
     // Unknown status keys must be ignored (forward compat).
+    engine.status.future_key = 42;
     engine.status.tick = 9;
-    globalThis.host_module_get_param = (key) =>
-        key === 'status' ? 'play=1 tick=9 bpm=13350 future_key=42' : null;
     for (let i = 0; i < 10; i++) seqEngineTick();
     eq('unknown status key ignored', seqState.engineTick, 9);
+    delete engine.status.future_key;
 
-    // Dead engine (all gets return null): the boot probe re-issues the DSP load
-    // a bounded number of times, then backs off. The back-off is a pause, not a
-    // surrender — slot 0 holds ONE overtake DSP for the whole device, so another
-    // tool can take ours away and hand it back long after we stopped asking.
+    /* `unop` is reported on every status until the next no-op replaces it
+     * (the engine no longer drains it), so the UI acts on a CHANGE, once. */
+    while (takeNoopSnapId() >= 0) { /* drain */ }
+    engine.status.unop = 5;
+    for (let i = 0; i < 10; i++) seqEngineTick();
+    eq('a no-op group is taken once', takeNoopSnapId(), 5);
+    for (let i = 0; i < 10; i++) seqEngineTick();
+    eq('and not again while the engine keeps reporting it', takeNoopSnapId(), -1);
+    engine.status.unop = 6;
+    for (let i = 0; i < 10; i++) seqEngineTick();
+    eq('the next one is taken', takeNoopSnapId(), 6);
+    delete engine.status.unop;
+
+    /* "Has the engine spoken since I asked" is exact: a mark is a point in the
+     * request stream, and a snapshot stamped with fewer served requests has
+     * not seen it — whatever its zeroes say. */
+    engine.holdServed = engine.submitted;
+    seqCmd('play');
+    seqEngineTick();
+    const mark = engineMark();
+    for (let i = 0; i < 10; i++) seqEngineTick();
+    eq('a snapshot from before the request has not caught up', engineCaughtUp(mark), false);
+    engine.holdServed = null;
+    for (let i = 0; i < 10; i++) seqEngineTick();
+    eq('one stamped after it has', engineCaughtUp(mark), true);
+
+    /* Boot is one question. No answer: the engine did not load, and movy-host
+     * never reloads it, so there is nothing to wait for. */
     const dead = installMockEngine();
-    const deadGet = () => { deadGets++; return null; };
-    let deadGets = 0;
-    globalThis.host_module_get_param = deadGet;
-    resetSeqEngine(); resetSeqState();
-    const { engineReady } = await import('../../dist/esm/seq/engine.js');
-    for (let i = 0; i < 1500; i++) seqEngineTick();
-    eq('dead engine: 3 load attempts', dead.loadRequests.length, 3);
-    eq('dead engine: load path correct',
-        dead.loadRequests[0], '/data/UserData/schwung/modules/tools/movy/dsp.so');
-    eq('dead engine: backs off (not ready)', engineReady(), false);
-    eq('dead engine: probing bounded', deadGets <= 40, true);
-    eq('dead engine: engineOk stays false', seqState.engineOk, false);
-
-    // Recovery: once the engine answers again, the back-off ends on its own.
-    // (It used to be terminal — commands were dropped for the rest of the tool's
-    // life while the DSP played on, curable only by reopening movy.)
-    installMockEngine();
-    for (let i = 0; i < 2200; i++) seqEngineTick();
-    eq('engine returns: back-off ends and it boots', engineReady(), true);
-
-    // The three attempts are per outage, not cumulative over the session. Two
-    // brief losses that each recovered on their own used to leave only one
-    // attempt for the third — after which every command was silently dropped
-    // while the DSP played on, curable only by reopening movy.
-    const flaky = installMockEngine();
-    const liveGet = globalThis.host_module_get_param;
-    resetSeqEngine(); resetSeqState();
-    seqEngineTick();                                    // boots clean
-    globalThis.host_module_get_param = deadGet;
-    for (let i = 0; i < 700; i++) seqEngineTick();      // outage 1: 2 attempts
-    eq('outage 1: two attempts spent', flaky.loadRequests.length, 2);
-    globalThis.host_module_get_param = liveGet;         // engine answers again
-    for (let i = 0; i < 40; i++) seqEngineTick();
-    eq('outage 1: recovers without backing off', engineReady(), true);
-
-    flaky.reset();
-    globalThis.host_module_get_param = deadGet;
-    for (let i = 0; i < 1200; i++) seqEngineTick();
-    eq('outage 2: a fresh 3 attempts, not 1', flaky.loadRequests.length, 3);
-
-    // Stale engine (wrong version pong): reload requested immediately.
-    const e3 = installMockEngine();
-    globalThis.host_module_get_param = (key) => (key === 'ping' ? 'pong 0.0.1' : null);
+    dead.pingUnavailable = true;
     resetSeqEngine(); resetSeqState();
     seqEngineTick();
-    eq('stale engine: reload requested on first probe', e3.loadRequests.length, 1);
-    e3.reset();
+    eq('no engine: absent at once', engineAbsent(), true);
+    eq('and says it did not answer', engineAbsentReason(), 'silent');
+    const pings = dead.getParamCalls;
+    for (let i = 0; i < 100; i++) seqEngineTick();
+    eq('and is not asked again', dead.getParamCalls, pings);
+    eq('engineOk stays false', seqState.engineOk, false);
+    seqCmd('play');
+    for (let i = 0; i < 5; i++) seqEngineTick();
+    eq('nothing is sent to a missing engine', dead.cmdBatches.length, 0);
+
+    /* Another version answered: ui.js and dsp.so from different builds. */
+    const odd = installMockEngine();
+    odd.pingVersion = '0.0.1';
+    resetSeqEngine(); resetSeqState();
+    seqEngineTick();
+    eq('a version mismatch is absent too', engineAbsent(), true);
+    eq('named as a mismatch', engineAbsentReason(), 'mismatch');
+    eq('no reload is asked for', odd.params.load, undefined);
 
     uninstallMockEngine();
     resetSeqEngine();

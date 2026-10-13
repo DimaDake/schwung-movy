@@ -19,10 +19,10 @@ function mockEngine() {
     const store = {};
     const writes = [];
     const oG = globalThis.host_module_get_param;
-    const oS = globalThis.host_module_set_param_blocking;
+    const oS = globalThis.host_module_set_param;
     globalThis.host_module_get_param = (k) => (k in store ? store[k] : null);
-    globalThis.host_module_set_param_blocking = (k, v) => { store[k] = v; writes.push([k, v]); return true; };
-    return { store, writes, restore() { globalThis.host_module_get_param = oG; globalThis.host_module_set_param_blocking = oS; } };
+    globalThis.host_module_set_param = (k, v) => { store[k] = v; writes.push([k, v]); return true; };
+    return { store, writes, restore() { globalThis.host_module_get_param = oG; globalThis.host_module_set_param = oS; } };
 }
 
 export async function run() {

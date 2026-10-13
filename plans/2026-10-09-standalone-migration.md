@@ -860,6 +860,14 @@ tier's schwung-slot tools (`slot-state.mjs`, `slots-read.mjs`,
 
 ### WP10: a direct UI↔engine channel (motivation 1)
 
+**Done 2026-10-13** (branch `standalone-migration`, ENGINE 0.93.0):
+`plans/2026-10-13-wp10-direct-engine-channel.md`. movy-host publishes the
+engine's `status` (the engine stays an unchanged `plugin_api_v2` plugin) into a
+seqlock every third block, stamped with the queue's served count. The UI
+reads it with no wait, writes stop waiting, and the `#<seq>` dedupe, refusal
+counters, chain/state retries and `ping` reload loop are gone. UI IPC per tick
+0.7 → 0.4 ms, tick rate 380 → 420 Hz, at +14 µs of audio-thread work a frame.
+
 Replace the string `status` poll with a shared-memory snapshot the engine
 publishes every block (seqlock; UI reads lock-free). Commands go over an SPSC
 queue with ordered delivery, which retires `#<seq>` dedupe, the

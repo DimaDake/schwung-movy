@@ -1,114 +1,82 @@
-/* The only file that talks IPC for the sequencer.
+/* The only file that talks to the engine for the sequencer (plan WP10).
  *
- * Boot: the framework's overtake_dsp:load is fire-and-forget on a single-
- * slot param SHM, so it can be overwritten before the shim consumes it
- * (and a previously loaded engine survives redeploys). The UI therefore
- * probes `ping` and re-issues the load itself until the reported version
- * matches ENGINE_VERSION — making both tool launch and engine redeploys
- * self-healing.
+ * Boot: movy-host loads its own dsp.so before ui.js starts and never reloads
+ * it, so boot is one question. `ping` answering ENGINE_VERSION is ready;
+ * another version is a broken install (ui.js and dsp.so from different
+ * builds), and silence is an engine that did not load. Neither has a fix movy
+ * can apply, so both go straight to the failure screen.
  *
  * Steady state: commands queue during an app tick and flush as ONE batched
- * `set_param("cmd", "op;op;…")` — the param channel is a single slot, so
- * multiple writes per tick can clobber each other. Status comes back via
- * one `get_param("status")` poll every STATUS_POLL_TICKS; each get blocks
- * ~3-5 ms on device, so the cadence is a deliberate IPC budget. */
+ * `cmd` write into movy-host's ordered queue, which loses nothing. Status is
+ * not polled: the audio thread publishes it after every render
+ * (host/status_snap.h), and the tick reads the newest when it has moved. */
 
 import { paramGet, paramSet } from '../host/param.js';
+import { platform } from '../platform/index.js';
 import { mlog } from '../log.js';
-import { AUTO_LANES, CHAIN_MODULE_DIR, ENGINE_DSP_PATH, ENGINE_VERSION, MOVY_MODULE_DIR } from './constants.js';
-import { activeFromStr, adoptLoopWindow, muteFromStr, occFromHex, padMutesFromStr, seqState, sessionFromStr, songFromStr } from './state.js';
-import { rationalToIdx } from './clip-scale.js';
-import { noteProbeGen, probeBridgeTick } from './probe-bridge.js';
-import { markUiStateDirty } from './ui-dirty.js';
+import { CHAIN_MODULE_DIR, ENGINE_VERSION, MOVY_MODULE_DIR } from './constants.js';
+import { probeBridgeTick } from './probe-bridge.js';
 import { applyFlagsToEngine } from './flags.js';
 import { pushMasterVolume } from '../mixer/master-volume.js';
-import { requestMasterImport, resetMasterImport } from '../chain/master-import.js';
+import { resetMasterImport } from '../chain/master-import.js';
 import { resetPadRoute, syncPadRoute } from '../track/pad-route.js';
-import { noteReportedTrack, resetWatchPush, syncWatch } from './watch.js';
+import { resetWatchPush, syncWatch } from './watch.js';
+import { parseStatus, resetEngineStatus } from './engine-status.js';
+import { requestLabelSync } from './label-sync.js';
 
-/* -1 until the first poll: the opening value is not a change, and treating it
- * as one would mark every fresh open dirty and rewrite the set for nothing. */
-let lastChainGen = -1;
-/* The count of Sets the engine has APPLIED, as of the last poll. -1 is "never
- * polled", and unlike `lastChainGen` the first real value IS acted on — see the
- * `sapl` arm in parseStatus. */
-let lastSetApplied = -1;
+export { parseStatusForTest, takeNoopSnapId } from './engine-status.js';
+export { requestLabelSync, takeLabelSync } from './label-sync.js';
 
-const STATUS_POLL_TICKS = 8;  // ~24 Hz at the ~196 Hz device tick rate
-const PROBE_TICKS = 30;       // ping cadence while booting
-const PROBES_PER_LOAD = 10;   // failed pings before (re)issuing a load
-const MAX_LOADS = 3;          // consecutive load attempts before backing off
-const MAX_STATUS_FAILURES = 16;
-/* Ticks spent in 'absent' before probing again (~10-30 s at the 63-205 Hz
- * device tick). Giving up permanently was wrong: the single overtake_dsp slot
- * is shared, so another tool can take the engine away and hand it back long
- * after we stopped asking. */
-const ABSENT_RETRY_TICKS = 2000;
+/* Ticks between parses of a moved snapshot. The audio thread publishes ~344
+ * times a second and the tick runs ~380; parsing every one would spend the
+ * tick on text the screen cannot show. 4 is ~95 Hz, four times the old poll. */
+const PARSE_TICKS = 4;
 
 type BootState = 'probe' | 'ok' | 'absent';
 
-/** Why the probe gave up. `stale` means an engine ANSWERED and it was the wrong
- *  version — a different `dsp.so` is already dlopened under our path, which the
- *  shim cannot replace while MoveOriginal lives (glibc serves the library
- *  already loaded by path). That is what a store update looks like from here,
- *  and unlike silence it has a recovery the user can act on. */
-export type AbsentReason = 'silent' | 'stale';
+/** Why the engine is absent: it never answered, or it answered with a version
+ *  this ui.js was not built with. */
+export type AbsentReason = 'silent' | 'mismatch';
 
 const cmdQueue: string[] = [];
 let bootState: BootState = 'probe';
-/* Bumped every time the engine enters service. A re-dlopen after a wedge comes
- * up as a brand new, EMPTY Engine; persist.ts compares this against the
- * generation whose contents it authored, so it can never autosave over a set
- * with an engine it did not restore. */
-let generation = 0;
-let probeCountdown = 1;
-let probeFailures = 0;
-let loadAttempts = 0;
-let absentCountdown = 0;
 let absentReason: AbsentReason = 'silent';
-let pollCountdown = 1;
-let statusFailures = 0;
-/* Successful status parses this engine session — see statusSeq(). */
-let statusPolls = 0;
-
-/* The engine's writes go through the one door, which owns the blocking rule
- * (a non-blocking write shares a single-slot SHM with movy's own blocking GETs
- * and is clobbered before the shim consumes it — observed on device, even the
- * framework's own DSP-load request was lost this way) and counts what the slot
- * refuses. `false` here means refused; see host/param.ts. */
-const engineSet = paramSet;
+/* 1 once the engine is in service. Kept as a number because persistence and
+ * undo compare it against the generation they authored; movy-host never
+ * reloads the engine, so it never moves past 1. */
+let generation = 0;
+let lastSnapSeq = 0;
+let parseCountdown = 0;
+/* The `served` stamp of the last snapshot parsed: every request up to it was
+ * in the engine when that status was taken. */
+let lastServed = -1;
+let uiTickCount = 0;
 
 export function engineGeneration(): number { return generation; }
-
-export function engineReady(): boolean {
-    return bootState === 'ok';
-}
-
-/** The engine has stopped being probed for now — it never answered, or it
- *  stopped answering and gave up. The session turns this into a visible
- *  failure rather than an indefinite loading screen. */
-export function engineAbsent(): boolean {
-    return bootState === 'absent';
-}
-
+export function engineReady(): boolean { return bootState === 'ok'; }
+/** The engine is not there and will not be: the session shows why. */
+export function engineAbsent(): boolean { return bootState === 'absent'; }
 /** Only meaningful while `engineAbsent()`. */
 export function engineAbsentReason(): AbsentReason { return absentReason; }
 
 /* Monotonic UI-tick counter, for short interaction timers (e.g. double-tap
  * detection) that need a coarse clock without wall-time access. */
-let uiTickCount = 0;
-export function uiTick(): number {
-    return uiTickCount;
-}
+export function uiTick(): number { return uiTickCount; }
+
+/** A point in the request stream: everything sent before this call. */
+export function engineMark(): number { return platform.engineSubmitted(); }
+
+/** Has a parsed status reflected every request up to `mark`? A mirror field
+ *  read as ZERO (chpend while loads are queued) is only an answer once this
+ *  holds — before it, it is the previous state's zero. */
+export function engineCaughtUp(mark: number): boolean { return lastServed >= mark; }
 
 /* Undo's inspection hook, registered by undo/record.ts. Lives as a callback
  * rather than a direct import because undo/ imports this file — and because a
  * hook here catches EVERY seqCmd, including a new call site that never thought
  * about undo. That is the point: a bypass is exactly what it must notice. */
 let editGuard: ((op: string) => void) | null = null;
-export function setEditGuard(fn: ((op: string) => void) | null): void {
-    editGuard = fn;
-}
+export function setEditGuard(fn: ((op: string) => void) | null): void { editGuard = fn; }
 
 /* Queue one engine op, e.g. "play" or "tog 0 0 60 100". Sent on the next
  * tick (held through boot, dropped only if the engine never appears). */
@@ -117,343 +85,86 @@ export function seqCmd(op: string): void {
     cmdQueue.push(op);
 }
 
-/* The batch written but not yet confirmed, and the tag it carries. Measured on
- * device 2026-09-13: of 24 Play presses that all reached the router, 15 had
- * their `cmd` batch refused by the param SHM — and the batch was cleared
- * regardless, so the transport simply never stopped. A refused batch is kept
- * and rewritten verbatim until it lands.
- *
- * Verbatim matters. A refusal cannot say whether the shim had already taken the
- * request, so the resend may be a SECOND delivery of a batch the engine ran —
- * and `tog` applied twice toggles the step back off. The `#<seq>` tag is what
- * the engine dedupes on (seq-core `apply_batch`), so the tag must not change
- * between attempts. */
-let pendingBatch = '';
-let cmdSeq = 0;
-
 /* Send the queued ops now rather than on the next tick. Teardown has no next
  * tick, so anything the engine must have applied before its state is
  * serialized — a note-off closing a recording capture — has to go out here. */
 export function seqCmdFlush(): void {
-    if (!engineReady()) return;
-    if (pendingBatch === '') {
-        if (cmdQueue.length === 0) return;
-        /* Ops queued behind an unconfirmed batch wait their turn: they were
-         * made after it, and the engine must see them in that order. */
-        cmdSeq = (cmdSeq + 1) >>> 0;
-        pendingBatch = '#' + cmdSeq + ';' + cmdQueue.join(';');
-        cmdQueue.length = 0;
-    }
-    if (engineSet('cmd', pendingBatch)) pendingBatch = '';
-}
-
-/* Automation label re-sync request: set on engine boot/reload; the app tick
- * consumes it once to fetch `alabels` and rebuild the lane registry. */
-let labelSyncPending = false;
-/* How many status polls have been parsed. The mirror is only as fresh as the
- * last poll, so a caller that acts on a status FIELD BEING ZERO — rather than on
- * it changing — has to know whether the engine has spoken since it asked. The
- * set lifecycle does exactly that: it queues chain loads and then waits for
- * `chpend` to reach 0, which it already is until the first poll after the
- * queueing lands. */
-export function statusSeq(): number { return statusPolls; }
-
-export function requestLabelSync(): void { labelSyncPending = true; }
-export function takeLabelSync(): boolean {
-    if (!labelSyncPending) return false;
-    labelSyncPending = false;
-    return true;
-}
-
-/* The engine reports (via `unop`) that a committed group changed nothing. Held
- * here and drained by the app tick rather than dispatched directly, so this
- * file keeps no import of undo/ — which imports this one. */
-let noopSnapId = -1;
-export function takeNoopSnapId(): number {
-    const id = noopSnapId;
-    noopSnapId = -1;
-    return id;
+    if (!engineReady() || cmdQueue.length === 0) return;
+    paramSet('cmd', cmdQueue.join(';'));
+    cmdQueue.length = 0;
 }
 
 export function seqEngineTick(): void {
     uiTickCount++;
-    if (bootState === 'absent') {
-        if (--absentCountdown > 0) return;
-        mlog('seq: retrying engine probe');
-        bootState = 'probe';
-        probeCountdown = 1;
-        probeFailures = 0;
-        loadAttempts = 0;
-        return;
-    }
-    if (bootState === 'probe') {
-        probeTick();
-        return;
-    }
+    if (bootState === 'absent') return;
+    if (bootState === 'probe') { boot(); return; }
     /* Keep the engine's pad map current. Rebuilt and compared every tick — the
      * comparison is what makes it correct, because the set of things that change
      * the mapping (track, octave, root, scale, layout, drum lane, module) is a
      * list that would rot, and a stale map sends notes to the wrong pitch. */
-    syncPadRoute(engineSet);
+    syncPadRoute(paramSet);
     /* Same rule, same reason: the step view's track and drum lane are pushed by
      * comparing them against what the engine was last told. Queued rather than
      * sent, so they ride the batch the flush below is about to send. */
     syncWatch(seqCmd);
     seqCmdFlush();
-    if (--pollCountdown <= 0) {
-        pollCountdown = STATUS_POLL_TICKS;
-        const s = paramGet('status');
-        if (s === null) {
-            /* Engine vanished (unloaded/replaced) — reprobe. */
-            if (++statusFailures >= MAX_STATUS_FAILURES) {
-                mlog('seq: engine lost — reprobing');
-                bootState = 'probe';
-                probeCountdown = 1;
-                probeFailures = 0;
-            }
-            return;
-        }
-        statusFailures = 0;
-        statusPolls++;
-        parseStatus(s);
-    }
-    /* After parseStatus, so a request noticed in THIS poll is answered in the
-     * same tick rather than one poll interval later. Costs nothing when no
-     * request is waiting, which is every tick outside a device test. */
-    probeBridgeTick(paramGet, engineSet);
+    readSnapshot();
+    /* After the parse, so a request noticed in THIS snapshot is answered in the
+     * same tick. Costs nothing when no request is waiting. */
+    probeBridgeTick(paramGet, paramSet);
 }
 
-function probeTick(): void {
-    if (--probeCountdown > 0) return;
-    probeCountdown = PROBE_TICKS;
+function readSnapshot(): void {
+    if (--parseCountdown > 0) return;
+    const seq = platform.engineSnapshotSeq();
+    if (seq === lastSnapSeq) return;
+    const snap = platform.engineSnapshot();
+    if (!snap) return;
+    parseCountdown = PARSE_TICKS;
+    lastSnapSeq = snap.seq;
+    lastServed = snap.served;
+    parseStatus(snap.text);
+}
+
+function boot(): void {
     const pong = paramGet('ping');
-    if (pong === 'pong ' + ENGINE_VERSION) {
-        mlog('seq: engine ready v' + ENGINE_VERSION);
-        bootState = 'ok';
-        generation++;
-        statusFailures = 0;
-        /* A healthy engine clears the load budget. Without this the three
-         * attempts were cumulative over the whole session, so three unrelated
-         * engine losses — each recovered at the time — added up to a permanent
-         * 'absent': every later command silently dropped while the DSP played
-         * on, and only reopening movy brought the sequencer back. */
-        loadAttempts = 0;
-        pollCountdown = 1;
-        /* Only the UI knows the install paths, so it hands them over once the
-         * engine answers. Sent on every (re)boot because a re-dlopened engine
-         * is a brand new one that has never been told. Refreshing the private
-         * copy and dlopening the chain host both happen inside this set, off
-         * the render path. */
-        /* Before `chain_host`, which is where the chains start existing: the
-         * flags decide how they render, and a lane count that arrives after the
-         * pool has been built for the old one costs a rebuild. Every boot, not
-         * once — a re-dlopened engine has default flags and has never heard of
-         * prefs.json. */
-        applyFlagsToEngine(engineSet);
-        /* Every boot, like the flags: a re-dlopened engine starts at unity. */
-        pushMasterVolume(engineSet);
-        engineSet('chain_host', CHAIN_MODULE_DIR + '|' + MOVY_MODULE_DIR);
-        /* A re-dlopened engine has no pad map; believing otherwise would leave
-         * the pads dead until something happened to change the mapping. */
-        resetPadRoute();
-        resetMasterImport();
-        /* Same for the watched track and drum lane: a brand new engine watches
-         * track 0 with every lane merged, and would go on doing so until the
-         * user happened to change tracks. */
-        resetWatchPush();
-        requestLabelSync(); // rebuild automation registry + re-apply chain mappings
+    if (pong !== 'pong ' + ENGINE_VERSION) {
+        absentReason = pong === null ? 'silent' : 'mismatch';
+        mlog('seq: engine ' + (pong === null ? 'did not answer' : 'is ' + pong + ', ui.js wants ' + ENGINE_VERSION));
+        bootState = 'absent';
+        cmdQueue.length = 0;
         return;
     }
-    probeFailures++;
-    const stale = pong !== null;
-    if (stale || probeFailures >= PROBES_PER_LOAD) {
-        probeFailures = 0;
-        if (loadAttempts >= MAX_LOADS) {
-            /* The LAST answer is the one that says what is wrong: an engine that
-             * kept replying with another version is a different `dsp.so` we
-             * cannot displace, not an engine that failed to load. */
-            absentReason = stale ? 'stale' : 'silent';
-            mlog('seq: engine unavailable after ' + MAX_LOADS
-                 + ' load attempts (' + absentReason + ')');
-            bootState = 'absent';
-            absentCountdown = ABSENT_RETRY_TICKS;
-            cmdQueue.length = 0;
-            return;
-        }
-        loadAttempts++;
-        mlog('seq: requesting engine load #' + loadAttempts + (stale ? ' (stale ' + pong + ')' : ''));
-        /* "load" is handled by the shim itself (dlopen), routed through the
-         * same overtake_dsp: prefix as instance params. */
-        engineSet('load', ENGINE_DSP_PATH);
-    }
+    mlog('seq: engine ready v' + ENGINE_VERSION);
+    bootState = 'ok';
+    generation++;
+    parseCountdown = 0;
+    /* Before `chain_host`, which is where the chains start existing: the flags
+     * decide how they render, and a lane count that arrives after the pool has
+     * been built for the old one costs a rebuild. */
+    applyFlagsToEngine(paramSet);
+    pushMasterVolume(paramSet);
+    /* Only the UI knows the install paths, so it hands them over once the
+     * engine answers. Refreshing the private copy and dlopening the chain host
+     * both happen inside this set, off the render path. */
+    paramSet('chain_host', CHAIN_MODULE_DIR + '|' + MOVY_MODULE_DIR);
+    resetPadRoute();
+    resetMasterImport();
+    resetWatchPush();
+    requestLabelSync(); // rebuild automation registry + re-apply chain mappings
 }
-
-/* Status format: space-separated key=value pairs, e.g.
- * "play=1 tick=4321 bpm=12000 trk=0 step=3 len=16 occ=<64 hex>". Unknown
- * keys are ignored so the engine can extend the format freely. */
-
-/* Engine-reported play state from the previous poll — kept separately from
- * the mirror (which the UI updates optimistically) so real transport
- * transitions are always logged. */
-let lastEnginePlay: boolean | null = null;
-
-function parseStatus(s: string): void {
-    seqState.engineOk = true;
-    /* Cleared each poll rather than only overwritten: an engine that predates
-     * the fields sends none of them, and last poll's numbers standing in for
-     * this one is exactly the meter lying. */
-    seqState.cpuCost = '';
-    seqState.cpuWall = '';
-    seqState.cpuMask = '';
-    seqState.cpuSend = '';
-    seqState.cpuMaster = '';
-    for (const kv of s.split(' ')) {
-        const eq = kv.indexOf('=');
-        if (eq <= 0) continue;
-        const key = kv.slice(0, eq);
-        const val = kv.slice(eq + 1);
-        if (key === 'play') seqState.playing = val === '1';
-        else if (key === 'tick') seqState.engineTick = Number(val) || 0;
-        else if (key === 'bpm') seqState.bpmX100 = Number(val) || seqState.bpmX100;
-        else if (key === 'ext') seqState.extSync = val === '1';
-        else if (key === 'swing') seqState.swingPct = Number(val) || seqState.swingPct;
-        else if (key === 'trk') {
-            seqState.reportedTrack = Number(val) || 0;
-            noteReportedTrack(seqState.reportedTrack);
-        }
-        else if (key === 'step') seqState.curStep = Number(val) || 0;
-        else if (key === 'len') seqState.lenSteps = Number(val) || 0;
-        else if (key === 'lstart') seqState.loopStart = Number(val) || 0;
-        else if (key === 'csc') {
-            const [n, d] = val.split('/').map(Number);
-            seqState.clipScaleIdx = rationalToIdx(n || 1, d || 1);
-        }
-        else if (key === 'ctr') seqState.clipTranspose = Number(val) || 0;
-        else if (key === 'quant') seqState.clipQuant = Number(val) || 0;
-        else if (key === 'dquant') seqState.defaultQuant = Number(val) || 0;
-        /* The engine's count of serviced chain-module changes. A movy chain
-         * lives only inside the engine, so the UI cannot know it changed unless
-         * the engine says so — and it must be persisted whoever changed it: a
-         * browser load, an undo, a restore, or a remote param write the UI never
-         * saw. Watching a counter covers all of them; hooking the browser
-         * gesture would have covered only the first. */
-        else if (key === 'chgen') {
-            const g = Number(val) || 0;
-            if (lastChainGen >= 0 && g !== lastChainGen) markUiStateDirty();
-            lastChainGen = g;
-        }
-        /* The engine has applied a Set — which is the moment `alabels` starts
-         * answering for THAT Set and not the previous one. An open is
-         * asynchronous (the UI asks by name; the bytes land on the saver thread
-         * hundreds of ms later), and `openSet`'s own `requestLabelSync` is
-         * armed at REQUEST time, so its one shot was routinely spent reading
-         * the outgoing Set's labels — all dashes on a cold open. The registry
-         * then stayed empty for the whole session: no automation dot, no held
-         * value, no read-back suppression, and the take still on disk. Asking
-         * again here cannot race it, because this counter only moves once the
-         * payload is in the engine. */
-        else if (key === 'sapl') {
-            const a = Number(val) || 0;
-            /* The FIRST value counts as a change, unlike `chgen` above: there a
-             * change means a write (mark the set dirty), so an opening value
-             * must be swallowed, while here it means a read the UI needs anyway
-             * — its registry starts empty and the engine may have been holding
-             * this Set since before movy launched. Swallowing the first value
-             * would leave exactly the cold open this fixes unsynced. */
-            if (a !== lastSetApplied) {
-                requestLabelSync();
-                /* Same moment, same reason: only now does `mfx:imported`
-                 * answer for the Set that just landed. */
-                requestMasterImport();
-            }
-            lastSetApplied = a;
-        }
-        else if (key === 'prq') noteProbeGen(Number(val) || 0);
-        else if (key === 'chpend') seqState.chainPending = Number(val) || 0;
-        else if (key === 'chcost') seqState.cpuCost = val;
-        else if (key === 'chwall') seqState.cpuWall = val;
-        else if (key === 'chmask') seqState.cpuMask = val;
-        else if (key === 'sndcost') seqState.cpuSend = val;
-        else if (key === 'mfxcost') seqState.cpuMaster = val;
-        else if (key === 'rec') seqState.recording = val === '1';
-        else if (key === 'cin') seqState.countingIn = val === '1';
-        else if (key === 'cap') {
-            const [p, g] = val.split('.');
-            seqState.capPending = Number(p) || 0;
-            seqState.capGen = Number(g) || 0;
-        }
-        else if (key === 'metro') seqState.metro = val === '1';
-        else if (key === 'dirty') seqState.dirty = val === '1';
-        else if (key === 'pos') seqState.posTick = Number(val) || 0;
-        else if (key === 'hlen') seqState.holdLen = Number(val) || 0;
-        else if (key === 'hnotes') {
-            seqState.holdNotes = val
-                ? val.split('.').map(Number).filter((n) => n >= 0 && n <= 127)
-                : [];
-        }
-        else if (key === 'hvel') seqState.holdVel = Number(val) || 0;
-        else if (key === 'hgate') seqState.holdGate = Number(val) || 0;
-        else if (key === 'hgmix') seqState.holdGateMixed = val === '1';
-        else if (key === 'hprob') seqState.holdProb = Number(val) || 0;
-        else if (key === 'hcond') {
-            const [a, b] = val.split(':').map(Number);
-            seqState.holdCondA = a || 1;
-            seqState.holdCondB = b || 1;
-        }
-        else if (key === 'hinv') seqState.holdInvert = val === '1';
-        else if (key === 'hlmax') seqState.holdMaxGate = Number(val) || 0;
-        else if (key === 'act') activeFromStr(val);
-        else if (key === 'mute') muteFromStr(val);
-        else if (key === 'wpad') padMutesFromStr(val);
-        else if (key === 'sess') sessionFromStr(val);
-        else if (key === 'song') songFromStr(val);
-        else if (key === 'occ') occFromHex(val);
-        else if (key === 'unop') noopSnapId = Number(val);
-        else if (key === 'alanes') seqState.autoAssigned = parseInt(val, 16) || 0;
-        else if (key === 'aauto') seqState.autoActive = parseInt(val, 16) || 0;
-        else if (key === 'hauto') {
-            seqState.heldLocks.clear();
-            if (val) for (const pair of val.split('.')) {
-                const [l, v] = pair.split(':').map(Number);
-                if (l >= 0 && l < AUTO_LANES) seqState.heldLocks.set(l, v);
-            }
-        }
-    }
-    adoptLoopWindow();   // a window the UI has not seen before takes the view with it
-    if (lastEnginePlay !== seqState.playing) {
-        mlog('seq: play=' + (seqState.playing ? 1 : 0));
-        lastEnginePlay = seqState.playing;
-    }
-}
-
-/* Test hook: drive parseStatus directly. */
-export function parseStatusForTest(s: string): void { parseStatus(s); }
 
 /* Test hook: inspect the pending command queue. */
-export function peekSeqCmdQueue(): string[] {
-    return cmdQueue.slice();
-}
+export function peekSeqCmdQueue(): string[] { return cmdQueue.slice(); }
 
-/* Test hook: reset boot/queue/backoff between test cases. */
+/* Test hook: back to before boot. */
 export function resetSeqEngine(): void {
     cmdQueue.length = 0;
-    pendingBatch = '';
-    cmdSeq = 0;
     bootState = 'probe';
-    generation = 0;
-    probeCountdown = 1;
-    probeFailures = 0;
-    loadAttempts = 0;
-    absentCountdown = 0;
     absentReason = 'silent';
-    pollCountdown = 1;
-    statusFailures = 0;
-    statusPolls = 0;
-    lastEnginePlay = null;
-    /* A re-dlopened engine starts its chain generation at 0 again; carrying the
-     * old value across would read as a change and dirty the set for nothing. */
-    lastChainGen = -1;
-    /* And for the same reason: a re-dlopened engine has applied nothing yet, so
-     * its first `sapl` is an opening value rather than a Set that just landed. */
-    lastSetApplied = -1;
+    generation = 0;
+    lastSnapSeq = 0;
+    parseCountdown = 0;
+    lastServed = -1;
+    resetEngineStatus();
 }

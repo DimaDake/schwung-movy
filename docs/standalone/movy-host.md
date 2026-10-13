@@ -11,7 +11,7 @@ it shipped only as the dev tool movy-sa; since WP8 it **is** the `movy` module
 | Thread | File | Job |
 |---|---|---|
 | main | `ui.c`, `ui_js.c`, `globals*.c` | QuickJS: loads `ui.js`, ticks it on a 2 ms deadline (shadow_ui's overtake period, because the tick is movy's input sampling interval), drains input, batches encoder deltas (`deltas.c`), packs the screen |
-| `movy-audio` | `audio.c`, `spi.c` | One `WAIT_AND_SEND` per 128-sample block: MIDI out (≤20 packets), display slices, MIDI in, engine notes, the param queue, `render_block`, audio out with a 0.5 s fade-in |
+| `movy-audio` | `audio.c`, `spi.c` | One `WAIT_AND_SEND` per 128-sample block: MIDI out (≤20 packets), display slices, MIDI in, engine notes, the param queue, `render_block`, the status snapshot, audio out with a 0.5 s fade-in |
 | `movy-testbus` | `testbus*.c` | `docs/standalone/testbus.md`, only when asked for |
 | `movy-log` | `log_ring.c` | the one writer of debug.log and movy-host.log (below) |
 
@@ -30,7 +30,18 @@ overlap. Supporting modules:
   keeps its channel) plus a FIFO for everything else (SysEx is all-or-nothing).
 - `param_queue.c`: no single slot. Every request has its own record and a FIFO
   place. A write whose waiter timed out is still applied; only an abandoned
-  read is skipped. `param_bulk.c` is the shim's bulk codec.
+  read is skipped. `param_bulk.c` is the shim's bulk codec. Since WP10 movy
+  never waits on a write (`host_module_set_param`, bulk sets included): a set
+  is refused only when no engine is loaded. The queue counts what it has
+  queued (`submitted`) and serviced (`served`).
+- `status_snap.c` (WP10): after every render the audio thread asks the
+  engine for `status` and publishes it in a seqlock, stamped with `served` as
+  of that render. The UI reads it with `movy_engine_snapshot_seq()` (a number,
+  every tick) and `movy_engine_snapshot()` (a copy, when the number moved), so
+  status costs no queue round trip. A snapshot whose `served` has reached a
+  `movy_engine_submitted()` taken earlier reflects every request made before it
+  (`seq/set-settle.ts` waits on exactly that). A status too long for the 16 KB
+  buffer is refused, never truncated, and logged once.
 - `display.c`: seqlocked frames, so the XMOS never gets a torn frame. Also
   `/dev/shm/schwung-display-live`, so display-server streams it unchanged, and
   `/dev/shm/schwung-display` (shadow_ui's frame under the shim), so

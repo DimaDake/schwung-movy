@@ -19,7 +19,7 @@ export async function run() {
     let sets = [], writes = 0;
     const host = () => ({
         ...real,
-        engineSetBlocking: (k, v) => { sets.push(k + '=' + v); return true; },
+        engineSet: (k, v) => { sets.push(k + '=' + v); return true; },
         readFile: (p) => files[p] ?? null,
         writeFile: (p, c) => { files[p] = c; writes++; return true; },
     });

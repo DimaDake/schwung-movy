@@ -25,5 +25,8 @@ int  engine_render(int16_t *interleaved, int frames);   /* 0 = no engine */
 void engine_service(void *ctx, pq_req_t *r);            /* pq_service_fn */
 /* The key of the last request serviced: names the param behind a slow frame. */
 const char *engine_last_key(void);
+/* After the frame's render: the engine's status into the UI's snapshot
+ * (status_snap.h), stamped with the requests serviced before that render. */
+void engine_publish_status(uint64_t served);
 
 #endif

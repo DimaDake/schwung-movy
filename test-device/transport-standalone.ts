@@ -39,6 +39,13 @@ const holdSend = (cmd: 'go' | 'quit') =>
     + `elif [ -e ${HOLD} ]; then echo ${cmd} > ${HOLD_CMD}; echo sent; `
     + `else P=$(cat ${HOLD_PIDF} 2>/dev/null); `
     + `if [ -n "$P" ] && grep -q tools/movy/standalone /proc/$P/cmdline 2>/dev/null; then echo wait; else echo none; fi; fi`;
+/* A refused connect: the bus is not listening YET (a host still starting).
+ * Never a dropped link — by the time running() is asked the bus may be up, and
+ * rethrowing the refusal as a lost link failed seq's boot-gate pump on all
+ * three attempts (2026-10-13). */
+const notListening = (e: unknown): boolean =>
+    (e as { code?: string } | null)?.code === 'ECONNREFUSED';
+
 /* A device frame. Used ONLY while movy-host is down, when there is no frame
  * clock on the box to wait on (the shim's went with Move). */
 const FRAME_MS = 128 / 44.1;
@@ -202,7 +209,7 @@ export class StandaloneTransport implements Transport {
     async frames(n: number): Promise<number> {
         if (await this.running()) {
             try { return await this.call((bus) => bus.frames(n)); } catch (e) {
-                if (await this.running()) throw e;
+                if (!notListening(e) && await this.running()) throw e;
             }
         }
         await new Promise((r) => setTimeout(r, Math.ceil(n * FRAME_MS)));
@@ -217,7 +224,7 @@ export class StandaloneTransport implements Transport {
      * is a real link loss and still throws. */
     async uiMidi(p: Packet): Promise<void> {
         try { await this.call((bus) => bus.injectShim(p)); } catch (e) {
-            if (await this.running()) throw e;
+            if (!notListening(e) && await this.running()) throw e;
         }
     }
     dspMidi(p: Packet): Promise<void> { return this.uiMidi(p); }

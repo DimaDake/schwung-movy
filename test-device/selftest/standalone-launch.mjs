@@ -131,4 +131,25 @@ ok('a failed launch does not wedge the next one', calls === 4, `ran ${calls}`);
     }
 }
 
+/* A press made while movy-host is still starting finds its bus not listening
+ * yet: the connect is REFUSED. By the time the transport asks whether the host
+ * runs, the bus may be up — and the refusal was then rethrown as a lost link,
+ * failing seq's boot-gate pump on all three attempts (2026-10-13). A refused
+ * connect is "not up yet", never a link that dropped; a link that drops while
+ * the host runs still throws. */
+{
+    const tx = new StandaloneTransport('selftest.invalid');
+    tx.running = async () => true;
+    const refused = Object.assign(new AggregateError([], ''), { code: 'ECONNREFUSED' });
+    tx.call = async () => { throw refused; };
+    const r1 = await tx.uiMidi([0x09, 0x90, 60, 100]).then(() => 'ok', (e) => e);
+    ok('a press refused by a host still starting is swallowed', r1 === 'ok', String(r1?.code ?? r1));
+    const f1 = await tx.frames(1).then(() => 'ok', (e) => e);
+    ok('...and so is a frame wait', f1 === 'ok', String(f1?.code ?? f1));
+
+    tx.call = async () => { throw new Error('bus: connection closed'); };
+    const r2 = await tx.uiMidi([0x09, 0x90, 60, 100]).then(() => 'ok', (e) => e);
+    ok('a link lost while the host runs still throws', r2 !== 'ok');
+}
+
 process.exit(fails ? 1 : 0);

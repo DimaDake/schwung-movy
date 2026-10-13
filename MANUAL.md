@@ -173,16 +173,15 @@ not affected either way.
 
 A different screen means a different problem, and there is no jog click on it:
 
-![Movy was updated](docs/assets/session_failed_update.png)
+![Engine mismatch](docs/assets/session_failed_mismatch.png)
 
-This one is about the engine, not your Set: the engine Movy found does not
-match the Movy that is running. Movy loads its engine fresh every time it
-opens, so close Movy and open it again; if the screen comes back, **restart
-your Move** (power off and on). Your Sets are untouched: Movy never became
-live, so it never wrote anything.
+This one is about the install, not your Set: Movy's engine comes from a
+different build than the rest of Movy, which only a partial install or update
+leaves behind. **Reinstall Movy** from the Module Store. Your Sets are
+untouched: Movy never became live, so it never wrote anything.
 
-`ENGINE DID NOT START` on the same screen means the engine did not answer at
-all. The remedy is the same restart.
+`ENGINE DID NOT START` on the same screen means the engine did not load at all.
+The remedy is the same reinstall.
 
 ### Backups
 

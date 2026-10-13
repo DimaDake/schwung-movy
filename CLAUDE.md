@@ -95,7 +95,8 @@ mirror in the UI.
   `plugin_api_v2`; every FFI entry point catches panics so an engine bug can
   never abort movy-host). Spec/design: `plans/2026-06-12-sequencer-*.md`.
 - **UI — `src/seq/`:** `engine.ts` (the only IPC: one batched `cmd`
-  set_param/tick + a `status` poll), `state.ts` (mirror), `router.ts`
+  set_param/tick, and status read from movy-host's per-block snapshot,
+  parsed in `engine-status.ts`), `state.ts` (mirror), `router.ts`
   (first-look MIDI dispatch — sequencer events never touch the param-page
   handlers) with `router-steps.ts` / `router-pads.ts` / `router-buttons.ts`
   holding the three halves it dispatches to (the step row, pads + held chord,
@@ -109,17 +110,24 @@ mirror in the UI.
 
 - **ENGINE_VERSION must match** between `engine/crates/movy-dsp/src/lib.rs`
   and `src/seq/constants.ts` (`build-dsp.sh` fails the build otherwise). The
-  UI probes `ping` and re-issues the DSP load until the version matches.
+  UI asks `ping` once at boot: another version is `ENGINE MISMATCH` (a dsp.so
+  and ui.js from different builds), and there is no reload loop — movy-host
+  loads its dsp.so before ui.js and never reloads it.
 - **A redeployed `dsp.so` runs from the next movy OPEN, not before.** movy-host
   loads `dsp.so`, `ui.js` and `chain-host.so` when it starts; a movy-host that
   is running keeps what it started with (`deploy.sh` says so loudly). "Restart
   the stack" is now "restart movy-host" — close and reopen movy (the harness's
   `restart()`); no Move restart, no root. Bumping ENGINE_VERSION once for two
   different builds still hides a stale engine: both answer `ping` alike.
-- **Engine sets are blocking** (`host_module_set_param_blocking`, through
-  `src/host/param.ts`): a refused write must be countable. (Under the old
-  overtake host the param SHM was a single slot and non-blocking writes were
-  routinely lost; movy-host's queue does not lose them, but the door stays.)
+- **Engine sets are queued, never waited on** (`src/host/param.ts`, the one
+  door): movy-host's param queue is FIFO and loses nothing, so a write returns
+  at once and `false` means only "no engine". Gets still wait for the next
+  frame boundary; status is not a get — it is the audio thread's per-block
+  snapshot (`host/status_snap.c`). `engine` `status` must stay a PURE read:
+  movy-host calls it every block, so a field it drained (as `unop` once was)
+  would reach a snapshot the UI might never see. (WP10; the overtake host's
+  single-slot SHM, the `#<seq>` resend dedupe and the refusal counters are
+  gone.)
 - **Never scp over a dlopen'd `dsp.so` (or a running `movy-host`) in place** —
   overwriting a mapped file's inode corrupts its pages. `deploy.sh` ships
   scp-to-temp + `mv` (fresh inode); the store's atomic install does the same.

@@ -9,8 +9,8 @@ function readLfo(scope: LfoScope, key: string): string {
     return scope.port.getParam(key) ?? '';
 }
 
-/* Blocking, and recorded: the three keys below are one gesture, so they belong
- * to one undo entry rather than three.
+/* Recorded: the three keys below are one gesture, so they belong to one undo
+ * entry rather than three.
  *
  * Through the PORT, never `shadow_set_param_timeout` directly: that API is
  * addressed by schwung slot and refuses anything past slot 3, so on a movy track
@@ -19,7 +19,7 @@ function readLfo(scope: LfoScope, key: string): string {
 function setBlocking(scope: LfoScope, key: string, val: string): void {
     const old = readLfo(scope, key);
     if (old !== val) recordParamOp(scope.slot, key, old, val);
-    scope.port.setParamTimeout(key, val, 100);
+    scope.port.setParam(key, val);
 }
 
 /* Bumped by every routing movy writes, so a label cached against a routing

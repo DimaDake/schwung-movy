@@ -39,10 +39,9 @@ export abstract class EnginePort implements TrackPort {
     private wseq = 0;
     private readonly wlog: string[] = [];
 
-    /* Logged whether or not the slot accepted it. A refused write may still have
-     * been taken (host/param.ts's header: the two failures are indistinguishable
-     * from here), so treating it as "nothing changed" is the one direction that
-     * can leave a cache holding a value the engine does not have. */
+    /* Logged whether or not the engine took it: treating a write as "nothing
+     * changed" is the one direction that can leave a cache holding a value the
+     * engine does not have. */
     private noteWrite(key: string): void {
         this.wseq++;
         this.wlog.push(key);
@@ -65,11 +64,6 @@ export abstract class EnginePort implements TrackPort {
     setParam(key: string, value: string): boolean {
         this.noteWrite(key);
         return paramSet(this.key(key), value);
-    }
-
-    setParamTimeout(key: string, value: string, timeoutMs: number): boolean {
-        this.noteWrite(key);
-        return paramSet(this.key(key), value, timeoutMs);
     }
 
     getMany(keys: string[]): (string | null)[] {

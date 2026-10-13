@@ -33,7 +33,7 @@ let pending: { uuid: string; n: number; tries: number } | null = null;
 const RESTORE_TRIES = 60;
 
 function restoreViaEngine(uuid: string, n: number): boolean {
-    paramSet('set', 'restore ' + n, 200);
+    paramSet('set', 'restore ' + n);
     pending = { uuid, n, tries: 0 };
     return false;   // nothing to reload yet — restoreTick says when
 }

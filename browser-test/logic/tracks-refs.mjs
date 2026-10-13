@@ -46,9 +46,9 @@ export async function run() {
 
   const gets = [], sets = [];
   const origGet = globalThis.host_module_get_param;
-  const origSet = globalThis.host_module_set_param_blocking;
+  const origSet = globalThis.host_module_set_param;
   globalThis.host_module_get_param = (key) => { gets.push(key); return 'v:' + key; };
-  globalThis.host_module_set_param_blocking = (key, val) => { sets.push([key, val]); return true; };
+  globalThis.host_module_set_param = (key, val) => { sets.push([key, val]); return true; };
 
   resetPorts();
   const p2 = portFor(2);
@@ -88,7 +88,7 @@ export async function run() {
   eq('portFor caches', portFor(2) === p2, true);
 
   globalThis.host_module_get_param = origGet;
-  globalThis.host_module_set_param_blocking = origSet;
+  globalThis.host_module_set_param = origSet;
   resetPorts();
 }
 
@@ -163,15 +163,15 @@ export async function run() {
   const { resetPorts } = await import('../../dist/esm/track/registry.js');
 
   const sets = [];
-  const origSet = globalThis.host_module_set_param_blocking;
-  globalThis.host_module_set_param_blocking = (key, val) => { sets.push([key, val]); return true; };
+  const origSet = globalThis.host_module_set_param;
+  globalThis.host_module_set_param = (key, val) => { sets.push([key, val]); return true; };
 
   resetPorts();
   setChainParam(portFor(3), 'synth:cutoff', '0.8', '0.2');
   eq('write reached the port\'s chain', sets[0][0], 'ch3:synth:cutoff');
   eq('write passed value', sets[0][1], '0.8');
 
-  globalThis.host_module_set_param_blocking = origSet;
+  globalThis.host_module_set_param = origSet;
   resetPorts();
 }
 

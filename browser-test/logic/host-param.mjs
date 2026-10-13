@@ -1,9 +1,9 @@
-/* browser-test/logic/host-param.mjs — the one door to the param channel.
+/* browser-test/logic/host-param.mjs — the one door to the engine.
  *
- * The point of `src/host/param.ts` is that a refused write is COUNTABLE. Every
- * assertion here is about that: what counts as a refusal, what does not, and
- * that a caller still gets the verdict it needs to act on. A dropped write is
- * silent on device, so if these counters lie nothing else will contradict them.
+ * Since WP10 a write goes into movy-host's ordered queue and the caller moves
+ * on: no wait, no refusal accounting. What is left to pin is that a write
+ * reaches the host as a plain set (never the blocking call that cost a frame),
+ * that `false` still means "no engine", and the read-side health counters.
  *
  * Run by browser-test/logic.mjs.
  */
@@ -28,41 +28,25 @@ export async function run() {
     };
 
     const writes = [];
-    let refuse = false;
-    let blockingReturns = true;
-    globalThis.host_module_set_param = (k, v) => { writes.push([k, v]); };
-    globalThis.host_module_set_param_blocking = (k, v) => {
-        if (refuse) return false;
-        writes.push([k, v]);
-        return blockingReturns;
-    };
+    let loaded = true;
+    let blockingCalls = 0;
+    globalThis.host_module_set_param = (k, v) => { if (!loaded) return false; writes.push([k, v]); return true; };
+    globalThis.host_module_set_param_blocking = () => { blockingCalls++; return true; };
     let reads = {};
     globalThis.host_module_get_param = (k) => (k in reads ? reads[k] : null);
 
-    _log('\nhost param channel: a refused write is counted, not swallowed');
+    _log('\nhost param channel: a write is queued, not waited on');
     resetParamStats();
 
-    /* A write that lands. */
-    ok('a delivered write reports success', paramSet('cmd', 'play') === true);
-    eq('and is not counted as a refusal', paramStats().refused, 0);
-    eq('but is counted as a write', paramStats().sets, 1);
+    ok('a write reports success', paramSet('cmd', 'play') === true);
+    eq('it reached the host', writes.length, 1);
+    eq('as a plain set: nothing waits a frame for it', blockingCalls, 0);
+    eq('and is counted as a write', paramStats().sets, 1);
 
-    /* A write the slot refuses. This is the case that was invisible: before
-     * host/param.ts there was no number anywhere that moved when it happened. */
-    refuse = true;
-    ok('a refused write reports failure', paramSet('cmd', 'stop') === false);
-    eq('the refusal is counted', paramStats().refused, 1);
-    eq('and names the key it was carrying', paramStats().lastRefusedKey, 'cmd');
-    eq('a refused write reaches the host with nothing', writes.length, 1);
-
-    /* A host binding that answers nothing at all is NOT evidence of a loss.
-     * Treating undefined as a refusal would make every counter a fiction on any
-     * host whose shim predates the boolean return. */
-    refuse = false;
-    blockingReturns = undefined;
-    ok('a host that returns nothing counts as delivered', paramSet('cmd', 'play') === true);
-    eq('and adds no refusal', paramStats().refused, 1);
-    blockingReturns = true;
+    /* The one failure left: movy-host refuses a set when no engine is loaded. */
+    loaded = false;
+    ok('with no engine a write reports failure', paramSet('cmd', 'stop') === false);
+    loaded = true;
 
     /* Reads. A null answer is the engine being silent, which is worth counting
      * for the same reason — it is how a vanished engine first shows up. */
@@ -106,11 +90,10 @@ export async function run() {
     ok('a bulk write reports success', paramSetMany([['a', '1'], ['b', '2']]) === true);
     eq('and counts every pair as a write', paramStats().sets, 2);
     globalThis.shadow_set_params = () => false;
-    ok('a refused bulk write reports failure', paramSetMany([['a', '1'], ['b', '2']]) === false);
-    eq('and counts every pair as refused', paramStats().refused, 2);
+    ok('with no engine a bulk write reports failure', paramSetMany([['a', '1'], ['b', '2']]) === false);
 
     resetParamStats();
-    eq('the stats reset', paramStats().sets + paramStats().refused + paramStats().gets, 0);
+    eq('the stats reset', paramStats().sets + paramStats().gets + paramStats().bulkFallbacks, 0);
 
     globalThis.host_module_set_param = saved.set;
     globalThis.host_module_set_param_blocking = saved.setb;

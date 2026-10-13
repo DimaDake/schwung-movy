@@ -41,8 +41,9 @@ export function loadingStage(phase: string, chainPending: number): string {
 export function failureLines(reason: string, scope: string): [string, string, string] {
     if (scope === 'engine') {
         /* No "cannot load this set": the set is not what failed, and a user who
-         * is told it is will go looking for the damage in the wrong place. */
-        return [reason, 'RESTART YOUR MOVE', ''];
+         * is told it is will go looking for the damage in the wrong place. Both
+         * engine failures are a broken install, which a restart does not fix. */
+        return [reason, 'REINSTALL MOVY', ''];
     }
     /* Naming the button rather than "press to continue": this wipes the Set's
      * sequencer state, and a user who did not mean to should be able to tell

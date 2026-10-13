@@ -7,7 +7,7 @@
  * param SHM, which is a SINGLE SLOT with four producers (shim, shadow_ui, the
  * chain forwarder, the test daemon) plus the remote-UI socket. `movy/CLAUDE.md`
  * already records that writes into that slot are "routinely lost". The restore
- * write is `host_module_set_param_blocking('state', ...)`, which RETURNS a
+ * write is `host_module_set_param('state', ...)`, which RETURNS a
  * boolean — and `set-load.ts:pushState` discards it.
  *
  * So the question this suite pins down: if that write never lands, what does
@@ -24,10 +24,10 @@ const GOOD = 'movy1\nbpm 12000\nau 0 0 50 synth:octave_transpose\ncl 0 0 16 0 0:
 /* Run `body` with every `state` write dropped, exactly as a starved slot would
  * leave it — the call returns false and the engine never sees the payload. */
 async function withDroppedStateWrite(body) {
-    const real = globalThis.host_module_set_param_blocking;
-    globalThis.host_module_set_param_blocking = (k, v, t) =>
+    const real = globalThis.host_module_set_param;
+    globalThis.host_module_set_param = (k, v, t) =>
         (k === 'state' ? false : real(k, v, t));
-    try { return await body(); } finally { globalThis.host_module_set_param_blocking = real; }
+    try { return await body(); } finally { globalThis.host_module_set_param = real; }
 }
 
 export async function run() {
@@ -266,14 +266,14 @@ setFlag('engpersist', 0);
     setFlag('engpersist', 1);
     writeStateBlob('E', GOOD, 1);
 
-    const real = globalThis.host_module_set_param_blocking;
-    globalThis.host_module_set_param_blocking = (k, v, t) =>
+    const real = globalThis.host_module_set_param;
+    globalThis.host_module_set_param = (k, v, t) =>
         (k === 'set' ? false : real(k, v, t));
     try {
         openSet('E', null);
         seqState.dirty = true;
         saveSet('E', 1, true);
-    } finally { globalThis.host_module_set_param_blocking = real; }
+    } finally { globalThis.host_module_set_param = real; }
 
     eq('a dropped open leaves the Set on disk untouched', readBestState('E').payload, GOOD);
     ok('and the UI can see the engine does not hold it', setStatusUuid() !== 'E');

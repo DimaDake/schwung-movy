@@ -19,13 +19,12 @@ export const standalonePlatform: Platform = {
     removeDir: (p) => host_remove_dir(p),
 
     engineGet: (k) => host_module_get_param(k) ?? null,
-    engineSet: (k, v) => { host_module_set_param(k, v); },
-    /* Only an explicit false is a refusal; a host that returns nothing has
-     * given no grounds to claim a loss. */
-    engineSetBlocking: (k, v, ms) => host_module_set_param_blocking(k, v, ms) !== false,
+    engineSet: (k, v) => host_module_set_param(k, v) !== false,
     engineGetBulk: (payload) => shadow_get_params(0, BULK_MARKER, payload) ?? null,
-    /* The bulk write is the opposite: only an explicit true is delivered. */
-    engineSetBulk: (payload) => shadow_set_params(0, BULK_MARKER, payload) === true,
+    engineSetBulk: (payload) => shadow_set_params(0, BULK_MARKER, payload) !== false,
+    engineSnapshotSeq: () => movy_engine_snapshot_seq(),
+    engineSnapshot: () => movy_engine_snapshot() ?? null,
+    engineSubmitted: () => movy_engine_submitted(),
 
     surfaceSend: (data) => { move_midi_internal_send(data); },
     loadUiModule: (p) => shadow_load_ui_module(p),
@@ -35,9 +34,9 @@ export const standalonePlatform: Platform = {
     ipcCalls: [
         ['host_module_get_param', 'mget', 0],
         ['host_module_set_param', 'mset', 0],
-        /* The engine's writes are all BLOCKING, which is exactly why leaving
-         * this one unwrapped hid the most expensive calls movy makes. */
-        ['host_module_set_param_blocking', 'msetb', 0],
+        /* A copy, not a round trip, but still a host call per tick: counted so
+         * the probe shows what replaced the `status` poll (WP10). */
+        ['movy_engine_snapshot', 'snap', -1],
         /* One round trip for many keys, which is why a page refresh uses it —
          * and why leaving it out would hide the call that replaced eight. */
         ['shadow_get_params', 'bget', 1],

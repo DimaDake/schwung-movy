@@ -1322,8 +1322,8 @@ _log('\napp-loop: master FX slot adds a module at the engine root');
 
     resetApp();
     const writes = [];
-    const realEng = globalThis.host_module_set_param_blocking;
-    globalThis.host_module_set_param_blocking = (k, v, t) => { writes.push(k + '=' + v); return realEng(k, v, t); };
+    const realEng = globalThis.host_module_set_param;
+    globalThis.host_module_set_param = (k, v, t) => { writes.push(k + '=' + v); return realEng(k, v, t); };
 
     seqState.sessionMode = true;          // master FX chain is shown in Session mode
     appState.masterChainIndex = MFX1;
@@ -1342,7 +1342,7 @@ _log('\napp-loop: master FX slot adds a module at the engine root');
     eq('and nothing was namespaced to a movy chain',
         writes.filter((w) => w.startsWith('ch')).join(','), '');
 
-    globalThis.host_module_set_param_blocking = realEng;
+    globalThis.host_module_set_param = realEng;
     globalThis.os = prevOs;
     globalThis.host_read_file = prevRead;
 }
@@ -3021,8 +3021,8 @@ _log('\napp-loop: the module browser loads onto a movy-hosted track');
      * a browser load on a movy track becomes a ch<N>: write rather than a
      * schwung slot write that would silently hit another track. */
     const engineWrites = [];
-    const realSet = globalThis.host_module_set_param_blocking;
-    globalThis.host_module_set_param_blocking = (k, v, t) => {
+    const realSet = globalThis.host_module_set_param;
+    globalThis.host_module_set_param = (k, v, t) => {
         engineWrites.push([k, v]);
         return realSet ? realSet(k, v, t) : true;
     };
@@ -3047,7 +3047,7 @@ _log('\napp-loop: the module browser loads onto a movy-hosted track');
         eq('wrote the picked module id', moduleWrite[1], picked.id);
     }
 
-    globalThis.host_module_set_param_blocking = realSet;
+    globalThis.host_module_set_param = realSet;
     uninstallMockEngine();
     selectTrack(0);
     resetSeqState();

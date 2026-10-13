@@ -25,6 +25,10 @@
 #define FADE_FRAMES ((int)(0.5 * SCHWUNG_SAMPLE_RATE / SCHWUNG_AUDIO_FRAMES))
 #define SLOW_FRAME_US 10000
 #define PARAMS_PER_FRAME 8
+/* The engine's status into the UI's snapshot every Nth block (WP10). Every
+ * block cost ~49 us of audio-thread work (the engine formats ~1.5 KB of text),
+ * and the UI parses at most ~107 Hz; every third block is ~115 Hz. */
+#define STATUS_EVERY_BLOCKS 3
 
 static pthread_t g_thread;
 static volatile int g_stop;
@@ -98,7 +102,7 @@ static void *audio_main(void *arg) {
 
     int16_t buf[SCHWUNG_AUDIO_FRAMES * 2];
     uint8_t out[MIDI_OUT_PER_FRAME][4], notes[64][4];
-    int fade = 0;
+    int fade = 0, status_div = 0;
     while (!g_stop) {
         /* F0 00 21 1D 01 01 39 02 F7: what stock Move sends for every power-button event. Unanswered,
          * the hardware reports the button once per launch and then goes quiet. */
@@ -134,6 +138,10 @@ static void *audio_main(void *arg) {
         for (int i = 0; i < nn; i++) engine_on_midi(notes[i] + 1, 3);
         int served = pq_service(engine_service, NULL, PARAMS_PER_FRAME);
         int rendered = engine_render(buf, SCHWUNG_AUDIO_FRAMES);
+        if (rendered && ++status_div >= STATUS_EVERY_BLOCKS) {
+            status_div = 0;
+            engine_publish_status(pq_served());
+        }
         engine_frame_end();
 
         int16_t *dst = (int16_t *)(map + SCHWUNG_OFF_OUT_AUDIO);

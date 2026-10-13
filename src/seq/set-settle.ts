@@ -8,7 +8,7 @@
  * looked live: a pad hit in that window reached the wrong module. This is the
  * wait that covers it, and the one rule it must never break is that it ends. */
 
-import { statusSeq } from './engine.js';
+import { engineCaughtUp, engineMark } from './engine.js';
 import { seqState } from './state.js';
 
 /* A module that never loads — a broken .so, a wedged shim — must not leave the
@@ -20,27 +20,28 @@ const CAP_MS = 10000;
 /* Wall-clock, not ticks: the device tick rate swings 63-205 Hz with load, so a
  * tick count is not a duration. */
 let start = 0;
-/* The status-poll count when the wait began. `chpend` is a MIRROR, and it still
- * reads the previous Set's zero until the first poll after the loads were
- * queued — promoting on that zero is promoting on a stale answer, which is the
- * same "looks ready, is not" bug one layer up. */
-let baseSeq = -1;
+/* The request stream's position when the wait began. `chpend` is a MIRROR, and
+ * it still reads the previous Set's zero until a status taken after the loads
+ * were queued — promoting on that zero is promoting on a stale answer, which is
+ * the same "looks ready, is not" bug one layer up. The snapshot says exactly
+ * when it has caught up (engine.ts `engineCaughtUp`). */
+let baseMark = -1;
 
 export type Settle = 'wait' | 'done' | 'capped';
 
 export function beginSettle(): void {
     start = Date.now();
-    baseSeq = statusSeq();
+    baseMark = engineMark();
 }
 
 export function resetSettle(): void {
     start = 0;
-    baseSeq = -1;
+    baseMark = -1;
 }
 
 export function settleCheck(): Settle {
     const capped = Date.now() - start >= CAP_MS;
-    if (statusSeq() > baseSeq && seqState.chainPending === 0) return 'done';
+    if (engineCaughtUp(baseMark) && seqState.chainPending === 0) return 'done';
     return capped ? 'capped' : 'wait';
 }
 

@@ -273,9 +273,9 @@ _log('\nTest: send slot params reach the engine, not a shadow slot');
 
     const writes = [];
     const oSet = globalThis.shadow_set_param;
-    const oMSet = globalThis.host_module_set_param_blocking;
+    const oMSet = globalThis.host_module_set_param;
     globalThis.shadow_set_param = (slot, k, v) => { writes.push(['shadow', k, v]); return true; };
-    globalThis.host_module_set_param_blocking = (k, v) => { writes.push(['engine', k, v]); return true; };
+    globalThis.host_module_set_param = (k, v) => { writes.push(['engine', k, v]); return true; };
     resetPorts();
 
     /* The component key already names the destination, so the port must pass it
@@ -297,7 +297,7 @@ _log('\nTest: send slot params reach the engine, not a shadow slot');
     eq('and never through a track port', writes[0] && writes[0][0], 'engine');
 
     globalThis.shadow_set_param = oSet;
-    globalThis.host_module_set_param_blocking = oMSet;
+    globalThis.host_module_set_param = oMSet;
     resetPorts();
 }
 
@@ -373,10 +373,10 @@ _log('\nTest: MIX page edits are undoable');
 
     const writes = [];
     const oG = globalThis.host_module_get_param;
-    const oS = globalThis.host_module_set_param_blocking;
+    const oS = globalThis.host_module_set_param;
     globalThis.host_module_get_param = (k) =>
         k === 'ch6:mix' ? '1.0000,0.0000,0,0.0000,0.0000' : (oG ? oG(k) : null);
-    globalThis.host_module_set_param_blocking = (k, v) => { writes.push([k, v]); return true; };
+    globalThis.host_module_set_param = (k, v) => { writes.push([k, v]); return true; };
     resetPorts();
     resetUndoState(); takeUndoViolation();
 
@@ -402,7 +402,7 @@ _log('\nTest: MIX page edits are undoable');
     eq('a whole turn is one undo entry', undoDepth(), 1);
 
     globalThis.host_module_get_param = oG;
-    globalThis.host_module_set_param_blocking = oS;
+    globalThis.host_module_set_param = oS;
     resetPorts();
 }
 
@@ -429,9 +429,9 @@ _log('\nTest: undo returns the MIX knob to where it started');
      * show that either way — it would pass with the page frozen. */
     let live = '1.0000,0.0000,0,0.0000,0.0000';
     const oG = globalThis.host_module_get_param;
-    const oS = globalThis.host_module_set_param_blocking;
+    const oS = globalThis.host_module_set_param;
     globalThis.host_module_get_param = (k) => (k === 'ch6:mix' ? live : (oG ? oG(k) : null));
-    globalThis.host_module_set_param_blocking = (k, v) => {
+    globalThis.host_module_set_param = (k, v) => {
         if (k === 'ch6:mix') live = v;
         return true;
     };
@@ -462,7 +462,7 @@ _log('\nTest: undo returns the MIX knob to where it started');
 
     appState.trackModels.length = 0;
     globalThis.host_module_get_param = oG;
-    globalThis.host_module_set_param_blocking = oS;
+    globalThis.host_module_set_param = oS;
     resetPorts();
 }
 
@@ -581,9 +581,9 @@ _log('\nTest: MIX knob travel matches a module knob');
 
     let mix = '1.0000,0.0000,0,0.0000,0.0000,0.0000';
     const oG = globalThis.host_module_get_param;
-    const oS = globalThis.host_module_set_param_blocking;
+    const oS = globalThis.host_module_set_param;
     globalThis.host_module_get_param = (k) => (k === 'ch6:mix' ? mix : (oG ? oG(k) : null));
-    globalThis.host_module_set_param_blocking = (k, v) => {
+    globalThis.host_module_set_param = (k, v) => {
         if (k === 'ch6:mix') mix = v;
         return true;
     };
@@ -665,7 +665,7 @@ _log('\nTest: MIX knob travel matches a module knob');
        trajectory(FIELD_AT.indexOf('gain'), +1, 12).some((v) => v.gain === 1));
 
     globalThis.host_module_get_param = oG;
-    globalThis.host_module_set_param_blocking = oS;
+    globalThis.host_module_set_param = oS;
     resetPorts();
 }
 

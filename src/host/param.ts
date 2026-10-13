@@ -1,33 +1,20 @@
-/* The one door to Schwung's param channel.
+/* The one door to movy's engine.
  *
  * Everything movy says to its engine — a sequencer command, a knob value, a
- * chain document, a Set command — goes through `overtake_dsp`'s param SHM, and
- * that is a SINGLE SLOT shared with every other writer on the device. A write
- * claims the slot, waits for the shim to service it, and reports failure by
- * returning false. It fails for two different reasons the caller cannot tell
- * apart: the claim timed out (nothing was written), or the response did not
- * arrive in time (the request may have been taken anyway).
+ * chain document, a Set command — goes through movy-host's param queue
+ * (host/param_queue.c): one record per request, serviced in order by the audio
+ * thread before each render. Nothing is lost and nothing is reordered, so a
+ * write simply goes in the queue and the caller moves on.
  *
- * Why this file exists at all: that one fact had been rediscovered, on device,
- * by six subsystems in turn — the DSP load re-issues itself until `ping`
- * matches, the automation registry came back empty from polling during a
- * restore, the probe grew a 150-frame gap, Set persistence moved wholesale into
- * the engine so commands travel instead of payloads, master FX grew a mirror,
- * and the sequencer's own command batches were being dropped in silence until
- * 2026-09-13. Six workarounds for one missing property. This does not add that
- * property — a reliable transport needs the slot to stop being one slot, which
- * is a Schwung change — but it gives every caller ONE place that knows the
- * rules, and it makes the failure COUNTABLE. A dropped write is otherwise
- * perfectly silent, which is why a green test run never proved the channel was
- * healthy.
+ * Until WP10 this file carried the overtake host's rules instead: a single
+ * shared param slot that dropped writes, so every set blocked, counted its
+ * refusals, and the ordered streams (the `cmd` batch, the chain document)
+ * resent behind their own dedupe. The queue made all of that dead weight
+ * (plans/2026-10-13-wp10-direct-engine-channel.md).
  *
- * What this file does NOT do is retry. Retrying is not universally correct: a
- * knob stream wants last-write-wins (the value after it supersedes the one that
- * was lost), while an ordered command stream wants delivery. So delivery is
- * opt-in and lives where the ordering is understood — `seq/engine.ts` resends
- * its `cmd` batch behind a `#<seq>` tag the engine deduplicates on.
- * `track/chain-persist.ts` has its own bounded retry for the same reason.
- */
+ * A GET still waits for its answer: the audio thread services it at the next
+ * frame boundary, up to ~2.9 ms. Status, which the UI wants every tick, is not
+ * read this way at all — it comes from the snapshot (seq/engine.ts). */
 
 /* The bulk wire format is `track/bulk.ts` — left where its own tests live and
  * where its six other callers already import it from, rather than moved here
@@ -35,40 +22,29 @@
 import { decodeBulk, encodeBulk } from '../track/bulk.js';
 import { platform } from '../platform/index.js';
 
-/* Blocking writes need a timeout, and a UI tick is the budget. 50 ms is long
- * enough for the shim's SPI frame and short enough that a contended slot costs
- * one late frame rather than a visible stall. */
-const DEFAULT_SET_TIMEOUT_MS = 50;
-
 export type ParamStats = {
-    /** Writes attempted. */
+    /** Writes queued. */
     sets: number;
-    /** Writes the slot REFUSED — the number that matters. */
-    refused: number;
-    /** The last key a refusal was carrying, for the page that shows the count. */
-    lastRefusedKey: string;
     /** Reads attempted, and how many answered nothing. */
     gets: number;
     getNulls: number;
     /** Bulk reads that came back malformed and had to be re-read one by one.
-     *  Also channel health: the fallback is correct but costs N round trips. */
+     *  Channel health: the fallback is correct but costs N round trips. */
     bulkFallbacks: number;
 };
 
 let sets = 0;
-let refused = 0;
-let lastRefusedKey = '';
 let gets = 0;
 let getNulls = 0;
 let bulkFallbacks = 0;
 
 export function paramStats(): ParamStats {
-    return { sets, refused, lastRefusedKey, gets, getNulls, bulkFallbacks };
+    return { sets, gets, getNulls, bulkFallbacks };
 }
 
 /** Test hook, and the reset a fresh engine session deserves. */
 export function resetParamStats(): void {
-    sets = 0; refused = 0; lastRefusedKey = ''; gets = 0; getNulls = 0; bulkFallbacks = 0;
+    sets = 0; gets = 0; getNulls = 0; bulkFallbacks = 0;
 }
 
 export function paramGet(key: string): string | null {
@@ -78,17 +54,10 @@ export function paramGet(key: string): string | null {
     return v;
 }
 
-/** Write one param. `false` means it did not get through — see the header for
- *  why that is not the same as "it did not happen". */
-export function paramSet(key: string, value: string,
-                         timeoutMs: number = DEFAULT_SET_TIMEOUT_MS): boolean {
+/** Queue one write. `false` only when no engine is loaded. */
+export function paramSet(key: string, value: string): boolean {
     sets++;
-    /* An explicit false is a REFUSAL; the platform maps a host that answers
-     * nothing to delivered, since that gives no grounds to claim a loss. */
-    if (platform.engineSetBlocking(key, value, timeoutMs)) return true;
-    refused++;
-    lastRefusedKey = key;
-    return false;
+    return platform.engineSet(key, value);
 }
 
 /** Read many params in ONE round trip.
@@ -114,10 +83,6 @@ export function paramSetMany(pairs: [string, string][]): boolean {
     if (pairs.length === 0) return true;
     const flat: string[] = [];
     for (const [k, v] of pairs) { flat.push(k); flat.push(v); }
-    const r = platform.engineSetBulk(encodeBulk(flat));
     sets += pairs.length;
-    if (r) return true;
-    refused += pairs.length;
-    lastRefusedKey = pairs[pairs.length - 1][0];
-    return false;
+    return platform.engineSetBulk(encodeBulk(flat));
 }

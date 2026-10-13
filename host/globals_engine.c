@@ -1,7 +1,8 @@
 /* The engine param channel as movy calls it: host_module_* (the door
  * src/host/param.ts uses) and the slot API's "overtake_dsp:" namespace, both
- * onto the param queue. There are no schwung slots here, so every other slot
- * key answers like an absent slot (null / false). */
+ * onto the param queue, plus the status snapshot (status_snap.h). There are
+ * no schwung slots here, so every other slot key answers like an absent slot
+ * (null / false). */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,27 +11,12 @@
 #include "log.h"
 #include "movy_host.h"
 #include "param_queue.h"
+#include "status_snap.h"
 #include "vtable.h"
 
 #define NS "overtake_dsp:"
 #define GET_TIMEOUT_MS 500
 #define SET_TIMEOUT_MS 500
-
-static char g_dsp_path[300];
-
-/* Host-level keys the shim answered itself. `load` reloads OUR dsp.so, never
- * the path the UI names: that path is the overtake install's, and the engine
- * is the host's to choose (a dev flavour beside an older install must not
- * pick up its engine). Returns 1 when handled. */
-static int host_key_set(const char *key, const char *value) {
-    if (strcmp(key, "load") == 0) {
-        mh_log("engine: UI asked for load %s; reloading %s", value, g_dsp_path);
-        engine_load(g_dsp_path, g_mh_module_dir);
-        return 1;
-    }
-    if (strcmp(key, "unload") == 0) { engine_unload(); return 1; }
-    return 0;
-}
 
 static JSValue engine_get(JSContext *ctx, const char *key) {
     if (strcmp(key, "__ready") == 0) return JS_NewString(ctx, engine_loaded() ? "1" : "0");
@@ -42,18 +28,21 @@ static JSValue engine_get(JSContext *ctx, const char *key) {
     return v;
 }
 
+/* movy-host loads its own dsp.so before the UI starts and never reloads it
+ * (WP10), so a set with no engine has nowhere to go: refused, not queued. */
 static int engine_set(const char *key, const char *value, int timeout_ms) {
-    if (host_key_set(key, value)) return 1;
-    return pq_set(key, value, timeout_ms);
+    return engine_loaded() && pq_set(key, value, timeout_ms);
 }
 
 static JSValue bulk(JSContext *ctx, pq_kind_t kind, JSValueConst payload) {
     const char *p = JS_ToCString(ctx, payload);
     if (!p) return JS_NULL;
     char *out = kind == PQ_BULK_GET ? malloc(PQ_VALUE_CAP) : NULL;
-    int n = pq_bulk(kind, p, out, out ? PQ_VALUE_CAP : 0, GET_TIMEOUT_MS);
+    /* A bulk set waits for nothing, like a single one: the queue keeps it. */
+    int loaded = engine_loaded();
+    int n = !loaded ? -1 : pq_bulk(kind, p, out, out ? PQ_VALUE_CAP : 0, kind == PQ_BULK_SET ? 0 : GET_TIMEOUT_MS);
     JS_FreeCString(ctx, p);
-    JSValue v = kind == PQ_BULK_SET ? JS_NewBool(ctx, n >= 0)
+    JSValue v = kind == PQ_BULK_SET ? JS_NewBool(ctx, loaded)
               : n >= 0 ? JS_NewStringLen(ctx, out, (size_t)n) : JS_NULL;
     free(out);
     return v;
@@ -143,8 +132,35 @@ static JSValue js_shadow_set_params(JSContext *ctx, JSValueConst this_val, int a
     return argc > 2 ? bulk(ctx, PQ_BULK_SET, argv[2]) : JS_FALSE;
 }
 
+/* movy_engine_snapshot_seq(): publishes so far (0 = none), cheap enough to
+ * ask every tick. movy_engine_snapshot(): { seq, served, text } or null. */
+static JSValue js_snapshot_seq(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
+    return JS_NewUint32(ctx, snap_seq());
+}
+
+static JSValue js_snapshot(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
+    static char buf[STATUS_SNAP_CAP];
+    uint32_t seq;
+    uint64_t served;
+    int n = snap_read(buf, sizeof buf, &seq, &served);
+    if (n < 0) return JS_NULL;
+    JSValue o = JS_NewObject(ctx);
+    JS_SetPropertyStr(ctx, o, "seq", JS_NewUint32(ctx, seq));
+    JS_SetPropertyStr(ctx, o, "served", JS_NewFloat64(ctx, (double)served));
+    JS_SetPropertyStr(ctx, o, "text", JS_NewStringLen(ctx, buf, (size_t)n));
+    return o;
+}
+
+/* movy_engine_submitted(): requests queued so far. A snapshot whose `served`
+ * has reached it reflects every request made before the call. */
+static JSValue js_submitted(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
+    return JS_NewFloat64(ctx, (double)pq_submitted());
+}
+
 void globals_register_engine(JSContext *ctx, JSValue g) {
-    snprintf(g_dsp_path, sizeof g_dsp_path, "%s/dsp.so", g_mh_module_dir);
+    MH_FN(g, "movy_engine_snapshot_seq", js_snapshot_seq, 0);
+    MH_FN(g, "movy_engine_snapshot", js_snapshot, 0);
+    MH_FN(g, "movy_engine_submitted", js_submitted, 0);
     MH_FN(g, "host_module_get_param", js_host_module_get_param, 1);
     MH_FN(g, "host_module_set_param", js_host_module_set_param, 2);
     MH_FN(g, "host_module_set_param_blocking", js_host_module_set_param_blocking, 3);

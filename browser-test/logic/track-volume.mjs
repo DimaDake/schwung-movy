@@ -123,9 +123,9 @@ _log('\nTest: track volume gesture (hold track + CC 79)');
     /* All 16 tracks (WP7 T3). Every track is a movy chain, so the gesture is
      * the same write on each — what must not survive is a track index that
      * only reaches the first group. */
-    const realSet = globalThis.host_module_set_param_blocking;
+    const realSet = globalThis.host_module_set_param;
     const wrote = [];
-    globalThis.host_module_set_param_blocking = (k, v, ...a) => { wrote.push(k); return realSet(k, v, ...a); };
+    globalThis.host_module_set_param = (k, v, ...a) => { wrote.push(k); return realSet(k, v, ...a); };
     try {
         const missed = [];
         for (let t = 0; t < 16; t++) {
@@ -142,7 +142,7 @@ _log('\nTest: track volume gesture (hold track + CC 79)');
         }
         eq('hold any of the 16 tracks + turn writes THAT track\'s mix', missed.join(' '), '');
     } finally {
-        globalThis.host_module_set_param_blocking = realSet;
+        globalThis.host_module_set_param = realSet;
         resetTrackVolume();
     }
 }

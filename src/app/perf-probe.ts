@@ -26,7 +26,9 @@ let installed = false;
 
 /* 'knob_12_name' -> 'knob_N_name', 'synth:flt_decay' -> 'synth:*'. Keeps the
  * summary to a handful of lines whatever the module's param count is. */
+/* A call with no key (keyArg -1) is labelled by its kind alone. */
 function label(kind: string, key: unknown): string {
+    if (key === undefined) return kind;
     const k = typeof key === 'string' ? key : String(key);
     const colon = k.indexOf(':');
     if (colon > 0) return kind + ' ' + k.slice(0, colon) + ':*';
@@ -93,7 +95,7 @@ function wrap(fnName: string, kind: string, keyArg: number): void {
     const wrapped = function (...args: unknown[]): unknown {
         const t0 = Date.now();
         const r  = fn.apply(null, args);
-        sink(label(kind, args[keyArg]), Date.now() - t0);
+        sink(label(kind, keyArg >= 0 ? args[keyArg] : undefined), Date.now() - t0);
         return r;
     } as Wrapper;
     wrapped._movyProbe = true;

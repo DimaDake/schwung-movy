@@ -19,9 +19,9 @@ pub struct UndoRing {
     /// Insertion-ordered; the front is the oldest and is evicted first.
     slots: Vec<(u32, String)>,
     bytes: usize,
-    /// Set by `note_noop`, drained once by `status`. The UI pushes entries
-    /// optimistically and retracts on this id when the engine found nothing
-    /// actually changed.
+    /// The latest group the engine found changed nothing. The UI pushes
+    /// entries optimistically and retracts on this id; `status` reports it on
+    /// every read and the UI acts when it changes.
     noop: Option<u32>,
 }
 
@@ -80,8 +80,8 @@ impl UndoRing {
         self.noop = Some(id);
     }
 
-    pub fn take_noop(&mut self) -> Option<u32> {
-        self.noop.take()
+    pub fn last_noop(&self) -> Option<u32> {
+        self.noop
     }
 
     pub fn len(&self) -> usize {
@@ -193,14 +193,19 @@ mod tests {
         r.clear();
         assert!(r.is_empty());
         assert_eq!(r.bytes(), 0);
-        assert_eq!(r.take_noop(), None);
+        assert_eq!(r.last_noop(), None);
     }
 
+    /* Reported on every read until the next no-op replaces it: movy-host
+     * reads `status` every block, so a read that drained it would hand the id
+     * to a snapshot the UI may never see (WP10). The UI acts on a change. */
     #[test]
-    fn noop_is_drained_once() {
+    fn the_last_noop_is_reported_until_the_next() {
         let mut r = UndoRing::new();
         r.note_noop(7);
-        assert_eq!(r.take_noop(), Some(7));
-        assert_eq!(r.take_noop(), None);
+        assert_eq!(r.last_noop(), Some(7));
+        assert_eq!(r.last_noop(), Some(7), "reading it does not drain it");
+        r.note_noop(8);
+        assert_eq!(r.last_noop(), Some(8));
     }
 }

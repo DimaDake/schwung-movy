@@ -1,7 +1,8 @@
 /* Mock of the Rust engine's param protocol for browser/node tests. Installs
- * host_module_set_param / host_module_get_param on globalThis and implements
- * the same cmd/status contract as movy-dsp, so src/seq/engine.ts is tested
- * against the real wire format. */
+ * host_module_set_param / host_module_get_param and movy-host's status
+ * snapshot (movy_engine_snapshot*, movy_engine_submitted) on globalThis and
+ * implements the same cmd/status contract as movy-dsp, so src/seq/engine.ts is
+ * tested against the real wire format. */
 
 import { ENGINE_VERSION } from '../dist/esm/seq/constants.js';
 
@@ -16,31 +17,23 @@ export function installMockEngine() {
          * that omitted it let a UI-only watch retarget look like it worked,
          * when on device the next poll pins the field straight back. */
         status: { play: 0, tick: 0, bpm: 12000, trk: 0 },
-        /* set true to simulate an engine that lacks the protocol */
-        statusUnavailable: false,
-        /* Set true to make every BLOCKING set report failure, which is what the
-         * device's single-slot param SHM does when the write cannot claim the
-         * slot inside its timeout. The write is not recorded — the batch really
-         * did not arrive — so a caller that ignores the return value loses it. */
-        dropBlockingSets: false,
-        /* What `dropBlockingSets` swallowed, in order. */
-        droppedSets: [],
-        /* The sequence number of the last `cmd` batch applied, mirroring
-         * seq-core's dedupe: a resend of the batch the UI could not confirm
-         * must not be applied twice. */
-        lastCmdSeq: null,
-        /* Set true to simulate a DSP that never loads: the UI probes `ping`
-         * until it gives up and declares the engine absent. */
+        /* Set true to simulate a DSP that did not load: `ping` answers nothing
+         * and no snapshot is ever published. */
         pingUnavailable: false,
-        /* An engine that ANSWERS with another version — what a store update
-         * leaves behind, because the shim dlopens by path and glibc keeps
-         * serving the library already loaded there until MoveOriginal
-         * restarts. Distinct from silence: the UI can name the fix. */
+        /* An engine that ANSWERS with another version: a dsp.so from a
+         * different build than this ui.js. */
         pingVersion: null,
         setParamCalls: 0,
         getParamCalls: 0,
-        /* DSP (re)load requests ("load" key, shim-handled on device) */
-        loadRequests: [],
+        /* movy-host's queue, modelled: every request counts as submitted, and
+         * the mock applies it at once, so a snapshot is stamped with all of
+         * them — unless a test holds `served` back to model a status taken
+         * before its requests reached the engine. */
+        submitted: 0,
+        holdServed: null,
+        /* Snapshots published so far: one per ask, like an audio thread that
+         * renders more often than the UI ticks. */
+        snapSeq: 0,
         /* Opt-in: model seq-core's clip-length behaviour so `len=` comes back in
          * status the way the real engine reports it — a note written outside the
          * current window rounds the clip up to that step's BAR end
@@ -89,21 +82,19 @@ export function installMockEngine() {
             this.cmdBatches = [];
             this.ops = [];
             this.status = { play: 0, tick: 0, bpm: 12000, trk: 0 };
-            this.statusUnavailable = false;
-            this.dropBlockingSets = false;
-            this.droppedSets = [];
-            this.lastCmdSeq = null;
             this.pingUnavailable = false;
             this.pingVersion = null;
             this.setParamCalls = 0;
             this.getParamCalls = 0;
+            this.submitted = 0;
+            this.holdServed = null;
+            this.snapSeq = 0;
             this.setState = { uuid: '', phase: 'opening', gen: 0, dirty: 0 };
             this.setCmds = [];
             this.versions = '';
             this.vui = 'none';
             this.gc = 'idle';
             this.lib = { rev: 1, cur: 'S1', made: '', err: '', sets: [{ id: 'S1', name: 'Song One', clips: 0 }] };
-            this.loadRequests = [];
             this.alabels = null;
             this.stateLoads = [];
             this.stateBlob = null;
@@ -149,21 +140,7 @@ export function installMockEngine() {
         }
         if (key === 'cmd') {
             engine.cmdBatches.push(value);
-            /* A batch may carry a leading `#<seq>` tag. The UI resends a batch
-             * whose delivery it could not confirm, so a repeat of the tag it
-             * last applied is that resend and must be ignored — `tog` applied
-             * twice toggles the step back off. Mirrors seq-core's apply_batch. */
-            let body = value;
-            if (value.startsWith('#')) {
-                const cut = value.indexOf(';');
-                const tag = Number(cut < 0 ? value.slice(1) : value.slice(1, cut));
-                if (Number.isFinite(tag)) {
-                    if (engine.lastCmdSeq === tag) return true;
-                    engine.lastCmdSeq = tag;
-                    body = cut < 0 ? '' : value.slice(cut + 1);
-                }
-            }
-            for (const op of body.split(';')) {
+            for (const op of value.split(';')) {
                 if (op.length === 0) continue;
                 engine.ops.push(op);
                 /* Apply transport ops to status so a subsequent poll agrees
@@ -204,8 +181,6 @@ export function installMockEngine() {
                     }
                 }
             }
-        } else if (key === 'load') {
-            engine.loadRequests.push(value);
         } else if (key === 'state') {
             engine.stateLoads.push(value);
             engine.stateBlob = value;
@@ -258,12 +233,17 @@ function installGlobals(engine) {
         const put = globalThis.__movyEnvEngineSet;
         return put ? put(key, value) : recorded;
     };
-    globalThis.host_module_set_param = set;
-    globalThis.host_module_set_param_blocking = (key, value, _timeoutMs) => {
-        if (engine.dropBlockingSets) { engine.droppedSets.push([key, value]); return false; }
-        set(key, value);
-        return true;
-    };
+    globalThis.host_module_set_param = (key, value) => { engine.submitted++; return set(key, value); };
+    /* schwung's name for a set that waits; the shared JS may call it. */
+    globalThis.host_module_set_param_blocking = (key, value) => globalThis.host_module_set_param(key, value);
+    const statusText = () => Object.entries(engine.status).map(([k, v]) => `${k}=${v}`).join(' ');
+    globalThis.movy_engine_snapshot_seq = () => (engine.pingUnavailable ? 0 : ++engine.snapSeq);
+    globalThis.movy_engine_snapshot = () => (engine.pingUnavailable ? null : {
+        seq: engine.snapSeq,
+        served: engine.holdServed ?? engine.submitted,
+        text: statusText(),
+    });
+    globalThis.movy_engine_submitted = () => engine.submitted;
 
     globalThis.host_module_get_param = (key) => {
         const m = CHAIN_KEY.exec(key);
@@ -283,15 +263,11 @@ function installGlobals(engine) {
             if (key in engine.params) return engine.params[key];
         }
         engine.getParamCalls++;
-        if (key === 'status') {
-            if (engine.statusUnavailable) return null;
-            /* Serialize every key in engine.status (play/tick/bpm by default,
-             * plus any a test adds — act=, occ=, …) so the wire format matches
-             * the real engine and tests can inject arbitrary status. */
-            return Object.entries(engine.status)
-                .map(([k, v]) => `${k}=${v}`)
-                .join(' ');
-        }
+        engine.submitted++;
+        /* Every key in engine.status (play/tick/bpm by default, plus any a test
+         * adds — act=, occ=, …), in the real engine's wire format. The UI reads
+         * it from the snapshot; a direct get still answers, as movy-dsp does. */
+        if (key === 'status') return statusText();
         if (key === 'ping') {
             if (engine.pingUnavailable) return null;
             return 'pong ' + (engine.pingVersion ?? ENGINE_VERSION);
@@ -332,9 +308,13 @@ export function uninstallMockEngine() {
         globalThis.host_module_get_param = globalThis.__movyEnvEngineGet;
         globalThis.host_module_set_param = globalThis.__movyEnvEngineSet;
         globalThis.host_module_set_param_blocking = globalThis.__movyEnvEngineSet;
+        globalThis.__movyEnvInstallSnapshot?.();
         return;
     }
     delete globalThis.host_module_set_param;
     delete globalThis.host_module_set_param_blocking;
     delete globalThis.host_module_get_param;
+    delete globalThis.movy_engine_snapshot_seq;
+    delete globalThis.movy_engine_snapshot;
+    delete globalThis.movy_engine_submitted;
 }

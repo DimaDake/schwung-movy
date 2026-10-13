@@ -46,10 +46,10 @@ export async function run() {
   const { resetPorts } = await import('../../dist/esm/track/registry.js');
 
   const gets = [], sets = [], bulk = [];
-  const oG = globalThis.host_module_get_param, oS = globalThis.host_module_set_param_blocking;
+  const oG = globalThis.host_module_get_param, oS = globalThis.host_module_set_param;
   const oBG = globalThis.shadow_get_params, oBS = globalThis.shadow_set_params;
   globalThis.host_module_get_param = (k) => { gets.push(k); return 'v'; };
-  globalThis.host_module_set_param_blocking = (k, v) => { sets.push([k, v]); return true; };
+  globalThis.host_module_set_param = (k, v) => { sets.push([k, v]); return true; };
 
   resetPorts();
   const p = portFor(7);              // track 7 -> chain 7
@@ -84,7 +84,7 @@ export async function run() {
   eq('a short bulk response falls back to individual reads', gets.length, 2);
   eq('fallback still returns a value per key', fallback.length, 2);
 
-  globalThis.host_module_get_param = oG; globalThis.host_module_set_param_blocking = oS;
+  globalThis.host_module_get_param = oG; globalThis.host_module_set_param = oS;
   globalThis.shadow_get_params = oBG; globalThis.shadow_set_params = oBS;
   resetPorts();
 }
@@ -106,7 +106,7 @@ export async function run() {
   let engineSet = encodeBulk(['4', 'synth', 'plaits']);
   let engineVals = { 'ch4:synth:state': 'BLOB42' };
 
-  const oG = globalThis.host_module_get_param, oS = globalThis.host_module_set_param_blocking;
+  const oG = globalThis.host_module_get_param, oS = globalThis.host_module_set_param;
   const oBG = globalThis.shadow_get_params, oBS = globalThis.shadow_set_params;
 
   globalThis.host_module_get_param = (k) => {
@@ -114,7 +114,7 @@ export async function run() {
     if (k === 'chains') return engineSet;
     return engineVals[k] ?? null;
   };
-  globalThis.host_module_set_param_blocking = (k, v) => {
+  globalThis.host_module_set_param = (k, v) => {
     writes.push([k, v]);
     if (k === 'chains') engineSet = v;
     return true;
@@ -216,34 +216,18 @@ export async function run() {
        captureChains()[0].comp[0].s, 'BLOB42');
   }
 
-  /* A delivery the shim refuses is retried on the next tick rather than
-   * logged and dropped — the whole defect was a caller that never looked. */
+  /* With no engine loaded (the one refusal left, WP10) a delivery cannot
+   * land. It must not hold the splash open, and the guard stays armed: the set
+   * file is still the only copy of the patch. */
   {
-    let refuse = true;
     const ok = globalThis.shadow_set_params;
-    globalThis.shadow_set_params = (slot, marker, payload) =>
-      refuse ? null : ok(slot, marker, payload);
+    globalThis.shadow_set_params = () => false;
 
     restoreChains(snap);
     engineVals['ch4:synth:state'] = 'FACTORY-DEFAULTS';
-    eq('a refused delivery does not release the Set', deliverChainPayloads(), false);
-    eq('and stays armed', chainPayloadsPending(), true);
+    eq('an undeliverable payload does not hold the Set', deliverChainPayloads(), true);
+    eq('but stays armed', chainPayloadsPending(), true);
     eq('so the capture is still guarded', captureChains()[0].comp[0].s, 'BLOB42');
-    refuse = false;
-    eq('the retry lands', deliverChainPayloads(), true);
-    eq('restoring the blob', engineVals['ch4:synth:state'], 'BLOB42');
-
-    /* A payload that will never land must not hold the splash open forever —
-     * but the guard stays armed, because the set file is still the only copy
-     * of the patch. */
-    refuse = true;
-    restoreChains(snap);
-    engineVals['ch4:synth:state'] = 'FACTORY-DEFAULTS';
-    let n = 0;
-    while (!deliverChainPayloads()) { n++; if (n > 100) break; }
-    eq('the attempts are bounded', n < 100, true);
-    eq('but the capture guard survives the give-up',
-       captureChains()[0].comp[0].s, 'BLOB42');
 
     globalThis.shadow_set_params = ok;
     resetChainPayloads();
@@ -284,31 +268,31 @@ export async function run() {
   }
 
   /* ── the bug this design exists for ──────────────────────────────────────
-   * A blocking write is refused when the shim cannot service it — which is
-   * routine during a set open, because the shim services param writes on the
-   * audio thread and a cold `dlopen` holds it for 78-276 ms. The old code threw
-   * the boolean away, counted the write as restored, and the next autosave
-   * wrote the shrunken set to disk. See plans/2026-08-29-chain-set-document.md. */
+   * Under the overtake host a write was refused whenever a cold `dlopen` held
+   * the audio thread, and the old code threw the boolean away, counted the
+   * write as restored, and the next autosave wrote the shrunken set to disk.
+   * movy-host's queue loses nothing (WP10), so the document goes once; the
+   * verdict still matters, because with no engine it cannot land. See
+   * plans/2026-08-29-chain-set-document.md. */
   {
-    let refuse = 0;
-    globalThis.host_module_set_param_blocking = (k, v) => {
+    let loaded = true;
+    globalThis.host_module_set_param = (k, v) => {
+      if (!loaded) return false;
       writes.push([k, v]);
-      if (k === 'chains' && refuse > 0) { refuse--; return false; }
       if (k === 'chains') engineSet = v;
       return true;
     };
 
-    refuse = 1;
     writes.length = 0;
-    eq('a refused document is retried, not lost', restoreChains(snap), 1);
-    eq('which took a second write', writes.filter(([k]) => k === 'chains').length, 2);
+    eq('the document is delivered once', restoreChains(snap), 1);
+    eq('in one write', writes.filter(([k]) => k === 'chains').length, 1);
 
-    refuse = 99;
+    loaded = false;
     writes.length = 0;
-    eq('a document that never lands reports failure', restoreChains(snap), 0);
-    eq('and does not retry forever', writes.filter(([k]) => k === 'chains').length, 2);
+    eq('with no engine it reports failure', restoreChains(snap), 0);
+    eq('and is not resent', writes.filter(([k]) => k === 'chains').length, 0);
   }
-  globalThis.host_module_set_param_blocking = (k, v) => {
+  globalThis.host_module_set_param = (k, v) => {
     writes.push([k, v]);
     if (k === 'chains') engineSet = v;
     return true;
@@ -427,7 +411,7 @@ export async function run() {
   captureChains();
   eq('an empty set reads no per-chain params', bulkGets.length, 0);
 
-  globalThis.host_module_get_param = oG; globalThis.host_module_set_param_blocking = oS;
+  globalThis.host_module_get_param = oG; globalThis.host_module_set_param = oS;
   globalThis.shadow_get_params = oBG; globalThis.shadow_set_params = oBS;
   resetPorts();
 }
@@ -442,9 +426,9 @@ export async function run() {
    * the engine's `ch<N>:mix`. `track-volume.mjs` covers the dB ladder itself;
    * this covers what is specific to the chain-namespaced write. */
   const writes = [];
-  const oMSet = globalThis.host_module_set_param_blocking;
+  const oMSet = globalThis.host_module_set_param;
   const oGet = globalThis.host_module_get_param;
-  globalThis.host_module_set_param_blocking = (k, v) => { writes.push([k, v]); return true; };
+  globalThis.host_module_set_param = (k, v) => { writes.push([k, v]); return true; };
   /* Full width (gain + pan + muted + 2 sends): a narrower read is still legal
    * (the codec accepts 0/2/3 sends), but a self-contained mock is what keeps
    * this assertion from depending on `mixTail` state another suite's gesture
@@ -507,7 +491,7 @@ export async function run() {
     resetTrackVolume();
   }
 
-  globalThis.host_module_set_param_blocking = oMSet;
+  globalThis.host_module_set_param = oMSet;
   globalThis.host_module_get_param = oGet;
   resetPorts();
 }
@@ -639,8 +623,8 @@ export async function run() {
    * so the drum note went out twice over (and its note-off, which DOES check,
    * went out never). */
   const writes = [];
-  const realEng = globalThis.host_module_set_param_blocking;
-  globalThis.host_module_set_param_blocking = (k, v, t) => {
+  const realEng = globalThis.host_module_set_param;
+  globalThis.host_module_set_param = (k, v, t) => {
     writes.push(k);
     return realEng ? realEng(k, v, t) : true;
   };
@@ -696,7 +680,7 @@ export async function run() {
   eq('and so does Mute', engineOwnsPads(6), true);
   setMuteHeld(false);
   appState.shiftHeld = false;
-  globalThis.host_module_set_param_blocking = realEng;
+  globalThis.host_module_set_param = realEng;
 
   resetPadRoute();
   selectTrack(0);

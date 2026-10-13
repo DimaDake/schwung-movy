@@ -159,16 +159,15 @@ _log('\nTest: LFO target commit uses blocking writes (device SHM race)');
         'synth:chain_params': JSON.stringify([{ key: 'cutoff', name: 'Cutoff', type: 'float' }]),
         'lfo1:target': '', 'lfo1:target_param': '',
     });
-    // Capture blocking writes; the target commit must go through this path so
-    // target+target_param+enabled all land (non-blocking would clobber on device).
+    // Capture the engine writes; target+target_param+enabled must all land.
     //
     // Every track is a movy chain now, so the commit reaches the engine's own
-    // blocking write (`host_module_set_param_blocking`, `ch0:lfo1:…`) rather
-    // than schwung's per-slot `shadow_set_param_timeout` — a track that once
-    // meant a shadow slot now means a chain instance. */
+    // queue (`host_module_set_param`, `ch0:lfo1:…`) rather than schwung's
+    // per-slot `shadow_set_param_timeout` — a track that once meant a shadow
+    // slot now means a chain instance. */
     const blocking = [];
-    const prevBlocking = globalThis.host_module_set_param_blocking;
-    globalThis.host_module_set_param_blocking = (key, val) => {
+    const prevBlocking = globalThis.host_module_set_param;
+    globalThis.host_module_set_param = (key, val) => {
         const bare = key.replace(/^ch[0-9]+:/, '');
         blocking.push([bare, val]);
         env.params[bare] = val;
@@ -179,13 +178,13 @@ _log('\nTest: LFO target commit uses blocking writes (device SHM race)');
     m2.handleKnobTouch(3);
     m2.handleKnobDelta(3, DETENT);     // select the first real target
     m2.handleKnobRelease(3);
-    eq('target written blocking', blocking.some(([k, v]) => k === 'lfo1:target' && v === 'synth'), true);
-    eq('target_param written blocking', blocking.some(([k, v]) => k === 'lfo1:target_param' && v === 'cutoff'), true);
-    eq('enabled written blocking', blocking.some(([k, v]) => k === 'lfo1:enabled' && v === '1'), true);
+    eq('target written', blocking.some(([k, v]) => k === 'lfo1:target' && v === 'synth'), true);
+    eq('target_param written', blocking.some(([k, v]) => k === 'lfo1:target_param' && v === 'cutoff'), true);
+    eq('enabled written', blocking.some(([k, v]) => k === 'lfo1:enabled' && v === '1'), true);
     // No periodic re-read clobber: many ticks later the target is still set.
     for (let i = 0; i < 400; i++) m2.tick();
     eq('target persists across ticks (no poll clobber)', m2.getViewModel().rows[0][3].displayValue !== 'None', true);
-    globalThis.host_module_set_param_blocking = prevBlocking;
+    globalThis.host_module_set_param = prevBlocking;
 }
 
 _log('\nTest: LFO target commit reaches a movy-hosted track');
@@ -200,10 +199,8 @@ _log('\nTest: LFO target commit reaches a movy-hosted track');
     const chain = {};
     const oG = globalThis.host_module_get_param;
     const oS = globalThis.host_module_set_param;
-    const oB = globalThis.host_module_set_param_blocking;
     globalThis.host_module_get_param = (k) => chain[k] ?? null;
     globalThis.host_module_set_param = (k, v) => { chain[k] = v; return true; };
-    globalThis.host_module_set_param_blocking = (k, v) => { chain[k] = v; return true; };
     chain['ch4:synth:chain_params'] = JSON.stringify([{ key: 'cutoff', name: 'Cutoff', type: 'float' }]);
     resetPorts();
 
@@ -227,7 +224,6 @@ _log('\nTest: LFO target commit reaches a movy-hosted track');
 
     globalThis.host_module_get_param = oG;
     globalThis.host_module_set_param = oS;
-    globalThis.host_module_set_param_blocking = oB;
     resetPorts();
 }
 

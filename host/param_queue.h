@@ -27,7 +27,7 @@ typedef struct pq_req {
     int waited;           /* someone is (or was) waiting for it */
 } pq_req_t;
 
-/* Callers. timeout_ms <= 0 means "do not wait" (SET only). */
+/* Callers. timeout_ms <= 0 means "do not wait" (SET and BULK_SET only). */
 int pq_get(const char *key, char *out, int cap, int timeout_ms);            /* len or -1 */
 int pq_set(const char *key, const char *value, int timeout_ms);            /* 1 applied/queued, 0 timed out */
 int pq_bulk(pq_kind_t kind, const char *payload, char *out, int cap, int timeout_ms);
@@ -36,5 +36,11 @@ int pq_bulk(pq_kind_t kind, const char *payload, char *out, int cap, int timeout
 typedef void (*pq_service_fn)(void *ctx, pq_req_t *r);
 int pq_service(pq_service_fn fn, void *ctx, int max);
 int pq_depth(void);
+
+/* Requests queued and requests serviced, since start. The queue is FIFO, so
+ * pq_served() >= a pq_submitted() taken earlier means every request up to
+ * that point is in the engine (status_snap.h stamps each snapshot with it). */
+uint64_t pq_submitted(void);
+uint64_t pq_served(void);
 
 #endif

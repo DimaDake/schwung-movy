@@ -667,12 +667,14 @@ _origLog('\nTest 5: sequencer perf budgets');
      * stub left in place here (as it was, unrestored, before that was true)
      * silently answers null for every knob param in every test that follows. */
     const oldSetSeq = globalThis.host_module_set_param;
-    const oldSetBlockingSeq = globalThis.host_module_set_param_blocking;
     const oldGetSeq = globalThis.host_module_get_param;
+    const oldSnap = [globalThis.movy_engine_snapshot_seq, globalThis.movy_engine_snapshot];
     globalThis.host_module_set_param = () => true;
-    globalThis.host_module_set_param_blocking = () => true;
-    globalThis.host_module_get_param = (k) =>
-        (k === 'ping' ? 'pong ' + ENGINE_VERSION : k === 'status' ? 'play=1 tick=0' : null);
+    globalThis.host_module_get_param = (k) => (k === 'ping' ? 'pong ' + ENGINE_VERSION : null);
+    /* The status arrives as movy-host's snapshot, one per audio block. */
+    let snapSeq = 0;
+    globalThis.movy_engine_snapshot_seq = () => ++snapSeq;
+    globalThis.movy_engine_snapshot = () => ({ seq: snapSeq, served: 0, text: 'play=1 tick=0' });
 
     const { seqEngineTick, resetSeqEngine } = await import('../dist/esm/seq/engine.js');
     const { seqLedsTick, seqLedsInvalidate } = await import('../dist/esm/seq/leds.js');
@@ -743,7 +745,6 @@ _origLog('\nTest 5: sequencer perf budgets');
     // IPC: at most one set_param flush per tick regardless of queued ops.
     let setParamCalls = 0;
     globalThis.host_module_set_param = () => { setParamCalls++; return true; };
-    globalThis.host_module_set_param_blocking = () => { setParamCalls++; return true; };
     const { seqCmd } = await import('../dist/esm/seq/engine.js');
     seqCmd('tog 0 0 60 100'); seqCmd('tog 0 1 62 100'); seqCmd('watch 0');
     setParamCalls = 0;
@@ -765,8 +766,8 @@ _origLog('\nTest 5: sequencer perf budgets');
     _origLog(`    (strip: ${fillRectCount} fill_rect)`);
 
     globalThis.host_module_set_param = oldSetSeq;
-    globalThis.host_module_set_param_blocking = oldSetBlockingSeq;
     globalThis.host_module_get_param = oldGetSeq;
+    [globalThis.movy_engine_snapshot_seq, globalThis.movy_engine_snapshot] = oldSnap;
 }
 
 /* ── Test 5: cost of turning a knob ──────────────────────────────────────── */
@@ -1027,9 +1028,10 @@ _origLog('\nTest: status parse cost, 4 vs 16 tracks');
 
 /* The probe is how every claim in docs/track-performance.md is made, so a host
  * call it does not wrap is a hole in the evidence, not just a missing number.
- * host_module_set_param_blocking was exactly that: every engine write movy makes
- * is blocking, including the one a live pad note used to cost, so `ipc_ms`
- * reported none of them and a neighbouring cost got the blame. */
+ * host_module_set_param_blocking was exactly that until WP10 made every engine
+ * write a plain queued set: `ipc_ms` reported none of them and a neighbouring
+ * cost got the blame. The status snapshot is on it too, so the probe shows what
+ * replaced the status poll. */
 {
     _origLog('\nTest: perf probe wraps every host IPC entry point');
 
@@ -1038,7 +1040,7 @@ _origLog('\nTest: status parse cost, 4 vs 16 tracks');
     const IPC_GLOBALS = [
         'host_module_get_param',
         'host_module_set_param',
-        'host_module_set_param_blocking',
+        'movy_engine_snapshot',
         'shadow_get_params',
         'shadow_set_params',
     ];

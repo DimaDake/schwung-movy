@@ -13,6 +13,7 @@ static pthread_mutex_t g_mu;
 static pthread_cond_t g_done;
 static pq_req_t *g_head, *g_tail;
 static int g_depth;
+static uint64_t g_submitted, g_served;
 static pthread_once_t g_once = PTHREAD_ONCE_INIT;
 
 static void init_once(void) {
@@ -50,6 +51,7 @@ static int submit(pq_req_t *r, int timeout_ms) {
     if (g_tail) g_tail->next = r; else g_head = r;
     g_tail = r;
     g_depth++;
+    g_submitted++;
     if (!r->waited) { pthread_mutex_unlock(&g_mu); return 1; }
     struct timespec ts;
     deadline(&ts, timeout_ms);
@@ -103,6 +105,8 @@ int pq_set(const char *key, const char *value, int timeout_ms) {
 int pq_bulk(pq_kind_t kind, const char *payload, char *out, int cap, int timeout_ms) {
     pq_req_t *r = req_new(kind, "", payload, kind == PQ_BULK_GET ? PQ_VALUE_CAP : 0);
     if (!r) return -1;
+    /* Like an unwaited pq_set: the audio thread owns it from here. */
+    if (kind == PQ_BULK_SET && timeout_ms <= 0) { submit(r, 0); return 0; }
     if (!submit(r, timeout_ms > 0 ? timeout_ms : 1000)) return -1;
     int n = r->result;
     if (n >= 0 && out && cap > 0) {
@@ -128,6 +132,7 @@ int pq_service(pq_service_fn fn, void *ctx, int max) {
         if (!r) break;
         if (!skip) fn(ctx, r);
         served++;
+        __atomic_add_fetch(&g_served, 1, __ATOMIC_RELEASE);
         pthread_mutex_lock(&g_mu);
         int free_it = !r->waited || r->state == 2;
         r->state = free_it ? r->state : 1;
@@ -145,3 +150,13 @@ int pq_depth(void) {
     pthread_mutex_unlock(&g_mu);
     return d;
 }
+
+uint64_t pq_submitted(void) {
+    pthread_once(&g_once, init_once);
+    pthread_mutex_lock(&g_mu);
+    uint64_t n = g_submitted;
+    pthread_mutex_unlock(&g_mu);
+    return n;
+}
+
+uint64_t pq_served(void) { return __atomic_load_n(&g_served, __ATOMIC_ACQUIRE); }

@@ -14,24 +14,13 @@ import { readBestState, readUiBlob } from './persist-store.js';
 import { BLANK_STATE } from './set-context.js';
 import { applyUiState } from './ui-state.js';
 
-/* Blocking on purpose: the engine must be holding the Set before any input is
- * accepted, and this runs once per Set rather than per tick.
- *
- * And CHECKED, which it was not. The write goes into the overtake_dsp param
- * SHM — a single slot with four producers — where a write can simply be lost
- * (`CLAUDE.md`: "routinely lost"). Discarding the boolean meant a Set that
- * never reached the engine looked exactly like a Set that had: the next
- * autosave then read the engine's blank state and wrote it over the real one.
- * Reproduced: au=1 cl=2 size=670 on disk became "movy1\n".
- *
- * Retried, because one loss says nothing about the next attempt — the same
- * reasoning the device fixture uses for module loads. */
+/* CHECKED: a Set that never reached the engine must not look like one that
+ * did, or the next autosave reads the engine's blank state and writes it over
+ * the real one (reproduced under the overtake host: au=1 cl=2 size=670 on disk
+ * became "movy1\n"). movy-host's queue loses nothing (WP10), so the only
+ * failure left is an engine that is not loaded — and no retry answers that. */
 export function pushState(payload: string): boolean {
-    let ok = false;
-    for (let i = 0; i < 3 && !ok; i++) {
-        ok = paramSet('state', payload, 200);
-        if (!ok) mlog('seq: state push attempt ' + (i + 1) + ' did not land');
-    }
+    const ok = paramSet('state', payload);
     if (!ok) mlog('seq: RESTORE FAILED — the engine never took this Set');
     noteRestore(ok);
     /* The restore carries the lane labels and assignments with it, so the
@@ -62,8 +51,8 @@ export function openSet(id: string): void {
      * engine comes up knowing nothing, and an engine with no sets directory
      * answers `phase=failed reason=no-setsdir` forever. One extra param write
      * per Set load buys a path that heals itself. */
-    paramSet('setsdir', setsDir(), 200);
-    paramSet('set', 'open ' + id, 200);
+    paramSet('setsdir', setsDir());
+    paramSet('set', 'open ' + id);
     /* The restore carries the lane labels with it either way, so the automation
      * registry still has to be rebuilt from them. */
     requestLabelSync();

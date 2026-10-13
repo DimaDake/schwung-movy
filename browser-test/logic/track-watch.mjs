@@ -136,22 +136,9 @@ export async function run() {
     settle();
     eq('a disagreement re-sends it', engine.status.trk, 5);
 
-    /* An engine that is replaced under us. It is a brand new Engine watching
-     * track 0 with every lane merged, and nothing in the UI has changed — so
-     * only the boot path re-teaching it can put the step row back. */
-    reset();
-    selectTrack(7);
-    seqState.watchLane = 38;                   // a drum lane, pushed with it
-    settle();
-    eq('engine knows the track', engine.status.trk, 7);
-    engine.ops.length = 0;
-    engine.statusUnavailable = true;
-    for (let i = 0; i < 160; i++) seqEngineTick();   // status lost → give up on it
-    engine.statusUnavailable = false;
-    engine.status.trk = 0;                     // the replacement starts fresh
-    for (let i = 0; i < 40; i++) seqEngineTick();    // probe → ready → reconcile
-    eq('a re-dlopened engine is told the track again', engine.status.trk, 7);
-    eq('and the drum lane with it', engine.ops.includes('wlane 38'), true);
+    /* (An engine replaced under us — a re-dlopen — had to be re-taught the
+     * track. movy-host never reloads the engine since WP10, so that case is
+     * gone; the boot path still resets the watch push for the first engine.) */
 
     seqState.watchLane = -1;
     selectTrack(0);

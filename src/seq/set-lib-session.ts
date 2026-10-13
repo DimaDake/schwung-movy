@@ -39,7 +39,7 @@ export function libraryIdentity(): { uuid: string; name: string } | null {
     const gen = engineGeneration();
     if (gen !== bootedGen) {
         bootedGen = gen;
-        paramSet('setsdir', setsDir(), 200);
+        paramSet('setsdir', setsDir());
         libSend(libImportCmd());
     }
     libRefresh();

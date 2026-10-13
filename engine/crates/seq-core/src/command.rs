@@ -10,28 +10,10 @@ use crate::track::NUM_TRACKS;
 /// Apply one batched command string. MIDI side effects (e.g. note-offs from
 /// a stop) are pushed into `out`.
 ///
-/// A batch may open with a `#<seq>` tag. The UI writes `cmd` through a
-/// single-slot param SHM shared with every other writer on the device, and a
-/// blocking write that cannot claim the slot — or cannot see its own response
-/// inside the timeout — reports failure with the batch possibly already
-/// delivered. The UI therefore resends what it could not confirm, and the tag
-/// is how a resend is told from a new gesture: `tog` applied twice toggles the
-/// step back off. Only the immediately previous tag is suppressed, so a
-/// restarted engine (which starts with none) and a wrapped counter both
-/// recover on their own. An untagged batch is applied as it always was.
+/// Applied exactly as often as it arrives: movy-host's queue delivers each
+/// `cmd` once and in order (WP10 retired the `#<seq>` resend dedupe).
 pub fn apply_batch(engine: &mut Engine, batch: &str, out: &mut Vec<OutEvent>) {
-    let mut body = batch;
-    if let Some(tagged) = batch.strip_prefix('#') {
-        let (tag, rest) = tagged.split_once(';').unwrap_or((tagged, ""));
-        if let Ok(seq) = tag.trim().parse::<u32>() {
-            if engine.last_cmd_seq == Some(seq) {
-                return;
-            }
-            engine.last_cmd_seq = Some(seq);
-            body = rest;
-        }
-    }
-    for op in body.split(';') {
+    for op in batch.split(';') {
         let op = op.trim();
         if !op.is_empty() {
             let verb = op.split(' ').next().unwrap_or("");
@@ -766,53 +748,16 @@ mod tests {
         assert_eq!((t.prob, t.cond_a, t.cond_b, t.invert), (40, 2, 3, true));
     }
 
-    /* The UI's command channel is a single-slot param SHM shared with every
-     * other writer on the device, and a blocking set that cannot claim the slot
-     * (or cannot see its own response inside the timeout) reports failure with
-     * the batch possibly already delivered. So the UI RESENDS what it could not
-     * confirm, and the engine has to tell a resend from a new gesture — `tog`
-     * applied twice is the step toggled back off. */
+    /* `cmd` arrives through movy-host's ordered queue, which loses nothing
+     * and delivers nothing twice (WP10), so a batch is applied exactly as
+     * often as it is sent: the same toggle twice is a step on and off again. */
     #[test]
-    fn a_resent_batch_is_applied_once() {
-        let mut e = engine();
-        let mut out = Vec::new();
-        apply_batch(&mut e, "#1;tog 0 0 60 100", &mut out);
-        assert_eq!(e.tracks[0].active().notes.len(), 1, "the first delivery applies");
-        apply_batch(&mut e, "#1;tog 0 0 60 100", &mut out);
-        assert_eq!(e.tracks[0].active().notes.len(), 1, "the resend must not toggle it back off");
-    }
-
-    #[test]
-    fn a_new_sequence_number_applies() {
-        let mut e = engine();
-        let mut out = Vec::new();
-        apply_batch(&mut e, "#1;tog 0 0 60 100", &mut out);
-        apply_batch(&mut e, "#2;tog 0 4 60 100", &mut out);
-        assert_eq!(e.tracks[0].active().notes.len(), 2, "a different batch is a different gesture");
-    }
-
-    /* The sequence number is an addition, not a requirement: anything that
-     * writes `cmd` without one (an older UI, a test, the harness) still runs. */
-    #[test]
-    fn an_untagged_batch_still_applies_every_time() {
+    fn a_repeated_batch_applies_every_time() {
         let mut e = engine();
         let mut out = Vec::new();
         apply_batch(&mut e, "tog 0 0 60 100", &mut out);
         apply_batch(&mut e, "tog 0 0 60 100", &mut out);
-        assert_eq!(e.tracks[0].active().notes.len(), 0, "untagged batches are not deduplicated");
-    }
-
-    /* A restarted engine starts its dedupe state empty while the UI's counter
-     * keeps climbing, so the rule is "not the one I just applied" rather than
-     * any ordering over the numbers — which also survives the counter wrapping. */
-    #[test]
-    fn only_the_immediately_previous_batch_is_suppressed() {
-        let mut e = engine();
-        let mut out = Vec::new();
-        apply_batch(&mut e, "#7;tog 0 0 60 100", &mut out);
-        apply_batch(&mut e, "#8;tog 0 4 60 100", &mut out);
-        apply_batch(&mut e, "#7;tog 0 8 60 100", &mut out);
-        assert_eq!(e.tracks[0].active().notes.len(), 3, "an older number is not a resend of the last batch");
+        assert_eq!(e.tracks[0].active().notes.len(), 0, "the second toggle turns the step back off");
     }
 
     #[test]
@@ -1365,7 +1310,7 @@ mod tests {
         apply_batch(&mut e, "usnap 5", &mut out); // nothing changes after this
         apply_batch(&mut e, "ucommit 5", &mut out);
         assert!(e.undo.peek(5).is_none(), "no-op snapshot should be dropped");
-        assert_eq!(e.undo.take_noop(), Some(5));
+        assert_eq!(e.undo.last_noop(), Some(5));
     }
 
     #[test]
@@ -1374,7 +1319,7 @@ mod tests {
         let mut out = Vec::new();
         apply_batch(&mut e, "usnap 5;tog 0 0 60 100;ucommit 5", &mut out);
         assert!(e.undo.peek(5).is_some(), "a real edit must be kept");
-        assert_eq!(e.undo.take_noop(), None);
+        assert_eq!(e.undo.last_noop(), None);
     }
 
     /// Change-and-revert inside one gesture — a knob turned up and back down

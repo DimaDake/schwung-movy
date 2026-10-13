@@ -7,6 +7,7 @@
 #include "log.h"
 #include "midi_out.h"
 #include "param_bulk.h"
+#include "status_snap.h"
 #include "plugin_api_v1.h"
 #include "lib/schwung_spi_lib.h"
 #include "vtable.h"
@@ -127,5 +128,17 @@ void engine_service(void *ctx, pq_req_t *r) {
         r->result = bulk_get(req, (int)n, r->value, PQ_VALUE_CAP, get_one, NULL);
         break;
     }
+    }
+}
+
+void engine_publish_status(uint64_t served) {
+    static char buf[PQ_VALUE_CAP];
+    static int warned;
+    if (!g_api || !g_inst) return;
+    int n = get_one(NULL, "status", buf, sizeof buf);
+    if (n < 0) return;
+    if (!snap_publish(buf, n, served) && !warned) {
+        warned = 1;
+        mh_log("status: %d bytes does not fit the snapshot (%d); the UI keeps the last one", n, STATUS_SNAP_CAP);
     }
 }

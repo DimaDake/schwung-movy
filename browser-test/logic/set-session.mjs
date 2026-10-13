@@ -14,7 +14,7 @@ import {
 export async function run() {
 /* ── engine generation ───────────────────────────────────────────────────── */
 {
-    _log('\nengine generation tracks reloads:');
+    _log('\nengine generation:');
     const { resetSeqEngine, seqEngineTick, engineReady, engineGeneration } =
         await import('../../dist/esm/seq/engine.js');
     const { resetSeqState } = await import('../../dist/esm/seq/state.js');
@@ -28,14 +28,14 @@ export async function run() {
     eq('engine ready', engineReady(), true);
     eq('first boot is generation 1', engineGeneration(), 1);
 
-    // The engine wedges: 16 lost status polls send engine.ts back to probing,
-    // and the probe re-dlopens dsp.so. Whatever comes back is a NEW engine.
-    eng.statusUnavailable = true;
+    /* movy-host loads the engine once and never reloads it (WP10), so nothing
+     * the engine stops saying can bring a second generation: the session's
+     * "a new engine is an empty engine" guard has no trigger left. */
+    eng.status = {};
     for (let i = 0; i < 8 * 20; i++) seqEngineTick();
-    eng.statusUnavailable = false;
-    for (let i = 0; i < 8; i++) seqEngineTick();
-    eq('engine ready again', engineReady(), true);
-    eq('reload is a new generation', engineGeneration(), 2);
+    eq('the engine stays in service', engineReady(), true);
+    eq('and in its first generation', engineGeneration(), 1);
+    void eng;
 
     uninstallMockEngine(); resetSeqEngine(); resetSeqState();
 }
@@ -118,16 +118,13 @@ export async function run() {
         teardown();
     }
 
-    /* R6 — the destructive one. A re-dlopened engine comes up EMPTY. The
-     * session must open the Set into it again before anything can save from it. */
+    /* R6 — the Set is opened into the engine exactly once. (Before WP10 a
+     * re-dlopened engine came up EMPTY and the Set had to be opened again;
+     * movy-host never reloads the engine, so that path is gone.) */
     {
         const { eng } = boot({ [uuidToStatePath('S1')]: SAVED });
+        run(240);
         eq('R6 opened once', opens(eng, 'S1'), 1);
-        eng.statusUnavailable = true;
-        run(160);
-        eng.statusUnavailable = false;
-        run(80);
-        eq('R6 the new engine was told to open the Set again', opens(eng, 'S1'), 2);
         eq('R6 and the Set on disk was never touched by the UI', readBestState('S1').payload, SAVED);
         teardown();
     }
@@ -160,29 +157,28 @@ export async function run() {
     {
         const { sessionError } = await import('../../dist/esm/seq/set-session.js');
         const { eng } = boot({}, { skipBoot: true });
-        eng.statusUnavailable = true;
         eng.pingUnavailable = true;
-        run(4000);                      // past every probe and load retry
+        run(40);                        // one ping: there is nothing to wait for
         eq('R10 gave up visibly', sessionPhase(), 'failed');
         eq('R10 and said why', sessionError(), 'ENGINE DID NOT START');
         teardown();
     }
 
-    /* R13 — the engine ANSWERED, with the wrong version: a `dsp.so` other than
-     * the one this ui.js was built with. Reported as silence it is a dead end;
-     * reported as what it is, the fix is a restart. */
+    /* R13 — the engine ANSWERED, with the wrong version: a `dsp.so` from
+     * another build than this ui.js (a partial install or deploy). Reported as
+     * silence it sends the user looking for a crash; named, it says what to
+     * reinstall. */
     {
         const { sessionError, sessionFailScope }
             = await import('../../dist/esm/seq/set-session.js');
         const { engineAbsentReason } = await import('../../dist/esm/seq/engine.js');
         const { fs, eng } = boot({ [uuidToStatePath('S1')]: SAVED }, { skipBoot: true });
-        eng.statusUnavailable = true;
         eng.pingVersion = '0.0.1-previous';
-        run(4000);
+        run(40);
         eq('R13 gave up visibly', sessionPhase(), 'failed');
-        eq('R13 knowing an engine answered', engineAbsentReason(), 'stale');
-        eq('R13 and named the update, not a dead engine',
-            sessionError(), 'MOVY WAS UPDATED');
+        eq('R13 knowing an engine answered', engineAbsentReason(), 'mismatch');
+        eq('R13 and named the mismatch, not a dead engine',
+            sessionError(), 'ENGINE MISMATCH');
         eq('R13 the failure is the engine, not this set', sessionFailScope(), 'engine');
         eq('R13 the set was not touched', fs.files[uuidToStatePath('S1')], SAVED);
         teardown();
@@ -203,28 +199,21 @@ export async function run() {
 
         eq('R14 an unreadable set is offered the wipe',
             failureLines('SET FILE UNREADABLE', 'set')[2], 'JOG CLICK = START EMPTY');
-        eq('R14 an engine failure is offered a restart',
-            failureLines('MOVY WAS UPDATED', 'engine')[1], 'RESTART YOUR MOVE');
+        eq('R14 an engine failure is offered a reinstall',
+            failureLines('ENGINE MISMATCH', 'engine')[1], 'REINSTALL MOVY');
         eq('R14 and no wipe at all',
-            failureLines('MOVY WAS UPDATED', 'engine')[2], '');
+            failureLines('ENGINE MISMATCH', 'engine')[2], '');
         eq('R14 nor is the set blamed for it',
-            failureLines('MOVY WAS UPDATED', 'engine')[0], 'MOVY WAS UPDATED');
+            failureLines('ENGINE MISMATCH', 'engine')[0], 'ENGINE MISMATCH');
 
-        /* And the button itself, which is what actually writes. The engine has
-         * to die AFTER the Set is open, which is the case that can lose data —
-         * an engine that never started leaves movy with no Set identity, and
-         * asserting on that passes with the guard removed. */
-        const { eng } = boot({ [uuidToStatePath('S1')]: SAVED });
-        eq('R14 the Set opened first', currentSetUuid(), 'S1');
-        eng.statusUnavailable = true;
+        /* And the button itself, which is what actually writes. */
+        const { eng } = boot({ [uuidToStatePath('S1')]: SAVED }, { skipBoot: true });
         eng.pingVersion = '0.0.1-previous';
-        run(4000);
+        run(40);
         eq('R14 the engine failure is up', sessionFailScope(), 'engine');
-        eq('R14 with the Set still identified', currentSetUuid(), 'S1');
-
         onMidiMessageInternal([0xB0, globalThis.MoveMainButton, 127]);
-        eq('R14 a jog click does NOT blank the set', eng.setCmds.includes('blank S1'), false);
-        eq('R14 and the screen still says what to do', sessionError(), 'MOVY WAS UPDATED');
+        eq('R14 a jog click does NOT blank the set', eng.setCmds.some((c) => c.startsWith('blank')), false);
+        eq('R14 and the screen still says what to do', sessionError(), 'ENGINE MISMATCH');
         teardown();
     }
 
@@ -339,8 +328,8 @@ _log('\nautomation: restore re-requests label sync:');
         [uuidToStatePath('S1')]: 'movy1\nau 0 0 100 synth:cutoff\n',   // a persisted lane label
     });
     installMockEngine();
-    const origSetB = globalThis.host_module_set_param_blocking;
-    globalThis.host_module_set_param_blocking = () => true;
+    const origSetB = globalThis.host_module_set_param;
+    globalThis.host_module_set_param = () => true;
 
     resetSeqEngine(); resetSeqState(); resetLabelSession(); resetStoreRotation();
     seqEngineTick();          // boot probe → ready → requestLabelSync (the boot's own)
@@ -349,7 +338,7 @@ _log('\nautomation: restore re-requests label sync:');
     labelSessionTick();         // first ready tick → the library names S1 and the open goes out
     eq('restore re-requests label sync', takeLabelSync(), true);
 
-    globalThis.host_module_set_param_blocking = origSetB;
+    globalThis.host_module_set_param = origSetB;
     uninstallMockFs();
     uninstallMockEngine(); resetSeqEngine(); resetSeqState(); resetLabelSession();
 }

@@ -6,13 +6,11 @@
  * last of them here.
  *
  * **The set travels as one document, both ways.** It used to cross the wire as
- * one blocking param write per component, each with its own 50 ms timeout and
- * none of them acknowledged. The shim services those writes on the audio
- * thread — the same thread a chain load's blocking `dlopen` holds for 78-276 ms
- * — so a write issued during the drain could not be serviced, returned false,
- * and was discarded by a caller that never looked. The set then shrank on disk,
- * because the save read back whatever had actually loaded. One document can be
- * acknowledged, and retried whole when it is not.
+ * one blocking param write per component, and under the overtake host a write
+ * issued while a chain load's `dlopen` held the audio thread was refused and
+ * discarded: the set then shrank on disk, because the save read back whatever
+ * had actually loaded. One document is one ordered write into movy-host's
+ * queue, which loses nothing (WP10).
  *
  * The engine answers with what was REQUESTED, not what has finished loading, so
  * a save taken while loads are still draining still reports the whole set.
@@ -61,11 +59,6 @@ export interface ChainTrackState {
  *  the point of this key is that it is not per-chain. */
 const CHAIN_SET_KEY = 'chains';
 
-/* Generous, and deliberately not the port's 50 ms: this write races a cold
- * `dlopen` on the shim's own thread, which is the whole reason the old
- * per-component writes were being dropped. */
-const SET_TIMEOUT_MS = 500;
-
 /* The chain components worth persisting: every real slot, minus the virtual
  * pages. Asked of the SLOT rather than of its index, so a page appended after
  * the LFO cannot quietly join the list — a virtual slot in here means every
@@ -84,13 +77,9 @@ function readChainSet(): string | null {
     return paramGet(CHAIN_SET_KEY);
 }
 
-/** Deliver the set. One retry, because the refusal this is guarding against is
- *  transient by nature — the shim was busy opening the previous module. */
+/** Deliver the set: queued once, in order (WP10 retired the resend). */
 function writeChainSet(doc: string): boolean {
-    for (let attempt = 0; attempt < 2; attempt++) {
-        if (paramSet(CHAIN_SET_KEY, doc, SET_TIMEOUT_MS)) return true;
-    }
-    return false;
+    return paramSet(CHAIN_SET_KEY, doc);
 }
 
 /** The chain-set document, decoded. Exposed so the sends can be read out of the

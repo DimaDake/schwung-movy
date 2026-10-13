@@ -188,7 +188,7 @@ export function sessionFlush(force = false): void {
             /* The one capture that is a command: the engine cannot see a
              * teardown or a Set switch, and this is the last chance this Set
              * has to record where it got to. */
-            paramSet('set', 'keep exit', 200);
+            paramSet('set', 'keep exit');
         } else {
             captureVersion(setId, 'exit', savedPayload(), gen);
         }
@@ -196,22 +196,18 @@ export function sessionFlush(force = false): void {
 }
 
 export function sessionTick(): void {
-    /* The engine stopped being probed: say so, rather than showing a loading
-     * screen that will never finish. */
+    /* No engine, and none coming (movy-host loads it once, before ui.js):
+     * say so, rather than showing a loading screen that will never finish. A
+     * MISMATCH is an engine from another build than this ui.js — a partial
+     * install or deploy — and names itself, because "did not start" would
+     * send the user looking for a crash. */
     if (engineAbsent()) {
         if (phase !== 'failed') {
-            /* A STALE answer names its own fix. The shim dlopens the engine by
-             * path and glibc keeps serving the library already loaded there for
-             * as long as MoveOriginal lives, so a movy whose `dsp.so` was
-             * replaced underneath it — a store update — probes forever against
-             * the previous version. Nothing movy can do reaches that; a restart
-             * does, and saying so is the difference between a dead end and a
-             * ten-second fix. */
-            const stale = engineAbsentReason() === 'stale';
-            failReason = stale ? 'MOVY WAS UPDATED' : 'ENGINE DID NOT START';
+            const mismatch = engineAbsentReason() === 'mismatch';
+            failReason = mismatch ? 'ENGINE MISMATCH' : 'ENGINE DID NOT START';
             failScope = 'engine';
-            mlog('seq: FAILED — ' + (stale
-                ? 'the previous engine is still loaded; the Move must restart'
+            mlog('seq: FAILED — ' + (mismatch
+                ? 'the engine is from another build than ui.js'
                 : 'the engine never answered'));
             phase = 'failed';
         }

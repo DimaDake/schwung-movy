@@ -11,6 +11,11 @@ declare function host_remove_dir(path: string): boolean;
 declare function host_module_set_param(key: string, value: string): boolean;
 declare function host_module_set_param_blocking(key: string, value: string, timeoutMs: number): boolean;
 declare function host_module_get_param(key: string): string | null;
+/* The engine's status snapshot, published by the audio thread after every
+ * render (host/status_snap.h), and the param queue's submitted count. */
+declare function movy_engine_snapshot_seq(): number;
+declare function movy_engine_snapshot(): { seq: number; served: number; text: string } | null;
+declare function movy_engine_submitted(): number;
 /* Bulk param channel: N keys in one round trip, length-prefixed payload (see
  * src/track/bulk.ts). The slot and marker arguments are ignored. */
 declare function shadow_get_params(slot: number, key: string, payload: string): string | null;

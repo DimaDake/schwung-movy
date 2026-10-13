@@ -529,6 +529,26 @@ services the same loads on its SPI thread, so this is parity, and the 0.5 s
 output fade-in covers it. Moving loads off the audio thread is an engine change
 and is **WP11's**, not WP7's.
 
+### WP10: the status snapshot (2026-10-13)
+
+`scripts/measure-ui-ipc.mjs` (the same measurement, one host), the fixture
+playing, two runs each. The `status` poll became a snapshot movy-host
+publishes every third audio block, and engine writes stopped waiting
+(`plans/2026-10-13-wp10-direct-engine-channel.md`):
+
+| | before | after |
+|---|---|---|
+| UI tick rate | 380 Hz | **420 Hz** |
+| UI IPC per tick (`ipc_ms`) | 0.7 ms | **0.4 ms** |
+| `tick_ms` | 2.1 ms | **1.9 ms** |
+| `period_ms` | 2.6 ms | **2.4 ms** |
+| audio frame work avg / max | 108 / 250 µs | 122 / 267–284 µs |
+| pad to sound | 1 block | 1 block |
+
+The audio thread pays for the snapshot: formatting `status` costs ~49 µs, so
+publishing it every block took the frame average to 157 µs. Every third block
+(~115 Hz, still above the UI's parse rate) costs +14 µs on average.
+
 ## 9. Caveats
 
 - **Preset and kit choice dominate.** Every figure is "this synth, this preset",

@@ -16,3 +16,5 @@ test-device/.flake-log.json
 test-device/.last-schwung-version
 # movy-host: the pinned schwung sources and QuickJS build (scripts/build-host.sh).
 host/build/
+# The virtual device (scripts/vdev.sh): snapshot, image context, ssh key.
+.vdev/

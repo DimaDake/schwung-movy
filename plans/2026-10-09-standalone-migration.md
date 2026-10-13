@@ -897,6 +897,14 @@ on the audio thread (a surge load stalls 237 ms): carried out as its own design.
 
 ### WP12: a virtual device (goal 8, bonus)
 
+**Done 2026-10-13** (branch `standalone-migration`): `docs/standalone/vdev.md`.
+`host/vdev/spi_fake.c` (file mailbox, absolute 2902 µs deadlines), built by
+`MOVY_VDEV=1 build-host.sh` into `dist/vdev/`; `scripts/vdev.sh` snapshots a
+Move's `/data` into an Ubuntu 22.04 aarch64 image and runs the unchanged
+`StandaloneTransport` against it (ssh/scp wrappers + `test-device/vdev.ts`).
+The whole tier, 22 scenarios and 160 checks, is green on three parallel
+containers in 2 min 9 s (device: ~9 min). The device tier stays the gate.
+
 A fake-SPI backend for movy-host (`spi_fake.c`, mailbox in a file or socket,
 timer-paced at 2902 µs) running in a Linux arm64 container on the dev Mac
 (colima, already used for schwung builds). Modules' aarch64 `dsp.so` run

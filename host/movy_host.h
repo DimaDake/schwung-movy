@@ -12,6 +12,13 @@
 #include <stdint.h>
 
 #define MH_VERSION "0.1.0"
+/* The virtual device's build (spi_fake.c) says so in --version and the first
+ * log line: a vdev binary on a real box, or the reverse, is found at a glance. */
+#ifdef MOVY_VDEV
+#define MH_BUILD_KIND " vdev"
+#else
+#define MH_BUILD_KIND ""
+#endif
 #define MH_SCHWUNG_DIR "/data/UserData/schwung"
 #define MH_CHAIN_DIR MH_SCHWUNG_DIR "/modules/chain"
 

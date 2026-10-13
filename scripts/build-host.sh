@@ -57,19 +57,28 @@ CFLAGS=(-O2 -g -Wall -Wextra -Wno-unused-parameter -Wno-cast-function-type -std=
 # The test bus's UI_EVAL runs arbitrary JS in the UI: dev builds only.
 # Dev deploys keep it; the store tarball (build-module.sh) sets MOVY_RELEASE=1.
 [[ "${MOVY_RELEASE:-0}" = 1 ]] || CFLAGS+=(-DMOVY_TESTBUS_EVAL)
-mkdir -p "$DIR/dist"
-# shellcheck disable=SC2046
-"$CC" "${CFLAGS[@]}" $(ls "$DIR"/host/*.c) \
+# The virtual device (plan WP12, scripts/vdev.sh): the same host with
+# vdev/spi_fake.c in spi.c's place, into its own dist/vdev/ so the device's
+# binary is never the one replaced.
+DIST="$DIR/dist" SOURCES=$(ls "$DIR"/host/*.c)
+if [[ "${MOVY_VDEV:-0}" = 1 ]]; then
+    DIST="$DIR/dist/vdev"
+    SOURCES="$(ls "$DIR"/host/*.c | grep -v '/spi\.c$') $DIR/host/vdev/spi_fake.c"
+    CFLAGS+=(-DMOVY_VDEV)
+fi
+mkdir -p "$DIST"
+# shellcheck disable=SC2086
+"$CC" "${CFLAGS[@]}" $SOURCES \
     "$SRC/src/host/js_display.c" "$SRC/src/host/js_host_common.c" "$SRC/src/host/unified_log.c" \
     -L"$SRC/$QJS_DIR" -lquickjs -lm -ldl -lrt -lpthread \
-    -rdynamic -o "$DIR/dist/movy-host"   # -rdynamic: the crash backtrace names functions
-"$CC" -O2 -Wall -Wextra -std=gnu11 -I"$DIR/host" "$DIR/host/heal/heal.c" -o "$DIR/dist/movy-heal"
+    -rdynamic -o "$DIST/movy-host"   # -rdynamic: the crash backtrace names functions
+"$CC" -O2 -Wall -Wextra -std=gnu11 -I"$DIR/host" "$DIR/host/heal/heal.c" -o "$DIST/movy-heal"
 
 # Device glibc ceiling, the same rule build-dsp.sh applies to dsp.so.
 for bin in movy-host movy-heal; do
-    MAXGLIBC=$("$NM" -D "$DIR/dist/$bin" | grep -o "GLIBC_[0-9.]*" | sort -uV | tail -1)
+    MAXGLIBC=$("$NM" -D "$DIST/$bin" | grep -o "GLIBC_[0-9.]*" | sort -uV | tail -1)
     case "$MAXGLIBC" in
         GLIBC_2.3[6-9]*|GLIBC_2.[4-9]*|GLIBC_3*) echo "ERROR: $bin needs $MAXGLIBC > device glibc 2.35"; exit 1 ;;
     esac
 done
-echo "dist/movy-host built (schwung $TAG, movy $MOVY_SHA, $MAXGLIBC max)"
+echo "${DIST#"$DIR"/}/movy-host built (schwung $TAG, movy $MOVY_SHA, $MAXGLIBC max)"

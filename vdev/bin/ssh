@@ -1,0 +1,5 @@
+#!/bin/sh
+# First on PATH while the tier runs against a virtual device (scripts/vdev.sh
+# test): every ssh the harness and its scripts make reads the vdev config,
+# which resolves vdev<N> and then includes the user's own.
+exec /usr/bin/ssh -F "${MOVY_VDEV_SSH_CONFIG:?scripts/vdev.sh sets this}" "$@"

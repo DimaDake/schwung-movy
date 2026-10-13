@@ -32,8 +32,11 @@ cd "$DIR"
 . "$DIR/scripts/lib/build-release-ui.sh"
 # shellcheck source=lib/deploy-host.sh
 . "$DIR/scripts/lib/deploy-host.sh"
-if [[ "$RELEASE" == 1 ]]; then build_release_ui "$DIR"; else node build/device.mjs; fi
-./scripts/build-dsp.sh
+# MOVY_PREBUILT: scripts/vdev.sh tier built everything once for all its shards.
+if [[ "${MOVY_PREBUILT:-0}" != 1 ]]; then
+    if [[ "$RELEASE" == 1 ]]; then build_release_ui "$DIR"; else node build/device.mjs; fi
+    ./scripts/build-dsp.sh
+fi
 ssh "ableton@$HOST" "mkdir -p $REMOTE"
 scp "$DIR/ui.js" "ableton@$HOST:$REMOTE/"
 # Override configs for modules whose own movy_config.json movy cannot use (see

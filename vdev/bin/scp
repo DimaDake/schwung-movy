@@ -1,0 +1,3 @@
+#!/bin/sh
+# See ./ssh.
+exec /usr/bin/scp -F "${MOVY_VDEV_SSH_CONFIG:?scripts/vdev.sh sets this}" "$@"

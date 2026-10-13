@@ -52,6 +52,11 @@ const holdSend = (cmd: 'go' | 'quit') =>
 const notListening = (e: unknown): boolean =>
     (e as { code?: string } | null)?.code === 'ECONNREFUSED';
 
+/* Set by scripts/vdev.sh tier, which builds once and then runs one shard per
+ * virtual device at the same time: shards that each built would write
+ * dist/ and ui.js under each other's scp (deploy_host honours it too). */
+const PREBUILT = process.env.MOVY_PREBUILT === '1';
+
 /* A device frame. Used ONLY while movy-host is down, when there is no frame
  * clock on the box to wait on (the shim's went with Move). */
 const FRAME_MS = 128 / 44.1;
@@ -352,8 +357,10 @@ export class StandaloneTransport implements Transport {
             `md5sum ${MOVY_DIR}/dsp.so ${MOVY_DIR}/movy-host ${MOVY_DIR}/chain-host.so 2>/dev/null | md5sum | cut -d' ' -f1`)
             .catch(() => '');
         try {
-            await run('bash', [join(repoRoot(), 'scripts', 'build-dsp.sh')], { cwd: repoRoot() });
-            await run('node', [join(repoRoot(), 'build', 'device.mjs')], { cwd: repoRoot() });
+            if (!PREBUILT) {
+                await run('bash', [join(repoRoot(), 'scripts', 'build-dsp.sh')], { cwd: repoRoot() });
+                await run('node', [join(repoRoot(), 'build', 'device.mjs')], { cwd: repoRoot() });
+            }
             const before = await md5();
             for (const so of ['dsp.so', 'chain-host.so'])
                 await run('scp', ['-q', ...SSH_OPTS, join(repoRoot(), 'dist', so), `ableton@${this.host}:${MOVY_DIR}/${so}.new`]);
@@ -376,7 +383,7 @@ export class StandaloneTransport implements Transport {
     private uiDeployed = false;
     async deployUi(force = false): Promise<boolean> {
         if (this.uiDeployed && !force) return false;
-        await run('node', [join(repoRoot(), 'build', 'device.mjs')], { cwd: repoRoot() });
+        if (!PREBUILT) await run('node', [join(repoRoot(), 'build', 'device.mjs')], { cwd: repoRoot() });
         await run('scp', ['-q', ...SSH_OPTS, join(repoRoot(), 'ui.js'), `ableton@${this.host}:${MOVY_DIR}/`]);
         this.uiDeployed = true;
         return true;

@@ -87,6 +87,7 @@ calls that mean the same thing and switches the Move-only ones off.
 ./scripts/deploy.sh              # ui.js, dsp.so, movy-host, launcher, boot entry → tools/movy
 bash host/tests/run.sh           # unit tests + the boot-door test (part of npm test)
 ./scripts/test-host-linux.sh     # the same under glibc, in docker
+scripts/vdev.sh tier 3           # the device tier with no device, in containers (vdev.md)
 npm run test:device -- --scenario smoke
 ```
 

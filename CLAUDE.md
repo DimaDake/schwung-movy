@@ -201,6 +201,11 @@ dead one, and ends with `VERDICT: GREEN` / `RED` / `DEVICE OFFLINE`. Two
 sessions have ended a turn "waiting on the sweep" when the sweep was already
 dead; a command that has not returned cannot be mistaken for one that has.
 
+**No hardware, or a fast loop before the gate:** `scripts/vdev.sh tier 3` runs
+every device scenario against virtual devices (fake-SPI movy-host in colima
+containers, `docs/standalone/vdev.md`) in ~2 min. It is NOT the gate: the
+device tier still judges every commit.
+
 **Run `preflight` BEFORE the item, not after it.** It is `smoke` alone (~90 s)
 and it answers "is the gate I am about to be judged by green right now". Three
 times in one session the tier turned out to be red for its own reasons — a

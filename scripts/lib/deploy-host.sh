@@ -14,14 +14,18 @@
 deploy_host() {
     local host="$1" dir remote=/data/UserData/schwung/modules/tools/movy bt=/data/UserData/boot-targets/movy
     dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-    "$dir/scripts/build-host.sh"
+    # MOVY_PREBUILT: scripts/vdev.sh tier built it once for all its shards.
+    [[ "${MOVY_PREBUILT:-0}" = 1 ]] || "$dir/scripts/build-host.sh"
+    # The virtual device runs the fake-SPI build (scripts/vdev.sh, plan WP12).
+    local dist="$dir/dist"
+    [[ "${MOVY_VDEV:-0}" = 1 ]] && dist="$dir/dist/vdev"
     ssh "ableton@$host" "mkdir -p $remote"
     # Fresh inodes for everything a running movy-host may have mapped, and
     # for the launcher: sh reads a script as it runs, and a holding launcher
     # (harness mode) is mid-loop in it.
-    scp -q "$dir/dist/movy-host" "ableton@$host:$remote/movy-host.new"
+    scp -q "$dist/movy-host" "ableton@$host:$remote/movy-host.new"
     scp -q "$dir/standalone/launch.sh" "ableton@$host:$remote/standalone.new"
-    scp -q "$dir/dist/movy-heal" "$dir/standalone/boot-entry.sh" "$dir/module.json" "ableton@$host:$remote/"
+    scp -q "$dist/movy-heal" "$dir/standalone/boot-entry.sh" "$dir/module.json" "ableton@$host:$remote/"
     ssh "ableton@$host" "cd $remote && chmod +x movy-host.new standalone.new movy-heal boot-entry.sh \
         && mv movy-host.new movy-host && mv standalone.new standalone \
         && rm -rf /data/UserData/schwung/modules/tools/movy-sa \

@@ -1,5 +1,6 @@
 import { LineClient } from './line-client.js';
 import { hex, type Packet } from './midi.js';
+import { busEndpoint } from './vdev.js';
 
 export type BusEvent = { frame: number; bytes: number[] };
 
@@ -12,7 +13,10 @@ export type BusEvent = { frame: number; bytes: number[] };
  * UI (measured 2026-09-11). That is the Agent's job. */
 export class Bus {
     private c: LineClient;
-    constructor(host: string, port = 47777) { this.c = new LineClient(host, port, 'testd'); }
+    constructor(host: string, port?: number) {
+        const ep = busEndpoint(host);
+        this.c = new LineClient(ep.host, port ?? ep.port, 'testd');
+    }
 
     connect(): Promise<void> { return this.c.connect(); }
     close(): void { this.c.close(); }

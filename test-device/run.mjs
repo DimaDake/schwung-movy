@@ -5,6 +5,7 @@ import { setRunMute } from './dist/engine.js';
 import { runAll } from './dist/runner.js';
 import { printFlakes } from './dist/flake-log.js';
 import { noteSchwungVersion, reportKnownRed } from './dist/gate-checks.js';
+import { isVdev } from './dist/vdev.js';
 import './dist/scenarios/automation.js';
 import './dist/scenarios/unload.js';
 import './dist/scenarios/reselect.js';
@@ -34,7 +35,7 @@ const flag = (n) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : u
 // host — without this, "--scenario smoke" left "smoke" as the only bare argv
 // entry and HOST became "smoke", so the run tried `ssh ableton@smoke`.
 const consumedByFlag = new Set();
-for (const name of ['--host', '--scenario', '--flavour']) {
+for (const name of ['--host', '--scenario', '--flavour', '--out']) {
     const i = argv.indexOf(name);
     if (i >= 0) consumedByFlag.add(i + 1);
 }
@@ -100,7 +101,12 @@ if (noEngine) {
  * engine and the tier hung there. */
 await tx.deployUi();
 console.log('ui.js: deployed');
-await noteSchwungVersion(HOST);
+/* A virtual device (scripts/vdev.sh) carries a snapshot's schwung, and its
+ * flakes are not the box's: neither may move the device's own records, and
+ * the shards of one `vdev.sh tier` would race on them anyway. */
+const VDEV = isVdev(HOST);
+if (VDEV) console.log(`${HOST}: virtual device — the flake ledger and the schwung-version note are the box's, left alone`);
+else await noteSchwungVersion(HOST);
 
 await tx.connect();
 
@@ -126,7 +132,8 @@ console.log(MUTE
 
 let failures;
 try {
-    failures = await runAll({ host: HOST, only, tx,
+    failures = await runAll({ host: HOST, only, tx, outDir: flag('--out'),
+                              flakeLog: VDEV ? null : undefined,
                               retries: noRetry ? { assert: 0, infra: 0 } : undefined });
 } finally {
     /* In `finally`: a scenario that threw is exactly when the device is most

@@ -158,7 +158,7 @@ int main(int argc, char **argv) {
     const char *module_dir = NULL;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--version")) {
-            printf("movy-host %s schwung=%s movy=%s floor=%s\n", MH_VERSION, SCHWUNG_TAG, MOVY_COMMIT, SCHWUNG_FLOOR);
+            printf("movy-host %s%s schwung=%s movy=%s floor=%s\n", MH_VERSION, MH_BUILD_KIND, SCHWUNG_TAG, MOVY_COMMIT, SCHWUNG_FLOOR);
             return 0;
         }
         if (!strcmp(argv[i], "--boot")) handover_arm();
@@ -171,7 +171,7 @@ int main(int argc, char **argv) {
 
     mh_log_init();
     mh_crash_install();
-    mh_log("=== movy-host %s schwung=%s movy=%s pid=%d uid=%d door=%s dir=%s", MH_VERSION, SCHWUNG_TAG, MOVY_COMMIT,
+    mh_log("=== movy-host %s%s schwung=%s movy=%s pid=%d uid=%d door=%s dir=%s", MH_VERSION, MH_BUILD_KIND, SCHWUNG_TAG, MOVY_COMMIT,
            (int)getpid(), (int)getuid(), handover_armed() ? "boot" : "tools", g_mh_module_dir);
     /* mh_log_init's atexit drains the log when this returns. */
     return handover_or_exit(run());

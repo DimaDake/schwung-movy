@@ -214,8 +214,15 @@ U6 [schwung#635](https://github.com/charlesvestal/schwung/pull/635)
 [schwung#636](https://github.com/charlesvestal/schwung/pull/636) (the two shm
 contracts, documented), U1
 [schwung#637](https://github.com/charlesvestal/schwung/issues/637) (a
-standalone SDK library). Until #635 ships, the harness runs
-launch-standalone.sh itself.
+standalone SDK library), U8
+[schwung#641](https://github.com/charlesvestal/schwung/pull/641)
+(launch-standalone.sh: one launch at a time; a tool launch is not a failed
+boot), U7 [schwung#642](https://github.com/charlesvestal/schwung/pull/642)
+(speaker EQ as `src/host/speaker_eq.c`), and
+[schwung#643](https://github.com/charlesvestal/schwung/issues/643) (a module
+declares `min_host_version` in its own module.json and the host refuses to
+load it; movy's `module.json` adopts it once that lands). Until #635 ships,
+the harness runs launch-standalone.sh itself.
 
 ## WP7 (`plans/2026-10-10-wp7-standalone-parity.md`)
 
@@ -234,7 +241,8 @@ Still open:
   schwung's emulation of it, colour the built-in speaker. movy-host has
   neither: a MANUAL limitation for now. schwung's emulation is a static block
   in `schwung_shim.c`; copying it would be vendoring, so the path is an
-  upstream extraction into `src/host/speaker_eq.c` (U7) that movy-host
-  compiles from the pin.
+  upstream extraction into `src/host/speaker_eq.c` (U7,
+  [schwung#642](https://github.com/charlesvestal/schwung/pull/642)) that
+  movy-host compiles from the pin once a tag carries it.
 - Not done by a person yet: opening movy-sa from the Tools menu by hand, a
   listening check, and a real power-button press (the tier only dry-runs it).

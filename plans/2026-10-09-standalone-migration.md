@@ -210,6 +210,14 @@ toolchain that `build-dsp.sh` already requires.
   "host adapter" argument instead of a bare global (raised only if WP1's
   manifest shows churn).
 
+**Status 2026-10-13.** Filed: U1 schwung#637 (issue), U2 #636, U6 #635,
+U7 #642 (speaker EQ library), U8 #641 (launch-standalone.sh single launch +
+watchdog), and #643 (issue: `min_host_version` in module.json, enforced at
+load; movy adopts it after). Not filed, and why: U3 is moot (power-off goes
+through `com.ableton.system`, RT priority through movy's own heal staging);
+U4 is moot (movy ships the pinned tag's shared JS); U5 has no evidence yet
+(the handoff burst was never measured, R9), and U8 covers its relaunch part.
+
 ---
 
 ## Retired by design (accepted, see *Decisions*)

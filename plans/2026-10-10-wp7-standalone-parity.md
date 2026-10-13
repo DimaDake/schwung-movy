@@ -211,7 +211,7 @@ movy-sa 22 / 169 (2 N/A: `volume`, `master-fx`).
 - **T7.** `run-gate.sh … --flavour overtake|sa|all`. MANUAL draft:
   `docs/standalone/manual-draft.md` (merged into MANUAL.md with WP8).
 
-### Upstream, drafted, not filed (needs the user's go)
+### Upstream, filed 2026-10-13 (U7 schwung#642, U8 schwung#641)
 
 - **U7 — speaker EQ as a library.** Extract `speaker_eq_build/_process` and
   the CC 115 jack rules from `schwung_shim.c` into `src/host/speaker_eq.c`

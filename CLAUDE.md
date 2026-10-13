@@ -201,11 +201,6 @@ dead one, and ends with `VERDICT: GREEN` / `RED` / `DEVICE OFFLINE`. Two
 sessions have ended a turn "waiting on the sweep" when the sweep was already
 dead; a command that has not returned cannot be mistaken for one that has.
 
-**No hardware, or a fast loop before the gate:** `scripts/vdev.sh tier 3` runs
-every device scenario against virtual devices (fake-SPI movy-host in colima
-containers, `docs/standalone/vdev.md`) in ~2 min. It is NOT the gate: the
-device tier still judges every commit.
-
 **Run `preflight` BEFORE the item, not after it.** It is `smoke` alone (~90 s)
 and it answers "is the gate I am about to be judged by green right now". Three
 times in one session the tier turned out to be red for its own reasons — a
@@ -256,20 +251,57 @@ node browser-test/perf.mjs
 #     suite cannot report "missing" for a log line that is present
 node browser-test/device-scripts.mjs
 
-# 4. Device (when reachable) — the whole tier in one process. It builds and
-#    deploys dsp.so FIRST, so a Rust change is the one actually under test.
-#    Red → see "Device gate" below.
+# 4. Integration — "Which tier gates" below picks one. Both build and deploy
+#    dsp.so FIRST, so a Rust change is the one actually under test.
+scripts/vdev.sh tier 3                  # default: the virtual device, red → fix
+# Real device, REQUIRED for releases and hardware-bound work. Red → "Device gate".
 ssh -o ConnectTimeout=3 ableton@move.local echo ok 2>/dev/null \
   && npm run test:device \
-  || echo "DEVICE OFFLINE — SKIPPING DEVICE TESTS"
-# If offline: report DEVICE OFFLINE to the user in CAPS
+  || echo "DEVICE OFFLINE — DEVICE TIER NOT RUN"
+# Required but offline: report DEVICE OFFLINE to the user in CAPS; not done.
 
 # 4a. The above plus the LED restore on the way out, including on Ctrl-C.
 ./scripts/test-all-device.sh [move.local]
 ```
 
+### Which tier gates
+
+Two integration tiers run the same scenarios through the same transport: the
+**virtual device** (`scripts/vdev.sh tier 3`, fake-SPI movy-host in colima
+containers, ~2 min, `docs/standalone/vdev.md`) and the **real device**
+(`./scripts/run-gate.sh device`, ~9 min).
+
+**The virtual device gates by default.** A red vdev tier is fixed, never
+loaned: KNOWN-RED.md is the device's ledger only. Before trusting it, the
+snapshot must carry the device's schwung (`.vdev/image/schwung-version` equal
+to the box's `host/version.txt`); if they differ, `vdev.sh snapshot && vdev.sh
+image` first.
+
+**The real device tier is REQUIRED — green, or fixed until it is — for:**
+
+- **every release** (`docs/RELEASING.md` step 6), whatever the vdev says;
+- **audio, SPI and timing:** `host/spi.c`, `audio.c`, `frame_*`, `rt.c`,
+  `placement.c`, the render pool / chain scheduling, anything the audio thread
+  runs, MIDI latency;
+- **performance and CPU:** any `perf_*`, CPU-meter or `measure-*` claim (vdev
+  shares 4 vCPUs between shards, without RT priority);
+- **the doors and the box's lifecycle:** `standalone/launch.sh`,
+  `boot-entry.sh`, `host/handover.*`, `power.*`, `signals.*`, the boot target,
+  harness launch/hold logic in `transport-standalone.ts`;
+- **what the container stands in for:** LEDs and the display on glass, the
+  hardware MIDI path, uid/permission and file ownership (root vs ableton),
+  store install/update paths, Move round trips;
+- **a schwung move:** a new pinned tag, `SCHWUNG_FLOOR`, or the device's
+  installed schwung changing;
+- **anything the work itself says only hardware can prove**, a vdev-only
+  red/green you cannot explain, or a bug first reported on the device. When in
+  doubt, use the device.
+
+Say in the commit message which tier gated the change.
+
 ### Device gate
 
+When the device tier is required (**Which tier gates** above):
 `npm run test:device` (or `./scripts/run-gate.sh device`). Detail — harness
 API, fixture, retries, flake ledger, rules learned on device — is in
 `test-device/README.md`; read it before writing or debugging a scenario.
@@ -285,7 +317,8 @@ API, fixture, retries, flake ledger, rules learned on device — is in
    anything that churns modules (`dump-modules.sh` now does it itself). When the
    tier prints `SCHWUNG CHANGED`, re-check what movy still takes from the
    installed schwung (shared JS, chain modules) before suspecting movy.
-5. **Device unreachable → say DEVICE OFFLINE in CAPS.**
+5. **Device unreachable → say DEVICE OFFLINE in CAPS.** Work that requires
+   the device tier is then not done, and a release does not ship.
 
 **Build system:** All source lives in `src/` (TypeScript). `npm run build:device`
 bundles everything to `ui.js` via esbuild (single ESM file, no stale-module

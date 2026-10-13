@@ -276,10 +276,12 @@ containers, ~2 min, `docs/standalone/vdev.md`) and the **real device**
 
 **The virtual device gates by default.** A red vdev tier is fixed, never
 loaned: KNOWN-RED.md is the device's ledger only. Before trusting it, the
-snapshot only supplies what movy does not ship (the modules, the Tools door's
-`launch-standalone.sh`, the boot-target scripts): movy's own schwung JS and
-chain host are pinned and deployed into it like onto the box. Re-snapshot
-(`vdev.sh snapshot && vdev.sh image`) when the box's modules or schwung change.
+snapshot only supplies what movy does not ship: the modules (third-party,
+from the store, not schwung's) and schwung's door scripts. movy's own schwung
+JS and chain host are pinned and deployed into it like onto the box. A module
+update needs no device tier, only a re-snapshot (`vdev.sh snapshot && vdev.sh
+image`), so the vdev runs the same module builds the box does; a pin bump is
+vdev-gated too, since the vdev runs the pinned C and JS natively.
 
 **The real device tier is REQUIRED — green, or fixed until it is — for:**
 
@@ -291,13 +293,13 @@ chain host are pinned and deployed into it like onto the box. Re-snapshot
   shares 4 vCPUs between shards, without RT priority);
 - **the doors and the box's lifecycle:** `standalone/launch.sh`,
   `boot-entry.sh`, `host/handover.*`, `power.*`, `signals.*`, the boot target,
-  harness launch/hold logic in `transport-standalone.ts`;
+  harness launch/hold logic in `transport-standalone.ts` — and once after the
+  device's installed schwung changes, since these doors (its
+  `launch-standalone.sh`, boot targets, `schwung-entry.sh`) are all movy still
+  takes from it;
 - **what the container stands in for:** LEDs and the display on glass, the
   hardware MIDI path, uid/permission and file ownership (root vs ableton),
   store install/update paths, Move round trips;
-- **the device's installed schwung or modules changing** (what is still not
-  pinned: modules, the Tools door, boot targets, the hand-back to Schwung).
-  A pin bump alone is vdev-gated: the vdev runs the pinned C and JS natively;
 - **anything the work itself says only hardware can prove**, a vdev-only
   red/green you cannot explain, or a bug first reported on the device. When in
   doubt, use the device.

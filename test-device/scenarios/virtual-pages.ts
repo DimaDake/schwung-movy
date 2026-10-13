@@ -29,11 +29,6 @@ import * as fixture from '../fixture.js';
 import { STEP_NOTE_BASE } from '../midi.js';
 import { until } from '../wait.js';
 
-/* The arm every check here has to run in: Schwung plans AND draws, which is
- * the only arm in which the virtual contract is on screen at all. Under `off`
- * movy's own renderer draws the step page and there is no delegation to see. */
-const PAGE_MODE = 'page';
-
 /* THE STEP PAGE IS ENTERED, NOT AUTOMATIC — and assuming otherwise is what made
  * the first run of this scenario grade the wrong page.
  *
@@ -80,7 +75,7 @@ const PROB_KNOB = 2;
 const TURN_RAW = 12;
 const SETTLE_FRAMES = 120;
 
-type HeldPage = { module?: string; renderer?: string; held?: boolean; view?: string; pageIndex?: number };
+type HeldPage = { module?: string; body?: string; held?: boolean; view?: string; pageIndex?: number };
 
 scenario('virtual-pages', async (t) => {
     fixture.setHost(t.host);
@@ -93,14 +88,6 @@ scenario('virtual-pages', async (t) => {
     await dev.deployUi();
     await dev.open(probe);
     await dev.selectTrack(0);
-
-    /* By OVERRIDE, so the device's own prefs are never touched and there is
-     * nothing to restore (`probe.setGridMode`, and see `arm.ts`). */
-    const armed = await probe.setGridMode(PAGE_MODE) as { renderer?: string } | null;
-    t.note('gridMode', armed?.renderer ?? '(none)');
-    t.check('arm-page', 'the renderer reports the page arm',
-        armed?.renderer === PAGE_MODE,
-        { expected: `renderer=${PAGE_MODE}`, actual: `renderer=${armed?.renderer ?? '(none)'}` });
 
     /* A STEP PAGE NEEDS A TRIG — `stepPageAvailable()` is
      * `stepAutoMode && occHasStep(holdStep)` — and THE FIXTURE ALREADY SEEDS
@@ -252,15 +239,15 @@ scenario('virtual-pages', async (t) => {
     t.note('pageIndexDuringHold', got.beforeLeft?.pageIndex ?? -1);
     t.note('moduleBeforeLeft', got.beforeLeft?.module ?? '(none)');
     t.note('heldPageModule', got.held?.module ?? '(none)');
-    t.note('heldPageRenderer', got.held?.renderer ?? '(none)');
+    t.note('heldPageBody', got.held?.body ?? '(none)');
 
-    /* BOTH halves, and the module name is the half that matters. `renderer=page`
+    /* BOTH halves, and the module name is the half that matters. `body=schwung`
      * alone is true of the MODULE's page too, so asserting only that is what let
      * the first run pass this check while grading plaits. */
     t.check('step-page-delegated', 'the step page is the drawn one, through Schwung',
-        got.held?.module === STEP_PAGE_MODULE && got.held?.renderer === PAGE_MODE,
-        { expected: `module=${STEP_PAGE_MODULE} renderer=${PAGE_MODE} while a step is held`,
-          actual: `renderer=${got.held?.renderer ?? '(none)'} module=${got.held?.module ?? '(none)'}`
+        got.held?.module === STEP_PAGE_MODULE && got.held?.body === 'schwung',
+        { expected: `module=${STEP_PAGE_MODULE} body=schwung while a step is held`,
+          actual: `body=${got.held?.body ?? '(none)'} module=${got.held?.module ?? '(none)'}`
                   + (got.held?.module === STEP_PAGE_MODULE ? '' : ' — the step page was never reached') });
 
     /* A TURN, not just a touch: the step page answered touches (the top toast)
@@ -282,5 +269,4 @@ scenario('virtual-pages', async (t) => {
         got.probRestored === got.probBefore,
         { expected: `hprob=${got.probBefore}`, actual: `hprob=${got.probRestored}` });
 
-    await probe.setGridMode(null);
 });

@@ -34,63 +34,27 @@ const ACTUAL_DIR = join(__dir, 'screenshots', 'actual');
 const UPDATE     = process.argv.includes('--update');
 
 const PRESETS = [
-    'test8', 'test16', 'test_enum', 'test_steps', 'plaits', 'wurl',
-    'enum_overlay', 'knob_toast', 'no_params', 'keys_view', 'browse_view',
-    'session_booting', 'session_loading', 'session_modules', 'session_preparing',
-    'session_failed',
-    'session_failed_mismatch',
-    'versions_empty', 'versions_list', 'versions_confirm',
-    'sets_list', 'sets_long_names', 'sets_confirm',
-    'obxd_preset_page', 'obxd_main_page', 'obxd_filter_page',
-    'items_cell', 'items_overlay',
-    'lfo_prefix', 'collide_osc',
-    'chain_synth', 'chain_empty', 'chain_jog_toast', 'knobs_jog_toast',
-    'chain_t2', 'chain_t4',
-    'lfo_chain', 'lfo_lfo1', 'lfo_lfo2', 'lfo_target_overlay', 'lfo_viz_unipolar', 'lfo_viz_retrig',
-    'mix_page', 'mix_page_chain', 'mix_page_two_held',
-    'master_send_slot', 'master_send_empty',
-    'lfo_master', 'lfo_master_chain',
-    'lfo_mod_mark', 'lfo_mod_and_auto', 'lfo_assign_toast',
-    'drum-mrdrums-pad5', 'drum-mrdrums-global',
-    'chordism-chordb', 'sfz-amp',
-    'params-overflow-page', 'params-extras-settings',
-    'file_browse',
-    'bankbar-mid', 'bankbar-surge', 'bankbar-dense',
-    'auto_dot', 'auto_held', 'auto_live', 'auto_limit', 'auto_held_enum',
-    'step_page_knobs', 'step_page_chain', 'step_indicator', 'step_rec_header',
-    'loop_strip_midclip', 'loop_strip_outside', 'loop_header',
-    'song_band', 'song_band_overflow', 'song_band_end',
-    'main-default', 'main-tempo-touched', 'main-swing-touched',
-    'main-root-touched', 'main-key-overlay', 'main-mode-overlay', 'main-layout-overlay',
-    'main-ext-sync',
-    'clip-default', 'clip-fraction', 'clip-overlay', 'clip-drum', 'clip-quant',
-    'main-quant', 'quant-overlay-three', 'quant-overlay-two',
-    'flags-top', 'flags-scrolled', 'flags-release',
-    'cpu-movy-tracks', 'cpu-unsplit-module', 'cpu-overscale', 'cpu-empty',
-    'cpu-sends', 'cpu-sends-quiet', 'cpu-master',
-    'env_dual', 'env_touched', 'env_ad', 'env_asr', 'lfo_mod',
-    'filter_lp', 'filter_lp_reso', 'filter_hp', 'filter_bp', 'filter_notch',
-    'filter_slope24', 'filter_dual', 'filter_open',
-    'deep_page', 'lfo_helm_step', 'lfo_helm_pyramid',
-    'signal_voice', 'forge_voice', 'forge_filter', 'forge_mod', 'forge_send', 'forge_mix',
-    '8w8_voice', '8w8_master', '8w8_delay', '8w8_chain',
-    'leave_modal', 'power_modal', 'capture_select', 'capture_fixed',
-    'undo_toast', 'redo_toast', 'undo_empty', 'undo_unavailable', 'clip-undo-toast',
-    'track_volume_unity', 'track_volume_quiet', 'track_volume_min', 'track_volume_max',
-    'master_volume',
-    'trigger_armed', 'trigger_fired', 'trigger_blink_off', 'trigger_touched',
-    'trigger_cooling', 'trigger_cooling_low',
-    'readouts', 'readout_touched',
-    'font_5x3_all', 'font_small_all', 'font_big_all_1', 'font_big_all_2',
-    'wave_cells', 'wave_overlay', 'wave_helm', 'wave_toggles',
-    'env_stages', 'eq_bands', 'cut_filters', 'faders', 'wav_sample', 'wav_loop', 'wav_loop_off', 'wav_beside_filter',
-    'switches', 'pan_dials', 'spray_saturated',
-    'page_body', 'page_body_p2', 'page_voice_pad', 'page_voice_global', 'page_config_pad', 'page_config_filter', 'page_config_mix', 'page_config_mod', 'page_sample',
-    'page_mod_cell', 'page_mod_cell_held',
-    'page_held_lock', 'page_lane_unheld', 'page_held_unassignable', 'page_held_enum',
-    'page_chrome_held', 'page_chrome_flip', 'page_chrome_file',
-    'page_clipparams', 'page_setparams', 'page_stepparams', 'page_master_chain',
-    'page_lane_mark', 'page_lane_mark_held', 'page_held_drum',
+    'keys_view', 'browse_view', 'session_booting', 'session_loading', 'session_modules',
+    'session_preparing', 'session_failed', 'session_failed_mismatch', 'versions_empty',
+    'versions_list', 'versions_confirm', 'sets_list', 'sets_long_names', 'sets_confirm',
+    'chain_synth', 'chain_empty', 'chain_jog_toast', 'knobs_jog_toast', 'chain_t2',
+    'chain_t4', 'lfo_chain', 'mix_page_chain', 'master_send_slot', 'master_send_empty',
+    'lfo_master', 'lfo_master_chain', 'lfo_assign_toast', 'file_browse',
+    'step_indicator', 'step_rec_header', 'loop_strip_midclip', 'loop_strip_outside',
+    'loop_header', 'song_band', 'song_band_overflow', 'song_band_end',
+    'quant-overlay-three', 'quant-overlay-two', 'flags-top', 'flags-scrolled',
+    'flags-release', 'cpu-movy-tracks', 'cpu-unsplit-module', 'cpu-overscale',
+    'cpu-empty', 'cpu-sends', 'cpu-sends-quiet', 'cpu-master', 'leave_modal',
+    'power_modal', 'capture_select', 'capture_fixed', 'undo_toast', 'redo_toast',
+    'undo_empty', 'undo_unavailable', 'clip-undo-toast', 'track_volume_unity',
+    'track_volume_quiet', 'track_volume_min', 'track_volume_max', 'master_volume',
+    'font_5x3_all', 'font_small_all', 'font_big_all_1', 'font_big_all_2', 'page_body',
+    'page_body_p2', 'page_voice_pad', 'page_voice_global', 'page_config_pad',
+    'page_config_filter', 'page_config_mix', 'page_config_mod', 'page_sample',
+    'page_mod_cell', 'page_mod_cell_held', 'page_held_lock', 'page_lane_unheld',
+    'page_held_unassignable', 'page_held_enum', 'page_chrome_held', 'page_chrome_flip',
+    'page_chrome_file', 'page_clipparams', 'page_setparams', 'page_stepparams',
+    'page_master_chain', 'page_lane_mark', 'page_lane_mark_held', 'page_held_drum',
     'page_lfo', 'page_lfo_master', 'page_enum_list',
 ];
 
@@ -112,21 +76,11 @@ const PAGE_SCENES = new Set(['page_body', 'page_body_p2', 'page_voice_pad', 'pag
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
 const BASE = {
-    enum_overlay: 'plaits', knob_toast: 'test8', no_params: 'no_params',
-    keys_view: 'test8', browse_view: 'test8', file_browse: 'test8',
-    obxd_preset_page: 'obxd_like', obxd_main_page: 'obxd_like', obxd_filter_page: 'obxd_like',
-    items_cell: 'dexed_like', items_overlay: 'dexed_like',
-    chain_synth: 'test8', chain_empty: 'test8', chain_jog_toast: 'test8',
+        keys_view: 'test8', browse_view: 'test8', file_browse: 'test8',
+            chain_synth: 'test8', chain_empty: 'test8', chain_jog_toast: 'test8',
     knobs_jog_toast: 'test8', chain_t2: 'test8', chain_t4: 'test8',
-    'drum-mrdrums-pad5': 'mrdrums', 'drum-mrdrums-global': 'mrdrums',
-    'chordism-chordb': 'chordism', 'sfz-amp': 'sfz',
-    'bankbar-mid': 'hier_grouped_pages', 'bankbar-surge': 'hier_surge_pages',
-    'bankbar-dense': 'hier_dense_pages',
-    'params-overflow-page': 'hier_params_overflow',
-    'params-extras-settings': 'hier_params_extras',
-    auto_dot: 'test8', auto_held: 'test8', auto_live: 'test8', auto_limit: 'test8',
-    /* D14: knob 0 is an enum (Mode, at rest LP); the held step locks HP. */
-    auto_held_enum: 'test_enum', page_held_enum: 'test_enum',
+                                /* D14: knob 0 is an enum (Mode, at rest LP); the held step locks HP. */
+    page_held_enum: 'test_enum',
     /* The page scenes' mocks. `page_mod_cell*` need a page whose first param an
      * LFO can be pointed at; `page_held_unassignable` needs a page only SOME of
      * which can take a lock — `readouts` declares three of its four params
@@ -139,39 +93,12 @@ const BASE = {
      * trigger and a two-way enum — and `switches` is the mock that declares
      * both. */
     page_chrome_held: 'switches', page_chrome_flip: 'switches', page_chrome_file: 'wav_sample',
-    step_page_knobs: 'test8', step_page_chain: 'test8', step_indicator: 'test8',
+    step_indicator: 'test8',
     step_rec_header: 'test8',
     loop_strip_midclip: 'test8', loop_strip_outside: 'test8', loop_header: 'test8',
-    'main-default': 'test8', 'main-tempo-touched': 'test8',
-    'main-swing-touched': 'test8', 'main-root-touched': 'test8',
-    'main-key-overlay': 'test8', 'main-mode-overlay': 'test8',
-    'main-layout-overlay': 'test8',
-    'main-ext-sync': 'test8',
-    'clip-default': 'test8', 'clip-fraction': 'test8', 'clip-overlay': 'test8',
-    'clip-drum': 'test8', 'clip-quant': 'test8',
-    'quant-overlay-three': 'test8', 'quant-overlay-two': 'test8',
+                                'quant-overlay-three': 'test8', 'quant-overlay-two': 'test8',
     'flags-top': 'test8', 'flags-scrolled': 'test8', 'flags-release': 'test8',
-    trigger_armed: 'triggers', trigger_fired: 'triggers',
-    trigger_blink_off: 'triggers', trigger_touched: 'triggers',
-    trigger_cooling: 'triggers', trigger_cooling_low: 'triggers',
-    readouts: 'readouts', readout_touched: 'readouts',
-    env_dual: 'env_dual', env_touched: 'env_dual', env_ad: 'env_ad', env_asr: 'env_asr', lfo_mod: 'lfo_mod',
-    filter_lp: 'filter_demo', filter_lp_reso: 'filter_demo', filter_hp: 'filter_demo',
-    filter_bp: 'filter_demo', filter_notch: 'filter_demo', filter_slope24: 'filter_demo',
-    filter_dual: 'filter_dual', filter_open: 'filter_demo',
-    deep_page: 'hier_knobs_and_children',
-    lfo_helm_step: 'lfo_helm', lfo_helm_pyramid: 'lfo_helm',
-    wave_cells: 'wave_cells', wave_overlay: 'wave_cells', wave_helm: 'helm_waves',
-    wave_toggles: 'wave_toggles', env_stages: 'env_stages', eq_bands: 'eq_bands', cut_filters: 'cut_filters',
-    faders: 'faders', switches: 'switches', pan_dials: 'pan_dials',
-    spray_saturated: 'wav_sample', wav_sample: 'wav_sample', wav_loop: 'wav_loop', wav_loop_off: 'wav_loop',
-    wav_beside_filter: 'wav_beside_filter',
-    signal_voice: 'signal', forge_voice: 'forge',
-    '8w8_master': '8w8', '8w8_voice': '8w8', '8w8_delay': '8w8', '8w8_chain': '8w8',
-    forge_filter: 'forge', forge_mod: 'forge', forge_send: 'forge', forge_mix: 'forge',
-    lfo_chain: 'test8', lfo_lfo1: 'test8', lfo_lfo2: 'test8',
-    lfo_target_overlay: 'test8', lfo_viz_unipolar: 'test8', lfo_viz_retrig: 'test8',
-    lfo_mod_mark: 'test8', lfo_mod_and_auto: 'test8', lfo_assign_toast: 'test8',
+                                                                            lfo_chain: 'test8',         lfo_assign_toast: 'test8',
     leave_modal: 'test8', power_modal: 'test8',
     master_volume: 'test8',
     track_volume_unity: 'test8', track_volume_quiet: 'test8',
@@ -183,9 +110,7 @@ const BASE = {
     page_body: 'test16', page_body_p2: 'test16',
     /* wav_beside_filter: mrsample's real shape (sample_path + a wav_position
      * marker declaring filepath_param), the same mock schwung-sample.mjs
-     * reuses — SP-42 is specifically about THIS cell drawn through Schwung's
-     * OWN delegated renderer, not movy's (that path already has baselines:
-     * wav_sample/wav_loop/wav_beside_filter above). */
+     * reuses — SP-42 is THIS cell drawn through Schwung's own renderer. */
     page_sample: 'wav_beside_filter',
     /* Virtual components (SP-53) — no module port at all, so the mock is
      * irrelevant; movy's own state IS the contract. `test8` only because
@@ -277,7 +202,7 @@ const { sendFrac }         = await import('../dist/esm/mixer/db-ladder.js');
 const { renderKnobsView, headerRightText } = await import('../dist/esm/renderer/knob-view.js');
 /* The `page` scenes' entry points. Imported here, not statically, for the same
  * reason as every other renderer: the file resolves them after installEnv(). */
-const { setSchwungGridMode, schwungPageFor, schwungGridReload } =
+const { schwungPageFor, schwungGridReload } =
     await import('../dist/esm/renderer/schwung-grid.js');
 /* The app's own half of the `page` scenes: who owns the page, what body it
  * draws, and the lookup the page asks about modulation. Imported rather than
@@ -294,7 +219,7 @@ const { modulatedKeysOf } = await import('../dist/esm/app/modulated-keys.js');
 const { assignLane, resetAutomation } = await import('../dist/esm/seq/automation.js');
 const { buildAutomationView } = await import('../dist/esm/app/tick.js');
 const { stepPageAvailable, stepPageState } = await import('../dist/esm/seq/step-page.js');
-const { schwungLibAvailable, schwungLib } = await import('../dist/esm/renderer/schwung-lib.js');
+const { schwungLib } = await import('../dist/esm/renderer/schwung-lib.js');
 const { movyCtx } = await import('../dist/esm/renderer/schwung-ctx.js');
 /* The reader the MODEL asks through and the renderer that answers it. `model/`
  * imports nothing from `renderer/`, so the dependency is pushed in —
@@ -469,14 +394,6 @@ function settle() {
 
 function applyView(preset) {
     switch (preset) {
-        case 'enum_overlay':     model.handleKnobTouch(0); forceRender(); break;
-        /* The bank selector at rest: a framed item name in the leftmost cell,
-         * with the preset cell beside it. The two must not read alike. */
-        case 'items_cell':       settle(); forceRender(); break;
-        /* Touching it opens the picker even though the list is short — a plain
-         * enum would need more than six options to get one. */
-        case 'items_overlay':    settle(); model.handleKnobTouch(0); forceRender(); break;
-        case 'knob_toast':       model.handleKnobTouch(2); forceRender(); break;
         case 'keys_view':        showKeys(); break;
         /* The three states movy shows before it is live. The failed one names
          * what broke and what the jog click will do, because that click wipes
@@ -574,20 +491,6 @@ function applyView(preset) {
                 selectedIndex: 2,
             });
             lastRender(); break;
-        /* Trigger badge phases. Time is frozen so the fired flash and two drain
-         * positions are deterministic; the drain is what makes the re-arm
-         * debounce visible, so it needs more than one sample pinned. */
-        /* Knob 2 is the only turnable param on the page, so a shot with knob 0
-         * touched shows a dotted frame and a filled label cell together —
-         * touching a readout is allowed, turning it is not. */
-        case 'readouts':            settle(); forceRender(); break;
-        case 'readout_touched':     settle(); model.handleKnobTouch(0); forceRender(); break;
-        case 'trigger_armed':       settle(); forceRender(); break;
-        case 'trigger_fired':       fireTrigger(0); break;
-        case 'trigger_blink_off':   fireTrigger(60); break;   // second half of the blink
-        case 'trigger_touched':     settle(); model.handleKnobTouch(0); forceRender(); break;
-        case 'trigger_cooling':     fireTrigger(250); break;
-        case 'trigger_cooling_low': fireTrigger(620); break;
         /* Font charts: every glyph of each font, reviewed as pixels. The 5x3 one
          * also pins the signed/numeric strings the step cells draw, which is
          * where a swallowed minus and a top-aligned '+' were found. */
@@ -608,171 +511,6 @@ function applyView(preset) {
             clear_screen();
             drawFontChart(ASCII, fontWidthBig, fontPrintBig, BIG_FONT_HEIGHT, 1);
             break;
-        case 'env_dual':    forceRender(); break;
-        case 'env_touched': model.handleKnobTouch(2); forceRender(); break;   // touch Sustain
-        case 'env_ad':      forceRender(); break;
-        case 'env_asr':     forceRender(); break;
-        case 'lfo_mod':     forceRender(); break;
-        /* Deepest nested page name movy can produce ("Oper1/Envelope") — the
-         * header shares 128 px with the module name, so this is reviewed as
-         * pixels rather than assumed to fit. */
-        case 'deep_page':   model.changePage(3); forceRender(); break;
-        /* Waveform silhouettes on single knobs. Values are pinned per shot (the
-         * mock's own defaults do not survive the runner's reload) so each cell
-         * shows a DIFFERENT glyph: flat Off, saw, square and pulse side by side
-         * make the duty-cycle difference and the straight risers reviewable. */
-        case 'wave_cells':
-            setFilter({
-                wave_1: '0', wave_2: '3', wave_3: '4', wave_4: '5',
-                osc_wave: '1', mod_shape: '5', vca_mode: '0', level: '0.60',
-            });
-            /* settle() stops after 5 idle ticks, but the round-robin value
-             * refresh does not mark every tick dirty — so how far it has got
-             * depends on the state the PREVIOUS scene left behind. Tick a fixed
-             * count here instead: this scene is entirely about which glyph each
-             * value selects, so it must not render half-refreshed. */
-            for (let i = 0; i < 120; i++) model.tick();
-            forceRender();
-            break;
-        /* Same list with the overlay open on knob 0, so the glyph gutter, the
-         * inverted glyph on the selected row and the flat "Off" entry are all
-         * in one shot. Long-press is 172 ticks, so the hold is driven
-         * explicitly rather than left to settle()'s idle heuristic. */
-        case 'wav_beside_filter': {
-            makeSceneWav();
-            setFilter({ sample_start: '0.45' });
-            for (let i = 0; i < 300; i++) model.tick();
-            forceRender();
-            break;
-        }
-        case 'wav_loop':
-        case 'wav_loop_off': {
-            makeSceneWav();
-            setFilter(preset === 'wav_loop_off' ? { loop_mode: '0' } : { loop_mode: '1' });
-            for (let i = 0; i < 300; i++) model.tick();
-            forceRender();
-            break;
-        }
-        case 'wav_sample': {
-            makeSceneWav();
-            setFilter({ position: '0.42' });
-            /* Enough ticks for the chunked read to finish (19 blocks, 2/tick). */
-            for (let i = 0; i < 300; i++) model.tick();
-            forceRender();
-            break;
-        }
-        case 'spray_saturated':
-            /* Past 0.5 the region already covers the whole file, so the fences
-             * sit on the edges and stop moving — granny's offset wraps, so a
-             * wider spread reaches no new frames. */
-            setFilter({ position: '0.2', spray: '0.6' });
-            for (let i = 0; i < 300; i++) model.tick();
-            forceRender();
-            break;
-        case 'switches':
-            setFilter({ osc2_sync: '1', legato: 'Off', unison: '0', bypass: 'on',
-                        lfo_mode: 'Sync', rnd_patch: '0', cutoff: '0.5', voice_mode: 'Poly' });
-            for (let i = 0; i < 80; i++) model.tick();
-            forceRender();
-            break;
-        case 'pan_dials':
-            /* The whole sweep in one frame — hard left, part left, centre,
-             * part right, hard right — beside the two near-misses that keep
-             * the arc. A single value would not show that the bar travels. */
-            for (let i = 0; i < 80; i++) model.tick();
-            forceRender();
-            break;
-        case 'faders':
-            setFilter({ volume: '0.75', gain: '0.3', lvl_snare: '1.0', sub_level: '0',
-                        trim_db: '0', pre_gain: '-9', cutoff: '0.5', rate: '0.4' });
-            for (let i = 0; i < 80; i++) model.tick();
-            forceRender();
-            break;
-        case 'cut_filters':
-            setFilter({
-                high_cut: '0.75', low_cut: '0.25', mix: '0.5', width: '0.5',
-                hpf: '0.4', lpf_only: '0.6', hp_slope: '0.5', hpf_mg: '0',
-            });
-            for (let i = 0; i < 120; i++) model.tick();
-            forceRender();
-            break;
-        case 'eq_bands':
-            setFilter({
-                eq_lo: '9', eq_mid: '-6', eq_hi: '7', trim: '0',
-                drv_body: '3', drv_air: '-5', low_xo: '600', high_xo: '4000',
-            });
-            for (let i = 0; i < 120; i++) model.tick();
-            forceRender();
-            break;
-        case 'env_stages':
-            setFilter({
-                decay: '0.15', mod_decay: '0.45', all_decay: '0.75', lpg_decay: '1.0',
-                attack: '0.30', soft_attack: '0.80', decay_rnd: '0.50', rev_decay: '0.50',
-            });
-            for (let i = 0; i < 120; i++) model.tick();
-            forceRender();
-            break;
-        case 'wave_toggles':
-            setFilter({
-                osc1_saw: '1', osc1_pulse: '0', osc2_saw: '0', osc2_pulse: '1',
-                lfo_sin: '1', lfo_square: '0', mute_noise: '1', cutoff: '0.60',
-            });
-            for (let i = 0; i < 120; i++) model.tick();
-            forceRender();
-            break;
-        case 'wave_helm':
-            setFilter({
-                w_step3: '5', w_step4: '6', w_step8: '7', w_sawup: '4',
-                w_pyr3: '8', w_pyr5: '9', w_pyr9: '10', w_tri: '1',
-            });
-            for (let i = 0; i < 120; i++) model.tick();
-            forceRender();
-            break;
-        case 'wave_overlay':
-            setFilter({
-                wave_1: '4', wave_2: '3', wave_3: '4', wave_4: '5',
-                osc_wave: '1', mod_shape: '5', vca_mode: '0', level: '0.60',
-            });
-            for (let i = 0; i < 120; i++) model.tick();
-            model.handleKnobTouch(0);
-            for (let i = 0; i < LONG_PRESS_TICKS + 10; i++) model.tick();
-            forceRender();
-            break;
-        case 'lfo_helm_step':    forceRender(); break;                       // "8 Step" → stepped ramp
-        case 'lfo_helm_pyramid': setFilter({ mono_lfo_1_waveform: '9' }); break;  // "5 Pyramid" → stepped triangle
-        case 'filter_lp':      forceRender(); break;                         // demo defaults: LP, reso 0.30
-        case 'filter_lp_reso': setFilter({ resonance: '0.90' }); break;      // high resonance bump
-        case 'filter_hp':      setFilter({ mode: '1' }); break;
-        case 'filter_bp':      setFilter({ mode: '2' }); break;
-        case 'filter_notch':   setFilter({ mode: '3' }); break;
-        case 'filter_slope24': setFilter({ resonance: '0.70', slope: '1' }); break;
-        case 'filter_dual':    forceRender(); break;
-        case 'filter_open':    setFilter({ cutoff: '1.0', resonance: '0.05' }); break;   // fully open — corner still visible
-        // Pad-selected voice bank (padSpecific page 0) — pad-grid icon in header.
-        case 'signal_voice':   model.updateDrumPad(2, 37); settle(); forceRender(); break;
-        case 'forge_voice':    model.updateDrumPad(3, 38); settle(); forceRender(); break;
-        // Explicit filter:/lfo: tags in forge's movy-layout → curve / waveform.
-        case 'forge_filter':   model.updateDrumPad(3, 38); model.changePage(1); settle(); forceRender(); break;
-        case 'forge_mod':      model.updateDrumPad(3, 38); model.changePage(3); settle(); forceRender(); break;
-        case 'forge_send':     model.updateDrumPad(3, 38); model.changePage(5); settle(); forceRender(); break; // per-voice sends + pan
-        case 'forge_mix':      model.changePage(8); settle(); forceRender(); break;   // Mix bank: vbar faders
-        /* A kit with a page PER voice and the pad choosing among them. No bank
-         * re-targets, so the pad-grid icon is the only thing on screen saying
-         * which voice is under the knobs — and the rotation collapses nineteen
-         * banks to a FOUR-dot bank bar, the voice slot sitting second and
-         * wearing the selected voice's own name. */
-        case '8w8_voice':  model.updateDrumPad(11, 46); model.selectBankForPad(11); settle(); forceRender(); break;
-        case '8w8_delay':  model.changePage(2); settle(); forceRender(); break;
-        case '8w8_master': model.changePage(3); settle(); forceRender(); break;
-        /* The same voice page on the CHAIN view, where the icon has to appear
-         * too — that is where you land after a slot change, and an icon on only
-         * one of the two reads as the voice selection having been lost. */
-        case '8w8_chain':  model.updateDrumPad(11, 46); model.selectBankForPad(11);
-                           settle(); showChain(1, false); break;
-        case 'obxd_preset_page': forceRender(); break;                       // page 0
-        case 'obxd_main_page':   model.changePage(1); forceRender(); break;
-        case 'obxd_filter_page': model.changePage(3); forceRender();
-        break;
         case 'chain_synth':      showChain(1, false); break;
         case 'chain_empty':      showChain(2, false); break;                 // fx1 = empty
         case 'chain_jog_toast':  showChain(1, true); break;
@@ -959,26 +697,6 @@ function applyView(preset) {
         }
         case 'chain_t2':         showChain(1, false, 1); break;
         case 'chain_t4':         showChain(1, false, 3); break;
-        case 'drum-mrdrums-pad5':   model.tick(); model.tick(); model.updateDrumPad(5, 76); forceRender(); break;
-        case 'drum-mrdrums-global': model.tick(); model.tick(); model.changePage(2); forceRender(); break;  // Main/Rand/Global
-        // Page indicator with many pages: 25 pages still get a gap between
-        // segments, 70 pages drop it so each page keeps a pixel.
-        case 'bankbar-mid':   for (let i = 0; i < 12; i++) model.changePage(1); forceRender(); break;
-        case 'bankbar-surge': for (let i = 0; i < 26; i++) model.changePage(1); forceRender(); break;
-        case 'bankbar-dense': for (let i = 0; i < 40; i++) model.changePage(1); forceRender(); break;
-        // Overflow page: the " - 2" header and a full row of params[] extras.
-        case 'params-overflow-page':   model.changePage(1); forceRender(); break;
-        // A level with NO knobs[] at all now gets a page from its params[].
-        case 'params-extras-settings': model.changePage(2); forceRender(); break;
-        case 'chordism-chordb':     model.changePage(8); forceRender(); break;  // Chord B bank (top 4 pitch classes)
-        case 'sfz-amp':             forceRender(); break;                       // Amp bank: ADSR graphic + cutoff/reso
-        case 'auto_dot':         showKnobsAuto(autoView()); break;
-        case 'auto_held':        showKnobsAuto(autoView({ held: true, heldVal: model.getKnobParamInfo(0).max })); break;
-        case 'auto_live':        showKnobsAuto(autoView({ held: false, liveVal: model.getKnobParamInfo(0).max })); break;
-        case 'auto_limit':       showKnobsAuto(autoView({ held: true, poolFull: true, assignedLanes: 0xFF })); break;
-        case 'auto_held_enum':   showKnobsAuto(autoView({ held: true, heldVal: 2 })); break;
-        case 'step_page_knobs':  lastRender = () => renderKnobsView(buildStepPageVM(STEP_VM_A, 4), false, 0); lastRender(); break;
-        case 'step_page_chain':  lastRender = () => renderChainView(buildStepPageVM(STEP_VM_B), 1, false, 'T1'); lastRender(); break;
         case 'step_rec_header': {
             // Rec held: the band sits over a live param page, which stays
             // readable so the sound can be shaped while the part goes in.
@@ -1072,103 +790,6 @@ function applyView(preset) {
             lastRender();
             break;
         }
-        case 'main-quant': {         // set default quantization at 70%
-            resetSeqState(); resetMainPage();
-            keyboardState.rootPc = 0; keyboardState.octave = [4, 4, 4, 4];
-            keyboardState.mode = 0; keyboardState.layout = 0; keyboardState.scale = 0;
-            seqState.bpmX100 = 12000; seqState.swingPct = 50;
-            seqState.defaultQuant = 70;
-            mainPageState.touchedKnob = 3;
-            lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
-            lastRender();
-            break;
-        }
-        case 'main-default': {
-            resetSeqState(); resetMainPage();
-            keyboardState.rootPc = 0; keyboardState.octave = [4, 4, 4, 4];
-            keyboardState.mode = 0; keyboardState.layout = 0; keyboardState.scale = 0;
-            seqState.bpmX100 = 12000; seqState.swingPct = 50;
-            lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
-            lastRender();
-            break;
-        }
-        case 'main-tempo-touched': {
-            resetSeqState(); resetMainPage();
-            keyboardState.rootPc = 0; keyboardState.octave = [4, 4, 4, 4];
-            keyboardState.mode = 0; keyboardState.layout = 0; keyboardState.scale = 0;
-            seqState.bpmX100 = 12000; seqState.swingPct = 50;
-            mainPageState.touchedKnob = 0;
-            lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
-            lastRender();
-            break;
-        }
-        case 'main-swing-touched': {
-            resetSeqState(); resetMainPage();
-            keyboardState.rootPc = 0; keyboardState.octave = [4, 4, 4, 4];
-            keyboardState.mode = 0; keyboardState.layout = 0; keyboardState.scale = 0;
-            seqState.bpmX100 = 12000; seqState.swingPct = 50;
-            mainPageState.touchedKnob = 1;
-            lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
-            lastRender();
-            break;
-        }
-        case 'main-root-touched': {
-            resetSeqState(); resetMainPage();
-            keyboardState.rootPc = 3; keyboardState.octave = [4, 4, 4, 4];
-            keyboardState.mode = 0; keyboardState.layout = 0; keyboardState.scale = 0;   // D#
-            seqState.bpmX100 = 12000; seqState.swingPct = 50;
-            mainPageState.touchedKnob = 4;
-            lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
-            lastRender();
-            break;
-        }
-        case 'main-key-overlay': {
-            resetSeqState(); resetMainPage();
-            keyboardState.rootPc = 0; keyboardState.octave = [4, 4, 4, 4];
-            keyboardState.mode = 0; keyboardState.layout = 0; keyboardState.scale = 0;
-            seqState.bpmX100 = 12000; seqState.swingPct = 50;
-            mainPageState.overlayKnob = 5; mainPageState.overlaySel = 1;
-            lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
-            lastRender();
-            break;
-        }
-        case 'main-mode-overlay': {
-            resetSeqState(); resetMainPage();
-            keyboardState.rootPc = 0; keyboardState.octave = [4, 4, 4, 4];
-            keyboardState.mode = 0; keyboardState.layout = 0; keyboardState.scale = 0;
-            seqState.bpmX100 = 12000; seqState.swingPct = 50;
-            mainPageState.overlayKnob = 6; mainPageState.overlaySel = 1;
-            lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
-            lastRender();
-            break;
-        }
-        case 'main-layout-overlay': {
-            resetSeqState(); resetMainPage();
-            keyboardState.rootPc = 0; keyboardState.octave = [4, 4, 4, 4];
-            keyboardState.mode = 1; keyboardState.layout = 0; keyboardState.scale = 0;  // In Key: 4ths/Inline
-            seqState.bpmX100 = 12000; seqState.swingPct = 50;
-            mainPageState.overlayKnob = 7; mainPageState.overlaySel = 1;
-            lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
-            lastRender();
-            break;
-        }
-        case 'main-ext-sync': {      // following Move: tempo cell shows EXT
-            resetSeqState(); resetMainPage();
-            keyboardState.rootPc = 0; keyboardState.octave = [4, 4, 4, 4];
-            keyboardState.mode = 0; keyboardState.layout = 0; keyboardState.scale = 0;
-            seqState.bpmX100 = 12500; seqState.swingPct = 50;
-            seqState.extSync = true;
-            lastRender = () => renderKnobsView(buildMainPageVM(), false, 0);
-            lastRender();
-            break;
-        }
-        case 'clip-default': {       // 1X / len 16 / transpose 0
-            resetSeqState(); resetClipPage();
-            seqState.clipScaleIdx = 4; seqState.lenSteps = 16; seqState.clipTranspose = 0;
-            lastRender = () => renderKnobsView(buildClipPageVM(), false, 0);
-            lastRender();
-            break;
-        }
         /* The undo toast over the Clip Params page: it is drawn after every view
          * branch, so a page that is not the chain view still shows it. */
         case 'clip-undo-toast': {
@@ -1180,53 +801,7 @@ function applyView(preset) {
             lastRender();
             break;
         }
-        /* QUANT dialled off both ends of its list, with its toast up: proves the
-         * enum index and the '%' display, which a 0% cell cannot. */
-        case 'clip-quant': {
-            resetSeqState(); resetClipPage();
-            seqState.clipScaleIdx = 4; seqState.lenSteps = 16; seqState.clipTranspose = 0;
-            seqState.clipQuant = 70;
-            clipPageState.touchedKnob = 3;
-            lastRender = () => renderKnobsView(buildClipPageVM(), false, 0);
-            lastRender();
-            break;
-        }
-        case 'clip-fraction': {      // stacked 1/4 scale, length 9, transpose -5
-            resetSeqState(); resetClipPage();
-            seqState.clipScaleIdx = 1; seqState.lenSteps = 9; seqState.clipTranspose = -5;
-            clipPageState.touchedKnob = 2;   // transpose toast (+/- ct)
-            lastRender = () => renderKnobsView(buildClipPageVM(), false, 0);
-            lastRender();
-            break;
-        }
-        case 'clip-overlay': {       // SCALE long-enum overlay open
-            resetSeqState(); resetClipPage();
-            seqState.clipScaleIdx = 4; seqState.lenSteps = 16; seqState.clipTranspose = 0;
-            clipPageState.scaleOverlay = true; clipPageState.scaleSel = 6; // 2X
-            lastRender = () => renderKnobsView(buildClipPageVM(), false, 0);
-            lastRender();
-            break;
-        }
-        case 'clip-drum': {          // drum track: transpose unavailable
-            resetSeqState(); resetClipPage();
-            seqState.clipScaleIdx = 4; seqState.lenSteps = 16; seqState.clipTranspose = 0;
-            // Minimal stand-in for a loaded drum module on the active track's
-            // synth slot — trackIsDrum() only asks for the drum config.
-            const savedModels = appState.trackModels, savedSlot = appState.activeTrack.index;
-            appState.trackModels = [[null, { getDrumConfig: () => ({ padCount: 16 }) }]];
-            appState.activeTrack = trackRef(0);
-            clipPageState.touchedKnob = 2;   // 'n/a on drums' toast
-            const vm = buildClipPageVM();
-            appState.trackModels = savedModels; appState.activeTrack = trackRef(savedSlot);
-            lastRender = () => renderKnobsView(vm, false, 0);
-            lastRender();
-            break;
-        }
         case 'lfo_chain':
-        case 'lfo_lfo1':
-        case 'lfo_lfo2':
-        case 'lfo_target_overlay':
-        case 'lfo_viz_unipolar':
         case 'lfo_viz_retrig': {
             env.setParams({
                 'synth:chain_params': JSON.stringify([
@@ -1281,7 +856,6 @@ function applyView(preset) {
         /* `mix_page_two_held` is two knobs held at once: BOTH show their value,
          * and the header follows the one touched last. One readout for two
          * hands reads as a knob that stopped responding. */
-        case 'mix_page':
         case 'mix_page_chain':
         case 'mix_page_two_held': {
             const mtrk = 6;
@@ -1329,17 +903,6 @@ function applyView(preset) {
             lastRender();
             break;
         }
-        case 'lfo_mod_mark':
-        case 'lfo_mod_and_auto': {
-            loadPreset('test8');
-            for (let i = 0; i < 6; i++) chainModels[1].tick();
-            env.setParams({ ...env.params, 'lfo1:target': 'synth', 'lfo1:target_param': chainModels[1].getKnobParamInfo(0).ioKey });
-            chainModels[1].refreshModulation();
-            const auto = preset === 'lfo_mod_and_auto' ? autoView() : undefined;
-            lastRender = () => renderKnobsView(chainModels[1].getViewModel(auto), false, 0);
-            lastRender();
-            break;
-        }
         case 'lfo_assign_toast': {
             loadPreset('test8');
             for (let i = 0; i < 6; i++) chainModels[1].tick();
@@ -1375,9 +938,6 @@ function applyView(preset) {
         case 'page_config_filter':
         case 'page_config_mix':
         case 'page_config_mod': {
-            if (!schwungLibAvailable()) throw new Error(
-                'screenshot: ' + preset + ' needs a bundle built with SCHWUNG=/path/to/schwung');
-            setSchwungGridMode('page');
             /* dropped first so the two scenes cannot share one page: `pages` is
              * a module-level cache and nothing clears it between them, so
              * without this `page_body` would inherit `page_body_p2`'s index if
@@ -1477,7 +1037,6 @@ function applyView(preset) {
             /* The mode is a module-level override: leaving it set would silently
              * repaint every scene after this one, and they would still report
              * green. */
-            setSchwungGridMode(null);
             break;
         }
 
@@ -1517,7 +1076,6 @@ function applyView(preset) {
                 [P + 'lfo2:depth']: '-0.4', [P + 'lfo2:polarity']: '0', [P + 'lfo2:enabled']: '0',
             });
             resetPorts();
-            setSchwungGridMode('page');
             schwungGridReload();
             const ck = P + 'lfo';
             const sp = schwungPageFor(0, ck);
@@ -1533,7 +1091,6 @@ function applyView(preset) {
                 : () => renderKnobsView(lm.getViewModel(), false, 0, () => sp.render('T1 > LFO'),
                                         { index: sp.pageIndex, count: sp.pageCount }, sp.chrome(true));
             lastRender();
-            setSchwungGridMode(null);
             break;
         }
 
@@ -1545,9 +1102,6 @@ function applyView(preset) {
          * track slot and a master slot is the port, which a picture cannot
          * see (that half is app-loop's SP-58 block). */
         case 'page_master_chain': {
-            if (!schwungLibAvailable()) throw new Error(
-                'screenshot: ' + preset + ' needs a bundle built with SCHWUNG=/path/to/schwung');
-            setSchwungGridMode('page');
             schwungGridReload();
             const sp = schwungPageFor(0, 'synth');
             for (let i = 0; i < 12 * 60 && !sp.ready; i++) { sp.tick(); model.tick(); }
@@ -1557,7 +1111,6 @@ function applyView(preset) {
                 MASTER_FX_SLOTS[mfx1].label, MASTER_FX_SLOTS,
                 () => sp.render(''), sp.chrome(false));
             lastRender();
-            setSchwungGridMode(null);
             break;
         }
 
@@ -1567,9 +1120,6 @@ function applyView(preset) {
          * pixels, so this is the only baseline that can show the difference
          * between "wired" and "the flat no-envelope fallback" by eye. */
         case 'page_sample': {
-            if (!schwungLibAvailable()) throw new Error(
-                'screenshot: page_sample needs a bundle built with SCHWUNG=/path/to/schwung');
-            setSchwungGridMode('page');
             schwungGridReload();
             /* Backed BEFORE the contract resolves: `advanceSample` only ever
              * sees the path once `ctl.state.values` has it, which is itself
@@ -1593,7 +1143,6 @@ function applyView(preset) {
                 () => sp.render('T1 > ' + model.getModuleName()),
                 { index: sp.pageIndex, count: sp.pageCount }, sp.chrome(true));
             lastRender();
-            setSchwungGridMode(null);
             break;
         }
 
@@ -1606,11 +1155,8 @@ function applyView(preset) {
          * regression in any of them shows here as a pixel diff, not just in
          * the logic suite's assertions. */
         case 'page_clipparams': {
-            if (!schwungLibAvailable()) throw new Error(
-                'screenshot: ' + preset + ' needs a bundle built with SCHWUNG=/path/to/schwung');
             resetSeqState(); resetClipPage();
             seqState.clipScaleIdx = 4; seqState.lenSteps = 16; seqState.clipTranspose = 0;
-            setSchwungGridMode('page');
             schwungGridReload();
             const owner = pageOwnerForComponent(CLIP_PARAMS_COMPONENT);
             for (let i = 0; i < 12 * 60 && !owner.page; i++) owner.poll();
@@ -1620,17 +1166,13 @@ function applyView(preset) {
             lastRender = () => renderKnobsView(buildClipPageVM(), false, 0,
                 body, schwungBankFor(owner, body), schwungChromeFor(owner, body, false));
             lastRender();
-            setSchwungGridMode(null);
             break;
         }
         case 'page_setparams': {
-            if (!schwungLibAvailable()) throw new Error(
-                'screenshot: ' + preset + ' needs a bundle built with SCHWUNG=/path/to/schwung');
             resetSeqState(); resetMainPage();
             keyboardState.rootPc = 0; keyboardState.octave = [4, 4, 4, 4];
             keyboardState.mode = 0; keyboardState.layout = 0; keyboardState.scale = 0;
             seqState.bpmX100 = 12000; seqState.swingPct = 50;
-            setSchwungGridMode('page');
             schwungGridReload();
             const owner = pageOwnerForComponent(SET_PARAMS_COMPONENT);
             for (let i = 0; i < 12 * 60 && !owner.page; i++) owner.poll();
@@ -1640,7 +1182,6 @@ function applyView(preset) {
             lastRender = () => renderKnobsView(buildMainPageVM(), false, 0,
                 body, schwungBankFor(owner, body), schwungChromeFor(owner, body, false));
             lastRender();
-            setSchwungGridMode(null);
             break;
         }
         /* SP-54: the step page under `page` — same shape as its two siblings
@@ -1651,14 +1192,11 @@ function applyView(preset) {
          * see `app/tick.ts`'s own comment on this), only its ROWS are
          * replaced by Schwung's `body`. */
         case 'page_stepparams': {
-            if (!schwungLibAvailable()) throw new Error(
-                'screenshot: ' + preset + ' needs a bundle built with SCHWUNG=/path/to/schwung');
             resetSeqState(); resetStepPage();
             seqState.holdVel = 100; seqState.holdGate = 96; seqState.holdGateMixed = false;
             seqState.holdProb = 100; seqState.holdCondA = 1; seqState.holdCondB = 1;
             seqState.holdInvert = false;
             setStepPageSelected(true);
-            setSchwungGridMode('page');
             schwungGridReload();
             const owner = pageOwnerForComponent(STEP_PARAMS_COMPONENT);
             for (let i = 0; i < 12 * 60 && !owner.page; i++) owner.poll();
@@ -1674,7 +1212,6 @@ function applyView(preset) {
             lastRender = () => renderKnobsView(buildStepPageVM(heldTrig(), 1), false, 0,
                 body, schwungBankFor(owner, body), schwungChromeFor(owner, body, false));
             lastRender();
-            setSchwungGridMode(null);
             resetStepPage();
             break;
         }
@@ -1748,8 +1285,6 @@ function applyView(preset) {
         case 'page_held_enum':
         case 'page_lane_unheld':
         case 'page_held_unassignable': {
-            if (!schwungLibAvailable()) throw new Error(
-                'screenshot: ' + preset + ' needs a bundle built with SCHWUNG=/path/to/schwung');
             const modded = preset === 'page_mod_cell' || preset === 'page_mod_cell_held';
             /* `modulatedKeysOf` resolves the model through `appState.trackModels`
              * — the registry `app/init.ts` fills and the one production runs on
@@ -1759,7 +1294,6 @@ function applyView(preset) {
             const savedModels = appState.trackModels;
             appState.trackModels = [chainModels];
             try {
-                setSchwungGridMode('page');
                 /* Dropped first: `pages` is a module-level cache and nothing
                  * clears it between scenes, so a scene would otherwise inherit
                  * the previous one's index. */
@@ -1868,7 +1402,6 @@ function applyView(preset) {
                 /* Both are module-level state, and leaving either set silently
                  * repaints every scene after this one — which would still report
                  * green. */
-                setSchwungGridMode(null);
                 seqState.stepAutoMode = false;
                 appState.trackModels = savedModels;
             }
@@ -1888,12 +1421,9 @@ function applyView(preset) {
          * beside it. */
         case 'page_lane_mark':
         case 'page_lane_mark_held': {
-            if (!schwungLibAvailable()) throw new Error(
-                'screenshot: ' + preset + ' needs a bundle built with SCHWUNG=/path/to/schwung');
             const savedModels = appState.trackModels;
             appState.trackModels = [chainModels];
             try {
-                setSchwungGridMode('page');
                 schwungGridReload();
                 resetAutomation();
                 /* Through the owner, which is where `automationFor` is wired —
@@ -1924,7 +1454,6 @@ function applyView(preset) {
                     { index: sp.pageIndex, count: sp.pageCount });
                 lastRender();
             } finally {
-                setSchwungGridMode(null);
                 seqState.autoActive = 0;
                 resetAutomation();
                 appState.trackModels = savedModels;
@@ -1941,12 +1470,9 @@ function applyView(preset) {
          * automation view `app/tick.ts` builds. Bound to the template again,
          * the scene throws; decorated by template, the cell loses its lock. */
         case 'page_held_drum': {
-            if (!schwungLibAvailable()) throw new Error(
-                'screenshot: ' + preset + ' needs a bundle built with SCHWUNG=/path/to/schwung');
             const savedModels = appState.trackModels;
             appState.trackModels = [chainModels];
             try {
-                setSchwungGridMode('page');
                 schwungGridReload();
                 resetAutomation();
                 for (let i = 0; i < 20; i++) model.tick();
@@ -1976,7 +1502,6 @@ function applyView(preset) {
                 };
                 lastRender();
             } finally {
-                setSchwungGridMode(null);
                 seqState.autoActive = 0;
                 seqState.stepAutoMode = false;
                 seqState.heldLocks = new Map();
@@ -2000,12 +1525,9 @@ function applyView(preset) {
         case 'page_chrome_held':
         case 'page_chrome_flip':
         case 'page_chrome_file': {
-            if (!schwungLibAvailable()) throw new Error(
-                'screenshot: ' + preset + ' needs a bundle built with SCHWUNG=/path/to/schwung');
             const savedModels = appState.trackModels;
             appState.trackModels = [chainModels];
             try {
-                setSchwungGridMode('page');
                 schwungGridReload();
                 const sp = schwungPageFor(0, 'synth');
                 for (let i = 0; i < 12 * 60 && !sp.ready; i++) { sp.tick(); model.tick(); }
@@ -2033,7 +1555,6 @@ function applyView(preset) {
                     { index: sp.pageIndex, count: sp.pageCount }, sp.chrome(true));
                 lastRender();
             } finally {
-                setSchwungGridMode(null);
                 appState.trackModels = savedModels;
             }
             break;
@@ -2073,15 +1594,6 @@ let pass = 0, fail = 0, skipped = 0;
 for (const preset of PRESETS) {
     process.stdout.write(`  ${preset} ... `);
 
-    /* A `page` scene cannot run without the library, and the difference between
-     * "skipped" and "passed" is the whole point of this file: a baseline written
-     * from a build that could not render the body would be a lie that stays
-     * green forever. Skipped loudly, and never baselined. */
-    if (PAGE_SCENES.has(preset) && !schwungLibAvailable()) {
-        console.log('SKIPPED (no param_pages; set SCHWUNG=/path/to/schwung)');
-        skipped++;
-        continue;
-    }
 
     clear_screen();
     nowOverride = null;            // every scene starts on the real clock

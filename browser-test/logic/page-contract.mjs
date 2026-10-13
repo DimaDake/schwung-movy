@@ -18,22 +18,16 @@
  */
 
 import {
-    env, setSchwungGridMode, schwungGridReload, schwungPageFor,
-    schwungLibAvailable, MOCK_SYNTHS, countTrips, ok, eq, _log,
+    env, schwungGridReload, schwungPageFor,
+    MOCK_SYNTHS, countTrips, ok, eq, _log,
     perfPhase, perfPhaseEnd, perfProbeTick,
 } from './harness.mjs';
 import { RELOAD_POLL_TICKS } from '../../dist/esm/renderer/schwung-page.js';
 
 export async function run() {
 
-if (!schwungLibAvailable()) {
-    _log('\nlogic: the page contract lifecycle — SKIPPED (no param_pages; set SCHWUNG=)');
-    return;
-}
-
 _log('\nlogic: the page contract lifecycle');
 
-setSchwungGridMode('page');
 
 /* A page for track 0's synth over a store holding `preset`. The registry is
  * dropped first because each case needs its OWN contract: `attempts` and the
@@ -204,7 +198,6 @@ const PROBE_WINDOW = 120;
 }
 
 schwungGridReload();
-setSchwungGridMode(null);
 env.setParams(MOCK_SYNTHS.test16);
 
 }

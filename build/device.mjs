@@ -28,52 +28,7 @@ const SCHWUNG_BANNER = [
  * would otherwise ship the page. */
 const DEBUG = process.env.MOVY_DEBUG !== '0';
 
-/* The Schwung renderer is now a SETTING, so an ordinary build carries both
- * renderers and `schwunggrid` chooses. This switch is the other axis: whether
- * the layer is in the bundle at all. Default in; MOVY_NO_SCHWUNG_GRID=1 takes
- * it out, which is what keeps `scripts/schwung-off-is-free.mjs` meaningful and
- * leaves a way to ship a build with no Schwung dependency whatsoever. */
-const NO_GRID = process.env.MOVY_NO_SCHWUNG_GRID === '1';
-
-/*
- * THE OFF SWITCH HAS TO BE FREE.
- *
- * `__MOVY_SCHWUNG_GRID__` makes the grid's CODE unreachable in an ordinary
- * build, but unreachable is not absent: esbuild keeps an EXTERNAL import
- * whatever the importing code does, so schwung-page.ts's
- *
- *     import { renderPageMovy, BAND_H } from ".../param_pages/render_page_movy.mjs"
- *
- * survived into a flag-off ui.js. That is dead widget code and, far worse, a
- * load-time dependency on a Schwung new enough to serve the file — on an
- * older one an ORDINARY movy fails to start.
- *
- * A define cannot fix it; the modules have to leave the graph. These five are
- * the only importers of param_pages, so swapping them for their `.off`
- * stand-ins takes the whole Schwung layer with them. scripts/schwung-off-is-free.mjs
- * asserts both halves — absent when off, present when on, and it is what caught
- * schwung-editor.ts pulling the library back in when it was added.
- */
-const gridOffStubs = {
-    name: 'schwung-grid-off',
-    setup(build) {
-        if (!NO_GRID) return;
-        build.onResolve({ filter: /\/schwung-(page|editor|widgets|voices|lib)\.js$/ }, (a) => {
-            /* `lib` is the one that matters: it is the only module that names
-             * param_pages now, so leaving it out of this list left the whole
-             * layer in a build that had asked for none of it. The other four
-             * still swap so their code goes too. */
-            const which = a.path.includes('schwung-editor') ? 'editor'
-                        : a.path.includes('schwung-widgets') ? 'widgets'
-                        : a.path.includes('schwung-voices') ? 'voices'
-                        : a.path.includes('schwung-lib') ? 'lib' : 'page';
-            return { path: resolve(root, `src/renderer/schwung-${which}.off.ts`) };
-        });
-    },
-};
-
 await esbuild.build({
-    plugins:     [gridOffStubs],
     entryPoints: [resolve(root, 'src/app/globals.ts')],
     bundle:      true,
     outfile:     resolve(root, 'ui.js'),
@@ -91,4 +46,4 @@ await esbuild.build({
     supported:   { 'top-level-await': true },
     logLevel:    'info',
 });
-console.log(`Device bundle written: ui.js (debug=${DEBUG}, schwung-grid=${NO_GRID ? 'absent' : 'available'})`);
+console.log(`Device bundle written: ui.js (debug=${DEBUG})`);

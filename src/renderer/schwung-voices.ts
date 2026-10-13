@@ -127,8 +127,7 @@ function inferRack(lib: any, h: any): any {
 /** Schwung's per-voice key map (`lane_voice_map.mjs`, plan D16) for the rack
  *  as `declaredRack` reads it, so a D9 rack maps its keys too. "" for none. */
 export function rackVoiceMap(hierarchy: any): string {
-    const fn = schwungLaneVoiceMap();
-    return fn && hierarchy ? fn(declaredRack(hierarchy)) || '' : '';
+    return hierarchy ? schwungLaneVoiceMap()(declaredRack(hierarchy)) || '' : '';
 }
 
 /** Read a module's declared performance surface. Never throws: a malformed

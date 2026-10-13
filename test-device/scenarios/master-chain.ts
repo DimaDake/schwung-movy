@@ -13,11 +13,9 @@
  * that would have to re-encode both renderers to be told apart.
  *
  * Covers:
- *   M1  the page arm is on
- *   M2  Session latched onto the master chain grid, SEND 1 focused
- *   M3  the grid draws the send's body through Schwung
- *   M4  movy never drew its own body over a live Schwung page
- *   M5  the master LFO slot draws Schwung's own LFO page (SP-60)
+ *   M1  Session latched onto the master chain grid, SEND 1 focused
+ *   M2  the grid draws the send's body through Schwung
+ *   M3  the master LFO slot draws Schwung's own LFO page (SP-60)
  */
 import { scenario } from '../runner.js';
 import { Device } from '../device.js';
@@ -27,7 +25,6 @@ import { until } from '../wait.js';
 
 /* test-device/dist/scenarios/master-chain.js at run time. */
 
-const PAGE_MODE = 'page';
 /* Note/Session. A tap latches Session from Track view and a second tap leaves. */
 const SESSION_CC = 50;
 /* The same module sends.ts loads: cheap, always installed. SEND 1 is master
@@ -39,9 +36,8 @@ const MAX_JOG = 10;
  * (src/chain/config.ts MASTER_LFO_INDEX). */
 const LFO_SLOT = 7;
 
-type PageAnswer = { module?: string; renderer?: string; body?: string; trips?: number;
-                    last?: string; session?: boolean; masterDetail?: boolean;
-                    masterSlot?: number };
+type PageAnswer = { module?: string; body?: string; session?: boolean;
+                    masterDetail?: boolean; masterSlot?: number };
 
 scenario('master-chain', async (t) => {
     fixture.setHost(t.host);
@@ -68,11 +64,6 @@ scenario('master-chain', async (t) => {
     await dev.open(probe);
     await dev.selectTrack(0);
 
-    const armed = await probe.setGridMode(PAGE_MODE) as { renderer?: string } | null;
-    t.check('arm-page', 'the renderer reports the page arm',
-        armed?.renderer === PAGE_MODE,
-        { expected: `renderer=${PAGE_MODE}`, actual: `renderer=${armed?.renderer ?? '(none)'}` });
-
     await ep(`snd${SEND_SLOT}:module`, SEND_FX);
 
     /* Latch Session only if it is not already up — a tap toggles. */
@@ -92,20 +83,16 @@ scenario('master-chain', async (t) => {
      * send's own frame being the one on screen, not on a frame count. */
     const got = await pageUntil('the send slot drawn through Schwung',
         (a) => (a.module ?? '').toLowerCase().includes(SEND_FX) && a.body === 'schwung', 3000);
-    t.note('grid', `module=${got.module} body=${got.body} trips=${got.trips} last=${got.last}`);
+    t.note('grid', `module=${got.module} body=${got.body}`);
     t.check('grid-schwung-body', 'the master grid draws the send\'s body through Schwung',
         (got.module ?? '').toLowerCase().includes(SEND_FX) && got.body === 'schwung',
         { expected: `module~${SEND_FX} body=schwung`,
           actual: `module=${got.module ?? '(none)'} body=${got.body ?? '(none)'}` });
-    t.check('no-movy-body', 'movy never drew its own body over a live Schwung page',
-        got.trips === 0,
-        { expected: 'trips=0', actual: `trips=${got.trips} last=${got.last ?? ''}` });
 
     /* SP-60: the master LFO slot draws SCHWUNG'S LFO page. It is built from
      * Schwung's own `lfoLevels`, imported by movy at load — from
-     * shared/param_pages/lfo_page.mjs once schwung serves it, else the
-     * shadow/ copy — so movy's own body here means the import failed ON THE
-     * DEVICE, which no local suite can see. */
+     * shared/param_pages/lfo_page.mjs (the pinned tag's copy) — so no body here means the import failed ON THE DEVICE,
+     * which no local suite can see. */
     for (let i = 0; i < MAX_JOG && p.session && p.masterSlot !== LFO_SLOT; i++) {
         await dev.tap.jogTurn(1);
         p = await pageUntil('the jog moved toward the LFO slot',
@@ -113,16 +100,15 @@ scenario('master-chain', async (t) => {
     }
     const lfo = await pageUntil('the master LFO slot drawn through Schwung',
         (a) => a.masterSlot === LFO_SLOT && a.body === 'schwung', 3000);
-    t.note('lfo', `slot=${lfo.masterSlot} module=${lfo.module} body=${lfo.body} trips=${lfo.trips}`);
+    t.note('lfo', `slot=${lfo.masterSlot} module=${lfo.module} body=${lfo.body}`);
     t.check('lfo-schwung-body', 'the master LFO slot draws Schwung\'s own LFO page',
         lfo.masterSlot === LFO_SLOT && lfo.body === 'schwung',
         { expected: `masterSlot=${LFO_SLOT} body=schwung`,
           actual: `masterSlot=${lfo.masterSlot} body=${lfo.body ?? '(none)'}` });
 
-    /* Leave Session, empty the bus, drop the override — the next suite starts
-     * where the fixture expects. */
+    /* Leave Session and empty the bus — the next suite starts where the
+     * fixture expects. */
     if ((await page()).session) await dev.tap.cc(SESSION_CC);
     await pageUntil('Session left', (a) => a.session === false, 700);
     await ep(`snd${SEND_SLOT}:module`, '');
-    await probe.setGridMode(null);
 });

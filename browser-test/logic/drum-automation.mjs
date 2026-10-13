@@ -30,8 +30,8 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { schwungLibAvailable, bootModel, settleModel, ok, fail, _log, env, MOCK_SYNTHS, appState,
-         setSchwungGridMode, schwungGridReload, schwungPageFor, resetSeqEngine } from './harness.mjs';
+import { bootModel, settleModel, ok, fail, _log, env, MOCK_SYNTHS, appState,
+         schwungGridReload, schwungPageFor, resetSeqEngine } from './harness.mjs';
 import { dumpEntry, dumpFixture } from '../dump-fixture.mjs';
 import { pinnedSchwungRoot } from '../../scripts/lib/schwung-pinned.mjs';
 
@@ -66,11 +66,6 @@ export function verdicts(r) {
 }
 
 export async function run() {
-
-if (!schwungLibAvailable()) {
-    _log('\nlogic: drum automation matrix — SKIPPED (no param_pages; set SCHWUNG=)');
-    return;
-}
 
 const { resetAutomation, assignLane } = await import('../../dist/esm/seq/automation.js');
 const { seqState } = await import('../../dist/esm/seq/state.js');
@@ -128,7 +123,6 @@ for (const id of DRUM_MODULES) {
     const e = dumpEntry(id);
     const restoreFs = serveModuleFiles(e);
     resetAutomation(); resetSeqEngine();
-    setSchwungGridMode('page');
     schwungGridReload();
     const fixture = dumpFixture(id);
     const model = settleModel(bootModel(fixture));
@@ -213,7 +207,6 @@ resetAutomation(); resetSeqEngine();
 seqState.heldLocks = new Map(); seqState.stepAutoMode = false;
 seqState.autoActive = 0; seqState.autoAssigned = 0;
 schwungGridReload();
-setSchwungGridMode(null);
 env.setParams(MOCK_SYNTHS.test16);
 
 _log('\nlogic: drum automation matrix (SCHWUNG grid mode)');

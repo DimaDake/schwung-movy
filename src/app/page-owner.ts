@@ -1,64 +1,33 @@
 /* page-owner.ts — WHO OWNS THE PAGE UNDER THE 8 KNOBS.
  *
- * movy had no concept of a delegated component. Every seam point re-derived the
- * answer for itself:
+ * Every seam point (`midi/router.ts`, `app/tick.ts`) asks this one question
+ * instead of re-deriving it. Seven sites used to, with four different
+ * component-key fallbacks, and applying a rule to SOME of them is how a
+ * clip-deleting data loss arrived: a gesture asked one planner which parameter
+ * was under the finger and the release asked another. The direct accessors are
+ * gone — `browser-test/logic/page-owner.mjs` greps for them.
  *
- *     const m  = knobModel();
- *     const sp = m ? schwungActiveFor(appState.activeTrack.index,
- *                     m.getComponentKey ? m.getComponentKey() : 'synth') : null;
+ * THE OWNER IS ALWAYS SCHWUNG'S PAGE (movy's own pages were retired
+ * 2026-10-13, tag `movy-pages-final`). A page is built while its module is
+ * still loading, so there is a window where its contract has not resolved:
+ * through it `page` is null — nothing is drawn, no gesture is taken — and the
+ * page must go on being polled or its first empty answer stands for the whole
+ * session.
  *
- * — seven times across `midi/router.ts` and `app/tick.ts`, with four different
- * component-key fallbacks between them. Applying a rule to SOME of the sites is
- * how the migration's eight symptoms arrived, one of them a clip-deleting data
- * loss: a gesture asked Schwung which parameter was under the finger and the
- * release asked movy, so a lane was created against one key and cleared against
- * another.
- *
- * The point of this file is not tidiness. It is that "did you cover every site?"
- * stops being a review question and becomes a structural one, because the direct
- * accessors are gone — `browser-test/logic/page-owner.mjs` greps for them.
- *
- * CLAIMED IS NOT DELEGATED. A page is built while its module is still loading,
- * so there is a window where Schwung is the intended owner and its contract has
- * not resolved. Through that window every gesture is still movy's, which is what
- * the old `p.ready ? p : null` said at each call site — and the page must go on
- * being ticked or its first empty answer stands for the whole session.
- *
- * A HELD STEP WAS THE SECOND SUCH WINDOW — SP-35 TOOK IT OUT, AND THE REASON IS
- * THE COST OF PUTTING IT THERE. SP-18 handed the held-step SCREEN back to movy for
- * the reason above: Schwung has no held-step filter, so its page offers eight knobs
- * while only some will take a lock, and only movy's body drawer knows which
- * (`hiddenDuringHold` in `renderer/label.ts`). But moving the SCREEN does not move
- * the gesture sites, which read ownership — and the p-lock DECORATION the whole of
- * SP-18 was built for is gated on `auto.held`, which IS `seqState.stepAutoMode`,
- * the same flag that made `page` null here. The pass could therefore not run in
- * production at all: `ctl.setDecorations` measured ZERO calls across a whole hold.
- * And the turn that has to make the lock bound the lane to MOVY's key while the
- * page drew another (`alabel 0 0 synth:p1` where the page had `p9` — measured).
- *
- * THE HOLD NEEDED ONE ANSWER, NOT A DIFFERENT OWNER. The offer that cannot be
- * taken is answered where the gesture is, from movy's own chrome
- * (`seq/automation.ts`: a held step consumes the turn and says why), so nothing
- * has to move the page for it. The proactive half of the filter — the dimmed cell —
- * is NOT carried over; `docs/schwung-page-migration.md` records it as SU-8's
- * territory, because `decorations` carries `locked` (a lane HOLDS this param) and
- * marking a cell nobody locked is the lie SP-16 removed.
- *
- * The page is still POLLED — `poll()` is outside the gate, exactly as it is for
- * the pre-ready window — so the contract keeps settling under the finger.
+ * A HELD STEP IS NOT A SECOND WINDOW (SP-35). Schwung has no held-step filter,
+ * so its page offers eight knobs while only some will take a lock; the offer
+ * that cannot be taken is answered at the gesture (`seq/automation.ts`
+ * consumes the turn and says why). The dimmed cell is SU-8's territory
+ * (`docs/schwung-page-migration.md`).
  *
  * Lives in `app/` because page identity is `appState.activeTrack` and the page
  * cache is `renderer/schwung-grid`: `model/` may not import `renderer/`, and
- * `renderer/` must not grow app state (R12). `app/` already sees both.
- *
- * `page-owner-virtual.ts` is this file's sibling for a page with no MODEL
- * object at all (SP-53) — split out to keep this file under the 200-line cap,
- * not because the question is a different one; it imports `delegateOwner` and
- * `MASTER_PAGE_TRACK` from here rather than restating either.
+ * `renderer/` must not grow app state (R12). `page-owner-virtual.ts` is the
+ * sibling for a page with no MODEL object at all (SP-53).
  */
 
 import { appState } from './state.js';
-import { schwungGridMode, schwungPageFor } from '../renderer/schwung-grid.js';
+import { schwungPageFor } from '../renderer/schwung-grid.js';
 import { modulatedKeysOf } from './modulated-keys.js';
 import { automationFor } from './automated-keys.js';
 import type { SchwungPage } from '../renderer/schwung-page.js';
@@ -84,24 +53,18 @@ export interface PageRef {
 
 export interface PageOwner {
     readonly ref: PageRef | null;
-    /** Schwung is the intended owner — the mode says so and a module declares it. */
-    readonly claimed: boolean;
-    /** ...and its contract resolved, so Schwung owns the page NOW. */
-    readonly delegated: boolean;
-    /** The delegated page, or null while movy still owns it. */
+    /** The page, once its contract resolved; null while it is still loading
+     *  (or there is no component at all). Null means: draw nothing, take no
+     *  gesture. */
     readonly page: SchwungPage | null;
-    /** The page on screen, from whoever owns it: Schwung's index or movy's bank. */
     readonly pageIndex: number;
     readonly pageCount: number;
     /** One line for the device log — the only place the reason is composed. */
     readonly reason: string;
-    /** Let a claimed page advance its own contract and read cursor. */
+    /** Let the page advance its own contract and read cursor. */
     poll(): void;
     /** What movy's automation layer needs about the parameter at this knob. */
     knobParamInfo(slot: number): any | null;
-    /** Page the owner's OWN page set. The two sets have different lengths, so
-     *  moving movy's index while Schwung draws lands on a page that does not
-     *  exist. */
     changePage(delta: number): void;
     /** Land on page `index` — `changePage(i - at)` jogs one step even at 0 (SP-60). */
     goToPage(index: number): void;
@@ -111,9 +74,7 @@ export interface PageOwner {
  * The component whose pages a model draws, or null when there is none.
  *
  * `getComponentKey` is guarded because `activeModel()` is undefined for an empty
- * chain slot — and a model that cannot name its component has no page identity,
- * so the answer is movy's. The old sites invented a key instead ('synth'), which
- * could hand the jog to a Schwung page belonging to a module that is not there.
+ * chain slot — and a model that cannot name its component has no page.
  */
 export function pageRefOf(model: any): PageRef | null {
     if (!model || typeof model.getComponentKey !== 'function') return null;
@@ -124,77 +85,44 @@ export function pageRefOf(model: any): PageRef | null {
     return { track, componentKey };
 }
 
-/* movy plans, pages and answers. */
-function movyOwner(ref: PageRef | null, model: any, reason: string): PageOwner {
-    return {
-        ref,
-        claimed: false,
-        delegated: false,
-        page: null,
-        reason,
-        get pageIndex() { return model?.getKnobPage?.() ?? 0; },
-        get pageCount() { return model?.getBankCount?.() ?? 1; },
-        poll() { /* movy's own polling is model.tick(), driven by app/tick.ts */ },
-        knobParamInfo(slot: number) { return model?.getKnobParamInfo?.(slot) ?? null; },
-        changePage(delta: number) { model?.changePage?.(delta); },
-        goToPage(index: number) { const d = index - (model?.getKnobPage?.() ?? 0); if (d) model?.changePage?.(d); },
-    };
-}
+const NO_PAGE: PageOwner = {
+    ref: null, page: null, pageIndex: 0, pageCount: 0, reason: 'no-model',
+    poll() {}, knobParamInfo: () => null, changePage() {}, goToPage() {},
+};
 
-/* Schwung has claimed the component. It answers once its contract resolves, and
- * until then every question falls through to the movy owner underneath — the
- * same object, so the pre-ready window cannot drift from the movy-owned case. */
-export function delegateOwner(ref: PageRef, page: SchwungPage, fallback: PageOwner): PageOwner {
-    /* THE ONE GATE. A claimed page is not the live one in exactly one window —
-     * the contract has not resolved — and every question answers here, so no
-     * caller can be given one answer and not the other. The hold is deliberately
-     * NOT a second term: it was one (SP-33), and SP-18's decoration pass is the
+export function ownerOf(ref: PageRef, page: SchwungPage): PageOwner {
+    /* THE ONE GATE. A page is not live in exactly one window — its contract has
+     * not resolved — and every question answers here, so no caller can be
+     * given one answer and not the other. Until then there is nothing on
+     * screen and nothing under the finger. The hold is deliberately NOT a
+     * second term: it was one (SP-33), and SP-18's decoration pass is the
      * price it charged (see the header). */
     const live = () => page.ready;
     return {
         ref,
-        claimed: true,
-        get delegated() { return live(); },
         get page() { return live() ? page : null; },
         get reason() {
-            if (live()) {
-                return `ok track=${ref.track} ck=${ref.componentKey} `
-                     + `pages=${page.pageCount} at=${page.pageIndex}`;
-            }
-            return `not-ready track=${ref.track} ck=${ref.componentKey} `
-                 + `pages=${page.pageCount}`;
+            return (live() ? 'ok' : 'not-ready') + ` track=${ref.track} ck=${ref.componentKey} `
+                 + `pages=${page.pageCount}` + (live() ? ` at=${page.pageIndex}` : '');
         },
-        get pageIndex() { return live() ? page.pageIndex : fallback.pageIndex; },
-        get pageCount() { return live() ? page.pageCount : fallback.pageCount; },
+        get pageIndex() { return live() ? page.pageIndex : 0; },
+        get pageCount() { return live() ? page.pageCount : 0; },
         /* OUTSIDE THE GATE at every caller, so a page that is not live keeps
          * asking: the first load sees no hierarchy and without this its empty
-         * answer stood for the whole session, and a contract that stopped
-         * settling under a held finger would be stale when the step is let go. */
+         * answer stood for the whole session. */
         poll() { page.tick(); },
-        knobParamInfo(slot: number) {
-            return live() ? (page.knobParamInfo(slot) ?? null)
-                          : fallback.knobParamInfo(slot);
-        },
-        changePage(delta: number) {
-            if (live()) page.changePage(delta); else fallback.changePage(delta);
-        },
-        goToPage(index: number) { if (live()) page.goToPage(index); else fallback.goToPage(index); },
+        knobParamInfo(slot: number) { return live() ? (page.knobParamInfo(slot) ?? null) : null; },
+        changePage(delta: number) { if (live()) page.changePage(delta); },
+        goToPage(index: number) { if (live()) page.goToPage(index); },
     };
 }
 
 /**
  * The owner of the pages `model` draws — the one question every seam point asks.
- *
- * Cheap enough for the render path: the mode is a map read and the page is a
- * Map lookup, which is exactly what each of the old call sites already paid.
+ * Cheap enough for the render path: a Map lookup.
  */
 export function pageOwnerOf(model: any): PageOwner {
     const ref = pageRefOf(model);
-    if (!ref) return movyOwner(null, model, 'no-model');
-
-    const mode = schwungGridMode();
-    if (mode !== 'page') return movyOwner(ref, model, 'mode=' + mode);
-    return delegateOwner(ref, schwungPageFor(ref.track, ref.componentKey, modulatedKeysOf,
-                                             automationFor),
-                         movyOwner(ref, model, ''));
+    if (!ref) return NO_PAGE;
+    return ownerOf(ref, schwungPageFor(ref.track, ref.componentKey, modulatedKeysOf, automationFor));
 }

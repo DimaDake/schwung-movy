@@ -1,4 +1,4 @@
-/* grid-tick-cpu.mjs — how much CPU a delegated page's tick costs, per arm,
+/* grid-tick-cpu.mjs — how much CPU a Schwung page's tick costs,
  * and WHICH FUNCTION SPENDS IT.
  *
  * WHY A SECOND INSTRUMENT RATHER THAN A COLUMN ON grid-call-cost.mjs. That one
@@ -21,9 +21,8 @@
  * two arms is the finding, and the profile attributing it is the point.
  *
  *   SCHWUNG=../schwung node build/browser.mjs
- *   node scripts/grid-tick-cpu.mjs page minijv --prof
- *   node scripts/grid-tick-cpu.mjs off  minijv
- *   node scripts/grid-tick-cpu.mjs page plaits           # the small case, for the ratio
+ *   node scripts/grid-tick-cpu.mjs minijv --prof
+ *   node scripts/grid-tick-cpu.mjs plaits           # the small case, for the ratio
  *
  * The module argument is a device-dump id (browser-test/dump-fixture.mjs), so
  * `minijv` here is minijv's own 433 params and 57 levels, not a mock shaped
@@ -33,14 +32,9 @@ import { installEnv } from '../browser-test/env.mjs';
 import { installMockEngine } from '../browser-test/mock-engine.mjs';
 import { dumpFixture, dumpShape } from '../browser-test/dump-fixture.mjs';
 
-const ARM = process.argv[2];
-const MODULE = process.argv[3] ?? 'minijv';
+const MODULE = process.argv.slice(2).find((a) => !a.startsWith('--')) ?? 'minijv';
 const PROF = process.argv.includes('--prof');
 const TICKS = Number(process.env.CPU_TICKS ?? 4000);
-if (ARM !== 'off' && ARM !== 'page') {
-    console.error('usage: grid-tick-cpu.mjs off|page [moduleId] [--prof]');
-    process.exit(2);
-}
 
 const env = installEnv();
 const engine = installMockEngine();
@@ -67,10 +61,6 @@ JSON.parse = function (text, ...rest) {
     }
     return realParse.call(this, text, ...rest);
 };
-
-const { setSchwungGridMode, schwungGridMode } =
-    await import('../dist/esm/renderer/schwung-grid.js');
-setSchwungGridMode(ARM);
 
 await import('../dist/esm/app/globals.js');
 const { appState, VIEW_KNOBS } = await import('../dist/esm/app/state.js');
@@ -141,7 +131,7 @@ const q = (p) => sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length
 const mean = times.reduce((a, b) => a + b, 0) / times.length;
 const shape = dumpShape(MODULE);
 
-console.log(`arm=${ARM} mode=${schwungGridMode()} module=${shape.id} ` +
+console.log(`module=${shape.id} ` +
             `params=${shape.params} levels=${shape.levels} ticks=${TICKS}`);
 console.log(`tick_ms mean=${mean.toFixed(4)} p50=${q(0.5).toFixed(4)} ` +
             `p90=${q(0.9).toFixed(4)} p99=${q(0.99).toFixed(4)} max=${q(1).toFixed(4)}`);
@@ -149,7 +139,7 @@ console.log(`contract_parses=${contractParses} over ${TICKS} steady-state ticks`
 /* The ONE line a suite reads, in grid-cost.mjs's convention and for its stated
  * reason: the human rows above are the part a later reader rewords, and a
  * parser pointed at those breaks on a column change. */
-console.log(`grid-tick-cpu: arm=${ARM} mode=${schwungGridMode()} module=${shape.id} ` +
+console.log(`grid-tick-cpu: module=${shape.id} ` +
             `params=${shape.params} levels=${shape.levels} parses=${contractParses} ` +
             `ticks=${TICKS} meanus=${Math.round(mean * 1000)} p99us=${Math.round(q(0.99) * 1000)}`);
 

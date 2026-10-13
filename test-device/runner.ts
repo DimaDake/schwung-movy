@@ -37,12 +37,6 @@ export function scenario(name: string, fn: (t: Ctx) => Promise<void>, opts: Scen
     registry.push({ name, fn, ...opts });
 }
 
-/* One scenario body run once per value — how a scenario covers both
- * schwunggrid renderers without being written twice. */
-export function scenarioEach<T>(values: T[], name: string,
-                                fn: (t: Ctx, v: T) => Promise<void>): void {
-    for (const v of values) registry.push({ name: `${name}[${String(v)}]`, fn: (t) => fn(t, v) });
-}
 
 export function _resetForTest(): void { registry = []; }
 

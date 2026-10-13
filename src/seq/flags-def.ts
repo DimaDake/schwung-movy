@@ -67,42 +67,6 @@ export const FLAGS_REV = 6;
  * top-down the same way. */
 export const FLAGS: FlagDef[] = [
     {
-        key: 'schwunggrid', name: 'Param Pages',
-        hint: 'Who draws module knobs. SCHWUNG re-paginates.',
-        // WHICH RENDERER DRAWS A MODULE'S PARAMETER PAGE.
-        //
-        //   MOVY     movy plans the pages and draws them (what always shipped)
-        //   SCHWUNG  Schwung plans AND draws; movy targets the parameters
-        //
-        // Used to be three values: DRAW (movy plans, Schwung only draws the
-        // widgets — a restyle) sat between these two, and it is gone (SP-40)
-        // — it never earned a release opinion of its own, and carrying a
-        // third mode that only ever differed from SCHWUNG by which side drew
-        // the pixels was cost with no decision riding on it. What is left is
-        // one real decision: re-paginate or don't. The sequencer targets
-        // parameters, never page/slot, so lanes follow either way — but what
-        // is on which page visibly moves under SCHWUNG.
-        //
-        // uiOnly with NOTHING FOLDED, which is the rare honest case for that
-        // field: the engine has no parameter-page concept at all, so unlike
-        // `chtrackset` there is no second key carrying its effect.
-        // Pushing it under its own name would cost a blocking round trip on the
-        // audio thread to be told the key does not exist.
-        //
-        // `release`: a user-facing choice, not a measurement instrument, so a
-        // shipped build lists it — and MOVY stays selectable for anyone who
-        // hits a gap on the Schwung side.
-        //
-        // Default SCHWUNG since FLAGS_REV 6 (2026-10-08). revisedAt 6 is what
-        // makes that arrive: the rev-5 adoption (SP-40's renumbering) wrote a
-        // stored 0 to every device that booted it, and a stored value beats a
-        // changed default forever. Any value stored before rev 6 — including
-        // the pre-SP-40 three-value numbering — is superseded by the new
-        // default once, so no remap is needed any more.
-        min: 0, max: 1, def: 1, labels: ['MOVY', 'SCHWUNG'], uiOnly: true,
-        release: true, revisedAt: 6,
-    },
-    {
         key: 'engpersist', name: 'Engine Saves',
         hint: 'The engine owns the set file. OFF is the old path.',
         // WHO WRITES THE SET FILES.

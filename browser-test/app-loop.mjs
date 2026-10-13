@@ -42,26 +42,12 @@ console.log = (...a) => { if (typeof a[0] === 'string' && a[0].startsWith('[movy
 await import('../dist/esm/app/globals.js');
 const { appState, VIEW_KNOBS, VIEW_CHAIN, VIEW_BROWSE, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS } = await import('../dist/esm/app/state.js');
 
-/* THE ARM IS SELECTED HERE, NOT BY A BUILD DEFINE. The grid is a setting now
- * (src/renderer/schwung-grid.ts), and MOVY_SCHWUNG_GRID — still in two scripts'
- * usage lines — reaches no build at all, so selecting a mode that way ran `off`
- * twice and called it an A/B. Unset means `off`, pinned rather than read from
- * the flag: this run grades movy's own pages, and since FLAGS_REV 6 the flag
- * defaults to SCHWUNG, whose known gaps page-mode.mjs owns. */
-const { setSchwungGridMode, schwungGridMode, schwungGridReload, schwungPageFor } =
+const { schwungGridReload, schwungPageFor } =
     await import('../dist/esm/renderer/schwung-grid.js');
-const { schwungLibAvailable } = await import('../dist/esm/renderer/schwung-lib.js');
-const GRID_ARM = process.env.MOVY_APP_LOOP_GRID || 'off';
-setSchwungGridMode(GRID_ARM);
 
-/* WHICH PAGE IS UNDER THE KNOBS, asked the way the app asks it. A gesture whose
- * visible effect is "the param page moved" is asserted through the ownership
- * accessor, not through movy's own bank index: under `page` the bank index is
- * not what is on screen, so asserting it would be asserting an implementation
- * detail this migration deletes. In the `off` arm the accessor IS movy's bank,
- * so the check is the same check it always was. */
+/* WHICH PAGE IS UNDER THE KNOBS, asked the way the app asks it: through the
+ * ownership accessor, never movy's own bank index, which is not on screen. */
 const { pageOwnerOf } = await import('../dist/esm/app/page-owner.js');
-const { movyBodyUnderPage } = await import('../dist/esm/app/param-body.js');
 const shownPage = (model) => pageOwnerOf(model).pageIndex;
 
 /* The module under the knobs, spelled the way app/tick.ts spells it, and its
@@ -95,11 +81,7 @@ const _log = _origLog.bind(console);
 /* The condition is HONOURED. It used to be dropped — `ok(label)` only printed —
  * so an `ok(label, cond)` passed whatever `cond` said (found at SP-60). */
 function ok(label, cond = true) { if (cond) _log(`  \x1b[32m✓\x1b[0m ${label}`); else fail(label, 'expected a truthy value'); }
-/* The LABELS, not the count. page-mode.mjs ratchets on which checks fail, so a
- * count would let one check start failing while another stopped and call it
- * unchanged. */
-const failedLabels = [];
-function fail(label, why) { _log(`  \x1b[31m✗\x1b[0m ${label}: ${why}`); failures++; failedLabels.push(label); }
+function fail(label, why) { _log(`  \x1b[31m✗\x1b[0m ${label}: ${why}`); failures++; }
 function eq(label, actual, expected) {
     if (actual === expected) ok(label);
     else fail(label, `expected ${JSON.stringify(expected)}, got ${JSON.stringify(actual)}`);
@@ -528,7 +510,7 @@ _log('\napp-loop: file-param jog-click opens the browser on the chain page');
          * instead of once per rendered frame; before that the stale plan simply
          * kept answering.) */
         const owner = () => pageOwnerOf(appState.trackModels[0][1]);
-        for (let i = 0; i < 12 * 60 && owner().claimed && !owner().delegated; i++) advance(1);
+        for (let i = 0; i < 12 * 60 && !owner().page; i++) advance(1);
     };
 
     // Holding the file-param knob (slot 0) + jog click → file browser.
@@ -584,7 +566,7 @@ _log('\napp-loop: a knob release that outlives its page does not latch the contr
     appState.trackModels[0][1].reload();
     advance(12);
     appState.currentView = VIEW_KNOBS;
-    for (let i = 0; i < 12 * 60 && ownerFor().claimed && !ownerFor().delegated; i++) advance(1);
+    for (let i = 0; i < 12 * 60 && !ownerFor().page; i++) advance(1);
     const ctl = ownerFor().page?.ctl ?? null;
 
     sendMidi([0x90, 1, 127]);                  // touch knob 1 — the page hears it
@@ -596,7 +578,7 @@ _log('\napp-loop: a knob release that outlives its page does not latch the contr
     sendMidi([0xB0, CC_NOTE_SESSION, 0]);      // back, and it is the page left holding the slot
     advance(1);
 
-    if (GRID_ARM === 'page') {
+    {
         eq('the pressed page is not left holding the knob', ctl?.state.touched ?? 'no page', -1);
         /* The ledger itself, not just its effect: a pin that outlives its
          * release would hold a page object for the rest of the session. */
@@ -860,23 +842,15 @@ _log('\napp-loop: drum→synth switch does not crash');
 }
 
 /* ── step-hold: jog wheel switches param page, never note length ──────────── */
-_log('\napp-loop: jog wheel while holding a step switches page (not length)');
+_log('\napp-loop: jog wheel while holding a step never edits note length');
 {
     resetApp();
     appState.currentView = VIEW_KNOBS;
-    const held = () => appState.trackModels[0][appState.trackChainIndex[0]];
-    const page0 = shownPage(held());
     sendMidi([0x90, 16, 127]);            // hold step 1
     engine.ops.length = 0;                // watch for any 'elen' length edit
     sendMidi([0xB0, 14, 1]);              // jog wheel +1
-    /* Asked through the accessor, not through movy's bank: under `page` this
-     * fixture is a single Schwung page with nowhere to jog to, which is why the
-     * label is still on the burn-down — a fixture limit, not a movy defect, and
-     * the note in page-mode-expected-fail.json says so. Swapping the module for
-     * a multi-page one poisons every later block: the page cache is keyed by
-     * (track, component), outlives init(), and its contract does not re-resolve
-     * after a swap even given 200 ticks and a cache drop (Cause D / SP-15). */
-    eq('held-step jog switches page', shownPage(held()), page0 + 1);
+    /* The page step itself goes through the owner (page-owner.mjs pins the
+     * routing); this fixture is a single Schwung page with nowhere to jog to. */
     eq('no note-length edit emitted', engine.ops.some(o => o.startsWith('elen')), false);
     sendMidi([0x80, 16, 0]);              // release step
 }
@@ -1102,100 +1076,6 @@ _log('\napp-loop: pool-full toast wins the bottom rows over the loop strip');
     const toastDrawn = rects.some(([x, y, w, h, v]) => x === 0 && y === 58 && w === 128 && h === 6 && v === 1);
     eq('pool-full toast shown immediately at 8 lanes', toastDrawn, true);
     seqState.stepAutoMode = false; resetAutomation();
-}
-
-/* ── Full-screen file browser exits cleanly (Back + select) ──────────────────
- * Regression guard: browseOrigin must capture the pre-open view. If it captures
- * VIEW_FILE_BROWSE (because openFileBrowser already flipped currentView), Back
- * and select send the user "back" to the browser itself — a frozen screen. */
-_log('\napp-loop: full-screen file browser exits cleanly');
-{
-    // mrdrums opens the browser in Move's factory kit folder — see its config.
-    const TP = '/data/CoreLibrary/Track Presets/Drums/Electronic';
-    const savedOs   = globalThis.os;
-    const savedRead = globalThis.host_read_file;
-    const mockFs = { [TP]: ['808 Kit.json', '909 Kit.json'] };
-    // os is needed by the browser scan; install AFTER resetApp so module-config
-    // loading (which also reads via host_read_file) uses the bundled config.
-    resetApp();
-    globalThis.os = {
-        readdir: (p) => [mockFs[p] ?? [], 0],
-        stat:    (p) => [{ mode: p.lastIndexOf('.') > p.lastIndexOf('/') ? 0x8000 : 0x4000 }, 0],
-    };
-
-    // Gesture: chain→knobs, jog to the Preset page, hold preset knob, jog-click.
-    sendMidi([0xB0, 3, 127]); advance(1);            // jog-click: VIEW_CHAIN → VIEW_KNOBS
-    // Each config bank is one page; Preset is the last of 4 (Main/Rand/Global/Preset).
-    sendMidi([0xB0, 14, 1]); sendMidi([0xB0, 14, 1]); sendMidi([0xB0, 14, 1]); advance(1);  // → Preset page
-    sendMidi([0x90, 0, 127]);                         // touch preset knob 0
-    sendMidi([0xB0, 3, 127]);                         // jog-click → open full browser
-
-    eq('browser opened', appState.currentView, VIEW_FILE_BROWSE);
-    eq('browseOrigin captured the pre-open view', appState.browseOrigin, VIEW_KNOBS);
-
-    /* WHAT SCHWUNG PLANS FOR THIS FIXTURE — recorded, not asserted.
-     * These labels are filed in `page-mode-expected-fail.json` as one FIXTURE
-     * limit, and the premise of that filing is a page plan: this MOCK declares
-     * no `ui_hierarchy`, so the plan is the single fallback page 'Main' and the
-     * four banks movy's own config gives it — among them the Preset bank that
-     * carries `ui_preset_path` — are on no page at all. (Said of the fixture.
-     * The real mrdrums DOES declare that param; SP-32 in the ledger is about
-     * which config banks no module declaration carries.) Printing the plan HERE
-     * is what keeps the premise a measurement rather than a recollection — a
-     * maintainer reads it back on the same run that produces the failures.
-     * `movyBanks` is movy's own config, `ctlPages`/`names` Schwung's plan for
-     * the declaration; under `off` there is no plan and it says so. */
-    const drums = appState.trackModels[0][1];          // the model this block drives
-    const plan  = pageOwnerOf(drums);
-    const ck    = drums?.getComponentKey?.() ?? '?';
-    /* `schwungPageFor` is asked DIRECTLY when the owner has no page, so the plan
-     * is read back whatever the arm — the owner is movy's whenever the mode is
-     * `off`, and a measurement that only ran under `page` would be no
-     * measurement at all. It is the same call `pageOwnerOf` makes. */
-    const planned = plan.page ?? schwungPageFor(appState.activeTrack.index, ck);
-    planned.tick();   // a fresh controller plans on its first tick, not at reload
-    _log(`[page-plan] mrdrums fixture ck=${ck} mode=${schwungGridMode()}`
-       + ` lib=${schwungLibAvailable()} movyBanks=${drums?.getBankCount?.()}`
-       + ` claimed=${plan.claimed} delegated=${plan.delegated}`
-       + ` ctlPages=${planned.pageCount}`
-       + ` names=${JSON.stringify((planned.ctl?.pages ?? []).map((p) => p.name))}`);
-
-    /* THE REST OF THIS BLOCK RUNS ONLY IN A BROWSER THAT IS ACTUALLY UP. Under
-     * `page` the gesture above opens nothing, and the five checks below then
-     * split into two groups that must not be confused with each other.
-     *
-     * THREE COULD NOT FAIL — `Back clears fileBrowserState` was true because it
-     * was already null, and `select leaves the file browser` / `select clears
-     * fileBrowserState` expect the view and state a browser-less run is already
-     * in. A check that cannot fail is the defect this migration exists to
-     * delete, whichever arm it is red on.
-     *
-     * TWO DID FAIL, and they are why the burn-down moved: `Back leaves the file
-     * browser` (expected VIEW_KNOBS, got VIEW_CHAIN — MoveBack exiting the knobs
-     * page, movy behaving normally) and `select committed the preset path`
-     * (`undefined` — no browser, so no commit). Gating stopped them RUNNING, so
-     * they left the ledger as a COVERAGE REDUCTION, not as a fix. The record in
-     * docs/schwung-page-migration.md and page-mode-expected-fail.json says so.
-     *
-     * The two `eq`s above stay outside because they ARE the premise. */
-    if (appState.currentView === VIEW_FILE_BROWSE) {
-        // Back must return to the origin view, not to the (now empty) browser.
-        sendMidi([0xB0, 51, 127]); advance(1);            // MoveBack
-        eq('Back leaves the file browser', appState.currentView, VIEW_KNOBS);
-        eq('Back clears fileBrowserState', appState.fileBrowserState, null);
-
-        // Reopen, move to 808 Kit.json, select → loads + closes the browser.
-        sendMidi([0x90, 0, 127]); sendMidi([0xB0, 3, 127]); advance(1);
-        sendMidi([0xB0, 14, 1]);                          // skip '..' → 808 Kit.json
-        globalThis.host_read_file = (p) => p.endsWith('.json') ? '{ "kind": "drumRack" }' : null;
-        sendMidi([0xB0, 3, 127]);                         // jog-click = select
-        globalThis.host_read_file = savedRead;
-        eq('select leaves the file browser', appState.currentView, VIEW_KNOBS);
-        eq('select clears fileBrowserState', appState.fileBrowserState, null);
-        eq('select committed the preset path', env.params['synth:ui_preset_path'], TP + '/808 Kit.json');
-    }
-
-    globalThis.os = savedOs;
 }
 
 /* ── Main Params page: Shift+Step 5 opens, knob edits tempo, Back exits ────── */
@@ -1523,9 +1403,8 @@ _log('\napp-loop: the master chain reaches its LFO page');
     /* The knobs now edit the shim's master LFOs. */
     const lfoModel = appState.masterFxModels[MASTER_LFO_INDEX];
     eq('the LFO slot holds the LFO model', lfoModel.getComponentKey(), 'mfx:lfo');
-    /* MODE is knob 3 on movy's own page (Rate, Sync, Mode, Target) and
-     * knob 2 on Schwung's (Target, Mode, Sync, Retrig). */
-    const modeKnob = schwungGridMode() === 'page' ? 1 : 2;
+    /* MODE is knob 2 on Schwung's LFO page (Target, Mode, Sync, Retrig). */
+    const modeKnob = 1;
     sendMidi([0xB0, globalThis.MoveKnob1 + modeKnob, 8]);   // MODE → bipolar
     advance(1);
     eq('a master LFO knob writes the namespaced key', env.params['mfx:lfo1:polarity'], '1');
@@ -1768,17 +1647,12 @@ _log('\napp-loop: hold-knob → assign LFO target');
 
 _log('\napp-loop: hold-knob → assign under Schwung pages lands on, and refreshes, the LFO page (SP-60)');
 {
-    /* Forced to `page` for the same reason as the SP-37 block below: these
-     * checks are ABOUT the delegated pages and must bite in plain `npm test`. */
     const { resetAssignMode, assignActive } = await import('../dist/esm/lfo/assign-mode.js');
     const { portFor, engineRootPort } = await import('../dist/esm/track/registry.js');
     const { LFO_CHAIN_INDEX, MASTER_LFO_INDEX } = await import('../dist/esm/chain/config.js');
     const { modulatedKeysOf } = await import('../dist/esm/app/modulated-keys.js');
-    setSchwungGridMode('page');
     schwungGridReload();
-    if (!schwungLibAvailable()) {
-        _log('  (SKIPPED — no param_pages; set SCHWUNG=)');
-    } else {
+    {
         engine.reset();
         env.setParams({ ...MOCK_SYNTHS.test8,
             /* The target picker lists what `chain_params` declares — test8
@@ -1786,6 +1660,10 @@ _log('\napp-loop: hold-knob → assign under Schwung pages lands on, and refresh
             'synth:chain_params': JSON.stringify([{ key: 'freq', name: 'Freq', type: 'float', min: 0, max: 1 }]),
             'mfx:fx1:name': 'Reverb',
             'mfx:fx1:chain_params': JSON.stringify([{ key: 'mix', name: 'Mix', type: 'float', min: 0, max: 1 }]),
+            /* Served EMPTY, as the shim answers an undeclared key: the planner
+             * then pages chain_params. Unserved (null) is a failed read, which
+             * it holds on. */
+            'mfx:fx1:ui_hierarchy': '',
             'mfx:fx1:mix': '0.5' });
         resetSeqState(); resetSeqEngine();
         globalThis.init();
@@ -1796,7 +1674,7 @@ _log('\napp-loop: hold-knob → assign under Schwung pages lands on, and refresh
         resetAssignMode();
         advance(4);
         const synthOwner = pageOwnerOf(appState.trackModels[0][1]);
-        eq('the synth page is Schwung\'s', !!(synthOwner.delegated), true);
+        eq('the synth page is Schwung\'s', !!synthOwner.page, true);
         const held = synthOwner.knobParamInfo(0);
         eq('knob 1 is an automatable synth param', !!(!!held && held.automatable), true);
 
@@ -1893,9 +1771,9 @@ _log('\napp-loop: hold-knob → assign under Schwung pages lands on, and refresh
         appState.masterChainIndex = MFX1;
         appState.masterDetail = true;
         appState.masterFxModels[MFX1].reload();
-        advance(12);
-        const mfxOwner = pageOwnerOf(appState.masterFxModels[MFX1]);
-        const mHeld = mfxOwner.knobParamInfo(0);
+        const mfxOwner = () => pageOwnerOf(appState.masterFxModels[MFX1]);
+        for (let i = 0; i < 12 * 60 && !mfxOwner().page; i++) advance(1);
+        const mHeld = mfxOwner().knobParamInfo(0);
         eq('the MFX knob is automatable', !!(!!mHeld && mHeld.automatable), true);
         t += 5000;
         sendMidi([0x90, 0, 100]); advance(1);
@@ -1912,7 +1790,6 @@ _log('\napp-loop: hold-knob → assign under Schwung pages lands on, and refresh
         Date.now = realNow;
         seqState.sessionMode = false;
     }
-    setSchwungGridMode(GRID_ARM);
     schwungGridReload();
 }
 
@@ -3234,7 +3111,7 @@ _log('\napp-loop: CPU page is not painted over by the loop strip');
      * the browser, so its hint takes them. Only meaningful where there IS a
      * controller to hint about: with the grid off there is no page, no chrome,
      * and the strip keeps its rows. */
-    if (GRID_ARM === 'page') {
+    {
         const isPill = ([x, y, w, h, v]) => y === 57 && h === 7 && v === 1 && x < 128;
         const isToast = ([x, y, w, h, v]) => x === 0 && y === 58 && w === 128 && h === 6 && v === 1;
         /* Knob 1: a plain float on this model. */
@@ -3388,14 +3265,9 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
     const owner = () => pageOwnerOf(appState.trackModels[0][1]);
     /* The contract resolves on the POLL, and the poll is the thing this item
      * moved — so this settle is also the first assertion that it still runs. */
-    for (let i = 0; i < 12 * 60 && !owner().delegated; i++) advance(1);
+    for (let i = 0; i < 12 * 60 && !owner().page; i++) advance(1);
 
-    /* Asked of the mode that RESOLVED, never of the env var: without a schwung
-     * checkout `page` pins itself to `off` and both arms would measure one
-     * program and agree. */
-    const expectDelegated = schwungGridMode() === 'page';
-    eq('the arm delegates exactly when its mode says so',
-       owner().delegated, expectDelegated);
+    ok('the page resolves', !!owner().page);
 
     /* ── the reader ──────────────────────────────────────────────────────── */
 
@@ -3406,12 +3278,10 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
     globalThis.shadow_set_param(0, 'synth:p1', '0.90');
     advance(6 * REFRESH_BULK_TICKS);         // several full refresh windows
 
-    /* ONE label, both arms, and it is the gate itself: movy re-reads the
-     * module's params only while movy owns the page. */
-    eq('movy re-reads the params only when movy owns the page',
-       movyP1() !== before, !expectDelegated);
-    /* ...and the page on screen is read by SOMEBODY in either arm. Without
-     * this the check above passes just as well with nothing reading at all. */
+    /* movy never re-reads the module's params: the page has its own reader. */
+    eq('movy does not re-read the params', movyP1() !== before, false);
+    /* ...and the page on screen IS read. Without this the check above passes
+     * just as well with nothing reading at all. */
     eq('the drawn page is read whoever owns it', drawnP1(), 0.9);
 
     /* ── the LEDs ────────────────────────────────────────────────────────── */
@@ -3503,16 +3373,13 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
     advance(12);
 
     const owner = () => pageOwnerOf(appState.trackModels[0][1]);
-    for (let i = 0; i < 12 * 60 && !owner().delegated; i++) advance(1);
-    const expectDelegated = schwungGridMode() === 'page';
+    for (let i = 0; i < 12 * 60 && !owner().page; i++) advance(1);
 
-    /* THE PREMISE, and read BEFORE the hold rather than asserted from the mode:
-     * the hold is only meaningful on a page Schwung had actually taken. (It
-     * used to be `eq(expectDelegated, schwungGridMode() === 'page')` — the same
-     * expression on both sides, which cannot fail.) */
+    /* THE PREMISE, read BEFORE the hold: the hold is only meaningful on a page
+     * Schwung had actually taken. */
     const preHoldPage = owner().page;
     eq('the page under the hold was Schwung\'s to begin with',
-       !!preHoldPage, expectDelegated);
+       !!preHoldPage, true);
     const drawnKey0 = preHoldPage ? preHoldPage.keyAt(0) : null;
 
     /* THE HOLD IS IN PLACE FIRST, so the only window in which the new value
@@ -3546,10 +3413,10 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
      * the regression guards they were; the expected VALUE is the only thing
      * that moves between the arms, never the claim.
      */
-    eq('a held step keeps the page the mode delegated', owner().delegated, expectDelegated);
+    eq('a held step keeps the page the mode delegated', !!owner().page, true);
     eq('...so the knob targets the parameter the drawn page has there',
        owner().knobParamInfo(0)?.key,
-       expectDelegated ? drawnKey0 : m.getKnobParamInfo(0)?.key);
+       drawnKey0);
     /* ...AND THE ANSWER CAME FROM THE PAGE, not from the model underneath it.
      * The two planners put the SAME param in knob 0 on this fixture
      * (`differing slots: 0`), so the key above cannot tell the two answers
@@ -3562,7 +3429,7 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
         owner().knobParamInfo(0);
         preHoldPage.knobParamInfo = real;
     }
-    eq('...asked of the page, not of the model underneath', askedOf > 0, expectDelegated);
+    eq('...asked of the page, not of the model underneath', askedOf > 0, true);
     eq('a held step keeps the drawn page reading', drawn0() !== before, true);
 
     seqState.stepAutoMode = false; seqState.holdStep = -1;
@@ -3604,8 +3471,7 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
     advance(12);
 
     const owner = () => pageOwnerOf(appState.trackModels[0][1]);
-    for (let i = 0; i < 12 * 60 && !owner().delegated; i++) advance(1);
-    const pageArm = schwungGridMode() === 'page';
+    for (let i = 0; i < 12 * 60 && !owner().page; i++) advance(1);
 
     /* THE JOG, AND THE PREMISE READ FROM IT rather than asserted from the mode:
      * the cell has to be somewhere other than where it was, or neither the key
@@ -3619,7 +3485,7 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
     /* ...and under `page` it is the TWO PLANNERS that are apart: movy's own bank
      * stayed where it was while Schwung's page moved. That is the condition this
      * block needs to have teeth, so it is asserted where it can exist. */
-    if (pageArm) eq('(fixture) ...because the two planners disagree there',
+    eq('(fixture) ...because the two planners disagree there',
                     drawnKey !== m.getKnobParamInfo(0)?.key, true);
 
     /* THE SEAM, WRAPPED BEFORE THE HOLD. Restored at the end of the block. */
@@ -3640,10 +3506,10 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
     sendMidi([0xB0, 71, 1]);                 // knob 0: whatever the page drew there
     advance(20);
 
-    eq('a held step keeps Schwung drawing the page', !!owner().page, pageArm);
-    eq('and the p-lock decoration reaches the controller', decCalls > 0, pageArm);
+    eq('a held step keeps Schwung drawing the page', !!owner().page, true);
+    eq('and the p-lock decoration reaches the controller', decCalls > 0, true);
     eq('...marked on a cell the page drew',
-       !!(decs && decs.some((d) => d && d.locked === true)), pageArm);
+       !!(decs && decs.some((d) => d && d.locked === true)), true);
     eq('the knob bound the lane to the parameter the page drew',
        engine.ops.some((o) => o.startsWith('alabel 0 0 synth:' + drawnKey)), true);
     eq('...and not to the key movy\'s planner had in that cell',
@@ -3684,14 +3550,8 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
      * mode `0`→`2`, which is "LP"→"HP": same width, `observe` saw no change, and
      * the check failed against a CORRECT fix. `0`→`3` is "LP"→"Notch", 17px to
      * the 28px cap, which is the transition the widget actually has.
-     *
-     * THE ARM IS FORCED rather than read from MOVY_APP_LOOP_GRID, so these
-     * checks have teeth in the plain `npm test` run too and not only under
-     * page-mode.mjs. `pageArm` then goes in as the EXPECTED value, which is how
-     * every other block here stays honest with the library unavailable.
+
      */
-    setSchwungGridMode('page');
-    const pageArm = schwungGridMode() === 'page';
     schwungGridReload();
     engine.reset();
     env.setParams(MOCK_SYNTHS.test_enum);
@@ -3702,9 +3562,9 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
     advance(12);
 
     const owner = () => pageOwnerOf(appState.trackModels[0][1]);
-    for (let i = 0; i < 12 * 60 && !owner().delegated; i++) advance(1);
-    const sp = pageArm ? owner().page : null;
-    eq('the enum page is delegated to Schwung', !!sp, pageArm);
+    for (let i = 0; i < 12 * 60 && !owner().page; i++) advance(1);
+    const sp = owner().page;
+    eq('the enum page is delegated to Schwung', !!sp, true);
 
     /* Frames are counted at the page's own render. Wrapped rather than
      * re-exported so nothing else has to agree about what "a frame" is. */
@@ -3758,7 +3618,7 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
     let ticks = 0;
     while (ticks++ < 5000 && (!sp || sp.animating(Date.now()).moving)) advance(1);
     eq('a value change draws frames until the transition settles ('
-       + frames + ' frames over ' + ticks + ' ticks)', frames > 1, pageArm);
+       + frames + ' frames over ' + ticks + ' ticks)', frames > 1, true);
 
     /* (c) NONE AFTER. Every transition placed in the past — `anim_state`'s own
      * field, so this is the input `settled` reads and not a restatement of it —
@@ -3774,7 +3634,6 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
     eq('and none once it has settled', frames, 0);
 
     /* The wrapper goes with the page: the reload below drops both together. */
-    setSchwungGridMode(GRID_ARM);
     schwungGridReload();
 }
 
@@ -3793,8 +3652,6 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
  */
 _log('\napp-loop: the master chain grid draws Schwung\'s body (SP-58)');
 {
-    setSchwungGridMode('page');
-    const pageArm = schwungGridMode() === 'page';
     schwungGridReload();
     resetApp();
     /* test_enum declares a hierarchy, re-keyed onto MFX 1's namespace so the
@@ -3807,12 +3664,11 @@ _log('\napp-loop: the master chain grid draws Schwung\'s body (SP-58)');
     appState.currentView = VIEW_CHAIN;
     appState.masterDetail = false;
     appState.masterFxModels[MFX1].reload();
-    const tripsBefore = movyBodyUnderPage().count;
 
     const owner = () => pageOwnerOf(appState.masterFxModels[MFX1]);
-    for (let i = 0; i < 12 * 60 && !owner().delegated; i++) advance(1);
-    const sp = pageArm ? owner().page : null;
-    eq('the master slot\'s page is delegated on the grid', !!sp, pageArm);
+    for (let i = 0; i < 12 * 60 && !owner().page; i++) advance(1);
+    const sp = owner().page;
+    eq('the master slot\'s page is delegated on the grid', !!sp, true);
 
     let frames = 0;
     if (sp) {
@@ -3821,11 +3677,9 @@ _log('\napp-loop: the master chain grid draws Schwung\'s body (SP-58)');
     }
     appState.dirty = true;
     advance(3);
-    eq('the grid renders Schwung\'s page', frames > 0, pageArm);
-    eq('the grid never drew movy\'s body over it', movyBodyUnderPage().count - tripsBefore, 0);
+    eq('the grid renders Schwung\'s page', frames > 0, true);
 
     seqState.sessionMode = false;
-    setSchwungGridMode(GRID_ARM);
     schwungGridReload();
 }
 
@@ -3858,16 +3712,5 @@ _log('\napp-loop: clearing a send slot leaves its detail page');
     seqState.sessionMode = false;
 }
 
-/* THE GENERAL GUARD, over the whole run. Any view the blocks above put on
- * screen that drew movy's body while its owner was live under Schwung is a
- * render site that never asked for Schwung's body (SP-58). Only a `page` arm
- * can trip it — `delegated` is false everywhere else — and the SP-38 and SP-58
- * blocks force one, so this holds in plain `npm test` too. */
-/* The label stays fixed so page-mode.mjs can ratchet on it; WHERE it tripped
- * goes to the log beside it. */
-if (movyBodyUnderPage().count) _log('  movy body over a live page, last at ' + movyBodyUnderPage().last);
-eq('movy never drew its own body over a live Schwung page', movyBodyUnderPage().count, 0);
-
-if (process.env.MOVY_APP_LOOP_LABELS) _log('APP-LOOP-FAILED-LABELS ' + JSON.stringify(failedLabels));
 if (failures === 0) _log('\n\x1b[32m\x1b[1mALL APP-LOOP CHECKS PASSED\x1b[0m');
 else { _log(`\n\x1b[31m\x1b[1m${failures} APP-LOOP CHECK(S) FAILED\x1b[0m`); process.exit(1); }

@@ -24,8 +24,8 @@
  * either divider is a two-line diff: bump the literal here to match.
  */
 import {
-    env, setSchwungGridMode, schwungGridReload, schwungPageFor,
-    schwungLibAvailable, MOCK_SYNTHS, countTripKinds, ok, _log,
+    env, schwungGridReload, schwungPageFor,
+    MOCK_SYNTHS, countTripKinds, ok, _log,
 } from './harness.mjs';
 
 const EXPECTED_FILL_TICKS         = 8;   // schwung-page-cache.ts FILL_TICKS
@@ -50,14 +50,8 @@ function pageFor(preset) {
 
 export async function run() {
 
-if (!schwungLibAvailable()) {
-    _log('\nlogic: the idle page tick host-call budget — SKIPPED (no param_pages; set SCHWUNG=)');
-    return;
-}
-
 _log('\nlogic: the idle page tick host-call budget (SP-49)');
 
-setSchwungGridMode('page');
 
 const p = pageFor(MOCK_SYNTHS.test16);
 let n = 0;
@@ -79,7 +73,6 @@ ok(`idle host calls stay in budget (${trips} <= ${bound}, bulk=${bulk} single=${
    trips <= bound);
 
 schwungGridReload();
-setSchwungGridMode(null);
 env.setParams(MOCK_SYNTHS.test16);
 
 }

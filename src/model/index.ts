@@ -400,15 +400,9 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
          * or the previous Set's module, on a surface that had gone live. */
         reloadNow(): void { reReadModule(s); },
 
-        /*
-         * `keyAt` names the parameter the DRAWN page put under a slot, and it is
-         * supplied whenever movy is not the one drawing. Without it this resolved
-         * the held knob through `s.knobPage` — movy's own bank — so under a
-         * delegated page the browser opened for whatever movy's frozen index
-         * happened to hold: a different parameter, or a file param that is not
-         * on screen at all. `model/` cannot see who owns the page (it may not
-         * import `app/`), so the answer is passed in.
-         */
+        /* The held knob's file param, resolved through `keyAt` — the page on
+         * screen's own key for that slot. `model/` cannot see who draws the page
+         * (it may not import `app/`), so the answer is passed in. */
         getFileBrowseTarget(keyAt?: (slot: number) => string | null): FileBrowseTarget | null {
             const primary = primarySlot();
             if (primary < 0) return null;
@@ -420,7 +414,6 @@ export function createModel(port: TrackPort, componentKey = 'synth') {
             if (local < 0) return null;
             return fileTargetByGi(s.knobPage * KNOBS_PER_PAGE + local);
         },
-
         /*
          * THE SAME ANSWER WITHOUT A SLOT, and it is asked for by the caller that
          * has no business naming one. A DIVE arrives as `{action:"open", key,

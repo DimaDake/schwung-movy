@@ -11,8 +11,8 @@
  * Run by browser-test/logic.mjs.
  */
 
-import { schwungLibAvailable, bootModel, eq, ok, _log, env, portFor, MOCK_SYNTHS,
-         setSchwungGridMode, schwungGridReload, resetSeqEngine, installMockEngine,
+import { bootModel, eq, ok, _log, env, portFor, MOCK_SYNTHS,
+         schwungGridReload, resetSeqEngine, installMockEngine,
          uninstallMockEngine, resetUndoState, resetUndoGroups, resetUndoRecord,
          installEditGuard, takeUndoViolation, undoDepth, peekUndo, endEdit,
          undoOnce, recordParamOp, beginEdit, CLOSE } from './harness.mjs';
@@ -40,16 +40,10 @@ _log('\nlogic: undo of a master FX write reaches the master chain');
     resetUndoState(); resetUndoGroups(); resetPorts();
 }
 
-if (!schwungLibAvailable()) {
-    _log('\nlogic: schwung page undo — SKIPPED (no param_pages; set SCHWUNG=)');
-    return;
-}
-
 const { pageOwnerOf } = await import('../../dist/esm/app/page-owner.js');
 
 _log('\nlogic: a Schwung-page knob turn is one undo, and undo moves the cell back');
 {
-    setSchwungGridMode('page');
     schwungGridReload();
     resetSeqEngine();
     installMockEngine();
@@ -114,7 +108,6 @@ _log('\nlogic: a Schwung-page knob turn is one undo, and undo moves the cell bac
     resetUndoState(); resetUndoGroups(); resetUndoRecord();
     uninstallMockEngine();
     schwungGridReload();
-    setSchwungGridMode(null);
     env.setParams(MOCK_SYNTHS.test16);
 }
 

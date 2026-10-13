@@ -6,7 +6,7 @@
 
 import {
     MOCK_SYNTHS, wavPeaksTick, wavPeaks, resetWavPeaks, resamplePeaks, PEAK_WIDTH,
-    drawWavForm, fail, eq, bootModel, _log, env,
+    fail, eq, bootModel, _log, env,
 } from './harness.mjs';
 import { makeWav } from './wav-fixture.mjs';
 
@@ -178,66 +178,6 @@ _log('\nTest: WAV peaks — accuracy, chunking and caching');
     eq('missing file reports an error', wavPeaks('/s/missing.wav').error !== '', true);
     eq('missing file does not retry', wavPeaksTick('/s/missing.wav'), false);
 }
-
-_log('\nTest: waveform marker inverts over the sample');
-{
-    const origFill = globalThis.fill_rect;
-    const shot = (points, position) => {
-        const r = [];
-        globalThis.fill_rect = (x, y, w, h, v) => r.push({ x, y, w, h, v });
-        drawWavForm(11, { line: 0, startCol: 0, cellCount: 2, points, position, gain: 1 });
-        globalThis.fill_rect = origFill;
-        return r;
-    };
-    /* startCol 0, 2 cells: flush at the SCREEN edge on the left (x0 = 0), inset
-     * one pixel at the internal boundary on the right. See spanX. */
-    const W = 2 * 32 - 1;
-    // Quiet everywhere: the marker is a tall LIT line.
-    {
-        const r = shot(new Array(W).fill(0), 0.5);
-        const mx = Math.floor(0.5 * W);
-        const lit = r.filter((q) => q.x === mx && q.v === 1);
-        const tall = lit.reduce((n, q) => Math.max(n, q.h), 0);
-        eq('marker is a tall lit line through silence', tall >= 6, true);
-    }
-    // Full scale everywhere: the marker becomes a CLEARED notch instead.
-    {
-        const r = shot(new Array(W).fill(1), 0.5);
-        const mx = Math.floor(0.5 * W);
-        const cleared = r.filter((q) => q.x === mx && q.v === 0);
-        eq('marker is a cleared notch through a loud passage', cleared.length > 0, true);
-        eq('the notch spans the sample', cleared[0].h >= 6, true);
-    }
-    /* The marker must sit in the SAME column the envelope built for that
-     * position — column i covers frames [i/w,(i+1)/w). round(p*(w-1)) disagrees
-     * for a quarter of all positions and points a pixel off what will play. */
-    {
-        const markerCol = (p) => {
-            const pts = new Array(W).fill(0);
-            const r = shot(pts, p);
-            const lit = r.filter((q) => q.v === 1 && q.h > 2).map((q) => q.x);
-            return Math.min(...lit);
-        };
-        let off = 0;
-        for (let k = 0; k <= 200; k++) {
-            const p = k / 200;
-            const want = Math.min(W - 1, Math.floor(p * W));
-            if (markerCol(p) !== want) off++;
-        }
-        eq('marker sits in the column that will play, at every position', off, 0);
-    }
-
-    // The marker tracks position.
-    {
-        const at = (p) => {
-            const r = shot(new Array(W).fill(0), p);
-            return Math.min(...r.filter((q) => q.v === 1 && q.h > 2).map((q) => q.x));
-        };
-        eq('marker moves left to right', at(0.1) < at(0.9), true);
-    }
-}
-
-/* ── dumpLayout: external layout snapshot (scripts/dump-movy-layout.mjs) ── */
 
 _log('\nTest: dumpLayout exposes banks + raw params');
 

@@ -7,7 +7,7 @@
 import {
     createModel, portFor, enumRawToIndex, enumUsesIndex, enumSetValue, MOCK_SYNTHS,
     eq, ok, bootModel, _log, env, appState,
-    schwungLibAvailable, schwungPageFor, setSchwungGridMode, schwungGridReload,
+    schwungPageFor, schwungGridReload,
 } from './harness.mjs';
 
 export async function run() {

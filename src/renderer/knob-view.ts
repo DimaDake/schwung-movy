@@ -1,7 +1,6 @@
 import type { ViewModel } from '../types/viewmodel.js';
 import { fontPrint, fontWidth } from '../font/index.js';
 import { drawHeader, drawBankBar, drawHeaderWithPadIcon, PAD_ICON_W, padIconShown } from './header.js';
-import { drawKnobParams } from './label.js';
 import { drawEnumOverlay, drawJogToast } from './overlay.js';
 import { W } from './layout.js';
 import { AUTO_LANES } from '../seq/constants.js';
@@ -41,7 +40,7 @@ export function headerRightText(vm: ViewModel, chrome?: PageChrome): string {
 }
 
 export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 0,
-                                bodyOverride?: () => void, bank?: BankOverride,
+                                body: () => void = () => {}, bank?: BankOverride,
                                 chrome?: PageChrome): void {
     clear_screen();
 
@@ -96,11 +95,9 @@ export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 
     } else {
         drawBankBar(bankIndex, bankCount, false, bankGroups);
     }
-    /* The body band, drawn either by movy's own widgets or by Schwung's. Only
-     * the WIDGETS move: the header is movy's in both cases, and so are the
-     * overlays below. */
-    if (bodyOverride) bodyOverride();
-    else drawKnobParams(vm);
+    /* The body band is Schwung's page; the header and the overlays below are
+     * movy's. */
+    body();
 
     if (vm.overlay) drawEnumOverlay(vm);
     // Limit reached + a step held: tell the user only the assigned lanes are editable.

@@ -9,7 +9,7 @@
  */
 
 import {
-    eq, ok, _log, schwungLibAvailable, setSchwungGridMode, schwungGridReload, schwungPageFor,
+    eq, ok, _log, schwungGridReload, schwungPageFor,
 } from './harness.mjs';
 
 /* A tiny fake chain-param engine: SET updates the same map GET reads from, so
@@ -74,14 +74,11 @@ _log('\nTest: MIX virtual source (SP-55)');
 
 /* ── MIX: a turn crosses the travel at movy's own MIX rate ────────────────── */
 _log('\nTest: MIX page knob rate matches movy\'s MIX page');
-if (!schwungLibAvailable()) {
-    _log('  SKIPPED — no param_pages; set SCHWUNG=');
-} else {
+{
     const { stepAmpDb, VOL_TOP_DB } = await import('../../dist/esm/mixer/db-ladder.js');
     const { readMix } = await import('../../dist/esm/mixer/mix-io.js');
     const eng = mockEngine();
     resetPorts();
-    setSchwungGridMode('page');
     schwungGridReload();
     eng.store['ch0:mix'] = packMixValue({ gain: 1, pan: 0, muted: false, send: [0, 0, 0] });
     const page = schwungPageFor(0, 'mix', null, null);
@@ -101,7 +98,6 @@ if (!schwungLibAvailable()) {
     ok('20 CC units move VOL as far as on movy\'s MIX page (got ' + got.toFixed(4) + ', want ' + want.toFixed(4) + ')',
        want > 0 && Math.abs(got - want) < want * 0.1);
 
-    setSchwungGridMode('off');
     schwungGridReload();
     eng.restore();
     resetPorts();
@@ -123,10 +119,7 @@ _log('\nTest: LFO source is Schwung\'s LFO page contract (SP-60)');
     globalThis.shadow_set_param = (_slot, k, v) => { shim[k] = v; return true; };
     resetPorts();
 
-    if (!schwungLibAvailable()) {
-        eq('without param_pages there is no LFO contract, so no source', lfoSchwungSource(trackScope(0)), null);
-        _log('  (the rest SKIPPED — no param_pages; set SCHWUNG=)');
-    } else {
+    {
         const lp = schwungLfoPage();
         ok('Schwung serves its LFO page builders', !!lp);
         const source = lfoSchwungSource(trackScope(0));
@@ -245,7 +238,6 @@ _log('\nTest: LFO source is Schwung\'s LFO page contract (SP-60)');
 
         /* Through the real page: two pages, eight cells each, Sync choosing
          * the rate cell — fail-open `visible` would give nine and a third page. */
-        setSchwungGridMode('page');
         schwungGridReload();
         eng.store['ch0:lfo1:sync'] = '0'; eng.store['ch0:lfo2:sync'] = '1';
         const page = schwungPageFor(0, 'lfo', null, null);
@@ -296,7 +288,6 @@ _log('\nTest: LFO source is Schwung\'s LFO page contract (SP-60)');
         eq('master LFO: seven cells (no Retrigger on the master bus)', m1.filter(Boolean).length, 7);
         ok('master LFO 1 synced shows its rate_div', m1.includes('mfx:lfo1:rate_div')
            && !m1.includes('mfx:lfo1:rate_hz'));
-        setSchwungGridMode('off');
         schwungGridReload();
     }
 

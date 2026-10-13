@@ -22,9 +22,8 @@ import { installPerfProbe } from './perf-probe.js';
 import { setProbeDeps } from '../test/probe.js';
 import { leaveModalActive, leaveModalLabels, leaveModalSel, leaveModalTitle } from './leave-modal.js';
 import { sessionReady } from '../seq/set-session.js';
-import { schwungGridMode, setSchwungGridMode } from '../renderer/schwung-grid.js';
 import { clearWidgets, isWidgetAvailable } from '../renderer/schwung-widgets.js';
-import { lastParamBody, lastSchwungPage, movyBodyUnderPage } from './param-body.js';
+import { lastParamBody, lastSchwungPage } from './param-body.js';
 
 import { laneKeysForTrack } from '../seq/automation.js';
 
@@ -35,19 +34,15 @@ export function init(): void {
      * app's dependency graph, and `answer()` is meant to be callable from a
      * plain unit test with nothing else loaded. */
     setProbeDeps({
-        renderer:      () => schwungGridMode(),
         lanesForTrack: (t) => laneKeysForTrack(t),
         activeTrack:   () => appState.activeTrack.index,
-        setGridMode:   (m) => setSchwungGridMode(m as any),
         /* Through the door in renderer/schwung-widgets.ts, never by importing
          * widget_registry.mjs here: the registry is module state and a second
          * specifier is a second empty map. See that file's header. */
         widgetAvailable: (k) => isWidgetAvailable(k),
         widgetClear:     () => clearWidgets(),
         paramBody:       () => {
-            const u = movyBodyUnderPage();
             return { body: lastParamBody(), schwung: lastSchwungPage(),
-                     trips: u.count, last: u.last,
                      session: seqState.sessionMode, masterDetail: appState.masterDetail,
                      masterSlot: appState.masterChainIndex };
         },

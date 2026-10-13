@@ -13,8 +13,8 @@
  *
  * Run by browser-test/logic.mjs.
  */
-import { schwungLibAvailable, eq, ok, _log, env, MOCK_SYNTHS,
-         schwungPageFor, schwungGridReload, setSchwungGridMode } from './harness.mjs';
+import { eq, ok, _log, env, MOCK_SYNTHS,
+         schwungPageFor, schwungGridReload } from './harness.mjs';
 
 const DIR = '/data/UserData/schwung/modules/sound_generators/facesynth';
 
@@ -72,16 +72,10 @@ function pageFor(params) {
 }
 
 export async function run() {
-    if (!schwungLibAvailable()) {
-        _log('\nlogic: schwung canvas pages — SKIPPED (no param_pages; set SCHWUNG=)');
-        return;
-    }
     installFakes();
-    setSchwungGridMode('page');
     try { await suite(); } finally {
         restoreFakes();
         schwungGridReload();
-        setSchwungGridMode(null);
         env.setParams(MOCK_SYNTHS.test16);
     }
 }

@@ -12,18 +12,13 @@
  */
 
 import { join, resolve } from 'node:path';
-import { schwungLibAvailable, bootModel, settleModel, ok, eq, fail, _log, env, MOCK_SYNTHS, appState, portFor,
-         setSchwungGridMode, schwungGridReload, schwungPageFor } from './harness.mjs';
+import { bootModel, settleModel, ok, eq, fail, _log, env, MOCK_SYNTHS, appState, portFor,
+         schwungGridReload, schwungPageFor } from './harness.mjs';
 import { dumpEntry, dumpFixture } from '../dump-fixture.mjs';
 import { serveModuleFiles } from './drum-automation.mjs';
 import { pinnedSchwungRoot } from '../../scripts/lib/schwung-pinned.mjs';
 
 export async function run() {
-
-if (!schwungLibAvailable()) {
-    _log('\nlogic: drum focus — SKIPPED (no param_pages; set SCHWUNG=)');
-    return;
-}
 
 const pp = join(pinnedSchwungRoot(), 'src', 'shared', 'param_pages');
 const { voicesOf } = await import(join(pp, 'voices.mjs'));
@@ -35,7 +30,6 @@ const prevModels = appState.trackModels[0];
 /* The page exactly as the app builds it for track 0 — the matrix's setup. */
 function boot(id) {
     const restoreFs = serveModuleFiles(dumpEntry(id));
-    setSchwungGridMode('page');
     schwungGridReload();
     const fixture = dumpFixture(id);
     const model = settleModel(bootModel(fixture));
@@ -55,7 +49,6 @@ const done = (restoreFs) => {
     restoreFs();
     appState.trackModels[0] = prevModels;
     schwungGridReload();
-    setSchwungGridMode(null);
     env.setParams(MOCK_SYNTHS.test16);
 };
 

@@ -72,10 +72,6 @@ import { until } from '../wait.js';
  * a busy board. */
 const ACT = 90;
 
-/* The renderer every check here has to run under. Under `off` Schwung neither
- * plans nor draws, so there is no delegated page for a widget to be drawn into
- * and the scenario would be grading movy's own renderer instead. */
-const PAGE_MODE = 'page';
 
 /* Hank, verified on the device: `capabilities.canvas_script` = "canvas.js", the
  * `ratio` cell declares `viz.kind` = "custom:hank_wave", and its canvas.js
@@ -144,7 +140,7 @@ const highest = (xs: number[]): { at: number; n: number } =>
     xs.reduce((best, n, at) => (n > best.n ? { at, n } : best), { at: 0, n: -1 });
 
 type Page = { module?: string; pageIndex?: number; pageCount?: number;
-              renderer?: string; view?: string; cells?: ({ name?: string } | null)[] };
+              body?: string; view?: string; cells?: ({ name?: string } | null)[] };
 
 scenario('widgets', async (t) => {
     fixture.setHost(t.host);
@@ -181,10 +177,10 @@ scenario('widgets', async (t) => {
      * drawn by Schwung. All three: an empty slot renders a page too, and under
      * `off` the delegated page does not exist at all. */
     const isPage = (p: Page | null, name: string): boolean =>
-        !!p && p.module === name && p.renderer === PAGE_MODE
+        !!p && p.module === name && p.body === 'schwung'
         && (p.cells ?? []).some((c) => !!c?.name);
     const describe = (p: Page | null): string => !p ? 'movy has not rendered'
-        : `renderer=${p.renderer} module=${p.module || '(none)'} page=${p.pageIndex} `
+        : `body=${p.body} module=${p.module || '(none)'} page=${p.pageIndex} `
         + `of ${p.pageCount} view=${p.view} `
         + `cells=[${(p.cells ?? []).map((c) => c?.name).filter(Boolean).join(' ')}]`;
 
@@ -244,11 +240,6 @@ scenario('widgets', async (t) => {
      * whatever the run died holding. */
     t.need.register(async () => { await ep('ch0:synth:module', AWAY); });
 
-    /* Page mode by OVERRIDE (`setGridMode` writes nothing), so the device's own
-     * prefs are never touched — the flags `npm run test:device` is preceded by
-     * are set outside this process and left alone here. */
-    t.note('gridMode', await probe.setGridMode(PAGE_MODE));
-
     /* The click has a precondition: in the chain view a jog click on an EMPTY
      * slot opens the module browser instead of drilling into the knobs, and it
      * is a no-op in the views above the chain. So it is repeated against the
@@ -261,7 +252,7 @@ scenario('widgets', async (t) => {
         await t.tx.frames(ACT);
         pg = await waitPage((p) => isPage(p, AWAY), `${AWAY}'s knobs page`);
     }
-    t.note('pageAtW1', pg && { module: pg.module, renderer: pg.renderer, view: pg.view,
+    t.note('pageAtW1', pg && { module: pg.module, body: pg.body, view: pg.view,
                                pageIndex: pg.pageIndex,
                                cells: (pg.cells ?? []).map((c) => c?.name) });
 
@@ -275,7 +266,7 @@ scenario('widgets', async (t) => {
     t.check('nothing-registered-before-the-swap',
         'the fixture module is on the page and serves no custom widget',
         isPage(pg, AWAY) && before.available === false,
-        { expected: `a rendered page naming ${AWAY} under renderer=${PAGE_MODE}, and `
+        { expected: `a rendered page naming ${AWAY} drawn through Schwung, and `
                   + `${WIDGET} unavailable`,
           actual: `${describe(pg)}; ${WIDGET} available=${before.available}` });
 
@@ -295,14 +286,14 @@ scenario('widgets', async (t) => {
     const pgHank = await waitPage((p) => isPage(p, MODULE), `${MODULE}'s page`);
     const reg = await probe.widget(WIDGET);
     t.note('swapIn', { logLines: (await lines()).length - regBefore, widget: reg });
-    t.note('pageAtW2', pgHank && { module: pgHank.module, renderer: pgHank.renderer,
+    t.note('pageAtW2', pgHank && { module: pgHank.module, body: pgHank.body,
                                    view: pgHank.view, pageIndex: pgHank.pageIndex,
                                    cells: (pgHank.cells ?? []).map((c) => c?.name) });
     t.check('swap-in-registers-the-widget',
         'a module swapped into the slot in place registers its widget, and the registry serves it',
         said && reg.available === true && isPage(pgHank, MODULE),
         { expected: `a new "${REGISTERED}" line in the device log, ${WIDGET} available, `
-                  + `and the page naming ${MODULE} under renderer=${PAGE_MODE} — with no `
+                  + `and the page naming ${MODULE} drawn through Schwung — with no `
                   + `close, reopen or navigation anywhere in this scenario`,
           actual: `${said ? 'the line was written' : `no new "${REGISTERED}" line`}; `
                 + `${WIDGET} available=${reg.available}; ${describe(pgHank)}` });
@@ -401,7 +392,7 @@ scenario('widgets', async (t) => {
         said2 && back.available === true && isPage(pgBack, MODULE)
         && returned >= MIN_MARK && markBack >= MIN_MARK,
         { expected: `a second "${REGISTERED}" line, ${WIDGET} available, the page still `
-                  + `${MODULE}'s under renderer=${PAGE_MODE}, and page ${widgetPage.at} — the `
+                  + `${MODULE}'s drawn through Schwung, and page ${widgetPage.at} — the `
                   + `one the widget draws on — changed again`,
           actual: `${said2 ? 'the line was written' : `no new "${REGISTERED}" line`}; `
                 + `${WIDGET} available=${back.available}; page ${widgetPage.at} changed by `
@@ -411,12 +402,4 @@ scenario('widgets', async (t) => {
                        : 'no box was established by the first comparison, so there is nowhere '
                        + 'this could read the ink from')
                 + `; ${describe(pgBack)}` });
-
-    /* THE OVERRIDE COMES OFF, like page-dive's and page-lifecycle's do. It writes
-     * nothing durable, so it survives only until movy is closed — but it does
-     * survive this scenario, and a scenario that asserts movy's OWN writes reads
-     * `writes: none` under `page`. This one runs last today; the day it does
-     * not, the three that grade movy as the renderer would go red for a reason
-     * no artifact of theirs names. */
-    await probe.setGridMode(null);
 });

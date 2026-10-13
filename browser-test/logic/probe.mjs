@@ -26,11 +26,9 @@ _log('\nTest: device probe');
 {
     _resetForTest();
     setProbeDeps({
-        renderer:      () => 'MOVY',
         lanesForTrack: (t) => (t === 0 ? ['octave_transpose', 'decay'] : []),
         activeTrack:   () => 0,
 
-        setGridMode:   () => {},
         leaveModal:    () => ({ active: false, label: '', sel: 0 }),
         ready:         () => true,
         view:          () => 'knobs',
@@ -50,7 +48,6 @@ _log('\nTest: device probe');
     eq('page reports the held-step state', page.held, true);
     eq('page reports the bank index', page.pageIndex, 2);
     eq('page reports the bank count', page.pageCount, 5);
-    eq('page reports the renderer', page.renderer, 'MOVY');
     eq('page always reports eight cells', page.cells.length, 8);
     eq('cell carries the short name', page.cells[0].name, 'DCAY');
     eq('cell carries the display value', page.cells[0].value, '69%');
@@ -71,8 +68,7 @@ _log('\nTest: device probe');
     /* An empty registry is the bug the device suite's P3 check exists to catch,
      * so it must be reported as empty rather than omitted. */
     setProbeDeps({
-        renderer: () => 'PAGE', lanesForTrack: () => [], activeTrack: () => 1,
-        setGridMode: () => {},
+        lanesForTrack: () => [], activeTrack: () => 1,
         leaveModal: () => ({ active: true, label: 'Close Movy', sel: 1 }),
         ready: () => false,
         view: () => 'file-browse',
@@ -85,8 +81,6 @@ _log('\nTest: device probe');
     eq('an empty lane registry reports as empty', empty.lanes.length, 0);
     ok('tick no longer reports a parked state (no Background since WP9)',
        !('parked' in JSON.parse(answer(JSON.stringify({ key: 'tick' })))));
-    eq('page reflects a renderer change',
-        JSON.parse(answer(JSON.stringify({ key: 'page' }))).renderer, 'PAGE');
     /* Read live, not off the view model: this is the one field that answers
      * about the screen rather than the page on it, and the two disagree
      * whenever movy is showing something that is not a module's knobs. */
@@ -129,18 +123,6 @@ _log('\nTest: device probe');
     ok('an unknown key answers with an error, not a throw', typeof bad.error === 'string', bad.error);
     const torn = JSON.parse(answer('{not json'));
     ok('malformed json answers with an error, not a throw', typeof torn.error === 'string', torn.error);
-
-    let gridArg = 'unset';
-    setProbeDeps({
-        renderer: () => 'DRAW', lanesForTrack: () => [], activeTrack: () => 0,
-        setGridMode: (m) => { gridArg = m; },
-        leaveModal: () => ({ active: false, label: '', sel: 0 }),
-        ready: () => true,
-        view: () => 'chain',
-    });
-    const verb = JSON.parse(answer(JSON.stringify({ verb: 'setGridMode', arg: 'PAGE' })));
-    eq('setGridMode reaches the renderer override', gridArg, 'PAGE');
-    eq('setGridMode answers with the resulting renderer', verb.renderer, 'DRAW');
 
     /* No render yet must be distinguishable from a page with no cells. */
     _resetForTest();

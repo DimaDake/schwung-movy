@@ -18,8 +18,8 @@
  */
 import { schwungLib } from '../../dist/esm/renderer/schwung-lib.js';
 import {
-    env, setSchwungGridMode, schwungGridReload, schwungPageFor,
-    schwungLibAvailable, MOCK_SYNTHS, ok, eq, _log,
+    env, schwungGridReload, schwungPageFor,
+    MOCK_SYNTHS, ok, eq, _log,
 } from './harness.mjs';
 import { makeWav } from './wav-fixture.mjs';
 
@@ -35,7 +35,6 @@ const FILE = '/s/scene.wav';
 const FRAMES = 40000;
 
 function openSamplePage() {
-    setSchwungGridMode('page');
     schwungGridReload();
     /* mrsample's real shape (SP-42 §3): sample_path + a wav_position marker
      * declaring filepath_param, the same pairing detectSample requires to
@@ -46,11 +45,6 @@ function openSamplePage() {
 }
 
 export async function run() {
-
-if (!schwungLibAvailable()) {
-    _log('\nlogic: Schwung sample envelope — SKIPPED (no param_pages; set SCHWUNG=)');
-    return;
-}
 
 _log('\nTest: Schwung sample envelope actually builds (SP-42)');
 
@@ -86,7 +80,6 @@ _log('\nTest: Schwung sample envelope actually builds (SP-42)');
     }
 
     schwungGridReload();
-    setSchwungGridMode(null);
     env.setFiles({});
 }
 

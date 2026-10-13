@@ -1,4 +1,4 @@
-/* grid-call-cost.mjs — how many HOST CALLS a module page costs, per arm.
+/* grid-call-cost.mjs — how many HOST CALLS a Schwung module page costs.
  *
  * WHY CALLS AND NOT MILLISECONDS. Every shadow_*_param is a synchronous
  * round-trip: the JS side parks until the shim services the mailbox on its next
@@ -8,28 +8,12 @@
  * calls per tick and by nothing else (see src/app/perf-probe.ts). So the call
  * count is the device's latency, in units that a laptop can count exactly.
  *
- * WHY THE DEVICE ARM IS A BASELINE AND NOT A GATE. A script CAN drive movy's
- * surface while it is overtaking — that was once written here as impossible and
- * it is not: cable 0 on /dev/shm/schwung-ui-midi reaches movy's
- * onMidiMessageInternal, measured 2026-09-13 with framebuffer hashes (cable 2
- * leaves the screen byte-identical to idle), which is exactly what
- * inject-any.py:24, measure-grid-cost.sh:35,77 and device-agent/ui-agent.py
- * depend on. What a device run cannot do is REPRODUCE: the tick rate swings
- * 63-205 Hz with load, so the same gesture times differently run to run, and two
- * arms timed differently are not an A/B. A host-call count is load-independent,
- * so the burden sits here and the device arm stays a baseline whose numbers go
- * in the ledger (SP-13), compared rather than gated.
+ * WHY NOT ON THE DEVICE: the tick rate swings 63-205 Hz with load, so the same
+ * gesture times differently run to run. A host-call count is load-independent.
  *
- * Here both arms run the same gesture against the same mock module, so the
- * DIFFERENCE is attributable to the flag and nothing else.
  *
  *   SCHWUNG=../schwung node build/browser.mjs
- *   node scripts/grid-call-cost.mjs off
- *   node scripts/grid-call-cost.mjs page
- *
- * MOVY_SCHWUNG_GRID used to appear here and reaches NO build — the mode became
- * the `schwunggrid` flag. Following the old lines ran `off` twice and reported
- * no difference, which is the one result an A/B must not be able to fake.
+ *   node scripts/grid-call-cost.mjs
  */
 import { installEnv } from '../browser-test/env.mjs';
 import { installMockEngine } from '../browser-test/mock-engine.mjs';
@@ -39,14 +23,6 @@ import { dumpFixture } from '../browser-test/dump-fixture.mjs';
 const env = installEnv();
 const engine = installMockEngine();
 
-/* The arm, before anything can read the mode. Merging `schwungGridMode` into the
- * one import rather than importing the module twice is the only edit to the
- * brief's snippet: the resolved mode has to be reported alongside the arm, or a
- * `page` run that pinned itself to `off` reads as a result. */
-const { setSchwungGridMode, schwungGridMode } = await import('../dist/esm/renderer/schwung-grid.js');
-const ARM = process.argv[2];
-if (ARM !== 'off' && ARM !== 'page') { console.error('usage: grid-call-cost.mjs off|page'); process.exit(2); }
-setSchwungGridMode(ARM);
 
 /* Count at the host boundary, which is where the cost actually is. Wrapping
  * rather than replacing keeps the mock's own behaviour intact — a counter that
@@ -272,7 +248,6 @@ const gesture = window_('gesture', () => {
  * That is the one thing that can be silently wrong here, and it was: see the
  * measured-span note on `window_` above. */
 const premium = gesture.total - idle.total;
-const mode = schwungGridMode();
 
 /* THE SPANS MUST MATCH, AND THEY ARE PRINTED BESIDE THE COUNTS. They were once
  * wrong by 2x and the only reason anyone noticed is that `calls/tick` on the
@@ -284,7 +259,6 @@ if (idle.span !== gesture.span) {
     process.exit(4);
 }
 
-console.log(`arm=${ARM}  mode=${mode}  pages=${m.getBankCount()}  knobPage=${m.getKnobPage()}`);
 for (const w of [idle, gesture]) {
     console.log(`  ${w.label.padEnd(12)} span=${String(w.span).padStart(4)}`
               + ` gets=${String(w.gets).padStart(5)} sets=${String(w.sets).padStart(3)}`
@@ -298,18 +272,15 @@ console.log(`  ${GESTURES} gestures: ${premium} calls over the idle floor`
  * nothing else: the human table above is the part most likely to be reworded by
  * a later reader, and a suite that parsed it would break on a column change.
  * `calls` is the gesture premium for the whole window — a plain count of host
- * calls, no rounding and no division, so the suite can compare the two arms
- * without either of them losing a digit. `gap` travels beside it because the
+ * calls, no rounding and no division. `gap` travels beside it because the
  * ceiling is only valid for the gesture CADENCE it was derived at: with the
  * spacing removed the same code measures 7 instead of 43, which would sail
- * under any ceiling and look like a win. `mode` is the mode that ACTUALLY ran:
- * with no schwung checkout `page` pins itself to `off`, and an arm reporting
- * only what it was ASKED for would let two identical runs read as an A/B. */
+ * under any ceiling and look like a win. */
 /* `idletrips` is the IDLE floor in round trips, not a premium: what SP-26
  * changed is what a delegated page costs when NOTHING is happening — Schwung's
  * cursor asking one key a tick, every tick, for as long as the page is on
  * screen. A premium cannot see it (it is in both windows and subtracts out),
  * which is exactly how a page that quietly went back to one trip a tick would
  * pass every check in this file. */
-console.log(`grid-cost: arm=${ARM} mode=${mode} calls=${premium} gap=${GESTURE_GAP_MS}`
+console.log(`grid-cost: calls=${premium} gap=${GESTURE_GAP_MS}`
           + ` idletrips=${idle.trips} span=${idle.span}`);

@@ -21,27 +21,19 @@
  * is eight ticks away, and a value that arrives inside the rotation was the
  * write's own, not the fill's copy of it.
  *
- * Both are guarded on schwungLibAvailable(), like every other page claim here.
- *
  * Run by browser-test/logic.mjs.
  */
 
-import { schwungLibAvailable, eq, ok, _log,
+import { eq, ok, _log,
          env, portFor, MOCK_SYNTHS, schwungPageFor, schwungGridReload,
-         setSchwungGridMode, createModel, appState, bootModel, settleModel,
+         createModel, appState, bootModel, settleModel,
          beginEdit, recordParamOp, endEdit, undoOnce, CLOSE } from './harness.mjs';
 
 export async function run() {
 
-if (!schwungLibAvailable()) {
-    _log('\nlogic: page freshness — SKIPPED (no param_pages; set SCHWUNG=)');
-    return;
-}
-
 _log('\nlogic: page freshness (SP-19)');
 
 function pageFor16() {
-    setSchwungGridMode('page');
     schwungGridReload();
     env.setParams(MOCK_SYNTHS.test16);
     const p = schwungPageFor(0, 'synth');
@@ -87,7 +79,6 @@ _log('\nTest: the arc follows an automation lane on every read of that key');
     eq('the drawn arc wears the lane’s last value', p.knobLevels()[0], Number(latest));
 
     schwungGridReload();
-    setSchwungGridMode(null);
     env.setParams(MOCK_SYNTHS.test16);
 }
 
@@ -101,7 +92,6 @@ _log('\nTest: an undo redraws a page whose key the model cannot map');
      * a model whose knobs are p1..p16. Asserted below, because a test that
      * only ever exercised a mapped key would pass on the model refresh and say
      * nothing about the page. */
-    setSchwungGridMode('page');
     schwungGridReload();
     appState.activeTrack.index = 0;
     env.setParams(MOCK_SYNTHS.test16);
@@ -154,7 +144,6 @@ _log('\nTest: an undo redraws a page whose key the model cannot map');
 
     appState.trackModels[0] = [];
     schwungGridReload();
-    setSchwungGridMode(null);
     env.setParams(MOCK_SYNTHS.test16);
 }
 
@@ -169,7 +158,6 @@ _log('\nTest: SP-38 — the repaint decision while a widget is moving');
     const { pageOwnerOf } = await import('../../dist/esm/app/page-owner.js');
     const { pollDrawnPage } = await import('../../dist/esm/app/page-poll.js');
 
-    setSchwungGridMode('page');
     schwungGridReload();
     appState.activeTrack.index = 0;
     env.setParams(MOCK_SYNTHS.test_enum);
@@ -179,8 +167,8 @@ _log('\nTest: SP-38 — the repaint decision while a widget is moving');
 
     /* Driven through the SAME entry the tick uses, so this also exercises
      * SP-12's poll half where it lives rather than beside it. */
-    for (let i = 0; i < 12 * 60 && !owner.delegated; i++) pollDrawnPage(owner);
-    ok('the enum page delegated to Schwung', owner.delegated);
+    for (let i = 0; i < 12 * 60 && !owner.page; i++) pollDrawnPage(owner);
+    ok('the enum page delegated to Schwung', !!owner.page);
     const p = owner.page;
 
     /* Is the page quiet for `n` consecutive ticks? Consecutive rather than
@@ -275,7 +263,6 @@ _log('\nTest: SP-38 — the repaint decision while a widget is moving');
 
     appState.trackModels[0] = [];
     schwungGridReload();
-    setSchwungGridMode(null);
     env.setParams(MOCK_SYNTHS.test16);
 }
 
@@ -323,15 +310,14 @@ _log('\nTest: SP-48 — a stream is capped, a transition never is');
     const { createRepaintCap, REPAINT_CAP_MS } =
         await import('../../dist/esm/app/repaint-cap.js');
 
-    setSchwungGridMode('page');
     schwungGridReload();
     appState.activeTrack.index = 0;
     env.setParams(MOCK_SYNTHS.test_enum);
     const m = settleModel(bootModel(MOCK_SYNTHS.test_enum));
     appState.trackModels[0] = [m];
     const owner = pageOwnerOf(m);
-    for (let i = 0; i < 12 * 60 && !owner.delegated; i++) pollDrawnPage(owner);
-    ok('the enum page delegated to Schwung (integration fixture)', owner.delegated);
+    for (let i = 0; i < 12 * 60 && !owner.page; i++) pollDrawnPage(owner);
+    ok('the enum page delegated to Schwung (integration fixture)', !!owner.page);
 
     /* Stub the store's answer — the real anim_state timing is Schwung's own
      * `test_anim_activity.sh` — so this block isolates the wiring. */
@@ -353,7 +339,6 @@ _log('\nTest: SP-48 — a stream is capped, a transition never is');
 
     appState.trackModels[0] = [];
     schwungGridReload();
-    setSchwungGridMode(null);
     env.setParams(MOCK_SYNTHS.test16);
 }
 
@@ -365,7 +350,6 @@ _log('\nTest: the option list a turn raises moves the repaint decision');
     const { pageOwnerOf } = await import('../../dist/esm/app/page-owner.js');
     const { pollDrawnPage } = await import('../../dist/esm/app/page-poll.js');
 
-    setSchwungGridMode('page');
     schwungGridReload();
     appState.activeTrack.index = 0;
     /* test_enum, not test16: knob 0 is a four-option enum, and an enum is the
@@ -374,8 +358,8 @@ _log('\nTest: the option list a turn raises moves the repaint decision');
     const m = settleModel(bootModel(MOCK_SYNTHS.test_enum));
     appState.trackModels[0] = [m];
     const owner = pageOwnerOf(m);
-    for (let i = 0; i < 12 * 60 && !owner.delegated; i++) pollDrawnPage(owner);
-    ok('the enum page delegated to Schwung', owner.delegated);
+    for (let i = 0; i < 12 * 60 && !owner.page; i++) pollDrawnPage(owner);
+    ok('the enum page delegated to Schwung', !!owner.page);
 
     const p = owner.page;
     const stable = (n) => { for (let i = 0; i < n; i++) if (pollDrawnPage(owner)) return false; return true; };
@@ -410,7 +394,6 @@ _log('\nTest: the option list a turn raises moves the repaint decision');
 
     appState.trackModels[0] = [];
     schwungGridReload();
-    setSchwungGridMode(null);
     env.setParams(MOCK_SYNTHS.test16);
 }
 }

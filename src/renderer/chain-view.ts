@@ -1,7 +1,6 @@
 import type { ViewModel } from '../types/viewmodel.js';
 import { fontPrint, fontWidth } from '../font/index.js';
 import { drawHeader, drawBankBar, drawHeaderWithPadIcon, PAD_ICON_W, padIconShown } from './header.js';
-import { drawKnobParams } from './label.js';
 import { drawEnumOverlay, drawJogToast } from './overlay.js';
 import { W } from './layout.js';
 import { CHAIN_SLOTS, isVirtualSlot, type ChainSlot } from '../chain/config.js';
@@ -13,7 +12,7 @@ import { drawPageFooter } from './schwung-footer.js';
  * master's four slots. */
 export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: boolean, trackLabel: string,
                                 slotLabel?: string, slots: ChainSlot[] = CHAIN_SLOTS,
-                                bodyOverride?: () => void, chrome?: PageChrome): void {
+                                body: () => void = () => {}, chrome?: PageChrome): void {
     clear_screen();
 
     const slot = slots[chainIndex] ?? slots[1];
@@ -73,12 +72,8 @@ export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: b
     } else {
         drawBankBar(chainIndex, slots.length);
     }
-    /* THE CHAIN VIEW DRAWS THE KNOB BODY TOO. It was the site the Schwung
-     * delegation missed: renderKnobsView was routed, this was not, and movy
-     * opens on this view — so on device the grid stayed movy's while every
-     * local check passed. */
-    if (bodyOverride) bodyOverride();
-    else drawKnobParams(vm);
+    /* THE CHAIN VIEW DRAWS THE KNOB BODY TOO — movy opens on this view. */
+    body();
 
     if (vm.overlay) drawEnumOverlay(vm);
     /* The file-browse gesture works here too — the touched param lives on the

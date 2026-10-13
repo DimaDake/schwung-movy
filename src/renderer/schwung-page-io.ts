@@ -19,6 +19,7 @@ import type { TrackPort } from '../track/port.js';
 import { isMasterComponent } from '../chain/config.js';
 import { setChainParam } from '../chain/set-param.js';
 import { beginGesture } from '../undo/edit.js';
+import { mlog } from '../log.js';
 
 /*
  * EVERY USER WRITE FROM A SCHWUNG PAGE IS AN UNDOABLE EDIT, and this is its one
@@ -38,7 +39,12 @@ export function pageWriter(port: PageParamSource, readOld: (fullKey: string) => 
         const field = key.slice(key.lastIndexOf(':') + 1).toUpperCase();
         beginGesture('knob:' + track.index + ':' + key, field,
             isMasterComponent(key) ? 'MASTER' : 'T' + (track.index + 1), false);
-        return setChainParam(port as TrackPort, key, v, readOld(key));
+        const ok = setChainParam(port as TrackPort, key, v, readOld(key));
+        /* The device smoke tier's evidence that a knob turn became a write the
+         * IPC accepted. Schwung throttles its own writes, so this is not per
+         * detent. */
+        mlog('set slot=' + track.index + ' key=' + key + ' val=' + v + ' set_param returned ' + ok);
+        return ok;
     };
 }
 

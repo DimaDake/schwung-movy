@@ -24,7 +24,7 @@
  *
  * Run by browser-test/logic.mjs.
  */
-import { eq, _log, schwungLibAvailable } from './harness.mjs';
+import { eq, _log } from './harness.mjs';
 import { overlayWidgets, declaresCustomWidget, registerModuleWidgets,
          registerWidget, clearWidgets, isWidgetAvailable }
     from '../../dist/esm/renderer/schwung-widgets.js';
@@ -420,7 +420,6 @@ const OWNER = '0:synth';
     eq('a departed module\'s kind is not claimable — VACUOUS in this build (no registry to hold '
        + 'it); the teeth are the device check swap-away-leaves-nothing-behind',
        isWidgetAvailable('custom:stale'), false);
-    _log(`    (registry behind the door in this build: ${schwungLibAvailable() ? 'yes' : 'no'})`);
 }
 
 /* ── one registry, several pages ───────────────────────────────────────────── */
@@ -452,9 +451,7 @@ const OWNER = '0:synth';
            [`${MODULES}/sound_generators/other/canvas.js`]:
              { canvas_overlay: { widgetKinds: ['custom:other_art'], drawCell() { /* art */ } } } });
 
-    if (!schwungLibAvailable()) {
-        _log('    (one registry, several pages: SKIPPED — no registry behind the door in this build)');
-    } else {
+    {
         clearWidgets();
         const declares = (kind) => [{ key: 'k', viz: { kind } }];
         const page = (ck, id) => createWidgetSync(

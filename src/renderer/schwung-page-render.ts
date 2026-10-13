@@ -12,8 +12,8 @@ import { GRID_BODY_RECT } from './layout.js';
 import { decorationsFor } from './schwung-page-decorations.js';
 import { movyCtx } from './schwung-ctx.js';
 import { isLfoComponent } from '../chain/config.js';
-import { schwungLib, schwungLibAvailable } from './schwung-lib.js';
-import { enumRawToIndex, enumUsesIndex } from '../model/enum-value.js';
+import { schwungLib } from './schwung-lib.js';
+import { enumUsesIndex } from '../model/enum-value.js';
 import type { PageAutomation } from '../types/page-automation.js';
 
 /* movy draws its own header, bank bar and footer; Schwung is asked for the
@@ -51,8 +51,7 @@ function enumLane(m: any, raw: unknown): { options: string[]; index: number; wir
         || (m.wire_format !== 'index' && s !== null && !enumUsesIndex(options, s));
     let index = 0;
     if (s !== null) {
-        const lib = schwungLibAvailable() ? schwungLib() : null;
-        const i = lib && lib.enumIndexOf ? lib.enumIndexOf(m, s) : enumRawToIndex(options, s);
+        const i = schwungLib().enumIndexOf(m, s);
         index = Math.max(0, Math.min(options.length - 1, typeof i === 'number' && i >= 0 ? i : 0));
     }
     return { options, index, wiresNames };
@@ -68,7 +67,7 @@ export function createPageRender(ctl: any, deps: {
 }): PageRender {
     const { keyAt, keysOf, componentKey, normalizedOf, automation, focusedChild } = deps;
     const prefix = componentKey + ':';
-    const lib = schwungLibAvailable() ? schwungLib() : null;
+    const lib = schwungLib();
 
     /* THE PAD'S OWN KEY FOR A CELL. A child-level page lists templates
      * (`tune`) and the controller resolves each against the level's focused

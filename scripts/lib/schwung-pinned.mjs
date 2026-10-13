@@ -3,8 +3,8 @@
  * never the checkout's working tree, which follows origin/main.
  * (plans/2026-10-13-pin-schwung-js.md)
  *
- * SCHWUNG= still says WHERE the schwung git repo is, and whether the schwung
- * half runs at all; this says WHICH schwung it runs. Returns a root laid out
+ * SCHWUNG= says WHERE the schwung git repo is (../schwung by default);
+ * this says WHICH schwung the suites run. Returns a root laid out
  * like a checkout (`<root>/src/shared/...`). */
 import { execFileSync } from 'node:child_process';
 import { dirname, resolve } from 'node:path';

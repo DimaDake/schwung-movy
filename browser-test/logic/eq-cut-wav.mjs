@@ -5,7 +5,7 @@
  */
 
 import {
-    MOCK_SYNTHS, detectEqViz, cutKindOf, detectCutPair, drawCutCurve, detectWavViz,
+    MOCK_SYNTHS, detectEqViz, cutKindOf, detectCutPair, detectWavViz,
     eq, bootModel, P, _log,
 } from './harness.mjs';
 
@@ -95,39 +95,6 @@ _log('\nTest: cutKindOf — low/high cut corner frequencies');
     }
     eq('lone lowcut is not a pair', detectCutPair(pad([F('hpf', 'HPF')])).length, 0);
 
-    /* The pair's corners share the span, overlapping past the middle. They must
-     * still MEET and shut the band at the extreme of both knobs — that state is
-     * real — but the raw values leave it dead across 6 of 25 sampled positions,
-     * every one drawing the same floor. */
-    {
-        const origFill = globalThis.fill_rect;
-        const bandHeight = (lo, hi) => {
-            const rects = [];
-            globalThis.fill_rect = (x, y, w, h, v) => rects.push({ x, y, w, h, v });
-            drawCutCurve(11, 0, 2, lo, hi);
-            globalThis.fill_rect = origFill;
-            const baseY = 11 + 14;
-            // Ignore the dotted axis: anything drawn ABOVE the floor is band.
-            const above = rects.filter(r => r.y < baseY);
-            return above.length === 0 ? 0 : baseY - Math.min(...above.map(r => r.y));
-        };
-        let worst = 99;
-        for (const lo of [0, 0.25, 0.5, 0.75, 1]) {
-            for (const hi of [0, 0.25, 0.5, 0.75, 1]) worst = Math.min(worst, bandHeight(lo, hi));
-        }
-        let dead = 0;
-        for (const lo of [0, 0.25, 0.5, 0.75, 1]) {
-            for (const hi of [0, 0.25, 0.5, 0.75, 1]) if (bandHeight(lo, hi) === 0) dead++;
-        }
-        // Both knobs at their extremes: the band genuinely shuts.
-        eq('lowcut max + highcut min closes to a flat line', bandHeight(1, 0), 0);
-        // And it closes GRADUALLY rather than snapping from full to nothing.
-        eq('one step back from the extreme still shows a band',
-            bandHeight(1, 0.25) > 0 && bandHeight(1, 0.25) < 8, true);
-        // Everything away from the extreme keeps a full passband.
-        eq('mid settings keep the full passband', bandHeight(0.5, 0.5), 8);
-        eq('only the extreme is dead (raw mapping leaves 6 of 25)', dead, 1);
-    }
     eq('lone highcut is not a pair', detectCutPair(pad([F('lpf', 'LPF')])).length, 0);
 }
 

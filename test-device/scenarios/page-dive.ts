@@ -43,10 +43,6 @@ import { until, WaitBudgetExceeded, PARAM_POLL_GAP } from '../wait.js';
  * scenarios use for one gesture. */
 const ACT = 90;
 
-/* The arm the item is about: Schwung plans AND draws, so the controller is the
- * one holding the knob and the click it hands back is what has to become a
- * browser. Under `off` movy's own renderer never asks anybody. */
-const PAGE_MODE = 'page';
 
 /* The module the ledger names. Loaded through the same param the chain UI
  * writes, so what the planner reads is the declaration a user would get. */
@@ -64,7 +60,7 @@ const FILTER = ['.wav', '.mp3', '.flac', '.aif', '.aiff'];
 const SAMPLE_PARAM = 'ch0:synth:sample_path';
 
 type Page = { module?: string; pageIndex?: number; pageCount?: number;
-              renderer?: string; view?: string; cells?: ({ name?: string } | null)[];
+              body?: string; view?: string; cells?: ({ name?: string } | null)[];
               schwung?: { pageIndex: number; pageCount: number;
                           keys: (string | null)[] } | null };
 
@@ -140,7 +136,7 @@ scenario('page-dive', async (t) => {
         } catch { return null; }
     };
     const describe = (p: Page | null): string => !p ? 'movy has not rendered'
-        : `renderer=${p.renderer} module=${p.module || '(none)'} view=${p.view} `
+        : `body=${p.body} module=${p.module || '(none)'} view=${p.view} `
         + `pages=${p.pageCount} at=${p.pageIndex} `
         + `cells=[${(p.cells ?? []).map((c) => c?.name).filter(Boolean).join(' ')}]`;
 
@@ -162,11 +158,6 @@ scenario('page-dive', async (t) => {
         }
     };
 
-    /* Page mode by OVERRIDE — `setGridMode` writes nothing, so the device's own
-     * prefs are never touched and this scenario does not care how the box is
-     * set. A reopen would drop it; there is none here. */
-    t.note('gridMode', await probe.setGridMode(PAGE_MODE));
-
     await ep('ch0:synth:module', MODULE);
     const hasCells = (p: Page): boolean => (p.cells ?? []).some((c) => !!c?.name);
     /* EITHER LABEL, and not out of leniency. The view model reports the module
@@ -179,13 +170,13 @@ scenario('page-dive', async (t) => {
     const sameModule = (p: Page | null): boolean =>
         (p?.module ?? '').toLowerCase() === MODULE;
     const loaded = await waitPage((p) => sameModule(p) && hasCells(p)
-                                       && p.renderer === PAGE_MODE,
+                                       && p.body === 'schwung',
                                   `${MODULE}'s page under page mode`, 6000);
     t.note('pageAtLoad', describe(loaded));
     t.check('dive-module-is-on-screen',
         'the module the dive belongs to is loaded and Schwung is drawing it',
-        !!loaded && sameModule(loaded) && loaded.renderer === PAGE_MODE,
-        { expected: `a rendered ${MODULE} page under renderer=${PAGE_MODE}`,
+        !!loaded && sameModule(loaded) && loaded.body === 'schwung',
+        { expected: `a rendered ${MODULE} page drawn through Schwung`,
           actual: describe(loaded) });
 
     const viewNow = async (): Promise<string> => ((await pageNow())?.view) ?? '';
@@ -337,6 +328,5 @@ scenario('page-dive', async (t) => {
           actual: `the parameter holds ${JSON.stringify(after)}` });
 
     t.note('viewAtEnd', await viewNow());
-    await probe.setGridMode(null);
     await ep('ch0:synth:module', RESTORE);
 });

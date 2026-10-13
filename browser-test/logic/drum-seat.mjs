@@ -11,18 +11,13 @@
  */
 
 import { join, resolve } from 'node:path';
-import { schwungLibAvailable, bootModel, settleModel, ok, eq, fail, _log, env, MOCK_SYNTHS, appState, portFor,
-         setSchwungGridMode, schwungGridReload, schwungPageFor } from './harness.mjs';
+import { bootModel, settleModel, ok, eq, fail, _log, env, MOCK_SYNTHS, appState, portFor,
+         schwungGridReload, schwungPageFor } from './harness.mjs';
 import { dumpEntry, dumpFixture } from '../dump-fixture.mjs';
 import { serveModuleFiles } from './drum-automation.mjs';
 import { pinnedSchwungRoot } from '../../scripts/lib/schwung-pinned.mjs';
 
 export async function run() {
-
-if (!schwungLibAvailable()) {
-    _log('\nlogic: drum seat — SKIPPED (no param_pages; set SCHWUNG=)');
-    return;
-}
 
 const sh = resolve(pinnedSchwungRoot(), 'src', 'shared');
 const { voicesOf } = await import(join(sh, 'param_pages', 'voices.mjs'));
@@ -44,7 +39,6 @@ setVoiceMapReader(rackVoiceMap);
 const prevModels = appState.trackModels[0];
 function boot(id, edit = null) {
     const restoreFs = serveModuleFiles(dumpEntry(id));
-    setSchwungGridMode('page');
     schwungGridReload();
     const fixture = { ...dumpFixture(id) };
     if (edit) edit(fixture);
@@ -68,7 +62,6 @@ const done = (restoreFs) => {
     seqState.heldLocks = new Map(); seqState.stepAutoMode = false;
     seqState.autoActive = 0; seqState.autoAssigned = 0; seqState.watchLane = -1;
     schwungGridReload();
-    setSchwungGridMode(null);
     env.setParams(MOCK_SYNTHS.test16);
 };
 /* Every live read the press costs: singles and bulk requests through the

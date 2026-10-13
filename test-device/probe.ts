@@ -63,15 +63,9 @@ export class Probe {
      * after a commit: the browser is torn down in the same call that writes. */
     browse() { return this.ask({ key: 'browse' }); }
 
-    /* The internal mode strings, NOT the flag's display labels (the Settings
-     * page shows MOVY/SCHWUNG for off/page). */
-    setGridMode(m: 'off' | 'page' | null) {
-        return this.ask({ verb: 'setGridMode', arg: m });
-    }
-
     /* A MODULE-SUPPLIED WIDGET (SP-28). `available` is the library's own answer
      * read through movy's binding to the registry, and `clear` is a mutation
-     * seam like setGridMode: it writes nothing durable, so a scenario can put
+     * seam: it writes nothing durable, so a scenario can put
      * the registry back to the state a module with no widget leaves it in and
      * then look at the screen — which is the only way to watch the built-in
      * draw in a cell a module had claimed. */

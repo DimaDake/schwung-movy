@@ -43,7 +43,7 @@ import { renderBrowseView } from '../renderer/browse-view.js';
 import { renderChainView }    from '../renderer/chain-view.js';
 import type { PageChrome } from '../renderer/schwung-page-chrome.js';
 import { renderFileBrowseView } from '../renderer/file-browse-view.js';
-import { updateKnobLEDs, updateKnobLEDsFrom, updateSingleKnobLED } from '../renderer/knob-leds.js';
+import { updateKnobLEDsFrom, updateSingleKnobLED } from '../renderer/knob-leds.js';
 import { seqEngineTick, takeLabelSync, requestLabelSync } from '../seq/engine.js';
 import { drumSyncTick, resetDrumSync } from '../seq/drum-sync.js';
 import { bindLanes } from '../seq/lane-mapping.js';
@@ -213,7 +213,6 @@ export function schwungBodyFor(owner: PageOwner): (() => void) | undefined {
      * place — under `page` that is now the toast at the gesture, not a dimmed
      * cell (SU-8; `docs/schwung-page-migration.md`).
      */
-    if (!owner.claimed) return why(owner.reason);
     /* The poll moved to `pollDrawnPage` (app/page-poll.ts), which runs once per
      * tick rather than once per rendered frame. It had to: with movy's own
      * refresh stopped for a delegated component, nothing dirties the model, so
@@ -246,7 +245,7 @@ export function schwungBodyFor(owner: PageOwner): (() => void) | undefined {
  */
 export function schwungBankFor(owner: PageOwner, body: (() => void) | undefined):
         { index: number; count: number } | undefined {
-    return body && owner.delegated ? { index: owner.pageIndex, count: owner.pageCount } : undefined;
+    return body && owner.page ? { index: owner.pageIndex, count: owner.pageCount } : undefined;
 }
 
 /*
@@ -274,21 +273,17 @@ export function schwungChromeFor(owner: PageOwner, body: (() => void) | undefine
 }
 
 /*
- * THE RING FOLLOWS THE BODY, and for the same reason `schwungBodyFor` is one
- * helper: movy draws a module's knobs from two screens, and a rule applied to
- * one of them is how the seam drifts. Whoever drew the eight cells supplies the
- * eight values, so the LEDs cannot end up describing a page the screen is not
- * showing (design §3, symptom 5) — and under a delegated page movy's own view
- * model is not merely a different parameter set, it is an EMPTY one, because
- * movy has stopped reading it.
+ * THE RING FOLLOWS THE BODY: whoever drew the eight cells supplies the eight
+ * values, so the LEDs cannot describe a page the screen is not showing (design
+ * §3, symptom 5). No body (a page still loading) is a dark row.
  *
  * The WRITER is movy's either way. The diff cache and the frame LED budget live
  * in renderer/knob-leds.ts, and a second writer on these eight is how a knob
  * strands itself on a colour it no longer shows.
  */
-function lightKnobRow(vm: ViewModel, body: (() => void) | undefined): void {
-    if (body) updateKnobLEDsFrom(drawnKnobLevels());
-    else updateKnobLEDs(vm);
+const NO_LEVELS: readonly null[] = new Array(8).fill(null);
+function lightKnobRow(body: (() => void) | undefined): void {
+    updateKnobLEDsFrom(body ? drawnKnobLevels() : NO_LEVELS);
 }
 let _schwungView = '';
 let _schwungWhy = '';
@@ -602,29 +597,17 @@ function tickBody(): void {
     activeModel?.setNoRefreshKeys(laneKeysForTrack(appState.activeTrack.index));
     /*
      * WHO OWNS THIS COMPONENT'S PAGES — asked ONCE per tick, and the answer
-     * decides three things below: whether movy's value refresh runs at all,
-     * whether Schwung's page is polled and drawn, and which of the two lights
-     * the eight knob LEDs. Asking it once is the point: three answers derived
-     * separately is how the seam drifted apart in the first place (design §3).
+     * decides whether Schwung's page is drawn and what lights the eight knob
+     * LEDs. Asking it once is the point: answers derived separately is how the
+     * seam drifted apart in the first place (design §3).
      */
     const pageOwner = pageOwnerOf(activeModel);
 
-    /* A DELEGATED COMPONENT IS NEVER DUAL-DRIVEN (movy/CLAUDE.md, rule 3):
-     * under Schwung's page movy's round-robin re-reads a page nobody is drawing,
-     * at a bulk engine round trip every REFRESH_BULK_TICKS — the second reader
-     * design §3 names as the leading cost hypothesis.
-     *
-     * WHILE A STEP IS HELD MOVY *IS* DRAWING, so the rule does not apply and the
-     * refresh must run. It needs no second term: a held step is not delegated
-     * (`app/page-owner.ts`), so `!delegated` already covers it — which is the
-     * point of the hold living in the accessor. Left asking a narrower question,
-     * the held-step screen was built from whatever movy last read before the
-     * finger went down: the locked cells stayed right (they come from the
-     * engine's status poll), so every NEIGHBOURING cell froze and the reading
-     * looked live. Cost: the pre-migration pace, one bulk read per
-     * REFRESH_BULK_TICKS, for as long as a step is held and not one tick longer. */
+    /* movy's model never re-reads values (`tick(false)`): Schwung's page has
+     * its own read cursor, and a second reader was the per-tick cost the page
+     * migration went looking for (design §3, Cause F). */
     perfPhase('modeltick');
-    const modelDirty  = activeModel?.tick(!pageOwner.delegated) ?? false;
+    const modelDirty  = activeModel?.tick(false) ?? false;
     perfPhaseEnd();
 
     /* A module swap on the focused component changes its param set → re-validate
@@ -643,19 +626,13 @@ function tickBody(): void {
     const mIdx        = appState.masterChainIndex;
     const masterModel = seqState.sessionMode ? appState.masterFxModels[mIdx] : null;
     /* SP-52: the master slot's OWN owner, never `pageOwner` above — that one is
-     * built from the TRACK's `activeModel` and gating the master model's
-     * refresh on ITS delegation would tie one component's dual-drive rule to a
-     * different component's answer. Only asked in session mode: `masterModel`
-     * is null outside it, and `pageOwnerOf(null)` is cheap but there is nothing
-     * for it to answer here. */
+     * built from the TRACK's `activeModel`. Only asked in session mode. */
     const masterPageOwner = seqState.sessionMode ? pageOwnerOf(masterModel) : null;
-    const masterDirty = masterModel?.tick(!masterPageOwner?.delegated) ?? false;
+    const masterDirty = masterModel?.tick(false) ?? false;
 
     /* SP-53: Clip Params/Set Params have no MODEL at all (they answer out of
      * `seqState`/`keyboardState` directly), so neither is `pageOwner` above and
-     * there is no `.tick()` to gate the way `activeModel`/`masterModel` are —
-     * only asked while its own page is actually on screen, same reasoning as
-     * `masterPageOwner`. */
+     * only asked while its own page is actually on screen. */
     const clipParamsOwner = appState.currentView === VIEW_CLIP_PARAMS
         ? pageOwnerForComponent(CLIP_PARAMS_COMPONENT) : null;
     const mainParamsOwner = appState.currentView === VIEW_MAIN_PARAMS
@@ -807,9 +784,9 @@ function tickBody(): void {
             const vm = buildMainPageVM();
             const chrome = schwungChromeFor(drawnPageOwner, schwungBody, false);
             renderKnobsView(vm, false, appState.activeTrack.index,
-                            paramBodyFor(drawnPageOwner, vm, schwungBody),
+                            paramBodyFor(drawnPageOwner, schwungBody),
                             schwungBankFor(drawnPageOwner, schwungBody), chrome);
-            lightKnobRow(vm, schwungBody);
+            lightKnobRow(schwungBody);
         } else if (appState.currentView === VIEW_CLIP_PARAMS) {
             /* AFTER `schwungEditorActive()` on purpose (SP-53): SCALE's
              * long-enum dive is Schwung's own list picker under delegation
@@ -819,9 +796,9 @@ function tickBody(): void {
             const vm = buildClipPageVM();
             const chrome = schwungChromeFor(drawnPageOwner, schwungBody, false);
             renderKnobsView(vm, false, appState.activeTrack.index,
-                            paramBodyFor(drawnPageOwner, vm, schwungBody),
+                            paramBodyFor(drawnPageOwner, schwungBody),
                             schwungBankFor(drawnPageOwner, schwungBody), chrome);
-            lightKnobRow(vm, schwungBody);
+            lightKnobRow(schwungBody);
         } else if (appState.currentView === VIEW_CPU) {
             renderCpuView(buildCpuPageVM());
             // Nothing on this page is editable, so every knob goes dark. A knob
@@ -845,7 +822,7 @@ function tickBody(): void {
                 noteRendered(vm);
                 const chrome = schwungChromeFor(drawnPageOwner, schwungBody, true);
                 renderKnobsView(vm, jogHintVisible(), appState.activeTrack.index,
-                                paramBodyFor(drawnPageOwner, vm, schwungBody),
+                                paramBodyFor(drawnPageOwner, schwungBody),
                                 schwungBankFor(drawnPageOwner, schwungBody), chrome);
                 jogToastShown = jogHintVisible() || !!(chrome && chrome.footer);
             } else {
@@ -854,11 +831,11 @@ function tickBody(): void {
                  * Schwung's body and chrome exactly as a track's VIEW_CHAIN does
                  * (SP-58) — `paging: false`, since the jog moves slots here. */
                 renderChainView(vm, mIdx, jogHintVisible(), 'MASTER', MASTER_FX_SLOTS[mIdx]?.label,
-                                MASTER_FX_SLOTS, paramBodyFor(drawnPageOwner, vm, schwungBody),
+                                MASTER_FX_SLOTS, paramBodyFor(drawnPageOwner, schwungBody),
                                 schwungChromeFor(drawnPageOwner, schwungBody, false));
                 jogToastShown = jogHintVisible();
             }
-            lightKnobRow(vm, schwungBody);
+            lightKnobRow(schwungBody);
         } else if (appState.currentView === VIEW_KEYS) {
             renderKeysView(activeModel?.getModuleName() ?? '—', baseNoteFor(appState.activeTrack.index), midiNoteName);
         } else if (appState.currentView === VIEW_KNOBS) {
@@ -915,7 +892,7 @@ function tickBody(): void {
             const chrome = schwungChromeFor(drawnPageOwner, schwungBody, !stepSelected);
             const chromeFooter = !!(chrome && chrome.footer);
             renderKnobsView(vm, jogHintVisible(), appState.activeTrack.index,
-                            paramBodyFor(drawnPageOwner, vm, schwungBody),
+                            paramBodyFor(drawnPageOwner, schwungBody),
                             schwungBankFor(pageOwner, schwungBody), chrome);
             perfPhaseEnd();
             // The pool-full toast shares the bottom rows with the Loop strip;
@@ -923,7 +900,7 @@ function tickBody(): void {
             jogToastShown = (vm.automationHeld && vm.automationPoolFull)
                 || (!!vm.toast?.browseHint && !chrome) || jogHintVisible() || chromeFooter;
             perfPhase('leds');
-            lightKnobRow(vm, schwungBody);
+            lightKnobRow(schwungBody);
             perfPhaseEnd();
         } else if (appState.currentView === VIEW_CHAIN) {
             const stepAvail = stepPageAvailable();
@@ -957,7 +934,7 @@ function tickBody(): void {
              * `drawnPageOwner`, same reasoning as the VIEW_KNOBS branch above —
              * so a touched step-page cell's toast reaches the header here too. */
             renderChainView(vm, chainIdx, jogHintVisible(), 'T' + (appState.activeTrack.index + 1),
-                            undefined, undefined as any, paramBodyFor(drawnPageOwner, vm, schwungBody),
+                            undefined, undefined as any, paramBodyFor(drawnPageOwner, schwungBody),
                             schwungChromeFor(drawnPageOwner, schwungBody, false));
             perfPhaseEnd();
             /* Must match what renderChainView actually drew: the Loop strip
@@ -965,7 +942,7 @@ function tickBody(): void {
              * told about. */
             jogToastShown = !!vm.toast?.browseHint || jogHintVisible();
             perfPhase('leds');
-            lightKnobRow(vm, schwungBody);
+            lightKnobRow(schwungBody);
             perfPhaseEnd();
         }
         /* Volume slider above the view it was invoked from: a held track's,

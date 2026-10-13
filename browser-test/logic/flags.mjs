@@ -58,11 +58,6 @@ export async function run() {
     eq('a non-number falls back to the default', clampFlag(ranged, NaN), ranged.def);
     eq('fractions land on a whole setting', clampFlag(ranged, 1.4), 1);
 
-    /* The shipped defaults, pinned because each is a product decision that
-     * lives in a one-character field and would fail no other test in this repo
-     * — every suite below sets the flags it cares about explicitly, and the
-     * screenshot scenes do too. */
-    eq('Schwung draws param pages', flagDef('schwunggrid').def, 1);
 
     /* `bool` presentation has no user in the shipped table — every flag there
      * carries word labels or reads as a number — so it is exercised against a
@@ -98,19 +93,19 @@ export async function run() {
            flagValue(f.key), f.legacy);
     }
 
-    setFlag('schwunggrid', 1);
-    eq('the value moved', flagValue('schwunggrid'), 1);
-    eq('and reached prefs.json', readPrefFlags().schwunggrid, 1);
+    setFlag('engpersist', 0);
+    eq('the value moved', flagValue('engpersist'), 0);
+    eq('and reached prefs.json', readPrefFlags().engpersist, 0);
 
     /* The whole point: a flag was a measurement instrument that reset on every
      * engine load, and is a setting now. Dropping the cache models reopening
      * movy — if the value came back as the default, nothing was persisted. */
     resetFlags();
-    eq('and survives a reopen', flagValue('schwunggrid'), 1);
+    eq('and survives a reopen', flagValue('engpersist'), 0);
 
-    setFlag('schwunggrid', 99);
-    eq('a write past the range is clamped, not refused', flagValue('schwunggrid'), 1);
-    eq('and the clamped value is what is stored', readPrefFlags().schwunggrid, 1);
+    setFlag('engpersist', 99);
+    eq('a write past the range is clamped, not refused', flagValue('engpersist'), 1);
+    eq('and the clamped value is what is stored', readPrefFlags().engpersist, 1);
 
     eq('an unknown flag cannot be written', setFlag('nope', 1), 0);
     ok('and leaves no trace in prefs', !('nope' in readPrefFlags()));
@@ -121,11 +116,11 @@ export async function run() {
     installMockFs({
         [PREFS_PATH]: JSON.stringify({ defaultQuant: 70, flags: { chfuture: 7 } }),
     });
-    writePrefFlag('schwunggrid', 1);
+    writePrefFlag('engpersist', 0);
     const after = JSON.parse(globalThis.host_read_file(PREFS_PATH));
     eq('an unrelated preference survives', after.defaultQuant, 70);
     eq('and so does a flag this build does not know', after.flags.chfuture, 7);
-    eq('alongside the one just written', after.flags.schwunggrid, 1);
+    eq('alongside the one just written', after.flags.engpersist, 0);
     uninstallMockFs();
 
     /* The `revisedAt` adoption mechanism, now with a live user: `engpersist`
@@ -148,35 +143,16 @@ export async function run() {
     uninstallMockFs();
 
 
-    /* FLAGS_REV 6 flipped the default to SCHWUNG. Every device that booted
-     * rev 5 has a stored MOVY (0) — that adoption wrote it — so without the
-     * revision the new default would reach nobody. Any older value, including
-     * the pre-SP-40 three-value numbering, takes the new default too. */
-    for (const [rev, old] of [[5, 0], [4, 0], [4, 1], [4, 2]]) {
-        installMockFs({
-            [PREFS_PATH]: JSON.stringify({ flagsRev: rev, flags: { schwunggrid: old } }),
-        });
-        resetFlags();
-        eq(`rev ${rev} stored ${old} adopts SCHWUNG`, flagValue('schwunggrid'), 1);
-        uninstallMockFs();
-    }
-    installMockFs({
-        [PREFS_PATH]: JSON.stringify({ flagsRev: 6, flags: { schwunggrid: 0 } }),
-    });
-    resetFlags();
-    eq('a MOVY chosen at rev 6 stands', flagValue('schwunggrid'), 0);
-    uninstallMockFs();
-
     installMockFs({ [PREFS_PATH]: '{not json' });
     resetFlags();
     eq('corrupt prefs fall back to defaults',
-       flagValue('schwunggrid'), flagDef('schwunggrid').def);
+       flagValue('engpersist'), flagDef('engpersist').def);
     uninstallMockFs();
 
-    installMockFs({ [PREFS_PATH]: JSON.stringify({ flags: { schwunggrid: 'one' } }) });
+    installMockFs({ [PREFS_PATH]: JSON.stringify({ flags: { engpersist: 'one' } }) });
     resetFlags();
     eq('and so does a value of the wrong type',
-       flagValue('schwunggrid'), flagDef('schwunggrid').def);
+       flagValue('engpersist'), flagDef('engpersist').def);
     uninstallMockFs();
 }
 
@@ -284,16 +260,16 @@ export async function run() {
 
     /* Knob 1 edits whatever the jog selected — that is the whole interaction,
      * and it is what lets the list grow past eight entries. */
-    flagsPageState.selected = visibleFlags().findIndex((f) => f.key === 'schwunggrid');
-    setFlag('schwunggrid', 0);
+    flagsPageState.selected = visibleFlags().findIndex((f) => f.key === 'engpersist');
+    setFlag('engpersist', 0);
     turn(FLAG_KNOB, 6);
-    ok('knob 1 raises the selected flag', flagValue('schwunggrid') > 0);
+    ok('knob 1 raises the selected flag', flagValue('engpersist') > 0);
     turn(FLAG_KNOB, -20);
-    eq('and lowers it to its floor, never past', flagValue('schwunggrid'), flagDef('schwunggrid').min);
+    eq('and lowers it to its floor, never past', flagValue('engpersist'), flagDef('engpersist').min);
 
-    const before = flagValue('schwunggrid');
+    const before = flagValue('engpersist');
     turn(3, 6);
-    eq('another knob does nothing', flagValue('schwunggrid'), before);
+    eq('another knob does nothing', flagValue('engpersist'), before);
 
     /* A half-turn banked on one flag must not spend itself on the next: the
      * detent accumulator is shared, so jogging has to clear it. */
@@ -316,7 +292,7 @@ export async function run() {
     resetFlags();
     resetFlagsPage();
 
-    setFlag('schwunggrid', 1);
+    setFlag('engpersist', 1);
     const vm = buildFlagsPageVM();
     /* ONE DRAWN ROW PER SELECTABLE ROW, and this is the assertion that was
      * missing when BACKUPS shipped invisible: it was added to the jog's clamp
@@ -329,7 +305,6 @@ export async function run() {
     eq('and the action row comes last', vm.rows[vm.rows.length - 1].name, 'BACKUPS');
     eq('the name column is the readable name', vm.rows[0].name, visibleFlags()[0].name);
     eq('exactly one row is selected', vm.rows.filter((r) => r.selected).length, 1);
-    ok('a labelled flag shows its word', vm.rows.some((r) => r.value === 'SCHWUNG'));
     ok('a numeric flag shows its number', vm.rows.some((r) => r.value === '1'));
 
     /* Selecting the action row: it draws as selected, the hint explains it
@@ -348,10 +323,10 @@ export async function run() {
 
     /* The LED carries the value AND says which knob is live — it is the only
      * lit one. A flat brightness would leave the page mute about both. */
-    flagsPageState.selected = visibleFlags().findIndex((f) => f.key === 'schwunggrid');
-    setFlag('schwunggrid', 0);
+    flagsPageState.selected = visibleFlags().findIndex((f) => f.key === 'engpersist');
+    setFlag('engpersist', 0);
     eq('the knob LED is dim at the bottom of the range', buildFlagsPageVM().knobNormalized, 0);
-    setFlag('schwunggrid', 1);
+    setFlag('engpersist', 1);
     eq('and full at the top', buildFlagsPageVM().knobNormalized, 1);
 
     /* Scrolling. The list is short today and will not be, so the window is
@@ -388,12 +363,11 @@ export async function run() {
     installMockFs();
     resetFlags();
 
-    /* One flag ships: Param Pages is a user's choice of renderer. The other is
-     * an instrument — `engpersist` stays debug-only. */
-    ok('Param Pages is a release row', flagDef('schwunggrid').release === true);
-    ok('the instrument is not', !flagDef('engpersist').release);
+    /* No flag ships (Param Pages, the last release row, went with movy's own
+     * pages): `engpersist` is an instrument, debug-only. */
+    ok('the instrument is not a release row', !flagDef('engpersist').release);
     const rel = visibleFlags(false).map((f) => f.key);
-    eq('a release build lists exactly Param Pages', rel.join(','), 'schwunggrid');
+    eq('a release build lists no flag', rel.join(','), '');
     const dbg = visibleFlags(true).map((f) => f.key);
     eq('a debug build lists every flag', dbg.length, FLAGS.length);
     /* FLAGS lists release rows first, so a release list is a PREFIX of the

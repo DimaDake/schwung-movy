@@ -1,12 +1,8 @@
-/* browser-test/logic/param-body.mjs — movy's own knob body never draws over a
- * page Schwung owns.
+/* browser-test/logic/param-body.mjs — the knob body is Schwung's page or
+ * nothing.
  *
- * SP-58. The master chain view drew movy's body while its knobs already wrote
- * through Schwung's page: the render site was never asked for Schwung's body,
- * so the fallback ran and nothing said so. `app/param-body.ts` is the one place
- * the choice is made, and a live delegated owner reaching the fallback is a
- * defect by definition — this pins that it is reported, and that the three
- * legitimate fallbacks are not.
+ * SP-58. `app/param-body.ts` is the one place the body is chosen, so a render
+ * site cannot draw something other than the page its knobs write through.
  *
  * Run by browser-test/logic.mjs.
  */
@@ -15,64 +11,55 @@ import { readFileSync, ok, eq, _log } from './harness.mjs';
 
 export async function run() {
 
-const { paramBodyFor, movyBodyUnderPage, resetMovyBodyUnderPage, lastSchwungPage } =
+const { paramBodyFor, lastParamBody, lastSchwungPage } =
     await import('../../dist/esm/app/param-body.js');
 
-const owner = (claimed, delegated) => ({
-    ref: { track: 0, componentKey: 'snd0' }, claimed, delegated,
-    page: null, reason: '', pageIndex: 0, pageCount: 1,
-    poll() {}, knobParamInfo() { return null; }, changePage() {},
+const owner = (page) => ({
+    ref: { track: 0, componentKey: 'snd0' }, page, reason: '', pageIndex: 0, pageCount: 1,
+    poll() {}, knobParamInfo() { return null; }, changePage() {}, goToPage() {},
 });
-const vm = { rows: [[], []] };
 
 {
-    _log('\nlogic: param body — the fallback never draws over a live page');
-    resetMovyBodyUnderPage();
-
+    _log('\nlogic: param body — Schwung\'s page, or nothing while it loads');
     const schwung = () => {};
-    ok("Schwung's body is passed through as-is",
-       paramBodyFor(owner(true, true), vm, schwung) === schwung);
-    eq('...and that is not a trip', movyBodyUnderPage().count, 0);
+    ok("Schwung's body is passed through as-is", paramBodyFor(owner(null), schwung) === schwung);
+    eq('...and the probe says so', lastParamBody(), 'schwung');
 
-    /* The three legitimate fallbacks: mode off / unclaimed, and the window
-     * before a claimed page's contract resolves. */
-    ok('an unclaimed owner gets movy\'s body',
-       typeof paramBodyFor(owner(false, false), vm, undefined) === 'function');
-    paramBodyFor(owner(true, false), vm, undefined);
-    eq('neither unclaimed nor not-yet-ready trips', movyBodyUnderPage().count, 0);
-
-    paramBodyFor(owner(true, true), vm, undefined);
-    eq('a LIVE delegated owner reaching the fallback trips', movyBodyUnderPage().count, 1);
-    eq('...and names the page it happened on', movyBodyUnderPage().last, '0:snd0');
-    resetMovyBodyUnderPage();
+    /* A page still loading draws NO rows — not a guess at them. */
+    let drew = false;
+    const realFill = globalThis.fill_rect, realPrint = globalThis.print;
+    globalThis.fill_rect = () => { drew = true; };
+    globalThis.print = () => { drew = true; };
+    paramBodyFor(owner(null), undefined)();
+    globalThis.fill_rect = realFill; globalThis.print = realPrint;
+    eq('a loading page draws nothing', drew, false);
+    eq('...and the probe says none', lastParamBody(), 'none');
 }
 
 {
     _log('\nlogic: param body — the probe reads the Schwung page that was drawn');
-    /* The device's page-dive sweep pages Schwung's grid with the jog, and
-     * movy's view model keeps describing movy's own bank meanwhile — so the
+    /* The device's page-dive sweep pages Schwung's grid with the jog, so the
      * keys under the knobs have to come from the page that DREW them. */
     const page = { pageIndex: 1, pageCount: 7,
                    keyAt: (s) => ['sample_start', 'loop_mode', 'sample_path'][s] ?? null };
-    paramBodyFor({ ...owner(true, true), page }, vm, () => {});
+    paramBodyFor(owner(page), () => {});
     eq('a Schwung-drawn frame reports that page\'s keys and position',
        JSON.stringify(lastSchwungPage()),
        JSON.stringify({ pageIndex: 1, pageCount: 7,
                         keys: ['sample_start', 'loop_mode', 'sample_path',
                                null, null, null, null, null] }));
-    paramBodyFor({ ...owner(true, false), page }, vm, undefined);
-    eq('a movy-drawn frame reports none', lastSchwungPage(), null);
+    paramBodyFor(owner(page), undefined);
+    eq('a loading frame reports none', lastSchwungPage(), null);
 }
 
 {
     _log('\nlogic: param body — every app render site goes through the one door');
     /* Structural, because the defect this exists for was a site that was never
-     * written to ask. A renderer called without `paramBodyFor` gets movy's body
-     * by default — the optional argument survives only for screenshot.mjs. */
+     * written to ask. */
     const code = readFileSync('src/app/tick.ts', 'utf8')
         .replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/(^|[^:])\/\/[^\n]*/g, '$1 ');
     const calls = [...code.matchAll(/render(?:Knobs|Chain)View\(([\s\S]*?)\);/g)];
-    ok('tick.ts has render sites to check', calls.length >= 6, `found ${calls.length}`);
+    ok('tick.ts has render sites to check', calls.length >= 6);
     const bare = calls.filter((m) => !m[1].includes('paramBodyFor('));
     eq('no render site passes a body that skipped paramBodyFor', bare.length, 0);
 }

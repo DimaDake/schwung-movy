@@ -43,8 +43,8 @@ import { setButtonHeld } from '../seq/button-held.js';
 import { currentSetUuid, reloadCurrentSet, sessionFailScope, sessionFlush, sessionPhase, sessionReady } from '../seq/set-session.js';
 import { sessionStartFromScratch } from '../seq/set-fail.js';
 import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS } from '../app/state.js';
-import { mainPageActive, mainPageKnob, mainPageTouch, mainPageRelease } from '../seq/main-page.js';
-import { clipPageActive, clipPageKnob, clipPageTouch, clipPageRelease } from '../seq/clip-page.js';
+import { mainPageActive, mainPageTouch, mainPageRelease } from '../seq/main-page.js';
+import { clipPageActive, clipPageTouch, clipPageRelease } from '../seq/clip-page.js';
 import { backupsRowSelected, flagsPageActive, flagsPageJog, flagsPageKnob } from '../seq/flags-page.js';
 import { setsPageActive, setsPageBack, setsPageClick, setsPageJog } from '../seq/sets-page.js';
 import { textEntry, textEntryActive } from '../renderer/text-entry-lib.js';
@@ -66,7 +66,7 @@ import { padMuteGesture } from '../mixer/pad-mutes.js';
 import { openBrowser, loadSelectedModule } from '../browser/handler.js';
 import { openFileBrowser, navigateFileBrowser, activateFileBrowserItem, cancelFileBrowser } from '../browser/file-handler.js';
 import { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased, muteHeld, muteMarkGestured, muteShiftHeld, muteTrack } from '../seq/router.js';
-import { anyStepHeld, editStepPageKnob } from '../seq/step-edit.js';
+import { anyStepHeld } from '../seq/step-edit.js';
 import { stepPageState, setStepPageSelected, setStepTouchedKnob, stepPageAvailable } from '../seq/step-page.js';
 import { seqState } from '../seq/state.js';
 import { WHITE_BRIGHT, WHITE_DIM } from '../seq/colors.js';
@@ -382,17 +382,11 @@ export function onMidiMessageInternal(data: number[]): void {
                 appState.dirty = true;
                 return;
             }
-            /*
-             * A DIVE BELONGS TO WHOEVER DREW THE CELL. movy's model opens its
-             * OWN enum / file overlay from its OWN page index; while Schwung
-             * draws the body that is a different parameter, so the overlay
-             * covered Schwung's page with a list for a param the user is not
-             * looking at. The touch itself is still recorded either way —
-             * the release, the header readout and the file-browse gesture all
-             * read it.
-             */
+            /* A DIVE BELONGS TO THE PAGE THAT DREW THE CELL, so the model never
+             * opens its own overlay — it only records the touch, which the
+             * release, the header readout and the file-browse gesture read. */
             const model = knobModel();
-            model?.handleKnobTouch(d1, !owner.delegated);
+            model?.handleKnobTouch(d1, false);
             /* Pinned so the release goes back to THIS model, not whatever
              * knobModel() resolves to later (see knob-model-pin.ts). */
             pinModel(d1, model ?? null);
@@ -405,9 +399,9 @@ export function onMidiMessageInternal(data: number[]): void {
             /* Scoped to whichever chain the knobs are editing: hold-to-modulate
              * works on the master FX pages too, and a master knob's target
              * belongs to the master LFOs, not the active track's. */
-            /* On a Schwung page only a REGULAR knob arms it: every other
-             * kind's click already means something (`regularKnob`). */
-            const armable = !owner.delegated || !!owner.page?.regularKnobAt(d1);
+            /* Only a REGULAR knob arms it: every other kind's click already
+             * means something (`regularKnob`). */
+            const armable = !!owner.page?.regularKnobAt(d1);
             holdTouch(knobLfoScope(), d1, armable ? info : null);   // arm hold-to-modulate
         } else {
             const info = owner.knobParamInfo(d1);
@@ -605,27 +599,15 @@ export function onMidiMessageInternal(data: number[]): void {
         // the page on screen owns its knobs, whatever a step hold thinks.
         if (mainPageActive()) {
             // 0 tempo, 1 swing, 3 quant, 4 root, 5 key, 6 mode, 7 layout.
-            /* One writer, two callers, never both for the same turn (SP-53) —
-             * same shape as Clip Params below. Undelegated, byte-identical to
-             * before — `mainPageKnob` unchanged. */
             if (k < 8) {
-                const owner = mainParamsOwner();
-                if (owner.page) owner.page.knobTurn(k, delta);
-                else mainPageKnob(k, delta);
+                mainParamsOwner().page?.knobTurn(k, delta);
                 appState.dirty = true;
             }
             return;
         }
         if (clipPageActive()) {
-            /* One writer, two callers, never both for the same turn (SP-53):
-             * `owner.page` is the SAME test the render path used to decide
-             * whether Schwung drew this tick, so draw and write agree about
-             * who owns the page. Undelegated, this is byte-identical to
-             * before — `clipPageKnob` unchanged. */
             if (k < 4) {
-                const owner = clipParamsOwner();
-                if (owner.page) owner.page.knobTurn(k, delta);
-                else clipPageKnob(k, delta, appState.activeTrack.index);
+                clipParamsOwner().page?.knobTurn(k, delta);
                 appState.dirty = true;
             }
             return;
@@ -646,14 +628,7 @@ export function onMidiMessageInternal(data: number[]): void {
         // Step page owns the knobs while it is selected (intrinsic trig props,
         // never chain automation). Knobs 5..7 are blank → ignored.
         if (stepPageAvailable() && stepPageState.selected) {
-            /* One writer, two callers, never both for the same turn (SP-54) —
-             * same shape as Set/Clip Params above. Undelegated, byte-identical
-             * to before — `editStepPageKnob` unchanged. */
-            if (k < 5) {
-                const owner = stepParamsOwner();
-                if (owner.page) owner.page.knobTurn(k, delta);
-                else editStepPageKnob(k, delta);
-            }
+            if (k < 5) stepParamsOwner().page?.knobTurn(k, delta);
             return;
         }
         mlog('knobCC k=' + k + ' d2=' + d2 + ' delta=' + delta);
@@ -679,8 +654,8 @@ export function onMidiMessageInternal(data: number[]): void {
          * which carries the acceleration curve, the enum seeding, the write
          * throttle and the settle window. A second write path here is what the
          * one-implementation rule exists to prevent. */
-        if (owner.page) { owner.page.knobTurn(k, delta); appState.dirty = true; return; }
-        model?.handleKnobDelta(k, delta);
+        /* A page still loading takes no turn: nothing is on screen to turn. */
+        if (owner.page) { owner.page.knobTurn(k, delta); appState.dirty = true; }
         return;
     }
 
@@ -962,14 +937,12 @@ export function onMidiMessageInternal(data: number[]): void {
              * it, a ROM its banks — so the contract this page was planned from
              * comes due shortly. `selectionChanged` is the controller's own
              * name for that, and the shadow host's list editor drives the same
-             * modules through its own browser and has the same race. Asked only
-             * of a component movy is actually showing a Schwung page for: a
-             * commit into a movy-drawn slot has no contract to settle. */
+             * modules through its own browser and has the same race. */
             const committed = appState.fileBrowserState;
             activateFileBrowserItem();
             if (committed && !appState.fileBrowserState) {
                 const owner = pageOwnerOf(activeModel());
-                if (owner.delegated && owner.ref
+                if (owner.page && owner.ref
                     && owner.ref.componentKey === committed.componentKey) {
                     owner.page?.ctl.selectionChanged();
                 }
@@ -1005,14 +978,10 @@ export function onMidiMessageInternal(data: number[]): void {
             /* The editor is a modal layer: while it is up the click is its
              * commit and nothing else's. */
             if (schwungEditorActive()) { schwungEditorCommit(); appState.dirty = true; return; }
-            /* The parameter under the finger comes from whoever DREW the cell.
-             * movy's own arithmetic stays authoritative while movy owns the
-             * page — its gi is what the file value is stored under — so the
-             * resolver is supplied only when someone else is drawing. */
+            /* The parameter under the finger comes from the page that DREW the cell. */
             const fileOwner = pageOwnerOf(activeModel());
             const fileTarget = activeModel()?.getFileBrowseTarget(
-                fileOwner.delegated ? (slot) => fileOwner.knobParamInfo(slot)?.key ?? null
-                                    : undefined) ?? null;
+                (slot) => fileOwner.knobParamInfo(slot)?.key ?? null) ?? null;
             if (fileTarget) {
                 // Capture the origin BEFORE openFileBrowser flips currentView to
                 // VIEW_FILE_BROWSE — otherwise Back/select return to the browser

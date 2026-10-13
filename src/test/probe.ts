@@ -26,10 +26,8 @@ export function _resetForTest(): void { lastVm = null; renderSeq = 0; tickSeq = 
 type Req = { id?: number; key?: string; verb?: string; arg?: unknown };
 
 export type ProbeDeps = {
-    renderer: () => string;
     lanesForTrack: (track: number) => string[];
     activeTrack: () => number;
-    setGridMode: (m: string | null) => void;
     /* The Leave modal's state. The harness drives a real close through this:
      * Back is not a close button (at root it OPENS this modal, while it is up
      * it dismisses it), so a fixed number of Backs is ambiguous by parity and
@@ -63,18 +61,16 @@ export type ProbeDeps = {
      * answer to "would this kind draw at all", which is the half a log line
      * cannot make: a registration that reached the wrong copy logs identically.
      *
-     * `clearWidgets` is a MUTATION SEAM, the same kind of thing `setGridMode`
-     * is: it survives no reload and writes nothing, so a scenario can put the
+     * `clearWidgets` is a MUTATION SEAM: it survives no reload and writes nothing, so a scenario can put the
      * registry back to the state a module with no widget leaves it in — without
      * a module swap — and then look at the screen. That is the only way to see
      * the FALL-THROUGH draw: an unclaimed custom kind leaves its key to the
      * built-in, and a cell that goes blank instead is a regression. */
     widgetAvailable: (kind: string) => boolean;
     widgetClear: () => void;
-    /* WHOSE BODY WAS DRAWN, and whether movy's ever drew over a live Schwung
-     * page (SP-58). Session mode is not a `view` — it keeps whatever view it
+    /* WHOSE BODY WAS DRAWN — Schwung's page, or none while it loads (SP-58). Session mode is not a `view` — it keeps whatever view it
      * was entered from — so the master chain is answered here too. */
-    paramBody?: () => { body: string; trips: number; last: string;
+    paramBody?: () => { body: string;
                        schwung?: { pageIndex: number; pageCount: number;
                                    keys: (string | null)[] } | null;
                        session: boolean; masterDetail: boolean; masterSlot: number };
@@ -98,11 +94,6 @@ function cellOf(pv: ViewModel['rows'][number][number]) {
 function runVerb(verb: string, arg: unknown): object {
     if (!deps) return { error: 'probe deps not installed' };
     switch (verb) {
-        /* An override, not the flag: it writes nothing and survives no reload,
-         * so a scenario can pin a renderer without touching prefs.json. */
-        case 'setGridMode':
-            deps.setGridMode(arg === null ? null : String(arg));
-            return { ok: true, renderer: deps.renderer() };
         /* READ AND CLEAR IN ONE CALL, because they are one question: "is this
          * kind in the registry, and take it out if I ask". Clearing is not a
          * write to anything durable — see ProbeDeps — so it is safe on a
@@ -143,7 +134,6 @@ export function answer(requestJson: string): string {
             return tag({
                 pageIndex: vm.bankIndex,
                 pageCount: vm.bankCount,
-                renderer:  deps ? deps.renderer() : 'unknown',
                 held:      !!vm.automationHeld,
                 module:    vm.moduleName,
                 /* Read live rather than from the VM: the VM is the last page

@@ -47,7 +47,6 @@ import { run as run_filter_viz } from './logic/filter-viz.mjs';
 import { run as run_lfo_assign } from './logic/lfo-assign.mjs';
 import { run as run_wave_viz } from './logic/wave-viz.mjs';
 import { run as run_eq_cut_wav } from './logic/eq-cut-wav.mjs';
-import { run as run_graphics } from './logic/graphics.mjs';
 import { run as run_wav_peaks } from './logic/wav-peaks.mjs';
 import { run as run_module_configs } from './logic/module-configs.mjs';
 import { run as run_config_hierarchy } from './logic/config-hierarchy.mjs';
@@ -81,7 +80,6 @@ import { run as run_page_visible } from './logic/page-visible.mjs';
 import { run as run_canvas_dive } from './logic/schwung-canvas-dive.mjs';
 import { run as run_file_preview } from './logic/file-preview.mjs';
 import { run as run_drum_racks } from './logic/drum-racks.mjs';
-import { run as run_schwung_floor } from './logic/schwung-floor.mjs';
 import { run as run_page_owner } from './logic/page-owner.mjs';
 import { run as run_param_body } from './logic/param-body.mjs';
 import { run as run_hierarchy_source } from './logic/hierarchy-source.mjs';
@@ -90,7 +88,6 @@ import { run as run_schwung_sample } from './logic/schwung-sample.mjs';
 import { run as run_schwung_page_idle_cost } from './logic/schwung-page-idle-cost.mjs';
 import { run as run_cpu_page } from './logic/cpu-page.mjs';
 import { run as run_mixer } from './logic/mixer.mjs';
-import { run as run_pan_viz } from './logic/pan-viz.mjs';
 import { run as run_clip_params_source } from './logic/clip-params-source.mjs';
 import { run as run_set_params_source } from './logic/set-params-source.mjs';
 import { run as run_step_params_source } from './logic/step-params-source.mjs';
@@ -145,7 +142,6 @@ const SUITES = [
     run_lfo_assign,
     run_wave_viz,
     run_eq_cut_wav,
-    run_graphics,
     run_wav_peaks,
     run_module_configs,
     run_config_hierarchy,
@@ -179,7 +175,6 @@ const SUITES = [
     run_canvas_dive,
     run_file_preview,
     run_drum_racks,
-    run_schwung_floor,
     run_page_owner,
     run_param_body,
     run_hierarchy_source,
@@ -188,7 +183,6 @@ const SUITES = [
     run_schwung_page_idle_cost,
     run_cpu_page,
     run_mixer,
-    run_pan_viz,
     run_clip_params_source,
     run_set_params_source,
     run_step_params_source,

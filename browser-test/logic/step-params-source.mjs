@@ -5,8 +5,7 @@
  * dropped on BOTH the happy-path release and the recovery path, never left
  * to a cleanup that only runs on one of them).
  *
- * The first two blocks need no schwung checkout — pure functions over
- * `seqState`. The third is guarded (`schwungLibAvailable()`) and drives the
+ * The first two blocks are pure functions over `seqState`. The third drives the
  * REAL press→hold→release production functions (`editStepDown`/
  * `beginStepAutomation`/`editStepUp`/`endStepAutomation`), not a shortcut.
  *
@@ -14,7 +13,7 @@
  */
 
 import { appState, trackRef, resetPorts, ok, eq, _log,
-         schwungLibAvailable, schwungGridMode, setSchwungGridMode, schwungGridDrop,
+         schwungGridDrop,
          schwungPageFor } from './harness.mjs';
 
 export async function run() {
@@ -180,12 +179,8 @@ _log('\nTest: the virtual source and editStepPageKnob write the SAME field');
  * checking the cached SchwungPage identity changes. Removing the
  * `schwungGridDrop` call from either function (not just one) is what should
  * redden this block; it is written against BOTH on purpose. */
-if (!schwungLibAvailable()) {
-    _log('\nlogic: step page lifecycle — SKIPPED (no param_pages; set SCHWUNG=)');
-} else {
+{
     _log('\nTest: a step-hold contract does not survive its own release');
-    const savedMode = schwungGridMode();
-    setSchwungGridMode('page');
 
     // Deliberately no `reset()` between captures below — `resetStepPage()` ALSO
     // drops the cache (it is the recovery path's own drop), so calling it
@@ -225,18 +220,13 @@ if (!schwungLibAvailable()) {
     const third = grab();
     ok('the recovery path drops the same cache entry', second !== third);
 
-    setSchwungGridMode(savedMode);
     schwungGridDrop(MASTER_PAGE_TRACK, STEP_PARAMS_COMPONENT);
 }
 
 /* ── SP-57 H2: the knob rule, end to end through the real controller ────── */
 
-if (!schwungLibAvailable()) {
-    _log('\nlogic: step page knob feel — SKIPPED (no param_pages; set SCHWUNG=)');
-} else {
+{
     _log('\nTest: eight raw units are one step, through the real page');
-    const savedMode = schwungGridMode();
-    setSchwungGridMode('page');
     reset();
 
     editStepDown(0); beginStepAutomation(); setStepPageSelected(true);
@@ -296,7 +286,6 @@ if (!schwungLibAvailable()) {
     }
 
     editStepUp(0); endStepAutomation();
-    setSchwungGridMode(savedMode);
     schwungGridDrop(MASTER_PAGE_TRACK, STEP_PARAMS_COMPONENT);
 }
 

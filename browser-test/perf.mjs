@@ -729,17 +729,13 @@ _origLog('\nTest 5: sequencer perf budgets');
     // host strips those repaints, an unchanged page must cost nothing on the
     // wire — otherwise we are back to spending a quarter of the ~60-packet LED
     // budget on a picture that did not change.
-    const { updateKnobLEDs, resetKnobLedCache } =
+    const { updateKnobLEDsFrom, resetKnobLedCache } =
         await import('../dist/esm/renderer/knob-leds.js');
-    const knobCell = (nv) => ({ normalizedValue: nv, trigger: null });
-    const knobVm = { rows: [
-        [knobCell(0.5), knobCell(0.5), knobCell(0.5), knobCell(0.5)],
-        [knobCell(0.5), knobCell(0.5), knobCell(0.5), knobCell(0.5)],
-    ] };
+    const knobLevels = new Array(8).fill(0.5);
     resetKnobLedCache();
-    updateKnobLEDs(knobVm);          // cold frame paints all 8 knobs
+    updateKnobLEDsFrom(knobLevels);  // cold frame paints all 8 knobs
     ledCount = 0;
-    for (let i = 0; i < 50; i++) updateKnobLEDs(knobVm);
+    for (let i = 0; i < 50; i++) updateKnobLEDsFrom(knobLevels);
     check('knob LED sends when idle (50 ticks)', ledCount, 0);
 
     // IPC: at most one set_param flush per tick regardless of queued ops.

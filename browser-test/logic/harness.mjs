@@ -53,9 +53,8 @@ import {
 import { buildFlagsPageVM } from '../../dist/esm/seq/flags-page-vm.js';
 import { visibleFlags } from '../../dist/esm/seq/flags-visible.js';
 import { loadPerSetFlags } from '../../dist/esm/seq/flags.js';
-import { schwungGridMode, setSchwungGridMode, schwungPageFor,
+import { schwungPageFor,
          schwungGridReload, schwungGridDrop } from '../../dist/esm/renderer/schwung-grid.js';
-import { schwungLibAvailable, schwungLibError } from '../../dist/esm/renderer/schwung-lib.js';
 import {
     batchKeys, fill, KEEP_EPOCHS, BATCH_MAX_KEYS, BATCH_VALUE_MAX,
 } from '../../dist/esm/renderer/schwung-page-batch.js';
@@ -114,14 +113,10 @@ import { waveToggleOf } from '../../dist/esm/model/wave-toggle.js';
 import { envStageOf } from '../../dist/esm/model/env-stage.js';
 import { detectEqViz } from '../../dist/esm/model/eq-viz.js';
 import { cutKindOf, detectCutPair } from '../../dist/esm/model/cut-viz.js';
-import { drawCutCurve } from '../../dist/esm/renderer/cut-curve.js';
 import { detectWavViz } from '../../dist/esm/model/wav-viz.js';
 import { wavPeaksTick, wavPeaks, resetWavPeaks, resamplePeaks, PEAK_WIDTH } from '../../dist/esm/model/wav-peaks.js';
-import { drawWavForm } from '../../dist/esm/renderer/wav-form.js';
-import { drawFilterCurve } from '../../dist/esm/renderer/filter-curve.js';
 import { isFaderParam } from '../../dist/esm/model/fader.js';
 import { isPanParam } from '../../dist/esm/model/pan.js';
-import { drawPanDial } from '../../dist/esm/renderer/pan-dial.js';
 import { isToggleParam, isActionParam } from '../../dist/esm/model/toggle.js';
 import { triggerIndices } from '../../dist/esm/model/trigger.js';
 import { renderKnobsView } from '../../dist/esm/renderer/knob-view.js';
@@ -287,8 +282,7 @@ export {
     readPrefFileDir, writePrefFileDir, PREFS_PATH,
     FLAGS, FLAGS_REV, flagDef, clampFlag, flagValueLabel, flagNormalized,
     flagValue, setFlag, applyFlagsToEngine, resetFlags,
-    schwungGridMode, setSchwungGridMode, schwungPageFor, schwungGridReload, schwungGridDrop,
-    schwungLibAvailable, schwungLibError,
+    schwungPageFor, schwungGridReload, schwungGridDrop,
     batchKeys, fill, KEEP_EPOCHS, BATCH_MAX_KEYS, BATCH_VALUE_MAX,
     flagsPageState, flagsRowCount, backupsRowSelected, actionRowSelected, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
     buildFlagsPageVM, VISIBLE_ROWS, firstVisibleRow, readPrefFlags, writePrefFlag,
@@ -313,9 +307,8 @@ export {
     LFO_SHAPES, LFO_DIVISIONS, compLabel, createLfoModel, detectLfoViz, buildLfoViz,
     detectFilterViz, buildFilterViz, normalizeFilterOption, isFilterModeEnum, filterModeFromEnum, isSlopeEnum,
     staticModeFromTokens, lfoShapeId, isShapeEnum, enumClassOf, waveCellIndices, waveToggleOf,
-    envStageOf, detectEqViz, cutKindOf, detectCutPair, drawCutCurve, detectWavViz,
-    wavPeaksTick, wavPeaks, resetWavPeaks, resamplePeaks, PEAK_WIDTH, drawWavForm,
-    drawFilterCurve, isFaderParam, isPanParam, drawPanDial, isToggleParam, isActionParam, triggerIndices, renderKnobsView,
+    envStageOf, detectEqViz, cutKindOf, detectCutPair, detectWavViz,
+    wavPeaksTick, wavPeaks, resetWavPeaks, resamplePeaks, PEAK_WIDTH, isFaderParam, isPanParam, isToggleParam, isActionParam, triggerIndices, renderKnobsView,
     renderChainView, lfoTargetsParam, assignLfoTarget, clearLfoTarget, trackScope, masterScope,
     holdTouch, holdRelease, holdTurnCancel, holdTick, assignActive, assignCycle,
     assignCommit, assignToastText, resetAssignMode, jogHintTouch, jogHintTick, jogHintVisible,

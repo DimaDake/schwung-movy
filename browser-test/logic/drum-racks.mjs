@@ -14,8 +14,8 @@
  */
 
 import { join, resolve } from 'node:path';
-import { schwungLibAvailable, bootModel, settleModel, ok, eq, fail, _log, env, MOCK_SYNTHS, appState, portFor,
-         setSchwungGridMode, schwungGridReload, schwungPageFor } from './harness.mjs';
+import { bootModel, settleModel, ok, eq, fail, _log, env, MOCK_SYNTHS, appState, portFor,
+         schwungGridReload, schwungPageFor } from './harness.mjs';
 import { dumpEntry, dumpFixture } from '../dump-fixture.mjs';
 import { serveModuleFiles } from './drum-automation.mjs';
 import { pinnedSchwungRoot } from '../../scripts/lib/schwung-pinned.mjs';
@@ -77,11 +77,6 @@ _log('\nTest: more than 16 pads ⇒ the rack takes both 4x4 halves, left half fi
     ok('...and lit on a 32-pad one', drumPadLedColor(75, 68, cfg, 0, 0, false, false) !== dark);
 }
 
-if (!schwungLibAvailable()) {
-    _log('\nlogic: drum racks (modules) — SKIPPED (no param_pages; set SCHWUNG=)');
-    return;
-}
-
 const pp = join(pinnedSchwungRoot(), 'src', 'shared', 'param_pages');
 const { voicesOf } = await import(join(pp, 'voices.mjs'));
 const { childIndexToWire } = await import(join(pp, 'child_key.mjs'));
@@ -106,7 +101,6 @@ _log('\nTest: an explicit chromatic layout is never seated as a rack (D9)');
 const prevModels = appState.trackModels[0];
 function boot(id, entry = dumpEntry(id)) {
     const restoreFs = serveModuleFiles(entry);
-    setSchwungGridMode('page');
     schwungGridReload();
     const fixture = dumpFixture(id);
     const model = settleModel(bootModel(fixture));
@@ -122,7 +116,6 @@ const done = (restoreFs) => {
     restoreFs();
     appState.trackModels[0] = prevModels;
     schwungGridReload();
-    setSchwungGridMode(null);
     env.setParams(MOCK_SYNTHS.test16);
 };
 /* The pad's page, after a press as the router makes it: the knob bound on the

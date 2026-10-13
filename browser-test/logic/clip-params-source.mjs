@@ -3,10 +3,9 @@
  * one-writer invariant with the delta path (`clipPageKnob`), and the
  * drum-track `format()` override.
  *
- * The FIRST block needs no schwung checkout — it is pure functions over
- * `seqState`/`appState`. The second is guarded (`schwungLibAvailable()`) and
- * proves the contract actually PLANS a page through the real planner — no run
- * of this file without SCHWUNG= has ever checked that a `chain_params` object
+ * The FIRST block is pure functions over `seqState`/`appState`. The second
+ * proves the contract actually PLANS a page through the real planner — the
+ * check that a `chain_params` object
  * (rather than the array the library requires) throws inside `planPages`
  * before a single cell draws; this is the teeth for that exact defect.
  *
@@ -14,7 +13,7 @@
  */
 
 import { appState, trackRef, resetPorts, ok, eq, _log,
-         schwungLibAvailable, schwungGridMode, setSchwungGridMode, schwungGridReload,
+         schwungGridReload,
          schwungPageFor } from './harness.mjs';
 
 export async function run() {
@@ -117,20 +116,15 @@ _log('\nTest: TRANSPOSE reads n/a on a drum track');
 }
 
 /* ── the page actually plans (guarded: needs a real schwung checkout) ────── */
-if (!schwungLibAvailable()) {
-    _log('\nlogic: Clip Params page plan — SKIPPED (no param_pages; set SCHWUNG=)');
-} else {
+{
     _log('\nTest: Clip Params plans and settles under `page`');
     reset();
-    const savedMode = schwungGridMode();
-    setSchwungGridMode('page');
     schwungGridReload();
     const p = schwungPageFor(0, CLIP_PARAMS_COMPONENT, null, null);
     for (let i = 0; i < 60 && !p.ready; i++) p.tick();
     ok('the page resolved (>=1 page planned)', p.ready && p.pageCount >= 1);
     eq('knob 1 is LENGTH', p.keyAt(1), 'length');
 
-    setSchwungGridMode(savedMode);
     schwungGridReload();
 }
 

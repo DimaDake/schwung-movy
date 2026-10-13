@@ -1,4 +1,3 @@
-import type { ViewModel } from '../types/viewmodel.js';
 import { mlog } from '../log.js';
 import { ledBudgetTake } from '../seq/led-cache.js';
 
@@ -42,21 +41,15 @@ const scratchNv: (number | null)[] = new Array(8).fill(null);
  * been read back yet — both go dark, because colour 0 already reads as "turning
  * this does nothing" and lighting an unread cell at the bottom of its range
  * would be a confident lie. */
-function knobColor(physK: number, nv: number | null, flash: boolean): number {
+function knobColor(physK: number, nv: number | null): number {
     if (nv === null || nv === undefined || !isFinite(nv)) return 0;
-    return physK < 4 ? (flash ? 120 : whiteLevel(nv))
-                     : (flash ? 3   : amberLevel(nv));
+    return physK < 4 ? whiteLevel(nv) : amberLevel(nv);
 }
 
 /*
- * THE ONE WRITER FOR THE EIGHT KNOB LEDS, whoever supplies the values.
- *
- * Under Schwung's page the values come from the DRAWN cells and under movy's
- * they come from movy's view model, but the row itself — the diff cache above
- * and the frame's LED budget — stays here. Two writers on eight LEDs is exactly
+ * THE ONE WRITER FOR THE EIGHT KNOB LEDS. Two writers on eight LEDs is exactly
  * how a knob ends up claiming a colour it no longer shows: each keeps a cache
- * the other never invalidates, so leaving one page strands the row on the
- * other's idea of it.
+ * the other never invalidates.
  */
 function writeKnobRow(colors: number[], nvs: (number | null)[]): void {
     logTickCount++;
@@ -72,6 +65,11 @@ function writeKnobRow(colors: number[], nvs: (number | null)[]): void {
             setLED(physK, color, true);
             /* CC 71-78: knob indicator LEDs (same physical knob, different LED channel) */
             setButtonLED(MoveKnob1 + physK, color, true);
+            /* A CHANGE IS LOGGED AS IT HAPPENS, beside the periodic sample: the
+             * row is only written on a rendered frame, and an idle page renders
+             * almost none, so a sample alone can miss the row lighting up when
+             * a page finishes loading. */
+            if (!doLog) mlog('knobLED k=' + physK + ' nv=' + (nvs[physK] ?? -1).toFixed(2) + ' color=' + color);
         }
         if (doLog) {
             mlog('knobLED k=' + physK + ' nv=' + (nvs[physK] ?? -1).toFixed(2)
@@ -80,34 +78,14 @@ function writeKnobRow(colors: number[], nvs: (number | null)[]): void {
     }
 }
 
-/** Set the LED under each of the 8 knobs based on current param values.
- *  Knobs 1-4 (physK 0-3) → white intensity; knobs 5-8 (physK 4-7) → amber intensity.
- *  Uses both note-based (0-7) and CC-based (71-78) LED addresses since the
- *  visible hardware LED type is not confirmed. force=true bypasses schwung's
- *  setLED cache; we diff against our own (see lastKnobColor) so a host-side
- *  LED clear can never strand a knob dark. */
-export function updateKnobLEDs(vm: ViewModel): void {
-    for (let physK = 0; physK < 8; physK++) {
-        const pvm = vm.rows[physK >> 2][physK & 3];
-        /* A fired trigger flashes its own knob's LED — the one output channel
-         * physically under the finger that just turned it. Cooling stays at
-         * the dim level rather than going dark: knob-leds keeps every knob lit
-         * so the row is identifiable, and colour 0 already means "no param".
-         * The LED deliberately ignores the drain — that would mean an LED send
-         * every tick for information the screen already carries. */
-        scratchNv[physK] = pvm ? pvm.normalizedValue : null;
-        scratchColor[physK] = knobColor(physK, scratchNv[physK], pvm?.trigger === 'fired');
-    }
-    writeKnobRow(scratchColor, scratchNv);
-}
-
-/** The same row, lit from a page movy did not plan: eight normalised values,
- *  `null` where the drawn cell carries nothing. There is no trigger flash here
- *  — a trigger badge is movy's own decoration on movy's own view model. */
+/** Set the LED under each of the 8 knobs from the drawn page: eight normalised
+ *  values, `null` (dark) where the drawn cell carries nothing. Knobs 1-4 →
+ *  white intensity, 5-8 → amber. Diffed against our own cache (lastKnobColor)
+ *  so a host-side LED clear can never strand a knob dark. */
 export function updateKnobLEDsFrom(levels: readonly (number | null)[]): void {
     for (let physK = 0; physK < 8; physK++) {
         scratchNv[physK] = levels[physK] ?? null;
-        scratchColor[physK] = knobColor(physK, scratchNv[physK], false);
+        scratchColor[physK] = knobColor(physK, scratchNv[physK]);
     }
     writeKnobRow(scratchColor, scratchNv);
 }

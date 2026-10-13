@@ -8,25 +8,14 @@
  * movy is the half that depends on who owns the HARDWARE — only the surface
  * owner sees a pad — plus the embedding API movy was not using.
  *
- * EVERY ASSERTION IS GUARDED on schwungLibAvailable(). The default build swaps
- * param_pages for a stub that throws on import, which is the whole point: a
- * Schwung that cannot serve the library must cost movy nothing but this
- * feature. Run with SCHWUNG=/path/to/schwung to actually exercise these — a
- * guarded block that never ran is not coverage.
- *
  * Run by browser-test/logic.mjs.
  */
 
-import { schwungLibAvailable, bootModel, eq, ok, _log,
+import { bootModel, eq, ok, _log,
          env, portFor, MOCK_SYNTHS, schwungPageFor, schwungGridReload,
-         setSchwungGridMode, countTrips } from './harness.mjs';
+         countTrips } from './harness.mjs';
 
 export async function run() {
-
-if (!schwungLibAvailable()) {
-    _log('\nlogic: schwung page mode — SKIPPED (no param_pages; set SCHWUNG=)');
-    return;
-}
 
 _log('\nlogic: schwung page mode');
 
@@ -178,7 +167,6 @@ _log('\nTest: the embedded body rect seats Schwung’s widget rows on movy’s o
 
 /** A settled, delegated page for track 0, ticked until its contract resolves. */
 function settledPage() {
-    setSchwungGridMode('page');
     schwungGridReload();
     env.setParams(MOCK_SYNTHS.test16);
     const p = schwungPageFor(0, 'synth');
@@ -217,7 +205,6 @@ _log('\nTest: a settled page costs ONE round trip for a page, not one per tick')
        trips <= 54, true);
 
     schwungGridReload();
-    setSchwungGridMode(null);
     env.setParams(MOCK_SYNTHS.test16);
 }
 
@@ -307,7 +294,6 @@ _log('\nTest: a rack that declares nothing is paged from movy’s own config');
      * src/module-configs through host_read_file), so this asserts against the
      * file that deploys rather than a fixture that agrees with the code.
      */
-    setSchwungGridMode('page');
     schwungGridReload();
     env.setParams(MOCK_SYNTHS['6w6']);
 
@@ -336,7 +322,6 @@ _log('\nTest: a rack that declares nothing is paged from movy’s own config');
     eq('...and the page stayed put', p.pageIndex, before);
 
     schwungGridReload();
-    setSchwungGridMode(null);
     env.setParams(MOCK_SYNTHS.test16);
 }
 
@@ -353,7 +338,6 @@ _log('\nTest: a rack config outvotes a plain contract, never a modern one');
      * whose config movy cannot use proves nothing here.
      */
     const plan = (hier) => {
-        setSchwungGridMode('page');
         schwungGridReload();
         env.setParams({ ...MOCK_SYNTHS['6w6'], 'synth:ui_hierarchy': JSON.stringify(hier) });
         const p = schwungPageFor(0, 'synth');
@@ -378,7 +362,6 @@ _log('\nTest: a rack config outvotes a plain contract, never a modern one');
        [modern.keyAt(0), modern.keyAt(1), modern.keyAt(2)].join(','), 'bd_tune,bd_decay,');
 
     schwungGridReload();
-    setSchwungGridMode(null);
     env.setParams(MOCK_SYNTHS.test16);
 }
 
@@ -401,7 +384,6 @@ _log('\nTest: the header names the page — on a declared drum rack too');
      * whose names change.
      */
     setSurfaceReader(surfaceOf);
-    setSchwungGridMode('page');
     schwungGridReload();
     const m = bootModel(dumpFixture('voice-poc'));
     for (let i = 0; i < 20; i++) m.tick();
@@ -448,7 +430,6 @@ _log('\nTest: the header names the page — on a declared drum rack too');
 
     p.goToPage(0);
     schwungGridReload();
-    setSchwungGridMode(null);
     setSurfaceReader(null);
     env.setParams(MOCK_SYNTHS.test16);
 }
@@ -468,7 +449,6 @@ _log('\nTest: the header readout and the footer hints come from the controller')
      * code read back to itself. It is that the verb it prints is the
      * CONSEQUENCE the click actually has, observed by clicking.
      */
-    setSchwungGridMode('page');
     schwungGridReload();
     env.setParams(MOCK_SYNTHS['6w6']);
     const p = schwungPageFor(0, 'synth');
@@ -514,10 +494,6 @@ _log('\nTest: the header readout and the footer hints come from the controller')
     for (let i = 0; i < 20; i++) offModel.tick();
     ok('while the grid pages, this model’s page is delegated',
        pageOwnerOf(offModel).page !== null);
-    setSchwungGridMode('off');
-    eq('the grid off, the page is movy’s own — no chrome can name a page',
-       pageOwnerOf(offModel).page, null);
-    setSchwungGridMode('page');
 
     const bound = [];
     for (let k = 0; k < 8; k++) if (p.keyAt(k)) bound.push(k);
@@ -661,7 +637,6 @@ _log('\nTest: the header readout and the footer hints come from the controller')
        enumPage.regularKnobAt(enumSlot), false);
 
     schwungGridReload();
-    setSchwungGridMode(null);
     env.setParams(MOCK_SYNTHS.test16);
 }
 
@@ -684,7 +659,6 @@ _log('\nTest: under `page` a drum rack plans from movy’s config unless it decl
                         params: ['pad_sample_path', 'pad_vol'] },
     };
     const plan = (hier) => {
-        setSchwungGridMode('page');
         schwungGridReload();
         env.setParams({ ...MOCK_SYNTHS.mrdrums,
             'synth:ui_hierarchy': JSON.stringify(hier),
@@ -713,7 +687,6 @@ _log('\nTest: under `page` a drum rack plans from movy’s config unless it decl
        modern.ctl.pages.map((x) => x.name).join(','), 'Main,Pad Settings');
 
     schwungGridReload();
-    setSchwungGridMode(null);
     env.setParams(MOCK_SYNTHS.test16);
 }
 
@@ -732,7 +705,6 @@ _log('\nTest: SP-44 — knob 1 walks a preset door with no click first');
      * PAGE_PRESET door (`list_param`/`count_param`), so the door's count comes
      * from the same fixture data `stepPreset` itself reads on device, not a
      * number this test invents. */
-    setSchwungGridMode('page');
     schwungGridReload();
     env.setParams(dumpFixture('obxd'));
     schwungGridReload();
@@ -769,7 +741,6 @@ _log('\nTest: SP-44 — knob 1 walks a preset door with no click first');
     eq('...and no other knob does', lv.slice(1).every((v) => v === null), true);
 
     schwungGridReload();
-    setSchwungGridMode(null);
     env.setParams(MOCK_SYNTHS.test16);
 }
 

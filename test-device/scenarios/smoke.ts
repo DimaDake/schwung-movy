@@ -26,9 +26,7 @@ import { Device } from '../device.js';
 import { Probe } from '../probe.js';
 import * as fixture from '../fixture.js';
 import { until } from '../wait.js';
-import { TICK_RATE_MIN, REFRESH_MS_MAX, REFRESH_MIN_SAMPLES, PERF_WINDOW_MAX,
-         at, lastOf, median, refreshSamples } from '../log-fields.js';
-import { MOVY_ARM, armMovy } from '../arm.js';
+import { TICK_RATE_MIN, at, lastOf } from '../log-fields.js';
 import { SSH_OPTS } from '../ssh.js';
 import { Display } from '../display.js';
 import { noteOn, noteOff, NOTE_JOG_TOUCH } from '../midi.js';
@@ -43,17 +41,6 @@ const ACT = 90;
  * one stuck cache cannot satisfy the CC check, and bidirectional so a turn is
  * not simply clamped at a rail. */
 const KNOB_TURNS: Array<[number, number]> = [[0, 1], [0, -1], [1, 1]];
-
-/* THE ARM THIS SCENARIO RUNS IN, and it sets the arm itself — `MOVY_ARM` and
- * `armMovy` in `test-device/arm.ts`, which is where the argument for it lives
- * (and where `items` and `module-contract` read the same one from). Every check
- * here grades movy's OWN work: the knob turn has to reach `applyKnobDelta` and
- * the refresh has to run, and neither happens in the arm the box rests in.
- *
- * Set for the WHOLE scenario rather than around the one check that names it:
- * `set-param-attempted` and `set-param-ipc` are just as arm-dependent, and
- * leaving them on the ambient arm is what kept this suite red on a box at rest.
- * Measured 2026-09-19: `smoke` 8/11 at rest, all three reds that one cause. */
 
 /* Everything this suite reads out of the log, in ONE grep. `leds: repaint` is
  * here only so check 8's adjacency is a real adjacency: without it the line
@@ -73,7 +60,6 @@ const LOG_RE = '\\[shadow\\].*\\[movy\\] (' + [
     'leds: repaint',
     'knobLED k=',
     'perf_tick_rate=',
-    'perf_refresh_ms=',
 ].join('|') + ')';
 
 /* On a PASS, `actual` says what was measured; the diagnostic chain is only ever
@@ -143,10 +129,6 @@ scenario('smoke', async (t) => {
      * feature failures that are really state drift. */
     await dev.selectTrack(0);
     await t.tx.frames(ACT);
-    /* ARM THE SCENARIO (see the note above for why, and for what it is not).
-     * to be here rather than before the open: the override lives in ui.js's
-     * module scope, so there is nothing to set it on until the tool is up. */
-    t.note('gridMode', await armMovy(t, probe));
     lap('t_3_open');
 
     /* Rule: the instrument this suite judges is the one the fixture put there.
@@ -161,49 +143,8 @@ scenario('smoke', async (t) => {
         await t.tx.frames(ACT);
     }
 
-    /* THE PERF WINDOW IS CLOSED HERE, BEFORE THE JOG, and both of its ends are
-     * the whole reason `refresh-blocking` can mean anything. It is a window of
-     * its OWN (`refW`, not `w0`) because the two want opposite things: `w0` is
-     * the whole scenario, and this one has to be a LOADED MODULE IN STEADY
-     * STATE.
-     *
-     * It starts where the fixture's module is demonstrably loaded rather than at
-     * `mark0`. From `mark0` the window opens before movy has read any hierarchy
-     * at all, and every sample in that stretch reads `perf_refresh_ms=0
-     * params=0`: there is no populated param to refresh, so the metric measures
-     * NOTHING and reports the best possible number for it.
-     *
-     * It ends before the jog, and that is the other half. The jog moves the
-     * CHAIN cursor — `chain chainIndex=2`, then 3 — and `loadHierarchy` answers
-     * each empty slot it lands on with `module=—` / `ui_hierarchy null — no
-     * params`. Measured in the 2026-09-19 red run: the jog emptied slot 0 at
-     * 13:27:44.339, ten lines before `w0` closed, so a sample taken after it
-     * measures nothing either — the same empty stretch, reached from the other
-     * side. On the 2026-09-13 code those samples were filtered out of `measured`
-     * and the red was `measured.length < 3` — the check was already refusing to
-     * grade them; what it could not do was stop the JOG from being inside the
-     * window it drew them from.
-     *
-     * So `refW` is neither `w0` nor a slice of it, and the two filters do
-     * different jobs: this window decides WHICH STRETCH is graded, and
-     * `refreshSamples` below still drops `params=0` samples that fall inside it.
-     * The window is the fix; the filter is unchanged and still load-bearing —
-     * nothing bounds a `params=0` sample out of `refW`, and the teeth run that
-     * points the window at an empty slot holds eleven of them INSIDE it.
-     *
-     * Re-selecting track 0 afterwards would not undo any of this: track 0 is
-     * already active, `dev.selectTrack(0)` is a no-op there (`track: active=0
-     * chain=0` with no `loadHierarchy` behind it), and the chain cursor stays
-     * where the jog left it. Closing the window first is what costs nothing —
-     * the jog's own lines still land in `w0`, because `w0` is read from `mark0`
-     * after both. */
     await settled(mark0, (w) => w.some((l) => /loadHierarchy: chain_params [1-9]/.test(l)),
                   "the fixture's module metadata to be read", 900);
-    const markRef = await mark();
-    const refW = await settled(markRef,
-        (w) => refreshSamples(w).length >= REFRESH_MIN_SAMPLES,
-        'the refresh samples', PERF_WINDOW_MAX);
-    lap('t_4_refreshWindow');
 
     // ── the jog ──────────────────────────────────────────────────────────────
     await dev.tap.jogTurn(1);
@@ -211,8 +152,13 @@ scenario('smoke', async (t) => {
     await dev.tap.jogTurn(1);
     await t.tx.frames(ACT);
 
-    const w0 = await settled(mark0, (w) => w.some((l) => l.includes('perf_tick_rate=')),
-                             'the first tick-rate sample', 3000);
+    /* AND A LIT KNOB ROW: the row is dark while the module's page is still
+     * loading (nothing is under the knobs yet), and the LED log is sampled about
+     * once a second, so the first sample can predate the page. A row that never
+     * lights still runs out the budget and fails check 9. */
+    const w0 = await settled(mark0, (w) => w.some((l) => l.includes('perf_tick_rate='))
+                                         && w.some((l) => l.includes('knobLED k=') && at(l, 'color') > 0),
+                             'the first tick-rate sample and a lit knob row', 3000);
     t.note('windowLines', w0.length);
     lap('t_4_gesturesAndSample');
 
@@ -333,13 +279,13 @@ scenario('smoke', async (t) => {
     const okSet = slotHit.length > 0;
     t.note('setLines', setLines.slice(0, 4));
     t.check('set-param-attempted',
-        'applyKnobDelta ran — the knob turn became a param write', okSet, {
+        'the knob turn became a param write through the page', okSet, {
             expected: "a \"set slot=0 …\" line (track 0 is the fixture's)",
             actual: said(okSet, lastOf(slotHit),
                 setLines.length > 0
                     ? `${lastOf(setLines)} — the write went to slot ${at(lastOf(setLines), 'slot')}, `
                       + "not the fixture's track"
-                    : 'applyKnobDelta never reached — the knob turn produced no write at all'),
+                    : 'the knob turn produced no write at all'),
         });
 
     /* Both halves of the bash's chain, tightened once to a true and NO false —
@@ -431,8 +377,8 @@ scenario('smoke', async (t) => {
                   + `page deltas ${JSON.stringify(pageDeltas)}`),
     });
 
-    // ── 9. the knob LEDs are driven from the view model ──────────────────────
-    /* updateKnobLEDs logs all eight knobs at once, so the bash got the line for
+    // ── 9. the knob LEDs are driven from the drawn page ──────────────────────
+    /* updateKnobLEDsFrom logs all eight knobs at once, so the bash got the line for
      * free from its perf wait and never checked which knobs. The bar is the
      * invariant knob-leds.ts states: every knob is lit so the row is
      * identifiable — so an all-dark row is the failure, and a partially-driven
@@ -442,22 +388,19 @@ scenario('smoke', async (t) => {
     const klLit   = klLines.filter((l) => at(l, 'color') > 0);
     const okKl = klLines.length > 0 && klSeen.size === 8 && klLit.length > 0;
     t.check('knob-leds-firing',
-        `updateKnobLEDs ran — ${klSeen.size} knobs logged, ${klLit.length} lit`, okKl, {
+        `the knob row ran — ${klSeen.size} knobs logged, ${klLit.length} lit`, okKl, {
             expected: 'all 8 knob LEDs logged, at least one lit',
             actual: said(okKl, lastOf(klLines),
                 klLines.length === 0
-                    ? 'updateKnobLEDs never ran (knobLED log line absent)'
+                    ? 'the knob row never ran (knobLED log line absent)'
                     : klSeen.size < 8
                         ? `only ${klSeen.size} of 8 knobs logged — the row is not fully driven`
                         : 'every knob logged dark — the row is not lit at all'),
         });
 
-    // ── 10/11. movy's own timing instrumentation ─────────────────────────────
-    /* The bash read the MAX tick-rate sample (best window) to shrug off
-     * per-window scheduling noise, and required EVERY refresh sample under
-     * threshold. Both unchanged; what changed is that they are read from THIS
-     * run's window rather than from whatever the persistent log happened to
-     * hold. */
+    // ── 10. movy's own timing instrumentation ────────────────────────────────
+    /* The MAX tick-rate sample (best window) shrugs off per-window scheduling
+     * noise; read from THIS run's window, not whatever the log happened to hold. */
     const rates   = w0.filter((l) => l.includes('perf_tick_rate=')).map((l) => at(l, 'perf_tick_rate'));
     const maxRate = rates.length ? Math.max(...rates) : NaN;
     const okRate  = rates.length > 0 && maxRate >= TICK_RATE_MIN;
@@ -468,91 +411,4 @@ scenario('smoke', async (t) => {
                 ? 'perf_tick_rate not found — timing instrumentation missing or not reached'
                 : `tick rate ${maxRate} ticks/sec is below threshold ${TICK_RATE_MIN} — possible blocking`),
     });
-
-    /* THE MEDIAN OF THE SAMPLES THAT MEASURED SOMETHING — not the max of all of
-     * them, and the difference is the whole check.
-     *
-     * `perf_refresh_ms` is a `Date.now()` delta taken around `refreshOneParam()`
-     * (src/model/tick.ts:156-160) on the shadow-UI QuickJS thread, which is NOT
-     * realtime. So the number includes any time the thread spent DESCHEDULED,
-     * and requiring every sample under 10 ms asserts that the OS never parks that
-     * thread for longer — which is not a property movy has, or that this check
-     * ever meant to assert.
-     *
-     * Measured on device 2026-09-13, 424 samples across a full tier run: 5 of
-     * them exceed 10 ms (27, 35, 166, 237, 339, 458), every one of those lands in
-     * the `seq` window with the sequencer PLAYING and step-recording, and each
-     * sits beside a `perf_ipc` line reporting `peak_period` of 239-351 ms — the
-     * whole TICK stalled, not the refresh inside it. The decisive one reads
-     * `perf_refresh_ms=166 params=0`: a refresh with no populated param to read
-     * cannot spend 166 ms doing work, so that 166 ms is scheduling, measured by a
-     * clock that cannot tell the two apart. Steady state, whenever the metric
-     * measures anything at all, is 4-5 ms against this 10 ms budget.
-     *
-     * The median keeps the teeth the max was supposed to have: the regression
-     * this exists for — a per-tick host round trip creeping back into the refresh
-     * path, or the bulk batching in `refreshBatch` coming undone — moves EVERY
-     * sample, so it moves the median. A descheduled tick moves one.
-     *
-     * `params > 0` is the other half. A sample with no populated param measured
-     * nothing, and counting it is how a green here used to be free: with the
-     * window sitting on an empty chain slot every sample read
-     * `perf_refresh_ms=0 params=0` and the check called that the best possible
-     * result. Too few measuring samples is therefore a FAILURE, not a skip. */
-    /* WHICH ARM THIS CHECK IS MEASURING — the renderer's own answer, not a read
-     * of the file the renderer is supposed to derive it from (SP-15's pattern:
-     * `page-lifecycle.ts` gates its checks on the arm they ran in the same way).
-     *
-     * The arm is part of the check, not context for it. Under `page` Schwung
-     * owns the component's pages, so the UI passes `!pageOwner.delegated` and
-     * `refreshOneParam` never runs (src/app/tick.ts) — and the samples then read
-     * `perf_refresh_ms=0 params=14`. `params` counts populated params, not
-     * refreshes, so a full window of zeros is a full median of zeros: the check
-     * PASSES, having measured nothing at all. That is the same free green the
-     * 2026-09-13 rewrite killed for the EMPTY window, arriving through the other
-     * door, and the arm is what closes it.
-     *
-     * THE SCENARIO SET THAT ARM ITSELF (MOVY_ARM above), so this is an assertion
-     * not a precondition. It used to read `prefs.flags.schwunggrid` over ssh and
-     * fail unless a HUMAN had set it to 0 — which made a bare `npm run
-     * test:device` red on a box at rest, for a reason that was not movy being
-     * wrong. `renderer` is `schwungGridMode()`'s own answer (src/test/probe.ts),
-     * so it reads the arm the window actually ran in and cannot be satisfied by
-     * a flag file that disagrees with the running UI. The assertion stays HARD:
-     * a red here now means the arm the scenario set is not the arm the renderer
-     * reports, which is a real disagreement and not a setting to go and change. */
-    const armPage = await probe.page().catch(() => null) as { renderer?: string } | null;
-    const arm: string | null = armPage?.renderer ?? null;
-    const okArm = arm === MOVY_ARM;
-    t.note('refreshArm', arm);
-
-    const refLines = refW.filter((l) => l.includes('perf_refresh_ms='));
-    const measured = refreshSamples(refW);
-    const medRef   = measured.length ? median(measured) : NaN;
-    const okRef    = okArm && measured.length >= REFRESH_MIN_SAMPLES && medRef <= REFRESH_MS_MAX;
-    t.note('refreshSamples', measured);
-    /* The RAW lines, not just the ms. `measured` has already dropped the
-     * `params=0` samples, and those are the ones carrying the reason — a red
-     * here has to name which sample fell outside the loaded stretch, and a bare
-     * "2 of 3" cannot. */
-    t.note('refreshLines', refLines);
-    t.check('refresh-blocking',
-        `refresh blocking ${medRef} ms median of ${measured.length} measuring sample(s) `
-        + `<= ${REFRESH_MS_MAX} ms (threshold)`, okRef, {
-            expected: `the renderer at '${MOVY_ARM}' — the arm this scenario sets — at least `
-                      + `${REFRESH_MIN_SAMPLES} samples with params>0, and their median at or below ${REFRESH_MS_MAX}`,
-            actual: said(okRef, `${measured.length} measuring sample(s), median ${medRef} ms, `
-                + `max ${measured.length ? Math.max(...measured) : NaN} ms, arm renderer=${arm}`,
-                !okArm
-                    ? `the renderer did not answer '${MOVY_ARM}'${arm === null ? ' (the probe gave no page at all, so '
-                      + 'the arm cannot be confirmed)' : `, it answered '${arm}'`} — this scenario arms itself `
-                      + '(`probe.setGridMode`, an override that writes no flag), so this is not a setting to go and '
-                      + `change: in any arm but '${MOVY_ARM}' Schwung owns the component's pages, refreshOneParam does not `
-                      + 'run, and every sample reads perf_refresh_ms=0 with params>0 — a green that measured nothing'
-                    : refLines.length === 0
-                        ? `only ${measured.length} of ${refLines.length} sample(s) had params>0 — the refresh was not running `
-                          + 'over a loaded module, so this window measured nothing rather than measuring something good'
-                        : `refresh blocking ${medRef} ms median over ${measured.length} sample(s) `
-                          + `exceeds ${REFRESH_MS_MAX} ms — the refresh path itself is slow, not one descheduled tick`),
-        });
 });

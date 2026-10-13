@@ -9,17 +9,13 @@
  * Run by browser-test/logic.mjs. SKIPPED without a SCHWUNG checkout.
  */
 
-import { schwungLibAvailable, bootModel, settleModel, ok, eq, fail, _log, env, MOCK_SYNTHS, appState,
-         setSchwungGridMode, schwungGridReload, schwungPageFor } from './harness.mjs';
+import { bootModel, settleModel, ok, eq, fail, _log, env, MOCK_SYNTHS, appState,
+         schwungGridReload, schwungPageFor } from './harness.mjs';
 import { dumpEntry, dumpFixture } from '../dump-fixture.mjs';
 import { serveModuleFiles } from './drum-automation.mjs';
 
 export async function run() {
 
-if (!schwungLibAvailable()) {
-    _log('\nlogic: page visible_if — SKIPPED (no param_pages; set SCHWUNG=)');
-    return;
-}
 _log('\nlogic: page visible_if (DR32 engine pages)');
 
 const { automationFor } = await import('../../dist/esm/app/automated-keys.js');
@@ -27,7 +23,6 @@ const prevModels = appState.trackModels[0];
 
 function boot(gates) {
     const restoreFs = serveModuleFiles(dumpEntry('dr32'));
-    setSchwungGridMode('page');
     schwungGridReload();
     const fixture = { ...dumpFixture('dr32') };
     for (const [k, v] of Object.entries(gates)) {
@@ -50,7 +45,6 @@ const done = (restoreFs) => {
     restoreFs();
     appState.trackModels[0] = prevModels;
     schwungGridReload();
-    setSchwungGridMode(null);
     env.setParams(MOCK_SYNTHS.test16);
 };
 

@@ -18,7 +18,7 @@
 
 import {
     appState, env, bootModel, settleModel,
-    setSchwungGridMode, schwungLibAvailable, schwungGridReload,
+    schwungGridReload,
     MOCK_SYNTHS, ok, eq, _log, installMockFs, uninstallMockFs,
 } from './harness.mjs';
 
@@ -147,9 +147,7 @@ const { pageOwnerOf } = await import('../../dist/esm/app/page-owner.js');
 }
 
 /* ── the manifest reaches the delegated page ──────────────────────────────── */
-if (!schwungLibAvailable()) {
-    _log('\nlogic: the manifest under PAGE — SKIPPED (no param_pages; set SCHWUNG=)');
-} else {
+{
     _log('\nlogic: a module.json contract plans the DELEGATED page too (SP-20)');
 
     /* Schwung serves a SYNTH slot's `ui_hierarchy` from the plugin alone, so a
@@ -166,23 +164,20 @@ if (!schwungLibAvailable()) {
 
     installMockFs({ '/data/UserData/schwung/modules/sound_generators/manifest-only/module.json':
                     MANIFEST });
-    setSchwungGridMode('page');
     schwungGridReload();
     appState.activeTrack.index = 0;
     const m = settleModel(bootModel(MOCK_SYNTHS.module_json_hier));
     const o = pageOwnerOf(m);
-    for (let i = 0; i < 12 * 60 && !o.delegated; i++) { o.poll(); m.tick(); }
-    eq('the manifest module delegates', o.delegated, true);
+    for (let i = 0; i < 12 * 60 && !o.page; i++) { o.poll(); m.tick(); }
+    eq('the manifest module delegates', !!o.page, true);
     eq('and the page is planned from what it declares', o.knobParamInfo(0)?.key, 'sample_path');
 
-    setSchwungGridMode('off');
     schwungGridReload();
     uninstallMockFs();
 }
 
 /* Back to the world the next suite boots in — the same tail page-owner.mjs
  * keeps, for the same reason: this one boots a module of its own. */
-setSchwungGridMode(null);
 appState.activeTrack.index = 0;
 env.setParams(MOCK_SYNTHS.test16);
 

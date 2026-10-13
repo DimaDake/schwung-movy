@@ -75,11 +75,6 @@ await esbuild.build({
         /* The file-param predicate: the logic suite classifies a click's
          * consequence with the same rule the footer and the dive use. */
         resolve(root, 'src/renderer/schwung-file-param.ts'),
-        /* The version floor. Entry point for the same reason as its siblings:
-         * the logic suite drives `schwungFloorMet`/`schwungFloorReason`
-         * directly, and folded into a chunk there would be no module to import
-         * — the suite would fail on a path, not on the floor. */
-        resolve(root, 'src/renderer/schwung-floor.ts'),
         /* The device harness's probe: entry point so the logic suite can pin
          * its response shape without a device. */
         resolve(root, 'src/test/probe.ts'),
@@ -104,7 +99,6 @@ await esbuild.build({
         resolve(root, 'src/model/enum-class.ts'),
         resolve(root, 'src/model/fader.ts'),
         resolve(root, 'src/model/pan.ts'),
-        resolve(root, 'src/renderer/pan-dial.ts'),
         resolve(root, 'src/model/wave-viz.ts'),
         resolve(root, 'src/model/wave-toggle.ts'),
         resolve(root, 'src/model/env-stage.ts'),
@@ -118,13 +112,9 @@ await esbuild.build({
         resolve(root, 'src/chain/hierarchy-source.ts'),
         resolve(root, 'src/model/eq-viz.ts'),
         resolve(root, 'src/model/eq-vm.ts'),
-        resolve(root, 'src/renderer/eq-curve.ts'),
-        resolve(root, 'src/renderer/filter-curve.ts'),
         resolve(root, 'src/model/cut-viz.ts'),
-        resolve(root, 'src/renderer/cut-curve.ts'),
         resolve(root, 'src/model/wav-viz.ts'),
         resolve(root, 'src/model/wav-peaks.ts'),
-        resolve(root, 'src/renderer/wav-form.ts'),
         resolve(root, 'src/modules/loader.ts'),
         resolve(root, 'src/model/viewmodel.ts'),
         resolve(root, 'src/model/store.ts'),
@@ -137,7 +127,6 @@ await esbuild.build({
         resolve(root, 'src/model/file-validate.ts'),
         resolve(root, 'src/model/pad-scope.ts'),
         resolve(root, 'src/renderer/knob-view.ts'),
-        resolve(root, 'src/renderer/knob.ts'),
         resolve(root, 'src/renderer/header.ts'),
         resolve(root, 'src/renderer/shorten.ts'),
         resolve(root, 'src/renderer/keys-view.ts'),
@@ -401,51 +390,25 @@ await esbuild.build({
     bundle:    true,
     splitting: true,
     plugins: [{
-        /* renderer/schwung-page.ts imports Schwung's shared param_pages by its
-         * absolute device path, which the device build leaves external (it is
-         * already in build/device.mjs's `external` list, alongside
-         * constants.mjs and input_filter.mjs). Off device there is no such
-         * file, so point it at a real schwung checkout — that is what lets the
-         * browser tests render the actual Schwung widgets rather than a stub.
-         *
-         * SCHWUNG is optional: without it the import resolves to a stub that
-         * throws only if the grid is switched on, so the whole existing suite
-         * still builds and runs on a machine with no schwung checkout. */
+        /* movy imports Schwung's shared JS by its absolute device path, which
+         * the device build leaves external. Here it resolves to the PINNED
+         * tag's bytes — the ones movy ships (scripts/lib/schwung-pinned.mjs) —
+         * so the suites render the real Schwung widgets. SCHWUNG= says where
+         * the schwung repo is; ../schwung by default, like run-gate.sh. */
         name: 'schwung-param-pages',
         setup(build) {
-            const SCHWUNG = process.env.SCHWUNG;
-            /* `shadow/shadow_ui_slot_grid.mjs` too: it is where Schwung's LFO
-             * page contract lives until it moves to param_pages (SP-60), and
-             * movy imports it as the fallback home. */
             /* The keyboard is always the stand-in: the real one draws through
              * Schwung's globals and is Schwung's to test (stubs/text-entry.mjs). */
             build.onResolve({ filter: /^\/data\/UserData\/schwung\/shared\/text_entry\.mjs$/ },
                 () => ({ path: resolve(root, 'browser-test/stubs/text-entry.mjs') }));
             build.onResolve({ filter: /^\/data\/UserData\/schwung\/(shared\/param_pages\/|shadow\/|shared\/lane_voice_map\.mjs$)/ }, (a) => {
-                if (SCHWUNG) {
-                    /* wav_io_qjs.mjs (SP-42) statically imports QuickJS's built-in
-                     * `std`/`os` modules, which esbuild/node cannot resolve — the
-                     * real file is unusable here. Redirect to a movy-authored
-                     * stand-in backed by the same globalThis.std/os mocks
-                     * browser-test/env.mjs already installs, rather than skipping
-                     * the module (which would leave Schwung's IO unregistered and
-                     * every sample-cell assertion silently vacuous). */
-                    if (a.path.endsWith('wav_io_qjs.mjs')) {
-                        return { path: resolve(root, 'browser-test/stubs/wav-io-qjs.mjs') };
-                    }
-                    const tail = a.path.replace('/data/UserData/schwung/', '');
-                    /* The PINNED tag's bytes, the ones movy ships (scripts/lib/schwung-pinned.mjs). */
-                    const real = resolve(pinnedSchwungRoot(), 'src/' + tail);
-                    /* A file this checkout does not have is what an older
-                     * Schwung on the device looks like: the import FAILS, and
-                     * the caller's fallback has to be what runs. A build error
-                     * here would test a Schwung nobody has. */
-                    if (!existsSync(real)) {
-                        return { path: resolve(root, 'browser-test/stubs/schwung-missing.mjs') };
-                    }
-                    return { path: real };
+                /* wav_io_qjs.mjs (SP-42) statically imports QuickJS's built-in
+                 * `std`/`os`, which node cannot resolve: a stand-in backed by the
+                 * same globalThis.std/os mocks browser-test/env.mjs installs. */
+                if (a.path.endsWith('wav_io_qjs.mjs')) {
+                    return { path: resolve(root, 'browser-test/stubs/wav-io-qjs.mjs') };
                 }
-                return { path: resolve(root, 'browser-test/stubs/schwung-param-pages.mjs') };
+                return { path: resolve(pinnedSchwungRoot(), 'src/' + a.path.replace('/data/UserData/schwung/', '')) };
             });
         },
     }],

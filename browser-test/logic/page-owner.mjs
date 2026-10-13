@@ -17,7 +17,7 @@
 import {
     readFileSync, readdirSync,
     appState, portFor, env, createModel, bootModel, settleModel,
-    setSchwungGridMode, schwungLibAvailable, schwungGridReload,
+    schwungGridReload,
     MOCK_SYNTHS, ok, eq, _log,
 } from './harness.mjs';
 
@@ -41,7 +41,7 @@ const { modulatedKeysOf } = await import('../../dist/esm/app/modulated-keys.js')
     });
     const OWNERSHIP = /schwungActiveFor\(|schwungChangePage\(|schwungPageFor\(/;
     const ALLOWED = {
-        'src/renderer/schwung-grid.ts': 'the mode and the (track, component) page cache',
+        'src/renderer/schwung-grid.ts': 'the (track, component) page cache',
         'src/app/page-owner.ts':        'the accessor itself — the only caller',
         'src/app/page-owner-virtual.ts': 'page-owner.ts\'s sibling for a page with '
             + 'no MODEL object (SP-53) — split out to keep page-owner.ts under the '
@@ -228,7 +228,6 @@ const { modulatedKeysOf } = await import('../../dist/esm/app/modulated-keys.js')
 {
     _log('\nlogic: page identity is (track, component), derived once');
 
-    setSchwungGridMode('off');
     appState.activeTrack.index = 0;
     const m = bootModel(MOCK_SYNTHS.test16);
 
@@ -297,65 +296,24 @@ const { modulatedKeysOf } = await import('../../dist/esm/app/modulated-keys.js')
     appState.trackModels[0] = origTrack0;
 }
 
-/* ── movy owns it ─────────────────────────────────────────────────────────── */
-{
-    _log('\nlogic: movy owns the page with the grid off');
-
-    setSchwungGridMode('off');
-    const m = settleModel(bootModel(MOCK_SYNTHS.test16));
-    const o = pageOwnerOf(m);
-
-    eq('nothing is claimed', o.claimed, false);
-    eq('nothing is delegated', o.delegated, false);
-    eq('there is no Schwung page', o.page, null);
-    eq('the reason names the mode', o.reason, 'mode=off');
-    eq('the index is movy\'s bank', o.pageIndex, m.getKnobPage());
-    eq('the count is movy\'s banks', o.pageCount, m.getBankCount());
-    eq('the param under the knob is movy\'s', o.knobParamInfo(0)?.key,
-       m.getKnobParamInfo(0)?.key);
-
-    const before = m.getKnobPage();
-    o.changePage(1);
-    eq('changePage moves movy\'s own bank', m.getKnobPage(), before + 1);
-    eq('and the owner reports the move', o.pageIndex, before + 1);
-    o.changePage(-1);
-
-    /* poll() must cost nothing when there is nothing to poll — SP-12 calls it
-     * once per tick from the render path. */
-    o.poll();
-    eq('poll leaves a movy-owned page alone', o.pageIndex, before);
-}
-
 /* ── the gestures that resolve a parameter ────────────────────────────────── */
 {
     _log('\nlogic: a gesture resolves its parameter through the drawn page');
 
-    /* SP-11. Two input sites resolved a parameter from movy's own page index
-     * and had no way to be told otherwise. Under a delegated page that index is
-     * not what is on screen: the dive opened movy's list over Schwung's cell,
-     * and the file browser opened a parameter the user was not holding. */
-    setSchwungGridMode('off');
+    /* SP-11. The model never opens its own dive (the page drew the cell), but
+     * the touch is still recorded for the release and the header. */
     const m = settleModel(bootModel(MOCK_SYNTHS.lfo_mod));
-
-    m.handleKnobTouch(0);
-    ok('a touch movy draws opens movy\'s dive', m.getViewModel().overlay !== null);
-    m.handleKnobRelease(0);
-
     m.handleKnobTouch(0, false);
-    eq('a touch someone else drew opens none', m.getViewModel().overlay, null);
+    eq('a touch opens no movy dive', m.getViewModel().overlay, null);
     eq('but the touch is still recorded', m.getViewModel().touchedSlot, 0);
     m.handleKnobRelease(0);
 
-    /* The file browser's target. `model/` cannot ask who owns the page (it may
+    /* The file browser's target. `model/` cannot ask who draws the page (it may
      * not import `app/`), so the drawn key is passed in — and a drawn cell that
-     * is NOT a file param must open nothing, which is the assertion that fails
-     * when the resolver is ignored and movy's arithmetic answers anyway. */
+     * is NOT a file param must open nothing. */
     const f = settleModel(bootModel(MOCK_SYNTHS.file_param));
     f.handleKnobTouch(0, false);
-    eq('movy\'s own arithmetic still answers when movy draws',
-       f.getFileBrowseTarget()?.key, 'sample');
-    eq('the drawn key answers when one is supplied',
-       f.getFileBrowseTarget(() => 'sample')?.key, 'sample');
+    eq('the drawn key answers', f.getFileBrowseTarget(() => 'sample')?.key, 'sample');
     eq('a drawn cell that is not a file opens nothing',
        f.getFileBrowseTarget(() => 'vol'), null);
     eq('an empty drawn cell opens nothing',
@@ -367,15 +325,11 @@ const { modulatedKeysOf } = await import('../../dist/esm/app/modulated-keys.js')
 {
     _log('\nlogic: no model, no owner, no throw');
 
-    setSchwungGridMode('page');
     const o = pageOwnerOf(null);
-    eq('no model is never claimed', o.claimed, false);
-    eq('no model is never delegated', o.delegated, false);
     eq('the reason says so', o.reason, 'no-model');
-    eq('its index is bank 0', o.pageIndex, 0);
+    eq('its index is page 0 of 0', [o.pageIndex, o.pageCount].join('/'), '0/0');
     o.changePage(1); o.poll();
     eq('and its gestures do nothing', o.page, null);
-    setSchwungGridMode('off');
 }
 
 /* ── movy's own pages ARE now claimed under PAGE (SP-55) ─────────────────── */
@@ -394,72 +348,50 @@ const { modulatedKeysOf } = await import('../../dist/esm/app/modulated-keys.js')
     ok('an FX slot is not', !isMovyOwnComponent('audio_fx1'));
     ok('a master FX slot is not', !isMovyOwnComponent('master_fx1'));
 
-    /* PAGE is only reachable with the library: `schwungGridMode` pins itself to
-     * 'off' when param_pages cannot load, so without a SCHWUNG checkout the
-     * override below answers 'mode=off' and this says nothing about the rule.
-     * Skipped, not failed — the standing contract for every Schwung assertion
-     * in the local suites (movy/CLAUDE.md). */
-    if (!schwungLibAvailable()) {
-        _log('  (the PAGE half SKIPPED — no param_pages; set SCHWUNG=)');
-    } else {
-        setSchwungGridMode('page');
+    {
         const o = pageOwnerOf({ getComponentKey: () => 'mix' });
-        ok('a mix page IS claimed under PAGE', o.claimed);
-        ok('and it settles delegated (the source planned a page)', o.delegated);
+        ok('a mix page settles live (the source planned a page)', o.page !== null);
         eq('the log names the component it delegated', o.reason,
            'ok track=0 ck=mix pages=1 at=0');
-        setSchwungGridMode('off');
     }
 }
 
 /* ── Schwung owns it ──────────────────────────────────────────────────────── */
-if (!schwungLibAvailable()) {
-    _log('\nlogic: page delegation — SKIPPED (no param_pages; set SCHWUNG=)');
-} else {
-    _log('\nlogic: Schwung owns the page under PAGE');
+{
+    _log('\nlogic: Schwung owns the page');
 
-    /* CLAIMED IS NOT DELEGATED, and the window between them is load-bearing:
-     * the page is built while the module is still loading, and every gesture
-     * stays movy's until the contract resolves. That is what
-     * `schwungActiveFor`'s `ready ? p : null` expressed at each site; losing it
-     * would hand a gesture to a controller with no pages. An empty slot is the
-     * deterministic form of it — the contract resolves to nothing, forever. */
-    setSchwungGridMode('page');
+    /* A PAGE THAT IS NOT READY ANSWERS NOTHING. The page is built while the
+     * module is still loading; until its contract resolves there is nothing
+     * on screen, so no gesture may land and no index may be reported. An empty
+     * slot is the deterministic form of it — the contract resolves to nothing,
+     * forever. */
     schwungGridReload();
     appState.activeTrack.index = 0;
     env.setParams({});
     const empty = createModel(portFor(0), 'synth');
     const eo = pageOwnerOf(empty);
-    eq('an empty slot is still claimed', eo.claimed, true);
-    eq('but it is not delegated', eo.delegated, false);
-    eq('so movy still answers for it', eo.page, null);
+    eq('an empty slot has no page', eo.page, null);
     ok('and the reason says not-ready', eo.reason.startsWith('not-ready track=0 ck=synth'));
-    eq('the index falls back to movy\'s bank', eo.pageIndex, empty.getKnobPage());
+    eq('it reports page 0 of 0', [eo.pageIndex, eo.pageCount].join('/'), '0/0');
+    eq('no parameter is under any knob', eo.knobParamInfo(0), null);
+    eo.changePage(1); eo.goToPage(2);
+    eq('and a jog moves nothing', eo.pageIndex, 0);
 
     /* Now a module that really is there. */
     schwungGridReload();
     const m = settleModel(bootModel(MOCK_SYNTHS.test16));
     const o = pageOwnerOf(m);
-    eq('a real module is claimed', o.claimed, true);
 
     /* poll() is what resolves the contract — the same RETRY_TICKS × RETRY_LIMIT
      * budget screenshot.mjs's page_body scene waits on, and the call SP-12's
      * polling item takes over from movy's own refresh. */
-    for (let i = 0; i < 12 * 60 && !o.delegated; i++) { o.poll(); m.tick(); }
-    eq('poll resolves the contract', o.delegated, true);
-    ok('now there is a Schwung page', o.page !== null);
+    for (let i = 0; i < 12 * 60 && !o.page; i++) { o.poll(); m.tick(); }
+    ok('poll resolves the contract', o.page !== null);
     ok('and the reason says ok', o.reason.startsWith('ok track=0 ck=synth pages='));
 
-    /* THE DIVERGENCE THIS ACCESSOR EXISTS FOR. The two planners page
-     * differently — Schwung paginates overflow — so a site that moved movy's
-     * bank while Schwung drew the body was moving an index nothing displayed,
-     * and a site that READ movy's bank was reading a page that is not on
-     * screen. One owner, one index. */
-    const movyBefore = m.getKnobPage();
     const schwungBefore = o.pageIndex;
     o.changePage(1);
     eq('changePage moves Schwung\'s page', o.pageIndex, schwungBefore + 1);
-    eq('and leaves movy\'s bank alone', m.getKnobPage(), movyBefore);
     eq('the count is Schwung\'s page count', o.pageCount, o.page.pageCount);
     eq('the param under the knob is Schwung\'s', o.knobParamInfo(0)?.key,
        o.page.knobParamInfo(0)?.key);
@@ -481,9 +413,9 @@ if (!schwungLibAvailable()) {
 
 /* ── one knob-LED writer, two sources ─────────────────────────────────────── */
 {
-    _log('\nlogic: the knob row has one writer and one ramp');
+    _log('\nlogic: the knob row goes dark where nothing is bound');
 
-    const { updateKnobLEDs, updateKnobLEDsFrom, resetKnobLedCache } =
+    const { updateKnobLEDsFrom, resetKnobLedCache } =
         await import('../../dist/esm/renderer/knob-leds.js');
     const { ledFrameReset } = await import('../../dist/esm/seq/led-cache.js');
 
@@ -492,16 +424,6 @@ if (!schwungLibAvailable()) {
     globalThis.setButtonLED = (cc, c) => { seen[cc] = c; };
     const row = () => Array.from({ length: 8 }, (_, k) => seen[71 + k]).join();
     const paint = (fn) => { ledFrameReset(); resetKnobLedCache(); fn(); return row(); };
-
-    /* A delegated page hands over normalised values and nothing else; movy's
-     * own page hands over a whole view model. They must reach the same colour,
-     * or the row would change appearance when ownership changed and say
-     * nothing about the sound. */
-    const levels = [0, 0.2, 0.5, 0.9, 0, 0.3, 0.6, 0.99];
-    const vm = { rows: [levels.slice(0, 4).map((v) => ({ normalizedValue: v })),
-                        levels.slice(4).map((v) => ({ normalizedValue: v }))] };
-    eq('the two sources light the same colours',
-       paint(() => updateKnobLEDsFrom(levels)), paint(() => updateKnobLEDs(vm)));
 
     /* An unread or unbound cell goes DARK rather than sitting confidently at
      * the bottom of its range — colour 0 already means "nothing to turn here". */
@@ -512,7 +434,6 @@ if (!schwungLibAvailable()) {
     resetKnobLedCache();
 }
 
-setSchwungGridMode(null);
 appState.activeTrack.index = 0;
 env.setParams(MOCK_SYNTHS.test16);
 

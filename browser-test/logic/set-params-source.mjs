@@ -3,15 +3,14 @@
  * with the delta path (`mainPageKnob`/`mainPageRelease`'s overlay commit),
  * TEMPO's `format()` EXT suffix, and LAYOUT's mode-dependent option list.
  *
- * The FIRST block needs no schwung checkout — pure functions over
- * `seqState`/`keyboardState`. The second is guarded (`schwungLibAvailable()`)
- * and proves the contract actually PLANS a page through the real planner.
+ * The FIRST block is pure functions over `seqState`/`keyboardState`. The
+ * second proves the contract actually PLANS a page through the real planner.
  *
  * Run by browser-test/logic.mjs.
  */
 
 import { appState, resetPorts, ok, eq, _log,
-         schwungLibAvailable, schwungGridMode, setSchwungGridMode, schwungGridReload,
+         schwungGridReload,
          schwungPageFor } from './harness.mjs';
 
 export async function run() {
@@ -163,13 +162,9 @@ _log('\nTest: swing and tempo say what their numbers ARE');
 }
 
 /* ── the page actually plans (guarded: needs a real schwung checkout) ────── */
-if (!schwungLibAvailable()) {
-    _log('\nlogic: Set Params page plan — SKIPPED (no param_pages; set SCHWUNG=)');
-} else {
+{
     _log('\nTest: Set Params plans and settles under `page`');
     reset();
-    const savedMode = schwungGridMode();
-    setSchwungGridMode('page');
     schwungGridReload();
     const p = schwungPageFor(0, SET_PARAMS_COMPONENT, null, null);
     for (let i = 0; i < 60 && !p.ready; i++) p.tick();
@@ -239,7 +234,6 @@ if (!schwungLibAvailable()) {
     ok('a cell that shows its value in full raises no panel', turnKnob(2, 8) === null);
     ok('a cell whose words do not fit still raises one', !!turnKnob(4, 8));
 
-    setSchwungGridMode(savedMode);
     schwungGridReload();
 }
 

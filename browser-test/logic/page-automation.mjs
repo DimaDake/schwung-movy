@@ -23,8 +23,8 @@
  * Run by browser-test/logic.mjs.
  */
 
-import { schwungLibAvailable, bootModel, eq, ok, _log,
-         env, portFor, MOCK_SYNTHS, setSchwungGridMode, schwungGridReload,
+import { bootModel, eq, ok, _log,
+         env, portFor, MOCK_SYNTHS, schwungGridReload,
          resetSeqEngine } from './harness.mjs';
 
 export async function run() {
@@ -104,11 +104,6 @@ _log('\nlogic: a held step decorates only the cells it locks (SP-59)');
        decorationsFor(view(new Map()), ['cutoff', 'res']), null);
 }
 
-if (!schwungLibAvailable()) {
-    _log('\nlogic: page automation — SKIPPED (no param_pages; set SCHWUNG=)');
-    return;
-}
-
 /* ── the page: pointer, mark, and the frame the mark needs ───────────────── */
 
 const { pageOwnerOf } = await import('../../dist/esm/app/page-owner.js');
@@ -117,7 +112,6 @@ const { seqState } = await import('../../dist/esm/seq/state.js');
 
 _log('\nlogic: an automated parameter under `page` — the pointer keeps the base');
 {
-    setSchwungGridMode('page');
     schwungGridReload();
     resetAutomation(); resetSeqEngine(); resetLaneBases();
 
@@ -204,7 +198,6 @@ _log('\nlogic: an automated parameter under `page` — the pointer keeps the bas
     seqState.autoActive = 0;
     resetAutomation(); resetLaneBases();
     schwungGridReload();
-    setSchwungGridMode(null);
     env.setParams(MOCK_SYNTHS.test16);
 }
 
@@ -230,7 +223,6 @@ _log('\nlogic: enum and boolean cells take a lane in both grid modes (D14)');
     };
     for (const mode of [null, 'page']) {
         const tag = mode ? 'SCHWUNG' : 'MOVY';
-        setSchwungGridMode(mode);
         schwungGridReload();
         const model = bootModel(preset);
         for (let i = 0; i < 20; i++) model.tick();
@@ -253,7 +245,6 @@ _log('\nlogic: enum and boolean cells take a lane in both grid modes (D14)');
         eq(tag + ': a two-state ACTION is not', !!(byKey.fire && byKey.fire.automatable), false);
         eq(tag + ': a float still is', !!(byKey.cut && byKey.cut.automatable), true);
     }
-    setSchwungGridMode(null);
     env.setParams(MOCK_SYNTHS.test16);
 }
 

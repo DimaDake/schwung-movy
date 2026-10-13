@@ -25,8 +25,7 @@
  * WHAT THIS DOES NOT DO: prove the retry latch is what changed. THE TEETH ARE
  * IN `browser-test/logic/page-contract.mjs`, which goes red with the latch
  * taken out. This suite is the same story on hardware, and on hardware it
- * passes either way — MEASURED, with the latch reverted, the renderer pinned to
- * `page`, and the empty window at `PAST_OLD_BUDGET`: 29 s of device work, ~1840
+ * passes either way — MEASURED, with the latch reverted and the empty window at `PAST_OLD_BUDGET`: 29 s of device work, ~1840
  * ticks at the slowest rate the board is known to tick against a 720-tick
  * budget, and the module's page still comes back. So the device does not reach
  * the latch by this route at all — something re-makes the contract when the
@@ -35,8 +34,7 @@
  * The first version of L3 could not have shown teeth whatever the latch did:
  * it waited `OLD_BUDGET` FRAMES (2.4 s) against a budget denominated in TICKS,
  * so it finished inside the urgent window, where even the reverted rule reloads
- * on the ordinary retry. It also graded movy's own renderer — see the renderer
- * note above L1. What is left is worth keeping and is the reason the check
+ * on the ordinary retry. What is left is worth keeping and is the reason the check
  * stays: the end-to-end outcome on hardware, which the logic suite can only
  * model — the engine's own answer for a slot that has just gone None, and a
  * frame that comes back without a gesture.
@@ -91,13 +89,9 @@ const PAST_OLD_BUDGET  = 10000;   /* the shim caps one WAIT_FRAME at 10000 */
  * module=—` in the same log). A page for it is movy's own, not a module's. */
 const EMPTY_NAME = '—';
 
-/* The renderer every check here has to be run against. Schwung plans AND draws
- * under it, which is the only arm in which the delegated page's contract — the
- * thing SP-15 is about — exists at all. */
-const PAGE_MODE = 'page';
 
 type Page = { module?: string; pageCount?: number; pageIndex?: number;
-              renderer?: string; cells?: ({ name?: string } | null)[];
+              body?: string; cells?: ({ name?: string } | null)[];
               /* The SCREEN, not the page on it — the one field here that
                * answers about where movy is rather than about what it drew
                * (`src/test/probe.ts`). L4 grades it. */
@@ -149,27 +143,20 @@ scenario('page-lifecycle', async (t) => {
         } catch { return await pageNow(); }
     };
     const dump = (p: Page | null) => p && { module: p.module, pageCount: p.pageCount,
-                                            renderer: p.renderer,
+                                            body: p.body,
                                             cells: (p.cells ?? []).map((c) => c?.name) };
     const describe = (p: Page | null): string => !p ? 'movy has not rendered'
-        : `renderer=${p.renderer} module=${p.module || '(none)'} pages=${p.pageCount} `
+        : `body=${p.body} module=${p.module || '(none)'} pages=${p.pageCount} `
         + `cells=[${(p.cells ?? []).map((c) => c?.name).filter(Boolean).join(' ')}]`;
     /* The page belongs to the module when it NAMES it and has cells on it. The
      * cell list is what makes this non-vacuous: an empty slot renders a page
      * too, so `pageCount > 0` alone is true for a slot with nothing in it. */
     const hasCells = (p: Page): boolean => (p.cells ?? []).some((c) => !!c?.name);
     const isModules = (p: Page): boolean => p.module === MODULE && hasCells(p);
-    /* AND SCHWUNG IS THE ONE DRAWING IT (SP-15 review).
-     *
-     * `renderer` is `schwungGridMode()`'s own answer, so this reads the arm the
-     * check actually ran in rather than trusting it — and the arm is not
-     * decoration: under `off` the delegated contract is not in the picture at
-     * all, so a check about ITS lifecycle would be grading movy's own renderer,
-     * which no contract-lifecycle reason can fail. L3's reopen drops the
-     * override and falls back to the device's `schwunggrid` flag, which is what
-     * made the one check that carries the item run in `off` on the graded
-     * sweep. Every check below is gated on this. */
-    const delegated = (p: Page | null): boolean => !!p && p.renderer === PAGE_MODE;
+    /* AND SCHWUNG IS THE ONE DRAWING IT: the last frame's body was the page,
+     * not the blank a page still loading leaves. Every check below is gated on
+     * this. */
+    const delegated = (p: Page | null): boolean => !!p && p.body === 'schwung';
     const isDelegatedModules = (p: Page): boolean => isModules(p) && delegated(p);
 
     await fixture.ensure(t.tx, open, close);
@@ -178,16 +165,6 @@ scenario('page-lifecycle', async (t) => {
     await dev.selectTrack(0);
     /* The slot is put back whatever happens below — this suite empties it. */
     t.need.register(async () => { await ep('ch0:synth:module', MODULE); });
-
-    /* Page mode by OVERRIDE (`setGridMode` writes nothing), so the device's own
-     * prefs are never touched. IT ALSO SURVIVES NO REOPEN: `dev.reopen` is
-     * close + `openTool`, and `openTool` re-evaluates `ui.js`, so the override —
-     * a module-level `let` — is gone and the mode falls back to the device's
-     * `schwunggrid` flag. L3 therefore RE-ARMS IT after its reopen; that is the
-     * line that makes L3 a delegated check, and it is also what makes this
-     * scenario independent of whatever the device happens to be set to. */
-    const mode = await probe.setGridMode(PAGE_MODE);
-    t.note('gridMode', mode);
 
     /* ── L1: the module's page comes up in page mode ──────────────────────────
      * THE CLICK HAS A PRECONDITION. In the chain view a jog click on an EMPTY
@@ -211,7 +188,7 @@ scenario('page-lifecycle', async (t) => {
     t.check('knobs-page-is-the-modules',
         'the knob view comes up on the loaded module, with cells to draw, delegated',
         !!pg && isDelegatedModules(pg),
-        { expected: `a rendered page naming ${MODULE} with knobs on it, under renderer=${PAGE_MODE}`,
+        { expected: `a rendered page naming ${MODULE} with knobs on it, drawn through Schwung`,
           actual: describe(pg) });
 
     /* ── L4: a knob released onto ANOTHER page does not latch this one ───────
@@ -282,7 +259,7 @@ scenario('page-lifecycle', async (t) => {
         'the slot set to None hands the frame back, with no navigation, delegated',
         !!emptied && emptied.module !== MODULE && !hasCells(emptied) && delegated(emptied),
         { expected: `movy´s own page for the empty slot ("${EMPTY_NAME}", no cells), `
-                  + `under renderer=${PAGE_MODE}`,
+                  + `drawn through Schwung`,
           actual: describe(emptied) });
 
     /* ── L3: a module that arrives after the old budget is spent ─────────────
@@ -299,11 +276,6 @@ scenario('page-lifecycle', async (t) => {
      * tick rate (`PAST_OLD_BUDGET`). Frames cannot be talked out of advancing,
      * and the count is arithmetic rather than a guess. */
     await dev.reopen(probe);
-    /* THE OVERRIDE DID NOT SURVIVE THAT REOPEN (see the top of L1), and the
-     * reopen is the whole point of this check: it is the cold start an empty
-     * slot arrives from. Re-armed here or the rest of L3 grades movy's own
-     * renderer and asserts nothing about the contract this item is about. */
-    t.note('gridModeAfterReopen', await probe.setGridMode(PAGE_MODE));
     await dev.selectTrack(0);
     t.note('pageAtColdStart', dump(await pageNow()));
     await t.tx.frames(PAST_OLD_BUDGET);
@@ -320,11 +292,10 @@ scenario('page-lifecycle', async (t) => {
         `a module dropped in after the old ${OLD_BUDGET_TICKS}-tick budget is spent `
         + 'is drawn by Schwung, with no navigation',
         !!back && isDelegatedModules(back),
-        { expected: `a rendered ${MODULE} page under renderer=${PAGE_MODE} after movy sat `
+        { expected: `a rendered ${MODULE} page drawn through Schwung after movy sat `
                   + `on the empty slot for ${OLD_BUDGET_TICKS} ticks (${PAST_OLD_BUDGET} frames)`,
           actual: describe(back) });
 
     t.note('bodyThisRun', await bodySince());
-    await probe.setGridMode(null);
     await ep('ch0:synth:module', MODULE);
 });

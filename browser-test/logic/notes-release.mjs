@@ -248,7 +248,7 @@ _log('\nTest: onUnload releases live notes and sequencer gates');
 _log('\nTest: knob LEDs diff against a movy-owned cache');
 {
     const { ledFrameReset } = await import('../../dist/esm/seq/led-cache.js');
-    const { updateKnobLEDs, resetKnobLedCache } =
+    const { updateKnobLEDsFrom, resetKnobLedCache } =
         await import('../../dist/esm/renderer/knob-leds.js');
 
     let sends = 0;
@@ -257,26 +257,22 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     globalThis.setLED = () => { sends++; };
     globalThis.setButtonLED = () => { sends++; };
 
-    const cell = (nv) => ({ normalizedValue: nv, trigger: null });
-    const vmAt = (nv) => ({ rows: [
-        [cell(nv), cell(nv), cell(nv), cell(nv)],
-        [cell(nv), cell(nv), cell(nv), cell(nv)],
-    ] });
+    const vmAt = (nv) => new Array(8).fill(nv);
 
     resetKnobLedCache();
 
-    updateKnobLEDs(vmAt(0.1));
+    updateKnobLEDsFrom(vmAt(0.1));
     eq('cold frame writes all 16 knob LEDs', sends, 16);
 
     sends = 0;
-    updateKnobLEDs(vmAt(0.1));
+    updateKnobLEDsFrom(vmAt(0.1));
     eq('unchanged frame writes nothing', sends, 0);
 
     /* 0.1 and 0.9 land in different whiteLevel/amberLevel bands, so every
      * knob's colour actually changes. */
     sends = 0;
     ledFrameReset();
-    updateKnobLEDs(vmAt(0.9));
+    updateKnobLEDsFrom(vmAt(0.9));
     eq('changed frame writes all 16 again', sends, 16);
 
     /* Resume invalidation must force a cold frame — the framework's entry
@@ -284,7 +280,7 @@ _log('\nTest: knob LEDs diff against a movy-owned cache');
     sends = 0;
     resetKnobLedCache();
     ledFrameReset();          // one LED frame per app tick; this suite is one frame per call
-    updateKnobLEDs(vmAt(0.9));
+    updateKnobLEDsFrom(vmAt(0.9));
     eq('reset forces a full repaint', sends, 16);
 
     globalThis.setLED = origSetLED;

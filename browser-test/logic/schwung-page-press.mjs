@@ -9,17 +9,12 @@
  * and drops it again on the way out.
  */
 
-import { schwungLibAvailable, eq, ok, _log,
+import { eq, ok, _log,
          env, portFor, MOCK_SYNTHS, schwungPageFor, schwungGridReload,
-         setSchwungGridMode, countTripKinds } from './harness.mjs';
+         countTripKinds } from './harness.mjs';
 import { dumpFixture } from '../dump-fixture.mjs';
 
 export async function run() {
-
-if (!schwungLibAvailable()) {
-    _log('\nlogic: schwung pad press — SKIPPED (no param_pages; set SCHWUNG=)');
-    return;
-}
 
 _log('\nTest: a pad press covers its page in ONE bulk request');
 {
@@ -48,7 +43,6 @@ _log('\nTest: a pad press covers its page in ONE bulk request');
      * real value for every cell of every page is what the module itself does.
      */
     const jumpFrom = () => {
-        setSchwungGridMode('page');
         schwungGridReload();
         env.setParams(MOCK_SYNTHS['6w6']);
         const q = schwungPageFor(0, 'synth');
@@ -93,7 +87,6 @@ _log('\nTest: a pad press covers its page in ONE bulk request');
     eq('...and the same press again spends no request on the page', again.bulk, 0);
 
     schwungGridReload();
-    setSchwungGridMode(null);
     env.setParams(MOCK_SYNTHS.test16);
 }
 
@@ -104,7 +97,6 @@ _log('\nTest: a level with no child-index channel warms the key the controller '
      * child_note_base (so it has voices) but no child_index_param (so no
      * channel ever moves `s.childIndex['pads']`). Pinned first so a future
      * dump update that adds the param doesn't quietly make the rest moot. */
-    setSchwungGridMode('page');
     schwungGridReload();
     env.setParams(dumpFixture('voice-poc'));
     const p = schwungPageFor(0, 'synth');
@@ -155,7 +147,6 @@ _log('\nTest: a level with no child-index channel warms the key the controller '
        !gets.some((k) => k.endsWith('synth:p2_vol')));
 
     schwungGridReload();
-    setSchwungGridMode(null);
     env.setParams(MOCK_SYNTHS.test16);
 }
 
@@ -177,7 +168,6 @@ _log('\nTest: the child-index write adds child_index_base, not a raw index (SP-5
             },
         },
     };
-    setSchwungGridMode('page');
     schwungGridReload();
     env.setParams({
         'synth:ui_hierarchy': JSON.stringify(hier),
@@ -202,7 +192,6 @@ _log('\nTest: the child-index write adds child_index_base, not a raw index (SP-5
        wrote, '2');
 
     schwungGridReload();
-    setSchwungGridMode(null);
     env.setParams(MOCK_SYNTHS.test16);
 }
 

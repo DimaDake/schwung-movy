@@ -15,8 +15,8 @@
  *
  * Fakes as schwung-canvas-page.mjs's. Run by browser-test/logic.mjs.
  */
-import { schwungLibAvailable, eq, ok, _log, env, MOCK_SYNTHS, appState,
-         schwungPageFor, schwungGridReload, setSchwungGridMode } from './harness.mjs';
+import { eq, ok, _log, env, MOCK_SYNTHS, appState,
+         schwungPageFor, schwungGridReload } from './harness.mjs';
 
 const DIR = '/data/UserData/schwung/modules/sound_generators/divesynth';
 let realRead = null;
@@ -72,16 +72,11 @@ function params(extra) {
 }
 
 export async function run() {
-    if (!schwungLibAvailable()) {
-        _log('\nlogic: schwung canvas dive — SKIPPED (no param_pages; set SCHWUNG=)');
-        return;
-    }
     _log('\nlogic: schwung canvas dive (DR32 ENGN)');
     const dive = await import('../../dist/esm/renderer/schwung-canvas-dive.js');
     const { canvasDiveTakes, canvasDiveDeliverPads } = await import('../../dist/esm/midi/canvas-dive-input.js');
     const MB = globalThis.MoveBack, MC = globalThis.MoveMainButton, MJ = globalThis.MoveMainKnob;
     installFakes();
-    setSchwungGridMode('page');
     const open = (extra) => {
         const log = [];
         script = picker(log);
@@ -149,7 +144,6 @@ export async function run() {
         if (dive.canvasDiveActive()) dive.closeCanvasDive(true);
         restoreFakes();
         schwungGridReload();
-        setSchwungGridMode(null);
         env.setParams(MOCK_SYNTHS.test16);
     }
 }

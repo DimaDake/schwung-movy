@@ -7,7 +7,8 @@
 import {
     installMockFs, uninstallMockFs, PREFS_PATH,
     flagsPageState, flagsPageActive, flagsPageJog, resetFlagsPage,
-    flagsRowCount, backupsRowSelected, actionRowSelected,
+    flagsRowCount, backupsRowSelected, clickRowSelected, migrateRowSelected, actionRowSelected,
+    readPrefClickDb, clickVolumeTurn, clickVolumeLabel, resetClickVolume,
     buildFlagsPageVM, VISIBLE_ROWS, firstVisibleRow,
     wrapWords, HINT_W, HINT_LINES, fontWidth, W,
     readPrefModuleBlacklist, installMockEngine, uninstallMockEngine,
@@ -74,12 +75,15 @@ export async function run() {
 
     openParamPage(VIEW_FLAGS);
     eq('the selection starts at the top', flagsPageState.selected, 0);
-    ok('which is BACKUPS', backupsRowSelected());
+    ok('which is CLICK VOLUME', clickRowSelected());
     flagsPageJog(1);
     eq('jog moves down', flagsPageState.selected, 1);
-    eq('onto the migrate row', actionRowSelected(), 1);
+    ok('onto BACKUPS', backupsRowSelected());
+    flagsPageJog(1);
+    ok('and the migrate row is last', migrateRowSelected());
     flagsPageJog(-1);
-    eq('and back up', flagsPageState.selected, 0);
+    eq('and back up', flagsPageState.selected, 1);
+    flagsPageJog(-1);
     flagsPageJog(-1);
     eq('the top is clamped, not wrapped', flagsPageState.selected, 0);
     for (let i = 0; i < 10; i++) flagsPageJog(1);
@@ -101,15 +105,16 @@ export async function run() {
      * and undrawn — and every screenshot stayed byte-identical, because the
      * viewmodel never changed. */
     eq('one drawn row per selectable row', vm.rows.length, flagsRowCount());
-    eq('the rows', vm.rows.map((r) => r.name).join(','), 'BACKUPS,MIGRATE FROM MOVE');
+    eq('the rows', vm.rows.map((r) => r.name).join(','), 'CLICK VOLUME,BACKUPS,MIGRATE FROM MOVE');
     eq('exactly one row is selected', vm.rows.filter((r) => r.selected).length, 1);
-    ok('BACKUPS explains itself', vm.hint.length > 0);
+    ok('CLICK VOLUME explains itself', vm.hint.length > 0);
+    eq('and shows the default level', vm.rows[0].value, '0 dB');
 
     /* The band follows the selection, or it is describing a different row than
      * the one under the inverted band. */
-    flagsPageJog(1);
+    flagsPageJog(2);
     const mv = buildFlagsPageVM();
-    ok('the migrate row can be selected', mv.rows[1].selected);
+    ok('the migrate row can be selected', mv.rows[2].selected);
     ok('and the hint is its own', mv.hint.toLowerCase().includes('from move'), mv.hint);
 
     /* Scrolling: the list is short, and the window is asserted at a length it
@@ -126,6 +131,42 @@ export async function run() {
 
     resetFlagsPage();
     uninstallMockFs();
+}
+
+/* ── Click volume: default unchanged, clamped, durable, reaches the engine ── */
+{
+    _log('\nClick volume');
+
+    installMockFs();
+    resetClickVolume();
+    eq('a fresh install is at the default', readPrefClickDb(), 0);
+    eq('and reads 0 dB', clickVolumeLabel(), '0 dB');
+
+    let eng = installMockEngine();
+    resetSeqEngine();
+    seqEngineTick();
+    eq('the default is pushed on boot too (a new engine starts at it)', eng.params.clickdb, '0');
+    ok('and the boot push is silent', eng.params.clickaud === undefined);
+
+    ok('turning down at the floor does nothing', !clickVolumeTurn(-1));
+    ok('turning up moves it', clickVolumeTurn(3));
+    eq('the engine is told', eng.params.clickdb, '3');
+    eq('and plays a click so the change is heard', eng.params.clickaud, '1');
+    eq('it is stored', readPrefClickDb(), 3);
+    eq('the row says so', clickVolumeLabel(), '+3 dB');
+    for (let i = 0; i < 40; i++) clickVolumeTurn(1);
+    eq('the top is clamped at 11 dB (the engine\'s no-clip ceiling)', readPrefClickDb(), 11);
+    ok('and a turn past it reports no change', !clickVolumeTurn(1));
+
+    /* A restart re-reads the file; a re-dlopened engine is told again. */
+    resetClickVolume();
+    resetSeqEngine();
+    uninstallMockEngine();
+    eng = installMockEngine();
+    seqEngineTick();
+    eq('a restart restores the level into the engine', eng.params.clickdb, '11');
+    uninstallMockEngine(); uninstallMockFs();
+    resetClickVolume(); resetSeqEngine();
 }
 
 /* ── The hint band: every row says what it does, in two lines ────────────── */

@@ -4,10 +4,12 @@
  * list can be asserted in a logic test without a framebuffer. */
 
 import { ACTION_ROWS, flagsPageState } from './flags-page.js';
+import { clickVolumeLabel } from './click-volume.js';
 import { disarmMigrateRow, migrateRowHint, migrateRowValue } from './migrate-action.js';
 
 /** ACTION_ROWS index of MIGRATE FROM MOVE. */
-const MIGRATE_ROW = 1;
+const MIGRATE_ROW = 2;
+const CLICK_ROW = 0;
 
 export type FlagRow = { name: string; value: string; selected: boolean };
 
@@ -27,7 +29,7 @@ export function buildFlagsPageVM(): FlagsPageVM {
     if (sel !== MIGRATE_ROW) disarmMigrateRow();
     const rows: FlagRow[] = ACTION_ROWS.map((a, i) => ({
         name: a.name,
-        value: i === MIGRATE_ROW ? migrateRowValue() : '>',
+        value: i === MIGRATE_ROW ? migrateRowValue() : i === CLICK_ROW ? clickVolumeLabel() : '>',
         selected: i === sel,
     }));
     return {

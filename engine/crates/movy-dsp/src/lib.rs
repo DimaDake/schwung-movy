@@ -136,7 +136,7 @@ pub(crate) fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.98.0";
+const ENGINE_VERSION: &str = "0.99.0";
 
 /* Blocks between autosaves. The callback runs at ~344 Hz, so this is ~2 s —
  * flash on this device is not free and the sequencer is dirty constantly while
@@ -287,6 +287,17 @@ impl Instance {
                     }
                 }
             }
+            /* `clickdb <0..11>` — metronome boost over the default level. The
+             * UI pushes it on every engine boot, since a re-dlopened engine
+             * starts at the default. `clickaud` plays one accented click so
+             * turning the setting is heard; kept apart so the boot push is
+             * silent. */
+            "clickdb" => {
+                if let Ok(db) = val.trim().parse::<i32>() {
+                    self.click.set_boost_db(db);
+                }
+            }
+            "clickaud" => self.click.trigger(true),
             /* `padvel <0|1>` — Full Velocity (Shift + Step 10). The engine has to
              * be told because it is the one building the note-on: for a movy
              * track the UI does not send pad notes at all, so applying it only

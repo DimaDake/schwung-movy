@@ -27,7 +27,7 @@ const clampPct = (v: unknown): number =>
 
 type PrefsFile = {
     defaultQuant?: unknown; fileDirs?: unknown; moduleBlacklist?: unknown;
-    fullVelocity?: unknown; masterVolume?: unknown;
+    fullVelocity?: unknown; masterVolume?: unknown; clickDb?: unknown;
 };
 
 function readPrefs(): PrefsFile {
@@ -86,6 +86,24 @@ export function readPrefMasterVolume(): number {
 
 export function writePrefMasterVolume(amp: number): void {
     writePrefs((p) => { p.masterVolume = Math.max(0, Math.min(1, amp)); });
+}
+
+/* Metronome click level, in whole dB above the default. 0 is the level the
+ * click has always had, so an install that never touches the setting sounds
+ * exactly as before; 11 is the loudest the click can be before it clips
+ * (click.rs MAX_BOOST_DB — keep the two equal). Machine-level like the master
+ * volume: it is about the room this box is played in. */
+export const CLICK_DB_MAX = 11;
+
+const clampClickDb = (v: unknown): number =>
+    typeof v === 'number' && isFinite(v) ? Math.max(0, Math.min(CLICK_DB_MAX, Math.round(v))) : 0;
+
+export function readPrefClickDb(): number {
+    return clampClickDb(readPrefs().clickDb);
+}
+
+export function writePrefClickDb(db: number): void {
+    writePrefs((p) => { p.clickDb = clampClickDb(db); });
 }
 
 /* Modules that must keep every instance on one render lane (chain_pin).

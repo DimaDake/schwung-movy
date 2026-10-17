@@ -19,8 +19,8 @@ export function flagsPageActive(): boolean {
     return appState.currentView === VIEW_FLAGS;
 }
 
-/* BACKUPS opens the versions list, MIGRATE FROM MOVE re-runs the set
- * migration (migrate-action.ts).
+/* CLICK VOLUME is a value row (click-volume.ts), BACKUPS opens the versions
+ * list, MIGRATE FROM MOVE re-runs the set migration (migrate-action.ts).
  *
  * A LIST, not hardcoded rows: the FIRST version of BACKUPS added its row to
  * the jog's clamp and to the router but not to `flags-page-vm.ts`'s drawn
@@ -29,6 +29,9 @@ export function flagsPageActive(): boolean {
  * below and the viewmodel walk this SAME array so that mistake needs the list
  * itself to be wrong, not two copies of it to agree. */
 export const ACTION_ROWS = [
+    /* First, not last: the device scenarios reach BACKUPS by clamping onto the
+     * last row and stepping up one, so MIGRATE FROM MOVE must stay last. */
+    { name: 'CLICK VOLUME', hint: 'Metronome loudness. Turn knob 1: 0 to +11 dB.' },
     { name: 'BACKUPS', hint: 'Older versions of this set. Restore one.' },
     /* Its hint and value are live (migrate-action.ts); these are the fallback. */
     { name: 'MIGRATE FROM MOVE', hint: 'Bring every Set over from Move.' },
@@ -42,8 +45,9 @@ export function actionRowSelected(): number {
     return i >= 0 && i < ACTION_ROWS.length ? i : -1;
 }
 
-export function backupsRowSelected(): boolean { return actionRowSelected() === 0; }
-export function migrateRowSelected(): boolean { return actionRowSelected() === 1; }
+export function clickRowSelected(): boolean { return actionRowSelected() === 0; }
+export function backupsRowSelected(): boolean { return actionRowSelected() === 1; }
+export function migrateRowSelected(): boolean { return actionRowSelected() === 2; }
 
 /** Jog: move the selection. Clamped rather than wrapped, so the ends of a list
  *  that will grow stay findable by feel. */

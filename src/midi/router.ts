@@ -44,7 +44,8 @@ import { sessionStartFromScratch } from '../seq/set-fail.js';
 import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS } from '../app/state.js';
 import { mainPageActive, mainPageRelease } from '../seq/main-page.js';
 import { clipPageActive, clipPageRelease } from '../seq/clip-page.js';
-import { backupsRowSelected, flagsPageActive, flagsPageJog, migrateRowSelected } from '../seq/flags-page.js';
+import { clickVolumeTurn } from '../seq/click-volume.js';
+import { backupsRowSelected, clickRowSelected, flagsPageActive, flagsPageJog, migrateRowSelected } from '../seq/flags-page.js';
 import { migrateRowClick } from '../seq/migrate-action.js';
 import { setsPageActive, setsPageBack, setsPageClick, setsPageJog } from '../seq/sets-page.js';
 import { textEntry, textEntryActive } from '../renderer/text-entry-lib.js';
@@ -600,8 +601,9 @@ export function onMidiMessageInternal(data: number[]): void {
             return;
         }
         if (flagsPageActive()) {
-            // Nothing on this page is a knob. Consumed anyway, so a stray turn
-            // cannot reach the module underneath.
+            // Only CLICK VOLUME takes a knob (1). Everything else is consumed
+            // anyway, so a stray turn cannot reach the module underneath.
+            if (k === 0 && clickRowSelected() && clickVolumeTurn(delta)) appState.dirty = true;
             return;
         }
         if (cpuPageActive()) {

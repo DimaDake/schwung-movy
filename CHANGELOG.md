@@ -13,6 +13,11 @@ far. Earlier work is summarised in the timeline below for context.
 
 ## [Unreleased]
 
+### Added
+
+- **Settings → CLICK VOLUME** (knob 1) raises the metronome from the default
+  (0 dB) up to +11 dB, the loudest it can go without clipping. Engine 0.99.0.
+
 ### Changed
 
 - **The UI reads one file of a Set's engine state: `chains.json`.** It no

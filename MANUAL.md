@@ -835,7 +835,8 @@ for the concepts:
   take on a sustained chord keeps that chord. It ends at your release or at the
   **end of the clip**, whichever comes first — so however long you lean on the
   pad, it never wraps round the loop into a drone.
-- **Metronome** — toggle with **Shift + Step 6**.
+- **Metronome** — toggle with **Shift + Step 6**. If you can't hear it, raise
+  **CLICK VOLUME** in [Settings](#settings--shift--step-2).
 - **Full velocity** — **Shift + Step 10** makes every pad note leave at
   127, whatever you actually hit the pad with. It is a way of playing
   rather than part of a piece of music, so it stays where you left it: in
@@ -1560,6 +1561,14 @@ row, **Back** closes it. The line at the bottom explains whichever row is select
 Step 2 lights dim under Shift and full bright while the page is open.
 
 ![Settings](docs/assets/flags-top.png)
+
+**CLICK VOLUME**, the first row, is how loud the metronome (and the count-in)
+clicks. **Turn knob 1** to change it: each detent is 1 dB, from **0 dB** (the
+level it has always had, and what a new install uses) up to **+11 dB**, the
+loudest the click can be without clipping. Every turn plays a click so you hear
+the new level. It is a property of this device, not of a Set, so it stays put
+across Sets and restarts. (On top of other loud audio the mix can still limit;
+the click itself never clips.)
 
 **MIGRATE FROM MOVE**, the last row, runs the migration from Move again. The
 first jog click arms it (the row reads **CONFIRM?**, and moving off disarms

@@ -25,3 +25,20 @@ export function clickOnlyVerb(meta: any): string | null {
     if (meta.type === 'canvas') return 'OPEN';
     return null;
 }
+
+/**
+ * The click pair alone, where the click is the only way in (a file or a
+ * canvas) — and the WHOLE footer on a view whose jog does not page (the chain
+ * view and the master slot grid move slots; Clip/Set params and the held step
+ * page are movy's own sets). `paging: false` was dropping the footer outright
+ * there, but the router hands a held knob's click to the page on every one of
+ * those views, so breakbeat's Edit A opened from the chain view with no hint.
+ * No picker, no door: those verbs are the jog's, which is exactly what such a
+ * view must not promise.
+ */
+export function clickOnlyFooter(ctl: any): [string, string][] | null {
+    if (!ctl || ctl.pickerOpen || (ctl.menuEntered && ctl.menuEntered())) return null;
+    const held = ctl.state ? ctl.state.touched : -1;
+    const verb = clickOnlyVerb(held >= 0 && ctl.metaAt ? ctl.metaAt(held) : null);
+    return verb ? [['CLK', verb]] : null;
+}

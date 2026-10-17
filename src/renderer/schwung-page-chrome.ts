@@ -38,11 +38,12 @@
  * not turnable, and the click is the one road to the browser or the module's
  * own screen (`clickOnlyVerb`).
  *
- * IT IS ONLY THE KNOBS VIEW'S. On the chain view the jog moves CHAIN SLOTS, not
- * pages (`chain-view.ts` argues this at length), so a `JOG PAGE` pill there
- * would promise a thing the button does not do — the exact class of bug the
- * upstream footer's own comments record three times. movy keeps the chain
- * view's footer, so the caller passes `paging: false`.
+ * THE JOG VERBS ARE ONLY THE KNOBS VIEW'S. On the chain view the jog moves
+ * CHAIN SLOTS, not pages (`chain-view.ts` argues this at length), so a
+ * `JOG PAGE` pill there would promise a thing the button does not do — the
+ * exact class of bug the upstream footer's own comments record three times.
+ * The caller passes `paging: false` there, and the footer keeps only the click
+ * pair, which is true on every view (`clickOnlyFooter`).
  *
  * THE PAGE LABEL IS THE THIRD THING, AND IT IS NOT A BAND. movy's header names
  * the page on its right — and under `page` the bank BAR is already Schwung's
@@ -56,7 +57,7 @@
  */
 import type { SchwungLib } from './schwung-lib.js';
 import { fitHeldHeader } from './held-header-fit.js';
-import { clickOnlyVerb } from './schwung-file-param.js';
+import { clickOnlyFooter } from './schwung-file-param.js';
 
 export interface PageHeader {
     left: string;
@@ -101,7 +102,7 @@ export function chromeFor(ctl: any, lib: SchwungLib, paging: boolean,
          * So the footer is a TRANSIENT occupant, on exactly the terms movy's
          * own bottom-row toasts already take the row (`jogHintVisible()` —
          * the jog under a finger). */
-        footer: held && paging ? pageFooterFor(ctl, lib) : null,
+        footer: !held ? null : paging ? pageFooterFor(ctl, lib) : clickOnlyFooter(ctl),
     };
 }
 
@@ -167,11 +168,8 @@ export function pageFooterFor(ctl: any, lib: SchwungLib): [string, string][] | n
     }
 
     /* The page set is not in question here — the jog pages, as it does with
-     * no knob held — so the one pair is the click, and only where it is the
-     * only way in (a file or a canvas). */
-    const held = ctl.state ? ctl.state.touched : -1;
-    const verb = clickOnlyVerb(held >= 0 && ctl.metaAt ? ctl.metaAt(held) : null);
-    return verb ? [['CLK', verb]] : null;
+     * no knob held — so the one pair is the click. */
+    return clickOnlyFooter(ctl);
 }
 
 /**

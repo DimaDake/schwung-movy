@@ -750,6 +750,7 @@ function tickBody(): void {
             renderKnobsView(vm, false, appState.activeTrack.index,
                             paramBodyFor(drawnPageOwner, schwungBody, lastAutoView),
                             schwungBankFor(drawnPageOwner, schwungBody), chrome);
+            jogToastShown = !!(chrome && chrome.footer);
             lightKnobRow(schwungBody);
         } else if (appState.currentView === VIEW_CLIP_PARAMS) {
             /* AFTER `schwungEditorActive()` on purpose (SP-53): SCALE's
@@ -762,6 +763,7 @@ function tickBody(): void {
             renderKnobsView(vm, false, appState.activeTrack.index,
                             paramBodyFor(drawnPageOwner, schwungBody, lastAutoView),
                             schwungBankFor(drawnPageOwner, schwungBody), chrome);
+            jogToastShown = !!(chrome && chrome.footer);
             lightKnobRow(schwungBody);
         } else if (appState.currentView === VIEW_CPU) {
             renderCpuView(buildCpuPageVM());
@@ -794,10 +796,11 @@ function tickBody(): void {
                 /* The slot grid draws the focused slot's body too, so it takes
                  * Schwung's body and chrome exactly as a track's VIEW_CHAIN does
                  * (SP-58) — `paging: false`, since the jog moves slots here. */
+                const chrome = schwungChromeFor(drawnPageOwner, schwungBody, false);
                 renderChainView(vm, mIdx, jogHintVisible(), 'MASTER', MASTER_FX_SLOTS[mIdx]?.label,
                                 MASTER_FX_SLOTS, paramBodyFor(drawnPageOwner, schwungBody, lastAutoView),
-                                schwungChromeFor(drawnPageOwner, schwungBody, false));
-                jogToastShown = jogHintVisible();
+                                chrome);
+                jogToastShown = jogHintVisible() || !!(chrome && chrome.footer);
             }
             lightKnobRow(schwungBody);
         } else if (appState.currentView === VIEW_KEYS) {
@@ -897,14 +900,15 @@ function tickBody(): void {
              * this view no hint band (see schwung-page-chrome.ts). CHROME follows
              * `drawnPageOwner`, same reasoning as the VIEW_KNOBS branch above —
              * so a touched step-page cell's toast reaches the header here too. */
+            const chrome = schwungChromeFor(drawnPageOwner, schwungBody, false);
             renderChainView(vm, chainIdx, jogHintVisible(), 'T' + (appState.activeTrack.index + 1),
                             undefined, undefined as any, paramBodyFor(drawnPageOwner, schwungBody, lastAutoView),
-                            schwungChromeFor(drawnPageOwner, schwungBody, false));
+                            chrome);
             perfPhaseEnd();
             /* Must match what renderChainView actually drew: the Loop strip
              * clears rows 60-63 every tick and would erase a toast it was not
              * told about. */
-            jogToastShown = jogHintVisible();
+            jogToastShown = jogHintVisible() || !!(chrome && chrome.footer);
             perfPhase('leds');
             lightKnobRow(schwungBody);
             perfPhaseEnd();

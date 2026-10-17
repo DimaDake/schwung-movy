@@ -570,6 +570,11 @@ _log('\nTest: the header readout and the footer hints come from the controller')
                    clk ? clk[1] : null, file ? 'BROWSE' : null);
                 if (!file) eq(name + ' ' + key + ' is the whole footer — no pair at all',
                               foot, null);
+                /* A view whose jog does not page (the chain view, Clip/Set
+                 * params) still routes this click to the page, so it keeps the
+                 * click pair and nothing else. */
+                eq(name + ' ' + key + ' keeps only the click pair where the jog does not page',
+                   JSON.stringify(pg.chrome(false).footer), file ? '[["CLK","BROWSE"]]' : 'null');
                 if (kind === 'open' || kind === 'flip') {
                     ok(name + ' ' + key + ' (' + kind + ') also moves when turned', turned);
                 }

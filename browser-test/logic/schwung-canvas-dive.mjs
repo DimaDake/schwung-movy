@@ -139,6 +139,7 @@ export async function run() {
             const { pg: hp } = open({});
             hp.knobTouch(0, true);
             eq('a held canvas knob hints the click', JSON.stringify(hp.chrome(true).footer), '[["CLK","OPEN"]]');
+            eq('...on the chain view too, where the jog moves slots', JSON.stringify(hp.chrome(false).footer), '[["CLK","OPEN"]]');
             hp.knobTouch(0, false);
             if (dive.canvasDiveActive()) dive.closeCanvasDive(true);
         }

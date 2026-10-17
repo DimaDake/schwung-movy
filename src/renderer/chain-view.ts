@@ -73,8 +73,7 @@ export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: b
     body();
 
     if (jogTouched) drawJogToast(virtual ? 'CLICK JOG: EDIT LFOS' : 'SHIFT+CLICK SWAP  CLICK OPEN');
-    /* Null on this view today — the jog moves chain slots, not Schwung's pages,
-     * so the caller withholds the hint band (see schwung-page-chrome.ts). Kept
-     * so the two views that share the body contract share its precedence too. */
+    /* Only ever the click pair here — the jog moves chain slots, not Schwung's
+     * pages, so no jog verb is offered (`clickOnlyFooter`). */
     else if (chrome?.footer?.length) drawPageFooter(chrome.footer);
 }

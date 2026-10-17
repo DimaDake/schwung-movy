@@ -280,9 +280,16 @@ vdev-gated too, since the vdev runs the pinned C and JS natively.
 - **what the container stands in for:** LEDs and the display on glass, the
   hardware MIDI path, uid/permission and file ownership (root vs ableton),
   store install/update paths, Move round trips;
-- **anything the work itself says only hardware can prove**, a vdev-only
-  red/green you cannot explain, or a bug first reported on the device. When in
-  doubt, use the device.
+- **anything the work itself says only hardware can prove**, or a vdev-only
+  red/green you cannot explain. When in doubt, use the device.
+
+**A bug reported on the device is not, by itself, a device-tier trigger.**
+What decides is what the FIX touches, not where the bug was seen. A fix in
+pure UI logic (repaint decisions, page planning, view state) that a local
+test reproduces and that touches nothing on the list above is gated by the
+vdev tier and then deployed, and no device run is needed. The device tier is
+required only when the fix itself is in one of the areas above, or the bug
+could not be reproduced off the device.
 
 Say in the commit message which tier gated the change.
 

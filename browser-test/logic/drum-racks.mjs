@@ -98,6 +98,24 @@ _log('\nTest: an explicit chromatic layout is never seated as a rack (D9)');
     eq('no index param, no rack', notes({ levels: { root: { ...lvl, child_index_param: undefined } } }), '');
 }
 
+_log('\nTest: one rack declared on several pages is one set of pads (Strut)');
+{
+    /* Strut 0.9.1's shape: every per-pad page is its own 16-child level on the
+     * same notes and index param, so the pad map can light the edited pad. */
+    const rack = (label) => ({ child_count: 16, child_label: label, child_key_template: 'p{index}_{key}',
+        child_index_base: 1, child_index_digits: 2, child_index_param: 'pad', child_note_base: 36, params: ['tune'] });
+    const h = { pad_layout: 'drums', levels: {
+        root: { ...rack('Pad'), params: ['tune', { level: 'skin' }, { level: 'wave' }] },
+        skin: rack('Skin'), wave: rack('Wave') } };
+    const s = surfaceOf(h);
+    eq('sixteen pads, not one per page', s.voices.length, 16);
+    eq('...in root order, notes 36..51', s.voices.map((v) => v.note).join(','),
+        Array.from({ length: 16 }, (_, i) => 36 + i).join(','));
+    eq('...indexed by position', s.voices.map((v) => v.index).join(','),
+        Array.from({ length: 16 }, (_, i) => i).join(','));
+    eq('...each from the root level', s.voices.every((v) => v.level === 'root'), true);
+}
+
 const prevModels = appState.trackModels[0];
 function boot(id, entry = dumpEntry(id)) {
     const restoreFs = serveModuleFiles(entry);

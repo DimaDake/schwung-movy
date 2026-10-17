@@ -130,6 +130,24 @@ export function rackVoiceMap(hierarchy: any): string {
     return hierarchy ? schwungLaneVoiceMap()(declaredRack(hierarchy)) || '' : '';
 }
 
+/* ONE PAD PER NOTE. A rack may declare its pads on every page that edits them
+ * — Strut's Pad, Skin, Wave, Noise and Finish are five 16-child levels on the
+ * same notes and index param, so the header lights the edited pad — and
+ * voicesOf lists each level's children, 80 voices for 16 pads. A second voice
+ * on a note is unreachable anyway (voiceIndexFromNote: first wins), and the
+ * seat already gives the first one every page on its index param, so dropping
+ * it loses nothing. Re-indexed because `index` is the pad position. */
+function onePerNote(voices: Voice[]): Voice[] {
+    const seen = new Set<number>();
+    const out: Voice[] = [];
+    for (const v of voices) {
+        if (seen.has(v.note)) continue;
+        seen.add(v.note);
+        out.push(v.index === out.length ? v : { ...v, index: out.length });
+    }
+    return out;
+}
+
 /** Read a module's declared performance surface. Never throws: a malformed
  *  contract is "has not said", the same as no contract at all. */
 export function surfaceOf(hierarchy: any): VoiceSurface {
@@ -139,7 +157,7 @@ export function surfaceOf(hierarchy: any): VoiceSurface {
         hierarchy = declaredRack(hierarchy);
         return {
             layout: lib.padLayoutOf(hierarchy) ?? null,
-            voices: lib.voicesOf(hierarchy) || [],
+            voices: onePerNote(lib.voicesOf(hierarchy) || []),
             focusParam: lib.focusParamOf(hierarchy) ?? null,
             pressParam: pressParamOf(lib, hierarchy),
         };

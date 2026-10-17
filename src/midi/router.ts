@@ -642,7 +642,7 @@ export function onMidiMessageInternal(data: number[]): void {
          * throttle and the settle window. A second write path here is what the
          * one-implementation rule exists to prevent. */
         /* A page still loading takes no turn: nothing is on screen to turn. */
-        if (owner.page) { owner.page.knobTurn(k, delta); appState.dirty = true; }
+        if (owner.page) { owner.page.knobTurn(k, delta, appState.shiftHeld); appState.dirty = true; }
         return;
     }
 

@@ -141,14 +141,14 @@ export function heldHeaderFor(ctl: any): PageHeader | null {
 
 /* A door is inert until entered, so outside it the jog still pages and the
  * click is what goes in; inside, the jog drives the list and Back comes out.
- * Same shape for all three kinds — only the noun and the click verb change,
- * and those are the words the shadow footer uses for the same three. The KINDS
+ * Same shape for both kinds — only the noun and the click verb change, and
+ * those are the words the shadow footer uses. A preset door has no pills at
+ * all (pageFooterFor). The KINDS
  * come from the controller's own constants rather than their string values, so
  * a rename upstream cannot quietly turn a door into a plain knob page here. */
 function doorVerbs(lib: SchwungLib, kind: string): [[string, string], [string, string], [string, string]] | null {
     switch (kind) {
         case lib.PAGE_MENU:   return [['JOG', 'SEL'],  ['CLK', 'OPEN'], ['BACK', 'OUT']];
-        case lib.PAGE_PRESET: return [['JOG', 'PRST'], ['CLK', 'EDIT'], ['BACK', 'OUT']];
         case lib.PAGE_ITEMS:  return [['JOG', 'SEL'],  ['CLK', 'LOAD'], ['BACK', 'OUT']];
     }
     return null;
@@ -163,6 +163,9 @@ export function pageFooterFor(ctl: any, lib: SchwungLib): [string, string][] | n
     const p = ctl.page;
     const entered = !!(ctl.menuEntered && ctl.menuEntered());
     const verbs = p ? doorVerbs(lib, p.kind) : null;
+    /* No pills on a preset door: the Loop strip owns those rows there (see
+     * claimsBottomBand), and knob 1 browsing needs no click to explain. */
+    if (p && p.kind === lib.PAGE_PRESET) return null;
     if (verbs) {
         return entered ? verbs : [['JOG', 'PAGE'], ['CLK', 'ENTER']];
     }
@@ -203,5 +206,10 @@ export function claimsBottomBand(ctl: any, lib: SchwungLib): boolean {
     if (ctl.pickerOpen) return true;
     if (ctl.state && ctl.state.hintLines) return true;
     const p = ctl.page;
-    return !!p && p.kind !== undefined && p.kind !== lib.PAGE_KNOBS;
+    /* A PRESET DOOR LEAVES THE BAND TO THE LOOP STRIP. Its body ends at
+     * Schwung's footer rule (RESERVED_FOOTER, schwung-page-render.ts) and it
+     * has no footer of its own (pageFooterFor), so there is nothing down there
+     * to protect — and the bar position is what you want to see while picking
+     * a sound against a running clip. */
+    return !!p && p.kind !== undefined && p.kind !== lib.PAGE_KNOBS && p.kind !== lib.PAGE_PRESET;
 }

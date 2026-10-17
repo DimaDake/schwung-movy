@@ -72,6 +72,10 @@ export interface SchwungLib {
     wavPeaks: any;
     /* A knob on a preset door steps the list with Schwung's own feel (SP-44). */
     listKnobInit: any; listKnobStep: any;
+    /* Shift+knob 1 steps a preset door's BANK at the list's own detent rate,
+     * and holds the read cursor off the index it wrote for as long as
+     * stepPreset does. */
+    DETENTS_PER_ENTRY: any; SETTLE_TICKS: any;
     fitHeadTail: any; frameCtx: any; enumIndexOf: any;
 }
 
@@ -97,6 +101,7 @@ const lib: SchwungLib = {
     wavPeaksTick: wp.wavPeaksTick, wavPeaksDone: wp.wavPeaksDone,
     wavPeaks: wp.wavPeaks,
     listKnobInit: lk.listKnobInit, listKnobStep: lk.listKnobStep,
+    DETENTS_PER_ENTRY: lk.DETENTS_PER_ENTRY, SETTLE_TICKS: pc.SETTLE_TICKS,
     frameCtx: fc.frameCtx,
     enumIndexOf: pm.enumIndexOf,
     fitHeadTail: rp.fitHeadTail,

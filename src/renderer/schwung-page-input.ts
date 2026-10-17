@@ -23,9 +23,11 @@ import type { PageSeat } from './schwung-page-seat.js';
  * than reimplemented: one rule for "how much raw CC is one click", stated once
  * (`seq/detent.ts`). */
 import { countDetents } from '../seq/detent.js';
+import { createPresetKnob } from './schwung-preset-knob.js';
 
 export interface PageInput {
-    knobTurn(slot: number, delta: number): void;
+    /** `shift` only means something on a preset door: it steps the bank. */
+    knobTurn(slot: number, delta: number, shift?: boolean): void;
     knobTouch(slot: number, down: boolean): void;
     click(shift?: boolean): SchwungIntent | null;
     back(): SchwungIntent | null;
@@ -88,66 +90,17 @@ export function createPageInput(ctl: any, lib: any, port: PageParamSource,
         ctl.goToPage(i, opts);
     };
 
-    /*
-     * SP-44. A preset door has no knobs (`p.keys` is empty), so `keyAt` — and
-     * therefore `onKnobTurn` — bails at the top for EVERY slot on this page
-     * kind, entered or not: turning knob 1 there has never done anything.
-     *
-     * `ctl.onJog` already walks the list once the door is entered
-     * (`stepPreset`, the door's own commit path: flush, write, re-read the
-     * name, arm the contract settle) — that part is not restated here, only
-     * REACHED from a second gesture. What onJog does not have is a knob's
-     * feel: it moves exactly one entry per call, which is the jog's
-     * 1-detent-is-1-entry rule and is "way too fast" applied to a knob's
-     * dozens-of-detents-per-flick (`list_knob.mjs`'s own opening comment).
-     * `listKnobStep` (imported wholesale, not reimplemented) turns the raw
-     * signed delta into a step count first; this loop then spends that many
-     * `onJog` calls, one per entry, same as a jog would.
-     *
-     * One state per page name, not one per controller: `stepPreset` resets
-     * nothing about the turn rate on a re-plan, so neither does this.
-     */
-    const presetKnobState = new Map<string, any>();
+    /* Knob 1 on a preset door (SP-44): the list, and with Shift the bank. */
+    const preset = createPresetKnob(ctl, lib, port, qualify, hier);
 
     /* One banked remainder per knob, for a source that charges more than one
      * raw unit per detent (`PageParamSource.rawPerDetent`). It lives in the
      * binding because that is where a gesture's state already lives, beside
-     * `presetKnobState` — and it is `seq/detent.ts`'s accumulator, reused
+     * the preset knob's — and it is `seq/detent.ts`'s accumulator, reused
      * rather than restated: a remainder that carries across CC events is the
      * whole rule, and dropping one is what made a movy knob move on one turn
      * direction and not the other. */
     const turnAccum: number[] = [];
-    /*
-     * KNOB 1 IS THE PRESET KNOB ONLY WHERE NOTHING ELSE HAS CLAIMED IT. A
-     * module-drawn browser (monksynth's face, `preset_browser`) carries the
-     * level's knobs on the same page so the sound stays editable while you
-     * browse; there knob 1 is the module's first knob, and the jog (after a
-     * click) is the way through the list. Taking it anyway left Vowel
-     * unreachable on the page built to show it.
-     */
-    const presetKnobPage = (): any => {
-        const p = ctl.page;
-        if (!p || p.kind !== lib.PAGE_PRESET) return null;
-        const k0 = Array.isArray(p.keys) ? p.keys[0] : null;
-        return k0 ? null : p;
-    };
-    const turnPresetDoor = (p: any, delta: number): boolean => {
-        if (!p) return false;
-        if (typeof lib.listKnobInit !== 'function' || typeof lib.listKnobStep !== 'function') return false;
-        if (typeof ctl.menuEntered === 'function' && !ctl.menuEntered()) ctl.enterMenu();
-        let st = presetKnobState.get(p.name);
-        if (!st) { st = lib.listKnobInit(); presetKnobState.set(p.name, st); }
-        /* The count is the door's, read the SAME way the controller reads it
-         * — through the port every value on this page already comes from —
-         * not re-derived or cached a second time here. */
-        const raw = port.getParam(qualify(p.countParam));
-        const length = raw ? (parseInt(raw, 10) || 0) : 0;
-        const steps = lib.listKnobStep(st, delta, Date.now(), length);
-        if (!steps) return true;
-        const dir = steps > 0 ? 1 : -1;
-        for (let i = 0; i < Math.abs(steps); i++) ctl.onJog(dir, { shift: false });
-        return true;
-    };
 
     return {
         /*
@@ -167,10 +120,10 @@ export function createPageInput(ctl: any, lib: any, port: PageParamSource,
          * Capped because a delta arrives as a signed byte: a garbled CC should
          * cost a bounded number of steps, not 63 of them.
          */
-        knobTurn: (slot: number, delta: number) => {
+        knobTurn: (slot: number, delta: number, shift = false) => {
             /* SP-44: knob 1 only — the product ask is specifically "knob 1
              * changes presets", not every knob touching an inert door. */
-            if (slot === 0 && turnPresetDoor(presetKnobPage(), delta)) return;
+            if (slot === 0 && preset.turn(delta, shift)) return;
             const dir = delta > 0 ? 1 : -1;
             /*
              * THE CAP MUST NOT BITE A REAL GESTURE. `onKnobTurn` moves one
@@ -208,15 +161,7 @@ export function createPageInput(ctl: any, lib: any, port: PageParamSource,
             for (let i = 0; i < n; i++) ctl.onKnobTurn(slot, dir);
         },
         knobTouch: (slot: number, down: boolean) => { ctl.onKnobTouch(slot, down); },
-        /* The controller's own cursor, so the LED moves with the list the
-         * screen shows. A count not read yet still lights it, at the bottom:
-         * the knob already works, and a dark LED would say it does not. */
-        presetKnobLevel: () => {
-            const p = presetKnobPage();
-            if (!p) return null;
-            const st = ctl.state && ctl.state.preset ? ctl.state.preset[p.name] : null;
-            return st && st.count > 1 ? Math.min(1, Math.max(0, st.index / (st.count - 1))) : 0;
-        },
+        presetKnobLevel: preset.level,
         /*
          * The whole ladder, Schwung's. The old binding was `ctl.onClick()` with
          * no slot and the return discarded, which silently dropped three

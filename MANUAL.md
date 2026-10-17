@@ -292,6 +292,14 @@ indicator, the current page drawn taller:
 section list, and pick the section to jump to. (Shift + jog turns one page at a
 time, like a plain jog.)
 
+**Presets.** On a module's preset page, **knob 1** browses the presets,
+loading each as you pass it. It doesn't take over the jog: the next jog turn
+still pages away. To browse with the jog instead, click in; Back comes out.
+**Shift + knob 1** jumps to the next or previous **bank** and loads its first
+preset, on modules that declare banks (OB-Xd, Dexed). On other modules it
+browses presets like a plain turn. The Loop strip stays visible along the bottom
+while you browse.
+
 **Lists.** Turning a list knob steps through its options and shows them in a
 pop-up while you turn; click the jog on it for the whole list as a menu:
 
@@ -1708,6 +1716,7 @@ behaviour you'd like — or, better, a PR.
 | Control | Action |
 | --- | --- |
 | **Knobs 1–8** | Edit the current page's parameters. Touch (no turn) shows the full name and value in the header. |
+| **Knob 1** (preset page) | Browse the module's presets. The jog keeps paging. **Shift + knob 1** steps the bank (OB-Xd, Dexed) and loads its first preset. |
 | **Hold a module-screen knob, then jog-click** | Open the screen a module draws for that knob (DR32 ENGN, Breakbeat Edit A/B and Status; the bottom row reads `CLK OPEN`). Back climbs out, Shift + jog leaves. |
 | **Hold a file knob, then jog-click** | Open the file browser for a sample / wavetable / preset parameter (the header names the file, the bottom row reads `CLK BROWSE`). Turn to move, click to load, Back to cancel. |
 | **Hold a module-screen knob, then jog-click** | Open the module's own screen (DR32's ENGN engine picker). Back climbs out a level at a time; Shift + jog leaves at once. |

@@ -58,6 +58,7 @@ import { run as run_partition } from './logic/partition.mjs';
 import { run as run_flags } from './logic/flags.mjs';
 import { run as run_schwung_grid } from './logic/schwung-grid.mjs';
 import { run as run_schwung_page } from './logic/schwung-page.mjs';
+import { run as run_preset_door } from './logic/preset-door.mjs';
 import { run as run_schwung_page_press } from './logic/schwung-page-press.mjs';
 import { run as run_schwung_widgets } from './logic/schwung-widgets.mjs';
 import { run as run_schwung_canvas_page } from './logic/schwung-canvas-page.mjs';
@@ -146,6 +147,7 @@ const SUITES = [
     run_flags,
     run_schwung_grid,
     run_schwung_page,
+    run_preset_door,
     run_schwung_page_press,
     run_schwung_widgets,
     run_schwung_canvas_page,

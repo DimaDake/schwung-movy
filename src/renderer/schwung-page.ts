@@ -108,7 +108,8 @@ export interface SchwungPage {
     chrome(paging: boolean): PageChrome;
     /** May hold-to-modulate arm on this cell? See `regularKnob`. */
     regularKnobAt(slot: number): boolean;
-    knobTurn(slot: number, delta: number): void;
+    /** `shift` only means something on a preset door: it steps the bank. */
+    knobTurn(slot: number, delta: number, shift?: boolean): void;
     knobTouch(slot: number, down: boolean): void;
     /** Jog click. Returns a host intent ("open") when Schwung asks for one. */
     click(shift?: boolean): SchwungIntent | null;

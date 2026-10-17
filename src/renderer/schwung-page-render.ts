@@ -30,6 +30,20 @@ import type { PageAutomation } from '../types/page-automation.js';
  * Schwung's to overwrite. */
 const BANDS = { header: false, bank: false, footer: false };
 
+/*
+ * A PRESET DOOR'S BODY ENDS AT SCHWUNG'S FOOTER RULE (55), NOT AT ROW 64.
+ *
+ * The controller sizes a preset body from `footer ? RULE_Y : 64` and ignores
+ * `rect`, so with no footer it ran to the bottom row — where movy's Loop strip
+ * lives, which a preset door now leaves visible (`claimsBottomBand`). A footer
+ * that `bands.footer: false` never draws reserves the band without drawing
+ * anything. Only the preset door: the knob grid's band layout reads the footer
+ * too, and the menu, items and picker bodies still sit over movy's own pills.
+ * Upstream: charlesvestal/schwung#652 clamps every list body to `rect`; drop
+ * this once the pin carries it.
+ */
+const RESERVED_FOOTER: string[] = [];
+
 export interface PageRender {
     knobParamInfo(slot: number): any | null;
     knobLevels(): (number | null)[];
@@ -239,7 +253,9 @@ export function createPageRender(ctl: any, deps: {
             const ctx = movyCtx();
             /* No `footer` argument: movy draws its own. Every page kind honours
              * `bands` now that the controller's chrome is one definition. */
-            ctl.render(ctx, { title, bands: BANDS, rect: GRID_BODY_RECT });
+            const presetBody = !ctl.pickerOpen && ctl.page && ctl.page.kind === lib.PAGE_PRESET;
+            ctl.render(ctx, { title, bands: BANDS, rect: GRID_BODY_RECT,
+                              footer: presetBody ? RESERVED_FOOTER : undefined });
             /*
              * THE OVERLAYS ARE THE CONTROLLER'S AND IT DRAWS THEM ITSELF — the
              * enum peek that shows a divable enum's whole list while you turn

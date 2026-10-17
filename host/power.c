@@ -35,14 +35,23 @@ int power_off_now(void) {
     return rc == 0;
 }
 
-void power_hold(int seconds) {
+void power_hold(int seconds, void (*tick)(void *), void *arg) {
     /* The shutdown SIGTERMs everyone; launch-standalone.sh's shell dies of
      * it, and we must outlive the shell or it restarts Move. */
     signal(SIGTERM, SIG_IGN);
     signal(SIGINT, SIG_IGN);
     signal(SIGHUP, SIG_IGN);
     mh_log("power: holding up to %d s for the power to go", seconds);
-    struct timespec left = { seconds, 0 };
-    while (nanosleep(&left, &left) < 0) {}
+    if (tick) {
+        struct timespec t0, now;
+        clock_gettime(CLOCK_MONOTONIC, &t0);
+        do {
+            tick(arg);
+            clock_gettime(CLOCK_MONOTONIC, &now);
+        } while ((now.tv_sec - t0.tv_sec) * 1000000000LL + (now.tv_nsec - t0.tv_nsec) < seconds * 1000000000LL);
+    } else {
+        struct timespec left = { seconds, 0 };
+        while (nanosleep(&left, &left) < 0) {}
+    }
     mh_log("power: still running after %d s — shutdown failed, giving Move back", seconds);
 }

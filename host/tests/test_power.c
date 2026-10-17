@@ -21,7 +21,7 @@ static double now_s(void) { struct timespec t; clock_gettime(CLOCK_MONOTONIC, &t
 static void test_hold_outlives_sigterm(void) {
     double t0 = now_s();
     pid_t pid = fork();
-    if (pid == 0) { power_hold(1); _exit(7); }
+    if (pid == 0) { power_hold(1, NULL, NULL); _exit(7); }
     sleep_ms(100);
     kill(pid, SIGTERM);
     kill(pid, SIGHUP);
@@ -33,12 +33,25 @@ static void test_hold_outlives_sigterm(void) {
     CHECK(now_s() - t0 >= 0.95, "the hold lasts its bound (%.2f s)", now_s() - t0);
 }
 
+static int ticks;
+static void tick(void *arg) { ticks += *(int *)arg; sleep_ms(10); }
+
+static void test_hold_ticks(void) {
+    int one = 1;
+    double t0 = now_s();
+    power_hold(1, tick, &one);
+    double took = now_s() - t0;
+    CHECK(ticks >= 50, "the show's tick runs for the whole hold (%d ticks)", ticks);
+    CHECK(took >= 0.95 && took < 1.5, "a ticking hold keeps its bound (%.2f s)", took);
+}
+
 static void test_dry_run_does_not_hold(void) {
     CHECK(power_off_now() == 0, "a test-bus dry run reports no shutdown, so main never holds");
 }
 
 int main(void) {
     test_hold_outlives_sigterm();
+    test_hold_ticks();
     test_dry_run_does_not_hold();
     printf("movy-host power tests: %d checks, %d failed\n", checks, fails);
     return fails != 0;

@@ -21,6 +21,7 @@
 #include "log.h"
 #include "movy_host.h"
 #include "power.h"
+#include "poweroff_show.h"
 #include "surface_keys.h"
 #include "rt.h"
 #include "signals.h"
@@ -142,8 +143,10 @@ static int run(void) {
     if (surface_fallback_at()) mh_log("fallback exit: Shift + volume touch + jog click");
     audio_stop();
     engine_unload();
+    /* SPI stays ours through an accepted shutdown: the hold is what the user
+     * watches, and it shows them the box is going down (poweroff_show.h). */
+    if (g_mh_poweroff && power_off_now()) power_hold(MH_POWEROFF_HOLD_S, poweroff_show_tick, &spi);
     spi_close(&spi);
-    if (g_mh_poweroff && power_off_now()) power_hold(MH_POWEROFF_HOLD_S);
     if (g_term_at.tv_sec) {
         uint64_t at = (uint64_t)g_term_at.tv_sec * 1000000u + (uint64_t)g_term_at.tv_nsec / 1000u;
         if (!rc) rc = MH_RC_TERM;

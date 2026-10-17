@@ -30,3 +30,7 @@ bash "$DIR/tests/test_boot_door.sh"
 "$OUT/test_spi_fake"
 "${CC:-cc}" -std=gnu11 -Wall -Wextra -I"$DIR" "$DIR/tests/test_module_path.c" "$DIR/module_path.c" -o "$OUT/test_module_path"
 "$OUT/test_module_path"
+QJS=(-I"$SCHWUNG/libs/quickjs/quickjs-2025-04-26")
+"${CC:-cc}" -std=gnu11 -Wall -Wextra -Wno-unused-parameter "${INC[@]}" "${QJS[@]}" \
+    "$DIR/tests/test_poweroff_show.c" "$DIR/poweroff_show.c" -o "$OUT/test_poweroff_show"
+"$OUT/test_poweroff_show"

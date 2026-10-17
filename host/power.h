@@ -19,8 +19,10 @@ int power_off_now(void);
  * Move, the boot selector counts that as a boot attempt, and the power cut
  * kills it mid-boot. That is a watchdog strike, and three in a row open
  * schwung's "failed to start" picker on the next boot. Returns only if the
- * power never went, so a failed shutdown still gives Move back. */
-void power_hold(int seconds);
+ * power never went, so a failed shutdown still gives Move back. `tick`, when
+ * given, is called over and over for the length of the hold and must block for
+ * a while each time (the power-off show pumps one SPI frame). */
+void power_hold(int seconds, void (*tick)(void *), void *arg);
 
 /* A Move shutdown takes seconds; this only bounds a shutdown that never comes. */
 #define MH_POWEROFF_HOLD_S 120

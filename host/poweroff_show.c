@@ -14,6 +14,7 @@
 #define CLEAR_FRAMES ((CLEAR_PKTS + MIDI_OUT_PER_FRAME - 1) / MIDI_OUT_PER_FRAME)
 /* Move's palette: 1-26 is one turn of the hue wheel at full brightness. */
 #define HUES 26
+#define HUE_STEP 4
 
 static void pkt(uint8_t *p, uint8_t status, uint8_t id, uint8_t val) {
     p[0] = (uint8_t)(status >> 4);   /* cable 0, CIN = the status nibble */
@@ -24,9 +25,10 @@ static void pkt(uint8_t *p, uint8_t status, uint8_t id, uint8_t val) {
 
 uint8_t poweroff_show_pad_colour(int pad, int step) {
     if (step < 0) return 0;
-    /* A rainbow along the diagonal that drifts one hue a step: neighbouring
-     * pads are neighbouring hues, so the grid reads as one slow wave. */
-    return (uint8_t)((pad % 8 + pad / 8 + step) % HUES + 1);
+    /* The whole wheel along the diagonal (11 pads corner to corner), turning
+     * a seventh of it a step. One hue a step and a grid spanning ten hues sat
+     * on one colour for the seconds a shutdown takes (seen on the device). */
+    return (uint8_t)(((pad % 8 + pad / 8) * HUES / 11 + step * HUE_STEP) % HUES + 1);
 }
 
 int poweroff_show_leds(int frame, uint8_t out[MIDI_OUT_PER_FRAME][4]) {

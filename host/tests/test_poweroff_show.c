@@ -77,11 +77,12 @@ static void test_pads_animate(void) {
             uint8_t c = poweroff_show_pad_colour(p, step);
             if (c < 1 || c > 26) { bad++; continue; }   /* full-brightness hues only: no brightness flicker */
             if (!hues[c]++) nh++;
-            if (c == poweroff_show_pad_colour(p, step + 1)) still++;
+            int d = (poweroff_show_pad_colour(p, step + 1) - c + 26) % 26;
+            if (d < 3) still++;   /* a step must read as a new colour, not a shade */
         }
         CHECK(!bad, "step %d: hues of the wheel only", step);
-        CHECK(nh >= 8, "step %d: colourful, %d hues on the grid", step, nh);
-        CHECK(!still, "step %d: every pad moves on each step", step);
+        CHECK(nh >= 11, "step %d: the whole wheel on the grid, %d hues", step, nh);
+        CHECK(!still, "step %d: every pad moves at least 3 hues a step", step);
     }
     CHECK(POWEROFF_STEP_FRAMES * 29 / 10 >= 500, "a step lasts at least the 0.5 s fade (%d ms)", POWEROFF_STEP_FRAMES * 29 / 10);
 

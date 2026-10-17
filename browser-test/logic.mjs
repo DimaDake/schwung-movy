@@ -84,6 +84,7 @@ import { run as run_clip_params_source } from './logic/clip-params-source.mjs';
 import { run as run_set_params_source } from './logic/set-params-source.mjs';
 import { run as run_step_params_source } from './logic/step-params-source.mjs';
 import { run as run_own_component_source } from './logic/own-component-source.mjs';
+import { run as run_font_parity } from './logic/font-parity.mjs';
 import { run as run_env_identity } from './logic/env-identity.mjs';
 
 /* Awaited one at a time: the suites share the mock device globals, and the
@@ -171,6 +172,7 @@ const SUITES = [
     run_set_params_source,
     run_step_params_source,
     run_own_component_source,
+    run_font_parity,
 ];
 
 /* Between suites, drop the port cache: a suite that leaves ports bound to its

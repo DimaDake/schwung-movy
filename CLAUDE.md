@@ -482,7 +482,13 @@ runs.
 
 ## Font
 
-`src/font/glyphs.ts` contains the pixel font as a pre-rasterised glyph table.
-`FONT_HEIGHT = 5`. Glyph format: `[advance, yOff, w, h, ...rowBytes]`
-with bit0 = leftmost pixel per row. The original OTF has been removed;
-the glyph data in `glyphs.ts` is the source of truth.
+`src/font/glyphs.ts` is Schwung's param-page font (`font4x5.mjs`, the
+"Elektron" letterforms), so movy's chrome and the Schwung pages draw one
+alphabet. It is GENERATED: `node scripts/gen-font-from-schwung.mjs <path to the
+PINNED tag's font4x5.mjs>` (a bump of `schwung-pin.sh` may redraw letters —
+`browser-test/logic/font-parity.mjs` fails on drift). `FONT_HEIGHT = 5`,
+uppercase only (`index.ts` folds lowercase), the 1px gap is inside each
+advance. Glyph format: `[advance, yOff, w, h, ...rowBytes]`, bit0 = leftmost.
+`; $ @ [ ] { } | ~` and the backtick are movy's own additions (`G4_EXTRA`),
+because font4x5 draws nothing for them. The 3×5 enum-square face
+(`glyphs5x3.ts`) and the Nokia big-value face are separate and unchanged.

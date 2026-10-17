@@ -15,7 +15,7 @@
  *   1. the instruments arrive: movy's own chains, with their presets,
  *   2. the surface comes back as it was saved, not at its defaults.
  *
- * The sequencer half is the engine's to read now (`engpersist`): the Rust
+ * The sequencer half is the engine's to read: the Rust
  * persist tests pin that an old blob still loads.
  *
  * Run by browser-test/logic.mjs.
@@ -23,8 +23,8 @@
 
 import { readFileSync } from 'node:fs';
 import {
-    installMockFs, uninstallMockFs, resetStoreRotation, resetPorts,
-    loadPerSetFlags, ok, eq, _log,
+    installMockFs, uninstallMockFs, resetPorts,
+    ok, eq, _log,
 } from './harness.mjs';
 
 const FIX = 'browser-test/fixtures/old-sets';
@@ -41,7 +41,6 @@ export async function run() {
     const { resetSeqState } = await import('../../dist/esm/seq/state.js');
     const { sessionTick, sessionPhase, resetSetSession }
         = await import('../../dist/esm/seq/set-session.js');
-    const { resetSetSave } = await import('../../dist/esm/seq/set-save.js');
     const { decodeBulk } = await import('../../dist/esm/track/bulk.js');
     const { keyboardState } = await import('../../dist/esm/keyboard/state.js');
     const { seqState } = await import('../../dist/esm/seq/state.js');
@@ -61,15 +60,15 @@ export async function run() {
         });
         const eng = installMockEngine();
         eng.status.chpend = 0;
-        resetSeqEngine(); resetSeqState(); resetSetSession(); resetSetSave();
-        resetStoreRotation(); resetPorts(); loadPerSetFlags(null);
+        resetSeqEngine(); resetSeqState(); resetSetSession(); 
+        resetPorts();
         for (let i = 0; i < 200; i++) { seqEngineTick(); sessionTick(); }
         return { fs, eng };
     };
     const teardown = () => {
         uninstallMockEngine(); uninstallMockFs();
-        resetSeqEngine(); resetSeqState(); resetSetSession(); resetSetSave();
-        resetStoreRotation(); resetPorts(); loadPerSetFlags(null);
+        resetSeqEngine(); resetSeqState(); resetSetSession(); 
+        resetPorts();
     };
 
     /* The chain-set document as `<track>:<component>=<module>` strings, in the

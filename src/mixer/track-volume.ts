@@ -1,6 +1,5 @@
 import { setChainParam } from '../chain/set-param.js';
-import { MIX_KEY } from '../track/mix-persist.js';
-import { mixerKeyFor } from './mix-io.js';
+import { MIX_KEY, mixerKeyFor } from './mix-io.js';
 import { markUiStateDirty } from '../seq/ui-dirty.js';
 import { portFor } from '../track/registry.js';
 import { beginGesture } from '../undo/edit.js';

@@ -175,7 +175,7 @@ Movy stands on the shoulders of several projects:
 - **Settings — Shift + Step 2** — a scrolling list and older versions of the
   set (**BACKUPS**). Each row explains itself on screen.
 
-  ![Settings](docs/assets/flags-release.png)
+  ![Settings](docs/assets/flags-top.png)
 
 - **Backups** — every Set keeps up to 32 older versions, kept when you open it,
   as you work, and always before anything that would wipe it. Browse them by

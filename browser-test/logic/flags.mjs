@@ -1,234 +1,63 @@
-/* browser-test/logic/flags.mjs — the Global Params flags page: registry,
- * persistence, the engine re-apply, and the jog/knob split.
+/* browser-test/logic/flags.mjs — the Settings page (its rows, its jog, what it
+ * draws) and the module blacklist the engine gets on every boot.
  *
  * Run by browser-test/logic.mjs.
  */
 
 import {
     installMockFs, uninstallMockFs, PREFS_PATH,
-    FLAGS, FLAGS_REV, flagDef, clampFlag, flagValueLabel, flagNormalized,
-    flagValue, setFlag, applyFlagsToEngine, resetFlags,
-    flagsPageState, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
+    flagsPageState, flagsPageActive, flagsPageJog, resetFlagsPage,
     flagsRowCount, backupsRowSelected, actionRowSelected,
-    buildFlagsPageVM, VISIBLE_ROWS, firstVisibleRow, readPrefFlags, writePrefFlag,
-    visibleFlags, trackRef, DETENT_DIV,
+    buildFlagsPageVM, VISIBLE_ROWS, firstVisibleRow,
     wrapWords, HINT_W, HINT_LINES, fontWidth, W,
-    serializeUiState, applyUiState, resetUiState,
-    readPrefModuleBlacklist,
-    DEBUG_BUILD, openParamPage, closeParamPage, paramPageActive,
+    readPrefModuleBlacklist, installMockEngine, uninstallMockEngine,
+    seqEngineTick, resetSeqEngine,
+    openParamPage, closeParamPage, paramPageActive,
     VIEW_FLAGS, VIEW_CHAIN, VIEW_MAIN_PARAMS,
     appState, ok, eq, _log,
 } from './harness.mjs';
 
-/* One physical click is DETENT_DIV raw units — a delta of 1 is an EIGHTH of a
- * click and moves nothing. This helper sent 1 per click and the assertions that
- * depended on it were passing vacuously (see `ok` in harness.mjs). */
-function turn(k, clicks) {
-    for (let i = 0; i < Math.abs(clicks); i++)
-        flagsPageKnob(k, clicks > 0 ? DETENT_DIV : -DETENT_DIV);
-}
-
-/** Where a key landed in the engine push, whatever value it went out with. */
-function sentIndex(sent, key) {
-    for (let i = 0; i < sent.length; i++) if (sent[i].indexOf(key + '=') === 0) return i;
-    return -1;
-}
-
 export async function run() {
 
-/* ── The registry ─────────────────────────────────────────────────────────── */
+/* ── The module blacklist reaches the engine ─────────────────────────────── */
 {
-    _log('\nFlags registry');
+    _log('\nModule blacklist');
 
-    ok('the page has flags to list', FLAGS.length > 0);
-
-    for (const f of FLAGS) {
-        ok(`${f.key} has a readable name`, typeof f.name === 'string' && f.name.length > 0);
-        ok(`${f.key}'s default is inside its own range`, f.def >= f.min && f.def <= f.max);
-        eq(`${f.key} is findable by key`, flagDef(f.key), f);
-    }
-    eq('an unknown key resolves to nothing', flagDef('nope'), null);
-
-    /* A literal def rather than a shipped flag: the clamp is a property of the
-     * table, and pinning it to whichever flag happens to have a range today
-     * makes it break every time the table changes. */
-    const ranged = { key: 'r', name: 'R', hint: '', min: 0, max: 2, def: 2 };
-    eq('clamped low', clampFlag(ranged, -5), ranged.min);
-    eq('clamped high', clampFlag(ranged, 99), ranged.max);
-    eq('a non-number falls back to the default', clampFlag(ranged, NaN), ranged.def);
-    eq('fractions land on a whole setting', clampFlag(ranged, 1.4), 1);
-
-
-    /* `bool` presentation has no user in the shipped table — every flag there
-     * carries word labels or reads as a number — so it is exercised against a
-     * literal def rather than left untested until the next one needs it. */
-    const boolean = { key: 'x', name: 'X', hint: '', min: 0, max: 1, def: 0, bool: true };
-    eq('a bool flag reads as OFF', flagValueLabel(boolean, 0), 'OFF');
-    eq('a bool flag reads as ON', flagValueLabel(boolean, 1), 'ON');
-    eq('a numeric flag shows its number', flagValueLabel(ranged, 1), '1');
-
-    eq('the LED is dark at the bottom of the range', flagNormalized(ranged, 0), 0);
-    eq('and full at the top', flagNormalized(ranged, 2), 1);
-    ok('and in between in between',
-        flagNormalized(ranged, 1) > 0 && flagNormalized(ranged, 1) < 1);
-}
-
-/* ── Persistence ──────────────────────────────────────────────────────────── */
-{
-    _log('\nFlags persistence');
-
-    installMockFs();
-    resetFlags();
-    for (const f of FLAGS) {
-        if (f.perSet) continue;
-        eq(`${f.key} starts at its default`, flagValue(f.key), f.def);
-    }
-    /* A per-set flag has no default to start at until a set has been loaded —
-     * it reads as it would in a set that predates it. No shipped flag is
-     * `perSet` today (the mechanism's one user, `chtrackset`, is gone with the
-     * schwung host); this loop is 0 iterations and documents that rather than
-     * testing dead weight. */
-    for (const f of FLAGS.filter((f) => f.perSet)) {
-        eq(`${f.key} starts conservative, not at its default`,
-           flagValue(f.key), f.legacy);
-    }
-
-    setFlag('engpersist', 0);
-    eq('the value moved', flagValue('engpersist'), 0);
-    eq('and reached prefs.json', readPrefFlags().engpersist, 0);
-
-    /* The whole point: a flag was a measurement instrument that reset on every
-     * engine load, and is a setting now. Dropping the cache models reopening
-     * movy — if the value came back as the default, nothing was persisted. */
-    resetFlags();
-    eq('and survives a reopen', flagValue('engpersist'), 0);
-
-    setFlag('engpersist', 99);
-    eq('a write past the range is clamped, not refused', flagValue('engpersist'), 1);
-    eq('and the clamped value is what is stored', readPrefFlags().engpersist, 1);
-
-    eq('an unknown flag cannot be written', setFlag('nope', 1), 0);
-    ok('and leaves no trace in prefs', !('nope' in readPrefFlags()));
-    uninstallMockFs();
-
-    /* prefs.json holds unrelated settings; a flag write must not eat them, and
-     * a flag this build does not list must survive a build that does. */
-    installMockFs({
-        [PREFS_PATH]: JSON.stringify({ defaultQuant: 70, flags: { chfuture: 7 } }),
-    });
-    writePrefFlag('engpersist', 0);
-    const after = JSON.parse(globalThis.host_read_file(PREFS_PATH));
-    eq('an unrelated preference survives', after.defaultQuant, 70);
-    eq('and so does a flag this build does not know', after.flags.chfuture, 7);
-    eq('alongside the one just written', after.flags.engpersist, 0);
-    uninstallMockFs();
-
-    /* The `revisedAt` adoption mechanism, now with a live user: `engpersist`
-     * shipped off, everyone who tested it has a stored 0, and a stored value
-     * beats a changed default forever. Without this the release that turns
-     * engine-owned saves on turns them on for nobody who was involved. */
-    installMockFs({
-        [PREFS_PATH]: JSON.stringify({ flagsRev: 3, flags: { engpersist: 0 } }),
-    });
-    resetFlags();
-    eq('a stored value from before the revision is superseded', flagValue('engpersist'), 1);
-    /* Written back, so the adoption happens exactly once — a user who then
-     * turns it off again must keep it off. */
-    const adopted = JSON.parse(globalThis.host_read_file(PREFS_PATH));
-    eq('the adoption is recorded', adopted.flags.engpersist, 1);
-    eq('at the new revision', adopted.flagsRev, FLAGS_REV);
-    setFlag('engpersist', 0);
-    resetFlags();
-    eq('and a later opinion at the current revision stands', flagValue('engpersist'), 0);
-    uninstallMockFs();
-
-
-    installMockFs({ [PREFS_PATH]: '{not json' });
-    resetFlags();
-    eq('corrupt prefs fall back to defaults',
-       flagValue('engpersist'), flagDef('engpersist').def);
-    uninstallMockFs();
-
-    installMockFs({ [PREFS_PATH]: JSON.stringify({ flags: { engpersist: 'one' } }) });
-    resetFlags();
-    eq('and so does a value of the wrong type',
-       flagValue('engpersist'), flagDef('engpersist').def);
-    uninstallMockFs();
-}
-
-/* ── The engine re-apply ──────────────────────────────────────────────────── */
-{
-    _log('\nFlags reach the engine');
-
-    installMockFs();
-    resetFlags();
-    setFlag('engpersist', 0);
-
-    /* A re-dlopened engine is a brand new one with default flags — nothing the
-     * page says about a UI-only setting reaches it until this runs. */
-    let sent = [];
-    applyFlagsToEngine((k, v) => sent.push(k + '=' + v));
-    const engineFlags = FLAGS.filter((f) => !f.uiOnly);
-    for (const f of engineFlags) {
-        ok(`${f.key} is pushed on an engine boot`,
-           sent.some((s) => s.indexOf(f.key + '=') === 0), sent.join(' '));
-    }
-    /* A uiOnly flag is one the UI acts on by itself. The engine has no handler
-     * for it, so writing it costs a blocking round trip on the audio thread to
-     * be told nothing — and it would read, in the log, exactly like a flag the
-     * engine understands. */
-    for (const f of FLAGS.filter((f) => f.uiOnly)) {
-        ok(`${f.key} is NOT pushed — the engine has no such param`,
-           !sent.some((s) => s.indexOf(f.key + '=') === 0), sent.join(' '));
-    }
-    eq('every engine flag exactly once, plus the blacklist', sent.length, engineFlags.length + 1);
-    ok('including the values that were set', sent.indexOf('engpersist=0') >= 0);
-
-    /* And an edit after boot goes straight through, rather than waiting for the
-     * next one. */
-    sent = [];
-    setFlag('engpersist', 1);
-    eq('a later edit reaches the engine too', sent.join(''), 'engpersist=1');
-
-    sent = [];
-    setFlag('engpersist', 1);
-    eq('an edit that changes nothing writes nothing', sent.length, 0);
-    uninstallMockFs();
-
-    /* The blacklist is the containment mechanism, so it has to reach the engine
-     * on the same boot the flags do — a module that races while its pin sits
-     * unsent in prefs.json is exactly the failure it exists to prevent. */
+    /* It is the containment mechanism, so it has to reach the engine on every
+     * boot — a module that races while its pin sits unsent in prefs.json is
+     * exactly the failure it exists to prevent. */
+    const boot = () => {
+        const eng = installMockEngine();
+        resetSeqEngine();
+        seqEngineTick();
+        return eng;
+    };
     installMockFs({ [PREFS_PATH]: JSON.stringify({ moduleBlacklist: ['helm', 'obxd'] }) });
-    resetFlags();
     eq('the blacklist is read from prefs', readPrefModuleBlacklist().join(','), 'helm,obxd');
-    sent = [];
-    applyFlagsToEngine((k, v) => sent.push(k + '=' + v));
-    ok('and is sent as one csv', sent.indexOf('chblock=helm,obxd') >= 0, sent.join(' '));
-    uninstallMockFs();
+    let eng = boot();
+    eq('and is sent as one csv on boot', eng.params.chblock, 'helm,obxd');
+    uninstallMockEngine(); uninstallMockFs();
 
     /* Empty is a real value: the engine replaces the list wholesale, so this is
      * how a module removed from prefs.json stops being pinned. A skipped write
      * would leave the last boot's list in force. */
     installMockFs();
-    resetFlags();
-    sent = [];
-    applyFlagsToEngine((k, v) => sent.push(k + '=' + v));
-    ok('an empty blacklist is still sent', sent.indexOf('chblock=') >= 0, sent.join(' '));
+    eng = boot();
+    eq('an empty blacklist is still sent', eng.params.chblock, '');
+    uninstallMockEngine(); uninstallMockFs();
+    resetSeqEngine();
 
     /* A name with a comma would arrive as two names — one of them invented. */
-    uninstallMockFs();
     installMockFs({ [PREFS_PATH]: JSON.stringify({ moduleBlacklist: ['a,b', 'helm', 7, ''] }) });
     eq('a name that would split on the wire is refused',
        readPrefModuleBlacklist().join('|'), 'helm');
     uninstallMockFs();
 }
 
-/* ── The page: jog scrolls, knob 1 edits ──────────────────────────────────── */
+/* ── The page: jog scrolls ───────────────────────────────────────────────── */
 {
-    _log('\nFlags page input');
+    _log('\nSettings page input');
 
-    installMockFs();
-    resetFlags();
     resetFlagsPage();
     appState.currentView = VIEW_CHAIN;
 
@@ -245,92 +74,46 @@ export async function run() {
 
     openParamPage(VIEW_FLAGS);
     eq('the selection starts at the top', flagsPageState.selected, 0);
+    ok('which is BACKUPS', backupsRowSelected());
     flagsPageJog(1);
     eq('jog moves down', flagsPageState.selected, 1);
+    eq('onto the migrate row', actionRowSelected(), 1);
     flagsPageJog(-1);
     eq('and back up', flagsPageState.selected, 0);
     flagsPageJog(-1);
     eq('the top is clamped, not wrapped', flagsPageState.selected, 0);
-    /* The list ends past the last flag with an action row, and counting rows
-     * off `visibleFlags()` alone would put it out of the jog's reach — which
-     * is how a row that draws but cannot be selected happens. */
-    for (let i = 0; i < FLAGS.length + 5; i++) flagsPageJog(1);
+    for (let i = 0; i < 10; i++) flagsPageJog(1);
     eq('and so is the bottom', flagsPageState.selected, flagsRowCount() - 1);
-    eq('the last row is an action row, not a flag', actionRowSelected(), 1);
-
-    /* Knob 1 edits whatever the jog selected — that is the whole interaction,
-     * and it is what lets the list grow past eight entries. */
-    flagsPageState.selected = visibleFlags().findIndex((f) => f.key === 'engpersist');
-    setFlag('engpersist', 0);
-    turn(FLAG_KNOB, 6);
-    ok('knob 1 raises the selected flag', flagValue('engpersist') > 0);
-    turn(FLAG_KNOB, -20);
-    eq('and lowers it to its floor, never past', flagValue('engpersist'), flagDef('engpersist').min);
-
-    const before = flagValue('engpersist');
-    turn(3, 6);
-    eq('another knob does nothing', flagValue('engpersist'), before);
-
-    /* A half-turn banked on one flag must not spend itself on the next: the
-     * detent accumulator is shared, so jogging has to clear it. */
-    flagsPageState.selected = visibleFlags().findIndex((f) => f.key === 'engpersist');
-    setFlag('engpersist', 0);
-    flagsPageKnob(FLAG_KNOB, 1);
-    flagsPageJog(1);
-    flagsPageJog(-1);
-    eq('a detent banked before a jog does not leak past it', flagValue('engpersist'), 0);
 
     closeParamPage();
-    uninstallMockFs();
 }
 
-/* ── The page: what it draws ──────────────────────────────────────────────── */
+/* ── The page: what it draws ─────────────────────────────────────────────── */
 {
-    _log('\nFlags page view');
+    _log('\nSettings page view');
 
     installMockFs();
-    resetFlags();
     resetFlagsPage();
-
-    setFlag('engpersist', 1);
     const vm = buildFlagsPageVM();
     /* ONE DRAWN ROW PER SELECTABLE ROW, and this is the assertion that was
      * missing when BACKUPS shipped invisible: it was added to the jog's clamp
      * and to the router but not to this list, so it was selectable, clickable
      * and undrawn — and every screenshot stayed byte-identical, because the
-     * viewmodel never changed. Comparing against `visibleFlags().length` could
-     * not have caught it; comparing against what the gestures walk can. */
+     * viewmodel never changed. */
     eq('one drawn row per selectable row', vm.rows.length, flagsRowCount());
-    eq('the flags come first', vm.rows[0].name, visibleFlags()[0].name);
-    eq('and the action rows come last', vm.rows.slice(-2).map((r) => r.name).join(','), 'BACKUPS,MIGRATE FROM MOVE');
-    eq('the name column is the readable name', vm.rows[0].name, visibleFlags()[0].name);
+    eq('the rows', vm.rows.map((r) => r.name).join(','), 'BACKUPS,MIGRATE FROM MOVE');
     eq('exactly one row is selected', vm.rows.filter((r) => r.selected).length, 1);
-    ok('a numeric flag shows its number', vm.rows.some((r) => r.value === '1'));
+    ok('BACKUPS explains itself', vm.hint.length > 0);
 
-    /* Selecting the action row: it draws as selected, the hint explains it
-     * rather than the flag above, and knob 1 goes dark because it does nothing
-     * there. */
-    {
-        resetFlagsPage();
-        for (let i = 0; i < FLAGS.length + 5; i++) flagsPageJog(1);
-        const av = buildFlagsPageVM();
-        ok('the action row can be selected', av.rows[av.rows.length - 1].selected);
-        eq('exactly one row is still selected', av.rows.filter((r) => r.selected).length, 1);
-        ok('the hint is the action row\'s own', av.hint.toLowerCase().includes('from move'), av.hint);
-        eq('the knob LED is dark on it', av.knobNormalized, 0);
-        resetFlagsPage();
-    }
+    /* The band follows the selection, or it is describing a different row than
+     * the one under the inverted band. */
+    flagsPageJog(1);
+    const mv = buildFlagsPageVM();
+    ok('the migrate row can be selected', mv.rows[1].selected);
+    ok('and the hint is its own', mv.hint.toLowerCase().includes('from move'), mv.hint);
 
-    /* The LED carries the value AND says which knob is live — it is the only
-     * lit one. A flat brightness would leave the page mute about both. */
-    flagsPageState.selected = visibleFlags().findIndex((f) => f.key === 'engpersist');
-    setFlag('engpersist', 0);
-    eq('the knob LED is dim at the bottom of the range', buildFlagsPageVM().knobNormalized, 0);
-    setFlag('engpersist', 1);
-    eq('and full at the top', buildFlagsPageVM().knobNormalized, 1);
-
-    /* Scrolling. The list is short today and will not be, so the window is
-     * asserted at a length it does not yet have. */
+    /* Scrolling: the list is short, and the window is asserted at a length it
+     * does not have. */
     ok('the screen fits several rows', VISIBLE_ROWS >= 4);
     eq('a short list never scrolls', firstVisibleRow(0, 3), 0);
     eq('a selection near the top does not scroll either', firstVisibleRow(1, 20), 0);
@@ -338,131 +121,40 @@ export async function run() {
     ok('a selection in the middle is centred', mid > 0 && mid <= 10);
     eq('and the last row does not scroll past the end',
         firstVisibleRow(19, 20), 20 - VISIBLE_ROWS);
+    /* The list has to give the band its two lines back. */
+    ok('the list leaves room for the band', VISIBLE_ROWS >= 4 && VISIBLE_ROWS <= 5);
 
-    uninstallMockFs();
-}
-
-/* ── The debug gate ───────────────────────────────────────────────────────── */
-{
-    _log('\nFlags debug gate');
-
-    /* The suites build with the gate ON (build/browser.mjs), so this asserts
-     * the constant exists and is the one the tests are running under — every
-     * `visibleFlags()` assertion above passes the arrangement it wants
-     * explicitly, for exactly that reason. The release side is guarded where it
-     * matters: scripts/build-module.sh greps the built ui.js for the substituted
-     * constant, which is the only check that can catch a `define` that stopped
-     * applying. */
-    eq('the browser tests run with the debug surfaces compiled in', DEBUG_BUILD, true);
-}
-
-/* ── What a release build lists ────────────────────────── */
-{
-    _log('\nFlags page release list');
-
-    installMockFs();
-    resetFlags();
-
-    /* No flag ships (Param Pages, the last release row, went with movy's own
-     * pages): `engpersist` is an instrument, debug-only. */
-    ok('the instrument is not a release row', !flagDef('engpersist').release);
-    const rel = visibleFlags(false).map((f) => f.key);
-    eq('a release build lists no flag', rel.join(','), '');
-    const dbg = visibleFlags(true).map((f) => f.key);
-    eq('a debug build lists every flag', dbg.length, FLAGS.length);
-    /* FLAGS lists release rows first, so a release list is a PREFIX of the
-     * debug one and a row keeps its position across the two builds. */
-    eq('release rows lead the debug list', dbg.slice(0, rel.length).join(','), rel.join(','));
-    ok('including the ones release hides', dbg.indexOf('engpersist') >= 0);
-
-    /* The page walks the visible list, so a hidden flag can never be selected
-     * — a knob turn on a row a release build does not draw would change a
-     * setting nobody can see. */
     resetFlagsPage();
-    for (let i = 0; i < FLAGS.length + 5; i++) flagsPageJog(1);
-    ok('the selection cannot leave the listed rows',
-       flagsPageState.selected < flagsRowCount());
-    /* A knob turn on the action row must change nothing: it has no value, and
-     * the row above it does. */
-    const beforeAction = flagValue(visibleFlags()[visibleFlags().length - 1].key);
-    flagsPageKnob(0, 40);
-    eq('the knob is inert on the action row',
-       flagValue(visibleFlags()[visibleFlags().length - 1].key), beforeAction);
-
     uninstallMockFs();
 }
 
-/* ── The hint band: every row says what it does ───────────── */
+/* ── The hint band: every row says what it does, in two lines ────────────── */
 {
     _log('\nSettings hints');
 
     installMockFs();
-    resetFlags();
     resetFlagsPage();
-
-    for (const f of FLAGS) {
-        ok(`${f.key} explains itself`, typeof f.hint === 'string' && f.hint.length > 0);
+    for (let i = 0; i < flagsRowCount(); i++) {
+        flagsPageState.selected = i;
+        const vm = buildFlagsPageVM();
+        const row = vm.rows[i];
         /* The band is a fixed two lines at the bottom of a 128px screen. A hint
          * that needs a third is not shortened at render time — it is silently
-         * cut, and the row ends mid-sentence on the device where nothing here
-         * would notice. */
-        const lines = wrapWords(f.hint, HINT_W);
-        ok(`${f.key}'s hint fits the band`, lines.length <= HINT_LINES,
-           `${lines.length} lines: ${f.hint}`);
+         * cut, and the row ends mid-sentence on the device. */
+        const lines = wrapWords(vm.hint, HINT_W);
+        ok(`${row.name}'s hint fits the band`, lines.length > 0 && lines.length <= HINT_LINES,
+           `${lines.length} lines: ${vm.hint}`);
+        /* A row draws its name from the left and its value from the right edge,
+         * and neither is measured against the other — a name one word too long
+         * collides rather than wraps. */
+        const used = fontWidth(row.name) + fontWidth(row.value) + 4;
+        ok(`"${row.name}" and "${row.value}" fit one row`, used <= W, `${used}px of ${W}`);
     }
-
-    /* A row draws its name from the left and its value from the right edge, and
-     * neither is measured against the other — so a name one word too long does
-     * not wrap or ellipsize, it collides, and the row becomes unreadable at
-     * exactly the value the user most needs to read. */
-    for (const f of FLAGS) {
-        const widest = (f.labels || ['OFF', 'ON', String(f.max)])
-            .reduce((a, b) => (fontWidth(a) > fontWidth(b) ? a : b));
-        const used = fontWidth(f.name) + fontWidth(widest) + 4;
-        ok(`"${f.name}" and "${widest}" fit one row`, used <= W, `${used}px of ${W}`);
-    }
-
-    /* The band follows the selection, or it is describing a different row than
-     * the one under the inverted band. */
-    flagsPageState.selected = visibleFlags().findIndex((f) => f.key === 'engpersist');
-    eq('the hint is the selected row\'s', buildFlagsPageVM().hint, flagDef('engpersist').hint);
-    flagsPageJog(-1);
-    const above = visibleFlags()[flagsPageState.selected];
-    eq('and it follows the jog', buildFlagsPageVM().hint, above.hint);
-
-    /* The list has to give the band its two lines back. */
-    ok('the list leaves room for the band', VISIBLE_ROWS >= 4 && VISIBLE_ROWS <= 5);
-
-    uninstallMockFs();
-}
-
-/* ── Settings — the action row (BACKUPS) ───────────────────── */
-{
-    _log('\nSettings action rows');
-
-    installMockFs();
-    resetFlags();
     resetFlagsPage();
-
-    const flags = visibleFlags(true);
-    /* The count is what the jog clamps to AND what the viewmodel draws. A row
-     * added to one but not the other is selectable, clickable and undrawn —
-     * exactly how BACKUPS shipped the first time. */
-    eq('two action rows past the flags', flagsRowCount(), flags.length + 2);
-
-    flagsPageState.selected = flags.length;
-    const vm = buildFlagsPageVM(flags);
-    eq('vm draws every row', vm.rows.length, flags.length + 2);
-    eq('the action row is BACKUPS', vm.rows[flags.length].name, 'BACKUPS');
-    eq('backups is action 0', actionRowSelected(), 0);
-    ok('its hint is shown', vm.hint.length > 0);
-    eq('the knob LED is dark on an action row', vm.knobNormalized, 0);
-    ok('a flag row is action -1', (flagsPageState.selected = 0, actionRowSelected() === -1));
-
     uninstallMockFs();
 }
 
-/* ── Word wrapping ───────────────────────────────────────── */
+/* ── Word wrapping ───────────────────────────────────────────────────────── */
 {
     _log('\nHint wrapping');
 

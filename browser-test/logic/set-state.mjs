@@ -7,7 +7,7 @@
 import {
     uuidToStatePath, uuidToUiStatePath, BLANK_STATE, sessionTick, resetSetSession, wrapState,
     parseState, adler32, installMockFs, uninstallMockFs, safeWrite, readBestState,
-    readUiBlob, writeStateBlob, resetStoreRotation, shadowPath, keyboardState, installMockEngine,
+    readUiBlob, shadowPath, keyboardState, installMockEngine,
     uninstallMockEngine, seqEngineTick, resetSeqEngine, ok, eq, _log,
 } from './harness.mjs';
 
@@ -57,23 +57,16 @@ _log('\nTest: state envelope (truncation is detectable)');
     eq('adler32 discriminates', adler32('movy1\n') !== adler32('movy2\n'), true);
 }
 
-_log('\nTest: durable store (rotation + verified writes)');
+_log('\nTest: reading the best copy of a Set\'s state');
 {
     const fs = installMockFs();
-    resetStoreRotation();
     const canon = uuidToStatePath('S');
 
-    // A save lands in both a shadow slot and the canonical path, newest first
-    // in the shadow so the canonical still holds the previous generation until
-    // the shadow has verified.
-    eq('gen 1 write reported durable', writeStateBlob('S', 'movy1\nbpm 12000\n', 1), true);
-    eq('canonical holds gen 1', readBestState('S').gen, 1);
-    eq('shadow 1 holds gen 1', parseState(fs.files[shadowPath('S', 1)]).gen, 1);
-
-    // The next save rotates to the other slot, so slot 1 keeps generation 1.
-    eq('gen 2 write reported durable', writeStateBlob('S', 'movy1\nbpm 14000\n', 2), true);
-    eq('shadow 1 still holds gen 1', parseState(fs.files[shadowPath('S', 1)]).gen, 1);
-    eq('shadow 2 holds gen 2', parseState(fs.files[shadowPath('S', 2)]).gen, 2);
+    /* The engine writes a shadow first and the canonical file last; the UI
+     * only reads them, to tell an unreadable Set from a blank one. */
+    fs.files[shadowPath('S', 1)] = wrapState('movy1\nbpm 12000\n', 1);
+    fs.files[shadowPath('S', 2)] = wrapState('movy1\nbpm 14000\n', 2);
+    fs.files[canon] = wrapState('movy1\nbpm 14000\n', 2);
     eq('best-of read picks the newest', readBestState('S').payload, 'movy1\nbpm 14000\n');
 
     // The crash case: the canonical file is torn. The set must come back from
@@ -83,22 +76,10 @@ _log('\nTest: durable store (rotation + verified writes)');
     eq('fallback keeps the generation', readBestState('S').gen, 2);
 
     // Every copy torn → nothing loadable, and the caller must be told so it
-    // can fall back rather than silently start from a partial set.
+    // can say so rather than silently start from a partial set.
     fs.files[shadowPath('S', 1)] = 'movy1\ngen 1\nbp';
     fs.files[shadowPath('S', 2)] = 'movy1\ngen 2\nbp';
     eq('all copies torn → null', readBestState('S'), null);
-
-    // A write the host rejects must be reported, not swallowed.
-    fs.failWrites = true;
-    eq('failed write reported', writeStateBlob('S', 'movy1\nbpm 9000\n', 3), false);
-    fs.failWrites = null;
-
-    // A write that lies — reports success but stores a short file — is caught
-    // by reading it back. This is the failure class fsync would cover and we
-    // cannot: at least we refuse to call it saved.
-    fs.truncate = { path: 'seq-state', at: 8 };
-    eq('short write caught by read-back', writeStateBlob('S', 'movy1\nbpm 9000\n', 4), false);
-    fs.truncate = null;
 
     /* Downgrade ordering: a build without the envelope never touches the
      * shadows, so a canonical file with no envelope AND real content was
@@ -119,22 +100,24 @@ _log('\nTest: durable store (rotation + verified writes)');
     fs.failWrites = true;
     eq('safeWrite reports host failure', safeWrite(canon, 'nope'), false);
     fs.failWrites = null;
+    // A write that lies — reports success but stores a short file — is caught
+    // by reading it back. This is the failure class fsync would cover and we
+    // cannot: at least we refuse to call it saved.
+    fs.truncate = { path: 'ui-state', at: 8 };
+    eq('short write caught by read-back', safeWrite(uuidToUiStatePath('S'), '{"root":60}'), false);
+    fs.truncate = null;
 
     uninstallMockFs();
 }
 
-/* ── The compatibility mirror ─────────────────────────────────────────────
- * `engpersist` is a runtime switch, so "on, then off again" is an ordinary
- * afternoon during rollout — and a build with the flag OFF looks for the
- * chains inside ui-state.json. The mirror is what makes going back free; a
- * flag you cannot flip back is not an escape hatch. */
+/* ── The chains mirror ────────────────────────────────────────────────────
+ * ui-state.json carries a copy of chains.json, which a load falls back on when
+ * chains.json is missing or unreadable (ui-state.ts `engineChains`). */
 _log('\nTest: the chains mirror written from the engine\'s own file');
 {
-    const { setFlag } = await import('../../dist/esm/seq/flags.js');
-    const { saveSet, resetSetSave } = await import('../../dist/esm/seq/set-save.js');
+    const { saveSet } = await import('../../dist/esm/seq/set-save.js');
     const { uuidToChainsPath } = await import('../../dist/esm/seq/set-context.js');
     const { encodeBulk } = await import('../../dist/esm/track/bulk.js');
-    const { resetRestoreGate } = await import('../../dist/esm/seq/restore-gate.js');
 
     /* Six fields per record, matching FIELDS in chain_state.rs. The last record
      * is a SEND BUS: its slot is written from the exported arithmetic rather
@@ -150,10 +133,8 @@ _log('\nTest: the chains mirror written from the engine\'s own file');
 
     const fs = installMockFs({ [uuidToChainsPath('M')]: doc });
     installMockEngine();
-    resetSetSave(); resetStoreRotation(); resetRestoreGate();
-    setFlag('engpersist', 1);
 
-    saveSet('M', 1, true);
+    saveSet('M', true);
     const ui = JSON.parse(readUiBlob('M'));
     eq('the mirror carries the module', ui.chains[0].comp[0].m, 'noisemaker');
     eq('and the preset blob, which no chain document carries',
@@ -171,9 +152,9 @@ _log('\nTest: the chains mirror written from the engine\'s own file');
 
     /* An unreadable chains.json must NEVER write []: that is §3 in a new file.
      * It is not the authority, so keeping a stale mirror costs nothing, while
-     * blanking it costs the user their chains the moment the flag goes off. */
+     * blanking it throws away the one fallback a load has. */
     fs.files[uuidToChainsPath('M')] = 'not-a-document';
-    saveSet('M', 2, true);
+    saveSet('M', true);
     const after = JSON.parse(readUiBlob('M'));
     /* Counted before it is indexed: the failure mode this guards against is an
      * EMPTY mirror, and indexing [0] of that throws instead of reporting. */
@@ -182,19 +163,6 @@ _log('\nTest: the chains mirror written from the engine\'s own file');
     eq('with its module', after.chains[0]?.comp[0]?.m, 'noisemaker');
     eq('and its blob', after.chains[0]?.comp[0]?.s, 'blob-A');
 
-    /* Turning the flag off must FLUSH first: the engine may still be holding
-     * an unwritten chains.json, and the old path is about to read the mirror
-     * that file feeds. Without this the last few seconds of chain edits are the
-     * price of flipping the switch. */
-    fs.files[uuidToChainsPath('M')] = doc;
-    const eng2 = installMockEngine();
-    eng2.setState.dirty = 1;
-    setFlag('engpersist', 1);
-    setFlag('engpersist', 0);
-    eq('leaving engine-owned flushes the engine first', eng2.setState.dirty, 0);
-    ok('and the flush is the command that did it', eng2.setCmds.includes('flush'));
-
-    setFlag('engpersist', 1);
     uninstallMockEngine(); uninstallMockFs();
 }
 }

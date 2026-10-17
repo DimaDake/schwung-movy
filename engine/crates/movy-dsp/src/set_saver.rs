@@ -12,8 +12,7 @@
 //! publish a few fields, so an audio-thread `status()` waits microseconds at
 //! worst.
 //!
-//! **Nothing logged from this thread is ever seen.** A device run with
-//! `engpersist` on produced every file the restore promises and not one of the
+//! **Nothing logged from this thread is ever seen.** A device run produced every file the restore promises and not one of the
 //! `host::log` lines beside them, while the same call from the audio thread
 //! (`create_instance`) landed in `debug.log` as usual. The log calls below stay
 //! as a local record, but anything a user or a suite must be able to READ is

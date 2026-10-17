@@ -10,10 +10,10 @@ reasoned about — where a claim is *not* established, it says so.
 
 Three of the four sections below describe a wire, not a bug in a serializer:
 state crossing the `overtake_dsp` param slot in one direction or the other.
-**`engpersist` removes that wire** — the engine reads and writes its own files
-and the UI sends commands. §2, §3 and §4 are closed where that flag is on, and
-the assertions that pinned them are flipped rather than deleted, with the old
-arm kept because the old path still ships.
+**Engine-owned persistence removes that wire** — the engine reads and writes
+its own files and the UI sends commands. §2, §3 and §4 are closed. The
+`engpersist` flag that once switched between the two paths is gone, and with
+it the UI-writer path (2026-10-17): the UI writes only `ui-state.json`.
 
 Design: `docs/superpowers/specs/2026-09-11-engine-owned-persistence-design.md`.
 Plan: `plans/2026-09-12-engine-owned-persistence.md`.
@@ -21,10 +21,7 @@ Plan: `plans/2026-09-12-engine-owned-persistence.md`.
 **§1 closed with the overtake host (WP9).** The slot was shared with the shim,
 shadow_ui, the chain forwarder and the remote-UI socket. movy-host has none of
 them: its param queue (`host/param_queue.c`) serves movy alone and delivers in
-order, so there is no slot left to contend for. The UI-writer path (`engpersist`
-off) is still compiled in for a debug build, but movy's own Set library refuses
-to run without engine saves (`set-lib-session.ts`), so nothing on a device
-takes it.
+order, so there is no slot left to contend for.
 
 Everything from §1 on is the record of how these were found. It stays.
 

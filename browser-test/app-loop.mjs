@@ -9,7 +9,6 @@
 import { trackRef, TRACK_COUNT } from '../dist/esm/track/ref.js';
 /* A settle window: eight ticks, the page cache's refill divider order. */
 const REFRESH_BULK_TICKS = 8;
-import { setFlag } from '../dist/esm/seq/flags.js';
 import { FONT_HEIGHT } from '../dist/esm/font/index.js';
 import { HINT_TOP, HINT_LINES } from '../dist/esm/renderer/flags-view.js';
 import { selectTrack, focusGroupStep } from '../dist/esm/track/focus.js';

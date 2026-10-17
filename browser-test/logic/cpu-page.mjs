@@ -7,7 +7,7 @@
 
 import {
     buildCpuPageVM, buildSendColumns, FULL_SCALE_US, USABLE_BLOCK, scaleFor, scaleLabel,
-    setFlag, resetFlags, ok, eq, _log,
+    ok, eq, _log,
 } from './harness.mjs';
 
 export async function run() {
@@ -29,7 +29,6 @@ export async function run() {
     };
 
     _log('\ncpu page: columns');
-    resetFlags();
     feed();
     let vm = buildCpuPageVM();
     eq('one column per track', vm.columns.length, 16);
@@ -57,7 +56,6 @@ export async function run() {
     ok('an overrun reads over 1.0', vm.load > 1);
 
     _log('\ncpu page: a chain whose module cannot split');
-    resetFlags();
     /* One render_block call, because the module does not support the split:
      * the synth stage IS the whole chain, so the FX segment comes out empty
      * with no branch anywhere in the renderer. */
@@ -135,7 +133,6 @@ export async function run() {
            scaleFor([col(2400, 2900)], buildSendColumns('300/400,-,-')), 3000);
 
         /* End to end, through the poll field the engine actually writes. */
-        resetFlags();
         feed({ snd: '-,-,620/1500' });
         vm = buildCpuPageVM();
         eq('the view model carries the region', vm.sends.length, 3);
@@ -167,7 +164,6 @@ export async function run() {
     }
 
     _log('\ncpu page: nothing to draw');
-    resetFlags();
     seqState.cpuCost = ''; seqState.cpuWall = ''; seqState.cpuMask = ''; seqState.cpuSend = '';
     vm = buildCpuPageVM();
     eq('an engine that never sent the fields draws empty', vm.columns[0].kind, 'empty');

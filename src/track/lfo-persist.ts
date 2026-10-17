@@ -4,8 +4,8 @@
  * `:state` blob carries them — so without this they were gone the moment the
  * tool closed, and an assignment appeared to work right up until you left.
  *
- * Both directions ride the batch `chain-persist` already issues per track, so
- * this costs no extra round trip either way. */
+ * The restore rides the batch `chain-persist` already issues per track, so it
+ * costs no extra round trip. */
 
 /* Every field the chain host accepts under `lfoN:` (chain_host.c), minus
  * `active`, which it derives from target+param and refuses to be told. */
@@ -21,21 +21,6 @@ export function lfoStateKeys(): string[] {
     const keys: string[] = [];
     for (let i = 1; i <= LFO_COUNT; i++) for (const k of LFO_KEYS) keys.push('lfo' + i + ':' + k);
     return keys;
-}
-
-/** Values positionally matching `lfoStateKeys()`, or null when this track's LFOs
- *  are both idle — an untouched track writes nothing into the set file. */
-export function packLfoState(values: (string | null)[]): string[] | null {
-    if (values.length !== lfoStateKeys().length) return null;
-    const keys = lfoStateKeys();
-    const used = keys.some((k, i) => {
-        const v = values[i];
-        if (v === null || v === '') return false;
-        if (k.endsWith(':target') || k.endsWith(':target_param')) return true;
-        return k.endsWith(':enabled') && v !== '0';
-    });
-    if (!used) return null;
-    return values.map((v) => v ?? '');
 }
 
 /** A packed snapshot as write pairs, or null when it is not one this build can

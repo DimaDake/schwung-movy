@@ -2,7 +2,7 @@
  * time labels are testable on their own. */
 
 import { versionRows } from './version-wire.js';
-import type { VersionWhy } from './version-index.js';
+import type { VersionWhy } from './version-wire.js';
 
 export interface VersionsRowVM {
     age: string; why: string; clips: string; seqOnly: boolean;
@@ -36,11 +36,8 @@ export function agoLabel(ms: number, now: number): string {
     return Math.floor(d / DAY) + 'D AGO';
 }
 
-/** `uuid` is passed in rather than read here: this module would otherwise
- *  import the set lifecycle, which imports the capture layer, which imports the
- *  store this reads — a cycle through the bundle for one string. */
-export function buildVersionsPageVM(now: number, uuid: string): VersionsPageVM {
-    const rows = versionRows(uuid).map((r) => ({
+export function buildVersionsPageVM(now: number): VersionsPageVM {
+    const rows = versionRows().map((r) => ({
         age: agoLabel(r.ms, now),
         why: WHY_LABEL[r.why],
         clips: r.clips === 1 ? '1 CLIP' : r.clips + ' CLIPS',

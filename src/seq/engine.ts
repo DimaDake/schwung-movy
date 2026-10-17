@@ -16,7 +16,7 @@ import { platform } from '../platform/index.js';
 import { mlog } from '../log.js';
 import { CHAIN_MODULE_DIR, ENGINE_VERSION, MOVY_MODULE_DIR } from './constants.js';
 import { probeBridgeTick } from './probe-bridge.js';
-import { applyFlagsToEngine } from './flags.js';
+import { readPrefModuleBlacklist } from './prefs.js';
 import { pushMasterVolume } from '../mixer/master-volume.js';
 import { resetPadRoute, syncPadRoute } from '../track/pad-route.js';
 import { resetWatchPush, syncWatch } from './watch.js';
@@ -138,10 +138,11 @@ function boot(): void {
     bootState = 'ok';
     generation++;
     parseCountdown = 0;
-    /* Before `chain_host`, which is where the chains start existing: the flags
-     * decide how they render, and a lane count that arrives after the pool has
-     * been built for the old one costs a rebuild. */
-    applyFlagsToEngine(paramSet);
+    /* The hazard list, before `chain_host`, which is where the chains start
+     * existing. Sent on EVERY boot, even when empty: a re-dlopened engine knows
+     * nothing, and the engine replaces the list wholesale, so an empty write is
+     * how a module removed from prefs.json stops being pinned. */
+    paramSet('chblock', readPrefModuleBlacklist().join(','));
     pushMasterVolume(paramSet);
     /* Only the UI knows the install paths, so it hands them over once the
      * engine answers. Refreshing the private copy and dlopening the chain host

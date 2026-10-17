@@ -134,15 +134,14 @@ mirror in the UI.
   teardown) releases the ledger plus the engine's open gates read from
   `seqState.activeNotes` — the DSP is unloaded right after, so nothing else
   can close them.
-- **Who writes the Set files depends on the `engpersist` flag.** Off (today's
-  default) the UI ferries persisted state through the param slot and writes it
-  with `host_read_file`/`host_write_file` (`src/seq/persist-store.ts`). On, the
-  engine reads and writes `seq-state.json` and `chains.json` itself, atomically,
-  on its own thread, and the wire carries only commands (`set open|rename|blank|
-  flush`). The engine has always HAD a filesystem — `chain_copy.rs` uses it —
-  and the old wording that said otherwise is what
-  `docs/superpowers/specs/2026-09-11-engine-owned-persistence-design.md` undoes.
-  Both halves must never write at once; that is what the flag gates.
+- **The engine writes the Set files; the UI writes only `ui-state.json`.** The
+  engine reads and writes `seq-state.json`, `chains.json` and the version
+  history itself, atomically, on its own thread, and the wire carries only
+  commands (`set open|rename|blank|restore|keep|flush`). The UI never reads
+  `state` back (the read clears the engine's dirty flag) and never writes the
+  state file — two writers of one Set is the hazard
+  `docs/persistence-hazards.md` records. The `engpersist` flag that once kept a
+  UI-writer fallback is gone (2026-10-17).
 
 ### PErformance
 

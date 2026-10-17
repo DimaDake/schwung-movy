@@ -1,20 +1,17 @@
 /* The chains, read back from the file the ENGINE writes.
  *
- * With `engpersist` on, `chains.json` is the truth and this is the only reader
- * of it on the UI side. What it produces goes into `ui-state.json` as a MIRROR:
- * a build with the flag off looks for the chains there, so without this copy
- * flipping the flag back would cost the user their chains — and a flag you
- * cannot flip back is not an escape hatch.
+ * `chains.json` is the truth and this is the only reader of it on the UI side.
+ * What it produces also goes into `ui-state.json` as a MIRROR, which a load
+ * falls back on when chains.json is missing or unreadable (ui-state.ts).
  *
- * The engine GET this replaces (`readChainDoc`) is the one behind
+ * The engine GET this replaced (`readChainDoc`, deleted) was the one behind
  * docs/persistence-hazards.md §3 and §4: an answer that came back malformed was
  * read as an empty set, and an answer taken mid-drain reported chains that had
  * not loaded yet. A file read has neither problem — the engine writes what it
  * holds, and an unreadable file leaves the previous mirror alone.
  *
- * No `pendingPayloadFor` here, deliberately: that exists because the UI used to
- * read a chain back before its saved payload had reached it. The engine writes
- * from its own state, so there is no window in which it under-reports. */
+ * The UI never reads a chain back from the engine: the engine writes from its
+ * own state, so there is no window in which it under-reports. */
 
 import { busOfDocSlot, type SendState } from './send-persist.js';
 import { decodeBulk } from './bulk.js';

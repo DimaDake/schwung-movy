@@ -1,21 +1,13 @@
-/* Durable file I/O for one set's state.
+/* File I/O for one Set, from the UI's side.
  *
- * Two things the old single-file writer could not do:
+ * The engine writes the state and the chains (set_store.rs); this side only
+ * READS them, and writes nothing but ui-state.json.
  *
- *  - Survive a torn write. schwung gives JS no rename and no fsync, so the
- *    substitute is redundancy: each save goes to one of two rotating shadow
- *    slots first and to the canonical seq-state.json last. Whatever the crash
- *    interrupts, a complete older copy is still on disk, and the envelope's
- *    checksum is what tells the two apart at load time.
- *
- *  - Notice a failed write. host_write_file's boolean was discarded while the
- *    engine had already cleared its dirty flag on the state read, so a write
- *    that failed was lost for good and nothing ever asked for it again. Every
- *    write is now read straight back and compared. That is not fsync — it
- *    cannot prove the bytes reached flash — but it does catch what the host
- *    API can actually go wrong with: ENOSPC, EACCES and short writes. */
+ * A write is read straight back and compared. That is not fsync — it cannot
+ * prove the bytes reached flash — but it does catch what the host API can
+ * actually go wrong with: ENOSPC, EACCES and short writes. */
 
-import { wrapState, parseState, ParsedState } from './persist-blob.js';
+import { parseState, ParsedState } from './persist-blob.js';
 import {
     BLANK_STATE, ensureDir, shadowPath, uuidToChainsPath, uuidToStatePath, uuidToUiStatePath,
 } from './set-context.js';
@@ -29,33 +21,6 @@ function readFile(path: string): string | null {
 export function safeWrite(path: string, content: string): boolean {
     if (!platform.writeFile(path, content)) return false;
     return readFile(path) === content;
-}
-
-/* Which shadow slot the next save uses. Reset per set: starting a new set at
- * slot 1 can only overwrite an older generation, which is always safe. */
-let slotUuid = '';
-let nextSlot = 1;
-
-export function resetStoreRotation(): void {
-    slotUuid = '';
-    nextSlot = 1;
-}
-
-/** Persist `payload` at generation `gen`. `false` = not durable anywhere. */
-export function writeStateBlob(uuid: string, payload: string, gen: number): boolean {
-    ensureDir(uuid);
-    if (uuid !== slotUuid) { slotUuid = uuid; nextSlot = 1; }
-
-    const wrapped = wrapState(payload, gen);
-    if (!safeWrite(shadowPath(uuid, nextSlot), wrapped)) return false;
-    nextSlot = nextSlot === 1 ? 2 : 1;
-
-    /* The canonical path is written last because until it lands it still holds
-     * the previous generation — the one thing worth protecting. Its failure is
-     * not fatal: the shadow already verified, so the state IS durable and
-     * readBestState will find it. Report success and let the next save retry. */
-    safeWrite(uuidToStatePath(uuid), wrapped);
-    return true;
 }
 
 /** The newest intact copy of `uuid`'s state, or null if none survives. */

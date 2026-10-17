@@ -21,7 +21,6 @@
     "MoveUp",
     "NeonGreen",
     "White",
-    "__MOVY_DEBUG__",
     "clear_screen",
     "decodeDelta",
     "fill_rect",

@@ -187,7 +187,6 @@ attempt halves what the run means).
 ```bash
 # Useful commands
 ./scripts/deploy.sh [move.local]              # build + deploy ui.js AND dsp.so
-./scripts/deploy.sh --release [move.local]    # the bundle that SHIPS
 npm run test:device -- --scenario smoke       # one scenario
 npm run test:device -- --flakes               # what has needed a retry lately
 npm run test:device -- --no-retry             # one attempt, for debugging a race

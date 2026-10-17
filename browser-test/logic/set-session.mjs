@@ -5,9 +5,8 @@
  */
 
 import {
-    setFlag as setFlagFixture,
     uuidToStatePath, sessionTick, resetSetSession, installMockFs, uninstallMockFs, readBestState,
-    resetStoreRotation, keyboardState, installMockEngine, uninstallMockEngine, takeLabelSync, seqEngineTick,
+    keyboardState, installMockEngine, uninstallMockEngine, takeLabelSync, seqEngineTick,
     resetSeqEngine, ok, fail, eq, _log,
 } from './harness.mjs';
 
@@ -48,7 +47,6 @@ export async function run() {
     const { seqState, resetSeqState } = await import('../../dist/esm/seq/state.js');
     const { sessionTick, sessionPhase, sessionReady, currentSetUuid,
             resetSetSession } = await import('../../dist/esm/seq/set-session.js');
-    const { resetSetSave } = await import('../../dist/esm/seq/set-save.js');
     const { readBestState } = await import('../../dist/esm/seq/persist-store.js');
 
     const SAVED  = 'movy1\nbpm 14000\ncl 0 0 16 0 0:24:60:100\n';
@@ -58,14 +56,13 @@ export async function run() {
     const boot = (files, opts = {}) => {
         const fs = installMockFs(files);
         const eng = installMockEngine();
-        resetSeqEngine(); resetSeqState(); resetSetSession(); resetSetSave(); resetStoreRotation();
-        setFlagFixture('engpersist', 1);
+        resetSeqEngine(); resetSeqState(); resetSetSession();
         if (!opts.skipBoot) for (let i = 0; i < 200; i++) { seqEngineTick(); sessionTick(); }
         return { fs, eng };
     };
     const teardown = () => {
         uninstallMockEngine(); uninstallMockFs();
-        resetSeqEngine(); resetSeqState(); resetSetSession(); resetSetSave(); resetStoreRotation();
+        resetSeqEngine(); resetSeqState(); resetSetSession();
     };
     const run = (n = 200) => { for (let i = 0; i < n; i++) { seqEngineTick(); sessionTick(); } };
     const opens = (eng, id) => eng.setCmds.filter((c) => c === 'open ' + id).length;
@@ -245,70 +242,44 @@ export async function run() {
     }
 }
 
-/* ── set-load ────────────────────────────────────────────────────────────── */
+/* ── set-load / set-save ─────────────────────────────────────────────────── */
 {
     _log('\nset-load:');
     const { installMockEngine, uninstallMockEngine } = await import('../mock-engine.mjs');
-    const { loadSet, pushState } = await import('../../dist/esm/seq/set-load.js');
-    const { seqState } = await import('../../dist/esm/seq/state.js');
-    const { readBestState } = await import('../../dist/esm/seq/persist-store.js');
+    const { loadSet } = await import('../../dist/esm/seq/set-load.js');
+    const { saveSet, saveNeeded } = await import('../../dist/esm/seq/set-save.js');
+    const { markUiStateDirty, clearUiDirty } = await import('../../dist/esm/seq/ui-dirty.js');
+    const { uuidToUiStatePath } = await import('../../dist/esm/seq/set-context.js');
 
     const SAVED = 'movy1\nbpm 14000\ncl 0 0 16 0 0:24:60:100\n';
-    /* The UI-writer half (`engpersist` off) is still code — a debug build can
-     * select it — so these unit cases pin it explicitly. */
-    setFlagFixture('engpersist', 0);
 
+    /* The Set travels by NAME: the engine reads its own files, so nothing of
+     * the Set crosses the param slot. */
     {
         installMockFs({ [uuidToStatePath('S1')]: SAVED });
         const eng = installMockEngine();
-        const got = loadSet('S1');
-        eq('loadSet returns the payload', got.payload, SAVED);
-        eq('loadSet pushed it into the engine', eng.stateBlob, SAVED);
-        uninstallMockEngine(); uninstallMockFs();
-    }
-    {
-        installMockFs({});
-        const eng = installMockEngine();
-        pushState('movy1\nbpm 12000\n');
-        eq('pushState reaches the engine', eng.stateBlob, 'movy1\nbpm 12000\n');
+        loadSet('S1');
+        ok('loadSet opens the Set in the engine', eng.setCmds.includes('open S1'), eng.setCmds.join(' | '));
+        eq('and pushes no payload', eng.stateBlob, null);
         uninstallMockEngine(); uninstallMockFs();
     }
 
-    /* set-save: the engine's payload reaches disk, and an unchanged payload is
-     * not rewritten — flash on this device is not free. */
-    {
-        installMockFs({});
-        const eng = installMockEngine();
-        const { saveSet, resetSetSave } = await import('../../dist/esm/seq/set-save.js');
-        resetSetSave();
-
-        eng.stateBlob = 'movy1\nbpm 13000\n';
-        seqState.dirty = true;
-        const first = saveSet('S9', 0, true);
-        eq('saveSet wrote', first.wrote, true);
-        eq('and it is readable back', readBestState('S9').payload, 'movy1\nbpm 13000\n');
-
-        const second = saveSet('S9', first.gen, true);
-        eq('an unchanged payload is not rewritten', second.wrote, false);
-        uninstallMockEngine(); uninstallMockFs();
-    }
-
-    /* A failed write must stay pending: reading `state` clears the engine's own
-     * dirty flag, so a write we drop is one nothing will ask us for again. */
+    /* set-save writes the UI's half only, and a failed write stays pending. */
     {
         const fs = installMockFs({});
-        const eng = installMockEngine();
-        const { saveSet, saveNeeded, resetSetSave } = await import('../../dist/esm/seq/set-save.js');
-        resetSetSave();
+        installMockEngine();
+        clearUiDirty();
+        markUiStateDirty();
         fs.failWrites = true;
-        eng.stateBlob = 'movy1\nbpm 14500\n';
-        seqState.dirty = true;
-        const r = saveSet('S8', 0, true);
-        eq('a failed write reports failure', r.ok, false);
-        eq('and stays pending past the engine mirror', saveNeeded(), true);
+        saveSet('S8');
+        eq('a failed UI write stays pending', saveNeeded(), true);
+        fs.failWrites = null;
+        saveSet('S8');
+        eq('and the retry lands', saveNeeded(), false);
+        ok('as ui-state.json', fs.files[uuidToUiStatePath('S8')] !== undefined);
+        eq('never as seq-state.json', fs.files[uuidToStatePath('S8')], undefined);
         uninstallMockEngine(); uninstallMockFs();
     }
-    setFlagFixture('engpersist', 1);
 }
 
 /* ── automation: restore re-requests label sync ──────────────────────────────
@@ -331,7 +302,7 @@ _log('\nautomation: restore re-requests label sync:');
     const origSetB = globalThis.host_module_set_param;
     globalThis.host_module_set_param = () => true;
 
-    resetSeqEngine(); resetSeqState(); resetLabelSession(); resetStoreRotation();
+    resetSeqEngine(); resetSeqState(); resetLabelSession();
     seqEngineTick();          // boot probe → ready → requestLabelSync (the boot's own)
     takeLabelSync();          // consume it, to isolate the restore's re-request
     eq('no pending label sync before restore', takeLabelSync(), false);

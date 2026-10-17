@@ -65,8 +65,7 @@ if (!process.env.SCHWUNG) {
  *   - schwung's compiled-in libraries (js_display, js_host_common), read from
  *     the PINNED tag the host is built from, never the live checkout;
  *   - an ES import in ui.js's banner (constants.mjs, input_filter.mjs), which
- *     the shared JS itself provides;
- *   - a build define (__MOVY_DEBUG__).
+ *     the shared JS itself provides.
  * Anything else is a global movy-host would leave undefined: a ReferenceError
  * at the first call on the standalone flavour. */
 console.log('\nhost-globals: movy-host registers every manifest entry');
@@ -88,7 +87,7 @@ console.log('\nhost-globals: movy-host registers every manifest entry');
     const names = [...new Set([...manifest.movy, ...Object.keys(manifest.shared)])];
     const missing = [], unchecked = [];
     for (const n of names) {
-        if (n === '__MOVY_DEBUG__' || imported.has(n)) continue;
+        if (imported.has(n)) continue;
         if (n.startsWith('module:')) {
             /* quickjs-libc's std/os, which JS_NewCustomContext registers. */
             if (!/JS_NewCustomContext\(/.test(cSrc)) missing.push(n);

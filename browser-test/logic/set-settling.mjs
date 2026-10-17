@@ -9,7 +9,7 @@
  */
 
 import {
-    installMockFs, uninstallMockFs, resetStoreRotation, loadPerSetFlags, resetPorts,
+    installMockFs, uninstallMockFs, resetPorts,
     ok, fail, eq, _log,
 } from './harness.mjs';
 
@@ -22,7 +22,6 @@ export async function run() {
     const { resetSeqState } = await import('../../dist/esm/seq/state.js');
     const { sessionTick, sessionPhase, sessionReady, currentSetUuid, resetSetSession }
         = await import('../../dist/esm/seq/set-session.js');
-    const { resetSetSave } = await import('../../dist/esm/seq/set-save.js');
 
     /* Identity is the mock library's one Set, `S1`; the engine owns its files,
      * so "the Set went in" is an `open` command, counted here. */
@@ -35,13 +34,13 @@ export async function run() {
         const fs = installMockFs(files);
         const eng = installMockEngine();
         eng.status.chpend = pend;
-        resetSeqEngine(); resetSeqState(); resetSetSession(); resetSetSave(); resetStoreRotation();
+        resetSeqEngine(); resetSeqState(); resetSetSession();
         for (let i = 0; i < 200; i++) { seqEngineTick(); sessionTick(); }
         return { fs, eng };
     };
     const teardown = () => {
         uninstallMockEngine(); uninstallMockFs();
-        resetSeqEngine(); resetSeqState(); resetSetSession(); resetSetSave(); resetStoreRotation();
+        resetSeqEngine(); resetSeqState(); resetSetSession();
     };
     const run = (n = 200) => { for (let i = 0; i < n; i++) { seqEngineTick(); sessionTick(); } };
 
@@ -108,7 +107,7 @@ export async function run() {
     {
         const fs = installMockFs({});
         const eng = installMockEngine();
-        resetSeqEngine(); resetSeqState(); resetSetSession(); resetSetSave(); resetStoreRotation();
+        resetSeqEngine(); resetSeqState(); resetSetSession();
         seqEngineTick(); sessionTick();      // probe lands, the Set loads — no status yet
         eq('S6 the loading tick does not also declare it ready', sessionPhase(), 'settling');
         seqEngineTick(); sessionTick();      // first status poll of this Set
@@ -149,7 +148,7 @@ export async function run() {
         const fs = installMockFs({});
         const eng = installMockEngine();
         eng.status.chpend = 0;
-        resetSeqEngine(); resetSeqState(); resetSetSession(); resetSetSave(); resetStoreRotation();
+        resetSeqEngine(); resetSeqState(); resetSetSession();
         resetChainPayloads();
 
         seqEngineTick(); sessionTick();        // the Set loads; settling begins
@@ -162,7 +161,7 @@ export async function run() {
         /* With no engine to take it, a payload must not brick the instrument
          * either — same rule as the load cap above — and it stays outstanding,
          * so the capture keeps guarding the set file. */
-        resetSetSession(); resetSetSave();
+        resetSetSession(); 
         loaded = false;
         seqEngineTick(); sessionTick();
         arm();
@@ -185,7 +184,6 @@ export async function run() {
     const { resetSeqState } = await import('../../dist/esm/seq/state.js');
     const { sessionTick, sessionPhase, resetSetSession }
         = await import('../../dist/esm/seq/set-session.js');
-    const { resetSetSave } = await import('../../dist/esm/seq/set-save.js');
     const { appState } = await import('../../dist/esm/app/state.js');
 
     /* A Model caches its module name and its whole param hierarchy behind a
@@ -214,7 +212,7 @@ export async function run() {
     const fs = installMockFs({});
     const eng = installMockEngine();
     eng.status.chpend = 2;                    // the Set's modules are still draining
-    resetSeqEngine(); resetSeqState(); resetSetSession(); resetSetSave(); resetStoreRotation();
+    resetSeqEngine(); resetSeqState(); resetSetSession();
     const run = (n) => { for (let i = 0; i < n; i++) { seqEngineTick(); sessionTick(); } };
 
     run(4);
@@ -238,7 +236,7 @@ export async function run() {
     appState.masterFxModels = origMaster;
     void fs;
     uninstallMockEngine(); uninstallMockFs();
-    resetSeqEngine(); resetSeqState(); resetSetSession(); resetSetSave(); resetStoreRotation();
+    resetSeqEngine(); resetSeqState(); resetSetSession();
 }
 
 /* ── S10: a Set whose slot is empty does not land on a module page ───────── */

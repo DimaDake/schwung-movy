@@ -15,8 +15,6 @@ set -euo pipefail
 MODULE_ID="movy"
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$DIR"
-# shellcheck source=lib/build-release-ui.sh
-. "$DIR/scripts/lib/build-release-ui.sh"
 
 # release.json must advertise the same version the bundled module.json reports,
 # otherwise the store re-offers the update forever (catalog says vX, downloaded
@@ -47,9 +45,7 @@ fi
 
 echo "=== Building Movy module v$MOD_VER ==="
 echo "announcement: $ANN ($ANN_LEN/2000 chars)"
-# The one release path for the store tarball. The bundle and its gate assertion
-# live in scripts/lib/build-release-ui.sh, shared with `deploy.sh --release`.
-build_release_ui "$(pwd)"
+node build/device.mjs
 ./scripts/build-dsp.sh         # cross-compiles the Rust engine → dist/dsp.so (GLIBC<=2.35 gate) + dist/chain-host.so
 # movy-host and its RT helper. MOVY_RELEASE drops the test bus's UI_EVAL,
 # which runs arbitrary JS in the UI.

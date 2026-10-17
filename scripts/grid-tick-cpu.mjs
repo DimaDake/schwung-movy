@@ -67,18 +67,11 @@ const { appState, VIEW_KNOBS } = await import('../dist/esm/app/state.js');
 const { resetSeqState } = await import('../dist/esm/seq/state.js');
 const { resetSeqEngine } = await import('../dist/esm/seq/engine.js');
 const { sessionReady } = await import('../dist/esm/seq/set-session.js');
-const { setFlag } = await import('../dist/esm/seq/flags.js');
 
 engine.reset();
 env.setParams(dumpFixture(MODULE));
 resetSeqState();
 resetSeqEngine();
-setFlag('chtracks', 0);
-/* Same reason as grid-call-cost.mjs: the Set-commit press is WALL-CLOCK timed,
- * so with it armed instant ticks never reach it, movy stays in `settling`, and
- * every arm measures an idle refresh with nothing on top — the one result an
- * A/B must not be able to fake. */
-setFlag('setcommit', 0);
 globalThis.init();
 const m = appState.trackModels[0][1];
 m.reload();

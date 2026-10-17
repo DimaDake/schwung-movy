@@ -26,7 +26,7 @@ import { sessionTick, resetSetSession } from '../../dist/esm/seq/set-session.js'
 import { wrapState, parseState, adler32 } from '../../dist/esm/seq/persist-blob.js';
 import { installMockFs, uninstallMockFs } from '../mock-fs.mjs';
 import {
-    safeWrite, readBestState, readUiBlob, writeStateBlob, resetStoreRotation,
+    safeWrite, readBestState, readUiBlob,
 } from '../../dist/esm/seq/persist-store.js';
 import { shadowPath } from '../../dist/esm/seq/set-context.js';
 import { keyboardState } from '../../dist/esm/keyboard/state.js';
@@ -38,18 +38,10 @@ import {
     PREFS_PATH, FACTORY_DEFAULT_QUANT,
 } from '../../dist/esm/seq/prefs.js';
 import {
-    FLAGS, FLAGS_REV, flagDef, clampFlag, flagValueLabel, flagNormalized,
-} from '../../dist/esm/seq/flags-def.js';
-import {
-    flagValue, setFlag, applyFlagsToEngine, resetFlags,
-} from '../../dist/esm/seq/flags.js';
-import {
-    flagsPageState, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
+    flagsPageState, flagsPageActive, flagsPageJog, resetFlagsPage,
     flagsRowCount, backupsRowSelected, actionRowSelected,
 } from '../../dist/esm/seq/flags-page.js';
 import { buildFlagsPageVM } from '../../dist/esm/seq/flags-page-vm.js';
-import { visibleFlags } from '../../dist/esm/seq/flags-visible.js';
-import { loadPerSetFlags } from '../../dist/esm/seq/flags.js';
 import { schwungPageFor,
          schwungGridReload, schwungGridDrop } from '../../dist/esm/renderer/schwung-grid.js';
 import {
@@ -62,8 +54,7 @@ import { wrapWords } from '../../dist/esm/renderer/wrap.js';
 import { fontWidth } from '../../dist/esm/font/index.js';
 import { W } from '../../dist/esm/renderer/layout.js';
 import { DETENT_DIV } from '../../dist/esm/seq/detent.js';
-import { readPrefFlags, writePrefFlag, readPrefModuleBlacklist } from '../../dist/esm/seq/prefs.js';
-import { DEBUG_BUILD } from '../../dist/esm/app/debug.js';
+import { readPrefModuleBlacklist } from '../../dist/esm/seq/prefs.js';
 import { openParamPage, closeParamPage, paramPageActive } from '../../dist/esm/seq/param-page.js';
 import { VIEW_FLAGS, VIEW_CHAIN, VIEW_MAIN_PARAMS } from '../../dist/esm/app/state.js';
 import {
@@ -241,6 +232,12 @@ function bankNames(m) { return m.dumpLayout().banks.map((b) => b.name); }
 const P = (key, label, env) => ({ key, label, shortLabel: null, type: 'float',
     min: 0, max: 1, step: 0.01, options: null, renderStyle: 'arc', automatable: true, env });
 
+/* A Set's state file as the engine leaves it — the fixture for any test that
+ * needs a Set on disk. The UI never writes this file itself. */
+function seedStateFile(uuid, payload, gen) {
+    globalThis.host_write_file(uuidToStatePath(uuid), wrapState(payload, gen));
+}
+
 /* ── the shared kit: the preamble's imports plus the helpers above ───────── */
 
 export {
@@ -249,21 +246,18 @@ export {
     KNOBS_PER_PAGE, OVERRIDES_MODULE_FILE,
     uuidToStatePath, uuidToUiStatePath, BLANK_STATE, sessionTick, resetSetSession, wrapState,
     parseState, adler32, installMockFs, uninstallMockFs, safeWrite, readBestState,
-    readUiBlob, writeStateBlob, resetStoreRotation, shadowPath, keyboardState, quantCandidates,
+    readUiBlob, seedStateFile, shadowPath, keyboardState, quantCandidates,
     nextQuantCandidate, quantIndexForPct, candidateIndex, readPrefDefaultQuant, writePrefDefaultQuant,
     readPrefFileDir, writePrefFileDir, PREFS_PATH,
-    FLAGS, FLAGS_REV, flagDef, clampFlag, flagValueLabel, flagNormalized,
-    flagValue, setFlag, applyFlagsToEngine, resetFlags,
     schwungPageFor, schwungGridReload, schwungGridDrop,
     batchKeys, fill, KEEP_EPOCHS, BATCH_MAX_KEYS, BATCH_VALUE_MAX,
-    flagsPageState, flagsRowCount, backupsRowSelected, actionRowSelected, flagsPageActive, flagsPageJog, flagsPageKnob, resetFlagsPage, FLAG_KNOB,
-    buildFlagsPageVM, VISIBLE_ROWS, firstVisibleRow, readPrefFlags, writePrefFlag,
-    visibleFlags, loadPerSetFlags, resetPorts,
+    flagsPageState, flagsRowCount, backupsRowSelected, actionRowSelected, flagsPageActive, flagsPageJog, resetFlagsPage,
+    buildFlagsPageVM, VISIBLE_ROWS, firstVisibleRow, resetPorts,
     wrapWords, HINT_W, HINT_LINES, DETENT_DIV, fontWidth, W,
     serializeUiState, applyUiState, resetUiState,
     readPrefModuleBlacklist,
     buildCpuPageVM, buildSendColumns, FULL_SCALE_US, USABLE_BLOCK, scaleFor, scaleLabel,
-    DEBUG_BUILD, openParamPage, closeParamPage, paramPageActive,
+    openParamPage, closeParamPage, paramPageActive,
     perfPhase, perfPhaseEnd, perfProbeTick,
     VIEW_FLAGS, VIEW_CHAIN, VIEW_MAIN_PARAMS,
     FACTORY_DEFAULT_QUANT, armQuantOverlay, quantOverlayActive, quantOverlayTickAt, quantOverlayJog, quantOverlayAction,

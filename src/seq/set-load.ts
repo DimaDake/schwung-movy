@@ -5,31 +5,10 @@
  * used to let a blank Set land on top of a live pattern. */
 
 import { requestLabelSync } from './engine.js';
-import { flagValue } from './flags.js';
 import { setsDir } from './set-source.js';
 import { paramGet, paramSet } from '../host/param.js';
-import { mlog } from '../log.js';
-import { noteRestore } from './restore-gate.js';
-import { readBestState, readUiBlob } from './persist-store.js';
-import { BLANK_STATE } from './set-context.js';
+import { readUiBlob } from './persist-store.js';
 import { applyUiState } from './ui-state.js';
-
-/* CHECKED: a Set that never reached the engine must not look like one that
- * did, or the next autosave reads the engine's blank state and writes it over
- * the real one (reproduced under the overtake host: au=1 cl=2 size=670 on disk
- * became "movy1\n"). movy-host's queue loses nothing (WP10), so the only
- * failure left is an engine that is not loaded — and no retry answers that. */
-export function pushState(payload: string): boolean {
-    const ok = paramSet('state', payload);
-    if (!ok) mlog('seq: RESTORE FAILED — the engine never took this Set');
-    noteRestore(ok);
-    /* The restore carries the lane labels and assignments with it, so the
-     * automation registry has to be rebuilt from them — without this it stays
-     * empty: no dot, no held value, no read-back suppression. */
-    requestLabelSync();
-    return ok;
-}
-
 
 /* The Set the engine says it has open, or null when it has not answered.
  *
@@ -53,30 +32,20 @@ export function openSet(id: string): void {
      * per Set load buys a path that heals itself. */
     paramSet('setsdir', setsDir());
     paramSet('set', 'open ' + id);
-    /* The restore carries the lane labels with it either way, so the automation
-     * registry still has to be rebuilt from them. */
+    /* The Set carries its lane labels and assignments, so the automation
+     * registry has to be rebuilt from them — without this it stays empty: no
+     * dot, no held value, no read-back suppression. */
     requestLabelSync();
 }
 
 
-/** Read a Set's state, push it into the engine, and apply its UI blob if it has
- *  one. The caller decides what to do when it does not. */
-export function loadSet(id: string): { payload: string; gen: number; ok: boolean } {
-    /* Engine-owned: name the Set and let it read its own files. No payload is
-     * read here and none is pushed, so there is nothing for the param slot to
-     * lose — and the UI blob still applies, because its half is still the
-     * UI's (the chains inside it are a mirror, ui-state.ts). */
-    if (flagValue('engpersist')) {
-        openSet(id);
-        const ui = readUiBlob(id);
-        if (ui && ui.length > 0) applyUiState(ui, id);
-        return { payload: '', gen: 0, ok: true };
-    }
-    /* The generation comes back with the state so the next save continues the
-     * sequence instead of restarting at 1 and losing to a stale higher copy. */
-    const st = readBestState(id) ?? { payload: BLANK_STATE, gen: 0 };
-    const ok = pushState(st.payload);
+/** Open a Set in the engine and apply its UI blob if it has one. The caller
+ *  decides what to do when it does not. */
+export function loadSet(id: string): void {
+    /* The engine reads its own files: no payload is read here and none is
+     * pushed, so there is nothing for the param slot to lose. The UI blob still
+     * applies, because its half is still the UI's. */
+    openSet(id);
     const ui = readUiBlob(id);
-    if (ui && ui.length > 0) applyUiState(ui);
-    return { ...st, ok };
+    if (ui && ui.length > 0) applyUiState(ui, id);
 }

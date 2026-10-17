@@ -91,7 +91,7 @@ export async function run() {
 
 {
   _log('\nmovy chain persistence:');
-  const { captureChains, restoreChains } = await import('../../dist/esm/track/chain-persist.js');
+  const { restoreChains } = await import('../../dist/esm/track/chain-persist.js');
   const { deliverChainPayloads, chainPayloadsPending, resetChainPayloads } =
     await import('../../dist/esm/track/chain-payload.js');
   const { lfoStateKeys, lfoPairs } = await import('../../dist/esm/track/lfo-persist.js');
@@ -99,10 +99,8 @@ export async function run() {
   const { resetPorts } = await import('../../dist/esm/track/registry.js');
 
   /* The engine, as far as this suite is concerned: one chain-set document plus
-   * whatever per-chain params have been written. The document is the point —
-   * the set used to be inferred by probing each component for a module id, and
-   * anything the probe could not see was deleted from the set file. */
-  const reads = [], writes = [], bulkGets = [], bulkSets = [];
+   * whatever per-chain params have been written. */
+  const writes = [], bulkSets = [];
   let engineSet = encodeBulk(['4', 'synth', 'plaits']);
   let engineVals = { 'ch4:synth:state': 'BLOB42' };
 
@@ -110,7 +108,6 @@ export async function run() {
   const oBG = globalThis.shadow_get_params, oBS = globalThis.shadow_set_params;
 
   globalThis.host_module_get_param = (k) => {
-    reads.push(k);
     if (k === 'chains') return engineSet;
     return engineVals[k] ?? null;
   };
@@ -119,10 +116,8 @@ export async function run() {
     if (k === 'chains') engineSet = v;
     return true;
   };
-  globalThis.shadow_get_params = (slot, marker, payload) => {
-    bulkGets.push(payload);
-    return encodeBulk(decodeBulk(payload).map((k) => engineVals[k] ?? ''));
-  };
+  globalThis.shadow_get_params = (slot, marker, payload) =>
+    encodeBulk(decodeBulk(payload).map((k) => engineVals[k] ?? ''));
   globalThis.shadow_set_params = (slot, marker, payload) => {
     bulkSets.push(payload);
     const flat = decodeBulk(payload);
@@ -131,18 +126,8 @@ export async function run() {
   };
 
   resetPorts();
-  reads.length = 0; bulkGets.length = 0;
-  const snap = captureChains();
-  eq('the set is read from the engine, not inferred', snap.length, 1);
-  eq('captured the right track', snap[0].t, 4);
-  eq('captured the module', snap[0].comp[0].m, 'plaits');
-  eq('captured the state blob', snap[0].comp[0].s, 'BLOB42');
-  eq('the whole set costs ONE read', reads.filter((k) => k === 'chains').length, 1);
-  /* Probing each component for a module id is exactly what could not see a
-   * module whose load request never arrived. */
-  eq('no component is probed for a module id',
-     reads.filter((k) => k.endsWith('_module')).length, 0);
-  eq('one loaded track costs one bulk read for its blobs', bulkGets.length, 1);
+  /* A saved chain, as chains.json (via chain-mirror.ts) hands it to a load. */
+  const snap = [{ t: 4, comp: [{ c: 'synth', m: 'plaits', s: 'BLOB42' }] }];
 
   writes.length = 0; bulkSets.length = 0;
   const n = restoreChains(snap);
@@ -197,25 +182,6 @@ export async function run() {
     resetChainPayloads();
   }
 
-  /* ── the data loss, which is worse than the silent restore ───────────────
-   * `lastBlob` covers a read that FAILS. It does not cover one that succeeds
-   * and returns the module's defaults, which is exactly what an undelivered
-   * chain answers — so the next forced save (a set switch, a teardown) wrote
-   * those defaults over the user's patch. A capture taken before delivery must
-   * hand back what is already on disk. */
-  {
-    restoreChains(snap);
-    engineVals['ch4:synth:state'] = 'FACTORY-DEFAULTS';
-    const mid = captureChains();
-    eq('a capture before delivery does not read the live chain',
-       mid[0].comp[0].s, 'BLOB42');
-    deliverChainPayloads();
-    eq('and the delivery put the saved blob back',
-       engineVals['ch4:synth:state'], 'BLOB42');
-    eq('after which the live chain is what is captured',
-       captureChains()[0].comp[0].s, 'BLOB42');
-  }
-
   /* With no engine loaded (the one refusal left, WP10) a delivery cannot
    * land. It must not hold the splash open, and the guard stays armed: the set
    * file is still the only copy of the patch. */
@@ -227,7 +193,6 @@ export async function run() {
     engineVals['ch4:synth:state'] = 'FACTORY-DEFAULTS';
     eq('an undeliverable payload does not hold the Set', deliverChainPayloads(), true);
     eq('but stays armed', chainPayloadsPending(), true);
-    eq('so the capture is still guarded', captureChains()[0].comp[0].s, 'BLOB42');
 
     globalThis.shadow_set_params = ok;
     resetChainPayloads();
@@ -240,15 +205,7 @@ export async function run() {
    * the level set in one Set went on attenuating whatever the next Set loaded
    * into that chain. */
   {
-    eq('a track at unity writes no mix into the set file', snap[0].mix, undefined);
-    engineVals['ch4:mix'] = '1.0000,0.0000,0';
-    eq('nor does an explicit unity triple', captureChains()[0].mix, undefined);
-
-    engineVals['ch4:mix'] = '0.3162,0.0000,0';
-    bulkGets.length = 0;
-    const withMix = captureChains();
-    eq('a moved fader is captured', withMix[0].mix, '0.3162,0.0000,0');
-    eq('and rides the batch that was already being issued', bulkGets.length, 1);
+    const withMix = [{ ...snap[0], mix: '0.3162,0.0000,0' }];
 
     /* The restore is the half that was missing entirely: this is the chain
      * arriving in a Set that has just been opened at unity. */
@@ -298,17 +255,6 @@ export async function run() {
     return true;
   };
 
-  /* A capture must never write a worse copy than it already holds: a module
-   * with no preset is a track that lost its sound, and the set file is the only
-   * place that blob exists. */
-  {
-    const keep = engineVals['ch4:synth:state'];
-    delete engineVals['ch4:synth:state'];
-    const again = captureChains();
-    eq('a failed blob read keeps the blob we already had', again[0].comp[0].s, 'BLOB42');
-    engineVals['ch4:synth:state'] = keep;
-  }
-
   /* Unloading is the same one message: schwung clears every slot on a set
    * change before loading the new set's, and movy does it by sending the set it
    * wants, which is empty. */
@@ -316,7 +262,6 @@ export async function run() {
   eq('a set with no chains restores nothing', restoreChains(null), 0);
   eq('but still sends the empty document', writes.filter(([k]) => k === 'chains').length, 1);
   eq('and the empty document is empty', writes[0][1], '0\n');
-  eq('so the engine now reports an empty set', captureChains().length, 0);
 
   engineSet = encodeBulk(['4', 'synth', 'plaits']);
 
@@ -329,14 +274,11 @@ export async function run() {
     eq('resetUiState unloads the previous set\'s modules',
        writes.filter((w) => w[0] === 'chains' && w[1] === '0\n').length, 1);
 
-    /* Engine-owned, a load restores the chains from chains.json, not from
-     * the blob's mirror: the set migration rewrites only chains.json, and a
-     * Set it brought schwung's tracks into still carries the old mirror. */
+    /* A load restores the chains from chains.json, not from the blob's
+     * mirror: the set migration rewrites only chains.json, and a Set it
+     * brought schwung's tracks into still carries the old mirror. */
     const { applyUiState } = await import('../../dist/esm/seq/ui-state.js');
     const { uuidToChainsPath } = await import('../../dist/esm/seq/set-context.js');
-    const { setFlag, flagValue } = await import('../../dist/esm/seq/flags.js');
-    const was = flagValue('engpersist');
-    setFlag('engpersist', 1);
     const rec = (t, m) => [String(t), 'synth', m, '', '', ''];
     globalThis.host_write_file(uuidToChainsPath('MIG'), encodeBulk([...rec(0, 'obxd'), ...rec(5, 'dexed')]));
     const blob = JSON.stringify({ chains: [{ t: 5, comp: [{ c: 'synth', m: 'dexed' }] }] });
@@ -350,7 +292,6 @@ export async function run() {
     writes.length = 0;
     applyUiState(blob, 'NOFILE');
     eq('no chains.json: the mirror is all there is', lastDoc().join(','), '5,synth,dexed');
-    setFlag('engpersist', was);
     uninstallMockFs();
   }
 
@@ -363,41 +304,26 @@ export async function run() {
   eq('out-of-range track skipped', restoreChains([{ t: 99, comp: [{ c: 'synth', m: 'x' }] }]), 0);
   eq('unknown component skipped', restoreChains([{ t: 4, comp: [{ c: 'bogus', m: 'x' }] }]), 0);
 
-  /* A malformed document from the engine must not read as "no chains" — that
-   * would hand an empty set to the autosave and delete the user's work. */
-  engineSet = 'garbage';
-  eq('a malformed engine document captures nothing rather than guessing',
-     captureChains().length, 0);
-  engineSet = encodeBulk(['4', 'synth', 'plaits']);
-
   /* Track 0 is a movy chain like any other now — it used to be schwung's, and
    * `chtracks` decided which. There is no second host left to route around. */
   {
     resetPorts();
-    engineSet = encodeBulk(['0', 'synth', 'dexed']);
-    const t0 = captureChains();
-    eq('track 0 is captured like any other chain', t0.length, 1);
-    eq('recorded under its own index', t0[0].t, 0);
-    eq('with the module read from chain 0', t0[0].comp[0].m, 'dexed');
-
+    const t0 = [{ t: 0, comp: [{ c: 'synth', m: 'dexed' }] }];
     writes.length = 0;
     eq('and it restores', restoreChains(t0), 1);
     eq('to chain 0', decodeBulk(writes[0][1]).join('|'), '0|synth|dexed');
     resetPorts();
   }
 
-  /* ── the chain's LFOs ride the same snapshot ──────────────────────────────
+  /* ── the chain's LFOs ride the same payload ───────────────────────────────
    * They live in the chain instance, not in any component's :state blob, so
    * without this a movy-track LFO assignment survived exactly until the tool
    * closed. */
   engineSet = encodeBulk(['4', 'synth', 'plaits']);
-  engineVals = { 'ch4:synth:state': 'BLOB42', 'ch4:lfo1:target': 'synth',
-    'ch4:lfo1:target_param': 'cutoff', 'ch4:lfo1:enabled': '1', 'ch4:lfo1:depth': '0.5000' };
+  const lfoVals = { 'lfo1:target': 'synth', 'lfo1:target_param': 'cutoff',
+    'lfo1:enabled': '1', 'lfo1:depth': '0.5000' };
+  const withLfo = [{ ...snap[0], lfo: lfoStateKeys().map((k) => lfoVals[k] ?? '') }];
   resetPorts();
-  bulkGets.length = 0;
-  const withLfo = captureChains();
-  eq('LFO state captured', Array.isArray(withLfo[0].lfo), true);
-  eq('LFO capture costs no extra round trip', bulkGets.length, 1);
 
   bulkSets.length = 0;
   writes.length = 0;
@@ -418,21 +344,9 @@ export async function run() {
    * before the LFO — the document goes first, and it is a separate write. */
   eq('the set document is written before the LFO', writes[0][0], 'chains');
 
-  /* A track that never touched an LFO writes nothing into the set file. */
-  engineVals = { 'ch4:synth:state': 'BLOB42' };
-  resetPorts();
-  eq('idle LFOs are not persisted', captureChains()[0].lfo, undefined);
-
   eq('a malformed LFO snapshot is refused whole', lfoPairs(['too', 'short']), null);
   eq('a well-formed one becomes one pair per key',
      lfoPairs(lfoStateKeys().map(() => '0')).length, lfoStateKeys().length);
-
-  /* A set with no movy instruments must not pay for the LFO keys at all. */
-  engineSet = '0\n';
-  bulkGets.length = 0;
-  resetPorts();
-  captureChains();
-  eq('an empty set reads no per-chain params', bulkGets.length, 0);
 
   globalThis.host_module_get_param = oG; globalThis.host_module_set_param = oS;
   globalThis.shadow_get_params = oBG; globalThis.shadow_set_params = oBS;

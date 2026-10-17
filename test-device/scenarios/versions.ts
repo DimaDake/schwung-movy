@@ -197,7 +197,7 @@ scenario('versions', async (t) => {
     // ── 3. Restore it back, through the real gestures ────────────────────────
     /* Shift+Step 2 opens Settings. Then jog down far enough to CLAMP on the last
      * row, MIGRATE FROM MOVE, and back up one to BACKUPS. Clamping is what makes
-     * this independent of how many flags the build shows; the step back is NOT
+     * this independent of how many rows the page lists; the step back is NOT
      * optional — clicking twice on the last row runs a forced migration, which
      * is what this suite did the day that row arrived. Then three clicks: open
      * the page, arm the confirm on the newest version, perform the restore. */
@@ -211,7 +211,7 @@ scenario('versions', async (t) => {
     await dev.tap.jog(); await t.tx.frames(ACT);          // restore
 
     /* A restore is itself undoable, so it captures the pre-restore state first —
-     * unconditionally (the `always` set in version-capture). That entry is the
+     * unconditionally (set_saver.rs `Why::PreRestore`). That entry is the
      * trace that the gesture reached the page and ran, read as state rather than
      * grepped out of the log. */
     let restoreRecorded = false;

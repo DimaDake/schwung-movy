@@ -11,7 +11,6 @@
 
 import { paramSet } from '../host/param.js';
 import { engineGeneration } from './engine.js';
-import { flagValue } from './flags.js';
 import { defaultSetName, libMigrateCmd, libRefresh, libSend, libState } from './sets-lib.js';
 import { setsDir, wantSet, wantedSet } from './set-source.js';
 
@@ -25,10 +24,6 @@ export function resetLibSession(): void {
 
 /** Why library mode cannot run, or '' when it can. */
 export function libraryBlocked(): string {
-    /* The library is the engine's (set_library.rs). With the UI writing Set
-     * files itself there would be two writers again — the thing `engpersist`
-     * exists to end — so refuse rather than guess. */
-    if (!flagValue('engpersist')) return 'SETS NEED ENGINE SAVES';
     /* The index could not be written (set_lib_jobs.rs `save`): Sets made or
      * played now would be lost. Refuse on screen — and never fall back to the
      * legacy tree, which is the overtake build's to read (plan WP8, R2). */

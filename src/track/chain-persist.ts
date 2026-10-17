@@ -8,13 +8,9 @@
  * **The set travels as one document, both ways.** It used to cross the wire as
  * one blocking param write per component, and under the overtake host a write
  * issued while a chain load's `dlopen` held the audio thread was refused and
- * discarded: the set then shrank on disk, because the save read back whatever
- * had actually loaded. One document is one ordered write into movy-host's
- * queue, which loses nothing (WP10).
- *
- * The engine answers with what was REQUESTED, not what has finished loading, so
- * a save taken while loads are still draining still reports the whole set.
- * Design: plans/2026-08-29-chain-set-document.md.
+ * discarded. One document is one ordered write into movy-host's queue, which
+ * loses nothing (WP10). The engine writes the set down itself (chains.json);
+ * this side only restores it. Design: plans/2026-08-29-chain-set-document.md.
  *
  * Preset blobs, LFO state and the mixer level follow in one bulk write per
  * track, and they are DEFERRED rather than issued here — the document is what
@@ -22,15 +18,13 @@
  * that wait and the reason for it. */
 
 import { CHAIN_SLOTS, isVirtualSlot } from '../chain/config.js';
-import { armChainPayloads, pendingPayloadFor, resetChainPayloads, type ChainPayload }
-    from './chain-payload.js';
-import { paramGet, paramSet } from '../host/param.js';
-import { decodeBulk, encodeBulk } from './bulk.js';
+import { armChainPayloads, resetChainPayloads, type ChainPayload } from './chain-payload.js';
+import { paramSet } from '../host/param.js';
+import { encodeBulk } from './bulk.js';
 import { mlog } from '../log.js';
 import { TRACK_COUNT } from './ref.js';
-import { portFor } from './registry.js';
-import { lfoPairs, lfoStateKeys, packLfoState } from './lfo-persist.js';
-import { MIX_KEY, mixPair, packMix } from './mix-persist.js';
+import { lfoPairs } from './lfo-persist.js';
+import { mixPair } from './mix-persist.js';
 import { sendPayloadPairs, sendTriples, type SendState } from './send-persist.js';
 
 export interface ChainComponentState {
@@ -59,6 +53,11 @@ export interface ChainTrackState {
  *  the point of this key is that it is not per-chain. */
 const CHAIN_SET_KEY = 'chains';
 
+/** Deliver the set: queued once, in order (WP10 retired the resend). */
+function writeChainSet(doc: string): boolean {
+    return paramSet(CHAIN_SET_KEY, doc);
+}
+
 /* The chain components worth persisting: every real slot, minus the virtual
  * pages. Asked of the SLOT rather than of its index, so a page appended after
  * the LFO cannot quietly join the list — a virtual slot in here means every
@@ -66,78 +65,6 @@ const CHAIN_SET_KEY = 'chains';
  * to load one. */
 export function persistableComponents(): string[] {
     return CHAIN_SLOTS.filter((s) => !isVirtualSlot(s)).map((s) => s.componentKey);
-}
-
-/** The last blob captured for `<track>|<component>`, so a read that fails can
- *  fall back to it. A module written into the set file with no preset is a
- *  track that lost its sound, and this file is the only place that blob is. */
-const lastBlob = new Map<string, string>();
-
-function readChainSet(): string | null {
-    return paramGet(CHAIN_SET_KEY);
-}
-
-/** Deliver the set: queued once, in order (WP10 retired the resend). */
-function writeChainSet(doc: string): boolean {
-    return paramSet(CHAIN_SET_KEY, doc);
-}
-
-/** The chain-set document, decoded. Exposed so the sends can be read out of the
- *  SAME round trip — an engine GET blocks ~3-5 ms and this one runs on every
- *  autosave. */
-export function readChainDoc(): string[] | null {
-    return decodeBulk(readChainSet());
-}
-
-/** Read every movy-hosted chain that has something loaded. */
-export function captureChains(doc: string[] | null = readChainDoc()): ChainTrackState[] {
-    /* A malformed answer is not an empty set. Reading it as one would hand the
-     * autosave a set with no chains and delete the user's work. */
-    if (!doc || doc.length % 3 !== 0) return [];
-
-    /* Group the flat triples by track. A movy track's chain IS its index, so
-     * the slot the engine reports is the track we store. */
-    const known = new Set(persistableComponents());
-    const byTrack = new Map<number, ChainComponentState[]>();
-    for (let i = 0; i + 2 < doc.length; i += 3) {
-        const t = Number(doc[i]);
-        const c = doc[i + 1], m = doc[i + 2];
-        if (!Number.isInteger(t) || t < 0 || t >= TRACK_COUNT) continue;
-        if (!known.has(c) || m === '') continue;
-        const comps = byTrack.get(t) ?? [];
-        comps.push({ c, m });
-        byTrack.set(t, comps);
-    }
-
-    const out: ChainTrackState[] = [];
-    for (const t of [...byTrack.keys()].sort((a, b) => a - b)) {
-        /* This track's saved payload has not reached the chain yet, so the chain
-         * is sitting at the module's shipped defaults. Reading it would write
-         * those defaults over the patch in the set file — the actual data loss
-         * behind "my filter reopened". Hand back what is already on disk. */
-        const held = pendingPayloadFor(t);
-        if (held) { out.push(held); continue; }
-        const comps = byTrack.get(t)!;
-        const port = portFor(t);
-        /* One bulk round trip for the whole track: the blobs, and the LFO keys
-         * riding along. An LFO can only target a loaded module, so a track with
-         * nothing loaded is never here and costs nothing. */
-        const lfoKeys = lfoStateKeys();
-        const tail = port.getMany(
-            [...comps.map((c) => c.c + ':state'), ...lfoKeys, MIX_KEY]);
-        const track: ChainTrackState = { t, comp: comps };
-        comps.forEach((comp, i) => {
-            const key = t + '|' + comp.c;
-            const blob = tail[i] ?? lastBlob.get(key);
-            if (blob) { comp.s = blob; lastBlob.set(key, blob); }
-        });
-        const lfo = packLfoState(tail.slice(comps.length, comps.length + lfoKeys.length));
-        if (lfo) track.lfo = lfo;
-        const mix = packMix(tail[comps.length + lfoKeys.length]);
-        if (mix) track.mix = mix;
-        out.push(track);
-    }
-    return out;
 }
 
 /** The saved state as the engine's document — flat `slot, component, module`
@@ -161,8 +88,8 @@ function chainSetTriples(saved: ChainTrackState[] | undefined | null): string[] 
     return flat;
 }
 
-/** Write the chains back. Safe to call with anything `captureChains` produced,
- *  including from an older build.
+/** Write the chains back. Safe to call with anything a saved Set holds,
+ *  including one from an older build.
  *
  *  Returns the number of components delivered — 0 when the document did not
  *  land, which the caller must treat as "this set is not loaded", never as
@@ -208,10 +135,7 @@ export function restoreChains(
         const pairs: [string, string][] = [];
         for (const c of Array.isArray(track.comp) ? track.comp : []) {
             if (!c || typeof c.c !== 'string' || !sent.has(t + '|' + c.c)) continue;
-            if (typeof c.s === 'string' && c.s !== '') {
-                pairs.push([c.c + ':state', c.s]);
-                lastBlob.set(t + '|' + c.c, c.s);
-            }
+            if (typeof c.s === 'string' && c.s !== '') pairs.push([c.c + ':state', c.s]);
         }
         const lfo = lfoPairs(track.lfo);
         if (lfo) pairs.push(...lfo);
@@ -220,13 +144,13 @@ export function restoreChains(
         const mix = mixPair(track.mix);
         if (mix) pairs.push(mix);
         if (pairs.length === 0) continue;
-        payloads.push({ t, pairs, saved: track });
+        payloads.push({ t, pairs });
     }
     /* The sends' blobs wait for the same drain, for the same reason: their
      * loads were queued by the document above and hold the same audio thread. */
     for (const s of Array.isArray(sends) ? sends : []) {
         const pairs = sendPayloadPairs(s);
-        if (pairs) payloads.push({ t: -1, bus: s.b, pairs, saved: s });
+        if (pairs) payloads.push({ t: -1, bus: s.b, pairs });
     }
     armChainPayloads(payloads);
     return entries;

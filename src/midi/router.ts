@@ -39,12 +39,12 @@ import { beginTrackSwitch, restoreTrackState, switchToTrack } from '../track/swi
 import { portFor } from '../track/registry.js';
 import { mappingFor } from '../seq/lane-mapping.js';
 import { setButtonHeld } from '../seq/button-held.js';
-import { currentSetUuid, reloadCurrentSet, sessionFailScope, sessionFlush, sessionPhase, sessionReady } from '../seq/set-session.js';
+import { currentSetUuid, sessionFailScope, sessionFlush, sessionPhase, sessionReady } from '../seq/set-session.js';
 import { sessionStartFromScratch } from '../seq/set-fail.js';
 import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS } from '../app/state.js';
 import { mainPageActive, mainPageRelease } from '../seq/main-page.js';
 import { clipPageActive, clipPageRelease } from '../seq/clip-page.js';
-import { backupsRowSelected, flagsPageActive, flagsPageJog, flagsPageKnob, migrateRowSelected } from '../seq/flags-page.js';
+import { backupsRowSelected, flagsPageActive, flagsPageJog, migrateRowSelected } from '../seq/flags-page.js';
 import { migrateRowClick } from '../seq/migrate-action.js';
 import { setsPageActive, setsPageBack, setsPageClick, setsPageJog } from '../seq/sets-page.js';
 import { textEntry, textEntryActive } from '../renderer/text-entry-lib.js';
@@ -600,10 +600,8 @@ export function onMidiMessageInternal(data: number[]): void {
             return;
         }
         if (flagsPageActive()) {
-            // Knob 1 edits the selected flag; the rest are inert but still
-            // consumed, so a stray turn cannot reach the module underneath.
-            flagsPageKnob(k, delta);
-            appState.dirty = true;
+            // Nothing on this page is a knob. Consumed anyway, so a stray turn
+            // cannot reach the module underneath.
             return;
         }
         if (cpuPageActive()) {
@@ -783,7 +781,7 @@ export function onMidiMessageInternal(data: number[]): void {
             /* A restore rewrote the files under the open Set, so it has to be
              * re-entered — the same path a set switch takes, which is what
              * makes the modules reload behind the ordinary splash. */
-            if (versionsPageClick(currentSetUuid())) reloadCurrentSet();
+            versionsPageClick(currentSetUuid());
             appState.dirty = true;
             return;
         }
@@ -1037,7 +1035,7 @@ export function onMidiMessageInternal(data: number[]): void {
                 return;
             }
             if (versionsPageActive()) {
-                versionsPageJog(delta, appState.shiftHeld, currentSetUuid());
+                versionsPageJog(delta, appState.shiftHeld);
                 appState.dirty = true;
                 return;
             }

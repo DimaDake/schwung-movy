@@ -15,6 +15,13 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Changed
 
+- **Settings lists only BACKUPS and MIGRATE FROM MOVE.** The debug-only
+  **Engine Saves** switch (`engpersist`) is gone and the engine always owns the
+  Set files; the UI-writer fallback behind it — its own state writes, version
+  ladder and chain capture — is deleted, along with the now-empty flags
+  registry, the knob on the Settings page and the debug/release build split
+  (`MOVY_DEBUG`, `deploy.sh --release`). (ENGINE 0.97.0)
+
 - **Empty Sets are not kept.** A Set with no clip and no module is never saved,
   and leaving it moves it to Trash; the open one stays, so a restart on it comes
   back to it. The migration from Move skips empty Sets, and **MIGRATE FROM

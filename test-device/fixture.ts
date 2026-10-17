@@ -118,7 +118,7 @@ async function installMovyStateInner(): Promise<void> {
     /* The rotating shadow copies outrank a lower-generation canonical file, so
      * a stale pair would be restored right back over the fixture on next open. */
     await ssh(`rm -f '${dir}/seq-state.1.json' '${dir}/seq-state.2.json'`);
-    /* And chains.json, which with `engpersist` on is the AUTHORITY for the movy
+    /* And chains.json, which is the AUTHORITY for the movy
      * chains — ui-state.json's copy is only a mirror (spec §6.1). Seeding the
      * mirror while the previous run's authority survived meant a scenario ran
      * on whatever modules the last one left: the fixture asked for plaits on

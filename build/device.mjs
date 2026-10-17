@@ -21,13 +21,6 @@ const SCHWUNG_BANNER = [
     '    from "/data/UserData/schwung/shared/input_filter.mjs";',
 ].join('\n');
 
-/* Debug-only surfaces (the Global Params flags page) compile out of a release
- * build. On unless MOVY_DEBUG=0, so every dev build and every browser test has
- * them; scripts/build-module.sh — the one release path — sets 0 and then
- * ASSERTS the marker is gone, because a define that silently stopped applying
- * would otherwise ship the page. */
-const DEBUG = process.env.MOVY_DEBUG !== '0';
-
 await esbuild.build({
     entryPoints: [resolve(root, 'src/app/globals.ts')],
     bundle:      true,
@@ -36,7 +29,6 @@ await esbuild.build({
     target:      ['es2020'],
     banner:      { js: SCHWUNG_BANNER },
     external:    ['/data/UserData/schwung/*'],
-    define:      { __MOVY_DEBUG__: String(DEBUG) },
     /* schwung-lib.ts awaits its imports at module top level, which is the one
      * place movy can await at all: `eval_buf` runs `js_std_await` on the
      * module's result, so the host load blocks until they settle and every
@@ -46,4 +38,4 @@ await esbuild.build({
     supported:   { 'top-level-await': true },
     logLevel:    'info',
 });
-console.log(`Device bundle written: ui.js (debug=${DEBUG})`);
+console.log("Device bundle written: ui.js");

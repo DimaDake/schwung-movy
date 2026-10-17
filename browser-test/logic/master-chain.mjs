@@ -8,7 +8,7 @@
  * Run by browser-test/logic.mjs.
  */
 
-import { eq, ok, _log, resetFlags } from './harness.mjs';
+import { eq, ok, _log } from './harness.mjs';
 
 export async function run() {
     _log('\n── Master chain: movy\'s own, at the engine root; import copies, never writes back ──');
@@ -22,7 +22,7 @@ export async function run() {
     const real = platform;
 
     try {
-        resetFlags(); resetPorts();
+        resetPorts();
         eq('the FX and LFO slots carry mfx:, the sends stay sends', keys(),
            'snd0,snd1,snd2,mfx:fx1,mfx:fx2,mfx:fx3,mfx:fx4,mfx:lfo');
 
@@ -45,6 +45,6 @@ export async function run() {
         eq('and it is the live one', four.map((c) => c.kind).join(','), 'empty,empty,empty,live');
     } finally {
         setPlatformForTest(real);
-        resetFlags(); resetPorts();
+        resetPorts();
     }
 }

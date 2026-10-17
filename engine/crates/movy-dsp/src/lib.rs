@@ -136,7 +136,7 @@ pub(crate) fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.96.0";
+const ENGINE_VERSION: &str = "0.97.0";
 
 /* Blocks between autosaves. The callback runs at ~344 Hz, so this is ~2 s —
  * flash on this device is not free and the sequencer is dirty constantly while
@@ -177,7 +177,7 @@ struct Instance {
     probe_req: String,
     probe_rsp: String,
     probe_gen: u32,
-    /* Set persistence, owned by the engine behind the `engpersist` flag. None
+    /* Set persistence, owned by the engine. None
      * until the UI has said where the Sets live — the path belongs to
      * set-context.ts, and hardcoding it here would be untestable anywhere but
      * the device. */
@@ -188,7 +188,6 @@ struct Instance {
     /// and a version ladder whose generations climb while nothing changes.
     /// `persist-store.ts` made the same comparison with `lastGoodPayload`.
     last_saved: Option<(String, String)>,
-    engpersist: bool,
     set_uuid: String,
     set_gen: u32,
     /// An open (or blank) was asked for and its bytes are not in the engine
@@ -226,7 +225,6 @@ impl Instance {
             probe_rsp: String::new(),
             saver: None,
             last_saved: None,
-            engpersist: false,
             set_uuid: String::new(),
             set_gen: 0,
             open_pending: false,
@@ -454,13 +452,6 @@ impl Instance {
                     self.saver = Some(set_saver::Saver::new(val));
                 }
             }
-            /* Who writes the Set files. Off (the default) the UI ferries state
-             * through the param slot and writes it; on, the engine reads and
-             * writes its own. Both must never be true at once, which is why
-             * the autosave below is gated on it and not merely preferred. */
-            "engpersist" => {
-                self.engpersist = val != "0";
-            }
             /* Commands, not payloads. A lost command is harmless and idempotent
              * on retry — an engine that has not opened a Set cannot overwrite
              * one — where a lost `state` write destroyed data. Parsed here, on
@@ -477,7 +468,7 @@ impl Instance {
                          * an open is still pending: the engine then holds the
                          * Set before that one, not this. */
                         set_saver::Job::Open { uuid, .. } | set_saver::Job::Blank { uuid } => {
-                            if self.engpersist && !self.open_pending && !self.set_uuid.is_empty()
+                            if !self.open_pending && !self.set_uuid.is_empty()
                                 && *uuid != self.set_uuid
                             {
                                 let leaving = self.set_uuid.clone();
@@ -505,7 +496,7 @@ impl Instance {
                          * migration would write the Set it replaced over the
                          * top of it. */
                         set_saver::Job::Lib(set_lib_jobs::LibCmd::Migrate { force: true, .. })
-                            if !self.set_uuid.is_empty() && self.engpersist =>
+                            if !self.set_uuid.is_empty() =>
                         {
                             self.open_pending = true;
                             carry = self.save_in_hand(self.set_uuid.clone(), false);
@@ -515,7 +506,7 @@ impl Instance {
                          * what is in hand first; the saver runs jobs in order,
                          * so the copy sees it. */
                         set_saver::Job::Lib(set_lib_jobs::LibCmd::Dup(src, _))
-                            if *src == self.set_uuid && self.engpersist =>
+                            if *src == self.set_uuid =>
                         {
                             carry = self.save_in_hand(src.clone(), false);
                         }
@@ -813,7 +804,7 @@ impl Instance {
         /* Not while an open is in flight: see `open_pending`. The flag stays
          * set, so the edit is saved once the Set is in — or dropped by the
          * load, which is right, since it belonged to the Set being left. */
-        if self.engpersist && !self.open_pending && self.engine.dirty && self.blocks >= self.save_at {
+        if !self.open_pending && self.engine.dirty && self.blocks >= self.save_at {
             let payload = seq_core::persist::serialize(&self.engine);
             let chains = chain_state::serialize(&mut self.chains);
             self.engine.dirty = false;
@@ -1410,25 +1401,6 @@ mod tests {
         d.to_str().unwrap().to_string()
     }
 
-    #[test]
-    fn engpersist_off_means_the_engine_never_saves() {
-        let mut inst = Instance::new();
-        inst.set_param("setsdir", &saver_tmp("off"));
-        inst.set_param("set", "open u1");
-        let mut audio = [0i16; 256];
-        /* Let the open land first: a new Set loads blank, and that load
-         * resets the flag this test sets. */
-        inst.saver.as_ref().unwrap().drain_for_test();
-        inst.render(&mut audio);
-        inst.engine.dirty = true;
-        for _ in 0..(SAVE_BLOCKS + 2) {
-            inst.render(&mut audio);
-        }
-        let st = inst.get_param("set").expect("status");
-        assert!(st.contains("dirty=0"), "the engine must not have saved: {st}");
-        assert!(inst.engine.dirty, "and it must not have cleared the flag either");
-    }
-
     /* Without a saver there is nothing to ask, and the UI must be able to tell
      * that apart from an empty history: `versions` is empty either way, but a
      * restore that cannot be asked for is `failed`, never `none`. */
@@ -1466,7 +1438,6 @@ mod tests {
 
         let mut inst = Instance::new();
         inst.set_param("setsdir", &dir);
-        inst.set_param("engpersist", "1");
         let mut audio = [0i16; 256];
         for _ in 0..(SAVE_BLOCKS + 2) {
             inst.render(&mut audio);
@@ -1491,7 +1462,6 @@ mod tests {
 
         let mut inst = Instance::new();
         inst.set_param("setsdir", &dir);
-        inst.set_param("engpersist", "1");
         inst.set_param("set", "open __pending-1-2");
         let mut audio = [0i16; 256];
         for _ in 0..200 {
@@ -1539,7 +1509,6 @@ mod tests {
         let dir = saver_tmp("leave");
         let mut inst = Instance::new();
         inst.set_param("setsdir", &dir);
-        inst.set_param("engpersist", "1");
         inst.set_param("set", "open a");
         let mut audio = [0i16; 256];
         for _ in 0..400 {
@@ -1566,7 +1535,6 @@ mod tests {
         let dir = format!("{base}/Sets");
         let mut inst = Instance::new();
         inst.set_param("setsdir", &dir);
-        inst.set_param("engpersist", "1");
         inst.set_param("set", "lib migrate legacy=/nonexistent move=/nonexistent state=/nonexistent");
         inst.set_param("set", "lib new A");
         let wait = |inst: &mut Instance, ok: &dyn Fn(&str) -> bool| {
@@ -1612,7 +1580,6 @@ mod tests {
 
         let mut inst = Instance::new();
         inst.set_param("setsdir", &dir);
-        inst.set_param("engpersist", "1");
         let sapl = |i: &mut Instance| -> u32 {
             let st = i.get_param("status").expect("status");
             st.split(' ').find_map(|kv| kv.strip_prefix("sapl="))
@@ -1659,7 +1626,6 @@ mod tests {
 
         let mut inst = Instance::new();
         inst.set_param("setsdir", &dir);
-        inst.set_param("engpersist", "1");
         inst.set_param("set", "open u1");
         let mut audio = [0i16; 256];
         /* The open lands on the saver thread; render until the engine has taken
@@ -1727,10 +1693,9 @@ mod tests {
     }
 
     #[test]
-    fn engpersist_on_saves_once_the_cadence_allows() {
+    fn the_engine_saves_once_the_cadence_allows() {
         let mut inst = Instance::new();
         inst.set_param("setsdir", &saver_tmp("on"));
-        inst.set_param("engpersist", "1");
         inst.set_param("set", "open u1");
         let mut audio = [0i16; 256];
         /* Once the open has landed: no save is taken while one is in flight. */

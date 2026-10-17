@@ -188,7 +188,7 @@ The remedy is the same reinstall.
 ### Backups
 
 Movy keeps older versions of every Set and can put one back without a computer.
-Open **Settings** (Shift + Step 2) and scroll to the **BACKUPS** row:
+Open **Settings** (Shift + Step 2); **BACKUPS** is the first row:
 
 ![Backups](docs/assets/versions_list.png)
 
@@ -1555,11 +1555,11 @@ left reopens next time.
 ### Settings — Shift + Step 2
 
 **Shift + Step 2** opens **Settings**, a scrolling list rather than a knob page:
-the **jog** moves the selection, **knob 1** changes the selected row's value,
-**Back** closes it. The line at the bottom explains whichever row is selected.
+the **jog** moves the selection, a **jog click** opens or runs the selected
+row, **Back** closes it. The line at the bottom explains whichever row is selected.
 Step 2 lights dim under Shift and full bright while the page is open.
 
-![Settings](docs/assets/flags-release.png)
+![Settings](docs/assets/flags-top.png)
 
 **MIGRATE FROM MOVE**, the last row, runs the migration from Move again. The
 first jog click arms it (the row reads **CONFIRM?**, and moving off disarms
@@ -1785,7 +1785,7 @@ only.
   `seq-state.1.json` / `seq-state.2.json`. Attach all of them to a bug report;
   each carries a generation number, which says which was written last.
 - **A set went blank, or you want an earlier version of it.** Open
-  **Settings → BACKUPS** (Shift + Step 2, then scroll to the last row) and pick
+  **Settings → BACKUPS** (Shift + Step 2; it is the first row) and pick
   one — see [Backups](#backups) below. Every Set keeps up to 32 older versions,
   and a Set that predates this feature has its existing backup copies adopted
   into the list the first time you open it.

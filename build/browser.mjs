@@ -87,7 +87,6 @@ await esbuild.build({
         /* The movy-host platform, asserted on its own (platform-caps.mjs). */
         resolve(root, 'src/platform/standalone.ts'),
         /* Move-only features the platform-caps suite asserts switch off. */
-        resolve(root, 'src/seq/restore-gate.ts'),
         resolve(root, 'src/model/page-rotation.ts'),
         resolve(root, 'src/model/config-hierarchy.ts'),
         resolve(root, 'src/model/modern-rack.ts'),
@@ -219,7 +218,6 @@ await esbuild.build({
         resolve(root, 'src/app/leave-modal.ts'),
         resolve(root, 'src/app/jog-hint.ts'),
         resolve(root, 'src/app/perf-probe.ts'),
-        resolve(root, 'src/app/debug.ts'),
         resolve(root, 'src/chain/config.ts'),
         /* movy's own master chain (WP3): the binding and its prefix, driven
          * directly by browser-test/logic/master-chain.mjs. */
@@ -281,10 +279,6 @@ await esbuild.build({
          * particular is a pure function whose whole value is being testable
          * without a filesystem. */
         resolve(root, 'src/seq/ui-dirty.ts'),
-        resolve(root, 'src/seq/version-index.ts'),
-        resolve(root, 'src/seq/version-retain.ts'),
-        resolve(root, 'src/seq/version-store.ts'),
-        resolve(root, 'src/seq/version-capture.ts'),
         resolve(root, 'src/seq/version-restore.ts'),
         resolve(root, 'src/seq/migrate-action.ts'),
         resolve(root, 'src/seq/version-wire.ts'),
@@ -345,15 +339,12 @@ await esbuild.build({
         resolve(root, 'src/seq/quant.ts'),
         resolve(root, 'src/seq/prefs.ts'),
         resolve(root, 'src/seq/quant-overlay.ts'),
-        resolve(root, 'src/seq/flags-def.ts'),
-        resolve(root, 'src/seq/flags.ts'),
         resolve(root, 'src/renderer/cpu-view.ts'),
         resolve(root, 'src/seq/cpu-page.ts'),
         resolve(root, 'src/seq/cpu-page-vm.ts'),
         resolve(root, 'src/seq/cpu-scale.ts'),
         resolve(root, 'src/seq/flags-page.ts'),
         resolve(root, 'src/seq/flags-page-vm.ts'),
-        resolve(root, 'src/seq/flags-visible.ts'),
         resolve(root, 'src/renderer/flags-view.ts'),
         resolve(root, 'src/renderer/wrap.ts'),
         resolve(root, 'src/renderer/layout.ts'),
@@ -385,9 +376,6 @@ await esbuild.build({
             });
         },
     }],
-    /* Tests exercise the debug-only surfaces, so they build with the gate ON —
-     * a suite that compiled them out would assert nothing about them. */
-    define:    { __MOVY_DEBUG__: 'true' },
     supported: { 'top-level-await': true },
     outdir:    resolve(root, 'dist/esm'),
     outbase:   resolve(root, 'src'),

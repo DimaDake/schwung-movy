@@ -42,7 +42,7 @@ const PRESETS = [
     'step_indicator', 'step_rec_header', 'loop_strip_midclip', 'loop_strip_outside',
     'loop_header', 'song_band', 'song_band_overflow', 'song_band_end',
     'quant-overlay-three', 'quant-overlay-two', 'flags-top', 'flags-scrolled',
-    'flags-release', 'cpu-movy-tracks', 'cpu-unsplit-module', 'cpu-overscale',
+    'cpu-movy-tracks', 'cpu-unsplit-module', 'cpu-overscale',
     'cpu-empty', 'cpu-sends', 'cpu-sends-quiet', 'cpu-master', 'leave_modal',
     'power_modal', 'capture_select', 'capture_fixed', 'undo_toast', 'redo_toast',
     'undo_empty', 'undo_unavailable', 'clip-undo-toast', 'track_volume_unity',
@@ -96,7 +96,7 @@ const BASE = {
     step_rec_header: 'test8',
     loop_strip_midclip: 'test8', loop_strip_outside: 'test8', loop_header: 'test8',
                                 'quant-overlay-three': 'test8', 'quant-overlay-two': 'test8',
-    'flags-top': 'test8', 'flags-scrolled': 'test8', 'flags-release': 'test8',
+    'flags-top': 'test8', 'flags-scrolled': 'test8',
                                                                             lfo_chain: 'test8',         lfo_assign_toast: 'test8',
     leave_modal: 'test8', power_modal: 'test8',
     master_volume: 'test8',
@@ -177,8 +177,6 @@ const { renderCpuView }   = await import('../dist/esm/renderer/cpu-view.js');
 const { buildCpuPageVM }  = await import('../dist/esm/seq/cpu-page-vm.js');
 const { buildFlagsPageVM } = await import('../dist/esm/seq/flags-page-vm.js');
 const { flagsPageState, resetFlagsPage, flagsRowCount } = await import('../dist/esm/seq/flags-page.js');
-const { visibleFlags } = await import('../dist/esm/seq/flags-visible.js');
-const { setFlag, resetFlags } = await import('../dist/esm/seq/flags.js');
 const { armQuantOverlay, buildQuantOverlayVM, resetQuantOverlay } =
     await import('../dist/esm/seq/quant-overlay.js');
 const { drawUndoOverlay } = await import('../dist/esm/renderer/undo-overlay.js');
@@ -494,28 +492,18 @@ function applyView(preset) {
             lastRender();
             break;
         }
-        /* The Settings page, in the debug arrangement: every flag listed. Two
-         * states, because the value column, the selection band and the scroll
-         * window are what the page IS — `top` has the selection on row 0 with
-         * the list unscrolled, `scrolled` puts it on the LAST row (an action
-         * row — the table is only two flags deep now that the schwung host is
-         * gone), with values that are not the defaults so a row whose value
-         * stopped tracking its flag shows up as a diff. */
+        /* The Settings page. Two states, because the selection band and the
+         * hint that follows it are what the page IS — `top` has the selection
+         * on BACKUPS, `scrolled` on the LAST row. */
         case 'flags-top':
         case 'flags-scrolled': {
-            resetFlags(); resetFlagsPage();
+            resetFlagsPage();
             const scrolled = preset === 'flags-scrolled';
-            setFlag('engpersist', scrolled ? 0 : 1);
-            setFlag('schwunggrid', scrolled ? 1 : 0);
             flagsPageState.selected = scrolled ? flagsRowCount() - 1 : 0;
             lastRender = () => renderFlagsView(buildFlagsPageVM());
             lastRender();
             break;
         }
-        /* And the arrangement that actually SHIPS: the one flag a release
-         * build lists (Param Pages) above the action rows. The debug scenes
-         * above cannot cover this — they render the list this
-         * build has compiled in, which is every flag. */
         case 'cpu-movy-tracks':
         case 'cpu-unsplit-module':
         case 'cpu-overscale':
@@ -531,7 +519,6 @@ function applyView(preset) {
         /* movy's own master chain holding a module: a fourth FX column joins
          * the send region at the narrow pitch, labelled `M`. */
         case 'cpu-master': {
-            resetFlags();
             /* Every column inside the 1 ms floor, so `cpu-overscale` is the
              * only baseline where the scale has had to GROW — otherwise the two
              * scenes differ by nothing and neither pins it. */
@@ -570,13 +557,6 @@ function applyView(preset) {
                 : preset === 'cpu-sends-quiet' ? '0/1180,-,-'
                 : '-,-,-';
             lastRender = () => renderCpuView(buildCpuPageVM());
-            lastRender();
-            break;
-        }
-        case 'flags-release': {
-            resetFlags(); resetFlagsPage();
-            flagsPageState.selected = 0;         // Param Pages, the one release flag
-            lastRender = () => renderFlagsView(buildFlagsPageVM(visibleFlags(false)));
             lastRender();
             break;
         }

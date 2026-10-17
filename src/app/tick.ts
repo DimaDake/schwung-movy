@@ -7,7 +7,6 @@ import { clipPageActive } from '../seq/clip-page.js';
 import { buildFlagsPageVM } from '../seq/flags-page-vm.js';
 import { buildVersionsPageVM } from '../seq/versions-page-vm.js';
 import { versionsPageState } from '../seq/versions-page.js';
-import { FLAG_KNOB } from '../seq/flags-page.js';
 import { renderFlagsView } from '../renderer/flags-view.js';
 import { renderSetsView } from '../renderer/sets-view.js';
 import { buildSetsPageVM } from '../seq/sets-page-vm.js';
@@ -718,11 +717,8 @@ function tickBody(): void {
             renderLoadingView(sessionPhase(), sessionError(), chainLoadsPending(),
                               sessionFailScope(), loadingWaited, migrationProgress());
         } else if (appState.currentView === VIEW_FLAGS) {
-            const vm = buildFlagsPageVM();
-            renderFlagsView(vm);
-            // Only knob 1 lights, and its brightness is the value — the page is
-            // a list, so the LED is the only thing saying which knob edits it.
-            updateSingleKnobLED(FLAG_KNOB, vm.knobNormalized);
+            renderFlagsView(buildFlagsPageVM());
+            updateSingleKnobLED(-1, 0);   // no knob does anything here
         } else if (textEntryActive()) {
             /* The Sets page's rename: Schwung's keyboard draws the whole screen. */
             textEntry()?.drawTextEntry();
@@ -730,7 +726,7 @@ function tickBody(): void {
             renderSetsView(buildSetsPageVM(libState()?.rows ?? null, currentSetUuid(),
                                            setsPageState.selected, setsPageState.confirming));
         } else if (appState.currentView === VIEW_VERSIONS) {
-            const vm = buildVersionsPageVM(Date.now(), currentSetUuid());
+            const vm = buildVersionsPageVM(Date.now());
             vm.selected = versionsPageState.selected;
             vm.confirming = versionsPageState.confirming;
             renderVersionsView(vm);

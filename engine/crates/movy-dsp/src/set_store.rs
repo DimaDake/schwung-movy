@@ -20,9 +20,8 @@ use std::path::{Path, PathBuf};
 /* The engine runs as root, inside Move's audio process; movy's UI runs as
  * `ableton`, in the manager process. So anything the engine creates with
  * default permissions locks the other half out of its own Set directory — and
- * the UI still writes `ui-state.json` beside these files, still writes the Set
- * itself whenever `engpersist` goes back off, and the device fixture writes it
- * too. Measured: `ableton` could not overwrite a root-owned `seq-state.json`,
+ * the UI still writes `ui-state.json` beside these files, and the device
+ * fixture writes the Set too. Measured: `ableton` could not overwrite a root-owned `seq-state.json`,
  * which is what aborted nine device suites at `test_set_begin`.
  *
  * Group- and world-writable is the price of two processes owning one

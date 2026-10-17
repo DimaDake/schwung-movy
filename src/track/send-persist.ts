@@ -9,8 +9,6 @@
  * about what should be loaded. */
 
 import { MOVY_CHAINS } from './ref.js';
-import { engineRootPort } from './registry.js';
-import { pendingSendFor } from './chain-payload.js';
 import { SEND_COMPONENT, SEND_BUSES } from '../chain/config.js';
 
 export interface SendState {
@@ -31,18 +29,6 @@ export function busOfDocSlot(slot: number): number {
     return bus >= 0 && bus < SEND_BUSES ? bus : -1;
 }
 
-/** Pull the send entries out of a decoded chain-set document. */
-export function sendsFromDoc(doc: string[] | null): SendState[] {
-    if (!doc || doc.length % 3 !== 0) return [];
-    const out: SendState[] = [];
-    for (let i = 0; i + 2 < doc.length; i += 3) {
-        const bus = busOfDocSlot(Number(doc[i]));
-        if (bus < 0 || doc[i + 1] !== SEND_COMPONENT || doc[i + 2] === '') continue;
-        out.push({ b: bus, m: doc[i + 2] });
-    }
-    return out;
-}
-
 /** Saved sends as document triples, dropping anything this build cannot honour. */
 export function sendTriples(saved: SendState[] | undefined | null): string[] {
     const flat: string[] = [];
@@ -60,35 +46,6 @@ export function sendTriples(saved: SendState[] | undefined | null): string[] {
     return flat;
 }
 
-/** Read the sends the engine holds, with their preset blobs.
- *
- * `doc` comes from the same read `captureChains` uses — an engine GET blocks
- * ~3-5 ms and this runs on every autosave. */
-export function captureSends(doc: string[] | null): SendState[] {
-    const sends = sendsFromDoc(doc);
-    if (sends.length === 0) return [];
-    const port = engineRootPort();
-    const blobs = port.getMany(sends.map((s) => 'snd' + s.b + ':state'));
-    return sends.map((s, i) => {
-        /* This bus's saved payload has not reached its FX yet, so the FX is
-         * sitting at the module's shipped defaults. Reading it would write those
-         * over the patch in the set file — the same trap `pendingPayloadFor`
-         * guards for a track. */
-        const held = pendingSendFor(s.b);
-        if (held) return held;
-        const key = 'snd' + s.b;
-        const blob = blobs[i] ?? lastSendBlob.get(key);
-        if (blob) { lastSendBlob.set(key, blob); return { ...s, s: blob }; }
-        return s;
-    });
-}
-
-/** The last blob captured per bus, so a read that fails falls back to it — a
- *  module written into the set file with no preset is a send that lost its
- *  sound, and this is the only place that blob is. */
-const lastSendBlob = new Map<string, string>();
-
-/** A saved send's per-bus writes, or null when it carries none. */
 export function sendPayloadPairs(s: SendState): [string, string][] | null {
     if (!s || typeof s.s !== 'string' || s.s === '') return null;
     return [['snd' + s.b + ':state', s.s]];

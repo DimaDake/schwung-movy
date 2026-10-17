@@ -54,7 +54,6 @@ export async function run() {
     const vmm = await import('../../dist/esm/seq/sets-page-vm.js');
     const page = await import('../../dist/esm/seq/sets-page.js');
     const ls = await import('../../dist/esm/seq/set-lib-session.js');
-    const { setFlag } = await import('../../dist/esm/seq/flags.js');
     const { appState, VIEW_SETS, VIEW_CHAIN } = await import('../../dist/esm/app/state.js');
 
 {
@@ -101,7 +100,7 @@ export async function run() {
     ma.migrateRowClick('OPEN');
     ok('the second click runs it, forced', f.st.sent.at(-1).startsWith('migrate ') && f.st.sent.at(-1).endsWith(' force'),
        f.st.sent.at(-1));
-    ok('and waits for the open Set', vr.migrationPending() && !vr.restorePending());
+    ok('and waits for the open Set', vr.migrationPending());
     const n = f.st.sent.length;
     ma.migrateRowClick('OPEN'); ma.migrateRowClick('OPEN');
     eq('no second run while one is in flight', f.st.sent.length, n);
@@ -166,12 +165,9 @@ export async function run() {
 
 {
     _log('\nan unwritable library is refused on screen:');
-    const { flagValue } = await import('../../dist/esm/seq/flags.js');
-    const before = flagValue('engpersist');
     const f = fakeLib();
     const restore = install(f);
     try {
-        setFlag('engpersist', 1);
         lib.resetLib();
         f.publish();
         lib.libRefresh();
@@ -187,7 +183,6 @@ export async function run() {
         eq('a per-command error is not a blocked library', ls.libraryBlocked(), '');
     } finally {
         restore();
-        setFlag('engpersist', before);
         lib.resetLib();
     }
 }

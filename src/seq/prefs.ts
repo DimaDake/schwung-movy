@@ -26,7 +26,7 @@ const clampPct = (v: unknown): number =>
         : FACTORY_DEFAULT_QUANT;
 
 type PrefsFile = {
-    defaultQuant?: unknown; fileDirs?: unknown; flags?: unknown; moduleBlacklist?: unknown;
+    defaultQuant?: unknown; fileDirs?: unknown; moduleBlacklist?: unknown;
     fullVelocity?: unknown; masterVolume?: unknown;
 };
 
@@ -88,54 +88,10 @@ export function writePrefMasterVolume(amp: number): void {
     writePrefs((p) => { p.masterVolume = Math.max(0, Math.min(1, amp)); });
 }
 
-/* Runtime flags (src/seq/flags-def.ts). They live here, not in the per-set
- * state, because a flag is about this Move — how many render lanes its four
- * cores want — and not about one piece of music. They were never persisted at
- * all while they were measurement instruments; they are settings now, and a
- * setting that resets on every engine reload is not one. */
-export function readPrefFlags(): Record<string, number> {
-    const raw = readPrefs().flags;
-    if (!raw || typeof raw !== 'object') return {};
-    const out: Record<string, number> = {};
-    const src = raw as Record<string, unknown>;
-    for (const k in src) {
-        const v = src[k];
-        if (typeof v === 'number' && isFinite(v)) out[k] = v;
-    }
-    return out;
-}
-
-/* Which revision of the flag DEFAULTS this file was last reconciled against.
- * Absent in every file written before the idea existed, which reads as 0 — and
- * 0 is correct for them, since they predate the first revised default. */
-export function readPrefFlagsRev(): number {
-    const v = (readPrefs() as Record<string, unknown>).flagsRev;
-    return typeof v === 'number' && isFinite(v) ? v : 0;
-}
-
-export function writePrefFlagsRev(rev: number): void {
-    writePrefs((p) => { (p as Record<string, unknown>).flagsRev = rev; });
-}
-
-/* One key at a time, read-modify-write: the page edits one flag per gesture,
- * and writing the whole map would let a value this build does not know about
- * be erased by a build that does not list it. */
-export function writePrefFlag(key: string, value: number): void {
-    writePrefs((p) => {
-        const src = p.flags && typeof p.flags === 'object'
-            ? p.flags as Record<string, unknown> : {};
-        const flags: Record<string, unknown> = {};
-        for (const k in src) flags[k] = src[k];
-        flags[key] = value;
-        p.flags = flags;
-    });
-}
-
 /* Modules that must keep every instance on one render lane (chain_pin).
  *
  * A hazard list, not a setting: it is edited by hand in prefs.json when a
- * module is found to race, which is why it is not on the flags page — that page
- * edits numbers, and this is a list of names. It ships empty because nothing has
+ * module is found to race, and has no UI. It ships empty because nothing has
  * been measured racing.
  *
  * Read only; there is deliberately no writer. A movy that could add to its own

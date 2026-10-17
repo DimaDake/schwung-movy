@@ -1,6 +1,6 @@
-/* The BACKUPS menu's rows, from whichever half owns them.
+/* The BACKUPS menu's rows.
  *
- * With `engpersist` on the index is the engine's file and never read here; the
+ * The index is the engine's file (version_store.rs) and never read here; the
  * rows arrive as text on a GET. They are CACHED because the page's viewmodel is
  * rebuilt every frame (app/tick.ts) and an engine GET blocks 3-5 ms — movy's
  * tick period is its MIDI sampling interval, so a per-frame read would be felt
@@ -8,9 +8,19 @@
  * changes the history. */
 
 import { paramGet } from '../host/param.js';
-import { flagValue } from './flags.js';
-import { readVersionIndex } from './version-store.js';
-import type { VersionRec, VersionWhy } from './version-index.js';
+
+export type VersionWhy =
+    'open' | 'auto' | 'exit' | 'pre-wipe' | 'pre-restore' | 'adopted';
+
+export interface VersionRec {
+    n: number;      // directory under v/, never reused
+    gen: number;    // envelope generation — THE ORDERING KEY
+    ms: number;     // capture time, or 0 when unknown; display only
+    why: VersionWhy;
+    clips: number;  // how a user tells a real version from a blank one
+    ui: boolean;    // whether the version kept a ui-state.json
+    ch: boolean;    // whether the version kept a chains.json
+}
 
 const WHYS: VersionWhy[] = ['open', 'auto', 'exit', 'pre-wipe', 'pre-restore', 'adopted'];
 
@@ -47,7 +57,7 @@ export function resetVersionWire(): void {
     rows = [];
 }
 
-/** The menu's rows. The file is read only while the old path owns it. */
-export function versionRows(uuid: string): VersionRec[] {
-    return flagValue('engpersist') ? rows : readVersionIndex(uuid).v;
+/** The menu's rows, as of the last refresh. */
+export function versionRows(): VersionRec[] {
+    return rows;
 }

@@ -401,7 +401,6 @@ _origLog('\nTest: song band steady-state cost');
 _origLog('\nTest: SETS page steady-state cost');
 {
     const { paramStats, resetParamStats } = await import('../dist/esm/host/param.js');
-    const { setFlag } = await import('../dist/esm/seq/flags.js');
     const { resetLib, libState } = await import('../dist/esm/seq/sets-lib.js');
     const { setsPageTick } = await import('../dist/esm/seq/sets-page.js');
     const { renderSetsView } = await import('../dist/esm/renderer/sets-view.js');

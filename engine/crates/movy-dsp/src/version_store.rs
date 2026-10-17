@@ -1,7 +1,7 @@
 //! A Set's kept versions: `versions.json` and the directories under `v/`.
 //!
-//! One directory per version, three files in it. The third is new: with
-//! `engpersist` on the chains are their own file, so a version that kept only
+//! One directory per version, three files in it. The chains are their own
+//! file, so a version that kept only
 //! the sequence would restore an old take under today's instruments.
 //!
 //! The write ORDER is the durability rule and the only subtle thing here. The

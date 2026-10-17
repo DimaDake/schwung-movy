@@ -263,15 +263,7 @@ _log('\nTest: send slot params reach the engine, not a shadow slot');
 _log('\nTest: mixer persistence');
 
 {
-    const { packMix, mixPair } = await import('../../dist/esm/track/mix-persist.js');
-
-    /* An untouched track must still write nothing, or every set file grows
-     * sixteen default values. */
-    eq('a default mix is not saved', packMix('1.0000,0.0000,0,0.0000,0.0000'), undefined);
-    eq('a legacy default is not saved either', packMix('1.0000,0.0000,0'), undefined);
-    eq('a send alone is worth saving',
-       packMix('1.0000,0.0000,0,0.5000,0.0000'), '1.0000,0.0000,0,0.5000,0.0000');
-    eq('so is a pan', packMix('1.0000,-0.5000,0,0.0000,0.0000'), '1.0000,-0.5000,0,0.0000,0.0000');
+    const { mixPair } = await import('../../dist/esm/track/mix-persist.js');
 
     /* Refused whole rather than half-applied: the engine parses the value as a
      * unit, and a mix it rejects leaves the chain at a level nothing wrote. */
@@ -284,7 +276,7 @@ _log('\nTest: mixer persistence');
 _log('\nTest: send persistence');
 
 {
-    const { sendsFromDoc, sendTriples, sendDocSlot, busOfDocSlot, sendPayloadPairs } =
+    const { sendTriples, sendDocSlot, busOfDocSlot, sendPayloadPairs } =
         await import('../../dist/esm/track/send-persist.js');
     const { MOVY_CHAINS } = await import('../../dist/esm/track/ref.js');
     const { SEND_BUSES } = await import('../../dist/esm/chain/config.js');
@@ -296,11 +288,6 @@ _log('\nTest: send persistence');
     eq('a track slot is not a bus', busOfDocSlot(7), -1);
     eq('a bus slot is', busOfDocSlot(MOVY_CHAINS + 1), 1);
     eq('and one past the last bus is not', busOfDocSlot(MOVY_CHAINS + SEND_BUSES), -1);
-
-    const doc = [String(MOVY_CHAINS), 'fx1', 'reverb', '7', 'synth', 'plaits'];
-    const sends = sendsFromDoc(doc);
-    eq('the sends are picked out of the document', sends.length, 1);
-    eq('with their bus and module', sends[0].b + ':' + sends[0].m, '0:reverb');
 
     eq('a saved send becomes a document triple',
        sendTriples([{ b: 1, m: 'delay' }]).join('|'), String(MOVY_CHAINS + 1) + '|fx1|delay');

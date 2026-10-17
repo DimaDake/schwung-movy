@@ -57,7 +57,6 @@ const { appState, VIEW_KNOBS } = await import('../dist/esm/app/state.js');
 const { resetSeqState } = await import('../dist/esm/seq/state.js');
 const { resetSeqEngine } = await import('../dist/esm/seq/engine.js');
 const { sessionReady } = await import('../dist/esm/seq/set-session.js');
-const { setFlag } = await import('../dist/esm/seq/flags.js');
 
 /* TICKS ARE COUNTED HERE, IN THE ONE PLACE THAT ADVANCES THEM. A window's span
  * has to be MEASURED rather than assumed, because `before()` runs inside the
@@ -83,35 +82,15 @@ env.setParams(MODULE ? dumpFixture(MODULE)
                      : MOCK_SYNTHS.hier_params_overflow_two_levels);
 resetSeqState();
 resetSeqEngine();
-setFlag('chtracks', 0);
-/* WITHOUT THIS THE GESTURE NEVER ARRIVES, and that is how this script reported
- * two identical arms for a whole session without anyone noticing: a press
- * before the engine holds the Set is REFUSED at the input gate (router.ts:168),
- * and the Set-commit press — which the loading splash waits on — is WALL-CLOCK
- * timed (1.5 s for Move to finish loading). Instant ticks never reach it, movy
- * stays in `settling` forever, and every arm measures the idle refresh with
- * nothing on top. Same 63-vs-64-calls-per-tick answer for both arms, which is
- * the one result an A/B must not be able to fake — and it arrived here a second
- * way, with the flag selection already correct. */
-setFlag('setcommit', 0);
 globalThis.init();
 const m = appState.trackModels[0][1];
 m.reload();
 appState.currentView = VIEW_KNOBS;
-/* TICK UNTIL LIVE, not a magic count. The gate decides whether the gesture
- * below is measured or thrown away, and a count that is a few ticks short fails
- * SILENTLY — which is the whole failure above.
+/* TICK UNTIL LIVE, not a magic count. A press before the engine holds the Set
+ * is REFUSED at the input gate, so a count that is a few ticks short voids the
+ * gesture SILENTLY and both arms measure the idle refresh.
  *
- * THE 400 IS NOT A DURATION, and an earlier version of this comment said it was.
- * It claimed 400 ticks had to outlast a 1.5 s WALL-CLOCK Set-commit press "by
- * orders of magnitude" — but this file disables that press itself, ten lines up:
- * `setFlag('setcommit', 0)` makes set-commit.ts:153 return before it ever reaches
- * `phase = 'waiting'`, so the press never enters the state machine and the
- * wall-clock timeout it would have waited on never runs. The arithmetic was
- * inverted as well: 400 microsecond-ticks is ~0.4 ms against 1.5 s, three orders
- * of magnitude SHORT, not clear.
- *
- * What the loop is actually sized against is the settle completing at all — it
+ * THE 400 IS NOT A DURATION. What the loop is actually sized against is the settle completing at all — it
  * promotes to `phase = 'ready'` in a handful of ticks under the mock (the run
  * logs "set ready after 3ms"), so 400 is margin against a slow start rather than
  * against a clock. The one wall-clock bound genuinely left on that path is

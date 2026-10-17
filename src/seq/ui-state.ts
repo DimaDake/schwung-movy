@@ -4,10 +4,8 @@
  * alongside the state blob. */
 
 import { TRACK_COUNT } from '../track/ref.js';
-import { captureChains, readChainDoc, restoreChains } from '../track/chain-persist.js';
-import { captureSends } from '../track/send-persist.js';
+import { restoreChains } from '../track/chain-persist.js';
 import { parseMirror, type Mirror } from '../track/chain-mirror.js';
-import { flagValue } from './flags.js';
 import { readChainsFile, readUiBlob } from './persist-store.js';
 import { mlog } from '../log.js';
 import { keyboardState, resetOctaves, OCT_MIN, OCT_MAX } from '../keyboard/state.js';
@@ -17,7 +15,6 @@ import { mutesSnapshot, restoreMutes, resetTrackMutes } from '../mixer/track-mut
 import { seqState } from './state.js';
 import { seqCmd } from './engine.js';
 import { readPrefDefaultQuant } from './prefs.js';
-import { loadPerSetFlags, perSetFlagsSnapshot } from './flags.js';
 import type { ChainTrackState } from '../track/chain-persist.js';
 import type { SendState } from '../track/send-persist.js';
 
@@ -25,23 +22,14 @@ const clampInt = (v: unknown, lo: number, hi: number, dflt: number): number =>
     typeof v === 'number' && isFinite(v) ? Math.max(lo, Math.min(hi, v | 0)) : dflt;
 
 /** JSON of the persisted UI keyboard state (tonic, scale, layout, octaves). */
-/* The chains and sends to write, and where they came from.
- *
- * Engine-owned, they are a MIRROR of chains.json — the file the engine writes
- * and the only truth while `engpersist` is on. The copy exists so a build with
- * the flag OFF still finds chains where it looks for them; without it, flipping
- * the flag back would cost the user their chains.
+/* The chains and sends to write: a MIRROR of chains.json, the file the engine
+ * writes and the only truth. The copy is what a load falls back on when
+ * chains.json is missing or unreadable (`engineChains`).
  *
  * An unreadable chains.json keeps whatever ui-state.json already holds. It is
  * not the authority, so a stale mirror cannot lose work — but writing `[]` over
  * a real chain set would, and that is §3 wearing a different hat. */
 function chainsToWrite(uuid: string): { chains: ChainTrackState[]; sends: SendState[] } {
-    if (!flagValue('engpersist')) {
-        /* One read for the chains AND the sends: an engine GET blocks ~3-5 ms
-         * and this runs on every autosave. */
-        const chainDoc = readChainDoc();
-        return { chains: captureChains(chainDoc), sends: captureSends(chainDoc) };
-    }
     const mirror = parseMirror(readChainsFile(uuid));
     if (mirror) return mirror;
     try {
@@ -72,35 +60,24 @@ export function serializeUiState(uuid = ''): string {
          * track index above TRACK_COUNT: a send is not a track, and a reader
          * that took `t` for one would address a track that does not exist. */
         sends: chains.sends,
-        /* The flags that belong to the SET rather than to this Move — today,
-         * which host owns tracks 1-4. Keyed by flag key, the way prefs.json
-         * keys the machine's half. */
-        flags: perSetFlagsSnapshot(),
     });
 }
 
 /** Apply a serialized UI-state blob (tolerant of missing/invalid fields). */
-/* The chains a LOAD restores. Engine-owned, `chains.json` is the truth and the
- * blob's copy only a mirror — one the set migration does not rewrite, so in a
+/* The chains a LOAD restores. `chains.json` is the truth and the blob's copy
+ * only a mirror — one the set migration does not rewrite, so in a
  * Set it brought schwung's tracks into, the mirror would name the old chain set
  * and unload what the migration put there. A Set whose chains.json is missing
  * or unreadable (one written before the engine kept chains) still has only the
  * mirror, and uses it. */
 function engineChains(uuid: string): Mirror | null {
-    return uuid && flagValue('engpersist') ? parseMirror(readChainsFile(uuid)) : null;
+    return uuid ? parseMirror(readChainsFile(uuid)) : null;
 }
 
 export function applyUiState(blob: string, uuid = ''): void {
     try {
         const o = JSON.parse(blob);
-        const flags = o.flags && typeof o.flags === 'object' ? o.flags : null;
-        /* Ahead of everything else this blob decides: a per-set flag's value has
-         * to be in place before any of the reads below could depend on it (none
-         * do today, but a value read stale for even one tick is how chtracks
-         * once moved the UI but not the engine). `null` here means "this set
-         * predates the field". */
-        loadPerSetFlags(flags);
-        /* Then the chains, before anything cosmetic: the loads are queued one
+        /* The chains first, before anything cosmetic: the loads are queued one
          * per audio callback, so the sooner they start the sooner the set sounds
          * like itself. One document says both what to unload and what to load —
          * a set with no `chains` key names nothing, which is how a set written
@@ -142,7 +119,6 @@ function applyDefaultQuant(pct: number): void {
 
 /* Defaults match init(): C tonic, Major, Chromatic/4ths, C3 on every track. */
 export function resetUiState(uuid = ''): void {
-    loadPerSetFlags(null);
     /* A Set with no UI blob wants no movy chains — unless the engine holds
      * some for it, which is what a Set migrated from schwung alone looks like. */
     const own = engineChains(uuid);

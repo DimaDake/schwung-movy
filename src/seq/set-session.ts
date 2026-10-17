@@ -18,15 +18,13 @@ import { beginSettle, resetSettle, settleCheck, settleOutstanding, settleWaited 
 import { fileExists, uuidToStatePath } from './set-context.js';
 import { deliverChainPayloads } from '../track/chain-payload.js';
 import { refreshModelsForSet } from '../app/model-refresh.js';
-import { flagValue } from './flags.js';
 import { readBestState, readUiBlob } from './persist-store.js';
 import { clearUiDirty } from './ui-dirty.js';
 import { resetUiState } from './ui-state.js';
 import { loadSet } from './set-load.js';
-import { adoptExistingVersions, captureVersion, resetVersionCapture } from './version-capture.js';
 import { migrationPending, resetVersionRestore, restoreTick } from './version-restore.js';
 import { pollMigrationProgress, resetMigrateAction } from './migrate-action.js';
-import { adoptSaved, resetSetSave, saveNeeded, saveSet, savedPayload } from './set-save.js';
+import { saveNeeded, saveSet } from './set-save.js';
 import { resetWantedSet } from './set-source.js';
 import { resetLib } from './sets-lib.js';
 import { libraryBlocked, libraryIdentity, libraryTick, resetLibSession } from './set-lib-session.js';
@@ -40,7 +38,6 @@ const SET_POLL_TICKS = 96;   // ~0.5 s: catch a set switch
 let phase: Phase = 'booting';
 let setId = '';
 let setName = '';
-let gen = 0;
 /* The engine generation whose contents we authored. A re-dlopened engine comes
  * up EMPTY, so a generation we did not load into is not one we may save from. */
 let loadedGen = -1;
@@ -65,8 +62,6 @@ export function setFailure(reason: string, scope: FailScope = 'set'): void {
 export function clearFailure(): void {
     failReason = ''; failScope = 'set'; phase = 'booting'; pollCountdown = 1;
 }
-export function currentGen(): number { return gen; }
-export function bumpGen(): void { gen++; }
 export function sessionReady(): boolean { return phase === 'ready'; }
 /* The Set is identified and its state is in the engine — true from the moment
  * loading finishes, whether or not the modules have arrived. The lifecycle uses
@@ -90,13 +85,11 @@ export function reloadCurrentSet(): void {
 
 export function resetSetSession(): void {
     phase = 'booting';
-    setId = ''; setName = ''; gen = 0; loadedGen = -1;
+    setId = ''; setName = ''; loadedGen = -1;
     saveCountdown = SAVE_TICKS; pollCountdown = 1;
     failReason = '';
     failScope = 'set';
     resetSettle();
-    resetSetSave();
-    resetVersionCapture();
     resetVersionRestore();
     resetMigrateAction();
     clearUiDirty();
@@ -110,8 +103,7 @@ function enterLoading(id: string, name: string): void {
     /* A Set whose blob is on disk but unreadable is the case worth naming: the
      * loader falls back to blank, and a silent blank is exactly how a set
      * "disappears" from the user's point of view. */
-    const stored = readBestState(id);
-    if (stored === null && fileExists(uuidToStatePath(id))) {
+    if (readBestState(id) === null && fileExists(uuidToStatePath(id))) {
         failReason = 'SET FILE UNREADABLE';
         failScope = 'set';
         mlog('seq: FAILED — ' + id + ' has a state file that will not parse');
@@ -119,20 +111,10 @@ function enterLoading(id: string, name: string): void {
         phase = 'failed';
         return;
     }
-    /* Before movy can write anything to this Set: adopt whatever earlier
-     * builds left behind, then snapshot what was actually on disk. This one
-     * capture is what makes a Set that comes up blank a menu entry rather than
-     * a loss. */
-    /* Engine-owned: the Open job adopts and captures before it reads, where the
-     * engine already knows what it is about to overwrite. Running both halves
-     * would interleave two ladders in one directory. */
-    if (!flagValue('engpersist')) {
-        adoptExistingVersions(id);
-        if (stored) captureVersion(id, 'open', stored.payload, stored.gen);
-    }
-    const st = loadSet(id);
-    setId = id; setName = name; gen = st.gen;
-    adoptSaved(st.payload);
+    /* No version capture here: the engine's Open job adopts and captures
+     * before it reads, where it already knows what it is about to overwrite. */
+    loadSet(id);
+    setId = id; setName = name;
     if (!readUiBlob(id)) resetUiState(id);
     clearUiDirty();
     loadedGen = engineGeneration();
@@ -180,20 +162,11 @@ export function sessionFlush(force = false): void {
     if (!setId) return;
     if (engineGeneration() !== loadedGen) return;   // not our engine — see the tick
     if (!saveNeeded() && !force) return;
-    const r = saveSet(setId, gen, force);
-    if (r.ok) gen = r.gen;
-    /* A forced flush is a teardown or a set switch — a natural boundary, and
-     * the last chance this Set has to record where it got to. */
-    if (force && r.ok) {
-        if (flagValue('engpersist')) {
-            /* The one capture that is a command: the engine cannot see a
-             * teardown or a Set switch, and this is the last chance this Set
-             * has to record where it got to. */
-            paramSet('set', 'keep exit');
-        } else {
-            captureVersion(setId, 'exit', savedPayload(), gen);
-        }
-    }
+    saveSet(setId, force);
+    /* A forced flush is a teardown or a set switch. The one capture that is a
+     * command: the engine cannot see either, and this is the last chance this
+     * Set has to record where it got to. */
+    if (force) paramSet('set', 'keep exit');
 }
 
 export function sessionTick(): void {

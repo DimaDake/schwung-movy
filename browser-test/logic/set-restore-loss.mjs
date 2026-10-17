@@ -1,270 +1,72 @@
-/* browser-test/logic/set-restore-loss.mjs — what a DROPPED restore does to a
- * saved Set.
+/* browser-test/logic/set-restore-loss.mjs — what a lost message or a bad
+ * engine answer can do to a saved Set.
  *
  * Run by browser-test/logic.mjs.
  *
- * Why this exists: movy ferries a Set into the engine through the overtake_dsp
- * param SHM, which is a SINGLE SLOT with four producers (shim, shadow_ui, the
- * chain forwarder, the test daemon) plus the remote-UI socket. `movy/CLAUDE.md`
- * already records that writes into that slot are "routinely lost". The restore
- * write is `host_module_set_param('state', ...)`, which RETURNS a
- * boolean — and `set-load.ts:pushState` discards it.
- *
- * So the question this suite pins down: if that write never lands, what does
- * the next autosave write over the Set on disk?
+ * The engine owns the Set files and the wire carries only commands. These pin
+ * the safety argument for that design: a lost command costs nothing, a bad
+ * engine answer costs no chains, and the UI never writes the state itself.
  */
 import {
     installMockFs, uninstallMockFs, installMockEngine, uninstallMockEngine,
-    writeStateBlob, readBestState, resetStoreRotation, BLANK_STATE, setFlag, ok, eq, _log,
+    seedStateFile, readBestState, ok, eq, _log,
 } from './harness.mjs';
 
 /* A Set with real content: an automation lane and a clip. */
 const GOOD = 'movy1\nbpm 12000\nau 0 0 50 synth:octave_transpose\ncl 0 0 16 0 0:24:60:100\n';
 
-/* Run `body` with every `state` write dropped, exactly as a starved slot would
- * leave it — the call returns false and the engine never sees the payload. */
-async function withDroppedStateWrite(body) {
-    const real = globalThis.host_module_set_param;
-    globalThis.host_module_set_param = (k, v, t) =>
-        (k === 'state' ? false : real(k, v, t));
-    try { return await body(); } finally { globalThis.host_module_set_param = real; }
-}
-
 export async function run() {
-_log('\nTest: a dropped restore must not cost the Set');
+_log('\nTest: a lost command or a bad answer must not cost the Set');
 
-const { saveSet, saveNeeded, resetSetSave } = await import('../../dist/esm/seq/set-save.js');
-const { pushState, openSet, setStatusUuid } = await import('../../dist/esm/seq/set-load.js');
+const { saveSet } = await import('../../dist/esm/seq/set-save.js');
+const { openSet, setStatusUuid } = await import('../../dist/esm/seq/set-load.js');
 const { seqState } = await import('../../dist/esm/seq/state.js');
-const { resetRestoreGate } = await import('../../dist/esm/seq/restore-gate.js');
-const { writeUiBlob, readUiBlob } = await import('../../dist/esm/seq/persist-store.js');
-/* Most of this suite pins the UI-writer path, which a debug build can still
- * select; the engine-owned arms switch the flag on for themselves. */
-setFlag('engpersist', 0);
+const { readUiBlob } = await import('../../dist/esm/seq/persist-store.js');
+const { uuidToChainsPath, uuidToStatePath } = await import('../../dist/esm/seq/set-context.js');
+const { encodeBulk } = await import('../../dist/esm/track/bulk.js');
 
-/* ── The guard that works ─────────────────────────────────────────────────
- * An engine that answers `null` is one we could not read at all, and saveSet
- * refuses to write anything. This is real protection and must not regress. */
-{
-    installMockFs({});
-    const eng = installMockEngine();
-    resetSetSave(); resetStoreRotation(); resetRestoreGate();
-    writeStateBlob('S', GOOD, 1);
-
-    /* The push LANDS here: this block is about the null-read guard, and a
-     * dropped push would short-circuit on the restore gate instead, leaving
-     * the guard untested. */
-    pushState(GOOD);
-    eng.stateBlob = null;
-    seqState.dirty = true;
-    const r = saveSet('S', 1, true);
-
-    eq('an unreadable engine does not get written to disk', r.wrote, false);
-    eq('and the Set on disk is untouched', readBestState('S').payload, GOOD);
-    uninstallMockEngine(); uninstallMockFs();
-}
-
-/* ── The gap ──────────────────────────────────────────────────────────────
- * A FRESH engine instance — what a reload leaves behind — holds a blank but
- * entirely VALID state. That is not null, so the guard above does not fire:
- * the autosave reads the blank, sees it differs from the last good payload,
- * and writes it over the Set at a HIGHER generation, which then wins every
- * future restore.
+/* ── §3 CLOSED ────────────────────────────────────────────────────────────
+ * docs/persistence-hazards.md §3: when the UI read the chains out of the
+ * engine, a malformed answer was read as an empty set and the autosave wrote
+ * "chains":[] over real chains (observed on device: ui-state.json at 5141
+ * bytes became 217).
  *
- * The fix: pushState now REPORTS whether the write landed (it used to discard
- * the boolean), and a Set whose restore did not land is not saved over. The
- * Set on disk is worth more than the blank the engine is holding.
- *
- * Reproduced on device while migrating test-auto.sh: a fixture blob of
- * au=1 cl=2 size=670 came back as au=0 cl=0 size=209. */
-{
-    installMockFs({});
-    const eng = installMockEngine();
-    resetSetSave(); resetStoreRotation(); resetRestoreGate();
-    writeStateBlob('S', GOOD, 1);
-
-    eng.stateBlob = BLANK_STATE;
-    await withDroppedStateWrite(async () => { pushState(GOOD); });
-    seqState.dirty = true;
-    const r = saveSet('S', 1, true);
-
-    ok('a blank engine is NOT written over the Set after a dropped restore',
-        r.wrote === false, `wrote=${r.wrote}`);
-    eq('and the Set on disk still holds its content',
-        readBestState('S').payload, GOOD);
-    uninstallMockEngine(); uninstallMockFs();
-}
-
-/* ── The gate must not become the loss it prevents ────────────────────────
- * Refusing to save is destructive too: the user's work stays in RAM and dies
- * with the session. So the closed gate has to be narrow, and has to REOPEN. */
-{
-    installMockFs({});
-    const eng = installMockEngine();
-    resetSetSave(); resetStoreRotation(); resetRestoreGate();
-
-    /* 1. An ordinary restore saves normally. */
-    pushState(GOOD);
-    eng.stateBlob = 'movy1\nbpm 13000\n';
-    seqState.dirty = true;
-    eq('a landed restore saves as usual', saveSet('N', 0, true).wrote, true);
-
-    /* 2. A failed restore closes the gate... */
-    await withDroppedStateWrite(async () => { pushState(GOOD); });
-    eng.stateBlob = BLANK_STATE;
-    seqState.dirty = true;
-    eq('a failed restore blocks the save', saveSet('N', 1, true).wrote, false);
-    ok('and the save stays PENDING rather than being forgotten', saveNeeded(),
-        'a dropped save that nothing retries is the loss by another route');
-
-    /* 3. ...and reopens as soon as a restore lands, so the pending save runs. */
-    pushState(GOOD);
-    eng.stateBlob = 'movy1\nbpm 14000\n';
-    eq('a later successful restore reopens the gate', saveSet('N', 1, true).wrote, true);
-    eq('and what reaches disk is the engine content, not the blank',
-        readBestState('N').payload, 'movy1\nbpm 14000\n');
-    uninstallMockEngine(); uninstallMockFs();
-}
-
-/* ── The UI half is engine-sourced too ───────────────────────────────────
- * ui-state.json is not just keyboard settings: serializeUiState() calls
- * readChainDoc(), an engine GET, so the movy chains in it come from the same
- * engine the state does. A blank engine therefore costs the chains as well —
- * observed on device, ui-state.json collapsing from 5141 to 217 bytes. So the
- * gate has to cover this write too, not only the sequencer blob. */
-{
-    installMockFs({});
-    const eng = installMockEngine();
-    resetSetSave(); resetStoreRotation(); resetRestoreGate();
-
-    const GOOD_UI = '{"root":60,"chains":[{"t":0,"comp":[{"c":"synth","m":"plaits"}]}]}';
-    writeUiBlob('U', GOOD_UI);
-
-    await withDroppedStateWrite(async () => { pushState(GOOD); });
-    eng.stateBlob = BLANK_STATE;
-    seqState.dirty = true;
-    saveSet('U', 1, true);
-    eq('a blocked save leaves the UI blob alone too', readUiBlob('U'), GOOD_UI);
-
-    /* And it must not be forgotten: once the gate reopens the UI half is
-     * written, or the settings are lost a slower way. */
-    pushState(GOOD);
-    eng.stateBlob = 'movy1\nbpm 16000\n';
-    seqState.dirty = true;
-    saveSet('U', 1, true);
-    ok('and it IS written once the gate reopens', readUiBlob('U') !== GOOD_UI,
-        'the blocked UI write must stay pending, not vanish');
-    uninstallMockEngine(); uninstallMockFs();
-}
-
-/* ── An UNREADABLE chain set is not an empty one ──────────────────────────
- * chain-persist.ts says it in as many words: "A malformed answer is not an
- * empty set. Reading it as one would hand the autosave a set with no chains
- * and delete the user's work." The line under that comment returns [] for
- * BOTH — a failed read and a genuinely empty chain set are indistinguishable,
- * so the autosave writes "chains":[] over real chains.
- *
- * Observed on device: ui-state.json at 5141 bytes became 217, holding
- * "chains":[]. The restore gate does not cover this — the state push landed,
- * so the gate is open.
- *
- * NOT FIXED YET, deliberately. The obvious guard — refuse to serialize when
- * the chain read is unknown — was tried and reverted: it also fires whenever
- * an engine simply does not answer the `chains` key, which blocked the UI
- * write outright (it broke the mute-solo suite immediately). "Unknown blocks
- * forever" is the same class of data loss the guard is meant to prevent.
- *
- * And the DEVICE symptom has a different cause again: there the read succeeds
- * and truthfully reports no chains, because chain loads are queued and
- * released one per audio callback — the save simply runs before they land.
- * That one wants the save gated on the settle wait, which is session
- * sequencing and a larger change than this suite should smuggle in. */
-{
-    installMockFs({});
-    const eng = installMockEngine();
-    resetSetSave(); resetStoreRotation(); resetRestoreGate();
-
-    const GOOD_UI = '{"root":60,"chains":[{"t":0,"comp":[{"c":"synth","m":"plaits"}]}]}';
-    writeUiBlob('C', GOOD_UI);
-
-    pushState(GOOD);                       // the state restore is FINE
-    eng.stateBlob = 'movy1\nbpm 17000\n';
-
-    const realGet = globalThis.host_module_get_param;
-    globalThis.host_module_get_param = (k) => (k === 'chains' ? null : realGet(k));
-    try {
-        seqState.dirty = true;
-        saveSet('C', 1, true);
-        /* !!! KNOWN GAP, ON THE OLD PATH ONLY — this assertion encodes the
-         * BUG, not the fix. !!!
-         *
-         * It stays because the old path still ships: with `engpersist` off the
-         * UI reads the chains out of the engine, and a malformed answer is
-         * still read as an empty set. The block immediately below is the same
-         * scenario with the flag ON, where the chains survive because nothing
-         * asks the engine at all — that is the flip, and it is what closes
-         * docs/persistence-hazards.md §3.
-         *
-         * Delete this arm when the old path goes, not before. */
-        ok('KNOWN GAP (old path): an unreadable chain set blanks the chains on disk',
-            JSON.parse(readUiBlob('C')).chains.length === 0,
-            JSON.stringify(readUiBlob('C')).slice(0, 70));
-    } finally { globalThis.host_module_get_param = realGet; }
-    uninstallMockEngine(); uninstallMockFs();
-}
-
-
-/* ── §3 CLOSED, engine-owned ──────────────────────────────────────────────
- * The same scenario the KNOWN GAP above pins, with `engpersist` on.
- *
- * The chains survive, and not because a guard caught the malformed answer —
- * because there is no answer to catch. serializeUiState makes no engine call
+ * The chains survive now, and not because a guard caught the malformed answer
+ * — because there is no answer to catch. serializeUiState makes no engine call
  * at all; it copies chains.json, which the engine wrote from what it holds.
- * §4 goes with it for the same reason: a save taken while module loads are
- * still draining cannot under-report a set the writer already knows.
  *
- * The teeth are the engine GET being made to fail exactly as above: if this
- * ever passes because the UI silently fell back to reading the engine, the
- * mirror is not doing its job. */
+ * The teeth are the engine GET being made to fail: if this ever passes because
+ * the UI silently went back to reading the engine, the mirror is not doing its
+ * job. */
 {
-    const { setFlag } = await import('../../dist/esm/seq/flags.js');
-    const { uuidToChainsPath } = await import('../../dist/esm/seq/set-context.js');
-    const { encodeBulk } = await import('../../dist/esm/track/bulk.js');
-
     const doc = encodeBulk(['0', 'synth', 'noisemaker', 'blob-A', '', '']);
     installMockFs({ [uuidToChainsPath('C2')]: doc });
     installMockEngine();
-    resetSetSave(); resetStoreRotation(); resetRestoreGate();
-    setFlag('engpersist', 1);
 
     const realGet = globalThis.host_module_get_param;
     globalThis.host_module_get_param = (k) => (k === 'chains' ? null : realGet(k));
     try {
-        seqState.dirty = true;
-        saveSet('C2', 1, true);
+        saveSet('C2', true);
         const ui = JSON.parse(readUiBlob('C2'));
         eq('§3 closed: an unreadable engine answer costs no chains', ui.chains.length, 1);
         eq('and the chain is the real one', ui.chains[0].comp[0].m, 'noisemaker');
     } finally { globalThis.host_module_get_param = realGet; }
 
-    setFlag('engpersist', 0);
     uninstallMockEngine(); uninstallMockFs();
 }
 
-/* ── Engine-owned: a lost COMMAND cannot cost the Set ─────────────────────
+/* ── A lost COMMAND cannot cost the Set ───────────────────────────────────
  * The safety argument for commands-instead-of-payloads, stated exactly.
  *
- * It is NOT that the command is more reliable — it rides the same starved
- * slot. It is that losing one is harmless: the engine has not opened the Set,
- * so it holds nothing to write over it, and the UI sees the mismatch in the
- * status and re-sends. Losing a PAYLOAD destroyed data, because the next
- * autosave read the engine's blank-but-valid state and wrote that instead. */
+ * It is NOT that the command is more reliable. It is that losing one is
+ * harmless: the engine has not opened the Set, so it holds nothing to write
+ * over it, and the UI sees the mismatch in the status and re-sends. Losing a
+ * PAYLOAD destroyed data, because the next autosave read the engine's
+ * blank-but-valid state and wrote that instead. */
 {
     installMockFs({});
     installMockEngine();
-    resetSetSave(); resetStoreRotation(); resetRestoreGate();
-    setFlag('engpersist', 1);
-    writeStateBlob('E', GOOD, 1);
+    seedStateFile('E', GOOD, 1);
 
     const real = globalThis.host_module_set_param;
     globalThis.host_module_set_param = (k, v, t) =>
@@ -272,7 +74,7 @@ setFlag('engpersist', 0);
     try {
         openSet('E', null);
         seqState.dirty = true;
-        saveSet('E', 1, true);
+        saveSet('E', true);
     } finally { globalThis.host_module_set_param = real; }
 
     eq('a dropped open leaves the Set on disk untouched', readBestState('E').payload, GOOD);
@@ -284,30 +86,25 @@ setFlag('engpersist', 0);
     openSet('E', null);
     eq('a re-sent open lands', setStatusUuid(), 'E');
 
-    setFlag('engpersist', 0);
     uninstallMockEngine(); uninstallMockFs();
 }
 
-/* The flag must GATE the write, not merely be preferred by it: if both halves
- * save, they race for the same file. With the engine owning it, a UI save must
- * not touch seq-state.json even when everything looks dirty and forced. */
+/* One writer: a UI save must not touch seq-state.json even when everything
+ * looks dirty and forced — the engine's file would race it. */
 {
     installMockFs({});
     const eng = installMockEngine();
-    resetSetSave(); resetStoreRotation(); resetRestoreGate();
-    setFlag('engpersist', 1);
-    writeStateBlob('G', GOOD, 1);
+    seedStateFile('G', GOOD, 1);
+    const before = globalThis.host_read_file(uuidToStatePath('G'));
 
     openSet('G', null);
     eng.stateBlob = 'movy1\n';          // the blank a fresh engine holds
     seqState.dirty = true;
-    const r = saveSet('G', 1, true);
+    saveSet('G', true);
 
-    eq('the UI writes no state when the engine owns it', r.wrote, false);
+    eq('the UI writes no state', globalThis.host_read_file(uuidToStatePath('G')), before);
     eq('and the Set on disk still holds the real payload', readBestState('G').payload, GOOD);
 
-    setFlag('engpersist', 0);
     uninstallMockEngine(); uninstallMockFs();
 }
-setFlag('engpersist', 1);
 }

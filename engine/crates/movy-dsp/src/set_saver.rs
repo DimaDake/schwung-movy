@@ -293,9 +293,16 @@ fn worker(root: String, shared: Arc<Mutex<Shared>>, rx: std::sync::mpsc::Receive
                 let _ = ack.send(());
             }
             Msg::Work(Job::Open { uuid, seed }) => {
+                let left = shared.lock().unwrap().uuid.clone();
                 do_open(&store, &shared, &uuid, seed.as_deref());
                 last_auto_ms = now_ms();
                 if let Some(w) = lib.as_mut().and_then(|l| l.on_open(&uuid)) {
+                    shared.lock().unwrap().lib = w;
+                }
+                /* After the open, so the Set left is no longer the open one —
+                 * and after the audio thread's save of it, which it queued
+                 * ahead of this job. */
+                if let Some(w) = lib.as_mut().and_then(|l| l.on_left(&store, &left, &uuid, now_ms())) {
                     shared.lock().unwrap().lib = w;
                 }
             }
@@ -909,7 +916,7 @@ mod tests {
         let s = Saver::new(&root);
         s.submit(Job::Save {
             uuid: "u1".into(),
-            payload: "movy1\nbpm 12000\n".into(),
+            payload: "movy1\nbpm 12000\ncl 0 0 16 0 x\n".into(),
             gen: 1,
             chains: "0\n".into(),
         });
@@ -920,7 +927,7 @@ mod tests {
         s2.submit(Job::Open { uuid: "u1".into(), seed: None });
         s2.drain_for_test();
         let (payload, _chains, gen) = s2.take_loaded().expect("loaded");
-        assert_eq!(payload, "movy1\nbpm 12000\n");
+        assert_eq!(payload, "movy1\nbpm 12000\ncl 0 0 16 0 x\n");
         assert_eq!(gen, 1);
     }
 
@@ -946,7 +953,7 @@ mod tests {
         let s = Saver::new(&tmp("dirty"));
         s.submit(Job::Save {
             uuid: "u1".into(),
-            payload: "movy1\nbpm 12000\n".into(),
+            payload: "movy1\nbpm 12000\ncl 0 0 16 0 x\n".into(),
             gen: 1,
             chains: "0\n".into(),
         });
@@ -963,14 +970,14 @@ mod tests {
         let s = Saver::new(&root);
         s.submit(Job::Save {
             uuid: "src".into(),
-            payload: "movy1\nbpm 15000\n".into(),
+            payload: "movy1\nbpm 15000\ncl 0 0 16 0 x\n".into(),
             gen: 3,
             chains: "0\n".into(),
         });
         s.submit(Job::Open { uuid: "copy".into(), seed: Some("src".into()) });
         s.drain_for_test();
         let (payload, _c, gen) = s.take_loaded().expect("loaded");
-        assert_eq!(payload, "movy1\nbpm 15000\n");
+        assert_eq!(payload, "movy1\nbpm 15000\ncl 0 0 16 0 x\n");
         assert_eq!(gen, 1, "an inherited Set starts its own generation sequence");
     }
 
@@ -980,11 +987,11 @@ mod tests {
     fn a_seed_never_beats_the_sets_own_state() {
         let root = tmp("seedown");
         let s = Saver::new(&root);
-        s.submit(Job::Save { uuid: "src".into(), payload: "movy1\nbpm 15000\n".into(), gen: 3, chains: "0\n".into() });
-        s.submit(Job::Save { uuid: "own".into(), payload: "movy1\nbpm 90000\n".into(), gen: 2, chains: "0\n".into() });
+        s.submit(Job::Save { uuid: "src".into(), payload: "movy1\nbpm 15000\ncl 0 0 16 0 x\n".into(), gen: 3, chains: "0\n".into() });
+        s.submit(Job::Save { uuid: "own".into(), payload: "movy1\nbpm 90000\ncl 0 0 16 0 x\n".into(), gen: 2, chains: "0\n".into() });
         s.submit(Job::Open { uuid: "own".into(), seed: Some("src".into()) });
         s.drain_for_test();
-        assert_eq!(s.take_loaded().expect("loaded").0, "movy1\nbpm 90000\n");
+        assert_eq!(s.take_loaded().expect("loaded").0, "movy1\nbpm 90000\ncl 0 0 16 0 x\n");
     }
 
     fn lib_cmd(s: &Saver, cmd: &str) -> String {
@@ -1064,6 +1071,32 @@ mod tests {
         s.drain_for_test();
         assert_eq!(s.vui(), "kept");
         assert!(s.take_loaded().is_some(), "an open Set it kept is still handed back — the engine holds its autosave until then");
+    }
+
+    /* Leaving an empty Set drops it; leaving one with content keeps it; and
+     * the open one stays listed however empty, so a restart on it (reopening
+     * the same id) comes back to it rather than to some other Set. */
+    #[test]
+    fn leaving_an_empty_set_moves_it_to_trash() {
+        let base = tmp("lib-left");
+        let root = format!("{base}/Movy/Sets");
+        let s = Saver::new(&root);
+        lib_cmd(&s, &format!("lib migrate legacy={base}/none move={base}/none state={base}/none"));
+        let made = |s: &Saver, name: &str| field(&lib_cmd(s, &format!("lib new {name}")), "made=").to_string();
+        let empty = made(&s, "Empty");
+        let full = made(&s, "Full");
+        s.submit(Job::Open { uuid: empty.clone(), seed: None });
+        s.submit(Job::Open { uuid: empty.clone(), seed: None });   // a restart on it
+        s.drain_for_test();
+        assert!(s.lib().contains(&empty), "the open Set stays listed, however empty");
+        s.submit(Job::Open { uuid: full.clone(), seed: None });
+        s.submit(Job::Save { uuid: full.clone(), payload: "movy1\ncl 0 0 16 0 x\n".into(), gen: 1, chains: "0\n".into() });
+        s.drain_for_test();
+        let w = s.lib();
+        assert!(!w.contains(&empty), "left empty: gone from the list ({w})");
+        s.submit(Job::Open { uuid: empty.clone(), seed: None });
+        s.drain_for_test();
+        assert!(s.lib().contains(&full), "left with a clip: kept");
     }
 
     /* The Move-keyed sweep must never run over a library: every library id is

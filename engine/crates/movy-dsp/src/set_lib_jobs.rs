@@ -97,7 +97,7 @@ impl LibState {
                 (String::new(), "")
             }
             LibCmd::Migrate { src, force } => {
-                let ran = migrate(&mut self.lib, store, &src, force, now, progress);
+                let ran = migrate(&mut self.lib, store, &src, force, now, open, progress);
                 /* No last-open Set yet (a first start, or it was deleted
                  * elsewhere): the top of the list is the one to reopen. */
                 if self.lib.find(&self.lib.current).is_none() {
@@ -133,6 +133,21 @@ impl LibState {
     pub fn on_open(&mut self, id: &str) -> Option<String> {
         if self.lib.current == id || self.lib.find(id).is_none() { return None; }
         self.lib.current = id.to_string();
+        let err = self.persist();
+        Some(self.publish(err))
+    }
+
+    /// The user left Set `id`. An EMPTY one goes to Trash — a Set made and
+    /// never played into is not one to keep listing. Only on leaving: the open
+    /// Set stays listed (and `current`) however empty, so a restart on it comes
+    /// back to it.
+    pub fn on_left(&mut self, store: &SetStore, id: &str, open: &str, now: u64) -> Option<String> {
+        if id.is_empty() || id == open || self.lib.find(id).is_none() { return None; }
+        let payload = store.read_best(id).map(|p| p.payload).unwrap_or_default();
+        let chains = store.read_chains(id).unwrap_or_default();
+        if crate::set_store::has_content(&payload, &chains) { return None; }
+        self.files.delete(&mut self.lib, id, open, now).ok()?;
+        crate::host::log(&format!("library: {id} was empty, moved to Trash"));
         let err = self.persist();
         Some(self.publish(err))
     }

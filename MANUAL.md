@@ -1533,13 +1533,20 @@ standalone app it migrates every Set from Move into its library, once:
 - **Older Movy storage** — Sets from every earlier Movy, including those that
   kept their tracks in their UI file — is converted to the current format.
 - Sets that only ever existed on an unsaved Move pad come across as
-  **Recovered** *date*. A Set you deleted in Move is not brought back.
+  **Recovered** *date*. A Set you deleted in Move is not brought back, and
+  neither is one with nothing in it (no clip and no module).
 
 Nothing is taken away: the originals stay where they were, so Move and
 Schwung still open them exactly as you left them (edits made since then live
 only in Movy's library). The migration runs **once**; Sets added to Move later
 are not picked up on their own, and one you delete in Movy does not come back.
 To run it again, see **MIGRATE FROM MOVE** under [Settings](#settings--shift--step-2).
+
+**Empty Sets are not kept.** A Set with no clip and no module is never saved,
+and when you switch to another Set it disappears from the list (into
+`Movy/Trash/`). Tempo, scale and other settings on their own don't make a Set
+worth keeping. While an empty Set is open it stays listed, so if you turn Move
+off on it, Movy opens it again next time.
 
 The library lives in `/data/UserData/UserLibrary/Movy/`, outside Movy's
 module folder, so reinstalling Movy keeps it. The Set that was open when you
@@ -1561,7 +1568,8 @@ it), the second runs it. The hint below shows when the migration last ran. It
 name, and brings back one you had deleted. Each replaced Set's previous state
 is kept in its **BACKUPS** first, so a mistaken run can be undone Set by Set.
 Sets you made in Movy, including copies of migrated Sets, are never touched.
-If the open Set is replaced, it reloads.
+If the open Set is replaced, it reloads. A Set from Move that now has nothing
+in it is moved to Trash instead, unless it is the one open.
 
 Movy always renders its chains on several threads and always skips chains that
 are silent. Together those are worth roughly 2× on a heavy set — the difference

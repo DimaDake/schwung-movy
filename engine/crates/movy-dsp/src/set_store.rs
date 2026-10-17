@@ -49,6 +49,23 @@ pub fn is_blank(payload: &str, chains: &str) -> bool {
     payload.len() <= BLANK_STATE.len() && chains.trim() == "0"
 }
 
+/// Anything a user would miss: a clip, or a module on any chain (a track, a
+/// send, the master). Tempo, scale and the master's import mark are not —
+/// a Set holding only those is EMPTY, is never written, and is dropped from the
+/// library when the user leaves it.
+pub fn has_content(payload: &str, chains: &str) -> bool {
+    if crate::version_index::count_clips(payload) > 0 { return true; }
+    /* Read flat: chains.json has had 5- and 6-field records, and the only
+     * document that is NOT content is the master's import mark on its own. An
+     * unreadable file counts as content — a Set is never thrown away on the
+     * strength of a file we could not read. */
+    match crate::chain_state::parse_items_n(chains, 1) {
+        Some(items) => !(items.is_empty()
+            || (items.len() == 6 && items[1] == crate::master_chain::IMPORT_MARK)),
+        None => !matches!(chains.trim(), "" | "0"),
+    }
+}
+
 /// Write-temp → fsync → rename. The rename is atomic, so a reader never sees a
 /// partial canonical file — the thing the two shadows existed to survive.
 pub(crate) fn atomic_write(path: &Path, content: &str) -> Result<(), String> {
@@ -123,7 +140,10 @@ impl SetStore {
     }
 
     pub fn write(&self, uuid: &str, payload: &str, gen: u32, chains: &str) -> Result<(), String> {
-        if is_blank(payload, chains) {
+        /* An empty Set is never saved. One that HAS files is, though: that is
+         * a Set the user just emptied, and skipping the write would bring the
+         * old content back on the next open. */
+        if is_blank(payload, chains) || (!has_content(payload, chains) && !self.has_state(uuid)) {
             return Ok(());
         }
         ensure_dir(&self.set_dir(uuid))?;
@@ -254,6 +274,32 @@ mod tests {
         s.write("u1", BLANK_STATE, 1, "0\n").unwrap();
         assert!(!s.set_dir("u1").exists(), "no directory for an empty Set");
         assert!(!s.has_state("u1"));
+    }
+
+    /* Content is a clip or a module. Tempo, a lane label or the master's
+     * import mark alone are not; an unreadable chains file is, because a Set
+     * is never thrown away on the strength of a file nobody could read. */
+    #[test]
+    fn content_is_a_clip_or_a_module() {
+        let mi = crate::chain_slots::master_index().to_string();
+        let mark = crate::chain_state::pack(&[mi.clone(), "imported".into(), "1".into(), "".into(), "".into(), "".into()]);
+        assert!(!has_content("movy1\nbpm 9000\nau 0 1 64 synth:cutoff\n", "0\n"));
+        assert!(!has_content(BLANK_STATE, &mark), "the import mark alone is not a module");
+        assert!(has_content("movy1\ncl 0 0 16 0 \n", "0\n"), "an empty clip is still a clip");
+        assert!(has_content(BLANK_STATE, CHAINS), "an older chains format still counts");
+        assert!(has_content(BLANK_STATE, "garbage"), "unreadable counts as content");
+    }
+
+    /* An empty Set is never written — but one that HAS files is, or emptying a
+     * Set would be undone by the next open. */
+    #[test]
+    fn an_empty_set_is_never_saved_unless_it_is_being_emptied() {
+        let s = tmp("emptysave");
+        s.write("u1", "movy1\nbpm 9000\n", 1, "0\n").unwrap();
+        assert!(!s.set_dir("u1").exists(), "a new empty Set leaves nothing");
+        s.write("u2", "movy1\ncl 0 0 16 0 x\n", 1, "0\n").unwrap();
+        s.write("u2", "movy1\nbpm 9000\n", 2, "0\n").unwrap();
+        assert_eq!(s.read_best("u2").unwrap().payload, "movy1\nbpm 9000\n", "emptying a Set is saved");
     }
 
     /* …but chains alone are content: a user who built a chain and played no

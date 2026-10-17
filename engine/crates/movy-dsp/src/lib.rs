@@ -136,7 +136,7 @@ pub(crate) fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.95.0";
+const ENGINE_VERSION: &str = "0.96.0";
 
 /* Blocks between autosaves. The callback runs at ~344 Hz, so this is ~2 s —
  * flash on this device is not free and the sequencer is dirty constantly while
@@ -469,7 +469,20 @@ impl Instance {
                 if let Some(job) = set_saver::parse_cmd(val, &self.set_uuid) {
                     let mut carry: Option<set_saver::Job> = None;
                     match &job {
+                        /* Leaving a Set saves the work in hand first: the
+                         * autosave runs every ~2 s, so a switch used to drop
+                         * whatever was played since — and the saver decides
+                         * whether the Set left behind is EMPTY from its files,
+                         * which must be the Set as the user left it. Not while
+                         * an open is still pending: the engine then holds the
+                         * Set before that one, not this. */
                         set_saver::Job::Open { uuid, .. } | set_saver::Job::Blank { uuid } => {
+                            if self.engpersist && !self.open_pending && !self.set_uuid.is_empty()
+                                && *uuid != self.set_uuid
+                            {
+                                let leaving = self.set_uuid.clone();
+                                carry = self.save_in_hand(leaving, true);
+                            }
                             self.set_uuid = uuid.clone();
                             self.open_pending = true;
                         }
@@ -482,59 +495,29 @@ impl Instance {
                          * holding nothing — a re-`dlopen`ed one. */
                         set_saver::Job::Rename { to, .. } => {
                             self.set_uuid = to.clone();
-                            self.set_gen += 1;
-                            let payload = seq_core::persist::serialize(&self.engine);
-                            let chains = chain_state::serialize(&mut self.chains);
-                            carry = Some(set_saver::Job::Save {
-                                uuid: to.clone(),
-                                payload: payload.clone(),
-                                gen: self.set_gen,
-                                chains: chains.clone(),
-                            });
-                            self.last_saved = Some((payload, chains));
-                            self.engine.dirty = false;
+                            carry = self.save_in_hand(to.clone(), false);
+                        }
+                        /* A manual migration may replace the open Set, keeping
+                         * what it replaces as a version — so that version must
+                         * be the work in hand, not the last autosave. And no
+                         * autosave until the saver hands the Set back (it always
+                         * does, replaced or not): one queued behind the
+                         * migration would write the Set it replaced over the
+                         * top of it. */
+                        set_saver::Job::Lib(set_lib_jobs::LibCmd::Migrate { force: true, .. })
+                            if !self.set_uuid.is_empty() && self.engpersist =>
+                        {
+                            self.open_pending = true;
+                            carry = self.save_in_hand(self.set_uuid.clone(), false);
                         }
                         /* A duplicate of the open Set copies its FILES, which
                          * lag the engine by up to one autosave interval. Save
                          * what is in hand first; the saver runs jobs in order,
                          * so the copy sees it. */
-                        /* A manual migration may replace the open Set, keeping
-                         * what it replaces as a version — so that version must
-                         * be the work in hand, not the last autosave. */
-                        set_saver::Job::Lib(set_lib_jobs::LibCmd::Migrate { force: true, .. })
-                            if !self.set_uuid.is_empty() && self.engpersist =>
-                        {
-                            /* And no autosave until the saver hands the Set back
-                             * (it always does, replaced or not): one queued
-                             * behind the migration would write the Set it
-                             * replaced over the top of it. */
-                            self.open_pending = true;
-                            self.set_gen += 1;
-                            let payload = seq_core::persist::serialize(&self.engine);
-                            let chains = chain_state::serialize(&mut self.chains);
-                            carry = Some(set_saver::Job::Save {
-                                uuid: self.set_uuid.clone(),
-                                payload: payload.clone(),
-                                gen: self.set_gen,
-                                chains: chains.clone(),
-                            });
-                            self.last_saved = Some((payload, chains));
-                            self.engine.dirty = false;
-                        }
                         set_saver::Job::Lib(set_lib_jobs::LibCmd::Dup(src, _))
                             if *src == self.set_uuid && self.engpersist =>
                         {
-                            self.set_gen += 1;
-                            let payload = seq_core::persist::serialize(&self.engine);
-                            let chains = chain_state::serialize(&mut self.chains);
-                            carry = Some(set_saver::Job::Save {
-                                uuid: src.clone(),
-                                payload: payload.clone(),
-                                gen: self.set_gen,
-                                chains: chains.clone(),
-                            });
-                            self.last_saved = Some((payload, chains));
-                            self.engine.dirty = false;
+                            carry = self.save_in_hand(src.clone(), false);
                         }
                         _ => {}
                     }
@@ -781,6 +764,20 @@ impl Instance {
      *
      * No file I/O here — that is the saver thread's, and the rule is not
      * negotiable: this is the audio callback. */
+    /// The engine's own state as a save of `uuid`, ahead of a job that must
+    /// see it on disk. `only_changed`: nothing when it matches the last save.
+    fn save_in_hand(&mut self, uuid: String, only_changed: bool) -> Option<set_saver::Job> {
+        let payload = seq_core::persist::serialize(&self.engine);
+        let chains = chain_state::serialize(&mut self.chains);
+        if only_changed && self.last_saved.as_ref().is_some_and(|(p, c)| *p == payload && *c == chains) {
+            return None;
+        }
+        self.set_gen += 1;
+        self.last_saved = Some((payload.clone(), chains.clone()));
+        self.engine.dirty = false;
+        Some(set_saver::Job::Save { uuid, payload, gen: self.set_gen, chains })
+    }
+
     fn service_set(&mut self) {
         let Some(saver) = &self.saver else { return };
 
@@ -1534,6 +1531,35 @@ mod tests {
 
     /* A duplicate of the open Set must carry the edit made a moment ago, not
      * the last autosave: the engine saves what it is holding before the copy. */
+    /* Leaving a Set saves what is in hand: the autosave is ~2 s behind, so a
+     * clip played just before a switch was lost — and the saver now judges
+     * the Set left behind EMPTY from its files, which would then throw it away. */
+    #[test]
+    fn leaving_a_set_saves_the_work_in_hand() {
+        let dir = saver_tmp("leave");
+        let mut inst = Instance::new();
+        inst.set_param("setsdir", &dir);
+        inst.set_param("engpersist", "1");
+        inst.set_param("set", "open a");
+        let mut audio = [0i16; 256];
+        for _ in 0..400 {
+            inst.render(&mut audio);
+            if !inst.open_pending { break; }
+            std::thread::sleep(std::time::Duration::from_millis(2));
+        }
+        assert!(!inst.open_pending, "Set a never applied");
+        inst.set_param("cmd", "tog 0 0 60 100");
+        inst.set_param("set", "open b");
+        let path = format!("{dir}/a/seq-state.json");
+        let mut got = String::new();
+        for _ in 0..400 {
+            got = std::fs::read_to_string(&path).unwrap_or_default();
+            if got.contains("\ncl ") { break; }
+            std::thread::sleep(std::time::Duration::from_millis(5));
+        }
+        assert!(got.contains("\ncl "), "the clip played just before leaving must be on disk: {got:?}");
+    }
+
     #[test]
     fn duplicating_the_open_set_copies_the_work_in_hand() {
         let base = saver_tmp("libdup");
@@ -1553,7 +1579,8 @@ mod tests {
         let w = wait(&mut inst, &|l| !l.contains("made=-") && l.starts_with("rev="));
         let id = w.split(' ').find_map(|t| t.strip_prefix("made=")).unwrap().to_string();
         inst.set_param("set", &format!("open {id}"));
-        inst.set_param("cmd", "bpm 14000");
+        /* A clip, so the Set is not empty — an empty one is never written. */
+        inst.set_param("cmd", "bpm 14000;tog 0 0 60 100");
         inst.set_param("set", &format!("lib dup {id} A Copy"));
         let w = wait(&mut inst, &|l| !l.contains(&format!("made={id}")));
         let copy = w.split(' ').find_map(|t| t.strip_prefix("made=")).unwrap().to_string();
@@ -1579,7 +1606,7 @@ mod tests {
     #[test]
     fn an_applied_set_is_announced_only_once_its_labels_answer() {
         /* One automation lane, which is what the labels have to carry across. */
-        const WITH_LANE: &str = "movy1\nbpm 12000\nau 0 1 64 synth:cutoff\n";
+        const WITH_LANE: &str = "movy1\nbpm 12000\nau 0 1 64 synth:cutoff\ncl 0 0 16 0 x\n";
         let dir = saver_tmp("sapl");
         crate::set_store::SetStore::new(&dir).write("u1", WITH_LANE, 4, "0\n").unwrap();
 

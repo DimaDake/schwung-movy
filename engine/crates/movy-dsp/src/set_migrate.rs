@@ -20,12 +20,12 @@
 //! it replaces as a version; Sets made in movy are never touched by either.
 
 use crate::chain_slots::{master_index, send_index, MOVY_CHAINS, SEND_COMPONENT};
-use crate::chain_state::{pack, parse_items, parse_items_n, LFO_KEYS};
+use crate::chain_state::{pack, parse_items, LFO_KEYS};
 use crate::master_chain::IMPORT_MARK;
 use crate::mini_json::{num, parse, to_json, J};
 use crate::set_envelope::BLANK_STATE;
-use crate::set_library::{clean_name, Entry, Library};
-use crate::set_store::{atomic_write, ensure_dir, is_blank, SetStore};
+use crate::set_library::{clean_name, Entry, LibFiles, Library};
+use crate::set_store::{atomic_write, ensure_dir, has_content, is_blank, SetStore};
 use crate::version_index::Why;
 use crate::version_store::{read_index, write_version, Capture};
 use std::collections::{HashMap, HashSet};
@@ -494,9 +494,27 @@ fn log_notes(id: &str, notes: &[String]) {
     for n in notes { crate::host::log(&format!("migrate: {id}: {n}")); }
 }
 
+/// A Set as Move and schwung have it now: what both the copy and the manual
+/// replace write, and what decides whether there is anything to migrate.
+struct Source {
+    payload: String,
+    chains: String,
+    ui: Option<String>,
+}
+
+fn source(p: &Plan) -> Source {
+    let legacy = p.legacy.as_ref().map(|d| SetStore::new(d.parent().and_then(|r| r.to_str()).unwrap_or("")));
+    let chains = legacy.as_ref().and_then(|s| s.read_chains(&p.uuid));
+    let ui = p.legacy.as_ref().and_then(|d| read_file(&d.join("ui-state.json")));
+    let conv = convert(chains.as_deref(), ui.as_deref(), p.schwung.as_deref());
+    log_notes(&p.id, &conv.notes);
+    let payload = legacy.as_ref().and_then(|s| s.read_best(&p.uuid)).map_or(BLANK_STATE.to_string(), |b| b.payload);
+    Source { payload, chains: conv.chains, ui }
+}
+
 /// A Set the library does not have: its movy folder copied whole (history
 /// included), then its chains rewritten as the merged document.
-fn fresh(lib: &mut Library, store: &SetStore, p: &Plan) -> bool {
+fn fresh(lib: &mut Library, store: &SetStore, p: &Plan, src: &Source) -> bool {
     let tmp_id = format!("{}.importing", p.id);
     let tmp = store.set_dir(&tmp_id);
     let _ = fs::remove_dir_all(&tmp);
@@ -512,14 +530,11 @@ fn fresh(lib: &mut Library, store: &SetStore, p: &Plan) -> bool {
         crate::host::log(&format!("migrate: copy of {} failed; retried next run", p.uuid));
         return false;
     }
-    let conv = convert(store.read_chains(&tmp_id).as_deref(), read_file(&tmp.join("ui-state.json")).as_deref(),
-                       p.schwung.as_deref());
-    log_notes(&p.id, &conv.notes);
-    let best = store.read_best(&tmp_id);
-    let (payload, gen) = best.map_or((BLANK_STATE.to_string(), 1), |b| (b.payload, b.gen));
+    let gen = store.read_best(&tmp_id).map_or(1, |b| b.gen);
+    let payload = src.payload.clone();
     /* A Set with chains but no sequence file opens as UNREADABLE (do_open), so
      * the sequence is written too — blank, when it never had one. */
-    if store.write(&tmp_id, &payload, gen, &conv.chains).is_err() {
+    if store.write(&tmp_id, &payload, gen, &src.chains).is_err() {
         let _ = fs::remove_dir_all(&tmp);
         return false;
     }
@@ -556,7 +571,7 @@ fn fill(store: &SetStore, p: &Plan, now: u64) -> bool {
 /// The manual run on a Set that came from Move: put it back the way Move and
 /// schwung have it. What it replaces is kept as a version first, so a
 /// mis-confirmed run is one restore away from undone.
-fn replace(lib: &mut Library, store: &SetStore, p: &Plan, now: u64) -> Option<Replaced> {
+fn replace(lib: &mut Library, store: &SetStore, p: &Plan, src: &Source, now: u64) -> Option<Replaced> {
     let dir = store.set_dir(&p.id);
     let ui_now = read_file(&dir.join("ui-state.json"));
     let cur = store.read_best(&p.id);
@@ -564,28 +579,22 @@ fn replace(lib: &mut Library, store: &SetStore, p: &Plan, now: u64) -> Option<Re
         write_version(store, &p.id, &Capture { why: Why::PreRestore, payload: &c.payload, gen: c.gen,
             chains: store.read_chains(&p.id).as_deref(), ui: ui_now.as_deref(), now });
     }
-    let src = p.legacy.as_ref().map(|d| SetStore::new(d.parent().and_then(|r| r.to_str()).unwrap_or("")));
-    let src_uuid = p.uuid.as_str();
-    let src_chains = src.as_ref().and_then(|s| s.read_chains(src_uuid));
-    let src_ui = p.legacy.as_ref().and_then(|d| read_file(&d.join("ui-state.json")));
-    let conv = convert(src_chains.as_deref(), src_ui.as_deref(), p.schwung.as_deref());
-    log_notes(&p.id, &conv.notes);
-    let payload = src.as_ref().and_then(|s| s.read_best(src_uuid)).map_or(BLANK_STATE.to_string(), |b| b.payload);
+    let payload = src.payload.clone();
     /* Above every copy AND every version, so nothing on disk outranks it —
      * including the capture just taken. */
     let mut top = cur.map_or(0, |c| c.gen);
     for r in &read_index(store, &p.id).v { top = top.max(r.gen); }
     let gen = top + 1;
-    if is_blank(&payload, &conv.chains) {
+    if is_blank(&payload, &src.chains) {
         store.blank_files(&p.id);
-    } else if let Err(e) = store.write(&p.id, &payload, gen, &conv.chains) {
+    } else if let Err(e) = store.write(&p.id, &payload, gen, &src.chains) {
         crate::host::log(&format!("migrate: {} not replaced: {e}", p.id));
         return None;
     }
     /* The ui half too: a Set Move has no movy blob for gets none, so no
      * octave or scale from what it replaced survives into the copy. */
     let ui_path = dir.join("ui-state.json");
-    match &src_ui {
+    match &src.ui {
         Some(u) => { let _ = atomic_write(&ui_path, u); }
         None => { let _ = fs::remove_file(&ui_path); }
     }
@@ -593,12 +602,13 @@ fn replace(lib: &mut Library, store: &SetStore, p: &Plan, now: u64) -> Option<Re
         e.name = clean_name(&p.name);
         e.clips = crate::version_index::count_clips(&payload);
     }
-    Some(Replaced { id: p.id.clone(), payload, chains: conv.chains, gen, ui: src_ui })
+    Some(Replaced { id: p.id.clone(), payload, chains: src.chains.clone(), gen, ui: src.ui.clone() })
 }
 
 /// Run the migration. `None` when it has already run and this is not the
-/// manual one. `progress(done, total)` is called before each Set.
-pub fn migrate(lib: &mut Library, store: &SetStore, src: &MigrateSrc, force: bool, now: u64,
+/// manual one. `progress(done, total)` is called before each Set; `open` is the
+/// Set the engine has open, which is never moved to Trash from under it.
+pub fn migrate(lib: &mut Library, store: &SetStore, src: &MigrateSrc, force: bool, now: u64, open: &str,
                progress: &dyn Fn(u32, u32)) -> Option<Outcome> {
     if lib.migrated != 0 && !force { return None; }
     let plans = plans(src);
@@ -607,8 +617,16 @@ pub fn migrate(lib: &mut Library, store: &SetStore, src: &MigrateSrc, force: boo
     for (i, p) in plans.iter().enumerate() {
         progress(i as u32, total);
         let existing = lib.sets.iter().any(|e| e.id == p.id && e.legacy.as_deref() == Some(p.uuid.as_str()));
-        let done = if existing && force {
-            match replace(lib, store, p, now) {
+        /* Nothing a user would miss — no clip, no module — is not a Set worth
+         * bringing over, and a manual run takes one it brought earlier away
+         * (to Trash, recoverable), unless it is the one open. */
+        let src = if existing && !force { None } else { Some(source(p)) };
+        let empty = src.as_ref().is_some_and(|s| !has_content(&s.payload, &s.chains));
+        let done = if existing && force && empty {
+            p.id != open && (LibFiles { root: store.root.parent().unwrap_or(&store.root).to_path_buf() })
+                .delete(lib, &p.id, open, now).is_ok()
+        } else if existing && force {
+            match replace(lib, store, p, src.as_ref().unwrap(), now) {
                 Some(r) => { out.replaced.push(r); true }
                 None => false,
             }
@@ -618,8 +636,10 @@ pub fn migrate(lib: &mut Library, store: &SetStore, src: &MigrateSrc, force: boo
             /* Imported once and deleted since: the automatic run must not bring
              * it back. The manual one does — that is what it is for. */
             false
+        } else if empty {
+            false
         } else {
-            fresh(lib, store, p)
+            fresh(lib, store, p, src.as_ref().unwrap())
         };
         if done { out.n += 1; }
         if !lib.imported.iter().any(|u| *u == p.uuid) { lib.imported.push(p.uuid.clone()); }
@@ -633,6 +653,7 @@ pub fn migrate(lib: &mut Library, store: &SetStore, src: &MigrateSrc, force: boo
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::chain_state::parse_items_n;
     use crate::set_library::tests::tmp;
 
     struct Fx { base: PathBuf, src: MigrateSrc, sets: PathBuf }
@@ -650,8 +671,13 @@ mod tests {
 
     impl Fx {
         fn store(&self) -> SetStore { SetStore::new(self.sets.to_str().unwrap()) }
+        /* Raw files, the way an older movy left them — not through
+         * `SetStore::write`, which would refuse an empty one. */
         fn legacy(&self, uuid: &str, payload: &str, chains: &str) {
-            SetStore::new(self.src.legacy.to_str().unwrap()).write(uuid, payload, 3, chains).unwrap();
+            let d = self.src.legacy.join(uuid);
+            fs::create_dir_all(&d).unwrap();
+            fs::write(d.join("seq-state.json"), crate::set_envelope::wrap(payload, 3)).unwrap();
+            fs::write(d.join("chains.json"), chains).unwrap();
         }
         fn on_page(&self, uuid: &str, name: &str, page: Option<u32>) {
             let dir = match page {
@@ -666,7 +692,7 @@ mod tests {
             fs::write(d.join(file), body).unwrap();
         }
         fn run(&self, lib: &mut Library, force: bool) -> Option<Outcome> {
-            migrate(lib, &self.store(), &self.src, force, 1_760_000_000_000, &|_, _| {})
+            migrate(lib, &self.store(), &self.src, force, 1_760_000_000_000, "", &|_, _| {})
         }
         fn chains(&self, id: &str) -> Vec<Rec> {
             parse_items(&self.store().read_chains(id).expect("chains.json")).unwrap()
@@ -816,14 +842,14 @@ mod tests {
         f.on_page("u-gone", "Gone", Some(1));
         /* What the import before this one left: u-kept copied, u-gone deleted. */
         let store = f.store();
-        store.write("u-kept", "movy1\nedited\n", 9, "0\n").unwrap();
+        store.write("u-kept", "movy1\ncl 0 0 16 0 edited\n", 9, "0\n").unwrap();
         let mut lib = Library { imported: vec!["u-kept".into(), "u-gone".into()], ..Default::default() };
         lib.sets.push(Entry { id: "u-kept".into(), name: "Renamed".into(), created: 1, parent: None,
                               legacy: Some("u-kept".into()), clips: 0 });
         f.run(&mut lib, false).unwrap();
         assert_eq!(lib.sets.len(), 1, "a deleted import does not come back on its own");
         assert_eq!(lib.sets[0].name, "Renamed", "the automatic run keeps the user's name");
-        assert_eq!(store.read_best("u-kept").unwrap().payload, "movy1\nedited\n", "and the user's sequence");
+        assert_eq!(store.read_best("u-kept").unwrap().payload, "movy1\ncl 0 0 16 0 edited\n", "and the user's sequence");
         assert!(f.chains("u-kept").iter().any(|r| r[0] == "3" && r[2] == "obxd"), "schwung's track arrives");
         assert!(read_index(&store, "u-kept").v.iter().any(|v| v.why == Why::PreRestore),
                 "and the Set as it was is a version first");
@@ -838,11 +864,11 @@ mod tests {
         let mut lib = Library::default();
         f.run(&mut lib, false).unwrap();
         let store = f.store();
-        store.write("u-a", "movy1\nmy edits\n", 40, "0\n").unwrap();
+        store.write("u-a", "movy1\ncl 0 0 16 0 my edits\n", 40, "0\n").unwrap();
         lib.sets[0].name = "Renamed".into();
         lib.sets.push(Entry { id: "mine".into(), name: "Made in movy".into(), created: 5, parent: None,
                               legacy: None, clips: 0 });
-        store.write("mine", "movy1\nmine\n", 2, "0\n").unwrap();
+        store.write("mine", "movy1\ncl 0 0 16 0 mine\n", 2, "0\n").unwrap();
         lib.imported.push("u-deleted".into());
         f.legacy("u-deleted", SEQ, "0\n");
 
@@ -855,8 +881,42 @@ mod tests {
         assert_eq!(lib.sets.iter().find(|e| e.id == "u-a").unwrap().name, "Set A", "Move's name again");
         let kept = read_index(&store, "u-a").v;
         assert!(kept.iter().any(|v| v.why == Why::PreRestore), "the replaced state is a version");
-        assert_eq!(store.read_best("mine").unwrap().payload, "movy1\nmine\n", "a movy Set is never touched");
+        assert_eq!(store.read_best("mine").unwrap().payload, "movy1\ncl 0 0 16 0 mine\n", "a movy Set is never touched");
         assert!(lib.sets.iter().any(|e| e.id == "u-deleted"), "the manual run brings a deleted import back");
+    }
+
+    /* No clip and no module is not a Set worth having: the first run leaves
+     * it out, and a manual run takes away one an earlier run brought (to
+     * Trash), except the one open. */
+    #[test]
+    fn empty_sets_are_not_migrated_and_a_manual_run_clears_them() {
+        let f = fx("empty");
+        f.legacy("u-tempo", "movy1\nbpm 9000\n", "0\n");          // tempo only: empty
+        f.on_page("u-tempo", "Tempo", Some(0));
+        f.state("u-byp", "slot_0.json", &SLOT.replace("\"bypassed\":0", "\"bypassed\":1")
+            .replace("\"synth\":{\"module\":\"obxd\"", "\"synth\":{\"module\":\"\""));
+        f.on_page("u-byp", "Bypassed", Some(0));
+        f.legacy("u-full", SEQ, "0\n");
+        f.on_page("u-full", "Full", Some(0));
+        let mut lib = Library::default();
+        f.run(&mut lib, false).unwrap();
+        let ids: Vec<&str> = lib.sets.iter().map(|e| e.id.as_str()).collect();
+        assert_eq!(ids, vec!["u-full"], "only a Set with something in it comes across");
+
+        /* Brought over earlier, empty now: what a run before this rule left. */
+        for id in ["u-tempo", "u-open"] {
+            lib.sets.push(Entry { id: id.into(), name: id.into(), created: 1, parent: None,
+                                  legacy: Some(id.into()), clips: 0 });
+            fs::create_dir_all(f.sets.join(id)).unwrap();
+        }
+        f.legacy("u-open", "movy1\n", "0\n");
+        f.on_page("u-open", "Open", Some(1));
+        migrate(&mut lib, &f.store(), &f.src, true, 1_760_000_000_000, "u-open", &|_, _| {}).unwrap();
+        assert!(!lib.sets.iter().any(|e| e.id == "u-tempo"), "an empty Set from Move is taken away");
+        assert!(f.base.join("Movy").join("Trash").read_dir().unwrap().any(|e| e.unwrap()
+            .file_name().to_string_lossy().starts_with("u-tempo")), "to Trash, not erased");
+        assert!(lib.sets.iter().any(|e| e.id == "u-open"), "but never the open one");
+        assert!(lib.sets.iter().any(|e| e.id == "u-full"), "and never one with content");
     }
 
     #[test]

@@ -15,6 +15,11 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Changed
 
+- **Empty Sets are not kept.** A Set with no clip and no module is never saved,
+  and leaving it moves it to Trash; the open one stays, so a restart on it comes
+  back to it. The migration from Move skips empty Sets, and **MIGRATE FROM
+  MOVE** moves Move-origin Sets that are now empty to Trash. (ENGINE 0.96.0)
+
 - **One migration from Move, run once.** The first start of standalone Movy
   brings over every Set from every Schwung set page, under its Move name
   (`Set 1 P3` when two pages share one). It turns Schwung's tracks 1–4 and
@@ -35,6 +40,10 @@ far. Earlier work is summarised in the timeline below for context.
   stay dark even though it renames); under the rename keyboard only Back stays lit.
 
 ### Fixed
+
+- **Switching Sets no longer drops the last couple of seconds of playing.** The
+  engine saves the Set being left before opening the next one; its autosave runs
+  every ~2 s, and a switch used to discard anything newer.
 
 - **A fast jog spin moves the whole way in the Sets, Backups and Settings
   lists.** movy-host delivers a tick's detents as one event, and those lists

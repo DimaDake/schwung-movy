@@ -20,8 +20,9 @@
  *   S7 a named Set opens the keyboard on its own name; Back changes nothing
  *   S8 Copy makes "<name> Copy" and puts the cursor on it
  *   S9 deleting the OPEN Set moves to a neighbour first, then deletes it
- *   S10 after a close and reopen the library still says so
- *   S11 the copy is deleted from the fixture Set, leaving nothing behind
+ *   S10 after a close and reopen the library still says so — and the open
+ *       Set, empty as it is, is still the one open
+ *   S11 leaving the copy for the fixture Set drops it: an empty Set is not kept
  */
 import { scenario } from '../runner.js';
 import { Device } from '../device.js';
@@ -144,18 +145,14 @@ scenario('sets', async (t) => {
         l4.cur === copy && l4.rows.find((r) => r.id === copy)?.name === `${offered} Copy` && !l4.rows.some((r) => r.id === made),
         { expected: `cur ${copy}, "${offered} Copy", no ${made}`, actual: JSON.stringify({ cur: l4.cur, rows: l4.rows.filter((r) => r.id === copy || r.id === made) }) });
 
-    // ── S11: back to the fixture, and leave nothing behind ──────────────────
+    // ── S11: back to the fixture; the copy, empty, goes with leaving it ────
     await cursorTo(await rowOf(home));
     await dev.tap.jog();
     await libUntil('the fixture Set reopened', (l) => l.cur === home);
     await ready();
+    const l5 = await libUntil('the empty copy dropped', (l) => !l.rows.some((r) => r.id === copy));
+    t.check('empty-dropped', 'leaving the empty copy drops it, and the fixture Set is open', l5.cur === home,
+        { expected: `${home} open, no ${copy}`, actual: JSON.stringify({ cur: l5.cur, rows: l5.rows.map((r) => r.id) }) });
     await openPage();
-    await cursorTo(await rowOf(copy));
-    await dev.tap.cc(CC_DELETE);
-    await until(t.tx, 'the delete confirm', sets, (s) => s.confirming, WAIT);
-    await dev.tap.jog();
-    const l5 = await libUntil('the copy deleted', (l) => !l.rows.some((r) => r.id === copy));
-    t.check('cleanup', 'the copy is deleted and the fixture Set is open', l5.cur === home,
-        { expected: home, actual: l5.cur });
     await dev.tap.cc(CC_BACK);
 }, { needs: 'testbus' });

@@ -1,3 +1,4 @@
+#include "log.h"
 #include "midi_in.h"
 #include "spsc.h"
 #include "surface_keys.h"
@@ -41,6 +42,15 @@ int midi_in_feed(const uint8_t pkt[4], uint64_t now_ms) {
     /* shadow_ui.c process_shadow_midi: only SysEx (4-7) and voice (8-E) CINs
      * reach a module; misc/realtime CINs are dropped. */
     if (cin < 0x04 || cin > 0x0E) return 0;
+    /* Cable 14 is Move's "system" cable: the power button sends a companion CC on it
+     * (value 0x3A on a hold, Move's Loop CC number), and as an ordinary CC it dismissed
+     * the power dialog that button had just opened. shadow_ui never hands it to a
+     * module (schwung_shim.c, #292); logged, rate-limited, because it is evidence. */
+    if (cable == 0x0E) {
+        static mh_log_limit_t lim;
+        if (mh_log_limit(&lim, now_ms, 8)) mh_log("midi in: system cable 14 dropped: %02x %02x %02x %02x", pkt[0], pkt[1], pkt[2], pkt[3]);
+        return 0;
+    }
     if (cable == 0 && cin >= 0x08) track_state(pkt[1], pkt[2], pkt[3], now_ms);
     surface_keys_feed(pkt, now_ms);
     if (!spsc_push(&g_ui, pkt, SPSC_CAP)) __atomic_fetch_add(&g_ui_dropped, 1, __ATOMIC_RELAXED);

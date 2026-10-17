@@ -9,6 +9,7 @@
 
 import { CC_PLAY, CC_REC } from '../seq/constants.js';
 import { appState } from './state.js';
+import { mlog } from '../log.js';
 
 export type LeaveAction = 'close' | 'poweroff' | 'cancel';
 type ModalKind = 'leave' | 'power';
@@ -87,7 +88,10 @@ export function openLeaveModal(): void {
 }
 
 /* The host's onPowerButton. A second press while it is up changes nothing. */
+/* The power dialog has been seen to vanish or never show; the `power modal:` lines say what
+ * opened and what closed it (host/surface_keys.c logs the button side). */
 export function openPowerModal(): void {
+    mlog(`power modal: open (already up: ${leaveModalState.active ? leaveModalState.kind : 'no'})`);
     if (leaveModalState.active && leaveModalState.kind === 'power') return;
     leaveModalState.active = true;
     leaveModalState.kind   = 'power';
@@ -96,7 +100,10 @@ export function openPowerModal(): void {
     appState.dirty = true;
 }
 
-export function closeLeaveModal(): void { leaveModalState.active = false; }
+export function closeLeaveModal(why: string): void {
+    if (leaveModalState.active && leaveModalState.kind === 'power') mlog('power modal: closed by ' + why);
+    leaveModalState.active = false;
+}
 
 /* Move the highlight (jog turn). Wraps; no-op when there is a single option. */
 export function leaveModalMove(delta: number): void {
@@ -110,6 +117,7 @@ export function leaveModalMove(delta: number): void {
 export function leaveModalConfirm(): LeaveAction | null {
     if (!leaveModalState.active) return null;
     const opt = options()[leaveModalState.sel] ?? options()[0];
+    if (leaveModalState.kind === 'power') mlog('power modal: confirmed ' + opt.action);
     leaveModalState.active = false;
     return opt.action;
 }

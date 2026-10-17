@@ -22,6 +22,7 @@ static int fails, checks;
 #define CHECK(c, ...) do { checks++; if (!(c)) { fails++; printf("  FAIL %s:%d ", __FILE__, __LINE__); printf(__VA_ARGS__); printf("\n"); } } while (0)
 
 uint64_t mh_now_ms(void) { return 0; }
+void mh_log(const char *fmt, ...) { (void)fmt; }
 
 static void test_deltas(void) {
     CHECK(delta_encode(1) == 1 && delta_encode(200) == 63, "cw encode");
@@ -51,6 +52,11 @@ static void test_midi_in(void) {
     int n = 0;
     while (midi_in_ui_pop(p)) n++;
     CHECK(n == 4, "every voice/sysex packet reaches the UI (got %d)", n);
+    /* Cable 14 is Move's "system" cable: the power button's companion CC rides it,
+     * and as an ordinary CC it dismissed the power dialog the button had just opened. */
+    uint8_t sys[4] = { 0xEB, 0xB0, 0x3A, 0x7F };
+    CHECK(midi_in_feed(sys, 0) == 0, "cable 14 does not go to the engine");
+    CHECK(!midi_in_ui_pop(p), "cable 14 never reaches the UI");
 
     uint8_t s3[4] = { 0x09, 0x90, 19, 127 }, s5[4] = { 0x09, 0x90, 21, 127 }, s3off[4] = { 0x08, 0x80, 19, 0 };
     midi_in_feed(s3, 1000);

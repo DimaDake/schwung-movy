@@ -7,7 +7,8 @@
  *   (schwung_shim.c, the power_sysex lookahead), and only ONCE per launch unless
  *   answered with F0 00 21 1D 01 01 39 02 F7 (audio.c; observed from stock Move). Under the shim MoveOriginal
  *   owns it; here movy-host is the only reader, and hands it to the UI's
- *   onPowerButton (the shutdown dialog, src/app/leave-modal.ts).
+ *   onPowerButton (the shutdown dialog, src/app/leave-modal.ts). The button also sends a
+ *   companion CC on cable 14, which midi_in.c drops: delivered as a CC it closed the dialog.
  * - Fallback exit: Shift + volume-knob touch + jog click, shadow_ui's own
  *   escape combo. A clean close (onUnload saves) — and if the UI has not let
  *   go 2 s later, a hard exit, so a wedged script can never trap the box. */

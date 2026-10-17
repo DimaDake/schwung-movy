@@ -256,7 +256,7 @@ export function onMidiMessageInternal(data: number[]): void {
     if (leaveModalActive()) {
         if ((data[0] & 0xF0) === 0xB0) {
             const k = data[1], v = data[2];
-            if (k === MoveBack && v > 0) { closeLeaveModal(); appState.dirty = true; return; }
+            if (k === MoveBack && v > 0) { closeLeaveModal('Back'); appState.dirty = true; return; }
             if (k === MoveMainKnob) {
                 const delta = decodeDelta(v);
                 if (delta !== 0) { leaveModalMove(delta); appState.dirty = true; }
@@ -280,7 +280,10 @@ export function onMidiMessageInternal(data: number[]): void {
         }
         const pass = leaveModalPass(data);
         if (pass === 'swallow' && !isRelease(data)) return;
-        if (pass === 'dismiss' && !isRelease(data)) { closeLeaveModal(); appState.dirty = true; }
+        if (pass === 'dismiss' && !isRelease(data)) {
+            closeLeaveModal('input ' + data.map((b) => b.toString(16).padStart(2, '0')).join(' '));
+            appState.dirty = true;
+        }
     }
 
     if (seqHandleMidi(data, appState.shiftHeld)) return;

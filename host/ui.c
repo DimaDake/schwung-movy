@@ -109,7 +109,9 @@ int ui_run(const char *ui_path) {
         if (drain_input(ctx, &cb, &d)) { rc = 3; break; }
         if (JS_IsFunction(ctx, cb.tick) && ui_js_call(ctx, cb.tick, NULL, 0, "tick")) { rc = 3; break; }
         ui_eval_service(ctx);
-        if (surface_power_take()) {
+        int presses = surface_power_take();
+        if (presses) {
+            mh_log("power button: onPowerButton (%d press%s since the last tick)", presses, presses > 1 ? "es" : "");
             JSValue f = ui_js_global_fn(ctx, "onPowerButton");
             if (JS_IsFunction(ctx, f) && ui_js_call(ctx, f, NULL, 0, "onPowerButton")) rc = 3;
             else if (!JS_IsFunction(ctx, f)) mh_log("power button: the UI has no onPowerButton");

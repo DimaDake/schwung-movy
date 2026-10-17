@@ -1,3 +1,6 @@
+#include <string.h>
+
+#include "log.h"
 #include "movy_host.h"
 #include "surface_keys.h"
 
@@ -33,10 +36,33 @@ static int matches(const uint8_t pkt[4], int stage) {
     return 1;
 }
 
-static void power_feed(const uint8_t pkt[4]) {
+/* The power button has been reported to miss presses: every way a run ends is logged, so a
+ * miss in debug.log says whether the SysEx never came, came with another command byte, or
+ * was broken up. */
+static mh_log_limit_t g_power_lim;
+static uint8_t g_cmd[3];
+
+static void log_broken(const uint8_t pkt[4], uint64_t now_ms) {
+    if (mh_log_limit(&g_power_lim, now_ms, 8))
+        mh_log("power SysEx run broken at packet %d by %02x %02x %02x %02x", g_stage + 1, pkt[0], pkt[1], pkt[2], pkt[3]);
+}
+
+static void power_feed(const uint8_t pkt[4], uint64_t now_ms) {
     if (matches(pkt, g_stage)) {
-        if (++g_stage == 4) { g_stage = 0; __atomic_add_fetch(&g_power, 1, __ATOMIC_RELEASE); g_ack++; }
+        if (g_stage == 2) memcpy(g_cmd, pkt + 1, 3);
+        if (++g_stage == 4) {
+            g_stage = 0;
+            int n = __atomic_add_fetch(&g_power, 1, __ATOMIC_RELEASE);
+            g_ack++;
+            mh_log("power button: SysEx cmd %02x id %02x val %02x (%d untaken)", g_cmd[0], g_cmd[1], g_cmd[2], n);
+        }
         return;
+    }
+    if (g_stage == 2 && (pkt[0] & 0x0F) == 0x04) {
+        if (mh_log_limit(&g_power_lim, now_ms, 8))
+            mh_log("surface SysEx with command %02x %02x %02x: not the power button", pkt[1], pkt[2], pkt[3]);
+    } else if (g_stage) {
+        log_broken(pkt, now_ms);
     }
     /* A broken run may itself be the start of the next one. */
     g_stage = matches(pkt, 0) ? 1 : 0;
@@ -45,8 +71,8 @@ static void power_feed(const uint8_t pkt[4]) {
 void surface_keys_feed(const uint8_t pkt[4], uint64_t now_ms) {
     if (pkt[0] >> 4) return;   /* cable 0 only: the surface */
     uint8_t cin = pkt[0] & 0x0F;
-    if (cin >= 0x04 && cin <= 0x07) { power_feed(pkt); return; }
-    if (g_stage) g_stage = 0;
+    if (cin >= 0x04 && cin <= 0x07) { power_feed(pkt, now_ms); return; }
+    if (g_stage) { log_broken(pkt, now_ms); g_stage = 0; }
     uint8_t type = pkt[1] & 0xF0, d1 = pkt[2], d2 = pkt[3];
     if (type == 0xB0 && d1 == CC_SHIFT) g_shift = d2 > 0;
     if ((type == 0x90 || type == 0x80) && d1 == NOTE_VOL_TOUCH) g_vol_touch = type == 0x90 && d2 > 0;

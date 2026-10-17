@@ -18,11 +18,11 @@ export async function run() {
 
     openLeaveModal();
     eq('the leave menu offers only Close Movy', leaveModalLabels().join('|'), 'Close Movy');
-    closeLeaveModal();
+    closeLeaveModal('test');
     openPowerModal();
     eq('the power button opens the shutdown dialog', leaveModalTitle() + ' ' + leaveModalLabels().join('|'),
        'Power off? Power off|Cancel');
-    closeLeaveModal();
+    closeLeaveModal('test');
 
     const saved = { exit: globalThis.host_exit_module, off: globalThis.host_power_off,
                     led: globalThis.move_midi_internal_send };

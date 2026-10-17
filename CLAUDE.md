@@ -284,6 +284,18 @@ vdev-gated too, since the vdev runs the pinned C and JS natively.
 
 Say in the commit message which tier gated the change.
 
+**A scoped device run is enough when the change's reach is known.** If the
+device tier is required but only a few scenarios can possibly exercise what
+changed, run those plus `smoke` instead of all ~9 minutes:
+`npm run test:device -- --scenario power,smoke`. It suits a change confined to
+one feature whose scenario is obvious (a power-off path → `power`; send
+routing → `sends`). Name the scenarios in the commit message (`device tier:
+power,smoke`) and say why the rest cannot be affected. **Run the full tier
+anyway** for every release, a schwung version move, anything shared by all
+scenarios (the audio thread, SPI, `midi_in`/`midi_out`, the harness or
+fixture, launch/hold), and whenever you cannot say which scenarios reach the
+change. A scoped run does not replace the vdev tier, which still runs in full.
+
 **Deploy at the end of every code change, even a vdev-gated one.** Once the
 gate is green: `ssh -o ConnectTimeout=3 ableton@move.local true &&
 ./scripts/deploy.sh`, so the box always runs the latest build and anything

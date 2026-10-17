@@ -5,11 +5,12 @@
  *
  * The engine owns the Set files and the wire carries only commands. These pin
  * the safety argument for that design: a lost command costs nothing, a bad
- * engine answer costs no chains, and the UI never writes the state itself.
+ * engine answer costs no chains, and the UI writes neither the state nor the
+ * chains.
  */
 import {
     installMockFs, uninstallMockFs, installMockEngine, uninstallMockEngine,
-    seedStateFile, readBestState, ok, eq, _log,
+    seedStateFile, parseState, ok, eq, _log,
 } from './harness.mjs';
 
 /* A Set with real content: an automation lane and a clip. */
@@ -31,13 +32,9 @@ const { encodeBulk } = await import('../../dist/esm/track/bulk.js');
  * "chains":[] over real chains (observed on device: ui-state.json at 5141
  * bytes became 217).
  *
- * The chains survive now, and not because a guard caught the malformed answer
- * — because there is no answer to catch. serializeUiState makes no engine call
- * at all; it copies chains.json, which the engine wrote from what it holds.
- *
- * The teeth are the engine GET being made to fail: if this ever passes because
- * the UI silently went back to reading the engine, the mirror is not doing its
- * job. */
+ * Closed by having nothing to write: the UI save carries no chains at all, so
+ * no answer — however malformed — can reach chains.json, which only the engine
+ * writes. The teeth are the engine GET failing as it used to. */
 {
     const doc = encodeBulk(['0', 'synth', 'noisemaker', 'blob-A', '', '']);
     installMockFs({ [uuidToChainsPath('C2')]: doc });
@@ -47,9 +44,9 @@ const { encodeBulk } = await import('../../dist/esm/track/bulk.js');
     globalThis.host_module_get_param = (k) => (k === 'chains' ? null : realGet(k));
     try {
         saveSet('C2', true);
-        const ui = JSON.parse(readUiBlob('C2'));
-        eq('§3 closed: an unreadable engine answer costs no chains', ui.chains.length, 1);
-        eq('and the chain is the real one', ui.chains[0].comp[0].m, 'noisemaker');
+        eq('§3 closed: a UI save leaves chains.json alone',
+           globalThis.host_read_file(uuidToChainsPath('C2')), doc);
+        eq('and writes no chains of its own', JSON.parse(readUiBlob('C2')).chains, undefined);
     } finally { globalThis.host_module_get_param = realGet; }
 
     uninstallMockEngine(); uninstallMockFs();
@@ -77,7 +74,7 @@ const { encodeBulk } = await import('../../dist/esm/track/bulk.js');
         saveSet('E', true);
     } finally { globalThis.host_module_set_param = real; }
 
-    eq('a dropped open leaves the Set on disk untouched', readBestState('E').payload, GOOD);
+    eq('a dropped open leaves the Set on disk untouched', parseState(globalThis.host_read_file(uuidToStatePath('E'))).payload, GOOD);
     ok('and the UI can see the engine does not hold it', setStatusUuid() !== 'E');
 
     /* Re-sending is the whole recovery, and it is free: the command is
@@ -103,7 +100,7 @@ const { encodeBulk } = await import('../../dist/esm/track/bulk.js');
     saveSet('G', true);
 
     eq('the UI writes no state', globalThis.host_read_file(uuidToStatePath('G')), before);
-    eq('and the Set on disk still holds the real payload', readBestState('G').payload, GOOD);
+    eq('and the Set on disk still holds the real payload', parseState(globalThis.host_read_file(uuidToStatePath('G'))).payload, GOOD);
 
     uninstallMockEngine(); uninstallMockFs();
 }

@@ -5,7 +5,7 @@
  */
 
 import {
-    uuidToStatePath, sessionTick, resetSetSession, installMockFs, uninstallMockFs, readBestState,
+    uuidToStatePath, sessionTick, resetSetSession, installMockFs, uninstallMockFs,
     keyboardState, installMockEngine, uninstallMockEngine, takeLabelSync, seqEngineTick,
     resetSeqEngine, ok, fail, eq, _log,
 } from './harness.mjs';
@@ -47,7 +47,6 @@ export async function run() {
     const { seqState, resetSeqState } = await import('../../dist/esm/seq/state.js');
     const { sessionTick, sessionPhase, sessionReady, currentSetUuid,
             resetSetSession } = await import('../../dist/esm/seq/set-session.js');
-    const { readBestState } = await import('../../dist/esm/seq/persist-store.js');
 
     const SAVED  = 'movy1\nbpm 14000\ncl 0 0 16 0 0:24:60:100\n';
 
@@ -119,10 +118,10 @@ export async function run() {
      * re-dlopened engine came up EMPTY and the Set had to be opened again;
      * movy-host never reloads the engine, so that path is gone.) */
     {
-        const { eng } = boot({ [uuidToStatePath('S1')]: SAVED });
+        const { fs, eng } = boot({ [uuidToStatePath('S1')]: SAVED });
         run(240);
         eq('R6 opened once', opens(eng, 'S1'), 1);
-        eq('R6 and the Set on disk was never touched by the UI', readBestState('S1').payload, SAVED);
+        eq('R6 and the Set on disk was never touched by the UI', fs.files[uuidToStatePath('S1')], SAVED);
         teardown();
     }
 

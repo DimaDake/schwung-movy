@@ -126,7 +126,7 @@ export async function run() {
   };
 
   resetPorts();
-  /* A saved chain, as chains.json (via chain-mirror.ts) hands it to a load. */
+  /* A saved chain, as chains.json (via chains-file.ts) hands it to a load. */
   const snap = [{ t: 4, comp: [{ c: 'synth', m: 'plaits', s: 'BLOB42' }] }];
 
   writes.length = 0; bulkSets.length = 0;
@@ -267,31 +267,42 @@ export async function run() {
 
   {
     const { resetUiState } = await import('../../dist/esm/seq/ui-state.js');
+    const { loadSet } = await import('../../dist/esm/seq/set-load.js');
+    const { uuidToChainsPath, uuidToUiStatePath } = await import('../../dist/esm/seq/set-context.js');
     const { installMockFs, uninstallMockFs } = await import('../mock-fs.mjs');
     installMockFs();
+    const chainDocs = () => writes.filter((w) => w[0] === 'chains');
+    const lastDoc = () => decodeBulk(chainDocs().at(-1)[1]);
+
+    /* The keyboard defaults are not a chain decision: the load made that. */
     writes.length = 0;
     resetUiState();
-    eq('resetUiState unloads the previous set\'s modules',
-       writes.filter((w) => w[0] === 'chains' && w[1] === '0\n').length, 1);
+    eq('resetUiState sends no chain document', chainDocs().length, 0);
 
-    /* A load restores the chains from chains.json, not from the blob's
-     * mirror: the set migration rewrites only chains.json, and a Set it
-     * brought schwung's tracks into still carries the old mirror. */
-    const { applyUiState } = await import('../../dist/esm/seq/ui-state.js');
-    const { uuidToChainsPath } = await import('../../dist/esm/seq/set-context.js');
+    /* A load restores the chains from chains.json and only from there. An old
+     * blob may still carry a `chains` copy (the set migration rewrites only
+     * chains.json, and a Set it brought schwung's tracks into still has the old
+     * one): it is ignored. */
     const rec = (t, m) => [String(t), 'synth', m, '', '', ''];
+    const OLD = JSON.stringify({ chains: [{ t: 5, comp: [{ c: 'synth', m: 'dexed' }] }] });
     globalThis.host_write_file(uuidToChainsPath('MIG'), encodeBulk([...rec(0, 'obxd'), ...rec(5, 'dexed')]));
-    const blob = JSON.stringify({ chains: [{ t: 5, comp: [{ c: 'synth', m: 'dexed' }] }] });
-    const lastDoc = () => decodeBulk(writes.filter((w) => w[0] === 'chains').at(-1)[1]);
+    globalThis.host_write_file(uuidToUiStatePath('MIG'), OLD);
     writes.length = 0;
-    applyUiState(blob, 'MIG');
-    eq('a load names what chains.json holds, not the stale mirror', lastDoc().join(','), '0,synth,obxd,5,synth,dexed');
+    loadSet('MIG');
+    eq('a load names what chains.json holds', lastDoc().join(','), '0,synth,obxd,5,synth,dexed');
+    eq('in one document', chainDocs().length, 1);
+
+    globalThis.host_write_file(uuidToUiStatePath('NOFILE'), OLD);
     writes.length = 0;
-    resetUiState('MIG');
-    eq('a migrated Set with no ui blob still gets its chains', lastDoc().join(','), '0,synth,obxd,5,synth,dexed');
+    loadSet('NOFILE');
+    eq('no chains.json: a Set with no chains, whatever an old blob says', lastDoc().join(','), '');
+
+    /* Unreadable is not "keep the previous Set's": those would be autosaved
+     * under this Set. Its bytes survive in the version the engine's open took. */
+    globalThis.host_write_file(uuidToChainsPath('BAD'), 'not-a-document');
     writes.length = 0;
-    applyUiState(blob, 'NOFILE');
-    eq('no chains.json: the mirror is all there is', lastDoc().join(','), '5,synth,dexed');
+    loadSet('BAD');
+    eq('an unreadable chains.json opens with none', lastDoc().join(','), '');
     uninstallMockFs();
   }
 

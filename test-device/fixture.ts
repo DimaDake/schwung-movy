@@ -40,8 +40,8 @@ async function scpTo(local: string, remote: string): Promise<void> {
     await run('scp', ['-q', ...SSH_OPTS, local, `ableton@${HOST}:${remote}`]);
 }
 
-/* The chains, read out of the same ui-state.json movy itself restores from —
- * ONE parser, so the fixture and the checks can never disagree about it. */
+/* The chains, read out of the fixture's declaration that chains.json is
+ * rendered from — ONE source, so the fixture and the checks cannot disagree. */
 export function chainEntries(): Array<{ track: string; comp: string; mod: string }> {
     const o = JSON.parse(readFileSync(join(FIXTURE_DIR, 'ui-state.json'), 'utf8'));
     const out: Array<{ track: string; comp: string; mod: string }> = [];
@@ -98,36 +98,29 @@ async function installMovyStateInner(): Promise<void> {
      * as ROOT, so a set movy has saved holds root-owned 644 files — and scp
      * opens the destination for writing, so it is refused however writable the
      * directory is. The directory is ableton's, so unlinking is allowed. */
-    await ssh(`mkdir -p '${dir}' && rm -f '${p}' '${dir}/ui-state.json'`);
+    await ssh(`mkdir -p '${dir}' && rm -f '${p}' '${dir}/ui-state.json' '${dir}/chains.json'`);
     await scpTo(join(FIXTURE_DIR, 'seq-state.json'), p);
 
-    /* ui-state.json is a SECOND per-set file (mute/solo, root, scale, layout,
-     * per-track octave, the movy-hosted chains). Rendered, not copied: each
-     * chain component's preset blob is filled in from the same slot_<N>.json
-     * the schwung half restores from, so the two cannot drift into testing
-     * different sounds. */
+    /* Two more per-set files, both rendered from the fixture's declaration:
+     * ui-state.json (mute/solo, root, scale, layout, per-track octave) and
+     * chains.json (the movy-hosted chains — the engine's file, and the only one
+     * a load reads chains from). Each chain component's preset blob is filled
+     * in from the same slot_<N>.json the schwung half restores from, so the two
+     * cannot drift into testing different sounds. */
     const tmp = mkdtempSync(join(tmpdir(), 'movy-fix-'));
     try {
-        const { stdout } = await run('node', [join(MOVY, 'scripts/fixture-ui-state.mjs'), FIXTURE_DIR],
-                                     { maxBuffer: 8 * 1024 * 1024 });
-        const f = join(tmp, 'ui-state.json');
-        writeFileSync(f, stdout);
-        await scpTo(f, `${dir}/ui-state.json`);
+        for (const [name, args] of [['ui-state.json', []], ['chains.json', ['--chains']]] as const) {
+            const { stdout } = await run('node', [join(MOVY, 'scripts/fixture-ui-state.mjs'), FIXTURE_DIR, ...args],
+                                         { maxBuffer: 8 * 1024 * 1024 });
+            const f = join(tmp, name);
+            writeFileSync(f, stdout);
+            await scpTo(f, `${dir}/${name}`);
+        }
     } finally { rmSync(tmp, { recursive: true, force: true }); }
 
     /* The rotating shadow copies outrank a lower-generation canonical file, so
      * a stale pair would be restored right back over the fixture on next open. */
     await ssh(`rm -f '${dir}/seq-state.1.json' '${dir}/seq-state.2.json'`);
-    /* And chains.json, which is the AUTHORITY for the movy
-     * chains — ui-state.json's copy is only a mirror (spec §6.1). Seeding the
-     * mirror while the previous run's authority survived meant a scenario ran
-     * on whatever modules the last one left: the fixture asked for plaits on
-     * track 0 and the engine reported rex, which reads as "movy chains never
-     * reached the fixture". Removing it puts the Set in the shape the engine's
-     * compatibility path expects — no chains.json, chains read from the ui blob
-     * — which is also what every Set written before this feature looks like.
-     * Mirrors scripts/lib/test-set.sh, which carries the same fix. */
-    await ssh(`rm -f '${dir}/chains.json'`);
 }
 
 /* A one-line summary of the per-set blob: how many automation lanes and clips

@@ -10,13 +10,14 @@
  * fixtures/old-sets/README.md) and are never regenerated. The suite boots the
  * real lifecycle on them — mock fs + mock engine, `seqEngineTick`/`sessionTick`,
  * the same path a device open takes, after the library's copy-import put the
- * files in place — and asserts what the UI half owes a user:
+ * files in place — and asserts what the UI half owes a user: the surface comes
+ * back as it was saved, not at its defaults.
  *
- *   1. the instruments arrive: movy's own chains, with their presets,
- *   2. the surface comes back as it was saved, not at its defaults.
- *
- * The sequencer half is the engine's to read: the Rust
- * persist tests pin that an old blob still loads.
+ * The rest is the engine's. The sequencer: the Rust persist tests pin that an
+ * old blob still loads. The instruments: an old Set's chains live only in its
+ * ui-state.json, which the UI no longer reads chains from — the set migration
+ * turns them into chains.json, pinned on this same capture by
+ * `a_captured_old_set_keeps_its_instruments_and_their_presets` (set_migrate.rs).
  *
  * Run by browser-test/logic.mjs.
  */
@@ -41,7 +42,6 @@ export async function run() {
     const { resetSeqState } = await import('../../dist/esm/seq/state.js');
     const { sessionTick, sessionPhase, resetSetSession }
         = await import('../../dist/esm/seq/set-session.js');
-    const { decodeBulk } = await import('../../dist/esm/track/bulk.js');
     const { keyboardState } = await import('../../dist/esm/keyboard/state.js');
     const { seqState } = await import('../../dist/esm/seq/state.js');
 
@@ -50,9 +50,8 @@ export async function run() {
 
     /* Open the fixture the way the device does — the library names it, the
      * two state files are where movy looks, and nothing else is seeded. The
-     * chain loads are reported drained (`chpend` 0) so the run reaches `ready`
-     * and the preset blobs go out; the settling gap itself is set-settling's
-     * subject, not this suite's. */
+     * chain loads are reported drained (`chpend` 0) so the run reaches `ready`;
+     * the settling gap itself is set-settling's subject, not this suite's. */
     const boot = (arm) => {
         const fs = installMockFs({
             [`${DIR}/seq-state.json`]: read(arm, 'seq-state.json'),
@@ -71,19 +70,6 @@ export async function run() {
         resetPorts();
     };
 
-    /* The chain-set document as `<track>:<component>=<module>` strings, in the
-     * order the engine receives them. Decoded from the wire rather than read
-     * off the saved object: what the engine is TOLD is the only thing that puts
-     * an instrument on a track. */
-    const chainDoc = (eng) => {
-        const items = decodeBulk(eng.params.chains);
-        if (!items) return null;
-        const out = [];
-        for (let i = 0; i + 2 < items.length; i += 3)
-            out.push(`${items[i]}:${items[i + 1]}=${items[i + 2]}`);
-        return out;
-    };
-
     /* ── A set movy hosts the first four tracks of ──────────────────────── */
     {
         const arm = 'movy-chains';
@@ -91,20 +77,6 @@ export async function run() {
 
         eq('A the set opens', sessionPhase(), 'ready');
         ok('A the engine was told to open it', eng.setCmds.includes('open S1'));
-
-        /* The instrument half. The set says movy hosts tracks 1-4, so every
-         * chain in the file has to be named in the document. */
-        eq('A the document names every saved component',
-            (chainDoc(eng) || []).join(' '),
-            '0:synth=8w8 1:synth=obxd 1:fx1=cloudseed 2:synth=nusaw');
-
-        /* And each one's sound: a module with no preset blob is a track that
-         * came back at factory defaults, which reads as "my set is gone" just
-         * as much as an empty slot does. */
-        ok('A track 0 got its preset blob',
-            (eng.params['ch0:synth:state'] || '').includes('"pots"'));
-        ok('A track 1 got its preset blob',
-            (eng.params['ch1:synth:state'] || '').includes('"preset"'));
 
         /* The surface half — the file's octaves and quantise, not the defaults
          * a blank set would come up with. */
@@ -114,10 +86,6 @@ export async function run() {
         ok('without touching the file it was opened from',
             fs.files[`${DIR}/seq-state.json`] === read(arm, 'seq-state.json'));
 
-        /* This vintage predates send buses. The document must still be sent
-         * (it is what unloads the previous set's) and must invent nothing. */
-        ok('A no send bus is conjured out of a set that has none',
-            !(chainDoc(eng) || []).some((e) => e.includes(':fx1=') && e.startsWith('snd')));
         teardown();
     }
 }

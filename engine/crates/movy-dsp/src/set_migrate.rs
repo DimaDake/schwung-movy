@@ -804,6 +804,22 @@ mod tests {
         assert_eq!(recs[2], rec(send_index(1), SEND_COMPONENT, "delay", "d", "", ""));
     }
 
+    /* The verbatim capture off a device that browser-test's old-set suite
+     * opens (fixtures/old-sets/README.md). The UI no longer reads a blob's
+     * chains copy, so this conversion is the ONLY way a Set of that vintage
+     * gets its instruments back — pinned on the real bytes, not a sample. */
+    #[test]
+    fn a_captured_old_set_keeps_its_instruments_and_their_presets() {
+        let ui = include_str!("../../../../browser-test/fixtures/old-sets/movy-chains/ui-state.json");
+        let c = convert(None, Some(ui), None);
+        let recs: Vec<Rec> = parse_items(&c.chains).unwrap().chunks(FIELDS).map(|c| c.to_vec()).collect();
+        let named: Vec<String> = recs.iter().filter(|r| r[1] != IMPORT_MARK)
+            .map(|r| format!("{}:{}={}", r[0], r[1], r[2])).collect();
+        assert_eq!(named.join(" "), "0:synth=8w8 1:synth=obxd 1:fx1=cloudseed 2:synth=nusaw");
+        assert!(recs[0][3].contains("\"pots\""), "track 0 keeps its preset blob");
+        assert!(recs[1][3].contains("\"preset\""), "track 1 keeps its preset blob");
+    }
+
     #[test]
     fn first_run_imports_all_pages_once_and_leaves_every_source_alone() {
         let f = fx("first");

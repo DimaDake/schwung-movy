@@ -4,10 +4,6 @@
  * alongside the state blob. */
 
 import { TRACK_COUNT } from '../track/ref.js';
-import { restoreChains } from '../track/chain-persist.js';
-import { parseMirror, type Mirror } from '../track/chain-mirror.js';
-import { readChainsFile, readUiBlob } from './persist-store.js';
-import { mlog } from '../log.js';
 import { keyboardState, resetOctaves, OCT_MIN, OCT_MAX } from '../keyboard/state.js';
 import { MODE_NAMES, layoutNames } from '../keyboard/layouts.js';
 import { SCALES } from './scales.js';
@@ -15,34 +11,13 @@ import { mutesSnapshot, restoreMutes, resetTrackMutes } from '../mixer/track-mut
 import { seqState } from './state.js';
 import { seqCmd } from './engine.js';
 import { readPrefDefaultQuant } from './prefs.js';
-import type { ChainTrackState } from '../track/chain-persist.js';
-import type { SendState } from '../track/send-persist.js';
 
 const clampInt = (v: unknown, lo: number, hi: number, dflt: number): number =>
     typeof v === 'number' && isFinite(v) ? Math.max(lo, Math.min(hi, v | 0)) : dflt;
 
-/** JSON of the persisted UI keyboard state (tonic, scale, layout, octaves). */
-/* The chains and sends to write: a MIRROR of chains.json, the file the engine
- * writes and the only truth. The copy is what a load falls back on when
- * chains.json is missing or unreadable (`engineChains`).
- *
- * An unreadable chains.json keeps whatever ui-state.json already holds. It is
- * not the authority, so a stale mirror cannot lose work — but writing `[]` over
- * a real chain set would, and that is §3 wearing a different hat. */
-function chainsToWrite(uuid: string): { chains: ChainTrackState[]; sends: SendState[] } {
-    const mirror = parseMirror(readChainsFile(uuid));
-    if (mirror) return mirror;
-    try {
-        const prev = JSON.parse(readUiBlob(uuid) ?? '{}');
-        return {
-            chains: Array.isArray(prev.chains) ? prev.chains : [],
-            sends: Array.isArray(prev.sends) ? prev.sends : [],
-        };
-    } catch { return { chains: [], sends: [] }; }
-}
-
-export function serializeUiState(uuid = ''): string {
-    const chains = chainsToWrite(uuid);
+/** JSON of the persisted UI state. The chains are not in it: they are
+ *  chains.json's, which the engine writes (set-load.ts restores them). */
+export function serializeUiState(): string {
     return JSON.stringify({
         // `root` is kept as track 0's absolute base so an older build reading a
         // newer file still lands on a sane note.
@@ -54,37 +29,13 @@ export function serializeUiState(uuid = ''): string {
         oct:    keyboardState.octave.slice(),
         mutes:  mutesSnapshot(),
         defaultQuant: seqState.defaultQuant,
-        /* The track chains. */
-        chains: chains.chains,
-        /* The send FX buses. Their own array, not a `chains` entry with a
-         * track index above TRACK_COUNT: a send is not a track, and a reader
-         * that took `t` for one would address a track that does not exist. */
-        sends: chains.sends,
     });
 }
 
 /** Apply a serialized UI-state blob (tolerant of missing/invalid fields). */
-/* The chains a LOAD restores. `chains.json` is the truth and the blob's copy
- * only a mirror — one the set migration does not rewrite, so in a
- * Set it brought schwung's tracks into, the mirror would name the old chain set
- * and unload what the migration put there. A Set whose chains.json is missing
- * or unreadable (one written before the engine kept chains) still has only the
- * mirror, and uses it. */
-function engineChains(uuid: string): Mirror | null {
-    return uuid ? parseMirror(readChainsFile(uuid)) : null;
-}
-
-export function applyUiState(blob: string, uuid = ''): void {
+export function applyUiState(blob: string): void {
     try {
         const o = JSON.parse(blob);
-        /* The chains first, before anything cosmetic: the loads are queued one
-         * per audio callback, so the sooner they start the sooner the set sounds
-         * like itself. One document says both what to unload and what to load —
-         * a set with no `chains` key names nothing, which is how a set written
-         * before movy hosted chains still clears the previous set's. */
-        const own = engineChains(uuid);
-        const n = own ? restoreChains(own.chains, own.sends) : restoreChains(o.chains, o.sends);
-        if (n > 0) mlog('chains: restoring ' + n + ' movy chain component(s)');
         if (Array.isArray(o.oct)) {
             for (let t = 0; t < TRACK_COUNT; t++)
                 keyboardState.octave[t] = clampInt(o.oct[t], OCT_MIN, OCT_MAX, 4);
@@ -118,11 +69,7 @@ function applyDefaultQuant(pct: number): void {
 }
 
 /* Defaults match init(): C tonic, Major, Chromatic/4ths, C3 on every track. */
-export function resetUiState(uuid = ''): void {
-    /* A Set with no UI blob wants no movy chains — unless the engine holds
-     * some for it, which is what a Set migrated from schwung alone looks like. */
-    const own = engineChains(uuid);
-    restoreChains(own ? own.chains : null, own ? own.sends : null);
+export function resetUiState(): void {
     keyboardState.rootPc = 0;
     keyboardState.scale = 0;
     keyboardState.mode = 0;

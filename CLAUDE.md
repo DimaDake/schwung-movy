@@ -140,8 +140,11 @@ mirror in the UI.
   commands (`set open|rename|blank|restore|keep|flush`). The UI never reads
   `state` back (the read clears the engine's dirty flag) and never writes the
   state file — two writers of one Set is the hazard
-  `docs/persistence-hazards.md` records. The `engpersist` flag that once kept a
-  UI-writer fallback is gone (2026-10-17).
+  `docs/persistence-hazards.md` records. It does not READ the state file
+  either: a Set whose files will not parse is the engine's answer (`sbad=<uuid>`
+  in the status). Chains are restored only from `chains.json`; `ui-state.json`
+  carries no copy. The `engpersist` flag that once kept a UI-writer fallback
+  is gone (2026-10-17).
 
 ### PErformance
 

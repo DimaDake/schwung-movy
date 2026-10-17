@@ -1,8 +1,13 @@
 #!/usr/bin/env node
-/* fixture-ui-state.mjs — render the device fixture's ui-state.json with each
- * movy chain component's preset blob filled in from the matching slot_<N>.json.
+/* fixture-ui-state.mjs — render the device fixture's two per-set files from
+ * its declaration (`<fixture-dir>/ui-state.json`):
  *
- *   node scripts/fixture-ui-state.mjs <fixture-dir>      # prints to stdout
+ *   node scripts/fixture-ui-state.mjs <fixture-dir>            # ui-state.json
+ *   node scripts/fixture-ui-state.mjs <fixture-dir> --chains   # chains.json
+ *
+ * The declaration's `chains` go to chains.json — the engine's file and the
+ * only one a load reads chains from — with each component's preset blob filled
+ * in from the matching slot_<N>.json. ui-state.json gets everything else.
  *
  * The fixture declares its PARAMETER values once, in schwung's own slot format:
  * `load_file` restores a schwung slot from it, and a movy chain takes the same
@@ -22,8 +27,9 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const dir = process.argv[2];
+const wantChains = process.argv[3] === '--chains';
 if (!dir) {
-    console.error('usage: fixture-ui-state.mjs <fixture-dir>');
+    console.error('usage: fixture-ui-state.mjs <fixture-dir> [--chains]');
     process.exit(2);
 }
 
@@ -39,11 +45,27 @@ function stateFor(track, component) {
     return JSON.stringify(state);
 }
 
-for (const t of ui.chains ?? []) {
-    for (const c of t.comp ?? []) {
-        /* A component the slot file does not describe is a fixture error, not a
-         * chain to quietly leave at its defaults. */
-        c.s = stateFor(t.t, c.c);
-    }
+/* chains.json is src/track/bulk.ts's format: a count, then each item as its
+ * BYTE length and bytes. Six fields per record (`FIELDS` in chain_state.rs):
+ * slot, component, module, blob, mix, lfo — mix and lfo on a track's first
+ * component only. */
+function encodeBulk(items) {
+    return items.length + '\n' + items.map((it) => Buffer.byteLength(it) + '\n' + it).join('');
 }
-process.stdout.write(JSON.stringify(ui) + '\n');
+
+if (wantChains) {
+    const flat = [];
+    for (const t of ui.chains ?? []) {
+        (t.comp ?? []).forEach((c, i) => {
+            /* A component the slot file does not describe is a fixture error,
+             * not a chain to quietly leave at its defaults. */
+            flat.push(String(t.t), c.c, c.m, stateFor(t.t, c.c),
+                      i === 0 ? (t.mix ?? '') : '', i === 0 && t.lfo ? encodeBulk(t.lfo) : '');
+        });
+    }
+    process.stdout.write(encodeBulk(flat));
+} else {
+    delete ui.chains;
+    delete ui.sends;
+    process.stdout.write(JSON.stringify(ui) + '\n');
+}

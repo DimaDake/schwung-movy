@@ -20,15 +20,14 @@ import { ENGINE_VERSION } from '../../dist/esm/seq/constants.js';
 import { NAME_POLL_TICKS, META_RETRY_LIMIT, KNOBS_PER_PAGE, HIERARCHY_RETRY_TICKS } from '../../dist/esm/model/constants.js';
 import { OVERRIDES_MODULE_FILE } from '../../dist/esm/modules/loader.js';
 import {
-    uuidToStatePath, uuidToUiStatePath, BLANK_STATE,
+    uuidToStatePath, uuidToUiStatePath,
 } from '../../dist/esm/seq/set-context.js';
 import { sessionTick, resetSetSession } from '../../dist/esm/seq/set-session.js';
 import { wrapState, parseState, adler32 } from '../../dist/esm/seq/persist-blob.js';
 import { installMockFs, uninstallMockFs } from '../mock-fs.mjs';
 import {
-    safeWrite, readBestState, readUiBlob,
+    safeWrite, readUiBlob,
 } from '../../dist/esm/seq/persist-store.js';
-import { shadowPath } from '../../dist/esm/seq/set-context.js';
 import { keyboardState } from '../../dist/esm/keyboard/state.js';
 import {
     quantCandidates, nextQuantCandidate, quantIndexForPct, candidateIndex,
@@ -244,9 +243,9 @@ export {
     readFileSync, readdirSync, createModel, portFor, trackRef, TRACK_COUNT,
     enumUsesIndex, MOCK_SYNTHS, drumPadOn, drumPadOff, ENGINE_VERSION, NAME_POLL_TICKS, META_RETRY_LIMIT, HIERARCHY_RETRY_TICKS,
     KNOBS_PER_PAGE, OVERRIDES_MODULE_FILE,
-    uuidToStatePath, uuidToUiStatePath, BLANK_STATE, sessionTick, resetSetSession, wrapState,
-    parseState, adler32, installMockFs, uninstallMockFs, safeWrite, readBestState,
-    readUiBlob, seedStateFile, shadowPath, keyboardState, quantCandidates,
+    uuidToStatePath, uuidToUiStatePath, sessionTick, resetSetSession, wrapState,
+    parseState, adler32, installMockFs, uninstallMockFs, safeWrite,
+    readUiBlob, seedStateFile, keyboardState, quantCandidates,
     nextQuantCandidate, quantIndexForPct, candidateIndex, readPrefDefaultQuant, writePrefDefaultQuant,
     readPrefFileDir, writePrefFileDir, PREFS_PATH,
     schwungPageFor, schwungGridReload, schwungGridDrop,

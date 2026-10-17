@@ -90,6 +90,10 @@ struct Shared {
     dirty: u32,
     /// Bytes for the audio thread to apply: (payload, chains, gen).
     loaded: Option<(String, String, u32)>,
+    /// An open whose files exist but do not parse, for the audio thread to
+    /// publish in its status: the UI polls that every block and never the
+    /// `set` GET, so this is how it learns the Set is unreadable.
+    failed_open: Option<String>,
     /// The menu, already formatted. `get_param` runs on the audio thread, so
     /// what it serves must already be a string.
     versions: String,
@@ -257,6 +261,7 @@ fn do_open(store: &SetStore, shared: &Arc<Mutex<Shared>>, uuid: &str, seed: Opti
             sh.phase = Phase::Failed;
             sh.reason = "unreadable".to_string();
             sh.loaded = None;
+            sh.failed_open = Some(uuid.to_string());
         }
         /* A Set with no files is a NEW Set, and its sequence opens blank.
          * `None` here applied nothing, so the engine kept the previous Set's
@@ -509,6 +514,7 @@ impl Saver {
             reason: String::new(),
             dirty: 0,
             loaded: None,
+            failed_open: None,
             versions: String::new(),
             vui: "none".to_string(),
             migp: String::new(),
@@ -597,6 +603,14 @@ impl Saver {
     }
 
     /// Bytes waiting to be applied, taken exactly once.
+    /// What the audio thread has to act on: bytes to apply, and an open that
+    /// failed. One lock for both, because this runs every block.
+    pub fn take_handoff(&self) -> (Option<(String, String, u32)>, Option<String>) {
+        let mut sh = self.shared.lock().unwrap();
+        (sh.loaded.take(), sh.failed_open.take())
+    }
+
+    #[cfg(test)]
     pub fn take_loaded(&self) -> Option<(String, String, u32)> {
         self.shared.lock().unwrap().loaded.take()
     }
@@ -945,6 +959,10 @@ mod tests {
         let st = s.status();
         assert!(st.contains("phase=failed"), "got {st}");
         assert!(st.contains("reason="), "got {st}");
+        let (loaded, failed) = s.take_handoff();
+        assert!(loaded.is_none(), "an unreadable Set hands the engine nothing to apply");
+        assert_eq!(failed.as_deref(), Some("u1"), "and names itself to the audio thread");
+        assert_eq!(s.take_handoff().1, None, "once");
     }
 
     #[test]

@@ -1,17 +1,14 @@
 /* The chains, read back from the file the ENGINE writes.
  *
- * `chains.json` is the truth and this is the only reader of it on the UI side.
- * What it produces also goes into `ui-state.json` as a MIRROR, which a load
- * falls back on when chains.json is missing or unreadable (ui-state.ts).
+ * `chains.json` is the only record of a Set's chains, and this is the only
+ * reader of it on the UI side: a load restores the chains from what it
+ * returns (set-load.ts). The engine writes it from its own state, so there is
+ * no window in which it under-reports.
  *
  * The engine GET this replaced (`readChainDoc`, deleted) was the one behind
  * docs/persistence-hazards.md §3 and §4: an answer that came back malformed was
  * read as an empty set, and an answer taken mid-drain reported chains that had
- * not loaded yet. A file read has neither problem — the engine writes what it
- * holds, and an unreadable file leaves the previous mirror alone.
- *
- * The UI never reads a chain back from the engine: the engine writes from its
- * own state, so there is no window in which it under-reports. */
+ * not loaded yet. */
 
 import { busOfDocSlot, type SendState } from './send-persist.js';
 import { decodeBulk } from './bulk.js';
@@ -22,17 +19,14 @@ import type { ChainComponentState, ChainTrackState } from './chain-persist.js';
 /** Fields per record, matching `FIELDS` in `engine/.../chain_state.rs`. */
 const FIELDS = 6;
 
-export interface Mirror {
+export interface SavedChains {
     chains: ChainTrackState[];
     sends: SendState[];
 }
 
-/** Parse `chains.json`, or null when it is missing or malformed.
- *
- *  NEVER an empty mirror for an unreadable file: writing `[]` over a real chain
- *  set is the §3 failure, and it does not become safe by happening in a
- *  different file. */
-export function parseMirror(raw: string | null): Mirror | null {
+/** Parse `chains.json`, or null when it is missing or malformed — never an
+ *  empty set for an unreadable file, so the caller can tell the two apart. */
+export function parseChainsFile(raw: string | null): SavedChains | null {
     const items = decodeBulk(raw);
     if (!items || items.length % FIELDS !== 0) return null;
 

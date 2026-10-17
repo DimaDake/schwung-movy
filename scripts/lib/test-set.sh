@@ -503,39 +503,35 @@ ts_seq_apply() {
     # is ableton's, so unlinking is allowed and the fresh file is ours again.
     # Until this existed, one movy save turned every remaining suite in a sweep
     # into "could not establish the fixture state".
-    ts_ssh "mkdir -p \"\$(dirname '$p')\" && rm -f '$p' '${p%/*}/ui-state.json'" || return 1
+    ts_ssh "mkdir -p \"\$(dirname '$p')\" && rm -f '$p' '${p%/*}/ui-state.json' '${p%/*}/chains.json'" || return 1
     scp -q "$TS_FIXTURE_DIR/seq-state.json" "ableton@$HOST:$p" || return 1
     # ui-state.json is a SECOND per-set file holding mute/solo, root, scale,
-    # layout, per-track octave and the movy-hosted chains. Resetting only
+    # layout and per-track octave. Resetting only
     # seq-state left a run inheriting the previous one's solo state, which is
     # exactly the cross-test contamination this fixture exists to stop.
     #
     # Rendered, not copied: each chain component's preset blob is filled in from
     # the same slot_<N>.json the schwung half is restored from, so the two hosts
     # cannot drift into testing different sounds. See fixture-ui-state.mjs.
-    local ui rc
+    # The chains go to chains.json, the engine's file and the only one a load
+    # reads them from; fixture-ui-state.mjs renders both from one declaration.
+    local ui ch rc
     ui=$(mktemp) || return 1
+    ch=$(mktemp) || { rm -f "$ui"; return 1; }
     node "$MOVY_DIR/scripts/fixture-ui-state.mjs" "$TS_FIXTURE_DIR" > "$ui" \
-        && scp -q "$ui" "ableton@$HOST:${p%/*}/ui-state.json"
+        && node "$MOVY_DIR/scripts/fixture-ui-state.mjs" "$TS_FIXTURE_DIR" --chains > "$ch" \
+        && scp -q "$ui" "ableton@$HOST:${p%/*}/ui-state.json" \
+        && scp -q "$ch" "ableton@$HOST:${p%/*}/chains.json"
     rc=$?
-    rm -f "$ui"
+    rm -f "$ui" "$ch"
     [ $rc -eq 0 ] || return 1
     # The rotating shadow copies outrank a lower-generation canonical file, so a
     # stale pair would be restored right back over the fixture on the next open.
     ts_ssh "rm -f '${p%/*}/seq-state.1.json' '${p%/*}/seq-state.2.json'"
-    # And chains.json, which is the AUTHORITY for the movy
-    # chains — ui-state.json's copy is only a mirror (spec §6.1). Seeding the
-    # mirror while the previous run's authority survived meant every suite in a
-    # sweep ran on whatever modules the last one left: the fixture asked for
-    # plaits on track 0 and the engine reported rex. Removing it puts the Set in
-    # the shape the engine's compatibility path expects — no chains.json, chains
-    # read from the ui blob — which is also what every Set written before this
-    # feature looks like.
-    ts_ssh "rm -f '${p%/*}/chains.json'"
 }
 
 # The movy-hosted half of the fixture: `<track> <component> <module>` per line,
-# read out of the same `ui-state.json` movy itself restores from. One parser, so
+# read out of the fixture declaration chains.json is rendered from. One source, so
 # what is installed and what is verified cannot disagree — the same rule
 # `ts_fixture_entries` follows for schwung's slots.
 ts_chain_entries() {

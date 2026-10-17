@@ -305,11 +305,18 @@ log('\nTest 8: the smoke scenario keys on phrases the source can actually emit')
  * different sounds. This asserts the render actually produces one. */
 log('\nTest 9: every movy chain component ships the fixture\'s parameter values');
 {
-    const rendered = JSON.parse(
-        execFileSync('node', ['scripts/fixture-ui-state.mjs', 'scripts/fixtures/device-set'],
-                     { encoding: 'utf8' }));
-    const comps = (rendered.chains ?? []).flatMap((t) => (t.comp ?? []).map((c) => [t.t, c]));
+    /* Rendered into chains.json, the only file a load reads chains from, and
+     * read back with the UI's own parser, so a render the device would not
+     * understand fails here rather than as "movy chains never reached the
+     * fixture". */
+    const { parseChainsFile } = await import('../dist/esm/track/chains-file.js');
+    const render = (...args) => execFileSync('node',
+        ['scripts/fixture-ui-state.mjs', 'scripts/fixtures/device-set', ...args], { encoding: 'utf8' });
+    const parsed = parseChainsFile(render('--chains'));
+    ok('the rendered chains.json parses', parsed !== null);
+    const comps = (parsed?.chains ?? []).flatMap((t) => (t.comp ?? []).map((c) => [t.t, c]));
     ok('the fixture declares at least one movy chain', comps.length > 0);
+    ok('and its ui-state.json carries no copy of them', JSON.parse(render()).chains === undefined);
     for (const [t, c] of comps) {
         const slot = JSON.parse(
             readFileSync(`scripts/fixtures/device-set/slot_${t}.json`, 'utf8'));

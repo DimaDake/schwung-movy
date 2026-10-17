@@ -7,7 +7,10 @@
 import { requestLabelSync } from './engine.js';
 import { setsDir } from './set-source.js';
 import { paramGet, paramSet } from '../host/param.js';
-import { readUiBlob } from './persist-store.js';
+import { readChainsFile, readUiBlob } from './persist-store.js';
+import { parseChainsFile } from '../track/chains-file.js';
+import { restoreChains } from '../track/chain-persist.js';
+import { mlog } from '../log.js';
 import { applyUiState } from './ui-state.js';
 
 /* The Set the engine says it has open, or null when it has not answered.
@@ -39,13 +42,29 @@ export function openSet(id: string): void {
 }
 
 
-/** Open a Set in the engine and apply its UI blob if it has one. The caller
- *  decides what to do when it does not. */
+/* The Set's chains, from chains.json. Ahead of anything cosmetic: the loads
+ * are queued one per audio callback, so the sooner they start the sooner the
+ * Set sounds like itself. One document says both what to unload and what to
+ * load, so a Set with no chains still clears the previous Set's.
+ *
+ * An unreadable file restores none, rather than leaving the previous Set's
+ * instruments in place to be saved under this one. Its bytes are not lost: the
+ * engine's open captured them in the version it took before reading. */
+function restoreSetChains(id: string): void {
+    const raw = readChainsFile(id);
+    const saved = parseChainsFile(raw);
+    if (raw !== null && !saved) mlog('chains: ' + id + ' has a chains.json that will not parse — opening with none (kept in BACKUPS)');
+    const n = restoreChains(saved ? saved.chains : null, saved ? saved.sends : null);
+    if (n > 0) mlog('chains: restoring ' + n + ' movy chain component(s)');
+}
+
+/** Open a Set in the engine, restore its chains and apply its UI blob if it
+ *  has one. The caller decides what to do when it does not. */
 export function loadSet(id: string): void {
     /* The engine reads its own files: no payload is read here and none is
-     * pushed, so there is nothing for the param slot to lose. The UI blob still
-     * applies, because its half is still the UI's. */
+     * pushed, so there is nothing for the param slot to lose. */
     openSet(id);
+    restoreSetChains(id);
     const ui = readUiBlob(id);
-    if (ui && ui.length > 0) applyUiState(ui, id);
+    if (ui && ui.length > 0) applyUiState(ui);
 }

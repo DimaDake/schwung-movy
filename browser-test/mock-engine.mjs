@@ -5,6 +5,8 @@
  * tested against the real wire format. */
 
 import { ENGINE_VERSION } from '../dist/esm/seq/constants.js';
+import { parseState } from '../dist/esm/seq/persist-blob.js';
+import { uuidToStatePath } from '../dist/esm/seq/set-context.js';
 
 export function installMockEngine() {
     const engine = {
@@ -127,9 +129,15 @@ export function installMockEngine() {
             if (verb === 'open' && a) {
                 engine.setState.uuid = a;
                 engine.setState.phase = 'ready';
+                /* The saver's verdict on the files, as `sbad` (set_saver.rs
+                 * do_open): files that exist but do not parse are named, never
+                 * read as an empty Set. */
+                const raw = globalThis.host_read_file ? globalThis.host_read_file(uuidToStatePath(a)) : null;
+                engine.status.sbad = raw != null && parseState(raw) === null ? a : '-';
             } else if (verb === 'rename' && b) {
                 engine.setState.uuid = b;
             } else if (verb === 'blank' && a) {
+                engine.status.sbad = '-';
                 engine.setState.uuid = a;
                 engine.setState.phase = 'ready';
                 engine.setState.gen = 0;

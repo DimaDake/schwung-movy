@@ -2,7 +2,7 @@
  *
  * The engine saves the sequence and the chains itself, on its own dirty flag
  * and its own thread. What is left here is `ui-state.json`: the keyboard
- * settings, the mutes and the chains mirror (ui-state.ts). */
+ * settings and the mutes (ui-state.ts). */
 
 import { markUiStateDirty, takeUiDirty, uiStateDirty } from './ui-dirty.js';
 import { serializeUiState } from './ui-state.js';
@@ -25,5 +25,5 @@ export function saveSet(id: string, force = false): void {
     /* Never `state`: reading it would not merely be redundant — the read CLEARS
      * the engine's dirty flag, so a UI that asked would silently cancel the
      * engine's own reason to save. */
-    if ((takeUiDirty() || force) && !writeUiBlob(id, serializeUiState(id))) markUiStateDirty();
+    if ((takeUiDirty() || force) && !writeUiBlob(id, serializeUiState())) markUiStateDirty();
 }

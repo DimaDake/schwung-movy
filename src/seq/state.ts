@@ -57,6 +57,8 @@ export interface SeqUiState {
      * releases at most one per audio callback, so a restored Set's modules
      * arrive over seconds. Nonzero means the Set is named but not yet playable. */
     chainPending: number;
+    /** The Set whose open found unreadable files (`sbad`), or ''. */
+    setBad: string;
     /* CPU meter, exactly as the engine sent them.
      *
      * RAW on purpose: parsed only when the page repaints. 32 numbers split and
@@ -163,6 +165,7 @@ function defaults(): SeqUiState {
         metro: false,
         dirty: false,
         chainPending: 0,
+        setBad: '',
         cpuCost: '',
         cpuWall: '',
         cpuMask: '',

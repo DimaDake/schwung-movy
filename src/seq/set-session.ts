@@ -12,13 +12,12 @@
 
 import { paramGet, paramSet } from '../host/param.js';
 import { mlog } from '../log.js';
-import { engineAbsent, engineAbsentReason, engineGeneration, engineReady } from './engine.js';
+import { engineAbsent, engineAbsentReason, engineCaughtUp, engineGeneration, engineMark, engineReady } from './engine.js';
 import { seqState } from './state.js';
 import { beginSettle, resetSettle, settleCheck, settleOutstanding, settleWaited } from './set-settle.js';
-import { fileExists, uuidToStatePath } from './set-context.js';
 import { deliverChainPayloads } from '../track/chain-payload.js';
 import { refreshModelsForSet } from '../app/model-refresh.js';
-import { readBestState, readUiBlob } from './persist-store.js';
+import { readUiBlob } from './persist-store.js';
 import { clearUiDirty } from './ui-dirty.js';
 import { resetUiState } from './ui-state.js';
 import { loadSet } from './set-load.js';
@@ -41,6 +40,9 @@ let setName = '';
 /* The engine generation whose contents we authored. A re-dlopened engine comes
  * up EMPTY, so a generation we did not load into is not one we may save from. */
 let loadedGen = -1;
+/* The request stream's position once the open went out: a status that has not
+ * caught up with it still describes the Set before, so its `sbad` is not ours. */
+let openMark = -1;
 let saveCountdown = SAVE_TICKS;
 let pollCountdown = 1;
 let failReason = '';
@@ -85,7 +87,7 @@ export function reloadCurrentSet(): void {
 
 export function resetSetSession(): void {
     phase = 'booting';
-    setId = ''; setName = ''; loadedGen = -1;
+    setId = ''; setName = ''; loadedGen = -1; openMark = -1;
     saveCountdown = SAVE_TICKS; pollCountdown = 1;
     failReason = '';
     failScope = 'set';
@@ -100,22 +102,14 @@ export function resetSetSession(): void {
 
 function enterLoading(id: string, name: string): void {
     phase = 'loading';
-    /* A Set whose blob is on disk but unreadable is the case worth naming: the
-     * loader falls back to blank, and a silent blank is exactly how a set
-     * "disappears" from the user's point of view. */
-    if (readBestState(id) === null && fileExists(uuidToStatePath(id))) {
-        failReason = 'SET FILE UNREADABLE';
-        failScope = 'set';
-        mlog('seq: FAILED — ' + id + ' has a state file that will not parse');
-        setId = id; setName = name;
-        phase = 'failed';
-        return;
-    }
     /* No version capture here: the engine's Open job adopts and captures
-     * before it reads, where it already knows what it is about to overwrite. */
+     * before it reads, where it already knows what it is about to overwrite.
+     * Nor a read of the state file: whether it parses is the engine's answer
+     * too (`unreadableOpen`). */
     loadSet(id);
+    openMark = engineMark();
     setId = id; setName = name;
-    if (!readUiBlob(id)) resetUiState(id);
+    if (!readUiBlob(id)) resetUiState();
     clearUiDirty();
     loadedGen = engineGeneration();
     /* Loaded is not playable. `restoreChains` (via the UI blob above) only
@@ -148,6 +142,20 @@ function settleTick(): void {
     refreshModelsForSet();
     phase = 'ready';
     mlog('seq: set ready after ' + settleWaited() + 'ms');
+}
+
+/* A Set whose files are on disk but unreadable is the case worth naming: a
+ * silent blank is exactly how a set "disappears" from the user's point of view.
+ * The engine finds out on its saver thread, possibly after the Set has already
+ * settled, so this is asked while live rather than once. It holds no Set it
+ * could autosave over the files meanwhile. */
+function unreadableOpen(): boolean {
+    if (!setId || seqState.setBad !== setId || !engineCaughtUp(openMark)) return false;
+    failReason = 'SET FILE UNREADABLE';
+    failScope = 'set';
+    mlog('seq: FAILED — ' + setId + ' has a state file that will not parse');
+    phase = 'failed';
+    return true;
 }
 
 /* Every change of Set is a switch, and a switch into a Set with no state of
@@ -220,6 +228,7 @@ export function sessionTick(): void {
         if (!live()) return;
     }
 
+    if (unreadableOpen()) return;
     if (phase === 'settling') { settleTick(); return; }   // nothing to autosave yet
 
     if (--saveCountdown > 0) return;

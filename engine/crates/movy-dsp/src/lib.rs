@@ -136,7 +136,7 @@ pub(crate) fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.97.0";
+const ENGINE_VERSION: &str = "0.98.0";
 
 /* Blocks between autosaves. The callback runs at ~344 Hz, so this is ~2 s —
  * flash on this device is not free and the sequencer is dirty constantly while
@@ -206,6 +206,10 @@ struct Instance {
     /// dead. A counter turns "has it landed?" into a comparison the UI can make
     /// from the poll it already does, the same way `chgen` does for chains.
     set_applied: u32,
+    /// The Set whose open found files that do not parse, or "" — published as
+    /// `sbad` so the UI can name the failure from the poll it already makes,
+    /// instead of reading the state files itself. Cleared by the next open.
+    set_bad: String,
     /// Next block at which an autosave may run. Rate limits flash writes.
     save_at: u64,
 }
@@ -228,6 +232,7 @@ impl Instance {
             set_uuid: String::new(),
             set_gen: 0,
             open_pending: false,
+            set_bad: String::new(),
             set_applied: 0,
             save_at: 0,
             probe_gen: 0,
@@ -476,6 +481,7 @@ impl Instance {
                             }
                             self.set_uuid = uuid.clone();
                             self.open_pending = true;
+                            self.set_bad.clear();
                         }
                         /* A rename is "the Set I am holding just got its real
                          * name", so what has to travel is the work IN HAND, not
@@ -623,6 +629,9 @@ impl Instance {
                  * open the UI asked for lands here, asynchronously, and the
                  * only thing that can say so is this thread. */
                 s.push_str(&format!(" sapl={}", self.set_applied));
+                /* An unreadable open, named by uuid: a status taken before the
+                 * next open reached this thread still says which Set it means. */
+                s.push_str(&format!(" sbad={}", if self.set_bad.is_empty() { "-" } else { &self.set_bad }));
                 Some(s)
             }
             /* The UI compares this `uuid` against the Set it believes is open
@@ -772,7 +781,11 @@ impl Instance {
     fn service_set(&mut self) {
         let Some(saver) = &self.saver else { return };
 
-        if let Some((payload, chains, gen)) = saver.take_loaded() {
+        let (loaded, failed) = saver.take_handoff();
+        if let Some(uuid) = failed {
+            self.set_bad = uuid;
+        }
+        if let Some((payload, chains, gen)) = loaded {
             /* persist::load resets before applying, so a failed open leaves the
              * previous Set rather than half of the new one. */
             if seq_core::persist::load(&mut self.engine, &payload) {
@@ -1690,6 +1703,34 @@ mod tests {
         inst.set_param("set", "gc keep=u1");          // no sets= — not a sweep
         inst.set_param("set", "");
         assert!(inst.get_param("set").is_some(), "the saver must still answer");
+    }
+
+    /* The UI no longer reads the state files to tell an unreadable Set from a
+     * blank one: the engine says so in the status it publishes every block,
+     * named by uuid so a status taken before the next open still means the
+     * Set it names. */
+    #[test]
+    fn an_unreadable_open_is_named_in_the_status() {
+        let dir = saver_tmp("sbad");
+        std::fs::create_dir_all(format!("{dir}/bad")).unwrap();
+        std::fs::write(format!("{dir}/bad/seq-state.json"), "movy1\ngen 4\ntorn").unwrap();
+        let mut inst = Instance::new();
+        inst.set_param("setsdir", &dir);
+        let mut audio = [0i16; 256];
+        let sbad = |i: &mut Instance| -> String {
+            let st = i.get_param("status").unwrap();
+            st.split(' ').find_map(|kv| kv.strip_prefix("sbad=")).unwrap_or("").to_string()
+        };
+        assert_eq!(sbad(&mut inst), "-", "nothing has failed yet");
+
+        inst.set_param("set", "open bad");
+        inst.saver.as_ref().unwrap().drain_for_test();
+        inst.render(&mut audio);
+        assert_eq!(sbad(&mut inst), "bad");
+        assert!(inst.open_pending, "and the engine holds no Set it may autosave over it");
+
+        inst.set_param("set", "open good");
+        assert_eq!(sbad(&mut inst), "-", "the next open clears it");
     }
 
     #[test]

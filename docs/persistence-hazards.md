@@ -13,7 +13,10 @@ state crossing the `overtake_dsp` param slot in one direction or the other.
 **Engine-owned persistence removes that wire** — the engine reads and writes
 its own files and the UI sends commands. §2, §3 and §4 are closed. The
 `engpersist` flag that once switched between the two paths is gone, and with
-it the UI-writer path (2026-10-17): the UI writes only `ui-state.json`.
+it the UI-writer path (2026-10-17): the UI writes only `ui-state.json`, which
+no longer carries a copy of the chains; it reads chains only from `chains.json`
+and never opens `seq-state.json` — an unreadable Set is the engine's verdict,
+published as `sbad` in its per-block status.
 
 Design: `docs/superpowers/specs/2026-09-11-engine-owned-persistence-design.md`.
 Plan: `plans/2026-09-12-engine-owned-persistence.md`.
@@ -198,7 +201,7 @@ Stated plainly so nobody inherits a stronger claim than the evidence supports:
 ## 8. FIXED — the sends were never in the chain set at all
 
 Found 2026-09-15, after the migration, and appended rather than renumbered so
-the §3 references in `chain-mirror.ts` and `set-state.mjs` keep pointing where
+the §3 references in `chains-file.ts` (then `chain-mirror.ts`) and `set-state.mjs` keep pointing where
 they point. It is here because it is the one hazard in this file that is **not**
 a wire: no amount of param-slot care would have found it, and `engpersist`
 inherited it intact.

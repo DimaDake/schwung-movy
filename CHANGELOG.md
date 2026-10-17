@@ -15,6 +15,15 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Changed
 
+- **The UI reads one file of a Set's engine state: `chains.json`.** It no
+  longer opens `seq-state.json` to tell an unreadable Set from a blank one; the
+  engine reports that in its per-block status (`sbad`). `ui-state.json` no
+  longer carries a copy of the chains, and a load takes them only from
+  `chains.json` — an older Set whose chains lived in `ui-state.json` gets them
+  from the migration from Move, which already converts them. An unreadable
+  `chains.json` opens with no chains; its bytes stay in the Set's BACKUPS.
+  (ENGINE 0.98.0)
+
 - **Settings lists only BACKUPS and MIGRATE FROM MOVE.** The debug-only
   **Engine Saves** switch (`engpersist`) is gone and the engine always owns the
   Set files; the UI-writer fallback behind it — its own state writes, version

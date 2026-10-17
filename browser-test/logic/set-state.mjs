@@ -5,9 +5,9 @@
  */
 
 import {
-    uuidToStatePath, uuidToUiStatePath, BLANK_STATE, sessionTick, resetSetSession, wrapState,
-    parseState, adler32, installMockFs, uninstallMockFs, safeWrite, readBestState,
-    readUiBlob, shadowPath, keyboardState, installMockEngine,
+    uuidToStatePath, uuidToUiStatePath, sessionTick, resetSetSession, wrapState,
+    parseState, adler32, installMockFs, uninstallMockFs, safeWrite,
+    readUiBlob, keyboardState, installMockEngine,
     uninstallMockEngine, seqEngineTick, resetSeqEngine, ok, eq, _log,
 } from './harness.mjs';
 
@@ -20,7 +20,6 @@ _log('\nTest: set-context paths');
         '/data/UserData/UserLibrary/Movy/Sets/abc-123/seq-state.json');
     eq('ui path keyed by uuid', uuidToUiStatePath('abc-123'),
         '/data/UserData/UserLibrary/Movy/Sets/abc-123/ui-state.json');
-    eq('BLANK_STATE is the format tag', BLANK_STATE, 'movy1\n');
 }
 
 _log('\nTest: state envelope (truncation is detectable)');
@@ -57,45 +56,10 @@ _log('\nTest: state envelope (truncation is detectable)');
     eq('adler32 discriminates', adler32('movy1\n') !== adler32('movy2\n'), true);
 }
 
-_log('\nTest: reading the best copy of a Set\'s state');
+_log('\nTest: verified writes');
 {
     const fs = installMockFs();
-    const canon = uuidToStatePath('S');
-
-    /* The engine writes a shadow first and the canonical file last; the UI
-     * only reads them, to tell an unreadable Set from a blank one. */
-    fs.files[shadowPath('S', 1)] = wrapState('movy1\nbpm 12000\n', 1);
-    fs.files[shadowPath('S', 2)] = wrapState('movy1\nbpm 14000\n', 2);
-    fs.files[canon] = wrapState('movy1\nbpm 14000\n', 2);
-    eq('best-of read picks the newest', readBestState('S').payload, 'movy1\nbpm 14000\n');
-
-    // The crash case: the canonical file is torn. The set must come back from
-    // a shadow instead of loading as a partial set or as blank.
-    fs.files[canon] = fs.files[canon].slice(0, 12);
-    eq('torn canonical falls back to a shadow', readBestState('S').payload, 'movy1\nbpm 14000\n');
-    eq('fallback keeps the generation', readBestState('S').gen, 2);
-
-    // Every copy torn → nothing loadable, and the caller must be told so it
-    // can say so rather than silently start from a partial set.
-    fs.files[shadowPath('S', 1)] = 'movy1\ngen 1\nbp';
-    fs.files[shadowPath('S', 2)] = 'movy1\ngen 2\nbp';
-    eq('all copies torn → null', readBestState('S'), null);
-
-    /* Downgrade ordering: a build without the envelope never touches the
-     * shadows, so a canonical file with no envelope AND real content was
-     * necessarily written after them — the user rolled back, worked, rolled
-     * forward. Generation order would restore the pre-downgrade set over it. */
-    fs.files[shadowPath('D', 1)] = wrapState('movy1\nbpm 11000\n', 9);
-    fs.files[uuidToStatePath('D')] = 'movy1\nbpm 12500\nswing 60\n';
-    eq('legacy canonical outranks a higher-gen shadow',
-        readBestState('D').payload, 'movy1\nbpm 12500\nswing 60\n');
-
-    // …but a canonical torn down past its `gen` line also reads as legacy, and
-    // that must fall through to the shadow rather than blank the set.
-    fs.files[uuidToStatePath('D')] = 'movy1\n';
-    eq('bare-tag canonical falls through to the shadow',
-        readBestState('D').payload, 'movy1\nbpm 11000\n');
-
+    const canon = uuidToUiStatePath('S');
     eq('safeWrite verifies content', safeWrite(canon, 'hello'), true);
     fs.failWrites = true;
     eq('safeWrite reports host failure', safeWrite(canon, 'nope'), false);
@@ -110,12 +74,11 @@ _log('\nTest: reading the best copy of a Set\'s state');
     uninstallMockFs();
 }
 
-/* ── The chains mirror ────────────────────────────────────────────────────
- * ui-state.json carries a copy of chains.json, which a load falls back on when
- * chains.json is missing or unreadable (ui-state.ts `engineChains`). */
-_log('\nTest: the chains mirror written from the engine\'s own file');
+/* ── chains.json, as the UI reads it ────────────────────────────────────── */
+_log('\nTest: chains.json, read from the engine\'s own file');
 {
     const { saveSet } = await import('../../dist/esm/seq/set-save.js');
+    const { parseChainsFile } = await import('../../dist/esm/track/chains-file.js');
     const { uuidToChainsPath } = await import('../../dist/esm/seq/set-context.js');
     const { encodeBulk } = await import('../../dist/esm/track/bulk.js');
 
@@ -130,39 +93,32 @@ _log('\nTest: the chains mirror written from the engine\'s own file');
         '0', 'fx1', 'mverb', 'blob-B', '', '',
         String(sendDocSlot(1)), 'fx1', 'delay', 'blob-C', '', '',
     ]);
-
-    const fs = installMockFs({ [uuidToChainsPath('M')]: doc });
-    installMockEngine();
-
-    saveSet('M', true);
-    const ui = JSON.parse(readUiBlob('M'));
-    eq('the mirror carries the module', ui.chains[0].comp[0].m, 'noisemaker');
-    eq('and the preset blob, which no chain document carries',
-       ui.chains[0].comp[0].s, 'blob-A');
-    eq('and the second component', ui.chains[0].comp[1].m, 'mverb');
-    eq('and the mixer triple', ui.chains[0].mix, '1.0000,0.0000,0');
+    const got = parseChainsFile(doc);
+    eq('the module', got.chains[0].comp[0].m, 'noisemaker');
+    eq('and the preset blob, which no chain document carries', got.chains[0].comp[0].s, 'blob-A');
+    eq('and the second component', got.chains[0].comp[1].m, 'mverb');
+    eq('and the mixer triple', got.chains[0].mix, '1.0000,0.0000,0');
 
     /* The send half of the same document. It lands in its own array, not as a
      * chain with `t: 17`: a reader that took `t` for a track index would address
      * a track that does not exist. Engine side is `GOLDEN` in chain_state.rs. */
-    eq('a send record becomes a send, not a chain', ui.sends.length, 1);
-    eq('addressed to its bus, not its document slot', ui.sends[0].b, 1);
-    eq('with its module', ui.sends[0].m, 'delay');
-    eq('and its preset blob', ui.sends[0].s, 'blob-C');
+    eq('a send record becomes a send, not a chain', got.sends.length, 1);
+    eq('addressed to its bus, not its document slot', got.sends[0].b, 1);
+    eq('with its module', got.sends[0].m, 'delay');
+    eq('and its preset blob', got.sends[0].s, 'blob-C');
 
-    /* An unreadable chains.json must NEVER write []: that is §3 in a new file.
-     * It is not the authority, so keeping a stale mirror costs nothing, while
-     * blanking it throws away the one fallback a load has. */
-    fs.files[uuidToChainsPath('M')] = 'not-a-document';
+    /* Unreadable is null, never an empty set: the caller has to be able to tell
+     * a broken file from a Set with no chains. */
+    eq('an unreadable file is null', parseChainsFile('not-a-document'), null);
+    eq('and so is a missing one', parseChainsFile(null), null);
+
+    /* One record of the chains: ui-state.json carries none. */
+    installMockFs({ [uuidToChainsPath('M')]: doc });
+    installMockEngine();
     saveSet('M', true);
-    const after = JSON.parse(readUiBlob('M'));
-    /* Counted before it is indexed: the failure mode this guards against is an
-     * EMPTY mirror, and indexing [0] of that throws instead of reporting. */
-    eq('an unreadable chains.json leaves the previous mirror alone',
-       after.chains.length, 1);
-    eq('with its module', after.chains[0]?.comp[0]?.m, 'noisemaker');
-    eq('and its blob', after.chains[0]?.comp[0]?.s, 'blob-A');
-
+    const ui = JSON.parse(readUiBlob('M'));
+    eq('ui-state.json holds no chains', ui.chains, undefined);
+    eq('nor sends', ui.sends, undefined);
     uninstallMockEngine(); uninstallMockFs();
 }
 }

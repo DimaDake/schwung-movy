@@ -113,6 +113,7 @@ export function parseStatus(s: string): void {
         }
         else if (key === 'prq') noteProbeGen(Number(val) || 0);
         else if (key === 'chpend') seqState.chainPending = Number(val) || 0;
+        else if (key === 'sbad') seqState.setBad = val === '-' ? '' : val;
         else if (key === 'chcost') seqState.cpuCost = val;
         else if (key === 'chwall') seqState.cpuWall = val;
         else if (key === 'chmask') seqState.cpuMask = val;

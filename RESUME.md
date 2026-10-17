@@ -1,5 +1,11 @@
 # RESUME — Movy embeds Schwung's UI
 
+> **Historical (superseded 2026-10-13).** The migration this note resumes is
+> closed: Schwung's pages are the only ones (`plans/2026-10-13-schwung-pages-only.md`).
+> The A/B scripts it lists (`schwung-app-check`, `-interaction-check`,
+> `-knob-feel-check`, `-pagination-check`, `-grid-delta`) were deleted with
+> movy's own pages; they are at tag `movy-pages-final`.
+
 Parked 2026-08-31; merged up to movy `v0.31.0` and pushed 2026-09-04.
 Working end to end on hardware behind a build flag.
 

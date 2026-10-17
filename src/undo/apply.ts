@@ -27,7 +27,7 @@ import { beginModuleRestore, beginParamRestore, moduleRestorePending } from './m
 import type { UndoEntry, UndoResult } from './types.js';
 import { writeUiField, type UiField } from './ui-fields.js';
 import { changeDetail } from './label.js';
-import { refreshModels, syncParamsToModels } from './param-sync.js';
+import { refreshModels } from './param-sync.js';
 import { moduleReadKey } from '../chain/config.js';
 import { captureModuleState, dumpModuleParams, stateIsParsable } from './module-dump.js';
 
@@ -145,9 +145,6 @@ function applyEntry(e: UndoEntry, undoing: boolean): void {
             const p = e.paramOps[i];
             setChain(p.slot, p.key, undoing ? p.old : p.new);
         }
-        /* The write went straight to the DSP; the models mirror these values and
-         * would otherwise keep showing the pre-undo reading for seconds. */
-        if (e.paramOps.length > 0) syncParamsToModels(e.paramOps);
     }
     if (e.seqSnap) {
         const restore = undoing ? e.seqSnap.before : e.seqSnap.after;

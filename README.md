@@ -43,9 +43,9 @@ those modules and sequencing them on the device itself is bare-bones. Movy fills
 that gap with two things:
 
 1. **A parameter UI** — pick up any Schwung module and its parameters are laid
-   out on the 8 knobs as tidy pages, with arc knobs, enum lists, and even
-   auto-detected ADSR envelope graphics. Walk the whole chain (MIDI FX → Synth →
-   FX 1 → FX 2 → LFO) with the jog wheel.
+   out on the 8 knobs as Schwung's own pages, the same ones its slot editor
+   draws. Walk the whole chain (MIDI FX → Synth → FX 1 → FX 2 → LFO) with the
+   jog wheel.
 2. **A sequencer** — a **16-track** step sequencer whose behaviour is aligned as
    closely as possible with Move's native sequencer (clips, session view, live +
    step recording, automation), but driving Schwung modules instead of Move's
@@ -68,31 +68,13 @@ Movy stands on the shoulders of several projects:
 
 ## Features
 
-- **Parameter pages for any module** — every section a module publishes, however
-  deeply nested (30 pages for Helm, 49 for MiniJV), with knobs, arc knobs,
-  scrollable enum overlays, auto-detected ADSR **envelope graphics**, module
-  **LFO waveforms**, and **filter-response curves** instead of separate knobs.
+- **Parameter pages for any module** — every page a module publishes, drawn by
+  Schwung's own page planner: arcs, switches, lists, envelopes, filter curves,
+  a sampler's waveform with its play position. Movy adds the header, the page
+  bar and the file browser, and records every edit for undo and automation.
 
-  ![Envelope graphic](docs/assets/env_dual.png)
-  ![Filter curve](docs/assets/filter_lp.png)
-  ![Enum overlay](docs/assets/enum_overlay.png)
-
-- **Every control drawn as what it is** — waveform selectors draw their wave, a
-  sampler draws its sample with the play position, loop and grain spray on it,
-  band gains draw an EQ curve, cuts draw the band they leave, levels are faders
-  and booleans are switches. All detected from what the module reports.
-
-  ![Waveform knob cells](docs/assets/wave_cells.png)
-  ![Sample waveform with position](docs/assets/wav_sample.png)
-  ![Loudness knobs drawn as faders](docs/assets/faders.png)
-  ![Boolean knobs drawn as switches](docs/assets/switches.png)
-
-- **Bank & collection selectors** — modules that keep their sounds in
-  collections (Dexed's `.syx` banks, OB-Xd's `.fxb` banks, SF2 soundfonts, NAM
-  models and cabinets) get a cell beside the preset knob. Touch it to pick;
-  nothing loads until you let go.
-
-  ![Choosing a bank](docs/assets/items_overlay.png)
+  ![A module's parameter page](docs/assets/page_body.png)
+  ![Sample waveform with position](docs/assets/page_sample.png)
 
 - **Full chain navigation** — MIDI FX, Synth, FX 1, FX 2 per track, plus a
   master chain in Session view: three send FX and four master FX.
@@ -114,15 +96,15 @@ Movy stands on the shoulders of several projects:
 
 - **Per-track LFOs** — two LFOs per track with a live waveform display
   (shape, rate/sync, depth, phase, retrigger). **Hold any knob** to modulate
-  that parameter with an LFO; modulated params are marked with a `~`.
+  that parameter with an LFO; modulated params wear a mark.
 
-  ![LFO page](docs/assets/lfo_lfo1.png)
+  ![LFO page](docs/assets/page_lfo.png)
 
 - **16-track sequencer**, aligned with Move: clips, Session view & clip
   launching, live recording (with count-in/metronome), step entry, loop/bar
   editing, duplicate/delete, and **parameter automation**.
 
-  ![Live automation](docs/assets/auto_live.png)
+  ![An automated parameter](docs/assets/page_lane_mark.png)
 
 - **Scenes & Song mode** — hold **Loop** in Session view and the step row
   becomes eight **scenes**: each one launches a whole clip column across all 16
@@ -173,7 +155,7 @@ Movy stands on the shoulders of several projects:
   or fold **in key** (4ths or inline) so a wrong note is impossible. Each
   track remembers its own octave, saved with the set.
 
-  ![Set parameters](docs/assets/main-default.png)
+  ![Set parameters](docs/assets/page_setparams.png)
 
   ![Keyboard view](docs/assets/keys_view.png)
 
@@ -181,14 +163,14 @@ Movy stands on the shoulders of several projects:
   parameter pages, and **Mute + pad** silences one voice of the sequence
   (**Shift** solos it) — a silenced voice sits grey on the pads.
 
-  ![Drum module](docs/assets/drum-mrdrums-global.png)
+  ![Drum module](docs/assets/page_voice_pad.png)
 
 - **Beyond Move** — three pages of features Move doesn't have on-device:
   - **Step parameters** — per-trig velocity, length, probability, condition, invert.
   - **Clip parameters** — scale, length, transpose.
   - **Set parameters** — tempo, swing, root, key.
 
-  ![Step parameters](docs/assets/step_page_knobs.png)
+  ![Step parameters](docs/assets/page_stepparams.png)
 
 - **Settings — Shift + Step 2** — a scrolling list and older versions of the
   set (**BACKUPS**). Each row explains itself on screen.

@@ -73,23 +73,15 @@ export type ProbeDeps = {
     paramBody?: () => { body: string;
                        schwung?: { pageIndex: number; pageCount: number;
                                    keys: (string | null)[] } | null;
+                       /* The eight drawn cells (app/param-body.ts `lastDrawnCells`). */
+                       cells?: ({ name: string; value: string; automated: boolean;
+                                  touched: boolean; modulated: boolean } | null)[];
                        session: boolean; masterDetail: boolean; masterSlot: number };
 };
 
 let deps: ProbeDeps | null = null;
 export function setProbeDeps(d: ProbeDeps): void { deps = d; }
 
-function cellOf(pv: ViewModel['rows'][number][number]) {
-    if (!pv) return null;
-    return {
-        name:      pv.shortName,
-        value:     pv.displayValue,
-        automated: !!pv.automated,
-        touched:   !!pv.touched,
-        modulated: !!pv.modulated,
-        style:     pv.renderStyle,
-    };
-}
 
 function runVerb(verb: string, arg: unknown): object {
     if (!deps) return { error: 'probe deps not installed' };
@@ -127,13 +119,11 @@ export function answer(requestJson: string): string {
         case 'page': {
             const vm = lastVm;
             if (!vm) return tag({ error: 'no render yet' });
-            const cells = [];
-            for (let r = 0; r < 2; r++) {
-                for (let c = 0; c < 4; c++) cells.push(cellOf(vm.rows[r]?.[c] ?? null));
-            }
+            const body = deps?.paramBody ? deps.paramBody() : null;
             return tag({
-                pageIndex: vm.bankIndex,
-                pageCount: vm.bankCount,
+                /* The drawn page's position; 0 of 0 while a page is loading. */
+                pageIndex: body?.schwung?.pageIndex ?? 0,
+                pageCount: body?.schwung?.pageCount ?? 0,
                 held:      !!vm.automationHeld,
                 module:    vm.moduleName,
                 /* Read live rather than from the VM: the VM is the last page
@@ -142,8 +132,8 @@ export function answer(requestJson: string): string {
                  * here that answers about the screen instead of about the page
                  * on it. */
                 view:      deps ? deps.view() : 'unknown',
-                ...(deps?.paramBody ? deps.paramBody() : {}),
-                cells,
+                ...(body ?? {}),
+                cells: body?.cells ?? new Array(8).fill(null),
             });
         }
         case 'leave': {

@@ -23,7 +23,7 @@ import { setProbeDeps } from '../test/probe.js';
 import { leaveModalActive, leaveModalLabels, leaveModalSel, leaveModalTitle } from './leave-modal.js';
 import { sessionReady } from '../seq/set-session.js';
 import { clearWidgets, isWidgetAvailable } from '../renderer/schwung-widgets.js';
-import { lastParamBody, lastSchwungPage } from './param-body.js';
+import { lastParamBody, lastSchwungPage, lastDrawnCells } from './param-body.js';
 
 import { laneKeysForTrack } from '../seq/automation.js';
 
@@ -42,7 +42,7 @@ export function init(): void {
         widgetAvailable: (k) => isWidgetAvailable(k),
         widgetClear:     () => clearWidgets(),
         paramBody:       () => {
-            return { body: lastParamBody(), schwung: lastSchwungPage(),
+            return { body: lastParamBody(), schwung: lastSchwungPage(), cells: lastDrawnCells(),
                      session: seqState.sessionMode, masterDetail: appState.masterDetail,
                      masterSlot: appState.masterChainIndex };
         },

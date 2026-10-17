@@ -1,7 +1,7 @@
 import type { ViewModel } from '../types/viewmodel.js';
 import { fontPrint, fontWidth } from '../font/index.js';
 import { drawHeader, drawBankBar, drawHeaderWithPadIcon, PAD_ICON_W, padIconShown } from './header.js';
-import { drawEnumOverlay, drawJogToast } from './overlay.js';
+import { drawJogToast } from './overlay.js';
 import { W } from './layout.js';
 import { CHAIN_SLOTS, isVirtualSlot, type ChainSlot } from '../chain/config.js';
 import type { PageChrome } from './schwung-page-chrome.js';
@@ -33,12 +33,10 @@ export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: b
         return;
     }
 
-    /* Same precedence as the module page: the param under the hand, read by
-     * whoever drew the cell, outranks movy's own toast about a different one. */
+    /* Same precedence as the module page: the held param's readout is the
+     * page's own. */
     if (chrome?.header) {
         drawHeader(chrome.header.left, chrome.header.right, chrome.header.inverted);
-    } else if (vm.toast) {
-        drawHeader(vm.toast.fullName, vm.overlay ? null : vm.toast.value, true);
     } else {
         /* A voice page carries the same pad-grid icon it does on the module
          * page: this view shows that page's knobs, so which voice they belong
@@ -53,9 +51,8 @@ export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: b
          * however many pads you moved through. Falls back to the module name
          * the moment the module has not declared one. */
         /* A virtual slot (the LFO) has no module to name — this end names the
-         * PAGE: Schwung's own label while it draws, movy's bank otherwise.
-         * movy's bank is inert under Schwung, and read LFO 1 over LFO 2 (SP-60). */
-        let right = (virtual && (chrome?.pageLabel || vm.bankName)) || vm.drumPadName || vm.moduleName;
+         * PAGE, Schwung's own label (LFO 1 / LFO 2, SP-60). */
+        let right = (virtual && chrome?.pageLabel) || vm.drumPadName || vm.moduleName;
         while (right.length > 1 && fontWidth(right) > maxRight) right = right.slice(0, -1);
         if (showIcon) drawHeaderWithPadIcon(trackLabel, right, vm.drumPadCount, vm.drumCurrentPad);
         else          drawHeader(trackLabel, right, false);
@@ -75,14 +72,7 @@ export function renderChainView(vm: ViewModel, chainIndex: number, jogTouched: b
     /* THE CHAIN VIEW DRAWS THE KNOB BODY TOO — movy opens on this view. */
     body();
 
-    if (vm.overlay) drawEnumOverlay(vm);
-    /* The file-browse gesture works here too — the touched param lives on the
-     * model, not the view (see midi/router.ts) — and this view already draws
-     * the file overlay. Without the hint the same touch showed the list on the
-     * chain page but not how to open the full browser, which reads as the toast
-     * appearing only sometimes. */
-    if (vm.toast?.browseHint) drawJogToast('JOG: BROWSE');
-    else if (jogTouched) drawJogToast(virtual ? 'CLICK JOG: EDIT LFOS' : 'SHIFT+CLICK SWAP  CLICK OPEN');
+    if (jogTouched) drawJogToast(virtual ? 'CLICK JOG: EDIT LFOS' : 'SHIFT+CLICK SWAP  CLICK OPEN');
     /* Null on this view today — the jog moves chain slots, not Schwung's pages,
      * so the caller withholds the hint band (see schwung-page-chrome.ts). Kept
      * so the two views that share the body contract share its precedence too. */

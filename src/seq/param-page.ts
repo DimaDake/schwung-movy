@@ -17,8 +17,6 @@
  * the view and leave a page latched (see the note in main-page.ts). */
 
 import { appState, VIEW_CHAIN, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS, VIEW_FLAGS, VIEW_CPU, VIEW_VERSIONS, VIEW_SETS } from '../app/state.js';
-import { clearMainPage } from './main-page.js';
-import { clearClipPage } from './clip-page.js';
 import { clearFlagsPage } from './flags-page.js';
 import { clearCpuPage } from './cpu-page.js';
 
@@ -44,8 +42,6 @@ export function openParamPage(view: number): void {
     // Only the FIRST entry records an origin; opening a sibling replaces the
     // page without deepening the hierarchy.
     if (!paramPageActive()) paramPageState.origin = appState.currentView;
-    clearMainPage();
-    clearClipPage();
     clearFlagsPage();
     clearCpuPage();
     appState.currentView = view;
@@ -53,8 +49,6 @@ export function openParamPage(view: number): void {
 
 /** Leave the layer; returns the origin view, which it has already restored. */
 export function closeParamPage(): number {
-    clearMainPage();
-    clearClipPage();
     clearFlagsPage();
     clearCpuPage();
     appState.currentView = paramPageState.origin;

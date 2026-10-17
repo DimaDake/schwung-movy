@@ -7,7 +7,7 @@
 import {
     readFileSync, installMockEngine, uninstallMockEngine, popUndo, undoDepth, peekUndo,
     resetUndoState, resetUndoGroups, installEditGuard, takeUndoViolation, resetUndoRecord, undoOnce,
-    valueChange, seqEngineTick, resetSeqEngine, SHADOW_UI_SLOTS, createLfoModel, appState,
+    valueChange, seqEngineTick, resetSeqEngine, SHADOW_UI_SLOTS, appState,
     eq, _log, env,
 } from './harness.mjs';
 
@@ -16,17 +16,18 @@ export async function run() {
 
 {
     _log('\nundo — clip params are three separate edits:');
-    const { clipPageKnob, clipPageTouch, clipPageRelease, resetClipPage } =
+    /* The writers Schwung's Clip Params cells call (SP-53), one per knob. */
+    const { applyClipLength, applyClipTranspose, applyClipScaleIdx, clipPageRelease } =
         await import('../../dist/esm/seq/clip-page.js');
     const { seqState, resetSeqState } = await import('../../dist/esm/seq/state.js');
     const engine = installMockEngine();
-    resetUndoState(); resetUndoGroups(); resetUndoRecord(); resetSeqState(); resetClipPage();
+    resetUndoState(); resetUndoGroups(); resetUndoRecord(); resetSeqState();
     resetSeqEngine(); seqEngineTick();
     installEditGuard(); takeUndoViolation();
     seqState.lenSteps = 16;
 
-    /* LENGTH: many detents, one entry, committed on release. */
-    for (let i = 0; i < 6; i++) clipPageKnob(1, 3, 0);
+    /* LENGTH: many writes, one entry, committed on release. */
+    for (let i = 0; i < 6; i++) applyClipLength(0, seqState.lenSteps + 1);
     seqEngineTick();
     eq('a clip edit is recorded, not ungrouped', takeUndoViolation(), '');
     eq('and stays open while the knob is turning', undoDepth(), 0);
@@ -37,8 +38,8 @@ export async function run() {
     /* Each knob is its own undo — turning TRANSPOSE after LENGTH must not join
      * the length's entry. */
     resetUndoState();
-    for (let i = 0; i < 6; i++) clipPageKnob(1, 3, 0);
-    for (let i = 0; i < 6; i++) clipPageKnob(2, 3, 0);
+    for (let i = 0; i < 6; i++) applyClipLength(0, seqState.lenSteps + 1);
+    for (let i = 0; i < 6; i++) applyClipTranspose(0, seqState.clipTranspose + 1);
     seqEngineTick();
     eq('a second knob closes the first entry', undoDepth(), 1);
     clipPageRelease(2, 0);
@@ -46,14 +47,10 @@ export async function run() {
     eq('the newest being the transpose', popUndo().verb, 'TRANSPOSE');
     eq('under the length', popUndo().verb, 'CLIP LENGTH');
 
-    /* SCALE commits on release (the overlay only moves a selection), so the
-     * sweep through it must record nothing until the knob is let go. */
+    /* SCALE is one entry too, and it reaches the engine. */
     resetUndoState();
-    clipPageTouch(0, true);
-    for (let i = 0; i < 4; i++) clipPageKnob(0, 3, 0);
-    seqEngineTick();
-    eq('sweeping the scale overlay records nothing', undoDepth(), 0);
-    eq('and issues no engine command', engine.ops.some((o) => o.startsWith('cscl')), false);
+    applyClipScaleIdx(0, seqState.clipScaleIdx + 1);
+    applyClipScaleIdx(0, seqState.clipScaleIdx + 1);
     clipPageRelease(0, 0);
     seqEngineTick();
     eq('the release commits the scale', undoDepth(), 1);
@@ -61,18 +58,15 @@ export async function run() {
     eq('having reached the engine', engine.ops.some((o) => o.startsWith('cscl')), true);
     eq('with no ungrouped edit anywhere', takeUndoViolation(), '');
 
-    /* A scale sweep that lands back where it started changes nothing. */
+    /* A write that lands where it started changes nothing. */
     resetUndoState();
-    const before = seqState.clipScaleIdx;
-    clipPageTouch(0, true);
+    applyClipScaleIdx(0, seqState.clipScaleIdx);
     clipPageRelease(0, 0);
     eq('an unmoved scale knob is no undo', undoDepth(), 0);
-    eq('and leaves the scale alone', seqState.clipScaleIdx, before);
 
-    resetUndoState(); resetUndoGroups(); resetSeqState(); resetClipPage(); resetSeqEngine();
+    resetUndoState(); resetUndoGroups(); resetSeqState(); resetSeqEngine();
     uninstallMockEngine();
 }
-
 
 {
     _log('\nundo — params that rewrite the module carry a flag:');
@@ -124,56 +118,6 @@ export async function run() {
     eq('a plain value is untouched', valueChange('SAW', 'SQUARE'), 'SAW -> SQUARE');
     eq('and a number still loses its wire-format zeros',
         valueChange('0.5000', '1.0000'), '0.5 -> 1');
-}
-
-
-{
-    _log('\nundo — a randomiser is undoable even with no state blob:');
-    (await import('../../dist/esm/seq/automation.js')).resetAutomation();
-    const { readFileSync: rf2 } = await import('node:fs');
-    const { createDumpBoot: cdb } = await import('../dump-boot.mjs');
-    const fleet2 = JSON.parse(rf2('docs/module-dump/device-dump.json', 'utf8'));
-    const { bootFromDumpEntry: boot2 } = await cdb(fleet2);
-    const m = boot2(fleet2.modules.find((e) => e.id === 'weird-dreams'));
-    resetUndoState(); resetUndoGroups(); resetUndoRecord();
-    installEditGuard(); takeUndoViolation();
-
-    const params = m.dumpLayout().params;
-    const gi = params.findIndex((p) => p?.key === 'rnd_kit');
-    for (let i = 0; i < Math.floor(gi / 8); i++) m.changePage(1);
-    const physK = gi % 8;
-
-    /* A randomiser has no param op of its own, so on a module with no
-     * `<component>:state` it recorded NOTHING and could not be undone at all.
-     * (This fixture has none — the module dump never captured that key. Real
-     * weird-dreams DOES expose one, as a non-JSON blob.) */
-    eq('this fixture has no state blob',
-        globalThis.shadow_get_param(0, 'synth:state'), null);
-
-    m.handleKnobTouch(physK);
-    m.handleKnobDelta(physK, 3);
-    for (let i = 0; i < 4; i++) m.tick();
-    eq('firing the randomiser is not an ungrouped edit', takeUndoViolation(), '');
-    eq('and it records an entry', undoDepth(), 1);
-    const e = peekUndo();
-    eq('named after the randomiser', e.verb, 'RND KIT');
-    eq('carrying a param dump in place of the blob', e.stateOp?.oldParams?.length > 0, true);
-    eq('with no state blob', e.stateOp?.oldState, '');
-
-    /* The kit and the per-voice presets must lead the dump: each rewrites the
-     * params under it, so writing them after would undo the restore. */
-    const keys = e.stateOp.oldParams.map(([k]) => k);
-    const lead = keys.slice(0, e.stateOp.oldLeadCount);
-    eq('the kit leads', lead.includes('kit'), true);
-    eq('and so do the voice presets', lead.filter((k) => k.endsWith('_preset')).length > 0, true);
-    eq('while ordinary params follow', keys.slice(e.stateOp.oldLeadCount).includes('v1_vol'), true);
-
-    /* Nothing that fires an action is ever in the dump — replaying rnd_kit
-     * during a restore would randomise again, forever. */
-    eq('the randomiser is not in its own dump', keys.includes('rnd_kit'), false);
-
-    resetUndoState(); resetUndoGroups();
-    env.restoreHostGlobals();   // as above — this block boots its own dump too
 }
 
 
@@ -261,56 +205,6 @@ export async function run() {
     delete globalThis.shadow_set_param;
     env.restoreSetParamTimeout();
     resetModuleRestore();
-}
-
-
-{
-    _log('\nundo — a restored LFO value reaches the LFO page:');
-    const { createLfoModel } = await import('../../dist/esm/lfo/model.js');
-    const { appState } = await import('../../dist/esm/app/state.js');
-    const { syncParamsToModels } = await import('../../dist/esm/undo/param-sync.js');
-
-    const store = {
-        'lfo1:depth': '0.20', 'lfo1:rate_hz': '2.0', 'lfo1:shape': '0',
-        'lfo1:target': '', 'lfo1:target_param': '', 'lfo1:enabled': '0',
-        'lfo1:phase_offset': '0', 'lfo1:retrigger': '0', 'lfo1:mode': '0',
-        'lfo2:depth': '0.10', 'lfo2:rate_hz': '1.0', 'lfo2:shape': '0',
-        'lfo2:target': '', 'lfo2:target_param': '', 'lfo2:enabled': '0',
-        'lfo2:phase_offset': '0', 'lfo2:retrigger': '0', 'lfo2:mode': '0',
-    };
-    globalThis.shadow_get_param = (slot, key) => store[key] ?? null;
-    globalThis.shadow_set_param = (slot, key, v) => { store[key] = v; return true; };
-
-    const lfo = createLfoModel(0);
-    lfo.reset();
-    const shown = () => JSON.stringify(lfo.getViewModel().rows);
-    const before = shown();
-
-    /* The page reads its values from schwung ONCE and owns them after that, so
-     * a value changed behind its back — which is exactly what an undo does,
-     * writing straight to the chain — left the display on the old reading. */
-    store['lfo1:depth'] = '0.90';
-    eq('the page does not notice a write behind its back', shown(), before);
-
-    appState.trackModels[0] = [lfo];
-    /* Slot LFO params are written as `lfo1:…`, but the page is one virtual
-     * component keyed 'lfo' — without mapping the prefix nothing is found. */
-    syncParamsToModels([{ slot: 0, key: 'lfo1:depth', old: '0.20', new: '0.90' }]);
-    eq('after the undo sync it re-reads', shown() !== before, true);
-    eq('and the frame is marked for repaint', appState.dirty, true);
-
-    /* The second LFO is a page of its own, so look at it there — a reload drops
-     * the cache for both, which is what lets an undo on either one show. */
-    lfo.changePage(1);
-    const lfo2Before = shown();
-    store['lfo2:rate_hz'] = '8.0';
-    eq('LFO 2 also ignores a write behind its back', shown(), lfo2Before);
-    syncParamsToModels([{ slot: 0, key: 'lfo2:rate_hz', old: '1.0', new: '8.0' }]);
-    eq('and re-reads after the undo sync', shown() !== lfo2Before, true);
-
-    appState.trackModels[0] = [];
-    delete globalThis.shadow_get_param;
-    delete globalThis.shadow_set_param;
 }
 
 

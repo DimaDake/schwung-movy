@@ -26,7 +26,6 @@
  * Declaration-wins / heuristic-as-fallback, the pattern schwung's voices
  * contract (#411) established: a module that says nothing keeps movy's guess. */
 
-import type { KnobParam } from '../types/param.js';
 
 export type Access = 'read' | 'write';
 
@@ -45,10 +44,3 @@ export function readAccess(...declared: unknown[]): Access | null {
     return null;
 }
 
-/* Whether a long list may open the picker. Readouts have nothing to set and
- * triggers have nothing to choose — schwung says neither is divable, and movy
- * would otherwise dive both: a readout through the >6-option touch rule, a
- * trigger through the long press, which accepts ANY enum. */
-export function isDivable(p: KnobParam): boolean {
-    return !p.readOnly && p.behavior !== 'trigger';
-}

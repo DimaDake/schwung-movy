@@ -107,51 +107,6 @@ export async function run() {
 }
 
 {
-    _log('\nundo — a restored param reaches the on-screen knob:');
-    /* Undo writes straight into the DSP, which is what the sound needs — but
-     * movy's knobs read a mirror that only re-reads on a slow round robin, so
-     * without a targeted refresh the screen kept showing the value undo had
-     * just taken back. That is what "undo doesn't work" looked like. */
-    const store = { ...MOCK_SYNTHS.moog, 'synth:preset': '0' };
-    globalThis.shadow_get_param = (slot, key) => store[key] ?? null;
-    globalThis.shadow_set_param = (slot, key, v) => { store[key] = v; return true; };
-
-    const { createModel } = await import('../../dist/esm/model/index.js');
-    const { appState } = await import('../../dist/esm/app/state.js');
-    const { moduleRestoreTick, resetModuleRestore } =
-        await import('../../dist/esm/undo/module-apply.js');
-    resetUndoState(); resetUndoGroups(); resetUndoApply(); resetModuleRestore();
-
-    const m = createModel(portFor(0), 'synth');
-    m.reset();
-    for (let i = 0; i < 40; i++) m.tick();
-    appState.trackModels[0] = [m];
-
-    const presetVm = () => m.getViewModel().rows.flat().find((p) => p && p.renderStyle === 'preset');
-    m.handleKnobTouch(0);
-    m.handleKnobDelta(0, 6);
-    for (let i = 0; i < 4; i++) m.tick();
-    endEdit();
-    eq('turning the preset knob wrote to the chain', store['synth:preset'] !== '0', true);
-    eq('and recorded an undo entry', undoDepth(), 1);
-    const shown = presetVm()?.displayValue;
-
-    undoOnce();
-    /* With no `<component>:state` blob this module falls back to a param dump,
-     * which is replayed in stages (preset first, then the params it rewrites) —
-     * so the restore lands over the next ticks rather than inside undoOnce. */
-    for (let i = 0; i < 120; i++) { moduleRestoreTick(); m.tick(); }
-    eq('undo restored the chain value', store['synth:preset'], '0');
-    eq('and the knob on screen followed it now, not seconds later',
-        presetVm()?.displayValue !== shown, true);
-
-    env.restoreParamGlobals();
-    appState.trackModels[0] = [];
-    resetUndoState(); resetUndoGroups(); resetUndoApply();
-}
-
-
-{
     _log('\nundo — a restored module gets its preset back, in the right order:');
     (await import('../../dist/esm/seq/automation.js')).resetAutomation();
     const { dumpModuleParams, paramTier } = await import('../../dist/esm/undo/module-dump.js');

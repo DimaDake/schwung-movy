@@ -28,7 +28,7 @@
  * the same rule drum-declared.ts follows for the opposite direction of travel.
  */
 import type { ModuleConfig, BankConfig, KnobSlot } from '../types/param.js';
-import { buildRotation } from './page-rotation.js';
+import { voiceRunLength } from './page-rotation.js';
 import { vizOf, settleSpans } from './config-viz.js';
 
 /** A level key movy invents, from the bank name the user already sees. */
@@ -92,20 +92,18 @@ function isPadScopedRack(cfg: ModuleConfig): boolean {
  * banks become plain pages, and movy's seam resolves each alias at movy's pad
  * (schwung-page-focus `ioKey`), exactly as MOVY mode's config pages do.
  *
- * THE VOICE RUN IS `buildRotation`'S, NOT A SECOND COPY OF IT. movy's own
- * renderer already decides which banks are voices — the LEADING run of
- * pad-declaring banks — and the rule is load-bearing rather than pedantic: the
+ * THE VOICE RUN IS `voiceRunLength`'S, NOT A SECOND COPY OF IT — the LEADING
+ * run of pad-declaring banks — and the rule is load-bearing rather than
+ * pedantic: the
  * configs these four modules SHIP declare `pad` on page-only banks too (a spare
  * grid seat that opens Master), which reads as "every bank is a voice" and
- * collapses the module to one page. That is why movy ships replacements. Asking
- * page-rotation keeps one definition of "voice", so movy's page order and
- * Schwung's cannot drift apart.
+ * collapses the module to one page. That is why movy ships replacements.
  */
 export function hierarchyFromConfig(cfg: ModuleConfig | null | undefined): any | null {
     const banks = cfg && cfg.banks;
     if (!banks || !banks.length) return null;
 
-    const { voiceCount } = buildRotation(banks.map((b) => b.pad), 0);
+    const voiceCount = voiceRunLength(banks.map((b) => b.pad));
     if (voiceCount === 0) return isPadScopedRack(cfg!) ? padScopedHierarchy(cfg!, banks) : null;
 
     /* The note a pad plays is the config's arithmetic, `padNoteStart + pad - 1`

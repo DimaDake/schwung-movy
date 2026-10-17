@@ -28,16 +28,11 @@ interface HierLevel {
 
 export function loadHierarchy(s: ModelState): void {
     s.knobParams   = [];
-    s.knobValues   = [];
     s.declared     = null;
     s.moduleConfig = null;
     s.bankNames    = [];
-    s.bankGroups   = [];
-    s.voiceBank    = 0;
     s.presetDeclared = false;
     s.degenerateKeys = [];
-    s.slotMapCache = null;
-    s.detentAccum  = [];
     s.hierarchyKey = s.activeModuleName;
     /* Cleared on EVERY call, armed again below only if this read is the empty
      * one — otherwise a retry armed by a PRIOR empty read outlives the success
@@ -54,8 +49,6 @@ export function loadHierarchy(s: ModelState): void {
      * clearing then would re-arm a latched trigger mid-gesture and fire a
      * destructive action twice. */
     if (s.moduleId !== prevModuleId) {
-        s.paramGestures = {};
-        s.triggerStates = {};
         // A same-module rebuild is what the metadata retry itself triggers —
         // resetting the budget there would loop forever.
         s.metaRetries   = 0;
@@ -75,8 +68,6 @@ export function loadHierarchy(s: ModelState): void {
      * the top-level statements (`pad_layout`, `focus_param`) that say what kind
      * of instrument this is. */
     let declaredHierarchy: any = null;
-
-    s.isDrum             = false;
     s.drumPadCount       = 0;
     // Focused pad is movy-authoritative: default 1, changed only by a manual pad
     // press. Deliberately NOT seeded from the DSP's currentPadParam — that
@@ -84,7 +75,6 @@ export function loadHierarchy(s: ModelState): void {
     s.drumCurrentPad     = 1;
     s.drumCurrentPhysPad = 0;
     if (s.moduleConfig?.drum) {
-        s.isDrum       = true;
         s.drumPadCount = s.moduleConfig.drum.padCount;
         /* Which GRID pad that first pad is. The step lane and the header icon
          * already opened on pad 1; leaving the physical pad at 0 meant no pad
@@ -219,7 +209,6 @@ export function loadHierarchy(s: ModelState): void {
     s.drumPadNames = voices.map((v) => (v && v.name) || '');
     s.voiceKeys = voiceKeysOf(declaredHierarchy, voices.map((v) => ({ note: v ? v.note : NaN })));
     if (s.drumConfig) {
-        s.isDrum       = true;
         s.drumPadCount = s.drumConfig.padCount;
         s.drumCurrentPhysPad = physPadOfDrumPad(s.drumCurrentPad, PAD_MIN, s.drumConfig);
     }

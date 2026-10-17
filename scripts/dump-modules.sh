@@ -12,7 +12,7 @@
 #    the chain, exits.
 # 3. Pulls the dump back to docs/module-dump/device-dump.json (pretty-printed)
 # 4. Restores the real movy ui.js (fresh local build) + removes the dump file
-# 5. Runs scripts/dump-movy-layout.mjs to derive the movy page layouts
+# 5. (movy page layouts are no longer derived: movy's own pages were retired)
 #
 # WARNING: loading every module resets the edited params of the modules that
 # were previously in track 1's chain (module ids are restored, values may not
@@ -121,6 +121,4 @@ source "$MOVY_DIR/scripts/lib/restart-stack.sh"
 restart_move_stack "$HOST" || die "Stack restart failed - restart it (as root) before any device gate run"
 pass "Stack restarted"
 
-info "Generating movy layouts..."
-(cd "$MOVY_DIR" && npm run build:browser >/dev/null 2>&1 && node scripts/dump-movy-layout.mjs)
-pass "Done. Review docs/module-dump/ and commit."
+pass "Done. Review docs/module-dump/device-dump.json and commit."

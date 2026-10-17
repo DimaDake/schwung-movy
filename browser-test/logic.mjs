@@ -11,11 +11,9 @@
 
 import { _log, failureCount, loadPerSetFlags, resetPorts } from './logic/harness.mjs';
 import { run as run_model_hierarchy } from './logic/model-hierarchy.mjs';
-import { run as run_model_paging } from './logic/model-paging.mjs';
 import { run as run_model_params } from './logic/model-params.mjs';
 import { run as run_knob_input } from './logic/knob-input.mjs';
 import { run as run_declarations } from './logic/declarations.mjs';
-import { run as run_trigger_badge } from './logic/trigger-badge.mjs';
 import { run as run_drums } from './logic/drums.mjs';
 import { run as run_host_param } from './logic/host-param.mjs';
 import { run as run_platform_caps } from './logic/platform-caps.mjs';
@@ -35,7 +33,6 @@ import { run as run_step_entry } from './logic/step-entry.mjs';
 import { run as run_automation } from './logic/automation.mjs';
 import { run as run_keyboard } from './logic/keyboard.mjs';
 import { run as run_params_pages } from './logic/params-pages.mjs';
-import { run as run_envelope } from './logic/envelope.mjs';
 import { run as run_set_state } from './logic/set-state.mjs';
 import { run as run_old_set } from './logic/old-set.mjs';
 import { run as run_versions } from './logic/versions.mjs';
@@ -43,14 +40,9 @@ import { run as run_sets } from './logic/sets.mjs';
 import { run as run_probe } from './logic/probe.mjs';
 import { run as run_set_restore_loss } from './logic/set-restore-loss.mjs';
 import { run as run_lfo } from './logic/lfo.mjs';
-import { run as run_filter_viz } from './logic/filter-viz.mjs';
 import { run as run_lfo_assign } from './logic/lfo-assign.mjs';
-import { run as run_wave_viz } from './logic/wave-viz.mjs';
-import { run as run_eq_cut_wav } from './logic/eq-cut-wav.mjs';
-import { run as run_wav_peaks } from './logic/wav-peaks.mjs';
 import { run as run_module_configs } from './logic/module-configs.mjs';
 import { run as run_config_hierarchy } from './logic/config-hierarchy.mjs';
-import { run as run_items_select } from './logic/items-select.mjs';
 import { run as run_track_volume } from './logic/track-volume.mjs';
 import { run as run_notes_release } from './logic/notes-release.mjs';
 import { run as run_step_record } from './logic/step-record.mjs';
@@ -106,11 +98,9 @@ const SUITES = [
      * run yet is the position that keeps that property visible. */
     run_env_identity,
     run_model_hierarchy,
-    run_model_paging,
     run_model_params,
     run_knob_input,
     run_declarations,
-    run_trigger_badge,
     run_drums,
     run_host_param,
     run_platform_caps,
@@ -130,7 +120,6 @@ const SUITES = [
     run_automation,
     run_keyboard,
     run_params_pages,
-    run_envelope,
     run_set_state,
     run_old_set,
     run_versions,
@@ -138,14 +127,9 @@ const SUITES = [
     run_probe,
     run_set_restore_loss,
     run_lfo,
-    run_filter_viz,
     run_lfo_assign,
-    run_wave_viz,
-    run_eq_cut_wav,
-    run_wav_peaks,
     run_module_configs,
     run_config_hierarchy,
-    run_items_select,
     run_track_volume,
     run_notes_release,
     run_step_record,

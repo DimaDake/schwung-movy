@@ -131,35 +131,8 @@ export function buildItemSelectors(
     return out;
 }
 
-/* Screen position (index into `options`) for a value read off select_param.
- * Returns null when the module reports something not in the list. */
-export function itemPositionOf(p: KnobParam, raw: string | null): number | null {
-    if (!p.itemIndices || raw === null) return null;
-    const n = parseInt(raw, 10);
-    if (isNaN(n)) return null;
-    const pos = p.itemIndices.indexOf(n);
-    return pos < 0 ? null : pos;
-}
 
-/* The wire value for a screen position — the module's index, not the position. */
-export function itemValueAt(p: KnobParam, pos: number): string {
-    const idx = p.itemIndices?.[pos];
-    return String(idx === undefined ? pos : idx);
-}
 
-/* Re-read the list for a selector that is about to be shown in the overlay, so
- * a bank uploaded from the schwung web UI while movy is open appears without a
- * reopen. Mutates the param in place and returns the position to preselect.
- * Only ever called on a knob TOUCH — the read rescans a directory. */
-export function refreshItems(s: ModelState, p: KnobParam): number | null {
-    if (!p.itemsKey) return null;
-    const items = parseItems(s.port.getParam(s.componentKey + ':' + p.itemsKey));
-    if (!items) return null;
-    p.options     = items.labels;
-    p.itemIndices = items.indices;
-    p.max         = items.labels.length - 1;
-    return itemPositionOf(p, s.port.getParam(s.componentKey + ':' + p.key));
-}
 
 export function isItemSelector(p: KnobParam | null | undefined): boolean {
     return !!p && p.renderStyle === ITEMS_RENDER;

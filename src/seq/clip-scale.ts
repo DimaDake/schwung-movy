@@ -11,16 +11,7 @@ export const SCALE_DEFAULT_IDX = 4; // 1X
 export const SCALE_LABELS: string[] =
     SCALE_RATIONALS.map(([n, d]) => (d === 1 ? `${n}X` : `${n}/${d}X`));
 
-/** Cell text: whole → 'NX' (one line); fraction → 'n/d' (renderer stacks it). */
-export function scaleCellText(idx: number): string {
-    const [n, d] = SCALE_RATIONALS[idx];
-    return d === 1 ? `${n}X` : `${n}/${d}`;
-}
 
-/** Toast/overlay text: always with trailing X (e.g. '1/2X', '2X'). */
-export function scaleToastText(idx: number): string {
-    return SCALE_LABELS[idx];
-}
 
 /** Map an engine rational back to its enum index (defaults if unknown). */
 export function rationalToIdx(num: number, den: number): number {

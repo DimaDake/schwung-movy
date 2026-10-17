@@ -14,6 +14,7 @@ import { createPageVisible } from './schwung-page-visible.js';
 import type { PageReadCache } from './schwung-page-cache.js';
 import type { PageHierarchy } from './schwung-page-hierarchy.js';
 import { advanceSample } from './schwung-page-sample.js';
+import { mlog } from '../log.js';
 
 /*
  * `reloadIfChanged` IS POLLED ON A DIVIDER, NOT EVERY TICK.
@@ -73,6 +74,9 @@ export function createPageContract(ctl: any, port: PageParamSource, componentKey
                                    trackIndex: number) {
     let loaded = false;
     let attempts = 0;
+    /* When the page last went without a plan — the wait the user now sees as
+     * blank knob rows, logged once per resolve so the device can measure it. */
+    let waitingSince = Date.now();
     let sinceRetry = 0;
 
     /*
@@ -97,6 +101,8 @@ export function createPageContract(ctl: any, port: PageParamSource, componentKey
         const has = !!(ctl.pages && ctl.pages.length);
         if (has === loaded) return;
         loaded = has;
+        if (has) mlog('page ready ck=' + componentKey + ' ms=' + (Date.now() - waitingSince));
+        else waitingSince = Date.now();
         /* Going empty re-arms the retry — not to release a latch, because
          * nothing latches any more, but to put the page back on the URGENT
          * pace: a slot a module has just LEFT is one the user is about to

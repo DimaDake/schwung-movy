@@ -7,7 +7,8 @@
  * root: node browser-test/app-loop.mjs */
 
 import { trackRef, TRACK_COUNT } from '../dist/esm/track/ref.js';
-import { REFRESH_BULK_TICKS } from '../dist/esm/model/constants.js';
+/* A settle window: eight ticks, the page cache's refill divider order. */
+const REFRESH_BULK_TICKS = 8;
 import { setFlag } from '../dist/esm/seq/flags.js';
 import { FONT_HEIGHT } from '../dist/esm/font/index.js';
 import { HINT_TOP, HINT_LINES } from '../dist/esm/renderer/flags-view.js';
@@ -402,46 +403,6 @@ _log('\napp-loop: a muted pad greys, but plays green and selects white');
     eq('and it stays white', padColor(PAD_KICK), WHITE);
 }
 
-_log('\napp-loop: a pad press turns the page (bank.pad, through the router)');
-{
-    /* The logic suite calls selectBankForPad() directly; this covers the
-     * router hookup — a real pad note-on arriving at onMidiMessageInternal
-     * has to move the page. Served as a module-owned layout, the way a kit
-     * with a page per voice ships it. */
-    const cell = { key: 'pad_vol', short: 'VOL', full: 'Volume',
-                   type: 'float', min: 0, max: 2 };
-    const layout = JSON.stringify({
-        id: 'mrdrums', name: 'MrDrums',
-        drum: { padCount: 2, padNoteStart: 36, rawMidi: false },
-        /* The one shape movy accepts: the voice run leads, the page with no
-         * voice sits behind it. */
-        banks: [
-            { name: 'Kick',  pad: 1, rows: [[cell]] },
-            { name: 'Snare', pad: 2, rows: [[cell]] },
-            { name: 'Main',           rows: [[cell]] },
-        ],
-    });
-    const savedRead = globalThis.host_read_file;
-    globalThis.host_read_file = (p) =>
-        String(p).endsWith('/mrdrums/movy_config.json') ? layout : (savedRead ? savedRead(p) : null);
-    resetApp();
-    globalThis.host_read_file = savedRead;
-
-    const model = appState.trackModels[0][1];
-    eq('opens on the voice slot', model.getKnobPage(), 0);
-
-    const PAD_SNARE = 69;                    // grid pad 2 → drumPad 2
-    sendMidi([0x90, PAD_SNARE, 100]);
-    sendMidi([0x80, PAD_SNARE, 0]);
-    advance(2);
-    eq('a pad note-on selects that pad\'s voice', model.getKnobPage(), 1);
-
-    sendMidi([0x90, PAD_KICK, 100]);
-    sendMidi([0x80, PAD_KICK, 0]);
-    advance(2);
-    eq('and another pad moves it again', model.getKnobPage(), 0);
-}
-
 _log('\napp-loop: green wins over white (sequencer gate)');
 {
     resetApp();
@@ -588,51 +549,6 @@ _log('\napp-loop: a knob release that outlives its page does not latch the contr
     sendMidi([0xB0, globalThis.MoveMainButton, 127]);   // jog click, nothing held
     advance(1);
     eq('...and the next jog click still reaches movy', appState.currentView, VIEW_BROWSE);
-}
-
-/* ── a knob release must land on the MODEL that heard the press ─────────── */
-_log('\napp-loop: a knob release outliving its model does not strand its overlay');
-{
-    /* Same shape of gesture as the block above (press, page/model changes
-     * mid-hold, release out of order) but for the SP-51 bug: `knobModel()`
-     * (`masterChainActive() ? masterModel() : activeModel()`) is re-resolved
-     * at release time, so a track switch between press and release hands the
-     * release to a different Model instance than the one whose
-     * handleKnobTouch opened its enum overlay. Flag-independent (unlike the
-     * SP-31 block above) — no GRID_ARM guard, since knobModel() touch/release
-     * runs unconditionally in the fallback branch regardless of delegation. */
-    schwungGridReload();    // drop the previous block's cached page before swapping modules
-    engine.reset();
-    env.setParams(MOCK_SYNTHS.name_enum);   // knob 0 = division, 10 options → overlay on touch
-    resetSeqState(); resetSeqEngine();
-    globalThis.init();
-    appState.trackModels[0][1].reload();
-    appState.trackModels[1][1].reload();
-    advance(12);                              // settle both models' hierarchy
-    selectTrack(0);
-    appState.currentView = VIEW_KNOBS;
-
-    sendMidi([0x90, 0, 127]);   // touch knob 0 on track 0 — opens its enumOverlay
-    selectTrack(1);             // the page changes mid-hold; no MIDI needed —
-                                 // this is the state knobModel() reads
-    sendMidi([0x90, 0, 0]);     // release — must land on track 0's model, not track 1's
-
-    eq('the pressed track\'s overlay is closed by its own release',
-       appState.trackModels[0][1].getViewModel().overlay, null);
-    eq('track 1 was not perturbed by the stray release',
-       appState.trackModels[1][1].getViewModel().overlay, null);
-
-    /* This block is the only one in the file that ever asks track 1's page
-     * (selectTrack(1) mid-hold, above) — every other block only ever touches
-     * track 0. Leaving track 1's half-resolved SchwungPage cached under
-     * `1:<componentKey>` is invisible here but not free: it is picked up
-     * later by anything that walks every cached page (idle-cost accounting,
-     * a background poll), which shifted timing-sensitive assertions in
-     * blocks far downstream that never touch track 1 themselves. Dropping
-     * the whole cache — mine and the SP-31 block's before it — leaves the
-     * next block to build fresh, exactly as if this one had not run. */
-    schwungGridReload();
-    selectTrack(0);
 }
 
 _log('\napp-loop: knob turn while a step is held writes automation');
@@ -889,6 +805,7 @@ _log('\napp-loop: step page navigation + knob editing');
 {
     const { stepPageState, resetStepPage } = await import('../dist/esm/seq/step-page.js');
     const { occToggleStep } = await import('../dist/esm/seq/state.js');
+    schwungGridReload();    // a page cached by an earlier block keeps its page index
     engine.reset();
     env.setParams(MOCK_SYNTHS.test8);         // melodic → watchLane = -1
     resetSeqState(); resetSeqEngine(); resetStepPage();
@@ -1582,13 +1499,8 @@ _log('\napp-loop: LFO chain slot reachable + drill');
     eq('LFO jog-click drills to VIEW_KNOBS', appState.currentView, VIEW_KNOBS);
     eq('active model is the LFO', appState.trackModels[0][4].getComponentKey(), 'lfo');
 
-    // Jog in detail scrolls banks LFO1↔LFO2. Read back through the OWNER
-    // (`shownPage`), not `model.getKnobPage()` directly: under `page` (SP-55)
-    // the jog moves SCHWUNG's own page index and the movy model's bank
-    // counter is correctly inert (same reason a real module's own bank index
-    // is never consulted for drawing under delegation — schwung-grid.ts's
-    // own header). `shownPage` falls back to `getKnobPage()` under `off`, so
-    // this assertion is mode-agnostic.
+    // Jog in detail scrolls LFO1↔LFO2 — Schwung's own page index, read back
+    // through the owner (`shownPage`).
     sendMidi([0xB0, 14, 1]); advance(1);
     eq('detail jog scrolls to LFO 2', shownPage(appState.trackModels[0][4]), 1);
 
@@ -1598,51 +1510,6 @@ _log('\napp-loop: LFO chain slot reachable + drill');
     sendMidi([0xB0, 3, 127]); advance(1);
     eq('shift+click on LFO drills, no browser', appState.currentView, VIEW_KNOBS);
     appState.shiftHeld = false;
-}
-
-_log('\napp-loop: hold-knob → assign LFO target');
-{
-    const { appState, VIEW_CHAIN, VIEW_KNOBS } = await import('../dist/esm/app/state.js');
-    const { resetAssignMode, assignActive } = await import('../dist/esm/lfo/assign-mode.js');
-    engine.reset();
-    env.setParams(MOCK_SYNTHS.test8);
-    resetSeqState(); resetSeqEngine();
-    globalThis.init();
-    appState.trackModels[0][1].reload();  // load the synth hierarchy
-    advance(12);                          // settle hierarchy + engine
-    appState.trackChainIndex[0] = 1;      // synth
-    appState.currentView = VIEW_KNOBS;
-    resetAssignMode();
-    eq('synth param 0 is automatable', appState.trackModels[0][1].getKnobParamInfo(0)?.automatable, true);
-
-    const realNow = Date.now; let t = 10000; Date.now = () => t;
-    sendMidi([0x90, 0, 100]);             // touch knob 0 (automatable synth param)
-    advance(1);
-    t = 11100; advance(1);                // > 1000ms → holdTick activates assign mode
-    eq('assign mode active after hold', assignActive(), true);
-
-    sendMidi([0xB0, 3, 127]);             // jog-click → assign LFO1
-    advance(1);
-    eq('assigned: navigated to LFO slot', appState.trackChainIndex[0], 4);
-    eq('assigned: on chain view', appState.currentView, VIEW_CHAIN);
-    eq('assign mode exited', assignActive(), false);
-
-    // Bug 1: the LFO page must show the freshly-assigned target, not "None"
-    // (the model's cached target was stale until reload()).
-    advance(3);
-    eq('LFO page shows the assigned target (not None)',
-        appState.trackModels[0][4].getViewModel().rows[0][3].displayValue !== 'None', true);
-
-    // Bug 2: the knob was never released (release landed on the LFO model), so
-    // the module's touch would stick — returning to the module page must clear
-    // it (touch reset on shown-page change).
-    eq('module still touched before return',
-        appState.trackModels[0][1].getViewModel().touchedSlot, 0);
-    appState.trackChainIndex[0] = 1;      // navigate back to the synth
-    advance(2);
-    eq('module touch cleared on return',
-        appState.trackModels[0][1].getViewModel().touchedSlot, null);
-    Date.now = realNow;
 }
 
 _log('\napp-loop: hold-knob → assign under Schwung pages lands on, and refreshes, the LFO page (SP-60)');
@@ -1711,10 +1578,8 @@ _log('\napp-loop: hold-knob → assign under Schwung pages lands on, and refresh
            shownTarget !== undefined && shownTarget !== null && shownTarget !== '0', true);
         sendMidi([0x90, 0, 0]); advance(1);
 
-        /* ONE PAGE, ONE DRIVER. Knob 4 is Schwung's Retrig and movy's own
-         * Target: touching it raised movy's target overlay beside Schwung's
-         * peek, and its release re-wrote the routing. And Mode (knob 2) must
-         * turn. */
+        /* ONE PAGE, ONE DRIVER. Knob 4 is Schwung's Retrig: its release must
+         * not re-write the routing. And Mode (knob 2) must turn. */
         {
             const tgtBefore = port.getParam('lfo2:target');
             const polBefore = port.getParam('lfo2:polarity') || '0';
@@ -1723,7 +1588,6 @@ _log('\napp-loop: hold-knob → assign under Schwung pages lands on, and refresh
             sendMidi([0x90, 1, 0]); advance(2);
             eq('Mode turns', port.getParam('lfo2:polarity'), polBefore === '1' ? '0' : '1');
             sendMidi([0x90, 3, 100]); advance(1);
-            eq('touching knob 4 raises no movy overlay', lfoModel.getViewModel().overlay, null);
             sendMidi([0x90, 3, 0]); advance(1);
             eq('and its release leaves the routing alone', port.getParam('lfo2:target'), tgtBefore);
         }
@@ -2100,9 +1964,9 @@ _log('\napp-loop: teardown flushes pending state');
     advance(30);
 }
 
-/* ── shift+jog skips a whole level through the real router ───────────────── */
+/* ── the jog pages the drawn page set through the real router ────────────── */
 
-_log('\napp-loop: shift+jog skips a level\'s overflow pages');
+_log('\napp-loop: the jog steps the drawn page set, with or without Shift');
 {
     engine.reset();
     env.setParams(MOCK_SYNTHS.hier_params_overflow_two_levels);
@@ -2111,24 +1975,20 @@ _log('\napp-loop: shift+jog skips a level\'s overflow pages');
     globalThis.init();
     const m = appState.trackModels[0][1];
     m.reload();
-    advance(12);
     appState.currentView = VIEW_KNOBS;
-
-    eq('shift+jog: 3 pages (Main, Main - 2, Effects)', m.getBankCount(), 3);
+    for (let i = 0; i < 12 * 60 && !pageOwnerOf(m).page; i++) advance(1);
 
     sendMidi([0xB0, globalThis.MoveMainKnob, 1]);        // plain jog CW
     advance(1);
-    eq('shift+jog: plain jog steps one page', shownPage(m), 1);
+    eq('a plain jog steps one page', shownPage(m), 1);
 
-    sendMidi([0xB0, globalThis.MoveShift, 127]);         // Shift down
+    /* Shift+jog used to skip a level on movy's own pages; the section jump is
+     * Schwung's Shift+click picker now (SP-17), so it steps like a plain jog. */
+    sendMidi([0xB0, globalThis.MoveShift, 127]);
     sendMidi([0xB0, globalThis.MoveMainKnob, 127]);      // jog CCW (decodeDelta → -1)
     advance(1);
-    eq('shift+jog: back jumps to the level head', m.getKnobPage(), 0);
-
-    sendMidi([0xB0, globalThis.MoveMainKnob, 1]);        // jog CW, still shifted
-    advance(1);
-    eq('shift+jog: forward skips the overflow page', m.getKnobPage(), 2);
-    sendMidi([0xB0, globalThis.MoveShift, 0]);           // Shift up
+    eq('Shift+jog steps one page too', shownPage(m), 0);
+    sendMidi([0xB0, globalThis.MoveShift, 0]);
 }
 
 /* ── a lost button release must not wedge the knobs ──────────────────────── */
@@ -3271,18 +3131,11 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
 
     /* ── the reader ──────────────────────────────────────────────────────── */
 
-    /* Change p1 behind BOTH readers' backs. Whoever is polling picks it up. */
-    const movyP1 = () => m.getKnobParamInfo(0)?.value;
+    /* Change p1 behind the page's back: its own read cursor picks it up. */
     const drawnP1 = () => owner().knobParamInfo(0)?.value;
-    const before = movyP1();
     globalThis.shadow_set_param(0, 'synth:p1', '0.90');
     advance(6 * REFRESH_BULK_TICKS);         // several full refresh windows
-
-    /* movy never re-reads the module's params: the page has its own reader. */
-    eq('movy does not re-read the params', movyP1() !== before, false);
-    /* ...and the page on screen IS read. Without this the check above passes
-     * just as well with nothing reading at all. */
-    eq('the drawn page is read whoever owns it', drawnP1(), 0.9);
+    eq('the drawn page is read', drawnP1(), 0.9);
 
     /* ── the LEDs ────────────────────────────────────────────────────────── */
 
@@ -3386,12 +3239,8 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
      * could arrive is a held one. Written behind every reader's back, exactly as
      * the block above does, so the arrival is a re-read and not an echo. */
     seqState.stepAutoMode = true; seqState.holdStep = 4;
-    /* WHOEVER DRAWS THE CELL IS WHO READS IT — the same expression on both
-     * sides of the arm, so this is one check and not two. Under `page` the
-     * drawn page's own read is the probe (movy's refresh has stopped, which is
-     * SP-12's rule, not a loss). */
-    const drawn0 = () => (owner().page ? owner().page.knobLevels()[0]
-                                       : m.getKnobParamInfo(0)?.value);
+    /* The drawn page's own read is the probe (SP-12). */
+    const drawn0 = () => owner().page?.knobLevels()[0];
     const before = drawn0();
     globalThis.shadow_set_param(0, 'synth:p1', '0.55');
     advance(6 * REFRESH_BULK_TICKS);         // several full refresh windows
@@ -3476,17 +3325,12 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
     /* THE JOG, AND THE PREMISE READ FROM IT rather than asserted from the mode:
      * the cell has to be somewhere other than where it was, or neither the key
      * nor its opposite says anything. */
-    const wasKey = m.getKnobParamInfo(0)?.key;      // the cell BEFORE the jog
+    const wasKey = owner().knobParamInfo(0)?.key;   // the cell BEFORE the jog
     owner().changePage(1);
     advance(4);
     const drawnKey = owner().knobParamInfo(0)?.key; // read BEFORE the hold
     eq('(fixture) the jog moved the drawn cell off the key it held',
        drawnKey !== wasKey, true);
-    /* ...and under `page` it is the TWO PLANNERS that are apart: movy's own bank
-     * stayed where it was while Schwung's page moved. That is the condition this
-     * block needs to have teeth, so it is asserted where it can exist. */
-    eq('(fixture) ...because the two planners disagree there',
-                    drawnKey !== m.getKnobParamInfo(0)?.key, true);
 
     /* THE SEAM, WRAPPED BEFORE THE HOLD. Restored at the end of the block. */
     const sp = owner().page;
@@ -3512,7 +3356,7 @@ _log('\napp-loop: the drawn page is the only reader, and it lights the knobs');
        !!(decs && decs.some((d) => d && d.locked === true)), true);
     eq('the knob bound the lane to the parameter the page drew',
        engine.ops.some((o) => o.startsWith('alabel 0 0 synth:' + drawnKey)), true);
-    eq('...and not to the key movy\'s planner had in that cell',
+    eq('...and not to the key the cell held before the jog',
        engine.ops.some((o) => o.startsWith('alabel 0 0 synth:' + wasKey)), false);
 
     seqState.stepAutoMode = false; seqState.holdStep = -1;

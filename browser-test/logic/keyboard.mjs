@@ -43,47 +43,12 @@ export async function run() {
     eq('module-page session does not reopen step page', stepPageState.selected, false);
 }
 
-/* ── step page: ViewModel builder + value mappings ───────────────────────── */
+/* ── step page: value mappings ───────────────────────────────────────────── */
 {
-    _log('\nstep page viewmodel:');
-    const { buildStepPageVM, LENGTH_TICKS, lengthIndexForTicks } =
-        await import('../../dist/esm/seq/step-page-vm.js');
+    _log('\nstep page value mappings:');
+    const { LENGTH_TICKS, lengthIndexForTicks } = await import('../../dist/esm/seq/step-page-vm.js');
     eq('48 ticks -> 1/8 index', lengthIndexForTicks(48), 2);
     eq('length list 1/8 = 48 ticks', LENGTH_TICKS[2], 48);
-    const vm = buildStepPageVM({
-        holdVel: 100, holdGate: 48, holdGateMixed: false,
-        holdProb: 40, holdCondA: 2, holdCondB: 3, holdInvert: true,
-    });
-    eq('title is step', vm.moduleName, 'step');
-    const c = vm.rows[0];
-    eq('velocity = vbar', c[0].renderStyle, 'vbar');
-    eq('velocity bar at avg', Math.abs(c[0].normalizedValue - 100 / 127) < 0.01, true);
-    eq('length = len (fraction render)', c[1].type, 'len');
-    eq('length shows 1/8', c[1].displayValue, '1/8');
-    eq('probability shows 40%', c[2].displayValue, '40%');
-    eq('condition = preset', c[3].renderStyle, 'preset');
-    eq('condition shows 2:3', c[3].displayValue, '2:3');
-    eq('invert ON', vm.rows[1][0].displayValue, 'ON');
-    const vm2 = buildStepPageVM({ holdVel: 80, holdGate: 24, holdGateMixed: true,
-        holdProb: 100, holdCondA: 1, holdCondB: 1, holdInvert: false });
-    eq('mixed length shows ...', vm2.rows[0][1].displayValue, '...');
-}
-
-/* ── step page: a touched knob produces the shared top toast ──────────────── */
-{
-    _log('\nstep page toast:');
-    const { buildStepPageVM } = await import('../../dist/esm/seq/step-page-vm.js');
-    const { stepPageState, setStepTouchedKnob } = await import('../../dist/esm/seq/step-page.js');
-    const h = { holdVel: 90, holdGate: 96, holdGateMixed: false,
-        holdProb: 70, holdCondA: 1, holdCondB: 2, holdInvert: false };
-    setStepTouchedKnob(-1);
-    eq('no toast when nothing touched', buildStepPageVM(h).toast, null);
-    setStepTouchedKnob(2);                 // probability knob
-    const t = buildStepPageVM(h).toast;
-    eq('touched knob → toast name', t.fullName, 'Probability');
-    eq('touched knob → toast value', t.value, '70%');
-    setStepTouchedKnob(-1);
-    stepPageState.touchedKnob = -1;
 }
 
 /* ── chromatic pad: root highlight follows baseNote pitch class ──────────── */

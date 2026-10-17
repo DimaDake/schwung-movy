@@ -56,8 +56,3 @@ export function isToggleParam(p: KnobParam): boolean {
     return isToggleShaped(p) && !isActionParam(p);
 }
 
-/* Which end the knob sits at. Enums carry the state as an index; an int carries
- * it as the value itself. */
-export function toggleIsOn(type: string, enumIndex: number, normalized: number): boolean {
-    return type === 'enum' ? enumIndex >= 1 : normalized >= 0.5;
-}

@@ -1,7 +1,6 @@
-/* LFO parameter model: names, ranges, target-list builder, and formatters for
- * the two schwung slot LFOs surfaced on movy's track-chain LFO page. Kept pure
- * (reads only through the track's port) so it is unit-testable and shared by the
- * model and the render/scene code. */
+/* LFO names and the target-list builder for the two schwung slot LFOs on
+ * movy's chain LFO page (drawn by Schwung — lfo-schwung-source.ts). Kept pure
+ * (reads only through the track's port) so it is unit-testable. */
 
 import { componentKey, type LfoScope } from './scope.js';
 
@@ -14,22 +13,6 @@ export const LFO_DIVISIONS = [
     '1/1', '1/1T', '1/2', '1/2T', '1/4', '1/4T', '1/8', '1/8T',
     '1/16', '1/16T', '1/32', '1/32T',
 ];
-
-export const RATE_HZ_MIN = 0.1;
-export const RATE_HZ_MAX = 20.0;
-/* ~40 detents span 0.1–20 Hz multiplicatively (≈1.14×/detent): fine at low Hz,
- * coarse at high — perceptually even, so the knob is usable across the range. */
-export const RATE_HZ_FACTOR = Math.pow(RATE_HZ_MAX / RATE_HZ_MIN, 1 / 40);
-
-export const LFO_BANK_COUNT = 2;
-
-/* Continuous-knob sensitivity for the arc params (device delta ≈ ±1..3/tick).
- * Shared with the delegated page's cells (SP-55), which resolve phase/depth
- * to the SAME index space so a turn lands on the same value either way. */
-export const DEPTH_STEP = 0.02;         // continuous; range 2.0 → ~100 ticks
-export const PHASE_DIVISIONS = 24;      // phase snaps to a 15° grid (exact 45/90/180)
-
-export function lfoPrefix(lfoIdx: number): string { return 'lfo' + (lfoIdx + 1) + ':'; }
 
 /* Short display tag for a target component (matches the schwung-side idea of a
  * compact component label). */
@@ -94,13 +77,4 @@ export function targetIndex(opts: TargetOption[], target: string, param: string)
     if (!target) return 0;
     const i = opts.findIndex(o => o.target === target && o.param === param);
     return i >= 0 ? i : 0;
-}
-
-export function formatDepth(v: number): string {
-    const pct = Math.round(v * 100);
-    return (pct > 0 ? '+' : '') + pct + '%';
-}
-
-export function formatPhase(v: number): string {
-    return Math.round(v * 360) + '°';
 }

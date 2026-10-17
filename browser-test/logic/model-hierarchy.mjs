@@ -1,13 +1,21 @@
-/* browser-test/logic/model-hierarchy.mjs — module hierarchy: banks, nav-only levels, level-graph traversal, async metadata
+/* browser-test/logic/model-hierarchy.mjs — how a module's hierarchy becomes the
+ * model's param registry: nav-only levels, level-graph traversal, async
+ * metadata. (The registry's bank structure is what movy's own pages drew; it
+ * is still how the params are indexed.)
  *
- * Run by browser-test/logic.mjs. The suite body is deliberately left at its
- * original indentation inside run() so blame survives the split.
+ * Run by browser-test/logic.mjs.
  */
 
 import {
     MOCK_SYNTHS, NAME_POLL_TICKS, META_RETRY_LIMIT, HIERARCHY_RETRY_TICKS, fail, eq, notMatch,
-    bootModel, bankNames, _log, env, mockFsEntries, installMockFs, uninstallMockFs,
+    bootModel, _log, env, installMockFs, uninstallMockFs,
 } from './harness.mjs';
+
+/* The model's param registry, read through its layout snapshot: bank names,
+ * one page's params, and every param's label. */
+const bankNames = (m) => m.dumpLayout().banks.map((b) => b.name);
+const pageParams = (m, pg) => m.dumpLayout().params.slice(pg * 8, pg * 8 + 8).filter(Boolean);
+const labels = (m) => m.dumpLayout().params.filter(Boolean).map((p) => p.label);
 
 export async function run() {
 /* ── vm.moduleName is raw name — no track prefix ─────────────────────────── */
@@ -34,45 +42,21 @@ for (const slot of [0, 1, 2, 3]) {
     eq(`slot ${slot}: moduleName = 'Test 8'`, vm.moduleName, 'Test 8');
 }
 
-/* ── bank structure ───────────────────────────────────────────────────────── */
-
-_log('\nTest: bankCount and bankName');
-
-{
-    const vm = bootModel(MOCK_SYNTHS.test8).getViewModel();
-    eq('test8: bankCount = 1', vm.bankCount, 1);
-    eq('test8: bankName empty (single bank)', vm.bankName, '');
-}
-
-{
-    const vm = bootModel(MOCK_SYNTHS.obxd_like).getViewModel();
-    eq('obxd: bankCount = 4 (preset + main + global + filter)', vm.bankCount, 4);
-    eq('obxd: first bankName = Preset', vm.bankName, 'Preset');
-}
-
 /* ── nav-only level expansion ─────────────────────────────────────────────── */
 
 _log('\nTest: navigation-only levels expand recursively');
 
 {
     const m = bootModel(MOCK_SYNTHS.nav_levels);
-    eq('nav_levels: bankCount = 4', m.getViewModel().bankCount, 4);
-
-    const names = [];
-    for (let i = 0; i < 4; i++) {
-        if (i > 0) m.changePage(1);
-        names.push(m.getViewModel().bankName);
-    }
+    const names = bankNames(m);
+    eq('nav_levels: bankCount = 4', names.length, 4);
     eq('nav_levels: bank 0 = Main',       names[0], 'Main');
     eq('nav_levels: bank 1 = Main',       names[1], 'Main');
     eq('nav_levels: bank 2 = Mod/Pitch',  names[2], 'Mod/Pitch');
     eq('nav_levels: bank 3 = Mod/Filter', names[3], 'Mod/Filter');
     eq('nav_levels: no bare Mod bank',    names.includes('Mod'), false);
 
-    // page 2 (Mod/Pitch) should expose 3 params
-    m.changePage(-1);
-    eq('nav_levels: Mod/Pitch has 3 params',
-        m.getViewModel().rows.flat().filter(Boolean).length, 3);
+    eq('nav_levels: Mod/Pitch has 3 params', pageParams(m, 2).length, 3);
 }
 
 /* ── moog: generic children-delegation hierarchy → 12 banks ─────────────── */
@@ -81,53 +65,21 @@ _log('\nTest: moog hierarchy via children delegation (generic path)');
 
 {
     const m = bootModel(MOCK_SYNTHS.moog);
-    const bankNames = [];
-    for (let i = 0; i < 12; i++) {
-        if (i > 0) m.changePage(1);
-        bankNames.push(m.getViewModel().bankName);
-    }
-    eq('moog: bankCount = 12', m.getViewModel().bankCount, 12);
-    eq('moog: bank 0  = Preset',       bankNames[0],  'Preset');
-    eq('moog: bank 1  = Main',         bankNames[1],  'Main');
-    eq('moog: bank 2  = Oscillator 1', bankNames[2],  'Oscillator 1');
-    eq('moog: bank 6  = Mixer',        bankNames[6],  'Mixer');
-    eq('moog: bank 11 = Performance',  bankNames[11], 'Performance');
+    const bankNames_ = bankNames(m);
+    eq('moog: bankCount = 12', bankNames_.length, 12);
+    eq('moog: bank 0  = Preset',       bankNames_[0],  'Preset');
+    eq('moog: bank 1  = Main',         bankNames_[1],  'Main');
+    eq('moog: bank 2  = Oscillator 1', bankNames_[2],  'Oscillator 1');
+    eq('moog: bank 6  = Mixer',        bankNames_[6],  'Mixer');
+    eq('moog: bank 11 = Performance',  bankNames_[11], 'Performance');
 
-    // Osc banks (2-5): row[0] = [wave, volume, range, detune/noise]; wave+range are int
-    m.changePage(-11); // back to bank 0
-    for (let bank = 0; bank < 12; bank++) {
-        if (bank > 0) m.changePage(1);
-        if (bank < 2 || bank > 5) continue;
-        const oscNum = bank - 1;
-        const vm2  = m.getViewModel();
-        const wave  = vm2.rows[0][0];
-        const range = vm2.rows[0][2];
-        if (!wave)  { fail(`moog: Osc ${oscNum} wave slot non-null`,  'null'); continue; }
-        if (!range) { fail(`moog: Osc ${oscNum} range slot non-null`, 'null'); continue; }
-        eq(`moog: Osc ${oscNum} wave type = int`,  wave.type,  'int');
-        eq(`moog: Osc ${oscNum} range type = int`, range.type, 'int');
+    // Osc banks (2-5): [wave, volume, range, detune/noise]; wave+range are int
+    for (let bank = 2; bank <= 5; bank++) {
+        const row = m.dumpLayout().params.slice(bank * 8, bank * 8 + 4);
+        eq(`moog: Osc ${bank - 1} wave type = int`,  row[0]?.type, 'int');
+        eq(`moog: Osc ${bank - 1} range type = int`, row[2]?.type, 'int');
     }
-
-    // Main bank (bank 1): 8 non-null params
-    m.changePage(-11);
-    m.changePage(1);
-    eq('moog: Main bank has 8 params',
-        m.getViewModel().rows.flat().filter(Boolean).length, 8);
-
-    // osc1_range min=-2 max=2 via chain_params
-    const moogRange = bootModel({ ...MOCK_SYNTHS.moog, 'synth:osc1_range': '-2' });
-    for (let i = 0; i < 60; i++) moogRange.tick();
-    moogRange.changePage(2); // bank 0 → bank 2 = Oscillator 1
-    {
-        const rangeSlot = moogRange.getViewModel().rows[0][2];
-        if (!rangeSlot) { fail('moog: osc1_range slot exists', 'null'); }
-        else {
-            eq('moog: osc1_range displayValue for -2', rangeSlot.displayValue, '-2');
-            const expectedNv = ((-2) - (-2)) / (2 - (-2)); // 0
-            eq('moog: osc1_range normalizedValue reflects min=-2',
-                Math.round(rangeSlot.normalizedValue * 100), Math.round(expectedNv * 100));
-        }
-    }
+    eq('moog: Main bank has 8 params', pageParams(m, 1).length, 8);
 }
 
 /* ── full level-graph traversal (generic path) ───────────────────────────── */
@@ -281,15 +233,6 @@ _log('\nTest: a param that widens its range after load becomes reachable');
         keys(m).includes('bank_index'), true);
 }
 
-_log('\nTest: a same-module rebuild keeps the current page');
-{
-    const m = bootModel(MOCK_SYNTHS.hier_params_overflow_two_levels);
-    m.changePage(2);
-    m.reload();
-    m.tick(); m.tick();
-    eq('rebuild: page survives a same-module reload', m.getKnobPage(), 2);
-}
-
 /* ── module.json as the hierarchy source ──────────────────────────────────
  * Schwung serves a SYNTH slot's ui_hierarchy from the plugin only, so a module
  * that describes its UI in module.json arrives with none, and everything it
@@ -313,26 +256,22 @@ const SLICER_MODULE_JSON = JSON.stringify({ capabilities: { ui_hierarchy: { leve
 {
     // Control: with no manifest to read, all movy has is chain_params.
     const m = bootModel(MOCK_SYNTHS.module_json_hier);
-    const names = m.getViewModel().rows.flat().filter(Boolean).map(c => c.fullName);
+    const names = labels(m);
     eq('no manifest: only the chain_params param',
        JSON.stringify(names), JSON.stringify(['Sensitivity']));
 }
 
 {
-    mockFsEntries['/data/UserData/UserLibrary/Samples'] = ['break.wav', 'notes.txt'];
     // Installed BEFORE boot: the manifest is read while the hierarchy loads.
     installMockFs({ '/data/UserData/schwung/modules/sound_generators/manifest-only/module.json':
                     SLICER_MODULE_JSON });
     const m = bootModel(MOCK_SYNTHS.module_json_hier);
     for (let i = 0; i < 20; i++) m.tick();
-    const vm = m.getViewModel();
-    eq('manifest: sample browser is the first knob', vm.rows[0][0]?.fullName, 'Sample');
-    eq('manifest: it is a file param',               vm.rows[0][0]?.type, 'file');
-    m.handleKnobTouch(0);
-    eq('manifest: the browser opens in the declared folder, filtered',
-       JSON.stringify(m.getViewModel().overlay?.options ?? []), JSON.stringify(['break']));
+    const first = m.dumpLayout().params[0];
+    eq('manifest: sample browser is the first param', first?.label, 'Sample');
+    eq('manifest: it is a file param',                first?.type, 'file');
     eq('manifest: browse root is the declared one',
-       m.getFileBrowseTarget()?.root, '/data/UserData/UserLibrary');
+       m.fileBrowseTargetForKey('sample_path')?.root, '/data/UserData/UserLibrary');
     uninstallMockFs();
 }
 
@@ -379,12 +318,11 @@ _log('\nTest: a NAMED module with nothing published yet gets its params (mfx-slo
     };
 
     const m = bootModel(RACING);
-    eq('race: the empty read draws nothing yet',
-        m.getViewModel().rows.flat().filter(Boolean).length, 0);
+    eq('race: the empty read has no params yet', labels(m).length, 0);
 
     env.setParams(SETTLED);   // the module finishes publishing, same load
     for (let i = 0; i < HIERARCHY_RETRY_TICKS + 1; i++) m.tick();
-    const names = m.getViewModel().rows.flat().filter(Boolean).map((c) => c.fullName);
+    const names = labels(m);
     eq('race: the retry catches the module once it publishes (no reopen)',
         JSON.stringify(names), JSON.stringify(['Bypass']));
 }

@@ -14,12 +14,8 @@ import { trackLabel } from '../undo/label.js';
 import { seqCmd } from './engine.js';
 import { seqToast } from './render.js';
 import { seqState } from './state.js';
-import { onSessionStart, onSessionEnd, setStepTouchedKnob } from './step-page.js';
-import {
-    LENGTH_TICKS, PROB_VALUES, COND_PAIRS,
-    lengthIndexForTicks, probIndexForPct, condIndexFor,
-} from './step-page-vm.js';
-import { countDetents } from './detent.js';
+import { onSessionStart, onSessionEnd } from './step-page.js';
+import { LENGTH_TICKS, PROB_VALUES, COND_PAIRS } from './step-page-vm.js';
 import { watchedTrack } from './watch.js';
 
 const TICKS_PER_STEP = 24;             // 96 PPQN / 4 (mirror of seq-core)
@@ -271,26 +267,15 @@ export function resetStepEdit(): void {
     coPressed.clear();
     pressMs.clear();
     lastLenTarget = null;
-    resetStepPageKnobs();
 }
 
-/* ── Step parameter page: knob turns edit intrinsic trig props ──────────────
- * Knob 0 velocity (evel delta), 1 length (slen absolute), 2 probability
- * (eprob), 3 condition (econd), 4 invert (einv). Enum knobs accumulate small
- * deltas; one detent steps the value. */
-const enumAccum = [0, 0, 0, 0, 0];
-
-export function resetStepPageKnobs(): void { enumAccum.fill(0); }
 
 function clampIdx(i: number, len: number): number {
     return Math.max(0, Math.min(len - 1, i));
 }
 
-/* The ABSOLUTE half of each cell's edit — SP-54's virtual source `set()`
- * calls these directly (Schwung hands an absolute value, computed by its own
- * knob-feel math, never a delta), and `editStepPageKnob` below calls them too
- * once it has turned its OWN relative accumulation into a target index/value.
- * One writer, two callers, same shape as `clip-page.ts`'s `applyClip*`. */
+/* Each cell's edit — SP-54's virtual source `set()` calls these with an
+ * absolute value, computed by Schwung's own knob-feel math, never a delta. */
 export function applyStepVelocityAbs(target: number): void {
     const t = watchedTrack(), ln = lane();
     const d = Math.round(target) - seqState.holdVel;
@@ -343,35 +328,4 @@ export function applyStepInvertOn(on: boolean): void {
     beginGesture(heldKey('tinv'), 'INVERT', trackLabel(t));
     forEach((r) => seqCmd(`einv ${t} ${r.s0} ${r.s1} ${ln} ${on ? 1 : 0}`));
     seqState.holdInvert = on;
-}
-
-/* Route a knob turn on the step page to the trig-property edit it represents.
- * Returns true if consumed. Delta-only: turns the movy-side relative
- * accumulation into an absolute target and hands it to the apply function
- * above, which is what actually emits (and what the virtual source's set()
- * calls too — see its own header). */
-export function editStepPageKnob(knob: number, delta: number): boolean {
-    if (!anyStepHeld()) return false;
-    setStepTouchedKnob(knob);             // drives the top param toast
-    if (knob === 0) {
-        // Velocity: delta nudge (preserves chord spread; full CW clamps to max).
-        const d = (delta > 0 ? 1 : -1) * VEL_STEP;
-        applyStepVelocityAbs(seqState.holdVel + d);
-        return true;
-    }
-    const n = countDetents(enumAccum, knob, delta);
-    if (n === 0) { markGestured(); return true; } // consumed; below detent threshold
-    if (knob === 1) {
-        applyStepLenIdx(lengthIndexForTicks(seqState.holdGate) + n);
-    } else if (knob === 2) {
-        // CW (n>0) raises probability; PROB_VALUES is descending, so subtract n.
-        applyStepProbIdx(probIndexForPct(seqState.holdProb) - n);
-    } else if (knob === 3) {
-        applyStepCondIdx(condIndexFor(seqState.holdCondA, seqState.holdCondB) + n);
-    } else if (knob === 4) {
-        // Boolean: CW = on, CCW = off. Never toggle, so holding the turn doesn't
-        // cycle the value back and forth.
-        applyStepInvertOn(n > 0);
-    }
-    return true;
 }

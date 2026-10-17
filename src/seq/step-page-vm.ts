@@ -1,11 +1,8 @@
-/* Builds the step parameter page's ViewModel from the held-step trig mirror.
- * These five params are intrinsic note properties (not chain params), so this
- * bypasses model/viewmodel.ts. Knob 1 velocity (vbar), 2 length (enum square),
- * 3 probability (enum square), 4 condition (big preset font), 5 invert (enum
- * square). Knobs 6-8 blank. */
+/* The step parameter page's value tables (length, probability, condition) and
+ * its view model. The five params are intrinsic note properties, not chain
+ * params; `step-params-contract.ts` turns them into Schwung's cells. */
 import type { ViewModel } from '../types/viewmodel.js';
-import { paramCell as cell } from './param-vm.js';
-import { stepPageState } from './step-page.js';
+import { headerOnlyVM } from './header-vm.js';
 
 /* Note-length values in ticks (TICKS_PER_STEP=24, whole note/bar=384). */
 export const LENGTH_TICKS: number[] = [
@@ -52,61 +49,11 @@ export function condIndexFor(a: number, b: number): number {
     return i < 0 ? 0 : i;
 }
 
-export interface HeldTrig {
-    holdVel: number; holdGate: number; holdGateMixed: boolean;
-    holdProb: number; holdCondA: number; holdCondB: number; holdInvert: boolean;
-}
 
-
-export function buildStepPageVM(h: HeldTrig, moduleBankCount = 1): ViewModel {
-    const lenIdx  = lengthIndexForTicks(h.holdGate);
-    const probIdx = probIndexForPct(h.holdProb);
-    const condIdx = condIndexFor(h.holdCondA, h.holdCondB);
-
-    const vel = cell({
-        shortName: 'VEL', fullName: 'Velocity', type: 'float', renderStyle: 'vbar',
-        normalizedValue: Math.max(0, Math.min(1, h.holdVel / 127)),
-        displayValue: String(h.holdVel),
-    });
-    const len = cell({
-        // type 'len' → drawn as a stacked fraction (e.g. 1/4) by drawKnobWidget.
-        shortName: 'LEN', fullName: 'Length', type: 'len', options: LENGTH_LABELS,
-        enumIndex: lenIdx, displayValue: h.holdGateMixed ? '...' : LENGTH_LABELS[lenIdx],
-    });
-    const prob = cell({
-        shortName: 'PROB', fullName: 'Probability', type: 'enum', options: PROB_LABELS,
-        enumIndex: probIdx, displayValue: PROB_LABELS[probIdx],
-    });
-    const cond = cell({
-        shortName: 'COND', fullName: 'Condition', type: 'cond', renderStyle: 'preset',
-        enumIndex: condIdx, displayValue: COND_LABELS[condIdx],
-    });
-    const inv = cell({
-        shortName: 'INV', fullName: 'Invert', type: 'enum', options: ['OFF', 'ON'],
-        enumIndex: h.holdInvert ? 1 : 0, displayValue: h.holdInvert ? 'ON' : 'OFF',
-    });
-
-    // A touched/turned knob shows the shared top toast (full name + value) AND
-    // its label cell shows the value inverted — exactly like editing a synth
-    // param on a module page.
-    const cells = [vel, len, prob, cond, inv];
-    const tk = stepPageState.touchedKnob;
-    let toast = null;
-    if (tk >= 0 && tk < cells.length) {
-        cells[tk].touched = true;
-        toast = { fullName: cells[tk].fullName, value: cells[tk].displayValue, browseHint: false };
-    }
-
-    return {
-        // bankCount mirrors the underlying module's pages so the indicator shows
-        // step + all module banks (e.g. Mr Hyde's 8), not just step + 1.
-        moduleName: 'step', bankName: '', bankIndex: 0, bankCount: moduleBankCount,
-        rows: [[vel, len, prob, cond], [inv, null, null, null]],
-        touchedSlot: null, toast, overlay: null, isEmpty: false,
-        drumPadCount: 0, drumCurrentPad: 0, drumCurrentPhysPad: 0, drumPadName: '', isPadScoped: false,
-        // Not the automation-hold view: its params are intrinsic, not chain
-        // lanes, so they must not be hidden by hiddenDuringHold.
-        automationHeld: false, automationPoolFull: false,
-        stepPagePresent: true, stepPageSelected: true,
-    };
+/* The step page's view model: Schwung draws its five cells from the virtual
+ * contract (SP-54), so movy contributes the header and the "step is a page of
+ * its own" flag the bank bar reads. */
+export function buildStepPageVM(): ViewModel {
+    return { ...headerOnlyVM('step'), headerOverride: undefined,
+             stepPagePresent: true, stepPageSelected: true };
 }

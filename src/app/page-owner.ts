@@ -124,5 +124,11 @@ export function ownerOf(ref: PageRef, page: SchwungPage): PageOwner {
 export function pageOwnerOf(model: any): PageOwner {
     const ref = pageRefOf(model);
     if (!ref) return NO_PAGE;
+    /* AN EMPTY SLOT HAS NO PAGE, whatever its cached contract says. Setting a
+     * slot to None keeps the module instance, which goes on serving its old
+     * hierarchy, so the contract never empties and Schwung kept drawing the
+     * departed module under a "—" header. The model's own read of the slot
+     * (`synth_module` / name) is what knows it is empty. */
+    if (model.getViewModel?.().isEmpty) return { ...NO_PAGE, ref, reason: 'empty-slot' };
     return ownerOf(ref, schwungPageFor(ref.track, ref.componentKey, modulatedKeysOf, automationFor));
 }

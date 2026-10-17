@@ -14,11 +14,7 @@ export const stepPageState = {
     selected: false,
     /** Carried across sessions: the prior session ended on the step page. */
     lastSessionStepPage: false,
-    /** Step-page knob (0..4) currently touched/turned → drives the top toast. -1 = none. */
-    touchedKnob: -1,
 };
-
-export function setStepTouchedKnob(k: number): void { stepPageState.touchedKnob = k; }
 
 /* SP-54: the step page's own SchwungPage (its `ctl`, carrying UI-only ephemeral
  * state — a touch-claim timer, an open enum peek) must not survive past the
@@ -65,6 +61,5 @@ export function stepPageAvailable(): boolean {
 export function resetStepPage(): void {
     stepPageState.selected = false;
     stepPageState.lastSessionStepPage = false;
-    stepPageState.touchedKnob = -1;
     dropStepParamsPage();
 }

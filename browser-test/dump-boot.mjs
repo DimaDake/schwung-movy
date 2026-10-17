@@ -1,9 +1,8 @@
 /* browser-test/dump-boot.mjs — shared replay core for the checked-in device
  * dump (docs/module-dump/device-dump.json).
  *
- * Both the layout generator (scripts/dump-movy-layout.mjs) and the regression
- * suite (browser-test/dump-replay.mjs) boot the REAL model per module through
- * the browser-test env stubs. That boot is the only tricky shared logic
+ * Suites that need a real module boot the REAL model per module through the
+ * browser-test env stubs. That boot is the only tricky shared logic
  * (componentKey-prefixed param map, synth_module/name fallback, movy_config
  * host_read_file serving, createModel + reload + 2 ticks); it lives here once.
  */
@@ -188,91 +187,4 @@ export async function createDumpBoot(dump) {
     }
 
     return { env, bootFromDumpEntry };
-}
-
-/* Per-page view (what the user sees, incl. envelope/LFO groups and the deduped
- * 5-char on-screen names). Both consumers derive from this: the generator maps
- * lfoVizCount → a boolean; the suite snapshots the counts directly. */
-export function serializePages(model) {
-    const pages = [];
-    const pageCount = model.getBankCount();
-    for (let pg = 0; pg < pageCount; pg++) {
-        const vm = model.getViewModel();
-        pages.push({
-            name: vm.bankName,
-            envelopeLines: (vm.envelopeLines ?? []).map(e => e !== null && e !== undefined),
-            lfoVizCount: (vm.lfoViz ?? []).length,
-            rows: vm.rows.map(row => row.map(pvm => pvm && {
-                shortName:   pvm.shortName,
-                fullName:    pvm.fullName,
-                renderStyle: pvm.renderStyle,
-                type:        pvm.type,
-                displayValue: pvm.displayValue,
-            })),
-        });
-        model.changePage(1);
-    }
-    return pages;
-}
-
-/* Every page the model can put on screen, handed to `fn` as a bank index.
- *
- * A page is `knobParams.slice(knobPage * 8, +8)` — the VM slices by BANK INDEX,
- * and `pageRotation` decides only which banks the JOG lands on. For most of the
- * fleet those are the same list, which is why `serializePages` (a jog walk, and
- * the right one for "what does the bank bar show") has served so far. They
- * diverge for a config whose banks declare a `pad`: the leading voice run
- * collapses into ONE seat, so the jog shows whichever voice the slot holds and
- * none of its siblings — and a kit's sibling voices are pages like any other,
- * opened by pressing their pad. A check that must see every rendered page (the
- * wave/stage styling one) has to reach those too, or it reports a kit's voice
- * cells as missing.
- *
- * Distinct banks only, so a caller counting per-page facts counts each once. */
-export function forEachRenderedPage(model, fn) {
-    const seen = new Set();
-    const visit = () => {
-        const bank = model.getKnobPage();
-        if (seen.has(bank)) return;
-        seen.add(bank);
-        fn(bank);
-    };
-    /* changePage CLAMPS at the last seat rather than wrapping, so a full rewind
-     * always lands on seat 0. */
-    model.changePage(-model.getBankCount());
-    for (let i = 0; i < model.getBankCount(); i++) { visit(); model.changePage(1); }
-    /* The collapsed voice run, reached the way a player reaches it — by pad. A
-     * pad only moves the page while a voice bank is the one open, so rewind to
-     * the slot first; an unmapped pad leaves the page where it was, and `seen`
-     * discounts the repeat. 16 is the whole pad grid, so no declared pad is
-     * missed even where padCount understates the pads in use. */
-    model.changePage(-model.getBankCount());
-    const padMax = Math.max(16, model.getDrumPadCount?.() ?? 0);
-    for (let pad = 1; pad <= padMax; pad++) { model.selectBankForPad(pad); visit(); }
-}
-
-/* Expand a drum pad-alias key ("pad_vol") into the concrete per-pad keys it
- * covers ("p01_vol".."p16_vol"), mirroring model/pad-scope.ts. Used to decide
- * which native chain_params are actually reachable in movy. */
-export function expandLayoutKeys(layout) {
-    const keys = new Set();
-    const sc = layout.drum?.padScoping;
-    for (const p of layout.params) {
-        if (!p) continue;
-        keys.add(p.key);
-        if (sc && p.key.startsWith(sc.aliasPrefix)) {
-            const suffix = p.key.slice(sc.aliasPrefix.length);
-            for (let pad = 1; pad <= (layout.drum.padCount || 0); pad++) {
-                /* Both addressing forms: a listed per-pad key, else the
-                 * template. An unresolved alias (no key on this pad) adds
-                 * nothing — it reaches no native param by design. */
-                const listed = sc.padKeys?.[suffix]?.[pad - 1];
-                if (listed) { keys.add(listed); continue; }
-                if (listed === null || !sc.concreteKeyTemplate) continue;
-                const padStr = String(pad).padStart(sc.padDigits ?? 0, '0');
-                keys.add(sc.concreteKeyTemplate.replace('{pad}', padStr).replace('{suffix}', suffix));
-            }
-        }
-    }
-    return keys;
 }

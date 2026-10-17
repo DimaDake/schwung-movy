@@ -87,11 +87,8 @@ _log('\nTest: an undo redraws a page whose key the model cannot map');
     /* The model boots on ONE declaration; the page is planned from ANOTHER.
      * That is the `page` divergence in its pure form — the plan is the
      * module's, and the model's own knobs can be a different set — and it is
-     * how a real key ends up one `syncParamsToModels` cannot map: it reaches
-     * the right model and calls `refreshParamKey('q1')`, which answers no for
-     * a model whose knobs are p1..p16. Asserted below, because a test that
-     * only ever exercised a mapped key would pass on the model refresh and say
-     * nothing about the page. */
+     * why the page has to see the undo itself — no model mirror stands in for
+     * it. */
     schwungGridReload();
     appState.activeTrack.index = 0;
     env.setParams(MOCK_SYNTHS.test16);
@@ -109,8 +106,6 @@ _log('\nTest: an undo redraws a page whose key the model cannot map');
     ok('the page resolved', p.ready);
     eq('the plan is the declaration the module published',
        p.ctl.page.keys.join(','), 'q1,q2');
-    eq('and the model cannot map the key the undo will rewrite',
-       m.refreshParamKey('q1'), false);
 
     const IO = 'q1', KEY = 'synth:' + IO;
     const port = portFor(0);

@@ -25,7 +25,6 @@ import { canvasDiveTakes } from './canvas-dive-input.js';
  * one owner is how it stays fixed.
  */
 function knobOwner() { return pageOwnerOf(knobModel()); }
-function knobInfoFor(k: number): any | null { return knobOwner().knobParamInfo(k); }
 
 /* Set/Clip Params (SP-53) have no MODEL for `knobOwner()`'s `pageOwnerOf` to
  * ask — see `pageOwnerForComponent`'s own header. Their own accessors, asked
@@ -43,8 +42,8 @@ import { setButtonHeld } from '../seq/button-held.js';
 import { currentSetUuid, reloadCurrentSet, sessionFailScope, sessionFlush, sessionPhase, sessionReady } from '../seq/set-session.js';
 import { sessionStartFromScratch } from '../seq/set-fail.js';
 import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS } from '../app/state.js';
-import { mainPageActive, mainPageTouch, mainPageRelease } from '../seq/main-page.js';
-import { clipPageActive, clipPageTouch, clipPageRelease } from '../seq/clip-page.js';
+import { mainPageActive, mainPageRelease } from '../seq/main-page.js';
+import { clipPageActive, clipPageRelease } from '../seq/clip-page.js';
 import { backupsRowSelected, flagsPageActive, flagsPageJog, flagsPageKnob } from '../seq/flags-page.js';
 import { setsPageActive, setsPageBack, setsPageClick, setsPageJog } from '../seq/sets-page.js';
 import { textEntry, textEntryActive } from '../renderer/text-entry-lib.js';
@@ -67,7 +66,7 @@ import { openBrowser, loadSelectedModule } from '../browser/handler.js';
 import { openFileBrowser, navigateFileBrowser, activateFileBrowserItem, cancelFileBrowser } from '../browser/file-handler.js';
 import { seqHandleMidi, seqNotePadPlayed, seqNotePadReleased, muteHeld, muteMarkGestured, muteShiftHeld, muteTrack } from '../seq/router.js';
 import { anyStepHeld } from '../seq/step-edit.js';
-import { stepPageState, setStepPageSelected, setStepTouchedKnob, stepPageAvailable } from '../seq/step-page.js';
+import { stepPageState, setStepPageSelected, stepPageAvailable } from '../seq/step-page.js';
 import { seqState } from '../seq/state.js';
 import { WHITE_BRIGHT, WHITE_DIM } from '../seq/colors.js';
 import { momentaryDown, momentaryGesture, momentaryUp } from '../seq/momentary.js';
@@ -302,16 +301,15 @@ export function onMidiMessageInternal(data: number[]): void {
          * at the press; see midi/knob-page-pin.ts for why the latch it prevents
          * is permanent.
          *
-         * The MODEL underneath owes the same debt, independently: it is movy's
-         * own Model that opened an enum/file overlay on the press, and
-         * knobModel() re-resolved at release time can name a different one
-         * (track switch, chain-slot swap, Session toggle) - that model's
-         * overlay would otherwise never commit. See knob-model-pin.ts.
+         * The MODEL underneath owes the same debt, independently: it recorded
+         * the touch, and knobModel() re-resolved at release time can name a
+         * different one (track switch, chain-slot swap, Session toggle) — that
+         * model's touch would otherwise stick. See knob-model-pin.ts.
          */
         const owed = d2 > 0 ? undefined : unpinPage(d1);
         const owedModel = d2 > 0 ? undefined : unpinModel(d1);
         owed?.knobTouch(d1, false);
-        if (owedModel?.handleKnobRelease(d1)) seqToast('Wrong preset type');
+        owedModel?.handleKnobRelease(d1);
         // Main/Clip Params are pages the user opened deliberately and are what
         // app/tick.ts actually renders, so they own the knobs ahead of the step
         // page. (The other order let a step hold silently steer the knobs away
@@ -322,8 +320,8 @@ export function onMidiMessageInternal(data: number[]): void {
                  * per-track model to re-pin against, so asking fresh at touch
                  * and at release is safe. */
                 const owner = mainParamsOwner();
-                if (d2 > 0) { mainPageTouch(d1, true, !!owner.page); owner.page?.knobTouch(d1, true); }
-                else { owner.page?.knobTouch(d1, false); mainPageRelease(d1, !!owner.page); }
+                if (d2 > 0) owner.page?.knobTouch(d1, true);
+                else { owner.page?.knobTouch(d1, false); mainPageRelease(d1); }
             }
             appState.dirty = true;
             return;
@@ -336,8 +334,8 @@ export function onMidiMessageInternal(data: number[]): void {
                  * touch and at release is safe: nothing about the answer can
                  * change mid-hold the way a track switch changes `knobModel()`. */
                 const owner = clipParamsOwner();
-                if (d2 > 0) { clipPageTouch(d1, true, !!owner.page); owner.page?.knobTouch(d1, true); }
-                else { owner.page?.knobTouch(d1, false); clipPageRelease(d1, appState.activeTrack.index, !!owner.page); }
+                if (d2 > 0) owner.page?.knobTouch(d1, true);
+                else { owner.page?.knobTouch(d1, false); clipPageRelease(d1, appState.activeTrack.index); }
             }
             appState.dirty = true;
             return;
@@ -351,13 +349,9 @@ export function onMidiMessageInternal(data: number[]): void {
         // Step page owns the knobs: a touch shows that param's top toast; the
         // step params are intrinsic (no automation lane / model touch).
         if (stepPageAvailable() && stepPageState.selected) {
-            /* SP-54: movy's OWN touch bookkeeping runs either way (it drives
-             * the `off`-arm top toast and is harmless when Schwung is also
-             * drawing its own); the delegated touch is an ADDITION, gated to
-             * the 5 real cells so knobs 5-7 (blank) never reach a component
-             * with no such keys. */
+            /* SP-54: gated to the 5 real cells so knobs 5-7 (blank) never
+             * reach a component with no such keys. */
             if (d1 < 5) stepParamsOwner().page?.knobTouch(d1, d2 > 0);
-            setStepTouchedKnob(d2 > 0 && d1 < 5 ? d1 : -1);
             appState.dirty = true;
             return;
         }
@@ -386,7 +380,7 @@ export function onMidiMessageInternal(data: number[]): void {
              * opens its own overlay — it only records the touch, which the
              * release, the header readout and the file-browse gesture read. */
             const model = knobModel();
-            model?.handleKnobTouch(d1, false);
+            model?.handleKnobTouch(d1);
             /* Pinned so the release goes back to THIS model, not whatever
              * knobModel() resolves to later (see knob-model-pin.ts). */
             pinModel(d1, model ?? null);
@@ -501,23 +495,17 @@ export function onMidiMessageInternal(data: number[]): void {
             }
             if (drumCfg) {
                 const pad = drumPadOn(d1, PAD_MIN, appState.shiftHeld, drumCfg, model!.getComponentKey(), track, vel);
-                /* The only trace a pad leaves. selectBankForPad logs when it
-                 * MOVES the page, so without this there is no way to tell a pad
-                 * that changed nothing from a pad that never arrived — and a
-                 * device suite asserting "the page did not move" cannot know
-                 * which of the two it just proved. */
+                /* The only trace a pad leaves: without it there is no way to
+                 * tell a pad that changed nothing from a pad that never
+                 * arrived. */
                 mlog('drumPad note=' + d1 + ' pad=' + pad);
                 if (pad !== null) {
                     model!.updateDrumPad(pad, d1);
                     /* SP-39. THE PAGE-FOLLOW GESTURE, TIMED. A pad press is the
-                     * most-used gesture on a drum track and `off` and `page`
-                     * reach the page by different routes — movy's own bank
-                     * switch, Schwung's `focusVoice`. This is the one place
-                     * both run, so one phase covers both arms and the A/B is a
-                     * flag change rather than a build change. It sits OUTSIDE
-                     * the tick (a press is handled before `tick()`), so without
-                     * it a synchronous cost here is visible only as a
-                     * `peak_period` spike against the host loop's own 12-32 ms
+                     * most-used gesture on a drum track. It sits OUTSIDE the
+                     * tick (a press is handled before `tick()`), so without this
+                     * phase a synchronous cost here is visible only as a
+                     * `peak_period` spike against the host loop's 12-32 ms
                      * noise floor. */
                     perfPhase('padpage');
                     /* `finally` BECAUSE `perf_phase` IS AN OPEN/CLOSE PAIR WITH
@@ -529,16 +517,11 @@ export function onMidiMessageInternal(data: number[]): void {
                      * the happy path is a phase that lies exactly when something
                      * went wrong. */
                     try {
-                        /* Pad-follow, for configs that declare `pad` on a bank.
-                         * A no-op for every config that does not. */
-                        model!.selectBankForPad(pad);
-                        /* The same follow for a DECLARED rack: the module said
-                         * which level each voice lives on and Schwung named that
-                         * level on the page it planned, so the pad shows its
-                         * voice's page. Reported from the device as the header
-                         * following the pad while the page stood still. Returns
-                         * false for anything that has not declared, which is
-                         * where selectBankForPad above still answers. */
+                        /* PAD-FOLLOW: the module said which level each voice
+                         * lives on and Schwung named that level on the page it
+                         * planned, so the pad shows its voice's page. Reported
+                         * from the device as the header following the pad while
+                         * the page stood still. */
                         const page = pageOwnerOf(model).page;
                         /* A config rack's focus write (sophie's `focused_pad`)
                          * is the press too: the page resolves its child level
@@ -987,7 +970,6 @@ export function onMidiMessageInternal(data: number[]): void {
                 // VIEW_FILE_BROWSE — otherwise Back/select return to the browser
                 // itself, leaving a frozen screen.
                 appState.browseOrigin = appState.currentView;
-                activeModel()?.clearFileOverlay();
                 openFileBrowser(
                     appState.activeTrack.index,
                     activeModel()!.getComponentKey(),
@@ -1074,28 +1056,16 @@ export function onMidiMessageInternal(data: number[]): void {
             } else if (appState.currentView === VIEW_KNOBS) {
                 const dir = delta > 0 ? 1 : -1;
                 const m = activeModel();
-                /* Shift+jog is an explicit "next section" gesture: it skips a
-                 * level's overflow pages, and bypasses the step-page-at-bank-0
-                 * interplay a plain jog has. */
-                if (appState.shiftHeld) {
-                    m?.changePageGroup(dir);
-                } else if (stepPageAvailable()) {
-                    /* The page the user is LOOKING at, not movy's bank: with
-                     * Schwung drawing, movy's index sits wherever it was left
-                     * and a jog on page 3 would hop to the step page. */
+                if (stepPageAvailable()) {
                     const onBank0 = pageOwnerOf(m).pageIndex === 0;
                     if (stepPageState.selected) {
                         if (dir > 0) setStepPageSelected(false);
                     } else if (dir < 0 && onBank0) {
                         setStepPageSelected(true);
                     } else {
-                        /* Whoever owns the page set moves it. Schwung's page COUNT differs
-                         * from movy's, so advancing movy's index and mirroring it would land
-                         * on a page that does not exist. */
                         pageOwnerOf(m).changePage(dir);
                     }
                 } else {
-                    /* Whoever owns the page set moves it — see the sibling branch. */
                     pageOwnerOf(m).changePage(dir);
                 }
             } else if (appState.currentView === VIEW_BROWSE) {

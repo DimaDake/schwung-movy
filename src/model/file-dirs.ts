@@ -26,11 +26,6 @@ export function defaultDirFor(moduleId: string, p: FileParam): string {
     return readPrefFileDir(prefKey(moduleId, p.key)) ?? p.fileStartPath ?? FALLBACK_DIR;
 }
 
-/* A loaded file still wins: its own folder is the one the user is working in,
- * and it is the more specific answer to "where am I". */
-export function startDirFor(moduleId: string, p: FileParam, currentPath: string): string {
-    return currentPath ? dirname(currentPath) : defaultDirFor(moduleId, p);
-}
 
 export function rememberFileDir(moduleId: string, paramKey: string, path: string): void {
     if (path) writePrefFileDir(prefKey(moduleId, paramKey), dirname(path));

@@ -24,22 +24,15 @@ Device: `ableton@move.local`
 
 ---
 
-## Schwung page migration — standing rules
+## Schwung param pages — standing rules
 
-**In force until Phase 4 of `docs/schwung-page-migration.md` closes.** Schwung's
-`param_pages` is becoming the only implementation of a module's parameter pages;
-movy's own page renderer is being deleted. Read
-`docs/schwung-page-migration.md` (the ledger) before working any `SP-*`/`SU-*`
-item, and update it when you finish one. The design and its rationale are in
-`docs/superpowers/specs/2026-09-13-schwung-page-migration-design.md`.
+Schwung's `param_pages` is the only implementation of a module's parameter
+pages; movy's own renderer was retired 2026-10-13 (tag `movy-pages-final`,
+`docs/movy-pages-knowhow.md`). `docs/schwung-page-migration.md` is the ledger
+of how it got here. Three rules:
 
-Four rules, and they bind work that is not itself a migration item:
-
-1. **No new features in movy's page renderer.** `label.ts`, `knob.ts`,
-   `envelope.ts`, the curve renderers, `lfo-wave.ts`, `model/page-layout.ts`,
-   `generic-pages.ts` and `config-pages.ts` are all scheduled for deletion. Fix
-   bugs there; do not grow them. A parameter-page feature belongs in Schwung's
-   planner or in the movy↔Schwung seam.
+1. **A parameter-page feature belongs in Schwung's planner or in the
+   movy↔Schwung seam**, never in a movy-drawn cell.
 2. **A change Schwung needs is an upstream PR, never a local patch.** movy
    ships Schwung's JS (`param_pages` and what it imports) byte-for-byte from
    the PINNED tag (`scripts/build-schwung-js.sh` → `tools/movy/schwung/`,
@@ -47,21 +40,16 @@ Four rules, and they bind work that is not itself a migration item:
    against a fork branch, file the PR in parallel — do not wait on review —
    and the change reaches movy by bumping `scripts/lib/schwung-pin.sh` once it
    is in a tag. The local suites run the same pinned bytes.
-3. **A delegated component is never dual-driven.** If Schwung owns a
-   component's pages, movy must not also page it, poll it, draw its LEDs, or
-   handle its knob input. Never read `getKnobPage()` or a `knobPage` index
-   directly for a component that may be delegated — go through the ownership
-   accessor. Fifteen ad-hoc seam checks in `src/midi/router.ts` are how eight
-   symptoms and one clip-deleting data loss arrived.
-4. **One reader of a module's declared page contract** (SP-20). `ui_hierarchy`,
+3. **One reader of a module's declared page contract** (SP-20). `ui_hierarchy`,
    `ui_pages` and `module.json`'s `capabilities.ui_hierarchy` are three ways a
    module publishes ONE thing; `src/chain/hierarchy-source.ts` is the only place
    that reads any of them. Never add a key literal or a `loadModuleJson()` call
-   elsewhere — `browser-test/logic/page-owner.mjs` greps for both.
+   elsewhere — `browser-test/logic/page-owner.mjs` greps for both. And every
+   seam point asks `pageOwnerOf` (`src/app/page-owner.ts`) which page is under
+   the knobs.
 
-Local suites are only meaningful for this work with a schwung checkout:
-`SCHWUNG=../schwung npm test`. Without it every Schwung assertion is **skipped,
-not failed**.
+The local suites need the schwung repo for the pinned tree: `../schwung` by
+default, or `SCHWUNG=/path`.
 
 ---
 
@@ -211,14 +199,9 @@ partially cold chain, a check grading the wrong window, an arm that was noted
 but never asserted — and each time an item had already spent an hour before
 anyone found out.
 
-**A gate may be GREEN or RED. "It did not run" is RED.**
-`npm test` now stops at `browser-test/schwung-built.mjs` when the built bundle
-carries no `param_pages`: without it every delegated-page assertion prints
-SKIPPED and the run still ends `ALL LOGIC CHECKS PASSED`, which is a false green
-that has bitten two sessions — and `page-mode.mjs` reports every expected-fail
-label as FIXED, which instructs a maintainer to delete labels that are still
-failing. `SCHWUNG=` is a **BUILD-time** alias, so it must be on the build;
-`ALLOW_SKIPPED=1 npm test` is the deliberate, and loud, opt-out.
+**A gate may be GREEN or RED. "It did not run" is RED.** The browser build
+resolves Schwung's JS to the pinned tag's tree, so it fails outright without the
+schwung repo rather than testing a stub.
 
 Run tests in this order at the end of every task:
 
@@ -235,11 +218,6 @@ plus `track-colors.mjs` and `abi-parity.mjs`):
 # first import: it installs the mock globals and owns the single failure counter,
 # so new shared imports go in its preamble + export list, not per-suite.
 node browser-test/logic.mjs
-
-# 1a. Local (always) — replays all 76 dumped modules; asserts layout invariants
-#     + a per-module snapshot (browser-test/dump-expect.json). After an
-#     intentional layout change: node browser-test/dump-replay.mjs --update
-node browser-test/dump-replay.mjs
 
 # 1b. Local (always) — full init/tick/MIDI loop → setLED (drum grid, multi-step)
 node browser-test/app-loop.mjs
@@ -426,8 +404,8 @@ code splitting). Never edit `ui.js` directly — it is a build artifact.
 - **`browser-test/app-loop.mjs` is a named EXCEPTION at 3560 lines** — 5.9× the
   ceiling, recorded 2026-09-19 so the next agent is not blocked finding it. It is
   PRE-EXISTING and it is not what the ceiling is about: the file is one
-  straight-line sequence of blocks over shared mock globals (which is what
-  `page-mode.mjs` re-runs per arm), so splitting it is a re-architecture and not
+  straight-line sequence of blocks over shared mock globals, so splitting it is a
+  re-architecture and not
   a tidy-up. The 2026-09-19 branch added +306 lines to it, all real coverage
   (SP-31's two latch checks and SP-37's label checks). **What it costs is the
   read**: after `logic.mjs`'s history it is the most expensive file in the repo

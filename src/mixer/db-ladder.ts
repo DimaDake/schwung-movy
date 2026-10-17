@@ -76,8 +76,6 @@ export function fracToAmp(frac: number, topDb: number): number {
 }
 
 export const volumeFrac = (amp: number): number => dbFrac(amp, DB_MAX);
-/** A send's own travel: silence to unity, so 0 dB is the far end of the arc. */
-export const sendFrac = (amp: number): number => dbFrac(amp, SEND_TOP_DB);
 export const UNITY_FRAC = volumeFrac(1);
 /** Ladder index → the same travel, for the slider the volume gesture draws. */
 export function idxToFrac(i: number): number { return volumeFrac(idxToAmp(i)); }

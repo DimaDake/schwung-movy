@@ -74,9 +74,6 @@ const { modulatedKeysOf } = await import('../../dist/esm/app/modulated-keys.js')
     const RECEIVER  = /(pageOwnerOf\((?:[^()]|\([^()]*\))*\)|knobOwner\(\)|\b(?:owner|fileOwner|lo|o))$/;
     const IMPLEMENTS = {
         'src/app/page-owner.ts':          'the accessor — it is what calls the implementations',
-        'src/model/index.ts':             'movy\'s model implements them',
-        'src/lfo/model.ts':               'the LFO model implements them',
-        'src/mixer/mix-model.ts':         'the mix model implements them',
         'src/renderer/schwung-page.ts':   'Schwung\'s page implements changePage',
     };
     const pageOffenders = [];
@@ -96,23 +93,11 @@ const { modulatedKeysOf } = await import('../../dist/esm/app/modulated-keys.js')
         .filter((f) => !/\.?(changePage|getKnobPage)\(/.test(readFileSync(f, 'utf8')));
     eq('no stale page-implementer entries: ' + staleImpl.join(','), staleImpl.length, 0);
 
-    /* The two input sites that resolve a parameter for a gesture must say which
-     * page they mean. `getFileBrowseTarget()` with no argument reads movy's
-     * frozen bank (it opened the wrong parameter); `handleKnobTouch(k)` with no
-     * dive flag opens movy's own list over the cell someone else drew. */
     const router = readFileSync('src/midi/router.ts', 'utf8');
-    ok('the file-browse target names the drawn page',
-       !/getFileBrowseTarget\(\s*\)/.test(router));
-    ok('the knob touch says whose dive it is',
-       !/handleKnobTouch\(\s*d1\s*\)/.test(router));
 
-    /* KNOWN EXEMPTION, named so it is not mistaken for coverage: Shift+jog's
-     * `changePageGroup` still goes straight to movy's model. Schwung's pages
-     * have no group, so routing it through the owner would page a delegated
-     * page by one and turn a passing app-loop check red — and the burn-down
-     * must never grow. The section jump is Schwung's Shift+click picker: SP-17. */
-    ok('the level-skip exemption is still the only one',
-       (router.match(/changePageGroup\(/g) || []).length === 1);
+    /* Shift+jog no longer pages movy's model by level: the section jump is
+     * Schwung's Shift+click picker (SP-17). */
+    ok('nothing pages movy\'s model by level', !/changePageGroup\(/.test(router));
 
     /* SP-12. The poll is a PER-TICK call now — it is the only thing that
      * advances a delegated page's contract and its read cursor, and movy's own
@@ -132,13 +117,6 @@ const { modulatedKeysOf } = await import('../../dist/esm/app/modulated-keys.js')
     const stalePoll = Object.keys(POLLERS)
         .filter((f) => !POLL_CALL.test(readFileSync(f, 'utf8')));
     eq('no stale poller entries: ' + stalePoll.join(','), stalePoll.length, 0);
-
-    /* ...and the model's value refresh is gated by the same answer, at the same
-     * site. A model ticked without it re-reads a page nobody is drawing, and
-     * there is no symptom: the values are simply right, twice over. */
-    const appTick = readFileSync('src/app/tick.ts', 'utf8');
-    ok('the model is ticked with the ownership answer',
-       !/activeModel\?\.tick\(\s*\)/.test(appTick));
 
     /* ONE WRITER FOR THE EIGHT KNOB LEDS, whoever supplies the values. The
      * diff cache and the frame budget are movy's; a second writer on the same
@@ -300,19 +278,11 @@ const { modulatedKeysOf } = await import('../../dist/esm/app/modulated-keys.js')
 {
     _log('\nlogic: a gesture resolves its parameter through the drawn page');
 
-    /* SP-11. The model never opens its own dive (the page drew the cell), but
-     * the touch is still recorded for the release and the header. */
-    const m = settleModel(bootModel(MOCK_SYNTHS.lfo_mod));
-    m.handleKnobTouch(0, false);
-    eq('a touch opens no movy dive', m.getViewModel().overlay, null);
-    eq('but the touch is still recorded', m.getViewModel().touchedSlot, 0);
-    m.handleKnobRelease(0);
-
     /* The file browser's target. `model/` cannot ask who draws the page (it may
      * not import `app/`), so the drawn key is passed in — and a drawn cell that
      * is NOT a file param must open nothing. */
     const f = settleModel(bootModel(MOCK_SYNTHS.file_param));
-    f.handleKnobTouch(0, false);
+    f.handleKnobTouch(0);
     eq('the drawn key answers', f.getFileBrowseTarget(() => 'sample')?.key, 'sample');
     eq('a drawn cell that is not a file opens nothing',
        f.getFileBrowseTarget(() => 'vol'), null);
@@ -371,7 +341,7 @@ const { modulatedKeysOf } = await import('../../dist/esm/app/modulated-keys.js')
     const empty = createModel(portFor(0), 'synth');
     const eo = pageOwnerOf(empty);
     eq('an empty slot has no page', eo.page, null);
-    ok('and the reason says not-ready', eo.reason.startsWith('not-ready track=0 ck=synth'));
+    eq('and the reason says so', eo.reason, 'empty-slot');
     eq('it reports page 0 of 0', [eo.pageIndex, eo.pageCount].join('/'), '0/0');
     eq('no parameter is under any knob', eo.knobParamInfo(0), null);
     eo.changePage(1); eo.goToPage(2);
@@ -407,6 +377,17 @@ const { modulatedKeysOf } = await import('../../dist/esm/app/modulated-keys.js')
     const round = (v) => Math.round(v * 1000) / 1000;
     eq('and a bound cell\'s level is its value on its range',
        round(lv[3]), round((i3.value - i3.min) / (i3.max - i3.min)));
+
+    /* NONE RELEASES THE PAGE. Setting the slot to None keeps the module
+     * instance, which can go on serving its old hierarchy — here the read just
+     * stops answering, which the contract holds as "unresolved" and keeps the
+     * plan it had. The model's own read of the slot is what says it is empty. */
+    env.setParams({});
+    m.reload();
+    for (let i = 0; i < 40; i++) { o.poll(); m.tick(); }
+    eq('a slot set to None has no page', pageOwnerOf(m).page, null);
+    eq('and says why', pageOwnerOf(m).reason, 'empty-slot');
+    env.setParams(MOCK_SYNTHS.test16);
 
     schwungGridReload();
 }

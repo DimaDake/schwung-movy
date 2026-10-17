@@ -18,8 +18,6 @@ import { seqCmd } from '../seq/engine.js';
 import { resetStepEdit } from '../seq/step-edit.js';
 import { resetStepPage } from '../seq/step-page.js';
 import { resetMomentary } from '../seq/momentary.js';
-import { resetMainPage } from '../seq/main-page.js';
-import { resetClipPage } from '../seq/clip-page.js';
 import { resetFlagsPage } from '../seq/flags-page.js';
 import { resetEditOps } from '../seq/edit-ops.js';
 import { resetDuplicate } from '../seq/duplicate.js';
@@ -45,8 +43,6 @@ export function resetHeldInput(notifyEngine: boolean): void {
     resetStepEdit();      // heldRanges / gestured / pressMs / co-press / length target
     resetStepPage();
     resetMomentary();
-    resetMainPage();
-    resetClipPage();
     resetFlagsPage();
     resetEditOps();       // Delete held
     resetDuplicate();     // Copy held

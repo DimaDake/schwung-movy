@@ -1,7 +1,7 @@
 import type { ViewModel } from '../types/viewmodel.js';
-import { fontPrint, fontWidth } from '../font/index.js';
+import { fontWidth } from '../font/index.js';
 import { drawHeader, drawBankBar, drawHeaderWithPadIcon, PAD_ICON_W, padIconShown } from './header.js';
-import { drawEnumOverlay, drawJogToast } from './overlay.js';
+import { drawJogToast } from './overlay.js';
 import { W } from './layout.js';
 import { AUTO_LANES } from '../seq/constants.js';
 import type { PageChrome } from './schwung-page-chrome.js';
@@ -36,7 +36,7 @@ export interface BankOverride { index: number; count: number }
  * cannot say "and it changes when the jog does". `logic/schwung-page.mjs`
  * asserts the rule; the screenshot scene asserts the frame draws it. */
 export function headerRightText(vm: ViewModel, chrome?: PageChrome): string {
-    return chrome?.pageLabel || vm.drumPadName || vm.bankName;
+    return chrome?.pageLabel || vm.drumPadName;
 }
 
 export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 0,
@@ -44,16 +44,9 @@ export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 
                                 chrome?: PageChrome): void {
     clear_screen();
 
-    /* THE HELD PARAM OUTRANKS MOVY'S TOAST, and under a delegated page it has
-     * to: movy's model still records the touch (it is what the release, the
-     * header readout and the file-browse gesture read) and raises its own toast
-     * for it — but the param it names is movy's own bank's, which is not the
-     * one on screen. Drawing Schwung's readout first is what makes the header
-     * true. */
+    /* The held param's readout is the page's own (Schwung's header). */
     if (chrome?.header) {
         drawHeader(chrome.header.left, chrome.header.right, chrome.header.inverted);
-    } else if (vm.toast) {
-        drawHeader(vm.toast.fullName, vm.overlay ? null : vm.toast.value, true);
     } else {
         const showIcon = padIconShown(vm, chrome);
         const iconW    = showIcon ? PAD_ICON_W : 0;
@@ -84,28 +77,22 @@ export function renderKnobsView(vm: ViewModel, jogTouched = false, activeSlot = 
      * Drawing it here rather than letting Schwung draw its own keeps one bar
      * (two were being stacked) and one visual language — and the groups go
      * with movy's banks, so they are dropped when the pages are not movy's. */
-    const bankIndex = bank ? bank.index : vm.bankIndex;
-    const bankCount = bank ? bank.count : vm.bankCount;
-    const bankGroups = bank ? undefined : vm.bankGroups;
+    /* A page still loading has no page set yet: one empty segment. */
+    const bankIndex = bank ? bank.index : 0;
+    const bankCount = bank ? bank.count : 1;
     if (vm.stepPagePresent) {
         const sel = vm.stepPageSelected ? 0 : bankIndex + 1;
-        // The step page is a bank of its own, ahead of the module's own banks.
-        drawBankBar(sel, bankCount + 1, true,
-            bankGroups ? [-1, ...bankGroups] : undefined);
+        // The step page is a bank of its own, ahead of the module's own pages.
+        drawBankBar(sel, bankCount + 1, true);
     } else {
-        drawBankBar(bankIndex, bankCount, false, bankGroups);
+        drawBankBar(bankIndex, bankCount, false);
     }
     /* The body band is Schwung's page; the header and the overlays below are
      * movy's. */
     body();
 
-    if (vm.overlay) drawEnumOverlay(vm);
     // Limit reached + a step held: tell the user only the assigned lanes are editable.
     if (vm.automationHeld && vm.automationPoolFull) drawJogToast(AUTO_LANES + ' AUTOMATION LANES — FULL');
-    /* movy's browse hint reads movy's OWN bank layout; while Schwung draws the
-     * body the cell under the hand is Schwung's, and the chrome's footer is the
-     * one that knows whether it is a file (`pageFooterFor`). */
-    else if (vm.toast?.browseHint && !chrome) drawJogToast('JOG: BROWSE');
     else if (jogTouched)      drawJogToast('CLICK JOG: SWAP MODULE');
     /* THE FOOTER IS THE LAST RESORT FOR THOSE ROWS, not a layer over them. A
      * toast and a Schwung hint band occupy the same six rows (TOAST_Y 58 and

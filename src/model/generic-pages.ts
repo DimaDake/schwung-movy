@@ -171,7 +171,6 @@ export function buildGenericPages(
 
     /* Build s.knobParams and s.bankNames from bankEntries */
     s.bankNames  = bankEntries.map(e => e.name);
-    s.bankGroups = bankEntries.map(e => e.group);
     for (const entry of bankEntries) {
         for (const key of entry.keys) {
             if (!key) { s.knobParams.push(null); continue; }
@@ -183,10 +182,7 @@ export function buildGenericPages(
             )));
         }
     }
-
-    s.knobValues = new Array(s.knobParams.length).fill(null) as (number | null)[];
     s.enumFmt    = new Array(s.knobParams.length).fill(undefined) as (boolean | undefined)[];
-    s.fileValues = new Array(s.knobParams.length).fill(null) as (string | null)[];
     mlog('loadHierarchy: ' + s.knobParams.filter(Boolean).length + ' params, ' + bankEntries.length + ' banks');
     s.dirty = true;
 }

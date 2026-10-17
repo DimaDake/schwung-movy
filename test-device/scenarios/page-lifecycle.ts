@@ -245,21 +245,19 @@ scenario('page-lifecycle', async (t) => {
      * the engine's real answer to "is there anything here", which is the fact
      * the logic suite can only model.
      *
-     * WHAT THE USER SEES is the page ceasing to be the module's. Measured, it is
-     * not a page count of zero: movy draws its own page for an empty slot, so
-     * the count settles at one with no cells on it. The transition is not
-     * instant either — the name clears one frame and the cells behind it a beat
-     * later, so waiting on the name alone reads a stale screen as the answer. */
+     * WHAT THE USER SEES is the page ceasing to be the module's: an empty slot
+     * has no page, so nothing is drawn under the header. The kept instance can
+     * go on serving its old hierarchy, which is why the owner asks the model
+     * whether the slot is empty rather than trusting the contract. */
     await ep('ch0:synth:module', '');
-    const emptied = await waitPage((p) => p.module !== MODULE && !hasCells(p) && delegated(p),
+    const emptied = await waitPage((p) => p.module !== MODULE && !hasCells(p) && !delegated(p),
                                    'the page to let the module go', 4000);
     t.note('pageAfterClear', dump(emptied));
     t.note('emptiedPageIsMovysOwn', !!emptied && emptied.module === EMPTY_NAME);
     t.check('none-releases-the-frame',
-        'the slot set to None hands the frame back, with no navigation, delegated',
-        !!emptied && emptied.module !== MODULE && !hasCells(emptied) && delegated(emptied),
-        { expected: `movy´s own page for the empty slot ("${EMPTY_NAME}", no cells), `
-                  + `drawn through Schwung`,
+        'the slot set to None hands the frame back, with no navigation',
+        !!emptied && emptied.module !== MODULE && !hasCells(emptied) && !delegated(emptied),
+        { expected: `the empty slot ("${EMPTY_NAME}") with no page and no cells`,
           actual: describe(emptied) });
 
     /* ── L3: a module that arrives after the old budget is spent ─────────────

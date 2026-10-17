@@ -1,6 +1,6 @@
 /* browser-test/logic/step-params-source.mjs — SP-54's step-page contract:
  * the virtual source `createVirtualSource` synthesises for the held-trig
- * mirror, the one-writer invariant with the delta path (`editStepPageKnob`),
+ * mirror, the fields its set() reaches,
  * and the lost-release non-latching claim itself (the page's cache entry is
  * dropped on BOTH the happy-path release and the recovery path, never left
  * to a cleanup that only runs on one of them).
@@ -27,7 +27,7 @@ const { LENGTH_LABELS, PROB_LABELS, COND_LABELS, LENGTH_TICKS, PROB_VALUES, leng
 const { seqState, resetSeqState } = await import('../../dist/esm/seq/state.js');
 const { peekSeqCmdQueue, resetSeqEngine } = await import('../../dist/esm/seq/engine.js');
 const {
-    editStepPageKnob, editStepDown, editStepUp, beginStepAutomation,
+    editStepDown, editStepUp, beginStepAutomation,
     endStepAutomation, resetStepEdit,
 } = await import('../../dist/esm/seq/step-edit.js');
 const { stepPageState, setStepPageSelected, resetStepPage } = await import('../../dist/esm/seq/step-page.js');
@@ -110,66 +110,33 @@ _log('\nTest: the synthesised contract');
     eq('one detent moves velocity by a whole VEL_STEP', perDetentStep, 4);
 }
 
-/* ── one writer: the virtual source's set() and editStepPageKnob agree ───── */
-_log('\nTest: the virtual source and editStepPageKnob write the SAME field');
+/* ── the virtual source's set() reaches the held-trig fields ───────────── */
+_log('\nTest: the virtual source writes the held trig');
 {
     reset();
     const source = stepParamsSource();
-
-    // LEN — editStepPageKnob is a no-op with nothing held (`anyStepHeld()`
-    // guard), same as the real gesture: the knob only edits a held step.
-    editStepDown(0);
-    seqState.holdGate = LENGTH_TICKS[5];
-    editStepPageKnob(1, 8);   // knob 1 (LEN), +1 detent (DETENT_DIV=8)
-    eq('the delta path advances one LENGTH_TICKS index', seqState.holdGate, LENGTH_TICKS[6]);
-    reset();
     source.setParam(key('len'), '6');
-    eq('the source lands on the same index', seqState.holdGate, LENGTH_TICKS[6]);
+    eq('LEN lands on its LENGTH_TICKS index', seqState.holdGate, LENGTH_TICKS[6]);
 
-    // PROB_VALUES is DESCENDING (100% first) to match the delta path's own
-    // "CW raises probability" math (subtracts a CW detent from the index).
-    // The WIRE index is the reverse of that — Schwung's turn convention is
-    // fixed (CW always INCREASES the wire index), so `source`'s get/set
-    // invert index-space at the boundary. Same field, same final percentage;
-    // only the wire index handed to `set()` differs from the internal one.
-    reset();
-    editStepDown(0);
-    seqState.holdProb = PROB_VALUES[5];
-    editStepPageKnob(2, 8);
-    eq('the delta path raises probability by one step', seqState.holdProb, PROB_VALUES[4]);
+    /* PROB_VALUES is DESCENDING (100% first); Schwung's turn convention is
+     * fixed (CW always INCREASES the wire index), so the source inverts
+     * index-space at the boundary. */
     reset();
     source.setParam(key('prob'), String(PROB_VALUES.length - 1 - 4));
-    eq('the source lands on the same percentage', seqState.holdProb, PROB_VALUES[4]);
+    eq('PROB lands on its percentage', seqState.holdProb, PROB_VALUES[4]);
 
-    // INVERT
-    reset();
-    editStepDown(0);
-    seqState.holdInvert = false;
-    editStepPageKnob(4, 8);   // CW = on
-    eq('the delta path turns invert on', seqState.holdInvert, true);
     reset();
     source.setParam(key('invert'), '1');
-    eq('the source writes the same field', seqState.holdInvert, true);
+    eq('INVERT writes the field', seqState.holdInvert, true);
 
-    /* VELOCITY has no optimistic seqState mirror (matches the `off` arm,
-     * which relies on the engine's next status poll) — so the proof is the
-     * EMITTED COMMAND, over a real held step so `forEach` has something to
-     * iterate. Both paths must compute the identical delta from the identical
-     * starting value: that IS `applyStepVelocityAbs`, not two guesses that
-     * happen to agree today. */
-    reset();
-    editStepDown(0);           // registers step 0 as held (Note mode, watchLane<0)
-    seqState.holdVel = 60;
-    editStepPageKnob(0, 1);    // any positive delta — only the sign matters
-    const deltaOp = peekSeqCmdQueue().find((o) => o.startsWith('evel'));
-    ok('the delta path emitted an evel command', !!deltaOp);
-
+    /* VELOCITY has no optimistic mirror, so the proof is the EMITTED COMMAND,
+     * over a real held step so `forEach` has something to iterate. */
     reset();
     editStepDown(0);
     seqState.holdVel = 60;
-    source.setParam(key('vel'), '64');   // holdVel(60) + VEL_STEP(4)
-    const sourceOp = peekSeqCmdQueue().find((o) => o.startsWith('evel'));
-    eq('the source emits the identical evel command', sourceOp, deltaOp);
+    source.setParam(key('vel'), '64');
+    const op = peekSeqCmdQueue().find((o) => o.startsWith('evel'));
+    eq('VEL emits the delta from the held value', op && op.split(' ').pop(), '4');
 }
 
 /* ── the lost-release claim: non-latching by construction ─────────────────

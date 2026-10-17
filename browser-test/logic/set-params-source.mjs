@@ -1,6 +1,5 @@
 /* browser-test/logic/set-params-source.mjs — SP-53's virtual-component seam,
- * pinned at Set Params: the eight-cell contract, the one-writer invariant
- * with the delta path (`mainPageKnob`/`mainPageRelease`'s overlay commit),
+ * pinned at Set Params: the eight-cell contract, the fields its writes reach,
  * TEMPO's `format()` EXT suffix, and LAYOUT's mode-dependent option list.
  *
  * The FIRST block is pure functions over `seqState`/`keyboardState`. The
@@ -21,8 +20,6 @@ const { setParamsSource } = await import('../../dist/esm/seq/set-params-contract
 const { SET_PARAMS_COMPONENT, isVirtualPageComponent } = await import('../../dist/esm/chain/config.js');
 const { seqState, resetSeqState } = await import('../../dist/esm/seq/state.js');
 const { keyboardState } = await import('../../dist/esm/keyboard/state.js');
-const { mainPageKnob, mainPageTouch, mainPageRelease, resetMainPage }
-    = await import('../../dist/esm/seq/main-page.js');
 const { K_TEMPO, K_SWING, K_QUANT, K_ROOT, K_KEY, K_MODE, K_LAYOUT }
     = await import('../../dist/esm/seq/main-page-constants.js');
 const { layoutNames } = await import('../../dist/esm/keyboard/layouts.js');
@@ -30,7 +27,7 @@ const { openParamPage, closeParamPage } = await import('../../dist/esm/seq/param
 const { VIEW_MAIN_PARAMS } = await import('../../dist/esm/app/state.js');
 
 function reset() {
-    resetSeqState(); resetMainPage();
+    resetSeqState();
     openParamPage(VIEW_MAIN_PARAMS);
 }
 
@@ -66,16 +63,6 @@ _log('\nTest: the synthesised contract');
        'TEMPO,SWING,QUANT,ROOT,KEY,MODE,LAYOUT');
 }
 
-/* ── The legacy page keeps LINK's knob empty, so the numbering holds ─────── */
-_log('\nTest: the legacy Set Params page leaves knob 3 empty');
-{
-    const { buildMainPageVM } = await import('../../dist/esm/seq/main-page-vm.js');
-    reset();
-    const vm = buildMainPageVM();
-    eq('knob 3 is empty', vm.rows[0][2].shortName, '');
-    eq('QUANT keeps knob 4', vm.rows[0][3].shortName, 'QUANT');
-}
-
 /* ── LAYOUT's option list is a FUNCTION, resolved against the CURRENT mode ── */
 _log('\nTest: LAYOUT tracks MODE live');
 {
@@ -93,31 +80,16 @@ _log('\nTest: LAYOUT tracks MODE live');
        namesAt1.join(',') === layoutNames(1).join(','));
 }
 
-/* ── one writer: the virtual source and the delta/overlay path agree ─────── */
-_log('\nTest: the virtual source and mainPageKnob/mainPageRelease write the SAME field');
+/* ── the virtual source writes the fields movy's own state keeps ────────── */
+_log('\nTest: the virtual source writes seqState / keyboardState directly');
 {
     reset();
     const source = setParamsSource();
-
     source.setParam(SET_PARAMS_COMPONENT + ':swing', '65');
-    eq('the source writes seqState.swingPct directly', seqState.swingPct, 65);
-
-    resetSeqState();
-    mainPageKnob(K_SWING, 8);   // +1 detent
-    eq('the delta path writes the same field', seqState.swingPct, 51);
-
-    /* KEY commits through the overlay's RELEASE, not the turn — the virtual
-     * source's set() must reach the exact field that release does. */
+    eq('swing lands in seqState.swingPct', seqState.swingPct, 65);
     resetSeqState();
     source.setParam(SET_PARAMS_COMPONENT + ':key', '3');
-    eq('the source writes keyboardState.scale directly', keyboardState.scale, 3);
-
-    resetSeqState(); resetMainPage();
-    keyboardState.scale = 0;    // known starting point for the overlay scroll
-    mainPageTouch(K_KEY, true);
-    mainPageKnob(K_KEY, 8);      // scroll the overlay by one entry
-    mainPageRelease(K_KEY);      // commits on release
-    eq('the overlay-commit path writes the same field', keyboardState.scale, 1);
+    eq('key lands in keyboardState.scale', keyboardState.scale, 3);
 }
 
 /* ── format() overrides the PRINTED text only, never the arc ──────────────── */

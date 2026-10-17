@@ -1,6 +1,6 @@
 /* browser-test/logic/clip-params-source.mjs — SP-53's virtual-component seam,
  * pinned at Clip Params: the contract `createVirtualSource` synthesises, the
- * one-writer invariant with the delta path (`clipPageKnob`), and the
+ * field its set() reaches, and the
  * drum-track `format()` override.
  *
  * The FIRST block is pure functions over `seqState`/`appState`. The second
@@ -24,7 +24,6 @@ const { createVirtualSource } = await import('../../dist/esm/renderer/schwung-vi
 const { clipParamsSource } = await import('../../dist/esm/seq/clip-params-contract.js');
 const { CLIP_PARAMS_COMPONENT, isVirtualPageComponent } = await import('../../dist/esm/chain/config.js');
 const { seqState, resetSeqState } = await import('../../dist/esm/seq/state.js');
-const { clipPageKnob, resetClipPage } = await import('../../dist/esm/seq/clip-page.js');
 const { openParamPage, closeParamPage } = await import('../../dist/esm/seq/param-page.js');
 const { VIEW_CLIP_PARAMS } = await import('../../dist/esm/app/state.js');
 
@@ -32,7 +31,7 @@ const savedModels = appState.trackModels;
 const fakeModel = (drum) => ({ getDrumConfig: () => (drum ? { padCount: 16 } : null) });
 
 function reset(drumTrack0 = false) {
-    resetSeqState(); resetClipPage();
+    resetSeqState();
     appState.activeTrack = trackRef(0);
     appState.trackModels = [[null, fakeModel(drumTrack0)]];
     openParamPage(VIEW_CLIP_PARAMS);
@@ -73,8 +72,8 @@ _log('\nTest: the synthesised contract');
        'SCALE,LEN,TRANS,QUANT');
 }
 
-/* ── one writer: the virtual source's set() and the delta path agree ─────── */
-_log('\nTest: the virtual source and clipPageKnob write the SAME field');
+/* ── the virtual source's set() reaches the field movy keeps ──────────────── */
+_log('\nTest: the virtual source writes seqState.lenSteps');
 {
     reset();
     const source = clipParamsSource();
@@ -82,17 +81,10 @@ _log('\nTest: the virtual source and clipPageKnob write the SAME field');
     source.setParam(CLIP_PARAMS_COMPONENT + ':length', '40');
     eq('the source writes seqState.lenSteps directly', seqState.lenSteps, 40);
 
-    resetSeqState(); resetClipPage();
-    seqState.lenSteps = 10;
-    clipPageKnob(1, 8, 0);   // knob 1 (LENGTH), +1 detent (DETENT_DIV), track 0
-    eq('the delta path writes the same field', seqState.lenSteps, 11);
-
-    /* Same clamp, same field, from either caller — proves `applyClipLength` is
-     * the one writer, not two independent implementations that happen to
-     * agree today. */
+    /* The clamp is `applyClipLength`'s, the one writer. */
     resetSeqState();
     source.setParam(CLIP_PARAMS_COMPONENT + ':length', '99999');
-    eq('the source clamps to MAX_STEPS exactly like the delta path would', seqState.lenSteps, 256);
+    eq('the source clamps to MAX_STEPS', seqState.lenSteps, 256);
 }
 
 /* ── format() overrides the PRINTED text only, never the arc ─────────────── */
@@ -106,7 +98,7 @@ _log('\nTest: TRANSPOSE reads n/a on a drum track');
     eq('format() overrides the text to n/a', source.formatValue(key, source.getParam(key), 'cell'), 'n/a');
 
     source.setParam(key, '10');
-    eq('a write to a drum track is refused, silently, like the delta path',
+    eq('a write to a drum track is refused, silently',
        seqState.clipTranspose, 0);
 
     reset(false);

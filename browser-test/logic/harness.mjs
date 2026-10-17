@@ -13,10 +13,7 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { createModel }    from '../../dist/esm/model/index.js';
 import { portFor }        from '../../dist/esm/track/registry.js';
 import { trackRef, TRACK_COUNT } from '../../dist/esm/track/ref.js';
-import { dedupShortNames, LABEL_BUDGET } from '../../dist/esm/renderer/shorten.js';
-import { detectEnvelopes } from '../../dist/esm/model/envelope.js';
-import { planPageLayout } from '../../dist/esm/model/page-layout.js';
-import { enumRawToIndex, enumUsesIndex, enumSetValue } from '../../dist/esm/model/enum-value.js';
+import { enumUsesIndex } from '../../dist/esm/model/enum-value.js';
 import { MOCK_SYNTHS }    from '../mock-synth.mjs';
 import { drumPadOn, drumPadOff } from '../../dist/esm/keyboard/drum-handler.js';
 import { ENGINE_VERSION } from '../../dist/esm/seq/constants.js';
@@ -97,35 +94,16 @@ import {
 import { seqCmd, takeLabelSync, seqEngineTick, resetSeqEngine } from '../../dist/esm/seq/engine.js';
 import { installEnv, SHADOW_UI_SLOTS } from '../env.mjs';
 import {
-    buildTargetOptions, shortenTarget, targetIndex, formatDepth, formatPhase,
-    LFO_SHAPES, LFO_DIVISIONS, compLabel,
+    buildTargetOptions, shortenTarget, targetIndex, LFO_SHAPES, LFO_DIVISIONS, compLabel,
 } from '../../dist/esm/lfo/params.js';
 import { createLfoModel } from '../../dist/esm/lfo/model.js';
-import { detectLfoViz } from '../../dist/esm/model/lfo-viz.js';
-import { buildLfoViz } from '../../dist/esm/model/lfo-vm.js';
-import { detectFilterViz } from '../../dist/esm/model/filter-viz.js';
-import { buildFilterViz } from '../../dist/esm/model/filter-vm.js';
-import { normalizeFilterOption, isFilterModeEnum, filterModeFromEnum, isSlopeEnum, staticModeFromTokens } from '../../dist/esm/model/filter-mode.js';
-import { shapeId as lfoShapeId, isShapeEnum } from '../../dist/esm/model/lfo-shapes.js';
-import { enumClassOf } from '../../dist/esm/model/enum-class.js';
-import { waveCellIndices } from '../../dist/esm/model/wave-viz.js';
-import { waveToggleOf } from '../../dist/esm/model/wave-toggle.js';
-import { envStageOf } from '../../dist/esm/model/env-stage.js';
-import { detectEqViz } from '../../dist/esm/model/eq-viz.js';
-import { cutKindOf, detectCutPair } from '../../dist/esm/model/cut-viz.js';
-import { detectWavViz } from '../../dist/esm/model/wav-viz.js';
-import { wavPeaksTick, wavPeaks, resetWavPeaks, resamplePeaks, PEAK_WIDTH } from '../../dist/esm/model/wav-peaks.js';
-import { isFaderParam } from '../../dist/esm/model/fader.js';
-import { isPanParam } from '../../dist/esm/model/pan.js';
 import { isToggleParam, isActionParam } from '../../dist/esm/model/toggle.js';
-import { triggerIndices } from '../../dist/esm/model/trigger.js';
 import { renderKnobsView } from '../../dist/esm/renderer/knob-view.js';
 import { renderChainView } from '../../dist/esm/renderer/chain-view.js';
 import { lfoTargetsParam, assignLfoTarget, clearLfoTarget } from '../../dist/esm/lfo/assign.js';
 import { trackScope, masterScope } from '../../dist/esm/lfo/scope.js';
 import { holdTouch, holdRelease, holdTurnCancel, holdTick, assignActive, assignCycle, assignCommit, assignToastText, resetAssignMode } from '../../dist/esm/lfo/assign-mode.js';
 import { jogHintTouch, jogHintTick, jogHintVisible } from '../../dist/esm/app/jog-hint.js';
-import { shapeSample, drawWave } from '../../dist/esm/renderer/lfo-wave.js';
 import { CHAIN_SLOTS, LFO_CHAIN_INDEX, isLfoSlot } from '../../dist/esm/chain/config.js';
 import { init } from '../../dist/esm/app/init.js';
 import { appState } from '../../dist/esm/app/state.js';
@@ -256,12 +234,7 @@ function settleModel(m, ticks = 12) {
     return m;
 }
 
-function bankNames(m) {
-    const n = m.getViewModel().bankCount;
-    const names = [];
-    for (let i = 0; i < n; i++) { if (i > 0) m.changePage(1); names.push(m.getViewModel().bankName); }
-    return names;
-}
+function bankNames(m) { return m.dumpLayout().banks.map((b) => b.name); }
 
 /* ── shared page-param fixture (envelope / viz suites) ────────────────────── */
 
@@ -272,8 +245,7 @@ const P = (key, label, env) => ({ key, label, shortLabel: null, type: 'float',
 
 export {
     readFileSync, readdirSync, createModel, portFor, trackRef, TRACK_COUNT,
-    dedupShortNames, LABEL_BUDGET, detectEnvelopes, planPageLayout, enumRawToIndex, enumUsesIndex, enumSetValue,
-    MOCK_SYNTHS, drumPadOn, drumPadOff, ENGINE_VERSION, NAME_POLL_TICKS, META_RETRY_LIMIT, HIERARCHY_RETRY_TICKS,
+    enumUsesIndex, MOCK_SYNTHS, drumPadOn, drumPadOff, ENGINE_VERSION, NAME_POLL_TICKS, META_RETRY_LIMIT, HIERARCHY_RETRY_TICKS,
     KNOBS_PER_PAGE, OVERRIDES_MODULE_FILE,
     uuidToStatePath, uuidToUiStatePath, BLANK_STATE, sessionTick, resetSetSession, wrapState,
     parseState, adler32, installMockFs, uninstallMockFs, safeWrite, readBestState,
@@ -303,16 +275,11 @@ export {
     takeUndoViolation, resetUndoRecord, isUndoableVerb, isControlVerb, UNDOABLE_VERBS, undoOnce,
     redoOnce, undoWatchContext, resetUndoApply, undoToastVM, noteCount, clipTarget,
     valueChange, seqCmd, takeLabelSync, seqEngineTick, resetSeqEngine, installEnv,
-    SHADOW_UI_SLOTS, buildTargetOptions, shortenTarget, targetIndex, formatDepth, formatPhase,
-    LFO_SHAPES, LFO_DIVISIONS, compLabel, createLfoModel, detectLfoViz, buildLfoViz,
-    detectFilterViz, buildFilterViz, normalizeFilterOption, isFilterModeEnum, filterModeFromEnum, isSlopeEnum,
-    staticModeFromTokens, lfoShapeId, isShapeEnum, enumClassOf, waveCellIndices, waveToggleOf,
-    envStageOf, detectEqViz, cutKindOf, detectCutPair, detectWavViz,
-    wavPeaksTick, wavPeaks, resetWavPeaks, resamplePeaks, PEAK_WIDTH, isFaderParam, isPanParam, isToggleParam, isActionParam, triggerIndices, renderKnobsView,
+    SHADOW_UI_SLOTS, buildTargetOptions, shortenTarget, targetIndex, LFO_SHAPES, LFO_DIVISIONS, compLabel, createLfoModel, isToggleParam, isActionParam, renderKnobsView,
     renderChainView, lfoTargetsParam, assignLfoTarget, clearLfoTarget, trackScope, masterScope,
     holdTouch, holdRelease, holdTurnCancel, holdTick, assignActive, assignCycle,
     assignCommit, assignToastText, resetAssignMode, jogHintTouch, jogHintTick, jogHintVisible,
-    shapeSample, drawWave, CHAIN_SLOTS, LFO_CHAIN_INDEX, isLfoSlot, init,
+    CHAIN_SLOTS, LFO_CHAIN_INDEX, isLfoSlot, init,
     appState, selectTrack, watchedTrack, countTrips, countTripKinds, ok, fail, eq, notMatch, bootModel, settleModel,
     bankNames, P, lastMusicalOp, musicalOps, UNDO_RING, _log,
     env, mockFsEntries, failureCount,

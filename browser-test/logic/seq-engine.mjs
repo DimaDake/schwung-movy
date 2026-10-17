@@ -347,13 +347,6 @@ export async function run() {
     resetCapture();
 }
 
-/* ── Main page: knob 2 is empty since LINK was retired (WP9) ─────────────── */
-{
-    _log('\nMain page knob 2:');
-    const { buildMainPageVM } = await import('../../dist/esm/seq/main-page-vm.js');
-    eq('the retired LINK slot draws nothing', buildMainPageVM().rows[0][2].displayValue, '');
-}
-
 /* ── swing: engine swing status field ────────────────────────────────────── */
 {
     _log('\nswing status parse:');

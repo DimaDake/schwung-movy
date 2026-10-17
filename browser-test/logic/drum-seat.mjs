@@ -244,7 +244,6 @@ for (const [id, perPad] of [
     ok(`${id}: has a per-pad page`, on > 0);
     if (id !== 'sophie') {
         ok(`${id}: has a global page`, off > 0);
-        ok(`${id}: ...where the rack-wide model flag would still say yes`, model.getViewModel().isPadScoped);
     }
     done(restoreFs);
 }

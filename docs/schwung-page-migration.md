@@ -1,5 +1,11 @@
 # Schwung page migration — ledger
 
+> **CLOSED 2026-10-13.** movy's own page renderer is retired; Schwung's
+> `param_pages` is the only one (`plans/2026-10-13-schwung-pages-only.md`).
+> The movy code is preserved at tag `movy-pages-final` and indexed in
+> `docs/movy-pages-knowhow.md`. Everything below is history; `page-mode.mjs`,
+> the `off` arm and the `schwunggrid` flag it refers to no longer exist.
+
 **The single source of truth for where this migration is.** Direction and
 rationale live in
 `docs/superpowers/specs/2026-09-13-schwung-page-migration-design.md`; the

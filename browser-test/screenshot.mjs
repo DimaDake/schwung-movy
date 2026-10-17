@@ -22,7 +22,6 @@ import { PNG } from 'pngjs';
 import pixelmatch from 'pixelmatch';
 import { installEnv } from './env.mjs';
 import { dumpFixture } from './dump-fixture.mjs';
-import { REFRESH_BULK_TICKS } from '../dist/esm/model/constants.js';
 
 /* Quiet the renderer's [movy] mlog chatter; keep our own status lines. */
 const _log = console.log.bind(console);
@@ -39,7 +38,7 @@ const PRESETS = [
     'versions_list', 'versions_confirm', 'sets_list', 'sets_long_names', 'sets_confirm',
     'chain_synth', 'chain_empty', 'chain_jog_toast', 'knobs_jog_toast', 'chain_t2',
     'chain_t4', 'lfo_chain', 'mix_page_chain', 'master_send_slot', 'master_send_empty',
-    'lfo_master', 'lfo_master_chain', 'lfo_assign_toast', 'file_browse',
+    'lfo_master_chain', 'lfo_assign_toast', 'file_browse',
     'step_indicator', 'step_rec_header', 'loop_strip_midclip', 'loop_strip_outside',
     'loop_header', 'song_band', 'song_band_overflow', 'song_band_end',
     'quant-overlay-three', 'quant-overlay-two', 'flags-top', 'flags-scrolled',
@@ -134,15 +133,6 @@ const DUMP_BASE = { page_voice_pad: 'voice-poc', page_voice_global: 'voice-poc',
                     page_config_pad: 'forge', page_config_filter: 'forge', page_config_mix: 'forge',
                     page_config_mod: 'forge' };
 
-const STEP_VM_A = {
-    holdVel: 100, holdGate: 48, holdGateMixed: false,
-    holdProb: 40, holdCondA: 2, holdCondB: 3, holdInvert: true,
-};
-const STEP_VM_B = {
-    holdVel: 64, holdGate: 24, holdGateMixed: true,
-    holdProb: 100, holdCondA: 1, holdCondB: 1, holdInvert: false,
-};
-
 const W = 128, H = 64;
 const ON  = [212, 208, 200];   // '#d4d0c8' lit pixel
 const OFF = [0, 0, 0];
@@ -177,7 +167,6 @@ const { MASTER_FX_SLOTS, MASTER_LFO_INDEX } = await import('../dist/esm/chain/co
 const { holdTouch, holdTick, assignToastText, resetAssignMode } = await import('../dist/esm/lfo/assign-mode.js');
 const { trackScope } = await import('../dist/esm/lfo/scope.js');
 const { drawJogToast }     = await import('../dist/esm/renderer/overlay.js');
-const { LONG_PRESS_TICKS } = await import('../dist/esm/model/constants.js');
 const { drawLeaveModal }   = await import('../dist/esm/renderer/leave-modal-view.js');
 const { drawCaptureOverlay } = await import('../dist/esm/renderer/capture-overlay.js');
 const { drawQuantOverlay } = await import('../dist/esm/renderer/quant-overlay.js');
@@ -198,7 +187,7 @@ const { buildCaptureVM }     = await import('../dist/esm/seq/capture-vm.js');
 const { setCaptureStateForTest } = await import('../dist/esm/seq/capture.js');
 const { drawVolumeOverlay } = await import('../dist/esm/renderer/volume-overlay.js');
 const { volumeFrac }       = await import('../dist/esm/mixer/track-volume.js');
-const { sendFrac }         = await import('../dist/esm/mixer/db-ladder.js');
+const { dbFrac }           = await import('../dist/esm/mixer/db-ladder.js');
 const { renderKnobsView, headerRightText } = await import('../dist/esm/renderer/knob-view.js');
 /* The `page` scenes' entry points. Imported here, not statically, for the same
  * reason as every other renderer: the file resolves them after installEnv(). */
@@ -235,10 +224,7 @@ const { renderBrowseView } = await import('../dist/esm/renderer/browse-view.js')
 const { renderFileBrowseView } = await import('../dist/esm/renderer/file-browse-view.js');
 const { renderChainView }  = await import('../dist/esm/renderer/chain-view.js');
 const { buildStepPageVM }  = await import('../dist/esm/seq/step-page-vm.js');
-const { buildMainPageVM }  = await import('../dist/esm/seq/main-page-vm.js');
-const { mainPageState, resetMainPage } = await import('../dist/esm/seq/main-page.js');
-const { buildClipPageVM }  = await import('../dist/esm/seq/clip-page-vm.js');
-const { clipPageState, resetClipPage } = await import('../dist/esm/seq/clip-page.js');
+const { headerOnlyVM }     = await import('../dist/esm/seq/header-vm.js');
 const { setStepPageSelected, resetStepPage } = await import('../dist/esm/seq/step-page.js');
 const { seqState, resetSeqState }      = await import('../dist/esm/seq/state.js');
 const { appState }                     = await import('../dist/esm/app/state.js');
@@ -301,25 +287,6 @@ const REAL_NOW = Date.now;
 let nowOverride = null;
 Date.now = () => (nowOverride === null ? REAL_NOW() : nowOverride);
 
-/* Fire knob 0's trigger, then render `afterMs` later on a frozen clock. */
-function fireTrigger(afterMs) {
-    settle();
-    nowOverride = 1_000_000;
-    model.handleKnobDelta(0, 1);
-    model.tick();
-    nowOverride += afterMs;
-    forceRender();
-}
-
-/* Override synth params on the loaded mock and re-read, then repaint. */
-function setFilter(overrides) {
-    const patched = { ...env.params };
-    for (const [k, v] of Object.entries(overrides)) patched['synth:' + k] = v;
-    env.setParams(patched);
-    for (const m of chainModels) { m.reset(); m.reload(); }
-    forceRender(); settle();
-}
-
 /* Each helper sets lastRender so the post-state settle repaints THIS view. */
 function showKeys()  { lastRender = () => renderKeysView(model.getModuleName(), 60, midiName); lastRender(); }
 function showBrowse(mods, idx) { lastRender = () => renderBrowseView(mods, idx); lastRender(); }
@@ -330,10 +297,9 @@ function showChain(chainIndex, jogTouched, activeSlot) {
     lastRender();
 }
 function showKnobsJogToast() { lastRender = () => renderKnobsView(model.getViewModel(), true); lastRender(); }
-function showKnobsAuto(auto) { lastRender = () => renderKnobsView(model.getViewModel(auto)); lastRender(); }
 /* Automation snapshot: lane 0 bound to knob 0's param. */
 function autoView({ held = false, poolFull = false, assignedLanes = 1, heldVal = null, liveVal = null } = {}) {
-    const key = model.getKnobParamInfo(0)?.key;
+    const key = model.dumpLayout().params.find(Boolean)?.key;
     const heldValues = new Map();
     if (heldVal !== null) heldValues.set(0, heldVal);
     const liveValues = new Map();
@@ -373,17 +339,10 @@ function makeSceneWav() {
  * model ticks — matching the harness rAF loop — so chain slots that were never
  * ticked render as empty.
  *
- * N is REFRESH_BULK_TICKS + 1, not a flat 5: every track is a movy chain now,
- * and a chain port's background refresh fires once per REFRESH_BULK_TICKS
- * rather than incrementally every tick (a host track's old cadence). A gap
- * between two bulk reads can itself run REFRESH_BULK_TICKS ticks wide with
- * nothing changing, so 5 consecutive quiet ticks can land entirely inside that
- * gap — "converged" right before the one read that would have populated a page
- * just switched to. `obxd_filter_page` shipped every knob reading "..." this
- * way: settle() gave up 8 ticks early. */
+ * N quiet ticks in a row: nine, enough to cover a page cache refill. */
 function settle() {
     let idle = 0, total = 0;
-    const quietFor = REFRESH_BULK_TICKS + 1;
+    const quietFor = 9;
     while (idle < quietFor && total < 200) {
         const dirty = model.tick();
         if (dirty) lastRender();
@@ -522,14 +481,14 @@ function applyView(preset) {
          * common case. */
         case 'quant-overlay-three':
         case 'quant-overlay-two': {
-            resetSeqState(); resetClipPage();
+            resetSeqState();
             seqState.clipScaleIdx = 4; seqState.lenSteps = 16; seqState.clipTranspose = 0;
             const three = preset === 'quant-overlay-three';
             seqState.defaultQuant = three ? 70 : 0;
             seqState.clipQuant = three ? 70 : 100;
             armQuantOverlay(Date.now());
             lastRender = () => {
-                renderKnobsView(buildClipPageVM(), false, 0);
+                renderKnobsView(headerOnlyVM('CLIP PARAMETERS'), false, 0);
                 drawQuantOverlay(buildQuantOverlayVM());
             };
             lastRender();
@@ -690,7 +649,7 @@ function applyView(preset) {
             showChain(1, false, 0);
             const base = lastRender;
             const vol = 10 ** (-12 / 20);
-            const vm = { title: 'MASTER VOLUME', value: vol, frac: sendFrac(vol), unityFrac: 1 };
+            const vm = { title: 'MASTER VOLUME', value: vol, frac: dbFrac(vol, 0), unityFrac: 1 };
             lastRender = () => { base(); drawVolumeOverlay(vm); };
             lastRender();
             break;
@@ -793,11 +752,11 @@ function applyView(preset) {
         /* The undo toast over the Clip Params page: it is drawn after every view
          * branch, so a page that is not the chain view still shows it. */
         case 'clip-undo-toast': {
-            resetSeqState(); resetClipPage();
+            resetSeqState();
             seqState.clipScaleIdx = 4; seqState.lenSteps = 16; seqState.clipTranspose = 0;
             const vm = undoToastVM(
                 { ok: true, verb: 'CLIP LENGTH', target: 'T1', detail: '16 -> 9' }, false);
-            lastRender = () => { renderKnobsView(buildClipPageVM(), false, 0); drawUndoOverlay(vm); };
+            lastRender = () => { renderKnobsView(headerOnlyVM('CLIP PARAMETERS'), false, 0); drawUndoOverlay(vm); };
             lastRender();
             break;
         }
@@ -818,8 +777,6 @@ function applyView(preset) {
             });
             const lm = createLfoModel(0);
             lm.tick();
-            if (preset === 'lfo_lfo2') lm.changePage(1);
-            if (preset === 'lfo_target_overlay') lm.handleKnobTouch(3);
             if (preset === 'lfo_chain') lastRender = () => renderChainView(lm.getViewModel(), 4, false, 'T1', 'LFO');
             else lastRender = () => renderKnobsView(lm.getViewModel(), false, 0);
             lastRender();
@@ -856,8 +813,7 @@ function applyView(preset) {
         /* `mix_page_two_held` is two knobs held at once: BOTH show their value,
          * and the header follows the one touched last. One readout for two
          * hands reads as a knob that stopped responding. */
-        case 'mix_page_chain':
-        case 'mix_page_two_held': {
+        case 'mix_page_chain': {
             const mtrk = 6;
             const oldGet = globalThis.host_module_get_param;
             globalThis.host_module_get_param = (k) =>
@@ -868,22 +824,13 @@ function applyView(preset) {
             resetPorts();
             const mx = createMixModel(mtrk);
             mx.tick();
-            if (preset === 'mix_page_two_held') {
-                mx.handleKnobTouch(0);          // VOL
-                mx.handleKnobTouch(FIELD_AT.indexOf('send2'));
-            }
-            if (preset === 'mix_page_chain') {
-                lastRender = () => renderChainView(mx.getViewModel(), 5, false, 'T' + (mtrk + 1), 'MIX');
-            } else {
-                lastRender = () => renderKnobsView(mx.getViewModel(), false, mtrk);
-            }
+            lastRender = () => renderChainView(mx.getViewModel(), 5, false, 'T' + (mtrk + 1), 'MIX');
             lastRender();
             globalThis.host_module_get_param = oldGet;
             break;
         }
         /* The master chain's own LFO page: same eight positions, but knob 7 is
          * blank — the master bus has no notes to retrigger on. */
-        case 'lfo_master':
         case 'lfo_master_chain': {
             env.setParams({
                 'mfx:fx1:chain_params': JSON.stringify([{ key: 'mix', name: 'Mix', type: 'float' }]),
@@ -895,11 +842,7 @@ function applyView(preset) {
             resetPorts();
             const mlm = createScopedLfoModel(masterScope());
             mlm.tick();
-            if (preset === 'lfo_master_chain') {
-                lastRender = () => renderChainView(mlm.getViewModel(), MASTER_LFO_INDEX, false, 'MASTER', 'LFO', MASTER_FX_SLOTS);
-            } else {
-                lastRender = () => renderKnobsView(mlm.getViewModel(), false, 0);
-            }
+            lastRender = () => renderChainView(mlm.getViewModel(), MASTER_LFO_INDEX, false, 'MASTER', 'LFO', MASTER_FX_SLOTS);
             lastRender();
             break;
         }
@@ -908,7 +851,10 @@ function applyView(preset) {
             for (let i = 0; i < 6; i++) chainModels[1].tick();
             const realNow = Date.now; let t = 1000; Date.now = () => t;
             resetAssignMode();
-            holdTouch(trackScope(0), 0, chainModels[1].getKnobParamInfo(0)); t = 2100; holdTick();
+            /* The hold needs the param's facts, as the page's knobParamInfo gives them. */
+            const p0 = chainModels[1].dumpLayout().params.find(Boolean);
+            holdTouch(trackScope(0), 0, { ...p0, gi: 0, ioKey: p0.key, target: 'synth', value: p0.min });
+            t = 2100; holdTick();
             Date.now = realNow;
             lastRender = () => { renderKnobsView(chainModels[1].getViewModel(), false, 0); drawJogToast(assignToastText()); };
             lastRender();
@@ -973,9 +919,7 @@ function applyView(preset) {
                 model.updateDrumPad(2, 38);
             }
             /* THE SAME RACK ON ITS REVERB PAGE, which no pad press re-targets:
-             * the header draws no pad icon there. The model's `isPadScoped` is
-             * rack-wide and still says yes, so the frame is the seat's answer
-             * and not a coincidence. */
+             * the header draws no pad icon there — the seat's answer. */
             if (preset === 'page_voice_global') {
                 const onReverb = () => /reverb/i.test(sp.ctl.pages[sp.ctl.pageIndex]?.name || '');
                 for (let i = 0; i < sp.pageCount && !onReverb(); i++) { sp.goToPage(i); sp.tick(); model.tick(); }
@@ -983,8 +927,6 @@ function applyView(preset) {
                 model.updateDrumPad(2, 38);
                 if (sp.chrome(true).padScoped) throw new Error(
                     'page_voice_global: the seat calls Reverb a per-pad page');
-                if (!model.getViewModel().isPadScoped) throw new Error(
-                    'page_voice_global: the model no longer flags the rack, so the frame cannot tell the gate apart');
             }
             /* A CONFIG RACK'S PER-PAD BANK (drum plan §7): forge plans from
              * movy's config, has no declared voices for the seat, and still
@@ -1155,7 +1097,7 @@ function applyView(preset) {
          * regression in any of them shows here as a pixel diff, not just in
          * the logic suite's assertions. */
         case 'page_clipparams': {
-            resetSeqState(); resetClipPage();
+            resetSeqState();
             seqState.clipScaleIdx = 4; seqState.lenSteps = 16; seqState.clipTranspose = 0;
             schwungGridReload();
             const owner = pageOwnerForComponent(CLIP_PARAMS_COMPONENT);
@@ -1163,13 +1105,13 @@ function applyView(preset) {
             if (!owner.page) throw new Error(preset + ': the contract never resolved');
             const body = schwungBodyFor(owner, false);
             if (!body) throw new Error(preset + ': claimed but no body — schwungBodyFor declined');
-            lastRender = () => renderKnobsView(buildClipPageVM(), false, 0,
+            lastRender = () => renderKnobsView(headerOnlyVM('CLIP PARAMETERS'), false, 0,
                 body, schwungBankFor(owner, body), schwungChromeFor(owner, body, false));
             lastRender();
             break;
         }
         case 'page_setparams': {
-            resetSeqState(); resetMainPage();
+            resetSeqState();
             keyboardState.rootPc = 0; keyboardState.octave = [4, 4, 4, 4];
             keyboardState.mode = 0; keyboardState.layout = 0; keyboardState.scale = 0;
             seqState.bpmX100 = 12000; seqState.swingPct = 50;
@@ -1179,7 +1121,7 @@ function applyView(preset) {
             if (!owner.page) throw new Error(preset + ': the contract never resolved');
             const body = schwungBodyFor(owner, false);
             if (!body) throw new Error(preset + ': claimed but no body — schwungBodyFor declined');
-            lastRender = () => renderKnobsView(buildMainPageVM(), false, 0,
+            lastRender = () => renderKnobsView(headerOnlyVM('SET PARAMETERS'), false, 0,
                 body, schwungBankFor(owner, body), schwungChromeFor(owner, body, false));
             lastRender();
             break;
@@ -1203,13 +1145,7 @@ function applyView(preset) {
             if (!owner.page) throw new Error(preset + ': the contract never resolved');
             const body = schwungBodyFor(owner);
             if (!body) throw new Error(preset + ': claimed but no body — schwungBodyFor declined');
-            const heldTrig = () => ({
-                holdVel: seqState.holdVel, holdGate: seqState.holdGate,
-                holdGateMixed: seqState.holdGateMixed, holdProb: seqState.holdProb,
-                holdCondA: seqState.holdCondA, holdCondB: seqState.holdCondB,
-                holdInvert: seqState.holdInvert,
-            });
-            lastRender = () => renderKnobsView(buildStepPageVM(heldTrig(), 1), false, 0,
+            lastRender = () => renderKnobsView(buildStepPageVM(), false, 0,
                 body, schwungBankFor(owner, body), schwungChromeFor(owner, body, false));
             lastRender();
             resetStepPage();

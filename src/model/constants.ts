@@ -21,35 +21,11 @@ export const NAME_POLL_TICKS        = MODULE_LOAD_TICKS;
  * delay" a user reported (docs/schwung-page-migration.md, mfx-slot-params). */
 export const HIERARCHY_RETRY_TICKS  = 12;
 export const HIERARCHY_RETRY_LIMIT  = 60;
-export const LONG_PRESS_TICKS       = 172;  /* ~0.5 s */
-/* How often a visible_if controller is re-read. movy's tick period IS its MIDI
- * sampling interval, so an IPC read on EVERY tick is paid for in input latency
- * — but the page must still follow a toggle quickly enough to feel immediate.
- * ~16 ticks is well under the ~150 ms a user reads as instant, and cuts the
- * cost to well under a tenth of a call per tick. */
-export const VISIBILITY_POLL_TICKS  = 16;
-export const REFRESH_SUPPRESS_TICKS = 100;  /* ticks of knob-idle before refresh resumes (~200 ms) */
-/* Ticks between batched value refreshes on a port whose reads cost a round trip
- * (a movy-hosted chain). One trip per 8 ticks is ~70 ms at the measured tick
- * rate — invisible on screen, and an eighth of the IPC that reading one param
- * per tick cost. */
-export const REFRESH_BULK_TICKS = 8;
 /* Hold-without-moving before a "you can also do X here" gesture fires: knob
  * hold → LFO assign mode, jog touch → the bottom CLICK JOG hint. One constant
  * so both feel like the same gesture. */
 export const HOLD_MS                = 1000;
-/* One-shot trigger knobs. FLASH is how long the fired badge stays inverted.
- * REARM is a gesture-end debounce, not a delay: it restarts on every turn, so
- * the latch releases only once the hand actually stops (one sweep = one fire).
- * The badge renders REARM as a drain, so this value is user-visible — changing
- * it invalidates the trigger screenshot baselines. */
-export const TRIGGER_FLASH_MS       = 200;
-/* Blink half-period while fired: the icon alternates on/off so the confirmation
- * reads as a blink rather than a single flash. 200/50 = four alternations. */
-export const TRIGGER_BLINK_MS       = 50;
-export const TRIGGER_REARM_MS       = 700;
 export const KNOBS_PER_PAGE         = 8;
-export const KNOBS_PER_ROW          = 4;
 export const ENUM_DELTA_DIV         = 4;    /* physical turns needed per 1 enum step */
 export const ARC_DELTA_SCALE        = 0.5;  /* sensitivity multiplier for continuous arc knobs */
 /* A float/int knob's per-detent step is normalized to this fraction of its
@@ -63,10 +39,3 @@ export const MIN_STEP_RANGE_FRAC    = 0.01;
  * travel exactly as far per turn as the module knobs either side of them
  * (mixer/db-ladder.ts). */
 export const CONTINUOUS_TICK_FRAC   = MIN_STEP_RANGE_FRAC * ARC_DELTA_SCALE;
-
-/* Settle window after committing an item selection before the module is
- * re-read. The DSP is loading a bank of patches and its answers change
- * asynchronously; the schwung host arms an equivalent deadline
- * (shadow_ui.js:14760). Ticks, not milliseconds — movy's tick rate swings
- * 63-205 Hz with load, so a wall-clock sleep would be a race. */
-export const ITEMS_RELOAD_TICKS     = 24;

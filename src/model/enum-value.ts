@@ -7,18 +7,6 @@
  * the module already reports. These helpers mirror that contract; the per-param
  * format is cached (ModelState.enumFmt) so reads/writes need no extra IPC. */
 
-/* Parse a raw enum value (option name or index string) to its option index. */
-export function enumRawToIndex(options: string[] | null | undefined, raw: string): number {
-    if (options && options.length) {
-        const named = options.indexOf(raw);
-        if (named >= 0) return named;
-        const n = parseInt(raw, 10);
-        if (Number.isFinite(n)) return Math.max(0, Math.min(options.length - 1, n));
-        return 0;
-    }
-    const n = parseInt(raw, 10);
-    return Number.isFinite(n) ? n : 0;
-}
 
 /* True if the module reports this enum as an index (raw value not a known
  * option name). Unknown raw (null) defaults to index — the legacy format, so a
@@ -28,8 +16,3 @@ export function enumUsesIndex(options: string[] | null | undefined, raw: string 
     return options.indexOf(raw) < 0;
 }
 
-/* Format an option index for set_param in the module's own convention. */
-export function enumSetValue(options: string[] | null | undefined, index: number, usesIndex: boolean): string {
-    if (!usesIndex && options && options[index] !== undefined) return options[index];
-    return String(index);
-}

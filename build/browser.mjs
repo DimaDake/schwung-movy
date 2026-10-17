@@ -88,20 +88,6 @@ await esbuild.build({
         resolve(root, 'src/platform/standalone.ts'),
         /* Move-only features the platform-caps suite asserts switch off. */
         resolve(root, 'src/seq/restore-gate.ts'),
-        resolve(root, 'src/model/envelope.ts'),
-        resolve(root, 'src/model/lfo-viz.ts'),
-        resolve(root, 'src/model/page-layout.ts'),
-        resolve(root, 'src/model/lfo-vm.ts'),
-        resolve(root, 'src/model/lfo-shapes.ts'),
-        resolve(root, 'src/model/filter-viz.ts'),
-        resolve(root, 'src/model/filter-vm.ts'),
-        resolve(root, 'src/model/filter-mode.ts'),
-        resolve(root, 'src/model/enum-class.ts'),
-        resolve(root, 'src/model/fader.ts'),
-        resolve(root, 'src/model/pan.ts'),
-        resolve(root, 'src/model/wave-viz.ts'),
-        resolve(root, 'src/model/wave-toggle.ts'),
-        resolve(root, 'src/model/env-stage.ts'),
         resolve(root, 'src/model/page-rotation.ts'),
         resolve(root, 'src/model/config-hierarchy.ts'),
         resolve(root, 'src/model/modern-rack.ts'),
@@ -110,25 +96,17 @@ await esbuild.build({
          * and the pending answer directly, rather than inferring the ladder
          * from a page that was planned from it. */
         resolve(root, 'src/chain/hierarchy-source.ts'),
-        resolve(root, 'src/model/eq-viz.ts'),
-        resolve(root, 'src/model/eq-vm.ts'),
-        resolve(root, 'src/model/cut-viz.ts'),
-        resolve(root, 'src/model/wav-viz.ts'),
-        resolve(root, 'src/model/wav-peaks.ts'),
         resolve(root, 'src/modules/loader.ts'),
         resolve(root, 'src/model/viewmodel.ts'),
         resolve(root, 'src/model/store.ts'),
         resolve(root, 'src/model/knob-step.ts'),
         resolve(root, 'src/model/step-labels.ts'),
-        resolve(root, 'src/model/trigger.ts'),
         resolve(root, 'src/model/toggle.ts'),        resolve(root, 'src/model/constants.ts'),
         resolve(root, 'src/model/enum-value.ts'),
-        resolve(root, 'src/model/meta-infer.ts'),
         resolve(root, 'src/model/file-validate.ts'),
         resolve(root, 'src/model/pad-scope.ts'),
         resolve(root, 'src/renderer/knob-view.ts'),
         resolve(root, 'src/renderer/header.ts'),
-        resolve(root, 'src/renderer/shorten.ts'),
         resolve(root, 'src/renderer/keys-view.ts'),
         resolve(root, 'src/renderer/browse-view.ts'),
         /* The other browser — the one a file parameter dives into. An entry
@@ -136,7 +114,6 @@ await esbuild.build({
          * render it, and folded into a chunk there is no path to import. */
         resolve(root, 'src/renderer/file-browse-view.ts'),
         resolve(root, 'src/renderer/chain-view.ts'),
-        resolve(root, 'src/renderer/lfo-wave.ts'),
         resolve(root, 'src/renderer/overlay.ts'),
         resolve(root, 'src/renderer/leave-modal-view.ts'),
         resolve(root, 'src/renderer/volume-overlay.ts'),
@@ -170,7 +147,6 @@ await esbuild.build({
         resolve(root, 'src/track/send-persist.ts'),
         resolve(root, 'src/track/send-port.ts'),
         resolve(root, 'src/mixer/db-ladder.ts'),
-        resolve(root, 'src/mixer/mix-cells.ts'),
         resolve(root, 'src/mixer/mix-io.ts'),
         resolve(root, 'src/mixer/mix-model.ts'),
         /* MIX's virtual-component source (SP-55) — an entry point for the
@@ -258,9 +234,7 @@ await esbuild.build({
         resolve(root, 'src/lfo/assign.ts'),
         resolve(root, 'src/lfo/assign-mode.ts'),
         resolve(root, 'src/lfo/scope.ts'),
-        resolve(root, 'src/lfo/cells.ts'),
         resolve(root, 'src/lfo/io.ts'),
-        resolve(root, 'src/lfo/inert.ts'),
         resolve(root, 'src/track/lfo-persist.ts'),
         resolve(root, 'src/font/big.ts'),
         resolve(root, 'src/font/index.ts'),
@@ -288,7 +262,6 @@ await esbuild.build({
         resolve(root, 'src/seq/step-rec.ts'),
         resolve(root, 'src/seq/step-rec-view.ts'),
         resolve(root, 'src/seq/step-page.ts'),
-        resolve(root, 'src/seq/param-vm.ts'),
         resolve(root, 'src/seq/step-page-vm.ts'),
         resolve(root, 'src/seq/edit-ops.ts'),
         resolve(root, 'src/seq/duplicate.ts'),
@@ -345,7 +318,7 @@ await esbuild.build({
         resolve(root, 'src/seq/detent.ts'),
         resolve(root, 'src/seq/param-page.ts'),
         resolve(root, 'src/seq/main-page.ts'),
-        resolve(root, 'src/seq/main-page-vm.ts'),
+        resolve(root, 'src/seq/header-vm.ts'),
         /* SP-53's absolute-value writers, shared with the virtual-component
          * seam's set() — an entry point so the logic suite can drive them
          * directly (the one-writer invariant needs to call the SAME function
@@ -359,7 +332,6 @@ await esbuild.build({
         resolve(root, 'src/seq/capture-vm.ts'),
         resolve(root, 'src/seq/clip-scale.ts'),
         resolve(root, 'src/seq/clip-page.ts'),
-        resolve(root, 'src/seq/clip-page-vm.ts'),
         /* SP-53's virtual-component seam, pinned at Clip Params: an entry
          * point so the logic suite can drive the synthesised contract and the
          * one-writer invariant directly, rather than folded into a chunk with

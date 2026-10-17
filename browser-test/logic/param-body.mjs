@@ -11,7 +11,7 @@ import { readFileSync, ok, eq, _log } from './harness.mjs';
 
 export async function run() {
 
-const { paramBodyFor, lastParamBody, lastSchwungPage } =
+const { paramBodyFor, lastParamBody, lastSchwungPage, lastDrawnCells } =
     await import('../../dist/esm/app/param-body.js');
 
 const owner = (page) => ({
@@ -50,6 +50,27 @@ const owner = (page) => ({
                                null, null, null, null, null] }));
     paramBodyFor(owner(page), undefined);
     eq('a loading frame reports none', lastSchwungPage(), null);
+}
+
+{
+    _log('\nlogic: param body — the probe\'s cells follow a lane the automation layer writes');
+    /* A held step's turn is consumed by the automation layer and never reaches
+     * the controller, so the lane's held value is what the cell shows. */
+    const page = { pageIndex: 0, pageCount: 1, ctl: { state: { touched: -1 } },
+                   keyAt: (s) => ['cutoff', 'reso'][s] ?? null,
+                   labelAt: (s) => ['Cutoff', 'Reso'][s] ?? null,
+                   knobLevels: () => [0.25, 0.5, null, null, null, null, null, null],
+                   marks: () => 0, chrome: () => ({ header: null }) };
+    const auto = { assignedLanes: 1, activeLanes: 1, held: true, poolFull: false,
+                   heldValues: new Map([[0, 0.9]]), liveValues: new Map(),
+                   laneForKey: (k) => (k === 'cutoff' ? 0 : -1) };
+    paramBodyFor(owner(page), () => {}, auto);
+    const cells = lastDrawnCells();
+    eq('the locked cell is touched, with the held value',
+       cells[0].touched + ':' + cells[0].value + ':' + cells[0].automated, 'true:0.9:true');
+    eq('its neighbour is neither', cells[1].touched + ':' + cells[1].automated, 'false:false');
+    paramBodyFor(owner(page), () => {});
+    eq('without an automation view the cell reads its level', lastDrawnCells()[0].value, '0.250');
 }
 
 {

@@ -1,49 +1,6 @@
 import type { KnobParam, ModuleConfig } from '../types/param.js';
 import type { TrackPort } from '../track/port.js';
-import { KNOBS_PER_PAGE, NAME_POLL_TICKS, REFRESH_SUPPRESS_TICKS } from './constants.js';
-
-export interface EnumOverlay {
-    slot:     number;
-    gi:       number;
-    options:  string[];
-    selected: number;
-}
-
-export interface FileOverlay {
-    slot:     number;
-    gi:       number;
-    items:    string[];   // absolute paths, filtered + sorted
-    /* Display labels for `items`, built once when the overlay opens. The view
-     * model is rebuilt every frame, and deriving these there re-ran a basename
-     * and a slice over the whole list on each one — the reason a folder of many
-     * samples scrolled badly. */
-    labels:   string[];
-    selected: number;     // index into items
-    original: string;     // path at touch time
-    accum:    number;     // fractional delta accumulator
-}
-
-export interface ParamGestureState {
-    lastTurnMs: number;
-    direction:  number;
-}
-
-/* One-shot trigger knob. `latched` means it has already fired and a CW turn is a
- * no-op; it releases on a CCW turn or once the debounce runs out. `autoRearm` is
- * false for a latch we inferred from the DSP's value at load rather than one we
- * caused — there is no timer to run out, so it waits for the CCW turn. */
-export interface TriggerState {
-    latched:    boolean;
-    autoRearm:  boolean;
-    lastTurnMs: number;
-    firedAtMs:  number;
-    /* Last badge appearance actually painted. The drain is quantised, so without
-     * this the animation would mark the frame dirty on every tick and repaint ~70
-     * times per cooldown instead of once per visible change. */
-    paintedPhase: string;
-    paintedCool:  number;
-    paintedBlink: boolean;
-}
+import { NAME_POLL_TICKS } from './constants.js';
 
 export interface ModelState {
     /* How this model talks to its track. Everything that used to take a slot
@@ -53,29 +10,11 @@ export interface ModelState {
     port:                TrackPort;
     componentKey:        string;
     knobParams:          (KnobParam | null)[];
-    knobValues:          (number | null)[];
     /* Per-param (by gi) enum exchange format, learned on read: true = module
      * uses the numeric index, false = option name. Drives set_param formatting
      * without re-reading. Undefined until first read (defaults to index). */
     enumFmt:             (boolean | undefined)[];
-    fileValues:          (string | null)[];
-    pendingDeltas:       number[];
-    enumAccums:          number[];
-    knobPage:            number;
     touchedSlots:        number[];
-    /* Memoized physical-knob → page-param permutation for the current page (set
-     * by store.slotToLocal; invalidated on hierarchy reload). */
-    slotMapCache:        { page: number; map: number[] } | null;
-    /* Sub-step turn progress per PARAM index, for knobs that need several clicks
-     * per value (knob-step.ts:detentsPerStep). Keyed by param, not by physical
-     * knob like enumAccums, so paging away mid-turn resumes where it left off.
-     * Cleared on a module change so it cannot leak into another module's knob. */
-    detentAccum:         number[];
-    longPressCountdown:  number;
-    /* Sample + width the waveform graphic wants peaks for, set by
-     * buildViewModel and consumed by processTick — the read is chunked across
-     * ticks and must never happen on a render path. */
-    wavRequest:          { path: string; width: number } | null;
     /* Params the module is hiding via visible_if, and the params those
      * conditions watch — a change in any watched value rebuilds the page. */
     hiddenKeys:          Set<string>;
@@ -83,22 +22,10 @@ export interface ModelState {
      * from CACHED values — the round-robin refresh already reads every param,
      * so watching for a change costs no host call at all. */
     visibilityRules:     { key: string; param: string; equals: string }[];
-    /* Ticks until the module is re-read after an item selection (bank load).
-     * -1 = idle. See model/items-param.ts. */
-    itemsReloadCountdown: number;
-    enumOverlay:         EnumOverlay | null;
-    fileOverlay:         FileOverlay | null;
     activeModuleName:    string;
     moduleId:            string;
     moduleConfig:        ModuleConfig | null;
     bankNames:           string[];
-    /* Group id per page: pages built from the same hierarchy level share one, so
-     * shift+jog can skip a level's overflow pages in a single gesture. */
-    bankGroups:          number[];
-    /* Which voice the rotation's voice slot is showing (a bank index). Held
-     * separately from knobPage so jogging off to Reverb and back returns to the
-     * voice you were editing rather than the first one. See page-rotation.ts. */
-    voiceBank:           number;
     hierarchyKey:        string;
     pollCountdown:       number;
     /* A module can publish its preset list and enum options AFTER load (osirus
@@ -117,20 +44,7 @@ export interface ModelState {
      * unturnable range. Re-checked by the metadata retry — osirus widens
      * bank_index 0..0 → 0..1 once its ROM lists the banks. */
     degenerateKeys:      string[];
-    refreshParamCursor:  number;
-    /* Ticks until the next batched read on a bulk port. Per MODEL, not derived
-     * from the shared tick counter: the counter advances once per model ticked,
-     * so a model that is not the only one ticking (Session view ticks the master
-     * FX model too) sees it move in strides — with a stride of 2 a modulo-8
-     * schedule can land on the same residue forever and never refresh at all. */
-    bulkCountdown:       number;
-    /* Cursor over the CURRENT page's 8 slots, interleaved with
-     * refreshParamCursor (one read per tick, alternating) so on-screen values
-     * converge in ~16 ticks no matter how many pages the module has. */
-    refreshPageCursor:   number;
-    lastDeltaTick:       number;
     dirty:               boolean;
-    isDrum:              boolean;
     drumPadCount:        number;
     /* The drum config actually in force: the module's declaration where it made
      * one, otherwise movy's own table. Resolved once per hierarchy load rather
@@ -157,23 +71,10 @@ export interface ModelState {
     pressParam:          string | null;
     drumCurrentPad:      number;
     drumCurrentPhysPad:  number;
-    /* Param keys that are automation lanes — their synth value is driven by
-     * automation playback, so the param page must NOT read it back (it shows
-     * the UI-owned base). Set by the app from the automation registry. */
-    noRefreshKeys:       Set<string>;
     /* ioKeys on this component that a slot LFO targets. Cached (refreshed on the
-     * poll cadence, not per render) so buildViewModel does no per-frame IPC, and
-     * so refreshOneParam skips them — the knob shows the UI-owned base instead of
-     * following the LFO-modulated value (same idea as noRefreshKeys). */
+     * poll cadence, not per frame) — Schwung's page asks for the mark by key
+     * (`modulatedKeys()`). */
     modulatedKeys:       Set<string>;
-    /* Per-param turn history for opt-in wide-range knob acceleration. Reset only
-     * when the loaded module changes — a reload of the SAME module must not
-     * disturb a gesture in progress. */
-    paramGestures:       Record<string, ParamGestureState>;
-    /* Badge state for one-shot trigger knobs, keyed by param key. Same
-     * same-module-reload rule as paramGestures: clearing it mid-gesture would
-     * re-arm a latch and fire the action twice. */
-    triggerStates:       Record<string, TriggerState>;
 }
 
 export function createModelState(port: TrackPort, componentKey: string): ModelState {
@@ -181,28 +82,14 @@ export function createModelState(port: TrackPort, componentKey: string): ModelSt
         port,
         componentKey,
         knobParams:          [],
-        knobValues:          [],
         enumFmt:             [],
-        fileValues:          [],
-        pendingDeltas:       new Array(KNOBS_PER_PAGE).fill(0) as number[],
-        enumAccums:          new Array(KNOBS_PER_PAGE).fill(0) as number[],
-        knobPage:            0,
         touchedSlots:        [],
-        slotMapCache:        null,
-        detentAccum:         [],
-        longPressCountdown:  -1,
-        wavRequest:          null,
         hiddenKeys:          new Set<string>(),
         visibilityRules:     [],
-        itemsReloadCountdown: -1,
-        enumOverlay:         null,
-        fileOverlay:         null,
         activeModuleName:    '—',
         moduleId:            '',
         moduleConfig:        null,
         bankNames:           [],
-        bankGroups:          [],
-        voiceBank:           0,
         hierarchyKey:        '',
         pollCountdown:       NAME_POLL_TICKS,
         metaRetries:         0,
@@ -210,12 +97,7 @@ export function createModelState(port: TrackPort, componentKey: string): ModelSt
         hierarchyRetries:    0,
         presetDeclared:      false,
         degenerateKeys:      [],
-        refreshParamCursor:  0,
-        bulkCountdown:       0,
-        refreshPageCursor:   0,
-        lastDeltaTick:       -(REFRESH_SUPPRESS_TICKS + 1),
         dirty:               false,
-        isDrum:              false,
         drumPadCount:        0,
         drumConfig:          null,
         drumPadNames:        [],
@@ -225,9 +107,6 @@ export function createModelState(port: TrackPort, componentKey: string): ModelSt
         pressParam:          null,
         drumCurrentPad:      1,
         drumCurrentPhysPad:  0,
-        noRefreshKeys:       new Set(),
         modulatedKeys:       new Set(),
-        paramGestures:       {},
-        triggerStates:       {},
     };
 }

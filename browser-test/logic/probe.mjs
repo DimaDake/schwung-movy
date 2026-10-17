@@ -1,24 +1,22 @@
 /* browser-test/logic/probe.mjs — the device harness's ViewModel probe.
  *
  * Run by browser-test/logic.mjs. The probe's response shape is a CONTRACT the
- * device scenarios parse, so pinning it here means a rename in viewmodel.ts
- * fails locally instead of on hardware.
+ * device scenarios parse, so pinning it here means a rename fails locally
+ * instead of on hardware.
  */
 import { ok, eq, _log } from './harness.mjs';
 import { answer, noteRender, setProbeDeps, _resetForTest }
     from '../../dist/esm/test/probe.js';
 
-const vmFixture = (over = {}) => ({
-    moduleName: 'plaits',
-    bankIndex: 2,
-    bankCount: 5,
-    automationHeld: true,
-    rows: [
-        [{ shortName: 'DCAY', displayValue: '69%', automated: true, touched: true,
-           modulated: false, renderStyle: 'arc' }, null, null, null],
-        [null, null, null, null],
-    ],
-    ...over,
+const vmFixture = (over = {}) => ({ moduleName: 'plaits', automationHeld: true, ...over });
+
+/* What `app/param-body.ts` reports about the last drawn Schwung page. */
+const drawnBody = () => ({
+    body: 'schwung',
+    schwung: { pageIndex: 2, pageCount: 5, keys: ['decay', null, null, null, null, null, null, null] },
+    cells: [{ name: 'DCAY', value: '69%', automated: true, touched: true, modulated: false },
+            null, null, null, null, null, null, null],
+    session: false, masterDetail: false, masterSlot: 0,
 });
 
 export async function run() {
@@ -32,6 +30,7 @@ _log('\nTest: device probe');
         leaveModal:    () => ({ active: false, label: '', sel: 0 }),
         ready:         () => true,
         view:          () => 'knobs',
+        paramBody:     drawnBody,
     });
 
     const tick0 = JSON.parse(answer(JSON.stringify({ key: 'tick' })));
@@ -46,8 +45,8 @@ _log('\nTest: device probe');
 
     const page = JSON.parse(answer(JSON.stringify({ key: 'page' })));
     eq('page reports the held-step state', page.held, true);
-    eq('page reports the bank index', page.pageIndex, 2);
-    eq('page reports the bank count', page.pageCount, 5);
+    eq('page reports the drawn page index', page.pageIndex, 2);
+    eq('page reports the drawn page count', page.pageCount, 5);
     eq('page always reports eight cells', page.cells.length, 8);
     eq('cell carries the short name', page.cells[0].name, 'DCAY');
     eq('cell carries the display value', page.cells[0].value, '69%');

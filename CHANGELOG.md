@@ -15,6 +15,14 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Changed
 
+- **Parameter pages are always Schwung's.** The **PARAM PAGES** setting is gone:
+  every module's pages are planned and drawn by Schwung, as they have been by
+  default since 0.35. Movy's own page renderer is retired (kept in the history
+  at tag `movy-pages-final`). While a module is still loading its knob rows stay
+  blank and the knobs do nothing, instead of showing Movy's own layout first.
+  **Shift + jog** on a knob page now turns one page; Schwung's section list is
+  **Shift + jog click**.
+
 - **Movy runs on its own.** It is now a standalone Schwung tool: while it is
   open it owns the whole device — pads, screen, audio, the volume knob as
   master volume (1 dB per detent), and the power button (**Power off?**, saving
@@ -82,6 +90,8 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Fixed
 
+- **Setting a slot to None** no longer leaves the departed module's knobs on
+  the page under a "—" header.
 - **Opening a Set no longer risks overwriting it with the previous one.** If
   an autosave fell due in the instant between asking for a Set and its
   contents arriving, the engine saved what it was still holding — the Set

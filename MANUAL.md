@@ -223,7 +223,7 @@ Set that was open when you left reopens next time.
 
 The **screen** is the 128×64 OLED. A typical parameter page looks like this:
 
-![Synth parameter page](docs/assets/obxd_main_page.png)
+![Synth parameter page](docs/assets/page_body.png)
 
 - **Header** (top): the track on the left (e.g. `T1`), the module/bank name on
   the right.
@@ -258,371 +258,52 @@ never puts it in your way.
 
 ## 2. Parameter pages
 
-Movy reads each module's parameter hierarchy from Schwung and renders it
-automatically. You don't configure anything for most modules.
+Every module's parameter pages are **Schwung's own**: Schwung's page planner
+reads the module's declared hierarchy and draws the eight knob cells, exactly as
+Schwung's Slot Settings would. Movy keeps three bands around them — the header,
+the page indicator under it, and the hint row at the bottom — and writes your
+edits to the module, its automation lanes and the undo history. You don't
+configure anything for most modules.
 
-- **Knobs / arc knobs** — continuous parameters are drawn as a circular knob
-  with a pointer; the on-screen arc follows the value (including when automation
-  moves it).
-- **On/off switches** — a parameter with exactly two states — silence or
-  sound, bypassed or engaged — is drawn as a **switch** rather than a dial or a
-  word in a box. Off is a hollow pill with the knob to the left; on fills the
-  pill and the knob moves right, so a page tells you what is engaged without
-  reading a single label:
+![A module's parameter page](docs/assets/page_body.png)
 
-  ![Boolean knobs drawn as switches](docs/assets/switches.png)
+The cells are drawn as what they are: an arc for a continuous value, a switch
+for on/off, the option name for a list, a framed number for an octave or a voice
+count, a fader for a level, and grouped graphics where a module declares them —
+an envelope across its stages, a filter response across cutoff and resonance, a
+sample's waveform with its playback position:
 
-  It covers both spellings of a boolean: a plain 0/1 parameter, and a two-item
-  list whose options read *Off/On*, *No/Yes*, *Disabled/Enabled*. The order
-  matters — a list that puts "on" first keeps its box, because a switch would
-  then show the knob left while the module reports on.
+![A sample drawn with its position marker](docs/assets/page_sample.png)
 
-  Two-item lists that are a **choice** rather than a state keep their box:
-  *Free/Sync*, *Poly/Mono*, *Saw/Square*, *Digital/Analog*. Neither option is
-  "off", so a switch would say something untrue. A momentary **action** — a
-  randomiser, an init, a save — gets the trigger badge instead, since a switch
-  would sit stuck on after one use.
+**While a module is loading** its knob rows stay blank and the knobs do nothing
+— there is nothing to edit yet. The page appears as soon as the module has
+published it; heavy modules (Osirus, MiniJV) take longer to get there.
 
-- **Enum knobs & the enum overlay** — list-type parameters (waveforms, modes…)
-  show the current choice in a square. Touching the knob opens a **full-screen
-  scrollable list** so you can see all the options:
+**Multiple pages.** A module with more than eight parameters is split into pages
+under its own section names. Scroll them with the jog wheel (or Left/Right when
+the sequencer isn't using those buttons); the line under the header is the page
+indicator, the current page drawn taller:
 
-  ![Enum overlay](docs/assets/enum_overlay.png)
+![The second page of a module](docs/assets/page_body_p2.png)
 
-- **Waveform silhouettes** — when a list is a *waveform* picker, Movy draws the
-  shape instead of an abbreviation, so a glance tells you what the oscillator is
-  doing. It applies to plain single-knob waveform parameters — an oscillator
-  wave, a modulation shape — not just LFOs:
+**Jumping between sections.** Hold **Shift** and click the jog for Schwung's
+section list, and pick the section to jump to. (Shift + jog turns one page at a
+time, like a plain jog.)
 
-  ![Waveform knob cells](docs/assets/wave_cells.png)
+**Lists.** Turning a list knob steps through its options and shows them in a
+pop-up while you turn; click the jog on it for the whole list as a menu:
 
-  The overlay lists the names with the same silhouettes beside them, so the
-  mapping is learnable at a glance:
+![A list opened from its knob](docs/assets/page_enum_list.png)
 
-  ![Waveform enum overlay](docs/assets/wave_overlay.png)
-
-  Stepped shapes carry their level count, so Helm's *3 Step*, *4 Step* and
-  *8 Step* are three different pictures — and a stepped climb stays tellable
-  from the same list's smooth *Saw Up*:
-
-  ![Helm stepped waveforms](docs/assets/wave_helm.png)
-
-  Some synths don't use a list at all — OB-Xd gives each oscillator separate
-  **Saw** and **Pulse** on/off switches. Those draw the waveform too: **solid
-  when it is sounding, dotted when it is not**, so you can see which shape each
-  switch controls instead of a bare on/off bar. A *Mute* switch reads the other
-  way round and is drawn accordingly:
-
-  ![Waveform on/off switches](docs/assets/wave_toggles.png)
-
-  Movy only does this when **every** option in the list has its own distinct
-  silhouette. A list where several entries would be drawn identically — an
-  Osirus wavetable list of *Wave 3*…*Wave 64*, where the names carry no shape
-  at all — keeps its text, because one picture standing for several different
-  waveforms is worse than the abbreviation it replaced. Lists that aren't
-  waveforms (*Gate/Envelope*, *Off/On*) are untouched.
-
-- **Lone attack / decay ramps** — a synth with a single **Decay** knob and no
-  matching attack (drum modules, Plaits, the 303) draws that stage as a ramp
-  instead of an arc, so a click and a long tail are told apart at a glance. The
-  ramp's length is the value. **Attack is the mirror**: the rise climbs to the
-  right. The dotted edge is the side this knob does not control:
-
-  ![Lone attack and decay stages](docs/assets/env_stages.png)
-
-  When a real envelope exists — an attack *and* a decay that belong together —
-  the full envelope graphic below wins instead; the ramp is only for stages
-  standing on their own. Reverb "decay" is a room size rather than an
-  amplitude stage, so it keeps its knob.
-
-- **Envelope graphics** — when a page contains a recognisable
-  Attack/Decay/Sustain/Release group, Movy draws it as a **single envelope
-  shape** instead of four separate knobs, which is far easier to read:
-
-  ![Envelope graphic](docs/assets/env_dual.png)
-
-  Shorter envelopes are drawn too: a two-stage **Attack/Decay** (or Attack/
-  Release) becomes a two-cell graphic, and a three-stage **Attack/Sustain/
-  Release** a three-cell one, leaving the other knobs on the line untouched.
-
-  ![Two-stage AD envelope](docs/assets/env_ad.png)
-  ![Three-stage ASR envelope](docs/assets/env_asr.png)
-
-- **LFO waveform graphics** — when a page carries a module's own LFO, Movy
-  pairs its **Shape** with one neighbour and reorders them onto the same line,
-  drawing the two cells as a live **waveform preview** — sine, triangle, saw,
-  square, sample & hold, noise, and more. The partner shapes the drawing:
-  **phase** offsets it, **rate** sets the cycle count (1–2 cycles, so it stays
-  readable), and **depth** its height; the LFO's deform/symmetry skews it and
-  uni/bipolar flips the baseline. The other LFO knobs stay put.
-
-  ![Module LFO waveform](docs/assets/lfo_mod.png)
-
-  Modules name these things differently, and Movy reads the common variants —
-  a rate called *Frequency*, a depth called *Amp*, a shape list using *Saw Up*
-  or *Sample & Glide*, and keys that run the two together (`lfo1rate`). Helm's
-  stepped families get their own silhouettes, drawn with the number of levels
-  the name gives: **N Step** climbs in levels, **N Pyramid** climbs and falls
-  again.
-
-  ![Stepped ramp LFO](docs/assets/lfo_helm_step.png)
-  ![Stepped triangle LFO](docs/assets/lfo_helm_pyramid.png)
-
-- **Filter graphics** — when a page carries a **cutoff + resonance** pair, Movy
-  reorders them onto the same line (cutoff, then resonance) and draws a live
-  **filter-response curve** across the two cells. Read it left-to-right as
-  frequency: the **corner sits at the cutoff** and **resonance is the size of
-  the bump** at that corner. The shape follows the filter type — a low-pass
-  passes the left and rolls off after the corner; a high-pass mirrors it; band-
-  pass is a hump; notch a dip:
-
-  ![Low-pass filter curve](docs/assets/filter_lp.png)
-  ![High-pass filter curve](docs/assets/filter_hp.png)
-  ![Band-pass filter curve](docs/assets/filter_bp.png)
-
-  The type is taken from a `MODE`/`TYPE` enum on the page (turning it re-shapes
-  the curve immediately), or from a filter-type control elsewhere in the module,
-  or inferred from the parameter's own name (`lpf_`/`hpf_` etc.). A `SLOPE`
-  control (12/24 dB) steepens the roll-off. Pages with two filters — e.g. a
-  separate low-pass and high-pass — draw one curve per line:
-
-  ![Two filter curves on one page](docs/assets/filter_dual.png)
-
-- **Sample waveform** — a sampler that exposes a playback **position** together
-  with its sample file draws them as one graphic: the waveform of the file
-  (first channel), with the position marked. The marker is **inverted over the
-  sample** — a bright line through a quiet passage, a dark notch through a loud
-  one — so it stays the highest-contrast thing on the line wherever it sits:
-
-  ![Sample waveform with position](docs/assets/wav_sample.png)
-
-  The file is read a little at a time in the background, so a long sample fills
-  in over a moment rather than stalling the knobs, and the result is kept until
-  the file or its size changes. WAV (8/16/24-bit and float) and AIFF are both
-  read; the waveform is normalised to the full height of the cell, so a quiet
-  recording is as readable as a loud one.
-
-  **Loop points** are drawn on the same waveform as brackets, where they fall in
-  the file — the loop is a span you can see rather than two percentages:
-
-  ![Loop brackets on the waveform](docs/assets/wav_loop.png)
-
-  **Grain spray** (on a granular sampler) is drawn as the stretch of file the
-  grains can reach around the position, dotted at its edges, so you can watch it
-  widen and see when it has saturated the whole sample:
-
-  ![Granular spray across the sample](docs/assets/spray_saturated.png)
-
-- **Parameters that do not apply are hidden** — when a module says a control is
-  inactive in the current mode, Movy takes it off the page instead of showing a
-  dead knob, and the remaining graphics take back the room. Switching a sampler's
-  loop off removes its loop start and end:
-
-  ![The same page with the loop off](docs/assets/wav_loop_off.png)
-
-- **Low cut / high cut** — a **Low Cut** and a **High Cut** on the same page are
-  reordered onto one line and drawn as the band they leave behind; each corner
-  follows its own knob. A cut with no partner keeps its own cell and shows just
-  its corner — rising for a low cut, falling for a high cut:
-
-  ![Low and high cut curves](docs/assets/cut_filters.png)
-
-  Only a corner **frequency** qualifies. A filter *slope* (dB per octave), or a
-  modulation *amount* aimed at a filter, keeps its knob — it moves the corner
-  rather than being it.
-
-- **EQ graphics** — when a page carries two or three **band gains** (low / mid /
-  high, or a module's own names like *Body* and *Air*), Movy reorders them onto
-  one line in frequency order and draws the **response curve** across them. The
-  dotted line is 0 dB, so a cut reads as clearly as a boost: low and high are
-  shelves, mid is a bell:
-
-  ![EQ band curve](docs/assets/eq_bands.png)
-
-  Only genuine **boost/cut** controls qualify — a band gain swings either side
-  of zero. A crossover *frequency*, a per-band *Q*, or a low/high pair that is
-  really a random range all keep their own knobs, because drawing an EQ curve
-  for them would say something untrue.
-
-- **Faders** — a knob that sets a **loudness** — a volume, a gain, an
-  oscillator or send level — is drawn as a **fader** instead of a dial: a
-  filled bar between two dotted rails, with a head marking the value. It fills
-  from the bottom in every case, including a gain that runs either side of
-  0 dB, so a glance across a page finds the levels without reading the labels:
-
-  ![Loudness knobs drawn as faders](docs/assets/faders.png)
-
-  Only a genuine output level qualifies. A *Level KF* (key-follow), an
-  envelope's *Level*, a randomiser's *Rdm Vol*, a mod-matrix row aimed at a
-  level, a compressor *Threshold* and anything measured in dB-per-something all
-  keep their knobs — each is an amount of something else that happens to say
-  "level".
-
-- **Pan bars** — a knob that sets a **stereo position** — a track's pan, a
-  drum pad's pan, a per-voice pan, a *Panorama* — is drawn as a **bipolar bar**
-  instead of a dial: a dotted rail marking the travel, a tick above its centre,
-  and a bar that fills out from the middle toward the side you pan to. Pan is
-  the one common parameter whose default is the *centre* rather than an end, and
-  on a bar that centre is the one state that looks different from every other:
-
-  ![Stereo position knobs drawn as pan bars](docs/assets/pan_dials.png)
-
-  It works the same whether the module counts pan from −1 to +1 or from 0 to
-  127 — the middle of the range is the middle of the bar.
-
-  Only a genuine position qualifies. A *Rnd Pan* (how far a voice wanders), a
-  *Pan Width* or *Unison Pan* spread, a *Pan KF* key-follow, a *Pan Velocity* or
-  *Pan LFO* amount, and a *Pan Morph* all keep their knobs — each is an amount of
-  something else that happens to say "pan". So does an *Osc Balance* or *Filter
-  Balance*, which crossfades between two sources rather than two speakers, and a
-  one-sided *Pan L* / *Pan R* pair, which has no centre of its own.
-
-- **Multiple pages** — modules with more than 8 parameters split into pages
-  (`MAIN`, `PAGE 1`, `PAGE 2`, …). Scroll them with the jog wheel (or Left/Right
-  when the sequencer isn't using those buttons). The line under the title is the
-  page indicator, and it maps the sections rather than just counting pages: the
-  pages of one section sit flush together, a one-pixel gap marks where the next
-  section starts, and the current page is drawn taller. So a wide block means a
-  section that spans several pages, and you can see at a glance which one you
-  are in — the same grouping Shift + jog steps through. It always spans the full
-  width, even on a module with 70 pages across 51 sections:
-
-  ![Page indicator on a 70-page module](docs/assets/bankbar-dense.png)
-
-**Every page a module offers.** Movy builds one page per section the module
-declares, following both its own menu and any section it delegates to, however
-deeply they nest. Param-dense synths therefore have a lot of pages — *Helm* has
-30, *MiniJV* 49, *Dexed* 23 — all reached by scrolling. Two details keep that
-readable:
-
-- A section nested inside another is named `Parent/Child`, with the parent
-  shortened to fit the header, so sibling sections stay apart (*Dexed*'s six
-  operator envelopes read `Oper1/Envelope`, `Oper2/Envelope`, …).
-
-  ![A nested parameter page](docs/assets/deep_page.png)
-
-- A section that merely repeats another one's knobs is shown once, so modules
-  that publish the same eight knobs twice no longer waste a page on it.
-
-**The whole section, not just its eight knobs.** A module gives each section two
-things: the eight parameters it binds to the encoders, and the full list of
-parameters that section contains. Movy shows the eight first, then continues the
-rest onto `- 2`, `- 3` pages under the same section name. That is what makes
-*Osirus*'s ROM/model selector, *OB-Xd*'s voice count and *Surge*'s per-oscillator
-detail reachable — several hundred parameters that were previously visible only
-in Move's own module UI:
-
-  ![A section's overflow page](docs/assets/params-overflow-page.png)
-
-A section that binds **no** encoders at all now gets a page too, instead of
-being skipped:
-
-  ![A settings section built from its parameter list](docs/assets/params-extras-settings.png)
-
-Parameters the module reports as unturnable (a single possible value) are left
-out — a knob that cannot move is noise. Some modules publish their preset list
-and option names a moment *after* they load (Osirus scans its ROM); Movy keeps
-looking for a few seconds and redraws the pages as soon as the real names
-arrive.
-
-**Bank, soundfont and model selectors.** Some modules keep their sounds in
-*collections* rather than one flat preset list — Dexed loads DX7 `.syx` banks,
-OB-Xd loads `.fxb` banks, the SF2 player loads soundfonts, NAM loads amp models
-and cabinets. Movy shows the current collection as its own cell **immediately
-left of the preset knob**, so you can see which bank you are in without leaving
-the page:
-
-  ![The bank selector beside the preset knob](docs/assets/items_cell.png)
-
-**Touch that knob** and the full list opens, exactly like the enum overlay —
-turn to scroll, release to load:
-
-  ![Choosing a bank](docs/assets/items_overlay.png)
-
-Nothing is loaded while you scroll; only the release commits, because switching
-a bank reloads a whole set of patches and resets the preset to the first one. It
-counts as one undo step, and undoing it brings the module back as it was.
-
-The list is re-read each time you touch the knob, so a bank you upload from
-Schwung's web interface while Movy is open shows up straight away.
-
-**Jumping between sections.** With many pages, stepping one at a time is slow:
-hold **Shift** and turn the jog wheel to jump straight to the previous/next
-*section*, skipping its overflow pages. Turning the jog wheel without Shift
-still moves one page at a time.
-
-Even a module that publishes no parameter hierarchy still gets pages — Movy lays
-its parameters out in the order the module exposes them (this is what brings
-modules like *Branchage*, *Smack-in* and *Belt-in* to life). When a parameter
-also ships no range information, Movy shows a best-guess control and refines it
-(for example to a whole-number range) the first time it reads the real value.
-
-**Action knobs.** A module can mark a parameter as a one-shot *action* rather
-than a value — Smack's Capture, Arm and Reroll, for example. Movy draws these as
-a **circle in a box** instead of a knob, because there is no value to set:
-
-![Action knob, ready to fire](docs/assets/trigger_armed.png)
-
-Turn the knob **clockwise** to fire. The circle blinks and the knob's own LED
-flashes, so you know it happened without watching the screen:
-
-![Action knob firing](docs/assets/trigger_fired.png)
-
-One turn fires **once**, however far you keep turning — a whole sweep of the knob
-is a single action, not a burst of them. While it is spent the box goes dashed and
-a small bar drains along the top, showing when it re-arms by itself:
-
-![Action knob cooling down](docs/assets/trigger_cooling.png)
-
-So there are two ways to fire again: turn **counter-clockwise** to re-arm
-immediately, or just stop and let the bar run out. The name under the icon
-highlights while you are touching the knob, exactly like every other control.
-
-A module can now say outright that a parameter is an action, rather than leaving
-Movy to recognise one by its name. That matters most where the name gives
-nothing away: a randomiser offering *"—"* and *"Rnd!"* looks like an ordinary
-two-item setting, and choosing the first option — which means "do nothing" —
-would have fired it.
-
-**Readouts.** The other half of the same declaration is a parameter that means
-something to *read* and nothing to *write*: a detected key, an input level, a
-step count the module is counting down. These are drawn inside a **dotted
-frame**, and the knob will not move them:
-
-![Readouts in dotted frames](docs/assets/readouts.png)
-
-*Detected Key*, *Input Level* and *Hold Steps* are readouts; *Sensitivity*,
-without the frame, is an ordinary control. Turning a readout does nothing,
-touching one opens no list, and none of them is offered for automation — there
-is no value for a lane to record. They still refresh on screen, which is the
-whole reason they are on the page.
-
-**Pages a module draws itself.** A module can ship a page it draws itself, as
-MonkSynth does with its singing face. It sits in the jog rotation like any
-other page, between Movy's header and the hint row, and the eight knobs keep
-editing that section while you watch it. If the page is also the module's
-preset browser, the module draws the picture and its knobs stay its knobs —
-knob 1 edits the module's first parameter, not the preset; click and jog to
-browse. (On a preset page with no knobs of its own, knob 1 steps the preset
-list, and its LED lights to say so.) If the module lets you *enter* the page, click to go in: from then on
-the jog and the click belong to the module, and Back steps up one level inside
-it until the module has nowhere left to go, then leaves the page. Shift + jog
-still pages out at any point. These are the same pages Schwung shows, drawn by
-the same script.
-
-**The header and the hint row.** These pages are drawn by Schwung, and Movy
-keeps two bands for itself. **While a knob is under your hand** the header
+**The header and the hint row.** **While a knob is under your hand** the header
 becomes that parameter — its full name on the left, its current value on the
 right, drawn inverted:
 
 ![A held knob takes the header](docs/assets/page_chrome_held.png)
 
-Here `RND PATCH` is under the hand. The bottom row stays the Loop strip: the
-knob itself already does everything a click on it would — an option list steps
-as you turn, a two-way setting toggles, an action knob fires on its first
-click — so there is nothing the hint row needs to tell you. Let go and Movy's
-own header comes back — the track, the module and the pad grid say more than a
-page title does.
+Let go and Movy's own header comes back — the track, the module and, on a drum
+module, the pad grid. The bottom row stays the Loop strip unless the page has
+something to say there.
 
 **Files.** A parameter that points at a file — a sample, a wavetable, a
 soundfont, an SFZ — cannot be turned, so the click is the only way in, and it
@@ -631,7 +312,8 @@ and the file it is set to, and the bottom row reads `CLK BROWSE`:
 
 ![A held file knob offers the browser](docs/assets/page_chrome_file.png)
 
-Click the jog and **Movy's file browser** opens in that parameter's folder:
+Click the jog and **Movy's file browser** opens in that parameter's folder, on
+the file it is set to:
 
 ![The file browser a file parameter opens](docs/assets/file_browse.png)
 
@@ -664,54 +346,25 @@ fills. **Back** climbs out one level at a time and leaves from the top;
 **Shift + jog** always leaves at once. Some modules close the screen themselves
 when you pick something.
 
+**Pages a module draws itself.** A module can ship a page it draws itself, as
+MonkSynth does with its singing face. It sits in the jog rotation like any
+other page, and the eight knobs keep editing that section while you watch it. If
+the module lets you *enter* the page, click to go in: from then on the jog and
+the click belong to the module, and Back steps up one level inside it until the
+module has nowhere left to go, then leaves the page.
+
 **Pages that follow a setting.** A module can hide pages that do not apply right
 now — DR32 shows only the pages of the engine the selected pad runs (a sample
 pad's Shape, a 9W9 kick's Voice), not every engine's at once. Pick a different
 engine, or hit a pad that runs one, and the pages change with it.
 
-**Cell labels.** A module may also declare a short name for the cell separate
-from the parameter's full name — *Osc 1 Pitch* in the header, *PITCH* in the
-cell. Movy uses it as typed when it fits, and only falls back to its own
-abbreviation when the declared label is too wide for the cell.
+**Curated layouts.** A few older drum modules play better from a hand-tuned page
+layout that Movy ships for them (*mrdrums*, *Forge*, *Weird Dreams*, *Signal*,
+*libpo32*, and the *6W6* / *8W8* / *9W9* / *CW78* kits): Movy hands that layout
+to Schwung's planner in place of the module's own, so their pages are grouped
+and named by voice:
 
-Wide-range controls can also opt into slow single-step turns plus fast
-acceleration through the module's `knob_acceleration` metadata, so a 1–9999 seed
-moves one step at a time when you turn deliberately and travels quickly when you
-sweep.
-
-**Curated layouts.** A few modules get a hand-tuned page layout so their controls
-are grouped and named clearly, and so useful parameters the automatic layout
-would hide become reachable. These include *Plaits*, *Wurl*, *Chordism*, *SFZ*,
-*303*, *Chiptune* and *Hush1* (plus the drum modules). For instance, Chordism's
-**Chord Multi** mode now reaches **all twelve** pitch classes — the automatic
-layout could only expose the lower eight, so chords using the top four notes
-(G♯, A, A♯, B) were previously impossible to build:
-
-  ![Chordism Chord Multi](docs/assets/chordism-chordb.png)
-
-Turning a knob edits the parameter live. Touching a knob (without turning) shows
-its exact value at the top of the screen.
-
-Knobs are normalised so a full sweep feels the same on every parameter whatever
-its units — about a hundred clicks from end to end — and a parameter with
-discrete values (an octave, a voice count, a mode) moves in whole steps instead.
-Either way a click moves the same distance clockwise and counter-clockwise, and
-turning faster covers proportionally more ground rather than less.
-
-A parameter with only a handful of values — eight or fewer — takes four clicks
-per step, so a five-position octave is no longer a quarter of its range per
-click. On/off switches are the exception and still flip on a single click.
-
-Octave offsets and voice counts are drawn as a framed number rather than an arc,
-because an arc shows a position in a range and these are values you think of by
-name. An offset shows its sign, so you can read `+2` or `-1` without touching the
-knob:
-
-![Step cells](docs/assets/test_steps.png)
-
-Here `OCT` and `RNG` are octave offsets, `ARPOC` and `VOICE` are counts, and the
-neighbours keep their usual shapes — `LEGAT` is a four-value mode, `BEND` an
-on/off switch, `DETUN` a wide amount and `CUT` continuous.
+![A curated drum page](docs/assets/page_config_pad.png)
 
 ---
 
@@ -799,10 +452,8 @@ under encoders 5–7.
 
 Every knob here turns at the same rate as a module's — a full sweep is a full
 sweep, wherever you are on the fader — and lands on the round numbers: `0.0 dB`
-and centre pan are always reachable, whatever the value started at. Hold two
-knobs and both show their values; the header follows the one you touched last.
-
-![Two knobs held on the MIX page](docs/assets/mix_page_two_held.png)
+and centre pan are always reachable, whatever the value started at. The header
+shows the knob under your hand, as on any page.
 
 All five are **automatable** like any module parameter: hold a step and turn, or
 turn while recording. See [Step parameters](#step-parameters--per-trig-locks).
@@ -875,25 +526,23 @@ The last page in the chain is **LFO** — two low-frequency oscillators that can
 modulate any automatable parameter in the track's chain. Jog-click it to drill
 in; the jog then scrolls between **LFO 1** and **LFO 2**.
 
-![LFO page](docs/assets/lfo_lfo1.png)
+These are Schwung's own LFO pages — the same LFO 1 / LFO 2 pages its Slot
+Settings and Master FX Settings show, so a patch reads the same in both places:
 
-Each LFO has eight controls:
+![LFO page](docs/assets/page_lfo.png)
 
-| Knob | Control | Notes |
-| --- | --- | --- |
-| **RATE** | Rate | Free-running Hz, or a musical division when **Sync** is on. |
-| **SYNC** | Sync | Free-running vs tempo-synced. When synced, the LFO **phase-locks** to the playing transport (see below). |
-| **MODE** | Mode | Unipolar (`UNI`) or bipolar (`BI`). |
-| **TARGET** | Target | The parameter this LFO modulates (see below); `✕` = none. |
-| **SHAPE** | Shape | Sine / Tri / Saw / Square / S&H / Swishy. |
-| **PHASE** | Phase | Start-phase offset, in 15° steps. |
-| **RETRIG** | Retrigger | Reset the LFO on each new note. |
-| **DEPTH** | Depth | Modulation amount. |
-
-**Shape** and **Phase** are drawn together as a live **waveform preview**: turn
-Shape to morph the wave, Phase to slide it along. A dotted baseline shows the
-mode (centred = bipolar, along the bottom = unipolar), and a bold dot marks the
-start when Retrigger is on.
+- **Top row:** **TARG** (what it modulates), **MODE** (uni/bipolar),
+  **SYNC** (free/synced), **RTG** (retrigger on each new note).
+- **Bottom row:** **SHAPE**, **DEPTH** and **PHASE**, drawn as one live
+  waveform, then **RATE** in a cell of its own — in Hz when free-running, a
+  musical division (`1/4`, `8T`, `2b`) when synced. The waveform still follows
+  it, and a synced rate draws at the speed it plays (1/4 looks like 2 Hz).
+- **Target:** **turn its knob** like any other list — every parameter the LFO
+  can reach pops up while you turn, and the routing is made when you let go
+  (scrolling past other parameters does not modulate them). Click the jog on it
+  for the same list as a menu. **None** is the first entry.
+- **There is no On switch:** choosing a target turns the LFO on, and **None**
+  turns it off. A newly routed LFO starts at **100%** depth.
 
 **Synced LFOs phase-lock to the transport.** With **Sync** on, a running
 transport drives the LFO's phase directly from song position — the cycle is
@@ -903,8 +552,8 @@ becomes a musical offset against the bar. When the transport **stops**, the LFO
 keeps breathing — it free-runs from where it was, at Movy's tempo, and a tempo
 change while stopped changes its rate straight away.
 
-You can pick an LFO's Target here (an overlay lists every modulatable parameter
-in the chain), but the easy way is to assign it from the parameter itself:
+You can pick an LFO's Target here, but the easy way is to assign it from the
+parameter itself:
 
 ### Modulating a parameter with an LFO
 
@@ -921,13 +570,10 @@ LFO at those from the LFO page's **Target** instead).
   jump to its LFO page to set rate, shape, and depth.
 
 Hold the same knob again to **remove** the modulation (or, from the other LFO,
-add a second one to the same parameter). A modulated parameter shows a small
-**`~` mark** by its label — alongside the automation dot if it's also automated:
+add a second one to the same parameter). A modulated parameter wears a
+modulation mark on its cell:
 
-![Modulation mark](docs/assets/lfo_mod_and_auto.png)
-
-While a parameter is modulated its on-screen knob stays at your **base value** —
-the LFO moves the sound, not the displayed knob.
+![Modulation mark](docs/assets/page_mod_cell.png)
 
 Both work on **every track** alike.
 
@@ -941,51 +587,18 @@ so it has no way to drive them. Automate those with a parameter lane instead.
 The master FX chain has an LFO page of its own, in the same place: the **fifth
 slot**, after MFX 4. Jog to it in Session view and click to drill in.
 
-![Master LFO page](docs/assets/lfo_master.png)
+![Master LFO page](docs/assets/page_lfo_master.png)
 
 It works exactly like a track's, with two differences:
 
 - **Targets are the four master FX slots** (and the other master LFO) rather
   than a track's chain — so an LFO here sweeps the whole mix's reverb or filter.
-- **There is no Retrigger.** Nothing plays notes on the master bus, so the
-  seventh knob is blank.
+- **There is no Retrigger.** Nothing plays notes on the master bus.
 
 Hold-to-assign works here too: hold any automatable knob on an MFX slot's page
 and click to modulate it.
 
 These settings are saved with the Set's chains, so they survive a power cycle.
-
-### The LFO pages with Param Pages set to SCHWUNG
-
-With **PARAM PAGES** on **SCHWUNG** (Settings), both LFO pages — a track's and
-the master chain's — are Schwung's own: the same LFO 1 / LFO 2 pages Schwung's
-Slot Settings and Master FX Settings show, so a patch reads the same in both
-places.
-
-![Schwung's LFO page](docs/assets/page_lfo.png)
-
-- **Top row:** **TARG** (what it modulates), **MODE** (uni/bipolar),
-  **SYNC** (free/synced), **RTG** (retrigger on each new note).
-- **Bottom row:** **SHAPE**, **DEPTH** and **PHASE**, drawn as one live
-  waveform, then **RATE** in a cell of its own — in Hz when free-running, a
-  musical division (`1/4`, `8T`, `2b`) when synced. The waveform still follows
-  it, and a synced rate draws at the speed it plays (1/4 looks like 2 Hz).
-- **Target:** **turn its knob** like any other enum — a list of every parameter
-  the LFO can reach pops up while you turn, and the routing is made when you
-  let go (scrolling past other parameters does not modulate them). Click the
-  jog on it for the same list as a menu. **None** is the first entry.
-- **There is no On switch:** choosing a target turns the LFO on, and **None**
-  turns it off. A newly routed LFO starts at **100%** depth.
-- Turning **MODE** or **SYNC** just flips the value in place, without the
-  pop-up list.
-
-The master chain's LFO page names which LFO it is in the header, on the chain
-grid as well as when drilled in:
-
-![Master LFO page under Schwung](docs/assets/page_lfo_master.png)
-
-Hold-to-assign works the same under either setting, and lands on the LFO you
-chose.
 
 ---
 
@@ -1010,7 +623,7 @@ On a melodic track the 32 pads form a playable keyboard whose shape you choose:
 Two knobs on the [Set parameters](#set-parameters--shift--step-5--7--9) page
 (**Shift + Step 5 / 7 / 9**) decide the grid's shape:
 
-![Set parameters — layout overlay](docs/assets/main-layout-overlay.png)
+![Set parameters](docs/assets/page_setparams.png)
 
 **MODE** picks the note set:
 
@@ -1059,41 +672,49 @@ A kit with **more than 16 voices** (dr32 has 32) uses **all 32 pads**: voices
 1–16 fill the left 4×4 exactly as on any other kit, and voices 17–32 fill the
 right 4×4 the same way, each half numbered from its bottom-left pad upwards:
 
-![Drum module page](docs/assets/drum-mrdrums-global.png)
+![A drum module's voice page](docs/assets/page_voice_pad.png)
 
-On a **per-pad** (or per-voice) page, **press a pad to pick which voice you're
-editing** — the knobs re-read that voice's values, and the pad icon in the
-header tracks the selection. This lets multi-voice synths expose compact voice
-pages instead of a page per voice. *Signal* (4 voices) works this way:
+**Press a pad to pick which voice you're editing.** A kit that declares its
+voices — or one Movy ships a curated layout for — has a page per voice, and a
+pad press shows that voice's page, the header naming the voice and the pad icon
+lighting the pad. **Shift + pad** picks a voice without sounding it. Pages that
+belong to the whole kit — Reverb, Delay, Master — carry no pad icon, and a pad
+press does not drag you off them:
 
-![Pad-selected voice page](docs/assets/signal_voice.png)
+![A kit-wide page: no pad icon](docs/assets/page_voice_global.png)
 
-A drum machine whose voices are separate circuits — a TR-808/909 style kit,
-where the snare has no Attack and the kick has no FX sends — cannot share one
-page like that: most of the row would be holes on most pads. Those kits get a
-**page per voice** instead, and it behaves the same way from the front: the
-**voice page comes first**, and the pad picks which voice it shows.
+On a drum track the page follows the pad **you** press and
+nothing else. A playing pattern never turns the page, even on a drum machine
+that moves its own selection with every hit (6W6, 8W8, 9W9, CW-78, mrdrums,
+Forge). The per-pad knobs always edit the pad you last pressed.
 
-The voice pages **share one seat in the page list**, so the jog does not walk
-through sixteen drums to reach the reverb. 8W8 has nineteen pages of parameters
-and four in the rotation — **the selected voice, Reverb, Delay, Master**, the
-chain's own left-to-right order:
+The **pad's own pages come first**. On a drum machine with one page per voice
+(6W6, 8W8, 9W9, CW-78) those pages fold into a single **pad page**, which shows the
+pad you last pressed. The jog then reaches the module's other pages (Main,
+Reverb, Delay…). On a rack whose pages edit the selected pad (simian, dr32,
+sophie, Forge's voice pages) the pad pages are all of those. A drum module opens
+on its pad page.
 
-![A page per voice, selected by pad](docs/assets/8w8_voice.png)
+A module needs no Movy config file to be played as a drum rack here. One that
+says it is a drum kit, or whose pages switch between instances by their own
+"selected pad" parameter, gets a rack of its own: its pads start at C1 (note 36)
+unless it names the notes itself. When a module does ship a Movy config, or
+Movy ships one for it (6W6, 8W8, 9W9, CW-78), the config decides the pads and
+their notes.
 
-The pad icon is lit on the pad you last hit; on a kit like this it is the only
-thing on screen telling you which voice the knobs are holding. It appears only
-on the pages a pad press switches: Reverb, Delay and Master show none. **Shift + pad**
-picks a voice without sounding it.
+![Simian's pad page, first of five in the bank bar](docs/assets/page_held_drum.png)
 
-As with a per-pad page, **a pad only turns the page while you are on the voice
-page**. Reach for a pad from Master or Reverb and you stay where you are — the
-voice page just remembers the new selection for when you jog back to it.
+How a pad press moves the page:
 
-The same icon appears on the **chain page**, so a voice page is recognisable
-from either view:
+- **On a pad page**, a press switches to that pad and stays on the same pad
+  page: the second page of one voice becomes the second page of the next. A
+  voice with fewer pages lands on its last one.
+- **On any other page** (Main, Reverb…), a press leaves the page where it is.
+  It still selects the pad, so jogging back to the pad page shows the pad you
+  hit last.
 
-![The voice page on the chain view](docs/assets/8w8_chain.png)
+Switching pads does not wait on the module. Every pad's values are read in the
+background, so the knobs show the new pad on the press itself.
 
 *Sample Slicer* is a slice player rather than a kit: its **32 pads are the 32
 slices** the module can trigger (pad 1 = slice 1). Its Main page carries the
@@ -1110,14 +731,14 @@ two rows = Kit A, upper two = Kit B; the *Morph* knob crossfades them), and
 tapping any pad selects that voice for deep editing across six pages —
 **Osc, Filter, Env, Mod, Setup, Send**:
 
-![Forge per-voice Osc page](docs/assets/forge_voice.png)
+![Forge per-voice Osc page](docs/assets/page_config_pad.png)
 
 The **Send** page holds the selected voice's mixer strip — **Reverb Send**,
 **Delay Send** and **Pan**. On Kit A pads these are automatable like any other
 per-voice parameter (classic per-step delay throws); Kit B pads can still be
 edited, just not automated:
 
-![Forge per-voice Send page](docs/assets/forge_send.png)
+![Forge's mixer page](docs/assets/page_config_mix.png)
 
 *Libpo32* (a PO-32 / Microtonic-style engine) gives all **16 voices** the same
 treatment across **Osc, Mod, Noise and Voice** pages: pitch, decay, noise mix,
@@ -1136,10 +757,9 @@ Signal ship Movy templates; Forge and Libpo32 are **self-describing** — they
 carry their own layout in the module. Other drum modules may need one
 contributed (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
-On pages Schwung draws, an older drum module still follows its Movy template:
-**Forge, Mr Drums, Weird Dreams, Signal and Libpo32** show the template's
-pages, in the template's order, so they look the same as on Movy's own pages.
-The knobs on them edit the pad you last pressed, as before. A page that edits the
+An older drum module follows its Movy template: **Forge, Mr Drums, Weird
+Dreams, Signal and Libpo32** show the template's pages, in the template's
+order. The knobs on them edit the pad you last pressed. A page that edits the
 selected pad shows the **pad icon** next to its name (Forge's Osc to Send pages,
 Mr Drums' Main and Rand, Weird Dreams' Voice). Global pages such as Mix or
 Master don't show it. The template's graphics carry over too, wherever Schwung can draw them: Forge's
@@ -1149,8 +769,8 @@ between Rate and Depth), the picture covers the knobs before it. The ones after
 it keep their own knob and still shape the picture: Depth sets the wave's
 height. A drum module that
 describes its pads itself (Simian, DR32, Sophie, and the 6W6/9W9 kits) shows its
-own pages. On Forge, a pad press no longer jumps to a voice page. It picks the
-voice the page edits, the same as on Movy's own pages.
+own pages. On Forge, a pad press does not jump to a voice page; it picks the
+voice the page edits.
 
 #### Muting one voice
 
@@ -1304,9 +924,9 @@ for the concepts:
   solo-overrides-mute, a toast naming the voice, saved with the Set, undoable.
   See [Muting one voice](#muting-one-voice).
 - **Automation** — turn a module knob while recording (or while holding a step)
-  to record parameter automation; the on-screen knob arc follows the automation.
+  to record parameter automation; the cell follows the automation.
 
-  ![Live automation](docs/assets/auto_live.png)
+  ![An automated parameter's lane mark](docs/assets/page_lane_mark.png)
 
 Because Movy keeps the module's parameters on screen during sequencing, some of
 Move's full-screen sequencer displays are replaced by **LED feedback on the pads
@@ -1509,14 +1129,13 @@ is already 0 or 100 there are only two values to cycle.
 For anything other than those three, **QUANT** on the
 [Clip page](#clip-parameters--shift--step-3) sets the clip directly:
 
-![Clip quantize](docs/assets/clip-quant.png)
+![Clip parameters](docs/assets/page_clipparams.png)
 
 **QUANT** on the [Set page](#set-parameters--shift--step-5--7--9) sets the
 **default** — the strength new clips are created with, so a take you record gets
 your preferred tightness immediately. Changing it never re-times clips that
 already exist; each clip owns its own value from the moment it is created.
 
-![Default quantize](docs/assets/main-quant.png)
 
 The default follows you into **new sets**, so it is a preference you set once
 rather than per project. Clips from sets made before this existed load at 0 %,
@@ -1663,7 +1282,7 @@ These three pages add control Move doesn't expose on-device. Each opens with a
 **Hold a step** that has a note. While held, **page 0** becomes the **Step**
 page, showing that trig's intrinsic properties on the knobs:
 
-![Step parameters](docs/assets/step_page_knobs.png)
+![Step parameters](docs/assets/page_stepparams.png)
 
 | Knob | Parameter | Notes |
 | --- | --- | --- |
@@ -1688,7 +1307,7 @@ you make it.
 on/off. On a held step each knob detent moves **one option**, and the cell shows
 the option the step will play:
 
-![A held step locking an enum](docs/assets/auto_held_enum.png)
+![A held step locking an enum](docs/assets/page_held_enum.png)
 
 Each track has **32 automation lanes**, one per parameter you lock or record.
 When all 32 are taken, a held step only offers the parameters that already have
@@ -1709,7 +1328,7 @@ the label goes away.
 
 In Track view, **Shift + Step 3** opens the **Clip** page for the active clip:
 
-![Clip parameters](docs/assets/clip-default.png)
+![Clip parameters](docs/assets/page_clipparams.png)
 
 | Knob | Parameter |
 | --- | --- |
@@ -1721,9 +1340,7 @@ In Track view, **Shift + Step 3** opens the **Clip** page for the active clip:
 (Clip parameters apply to a single clip, so this page is Track-view only.)
 
 On a **drum track**, transpose is unavailable — the cell reads `n/a` and the knob
-does nothing:
-
-![Clip parameters on a drum track](docs/assets/clip-drum.png)
+does nothing.
 
 A drum module's pitches are pad addresses, not notes, so shifting them fires a
 different pad — or, if the shift lands outside the module's pad range, nothing at
@@ -1734,7 +1351,7 @@ that already carried one from before a drum module was loaded onto the track.
 
 **Shift + Step 5, 7, or 9** opens the global **Set** page:
 
-![Set parameters](docs/assets/main-default.png)
+![Set parameters](docs/assets/page_setparams.png)
 
 | Knob | Parameter |
 | --- | --- |
@@ -1747,11 +1364,8 @@ that already carried one from before a drum module was loaded onto the track.
 | 7 | **MODE** — Chromatic or In Key |
 | 8 | **LAYOUT** — the pad grid's shape |
 
-KEY, MODE and LAYOUT each open a scrollable list (the same enum overlay used
-elsewhere):
-
-![Set parameters — key overlay](docs/assets/main-key-overlay.png)
-![Set parameters — mode overlay](docs/assets/main-mode-overlay.png)
+KEY, MODE and LAYOUT are lists: turning shows the options as you go, and a jog
+click opens the whole list as a menu.
 
 MODE and LAYOUT are covered in [Pad layouts](#pad-layouts).
 
@@ -1917,52 +1531,6 @@ Step 2 lights dim under Shift and full bright while the page is open.
 
 ![Settings](docs/assets/flags-release.png)
 
-**PARAM PAGES** picks who draws a module's parameter pages. **MOVY** is
-Movy's own layout. **SCHWUNG** (the default) hands the pages to Schwung, which
-plans them from the module's own declaration and draws them the way Schwung's
-own slot editor does — so what sits on which page can move, and a bank that
-exists only in Movy's config for that module may not appear. Sequencer lanes
-follow the parameter, not the page, so recorded automation keeps playing
-either way. The choice is saved on the device, not per set. Updating to this
-release switches it to **SCHWUNG** once, even if you had set **MOVY** before;
-set it back to **MOVY** and that choice sticks.
-
-On a drum track under **SCHWUNG**, the page follows the pad **you** press and
-nothing else. A playing pattern never turns the page, even on a drum machine
-that moves its own selection with every hit (6W6, 8W8, 9W9, CW-78, mrdrums,
-Forge). The per-pad knobs always edit the pad you last pressed.
-
-The **pad's own pages come first**. On a drum machine with one page per voice
-(6W6, 8W8, 9W9, CW-78) those pages fold into a single **pad page**, which shows the
-pad you last pressed. The jog then reaches the module's other pages (Main,
-Reverb, Delay…). On a rack whose pages edit the selected pad (simian, dr32,
-sophie, Forge's voice pages) the pad pages are all of those. A drum module opens
-on its pad page.
-
-A module needs no Movy config file to be played as a drum rack here. One that
-says it is a drum kit, or whose pages switch between instances by their own
-"selected pad" parameter, gets a rack of its own: its pads start at C1 (note 36)
-unless it names the notes itself. When a module does ship a Movy config, or
-Movy ships one for it (6W6, 8W8, 9W9, CW-78), the config decides the pads and
-their notes.
-
-![Simian's pad page, first of five in the bank bar](docs/assets/page_held_drum.png)
-
-How a pad press moves the page:
-
-- **On a pad page**, a press switches to that pad and stays on the same pad
-  page: the second page of one voice becomes the second page of the next. A
-  voice with fewer pages lands on its last one.
-- **On any other page** (Main, Reverb…), a press leaves the page where it is.
-  It still selects the pad, so jogging back to the pad page shows the pad you
-  hit last.
-
-Switching pads does not wait on the module. Every pad's values are read in the
-background, so the knobs show the new pad on the press itself.
-
-**SCHWUNG needs Schwung 1.5.0 or newer.** On an older Schwung the row stays on
-MOVY and its hint names the version it needs, next to the one you have.
-
 Movy always renders its chains on several threads and always skips chains that
 are silent. Together those are worth roughly 2× on a heavy set — the difference
 between a big set staying inside the audio frame and crackling. There is
@@ -1988,7 +1556,7 @@ clear / delete / copy / paste / duplicate, clip scale, length and transpose
 (each its own undo, committed when you let the knob go), loop length and start, per-step trig
 properties, automation (locks, lane values, clearing a lane or a step),
 tempo, swing, root and key, track mute, solo and volume, synth and LFO
-parameters (on Movy's own pages and on Schwung pages alike, master FX included),
+parameters (master FX included),
 LFO assignments, and module or preset loads.
 
 **What isn't.** Anything that only changes what you're looking at — selecting a
@@ -2080,18 +1648,15 @@ behaviour you'd like — or, better, a PR.
 
 | Control | Action |
 | --- | --- |
-| **Knobs 1–8** | Edit the current page's parameters. Touch (no turn) shows the exact value. |
-| **Turn an action knob clockwise** | Fire a one-shot action (Capture, Reroll, …) once per turn, however far you keep turning. The circle blinks and the knob LED flashes. |
-| **Turn an action knob counter-clockwise** | Re-arm it immediately instead of waiting for the drain bar to run out. |
-| **Touch a bank / soundfont / model knob** | Open the collection list. Turn to scroll, release to load — scrolling on its own loads nothing. |
+| **Knobs 1–8** | Edit the current page's parameters. Touch (no turn) shows the full name and value in the header. |
 | **Hold a file knob, then jog-click** | Open the file browser for a sample / wavetable / preset parameter (the header names the file, the bottom row reads `CLK BROWSE`). Turn to move, click to load, Back to cancel. |
 | **Hold a module-screen knob, then jog-click** | Open the module's own screen (DR32's ENGN engine picker). Back climbs out a level at a time; Shift + jog leaves at once. |
 | **Hold a knob (~1 s)** | Assign that parameter as an **LFO target**: jog picks LFO 1/2, jog-click assigns (hold again to remove). Automatable parameters only — and on a Schwung-drawn page, number knobs only. |
 | **Jog wheel — turn** | Scroll chain slots (Chain view) or module pages (Knobs view) / browser list. On either LFO page — a track's or the master chain's — scroll between LFO 1 and LFO 2. |
 | **Jog wheel — click** | Drill Chain → module pages; on Knobs (or an empty slot) open the module browser; in a browser, load the selection. |
-| **Shift + jog wheel — turn** | Knobs view: jump to the previous/next **section**, skipping that section's overflow pages. |
+| **Shift + jog wheel — turn** | Knobs view: one page, like a plain turn. |
 | **Hold the jog (~1 s)** | Touch without turning: a bottom prompt spells out what a click does on this page. A turn or release clears it. |
-| **Shift + jog click** | Open the module browser to swap the current slot's module. |
+| **Shift + jog click** | Chain view: open the module browser to swap the slot's module. Knobs view: Schwung's section list, to jump to a section. |
 | **Back** | Module pages → Chain; browser → cancel; **at the root (Chain) → open the Leave Movy menu** (Close Movy). |
 | **Shift + touch volume + jog click** | Close Movy from anywhere, even when it has stopped responding (hard close after 2 s). |
 | **Volume knob** | Master volume (MASTER VOLUME slider, 1 dB per detent). |

@@ -32,11 +32,11 @@ hand-back to `schwung-entry.sh`). The shipped JS is the tag's bytes,
 
 ## Not in this change (follow-ups)
 
-- `src/renderer/schwung-floor.ts` still gates page mode on the INSTALLED
-  version. Harmless (movy-host refuses below the floor first) but now
-  meaningless for the JS; delete with its suite in a later cleanup.
-- The `schwung-missing` fallbacks in `schwung-lib.ts` for older schwungs are
-  unreachable once the pin carries every file; same cleanup.
+- ~~`src/renderer/schwung-floor.ts` still gates page mode on the INSTALLED
+  version~~ — done in `plans/2026-10-13-schwung-pages-only.md`: the file keeps
+  only `SCHWUNG_FLOOR` for movy-host.
+- ~~The `schwung-missing` fallbacks in `schwung-lib.ts`~~ — done there too:
+  `schwung-lib.ts` is static imports.
 
 ## Gate
 

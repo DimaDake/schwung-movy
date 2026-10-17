@@ -2,8 +2,6 @@
  * structure; this file owns what a single knob looks like once its metadata has
  * been gathered from chain_params and/or ui_hierarchy. */
 import type { KnobParam } from '../types/param.js';
-import { isFaderParam } from './fader.js';
-import { isPanParam } from './pan.js';
 import { isActionParam, isToggleParam } from './toggle.js';
 import { cellStyleFor } from './step-labels.js';
 import { readAccess } from './access.js';
@@ -198,11 +196,6 @@ export function applyAutoStyle(p: KnobParam, explicitRender = false): KnobParam 
      * below, which would invite the flip it can never perform. */
     if (p.readOnly) return p;
     if (explicitRender) return p;
-    if (isToggleParam(p)) { p.renderStyle = 'switch'; return p; }
-    /* Ahead of the fader: the two are disjoint (a level is not a placement, and
-     * fader.ts already rejects anything saying `pan`), but stating the order
-     * means neither has to be read to know which wins. */
-    if (p.renderStyle === 'arc' && isPanParam(p))   p.renderStyle = 'pan';
-    if (p.renderStyle === 'arc' && isFaderParam(p)) p.renderStyle = 'vbar';
+    if (isToggleParam(p)) p.renderStyle = 'switch';
     return p;
 }

@@ -1,10 +1,9 @@
 import { paramGet } from '../host/param.js';
 import { portFor } from '../track/registry.js';
 import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS, VIEW_FLAGS, VIEW_CPU, VIEW_VERSIONS, VIEW_SETS } from './state.js';
-import { mainPageActive, mainPageState } from '../seq/main-page.js';
-import { buildMainPageVM } from '../seq/main-page-vm.js';
-import { clipPageActive, clipPageState } from '../seq/clip-page.js';
-import { buildClipPageVM } from '../seq/clip-page-vm.js';
+import { mainPageActive } from '../seq/main-page.js';
+import { headerOnlyVM } from '../seq/header-vm.js';
+import { clipPageActive } from '../seq/clip-page.js';
 import { buildFlagsPageVM } from '../seq/flags-page-vm.js';
 import { buildVersionsPageVM } from '../seq/versions-page-vm.js';
 import { versionsPageState } from '../seq/versions-page.js';
@@ -154,11 +153,10 @@ export function buildAutomationView(track: number, model: Model): AutomationView
 /* The automation view built for this frame, so the Schwung page can resolve
  * lanes without building a second one. */
 let lastAutoView: any = undefined;
-let _schwungDiag = '';
 /*
  * The Schwung body for whichever module grid is being drawn.
  *
- * Returned as a CALLBACK the view calls in place of drawKnobParams, because
+ * Returned as a CALLBACK the view calls for its body, because
  * movy draws a module's knobs from more than one screen — renderKnobsView AND
  * renderChainView — and routing only the first is what left the device drawing
  * movy's widgets while every local check passed. One helper, both call sites.
@@ -288,51 +286,24 @@ function lightKnobRow(body: (() => void) | undefined): void {
 let _schwungView = '';
 let _schwungWhy = '';
 let _autoLanesLog = '';
-let _autoRenderLog = '';
-/* Diagnostic (off unless debug_log_on): the per-knob automation render decision
- * — automated (a, the dot) and touched (t, showing the held value) — so the
- * device automation test can assert the dot + held-value highlight without
- * reading pixels. Throttled to changes, so it is silent at steady state. */
 /* Everything that must happen once per rendered frame, whatever drew it. Both
  * render paths call this, so a third one added later cannot silently skip the
  * probe's frame counter — which the device harness waits on instead of
  * sleeping after a gesture. */
 function noteRendered(vm: ViewModel): void {
     noteRender(vm);
-    diagAutoRender(vm);
-}
-
-function diagAutoRender(vm: ViewModel): void {
-    let line = 'held=' + (vm.automationHeld ? 1 : 0) + ' |';
-    for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) {
-        const pv = vm.rows[r][c];
-        if (!pv) continue;
-        line += ' ' + pv.shortName + ':a' + (pv.automated ? 1 : 0) + 't' + (pv.touched ? 1 : 0)
-            + '=' + (pv.touched ? pv.displayValue : '-');
-    }
-    if (line !== _autoRenderLog) { _autoRenderLog = line; mlog('auto render ' + line); }
-}
-
-/* The held-step trig mirror as the step-page VM input. */
-function heldTrigInput() {
-    return {
-        holdVel: seqState.holdVel, holdGate: seqState.holdGate, holdGateMixed: seqState.holdGateMixed,
-        holdProb: seqState.holdProb, holdCondA: seqState.holdCondA, holdCondB: seqState.holdCondB,
-        holdInvert: seqState.holdInvert,
-    };
 }
 
 let lastStepTrigSig = '';
 function stepTrigSig(): string {
     return [seqState.holdVel, seqState.holdGate, seqState.holdGateMixed,
         seqState.holdProb, seqState.holdCondA, seqState.holdCondB, seqState.holdInvert,
-        seqState.holdMaxGate, stepPageState.selected, stepPageState.touchedKnob].join(',');
+        seqState.holdMaxGate, stepPageState.selected].join(',');
 }
 
 let lastMainSig = '';
 function mainSig(): string {
-    return [mainPageActive(), mainPageState.touchedKnob, mainPageState.overlayKnob,
-        mainPageState.overlaySel, seqState.bpmX100, seqState.swingPct,
+    return [mainPageActive(), seqState.bpmX100, seqState.swingPct,
         keyboardState.rootPc, keyboardState.scale,
         keyboardState.mode, keyboardState.layout,
         keyboardState.octave[appState.activeTrack.index]].join(',');
@@ -381,8 +352,7 @@ function cpuRepaintTick(): void {
 
 let lastClipSig = '';
 function clipSig(): string {
-    return [clipPageActive(), clipPageState.touchedKnob, clipPageState.scaleOverlay,
-        clipPageState.scaleSel, seqState.clipScaleIdx, seqState.lenSteps,
+    return [clipPageActive(), seqState.clipScaleIdx, seqState.lenSteps,
         seqState.clipTranspose].join(',');
 }
 
@@ -592,9 +562,6 @@ function tickBody(): void {
 
     const chainIdx    = appState.trackChainIndex[appState.activeTrack.index];
     const activeModel = appState.trackModels[appState.activeTrack.index]?.[chainIdx];
-    // Automation lanes are driven by playback — keep the page from reading them
-    // back (decouples display from automation; avoids per-step repaints).
-    activeModel?.setNoRefreshKeys(laneKeysForTrack(appState.activeTrack.index));
     /*
      * WHO OWNS THIS COMPONENT'S PAGES — asked ONCE per tick, and the answer
      * decides whether Schwung's page is drawn and what lights the eight knob
@@ -607,7 +574,7 @@ function tickBody(): void {
      * its own read cursor, and a second reader was the per-tick cost the page
      * migration went looking for (design §3, Cause F). */
     perfPhase('modeltick');
-    const modelDirty  = activeModel?.tick(false) ?? false;
+    const modelDirty  = activeModel?.tick() ?? false;
     perfPhaseEnd();
 
     /* A module swap on the focused component changes its param set → re-validate
@@ -628,7 +595,7 @@ function tickBody(): void {
     /* SP-52: the master slot's OWN owner, never `pageOwner` above — that one is
      * built from the TRACK's `activeModel`. Only asked in session mode. */
     const masterPageOwner = seqState.sessionMode ? pageOwnerOf(masterModel) : null;
-    const masterDirty = masterModel?.tick(false) ?? false;
+    const masterDirty = masterModel?.tick() ?? false;
 
     /* SP-53: Clip Params/Set Params have no MODEL at all (they answer out of
      * `seqState`/`keyboardState` directly), so neither is `pageOwner` above and
@@ -781,10 +748,10 @@ function tickBody(): void {
             /* AFTER `schwungEditorActive()`, same reason as Clip Params below:
              * KEY/MODE/LAYOUT's long-enum dive is Schwung's own list picker
              * under delegation, which raises exactly that editor. */
-            const vm = buildMainPageVM();
+            const vm = headerOnlyVM('SET PARAMETERS');
             const chrome = schwungChromeFor(drawnPageOwner, schwungBody, false);
             renderKnobsView(vm, false, appState.activeTrack.index,
-                            paramBodyFor(drawnPageOwner, schwungBody),
+                            paramBodyFor(drawnPageOwner, schwungBody, lastAutoView),
                             schwungBankFor(drawnPageOwner, schwungBody), chrome);
             lightKnobRow(schwungBody);
         } else if (appState.currentView === VIEW_CLIP_PARAMS) {
@@ -793,10 +760,10 @@ function tickBody(): void {
              * (`owner.page.click()`), which raises exactly that editor — tested
              * before this branch is, or the dive would never draw, the same way
              * VIEW_KNOBS sits after it for a module's own divable params. */
-            const vm = buildClipPageVM();
+            const vm = headerOnlyVM('CLIP PARAMETERS');
             const chrome = schwungChromeFor(drawnPageOwner, schwungBody, false);
             renderKnobsView(vm, false, appState.activeTrack.index,
-                            paramBodyFor(drawnPageOwner, schwungBody),
+                            paramBodyFor(drawnPageOwner, schwungBody, lastAutoView),
                             schwungBankFor(drawnPageOwner, schwungBody), chrome);
             lightKnobRow(schwungBody);
         } else if (appState.currentView === VIEW_CPU) {
@@ -822,7 +789,7 @@ function tickBody(): void {
                 noteRendered(vm);
                 const chrome = schwungChromeFor(drawnPageOwner, schwungBody, true);
                 renderKnobsView(vm, jogHintVisible(), appState.activeTrack.index,
-                                paramBodyFor(drawnPageOwner, schwungBody),
+                                paramBodyFor(drawnPageOwner, schwungBody, lastAutoView),
                                 schwungBankFor(drawnPageOwner, schwungBody), chrome);
                 jogToastShown = jogHintVisible() || !!(chrome && chrome.footer);
             } else {
@@ -831,7 +798,7 @@ function tickBody(): void {
                  * Schwung's body and chrome exactly as a track's VIEW_CHAIN does
                  * (SP-58) — `paging: false`, since the jog moves slots here. */
                 renderChainView(vm, mIdx, jogHintVisible(), 'MASTER', MASTER_FX_SLOTS[mIdx]?.label,
-                                MASTER_FX_SLOTS, paramBodyFor(drawnPageOwner, schwungBody),
+                                MASTER_FX_SLOTS, paramBodyFor(drawnPageOwner, schwungBody, lastAutoView),
                                 schwungChromeFor(drawnPageOwner, schwungBody, false));
                 jogToastShown = jogHintVisible();
             }
@@ -842,7 +809,7 @@ function tickBody(): void {
             const stepAvail = stepPageAvailable();
             let vm;
             if (stepAvail && stepPageState.selected) {
-                vm = buildStepPageVM(heldTrigInput(), activeModel!.getBankCount());
+                vm = buildStepPageVM();
             } else {
                 perfPhase('autoview');
                 const av = buildAutomationView(appState.activeTrack.index, activeModel!);
@@ -892,13 +859,13 @@ function tickBody(): void {
             const chrome = schwungChromeFor(drawnPageOwner, schwungBody, !stepSelected);
             const chromeFooter = !!(chrome && chrome.footer);
             renderKnobsView(vm, jogHintVisible(), appState.activeTrack.index,
-                            paramBodyFor(drawnPageOwner, schwungBody),
+                            paramBodyFor(drawnPageOwner, schwungBody, lastAutoView),
                             schwungBankFor(pageOwner, schwungBody), chrome);
             perfPhaseEnd();
             // The pool-full toast shares the bottom rows with the Loop strip;
             // claim them so the strip yields to it (like every other toast).
             jogToastShown = (vm.automationHeld && vm.automationPoolFull)
-                || (!!vm.toast?.browseHint && !chrome) || jogHintVisible() || chromeFooter;
+                || jogHintVisible() || chromeFooter;
             perfPhase('leds');
             lightKnobRow(schwungBody);
             perfPhaseEnd();
@@ -906,7 +873,7 @@ function tickBody(): void {
             const stepAvail = stepPageAvailable();
             let vm;
             if (stepAvail && stepPageState.selected) {
-                vm = buildStepPageVM(heldTrigInput(), activeModel?.getBankCount() ?? 1);
+                vm = buildStepPageVM();
             } else {
                 /* KEPT, not discarded. `schwungBodyFor` renders Schwung from
                  * `lastAutoView`, which is what carries the parameter locks —
@@ -934,13 +901,13 @@ function tickBody(): void {
              * `drawnPageOwner`, same reasoning as the VIEW_KNOBS branch above —
              * so a touched step-page cell's toast reaches the header here too. */
             renderChainView(vm, chainIdx, jogHintVisible(), 'T' + (appState.activeTrack.index + 1),
-                            undefined, undefined as any, paramBodyFor(drawnPageOwner, schwungBody),
+                            undefined, undefined as any, paramBodyFor(drawnPageOwner, schwungBody, lastAutoView),
                             schwungChromeFor(drawnPageOwner, schwungBody, false));
             perfPhaseEnd();
             /* Must match what renderChainView actually drew: the Loop strip
              * clears rows 60-63 every tick and would erase a toast it was not
              * told about. */
-            jogToastShown = !!vm.toast?.browseHint || jogHintVisible();
+            jogToastShown = jogHintVisible();
             perfPhase('leds');
             lightKnobRow(schwungBody);
             perfPhaseEnd();

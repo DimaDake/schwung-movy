@@ -5,13 +5,14 @@
 //! and only the UI knows which mode it is in. From then on an `open` records
 //! the last-open Set and a save refreshes the cached clip count.
 
-use crate::set_import::{import, ImportSrc};
+use crate::set_migrate::{migrate, MigrateSrc, Replaced};
 use crate::set_library::{load, wire, LibFiles, Library};
 use crate::set_store::SetStore;
 use std::path::{Path, PathBuf};
 
 pub enum LibCmd {
-    Import(ImportSrc),
+    /// The one migration (set_migrate.rs); `force` is the manual Settings run.
+    Migrate { src: MigrateSrc, force: bool },
     List,
     New(String),
     Dup(String, String),
@@ -31,16 +32,20 @@ pub fn parse(rest: &str) -> Option<LibCmd> {
         if w.is_empty() || r.is_empty() { None } else { Some((w.to_string(), r.to_string())) }
     };
     match verb {
-        "import" => {
-            let mut src = ImportSrc { legacy: PathBuf::new(), move_sets: PathBuf::new(), pages: Vec::new() };
+        "migrate" => {
+            let mut src = MigrateSrc { legacy: PathBuf::new(), move_sets: PathBuf::new(), pages: Vec::new(),
+                                       state: PathBuf::new() };
+            let mut force = false;
             for tok in tail.split_whitespace() {
                 if let Some(v) = tok.strip_prefix("legacy=") { src.legacy = v.into(); }
                 else if let Some(v) = tok.strip_prefix("move=") { src.move_sets = v.into(); }
+                else if let Some(v) = tok.strip_prefix("state=") { src.state = v.into(); }
                 else if let Some(v) = tok.strip_prefix("pages=") {
                     src.pages = v.split(',').filter(|s| !s.is_empty()).map(PathBuf::from).collect();
                 }
+                else if tok == "force" { force = true; }
             }
-            Some(LibCmd::Import(src))
+            Some(LibCmd::Migrate { src, force })
         }
         "list" => Some(LibCmd::List),
         "new" if !tail.trim().is_empty() => Some(LibCmd::New(tail.trim().to_string())),
@@ -81,22 +86,26 @@ impl LibState {
         }
     }
 
-    /// Run one command; the answer is the new `lib` wire.
-    pub fn run(&mut self, store: &SetStore, cmd: LibCmd, open: &str, now: u64) -> String {
+    /// Run one command; the answer is the new `lib` wire, and the Sets a
+    /// manual migration replaced (the saver hands the open one back).
+    pub fn run(&mut self, store: &SetStore, cmd: LibCmd, open: &str, now: u64,
+               progress: &dyn Fn(u32, u32)) -> (String, Vec<Replaced>) {
+        let mut replaced = Vec::new();
         let (made, err) = match cmd {
             LibCmd::List => {
                 self.lib = load(&self.files.index());
                 (String::new(), "")
             }
-            LibCmd::Import(src) => {
-                let n = import(&mut self.lib, &store.root, &src);
+            LibCmd::Migrate { src, force } => {
+                let ran = migrate(&mut self.lib, store, &src, force, now, progress);
                 /* No last-open Set yet (a first start, or it was deleted
                  * elsewhere): the top of the list is the one to reopen. */
                 if self.lib.find(&self.lib.current).is_none() {
                     self.lib.current = crate::set_library::ordered(&self.lib).first()
                         .map(|&(i, _)| self.lib.sets[i].id.clone()).unwrap_or_default();
                 }
-                let err = if n > 0 || !self.files.index().exists() { self.persist() } else { "" };
+                let err = if ran.is_some() || !self.files.index().exists() { self.persist() } else { "" };
+                replaced = ran.map(|o| o.replaced).unwrap_or_default();
                 (String::new(), err)
             }
             LibCmd::New(name) => {
@@ -117,7 +126,7 @@ impl LibState {
             },
         };
         if !made.is_empty() { self.made = made; }
-        self.publish(err)
+        (self.publish(err), replaced)
     }
 
     /// The Set the saver just opened is the one to reopen next launch.
@@ -146,14 +155,17 @@ mod tests {
         assert!(matches!(parse("rename m1 My  Set  2"), Some(LibCmd::Rename(i, n)) if i == "m1" && n == "My  Set  2"));
         assert!(matches!(parse("dup m1 A Copy"), Some(LibCmd::Dup(i, n)) if i == "m1" && n == "A Copy"));
         assert!(matches!(parse("del m1"), Some(LibCmd::Del(i)) if i == "m1"));
-        match parse("import legacy=/a move=/b pages=/c,/d") {
-            Some(LibCmd::Import(s)) => {
-                assert_eq!(s.legacy, PathBuf::from("/a"));
-                assert_eq!(s.pages.len(), 2);
+        match parse("migrate legacy=/a move=/b pages=/c,/d state=/e") {
+            Some(LibCmd::Migrate { src, force }) => {
+                assert_eq!(src.legacy, PathBuf::from("/a"));
+                assert_eq!(src.state, PathBuf::from("/e"));
+                assert_eq!(src.pages.len(), 2);
+                assert!(!force);
             }
-            _ => panic!("import"),
+            _ => panic!("migrate"),
         }
-        for bad in ["", "new", "new   ", "rename m1", "dup", "del", "bogus x"] {
+        assert!(matches!(parse("migrate legacy=/a force"), Some(LibCmd::Migrate { force: true, .. })));
+        for bad in ["", "new", "new   ", "rename m1", "dup", "del", "bogus x", "import legacy=/a"] {
             assert!(parse(bad).is_none(), "{bad:?}");
         }
     }

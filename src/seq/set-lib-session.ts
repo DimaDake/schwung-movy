@@ -2,8 +2,9 @@
  * Move mode.
  *
  * Boot is three steps on the engine's own clock: point the saver at the
- * library and import (once per engine generation — a re-dlopened engine knows
- * nothing), wait for the first answer, then take its last-open Set. A library
+ * library and ask for the migration from Move (once per engine generation — a
+ * re-dlopened engine knows nothing; the engine itself runs the migration only
+ * once ever, set_migrate.rs), wait for the first answer, then take its last-open Set. A library
  * with no Sets at all gets one, so movy always has somewhere to put what the
  * user plays. Nothing here waits: until the answer lands, the session simply
  * has no identity yet and keeps the splash up. */
@@ -11,7 +12,7 @@
 import { paramSet } from '../host/param.js';
 import { engineGeneration } from './engine.js';
 import { flagValue } from './flags.js';
-import { defaultSetName, libImportCmd, libRefresh, libSend, libState } from './sets-lib.js';
+import { defaultSetName, libMigrateCmd, libRefresh, libSend, libState } from './sets-lib.js';
 import { setsDir, wantSet, wantedSet } from './set-source.js';
 
 let bootedGen = -1;
@@ -40,7 +41,7 @@ export function libraryIdentity(): { uuid: string; name: string } | null {
     if (gen !== bootedGen) {
         bootedGen = gen;
         paramSet('setsdir', setsDir());
-        libSend(libImportCmd());
+        libSend(libMigrateCmd(false));
     }
     libRefresh();
     const st = libState();

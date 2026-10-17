@@ -16,7 +16,7 @@ import './dist/scenarios/master-chain.js';
 import './dist/scenarios/page-lifecycle.js';
 import './dist/scenarios/virtual-pages.js';
 import './dist/scenarios/page-dive.js';
-import './dist/scenarios/master-own.js';
+import './dist/scenarios/set-migrate.js';
 import './dist/scenarios/mutes.js';
 import './dist/scenarios/smoke.js';
 import './dist/scenarios/versions.js';

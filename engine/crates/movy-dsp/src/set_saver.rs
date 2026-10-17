@@ -107,6 +107,8 @@ struct Shared {
     /// The library's answer (`set_library::wire`), empty until the first
     /// `lib` command makes this a library-rooted saver.
     lib: String,
+    /// A migration in progress as `done/total`; "" when none is running.
+    migp: String,
 }
 
 pub struct Saver {
@@ -449,8 +451,42 @@ fn worker(root: String, shared: Arc<Mutex<Shared>>, rx: std::sync::mpsc::Receive
             Msg::Work(Job::Lib(cmd)) => {
                 let open = shared.lock().unwrap().uuid.clone();
                 let st = lib.get_or_insert_with(|| crate::set_lib_jobs::LibState::open(&store.root));
-                let w = st.run(&store, cmd, &open, now_ms());
-                shared.lock().unwrap().lib = w;
+                let force = matches!(cmd, crate::set_lib_jobs::LibCmd::Migrate { force: true, .. });
+                let progress = |done: u32, total: u32| {
+                    shared.lock().unwrap().migp = if done < total { format!("{done}/{total}") } else { String::new() };
+                };
+                let (w, replaced) = st.run(&store, cmd, &open, now_ms(), &progress);
+                let mut sh = shared.lock().unwrap();
+                sh.lib = w;
+                sh.migp.clear();
+                if force {
+                    /* The open Set replaced under the engine goes back the way a
+                     * restore does: its bytes to the audio thread, its ui half
+                     * to the UI, which reloads on it. `kept` = the open Set was
+                     * not one of them, so there is nothing to reload. */
+                    sh.vui = "kept".to_string();
+                    match replaced.into_iter().find(|r| r.id == open) {
+                        Some(r) => {
+                            sh.gen = r.gen;
+                            sh.phase = Phase::Ready;
+                            sh.reason.clear();
+                            sh.vui = r.ui.unwrap_or_else(|| "none".to_string());
+                            sh.loaded = Some((r.payload, r.chains, r.gen));
+                            drop(sh);
+                            publish_versions(&store, &shared, &open);
+                        }
+                        /* Handed back unchanged: the audio thread is holding
+                         * its autosave until it hears from this job. */
+                        None if !open.is_empty() => {
+                            drop(sh);
+                            let back = store.read_best(&open).map_or(
+                                (BLANK_STATE.to_string(), String::new(), 0),
+                                |p| (p.payload, store.read_chains(&open).unwrap_or_default(), p.gen));
+                            shared.lock().unwrap().loaded = Some(back);
+                        }
+                        None => {}
+                    }
+                }
             }
             Msg::Work(Job::Flush) => {}
         }
@@ -469,6 +505,7 @@ impl Saver {
             loaded: None,
             versions: String::new(),
             vui: "none".to_string(),
+            migp: String::new(),
             gc: "idle".to_string(),
             lib: String::new(),
         }));
@@ -497,7 +534,8 @@ impl Saver {
         /* Marked before the send, so a UI that reads the answer between the
          * command and the worker picking it up sees `pending` rather than the
          * previous restore's verdict. */
-        if matches!(job, Job::Restore { .. }) {
+        if matches!(job, Job::Restore { .. }
+                    | Job::Lib(crate::set_lib_jobs::LibCmd::Migrate { force: true, .. })) {
             self.shared.lock().unwrap().vui = "pending".to_string();
         }
         if matches!(job, Job::Gc { .. }) {
@@ -540,6 +578,10 @@ impl Saver {
 
     /// The restored version's ui half — taken once, so a verdict is never read
     /// as a second restore's.
+    pub fn migp(&self) -> String {
+        self.shared.lock().unwrap().migp.clone()
+    }
+
     pub fn vui(&self) -> String {
         let mut sh = self.shared.lock().unwrap();
         if sh.vui == "pending" {
@@ -961,7 +1003,7 @@ mod tests {
         let s = Saver::new(&root);
         assert_eq!(s.lib(), "", "no library until a lib command arrives");
 
-        let w = lib_cmd(&s, &format!("lib import legacy={base}/none move={base}/none"));
+        let w = lib_cmd(&s, &format!("lib migrate legacy={base}/none move={base}/none state={base}/none"));
         assert_eq!(field(&w, "rev="), "1");
         let w = lib_cmd(&s, "lib new 2026-10-10_01");
         let id = field(&w, "made=").to_string();
@@ -986,6 +1028,44 @@ mod tests {
         assert!(!w.lines().skip(1).any(|l| l.starts_with(copy.as_str())), "{w}");
     }
 
+    /* A manual migration that replaces the OPEN Set goes back the way a
+     * restore does — bytes to the audio thread, the ui half to the UI. Written
+     * to disk alone, the engine's next autosave would put the old Set back. */
+    #[test]
+    fn a_manual_migration_hands_the_open_set_back() {
+        let base = tmp("lib-migrate-open");
+        let root = format!("{base}/Movy/Sets");
+        let legacy = format!("{base}/legacy");
+        SetStore::new(&legacy).write("u-1", "movy1\ncl 0 0 16 0 move\n", 2, "0\n").unwrap();
+        std::fs::write(format!("{legacy}/u-1/ui-state.json"), "{\"oct\":[5]}").unwrap();
+        std::fs::create_dir_all(format!("{base}/MoveSets/u-1/Song")).unwrap();
+        let s = Saver::new(&root);
+        let cmd = format!("lib migrate legacy={legacy} move={base}/MoveSets state={base}/none");
+        let w = lib_cmd(&s, &cmd);
+        assert_ne!(field(&w, "mig="), "0", "the first run marks the library");
+        s.submit(Job::Open { uuid: "u-1".into(), seed: None });
+        s.submit(Job::Save { uuid: "u-1".into(), payload: "movy1\ncl 0 0 16 0 edited\n".into(), gen: 9,
+                             chains: "0\n".into() });
+        s.drain_for_test();
+        let _ = s.take_loaded();
+
+        s.submit(parse_cmd(&format!("{cmd} force"), "u-1").unwrap());
+        assert_eq!(s.vui(), "pending", "pending from the command, not from the worker");
+        s.drain_for_test();
+        let (payload, _, gen) = s.take_loaded().expect("the open Set's bytes go to the engine");
+        assert_eq!(payload, "movy1\ncl 0 0 16 0 move\n");
+        assert!(gen > 9);
+        assert_eq!(s.vui(), "{\"oct\":[5]}");
+        assert!(s.versions().contains("pre-restore"), "{}", s.versions());
+
+        /* Not the open Set: nothing to reload. */
+        s.submit(Job::Open { uuid: "other".into(), seed: None });
+        s.submit(parse_cmd(&format!("{cmd} force"), "other").unwrap());
+        s.drain_for_test();
+        assert_eq!(s.vui(), "kept");
+        assert!(s.take_loaded().is_some(), "an open Set it kept is still handed back — the engine holds its autosave until then");
+    }
+
     /* The Move-keyed sweep must never run over a library: every library id is
      * one Move has never heard of, so it would delete them all. */
     #[test]
@@ -996,7 +1076,7 @@ mod tests {
          * collect nothing, which would pass this test with the guard gone. */
         std::fs::create_dir_all(format!("{base}/MoveSets/someone-else")).unwrap();
         let s = Saver::new(&root);
-        lib_cmd(&s, &format!("lib import legacy={base}/none move={base}/none"));
+        lib_cmd(&s, &format!("lib migrate legacy={base}/none move={base}/none state={base}/none"));
         let w = lib_cmd(&s, "lib new A");
         let id = field(&w, "made=").to_string();
         s.submit(Job::Save { uuid: id.clone(), payload: "movy1\ncl 0 0 16 0 x\n".into(), gen: 1, chains: "0\n".into() });

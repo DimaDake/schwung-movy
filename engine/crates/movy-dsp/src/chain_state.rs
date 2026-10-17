@@ -23,7 +23,7 @@ const FIELDS: usize = 6;
  * derives from target+param and refuses to be told. The ORDER is the contract:
  * `src/track/lfo-persist.ts:lfoStateKeys()` reads these back positionally, and
  * a reordering here silently writes one LFO's depth into another's rate. */
-const LFO_KEYS: [&str; 11] = [
+pub(crate) const LFO_KEYS: [&str; 11] = [
     "enabled", "shape", "sync", "rate_hz", "rate_div",
     "depth", "polarity", "phase_offset", "target", "target_param", "retrigger",
 ];
@@ -65,7 +65,7 @@ fn put(out: &mut String, s: &str) {
     out.push_str(&format!("{}\n{}", s.len(), s));
 }
 
-fn pack(items: &[String]) -> String {
+pub(crate) fn pack(items: &[String]) -> String {
     let mut out = format!("{}\n", items.len());
     for it in items {
         put(&mut out, it);

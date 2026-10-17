@@ -58,6 +58,7 @@ import { mlog } from '../log.js';
 import { paramBodyFor } from './param-body.js';
 import { chainLoadsPending, currentSetUuid, sessionError, sessionFailScope, sessionPhase, sessionReady, sessionTick } from '../seq/set-session.js';
 import { loadingWaitMs, renderLoadingView, splashDue } from '../renderer/loading-view.js';
+import { migrationProgress } from '../seq/migrate-action.js';
 import { captureTick } from '../seq/capture.js';
 import { seqLedsTick, seqLedsInvalidate, displayHoldNotes } from '../seq/leds.js';
 import { ledBudgetTake, ledFrameReset } from '../seq/led-cache.js';
@@ -715,7 +716,7 @@ function tickBody(): void {
             /* Ahead of every view: until the Set is in the engine there is
              * nothing truthful to draw, and input is refused anyway. */
             renderLoadingView(sessionPhase(), sessionError(), chainLoadsPending(),
-                              sessionFailScope(), loadingWaited);
+                              sessionFailScope(), loadingWaited, migrationProgress());
         } else if (appState.currentView === VIEW_FLAGS) {
             const vm = buildFlagsPageVM();
             renderFlagsView(vm);

@@ -7,6 +7,10 @@ import { flagNormalized, flagValueLabel, type FlagDef } from './flags-def.js';
 import { visibleFlags } from './flags-visible.js';
 import { flagValue } from './flags.js';
 import { ACTION_ROWS, flagsPageState } from './flags-page.js';
+import { disarmMigrateRow, migrateRowHint, migrateRowValue } from './migrate-action.js';
+
+/** ACTION_ROWS index of MIGRATE FROM MOVE. */
+const MIGRATE_ROW = 1;
 
 export type FlagRow = { name: string; value: string; selected: boolean };
 
@@ -29,6 +33,10 @@ export function buildFlagsPageVM(flags: FlagDef[] = visibleFlags()): FlagsPageVM
     const sel = Math.max(0, Math.min(count - 1, flagsPageState.selected));
     /* -1 while a flag is selected; the ACTION_ROWS index otherwise. */
     const action = sel - flags.length;
+    /* Building the rows is also where a stale arm expires: the selection has
+     * moved off the migrate row, and a confirmation the user can no longer
+     * see on screen is not one they gave. */
+    if (action !== MIGRATE_ROW) disarmMigrateRow();
     const rows: FlagRow[] = flags.map((f, i) => ({
         name: f.name,
         value: flagValueLabel(f, flagValue(f.key)),
@@ -36,14 +44,15 @@ export function buildFlagsPageVM(flags: FlagDef[] = visibleFlags()): FlagsPageVM
     }));
     ACTION_ROWS.forEach((a, i) => rows.push({
         name: a.name,
-        value: '>',
+        value: i === MIGRATE_ROW ? migrateRowValue() : '>',
         selected: action === i,
     }));
     const def = action >= 0 ? null : flags[sel];
     return {
         rows,
         selected: sel,
-        hint: action >= 0 ? ACTION_ROWS[action].hint : (def ? def.hint : ''),
+        hint: action === MIGRATE_ROW ? migrateRowHint()
+            : action >= 0 ? ACTION_ROWS[action].hint : (def ? def.hint : ''),
         /* Dark on an action row: knob 1 does nothing there, and a lit knob
          * inviting a turn that changes nothing is worse than an unlit one. */
         knobNormalized: def ? flagNormalized(def, flagValue(def.key)) : 0,

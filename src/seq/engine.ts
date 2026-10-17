@@ -18,7 +18,6 @@ import { CHAIN_MODULE_DIR, ENGINE_VERSION, MOVY_MODULE_DIR } from './constants.j
 import { probeBridgeTick } from './probe-bridge.js';
 import { applyFlagsToEngine } from './flags.js';
 import { pushMasterVolume } from '../mixer/master-volume.js';
-import { resetMasterImport } from '../chain/master-import.js';
 import { resetPadRoute, syncPadRoute } from '../track/pad-route.js';
 import { resetWatchPush, syncWatch } from './watch.js';
 import { parseStatus, resetEngineStatus } from './engine-status.js';
@@ -149,7 +148,6 @@ function boot(): void {
      * both happen inside this set, off the render path. */
     paramSet('chain_host', CHAIN_MODULE_DIR + '|' + MOVY_MODULE_DIR);
     resetPadRoute();
-    resetMasterImport();
     resetWatchPush();
     requestLabelSync(); // rebuild automation registry + re-apply chain mappings
 }

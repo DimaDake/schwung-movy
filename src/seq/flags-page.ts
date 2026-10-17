@@ -33,7 +33,7 @@ export function flagsPageActive(): boolean {
 }
 
 /* The settings list ends with rows that are not flags — BACKUPS opens the
- * versions list, MIGRATE TRACKS re-runs the schwung migration. They sit LAST so
+ * versions list, MIGRATE FROM MOVE re-runs the set migration (migrate-action.ts). They sit LAST so
  * they never move when the flag list changes between debug and release builds,
  * and each is an ACTION: knob 1 does nothing on it, the jog click does
  * something else entirely.
@@ -46,6 +46,8 @@ export function flagsPageActive(): boolean {
  * itself to be wrong, not two copies of it to agree. */
 export const ACTION_ROWS = [
     { name: 'BACKUPS', hint: 'Older versions of this set. Restore one.' },
+    /* Its hint and value are live (migrate-action.ts); these are the fallback. */
+    { name: 'MIGRATE FROM MOVE', hint: 'Bring every Set over from Move.' },
 ] as const;
 
 /* Rows are counted through here rather than off `visibleFlags()` directly, so
@@ -60,6 +62,7 @@ export function actionRowSelected(): number {
 
 /** Kept for callers that only ever cared about the first action row. */
 export function backupsRowSelected(): boolean { return actionRowSelected() === 0; }
+export function migrateRowSelected(): boolean { return actionRowSelected() === 1; }
 
 /** Drop the transient gesture state; the view switch belongs to param-page.ts.
  *  The selection is NOT reset — coming back to the page you were just on should

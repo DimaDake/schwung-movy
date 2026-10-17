@@ -256,7 +256,7 @@ export async function run() {
      * is how a row that draws but cannot be selected happens. */
     for (let i = 0; i < FLAGS.length + 5; i++) flagsPageJog(1);
     eq('and so is the bottom', flagsPageState.selected, flagsRowCount() - 1);
-    eq('the last row is the action row, not a flag', actionRowSelected(), 0);
+    eq('the last row is an action row, not a flag', actionRowSelected(), 1);
 
     /* Knob 1 edits whatever the jog selected — that is the whole interaction,
      * and it is what lets the list grow past eight entries. */
@@ -302,7 +302,7 @@ export async function run() {
      * not have caught it; comparing against what the gestures walk can. */
     eq('one drawn row per selectable row', vm.rows.length, flagsRowCount());
     eq('the flags come first', vm.rows[0].name, visibleFlags()[0].name);
-    eq('and the action row comes last', vm.rows[vm.rows.length - 1].name, 'BACKUPS');
+    eq('and the action rows come last', vm.rows.slice(-2).map((r) => r.name).join(','), 'BACKUPS,MIGRATE FROM MOVE');
     eq('the name column is the readable name', vm.rows[0].name, visibleFlags()[0].name);
     eq('exactly one row is selected', vm.rows.filter((r) => r.selected).length, 1);
     ok('a numeric flag shows its number', vm.rows.some((r) => r.value === '1'));
@@ -316,7 +316,7 @@ export async function run() {
         const av = buildFlagsPageVM();
         ok('the action row can be selected', av.rows[av.rows.length - 1].selected);
         eq('exactly one row is still selected', av.rows.filter((r) => r.selected).length, 1);
-        ok('the hint is the action row\'s own', av.hint.toLowerCase().includes('older versions'));
+        ok('the hint is the action row\'s own', av.hint.toLowerCase().includes('from move'), av.hint);
         eq('the knob LED is dark on it', av.knobNormalized, 0);
         resetFlagsPage();
     }
@@ -448,11 +448,11 @@ export async function run() {
     /* The count is what the jog clamps to AND what the viewmodel draws. A row
      * added to one but not the other is selectable, clickable and undrawn —
      * exactly how BACKUPS shipped the first time. */
-    eq('one action row past the flags', flagsRowCount(), flags.length + 1);
+    eq('two action rows past the flags', flagsRowCount(), flags.length + 2);
 
     flagsPageState.selected = flags.length;
     const vm = buildFlagsPageVM(flags);
-    eq('vm draws every row', vm.rows.length, flags.length + 1);
+    eq('vm draws every row', vm.rows.length, flags.length + 2);
     eq('the action row is BACKUPS', vm.rows[flags.length].name, 'BACKUPS');
     eq('backups is action 0', actionRowSelected(), 0);
     ok('its hint is shown', vm.hint.length > 0);

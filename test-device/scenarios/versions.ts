@@ -196,14 +196,15 @@ scenario('versions', async (t) => {
 
     // ── 3. Restore it back, through the real gestures ────────────────────────
     /* Shift+Step 2 opens Settings. Then jog down far enough to CLAMP on the last
-     * row — BACKUPS, the only action row since WP9 dropped MIGRATE TRACKS (the
-     * old "back up one" then landed on a flag and the restore never ran).
-     * Clamping is what makes this independent of how many flags the build
-     * shows. Then three clicks: open the page, arm the confirm on the newest
-     * version, perform the restore. */
+     * row, MIGRATE FROM MOVE, and back up one to BACKUPS. Clamping is what makes
+     * this independent of how many flags the build shows; the step back is NOT
+     * optional — clicking twice on the last row runs a forced migration, which
+     * is what this suite did the day that row arrived. Then three clicks: open
+     * the page, arm the confirm on the newest version, perform the restore. */
     await dev.holdCc(CC_SHIFT, async () => { await dev.tap.note(STEP_FLAGS_NOTE, 127); });
     await t.tx.frames(ACT);
     for (let i = 0; i < 40; i++) { await dev.tap.jogTurn(1); await t.tx.frames(JOG); }
+    await dev.tap.jogTurn(-1); await t.tx.frames(JOG);
     await t.tx.frames(ACT);
     await dev.tap.jog(); await t.tx.frames(ACT);          // open BACKUPS
     await dev.tap.jog(); await t.tx.frames(ACT);          // arm the confirm

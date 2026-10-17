@@ -33,6 +33,9 @@ pub struct Library {
     /// Legacy uuids ever imported. Outlives a delete on purpose: deleting an
     /// imported Set must not bring it back at the next startup.
     pub imported: Vec<String>,
+    /// When the one automatic migration ran (epoch ms); 0 = never. Once set it
+    /// never runs on its own again, whatever appears in the old trees later.
+    pub migrated: u64,
     pub sets: Vec<Entry>,
 }
 
@@ -80,6 +83,7 @@ pub fn load(path: &Path) -> Library {
         current: j.get("current").and_then(|v| v.as_str()).unwrap_or("").to_string(),
         imported: j.get("imported").map_or(&[][..], |v| v.as_arr()).iter()
             .filter_map(|v| v.as_str().map(|s| s.to_string())).collect(),
+        migrated: j.get("migrated").and_then(|v| v.as_u64()).unwrap_or(0),
         sets: j.get("sets").map_or(&[][..], |v| v.as_arr()).iter().filter_map(entry_from).collect(),
     }
 }
@@ -87,7 +91,7 @@ pub fn load(path: &Path) -> Library {
 pub fn serialize(lib: &Library) -> String {
     let mut s = format!("{{\"v\":1,\"current\":{},\"imported\":[", esc(&lib.current));
     s.push_str(&lib.imported.iter().map(|u| esc(u)).collect::<Vec<_>>().join(","));
-    s.push_str("],\"sets\":[");
+    s.push_str(&format!("],\"migrated\":{},\"sets\":[", lib.migrated));
     for (i, e) in lib.sets.iter().enumerate() {
         if i > 0 { s.push(','); }
         s.push_str(&format!("{{\"id\":{},\"name\":{},\"created\":{},\"clips\":{}",
@@ -139,7 +143,8 @@ pub fn ordered(lib: &Library) -> Vec<(usize, u32)> {
 /// display order, `id \t clips \t depth \t name`.
 pub fn wire(lib: &Library, rev: u32, made: &str, err: &str) -> String {
     let dash = |s: &str| if s.is_empty() { "-".to_string() } else { s.to_string() };
-    let mut s = format!("rev={rev} cur={} made={} err={}\n", dash(&lib.current), dash(made), dash(err));
+    let mut s = format!("rev={rev} cur={} made={} err={} mig={}\n", dash(&lib.current), dash(made), dash(err),
+                        lib.migrated);
     for (i, depth) in ordered(lib) {
         let e = &lib.sets[i];
         s.push_str(&format!("{}\t{}\t{}\t{}\n", e.id, e.clips, depth, e.name));
@@ -377,6 +382,6 @@ pub(crate) mod tests {
         let mut lib = Library { sets: vec![e("a", 1, None), e("b", 2, None)], ..Default::default() };
         lib.current = "a".into();
         lib.sets[0].name = "Alpha one".into();
-        assert_eq!(wire(&lib, 3, "b", ""), "rev=3 cur=a made=b err=-\nb\t0\t0\tb\na\t0\t0\tAlpha one\n");
+        assert_eq!(wire(&lib, 3, "b", ""), "rev=3 cur=a made=b err=- mig=0\nb\t0\t0\tb\na\t0\t0\tAlpha one\n");
     }
 }

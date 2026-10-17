@@ -12,18 +12,22 @@ import { paramGet, paramSet } from '../host/param.js';
 import { LEGACY_SETS_DIR } from './set-source.js';
 import { MOVE_SETS_DIR } from './set-context.js';
 
-/* Where schwung parks the Sets belonging to a set page you are not on, for the
- * import's "does Move still have this Set" check. A stashed Set is NOT in
- * `UserLibrary/Sets/`, so a bare check there calls every Set on every other
- * page deleted (davebox's seq8 carries the same rule: `seq8_set_uuid_alive`).
- * The second root is the davebox host's own install. */
+/* Where schwung parks the Sets belonging to a set page you are not on. A
+ * stashed Set is NOT in `UserLibrary/Sets/`, so the migration reads every page
+ * here too, or every Set on every other page would look deleted (davebox's
+ * seq8 carries the same rule: `seq8_set_uuid_alive`). The first root's
+ * `current_page.txt` says which page `UserLibrary/Sets/` is; the second root is
+ * the davebox host's own install. */
 const PAGE_ROOTS = [
     '/data/UserData/schwung/set_pages',
     '/data/UserData/dbx-host/set_pages',
 ];
+/* schwung's per-Set files: tracks 1-4 and the master the migration converts. */
+const SCHWUNG_STATE = '/data/UserData/schwung/set_state';
 
 export interface LibRow { id: string; clips: number; depth: number; name: string; }
-export interface LibState { rev: number; cur: string; made: string; err: string; rows: LibRow[]; }
+/** `mig` is when the one migration ran (epoch ms), 0 for never. */
+export interface LibState { rev: number; cur: string; made: string; err: string; mig: number; rows: LibRow[]; }
 
 /* set_library.rs NAME_MAX — the engine cuts there anyway; cutting here too
  * keeps a duplicate's " Copy" from being the part that falls off. */
@@ -49,7 +53,8 @@ export function parseLib(raw: string | null): LibState | null {
         rows.push({ id: t[0], clips: parseInt(t[1], 10) || 0, depth: parseInt(t[2], 10) || 0,
                     name: t.slice(3).join('\t') });
     }
-    return { rev, cur: dash(head.cur), made: dash(head.made), err: dash(head.err), rows };
+    return { rev, cur: dash(head.cur), made: dash(head.made), err: dash(head.err),
+             mig: parseInt(head.mig, 10) || 0, rows };
 }
 
 let raw = '';
@@ -71,9 +76,11 @@ export function libSend(cmd: string): void { paramSet('set', 'lib ' + cmd); }
 /** A fresh engine (or a fresh session) knows nothing — forget its old answer. */
 export function resetLib(): void { raw = ''; state = null; }
 
-export function libImportCmd(): string {
-    return 'import legacy=' + LEGACY_SETS_DIR + ' move=' + MOVE_SETS_DIR
-         + ' pages=' + PAGE_ROOTS.join(',');
+/** The migration from Move (set_migrate.rs). The engine runs it once on its
+ *  own and ignores the command after that; `force` is the Settings row. */
+export function libMigrateCmd(force: boolean): string {
+    return 'migrate legacy=' + LEGACY_SETS_DIR + ' move=' + MOVE_SETS_DIR
+         + ' pages=' + PAGE_ROOTS.join(',') + ' state=' + SCHWUNG_STATE + (force ? ' force' : '');
 }
 
 const pad2 = (n: number): string => (n < 10 ? '0' : '') + n;

@@ -1,6 +1,15 @@
 # Unified set migration (Move/Schwung → movy library)
 
-Status: DESIGN APPROVED 2026-10-17, implementation NOT started.
+Status: IMPLEMENTED 2026-10-17 (ENGINE 0.95.0). Deviations from the design below:
+- Name suffix is ` P3` (movy's font has no `·`).
+- Track/master **bypassed** effects and fx3+ are left out (logged); params-only
+  modules come up at defaults — chains.json has no field for loose params, so the
+  old UI master import's phase-2 params are NOT carried (logged per Set).
+- The pre-migrate capture reuses `Why::PreRestore` (shows as PRE-UNDO) rather than
+  adding a new reason to the four TS lists.
+- During a manual run the audio thread holds its autosave (`open_pending`) and the
+  saver ALWAYS hands the open Set back (`vui` = ui half / `none` / `kept`).
+- List order unchanged (newest-first by `created`).
 Read against schwung `586aebd4` and movy `a5f61d7` (branch standalone-migration).
 
 ## Decisions (user-approved)

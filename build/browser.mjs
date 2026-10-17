@@ -221,10 +221,9 @@ await esbuild.build({
         resolve(root, 'src/app/perf-probe.ts'),
         resolve(root, 'src/app/debug.ts'),
         resolve(root, 'src/chain/config.ts'),
-        /* movy's own master chain (WP3): the binding, its prefix and the
-         * one-time import, driven directly by browser-test/logic/master-chain.mjs. */
+        /* movy's own master chain (WP3): the binding and its prefix, driven
+         * directly by browser-test/logic/master-chain.mjs. */
         resolve(root, 'src/chain/master-prefix.ts'),
-        resolve(root, 'src/chain/master-import.ts'),
         resolve(root, 'src/lfo/params.ts'),
         resolve(root, 'src/lfo/model.ts'),
         /* The LFO page's virtual-component source (SP-55) — same reason as
@@ -287,6 +286,7 @@ await esbuild.build({
         resolve(root, 'src/seq/version-store.ts'),
         resolve(root, 'src/seq/version-capture.ts'),
         resolve(root, 'src/seq/version-restore.ts'),
+        resolve(root, 'src/seq/migrate-action.ts'),
         resolve(root, 'src/seq/version-wire.ts'),
         resolve(root, 'src/seq/versions-page.ts'),
         resolve(root, 'src/seq/versions-page-vm.ts'),

@@ -35,7 +35,7 @@ mod set_saver;
 mod set_gc;
 mod mini_json;
 mod set_library;
-mod set_import;
+mod set_migrate;
 mod set_lib_jobs;
 mod version_index;
 mod version_retain;
@@ -136,7 +136,7 @@ pub(crate) fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.94.0";
+const ENGINE_VERSION: &str = "0.95.0";
 
 /* Blocks between autosaves. The callback runs at ~344 Hz, so this is ~2 s —
  * flash on this device is not free and the sequencer is dirty constantly while
@@ -498,6 +498,29 @@ impl Instance {
                          * lag the engine by up to one autosave interval. Save
                          * what is in hand first; the saver runs jobs in order,
                          * so the copy sees it. */
+                        /* A manual migration may replace the open Set, keeping
+                         * what it replaces as a version — so that version must
+                         * be the work in hand, not the last autosave. */
+                        set_saver::Job::Lib(set_lib_jobs::LibCmd::Migrate { force: true, .. })
+                            if !self.set_uuid.is_empty() && self.engpersist =>
+                        {
+                            /* And no autosave until the saver hands the Set back
+                             * (it always does, replaced or not): one queued
+                             * behind the migration would write the Set it
+                             * replaced over the top of it. */
+                            self.open_pending = true;
+                            self.set_gen += 1;
+                            let payload = seq_core::persist::serialize(&self.engine);
+                            let chains = chain_state::serialize(&mut self.chains);
+                            carry = Some(set_saver::Job::Save {
+                                uuid: self.set_uuid.clone(),
+                                payload: payload.clone(),
+                                gen: self.set_gen,
+                                chains: chains.clone(),
+                            });
+                            self.last_saved = Some((payload, chains));
+                            self.engine.dirty = false;
+                        }
                         set_saver::Job::Lib(set_lib_jobs::LibCmd::Dup(src, _))
                             if *src == self.set_uuid && self.engpersist =>
                         {
@@ -645,6 +668,7 @@ impl Instance {
             "lib" => Some(self.saver.as_ref().map_or_else(String::new, |s| s.lib())),
             /* The restored version's ui half. `failed` with no saver, because
              * "no engine to ask" must not read as "this version has no ui". */
+            "migp" => Some(self.saver.as_ref().map_or_else(String::new, |s| s.migp())),
             "vui" => Some(self.saver.as_ref().map_or_else(|| "failed".to_string(), |s| s.vui())),
             "gc" => Some(self.saver.as_ref().map_or_else(|| "idle".to_string(), |s| s.gc())),
             "probereq" => Some(self.probe_req.clone()),
@@ -1517,7 +1541,7 @@ mod tests {
         let mut inst = Instance::new();
         inst.set_param("setsdir", &dir);
         inst.set_param("engpersist", "1");
-        inst.set_param("set", "lib import legacy=/nonexistent move=/nonexistent");
+        inst.set_param("set", "lib migrate legacy=/nonexistent move=/nonexistent state=/nonexistent");
         inst.set_param("set", "lib new A");
         let wait = |inst: &mut Instance, ok: &dyn Fn(&str) -> bool| {
             for _ in 0..400 {

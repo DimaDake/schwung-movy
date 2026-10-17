@@ -15,6 +15,17 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Changed
 
+- **One migration from Move, run once.** The first start of standalone Movy
+  brings over every Set from every Schwung set page, under its Move name
+  (`Set 1 P3` when two pages share one). It turns Schwung's tracks 1–4 and
+  master chain into Movy's, and converts every older Movy storage format,
+  including chains kept only in `ui-state.json`. It never runs again on its own.
+  **Settings → MIGRATE FROM MOVE** (click twice) runs it again, replacing only
+  Sets that came from Move and keeping what it replaced in BACKUPS. The engine
+  does all of it (`set_migrate.rs`, ENGINE 0.95.0); the UI's per-Set master
+  import is gone. A load now restores chains from `chains.json` whenever it
+  exists, and the blob's copy only when it does not.
+
 - **Renaming a Set suggests a name.** A Set still named for its date
   (`2026-10-17_01`) opens the rename keyboard on a two-word name from a
   hand-picked list (*Velvet Echo*, *Paper Moon*, …), never one already in the

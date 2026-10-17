@@ -328,6 +328,29 @@ export async function run() {
     resetUiState();
     eq('resetUiState unloads the previous set\'s modules',
        writes.filter((w) => w[0] === 'chains' && w[1] === '0\n').length, 1);
+
+    /* Engine-owned, a load restores the chains from chains.json, not from
+     * the blob's mirror: the set migration rewrites only chains.json, and a
+     * Set it brought schwung's tracks into still carries the old mirror. */
+    const { applyUiState } = await import('../../dist/esm/seq/ui-state.js');
+    const { uuidToChainsPath } = await import('../../dist/esm/seq/set-context.js');
+    const { setFlag, flagValue } = await import('../../dist/esm/seq/flags.js');
+    const was = flagValue('engpersist');
+    setFlag('engpersist', 1);
+    const rec = (t, m) => [String(t), 'synth', m, '', '', ''];
+    globalThis.host_write_file(uuidToChainsPath('MIG'), encodeBulk([...rec(0, 'obxd'), ...rec(5, 'dexed')]));
+    const blob = JSON.stringify({ chains: [{ t: 5, comp: [{ c: 'synth', m: 'dexed' }] }] });
+    const lastDoc = () => decodeBulk(writes.filter((w) => w[0] === 'chains').at(-1)[1]);
+    writes.length = 0;
+    applyUiState(blob, 'MIG');
+    eq('a load names what chains.json holds, not the stale mirror', lastDoc().join(','), '0,synth,obxd,5,synth,dexed');
+    writes.length = 0;
+    resetUiState('MIG');
+    eq('a migrated Set with no ui blob still gets its chains', lastDoc().join(','), '0,synth,obxd,5,synth,dexed');
+    writes.length = 0;
+    applyUiState(blob, 'NOFILE');
+    eq('no chains.json: the mirror is all there is', lastDoc().join(','), '5,synth,dexed');
+    setFlag('engpersist', was);
     uninstallMockFs();
   }
 

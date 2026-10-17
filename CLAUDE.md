@@ -15,7 +15,7 @@ device to Schwung on a quit instead of exiting, `host/handover.h`).
 WP9 deleted the overtake code: movy-host is the only host, and
 `src/platform/standalone.ts` is the only file that names its globals
 (`browser-test/source-rules.mjs` Rule 3; Rule 4 ratchets `typeof` gates at 0).
-Old data is only ever READ (the library's copy-import, the master import),
+Old data is only ever READ (the one set migration, `set_migrate.rs`),
 never deleted.
 
 Device: `ableton@move.local`

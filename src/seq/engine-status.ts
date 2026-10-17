@@ -12,7 +12,6 @@ import { activeFromStr, adoptLoopWindow, muteFromStr, occFromHex, padMutesFromSt
 import { rationalToIdx } from './clip-scale.js';
 import { noteProbeGen } from './probe-bridge.js';
 import { markUiStateDirty } from './ui-dirty.js';
-import { requestMasterImport } from '../chain/master-import.js';
 import { noteReportedTrack } from './watch.js';
 import { requestLabelSync } from './label-sync.js';
 
@@ -109,9 +108,6 @@ export function parseStatus(s: string): void {
              * would leave exactly the cold open this fixes unsynced. */
             if (a !== lastSetApplied) {
                 requestLabelSync();
-                /* Same moment, same reason: only now does `mfx:imported`
-                 * answer for the Set that just landed. */
-                requestMasterImport();
             }
             lastSetApplied = a;
         }

@@ -11,7 +11,6 @@
  * change of Set is a switch, and nothing ever waits on identity. */
 
 import { paramGet, paramSet } from '../host/param.js';
-import { masterImportTick } from '../chain/master-import.js';
 import { mlog } from '../log.js';
 import { engineAbsent, engineAbsentReason, engineGeneration, engineReady } from './engine.js';
 import { seqState } from './state.js';
@@ -25,7 +24,8 @@ import { clearUiDirty } from './ui-dirty.js';
 import { resetUiState } from './ui-state.js';
 import { loadSet } from './set-load.js';
 import { adoptExistingVersions, captureVersion, resetVersionCapture } from './version-capture.js';
-import { resetVersionRestore, restoreTick } from './version-restore.js';
+import { migrationPending, resetVersionRestore, restoreTick } from './version-restore.js';
+import { pollMigrationProgress, resetMigrateAction } from './migrate-action.js';
 import { adoptSaved, resetSetSave, saveNeeded, saveSet, savedPayload } from './set-save.js';
 import { resetWantedSet } from './set-source.js';
 import { resetLib } from './sets-lib.js';
@@ -98,6 +98,7 @@ export function resetSetSession(): void {
     resetSetSave();
     resetVersionCapture();
     resetVersionRestore();
+    resetMigrateAction();
     clearUiDirty();
     resetWantedSet();
     resetLib();
@@ -132,7 +133,7 @@ function enterLoading(id: string, name: string): void {
     const st = loadSet(id);
     setId = id; setName = name; gen = st.gen;
     adoptSaved(st.payload);
-    if (!readUiBlob(id)) resetUiState();
+    if (!readUiBlob(id)) resetUiState(id);
     clearUiDirty();
     loadedGen = engineGeneration();
     /* Loaded is not playable. `restoreChains` (via the UI blob above) only
@@ -215,8 +216,10 @@ export function sessionTick(): void {
     }
     /* Both answers arrive on a later tick than the command that asked for them
      * — a saver thread cannot be awaited from here. */
+    /* The splash before the library's first answer is where the automatic
+     * migration runs, and the Settings row is where the manual one does. */
+    pollMigrationProgress(!live() || migrationPending());
     if (restoreTick()) { reloadCurrentSet(); return; }
-    masterImportTick(setId, seqState.chainPending, paramGet, (k, v) => { paramSet(k, v); });
     if (phase === 'failed') return;   // waiting on the user
     if (!engineReady()) {
         if (live()) phase = 'booting';   // the engine went away

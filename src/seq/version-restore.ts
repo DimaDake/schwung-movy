@@ -25,16 +25,22 @@ import { readVersionIndex, readVersionState, readVersionUi } from './version-sto
 /* A restore cannot be awaited: the saver is another thread and this host has no
  * sleep. So the press sends the command and a later tick collects the answer —
  * the same shape settling uses for module loads. */
-let pending: { uuid: string; n: number; tries: number } | null = null;
+/* A manual set migration hands the open Set back on the same key (`vui`) and
+ * wants the same reload, so it waits here too — with its own bound, since it
+ * copies every Set from Move rather than a handful of files, and with one more
+ * answer: `kept`, the open Set was not one it replaced. */
+let pending: { uuid: string; n: number; tries: number; kind: 'restore' | 'migrate' } | null = null;
 
 /* ~2.5 s at the tick rate this runs at. A restore is a handful of file
  * operations; a bound this loose only ever fires when something is wrong, and
  * firing is what stops the page waiting forever. */
 const RESTORE_TRIES = 60;
+/* Minutes, not seconds: dozens of Sets each copied with their history. */
+const MIGRATE_TRIES = 12000;
 
 function restoreViaEngine(uuid: string, n: number): boolean {
     paramSet('set', 'restore ' + n);
-    pending = { uuid, n, tries: 0 };
+    pending = { uuid, n, tries: 0, kind: 'restore' };
     return false;   // nothing to reload yet — restoreTick says when
 }
 
@@ -43,14 +49,20 @@ export function restoreTick(): boolean {
     if (!pending) return false;
     const v = paramGet('vui');
     if (v === null || v === 'pending') {
-        if (++pending.tries < RESTORE_TRIES) return false;
-        mlog('versions: restore never answered — giving up');
+        if (++pending.tries < (pending.kind === 'migrate' ? MIGRATE_TRIES : RESTORE_TRIES)) return false;
+        mlog(pending.kind + ': never answered — giving up');
         pending = null;
         return false;
     }
-    const { uuid, n } = pending;
+    const { uuid, n, kind } = pending;
     pending = null;
     refreshVersionRows();
+    if (kind === 'migrate') {
+        mlog('migrate: done' + (v === 'kept' ? ', open Set ' + uuid + ' not replaced' : ', open Set ' + uuid + ' replaced'));
+        if (v === 'kept' || v === 'failed') return false;
+        if (v !== 'none' && v.length > 0) writeUiBlob(uuid, v);
+        return true;
+    }
     if (v === 'failed') {
         mlog('versions: the engine refused the restore');
         return false;
@@ -71,7 +83,16 @@ export function restoreTick(): boolean {
 /** Is a restore in flight? `restoreVersion` answers false on the press with the
  *  flag on, and without this the page reads that as a refusal and says so. */
 export function restorePending(): boolean {
-    return pending !== null;
+    return pending !== null && pending.kind === 'restore';
+}
+
+/** Wait for a manual migration's answer for the open Set `uuid`. */
+export function awaitMigration(uuid: string): void {
+    pending = { uuid, n: 0, tries: 0, kind: 'migrate' };
+}
+
+export function migrationPending(): boolean {
+    return pending !== null && pending.kind === 'migrate';
 }
 
 export function resetVersionRestore(): void {

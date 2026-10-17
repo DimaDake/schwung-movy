@@ -44,7 +44,8 @@ import { sessionStartFromScratch } from '../seq/set-fail.js';
 import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS } from '../app/state.js';
 import { mainPageActive, mainPageRelease } from '../seq/main-page.js';
 import { clipPageActive, clipPageRelease } from '../seq/clip-page.js';
-import { backupsRowSelected, flagsPageActive, flagsPageJog, flagsPageKnob } from '../seq/flags-page.js';
+import { backupsRowSelected, flagsPageActive, flagsPageJog, flagsPageKnob, migrateRowSelected } from '../seq/flags-page.js';
+import { migrateRowClick } from '../seq/migrate-action.js';
 import { setsPageActive, setsPageBack, setsPageClick, setsPageJog } from '../seq/sets-page.js';
 import { textEntry, textEntryActive } from '../renderer/text-entry-lib.js';
 import { openVersionsPage, versionsPageActive, versionsPageBack, versionsPageClick, versionsPageJog }
@@ -788,6 +789,11 @@ export function onMidiMessageInternal(data: number[]): void {
         }
         if (flagsPageActive() && backupsRowSelected()) {
             openVersionsPage();
+            appState.dirty = true;
+            return;
+        }
+        if (flagsPageActive() && migrateRowSelected()) {
+            migrateRowClick(currentSetUuid());
             appState.dirty = true;
             return;
         }

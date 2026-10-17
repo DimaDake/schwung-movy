@@ -6,7 +6,7 @@
 import { TRACK_COUNT } from '../track/ref.js';
 import { captureChains, readChainDoc, restoreChains } from '../track/chain-persist.js';
 import { captureSends } from '../track/send-persist.js';
-import { parseMirror } from '../track/chain-mirror.js';
+import { parseMirror, type Mirror } from '../track/chain-mirror.js';
 import { flagValue } from './flags.js';
 import { readChainsFile, readUiBlob } from './persist-store.js';
 import { mlog } from '../log.js';
@@ -80,7 +80,17 @@ export function serializeUiState(uuid = ''): string {
 }
 
 /** Apply a serialized UI-state blob (tolerant of missing/invalid fields). */
-export function applyUiState(blob: string): void {
+/* The chains a LOAD restores. Engine-owned, `chains.json` is the truth and the
+ * blob's copy only a mirror — one the set migration does not rewrite, so in a
+ * Set it brought schwung's tracks into, the mirror would name the old chain set
+ * and unload what the migration put there. A Set whose chains.json is missing
+ * or unreadable (one written before the engine kept chains) still has only the
+ * mirror, and uses it. */
+function engineChains(uuid: string): Mirror | null {
+    return uuid && flagValue('engpersist') ? parseMirror(readChainsFile(uuid)) : null;
+}
+
+export function applyUiState(blob: string, uuid = ''): void {
     try {
         const o = JSON.parse(blob);
         const flags = o.flags && typeof o.flags === 'object' ? o.flags : null;
@@ -95,7 +105,8 @@ export function applyUiState(blob: string): void {
          * like itself. One document says both what to unload and what to load —
          * a set with no `chains` key names nothing, which is how a set written
          * before movy hosted chains still clears the previous set's. */
-        const n = restoreChains(o.chains, o.sends);
+        const own = engineChains(uuid);
+        const n = own ? restoreChains(own.chains, own.sends) : restoreChains(o.chains, o.sends);
         if (n > 0) mlog('chains: restoring ' + n + ' movy chain component(s)');
         if (Array.isArray(o.oct)) {
             for (let t = 0; t < TRACK_COUNT; t++)
@@ -130,10 +141,12 @@ function applyDefaultQuant(pct: number): void {
 }
 
 /* Defaults match init(): C tonic, Major, Chromatic/4ths, C3 on every track. */
-export function resetUiState(): void {
+export function resetUiState(uuid = ''): void {
     loadPerSetFlags(null);
-    /* A Set with no UI blob wants no movy chains. */
-    restoreChains(null, null);
+    /* A Set with no UI blob wants no movy chains — unless the engine holds
+     * some for it, which is what a Set migrated from schwung alone looks like. */
+    const own = engineChains(uuid);
+    restoreChains(own ? own.chains : null, own ? own.sends : null);
     keyboardState.rootPc = 0;
     keyboardState.scale = 0;
     keyboardState.mode = 0;

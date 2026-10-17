@@ -70,6 +70,56 @@ export async function run() {
     eq('no rev is no answer', lib.parseLib('cur=x'), null);
     eq('empty is no answer', lib.parseLib(''), null);
     eq('a library with no Sets', lib.parseLib('rev=1 cur=- made=- err=-\n').rows.length, 0);
+    eq('mig: when the migration ran', lib.parseLib('rev=1 cur=- made=- err=- mig=1760000000000\n').mig, 1760000000000);
+    eq('an older engine has no mig', p.mig, 0);
+    const auto = lib.libMigrateCmd(false);
+    ok('the migration reads every page root', auto.includes(' pages=/data/UserData/schwung/set_pages,'), auto);
+    ok('and schwung\'s per-Set files', auto.includes(' state=/data/UserData/schwung/set_state'), auto);
+    ok('the automatic one is not forced', !auto.endsWith(' force'), auto);
+    ok('the manual one is', lib.libMigrateCmd(true).endsWith(' force'));
+}
+
+{
+    _log('\nmigrate from Move (Settings row):');
+    const ma = await import('../../dist/esm/seq/migrate-action.js');
+    const vr = await import('../../dist/esm/seq/version-restore.js');
+    const { loadingStage } = await import('../../dist/esm/renderer/loading-view.js');
+    const f = fakeLib();
+    let vui = 'pending';
+    const get = f.get;
+    f.get = (k) => (k === 'vui' ? vui : get(k));
+    const restore = install(f);
+    ma.resetMigrateAction(); vr.resetVersionRestore();
+    ma.migrateRowClick('OPEN');
+    eq('the first click only arms', [f.st.sent.length, ma.migrateRowValue()].join(), '0,CONFIRM?');
+    const { wrapWords } = await import('../../dist/esm/renderer/wrap.js');
+    const { HINT_W, HINT_LINES } = await import('../../dist/esm/renderer/flags-view.js');
+    const fits = (h) => wrapWords(h, HINT_W).length <= HINT_LINES;
+    ok('the armed hint fits the hint band', fits(ma.migrateRowHint()), ma.migrateRowHint());
+    ma.disarmMigrateRow();
+    ma.migrateRowClick('OPEN');
+    ma.migrateRowClick('OPEN');
+    ok('the second click runs it, forced', f.st.sent.at(-1).startsWith('migrate ') && f.st.sent.at(-1).endsWith(' force'),
+       f.st.sent.at(-1));
+    ok('and waits for the open Set', vr.migrationPending() && !vr.restorePending());
+    const n = f.st.sent.length;
+    ma.migrateRowClick('OPEN'); ma.migrateRowClick('OPEN');
+    eq('no second run while one is in flight', f.st.sent.length, n);
+    eq('still pending: no reload', vr.restoreTick(), false);
+    vui = 'kept';
+    eq('the open Set was not one of them: no reload', vr.restoreTick(), false);
+    ok('and the wait is over', !vr.migrationPending());
+    ma.migrateRowClick('OPEN'); ma.migrateRowClick('OPEN');
+    vui = 'none';
+    eq('the open Set was replaced: reload it', vr.restoreTick(), true);
+    f.st.wire = 'rev=9 cur=- made=- err=- mig=1760000000000\n';
+    lib.libRefresh();
+    ok('the done hint says when, and fits', ma.migrateRowHint().startsWith('Ran 20') && fits(ma.migrateRowHint()),
+       ma.migrateRowHint());
+    ma.disarmMigrateRow(); vr.resetVersionRestore(); lib.resetLib();
+    ok('the never-ran hint fits', fits(ma.migrateRowHint()), ma.migrateRowHint());
+    eq('splash: the first start says it is migrating', loadingStage('loading', 0, '3/12'), 'MIGRATING SETS 3/12');
+    restore();
 }
 
 {
@@ -280,9 +330,9 @@ export async function run() {
     lib.resetLib();
     ls.resetLibSession();
     eq('nothing until the library answers', ls.libraryIdentity(), null);
-    eq('the import goes out first', f.st.sent[0].split(' ')[0], 'import');
+    eq('the migration request goes out first', f.st.sent[0].split(' ')[0], 'migrate');
     eq('pointed at the library', f.st.setsdir, '/data/UserData/UserLibrary/Movy/Sets');
-    f.publish();   // the import's answer: an empty library
+    f.publish();   // the migration's answer: an empty library
     /* The fake answers synchronously; the engine a few ticks later — either
      * way the Set opened is the one the `new` made. */
     const first = ls.libraryIdentity();
@@ -290,7 +340,7 @@ export async function run() {
        /^new \d{4}-\d\d-\d\d_01$/.test(f.st.sent.at(-1)), f.st.sent.at(-1));
     const id = first ?? ls.libraryIdentity();
     eq('and opens it', id && id.uuid, f.st.made);
-    eq('one import per engine generation', f.st.sent.filter((c) => c.startsWith('import')).length, 1);
+    eq('one migration request per engine generation', f.st.sent.filter((c) => c.startsWith('migrate')).length, 1);
 
     /* A library with a last-open Set reopens it. */
     src.resetWantedSet();

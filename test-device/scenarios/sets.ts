@@ -28,45 +28,20 @@ import { Device } from '../device.js';
 import { Probe } from '../probe.js';
 import * as fixture from '../fixture.js';
 import { until } from '../wait.js';
+import { setsNav, CC_SHIFT, WAIT } from '../sets-nav.js';
 import { cc, CC_BACK, CC_DELETE, CC_JOG_TURN, STEP_NOTE_BASE } from '../midi.js';
 
-const CC_SHIFT = 49, CC_CAPTURE = 52, CC_COPY = 60;
+const CC_CAPTURE = 52, CC_COPY = 60;
 const DIM = 16, OFF = 0;
 const DATED = /^\d{4}-\d\d-\d\d_\d+$/;
 const PAIR = /^[A-Z][a-z]+ [A-Z][a-z]+$/;
-const WAIT = { within: 10000, every: 200 };
-
-type Row = { id: string; name: string };
-type Lib = { cur: string; made: string; rows: Row[] };
-
-/* sets-lib.ts:parseLib's wire, read here rather than imported: the harness
- * compiles apart from src/. */
-function parseLib(raw: string): Lib | null {
-    if (!raw) return null;
-    const [head, ...lines] = raw.split('\n');
-    const f: Record<string, string> = {};
-    for (const tok of head.split(' ')) { const i = tok.indexOf('='); if (i > 0) f[tok.slice(0, i)] = tok.slice(i + 1); }
-    if (!(parseInt(f.rev, 10) > 0)) return null;
-    const dash = (v?: string) => (!v || v === '-' ? '' : v);
-    const rows = lines.map((l) => l.split('\t')).filter((t) => t.length >= 4 && t[0])
-        .map((t) => ({ id: t[0], name: t.slice(3).join('\t') }));
-    return { cur: dash(f.cur), made: dash(f.made), rows };
-}
 
 scenario('sets', async (t) => {
     fixture.setHost(t.host);
     const dev = new Device(t.tx);
     const probe = new Probe(t.tx);
     const hb = t.tx.hostBus!;
-    /* Through UI_EVAL, not engineGet: the bus's GET answers one LINE, and the
-     * library's answer is a header and one line per Set. */
-    const lib = async (): Promise<Lib> =>
-        parseLib(String(await hb.uiEval(`host_module_get_param('lib') ?? ''`).catch(() => ''))) ?? { cur: '', made: '', rows: [] };
-    const sets = async () => await probe.ask({ key: 'sets' }) as
-        { view: string; selected: number; confirming: boolean; keyboard: boolean; buffer: string | null };
-    const libUntil = (what: string, pred: (l: Lib) => boolean) => until(t.tx, what, lib, pred, WAIT);
-    const ready = () => until(t.tx, 'the Set to be live', () => probe.tick(), (v: any) => v.ready, { within: 20000, every: 300 });
-
+    const { lib, libUntil, sets, ready, openPage, cursorTo, rowOf } = setsNav(t.tx, dev, probe);
     /* The LED layer sends only changes, so the tap is read as a running map. */
     const leds = new Map<number, number>();
     const led = async (n: number): Promise<number | undefined> => {
@@ -75,19 +50,6 @@ scenario('sets', async (t) => {
         return leds.get(n);
     };
 
-    const openPage = async () => {
-        await dev.holdCc(CC_SHIFT, () => dev.tap.note(STEP_NOTE_BASE));
-        await until(t.tx, 'the Sets page', sets, (s) => s.view === 'sets', WAIT);
-    };
-    /* The whole move in ONE packet, the way movy-host delivers a fast spin
-     * (host/deltas.c sums a tick's detents): a list that read only the sign
-     * moved one row per spin, and this is what caught it. */
-    const cursorTo = async (row: number) => {
-        const d = Math.max(-63, Math.min(63, row - (await sets()).selected));
-        if (d !== 0) await t.tx.uiMidi(cc(CC_JOG_TURN, d > 0 ? d : 128 + d));
-        await until(t.tx, `the cursor on row ${row}`, sets, (v) => v.selected === row, WAIT);
-    };
-    const rowOf = async (id: string) => (await lib()).rows.findIndex((r) => r.id === id) + 1;
     const nameOf = async (id: string) => (await lib()).rows.find((r) => r.id === id)?.name;
 
     await fixture.ensure(t.tx, () => dev.open(probe), () => dev.close(probe));

@@ -69,7 +69,7 @@ export function loadSet(id: string): { payload: string; gen: number; ok: boolean
     if (flagValue('engpersist')) {
         openSet(id);
         const ui = readUiBlob(id);
-        if (ui && ui.length > 0) applyUiState(ui);
+        if (ui && ui.length > 0) applyUiState(ui, id);
         return { payload: '', gen: 0, ok: true };
     }
     /* The generation comes back with the state so the next save continues the

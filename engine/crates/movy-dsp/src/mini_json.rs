@@ -57,6 +57,27 @@ pub fn esc(s: &str) -> String {
     out
 }
 
+/// Back to text. A module's preset is handed to it as a string, and schwung
+/// stored a JSON preset PARSED, so the migration has to write it out again.
+pub fn to_json(j: &J) -> String {
+    match j {
+        J::Null => "null".to_string(),
+        J::Bool(b) => b.to_string(),
+        J::Num(n) => num(*n),
+        J::Str(s) => esc(s),
+        J::Arr(a) => format!("[{}]", a.iter().map(to_json).collect::<Vec<_>>().join(",")),
+        J::Obj(o) => format!("{{{}}}", o.iter().map(|(k, v)| format!("{}:{}", esc(k), to_json(v)))
+                                       .collect::<Vec<_>>().join(",")),
+    }
+}
+
+/// A number as a param value: `1`, not `1.0` — the chain host parses either,
+/// but an integer param written as `1.0` is a different string to every reader
+/// that compares.
+pub fn num(n: f64) -> String {
+    if n.is_finite() && n.fract() == 0.0 && n.abs() < 1e15 { format!("{}", n as i64) } else { format!("{n}") }
+}
+
 pub fn parse(s: &str) -> Option<J> {
     let mut p = P { b: s.as_bytes(), i: 0, s };
     let v = p.value(0)?;

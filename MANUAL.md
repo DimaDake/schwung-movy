@@ -188,7 +188,7 @@ The remedy is the same reinstall.
 ### Backups
 
 Movy keeps older versions of every Set and can put one back without a computer.
-Open **Settings** (Shift + Step 2) and scroll to the last row, **BACKUPS**:
+Open **Settings** (Shift + Step 2) and scroll to the **BACKUPS** row:
 
 ![Backups](docs/assets/versions_list.png)
 
@@ -1516,13 +1516,30 @@ your only Set). A deleted Set is moved to
 `/data/UserData/UserLibrary/Movy/Trash/`, not erased, so it can still be
 recovered by hand.
 
-**Your existing Sets come with you.** The first time Movy opens with its own
-Sets, it copies every Set it kept for a Move Set into the new library, under
-that Set's Move name, backups included. Sets that only ever existed on an
-unsaved Move pad come across as **Recovered** *date*. Nothing is taken away:
-the originals stay where they were, so an older Movy still finds them exactly
-as you left them (edits made since then live only in the new library). Each
-Set is copied once; one you delete in the new library does not come back.
+**Your existing Sets come with you.** The first time Movy opens as a
+standalone app it migrates every Set from Move into its library, once:
+
+- **Every set page.** Sets parked on any of Schwung's eight set pages come
+  across, not just the page Move was showing. Each keeps its Move name
+  ("Set 1", "Set 2", …). When two pages each have a "Set 1", the one on the
+  lowest page keeps the plain name and the others say their page: `Set 1 P3`.
+- **Schwung tracks become Movy tracks.** Instruments and effects that tracks
+  1–4 held in Schwung's slots, with their level and LFOs, land on Movy's
+  tracks 1–4. A Set whose tracks a Schwung-era Movy had already moved, or a
+  track Movy already holds, keeps what Movy has. Schwung's master chain becomes
+  Movy's master. A Schwung effect that was **bypassed** is left out, so the Set
+  sounds the same. The same goes for a third audio effect, which has no place on
+  a Movy track. An effect with no saved preset comes up at its defaults.
+- **Older Movy storage** — Sets from every earlier Movy, including those that
+  kept their tracks in their UI file — is converted to the current format.
+- Sets that only ever existed on an unsaved Move pad come across as
+  **Recovered** *date*. A Set you deleted in Move is not brought back.
+
+Nothing is taken away: the originals stay where they were, so Move and
+Schwung still open them exactly as you left them (edits made since then live
+only in Movy's library). The migration runs **once**; Sets added to Move later
+are not picked up on their own, and one you delete in Movy does not come back.
+To run it again, see **MIGRATE FROM MOVE** under [Settings](#settings--shift--step-2).
 
 The library lives in `/data/UserData/UserLibrary/Movy/`, outside Movy's
 module folder, so reinstalling Movy keeps it. The Set that was open when you
@@ -1536,6 +1553,15 @@ the **jog** moves the selection, **knob 1** changes the selected row's value,
 Step 2 lights dim under Shift and full bright while the page is open.
 
 ![Settings](docs/assets/flags-release.png)
+
+**MIGRATE FROM MOVE**, the last row, runs the migration from Move again. The
+first jog click arms it (the row reads **CONFIRM?**, and moving off disarms
+it), the second runs it. The hint below shows when the migration last ran. It
+**replaces every Set that came from Move** with a fresh copy, under its Move
+name, and brings back one you had deleted. Each replaced Set's previous state
+is kept in its **BACKUPS** first, so a mistaken run can be undone Set by Set.
+Sets you made in Movy, including copies of migrated Sets, are never touched.
+If the open Set is replaced, it reloads.
 
 Movy always renders its chains on several threads and always skips chains that
 are silent. Together those are worth roughly 2× on a heavy set — the difference
@@ -1725,7 +1751,7 @@ only.
 | Combo | Action |
 | --- | --- |
 | **Shift + Step 1** | Open **Sets** — Movy's own Sets. |
-| **Shift + Step 2** | Open **Settings** (older versions of this set). |
+| **Shift + Step 2** | Open **Settings** (older versions of this set, migrate Sets from Move again). |
 | **Shift + Step 3** | Open **Clip parameters** (scale, length, transpose, quantize; Track view). |
 | **Shift + Step 5 / 7 / 9** | Open **Set parameters** (tempo/swing/quantize, root/key/mode/layout). |
 | **Shift + Step 6** | Toggle the **metronome**. |

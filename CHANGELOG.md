@@ -13,112 +13,19 @@ far. Earlier work is summarised in the timeline below for context.
 
 ## [Unreleased]
 
-### Fixed
+## [0.36.0] — 2026-10-17
 
-- **Modules follow Movy's transport.** Play, Stop and MIDI clock now reach
-  every chain (tracks, sends, master), as Schwung delivers them to its slots.
-  Before, Movy dropped them, so a clock-driven module such as Breakbeat
-  free-ran on its own tempo, ignored Stop, and its phrase/fill/retrigger logic
-  never lined up with the bar. Engine 0.100.0.
-- **Modules read Movy's tempo, not Move's.** A module asking for Move's set
-  settings (`move_info`, e.g. Breakbeat, TinyK) got whatever Schwung last
-  published — Move's tempo, frozen. movy-host now answers with Movy's tempo,
-  transport, song position and metronome.
-- **Canvas knobs say how to open them.** A knob that opens a module's own
-  screen (Breakbeat Status / Edit A / Edit B, DR32 ENGN) does not turn, so it
-  read as dead; held, it now shows `CLK OPEN`, as a file knob shows
-  `CLK BROWSE`.
-- **Live module screens update.** A module screen declaring live values
-  (`fullscreen_live_ms`) now receives them, as on Schwung — Breakbeat's
-  playback status no longer freezes on the frame it opened with.
-
-### Added
-
-- **Settings → CLICK VOLUME** (knob 1) raises the metronome from the default
-  (0 dB) up to +11 dB, the loudest it can go without clipping. Engine 0.99.0.
-
-### Changed
-
-- **The UI reads one file of a Set's engine state: `chains.json`.** It no
-  longer opens `seq-state.json` to tell an unreadable Set from a blank one; the
-  engine reports that in its per-block status (`sbad`). `ui-state.json` no
-  longer carries a copy of the chains, and a load takes them only from
-  `chains.json` — an older Set whose chains lived in `ui-state.json` gets them
-  from the migration from Move, which already converts them. An unreadable
-  `chains.json` opens with no chains; its bytes stay in the Set's BACKUPS.
-  (ENGINE 0.98.0)
-
-- **Settings lists only BACKUPS and MIGRATE FROM MOVE.** The debug-only
-  **Engine Saves** switch (`engpersist`) is gone and the engine always owns the
-  Set files; the UI-writer fallback behind it — its own state writes, version
-  ladder and chain capture — is deleted, along with the now-empty flags
-  registry, the knob on the Settings page and the debug/release build split
-  (`MOVY_DEBUG`, `deploy.sh --release`). (ENGINE 0.97.0)
-
-- **Empty Sets are not kept.** A Set with no clip and no module is never saved,
-  and leaving it moves it to Trash; the open one stays, so a restart on it comes
-  back to it. The migration from Move skips empty Sets, and **MIGRATE FROM
-  MOVE** moves Move-origin Sets that are now empty to Trash. (ENGINE 0.96.0)
-
-- **One migration from Move, run once.** The first start of standalone Movy
-  brings over every Set from every Schwung set page, under its Move name
-  (`Set 1 P3` when two pages share one). It turns Schwung's tracks 1–4 and
-  master chain into Movy's, and converts every older Movy storage format,
-  including chains kept only in `ui-state.json`. It never runs again on its own.
-  **Settings → MIGRATE FROM MOVE** (click twice) runs it again, replacing only
-  Sets that came from Move and keeping what it replaced in BACKUPS. The engine
-  does all of it (`set_migrate.rs`, ENGINE 0.95.0); the UI's per-Set master
-  import is gone. A load now restores chains from `chains.json` whenever it
-  exists, and the blob's copy only when it does not.
-
-- **Renaming a Set suggests a name.** A Set still named for its date
-  (`2026-10-17_01`) opens the rename keyboard on a two-word name from a
-  hand-picked list (*Velvet Echo*, *Paper Moon*, …), never one already in the
-  library. The keyboard no longer prints "Rename Set:" in front of the name.
-- **The Sets page's buttons say what they do.** Capture, Copy and Delete are lit
-  dim on a Set and dark on **[NEW]** or under an armed delete (Capture used to
-  stay dark even though it renames); under the rename keyboard only Back stays lit.
-
-### Fixed
-
-- **Switching Sets no longer drops the last couple of seconds of playing.** The
-  engine saves the Set being left before opening the next one; its autosave runs
-  every ~2 s, and a switch used to discard anything newer.
-
-- **A fast jog spin moves the whole way in the Sets, Backups and Settings
-  lists.** movy-host delivers a tick's detents as one event, and those lists
-  read only its direction, so a quick spin moved a single row.
-
-- **Powering off shows that it is happening.** After **Power off?** is
-  confirmed, the seconds the shutdown takes used to look like a hang: a blank
-  screen with the last LEDs frozen on. Now the screen reads **Powering off...**,
-  a rainbow drifts slowly across the pads in smooth hardware fades and every
-  other LED is off until the power goes.
-
-- **Parameter pages are always Schwung's.** The **PARAM PAGES** setting is gone:
-  every module's pages are planned and drawn by Schwung, as they have been by
-  default since 0.35. Movy's own page renderer is retired (kept in the history
-  at tag `movy-pages-final`). While a module is still loading its knob rows stay
-  blank and the knobs do nothing, instead of showing Movy's own layout first.
-  **Shift + jog** on a knob page now turns one page; Schwung's section list is
-  **Shift + jog click**.
+### Highlights
 
 - **Movy runs on its own.** It is now a standalone Schwung tool: while it is
-  open it owns the whole device — pads, screen, audio, the volume knob as
-  master volume (1 dB per detent), and the power button (**Power off?**, saving
-  first). Move's software stops while Movy runs and comes back when you leave.
-  Needs Schwung 1.6.0 or newer. Updating from the store keeps everything the
-  old Movy stored; nothing of the old install is deleted, so an older Movy still
-  finds it.
-- **More tracks before the CPU limit.** Tracks now render across all four
-  cores instead of three: a busy set takes up to a fifth less time per audio
-  block (engine 0.94.0).
-- **Virus (osirus) no longer crackles.** Its emulator ran on the same core and
-  at the same priority as Movy's audio, and kept the audio waiting; Movy now
-  moves it to another core.
-- **Leaving:** **Back** at the top opens **Leave Movy?** with **Close Movy**.
-  If Movy stops responding, **Shift + touch volume + jog click** closes it
-  (hard close after two seconds).
+  open it owns the whole device (pads, screen, audio, volume, power button)
+  and Move's software stops until you leave. It can also be the thing the Move
+  boots into.
+- **Movy keeps its own Sets** (**Shift + Step 1**), brought over from Move once
+  by a single migration.
+- **Modules follow Movy's transport and tempo**, so clock-driven modules such
+  as Breakbeat lock to the bar.
+- **Parameter pages are always Schwung's.**
 
 ### Added
 
@@ -128,56 +35,122 @@ far. Earlier work is summarised in the timeline below for context.
   in the same window to go back. Installing never changes the default.
 - **Movy keeps its own Sets.** **Shift + Step 1** opens a list of Movy's own
   Sets: make a new one, open, rename (Capture), duplicate (Copy) and delete
-  (Delete, with a confirm). The first open copies every existing Movy Set
-  across under its Move name, backups included, and leaves the originals
-  untouched. If the library folder cannot be written, Movy says so on screen
-  instead of starting a Set. (Engine 0.88.0.)
+  (Delete, with a confirm). If the library folder cannot be written, Movy says
+  so on screen instead of starting a Set. (Engine 0.88.0.)
+- **One migration from Move, run once.** The first start of standalone Movy
+  brings over every Set from every Schwung set page, under its Move name
+  (`Set 1 P3` when two pages share one). It turns Schwung's tracks 1–4 and
+  master chain into Movy's, and converts every older Movy storage format,
+  including chains kept only in `ui-state.json`. It skips empty Sets and never
+  runs again on its own. **Settings → MIGRATE FROM MOVE** (click twice) runs it
+  again, replacing only Sets that came from Move and keeping what it replaced
+  in BACKUPS. Nothing of the old install is deleted, so an older Movy still
+  finds it. (Engine 0.95.0.)
+- **Settings → CLICK VOLUME** (knob 1) raises the metronome from the default
+  (0 dB) up to +11 dB, the loudest it can go without clipping. (Engine 0.99.0.)
+- **Renaming a Set suggests a name.** A Set still named for its date
+  (`2026-10-17_01`) opens the rename keyboard on a two-word name from a
+  hand-picked list (*Velvet Echo*, *Paper Moon*, …), never one already in the
+  library.
+- **Shift + knob 1 on a preset page steps the module's bank** (obxd, Dexed),
+  as Schwung's own Shift+Left/Right does: it wraps and lands on the bank's
+  first preset. Knob 1 browses presets without entering the page, and the Loop
+  strip stays visible underneath.
+- **Canvas knobs say how to open them.** A knob that opens a module's own
+  screen (Breakbeat Status / Edit A / Edit B, DR32 ENGN) does not turn; held,
+  it now shows `CLK OPEN`, as a file knob shows `CLK BROWSE` — on every view
+  where its click works, including the chain view.
+
+### Changed
+
+- **Standalone.** Movy owns the device while it is open: the volume knob is
+  master volume (1 dB per detent), and the power button asks **Power off?** and
+  saves first. Move's software comes back when you leave. Needs Schwung 1.6.0
+  or newer. Updating from the store keeps everything the old Movy stored.
+- **Leaving:** **Back** at the top opens **Leave Movy?** with **Close Movy**.
+  If Movy stops responding, **Shift + touch volume + jog click** closes it
+  (hard close after two seconds). Closing from the Tools menu returns to
+  Schwung, even when Movy is the boot default.
+- **Parameter pages are always Schwung's.** The **PARAM PAGES** setting is
+  gone: every module's pages are planned and drawn by Schwung, as they have
+  been by default since 0.35. While a module is still loading its knob rows
+  stay blank and the knobs do nothing. **Shift + jog** on a knob page now turns
+  one page; Schwung's section list is **Shift + jog click**.
+- **One alphabet.** Movy's own text uses Schwung's parameter-page font, so the
+  chrome and the pages match.
+- **More tracks before the CPU limit.** Tracks now render across all four
+  cores instead of three: a busy set takes up to a fifth less time per audio
+  block. (Engine 0.94.0.)
+- **Movy's tracks run the chain host Movy ships**, built from a pinned Schwung
+  release, so a Schwung update can no longer change how Movy's tracks sound or
+  how their pages look without a Movy update. (Engine 0.86.0.)
+- **Synced LFOs follow Movy's transport only.** While stopped they free-run at
+  Movy's current tempo, so a tempo change takes effect at once.
+- **Empty Sets are not kept.** A Set with no clip and no module is never saved,
+  and leaving it moves it to Trash; the open one stays. (Engine 0.96.0.)
+- **Settings lists BACKUPS, CLICK VOLUME and MIGRATE FROM MOVE.** The
+  debug-only **Engine Saves** switch is gone; the engine always owns the Set
+  files. (Engine 0.97.0.)
+- **The engine reports an unreadable Set.** The UI reads only a Set's
+  `chains.json`; `ui-state.json` no longer carries a copy of the chains. An
+  unreadable `chains.json` opens with no chains; its bytes stay in the Set's
+  BACKUPS. (Engine 0.98.0.)
+- **The Sets page's buttons say what they do.** Capture, Copy and Delete are lit
+  dim on a Set and dark on **[NEW]** or under an armed delete; under the rename
+  keyboard only Back stays lit.
+- **Powering off shows that it is happening.** After **Power off?** the screen
+  reads **Powering off...** and a rainbow drifts slowly across the pads until
+  the power goes, instead of what looked like a hang.
+- **A broken install says so.** If Movy's engine is missing or from another
+  build, the start screen shows `ENGINE DID NOT START` or `ENGINE MISMATCH`
+  with **REINSTALL MOVY**, instead of asking you to restart the Move.
+
+### Fixed
+
+- **Modules follow Movy's transport.** Play, Stop and MIDI clock now reach
+  every chain (tracks, sends, master). Before, a clock-driven module such as
+  Breakbeat free-ran on its own tempo, ignored Stop, and its
+  phrase/fill/retrigger logic never lined up with the bar. (Engine 0.100.0.)
+- **Modules read Movy's tempo, not Move's.** A module asking for Move's set
+  settings (`move_info`, e.g. Breakbeat, TinyK) now gets Movy's tempo,
+  transport, song position and metronome instead of Move's, frozen.
+- **Live module screens update.** A module screen declaring live values
+  (`fullscreen_live_ms`) now receives them, and module-drawn canvas pages
+  (Pixel Walkers) animate instead of freezing on their first frame.
+- **Drum racks show one pad per note.** A module declaring the same pads on
+  several pages (Strut) showed a 32-pad grid for 16 voices.
+- **Virus (osirus) no longer crackles.** Its emulator kept Movy's audio waiting
+  on the same core; Movy now moves it to another core.
+- **The power-off dialog opens reliably.** A companion message the power button
+  sends could close the dialog before it was drawn.
+- **Switching Sets no longer drops the last couple of seconds of playing.** The
+  engine saves the Set being left before opening the next one.
+- **Opening a Set no longer risks overwriting it with the previous one.** An
+  autosave falling due between asking for a Set and its contents arriving
+  could save the Set being left into the one being opened. Autosave now waits
+  for the open to land. (Engine 0.92.0.)
+- **A fast jog spin moves the whole way** in the Sets, Backups and Settings
+  lists, instead of a single row.
+- **Setting a slot to None** no longer leaves the departed module's knobs on
+  the page under a "—" header.
 
 ### Removed
 
 - The things that only existed to share the device with Move: **Background**
   mode, **LINK** to Move's transport, Sets that follow Move's Set pads, Move's
   master volume and master FX slots, **Shift + Back**, and tracks on Schwung's
-  slots. Each Set's master chain is copied into Movy's own the first time the
-  Set opens.
-- With them, their code (plan WP9): the overtake host, the **MIGRATE TRACKS**
-  Settings row and the one-time move off Schwung's slots, the Set-commit press,
-  Move's tempo following Movy's knob, and the debug flags **Movy Sets**,
-  **Commit New Sets**, **Movy Master Chain** and **Pinned Chain Host** (the
-  pinned chain host is now the only one). Stored values of those flags are
-  ignored; nothing on disk is deleted. The Set page's knob 3 is empty where
-  LINK was. (Engine 0.91.0.)
+  slots. The Set page's knob 3 is empty where LINK was.
+- Movy's own parameter-page renderer (kept in the history at tag
+  `movy-pages-final`), the **MIGRATE TRACKS** Settings row, and the debug flags
+  **Movy Sets**, **Commit New Sets**, **Movy Master Chain**, **Pinned Chain
+  Host** and **Engine Saves**. Stored values of those flags are ignored;
+  nothing on disk is deleted. (Engine 0.91.0.)
 
 ### Known limitations
 
 - Move's built-in speaker EQ is not applied yet, so the speaker sounds
   different from the same Set under Move. Headphones and line out are
   unaffected.
-
-### Changed
-
-- **Movy's tracks run the chain host Movy ships.** It is built from a pinned
-  Schwung release, so a Schwung update can no longer change how Movy's tracks
-  sound without a Movy update. (Engine 0.86.0.)
-- **Synced LFOs on Movy's tracks follow Movy's transport only.** Move playing on
-  its own no longer drives them. While stopped they free-run at Movy's current
-  tempo, so a tempo change takes effect at once.
-
-- **A broken install says so.** If Movy's engine is missing or from another
-  build than the rest of Movy, the start screen shows `ENGINE DID NOT START` or
-  `ENGINE MISMATCH` with **REINSTALL MOVY**, instead of asking you to restart
-  the Move (which could not fix it).
-
-### Fixed
-
-- **Setting a slot to None** no longer leaves the departed module's knobs on
-  the page under a "—" header.
-- **Opening a Set no longer risks overwriting it with the previous one.** If
-  an autosave fell due in the instant between asking for a Set and its
-  contents arriving, the engine saved what it was still holding — the Set
-  being left, or an empty sequence at startup — into the Set being opened. A
-  backup copy usually kept the real Set loadable, but its main file was
-  replaced. Autosave now waits for the open to land (engine 0.92.0).
 
 ## [0.35.0] — 2026-10-09
 

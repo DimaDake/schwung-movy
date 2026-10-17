@@ -15,6 +15,20 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Changed
 
+- **Renaming a Set suggests a name.** A Set still named for its date
+  (`2026-10-17_01`) opens the rename keyboard on a two-word name from a
+  hand-picked list (*Velvet Echo*, *Paper Moon*, …), never one already in the
+  library. The keyboard no longer prints "Rename Set:" in front of the name.
+- **The Sets page's buttons say what they do.** Capture, Copy and Delete are lit
+  dim on a Set and dark on **[NEW]** or under an armed delete (Capture used to
+  stay dark even though it renames); under the rename keyboard only Back stays lit.
+
+### Fixed
+
+- **A fast jog spin moves the whole way in the Sets, Backups and Settings
+  lists.** movy-host delivers a tick's detents as one event, and those lists
+  read only its direction, so a quick spin moved a single row.
+
 - **Powering off shows that it is happening.** After **Power off?** is
   confirmed, the seconds the shutdown takes used to look like a hang: a blank
   screen with the last LEDs frozen on. Now the screen reads **Powering off...**,

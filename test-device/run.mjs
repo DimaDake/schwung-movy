@@ -20,6 +20,7 @@ import './dist/scenarios/master-own.js';
 import './dist/scenarios/mutes.js';
 import './dist/scenarios/smoke.js';
 import './dist/scenarios/versions.js';
+import './dist/scenarios/sets.js';
 import './dist/scenarios/seq.js';
 import './dist/scenarios/widgets.js';
 import './dist/scenarios/testbus.js';

@@ -1,7 +1,7 @@
 /* Sequencer LED painting through a cached diff layer — only changed colors
  * are sent, so unchanged frames cost nothing on the wire (davebox pattern). */
 
-import { backLedColor, arrowLedColor, groupArrowColor, stepRecArrowColor, sampleLedColor, captureLedColor, undoLedColor } from './buttons.js';
+import { backLedColor, arrowLedColor, groupArrowColor, stepRecArrowColor, sampleLedColor, captureLedColor, undoLedColor, screenButtonColor, type ButtonScreen } from './buttons.js';
 import { canRedo, canUndo } from '../undo/state.js';
 import { ANIM_NONE, ANIM_PULSE, C_BLACK, C_DARKGREY, C_GREEN, C_LIGHTGREY, C_REC_RED, C_WHITE, WHITE_BRIGHT, WHITE_DIM, WHITE_OFF, trackColor, trackColorDim } from './colors.js';
 import {
@@ -12,6 +12,8 @@ import { clipPageActive } from './clip-page.js';
 import { cpuPageActive } from './cpu-page.js';
 import { flagsPageActive } from './flags-page.js';
 import { appState, VIEW_SETS } from '../app/state.js';
+import { setsPageEditable } from './sets-page.js';
+import { textEntryActive } from '../renderer/text-entry-lib.js';
 import { focusedTrack, GROUP_DIR_DOWN, GROUP_DIR_UP } from '../track/focus.js';
 import { GROUP_SIZE } from '../track/ref.js';
 import { sessionPaintGrid } from './session.js';
@@ -177,29 +179,34 @@ function paintTrackButtons(): void {
 }
 
 function paintAffordances(view: number, barOffset: number, maxOff: number, shiftHeld: boolean): void {
-    cachedSetButtonLED(CC_BACK, backLedColor(view));
+    const screen: ButtonScreen = {
+        keyboard: textEntryActive(),
+        setsEditable: view === VIEW_SETS ? setsPageEditable() : null,
+    };
+    const paint = (cc: number, color: number): void => cachedSetButtonLED(cc, screenButtonColor(cc, color, screen));
+    paint(CC_BACK, backLedColor(view));
     // While step recording the arrows belong to the head, not to bar navigation.
     if (stepRecActive()) {
         const blink = blinkPhase();
         const canLeft = stepRecCanGoLeft();
-        cachedSetButtonLED(CC_LEFT, stepRecArrowColor(-1, canLeft, blink));
-        cachedSetButtonLED(CC_RIGHT, stepRecArrowColor(+1, canLeft, blink));
+        paint(CC_LEFT, stepRecArrowColor(-1, canLeft, blink));
+        paint(CC_RIGHT, stepRecArrowColor(+1, canLeft, blink));
     } else {
-        cachedSetButtonLED(CC_LEFT, arrowLedColor(-1, barOffset, maxOff));
-        cachedSetButtonLED(CC_RIGHT, arrowLedColor(+1, barOffset, maxOff));
+        paint(CC_LEFT, arrowLedColor(-1, barOffset, maxOff));
+        paint(CC_RIGHT, arrowLedColor(+1, barOffset, maxOff));
     }
-    cachedSetButtonLED(CC_SAMPLE, sampleLedColor()); cachedSetButtonLED(CC_CAPTURE, captureLedColor(seqState.capPending)); cachedSetButtonLED(CC_UNDO, undoLedColor(canUndo(), canRedo(), shiftHeld));
-    cachedSetButtonLED(CC_LOOP, seqState.loopMode ? WHITE_BRIGHT : WHITE_DIM);
+    paint(CC_SAMPLE, sampleLedColor()); paint(CC_CAPTURE, captureLedColor(seqState.capPending)); paint(CC_UNDO, undoLedColor(canUndo(), canRedo(), shiftHeld));
+    paint(CC_LOOP, seqState.loopMode ? WHITE_BRIGHT : WHITE_DIM);
     /* Note/Session was painted by nobody, so the button read as dead rather
      * than available. Same dim-idle / bright-active shape as Loop. */
-    cachedSetButtonLED(CC_NOTE_SESSION, seqState.sessionMode ? WHITE_BRIGHT : WHITE_DIM);
-    cachedSetButtonLED(CC_COPY, WHITE_DIM); cachedSetButtonLED(CC_DELETE_BTN, WHITE_DIM); cachedSetButtonLED(CC_MUTE, seqState.muted.some((m) => m) ? WHITE_BRIGHT : WHITE_DIM);
+    paint(CC_NOTE_SESSION, seqState.sessionMode ? WHITE_BRIGHT : WHITE_DIM);
+    paint(CC_COPY, WHITE_DIM); paint(CC_DELETE_BTN, WHITE_DIM); paint(CC_MUTE, seqState.muted.some((m) => m) ? WHITE_BRIGHT : WHITE_DIM);
     /* Octave buttons move the focused track group in Session view. Outside it
      * they are the pad octave and app/tick.ts owns them (it knows whether the
      * track is a drum, which has no octave). */
     if (seqState.sessionMode) {
-        cachedSetButtonLED(CC_DOWN, groupArrowColor(GROUP_DIR_DOWN));
-        cachedSetButtonLED(CC_UP, groupArrowColor(GROUP_DIR_UP));
+        paint(CC_DOWN, groupArrowColor(GROUP_DIR_DOWN));
+        paint(CC_UP, groupArrowColor(GROUP_DIR_UP));
     }
 }
 

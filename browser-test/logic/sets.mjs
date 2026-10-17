@@ -80,6 +80,29 @@ export async function run() {
        lib.defaultSetName(d, [{ name: '2027-06-01_03' }, { name: '2027-06-01_01' }]), '2027-06-01_04');
     eq('another day does not count', lib.defaultSetName(d, [{ name: '2027-05-31_07' }]), '2027-06-01_01');
     eq('a copy', lib.dupName('Song'), 'Song Copy');
+    {
+        const names = await import('../../dist/esm/seq/set-names.js');
+        const P = names.SET_NAME_PAIRS;
+        eq('every pair is two words', P.filter((n) => n.split(' ').length !== 2).length, 0);
+        eq('no pair twice', new Set(P.map((n) => n.toLowerCase())).size, P.length);
+        ok('a large collection', P.length >= 200, P.length);
+        ok('every pair fits a duplicate\'s suffix under the engine cut',
+           P.every((n) => n.length + ' Copy'.length <= lib.NAME_MAX));
+        ok('a dated name is the placeholder', names.isDatedName('2026-10-17_03'));
+        ok('a named Set is not', !names.isDatedName('2026-10-17_03 mix'));
+        ok('nor a copy of a dated one', !names.isDatedName('2026-10-17_03 Copy'));
+        const row = (name) => ({ id: name, clips: 0, depth: 0, name });
+        eq('a named Set keeps its name', names.renameInitialText(row('Song'), []), 'Song');
+        /* Every pair but one taken, in another case: the free one is found
+         * wherever the random start lands. */
+        const taken = P.slice(1).map((n) => row(n.toUpperCase()));
+        eq('skips every used pair', names.generateSetName(taken, () => 0.5), P[0]);
+        eq('all taken: still unique', names.generateSetName(P.map(row), () => 0), P[0] + ' 2');
+        eq('and past that', names.generateSetName([...P.map(row), row(P[0] + ' 2')], () => 0), P[0] + ' 3');
+        const seen = new Set();
+        for (let i = 0; i < 50; i++) seen.add(names.generateSetName([], Math.random));
+        ok('not the same name every time', seen.size > 10, seen.size);
+    }
     const long = 'x'.repeat(60);
     eq('a long copy keeps its suffix', lib.dupName(long).endsWith(' Copy'), true);
     eq('and fits the engine limit', lib.dupName(long).length <= lib.NAME_MAX, true);
@@ -169,6 +192,7 @@ export async function run() {
 
     page.setsPageButton('capture');
     ok('capture opens the keyboard with the name', globalThis.__textEntryLast?.initialText?.endsWith(' Copy'));
+    eq('the keyboard has no title to read as part of the name', globalThis.__textEntryLast?.title, '');
     globalThis.__textEntryConfirm('Renamed');
     ok('confirm renames', f.st.sent.at(-1).startsWith('rename ') && f.st.sent.at(-1).endsWith(' Renamed'));
     const before = f.st.sent.length;
@@ -176,11 +200,32 @@ export async function run() {
     globalThis.__textEntryConfirm('  ');
     eq('an empty name renames nothing', f.st.sent.length, before);
 
+    /* A Set still on its dated placeholder is offered a generated name; the
+     * LEDs of the three edit buttons follow what they would do. */
+    {
+        const names = await import('../../dist/esm/seq/set-names.js');
+        const dated = f.st.sets.find((s) => names.isDatedName(s.name));
+        ok('the [NEW] Set is dated', !!dated);
+        page.setsPageState.selected = lib.libState().rows.findIndex((r) => r.id === dated.id) + 1;
+        ok('editable on a Set', page.setsPageEditable());
+        page.setsPageButton('capture');
+        const offered = globalThis.__textEntryLast?.initialText;
+        ok('a dated Set is offered a generated pair', names.SET_NAME_PAIRS.includes(offered), offered);
+        globalThis.__textEntryConfirm(offered);
+        eq('accepting it renames to it', f.st.sent.at(-1), `rename ${dated.id} ${offered}`);
+        tick();
+        const sel = page.setsPageState.selected;
+        page.setsPageState.selected = 0;
+        ok('nothing to edit on [NEW]', !page.setsPageEditable());
+        page.setsPageState.selected = sel;
+    }
+
     /* Delete a Set that is not open: arm, the jog is the confirm's, click. */
     tick();
     const victim = lib.libState().rows[page.setsPageState.selected - 1].id;
     page.setsPageButton('delete');
     ok('delete arms', page.setsPageState.confirming);
+    ok('an armed delete leaves nothing to edit', !page.setsPageEditable());
     const sel = page.setsPageState.selected;
     page.setsPageJog(1, false);
     eq('the confirm owns the jog', page.setsPageState.selected, sel);

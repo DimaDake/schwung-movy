@@ -208,6 +208,6 @@ ssh ableton@move.local 'tail -f /data/UserData/schwung/debug.log | grep "\[movy\
   cost ~8 s each. A full sa sweep went from ~15 min to ~6 min.
 - **`MOVY_TIMING=1`** prints a per-scenario `time:` line (open / open.launch /
   close / fixture.*), automatically for any scenario over 20 s.
-- The library's gestures (the Sets page) have no device scenario since
-  `sets-library` went with the Move fixture; `browser-test/logic/sets.mjs`
-  covers them against a fake engine.
+- The library's gestures (the Sets page) are `scenarios/sets.ts`: the real
+  keyboard, the engine's library, a reopen. `browser-test/logic/sets.mjs`
+  covers their logic against a fake engine.

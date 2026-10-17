@@ -119,6 +119,25 @@ export async function run() {
     eq('capture dark with an empty buffer', captureLedColor(0), 0);
     eq('capture lit with buffered notes',   captureLedColor(3), 124);
     eq('undo off',           undoLedColor(), 0);
+
+    /* A full-screen takeover: a dim button promises an action, so what the
+     * screen swallows goes dark and what it gives a meaning lights. */
+    const { screenButtonColor } = await import('../../dist/esm/seq/buttons.js');
+    const none = { keyboard: false, setsEditable: null };
+    const kb = { keyboard: true, setsEditable: true };
+    const onSet = { keyboard: false, setsEditable: true };
+    const onNew = { keyboard: false, setsEditable: false };
+    eq('no takeover leaves the colour', screenButtonColor(60, 16, none), 16);
+    eq('keyboard: Back is its cancel', screenButtonColor(51, 16, kb), 16);
+    eq('keyboard: Copy does nothing', screenButtonColor(60, 16, kb), 0);
+    eq('keyboard: Loop does nothing', screenButtonColor(58, 124, kb), 0);
+    eq('sets: Capture renames even with nothing buffered', screenButtonColor(52, captureLedColor(0), onSet), 16);
+    eq('sets: Copy duplicates', screenButtonColor(60, 16, onSet), 16);
+    eq('sets: Delete deletes', screenButtonColor(119, 16, onSet), 16);
+    eq('sets on [NEW]: Capture dark', screenButtonColor(52, 16, onNew), 0);
+    eq('sets on [NEW]: Copy dark', screenButtonColor(60, 16, onNew), 0);
+    eq('sets on [NEW]: Delete dark', screenButtonColor(119, 16, onNew), 0);
+    eq('sets: Undo untouched', screenButtonColor(56, 16, onNew), 16);
 }
 
 /* ── step-icon LEDs ──────────────────────────────────────────────────────── */

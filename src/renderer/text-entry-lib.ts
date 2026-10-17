@@ -11,6 +11,7 @@ export interface TextEntry {
                        onConfirm: (text: string) => void; onCancel: () => void }): void;
     closeTextEntry(): void;
     isTextEntryActive(): boolean;
+    getTextEntryBuffer(): string;
     handleTextEntryMidi(msg: number[]): void;
     tickTextEntry(): void;
     drawTextEntry(): void;

@@ -19,6 +19,7 @@ import { defaultSetName, dupName, libRefresh, libSend, libState, type LibRow } f
 import { wantSet } from './set-source.js';
 import { deleteWhenLeft } from './set-lib-session.js';
 import { textEntry } from '../renderer/text-entry-lib.js';
+import { renameInitialText } from './set-names.js';
 import { seqToast } from './render.js';
 
 export const setsPageState = {
@@ -103,6 +104,9 @@ export function setsPageJog(delta: number, shift: boolean): void {
 
 function target(): LibRow | null { return rows()[setsPageState.selected - 1] ?? null; }
 
+/** Whether Capture/Copy/Delete would act right now — what their LEDs say. */
+export function setsPageEditable(): boolean { return !!target() && !setsPageState.confirming; }
+
 /** Jog click. Returns true when the page should close (a Set was opened). */
 export function setsPageClick(openId: string): boolean {
     if (setsPageState.confirming) {
@@ -161,8 +165,10 @@ export function setsPageButton(b: SetsButton): void {
     const te = textEntry();
     if (!te) { seqToast('RENAME NEEDS NEWER SCHWUNG'); return; }
     te.openTextEntry({
-        title: 'Rename Set',
-        initialText: t.name,
+        /* No title: the keyboard prints it in front of the name on the one
+         * line it has, where it costs width and reads as part of the name. */
+        title: '',
+        initialText: renameInitialText(t, rows()),
         onConfirm: (text: string) => {
             const name = text.trim();
             if (name && name !== t.name) send('rename ' + t.id + ' ' + name, false);

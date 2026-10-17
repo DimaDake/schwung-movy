@@ -77,6 +77,9 @@ export type ProbeDeps = {
                        cells?: ({ name: string; value: string; automated: boolean;
                                   touched: boolean; modulated: boolean } | null)[];
                        session: boolean; masterDetail: boolean; masterSlot: number };
+    /* The Sets page and the keyboard over it. `buffer` is read from Schwung's
+     * keyboard itself, so a scenario sees what the rename would commit. */
+    sets?: () => { selected: number; confirming: boolean; keyboard: boolean; buffer: string | null };
 };
 
 let deps: ProbeDeps | null = null;
@@ -143,6 +146,10 @@ export function answer(requestJson: string): string {
         case 'browse': {
             if (!deps || !deps.browse) return tag({ error: 'probe deps not installed' });
             return tag({ browse: deps.browse() });
+        }
+        case 'sets': {
+            if (!deps || !deps.sets) return tag({ error: 'probe deps not installed' });
+            return tag({ view: deps.view(), ...deps.sets() });
         }
         case 'auto': {
             if (!deps) return tag({ error: 'probe deps not installed' });

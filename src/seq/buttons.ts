@@ -60,3 +60,24 @@ export function undoLedColor(canUndo: boolean, canRedo: boolean, shiftHeld: bool
      * to full bright while the button is actually held. */
     return (shiftHeld ? canRedo : canUndo) ? WHITE_DIM : WHITE_OFF;
 }
+
+/* What a full-screen takeover leaves of the white action buttons. Dim is this
+ * UI's "you can press this", so a button the screen swallows must go dark or
+ * it promises an action that does not happen; one the screen gives a meaning
+ * to must light even where the normal rule would leave it dark (Capture has
+ * nothing buffered, yet renames on the Sets page).
+ *
+ * `setsEditable` is null off the Sets page; on it, whether the cursor is on a
+ * Set the three edit buttons can act on ([NEW] and an armed delete are not). */
+export interface ButtonScreen { keyboard: boolean; setsEditable: boolean | null; }
+
+/* MoveCCButtons: Back, Capture, Copy, Delete. */
+const CC_BACK = 51;
+const SETS_EDIT_CCS: readonly number[] = [52, 60, 119];
+
+export function screenButtonColor(cc: number, color: number, s: ButtonScreen): number {
+    /* The keyboard takes every control; Back is its cancel. */
+    if (s.keyboard) return cc === CC_BACK ? WHITE_DIM : WHITE_OFF;
+    if (s.setsEditable !== null && SETS_EDIT_CCS.includes(cc)) return s.setsEditable ? WHITE_DIM : WHITE_OFF;
+    return color;
+}

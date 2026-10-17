@@ -1022,18 +1022,21 @@ export function onMidiMessageInternal(data: number[]): void {
             /* Shift+jog jumps a screen: 32 versions is eight screens of plain
              * scrolling, and the level-skip idiom is already established by the
              * cursor pagination. */
+            /* The whole delta, never its sign: movy-host sums a tick's detents
+             * into one packet (host/deltas.c), so a fast spin arrives as one
+             * event of many rows and the sign alone moved one. */
             if (setsPageActive()) {
-                setsPageJog(delta > 0 ? 1 : -1, appState.shiftHeld);
+                setsPageJog(delta, appState.shiftHeld);
                 appState.dirty = true;
                 return;
             }
             if (versionsPageActive()) {
-                versionsPageJog(delta > 0 ? 1 : -1, appState.shiftHeld, currentSetUuid());
+                versionsPageJog(delta, appState.shiftHeld, currentSetUuid());
                 appState.dirty = true;
                 return;
             }
             if (flagsPageActive()) {
-                flagsPageJog(delta > 0 ? 1 : -1);
+                flagsPageJog(delta);
                 appState.dirty = true;
                 return;
             }

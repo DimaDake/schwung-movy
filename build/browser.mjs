@@ -291,6 +291,7 @@ await esbuild.build({
         resolve(root, 'src/seq/versions-page.ts'),
         resolve(root, 'src/seq/versions-page-vm.ts'),
         resolve(root, 'src/seq/sets-lib.ts'),
+        resolve(root, 'src/seq/set-names.ts'),
         resolve(root, 'src/seq/set-source.ts'),
         resolve(root, 'src/seq/sets-page-vm.ts'),
         resolve(root, 'src/seq/sets-page.ts'),

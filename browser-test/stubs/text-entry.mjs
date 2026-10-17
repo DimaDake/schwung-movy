@@ -8,6 +8,7 @@ export function closeTextEntry() { open = null; }
 export function isTextEntryActive() { return open !== null; }
 export function handleTextEntryMidi(_msg) {}
 export function tickTextEntry() {}
+export function getTextEntryBuffer() { return open ? open.initialText : ''; }
 export function drawTextEntry() { globalThis.__textEntryDrawn = (globalThis.__textEntryDrawn || 0) + 1; }
 /* Test hooks: answer the keyboard the way a user would. */
 globalThis.__textEntryConfirm = (text) => { const o = open; open = null; o && o.onConfirm(text); };

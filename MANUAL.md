@@ -1498,12 +1498,16 @@ the room), and the **dot** marks the Set that is open.
 | Control | Action |
 | --- | --- |
 | **Jog** | Move the cursor. **Shift + jog** jumps eight rows. |
-| **Jog click on [NEW]** | Make a new, empty Set named for today (`2026-10-10_01`, `_02`, …). The cursor moves to it; it does not open. |
+| **Jog click on [NEW]** | Make a new, empty Set named for today (`2026-10-10_01`, `_02`, …) and open it. |
 | **Jog click on a Set** | Open it. The page closes and the Set loads. |
-| **Capture** | Rename the Set under the cursor, with Schwung's on-screen keyboard. |
+| **Capture** | Rename the Set under the cursor, with Schwung's on-screen keyboard. A Set still named for its date opens the keyboard on a suggested name instead (*Velvet Echo*, *Paper Moon*, …), never one another Set already has: **OK** keeps it, or edit it first. **Back** leaves the name as it was. |
 | **Copy** | Duplicate the Set under the cursor as "*name* Copy". The copy carries the Set as it is right now, not its backups. |
 | **Delete** | Delete the Set under the cursor. It asks first: **jog click** deletes, **Back** cancels. |
 | **Back** | Close the page. |
+
+Capture, Copy and Delete are lit dim while the cursor is on a Set, and dark on
+**[NEW]** or while a delete is waiting to be confirmed. While the keyboard is
+up only **Back** stays lit: the keyboard takes every other control.
 
 ![Delete confirm](docs/assets/sets_confirm.png)
 

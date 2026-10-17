@@ -26,6 +26,8 @@ import { clearWidgets, isWidgetAvailable } from '../renderer/schwung-widgets.js'
 import { lastParamBody, lastSchwungPage, lastDrawnCells } from './param-body.js';
 
 import { laneKeysForTrack } from '../seq/automation.js';
+import { setsPageState } from '../seq/sets-page.js';
+import { textEntry, textEntryActive } from '../renderer/text-entry-lib.js';
 
 export function init(): void {
     installPerfProbe();   // wrap the host globals before anything calls them
@@ -47,6 +49,9 @@ export function init(): void {
                      masterSlot: appState.masterChainIndex };
         },
         ready:         () => sessionReady(),
+        sets:          () => ({ selected: setsPageState.selected, confirming: setsPageState.confirming,
+                                keyboard: textEntryActive(),
+                                buffer: textEntryActive() ? textEntry()?.getTextEntryBuffer() ?? null : null }),
         view:          () => viewName(appState.currentView),
         browse:        () => {
             const s = appState.fileBrowserState;

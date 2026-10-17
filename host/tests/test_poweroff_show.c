@@ -36,7 +36,6 @@ void spi_serve_display(uint8_t *map, const uint8_t packed[1024]) { (void)map; (v
 void spi_close(mh_spi_t *s) { closed++; s->fd = -1; }
 
 static int is_pad(int note) { return note >= 68 && note <= 99; }
-static int hue_of(uint8_t c) { return c <= 26 ? c : (c - 63) / 2; }
 
 static void test_leds(void) {
     uint8_t out[MIDI_OUT_PER_FRAME][4];
@@ -50,7 +49,7 @@ static void test_leds(void) {
             if (p[0] != (p[1] >> 4)) bad++;   /* cable 0, CIN = status */
             if (p[1] == 0x90 && !is_pad(p[2]) && p[3] == 0) note_off[p[2]]++;
             else if (p[1] == 0xB0 && p[3] == 0) cc_off[p[2]]++;
-            else if (p[1] == 0x90 && is_pad(p[2])) { if (!clear_done) painted_before_clear++; }
+            else if ((p[1] == 0x90 || p[1] == (0x90 | POWEROFF_FADE_CHANNEL)) && is_pad(p[2])) { if (!clear_done) painted_before_clear++; }
             else bad++;
         }
         int all = 1;
@@ -71,28 +70,46 @@ static void test_leds(void) {
 }
 
 static void test_pads_animate(void) {
-    int distinct_steps = 0;
+    for (int p = 0; p < 32; p++) CHECK(poweroff_show_pad_colour(p, -1) == 0, "the grid fades in from black");
     for (int step = 0; step < 52; step++) {
-        int hues[27] = { 0 }, nh = 0, bad = 0, moved = 0;
+        int hues[27] = { 0 }, nh = 0, bad = 0, still = 0;
         for (int p = 0; p < 32; p++) {
             uint8_t c = poweroff_show_pad_colour(p, step);
-            if (!((c >= 1 && c <= 26) || (c >= 65 && c <= 116))) bad++;
-            int h = hue_of(c);
-            if (h >= 1 && h <= 26 && !hues[h]++) nh++;
-            if (c != poweroff_show_pad_colour(p, step + 1)) moved++;
+            if (c < 1 || c > 26) { bad++; continue; }   /* full-brightness hues only: no brightness flicker */
+            if (!hues[c]++) nh++;
+            if (c == poweroff_show_pad_colour(p, step + 1)) still++;
         }
-        CHECK(!bad, "step %d: palette colours of the hue wheel only", step);
+        CHECK(!bad, "step %d: hues of the wheel only", step);
         CHECK(nh >= 8, "step %d: colourful, %d hues on the grid", step, nh);
-        if (moved >= 16) distinct_steps++;
+        CHECK(!still, "step %d: every pad moves on each step", step);
     }
-    CHECK(distinct_steps == 52, "every repaint moves at least half the pads (%d/52)", distinct_steps);
-    /* Each step's pads go out together, inside one repaint period. */
+    CHECK(POWEROFF_STEP_FRAMES * 29 / 10 >= 500, "a step lasts at least the 0.5 s fade (%d ms)", POWEROFF_STEP_FRAMES * 29 / 10);
+
+    /* One step on the wire: each pad's current colour on channel 0, then the
+     * next on the fade channel, and nothing more until the next step. */
     uint8_t out[MIDI_OUT_PER_FRAME][4];
     int base = 0;
-    while (!(poweroff_show_leds(base, out) && out[0][1] == 0x90 && is_pad(out[0][2]))) base++;
-    int pads = 0;
-    for (int f = base; f < base + POWEROFF_ANIM_FRAMES; f++) pads += poweroff_show_leds(f, out);
-    CHECK(pads == 32, "one repaint is all 32 pads (%d)", pads);
+    while (!(poweroff_show_leds(base, out) && (out[0][1] & 0xF0) == 0x90 && is_pad(out[0][2]))) base++;
+    for (int step = 0; step < 3; step++) {
+        int from[32], to[32], order_bad = 0, extra = 0, wrong = 0;
+        for (int p = 0; p < 32; p++) from[p] = to[p] = -1;
+        for (int f = base + step * POWEROFF_STEP_FRAMES; f < base + (step + 1) * POWEROFF_STEP_FRAMES; f++) {
+            int n = poweroff_show_leds(f, out);
+            for (int i = 0; i < n; i++) {
+                int p = out[i][2] - 68;
+                if (!is_pad(out[i][2])) { wrong++; continue; }
+                if (out[i][1] == 0x90) { if (from[p] >= 0) extra++; if (to[p] >= 0) order_bad++; from[p] = out[i][3]; }
+                else if (out[i][1] == (0x90 | POWEROFF_FADE_CHANNEL)) { if (to[p] >= 0) extra++; to[p] = out[i][3]; }
+                else wrong++;
+            }
+        }
+        int mismatch = 0;
+        for (int p = 0; p < 32; p++)
+            if (from[p] != poweroff_show_pad_colour(p, step - 1) || to[p] != poweroff_show_pad_colour(p, step)) mismatch++;
+        CHECK(!wrong && !extra, "step %d: one start and one fade per pad, nothing else (%d wrong, %d extra)", step, wrong, extra);
+        CHECK(!order_bad, "step %d: the start colour goes out before the fade", step);
+        CHECK(!mismatch, "step %d: each pad fades from the colour it shows to the next (%d off)", step, mismatch);
+    }
 }
 
 static void test_tick(void) {

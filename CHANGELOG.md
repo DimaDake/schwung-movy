@@ -18,8 +18,8 @@ far. Earlier work is summarised in the timeline below for context.
 - **Powering off shows that it is happening.** After **Power off?** is
   confirmed, the seconds the shutdown takes used to look like a hang: a blank
   screen with the last LEDs frozen on. Now the screen reads **Powering off...**,
-  a rainbow moves across the pads and every other LED is off until the power
-  goes.
+  a rainbow drifts slowly across the pads in smooth hardware fades and every
+  other LED is off until the power goes.
 
 - **Parameter pages are always Schwung's.** The **PARAM PAGES** setting is gone:
   every module's pages are planned and drawn by Schwung, as they have been by

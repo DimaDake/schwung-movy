@@ -108,8 +108,8 @@ turning the knob still sets that track's volume, on any of the 16 tracks.
 **Powering off.** Tap the **power button** and Movy asks **Power off?**: click
 the jog wheel to confirm, or turn to **Cancel** (or press **Back**) to carry
 on. On confirm Movy saves the Set first, then the device shuts down: until the
-power goes, the screen reads **Powering off...**, a rainbow runs across the pads
-and every other light is dark. Nothing powers off from the button alone.
+power goes, the screen reads **Powering off...**, a rainbow slowly drifts
+across the pads and every other light is dark. Nothing powers off from the button alone.
 
 ![Power off](docs/assets/power_modal.png)
 

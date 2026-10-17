@@ -12,8 +12,7 @@
 /* Notes 0-127 outside the pads, then CCs 0-127: schwung's clearAllLEDs set. */
 #define CLEAR_PKTS (128 - PADS + 128)
 #define CLEAR_FRAMES ((CLEAR_PKTS + MIDI_OUT_PER_FRAME - 1) / MIDI_OUT_PER_FRAME)
-/* Move's palette: 1-26 is one turn of the hue wheel at full brightness, and
- * hue h has a dim twin at 63 + 2h and a dimmer one at 64 + 2h (constants.mjs). */
+/* Move's palette: 1-26 is one turn of the hue wheel at full brightness. */
 #define HUES 26
 
 static void pkt(uint8_t *p, uint8_t status, uint8_t id, uint8_t val) {
@@ -24,16 +23,10 @@ static void pkt(uint8_t *p, uint8_t status, uint8_t id, uint8_t val) {
 }
 
 uint8_t poweroff_show_pad_colour(int pad, int step) {
-    int col = pad % 8, row = pad / 8;
-    /* The hue runs along the diagonal and scrolls; a brightness ripple rings
-     * out from the middle of the grid on top of it. */
-    int hue = (col * 2 + row * 3 + step) % HUES + 1;
-    int dist2 = (2 * col - 7) * (2 * col - 7) + (2 * row - 3) * (2 * row - 3);   /* ×4, so integers */
-    int ring = 0;
-    while ((ring + 1) * (ring + 1) * 4 <= dist2) ring++;
-    int wave = ((step / 2 - ring) % 6 + 6) % 6;
-    if (wave < 2) return (uint8_t)hue;
-    return (uint8_t)(wave < 4 ? 63 + 2 * hue : 64 + 2 * hue);
+    if (step < 0) return 0;
+    /* A rainbow along the diagonal that drifts one hue a step: neighbouring
+     * pads are neighbouring hues, so the grid reads as one slow wave. */
+    return (uint8_t)((pad % 8 + pad / 8 + step) % HUES + 1);
 }
 
 int poweroff_show_leds(int frame, uint8_t out[MIDI_OUT_PER_FRAME][4]) {
@@ -45,10 +38,15 @@ int poweroff_show_leds(int frame, uint8_t out[MIDI_OUT_PER_FRAME][4]) {
         }
         return n;
     }
-    int g = frame - CLEAR_FRAMES, step = g / POWEROFF_ANIM_FRAMES, phase = g % POWEROFF_ANIM_FRAMES;
-    int from = phase * MIDI_OUT_PER_FRAME;
-    for (int p = from; p < PADS && n < MIDI_OUT_PER_FRAME; p++)
-        pkt(out[n++], 0x90, (uint8_t)(PAD_FIRST + p), poweroff_show_pad_colour(p, step));
+    /* Per step: the colour each pad already shows on channel 0 (the fade's
+     * start; no visible change), then the next one on the fade channel. In
+     * separate frames, so the start is set before the fade is asked for. */
+    int g = frame - CLEAR_FRAMES, step = g / POWEROFF_STEP_FRAMES, phase = g % POWEROFF_STEP_FRAMES;
+    int chunks = (PADS + MIDI_OUT_PER_FRAME - 1) / MIDI_OUT_PER_FRAME, fade = phase >= chunks;
+    if (phase >= 2 * chunks) return 0;
+    for (int p = (phase % chunks) * MIDI_OUT_PER_FRAME; p < PADS && n < MIDI_OUT_PER_FRAME; p++)
+        pkt(out[n++], (uint8_t)(0x90 | (fade ? POWEROFF_FADE_CHANNEL : 0)), (uint8_t)(PAD_FIRST + p),
+            poweroff_show_pad_colour(p, fade ? step : step - 1));
     return n;
 }
 

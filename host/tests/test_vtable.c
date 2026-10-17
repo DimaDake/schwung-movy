@@ -25,6 +25,13 @@ int main(int argc, char **argv) {
         for (int i = 0; i < SCHWUNG_AUDIO_FRAMES * 2; i++) stale += buf[i] != 1;
         CHECK(stale == 0, "the engine mixes onto silence, never onto what the buffer held (%d stale samples)", stale);
     }
+    /* A module's move_info_read() dlsym's this from the process; it must
+     * reach the engine, not fall through to the stale /schwung-move-info. */
+    {
+        extern int schwung_move_info(void *out, size_t cap);
+        unsigned char m = 0;
+        CHECK(schwung_move_info(&m, 1) == 1 && m == 0x4D, "schwung_move_info answers from the engine");
+    }
     engine_unload();
     printf("test_vtable: %d checks, %d failures\n", checks, fails);
     return fails != 0;

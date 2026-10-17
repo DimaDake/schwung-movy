@@ -341,8 +341,12 @@ loaded, and the browser stays open so you can pick another.
 
 **Module screens.** Some modules draw a whole screen of their own for one knob —
 DR32's **ENGN** knob opens its engine picker (Sample, Simian, Urchin, 9W9…, each
-with its own list), and its **Resample** knob its resampler. Hold the knob and
-click the jog, exactly as for a file. The module then owns the jog, the click and
+with its own list), its **Resample** knob its resampler, and Breakbeat's
+**Status** and **Edit A / Edit B** knobs its playback view and slice editors.
+These knobs do not turn, so like a file knob they carry the hint: hold one and the
+bottom row reads `CLK OPEN`. Click the jog and the screen opens; a screen that
+shows something live (Breakbeat's playback status) keeps updating while it is
+open. The module then owns the jog, the click and
 the eight knobs; the pads still play, and a pad you hit is the pad the screen
 fills. **Back** climbs out one level at a time and leaves from the top;
 **Shift + jog** always leaves at once. Some modules close the screen themselves
@@ -390,6 +394,12 @@ In **Chain** view you see the slots of the current track:
 
 - **Back** returns from a module's pages to the chain, and from the chain it
   exits Movy.
+
+**Modules follow Movy's transport.** Every chain — the tracks, the send FX and
+the master chain — hears Movy's Play, Stop and MIDI clock (24 per beat), and a
+module that asks for the tempo or the song position gets Movy's. So a
+clock-driven module — Breakbeat's slicer, a synced arpeggiator or delay —
+starts on Movy's downbeat, follows its tempo and stops when Movy stops.
 
 In **Session** view, the same navigation applies to the **master chain**: three
 **send FX** slots, then **MFX 1–4** processing the whole mix, then an **LFO**
@@ -1698,6 +1708,7 @@ behaviour you'd like — or, better, a PR.
 | Control | Action |
 | --- | --- |
 | **Knobs 1–8** | Edit the current page's parameters. Touch (no turn) shows the full name and value in the header. |
+| **Hold a module-screen knob, then jog-click** | Open the screen a module draws for that knob (DR32 ENGN, Breakbeat Edit A/B and Status; the bottom row reads `CLK OPEN`). Back climbs out, Shift + jog leaves. |
 | **Hold a file knob, then jog-click** | Open the file browser for a sample / wavetable / preset parameter (the header names the file, the bottom row reads `CLK BROWSE`). Turn to move, click to load, Back to cancel. |
 | **Hold a module-screen knob, then jog-click** | Open the module's own screen (DR32's ENGN engine picker). Back climbs out a level at a time; Shift + jog leaves at once. |
 | **Hold a knob (~1 s)** | Assign that parameter as an **LFO target**: jog picks LFO 1/2, jog-click assigns (hold again to remove). Automatable parameters only — and on a Schwung-drawn page, number knobs only. |

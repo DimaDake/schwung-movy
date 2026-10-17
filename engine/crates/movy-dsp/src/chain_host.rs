@@ -422,4 +422,9 @@ impl ChainInstance {
     pub(crate) fn for_test(api: &'static plugin_api_v2_t) -> Self {
         Self { inst: core::ptr::null_mut(), api, fx: ChainFxApi::default(), scratch: vec![0u8; 256] }
     }
+
+    /// A tag the fake vtable can tell instances apart by; never dereferenced.
+    pub(crate) fn set_inst_for_test(&mut self, inst: *mut core::ffi::c_void) {
+        self.inst = inst;
+    }
 }

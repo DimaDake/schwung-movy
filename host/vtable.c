@@ -14,6 +14,19 @@
 #include "vtable.h"
 
 static pthread_mutex_t g_mu = PTHREAD_MUTEX_INITIALIZER;
+
+/* Modules ask for Move's set settings with move_info_read(), which dlsym's
+ * this name from the process before it falls back to /schwung-move-info — a
+ * tmpfs segment the last schwung session left behind, holding MOVE's tempo.
+ * Exported (movy-host links -rdynamic) so the engine's answer, movy's own
+ * transport, is the one found (engine/crates/movy-dsp/src/move_info.rs). */
+typedef int (*move_info_fn)(void *out, size_t cap);
+static move_info_fn g_move_info;
+
+int schwung_move_info(void *out, size_t cap) {
+    move_info_fn f = __atomic_load_n(&g_move_info, __ATOMIC_ACQUIRE);
+    return f ? f(out, cap) : 0;
+}
 static plugin_api_v2_t *g_api;
 static void *g_inst;
 /* The frame's slowest request, for the slow-frame log. Reset per frame. */
@@ -72,6 +85,7 @@ int engine_load(const char *dsp_path, const char *module_dir) {
     void *h = dlopen(dsp_path, RTLD_NOW | RTLD_LOCAL);
     if (!h) { mh_log("engine: dlopen %s failed: %s", dsp_path, dlerror()); return 0; }
     move_plugin_init_v2_fn init = (move_plugin_init_v2_fn)dlsym(h, MOVE_PLUGIN_INIT_V2_SYMBOL);
+    __atomic_store_n(&g_move_info, (move_info_fn)dlsym(h, "movy_move_info"), __ATOMIC_RELEASE);
     plugin_api_v2_t *api = init ? init(&g_host) : NULL;
     void *inst = api && api->create_instance ? api->create_instance(module_dir, NULL) : NULL;
     if (!inst) { mh_log("engine: %s gave no instance (init=%p api=%p)", dsp_path, (void *)init, (void *)api); return 0; }

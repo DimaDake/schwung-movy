@@ -132,6 +132,43 @@ export async function run() {
         canvasDiveTakes([0xB0, MC, 127]);
         ok('a non-enterable dive closes on click', !dive.canvasDiveActive() && !plain.log.includes('176,3,127'));
 
+        /* THE CLICK IS THE ONLY WAY IN, so the held knob says so: a canvas
+         * does not turn, and unhinted it read as a dead knob (breakbeat's
+         * Edit A/B slice editors, its Status screen). */
+        {
+            const { pg: hp } = open({});
+            hp.knobTouch(0, true);
+            eq('a held canvas knob hints the click', JSON.stringify(hp.chrome(true).footer), '[["CLK","OPEN"]]');
+            hp.knobTouch(0, false);
+            if (dive.canvasDiveActive()) dive.closeCanvasDive(true);
+        }
+
+        /* LIVE VALUES (upstream tickCanvasLiveValues): `extra_keys` are read
+         * ONE PER TICK every `fullscreen_live_ms` and handed to `onValues`.
+         * Without it breakbeat's status screen froze on its onOpen snapshot. */
+        {
+            const realNow = Date.now;
+            let now = 1_000_000;
+            Date.now = () => now;
+            try {
+                const live = open({ fullscreen_live_ms: 50, extra_keys: ['level', 'tone'] });
+                const got = [];
+                script.onValues = (_ctx, { values }) => got.push({ ...values });
+                ok('a live canvas opens', live.opened && dive.canvasDiveActive());
+                dive.tickCanvasDive();
+                eq('one read per tick, never the whole set', got.length, 0);
+                dive.tickCanvasDive();
+                eq('the set is delivered once every key answered', JSON.stringify(got[0]), '{"level":"1","tone":"0.5"}');
+                env.params['synth:level'] = '0.25';
+                dive.tickCanvasDive(); dive.tickCanvasDive();
+                eq('nothing is re-read inside the interval', got.length, 1);
+                now += 60;
+                dive.tickCanvasDive(); dive.tickCanvasDive();
+                eq('after it, the fresh value arrives', got[1] && got[1].level, '0.25');
+                dive.closeCanvasDive(true);
+            } finally { Date.now = realNow; }
+        }
+
         const bad = open({ enterable: true });
         script.onMidi = () => { throw new Error('boom'); };
         canvasDiveTakes([0xB0, MJ, 1]);

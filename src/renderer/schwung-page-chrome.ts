@@ -34,8 +34,9 @@
  * wav_position's OPEN reaches no screen in movy. Every other verb has a knob
  * gesture that does the same thing — an enum steps as it turns, a two-way
  * toggles, a trigger fires on its first detent — so naming the click only
- * covered the Loop strip on every touch. What is left is a FILE param: not
- * turnable, and the click is the one road to the browser.
+ * covered the Loop strip on every touch. What is left is a FILE or a CANVAS:
+ * not turnable, and the click is the one road to the browser or the module's
+ * own screen (`clickOnlyVerb`).
  *
  * IT IS ONLY THE KNOBS VIEW'S. On the chain view the jog moves CHAIN SLOTS, not
  * pages (`chain-view.ts` argues this at length), so a `JOG PAGE` pill there
@@ -55,7 +56,7 @@
  */
 import type { SchwungLib } from './schwung-lib.js';
 import { fitHeldHeader } from './held-header-fit.js';
-import { isFileParam } from './schwung-file-param.js';
+import { clickOnlyVerb } from './schwung-file-param.js';
 
 export interface PageHeader {
     left: string;
@@ -166,10 +167,11 @@ export function pageFooterFor(ctl: any, lib: SchwungLib): [string, string][] | n
     }
 
     /* The page set is not in question here — the jog pages, as it does with
-     * no knob held — so the one pair is the click, and only for a file. */
+     * no knob held — so the one pair is the click, and only where it is the
+     * only way in (a file or a canvas). */
     const held = ctl.state ? ctl.state.touched : -1;
-    const meta = held >= 0 && ctl.metaAt ? ctl.metaAt(held) : null;
-    return meta && meta.divable && isFileParam(meta) ? [['CLK', 'BROWSE']] : null;
+    const verb = clickOnlyVerb(held >= 0 && ctl.metaAt ? ctl.metaAt(held) : null);
+    return verb ? [['CLK', verb]] : null;
 }
 
 /**

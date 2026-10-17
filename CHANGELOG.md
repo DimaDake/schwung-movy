@@ -13,6 +13,25 @@ far. Earlier work is summarised in the timeline below for context.
 
 ## [Unreleased]
 
+### Fixed
+
+- **Modules follow Movy's transport.** Play, Stop and MIDI clock now reach
+  every chain (tracks, sends, master), as Schwung delivers them to its slots.
+  Before, Movy dropped them, so a clock-driven module such as Breakbeat
+  free-ran on its own tempo, ignored Stop, and its phrase/fill/retrigger logic
+  never lined up with the bar. Engine 0.100.0.
+- **Modules read Movy's tempo, not Move's.** A module asking for Move's set
+  settings (`move_info`, e.g. Breakbeat, TinyK) got whatever Schwung last
+  published — Move's tempo, frozen. movy-host now answers with Movy's tempo,
+  transport, song position and metronome.
+- **Canvas knobs say how to open them.** A knob that opens a module's own
+  screen (Breakbeat Status / Edit A / Edit B, DR32 ENGN) does not turn, so it
+  read as dead; held, it now shows `CLK OPEN`, as a file knob shows
+  `CLK BROWSE`.
+- **Live module screens update.** A module screen declaring live values
+  (`fullscreen_live_ms`) now receives them, as on Schwung — Breakbeat's
+  playback status no longer freezes on the frame it opened with.
+
 ### Added
 
 - **Settings → CLICK VOLUME** (knob 1) raises the metronome from the default

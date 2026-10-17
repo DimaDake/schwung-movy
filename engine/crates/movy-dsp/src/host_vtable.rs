@@ -52,6 +52,16 @@ pub fn publish_clock(bpm: f32, beat: Option<f64>) {
     RUNNING.store(beat.is_some(), Ordering::Relaxed);
 }
 
+/// The clock as last published: (bpm, beat or < 0 while stopped, running).
+/// For `move_info`, which reports the same transport in Move's own struct.
+pub(crate) fn clock_now() -> (f32, f64, bool) {
+    (
+        f32::from_bits(BPM_BITS.load(Ordering::Relaxed)),
+        f64::from_bits(BEAT_BITS.load(Ordering::Relaxed)),
+        RUNNING.load(Ordering::Relaxed),
+    )
+}
+
 unsafe extern "C" fn clock_bpm() -> f32 {
     f32::from_bits(BPM_BITS.load(Ordering::Relaxed))
 }
@@ -155,6 +165,11 @@ fn synthesise(raw: *const host_api_v1_t) -> host_api_v1_t {
     copy
 }
 
+/// Held by every test that publishes the clock: the statics are process-wide
+/// and cargo runs tests on parallel threads (`move_info` reads them too).
+#[cfg(test)]
+pub(crate) static CLOCK_TEST_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -172,10 +187,12 @@ mod tests {
         h
     }
 
-    /* One test, because the clock statics are process-wide and cargo runs
-     * tests on parallel threads: two tests publishing would race each other. */
+    /* One test, and under CLOCK_TEST_LOCK, because the clock statics are
+     * process-wide and cargo runs tests on parallel threads: two tests
+     * publishing would race each other. */
     #[test]
     fn synthesised_vtable_answers_from_movys_clock_not_the_hosts() {
+        let _clock = CLOCK_TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
         let host = fake_host();
         let v = synthesise(&host);
         assert_eq!(v.sample_rate, 44100, "plain fields are the host's");

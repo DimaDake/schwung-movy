@@ -15,7 +15,7 @@ use crate::chain_digest::{ChainDigest, STIMULUS};
 use crate::chain_host::{ChainHost, ChainInstance};
 use crate::chain_idle::{IdleGate, Work};
 use crate::chain_pin::PinPolicy;
-use crate::ffi::MOVE_MIDI_SOURCE_INTERNAL;
+use crate::ffi::{MOVE_MIDI_SOURCE_EXTERNAL, MOVE_MIDI_SOURCE_INTERNAL};
 use crate::host;
 use crate::load_queue::{LoadQueue, LoadRequest};
 use crate::master_chain::{fx_position, key_allowed, MasterChain, IMPORT_MARK, MASTER_FX};
@@ -1185,6 +1185,37 @@ impl ChainSlots {
         }
     }
 
+    /// One system realtime byte (0xFA / 0xFB / 0xF8 / 0xFC) to EVERY loaded
+    /// chain — tracks, send buses and the master — as schwung's shim does for
+    /// its slots (`shadow_chain_broadcast_realtime`). The chain host derives
+    /// each module's `get_clock_status` from these bytes, and clock-driven
+    /// modules (breakbeat's slicer, arps, synced MIDI FX) step on the 0xF8
+    /// itself, so without them a module free-runs or never starts.
+    ///
+    /// A clock tick does NOT wake a sleeping chain: at 24 PPQN that would hold
+    /// every chain awake for as long as the transport runs and undo the idle
+    /// skip. The probe render still finds a module that started sounding.
+    /// Start and Continue do wake, once, so a clock-driven module is rendering
+    /// on its downbeat rather than up to a probe period late.
+    pub fn broadcast_realtime(&mut self, status: u8) {
+        let msg = [status];
+        let wake = status == 0xFA || status == 0xFB;
+        for slot in 0..MOVY_CHAINS {
+            if let Some(inst) = self.slots[slot].as_mut() {
+                inst.on_midi(&msg, MOVE_MIDI_SOURCE_EXTERNAL);
+                if wake {
+                    self.idle.wake(slot);
+                }
+            }
+        }
+        for inst in self.send_slots.iter_mut().flatten() {
+            inst.on_midi(&msg, MOVE_MIDI_SOURCE_EXTERNAL);
+        }
+        if let Some(inst) = self.master.inst.as_mut() {
+            inst.on_midi(&msg, MOVE_MIDI_SOURCE_EXTERNAL);
+        }
+    }
+
     /// Render every loaded chain and sum into `out`.
     ///
     /// `out` already holds movy's own contribution (the metronome click), so
@@ -2146,6 +2177,64 @@ mod tests {
         slots.digest_arm(64);
         assert!(slots.digest_report().starts_with("state=armed window=64 "),
             "{}", slots.digest_report());
+    }
+
+    /* Every on_midi a fake chain receives, as (instance tag, byte). The tag is
+     * the instance pointer, which the fake never dereferences. */
+    static RT_SEEN: std::sync::Mutex<Vec<(usize, u8)>> = std::sync::Mutex::new(Vec::new());
+
+    unsafe extern "C" fn fake_rt_on_midi(inst: *mut c_void, msg: *const u8, len: c_int, _src: c_int) {
+        if len == 1 {
+            RT_SEEN.lock().unwrap().push((inst as usize, unsafe { *msg }));
+        }
+    }
+
+    fn rt_chain(api: &'static plugin_api_v2_t, tag: usize) -> ChainInstance {
+        let mut c = ChainInstance::for_test(api);
+        c.set_inst_for_test(tag as *mut c_void);
+        c
+    }
+
+    /* The transport reached no chain at all (drain_out dropped Start/Clock/
+     * Stop), so a clock-driven module like breakbeat free-ran on the chain
+     * host's UNAVAILABLE status. Remove the broadcast and every chain hears
+     * nothing. */
+    #[test]
+    fn the_transport_reaches_every_chain_and_only_a_start_wakes() {
+        let api: &'static plugin_api_v2_t = Box::leak(Box::new(plugin_api_v2_t {
+            api_version: 2,
+            create_instance: None,
+            destroy_instance: None,
+            on_midi: Some(fake_rt_on_midi),
+            set_param: None,
+            get_param: None,
+            get_error: None,
+            render_block: None,
+        }));
+        let mut slots = ChainSlots::new();
+        slots.slots[2] = Some(rt_chain(api, 0x100));
+        slots.send_slots[1] = Some(rt_chain(api, 0x200));
+        slots.master.inst = Some(rt_chain(api, 0x300));
+
+        /* Put track 2 to sleep, then tick: a clock must reach it asleep. */
+        for _ in 0..crate::chain_idle::SLEEP_AFTER + 1 {
+            let w = slots.idle.plan(2);
+            slots.idle.observe(2, w, 0, 0, false);
+        }
+        assert!(slots.idle.deep_asleep(2), "precondition: the chain sleeps");
+
+        RT_SEEN.lock().unwrap().clear();
+        slots.broadcast_realtime(0xF8);
+        assert!(slots.idle.deep_asleep(2), "a clock tick must not wake a sleeping chain");
+        slots.broadcast_realtime(0xFA);
+        assert!(!slots.idle.deep_asleep(2), "a start wakes it for its downbeat");
+        slots.broadcast_realtime(0xFC);
+
+        let seen = RT_SEEN.lock().unwrap().clone();
+        for tag in [0x100, 0x200, 0x300] {
+            let bytes: Vec<u8> = seen.iter().filter(|(t, _)| *t == tag).map(|(_, b)| *b).collect();
+            assert_eq!(bytes, vec![0xF8, 0xFA, 0xFC], "chain {tag:#x} heard the whole transport");
+        }
     }
 
     /// The whole point, stated as a property: nothing that skipped its render

@@ -22,6 +22,7 @@ import { loadOverlay, moduleFilePath, splitSpec } from './schwung-canvas.js';
 import { fontPrint, fontWidth } from '../font/index.js';
 import { appState } from '../app/state.js';
 import { W } from './layout.js';
+import { liveCycleFor, stepLive, type LiveCycle } from './schwung-canvas-live.js';
 
 const H = 64;
 const CC_JOG = 14, CC_CLICK = 3;
@@ -40,7 +41,7 @@ export interface CanvasDiveHost {
 interface Dive {
     key: string; meta: any; host: CanvasDiveHost;
     ov: any; dead: boolean; closeWanted: boolean; error: string;
-    ctx: any; drawCtx: any;
+    ctx: any; drawCtx: any; live: LiveCycle | null;
 }
 
 let dive: Dive | null = null;
@@ -122,7 +123,7 @@ export function openCanvasDive(key: string, meta: any, host: CanvasDiveHost): bo
     const sk = `${host.owner}|${path}|${spec.ref}`;
     if (!states.has(sk)) states.set(sk, {});
     const d: Dive = { key, meta, host, ov: null, dead: false, closeWanted: false,
-                      error: '', ctx: null, drawCtx: null };
+                      error: '', ctx: null, drawCtx: null, live: liveCycleFor(meta) };
     d.ov = path ? loadOverlay(path, spec.ref) : null;
     if (!d.ov) d.error = path ? 'No module canvas overlay' : 'No canvas script found';
     d.ctx = makeCtx(d, states.get(sk)!);
@@ -173,7 +174,18 @@ export function canvasDivePad(note: number, velocity: number): void {
     if (dive && dive.ov && dive.ov.wantsPads) canvasDiveMidi([0x90, note, velocity]);
 }
 
-export function tickCanvasDive(): void { if (dive) { hook('tick'); settle(); } }
+export function tickCanvasDive(): void {
+    const d = dive;
+    if (!d) return;
+    /* Nothing is read for a script that cannot take the answer, as upstream. */
+    if (d.live && !d.dead && d.ov && typeof d.ov.onValues === 'function') {
+        const now = Date.now();
+        const values = stepLive(d.live, d.host.read, now);
+        if (values) hook('onValues', { values, nowMs: now });
+    }
+    hook('tick');
+    settle();
+}
 
 export function renderCanvasDive(): void {
     const d = dive;

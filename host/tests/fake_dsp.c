@@ -8,3 +8,6 @@ static void *create(const char *dir, const char *defaults) { (void)dir; (void)de
 static void render(void *inst, int16_t *out, int frames) { (void)inst; for (int i = 0; i < frames * 2; i++) out[i] += 1; }
 static plugin_api_v2_t api = { .api_version = 2, .create_instance = create, .render_block = render };
 plugin_api_v2_t *move_plugin_init_v2(const host_api_v1_t *host) { (void)host; return &api; }
+
+/* The engine's move_info export: a marker byte the test can recognise. */
+int movy_move_info(void *out, size_t cap) { if (cap) *(unsigned char *)out = 0x4D; return 1; }

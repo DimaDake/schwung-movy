@@ -8,6 +8,7 @@ mod pad_latency;
 mod ffi;
 mod host;
 mod host_vtable;
+mod move_info;
 mod chain_copy;
 mod chain_doc;
 mod chain_cost;
@@ -136,7 +137,7 @@ pub(crate) fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.99.0";
+const ENGINE_VERSION: &str = "0.100.0";
 
 /* Blocks between autosaves. The callback runs at ~344 Hz, so this is ~2 s —
  * flash on this device is not free and the sequencer is dirty constantly while
@@ -755,10 +756,12 @@ impl Instance {
                         self.chains.apply_lane(c, lane, val);
                     }
                 }
-                /* The transport's own clock. It went to schwung's slots, which
-                 * movy-host does not have; MIDI clock out on USB-A would be its
-                 * destination (plan C-opt). */
-                OutEvent::Start | OutEvent::Stop | OutEvent::Clock => {}
+                /* The transport's own clock, to every chain — the bytes
+                 * schwung's shim broadcast to its slots, and what the chain
+                 * host's clock status and clock-driven modules run on. */
+                OutEvent::Start => self.chains.broadcast_realtime(0xFA),
+                OutEvent::Clock => self.chains.broadcast_realtime(0xF8),
+                OutEvent::Stop => self.chains.broadcast_realtime(0xFC),
             }
         }
         self.out.clear();
@@ -861,6 +864,7 @@ impl Instance {
             self.engine.clock.bpm_x100() as f32 / 100.0,
             self.engine.beat_position(),
         );
+        move_info::publish_metronome(self.engine.metronome);
         self.drain_out();
         self.click.render(out_audio);
         /* At most ONE queued module load per block. This is the blocking call —

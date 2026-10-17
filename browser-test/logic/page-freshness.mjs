@@ -295,6 +295,23 @@ _log('\nTest: SP-48 — a stream is capped, a transition never is');
     eq('inside the third is refused too', cap(STREAM, t0 + 2 * c + 1), false);
 }
 
+_log('\nTest: a module-drawn page is redrawn at the canvas frame rate');
+{
+    /* Pixel Walkers: an `as_page` canvas animates off `nowMs` alone, so with
+     * nothing moving in the store it got one frame and froze. THE TEETH:
+     * dropping the `a.canvas` branch turns every `true` below false. */
+    const { createRepaintCap, REPAINT_CAP_MS, CANVAS_FRAME_MS: f } =
+        await import('../../dist/esm/app/repaint-cap.js');
+    const CANVAS = { moving: false, streaming: false, canvas: true };
+    const cap = createRepaintCap(REPAINT_CAP_MS, f);
+    ok('the canvas rate is a real frame rate, faster than a stream', f > 0 && f < REPAINT_CAP_MS);
+    const t0 = 1e6;
+    eq('a canvas page asks with nothing moving', cap(CANVAS, t0), true);
+    eq('...not again inside one frame', cap(CANVAS, t0 + 1), false);
+    eq('...and again every frame after', [1, 2, 3, 4].map((n) => cap(CANVAS, t0 + n * f)).every(Boolean), true);
+    eq('a stream on a canvas page rides the canvas frames', cap({ ...CANVAS, streaming: true }, t0 + 4 * f + 1), false);
+}
+
 {
     /* Integration level: proves `pollDrawnPage` actually calls the cap — that
      * a regression in the WIRING (someone reads `page.animating()` as a

@@ -16,8 +16,9 @@
 import type { SchwungLib } from './schwung-lib.js';
 
 /** What the drawn page's animation store says this tick: a one-shot
- *  transition in flight (`moving`), or a key that never rests (`streaming`). */
-export interface AnimActivity { moving: boolean; streaming: boolean }
+ *  transition in flight (`moving`), a key that never rests (`streaming`), or
+ *  a page the MODULE paints (`canvas`) — see `animating` below. */
+export interface AnimActivity { moving: boolean; streaming: boolean; canvas?: boolean }
 
 export const STILL: AnimActivity = Object.freeze({ moving: false, streaming: false });
 
@@ -53,6 +54,14 @@ export function createPageAnimating(
          * feeds, so this and the renderer's own observation are the same map
          * read by the same rule — movy never builds the store, only asks it. */
         const a: AnimActivity = activity ? activity(ctl.state && ctl.state.anim, nowMs) : STILL;
+        /* A MODULE-DRAWN PAGE (`as_page` canvas). Its `drawPage` animates
+         * off the `nowMs` each draw hands it (Pixel Walkers steps its walkers
+         * between DSP snapshots) and writes nothing to the store, so no value,
+         * identity or store entry ever asks for its next frame: it drew once
+         * and froze. Upstream redraws such a page every tick; asked of the
+         * PLAN rather than of any one module, so every canvas page gets it.
+         * The bang below needs no answer here: the canvas cadence redraws it. */
+        if (ctl.page && ctl.page.canvas) return { moving: a.moving, streaming: a.streaming, canvas: true };
         if (a.moving) return a;
         /* 2. THE TRIGGER BANG, which is time-driven the same way and has no
          * value change to announce it — a one-shot, so it is `moving`. The list

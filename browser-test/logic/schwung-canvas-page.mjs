@@ -116,6 +116,15 @@ _log('\nTest: an as_page canvas that is also the preset browser draws the module
     eq('it is redrawn every frame so it can animate', calls.length, 6);
     eq('...from ONE evaluation of the script', loads, 1);
     ok('movy’s own globals survived the evaluation', typeof globalThis.canvas_overlay === 'undefined');
+
+    /* ...but only if the repaint decision ASKS for those frames: nothing in
+     * the store moves for a module-drawn page, so it froze on device (Pixel
+     * Walkers). Asked of the plan, so any canvas page answers. */
+    eq('the canvas page asks for clock frames', pg.animating(Date.now()).canvas, true);
+    const knobIdx = pg.ctl.pages.findIndex((p) => !p.canvas);
+    ok('the level also has a knob page', knobIdx >= 0);
+    pg.goToPage(knobIdx);
+    ok('...and a knob page does not', !pg.animating(Date.now()).canvas);
 }
 
 _log('\nTest: a module-drawn preset browser with knobs — knob 1 is the knob, not the preset');

@@ -20,14 +20,25 @@
 import type { AnimActivity } from '../renderer/schwung-page-anim.js';
 
 export const REPAINT_CAP_MS = 200;  // a stream redraws at 5Hz
+/* A module-drawn page animates off the clock alone, so it needs a real frame
+ * rate — 5 Hz stutters Pixel Walkers' 70 ms walk cycle. Capped rather than
+ * every tick because the tick runs up to ~200 Hz and the display gains nothing
+ * past ~30. */
+export const CANVAS_FRAME_MS = 33;
 
-export function createRepaintCap(capMs = REPAINT_CAP_MS) {
+export function createRepaintCap(capMs = REPAINT_CAP_MS, canvasMs = CANVAS_FRAME_MS) {
     let lastFrame = -Infinity;   // last tick this cap let a STREAM through
+    let lastCanvas = -Infinity;  // ...and a canvas page's clock frame
 
     /** Returns whether THIS predicate alone should ask for a frame. `now` is
      *  the caller's clock (movy's Date.now(), or a synthetic one in tests). */
     return function repaintCap(a: AnimActivity, now: number): boolean {
         if (a.moving) return true;
+        if (a.canvas && now - lastCanvas >= canvasMs) {
+            /* The frame redraws the whole page, streams included. */
+            lastCanvas = lastFrame = now;
+            return true;
+        }
         if (!a.streaming) return false;
         if (now - lastFrame < capMs) return false;
         lastFrame = now;

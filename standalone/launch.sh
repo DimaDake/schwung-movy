@@ -78,25 +78,35 @@ if [ "$DOOR" = boot ]; then
     exec /opt/move/MoveOriginal
 fi
 
+# Tools door from here on. Not /dev/shm/movy-*: movy-host sweeps that prefix
+# as stale at start.
+SHM=${MOVY_SHM:-/dev/shm}   # overridable for selftest/standalone-hold.mjs
+# ableton's whatever uid we run as: /dev/shm is sticky, and a root-owned file
+# there could not be removed by a later ableton launcher (a stale "go").
+own() { chmod 666 "$1" 2>/dev/null; [ "$(id -u)" = 0 ] && chown ableton:users "$1"; }
+
+# A Tools session ends back in Schwung. launch-standalone.sh restarts Move
+# THROUGH the boot selector, which boots the default target — movy, when the
+# user made it the default — so a close from Tools came straight back into
+# movy. boot-entry.sh consumes this one-shot marker and hands over to Schwung
+# instead. Written now, not on exit: this shell execs movy-host, and a crash
+# must return to Schwung too. /dev/shm, so a real reboot never sees it.
+: >"$SHM/.movy-return"; own "$SHM/.movy-return"
+
 # Harness mode only: a clean close does not go back to Move. It HOLDS instead, with SPI free and Move still down, until the
 # harness writes "go" (open again: ~0.5 s) or "quit" (back to Move) into
 # $CMD. Every close/open pair otherwise costs a Move restart and a kill sweep
 # (WP7 T1: reselect 280 s against ~70 s on overtake). Bounded, so a harness
 # that died mid-run still gives the device back. A lock loser (rc 1) and a
 # floor refusal (rc 2) never hold: neither is a session of ours.
-# Not /dev/shm/movy-*: movy-host sweeps that prefix as stale at start.
 # The test bus flag lives in /dev/shm, never in the module dir: there it
 # outlived the run that made it, so a user's next launch held after "Close
 # Movy" (dark screen, LEDs on, no Move for 5 min) and the power button dry-ran.
 # A reboot now clears it, and the harness removes it when it is done.
-SHM=${MOVY_SHM:-/dev/shm}   # overridable for selftest/standalone-hold.mjs
 PIDF=$SHM/.movy-launcher HOLD=$SHM/.movy-hold CMD=$SHM/.movy-cmd
 TESTBUS=$SHM/.movy-testbus
 HOLD_S=${MOVY_HOLD_S:-300}
 if [ ! -e "$TESTBUS" ]; then exec "$DIR/movy-host"; fi
-# ableton's whatever uid we run as: /dev/shm is sticky, and a root-owned file
-# there could not be removed by a later ableton launcher (a stale "go").
-own() { chmod 666 "$1" 2>/dev/null; [ "$(id -u)" = 0 ] && chown ableton:users "$1"; }
 rm -f "$HOLD" "$CMD"
 echo $$ >"$PIDF"; own "$PIDF"
 while :; do

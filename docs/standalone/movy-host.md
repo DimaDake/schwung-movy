@@ -121,7 +121,7 @@ names: the engine is the host's to choose.
 |---|---|---|
 | chain | `launch-standalone.sh` → `standalone` | selector → `boot-entry.sh` → `standalone --boot` → **exec** `movy-host --boot` |
 | uid | the stack's (ableton; root after the dev restart) | ableton |
-| quit (rc 0, UI error 3, hard exit 4, crash) | movy-host exits; launch-standalone.sh restarts Move | movy-host **execs** `schwung-entry.sh` (then `/opt/move/Move`, then `MoveOriginal`, each only if the earlier is missing) |
+| quit (rc 0, UI error 3, hard exit 4, crash) | movy-host exits; launch-standalone.sh restarts Move through the selector, and `boot-entry.sh` consumes the one-shot `/dev/shm/.movy-return` the Tools door wrote and execs `schwung-entry.sh` (else a default of `movy` booted movy again) | movy-host **execs** `schwung-entry.sh` (then `/opt/move/Move`, then `MoveOriginal`, each only if the earlier is missing) |
 | stop (SIGTERM/SIGINT → rc 5) | exits | exits — a stop must never start Schwung |
 
 Why movy-host, not the shell, owns the boot exit:

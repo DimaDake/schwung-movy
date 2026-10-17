@@ -86,8 +86,9 @@ There are two ways in:
 
 **Leaving.** **Back** at the top level opens **Leave Movy?** with one choice,
 **Close Movy**: turn the jog wheel to it and click. Movy saves the Set first.
-Opened from the Tools menu, Move comes back; opened at power-on, Schwung starts
-(not the boot picker, so leaving never drops you straight back into Movy).
+Either way you land in Move with Schwung, never straight back in Movy, even
+when Movy is your power-on default. Opened from the Tools menu, the screen shows
+`Loading Movy` for about 2 seconds on the way out, then Move starts.
 
 ![Leave Movy](docs/assets/leave_modal.png)
 

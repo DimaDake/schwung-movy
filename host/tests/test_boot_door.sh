@@ -58,6 +58,23 @@ check "an inherited DOOR=boot is inert (got '$got')" test "$got" = "args:"
 MOVY_SHM="$T/shm" "$T/mod/standalone" --bogus; rc=$?
 check "an unknown argument is refused, not guessed (rc $rc)" test "$rc" = 2
 
+# ---- a Tools session returns to Schwung, not to the default boot target ----
+# launch-standalone.sh restarts Move THROUGH the selector, which boots the
+# default (movy): a close from Tools came straight back into movy. The Tools
+# door leaves a one-shot marker; the boot door consumes it and hands over.
+printf '#!/bin/sh\necho "schwung" > "%s/ran"\n' "$T" > "$T/schwung-entry"; chmod +x "$T/schwung-entry"
+boot() { SCHWUNG_ENTRY="$T/schwung-entry" MOVY_SHM="$T/shm" "$T/mod/boot-entry.sh"; }
+rm -f "$T/shm/.movy-return"
+MOVY_SHM="$T/shm" "$T/mod/standalone" --boot; args >/dev/null
+check "the boot door leaves no return marker" test ! -e "$T/shm/.movy-return"
+MOVY_SHM="$T/shm" "$T/mod/standalone"; args >/dev/null
+check "the Tools door leaves a return marker" test -e "$T/shm/.movy-return"
+boot; got=$(args)
+check "the selector run after a Tools close -> Schwung (got '$got')" test "$got" = "schwung"
+check "...and the marker is consumed" test ! -e "$T/shm/.movy-return"
+boot; got=$(args)
+check "the next boot -> movy-host --boot again (got '$got')" test "$got" = "args:--boot"
+
 # ---- controls: the absence checks can fire ----
 printf 'export DOOR=boot\n' > "$T/c1"; code "$T/c1" | grep -qE 'export[[:space:]]+DOOR' \
     && ok "control: an exported door IS detected" || bad "control: the export check is inert"

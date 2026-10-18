@@ -18,12 +18,13 @@ static const int POWER[4][4] = {
 
 static int g_stage, g_shift, g_vol_touch;
 static int g_power, g_ack;
+static uint8_t g_status;   /* the last 3A bitfield: a press is the button bit's rising edge */
 static uint64_t g_fallback_at;
 
 void surface_keys_reset(void) {
     g_stage = g_shift = g_vol_touch = 0;
     __atomic_store_n(&g_power, 0, __ATOMIC_RELAXED);
-    g_ack = 0;
+    g_ack = g_status = 0;
     __atomic_store_n(&g_fallback_at, 0, __ATOMIC_RELAXED);
 }
 
@@ -41,7 +42,7 @@ static int matches(const uint8_t pkt[4], int stage) {
  * was broken up. */
 static mh_log_limit_t g_power_lim, g_status_lim;
 static uint8_t g_cmd[3];
-#define POWER_ID_BUTTON 0x07
+#define STATUS_BUTTON 0x08
 
 static void log_broken(const uint8_t pkt[4], uint64_t now_ms) {
     if (mh_log_limit(&g_power_lim, now_ms, 8))
@@ -53,12 +54,16 @@ static void power_feed(const uint8_t pkt[4], uint64_t now_ms) {
         if (g_stage == 2) memcpy(g_cmd, pkt + 1, 3);
         if (++g_stage == 4) {
             g_stage = 0;
-            /* 3A is a system-status report, not only the button: id 07 is the button, id 00 the
-             * battery percentage (with a cable-14 CC 0 twin), sent every few minutes, which opened
-             * the power dialog on an idle device. Every report is still answered: the replies
-             * kept the battery reports coming for days, and silence is what stops the button. */
+            /* 3A is a system-status report: byte 2 is a bitfield (08 = power button held; 10, 20,
+             * 01 follow the power source), byte 3 the battery percentage. It is re-sent on every
+             * change, battery drops included (with a cable-14 CC 0 twin), so a press is the
+             * button bit going up, not any report: the bit stays set through a battery report
+             * mid-hold, and other bits stay set through a tap (29 -> 21 while charging). Every
+             * report is still answered: silence is what stops the button. */
             g_ack++;
-            if (g_cmd[1] == POWER_ID_BUTTON) {
+            uint8_t was = g_status;
+            g_status = g_cmd[1];
+            if ((g_status & STATUS_BUTTON) && !(was & STATUS_BUTTON)) {
                 int n = __atomic_add_fetch(&g_power, 1, __ATOMIC_RELEASE);
                 mh_log("power button: SysEx cmd %02x id %02x val %02x (%d untaken)", g_cmd[0], g_cmd[1], g_cmd[2], n);
             } else if (mh_log_limit(&g_status_lim, now_ms, 8)) {

@@ -232,25 +232,36 @@ static void test_bulk(void) {
 }
 
 static void feed(uint8_t a, uint8_t b, uint8_t c, uint8_t d) { uint8_t p[4] = { a, b, c, d }; surface_keys_feed(p, 1000); }
-static void power_sysex(uint8_t cmd) {
-    feed(0x04, 0xF0, 0x00, 0x21); feed(0x04, 0x1D, 0x01, 0x01); feed(0x04, cmd, 0x07, 0x7F); feed(0x06, 0x00, 0xF7, 0x00);
+static void status_sysex(uint8_t cmd, uint8_t bits, uint8_t battery) {
+    feed(0x04, 0xF0, 0x00, 0x21); feed(0x04, 0x1D, 0x01, 0x01); feed(0x04, cmd, bits, battery); feed(0x06, 0x00, 0xF7, 0x00);
 }
+static void power_sysex(uint8_t cmd) { status_sysex(cmd, 0x08, 0x60); status_sysex(cmd, 0x00, 0x60); }
 
 static void test_surface_keys(void) {
     surface_keys_reset();
     power_sysex(0x3A);
-    CHECK(surface_power_take() == 1, "a power-button hold is one event");
+    CHECK(surface_power_take() == 1, "a power-button tap (bit 08 set, then clear) is one event");
     CHECK(surface_power_take() == 0, "taken once");
-    CHECK(surface_power_ack_take() == 1 && surface_power_ack_take() == 0, "each power event is owed exactly one reply");
+    CHECK(surface_power_ack_take() == 2 && surface_power_ack_take() == 0, "each report is owed exactly one reply");
     power_sysex(0x3B);   /* the LED SysEx's command byte: not the button */
     CHECK(surface_power_take() == 0, "another SysEx with the same head is not the button");
     CHECK(surface_power_ack_take() == 0, "and is not answered");
     /* Captured on an idle device: the battery report (99%) shares the button's 3A command. */
-    feed(0x04, 0xF0, 0x00, 0x21); feed(0x04, 0x1D, 0x01, 0x01); feed(0x04, 0x3A, 0x00, 0x63); feed(0x06, 0x00, 0xF7, 0x00);
-    CHECK(surface_power_take() == 0, "a battery report (3A id 00) is not a button press");
+    status_sysex(0x3A, 0x00, 0x63);
+    CHECK(surface_power_take() == 0, "a battery report (3A bits 00) is not a button press");
     CHECK(surface_power_ack_take() == 1, "but is still answered");
+    /* Captured taps (2026-10-18): byte 2 is a bitfield; the other bits (10, 20, 01: power
+     * source) stay set through the tap, 08 alone is the button. */
+    status_sysex(0x3A, 0x18, 0x5F); status_sysex(0x3A, 0x10, 0x5F);
+    status_sysex(0x3A, 0x29, 0x60); status_sysex(0x3A, 0x21, 0x60);
+    CHECK(surface_power_take() == 2, "the button bit counts whatever else is set");
+    status_sysex(0x3A, 0x02, 0x60); status_sysex(0x3A, 0x06, 0x5F); status_sysex(0x3A, 0x20, 0x5E);
+    CHECK(surface_power_take() == 0, "status changes without the button bit are not presses");
+    status_sysex(0x3A, 0x08, 0x60); status_sysex(0x3A, 0x08, 0x5F); status_sysex(0x3A, 0x00, 0x5F);
+    CHECK(surface_power_take() == 1, "a battery report during a hold is not a second press");
+    surface_power_ack_take();
     feed(0x04, 0xF0, 0x00, 0x21); feed(0x0B, 0xB0, 49, 127);   /* broken by a CC */
-    feed(0x04, 0x1D, 0x01, 0x01); feed(0x04, 0x3A, 0x07, 0x7F); feed(0x06, 0x00, 0xF7, 0x00);
+    feed(0x04, 0x1D, 0x01, 0x01); feed(0x04, 0x3A, 0x08, 0x60); feed(0x06, 0x00, 0xF7, 0x00);
     CHECK(surface_power_take() == 0, "a run broken by another event does not count");
     feed(0x04, 0xF0, 0x00, 0x21); power_sysex(0x3A);
     CHECK(surface_power_take() == 1, "a stray lead packet does not swallow the real run");

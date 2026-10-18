@@ -22,7 +22,10 @@ import * as fixture from '../fixture.js';
 import { until } from '../wait.js';
 import { cc, noteOn, CC_BACK, CC_JOG_CLICK, type Packet } from '../midi.js';
 
-const POWER: Packet[] = [[0x04, 0xF0, 0x00, 0x21], [0x04, 0x1D, 0x01, 0x01], [0x04, 0x3A, 0x07, 0x7F], [0x06, 0x00, 0xF7, 0x00]];
+/* The 3A status report as the hardware sends it for a tap (captured 2026-10-18): byte 2 is a
+ * bitfield, 08 = the button held, so a press is two reports, down then up. */
+const status = (bits: number): Packet[] => [[0x04, 0xF0, 0x00, 0x21], [0x04, 0x1D, 0x01, 0x01], [0x04, 0x3A, bits, 0x60], [0x06, 0x00, 0xF7, 0x00]];
+const POWER: Packet[] = [...status(0x08), ...status(0x00)];
 const SHIFT = 49, VOL_TOUCH = 8;
 
 scenario('power', async (t) => {
@@ -61,15 +64,16 @@ scenario('power', async (t) => {
 
     // ── P2: the power button asks ───────────────────────────────────────────
     /* Stock Move answers every power event with F0 00 21 1D 01 01 39 02 F7; without it the
-     * hardware reports the button once per launch and goes quiet. Two presses, two answers. */
+     * hardware reports the button once per launch and goes quiet. Two presses (down + up
+     * each), four answers. */
     const hb = t.tx.hostBus!;
     await hb.subscribeMidiOut();
     await hb.dumpMidiOut();
     await press();
     await press();
     const acks = (await hb.dumpMidiOut()).filter((e) => e.bytes[0] === 0x07 && e.bytes[1] === 0x39 && e.bytes[2] === 0x02 && e.bytes[3] === 0xF7);
-    t.check('power-ack', 'each power-button press is answered with the hardware SysEx 39 02',
-        acks.length === 2, { expected: '2 answers on the midi_out tap', actual: String(acks.length) });
+    t.check('power-ack', 'each power status report is answered with the hardware SysEx 39 02',
+        acks.length === 4, { expected: '4 answers on the midi_out tap', actual: String(acks.length) });
     await dev.tap.cc(CC_BACK);
     await t.tx.frames(20);
     await press();

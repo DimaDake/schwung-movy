@@ -40,7 +40,8 @@ const PRESETS = [
     'chain_t4', 'lfo_chain', 'mix_page_chain', 'master_send_slot', 'master_send_empty',
     'lfo_master_chain', 'lfo_assign_toast', 'file_browse',
     'step_indicator', 'step_rec_header', 'loop_strip_midclip', 'loop_strip_outside',
-    'loop_header', 'song_band', 'song_band_overflow', 'song_band_end',
+    'note_view_bass', 'note_view_chords', 'note_view_drums', 'note_view_plus', 'note_view_dense', 'note_view_wide',
+    'song_band', 'song_band_overflow', 'song_band_end',
     'quant-overlay-three', 'quant-overlay-two', 'flags-top', 'flags-scrolled',
     'cpu-movy-tracks', 'cpu-unsplit-module', 'cpu-overscale',
     'cpu-empty', 'cpu-sends', 'cpu-sends-quiet', 'cpu-master', 'leave_modal',
@@ -94,7 +95,9 @@ const BASE = {
     page_chrome_held: 'switches', page_chrome_flip: 'switches', page_chrome_file: 'wav_sample',
     step_indicator: 'test8',
     step_rec_header: 'test8',
-    loop_strip_midclip: 'test8', loop_strip_outside: 'test8', loop_header: 'test8',
+    loop_strip_midclip: 'test8', loop_strip_outside: 'test8',
+    note_view_bass: 'test8', note_view_chords: 'test8', note_view_drums: 'test8',
+    note_view_plus: 'test8', note_view_dense: 'test8', note_view_wide: 'test8',
                                 'quant-overlay-three': 'test8', 'quant-overlay-two': 'test8',
     'flags-top': 'test8', 'flags-scrolled': 'test8',
                                                                             lfo_chain: 'test8',         lfo_assign_toast: 'test8',
@@ -230,8 +233,10 @@ const { appState }                     = await import('../dist/esm/app/state.js'
 const { keyboardState }                = await import('../dist/esm/keyboard/state.js');
 const { resetStepRec, stepRecDownAt } = await import('../dist/esm/seq/step-rec.js');
 const { stepRecTick }      = await import('../dist/esm/seq/step-rec-view.js');
-const { drawSeqHeader, resetSeqHeader, drawLoopStrip, drawLoopHeader, drawSongBand, resetSongBand } =
+const { drawSeqHeader, resetSeqHeader, drawLoopStrip, drawSongBand, resetSongBand } =
     await import('../dist/esm/seq/render.js');
+const { noteViewTick, resetNoteView, seedNoteViewForTest } = await import('../dist/esm/seq/note-view.js');
+const { NOTE_VIEW_SCENES } = await import('./fixtures/note-view-scenes.mjs');
 const { MOCK_SYNTHS }      = await import('./mock-synth.mjs');
 const { fontPrint5x3, fontWidth5x3, FONT5_HEIGHT, CHARS5 } =
     await import('../dist/esm/font/index5x3.js');
@@ -688,16 +693,19 @@ function applyView(preset) {
             lastRender();
             break;
         }
-        case 'loop_header': {
-            // Loop mode over a live param page: readout band on top, strip below.
-            // The band replaces a 0.3s flash that left no indication of the window.
-            resetSeqState(); resetSeqHeader();
+        case 'note_view_bass': case 'note_view_chords': case 'note_view_drums':
+        case 'note_view_plus': case 'note_view_dense': case 'note_view_wide': {
+            // Loop mode's folded note view over the strip (seq/note-view.ts):
+            // the six cases of the approved mock.
+            const sc = NOTE_VIEW_SCENES[preset];
+            resetSeqState(); resetSeqHeader(); resetNoteView();
             seqState.loopMode = true;
-            seqState.loopStart = 32; seqState.lenSteps = 32; seqState.barOffset = 2;
-            lastRender = () => {
-                renderKnobsView(model.getViewModel());
-                drawLoopHeader(); drawLoopStrip();
-            };
+            seqState.loopStart = sc.loopStart; seqState.lenSteps = sc.lenSteps;
+            seqState.barOffset = sc.barOffset;
+            seqState.playing = true; seqState.posTick = sc.posTick;
+            seqState.noteHash = preset;
+            seedNoteViewForTest(sc.notes);
+            lastRender = () => { clear_screen(); noteViewTick(true); drawLoopStrip(); };
             lastRender();
             break;
         }

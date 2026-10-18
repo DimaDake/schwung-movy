@@ -91,9 +91,10 @@ import { stepPageState, stepPageAvailable } from '../seq/step-page.js';
 import { buildStepPageVM } from '../seq/step-page-vm.js';
 import { activeHasNote, maxBarOffset, seqState } from '../seq/state.js';
 import { engineReady } from '../seq/engine.js';
+import { noteViewActive, noteViewTick } from '../seq/note-view.js';
 import { perfProbeEnter, perfProbeTick, perfPhase, perfPhaseEnd } from './perf-probe.js';
 import {
-    drawLoopStrip, drawLoopHeader, drawSeqToast, drawSeqHeader, songBandTick,
+    drawLoopStrip, drawSeqToast, drawSeqHeader, songBandTick,
     seqToastActive, seqToastTick,
     seqHeaderActive, seqHeaderTick,
 } from '../seq/render.js';
@@ -818,6 +819,11 @@ function tickBody(): void {
                 jogToastShown = jogHintVisible() || !!(chrome && chrome.footer);
             }
             lightKnobRow(schwungBody);
+        } else if (noteViewActive()) {
+            /* Loop mode: the note view owns everything above the strip and is
+             * painted on the per-tick schedule below; the knobs are idle. */
+            clear_screen();
+            updateSingleKnobLED(-1, 0);
         } else if (appState.currentView === VIEW_KEYS) {
             renderKeysView(activeModel?.getModuleName() ?? '—', baseNoteFor(appState.activeTrack.index), midiNoteName);
         } else if (appState.currentView === VIEW_KNOBS) {
@@ -1058,10 +1064,10 @@ function tickBody(): void {
         || (!!schwungBody && !!drawnPageOwner.page && drawnPageOwner.page.claimsBottomBand());
     if (engineReady() && !seqToastActive() && !jogToastShown && !schwungBottom
         && !seqState.sessionMode && !isFullScreenView && !captureOverlayActive()) {
-        /* Loop mode's readout runs on the same per-tick schedule as the strip:
-         * both track state that moves without a dirty frame (bar navigation, the
-         * sweep). While it is up it supersedes the timed announcement. */
-        if (seqState.loopMode) drawLoopHeader();
+        /* The note view runs on the strip's per-tick schedule: both track state
+         * that moves without a dirty frame (bar navigation, the sweep, a take
+         * being recorded). */
+        if (noteViewActive()) noteViewTick(viewRepainted);
         drawLoopStrip();
     }
 

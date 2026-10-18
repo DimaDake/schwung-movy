@@ -1148,17 +1148,35 @@ stopped — which is exactly when you are looking at these.
 Whether a bar contains notes is deliberately *not* shown — in this view a bar's
 job is to tell you whether it plays. Press it to see its notes on the step row.
 
-**On screen**, a band names the window and the bar you are on, and the strip
-along the bottom draws one segment per bar of the loop — thick for the selected
-bar — with a line sweeping across at the play position:
+**On screen**, the clip's notes fill everything above the bar strip, like a
+folded piano roll: only the pitches the clip actually uses get a row (lowest at
+the bottom), so a four-note bassline gets four fat rows and a chord part as many
+rows as it has notes. Time runs left to right over exactly the bars of the strip
+below, so each bar of notes sits over its own segment, and a line sweeps across
+both at the play position. The knobs do nothing while the notes are up.
 
-![The Loop view](docs/assets/loop_header.png)
+![The Loop view](docs/assets/note_view_chords.png)
+
+When there are more notes than pixels, the view folds them rather than dropping
+any: with more than 30 pitches, neighbouring pitches share a row; every note
+keeps at least one pixel; and where several notes land on the same pixel the row
+is drawn **hatched** instead of solid, so a run of fast hi-hats never looks like
+one long note:
+
+![Sixteen bars of 16th hats](docs/assets/note_view_dense.png)
+
+Recording shows up live: a note you are still holding grows across the screen
+with the playhead, and when a first take auto-extends the clip, the view
+re-spreads itself over the new bars.
+
+The strip along the bottom draws one segment per bar of the loop — thick for
+the selected bar.
 
 Navigating past the end of the loop shows a **`+`** for the empty bar you have
 stepped into. Add a note there and it becomes part of the loop, so a part grows
 by simply playing into the next bar:
 
-![Navigated past the loop](docs/assets/loop_strip_outside.png)
+![Navigated past the loop](docs/assets/note_view_plus.png)
 
 ### Quantization
 
@@ -1792,7 +1810,7 @@ behaviour you'd like — or, better, a PR.
 | **Note / Session** | Show the Session clip grid (momentary hold = peek, tap = latch). Pads launch clips; step buttons select a track. Dim when idle, bright while Session view is up. |
 | **Hold Note/Session** *(Session latched)* | Open the **Session mixer**: 16 track faders with stereo meters. Knobs drive tracks 1-8 / 9-16, jog switches the page, release returns to Session. See [The Session mixer](#the-session-mixer). |
 | **Hold Note/Session + step** | Jump to that track (pads, screen, knobs) while the step row stays a track selector — keep tapping to keep switching. Releasing keeps the last track you picked. |
-| **Loop** | Toggle the bar selector; hold + jog resizes the loop. See [The Loop view](#the-loop-view). |
+| **Loop** | Toggle the bar selector and the note view (knobs idle); hold + jog resizes the loop. See [The Loop view](#the-loop-view). |
 | **Loop + bar** | Press one bar to view it, two to loop that range, double-tap for a 1-bar loop. |
 | **Loop + Step 1 / 3 / 5 / 7 / 9 / 11 / 13 / 15** | *(Session view)* **Scenes 1-8** — launch a whole clip column, or build a song. Loop is a modifier only there: it does not latch the bar selector. |
 | **Left / Right** | Navigate bars — the loop's own bars plus one empty bar past its end (or nudge held steps). |

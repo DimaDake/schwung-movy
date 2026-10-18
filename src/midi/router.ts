@@ -45,6 +45,7 @@ import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, 
 import { mainPageActive, mainPageRelease } from '../seq/main-page.js';
 import { mixerPageActive } from '../seq/mixer-page.js';
 import { mixerJog, mixerKnobTouch, mixerKnobTurn } from '../seq/mixer-input.js';
+import { noteViewActive } from '../seq/note-view.js';
 import { clipPageActive, clipPageRelease } from '../seq/clip-page.js';
 import { clickVolumeTurn } from '../seq/click-volume.js';
 import { backupsRowSelected, clickRowSelected, flagsPageActive, flagsPageJog, migrateRowSelected } from '../seq/flags-page.js';
@@ -322,6 +323,7 @@ export function onMidiMessageInternal(data: number[]): void {
         // page. (The other order let a step hold silently steer the knobs away
         // from the page on screen.)
         if (mixerPageActive()) { mixerKnobTouch(d1, d2 > 0); return; }
+        if (noteViewActive()) return;   // Loop mode's note view: knobs are idle
         if (mainPageActive()) {
             if (d1 < 8) {   // every knob on the page (3 is unused but harmless)
                 /* Same reasoning as Clip Params below: Set Params has no
@@ -589,6 +591,7 @@ export function onMidiMessageInternal(data: number[]): void {
         // Main/Clip Params first, for the same reason as the touch branch above:
         // the page on screen owns its knobs, whatever a step hold thinks.
         if (mixerPageActive()) { mixerKnobTurn(k, delta); return; }
+        if (noteViewActive()) return;
         if (mainPageActive()) {
             // 0 tempo, 1 swing, 3 quant, 4 root, 5 key, 6 mode, 7 layout.
             if (k < 8) {

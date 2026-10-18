@@ -303,6 +303,7 @@ function installGlobals(engine) {
             return v;
         }
         if (key === 'alabels') return engine.alabels;
+        if (key === 'notes') { engine.notesGets = (engine.notesGets ?? 0) + 1; return engine.notes ?? ''; }
         if (key === 'state') return engine.stateBlob;
         return null;
     };

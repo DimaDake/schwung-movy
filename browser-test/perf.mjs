@@ -234,6 +234,36 @@ _origLog('\nTest 5: sequencer perf budgets');
     check('loop strip fill_rect calls', fillRectCount, 40);
     _origLog(`    (strip: ${fillRectCount} fill_rect)`);
 
+    /* Loop-mode note view (seq/note-view.ts): a full paint is bounded by the
+     * runs, not by the note count, and a quiet tick touches only the playhead's
+     * two columns. The densest case is a 16-bar clip at MAX_NOTES (512). */
+    {
+        const { noteViewTick, resetNoteView, seedNoteViewForTest } = await import('../dist/esm/seq/note-view.js');
+        const { appState, VIEW_KNOBS } = await import('../dist/esm/app/state.js');
+        const notes = [];
+        for (let i = 0; i < 512; i++) notes.push({ tick: (i % 256) * 24, gate: 24, pitch: 30 + (i * 7) % 40 });
+        resetNoteView();
+        seqState.loopMode = true; appState.currentView = VIEW_KNOBS;
+        seqState.loopStart = 0; seqState.lenSteps = 256; seqState.barOffset = 0;
+        seqState.playing = true; seqState.posTick = 0; seqState.noteHash = 'perf';
+        seedNoteViewForTest(notes);
+        fillRectCount = 0;
+        const t0 = performance.now();
+        noteViewTick(true);
+        const fullMs = performance.now() - t0;
+        check('note view full paint fill_rect (512 notes, 40 rows)', fillRectCount, 450);
+        _origLog(`    (note view full paint: ${fillRectCount} fill_rect, ${fullMs.toFixed(2)} ms incl. layout)`);
+        fillRectCount = 0;
+        seqState.posTick = 24 * 9;
+        noteViewTick(false);
+        check('note view playhead tick fill_rect', fillRectCount, 40);
+        _origLog(`    (note view playhead move: ${fillRectCount} fill_rect)`);
+        fillRectCount = 0;
+        noteViewTick(false);
+        check('note view quiet tick fill_rect', fillRectCount, 0);
+        seqState.loopMode = false; resetNoteView();
+    }
+
     globalThis.host_module_set_param = oldSetSeq;
     globalThis.host_module_get_param = oldGetSeq;
     [globalThis.movy_engine_snapshot_seq, globalThis.movy_engine_snapshot] = oldSnap;

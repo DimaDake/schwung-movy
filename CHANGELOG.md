@@ -20,6 +20,13 @@ far. Earlier work is summarised in the timeline below for context.
   the jog switches the page, release returns to Session. Built as a Schwung
   custom page (header, page bar and held-knob toast are Schwung's); meters come
   from a new engine status field (`mtr`, ENGINE 0.101.0).
+- **Loop-mode note view.** While Loop mode is on, the screen above the bar strip
+  shows the clip's notes as a folded piano roll (only used pitches get a row,
+  bars aligned with the strip). Dense clips fold instead of dropping notes:
+  pitches share rows past 30, and pixels with several notes are hatched.
+  Recording shows live, including auto-extend. Knobs are idle in this view.
+  Replaces the Loop readout band. New engine status `nh=` + `notes` get
+  (ENGINE 0.102.0).
 
 ## [0.36.0] — 2026-10-17
 

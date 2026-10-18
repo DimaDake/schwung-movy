@@ -11,6 +11,8 @@ use crate::clock::Clock;
 use crate::track::{Track, CLIPS_PER_TRACK, LANES, NUM_TRACKS};
 use crate::{PPQN, STEPS_PER_BAR, TICKS_PER_BAR, TICKS_PER_STEP};
 
+mod note_view;
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum OutEvent {
     NoteOn { track: u8, pitch: u8, vel: u8 },
@@ -2491,7 +2493,7 @@ impl Engine {
         let htp = self.held_trig();
         let hlmax = self.held_max_gate();
         format!(
-            "play={} tick={} bpm={} ext={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} wpad={} hlen={} hnotes={} occ={} alanes={:08x} aauto={:08x} hauto={} hvel={} hgate={} hgmix={} hprob={} hcond={}:{} hinv={} hlmax={} swing={} csc={}/{} ctr={} quant={} dquant={} cap={}.{} song={}",
+            "play={} tick={} bpm={} ext={} trk={} step={} pos={} len={} lstart={} rec={} cin={} metro={} dirty={} sess={} act={} mute={} wpad={} hlen={} hnotes={} occ={} alanes={:08x} aauto={:08x} hauto={} hvel={} hgate={} hgmix={} hprob={} hcond={}:{} hinv={} hlmax={} swing={} csc={}/{} ctr={} quant={} dquant={} cap={}.{} song={} nh={:08x}",
             self.playing as u8,
             self.master_tick,
             self.clock.bpm_x100(),
@@ -2532,6 +2534,7 @@ impl Engine {
             self.capture.pending(self.watch_track as u8),
             self.capture_gen,
             self.song_state(),
+            self.note_view_hash(),
         )
     }
 

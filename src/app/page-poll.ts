@@ -45,6 +45,7 @@
  * so the two cannot drift.
  */
 
+import { noteViewActive } from '../seq/note-view.js';
 import { appState, VIEW_KNOBS, VIEW_CHAIN, VIEW_CLIP_PARAMS, VIEW_MAIN_PARAMS, VIEW_MIXER,
          VIEW_BROWSE, VIEW_FILE_BROWSE, VIEW_FLAGS, VIEW_VERSIONS, VIEW_CPU, VIEW_SETS } from './state.js';
 import { seqState } from '../seq/state.js';
@@ -79,7 +80,7 @@ import { createRepaintCap } from './repaint-cap.js';
  * screen; any other value is a leftover from before Session was opened.
  */
 export function moduleGridOnScreen(): boolean {
-    if (!sessionReady() || schwungEditorActive()) return false;
+    if (!sessionReady() || schwungEditorActive() || noteViewActive()) return false;
     if (appState.currentView === VIEW_CLIP_PARAMS || appState.currentView === VIEW_MAIN_PARAMS
         || appState.currentView === VIEW_MIXER) return true;
     if (seqState.sessionMode) return !SCREEN_OWNING_VIEWS.has(appState.currentView);

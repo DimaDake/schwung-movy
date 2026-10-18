@@ -154,6 +154,7 @@ export function parseStatus(s: string): void {
         else if (key === 'sess') sessionFromStr(val);
         else if (key === 'song') songFromStr(val);
         else if (key === 'occ') occFromHex(val);
+        else if (key === 'nh') seqState.noteHash = val;
         /* Reported on every status until the next no-op replaces it (the
          * snapshot is read every block, so the engine no longer drains it):
          * acted on once, when it changes. */

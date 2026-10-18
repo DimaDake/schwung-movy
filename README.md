@@ -111,6 +111,12 @@ Movy stands on the shoulders of several projects:
 
   ![An automated parameter](docs/assets/page_lane_mark.png)
 
+- **Loop-mode note view** — press **Loop** and the screen shows the clip's
+  notes as a Push-style folded piano roll lined up with the bar strip, live
+  while you record.
+
+  ![Loop-mode note view](docs/assets/note_view_chords.png)
+
 - **Scenes & Song mode** — hold **Loop** in Session view and the step row
   becomes eight **scenes**: each one launches a whole clip column across all 16
   tracks. Keep holding and press more scenes to build a looping **song**. A

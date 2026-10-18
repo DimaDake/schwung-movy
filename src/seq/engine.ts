@@ -22,6 +22,7 @@ import { pushClickVolume } from './click-volume.js';
 import { resetPadRoute, syncPadRoute } from '../track/pad-route.js';
 import { resetWatchPush, syncWatch } from './watch.js';
 import { parseStatus, resetEngineStatus } from './engine-status.js';
+import { resetNoteView } from './note-view.js';
 import { requestLabelSync } from './label-sync.js';
 
 export { parseStatusForTest, takeNoopSnapId } from './engine-status.js';
@@ -168,4 +169,5 @@ export function resetSeqEngine(): void {
     parseCountdown = 0;
     lastServed = -1;
     resetEngineStatus();
+    resetNoteView();
 }

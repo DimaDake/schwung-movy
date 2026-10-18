@@ -32,6 +32,7 @@ export interface SeqUiState {
     clipQuant: number;       // active clip quantization strength % (from `quant=`)
     defaultQuant: number;    // set-level quantization default % (from `dquant=`)
     occ: Uint8Array;         // 256-bit step occupancy bitmap
+    noteHash: string;        // digest of the watched clip's notes (`nh=`); '' = old engine
 
     /* loop mode */
     loopMode: boolean;       // step buttons show bars instead of steps
@@ -160,6 +161,7 @@ function defaults(): SeqUiState {
         defaultQuant: 0,
         occ: new Uint8Array(32),
         loopMode: false,
+        noteHash: '',
         trackSelectHold: false,
         recording: false,
         countingIn: false,

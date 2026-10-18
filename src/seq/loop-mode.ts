@@ -55,6 +55,7 @@ export function loopButton(down: boolean): void {
             seqHeaderAnnounce(loopPrev ? 'Loop' : 'Note');
         });
         seqState.loopMode = true;
+        appState.dirty = true;   // the note view takes the screen
         seqHeaderAnnounce('Loop');
     } else {
         held = false;

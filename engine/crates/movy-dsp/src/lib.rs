@@ -138,7 +138,7 @@ pub(crate) fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.101.0";
+const ENGINE_VERSION: &str = "0.102.0";
 
 /* Blocks between autosaves. The callback runs at ~344 Hz, so this is ~2 s —
  * flash on this device is not free and the sequencer is dirty constantly while
@@ -674,6 +674,8 @@ impl Instance {
             "probersp" => Some(self.probe_rsp.clone()),
             "capinfo" => Some(self.engine.capture_info()),
             "alabels" => Some(self.engine.auto_labels()),
+            /* Fetched only when status `nh=` moves (engine/note_view.rs). */
+            "notes" => Some(self.engine.note_view_list()),
             /* The lane BASES, in `alabels`' own shape. Read on the same
              * sync: the UI mirrors every base it sends, so this answers
              * only for the lanes it never sent — the ones a restored Set

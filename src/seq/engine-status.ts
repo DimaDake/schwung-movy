@@ -49,6 +49,7 @@ export function parseStatus(s: string): void {
      * the fields sends none of them, and last poll's numbers standing in for
      * this one is exactly the meter lying. */
     seqState.cpuCost = '';
+    seqState.mixMeter = '';
     seqState.cpuWall = '';
     seqState.cpuMask = '';
     seqState.cpuSend = '';
@@ -115,6 +116,7 @@ export function parseStatus(s: string): void {
         else if (key === 'chpend') seqState.chainPending = Number(val) || 0;
         else if (key === 'sbad') seqState.setBad = val === '-' ? '' : val;
         else if (key === 'chcost') seqState.cpuCost = val;
+        else if (key === 'mtr') seqState.mixMeter = val;
         else if (key === 'chwall') seqState.cpuWall = val;
         else if (key === 'chmask') seqState.cpuMask = val;
         else if (key === 'sndcost') seqState.cpuSend = val;

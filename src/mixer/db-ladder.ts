@@ -76,6 +76,10 @@ export function fracToAmp(frac: number, topDb: number): number {
 }
 
 export const volumeFrac = (amp: number): number => dbFrac(amp, DB_MAX);
+/** The fader's position for a level already in dB — `volumeFrac` without the
+ *  log, for the mixer meters, whose bytes arrive in dB. */
+export const volumeFracOfDb = (db: number): number =>
+    Math.min(1, Math.max(0, (db - DB_MIN) / (DB_MAX - DB_MIN)));
 export const UNITY_FRAC = volumeFrac(1);
 /** Ladder index → the same travel, for the slider the volume gesture draws. */
 export function idxToFrac(i: number): number { return volumeFrac(idxToAmp(i)); }

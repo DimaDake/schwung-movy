@@ -65,6 +65,9 @@ export interface SeqUiState {
      * Number()-ed at the 24 Hz poll is real work for a page that is closed
      * almost all the time, and three string assignments are not. */
     cpuCost: string;
+    /** The mixer page's `mtr` field, raw for the same reason as the CPU
+     *  meter: decoded only while the page draws (`mixer/meter.ts`). */
+    mixMeter: string;
     cpuWall: string;
     cpuMask: string;
     /* One entry per send bus: `-` for a bus with no module, else `mean/peak`
@@ -167,6 +170,7 @@ function defaults(): SeqUiState {
         chainPending: 0,
         setBad: '',
         cpuCost: '',
+        mixMeter: '',
         cpuWall: '',
         cpuMask: '',
         cpuSend: '',

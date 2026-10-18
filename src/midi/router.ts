@@ -43,6 +43,8 @@ import { currentSetUuid, sessionFailScope, sessionFlush, sessionPhase, sessionRe
 import { sessionStartFromScratch } from '../seq/set-fail.js';
 import { appState, trackIsDrum, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS } from '../app/state.js';
 import { mainPageActive, mainPageRelease } from '../seq/main-page.js';
+import { mixerPageActive } from '../seq/mixer-page.js';
+import { mixerJog, mixerKnobTouch, mixerKnobTurn } from '../seq/mixer-input.js';
 import { clipPageActive, clipPageRelease } from '../seq/clip-page.js';
 import { clickVolumeTurn } from '../seq/click-volume.js';
 import { backupsRowSelected, clickRowSelected, flagsPageActive, flagsPageJog, migrateRowSelected } from '../seq/flags-page.js';
@@ -319,6 +321,7 @@ export function onMidiMessageInternal(data: number[]): void {
         // app/tick.ts actually renders, so they own the knobs ahead of the step
         // page. (The other order let a step hold silently steer the knobs away
         // from the page on screen.)
+        if (mixerPageActive()) { mixerKnobTouch(d1, d2 > 0); return; }
         if (mainPageActive()) {
             if (d1 < 8) {   // every knob on the page (3 is unused but harmless)
                 /* Same reasoning as Clip Params below: Set Params has no
@@ -585,6 +588,7 @@ export function onMidiMessageInternal(data: number[]): void {
         holdTurnCancel();   // a knob turn cancels a pending / active hold-to-modulate
         // Main/Clip Params first, for the same reason as the touch branch above:
         // the page on screen owns its knobs, whatever a step hold thinks.
+        if (mixerPageActive()) { mixerKnobTurn(k, delta); return; }
         if (mainPageActive()) {
             // 0 tempo, 1 swing, 3 quant, 4 root, 5 key, 6 mode, 7 layout.
             if (k < 8) {
@@ -1021,6 +1025,7 @@ export function onMidiMessageInternal(data: number[]): void {
              * it would commit against a parameter you can no longer see. */
             if (schwungEditorActive()) { schwungEditorJog(delta); appState.dirty = true; return; }
             if (assignActive()) { assignCycle(delta); appState.dirty = true; return; }
+            if (mixerPageActive()) { mixerJog(delta); return; }   // its pages, like any Schwung page
             /* Global Params scrolls its list. Ahead of the view branches below
              * because the jog is the page's ONLY navigation — the other two
              * param pages put every parameter under a knob and leave the jog to

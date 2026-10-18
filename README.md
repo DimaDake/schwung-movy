@@ -89,6 +89,11 @@ Movy stands on the shoulders of several projects:
 
   ![MIX page](docs/assets/mix_page_chain.png)
 
+- **Session mixer** — latch Session view and hold Note/Session: all 16 tracks'
+  faders and stereo meters on one screen, eight knobs per page.
+
+  ![Session mixer](docs/assets/mixer_p1.png)
+
 - **Track volume** — hold a track button and turn the volume encoder to set that
   track's level (0–400%, unity marked). Add Shift for Movy's own slider.
 

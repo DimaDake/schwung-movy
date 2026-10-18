@@ -24,6 +24,7 @@ mod render_pool;
 mod threads;
 mod load_queue;
 mod mixer;
+mod track_meter;
 mod auto_lane;
 mod send_bus;
 mod master_chain;
@@ -137,7 +138,7 @@ pub(crate) fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.100.0";
+const ENGINE_VERSION: &str = "0.101.0";
 
 /* Blocks between autosaves. The callback runs at ~344 Hz, so this is ~2 s —
  * flash on this device is not free and the sequencer is dirty constantly while
@@ -634,6 +635,9 @@ impl Instance {
                 /* Rides the same poll, for the same reason: the CPU page
                  * repaints from `status` and must not buy an IPC of its own. */
                 s.push_str(&self.chains.cost_status());
+                /* And the mixer page's meters: drawn from here, so the page
+                 * reads no param at all while it is up. */
+                s.push_str(&self.chains.meter_status());
                 /* Same rationale: the UI learns a probe is waiting from the
                  * poll it already makes, never from a poll of its own. */
                 s.push_str(&format!(" prq={}", self.probe_gen));

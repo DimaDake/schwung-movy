@@ -45,7 +45,7 @@
  * so the two cannot drift.
  */
 
-import { appState, VIEW_KNOBS, VIEW_CHAIN, VIEW_CLIP_PARAMS, VIEW_MAIN_PARAMS,
+import { appState, VIEW_KNOBS, VIEW_CHAIN, VIEW_CLIP_PARAMS, VIEW_MAIN_PARAMS, VIEW_MIXER,
          VIEW_BROWSE, VIEW_FILE_BROWSE, VIEW_FLAGS, VIEW_VERSIONS, VIEW_CPU, VIEW_SETS } from './state.js';
 import { seqState } from '../seq/state.js';
 import { sessionReady } from '../seq/set-session.js';
@@ -80,7 +80,8 @@ import { createRepaintCap } from './repaint-cap.js';
  */
 export function moduleGridOnScreen(): boolean {
     if (!sessionReady() || schwungEditorActive()) return false;
-    if (appState.currentView === VIEW_CLIP_PARAMS || appState.currentView === VIEW_MAIN_PARAMS) return true;
+    if (appState.currentView === VIEW_CLIP_PARAMS || appState.currentView === VIEW_MAIN_PARAMS
+        || appState.currentView === VIEW_MIXER) return true;
     if (seqState.sessionMode) return !SCREEN_OWNING_VIEWS.has(appState.currentView);
     return appState.currentView === VIEW_KNOBS || appState.currentView === VIEW_CHAIN;
 }

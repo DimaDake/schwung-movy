@@ -153,6 +153,13 @@ await esbuild.build({
          * synthesised contract and the read-modify-write directly. */
         resolve(root, 'src/mixer/mix-apply.ts'),
         resolve(root, 'src/mixer/mix-schwung-cells.ts'),
+        /* The Session mixer: the contract, the meter decode and the hold,
+         * driven directly by the logic suite and the screenshot scenes. */
+        resolve(root, 'src/mixer/mixer-contract.ts'),
+        resolve(root, 'src/mixer/meter.ts'),
+        resolve(root, 'src/renderer/mixer-view.ts'),
+        resolve(root, 'src/seq/mixer-page.ts'),
+        resolve(root, 'src/seq/mixer-input.ts'),
         resolve(root, 'src/mixer/track-volume.ts'),
         resolve(root, 'src/mixer/master-volume.ts'),
         resolve(root, 'src/mixer/track-mutes.ts'),

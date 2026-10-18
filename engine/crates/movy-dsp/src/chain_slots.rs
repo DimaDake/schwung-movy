@@ -22,6 +22,7 @@ use crate::master_chain::{fx_position, key_allowed, MasterChain, IMPORT_MARK, MA
 use crate::auto_lane::{LaneTarget, ValBuf, AUTO_LANES};
 use crate::mixer::{mix_into, TrackMix};
 use crate::send_bus::{SendBuses, SEND_BUSES};
+use crate::track_meter::{stereo_peaks, TrackMeter};
 use crate::render_plan::{worth_fanning_out, Planner};
 use crate::render_pool::{drain_voices, Pre, RenderPool, Tap, Task, VoiceTask, MAX_TAPS, NO_TAPS};
 use crate::voice_send::{VoiceSends, VOICE_SENDS};
@@ -152,6 +153,8 @@ pub struct ChainSlots {
     /// never reached it and I measured silence" — and those look identical in a
     /// cost table. Cheap: one abs-max over a block movy has already rendered.
     peaks: Vec<i32>,
+    /// The mixer page's stereo, post-fader meters (`track_meter.rs`).
+    meter: TrackMeter,
     /// Bumped whenever a chain's modules change. The UI watches this in `status`
     /// and marks its per-set state dirty, so a chain change is persisted no
     /// matter who made it — a browser load, a restore, an undo, or a remote
@@ -270,6 +273,7 @@ impl ChainSlots {
             module_dir: String::new(),
             audible: vec![false; MOVY_CHAINS],
             peaks: vec![0; MOVY_CHAINS],
+            meter: TrackMeter::new(),
             generation: 0,
             active_last_block: 0,
             cost: CostMeter::new(MOVY_CHAINS),
@@ -699,6 +703,11 @@ impl ChainSlots {
     /// One chain's output peak of the last block (0 for a chain out of range).
     pub fn peak(&self, i: usize) -> i32 {
         self.peaks.get(i).copied().unwrap_or(0)
+    }
+
+    /// The mixer page's meters and faders as a `status` field (`track_meter.rs`).
+    pub fn meter_status(&self) -> String {
+        self.meter.status(&self.mixes)
     }
 
     /// Per-chain output peak of the last block, comma separated.
@@ -1325,6 +1334,9 @@ impl ChainSlots {
         // is every chain in the fleet.
         crate::midi_out::QUEUE.drain(crate::host_vtable::send_direct);
 
+        // Every meter falls first, so a chain that did not run this block
+        // empties instead of freezing; the ones that did run fold in below.
+        self.meter.decay(frames / 2, host::sample_rate());
         for i in 0..MOVY_CHAINS {
             if self.slots[i].is_none() {
                 continue;
@@ -1336,8 +1348,11 @@ impl ChainSlots {
                 continue;
             }
             let scratch = &self.scratch[i][..frames];
-            let peak = scratch.iter().fold(0i32, |m, &s| m.max((s as i32).abs()));
+            // One pass for both: the mono peak is the max of the two halves.
+            let (peak_l, peak_r) = stereo_peaks(scratch);
+            let peak = peak_l.max(peak_r);
             self.peaks[i] = peak;
+            self.meter.fold(i, peak_l, peak_r, &self.mixes[i]);
             // After the join and before the mix: this reads exactly what the
             // lane that rendered the chain wrote, which is the thing under test.
             if digesting {

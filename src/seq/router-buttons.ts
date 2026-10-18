@@ -16,6 +16,7 @@ import { closeParamPage, paramPageActive } from './param-page.js';
 import { deleteActive, deleteButton } from './edit-ops.js';
 import { copyButton as dupCopyButton } from './duplicate.js';
 import { loopButton } from './loop-mode.js';
+import { mixerHoldArm, mixerRelease } from './mixer-page.js';
 import { momentaryDown, momentaryUp } from './momentary.js';
 import { sessionDeleteButton } from './session.js';
 import { sessionButtonDown } from './track-select.js';
@@ -114,6 +115,7 @@ export function seqHandleButtonCc(d1: number, d2: number, shiftHeld: boolean): b
         if (d2 > 0) {
             sessionPrev = seqState.sessionMode;
             momentaryDown(d1, () => { seqState.sessionMode = sessionPrev; });
+            mixerHoldArm(sessionPrev);   // held while latched → the mixer (mixer-page.ts)
             /* Both param pages are Track-view pages: leaving for Session closes
              * the layer. tick.ts renders VIEW_MAIN/CLIP_PARAMS ahead of
              * sessionMode, so one left open would sit over the master chain
@@ -127,6 +129,8 @@ export function seqHandleButtonCc(d1: number, d2: number, shiftHeld: boolean): b
             // buffered for Capture belongs to the view being left.
             captureClear();
             seqState.sessionMode = true;
+        } else if (mixerRelease()) {
+            /* The hold opened the mixer; letting go is back to Session, never a tap. */
         } else if (momentaryUp(d1) === 'tap' && sessionPrev) {
             seqState.sessionMode = false; // tap while already in Session → back to Note
         }

@@ -13,6 +13,7 @@ export const VIEW_FLAGS       = 8;   // Settings (Shift+Step 2; ships in every b
 export const VIEW_CPU         = 9;   // CPU meter (Shift+Step 12)
 export const VIEW_VERSIONS    = 10;  // Backups (Settings -> BACKUPS)
 export const VIEW_SETS        = 11;  // movy's own Sets (Shift+Step 1)
+export const VIEW_MIXER       = 12;  // Session mixer (hold Session while latched)
 
 /* A stable name for the screen constants above, for anything that has to SAY
  * which one is up: the probe, and whatever device scenario reads it. It lives
@@ -33,6 +34,7 @@ const VIEW_NAMES: Record<number, string> = {
     [VIEW_CPU]:         'cpu',
     [VIEW_VERSIONS]:    'versions',
     [VIEW_SETS]:        'sets',
+    [VIEW_MIXER]:       'mixer',
 };
 
 export function viewName(view: number): string { return VIEW_NAMES[view] ?? 'unknown'; }

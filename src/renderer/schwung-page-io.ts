@@ -146,6 +146,9 @@ export function createPageIo(port: PageParamSource, qualify: (k: string) => stri
         read, (k, v) => write(qualify(k), v));
     return {
         ...canvas,
+        /* A virtual component's custom page has no module script: the source
+         * draws it (`schwung-virtual-canvas.ts`). */
+        ...(port.drawCanvasPage ? { drawCanvasPage: port.drawCanvasPage } : {}),
         /*
          * `ui_hierarchy` IS ANSWERED BY schwung-page-hierarchy, not read here.
          * The module's own word comes from `chain/hierarchy-source` — its own

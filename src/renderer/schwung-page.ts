@@ -194,7 +194,7 @@ export function createSchwungPage(
     /* SP-39: `focusVoice` covers the page it is about to turn to before the
      * controller asks for its cells — see schwung-page-input.ts. */
     /* movy's jog order over the controller's pages (plan D5/D6/D7). */
-    const seat = createPageSeat(ctl, lib, hier, qualify);
+    const seat = createPageSeat(ctl, lib, hier, qualify, !!port.canvasOnly);
     const input = createPageInput(ctl, lib, port, qualify, hier, cache.warm, focus, seat);
     const page = createPageRender(ctl, { keyAt, keysOf, componentKey,
                                         normalizedOf: lib.normalizedOf, automation,

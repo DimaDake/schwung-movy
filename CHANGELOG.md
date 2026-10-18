@@ -13,6 +13,14 @@ far. Earlier work is summarised in the timeline below for context.
 
 ## [Unreleased]
 
+### Added
+
+- **Session mixer.** Latch Session view and hold Note/Session: 16 track faders
+  with stereo post-fader meters on one screen. Knobs drive tracks 1-8 / 9-16,
+  the jog switches the page, release returns to Session. Built as a Schwung
+  custom page (header, page bar and held-knob toast are Schwung's); meters come
+  from a new engine status field (`mtr`, ENGINE 0.101.0).
+
 ## [0.36.0] — 2026-10-17
 
 ### Highlights

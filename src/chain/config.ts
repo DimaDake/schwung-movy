@@ -121,9 +121,12 @@ export const SET_PARAMS_COMPONENT = 'setparams';
  * condition/invert live in the engine's held-trig mirror (`seqState.hold*`),
  * never behind a port, exactly like Clip/Set Params' seqState fields. */
 export const STEP_PARAMS_COMPONENT = 'stepparams';
+/* The Session mixer (hold Session): every track's fader, answered out of each
+ * track's own `mix` param — no port of its own, like the three above. */
+export const MIXER_COMPONENT = 'mixer';
 export function isVirtualPageComponent(componentKey: string): boolean {
     return componentKey === CLIP_PARAMS_COMPONENT || componentKey === SET_PARAMS_COMPONENT
-        || componentKey === STEP_PARAMS_COMPONENT;
+        || componentKey === STEP_PARAMS_COMPONENT || componentKey === MIXER_COMPONENT;
 }
 
 /* A send bus is hosted by MOVY, not by schwung's master bus. It rides the master

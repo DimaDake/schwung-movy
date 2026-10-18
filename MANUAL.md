@@ -32,6 +32,7 @@ official docs first:
 2. [Parameter pages](#2-parameter-pages)
 3. [The module chain](#3-the-module-chain)
    - [The MIX page](#the-mix-page)
+   - [The Session mixer](#the-session-mixer)
    - [Send FX](#send-fx)
 4. [Keyboard & drums](#4-keyboard--drums)
    - [Muting one voice](#muting-one-voice)
@@ -483,6 +484,39 @@ moves where you expect it to rather than crowding into one end of the travel.
 The sends are **post-fader and post-pan**: pulling a track's level down takes its
 reverb with it, and a hard-panned track arrives in the return where you left it.
 Muting a track mutes its sends too.
+
+### The Session mixer
+
+**Latch Session view (tap Note/Session), then hold Note/Session.** After a
+moment the screen turns into a mixer for all 16 tracks; let go and you are back
+in Session view. A quick tap still switches back to Note view as before, and
+holding Note/Session from Note view is still the Session peek — the mixer only
+opens from a Session view you have already latched.
+
+![Session mixer](docs/assets/mixer_p1.png)
+
+Every track is one strip: a **stereo level meter** (left and right side by
+side, after the fader, so a muted track reads empty) and a **fader** — the thin
+line across the strip, drawn dark where it crosses the meter. The meter and the
+fader share one scale: a full-scale signal through a fader at 0 dB reaches the
+fader's line.
+
+The eight knobs drive **tracks 1-8** on the first page and **tracks 9-16** on
+the second; **turn the jog wheel** to switch, as on any parameter page. The bar
+under the header shows which page you are on. Both pages always show all 16
+strips.
+
+**Hold a knob** to see its track exactly: its number inverts under the strip and
+the header shows the full value.
+
+![Session mixer, knob held](docs/assets/mixer_held.png)
+
+The faders are the same control as **VOL** on each track's
+[MIX page](#the-mix-page) — same curve, same rate, same undo, saved with the
+Set — so a level set here is the level you find there.
+
+If you press a step (to pick a track) or launch a clip while holding
+Note/Session, the hold stays a modifier and the mixer does not open.
 
 ### Send FX
 
@@ -1756,6 +1790,7 @@ behaviour you'd like — or, better, a PR.
 | **Clear + Capture** | Throw the buffered input away. (Not Shift + Capture — that belongs to schwung's skip-back and never reaches Movy.) |
 | **Jog** (capture overlay) | Take another tempo — applied as you pass it. Any other press closes the overlay. |
 | **Note / Session** | Show the Session clip grid (momentary hold = peek, tap = latch). Pads launch clips; step buttons select a track. Dim when idle, bright while Session view is up. |
+| **Hold Note/Session** *(Session latched)* | Open the **Session mixer**: 16 track faders with stereo meters. Knobs drive tracks 1-8 / 9-16, jog switches the page, release returns to Session. See [The Session mixer](#the-session-mixer). |
 | **Hold Note/Session + step** | Jump to that track (pads, screen, knobs) while the step row stays a track selector — keep tapping to keep switching. Releasing keeps the last track you picked. |
 | **Loop** | Toggle the bar selector; hold + jog resizes the loop. See [The Loop view](#the-loop-view). |
 | **Loop + bar** | Press one bar to view it, two to loop that range, double-tap for a 1-bar loop. |

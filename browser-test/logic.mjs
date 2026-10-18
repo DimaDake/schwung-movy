@@ -83,6 +83,7 @@ import { run as run_cpu_page } from './logic/cpu-page.mjs';
 import { run as run_mixer } from './logic/mixer.mjs';
 import { run as run_clip_params_source } from './logic/clip-params-source.mjs';
 import { run as run_set_params_source } from './logic/set-params-source.mjs';
+import { run as run_session_mixer } from './logic/session-mixer.mjs';
 import { run as run_step_params_source } from './logic/step-params-source.mjs';
 import { run as run_own_component_source } from './logic/own-component-source.mjs';
 import { run as run_font_parity } from './logic/font-parity.mjs';
@@ -172,6 +173,7 @@ const SUITES = [
     run_mixer,
     run_clip_params_source,
     run_set_params_source,
+    run_session_mixer,
     run_step_params_source,
     run_own_component_source,
     run_font_parity,

@@ -90,6 +90,18 @@ export interface PageParamSource {
      *  Schwung opens its own picker there; this is movy's equivalent, drawn
      *  with the same list widget. Null when the key has no picker. */
     picker?(fullKey: string): SourcePicker | null;
+
+    /** Draws a custom page's BODY (`type: "canvas", as_page: true`) itself —
+     *  a virtual component has no module dir for a `canvas.js` to come from.
+     *  Absent means the module's own script, as before. */
+    drawCanvasPage?(ctx: any, band: { x: number; y: number; w: number; h: number },
+                    canvas: { key?: string }, payload: { keys?: string[]; touched?: number }): void;
+
+    /** Only the custom pages are navigable. Schwung plans each level's knob
+     *  grid beside its canvas page; a source whose canvas pages already carry
+     *  every knob drops the grids from movy's jog order and bank bar
+     *  (`schwung-page-seat.ts`). */
+    canvasOnly?: boolean;
 }
 
 /** What a source's door opens: the rows, where the cursor starts, and what

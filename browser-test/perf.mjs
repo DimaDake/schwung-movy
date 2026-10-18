@@ -258,7 +258,7 @@ _origLog('\nTest: status parse cost, 4 vs 16 tracks');
              + `lstart=0 rec=0 cin=0 metro=0 dirty=1 sess=${sess} act=${act} mute=${mute} `
              + `hlen=0 hnotes= occ=${'ff'.repeat(32)} alanes=00 aauto=00 hauto= hvel=0 `
              + `hgate=0 hgmix=0 hprob=100 hcond=1:1 hinv=0 hlmax=0 swing=50 csc=1/1 ctr=0 `
-             + `quant=0 dquant=0 cap=0.0`;
+             + `quant=0 dquant=0 cap=0.0 mtr=${'79a0a2'.repeat(16)}`;
     };
     const timeIt = (fn, n) => {
         for (let i = 0; i < 200; i++) fn();          // warm
@@ -428,6 +428,29 @@ _origLog('\nTest: SETS page steady-state cost');
 
     globalThis.host_module_get_param = savedGet;
     resetLib();
+}
+
+/* ── Test: the Session mixer frame ───────────────────────────────────────── */
+/* Sixteen strips at the meters' 30 Hz: drawn from the status text with no
+ * param read, decoded only when that text changed, and in a bounded number of
+ * runs — a fader is two runs, never seven pixels. */
+
+_origLog('\nTest: Session mixer frame cost');
+{
+    const { drawMixerBody } = await import('../dist/esm/renderer/mixer-view.js');
+    const { decodeMeter } = await import('../dist/esm/mixer/meter.js');
+    let rects = 0;
+    const ctx = { fillRect: () => { rects++; }, print() {}, textWidth: () => 0 };
+    const band = { x: 0, y: 11, w: 128, h: 96 };
+    const raw = Array.from({ length: 48 }, (_, i) => ((i * 37) % 200 + 20).toString(16).padStart(2, '0')).join('');
+    getParamCount = 0;
+    drawMixerBody(ctx, band, decodeMeter(raw), 4);
+    check('param reads per mixer frame', getParamCount, 0);
+    _origLog(`    (${rects} fillRect per frame)`);
+    check('fillRect per mixer frame', rects, 180);
+    const t0 = performance.now();
+    for (let i = 0; i < 1000; i++) drawMixerBody(ctx, band, decodeMeter(raw), -1);
+    check('mixer frame (decode cached)', Number(((performance.now() - t0) / 1000).toFixed(4)), 0.2, 'ms');
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

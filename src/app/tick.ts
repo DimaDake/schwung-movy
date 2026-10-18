@@ -1,7 +1,8 @@
 import { paramGet } from '../host/param.js';
 import { portFor } from '../track/registry.js';
-import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS, VIEW_FLAGS, VIEW_CPU, VIEW_VERSIONS, VIEW_SETS } from './state.js';
+import { appState, VIEW_KEYS, VIEW_KNOBS, VIEW_BROWSE, VIEW_CHAIN, VIEW_FILE_BROWSE, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS, VIEW_FLAGS, VIEW_CPU, VIEW_VERSIONS, VIEW_SETS, VIEW_MIXER } from './state.js';
 import { mainPageActive } from '../seq/main-page.js';
+import { mixerHoldTick, mixerMeterDue, mixerPageActive } from '../seq/mixer-page.js';
 import { headerOnlyVM } from '../seq/header-vm.js';
 import { clipPageActive } from '../seq/clip-page.js';
 import { buildFlagsPageVM } from '../seq/flags-page-vm.js';
@@ -20,7 +21,7 @@ import { cpuPageActive } from '../seq/cpu-page.js';
 import { keyboardState, baseNoteFor, padMapFor } from '../keyboard/state.js';
 import { isSounding } from '../keyboard/held-notes.js';
 import { browserState } from '../browser/state.js';
-import { MASTER_FX_SLOTS, CLIP_PARAMS_COMPONENT, SET_PARAMS_COMPONENT, STEP_PARAMS_COMPONENT } from '../chain/config.js';
+import { MASTER_FX_SLOTS, CLIP_PARAMS_COMPONENT, MIXER_COMPONENT, SET_PARAMS_COMPONENT, STEP_PARAMS_COMPONENT } from '../chain/config.js';
 import { drumPadLedColor } from '../keyboard/leds.js';
 import { drumNoteOfPhys } from '../keyboard/drum-grid.js';
 import { padVoiceSilent } from '../mixer/pad-mutes.js';
@@ -604,6 +605,10 @@ function tickBody(): void {
         ? pageOwnerForComponent(CLIP_PARAMS_COMPONENT) : null;
     const mainParamsOwner = appState.currentView === VIEW_MAIN_PARAMS
         ? pageOwnerForComponent(SET_PARAMS_COMPONENT) : null;
+    /* The Session mixer opens from the tick, not the press: it is a HOLD. */
+    mixerHoldTick(Date.now());
+    if (mixerMeterDue(Date.now(), seqState.mixMeter)) appState.dirty = true;
+    const mixerOwner = mixerPageActive() ? pageOwnerForComponent(MIXER_COMPONENT) : null;
 
     // Reset knob touch/hold state whenever the shown param page changes, so a
     // held knob's highlight never persists after navigating away and back (e.g.
@@ -656,7 +661,7 @@ function tickBody(): void {
      * on screen, and handing it the master's owner would draw a master FX body
      * under the Clip Params header. */
     const drawnPageOwner = seqState.sessionMode
-        ? clipParamsOwner ?? mainParamsOwner ?? masterPageOwner!
+        ? mixerOwner ?? clipParamsOwner ?? mainParamsOwner ?? masterPageOwner!
         : stepParamsOwner ?? clipParamsOwner ?? mainParamsOwner ?? pageOwner;
     /* THE POLL COMES BEFORE THE BODY IS ASKED FOR, because the body is what
      * readiness gates and the poll is what resolves readiness. Gating the poll
@@ -741,6 +746,16 @@ function tickBody(): void {
             clear_screen();
             renderSchwungEditor();
             updateSingleKnobLED(-1, 0);
+        } else if (appState.currentView === VIEW_MIXER) {
+            /* Schwung's custom page: its header, bank bar and held-knob toast,
+             * movy's sixteen strips in the body (mixer-contract.ts). */
+            const vm = headerOnlyVM('MIXER');
+            const chrome = schwungChromeFor(drawnPageOwner, schwungBody, false);
+            renderKnobsView(vm, false, appState.activeTrack.index,
+                            paramBodyFor(drawnPageOwner, schwungBody, lastAutoView),
+                            schwungBankFor(drawnPageOwner, schwungBody), chrome);
+            jogToastShown = !!(chrome && chrome.footer);
+            lightKnobRow(schwungBody);
         } else if (appState.currentView === VIEW_MAIN_PARAMS) {
             /* AFTER `schwungEditorActive()`, same reason as Clip Params below:
              * KEY/MODE/LAYOUT's long-enum dive is Schwung's own list picker

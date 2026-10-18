@@ -61,6 +61,12 @@ export function momentaryCancel(button: number): void {
     if (active && active.button === button) active = null;
 }
 
+/* The press of `button` is still down and nothing has been done with it — a
+ * hold that is still only a hold. False once released, gestured or cancelled. */
+export function momentaryPlainHold(button: number, nowMs: number, minMs: number): boolean {
+    return !!active && active.button === button && !active.gestured && nowMs - active.pressMs >= minMs;
+}
+
 export function momentaryDown(button: number, restore: () => void): void {
     momentaryDownAt(button, Date.now(), restore);
 }

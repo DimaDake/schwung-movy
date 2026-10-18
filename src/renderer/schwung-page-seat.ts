@@ -62,7 +62,8 @@ interface Plan {
 }
 
 export function createPageSeat(ctl: any, lib: any, hier: PageHierarchy,
-                               qualify: (k: string) => string): PageSeat {
+                               qualify: (k: string) => string,
+                               canvasOnly = false): PageSeat {
     let fromH: any = undefined;
     let fromPages: any = undefined;
     let fromLen = -1;
@@ -78,16 +79,18 @@ export function createPageSeat(ctl: any, lib: any, hier: PageHierarchy,
     const indexParam = (lvl: any): string | null =>
         (lvl && typeof lib.childIndexParam === 'function' ? lib.childIndexParam(lvl) : null) || null;
 
+    /* `canvasOnly` (schwung-virtual-canvas.ts): the grid beside each custom page is skipped. */
+    const shown = (p: any): boolean => !canvasOnly || !!(p && p.canvas);
     function build(h: any, pages: any[]): Plan | null {
-        const voices = surfaceOf(h).voices;
-        if (!voices.length || !pages.length) return null;
+        const voices = canvasOnly ? [] : surfaceOf(h).voices;
+        if ((!voices.length && !canvasOnly) || !pages.length) return null;
         const levels = (h && h.levels) || {};
         const blocks = voices.map((v) => blockOf(v, levels, pages));
-        if (!blocks.some((b) => b.length)) return null;
+        if (voices.length && !blocks.some((b) => b.length)) return null;
         const inBlock = new Set<number>();
         for (const b of blocks) for (const i of b) inBlock.add(i);
         const others: number[] = [];
-        for (let i = 0; i < pages.length; i++) if (!inBlock.has(i)) others.push(i);
+        for (let i = 0; i < pages.length; i++) if (!inBlock.has(i) && shown(pages[i])) others.push(i);
         return { voices, blocks, others, keys: keysOf(voices, blocks, pages) };
     }
 
@@ -146,7 +149,7 @@ export function createPageSeat(ctl: any, lib: any, hier: PageHierarchy,
         return plan;
     }
 
-    const order = (p: Plan): number[] => p.blocks[seat].concat(p.others);
+    const order = (p: Plan): number[] => (seat >= 0 ? p.blocks[seat] : []).concat(p.others);
 
     return {
         active: () => current() !== null,
@@ -186,8 +189,8 @@ export function createPageSeat(ctl: any, lib: any, hier: PageHierarchy,
             const p = current();
             if (!p || landFor === null || landFor === landedFor) return -1;
             landedFor = landFor;
-            const b = p.blocks[seat];
-            return ctl.pageIndex === landFrom && b.indexOf(ctl.pageIndex) < 0 ? b[0] : -1;
+            const b = seat >= 0 ? p.blocks[seat] : order(p);
+            return ctl.pageIndex === landFrom && b.indexOf(ctl.pageIndex) < 0 && b.length ? b[0] : -1;
         },
         onBlock() {
             const p = current();

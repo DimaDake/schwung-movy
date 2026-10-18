@@ -54,7 +54,7 @@ const PRESETS = [
     'page_held_unassignable', 'page_held_enum', 'page_chrome_held', 'page_chrome_flip',
     'page_chrome_file', 'page_clipparams', 'page_setparams', 'page_stepparams',
     'page_master_chain', 'page_lane_mark', 'page_lane_mark_held', 'page_held_drum',
-    'page_lfo', 'page_lfo_master', 'page_enum_list',
+    'page_lfo', 'page_lfo_master', 'page_enum_list', 'mixer_p1', 'mixer_p2', 'mixer_held',
 ];
 
 /* The scenes that render Schwung's own body. Only reachable from a bundle built
@@ -71,7 +71,7 @@ const PAGE_SCENES = new Set(['page_body', 'page_body_p2', 'page_voice_pad', 'pag
     'page_chrome_held', 'page_chrome_flip', 'page_chrome_file',
     'page_clipparams', 'page_setparams', 'page_stepparams', 'page_master_chain',
     'page_lane_mark', 'page_lane_mark_held', 'page_held_drum',
-    'page_lfo', 'page_lfo_master', 'page_enum_list']);
+    'page_lfo', 'page_lfo_master', 'page_enum_list', 'mixer_p1', 'mixer_p2', 'mixer_held']);
 
 /* Which mock preset backs each (possibly synthetic) screenshot. */
 const BASE = {
@@ -115,6 +115,7 @@ const BASE = {
      * irrelevant; movy's own state IS the contract. `test8` only because
      * every OTHER scene needs a named mock and the runner asks for one. */
     page_clipparams: 'test8', page_setparams: 'test8',
+    mixer_p1: 'test8', mixer_p2: 'test8', mixer_held: 'test8',
     // SP-54: the step page's five cells are the held-trig mirror, never a
     // module's own params — same reasoning as its two Set/Clip Params siblings.
     page_stepparams: 'test8',
@@ -200,7 +201,7 @@ const { pageOwnerOf } = await import('../dist/esm/app/page-owner.js');
  * `app/tick.ts` use for Set/Clip Params, so a `page_*` scene for either is
  * driven by the real ownership question, not a re-implementation of it. */
 const { pageOwnerForComponent } = await import('../dist/esm/app/page-owner-virtual.js');
-const { CLIP_PARAMS_COMPONENT, SET_PARAMS_COMPONENT, STEP_PARAMS_COMPONENT } = await import('../dist/esm/chain/config.js');
+const { CLIP_PARAMS_COMPONENT, MIXER_COMPONENT, SET_PARAMS_COMPONENT, STEP_PARAMS_COMPONENT } = await import('../dist/esm/chain/config.js');
 const { schwungBodyFor, schwungBankFor, schwungChromeFor } = await import('../dist/esm/app/tick.js');
 const { modulatedKeysOf } = await import('../dist/esm/app/modulated-keys.js');
 const { assignLane, resetAutomation } = await import('../dist/esm/seq/automation.js');
@@ -1113,6 +1114,30 @@ function applyView(preset) {
          * a bank of its own" bar read it regardless of who draws the body —
          * see `app/tick.ts`'s own comment on this), only its ROWS are
          * replaced by Schwung's `body`. */
+        /* The Session mixer: Schwung's custom page, movy's strips. One meter
+         * text for all three — fader crossings (3, 5, 7, 11, 14, 16), a
+         * silent track (10) and a fader above unity (13). */
+        case 'mixer_p1': case 'mixer_p2': case 'mixer_held': {
+            resetSeqState();
+            const mix = [[0, 2, -1], [-3, -10, -9], [-6, -2, -4], [-1.5, -4, -5], [-12, -6, -9],
+                [-9, -30, -28], [-4.5, -1, -3], [0, -2, -3], [-6, -12, -12], [-99, -99, -99],
+                [-18, -10, -14], [-3, -7, -6], [2, -1, -2], [-24, -16, -19], [-7.5, -15, -14], [-10, -4, -8]];
+            const byte = (db) => db <= -60 ? 0 : Math.round(1 + (db + 60) * 2);
+            seqState.mixMeter = mix.flat().map((db) => byte(db).toString(16).padStart(2, '0')).join('');
+            schwungGridReload();
+            const owner = pageOwnerForComponent(MIXER_COMPONENT);
+            for (let i = 0; i < 12 * 60 && !owner.page; i++) owner.poll();
+            if (!owner.page) throw new Error(preset + ': the contract never resolved');
+            if (preset === 'mixer_p2') { owner.page.changePage(1); for (let i = 0; i < 30; i++) owner.poll(); }
+            if (preset === 'mixer_held') owner.page.knobTouch(2, true);
+            const body = schwungBodyFor(owner, false);
+            if (!body) throw new Error(preset + ': claimed but no body — schwungBodyFor declined');
+            lastRender = () => renderKnobsView(headerOnlyVM('MIXER'), false, 0,
+                body, schwungBankFor(owner, body), schwungChromeFor(owner, body, false));
+            lastRender();
+            if (preset === 'mixer_held') owner.page.knobTouch(2, false);
+            break;
+        }
         case 'page_stepparams': {
             resetSeqState(); resetStepPage();
             seqState.holdVel = 100; seqState.holdGate = 96; seqState.holdGateMixed = false;

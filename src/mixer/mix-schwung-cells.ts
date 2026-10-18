@@ -53,10 +53,14 @@ const LABELS: Record<MixFieldName, { name: string; short: string; format(value: 
     send3: { name: 'Send 3', short: 'SEND3', format: formatSend },
 };
 
-function cellFor(track: number, field: MixFieldName): VirtualCellSpec {
+/** One mixer field of one track as a virtual cell. `as` renames it for a page
+ *  carrying many tracks' cells at once (the Session mixer, `mixer-contract.ts`)
+ *  — same units, rate and writer as the MIX page, so the two cannot drift. */
+export function mixCell(track: number, field: MixFieldName,
+                        as?: { key: string; name: string; short: string }): VirtualCellSpec {
     const label = LABELS[field];
     return {
-        key: field, name: label.name, shortName: label.short,
+        key: as ? as.key : field, name: as ? as.name : label.name, shortName: as ? as.short : label.short,
         type: 'float', min: 0, max: 1, step: 1 / 64, rawPerDetent: 1,
         get: () => fieldFrac(field, valueOf(readMix(track), field)).toFixed(4),
         set: (v: string) => applyMixFieldAbs(track, field, fieldFromFrac(field, clamp01(Number(v)))),
@@ -66,7 +70,7 @@ function cellFor(track: number, field: MixFieldName): VirtualCellSpec {
 
 function buildCells(track: number): VirtualCellSpec[] {
     return FIELD_AT.filter((f): f is MixFieldName => f !== undefined)
-                   .map((field) => cellFor(track, field));
+                   .map((field) => mixCell(track, field));
 }
 
 /* One source per track — `schwung-grid.ts`'s own page cache (keyed by

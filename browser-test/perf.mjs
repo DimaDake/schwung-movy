@@ -234,6 +234,22 @@ _origLog('\nTest 5: sequencer perf budgets');
     check('loop strip fill_rect calls', fillRectCount, 40);
     _origLog(`    (strip: ${fillRectCount} fill_rect)`);
 
+    /* Held-step piano: the densest zoom (2 px, 63 keys) with every key filled
+     * is the worst frame, and it is drawn only when its notes change. */
+    {
+        const { drawStepPiano } = await import('../dist/esm/renderer/step-piano.js');
+        const { windowAt } = await import('../dist/esm/seq/piano-range.js');
+        const win = windowAt(36, 2);
+        const all = Array.from({ length: win.n }, (_, i) => 36 + i);
+        for (const [label, sel] of [['empty', []], ['every key filled', all]]) {
+            fillRectCount = 0;
+            const t0 = performance.now();
+            drawStepPiano({ win, sel, x0: 0 });
+            check(`step piano fill_rect (63 keys, ${label})`, fillRectCount, 160);
+            _origLog(`    (step piano ${label}: ${fillRectCount} fill_rect, ${(performance.now() - t0).toFixed(3)} ms)`);
+        }
+    }
+
     /* Loop-mode note view (seq/note-view.ts): a full paint is bounded by the
      * runs, not by the note count, and a quiet tick touches only the playhead's
      * two columns. The densest case is a 16-bar clip at MAX_NOTES (512). */

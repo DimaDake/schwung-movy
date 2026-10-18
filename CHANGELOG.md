@@ -15,6 +15,11 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
+- **Held-step piano.** Hold a step on a melodic track and the bar strip becomes
+  a keyboard with the step's notes filled in, below the knobs. Keys are equal
+  slots along the top edge; the range starts on a C, shows at least two octaves
+  and narrows the keys (5/4/3/2 px) for wider chords, and never shrinks during a
+  hold.
 - **Session mixer.** Latch Session view and hold Note/Session: 16 track faders
   with stereo post-fader meters on one screen. Knobs drive tracks 1-8 / 9-16,
   the jog switches the page, release returns to Session. Built as a Schwung

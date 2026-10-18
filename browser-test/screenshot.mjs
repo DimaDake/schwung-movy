@@ -56,6 +56,7 @@ const PRESETS = [
     'page_chrome_file', 'page_clipparams', 'page_setparams', 'page_stepparams',
     'page_master_chain', 'page_lane_mark', 'page_lane_mark_held', 'page_held_drum',
     'page_lfo', 'page_lfo_master', 'page_enum_list', 'mixer_p1', 'mixer_p2', 'mixer_held',
+    'step_piano_triad', 'step_piano_adjacent', 'step_piano_wide', 'step_piano_spread', 'step_piano_empty',
 ];
 
 /* The scenes that render Schwung's own body. Only reachable from a bundle built
@@ -94,6 +95,8 @@ const BASE = {
      * both. */
     page_chrome_held: 'switches', page_chrome_flip: 'switches', page_chrome_file: 'wav_sample',
     step_indicator: 'test8',
+    step_piano_triad: 'test8', step_piano_adjacent: 'test8', step_piano_wide: 'test8',
+    step_piano_spread: 'test8', step_piano_empty: 'test8',
     step_rec_header: 'test8',
     loop_strip_midclip: 'test8', loop_strip_outside: 'test8',
     note_view_bass: 'test8', note_view_chords: 'test8', note_view_drums: 'test8',
@@ -174,6 +177,9 @@ const { drawJogToast }     = await import('../dist/esm/renderer/overlay.js');
 const { drawLeaveModal }   = await import('../dist/esm/renderer/leave-modal-view.js');
 const { drawCaptureOverlay } = await import('../dist/esm/renderer/capture-overlay.js');
 const { drawQuantOverlay } = await import('../dist/esm/renderer/quant-overlay.js');
+const { drawStepPiano } = await import('../dist/esm/renderer/step-piano.js');
+const { stepPianoVM, resetStepPiano } = await import('../dist/esm/seq/step-piano.js');
+const { editStepDown, resetStepEdit } = await import('../dist/esm/seq/step-edit.js');
 const { renderFlagsView } = await import('../dist/esm/renderer/flags-view.js');
 const { renderSetsView }  = await import('../dist/esm/renderer/sets-view.js');
 const { buildSetsPageVM } = await import('../dist/esm/seq/sets-page-vm.js');
@@ -706,6 +712,25 @@ function applyView(preset) {
             seqState.noteHash = preset;
             seedNoteViewForTest(sc.notes);
             lastRender = () => { clear_screen(); noteViewTick(true); drawLoopStrip(); };
+            lastRender();
+            break;
+        }
+        /* The held-step piano under the knob view, from the real VM: a held
+         * step and its notes as the engine reports them. One scene per zoom
+         * (5/4/3/2 px slots), plus filled neighbours and an empty step. */
+        case 'step_piano_triad': case 'step_piano_adjacent': case 'step_piano_wide':
+        case 'step_piano_spread': case 'step_piano_empty': {
+            const notes = {
+                step_piano_triad: [60, 64, 67], step_piano_adjacent: [60, 61, 62, 63, 64, 66],
+                step_piano_wide: [40, 55, 62, 71], step_piano_spread: [31, 50, 66, 73, 81, 90],
+                step_piano_empty: [],
+            }[preset];
+            resetSeqState(); resetStepEdit(); resetStepPiano();
+            editStepDown(2);
+            seqState.holdStep = 2; seqState.holdNotes = notes;
+            const vm = stepPianoVM();
+            resetStepEdit();
+            lastRender = () => { renderKnobsView(model.getViewModel()); drawStepPiano(vm); };
             lastRender();
             break;
         }

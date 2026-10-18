@@ -905,6 +905,18 @@ for the concepts:
   instead of snapping to the grid. It stops at the next note of the same pitch,
   or at the clip end. Drum lanes are exempt — hits sharing a step are separate
   voices, not a chord, so they keep the grid.
+- **Held-step piano** — while one step of a melodic track is held (Note mode),
+  the bar strip at the bottom of the screen turns into a small keyboard with
+  that step's notes filled in, so you can see the chord you are building with
+  the pads without covering the knobs. The keyboard starts on a C and shows at
+  least two octaves; a chord too wide for that narrows the keys (down to about
+  five octaves) instead of scrolling. While you hold the step it only ever
+  grows, so the keys you are looking at never jump; the next hold fits the
+  notes afresh. An empty step centres on the last note you played. Drum lanes
+  and Loop mode keep the bar strip.
+
+  ![Held-step piano: a C major triad](docs/assets/step_piano_triad.png)
+  ![Held-step piano: a wide voicing narrows the keys](docs/assets/step_piano_wide.png)
 - **Note length** — **hold step A, then press step B** to set A's length up to B.
 - **Loop / bars** — the **Loop** button turns the step row into a bar selector;
   **Left/Right** navigate bars. See [The Loop view](#the-loop-view) below.
@@ -1797,7 +1809,7 @@ behaviour you'd like — or, better, a PR.
 | **Step buttons 1–16** | Toggle a note on/off at that step. In **Session** view they select one of the 16 tracks and open it — tap to stay, hold to peek. |
 | **Hold a step** | Edit that step; opens its **Step parameters** (page 0). |
 | **Hold step A + press step B** | Set step A's note length up to B. |
-| **Hold a step + pad** | Edit that step's notes from the keyboard. An added note takes the step's existing start and length (melodic only). |
+| **Hold a step + pad** | Edit that step's notes from the keyboard. An added note takes the step's existing start and length (melodic only). The bottom band shows the step's notes on a keyboard while the step is held. |
 | **Play** | Start / stop the transport. |
 | **Rec** (tap) | Arm recording — one-bar count-in from stopped; while playing, punch in now (overdub) or at the next bar (new clip, Rec flashes). Tapping again stops or cancels; a pad still held is kept and gets its full played length. |
 | **Hold Rec** (stopped) | **Step recording** — play the pads to enter notes step by step. |

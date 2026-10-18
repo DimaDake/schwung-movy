@@ -92,6 +92,8 @@ import { buildStepPageVM } from '../seq/step-page-vm.js';
 import { activeHasNote, maxBarOffset, seqState } from '../seq/state.js';
 import { engineReady } from '../seq/engine.js';
 import { noteViewActive, noteViewTick } from '../seq/note-view.js';
+import { stepPianoVM, stepPianoKey } from '../seq/step-piano.js';
+import { drawStepPiano } from '../renderer/step-piano.js';
 import { perfProbeEnter, perfProbeTick, perfPhase, perfPhaseEnd } from './perf-probe.js';
 import {
     drawLoopStrip, drawSeqToast, drawSeqHeader, songBandTick,
@@ -108,6 +110,7 @@ let lastToastShowing = false;
 let lastHeaderShowing = false;
 let lastSessionMode = false;
 let jogToastShown = false;   // a bottom jog/browse toast is on screen (strip yields to it)
+let pianoShown = '';         // stepPianoKey of the held-step piano on screen, '' = none
 
 /* Last-seen module name per "track:chainIdx", to detect a module swap on a
  * focused component (its param set changed → re-validate that track's automation
@@ -1067,8 +1070,21 @@ function tickBody(): void {
         /* The note view runs on the strip's per-tick schedule: both track state
          * that moves without a dirty frame (bar navigation, the sweep, a take
          * being recorded). */
-        if (noteViewActive()) noteViewTick(viewRepainted);
-        drawLoopStrip();
+        /* A held step's piano takes the strip's band (seq/step-piano.ts).
+         * Unlike the strip it is static, so it repaints only when its keys or
+         * notes change or the view underneath was redrawn. */
+        const piano = stepPianoVM();
+        if (piano) {
+            const key = stepPianoKey(piano);
+            if (viewRepainted || key !== pianoShown) drawStepPiano(piano);
+            pianoShown = key;
+        } else {
+            leavePiano(viewRepainted);
+            if (noteViewActive()) noteViewTick(viewRepainted);
+            drawLoopStrip();
+        }
+    } else {
+        leavePiano(viewRepainted);
     }
 
     /* Song band: Session view only, and on its own schedule — on the frames the
@@ -1079,4 +1095,12 @@ function tickBody(): void {
         && !captureOverlayActive()) {
         songBandTick(viewRepainted);
     }
+}
+
+/* The piano is taller than the strip that replaces it, so its top rows would
+ * outlive it: repaint the view once. Not when this frame already repainted —
+ * a toast covering the piano would otherwise ask for a frame every tick. */
+function leavePiano(viewRepainted: boolean): void {
+    if (pianoShown && !viewRepainted) appState.dirty = true;
+    pianoShown = '';
 }

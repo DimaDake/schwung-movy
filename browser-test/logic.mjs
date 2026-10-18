@@ -52,6 +52,7 @@ import { run as run_undo_params } from './logic/undo-params.mjs';
 import { run as run_quantize } from './logic/quantize.mjs';
 import { run as run_loop_window } from './logic/loop-window.mjs';
 import { run as run_note_view } from './logic/note-view.mjs';
+import { run as run_step_piano } from './logic/step-piano.mjs';
 import { run as run_track_watch } from './logic/track-watch.mjs';
 import { run as run_tracks_refs } from './logic/tracks-refs.mjs';
 import { run as run_tracks_chain } from './logic/tracks-chain.mjs';
@@ -143,6 +144,7 @@ const SUITES = [
     run_quantize,
     run_loop_window,
     run_note_view,
+    run_step_piano,
     run_track_watch,
     run_tracks_refs,
     run_tracks_chain,

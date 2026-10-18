@@ -23,6 +23,7 @@ import { resetPadRoute, syncPadRoute } from '../track/pad-route.js';
 import { resetWatchPush, syncWatch } from './watch.js';
 import { parseStatus, resetEngineStatus } from './engine-status.js';
 import { resetNoteView } from './note-view.js';
+import { resetStepPiano } from './step-piano.js';
 import { requestLabelSync } from './label-sync.js';
 
 export { parseStatusForTest, takeNoopSnapId } from './engine-status.js';
@@ -170,4 +171,5 @@ export function resetSeqEngine(): void {
     lastServed = -1;
     resetEngineStatus();
     resetNoteView();
+    resetStepPiano();
 }

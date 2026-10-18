@@ -39,8 +39,9 @@ static int matches(const uint8_t pkt[4], int stage) {
 /* The power button has been reported to miss presses: every way a run ends is logged, so a
  * miss in debug.log says whether the SysEx never came, came with another command byte, or
  * was broken up. */
-static mh_log_limit_t g_power_lim;
+static mh_log_limit_t g_power_lim, g_status_lim;
 static uint8_t g_cmd[3];
+#define POWER_ID_BUTTON 0x07
 
 static void log_broken(const uint8_t pkt[4], uint64_t now_ms) {
     if (mh_log_limit(&g_power_lim, now_ms, 8))
@@ -52,9 +53,17 @@ static void power_feed(const uint8_t pkt[4], uint64_t now_ms) {
         if (g_stage == 2) memcpy(g_cmd, pkt + 1, 3);
         if (++g_stage == 4) {
             g_stage = 0;
-            int n = __atomic_add_fetch(&g_power, 1, __ATOMIC_RELEASE);
+            /* 3A is a system-status report, not only the button: id 07 is the button, id 00 the
+             * battery percentage (with a cable-14 CC 0 twin), sent every few minutes, which opened
+             * the power dialog on an idle device. Every report is still answered: the replies
+             * kept the battery reports coming for days, and silence is what stops the button. */
             g_ack++;
-            mh_log("power button: SysEx cmd %02x id %02x val %02x (%d untaken)", g_cmd[0], g_cmd[1], g_cmd[2], n);
+            if (g_cmd[1] == POWER_ID_BUTTON) {
+                int n = __atomic_add_fetch(&g_power, 1, __ATOMIC_RELEASE);
+                mh_log("power button: SysEx cmd %02x id %02x val %02x (%d untaken)", g_cmd[0], g_cmd[1], g_cmd[2], n);
+            } else if (mh_log_limit(&g_status_lim, now_ms, 8)) {
+                mh_log("system status: SysEx cmd %02x id %02x val %02x (not the power button)", g_cmd[0], g_cmd[1], g_cmd[2]);
+            }
         }
         return;
     }

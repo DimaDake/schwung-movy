@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "lib/schwung_spi_lib.h"
+#include "plugin_api_v1.h"
 #include "vtable.h"
 
 static int fails, checks;
@@ -24,6 +25,17 @@ int main(int argc, char **argv) {
         int stale = 0;
         for (int i = 0; i < SCHWUNG_AUDIO_FRAMES * 2; i++) stale += buf[i] != 1;
         CHECK(stale == 0, "the engine mixes onto silence, never onto what the buffer held (%d stale samples)", stale);
+    }
+    /* A USB-A note and pad 70 are the same three bytes; only the source tells
+     * the engine which is the keyboard (ext_route.rs). */
+    {
+        const uint8_t note[3] = { 0x90, 70, 100 };
+        engine_on_midi(note, 3, 1);
+        engine_render(buf, SCHWUNG_AUDIO_FRAMES);
+        CHECK(buf[0] == 1 + MOVE_MIDI_SOURCE_EXTERNAL, "cable 2 reaches the engine as EXTERNAL (got %d)", buf[0] - 1);
+        engine_on_midi(note, 3, 0);
+        engine_render(buf, SCHWUNG_AUDIO_FRAMES);
+        CHECK(buf[0] == 1 + MOVE_MIDI_SOURCE_INTERNAL, "a pad reaches it as INTERNAL (got %d)", buf[0] - 1);
     }
     /* A module's move_info_read() dlsym's this from the process; it must
      * reach the engine, not fall through to the stale /schwung-move-info. */

@@ -24,10 +24,11 @@ setChildKeyResolver(schwungLib().resolveChildKey, schwungLib().childCount);
 import { init } from './init.js';
 import { tick } from './tick.js';
 import { onMidiMessageInternal } from '../midi/router.js';
+import { onMidiMessageExternal } from '../midi/external.js';
 import { onUnload } from './unload.js';
 import { openPowerModal } from './leave-modal.js';
 
 /* movy-host calls onPowerButton on a power-button press (host/surface_keys.h). */
 const onPowerButton = (): void => { openPowerModal(); };
 
-Object.assign(globalThis, { init, tick, onMidiMessageInternal, onUnload, onPowerButton });
+Object.assign(globalThis, { init, tick, onMidiMessageInternal, onMidiMessageExternal, onUnload, onPowerButton });

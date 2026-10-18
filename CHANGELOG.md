@@ -15,6 +15,11 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
+- **External MIDI keyboard (USB-A).** Notes on any channel play the selected
+  track at pad latency (the engine sounds them, ENGINE 0.103.0) and record like
+  pad notes. On drum tracks note 36 upward plays one pad per key. Mod wheel and
+  pitch bend play live and are not recorded. There is no CC mapping yet.
+
 - **Held-step piano.** Hold a step on a melodic track and the bar strip becomes
   a keyboard with the step's notes filled in, below the knobs. Keys are equal
   slots along the top edge; the range starts on a C, shows at least two octaves

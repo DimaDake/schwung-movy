@@ -4,7 +4,8 @@
  * Every packet reaches the UI (onMidiMessageInternal / External); a cable-0
  * note with d1 >= 10 (pads, steps — not knob touches) ALSO goes straight to
  * the engine's on_midi on the audio thread, which is the shim's pad path
- * (schwung_shim.c, "Deliver internal cable-0 note events"). Hardware, the
+ * (schwung_shim.c, "Deliver internal cable-0 note events"). A cable-2 (USB-A)
+ * note, mod wheel or pitch bend goes there too, marked EXTERNAL. Hardware, the
  * test bus and the schwung-midi-inject ring all enter through midi_in_feed,
  * so an injected press is indistinguishable from a real one — the overtake
  * two-ring split does not exist here. */

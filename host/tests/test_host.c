@@ -46,12 +46,19 @@ static void test_midi_in(void) {
     CHECK(midi_in_feed(pad, 0) == 1, "pad note goes to the engine");
     CHECK(midi_in_feed(touch, 0) == 0, "knob touch does not");
     CHECK(midi_in_feed(cc, 0) == 0, "CC does not");
-    CHECK(midi_in_feed(ext, 0) == 0, "cable 2 does not");
+    uint8_t ext_off[4] = { 0x28, 0x85, 60, 0 }, ext_mod[4] = { 0x2B, 0xB3, 1, 64 }, ext_cc[4] = { 0x2B, 0xB0, 7, 64 },
+            ext_pb[4] = { 0x2E, 0xE0, 0, 0x60 }, ext_at[4] = { 0x2D, 0xD0, 50, 0 };
+    CHECK(midi_in_feed(ext, 0) == 1, "cable-2 note goes to the engine");
+    CHECK(midi_in_feed(ext_off, 0) == 1, "cable-2 note-off, any channel");
+    CHECK(midi_in_feed(ext_mod, 0) == 1, "cable-2 mod wheel");
+    CHECK(midi_in_feed(ext_pb, 0) == 1, "cable-2 pitch bend");
+    CHECK(midi_in_feed(ext_cc, 0) == 0, "other cable-2 CCs do not");
+    CHECK(midi_in_feed(ext_at, 0) == 0, "cable-2 aftertouch does not");
     CHECK(midi_in_feed(rt, 0) == 0, "realtime CIN dropped");
     uint8_t p[4];
     int n = 0;
     while (midi_in_ui_pop(p)) n++;
-    CHECK(n == 4, "every voice/sysex packet reaches the UI (got %d)", n);
+    CHECK(n == 9, "every voice/sysex packet reaches the UI (got %d)", n);
     /* Cable 14 is Move's "system" cable: the power button's companion CC rides it,
      * and as an ordinary CC it dismissed the power dialog the button had just opened. */
     uint8_t sys[4] = { 0xEB, 0xB0, 0x3A, 0x7F };

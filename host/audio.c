@@ -115,7 +115,7 @@ static void *audio_main(void *arg) {
             _exit(4);
         }
         engine_frame_begin();
-        for (int i = 0; i < nn; i++) engine_on_midi(notes[i] + 1, 3);
+        for (int i = 0; i < nn; i++) engine_on_midi(notes[i] + 1, 3, notes[i][0] >> 4 == 2);
         int served = pq_service(engine_service, NULL, PARAMS_PER_FRAME);
         uint64_t tr = mh_now_us();
         int rendered = engine_render(buf, SCHWUNG_AUDIO_FRAMES);

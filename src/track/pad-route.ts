@@ -36,7 +36,7 @@ let pushedVel = '';
 /* The active track's drum rack, or null when its synth is melodic. Read from
  * the SYNTH slot (chain index 1) like every other drum question, so browsing an
  * FX page cannot change what a pad plays. */
-function drumConfigFor(track: number): DrumConfig | null {
+export function drumConfigFor(track: number): DrumConfig | null {
     return appState.trackModels[track]?.[1]?.getDrumConfig() ?? null;
 }
 

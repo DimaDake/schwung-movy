@@ -5,6 +5,7 @@
  * it dispatches to. */
 
 import { soundingTrack } from '../keyboard/held-notes.js';
+import { extHeldTrack } from '../midi/external-ledger.js';
 import { deleteActive, deletePad } from './edit-ops.js';
 import { engineReady, seqCmd } from './engine.js';
 import { setHeldSet } from './held.js';
@@ -44,7 +45,7 @@ export function heldChordPitches(): number[] {
 export function resetSeqChord(notifyEngine = false): void {
     if (notifyEngine && engineReady()) {
         for (const [padNote, midiNote] of heldChord) {
-            const track = soundingTrack(padNote);
+            const track = soundingTrack(padNote) ?? extHeldTrack(padNote);
             if (track !== undefined) seqCmd(`nof ${track} ${midiNote}`);
         }
     }

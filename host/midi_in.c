@@ -55,7 +55,11 @@ int midi_in_feed(const uint8_t pkt[4], uint64_t now_ms) {
     surface_keys_feed(pkt, now_ms);
     if (!spsc_push(&g_ui, pkt, SPSC_CAP)) __atomic_fetch_add(&g_ui_dropped, 1, __ATOMIC_RELAXED);
     uint8_t type = pkt[1] & 0xF0;
-    return cable == 0 && cin >= 0x08 && (type == 0x90 || type == 0x80) && pkt[2] >= 10;
+    int note = type == 0x90 || type == 0x80;
+    /* Cable 2 is the USB-A keyboard: its notes, mod wheel and pitch bend play
+     * the active track from the engine (ext_route.rs), at pad latency. */
+    if (cable == 2) return cin >= 0x08 && (note || type == 0xE0 || (type == 0xB0 && pkt[2] == 1));
+    return cable == 0 && cin >= 0x08 && note && pkt[2] >= 10;
 }
 
 int midi_in_ui_pop(uint8_t pkt[4]) { return spsc_pop(&g_ui, pkt); }

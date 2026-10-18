@@ -30,6 +30,7 @@ mod send_bus;
 mod master_chain;
 mod voice_send;
 mod pad_route;
+mod ext_route;
 mod set_envelope;
 mod set_store;
 mod chain_state;
@@ -138,7 +139,7 @@ pub(crate) fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.102.0";
+const ENGINE_VERSION: &str = "0.103.0";
 
 /* Blocks between autosaves. The callback runs at ~344 Hz, so this is ~2 s —
  * flash on this device is not free and the sequencer is dirty constantly while
@@ -168,6 +169,7 @@ struct Instance {
     blocks: u64,
     chains: ChainSlots,
     pads: PadRoute,
+    ext: ext_route::ExtRoute,
     padlat: pad_latency::PadLatency,
     /* Device-test probe mailbox. The engine is only a POSTBOX here: it holds
      * the harness's question and the UI's answer, because the harness can reach
@@ -226,6 +228,7 @@ impl Instance {
             blocks: 0,
             chains: ChainSlots::new(),
             pads: PadRoute::new(),
+            ext: ext_route::ExtRoute::new(),
             padlat: pad_latency::PadLatency::new(),
             probe_req: String::new(),
             probe_rsp: String::new(),
@@ -289,6 +292,17 @@ impl Instance {
                     }
                 }
             }
+            /* The external keyboard's route (ext_route.rs), pushed by comparison
+             * beside `padmap`. Leaving a chain with a wheel off rest recentres it
+             * there: the release that would have done so now reaches another track. */
+            "extmap" => match self.ext.set_map(val) {
+                Err(()) => host::log("extmap: refused a malformed map"),
+                Ok(Some(left)) => {
+                    self.chains.on_midi(left, &[0xE0, 0, 0x40], MOVE_MIDI_SOURCE_INTERNAL);
+                    self.chains.on_midi(left, &[0xB0, 1, 0], MOVE_MIDI_SOURCE_INTERNAL);
+                }
+                Ok(None) => {}
+            },
             /* `clickdb <0..11>` — metronome boost over the default level. The
              * UI pushes it on every engine boot, since a re-dlopened engine
              * starts at the default. `clickaud` plays one accented click so
@@ -941,10 +955,11 @@ unsafe extern "C" fn destroy_instance(instance: *mut c_void) {
     });
 }
 
-unsafe extern "C" fn on_midi(instance: *mut c_void, msg: *const u8, len: c_int, _source: c_int) {
+unsafe extern "C" fn on_midi(instance: *mut c_void, msg: *const u8, len: c_int, source: c_int) {
     guard((), || {
-        // Surface input arrives via the cmd protocol; the only raw MIDI the
-        // shim delivers here is Move's cable-0 system realtime (1 byte).
+        // Raw MIDI here: cable-0 pad notes and system realtime, and the USB-A
+        // keyboard (cable 2, `source` EXTERNAL — movy-host says which, since a
+        // keyboard note 70 and pad 70 are the same three bytes).
         if msg.is_null() || len < 1 {
             return;
         }
@@ -966,6 +981,13 @@ unsafe extern "C" fn on_midi(instance: *mut c_void, msg: *const u8, len: c_int, 
         if len >= 3 {
             let d1 = unsafe { *msg.add(1) };
             let d2 = unsafe { *msg.add(2) };
+            if source == MOVE_MIDI_SOURCE_EXTERNAL {
+                if let Some(i) = inst(instance) {
+                    let chains = &mut i.chains;
+                    i.ext.route(status, d1, d2, |c, m| chains.on_midi(c, &m, MOVE_MIDI_SOURCE_INTERNAL));
+                }
+                return;
+            }
             if let Some(i) = inst(instance) {
                 if let Some((chain, pitch, vel, on)) = i.pads.route(status, d1, d2) {
                     if on {

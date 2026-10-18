@@ -20,6 +20,7 @@ import { readPrefModuleBlacklist } from './prefs.js';
 import { pushMasterVolume } from '../mixer/master-volume.js';
 import { pushClickVolume } from './click-volume.js';
 import { resetPadRoute, syncPadRoute } from '../track/pad-route.js';
+import { resetExtRoute, syncExtRoute } from '../track/ext-route.js';
 import { resetWatchPush, syncWatch } from './watch.js';
 import { parseStatus, resetEngineStatus } from './engine-status.js';
 import { resetNoteView } from './note-view.js';
@@ -105,6 +106,7 @@ export function seqEngineTick(): void {
      * the mapping (track, octave, root, scale, layout, drum lane, module) is a
      * list that would rot, and a stale map sends notes to the wrong pitch. */
     syncPadRoute(paramSet);
+    syncExtRoute(paramSet);
     /* Same rule, same reason: the step view's track and drum lane are pushed by
      * comparing them against what the engine was last told. Queued rather than
      * sent, so they ride the batch the flush below is about to send. */
@@ -153,6 +155,7 @@ function boot(): void {
      * both happen inside this set, off the render path. */
     paramSet('chain_host', CHAIN_MODULE_DIR + '|' + MOVY_MODULE_DIR);
     resetPadRoute();
+    resetExtRoute();
     resetWatchPush();
     requestLabelSync(); // rebuild automation registry + re-apply chain mappings
 }

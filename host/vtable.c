@@ -101,8 +101,9 @@ int engine_loaded(void) { return __atomic_load_n(&g_inst, __ATOMIC_ACQUIRE) != N
 void engine_frame_begin(void) { pthread_mutex_lock(&g_mu); g_slow_us = 0; g_slow_key[0] = '\0'; }
 void engine_frame_end(void) { pthread_mutex_unlock(&g_mu); }
 
-void engine_on_midi(const uint8_t *msg, int len) {
-    if (g_api && g_inst && g_api->on_midi) g_api->on_midi(g_inst, msg, len, MOVE_MIDI_SOURCE_INTERNAL);
+void engine_on_midi(const uint8_t *msg, int len, int external) {
+    if (g_api && g_inst && g_api->on_midi)
+        g_api->on_midi(g_inst, msg, len, external ? MOVE_MIDI_SOURCE_EXTERNAL : MOVE_MIDI_SOURCE_INTERNAL);
 }
 
 int engine_render(int16_t *buf, int frames) {

@@ -36,6 +36,7 @@ official docs first:
    - [Send FX](#send-fx)
 4. [Keyboard & drums](#4-keyboard--drums)
    - [Muting one voice](#muting-one-voice)
+   - [External MIDI keyboard](#external-midi-keyboard)
 5. [The sequencer (aligned with Move)](#5-the-sequencer-aligned-with-move)
 6. [Beyond Move: Step, Clip & Set parameters](#6-beyond-move-step-clip--set-parameters)
    - [CPU meter](#cpu-meter--shift--step-12)
@@ -857,6 +858,25 @@ pad is exactly a voice the sequencer is not going to play — the difference
 between a mute you can read off the grid and one you have to remember.
 
 ---
+
+### External MIDI keyboard
+
+Plug a class-compliant USB MIDI keyboard or groovebox (an OP-XY, for example)
+into Move's **USB-A** port and it plays the **selected track**, just like the pads.
+
+- **Every channel plays the selected track.** Pick the destination by selecting
+  a track on Move, not on the controller. A key held while you switch tracks
+  still releases on the track it started on.
+- **Velocity is the keyboard's own.** Full Velocity applies only to Move's pads.
+- **Recording works like the pads.** With Rec armed the notes land in the clip,
+  and step recording and the hold-step + note gesture take keyboard notes too.
+- **Drum tracks: one key per pad.** C1 (MIDI note 36) plays pad 1, C#1 pad 2,
+  and so on up the rack. Keys outside the rack play nothing.
+- **Mod wheel and pitch bend** reach the selected track's synth live. They are
+  **not recorded**. Switching tracks recentres the bend and zeroes the mod wheel on
+  the track you left, so it isn't left bent.
+- Nothing else is used yet. Other CCs, aftertouch and clock are ignored, and
+  there is no custom CC mapping.
 
 ## 5. The sequencer (aligned with Move)
 
@@ -1801,6 +1821,8 @@ behaviour you'd like — or, better, a PR.
 | **Hold track + volume encoder** | Set that track's volume (0–400%, 100% = unity, 1 dB per detent). Add **Shift** to see Movy's slider instead of Move's native overlay. |
 | **MIX page knobs 1–2, 5–7** | VOL / PAN on the top row, SEND1 / SEND2 / SEND3 on the bottom, for the current track. All five automate like any parameter (see [The MIX page](#the-mix-page)). |
 | **Jog to the master chain's first three slots** | The three **send FX**. Load one like any module; feed it with SEND1 / SEND2 / SEND3 on each track's MIX page (see [Send FX](#send-fx)). |
+| **USB-A keyboard — keys** | Play the **selected track** on any channel, recorded like pads. On a drum track, C1 (36) upward is one key per pad (see [External MIDI keyboard](#external-midi-keyboard)). |
+| **USB-A keyboard — mod wheel / pitch bend** | Played live on the selected track, never recorded. |
 | **+ / −** (Up/Down) | Shift the **active track's** octave (melodic tracks only). Each track remembers its own, saved with the set. In **Session** view they step the focused **track group** instead (**+** towards tracks 1-4, **−** towards 13-16). |
 
 ### Sequencer

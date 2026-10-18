@@ -318,6 +318,8 @@ await esbuild.build({
         resolve(root, 'src/track/switch.ts'),
         resolve(root, 'src/track/bulk.ts'),
         resolve(root, 'src/track/pad-route.ts'),
+        resolve(root, 'src/track/ext-route.ts'),
+        resolve(root, 'src/midi/external.ts'),
         resolve(root, 'src/track/chain-persist.ts'),
         resolve(root, 'src/track/chains-file.ts'),
         resolve(root, 'src/track/chain-payload.ts'),

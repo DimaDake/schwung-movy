@@ -20,7 +20,7 @@ int  engine_loaded(void);
 /* Audio thread only. */
 void engine_frame_begin(void);
 void engine_frame_end(void);
-void engine_on_midi(const uint8_t *msg, int len);
+void engine_on_midi(const uint8_t *msg, int len, int external);   /* external = USB-A, cable 2 */
 int  engine_render(int16_t *interleaved, int frames);   /* 0 = no engine */
 void engine_service(void *ctx, pq_req_t *r);            /* pq_service_fn */
 /* The key of the last request serviced: names the param behind a slow frame. */

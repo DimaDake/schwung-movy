@@ -105,6 +105,10 @@ Movy stands on the shoulders of several projects:
 
   ![LFO page](docs/assets/page_lfo.png)
 
+- **External MIDI keyboard** — plug a USB keyboard (an OP-XY, say) into the
+  USB-A port: it plays and records into the selected track, one key per pad on
+  drum tracks, with mod wheel and pitch bend.
+
 - **16-track sequencer**, aligned with Move: clips, Session view & clip
   launching, live recording (with count-in/metronome), step entry, loop/bar
   editing, duplicate/delete, and **parameter automation**.

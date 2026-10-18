@@ -46,6 +46,7 @@ export async function run() {
     eq('removing it again does not shrink it mid-hold', fitWindow([60, 64, 67], grown, 60, true), grown);
     eq('...but the next hold fits again', fitWindow([60, 64, 67], grown, 60, false).k, 5);
     eq('removing every note keeps the window', fitWindow([], grown, 60, true), grown);
+    eq('a new empty step does not inherit dense keys', fitWindow([], grown, 60, false).k, 5);
     const other = fitWindow([62, 65], w, 60, false);
     eq('another step inside the same range keeps it', other, w);
 }
@@ -76,6 +77,31 @@ export async function run() {
     seqState.loopMode = true;
     editStepDown(0);
     eq('Loop mode (a bar held): no piano', stepPianoVM(), null);
+    resetSeqState(); resetStepEdit(); resetStepPiano();
+}
+
+/* ── a wide hold does not leak into the next ────────────────────────────── */
+{
+    _log('\nstep piano re-fit per hold:');
+    const hold = (button, notes) => {
+        editStepDown(button);
+        seqState.holdStep = button;
+        seqState.holdNotes = [];            // the press clears it; the engine answers later
+        stepPianoVM();
+        seqState.holdNotes = notes;
+        return stepPianoVM();
+    };
+    const release = (button) => { editStepUp(button); stepPianoVM(); };
+    resetSeqState(); resetStepEdit(); resetStepPiano();
+    eq('a wide chord gets dense keys', hold(1, [31, 90]).win.k, 2);
+    release(1);
+    eq('the next narrow step gets wide keys back', hold(2, [60, 64, 67]).win.k, 5);
+    seqState.holdNotes = [60, 64, 67, 90];
+    const g = stepPianoVM().win;
+    seqState.holdNotes = [60, 64, 67];
+    eq('mid-hold it still never shrinks', stepPianoVM().win, g);
+    release(2);
+    eq('re-holding the SAME step re-fits too', hold(2, [60, 64, 67]).win.k, 5);
     resetSeqState(); resetStepEdit(); resetStepPiano();
 }
 }

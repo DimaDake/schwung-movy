@@ -22,6 +22,11 @@ export interface StepPianoVM {
 
 const windows = new Map<number, PianoWindow>();   // track → last window shown
 let shownTrack = -1, shownStep = -1;
+/* The hold has seen its own notes. Until then the step only LOOKS empty: the
+ * press cleared holdNotes and the engine has not answered `hold` yet, and
+ * treating that frame as the hold's start let the previous hold's window into
+ * this one, where grow-only kept it forever. */
+let latched = false;
 
 export function stepPianoVM(): StepPianoVM | null {
     /* Drum lanes have no keyboard, and a Loop-mode hold is a whole bar — its
@@ -35,10 +40,11 @@ export function stepPianoVM(): StepPianoVM | null {
         return null;
     }
     const t = watchedTrack();
-    const holding = t === shownTrack && step === shownStep;
+    if (t !== shownTrack || step !== shownStep) latched = false;
     shownTrack = t; shownStep = step;
     const sel = displayHoldNotes();
-    const win = fitWindow(sel, windows.get(t) ?? null, seqState.lastPitch[t] ?? 60, holding);
+    const win = fitWindow(sel, windows.get(t) ?? null, seqState.lastPitch[t] ?? 60, latched);
+    if (sel.length > 0) latched = true;
     windows.set(t, win);
     return { win, sel, x0: Math.floor((PIANO_W - (win.n * win.k + 1)) / 2) };
 }
@@ -50,5 +56,5 @@ export function stepPianoKey(vm: StepPianoVM): string {
 
 export function resetStepPiano(): void {
     windows.clear();
-    shownTrack = -1; shownStep = -1;
+    shownTrack = -1; shownStep = -1; latched = false;
 }

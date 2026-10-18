@@ -911,8 +911,9 @@ for the concepts:
   the pads without covering the knobs. The keyboard starts on a C and shows at
   least two octaves; a chord too wide for that narrows the keys (down to about
   five octaves) instead of scrolling. While you hold the step it only ever
-  grows, so the keys you are looking at never jump; the next hold fits the
-  notes afresh. An empty step centres on the last note you played. Drum lanes
+  grows, so the keys you are looking at never jump; every new hold fits that
+  step's notes afresh (keeping the last range when it already fits them at the
+  same key width). An empty step centres on the last note you played. Drum lanes
   and Loop mode keep the bar strip.
 
   ![Held-step piano: a C major triad](docs/assets/step_piano_triad.png)

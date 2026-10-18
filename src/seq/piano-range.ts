@@ -68,10 +68,16 @@ function fresh(min: number, max: number, kCap: number): PianoWindow {
  */
 export function fitWindow(notes: readonly number[], prev: PianoWindow | null,
                           anchor: number, holding: boolean): PianoWindow {
-    if (notes.length === 0) return prev ?? fresh(anchor, anchor, SLOT_WIDTHS[0]);
+    if (notes.length === 0) {
+        if (holding && prev) return prev;     // every note removed mid-hold
+        notes = [anchor];
+    }
     let min = 127, max = 0;
     for (const p of notes) { if (p < min) min = p; if (p > max) max = p; }
     const best = fresh(min, max, SLOT_WIDTHS[0]);
-    if (prev && contains(prev, min, max) && (holding || prev.k >= best.k)) return prev;
+    /* Between holds the last window survives only at the zoom the notes would
+     * get anyway: stepping through similar chords keeps still, but a wide
+     * chord's dense keys are not inherited by the next, narrower step. */
+    if (prev && contains(prev, min, max) && (holding || prev.k === best.k)) return prev;
     return holding && prev && prev.k < best.k ? fresh(min, max, prev.k) : best;
 }

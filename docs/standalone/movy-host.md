@@ -46,6 +46,14 @@ overlap. Supporting modules:
   `/dev/shm/schwung-display-live`, so display-server streams it unchanged, and
   `/dev/shm/schwung-display` (shadow_ui's frame under the shim), so
   `grab-screen.mjs` and `capture-screen.mjs` work unchanged.
+- `mirror.c`: the rest of schwung's `/mirror`, written into the shim's own
+  segments in place (never unlinked: display-server maps each once and never
+  reopens it). `/schwung-surface-live` takes LEDs from the final MIDI_OUT and
+  presses from the raw MIDI_IN, always, like the shim does. An idle frame costs
+  about 60 ns. `/schwung-audio-live` takes the engine block only while
+  features.json `display_mirror_enabled` is on. The UI thread re-reads that
+  setting every 64 ticks, with a stat() call. Off, it costs one load per frame
+  (`host/tests/test_mirror.c` measures both).
 - `log.c` + `log_ring.c`: every line from every thread goes into one lock-free
   4096-line ring, and the `movy-log` thread is the only caller of
   `unified_log`. schwung's `unified_log` drops a line when another thread holds

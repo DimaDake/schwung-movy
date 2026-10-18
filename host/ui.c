@@ -9,6 +9,7 @@
 #include "log.h"
 #include "midi_in.h"
 #include "midi_out.h"
+#include "mirror.h"
 #include "movy_host.h"
 #include "quickjs-libc.h"
 #include "placement.h"
@@ -119,6 +120,7 @@ int ui_run(const char *ui_path) {
             if (rc) break;
         }
         display_publish(tick);
+        mirror_poll(tick);
         rt_poll();
         placement_poll();
         sleep_to(&next);

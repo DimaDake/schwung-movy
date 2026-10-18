@@ -15,6 +15,12 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
+- **Web mirror shows the whole device and records sound.** Under Movy,
+  Schwung's `/mirror` page used to show only the screen. It now also shows
+  every LED and the controls as you hold them. With Mirror Display on, it plays
+  and records Movy's audio too. With the setting off, Movy doesn't copy any
+  audio. An idle frame costs ~60 ns on the audio thread.
+
 - **External MIDI keyboard (USB-A).** Notes on any channel play the selected
   track at pad latency (the engine sounds them, ENGINE 0.103.0) and record like
   pad notes. On drum tracks note 36 upward plays one pad per key. Mod wheel and

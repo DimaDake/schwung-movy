@@ -1966,3 +1966,17 @@ Movy is a prototype, so good bug reports really help. Please include:
 
 A reproducible report (steps that reliably trigger the problem) is worth far
 more than a screenshot of a broken screen. Thank you! 🙏
+
+### Recording the screen, LEDs and sound
+
+Schwung's web mirror works under Movy as well. Open `http://move.local:7700/mirror`
+in a browser. It shows the screen with the whole device below it: every pad,
+step and button LED, plus the controls as you hold them. Use **Save PNG** for a
+still or **Record** for a video. A recording of the bug as it happens is often
+the best report you can send.
+
+The **sound** is included only while Schwung's **Mirror Display** setting is
+on (web manager → Settings). With the setting off, Movy doesn't copy any audio
+for the mirror. The page still shows the screen and LEDs, and recordings have
+no sound. **Mute** on the page only controls whether your browser plays the
+sound. A recording always includes it.

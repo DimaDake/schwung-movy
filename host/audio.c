@@ -18,6 +18,7 @@
 #include "midi_in.h"
 #include "midi_out.h"
 #include "midi_tap.h"
+#include "mirror.h"
 #include "movy_host.h"
 #include "param_queue.h"
 #include "surface_keys.h"
@@ -51,6 +52,7 @@ static int gather_input(uint8_t *map, uint8_t notes[][4], int max) {
         if (!(e[0] | e[1] | e[2] | e[3])) continue;
         if (midi_in_feed(e, now) && n < max) memcpy(notes[n++], e, 4);
     }
+    mirror_in(in, SCHWUNG_MIDI_IN_MAX * 8);
     /* Events persist in the RX mailbox until overwritten; as its only reader
      * we clear them, or the next frame replays them (boot-select.c). */
     memset(in, 0, SCHWUNG_MIDI_IN_MAX * 8);
@@ -91,6 +93,7 @@ static void *audio_main(void *arg) {
         int nout = midi_out_take(out);
         memcpy(map + SCHWUNG_OFF_OUT_MIDI, out, (size_t)nout * 4);
         for (int i = 0; i < nout; i++) midi_tap_record(g_frame + 1, out[i]);
+        mirror_out((const uint8_t (*)[4])out, nout);
         uint64_t tp = mh_now_us();
         spi_pump(spi);
         memset(map + SCHWUNG_OFF_OUT_MIDI, 0, SCHWUNG_MIDI_OUT_MAX * 4);
@@ -128,6 +131,7 @@ static void *audio_main(void *arg) {
 
         int16_t *dst = (int16_t *)(map + SCHWUNG_OFF_OUT_AUDIO);
         if (!rendered) { memset(dst, 0, sizeof buf); fade = 0; continue; }
+        mirror_audio(buf, SCHWUNG_AUDIO_FRAMES);
         /* Fade in from silence: the hardware may still carry whatever the
          * previous owner left, and a full-scale first block is a click. */
         if (fade < FADE_FRAMES) {

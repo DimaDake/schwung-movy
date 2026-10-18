@@ -27,6 +27,7 @@ SCHWUNG_FILES=(
     src/host/plugin_api_v1.h
     src/host/shadow_constants.h src/host/scene_morph.h
     src/host/shadow_midi_inject_writer.h src/host/ui_midi_ring.h
+    src/host/surface_live_shm.h src/host/audio_live_shm.h
     src/lib/schwung_spi_lib.h src/lib/stb_image.h src/lib/stb_truetype.h
 )
 

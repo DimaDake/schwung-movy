@@ -11,7 +11,7 @@ far. Earlier work is summarised in the timeline below for context.
 > sequencer engine's `ENGINE_VERSION` are tracked separately. Versions below
 > refer to the app unless noted.
 
-## [Unreleased]
+## [0.37.0] — 2026-10-19
 
 ### Added
 
@@ -43,6 +43,13 @@ far. Earlier work is summarised in the timeline below for context.
   Recording shows live, including auto-extend. Knobs are idle in this view.
   Replaces the Loop readout band. New engine status `nh=` + `notes` get
   (ENGINE 0.102.0).
+
+### Fixed
+
+- **The power dialog no longer opens by itself.** Move's battery report shares
+  the power button's SysEx, so every one-percent battery drop opened
+  **Power off?** on an idle device. A press is now only the button bit's rising
+  edge.
 
 ## [0.36.0] — 2026-10-17
 

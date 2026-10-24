@@ -47,9 +47,20 @@ let ttl = 0;
  * value a caller passes. */
 const TOAST_TTL = 196;
 
+/* Bumped when the toast's TEXT changes. tick.ts repaints on it: a toast
+ * updated while it is still showing (Freeze's "FREEZING T1 n%", re-said every
+ * ~40 ms, never expiring in between) was otherwise drawn once and left at its
+ * first value. A repeat of the same text is not a change. */
+let version = 0;
+
 export function seqToast(msg: string): void {
+    if (msg !== text || ttl === 0) version++;
     text = msg;
     ttl = TOAST_TTL;
+}
+
+export function seqToastVersion(): number {
+    return version;
 }
 
 export function seqToastActive(): boolean {

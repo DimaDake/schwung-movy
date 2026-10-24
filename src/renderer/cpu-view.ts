@@ -125,6 +125,17 @@ function drawCapacity(load: number, peak: number): void {
     fill_rect(px - 1, BAR_Y - 1, 3, 1, 1);
 }
 
+/* A 3x5 "F" over a frozen track's column: its bar is real but tiny (a loop
+ * copy, not a synth), and this says why. */
+const FROZEN_F = [0b111, 0b100, 0b110, 0b100, 0b100];
+function drawFrozenMark(x: number, y: number): void {
+    for (let r = 0; r < FROZEN_F.length; r++) {
+        for (let c = 0; c < 3; c++) {
+            if ((FROZEN_F[r] >> (2 - c)) & 1) fill_rect(x + c, y + r, 1, 1, 1);
+        }
+    }
+}
+
 function drawColumn(x: number, colW: number, col: CpuColumn, scaleUs: number): void {
     if (col.kind === 'na') {
         // Not ours to measure. Blank would say the track is free.
@@ -134,6 +145,7 @@ function drawColumn(x: number, colW: number, col: CpuColumn, scaleUs: number): v
     }
     fill_rect(x, BOT, colW, 1, 1);           // the column exists, even unused
     if (col.kind === 'empty') return;
+    if (col.kind === 'frozen') drawFrozenMark(x + ((colW - 3) >> 1), TOP + 2);
     if (col.kind === 'asleep') {
         // Loaded, silent, skipped: costing nothing right now, which is not the
         // same as nothing being here. Its HELD PEAK is still drawn below —

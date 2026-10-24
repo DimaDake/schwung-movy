@@ -98,7 +98,10 @@ async function installMovyStateInner(): Promise<void> {
      * as ROOT, so a set movy has saved holds root-owned 644 files — and scp
      * opens the destination for writing, so it is refused however writable the
      * directory is. The directory is ableton's, so unlinking is allowed. */
-    await ssh(`mkdir -p '${dir}' && rm -f '${p}' '${dir}/ui-state.json' '${dir}/chains.json'`);
+    /* The freeze files go too: a track left frozen (by hand on the box, or a
+     * scenario that died mid-freeze) opens frozen, its chain unloaded — and
+     * the fixture's chain check then fails for every scenario after it. */
+    await ssh(`mkdir -p '${dir}' && rm -rf '${p}' '${dir}/ui-state.json' '${dir}/chains.json' '${dir}/freeze.txt' '${dir}/freeze'`);
     await scpTo(join(FIXTURE_DIR, 'seq-state.json'), p);
 
     /* Two more per-set files, both rendered from the fixture's declaration:

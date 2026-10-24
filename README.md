@@ -152,6 +152,13 @@ Movy stands on the shoulders of several projects:
 
   ![Capture tempo selector](docs/assets/capture_select.png)
 
+- **Freeze** — **Shift + double tap** a track to record its clip into a loop
+  and unload its synth and effects: it sounds the same, its fader, pan, mute
+  and sends still work, and its CPU goes back to the Set. 16 synth tracks that
+  drop out at 39 % CPU play at 0.2 % with all of them frozen.
+
+  ![A frozen track](docs/assets/frozen_view.png)
+
 - **Non-destructive quantization** — every clip carries a strength from 0 to
   100 % applied as it plays, so the timing you recorded is never rewritten and
   you can dial it back at any time. **Shift + Step 16** cycles 0 / your default

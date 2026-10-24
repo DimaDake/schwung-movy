@@ -499,6 +499,39 @@ _origLog('\nTest: Session mixer frame cost');
     check('mixer frame (decode cached)', Number(((performance.now() - t0) / 1000).toFixed(4)), 0.2, 'ms');
 }
 
+/* ── Test: freeze costs nothing per tick ─────────────────────────────────── */
+/* A capture reports its percent every block; each new toast text is a full
+ * repaint (tick.ts, seqToastVersion), so the UI must quantise it. And a frozen
+ * track's pads animate: between scroll steps their colours must not move, or
+ * the LED cache would resend them every tick. */
+
+_origLog('\nTest: freeze per-tick cost');
+{
+    const fz = await import('../dist/esm/seq/freeze.js');
+    const { seqToastVersion } = await import('../dist/esm/seq/render.js');
+    const { renderFrozenView } = await import('../dist/esm/renderer/frozen-view.js');
+    fz.resetFreeze();
+    const v0 = seqToastVersion();
+    for (let pct = 0; pct <= 100; pct++) fz.freezeStatusField('frzc', `2:${pct}`);
+    fz.freezeStatusField('frzc', '-');
+    check('progress repaints over a whole capture (0..100 %)', seqToastVersion() - v0, 11);
+
+    let moved = 0;
+    for (let t = 0; t < 1000; t += 2) {
+        for (let i = 0; i < 32; i++) if (fz.frozenPadColor(i, t) !== fz.frozenPadColor(i, t + 1)) moved++;
+    }
+    check('frozen pad colours changed within a scroll step (500 ticks)', moved, 32 * 5);
+
+    fillRectCount = 0;
+    renderFrozenView('T4', 'OBXD');
+    /* A full page of text, drawn only when the view repaints (the same gate as
+     * the chain view it replaces), never per tick: the note view's full-paint
+     * budget, not a per-tick one. */
+    check('frozen view fill_rect per repaint', fillRectCount, 450);
+    _origLog(`    (frozen view: ${fillRectCount} fill_rect)`);
+    fz.resetFreeze();
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _origLog('');

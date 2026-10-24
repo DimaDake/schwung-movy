@@ -44,8 +44,8 @@ const PRESETS = [
     'song_band', 'song_band_overflow', 'song_band_end',
     'quant-overlay-three', 'quant-overlay-two', 'flags-top', 'flags-scrolled',
     'cpu-movy-tracks', 'cpu-unsplit-module', 'cpu-overscale',
-    'cpu-empty', 'cpu-sends', 'cpu-sends-quiet', 'cpu-master', 'leave_modal',
-    'power_modal', 'capture_select', 'capture_fixed', 'undo_toast', 'redo_toast',
+    'cpu-empty', 'cpu-sends', 'cpu-sends-quiet', 'cpu-master', 'cpu-frozen', 'leave_modal',
+    'power_modal', 'unfreeze_stops_modal', 'frozen_view', 'capture_select', 'capture_fixed', 'undo_toast', 'redo_toast',
     'undo_empty', 'undo_unavailable', 'clip-undo-toast', 'track_volume_unity',
     'track_volume_quiet', 'track_volume_min', 'track_volume_max', 'master_volume',
     'font_5x3_all', 'font_small_all', 'font_big_all_1', 'font_big_all_2', 'page_body',
@@ -104,7 +104,7 @@ const BASE = {
                                 'quant-overlay-three': 'test8', 'quant-overlay-two': 'test8',
     'flags-top': 'test8', 'flags-scrolled': 'test8',
                                                                             lfo_chain: 'test8',         lfo_assign_toast: 'test8',
-    leave_modal: 'test8', power_modal: 'test8',
+    leave_modal: 'test8', power_modal: 'test8', unfreeze_stops_modal: 'test8', frozen_view: 'test8',
     master_volume: 'test8',
     track_volume_unity: 'test8', track_volume_quiet: 'test8',
     track_volume_min: 'test8', track_volume_max: 'test8',
@@ -184,6 +184,8 @@ const { renderFlagsView } = await import('../dist/esm/renderer/flags-view.js');
 const { renderSetsView }  = await import('../dist/esm/renderer/sets-view.js');
 const { buildSetsPageVM } = await import('../dist/esm/seq/sets-page-vm.js');
 const { renderCpuView }   = await import('../dist/esm/renderer/cpu-view.js');
+const { renderFrozenView } = await import('../dist/esm/renderer/frozen-view.js');
+const freeze = await import('../dist/esm/seq/freeze.js');
 const { buildCpuPageVM }  = await import('../dist/esm/seq/cpu-page-vm.js');
 const { buildFlagsPageVM } = await import('../dist/esm/seq/flags-page-vm.js');
 const { flagsPageState, resetFlagsPage, flagsRowCount } = await import('../dist/esm/seq/flags-page.js');
@@ -530,7 +532,10 @@ function applyView(preset) {
         case 'cpu-sends-quiet':
         /* movy's own master chain holding a module: a fourth FX column joins
          * the send region at the narrow pitch, labelled `M`. */
-        case 'cpu-master': {
+        case 'cpu-master':
+        /* Tracks 1 and 3 frozen: their columns carry the F and the loop's real,
+         * tiny cost instead of the synth's. */
+        case 'cpu-frozen': {
             /* Every column inside the 1 ms floor, so `cpu-overscale` is the
              * only baseline where the scale has had to GROW — otherwise the two
              * scenes differ by nothing and neither pins it. */
@@ -556,6 +561,7 @@ function applyView(preset) {
              * what pins that a chain which spiked and then went quiet still
              * shows what it did — the dash alone would hide it. */
             rows[8] = '0/0/620';
+            if (preset === 'cpu-frozen') { rows[0] = '2/2/3'; rows[2] = '1/1/2'; }
             if (preset === 'cpu-empty') {
                 seqState.cpuCost = ''; seqState.cpuWall = ''; seqState.cpuMask = '';
             } else {
@@ -568,7 +574,14 @@ function applyView(preset) {
                 preset === 'cpu-sends' || preset === 'cpu-master' ? '760/1180,190/240,-'
                 : preset === 'cpu-sends-quiet' ? '0/1180,-,-'
                 : '-,-,-';
-            lastRender = () => renderCpuView(buildCpuPageVM());
+            /* The frozen mask is set only around this scene's own render, so no
+             * later scene inherits a frozen track. */
+            const frz = preset === 'cpu-frozen' ? '5' : '0';
+            lastRender = () => {
+                freeze.freezeStatusField('frz', frz);
+                renderCpuView(buildCpuPageVM());
+                freeze.freezeStatusField('frz', '0');
+            };
             lastRender();
             break;
         }
@@ -615,6 +628,20 @@ function applyView(preset) {
             showChain(1, false);
             const base = lastRender;
             lastRender = () => { base(); drawLeaveModal(['Power off', 'Cancel'], 0, 'Power off?'); };
+            lastRender();
+            break;
+        }
+        /* Unfreeze with the transport running: the note line, Yes / No. */
+        case 'unfreeze_stops_modal': {
+            showChain(1, false);
+            const base = lastRender;
+            lastRender = () => { base(); drawLeaveModal(['Yes', 'No'], 0, 'Unfreeze T3?', 'Playback will stop'); };
+            lastRender();
+            break;
+        }
+        /* A frozen track's chain view: what it was, and how to bring it back. */
+        case 'frozen_view': {
+            lastRender = () => renderFrozenView('T4', 'OBXD');
             lastRender();
             break;
         }

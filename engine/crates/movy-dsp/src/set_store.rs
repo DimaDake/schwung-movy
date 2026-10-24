@@ -28,7 +28,7 @@ use std::path::{Path, PathBuf};
  * directory. Nothing here is a secret, and the alternative is a Set only one
  * half of movy can save. */
 const DIR_MODE: u32 = 0o777;
-const FILE_MODE: u32 = 0o666;
+pub(crate) const FILE_MODE: u32 = 0o666;
 
 /// `mkdir -p`, left writable by both halves.
 pub(crate) fn ensure_dir(path: &Path) -> Result<(), String> {
@@ -180,7 +180,14 @@ impl SetStore {
     pub fn seed(&self, dst: &str, src: &str) -> bool {
         let Some(state) = self.read_best(src) else { return false };
         let chains = self.read_chains(src).unwrap_or_else(|| "0\n".to_string());
-        self.write(dst, &state.payload, 1, &chains).is_ok()
+        if self.write(dst, &state.payload, 1, &chains).is_err() {
+            return false;
+        }
+        /* The frozen loops travel with the Set: a rename (a new Set leaving its
+         * pending id) or a duplicate would otherwise open its frozen tracks
+         * unfrozen. A copy that fails costs only that. */
+        crate::freeze_files::copy(&self.set_dir(src), &self.set_dir(dst));
+        true
     }
 }
 

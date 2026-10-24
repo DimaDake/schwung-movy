@@ -58,6 +58,7 @@ import { run as run_set_session } from './logic/set-session.mjs';
 import { run as run_set_settling } from './logic/set-settling.mjs';
 import { run as run_seq_leds } from './logic/seq-leds.mjs';
 import { run as run_mute_solo } from './logic/mute-solo.mjs';
+import { run as run_freeze } from './logic/freeze.mjs';
 import { run as run_step_entry } from './logic/step-entry.mjs';
 import { run as run_automation } from './logic/automation.mjs';
 import { run as run_keyboard } from './logic/keyboard.mjs';
@@ -180,6 +181,7 @@ const SUITES = [
     run_set_settling,
     run_seq_leds,
     run_mute_solo,
+    run_freeze,
     run_step_entry,
     run_automation,
     run_keyboard,

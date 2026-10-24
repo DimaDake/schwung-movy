@@ -25,6 +25,9 @@ void mirror_poll(int tick);
 void mirror_out(const uint8_t (*pkts)[4], int n);
 void mirror_in(const uint8_t *midi_in, int bytes);
 void mirror_audio(const int16_t *lr, int frames);
+/* Audio thread, from the param service: the engine's `mfx:vol`, which the
+ * stream undoes so it plays at unity like the shim's. */
+void mirror_master_volume(const char *val);
 
 /* Exposed for the tests. */
 int mirror_flag_parse(const char *json);

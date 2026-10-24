@@ -23,7 +23,7 @@ SCHWUNG="${SCHWUNG:-$DIR/../../schwung}"
 INC=(-I"$DIR" -I"$SCHWUNG/src" -I"$SCHWUNG/src/host")
 "${CC:-cc}" -std=gnu11 -Wall -Wextra -shared -fPIC "${INC[@]}" "$DIR/tests/fake_dsp.c" -o "$OUT/fake_dsp.so"
 "${CC:-cc}" -std=gnu11 -Wall -Wextra -Wno-unused-parameter -pthread "${INC[@]}" \
-    "$DIR/tests/test_vtable.c" "$DIR/vtable.c" "$DIR/midi_out.c" "$DIR/param_bulk.c" "$DIR/status_snap.c" -ldl -o "$OUT/test_vtable"
+    "$DIR/tests/test_vtable.c" "$DIR/vtable.c" "$DIR/mirror.c" "$DIR/midi_out.c" "$DIR/param_bulk.c" "$DIR/status_snap.c" -ldl -o "$OUT/test_vtable"
 "$OUT/test_vtable" "$OUT/fake_dsp.so"
 bash "$DIR/tests/test_boot_door.sh"
 "${CC:-cc}" -std=gnu11 -Wall -Wextra -I"$DIR" "${INC[@]}" "$DIR/tests/test_spi_fake.c" "$DIR/vdev/spi_fake.c" -o "$OUT/test_spi_fake"

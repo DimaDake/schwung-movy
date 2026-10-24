@@ -130,10 +130,31 @@ int main(void) {
     CHECK(mirror_sound_on(), "Mirror Display on: sound streams");
     mirror_audio(lr, 128);
     CHECK(a->write_pos == 128 && a->ring[0] == lr[0] && a->ring[255] == lr[255], "one block, unscaled");
+    /* The block comes after the engine's master volume; the stream undoes it,
+     * as the shim does, so a low knob does not mean a silent recording. */
+    int16_t quiet[128 * 2];
+    for (int i = 0; i < 256; i++) quiet[i] = 100;
+    #define LAST_L() (a->ring[((a->write_pos - 1) & (AUDIO_LIVE_FRAMES - 1)) * 2])
+    mirror_master_volume("0.1000");
+    mirror_audio(quiet, 128);
+    CHECK(LAST_L() > 100 && LAST_L() < 1000, "smoothed, not stepped: %d", LAST_L());
+    for (int i = 0; i < 200; i++) mirror_audio(quiet, 128);
+    CHECK(LAST_L() >= 999 && LAST_L() <= 1001, "master 0.1 streams at unity: %d", LAST_L());
+    mirror_master_volume("nan");
+    mirror_audio(quiet, 128);
+    CHECK(LAST_L() >= 999 && LAST_L() <= 1001, "a malformed value changes nothing: %d", LAST_L());
+    mirror_master_volume("0.0010");
+    for (int i = 0; i < 200; i++) mirror_audio(quiet, 128);
+    CHECK(LAST_L() == 5000, "capped at 50x, as in the shim: %d", LAST_L());
+    mirror_master_volume("1.0000");
+    for (int i = 0; i < 400; i++) mirror_audio(lr, 128);
+    CHECK(a->ring[((a->write_pos - 128) & (AUDIO_LIVE_FRAMES - 1)) * 2] == lr[0], "back at unity, unscaled");
+
+    uint64_t wp = a->write_pos;
     set_mirror(0, 1000010);
     mirror_poll(128);
     mirror_audio(lr, 128);
-    CHECK(!mirror_sound_on() && a->write_pos == 128, "Mirror Display off: nothing written");
+    CHECK(!mirror_sound_on() && a->write_pos == wp, "Mirror Display off: nothing written");
 
     /* Cost on the audio thread. An idle frame (no LED change, no press) is the
      * common one; the frame budget is 2902 us. Bounds are ~100x what a laptop

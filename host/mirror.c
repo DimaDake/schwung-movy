@@ -1,5 +1,6 @@
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
@@ -18,6 +19,7 @@ static surface_live_shm_t *g_surface;
 static surface_live_writer_t g_writer;
 static audio_live_shm_t *g_audio;
 static int g_sound;                       /* UI thread writes, audio thread reads */
+static float g_master = 1.0f;             /* audio thread only: param service + push */
 static char g_features[256];
 static struct timespec g_features_mtime;
 
@@ -96,6 +98,20 @@ void mirror_in(const uint8_t *midi_in, int bytes) {
     if (g_surface) surface_live_scan_in(g_surface, &g_writer, midi_in, bytes);
 }
 
+void mirror_master_volume(const char *val) {
+    float g = strtof(val, NULL);
+    if (g == g) g_master = g < 0.0f ? 0.0f : g > 1.0f ? 1.0f : g;   /* NaN changes nothing, as in the engine */
+}
+
+/* The block arrives AFTER the engine's master volume, but the shim streams
+ * the mirror at unity -- Move's mix times a smoothed 1/master, capped at 50x
+ * -- so the page plays at one level whatever the knob says. Pushed as it is,
+ * a knob near the bottom made every movy recording sound silent. Same
+ * smoothing and cap as the shim, so the two hosts' streams match. */
 void mirror_audio(const int16_t *lr, int frames) {
-    if (g_audio && __atomic_load_n(&g_sound, __ATOMIC_RELAXED)) audio_live_push(g_audio, lr, frames, 1.0f);
+    static float smoothed = 1.0f;
+    if (!g_audio || !__atomic_load_n(&g_sound, __ATOMIC_RELAXED)) return;
+    smoothed += (g_master - smoothed) * 0.1f;
+    float inv = smoothed > 0.001f ? 1.0f / smoothed : 1.0f;
+    audio_live_push(g_audio, lr, frames, inv > 50.0f ? 50.0f : inv);
 }

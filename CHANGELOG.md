@@ -11,6 +11,39 @@ far. Earlier work is summarised in the timeline below for context.
 > sequencer engine's `ENGINE_VERSION` are tracked separately. Versions below
 > refer to the app unless noted.
 
+## [0.38.0] — 2026-10-24
+
+### Added
+
+- **Freeze tracks.** Hold Shift and double tap a track button, confirm
+  **Freeze T3?** with the jog: the track's playing clip is recorded for two
+  passes (so reverb and delay tails wrap into the loop) and the track plays
+  the loop in place of its synth and effects, which are unloaded. Fader, pan,
+  mute, solo and sends keep working, and the chain's CPU goes back to the Set:
+  16 synth tracks that dropped out at 39 % CPU play at 0.2 % with all of them
+  frozen. With the transport stopped the freeze records silently and stops
+  again; Back, Stop or a relaunch cancels it. A frozen track refuses edits
+  (**UNFREEZE T3 FIRST**), shows the synth it was frozen from, scrolls
+  **FROZEN** on its pads and carries an **F** on the CPU page. Loops follow
+  tempo changes tape-style. Frozen tracks are saved with the Set (a WAV per
+  track in the Set's `freeze/` folder) and open without loading their chain.
+  Shift + double tap again unfreezes, restoring the preset and LFOs; while
+  playing it asks first, because, as in Live, an unfreeze stops the transport
+  (reloading the modules takes a few hundred milliseconds). New engine
+  commands `frz`/`unfrz`/`frzx` and status fields `frz`/`frzc`/`frze`/`frzm`
+  (ENGINE 0.105.0). A frozen chain is destroyed off the audio thread: dropping
+  Surge there cost 11-17 ms in one block.
+
+### Fixed
+
+- **The web mirror plays at a steady level.** `/mirror` streamed the block
+  after Movy's master volume, so with the knob low it sounded silent. It now
+  undoes the master volume the way Schwung's own mirror does (smoothed, capped
+  at 50x); what reaches the speakers is unchanged.
+- **Toasts that change while showing are redrawn.** A toast whose text changed
+  before it expired stayed on its first text; the freeze progress is the case
+  that showed it.
+
 ## [0.37.0] — 2026-10-19
 
 ### Added

@@ -38,6 +38,7 @@ official docs first:
    - [Muting one voice](#muting-one-voice)
    - [External MIDI keyboard](#external-midi-keyboard)
 5. [The sequencer (aligned with Move)](#5-the-sequencer-aligned-with-move)
+   - [Freeze](#freeze--record-a-track-into-a-loop)
 6. [Beyond Move: Step, Clip & Set parameters](#6-beyond-move-step-clip--set-parameters)
    - [CPU meter](#cpu-meter--shift--step-12)
    - [Sets](#sets--shift--step-1)
@@ -1356,6 +1357,103 @@ To throw it away by hand, hold **Clear** and press **Capture**.
 > **Not captured:** knob moves. Move captures automation too; Movy captures
 > notes only. Record automation live instead (see the sequencer list above).
 
+### Freeze — record a track into a loop
+
+Freezing a track records what its clip plays into a loop, unloads its synth and
+effects, and plays the loop in their place. The track sounds the same, its
+fader, pan, mute, solo and sends keep working — and the CPU its chain was using
+goes back to the rest of the Set. On the Move, where the CPU runs out long
+before 16 tracks do, that is the difference between a Set that drops out and
+one that plays. Measured on the device, 16 tracks of synths playing chords:
+
+| | CPU meter | Dropouts |
+| --- | --- | --- |
+| Nothing frozen | 39 % | yes — the Move is past its budget |
+| 10 of the 16 frozen | 14 % | none |
+| All 16 frozen | 0.2 % | none |
+| Two brought back (an OB-Xd and a Surge) | 18.5 % | none |
+
+**To freeze a track:**
+
+1. Hold **Shift** and **double tap the track's button** (two taps within about
+   half a second). The first tap is an ordinary track press.
+2. The screen asks **Freeze T3?** with **Freeze** selected. **Click the jog** to
+   confirm; turn it to **Cancel**, or press **Back**, to leave it.
+3. **FREEZING T3** counts up in steps of 10 % while it records, then
+   **T3 FROZEN**.
+
+What is recorded is the track's **active clip**, and it must be the one
+playing — if another clip of that track is playing, you get **LAUNCH T3'S CLIP
+FIRST** instead.
+
+The recording takes **two passes of the clip** (a 1-bar clip at 120 BPM: 4 s),
+so reverb and delay tails from the end of the loop are already in its start and
+the loop repeats seamlessly. It is real time: the modules can only run as fast
+as they play, so there is no faster-than-real-time render as in a DAW.
+
+- **Transport playing:** nothing stops and nothing is muted — keep playing. The
+  track switches to its loop sample-accurately at the end of the second pass.
+  The fader, pan, mute and sends are applied after the recording, so moving
+  them does not end up in the loop; knob moves on the track's synth or effects
+  do, as in any DAW freeze.
+- **Transport stopped:** confirming starts playback for that track alone, with
+  the output **silent** (click included), records the two passes, and stops
+  again. You hear nothing for those seconds and watch the progress on screen.
+
+Stopping the transport, relaunching the clip or pressing **Back** while it
+records cancels it (**FREEZE CANCELLED**); the track stays as it was.
+
+**A frozen track:**
+
+![A frozen track](docs/assets/frozen_view.png)
+
+- **Plays its loop** locked to the clip position — stop/start, relaunches and
+  loop wraps all land on the same sample, at any tempo.
+- **Tempo changes still work.** The loop plays like tape: faster and higher, or
+  slower and lower, always on the grid.
+- **Editing is refused** until you unfreeze it, with **UNFREEZE T3 FIRST**: step
+  edits, pads, knobs on its chain, the module browser, and launching, deleting
+  or duplicating its clips in Session.
+- **The screen** shows the synth it was frozen from and how to bring it back;
+  **the pads** scroll **FROZEN** in white over ice blue (they play nothing).
+- **The CPU meter** marks it with an **F** and shows what the loop really costs
+  — a microsecond or two (see [CPU meter](#cpu-meter--shift--step-12)).
+
+  ![CPU meter with tracks 1 and 3 frozen](docs/assets/cpu-frozen.png)
+
+**To unfreeze**, **Shift + double tap** the track again. The synth and effects
+reload with the preset and LFO settings they had when frozen.
+
+Loading a module takes a few hundred milliseconds, and the audio cannot keep
+playing through it. So, as in Live, **unfreezing stops the transport**. With
+the transport playing, the dialog warns you first:
+
+![Unfreeze while playing](docs/assets/unfreeze_stops_modal.png)
+
+**Yes** unfreezes and stops; **No** leaves the track frozen and the music
+playing. With the transport already stopped, the dialog is a plain
+**Unfreeze / Cancel**. Bringing a track back also brings its CPU cost back, so
+on a Set already at its limit it can bring the dropouts back too.
+
+**Saved with the Set.** A frozen track stays frozen when Movy is closed, the
+Move restarts or the Set is reopened — and it opens without loading its synth
+at all. Renaming or duplicating the Set carries its frozen tracks along. If the
+track's chain no longer names the modules it was frozen from (after restoring
+an older version, say), it opens **unfrozen, with its chain**: a loop recorded
+from another sound is never played.
+
+The loop lives in memory, about 176 KB per second of loop (a 2-bar clip at
+120 BPM ≈ 700 KB), read from the card once when the Set opens.
+
+**What one freeze keeps:**
+
+- **One clip.** Only the active clip is frozen; launching another clip of a
+  frozen track is refused.
+- **One take.** Probability, A:B conditions and free-running LFOs are baked in
+  as they played on the second pass.
+- **Tape-style tempo.** The pitch follows the tempo; there is no pitch-keeping
+  time-stretch.
+
 ### Saving — there is no Save button
 
 Movy saves by itself, and there is deliberately nothing to press. Your
@@ -1535,6 +1633,7 @@ so — the same bargain any level meter makes.
 | A dotted line above the bar | The worst block that track has had since you opened the page |
 | A solid line across the top with a gap under it | Something on that column is off the top of the plot — usually a one-off spike in its peak, which the scale deliberately ignores (see below) |
 | A short dash just above the baseline | Loaded, but silent right now, so Movy is skipping it entirely. Its peak line is still drawn — a track that spiked and then went quiet is exactly what you came here to find |
+| An **F** at the top of the column | A [frozen](#freeze--record-a-track-into-a-loop) track: its synth is unloaded, and the column is what its loop costs — a microsecond or two |
 | Just the baseline | Nothing loaded |
 
 #### Send buses
@@ -1779,7 +1878,11 @@ missing or simplified. **All of these are candidates for future work — and
   somewhere around 6-7 tracks of ordinary synth modules playing notes. Pick
   cheap modules and it goes much further — 16 tracks of Dexed playing 2-4 notes
   each, with mverb on half of them, does run. Treat 16 as a ceiling to explore,
-  not a promise.
+  not a promise — and [freeze](#freeze--record-a-track-into-a-loop) the tracks
+  you have finished with to get their CPU back.
+- **Freeze is real time, one clip, tape-style.** It records the active clip
+  only, takes two passes of it to record, and a frozen loop follows tempo
+  changes with its pitch. Unfreezing stops the transport.
 - **Track + volume needs Shift on tracks 5-16** (see
   [Track volume](#track-volume)).
 - **Tracks are silent while Movy is closed.** Every track needs Movy open to
@@ -1863,6 +1966,9 @@ behaviour you'd like — or, better, a PR.
 | **Mute + pad** (drum track) | Mute / unmute that drum voice in the sequencer — the whole track, every clip. Live pad playing is unaffected, but the press itself is silent (no note, no pad select). Latch. |
 | **Shift + Mute + pad** (drum track) | Solo that drum voice instead — exclusive, press again to clear. |
 | **Track buttons 1–4** | Select a track within the focused group of four (hold = momentary peek). |
+| **Shift + double tap a track button** | **Freeze** the track (records its playing clip into a loop and unloads its chain), or **unfreeze** a frozen one. Jog click confirms. See [Freeze](#freeze--record-a-track-into-a-loop). |
+| **Back** (while freezing) | Cancel the recording; the track stays as it was. |
+| **Jog** (Unfreeze dialog, playing) | **Yes** unfreezes and stops the transport; **No** leaves the track frozen. |
 | **Volume encoder** | Adjust held steps' velocity. With a track button held instead, sets that track's volume (**add Shift on tracks 5-16** — see [Track volume](#track-volume)); otherwise it is the master volume. |
 | **TEMPO knob** (Set page) | Set the tempo. |
 

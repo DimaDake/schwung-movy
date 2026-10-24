@@ -80,7 +80,9 @@ import { holdTouch, holdRelease, holdTurnCancel, assignActive, assignCycle, assi
 import { masterScope, trackScope } from '../lfo/scope.js';
 import { deleteActive, markDeleteActed } from '../seq/edit-ops.js';
 import { seqToast } from '../seq/render.js';
-import { leaveModalActive, openLeaveModal, closeLeaveModal, leaveModalMove, leaveModalConfirm, leaveModalPass } from '../app/leave-modal.js';
+import { leaveModalActive, openLeaveModal, closeLeaveModal, leaveModalMove, leaveModalConfirm, leaveModalPass,
+         leaveModalState, openFreezeModal } from '../app/leave-modal.js';
+import { freezeTrackTap, freezeConfirm, freezeCancelCapture, freezeGuard, isFrozen } from '../seq/freeze.js';
 import {
     quantOverlayActive, quantOverlayAction, quantOverlayJog, quantOverlayHold,
     dismissQuantOverlay,
@@ -277,6 +279,13 @@ export function onMidiMessageInternal(data: number[]): void {
                  * reset cannot cover presses that arrived after it. Live notes
                  * need no equivalent only because everything that sounds one
                  * dismisses first; move a pad to `through` and that changes. */
+                /* Freeze stays in movy: nothing is stranded, Shift may still be
+                 * down under the finger, so held input is left alone. */
+                if (action === 'freeze' || action === 'unfreeze') {
+                    const t = leaveModalState.track;
+                    freezeConfirm(t, action === 'unfreeze', appState.trackModels[t]?.[1]?.getModuleName() ?? '');
+                    return;
+                }
                 resetHeldInput(true);
                 if (action === 'close') platform.exit();
                 else if (action === 'poweroff') platform.powerOff();
@@ -628,6 +637,9 @@ export function onMidiMessageInternal(data: number[]): void {
         mlog('knobCC k=' + k + ' d2=' + d2 + ' delta=' + delta);
         const model = knobModel();
         const track = appState.activeTrack.index;
+        /* A frozen track's chain is unloaded: an edit would go nowhere and the
+         * unfreeze would bring the old sound back. Say so instead. */
+        if (!masterChainActive() && freezeGuard(track)) return;
         /*
          * THE LANE MUST TARGET THE PARAMETER THAT IS ACTUALLY UNDER THE KNOB.
          *
@@ -678,6 +690,15 @@ export function onMidiMessageInternal(data: number[]): void {
             /* Snapshot before switching so the hold-release closure returns
              * exactly here. beginTrackSwitch also closes the global Main/Clip
              * Params pages, which a track button always leaves. */
+            /* Shift + double tap: Freeze / Unfreeze that track (seq/freeze.ts).
+             * The first tap was an ordinary track press; the second opens the
+             * dialog instead of switching again. Shift + HOLD + volume is not a
+             * double tap, so the track-volume gesture is untouched. */
+            if (appState.shiftHeld && freezeTrackTap(track, Date.now())) {
+                openFreezeModal(track, isFrozen(track));
+                appState.dirty = true;
+                return;
+            }
             const prev = beginTrackSwitch();
             momentaryDown(d1, () => restoreTrackState(prev));
             switchToTrack(track, prev);
@@ -694,6 +715,8 @@ export function onMidiMessageInternal(data: number[]): void {
 
     /* Back */
     if (d1 === MoveBack && d2 > 0) {
+        /* First, a freeze being recorded: Back cancels it. */
+        if (freezeCancelCapture()) { appState.dirty = true; return; }
         jogHintTouch(false);
         holdTurnCancel();   // Back cancels an active hold-to-modulate
         /*
@@ -801,6 +824,12 @@ export function onMidiMessageInternal(data: number[]): void {
         }
         if (flagsPageActive() && migrateRowSelected()) {
             migrateRowClick(currentSetUuid());
+            appState.dirty = true;
+            return;
+        }
+        /* A frozen track's chain is unloaded: the click would open the module
+         * browser on an empty slot. Say why instead (seq/freeze.ts). */
+        if (!masterChainActive() && freezeGuard(appState.activeTrack.index)) {
             appState.dirty = true;
             return;
         }

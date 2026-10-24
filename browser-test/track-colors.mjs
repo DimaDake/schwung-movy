@@ -30,7 +30,7 @@ function eq(label, got, want) { ok(`${label}${got === want ? '' : `: expected ${
 /* The reference repo is a sibling checkout, not a dependency. Skip loudly when
  * it is missing rather than passing quietly — a guard that silently does
  * nothing is worse than no guard. */
-const SCHWUNG = '/Users/dake/git/cld/schwung/src/shared/constants.mjs';
+const SCHWUNG = (process.env.SCHWUNG || '../schwung') + '/src/shared/constants.mjs';
 if (!existsSync(SCHWUNG)) {
     _log('\x1b[33m\x1b[1mSKIPPED — schwung checkout not found at ' + SCHWUNG + '\x1b[0m');
     _log('\x1b[33mThe palette-drift check did NOT run.\x1b[0m');

@@ -43,6 +43,11 @@ mod set_lib_jobs;
 mod version_index;
 mod version_retain;
 mod version_store;
+mod freeze;
+mod chain_reaper;
+mod freeze_bank;
+mod freeze_files;
+use freeze::LoopMap;
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use chain_slots::ChainSlots;
@@ -139,7 +144,7 @@ pub(crate) fn parse_mix(val: &str) -> Option<crate::mixer::TrackMix> {
 }
 
 const DEFAULT_BPM_X100: u32 = 12000;
-const ENGINE_VERSION: &str = "0.103.0";
+const ENGINE_VERSION: &str = "0.105.0";
 
 /* Blocks between autosaves. The callback runs at ~344 Hz, so this is ~2 s —
  * flash on this device is not free and the sequencer is dirty constantly while
@@ -214,6 +219,10 @@ struct Instance {
     /// `sbad` so the UI can name the failure from the poll it already makes,
     /// instead of reading the state files itself. Cleared by the next open.
     set_bad: String,
+    /// A freeze running with the transport started FOR it (it was stopped):
+    /// the output is silent until that capture ends, then the transport stops
+    /// again. The owner's choice (plans/2026-10-23-stems-freeze-export-wifi.md).
+    freeze_silent: Option<usize>,
     /// Next block at which an autosave may run. Rate limits flash writes.
     save_at: u64,
 }
@@ -238,6 +247,7 @@ impl Instance {
             set_gen: 0,
             open_pending: false,
             set_bad: String::new(),
+            freeze_silent: None,
             set_applied: 0,
             save_at: 0,
             probe_gen: 0,
@@ -466,6 +476,33 @@ impl Instance {
              * dropped in silence — then the next save read back what had
              * survived and wrote the shrunken set to disk. One document can be
              * acknowledged, and retried whole when it is not. */
+            /* Freeze (freeze_bank.rs): `frz` <track> captures two passes of the
+             * track's active clip and freezes it, `unfrz` <track> reloads its
+             * chain, `frzx` <track> cancels a capture. The outcome comes back
+             * on the status line (`frz=`, `frzc=`, `frze=`). */
+            "frz" => {
+                if let Ok(t) = val.trim().parse::<usize>() {
+                    if let Err(code) = self.freeze_track(t) {
+                        self.chains.freeze_refused(t, code);
+                    }
+                }
+            }
+            "unfrz" => {
+                if let Ok(t) = val.trim().parse::<usize>() {
+                    /* The reload blocks the audio thread for 0.3-0.5 s (module
+                     * loads run there), so with the transport running it stops
+                     * first, as Live's unfreeze does. The dialog has already
+                     * said so (leave-modal.ts); here it holds for every caller. */
+                    if self.chains.freeze_thaw(t) && self.engine.playing {
+                        self.engine.stop(&mut self.out);
+                    }
+                }
+            }
+            "frzx" => {
+                if let Ok(t) = val.trim().parse::<usize>() {
+                    self.chains.freeze_cancel(t);
+                }
+            }
             "chains" => {
                 if !self.chains.set_chain_set(val) {
                     host::log("chains: malformed set document ignored");
@@ -662,6 +699,7 @@ impl Instance {
                 /* An unreadable open, named by uuid: a status taken before the
                  * next open reached this thread still says which Set it means. */
                 s.push_str(&format!(" sbad={}", if self.set_bad.is_empty() { "-" } else { &self.set_bad }));
+                s.push_str(&self.chains.freeze_status());
                 Some(s)
             }
             /* The UI compares this `uuid` against the Set it believes is open
@@ -828,6 +866,14 @@ impl Instance {
             if !chain_state::restore(&mut self.chains, &chains) && !chains.is_empty() {
                 host::log("set: malformed chains.json ignored");
             }
+            /* The Set's frozen tracks (freeze_files.rs), read with these bytes:
+             * installed right after the restore queued their chains, so those
+             * loads are taken back before a single one runs. */
+            if let Some((_, frozen)) = saver.take_frozen() {
+                for f in frozen {
+                    self.chains.freeze_install(f, &chains);
+                }
+            }
             self.set_gen = gen;
             self.open_pending = false;
             /* The payload is IN the engine as of this line, so the labels it
@@ -844,6 +890,19 @@ impl Instance {
             self.save_at = self.blocks + SAVE_BLOCKS;
         }
 
+        /* A freeze or thaw since the last block: the Set's freeze files follow
+         * (the WAV of a track just frozen, then the manifest). */
+        let t_frz = std::time::Instant::now();
+        if let Some((manifest, wav)) = self.chains.take_freeze_files() {
+            let us = t_frz.elapsed().as_micros();
+            if us >= 1000 {
+                host::log(&format!("freeze: files took {us} us on the audio thread"));
+            }
+            if !self.set_uuid.is_empty() {
+                saver.submit(set_saver::Job::Freeze { uuid: self.set_uuid.clone(), manifest, wav });
+            }
+        }
+
         /* The engine's own dirty flag decides when to save. Nothing reads state
          * out of the engine to find out, which matters because that read used
          * to CLEAR the flag: a write we then failed to complete was an edit
@@ -852,8 +911,15 @@ impl Instance {
          * set, so the edit is saved once the Set is in — or dropped by the
          * load, which is right, since it belonged to the Set being left. */
         if !self.open_pending && self.engine.dirty && self.blocks >= self.save_at {
+            let t_ser = std::time::Instant::now();
             let payload = seq_core::persist::serialize(&self.engine);
             let chains = chain_state::serialize(&mut self.chains);
+            /* Both reads run here, on the audio thread: every chain's preset
+             * blob included. Logged when it costs a block's worth or more. */
+            let us = t_ser.elapsed().as_micros();
+            if us >= 1000 {
+                host::log(&format!("save: serialize took {us} us on the audio thread"));
+            }
             self.engine.dirty = false;
             self.save_at = self.blocks + SAVE_BLOCKS;
             /* Identical bytes are not a save. The dirty flag says an edit was
@@ -874,6 +940,31 @@ impl Instance {
         }
     }
 
+    /// Start freezing track `t`: its ACTIVE clip, which must be the one
+    /// playing when the transport runs. With the transport stopped, it is
+    /// started for this track alone and silenced (`freeze_silent`).
+    fn freeze_track(&mut self, t: usize) -> Result<(), &'static str> {
+        let track = self.engine.tracks.get(t).ok_or("nochain")?;
+        let clip = track.active();
+        if !clip.exists() {
+            return Err("noclip");
+        }
+        if self.engine.playing && track.playing_slot != Some(track.active_clip) {
+            return Err("notplaying");
+        }
+        let map = LoopMap::new(clip.length_ticks(), self.engine.clock.bpm_x100(), host::sample_rate())
+            .ok_or("noclip")?;
+        self.chains.freeze_begin(t, map)?;
+        if !self.engine.playing {
+            if !self.engine.play_alone(t) {
+                self.chains.freeze_cancel(t);
+                return Err("noclip");
+            }
+            self.freeze_silent = Some(t);
+        }
+        Ok(())
+    }
+
     fn render(&mut self, out_audio: &mut [i16]) {
         self.blocks += 1;
         self.engine
@@ -892,7 +983,19 @@ impl Instance {
          * chain restore stacking into a single block (see load_queue). */
         self.service_set();
         self.chains.service_loads();
+        /* Every track's loop position at the end of this block, for the
+         * tracks that are frozen or being captured (freeze_bank.rs). */
+        let engine = &self.engine;
+        self.chains.freeze_frame(|t| engine.loop_position(t), engine.clock.bpm_x100());
         self.chains.render(out_audio);
+        if let Some(t) = self.freeze_silent {
+            // The silent pass: nothing of it is heard, click included.
+            out_audio.fill(0);
+            if !self.chains.freeze_capturing(t) {
+                self.engine.stop(&mut self.out);
+                self.freeze_silent = None;
+            }
+        }
         let chains = &self.chains;
         self.padlat.after_render(self.blocks, |c| chains.peak(c));
     }

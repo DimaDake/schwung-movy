@@ -296,6 +296,10 @@ bullet with a preview screenshot.
   would exceed a hard ceiling (~400 KB, a safety net, not a design target)
   do scenes other than the target and source scenes shrink to that summary
   form; they are never dropped.
+- **Duplicate clips are sent once** (user, 2026-10-26). On each track, clips
+  with identical content (notes, length, loop window, playback scale,
+  transpose) are serialized once and the other scenes reference it ("scene 4:
+  same as scene 2"). The arrangement stays readable without repeating notes.
 - **Knobs during preview** are idle, like the Loop note view.
 - Locks/trig overrides cleared on AI options (§6.4).
 

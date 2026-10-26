@@ -286,8 +286,16 @@ bullet with a preview screenshot.
   the user's own track/clip/screen change does.
 - **Saves during preview** store the shown option (same as a commit); a power
   cut mid-preview keeps it. Undo still reaches the original.
-- **Context size:** all clips of the target track and every clip in the target
-  and source scenes are sent; other scenes' clips only if under a size cap.
+- **Context = the whole Set, always** (user, 2026-10-26: the AI must
+  understand the Set, at least its harmony). Every clip of every track goes as
+  a full note list. Estimate: a busy Set (16 tracks × 8 scenes, ~64 notes per
+  clip) is ~130 KB of text ≈ 40k tokens, far below Flash's context; a typical
+  Set is a few k tokens. Movy also adds a locally computed **harmony summary
+  per scene** (pitch classes / likely chord per bar, from melodic tracks), so
+  the model gets the Set's harmonic map without inferring it. Only if a request
+  would exceed a hard ceiling (~400 KB, a safety net, not a design target)
+  do scenes other than the target and source scenes shrink to that summary
+  form; they are never dropped.
 - **Knobs during preview** are idle, like the Loop note view.
 - Locks/trig overrides cleared on AI options (§6.4).
 

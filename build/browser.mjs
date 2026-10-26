@@ -278,6 +278,9 @@ await esbuild.build({
         resolve(root, 'src/seq/duplicate.ts'),
         resolve(root, 'src/seq/voice-copy.ts'),
         resolve(root, 'src/seq/session.ts'),
+        /* Freeze's UI half (status fields, double tap, guard): an entry point
+         * so browser-test/logic/freeze.mjs drives it directly. */
+        resolve(root, 'src/seq/freeze.ts'),
         resolve(root, 'src/seq/song.ts'),
         resolve(root, 'src/seq/persist-blob.ts'),
         resolve(root, 'src/seq/persist-store.ts'),
@@ -358,6 +361,7 @@ await esbuild.build({
         resolve(root, 'src/seq/click-volume.ts'),
         resolve(root, 'src/seq/quant-overlay.ts'),
         resolve(root, 'src/renderer/cpu-view.ts'),
+        resolve(root, 'src/renderer/frozen-view.ts'),
         resolve(root, 'src/seq/cpu-page.ts'),
         resolve(root, 'src/seq/cpu-page-vm.ts'),
         resolve(root, 'src/seq/cpu-scale.ts'),

@@ -28,6 +28,7 @@ import './dist/scenarios/master-volume.js';
 import './dist/scenarios/power.js';
 import './dist/scenarios/debug-tools.js';
 import './dist/scenarios/ext-midi.js';
+import './dist/scenarios/freeze.js';
 
 const argv = process.argv.slice(2);
 const flag = (n) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : undefined; };

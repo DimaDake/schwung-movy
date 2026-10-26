@@ -71,7 +71,7 @@ import { drawJogToast } from '../renderer/overlay.js';
 import { volumeOverlay } from '../mixer/track-volume.js';
 import { masterVolumeOverlay } from '../mixer/master-volume.js';
 import { drawVolumeOverlay } from '../renderer/volume-overlay.js';
-import { leaveModalActive, leaveModalLabels, leaveModalSel, leaveModalTitle } from './leave-modal.js';
+import { leaveModalActive, leaveModalLabels, leaveModalSel, leaveModalTitle, leaveModalNote } from './leave-modal.js';
 import { drawLeaveModal } from '../renderer/leave-modal-view.js';
 import { captureOverlayActive } from '../seq/capture.js';
 import { buildCaptureVM } from '../seq/capture-vm.js';
@@ -97,9 +97,11 @@ import { drawStepPiano } from '../renderer/step-piano.js';
 import { perfProbeEnter, perfProbeTick, perfPhase, perfPhaseEnd } from './perf-probe.js';
 import {
     drawLoopStrip, drawSeqToast, drawSeqHeader, songBandTick,
-    seqToastActive, seqToastTick,
+    seqToastActive, seqToastTick, seqToastVersion,
     seqHeaderActive, seqHeaderTick,
 } from '../seq/render.js';
+import { isFrozen, frozenName, frozenPadColor } from '../seq/freeze.js';
+import { renderFrozenView } from '../renderer/frozen-view.js';
 
 const PAD_MIN        = MovePads[0];
 const PAD_MAX        = MovePads[MovePads.length - 1];
@@ -107,6 +109,7 @@ const LED_INIT_BATCH = 8;
 
 let lastPhase = '';
 let lastToastShowing = false;
+let lastToastVersion = 0;
 let lastHeaderShowing = false;
 let lastSessionMode = false;
 let jogToastShown = false;   // a bottom jog/browse toast is on screen (strip yields to it)
@@ -632,6 +635,7 @@ function tickBody(): void {
     quantOverlayTickAt(Date.now());
     seqHeaderTick();
     const toastShowing = seqToastActive();
+    const toastVersion = seqToastVersion();
     const headerShowing = seqHeaderActive();
 
     /*
@@ -696,6 +700,7 @@ function tickBody(): void {
      * so a repaint erases the band and it has to be drawn again. */
     let viewRepainted = false;
     if (modelDirty || masterDirty || appState.dirty || toastShowing !== lastToastShowing
+        || (toastShowing && toastVersion !== lastToastVersion)
         || headerShowing !== lastHeaderShowing) {
         viewRepainted = true;
         /* A bottom jog/browse toast (drawn by the param/chain renderers) shares
@@ -925,14 +930,21 @@ function tickBody(): void {
              * `drawnPageOwner`, same reasoning as the VIEW_KNOBS branch above —
              * so a touched step-page cell's toast reaches the header here too. */
             const chrome = schwungChromeFor(drawnPageOwner, schwungBody, false);
-            renderChainView(vm, chainIdx, jogHintVisible(), 'T' + (appState.activeTrack.index + 1),
-                            undefined, undefined as any, paramBodyFor(drawnPageOwner, schwungBody, lastAutoView),
-                            chrome);
+            /* A frozen track has no chain to show: its own screen instead
+             * (seq/freeze.ts), and no jog toast over it. */
+            const frozen = isFrozen(appState.activeTrack.index);
+            if (frozen) {
+                renderFrozenView('T' + (appState.activeTrack.index + 1), frozenName(appState.activeTrack.index));
+            } else {
+                renderChainView(vm, chainIdx, jogHintVisible(), 'T' + (appState.activeTrack.index + 1),
+                                undefined, undefined as any, paramBodyFor(drawnPageOwner, schwungBody, lastAutoView),
+                                chrome);
+            }
             perfPhaseEnd();
             /* Must match what renderChainView actually drew: the Loop strip
              * clears rows 60-63 every tick and would erase a toast it was not
              * told about. */
-            jogToastShown = jogHintVisible() || !!(chrome && chrome.footer);
+            jogToastShown = !frozen && (jogHintVisible() || !!(chrome && chrome.footer));
             perfPhase('leds');
             lightKnobRow(schwungBody);
             perfPhaseEnd();
@@ -953,8 +965,9 @@ function tickBody(): void {
          * leave modal, both of which own the screen while they are up. */
         if (undoToastActive()) drawUndoOverlay(undoToast()!);
         // Leave-Movy modal draws on top of everything else.
-        if (leaveModalActive()) drawLeaveModal(leaveModalLabels(), leaveModalSel(), leaveModalTitle());
+        if (leaveModalActive()) drawLeaveModal(leaveModalLabels(), leaveModalSel(), leaveModalTitle(), leaveModalNote());
         lastToastShowing = toastShowing;
+        lastToastVersion = toastVersion;
         lastHeaderShowing = headerShowing;
         appState.dirty = false;
     }
@@ -1002,8 +1015,9 @@ function tickBody(): void {
                 // with what a press sends. -1 = not part of the rack.
                 const note = drumNoteOfPhys(p, PAD_MIN, drumCfg);
                 const playing = note >= 0 && (activeHasNote(track, note) || isSounding(p));
-                const color = drumPadLedColor(p, PAD_MIN, drumCfg, sel, track, playing,
-                                              note >= 0 && padVoiceSilent(note));
+                const color = isFrozen(track) ? frozenPadColor(i, Date.now())
+                    : drumPadLedColor(p, PAD_MIN, drumCfg, sel, track, playing,
+                                      note >= 0 && padVoiceSilent(note));
                 if (drumCache[i] !== color) {
                     if (!ledBudgetTake()) continue;   // cache left stale: retries next tick
                     drumCache[i] = color;
@@ -1038,7 +1052,8 @@ function tickBody(): void {
             const p     = PAD_MIN + i;
             const pitch = map[i];
             const isPlaying = isSounding(p) || (pitch >= 0 && activeHasNote(track, pitch));
-            const color = padColor(p, PAD_MIN, track, isPlaying, holdNotes);
+            const color = isFrozen(track) ? frozenPadColor(i, Date.now())
+                                          : padColor(p, PAD_MIN, track, isPlaying, holdNotes);
             if (chromaticCache[i] !== color) {
                 if (!ledBudgetTake()) continue;   // cache left stale: retries next tick
                 chromaticCache[i] = color;

@@ -578,6 +578,46 @@ impl Engine {
         self.playing = true;
     }
 
+    /// Where `track` is inside its playing clip's loop at the END of the last
+    /// block: ticks from the loop start, with the clock's sub-tick fraction
+    /// (and the clip-scale accumulator's) added, wrapped into the loop. This is
+    /// what a frozen loop is indexed by (movy-dsp `freeze.rs`); the integer
+    /// clock makes it land on the same frame every pass. `None` while stopped
+    /// or with nothing playing on the track.
+    pub fn loop_position(&self, track: usize) -> Option<f64> {
+        if !self.playing {
+            return None;
+        }
+        let t = self.tracks.get(track)?;
+        let clip = t.playing()?;
+        let len = clip.length_ticks();
+        if len == 0 {
+            return None;
+        }
+        let num = clip.scale_num.max(1) as f64;
+        let den = clip.scale_den.max(1) as f64;
+        let frac = (t.scale_acc as f64 + self.clock.tick_fraction() * num) / den;
+        let rel = t.pos_tick as f64 - clip.loop_start_ticks() as f64 + frac;
+        Some(rel.rem_euclid(len as f64))
+    }
+
+    /// Freeze's silent pass (movy-dsp `freeze_bank.rs`): start the transport
+    /// with ONLY `track` playing its active clip, from the loop start. `false`
+    /// — and nothing changes — when the transport already runs or the track
+    /// has no clip to play. The caller mutes the output and stops it again.
+    pub fn play_alone(&mut self, track: usize) -> bool {
+        if self.playing || track >= self.tracks.len() || !self.tracks[track].active().exists() {
+            return false;
+        }
+        for (i, t) in self.tracks.iter_mut().enumerate() {
+            t.playing_slot = if i == track { Some(t.active_clip) } else { None };
+            t.queued_slot = None;
+            t.pending_stop = false;
+        }
+        self.start_transport();
+        true
+    }
+
     /// Play button / auto-start: every track plays its selected clip (native
     /// "Play starts all selected clips"), restarting from the loop start.
     pub fn play(&mut self) {
@@ -2668,6 +2708,36 @@ mod tests {
 
     fn engine() -> Engine {
         Engine::new(RATE, 12000)
+    }
+
+    #[test]
+    fn loop_position_follows_the_clock_to_the_sample_and_wraps() {
+        let mut e = engine();
+        e.tracks[2].active_mut().set_clip_length(16); // one bar
+        assert_eq!(e.loop_position(2), None, "stopped");
+        assert!(e.play_alone(2));
+        assert!(!e.play_alone(2), "already running");
+        assert!(e.tracks[0].playing_slot.is_none(), "only the frozen track plays");
+        let mut out = Vec::new();
+        let bar = crate::TICKS_PER_BAR as f64;
+        // 120 BPM: 229.6875 frames per tick. After n blocks the position is
+        // exactly n*128 frames in, sub-tick fraction included.
+        let fpt = RATE as f64 * 60.0 / (120.0 * crate::PPQN as f64);
+        for n in 1..=2000u32 {
+            e.advance_block(FRAMES, &mut out);
+            let want = ((n * FRAMES) as f64 / fpt).rem_euclid(bar);
+            let got = e.loop_position(2).unwrap();
+            let d = (got - want).rem_euclid(bar);
+            assert!(d.min(bar - d) < 1e-6, "block {n}: {got} vs {want}");
+        }
+        assert_eq!(e.loop_position(0), None, "a track with nothing playing");
+    }
+
+    #[test]
+    fn play_alone_refuses_an_empty_track() {
+        let mut e = engine();
+        assert!(!e.play_alone(3));
+        assert!(!e.playing);
     }
 
     #[test]

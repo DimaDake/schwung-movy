@@ -14,6 +14,7 @@ import { noteProbeGen } from './probe-bridge.js';
 import { markUiStateDirty } from './ui-dirty.js';
 import { noteReportedTrack } from './watch.js';
 import { requestLabelSync } from './label-sync.js';
+import { freezeStatusField } from './freeze.js';
 
 /* -1 until the first status: the opening value is not a change, and treating
  * it as one would mark every fresh open dirty and rewrite the set for nothing. */
@@ -115,6 +116,7 @@ export function parseStatus(s: string): void {
         else if (key === 'prq') noteProbeGen(Number(val) || 0);
         else if (key === 'chpend') seqState.chainPending = Number(val) || 0;
         else if (key === 'sbad') seqState.setBad = val === '-' ? '' : val;
+        else if (key === 'frz' || key === 'frzc' || key === 'frze' || key === 'frzm') freezeStatusField(key, val);
         else if (key === 'chcost') seqState.cpuCost = val;
         else if (key === 'mtr') seqState.mixMeter = val;
         else if (key === 'chwall') seqState.cpuWall = val;

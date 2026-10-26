@@ -171,6 +171,25 @@ fn lfo_pairs(doc: &str) -> Vec<(String, String)> {
     out
 }
 
+/// What `get_param` would answer for chain `slot` of a saved document — each
+/// component's `<comp>:state` and the LFO fields: the snapshot a track that
+/// opens FROZEN keeps in place of its unloaded chain (freeze_bank.rs), so the
+/// next save writes the same preset back and an unfreeze reloads it.
+pub fn slot_params(doc: &str, slot: usize) -> Vec<(String, String)> {
+    let Some(items) = parse_items(doc) else { return Vec::new() };
+    let mut out = Vec::new();
+    for c in items.chunks(FIELDS) {
+        if c[0].parse::<usize>().ok() != Some(slot) {
+            continue;
+        }
+        if !c[3].is_empty() {
+            out.push((format!("{}:state", c[1]), c[3].clone()));
+        }
+        out.extend(lfo_pairs(&c[5]));
+    }
+    out
+}
+
 /// Apply a document read from disk. `false` when it is malformed — the caller
 /// must leave the live set alone rather than clearing it.
 pub fn restore(slots: &mut ChainSlots, doc: &str) -> bool {

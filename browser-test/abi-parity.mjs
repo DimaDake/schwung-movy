@@ -33,7 +33,7 @@ function ok(label, cond) {
  * struct, so a mirror that has silently fallen behind the header is a wild
  * function pointer called on the audio thread. A guard that can switch itself
  * off protects exactly nothing, so a missing checkout is now a failure. */
-const HEADER = '/Users/dake/git/cld/schwung/src/host/plugin_api_v1.h';
+const HEADER = (process.env.SCHWUNG || '../schwung') + '/src/host/plugin_api_v1.h';
 if (!existsSync(HEADER)) {
     _log('\x1b[31m\x1b[1mCANNOT RUN — schwung checkout not found at ' + HEADER + '\x1b[0m');
     _log('\x1b[31mThe Rust mirror in ffi.rs is COPIED into the chain host, so it must be');
@@ -134,7 +134,7 @@ compare('host_api_v1 — the struct schwung calls movy through, and copies',
  * schwung doubled 64 KB -> 128 KB in 1.3.0, which is what this now pins. */
 _log('\nparam contract ceiling matches schwung:');
 {
-    const CONSTS = '/Users/dake/git/cld/schwung/src/host/shadow_constants.h';
+    const CONSTS = (process.env.SCHWUNG || '../schwung') + '/src/host/shadow_constants.h';
     const cm = existsSync(CONSTS)
         && readFileSync(CONSTS, 'utf8').match(/#define\s+SHADOW_PARAM_VALUE_LEN\s+(\d+)/);
     const rm = readFileSync('engine/crates/movy-dsp/src/chain_host.rs', 'utf8')

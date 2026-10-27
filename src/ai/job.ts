@@ -22,7 +22,7 @@ import { buildRequest, classifyStatus, extractText } from './provider.js';
 import { drawAiRunning, resetAiRunningDraw } from './running-render.js';
 import { readTrack, setHeader } from './set-input.js';
 import { commitPreview, openPreview, resetPreview } from './preview.js';
-import { thinkingLedsStart, thinkingLedsTick } from './thinking-leds.js';
+import { THINK_FADE_SETTLE_MS, thinkingLedsStart, thinkingLedsTick } from './thinking-leds.js';
 import { validateOptions } from './validate.js';
 
 export { MSG_ERROR, MSG_NO_KEY, MSG_NOTHING } from './job-types.js';
@@ -32,6 +32,8 @@ const TRACKS = 16;
 let phase: AiPhase = 'idle';
 let run: Running | null = null;
 let preview: AiPreviewInput | null = null;
+/* -2 none due; -1 due, its clock starts on the next tick; else when. */
+let repaintAt = -2;
 
 export function aiPhase(): AiPhase { return phase; }
 export function aiPreviewInput(): AiPreviewInput | null { return preview; }
@@ -43,6 +45,14 @@ function release(): void {
     appState.initLedIndex = 0;
     appState.dirty = true;
     resetAiRunningDraw();
+    repaintAt = -1;
+}
+
+/* The sweep's last fades can finish over the repaint release() asked for and
+ * leave pads in sweep colours; paint everything once more after them. */
+function repaintAfterFades(now: number): void {
+    if (repaintAt === -1) repaintAt = now + THINK_FADE_SETTLE_MS;
+    else if (now >= repaintAt) { repaintAt = -2; seqLedsInvalidate(); appState.dirty = true; }
 }
 
 function fail(msg: string, why: string): void {
@@ -119,6 +129,7 @@ function finish(r: Running, reply: HttpReply, now: number): void {
 
 /** true = the job owns this frame (tick.ts draws nothing else). */
 export function aiTick(now: number): boolean {
+    if (repaintAt > -2 && phase !== 'running') repaintAfterFades(now);
     if (phase !== 'running' || !run) return false;
     const r = run;
     if (r.startMs < 0) r.startMs = now;
@@ -173,6 +184,7 @@ export function aiSetWillChange(): void {
 
 export function resetAiJob(): void {
     if (run) cancelHttp(run.httpId);
+    repaintAt = -2;
     resetPreview();
     run = null;
     preview = null;

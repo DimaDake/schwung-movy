@@ -12,6 +12,7 @@ import {
     aiSetWillChange, aiPreviewInput, resetAiJob, commitPreview, readTrack, thinkingPadColour, AI_DIR,
 } from '../../dist/esm/ai/index.js';
 import { seqToastText } from '../../dist/esm/seq/render.js';
+import { cachedSetLED, ledFrameReset } from '../../dist/esm/seq/led-cache.js';
 
 const MOD = '/data/UserData/schwung/modules/tools/movy';
 const DUMP = '0 16 0 1/1 0 0|0.24.60.100,96.24.64.100';
@@ -111,6 +112,21 @@ runTicks(2);
 eq('valid reply opens the preview', aiPhase(), 'preview');
 eq('preview gets three options', aiPreviewInput()?.options.length, 3);
 eq('preview carries the original clip', aiPreviewInput()?.orig?.notes.length, 2);
+/* The sweep's last hardware fades (channel 4, ~0.5 s) can land after the
+ * repaint and leave pads in sweep colours: once they are over, the LEDs are
+ * painted again. */
+const sent = [];
+const setLED0 = globalThis.setLED;
+globalThis.setLED = (n, c) => { sent.push(n); };
+ledFrameReset(); cachedSetLED(68, 5); cachedSetLED(68, 5);
+eq('leds_repaint_after_the_last_fade: cached before', sent.length, 1);
+aiTick(1000 + 2000);
+ledFrameReset(); cachedSetLED(68, 5);
+eq('leds_repaint_after_the_last_fade: sent again', sent.length, 2);
+aiTick(1000 + 4000);
+ledFrameReset(); cachedSetLED(68, 5);
+eq('leds_repaint_after_the_last_fade: only once', sent.length, 2);
+globalThis.setLED = setLED0;
 commitPreview();
 eq('commit returns the job to idle', aiPhase(), 'idle');
 done(st);

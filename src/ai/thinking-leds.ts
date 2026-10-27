@@ -8,6 +8,10 @@ import { ledBudgetTake } from '../seq/led-cache.js';
 import { platform } from '../platform/index.js';
 
 export const THINK_STEP_MS = 700;
+/* A channel-4 transition the firmware runs on its own (~0.5 s, see
+ * host/poweroff_show.h) and finishes even over a newer channel-0 colour. Once
+ * the sweep stops, a repaint is only safe after this. */
+export const THINK_FADE_SETTLE_MS = 800;
 const FADE_CH = 0x04;
 const PAD_FIRST = 68;
 const PADS = 32;

@@ -71,6 +71,7 @@ import { drawJogToast } from '../renderer/overlay.js';
 import { volumeOverlay } from '../mixer/track-volume.js';
 import { masterVolumeOverlay } from '../mixer/master-volume.js';
 import { drawVolumeOverlay } from '../renderer/volume-overlay.js';
+import { aiTick } from '../ai/job.js';
 import { leaveModalActive, leaveModalLabels, leaveModalSel, leaveModalTitle } from './leave-modal.js';
 import { drawLeaveModal } from '../renderer/leave-modal-view.js';
 import { captureOverlayActive } from '../seq/capture.js';
@@ -414,6 +415,9 @@ function tickBody(): void {
     drumSyncTick();
     perfPhase('tempocap');
     captureTick();
+    /* An AI request in flight owns the frame: its screen, its LEDs. The
+     * engine above keeps running, so playback never stops underneath. */
+    if (aiTick(Date.now())) return;
     perfPhase('rest');
     stepAutoTick(); // promote a long single-step hold to step-automation mode
     stepRecTick();  // keep the step-record header band alive while Rec is held

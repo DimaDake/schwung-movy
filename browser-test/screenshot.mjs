@@ -43,6 +43,7 @@ const PRESETS = [
     'note_view_bass', 'note_view_chords', 'note_view_drums', 'note_view_plus', 'note_view_dense', 'note_view_wide',
     'song_band', 'song_band_overflow', 'song_band_end',
     'quant-overlay-three', 'quant-overlay-two', 'flags-top', 'flags-scrolled',
+    'ai_running_quant', 'ai_running_var', 'ai_error_nokey',
     'cpu-movy-tracks', 'cpu-unsplit-module', 'cpu-overscale',
     'cpu-empty', 'cpu-sends', 'cpu-sends-quiet', 'cpu-master', 'leave_modal',
     'power_modal', 'capture_select', 'capture_fixed', 'undo_toast', 'redo_toast',
@@ -103,6 +104,7 @@ const BASE = {
     note_view_plus: 'test8', note_view_dense: 'test8', note_view_wide: 'test8',
                                 'quant-overlay-three': 'test8', 'quant-overlay-two': 'test8',
     'flags-top': 'test8', 'flags-scrolled': 'test8',
+    ai_running_quant: 'test8', ai_running_var: 'test8', ai_error_nokey: 'test8',
                                                                             lfo_chain: 'test8',         lfo_assign_toast: 'test8',
     leave_modal: 'test8', power_modal: 'test8',
     master_volume: 'test8',
@@ -177,6 +179,8 @@ const { drawJogToast }     = await import('../dist/esm/renderer/overlay.js');
 const { drawLeaveModal }   = await import('../dist/esm/renderer/leave-modal-view.js');
 const { drawCaptureOverlay } = await import('../dist/esm/renderer/capture-overlay.js');
 const { drawQuantOverlay } = await import('../dist/esm/renderer/quant-overlay.js');
+const { drawAiRunning, MSG_NO_KEY } = await import('../dist/esm/ai/index.js');
+const { seqToast, drawSeqToast } = await import('../dist/esm/seq/render.js');
 const { drawStepPiano } = await import('../dist/esm/renderer/step-piano.js');
 const { stepPianoVM, resetStepPiano } = await import('../dist/esm/seq/step-piano.js');
 const { editStepDown, resetStepEdit } = await import('../dist/esm/seq/step-edit.js');
@@ -501,6 +505,23 @@ function applyView(preset) {
                 renderKnobsView(headerOnlyVM('CLIP PARAMETERS'), false, 0);
                 drawQuantOverlay(buildQuantOverlayVM());
             };
+            lastRender();
+            break;
+        }
+        /* AI MIDI while the request is in flight (design §5.1): the job owns
+         * the whole screen. 3.4 s in, so the bar sits mid-sweep. */
+        case 'ai_running_quant':
+        case 'ai_running_var': {
+            const label = preset === 'ai_running_quant' ? 'QUANTIZING...' : 'VARIATION...';
+            lastRender = () => drawAiRunning(label, 3400, true);
+            lastRender();
+            break;
+        }
+        /* No key yet: the toast points at the web page that takes one. */
+        case 'ai_error_nokey': {
+            resetSeqState();
+            seqToast(MSG_NO_KEY);
+            lastRender = () => { renderKnobsView(model.getViewModel()); drawSeqToast(); };
             lastRender();
             break;
         }

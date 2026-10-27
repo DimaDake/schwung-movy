@@ -19,6 +19,7 @@ import { run as run_ai_config } from './logic/ai-config.mjs';
 import { run as run_ai_context } from './logic/ai-context.mjs';
 import { run as run_ai_validate } from './logic/ai-validate.mjs';
 import { run as run_ai_provider } from './logic/ai-provider.mjs';
+import { run as run_ai_job } from './logic/ai-job.mjs';
 import { run as run_host_param } from './logic/host-param.mjs';
 import { run as run_platform_caps } from './logic/platform-caps.mjs';
 import { run as run_master_chain } from './logic/master-chain.mjs';
@@ -116,6 +117,7 @@ const SUITES = [
     run_ai_context,
     run_ai_validate,
     run_ai_provider,
+    run_ai_job,
     run_host_param,
     run_platform_caps,
     run_master_chain,

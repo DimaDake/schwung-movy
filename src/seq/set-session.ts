@@ -10,6 +10,7 @@
  * Identity is the library's: the Set the UI wants (set-lib-session.ts). Every
  * change of Set is a switch, and nothing ever waits on identity. */
 
+import { aiSetWillChange } from '../ai/job.js';
 import { paramGet, paramSet } from '../host/param.js';
 import { mlog } from '../log.js';
 import { engineAbsent, engineAbsentReason, engineCaughtUp, engineGeneration, engineMark, engineReady } from './engine.js';
@@ -82,6 +83,7 @@ export function currentSetUuid(): string { return setId; }
  *  rather than inventing its own. */
 export function reloadCurrentSet(): void {
     if (!setId && !setName) return;
+    aiSetWillChange();
     enterLoading(setId, setName);
 }
 

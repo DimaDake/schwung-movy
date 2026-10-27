@@ -4,6 +4,7 @@
  * the two apart is what stops "load" from quietly reacquiring the policy that
  * used to let a blank Set land on top of a live pattern. */
 
+import { aiSetWillChange } from '../ai/job.js';
 import { requestLabelSync } from './engine.js';
 import { setsDir } from './set-source.js';
 import { paramGet, paramSet } from '../host/param.js';
@@ -29,6 +30,7 @@ export function setStatusUuid(): string | null {
 /* Open a Set by NAME rather than by value: the engine reads its own files, so
  * nothing about the Set crosses the param slot. */
 export function openSet(id: string): void {
+    aiSetWillChange();   // an AI request or preview must not span two Sets
     /* Re-stated on every open rather than once per session: a re-dlopen'd
      * engine comes up knowing nothing, and an engine with no sets directory
      * answers `phase=failed reason=no-setsdir` forever. One extra param write

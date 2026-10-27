@@ -80,6 +80,7 @@ import { holdTouch, holdRelease, holdTurnCancel, assignActive, assignCycle, assi
 import { masterScope, trackScope } from '../lfo/scope.js';
 import { deleteActive, markDeleteActed } from '../seq/edit-ops.js';
 import { seqToast } from '../seq/render.js';
+import { aiRunningInput } from '../ai/job.js';
 import { leaveModalActive, openLeaveModal, closeLeaveModal, leaveModalMove, leaveModalConfirm, leaveModalPass } from '../app/leave-modal.js';
 import {
     quantOverlayActive, quantOverlayAction, quantOverlayJog, quantOverlayHold,
@@ -236,6 +237,9 @@ export function onMidiMessageInternal(data: number[]): void {
     // no undo — a step button that both dismissed this and wrote a note into
     // the clip you just captured is not a trade worth offering. Releases fall
     // through so no handler is left holding a button that never came up.
+    /* An AI request in flight owns the device: only Back (cancel) does
+     * anything, and releases still pass (ai/job.ts). */
+    if (aiRunningInput(data)) return;
     /* A module's fullscreen canvas (DR32's engine picker) owns the jog
      * assembly, Back and the knobs while it is up — canvas-dive-input.ts. */
     if (canvasDiveTakes(data)) { appState.dirty = true; return; }

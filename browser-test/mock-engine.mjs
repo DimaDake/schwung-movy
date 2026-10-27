@@ -305,6 +305,8 @@ function installGlobals(engine) {
         if (key === 'alabels') return engine.alabels;
         if (key === 'notes') { engine.notesGets = (engine.notesGets ?? 0) + 1; return engine.notes ?? ''; }
         if (key === 'state') return engine.stateBlob;
+        /* AI MIDI's per-track clip dump (engine/ai_clip.rs): '' = no clips. */
+        if (key.startsWith('ait:')) return engine.params[key] ?? '';
         return null;
     };
 }

@@ -7,3 +7,8 @@ export * from './prompt.js';
 export * from './validate.js';
 export * from './provider.js';
 export * from './http-job.js';
+export * from './target.js';
+export * from './set-input.js';
+export * from './thinking-leds.js';
+export * from './running-render.js';
+export * from './job.js';

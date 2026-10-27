@@ -5,7 +5,7 @@ import type { AiConfig } from './config.js';
 
 export interface AiHttpRequest { url: string; headers: string[]; body: string }
 
-export type AiStatus = 'ok' | 'NO NETWORK' | 'AI BUSY, TRY LATER' | 'AI ERROR';
+export type AiStatus = 'ok' | 'NO NETWORK' | 'BUSY, TRY LATER' | 'GENERATOR ERROR';
 
 export function buildRequest(cfg: AiConfig, p: { system: string; user: string }, temperature = 1.0): AiHttpRequest {
     return {
@@ -36,9 +36,9 @@ export function extractText(body: string): string | null {
 const CURL_TIMEOUT = 28;
 
 export function classifyStatus(http: number, curlExit: number): AiStatus {
-    if (curlExit === CURL_TIMEOUT) return 'AI BUSY, TRY LATER';
+    if (curlExit === CURL_TIMEOUT) return 'BUSY, TRY LATER';
     if (curlExit !== 0) return 'NO NETWORK';
     if (http >= 200 && http < 300) return 'ok';
-    if (http === 429 || http === 503) return 'AI BUSY, TRY LATER';
-    return 'AI ERROR';
+    if (http === 429 || http === 503) return 'BUSY, TRY LATER';
+    return 'GENERATOR ERROR';
 }

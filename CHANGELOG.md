@@ -15,13 +15,15 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
-- **AI Smart Quantize and AI Variation.** Shift + hold Step 16 sends the Set to
+- **Generators: Smart Quantize and Variation.** Shift + hold Step 16 sends the Set to
   Gemini and previews three takes on the recorded clip, from tightened
   to reimagined, against the original. Shift + Step 14 writes a variation of
   the track's previous clip into the selected slot. Choose with the jog, edit
   while previewing, and undo it all in one step. The key goes in at
   `move.local:7700/modules/movy`. ENGINE 0.111.0 (`ait:` clip dump, `aiclip`,
-  `aistash`/`aiload`/`aiclr`).
+  `aistash`/`aiload`/`aiclr`). They follow the chords the other tracks play,
+  not a scale, and **Settings → GENERATORS** (SAFE / BALANCED / WILD) sets how
+  bold the three options are.
 
 ### Changed
 

@@ -4,6 +4,7 @@
  * Run by browser-test/logic.mjs.
  */
 
+import { readdirSync, readFileSync } from 'node:fs';
 import { _log, eq, ok, installMockFs, uninstallMockFs } from './harness.mjs';
 import { buildRequest, extractText, classifyStatus, startHttp, pollHttp, cancelHttp, AI_DIR }
     from '../../dist/esm/ai/index.js';
@@ -26,13 +27,21 @@ eq('extract_text_gemini', extractText(JSON.stringify({ candidates: [{ content: {
 eq('extract_text: garbage -> null', extractText('<html>'), null);
 
 eq('classify_ok', classifyStatus(200, 0), 'ok');
-eq('classify_429_busy', classifyStatus(429, 0), 'AI BUSY, TRY LATER');
-eq('classify_503_busy', classifyStatus(503, 0), 'AI BUSY, TRY LATER');
+eq('classify_429_busy', classifyStatus(429, 0), 'BUSY, TRY LATER');
+eq('classify_503_busy', classifyStatus(503, 0), 'BUSY, TRY LATER');
 /* An overloaded model can hold the connection open past curl's timeout
  * (live check: 240 s, no answer): the network was fine, the service was not. */
-eq('classify_curl_timeout_busy', classifyStatus(0, 28), 'AI BUSY, TRY LATER');
+eq('classify_curl_timeout_busy', classifyStatus(0, 28), 'BUSY, TRY LATER');
 eq('classify_curl_dns_network', classifyStatus(0, 6), 'NO NETWORK');
-eq('classify_400_error', classifyStatus(400, 0), 'AI ERROR');
+/* The user meets "generators", never "AI" (design §7): no string literal
+ * in src/ai may say AI. Comments and identifiers are code, not screen text. */
+const SRC = new URL('../../src/ai/', import.meta.url);
+const said = readdirSync(SRC).filter((f) => f.endsWith('.ts')).flatMap((f) => {
+    const code = readFileSync(new URL(f, SRC), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+    return (code.match(/'[^'\n]*'|`[^`]*`|"[^"\n]*"/g) ?? []).filter((lit) => /\bAI\b/.test(lit)).map((lit) => f + ' ' + lit);
+});
+eq('no_ai_in_user_strings', said.join(' ; '), '');
+eq('classify_400_error', classifyStatus(400, 0), 'GENERATOR ERROR');
 
 /* The job: a status file is the only "done" signal. */
 const fs = installMockFs();

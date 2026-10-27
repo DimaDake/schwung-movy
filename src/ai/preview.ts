@@ -50,7 +50,7 @@ function go(o: Open, j: number): void {
 
 export function openPreview(p: AiPreviewInput): void {
     const key = 'ai:' + p.track;
-    beginEdit({ key, verb: p.task === 'quantize' ? 'AI QUANT' : 'AI VARIATION', target: trackLabel(p.track),
+    beginEdit({ key, verb: p.task === 'quantize' ? 'SMART QUANT' : 'VARIATION', target: trackLabel(p.track),
         close: CLOSE.IMMEDIATE, seq: true });
     holdGroup(key);
     cur = { p, index: 0, visited: [true, false, false, false], sig: sig(p.track) };

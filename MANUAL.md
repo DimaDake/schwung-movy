@@ -43,7 +43,7 @@ official docs first:
    - [Sets](#sets--shift--step-1)
    - [Settings](#settings--shift--step-2)
 6a. [Undo & redo](#6a-undo--redo)
-6b. [AI: Smart Quantize & Variation](#6b-ai-smart-quantize--variation)
+6b. [Generators: Smart Quantize & Variation](#6b-generators-smart-quantize--variation)
 7. [Limitations vs Move](#7-limitations-vs-move)
 8. [Controls reference](#8-controls-reference)
 9. [Troubleshooting & recovery](#9-troubleshooting--recovery)
@@ -1227,7 +1227,7 @@ any time.
 **Shift + Step 16** cycles the current clip through **0 % → the set default →
 100 %**, and shows the choices for a moment. In Track view it cycles when you
 **let go** of Step 16: **holding** it instead starts
-[Smart Quantize](#6b-ai-smart-quantize--variation). `DEF` marks the default:
+[Smart Quantize](#6b-generators-smart-quantize--variation). `DEF` marks the default:
 
 ![Quantize overlay](docs/assets/quant-overlay-three.png)
 
@@ -1676,6 +1676,12 @@ the new level. It is a property of this device, not of a Set, so it stays put
 across Sets and restarts. (On top of other loud audio the mix can still limit;
 the click itself never clips.)
 
+**GENERATORS**, the second row, sets how bold the
+[generators](#6b-generators-smart-quantize--variation) are: **SAFE**,
+**BALANCED** or **WILD**, with **knob 1**:
+
+![Settings: GENERATORS](docs/assets/flags-generators.png)
+
 **MIGRATE FROM MOVE**, the last row, runs the migration from Move again. The
 first jog click arms it (the row reads **CONFIRM?**, and moving off disarms
 it), the second runs it. The hint below shows when the migration last ran. It
@@ -1767,11 +1773,12 @@ contents, a parameter the module doesn't publish — can't come back.
 
 ---
 
-## 6b. AI: Smart Quantize & Variation
+## 6b. Generators: Smart Quantize & Variation
 
-Movy can send your Set to a language model and get back **three takes on one
-clip**, each grown from what you played. You always see them before
-anything changes, alongside your **ORIG**inal. The AI never writes from nothing.
+Movy's **generators** send your Set to a language model and get back **three
+takes on one clip**, each grown from what you played. You always see them
+before anything changes, alongside your **ORIG**inal. The generators never
+write from nothing.
 Smart Quantize starts from the clip you recorded, and Variation starts from
 another clip already on the track.
 
@@ -1783,7 +1790,7 @@ You need an API key. A **Gemini key is free** from Google AI Studio
 stored on the Move and never shown again. The Model field defaults to
 `gemini-flash-lite-latest`, which answers in a few seconds on the free tier;
 put `gemini-flash-latest` there for richer takes when Google's servers are not
-busy. If there is no key, the AI gestures say `NO API KEY  MOVE.LOCAL:7700`.
+busy. If there is no key, the generator gestures say `NO API KEY  MOVE.LOCAL:7700`.
 
 **What is sent:** every clip of every track (notes, lengths, playback speed,
 transpose), each track's module name and drum voice names, and the Set's tempo,
@@ -1808,7 +1815,7 @@ The three options go from careful to bold:
 | --- | --- | --- |
 | **1** | Timing tightened to the scene's groove, wrong or clashing notes moved to ones that fit. | Timing and velocity only. Every hit stays on its pad. |
 | **2** | The idea developed: chords voiced or filled out, rhythm locked to the drums and bass. | Groove tightened to the other tracks, ghost notes and accents reshaped. |
-| **3** | The idea as a seed: reharmonised within the key, rhythms borrowed from other tracks. | A bolder take on the groove. |
+| **3** | The idea as a seed: new chords that still fit the other tracks, rhythms borrowed from them. | A bolder take on the groove. |
 
 On drums, options 2 and 3 move a hit to another pad only where it clearly helps,
 and only to a pad the kit already uses.
@@ -1826,7 +1833,31 @@ gets it back.
 It fits what the other tracks play in the target scene. If they have nothing
 there yet, it moves on from the source clip's scene, so you can build a B
 section one track at a time. On melodic tracks at least one option changes the
-chords within the key; on drums the options change the pattern.
+chords; on drums the options change the pattern.
+
+### Harmony, not scales
+
+The generators follow the chords your other tracks actually play, not a scale.
+A chord tone or a 9th, 11th or 13th always fits. A note outside the key is fine
+as a passing or approach note on a weak beat, or as part of a borrowed chord
+the other tracks allow. Smart Quantize's option 1 only moves a note when it
+clashes with the chord sounding at that moment, not because it is out of key.
+
+### How bold: Settings → GENERATORS
+
+**GENERATORS** on the Settings page (Shift + Step 2) sets how bold all three
+options are: **SAFE**, **BALANCED** (the default) or **WILD**. Turn **knob 1**
+on the row. Option 1 is always the most careful of the three and option 3 the
+boldest; the level moves the whole range:
+
+| Level | Smart Quantize | Variation |
+| --- | --- | --- |
+| **SAFE** | Fix the timing and clashes, tidy, then a light touch. | Small steps away from the A part. |
+| **BALANCED** | Closest, shaped, inspired (the table above). | A clear B, a bolder one, the most inventive one. |
+| **WILD** | Developed, reshaped, reimagined from the motif. | A new rhythm, a bold change, the most inventive B. |
+
+It belongs to the Move, not to a Set, and a change applies from the next
+request.
 
 ### While it works
 
@@ -1837,14 +1868,14 @@ takes a few seconds:
 
 ![Working](docs/assets/ai_running_quant.png)
 
-If it fails, a message says why (`NO NETWORK`, `AI BUSY, TRY LATER` when the
-free quota is used up or the model is overloaded, or `AI ERROR`), and the clip
+If it fails, a message says why (`NO NETWORK`, `BUSY, TRY LATER` when the
+free quota is used up or the model is overloaded, or `GENERATOR ERROR`), and the clip
 is unchanged. An option that comes back identical to your clip is left out, so
 the strip can show fewer than three.
 
 ### Choosing
 
-The clip's notes fill the screen, with `AI  ORIG  1  2  3` along the bottom.
+The clip's notes fill the screen, with `GEN  ORIG  1  2  3` along the bottom.
 It opens on option 1:
 
 ![Preview](docs/assets/ai_preview_opt1.png)
@@ -1856,7 +1887,7 @@ It opens on option 1:
 - **Click the jog** (or press **Back**) to keep what is showing. Switching
   track or clip, or leaving the view, keeps it too.
 - **Undo** afterwards takes the whole thing back in one step, to the clip as it
-  was before the AI ran.
+  was before the generator ran.
 
 ---
 
@@ -1978,10 +2009,10 @@ only.
 | **Shift + Step 6** | Toggle the **metronome**. |
 | **Shift + Step 10** | Toggle **full velocity** — every pad note at 127. Kept across sets and restarts. |
 | **Shift + Step 12** | Open the **CPU meter** (per-track and per-send cost, block usage). Press again to clear the held peaks. |
-| **Shift + Step 14** | **AI Variation** of the track's previous clip into the selected slot (Track view; lit dim white when possible). See [AI](#6b-ai-smart-quantize--variation). |
+| **Shift + Step 14** | **Variation** generator from the track's previous clip into the selected slot (Track view; lit dim white when possible). See [Generators](#6b-generators-smart-quantize--variation). |
 | **Shift + Step 15** | **Double** the loop. |
 | **Shift + Step 16** | Cycle the current clip's **quantization** (0 / default / 100 %), on release in Track view. |
-| **Shift + hold Step 16** | **Smart Quantize** with AI (Track view). See [AI](#6b-ai-smart-quantize--variation). |
+| **Shift + hold Step 16** | **Smart Quantize** generator (Track view). See [Generators](#6b-generators-smart-quantize--variation). |
 
 ---
 

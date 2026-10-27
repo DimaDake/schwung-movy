@@ -27,7 +27,7 @@ import { validateOptions } from './validate.js';
 export type AiPhase = 'idle' | 'running' | 'preview';
 
 export const MSG_NO_KEY = 'NO API KEY — MOVE.LOCAL:7700';
-export const MSG_ERROR = 'AI ERROR';
+export const MSG_ERROR = 'GENERATOR ERROR';
 export const MSG_NOTHING = 'NOTHING TO QUANTIZE';
 const TRACKS = 16;
 const WATCHDOG_MS = (HTTP_TIMEOUT_S + 10) * 1000;

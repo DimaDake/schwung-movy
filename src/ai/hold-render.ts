@@ -7,7 +7,7 @@ import { W, TOAST_Y, TOAST_H } from '../renderer/layout.js';
 import { fontPrint, fontWidth } from '../font/index.js';
 import { hold16Progress } from './hold16.js';
 
-const LABEL = 'AI QUANTIZE';
+const LABEL = 'SMART QUANTIZE';
 let shown = false;
 
 export function drawHoldProgress(frac: number): void {

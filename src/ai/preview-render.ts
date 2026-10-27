@@ -1,4 +1,4 @@
-/* The preview selector: `AI  ORIG  1  2  3` in the bottom band, the option
+/* The preview selector: `GEN  ORIG  1  2  3` in the bottom band, the option
  * showing boxed (design §5.2). Drawn on the Loop strip's schedule, in its
  * place, so it costs nothing on a tick where neither it nor the view moved. */
 
@@ -10,7 +10,7 @@ let drawn = '';
 
 /** Pure: same index and count, same pixels. */
 export function drawPreviewStrip(index: number, count: number): void {
-    let x = drawBandLead('AI');
+    let x = drawBandLead('GEN');
     const labels = ['ORIG', ...Array.from({ length: count }, (_, i) => String(i + 1))];
     labels.forEach((l, i) => { if (x >= 0) x = drawBandToken(x, l, i === index, GAP); });
 }

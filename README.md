@@ -159,13 +159,14 @@ Movy stands on the shoulders of several projects:
 
   ![Quantize](docs/assets/quant-overlay-three.png)
 
-- **AI Smart Quantize & Variation** — hold **Shift + Step 16** and an AI (a
-  free Gemini key) hands back three takes on the clip you recorded,
-  from tightened to reimagined, each fitted to the rest of the scene. **Shift +
+- **Generators: Smart Quantize & Variation** — hold **Shift + Step 16** and a
+  generator (a free Gemini key) hands back three takes on the clip you recorded,
+  from tightened to reimagined, each fitted to the chords and groove of the rest
+  of the scene; Settings → GENERATORS sets how bold. **Shift +
   Step 14** turns a track's A part into a B. You preview every option on the
   jog, against your original, before anything is kept.
 
-  ![AI preview](docs/assets/ai_preview_opt1.png)
+  ![Generator preview](docs/assets/ai_preview_opt1.png)
 
 - **Undo & redo** — **Undo** takes back the last edit, **Shift + Undo** redoes
   it, and an overlay names what changed. One gesture is one undo: a whole knob

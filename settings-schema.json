@@ -1,6 +1,6 @@
 {
     "id": "movy",
-    "label": "Movy AI",
+    "label": "Movy Generators",
     "items": [
         { "key": "gemini_api_key", "label": "Gemini API Key", "type": "password",
           "help": "Free key from Google AI Studio:",

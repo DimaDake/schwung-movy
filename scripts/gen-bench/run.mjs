@@ -7,6 +7,8 @@
  *       [--cases <substring>] [--level BALANCED] [--repeat 1] --label <name>
  *   GEN_STYLE='{"units":"ticks"}' turns one prompt switch (prompt.ts PromptStyle);
  *   GEN_TEMP=1.0 overrides the level's temperature, for an A/B.
+ *   GEN_NAMES=device names tracks the way a Move Set does (Track N, a synth
+ *   module) instead of the cases' role names (Bass, Piano, gm-<program>).
  */
 import { createHash } from 'node:crypto';
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -56,6 +58,13 @@ async function call(req, model, run) {
  * failed without asking. */
 const GIVE_UP_AFTER = 5;
 
+/* A Move track has no name and its module says what synth it is, not what
+ * part it plays: strip the role hints the cases carry. */
+export function asOnDevice(set) {
+    return { ...set, tracks: set.tracks.map((t) => ({ ...t, name: `Track ${t.index + 1}`,
+        module: t.drum ? 'drumrack' : /^gm-/.test(t.module) ? 'obxd' : t.module })) };
+}
+
 async function runModel(ai, model, cases, opt, key, sink) {
     let failsInRow = 0;
     for (let run = 0; run < opt.repeat; run++) {
@@ -66,7 +75,8 @@ async function runModel(ai, model, cases, opt, key, sink) {
             }
             const len = 32;
             const units = opt.style.units ?? ai.DEFAULT_STYLE?.units ?? 'ticks';
-            const prompt = ai.buildPrompt(c.task, ai.buildContext({ ...c.set, units }), { len, drum: c.drum, level: opt.level, style: opt.style });
+            const set = opt.deviceNames ? asOnDevice(c.set) : c.set;
+            const prompt = ai.buildPrompt(c.task, ai.buildContext({ ...set, units }), { len, drum: c.drum, level: opt.level, style: opt.style });
             const temp = process.env.GEN_TEMP ? Number(process.env.GEN_TEMP) : ai.LEVEL_TEMPERATURE?.[opt.level];
             const req = ai.buildRequest({ model, key }, prompt, temp);
             const res = await call(req, model, run);
@@ -100,7 +110,8 @@ async function main() {
     models.forEach(assertModelAllowed);
     const label = args.label || 'run';
     /* GEN_STYLE='{"units":"ticks"}' etc.: one prompt switch off, for an A/B. */
-    const opt = { level: args.level || 'BALANCED', repeat: Number(args.repeat || 1), style: JSON.parse(process.env.GEN_STYLE || '{}') };
+    const opt = { level: args.level || 'BALANCED', repeat: Number(args.repeat || 1), style: JSON.parse(process.env.GEN_STYLE || '{}'),
+        deviceNames: process.env.GEN_NAMES === 'device' };
     const key = readFileSync(process.env.GEMINI_KEY_FILE, 'utf8').trim();
     const ai = await import('../../dist/esm/ai/index.js');
     const cases = readdirSync(ROOT + 'cases').sort().filter((f) => !args.cases || f.includes(args.cases))

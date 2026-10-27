@@ -60,6 +60,26 @@ The levels move the options as intended (idea kept falls, difference rises
 from SAFE to WILD). Temperature did not help either end, so every level
 sends 1.0; the ladder wording does the work.
 
+## Track names (do role names help?)
+
+The cases name tracks by role (Bass, Piano, Drums; MidiCaps modules were
+`gm-<program>`). A Move Set has none: every track is `Track N` with its synth
+module. `GEN_NAMES=device` sends the cases that way (`names-device`,
+3.1-flash-lite, BALANCED). Run 3 was lost to the daily quota, so this is
+paired on the 76 case-runs answered in both:
+
+| | role names | device names | difference |
+| --- | --- | --- | --- |
+| alignment, all | 0.56 | 0.59 | +0.02 ± 0.06 (better 21, worse 16) |
+| variation | 0.32 | 0.35 | +0.03 ± 0.10 |
+| quantize recovery | 0.80 | 0.81 | +0.01 ± 0.06 |
+| gate | 67% | 59% | lost 16, gained 10 |
+
+No measurable gap. Alignment is the same; the gate's 16/10 split is within
+the run-to-run noise (the baseline's own run 1 flips the gate on 12 of 42
+cases against its run 0). The model reads the role from the notes, so the
+bench numbers stand for the device and no role hint is needed.
+
 ## Known limits
 
 - Variation alignment tops out near 0.35 on average: where the real B moved in

@@ -11,7 +11,7 @@ import { _log, eq, ok } from './harness.mjs';
 import { parseMidi } from '../../scripts/gen-bench/midi.mjs';
 import { messify } from '../../scripts/gen-bench/messify.mjs';
 import { scoreOption, scoreReply, difference, bAlignment, recovery } from '../../scripts/gen-bench/score.mjs';
-import { assertModelAllowed, cacheKey } from '../../scripts/gen-bench/run.mjs';
+import { asOnDevice, assertModelAllowed, cacheKey } from '../../scripts/gen-bench/run.mjs';
 import { renderReport } from '../../scripts/gen-bench/report.mjs';
 import { parseTrackDump, sceneChords, sceneHarmony } from '../../dist/esm/ai/index.js';
 
@@ -116,6 +116,8 @@ ok('flash and gemma models allowed', fine);
 eq('cache_key_stable_and_distinct: stable', cacheKey('m', 'body', 0), cacheKey('m', 'body', 0));
 ok('cache_key_stable_and_distinct: distinct', new Set([cacheKey('m', 'b', 0), cacheKey('m', 'b', 1),
     cacheKey('n', 'b', 0), cacheKey('m', 'c', 0)]).size === 4);
+const onDev = asOnDevice({ tracks: [{ index: 2, name: 'Bass', module: 'gm-33', drum: false }, { index: 0, name: 'Drums', module: 'gm-drums', drum: true }] });
+eq('as_on_device_strips_role_hints', onDev.tracks.map((t) => `${t.name}/${t.module}`).join(','), 'Track 3/obxd,Track 1/drumrack');
 const md = renderReport('t', [{ id: 'pat-techno-q', model: 'm', kind: 'quantize-messy', genre: 'techno', ok: true, ms: 1200,
     alignment: 0.8, gatePassed: true, minPairDiff: 0.4, ladderOrdered: true,
     perOption: [{ fit: 0.9, groove: 0.8, ideaKept: 0.9, usable: true, reasons: [] }], notes: [[0, 24, 60, 100]] }], { missing: [] });

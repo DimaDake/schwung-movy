@@ -23,5 +23,9 @@ export function timeoutFor(index: number, count: number): number {
     return index < count - 1 ? FIRST_TIMEOUT_S : HTTP_TIMEOUT_S;
 }
 
-/** Busy or silent: worth asking the next model. An answer is never retried. */
-export function worthFallback(status: AiStatus): boolean { return status === 'BUSY, TRY LATER'; }
+/** Busy or silent: worth asking the next model. An answer is never retried,
+ *  except a 404 from a model the user did not type: Google retires models
+ *  (gemini-2.5-flash answered 404 to new keys), and the Lite alias survives. */
+export function worthFallback(status: AiStatus, http: number, typedByUser: boolean): boolean {
+    return status === 'BUSY, TRY LATER' || (http === 404 && !typedByUser);
+}

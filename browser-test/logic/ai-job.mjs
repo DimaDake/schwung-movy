@@ -129,6 +129,27 @@ eq('fallback_both_busy_shows_busy', seqToastText(), 'BUSY, TRY LATER');
 eq('quota reply leaves idle', aiPhase(), 'idle');
 startAiJob('quantize', 0, 0);
 runTicks(20);
+/* A retired default model answers 404 (gemini-2.5-flash did): the fallback
+ * still works, so ask it. A model the user typed in errors instead. */
+startAiJob('quantize', 0, 0);
+runTicks(20);
+const n404 = st.calls.length;
+reply(st, 404, '{}');
+runTicks(2);
+eq('retired_default_model_falls_back', st.calls.length, n404 + 1);
+reply(st, 200, GOOD);
+runTicks(2);
+commitPreview();
+st.fs.files[MOD + '/config.json'] = JSON.stringify({ model: 'typed-model' });
+startAiJob('quantize', 0, 0);
+runTicks(20);
+const nTyped = st.calls.length;
+reply(st, 404, '{}');
+runTicks(2);
+eq('a typed model that 404s errors, no fallback', [st.calls.length - nTyped, seqToastText()].join(' '), '0 GENERATOR ERROR');
+delete st.fs.files[MOD + '/config.json'];
+startAiJob('quantize', 0, 0);
+runTicks(20);
 const before = st.calls.length;
 reply(st, 200, '{"candidates":[]}');
 runTicks(2);

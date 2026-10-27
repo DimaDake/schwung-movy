@@ -102,7 +102,7 @@ function fallBack(r: Running, now: number, why: string): boolean {
 
 function finish(r: Running, reply: HttpReply, now: number): void {
     const status = classifyStatus(reply.http, reply.curlExit);
-    if (worthFallback(status) && fallBack(r, now, `busy (http ${reply.http} curl ${reply.curlExit})`)) return;
+    if (worthFallback(status, reply.http, r.cfg.model !== null && r.mi === 0) && fallBack(r, now, `busy (http ${reply.http} curl ${reply.curlExit})`)) return;
     if (status !== 'ok') return fail(status, `http ${reply.http} curl ${reply.curlExit} ${reply.body.slice(0, 200)}`);
     const text = extractText(reply.body);
     const c = r.ctx!;

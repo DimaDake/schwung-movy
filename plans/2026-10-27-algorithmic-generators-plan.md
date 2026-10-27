@@ -45,7 +45,7 @@ line each in `logic.mjs`'s two lists).
 ## Task 5: families and presets
 - `families/` line, chord, bass/drone, phrase, rhythm, drum, quantize.
 - `presets/` catalog (variation melodic, variation drums, quantize) with
-  roles, freedom, class, default knobs.
+  roles, freedom, class and its OWN four or eight knobs (each preset a generator).
 - `generate.ts` (one option from ctx + preset + knobs), `guard.ts`.
 - Tests: `gen-presets.mjs` — **every knob moves every preset × role**; guard.
 

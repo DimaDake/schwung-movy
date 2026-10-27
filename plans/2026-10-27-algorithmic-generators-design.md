@@ -111,15 +111,18 @@ Set ─▶ analyse ─▶ harmony plan ─▶ skeleton ─▶ transform (preset)
    against the chord under it (chord tone, colour tone, approach tone, other),
    its chord degree, and the contour step to the next event. Drums: per-pad
    step patterns with metrical weights.
-4. **Transform** (`presets/`): the preset's family reshapes the skeleton.
-5. **Realise** (`realise/`): skeleton → notes over the planned chords.
+4. **Generate** (`presets/`): the preset — a generator of its own (§4) —
+   builds the new part with its own logic and its own knobs.
+5. **Realise** (`realise/`, a toolkit the generators call): skeleton → notes
+   over the planned chords.
    Melodic voices take the same category and contour against the new chord,
    nearest to the previous pitch, inside the register; approach tones resolve
    by step to the next chord or colour tone. Chords are voiced with the same
    voice count, nearest to the previous voicing (smallest total movement).
    Bass takes root, fifth or octave by the skeleton's degree, with approach
    notes into chord changes.
-6. **Shape** (`shape/`): the knob stages, each applied to every preset (§5).
+6. **Shape** (`shape/`, a toolkit): reusable knob stages (density, length,
+   range, timing, swing, grid, dynamics, …) a generator may expose.
 7. **Guard** (`guard.ts`): role kept (onset range, voices, lengths, register —
    the same `roleBreak`), drums on the kit, the clip length and the engine's
    512-note cap, never a copy of the source, never the same loop (on a hit the
@@ -129,15 +132,23 @@ The user's timing feel survives the whole pipeline: onsets are carried as a
 grid position plus a feel offset, and only the stages that mean to move time
 (Timing, Swing, Rhythm) change the offset.
 
-## 4. Presets and selection
+## 4. Presets are generators
 
-A preset is a recipe: a transform family, which roles and tasks it applies to,
-which harmonic freedom it needs, its distance class (close, rhythm/connection,
-experimental — the three groups of the old ladder) and its default knob
-positions. About thirty for Variation and twelve for Smart Quantize, listed in
-`presets/catalog.ts`.
+**Each preset is a separate generator** (user, 2026-10-27: "each preset is a
+separate generator logic. each preset may have its own knobs"): one file in
+`src/gen/presets/` with its own algorithm, built from the shared toolkit
+(analysis, harmony plan, realise, shape, guard). A preset declares:
 
-**Variation, melodic** (examples of the families): next chords; re-voice;
+- `id` and a short screen name;
+- the tasks, roles and harmonic freedom it serves, and its distance class
+  (close, rhythm/connection, experimental — the three groups of the old ladder);
+- **its own knobs: four or eight**, each with a name, a step count, a label
+  per position and a default; four when only four would be useful;
+- `generate(ctx, knobs)` → notes.
+
+About thirty for Variation and twelve for Smart Quantize.
+
+**Variation, melodic** (examples): next chords; re-voice;
 contour mirror; call and response; motif sequence; retrograde cells; rhythmic
 displacement; anticipation of chord changes; recombine (positions, durations,
 pitches swapped among the part's own notes, after Live's Recombine); thin to
@@ -168,7 +179,7 @@ small fills); phrase answer (the second half developed lightly).
    SAFE 4 close + 2 rhythm; BALANCED 3 + 2 + 1 experimental; WILD 2 + 2 + 2.
    Quantize 3 options: closest, shaped, inspired, the level moving the whole
    ladder (as the old prompt ladder did).
-5. A variety rule: no two options of one family, and every pair at least
+5. A variety rule: never one preset twice, and every pair at least
    `MIN_PAIR_DIFF` apart (the bench's gate threshold, 0.2).
 6. Options are shown closest first.
 
@@ -177,58 +188,55 @@ a bench run is repeatable; Seed is the way to roll again.
 
 ## 5. Knobs (preview only)
 
-The knobs are idle in the preview today (`src/ai/preview.ts`). In algorithmic
-mode they edit the option on screen:
+The knobs are idle in the preview today (`src/ai/preview.ts`). Now they are
+the knobs **of the option on screen**, that is, of its preset:
 
-- A turn regenerates that option from the source with the new knob state and
-  writes it over the clip: **hand edits on that option are discarded** (user
-  decision). The regeneration is coalesced to once per tick.
-- Each option keeps its own knob state; switching options switches knob sets.
-  Move's knobs are endless, so nothing jumps.
-- Every option opens with the knob positions the selector chose: turning is
-  never needed.
+- A turn regenerates that option with the new knob state and writes it over
+  the clip: **hand edits on that option are discarded** (user decision). The
+  regeneration is coalesced to once per tick.
+- Each option keeps its own knob state; switching options switches to that
+  preset's knobs. Move's knobs are endless, so nothing jumps.
+- Every option opens with the positions the selector chose: turning is never
+  needed. A preset with four knobs uses knobs 1-4; 5-8 do nothing.
 - **Touch** shows the param's top strip, the way a Schwung page shows a held
   knob (`render_page.mjs` `drawTouchStrip`): an inverted band over the top of
   the screen, full name on the left, value on the right. It stays while the knob
   is touched and for the toast time after the last turn.
 
-### 5.1 Variation (8 knobs)
+### 5.1 One vocabulary
 
-| # | Melodic | Left → right | Drums | Left → right |
-| --- | --- | --- | --- | --- |
-| 1 | CHANGE | close to the source → far | CHANGE | close → far |
-| 2 | HARMONY | §2: free/partial = the moves close → far; locked = roots → inversions → added 7ths/9ths/sus | FILL | none → a full last-bar fill |
-| 3 | TENSION | chord tones → colour tones → approach and chromatic | GHOSTS | none → many |
-| 4 | RHYTHM | the source's rhythm → displaced → recombined | SHIFT | as played → snare/kick displaced |
-| 5 | DENSITY | thinner → denser (centre = as is) | DENSITY | thinner → denser |
-| 6 | RANGE | close → wide (interval span, chord spread, bass octaves) | ACCENT | flat → strong accents |
-| 7 | LENGTH | staccato → legato (centre = as is) | HATS | sparse → busy hats |
-| 8 | SEED | a new roll per detent | SEED | a new roll per detent |
+Presets differ, but a knob name means one thing everywhere, so learning one
+preset teaches the next:
 
-### 5.2 Smart Quantize (8 knobs)
+| Name | Left → right |
+| --- | --- |
+| AMOUNT | how much of the clip the preset rewrites |
+| HARMONY | §2: free/partial = the moves close → far; locked = how the part sits on the fixed chords (as played, roots, inversions, added 7ths, 9ths) |
+| TENSION | chord tones → colour tones → approach and chromatic |
+| DENSITY | thinner ← as is → denser |
+| LENGTH | staccato ← as is → legato |
+| RANGE | close ← as is → wide |
+| TIMING | your feel → on the grid |
+| SWING | straight → heavy (starts on the swing played) |
+| GRID | 1/8, 1/8T, 1/16, 1/16T, 1/32 (starts on the detected grid) |
+| DYNAMICS | as played → groove accents |
+| SEED | a new roll per detent |
 
-| # | Melodic | Left → right | Drums | Left → right |
-| --- | --- | --- | --- | --- |
-| 1 | TIMING | your feel → on the grid | TIMING | your feel → on the grid |
-| 2 | SWING | straight → heavy (starts on the swing you played) | SWING | same |
-| 3 | GRID | 1/8 → 1/8T → 1/16 → 1/16T → 1/32 (starts on the detected grid) | GRID | same |
-| 4 | PITCH FIX | none → clashes → strong beats on chord tones → every note fits | CLEAN | keep double hits → remove flams and doubles |
-| 5 | EMBELLISH | none → grace, passing and neighbour notes | EMBELLISH | none → ghost notes and small fills |
-| 6 | DYNAMICS | as played → groove accents | DYNAMICS | as played → groove accents |
-| 7 | LENGTH | staccato → legato (centre = as played) | LENGTH | short → long |
-| 8 | SEED | a new roll per detent | SEED | a new roll per detent |
+A preset adds its own names where it has a parameter nothing else has (ARP:
+PATTERN, RATE; MOTIF: CELL, STEP; FILL: SIZE, PADS; EUCLID: PULSES, ROTATE;
+CLEAN: WINDOW; GHOSTS: COUNT).
 
-**Every knob must move the output on every preset and role.** This is a test,
-not a hope (§8): for each preset, role fixture and knob, two positions far
-apart give two different clips. A knob that cannot pass on some material is a
-bug in its stage, not a reason for a blank.
+**Every knob of every preset moves the output.** This is a test, not a hope
+(§8): for each preset, each fixture it serves and each of its knobs, two
+positions far apart give two different clips. A knob that cannot pass is
+removed from that preset or fixed.
 
-### 5.3 AI mode
+### 5.2 AI mode
 
-The Gemini reply is a finished clip, so only the stages that work on any notes
-stay live: all of Smart Quantize's knobs (they are post-processing), and for
-Variation DENSITY, LENGTH and RANGE (RANGE as interval span only). The other
-Variation knobs are blank in AI mode, so no knob is ever dead.
+The Gemini reply is a finished clip, so its options get one preset of their
+own, REPLY, with four post-processing knobs: Smart Quantize TIMING, SWING,
+DYNAMICS, LENGTH; Variation DENSITY, LENGTH, RANGE, DYNAMICS. Their defaults
+leave the reply as it came.
 
 ## 6. Settings
 
@@ -255,7 +263,7 @@ Logic tests (`browser-test/logic/gen-*.mjs`):
   freedom table.
 - each stage and each preset on small fixtures (a pad, stabs, a bass, an arp,
   a lead, a drone, a drum loop).
-- **the knob property**: every knob changes the output on every preset × role.
+- **the knob property**: every knob of every preset changes the output on every fixture it serves.
 - the guard: role kept, kit kept, same loop refused, note cap.
 - the selection: counts per level, variety rule, ordering, determinism.
 - the job and the preview: algorithmic requests complete in slices, knob turns
@@ -299,8 +307,7 @@ from a case.
 
 - Variation offers six options in algorithmic mode (the user's number); AI mode
   keeps eight.
-- Smart Quantize also gets eight knobs, since "quantize should be able to add
-  variations" made five more of them useful.
+- Presets declare four or eight knobs of their own; an AI reply gets the REPLY preset.
 - The setting is its own Settings row, not a value on the GENERATORS row, so
   each row keeps one knob and one meaning.
 - Harmony constraints are read per half-bar (house and techno change chords on

@@ -17,16 +17,27 @@ export interface ValidateCtx {
 
 export const MAX_NOTES = 512;   // the engine's own cap (clip.rs MAX_NOTES)
 
+/* The context names notes as `60:C3`, and gemini-flash-lite-latest sometimes
+ * copies that into its pitches, which is not JSON. The number is what the
+ * prompt asks for, so the name is dropped. Only tried after a failed parse:
+ * a label could legitimately contain such text. */
+const PITCH_NAME = /(\d+):[A-G][#b]?-?\d+/g;
+
+function parseOptions(json: string): unknown[] | null {
+    try {
+        const v = JSON.parse(json);
+        return Array.isArray(v?.options) ? v.options : [];
+    } catch {
+        return null;
+    }
+}
+
 function parseReply(raw: string): unknown[] {
     const a = raw.indexOf('{');
     const b = raw.lastIndexOf('}');
     if (a < 0 || b <= a) return [];
-    try {
-        const v = JSON.parse(raw.slice(a, b + 1));
-        return Array.isArray(v?.options) ? v.options : [];
-    } catch {
-        return [];
-    }
+    const json = raw.slice(a, b + 1);
+    return parseOptions(json) ?? parseOptions(json.replace(PITCH_NAME, '$1')) ?? [];
 }
 
 function toNote(x: unknown, scale: number): AiNote | null {

@@ -25,7 +25,13 @@ eq('drops_empty_option: only one survives', v.length, 1);
 
 v = validateOptions('```json\n' + reply([[0, 24, 60, 100]]) + '\n```', mel);
 eq('strips_code_fences', v.length, 1);
-eq('garbage -> no options', validateOptions('sorry, I cannot', mel).length, 0);
+/* gemini-flash-lite-latest copies the context's note style (60:C3) into its
+ * JSON pitches; on the device that lost 2 of its 3 replies (2026-10-27). */
+v = validateOptions('{"options":[{"label":"a","notes":[[0.13, 16.0, 48:C3, 127],[4, 1, 61:C#3, 90]]},'
+    + '{"label":"b","notes":[[0, 2, 47:B1, 100]]}]}', { ...mel, units: 'steps' });
+eq('pitch_names_in_reply_repaired: both options kept', v.length, 2);
+eq('pitch_names_in_reply_repaired: the number wins', JSON.stringify(v[0].map((n) => n.pitch)), '[48,61]');
+eq('garbage -> no options',validateOptions('sorry, I cannot', mel).length, 0);
 eq('object notes accepted', validateOptions(JSON.stringify({ options: [{ notes: [{ tick: 0, gate: 1, pitch: 60, vel: 9 }] }] }), mel).length, 1);
 
 const drum = { task: 'quantize', len: 16, drum: true, original: orig, kitPads: [36, 38, 42] };

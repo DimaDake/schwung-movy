@@ -16,7 +16,7 @@ import { seqToastText } from '../../dist/esm/seq/render.js';
 const MOD = '/data/UserData/schwung/modules/tools/movy';
 const DUMP = '0 16 0 1/1 0 0|0.24.60.100,96.24.64.100';
 const GOOD = JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify({ options: [
-    { notes: [[0, 24, 60, 100]] }, { notes: [[0, 24, 62, 100]] }, { notes: [[0, 24, 64, 100]] }] }) }] } }] });
+    { notes: [[0, 1, 60, 100]] }, { notes: [[0, 1, 62, 100]] }, { notes: [[0, 1, 64, 100]] }] }) }] } }] });
 
 function boot(withKey = true) {
     const fs = installMockFs(withKey ? { [MOD + '/secrets/gemini_api_key.txt']: 'K' } : {});

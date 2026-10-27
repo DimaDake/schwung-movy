@@ -25,7 +25,8 @@ const FAKE = MOD + '/ai-fake-response.json';
 const SHIFT = 49, BACK = 51, JOG = 14, JOG_CLICK = 3;
 const STEP14 = 16 + 13, STEP16 = 16 + 15;
 
-const opt = (p: number) => ({ notes: [[0, 24, p, 100], [96, 24, p + 4, 100]] });
+/* Steps, as the prompt asks (prompt.ts): ticks 0 and 96, one step long. */
+const opt = (p: number) => ({ notes: [[0, 1, p, 100], [4, 1, p + 4, 100]] });
 const REPLY = JSON.stringify({ candidates: [{ content: { parts: [{ text:
     JSON.stringify({ options: [opt(72), opt(74), opt(76)] }) }] } }] });
 

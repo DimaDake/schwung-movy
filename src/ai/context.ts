@@ -25,11 +25,14 @@ export interface AiContextInput {
     target: { track: number; slot: number };
     source: { track: number; slot: number } | null;
     ceilingBytes?: number;
+    units?: 'steps' | 'ticks';   // positions and durations; the reply uses the same (prompt.ts)
 }
 
 export const CONTEXT_CEILING = 400_000;
 
 function noteName(p: number): string { return pcName(p) + (Math.floor(p / 12) - 2); }
+
+const num = (v: number) => String(Math.round(v * 100) / 100);
 
 function pos(tick: number): string {
     const step = Math.floor(tick / TICKS_PER_STEP);
@@ -37,13 +40,14 @@ function pos(tick: number): string {
     return `${Math.floor(step / STEPS_PER_BAR) + 1}.${Math.floor(inBar / 4) + 1}.${(inBar % 4) + 1}+${tick % TICKS_PER_STEP}`;
 }
 
-function noteLines(t: AiTrackInput, notes: AiNote[]): string[] {
+function noteLines(t: AiTrackInput, notes: AiNote[], steps: boolean): string[] {
     const byBar = new Map<number, string[]>();
     for (const n of [...notes].sort((a, b) => a.tick - b.tick || a.pitch - b.pitch)) {
         const bar = Math.floor(n.tick / (TICKS_PER_STEP * STEPS_PER_BAR)) + 1;
         const label = t.drum ? drumLabel(n.pitch, t.padNames) : `${n.pitch}:${noteName(n.pitch)}`;
         if (!byBar.has(bar)) byBar.set(bar, []);
-        byBar.get(bar)!.push(`${pos(n.tick)} ${label} d${n.gate} v${n.vel}`);
+        byBar.get(bar)!.push(steps ? `@${num(n.tick / TICKS_PER_STEP)} ${label} d${num(n.gate / TICKS_PER_STEP)} v${n.vel}`
+            : `${pos(n.tick)} ${label} d${n.gate} v${n.vel}`);
     }
     return [...byBar].map(([bar, list]) => `    bar ${bar}: ${list.join(', ')}`);
 }
@@ -68,7 +72,7 @@ function trackLines(t: AiTrackInput, s: AiContextInput, keep: (slot: number) => 
         if (!special && !keep(c.slot)) { out.push(`  ${scene}: harmony only (see HARMONY)`); continue; }
         out.push(`  ${scene}: ${c.len / STEPS_PER_BAR} bars, speed ${c.scaleNum}/${c.scaleDen}, `
             + `transpose ${c.transpose}, loop from step ${c.loopStart + 1}`);
-        out.push(...noteLines(t, c.notes));
+        out.push(...noteLines(t, c.notes, s.units !== 'ticks'));
     }
     if (s.target.track === t.index && !t.clips.some((c) => c.slot === s.target.slot)) {
         out.push(`  scene ${s.target.slot + 1} [TARGET]: empty`);
@@ -90,7 +94,10 @@ function harmonyLines(s: AiContextInput): string[] {
 function render(s: AiContextInput, keep: (slot: number) => boolean): string {
     const head = `SET: tempo ${s.bpm} BPM, swing ${s.swing}%, key ${s.root} ${s.mode}, 4/4. `
         + `Time grid: ${STEPS_PER_BAR} steps per bar, ${TICKS_PER_STEP} ticks per step. `
-        + 'Positions are bar.beat.sixteenth+ticks; notes are MIDI number:name (60 = C3), d = duration in ticks, v = velocity. '
+        + (s.units === 'ticks'
+            ? 'Positions are bar.beat.sixteenth+ticks; notes are MIDI number:name (60 = C3), d = duration in ticks, v = velocity. '
+            : 'Positions are @step from the clip start (16 steps per bar, @0 = bar 1 beat 1; fractions are off-grid feel); '
+                + 'notes are MIDI number:name (60 = C3), d = duration in steps, v = velocity. ')
         + 'A scene is one column of clips that play together.';
     const body = s.tracks.filter((t) => t.clips.length || t.index === s.target.track)
         .flatMap((t) => trackLines(t, s, keep));

@@ -5,7 +5,7 @@
  */
 
 import { _log, eq, ok } from './harness.mjs';
-import { buildPrompt, validateOptions } from '../../dist/esm/ai/index.js';
+import { buildPrompt, validateOptions, buildRequest, buildContext, LEVEL_TEMPERATURE } from '../../dist/esm/ai/index.js';
 
 const orig = [{ tick: 0, gate: 12, pitch: 36, vel: 100 }, { tick: 96, gate: 12, pitch: 38, vel: 100 }];
 const mel = { task: 'quantize', len: 16, drum: false, original: orig, kitPads: [] };
@@ -48,9 +48,26 @@ eq('caps notes at the engine MAX_NOTES', validateOptions(reply(many), { ...mel, 
 const pv = buildPrompt('variation', 'CTX', { len: 32, drum: false });
 ok('prompt_mentions_harmony_option_for_variation', /at least one option[^.]*harmon/i.test(pv.user));
 ok('prompt carries the context', pv.user.includes('CTX'));
-ok('prompt states the tick range', /0 to 767/.test(pv.user));
+ok('prompt states the step range', /0 to under 32/.test(pv.user));
+ok('prompt_has_no_scale_rule', !/fits? the key|in (the )?scale|nearest note that fits/i.test(pv.user + buildPrompt('quantize', 'C', { len: 32, drum: false }).user)
+    && /chords? (the other tracks|listed)/i.test(pv.user));
+const lv = (level) => buildPrompt('quantize', 'C', { len: 32, drum: false, level }).user;
+ok('levels_shift_the_ladder: SAFE and WILD differ', lv('SAFE') !== lv('WILD') && lv('SAFE') !== lv('BALANCED'));
+ok('levels_shift_the_ladder: BALANCED keeps closest/shaped/inspired', /closest[\s\S]*shaped[\s\S]*inspired/i.test(lv('BALANCED')));
+eq('levels: no level is BALANCED', lv(undefined), lv('BALANCED'));
+eq('temperature_per_level', ['SAFE', 'BALANCED', 'WILD'].map((l) => JSON.parse(buildRequest({ model: 'm', key: 'k' },
+    { system: 's', user: 'u' }, LEVEL_TEMPERATURE[l]).body).generationConfig.temperature).join(','), '0.7,1,1.3');
 const pq = buildPrompt('quantize', 'CTX', { len: 16, drum: true });
 ok('drum quantize prompt: option 1 keeps every pad', /option 1[^.]*same pad/i.test(pq.user));
 ok('drum prompt has no harmony option', !/harmon/i.test(buildPrompt('variation', 'C', { len: 16, drum: true }).user.replace(/HARMONY/g, '')));
 ok('system says JSON only', /JSON/.test(pq.system));
+
+/* Replies in steps, the context's own numbering (Task 5). */
+v = validateOptions(reply([[12.25, 1, 60, 100], [-1, 1, 62, 100], [16, 1, 64, 100], [15.5, 4, 65, 90]]), { ...mel, units: 'steps' });
+eq('steps_reply_converted_and_clamped', JSON.stringify(v[0]),
+    '[{"tick":294,"gate":24,"pitch":60,"vel":100},{"tick":372,"gate":12,"pitch":65,"vel":90}]');
+const cx = buildContext({ bpm: 120, swing: 0, root: 'C', mode: 'major', target: { track: 0, slot: 0 }, source: null,
+    tracks: [{ index: 0, name: 'K', module: 'x', drum: false, padNames: null, clips: [{ track: 0, slot: 0, len: 16,
+        loopStart: 0, scaleNum: 1, scaleDen: 1, transpose: 0, quant: 0, notes: [{ tick: 294, gate: 36, pitch: 60, vel: 100 }] }] }] });
+ok('context_positions_in_steps', /@12\.25 60:C3 d1\.5 v100/.test(cx));
 }

@@ -7,14 +7,14 @@ export interface AiHttpRequest { url: string; headers: string[]; body: string }
 
 export type AiStatus = 'ok' | 'NO NETWORK' | 'AI BUSY, TRY LATER' | 'AI ERROR';
 
-export function buildRequest(cfg: AiConfig, p: { system: string; user: string }): AiHttpRequest {
+export function buildRequest(cfg: AiConfig, p: { system: string; user: string }, temperature = 1.0): AiHttpRequest {
     return {
         url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(cfg.model)}:generateContent`,
         headers: ['Content-Type: application/json', 'x-goog-api-key: ' + cfg.key],
         body: JSON.stringify({
             systemInstruction: { parts: [{ text: p.system }] },
             contents: [{ role: 'user', parts: [{ text: p.user }] }],
-            generationConfig: { responseMimeType: 'application/json', temperature: 1.0 },
+            generationConfig: { responseMimeType: 'application/json', temperature },
         }),
     };
 }

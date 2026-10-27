@@ -12,6 +12,7 @@ export interface ValidateCtx {
     drum: boolean;
     original: AiNote[];
     kitPads: number[];      // empty = do not filter
+    units?: 'steps' | 'ticks';   // what the prompt asked for (prompt.ts); default ticks
 }
 
 export const MAX_NOTES = 512;   // the engine's own cap (clip.rs MAX_NOTES)
@@ -28,11 +29,11 @@ function parseReply(raw: string): unknown[] {
     }
 }
 
-function toNote(x: unknown): AiNote | null {
+function toNote(x: unknown, scale: number): AiNote | null {
     const a = Array.isArray(x) ? x : x && typeof x === 'object'
         ? [(x as AiNote).tick, (x as AiNote).gate, (x as AiNote).pitch, (x as AiNote).vel] : null;
     if (!a || a.length < 4 || !a.slice(0, 4).every((v) => typeof v === 'number' && Number.isFinite(v))) return null;
-    return { tick: Math.round(a[0]), gate: Math.round(a[1]), pitch: Math.round(a[2]), vel: Math.round(a[3]) };
+    return { tick: Math.round(a[0] * scale), gate: Math.round(a[1] * scale), pitch: Math.round(a[2]), vel: Math.round(a[3]) };
 }
 
 function clampNote(n: AiNote, end: number): AiNote | null {
@@ -68,7 +69,7 @@ export function validateOptions(raw: string, ctx: ValidateCtx): AiNote[][] {
     parseReply(raw).slice(0, 3).forEach((opt, i) => {
         const list = (opt as { notes?: unknown })?.notes;
         if (!Array.isArray(list)) return;
-        let notes = list.map(toNote).filter((n): n is AiNote => n !== null)
+        let notes = list.map((x) => toNote(x, ctx.units === 'steps' ? TICKS_PER_STEP : 1)).filter((n): n is AiNote => n !== null)
             .map((n) => clampNote(n, end)).filter((n): n is AiNote => n !== null);
         if (ctx.drum && ctx.task === 'quantize' && i === 0) notes = keepPads(notes, ctx.original);
         else if (ctx.drum && kit.size) notes = notes.filter((n) => kit.has(n.pitch));

@@ -52,7 +52,7 @@ interface Running {
     tracks: AiTrackInput[];
     httpId: number;
     sentMs: number;
-    ctx: { len: number; scale: [number, number]; orig: AiClip | null; drum: boolean; kit: number[] } | null;
+    ctx: { len: number; scale: [number, number]; orig: AiClip | null; drum: boolean; kit: number[]; units?: 'steps' | 'ticks' } | null;
 }
 
 let phase: AiPhase = 'idle';
@@ -109,7 +109,9 @@ function send(r: Running, now: number): void {
     }
     const context = buildContext({ ...setHeader(), tracks: r.tracks, target: { track: r.track, slot: r.slot },
         source: source === null ? null : { track: r.track, slot: source } });
-    const req = buildRequest(r.cfg, buildPrompt(r.task, context, { len: r.ctx.len, drum: t.drum }));
+    const prompt = buildPrompt(r.task, context, { len: r.ctx.len, drum: t.drum });
+    r.ctx.units = prompt.units;
+    const req = buildRequest(r.cfg, prompt);
     r.httpId = startHttp(req, MOVY_MODULE_DIR);
     if (r.httpId < 0) return fail(MSG_ERROR, 'request not started');
     r.sentMs = now;
@@ -122,7 +124,7 @@ function finish(r: Running, reply: HttpReply): void {
     const text = extractText(reply.body);
     const c = r.ctx!;
     const options = text === null ? [] : validateOptions(text, {
-        task: r.task, len: c.len, drum: c.drum, original: c.orig?.notes ?? [], kitPads: c.kit });
+        task: r.task, len: c.len, drum: c.drum, original: c.orig?.notes ?? [], kitPads: c.kit, units: c.units });
     if (!options.length) return fail(MSG_ERROR, 'no usable option: ' + (text ?? reply.body).slice(0, 200));
     preview = { task: r.task, track: r.track, slot: r.slot, orig: c.orig, options,
         len: c.len, scaleNum: c.scale[0], scaleDen: c.scale[1] };

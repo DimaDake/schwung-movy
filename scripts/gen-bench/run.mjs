@@ -5,6 +5,7 @@
  *
  *   GEMINI_KEY_FILE=<path> node scripts/gen-bench/run.mjs --models a,b \
  *       [--cases <substring>] [--level BALANCED] [--repeat 1] --label <name>
+ *   GEN_STYLE='{"units":"ticks"}' turns one prompt switch (prompt.ts PromptStyle).
  */
 import { createHash } from 'node:crypto';
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -63,7 +64,8 @@ async function runModel(ai, model, cases, opt, key, sink) {
                 continue;
             }
             const len = 32;
-            const prompt = ai.buildPrompt(c.task, ai.buildContext(c.set), { len, drum: c.drum, level: opt.level });
+            const units = opt.style.units ?? ai.DEFAULT_STYLE?.units ?? 'ticks';
+            const prompt = ai.buildPrompt(c.task, ai.buildContext({ ...c.set, units }), { len, drum: c.drum, level: opt.level, style: opt.style });
             const req = ai.buildRequest({ model, key, models: [model] }, prompt, ai.LEVEL_TEMPERATURE?.[opt.level]);
             const res = await call(req, model, run);
             const status = ai.classifyStatus(res.http, res.curlExit);
@@ -95,7 +97,8 @@ async function main() {
     const models = (args.models || '').split(',').filter(Boolean);
     models.forEach(assertModelAllowed);
     const label = args.label || 'run';
-    const opt = { level: args.level || 'BALANCED', repeat: Number(args.repeat || 1) };
+    /* GEN_STYLE='{"units":"ticks"}' etc.: one prompt switch off, for an A/B. */
+    const opt = { level: args.level || 'BALANCED', repeat: Number(args.repeat || 1), style: JSON.parse(process.env.GEN_STYLE || '{}') };
     const key = readFileSync(process.env.GEMINI_KEY_FILE, 'utf8').trim();
     const ai = await import('../../dist/esm/ai/index.js');
     const cases = readdirSync(ROOT + 'cases').sort().filter((f) => !args.cases || f.includes(args.cases))

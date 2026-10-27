@@ -3,3 +3,5 @@ export * from './clip-dump.js';
 export * from './harmony.js';
 export * from './drum-names.js';
 export * from './context.js';
+export * from './prompt.js';
+export * from './validate.js';

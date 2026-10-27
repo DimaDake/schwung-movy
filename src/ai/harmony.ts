@@ -41,8 +41,13 @@ function clipMasterTicks(c: AiClip): number {
     return Math.round(c.len * TICKS_PER_STEP * c.scaleDen / c.scaleNum);
 }
 
-/** One line per master bar of the scene: `bar N: Am (A C E)` or `bar N: -`. */
-export function sceneHarmony(clips: AiClip[], drum: (track: number) => boolean): string[] {
+export interface BarChord { pcs: number[]; bass: number; name: string; root: number }
+
+/** Per master bar of the scene: the sounding pitch classes (root first), the
+ *  lowest pitch class, and the chord they spell; empty bars have pcs []. The
+ *  prompt's HARMONY text and the bench's fit score both read this, so what the
+ *  model is told and what it is scored against cannot drift apart. */
+export function sceneChords(clips: AiClip[], drum: (track: number) => boolean): BarChord[] {
     const melodic = clips.filter((c) => !drum(c.track) && c.len > 0);
     const sceneTicks = Math.max(BAR, ...clips.map(clipMasterTicks));
     const bars = Math.ceil(sceneTicks / BAR);
@@ -67,10 +72,16 @@ export function sceneHarmony(clips: AiClip[], drum: (track: number) => boolean):
         }
     }
     return pcs.map((set, i) => {
-        if (set.size === 0) return `bar ${i + 1}: -`;
+        if (set.size === 0) return { pcs: [], bass: -1, name: '', root: -1 };
         const name = chordName(set, bass[i] % 12);
         const root = name === '?' ? bass[i] % 12 : PC.indexOf(name.match(/^[A-G]#?/)![0]);
         const order = [...set].sort((a, b) => ((a - root + 12) % 12) - ((b - root + 12) % 12));
-        return `bar ${i + 1}: ${name} (${order.map(pcName).join(' ')})`;
+        return { pcs: order, bass: bass[i] % 12, name, root };
     });
+}
+
+/** One line per master bar of the scene: `bar N: Am (A C E)` or `bar N: -`. */
+export function sceneHarmony(clips: AiClip[], drum: (track: number) => boolean): string[] {
+    return sceneChords(clips, drum).map((c, i) => (c.pcs.length
+        ? `bar ${i + 1}: ${c.name} (${c.pcs.map(pcName).join(' ')})` : `bar ${i + 1}: -`));
 }

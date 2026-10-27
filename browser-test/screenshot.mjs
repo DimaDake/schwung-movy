@@ -43,7 +43,7 @@ const PRESETS = [
     'note_view_bass', 'note_view_chords', 'note_view_drums', 'note_view_plus', 'note_view_dense', 'note_view_wide',
     'song_band', 'song_band_overflow', 'song_band_end',
     'quant-overlay-three', 'quant-overlay-two', 'flags-top', 'flags-scrolled', 'flags-generators',
-    'ai_running_quant', 'ai_running_var', 'ai_error_nokey', 'ai_preview_orig', 'ai_preview_opt1', 'ai_preview_opt3', 'ai_hold_progress_50',
+    'ai_running_quant', 'ai_running_var', 'ai_error_nokey', 'ai_preview_orig', 'ai_preview_opt1', 'ai_preview_opt3', 'ai_hold_progress_50', 'ai_hold_variation_50',
     'cpu-movy-tracks', 'cpu-unsplit-module', 'cpu-overscale',
     'cpu-empty', 'cpu-sends', 'cpu-sends-quiet', 'cpu-master', 'leave_modal',
     'power_modal', 'capture_select', 'capture_fixed', 'undo_toast', 'redo_toast',
@@ -105,7 +105,7 @@ const BASE = {
                                 'quant-overlay-three': 'test8', 'quant-overlay-two': 'test8',
     'flags-top': 'test8', 'flags-scrolled': 'test8', 'flags-generators': 'test8',
     ai_running_quant: 'test8', ai_running_var: 'test8', ai_error_nokey: 'test8',
-    ai_preview_orig: 'test8', ai_preview_opt1: 'test8', ai_preview_opt3: 'test8', ai_hold_progress_50: 'test8',
+    ai_preview_orig: 'test8', ai_preview_opt1: 'test8', ai_preview_opt3: 'test8', ai_hold_progress_50: 'test8', ai_hold_variation_50: 'test8',
                                                                             lfo_chain: 'test8',         lfo_assign_toast: 'test8',
     leave_modal: 'test8', power_modal: 'test8',
     master_volume: 'test8',
@@ -537,7 +537,14 @@ function applyView(preset) {
         /* Shift + Step 16 held half way to Smart Quantize. */
         case 'ai_hold_progress_50': {
             resetSeqState();
-            lastRender = () => { renderKnobsView(model.getViewModel()); drawHoldProgress(0.5); };
+            lastRender = () => { renderKnobsView(model.getViewModel()); drawHoldProgress(0.5, 'SMART QUANTIZE'); };
+            lastRender();
+            break;
+        }
+        /* Shift + Step 14 held half way to a Variation. */
+        case 'ai_hold_variation_50': {
+            resetSeqState();
+            lastRender = () => { renderKnobsView(model.getViewModel()); drawHoldProgress(0.5, 'VARIATION'); };
             lastRender();
             break;
         }

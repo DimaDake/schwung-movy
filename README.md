@@ -162,7 +162,7 @@ Movy stands on the shoulders of several projects:
 - **Generators: Smart Quantize & Variation** — hold **Shift + Step 16** and a
   generator (a free Gemini key) hands back three takes on the clip you recorded,
   from tightened to reimagined, each fitted to the chords and groove of the rest
-  of the scene; Settings → GENERATORS sets how bold. **Shift +
+  of the scene; Settings → GENERATORS sets how bold. **Shift + hold
   Step 14** turns a track's A part into a B. You preview every option on the
   jog, against your original, before anything is kept.
 

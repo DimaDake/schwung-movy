@@ -44,7 +44,7 @@ export async function run() {
     seqHandleMidi([0x90, 16 + 5, 127], true);
     seqEngineTick();
     eq('Shift+Step6 toggles metronome', lastOp(), 'metro 1');
-    /* Fires on RELEASE: a hold becomes Smart Quantize instead (ai/hold16.ts). */
+    /* Fires on RELEASE: a hold becomes Smart Quantize instead (ai/hold.ts). */
     seqHandleMidi([0x90, 16 + 15, 127], true);
     seqEngineTick();
     eq('Shift+Step16 press alone does not cycle yet', lastOp(), 'metro 1');

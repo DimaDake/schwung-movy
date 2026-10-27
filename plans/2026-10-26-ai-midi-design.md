@@ -81,8 +81,9 @@ Length, loop window, playback scale, transpose: unchanged.
 **Use case.** "I have the A part of the beat and want B": same style, but
 something changes so the song can move on — harmony (chords) or something else.
 
-**Gesture.** In Track view, with a clip slot selected, Shift + Step 14 (no
-hold — the AI result is a preview, so nothing is lost). **Step 14 is lit dim
+**Gesture.** In Track view, with a clip slot selected, Shift + **hold** Step 14,
+the same hold as Smart Quantize (changed 2026-10-27: every generator starts only
+from a deliberate hold; a tap toasts `HOLD TO GENERATE`). **Step 14 is lit dim
 white while Shift is held, only when a variation is possible** (the track has
 at least one other clip with notes); dark and inert otherwise.
 

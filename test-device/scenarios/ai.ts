@@ -7,7 +7,7 @@
  *   A1 Shift + HOLD Step 16 runs Smart Quantize; the preview opens on option 1,
  *      written into the clip at quantize 0
  *   A2 the jog switches to option 3 and a jog click keeps it
- *   A3 Shift + Step 14 on an EMPTY slot writes a variation there, at the
+ *   A3 Shift + HOLD Step 14 on an EMPTY slot writes a variation there, at the
  *      source clip's length; Back keeps it
  * The witness is the engine's own clip dump (`ait:0`), the only read-back of
  * what a preview wrote. Option switching, per-option edits, every commit path
@@ -72,7 +72,7 @@ scenario('ai', async (t) => {
 
         await t.tx.engineSet('cmd', 'clipsel 0 1');
         await t.tx.frames(60);
-        await dev.holdCc(SHIFT, async () => { await dev.hold(STEP14, () => t.tx.frames(10)); });
+        await dev.holdCc(SHIFT, async () => { await dev.hold(STEP14, () => t.tx.frames(560)); });
         const vd = await waitFor('variation preview', 1, '0.24.72.');
         const v = clipLine(vd, 1);
         await cc(BACK, 127); await cc(BACK, 0);

@@ -1822,11 +1822,16 @@ The three options go from careful to bold:
 On drums, options 2 and 3 move a hit to another pad only where it clearly helps,
 and only to a pad the kit already uses.
 
-### Variation: Shift + Step 14
+### Variation: Shift + hold Step 14
 
 You have an A part and want a B. Select a clip slot on the track, **empty or
-not**, and press **Shift + Step 14**. Step 14's light is dim white under Shift
-whenever the track has another clip to vary from. The variation grows from
+not**, then **hold Shift and hold Step 14** until the bar along the bottom of
+the screen is full, just like Smart Quantize. A tap only shows `HOLD TO
+GENERATE`, so a stray press never sends anything. Step 14's light is dim white
+under Shift whenever the track has another clip to vary from.
+
+![Hold for a Variation](docs/assets/ai_hold_variation_50.png)
+ The variation grows from
 the nearest clip **above** the slot (or below, if there is none above), keeps
 that clip's playback speed, and takes its length too, unless the slot already
 has a clip. In that case it replaces that clip at the same length, and ORIG
@@ -2011,7 +2016,7 @@ only.
 | **Shift + Step 6** | Toggle the **metronome**. |
 | **Shift + Step 10** | Toggle **full velocity** — every pad note at 127. Kept across sets and restarts. |
 | **Shift + Step 12** | Open the **CPU meter** (per-track and per-send cost, block usage). Press again to clear the held peaks. |
-| **Shift + Step 14** | **Variation** generator from the track's previous clip into the selected slot (Track view; lit dim white when possible). See [Generators](#6b-generators-smart-quantize--variation). |
+| **Shift + hold Step 14** | **Variation** generator from the track's previous clip into the selected slot (Track view; lit dim white when possible). See [Generators](#6b-generators-smart-quantize--variation). |
 | **Shift + Step 15** | **Double** the loop. |
 | **Shift + Step 16** | Cycle the current clip's **quantization** (0 / default / 100 %), on release in Track view. |
 | **Shift + hold Step 16** | **Smart Quantize** generator (Track view). See [Generators](#6b-generators-smart-quantize--variation). |

@@ -6,13 +6,12 @@
  * that is not is Clip Params, which edits a single clip and so has nowhere to
  * point in Session view. */
 
-import { aiVariationPress } from '../ai/gestures.js';
 import { appState, VIEW_MAIN_PARAMS, VIEW_CLIP_PARAMS, VIEW_FLAGS } from '../app/state.js';
 import { beginGesture } from '../undo/edit.js';
 import { trackLabel } from '../undo/label.js';
 import {
     MAIN_PAGE_STEPS, STEP_CLIP_PARAMS, STEP_FLAGS, STEP_METRO, STEP_SETS,
-    STEP_FULL_VEL, STEP_DOUBLE_LOOP, STEP_QUANTIZE, STEP_CPU, STEP_AI_VARIATION,
+    STEP_FULL_VEL, STEP_DOUBLE_LOOP, STEP_QUANTIZE, STEP_CPU,
 } from './constants.js';
 import { openCpuPage } from './cpu-page.js';
 import { openSetsPage } from './sets-page.js';
@@ -71,8 +70,6 @@ export function shiftStepFunction(step: number): void {
         seqToast(seqState.metro ? 'Metronome Off' : 'Metronome On');
     } else if (step === STEP_QUANTIZE) {
         cycleQuantize();
-    } else if (step === STEP_AI_VARIATION) {
-        aiVariationPress();
     }
 }
 

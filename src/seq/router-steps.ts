@@ -4,8 +4,8 @@
  * what it dispatches to. The shifted functions the row can reach live next
  * door in step-shortcuts.ts — two of the branches below hand off to them. */
 
-import { hold16Pending, resetHold16, hold16Press, hold16Release } from '../ai/hold16.js';
-import { aiHoldAllowed } from '../ai/gestures.js';
+import { resetHold, holdRelease } from '../ai/hold.js';
+import { aiHoldPress, aiVariationTap, holdOwns, holdStep } from '../ai/gestures.js';
 import { mlog } from '../log.js';
 import { appState } from '../app/state.js';
 import { beginEdit, endEdit, CLOSE } from '../undo/group.js';
@@ -133,16 +133,16 @@ export function handleStepButton(button: number, on: boolean, shiftHeld: boolean
             : { kind: 'step', track: watchedTrack(), step: absB });
     } else if (on && deleteActive()) {
         deleteStep(button);
-    } else if (button === STEP_QUANTIZE && on && !shiftHeld && hold16Pending()) {
-        /* A Shift + 16 whose release was lost: this plain press starts fresh,
+    } else if (on && !shiftHeld && holdOwns(button)) {
+        /* A Shift + hold whose release was lost: this plain press starts fresh,
          * or its release would be taken for the hold's and skip editStepUp. */
-        resetHold16();
+        resetHold();
         handleStepButton(button, on, shiftHeld);
-    } else if (button === STEP_QUANTIZE && (on ? shiftHeld : hold16Pending())) {
-        /* Track view: a Shift tap cycles quantize on RELEASE, so a hold can
-         * become Smart Quantize instead (ai/hold16.ts). */
-        if (on) hold16Press(Date.now(), aiHoldAllowed());
-        else if (hold16Release(Date.now()) === 'quantize') cycleQuantize();
+    } else if (holdStep(button) && (on ? shiftHeld : holdOwns(button))) {
+        /* Track view: generators start only from a hold (ai/hold.ts). A Shift
+         * tap on 16 still cycles quantize on RELEASE; one on 14 says to hold. */
+        if (on) aiHoldPress(holdStep(button)!);
+        else if (holdRelease(Date.now()) === 'tap') (button === STEP_QUANTIZE ? cycleQuantize : aiVariationTap)();
     } else if (on && shiftHeld) {
         shiftStepFunction(button);
     } else if (on) {

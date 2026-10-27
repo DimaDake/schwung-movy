@@ -5,7 +5,8 @@
  *
  *   GEMINI_KEY_FILE=<path> node scripts/gen-bench/run.mjs --models a,b \
  *       [--cases <substring>] [--level BALANCED] [--repeat 1] --label <name>
- *   GEN_STYLE='{"units":"ticks"}' turns one prompt switch (prompt.ts PromptStyle).
+ *   GEN_STYLE='{"units":"ticks"}' turns one prompt switch (prompt.ts PromptStyle);
+ *   GEN_TEMP=1.0 overrides the level's temperature, for an A/B.
  */
 import { createHash } from 'node:crypto';
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -66,7 +67,8 @@ async function runModel(ai, model, cases, opt, key, sink) {
             const len = 32;
             const units = opt.style.units ?? ai.DEFAULT_STYLE?.units ?? 'ticks';
             const prompt = ai.buildPrompt(c.task, ai.buildContext({ ...c.set, units }), { len, drum: c.drum, level: opt.level, style: opt.style });
-            const req = ai.buildRequest({ model, key, models: [model] }, prompt, ai.LEVEL_TEMPERATURE?.[opt.level]);
+            const temp = process.env.GEN_TEMP ? Number(process.env.GEN_TEMP) : ai.LEVEL_TEMPERATURE?.[opt.level];
+            const req = ai.buildRequest({ model, key }, prompt, temp);
             const res = await call(req, model, run);
             const status = ai.classifyStatus(res.http, res.curlExit);
             const row = { id: c.id, model, kind: c.kind, genre: c.genre, run, ok: status === 'ok', status, ms: res.ms, cached: !!res.cached };

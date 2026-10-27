@@ -23,7 +23,9 @@ far. Earlier work is summarised in the timeline below for context.
   `move.local:7700/modules/movy`. ENGINE 0.111.0 (`ait:` clip dump, `aiclip`,
   `aistash`/`aiload`/`aiclr`). They follow the chords the other tracks play,
   not a scale, and **Settings → GENERATORS** (SAFE / BALANCED / WILD) sets how
-  bold the three options are.
+  bold the three options are. Model `gemini-3.1-flash-lite`, falling back to
+  `gemini-flash-lite-latest` when Google is busy, chosen on a bench of real
+  MIDI (`scripts/gen-bench`, `plans/gen-bench-results-2026-10-27-summary.md`).
 
 ### Changed
 

@@ -57,7 +57,7 @@ ok('levels_shift_the_ladder: SAFE and WILD differ', lv('SAFE') !== lv('WILD') &&
 ok('levels_shift_the_ladder: BALANCED keeps closest/shaped/inspired', /closest[\s\S]*shaped[\s\S]*inspired/i.test(lv('BALANCED')));
 eq('levels: no level is BALANCED', lv(undefined), lv('BALANCED'));
 eq('temperature_per_level', ['SAFE', 'BALANCED', 'WILD'].map((l) => JSON.parse(buildRequest({ model: 'm', key: 'k' },
-    { system: 's', user: 'u' }, LEVEL_TEMPERATURE[l]).body).generationConfig.temperature).join(','), '0.7,1,1.3');
+    { system: 's', user: 'u' }, LEVEL_TEMPERATURE[l]).body).generationConfig.temperature).join(','), '1,1,1');
 const pq = buildPrompt('quantize', 'CTX', { len: 16, drum: true });
 ok('drum quantize prompt: option 1 keeps every pad', /option 1[^.]*same pad/i.test(pq.user));
 ok('drum prompt has no harmony option', !/harmon/i.test(buildPrompt('variation', 'C', { len: 16, drum: true }).user.replace(/HARMONY/g, '')));

@@ -6,8 +6,10 @@
 export type GenLevel = 'SAFE' | 'BALANCED' | 'WILD';
 export const GEN_LEVELS: GenLevel[] = ['SAFE', 'BALANCED', 'WILD'];
 
-/* Lower temperature keeps SAFE close to the input; WILD gets more room. */
-export const LEVEL_TEMPERATURE: Record<GenLevel, number> = { SAFE: 0.7, BALANCED: 1.0, WILD: 1.3 };
+/* One temperature for every level: the bench (plans/gen-bench-results-
+ * 2026-10-27-level-*.md) found 0.7 made SAFE no safer and 1.3 made WILD no
+ * bolder, only less reliable; the ladder wording is what moves the options. */
+export const LEVEL_TEMPERATURE: Record<GenLevel, number> = { SAFE: 1.0, BALANCED: 1.0, WILD: 1.0 };
 
 const CLOSEST = 'move onsets onto the groove of the other tracks (keep deliberate swing or push) and change a pitch '
     + 'only where it clashes with the chord sounding at that moment; keep every other note as played.';

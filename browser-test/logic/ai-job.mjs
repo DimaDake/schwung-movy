@@ -86,7 +86,7 @@ genLevelTurn(1); genLevelTurn(1);
 runTicks(20);
 const sentBody = JSON.parse(st.fs.files[st.calls[0].body_path]);
 ok('level_read_once_per_request: SAFE ladder', /Option 2 \(tidy\)/.test(sentBody.contents[0].parts[0].text));
-eq('level_read_once_per_request: SAFE temperature', sentBody.generationConfig.temperature, 0.7);
+eq('level_read_once_per_request: one temperature for every level (bench)', sentBody.generationConfig.temperature, 1);
 resetGenLevel();
 aiCancel();
 done(st);

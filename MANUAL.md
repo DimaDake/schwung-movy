@@ -1787,10 +1787,12 @@ another clip already on the track.
 You need an API key. A **Gemini key is free** from Google AI Studio
 (aistudio.google.com/apikey). With Movy installed, open
 **`move.local:7700/modules/movy`** in a browser and paste the key. The key is
-stored on the Move and never shown again. The Model field defaults to
-`gemini-flash-lite-latest`, which answers in a few seconds on the free tier;
-put `gemini-flash-latest` there for richer takes when Google's servers are not
-busy. If there is no key, the generator gestures say `NO API KEY  MOVE.LOCAL:7700`.
+stored on the Move and never shown again. Leave the Model field blank: Movy
+asks `gemini-3.1-flash-lite` first and, if Google says it is busy or it does
+not answer within 40 seconds, `gemini-flash-lite-latest`. Both answer in a few
+seconds on the free tier, and they were the best of the free models on Movy's
+test set of real (mostly electronic) parts. A model name typed there replaces
+the first one; the fallback stays. If there is no key, the generator gestures say `NO API KEY  MOVE.LOCAL:7700`.
 
 **What is sent:** every clip of every track (notes, lengths, playback speed,
 transpose), each track's module name and drum voice names, and the Set's tempo,

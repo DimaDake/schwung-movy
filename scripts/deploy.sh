@@ -23,7 +23,7 @@ if [[ "${MOVY_PREBUILT:-0}" != 1 ]]; then
     ./scripts/build-dsp.sh
 fi
 ssh "ableton@$HOST" "mkdir -p $REMOTE"
-scp "$DIR/ui.js" "ableton@$HOST:$REMOTE/"
+scp "$DIR/ui.js" "$DIR/settings-schema.json" "ableton@$HOST:$REMOTE/"
 # Override configs for modules whose own movy_config.json movy cannot use (see
 # OVERRIDES_MODULE_FILE). Data files rather than imports, so ui.js does not
 # carry 91 KB of JSON through the QuickJS parser on every tool open. A deploy

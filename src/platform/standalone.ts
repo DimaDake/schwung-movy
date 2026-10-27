@@ -30,6 +30,10 @@ export const standalonePlatform: Platform = {
     loadUiModule: (p) => shadow_load_ui_module(p),
     exit: () => { host_exit_module(); },
     powerOff: () => { host_power_off(); },
+    httpStart: (r) => host_http_request_background({
+        url: r.url, method: r.method, headers: r.headers, body_path: r.bodyPath,
+        response_path: r.responsePath, status_path: r.statusPath, timeout_seconds: r.timeoutS,
+    }) !== false,
 
     ipcCalls: [
         ['host_module_get_param', 'mget', 0],

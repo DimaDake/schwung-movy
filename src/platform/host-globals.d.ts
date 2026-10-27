@@ -3,6 +3,11 @@
  * everything else goes through the Platform interface. */
 
 declare function host_read_file(path: string): string | null;
+/* Schwung's js_host_common: curl in a child; results land in the given files. */
+declare function host_http_request_background(opts: {
+    url: string; method: string; headers: string[]; body_path: string;
+    response_path: string; status_path: string; timeout_seconds: number;
+}): boolean;
 declare function host_write_file(path: string, content: string): boolean;
 declare function host_file_exists(path: string): boolean;
 declare function host_ensure_dir(path: string): boolean;

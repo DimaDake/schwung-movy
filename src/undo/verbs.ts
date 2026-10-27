@@ -18,6 +18,8 @@ export const UNDOABLE_VERBS: string[] = [
     'pst',
     // whole-clip gestures
     'clipdel', 'clipdelat', 'clipdup', 'clippaste',
+    // an AI preview option written over a clip (engine/ai_clip.rs)
+    'aiclip',
     // automation edits
     'aset', 'asetr', 'aclr', 'aclrs', 'aclrstep',
     // set-level settings

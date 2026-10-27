@@ -86,6 +86,9 @@ await esbuild.build({
         resolve(root, 'src/platform/index.ts'),
         /* The movy-host platform, asserted on its own (platform-caps.mjs). */
         resolve(root, 'src/platform/standalone.ts'),
+        /* AI MIDI (plans/2026-10-26-ai-midi-plan.md): one entry for every
+         * src/ai module the ai-* suites drive directly. */
+        resolve(root, 'src/ai/index.ts'),
         /* Move-only features the platform-caps suite asserts switch off. */
         resolve(root, 'src/model/page-rotation.ts'),
         resolve(root, 'src/model/config-hierarchy.ts'),

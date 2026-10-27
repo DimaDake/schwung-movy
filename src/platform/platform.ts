@@ -11,6 +11,16 @@ export interface EngineSnapshot {
     text: string;
 }
 
+export interface HttpRequest {
+    url: string;
+    method: 'POST' | 'GET';
+    headers: string[];
+    bodyPath: string;
+    responsePath: string;
+    statusPath: string;
+    timeoutS: number;
+}
+
 export interface Platform {
     /* ── files ── */
     readFile(path: string): string | null;
@@ -45,6 +55,11 @@ export interface Platform {
     exit(): void;
     /** Leave cleanly, then power the box off (host/power.c). */
     powerOff(): void;
+
+    /* ── network ── */
+    /** Fire-and-forget HTTP in a child curl (Schwung's js_host_common):
+     *  the response and `{"http_status","curl_exit"}` land in files later. */
+    httpStart(req: HttpRequest): boolean;
 
     /** Host calls the perf probe times, as [global name, label, key arg]
      *  (-1 = the call takes no key). */

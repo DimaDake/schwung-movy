@@ -54,6 +54,10 @@ MOVY_RELEASE=1 ./scripts/build-host.sh
 
 rm -rf "dist/${MODULE_ID}"
 mkdir -p "dist/${MODULE_ID}/configs"
+# settings-schema.json: the AI key page at move.local:7700/modules/movy. Its
+# config.json and secrets/ are the user's and must never ship (they would
+# overwrite a pasted key on update).
+cp settings-schema.json "dist/${MODULE_ID}/"
 cp module.json ui.js "dist/dsp.so" "dist/chain-host.so" "dist/movy-host" "dist/movy-heal" "dist/${MODULE_ID}/"
 cp -R dist/schwung-js "dist/${MODULE_ID}/schwung"
 # The standalone module (plan WP8): schwung's Tools menu runs `standalone`, the
@@ -108,6 +112,13 @@ if [[ "$PACKED" != "$WANT" ]]; then
     exit 1
 fi
 echo "(tarball carries $PACKED override configs)"
+# The AI settings page ships; the user's values and keys never do.
+LISTING=$(tar -tzf "dist/${MODULE_ID}-module.tar.gz")
+if ! grep -x "${MODULE_ID}/settings-schema.json" <<<"$LISTING" >/dev/null \
+   || grep -E "^${MODULE_ID}/(config\.json|secrets/)" <<<"$LISTING" >/dev/null; then
+    echo "ERROR: tarball must carry settings-schema.json and no config.json/secrets/" >&2
+    exit 1
+fi
 # Without its pinned JS movy-host imports nothing of schwung's: no pages.
 PINNED_JS=$(tar -tzf "dist/${MODULE_ID}-module.tar.gz" | grep -c "^${MODULE_ID}/schwung/.*\.mjs$" || true)
 WANT_JS=$(tail -n +2 dist/schwung-js/PIN | grep -c . || true)

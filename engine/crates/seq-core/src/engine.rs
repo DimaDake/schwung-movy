@@ -198,6 +198,9 @@ pub struct Engine {
     /// UI's stack is in-memory too, so persisting these would restore history
     /// for a stack that no longer exists.
     pub undo: crate::undo::UndoRing,
+    /// AI MIDI preview: full copies of the target clip per option (0 = ORIG),
+    /// so switching options keeps every edit. Never saved (engine/ai_clip.rs).
+    pub ai_stash: Vec<Option<Clip>>,
 }
 
 /// How far apart two tempos are, as a ratio >= 1 — direction-agnostic, so a
@@ -273,6 +276,7 @@ impl Engine {
             was_following: false,
             resume_anchor_pending: false,
             undo: crate::undo::UndoRing::new(),
+            ai_stash: vec![None; ai_clip::AI_STASH_SLOTS],
         }
     }
 

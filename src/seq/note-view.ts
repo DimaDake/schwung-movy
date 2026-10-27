@@ -7,6 +7,7 @@
  * whole only when its layout changes or the frame under it was repainted;
  * otherwise a tick touches just the playhead's old and new columns. */
 
+import { aiPreviewActive } from '../ai/preview.js';
 import { W } from '../renderer/layout.js';
 import { appState, VIEW_CHAIN, VIEW_KEYS, VIEW_KNOBS } from '../app/state.js';
 import { paramGet } from '../host/param.js';
@@ -28,7 +29,8 @@ let playX = -1;
 
 /** Loop mode owns the screen and the knobs in the Track views. */
 export function noteViewActive(): boolean {
-    if (!seqState.loopMode || seqState.sessionMode) return false;
+    /* The AI preview shows its candidate the same way (ai/preview.ts). */
+    if (!(seqState.loopMode || aiPreviewActive()) || seqState.sessionMode) return false;
     const v = appState.currentView;
     return v === VIEW_KNOBS || v === VIEW_CHAIN || v === VIEW_KEYS;
 }

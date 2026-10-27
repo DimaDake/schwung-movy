@@ -58,6 +58,10 @@ interface OpenGroup {
 }
 
 let open: OpenGroup | null = null;
+/* A HELD group (the AI preview, ai/preview.ts) absorbs every gesture until
+ * released, so everything done while previewing is one undo with the AI change
+ * itself — undo lands on the clip as it was before the AI ran. */
+let heldKey: string | null = null;
 /* Monotonic; never reused within a session, so a stale uswap can only miss. */
 let nextSnapId = 1;
 
@@ -70,9 +74,9 @@ function now(): number {
 
 export function beginEdit(o: BeginOpts): void {
     if (open) {
-        if (open.key === o.key) {
+        if (open.key === o.key || heldKey !== null) {
             open.lastActivityMs = now();
-            return;             // same gesture, still going
+            return;             // same gesture, still going (or absorbed by a hold)
         }
         endEdit();              // a different gesture starts: close the old one
     }
@@ -161,7 +165,7 @@ export function setVerb(verb: string, target?: string): void {
  * already gave way to another.
  */
 export function endEdit(key?: string): void {
-    if (!open) return;
+    if (!open || heldKey !== null) return;
     if (key !== undefined && open.key !== key) return;
     const g = open;
     open = null;
@@ -191,9 +195,22 @@ export function endEdit(key?: string): void {
     pushEntry(entry);
 }
 
+/** Keep the open group `key` open through every other gesture. */
+export function holdGroup(key: string): void {
+    if (open && open.key === key) heldKey = key;
+}
+
+/** End a hold: push the whole thing as one entry, or drop it. */
+export function releaseHold(commit: boolean): void {
+    heldKey = null;
+    if (commit) endEdit();
+    else abandonGroup();
+}
+
 /** Close whatever is open without pushing — used when the stack is invalidated
  *  under a live gesture (set switch, engine reload). */
 export function abandonGroup(): void {
+    heldKey = null;
     if (!open) return;
     if (open.snapId >= 0) seqCmd('udrop ' + open.snapId);
     open = null;
@@ -209,7 +226,7 @@ export function onLoopWrap(): void {
 
 /** Drives the time-based close policies. Called once per app tick. */
 export function undoTick(): void {
-    if (!open) return;
+    if (!open || heldKey !== null) return;
     if (open.close !== CLOSE.IDLE && open.close !== CLOSE.TOUCH_RELEASE) return;
     /* TOUCH_RELEASE keeps the idle timer as a backstop: knob turns can arrive
      * with the touch note dropped, and a group that never closes would swallow
@@ -220,6 +237,7 @@ export function undoTick(): void {
 /** Test hook. */
 export function resetUndoGroups(): void {
     open = null;
+    heldKey = null;
     nextSnapId = 1;
 }
 

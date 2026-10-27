@@ -72,6 +72,8 @@ import { volumeOverlay } from '../mixer/track-volume.js';
 import { masterVolumeOverlay } from '../mixer/master-volume.js';
 import { drawVolumeOverlay } from '../renderer/volume-overlay.js';
 import { aiTick } from '../ai/job.js';
+import { aiPreviewActive, aiPreviewTick } from '../ai/preview.js';
+import { previewStripTick } from '../ai/preview-render.js';
 import { leaveModalActive, leaveModalLabels, leaveModalSel, leaveModalTitle } from './leave-modal.js';
 import { drawLeaveModal } from '../renderer/leave-modal-view.js';
 import { captureOverlayActive } from '../seq/capture.js';
@@ -418,6 +420,7 @@ function tickBody(): void {
     /* An AI request in flight owns the frame: its screen, its LEDs. The
      * engine above keeps running, so playback never stops underneath. */
     if (aiTick(Date.now())) return;
+    aiPreviewTick();   // a track/clip/view change commits the AI preview
     perfPhase('rest');
     stepAutoTick(); // promote a long single-step hold to step-automation mode
     stepRecTick();  // keep the step-record header band alive while Rec is held
@@ -1085,7 +1088,8 @@ function tickBody(): void {
         } else {
             leavePiano(viewRepainted);
             if (noteViewActive()) noteViewTick(viewRepainted);
-            drawLoopStrip();
+            if (aiPreviewActive()) previewStripTick(viewRepainted);
+            else drawLoopStrip();
         }
     } else {
         leavePiano(viewRepainted);

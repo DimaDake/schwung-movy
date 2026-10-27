@@ -17,6 +17,7 @@ import { buildPrompt, type AiTask } from './prompt.js';
 import { buildRequest, classifyStatus, extractText } from './provider.js';
 import { drawAiRunning, resetAiRunningDraw } from './running-render.js';
 import { kitPads, readTrack, setHeader } from './set-input.js';
+import { commitPreview, openPreview, resetPreview } from './preview.js';
 import { pickSource, variationTarget } from './target.js';
 import { thinkingLedsStart, thinkingLedsTick } from './thinking-leds.js';
 import { validateOptions } from './validate.js';
@@ -122,6 +123,7 @@ function finish(r: Running, reply: HttpReply): void {
     run = null;
     phase = 'preview';
     release();
+    openPreview(preview);
 }
 
 /** true = the job owns this frame (tick.ts draws nothing else). */
@@ -171,10 +173,12 @@ export function endAiPreview(): void {
 /** A Set is about to be replaced: a request in flight is abandoned. */
 export function aiSetWillChange(): void {
     if (phase === 'running') aiCancel();
+    commitPreview();   // a no-op unless a preview is open
 }
 
 export function resetAiJob(): void {
     if (run) cancelHttp(run.httpId);
+    resetPreview();
     run = null;
     preview = null;
     phase = 'idle';

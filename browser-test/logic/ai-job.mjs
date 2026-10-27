@@ -9,7 +9,7 @@ import { _log, eq, ok, installMockFs, uninstallMockFs, installMockEngine, uninst
     seqEngineTick, resetSeqEngine } from './harness.mjs';
 import {
     pickSource, variationTarget, parseTrackDump, startAiJob, aiPhase, aiTick, aiRunningInput, aiCancel,
-    aiSetWillChange, aiPreviewInput, resetAiJob, thinkingPadColour, AI_DIR,
+    aiSetWillChange, aiPreviewInput, resetAiJob, commitPreview, thinkingPadColour, AI_DIR,
 } from '../../dist/esm/ai/index.js';
 import { seqToastText } from '../../dist/esm/seq/render.js';
 
@@ -83,6 +83,8 @@ runTicks(2);
 eq('valid reply opens the preview', aiPhase(), 'preview');
 eq('preview gets three options', aiPreviewInput()?.options.length, 3);
 eq('preview carries the original clip', aiPreviewInput()?.orig?.notes.length, 2);
+commitPreview();
+eq('commit returns the job to idle', aiPhase(), 'idle');
 done(st);
 
 st = boot();

@@ -43,7 +43,7 @@ const PRESETS = [
     'note_view_bass', 'note_view_chords', 'note_view_drums', 'note_view_plus', 'note_view_dense', 'note_view_wide',
     'song_band', 'song_band_overflow', 'song_band_end',
     'quant-overlay-three', 'quant-overlay-two', 'flags-top', 'flags-scrolled',
-    'ai_running_quant', 'ai_running_var', 'ai_error_nokey',
+    'ai_running_quant', 'ai_running_var', 'ai_error_nokey', 'ai_preview_orig', 'ai_preview_opt1', 'ai_preview_opt3',
     'cpu-movy-tracks', 'cpu-unsplit-module', 'cpu-overscale',
     'cpu-empty', 'cpu-sends', 'cpu-sends-quiet', 'cpu-master', 'leave_modal',
     'power_modal', 'capture_select', 'capture_fixed', 'undo_toast', 'redo_toast',
@@ -105,6 +105,7 @@ const BASE = {
                                 'quant-overlay-three': 'test8', 'quant-overlay-two': 'test8',
     'flags-top': 'test8', 'flags-scrolled': 'test8',
     ai_running_quant: 'test8', ai_running_var: 'test8', ai_error_nokey: 'test8',
+    ai_preview_orig: 'test8', ai_preview_opt1: 'test8', ai_preview_opt3: 'test8',
                                                                             lfo_chain: 'test8',         lfo_assign_toast: 'test8',
     leave_modal: 'test8', power_modal: 'test8',
     master_volume: 'test8',
@@ -179,7 +180,7 @@ const { drawJogToast }     = await import('../dist/esm/renderer/overlay.js');
 const { drawLeaveModal }   = await import('../dist/esm/renderer/leave-modal-view.js');
 const { drawCaptureOverlay } = await import('../dist/esm/renderer/capture-overlay.js');
 const { drawQuantOverlay } = await import('../dist/esm/renderer/quant-overlay.js');
-const { drawAiRunning, MSG_NO_KEY } = await import('../dist/esm/ai/index.js');
+const { drawAiRunning, MSG_NO_KEY, drawPreviewStrip } = await import('../dist/esm/ai/index.js');
 const { seqToast, drawSeqToast } = await import('../dist/esm/seq/render.js');
 const { drawStepPiano } = await import('../dist/esm/renderer/step-piano.js');
 const { stepPianoVM, resetStepPiano } = await import('../dist/esm/seq/step-piano.js');
@@ -514,6 +515,22 @@ function applyView(preset) {
         case 'ai_running_var': {
             const label = preset === 'ai_running_quant' ? 'QUANTIZING...' : 'VARIATION...';
             lastRender = () => drawAiRunning(label, 3400, true);
+            lastRender();
+            break;
+        }
+        /* The preview (design §5.2): the candidate in the note view, the
+         * selector in the bottom band with the option showing boxed. */
+        case 'ai_preview_orig': case 'ai_preview_opt1': case 'ai_preview_opt3': {
+            const sc = NOTE_VIEW_SCENES.note_view_chords;
+            const idx = { ai_preview_orig: 0, ai_preview_opt1: 1, ai_preview_opt3: 3 }[preset];
+            resetSeqState(); resetSeqHeader(); resetNoteView();
+            seqState.loopMode = true;
+            seqState.loopStart = sc.loopStart; seqState.lenSteps = sc.lenSteps;
+            seqState.barOffset = sc.barOffset;
+            seqState.playing = true; seqState.posTick = sc.posTick;
+            seqState.noteHash = preset;
+            seedNoteViewForTest(sc.notes);
+            lastRender = () => { clear_screen(); noteViewTick(true); drawPreviewStrip(idx, 3); };
             lastRender();
             break;
         }

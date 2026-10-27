@@ -113,7 +113,7 @@ pub fn is_undoable_edit(verb: &str) -> bool {
         // whole-clip gestures
         | "clipdel" | "clipdelat" | "clipdup" | "clippaste"
         // an AI preview option written over a clip (engine/ai_clip.rs)
-        | "aiclip"
+        | "aiclip" | "aiload"
         // automation edits
         | "aset" | "asetr" | "aclr" | "aclrs" | "aclrstep"
         // set-level settings
@@ -156,6 +156,8 @@ pub fn is_control_verb(verb: &str) -> bool {
         | "capclr" | "capdone"
         // undo machinery
         | "usnap" | "uswap" | "ucommit" | "udrop" | "uclr"
+        // AI preview stash bookkeeping: copies, no musical change
+        | "aistash" | "aiclr"
         // batch container (never reaches apply_op as a verb)
         | "cmd"
     )
@@ -461,6 +463,14 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                 });
             }
         }
+        // aistash <t> <slot> <k> / aiload <t> <slot> <k> / aiclr
+        "aistash" | "aiload" => {
+            if let (Some(t), Some(s), Some(k)) = (next(), next(), next()) {
+                let (t, s, k) = (t.max(0) as usize, s.max(0) as usize, k.max(0) as usize);
+                if verb == "aistash" { engine.ai_stash_clip(t, s, k) } else { engine.ai_load_clip(t, s, k) }
+            }
+        }
+        "aiclr" => engine.ai_clear_stash(),
         "clipdup" => {
             if let Some(t) = next() {
                 engine.duplicate_clip(t as usize);

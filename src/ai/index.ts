@@ -12,3 +12,5 @@ export * from './set-input.js';
 export * from './thinking-leds.js';
 export * from './running-render.js';
 export * from './job.js';
+export * from './preview.js';
+export * from './preview-render.js';

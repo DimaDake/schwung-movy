@@ -81,6 +81,7 @@ import { masterScope, trackScope } from '../lfo/scope.js';
 import { deleteActive, markDeleteActed } from '../seq/edit-ops.js';
 import { seqToast } from '../seq/render.js';
 import { aiRunningInput } from '../ai/job.js';
+import { previewInput } from '../ai/preview.js';
 import { leaveModalActive, openLeaveModal, closeLeaveModal, leaveModalMove, leaveModalConfirm, leaveModalPass } from '../app/leave-modal.js';
 import {
     quantOverlayActive, quantOverlayAction, quantOverlayJog, quantOverlayHold,
@@ -240,6 +241,9 @@ export function onMidiMessageInternal(data: number[]): void {
     /* An AI request in flight owns the device: only Back (cancel) does
      * anything, and releases still pass (ai/job.ts). */
     if (aiRunningInput(data)) return;
+    /* The AI preview keeps the jog (switch/commit), Back (commit) and idles
+     * the knobs; everything else edits the clip underneath. */
+    if (previewInput(data)) { appState.dirty = true; return; }
     /* A module's fullscreen canvas (DR32's engine picker) owns the jog
      * assembly, Back and the knobs while it is up — canvas-dive-input.ts. */
     if (canvasDiveTakes(data)) { appState.dirty = true; return; }

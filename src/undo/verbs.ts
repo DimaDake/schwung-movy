@@ -19,7 +19,7 @@ export const UNDOABLE_VERBS: string[] = [
     // whole-clip gestures
     'clipdel', 'clipdelat', 'clipdup', 'clippaste',
     // an AI preview option written over a clip (engine/ai_clip.rs)
-    'aiclip',
+    'aiclip', 'aiload',
     // automation edits
     'aset', 'asetr', 'aclr', 'aclrs', 'aclrstep',
     // set-level settings
@@ -50,6 +50,8 @@ export const CONTROL_VERBS: string[] = [
     'dq',
     'capclr', 'capdone',
     'usnap', 'uswap', 'ucommit', 'udrop', 'uclr',
+    /* AI preview stash bookkeeping: copies only, no musical change. */
+    'aistash', 'aiclr',
     'cmd',
 ];
 

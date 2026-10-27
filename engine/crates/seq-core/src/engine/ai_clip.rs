@@ -10,6 +10,9 @@ use crate::clip::{Note, MAX_NOTES, MAX_STEPS};
 use crate::track::{CLIPS_PER_TRACK, NUM_TRACKS};
 use crate::TICKS_PER_STEP;
 
+/// ORIG + three options.
+pub const AI_STASH_SLOTS: usize = 4;
+
 /// One preview write: everything `aiclip` sets on a clip.
 pub struct AiClipWrite<'a> {
     pub track: usize,
@@ -65,6 +68,28 @@ impl Engine {
             }
         }
         s
+    }
+
+    /// Copy the clip at (t, slot) — empty or not — into stash `k`.
+    pub fn ai_stash_clip(&mut self, t: usize, slot: usize, k: usize) {
+        if t < NUM_TRACKS && slot < CLIPS_PER_TRACK && k < AI_STASH_SLOTS {
+            self.ai_stash[k] = Some(self.tracks[t].clips[slot].clone());
+        }
+    }
+
+    /// Put stash `k` back at (t, slot); nothing stashed there = no change.
+    pub fn ai_load_clip(&mut self, t: usize, slot: usize, k: usize) {
+        if t >= NUM_TRACKS || slot >= CLIPS_PER_TRACK || k >= AI_STASH_SLOTS {
+            return;
+        }
+        if let Some(c) = self.ai_stash[k].clone() {
+            self.tracks[t].clips[slot] = c;
+            self.dirty = true;
+        }
+    }
+
+    pub fn ai_clear_stash(&mut self) {
+        self.ai_stash.iter_mut().for_each(|s| *s = None);
     }
 
     /// Replace a clip wholesale. Locks and trig overrides go with the old
@@ -192,6 +217,38 @@ mod tests {
         assert_eq!(e.tracks[0].clips[0].notes[0].pitch, 72);
         cmd(&mut e, "uswap 7 8");
         assert_eq!(e.tracks[0].clips[0].notes[0].pitch, 60);
+    }
+
+    #[test]
+    fn stash_and_load_restore_a_clip_exactly() {
+        let mut e = engine();
+        cmd(&mut e, "aiclip 0 2 32 1 2 70 0.24.60.100");
+        e.tracks[0].clips[2].set_lock(0, 3, 9);
+        e.tracks[0].clips[2].transpose = 5;
+        cmd(&mut e, "aistash 0 2 0;aiclip 0 2 16 1 1 0 0.24.72.100");
+        assert!(e.tracks[0].clips[2].locks.is_empty());
+        cmd(&mut e, "aistash 0 2 1;aiload 0 2 0");
+        let c = &e.tracks[0].clips[2];
+        assert_eq!((c.length_steps, c.quant, c.transpose, c.locks.len()), (32, 70, 5, 1));
+        assert_eq!(c.notes[0].pitch, 60);
+        cmd(&mut e, "aiload 0 2 1");
+        assert_eq!(e.tracks[0].clips[2].notes[0].pitch, 72);
+    }
+
+    #[test]
+    fn stash_of_an_empty_slot_loads_back_empty() {
+        let mut e = engine();
+        cmd(&mut e, "aistash 3 4 0;aiclip 3 4 16 1 1 0 0.24.60.100;aiload 3 4 0");
+        assert!(!e.tracks[3].clips[4].exists());
+    }
+
+    #[test]
+    fn load_without_stash_and_after_clear_is_a_noop() {
+        let mut e = engine();
+        cmd(&mut e, "aiclip 0 0 16 1 1 0 0.24.60.100;aiload 0 0 2");
+        assert_eq!(e.tracks[0].clips[0].notes.len(), 1);
+        cmd(&mut e, "aistash 0 0 1;aiclr;aiload 0 0 1");
+        assert_eq!(e.tracks[0].clips[0].notes.len(), 1);
     }
 
     #[test]

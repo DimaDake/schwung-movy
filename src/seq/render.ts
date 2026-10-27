@@ -101,11 +101,32 @@ function songBandSig(): string {
         + (songTerminal() ? '!' : '');
 }
 
-export function drawSongBand(): void {
+/** The inverted bottom band with its leading word; returns where tokens start.
+ *  Shared by the Song band and the AI preview selector (ai/preview-render.ts). */
+export function drawBandLead(lead: string): number {
     fill_rect(0, TOAST_Y, W, TOAST_H, 1);       // inverted band, as the toast draws
-    let x = 2;
-    fontPrint(x, TOAST_Y + 1, 'SONG', 0);
-    x += fontWidth('SONG') + SONG_GAP * 2;
+    fontPrint(2, TOAST_Y + 1, lead, 0);
+    return 2 + fontWidth(lead) + SONG_GAP * 2;
+}
+
+/** One band entry at x; `current` is boxed. Returns the x after it, or -1 when
+ *  it would not fit (nothing drawn). */
+export function drawBandToken(x: number, label: string, current: boolean, gap = SONG_GAP): number {
+    const w = fontWidth(label);
+    if (x + w > W - 1) return -1;
+    if (current) {
+        /* Boxed rather than inverted again: the band is already inverted,
+         * so the current entry is a hole punched back through it. */
+        fill_rect(x - 1, TOAST_Y, w + 2, TOAST_H, 0);
+        fontPrint(x, TOAST_Y + 1, label, 1);
+    } else {
+        fontPrint(x, TOAST_Y + 1, label, 0);
+    }
+    return x + w + gap;
+}
+
+export function drawSongBand(): void {
+    let x = drawBandLead('SONG');
     /* A song parked on an empty scene has ENDED. The width it needs comes off
      * the token budget first, so the marker can never be the thing that gets
      * clipped — an arrangement that has stopped must say so. */
@@ -118,17 +139,9 @@ export function drawSongBand(): void {
         x += fontWidth('.') + SONG_GAP;
     }
     for (const t of tokens) {
-        const w = fontWidth(t.label);
-        if (x + w > W - 1) break;
-        if (t.current) {
-            /* Boxed rather than inverted again: the band is already inverted,
-             * so the entry now playing is a hole punched back through it. */
-            fill_rect(x - 1, TOAST_Y, w + 2, TOAST_H, 0);
-            fontPrint(x, TOAST_Y + 1, t.label, 1);
-        } else {
-            fontPrint(x, TOAST_Y + 1, t.label, 0);
-        }
-        x += w + SONG_GAP;
+        const next = drawBandToken(x, t.label, t.current);
+        if (next < 0) break;
+        x = next;
     }
     if (end) {
         fontPrint(x + SONG_GAP, TOAST_Y + 1, 'END', 0);

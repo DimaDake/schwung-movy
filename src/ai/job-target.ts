@@ -15,6 +15,7 @@ export interface JobCtx {
     drum: boolean;
     kit: number[];
     units?: 'steps' | 'ticks';
+    srcSlot?: number | null; // the clip a variation grows from (the knobs' generators read it)
     source?: AiNote[];      // Variation (facts.ts): what validate.ts checks the role and loops against
     loops?: AiNote[][];
 }

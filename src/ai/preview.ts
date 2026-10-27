@@ -12,8 +12,9 @@ import { seqState } from '../seq/state.js';
 import { watchedTrack } from '../seq/watch.js';
 import { beginEdit, CLOSE, holdGroup, releaseHold } from '../undo/group.js';
 import { trackLabel } from '../undo/label.js';
-import { formatNotes } from './clip-dump.js';
+import { type AiNote, formatNotes } from './clip-dump.js';
 import { endAiPreview, type AiPreviewInput } from './job.js';
+import { knobsOpen, knobsReset, knobsShown, knobsTick, knobTouch, knobTurn } from './preview-knobs.js';
 
 interface Open {
     p: AiPreviewInput;
@@ -51,7 +52,18 @@ function go(o: Open, j: number): void {
     seqCmd(`aistash ${o.p.track} ${o.p.slot} ${o.index}`);
     write(o, j);
     o.index = j;
+    knobsShown(j);
     appState.dirty = true;
+}
+
+/* A knob turn's new take on the option showing: written over it, edits and
+ * all (design §5: a turn discards hand edits), and kept as that option. */
+function replaceCurrent(notes: AiNote[]): void {
+    const o = cur;
+    if (!o || o.index === 0) return;
+    o.p.options[o.index - 1] = notes;
+    seqCmd(`aiclip ${o.p.track} ${o.p.slot} ${o.p.len} ${o.p.scaleNum} ${o.p.scaleDen} 0 ${formatNotes(notes)}`);
+    o.visited[o.index] = true;
 }
 
 export function openPreview(p: AiPreviewInput): void {
@@ -61,6 +73,7 @@ export function openPreview(p: AiPreviewInput): void {
     holdGroup(key);
     cur = { p, index: 0, visited: [true, ...p.options.map(() => false)], sig: sig(p.track) };
     mlog(`ai: preview t${p.track} s${p.slot} ${p.options.length} options`);
+    if (p.gen) knobsOpen(p.gen.ctx, p.gen.picks);
     go(cur, 1);
 }
 
@@ -74,6 +87,7 @@ export function commitPreview(why = 'commit'): void {
     if (!cur) return;
     mlog(`ai: preview kept option ${cur.index} (${why})`);
     cur = null;
+    knobsReset();
     seqCmd('aiclr');
     releaseHold(true);
     endAiPreview();
@@ -84,17 +98,23 @@ export function commitPreview(why = 'commit'): void {
 export function aiPreviewTick(): void {
     if (!cur) return;
     const now = sig(cur.p.track);
-    if (now !== cur.sig) commitPreview(`left: ${cur.sig} -> ${now}`);
+    if (now !== cur.sig) return commitPreview(`left: ${cur.sig} -> ${now}`);
+    knobsTick(replaceCurrent);
 }
 
-/** Jog turn switches, jog click and Back commit, the knobs are idle; every
- *  other control passes through, so the clip stays editable. */
+/** Jog turn switches, jog click and Back commit, the knobs are the option's
+ *  (preview-knobs.ts); every other control passes through, so the clip stays
+ *  editable. Knob touches never reach the page underneath. */
 export function previewInput(data: number[]): boolean {
-    if (!cur || (data[0] & 0xF0) !== 0xB0) return false;
+    if (!cur) return false;
+    const kind = data[0] & 0xF0;
+    if ((kind === 0x90 || kind === 0x80) && data[1] < 8) { knobTouch(data[1], kind === 0x90 && data[2] > 0); return true; }
+    if (kind !== 0xB0) return false;
     const [, cc, v] = data;
     if (cc === MoveMainKnob) { previewSwitch(decodeDelta(v)); return true; }
     if (cc === MoveMainButton || cc === MoveBack) { if (v > 0) commitPreview(cc === MoveBack ? 'back' : 'jog click'); return true; }
-    return cc >= 71 && cc <= 78;
+    if (cc >= 71 && cc <= 78) { knobTurn(cc - 71, decodeDelta(v)); return true; }
+    return false;
 }
 
-export function resetPreview(): void { cur = null; }
+export function resetPreview(): void { cur = null; knobsReset(); }

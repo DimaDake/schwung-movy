@@ -22,9 +22,15 @@ const GOOD = JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.str
 import { PREFS_PATH } from '../../dist/esm/seq/prefs.js';
 import { FIRST_TIMEOUT_S, HTTP_TIMEOUT_S } from '../../dist/esm/ai/index.js';
 import { genLevelTurn, resetGenLevel } from '../../dist/esm/seq/gen-level.js';
+import { resetGenMode } from '../../dist/esm/seq/gen-mode.js';
 
-function boot(withKey = true) {
-    const fs = installMockFs(withKey ? { [MOD + '/secrets/gemini_api_key.txt']: 'K' } : {});
+/* These tests drive the MODEL path; the algorithmic one has its own block
+ * at the end (`algo`). */
+function boot(withKey = true, mode = 'MODEL') {
+    const files = withKey ? { [MOD + '/secrets/gemini_api_key.txt']: 'K' } : {};
+    if (mode) files[PREFS_PATH] = JSON.stringify({ genMode: mode });
+    const fs = installMockFs(files);
+    resetGenMode();
     const eng = installMockEngine();
     eng.params['ait:0'] = DUMP;
     const calls = [];
@@ -80,7 +86,7 @@ done(st);
 /* The GENERATORS level is read when the job starts: a turn on the Settings
  * page during the reads changes the next request, not this one. */
 st = boot();
-st.fs.files[PREFS_PATH] = JSON.stringify({ genLevel: 'SAFE' });
+st.fs.files[PREFS_PATH] = JSON.stringify({ genLevel: 'SAFE', genMode: 'MODEL' });
 resetGenLevel();
 startAiJob('quantize', 0, 0);
 genLevelTurn(1); genLevelTurn(1);
@@ -199,4 +205,33 @@ eq('thinking_band_moves_one_column_per_step: next step', thinkingPadColour(4, 4)
 ok('thinking band: trail is violet', thinkingPadColour(2, 3) !== 0 && thinkingPadColour(2, 3) !== 120);
 eq('thinking band: rest dark', thinkingPadColour(6, 3), 0);
 eq('thinking band: same column on every row', thinkingPadColour(3 + 24, 3), 120);
+
+/* ── The algorithmic path (plans/2026-10-27-algorithmic-generators-design.md
+ * §7): no key, no request, the presets in slices, the same preview. ── */
+{
+    const st = boot(false, null);
+    st.eng.params['ait:0'] = '0 16 0 1/1 0 0|5.20.60.100,99.22.64.96,190.24.61.90,262.20.67.100,290.10.67.30';
+    startAiJob('quantize', 0, 0);
+    eq('algo_needs_no_key', aiPhase(), 'running');
+    runTicks(16);
+    eq('algo_still_running_after_the_reads (slices)', aiPhase(), 'running');
+    runTicks(60);
+    eq('algo_opens_the_preview', aiPhase(), 'preview');
+    eq('algo_sends_no_request', st.calls.length, 0);
+    const p = aiPreviewInput();
+    ok('algo_offers_options', p && p.options.length >= 1 && p.options.length <= 3);
+    ok('algo_each_option_knows_its_preset_and_knobs', p && p.gen && p.gen.picks.length === p.options.length
+        && p.gen.picks.every((x) => x.knobs.length === x.preset.knobs.length));
+    commitPreview();
+    done(st);
+}
+{
+    const st = boot(false, null);
+    st.eng.params['ait:0'] = '0 16 0 1/1 0 0|0.24.60.100,96.24.64.100';
+    startAiJob('variation', 0, 1);
+    runTicks(16);
+    aiRunningInput([0xB0, MoveBack, 127]);
+    eq('algo_back_cancels_mid_slices', aiPhase(), 'idle');
+    done(st);
+}
 }

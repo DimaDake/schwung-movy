@@ -89,6 +89,9 @@ await esbuild.build({
         /* AI MIDI (plans/2026-10-26-ai-midi-plan.md): one entry for every
          * src/ai module the ai-* suites drive directly. */
         resolve(root, 'src/ai/index.ts'),
+        /* The algorithmic generators (plans/2026-10-27-algorithmic-generators-
+         * design.md): one entry for the gen-* suites and the bench. */
+        resolve(root, 'src/gen/index.ts'),
         /* The Set phase, so the ai-* suites can stand in a ready Set. */
         resolve(root, 'src/seq/set-session.ts'),
         /* Move-only features the platform-caps suite asserts switch off. */
@@ -362,6 +365,7 @@ await esbuild.build({
         resolve(root, 'src/seq/prefs.ts'),
         resolve(root, 'src/seq/click-volume.ts'),
         resolve(root, 'src/seq/gen-level.ts'),
+        resolve(root, 'src/seq/gen-mode.ts'),
         resolve(root, 'src/seq/quant-overlay.ts'),
         resolve(root, 'src/renderer/cpu-view.ts'),
         resolve(root, 'src/seq/cpu-page.ts'),

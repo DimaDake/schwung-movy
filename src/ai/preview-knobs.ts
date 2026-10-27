@@ -1,0 +1,101 @@
+/* The preview's knobs (plans/2026-10-27-algorithmic-generators-design.md §5):
+ * the knobs of the option on screen — of its preset. A turn regenerates that
+ * option from its preset at the new positions and writes it over the clip
+ * (hand edits on it are discarded, by design); touching a knob shows its name
+ * and value in the top strip, the way a Schwung page shows a held knob. A knob
+ * that cannot change this option is hidden (gen/live.ts). ORIG has none. */
+
+import { appState } from '../app/state.js';
+import { mlog } from '../log.js';
+import { regenerate } from '../gen/engine.js';
+import { knobLive } from '../gen/live.js';
+import type { GenCtx } from '../gen/analysis/context.js';
+import type { Preset } from '../gen/preset.js';
+import type { Note } from '../gen/types.js';
+import { seqHeaderAnnounce } from '../seq/render.js';
+
+interface Opt { preset: Preset; knobs: number[]; live: (boolean | undefined)[] }
+
+/* Seen for about a second after the last touch or turn (render.ts toasts). */
+const STRIP_TTL = 196;
+
+let ctx: GenCtx | null = null;
+let opts: Opt[] = [];
+let shown = 0;              // 0 = ORIG
+let pending = false;
+let held = -1;              // the touched knob, -1 none
+
+export function knobsOpen(c: GenCtx, picks: { preset: Preset; knobs: number[] }[]): void {
+    ctx = c;
+    opts = picks.map((p) => ({ preset: p.preset, knobs: [...p.knobs], live: p.knobs.map(() => undefined) }));
+    shown = 1;
+    pending = false;
+    held = -1;
+}
+
+export function knobsReset(): void { ctx = null; opts = []; pending = false; held = -1; shown = 0; }
+
+/** The jog moved to another option: its own knobs from now on, and its name. */
+export function knobsShown(index: number): void {
+    shown = index;
+    held = -1;
+    const o = opts[index - 1];
+    if (o) { seqHeaderAnnounce(`${index}  ${o.preset.name}`, STRIP_TTL); appState.dirty = true; }
+}
+
+function current(i: number): Opt | null {
+    const o = opts[shown - 1];
+    if (!ctx || !o || i < 0 || i >= o.preset.knobs.length) return null;
+    if (o.live[i] === undefined) o.live[i] = knobLive(ctx, o.preset, o.knobs, i);
+    return o.live[i] ? o : null;
+}
+
+function strip(o: Opt, i: number): void {
+    const k = o.preset.knobs[i];
+    seqHeaderAnnounce(k.name, STRIP_TTL, k.label(o.knobs[i], ctx!));
+    appState.dirty = true;
+}
+
+/** True when the preview owns this knob turn. */
+export function knobTurn(i: number, delta: number): boolean {
+    if (!ctx || !opts.length) return false;
+    const o = current(i);
+    if (!o || !delta) return true;
+    const steps = o.preset.knobs[i].steps(ctx);
+    /* movy-host sums a tick's detents into one turn: all of them count. */
+    const next = Math.max(0, Math.min(steps - 1, o.knobs[i] + delta));
+    if (next !== o.knobs[i]) {
+        o.knobs[i] = next;
+        /* What a knob can do depends on where the others sit. */
+        o.live = o.live.map((l, j) => (j === i ? l : undefined));
+        pending = true;
+    }
+    strip(o, i);
+    return true;
+}
+
+export function knobTouch(i: number, on: boolean): boolean {
+    if (!ctx || !opts.length) return false;
+    if (!on) { if (held === i) held = -1; return true; }
+    const o = current(i);
+    held = o ? i : -1;
+    if (o) strip(o, i);
+    return true;
+}
+
+/** Per tick: one regeneration for however many detents arrived, and the
+ *  strip kept up while a knob is held. */
+export function knobsTick(write: (notes: Note[]) => void): void {
+    if (!ctx) return;
+    const o = opts[shown - 1];
+    if (held >= 0 && o) seqHeaderAnnounce(o.preset.knobs[held].name, STRIP_TTL, o.preset.knobs[held].label(o.knobs[held], ctx));
+    if (!pending || !o) return;
+    pending = false;
+    const notes = regenerate(ctx, o.preset, o.knobs);
+    if (!notes) { mlog(`gen: ${o.preset.id} refused ${o.knobs.join(',')}`); return; }
+    write(notes);
+    appState.dirty = true;
+}
+
+/** Test hook: the knob positions of an option (1-based). */
+export function knobsOf(index: number): number[] { return opts[index - 1]?.knobs ?? []; }

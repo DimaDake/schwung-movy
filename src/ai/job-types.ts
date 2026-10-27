@@ -7,6 +7,9 @@ import type { AiTrackInput } from './context.js';
 import type { JobCtx } from './job-target.js';
 import type { GenLevel } from './ladders.js';
 import type { AiTask } from './prompt.js';
+import type { GenCtx } from '../gen/analysis/context.js';
+import type { Request } from '../gen/engine.js';
+import type { Preset } from '../gen/preset.js';
 
 export type AiPhase = 'idle' | 'running' | 'preview';
 
@@ -24,6 +27,9 @@ export interface AiPreviewInput {
     len: number;
     scaleNum: number;
     scaleDen: number;
+    /* What made each option, so its knobs can make it again (algorithmic
+     * mode; a model reply is wrapped in the REPLY preset by the preview). */
+    gen?: { ctx: GenCtx; picks: { preset: Preset; knobs: number[] }[] };
 }
 
 export interface Running {
@@ -43,6 +49,8 @@ export interface Running {
     mi: number;               // which of them this request went to
     timeoutS: number;
     prompt: { system: string; user: string } | null;
+    algo: boolean;            // GENERATOR MODE was ALGORITHMIC when it started
+    gen: Request | null;      // the algorithmic request, once the reads are in
 }
 
 

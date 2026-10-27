@@ -42,7 +42,7 @@ const PRESETS = [
     'step_indicator', 'step_rec_header', 'loop_strip_midclip', 'loop_strip_outside',
     'note_view_bass', 'note_view_chords', 'note_view_drums', 'note_view_plus', 'note_view_dense', 'note_view_wide',
     'song_band', 'song_band_overflow', 'song_band_end',
-    'quant-overlay-three', 'quant-overlay-two', 'flags-top', 'flags-scrolled', 'flags-generators',
+    'quant-overlay-three', 'quant-overlay-two', 'flags-top', 'flags-scrolled', 'flags-generators', 'flags-genmode', 'gen_preview_knob',
     'ai_running_quant', 'ai_running_var', 'ai_error_nokey', 'ai_preview_orig', 'ai_preview_opt1', 'ai_preview_opt3', 'ai_preview_var8', 'ai_hold_progress_50', 'ai_hold_variation_50',
     'cpu-movy-tracks', 'cpu-unsplit-module', 'cpu-overscale',
     'cpu-empty', 'cpu-sends', 'cpu-sends-quiet', 'cpu-master', 'leave_modal',
@@ -103,7 +103,7 @@ const BASE = {
     note_view_bass: 'test8', note_view_chords: 'test8', note_view_drums: 'test8',
     note_view_plus: 'test8', note_view_dense: 'test8', note_view_wide: 'test8',
                                 'quant-overlay-three': 'test8', 'quant-overlay-two': 'test8',
-    'flags-top': 'test8', 'flags-scrolled': 'test8', 'flags-generators': 'test8',
+    'flags-top': 'test8', 'flags-scrolled': 'test8', 'flags-generators': 'test8', 'flags-genmode': 'test8', gen_preview_knob: 'test8',
     ai_running_quant: 'test8', ai_running_var: 'test8', ai_error_nokey: 'test8',
     ai_preview_orig: 'test8', ai_preview_opt1: 'test8', ai_preview_opt3: 'test8', ai_preview_var8: 'test8', ai_hold_progress_50: 'test8', ai_hold_variation_50: 'test8',
                                                                             lfo_chain: 'test8',         lfo_assign_toast: 'test8',
@@ -244,7 +244,7 @@ const { appState }                     = await import('../dist/esm/app/state.js'
 const { keyboardState }                = await import('../dist/esm/keyboard/state.js');
 const { resetStepRec, stepRecDownAt } = await import('../dist/esm/seq/step-rec.js');
 const { stepRecTick }      = await import('../dist/esm/seq/step-rec-view.js');
-const { drawSeqHeader, resetSeqHeader, drawLoopStrip, drawSongBand, resetSongBand } =
+const { drawSeqHeader, resetSeqHeader, seqHeaderAnnounce, drawLoopStrip, drawSongBand, resetSongBand } =
     await import('../dist/esm/seq/render.js');
 const { noteViewTick, resetNoteView, seedNoteViewForTest } = await import('../dist/esm/seq/note-view.js');
 const { NOTE_VIEW_SCENES } = await import('./fixtures/note-view-scenes.mjs');
@@ -537,6 +537,22 @@ function applyView(preset) {
             lastRender();
             break;
         }
+        /* An algorithmic option's knob held (design §5): its name and value
+         * in the top strip, the note view below it, six options in the band. */
+        case 'gen_preview_knob': {
+            const sc = NOTE_VIEW_SCENES.note_view_chords;
+            resetSeqState(); resetSeqHeader(); resetNoteView();
+            seqState.loopMode = true;
+            seqState.loopStart = sc.loopStart; seqState.lenSteps = sc.lenSteps;
+            seqState.barOffset = sc.barOffset;
+            seqState.playing = true; seqState.posTick = sc.posTick;
+            seqState.noteHash = preset;
+            seedNoteViewForTest(sc.notes);
+            seqHeaderAnnounce('HARMONY', 196, 'IV SEQ');
+            lastRender = () => { clear_screen(); drawSeqHeader(); noteViewTick(true); drawPreviewStrip(2, ['1', '2', '3', '4', '5', '6']); };
+            lastRender();
+            break;
+        }
         /* Shift + Step 16 held half way to Smart Quantize. */
         case 'ai_hold_progress_50': {
             resetSeqState();
@@ -564,10 +580,11 @@ function applyView(preset) {
          * on BACKUPS, `scrolled` on the LAST row. */
         case 'flags-top':
         case 'flags-scrolled':
-        case 'flags-generators': {
+        case 'flags-generators':
+        case 'flags-genmode': {
             resetFlagsPage();
             const scrolled = preset === 'flags-scrolled';
-            flagsPageState.selected = scrolled ? flagsRowCount() - 1 : preset === 'flags-generators' ? 1 : 0;
+            flagsPageState.selected = scrolled ? flagsRowCount() - 1 : preset === 'flags-generators' ? 1 : preset === 'flags-genmode' ? 2 : 0;
             lastRender = () => renderFlagsView(buildFlagsPageVM());
             lastRender();
             break;

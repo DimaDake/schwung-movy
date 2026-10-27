@@ -9,6 +9,10 @@
  *   A2 the jog switches to option 3 and a jog click keeps it
  *   A3 Shift + HOLD Step 14 on an EMPTY slot writes a variation there, at the
  *      source clip's length; Back keeps it
+ *   A4 with no reply to read and GENERATOR MODE = ALGORITHMIC, Smart Quantize
+ *      runs the generators on the device (plans/2026-10-27-algorithmic-
+ *      generators-design.md): option 1 lands the played notes on the grid
+ *   A5 a knob turn in that preview rewrites the option over the clip
  * The witness is the engine's own clip dump (`ait:0`), the only read-back of
  * what a preview wrote. Option switching, per-option edits, every commit path
  * and the single undo are pinned by logic/ai-preview.mjs.
@@ -19,6 +23,7 @@ import { Probe } from '../probe.js';
 import * as fixture from '../fixture.js';
 import { until } from '../wait.js';
 import { cc as ccPacket } from '../midi.js';
+import { guardPrefs, writePrefs } from '../prefs-guard.js';
 
 const MOD = '/data/UserData/schwung/modules/tools/movy';
 const FAKE = MOD + '/ai-fake-response.json';
@@ -48,6 +53,10 @@ scenario('ai', async (t) => {
 
     await fixture.ensure(t.tx, () => dev.open(probe), () => dev.close(probe));
     await dev.deployUi();
+    /* The algorithmic block needs GENERATOR MODE = ALGORITHMIC whatever the
+     * box was set to; prefs are read at open, so they are pinned before it. */
+    const before = await guardPrefs(t, 'ai');
+    await writePrefs(t.host, JSON.stringify({ ...(before.trim() ? JSON.parse(before) : {}), genMode: 'ALGORITHMIC' }));
     await dev.open(probe);
     await dev.selectTrack(0);
     await hb.uiEval(`host_write_file(${JSON.stringify(FAKE)}, ${JSON.stringify(REPLY)}); 0`);
@@ -78,6 +87,20 @@ scenario('ai', async (t) => {
         await cc(BACK, 127); await cc(BACK, 0);
         t.check('a3-variation-empty-slot', 'Shift + Step 14 on an empty slot writes a variation at the source length',
             v.startsWith('1 16 ') && v.includes('0.24.72.100'), { expected: 'slot 1, 16 steps, option 1', actual: v });
+
+        await hb.uiEval(`host_write_file(${JSON.stringify(FAKE)}, ''); 0`);
+        await t.tx.engineSet('cmd', 'clipdelat 0 0;aiclip 0 0 16 1 1 100 3.30.60.90,101.20.64.80,197.20.67.85;clipsel 0 0');
+        await t.tx.frames(60);
+        await dev.holdCc(SHIFT, () => dev.hold(STEP16, () => t.tx.frames(560)));
+        const g = clipLine(await waitFor('algorithmic preview', 0, ',192.'), 0);
+        t.check('a4-algorithmic-quantize', 'with no reply to read, Smart Quantize runs the generators on the device',
+            g.includes('|0.') && g.includes(',96.') && g.includes(',192.'), { expected: 'notes at 0, 96, 192', actual: g });
+        await cc(71, 125);
+        await t.tx.frames(30);
+        const g2 = clipLine(await dump(), 0);
+        t.check('a5-knob-rewrites-the-option', 'turning knob 1 in the preview rewrites the option over the clip',
+            g2 !== '' && g2 !== g, { expected: 'a different take', actual: g2 });
+        await cc(BACK, 127); await cc(BACK, 0);
     } finally {
         await hb.uiEval(`host_write_file(${JSON.stringify(FAKE)}, ''); 0`).catch(() => {});
         await t.tx.engineSet('cmd', 'clipdelat 0 0;clipdelat 0 1;clipsel 0 0').catch(() => {});

@@ -18,14 +18,21 @@ const DEFAULT_TTL = 60; // ticks (~0.3s at the ~196 Hz device rate)
  * view-switch notifications (Note/Session/Loop). Placed at the top so it
  * never covers the bottom loop/bar strip. */
 let headerText = '';
+let headerRight = '';
 let headerTtl = 0;
 
-export function seqHeaderAnnounce(msg: string, ttlTicks: number = DEFAULT_TTL): void {
+/** `right` is drawn flush right — a held knob's value, the way a Schwung
+ *  page shows a touched param (name left, value right). */
+export function seqHeaderAnnounce(msg: string, ttlTicks: number = DEFAULT_TTL, right = ''): void {
     headerText = msg;
+    headerRight = right;
     headerTtl = ttlTicks;
 }
 
 export function seqHeaderActive(): boolean { return headerTtl > 0; }
+
+/** What the header band shows ('' when none; `left|right`) — read by tests. */
+export function seqHeaderShown(): string { return headerTtl > 0 ? headerText + (headerRight ? '|' + headerRight : '') : ''; }
 
 export function seqHeaderTick(): void {
     if (headerTtl > 0) headerTtl--;
@@ -35,9 +42,10 @@ export function drawSeqHeader(): void {
     if (headerTtl <= 0) return;
     fill_rect(0, 0, W, 9, 1);              // inverted header band
     fontPrint(2, 1, headerText, 0);
+    if (headerRight) fontPrint(W - 2 - fontWidth(headerRight), 1, headerRight, 0);
 }
 
-export function resetSeqHeader(): void { headerText = ''; headerTtl = 0; }
+export function resetSeqHeader(): void { headerText = ''; headerRight = ''; headerTtl = 0; }
 
 let text = '';
 let ttl = 0;

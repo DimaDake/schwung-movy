@@ -6,12 +6,14 @@
 import { ACTION_ROWS, flagsPageState } from './flags-page.js';
 import { clickVolumeLabel } from './click-volume.js';
 import { genLevelLabel } from './gen-level.js';
+import { genModeLabel } from './gen-mode.js';
 import { disarmMigrateRow, migrateRowHint, migrateRowValue } from './migrate-action.js';
 
 const rowIndex = (name: string) => ACTION_ROWS.findIndex((r) => r.name === name);
 const MIGRATE_ROW = rowIndex('MIGRATE FROM MOVE');
 const CLICK_ROW = rowIndex('CLICK VOLUME');
 const GEN_ROW = rowIndex('GENERATORS');
+const MODE_ROW = rowIndex('GENERATOR MODE');
 
 export type FlagRow = { name: string; value: string; selected: boolean };
 
@@ -32,7 +34,7 @@ export function buildFlagsPageVM(): FlagsPageVM {
     const rows: FlagRow[] = ACTION_ROWS.map((a, i) => ({
         name: a.name,
         value: i === MIGRATE_ROW ? migrateRowValue() : i === CLICK_ROW ? clickVolumeLabel()
-            : i === GEN_ROW ? genLevelLabel() : '>',
+            : i === GEN_ROW ? genLevelLabel() : i === MODE_ROW ? genModeLabel() : '>',
         selected: i === sel,
     }));
     return {

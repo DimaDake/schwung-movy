@@ -10,21 +10,21 @@ import { seqLedsInvalidate } from '../seq/led-cache.js';
 import { seqToast } from '../seq/render.js';
 import { currentSetUuid } from '../seq/set-session.js';
 import { readAiConfig } from './config.js';
-import { buildContext } from './context.js';
-import { variationFacts } from './facts.js';
 import { cancelHttp, fakeResponse, pollHttp, startHttp, type HttpReply } from './http-job.js';
 import { jobTarget } from './job-target.js';
 import { type AiPhase, type AiPreviewInput, label, MSG_ERROR, MSG_NO_KEY, MSG_NOTHING, type Running } from './job-types.js';
 import { modelChain, timeoutFor, worthFallback } from './models.js';
-import { buildPrompt, type AiTask } from './prompt.js';
+import type { AiTask } from './prompt.js';
 import { LEVEL_TEMPERATURE } from './ladders.js';
 import { genLevel } from '../seq/gen-level.js';
-import { buildRequest, classifyStatus, extractText } from './provider.js';
+import { buildRequest, classifyStatus } from './provider.js';
 import { drawAiRunning, resetAiRunningDraw } from './running-render.js';
-import { readTrack, setHeader } from './set-input.js';
+import { readTrack } from './set-input.js';
 import { commitPreview, openPreview, resetPreview } from './preview.js';
+import { algoTick, replyGen, startAlgo } from './job-algo.js';
+import { modelPrompt, replyOptions } from './job-model.js';
+import { genMode } from '../seq/gen-mode.js';
 import { THINK_FADE_SETTLE_MS, thinkingLedsStart, thinkingLedsTick } from './thinking-leds.js';
-import { validateReply } from './validate.js';
 
 export { MSG_ERROR, MSG_NO_KEY, MSG_NOTHING } from './job-types.js';
 export type { AiPhase, AiPreviewInput } from './job-types.js';
@@ -68,12 +68,13 @@ function fail(msg: string, why: string): void {
 export function startAiJob(task: AiTask, track: number, slot: number): void {
     if (phase !== 'idle') return;
     /* A canned reply (device scenarios) needs no key, so a test never has to
-     * touch the user's real one. */
-    const cfg = readAiConfig(MOVY_MODULE_DIR)
-        ?? (fakeResponse(MOVY_MODULE_DIR) ? { model: 'fake', key: '' } : null);
+     * touch the user's real one; it also pins the model path it stands in for. */
+    const fake = fakeResponse(MOVY_MODULE_DIR);
+    const algo = genMode() === 'ALGORITHMIC' && !fake;
+    const cfg = algo ? { model: null, key: '' } : readAiConfig(MOVY_MODULE_DIR) ?? (fake ? { model: 'fake', key: '' } : null);
     if (!cfg) { seqToast(MSG_NO_KEY); return; }
-    run = { task, track, slot, level: genLevel(), cfg, uuid: currentSetUuid(), startMs: -1,
-        next: 0, tracks: [], httpId: -1, sentMs: -1, ctx: null, models: modelChain(cfg), mi: 0, timeoutS: 0, prompt: null };
+    run = { task, track, slot, level: genLevel(), cfg, uuid: currentSetUuid(), startMs: -1, next: 0, tracks: [], httpId: -1,
+        sentMs: -1, ctx: null, models: modelChain(cfg), mi: 0, timeoutS: 0, prompt: null, algo, gen: null };
     phase = 'running';
     thinkingLedsStart();
 }
@@ -83,14 +84,9 @@ function send(r: Running, now: number): void {
     const target = jobTarget(r.task, t, r.slot);
     if (target === 'nothing') return fail(MSG_NOTHING, 'nothing to quantize');
     if (target === 'no source') return fail(MSG_ERROR, 'no source clip');
-    r.ctx = target.ctx;
-    const input = { ...setHeader(), tracks: r.tracks, target: { track: r.track, slot: r.slot },
-        source: target.source === null ? null : { track: r.track, slot: target.source } };
-    const facts = r.task === 'variation' ? variationFacts(input, r.ctx.len) : undefined;
-    if (facts) { r.ctx.source = facts.source; r.ctx.loops = facts.loops; }
-    const prompt = buildPrompt(r.task, buildContext(input), { len: r.ctx.len, drum: t.drum, level: r.level, facts });
-    r.ctx.units = prompt.units;
-    r.prompt = prompt;
+    r.ctx = { ...target.ctx, srcSlot: target.source };
+    if (r.algo) { r.gen = startAlgo(r, target.source); return; }
+    r.prompt = modelPrompt(r, t, target.source);
     dispatch(r, now);
 }
 
@@ -117,18 +113,19 @@ function finish(r: Running, reply: HttpReply, now: number): void {
     const status = classifyStatus(reply.http, reply.curlExit);
     if (worthFallback(status, reply.http, r.cfg.model !== null && r.mi === 0) && fallBack(r, now, `busy (http ${reply.http} curl ${reply.curlExit})`)) return;
     if (status !== 'ok') return fail(status, `http ${reply.http} curl ${reply.curlExit} ${reply.body.slice(0, 200)}`);
-    const text = extractText(reply.body);
+    const { v, text } = replyOptions(r, reply.body);
     const c = r.ctx!;
-    const v = text === null ? null : validateReply(text, { task: r.task, len: c.len, drum: c.drum,
-        original: c.orig?.notes ?? [], kitPads: c.kit, units: c.units, source: c.source, loops: c.loops });
-    if (v?.dropped.length) mlog('ai: dropped ' + v.dropped.join(' '));
-    if (!v?.options.length) return fail(MSG_ERROR, 'no usable option: ' + (text ?? reply.body).slice(0, 200));
-    preview = { task: r.task, track: r.track, slot: r.slot, orig: c.orig, options: v.options, slots: v.slots,
-        len: c.len, scaleNum: c.scale[0], scaleDen: c.scale[1] };
+    if (!v?.options.length) return fail(MSG_ERROR, 'no usable option: ' + text);
+    open({ task: r.task, track: r.track, slot: r.slot, orig: c.orig, options: v.options, slots: v.slots,
+        len: c.len, scaleNum: c.scale[0], scaleDen: c.scale[1], gen: replyGen(r, v.options) });
+}
+
+function open(p: AiPreviewInput): void {
+    preview = p;
     run = null;
     phase = 'preview';
     release();
-    openPreview(preview);
+    openPreview(p);
 }
 
 /** true = the job owns this frame (tick.ts draws nothing else). */
@@ -142,6 +139,10 @@ export function aiTick(now: number): boolean {
         const t = readTrack(r.next++);
         if (t.clips.length || t.index === r.track) r.tracks.push(t);
         if (r.next === TRACKS) send(r, now);
+    } else if (r.gen) {
+        const p = algoTick(r);
+        if (p === null) fail(MSG_ERROR, 'no generator option survived');
+        else if (p !== 'busy') open(p);
     } else {
         const reply = pollHttp(r.httpId);
         if (reply) finish(r, reply, now);

@@ -499,6 +499,35 @@ _origLog('\nTest: Session mixer frame cost');
     check('mixer frame (decode cached)', Number(((performance.now() - t0) / 1000).toFixed(4)), 0.2, 'ms');
 }
 
+/* The algorithmic generators run inside the UI tick, one preset per tick
+ * (plans/2026-10-27-algorithmic-generators-design.md §7). QuickJS on the
+ * device is some 20-50x slower than node: these bounds keep the densest clip
+ * the engine allows (512 notes) to about one slow tick on the device. */
+_origLog('\nTest: generator slice cost');
+{
+    const G = await import('../dist/esm/gen/index.js');
+    const F = await import('./gen-fixtures.mjs');
+    const big = F.fixtureInput('arpeggio', { scene: 'locked' });
+    const notes = [];
+    for (let i = 0; i < 128; i++) for (const p of [57, 60, 64, 67]) notes.push({ tick: i * 12, gate: 10, pitch: p + (i % 3), vel: 90 });
+    big.tracks[0].clips[0].notes = notes;
+    big.tracks[0].clips[0].len = 64;
+    big.len = 64;
+    let prep = 0, step = 0, regen = 0;
+    for (let rep = 0; rep < 4; rep++) {
+        /* The first pass warms the JIT; the device has none to warm. */
+        if (rep === 1) { prep = 0; step = 0; regen = 0; }
+        let t = performance.now();
+        const req = G.startRequest(big);
+        prep = Math.max(prep, performance.now() - t);
+        while (req.todo.length) { t = performance.now(); G.stepRequest(req); step = Math.max(step, performance.now() - t); }
+        for (const p of G.finishRequest(req)) { t = performance.now(); G.regenerate(req.ctx, p.preset, p.knobs); regen = Math.max(regen, performance.now() - t); }
+    }
+    check('generator: prepare a request (512 notes)', Number(prep.toFixed(2)), 12, 'ms');
+    check('generator: one preset slice (512 notes)', Number(step.toFixed(2)), 15, 'ms');
+    check('generator: a knob turn regeneration (512 notes)', Number(regen.toFixed(2)), 12, 'ms');
+}
+
 /* ── Summary ─────────────────────────────────────────────────────────────── */
 
 _origLog('');

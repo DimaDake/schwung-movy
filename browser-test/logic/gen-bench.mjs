@@ -11,6 +11,8 @@ import { _log, eq, ok } from './harness.mjs';
 import { parseMidi } from '../../scripts/gen-bench/midi.mjs';
 import { messify } from '../../scripts/gen-bench/messify.mjs';
 import { scoreOption, scoreReply, difference, bAlignment, recovery } from '../../scripts/gen-bench/score.mjs';
+import { assertModelAllowed, cacheKey } from '../../scripts/gen-bench/run.mjs';
+import { renderReport } from '../../scripts/gen-bench/report.mjs';
 import { parseTrackDump, sceneChords, sceneHarmony } from '../../dist/esm/ai/index.js';
 
 const PATTERNS = new URL('../../scripts/gen-bench/patterns/', import.meta.url);
@@ -101,4 +103,21 @@ ok('b_alignment_prefers_real_b_over_copy_of_a: A ≈ 0', bAlignment(A, A, B) < 0
 const r3 = scoreReply([full, full.map((x) => ({ ...x, pitch: 64 })), full.map((x) => ({ ...x, pitch: 67 }))], ctx(cSet, full.map((x) => ({ ...x, tick: x.tick + 3 })), { reference: full }));
 eq('scoreReply: alignment is the best option', r3.alignment, 1);
 ok('scoreReply: the gate passes three different usable options', r3.gatePassed);
+
+/* Runner (Task 3): never a Pro model; a stable cache; a report with numbers only. */
+let threw = 0;
+for (const m of ['gemini-pro-latest', 'gemini-3.1-pro-preview', 'models/gemini-2.5-pro']) {
+    try { assertModelAllowed(m); } catch { threw++; }
+}
+eq('pro_models_refused', threw, 3);
+let fine = true;
+try { assertModelAllowed('gemini-flash-latest'); assertModelAllowed('gemma-4-31b-it'); } catch { fine = false; }
+ok('flash and gemma models allowed', fine);
+eq('cache_key_stable_and_distinct: stable', cacheKey('m', 'body', 0), cacheKey('m', 'body', 0));
+ok('cache_key_stable_and_distinct: distinct', new Set([cacheKey('m', 'b', 0), cacheKey('m', 'b', 1),
+    cacheKey('n', 'b', 0), cacheKey('m', 'c', 0)]).size === 4);
+const md = renderReport('t', [{ id: 'pat-techno-q', model: 'm', kind: 'quantize-messy', genre: 'techno', ok: true, ms: 1200,
+    alignment: 0.8, gatePassed: true, minPairDiff: 0.4, ladderOrdered: true,
+    perOption: [{ fit: 0.9, groove: 0.8, ideaKept: 0.9, usable: true, reasons: [] }], notes: [[0, 24, 60, 100]] }], { missing: [] });
+ok('report_has_no_note_data', !/\[\[|pat-|caps-|gmd-/.test(md) && /\| m \|/.test(md));
 }

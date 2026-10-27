@@ -136,12 +136,20 @@ opinion of itself. Per option:
   sane register, no option empty, no copy of the input.
 - **Difference** — pairwise distance between the three options and from ORIG,
   on (step, pitch) sets plus rhythm; near-duplicates flagged.
-- **B-likeness** (variation) — similarity of density, register and harmonic
-  motion to the real B, compared with the same measure against the A.
+- **B alignment** (variation) — similarity to the real B: onset pattern,
+  pitch-class content per bar, density, register and harmonic motion, minus the
+  same similarity to the A (so copying A scores nothing). Best option counts
+  for the headline; the per-option values show the ladder.
 
-Headline per model and setting: **% of replies where all three options are
-usable and pairwise different**, then mean fit, groove, recovery, and
-latency p50/p90 and failure rate (503/429/timeout).
+**The goal is alignment with the real examples (user, 2026-10-27).** The
+headline per model and setting is **reference alignment**: for
+quantize-messy, how close the best option gets to the clean original
+(recovery); for variation, how close the best option gets to the real B
+(note/rhythm/harmonic-motion similarity to B, above its similarity to A).
+"All three usable and pairwise different" is a **gate** a reply must pass, not
+the headline; fit and groove are diagnostics that explain a score, and are
+never optimised on their own. Then latency p50/p90 and failure rate
+(503/429/timeout).
 
 ### 4. Runner and report
 

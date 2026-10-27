@@ -27,6 +27,7 @@ export const STEP_CLIP_PARAMS = 2;   // Shift+Step 3  — Clip Params page
 export const STEP_METRO = 5;         // Shift+Step 6  — Metronome
 export const STEP_FULL_VEL = 9;      // Shift+Step 10 — Full Velocity
 export const STEP_CPU = 11;          // Shift+Step 12 — CPU meter
+export const STEP_AI_VARIATION = 13; // Shift+Step 14 — AI variation (ai/gestures.ts)
 export const STEP_DOUBLE_LOOP = 14;  // Shift+Step 15 — Double Loop
 export const STEP_QUANTIZE = 15;     // Shift+Step 16 — Quantize
 

@@ -72,6 +72,8 @@ import { volumeOverlay } from '../mixer/track-volume.js';
 import { masterVolumeOverlay } from '../mixer/master-volume.js';
 import { drawVolumeOverlay } from '../renderer/volume-overlay.js';
 import { aiTick } from '../ai/job.js';
+import { aiGestureTick } from '../ai/gestures.js';
+import { holdProgressTick } from '../ai/hold-render.js';
 import { aiPreviewActive, aiPreviewTick } from '../ai/preview.js';
 import { previewStripTick } from '../ai/preview-render.js';
 import { leaveModalActive, leaveModalLabels, leaveModalSel, leaveModalTitle } from './leave-modal.js';
@@ -394,6 +396,8 @@ let labelRetryGap = LABEL_RETRY_MIN;
 export function tick(): void {
     perfProbeEnter();
     tickBody();
+    /* Over whatever the frame drew; nothing at all unless Step 16 is held. */
+    holdProgressTick(Date.now());
     /* Outside tickBody so its early returns are still accounted for. */
     perfProbeTick();
 }
@@ -419,6 +423,7 @@ function tickBody(): void {
     captureTick();
     /* An AI request in flight owns the frame: its screen, its LEDs. The
      * engine above keeps running, so playback never stops underneath. */
+    aiGestureTick(Date.now());   // a Shift + Step 16 hold reaching full
     if (aiTick(Date.now())) return;
     aiPreviewTick();   // a track/clip/view change commits the AI preview
     perfPhase('rest');

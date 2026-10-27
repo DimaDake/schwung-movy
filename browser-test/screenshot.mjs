@@ -43,7 +43,7 @@ const PRESETS = [
     'note_view_bass', 'note_view_chords', 'note_view_drums', 'note_view_plus', 'note_view_dense', 'note_view_wide',
     'song_band', 'song_band_overflow', 'song_band_end',
     'quant-overlay-three', 'quant-overlay-two', 'flags-top', 'flags-scrolled',
-    'ai_running_quant', 'ai_running_var', 'ai_error_nokey', 'ai_preview_orig', 'ai_preview_opt1', 'ai_preview_opt3',
+    'ai_running_quant', 'ai_running_var', 'ai_error_nokey', 'ai_preview_orig', 'ai_preview_opt1', 'ai_preview_opt3', 'ai_hold_progress_50',
     'cpu-movy-tracks', 'cpu-unsplit-module', 'cpu-overscale',
     'cpu-empty', 'cpu-sends', 'cpu-sends-quiet', 'cpu-master', 'leave_modal',
     'power_modal', 'capture_select', 'capture_fixed', 'undo_toast', 'redo_toast',
@@ -105,7 +105,7 @@ const BASE = {
                                 'quant-overlay-three': 'test8', 'quant-overlay-two': 'test8',
     'flags-top': 'test8', 'flags-scrolled': 'test8',
     ai_running_quant: 'test8', ai_running_var: 'test8', ai_error_nokey: 'test8',
-    ai_preview_orig: 'test8', ai_preview_opt1: 'test8', ai_preview_opt3: 'test8',
+    ai_preview_orig: 'test8', ai_preview_opt1: 'test8', ai_preview_opt3: 'test8', ai_hold_progress_50: 'test8',
                                                                             lfo_chain: 'test8',         lfo_assign_toast: 'test8',
     leave_modal: 'test8', power_modal: 'test8',
     master_volume: 'test8',
@@ -180,7 +180,7 @@ const { drawJogToast }     = await import('../dist/esm/renderer/overlay.js');
 const { drawLeaveModal }   = await import('../dist/esm/renderer/leave-modal-view.js');
 const { drawCaptureOverlay } = await import('../dist/esm/renderer/capture-overlay.js');
 const { drawQuantOverlay } = await import('../dist/esm/renderer/quant-overlay.js');
-const { drawAiRunning, MSG_NO_KEY, drawPreviewStrip } = await import('../dist/esm/ai/index.js');
+const { drawAiRunning, MSG_NO_KEY, drawPreviewStrip, drawHoldProgress } = await import('../dist/esm/ai/index.js');
 const { seqToast, drawSeqToast } = await import('../dist/esm/seq/render.js');
 const { drawStepPiano } = await import('../dist/esm/renderer/step-piano.js');
 const { stepPianoVM, resetStepPiano } = await import('../dist/esm/seq/step-piano.js');
@@ -531,6 +531,13 @@ function applyView(preset) {
             seqState.noteHash = preset;
             seedNoteViewForTest(sc.notes);
             lastRender = () => { clear_screen(); noteViewTick(true); drawPreviewStrip(idx, 3); };
+            lastRender();
+            break;
+        }
+        /* Shift + Step 16 held half way to Smart Quantize. */
+        case 'ai_hold_progress_50': {
+            resetSeqState();
+            lastRender = () => { renderKnobsView(model.getViewModel()); drawHoldProgress(0.5); };
             lastRender();
             break;
         }

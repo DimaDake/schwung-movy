@@ -14,3 +14,6 @@ export * from './running-render.js';
 export * from './job.js';
 export * from './preview.js';
 export * from './preview-render.js';
+export * from './hold16.js';
+export * from './hold-render.js';
+export * from './gestures.js';

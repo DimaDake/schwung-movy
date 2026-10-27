@@ -4,16 +4,17 @@
  * what it dispatches to. The shifted functions the row can reach live next
  * door in step-shortcuts.ts — two of the branches below hand off to them. */
 
+import { hold16Pending, hold16Press, hold16Release } from '../ai/hold16.js';
 import { mlog } from '../log.js';
 import { appState } from '../app/state.js';
 import { beginEdit, endEdit, CLOSE } from '../undo/group.js';
 import { trackLabel } from '../undo/label.js';
-import { NUM_STEP_BUTTONS } from './constants.js';
+import { NUM_STEP_BUTTONS, STEP_QUANTIZE } from './constants.js';
 import { deleteActive, deleteStep } from './edit-ops.js';
 import { dupActive, onUnit as dupOnUnit } from './duplicate.js';
 import { seqCmd } from './engine.js';
 import { loopStepOff, loopStepOn } from './loop-mode.js';
-import { shiftStepFunction } from './step-shortcuts.js';
+import { cycleQuantize, shiftStepFunction } from './step-shortcuts.js';
 import { muteHeld, muteMarkGestured, muteShiftHeld } from './router-buttons.js';
 import { toggleMute, toggleSolo } from '../mixer/track-mutes.js';
 import { TRACK_COUNT } from '../track/ref.js';
@@ -131,6 +132,11 @@ export function handleStepButton(button: number, on: boolean, shiftHeld: boolean
             : { kind: 'step', track: watchedTrack(), step: absB });
     } else if (on && deleteActive()) {
         deleteStep(button);
+    } else if (button === STEP_QUANTIZE && (on ? shiftHeld : hold16Pending())) {
+        /* Track view: a Shift tap cycles quantize on RELEASE, so a hold can
+         * become Smart Quantize instead (ai/hold16.ts). */
+        if (on) hold16Press(Date.now());
+        else if (hold16Release(Date.now()) === 'quantize') cycleQuantize();
     } else if (on && shiftHeld) {
         shiftStepFunction(button);
     } else if (on) {

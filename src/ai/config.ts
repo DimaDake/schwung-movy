@@ -6,15 +6,9 @@
 import { platform } from '../platform/index.js';
 
 export interface AiConfig {
-    model: string;
+    model: string | null;     // the web page's Model field; null = the bench's pick (models.ts)
     key: string;
 }
-
-/* gemini-2.5-flash answers 404 to new keys (2026-10-27); an alias follows
- * Google's current model instead of dying with the next deprecation. Lite,
- * because the full Flash models were overloaded (503, or no answer at all)
- * on the free tier while Lite answered in 2-4 s. */
-export const GEMINI_DEFAULT_MODEL = 'gemini-flash-lite-latest';
 
 function readJson(path: string): Record<string, unknown> {
     try {
@@ -30,6 +24,6 @@ export function readAiConfig(moduleDir: string): AiConfig | null {
     const cfg = readJson(moduleDir + '/config.json');
     const key = (platform.readFile(moduleDir + '/secrets/gemini_api_key.txt') ?? '').trim();
     if (!key) return null;
-    const model = typeof cfg.model === 'string' && cfg.model.trim() ? cfg.model.trim() : GEMINI_DEFAULT_MODEL;
+    const model = typeof cfg.model === 'string' && cfg.model.trim() ? cfg.model.trim() : null;
     return { model, key };
 }

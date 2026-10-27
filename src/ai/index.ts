@@ -7,6 +7,7 @@ export * from './prompt.js';
 export * from './ladders.js';
 export * from './validate.js';
 export * from './provider.js';
+export * from './models.js';
 export * from './http-job.js';
 export * from './target.js';
 export * from './set-input.js';

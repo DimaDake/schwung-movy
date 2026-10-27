@@ -19,6 +19,7 @@ const GOOD = JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.str
     { notes: [[0, 1, 60, 100]] }, { notes: [[0, 1, 62, 100]] }, { notes: [[0, 1, 64, 100]] }] }) }] } }] });
 
 import { PREFS_PATH } from '../../dist/esm/seq/prefs.js';
+import { FIRST_TIMEOUT_S, HTTP_TIMEOUT_S } from '../../dist/esm/ai/index.js';
 import { genLevelTurn, resetGenLevel } from '../../dist/esm/seq/gen-level.js';
 
 function boot(withKey = true) {
@@ -119,13 +120,20 @@ startAiJob('quantize', 0, 0);
 runTicks(20);
 reply(st, 429, '{}');
 runTicks(2);
-eq('quota reply toasts busy', seqToastText(), 'BUSY, TRY LATER');
+eq('fallback_only_on_busy: a busy primary asks the fallback', st.calls.length, 2);
+ok('fallback_only_on_busy: ...by name', JSON.parse(st.fs.files[st.calls[1].body_path]) && /flash-lite-latest/.test(st.calls[1].url));
+eq('fallback_only_on_busy: still running', aiPhase(), 'running');
+reply(st, 503, '{}');
+runTicks(2);
+eq('fallback_both_busy_shows_busy', seqToastText(), 'BUSY, TRY LATER');
 eq('quota reply leaves idle', aiPhase(), 'idle');
 startAiJob('quantize', 0, 0);
 runTicks(20);
+const before = st.calls.length;
 reply(st, 200, '{"candidates":[]}');
 runTicks(2);
 eq('unusable reply toasts AI ERROR', seqToastText(), 'GENERATOR ERROR');
+eq('fallback_only_on_busy: an answered request never falls back', st.calls.length, before);
 startAiJob('quantize', 0, 0);
 aiSetWillChange();
 eq('set_change_aborts_running', aiPhase(), 'idle');
@@ -140,7 +148,11 @@ eq('read_track_windows_the_loop: window rebased to 0', win.loopStart, 0);
 st.eng.params['ait:0'] = DUMP;
 startAiJob('quantize', 0, 0);
 runTicks(20);
-aiTick(1000 + 75_000);
+eq('fallback_fits_the_watchdog: the primary waits FIRST_TIMEOUT_S', st.calls[0].timeout_seconds, FIRST_TIMEOUT_S);
+ok('fallback_fits_the_watchdog: both waits stay under 90 s', FIRST_TIMEOUT_S + HTTP_TIMEOUT_S + 20 <= 90);
+aiTick(1000 + (FIRST_TIMEOUT_S + 11) * 1000);
+eq('a silent primary falls back after its watchdog', st.calls.length, 2);
+aiTick(1000 + (FIRST_TIMEOUT_S + HTTP_TIMEOUT_S + 30) * 1000);
 eq('stuck_request_times_out: idle', aiPhase(), 'idle');
 eq('stuck_request_times_out: toast', seqToastText(), 'GENERATOR ERROR');
 done(st);

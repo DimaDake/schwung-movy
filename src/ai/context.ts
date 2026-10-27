@@ -86,7 +86,8 @@ function harmonyLines(s: AiContextInput): string[] {
     const out = ['HARMONY (sounding pitch classes and chord per bar, transpose applied)'];
     for (const slot of slots) {
         const clips = s.tracks.flatMap((t) => t.clips.filter((c) => c.slot === slot));
-        out.push(`  scene ${slot + 1}: ${sceneHarmony(clips, drum).join('; ')}`);
+        const flag = (slot === s.target.slot ? ' [TARGET]' : '') + (slot === s.source?.slot ? ' [SOURCE]' : '');
+        out.push(`  scene ${slot + 1}${flag}: ${sceneHarmony(clips, drum).join('; ')}`);
     }
     return out;
 }

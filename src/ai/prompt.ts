@@ -40,6 +40,7 @@ function taskText(task: AiTask, t: PromptTarget): string[] {
     return ['TASK: write a variation for the [TARGET] clip that continues from the [SOURCE] clip (an A part '
         + 'becoming a B part). Fit what the other tracks play in the target scene; if they are empty there, '
         + 'use the source clip\'s scene as the reference so the variation moves on from it. '
+        + 'Fit the chords of the [TARGET] scene in HARMONY; where they differ from the [SOURCE] scene\'s, follow them. '
         + 'Keep the source\'s sound, style and feel.',
     ...steps, ...(t.drum ? ['Use only pads this kit already uses.'] : [VAR_HARMONY])];
 }

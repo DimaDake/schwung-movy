@@ -5,6 +5,7 @@
         { "key": "gemini_api_key", "label": "Gemini API Key", "type": "password",
           "help": "Free key from Google AI Studio:",
           "help_url": "https://aistudio.google.com/apikey" },
-        { "key": "model", "label": "Model", "type": "string", "default": "gemini-flash-lite-latest" }
+        { "key": "model", "label": "Model", "type": "string", "default": "",
+          "help": "Blank = automatic (the bench's pick, with a fast fallback when Google is busy)." }
     ]
 }

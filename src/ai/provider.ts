@@ -1,13 +1,12 @@
 /* Gemini as a plain request/response shape (design §6.2). It is asked for
  * JSON output; the text it returns goes to validate.ts. */
 
-import type { AiConfig } from './config.js';
 
 export interface AiHttpRequest { url: string; headers: string[]; body: string }
 
 export type AiStatus = 'ok' | 'NO NETWORK' | 'BUSY, TRY LATER' | 'GENERATOR ERROR';
 
-export function buildRequest(cfg: AiConfig, p: { system: string; user: string }, temperature = 1.0): AiHttpRequest {
+export function buildRequest(cfg: { model: string; key: string }, p: { system: string; user: string }, temperature = 1.0): AiHttpRequest {
     return {
         url: `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(cfg.model)}:generateContent`,
         headers: ['Content-Type: application/json', 'x-goog-api-key: ' + cfg.key],

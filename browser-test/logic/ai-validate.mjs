@@ -48,6 +48,7 @@ eq('caps notes at the engine MAX_NOTES', validateOptions(reply(many), { ...mel, 
 const pv = buildPrompt('variation', 'CTX', { len: 32, drum: false });
 ok('prompt_mentions_harmony_option_for_variation', /at least one option[^.]*harmon/i.test(pv.user));
 ok('prompt carries the context', pv.user.includes('CTX'));
+ok('variation_points_at_target_scene_chords', /chords of the \[TARGET\] scene in HARMONY/.test(pv.user));
 ok('prompt states the step range', /0 to under 32/.test(pv.user));
 ok('prompt_has_no_scale_rule', !/fits? the key|in (the )?scale|nearest note that fits/i.test(pv.user + buildPrompt('quantize', 'C', { len: 32, drum: false }).user)
     && /chords? (the other tracks|listed)/i.test(pv.user));

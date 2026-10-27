@@ -43,6 +43,9 @@ ok('drum_names_declared_vs_guessed: declared', /36:BD/.test(text) && /38:SD/.tes
 ok('drum_names_declared_vs_guessed: guessed', /42:CLOSED HAT \(guessed\)/.test(text));
 ok('target_and_source_flagged: source', /scene 1 \[SOURCE\]/.test(text));
 ok('target_and_source_flagged: empty target', /scene 3 \[TARGET\]: empty/.test(text));
+/* The variation must fit the TARGET scene's chords; HARMONY says which line that is. */
+const hv = buildContext(set({ target: { track: 0, slot: 1 }, source: { track: 0, slot: 0 } }));
+ok('harmony_flags_target_and_source_scenes', /HARMONY[\s\S]*scene 1 \[SOURCE\]:[\s\S]*scene 2 \[TARGET\]:/.test(hv));
 
 const h = sceneHarmony(parseTrackDump(0, CHORDS), () => false);
 eq('harmony_c_major_bar: bar 1', h[0], 'bar 1: C (C E G)');

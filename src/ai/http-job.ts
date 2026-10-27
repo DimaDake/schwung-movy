@@ -13,7 +13,9 @@ export const AI_DIR = LIBRARY_ROOT + '/.ai';
  * Never shipped (build-module.sh copies an explicit file list). */
 export const FAKE_RESPONSE = 'ai-fake-response.json';
 
-export const HTTP_TIMEOUT_S = 60;
+/* The last model's wait (models.ts sets the first one's). Lite answers in
+ * 2-11 s on the bench; past this a request is busy, not slow. */
+export const HTTP_TIMEOUT_S = 30;
 /* A status file read while curl is still writing it parses as garbage; it is
  * read again on the next ticks before it counts as a failed request. */
 const TORN_RETRIES = 3;
@@ -35,7 +37,7 @@ function paths(id: number): { dir: string; body: string; resp: string; status: s
 }
 
 /** Job id, or -1 when the request could not be started. */
-export function startHttp(req: AiHttpRequest, moduleDir: string): number {
+export function startHttp(req: AiHttpRequest, moduleDir: string, timeoutS = HTTP_TIMEOUT_S): number {
     const id = nextId++;
     const p = paths(id);
     platform.removeDir(AI_DIR);
@@ -45,7 +47,7 @@ export function startHttp(req: AiHttpRequest, moduleDir: string): number {
         platform.writeFile(p.resp, fake);
         platform.writeFile(p.status, '{"http_status":200,"curl_exit":0}');
     } else if (!platform.httpStart({ url: req.url, method: 'POST', headers: req.headers, bodyPath: p.body,
-        responsePath: p.resp, statusPath: p.status, timeoutS: HTTP_TIMEOUT_S })) {
+        responsePath: p.resp, statusPath: p.status, timeoutS })) {
         return -1;
     }
     liveId = id;

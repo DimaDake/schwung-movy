@@ -9,54 +9,25 @@ import { MOVY_MODULE_DIR } from '../seq/constants.js';
 import { seqLedsInvalidate } from '../seq/led-cache.js';
 import { seqToast } from '../seq/render.js';
 import { currentSetUuid } from '../seq/set-session.js';
-import type { AiClip, AiNote } from './clip-dump.js';
-import { readAiConfig, type AiConfig } from './config.js';
-import { buildContext, type AiTrackInput } from './context.js';
-import { cancelHttp, fakeResponse, HTTP_TIMEOUT_S, pollHttp, startHttp, type HttpReply } from './http-job.js';
+import { readAiConfig } from './config.js';
+import { buildContext } from './context.js';
+import { cancelHttp, fakeResponse, pollHttp, startHttp, type HttpReply } from './http-job.js';
+import { jobTarget } from './job-target.js';
+import { type AiPhase, type AiPreviewInput, label, MSG_ERROR, MSG_NO_KEY, MSG_NOTHING, type Running } from './job-types.js';
+import { modelChain, timeoutFor, worthFallback } from './models.js';
 import { buildPrompt, type AiTask } from './prompt.js';
-import { type GenLevel, LEVEL_TEMPERATURE } from './ladders.js';
+import { LEVEL_TEMPERATURE } from './ladders.js';
 import { genLevel } from '../seq/gen-level.js';
 import { buildRequest, classifyStatus, extractText } from './provider.js';
 import { drawAiRunning, resetAiRunningDraw } from './running-render.js';
-import { kitPads, readTrack, setHeader } from './set-input.js';
+import { readTrack, setHeader } from './set-input.js';
 import { commitPreview, openPreview, resetPreview } from './preview.js';
-import { pickSource, variationTarget } from './target.js';
 import { thinkingLedsStart, thinkingLedsTick } from './thinking-leds.js';
 import { validateOptions } from './validate.js';
 
-export type AiPhase = 'idle' | 'running' | 'preview';
-
-export const MSG_NO_KEY = 'NO API KEY — MOVE.LOCAL:7700';
-export const MSG_ERROR = 'GENERATOR ERROR';
-export const MSG_NOTHING = 'NOTHING TO QUANTIZE';
+export { MSG_ERROR, MSG_NO_KEY, MSG_NOTHING } from './job-types.js';
+export type { AiPhase, AiPreviewInput } from './job-types.js';
 const TRACKS = 16;
-const WATCHDOG_MS = (HTTP_TIMEOUT_S + 10) * 1000;
-
-export interface AiPreviewInput {
-    task: AiTask;
-    track: number;
-    slot: number;
-    orig: AiClip | null;      // null = the target slot was empty
-    options: AiNote[][];
-    len: number;
-    scaleNum: number;
-    scaleDen: number;
-}
-
-interface Running {
-    task: AiTask;
-    track: number;
-    slot: number;
-    level: GenLevel;          // read once at start: a Settings turn changes the next request
-    cfg: AiConfig;
-    uuid: string;
-    startMs: number;
-    next: number;             // next track to read; TRACKS = all read
-    tracks: AiTrackInput[];
-    httpId: number;
-    sentMs: number;
-    ctx: { len: number; scale: [number, number]; orig: AiClip | null; drum: boolean; kit: number[]; units?: 'steps' | 'ticks' } | null;
-}
 
 let phase: AiPhase = 'idle';
 let run: Running | null = null;
@@ -64,8 +35,6 @@ let preview: AiPreviewInput | null = null;
 
 export function aiPhase(): AiPhase { return phase; }
 export function aiPreviewInput(): AiPreviewInput | null { return preview; }
-
-function label(task: AiTask): string { return task === 'quantize' ? 'QUANTIZING...' : 'VARIATION...'; }
 
 /* Leaving the running phase hands the frame back: every painter repaints. */
 function release(): void {
@@ -92,37 +61,48 @@ export function startAiJob(task: AiTask, track: number, slot: number): void {
     const cfg = readAiConfig(MOVY_MODULE_DIR)
         ?? (fakeResponse(MOVY_MODULE_DIR) ? { model: 'fake', key: '' } : null);
     if (!cfg) { seqToast(MSG_NO_KEY); return; }
-    run = { task, track, slot, level: genLevel(), cfg, uuid: currentSetUuid(), startMs: -1, next: 0, tracks: [], httpId: -1, sentMs: -1, ctx: null };
+    run = { task, track, slot, level: genLevel(), cfg, uuid: currentSetUuid(), startMs: -1,
+        next: 0, tracks: [], httpId: -1, sentMs: -1, ctx: null, models: modelChain(cfg), mi: 0, timeoutS: 0, prompt: null };
     phase = 'running';
     thinkingLedsStart();
 }
 
 function send(r: Running, now: number): void {
     const t = r.tracks.find((x) => x.index === r.track) ?? readTrack(r.track);
-    const clip = t.clips.find((c) => c.slot === r.slot) ?? null;
-    let source: number | null = null;
-    if (r.task === 'quantize') {
-        if (!clip || !clip.notes.length) return fail(MSG_NOTHING, 'nothing to quantize');
-        r.ctx = { len: clip.len, scale: [clip.scaleNum, clip.scaleDen], orig: clip, drum: t.drum, kit: kitPads(t) };
-    } else {
-        source = pickSource(t.clips.map((c) => ({ slot: c.slot, hasNotes: c.notes.length > 0 })), r.slot);
-        if (source === null) return fail(MSG_ERROR, 'no source clip');
-        const v = variationTarget(t.clips, r.slot, source);
-        r.ctx = { len: v.len, scale: v.scale, orig: clip, drum: t.drum, kit: kitPads(t) };
-    }
+    const target = jobTarget(r.task, t, r.slot);
+    if (target === 'nothing') return fail(MSG_NOTHING, 'nothing to quantize');
+    if (target === 'no source') return fail(MSG_ERROR, 'no source clip');
+    r.ctx = target.ctx;
     const context = buildContext({ ...setHeader(), tracks: r.tracks, target: { track: r.track, slot: r.slot },
-        source: source === null ? null : { track: r.track, slot: source } });
+        source: target.source === null ? null : { track: r.track, slot: target.source } });
     const prompt = buildPrompt(r.task, context, { len: r.ctx.len, drum: t.drum, level: r.level });
     r.ctx.units = prompt.units;
-    const req = buildRequest(r.cfg, prompt, LEVEL_TEMPERATURE[r.level]);
-    r.httpId = startHttp(req, MOVY_MODULE_DIR);
-    if (r.httpId < 0) return fail(MSG_ERROR, 'request not started');
-    r.sentMs = now;
-    mlog(`ai: ${r.task} t${r.track} s${r.slot} sent ${req.body.length} B at ${now}`);
+    r.prompt = prompt;
+    dispatch(r, now);
 }
 
-function finish(r: Running, reply: HttpReply): void {
+function dispatch(r: Running, now: number): void {
+    const req = buildRequest({ model: r.models[r.mi], key: r.cfg.key }, r.prompt!, LEVEL_TEMPERATURE[r.level]);
+    r.timeoutS = timeoutFor(r.mi, r.models.length);
+    r.httpId = startHttp(req, MOVY_MODULE_DIR, r.timeoutS);
+    if (r.httpId < 0) return fail(MSG_ERROR, 'request not started');
+    r.sentMs = now;
+    mlog(`ai: ${r.task} t${r.track} s${r.slot} sent ${req.body.length} B to ${r.models[r.mi]} at ${now}`);
+}
+
+/** Busy or silent: the next model in the chain, if there is one. */
+function fallBack(r: Running, now: number, why: string): boolean {
+    if (r.mi + 1 >= r.models.length) return false;
+    mlog(`ai: ${r.models[r.mi]} ${why}, asking ${r.models[r.mi + 1]}`);
+    cancelHttp(r.httpId);
+    r.mi++;
+    dispatch(r, now);
+    return true;
+}
+
+function finish(r: Running, reply: HttpReply, now: number): void {
     const status = classifyStatus(reply.http, reply.curlExit);
+    if (worthFallback(status) && fallBack(r, now, `busy (http ${reply.http} curl ${reply.curlExit})`)) return;
     if (status !== 'ok') return fail(status, `http ${reply.http} curl ${reply.curlExit} ${reply.body.slice(0, 200)}`);
     const text = extractText(reply.body);
     const c = r.ctx!;
@@ -149,10 +129,11 @@ export function aiTick(now: number): boolean {
         if (r.next === TRACKS) send(r, now);
     } else {
         const reply = pollHttp(r.httpId);
-        if (reply) finish(r, reply);
+        if (reply) finish(r, reply, now);
         /* curl has its own timeout; past it plus a margin the child is gone
          * without a word, and only Back would ever end the wait. */
-        else if (r.sentMs >= 0 && now - r.sentMs > WATCHDOG_MS) fail(MSG_ERROR, 'no reply within the watchdog');
+        else if (r.sentMs >= 0 && now - r.sentMs > (r.timeoutS + 10) * 1000
+            && !fallBack(r, now, 'silent past the watchdog')) fail(MSG_ERROR, 'no reply within the watchdog');
     }
     if (phase !== 'running') return false;
     drawAiRunning(label(r.task), now - r.startMs);

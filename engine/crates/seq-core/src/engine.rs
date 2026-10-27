@@ -11,6 +11,8 @@ use crate::clock::Clock;
 use crate::track::{Track, CLIPS_PER_TRACK, LANES, NUM_TRACKS};
 use crate::{PPQN, STEPS_PER_BAR, TICKS_PER_BAR, TICKS_PER_STEP};
 
+mod ai_clip;
+pub use ai_clip::{parse_ai_notes, AiClipWrite};
 mod note_view;
 
 #[derive(Debug, Clone, Copy, PartialEq)]

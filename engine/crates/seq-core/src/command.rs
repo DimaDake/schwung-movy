@@ -112,6 +112,8 @@ pub fn is_undoable_edit(verb: &str) -> bool {
         | "clen" | "cscl" | "ctr" | "cq" | "dbl" | "loop" | "ltog" | "pst"
         // whole-clip gestures
         | "clipdel" | "clipdelat" | "clipdup" | "clippaste"
+        // an AI preview option written over a clip (engine/ai_clip.rs)
+        | "aiclip"
         // automation edits
         | "aset" | "asetr" | "aclr" | "aclrs" | "aclrstep"
         // set-level settings
@@ -439,6 +441,24 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
             if let (Some(t), Some(s0), Some(s1), Some(p)) = (next(), next(), next(), next()) {
                 let lane = if (0..128).contains(&p) { Some(p as u8) } else { None };
                 engine.delete_range(t as usize, s0.clamp(0, 255) as u16, s1.clamp(0, 255) as u16, lane);
+            }
+        }
+        // aiclip <t> <slot> <lenSteps> <scaleNum> <scaleDen> <quant> <notes>
+        // — notes is ONE token, `tick.gate.pitch.vel,...` or `-`.
+        "aiclip" => {
+            if let (Some(t), Some(s), Some(l), Some(n), Some(d), Some(q)) =
+                (next(), next(), next(), next(), next(), next())
+            {
+                let notes = crate::engine::parse_ai_notes(it.next().unwrap_or("-"));
+                engine.ai_replace_clip(&crate::engine::AiClipWrite {
+                    track: t.max(0) as usize,
+                    slot: s.max(0) as usize,
+                    len_steps: l.clamp(0, u16::MAX as i64) as u16,
+                    scale_num: n.clamp(1, 255) as u8,
+                    scale_den: d.clamp(1, 255) as u8,
+                    quant: q.clamp(0, 100) as u8,
+                    notes: &notes,
+                });
             }
         }
         "clipdup" => {

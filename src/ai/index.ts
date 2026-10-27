@@ -5,3 +5,5 @@ export * from './drum-names.js';
 export * from './context.js';
 export * from './prompt.js';
 export * from './validate.js';
+export * from './provider.js';
+export * from './http-job.js';

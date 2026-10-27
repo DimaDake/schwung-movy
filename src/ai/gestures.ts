@@ -3,12 +3,16 @@
 
 import { appState } from '../app/state.js';
 import { seqToast } from '../seq/render.js';
+import { sessionReady } from '../seq/set-session.js';
 import { seqState } from '../seq/state.js';
 import { watchedTrack } from '../seq/watch.js';
 import { hold16Tick } from './hold16.js';
 import { MSG_NOTHING, startAiJob } from './job.js';
 
-function busy(): boolean { return seqState.recording || seqState.countingIn || seqState.sessionMode; }
+/* A Set still loading or settling would be read half-restored. */
+function busy(): boolean {
+    return !sessionReady() || seqState.recording || seqState.countingIn || seqState.sessionMode;
+}
 
 function selectedSlot(t: number): number { return seqState.session[t]?.selected ?? 0; }
 

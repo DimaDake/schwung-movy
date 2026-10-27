@@ -6,7 +6,7 @@
  */
 
 import { _log, eq, ok, installMockEngine, uninstallMockEngine, seqEngineTick, resetSeqEngine,
-    appState, selectTrack, undoDepth, beginEdit, endEdit, CLOSE, resetUndoState, resetUndoGroups } from './harness.mjs';
+    appState, selectTrack, undoDepth, beginEdit, endEdit, CLOSE, resetUndoState, resetUndoGroups, undoOnce } from './harness.mjs';
 import { openPreview, previewIndex, previewSwitch, commitPreview, aiPreviewTick as previewTick, previewInput,
     aiPhase, aiSetWillChange, resetAiJob, aiPreviewActive } from '../../dist/esm/ai/index.js';
 import { seqState } from '../../dist/esm/seq/state.js';
@@ -105,6 +105,13 @@ seqState.sessionMode = true;
 previewTick();
 eq('session_toggle_commits', aiPreviewActive(), false);
 seqState.sessionMode = false;
+done();
+
+boot();
+const d0 = undoDepth();
+undoOnce();
+eq('undo_during_preview_commits_first: preview closed', aiPreviewActive(), false);
+eq('undo_during_preview_commits_first: undid the AI step itself', undoDepth(), d0);
 done();
 
 boot();

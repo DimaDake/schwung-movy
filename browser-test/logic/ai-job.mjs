@@ -9,7 +9,7 @@ import { _log, eq, ok, installMockFs, uninstallMockFs, installMockEngine, uninst
     seqEngineTick, resetSeqEngine } from './harness.mjs';
 import {
     pickSource, variationTarget, parseTrackDump, startAiJob, aiPhase, aiTick, aiRunningInput, aiCancel,
-    aiSetWillChange, aiPreviewInput, resetAiJob, commitPreview, thinkingPadColour, AI_DIR,
+    aiSetWillChange, aiPreviewInput, resetAiJob, commitPreview, readTrack, thinkingPadColour, AI_DIR,
 } from '../../dist/esm/ai/index.js';
 import { seqToastText } from '../../dist/esm/seq/render.js';
 
@@ -107,6 +107,19 @@ startAiJob('quantize', 0, 0);
 aiSetWillChange();
 eq('set_change_aborts_running', aiPhase(), 'idle');
 aiCancel();
+done(st);
+
+st = boot();
+st.eng.params['ait:0'] = '0 16 8 1/1 0 0|0.24.50.100,192.24.60.100';
+const win = readTrack(0).clips[0];
+eq('read_track_windows_the_loop: only the heard note', JSON.stringify(win.notes), '[{"tick":0,"gate":24,"pitch":60,"vel":100}]');
+eq('read_track_windows_the_loop: window rebased to 0', win.loopStart, 0);
+st.eng.params['ait:0'] = DUMP;
+startAiJob('quantize', 0, 0);
+runTicks(20);
+aiTick(1000 + 75_000);
+eq('stuck_request_times_out: idle', aiPhase(), 'idle');
+eq('stuck_request_times_out: toast', seqToastText(), 'AI ERROR');
 done(st);
 
 eq('thinking_band_moves_one_column_per_step: head white', thinkingPadColour(3, 3), 120);

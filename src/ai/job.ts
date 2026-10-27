@@ -12,7 +12,7 @@ import { currentSetUuid } from '../seq/set-session.js';
 import type { AiClip, AiNote } from './clip-dump.js';
 import { readAiConfig, type AiConfig } from './config.js';
 import { buildContext, type AiTrackInput } from './context.js';
-import { cancelHttp, fakeResponse, pollHttp, startHttp, type HttpReply } from './http-job.js';
+import { cancelHttp, fakeResponse, HTTP_TIMEOUT_S, pollHttp, startHttp, type HttpReply } from './http-job.js';
 import { buildPrompt, type AiTask } from './prompt.js';
 import { buildRequest, classifyStatus, extractText } from './provider.js';
 import { drawAiRunning, resetAiRunningDraw } from './running-render.js';
@@ -28,6 +28,7 @@ export const MSG_NO_KEY = 'NO API KEY — MOVE.LOCAL:7700';
 export const MSG_ERROR = 'AI ERROR';
 export const MSG_NOTHING = 'NOTHING TO QUANTIZE';
 const TRACKS = 16;
+const WATCHDOG_MS = (HTTP_TIMEOUT_S + 10) * 1000;
 
 export interface AiPreviewInput {
     task: AiTask;
@@ -50,6 +51,7 @@ interface Running {
     next: number;             // next track to read; TRACKS = all read
     tracks: AiTrackInput[];
     httpId: number;
+    sentMs: number;
     ctx: { len: number; scale: [number, number]; orig: AiClip | null; drum: boolean; kit: number[] } | null;
 }
 
@@ -87,7 +89,7 @@ export function startAiJob(task: AiTask, track: number, slot: number): void {
     const cfg = readAiConfig(MOVY_MODULE_DIR)
         ?? (fakeResponse(MOVY_MODULE_DIR) ? { provider: 'gemini' as const, model: 'fake', key: '' } : null);
     if (!cfg) { seqToast(MSG_NO_KEY); return; }
-    run = { task, track, slot, cfg, uuid: currentSetUuid(), startMs: -1, next: 0, tracks: [], httpId: -1, ctx: null };
+    run = { task, track, slot, cfg, uuid: currentSetUuid(), startMs: -1, next: 0, tracks: [], httpId: -1, sentMs: -1, ctx: null };
     phase = 'running';
     thinkingLedsStart();
 }
@@ -110,6 +112,7 @@ function send(r: Running, now: number): void {
     const req = buildRequest(r.cfg, buildPrompt(r.task, context, { len: r.ctx.len, drum: t.drum }));
     r.httpId = startHttp(req, MOVY_MODULE_DIR);
     if (r.httpId < 0) return fail(MSG_ERROR, 'request not started');
+    r.sentMs = now;
     mlog(`ai: ${r.task} t${r.track} s${r.slot} sent ${req.body.length} B at ${now}`);
 }
 
@@ -142,6 +145,9 @@ export function aiTick(now: number): boolean {
     } else {
         const reply = pollHttp(r.httpId);
         if (reply) finish(r, reply);
+        /* curl has its own timeout; past it plus a margin the child is gone
+         * without a word, and only Back would ever end the wait. */
+        else if (r.sentMs >= 0 && now - r.sentMs > WATCHDOG_MS) fail(MSG_ERROR, 'no reply within the watchdog');
     }
     if (phase !== 'running') return false;
     drawAiRunning(label(r.task), now - r.startMs);

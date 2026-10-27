@@ -14,6 +14,7 @@
  * drives the wrong thing, or silently nothing, with an intact-looking UI. seq/persist.ts pairs every state restore with a label sync
  * for exactly this reason; an undo restore is the same operation. */
 
+import { commitPreview } from '../ai/preview.js';
 import { componentPort } from '../track/registry.js';
 import { mlog } from '../log.js';
 import { seqCmd, engineGeneration, requestLabelSync } from '../seq/engine.js';
@@ -169,6 +170,9 @@ const NOTHING = (reason: string): UndoResult =>
     ({ ok: false, verb: '', target: '', detail: '', reason });
 
 export function undoOnce(): UndoResult {
+    /* An open AI preview is kept first, so this undo takes back the AI step
+     * itself rather than an older entry underneath a live preview. */
+    commitPreview('undo');
     /* A gesture still in progress is part of what the user wants undone. */
     endEdit();
     /* A module swap is still settling: a second undo now would write params
@@ -187,6 +191,7 @@ export function undoOnce(): UndoResult {
 }
 
 export function redoOnce(): UndoResult {
+    commitPreview('redo');
     endEdit();
     if (moduleRestorePending()) return NOTHING('busy');
     if (!canRedo()) return NOTHING('empty');

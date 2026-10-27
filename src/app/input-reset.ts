@@ -12,6 +12,7 @@
  * Called on tool open (init) and whenever movy hands the foreground away
  * (the Leave-Movy modal), where releases provably cannot come back. */
 
+import { resetHold16 } from '../ai/hold16.js';
 import { seqState } from '../seq/state.js';
 import { resetSong } from '../seq/song.js';
 import { seqCmd } from '../seq/engine.js';
@@ -41,6 +42,7 @@ import { watchedTrack } from '../seq/watch.js';
 
 export function resetHeldInput(notifyEngine: boolean): void {
     resetStepEdit();      // heldRanges / gestured / pressMs / co-press / length target
+    resetHold16();        // Shift + Step 16 Smart Quantize hold
     resetStepPage();
     resetMomentary();
     resetFlagsPage();

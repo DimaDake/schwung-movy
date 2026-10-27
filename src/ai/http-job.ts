@@ -13,7 +13,11 @@ export const AI_DIR = LIBRARY_ROOT + '/.ai';
  * Never shipped (build-module.sh copies an explicit file list). */
 export const FAKE_RESPONSE = 'ai-fake-response.json';
 
-const TIMEOUT_S = 60;
+export const HTTP_TIMEOUT_S = 60;
+/* A status file read while curl is still writing it parses as garbage; it is
+ * read again on the next ticks before it counts as a failed request. */
+const TORN_RETRIES = 3;
+let torn = 0;
 let nextId = 1;
 let liveId = -1;
 
@@ -41,7 +45,7 @@ export function startHttp(req: AiHttpRequest, moduleDir: string): number {
         platform.writeFile(p.resp, fake);
         platform.writeFile(p.status, '{"http_status":200,"curl_exit":0}');
     } else if (!platform.httpStart({ url: req.url, method: 'POST', headers: req.headers, bodyPath: p.body,
-        responsePath: p.resp, statusPath: p.status, timeoutS: TIMEOUT_S })) {
+        responsePath: p.resp, statusPath: p.status, timeoutS: HTTP_TIMEOUT_S })) {
         return -1;
     }
     liveId = id;
@@ -54,14 +58,17 @@ export function pollHttp(id: number): HttpReply | null {
     const p = paths(id);
     const st = platform.readFile(p.status);
     if (!st) return null;
-    liveId = -1;
     let http = 0;
     let curlExit = -1;
     try {
         const v = JSON.parse(st);
         http = Number(v.http_status) || 0;
         curlExit = Number(v.curl_exit);
-    } catch { /* a torn status file reads as a failed request */ }
+    } catch {
+        if (++torn <= TORN_RETRIES) return null;
+    }
+    torn = 0;
+    liveId = -1;
     return { http, curlExit: Number.isFinite(curlExit) ? curlExit : -1, body: platform.readFile(p.resp) ?? '' };
 }
 

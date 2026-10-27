@@ -7,9 +7,11 @@
 import { _log, eq, ok, installMockFs, uninstallMockFs, installMockEngine, uninstallMockEngine,
     resetSeqEngine, appState, selectTrack } from './harness.mjs';
 import { hold16Press, hold16Release, hold16Tick, hold16Progress, aiVariationPress, aiQuantizeStart,
-    variationPossible, aiPhase, resetAiJob } from '../../dist/esm/ai/index.js';
+    variationPossible, aiPhase, resetAiJob, hold16Pending } from '../../dist/esm/ai/index.js';
 import { handleStepButton } from '../../dist/esm/seq/router-steps.js';
 import { stepIconColor } from '../../dist/esm/seq/leds.js';
+import { setPhase, sessionPhase } from '../../dist/esm/seq/set-session.js';
+let phaseBefore = null;
 import { seqState } from '../../dist/esm/seq/state.js';
 import { seqToastText } from '../../dist/esm/seq/render.js';
 
@@ -27,8 +29,11 @@ function boot() {
     seqState.session[0].exist = 0b11;
     seqState.lenSteps = 16;
     seqState.occ.fill(0); seqState.occ[0] = 1;
+    phaseBefore ??= sessionPhase();
+    setPhase('ready');
 }
-function done() { resetAiJob(); delete globalThis.host_http_request_background; uninstallMockEngine(); uninstallMockFs(); resetSeqEngine(); }
+function done() { if (phaseBefore !== null) setPhase(phaseBefore); phaseBefore = null; done0(); }
+function done0() { resetAiJob(); delete globalThis.host_http_request_background; uninstallMockEngine(); uninstallMockFs(); resetSeqEngine(); }
 
 export async function run() {
 _log('\nTest: AI gestures');
@@ -81,6 +86,14 @@ eq('step14_starts_variation', aiPhase(), 'running');
 done();
 
 boot();
+setPhase('settling');
+aiQuantizeStart();
+aiVariationPress();
+eq('ai_gestures_wait_for_a_ready_set', aiPhase(), 'idle');
+setPhase('ready');
+done();
+
+boot();
 seqState.occ.fill(0);
 aiQuantizeStart();
 eq('quantize_empty_clip_toasts: idle', aiPhase(), 'idle');
@@ -100,5 +113,11 @@ eq('Shift+Step16 press alone does not cycle', seqState.clipQuant, before);
 handleStepButton(15, false, true);
 ok('Shift+Step16 release cycles quantize', seqState.clipQuant !== before);
 appState.shiftHeld = false;
+/* A Shift+16 press whose release was lost must not hijack the next plain
+ * press of Step 16 (its release would skip the step-edit bookkeeping). */
+handleStepButton(15, true, true);
+handleStepButton(15, true, false);
+eq('lost_release_does_not_hijack_a_plain_press', hold16Pending(), false);
+handleStepButton(15, false, false);
 done();
 }

@@ -424,7 +424,14 @@ function tickBody(): void {
     /* An AI request in flight owns the frame: its screen, its LEDs. The
      * engine above keeps running, so playback never stops underneath. */
     aiGestureTick(Date.now());   // a Shift + Step 16 hold reaching full
-    if (aiTick(Date.now())) return;
+    if (aiTick(Date.now())) {
+        /* The Set lifecycle and the undo stack's Set/engine watch must not
+         * stall for the seconds a request takes. */
+        sessionTick();
+        undoWatchContext();
+        flushOrphanedSnaps();
+        return;
+    }
     aiPreviewTick();   // a track/clip/view change commits the AI preview
     perfPhase('rest');
     stepAutoTick(); // promote a long single-step hold to step-automation mode

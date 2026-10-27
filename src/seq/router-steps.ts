@@ -4,7 +4,7 @@
  * what it dispatches to. The shifted functions the row can reach live next
  * door in step-shortcuts.ts — two of the branches below hand off to them. */
 
-import { hold16Pending, hold16Press, hold16Release } from '../ai/hold16.js';
+import { hold16Pending, resetHold16, hold16Press, hold16Release } from '../ai/hold16.js';
 import { mlog } from '../log.js';
 import { appState } from '../app/state.js';
 import { beginEdit, endEdit, CLOSE } from '../undo/group.js';
@@ -132,6 +132,11 @@ export function handleStepButton(button: number, on: boolean, shiftHeld: boolean
             : { kind: 'step', track: watchedTrack(), step: absB });
     } else if (on && deleteActive()) {
         deleteStep(button);
+    } else if (button === STEP_QUANTIZE && on && !shiftHeld && hold16Pending()) {
+        /* A Shift + 16 whose release was lost: this plain press starts fresh,
+         * or its release would be taken for the hold's and skip editStepUp. */
+        resetHold16();
+        handleStepButton(button, on, shiftHeld);
     } else if (button === STEP_QUANTIZE && (on ? shiftHeld : hold16Pending())) {
         /* Track view: a Shift tap cycles quantize on RELEASE, so a hold can
          * become Smart Quantize instead (ai/hold16.ts). */

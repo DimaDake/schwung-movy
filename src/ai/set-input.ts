@@ -7,7 +7,7 @@ import { paramGet } from '../host/param.js';
 import { keyboardState } from '../keyboard/state.js';
 import { SCALES } from '../seq/scales.js';
 import { seqState } from '../seq/state.js';
-import { parseTrackDump } from './clip-dump.js';
+import { parseTrackDump, TICKS_PER_STEP, type AiClip } from './clip-dump.js';
 import type { AiTrackInput } from './context.js';
 import { pcName } from './harmony.js';
 
@@ -31,8 +31,18 @@ export function readTrack(t: number): AiTrackInput {
         module: model?.getModuleName() ?? '',
         drum: trackIsDrum(t),
         padNames: padNames(t),
-        clips: parseTrackDump(t, paramGet('ait:' + t) ?? ''),
+        clips: parseTrackDump(t, paramGet('ait:' + t) ?? '').map(windowed),
     };
+}
+
+/* What plays is the loop window, and a preview writes its clip from step 0
+ * (aiclip): so the model sees only the window, rebased to 0, in the same
+ * time base it is asked to answer in. Parked notes stay with ORIG. */
+function windowed(c: AiClip): AiClip {
+    const w0 = c.loopStart * TICKS_PER_STEP;
+    const w1 = w0 + c.len * TICKS_PER_STEP;
+    return { ...c, loopStart: 0,
+        notes: c.notes.filter((n) => n.tick >= w0 && n.tick < w1).map((n) => ({ ...n, tick: n.tick - w0 })) };
 }
 
 /** Pads a drum option may use: every pitch the track already plays plus the

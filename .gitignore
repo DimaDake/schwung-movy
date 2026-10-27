@@ -18,3 +18,5 @@ test-device/.last-schwung-version
 host/build/
 # The virtual device (scripts/vdev.sh): snapshot, image context, ssh key.
 .vdev/
+# The generator bench's downloaded MIDI and cached replies (scripts/gen-bench).
+.gen-data/

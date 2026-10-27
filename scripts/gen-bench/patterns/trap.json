@@ -1,0 +1,567 @@
+{
+ "name": "trap",
+ "genre": "trap",
+ "bpm": 140,
+ "root": "C",
+ "mode": "minor",
+ "tracks": [
+  {
+   "index": 0,
+   "name": "Drums",
+   "module": "drumrack",
+   "drum": true,
+   "padNames": {
+    "36": "Kick",
+    "37": "Rim",
+    "38": "Snare",
+    "39": "Clap",
+    "42": "Closed Hat",
+    "46": "Open Hat",
+    "49": "Crash",
+    "50": "Tom"
+   },
+   "clips": [
+    {
+     "track": 0,
+     "slot": 0,
+     "len": 16,
+     "loopStart": 0,
+     "scaleNum": 1,
+     "scaleDen": 1,
+     "transpose": 0,
+     "quant": 0,
+     "notes": [
+      {
+       "tick": 0,
+       "gate": 12,
+       "pitch": 36,
+       "vel": 120
+      },
+      {
+       "tick": 0,
+       "gate": 12,
+       "pitch": 42,
+       "vel": 95
+      },
+      {
+       "tick": 48,
+       "gate": 12,
+       "pitch": 42,
+       "vel": 80
+      },
+      {
+       "tick": 72,
+       "gate": 12,
+       "pitch": 36,
+       "vel": 90
+      },
+      {
+       "tick": 96,
+       "gate": 12,
+       "pitch": 42,
+       "vel": 95
+      },
+      {
+       "tick": 144,
+       "gate": 12,
+       "pitch": 42,
+       "vel": 80
+      },
+      {
+       "tick": 192,
+       "gate": 12,
+       "pitch": 39,
+       "vel": 115
+      },
+      {
+       "tick": 192,
+       "gate": 12,
+       "pitch": 42,
+       "vel": 95
+      },
+      {
+       "tick": 240,
+       "gate": 12,
+       "pitch": 36,
+       "vel": 100
+      },
+      {
+       "tick": 240,
+       "gate": 12,
+       "pitch": 42,
+       "vel": 80
+      },
+      {
+       "tick": 288,
+       "gate": 12,
+       "pitch": 42,
+       "vel": 95
+      },
+      {
+       "tick": 312,
+       "gate": 6,
+       "pitch": 42,
+       "vel": 70
+      },
+      {
+       "tick": 324,
+       "gate": 6,
+       "pitch": 42,
+       "vel": 74
+      },
+      {
+       "tick": 336,
+       "gate": 12,
+       "pitch": 42,
+       "vel": 80
+      },
+      {
+       "tick": 336,
+       "gate": 6,
+       "pitch": 42,
+       "vel": 78
+      },
+      {
+       "tick": 348,
+       "gate": 6,
+       "pitch": 42,
+       "vel": 82
+      },
+      {
+       "tick": 360,
+       "gate": 6,
+       "pitch": 42,
+       "vel": 86
+      },
+      {
+       "tick": 372,
+       "gate": 6,
+       "pitch": 42,
+       "vel": 90
+      }
+     ]
+    },
+    {
+     "track": 0,
+     "slot": 1,
+     "len": 16,
+     "loopStart": 0,
+     "scaleNum": 1,
+     "scaleDen": 1,
+     "transpose": 0,
+     "quant": 0,
+     "notes": [
+      {
+       "tick": 0,
+       "gate": 12,
+       "pitch": 36,
+       "vel": 120
+      },
+      {
+       "tick": 0,
+       "gate": 12,
+       "pitch": 42,
+       "vel": 95
+      },
+      {
+       "tick": 48,
+       "gate": 12,
+       "pitch": 42,
+       "vel": 80
+      },
+      {
+       "tick": 96,
+       "gate": 12,
+       "pitch": 42,
+       "vel": 95
+      },
+      {
+       "tick": 144,
+       "gate": 12,
+       "pitch": 36,
+       "vel": 90
+      },
+      {
+       "tick": 144,
+       "gate": 12,
+       "pitch": 42,
+       "vel": 80
+      },
+      {
+       "tick": 192,
+       "gate": 12,
+       "pitch": 39,
+       "vel": 115
+      },
+      {
+       "tick": 192,
+       "gate": 6,
+       "pitch": 42,
+       "vel": 70
+      },
+      {
+       "tick": 204,
+       "gate": 6,
+       "pitch": 42,
+       "vel": 74
+      },
+      {
+       "tick": 216,
+       "gate": 6,
+       "pitch": 42,
+       "vel": 78
+      },
+      {
+       "tick": 228,
+       "gate": 6,
+       "pitch": 42,
+       "vel": 82
+      },
+      {
+       "tick": 240,
+       "gate": 4,
+       "pitch": 42,
+       "vel": 60
+      },
+      {
+       "tick": 248,
+       "gate": 4,
+       "pitch": 42,
+       "vel": 63
+      },
+      {
+       "tick": 256,
+       "gate": 4,
+       "pitch": 42,
+       "vel": 66
+      },
+      {
+       "tick": 264,
+       "gate": 12,
+       "pitch": 36,
+       "vel": 100
+      },
+      {
+       "tick": 264,
+       "gate": 4,
+       "pitch": 42,
+       "vel": 69
+      },
+      {
+       "tick": 272,
+       "gate": 4,
+       "pitch": 42,
+       "vel": 72
+      },
+      {
+       "tick": 280,
+       "gate": 4,
+       "pitch": 42,
+       "vel": 75
+      },
+      {
+       "tick": 288,
+       "gate": 4,
+       "pitch": 42,
+       "vel": 78
+      },
+      {
+       "tick": 296,
+       "gate": 4,
+       "pitch": 42,
+       "vel": 81
+      },
+      {
+       "tick": 304,
+       "gate": 4,
+       "pitch": 42,
+       "vel": 84
+      },
+      {
+       "tick": 336,
+       "gate": 24,
+       "pitch": 46,
+       "vel": 80
+      },
+      {
+       "tick": 360,
+       "gate": 12,
+       "pitch": 39,
+       "vel": 60
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "index": 1,
+   "name": "808",
+   "module": "obxd",
+   "drum": false,
+   "padNames": null,
+   "clips": [
+    {
+     "track": 1,
+     "slot": 0,
+     "len": 32,
+     "loopStart": 0,
+     "scaleNum": 1,
+     "scaleDen": 1,
+     "transpose": 0,
+     "quant": 0,
+     "notes": [
+      {
+       "tick": 0,
+       "gate": 144,
+       "pitch": 36,
+       "vel": 110
+      },
+      {
+       "tick": 240,
+       "gate": 72,
+       "pitch": 36,
+       "vel": 100
+      },
+      {
+       "tick": 384,
+       "gate": 144,
+       "pitch": 36,
+       "vel": 110
+      },
+      {
+       "tick": 624,
+       "gate": 48,
+       "pitch": 39,
+       "vel": 100
+      },
+      {
+       "tick": 696,
+       "gate": 48,
+       "pitch": 34,
+       "vel": 100
+      }
+     ]
+    },
+    {
+     "track": 1,
+     "slot": 1,
+     "len": 32,
+     "loopStart": 0,
+     "scaleNum": 1,
+     "scaleDen": 1,
+     "transpose": 0,
+     "quant": 0,
+     "notes": [
+      {
+       "tick": 0,
+       "gate": 144,
+       "pitch": 32,
+       "vel": 110
+      },
+      {
+       "tick": 240,
+       "gate": 72,
+       "pitch": 32,
+       "vel": 100
+      },
+      {
+       "tick": 384,
+       "gate": 144,
+       "pitch": 31,
+       "vel": 110
+      },
+      {
+       "tick": 624,
+       "gate": 48,
+       "pitch": 34,
+       "vel": 100
+      },
+      {
+       "tick": 696,
+       "gate": 48,
+       "pitch": 31,
+       "vel": 100
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "index": 2,
+   "name": "Bells",
+   "module": "dexed",
+   "drum": false,
+   "padNames": null,
+   "clips": [
+    {
+     "track": 2,
+     "slot": 0,
+     "len": 32,
+     "loopStart": 0,
+     "scaleNum": 1,
+     "scaleDen": 1,
+     "transpose": 0,
+     "quant": 0,
+     "notes": [
+      {
+       "tick": 0,
+       "gate": 24,
+       "pitch": 72,
+       "vel": 90
+      },
+      {
+       "tick": 72,
+       "gate": 24,
+       "pitch": 75,
+       "vel": 90
+      },
+      {
+       "tick": 144,
+       "gate": 24,
+       "pitch": 79,
+       "vel": 90
+      },
+      {
+       "tick": 192,
+       "gate": 24,
+       "pitch": 77,
+       "vel": 90
+      },
+      {
+       "tick": 264,
+       "gate": 24,
+       "pitch": 75,
+       "vel": 90
+      },
+      {
+       "tick": 336,
+       "gate": 24,
+       "pitch": 72,
+       "vel": 90
+      },
+      {
+       "tick": 384,
+       "gate": 24,
+       "pitch": 72,
+       "vel": 90
+      },
+      {
+       "tick": 456,
+       "gate": 24,
+       "pitch": 75,
+       "vel": 90
+      },
+      {
+       "tick": 528,
+       "gate": 24,
+       "pitch": 79,
+       "vel": 90
+      },
+      {
+       "tick": 576,
+       "gate": 24,
+       "pitch": 77,
+       "vel": 90
+      },
+      {
+       "tick": 648,
+       "gate": 24,
+       "pitch": 75,
+       "vel": 90
+      },
+      {
+       "tick": 720,
+       "gate": 24,
+       "pitch": 72,
+       "vel": 90
+      }
+     ]
+    },
+    {
+     "track": 2,
+     "slot": 1,
+     "len": 32,
+     "loopStart": 0,
+     "scaleNum": 1,
+     "scaleDen": 1,
+     "transpose": 0,
+     "quant": 0,
+     "notes": [
+      {
+       "tick": 0,
+       "gate": 24,
+       "pitch": 68,
+       "vel": 90
+      },
+      {
+       "tick": 72,
+       "gate": 24,
+       "pitch": 72,
+       "vel": 90
+      },
+      {
+       "tick": 144,
+       "gate": 24,
+       "pitch": 75,
+       "vel": 90
+      },
+      {
+       "tick": 192,
+       "gate": 24,
+       "pitch": 79,
+       "vel": 90
+      },
+      {
+       "tick": 264,
+       "gate": 24,
+       "pitch": 77,
+       "vel": 90
+      },
+      {
+       "tick": 336,
+       "gate": 24,
+       "pitch": 75,
+       "vel": 90
+      },
+      {
+       "tick": 384,
+       "gate": 24,
+       "pitch": 67,
+       "vel": 90
+      },
+      {
+       "tick": 456,
+       "gate": 24,
+       "pitch": 71,
+       "vel": 90
+      },
+      {
+       "tick": 528,
+       "gate": 24,
+       "pitch": 74,
+       "vel": 90
+      },
+      {
+       "tick": 576,
+       "gate": 24,
+       "pitch": 77,
+       "vel": 90
+      },
+      {
+       "tick": 648,
+       "gate": 24,
+       "pitch": 74,
+       "vel": 90
+      },
+      {
+       "tick": 720,
+       "gate": 24,
+       "pitch": 71,
+       "vel": 90
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

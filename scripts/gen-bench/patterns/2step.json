@@ -1,0 +1,693 @@
+{
+ "name": "2step",
+ "genre": "uk garage",
+ "bpm": 132,
+ "root": "F",
+ "mode": "minor",
+ "tracks": [
+  {
+   "index": 0,
+   "name": "Drums",
+   "module": "drumrack",
+   "drum": true,
+   "padNames": {
+    "36": "Kick",
+    "37": "Rim",
+    "38": "Snare",
+    "39": "Clap",
+    "42": "Closed Hat",
+    "46": "Open Hat",
+    "49": "Crash",
+    "50": "Tom"
+   },
+   "clips": [
+    {
+     "track": 0,
+     "slot": 0,
+     "len": 16,
+     "loopStart": 0,
+     "scaleNum": 1,
+     "scaleDen": 1,
+     "transpose": 0,
+     "quant": 0,
+     "notes": [
+      {
+       "tick": 0,
+       "gate": 12,
+       "pitch": 36,
+       "vel": 118
+      },
+      {
+       "tick": 48,
+       "gate": 12,
+       "pitch": 42,
+       "vel": 80
+      },
+      {
+       "tick": 78,
+       "gate": 12,
+       "pitch": 42,
+       "vel": 55
+      },
+      {
+       "tick": 96,
+       "gate": 12,
+       "pitch": 38,
+       "vel": 110
+      },
+      {
+       "tick": 96,
+       "gate": 12,
+       "pitch": 42,
+       "vel": 95
+      },
+      {
+       "tick": 144,
+       "gate": 12,
+       "pitch": 42,
+       "vel": 80
+      },
+      {
+       "tick": 174,
+       "gate": 12,
+       "pitch": 36,
+       "vel": 90
+      },
+      {
+       "tick": 192,
+       "gate": 12,
+       "pitch": 42,
+       "vel": 95
+      },
+      {
+       "tick": 240,
+       "gate": 12,
+       "pitch": 36,
+       "vel": 105
+      },
+      {
+       "tick": 240,
+       "gate": 12,
+       "pitch": 42,
+       "vel": 80
+      },
+      {
+       "tick": 270,
+       "gate": 12,
+       "pitch": 42,
+       "vel": 55
+      },
+      {
+       "tick": 288,
+       "gate": 12,
+       "pitch": 38,
+       "vel": 110
+      },
+      {
+       "tick": 288,
+       "gate": 12,
+       "pitch": 42,
+       "vel": 95
+      },
+      {
+       "tick": 336,
+       "gate": 12,
+       "pitch": 42,
+       "vel": 80
+      }
+     ]
+    },
+    {
+     "track": 0,
+     "slot": 1,
+     "len": 16,
+     "loopStart": 0,
+     "scaleNum": 1,
+     "scaleDen": 1,
+     "transpose": 0,
+     "quant": 0,
+     "notes": [
+      {
+       "tick": 0,
+       "gate": 12,
+       "pitch": 36,
+       "vel": 118
+      },
+      {
+       "tick": 48,
+       "gate": 12,
+       "pitch": 46,
+       "vel": 75
+      },
+      {
+       "tick": 96,
+       "gate": 12,
+       "pitch": 38,
+       "vel": 110
+      },
+      {
+       "tick": 96,
+       "gate": 12,
+       "pitch": 46,
+       "vel": 90
+      },
+      {
+       "tick": 144,
+       "gate": 12,
+       "pitch": 46,
+       "vel": 75
+      },
+      {
+       "tick": 192,
+       "gate": 12,
+       "pitch": 46,
+       "vel": 90
+      },
+      {
+       "tick": 222,
+       "gate": 12,
+       "pitch": 36,
+       "vel": 90
+      },
+      {
+       "tick": 240,
+       "gate": 12,
+       "pitch": 36,
+       "vel": 105
+      },
+      {
+       "tick": 240,
+       "gate": 12,
+       "pitch": 46,
+       "vel": 75
+      },
+      {
+       "tick": 288,
+       "gate": 12,
+       "pitch": 38,
+       "vel": 110
+      },
+      {
+       "tick": 288,
+       "gate": 12,
+       "pitch": 46,
+       "vel": 90
+      },
+      {
+       "tick": 336,
+       "gate": 12,
+       "pitch": 36,
+       "vel": 85
+      },
+      {
+       "tick": 336,
+       "gate": 12,
+       "pitch": 46,
+       "vel": 75
+      },
+      {
+       "tick": 366,
+       "gate": 12,
+       "pitch": 37,
+       "vel": 70
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "index": 1,
+   "name": "Bass",
+   "module": "obxd",
+   "drum": false,
+   "padNames": null,
+   "clips": [
+    {
+     "track": 1,
+     "slot": 0,
+     "len": 32,
+     "loopStart": 0,
+     "scaleNum": 1,
+     "scaleDen": 1,
+     "transpose": 0,
+     "quant": 0,
+     "notes": [
+      {
+       "tick": 0,
+       "gate": 36,
+       "pitch": 41,
+       "vel": 100
+      },
+      {
+       "tick": 78,
+       "gate": 36,
+       "pitch": 41,
+       "vel": 100
+      },
+      {
+       "tick": 144,
+       "gate": 36,
+       "pitch": 44,
+       "vel": 100
+      },
+      {
+       "tick": 240,
+       "gate": 36,
+       "pitch": 41,
+       "vel": 100
+      },
+      {
+       "tick": 318,
+       "gate": 36,
+       "pitch": 39,
+       "vel": 100
+      },
+      {
+       "tick": 384,
+       "gate": 36,
+       "pitch": 41,
+       "vel": 100
+      },
+      {
+       "tick": 462,
+       "gate": 36,
+       "pitch": 41,
+       "vel": 100
+      },
+      {
+       "tick": 528,
+       "gate": 36,
+       "pitch": 44,
+       "vel": 100
+      },
+      {
+       "tick": 624,
+       "gate": 36,
+       "pitch": 41,
+       "vel": 100
+      },
+      {
+       "tick": 702,
+       "gate": 36,
+       "pitch": 39,
+       "vel": 100
+      }
+     ]
+    },
+    {
+     "track": 1,
+     "slot": 1,
+     "len": 32,
+     "loopStart": 0,
+     "scaleNum": 1,
+     "scaleDen": 1,
+     "transpose": 0,
+     "quant": 0,
+     "notes": [
+      {
+       "tick": 0,
+       "gate": 36,
+       "pitch": 37,
+       "vel": 100
+      },
+      {
+       "tick": 78,
+       "gate": 36,
+       "pitch": 37,
+       "vel": 100
+      },
+      {
+       "tick": 144,
+       "gate": 36,
+       "pitch": 41,
+       "vel": 100
+      },
+      {
+       "tick": 240,
+       "gate": 36,
+       "pitch": 37,
+       "vel": 100
+      },
+      {
+       "tick": 318,
+       "gate": 36,
+       "pitch": 44,
+       "vel": 100
+      },
+      {
+       "tick": 384,
+       "gate": 36,
+       "pitch": 39,
+       "vel": 100
+      },
+      {
+       "tick": 462,
+       "gate": 36,
+       "pitch": 39,
+       "vel": 100
+      },
+      {
+       "tick": 528,
+       "gate": 36,
+       "pitch": 43,
+       "vel": 100
+      },
+      {
+       "tick": 624,
+       "gate": 36,
+       "pitch": 39,
+       "vel": 100
+      },
+      {
+       "tick": 702,
+       "gate": 36,
+       "pitch": 46,
+       "vel": 100
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "index": 2,
+   "name": "Organ",
+   "module": "dexed",
+   "drum": false,
+   "padNames": null,
+   "clips": [
+    {
+     "track": 2,
+     "slot": 0,
+     "len": 32,
+     "loopStart": 0,
+     "scaleNum": 1,
+     "scaleDen": 1,
+     "transpose": 0,
+     "quant": 0,
+     "notes": [
+      {
+       "tick": 0,
+       "gate": 36,
+       "pitch": 53,
+       "vel": 85
+      },
+      {
+       "tick": 0,
+       "gate": 36,
+       "pitch": 56,
+       "vel": 85
+      },
+      {
+       "tick": 0,
+       "gate": 36,
+       "pitch": 60,
+       "vel": 85
+      },
+      {
+       "tick": 0,
+       "gate": 36,
+       "pitch": 63,
+       "vel": 85
+      },
+      {
+       "tick": 72,
+       "gate": 36,
+       "pitch": 53,
+       "vel": 70
+      },
+      {
+       "tick": 72,
+       "gate": 36,
+       "pitch": 56,
+       "vel": 70
+      },
+      {
+       "tick": 72,
+       "gate": 36,
+       "pitch": 60,
+       "vel": 70
+      },
+      {
+       "tick": 72,
+       "gate": 36,
+       "pitch": 63,
+       "vel": 70
+      },
+      {
+       "tick": 240,
+       "gate": 36,
+       "pitch": 53,
+       "vel": 80
+      },
+      {
+       "tick": 240,
+       "gate": 36,
+       "pitch": 56,
+       "vel": 80
+      },
+      {
+       "tick": 240,
+       "gate": 36,
+       "pitch": 60,
+       "vel": 80
+      },
+      {
+       "tick": 240,
+       "gate": 36,
+       "pitch": 63,
+       "vel": 80
+      },
+      {
+       "tick": 384,
+       "gate": 36,
+       "pitch": 53,
+       "vel": 85
+      },
+      {
+       "tick": 384,
+       "gate": 36,
+       "pitch": 56,
+       "vel": 85
+      },
+      {
+       "tick": 384,
+       "gate": 36,
+       "pitch": 60,
+       "vel": 85
+      },
+      {
+       "tick": 384,
+       "gate": 36,
+       "pitch": 63,
+       "vel": 85
+      },
+      {
+       "tick": 456,
+       "gate": 36,
+       "pitch": 53,
+       "vel": 70
+      },
+      {
+       "tick": 456,
+       "gate": 36,
+       "pitch": 56,
+       "vel": 70
+      },
+      {
+       "tick": 456,
+       "gate": 36,
+       "pitch": 60,
+       "vel": 70
+      },
+      {
+       "tick": 456,
+       "gate": 36,
+       "pitch": 63,
+       "vel": 70
+      },
+      {
+       "tick": 624,
+       "gate": 36,
+       "pitch": 53,
+       "vel": 80
+      },
+      {
+       "tick": 624,
+       "gate": 36,
+       "pitch": 56,
+       "vel": 80
+      },
+      {
+       "tick": 624,
+       "gate": 36,
+       "pitch": 60,
+       "vel": 80
+      },
+      {
+       "tick": 624,
+       "gate": 36,
+       "pitch": 63,
+       "vel": 80
+      }
+     ]
+    },
+    {
+     "track": 2,
+     "slot": 1,
+     "len": 32,
+     "loopStart": 0,
+     "scaleNum": 1,
+     "scaleDen": 1,
+     "transpose": 0,
+     "quant": 0,
+     "notes": [
+      {
+       "tick": 0,
+       "gate": 36,
+       "pitch": 49,
+       "vel": 85
+      },
+      {
+       "tick": 0,
+       "gate": 36,
+       "pitch": 53,
+       "vel": 85
+      },
+      {
+       "tick": 0,
+       "gate": 36,
+       "pitch": 56,
+       "vel": 85
+      },
+      {
+       "tick": 0,
+       "gate": 36,
+       "pitch": 60,
+       "vel": 85
+      },
+      {
+       "tick": 72,
+       "gate": 36,
+       "pitch": 49,
+       "vel": 70
+      },
+      {
+       "tick": 72,
+       "gate": 36,
+       "pitch": 53,
+       "vel": 70
+      },
+      {
+       "tick": 72,
+       "gate": 36,
+       "pitch": 56,
+       "vel": 70
+      },
+      {
+       "tick": 72,
+       "gate": 36,
+       "pitch": 60,
+       "vel": 70
+      },
+      {
+       "tick": 240,
+       "gate": 36,
+       "pitch": 49,
+       "vel": 80
+      },
+      {
+       "tick": 240,
+       "gate": 36,
+       "pitch": 53,
+       "vel": 80
+      },
+      {
+       "tick": 240,
+       "gate": 36,
+       "pitch": 56,
+       "vel": 80
+      },
+      {
+       "tick": 240,
+       "gate": 36,
+       "pitch": 60,
+       "vel": 80
+      },
+      {
+       "tick": 384,
+       "gate": 36,
+       "pitch": 51,
+       "vel": 85
+      },
+      {
+       "tick": 384,
+       "gate": 36,
+       "pitch": 55,
+       "vel": 85
+      },
+      {
+       "tick": 384,
+       "gate": 36,
+       "pitch": 58,
+       "vel": 85
+      },
+      {
+       "tick": 384,
+       "gate": 36,
+       "pitch": 62,
+       "vel": 85
+      },
+      {
+       "tick": 456,
+       "gate": 36,
+       "pitch": 51,
+       "vel": 70
+      },
+      {
+       "tick": 456,
+       "gate": 36,
+       "pitch": 55,
+       "vel": 70
+      },
+      {
+       "tick": 456,
+       "gate": 36,
+       "pitch": 58,
+       "vel": 70
+      },
+      {
+       "tick": 456,
+       "gate": 36,
+       "pitch": 62,
+       "vel": 70
+      },
+      {
+       "tick": 624,
+       "gate": 36,
+       "pitch": 51,
+       "vel": 80
+      },
+      {
+       "tick": 624,
+       "gate": 36,
+       "pitch": 55,
+       "vel": 80
+      },
+      {
+       "tick": 624,
+       "gate": 36,
+       "pitch": 58,
+       "vel": 80
+      },
+      {
+       "tick": 624,
+       "gate": 36,
+       "pitch": 62,
+       "vel": 80
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

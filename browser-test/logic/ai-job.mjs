@@ -53,6 +53,10 @@ let st = boot(false);
 startAiJob('quantize', 0, 0);
 eq('no_key_toasts_and_stays_idle: phase', aiPhase(), 'idle');
 eq('no_key_toasts_and_stays_idle: toast', seqToastText(), 'NO API KEY — MOVE.LOCAL:7700');
+st.fs.files[MOD + '/ai-fake-response.json'] = GOOD;
+startAiJob('quantize', 0, 0);
+eq('a fake reply needs no key (device scenarios)', aiPhase(), 'running');
+aiCancel();
 done(st);
 
 st = boot();

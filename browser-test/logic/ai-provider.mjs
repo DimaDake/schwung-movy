@@ -61,6 +61,10 @@ fs.files[MOD + '/ai-fake-response.json'] = 'FAKE';
 const id3 = startHttp({ url: 'https://x', headers: [], body: 'B3' }, MOD);
 eq('fake_response_bypasses_host: no curl', sent, null);
 eq('fake_response_bypasses_host: reply', pollHttp(id3)?.body, 'FAKE');
+fs.files[MOD + '/ai-fake-response.json'] = '';
+sent = null;
+startHttp({ url: 'https://x', headers: [], body: 'B4' }, MOD);
+ok('an emptied fake file is no fake (scenario cleanup)', sent !== null);
 delete globalThis.host_http_request_background;
 uninstallMockFs();
 }

@@ -17,6 +17,12 @@ const TIMEOUT_S = 60;
 let nextId = 1;
 let liveId = -1;
 
+/** The canned reply, or '' when there is none (an emptied file is none, so a
+ *  scenario cleans up with a write — the host API has no file delete). */
+export function fakeResponse(moduleDir: string): string {
+    return platform.readFile(moduleDir + '/' + FAKE_RESPONSE) ?? '';
+}
+
 export interface HttpReply { http: number; curlExit: number; body: string }
 
 function paths(id: number): { dir: string; body: string; resp: string; status: string } {
@@ -30,8 +36,8 @@ export function startHttp(req: AiHttpRequest, moduleDir: string): number {
     const p = paths(id);
     platform.removeDir(AI_DIR);
     if (!platform.ensureDir(AI_DIR) || !platform.ensureDir(p.dir) || !platform.writeFile(p.body, req.body)) return -1;
-    const fake = platform.readFile(moduleDir + '/' + FAKE_RESPONSE);
-    if (fake !== null) {
+    const fake = fakeResponse(moduleDir);
+    if (fake) {
         platform.writeFile(p.resp, fake);
         platform.writeFile(p.status, '{"http_status":200,"curl_exit":0}');
     } else if (!platform.httpStart({ url: req.url, method: 'POST', headers: req.headers, bodyPath: p.body,

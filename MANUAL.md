@@ -43,6 +43,7 @@ official docs first:
    - [Sets](#sets--shift--step-1)
    - [Settings](#settings--shift--step-2)
 6a. [Undo & redo](#6a-undo--redo)
+6b. [AI: Smart Quantize & Variation](#6b-ai-smart-quantize--variation)
 7. [Limitations vs Move](#7-limitations-vs-move)
 8. [Controls reference](#8-controls-reference)
 9. [Troubleshooting & recovery](#9-troubleshooting--recovery)
@@ -1224,7 +1225,9 @@ any time.
   a take without flattening the feel out of it.
 
 **Shift + Step 16** cycles the current clip through **0 % → the set default →
-100 %**, and shows the choices for a moment. `DEF` marks the default:
+100 %**, and shows the choices for a moment. In Track view it cycles when you
+**let go** of Step 16: **holding** it instead starts
+[Smart Quantize](#6b-ai-smart-quantize--variation). `DEF` marks the default:
 
 ![Quantize overlay](docs/assets/quant-overlay-three.png)
 
@@ -1764,6 +1767,94 @@ contents, a parameter the module doesn't publish — can't come back.
 
 ---
 
+## 6b. AI: Smart Quantize & Variation
+
+Movy can send your Set to a language model and get back **three takes on one
+clip**, each grown from what you played. You always see them before
+anything changes, alongside your **ORIG**inal. The AI never writes from nothing.
+Smart Quantize starts from the clip you recorded, and Variation starts from
+another clip already on the track.
+
+### Setting it up
+
+You need an API key. A **Gemini key is free** from Google AI Studio
+(aistudio.google.com/apikey). With Movy installed, open
+**`move.local:7700/modules/movy`** in a browser, pick the provider (Gemini or
+OpenAI), and paste the key. The key is stored on the Move and never shown
+again. If there is no key, the AI gestures say `NO API KEY  MOVE.LOCAL:7700`.
+
+**What is sent:** every clip of every track (notes, lengths, playback speed,
+transpose), each track's module name and drum voice names, and the Set's tempo,
+swing and key. A track's identical clips are sent once. Movy also adds the
+chord it hears in each bar. No audio and no names other than modules leave the
+Move. Requests go straight from the Move to the provider you picked, over the
+Move's own Wi-Fi.
+
+### Smart Quantize: Shift + hold Step 16
+
+Record something rough, then **hold Shift and hold Step 16**. A tap still
+cycles the clip's quantization as before. After a moment a bar fills along the
+bottom of the screen, and when it is full the request goes. Let go before the
+bar is full and nothing happens, not even the plain quantize:
+
+![Hold to Smart Quantize](docs/assets/ai_hold_progress_50.png)
+
+The three options go from careful to bold:
+
+| Option | Melodic tracks | Drum tracks |
+| --- | --- | --- |
+| **1** | Timing tightened to the scene's groove, wrong or clashing notes moved to ones that fit. | Timing and velocity only. Every hit stays on its pad. |
+| **2** | The idea developed: chords voiced or filled out, rhythm locked to the drums and bass. | Groove tightened to the other tracks, ghost notes and accents reshaped. |
+| **3** | The idea as a seed: reharmonised within the key, rhythms borrowed from other tracks. | A bolder take on the groove. |
+
+On drums, options 2 and 3 move a hit to another pad only where it clearly helps,
+and only to a pad the kit already uses.
+
+### Variation: Shift + Step 14
+
+You have an A part and want a B. Select a clip slot on the track, **empty or
+not**, and press **Shift + Step 14**. Step 14's light is dim white under Shift
+whenever the track has another clip to vary from. The variation grows from
+the nearest clip **above** the slot (or below, if there is none above), keeps
+that clip's playback speed, and takes its length too, unless the slot already
+has a clip. In that case it replaces that clip at the same length, and ORIG
+gets it back.
+
+It fits what the other tracks play in the target scene. If they have nothing
+there yet, it moves on from the source clip's scene, so you can build a B
+section one track at a time. On melodic tracks at least one option changes the
+chords within the key; on drums the options change the pattern.
+
+### While it works
+
+The screen shows `QUANTIZING...` or `VARIATION...`, every light goes dark
+except **Back**, and a slow band sweeps across the pads. The sequencer keeps
+playing. **Back** cancels and leaves the clip untouched. A request usually
+takes a few seconds:
+
+![Working](docs/assets/ai_running_quant.png)
+
+If it fails, a message says why (`NO NETWORK`, `AI BUSY, TRY LATER` when the
+free quota is used up, or `AI ERROR`), and the clip is unchanged.
+
+### Choosing
+
+The clip's notes fill the screen, with `AI  ORIG  1  2  3` along the bottom.
+It opens on option 1:
+
+![Preview](docs/assets/ai_preview_opt1.png)
+
+- **Turn the jog** to hear ORIG, 1, 2 or 3. The clip swaps in place and keeps
+  playing in time.
+- **Edit freely** with the pads, steps and held-step edits. Each option keeps its
+  own edits: change option 2, look at 3, come back, and 2 is as you left it.
+- **Click the jog** (or press **Back**) to keep what is showing. Switching
+  track or clip, or leaving the view, keeps it too.
+- **Undo** afterwards takes the whole thing back in one step, to the clip as it
+  was before the AI ran.
+
+---
+
 ## 7. Limitations vs Move
 
 Movy aims to match Move, but it's an early prototype and several things are
@@ -1882,8 +1973,10 @@ only.
 | **Shift + Step 6** | Toggle the **metronome**. |
 | **Shift + Step 10** | Toggle **full velocity** — every pad note at 127. Kept across sets and restarts. |
 | **Shift + Step 12** | Open the **CPU meter** (per-track and per-send cost, block usage). Press again to clear the held peaks. |
+| **Shift + Step 14** | **AI Variation** of the track's previous clip into the selected slot (Track view; lit dim white when possible). See [AI](#6b-ai-smart-quantize--variation). |
 | **Shift + Step 15** | **Double** the loop. |
-| **Shift + Step 16** | Cycle the current clip's **quantization** (0 / default / 100 %). |
+| **Shift + Step 16** | Cycle the current clip's **quantization** (0 / default / 100 %), on release in Track view. |
+| **Shift + hold Step 16** | **Smart Quantize** with AI (Track view). See [AI](#6b-ai-smart-quantize--variation). |
 
 ---
 

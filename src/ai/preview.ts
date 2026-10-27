@@ -5,6 +5,7 @@
  * plays as written). Everything from open to commit is ONE undo entry. */
 
 import { appState } from '../app/state.js';
+import { mlog } from '../log.js';
 import { seqCmd } from '../seq/engine.js';
 import { seqState } from '../seq/state.js';
 import { watchedTrack } from '../seq/watch.js';
@@ -53,6 +54,7 @@ export function openPreview(p: AiPreviewInput): void {
         close: CLOSE.IMMEDIATE, seq: true });
     holdGroup(key);
     cur = { p, index: 0, visited: [true, false, false, false], sig: sig(p.track) };
+    mlog(`ai: preview t${p.track} s${p.slot} ${p.options.length} options`);
     go(cur, 1);
 }
 
@@ -62,8 +64,9 @@ export function previewSwitch(delta: number): void {
 }
 
 /** Keep what is showing, edits and all. */
-export function commitPreview(): void {
+export function commitPreview(why = 'commit'): void {
     if (!cur) return;
+    mlog(`ai: preview kept option ${cur.index} (${why})`);
     cur = null;
     seqCmd('aiclr');
     releaseHold(true);
@@ -73,7 +76,9 @@ export function commitPreview(): void {
 
 /** Per tick; one string compare while previewing, nothing otherwise. */
 export function aiPreviewTick(): void {
-    if (cur && sig(cur.p.track) !== cur.sig) commitPreview();
+    if (!cur) return;
+    const now = sig(cur.p.track);
+    if (now !== cur.sig) commitPreview(`left: ${cur.sig} -> ${now}`);
 }
 
 /** Jog turn switches, jog click and Back commit, the knobs are idle; every
@@ -82,7 +87,7 @@ export function previewInput(data: number[]): boolean {
     if (!cur || (data[0] & 0xF0) !== 0xB0) return false;
     const [, cc, v] = data;
     if (cc === MoveMainKnob) { previewSwitch(decodeDelta(v)); return true; }
-    if (cc === MoveMainButton || cc === MoveBack) { if (v > 0) commitPreview(); return true; }
+    if (cc === MoveMainButton || cc === MoveBack) { if (v > 0) commitPreview(cc === MoveBack ? 'back' : 'jog click'); return true; }
     return cc >= 71 && cc <= 78;
 }
 

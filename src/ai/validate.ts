@@ -1,10 +1,15 @@
 /* The model is never trusted (design §6.3): every option is clamped into the
  * clip, drum quantize option 1 keeps every pad, other drum options stay on
  * the kit, and empty or duplicate options, or a copy of ORIG (already the
- * strip's first entry), are dropped before the preview. */
+ * strip's first entry), are dropped before the preview. A Variation option
+ * that breaks the source's role or is a clip of the track again is dropped
+ * too (plans/2026-10-27-variation-eight-options.md). */
 
 import { type AiNote, TICKS_PER_STEP } from './clip-dump.js';
+import { optionCount } from './ladders.js';
 import type { AiTask } from './prompt.js';
+import { roleBreak, roleOf, saneNote } from './role.js';
+import { isSameLoop, loopMatch, NEAR_DUP } from './same-loop.js';
 
 export interface ValidateCtx {
     task: AiTask;
@@ -13,7 +18,13 @@ export interface ValidateCtx {
     original: AiNote[];
     kitPads: number[];      // empty = do not filter
     units?: 'steps' | 'ticks';   // what the prompt asked for (prompt.ts); default ticks
+    source?: AiNote[];      // Variation: the clip it grows from (its role is kept)
+    loops?: AiNote[][];     // Variation: the track's clips no option may repeat
 }
+
+/** The surviving options, the ladder slot (0-based) each answered, and why
+ *  the others were dropped (`<slot+1>:<why>`). */
+export interface Validated { options: AiNote[][]; slots: number[]; dropped: string[] }
 
 export const MAX_NOTES = 512;   // the engine's own cap (clip.rs MAX_NOTES)
 
@@ -72,23 +83,39 @@ function key(notes: AiNote[]): string {
     return notes.map((n) => `${n.tick}.${n.gate}.${n.pitch}.${n.vel}`).join(',');
 }
 
-export function validateOptions(raw: string, ctx: ValidateCtx): AiNote[][] {
+export function validateReply(raw: string, ctx: ValidateCtx): Validated {
     const end = ctx.len * TICKS_PER_STEP;
     const kit = new Set(ctx.kitPads);
     const seen = new Set<string>([key([...ctx.original].sort((a, b) => a.tick - b.tick || a.pitch - b.pitch))]);
-    const out: AiNote[][] = [];
-    parseReply(raw).slice(0, 3).forEach((opt, i) => {
+    const variation = ctx.task === 'variation';
+    const role = variation && ctx.source ? roleOf(ctx.source, ctx.len, ctx.drum) : null;
+    const loops = variation ? ctx.loops ?? (ctx.source ? [ctx.source] : []) : [];
+    const out: Validated = { options: [], slots: [], dropped: [] };
+    parseReply(raw).slice(0, optionCount(ctx.task)).forEach((opt, i) => {
         const list = (opt as { notes?: unknown })?.notes;
-        if (!Array.isArray(list)) return;
+        const drop = (why: string) => { out.dropped.push(`${i + 1}:${why}`); };
+        if (!Array.isArray(list)) return drop('no notes');
         let notes = list.map((x) => toNote(x, ctx.units === 'steps' ? TICKS_PER_STEP : 1)).filter((n): n is AiNote => n !== null)
             .map((n) => clampNote(n, end)).filter((n): n is AiNote => n !== null);
         if (ctx.drum && ctx.task === 'quantize' && i === 0) notes = keepPads(notes, ctx.original);
         else if (ctx.drum && kit.size) notes = notes.filter((n) => kit.has(n.pitch));
-        notes = notes.sort((a, b) => a.tick - b.tick || a.pitch - b.pitch).slice(0, MAX_NOTES);
+        const ref = variation ? ctx.source ?? [] : ctx.original;
+        notes = notes.map((n) => saneNote(n, ref, ctx.drum)).filter((n): n is AiNote => n !== null)
+            .sort((a, b) => a.tick - b.tick || a.pitch - b.pitch).slice(0, MAX_NOTES);
         const k = key(notes);
-        if (!notes.length || seen.has(k)) return;
+        if (!notes.length) return drop('empty');
+        if (seen.has(k)) return drop('copy');
+        const broke = role ? roleBreak(notes, role, ctx.len) : null;
+        if (broke) return drop('role ' + broke);
+        if (isSameLoop(notes, loops, ctx.len, ctx.drum)) return drop('same loop');
+        if (variation && out.options.some((o) => loopMatch(notes, o, ctx.len, 'still') >= NEAR_DUP)) return drop('near copy');
         seen.add(k);
-        out.push(notes);
+        out.options.push(notes);
+        out.slots.push(i);
     });
     return out;
+}
+
+export function validateOptions(raw: string, ctx: ValidateCtx): AiNote[][] {
+    return validateReply(raw, ctx).options;
 }

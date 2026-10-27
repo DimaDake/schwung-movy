@@ -4,11 +4,14 @@
  * and repeat reports cost no quota. Never calls a Pro model.
  *
  *   GEMINI_KEY_FILE=<path> node scripts/gen-bench/run.mjs --models a,b \
- *       [--cases <substring>] [--level BALANCED] [--repeat 1] --label <name>
+ *       [--cases <substring>] [--level BALANCED] [--repeat 1] [--budget 150] --label <name>
  *   GEN_STYLE='{"units":"ticks"}' turns one prompt switch (prompt.ts PromptStyle);
  *   GEN_TEMP=1.0 overrides the level's temperature, for an A/B.
  *   GEN_NAMES=device names tracks the way a Move Set does (Track N, a synth
  *   module) instead of the cases' role names (Bass, Piano, gm-<program>).
+ *   --budget N (default 150) stops asking after N uncached requests: the free
+ *   quota is per key per day, and a bench on the device's key left the Move on
+ *   its fallback model all evening (2026-10-27). Prefer a second key.
  */
 import { createHash } from 'node:crypto';
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -31,10 +34,13 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const GAP_MS = 4500;            // ~13 requests a minute per model: under the free tier's 15 RPM
 const TIMEOUT_MS = 60_000;      // the Move's curl timeout
 
-async function call(req, model, run) {
+/** The reply, from the cache when it has one; null when only the cache may
+ *  answer (the budget is spent) and it has none. */
+async function call(req, model, run, cachedOnly = false) {
     const key = cacheKey(model, req.body, run);
     const file = ROOT + 'cache/' + key + '.json';
     if (existsSync(file)) return { ...JSON.parse(readFileSync(file, 'utf8')), cached: true };
+    if (cachedOnly) return null;
     const headers = Object.fromEntries(req.headers.map((h) => [h.slice(0, h.indexOf(':')), h.slice(h.indexOf(':') + 1).trim()]));
     let out;
     for (let attempt = 0; attempt < 3; attempt++) {
@@ -65,6 +71,8 @@ export function asOnDevice(set) {
         module: t.drum ? 'drumrack' : /^gm-/.test(t.module) ? 'obxd' : t.module })) };
 }
 
+const spent = { n: 0 };
+
 async function runModel(ai, model, cases, opt, key, sink) {
     let failsInRow = 0;
     for (let run = 0; run < opt.repeat; run++) {
@@ -76,19 +84,29 @@ async function runModel(ai, model, cases, opt, key, sink) {
             const len = 32;
             const units = opt.style.units ?? ai.DEFAULT_STYLE?.units ?? 'ticks';
             const set = opt.deviceNames ? asOnDevice(c.set) : c.set;
-            const prompt = ai.buildPrompt(c.task, ai.buildContext({ ...set, units }), { len, drum: c.drum, level: opt.level, style: opt.style });
+            const facts = c.task === 'variation' ? ai.variationFacts(set, len) : undefined;
+            const prompt = ai.buildPrompt(c.task, ai.buildContext({ ...set, units }), { len, drum: c.drum, level: opt.level, style: opt.style, facts });
             const temp = process.env.GEN_TEMP ? Number(process.env.GEN_TEMP) : ai.LEVEL_TEMPERATURE?.[opt.level];
             const req = ai.buildRequest({ model, key }, prompt, temp);
-            const res = await call(req, model, run);
+            const cachedOnly = spent.n >= opt.budget;
+            const res = await call(req, model, run, cachedOnly);
+            if (!res) {
+                sink({ id: c.id, model, kind: c.kind, genre: c.genre, run, ok: false, status: 'SKIPPED (budget)', ms: 0, cached: true });
+                continue;
+            }
+            if (!res.cached) spent.n++;
             const status = ai.classifyStatus(res.http, res.curlExit);
             const row = { id: c.id, model, kind: c.kind, genre: c.genre, run, ok: status === 'ok', status, ms: res.ms, cached: !!res.cached };
             if (row.ok) {
                 const text = ai.extractText(res.body) ?? '';
                 const kit = [...new Set(c.input.map((n) => n.pitch))];
-                const options = ai.validateOptions(text, { task: c.task, len, drum: c.drum, original: c.input,
-                    kitPads: c.drum ? kit : [], units: prompt.units });
-                Object.assign(row, { options: options.length },
-                    scoreReply(options, { set: c.set, input: c.input, reference: c.reference, a: c.a, len, drum: c.drum, task: c.task }));
+                const v = ai.validateReply(text, { task: c.task, len, drum: c.drum, original: c.input,
+                    kitPads: c.drum ? kit : [], units: prompt.units, source: facts?.source, loops: facts?.loops });
+                const options = v.options;
+                Object.assign(row, { options: options.length, expected: ai.optionCount(c.task),
+                    dropped: v.dropped.map((d) => d.slice(d.indexOf(':') + 1)) },
+                    scoreReply(options, { set: c.set, input: c.input, reference: c.reference, a: c.a, len, drum: c.drum, task: c.task,
+                        expected: ai.optionCount(c.task) }));
                 const usage = JSON.parse(res.body).usageMetadata;
                 row.tokens = usage ? usage.candidatesTokenCount + (usage.thoughtsTokenCount ?? 0) : null;
             }
@@ -111,6 +129,7 @@ async function main() {
     const label = args.label || 'run';
     /* GEN_STYLE='{"units":"ticks"}' etc.: one prompt switch off, for an A/B. */
     const opt = { level: args.level || 'BALANCED', repeat: Number(args.repeat || 1), style: JSON.parse(process.env.GEN_STYLE || '{}'),
+        budget: Number(args.budget || 150),
         deviceNames: process.env.GEN_NAMES === 'device' };
     const key = readFileSync(process.env.GEMINI_KEY_FILE, 'utf8').trim();
     const ai = await import('../../dist/esm/ai/index.js');

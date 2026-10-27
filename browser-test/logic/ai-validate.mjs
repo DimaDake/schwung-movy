@@ -8,16 +8,17 @@ import { _log, eq, ok } from './harness.mjs';
 import { buildPrompt, validateOptions, buildRequest, buildContext, LEVEL_TEMPERATURE } from '../../dist/esm/ai/index.js';
 
 const orig = [{ tick: 0, gate: 12, pitch: 36, vel: 100 }, { tick: 96, gate: 12, pitch: 38, vel: 100 }];
-const mel = { task: 'quantize', len: 16, drum: false, original: orig, kitPads: [] };
+const melOrig = [{ tick: 0, gate: 12, pitch: 60, vel: 100 }, { tick: 96, gate: 12, pitch: 62, vel: 100 }];
+const mel = { task: 'quantize', len: 16, drum: false, original: melOrig, kitPads: [] };
 const reply = (...opts) => JSON.stringify({ options: opts.map((notes) => ({ label: 'x', notes })) });
 
 export async function run() {
 _log('\nTest: AI validate');
 
 let v = validateOptions(reply([[0, 24, 60, 100], [384, 24, 62, 100], [-5, 24, 64, 100]],
-    [[380, 50, 200, 0]], [[10, 0, 61, 90]]), mel);
+    [[380, 50, 40, 0], [380, 50, 200, 90]], [[10, 0, 61, 90]]), mel);
 eq('rejects_out_of_clip_notes: option 1 keeps the in-clip note', JSON.stringify(v[0]), '[{"tick":0,"gate":24,"pitch":60,"vel":100}]');
-eq('rejects_out_of_clip_notes: clamps gate/pitch/vel', JSON.stringify(v[1]), '[{"tick":380,"gate":4,"pitch":127,"vel":1}]');
+eq('rejects_out_of_clip_notes: clamps gate/vel, drops a pitch far outside the part', JSON.stringify(v[1]), '[{"tick":380,"gate":4,"pitch":40,"vel":1}]');
 eq('rejects_out_of_clip_notes: gate 0 -> 1', v[2][0].gate, 1);
 
 v = validateOptions(reply([], [[0, 24, 60, 100]], [[999, 1, 1, 1]]), mel);
@@ -45,14 +46,14 @@ v = validateOptions(reply([[0, 24, 60, 100], [24, 24, 62, 100]], [[24, 24, 62, 1
 eq('dedupes_identical_options', v.length, 2);
 
 /* ORIG is already the strip's first entry: a copy of it is no option. */
-v = validateOptions(reply([[96, 12, 38, 100], [0, 12, 36, 100]], [[0, 12, 36, 100]]), mel);
-eq('drops_option_identical_to_orig', JSON.stringify(v), '[[{"tick":0,"gate":12,"pitch":36,"vel":100}]]');
+v = validateOptions(reply([[96, 12, 62, 100], [0, 12, 60, 100]], [[0, 12, 60, 100]]), mel);
+eq('drops_option_identical_to_orig', JSON.stringify(v), '[[{"tick":0,"gate":12,"pitch":60,"vel":100}]]');
 
 const many = Array.from({ length: 700 }, (_, i) => [i, 1, 60, 100]);
 eq('caps notes at the engine MAX_NOTES', validateOptions(reply(many), { ...mel, len: 64 })[0].length, 512);
 
 const pv = buildPrompt('variation', 'CTX', { len: 32, drum: false });
-ok('prompt_mentions_harmony_option_for_variation', /at least one option[^.]*harmon/i.test(pv.user));
+ok('prompt: a free target scene asks for new chords on some options', /options 1, 3, 5 and 7 move to new\s+chords/i.test(pv.user));
 ok('prompt carries the context', pv.user.includes('CTX'));
 ok('variation_points_at_target_scene_chords', /chords of the \[TARGET\] scene in HARMONY/.test(pv.user));
 ok('prompt states the step range', /0 to under 32/.test(pv.user));

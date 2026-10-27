@@ -8,7 +8,7 @@
 import { _log, eq, ok, installMockEngine, uninstallMockEngine, seqEngineTick, resetSeqEngine,
     appState, selectTrack, undoDepth, beginEdit, endEdit, CLOSE, resetUndoState, resetUndoGroups, undoOnce } from './harness.mjs';
 import { openPreview, previewIndex, previewSwitch, commitPreview, aiPreviewTick as previewTick, previewInput,
-    aiPhase, aiSetWillChange, resetAiJob, aiPreviewActive } from '../../dist/esm/ai/index.js';
+    aiPhase, aiSetWillChange, resetAiJob, aiPreviewActive, previewLabels } from '../../dist/esm/ai/index.js';
 import { seqState } from '../../dist/esm/seq/state.js';
 
 const N = (p) => [{ tick: 0, gate: 24, pitch: p, vel: 100 }];
@@ -118,6 +118,24 @@ boot();
 aiSetWillChange();
 eq('set_change_aborts_running_commits_preview', aiPreviewActive(), false);
 ok('set change commit clears the stash', ops().includes('aiclr'));
+done();
+
+/* Variation's eight, two dropped by the validator (plans/2026-10-27-variation-
+ * eight-options.md): every one reachable and stashable, labels keep the slots. */
+boot();
+commitPreview();
+ops();
+openPreview({ ...input(), task: 'variation', options: [60, 62, 64, 65, 67, 69].map(N), slots: [0, 1, 2, 3, 5, 7] });
+eq('eight: strip labels are the ladder slots', previewLabels().join(' '), '1 2 3 4 6 8');
+previewSwitch(9);
+eq('eight: the jog reaches the last option', previewIndex(), 6);
+o = ops();
+ok('eight: the last option is written fresh', o.includes('aiclip 0 0 16 1 2 0 0.24.69.100'));
+previewSwitch(-1);
+o = ops();
+ok('eight: the engine stash takes slot 6', o.includes('aistash 0 0 6'));
+previewSwitch(1);
+ok('eight: and gives it back', ops().includes('aiload 0 0 6'));
 done();
 resetUndoState(); resetUndoGroups();
 }

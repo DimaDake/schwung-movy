@@ -43,7 +43,7 @@ const PRESETS = [
     'note_view_bass', 'note_view_chords', 'note_view_drums', 'note_view_plus', 'note_view_dense', 'note_view_wide',
     'song_band', 'song_band_overflow', 'song_band_end',
     'quant-overlay-three', 'quant-overlay-two', 'flags-top', 'flags-scrolled', 'flags-generators',
-    'ai_running_quant', 'ai_running_var', 'ai_error_nokey', 'ai_preview_orig', 'ai_preview_opt1', 'ai_preview_opt3', 'ai_hold_progress_50', 'ai_hold_variation_50',
+    'ai_running_quant', 'ai_running_var', 'ai_error_nokey', 'ai_preview_orig', 'ai_preview_opt1', 'ai_preview_opt3', 'ai_preview_var8', 'ai_hold_progress_50', 'ai_hold_variation_50',
     'cpu-movy-tracks', 'cpu-unsplit-module', 'cpu-overscale',
     'cpu-empty', 'cpu-sends', 'cpu-sends-quiet', 'cpu-master', 'leave_modal',
     'power_modal', 'capture_select', 'capture_fixed', 'undo_toast', 'redo_toast',
@@ -105,7 +105,7 @@ const BASE = {
                                 'quant-overlay-three': 'test8', 'quant-overlay-two': 'test8',
     'flags-top': 'test8', 'flags-scrolled': 'test8', 'flags-generators': 'test8',
     ai_running_quant: 'test8', ai_running_var: 'test8', ai_error_nokey: 'test8',
-    ai_preview_orig: 'test8', ai_preview_opt1: 'test8', ai_preview_opt3: 'test8', ai_hold_progress_50: 'test8', ai_hold_variation_50: 'test8',
+    ai_preview_orig: 'test8', ai_preview_opt1: 'test8', ai_preview_opt3: 'test8', ai_preview_var8: 'test8', ai_hold_progress_50: 'test8', ai_hold_variation_50: 'test8',
                                                                             lfo_chain: 'test8',         lfo_assign_toast: 'test8',
     leave_modal: 'test8', power_modal: 'test8',
     master_volume: 'test8',
@@ -520,9 +520,12 @@ function applyView(preset) {
         }
         /* The preview (design §5.2): the candidate in the note view, the
          * selector in the bottom band with the option showing boxed. */
-        case 'ai_preview_orig': case 'ai_preview_opt1': case 'ai_preview_opt3': {
+        case 'ai_preview_orig': case 'ai_preview_opt1': case 'ai_preview_opt3': case 'ai_preview_var8': {
             const sc = NOTE_VIEW_SCENES.note_view_chords;
-            const idx = { ai_preview_orig: 0, ai_preview_opt1: 1, ai_preview_opt3: 3 }[preset];
+            const idx = { ai_preview_orig: 0, ai_preview_opt1: 1, ai_preview_opt3: 3, ai_preview_var8: 6 }[preset];
+            /* Variation's eight with option 5 dropped by the validator:
+             * the strip keeps the ladder numbers, option 7 showing. */
+            const labels = preset === 'ai_preview_var8' ? ['1', '2', '3', '4', '6', '7', '8'] : ['1', '2', '3'];
             resetSeqState(); resetSeqHeader(); resetNoteView();
             seqState.loopMode = true;
             seqState.loopStart = sc.loopStart; seqState.lenSteps = sc.lenSteps;
@@ -530,7 +533,7 @@ function applyView(preset) {
             seqState.playing = true; seqState.posTick = sc.posTick;
             seqState.noteHash = preset;
             seedNoteViewForTest(sc.notes);
-            lastRender = () => { clear_screen(); noteViewTick(true); drawPreviewStrip(idx, 3); };
+            lastRender = () => { clear_screen(); noteViewTick(true); drawPreviewStrip(idx, labels); };
             lastRender();
             break;
         }

@@ -1,4 +1,5 @@
-/* The AI preview (design §5.2): ORIG + up to three options for one clip.
+/* The AI preview (design §5.2): ORIG + up to three Smart Quantize or eight
+ * Variation options for one clip.
  * The engine stashes a full copy of the clip per option (aistash/aiload), so
  * moving away from an option and back finds it exactly as edited; an option
  * never visited is written fresh (aiclip, quantize 0 so the model's timing
@@ -26,6 +27,11 @@ let cur: Open | null = null;
 export function aiPreviewActive(): boolean { return cur !== null; }
 export function previewIndex(): number { return cur ? cur.index : -1; }
 export function previewCount(): number { return cur ? cur.p.options.length : 0; }
+/** Strip labels: each option's ladder number, so a dropped option leaves a
+ *  gap instead of renumbering (7-8 stay the experimental ones). */
+export function previewLabels(): string[] {
+    return cur ? cur.p.options.map((_, i) => String((cur!.p.slots?.[i] ?? i) + 1)) : [];
+}
 
 /* Switching track or clip, the view, or Session commits (design §5.2). Song
  * mode moving the PLAYING clip does not: that is not the user leaving. */
@@ -53,7 +59,7 @@ export function openPreview(p: AiPreviewInput): void {
     beginEdit({ key, verb: p.task === 'quantize' ? 'SMART QUANT' : 'VARIATION', target: trackLabel(p.track),
         close: CLOSE.IMMEDIATE, seq: true });
     holdGroup(key);
-    cur = { p, index: 0, visited: [true, false, false, false], sig: sig(p.track) };
+    cur = { p, index: 0, visited: [true, ...p.options.map(() => false)], sig: sig(p.track) };
     mlog(`ai: preview t${p.track} s${p.slot} ${p.options.length} options`);
     go(cur, 1);
 }

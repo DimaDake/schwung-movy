@@ -6,6 +6,14 @@ const pct = (a, b) => (b ? Math.round((100 * a) / b) + '%' : '-');
 const f2 = (v) => (v === null || v === undefined || Number.isNaN(v) ? '-' : v.toFixed(2));
 const quantile = (a, q) => { const s = [...a].sort((x, y) => x - y); return s.length ? s[Math.min(s.length - 1, Math.floor(q * s.length))] : null; };
 
+/* Why the validator dropped options, most common first: role breaks and
+ * same loops are what the model still gets wrong. */
+function topDrops(rows) {
+    const n = new Map();
+    for (const d of rows.flatMap((r) => r.dropped ?? [])) n.set(d, (n.get(d) ?? 0) + 1);
+    return [...n].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([k, v]) => `${k} ${v}`).join(', ') || '-';
+}
+
 function summarise(rows) {
     const ok = rows.filter((r) => r.ok);
     const opt = (k, i) => mean(ok.map((r) => r.perOption?.[i]?.[k]).filter((v) => typeof v === 'number'));
@@ -14,6 +22,8 @@ function summarise(rows) {
         fail: pct(rows.length - ok.length, rows.length),
         alignment: mean(ok.map((r) => r.alignment).filter((v) => typeof v === 'number')),
         gate: pct(ok.filter((r) => r.gatePassed).length, ok.length),
+        kept: mean(ok.map((r) => r.kept).filter((v) => typeof v === 'number')),
+        dropped: topDrops(ok),
         fit: mean(ok.flatMap((r) => r.perOption.map((p) => p.fit)).filter((v) => typeof v === 'number')),
         groove: mean(ok.flatMap((r) => r.perOption.map((p) => p.groove)).filter((v) => typeof v === 'number')),
         idea: [0, 1, 2].map((i) => f2(opt('ideaKept', i))).join(' / '),
@@ -31,14 +41,15 @@ export function renderReport(label, rows, meta = {}) {
         `Level ${meta.level ?? '-'}, ${meta.cases ?? '-'} cases, ${meta.repeat ?? 1} run(s) each. `
             + `Missing sources: ${(meta.missing ?? []).join(', ') || 'none'}.`, '',
         '**Alignment** (headline) = best option\'s recovery of the clean part (messy quantize) or alignment with '
-            + 'the real B (variation), 0-1. **Gate** = all three options usable and pairwise different. '
+            + 'the real B (variation), 0-1. **Gate** = enough options survive (all 3, or 6 of Variation\'s 8), all usable and pairwise different. '
+            + '**Kept** = share of the asked options the validator kept; **dropped** = its most common reasons. '
             + 'Fit/groove are diagnostics. Idea kept per option 1 / 2 / 3. Latency excludes cached replies.', ''];
     for (const kind of kinds) {
-        lines.push(`## ${kind}`, '', '| model | n | fail | alignment | gate | fit | groove | idea kept 1/2/3 | min pair diff | ladder | p50 ms | p90 ms |',
-            '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |');
+        lines.push(`## ${kind}`, '', '| model | n | fail | alignment | gate | kept | dropped | fit | groove | idea kept 1/2/3 | min pair diff | ladder | p50 ms | p90 ms |',
+            '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |');
         for (const m of models) {
             const s = summarise(rows.filter((r) => r.model === m && (kind === 'all' || r.kind === kind)));
-            lines.push(`| ${m} | ${s.n} | ${s.fail} | ${f2(s.alignment)} | ${s.gate} | ${f2(s.fit)} | ${f2(s.groove)} | ${s.idea} | ${f2(s.pairDiff)} | ${s.ladder} | ${s.p50 ?? '-'} | ${s.p90 ?? '-'} |`);
+            lines.push(`| ${m} | ${s.n} | ${s.fail} | ${f2(s.alignment)} | ${s.gate} | ${f2(s.kept)} | ${s.dropped} | ${f2(s.fit)} | ${f2(s.groove)} | ${s.idea} | ${f2(s.pairDiff)} | ${s.ladder} | ${s.p50 ?? '-'} | ${s.p90 ?? '-'} |`);
         }
         lines.push('');
     }

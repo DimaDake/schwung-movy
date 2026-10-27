@@ -10,8 +10,8 @@ use crate::clip::{Note, MAX_NOTES, MAX_STEPS};
 use crate::track::{CLIPS_PER_TRACK, NUM_TRACKS};
 use crate::TICKS_PER_STEP;
 
-/// ORIG + three options.
-pub const AI_STASH_SLOTS: usize = 4;
+/// ORIG + up to eight options (Variation; Smart Quantize uses three).
+pub const AI_STASH_SLOTS: usize = 9;
 
 /// One preview write: everything `aiclip` sets on a clip.
 pub struct AiClipWrite<'a> {
@@ -233,6 +233,15 @@ mod tests {
         assert_eq!(c.notes[0].pitch, 60);
         cmd(&mut e, "aiload 0 2 1");
         assert_eq!(e.tracks[0].clips[2].notes[0].pitch, 72);
+    }
+
+    #[test]
+    fn eighth_variation_option_stashes_and_ninth_is_refused() {
+        let mut e = engine();
+        cmd(&mut e, "aiclip 0 0 16 1 1 0 0.24.67.100;aistash 0 0 8;aiclip 0 0 16 1 1 0 0.24.72.100;aiload 0 0 8");
+        assert_eq!(e.tracks[0].clips[0].notes[0].pitch, 67);
+        cmd(&mut e, "aistash 0 0 9;aiclip 0 0 16 1 1 0 0.24.60.100;aiload 0 0 9");
+        assert_eq!(e.tracks[0].clips[0].notes[0].pitch, 60);
     }
 
     #[test]

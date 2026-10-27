@@ -20,6 +20,7 @@ export interface AiPreviewInput {
     slot: number;
     orig: AiClip | null;      // null = the target slot was empty
     options: AiNote[][];
+    slots?: number[];         // each option's ladder slot (0-based); absent = 0, 1, 2...
     len: number;
     scaleNum: number;
     scaleDen: number;

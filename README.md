@@ -163,7 +163,9 @@ Movy stands on the shoulders of several projects:
   generator (a free Gemini key) hands back three takes on the clip you recorded,
   from tightened to reimagined, each fitted to the chords and groove of the rest
   of the scene; Settings → GENERATORS sets how bold. **Shift + hold
-  Step 14** turns a track's A part into a B. You preview every option on the
+  Step 14** turns a track's A part into a B: eight options, from close to
+  experimental, that keep the track's role (a pad stays a pad) and never repeat
+  the same loop. You preview every option on the
   jog, against your original, before anything is kept.
 
   ![Generator preview](docs/assets/ai_preview_opt1.png)

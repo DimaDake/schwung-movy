@@ -1,6 +1,6 @@
-/* The three options' roles per creativity level (design §6, Settings →
- * GENERATORS). Option 1 is always the most careful of the three and option 3
- * the boldest; the level moves the whole ladder. Wording is about the chords
+/* The options' roles per creativity level (design §6, Settings →
+ * GENERATORS). Smart Quantize: option 1 is always the most careful of the
+ * three and option 3 the boldest; the level moves the whole ladder. Wording is about the chords
  * the other tracks sound, never about a scale. */
 
 export type GenLevel = 'SAFE' | 'BALANCED' | 'WILD';
@@ -40,31 +40,57 @@ const QUANT_DRUM: Record<GenLevel, string[]> = {
         'Option 3 (reimagined): a bold new pattern grown from the played hits.'],
 };
 
-const VAR_MELODIC: Record<GenLevel, string[]> = {
-    SAFE: ['Option 1: the closest B part: the same rhythm cell, moved to the next chords or a new register.',
-        'Option 2: the same style with one clear change in rhythm, density or register.',
-        'Option 3: a clearer change in rhythm and density that still keeps the feel.'],
-    BALANCED: ['Option 1: the closest B part: same style, register and rhythmic feel, with a clear change that lets the song move on.',
-        'Option 2: change the rhythm, density or register more boldly.',
-        'Option 3: the most inventive B part.'],
-    WILD: ['Option 1: a clear B part with a new rhythm.',
-        'Option 2: change rhythm, density and register boldly.',
-        'Option 3: the most inventive B part that still belongs to the song.'],
+/* Variation's eight (plans/2026-10-27-variation-eight-options.md): 1-4 stay
+ * close (the source's rhythm and role, other notes), 5-6 change the rhythm or
+ * the connections, 7-8 are experimental. The level moves only 7-8: the user
+ * picks how far to go by picking an option, so the close ones stay close. */
+const VAR_MELODIC = [
+    'Option 1 (next chords): keep the source\'s rhythm exactly; new pitches that fit the chords of the [TARGET] scene.',
+    'Option 2 (re-voiced): keep the rhythm; a new voicing: other inversions and spacing for chords, a new contour for a '
+        + 'line (where the source rises, fall).',
+    'Option 3 (new line): keep the rhythmic feel and density; a new line or chord choice from the chord tones that answers '
+        + 'the source like a second phrase.',
+    'Option 4 (answer): the first half stays close to the source, the second half ends somewhere new (call and response).',
+    'Option 5 (rhythm): the source\'s pitches and role with a new rhythmic placement: syncopation, a chord change '
+        + 'anticipated by an 8th, displaced accents.',
+    'Option 6 (connections): different connections between the chords: passing and approach notes, suspensions that '
+        + 'resolve, smooth voice leading into each change, as far as the role allows.',
+];
+
+const VAR_MELODIC_EXP: Record<GenLevel, string[]> = {
+    SAFE: ['Option 7 (colour): one borrowed chord or chromatic colour where the other tracks allow it.',
+        'Option 8 (motif): keep the main interval or rhythm cell of the source and build a new phrase around it.'],
+    BALANCED: ['Option 7 (colour): borrowed chords, modal or chromatic colour where the other tracks allow it.',
+        'Option 8 (reimagined): keep only the core cell (main interval or rhythm motif) and build a bold new part around it.'],
+    WILD: ['Option 7 (colour): bold colour: borrowed and chromatic chords, unexpected but resolving.',
+        'Option 8 (reimagined): the boldest new part grown from the core cell of the source.'],
 };
 
-const VAR_DRUM: Record<GenLevel, string[]> = {
-    SAFE: ['Option 1: the same pattern with a small change (a fill or one extra kick).',
-        'Option 2: hats opening up or a kick placement change.',
-        'Option 3: a clear pattern change that keeps the feel.'],
-    BALANCED: ['Option 1: the same kit and feel with a clear pattern change (a fill, kick placement, hats opening up).',
-        'Option 2: a bolder pattern change, for example a half-time or double-time feel.',
-        'Option 3: the most inventive pattern that still keeps the kit and the style.'],
-    WILD: ['Option 1: a bolder pattern change with a fill.',
-        'Option 2: a half-time or double-time feel.',
-        'Option 3: the most inventive pattern that still keeps the kit.'],
+const VAR_DRUM = [
+    'Option 1 (kick): the same groove with a different kick pattern: one or two kicks moved or added.',
+    'Option 2 (hats): the same groove with a new hat and percussion line (open hats, a different hat rhythm).',
+    'Option 3 (accents): the same groove with ghost notes and accents shaped differently.',
+    'Option 4 (fill): the same groove with a fill in the last bar.',
+    'Option 5 (rhythm): the accents displaced: a syncopated kick or a moved snare or clap, about the same density.',
+    'Option 6 (connections): a turnaround at the end of every second bar, so the bars lead into each other.',
+];
+
+const VAR_DRUM_EXP: Record<GenLevel, string[]> = {
+    SAFE: ['Option 7 (feel): a half-time feel on the same pads.',
+        'Option 8 (new): a new pattern grown from the played hits, close in density.'],
+    BALANCED: ['Option 7 (feel): a half-time or double-time feel.',
+        'Option 8 (new): a new pattern grown from the played hits.'],
+    WILD: ['Option 7 (feel): a half-time or double-time feel with a broken, syncopated kick.',
+        'Option 8 (new): the boldest pattern grown from the played hits.'],
 };
+
+const VAR_GROUPS = 'Options 1-4 stay close to the source; 5-6 change its rhythm or connections; 7-8 are experimental. '
+    + 'All eight keep the ROLE and stay musical.';
+
+/** How many options a task asks for and the preview offers. */
+export function optionCount(task: 'quantize' | 'variation'): number { return task === 'quantize' ? 3 : 8; }
 
 export function ladder(task: 'quantize' | 'variation', drum: boolean, level: GenLevel): string[] {
-    const table = task === 'quantize' ? (drum ? QUANT_DRUM : QUANT_MELODIC) : (drum ? VAR_DRUM : VAR_MELODIC);
-    return table[level];
+    if (task === 'quantize') return (drum ? QUANT_DRUM : QUANT_MELODIC)[level];
+    return [VAR_GROUPS, ...(drum ? [...VAR_DRUM, ...VAR_DRUM_EXP[level]] : [...VAR_MELODIC, ...VAR_MELODIC_EXP[level]])];
 }

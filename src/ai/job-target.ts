@@ -2,7 +2,7 @@
  * rewrites the clip it is on; Variation fills the slot from the track's
  * previous clip, at that clip's speed. */
 
-import type { AiClip } from './clip-dump.js';
+import type { AiClip, AiNote } from './clip-dump.js';
 import type { AiTrackInput } from './context.js';
 import type { AiTask } from './prompt.js';
 import { kitPads } from './set-input.js';
@@ -15,6 +15,8 @@ export interface JobCtx {
     drum: boolean;
     kit: number[];
     units?: 'steps' | 'ticks';
+    source?: AiNote[];      // Variation (facts.ts): what validate.ts checks the role and loops against
+    loops?: AiNote[][];
 }
 
 /** The job's target, or why there is none ('nothing' to quantize, 'no source'). */

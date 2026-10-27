@@ -1775,8 +1775,9 @@ contents, a parameter the module doesn't publish — can't come back.
 
 ## 6b. Generators: Smart Quantize & Variation
 
-Movy's **generators** send your Set to a language model and get back **three
-takes on one clip**, each grown from what you played. You always see them
+Movy's **generators** send your Set to a language model and get back
+**several takes on one clip** (three from Smart Quantize, eight from
+Variation), each grown from what you played. You always see them
 before anything changes, alongside your **ORIG**inal. The generators never
 write from nothing.
 Smart Quantize starts from the clip you recorded, and Variation starts from
@@ -1837,10 +1838,40 @@ that clip's playback speed, and takes its length too, unless the slot already
 has a clip. In that case it replaces that clip at the same length, and ORIG
 gets it back.
 
-It fits what the other tracks play in the target scene. If they have nothing
-there yet, it moves on from the source clip's scene, so you can build a B
-section one track at a time. On melodic tracks at least one option changes the
-chords; on drums the options change the pattern.
+Variation gives **eight options** in three groups:
+
+| Option | Melodic tracks | Drum tracks |
+| --- | --- | --- |
+| **1** next chords | The source's rhythm, new notes on the scene's chords. | A different kick pattern. |
+| **2** re-voiced | The rhythm kept; new inversions and spacing, or a new contour for a line. | A new hat and percussion line. |
+| **3** new line | A new line or chord choice that answers the source like a second phrase. | Ghost notes and accents reshaped. |
+| **4** answer | The first half close to the source, the second half ending somewhere new. | A fill in the last bar. |
+| **5** rhythm | The source's notes in a new rhythmic placement: syncopation, anticipated changes. | Accents displaced: a syncopated kick or moved snare. |
+| **6** connections | Passing and approach notes, suspensions, smooth voice leading into each change. | A turnaround every second bar. |
+| **7** colour | Borrowed or chromatic chords where the other tracks allow it. | A half-time or double-time feel. |
+| **8** reimagined | A new part grown from the source's core interval or rhythm cell. | A new pattern grown from the played hits. |
+
+Options 1-4 stay close, 5-6 change the rhythm or the connections, and 7-8 are
+the experimental ones.
+
+**Every option keeps the track's role.** Movy measures what the source clip is:
+a drone, a pad, chord stabs, a bass line, an arpeggio, a melody or a drum
+pattern, with how many notes it plays at once, how long they are, how many
+onsets and in what register. It tells the model, and leaves out any option
+that breaks it, so chords never come back as an arpeggio and a held drone never
+as a melody. A held part may move once per bar.
+
+**No option is the same loop again.** An option that is one of the track's
+clips with its bars swapped or rotated, or transposed as a whole, is left out,
+and so is an option that is a near copy of another. A melody moved through the
+scale (a sequence) is a new line and stays.
+
+**Harmony, track by track.** Each track's B is built on its own, in the order
+you make them. If another melodic track already plays in the target scene,
+every option follows its chords and none reharmonises. That is why the bass or
+the chords are the best tracks to vary first. If the scene has nothing yet,
+options 1, 3, 5 and 7 move to new chords, never the A's chords in another
+order, and the others keep the A's chords.
 
 ### Harmony, not scales
 
@@ -1852,16 +1883,18 @@ clashes with the chord sounding at that moment, not because it is out of key.
 
 ### How bold: Settings → GENERATORS
 
-**GENERATORS** on the Settings page (Shift + Step 2) sets how bold all three
+**GENERATORS** on the Settings page (Shift + Step 2) sets how bold the
 options are: **SAFE**, **BALANCED** (the default) or **WILD**. Turn **knob 1**
-on the row. Option 1 is always the most careful of the three and option 3 the
-boldest; the level moves the whole range:
+on the row. In Smart Quantize, option 1 is always the most careful of the three
+and option 3 the boldest, and the level moves the whole range. In Variation the
+level moves only the experimental options 7 and 8, because you choose how far
+to go by choosing an option:
 
-| Level | Smart Quantize | Variation |
+| Level | Smart Quantize | Variation 7 and 8 |
 | --- | --- | --- |
-| **SAFE** | Fix the timing and clashes, tidy, then a light touch. | Small steps away from the A part. |
-| **BALANCED** | Closest, shaped, inspired (the table above). | A clear B, a bolder one, the most inventive one. |
-| **WILD** | Developed, reshaped, reimagined from the motif. | A new rhythm, a bold change, the most inventive B. |
+| **SAFE** | Fix the timing and clashes, tidy, then a light touch. | One borrowed chord; a new phrase around the motif (drums: half-time; a close new pattern). |
+| **BALANCED** | Closest, shaped, inspired (the table above). | Borrowed and modal colour; a bold new part from the motif (drums: half or double time; a new pattern). |
+| **WILD** | Developed, reshaped, reimagined from the motif. | Bold chromatic colour; the boldest new part (drums: a broken feel; the boldest pattern). |
 
 It belongs to the Move, not to a Set, and a change applies from the next
 request.
@@ -1877,18 +1910,26 @@ takes a few seconds:
 
 If it fails, a message says why (`NO NETWORK`, `BUSY, TRY LATER` when the
 free quota is used up or the model is overloaded, or `GENERATOR ERROR`), and the clip
-is unchanged. An option that comes back identical to your clip is left out, so
-the strip can show fewer than three.
+is unchanged. An option that comes back identical to your clip is left out
+(and in Variation one that breaks the role or repeats a loop), so the strip
+can show fewer options than were asked for. A request that leaves none says
+`GENERATOR ERROR`.
 
 ### Choosing
 
-The clip's notes fill the screen, with `GEN  ORIG  1  2  3` along the bottom.
-It opens on option 1:
+The clip's notes fill the screen, with `GEN  ORIG  1  2  3` along the bottom
+(`1` to `8` for a Variation). It opens on the first option:
 
 ![Preview](docs/assets/ai_preview_opt1.png)
 
-- **Turn the jog** to hear ORIG, 1, 2 or 3. The clip swaps in place and keeps
-  playing in time.
+Each option keeps its number from the table, so a left-out option leaves a gap
+and 7 and 8 are always the experimental ones. Here option 5 was left out and
+option 7 is playing:
+
+![Variation preview](docs/assets/ai_preview_var8.png)
+
+- **Turn the jog** to hear ORIG and each option. The clip swaps in place and
+  keeps playing in time.
 - **Edit freely** with the pads, steps and held-step edits. Each option keeps its
   own edits: change option 2, look at 3, come back, and 2 is as you left it.
 - **Click the jog** (or press **Back**) to keep what is showing. Switching

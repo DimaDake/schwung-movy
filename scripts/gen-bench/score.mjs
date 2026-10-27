@@ -158,6 +158,10 @@ export function scoreOption(opt, ctx) {
 
 export const MIN_PAIR_DIFF = 0.2;
 
+/* Three options must all survive; of Variation's eight, the validator may drop
+ * a role break or a same loop and still leave the user a real choice. */
+export const minKept = (expected) => (expected <= 3 ? expected : expected - 2);
+
 export function scoreReply(options, ctx) {
     const perOption = options.map((o) => scoreOption(o, ctx));
     let minPairDiff = 1;
@@ -170,7 +174,8 @@ export function scoreReply(options, ctx) {
     return {
         perOption,
         alignment: head.length ? Math.max(...head) : null,
-        gatePassed: options.length === 3 && perOption.every((s) => s.usable) && minPairDiff >= MIN_PAIR_DIFF,
+        gatePassed: options.length >= minKept(ctx.expected ?? 3) && perOption.every((s) => s.usable) && minPairDiff >= MIN_PAIR_DIFF,
+        kept: options.length / (ctx.expected ?? 3),
         minPairDiff: options.length > 1 ? minPairDiff : 0,
         ladderOrdered: ladder.every((v, i) => i === 0 || v >= ladder[i - 1] - 0.05),
     };

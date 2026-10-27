@@ -17,6 +17,8 @@ import {
     VIEW_FLAGS, VIEW_CHAIN, VIEW_MAIN_PARAMS,
     appState, ok, eq, _log,
 } from './harness.mjs';
+import { genLevel, genLevelTurn, genLevelLabel, resetGenLevel } from '../../dist/esm/seq/gen-level.js';
+import { genRowSelected } from '../../dist/esm/seq/flags-page.js';
 
 export async function run() {
 
@@ -78,11 +80,14 @@ export async function run() {
     ok('which is CLICK VOLUME', clickRowSelected());
     flagsPageJog(1);
     eq('jog moves down', flagsPageState.selected, 1);
-    ok('onto BACKUPS', backupsRowSelected());
+    ok('onto GENERATORS', genRowSelected());
     flagsPageJog(1);
-    ok('and the migrate row is last', migrateRowSelected());
+    ok('then BACKUPS', backupsRowSelected());
+    flagsPageJog(1);
+    ok('migrate_row_stays_last', migrateRowSelected() && flagsPageState.selected === flagsRowCount() - 1);
     flagsPageJog(-1);
-    eq('and back up', flagsPageState.selected, 1);
+    ok('and BACKUPS is last-1, where the device scenarios step to', backupsRowSelected());
+    flagsPageJog(-1);
     flagsPageJog(-1);
     flagsPageJog(-1);
     eq('the top is clamped, not wrapped', flagsPageState.selected, 0);
@@ -105,16 +110,19 @@ export async function run() {
      * and undrawn — and every screenshot stayed byte-identical, because the
      * viewmodel never changed. */
     eq('one drawn row per selectable row', vm.rows.length, flagsRowCount());
-    eq('the rows', vm.rows.map((r) => r.name).join(','), 'CLICK VOLUME,BACKUPS,MIGRATE FROM MOVE');
+    eq('the rows', vm.rows.map((r) => r.name).join(','), 'CLICK VOLUME,GENERATORS,BACKUPS,MIGRATE FROM MOVE');
+    eq('generators_row_drawn: shows the level', vm.rows[1].value, 'BALANCED');
     eq('exactly one row is selected', vm.rows.filter((r) => r.selected).length, 1);
     ok('CLICK VOLUME explains itself', vm.hint.length > 0);
     eq('and shows the default level', vm.rows[0].value, '0 dB');
 
     /* The band follows the selection, or it is describing a different row than
      * the one under the inverted band. */
+    flagsPageJog(1);
+    ok('the generators row explains itself', /bold/i.test(buildFlagsPageVM().hint));
     flagsPageJog(2);
     const mv = buildFlagsPageVM();
-    ok('the migrate row can be selected', mv.rows[2].selected);
+    ok('the migrate row can be selected', mv.rows[3].selected);
     ok('and the hint is its own', mv.hint.toLowerCase().includes('from move'), mv.hint);
 
     /* Scrolling: the list is short, and the window is asserted at a length it
@@ -131,6 +139,23 @@ export async function run() {
 
     resetFlagsPage();
     uninstallMockFs();
+}
+
+/* ── Generators level: a device property, clamped, durable ─────────────── */
+{
+    _log('\nGenerators level');
+    installMockFs();
+    resetGenLevel();
+    eq('a fresh install is BALANCED', genLevel(), 'BALANCED');
+    ok('gen_level_turn_clamps: up moves', genLevelTurn(1) && genLevel() === 'WILD');
+    ok('gen_level_turn_clamps: the top holds', !genLevelTurn(1) && genLevel() === 'WILD');
+    ok('gen_level_turn_clamps: a fast turn moves one level', genLevelTurn(-5) && genLevel() === 'BALANCED');
+    genLevelTurn(-1);
+    eq('gen_level_turn_clamps: down to SAFE', genLevelLabel(), 'SAFE');
+    resetGenLevel();
+    eq('gen_level_persists', genLevel(), 'SAFE');
+    uninstallMockFs();
+    resetGenLevel();
 }
 
 /* ── Click volume: default unchanged, clamped, durable, reaches the engine ── */

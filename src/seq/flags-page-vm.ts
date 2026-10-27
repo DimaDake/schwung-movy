@@ -5,11 +5,13 @@
 
 import { ACTION_ROWS, flagsPageState } from './flags-page.js';
 import { clickVolumeLabel } from './click-volume.js';
+import { genLevelLabel } from './gen-level.js';
 import { disarmMigrateRow, migrateRowHint, migrateRowValue } from './migrate-action.js';
 
-/** ACTION_ROWS index of MIGRATE FROM MOVE. */
-const MIGRATE_ROW = 2;
-const CLICK_ROW = 0;
+const rowIndex = (name: string) => ACTION_ROWS.findIndex((r) => r.name === name);
+const MIGRATE_ROW = rowIndex('MIGRATE FROM MOVE');
+const CLICK_ROW = rowIndex('CLICK VOLUME');
+const GEN_ROW = rowIndex('GENERATORS');
 
 export type FlagRow = { name: string; value: string; selected: boolean };
 
@@ -29,7 +31,8 @@ export function buildFlagsPageVM(): FlagsPageVM {
     if (sel !== MIGRATE_ROW) disarmMigrateRow();
     const rows: FlagRow[] = ACTION_ROWS.map((a, i) => ({
         name: a.name,
-        value: i === MIGRATE_ROW ? migrateRowValue() : i === CLICK_ROW ? clickVolumeLabel() : '>',
+        value: i === MIGRATE_ROW ? migrateRowValue() : i === CLICK_ROW ? clickVolumeLabel()
+            : i === GEN_ROW ? genLevelLabel() : '>',
         selected: i === sel,
     }));
     return {

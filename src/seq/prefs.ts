@@ -12,6 +12,7 @@
 
 import { safeWrite } from './persist-store.js';
 import { platform } from '../platform/index.js';
+import { GEN_LEVELS, type GenLevel } from '../ai/ladders.js';
 
 export const PREFS_PATH = '/data/UserData/schwung/modules/tools/movy/prefs.json';
 
@@ -27,7 +28,7 @@ const clampPct = (v: unknown): number =>
 
 type PrefsFile = {
     defaultQuant?: unknown; fileDirs?: unknown; moduleBlacklist?: unknown;
-    fullVelocity?: unknown; masterVolume?: unknown; clickDb?: unknown;
+    fullVelocity?: unknown; masterVolume?: unknown; clickDb?: unknown; genLevel?: unknown;
 };
 
 function readPrefs(): PrefsFile {
@@ -104,6 +105,16 @@ export function readPrefClickDb(): number {
 
 export function writePrefClickDb(db: number): void {
     writePrefs((p) => { p.clickDb = clampClickDb(db); });
+}
+
+/** GENERATORS on the Settings page; an unknown or missing value is BALANCED. */
+export function readPrefGenLevel(): GenLevel {
+    const v = readPrefs().genLevel;
+    return GEN_LEVELS.includes(v as GenLevel) ? v as GenLevel : 'BALANCED';
+}
+
+export function writePrefGenLevel(level: GenLevel): void {
+    writePrefs((p) => { p.genLevel = level; });
 }
 
 /* Modules that must keep every instance on one render lane (chain_pin).

@@ -42,7 +42,7 @@ const PRESETS = [
     'step_indicator', 'step_rec_header', 'loop_strip_midclip', 'loop_strip_outside',
     'note_view_bass', 'note_view_chords', 'note_view_drums', 'note_view_plus', 'note_view_dense', 'note_view_wide',
     'song_band', 'song_band_overflow', 'song_band_end',
-    'quant-overlay-three', 'quant-overlay-two', 'flags-top', 'flags-scrolled',
+    'quant-overlay-three', 'quant-overlay-two', 'flags-top', 'flags-scrolled', 'flags-generators',
     'ai_running_quant', 'ai_running_var', 'ai_error_nokey', 'ai_preview_orig', 'ai_preview_opt1', 'ai_preview_opt3', 'ai_hold_progress_50',
     'cpu-movy-tracks', 'cpu-unsplit-module', 'cpu-overscale',
     'cpu-empty', 'cpu-sends', 'cpu-sends-quiet', 'cpu-master', 'leave_modal',
@@ -103,7 +103,7 @@ const BASE = {
     note_view_bass: 'test8', note_view_chords: 'test8', note_view_drums: 'test8',
     note_view_plus: 'test8', note_view_dense: 'test8', note_view_wide: 'test8',
                                 'quant-overlay-three': 'test8', 'quant-overlay-two': 'test8',
-    'flags-top': 'test8', 'flags-scrolled': 'test8',
+    'flags-top': 'test8', 'flags-scrolled': 'test8', 'flags-generators': 'test8',
     ai_running_quant: 'test8', ai_running_var: 'test8', ai_error_nokey: 'test8',
     ai_preview_orig: 'test8', ai_preview_opt1: 'test8', ai_preview_opt3: 'test8', ai_hold_progress_50: 'test8',
                                                                             lfo_chain: 'test8',         lfo_assign_toast: 'test8',
@@ -553,10 +553,11 @@ function applyView(preset) {
          * hint that follows it are what the page IS — `top` has the selection
          * on BACKUPS, `scrolled` on the LAST row. */
         case 'flags-top':
-        case 'flags-scrolled': {
+        case 'flags-scrolled':
+        case 'flags-generators': {
             resetFlagsPage();
             const scrolled = preset === 'flags-scrolled';
-            flagsPageState.selected = scrolled ? flagsRowCount() - 1 : 0;
+            flagsPageState.selected = scrolled ? flagsRowCount() - 1 : preset === 'flags-generators' ? 1 : 0;
             lastRender = () => renderFlagsView(buildFlagsPageVM());
             lastRender();
             break;

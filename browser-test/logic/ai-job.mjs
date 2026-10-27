@@ -18,6 +18,9 @@ const DUMP = '0 16 0 1/1 0 0|0.24.60.100,96.24.64.100';
 const GOOD = JSON.stringify({ candidates: [{ content: { parts: [{ text: JSON.stringify({ options: [
     { notes: [[0, 1, 60, 100]] }, { notes: [[0, 1, 62, 100]] }, { notes: [[0, 1, 64, 100]] }] }) }] } }] });
 
+import { PREFS_PATH } from '../../dist/esm/seq/prefs.js';
+import { genLevelTurn, resetGenLevel } from '../../dist/esm/seq/gen-level.js';
+
 function boot(withKey = true) {
     const fs = installMockFs(withKey ? { [MOD + '/secrets/gemini_api_key.txt']: 'K' } : {});
     const eng = installMockEngine();
@@ -69,6 +72,26 @@ runTicks(20);
 eq('start: one request sent', st.calls.length, 1);
 ok('start: body under the AI dir', st.calls[0].body_path.startsWith(AI_DIR));
 ok('start: the prompt carries the clip', /60:C3/.test(st.fs.files[st.calls[0].body_path]));
+aiCancel();
+done(st);
+
+/* The GENERATORS level is read when the job starts: a turn on the Settings
+ * page during the reads changes the next request, not this one. */
+st = boot();
+st.fs.files[PREFS_PATH] = JSON.stringify({ genLevel: 'SAFE' });
+resetGenLevel();
+startAiJob('quantize', 0, 0);
+genLevelTurn(1); genLevelTurn(1);
+runTicks(20);
+const sentBody = JSON.parse(st.fs.files[st.calls[0].body_path]);
+ok('level_read_once_per_request: SAFE ladder', /Option 2 \(tidy\)/.test(sentBody.contents[0].parts[0].text));
+eq('level_read_once_per_request: SAFE temperature', sentBody.generationConfig.temperature, 0.7);
+resetGenLevel();
+aiCancel();
+done(st);
+st = boot();
+startAiJob('quantize', 0, 0);
+runTicks(20);
 eq('running_swallows_pads_and_steps: pad press', aiRunningInput([0x90, 68, 100]), true);
 eq('running_swallows_pads_and_steps: step press', aiRunningInput([0x90, 16, 100]), true);
 eq('running passes releases through', aiRunningInput([0x80, 68, 0]), false);

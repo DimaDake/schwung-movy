@@ -14,6 +14,8 @@ import { readAiConfig, type AiConfig } from './config.js';
 import { buildContext, type AiTrackInput } from './context.js';
 import { cancelHttp, fakeResponse, HTTP_TIMEOUT_S, pollHttp, startHttp, type HttpReply } from './http-job.js';
 import { buildPrompt, type AiTask } from './prompt.js';
+import { type GenLevel, LEVEL_TEMPERATURE } from './ladders.js';
+import { genLevel } from '../seq/gen-level.js';
 import { buildRequest, classifyStatus, extractText } from './provider.js';
 import { drawAiRunning, resetAiRunningDraw } from './running-render.js';
 import { kitPads, readTrack, setHeader } from './set-input.js';
@@ -45,6 +47,7 @@ interface Running {
     task: AiTask;
     track: number;
     slot: number;
+    level: GenLevel;          // read once at start: a Settings turn changes the next request
     cfg: AiConfig;
     uuid: string;
     startMs: number;
@@ -89,7 +92,7 @@ export function startAiJob(task: AiTask, track: number, slot: number): void {
     const cfg = readAiConfig(MOVY_MODULE_DIR)
         ?? (fakeResponse(MOVY_MODULE_DIR) ? { model: 'fake', key: '' } : null);
     if (!cfg) { seqToast(MSG_NO_KEY); return; }
-    run = { task, track, slot, cfg, uuid: currentSetUuid(), startMs: -1, next: 0, tracks: [], httpId: -1, sentMs: -1, ctx: null };
+    run = { task, track, slot, level: genLevel(), cfg, uuid: currentSetUuid(), startMs: -1, next: 0, tracks: [], httpId: -1, sentMs: -1, ctx: null };
     phase = 'running';
     thinkingLedsStart();
 }
@@ -109,9 +112,9 @@ function send(r: Running, now: number): void {
     }
     const context = buildContext({ ...setHeader(), tracks: r.tracks, target: { track: r.track, slot: r.slot },
         source: source === null ? null : { track: r.track, slot: source } });
-    const prompt = buildPrompt(r.task, context, { len: r.ctx.len, drum: t.drum });
+    const prompt = buildPrompt(r.task, context, { len: r.ctx.len, drum: t.drum, level: r.level });
     r.ctx.units = prompt.units;
-    const req = buildRequest(r.cfg, prompt);
+    const req = buildRequest(r.cfg, prompt, LEVEL_TEMPERATURE[r.level]);
     r.httpId = startHttp(req, MOVY_MODULE_DIR);
     if (r.httpId < 0) return fail(MSG_ERROR, 'request not started');
     r.sentMs = now;

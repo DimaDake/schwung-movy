@@ -15,6 +15,22 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
+- **Algorithmic generators (the default).** Smart Quantize and Variation now
+  run Movy's own generators on the Move: no key, no network, options in under a
+  second. About thirty Variation generators and a dozen for Smart Quantize, each
+  its own algorithm with its own four or eight knobs, built on a harmony engine
+  (key and chord finding, Roman numerals, chord/colour/approach tones, voice
+  leading, harmonic moves) whose rule is that the scene owns the harmony: a
+  Variation follows the chords the other tracks already play there, fits the
+  note a lone bass or drone pins, and only moves the harmony in an empty scene.
+  Variation offers six options, Smart Quantize three, chosen per part and per
+  GENERATORS level. In the preview the knobs reshape the option showing (a turn
+  rewrites it; touch shows the name and value in the top strip), and a knob
+  that cannot change it is hidden. Settings → **GENERATOR MODE** switches
+  between ALGORITHMIC and MODEL (Gemini, as before; its replies get four knobs
+  too). Measured on the generator bench against the cached model runs
+  (`scripts/gen-bench/algo.mjs`, `plans/gen-bench-results-2026-10-27-algo.md`).
+
 - **Generators: Smart Quantize and Variation.** Shift + hold Step 16 sends the Set to
   Gemini and previews three takes on the recorded clip, from tightened
   to reimagined, against the original. Shift + hold Step 14 writes a variation of

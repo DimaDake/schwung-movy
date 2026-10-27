@@ -159,14 +159,16 @@ Movy stands on the shoulders of several projects:
 
   ![Quantize](docs/assets/quant-overlay-three.png)
 
-- **Generators: Smart Quantize & Variation** — hold **Shift + Step 16** and a
-  generator (a free Gemini key) hands back three takes on the clip you recorded,
-  from tightened to reimagined, each fitted to the chords and groove of the rest
-  of the scene; Settings → GENERATORS sets how bold. **Shift + hold
-  Step 14** turns a track's A part into a B: eight options, from close to
-  experimental, that keep the track's role (a pad stays a pad) and never repeat
-  the same loop. You preview every option on the
-  jog, against your original, before anything is kept.
+- **Generators: Smart Quantize & Variation** — hold **Shift + Step 16** and
+  Movy's own generators, on the Move and offline, hand back three takes on the
+  clip you recorded, from tightened to developed, each fitted to the chords and
+  groove of the rest of the scene. **Shift + hold Step 14** turns a track's A
+  part into a B: six options from some thirty generators, which keep the track's
+  role (a pad stays a pad), follow the scene's harmony and never repeat the same
+  loop. Every option has its own knobs to reshape it, already set where it sounds
+  best. Preview each on the jog against your original before anything is kept;
+  Settings → GENERATORS sets how bold, and GENERATOR MODE can switch to a Gemini
+  model instead.
 
   ![Generator preview](docs/assets/ai_preview_opt1.png)
 

@@ -1682,6 +1682,11 @@ the click itself never clips.)
 
 ![Settings: GENERATORS](docs/assets/flags-generators.png)
 
+**GENERATOR MODE**, the third row, picks where the generators' options come
+from: **ALGORITHMIC** (the default; on the Move, offline, with knobs) or
+**MODEL** (a Gemini model, with a key), with **knob 1**. See
+[Generators](#6b-generators-smart-quantize--variation).
+
 **MIGRATE FROM MOVE**, the last row, runs the migration from Move again. The
 first jog click arms it (the row reads **CONFIRM?**, and moving off disarms
 it), the second runs it. The hint below shows when the migration last ran. It
@@ -1775,15 +1780,235 @@ contents, a parameter the module doesn't publish — can't come back.
 
 ## 6b. Generators: Smart Quantize & Variation
 
-Movy's **generators** send your Set to a language model and get back
-**several takes on one clip** (three from Smart Quantize, eight from
-Variation), each grown from what you played. You always see them
-before anything changes, alongside your **ORIG**inal. The generators never
-write from nothing.
-Smart Quantize starts from the clip you recorded, and Variation starts from
-another clip already on the track.
+Movy's **generators** give you **several takes on one clip** (three from Smart
+Quantize, six from Variation), each grown from what you played. You always see
+them before anything changes, alongside your **ORIG**inal. The generators never
+write from nothing. Smart Quantize starts from the clip you recorded, and
+Variation starts from another clip already on the track.
 
-### Setting it up
+The takes come from one of two places, chosen in **Settings → GENERATOR
+MODE**:
+
+- **ALGORITHMIC** (the default): Movy's own generators, on the Move. No key, no
+  network, an answer in under a second, and every option has **knobs** you can
+  turn to reshape it (see [The knobs](#the-knobs)).
+- **MODEL**: a Gemini language model reads your Set and answers (a free key,
+  Wi-Fi, a few seconds per request). See [MODEL mode](#model-mode).
+
+### Smart Quantize: Shift + hold Step 16
+
+Record something rough, then **hold Shift and hold Step 16**. A tap still
+cycles the clip's quantization as before. After a moment a bar fills along the
+bottom of the screen, and when it is full the generators run. Let go before the
+bar is full and nothing happens, not even the plain quantize. While recording,
+in Session view or while a Set loads, no bar appears and a press of any length
+just cycles quantization:
+
+![Hold to Smart Quantize](docs/assets/ai_hold_progress_50.png)
+
+The three options go from careful to bold. Option 1 is always the tightest:
+your notes on the scene's groove, with only the wrong notes moved. The other
+two **develop** the clip a little, because Smart Quantize is not only a fixer.
+In ALGORITHMIC mode they come from these generators, picked for your clip:
+
+| Generator | Melodic tracks | Drum tracks |
+| --- | --- | --- |
+| **TIGHT** | Timing onto the grid and the scene's pocket; clashing notes moved to ones that fit. | Timing onto the grid; doubled hits and flams cleaned. Every hit on its pad. |
+| **TIDY** | Tight, plus accidental doubles and grazes removed, velocities and lengths evened. | The same for drums. |
+| **GROOVE** | The scene's swing and pocket, or a groove FEEL (laid back, pushed, shuffle, drunk 16ths), with accents. | The same for drums. |
+| **SHAPED** | Chords filled out and voice-led; a line's stray octave leaps folded back. | |
+| **EMBELLISH** | Grace, passing or neighbour notes, the way a player adds them. | |
+| **ANSWER** | The second half answers the first, moved through the scale. | |
+| **GHOSTS** | | Ghost notes where the groove leaves room. |
+| **FILL** | | A small fill into the loop point. |
+| **FULL** | All of the above at once, on eight knobs. | All of the above at once, on eight knobs. |
+
+### Variation: Shift + hold Step 14
+
+You have an A part and want a B. Select a clip slot on the track, **empty or
+not**, then **hold Shift and hold Step 14** until the bar along the bottom of
+the screen is full, just like Smart Quantize. A tap only shows `HOLD TO
+GENERATE`, so a stray press never runs anything. Step 14's light is dim white
+under Shift whenever the track has another clip to vary from.
+
+![Hold for a Variation](docs/assets/ai_hold_variation_50.png)
+
+The variation grows from the nearest clip **above** the slot (or below, if
+there is none above), keeps that clip's playback speed, and takes its length
+too, unless the slot already has a clip. In that case it replaces that clip at
+the same length, and ORIG gets it back.
+
+In ALGORITHMIC mode Variation offers **six options**, chosen from some thirty
+generators for the part you are varying: the ones that suit it (a chord part
+gets chord generators, a bass line bass ones) and that differ enough from each
+other. They are shown closest first, and **switching options shows the
+generator's name** at the top of the screen. The generators come in three
+groups:
+
+| Group | Melodic generators | Drum generators |
+| --- | --- | --- |
+| **Close** | NEXT CHORDS (the rhythm kept, new notes from the new chords), FOLLOW (the whole part slid along the new roots, the way dub and house chords move), PULSE (the rhythm on each chord's root), HARMONIZE (a line in parallel thirds or sixths), RE-VOICE, NEW LINE, ANSWER, SPREAD, ARP, DRONE MOVE | KICK, HATS, GHOSTS, FILL |
+| **Rhythm** | DISPLACE, ANTICIPATE, CONNECT (passing notes and suspensions), RECOMBINE, EUCLID, COMP (chord rhythms), OCTAVE BASS, WALK, THIN | SHIFT, TURNAROUND |
+| **Experimental** | MOTIF (a cell as a sequence), RETROGRADE, HALF/DOUBLE, ORNAMENT, REGISTER, PEDAL, DEVELOP (eight knobs) | FEEL (half time, double hats), GRIDS (a density map, after Mutable Instruments' Grids), EUCLID, DEVELOP |
+
+GENERATORS (below) sets how many come from each group.
+
+**Every option keeps the track's role.** Movy measures what the source clip is:
+a drone, a pad, chord stabs, a bass line, an arpeggio, a melody or a drum
+pattern, with how many notes it plays at once, how long they are, how many
+onsets and in what register. Any option that breaks it is left out, so chords
+never come back as an arpeggio and a held drone never as a melody. Drums never
+change pads; only where and how hard they play.
+
+**No option is the same loop again.** An option that is one of the track's
+clips with its bars swapped or rotated, or transposed as a whole, is left out,
+and so is an option that is a near copy of another. A melody moved through the
+scale (a sequence) is a new line and stays.
+
+### Harmony belongs to the scene
+
+Everything has to sound right together, across tracks and scenes, so the
+harmony a Variation uses depends on what the **other** tracks already play in
+the target scene:
+
+- **They play chords there**: the option follows those chords exactly. HARMONY
+  then changes how the part sits on them: as played, roots only, inversions,
+  added 7ths or 9ths.
+- **Only a bass or a drone plays there**: the option takes chords that hold
+  that note. The closest fit comes first, and a lone bass note is read as the
+  root.
+- **Nothing plays there yet** (or only drums): the option may **move the
+  harmony**, from the A's chords: the progression a 4th or 6th up the scale,
+  substitute chords, borrowed chords, a pedal, the parallel mode (and, on WILD,
+  a chromatic mediant). Moves that would not lead well into and out of the A
+  are never offered.
+
+So each track's B is built on its own, in the order you make them, and the
+first track you vary in an empty scene sets that scene's chords for the rest.
+The bass or the chords are the best tracks to vary first.
+
+### Harmony, not scales
+
+The generators follow the chords your other tracks actually play, not a scale.
+A chord tone or a 9th, 11th or 13th always fits. A note outside the key is fine
+as a passing or approach note on a weak beat, or as part of a borrowed chord
+the scene allows. Smart Quantize's PITCH FIX only moves a note that clashes
+with the chord sounding at that moment, not because it is out of key.
+
+### The knobs
+
+In a preview, **the knobs belong to the option on screen**. Each generator has
+its own: four, or eight when all eight are useful. Each option opens with its
+knobs already set to the best positions, so you never have to touch them.
+
+- **Turn a knob** and the option is made again from its generator at the new
+  position, written over the clip as it plays. A turn throws away hand edits
+  on that option.
+- **Touch a knob** to see its name and value in the strip at the top of the
+  screen, the way a Schwung page shows a held knob:
+
+![A generator's knob, held](docs/assets/gen_preview_knob.png)
+
+- Each option keeps its own knob positions. ORIG has no knobs.
+- A knob that cannot change this particular option shows nothing and does
+  nothing. An example is SWING on a pad that only plays on the beat.
+
+A name means the same thing on every generator:
+
+| Knob | Turning right |
+| --- | --- |
+| **HARMONY** | Further from the source's harmony (see above). |
+| **TENSION** | From chord tones only, to colour tones, to approach and chromatic notes. |
+| **AMOUNT** | More of the clip rewritten. |
+| **DENSITY** | More notes (`AS IS` in the middle, fewer to the left). |
+| **LENGTH** | Longer notes, toward legato (`AS IS` in the middle). |
+| **RANGE** | Wider intervals and spread voicings (`AS IS` in the middle). |
+| **TIMING** | From your feel to exactly on the grid. |
+| **SWING** | More swing, from 50 % (straight) to 75 %; it opens on the swing you played. |
+| **GRID** | 1/8, 1/8T, 1/16, 1/16T, 1/32; it opens on the grid you played. |
+| **PITCH FIX** | More notes moved onto the harmony. |
+| **DYNAMICS** | From the velocities you played to the groove's accents. |
+| **SEED** | Another roll of the same idea. |
+
+Other knobs belong to one generator: ARP has PATTERN, RATE and OCTAVES; MOTIF
+has CELL and STEP; FILL has SIZE and PADS; EUCLID has PULSES and ROTATE; GRIDS
+has KICK, SNARE, HATS and CHAOS.
+
+In MODEL mode each option gets four knobs that reshape the model's answer:
+TIMING, SWING, DYNAMICS and LENGTH for Smart Quantize, and DENSITY, LENGTH,
+RANGE and DYNAMICS for Variation. They start where the answer leaves them.
+
+### How bold: Settings → GENERATORS
+
+**GENERATORS** on the Settings page (Shift + Step 2) sets how bold the
+options are: **SAFE**, **BALANCED** (the default) or **WILD**. Turn **knob 1**
+on the row. It belongs to the Move, not to a Set, and a change applies from the
+next request.
+
+In ALGORITHMIC mode the level picks how many options come from each group, and
+how far every generator goes by default:
+
+| Level | Variation's six options | Smart Quantize's three | Defaults |
+| --- | --- | --- | --- |
+| **SAFE** | 4 close, 2 rhythm | tight, then two shaped | AMOUNT and TENSION lower |
+| **BALANCED** | 3 close, 2 rhythm, 1 experimental | tight, shaped, developed | as each generator sets them |
+| **WILD** | 2 close, 2 rhythm, 2 experimental | shaped, then two developed | AMOUNT and TENSION higher; a free scene's HARMONY one move further |
+
+In MODEL mode, Smart Quantize's option 1 is always the most careful of the
+three and option 3 the boldest, and the level moves the whole range. In
+Variation the level moves only the experimental options 7 and 8:
+
+| Level | Smart Quantize | Variation 7 and 8 |
+| --- | --- | --- |
+| **SAFE** | Fix the timing and clashes, tidy, then a light touch. | One borrowed chord; a new phrase around the motif (drums: half-time; a close new pattern). |
+| **BALANCED** | Closest, shaped, inspired. | Borrowed and modal colour; a bold new part from the motif (drums: half or double time; a new pattern). |
+| **WILD** | Developed, reshaped, reimagined from the motif. | Bold chromatic colour; the boldest new part (drums: a broken feel; the boldest pattern). |
+
+### While it works
+
+The screen shows `QUANTIZING...` or `VARIATION...`, every light goes dark
+except **Back**, and a slow band sweeps across the pads. The sequencer keeps
+playing. **Back** cancels and leaves the clip untouched. In ALGORITHMIC mode
+this lasts a moment. A model request usually takes a few seconds:
+
+![Working](docs/assets/ai_running_quant.png)
+
+If it fails, a message says why (`NO NETWORK`, `BUSY, TRY LATER` when the
+free quota is used up or the model is overloaded, or `GENERATOR ERROR`), and the
+clip is unchanged. An option that comes back identical to your clip is left out
+(and in Variation one that breaks the role or repeats a loop), so the strip
+can show fewer options than usual. A request that leaves none says
+`GENERATOR ERROR`.
+
+### Choosing
+
+The clip's notes fill the screen, with `GEN  ORIG  1  2  3` along the bottom
+(`1` to `6` for an algorithmic Variation, `1` to `8` for a model's). It opens on
+the first option:
+
+![Preview](docs/assets/ai_preview_opt1.png)
+
+A model's options keep their numbers from the ladder, so a left-out option
+leaves a gap and 7 and 8 are always the experimental ones. Here option 5 was
+left out and option 7 is playing:
+
+![Variation preview](docs/assets/ai_preview_var8.png)
+
+- **Turn the jog** to hear ORIG and each option. The clip swaps in place and
+  keeps playing in time.
+- **Turn the knobs** to reshape the option showing ([The knobs](#the-knobs)).
+- **Edit freely** with the pads, steps and held-step edits. Each option keeps its
+  own edits: change option 2, look at 3, come back, and 2 is as you left it.
+- **Click the jog** (or press **Back**) to keep what is showing. Switching
+  track or clip, or leaving the view, keeps it too.
+- **Undo** afterwards takes the whole thing back in one step, to the clip as it
+  was before the generator ran.
+
+### MODEL mode
+
+Set **GENERATOR MODE** to **MODEL** in Settings (knob 1 on the row):
+
+![Settings: GENERATOR MODE](docs/assets/flags-genmode.png)
 
 You need an API key. A **Gemini key is free** from Google AI Studio
 (aistudio.google.com/apikey). With Movy installed, open
@@ -1793,52 +2018,17 @@ asks `gemini-3.1-flash-lite` first and, if Google says it is busy or it does
 not answer within 40 seconds, `gemini-flash-lite-latest`. Both answer in a few
 seconds on the free tier, and they were the best of the free models on Movy's
 test set of real (mostly electronic) parts. A model name typed there replaces
-the first one; the fallback stays. If there is no key, the generator gestures say `NO API KEY  MOVE.LOCAL:7700`.
+the first one; the fallback stays. If there is no key, the generator gestures
+say `NO API KEY  MOVE.LOCAL:7700`.
 
 **What is sent:** every clip of every track (notes, lengths, playback speed,
 transpose), each track's module name and drum voice names, and the Set's tempo,
 swing and key. A track's identical clips are sent once. Movy also adds the
 chord it hears in each bar. No audio and no names other than modules leave the
 Move. Requests go straight from the Move to Google, over the Move's own Wi-Fi.
+ALGORITHMIC mode sends nothing anywhere.
 
-### Smart Quantize: Shift + hold Step 16
-
-Record something rough, then **hold Shift and hold Step 16**. A tap still
-cycles the clip's quantization as before. After a moment a bar fills along the
-bottom of the screen, and when it is full the request goes. Let go before the
-bar is full and nothing happens, not even the plain quantize. While recording,
-in Session view or while a Set loads, no bar appears and a press of any length
-just cycles quantization:
-
-![Hold to Smart Quantize](docs/assets/ai_hold_progress_50.png)
-
-The three options go from careful to bold:
-
-| Option | Melodic tracks | Drum tracks |
-| --- | --- | --- |
-| **1** | Timing tightened to the scene's groove, wrong or clashing notes moved to ones that fit. | Timing and velocity only. Every hit stays on its pad. |
-| **2** | The idea developed: chords voiced or filled out, rhythm locked to the drums and bass. | Groove tightened to the other tracks, ghost notes and accents reshaped. |
-| **3** | The idea as a seed: new chords that still fit the other tracks, rhythms borrowed from them. | A bolder take on the groove. |
-
-On drums, options 2 and 3 move a hit to another pad only where it clearly helps,
-and only to a pad the kit already uses.
-
-### Variation: Shift + hold Step 14
-
-You have an A part and want a B. Select a clip slot on the track, **empty or
-not**, then **hold Shift and hold Step 14** until the bar along the bottom of
-the screen is full, just like Smart Quantize. A tap only shows `HOLD TO
-GENERATE`, so a stray press never sends anything. Step 14's light is dim white
-under Shift whenever the track has another clip to vary from.
-
-![Hold for a Variation](docs/assets/ai_hold_variation_50.png)
- The variation grows from
-the nearest clip **above** the slot (or below, if there is none above), keeps
-that clip's playback speed, and takes its length too, unless the slot already
-has a clip. In that case it replaces that clip at the same length, and ORIG
-gets it back.
-
-Variation gives **eight options** in three groups:
+A model's Variation offers eight options in three groups:
 
 | Option | Melodic tracks | Drum tracks |
 | --- | --- | --- |
@@ -1851,91 +2041,11 @@ Variation gives **eight options** in three groups:
 | **7** colour | Borrowed or chromatic chords where the other tracks allow it. | A half-time or double-time feel. |
 | **8** reimagined | A new part grown from the source's core interval or rhythm cell. | A new pattern grown from the played hits. |
 
-Options 1-4 stay close, 5-6 change the rhythm or the connections, and 7-8 are
-the experimental ones.
-
-**Every option keeps the track's role.** Movy measures what the source clip is:
-a drone, a pad, chord stabs, a bass line, an arpeggio, a melody or a drum
-pattern, with how many notes it plays at once, how long they are, how many
-onsets and in what register. It tells the model, and leaves out any option
-that breaks it, so chords never come back as an arpeggio and a held drone never
-as a melody. A held part may move once per bar.
-
-**No option is the same loop again.** An option that is one of the track's
-clips with its bars swapped or rotated, or transposed as a whole, is left out,
-and so is an option that is a near copy of another. A melody moved through the
-scale (a sequence) is a new line and stays.
-
-**Harmony, track by track.** Each track's B is built on its own, in the order
-you make them. If another melodic track already plays in the target scene,
-every option follows its chords and none reharmonises. That is why the bass or
-the chords are the best tracks to vary first. If the scene has nothing yet,
-options 1, 3, 5 and 7 move to new chords, never the A's chords in another
-order, and the others keep the A's chords.
-
-### Harmony, not scales
-
-The generators follow the chords your other tracks actually play, not a scale.
-A chord tone or a 9th, 11th or 13th always fits. A note outside the key is fine
-as a passing or approach note on a weak beat, or as part of a borrowed chord
-the other tracks allow. Smart Quantize's option 1 only moves a note when it
-clashes with the chord sounding at that moment, not because it is out of key.
-
-### How bold: Settings → GENERATORS
-
-**GENERATORS** on the Settings page (Shift + Step 2) sets how bold the
-options are: **SAFE**, **BALANCED** (the default) or **WILD**. Turn **knob 1**
-on the row. In Smart Quantize, option 1 is always the most careful of the three
-and option 3 the boldest, and the level moves the whole range. In Variation the
-level moves only the experimental options 7 and 8, because you choose how far
-to go by choosing an option:
-
-| Level | Smart Quantize | Variation 7 and 8 |
-| --- | --- | --- |
-| **SAFE** | Fix the timing and clashes, tidy, then a light touch. | One borrowed chord; a new phrase around the motif (drums: half-time; a close new pattern). |
-| **BALANCED** | Closest, shaped, inspired (the table above). | Borrowed and modal colour; a bold new part from the motif (drums: half or double time; a new pattern). |
-| **WILD** | Developed, reshaped, reimagined from the motif. | Bold chromatic colour; the boldest new part (drums: a broken feel; the boldest pattern). |
-
-It belongs to the Move, not to a Set, and a change applies from the next
-request.
-
-### While it works
-
-The screen shows `QUANTIZING...` or `VARIATION...`, every light goes dark
-except **Back**, and a slow band sweeps across the pads. The sequencer keeps
-playing. **Back** cancels and leaves the clip untouched. A request usually
-takes a few seconds:
-
-![Working](docs/assets/ai_running_quant.png)
-
-If it fails, a message says why (`NO NETWORK`, `BUSY, TRY LATER` when the
-free quota is used up or the model is overloaded, or `GENERATOR ERROR`), and the clip
-is unchanged. An option that comes back identical to your clip is left out
-(and in Variation one that breaks the role or repeats a loop), so the strip
-can show fewer options than were asked for. A request that leaves none says
-`GENERATOR ERROR`.
-
-### Choosing
-
-The clip's notes fill the screen, with `GEN  ORIG  1  2  3` along the bottom
-(`1` to `8` for a Variation). It opens on the first option:
-
-![Preview](docs/assets/ai_preview_opt1.png)
-
-Each option keeps its number from the table, so a left-out option leaves a gap
-and 7 and 8 are always the experimental ones. Here option 5 was left out and
-option 7 is playing:
-
-![Variation preview](docs/assets/ai_preview_var8.png)
-
-- **Turn the jog** to hear ORIG and each option. The clip swaps in place and
-  keeps playing in time.
-- **Edit freely** with the pads, steps and held-step edits. Each option keeps its
-  own edits: change option 2, look at 3, come back, and 2 is as you left it.
-- **Click the jog** (or press **Back**) to keep what is showing. Switching
-  track or clip, or leaving the view, keeps it too.
-- **Undo** afterwards takes the whole thing back in one step, to the clip as it
-  was before the generator ran.
+How the two compare on Movy's test set of real parts: the ALGORITHMIC
+generators match the model overall, recover a messy part more closely
+(Smart Quantize), and land just behind it on matching a real B section with
+three options. Variation offers six, which closes that gap
+(`plans/gen-bench-results-2026-10-27-algo.md`).
 
 ---
 
@@ -2061,6 +2171,7 @@ only.
 | **Shift + Step 15** | **Double** the loop. |
 | **Shift + Step 16** | Cycle the current clip's **quantization** (0 / default / 100 %), on release in Track view. |
 | **Shift + hold Step 16** | **Smart Quantize** generator (Track view). See [Generators](#6b-generators-smart-quantize--variation). |
+| **Knobs 1-8** (in a generator preview) | The option's own knobs: turn to reshape it, touch to see the name and value. See [The knobs](#the-knobs). |
 
 ---
 

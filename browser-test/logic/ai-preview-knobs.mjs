@@ -8,7 +8,7 @@
 
 import { _log, eq, ok, installMockEngine, uninstallMockEngine, seqEngineTick, resetSeqEngine,
     selectTrack, resetUndoState, resetUndoGroups } from './harness.mjs';
-import { openPreview, previewIndex, previewSwitch, commitPreview, aiPreviewTick, previewInput, resetAiJob, knobsOf } from '../../dist/esm/ai/index.js';
+import { openPreview, previewIndex, previewSwitch, commitPreview, aiPreviewTick, previewInput, resetAiJob, knobsOf, knobLevels } from '../../dist/esm/ai/index.js';
 import { seqState } from '../../dist/esm/seq/state.js';
 import { seqHeaderShown, resetSeqHeader } from '../../dist/esm/seq/render.js';
 import * as G from '../../dist/esm/gen/index.js';
@@ -45,6 +45,14 @@ ok('a live knob exists on option 1', live >= 0);
 
 boot(input);
 eq('opens on option 1', previewIndex(), 1);
+eq('leds_dark_until_a_knob_is_known_to_do_something', knobLevels().every((l) => l === null), true);
+for (let i = 0; i < 8; i++) aiPreviewTick();
+ops();
+const lv = knobLevels();
+const nk = first.preset.knobs.length;
+ok('leds_show_each_live_knobs_position', first.preset.knobs.every((k, i) => !G.knobLive(r.ctx, first.preset, first.knobs, i)
+    ? lv[i] === null : Math.abs(lv[i] - first.knobs[i] / (k.steps(r.ctx) - 1)) < 1e-9));
+ok('leds_dark_past_the_presets_knobs', lv.slice(nk).every((l) => l === null));
 const before = knobsOf(1)[live];
 const steps = first.preset.knobs[live].steps(r.ctx);
 const dir = before >= steps - 1 ? -1 : 1;
@@ -55,6 +63,16 @@ aiPreviewTick();
 const w = ops().filter((o) => o.startsWith('aiclip 0 1 32 1 1 0'));
 eq('turn_regenerates_once_per_tick', w.length, 1);
 ok('turn_moves_the_knob', knobsOf(1)[live] !== before);
+eq('led_follows_the_turn', knobLevels()[live], knobsOf(1)[live] / (steps - 1));
+/* Like a module's params: a knob at its minimum is lit at the bottom of the
+ * ramp (level 0), a knob with nothing behind it is dark (null). */
+previewInput(KNOB(live, -63));
+aiPreviewTick();
+ops();
+eq('led_at_minimum_is_lit_not_dark', knobLevels()[live], 0);
+previewInput(KNOB(live, 2 * dir + (before - knobsOf(1)[live])));
+aiPreviewTick();
+ops();
 const expect = G.regenerate(r.ctx, first.preset, knobsOf(1)).map((n) => `${n.tick}.${n.gate}.${n.pitch}.${n.vel}`).join(',');
 eq('turn_writes_the_presets_take_at_the_new_positions', w[0].split(' ').pop(), expect);
 ok('turn_shows_the_strip: name left, value right', seqHeaderShown().startsWith(first.preset.knobs[live].name + '|'));
@@ -71,6 +89,7 @@ ok('switch_announces_the_option_and_its_preset', seqHeaderShown().startsWith('2 
 previewSwitch(-2);
 ops();
 eq('on ORIG', previewIndex(), 0);
+ok('leds_dark_on_orig', knobLevels().every((l) => l === null));
 previewInput(KNOB(live, 1));
 aiPreviewTick();
 eq('orig_has_no_knobs', ops().filter((o) => o.startsWith('aiclip')).length, 0);

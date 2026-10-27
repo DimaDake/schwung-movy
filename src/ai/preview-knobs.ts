@@ -83,18 +83,36 @@ export function knobTouch(i: number, on: boolean): boolean {
     return true;
 }
 
-/** Per tick: one regeneration for however many detents arrived, and the
- *  strip kept up while a knob is held. */
+/** Per tick: one regeneration for however many detents arrived, the strip
+ *  kept up while a knob is held, and one knob of the option showing probed
+ *  for whether it can change it (so its LED lights only if it can). */
 export function knobsTick(write: (notes: Note[]) => void): void {
     if (!ctx) return;
     const o = opts[shown - 1];
-    if (held >= 0 && o) seqHeaderAnnounce(o.preset.knobs[held].name, STRIP_TTL, o.preset.knobs[held].label(o.knobs[held], ctx));
-    if (!pending || !o) return;
-    pending = false;
-    const notes = regenerate(ctx, o.preset, o.knobs);
-    if (!notes) { mlog(`gen: ${o.preset.id} refused ${o.knobs.join(',')}`); return; }
-    write(notes);
-    appState.dirty = true;
+    if (!o) return;
+    if (held >= 0) seqHeaderAnnounce(o.preset.knobs[held].name, STRIP_TTL, o.preset.knobs[held].label(o.knobs[held], ctx));
+    if (pending) {
+        pending = false;
+        const notes = regenerate(ctx, o.preset, o.knobs);
+        if (notes) { write(notes); appState.dirty = true; } else mlog(`gen: ${o.preset.id} refused ${o.knobs.join(',')}`);
+        return;
+    }
+    const u = o.live.findIndex((l) => l === undefined);
+    if (u >= 0) { o.live[u] = knobLive(ctx, o.preset, o.knobs, u); appState.dirty = true; }
+}
+
+/** The knob LEDs, like a module's params: each knob of the option showing at
+ *  its position (0..1); dark where it has none, where it cannot change this
+ *  option (or is not known yet to), and on ORIG. null = no preview knobs. */
+export function knobLevels(): (number | null)[] | null {
+    if (!ctx || !opts.length) return null;
+    const c = ctx;
+    const o = opts[shown - 1];
+    return Array.from({ length: 8 }, (_, i) => {
+        if (!o || i >= o.preset.knobs.length || o.live[i] !== true) return null;
+        const steps = o.preset.knobs[i].steps(c);
+        return steps > 1 ? o.knobs[i] / (steps - 1) : null;
+    });
 }
 
 /** Test hook: the knob positions of an option (1-based). */

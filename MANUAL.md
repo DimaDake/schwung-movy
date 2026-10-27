@@ -1909,7 +1909,11 @@ knobs already set to the best positions, so you never have to touch them.
 
 ![A generator's knob, held](docs/assets/gen_preview_knob.png)
 
-- Each option keeps its own knob positions. ORIG has no knobs.
+- **The knob lights show each knob's position**, as on a module's parameter
+  page: brighter further right, the dimmest step at a knob's minimum, and off
+  where the option has no knob there.
+- Each option keeps its own knob positions. ORIG has no knobs, and its lights
+  are off.
 - A knob that cannot change this particular option shows nothing and does
   nothing. An example is SWING on a pad that only plays on the beat.
 

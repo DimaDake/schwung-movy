@@ -12,7 +12,8 @@
  *   A4 with no reply to read and GENERATOR MODE = ALGORITHMIC, Smart Quantize
  *      runs the generators on the device (plans/2026-10-27-algorithmic-
  *      generators-design.md): option 1 lands the played notes on the grid
- *   A5 a knob turn in that preview rewrites the option over the clip
+ *   A5 a knob turn in that preview rewrites the option over the clip, and the
+ *      preview lights the knobs at their positions like a module's params
  * The witness is the engine's own clip dump (`ait:0`), the only read-back of
  * what a preview wrote. Option switching, per-option edits, every commit path
  * and the single undo are pinned by logic/ai-preview.mjs.
@@ -95,6 +96,12 @@ scenario('ai', async (t) => {
         const g = clipLine(await waitFor('algorithmic preview', 0, ',192.'), 0);
         t.check('a4-algorithmic-quantize', 'with no reply to read, Smart Quantize runs the generators on the device',
             g.includes('|0.') && g.includes(',96.') && g.includes(',192.'), { expected: 'notes at 0, 96, 192', actual: g });
+        /* Knob 1 (TIMING) lit at its position: the row is movy's one writer,
+         * which logs each change as `knobLED k=<n> nv=<v> color=<c>`. */
+        await t.tx.frames(60);
+        const led = (await dev.logLines('knobLED k=0 ')).pop() ?? '';
+        t.check('a5-knob-leds-lit', 'the preview lights knob 1 at its position, like a module param',
+            /color=[1-9]\d*/.test(led), { expected: 'knob 1 lit', actual: led });
         await cc(71, 125);
         await t.tx.frames(30);
         const g2 = clipLine(await dump(), 0);

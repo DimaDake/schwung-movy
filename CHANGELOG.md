@@ -25,8 +25,9 @@ far. Earlier work is summarised in the timeline below for context.
   note a lone bass or drone pins, and only moves the harmony in an empty scene.
   Variation offers six options, Smart Quantize three, chosen per part and per
   GENERATORS level. In the preview the knobs reshape the option showing (a turn
-  rewrites it; touch shows the name and value in the top strip), and a knob
-  that cannot change it is hidden. Settings → **GENERATOR MODE** switches
+  rewrites it; touch shows the name and value in the top strip; the knob lights
+  show each position like a module's params, dimmest at a minimum and off where
+  there is no knob), and a knob that cannot change it is hidden. Settings → **GENERATOR MODE** switches
   between ALGORITHMIC and MODEL (Gemini, as before; its replies get four knobs
   too). Measured on the generator bench against the cached model runs
   (`scripts/gen-bench/algo.mjs`, `plans/gen-bench-results-2026-10-27-algo.md`).

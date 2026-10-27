@@ -75,6 +75,7 @@ import { aiTick } from '../ai/job.js';
 import { aiGestureTick } from '../ai/gestures.js';
 import { holdProgressTick } from '../ai/hold-render.js';
 import { aiPreviewActive, aiPreviewTick } from '../ai/preview.js';
+import { knobLevels } from '../ai/preview-knobs.js';
 import { previewStripTick } from '../ai/preview-render.js';
 import { leaveModalActive, leaveModalLabels, leaveModalSel, leaveModalTitle } from './leave-modal.js';
 import { drawLeaveModal } from '../renderer/leave-modal-view.js';
@@ -843,9 +844,13 @@ function tickBody(): void {
             lightKnobRow(schwungBody);
         } else if (noteViewActive()) {
             /* Loop mode: the note view owns everything above the strip and is
-             * painted on the per-tick schedule below; the knobs are idle. */
+             * painted on the per-tick schedule below; the knobs are idle —
+             * except in a generator preview, where they are the option's and
+             * light like a module's params (ai/preview-knobs.ts). */
             clear_screen();
-            updateSingleKnobLED(-1, 0);
+            const previewKnobs = knobLevels();
+            if (previewKnobs) updateKnobLEDsFrom(previewKnobs);
+            else updateSingleKnobLED(-1, 0);
         } else if (appState.currentView === VIEW_KEYS) {
             renderKeysView(activeModel?.getModuleName() ?? '—', baseNoteFor(appState.activeTrack.index), midiNoteName);
         } else if (appState.currentView === VIEW_KNOBS) {

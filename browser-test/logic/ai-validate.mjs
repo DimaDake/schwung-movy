@@ -38,6 +38,10 @@ eq('drum_option3_drops_non_kit_pad', JSON.stringify(v[2].map((n) => n.pitch)), '
 v = validateOptions(reply([[0, 24, 60, 100], [24, 24, 62, 100]], [[24, 24, 62, 100], [0, 24, 60, 100]], [[0, 24, 64, 100]]), mel);
 eq('dedupes_identical_options', v.length, 2);
 
+/* ORIG is already the strip's first entry: a copy of it is no option. */
+v = validateOptions(reply([[96, 12, 38, 100], [0, 12, 36, 100]], [[0, 12, 36, 100]]), mel);
+eq('drops_option_identical_to_orig', JSON.stringify(v), '[[{"tick":0,"gate":12,"pitch":36,"vel":100}]]');
+
 const many = Array.from({ length: 700 }, (_, i) => [i, 1, 60, 100]);
 eq('caps notes at the engine MAX_NOTES', validateOptions(reply(many), { ...mel, len: 64 })[0].length, 512);
 

@@ -87,7 +87,7 @@ export function startAiJob(task: AiTask, track: number, slot: number): void {
     /* A canned reply (device scenarios) needs no key, so a test never has to
      * touch the user's real one. */
     const cfg = readAiConfig(MOVY_MODULE_DIR)
-        ?? (fakeResponse(MOVY_MODULE_DIR) ? { provider: 'gemini' as const, model: 'fake', key: '' } : null);
+        ?? (fakeResponse(MOVY_MODULE_DIR) ? { model: 'fake', key: '' } : null);
     if (!cfg) { seqToast(MSG_NO_KEY); return; }
     run = { task, track, slot, cfg, uuid: currentSetUuid(), startMs: -1, next: 0, tracks: [], httpId: -1, sentMs: -1, ctx: null };
     phase = 'running';
@@ -119,7 +119,7 @@ function send(r: Running, now: number): void {
 function finish(r: Running, reply: HttpReply): void {
     const status = classifyStatus(reply.http, reply.curlExit);
     if (status !== 'ok') return fail(status, `http ${reply.http} curl ${reply.curlExit} ${reply.body.slice(0, 200)}`);
-    const text = extractText(r.cfg.provider, reply.body);
+    const text = extractText(reply.body);
     const c = r.ctx!;
     const options = text === null ? [] : validateOptions(text, {
         task: r.task, len: c.len, drum: c.drum, original: c.orig?.notes ?? [], kitPads: c.kit });

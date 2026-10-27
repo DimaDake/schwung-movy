@@ -60,6 +60,12 @@ hold16Tick(1300, true, fire);
 hold16Tick(1400, true, fire);
 eq('hold16_full_starts_job_once', fired, 1);
 eq('the release after a fired hold does nothing', hold16Release(1500), 'none');
+fired = 0;
+hold16Press(0, false);
+eq('hold16_unarmed_shows_no_bar', hold16Progress(800), -1);
+hold16Tick(1400, true, fire);
+eq('hold16_unarmed_never_fires', fired, 0);
+eq('hold16_unarmed_release_is_a_tap', hold16Release(1500), 'quantize');
 
 eq('step14_led_dim_white_only_when_possible: lit', stepIconColor(13, { shift: true, aiVar: true }), WHITE_DIM);
 eq('step14_led_dim_white_only_when_possible: dark', stepIconColor(13, { shift: true, aiVar: false }), 0);
@@ -112,6 +118,13 @@ handleStepButton(15, true, true);
 eq('Shift+Step16 press alone does not cycle', seqState.clipQuant, before);
 handleStepButton(15, false, true);
 ok('Shift+Step16 release cycles quantize', seqState.clipQuant !== before);
+seqState.recording = true;
+const qRec = seqState.clipQuant;
+handleStepButton(15, true, true);
+eq('hold_bar_stays_hidden_while_recording', hold16Progress(Date.now() + 800), -1);
+handleStepButton(15, false, true);
+ok('Shift+Step16 while recording still cycles quantize', seqState.clipQuant !== qRec);
+seqState.recording = false;
 appState.shiftHeld = false;
 /* A Shift+16 press whose release was lost must not hijack the next plain
  * press of Step 16 (its release would skip the step-edit bookkeeping). */

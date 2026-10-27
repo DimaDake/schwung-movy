@@ -1779,23 +1779,26 @@ another clip already on the track.
 
 You need an API key. A **Gemini key is free** from Google AI Studio
 (aistudio.google.com/apikey). With Movy installed, open
-**`move.local:7700/modules/movy`** in a browser, pick the provider (Gemini or
-OpenAI), and paste the key. The key is stored on the Move and never shown
-again. If there is no key, the AI gestures say `NO API KEY  MOVE.LOCAL:7700`.
+**`move.local:7700/modules/movy`** in a browser and paste the key. The key is
+stored on the Move and never shown again. The Model field defaults to
+`gemini-flash-lite-latest`, which answers in a few seconds on the free tier;
+put `gemini-flash-latest` there for richer takes when Google's servers are not
+busy. If there is no key, the AI gestures say `NO API KEY  MOVE.LOCAL:7700`.
 
 **What is sent:** every clip of every track (notes, lengths, playback speed,
 transpose), each track's module name and drum voice names, and the Set's tempo,
 swing and key. A track's identical clips are sent once. Movy also adds the
 chord it hears in each bar. No audio and no names other than modules leave the
-Move. Requests go straight from the Move to the provider you picked, over the
-Move's own Wi-Fi.
+Move. Requests go straight from the Move to Google, over the Move's own Wi-Fi.
 
 ### Smart Quantize: Shift + hold Step 16
 
 Record something rough, then **hold Shift and hold Step 16**. A tap still
 cycles the clip's quantization as before. After a moment a bar fills along the
 bottom of the screen, and when it is full the request goes. Let go before the
-bar is full and nothing happens, not even the plain quantize:
+bar is full and nothing happens, not even the plain quantize. While recording,
+in Session view or while a Set loads, no bar appears and a press of any length
+just cycles quantization:
 
 ![Hold to Smart Quantize](docs/assets/ai_hold_progress_50.png)
 
@@ -1835,7 +1838,9 @@ takes a few seconds:
 ![Working](docs/assets/ai_running_quant.png)
 
 If it fails, a message says why (`NO NETWORK`, `AI BUSY, TRY LATER` when the
-free quota is used up, or `AI ERROR`), and the clip is unchanged.
+free quota is used up or the model is overloaded, or `AI ERROR`), and the clip
+is unchanged. An option that comes back identical to your clip is left out, so
+the strip can show fewer than three.
 
 ### Choosing
 

@@ -1,4 +1,4 @@
-/* browser-test/logic/ai-provider.mjs — request shapes for Gemini/OpenAI,
+/* browser-test/logic/ai-provider.mjs — the Gemini request shape,
  * reading their replies, and the background HTTP job (design §6.2).
  *
  * Run by browser-test/logic.mjs.
@@ -14,7 +14,7 @@ const MOD = '/m';
 export async function run() {
 _log('\nTest: AI provider');
 
-const g = buildRequest({ provider: 'gemini', model: 'gemini-2.5-flash', key: 'K' }, P);
+const g = buildRequest({ model: 'gemini-2.5-flash', key: 'K' }, P);
 eq('gemini_request_shape: url', g.url, 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent');
 ok('gemini_request_shape: key header', g.headers.includes('x-goog-api-key: K'));
 const gb = JSON.parse(g.body);
@@ -22,21 +22,16 @@ eq('gemini_request_shape: system', gb.systemInstruction.parts[0].text, 'SYS');
 eq('gemini_request_shape: user', gb.contents[0].parts[0].text, 'USER');
 eq('gemini_request_shape: json mode', gb.generationConfig.responseMimeType, 'application/json');
 
-const o = buildRequest({ provider: 'openai', model: 'gpt-4.1-mini', key: 'S' }, P);
-eq('openai_request_shape: url', o.url, 'https://api.openai.com/v1/chat/completions');
-ok('openai_request_shape: bearer', o.headers.includes('Authorization: Bearer S'));
-const ob = JSON.parse(o.body);
-eq('openai_request_shape: messages', ob.messages.map((m) => m.role + ':' + m.content).join('|'), 'system:SYS|user:USER');
-eq('openai_request_shape: json mode', ob.response_format.type, 'json_object');
-
-eq('extract_text_gemini', extractText('gemini', JSON.stringify({ candidates: [{ content: { parts: [{ text: '{"a"' }, { text: ':1}' }] } }] })), '{"a":1}');
-eq('extract_text_openai', extractText('openai', JSON.stringify({ choices: [{ message: { content: 'X' } }] })), 'X');
-eq('extract_text: garbage -> null', extractText('gemini', '<html>'), null);
+eq('extract_text_gemini', extractText(JSON.stringify({ candidates: [{ content: { parts: [{ text: '{"a"' }, { text: ':1}' }] } }] })), '{"a":1}');
+eq('extract_text: garbage -> null', extractText('<html>'), null);
 
 eq('classify_ok', classifyStatus(200, 0), 'ok');
 eq('classify_429_busy', classifyStatus(429, 0), 'AI BUSY, TRY LATER');
 eq('classify_503_busy', classifyStatus(503, 0), 'AI BUSY, TRY LATER');
-eq('classify_curl_timeout_network', classifyStatus(0, 28), 'NO NETWORK');
+/* An overloaded model can hold the connection open past curl's timeout
+ * (live check: 240 s, no answer): the network was fine, the service was not. */
+eq('classify_curl_timeout_busy', classifyStatus(0, 28), 'AI BUSY, TRY LATER');
+eq('classify_curl_dns_network', classifyStatus(0, 6), 'NO NETWORK');
 eq('classify_400_error', classifyStatus(400, 0), 'AI ERROR');
 
 /* The job: a status file is the only "done" signal. */

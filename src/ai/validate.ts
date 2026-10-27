@@ -1,6 +1,7 @@
 /* The model is never trusted (design §6.3): every option is clamped into the
  * clip, drum quantize option 1 keeps every pad, other drum options stay on
- * the kit, and empty or duplicate options are dropped before the preview. */
+ * the kit, and empty or duplicate options, or a copy of ORIG (already the
+ * strip's first entry), are dropped before the preview. */
 
 import { type AiNote, TICKS_PER_STEP } from './clip-dump.js';
 import type { AiTask } from './prompt.js';
@@ -62,7 +63,7 @@ function key(notes: AiNote[]): string {
 export function validateOptions(raw: string, ctx: ValidateCtx): AiNote[][] {
     const end = ctx.len * TICKS_PER_STEP;
     const kit = new Set(ctx.kitPads);
-    const seen = new Set<string>();
+    const seen = new Set<string>([key([...ctx.original].sort((a, b) => a.tick - b.tick || a.pitch - b.pitch))]);
     const out: AiNote[][] = [];
     parseReply(raw).slice(0, 3).forEach((opt, i) => {
         const list = (opt as { notes?: unknown })?.notes;

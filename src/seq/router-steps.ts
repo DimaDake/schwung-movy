@@ -5,6 +5,7 @@
  * door in step-shortcuts.ts — two of the branches below hand off to them. */
 
 import { hold16Pending, resetHold16, hold16Press, hold16Release } from '../ai/hold16.js';
+import { aiHoldAllowed } from '../ai/gestures.js';
 import { mlog } from '../log.js';
 import { appState } from '../app/state.js';
 import { beginEdit, endEdit, CLOSE } from '../undo/group.js';
@@ -140,7 +141,7 @@ export function handleStepButton(button: number, on: boolean, shiftHeld: boolean
     } else if (button === STEP_QUANTIZE && (on ? shiftHeld : hold16Pending())) {
         /* Track view: a Shift tap cycles quantize on RELEASE, so a hold can
          * become Smart Quantize instead (ai/hold16.ts). */
-        if (on) hold16Press(Date.now());
+        if (on) hold16Press(Date.now(), aiHoldAllowed());
         else if (hold16Release(Date.now()) === 'quantize') cycleQuantize();
     } else if (on && shiftHeld) {
         shiftStepFunction(button);

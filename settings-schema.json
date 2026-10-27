@@ -2,14 +2,9 @@
     "id": "movy",
     "label": "Movy AI",
     "items": [
-        { "key": "provider", "label": "AI Provider", "type": "enum",
-          "options": ["Gemini", "OpenAI"], "values": ["gemini", "openai"], "default": "gemini" },
         { "key": "gemini_api_key", "label": "Gemini API Key", "type": "password",
           "help": "Free key from Google AI Studio:",
           "help_url": "https://aistudio.google.com/apikey" },
-        { "key": "openai_api_key", "label": "OpenAI API Key", "type": "password",
-          "help": "Paid key from the OpenAI platform:",
-          "help_url": "https://platform.openai.com/api-keys" },
-        { "key": "model", "label": "Model", "type": "string", "default": "gemini-2.5-flash" }
+        { "key": "model", "label": "Model", "type": "string", "default": "gemini-flash-lite-latest" }
     ]
 }

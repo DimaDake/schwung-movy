@@ -5,16 +5,16 @@
 
 import { platform } from '../platform/index.js';
 
-export type AiProvider = 'gemini' | 'openai';
-
 export interface AiConfig {
-    provider: AiProvider;
     model: string;
     key: string;
 }
 
-export const GEMINI_DEFAULT_MODEL = 'gemini-2.5-flash';
-export const OPENAI_DEFAULT_MODEL = 'gpt-4.1-mini';
+/* gemini-2.5-flash answers 404 to new keys (2026-10-27); an alias follows
+ * Google's current model instead of dying with the next deprecation. Lite,
+ * because the full Flash models were overloaded (503, or no answer at all)
+ * on the free tier while Lite answered in 2-4 s. */
+export const GEMINI_DEFAULT_MODEL = 'gemini-flash-lite-latest';
 
 function readJson(path: string): Record<string, unknown> {
     try {
@@ -25,15 +25,11 @@ function readJson(path: string): Record<string, unknown> {
     }
 }
 
-/** null = no key for the chosen provider (the caller shows NO API KEY). */
+/** null = no key (the caller shows NO API KEY). */
 export function readAiConfig(moduleDir: string): AiConfig | null {
     const cfg = readJson(moduleDir + '/config.json');
-    const provider: AiProvider = cfg.provider === 'openai' ? 'openai' : 'gemini';
-    const key = (platform.readFile(moduleDir + '/secrets/' + provider + '_api_key.txt') ?? '').trim();
+    const key = (platform.readFile(moduleDir + '/secrets/gemini_api_key.txt') ?? '').trim();
     if (!key) return null;
-    let model = typeof cfg.model === 'string' && cfg.model.trim() ? cfg.model.trim() : GEMINI_DEFAULT_MODEL;
-    /* The schema has one model field defaulting to Gemini's; switching the
-     * provider alone must not send a Gemini model name to OpenAI. */
-    if (provider === 'openai' && model.startsWith('gemini')) model = OPENAI_DEFAULT_MODEL;
-    return { provider, model, key };
+    const model = typeof cfg.model === 'string' && cfg.model.trim() ? cfg.model.trim() : GEMINI_DEFAULT_MODEL;
+    return { model, key };
 }

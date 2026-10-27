@@ -182,11 +182,13 @@ Follow the existing pattern (Schwung `docs/MODULES.md` per-module config; the
 store's **AI Manual** / **AI Assistant** modules do exactly this): movy ships a
 `settings-schema.json` with
 
-- `provider` enum — Gemini (default) | OpenAI,
-- `gemini_api_key`, `openai_api_key` — `"type": "password"` (stored
+- `gemini_api_key` — `"type": "password"` (stored
   `secrets/<key>.txt`, 0600, never round-tripped to the browser), `help_url` to
   aistudio.google.com for the free Gemini key,
-- `model` string with a sensible default (a current free-tier Flash model).
+- `model` string defaulting to `gemini-flash-lite-latest`. Gemini only
+  (user, 2026-10-27). A live check that day: `gemini-2.5-flash` 404s for new
+  keys; the full Flash models answered 503 or nothing within 240 s; Lite
+  answered in 2-4 s.
 
 Edited at `move.local:7700/modules/movy`. Movy reads `config.json` and the
 secret file with `host_read_file`. The tarball must not ship `config.json` or

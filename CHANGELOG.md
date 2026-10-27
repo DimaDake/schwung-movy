@@ -16,7 +16,7 @@ far. Earlier work is summarised in the timeline below for context.
 ### Added
 
 - **AI Smart Quantize and AI Variation.** Shift + hold Step 16 sends the Set to
-  Gemini or OpenAI and previews three takes on the recorded clip, from tightened
+  Gemini and previews three takes on the recorded clip, from tightened
   to reimagined, against the original. Shift + Step 14 writes a variation of
   the track's previous clip into the selected slot. Choose with the jog, edit
   while previewing, and undo it all in one step. The key goes in at

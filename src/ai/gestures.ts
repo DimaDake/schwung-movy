@@ -14,6 +14,9 @@ function busy(): boolean {
     return !sessionReady() || seqState.recording || seqState.countingIn || seqState.sessionMode;
 }
 
+/** Whether a Shift + Step 16 press may grow into Smart Quantize. */
+export function aiHoldAllowed(): boolean { return !busy(); }
+
 function selectedSlot(t: number): number { return seqState.session[t]?.selected ?? 0; }
 
 /** A variation needs another clip on the track to grow from. */

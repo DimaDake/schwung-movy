@@ -1,5 +1,5 @@
-/* browser-test/logic/ai-config.mjs — AI MIDI settings: which provider, which
- * model, and the key from Schwung's per-module secrets/ (design §6.1).
+/* browser-test/logic/ai-config.mjs — AI MIDI settings: which Gemini model
+ * and the key from Schwung's per-module secrets/ (design §6.1).
  *
  * Run by browser-test/logic.mjs.
  */
@@ -15,20 +15,16 @@ _log('\nTest: AI config');
 
 installMockFs({ [DIR + '/secrets/gemini_api_key.txt']: 'AIzaKEY\n' });
 let c = readAiConfig(DIR);
-eq('ai_config_reads_gemini_key: provider defaults to gemini', c && c.provider, 'gemini');
 eq('ai_config_reads_gemini_key: key trimmed', c && c.key, 'AIzaKEY');
-eq('ai_config_reads_gemini_key: default model', c && c.model, 'gemini-2.5-flash');
+/* gemini-2.5-flash answers 404 "no longer available to new users" (live
+ * check 2026-10-27); the -latest alias follows Google's current model. */
+eq('ai_config_default_model_is_a_live_alias', c && c.model, 'gemini-flash-lite-latest');
 uninstallMockFs();
 
+/* A config.json written while OpenAI was still offered must not lose the key. */
 installMockFs({ [DIR + '/config.json']: JSON.stringify({ provider: 'openai' }),
     [DIR + '/secrets/gemini_api_key.txt']: 'AIzaKEY' });
-eq('ai_config_null_without_key: openai chosen, only a gemini key', readAiConfig(DIR), null);
-uninstallMockFs();
-
-installMockFs({ [DIR + '/config.json']: JSON.stringify({ provider: 'openai', model: 'gemini-2.5-flash' }),
-    [DIR + '/secrets/openai_api_key.txt']: 'sk-1' });
-c = readAiConfig(DIR);
-eq('ai_config_openai_default_model: gemini default swapped', c && c.model, 'gpt-4.1-mini');
+eq('ai_config_gemini_only: a stale provider is ignored', readAiConfig(DIR)?.key, 'AIzaKEY');
 uninstallMockFs();
 
 installMockFs({ [DIR + '/config.json']: JSON.stringify({ model: 'gemini-2.5-flash-lite' }),
@@ -36,7 +32,7 @@ installMockFs({ [DIR + '/config.json']: JSON.stringify({ model: 'gemini-2.5-flas
 eq('ai_config_ignores_whitespace_key', readAiConfig(DIR), null);
 installMockFs({ [DIR + '/config.json']: '{not json', [DIR + '/secrets/gemini_api_key.txt']: 'k' });
 c = readAiConfig(DIR);
-eq('ai_config_bad_json_falls_back_to_defaults', c && c.model, 'gemini-2.5-flash');
+eq('ai_config_bad_json_falls_back_to_defaults', c && c.model, 'gemini-flash-lite-latest');
 uninstallMockFs(); uninstallMockFs();
 
 /* The HTTP seam: movy-host's global takes Schwung's snake_case option names. */

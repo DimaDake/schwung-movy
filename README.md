@@ -160,7 +160,7 @@ Movy stands on the shoulders of several projects:
   ![Quantize](docs/assets/quant-overlay-three.png)
 
 - **AI Smart Quantize & Variation** — hold **Shift + Step 16** and an AI (a
-  free Gemini key, or OpenAI) hands back three takes on the clip you recorded,
+  free Gemini key) hands back three takes on the clip you recorded,
   from tightened to reimagined, each fitted to the rest of the scene. **Shift +
   Step 14** turns a track's A part into a B. You preview every option on the
   jog, against your original, before anything is kept.

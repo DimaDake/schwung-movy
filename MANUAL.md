@@ -1849,7 +1849,7 @@ groups:
 | --- | --- | --- |
 | **Close** | NEXT CHORDS (the rhythm kept, new notes from the new chords), FOLLOW (the whole part slid along the new roots, the way dub and house chords move), PULSE (the rhythm on each chord's root), HARMONIZE (a line in parallel thirds or sixths), RE-VOICE, NEW LINE, ANSWER, SPREAD, ARP, DRONE MOVE | KICK, HATS, GHOSTS, FILL |
 | **Rhythm** | BASSLINE (a new bass figure over the chords: offbeat, rolling, octaves, 3-3-2, gallop…), DISPLACE, ANTICIPATE, CONNECT (passing notes and suspensions), RECOMBINE, EUCLID, COMP (chord rhythms), OCTAVE BASS, WALK, THIN | SHIFT, TURNAROUND |
-| **Experimental** | STYLE (a new part in the source's own language, learned from it), LOOPER (a locked loop that mutates, after the Turing Machine), MOTIF (a cell as a sequence), RETROGRADE, HALF/DOUBLE, ORNAMENT, REGISTER, PEDAL, DEVELOP (eight knobs) | STYLE (a new pattern learned from yours), FEEL (half time, double hats), GRIDS (a density map, after Mutable Instruments' Grids), EUCLID, DEVELOP |
+| **Experimental** | STYLE (a new part in the source's own language, learned from it), LOOPER (a locked loop that mutates, after the Turing Machine), FORM (the part as a phrase: AABA, call and response…), MOTIF (a cell as a sequence), RETROGRADE, HALF/DOUBLE, ORNAMENT, REGISTER, PEDAL, DEVELOP (eight knobs) | STYLE (a new pattern learned from yours), FORM (your bar with a fill, a breakdown or a new bar as its answer), FEEL (half time, double hats), GRIDS (a map from your pattern to the genres' patterns, after Mutable Instruments' Grids), EUCLID, DEVELOP |
 
 GENERATORS (below) sets how many come from each group. Each generator is
 also tried with its feel moved two ways (another rhythm, more or fewer voices,
@@ -1948,13 +1948,22 @@ A name means the same thing on every generator:
 | **DYNAMICS** | From the velocities you played to the groove's accents. |
 | **SEED** | Another roll of the same idea. |
 
-Other knobs belong to one generator: LOOPER has LOCK (on the right the loop
+Other knobs belong to one generator. FORM cuts the clip into UNITs (half a
+bar, a bar or two) and lays them out by a FORM: AABA, ABAB, AAAB, ABAC, or
+GROWTH and MIRROR, two patterns that grow by rules (A→AB) and repeat without
+settling into a loop. A is your first unit; ANSWER says what B is: your own
+unit there, A moved up or down the scale by STEP, A upside down, A's rhythm
+pushed, or a new phrase in your style (for drums: a fill, a new bar, a
+breakdown or your own bar). GRIDS moves across a map with X and Y: your
+pattern is the corner at 0 %, and the rest is four on the floor, disco,
+backbeat, 2-step, breakbeat, half time, trap and broken beat, blended between
+them; it opens on the nearest one that is not yours. KICK, SNARE and HATS set
+how much of each plays, CHAOS shakes it. LOOPER has LOCK (on the right the loop
 repeats as it is; turning left, more of its steps are rewritten each time
 round), LOOP (3 to 16 steps; a loop that does not divide 16 runs against the
 bar), CLOCK (1/16, 1/8 or 1/4 per step) and SPREAD (how far a rewritten step may
 leap); BASSLINE has PATTERN, NOTES, OCTAVE and SHIFT; ARP has PATTERN, RATE and OCTAVES; MOTIF
-has CELL and STEP; FILL has SIZE and PADS; EUCLID has PULSES and ROTATE; GRIDS
-has KICK, SNARE, HATS and CHAOS.
+has CELL and STEP; FILL has SIZE and PADS; EUCLID has PULSES and ROTATE; and GRIDS has X, Y, KICK, SNARE, HATS and CHAOS.
 
 In MODEL mode each option gets four knobs that reshape the model's answer:
 TIMING, SWING, DYNAMICS and LENGTH for Smart Quantize, and DENSITY, LENGTH,

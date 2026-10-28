@@ -28,3 +28,5 @@ export * from './style/markov.js';
 export * from './style/melodic.js';
 export * from './style/drums.js';
 export { rhythmStage, RHYTHMS } from './shape/rhythm.js';
+export * from './shape/form.js';
+export * from './shape/drum-maps.js';

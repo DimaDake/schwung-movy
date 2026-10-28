@@ -64,4 +64,34 @@ const a = looper.generate(lead, locked, 1), b = looper.generate(lead, locked, 2)
 eq('looper_locked_ignores_the_seed', sig(a), sig(b));
 const open = [...base]; open[0] = 0;
 ok('looper_open_moves', sig(looper.generate(lead, open, 1)) !== sig(looper.generate(lead, open, 2)));
+
+/* FORM: the song forms repeat, the L-systems grow from A; AABA puts A's
+ * rhythm back in the fourth unit and something else in the third. */
+eq('form_song_form_repeats', G.formString('AABA', 6), 'AABAAA');
+eq('form_growth_is_the_fibonacci_word', G.formString('GROWTH', 8), 'ABAABABA');
+eq('form_mirror_is_thue_morse', G.formString('MIRROR', 8), 'ABBABAAB');
+const form = G.PRESETS.find((p) => p.id === 'v-form');
+const fk = G.defaults(form, lead);
+const unit = G.UNITS[fk[1]];
+const fo = form.generate(lead, fk, 1);
+const rel = (k) => onsets(fo.filter((n) => n.tick >= k * unit && n.tick < (k + 1) * unit).map((n) => ({ ...n, tick: n.tick - k * unit })));
+eq('form_aaba_fourth_unit_is_a', rel(3).join(), rel(0).join());
+const pitchesIn = (k) => fo.filter((n) => n.tick >= k * unit && n.tick < (k + 1) * unit).map((n) => n.pitch).join();
+ok('form_aaba_third_unit_answers', pitchesIn(2) !== pitchesIn(0));
+const fd = G.PRESETS.find((p) => p.id === 'd-form');
+const dk = G.defaults(fd, drums);
+const du = G.UNITS[dk[1]];
+const dn = fd.generate(drums, dk, 1);
+const toms = new Set([38, 45, 48]);
+ok('form_drums_fill_lands_in_the_b_unit', dn.some((n) => n.tick >= 3 * du + du * 0.75 && toms.has(n.pitch) && Math.round(n.tick / G.TPS) % 4 !== 0));
+
+/* GRIDS map: the origin is the source; a node is its genre pattern. */
+const pads = [36, 38, 42];
+const srcLv = G.sourceLevels(drums.src, pads, drums.end);
+eq('map_origin_is_the_source', JSON.stringify(G.levelsAt(0, 0, srcLv)), JSON.stringify(srcLv));
+eq('map_node_is_its_pattern', G.levelsAt(0.5, 0.5, srcLv)[0].join(''), G.NODES[1][1][0].join(''));
+const mid = G.levelsAt(0.25, 0, srcLv)[0][0];
+ok('map_blends_between_nodes', Math.abs(mid - (srcLv[0][0] + G.NODES[0][1][0][0]) / 2) < 1e-9);
+const [nx, ny] = G.nearestNode(srcLv);
+ok('grids_opens_on_a_node_that_differs', nx + ny > 0);
 }

@@ -23,6 +23,11 @@ far. Earlier work is summarised in the timeline below for context.
   CYCLE 3/5/6/7 (a figure repeated against the bar), and an empty scene can
   take Tonnetz moves (R, L and P TURN). Variation's six options now include
   two experimental ones (three on WILD).
+- **FORM and a new GRIDS.** FORM lays a part out as a phrase (AABA, call and
+  response, three and a turnaround, or the GROWTH and MIRROR L-systems) with a
+  chosen answer as B: a sequence, an inversion, a pushed rhythm, a new phrase
+  in your style, or for drums a fill or a breakdown. GRIDS now morphs with X
+  and Y from your own pattern across a map of genre patterns.
 - **Algorithmic generators (the default).** Smart Quantize and Variation now
   run Movy's own generators on the Move: no key, no network, options in under a
   second. About thirty Variation generators and a dozen for Smart Quantize, each

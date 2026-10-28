@@ -36,6 +36,9 @@ export function variantKnobs(p: Preset, ctx: GenCtx, base: number[], seed: numbe
         else if (k.name === 'LIKENESS' || k.name === 'LOCK') set(v[i] - 2 - 2 * which);
         else if (k.name === 'LOOP') set(v[i] + (which ? -2 : 1));
         else if (k.name === 'PHRASE' && which === 1) set(v[i] + 1);
+        else if (k.name === 'FORM' || k.name === 'ANSWER') set((v[i] + 1 + which) % steps);
+        else if (k.name === 'X') set(v[i] + (which ? 6 : 3));
+        else if (k.name === 'Y') set(v[i] + (which ? 2 : 5));
     });
     return moved ? v : null;
 }

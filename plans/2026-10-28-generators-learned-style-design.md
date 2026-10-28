@@ -60,10 +60,27 @@ RHYTHM gains CYCLE 3, 5, 6 and 7: the source's first N steps repeat every N step
 come back into phase over the loop (Reich's phasing, Tidal's polymeter). Lines repeat their figure's notes,
 chords sound the source chord under each onset. Every preset with a RHYTHM knob gets them.
 
-## Phase 2 (not now)
+## Phase 2 (approved 2026-10-28)
 
-L-system phrase forms (AABA, call and response over 4-8 bars, inside MOTIF / DEVELOP) and Grids-style map
-morphing with our own maps (Grids' tables are GPL; movy does not copy them).
+### 5. FORM, `shape/form.ts`, `presets/var-form.ts`
+
+The clip is cut into UNITs (half bar, bar, two bars; at least two fit) and laid out by a FORM: AABA, ABAB (call
+and response), AAAB (three and a turnaround), ABAC, and two L-systems grown to the clip's length — GROWTH
+(A→AB, B→A: ABAABABA…) and MIRROR (Thue–Morse, A→AB, B→BA: ABBABAAB…). A is the source's first unit; ANSWER
+says what B is: the source's own unit there (SOURCE), A moved through the scale by STEP (SEQUENCE), A's contour
+mirrored (INVERT), A's rhythm pushed two 16ths (DISPLACE), or a learned walk (NEW, §1). C is the next answer.
+Melodic FORM (8: FORM, UNIT, ANSWER, STEP, HARMONY, TENSION, RANGE, SEED) is realised over the plan; drum FORM
+(4: FORM, UNIT, ANSWER, SEED) answers with a FILL, a learned walk (STYLE), a breakdown (SPARSE) or SOURCE.
+This was meant to extend MOTIF and DEVELOP; it is its own generator instead, because every preset is its own
+generator with its own knobs, and MOTIF's sequence stays what it is.
+
+### 6. GRIDS as a map, `shape/drum-maps.ts`
+
+Grids' method without Grids' data: a 3×3 map of nodes, each a 16-step level (0-9) for kick, snare and hats,
+read by X and Y with bilinear blending, then thresholded per part by KICK, SNARE and HATS, CHAOS adding noise
+to the levels. Node (0,0) is the source's own pattern; the others are written here from the genres' usual
+patterns: four-on-the-floor and disco; backbeat, 2-step and breakbeat; half time, trap and broken beat. Knobs
+(8): X, Y, KICK, SNARE, HATS, CHAOS, DYNAMICS, SEED.
 
 ## Tests
 

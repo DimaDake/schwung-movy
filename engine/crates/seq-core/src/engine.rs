@@ -14,6 +14,7 @@ use crate::{PPQN, STEPS_PER_BAR, TICKS_PER_BAR, TICKS_PER_STEP};
 mod ai_clip;
 pub use ai_clip::{parse_ai_notes, AiClipWrite};
 mod note_view;
+mod phase;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum OutEvent {

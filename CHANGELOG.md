@@ -22,6 +22,10 @@ far. Earlier work is summarised in the timeline below for context.
   melodic parts; FILL, PICKUP, ROLL, REPEAT, BREAK and STYLE for drums. ENDING
   sets how much is rewritten; SEAMS on BOTH gives the first half an ending too.
   A tap on Shift + Step 15 still doubles the loop, now on release.
+- **A doubled loop joins the scene in phase.** Doubling (a tap or Smart
+  Double) while a longer neighbour was in its second bar left the doubled clip
+  a bar out against it for good. It now lines up with the longest playing
+  loop its new length fits into (ENGINE 0.113.0).
 - **Generators learn the part's style.** New Variation generators: STYLE
   writes a new part in the source's own language (a Markov model learned from
   the clip and the track's other clips; LIKENESS and PHRASE knobs), for melodic

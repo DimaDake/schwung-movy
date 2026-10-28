@@ -23,6 +23,17 @@ to the doubled length, so `ctx.src` is the plain double. Harmony is the clip's o
 SCENE plan), but `freedom` is the scene's real one, so an ending may change a chord only where no other track sets it.
 The guard refuses the plain double (a tap is that).
 
+## In phase with the scene
+
+A clip whose loop grows keeps its playhead, so doubling a 1-bar clip while a
+2-bar neighbour is in its second bar left the double a bar out against it, and
+its endings (written against the neighbour's bars as they line up from tick 0)
+over the wrong chords. The engine re-phases a playing clip whose length changes
+through `dbl`, `aiclip` or `aiload` (`engine/phase.rs`): to the longest playing
+loop the new length divides, in master time (clip speed counted), or nowhere.
+`loop` (the LENGTH knob) is left alone, since a playhead jumping while the knob
+turns would be worse.
+
 ## The seams (`shape/seams.ts`)
 
 Every double generator keeps the doubled clip and rewrites only its seams:

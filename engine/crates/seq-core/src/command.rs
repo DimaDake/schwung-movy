@@ -5,7 +5,7 @@
 //! tolerate newer UIs.
 
 use crate::engine::{Engine, OutEvent};
-use crate::track::NUM_TRACKS;
+use crate::track::{CLIPS_PER_TRACK, NUM_TRACKS};
 
 /// Apply one batched command string. MIDI side effects (e.g. note-offs from
 /// a stop) are pushed into `out`.
@@ -452,6 +452,8 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                 (next(), next(), next(), next(), next(), next())
             {
                 let notes = crate::engine::parse_ai_notes(it.next().unwrap_or("-"));
+                let (t_, s_) = (t.max(0) as usize, s.max(0) as usize);
+                let was = engine.tracks.get(t_).and_then(|k| k.clips.get(s_)).map_or(0, |c| c.length_ticks());
                 engine.ai_replace_clip(&crate::engine::AiClipWrite {
                     track: t.max(0) as usize,
                     slot: s.max(0) as usize,
@@ -461,13 +463,20 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                     quant: q.clamp(0, 100) as u8,
                     notes: &notes,
                 });
+                if t_ < NUM_TRACKS && s_ < CLIPS_PER_TRACK {
+                    engine.align_after_resize(t_, s_, was);
+                }
             }
         }
         // aistash <t> <slot> <k> / aiload <t> <slot> <k> / aiclr
         "aistash" | "aiload" => {
             if let (Some(t), Some(s), Some(k)) = (next(), next(), next()) {
                 let (t, s, k) = (t.max(0) as usize, s.max(0) as usize, k.max(0) as usize);
-                if verb == "aistash" { engine.ai_stash_clip(t, s, k) } else { engine.ai_load_clip(t, s, k) }
+                if verb == "aistash" { engine.ai_stash_clip(t, s, k) } else if t < NUM_TRACKS && s < CLIPS_PER_TRACK {
+                    let was = engine.tracks[t].clips[s].length_ticks();
+                    engine.ai_load_clip(t, s, k);
+                    engine.align_after_resize(t, s, was);
+                }
             }
         }
         "aiclr" => engine.ai_clear_stash(),
@@ -578,7 +587,10 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
         "dbl" => {
             if let Some(t) = next() {
                 if (t as usize) < NUM_TRACKS {
-                    engine.tracks[t as usize].active_mut().double_loop();
+                    let t = t as usize;
+                    let (slot, was) = (engine.tracks[t].active_clip, engine.tracks[t].active().length_ticks());
+                    engine.tracks[t].active_mut().double_loop();
+                    engine.align_after_resize(t, slot, was);
                 }
             }
         }

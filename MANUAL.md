@@ -1901,6 +1901,14 @@ half a shorter ending of its own, a question the second half answers (CADENCE
 then ends the first half open, on the dominant). The endings sit on the scene's
 chords: TENSION lets their notes reach further, and only TURN changes a chord.
 
+**The double stays in step with the scene.** When another track already plays
+a loop the new length fits into (a 2-bar pad under a 1-bar bass you double, or
+a 4-bar one), the doubled clip joins it in phase: its first bar plays under the
+other track's first bar, even if you doubled while that track was in its second
+bar. The endings are written against what the other tracks play at that point.
+A tap on Shift + Step 15 does the same. With no such loop playing, the playhead
+stays where it was.
+
 ### Harmony belongs to the scene
 
 Everything has to sound right together, across tracks and scenes, so the

@@ -9,12 +9,15 @@ import { CHANGES } from './theory/changes.js';
 import { RHYTHMS } from './shape/rhythm.js';
 import { VOICE_STEPS } from './shape/thicken.js';
 import { BAR } from './types.js';
+import type { Rng } from './rng.js';
 
 export interface KnobDef {
     name: string;
     steps: (ctx: GenCtx) => number;
     def: (ctx: GenCtx) => number;
     label: (v: number, ctx: GenCtx) => string;
+    /** New Clip: a take's position, drawn from the musical subset (create/takes.ts). */
+    roll?: (ctx: GenCtx, r: Rng) => number;
 }
 
 const fixed = (n: number) => () => n;

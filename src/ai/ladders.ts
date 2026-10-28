@@ -88,9 +88,9 @@ const VAR_GROUPS = 'Options 1-4 stay close to the source; 5-6 change its rhythm 
     + 'All eight keep the ROLE and stay musical.';
 
 /** How many options a task asks for and the preview offers. */
-export function optionCount(task: 'quantize' | 'variation' | 'double'): number { return task === 'quantize' ? 3 : 8; }
+export function optionCount(task: 'quantize' | 'variation' | 'double' | 'create'): number { return task === 'quantize' ? 3 : 8; }
 
-export function ladder(task: 'quantize' | 'variation' | 'double', drum: boolean, level: GenLevel): string[] {
+export function ladder(task: 'quantize' | 'variation' | 'double' | 'create', drum: boolean, level: GenLevel): string[] {
     if (task === 'quantize') return (drum ? QUANT_DRUM : QUANT_MELODIC)[level];
     return [VAR_GROUPS, ...(drum ? [...VAR_DRUM, ...VAR_DRUM_EXP[level]] : [...VAR_MELODIC, ...VAR_MELODIC_EXP[level]])];
 }

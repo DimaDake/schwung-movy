@@ -20,6 +20,11 @@ import { ANSWER_Q, EMBELLISH, FULL, GROOVE, SHAPED, TIDY, TIGHT } from './quant-
 import { FILL_D, FULL_D, GHOSTS_D, GROOVE_D, TIDY_D, TIGHT_D } from './quant-drums.js';
 import { CADENCE, PUSH, RUN, TURNAROUND } from './dbl-lines.js';
 import { ECHO, STOP, STYLE_X, TURN_X } from './dbl-melodic.js';
+import { CHORDS, PAD, STABS } from './new-chords.js';
+import { ARP as ARP_N, BASS } from './new-lines.js';
+import { COUNTER, MELODY, RIFF } from './new-melody.js';
+import { PAD_EUCLID, PAD_PATTERN } from './new-drums-pad.js';
+import { BROKEN, EUCLID_KIT, GROOVE as GROOVE_N, PERC } from './new-drums-kit.js';
 import { BREAK_D, FILL_X, PICKUP_D, REPEAT, ROLL, STYLE_XD } from './dbl-drums.js';
 
 export const PRESETS: Preset[] = [
@@ -31,6 +36,9 @@ export const PRESETS: Preset[] = [
     TIGHT_D, TIDY_D, GROOVE_D, GHOSTS_D, FILL_D, FULL_D,
     TURNAROUND, CADENCE, PUSH, RUN, ECHO, STYLE_X, STOP, TURN_X,
     FILL_X, PICKUP_D, ROLL, REPEAT, BREAK_D, STYLE_XD,
+    /* New Clip: shown in this order, one option each. */
+    CHORDS, PAD, STABS, BASS, ARP_N, MELODY, RIFF, COUNTER,
+    PAD_EUCLID, PAD_PATTERN, GROOVE_N, EUCLID_KIT, BROKEN, PERC,
 ];
 
 export const presetById = (id: string): Preset | undefined => PRESETS.find((p) => p.id === id);

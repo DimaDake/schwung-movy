@@ -11,6 +11,8 @@ import { type Candidate, scoreCandidate, selectOptions } from './select.js';
 import type { GenInput, Note } from './types.js';
 import { variantKnobs } from './variant.js';
 import { hash } from './rng.js';
+import { createTake, selectCreate, TAKES } from './create/takes.js';
+import { recentOptions, rememberOptions } from './create/history.js';
 
 export interface Pick { preset: Preset; knobs: number[]; notes: Note[] }
 
@@ -27,7 +29,8 @@ export function prepare(input: GenInput): GenCtx {
 
 export function startRequest(input: GenInput): Request {
     const ctx = prepare(input);
-    return { ctx, todo: PRESETS.filter((p) => serves(p, ctx)).flatMap((preset) => [-1, 0, 1].map((which) => ({ preset, which }))),
+    const takes = ctx.task === 'create' ? Array.from({ length: TAKES }, (_, i) => i) : [-1, 0, 1];
+    return { ctx, todo: PRESETS.filter((p) => serves(p, ctx)).flatMap((preset) => takes.map((which) => ({ preset, which }))),
         done: [], dropped: [] };
 }
 
@@ -36,6 +39,12 @@ export function stepRequest(req: Request): boolean {
     const t = req.todo.shift();
     if (!t) return true;
     const p = t.preset;
+    if (req.ctx.task === 'create') {
+        const c = createTake(p, req.ctx, t.which);
+        if (c) req.done.push(c);
+        else if (t.which === 0) req.dropped.push(`${p.id}:unmeaning`);
+        return req.todo.length === 0;
+    }
     const base = defaults(p, req.ctx);
     const knobs = t.which < 0 ? base : variantKnobs(p, req.ctx, base, hash(p.id) ^ req.ctx.seed, t.which);
     if (knobs) {
@@ -49,6 +58,11 @@ export function stepRequest(req: Request): boolean {
 export const optionCountFor = (task: GenInput['task']): number => (task === 'quantize' ? 3 : 6);
 
 export function finishRequest(req: Request, count = optionCountFor(req.ctx.task)): Pick[] {
+    if (req.ctx.task === 'create') {
+        const picks = selectCreate(req.done, recentOptions(req.ctx.drum));
+        rememberOptions(req.ctx.drum, picks.map((c) => c.notes));
+        return picks.map((c) => ({ preset: c.preset, knobs: c.knobs, notes: c.notes }));
+    }
     return selectOptions(req.done, req.ctx.task, count, req.ctx.input.level)
         .map((c) => ({ preset: c.preset, knobs: c.knobs, notes: c.notes }));
 }

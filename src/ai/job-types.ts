@@ -52,8 +52,9 @@ export interface Running {
     prompt: { system: string; user: string } | null;
     algo: boolean;            // GENERATOR MODE was ALGORITHMIC when it started
     gen: Request | null;      // the algorithmic request, once the reads are in
+    nonce: number;            // New Clip: this run's own seed (gen/create)
 }
 
 
-const LABELS: Record<AiTask, string> = { quantize: 'QUANTIZING...', variation: 'VARIATION...', double: 'DOUBLING...' };
+const LABELS: Record<AiTask, string> = { quantize: 'QUANTIZING...', variation: 'VARIATION...', double: 'DOUBLING...', create: 'NEW CLIP...' };
 export function label(task: AiTask): string { return LABELS[task]; }

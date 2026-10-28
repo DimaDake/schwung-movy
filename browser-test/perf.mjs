@@ -529,6 +529,20 @@ _origLog('\nTest: generator slice cost');
     check('generator: prepare a request (512 notes)', Number(prep.toFixed(2)), 12, 'ms');
     check('generator: one take slice (512 notes)', Number(step.toFixed(2)), 15, 'ms');
     check('generator: a knob turn regeneration (512 notes)', Number(regen.toFixed(2)), 12, 'ms');
+
+    /* New Clip at the longest clip (16 bars) over a busy scene: a take may
+     * roll its knobs up to eight times inside one slice (create/takes.ts). */
+    let cstep = 0, cregen = 0;
+    for (let rep = 0; rep < 8; rep++) {
+        if (rep === 2) { cstep = 0; cregen = 0; }
+        const req = G.startRequest(F.createInput(rep % 2 === 1, 'locked', rep, { len: 256 }));
+        let t;
+        while (req.todo.length) { t = performance.now(); G.stepRequest(req); cstep = Math.max(cstep, performance.now() - t); }
+        for (const p of G.finishRequest(req)) { t = performance.now(); G.regenerate(req.ctx, p.preset, p.knobs); cregen = Math.max(cregen, performance.now() - t); }
+    }
+    G.forgetOptions();
+    check('generator: one New Clip take slice (16 bars)', Number(cstep.toFixed(2)), 15, 'ms');
+    check('generator: a New Clip knob turn (16 bars)', Number(cregen.toFixed(2)), 12, 'ms');
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

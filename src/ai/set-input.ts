@@ -31,8 +31,15 @@ export function readTrack(t: number): AiTrackInput {
         module: model?.getModuleName() ?? '',
         drum: trackIsDrum(t),
         padNames: padNames(t),
+        pads: rackPads(t),
         clips: parseTrackDump(t, paramGet('ait:' + t) ?? '').map(windowed),
     };
+}
+
+function rackPads(t: number): number[] | undefined {
+    const cfg = appState.trackModels[t]?.[1]?.getDrumConfig();
+    if (!cfg) return undefined;
+    return cfg.padNotes?.length ? [...cfg.padNotes] : Array.from({ length: Math.min(64, cfg.padCount) }, (_, i) => cfg.padNoteStart + i);
 }
 
 /* What plays is the loop window, and a preview writes its clip from step 0

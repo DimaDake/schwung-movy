@@ -32,8 +32,9 @@ export const MSG_HOLD = 'HOLD TO GENERATE';
 /** A Shift tap on Step 14: nothing starts, but say how it would. */
 export function aiVariationTap(): void { if (aiVariationAllowed()) seqToast(MSG_HOLD); }
 
-/** Whether a Shift + Step 14 press may grow into a Variation. */
-export function aiVariationAllowed(): boolean { return !busy() && variationPossible(); }
+/** Whether a Shift + Step 14 press may grow into a Variation, or, with
+ *  nothing on the track to vary, a New Clip (plans/2026-10-28-new-clip-design.md). */
+export function aiVariationAllowed(): boolean { return !busy(); }
 
 function selectedSlot(t: number): number { return seqState.session[t]?.selected ?? 0; }
 
@@ -53,9 +54,9 @@ export function aiQuantizeStart(): void {
 
 /** A full Shift + Step 14 hold. Track view only: Session view's row selects tracks. */
 export function aiVariationStart(): void {
-    if (busy() || !variationPossible()) return;
+    if (busy()) return;
     const t = watchedTrack();
-    startAiJob('variation', t, selectedSlot(t));
+    startAiJob(variationPossible() ? 'variation' : 'create', t, selectedSlot(t));
 }
 
 const clipHasNotes = () => seqState.lenSteps > 0 && seqState.occ.some((b) => b !== 0);
@@ -78,7 +79,9 @@ const ALLOWED: Record<HoldKind, () => boolean> = { quantize: aiHoldAllowed, vari
 const START: Record<HoldKind, () => void> = { quantize: aiQuantizeStart, variation: aiVariationStart, double: aiDoubleStart };
 
 /** Shift + press on Step 16, 14 or 15: arm a hold only when it could start. */
-export function aiHoldPress(k: HoldKind): void { holdPress(Date.now(), k, ALLOWED[k]()); }
+export function aiHoldPress(k: HoldKind): void {
+    holdPress(Date.now(), k, ALLOWED[k](), k === 'variation' && !variationPossible() ? 'NEW CLIP' : undefined);
+}
 
 /** Per tick: completes a Shift + Step 16, 14 or 15 hold. */
 export function aiGestureTick(now: number): void { holdTick(now, appState.shiftHeld, (k) => START[k]()); }

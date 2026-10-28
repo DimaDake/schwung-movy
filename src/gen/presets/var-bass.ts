@@ -15,9 +15,9 @@ import { nearestPitch, pc } from '../theory/pc.js';
 import { BAR, type Ev, TPS } from '../types.js';
 import { finish, partEvs } from './helpers.js';
 
-type Part = 'r' | 'o' | 'f' | 't' | 'a';
+export type Part = 'r' | 'o' | 'f' | 't' | 'a';
 /* [step, length in steps, part] per bar of 16ths. */
-const LIB: [string, [number, number, Part][]][] = [
+export const LIB: [string, [number, number, Part][]][] = [
     ['OFFBEAT', [[2, 2, 'r'], [6, 2, 'r'], [10, 2, 'r'], [14, 2, 'r']]],
     ['ROLLING', [1, 2, 3, 5, 6, 7, 9, 10, 11, 13, 14, 15].map((s) => [s, 1, 'r'] as [number, number, Part])],
     ['OCTAVES', [0, 2, 4, 6, 8, 10, 12, 14].map((s, i) => [s, 2, i % 2 ? 'o' : 'r'] as [number, number, Part])],

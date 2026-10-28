@@ -64,7 +64,7 @@ export function scoreCandidate(ctx: GenCtx, p: Preset, notes: Note[]): { score: 
 }
 
 type C = PresetClass;
-const SLOTS: Record<Task, Record<number, Record<GenLevel, C[]>>> = {
+const SLOTS: Record<Exclude<Task, 'create'>, Record<number, Record<GenLevel, C[]>>> = {
     variation: {
         6: { SAFE: ['close', 'close', 'close', 'close', 'rhythm', 'rhythm'], BALANCED: ['close', 'close', 'rhythm', 'rhythm', 'exp', 'exp'],
             WILD: ['close', 'rhythm', 'rhythm', 'exp', 'exp', 'exp'] },
@@ -78,7 +78,7 @@ const SLOTS: Record<Task, Record<number, Record<GenLevel, C[]>>> = {
     },
 };
 
-export function slotsFor(task: Task, count: number, level: GenLevel): C[] {
+export function slotsFor(task: Exclude<Task, 'create'>, count: number, level: GenLevel): C[] {
     const t = SLOTS[task][count]?.[level];
     if (t) return t;
     /* Any other count is the full ladder thinned evenly, so three options
@@ -119,7 +119,7 @@ export function selectOptions(cands: Candidate[], task: Task, count: number, lev
         if (best) chosen.push(best);
         return !!best;
     };
-    for (const cls of slotsFor(task, count, level)) {
+    for (const cls of slotsFor(task === 'create' ? 'variation' : task, count, level)) {
         if (chosen.length >= count) break;
         take((c) => c.preset.cls === cls && farEnough(c)) || take(farEnough);
     }

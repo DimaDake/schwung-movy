@@ -1,7 +1,6 @@
 /* Sequencer LED painting through a cached diff layer — only changed colors
  * are sent, so unchanged frames cost nothing on the wire (davebox pattern). */
 
-import { variationPossible } from '../ai/gestures.js';
 import { backLedColor, arrowLedColor, groupArrowColor, stepRecArrowColor, sampleLedColor, captureLedColor, undoLedColor, screenButtonColor, type ButtonScreen } from './buttons.js';
 import { canRedo, canUndo } from '../undo/state.js';
 import { ANIM_NONE, ANIM_PULSE, C_BLACK, C_DARKGREY, C_GREEN, C_LIGHTGREY, C_REC_RED, C_WHITE, WHITE_BRIGHT, WHITE_DIM, WHITE_OFF, trackColor, trackColorDim } from './colors.js';
@@ -149,7 +148,7 @@ function paintStepIcons(shift: boolean): void {
     const ctx = { shift, metro: seqState.metro, fullVel: seqState.fullVelocity,
         mainPage: mainPageActive(), clipPage: clipPageActive(), cpuPage: cpuPageActive(),
         flagsPage: flagsPageActive(), setsPage: appState.currentView === VIEW_SETS,
-        session: seqState.sessionMode, aiVar: shift && variationPossible() };
+        session: seqState.sessionMode, aiVar: shift };
     for (let i = 0; i < NUM_STEP_BUTTONS; i++) {
         cachedSetButtonLED(STEP_ICON_CC_BASE + i, stepIconColor(i, ctx));
     }

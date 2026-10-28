@@ -10,6 +10,7 @@ import type { AiNote } from './clip-dump.js';
 import type { GenInput } from '../gen/types.js';
 import type { AiPreviewInput, Running } from './job-types.js';
 import { setHeader } from './set-input.js';
+import { seqState } from '../seq/state.js';
 
 function inputOf(r: Running, source: number | null): GenInput {
     const c = r.ctx!;
@@ -18,6 +19,7 @@ function inputOf(r: Running, source: number | null): GenInput {
         task: r.task, level: r.level, tracks: r.tracks, target: { track: r.track, slot: r.slot },
         source: source === null ? null : { track: r.track, slot: source },
         len: c.len, scale: c.scale, drum: c.drum, kit: c.kit, root: h.root, mode: h.mode,
+        ...(r.task === 'create' ? { nonce: r.nonce, pad: c.drum && seqState.watchLane >= 0 ? seqState.watchLane : undefined } : {}),
     };
 }
 

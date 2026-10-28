@@ -8,7 +8,7 @@
 
 import { _log, eq, ok } from './harness.mjs';
 import * as G from '../../dist/esm/gen/index.js';
-import { fixtureInput, messy, ROLES } from '../gen-fixtures.mjs';
+import { fixtureInput, messy, ROLES, createInput } from '../gen-fixtures.mjs';
 
 const sig = (a) => (a ? a.map((n) => `${n.tick}.${n.pitch}.${n.gate}.${n.vel}`).join(',') : '-');
 const names = (cs) => cs.map(G.chordName).join(' ');
@@ -89,10 +89,11 @@ eq('slots_three_of_six_keep_the_proportions', G.slotsFor('variation', 3, 'BALANC
 const liveAny = new Map();
 const thin = [];
 let served = 0;
-for (const task of ['variation', 'quantize', 'double']) {
-    for (const scene of task === 'quantize' ? ['locked'] : ['locked', 'partial', 'free']) {
-        for (const role of ROLES) {
-            const input = task === 'quantize' ? quantInput(role) : fixtureInput(role, { task, scene });
+for (const task of ['variation', 'quantize', 'double', 'create']) {
+    for (const scene of task === 'quantize' ? ['locked'] : task === 'create' ? ['empty', 'locked', 'free'] : ['locked', 'partial', 'free']) {
+        for (const role of task === 'create' ? ['lead', 'drums'] : ROLES) {
+            const input = task === 'quantize' ? quantInput(role) : task === 'create' ? createInput(role === 'drums', scene, 3)
+                : fixtureInput(role, { task, scene });
             const c = G.prepare(input);
             for (const p of G.PRESETS) {
                 if (!G.serves(p, c)) continue;

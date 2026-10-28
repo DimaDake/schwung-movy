@@ -1782,10 +1782,11 @@ contents, a parameter the module doesn't publish — can't come back.
 
 Movy's **generators** give you **several takes on one clip** (three from Smart
 Quantize, six from Variation and from Smart Double), each grown from what you played. You always see
-them before anything changes, alongside your **ORIG**inal. The generators never
-write from nothing. Smart Quantize starts from the clip you recorded,
-Variation starts from another clip already on the track, and Smart Double
-from the clip itself, played twice.
+them before anything changes, alongside your **ORIG**inal. Smart Quantize
+starts from the clip you recorded, Variation from another clip already on the
+track, and Smart Double from the clip itself, played twice. Only
+[New Clip](#new-clip-shift--hold-step-14-on-an-empty-track) writes from
+nothing, and even it listens to the rest of the scene.
 
 The takes come from one of two places, chosen in **Settings → GENERATOR
 MODE**:
@@ -1830,7 +1831,8 @@ You have an A part and want a B. Select a clip slot on the track, **empty or
 not**, then **hold Shift and hold Step 14** until the bar along the bottom of
 the screen is full, just like Smart Quantize. A tap only shows `HOLD TO
 GENERATE`, so a stray press never runs anything. Step 14's light is dim white
-under Shift whenever the track has another clip to vary from.
+under Shift. On a track with no other clip to vary from, the same hold makes a
+[New Clip](#new-clip-shift--hold-step-14-on-an-empty-track) instead.
 
 ![Hold for a Variation](docs/assets/ai_hold_variation_50.png)
 
@@ -1912,6 +1914,65 @@ drummer's fill, the chords' push), and RUN plays the notes it shares with the
 band a little harder. A quiet hi-hat alone is not an accent.
 A tap on Shift + Step 15 does the same. With no such loop playing, the playhead
 stays where it was.
+
+### New Clip: Shift + hold Step 14 on an empty track
+
+On a track with nothing to vary yet, **hold Shift and hold Step 14** and the bar
+says `NEW CLIP`. When it fills, Movy writes a part for the selected slot from
+nothing. It is always ALGORITHMIC, whatever GENERATOR MODE says.
+
+![Hold for a New Clip](docs/assets/ai_hold_newclip_50.png)
+
+It fits whatever else plays in that scene. The parts take the other tracks'
+chords when they spell them out, chords that fit around a bass or a lead when
+that is all there is, or one of a set of progressions in the Set's key when
+the scene is silent. They pick up the scene's swing, and some of them play on
+the band's accents: the bass's WITH KICK pattern, CHORDS and STABS on WITH
+BAND, and COUNTER, which answers where the band is quiet. If the slot is
+already playing, the new clip lines up with the longest loop in the scene.
+
+**Every run is new.** Each hold rolls fresh defaults, and Movy remembers the
+options it offered in the last few runs and passes over anything too close to
+them, so holding again on the same Set gives you new parts. Every default is
+checked before it is shown: busy enough for its kind of part (a bass at least
+two notes a bar, a melody three to twelve), on the chords where it counts, with
+some shape. A groove needs a kick on the one and a backbeat or a steady pulse.
+Turning a knob back to where it was gives you the same notes again.
+
+**Melodic tracks get eight options**, one per part, always in this order:
+
+| Option | What it writes | Its knobs |
+| --- | --- | --- |
+| **CHORDS** | Comped chords on a rhythm, voice-led | PATTERN, VOICES, REGISTER, HARMONY |
+| **PAD** | Held chords, a new one where the harmony moves or each bar | VOICES, SPREAD, REGISTER, HARMONY |
+| **STABS** | Short chords off the beat | PATTERN, LENGTH, REGISTER, HARMONY |
+| **BASS** | A bass figure (offbeat, rolling, octaves, 3-3-2…) or WITH KICK | PATTERN, NOTES, OCTAVE, HARMONY |
+| **ARP** | Each chord broken up, down, in order… | STYLE, RATE, OCTAVES, HARMONY |
+| **MELODY** | A phrase on a contour that answers itself and lands home | CONTOUR, DENSITY, RANGE, SEED |
+| **RIFF** | A short cell repeated through the chords | CELL, NOTES, REGISTER, SEED |
+| **COUNTER** | A line that moves where the band leaves room | RATE, MOTION, REGISTER, SEED |
+
+HARMONY picks the progression in a free scene; every option of one run starts
+on the same one, so the parts go together. In a scene whose chords are already
+set, HARMONY has nothing to change and its knob stays dark.
+
+**Drum tracks get six options.** The first two are **per pad**: PAD EUCLID and
+PAD PATTERN write only the selected pad. Press another pad and it gets its own
+notes at the same settings, while the pads you already have keep theirs. That
+way you build the kit one pad at a time. Knob 1 is **DENSITY**: turn it to 0 to
+take the selected pad's notes out again. Each pad keeps its DENSITY when you
+move between options 1 and 2. The other four write the whole kit: GROOVE (a
+genre's pattern: four on the floor, disco, backbeat, 2-step, breakbeat, half
+time, trap, broken beat), EUCLID KIT, BROKEN (the kick leaning on the band's
+accents, the snare pushed late, ghost notes) and PERC (the kit's other voices).
+On those, a pad press only plays the pad.
+
+**Length.** A new clip is as long as the slot's own loop if you set one
+before the hold (Loop Mode works on an empty slot). Otherwise it takes the
+longest loop playing in the scene, or one bar. You can change the length
+during the preview: press **Loop**, set the bars as usual, and every option is
+remade at the new length from its own knobs. The preview stays open, so you
+never leave the generator to resize the clip.
 
 ### Harmony belongs to the scene
 
@@ -2246,7 +2307,7 @@ only.
 | **Shift + Step 6** | Toggle the **metronome**. |
 | **Shift + Step 10** | Toggle **full velocity** — every pad note at 127. Kept across sets and restarts. |
 | **Shift + Step 12** | Open the **CPU meter** (per-track and per-send cost, block usage). Press again to clear the held peaks. |
-| **Shift + hold Step 14** | **Variation** generator from the track's previous clip into the selected slot (Track view; lit dim white when possible). See [Generators](#6b-generators-smart-quantize--variation). |
+| **Shift + hold Step 14** | **Variation** generator from the track's previous clip into the selected slot, or a **New Clip** from nothing when the track has no other clip (Track view; lit dim white under Shift). See [Generators](#6b-generators-smart-quantize--variation). |
 | **Shift + Step 15** | **Double** the loop, on release in Track view. |
 | **Shift + hold Step 15** | **Smart Double**: the loop doubled with a new ending (Track view). See [Smart Double](#smart-double-shift--hold-step-15). |
 | **Shift + Step 16** | Cycle the current clip's **quantization** (0 / default / 100 %), on release in Track view. |

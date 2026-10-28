@@ -15,6 +15,15 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
+- **New Clip: Shift + hold Step 14 on an empty track.** A part from nothing,
+  fitted to the scene's chords, swing and accents. On melodic tracks there are
+  eight options, one per part: CHORDS, PAD, STABS, BASS, ARP, MELODY, RIFF and
+  COUNTER. On drum tracks there are six: PAD EUCLID and PAD PATTERN build the
+  kit one pad at a time (knob 1 DENSITY, 0 removes the pad), then GROOVE,
+  EUCLID KIT, BROKEN and PERC. Every run gives new, checked defaults, never the
+  options of the last few runs. The length comes from the slot, else the
+  scene, and Loop Mode remakes the options at a new length without leaving
+  the preview.
 - **Smart Double: Shift + hold Step 15.** The loop doubles with a new ending,
   leading back into the top the way a player would, while everything before
   the ending stays as played. Six options from fourteen generators, each with

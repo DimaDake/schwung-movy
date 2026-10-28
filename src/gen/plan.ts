@@ -10,13 +10,14 @@ import { colourPcs } from './theory/category.js';
 import { harmonicMoves, tolerates } from './theory/moves.js';
 import { degreeOf, diatonic } from './theory/roman.js';
 import { holds, withChanges } from './theory/changes.js';
+import { createPlans } from './create/plans.js';
 
 const SITS: [Sit, string][] = [['asis', 'AS PLAYED'], ['roots', 'ROOTS'], ['inv', 'INVERSION'], ['7th', '7TH'], ['9th', '9TH']];
 
-const sample = (a: (Chord | null)[], n: number): (Chord | null)[] =>
+export const sample = (a: (Chord | null)[], n: number): (Chord | null)[] =>
     Array.from({ length: n }, (_, i) => (a.length ? a[i % a.length] : null));
 
-function fits(ctx: GenCtx, base: (Chord | null)[], rank: number): (Chord | null)[] {
+export function fits(ctx: GenCtx, base: (Chord | null)[], rank: number): (Chord | null)[] {
     const col = (c: Chord) => colourPcs(c, ctx.key);
     return base.map((b, i) => {
         const pins = ctx.pinned.length ? ctx.pinned[i % ctx.pinned.length] : [];
@@ -36,6 +37,7 @@ function fits(ctx: GenCtx, base: (Chord | null)[], rank: number): (Chord | null)
 
 export function buildPlans(ctx: GenCtx): HarmonyPlan[] {
     const n = targetHalves(ctx);
+    if (ctx.task === 'create') return createPlans(ctx, n);
     if (ctx.task !== 'variation') return [{ chords: sample(ctx.fixedChords, n), sit: 'asis', pedal: null, label: 'SCENE' }];
     if (ctx.freedom === 'locked') {
         const chords = sample(ctx.fixedChords, n);

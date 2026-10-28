@@ -12,6 +12,7 @@ import { pathToFileURL } from 'node:url';
 import { scoreReply } from './score.mjs';
 import { cachedReplies, DIMS, kindOf, variability } from './variability.mjs';
 import { doubleSection } from './double.mjs';
+import { createSection } from './create.mjs';
 
 const ROOT = new URL('../../.gen-data/', import.meta.url).pathname;
 const PLANS = new URL('../../plans/', import.meta.url).pathname;
@@ -144,6 +145,7 @@ async function main() {
     }
     out.push(crow('algorithmic, variation six (device)', six));
     out.push(...doubleSection(gen, cases));
+    out.push(...createSection(gen, cases));
     out.push('', '## Case by case (BALANCED vs the AI reference mean)', '', '| case | half | kind | AI align | algo align | AI gate | algo gate | presets | failed |', '| --- | --- | --- | --- | --- | --- | --- | --- | --- |');
     let w = 0, t = 0, l = 0;
     for (const r of bal) {

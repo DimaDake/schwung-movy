@@ -1,6 +1,6 @@
 # Generator bench: algo (algorithmic engine)
 
-42 cases, three options per request (best of three, as the model runs), 543 ms for all runs. Reference: `default-x3` gemini-3.1-flash-lite (cached, not re-run). Dev / holdout: alternate cases per source, fixed.
+42 cases, three options per request (best of three, as the model runs), 529 ms for all runs. Reference: `default-x3` gemini-3.1-flash-lite (cached, not re-run). Dev / holdout: alternate cases per source, fixed.
 
 | run | alignment | quantize recovery | variation | gate | played-drum gate |
 | --- | --- | --- | --- | --- | --- |
@@ -81,6 +81,14 @@ Each case's own clip doubled. First part kept: the first half's (step, pitch) ce
 | WILD | 42 | 6.00 | 0.80 | 0.80 | 0.92 | 0.49 | 0.31 | 0.48 |
 
 Generators picked (BALANCED): x-cadence 38, x-style 30, x-stop 25, x-push 25, x-turnaround 21, x-run 21, x-echo 19, xd-pickup 12, xd-repeat 12, xd-style 12, xd-break 12, xd-roll 12, xd-fill 12, x-turn 1.
+
+## New Clip
+
+Each case's target track emptied, a part written into its slot from nothing. Meaningful: the share of options that pass their part's checks. Coherence: chord fit (melodic). With band: the share of onsets on another track's accent (where one plays). Re-run: how far a second run's option is from the first's (0 = the same). Variability: between the options of one request.
+
+| level | requests | options | meaningful | coherence | with band | re-run | rhythm var | notes var |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| BALANCED | 42 | 7.43 | 1.00 | 0.99 | 0.70 | 0.81 | 0.72 | 0.94 |
 
 ## Case by case (BALANCED vs the AI reference mean)
 

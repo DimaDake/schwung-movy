@@ -4,7 +4,7 @@
  * an option must not repeat. */
 
 import { roleOf } from '../../ai/role.js';
-import { hash } from '../rng.js';
+import { hash, mix } from '../rng.js';
 import { type AiClip, type Chord, type Freedom, type GenInput, HALF, type HarmonyPlan, type Key, type Note,
     type Role, TPS } from '../types.js';
 import { chordsOf } from '../theory/chords.js';
@@ -30,13 +30,14 @@ export interface GenCtx {
     pinnedBass: number[];           // per master half-bar: the lowest of them (-1: none)
     fixedChords: (Chord | null)[];  // the target scene's chords where others set them
     groove: Groove;
-    band: Hit[];                    // Smart Double: the other tracks' hits under the target
+    band: Hit[];                    // Smart Double, New Clip: the other tracks' hits under the target
     kit: Kit | null;
     loops: Note[][];
     lo: number;
     hi: number;
     mid: number;
     seed: number;
+    pad: number;                    // New Clip: the pad a per-pad option writes (-1 none)
     plans: HarmonyPlan[];           // filled by plan.ts
 }
 
@@ -49,7 +50,8 @@ function clipsAt(input: GenInput, slot: number, keep: (track: number) => boolean
 export function buildCtx(input: GenInput): GenCtx {
     const me = input.tracks.find((t) => t.index === input.target.track);
     const melodic = (i: number) => !(input.tracks.find((t) => t.index === i)?.drum ?? true);
-    const srcSlot = input.task === 'variation' ? input.source?.slot ?? -1 : input.target.slot;
+    /* New Clip grows from nothing: no source, only the scene around it. */
+    const srcSlot = input.task === 'variation' ? input.source?.slot ?? -1 : input.task === 'create' ? -1 : input.target.slot;
     const srcClip = me?.clips.find((c) => c.slot === srcSlot) ?? null;
     const end = input.len * TPS;
     /* The source as the target will hold it: a shorter clip looped, a longer
@@ -92,7 +94,7 @@ export function buildCtx(input: GenInput): GenCtx {
         pinnedBass: otherSegs.map((s) => (s.bass >= 0 ? s.bass % 12 : -1)),
         fixedChords: input.task !== 'variation' ? quantChords : freedom === 'locked' ? chordsOf(otherSegs, key) : [],
         groove: grooveOf(src, allOthers.filter((n) => n.tick < end)),
-        band: input.task === 'double' ? bandHits(input, end, k) : [],
+        band: input.task === 'double' || input.task === 'create' ? bandHits(input, end, k) : [],
         kit: input.drum ? kitOf(input.kit.length ? input.kit : [...new Set(src.map((n) => n.pitch))], me?.padNames ?? null,
             (me?.clips ?? []).flatMap((c) => c.notes)) : null,
         loops: input.task === 'variation'
@@ -100,9 +102,17 @@ export function buildCtx(input: GenInput): GenCtx {
         lo: pitches.length ? Math.min(...pitches) : 48,
         hi: pitches.length ? Math.max(...pitches) : 72,
         mid: median(pitches),
-        seed: hash(src.map((n) => `${n.tick}.${n.pitch}`).join(',') + '|' + input.target.slot + '|' + input.task),
+        seed: seedOf(input, src),
+        pad: input.pad ?? -1,
         plans: [],
     };
+}
+
+/* A New Clip run carries its own nonce: the same Set never gives the same
+ * defaults twice. Other tasks stay a function of the Set (the bench). */
+function seedOf(input: GenInput, src: Note[]): number {
+    const h = hash(src.map((n) => `${n.tick}.${n.pitch}`).join(',') + '|' + input.target.slot + '|' + input.task);
+    return input.nonce === undefined ? h : mix(h, input.nonce);
 }
 
 /** The clip's loop window from its start: what plays, and what a double

@@ -8,8 +8,8 @@ import { TICKS_PER_STEP } from './clip-dump.js';
 import { type GenLevel, ladder, optionCount } from './ladders.js';
 import { type Role, roleText } from './role.js';
 
-/* double never reaches a model: Smart Double is algorithmic only (job.ts). */
-export type AiTask = 'quantize' | 'variation' | 'double';
+/* double and create never reach a model: they are algorithmic only (job.ts). */
+export type AiTask = 'quantize' | 'variation' | 'double' | 'create';
 
 /* Which prompt the generators send. Each switch was A/B'd on the bench
  * (plans/gen-bench-results-*.md); the default is what won. */

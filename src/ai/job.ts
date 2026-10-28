@@ -70,20 +70,20 @@ export function startAiJob(task: AiTask, track: number, slot: number): void {
     /* A canned reply (device scenarios) needs no key, so a test never has to
      * touch the user's real one; it also pins the model path it stands in for. */
     const fake = fakeResponse(MOVY_MODULE_DIR);
-    /* Smart Double has no model prompt: it keeps the clip and writes its
-     * seams, which is what the generators are for, in either mode. */
-    const algo = task === 'double' || (genMode() === 'ALGORITHMIC' && !fake);
+    /* Smart Double and New Clip have no model prompt: one keeps the clip and
+     * writes its seams, the other has nothing to vary; the generators do both. */
+    const algo = task === 'double' || task === 'create' || (genMode() === 'ALGORITHMIC' && !fake);
     const cfg = algo ? { model: null, key: '' } : readAiConfig(MOVY_MODULE_DIR) ?? (fake ? { model: 'fake', key: '' } : null);
     if (!cfg) { seqToast(MSG_NO_KEY); return; }
     run = { task, track, slot, level: genLevel(), cfg, uuid: currentSetUuid(), startMs: -1, next: 0, tracks: [], httpId: -1,
-        sentMs: -1, ctx: null, models: modelChain(cfg), mi: 0, timeoutS: 0, prompt: null, algo, gen: null };
+        sentMs: -1, ctx: null, models: modelChain(cfg), mi: 0, timeoutS: 0, prompt: null, algo, gen: null, nonce: Date.now() >>> 0 };
     phase = 'running';
     thinkingLedsStart();
 }
 
 function send(r: Running, now: number): void {
     const t = r.tracks.find((x) => x.index === r.track) ?? readTrack(r.track);
-    const target = jobTarget(r.task, t, r.slot);
+    const target = jobTarget(r.task, t, r.slot, r.tracks);
     if (target === 'nothing') return fail(r.task === 'double' ? MSG_NOTHING_DOUBLE : MSG_NOTHING, 'nothing to ' + r.task);
     if (target === 'no source') return fail(MSG_ERROR, 'no source clip');
     r.ctx = { ...target.ctx, srcSlot: target.source };

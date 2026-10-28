@@ -165,8 +165,10 @@ Movy stands on the shoulders of several projects:
   groove of the rest of the scene. **Shift + hold Step 14** turns a track's A
   part into a B: six options from some thirty generators, which keep the track's
   role (a pad stays a pad), follow the scene's harmony and never repeat the same
-  loop. Every option has its own knobs to reshape it, already set where it sounds
-  best. Preview each on the jog against your original before anything is kept;
+  loop. On an empty track the same hold writes a **New Clip** from nothing:
+  chords, pad, stabs, bass, arp, melody, riff or counter-line (or a kit built
+  pad by pad), fitted to the scene and new on every run. Every option has its
+  own knobs to reshape it, already set where it sounds best. Preview each on the jog against your original before anything is kept;
   Settings → GENERATORS sets how bold, and GENERATOR MODE can switch to a Gemini
   model instead.
 

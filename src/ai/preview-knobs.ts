@@ -14,8 +14,10 @@ import type { Preset } from '../gen/preset.js';
 import type { Note } from '../gen/types.js';
 import { seqHeaderAnnounce } from '../seq/render.js';
 import { countDetents } from '../seq/detent.js';
+import { seqState } from '../seq/state.js';
+import { type PadState, padsOpen, padsReset, padsSelect, padsShow, padsTurn, padsUnion, padsRemake } from './preview-pads.js';
 
-interface Opt { preset: Preset; knobs: number[]; live: (boolean | undefined)[] }
+interface Opt { preset: Preset; knobs: number[]; live: (boolean | undefined)[]; per?: PadState }
 
 /* Seen for about a second after the last touch or turn (render.ts toasts). */
 const STRIP_TTL = 196;
@@ -25,23 +27,28 @@ let opts: Opt[] = [];
 let shown = 0;              // 0 = ORIG
 let pending = false;
 let held = -1;              // the touched knob, -1 none
+let resync = false;         // a per-pad option came on screen: its pads to catch up
 const accum: number[] = []; // raw knob units banked toward the next step
 
-export function knobsOpen(c: GenCtx, picks: { preset: Preset; knobs: number[] }[]): void {
+export function knobsOpen(c: GenCtx, picks: { preset: Preset; knobs: number[] }[], notes: Note[][] = []): void {
     ctx = c;
+    padsReset();
     opts = picks.map((p) => ({ preset: p.preset, knobs: [...p.knobs], live: p.knobs.map(() => undefined) }));
+    opts.forEach((o, i) => padsOpen(c, o, notes[i] ?? []));
+    resync = true;
     shown = 1;
     pending = false;
     held = -1;
     accum.length = 0;
 }
 
-export function knobsReset(): void { ctx = null; opts = []; pending = false; held = -1; shown = 0; }
+export function knobsReset(): void { ctx = null; opts = []; pending = false; held = -1; shown = 0; resync = false; padsReset(); }
 
 /** The jog moved to another option: its own knobs from now on, and its name. */
 export function knobsShown(index: number): void {
     shown = index;
     held = -1;
+    resync = true;
     accum.length = 0;
     const o = opts[index - 1];
     if (o) { seqHeaderAnnounce(`${index}  ${o.preset.name}`, STRIP_TTL); appState.dirty = true; }
@@ -98,8 +105,10 @@ export function knobsTick(write: (notes: Note[]) => void): void {
     const o = opts[shown - 1];
     if (!o) return;
     if (held >= 0) seqHeaderAnnounce(o.preset.knobs[held].name, STRIP_TTL, o.preset.knobs[held].label(o.knobs[held], ctx));
+    if (o.per && perPadTick(o, write)) return;
     if (pending) {
         pending = false;
+        if (o.per) { padsTurn(ctx, o); write(padsUnion(o)); appState.dirty = true; return; }
         const notes = regenerate(ctx, o.preset, o.knobs);
         if (notes) { write(notes); appState.dirty = true; } else mlog(`gen: ${o.preset.id} refused ${o.knobs.join(',')}`);
         return;
@@ -124,3 +133,27 @@ export function knobLevels(): (number | null)[] | null {
 
 /** Test hook: the knob positions of an option (1-based). */
 export function knobsOf(index: number): number[] { return opts[index - 1]?.knobs ?? []; }
+
+/* A per-pad option follows the selected pad (preview-pads.ts); true when
+ * this tick wrote. */
+function perPadTick(o: Opt, write: (notes: Note[]) => void): boolean {
+    const c = ctx!;
+    const was = o.per!.pad;
+    const changed = (resync && padsShow(c, o)) || padsSelect(c, o, seqState.watchLane);
+    resync = false;
+    if (o.per!.pad !== was) { o.live = o.live.map(() => undefined); appState.dirty = true; }
+    if (changed) { write(padsUnion(o)); appState.dirty = true; }
+    return changed;
+}
+
+/** The clip's length changed under the preview (New Clip): every option made
+ *  again from its own knobs in the new context; the options' new notes. */
+export function knobsRemake(c: GenCtx): Note[][] {
+    ctx = c;
+    return opts.map((o) => {
+        o.live = o.live.map(() => undefined);
+        return o.per ? padsRemake(c, o) : regenerate(c, o.preset, o.knobs) ?? [];
+    });
+}
+
+export function knobsCtx(): GenCtx | null { return ctx; }

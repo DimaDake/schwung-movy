@@ -14,7 +14,9 @@ import { beginEdit, CLOSE, holdGroup, releaseHold } from '../undo/group.js';
 import { trackLabel } from '../undo/label.js';
 import { type AiNote, formatNotes } from './clip-dump.js';
 import { endAiPreview, type AiPreviewInput } from './job.js';
-import { knobsOpen, knobsReset, knobsShown, knobsTick, knobTouch, knobTurn } from './preview-knobs.js';
+import { knobsCtx, knobsOpen, knobsRemake, knobsReset, knobsShown, knobsTick, knobTouch, knobTurn } from './preview-knobs.js';
+import { prepare } from '../gen/engine.js';
+import { setLoopLengthHook } from '../seq/loop-hook.js';
 
 interface Open {
     p: AiPreviewInput;
@@ -24,7 +26,7 @@ interface Open {
 }
 
 let cur: Open | null = null;
-const VERBS = { quantize: 'SMART QUANT', variation: 'VARIATION', double: 'SMART DOUBLE' } as const;
+const VERBS = { quantize: 'SMART QUANT', variation: 'VARIATION', double: 'SMART DOUBLE', create: 'NEW CLIP' } as const;
 
 export function aiPreviewActive(): boolean { return cur !== null; }
 export function previewIndex(): number { return cur ? cur.index : -1; }
@@ -74,7 +76,7 @@ export function openPreview(p: AiPreviewInput): void {
     holdGroup(key);
     cur = { p, index: 0, visited: [true, ...p.options.map(() => false)], sig: sig(p.track) };
     mlog(`ai: preview t${p.track} s${p.slot} ${p.options.length} options`);
-    if (p.gen) knobsOpen(p.gen.ctx, p.gen.picks);
+    if (p.gen) knobsOpen(p.gen.ctx, p.gen.picks, p.options);
     go(cur, 1);
 }
 
@@ -119,3 +121,23 @@ export function previewInput(data: number[]): boolean {
 }
 
 export function resetPreview(): void { cur = null; knobsReset(); }
+
+/** Loop Mode set a length while a New Clip preview is open: every option is
+ *  made again at it from its own knobs and the preview stays open (the user
+ *  sizes the clip without leaving the generator). true = taken here. */
+export function previewRelength(len: number): boolean {
+    const o = cur;
+    const c = knobsCtx();
+    if (!o || o.p.task !== 'create' || !c) return false;
+    if (len === o.p.len) return true;
+    const ctx = prepare({ ...c.input, len });
+    o.p.options = knobsRemake(ctx);
+    if (o.p.gen) o.p.gen.ctx = ctx;
+    o.p.len = len;
+    o.visited = o.visited.map((_, i) => i === 0);
+    mlog(`ai: preview remade at ${len} steps`);
+    if (o.index > 0) write(o, o.index);
+    appState.dirty = true;
+    return true;
+}
+setLoopLengthHook(previewRelength);

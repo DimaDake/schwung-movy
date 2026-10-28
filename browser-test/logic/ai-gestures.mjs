@@ -8,7 +8,7 @@
 import { _log, eq, ok, installMockFs, uninstallMockFs, installMockEngine, uninstallMockEngine,
     resetSeqEngine, appState, selectTrack } from './harness.mjs';
 import { holdPress, holdRelease, holdTick, holdProgress, holdLabel, aiVariationStart, aiQuantizeStart,
-    variationPossible, aiPhase, resetAiJob, holdPending, aiGestureTick } from '../../dist/esm/ai/index.js';
+    variationPossible, aiPhase, resetAiJob, holdPending, aiGestureTick, aiCancel } from '../../dist/esm/ai/index.js';
 import { handleStepButton } from '../../dist/esm/seq/router-steps.js';
 import { stepIconColor } from '../../dist/esm/seq/leds.js';
 import { setPhase, sessionPhase } from '../../dist/esm/seq/set-session.js';
@@ -79,8 +79,8 @@ holdPress(0, 'quantize');
 eq('hold_label_names_the_generator: quantize', holdLabel(), 'SMART QUANTIZE');
 holdRelease(100);
 
-eq('step14_led_dim_white_only_when_possible: lit', stepIconColor(13, { shift: true, aiVar: true }), WHITE_DIM);
-eq('step14_led_dim_white_only_when_possible: dark', stepIconColor(13, { shift: true, aiVar: false }), 0);
+eq('step14_led_dim_white_under_shift: lit', stepIconColor(13, { shift: true, aiVar: true }), WHITE_DIM);
+eq('step14_led_dim_white_under_shift: dark', stepIconColor(13, { shift: true, aiVar: false }), 0);
 eq('step14 LED dark without Shift', stepIconColor(13, { shift: false, aiVar: true }), 0);
 
 boot();
@@ -88,7 +88,8 @@ eq('variationPossible with another clip', variationPossible(), true);
 seqState.session[0].exist = 0b10;
 eq('variationPossible: only the selected slot', variationPossible(), false);
 aiVariationStart();
-eq('...and Step 14 does nothing', aiPhase(), 'idle');
+eq('...and Step 14 makes a New Clip instead', aiPhase(), 'running');
+aiCancel();
 seqState.session[0].exist = 0b11;
 seqState.sessionMode = true;
 aiVariationStart();
@@ -169,7 +170,11 @@ boot();
 appState.shiftHeld = true;
 seqState.session[0].exist = 0b10;
 handleStepButton(13, true, true);
-eq('step14_hold_unarmed_without_a_source: no bar', holdProgress(Date.now() + 800), -1);
+ok('step14_hold_armed_without_a_source: the bar fills', holdProgress(Date.now() + 800) > 0);
+eq('step14_hold_without_a_source_is_named_new_clip', holdLabel(), 'NEW CLIP');
+aiGestureTick(Date.now() + 1400);
+eq('step14_hold_without_a_source_starts_new_clip', aiPhase(), 'running');
+aiCancel();
 handleStepButton(13, false, true);
 appState.shiftHeld = false;
 done();

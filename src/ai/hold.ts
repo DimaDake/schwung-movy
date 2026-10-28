@@ -20,14 +20,17 @@ let downAt = -1;
 let fired = false;
 let armed = true;
 let kind: HoldKind = 'quantize';
+let label: string | undefined;
 
-export function holdPress(now: number, k: HoldKind, canHold = true): void {
-    downAt = now; fired = false; armed = canHold; kind = k;
+/** `as` names what the hold grows into when it is not the kind's own (a
+ *  Step 14 hold with nothing to vary is a NEW CLIP). */
+export function holdPress(now: number, k: HoldKind, canHold = true, as?: string): void {
+    downAt = now; fired = false; armed = canHold; kind = k; label = as;
 }
 /** A press whose release still belongs to this gesture (fired or not). */
 export function holdPending(): boolean { return downAt >= 0; }
 export function holdKind(): HoldKind { return kind; }
-export function holdLabel(): string { return LABELS[kind]; }
+export function holdLabel(): string { return label ?? LABELS[kind]; }
 
 /** What the release means: a tap, a cancelled hold, or nothing left to do. */
 export function holdRelease(now: number): 'tap' | 'cancel' | 'none' {

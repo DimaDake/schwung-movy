@@ -42,7 +42,9 @@ export function clampNotes(ctx: GenCtx, notes: Note[]): Note[] {
 
 export function guard(ctx: GenCtx, raw: Note[]): GuardResult {
     const notes = clampNotes(ctx, raw);
-    if (!notes.length) return { ok: false, why: 'empty' };
+    /* A New Clip part may be emptied by hand (a per-pad DENSITY at 0); its
+     * defaults are checked for substance elsewhere (create/checks.ts). */
+    if (!notes.length) return ctx.task === 'create' ? { ok: true, notes } : { ok: false, why: 'empty' };
     /* A double's copy is the plain Double Loop: a tap does that already. */
     if (keyOf(notes) === keyOf(ctx.task !== 'variation' ? ctx.src : [])) return { ok: false, why: 'copy' };
     if (ctx.task === 'variation') {

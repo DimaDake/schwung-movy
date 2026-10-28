@@ -72,3 +72,17 @@ export function messy(notes) {
 }
 
 export const ROLES = ['pad', 'stabs', 'bass', 'arpeggio', 'lead', 'duet', 'drone', 'drums'];
+
+/** A New Clip request (plans/2026-10-28-new-clip-design.md): track 0 has no
+ *  clip at all. `empty` is a Set with nothing else in it either; otherwise
+ *  the slot is scene B of fixtureInput, where the others play by `scene`. */
+export function createInput(drum, scene, nonce, { len = 32, pad } = {}) {
+    if (scene === 'empty') {
+        return { task: 'create', level: 'BALANCED', tracks: [{ index: 0, name: 'Track 1', module: drum ? 'drumrack' : 'obxd', drum, padNames: null, clips: [] }],
+            target: { track: 0, slot: 1 }, source: null, len, scale: [1, 1], drum, kit: drum ? Array.from({ length: 16 }, (_, i) => 36 + i) : [],
+            root: 'C', mode: 'major', nonce, pad };
+    }
+    const f = fixtureInput(drum ? 'drums' : 'lead', { scene });
+    f.tracks[0] = { ...f.tracks[0], clips: [] };
+    return { ...f, task: 'create', source: null, len, nonce, pad };
+}

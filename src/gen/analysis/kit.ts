@@ -49,6 +49,12 @@ export function kitOf(pads: number[], names: Record<number, string> | null, note
         const h = used.filter((p) => role[p] === 'perc').sort((a, b) => count(b) - count(a))[0];
         if (h !== undefined) role[h] = 'hat';
     }
+    /* An empty kit off the GM map with nothing named (New Clip on a fresh
+     * rack): the first pads are kick, snare and hat, the way racks lay out. */
+    if (!has('kick') && !used.length) {
+        const free = [...pads].sort((a, b) => a - b).filter((p) => role[p] === 'perc');
+        (['kick', 'snare', 'hat'] as PadRole[]).forEach((r, i) => { if (!has(r) && free[i] !== undefined) role[free[i]] = r; });
+    }
     const by = { kick: [], snare: [], hat: [], open: [], tom: [], cym: [], perc: [] } as Record<PadRole, number[]>;
     for (const p of pads) by[role[p]].push(p);
     return { pads: [...pads], role, by };

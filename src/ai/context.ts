@@ -13,6 +13,7 @@ export interface AiTrackInput {
     module: string;
     drum: boolean;
     padNames: Record<number, string> | null;   // pitch → declared voice name
+    pads?: number[];                           // the rack's pad notes (New Clip on an empty kit)
     clips: AiClip[];
 }
 

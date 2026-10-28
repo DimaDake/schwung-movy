@@ -12,6 +12,8 @@ export interface Preset {
     drum: boolean;
     roles?: RoleKind[];         // melodic roles served; absent = every melodic role
     cls: PresetClass;
+    /** New Clip on drums: writes only `ctx.pad` (ai/preview-pads.ts). */
+    perPad?: boolean;
     knobs: KnobDef[];           // four or eight
     /** Whether this part is material the preset can work with at all (a
      *  harmonised line needs a line that already plays two notes at times). */
@@ -25,7 +27,7 @@ export interface Preset {
 export function serves(p: Preset, ctx: GenCtx): boolean {
     if (p.task !== ctx.task || p.drum !== ctx.drum) return false;
     if (p.accepts && !p.accepts(ctx)) return false;
-    if (ctx.drum) return true;
+    if (ctx.drum || ctx.task === 'create') return true;
     const kind = ctx.role?.kind;
     return !p.roles || (kind !== undefined && p.roles.includes(kind));
 }

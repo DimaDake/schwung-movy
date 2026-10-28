@@ -20,6 +20,7 @@ import { seqHeaderAnnounce, seqToast } from './render.js';
 import { songLoopHold } from './song.js';
 import { clipBars, loopStartBar, seqState } from './state.js';
 import { watchedTrack } from './watch.js';
+import { loopLengthTaken } from './loop-hook.js';
 
 const MAX_BARS = 16;
 /* Wall-clock, not tick-counted: the device tick rate is not a stable constant
@@ -125,6 +126,14 @@ function setLoopBars(startBar: number, endBar: number): void {
     const e = Math.max(s, Math.min(endBar, MAX_BARS - 1));
     const startStep = s * NUM_STEP_BUTTONS;
     const lenStep = (e - s + 1) * NUM_STEP_BUTTONS;
+    /* A New Clip preview takes the length and writes its options from bar 1. */
+    if (loopLengthTaken(lenStep)) {
+        seqState.loopStart = 0;
+        seqState.lenSteps = lenStep;
+        seqState.barOffset = Math.max(0, Math.min(seqState.barOffset, e - s));
+        seqHeaderAnnounce(`Length ${e - s + 1}`);
+        return;
+    }
     undoableEdit('SET LOOP', trackLabel(watchedTrack()),
         () => seqCmd(`loop ${watchedTrack()} ${startStep} ${lenStep}`));
     // Optimistic mirror.

@@ -16,8 +16,9 @@ export const BAR = TPS * SPB;
 export const BEAT = TPS * 4;
 export const HALF = BAR / 2;        // harmony is read per half-bar (design §10)
 
-/* double: Smart Double, the clip at twice its length with new seams. */
-export type Task = 'quantize' | 'variation' | 'double';
+/* double: Smart Double, the clip at twice its length with new seams.
+ * create: New Clip, a part from nothing (plans/2026-10-28-new-clip-design.md). */
+export type Task = 'quantize' | 'variation' | 'double' | 'create';
 
 export type Quality = 'maj' | 'min' | 'dim' | 'aug' | 'sus2' | 'sus4' | '5' | 'maj7' | '7' | 'm7' | 'm7b5';
 
@@ -60,4 +61,6 @@ export interface GenInput {
     kit: number[];                  // pads a drum option may use
     root?: string;                  // the Set's key setting: a hint, never a rule
     mode?: string;
+    nonce?: number;                 // New Clip: one per run, so every run differs
+    pad?: number;                   // New Clip on drums: the pad a per-pad option writes
 }

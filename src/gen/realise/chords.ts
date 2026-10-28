@@ -44,7 +44,7 @@ export function realiseChords(ctx: GenCtx, evs: Ev[], o: RealiseOpts): Ev[] {
             const anchor = prevOut && prevSrc && prevSrc.voices.length === e.voices.length
                 ? prevOut.map((p, i) => p + (src[i] - prevSrc!.voices[i].pitch)) : src;
             v = src.length >= 1 ? voiceLead(anchor, pcs, required, lo, hi) : closeVoicing(pcs, 3, ctx.mid);
-            if (o.range > 1.05) v = spreadVoicing(v, Math.round((o.range - 1) * 4), lo - 12);
+            if (o.range > 1.05) v = spreadVoicing(v, Math.round((o.range - 1) * 3), lo - 12);
             else if (o.range < 0.95 && v.length >= 3) v = closeVoicing(pcs, v.length, Math.round(v.reduce((a, b) => a + b, 0) / v.length));
             const bassPc = o.plan.pedal ?? (o.plan.sit === 'roots' ? T.pcs[0] : o.plan.sit === 'inv' ? T.pcs[1] : null);
             if (bassPc !== null && v.length) {

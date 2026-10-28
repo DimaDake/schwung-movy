@@ -1848,10 +1848,14 @@ groups:
 | Group | Melodic generators | Drum generators |
 | --- | --- | --- |
 | **Close** | NEXT CHORDS (the rhythm kept, new notes from the new chords), FOLLOW (the whole part slid along the new roots, the way dub and house chords move), PULSE (the rhythm on each chord's root), HARMONIZE (a line in parallel thirds or sixths), RE-VOICE, NEW LINE, ANSWER, SPREAD, ARP, DRONE MOVE | KICK, HATS, GHOSTS, FILL |
-| **Rhythm** | DISPLACE, ANTICIPATE, CONNECT (passing notes and suspensions), RECOMBINE, EUCLID, COMP (chord rhythms), OCTAVE BASS, WALK, THIN | SHIFT, TURNAROUND |
+| **Rhythm** | BASSLINE (a new bass figure over the chords: offbeat, rolling, octaves, 3-3-2, gallop…), DISPLACE, ANTICIPATE, CONNECT (passing notes and suspensions), RECOMBINE, EUCLID, COMP (chord rhythms), OCTAVE BASS, WALK, THIN | SHIFT, TURNAROUND |
 | **Experimental** | MOTIF (a cell as a sequence), RETROGRADE, HALF/DOUBLE, ORNAMENT, REGISTER, PEDAL, DEVELOP (eight knobs) | FEEL (half time, double hats), GRIDS (a density map, after Mutable Instruments' Grids), EUCLID, DEVELOP |
 
-GENERATORS (below) sets how many come from each group.
+GENERATORS (below) sets how many come from each group. Each generator is
+also tried with its feel moved two ways (another rhythm, more or fewer voices,
+longer or shorter notes, more chord changes), and after the closest option
+every next one is the take that fits well **and** differs most from those
+already chosen, in rhythm, notes, density, register, lengths and loudness.
 
 **Every option keeps the track's role.** Movy measures what the source clip is:
 a drone, a pad, chord stabs, a bass line, an arpeggio, a melody or a drum
@@ -1902,8 +1906,8 @@ its own: four, or eight when all eight are useful. Each option opens with its
 knobs already set to the best positions, so you never have to touch them.
 
 - **Turn a knob** and the option is made again from its generator at the new
-  position, written over the clip as it plays. A turn throws away hand edits
-  on that option.
+  position, written over the clip as it plays. One click is one step. A turn
+  throws away hand edits on that option.
 - **Touch a knob** to see its name and value in the strip at the top of the
   screen, the way a Schwung page shows a held knob:
 
@@ -1926,7 +1930,10 @@ A name means the same thing on every generator:
 | **AMOUNT** | More of the clip rewritten. |
 | **DENSITY** | More notes (`AS IS` in the middle, fewer to the left). |
 | **LENGTH** | Longer notes, toward legato (`AS IS` in the middle). |
-| **RANGE** | Wider intervals and spread voicings (`AS IS` in the middle). |
+| **RANGE** | Wider intervals and spread voicings, up to twice the played intervals and an octave past the played register (`AS IS` in the middle). |
+| **CHANGES** | More chord changes than the source: an approach chord before each change, then on the last beat, then a substitute inside long chords. Only where the scene's harmony is free. |
+| **RHYTHM** | A new rhythm for the same notes: KEEP, PUSH, SYNCOPATE, DOUBLE, HALF, COMP, EUCLID, SHUFFLE. |
+| **VOICES** | More harmony notes (chord tones added on top, or a note under a line's strongest notes), or one fewer. |
 | **TIMING** | From your feel to exactly on the grid. |
 | **SWING** | More swing, from 50 % (straight) to 75 %; it opens on the swing you played. |
 | **GRID** | 1/8, 1/8T, 1/16, 1/16T, 1/32; it opens on the grid you played. |
@@ -1934,7 +1941,7 @@ A name means the same thing on every generator:
 | **DYNAMICS** | From the velocities you played to the groove's accents. |
 | **SEED** | Another roll of the same idea. |
 
-Other knobs belong to one generator: ARP has PATTERN, RATE and OCTAVES; MOTIF
+Other knobs belong to one generator: BASSLINE has PATTERN, NOTES, OCTAVE and SHIFT; ARP has PATTERN, RATE and OCTAVES; MOTIF
 has CELL and STEP; FILL has SIZE and PADS; EUCLID has PULSES and ROTATE; GRIDS
 has KICK, SNARE, HATS and CHAOS.
 
@@ -2046,9 +2053,9 @@ A model's Variation offers eight options in three groups:
 | **8** reimagined | A new part grown from the source's core interval or rhythm cell. | A new pattern grown from the played hits. |
 
 How the two compare on Movy's test set of real parts: the ALGORITHMIC
-generators match the model overall, recover a messy part more closely
-(Smart Quantize), and land just behind it on matching a real B section with
-three options. Variation offers six, which closes that gap
+generators come closer to the real B sections and recover messy parts more
+closely than the model, and their options differ from each other at least as
+much in rhythm, notes, range, density and lengths
 (`plans/gen-bench-results-2026-10-27-algo.md`).
 
 ---

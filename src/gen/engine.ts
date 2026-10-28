@@ -9,10 +9,15 @@ import { defaults, type Preset, serves } from './preset.js';
 import { PRESETS } from './presets/catalog.js';
 import { type Candidate, scoreCandidate, selectOptions } from './select.js';
 import type { GenInput, Note } from './types.js';
+import { variantKnobs } from './variant.js';
+import { hash } from './rng.js';
 
 export interface Pick { preset: Preset; knobs: number[]; notes: Note[] }
 
-export interface Request { ctx: GenCtx; todo: Preset[]; done: Candidate[]; dropped: string[] }
+/* One take per slice: a preset's default (`which` -1) or one of its two
+ * variants (variant.ts) — one generation per UI tick, however many takes. */
+export interface Take { preset: Preset; which: number }
+export interface Request { ctx: GenCtx; todo: Take[]; done: Candidate[]; dropped: string[] }
 
 export function prepare(input: GenInput): GenCtx {
     const ctx = buildCtx(input);
@@ -22,17 +27,22 @@ export function prepare(input: GenInput): GenCtx {
 
 export function startRequest(input: GenInput): Request {
     const ctx = prepare(input);
-    return { ctx, todo: PRESETS.filter((p) => serves(p, ctx)), done: [], dropped: [] };
+    return { ctx, todo: PRESETS.filter((p) => serves(p, ctx)).flatMap((preset) => [-1, 0, 1].map((which) => ({ preset, which }))),
+        done: [], dropped: [] };
 }
 
-/** Runs one preset; true when none is left. */
+/** Runs one take; true when none is left. */
 export function stepRequest(req: Request): boolean {
-    const p = req.todo.shift();
-    if (!p) return true;
-    const knobs = defaults(p, req.ctx);
-    const g = generateOption(req.ctx, p, knobs);
-    if (g.notes) req.done.push({ preset: p, knobs, notes: g.notes, ...scoreCandidate(req.ctx, p, g.notes) });
-    else req.dropped.push(`${p.id}:${g.why}`);
+    const t = req.todo.shift();
+    if (!t) return true;
+    const p = t.preset;
+    const base = defaults(p, req.ctx);
+    const knobs = t.which < 0 ? base : variantKnobs(p, req.ctx, base, hash(p.id) ^ req.ctx.seed, t.which);
+    if (knobs) {
+        const g = generateOption(req.ctx, p, knobs);
+        if (g.notes) req.done.push({ preset: p, knobs, notes: g.notes, ...scoreCandidate(req.ctx, p, g.notes) });
+        else if (t.which < 0) req.dropped.push(`${p.id}:${g.why}`);
+    }
     return req.todo.length === 0;
 }
 

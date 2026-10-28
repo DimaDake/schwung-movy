@@ -9,6 +9,7 @@ import type { Chord, HarmonyPlan, Sit } from './types.js';
 import { colourPcs } from './theory/category.js';
 import { harmonicMoves, tolerates } from './theory/moves.js';
 import { degreeOf, diatonic } from './theory/roman.js';
+import { holds, withChanges } from './theory/changes.js';
 
 const SITS: [Sit, string][] = [['asis', 'AS PLAYED'], ['roots', 'ROOTS'], ['inv', 'INVERSION'], ['7th', '7TH'], ['9th', '9TH']];
 
@@ -84,6 +85,23 @@ export function defaultHarmony(ctx: GenCtx, far = 1): number {
     return Math.min(far, ctx.plans.length - 1);
 }
 
-export function planAt(ctx: GenCtx, h: number): HarmonyPlan {
-    return ctx.plans[Math.max(0, Math.min(ctx.plans.length - 1, h))];
+export function planAt(ctx: GenCtx, h: number, changes = 0): HarmonyPlan {
+    const p = ctx.plans[Math.max(0, Math.min(ctx.plans.length - 1, h))];
+    /* A locked scene's chords are the other tracks': CHANGES cannot add any. */
+    if (changes <= 0 || ctx.freedom === 'locked' || !p) return p;
+    const key = `${h}:${changes}`;
+    const hit = changesCache.get(ctx)?.get(key);
+    if (hit) return hit;
+    const col = (c: Chord) => colourPcs(c, ctx.key);
+    const ok = (c: Chord, beat: number) => {
+        const pins = ctx.pinned.length ? ctx.pinned[Math.floor(beat / 2) % ctx.pinned.length] : [];
+        return holds(c, pins, col);
+    };
+    const out = { ...p, chords: withChanges(p.chords, changes, ctx.key, ok), label: p.label };
+    if (!changesCache.has(ctx)) changesCache.set(ctx, new Map());
+    changesCache.get(ctx)!.set(key, out);
+    return out;
 }
+
+/* A plan at a CHANGES level is asked for on every knob turn: built once. */
+const changesCache = new WeakMap<GenCtx, Map<string, HarmonyPlan>>();

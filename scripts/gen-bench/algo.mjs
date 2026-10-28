@@ -10,6 +10,7 @@
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
 import { scoreReply } from './score.mjs';
+import { cachedReplies, DIMS, kindOf, variability } from './variability.mjs';
 
 const ROOT = new URL('../../.gen-data/', import.meta.url).pathname;
 const PLANS = new URL('../../plans/', import.meta.url).pathname;
@@ -45,7 +46,7 @@ export function runCase(gen, c, level, count) {
     const options = picks.map((p) => p.notes);
     const s = scoreReply(options, { set: c.set, input: c.input, reference: c.reference, a: c.a, len: caseLen(c), drum: c.drum,
         task: c.task, expected: count });
-    return { id: c.id, kind: c.kind, options: options.length, presets: picks.map((p) => p.preset.id), dropped, ...s };
+    return { id: c.id, kind: c.kind, options: options.length, presets: picks.map((p) => p.preset.id), dropped, notes: options, ...s };
 }
 
 function refRows() {
@@ -110,6 +111,23 @@ async function main() {
         const ik = [0, 1, 2].map((i) => f2(mean(rows.map((r) => r.perOption[i]?.ideaKept).filter((v) => v !== undefined))));
         out.push(`| ${level} | ${ik.join(' / ')} | ${f2(mean(rows.map((r) => r.minPairDiff)))} |`);
     }
+    /* Between the options of one request: the model's replies from the cache
+     * (its first three, as the model runs asked), the engine's three and six. */
+    const replies = cachedReplies(ROOT, REF.model);
+    const vAi = variability(replies);
+    const v3 = variability(bal.map((r) => r.notes));
+    const v6 = variability(six.map((r) => r.notes));
+    const vrow = (name, v) => `| ${name} | ${v.n} | ${DIMS.map((d) => f2(v[d])).join(' | ')} |`;
+    const kinds = replies.map((o) => kindOf(o, cases));
+    const byKind = (k) => [vrow(`AI, ${k}`, variability(replies.filter((_, i) => kinds[i] === k))),
+        vrow(`algorithmic, ${k}`, variability(bal.filter((r) => r.kind === k).map((r) => r.notes)))];
+    out.push('', '## Variability between the options of one request', '',
+        'Mean over option pairs, then over requests. Rhythm, notes, pitches and harmony are distances 0-1; range and register in '
+        + 'semitones; density a share; lengths in steps; velocity in velocity units. Higher = the options differ more.', '',
+        `| options | requests | ${DIMS.join(' | ')} |`, `| --- | --- | ${DIMS.map(() => '---').join(' | ')} |`,
+        vrow(`AI (${REF.model}, cached)`, vAi), vrow('algorithmic, three', v3), vrow('algorithmic, six (device)', v6),
+        ...byKind('variation'), ...byKind('quantize-messy'), ...byKind('quantize-played'),
+        '', 'A cached reply is matched to the case whose input its options share the most notes with; one matching none is left out of the per-task rows.');
     out.push('', '## Case by case (BALANCED vs the AI reference mean)', '', '| case | half | kind | AI align | algo align | AI gate | algo gate | presets | failed |', '| --- | --- | --- | --- | --- | --- | --- | --- | --- |');
     let w = 0, t = 0, l = 0;
     for (const r of bal) {

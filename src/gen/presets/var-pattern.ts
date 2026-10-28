@@ -7,6 +7,8 @@ import type { Preset } from '../preset.js';
 import { rng, shuffled } from '../rng.js';
 import { euclid } from '../theory/pc.js';
 import { BAR, type Ev, TPS } from '../types.js';
+import { COMPS, nearestComp } from '../shape/rhythm.js';
+import { dynamics } from '../shape/dynamics.js';
 import { finish, over, partEvs } from './helpers.js';
 
 const DIMS = ['PITCH', 'LENGTH', 'VELOCITY', 'POSITION'] as const;
@@ -73,17 +75,12 @@ export const EUCLID: Preset = {
     },
 };
 
-/* Comping rhythms, per bar of 16ths, the styles a groovebox chord part uses. */
-const COMPS: [string, number[]][] = [
-    ['QUARTERS', [0, 4, 8, 12]], ['OFFBEATS', [2, 6, 10, 14]], ['DUB', [4, 12]], ['HOUSE', [3, 6, 11, 14]],
-    ['TRESILLO', [0, 3, 6, 8, 11, 14]], ['CHARLESTON', [0, 3, 8, 11]], ['PUSH', [0, 7, 10]], ['SYNC 16', [0, 3, 6, 10, 13]],
-];
-
 export const COMP: Preset = {
     id: 'v-comp', name: 'COMP', task: 'variation', drum: false, cls: 'rhythm', fit: () => 0.6, roles: ['stabs', 'pad'],
-    knobs: [{ ...custom('PATTERN', COMPS.map((c) => c[0])), def: (c) => bestComp(c.src.map((n) => n.tick)) }, K.harmony(1), K.tension(5), K.length(5)],
+    knobs: [{ ...custom('PATTERN', COMPS.map((c) => c[0])), def: (c) => nearestComp(partEvs(c)) }, K.harmony(1), K.changes(0), K.tension(5),
+        K.voices(1), K.length(5), K.dynamics(3), K.range(5)],
     generate: (ctx, v, seed) => {
-        const evs = over(ctx, partEvs(ctx), { h: v[1], tension: v[2] });
+        const evs = over(ctx, partEvs(ctx), { h: v[1], changes: v[2], tension: v[3], voices: v[4], range: v[7] });
         if (!evs.length) return [];
         const steps = COMPS[v[0]][1];
         const pad = ctx.role?.kind === 'pad';
@@ -99,19 +96,6 @@ export const COMP: Preset = {
                 out.push({ tick, voices: src.voices.map((x) => ({ ...x, dt: 0, gate, vel: Math.round(x.vel * accent) })) });
             });
         }
-        return finish(ctx, out, { length: v[3] }, rng(seed));
+        return dynamics(finish(ctx, out, { length: v[5] }, rng(seed)), v[6]);
     },
 };
-
-/** The library pattern closest to the source's rhythm without being it. */
-function bestComp(ticks: number[]): number {
-    const steps = new Set(ticks.map((t) => Math.round(t / TPS) % 16));
-    let best = 1;
-    let bestS = -1;
-    COMPS.forEach(([, s], i) => {
-        const both = s.filter((x) => steps.has(x)).length;
-        const sc = both / (s.length + steps.size - both);
-        if (sc < 0.9 && sc > bestS) { bestS = sc; best = i; }
-    });
-    return best;
-}

@@ -3,10 +3,19 @@
  * not a copy of what was there, and never one of the track's clips again. */
 
 import type { GenCtx } from './analysis/context.js';
-import { roleBreak } from '../ai/role.js';
+import { onsetRange, roleBreak } from '../ai/role.js';
 import { isSameLoop, loopMatch, NEAR_DUP } from '../ai/same-loop.js';
 import { MAX_NOTES } from '../ai/validate.js';
 import type { Note } from './types.js';
+
+/* The generators may change a part's rhythm more than a model was allowed
+ * to (user, 2026-10-27: "I don't like rhythmic limitations"): a third to
+ * three times the onsets, still the same kind of part. */
+export const ONSET_SLACK = 1.5;
+
+export function onsetBounds(ctx: GenCtx): [number, number] {
+    return ctx.role ? onsetRange(ctx.role, ctx.len, ONSET_SLACK) : [1, 512];
+}
 
 export type GuardResult = { ok: true; notes: Note[] } | { ok: false; why: string };
 
@@ -37,7 +46,7 @@ export function guard(ctx: GenCtx, raw: Note[]): GuardResult {
     if (keyOf(notes) === keyOf(ctx.task === 'quantize' ? ctx.src : [])) return { ok: false, why: 'copy' };
     if (ctx.task === 'variation') {
         if (ctx.role) {
-            const broke = roleBreak(notes, ctx.role, ctx.len);
+            const broke = roleBreak(notes, ctx.role, ctx.len, ONSET_SLACK);
             if (broke) return { ok: false, why: 'role ' + broke };
         }
         /* Unchanged is not a variation, for drums too (the loop rule lets an

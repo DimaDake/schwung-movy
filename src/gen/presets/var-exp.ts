@@ -8,12 +8,12 @@ import type { Preset } from '../preset.js';
 import { rng } from '../rng.js';
 import { stepScale } from '../theory/pc.js';
 import { BAR, BEAT, type Ev, HALF, TPS } from '../types.js';
-import { onsetRange } from '../../ai/role.js';
+import { onsetBounds } from '../guard.js';
 import { finish, over, partEvs, someOf } from './helpers.js';
 
 const LINE = ['lead', 'arpeggio', 'bass'] as const;
 const CELLS = [BEAT, BEAT * 2, BAR, BAR * 2];
-const STEPS = [-2, -1, 1, 2, 3];
+const STEPS = [-4, -3, -2, -1, 1, 2, 3, 4];
 
 /** The opening cell repeated as a diatonic sequence (each repeat STEP scale
  *  steps on), reset when it would leave the register. */
@@ -21,7 +21,7 @@ export const MOTIF: Preset = {
     id: 'v-motif', name: 'MOTIF', task: 'variation', drum: false, cls: 'exp', fit: () => 0.5, roles: [...LINE],
     /* Only cells that fit twice: a cell as long as the clip is the clip. */
     knobs: [{ ...custom('CELL', ['1 BEAT', '2 BEATS', '1 BAR', '2 BARS'], 2), steps: (c) => Math.max(1, CELLS.filter((x) => x * 2 <= c.end).length),
-        def: (c) => Math.min(2, Math.max(0, CELLS.filter((x) => x * 2 <= c.end).length - 1)) }, custom('STEP', STEPS.map((s) => (s > 0 ? '+' : '') + s), 2),
+        def: (c) => Math.min(2, Math.max(0, CELLS.filter((x) => x * 2 <= c.end).length - 1)) }, custom('STEP', STEPS.map((s) => (s > 0 ? '+' : '') + s), 5),
         K.harmony(2), K.tension(4)],
     generate: (ctx, v, seed) => {
         const evs = partEvs(ctx);
@@ -33,7 +33,7 @@ export const MOTIF: Preset = {
         for (let off = 0, rep = 0; off < ctx.end; off += cell, rep++) {
             const sh = shift;
             const moved = src.map((e) => ({ tick: e.tick + off, voices: e.voices.map((x) => ({ ...x, pitch: stepScale(x.pitch, sh, ctx.key) })) }));
-            if (moved.some((e) => e.voices.some((x) => x.pitch > ctx.hi + 5 || x.pitch < ctx.lo - 5))) {
+            if (moved.some((e) => e.voices.some((x) => x.pitch > ctx.hi + 9 || x.pitch < ctx.lo - 9))) {
                 shift = 0;
                 out.push(...src.map((e) => ({ tick: e.tick + off, voices: e.voices.map((x) => ({ ...x })) })));
             } else out.push(...moved);
@@ -96,7 +96,7 @@ export const ORNAMENT: Preset = {
     generate: (ctx, v, seed) => {
         const r = rng(seed);
         const out = over(ctx, partEvs(ctx), { h: v[2], tension: v[3] });
-        const max = ctx.role ? onsetRange(ctx.role, ctx.len)[1] : out.length * 2;
+        const max = onsetBounds(ctx)[1];
         const per = v[1] === 1 ? 3 : v[1] === 2 ? 2 : 1;
         const cands = out.map((e, i) => i).filter((i) => isStrong(out[i].tick) && out[i].tick >= TPS);
         const sel = [...someOf(cands.length, v[0] / 10, r)].map((j) => cands[j]).slice(0, Math.floor(Math.max(0, max - out.length) / per));

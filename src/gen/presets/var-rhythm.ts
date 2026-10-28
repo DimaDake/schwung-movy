@@ -10,15 +10,15 @@ import { rng } from '../rng.js';
 import { displace } from '../shape/time.js';
 import { colourPcs } from '../theory/category.js';
 import { nearestPitch, pc, sameChord } from '../theory/pc.js';
-import { onsetRange } from '../../ai/role.js';
+import { onsetBounds } from '../guard.js';
 import { type Ev, TPS } from '../types.js';
 import { finish, over, partEvs, someOf, targetAt } from './helpers.js';
 
-const SHIFTS = [-4, -3, -2, -1, 1, 2, 3, 4];
+const SHIFTS = [-8, -6, -4, -3, -2, -1, 1, 2, 3, 4, 6, 8];
 
 export const DISPLACE: Preset = {
     id: 'v-displace', name: 'DISPLACE', task: 'variation', drum: false, cls: 'rhythm', fit: () => 0.5,
-    knobs: [K.amount(4), custom('SHIFT', SHIFTS.map((s) => (s > 0 ? '+' : '') + s + '/16'), 5), K.harmony(1), K.seed()],
+    knobs: [K.amount(4), custom('SHIFT', SHIFTS.map((s) => (s > 0 ? '+' : '') + s + '/16'), 7), K.harmony(1), K.seed()],
     generate: (ctx, v, seed) => {
         const r = rng(seed + v[3] * 7919);
         const evs = partEvs(ctx);
@@ -60,7 +60,7 @@ export const CONNECT: Preset = {
     generate: (ctx, v, seed) => {
         const r = rng(seed);
         const out = over(ctx, partEvs(ctx), { h: v[1], tension: v[2] });
-        const max = ctx.role ? onsetRange(ctx.role, ctx.len)[1] : out.length * 2;
+        const max = onsetBounds(ctx)[1];
         const room = Math.max(0, max - out.length);
         const cands = out.map((e, i) => i).filter((i) => i > 0 && isStrong(out[i].tick) && spanTo(out, i - 1, ctx.end) >= TPS * 2);
         const sel = [...someOf(cands.length, v[0] / 10, r)].map((j) => cands[j]).slice(0, room);

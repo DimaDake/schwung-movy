@@ -30,7 +30,7 @@ export const DRONE: Preset = {
             const c = chordAt(chords, t, ctx.k) ?? chordAt(ctx.srcChords, t, ctx.k);
             if (!c || (t > 0 && sameChord(c, prevC))) continue;
             const want = v[0] === 0 ? (c.pcs.includes(pc(prev)) ? [pc(prev)] : c.pcs) : [c.pcs[[0, 0, 2, 1][v[0]]] ?? c.pcs[0]];
-            const p = nearestPitch(prev, want, ctx.lo - 5, ctx.hi + 5);
+            const p = nearestPitch(prev, want, ctx.lo - 7, ctx.hi + 7);
             prevC = c;
             /* A tone the new chord shares is held through the change (TIE)
              * or struck again with it (RESTRIKE). */
@@ -60,7 +60,7 @@ export const PEDAL: Preset = {
             const ped = v[1] === 0 ? ctx.key.tonic : v[1] === 1 ? pc(ctx.key.tonic + 7) : T?.root ?? ctx.key.tonic;
             const top = e.voices[e.voices.length - 1];
             if (e.voices.length > 1) top.pitch = nearestPitch(top.pitch, [ped], top.pitch - 5, top.pitch + 5);
-            else top.pitch = nearestPitch(kind === 'bass' ? ctx.lo : ctx.mid, [ped], ctx.lo - 3, ctx.hi + 3);
+            else top.pitch = nearestPitch(kind === 'bass' ? ctx.lo : ctx.mid, [ped], ctx.lo - 5, ctx.hi + 5);
         });
         return finish(ctx, out, {}, r);
     },

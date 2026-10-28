@@ -27,7 +27,13 @@ far. Earlier work is summarised in the timeline below for context.
   GENERATORS level. In the preview the knobs reshape the option showing (a turn
   rewrites it; touch shows the name and value in the top strip; the knob lights
   show each position like a module's params, dimmest at a minimum and off where
-  there is no knob), and a knob that cannot change it is hidden. Settings → **GENERATOR MODE** switches
+  there is no knob), and a knob that cannot change it is hidden. One click is
+  one step. New knobs CHANGES (more chord changes than the source), RHYTHM
+  (keep, push, syncopate, double, half, comp, Euclid, shuffle) and VOICES
+  (more harmony notes) on NEXT, FOLLOW, PULSE, NEW LINE, ANSWER, SPREAD, COMP
+  and DEVELOP; RANGE reaches twice the played intervals; a BASSLINE generator
+  writes new bass figures. Each generator is also tried with its feel moved
+  two ways, and options after the first are chosen to differ. Settings → **GENERATOR MODE** switches
   between ALGORITHMIC and MODEL (Gemini, as before; its replies get four knobs
   too). Measured on the generator bench against the cached model runs
   (`scripts/gen-bench/algo.mjs`, `plans/gen-bench-results-2026-10-27-algo.md`).

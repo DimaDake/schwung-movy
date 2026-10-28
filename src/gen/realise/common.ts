@@ -42,8 +42,10 @@ export function mapMember(m: number, t: Chord, sit: Sit, strong: boolean, k: Key
 /** A colour tone keeps its interval above the root when the new chord takes it. */
 export const mapColour = (p: number, s: Chord, t: Chord): number => pc(t.root + up(s.root, p));
 
+/** The register a part may use: what was played and a few semitones round
+ *  it, an octave further each way at the widest RANGE. */
 export function bounds(ctx: GenCtx, range: number): [number, number] {
-    const widen = range > 1 ? Math.round((range - 1) * 10) : 0;
+    const widen = range > 1 ? Math.round((range - 1) * 12) : 0;
     const narrow = range < 1 ? Math.round((1 - range) * 4) : 0;
     return [Math.max(0, ctx.lo - 3 - widen + narrow), Math.min(127, ctx.hi + 3 + widen - narrow)];
 }

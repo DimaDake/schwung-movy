@@ -102,7 +102,7 @@ scenario('ai', async (t) => {
         const led = (await dev.logLines('knobLED k=0 ')).pop() ?? '';
         t.check('a5-knob-leds-lit', 'the preview lights knob 1 at its position, like a module param',
             /color=[1-9]\d*/.test(led), { expected: 'knob 1 lit', actual: led });
-        await cc(71, 125);
+        await cc(71, 104);   // three clicks down (8 raw units a click)
         await t.tx.frames(30);
         const g2 = clipLine(await dump(), 0);
         t.check('a5-knob-rewrites-the-option', 'turning knob 1 in the preview rewrites the option over the clip',

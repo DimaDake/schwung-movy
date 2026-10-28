@@ -67,9 +67,9 @@ const note = (p: number) => `${p}:${pcName(p)}${Math.floor(p / 12) - 2}`;
 /** How many onsets an option may have: half to double the source's, and a
  *  held part (a drone or pad) up to one per bar, since one note held across
  *  four bars moving once a bar is still a drone (live reply 2026-10-27). */
-export function onsetRange(src: Role, lenSteps: number): [number, number] {
+export function onsetRange(src: Role, lenSteps: number, slack = 1): [number, number] {
     const held = src.kind !== 'drums' && src.lenSteps >= LONG ? Math.ceil(lenSteps / STEPS_PER_BAR) : 0;
-    return [Math.max(1, Math.floor(src.onsets / 2)), Math.max(2, Math.ceil(src.onsets * 2), held)];
+    return [Math.max(1, Math.floor(src.onsets / (2 * slack))), Math.max(2, Math.ceil(src.onsets * 2 * slack), held)];
 }
 
 export function roleText(r: Role, lenSteps: number): string {
@@ -85,10 +85,10 @@ export function roleText(r: Role, lenSteps: number): string {
 }
 
 /** Why an option is no longer the source's part, or null when it still is. */
-export function roleBreak(notes: AiNote[], src: Role, lenSteps: number): string | null {
+export function roleBreak(notes: AiNote[], src: Role, lenSteps: number, slack = 1): string | null {
     const r = roleOf(notes, lenSteps, src.kind === 'drums');
     if (!r) return 'empty';
-    const [lo, hi] = onsetRange(src, lenSteps);
+    const [lo, hi] = onsetRange(src, lenSteps, slack);
     if (r.onsets < lo || r.onsets > hi) return 'onsets';
     if (src.kind === 'drums') return null;
     if (src.voices >= POLY ? r.voices < MONO : src.voices < MONO && r.voices >= POLY) return 'voices';

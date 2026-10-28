@@ -83,20 +83,47 @@ export function slotsFor(task: 'variation' | 'quantize', count: number, level: G
     return Array.from({ length: count }, (_, i) => base[Math.min(base.length - 1, Math.floor((i * base.length) / count))]);
 }
 
+const jd = (A: Set<number>, B: Set<number>) => { const u = new Set([...A, ...B]); if (!u.size) return 0; let i = 0; for (const x of A) if (B.has(x)) i++; return 1 - i / u.size; };
+const avg = (a: number[]) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
+
+/** How different two options feel, 0..1, on everything a listener hears:
+ *  rhythm, notes, density, register, note lengths and loudness. */
+export function spread(a: Note[], b: Note[]): number {
+    const steps = (x: Note[]) => new Set(x.map((n) => Math.round(n.tick / TPS)));
+    const parts = [
+        jd(steps(a), steps(b)),
+        difference(a, b),
+        Math.abs(a.length - b.length) / Math.max(1, a.length, b.length),
+        Math.min(1, Math.abs(median(a.map((n) => n.pitch)) - median(b.map((n) => n.pitch))) / 12),
+        Math.min(1, Math.abs(median(a.map((n) => n.gate)) - median(b.map((n) => n.gate))) / (4 * TPS)),
+        Math.min(1, Math.abs(avg(a.map((n) => n.vel)) - avg(b.map((n) => n.vel))) / 40),
+    ];
+    return avg(parts);
+}
+
 export function selectOptions(cands: Candidate[], task: 'variation' | 'quantize', count: number, level: GenLevel): Candidate[] {
     const pool = cands.filter((c) => c.score >= 0).sort((a, b) => b.score - a.score);
     const chosen: Candidate[] = [];
-    const farEnough = (c: Candidate) => chosen.every((x) => difference(x.notes, c.notes) >= MIN_PAIR);
+    const farEnough = (c: Candidate) => chosen.every((x) => x.preset !== c.preset && difference(x.notes, c.notes) >= MIN_PAIR);
+    /* The first option is the best fit; every next one is the best fit that
+     * also adds the most that is new — the user wants options that differ in
+     * rhythm, notes and feel, not three takes of one idea. */
+    const value = (c: Candidate) => (chosen.length ? 0.45 * c.score + 0.55 * Math.min(...chosen.map((x) => spread(x.notes, c.notes))) : c.score);
     const take = (ok: (c: Candidate) => boolean) => {
-        const c = pool.find((x) => !chosen.includes(x) && ok(x));
-        if (c) chosen.push(c);
-        return !!c;
+        let best: Candidate | null = null;
+        for (const x of pool) if (!chosen.includes(x) && ok(x) && (!best || value(x) > value(best))) best = x;
+        if (best) chosen.push(best);
+        return !!best;
     };
     for (const cls of slotsFor(task, count, level)) {
         if (chosen.length >= count) break;
         take((c) => c.preset.cls === cls && farEnough(c)) || take(farEnough);
     }
     /* Too few that differ enough: the best of the rest still beats nothing. */
+    while (chosen.length < Math.min(count, pool.length) && take((c) => !chosen.some((x) => x.preset === c.preset)));
     while (chosen.length < Math.min(count, pool.length) && take(() => true));
+    /* Shown closest first; Smart Quantize's option 1 is always its tightest
+     * (the first pick, from the close class), the rest after it. */
+    if (task === 'quantize' && chosen.length) return [chosen[0], ...chosen.slice(1).sort((a, b) => a.dist - b.dist)];
     return chosen.sort((a, b) => a.dist - b.dist);
 }

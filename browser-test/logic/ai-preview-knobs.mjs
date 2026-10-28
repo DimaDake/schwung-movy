@@ -29,7 +29,8 @@ function boot(input) {
 }
 function ops() { seqEngineTick(); const o = eng.ops.slice(); eng.ops.length = 0; return o; }
 function done() { resetAiJob(); uninstallMockEngine(); resetSeqEngine(); }
-const KNOB = (k, d) => [0xB0, 71 + k, d > 0 ? d : 128 + d];
+/* `d` in clicks; a click is DETENT_DIV raw units (seq/detent.ts). */
+const KNOB = (k, d) => [0xB0, 71 + k, d * 8 > 0 ? d * 8 : 128 + d * 8];
 const TOUCH = (k, on) => [on ? 0x90 : 0x80, k, on ? 127 : 0];
 
 export async function run() {
@@ -58,6 +59,10 @@ const steps = first.preset.knobs[live].steps(r.ctx);
 const dir = before >= steps - 1 ? -1 : 1;
 previewInput(KNOB(live, dir));
 previewInput(KNOB(live, dir));
+/* Less than a click is banked, not a step (the knobs were too sensitive). */
+previewInput([0xB0, 71 + live, dir > 0 ? 3 : 125]);
+eq('a_part_click_moves_nothing', knobsOf(1)[live], before + 2 * dir);
+previewInput([0xB0, 71 + live, dir > 0 ? 125 : 3]);
 eq('turns_are_coalesced: nothing written before the tick', ops().filter((o) => o.startsWith('aiclip')).length, 0);
 aiPreviewTick();
 const w = ops().filter((o) => o.startsWith('aiclip 0 1 32 1 1 0'));
@@ -66,11 +71,11 @@ ok('turn_moves_the_knob', knobsOf(1)[live] !== before);
 eq('led_follows_the_turn', knobLevels()[live], knobsOf(1)[live] / (steps - 1));
 /* Like a module's params: a knob at its minimum is lit at the bottom of the
  * ramp (level 0), a knob with nothing behind it is dark (null). */
-previewInput(KNOB(live, -63));
+for (let i = 0; i < 16; i++) previewInput(KNOB(live, -1));
 aiPreviewTick();
 ops();
 eq('led_at_minimum_is_lit_not_dark', knobLevels()[live], 0);
-previewInput(KNOB(live, 2 * dir + (before - knobsOf(1)[live])));
+for (let i = 0; i < before + 2 * dir; i++) previewInput(KNOB(live, 1));
 aiPreviewTick();
 ops();
 const expect = G.regenerate(r.ctx, first.preset, knobsOf(1)).map((n) => `${n.tick}.${n.gate}.${n.pitch}.${n.vel}`).join(',');

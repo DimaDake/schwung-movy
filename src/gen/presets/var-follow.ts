@@ -15,6 +15,8 @@ import { allowedPcs } from '../theory/category.js';
 import { nearestPitch, pc, scaleOf, stepScale } from '../theory/pc.js';
 import { BAR, type Chord, type Ev } from '../types.js';
 import { finish, partEvs } from './helpers.js';
+import { rhythmStage } from '../shape/rhythm.js';
+import { thicken } from '../shape/thicken.js';
 
 /** Scale steps from one root to another, -3..+3 (nearest), or up/down only. */
 export function rootSteps(ctx: GenCtx, s: Chord, t: Chord, dir: number): number {
@@ -38,18 +40,23 @@ function rootsMove(ctx: GenCtx): boolean {
 
 export const FOLLOW: Preset = {
     id: 'v-follow', name: 'FOLLOW', task: 'variation', drum: false, cls: 'close',
-    knobs: [K.harmony(1), K.tension(3), custom('DIRECTION', ['NEAREST', 'UP', 'DOWN'], 0), K.length(5)],
+    knobs: [K.harmony(1), K.changes(0), K.tension(3), custom('DIRECTION', ['NEAREST', 'UP', 'DOWN'], 0), K.rhythm(0), K.voices(1),
+        K.length(5), K.density(5)],
     /* When the roots move, sliding the part along them is how a B section is
      * most often made; when they do not, there is nothing to follow. */
     fit: (c) => (rootsMove(c) ? 0.9 : 0.3),
     generate: (ctx, v, seed) => {
-        const chords = planAt(ctx, v[0]).chords;
+        const r = rng(seed);
+        const chords = planAt(ctx, v[0], v[1]).chords;
+        const tension = v[2] / 10;
+        const dir = v[3];
         /* A line moves by phrases: one shift per bar, read on its downbeat.
          * Chords plane one by one. */
         const line = !(ctx.role?.kind === 'pad' || ctx.role?.kind === 'stabs');
         let cur = 0;
         let curBar = -1;
-        const out: Ev[] = partEvs(ctx).map((e) => {
+        const src = v[4] ? rhythmStage(ctx, partEvs(ctx), v[4], r) : partEvs(ctx);
+        const out: Ev[] = src.map((e) => {
             const at = line ? Math.floor(e.tick / BAR) * BAR : e.tick;
             const S = chordAt(ctx.srcChords, at, ctx.k);
             const T = chordAt(chords, at, ctx.k) ?? S;
@@ -59,14 +66,14 @@ export const FOLLOW: Preset = {
                 /* NEAREST continues from where the part already is, but never
                  * walks away from its register: past a fourth either way costs
                  * more than a leap back. UP and DOWN measure from the source. */
-                const base = rootSteps(ctx, S, T, v[2]);
+                const base = rootSteps(ctx, S, T, dir);
                 const cost = (n: number) => Math.abs(n - cur) + 1.5 * Math.max(0, Math.abs(n) - 3);
-                cur = v[2] !== 0 ? base : [base - 7, base, base + 7].sort((a, b) => cost(a) - cost(b))[0];
+                cur = dir !== 0 ? base : [base - 7, base, base + 7].sort((a, b) => cost(a) - cost(b))[0];
             }
             const n = cur;
             const T2 = chordAt(chords, e.tick, ctx.k) ?? T;
             const strong = isStrong(e.tick);
-            const ok = allowedPcs(T2, ctx.key, v[1] / 10, strong);
+            const ok = allowedPcs(T2, ctx.key, tension, strong);
             return { tick: e.tick, voices: e.voices.map((x) => {
                 const p = stepScale(x.pitch, n, ctx.key);
                 /* A planed voice that lands on a clash snaps by the least;
@@ -74,6 +81,7 @@ export const FOLLOW: Preset = {
                 return { ...x, pitch: ok.includes(pc(p)) || e.voices.length > 1 && T2.pcs.includes(pc(p)) ? p : nearestPitch(p, ok) };
             }) };
         });
-        return finish(ctx, out, { length: v[3] }, rng(seed));
+        const thick = v[5] !== 1 ? thicken(ctx, out, v[5] - 1, chords, tension) : out;
+        return finish(ctx, thick, { length: v[6], density: v[7], h: v[0], changes: v[1] }, r);
     },
 };

@@ -112,10 +112,14 @@ export function looped(notes: Note[], span: number, end: number): Note[] {
     return out;
 }
 
-/** The chord under a clip tick in a per-master-half-bar list (looping). */
-export function chordAt(chords: (Chord | null)[], tick: number, k: number): Chord | null {
+/** A chord list per unit of master time: half-bars unless it says otherwise
+ *  (a plan with CHANGES is per beat, theory/changes.ts). */
+export type Prog = (Chord | null)[] & { unit?: number };
+
+/** The chord under a clip tick in a per-unit list (looping). */
+export function chordAt(chords: Prog, tick: number, k: number): Chord | null {
     if (!chords.length) return null;
-    const i = Math.floor((tick * k) / HALF);
+    const i = Math.floor((tick * k) / (chords.unit ?? HALF));
     return chords[((i % chords.length) + chords.length) % chords.length];
 }
 

@@ -524,7 +524,7 @@ _origLog('\nTest: generator slice cost');
         for (const p of G.finishRequest(req)) { t = performance.now(); G.regenerate(req.ctx, p.preset, p.knobs); regen = Math.max(regen, performance.now() - t); }
     }
     check('generator: prepare a request (512 notes)', Number(prep.toFixed(2)), 12, 'ms');
-    check('generator: one preset slice (512 notes)', Number(step.toFixed(2)), 15, 'ms');
+    check('generator: one take slice (512 notes)', Number(step.toFixed(2)), 15, 'ms');
     check('generator: a knob turn regeneration (512 notes)', Number(regen.toFixed(2)), 12, 'ms');
 }
 

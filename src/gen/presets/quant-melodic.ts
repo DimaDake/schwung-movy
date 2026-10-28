@@ -13,6 +13,8 @@ import { even, dynamics } from '../shape/dynamics.js';
 import { clean } from '../shape/drums.js';
 import { embellish, ORNAMENTS, pitchFix } from '../shape/pitch.js';
 import { FEELS, feelLand, lengthStage, timing } from '../shape/time.js';
+import { rhythmStage } from '../shape/rhythm.js';
+import { densityStage } from '../shape/density.js';
 import { stepScale } from '../theory/pc.js';
 import type { Note } from '../types.js';
 
@@ -67,7 +69,7 @@ export const SHAPED: Preset = {
 
 export const EMBELLISH: Preset = {
     id: 'q-embellish', name: 'EMBELLISH', task: 'quantize', drum: false, cls: 'exp', fit: () => 0.5,
-    knobs: [K.timing(10), count('AMOUNT', 8, 3), custom('KIND', ['GRACE', 'PASSING', 'NEIGHBOUR'], 1), K.pitchFix(4)],
+    knobs: [K.timing(10), count('AMOUNT', 16, 3), custom('KIND', ['GRACE', 'PASSING', 'NEIGHBOUR'], 1), K.pitchFix(4)],
     generate: (ctx, v, seed) => {
         const base = pitchFix(ctx, tight(ctx, ctx.src, v[0] / 10), v[3], chords(ctx));
         return embellish(ctx, base, v[1], ORNAMENTS[v[2]], rng(seed), chords(ctx));
@@ -80,20 +82,28 @@ const STEPS = [-2, -1, 1, 2];
  *  fitted to the harmony there. */
 export const ANSWER_Q: Preset = {
     id: 'q-answer', name: 'ANSWER', task: 'quantize', drum: false, cls: 'exp', fit: () => 0.45, roles: ['lead', 'arpeggio', 'bass'],
-    knobs: [K.timing(10), custom('SPLIT', ['1/4', '1/2', '3/4'], 1), custom('STEP', STEPS.map((s) => (s > 0 ? '+' : '') + s), 2), K.pitchFix(5)],
-    generate: (ctx, v) => {
+    knobs: [K.timing(10), custom('SPLIT', ['1/4', '1/2', '3/4'], 1), custom('STEP', STEPS.map((s) => (s > 0 ? '+' : '') + s), 2), K.pitchFix(5),
+        K.rhythm(0), K.length(5), K.density(5), K.dynamics(0)],
+    generate: (ctx, v, seed) => {
+        const r = rng(seed);
         const split = (ctx.end * (v[1] + 1)) / 4;
         const moved = tight(ctx, ctx.src, v[0] / 10).map((n) => (n.tick >= split ? { ...n, pitch: stepScale(n.pitch, STEPS[v[2]], ctx.key) } : n));
-        return pitchFix(ctx, moved, v[3], chords(ctx));
+        /* RHYTHM reshapes the answer; the first half stays as played. */
+        const head = moved.filter((n) => n.tick < split);
+        const tail = toEvents(moved.filter((n) => n.tick >= split));
+        const tail2 = v[4] ? rhythmStage(ctx, tail, v[4], r).filter((e) => e.tick >= split) : tail;
+        const evs = densityStage(ctx, toEvents([...head, ...fromEvents(tail2, ctx.end)]), v[6], r, chords(ctx));
+        return dynamics(pitchFix(ctx, len(ctx, fromEvents(evs, ctx.end), v[5]), v[3], chords(ctx)), v[7]);
     },
 };
 
 export const FULL: Preset = {
     id: 'q-full', name: 'FULL', task: 'quantize', drum: false, cls: 'exp', fit: () => 0.5,
-    knobs: [K.timing(10), K.swing(), K.grid(), K.pitchFix(4), count('EMBELLISH', 8, 2), K.dynamics(3), K.length(5), K.seed()],
+    knobs: [K.timing(10), K.swing(), K.grid(), K.pitchFix(4), count('EMBELLISH', 16, 2), K.dynamics(3), K.length(5), K.rhythm(0)],
     generate: (ctx, v, seed) => {
-        const r = rng(seed + v[7] * 7919);
+        const r = rng(seed);
         let notes = pitchFix(ctx, timing(ctx, ctx.src, v[0] / 10, GRIDS[v[2]], swingOfKnob(v[1])), v[3], chords(ctx));
+        if (v[7]) notes = fromEvents(rhythmStage(ctx, toEvents(notes), v[7], r), ctx.end);
         notes = embellish(ctx, notes, v[4], ORNAMENTS[Math.floor(r() * 3)], r, chords(ctx));
         return len(ctx, dynamics(notes, v[5]), v[6]);
     },

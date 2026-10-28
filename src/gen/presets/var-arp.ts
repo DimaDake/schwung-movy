@@ -8,7 +8,6 @@ import type { Preset } from '../preset.js';
 import { rng, shuffled } from '../rng.js';
 import { colourPcs } from '../theory/category.js';
 import { nearestPitch, pc, sameChord } from '../theory/pc.js';
-import { displace } from '../shape/time.js';
 import { type Ev, TPS } from '../types.js';
 import { finish, over, partEvs, someOf, targetAt } from './helpers.js';
 
@@ -29,7 +28,7 @@ export const ARP: Preset = {
     id: 'v-arp', name: 'ARP', task: 'variation', drum: false, cls: 'close', fit: () => 0.8, roles: ['arpeggio'],
     knobs: [custom('PATTERN', PATTERNS, 0), { ...custom('RATE', ['1/8', '1/16', '1/16T', '1/32'], 1),
         def: (c) => { const g = c.role ? c.role.lenSteps : 1; return g >= 1.6 ? 0 : 1; } },
-    custom('OCTAVES', ['1', '2', '3'], 1), K.harmony(1)],
+    custom('OCTAVES', ['1', '2', '3', '4'], 1), K.harmony(1)],
     generate: (ctx, v, seed) => {
         const r = rng(seed);
         const src = partEvs(ctx);
@@ -60,42 +59,25 @@ export const ARP: Preset = {
 };
 
 /** Everything at once, gently: AMOUNT re-picks pitches from the chord tones,
- *  RHYTHM moves onsets (anticipate → displace → shuffle the gaps), then the
- *  harmony, tension, density, range and length stages. */
+ *  RHYTHM reshapes the onsets (shape/rhythm.ts), CHANGES moves the chords more
+ *  often, then the tension, density and range stages. */
 export const DEVELOP: Preset = {
     id: 'v-develop', name: 'DEVELOP', task: 'variation', drum: false, cls: 'exp', fit: () => 0.55,
-    knobs: [K.amount(4), K.harmony(1), K.tension(5), custom('RHYTHM', ['KEEP', 'PUSH 1', 'PUSH 2', 'PUSH 3', 'SHIFT 1', 'SHIFT 2',
-        'SHIFT 3', 'SHUFFLE 1', 'SHUFFLE 2', 'SHUFFLE 3'], 4), K.density(5), K.range(5), K.length(5), K.seed()],
+    knobs: [K.amount(4), K.harmony(1), K.changes(1), K.tension(5), K.rhythm(2), K.density(5), K.range(5), K.seed()],
     generate: (ctx, v, seed) => {
         const r = rng(seed + v[7] * 7919);
-        let evs = partEvs(ctx);
-        const rh = v[3];
-        if (rh > 0 && evs.length > 1) {
-            const share = 0.15 + ((rh - 1) % 3) * 0.15;
-            const sel = someOf(evs.length, share, r);
-            if (rh <= 3) evs = displace(evs, (i) => sel.has(i) && i > 0, -1, ctx.end);
-            else if (rh <= 6) evs = displace(evs, (i) => sel.has(i), r() < 0.5 ? 1 : 2, ctx.end);
-            else {
-                const gaps = evs.map((e, i) => (i + 1 < evs.length ? evs[i + 1].tick : ctx.end + evs[0].tick) - e.tick);
-                const sh = shuffled(r, gaps);
-                let t = evs[0].tick;
-                evs = evs.map((e, i) => { const x = { tick: t, voices: e.voices }; t += sel.has(i) ? sh[i] : gaps[i]; return x; })
-                    .filter((e) => e.tick < ctx.end);
-            }
-            evs = evs.sort((a, b) => a.tick - b.tick).filter((e, i, a) => i === 0 || e.tick !== a[i - 1].tick);
-        }
-        let out = over(ctx, evs, { h: v[1], tension: v[2], range: v[5] });
+        let out = over(ctx, partEvs(ctx), { h: v[1], changes: v[2], tension: v[3], rhythm: v[4], range: v[6], r });
         const pick = someOf(out.length, v[0] / 10, r);
         out = out.map((e, i) => {
             if (!pick.has(i) || e.voices.length > 1) return e;
-            const T = targetAt(ctx, v[1], e.tick);
+            const T = targetAt(ctx, v[1], e.tick, v[2]);
             if (!T) return e;
-            const tones = tensionOfKnob(v[2]) >= 0.5 ? [...T.pcs, ...colourPcs(T, ctx.key)] : T.pcs;
+            const tones = tensionOfKnob(v[3]) >= 0.5 ? [...T.pcs, ...colourPcs(T, ctx.key)] : T.pcs;
             const x = e.voices[0];
             const alt = tones.filter((p) => p !== pc(x.pitch));
             const want = alt.length ? alt[Math.floor(r() * alt.length)] : pc(x.pitch);
-            return { tick: e.tick, voices: [{ ...x, pitch: nearestPitch(x.pitch, [want], ctx.lo - 3, ctx.hi + 3) }] };
+            return { tick: e.tick, voices: [{ ...x, pitch: nearestPitch(x.pitch, [want], ctx.lo - 5, ctx.hi + 5) }] };
         });
-        return finish(ctx, out, { density: v[4], length: v[6], h: v[1] }, r);
+        return finish(ctx, out, { density: v[5], h: v[1], changes: v[2] }, r);
     },
 };

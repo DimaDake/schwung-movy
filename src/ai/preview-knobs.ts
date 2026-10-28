@@ -13,6 +13,7 @@ import type { GenCtx } from '../gen/analysis/context.js';
 import type { Preset } from '../gen/preset.js';
 import type { Note } from '../gen/types.js';
 import { seqHeaderAnnounce } from '../seq/render.js';
+import { countDetents } from '../seq/detent.js';
 
 interface Opt { preset: Preset; knobs: number[]; live: (boolean | undefined)[] }
 
@@ -24,6 +25,7 @@ let opts: Opt[] = [];
 let shown = 0;              // 0 = ORIG
 let pending = false;
 let held = -1;              // the touched knob, -1 none
+const accum: number[] = []; // raw knob units banked toward the next step
 
 export function knobsOpen(c: GenCtx, picks: { preset: Preset; knobs: number[] }[]): void {
     ctx = c;
@@ -31,6 +33,7 @@ export function knobsOpen(c: GenCtx, picks: { preset: Preset; knobs: number[] }[
     shown = 1;
     pending = false;
     held = -1;
+    accum.length = 0;
 }
 
 export function knobsReset(): void { ctx = null; opts = []; pending = false; held = -1; shown = 0; }
@@ -39,6 +42,7 @@ export function knobsReset(): void { ctx = null; opts = []; pending = false; hel
 export function knobsShown(index: number): void {
     shown = index;
     held = -1;
+    accum.length = 0;
     const o = opts[index - 1];
     if (o) { seqHeaderAnnounce(`${index}  ${o.preset.name}`, STRIP_TTL); appState.dirty = true; }
 }
@@ -62,8 +66,11 @@ export function knobTurn(i: number, delta: number): boolean {
     const o = current(i);
     if (!o || !delta) return true;
     const steps = o.preset.knobs[i].steps(ctx);
-    /* movy-host sums a tick's detents into one turn: all of them count. */
-    const next = Math.max(0, Math.min(steps - 1, o.knobs[i] + delta));
+    /* One step per click, as on movy's own stepped pages (seq/detent.ts):
+     * a knob sends several raw units per click, and movy-host sums a tick's
+     * worth into one turn. The remainder carries to the next turn. */
+    const n = countDetents(accum, i, delta);
+    const next = Math.max(0, Math.min(steps - 1, o.knobs[i] + n));
     if (next !== o.knobs[i]) {
         o.knobs[i] = next;
         /* What a knob can do depends on where the others sit. */

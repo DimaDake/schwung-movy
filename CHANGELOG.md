@@ -23,7 +23,11 @@ far. Earlier work is summarised in the timeline below for context.
   EUCLID KIT, BROKEN and PERC. Every run gives new, checked defaults, never the
   options of the last few runs. The length comes from the slot, else the
   scene, and Loop Mode remakes the options at a new length without leaving
-  the preview.
+  the preview. Knobs 5 to 8 shape the feel of every option: GATE (from
+  clipped to held, so chords need not ring their full length), VARY (bar
+  to bar variety in rhythm and lengths), SWING (STRUM on PAD) and DYNAMICS;
+  drums have VARY, SWING, DYNAMICS and HUMAN. Their starting points are
+  rolled on every run.
 - **Smart Double: Shift + hold Step 15.** The loop doubles with a new ending,
   leading back into the top the way a player would, while everything before
   the ending stays as played. Six options from fourteen generators, each with

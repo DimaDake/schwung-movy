@@ -46,7 +46,18 @@ the band's hits (`band.ts`) come from the other tracks, so new parts land with t
 ## Options
 
 Melodic, 8 in this order: CHORDS, PAD, STABS, BASS, ARP, MELODY, RIFF, COUNTER. Drums, 6: PAD EUCLID, PAD PATTERN
-(per-pad), GROOVE, EUCLID KIT, BROKEN, PERC (whole kit). Four knobs each.
+(per-pad), GROOVE, EUCLID KIT, BROKEN, PERC (whole kit). Four knobs of their own each, then the feel row.
+
+## The feel row (`create/feel.ts`)
+
+User, 2026-10-28: "chords not necessarily should be full length. we need a knob to control gate and in general have
+more variety in the rhythm and note length across all generators". Every New Clip generator writes its idea on the
+grid; `withFeel` lays knobs 5–8 over it. Melodic: GATE (share of the room to the next onset, 10% → held; each part's
+takes drawn from its own range: stabs 0–3, pad 5–10…), VARY (per event: dropped, pushed a 16th, repeated half way,
+held ×0.45 or ×1.8; band accents and the downbeat stay), SWING (off-16ths; a part with none swings its off-8ths
+unless the scene swings its own 16ths; PAD has STRUM instead), DYNAMICS. Drums: VARY, SWING, DYNAMICS, HUMAN. The
+generators no longer set their own lengths. Bench: with band 0.70 → 0.65 (swing taken in unswung scenes and strummed
+pads move onsets off the accents), rhythm variability 0.72 → 0.74, re-run 0.81 → 0.79.
 
 ## Per-pad (`ai/preview-pads.ts`)
 
@@ -71,6 +82,6 @@ between options 1 and 2; a length change remakes the options.
 ## Bench (`scripts/gen-bench/create.mjs`)
 
 Each cached case's target track emptied and a part written into its slot, two runs per case. BALANCED (the level does
-not move New Clip): 42 requests, 7.43 options (8 melodic, 6 drums), meaningful 1.00, coherence 0.99, with band 0.70,
-re-run difference 0.81, rhythm variability 0.72, notes 0.94. Perf (node): one take slice at 16 bars 0.66 ms, a knob
-turn 0.39 ms.
+not move New Clip): 42 requests, 7.43 options (8 melodic, 6 drums), meaningful 1.00, coherence 0.99, with band 0.65,
+re-run difference 0.79, rhythm variability 0.74, notes 0.94. Perf (node): one take slice at 16 bars 0.82 ms, a knob
+turn 0.46 ms.

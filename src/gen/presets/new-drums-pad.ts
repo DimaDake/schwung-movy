@@ -9,6 +9,7 @@ import type { PadRole } from '../analysis/kit.js';
 import { amount, choice, place, SEED } from '../create/common.js';
 import type { KnobDef } from '../knobs.js';
 import type { Preset } from '../preset.js';
+import { withFeel } from '../create/feel.js';
 import { mix, type Rng, rng } from '../rng.js';
 import { euclid } from '../theory/pc.js';
 import { type Note, TPS } from '../types.js';
@@ -40,7 +41,7 @@ function accent(kind: number, i: number, step: number, r: Rng): number {
     return 65 + 50 * r();
 }
 
-export const PAD_EUCLID: Preset = {
+export const PAD_EUCLID: Preset = withFeel({
     id: 'n-pad-euclid', name: 'PAD EUCLID', task: 'create', drum: true, cls: 'close', perPad: true,
     knobs: [DENSITY, amount('ROTATE', 15, 0, 3), choice('ACCENT', ACCENTS, [0, 1, 1, 2, 3]), choice('RATE', ['1/16', '1/8', '1/8T'], [0, 0, 1])],
     generate: (ctx, v, seed) => {
@@ -60,7 +61,7 @@ export const PAD_EUCLID: Preset = {
         }
         return out;
     },
-};
+});
 
 /* Where each style leans, per 16th of the bar. */
 const STYLES: ((s: number, r: Rng) => number)[] = [
@@ -71,7 +72,7 @@ const STYLES: ((s: number, r: Rng) => number)[] = [
     (s) => ([0, 3, 4, 7, 8, 11, 12, 15].includes(s) ? 0.9 - (s % 4) * 0.1 : 0.1),
 ];
 
-export const PAD_PATTERN: Preset = {
+export const PAD_PATTERN: Preset = withFeel({
     id: 'n-pad-pattern', name: 'PAD PATTERN', task: 'create', drum: true, cls: 'rhythm', perPad: true,
     knobs: [DENSITY, choice('STYLE', ['STRAIGHT', 'OFFBEAT', 'SYNCOPATED', 'BROKEN', 'GALLOP'], [0, 1, 2, 3, 4]),
         choice('FILL', ['NONE', 'LAST BEAT', 'LAST BAR'], [0, 0, 1, 2]), SEED],
@@ -90,4 +91,4 @@ export const PAD_PATTERN: Preset = {
         }
         return out;
     },
-};
+});

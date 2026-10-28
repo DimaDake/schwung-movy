@@ -8,6 +8,7 @@ import { strength } from '../analysis/events.js';
 import type { PadRole } from '../analysis/kit.js';
 import { amount, bandSteps, choice, place, SEED } from '../create/common.js';
 import type { Preset } from '../preset.js';
+import { withFeel } from '../create/feel.js';
 import { mix, type Rng, rng, shuffled } from '../rng.js';
 import { NODES } from '../shape/drum-maps.js';
 import { euclid } from '../theory/pc.js';
@@ -32,7 +33,7 @@ function fill(ctx: GenCtx, out: Note[], kind: number, r: Rng): void {
     }
 }
 
-export const GROOVE: Preset = {
+export const GROOVE: Preset = withFeel({
     id: 'n-groove', name: 'GROOVE', task: 'create', drum: true, cls: 'close',
     knobs: [choice('STYLE', GENRES.map((g) => g[0])), amount('BUSY', 10, 3, 7), choice('FILL', ['NONE', 'SNARE', 'TOMS'], [0, 0, 1, 2]), SEED],
     generate: (ctx, v, seed) => {
@@ -51,9 +52,9 @@ export const GROOVE: Preset = {
         if (v[2] > 0) fill(ctx, out, v[2], r);
         return out;
     },
-};
+});
 
-export const EUCLID_KIT: Preset = {
+export const EUCLID_KIT: Preset = withFeel({
     id: 'n-euclid-kit', name: 'EUCLID KIT', task: 'create', drum: true, cls: 'rhythm',
     knobs: [amount('KICK', 8, 3, 5), amount('SNARE', 4, 1, 2), amount('HATS', 16, 4, 12), amount('SHIFT', 7, 0, 3)],
     generate: (ctx, v, seed) => {
@@ -66,9 +67,9 @@ export const EUCLID_KIT: Preset = {
         }
         return out;
     },
-};
+});
 
-export const BROKEN: Preset = {
+export const BROKEN: Preset = withFeel({
     id: 'n-broken', name: 'BROKEN', task: 'create', drum: true, cls: 'exp',
     knobs: [amount('DENSITY', 10, 4, 7), amount('SYNC', 10, 2, 7), amount('GHOSTS', 10, 0, 5), SEED],
     generate: (ctx, v, seed) => {
@@ -93,7 +94,7 @@ export const BROKEN: Preset = {
         }
         return out;
     },
-};
+});
 
 const ACCENTS = ['FLAT', 'DOWNBEAT', 'RANDOM'] as const;
 
@@ -105,7 +106,7 @@ function percPads(ctx: GenCtx): number[] {
     return rest.length ? rest : [...by.hat, ...by.snare];
 }
 
-export const PERC: Preset = {
+export const PERC: Preset = withFeel({
     id: 'n-perc', name: 'PERC', task: 'create', drum: true, cls: 'exp',
     knobs: [amount('DENSITY', 10, 3, 6), amount('PADS', 4, 2, 3), choice('ACCENT', ACCENTS, [0, 1, 1, 2]), SEED],
     generate: (ctx, v, seed) => {
@@ -123,4 +124,4 @@ export const PERC: Preset = {
         });
         return out;
     },
-};
+});

@@ -85,6 +85,48 @@ eq('new_clip_a_default_is_remade_by_its_knobs', again.join(' '), '');
 const pe = drm.picks[0];
 eq('new_clip_density_zero_is_silence', G.regenerate(drm.ctx, pe.preset, [0, ...pe.knobs.slice(1)]).length, 0);
 
+/* The feel row (user, 2026-10-28: chords need not be full length, a gate
+ * knob, more variety in rhythm and length). */
+const fr = G.prepare(createInput(false, 'free', 31));
+const cp = by('n-chords');
+const at = (name, x, base = G.defaults(cp, fr)) => { const w = [...base]; w[G.knobIndex(cp, name)] = x; return w; };
+const onsets = (ns) => [...new Set(ns.map((n) => n.tick))].sort((a, b) => a - b);
+const roomOf = (ns) => { const o = onsets(ns); return (n) => { const i = o.indexOf(n.tick); return (o[i + 1] ?? o[0] + fr.end) - n.tick; }; };
+const short = G.regenerate(fr, cp, at('GATE', 1));
+const held = G.regenerate(fr, cp, at('GATE', 10));
+ok('gate_low_plays_chords_short', short.every((n) => n.gate <= roomOf(short)(n) * 0.25));
+ok('gate_full_holds_chords_to_the_next', held.every((n) => n.gate >= Math.min(roomOf(held)(n) - 2, fr.end - n.tick)));
+const bar = (ns, b) => ns.filter((n) => n.tick >= b * G.BAR && n.tick < (b + 1) * G.BAR).map((n) => `${n.tick % G.BAR}.${n.pitch % 12}.${n.gate}`).sort().join();
+const still = G.regenerate(fr, cp, at('VARY', 0, at('GATE', 5)));
+const moved = G.regenerate(fr, cp, at('VARY', 9, at('GATE', 5)));
+/* Same onsets and lengths in both bars (the clip's last chord is cut at its end). */
+const last = onsets(still).pop();
+const inBar = (b) => still.filter((n) => n.tick >= b * G.BAR && n.tick < (b + 1) * G.BAR && n.tick !== last - (1 - b) * G.BAR && n.tick !== last)
+    .map((n) => `${n.tick % G.BAR}.${n.gate}`).sort().join();
+ok('vary_zero_keeps_the_rhythm_bar_to_bar', inBar(0) === inBar(1) && inBar(0).length > 0);
+ok('vary_moves_rhythm_and_lengths', new Set(moved.map((n) => n.gate)).size > new Set(still.map((n) => n.gate)).size
+    || onsets(moved).join() !== onsets(still).join());
+const pad = by('n-pad');
+const strum = G.regenerate(fr, pad, (() => { const w = G.defaults(pad, fr); w[G.knobIndex(pad, 'STRUM')] = 4; return w; })());
+ok('strum_spreads_a_chords_voices', G.toEvents(strum).every((e) => e.voices.length < 2 || e.voices[e.voices.length - 1].dt >= 8));
+const sw = (() => { const w = at('PATTERN', 1); w[G.knobIndex(cp, 'SWING')] = 6; return G.regenerate(fr, cp, w); })();
+ok('swing_moves_off_8ths_on_an_8ths_part', sw.some((n) => n.tick % (4 * G.TPS) === 2 * G.TPS + 14));
+
+/* Defaults differ in length and rhythm, between parts and between runs. */
+G.forgetOptions();
+const shares = [], padGates = new Set();
+for (let n = 0; n < 12; n++) {
+    const r = G.generateAll(createInput(false, 'free', 500 + n));
+    for (const p of r.picks) {
+        const g = p.knobs[G.knobIndex(p.preset, 'GATE')];
+        shares.push(`${p.preset.id}:${g}`);
+        if (p.preset.id === 'n-pad') padGates.add(g);
+    }
+}
+ok('pad_defaults_are_not_always_held', padGates.size >= 3);
+ok('gate_defaults_vary_across_runs', new Set(shares).size >= 30);
+G.forgetOptions();
+
 /* Length: the options follow it, every bar. */
 const long = G.generateAll(createInput(false, 'free', 5, { len: 64 }));
 ok('new_clip_fills_a_four_bar_clip', long.picks.every((p) => p.notes.some((n) => n.tick >= 48 * G.TPS)));

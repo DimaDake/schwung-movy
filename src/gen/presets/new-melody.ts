@@ -6,8 +6,9 @@
 import type { GenCtx } from '../analysis/context.js';
 import { strength } from '../analysis/events.js';
 import { ACCENT } from '../analysis/band.js';
-import { amount, choice, chordUnder, legato, place, register, runPlan, SEED, velAt } from '../create/common.js';
+import { amount, choice, chordUnder, place, register, runPlan, SEED, velAt } from '../create/common.js';
 import type { Preset } from '../preset.js';
+import { withFeel } from '../create/feel.js';
 import { choose, mix, rng, type Rng } from '../rng.js';
 import { nearestPitch, scaleOf, stepScale } from '../theory/pc.js';
 import { type Note, TPS } from '../types.js';
@@ -30,7 +31,7 @@ function rhythm(steps: number, density: number, r: Rng): number[] {
     return out;
 }
 
-export const MELODY: Preset = {
+export const MELODY: Preset = withFeel({
     id: 'n-melody', name: 'MELODY', task: 'create', drum: false, cls: 'exp',
     knobs: [choice('CONTOUR', ['ARCH', 'RISE', 'FALL', 'WAVE', 'ZIGZAG']), amount('DENSITY', 10, 3, 7),
         choice('RANGE', ['NARROW', 'MID', 'WIDE'], [0, 1, 1, 2]), SEED],
@@ -54,15 +55,15 @@ export const MELODY: Preset = {
                 out.push({ tick: t, pitch: p, gate: TPS, vel: velAt(t, 96, r) });
             });
         }
-        return legato(out, ctx.end, 6 * TPS, 3).map((n) => (r() < 0.15 ? { ...n, gate: Math.max(TPS / 2, n.gate >> 1) } : n));
+        return out;
     },
-};
+}, [3, 9]);
 
 const CELLS = [4, 8, 6, 16];
 const OFFSETS = [0, 0, 2, 4, 7, -1, 1, 3];
 const CENTRE = [48, 60, 72];
 
-export const RIFF: Preset = {
+export const RIFF: Preset = withFeel({
     id: 'n-riff', name: 'RIFF', task: 'create', drum: false, cls: 'rhythm',
     knobs: [choice('CELL', ['1 BEAT', '2 BEATS', '3/8', '1 BAR'], [1, 1, 2, 3]), amount('NOTES', 6, 2, 4), register([0, 1, 1, 2]), SEED],
     generate: (ctx, v, seed) => {
@@ -82,16 +83,16 @@ export const RIFF: Preset = {
                 out.push({ tick: t, pitch: strength(t) >= 0.7 ? nearestPitch(p, c.pcs) : p, gate: TPS, vel: velAt(t, 100, r) });
             });
         }
-        return legato(out, ctx.end, 2 * TPS, 6);
+        return out;
     },
-};
+}, [2, 7]);
 
 const RATE = [4, 2, 3, 1];
 const MOVES = [[1, -1], [1, -1, 2, -2, 3], [2, -2, 4, -3, 5]];
 
-export const COUNTER: Preset = {
+export const COUNTER: Preset = withFeel({
     id: 'n-counter', name: 'COUNTER', task: 'create', drum: false, cls: 'exp',
-    knobs: [choice('RATE', ['QUARTERS', '8THS', 'DOTTED', '16THS'], [0, 1, 1, 2]), choice('MOTION', ['STEPS', 'MIXED', 'LEAPS'], [0, 1, 1, 2]),
+    knobs: [choice('RATE', ['QUARTERS', '8THS', 'DOTTED', '16THS'], [1, 0, 1, 2]), choice('MOTION', ['STEPS', 'MIXED', 'LEAPS'], [0, 1, 1, 2]),
         register([1, 1, 2]), SEED],
     generate: (ctx, v, seed) => {
         const r = rng(mix(seed, v[3]));
@@ -110,6 +111,6 @@ export const COUNTER: Preset = {
             if (strength(t) >= 0.7) p = nearestPitch(p, chordUnder(ctx, runPlan(ctx), t).pcs);
             out.push({ tick: t, pitch: p, gate: TPS, vel: velAt(t, 88, r) });
         }
-        return legato(out, ctx.end, 4 * TPS, 4);
+        return out;
     },
-};
+}, [4, 9]);

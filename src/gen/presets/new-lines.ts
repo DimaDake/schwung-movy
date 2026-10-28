@@ -6,6 +6,7 @@
 import { strength } from '../analysis/events.js';
 import { amount, choice, chordUnder, HARMONY, place, velAt, withBand } from '../create/common.js';
 import type { Preset } from '../preset.js';
+import { withFeel } from '../create/feel.js';
 import { rng } from '../rng.js';
 import { nearestPitch, pc } from '../theory/pc.js';
 import { type Note, TPS } from '../types.js';
@@ -15,7 +16,7 @@ const KICK = 'WITH KICK';
 const BASS_NOTES = ['AS WRITTEN', 'ROOTS', 'CHORD TONES', 'OCTAVES'] as const;
 const BASE = [36, 43];
 
-export const BASS: Preset = {
+export const BASS: Preset = withFeel({
     id: 'n-bass', name: 'BASS', task: 'create', drum: false, cls: 'rhythm',
     knobs: [choice('PATTERN', [...LIB.map((x) => x[0]), KICK], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
         choice('NOTES', BASS_NOTES, [0, 0, 1, 2, 3]), choice('OCTAVE', ['LOW', 'MID'], [0, 1, 1]), HARMONY],
@@ -43,7 +44,7 @@ export const BASS: Preset = {
         }
         return out;
     },
-};
+}, [2, 8]);
 
 const STYLES = ['UP', 'DOWN', 'UP-DOWN', 'ORDER', 'PINKY', 'BROKEN'] as const;
 const RATES = [48, 24, 32, 16];
@@ -64,7 +65,7 @@ function order(style: number, n: number, i: number, shuffle: number[]): number {
     return [0, 2, 1, 3][i % 4] % n;
 }
 
-export const ARP: Preset = {
+export const ARP: Preset = withFeel({
     id: 'n-arp', name: 'ARP', task: 'create', drum: false, cls: 'rhythm',
     knobs: [choice('STYLE', STYLES, [0, 1, 2, 3, 4, 5]), choice('RATE', ['1/8', '1/16', '1/8T', '1/16T'], [0, 1, 1, 1, 2]),
         amount('OCTAVES', 3, 1, 2), HARMONY],
@@ -81,4 +82,4 @@ export const ARP: Preset = {
         }
         return out;
     },
-};
+}, [1, 6]);

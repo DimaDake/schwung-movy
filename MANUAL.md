@@ -1945,7 +1945,7 @@ Turning a knob back to where it was gives you the same notes again.
 | --- | --- | --- |
 | **CHORDS** | Comped chords on a rhythm, voice-led | PATTERN, VOICES, REGISTER, HARMONY |
 | **PAD** | Held chords, a new one where the harmony moves or each bar | VOICES, SPREAD, REGISTER, HARMONY |
-| **STABS** | Short chords off the beat | PATTERN, LENGTH, REGISTER, HARMONY |
+| **STABS** | Short chords off the beat | PATTERN, VOICES, REGISTER, HARMONY |
 | **BASS** | A bass figure (offbeat, rolling, octaves, 3-3-2…) or WITH KICK | PATTERN, NOTES, OCTAVE, HARMONY |
 | **ARP** | Each chord broken up, down, in order… | STYLE, RATE, OCTAVES, HARMONY |
 | **MELODY** | A phrase on a contour that answers itself and lands home | CONTOUR, DENSITY, RANGE, SEED |
@@ -1955,6 +1955,20 @@ Turning a knob back to where it was gives you the same notes again.
 HARMONY picks the progression in a free scene; every option of one run starts
 on the same one, so the parts go together. In a scene whose chords are already
 set, HARMONY has nothing to change and its knob stays dark.
+
+Knobs 5 to 8 are the same on every New Clip option, and every run starts them
+somewhere new, so the rhythm and the note lengths change from run to run too:
+
+| Knob | What it does |
+| --- | --- |
+| **GATE** | How much of the space to the next note each note holds: short and clipped at 0, held right up to the next one at `HELD`. Chords, pads included, need not ring for their whole length. |
+| **VARY** | Bar to bar, a note may drop out, move a 16th, repeat half way to the next one, or ring longer or shorter. 0 plays the same bar every time. Notes that land on the band's accents stay put. |
+| **SWING** | Swing on the off-16ths (on the off-8ths for a part that plays no 16ths). It opens at the scene's own swing. PAD has **STRUM** here instead, which spreads a chord's notes from low to high. |
+| **DYNAMICS** | How much the velocities follow the beat: louder on the downbeats, softer off them. |
+
+Drum options have **VARY, SWING, DYNAMICS** and **HUMAN** (a few ticks of timing
+and some velocity, the way a player is never exact) in knobs 5 to 8. VARY never
+drops the kick on the one.
 
 **Drum tracks get six options.** The first two are **per pad**: PAD EUCLID and
 PAD PATTERN write only the selected pad. Press another pad and it gets its own

@@ -6,6 +6,7 @@
 import type { GenCtx } from '../analysis/context.js';
 import { choice, chordUnder, everyBar, HARMONY, place, register, velAt, withBand } from '../create/common.js';
 import type { Preset } from '../preset.js';
+import { withFeel } from '../create/feel.js';
 import { rng } from '../rng.js';
 import { COMPS } from '../shape/rhythm.js';
 import { sameChord } from '../theory/pc.js';
@@ -34,9 +35,9 @@ const BAND = 'WITH BAND';
 const comp = (ctx: GenCtx, v: number, figs: [string, number[]][]) =>
     (v >= figs.length ? withBand(ctx, 5, figs[0][1]) : figs[v][1]);
 
-export const CHORDS: Preset = {
+export const CHORDS: Preset = withFeel({
     id: 'n-chords', name: 'CHORDS', task: 'create', drum: false, cls: 'close',
-    knobs: [choice('PATTERN', [...COMPS.map((x) => x[0]), BAND], [0, 1, 3, 4, 5, 7, 8]), choice('VOICES', ['3', '4', '5'], [0, 1, 1]),
+    knobs: [choice('PATTERN', [...COMPS.map((x) => x[0]), BAND], [1, 0, 3, 4, 5, 7, 8]), choice('VOICES', ['3', '4', '5'], [0, 1, 1]),
         register([0, 1, 1, 2]), HARMONY],
     generate: (ctx, v, seed) => {
         const r = rng(seed);
@@ -51,9 +52,9 @@ export const CHORDS: Preset = {
         });
         return out;
     },
-};
+}, [3, 8]);
 
-export const PAD: Preset = {
+export const PAD: Preset = withFeel({
     id: 'n-pad', name: 'PAD', task: 'create', drum: false, cls: 'close',
     knobs: [choice('VOICES', ['3', '4', '5'], [1, 1, 2]), choice('SPREAD', ['CLOSE', 'OPEN', 'WIDE'], [0, 1, 1, 2]),
         register([0, 1, 1]), HARMONY],
@@ -74,25 +75,24 @@ export const PAD: Preset = {
         }
         return out;
     },
-};
+}, [5, 10], true);
 
 const STAB_FIGS: [string, number[]][] = [['OFFBEAT', [2, 6, 10, 14]], ['HOUSE', [3, 6, 11, 14]], ['DOTTED', [0, 3, 6, 9, 12]],
     ['3-3-2', [0, 3, 6]], ['PUSH', [0, 7, 10]], ['SYNC', [2, 5, 8, 11, 14]], ['SKANK', [4, 12]]];
-const STAB_LEN = [TPS / 2, TPS, 2 * TPS];
 
-export const STABS: Preset = {
+export const STABS: Preset = withFeel({
     id: 'n-stabs', name: 'STABS', task: 'create', drum: false, cls: 'rhythm',
-    knobs: [choice('PATTERN', [...STAB_FIGS.map((x) => x[0]), BAND], [0, 1, 2, 3, 4, 5, 7]), choice('LENGTH', ['STAB', 'SHORT', 'MED'], [0, 1, 1]),
+    knobs: [choice('PATTERN', [...STAB_FIGS.map((x) => x[0]), BAND], [0, 1, 2, 3, 4, 5, 7]), choice('VOICES', ['2', '3', '4'], [1, 1, 2]),
         register([1, 1, 2]), HARMONY],
     generate: (ctx, v, seed) => {
         const r = rng(seed);
         const steps = comp(ctx, v[0], STAB_FIGS);
-        const voice = voicer(3, CENTRE[v[2]]);
+        const voice = voicer(2 + v[1], CENTRE[v[2]]);
         const out: Note[] = [];
         everyBar(ctx, steps, (s) => {
             const t = place(ctx, s);
-            strike(out, t, voice(chordUnder(ctx, v[3], t)), STAB_LEN[v[1]], velAt(t, 100, r));
+            strike(out, t, voice(chordUnder(ctx, v[3], t)), TPS, velAt(t, 100, r));
         });
         return out;
     },
-};
+}, [0, 3]);

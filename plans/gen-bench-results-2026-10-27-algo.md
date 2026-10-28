@@ -1,6 +1,6 @@
 # Generator bench: algo (algorithmic engine)
 
-42 cases, three options per request (best of three, as the model runs), 529 ms for all runs. Reference: `default-x3` gemini-3.1-flash-lite (cached, not re-run). Dev / holdout: alternate cases per source, fixed.
+42 cases, three options per request (best of three, as the model runs), 557 ms for all runs. Reference: `default-x3` gemini-3.1-flash-lite (cached, not re-run). Dev / holdout: alternate cases per source, fixed.
 
 | run | alignment | quantize recovery | variation | gate | played-drum gate |
 | --- | --- | --- | --- | --- | --- |
@@ -88,7 +88,7 @@ Each case's target track emptied, a part written into its slot from nothing. Mea
 
 | level | requests | options | meaningful | coherence | with band | re-run | rhythm var | notes var |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| BALANCED | 42 | 7.43 | 1.00 | 0.99 | 0.70 | 0.81 | 0.72 | 0.94 |
+| BALANCED | 42 | 7.43 | 1.00 | 0.99 | 0.65 | 0.79 | 0.74 | 0.94 |
 
 ## Case by case (BALANCED vs the AI reference mean)
 

@@ -10,7 +10,7 @@ import { custom, type KnobDef } from '../knobs.js';
 import { planAt } from '../plan.js';
 import { pick, type Rng } from '../rng.js';
 import { diatonic } from '../theory/roman.js';
-import { type Chord, type Note, TPS } from '../types.js';
+import { type Chord, TPS } from '../types.js';
 
 /** A choice knob whose take is drawn from `pool` (positions), or from all of it. */
 export function choice(name: string, labels: readonly string[], pool?: number[]): KnobDef {
@@ -45,9 +45,10 @@ export function chordUnder(ctx: GenCtx, h: number, tick: number): Chord {
     return chordAt(planAt(ctx, h).chords, tick, ctx.k) ?? diatonic(ctx.key, 0);
 }
 
-/** A grid step's tick, late by the scene's swing on the off-16ths. */
-export function place(ctx: GenCtx, step: number): number {
-    return step * TPS + (step % 2 ? Math.round(ctx.groove.swing * TPS) : 0);
+/** A grid step's tick. Generators write on the grid; SWING is laid over
+ *  every part after (feel.ts). */
+export function place(_ctx: GenCtx, step: number): number {
+    return step * TPS;
 }
 
 /** The band's accented steps within a bar (0..15), strongest first. */
@@ -77,14 +78,4 @@ export function everyBar(ctx: GenCtx, steps: number[], f: (step: number, bar: nu
     for (let bar = 0; bar * 16 < ctx.len; bar++) {
         for (const s of steps) if (bar * 16 + s < ctx.len) f(bar * 16 + s, bar);
     }
-}
-
-/** Gates reach the next onset (less a breath), never past `max`. */
-export function legato(notes: Note[], end: number, max: number, breath = 2): Note[] {
-    const onsets = [...new Set(notes.map((n) => n.tick))].sort((a, b) => a - b);
-    return notes.map((n) => {
-        const i = onsets.indexOf(n.tick);
-        const next = i + 1 < onsets.length ? onsets[i + 1] : end + onsets[0];
-        return { ...n, gate: Math.max(TPS / 2, Math.min(max, next - n.tick - breath)) };
-    });
 }

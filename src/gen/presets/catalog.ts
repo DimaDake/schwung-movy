@@ -21,6 +21,7 @@ import { ANSWER_Q, EMBELLISH, FULL, GROOVE, SHAPED, TIDY, TIGHT } from './quant-
 import { FILL_D, FULL_D, GHOSTS_D, GROOVE_D, TIDY_D, TIGHT_D } from './quant-drums.js';
 import { CADENCE, PUSH, RUN, TURNAROUND } from './dbl-lines.js';
 import { ECHO, STOP, STYLE_X, TURN_X } from './dbl-melodic.js';
+import { EVOLVE } from './dbl-evolve.js';
 import { CHORDS, PAD, STABS } from './new-chords.js';
 import { ARP as ARP_N, BASS } from './new-lines.js';
 import { COUNTER, MELODY, RIFF } from './new-melody.js';
@@ -35,7 +36,7 @@ const LISTED: Preset[] = [
     KICK, HATS, GHOSTS, FILL, SHIFT, TURN, FEEL, GRIDS, EUCLID_D, DEVELOP_D, STYLE_D, FORM_D,
     TIGHT, TIDY, GROOVE, SHAPED, EMBELLISH, ANSWER_Q, FULL,
     TIGHT_D, TIDY_D, GROOVE_D, GHOSTS_D, FILL_D, FULL_D,
-    TURNAROUND, CADENCE, PUSH, RUN, ECHO, STYLE_X, STOP, TURN_X,
+    TURNAROUND, CADENCE, PUSH, RUN, ECHO, STYLE_X, STOP, TURN_X, EVOLVE,
     FILL_X, PICKUP_D, ROLL, REPEAT, BREAK_D, STYLE_XD,
     /* New Clip: shown in this order, one option each. */
     CHORDS, PAD, STABS, BASS, ARP_N, MELODY, RIFF, COUNTER,

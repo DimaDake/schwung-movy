@@ -71,6 +71,17 @@ variant takes per preset (`variant.ts`: ENDING ±1, SEAMS flipped, each choice k
 of six (`select.ts`, the Variation mix per level); level shifts (SAFE: ENDING −1; WILD: ENDING +1, SEAMS BOTH); the
 learned style and the Tonnetz moves; the perf budget (`perf.mjs` runs a doubled 512-note clip).
 
+## EVOLVE (`presets/dbl-evolve.ts`)
+
+User, 2026-10-28: "when I double something close to a chord progression or anything backed by chords I want to see an
+option that evolves that to something new. If the first bar has 2 chords and i double it the second bar should have 2
+different chords… treat it as a general improvement". The one double that rewrites a whole half: the second half is
+the part re-realised (`realise`, the Variation realisers) over the first half's chords developed by `harmonicMoves`
+(SAME left out; in a partial scene only moves that tolerate the pins), MOVE picking which, with TENSION, RHYTHM and
+RANGE. Served where the scene is not locked and the clip has chords; fit 0.8 on a chord part (0.62 on a line), so it
+is among the six for the fixtures' pad, stabs and lead in a free scene. Bench BALANCED: ending novelty 0.70 → 0.72,
+notes variability 0.37 → 0.39, coherence 0.92 unchanged.
+
 ## Bench (`scripts/gen-bench/double.mjs`)
 
 Every cached case's own clip doubled (no model reference: no model ever did this task). BALANCED: 42 requests, six

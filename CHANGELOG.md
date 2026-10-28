@@ -15,6 +15,11 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
+- **Smart Double: EVOLVE.** The first half stays as played and the second
+  answers it over new chords: the first half's progression developed (a
+  sequence, a Riemann turn, a substitute, a borrowed chord; MOVE picks
+  which), with TENSION, RHYTHM and RANGE. Offered for chord-backed parts
+  whenever the scene's chords are the clip's own to change.
 - **SEED on more generators.** CONNECT, RECOMBINE, THIN, ORNAMENT, PEDAL,
   OCTAVE, WALK, RETRO and drum FILL (Variation), EMBELLISH (Smart Quantize)
   and FILL (Smart Double) roll dice and had knobs to spare: knob 5 is now

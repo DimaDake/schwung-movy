@@ -47,7 +47,8 @@ for (const scene of ['locked', 'partial', 'free']) {
             if (!out) continue;
             served++;
             const e = G.knobIndex(p, 'ENDING'), s = G.knobIndex(p, 'SEAMS');
-            const first = Math.min(...G.seams(c, e < 0 ? G.ENDING.steps(c) - 1 : v[e], s < 0 ? 0 : v[s]).map((x) => x.from));
+            /* EVOLVE answers with the whole second half; the rest with their seams. */
+            const first = p.id === 'x-evolve' ? c.end / 2 : Math.min(...G.seams(c, e < 0 ? G.ENDING.steps(c) - 1 : v[e], s < 0 ? 0 : v[s]).map((x) => x.from));
             const before = (ns) => sig(ns.filter((n) => n.tick < first));
             if (before(out) !== before(c.src)) touched.push(`${p.id}@${scene}/${role}`);
             if (sig(out) === sig(c.src)) copies.push(`${p.id}@${scene}/${role}`);
@@ -144,4 +145,24 @@ ok('drum_pickup_hits_with_the_bass_push', dp.some((n) => n.tick === 63 * G.TPS &
 const runAt = (ctx, st) => take(ctx, 'x-run', { ENDING: 1, RATE: 1 }).notes.find((n) => n.tick === st * G.TPS)?.vel;
 const leans = G.prepare(band(fixtureInput('lead', { task: 'double', scene: 'free' }), [62]));
 ok('run_leans_on_the_bands_hit', runAt(leans, 62) > runAt(alone, 62));
+
+/* EVOLVE: the first half as played, the second over its chords developed —
+ * where the clip's chords are the scene's to change. */
+const ev = by('x-evolve');
+ok('evolve_not_where_another_track_holds_the_chords', !G.serves(ev, G.prepare(fixtureInput('pad', { task: 'double', scene: 'locked' }))));
+const padF = G.prepare(fixtureInput('pad', { task: 'double', scene: 'free' }));
+ok('evolve_serves_a_free_chord_part', G.serves(ev, padF));
+const evo = take(padF, 'x-evolve').notes;
+const half2 = padF.end / 2;
+eq('evolve_keeps_the_first_half', sig(evo.filter((n) => n.tick < half2)), sig(padF.src.filter((n) => n.tick < half2)));
+/* Every chord of the second half differs from the one it answers. */
+const pcsAt = (ns, from) => [...new Set(ns.filter((n) => n.tick >= from && n.tick < from + 8 * G.TPS).map((n) => n.pitch % 12))].sort().join();
+const renewed = [0, 1, 2, 3].filter((i) => pcsAt(evo, half2 + i * 8 * G.TPS) !== pcsAt(evo, i * 8 * G.TPS));
+eq('evolve_gives_every_chord_a_new_one', renewed.length, 4);
+const moves = G.evolutions(padF).map((m) => m.name);
+ok('evolve_offers_several_developments', moves.length >= 3 && !moves.includes('SAME'));
+const other = take(padF, 'x-evolve', { MOVE: 1 }).notes;
+ok('evolve_move_changes_the_development', sig(other) !== sig(evo));
+const offered = ['pad', 'stabs', 'lead'].filter((role) => G.generateAll(fixtureInput(role, { task: 'double', scene: 'free' })).picks.some((p) => p.preset.id === 'x-evolve'));
+eq('evolve_is_among_the_options_for_chord_backed_parts', offered.join(), 'pad,stabs,lead');
 }

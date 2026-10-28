@@ -8,6 +8,7 @@ import { ACCENT } from '../analysis/band.js';
 import { strength } from '../analysis/events.js';
 import { custom, type KnobDef } from '../knobs.js';
 import { planAt } from '../plan.js';
+import { uniqueChords } from './plans.js';
 import { pick, type Rng } from '../rng.js';
 import { diatonic } from '../theory/roman.js';
 import { type Chord, TPS } from '../types.js';
@@ -28,10 +29,15 @@ export const SEED: KnobDef = { name: 'SEED', steps: () => 100, def: () => 0, lab
     roll: (_c, r) => Math.floor(r() * 100) };
 
 /** The run's progression: every option of one run shares it (a free scene),
- *  so the eight parts go together; HARMONY moves one option to another. */
+ *  so the eight parts go together; HARMONY moves one option to another. A
+ *  clip with room for more than four chords opens on one that uses it. */
 export const runPlan = (ctx: GenCtx): number => {
     const n = ctx.plans.length;
-    return n <= 1 ? 0 : ctx.seed % Math.max(1, n - 1);   // the last (one chord) only by hand
+    if (n <= 1) return 0;
+    const ok = ctx.plans.map((p, i) => i).filter((i) => !ctx.plans[i].label.startsWith('TONIC'));
+    const rich = ok.filter((i) => uniqueChords(ctx.plans[i]) > 4);
+    const pool = rich.length ? rich : ok;
+    return pool[ctx.seed % pool.length];
 };
 
 export const HARMONY: KnobDef = { name: 'HARMONY', steps: (c) => Math.max(1, c.plans.length), def: runPlan,

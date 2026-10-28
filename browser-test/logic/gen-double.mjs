@@ -165,4 +165,16 @@ const other = take(padF, 'x-evolve', { MOVE: 1 }).notes;
 ok('evolve_move_changes_the_development', sig(other) !== sig(evo));
 const offered = ['pad', 'stabs', 'lead'].filter((role) => G.generateAll(fixtureInput(role, { task: 'double', scene: 'free' })).picks.some((p) => p.preset.id === 'x-evolve'));
 eq('evolve_is_among_the_options_for_chord_backed_parts', offered.join(), 'pad,stabs,lead');
+
+/* A long double: an 8-bar clip that loops its 2-bar progression. PHRASES on
+ * EACH answers every repeat with a different development. */
+const longPad = fixtureInput('pad', { task: 'double', scene: 'free' });
+const pc0 = longPad.tracks[0].clips[0];
+longPad.tracks[0].clips[0] = { ...pc0, len: 128, notes: [0, 1, 2, 3].flatMap((k) => pc0.notes.map((n) => ({ ...n, tick: n.tick + k * 32 * G.TPS }))) };
+const lp = G.prepare({ ...longPad, len: 256 });
+const barsOf = (ns) => new Set(Array.from({ length: 16 }, (_, b) => [...new Set(ns.filter((n) => n.tick >= b * 8 * G.TPS + 128 * G.TPS && n.tick < (b + 1) * 8 * G.TPS + 128 * G.TPS)
+    .map((n) => n.pitch % 12))].sort().join())).size;
+eq('phrases_opens_on_each_where_the_half_repeats', take(lp, 'x-evolve').v[G.knobIndex(ev, 'PHRASES')], 1);
+const each = barsOf(take(lp, 'x-evolve').notes), one = barsOf(take(lp, 'x-evolve', { PHRASES: 0 }).notes);
+ok('phrases_each_moves_through_more_chords', each > one && each > 4);
 }

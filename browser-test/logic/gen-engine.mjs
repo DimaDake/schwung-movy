@@ -121,10 +121,9 @@ ok('knob_property_every_preset_served_by_a_fixture', G.PRESETS.every((p) => [...
 ok('knob_property_presets_have_four_five_or_eight_knobs', G.PRESETS.every((p) => [4, 5, 8].includes(p.knobs.length)));
 /* SEED where a preset rolls dice and had knobs to spare: #1 is the take it
  * always gave, another position another take. */
-const seeded = G.PRESETS.filter((p) => p.knobs.length === 5);
+const seeded = G.PRESETS.filter((p) => p.knobs.length === 5 && p.knobs[4].name === 'SEED');
 eq('seed_added_where_knobs_were_free', seeded.map((p) => p.id).sort().join(' '),
     'd-fill q-embellish v-connect v-octave v-ornament v-pedal v-recombine v-retro v-thin v-walk xd-fill');
-ok('seed_is_the_fifth_knob', seeded.every((p) => p.knobs[4].name === 'SEED'));
 const sc = G.prepare(fixtureInput('lead', { scene: 'free' }));
 const walk = G.PRESETS.find((p) => p.id === 'v-walk');
 const wv = G.defaults(walk, sc);

@@ -127,6 +127,18 @@ ok('pad_defaults_are_not_always_held', padGates.size >= 3);
 ok('gate_defaults_vary_across_runs', new Set(shares).size >= 30);
 G.forgetOptions();
 
+/* A long clip may move through more than four chords: each progression
+ * also DEVELOPED, eight-chord ones added, and the run opens on one. */
+const chordsIn = (ctx, notes) => new Set(Array.from({ length: ctx.len / 16 }, (_, b) =>
+    [...new Set(notes.filter((n) => n.tick >= b * G.BAR && n.tick < (b + 1) * G.BAR).map((n) => n.pitch % 12))].sort().join())).size;
+eq('short_clips_keep_the_four_chord_loops', G.prepare(createInput(false, 'free', 1)).plans.length, 8);
+const longPlans = G.prepare(createInput(false, 'free', 1, { len: 128 })).plans.map((p) => p.label);
+ok('long_clips_add_developed_and_eight_chord_progressions', longPlans.some((l) => l.endsWith('+DEV')) && longPlans.includes('CIRCLE'));
+const rich = [0, 1, 2, 3, 4, 5].map((n) => G.generateAll(createInput(false, 'free', 900 + n, { len: 256 })));
+ok('a_long_clip_opens_on_more_than_four_chords', rich.every((r) => G.uniqueChords(r.ctx.plans[G.runPlan(r.ctx)]) > 4));
+ok('its_chords_part_plays_more_than_four', rich.every((r) => chordsIn(r.ctx, r.picks.find((p) => p.preset.id === 'n-pad').notes) > 4));
+G.forgetOptions();
+
 /* Length: the options follow it, every bar. */
 const long = G.generateAll(createInput(false, 'free', 5, { len: 64 }));
 ok('new_clip_fills_a_four_bar_clip', long.picks.every((p) => p.notes.some((n) => n.tick >= 48 * G.TPS)));

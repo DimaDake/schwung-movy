@@ -30,6 +30,13 @@ what the others pin, from each progression; free = a library of progressions in 
 two-chord vamp, modal…), one chord per bar on clips of four bars or more, per half-bar below. The groove's swing and
 the band's hits (`band.ts`) come from the other tracks, so new parts land with them.
 
+## Long clips (`theory/develop.ts`)
+
+User, 2026-10-28: "on longer clips … make chords progressions more than 4 unique chords". With more than four chord
+slots (8 bars and up), the plans add each progression `+DEV` (`journey`: the four chords, then each repeat a
+different `harmonicMoves` development) and three eight-chord progressions per mode; `runPlan` opens on one with more
+than four distinct chords when there is one. Short clips keep exactly the eight loops they had.
+
 ## Unique and meaningful (`create/takes.ts`, `create/checks.ts`, `create/history.ts`)
 
 - `ctx.seed` mixes a per-run nonce (the job's start time), so every run differs; a knob turn regenerates with the same

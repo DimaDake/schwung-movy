@@ -19,7 +19,13 @@ far. Earlier work is summarised in the timeline below for context.
   answers it over new chords: the first half's progression developed (a
   sequence, a Riemann turn, a substitute, a borrowed chord; MOVE picks
   which), with TENSION, RHYTHM and RANGE. Offered for chord-backed parts
-  whenever the scene's chords are the clip's own to change.
+  whenever the scene's chords are the clip's own to change. PHRASES on EACH
+  answers every phrase with its own development.
+- **Longer progressions on longer clips.** From eight bars up, New Clip's
+  HARMONY adds developed progressions (+DEV: each repeat answered by a
+  different development) and eight-chord ones (CIRCLE, CANON, ROAD; LAMENT,
+  SAGA), and a long clip opens on one of them, so it can move through more
+  than four chords. Smart Double's EVOLVE does the same on a long clip.
 - **SEED on more generators.** CONNECT, RECOMBINE, THIN, ORNAMENT, PEDAL,
   OCTAVE, WALK, RETRO and drum FILL (Variation), EMBELLISH (Smart Quantize)
   and FILL (Smart Double) roll dice and had knobs to spare: knob 5 is now

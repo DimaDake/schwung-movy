@@ -1894,7 +1894,7 @@ clip at its old length.
 | --- | --- | --- |
 | **Close** | TURNAROUND (the ending's notes step into the clip's first note: from BELOW, ABOVE, an ENCLOSURE or CHROMATIC), CADENCE (the ending lands on the ROOT, FIFTH, TONIC or DOMINANT and holds it) | FILL (snare, toms or both, rising), PICKUP (your pattern kept, one to three hits leading into the downbeat) |
 | **Rhythm** | PUSH (the ending a 16th to a beat early, the first note anticipated), RUN (a run UP, DOWN or ARCHed into the first note, in 8ths, 16ths or triplets, on the scale, the chord or chromatic), ECHO (the figure before the ending, or the clip's opening, again moved through the scale) | ROLL (a snare roll in 8ths, 16ths, 32nds or accelerating, with a crescendo), REPEAT (the slice before the ending repeated through it, fading: a beat repeat) |
-| **Experimental** | STYLE (the ending written new in the part's own language), STOP (the part drops out, holds or stabs, then picks up into the top), TURN (the ending over a chord that leads back: V7, IV, the tritone substitute, or a Tonnetz R, L or P; only when no other track sets the scene's chords), EVOLVE (the whole second half answers the first over new chords: the first half's progression moved by a sequence, a Riemann turn, a substitute or a borrowed chord, picked with MOVE, so two chords in bar 1 become two new ones in bar 2; only when no other track sets the scene's chords, and in a scene with a bass or lead alone only the moves that fit it) | BREAK (the ending drops to the kick, the snare, the hats or nothing, with one hit back in), STYLE (the ending walked new from your pattern) |
+| **Experimental** | STYLE (the ending written new in the part's own language), STOP (the part drops out, holds or stabs, then picks up into the top), TURN (the ending over a chord that leads back: V7, IV, the tritone substitute, or a Tonnetz R, L or P; only when no other track sets the scene's chords), EVOLVE (the whole second half answers the first over new chords: the first half's progression moved by a sequence, a Riemann turn, a substitute or a borrowed chord, picked with MOVE, so two chords in bar 1 become two new ones in bar 2; PHRASES on EACH gives every phrase of the answer its own development, and opens there when the first half already repeats itself, so a long clip moves through more than four chords; only when no other track sets the scene's chords, and in a scene with a bass or lead alone only the moves that fit it) | BREAK (the ending drops to the kick, the snare, the hats or nothing, with one hit back in), STYLE (the ending walked new from your pattern) |
 
 Every Smart Double generator has an **ENDING** knob (half a beat to two bars,
 never more than half the clip; it opens at about a quarter of it) and most have
@@ -1953,7 +1953,13 @@ Turning a knob back to where it was gives you the same notes again.
 | **COUNTER** | A line that moves where the band leaves room | RATE, MOTION, REGISTER, SEED |
 
 HARMONY picks the progression in a free scene; every option of one run starts
-on the same one, so the parts go together. In a scene whose chords are already
+on the same one, so the parts go together. A progression changes chord once a
+bar on clips of four bars or more. From eight bars up there is room for more
+than four chords, so HARMONY also offers each progression **+DEV**, where every
+repeat of its four chords answers with a different development (a sequence, a
+Riemann turn, a substitute, a borrowed chord), and eight-chord progressions
+(CIRCLE, CANON, ROAD in major; CIRCLE, LAMENT, SAGA in minor). A long clip
+opens on one of these. In a scene whose chords are already
 set, HARMONY has nothing to change and its knob stays dark.
 
 Knobs 5 to 8 are the same on every New Clip option, and every run starts them

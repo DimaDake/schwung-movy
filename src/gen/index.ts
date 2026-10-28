@@ -38,3 +38,4 @@ export { padOf } from './presets/new-drums-pad.js';
 export { bandSteps } from './create/common.js';
 export { chordUnder, runPlan } from './create/common.js';
 export { evolutions } from './presets/dbl-evolve.js';
+export { uniqueChords } from './create/plans.js';

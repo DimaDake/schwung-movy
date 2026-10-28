@@ -78,7 +78,7 @@ option that evolves that to something new. If the first bar has 2 chords and i d
 different chords… treat it as a general improvement". The one double that rewrites a whole half: the second half is
 the part re-realised (`realise`, the Variation realisers) over the first half's chords developed by `harmonicMoves`
 (SAME left out; in a partial scene only moves that tolerate the pins), MOVE picking which, with TENSION, RHYTHM and
-RANGE. Served where the scene is not locked and the clip has chords; fit 0.8 on a chord part (0.62 on a line), so it
+RANGE. PHRASES (EACH: every phrase of the answer its own development, the phrase being the first half's period, or its half when it does not repeat) opens on EACH where the first half repeats, so an 8-bar loop of a 2-bar progression doubles into more than four chords. Not for drones (DRONE MOVE and PEDAL do that). Served where the scene is not locked and the clip has chords; fit 0.8 on a chord part (0.62 on a line), so it
 is among the six for the fixtures' pad, stabs and lead in a free scene. Bench BALANCED: ending novelty 0.70 → 0.72,
 notes variability 0.37 → 0.39, coherence 0.92 unchanged.
 

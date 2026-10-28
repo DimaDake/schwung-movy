@@ -14,8 +14,6 @@ export * from './models.js';
 export * from './http-job.js';
 export * from './target.js';
 export * from './set-input.js';
-export * from './thinking-leds.js';
-export * from './running-render.js';
 export * from './job.js';
 export * from './preview.js';
 export { knobLevels, knobsOf } from './preview-knobs.js';

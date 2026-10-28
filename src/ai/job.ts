@@ -1,13 +1,14 @@
-/* The AI job (design §5): idle → running → preview. While running the job
- * owns the screen and the LEDs and only Back does anything; tick.ts hands it
- * the frame through aiTick. Reads are spread one track per tick, the request
- * is polled, and nothing in the clip changes until the preview opens. */
+/* The AI job (design §5): idle → running → preview. While running only Back
+ * (and the power and leave dialogs) does anything; the screen and the LEDs
+ * stay the app's, the header naming the job. Reads are spread one track per
+ * tick, the request is polled, and nothing in the clip changes until the
+ * preview opens. */
 
 import { appState } from '../app/state.js';
 import { mlog } from '../log.js';
 import { MOVY_MODULE_DIR } from '../seq/constants.js';
-import { seqLedsInvalidate } from '../seq/led-cache.js';
-import { seqToast } from '../seq/render.js';
+import { seqHeaderAnnounce, seqToast } from '../seq/render.js';
+import { leaveModalActive } from '../app/leave-modal.js';
 import { currentSetUuid } from '../seq/set-session.js';
 import { readAiConfig } from './config.js';
 import { cancelHttp, fakeResponse, pollHttp, startHttp, type HttpReply } from './http-job.js';
@@ -18,13 +19,11 @@ import type { AiTask } from './prompt.js';
 import { LEVEL_TEMPERATURE } from './ladders.js';
 import { genLevel } from '../seq/gen-level.js';
 import { buildRequest, classifyStatus } from './provider.js';
-import { drawAiRunning, resetAiRunningDraw } from './running-render.js';
 import { readTrack } from './set-input.js';
 import { commitPreview, openPreview, resetPreview } from './preview.js';
 import { algoTick, replyGen, startAlgo } from './job-algo.js';
 import { modelPrompt, replyOptions } from './job-model.js';
 import { genMode } from '../seq/gen-mode.js';
-import { THINK_FADE_SETTLE_MS, thinkingLedsStart, thinkingLedsTick } from './thinking-leds.js';
 
 export { MSG_ERROR, MSG_NO_KEY, MSG_NOTHING, MSG_NOTHING_DOUBLE } from './job-types.js';
 export type { AiPhase, AiPreviewInput } from './job-types.js';
@@ -33,28 +32,14 @@ const TRACKS = 16;
 let phase: AiPhase = 'idle';
 let run: Running | null = null;
 let preview: AiPreviewInput | null = null;
-/* -2 none due; -1 due, its clock starts on the next tick; else when. */
-let repaintAt = -2;
 
 export function aiPhase(): AiPhase { return phase; }
 export function aiPreviewInput(): AiPreviewInput | null { return preview; }
 
-/* Leaving the running phase hands the frame back: every painter repaints. */
-function release(): void {
-    seqLedsInvalidate();
-    appState.initLedsDone = false;
-    appState.initLedIndex = 0;
-    appState.dirty = true;
-    resetAiRunningDraw();
-    repaintAt = -1;
-}
-
-/* The sweep's last fades can finish over the repaint release() asked for and
- * leave pads in sweep colours; paint everything once more after them. */
-function repaintAfterFades(now: number): void {
-    if (repaintAt === -1) repaintAt = now + THINK_FADE_SETTLE_MS;
-    else if (now >= repaintAt) { repaintAt = -2; seqLedsInvalidate(); appState.dirty = true; }
-}
+/* The job never takes the screen or the LEDs (user, 2026-10-28: the
+ * loading animation stuck, and the power-off dialog could not show over it):
+ * the header says what runs, everything else draws as always. */
+function release(): void { appState.dirty = true; }
 
 function fail(msg: string, why: string): void {
     mlog('ai: ' + why);
@@ -78,7 +63,7 @@ export function startAiJob(task: AiTask, track: number, slot: number): void {
     run = { task, track, slot, level: genLevel(), cfg, uuid: currentSetUuid(), startMs: -1, next: 0, tracks: [], httpId: -1,
         sentMs: -1, ctx: null, models: modelChain(cfg), mi: 0, timeoutS: 0, prompt: null, algo, gen: null, nonce: Date.now() >>> 0 };
     phase = 'running';
-    thinkingLedsStart();
+    appState.dirty = true;
 }
 
 function send(r: Running, now: number): void {
@@ -130,13 +115,12 @@ function open(p: AiPreviewInput): void {
     openPreview(p);
 }
 
-/** true = the job owns this frame (tick.ts draws nothing else). */
-export function aiTick(now: number): boolean {
-    if (repaintAt > -2 && phase !== 'running') repaintAfterFades(now);
-    if (phase !== 'running' || !run) return false;
+/** Per tick while a request runs; the frame stays the app's. */
+export function aiTick(now: number): void {
+    if (phase !== 'running' || !run) return;
     const r = run;
     if (r.startMs < 0) r.startMs = now;
-    if (r.uuid !== currentSetUuid()) { aiCancel(); return false; }
+    if (r.uuid !== currentSetUuid()) { aiCancel(); return; }
     if (r.next < TRACKS) {
         const t = readTrack(r.next++);
         if (t.clips.length || t.index === r.track) r.tracks.push(t);
@@ -153,16 +137,17 @@ export function aiTick(now: number): boolean {
         else if (r.sentMs >= 0 && now - r.sentMs > (r.timeoutS + 10) * 1000
             && !fallBack(r, now, 'silent past the watchdog')) fail(MSG_ERROR, 'no reply within the watchdog');
     }
-    if (phase !== 'running') return false;
-    drawAiRunning(label(r.task), now - r.startMs);
-    thinkingLedsTick(now - r.startMs);
-    return true;
+    if (phase !== 'running') return;
+    /* A model request takes seconds: they count on the right. */
+    const s = Math.floor((now - r.startMs) / 1000);
+    seqHeaderAnnounce(label(r.task), 8, r.algo ? '' : s + ' S');
 }
 
 /** Running input: Back cancels, every other PRESS is swallowed, releases pass
  *  so a handler that armed a hold still hears its button come up. */
 export function aiRunningInput(data: number[]): boolean {
-    if (phase !== 'running') return false;
+    /* The power and leave dialogs answer while a request runs. */
+    if (phase !== 'running' || leaveModalActive()) return false;
     const kind = data[0] & 0xF0;
     const press = (kind === 0x90 || kind === 0xB0) && data[2] > 0;
     if (kind === 0xB0 && data[1] === MoveBack && press) { aiCancel(); return true; }
@@ -191,7 +176,6 @@ export function aiSetWillChange(): void {
 
 export function resetAiJob(): void {
     if (run) cancelHttp(run.httpId);
-    repaintAt = -2;
     resetPreview();
     run = null;
     preview = null;

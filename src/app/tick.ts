@@ -422,17 +422,10 @@ function tickBody(): void {
     drumSyncTick();
     perfPhase('tempocap');
     captureTick();
-    /* An AI request in flight owns the frame: its screen, its LEDs. The
-     * engine above keeps running, so playback never stops underneath. */
+    /* A generator request runs alongside the frame: the header names it, and
+     * everything else (the power dialog included) draws as always. */
     aiGestureTick(Date.now());   // a Shift + Step 16 hold reaching full
-    if (aiTick(Date.now())) {
-        /* The Set lifecycle and the undo stack's Set/engine watch must not
-         * stall for the seconds a request takes. */
-        sessionTick();
-        undoWatchContext();
-        flushOrphanedSnaps();
-        return;
-    }
+    aiTick(Date.now());
     aiPreviewTick();   // a track/clip/view change commits the AI preview
     perfPhase('rest');
     stepAutoTick(); // promote a long single-step hold to step-automation mode

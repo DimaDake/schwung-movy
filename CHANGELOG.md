@@ -13,6 +13,14 @@ far. Earlier work is summarised in the timeline below for context.
 
 ## [Unreleased]
 
+### Changed
+
+- **No more loading animation while a generator runs.** The pad sweep and
+  the full-screen progress page are gone (the sweep could leave pads stuck
+  in its colours). The header names the job instead (with the seconds for a
+  model request), the screen and lights stay as they were, and the power
+  button's dialog now shows and answers over a running generator.
+
 ### Added
 
 - **DRIFT: a knob that morphs a take step by step.** Each click moves one

@@ -2127,12 +2127,13 @@ Variation the level moves only the experimental options 7 and 8:
 
 ### While it works
 
-The screen shows `QUANTIZING...`, `VARIATION...` or `DOUBLING...`, every light goes dark
-except **Back**, and a slow band sweeps across the pads. The sequencer keeps
-playing. **Back** cancels and leaves the clip untouched. In ALGORITHMIC mode
-this lasts a moment. A model request usually takes a few seconds:
-
-![Working](docs/assets/ai_running_quant.png)
+The header at the top of the screen shows `QUANTIZING...`, `VARIATION...`,
+`DOUBLING...` or `NEW CLIP...` (with the seconds so far, for a model request);
+the rest of the screen and the lights stay as they were, and the sequencer
+keeps playing. Only **Back** does anything: it cancels and leaves the clip
+untouched. The power button's dialog still comes up and answers. In
+ALGORITHMIC mode this lasts a moment; a model request usually takes a few
+seconds.
 
 If it fails, a message says why (`NO NETWORK`, `BUSY, TRY LATER` when the
 free quota is used up or the model is overloaded, or `GENERATOR ERROR`), and the

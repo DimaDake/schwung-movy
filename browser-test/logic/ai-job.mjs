@@ -1,6 +1,6 @@
 /* browser-test/logic/ai-job.mjs — the AI job from gesture to preview: source
- * choice, the running phase (only Back works), cancels, failures, and the
- * thinking animation (design §3, §5.1, §5.3).
+ * choice, the running phase (only Back works, the screen stays the app's),
+ * cancels and failures (design §3, §5.1, §5.3).
  *
  * Run by browser-test/logic.mjs.
  */
@@ -9,10 +9,10 @@ import { _log, eq, ok, installMockFs, uninstallMockFs, installMockEngine, uninst
     seqEngineTick, resetSeqEngine } from './harness.mjs';
 import {
     pickSource, variationTarget, parseTrackDump, startAiJob, aiPhase, aiTick, aiRunningInput, aiCancel,
-    aiSetWillChange, aiPreviewInput, resetAiJob, commitPreview, readTrack, thinkingPadColour, AI_DIR,
+    aiSetWillChange, aiPreviewInput, resetAiJob, commitPreview, readTrack, AI_DIR,
 } from '../../dist/esm/ai/index.js';
-import { seqToastText } from '../../dist/esm/seq/render.js';
-import { cachedSetLED, ledFrameReset } from '../../dist/esm/seq/led-cache.js';
+import { seqToastText, seqHeaderShown } from '../../dist/esm/seq/render.js';
+import { openPowerModal, closeLeaveModal } from '../../dist/esm/app/leave-modal.js';
 
 const MOD = '/data/UserData/schwung/modules/tools/movy';
 const DUMP = '0 16 0 1/1 0 0|0.24.60.100,96.24.64.100';
@@ -72,7 +72,7 @@ done(st);
 
 st = boot();
 const getsBefore = st.eng.getParamCalls;
-eq('idle_tick_costs_nothing: idle tick owns nothing', aiTick(0), false);
+eq('idle_tick_costs_nothing: idle tick owns nothing', aiTick(0), undefined);
 eq('idle_tick_costs_nothing: no engine read', st.eng.getParamCalls, getsBefore);
 startAiJob('quantize', 0, 0);
 eq('start: running', aiPhase(), 'running');
@@ -103,6 +103,14 @@ runTicks(20);
 eq('running_swallows_pads_and_steps: pad press', aiRunningInput([0x90, 68, 100]), true);
 eq('running_swallows_pads_and_steps: step press', aiRunningInput([0x90, 16, 100]), true);
 eq('running passes releases through', aiRunningInput([0x80, 68, 0]), false);
+/* No animation and no takeover (user, 2026-10-28): the header names the job,
+ * the frame stays the app's, and the power dialog answers over it. */
+eq('running_keeps_the_frame', aiTick(1000 + 500), undefined);
+ok('running_names_the_job_in_the_header', seqHeaderShown().startsWith('QUANTIZING...'));
+openPowerModal();
+eq('power_dialog_answers_while_running', aiRunningInput([0xB0, MoveMainKnob, 1]), false);
+closeLeaveModal('test');
+eq('...and running swallows again once it closes', aiRunningInput([0x90, 68, 100]), true);
 eq('back_cancels_running: consumed', aiRunningInput([0xB0, MoveBack, 127]), true);
 eq('back_cancels_running: idle', aiPhase(), 'idle');
 reply(st, 200, GOOD);
@@ -118,21 +126,6 @@ runTicks(2);
 eq('valid reply opens the preview', aiPhase(), 'preview');
 eq('preview gets three options', aiPreviewInput()?.options.length, 3);
 eq('preview carries the original clip', aiPreviewInput()?.orig?.notes.length, 2);
-/* The sweep's last hardware fades (channel 4, ~0.5 s) can land after the
- * repaint and leave pads in sweep colours: once they are over, the LEDs are
- * painted again. */
-const sent = [];
-const setLED0 = globalThis.setLED;
-globalThis.setLED = (n, c) => { sent.push(n); };
-ledFrameReset(); cachedSetLED(68, 5); cachedSetLED(68, 5);
-eq('leds_repaint_after_the_last_fade: cached before', sent.length, 1);
-aiTick(1000 + 2000);
-ledFrameReset(); cachedSetLED(68, 5);
-eq('leds_repaint_after_the_last_fade: sent again', sent.length, 2);
-aiTick(1000 + 4000);
-ledFrameReset(); cachedSetLED(68, 5);
-eq('leds_repaint_after_the_last_fade: only once', sent.length, 2);
-globalThis.setLED = setLED0;
 commitPreview();
 eq('commit returns the job to idle', aiPhase(), 'idle');
 done(st);
@@ -200,11 +193,6 @@ eq('stuck_request_times_out: idle', aiPhase(), 'idle');
 eq('stuck_request_times_out: toast', seqToastText(), 'GENERATOR ERROR');
 done(st);
 
-eq('thinking_band_moves_one_column_per_step: head white', thinkingPadColour(3, 3), 120);
-eq('thinking_band_moves_one_column_per_step: next step', thinkingPadColour(4, 4), 120);
-ok('thinking band: trail is violet', thinkingPadColour(2, 3) !== 0 && thinkingPadColour(2, 3) !== 120);
-eq('thinking band: rest dark', thinkingPadColour(6, 3), 0);
-eq('thinking band: same column on every row', thinkingPadColour(3 + 24, 3), 120);
 
 /* ── The algorithmic path (plans/2026-10-27-algorithmic-generators-design.md
  * §7): no key, no request, the presets in slices, the same preview. ── */

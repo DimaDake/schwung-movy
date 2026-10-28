@@ -53,7 +53,8 @@ export function buildCtx(input: GenInput): GenCtx {
     /* The source as the target will hold it: a shorter clip looped, a longer
      * one cut, so every generator and the role check see one length. */
     const src = !srcClip ? [] : input.task === 'variation' ? looped(srcClip.notes, srcClip.len * TPS, end)
-        : srcClip.notes.map((n) => ({ ...n }));
+        : input.task === 'double' ? looped(windowOf(srcClip), srcClip.len * TPS, end)
+            : srcClip.notes.map((n) => ({ ...n }));
     const k = input.scale[1] / input.scale[0];
 
     /* The source scene sounds with this track in it; the target scene's
@@ -81,11 +82,13 @@ export function buildCtx(input: GenInput): GenCtx {
         input, task: input.task, drum: input.drum, len: input.len, end, k, src,
         role: roleOf(src, input.len, input.drum),
         key,
-        srcChords: input.task === 'quantize' ? quantChords : chordsOf(srcSegs, key),
+        /* A double stays in its own scene: the chords it sounds in, and
+         * whether another track sets them (TURN may change them only if not). */
+        srcChords: input.task !== 'variation' ? quantChords : chordsOf(srcSegs, key),
         freedom: input.task === 'quantize' ? 'locked' : freedom,
         pinned,
         pinnedBass: otherSegs.map((s) => (s.bass >= 0 ? s.bass % 12 : -1)),
-        fixedChords: input.task === 'quantize' ? quantChords : freedom === 'locked' ? chordsOf(otherSegs, key) : [],
+        fixedChords: input.task !== 'variation' ? quantChords : freedom === 'locked' ? chordsOf(otherSegs, key) : [],
         groove: grooveOf(src, allOthers.filter((n) => n.tick < end)),
         kit: input.drum ? kitOf(input.kit.length ? input.kit : [...new Set(src.map((n) => n.pitch))], me?.padNames ?? null,
             (me?.clips ?? []).flatMap((c) => c.notes)) : null,
@@ -97,6 +100,13 @@ export function buildCtx(input: GenInput): GenCtx {
         seed: hash(src.map((n) => `${n.tick}.${n.pitch}`).join(',') + '|' + input.target.slot + '|' + input.task),
         plans: [],
     };
+}
+
+/** The clip's loop window from its start: what plays, and what a double
+ *  doubles (a note left of the window is not part of the loop). */
+export function windowOf(c: AiClip): Note[] {
+    const from = c.loopStart * TPS, to = from + c.len * TPS;
+    return c.notes.filter((n) => n.tick >= from && n.tick < to).map((n) => ({ ...n, tick: n.tick - from }));
 }
 
 export function looped(notes: Note[], span: number, end: number): Note[] {

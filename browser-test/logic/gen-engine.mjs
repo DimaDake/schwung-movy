@@ -89,7 +89,7 @@ eq('slots_three_of_six_keep_the_proportions', G.slotsFor('variation', 3, 'BALANC
 const liveAny = new Map();
 const thin = [];
 let served = 0;
-for (const task of ['variation', 'quantize']) {
+for (const task of ['variation', 'quantize', 'double']) {
     for (const scene of task === 'quantize' ? ['locked'] : ['locked', 'partial', 'free']) {
         for (const role of ROLES) {
             const input = task === 'quantize' ? quantInput(role) : fixtureInput(role, { task, scene });

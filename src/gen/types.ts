@@ -16,7 +16,8 @@ export const BAR = TPS * SPB;
 export const BEAT = TPS * 4;
 export const HALF = BAR / 2;        // harmony is read per half-bar (design §10)
 
-export type Task = 'quantize' | 'variation';
+/* double: Smart Double, the clip at twice its length with new seams. */
+export type Task = 'quantize' | 'variation' | 'double';
 
 export type Quality = 'maj' | 'min' | 'dim' | 'aug' | 'sus2' | 'sus4' | '5' | 'maj7' | '7' | 'm7' | 'm7b5';
 

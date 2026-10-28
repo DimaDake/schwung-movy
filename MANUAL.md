@@ -1161,7 +1161,7 @@ it for a momentary peek. While it is up, the step row is a bar selector:
 | **Double-tap** a bar | Loop just that bar |
 | Press **two bars** | Loop the range between them, inclusive |
 | Hold **Loop** + jog | Grow or shrink the loop by whole bars |
-| **Shift + Step 15** | Double the loop — notes and length |
+| **Shift + Step 15** | Double the loop — notes and length (hold it for [Smart Double](#smart-double-shift--hold-step-15)) |
 
 Setting a window brings the view with it, so you are never left editing a bar
 that has just stopped playing.
@@ -1781,10 +1781,11 @@ contents, a parameter the module doesn't publish — can't come back.
 ## 6b. Generators: Smart Quantize & Variation
 
 Movy's **generators** give you **several takes on one clip** (three from Smart
-Quantize, six from Variation), each grown from what you played. You always see
+Quantize, six from Variation and from Smart Double), each grown from what you played. You always see
 them before anything changes, alongside your **ORIG**inal. The generators never
-write from nothing. Smart Quantize starts from the clip you recorded, and
-Variation starts from another clip already on the track.
+write from nothing. Smart Quantize starts from the clip you recorded,
+Variation starts from another clip already on the track, and Smart Double
+from the clip itself, played twice.
 
 The takes come from one of two places, chosen in **Settings → GENERATOR
 MODE**:
@@ -1868,6 +1869,37 @@ change pads; only where and how hard they play.
 clips with its bars swapped or rotated, or transposed as a whole, is left out,
 and so is an option that is a near copy of another. A melody moved through the
 scale (a sequence) is a new line and stays.
+
+### Smart Double: Shift + hold Step 15
+
+A tap on Shift + Step 15 doubles the loop, a copy of its notes after
+themselves. **Hold Shift and hold Step 15** instead, and the clip doubles with
+an **ending**: the second time round it leads back into the top of the loop
+the way a player would, with a turnaround, a fill or a pickup. Everything before
+the ending is your clip exactly as you played it, so the first part stays yours.
+The tap now doubles on **release**, so a hold can grow into Smart Double; in
+Session view a tap still doubles straight away.
+
+![Hold for Smart Double](docs/assets/ai_hold_double_50.png)
+
+Smart Double is always ALGORITHMIC, whatever GENERATOR MODE says, and it needs
+room: a loop already longer than 8 bars cannot double, and the hold does
+nothing there. It doubles the loop window, so the new clip starts at bar 1. The
+six options are never the plain double (a tap is that), and ORIG puts back the
+clip at its old length.
+
+| Group | Melodic endings | Drum endings |
+| --- | --- | --- |
+| **Close** | TURNAROUND (the ending's notes step into the clip's first note: from BELOW, ABOVE, an ENCLOSURE or CHROMATIC), CADENCE (the ending lands on the ROOT, FIFTH, TONIC or DOMINANT and holds it) | FILL (snare, toms or both, rising), PICKUP (your pattern kept, one to three hits leading into the downbeat) |
+| **Rhythm** | PUSH (the ending a 16th to a beat early, the first note anticipated), RUN (a run UP, DOWN or ARCHed into the first note, in 8ths, 16ths or triplets, on the scale, the chord or chromatic), ECHO (the figure before the ending, or the clip's opening, again moved through the scale) | ROLL (a snare roll in 8ths, 16ths, 32nds or accelerating, with a crescendo), REPEAT (the slice before the ending repeated through it, fading: a beat repeat) |
+| **Experimental** | STYLE (the ending written new in the part's own language), STOP (the part drops out, holds or stabs, then picks up into the top), TURN (the ending over a chord that leads back: V7, IV, the tritone substitute, or a Tonnetz R, L or P; only when no other track sets the scene's chords) | BREAK (the ending drops to the kick, the snare, the hats or nothing, with one hit back in), STYLE (the ending walked new from your pattern) |
+
+Every Smart Double generator has an **ENDING** knob (half a beat to two bars,
+never more than half the clip; it opens at about a quarter of it) and most have
+**SEAMS**: `END` rewrites only the end of the loop, `BOTH` also gives the first
+half a shorter ending of its own, a question the second half answers (CADENCE
+then ends the first half open, on the dominant). The endings sit on the scene's
+chords: TENSION lets their notes reach further, and only TURN changes a chord.
 
 ### Harmony belongs to the scene
 
@@ -1985,6 +2017,10 @@ how far every generator goes by default:
 | **BALANCED** | 3 close, 2 rhythm, 1 experimental | tight, shaped, developed | as each generator sets them |
 | **WILD** | 2 close, 2 rhythm, 2 experimental | shaped, then two developed | AMOUNT and TENSION higher; a free scene's HARMONY one move further |
 
+Smart Double's six options are mixed from its groups the same way as
+Variation's. SAFE opens every ENDING one size shorter, WILD one size longer and
+with SEAMS on BOTH.
+
 In MODEL mode, Smart Quantize's option 1 is always the most careful of the
 three and option 3 the boldest, and the level moves the whole range. In
 Variation the level moves only the experimental options 7 and 8:
@@ -1997,7 +2033,7 @@ Variation the level moves only the experimental options 7 and 8:
 
 ### While it works
 
-The screen shows `QUANTIZING...` or `VARIATION...`, every light goes dark
+The screen shows `QUANTIZING...`, `VARIATION...` or `DOUBLING...`, every light goes dark
 except **Back**, and a slow band sweeps across the pads. The sequencer keeps
 playing. **Back** cancels and leaves the clip untouched. In ALGORITHMIC mode
 this lasts a moment. A model request usually takes a few seconds:
@@ -2199,7 +2235,8 @@ only.
 | **Shift + Step 10** | Toggle **full velocity** — every pad note at 127. Kept across sets and restarts. |
 | **Shift + Step 12** | Open the **CPU meter** (per-track and per-send cost, block usage). Press again to clear the held peaks. |
 | **Shift + hold Step 14** | **Variation** generator from the track's previous clip into the selected slot (Track view; lit dim white when possible). See [Generators](#6b-generators-smart-quantize--variation). |
-| **Shift + Step 15** | **Double** the loop. |
+| **Shift + Step 15** | **Double** the loop, on release in Track view. |
+| **Shift + hold Step 15** | **Smart Double**: the loop doubled with a new ending (Track view). See [Smart Double](#smart-double-shift--hold-step-15). |
 | **Shift + Step 16** | Cycle the current clip's **quantization** (0 / default / 100 %), on release in Track view. |
 | **Shift + hold Step 16** | **Smart Quantize** generator (Track view). See [Generators](#6b-generators-smart-quantize--variation). |
 | **Knobs 1-8** (in a generator preview) | The option's own knobs: turn to reshape it, touch to see the name and value. See [The knobs](#the-knobs). |

@@ -36,7 +36,7 @@ function fits(ctx: GenCtx, base: (Chord | null)[], rank: number): (Chord | null)
 
 export function buildPlans(ctx: GenCtx): HarmonyPlan[] {
     const n = targetHalves(ctx);
-    if (ctx.task === 'quantize') return [{ chords: sample(ctx.fixedChords, n), sit: 'asis', pedal: null, label: 'SCENE' }];
+    if (ctx.task !== 'variation') return [{ chords: sample(ctx.fixedChords, n), sit: 'asis', pedal: null, label: 'SCENE' }];
     if (ctx.freedom === 'locked') {
         const chords = sample(ctx.fixedChords, n);
         return SITS.map(([sit, label]) => ({ chords, sit, pedal: null, label }));

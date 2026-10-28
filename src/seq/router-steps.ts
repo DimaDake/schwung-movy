@@ -10,11 +10,11 @@ import { mlog } from '../log.js';
 import { appState } from '../app/state.js';
 import { beginEdit, endEdit, CLOSE } from '../undo/group.js';
 import { trackLabel } from '../undo/label.js';
-import { NUM_STEP_BUTTONS, STEP_QUANTIZE } from './constants.js';
+import { NUM_STEP_BUTTONS, STEP_DOUBLE_LOOP, STEP_QUANTIZE } from './constants.js';
 import { deleteActive, deleteStep } from './edit-ops.js';
 import { dupActive, onUnit as dupOnUnit } from './duplicate.js';
 import { seqCmd } from './engine.js';
-import { loopStepOff, loopStepOn } from './loop-mode.js';
+import { doubleLoop, loopStepOff, loopStepOn } from './loop-mode.js';
 import { cycleQuantize, shiftStepFunction } from './step-shortcuts.js';
 import { muteHeld, muteMarkGestured, muteShiftHeld } from './router-buttons.js';
 import { toggleMute, toggleSolo } from '../mixer/track-mutes.js';
@@ -140,9 +140,12 @@ export function handleStepButton(button: number, on: boolean, shiftHeld: boolean
         handleStepButton(button, on, shiftHeld);
     } else if (holdStep(button) && (on ? shiftHeld : holdOwns(button))) {
         /* Track view: generators start only from a hold (ai/hold.ts). A Shift
-         * tap on 16 still cycles quantize on RELEASE; one on 14 says to hold. */
+         * tap on 16 still cycles quantize and one on 15 still doubles the
+         * loop, on RELEASE; one on 14 says to hold. */
         if (on) aiHoldPress(holdStep(button)!);
-        else if (holdRelease(Date.now()) === 'tap') (button === STEP_QUANTIZE ? cycleQuantize : aiVariationTap)();
+        else if (holdRelease(Date.now()) === 'tap') {
+            (button === STEP_QUANTIZE ? cycleQuantize : button === STEP_DOUBLE_LOOP ? doubleLoop : aiVariationTap)();
+        }
     } else if (on && shiftHeld) {
         shiftStepFunction(button);
     } else if (on) {

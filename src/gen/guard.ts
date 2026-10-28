@@ -43,7 +43,8 @@ export function clampNotes(ctx: GenCtx, notes: Note[]): Note[] {
 export function guard(ctx: GenCtx, raw: Note[]): GuardResult {
     const notes = clampNotes(ctx, raw);
     if (!notes.length) return { ok: false, why: 'empty' };
-    if (keyOf(notes) === keyOf(ctx.task === 'quantize' ? ctx.src : [])) return { ok: false, why: 'copy' };
+    /* A double's copy is the plain Double Loop: a tap does that already. */
+    if (keyOf(notes) === keyOf(ctx.task !== 'variation' ? ctx.src : [])) return { ok: false, why: 'copy' };
     if (ctx.task === 'variation') {
         if (ctx.role) {
             const broke = roleBreak(notes, ctx.role, ctx.len, ONSET_SLACK);

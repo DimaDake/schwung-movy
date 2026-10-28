@@ -18,6 +18,9 @@ import { FILL, GHOSTS, HATS, KICK, SHIFT, TURN } from './var-drums.js';
 import { DEVELOP_D, EUCLID_D, FEEL, GRIDS } from './var-drums-exp.js';
 import { ANSWER_Q, EMBELLISH, FULL, GROOVE, SHAPED, TIDY, TIGHT } from './quant-melodic.js';
 import { FILL_D, FULL_D, GHOSTS_D, GROOVE_D, TIDY_D, TIGHT_D } from './quant-drums.js';
+import { CADENCE, PUSH, RUN, TURNAROUND } from './dbl-lines.js';
+import { ECHO, STOP, STYLE_X, TURN_X } from './dbl-melodic.js';
+import { BREAK_D, FILL_X, PICKUP_D, REPEAT, ROLL, STYLE_XD } from './dbl-drums.js';
 
 export const PRESETS: Preset[] = [
     NEXT, FOLLOW, PULSE, HARMONIZE, REVOICE, NEWLINE, ANSWER, SPREAD, ARP, DRONE,
@@ -26,6 +29,8 @@ export const PRESETS: Preset[] = [
     KICK, HATS, GHOSTS, FILL, SHIFT, TURN, FEEL, GRIDS, EUCLID_D, DEVELOP_D, STYLE_D, FORM_D,
     TIGHT, TIDY, GROOVE, SHAPED, EMBELLISH, ANSWER_Q, FULL,
     TIGHT_D, TIDY_D, GROOVE_D, GHOSTS_D, FILL_D, FULL_D,
+    TURNAROUND, CADENCE, PUSH, RUN, ECHO, STYLE_X, STOP, TURN_X,
+    FILL_X, PICKUP_D, ROLL, REPEAT, BREAK_D, STYLE_XD,
 ];
 
 export const presetById = (id: string): Preset | undefined => PRESETS.find((p) => p.id === id);

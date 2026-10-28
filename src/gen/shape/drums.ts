@@ -48,15 +48,18 @@ export function ghosts(ctx: GenCtx, kit: Kit, notes: Note[], count: number, role
     return [...notes, ...chosen.map(({ t }) => ({ tick: t, gate: TPS / 2, pitch: pad, vel: Math.round(vel + r() * 8) }))];
 }
 
-/** A fill over the last `steps` 16ths: snare and toms, rising in velocity,
- *  replacing what played there except the kick on the downbeat. */
-export function fill(ctx: GenCtx, kit: Kit, notes: Note[], steps: number, density: number, r: Rng): Note[] {
+/** A fill over the `steps` 16ths before `to` (the clip's end): snare and
+ *  toms, rising in velocity, replacing what played there except the kick on
+ *  the downbeat. */
+export function fill(ctx: GenCtx, kit: Kit, notes: Note[], steps: number, density: number, r: Rng,
+    to = ctx.end, use: 'both' | 'snare' | 'toms' = 'both'): Note[] {
     if (steps <= 0) return notes;
-    const from = ctx.end - steps * TPS;
-    const pads = [padFor(kit, 'snare', notes), ...kit.by.tom].filter((p): p is number => p !== null);
+    const from = to - steps * TPS;
+    const pads = [use === 'toms' ? null : padFor(kit, 'snare', notes), ...(use === 'snare' ? [] : kit.by.tom)]
+        .filter((p): p is number => p !== null);
     if (!pads.length) return notes;
     const kick = padFor(kit, 'kick', notes);
-    const keep = notes.filter((n) => n.tick < from || (n.pitch === kick && n.tick % (BAR / 4) === 0));
+    const keep = notes.filter((n) => n.tick < from || n.tick >= to || (n.pitch === kick && n.tick % (BAR / 4) === 0));
     const add: Note[] = [];
     for (let s = 0; s < steps; s++) {
         if (s % 2 === 1 && r() > density) continue;

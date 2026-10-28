@@ -513,12 +513,15 @@ _origLog('\nTest: generator slice cost');
     big.tracks[0].clips[0].notes = notes;
     big.tracks[0].clips[0].len = 64;
     big.len = 64;
+    /* Smart Double reads the same clip at twice its length (1024 notes,
+     * clamped to the engine's 512 per option). */
+    const dbl = { ...big, task: 'double', target: { track: 0, slot: 0 }, source: null, len: 128 };
     let prep = 0, step = 0, regen = 0;
-    for (let rep = 0; rep < 4; rep++) {
-        /* The first pass warms the JIT; the device has none to warm. */
-        if (rep === 1) { prep = 0; step = 0; regen = 0; }
+    for (let rep = 0; rep < 8; rep++) {
+        /* The first pass of each warms the JIT; the device has none to warm. */
+        if (rep === 2) { prep = 0; step = 0; regen = 0; }
         let t = performance.now();
-        const req = G.startRequest(big);
+        const req = G.startRequest(rep % 2 ? dbl : big);
         prep = Math.max(prep, performance.now() - t);
         while (req.todo.length) { t = performance.now(); G.stepRequest(req); step = Math.max(step, performance.now() - t); }
         for (const p of G.finishRequest(req)) { t = performance.now(); G.regenerate(req.ctx, p.preset, p.knobs); regen = Math.max(regen, performance.now() - t); }

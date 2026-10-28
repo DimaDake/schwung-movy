@@ -1,14 +1,14 @@
-/* Where the two AI gestures meet the sequencer state (design §2, §3): who may
+/* Where the generator gestures meet the sequencer state (design §2, §3): who may
  * start a job, on which clip, and when Step 14's hint lights. */
 
 import { appState } from '../app/state.js';
 import { seqToast } from '../seq/render.js';
 import { sessionReady } from '../seq/set-session.js';
-import { seqState } from '../seq/state.js';
+import { loopStartBar, seqState } from '../seq/state.js';
 import { watchedTrack } from '../seq/watch.js';
-import { STEP_AI_VARIATION, STEP_QUANTIZE } from '../seq/constants.js';
+import { MAX_STEPS, STEP_AI_VARIATION, STEP_DOUBLE_LOOP, STEP_QUANTIZE } from '../seq/constants.js';
 import { type HoldKind, holdKind, holdPending, holdPress, holdTick } from './hold.js';
-import { MSG_NOTHING, startAiJob } from './job.js';
+import { MSG_NOTHING, MSG_NOTHING_DOUBLE, startAiJob } from './job.js';
 
 /* A Set still loading or settling would be read half-restored. */
 function busy(): boolean {
@@ -20,7 +20,8 @@ export function aiHoldAllowed(): boolean { return !busy(); }
 
 /** The generator a Shift + hold on this step button grows into. */
 export function holdStep(button: number): HoldKind | null {
-    return button === STEP_QUANTIZE ? 'quantize' : button === STEP_AI_VARIATION ? 'variation' : null;
+    return button === STEP_QUANTIZE ? 'quantize' : button === STEP_AI_VARIATION ? 'variation'
+        : button === STEP_DOUBLE_LOOP ? 'double' : null;
 }
 
 /** A pending hold started on this button, so its release is the hold's. */
@@ -57,12 +58,27 @@ export function aiVariationStart(): void {
     startAiJob('variation', t, selectedSlot(t));
 }
 
-/** Shift + press on Step 16 or 14: arm a hold only when it could start. */
-export function aiHoldPress(k: HoldKind): void {
-    holdPress(Date.now(), k, k === 'quantize' ? aiHoldAllowed() : aiVariationAllowed());
+const clipHasNotes = () => seqState.lenSteps > 0 && seqState.occ.some((b) => b !== 0);
+
+/** Whether a Shift + Step 15 press may grow into Smart Double: a clip to
+ *  double, with room for twice its loop. A press that may not is a tap, and
+ *  the tap's Double Loop says no in its own way. */
+export function aiDoubleAllowed(): boolean {
+    return !busy() && clipHasNotes() && loopStartBar() * 16 + seqState.lenSteps * 2 <= MAX_STEPS;
 }
 
-/** Per tick: completes a Shift + Step 16 or Step 14 hold. */
-export function aiGestureTick(now: number): void {
-    holdTick(now, appState.shiftHeld, (k) => (k === 'quantize' ? aiQuantizeStart() : aiVariationStart()));
+export function aiDoubleStart(): void {
+    if (busy()) return;
+    if (!clipHasNotes()) { seqToast(MSG_NOTHING_DOUBLE); return; }
+    const t = watchedTrack();
+    startAiJob('double', t, selectedSlot(t));
 }
+
+const ALLOWED: Record<HoldKind, () => boolean> = { quantize: aiHoldAllowed, variation: aiVariationAllowed, double: aiDoubleAllowed };
+const START: Record<HoldKind, () => void> = { quantize: aiQuantizeStart, variation: aiVariationStart, double: aiDoubleStart };
+
+/** Shift + press on Step 16, 14 or 15: arm a hold only when it could start. */
+export function aiHoldPress(k: HoldKind): void { holdPress(Date.now(), k, ALLOWED[k]()); }
+
+/** Per tick: completes a Shift + Step 16, 14 or 15 hold. */
+export function aiGestureTick(now: number): void { holdTick(now, appState.shiftHeld, (k) => START[k]()); }

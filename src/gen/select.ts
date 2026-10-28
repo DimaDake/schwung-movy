@@ -9,7 +9,7 @@ import { isStrong } from './analysis/events.js';
 import type { GenLevel } from './types.js';
 import type { Preset } from './preset.js';
 import { noteFit } from './theory/category.js';
-import { BEAT, type Note, type PresetClass, TPS } from './types.js';
+import { BEAT, type Note, type PresetClass, type Task, TPS } from './types.js';
 
 export interface Candidate { preset: Preset; knobs: number[]; notes: Note[]; score: number; dist: number }
 
@@ -64,9 +64,13 @@ export function scoreCandidate(ctx: GenCtx, p: Preset, notes: Note[]): { score: 
 }
 
 type C = PresetClass;
-const SLOTS: Record<'variation' | 'quantize', Record<number, Record<GenLevel, C[]>>> = {
+const SLOTS: Record<Task, Record<number, Record<GenLevel, C[]>>> = {
     variation: {
         6: { SAFE: ['close', 'close', 'close', 'close', 'rhythm', 'rhythm'], BALANCED: ['close', 'close', 'rhythm', 'rhythm', 'exp', 'exp'],
+            WILD: ['close', 'rhythm', 'rhythm', 'exp', 'exp', 'exp'] },
+    },
+    double: {
+        6: { SAFE: ['close', 'close', 'close', 'rhythm', 'rhythm', 'rhythm'], BALANCED: ['close', 'close', 'rhythm', 'rhythm', 'exp', 'exp'],
             WILD: ['close', 'rhythm', 'rhythm', 'exp', 'exp', 'exp'] },
     },
     quantize: {
@@ -74,12 +78,12 @@ const SLOTS: Record<'variation' | 'quantize', Record<number, Record<GenLevel, C[
     },
 };
 
-export function slotsFor(task: 'variation' | 'quantize', count: number, level: GenLevel): C[] {
+export function slotsFor(task: Task, count: number, level: GenLevel): C[] {
     const t = SLOTS[task][count]?.[level];
     if (t) return t;
     /* Any other count is the full ladder thinned evenly, so three options
      * are three of the six, in the same proportions. */
-    const base = SLOTS[task][task === 'variation' ? 6 : 3][level];
+    const base = SLOTS[task][task === 'quantize' ? 3 : 6][level];
     return Array.from({ length: count }, (_, i) => base[Math.min(base.length - 1, Math.floor((i * base.length) / count))]);
 }
 
@@ -101,7 +105,7 @@ export function spread(a: Note[], b: Note[]): number {
     return avg(parts);
 }
 
-export function selectOptions(cands: Candidate[], task: 'variation' | 'quantize', count: number, level: GenLevel): Candidate[] {
+export function selectOptions(cands: Candidate[], task: Task, count: number, level: GenLevel): Candidate[] {
     const pool = cands.filter((c) => c.score >= 0).sort((a, b) => b.score - a.score);
     const chosen: Candidate[] = [];
     const farEnough = (c: Candidate) => chosen.every((x) => x.preset !== c.preset && difference(x.notes, c.notes) >= MIN_PAIR);

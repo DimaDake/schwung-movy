@@ -7,6 +7,10 @@ import type { GenCtx } from './analysis/context.js';
 import type { Preset } from './preset.js';
 import { RHYTHMS } from './shape/rhythm.js';
 
+/* A double's own choices (dbl-*.ts): a take tries the next one along. */
+const DOUBLE_CYCLE = ['APPROACH', 'RATE', 'DIRECTION', 'NOTES', 'LAND', 'PUSH', 'STEP', 'FROM', 'KIND', 'PICKUP', 'MOVE',
+    'PADS', 'GRAIN', 'KEEP'];
+
 /** Take `which` (0 or 1) of a preset's feel moved; the two go opposite
  *  ways (longer and denser, or shorter, sparser, wider and louder), so the
  *  selector has contrast to choose from. null when no knob of it moves. */
@@ -39,6 +43,9 @@ export function variantKnobs(p: Preset, ctx: GenCtx, base: number[], seed: numbe
         else if (k.name === 'FORM' || k.name === 'ANSWER') set((v[i] + 1 + which) % steps);
         else if (k.name === 'X') set(v[i] + (which ? 6 : 3));
         else if (k.name === 'Y') set(v[i] + (which ? 2 : 5));
+        else if (k.name === 'ENDING') set(v[i] + (which ? -1 : 1));
+        else if (k.name === 'SEAMS' && which === 1) set(1 - v[i]);
+        else if (ctx.task === 'double' && DOUBLE_CYCLE.includes(k.name)) set((v[i] + 1 + which) % steps);
     });
     return moved ? v : null;
 }

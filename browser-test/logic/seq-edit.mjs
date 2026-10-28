@@ -124,9 +124,11 @@ export async function run() {
     seqHandleMidi([0xB0, 58, 0], false);       // release; gesture happened → no toggle
     eq('Loop+wheel hold did not toggle mode', seqState.loopMode, true);
 
-    // Shift+Step 15 doubles the loop.
+    // A Shift tap on Step 15 doubles the loop, on release: held, it grows
+    // into Smart Double (ai/hold.ts).
     seqState.loopStart = 0; seqState.lenSteps = 16;
     seqHandleMidi([0x90, 16 + 14, 127], true);
+    seqHandleMidi([0x90, 16 + 14, 0], true);
     seqEngineTick();
     eq('Shift+Step15 doubles loop', lastMusicalOp(engine.ops), 'dbl 0');
 

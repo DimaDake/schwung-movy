@@ -12,7 +12,7 @@ import { currentSetUuid } from '../seq/set-session.js';
 import { readAiConfig } from './config.js';
 import { cancelHttp, fakeResponse, pollHttp, startHttp, type HttpReply } from './http-job.js';
 import { jobTarget } from './job-target.js';
-import { type AiPhase, type AiPreviewInput, label, MSG_ERROR, MSG_NO_KEY, MSG_NOTHING, type Running } from './job-types.js';
+import { type AiPhase, type AiPreviewInput, label, MSG_ERROR, MSG_NO_KEY, MSG_NOTHING, MSG_NOTHING_DOUBLE, type Running } from './job-types.js';
 import { modelChain, timeoutFor, worthFallback } from './models.js';
 import type { AiTask } from './prompt.js';
 import { LEVEL_TEMPERATURE } from './ladders.js';
@@ -26,7 +26,7 @@ import { modelPrompt, replyOptions } from './job-model.js';
 import { genMode } from '../seq/gen-mode.js';
 import { THINK_FADE_SETTLE_MS, thinkingLedsStart, thinkingLedsTick } from './thinking-leds.js';
 
-export { MSG_ERROR, MSG_NO_KEY, MSG_NOTHING } from './job-types.js';
+export { MSG_ERROR, MSG_NO_KEY, MSG_NOTHING, MSG_NOTHING_DOUBLE } from './job-types.js';
 export type { AiPhase, AiPreviewInput } from './job-types.js';
 const TRACKS = 16;
 
@@ -70,7 +70,9 @@ export function startAiJob(task: AiTask, track: number, slot: number): void {
     /* A canned reply (device scenarios) needs no key, so a test never has to
      * touch the user's real one; it also pins the model path it stands in for. */
     const fake = fakeResponse(MOVY_MODULE_DIR);
-    const algo = genMode() === 'ALGORITHMIC' && !fake;
+    /* Smart Double has no model prompt: it keeps the clip and writes its
+     * seams, which is what the generators are for, in either mode. */
+    const algo = task === 'double' || (genMode() === 'ALGORITHMIC' && !fake);
     const cfg = algo ? { model: null, key: '' } : readAiConfig(MOVY_MODULE_DIR) ?? (fake ? { model: 'fake', key: '' } : null);
     if (!cfg) { seqToast(MSG_NO_KEY); return; }
     run = { task, track, slot, level: genLevel(), cfg, uuid: currentSetUuid(), startMs: -1, next: 0, tracks: [], httpId: -1,
@@ -82,7 +84,7 @@ export function startAiJob(task: AiTask, track: number, slot: number): void {
 function send(r: Running, now: number): void {
     const t = r.tracks.find((x) => x.index === r.track) ?? readTrack(r.track);
     const target = jobTarget(r.task, t, r.slot);
-    if (target === 'nothing') return fail(MSG_NOTHING, 'nothing to quantize');
+    if (target === 'nothing') return fail(r.task === 'double' ? MSG_NOTHING_DOUBLE : MSG_NOTHING, 'nothing to ' + r.task);
     if (target === 'no source') return fail(MSG_ERROR, 'no source clip');
     r.ctx = { ...target.ctx, srcSlot: target.source };
     if (r.algo) { r.gen = startAlgo(r, target.source); return; }

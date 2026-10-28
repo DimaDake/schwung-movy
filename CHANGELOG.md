@@ -15,6 +15,13 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
+- **Smart Double: Shift + hold Step 15.** The loop doubles with a new ending,
+  leading back into the top the way a player would, while everything before
+  the ending stays as played. Six options from fourteen generators, each with
+  its own knobs: TURNAROUND, CADENCE, PUSH, RUN, ECHO, STYLE, STOP and TURN for
+  melodic parts; FILL, PICKUP, ROLL, REPEAT, BREAK and STYLE for drums. ENDING
+  sets how much is rewritten; SEAMS on BOTH gives the first half an ending too.
+  A tap on Shift + Step 15 still doubles the loop, now on release.
 - **Generators learn the part's style.** New Variation generators: STYLE
   writes a new part in the source's own language (a Markov model learned from
   the clip and the track's other clips; LIKENESS and PHRASE knobs), for melodic

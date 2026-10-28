@@ -24,6 +24,7 @@ interface Open {
 }
 
 let cur: Open | null = null;
+const VERBS = { quantize: 'SMART QUANT', variation: 'VARIATION', double: 'SMART DOUBLE' } as const;
 
 export function aiPreviewActive(): boolean { return cur !== null; }
 export function previewIndex(): number { return cur ? cur.index : -1; }
@@ -68,7 +69,7 @@ function replaceCurrent(notes: AiNote[]): void {
 
 export function openPreview(p: AiPreviewInput): void {
     const key = 'ai:' + p.track;
-    beginEdit({ key, verb: p.task === 'quantize' ? 'SMART QUANT' : 'VARIATION', target: trackLabel(p.track),
+    beginEdit({ key, verb: VERBS[p.task], target: trackLabel(p.track),
         close: CLOSE.IMMEDIATE, seq: true });
     holdGroup(key);
     cur = { p, index: 0, visited: [true, ...p.options.map(() => false)], sig: sig(p.track) };

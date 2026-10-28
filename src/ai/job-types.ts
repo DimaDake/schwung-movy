@@ -16,6 +16,7 @@ export type AiPhase = 'idle' | 'running' | 'preview';
 export const MSG_NO_KEY = 'NO API KEY — MOVE.LOCAL:7700';
 export const MSG_ERROR = 'GENERATOR ERROR';
 export const MSG_NOTHING = 'NOTHING TO QUANTIZE';
+export const MSG_NOTHING_DOUBLE = 'NOTHING TO DOUBLE';
 
 export interface AiPreviewInput {
     task: AiTask;
@@ -54,4 +55,5 @@ export interface Running {
 }
 
 
-export function label(task: AiTask): string { return task === 'quantize' ? 'QUANTIZING...' : 'VARIATION...'; }
+const LABELS: Record<AiTask, string> = { quantize: 'QUANTIZING...', variation: 'VARIATION...', double: 'DOUBLING...' };
+export function label(task: AiTask): string { return LABELS[task]; }

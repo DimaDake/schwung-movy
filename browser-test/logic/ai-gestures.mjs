@@ -173,4 +173,36 @@ eq('step14_hold_unarmed_without_a_source: no bar', holdProgress(Date.now() + 800
 handleStepButton(13, false, true);
 appState.shiftHeld = false;
 done();
+
+/* Shift + Step 15: a tap still doubles the loop (on release); a full hold
+ * grows into Smart Double and leaves the length to the preview. */
+boot();
+appState.shiftHeld = true;
+seqState.loopStart = 0; seqState.lenSteps = 16;
+handleStepButton(14, true, true);
+eq('step15_press_alone_does_not_double', seqState.lenSteps, 16);
+handleStepButton(14, false, true);
+eq('step15_tap_doubles_on_release', seqState.lenSteps, 32);
+seqState.lenSteps = 16;
+handleStepButton(14, true, true);
+eq('hold_label_names_the_generator: double', holdLabel(), 'SMART DOUBLE');
+aiGestureTick(Date.now() + 1400);
+eq('step15_hold_starts_smart_double', aiPhase(), 'running');
+handleStepButton(14, false, true);
+eq('step15_hold_release_does_not_also_double', seqState.lenSteps, 16);
+done();
+
+boot();
+appState.shiftHeld = true;
+seqState.lenSteps = 16 * 9;
+handleStepButton(14, true, true);
+eq('step15_hold_unarmed_past_16_bars: no bar', holdProgress(Date.now() + 800), -1);
+handleStepButton(14, false, true);
+seqState.lenSteps = 16;
+seqState.occ.fill(0);
+handleStepButton(14, true, true);
+eq('step15_hold_unarmed_on_an_empty_clip: no bar', holdProgress(Date.now() + 800), -1);
+handleStepButton(14, false, true);
+appState.shiftHeld = false;
+done();
 }

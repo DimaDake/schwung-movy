@@ -1,19 +1,20 @@
 /* Shift + HOLD Step 16 = Smart Quantize, Shift + HOLD Step 14 = Variation
- * (design §2, §3). The hold is the protection against accidents: a generator
+ * (design §2, §3), Shift + HOLD Step 15 = Smart Double. The hold is the protection against accidents: a generator
  * only ever starts from a deliberate hold. Nothing shows for 300 ms (so a
- * plain tap never blinks: on Step 16 it still cycles quantize on release),
+ * plain tap never blinks: on Step 16 it still cycles quantize on release,
+ * on Step 15 it still doubles the loop),
  * then a bar fills for a second and the request goes when it is full.
  * Letting go of the step or Shift before that cancels without a trace. A
  * press that cannot become a generator (recording, Session view, a Set
  * loading, no clip to vary from) is armed=false: no bar, no request, and its
  * release is a plain tap. */
 
-export type HoldKind = 'quantize' | 'variation';
+export type HoldKind = 'quantize' | 'variation' | 'double';
 
 export const HOLD_SHOW_MS = 300;
 export const HOLD_FULL_MS = 1300;
 
-const LABELS: Record<HoldKind, string> = { quantize: 'SMART QUANTIZE', variation: 'VARIATION' };
+const LABELS: Record<HoldKind, string> = { quantize: 'SMART QUANTIZE', variation: 'VARIATION', double: 'SMART DOUBLE' };
 
 let downAt = -1;
 let fired = false;

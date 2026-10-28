@@ -50,10 +50,13 @@ export function fixtureInput(role, { task = 'variation', scene = 'locked', level
         clips: [clip(2, 0, PROG_A.map((c, i) => N(i * 8, c[0] - 24, 7))),
             ...(scene !== 'free' ? [clip(2, 1, PROG_B.map((c, i) => N(i * 8, c[0] - 24, 7)))] : [])] };
     const drums = { index: 3, name: 'Track 4', module: 'drumrack', drum: true, clips: [clip(3, 0, SWUNG), clip(3, 1, SWUNG)] };
-    const tracks = drum ? [me, keys, bass] : [me, keys, bass, drums];
-    const quant = task === 'quantize';
-    return { task, level, tracks, target: { track: 0, slot: quant ? 0 : 1 }, source: quant ? null : { track: 0, slot: 0 },
-        len: 32, scale: [1, 1], drum, kit: drum ? [36, 37, 38, 42, 45, 46, 48] : [], root: 'A', mode: 'minor' };
+    /* A double stays in scene A, so there `scene` says who else plays in A. */
+    const dbl = task === 'double';
+    const others = dbl ? (scene === 'locked' ? [keys, bass] : scene === 'partial' ? [bass] : []) : [keys, bass];
+    const tracks = drum ? [me, ...others] : [me, ...others, drums];
+    const own = task !== 'variation';
+    return { task, level, tracks, target: { track: 0, slot: own ? 0 : 1 }, source: own ? null : { track: 0, slot: 0 },
+        len: dbl ? 64 : 32, scale: [1, 1], drum, kit: drum ? [36, 37, 38, 42, 45, 46, 48] : [], root: 'A', mode: 'minor' };
 }
 
 /** The part played the way people play it: every onset off by a few ticks,

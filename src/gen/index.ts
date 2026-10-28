@@ -30,3 +30,4 @@ export * from './style/drums.js';
 export { rhythmStage, RHYTHMS } from './shape/rhythm.js';
 export * from './shape/form.js';
 export * from './shape/drum-maps.js';
+export * from './shape/seams.js';

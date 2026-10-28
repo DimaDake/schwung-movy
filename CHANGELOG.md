@@ -15,6 +15,12 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
+- **DRIFT: a knob that morphs a take step by step.** Each click moves one
+  more note a little (a scale step, a chord voice to the next chord tone, a
+  drum hit a 16th or a ghost), keeping the moves before it, so the part
+  evolves gradually and turns back exactly. On every Variation and Smart
+  Double generator with a free knob (43 of them; Smart Double drifts only
+  its second half).
 - **Smart Double: EVOLVE.** The first half stays as played and the second
   answers it over new chords: the first half's progression developed (a
   sequence, a Riemann turn, a substitute, a borrowed chord; MOVE picks

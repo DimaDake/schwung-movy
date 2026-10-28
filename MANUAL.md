@@ -2071,6 +2071,7 @@ A name means the same thing on every generator:
 | **GRID** | 1/8, 1/8T, 1/16, 1/16T, 1/32; it opens on the grid you played. |
 | **PITCH FIX** | More notes moved onto the harmony. |
 | **DYNAMICS** | From the velocities you played to the groove's accents. |
+| **DRIFT** | The take walks away from itself, one small move per click: a note a scale step up or down (onto a chord tone on the strong beats), a chord voice to the next chord tone, a drum hit a 16th along or a ghost beside it. Each position is the one before plus one more move, so turning it slowly morphs the part (live, or to find the take you want among close ones) and turning back walks it home. `OFF` is the take as generated. On every Variation and Smart Double generator with a knob free (Smart Double drifts only its second half); not on Smart Quantize, and New Clip's eight knobs are full. |
 | **SEED** | Another roll of the same idea. Generators that roll dice and had knobs to spare carry it as knob 5: CONNECT, RECOMBINE, THIN, ORNAMENT, PEDAL, OCTAVE, WALK, RETRO and drum FILL in Variation, EMBELLISH in Smart Quantize, FILL in Smart Double. There it opens on `#1`, the take you always got; turn it for which notes AMOUNT touches, which pads a fill hits, and so on. |
 
 Other knobs belong to one generator. FORM cuts the clip into UNITs (half a

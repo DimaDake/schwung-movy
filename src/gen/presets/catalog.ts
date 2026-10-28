@@ -3,6 +3,7 @@
 
 import type { Preset } from '../preset.js';
 import { withSeed } from '../seeded.js';
+import { withDrift } from '../drift.js';
 import { ARP, DEVELOP } from './var-arp.js';
 import { FOLLOW } from './var-follow.js';
 import { BASSLINE } from './var-bass.js';
@@ -47,6 +48,10 @@ const LISTED: Preset[] = [
 const SEEDED = new Set(['v-connect', 'v-recombine', 'v-thin', 'v-ornament', 'v-pedal', 'v-octave', 'v-walk', 'v-retro', 'd-fill',
     'q-embellish', 'xd-fill']);
 
-export const PRESETS: Preset[] = LISTED.map((p) => (SEEDED.has(p.id) ? withSeed(p) : p));
+/* DRIFT wherever a knob is free, except on Smart Quantize, which fixes a
+ * take rather than looks for one (drift.ts). */
+const drifts = (p: Preset) => p.task !== 'quantize' && p.task !== 'create' && p.knobs.length < 8;
+
+export const PRESETS: Preset[] = LISTED.map((p) => (SEEDED.has(p.id) ? withSeed(p) : p)).map((p) => (drifts(p) ? withDrift(p) : p));
 
 export const presetById = (id: string): Preset | undefined => PRESETS.find((p) => p.id === id);

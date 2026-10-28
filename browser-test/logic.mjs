@@ -28,6 +28,7 @@ import { run as run_gen_theory } from './logic/gen-theory.mjs';
 import { run as run_gen_style } from './logic/gen-style.mjs';
 import { run as run_gen_double } from './logic/gen-double.mjs';
 import { run as run_gen_create } from './logic/gen-create.mjs';
+import { run as run_gen_drift } from './logic/gen-drift.mjs';
 import { run as run_ai_new_clip } from './logic/ai-new-clip.mjs';
 import { run as run_gen_engine } from './logic/gen-engine.mjs';
 import { run as run_ai_preview_knobs } from './logic/ai-preview-knobs.mjs';
@@ -137,6 +138,7 @@ const SUITES = [
     run_gen_style,
     run_gen_double,
     run_gen_create,
+    run_gen_drift,
     run_gen_engine,
     run_ai_preview_knobs,
     run_ai_new_clip,

@@ -1905,7 +1905,11 @@ chords: TENSION lets their notes reach further, and only TURN changes a chord.
 a loop the new length fits into (a 2-bar pad under a 1-bar bass you double, or
 a 4-bar one), the doubled clip joins it in phase: its first bar plays under the
 other track's first bar, even if you doubled while that track was in its second
-bar. The endings are written against what the other tracks play at that point.
+bar. The endings are written against what the other tracks play at that point,
+and **hit with them**: STOP's and TURNAROUND's pickups, the drum PICKUP and
+BREAK's hit back in move onto the band's accents near their beat (the
+drummer's fill, the chords' push), and RUN plays the notes it shares with the
+band a little harder. A quiet hi-hat alone is not an accent.
 A tap on Shift + Step 15 does the same. With no such loop playing, the playhead
 stays where it was.
 

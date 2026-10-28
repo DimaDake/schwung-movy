@@ -26,8 +26,13 @@ function measure(G, input) {
         const firstKept = jaccard(cells(p.notes.filter((n) => n.tick < half)), cells(ctx.src.filter((n) => n.tick < half)));
         const end = p.notes.filter((n) => n.tick >= tail);
         const novelty = 1 - jaccard(cells(end), cells(ctx.src.filter((n) => n.tick >= tail)));
+        /* With the band: the share of the ending's new onsets on one of the
+         * other tracks' accents, where the band plays any in the ending. */
+        const fresh = [...new Set(end.map((n) => n.tick))].filter((t) => !ctx.src.some((x) => x.tick === t));
+        const acc = ctx.band.some((h) => h.tick >= tail && h.w >= 0.9);
+        const band = acc && fresh.length ? fresh.filter((t) => ctx.band.some((h) => h.w >= 0.9 && Math.abs(h.tick - t) < 6)).length / fresh.length : null;
         const fit = ctx.drum ? null : mean(end.map((n) => G.noteFit(n.pitch, G.chordAt(ctx.plans[0].chords, n.tick, ctx.k), ctx.key, G.isStrong(n.tick))));
-        return { firstKept, novelty, fit };
+        return { firstKept, novelty, fit, band };
     });
     return { picks, per };
 }
@@ -36,8 +41,8 @@ function measure(G, input) {
 export function doubleSection(G, cases) {
     const out = ['', '## Smart Double', '', 'Each case\'s own clip doubled. First part kept: the first half\'s (step, pitch) cells shared with '
         + 'the clip as played (1 = untouched). Ending novelty: the last quarter\'s cells not in the plain double. Coherence: chord fit of '
-        + 'the last quarter (melodic). Variability: between the options of one request, as above.', '',
-        '| level | requests | options | first part kept | ending novelty | coherence | rhythm var | notes var |', '| --- | --- | --- | --- | --- | --- | --- | --- |'];
+        + 'the last quarter (melodic). With band: the share of the last quarter\'s new onsets on another track\'s accent (where one plays). Variability: between the options of one request, as above.', '',
+        '| level | requests | options | first part kept | ending novelty | coherence | with band | rhythm var | notes var |', '| --- | --- | --- | --- | --- | --- | --- | --- | --- |'];
     const used = new Map();
     for (const level of ['SAFE', 'BALANCED', 'WILD']) {
         const runs = cases.map((c) => doubleInput(c, level)).filter(Boolean).map((i) => measure(G, i));
@@ -45,7 +50,7 @@ export function doubleSection(G, cases) {
         const v = variability(runs.map((r) => r.picks.map((p) => p.notes)));
         if (level === 'BALANCED') for (const r of runs) for (const p of r.picks) used.set(p.preset.id, (used.get(p.preset.id) ?? 0) + 1);
         out.push(`| ${level} | ${runs.length} | ${f2(mean(runs.map((r) => r.picks.length)))} | ${f2(mean(ops.map((o) => o.firstKept)))} | `
-            + `${f2(mean(ops.map((o) => o.novelty)))} | ${f2(mean(ops.map((o) => o.fit).filter((x) => x !== null)))} | ${f2(v[DIMS[0]])} | ${f2(v[DIMS[1]])} |`);
+            + `${f2(mean(ops.map((o) => o.novelty)))} | ${f2(mean(ops.map((o) => o.fit).filter((x) => x !== null)))} | ${f2(mean(ops.map((o) => o.band).filter((x) => x !== null)))} | ${f2(v[DIMS[0]])} | ${f2(v[DIMS[1]])} |`);
     }
     out.push('', 'Generators picked (BALANCED): ' + [...used].sort((a, b) => b[1] - a[1]).map(([id, n]) => `${id} ${n}`).join(', ') + '.');
     return out;

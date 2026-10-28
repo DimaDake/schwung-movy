@@ -9,6 +9,7 @@ import { type AiClip, type Chord, type Freedom, type GenInput, HALF, type Harmon
     type Role, TPS } from '../types.js';
 import { chordsOf } from '../theory/chords.js';
 import { findKey, keyHint } from '../theory/key.js';
+import { bandHits, type Hit } from './band.js';
 import { type Groove, grooveOf } from './groove.js';
 import { type Kit, kitOf } from './kit.js';
 import { heardPcs, profile, sceneTicks, soundingSegments } from './sounding.js';
@@ -29,6 +30,7 @@ export interface GenCtx {
     pinnedBass: number[];           // per master half-bar: the lowest of them (-1: none)
     fixedChords: (Chord | null)[];  // the target scene's chords where others set them
     groove: Groove;
+    band: Hit[];                    // Smart Double: the other tracks' hits under the target
     kit: Kit | null;
     loops: Note[][];
     lo: number;
@@ -90,6 +92,7 @@ export function buildCtx(input: GenInput): GenCtx {
         pinnedBass: otherSegs.map((s) => (s.bass >= 0 ? s.bass % 12 : -1)),
         fixedChords: input.task !== 'variation' ? quantChords : freedom === 'locked' ? chordsOf(otherSegs, key) : [],
         groove: grooveOf(src, allOthers.filter((n) => n.tick < end)),
+        band: input.task === 'double' ? bandHits(input, end, k) : [],
         kit: input.drum ? kitOf(input.kit.length ? input.kit : [...new Set(src.map((n) => n.pitch))], me?.padNames ?? null,
             (me?.clips ?? []).flatMap((c) => c.notes)) : null,
         loops: input.task === 'variation'

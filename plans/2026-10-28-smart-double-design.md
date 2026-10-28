@@ -34,6 +34,17 @@ loop the new length divides, in master time (clip speed counted), or nowhere.
 `loop` (the LENGTH knob) is left alone, since a playhead jumping while the knob
 turns would be worse.
 
+The endings also hit with the band (`analysis/band.ts`): every other track's
+onsets in the scene, each loop window repeated from 0 the way the engine now
+phases them, bucketed to a 32nd and weighted by velocity (100 = 1; an accent is
+0.9, so a struck chord or snare counts and a quiet hat does not). `pickIn`
+moves each pickup grid point onto the strongest accent within half a grid step
+(STOP, TURNAROUND's fallback, drum PICKUP, BREAK); RUN adds 12 velocity on a
+shared hit. Bench "with band" (share of new ending onsets on an accent, where
+the band plays one): 0.47 without, 0.48 with at BALANCED — the cached Sets'
+bands mostly play on the pickup grid already, and ten of the fourteen
+generators place onsets by their own rule; the tests pin the off-grid case.
+
 ## The seams (`shape/seams.ts`)
 
 Every double generator keeps the doubled clip and rewrites only its seams:

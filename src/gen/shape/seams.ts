@@ -6,6 +6,7 @@
 
 import type { GenCtx } from '../analysis/context.js';
 import { chordAt } from '../analysis/context.js';
+import { ACCENT } from '../analysis/band.js';
 import { toEvents } from '../analysis/events.js';
 import { custom, type KnobDef } from '../knobs.js';
 import type { Chord, Ev, Note } from '../types.js';
@@ -81,3 +82,24 @@ export function gridIn(s: Seam, every: number, n = Infinity): number[] {
     for (let t = s.to - every; t >= s.from && out.length < n; t -= every) out.unshift(t);
     return out;
 }
+
+/** `gridIn`'s onsets, each moved onto the band's strongest accent within
+ *  half a grid step: a pickup that hits with the drummer's fill or the
+ *  chord's push, where the band plays one. */
+export function pickIn(ctx: GenCtx, s: Seam, every: number, n = Infinity): number[] {
+    const used = new Set<number>();
+    const out = gridIn(s, every, n).map((t) => {
+        let best = t, score = -Infinity;
+        for (const h of ctx.band) {
+            const d = Math.abs(h.tick - t);
+            if (h.w < ACCENT || h.tick < s.from || h.tick >= s.to || d > every / 2 || used.has(h.tick)) continue;
+            if (h.w - d / every > score) { score = h.w - d / every; best = h.tick; }
+        }
+        used.add(best);
+        return best;
+    });
+    return [...new Set(out)].sort((a, b) => a - b);
+}
+
+/** Whether the band accents a tick (RUN leans on the hits it shares). */
+export const bandAccent = (ctx: GenCtx, t: number): boolean => ctx.band.some((h) => h.w >= ACCENT && Math.abs(h.tick - t) < TPS / 4);

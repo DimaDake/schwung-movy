@@ -1,6 +1,6 @@
 # Generator bench: algo (algorithmic engine)
 
-42 cases, three options per request (best of three, as the model runs), 526 ms for all runs. Reference: `default-x3` gemini-3.1-flash-lite (cached, not re-run). Dev / holdout: alternate cases per source, fixed.
+42 cases, three options per request (best of three, as the model runs), 543 ms for all runs. Reference: `default-x3` gemini-3.1-flash-lite (cached, not re-run). Dev / holdout: alternate cases per source, fixed.
 
 | run | alignment | quantize recovery | variation | gate | played-drum gate |
 | --- | --- | --- | --- | --- | --- |
@@ -72,13 +72,13 @@ Novelty: 1 - the source idea kept, per option. Coherence: chord fit of melodic o
 
 ## Smart Double
 
-Each case's own clip doubled. First part kept: the first half's (step, pitch) cells shared with the clip as played (1 = untouched). Ending novelty: the last quarter's cells not in the plain double. Coherence: chord fit of the last quarter (melodic). Variability: between the options of one request, as above.
+Each case's own clip doubled. First part kept: the first half's (step, pitch) cells shared with the clip as played (1 = untouched). Ending novelty: the last quarter's cells not in the plain double. Coherence: chord fit of the last quarter (melodic). With band: the share of the last quarter's new onsets on another track's accent (where one plays). Variability: between the options of one request, as above.
 
-| level | requests | options | first part kept | ending novelty | coherence | rhythm var | notes var |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| SAFE | 42 | 6.00 | 0.96 | 0.46 | 0.94 | 0.15 | 0.26 |
-| BALANCED | 42 | 6.00 | 0.97 | 0.70 | 0.92 | 0.23 | 0.37 |
-| WILD | 42 | 6.00 | 0.80 | 0.80 | 0.92 | 0.31 | 0.48 |
+| level | requests | options | first part kept | ending novelty | coherence | with band | rhythm var | notes var |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| SAFE | 42 | 6.00 | 0.96 | 0.46 | 0.94 | 0.44 | 0.15 | 0.26 |
+| BALANCED | 42 | 6.00 | 0.97 | 0.70 | 0.92 | 0.48 | 0.23 | 0.37 |
+| WILD | 42 | 6.00 | 0.80 | 0.80 | 0.92 | 0.49 | 0.31 | 0.48 |
 
 Generators picked (BALANCED): x-cadence 38, x-style 30, x-stop 25, x-push 25, x-turnaround 21, x-run 21, x-echo 19, xd-pickup 12, xd-repeat 12, xd-style 12, xd-break 12, xd-roll 12, xd-fill 12, x-turn 1.
 

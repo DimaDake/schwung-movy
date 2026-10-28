@@ -9,7 +9,7 @@ import { count, custom, K } from '../knobs.js';
 import type { Preset } from '../preset.js';
 import { rng } from '../rng.js';
 import { fill } from '../shape/drums.js';
-import { ENDING, ENDING_STEPS, gridIn, rewrite, SEAMS, seams } from '../shape/seams.js';
+import { ENDING, ENDING_STEPS, pickIn, rewrite, SEAMS, seams } from '../shape/seams.js';
 import { drumWalk } from '../style/drums.js';
 import { type Note, TPS } from '../types.js';
 
@@ -39,7 +39,7 @@ export const PICKUP_D: Preset = {
     generate: (ctx, v) => rewrite(ctx, seams(ctx, widest(ctx), v[3]), (s, was) => {
         const pads = PICKS[v[0]].map((p) => pad(ctx, p)).filter((p): p is number => p !== null);
         if (!pads.length) return was;
-        const ticks = gridIn(s, PUSHES[v[1]], Math.max(1, v[2]));
+        const ticks = pickIn(ctx, s, PUSHES[v[1]], Math.max(1, v[2]));
         const add = ticks.map((t, i) => hit(t, pads[i % pads.length], 85 + 30 * ((i + 1) / ticks.length)));
         return [...was.filter((n) => !ticks.includes(n.tick)), ...add];
     }),
@@ -93,7 +93,7 @@ export const BREAK_D: Preset = {
     generate: (ctx, v) => rewrite(ctx, seams(ctx, v[0], v[3]), (s, was) => {
         const keep = KEEP[v[1]] ? ctx.kit!.by[KEEP[v[1]]!] : [];
         const p = PICK_ONE[v[2]] ? pad(ctx, PICK_ONE[v[2]]!) : null;
-        const at = s.to - 2 * TPS;
+        const at = pickIn(ctx, s, 2 * TPS, 1)[0] ?? s.to - 2 * TPS;
         return [...was.filter((n) => keep.includes(n.pitch) && !(p !== null && n.tick === at)), ...(p !== null ? [hit(at, p, 110)] : [])];
     }),
 };

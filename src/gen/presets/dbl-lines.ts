@@ -7,7 +7,7 @@ import { toEvents } from '../analysis/events.js';
 import { count, custom, K } from '../knobs.js';
 import type { Preset } from '../preset.js';
 import { pitchFix } from '../shape/pitch.js';
-import { chordPart, chordUnder, ENDING, gridIn, lineOf, nextEv, rewrite, SEAMS, seams, velOf } from '../shape/seams.js';
+import { bandAccent, chordPart, chordUnder, ENDING, gridIn, lineOf, nextEv, pickIn, rewrite, SEAMS, seams, velOf } from '../shape/seams.js';
 import { chordOf, nearestPitch, pc, stepScale } from '../theory/pc.js';
 import { diatonic } from '../theory/roman.js';
 import { voiceLead } from '../theory/voicing.js';
@@ -38,7 +38,7 @@ export const TURNAROUND: Preset = {
         const target = lineOf(ctx, nx);
         return rewrite(ctx, seams(ctx, v[0], v[3]), (s, was) => {
             let ticks = onsets(was).slice(-8);
-            if (ticks.length < 2) ticks = gridIn(s, 2 * TPS, 4);
+            if (ticks.length < 2) ticks = pickIn(ctx, s, 2 * TPS, 4);
             const vel = velOf(ctx, was);
             const notes = ticks.map((t, i) => ({ tick: t, pitch: approach(target, ticks.length - i, APPROACH[v[1]], ctx.key),
                 gate: Math.max(TPS / 2, Math.round(((ticks[i + 1] ?? s.to) - t) * 0.9)), vel }));
@@ -68,7 +68,7 @@ export const RUN: Preset = {
                 const c = chordUnder(ctx, t);
                 const p = v[3] === 2 ? target + off : stepScale(target, off, ctx.key);
                 return { tick: t, pitch: v[3] === 1 && c ? nearestPitch(p, c.pcs) : p, gate: Math.round(RATES[v[1]] * 0.8),
-                    vel: Math.round(vel * (0.7 + (0.3 * i) / Math.max(1, n - 1))) };
+                    vel: Math.min(127, Math.round(vel * (0.7 + (0.3 * i) / Math.max(1, n - 1))) + (bandAccent(ctx, t) ? 12 : 0)) };
             });
         });
     },

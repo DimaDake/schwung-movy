@@ -26,6 +26,9 @@ far. Earlier work is summarised in the timeline below for context.
   Double) while a longer neighbour was in its second bar left the doubled clip
   a bar out against it for good. It now lines up with the longest playing
   loop its new length fits into (ENGINE 0.113.0).
+- **Smart Double endings hit with the band.** Pickups (STOP, TURNAROUND, drum
+  PICKUP, BREAK) land on the other tracks' accents in the ending, so a bass
+  pickup falls with the drummer's fill; RUN accents the notes it shares.
 - **Generators learn the part's style.** New Variation generators: STYLE
   writes a new part in the source's own language (a Markov model learned from
   the clip and the track's other clips; LIKENESS and PHRASE knobs), for melodic

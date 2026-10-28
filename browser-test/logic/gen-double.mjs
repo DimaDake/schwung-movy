@@ -119,4 +119,29 @@ const changed = (ns, ctx) => { const a = new Set(ctx.src.map((n) => `${n.tick}.$
 ok('ending_longer_changes_more', changed(take(lead, 'x-run', { ENDING: 2 }).notes, lead) > changed(take(lead, 'x-run', { ENDING: 0 }).notes, lead));
 const both = take(lead, 'x-turnaround', { SEAMS: 1 }).notes;
 ok('seams_both_touches_the_first_half', both.filter((n) => n.tick < half).some((n) => !lead.src.some((s) => s.tick === n.tick && s.pitch === n.pitch)));
+
+/* The endings play with the band: a pickup lands on the other tracks' fill
+ * (16ths a STOP's 8th grid would miss), a drum PICKUP on the bass's push, a
+ * RUN leans on the hits it shares; with no band, the grid. */
+const band = (input, steps, vel = 120) => ({ ...input, tracks: [input.tracks[0], { index: 5, name: 'Band', module: 'obxd', drum: false,
+    clips: [{ track: 5, slot: 0, len: 64, loopStart: 0, scaleNum: 1, scaleDen: 1, transpose: 0, quant: 0,
+        notes: steps.map((st) => ({ tick: st * G.TPS, gate: G.TPS, pitch: 45, vel })) }] }] });
+const alone = G.prepare(band(fixtureInput('lead', { task: 'double', scene: 'free' }), []));
+const withFill = G.prepare(band(fixtureInput('lead', { task: 'double', scene: 'free' }), [0, 61, 63]));
+const picks = (ctx) => { const r = take(ctx, 'x-stop', { KIND: 0, PICKUP: 2 }); return r.notes.filter((n) => n.tick >= ctx.end - G.ENDING_STEPS[r.v[0]] * G.TPS).map((n) => n.tick / G.TPS).join(); };
+eq('band_hits_read_from_the_others', withFill.band.map((h) => h.tick / G.TPS).join(), '0,61,63');
+eq('stop_pickups_on_the_grid_alone', picks(alone), '60,62');
+eq('stop_pickups_land_on_the_bands_fill', picks(withFill), '61,63');
+const quiet = G.prepare(band(fixtureInput('lead', { task: 'double', scene: 'free' }), [61, 63], 50));
+eq('a_quiet_band_hit_is_not_a_fill', picks(quiet), '60,62');
+const shortBand = band(fixtureInput('lead', { task: 'double', scene: 'free' }), [15]);
+shortBand.tracks[1].clips[0].len = 16;
+eq('a_shorter_band_loop_repeats_under_the_double', G.prepare(shortBand).band.map((h) => h.tick / G.TPS).join(), '15,31,47,63');
+const drumBand = G.prepare(band(fixtureInput('drums', { task: 'double' }), [63]));
+const dp = take(drumBand, 'xd-pickup', { PADS: 1, PUSH: 1, HITS: 1 }).notes;
+ok('drum_pickup_hits_with_the_bass_push', dp.some((n) => n.tick === 63 * G.TPS && n.pitch === 38)
+    && !dp.some((n) => n.tick === 62 * G.TPS && n.pitch === 38 && !drumBand.src.some((s) => s.tick === n.tick && s.pitch === 38)));
+const runAt = (ctx, st) => take(ctx, 'x-run', { ENDING: 1, RATE: 1 }).notes.find((n) => n.tick === st * G.TPS)?.vel;
+const leans = G.prepare(band(fixtureInput('lead', { task: 'double', scene: 'free' }), [62]));
+ok('run_leans_on_the_bands_hit', runAt(leans, 62) > runAt(alone, 62));
 }

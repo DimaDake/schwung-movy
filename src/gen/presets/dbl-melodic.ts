@@ -9,7 +9,7 @@ import { count, custom, K } from '../knobs.js';
 import type { Preset } from '../preset.js';
 import { rng } from '../rng.js';
 import { pitchFix } from '../shape/pitch.js';
-import { chordPart, chordUnder, ENDING, gridIn, lineOf, nextEv, rewrite, SEAMS, seams, velOf } from '../shape/seams.js';
+import { chordPart, chordUnder, ENDING, lineOf, nextEv, pickIn, rewrite, SEAMS, seams, velOf } from '../shape/seams.js';
 import { walk } from '../style/melodic.js';
 import { allowedPcs } from '../theory/category.js';
 import { riemann } from '../theory/moves.js';
@@ -60,7 +60,7 @@ export const STOP: Preset = {
         if (!nx) return [];
         return rewrite(ctx, seams(ctx, v[0], v[3]), (s, was) => {
             const vel = velOf(ctx, was);
-            const pick = gridIn(s, 2 * TPS, v[2]);
+            const pick = pickIn(ctx, s, 2 * TPS, v[2]);
             const free = pick[0] ?? s.to;
             const last = toEvents(ctx.src.filter((n) => n.tick < s.from)).pop();
             const hit = v[1] === 0 || !last || free <= s.from ? []

@@ -66,8 +66,8 @@ export function scoreCandidate(ctx: GenCtx, p: Preset, notes: Note[]): { score: 
 type C = PresetClass;
 const SLOTS: Record<'variation' | 'quantize', Record<number, Record<GenLevel, C[]>>> = {
     variation: {
-        6: { SAFE: ['close', 'close', 'close', 'close', 'rhythm', 'rhythm'], BALANCED: ['close', 'close', 'close', 'rhythm', 'rhythm', 'exp'],
-            WILD: ['close', 'close', 'rhythm', 'rhythm', 'exp', 'exp'] },
+        6: { SAFE: ['close', 'close', 'close', 'close', 'rhythm', 'rhythm'], BALANCED: ['close', 'close', 'rhythm', 'rhythm', 'exp', 'exp'],
+            WILD: ['close', 'rhythm', 'rhythm', 'exp', 'exp', 'exp'] },
     },
     quantize: {
         3: { SAFE: ['close', 'rhythm', 'rhythm'], BALANCED: ['close', 'rhythm', 'exp'], WILD: ['rhythm', 'exp', 'exp'] },

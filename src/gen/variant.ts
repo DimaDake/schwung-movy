@@ -5,6 +5,7 @@
 
 import type { GenCtx } from './analysis/context.js';
 import type { Preset } from './preset.js';
+import { RHYTHMS } from './shape/rhythm.js';
 
 /** Take `which` (0 or 1) of a preset's feel moved; the two go opposite
  *  ways (longer and denser, or shorter, sparser, wider and louder), so the
@@ -16,7 +17,9 @@ export function variantKnobs(p: Preset, ctx: GenCtx, base: number[], seed: numbe
     p.knobs.forEach((k, i) => {
         const steps = k.steps(ctx);
         const set = (x: number) => { const y = Math.max(0, Math.min(steps - 1, x)); if (y !== v[i]) { v[i] = y; moved = true; } };
-        if (k.name === 'RHYTHM' && v[i] === 0) set(1 + ((seed + which * 3) % (steps - 1)));
+        /* A cycle is a variation's move: Smart Quantize keeps its bar. */
+        const rhythms = ctx.task === 'quantize' ? RHYTHMS.indexOf('CYCLE 3') : steps;
+        if (k.name === 'RHYTHM' && v[i] === 0) set(1 + ((seed + which * 3) % (rhythms - 1)));
         else if (k.name === 'VOICES') set(v[i] + up);
         else if (k.name === 'LENGTH') set(v[i] + 2 * up);
         else if (k.name === 'DENSITY') set(v[i] + 2 * up);
@@ -30,6 +33,9 @@ export function variantKnobs(p: Preset, ctx: GenCtx, base: number[], seed: numbe
         else if (k.name === 'GRID' && which === 1) set(v[i] === 2 ? 3 : 2);
         else if (k.name === 'FEEL') set((v[i] + 2 + which) % steps);
         else if (k.name === 'PITCH FIX' && which === 0) set(v[i] + 4);
+        else if (k.name === 'LIKENESS' || k.name === 'LOCK') set(v[i] - 2 - 2 * which);
+        else if (k.name === 'LOOP') set(v[i] + (which ? -2 : 1));
+        else if (k.name === 'PHRASE' && which === 1) set(v[i] + 1);
     });
     return moved ? v : null;
 }

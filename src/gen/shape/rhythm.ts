@@ -9,7 +9,8 @@ import { type Rng, shuffled } from '../rng.js';
 import { euclid } from '../theory/pc.js';
 import { BAR, type Ev, TPS } from '../types.js';
 
-export const RHYTHMS = ['KEEP', 'PUSH', 'SYNCOPATE', 'DOUBLE', 'HALF', 'COMP', 'EUCLID', 'SHUFFLE'] as const;
+export const RHYTHMS = ['KEEP', 'PUSH', 'SYNCOPATE', 'DOUBLE', 'HALF', 'COMP', 'EUCLID', 'SHUFFLE',
+    'CYCLE 3', 'CYCLE 5', 'CYCLE 6', 'CYCLE 7'] as const;
 
 /* Comping rhythms, per bar of 16ths, the styles a groovebox part uses. */
 export const COMPS: [string, number[]][] = [
@@ -51,6 +52,25 @@ export function repattern(ctx: GenCtx, evs: Ev[], steps: number[], legato: boole
     return out;
 }
 
+/* CYCLE (design 2026-10-28 §4): the first N steps repeat every N steps
+ * against the bar and come back into phase over the loop (Reich's phasing).
+ * A line repeats its figure's notes; chords sound what the source holds there. */
+function cycle(ctx: GenCtx, evs: Ev[], n: number, chords: boolean): Ev[] {
+    const span = n * TPS;
+    const fig = evs.filter((e) => e.tick < span);
+    const f = fig.length ? fig : [{ tick: 0, voices: evs[0].voices }];
+    const out: Ev[] = [];
+    for (let off = 0; off < ctx.end; off += span) {
+        for (const e of f) {
+            const tick = off + e.tick;
+            if (tick >= ctx.end) continue;
+            const src = chords ? [...evs].reverse().find((x) => x.tick <= tick) ?? evs[0] : e;
+            out.push({ tick, voices: src.voices.map((x) => ({ ...x, gate: Math.min(x.gate, span) })) });
+        }
+    }
+    return out;
+}
+
 const dedupe = (evs: Ev[]) => evs.sort((a, b) => a.tick - b.tick).filter((e, i, a) => i === 0 || e.tick !== a[i - 1].tick);
 
 export function rhythmStage(ctx: GenCtx, evs: Ev[], v: number, r: Rng): Ev[] {
@@ -83,6 +103,7 @@ export function rhythmStage(ctx: GenCtx, evs: Ev[], v: number, r: Rng): Ev[] {
         const keep = evs.filter((e, i) => i % 2 === 0 || strength(e.tick) >= 0.85);
         return keep.map((e, i) => ({ tick: e.tick, voices: e.voices.map((x) => ({ ...x, gate: Math.max(x.gate, spanTo(keep, i, ctx.end) - 4) })) }));
     }
+    if (name.startsWith('CYCLE')) return cycle(ctx, evs, Number(name.slice(6)), held || ctx.role?.kind === 'stabs');
     if (name === 'COMP') return repattern(ctx, evs, COMPS[nearestComp(evs)][1], held);
     if (name === 'EUCLID') {
         const perBar = Math.max(2, Math.min(15, Math.round(evs.length / Math.max(1, ctx.end / BAR)) + 1));

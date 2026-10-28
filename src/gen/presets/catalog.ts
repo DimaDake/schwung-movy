@@ -5,6 +5,8 @@ import type { Preset } from '../preset.js';
 import { ARP, DEVELOP } from './var-arp.js';
 import { FOLLOW } from './var-follow.js';
 import { BASSLINE } from './var-bass.js';
+import { STYLE, STYLE_D } from './var-style.js';
+import { LOOPER } from './var-turing.js';
 import { HARMONIZE, PULSE } from './var-pulse.js';
 import { ANSWER, NEWLINE, NEXT, REVOICE, SPREAD } from './var-close.js';
 import { HALFTIME, MOTIF, ORNAMENT, REGISTER, RETRO } from './var-exp.js';
@@ -19,8 +21,8 @@ import { FILL_D, FULL_D, GHOSTS_D, GROOVE_D, TIDY_D, TIGHT_D } from './quant-dru
 export const PRESETS: Preset[] = [
     NEXT, FOLLOW, PULSE, HARMONIZE, REVOICE, NEWLINE, ANSWER, SPREAD, ARP, DRONE,
     BASSLINE, DISPLACE, ANTICIPATE, CONNECT, RECOMBINE, EUCLID, COMP, OCTAVE, WALK, THIN,
-    MOTIF, RETRO, HALFTIME, ORNAMENT, REGISTER, PEDAL, DEVELOP,
-    KICK, HATS, GHOSTS, FILL, SHIFT, TURN, FEEL, GRIDS, EUCLID_D, DEVELOP_D,
+    MOTIF, RETRO, HALFTIME, ORNAMENT, REGISTER, PEDAL, DEVELOP, STYLE, LOOPER,
+    KICK, HATS, GHOSTS, FILL, SHIFT, TURN, FEEL, GRIDS, EUCLID_D, DEVELOP_D, STYLE_D,
     TIGHT, TIDY, GROOVE, SHAPED, EMBELLISH, ANSWER_Q, FULL,
     TIGHT_D, TIDY_D, GROOVE_D, GHOSTS_D, FILL_D, FULL_D,
 ];

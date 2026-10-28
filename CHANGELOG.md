@@ -15,6 +15,14 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
+- **Generators learn the part's style.** New Variation generators: STYLE
+  writes a new part in the source's own language (a Markov model learned from
+  the clip and the track's other clips; LIKENESS and PHRASE knobs), for melodic
+  parts and drums; LOOPER is a locked loop that mutates as it repeats (after
+  the Turing Machine and Marbles; LOCK, LOOP, CLOCK, SPREAD). RHYTHM gains
+  CYCLE 3/5/6/7 (a figure repeated against the bar), and an empty scene can
+  take Tonnetz moves (R, L and P TURN). Variation's six options now include
+  two experimental ones (three on WILD).
 - **Algorithmic generators (the default).** Smart Quantize and Variation now
   run Movy's own generators on the Move: no key, no network, options in under a
   second. About thirty Variation generators and a dozen for Smart Quantize, each

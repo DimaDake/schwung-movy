@@ -29,6 +29,16 @@ export function stepScale(p: number, steps: number, k: Key): number {
     return k.tonic + o * 12 + sc[((j % 7) + 7) % 7] + chrom;
 }
 
+/** A pitch's place on the key's scale, in scale steps from the tonic's
+ *  octave 0 (a chromatic note counts as the degree below it). */
+export function degreeIndex(p: number, k: Key): number {
+    const sc = (k.minor ? MINOR : MAJOR);
+    const rel = pc(p - k.tonic);
+    let i = sc.length - 1;
+    while (i > 0 && sc[i] > rel) i--;
+    return Math.floor((p - k.tonic) / 12) * 7 + i;
+}
+
 /** Euclidean rhythm: `pulses` onsets spread over `steps`, rotated. */
 export function euclid(pulses: number, steps: number, rotate = 0): boolean[] {
     const out = Array.from({ length: steps }, (_, i) => Math.floor((i * pulses) / steps) !== Math.floor(((i - 1) * pulses) / steps));

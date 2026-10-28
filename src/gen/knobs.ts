@@ -8,6 +8,7 @@ import { defaultHarmony, planAt } from './plan.js';
 import { CHANGES } from './theory/changes.js';
 import { RHYTHMS } from './shape/rhythm.js';
 import { VOICE_STEPS } from './shape/thicken.js';
+import { BAR } from './types.js';
 
 export interface KnobDef {
     name: string;
@@ -50,7 +51,22 @@ export const K = {
     changes: (def = 0): KnobDef => custom('CHANGES', CHANGES, def),
     rhythm: (def = 0): KnobDef => custom('RHYTHM', RHYTHMS, def),
     voices: (def = 1): KnobDef => custom('VOICES', VOICE_STEPS, def),
+    /* How close a learned walk stays to the source (style/markov.ts). */
+    likeness: (def = 6): KnobDef => ({ name: 'LIKENESS', steps: fixed(11), def: fixed(def), label: (v) => pct(v, 11) }),
+    phrase: (): KnobDef => ({ name: 'PHRASE', steps: (c) => Math.max(1, PHRASES.filter((b) => b * BAR <= c.end).length),
+        def: (c) => Math.max(0, PHRASES.filter((b) => b <= sourceBars(c) && b * BAR <= c.end).length - 1),
+        label: (v) => (PHRASES[v] === 1 ? '1 BAR' : `${PHRASES[v]} BARS`) }),
 };
+
+/** Bars a learned walk is written for before it repeats. */
+export const PHRASES = [1, 2, 4];
+
+/** The source clip's own length in bars (a Smart Quantize: the clip's). */
+export function sourceBars(c: GenCtx): number {
+    const s = c.input.source ?? c.input.target;
+    const clip = c.input.tracks.find((t) => t.index === s.track)?.clips.find((k) => k.slot === s.slot);
+    return clip ? Math.max(1, Math.ceil(clip.len / 16)) : 1;
+}
 
 /** Swing knob position → fraction of a 16th. */
 export const swingOfKnob = (v: number): number => v * 0.05;

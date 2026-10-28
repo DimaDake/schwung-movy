@@ -128,6 +128,20 @@ async function main() {
         vrow(`AI (${REF.model}, cached)`, vAi), vrow('algorithmic, three', v3), vrow('algorithmic, six (device)', v6),
         ...byKind('variation'), ...byKind('quantize-messy'), ...byKind('quantize-played'),
         '', 'A cached reply is matched to the case whose input its options share the most notes with; one matching none is left out of the per-task rows.');
+    /* Novelty without coherence is noise (plans/2026-10-28-generators-learned-
+     * style-design.md): how far each option moved from the source, and how
+     * well its notes sit on the scene's chords, per task. */
+    const allRef = [...ref.values()].flat();
+    const crow = (name, rows) => {
+        const ops = rows.flatMap((r) => r.perOption);
+        return `| ${name} | ${rows.length} | ${f2(mean(ops.map((o) => 1 - o.ideaKept)))} | ${f2(mean(ops.map((o) => o.fit).filter((v) => v !== null && v !== undefined)))} |`;
+    };
+    out.push('', '## Novelty and coherence', '', 'Novelty: 1 - the source idea kept, per option. Coherence: chord fit of melodic options. '
+        + 'Higher novelty is only better at equal coherence.', '', '| options | requests | novelty | coherence |', '| --- | --- | --- | --- |');
+    for (const k of ['variation', 'quantize-messy', 'quantize-played']) {
+        out.push(crow(`AI, ${k}`, allRef.filter((r) => r.kind === k)), crow(`algorithmic, ${k}`, bal.filter((r) => r.kind === k)));
+    }
+    out.push(crow('algorithmic, variation six (device)', six));
     out.push('', '## Case by case (BALANCED vs the AI reference mean)', '', '| case | half | kind | AI align | algo align | AI gate | algo gate | presets | failed |', '| --- | --- | --- | --- | --- | --- | --- | --- | --- |');
     let w = 0, t = 0, l = 0;
     for (const r of bal) {

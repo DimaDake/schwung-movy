@@ -25,6 +25,7 @@ import { run as run_ai_preview } from './logic/ai-preview.mjs';
 import { run as run_ai_gestures } from './logic/ai-gestures.mjs';
 import { run as run_gen_bench } from './logic/gen-bench.mjs';
 import { run as run_gen_theory } from './logic/gen-theory.mjs';
+import { run as run_gen_style } from './logic/gen-style.mjs';
 import { run as run_gen_engine } from './logic/gen-engine.mjs';
 import { run as run_ai_preview_knobs } from './logic/ai-preview-knobs.mjs';
 import { run as run_host_param } from './logic/host-param.mjs';
@@ -130,6 +131,7 @@ const SUITES = [
     run_ai_gestures,
     run_gen_bench,
     run_gen_theory,
+    run_gen_style,
     run_gen_engine,
     run_ai_preview_knobs,
     run_host_param,

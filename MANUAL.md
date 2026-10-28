@@ -1849,7 +1849,7 @@ groups:
 | --- | --- | --- |
 | **Close** | NEXT CHORDS (the rhythm kept, new notes from the new chords), FOLLOW (the whole part slid along the new roots, the way dub and house chords move), PULSE (the rhythm on each chord's root), HARMONIZE (a line in parallel thirds or sixths), RE-VOICE, NEW LINE, ANSWER, SPREAD, ARP, DRONE MOVE | KICK, HATS, GHOSTS, FILL |
 | **Rhythm** | BASSLINE (a new bass figure over the chords: offbeat, rolling, octaves, 3-3-2, gallop…), DISPLACE, ANTICIPATE, CONNECT (passing notes and suspensions), RECOMBINE, EUCLID, COMP (chord rhythms), OCTAVE BASS, WALK, THIN | SHIFT, TURNAROUND |
-| **Experimental** | MOTIF (a cell as a sequence), RETROGRADE, HALF/DOUBLE, ORNAMENT, REGISTER, PEDAL, DEVELOP (eight knobs) | FEEL (half time, double hats), GRIDS (a density map, after Mutable Instruments' Grids), EUCLID, DEVELOP |
+| **Experimental** | STYLE (a new part in the source's own language, learned from it), LOOPER (a locked loop that mutates, after the Turing Machine), MOTIF (a cell as a sequence), RETROGRADE, HALF/DOUBLE, ORNAMENT, REGISTER, PEDAL, DEVELOP (eight knobs) | STYLE (a new pattern learned from yours), FEEL (half time, double hats), GRIDS (a density map, after Mutable Instruments' Grids), EUCLID, DEVELOP |
 
 GENERATORS (below) sets how many come from each group. Each generator is
 also tried with its feel moved two ways (another rhythm, more or fewer voices,
@@ -1890,6 +1890,11 @@ the target scene:
 So each track's B is built on its own, in the order you make them, and the
 first track you vary in an empty scene sets that scene's chords for the rest.
 The bass or the chords are the best tracks to vary first.
+
+In an empty scene, three moves keep two notes of each chord and move the third
+(the Tonnetz): **R TURN** (C to Am), **L TURN** (C to Em) and **P TURN** (C to
+Cm). Each changes only the second half of a chord that is held for a bar, so a
+slow progression moves without leaving its sound.
 
 ### Harmony, not scales
 
@@ -1932,7 +1937,9 @@ A name means the same thing on every generator:
 | **LENGTH** | Longer notes, toward legato (`AS IS` in the middle). |
 | **RANGE** | Wider intervals and spread voicings, up to twice the played intervals and an octave past the played register (`AS IS` in the middle). |
 | **CHANGES** | More chord changes than the source: an approach chord before each change, then on the last beat, then a substitute inside long chords. Only where the scene's harmony is free. |
-| **RHYTHM** | A new rhythm for the same notes: KEEP, PUSH, SYNCOPATE, DOUBLE, HALF, COMP, EUCLID, SHUFFLE. |
+| **RHYTHM** | A new rhythm for the same notes: KEEP, PUSH, SYNCOPATE, DOUBLE, HALF, COMP, EUCLID, SHUFFLE, and CYCLE 3, 5, 6 and 7: the first 3, 5, 6 or 7 steps repeated against the bar, drifting out of phase and back. |
+| **LIKENESS** | Closer to the source: on the left the learned walk recombines freely, on the right it keeps the source's own phrases. |
+| **PHRASE** | How long the learned phrase is before it repeats: 1, 2 or 4 bars. |
 | **VOICES** | More harmony notes (chord tones added on top, or a note under a line's strongest notes), or one fewer. |
 | **TIMING** | From your feel to exactly on the grid. |
 | **SWING** | More swing, from 50 % (straight) to 75 %; it opens on the swing you played. |
@@ -1941,7 +1948,11 @@ A name means the same thing on every generator:
 | **DYNAMICS** | From the velocities you played to the groove's accents. |
 | **SEED** | Another roll of the same idea. |
 
-Other knobs belong to one generator: BASSLINE has PATTERN, NOTES, OCTAVE and SHIFT; ARP has PATTERN, RATE and OCTAVES; MOTIF
+Other knobs belong to one generator: LOOPER has LOCK (on the right the loop
+repeats as it is; turning left, more of its steps are rewritten each time
+round), LOOP (3 to 16 steps; a loop that does not divide 16 runs against the
+bar), CLOCK (1/16, 1/8 or 1/4 per step) and SPREAD (how far a rewritten step may
+leap); BASSLINE has PATTERN, NOTES, OCTAVE and SHIFT; ARP has PATTERN, RATE and OCTAVES; MOTIF
 has CELL and STEP; FILL has SIZE and PADS; EUCLID has PULSES and ROTATE; GRIDS
 has KICK, SNARE, HATS and CHAOS.
 

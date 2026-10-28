@@ -5,7 +5,7 @@
 
 import type { Chord, Key } from '../types.js';
 import { sectionConnection, DROP_BELOW } from './connect.js';
-import { chordOf, pc, sameChord } from './pc.js';
+import { chordOf, isMinorQ, pc, sameChord } from './pc.js';
 import { degreeOf, diatonic, shiftDegrees } from './roman.js';
 
 export interface MoveResult { name: string; dist: number; chords: (Chord | null)[]; pedal: number | null }
@@ -44,17 +44,37 @@ function parallel(c: Chord, k: Key): Chord {
     return diatonic({ tonic: k.tonic, minor: !k.minor, score: 0 }, d, c.pcs.length > 3);
 }
 
+/* Neo-Riemannian transforms (the Tonnetz): each keeps two notes of a triad
+ * and moves the third by a step or two — P C↔Cm, L C↔Em, R C↔Am. Only major
+ * and minor chords (and their sevenths, as triads) have them. */
+const TRIADIC = new Set(['maj', 'min', 'maj7', '7', 'm7']);
+export function riemann(c: Chord, t: 'P' | 'L' | 'R'): Chord {
+    if (!TRIADIC.has(c.quality)) return c;
+    const minor = isMinorQ(c.quality);
+    if (t === 'P') return chordOf(c.root, minor ? 'maj' : 'min');
+    if (t === 'L') return minor ? chordOf(c.root + 8, 'maj') : chordOf(c.root + 4, 'min');
+    return minor ? chordOf(c.root + 3, 'maj') : chordOf(c.root + 9, 'min');
+}
+
+/** A TURN: the second half of every held chord takes the transform (C C →
+ *  C Am), so a slow progression moves with two notes kept. */
+const turn = (p: Prog, t: 'P' | 'L' | 'R'): Prog =>
+    p.map((c, i) => (c && i % 2 === 1 && sameChord(c, p[i - 1]) ? riemann(c, t) : c));
+
 interface Def { name: string; dist: number; map: (p: Prog, k: Key) => Prog; pedal?: boolean; wild?: boolean }
 
 const DEFS: Def[] = [
     { name: 'SAME', dist: 0, map: (p) => p },
     { name: 'IV SEQ', dist: 0.3, map: (p, k) => each(p, (c) => shiftDegrees(c, k, 3)) },
     { name: 'VI SEQ', dist: 0.35, map: (p, k) => each(p, (c) => shiftDegrees(c, k, 5)) },
+    { name: 'R TURN', dist: 0.37, map: (p) => turn(p, 'R') },
+    { name: 'L TURN', dist: 0.42, map: (p) => turn(p, 'L') },
     { name: 'V SEQ', dist: 0.4, map: (p, k) => each(p, (c) => shiftDegrees(c, k, 4)) },
     { name: 'II SEQ', dist: 0.45, map: (p, k) => each(p, (c) => shiftDegrees(c, k, 1)) },
     { name: 'SUBST', dist: 0.5, map: (p, k) => each(p, (c) => substitute(c, k)) },
     { name: 'BORROW', dist: 0.55, map: (p, k) => each(p, (c) => borrow(c, k)) },
     { name: 'PEDAL', dist: 0.6, map: (p, k) => each(p, (c) => shiftDegrees(c, k, 3)), pedal: true },
+    { name: 'P TURN', dist: 0.65, map: (p) => turn(p, 'P') },
     { name: 'PARALLEL', dist: 0.75, map: (p, k) => each(p, (c) => parallel(c, k)) },
     { name: 'MEDIANT', dist: 0.9, map: (p) => each(p, (c) => chordOf(c.root + 8, c.quality)), wild: true },
 ];

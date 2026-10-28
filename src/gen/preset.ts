@@ -37,6 +37,8 @@ const LEVEL_SHIFT: Record<string, Partial<Record<GenLevel, number>>> = {
     AMOUNT: { SAFE: -2, WILD: 2 },
     TENSION: { SAFE: -1, WILD: 2 },
     HARMONY: { WILD: 1 },
+    LIKENESS: { SAFE: 2, WILD: -3 },
+    LOCK: { SAFE: 2, WILD: -3 },
 };
 
 export function defaults(p: Preset, ctx: GenCtx): number[] {

@@ -80,7 +80,7 @@ eq('select_is_deterministic', sel.picks.map((p) => sig(p.notes)).join('|'), G.ge
 const qs = G.generateAll(quantInput('lead'));
 eq('select_three_quantize_options', qs.picks.length, 3);
 eq('select_quantize_opens_on_the_tightest', qs.picks[0].preset.cls, 'close');
-eq('slots_three_of_six_keep_the_proportions', G.slotsFor('variation', 3, 'BALANCED').join(','), 'close,close,rhythm');
+eq('slots_three_of_six_keep_the_proportions', G.slotsFor('variation', 3, 'BALANCED').join(','), 'close,rhythm,exp');
 
 /* §5.1 — every knob of every preset moves the output. Each knob must change
  * the option on at least one fixture its preset serves, and a preset keeps at

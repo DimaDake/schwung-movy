@@ -15,6 +15,10 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Added
 
+- **SEED on more generators.** CONNECT, RECOMBINE, THIN, ORNAMENT, PEDAL,
+  OCTAVE, WALK, RETRO and drum FILL (Variation), EMBELLISH (Smart Quantize)
+  and FILL (Smart Double) roll dice and had knobs to spare: knob 5 is now
+  SEED. `#1` is the take they always gave.
 - **New Clip: Shift + hold Step 14 on an empty track.** A part from nothing,
   fitted to the scene's chords, swing and accents. On melodic tracks there are
   eight options, one per part: CHORDS, PAD, STABS, BASS, ARP, MELODY, RIFF and

@@ -106,7 +106,10 @@ for (const task of ['variation', 'quantize', 'double', 'create']) {
                     else if (!liveAny.has(p.id + ':' + k.name)) liveAny.set(p.id + ':' + k.name, false);
                     return !live;
                 });
-                if (dead.length * 2 > p.knobs.length) thin.push(`${p.id}@${task}/${scene}/${role}: ${dead.map((k) => k.name)}`);
+                /* An added SEED (seeded.ts) that no dice reach on this part is hidden,
+                 * and does not make the preset thin: its own knobs decide. */
+                const own = p.knobs.filter((k) => k.name !== 'SEED' || p.knobs.length !== 5).length;
+                if (dead.filter((k) => k.name !== 'SEED' || p.knobs.length !== 5).length * 2 > own) thin.push(`${p.id}@${task}/${scene}/${role}: ${dead.map((k) => k.name)}`);
             }
         }
     }
@@ -115,6 +118,17 @@ const never = [...liveAny].filter(([, l]) => !l).map(([k]) => k);
 eq('knob_property_every_knob_live_somewhere', never.join(' '), '');
 eq('knob_property_half_live_on_every_served_role', thin.join(' | '), '');
 ok('knob_property_every_preset_served_by_a_fixture', G.PRESETS.every((p) => [...liveAny.keys()].some((k) => k.startsWith(p.id + ':'))));
-ok('knob_property_presets_have_four_or_eight_knobs', G.PRESETS.every((p) => p.knobs.length === 4 || p.knobs.length === 8));
+ok('knob_property_presets_have_four_five_or_eight_knobs', G.PRESETS.every((p) => [4, 5, 8].includes(p.knobs.length)));
+/* SEED where a preset rolls dice and had knobs to spare: #1 is the take it
+ * always gave, another position another take. */
+const seeded = G.PRESETS.filter((p) => p.knobs.length === 5);
+eq('seed_added_where_knobs_were_free', seeded.map((p) => p.id).sort().join(' '),
+    'd-fill q-embellish v-connect v-octave v-ornament v-pedal v-recombine v-retro v-thin v-walk xd-fill');
+ok('seed_is_the_fifth_knob', seeded.every((p) => p.knobs[4].name === 'SEED'));
+const sc = G.prepare(fixtureInput('lead', { scene: 'free' }));
+const walk = G.PRESETS.find((p) => p.id === 'v-walk');
+const wv = G.defaults(walk, sc);
+const wsig = (k) => JSON.stringify(G.regenerate(sc, walk, [...wv.slice(0, 4), k]));
+ok('seed_moves_the_take', new Set([0, 1, 2, 3, 4].map(wsig)).size > 2);
 ok('knob_property_ran', served > 150);
 }

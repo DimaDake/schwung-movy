@@ -2,6 +2,7 @@
  * knob property test walks it (browser-test/logic/gen-presets.mjs). */
 
 import type { Preset } from '../preset.js';
+import { withSeed } from '../seeded.js';
 import { ARP, DEVELOP } from './var-arp.js';
 import { FOLLOW } from './var-follow.js';
 import { BASSLINE } from './var-bass.js';
@@ -27,7 +28,7 @@ import { PAD_EUCLID, PAD_PATTERN } from './new-drums-pad.js';
 import { BROKEN, EUCLID_KIT, GROOVE as GROOVE_N, PERC } from './new-drums-kit.js';
 import { BREAK_D, FILL_X, PICKUP_D, REPEAT, ROLL, STYLE_XD } from './dbl-drums.js';
 
-export const PRESETS: Preset[] = [
+const LISTED: Preset[] = [
     NEXT, FOLLOW, PULSE, HARMONIZE, REVOICE, NEWLINE, ANSWER, SPREAD, ARP, DRONE,
     BASSLINE, DISPLACE, ANTICIPATE, CONNECT, RECOMBINE, EUCLID, COMP, OCTAVE, WALK, THIN,
     MOTIF, RETRO, HALFTIME, ORNAMENT, REGISTER, PEDAL, DEVELOP, STYLE, LOOPER, FORM,
@@ -40,5 +41,11 @@ export const PRESETS: Preset[] = [
     CHORDS, PAD, STABS, BASS, ARP_N, MELODY, RIFF, COUNTER,
     PAD_EUCLID, PAD_PATTERN, GROOVE_N, EUCLID_KIT, BROKEN, PERC,
 ];
+
+/* The ones that roll dice and had knobs to spare get SEED (seeded.ts). */
+const SEEDED = new Set(['v-connect', 'v-recombine', 'v-thin', 'v-ornament', 'v-pedal', 'v-octave', 'v-walk', 'v-retro', 'd-fill',
+    'q-embellish', 'xd-fill']);
+
+export const PRESETS: Preset[] = LISTED.map((p) => (SEEDED.has(p.id) ? withSeed(p) : p));
 
 export const presetById = (id: string): Preset | undefined => PRESETS.find((p) => p.id === id);

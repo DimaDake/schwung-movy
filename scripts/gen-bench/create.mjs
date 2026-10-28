@@ -32,6 +32,15 @@ function measure(G, c, level) {
     return { picks: a.picks, per };
 }
 
+/** The section's headline numbers (quality/run.mjs compares them). */
+export function createStats(G, cases) {
+    G.forgetOptions();
+    const ops = cases.flatMap((c) => measure(G, c, 'BALANCED').per);
+    G.forgetOptions();
+    const m = (k) => mean(ops.map((o) => o[k]).filter((x) => x !== null));
+    return { meaningful: mean(ops.map((o) => (o.ok ? 1 : 0))), fit: m('fit'), band: m('band'), rerun: m('rerun') };
+}
+
 /** Markdown lines for the bench report. */
 export function createSection(G, cases) {
     const out = ['', '## New Clip', '', 'Each case\'s target track emptied, a part written into its slot from nothing. Meaningful: the share '

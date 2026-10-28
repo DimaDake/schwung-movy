@@ -11,7 +11,7 @@ import { rng } from '../rng.js';
 import { realiseChords } from '../realise/chords.js';
 import { even, dynamics } from '../shape/dynamics.js';
 import { clean } from '../shape/drums.js';
-import { embellish, ORNAMENTS, pitchFix } from '../shape/pitch.js';
+import { embellish, fixChords, fixWorst, ORNAMENTS, pitchFix } from '../shape/pitch.js';
 import { FEELS, feelLand, lengthStage, timing } from '../shape/time.js';
 import { rhythmStage } from '../shape/rhythm.js';
 import { densityStage } from '../shape/density.js';
@@ -24,12 +24,12 @@ const grid = (ctx: GenCtx) => ctx.groove.grid;
 const swing = (ctx: GenCtx) => ctx.groove.swing;
 const tight = (ctx: GenCtx, notes: Note[], amount = 1) => timing(ctx, notes, amount, grid(ctx), swing(ctx));
 const len = (ctx: GenCtx, notes: Note[], v: number) => fromEvents(lengthStage(toEvents(notes), v, ctx.end), ctx.end);
-const chords = (ctx: GenCtx) => ctx.plans[0]?.chords ?? ctx.fixedChords;
+const chords = fixChords;
 
 export const TIGHT: Preset = {
     id: 'q-tight', name: 'TIGHT', task: 'quantize', drum: false, cls: 'close', fit: () => 0.9,
     knobs: [K.timing(10), K.swing(), K.grid(), K.pitchFix(4)],
-    generate: (ctx, v) => pitchFix(ctx, timing(ctx, ctx.src, v[0] / 10, GRIDS[v[2]], swingOfKnob(v[1])), v[3], chords(ctx)),
+    generate: (ctx, v) => fixWorst(ctx, timing(ctx, ctx.src, v[0] / 10, GRIDS[v[2]], swingOfKnob(v[1])), v[3], chords(ctx)),
 };
 
 export const TIDY: Preset = {
@@ -49,7 +49,7 @@ export const SHAPED: Preset = {
     id: 'q-shaped', name: 'SHAPED', task: 'quantize', drum: false, cls: 'rhythm', fit: () => 0.55,
     knobs: [K.timing(10), K.pitchFix(6), count('VOICING', 10, 6), K.length(6)],
     generate: (ctx, v) => {
-        let notes = pitchFix(ctx, tight(ctx, ctx.src, v[0] / 10), v[1], chords(ctx));
+        let notes = fixWorst(ctx, tight(ctx, ctx.src, v[0] / 10), v[1], chords(ctx));
         const kind = ctx.role?.kind;
         if (kind === 'pad' || kind === 'stabs') {
             const evs = realiseChords(ctx, toEvents(notes), { plan: ctx.plans[0], tension: v[2] / 12, range: 1 });
@@ -71,7 +71,7 @@ export const EMBELLISH: Preset = {
     id: 'q-embellish', name: 'EMBELLISH', task: 'quantize', drum: false, cls: 'exp', fit: () => 0.5,
     knobs: [K.timing(10), count('AMOUNT', 16, 3), custom('KIND', ['GRACE', 'PASSING', 'NEIGHBOUR'], 1), K.pitchFix(4)],
     generate: (ctx, v, seed) => {
-        const base = pitchFix(ctx, tight(ctx, ctx.src, v[0] / 10), v[3], chords(ctx));
+        const base = fixWorst(ctx, tight(ctx, ctx.src, v[0] / 10), v[3], chords(ctx));
         return embellish(ctx, base, v[1], ORNAMENTS[v[2]], rng(seed), chords(ctx));
     },
 };
@@ -93,7 +93,7 @@ export const ANSWER_Q: Preset = {
         const tail = toEvents(moved.filter((n) => n.tick >= split));
         const tail2 = v[4] ? rhythmStage(ctx, tail, v[4], r).filter((e) => e.tick >= split) : tail;
         const evs = densityStage(ctx, toEvents([...head, ...fromEvents(tail2, ctx.end)]), v[6], r, chords(ctx));
-        return dynamics(pitchFix(ctx, len(ctx, fromEvents(evs, ctx.end), v[5]), v[3], chords(ctx)), v[7]);
+        return dynamics(fixWorst(ctx, len(ctx, fromEvents(evs, ctx.end), v[5]), v[3], chords(ctx)), v[7]);
     },
 };
 
@@ -102,7 +102,7 @@ export const FULL: Preset = {
     knobs: [K.timing(10), K.swing(), K.grid(), K.pitchFix(4), count('EMBELLISH', 16, 2), K.dynamics(3), K.length(5), K.rhythm(0)],
     generate: (ctx, v, seed) => {
         const r = rng(seed);
-        let notes = pitchFix(ctx, timing(ctx, ctx.src, v[0] / 10, GRIDS[v[2]], swingOfKnob(v[1])), v[3], chords(ctx));
+        let notes = fixWorst(ctx, timing(ctx, ctx.src, v[0] / 10, GRIDS[v[2]], swingOfKnob(v[1])), v[3], chords(ctx));
         if (v[7]) notes = fromEvents(rhythmStage(ctx, toEvents(notes), v[7], r), ctx.end);
         notes = embellish(ctx, notes, v[4], ORNAMENTS[Math.floor(r() * 3)], r, chords(ctx));
         return len(ctx, dynamics(notes, v[5]), v[6]);

@@ -26,9 +26,23 @@ function tones(ctx: GenCtx, T: Chord, o: RealiseOpts): { pcs: number[]; required
 
 const sig = (e: Ev) => e.voices.map((v) => v.pitch).join(',');
 
+/* Voice-leading prefers the window; this holds it: an octave in at a time.
+ * Only a root put under the chord may go an octave below it. */
+const fold = (p: number, lo: number, hi: number): number => {
+    let q = p;
+    while (q < lo && q + 12 <= Math.max(hi, lo + 12)) q += 12;
+    while (q > hi && q - 12 >= lo) q -= 12;
+    return q;
+};
+
 export function realiseChords(ctx: GenCtx, evs: Ev[], o: RealiseOpts): Ev[] {
     const [lo, hi] = bounds(ctx, o.range);
     let prevOut: number[] | null = null;
+    /* The voice-led chord before RANGE opened it or a root went under it: the
+     * next chord leads from this one. Leading from prevOut fed each dropped
+     * root back in as a voice, and a long part sank a little every chord
+     * (bench 2026-10-29: a pad at C3 came out with notes at E0). */
+    let prevLed: number[] | null = null;
     let prevSrc: Ev | null = null;
     let prevT: Chord | null = null;
     return evs.map((e) => {
@@ -36,21 +50,23 @@ export function realiseChords(ctx: GenCtx, evs: Ev[], o: RealiseOpts): Ev[] {
         const S = chordAt(ctx.srcChords, e.tick, ctx.k);
         const T = chordAt(o.plan.chords, e.tick, ctx.k) ?? S;
         const outE = { tick: e.tick, voices: e.voices.map((v) => ({ ...v })) };
-        if (!T) { prevOut = src; prevSrc = e; return outE; }
+        if (!T) { prevOut = src; prevLed = src; prevSrc = e; return outE; }
         let v: number[];
         if (prevOut && prevSrc && sig(prevSrc) === sig(e) && sameChord(T, prevT)) v = [...prevOut];
         else {
             const { pcs, required } = tones(ctx, T, o);
-            const anchor = prevOut && prevSrc && prevSrc.voices.length === e.voices.length
-                ? prevOut.map((p, i) => p + (src[i] - prevSrc!.voices[i].pitch)) : src;
-            v = src.length >= 1 ? voiceLead(anchor, pcs, required, lo, hi) : closeVoicing(pcs, 3, ctx.mid);
-            if (o.range > 1.05) v = spreadVoicing(v, Math.round((o.range - 1) * 3), lo - 12);
+            const anchor = prevLed && prevSrc && prevSrc.voices.length === e.voices.length && prevLed.length === e.voices.length
+                ? prevLed.map((p, i) => p + (src[i] - prevSrc!.voices[i].pitch)) : src;
+            v = (src.length >= 1 ? voiceLead(anchor, pcs, required, lo, hi) : closeVoicing(pcs, 3, ctx.mid)).map((p) => fold(p, lo, hi));
+            prevLed = [...v].sort((a, b) => a - b);
+            if (o.range > 1.05) v = spreadVoicing(v, Math.round((o.range - 1) * 3), lo);
             else if (o.range < 0.95 && v.length >= 3) v = closeVoicing(pcs, v.length, Math.round(v.reduce((a, b) => a + b, 0) / v.length));
             const bassPc = o.plan.pedal ?? (o.plan.sit === 'roots' ? T.pcs[0] : o.plan.sit === 'inv' ? T.pcs[1] : null);
             if (bassPc !== null && v.length) {
                 const b = nearestPitch(v[0] - 2, [bassPc], lo - 12, v[0]);
                 v[0] = Math.min(b, v[0]);
-                if (pc(v[0]) !== bassPc) v[0] = nearestPitch(v[0] - 12, [bassPc], 0, v[0]);
+                if (pc(v[0]) !== bassPc) v[0] = nearestPitch(v[0] - 12, [bassPc], lo - 12, v[0]);
+                v[0] = fold(v[0], lo - 12, hi);
             }
         }
         v.sort((a, b) => a - b);

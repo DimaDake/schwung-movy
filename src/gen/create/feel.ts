@@ -32,27 +32,41 @@ const SWING: KnobDef = { name: 'SWING', steps: () => 11, def: (c) => Math.min(10
 const share = (v: number) => 0.1 + 0.09 * v;
 
 /* VARY: each event after the first may be dropped, pushed a 16th either way,
- * repeated half way to the next one, or held longer or shorter. */
+ * repeated half way to the next one, or held longer or shorter. Which events
+ * vary, and how, is fixed per part, and each click varies one event more (or
+ * v·5.5% of them on a long part): a turn walks, and no click is dead while
+ * there is an event left to vary (bench 2026-10-29: 76% of clicks were). */
 function vary(ctx: GenCtx, evs: Ev[], v: number, r: Rng, drum: boolean): { evs: Ev[]; len: Map<Ev, number> } {
     const len = new Map<Ev, number>();
-    const p = v * 0.055;
     const taken = new Set(evs.map((e) => Math.round(e.tick / TPS)));
+    const draws = evs.map(() => [r(), r(), r(), r()]);
+    const open = evs.map((e, i) => i).filter((i) => evs[i].tick !== 0 && !bandAccent(ctx, evs[i].tick))
+        .sort((a, b) => draws[a][0] - draws[b][0]);
+    const picked = new Set(open.slice(0, v <= 0 ? 0 : Math.max(v, Math.round(v * 0.055 * evs.length))));
     const out: Ev[] = [];
     evs.forEach((e, i) => {
         /* What the part plays with the band stays: the variation is around it. */
-        if (e.tick === 0 || r() >= p || bandAccent(ctx, e.tick)) { out.push(e); return; }
-        const k = r();
+        if (!picked.has(i)) { out.push(e); return; }
+        const [, k, d, l] = draws[i];
         const step = Math.round(e.tick / TPS);
-        if (k < 0.25 && !(drum && step % 16 === 0)) return;                          // dropped
-        if (k < 0.5) {                                                               // pushed
-            const to = step + (r() < 0.6 ? -1 : 1);
-            if (to > 0 && to * TPS < ctx.end && !taken.has(to)) { taken.add(to); out.push({ ...e, tick: e.tick + (to - step) * TPS }); return; }
-        } else if (k < 0.75) {                                                       // repeated
-            const half = Math.round(spanTo(evs, i, ctx.end) / 2 / TPS) * TPS;
-            out.push(e);
-            if (half >= TPS && e.tick + half < ctx.end) out.push({ tick: e.tick + half, voices: e.voices.map((x) => ({ ...x, vel: x.vel * 0.85 })) });
-            return;
-        } else if (!drum) len.set(e, r() < 0.5 ? 0.45 : 1.8);                        // shorter or longer
+        /* Its kind first, then the next one that can apply here: a push onto
+         * a taken step or a held drum hit would leave the click dead. */
+        for (let j = 0; j < 4; j++) {
+            const kind = (Math.floor(k * 4) + j) % 4;
+            if (kind === 0 && !(drum && step % 16 === 0)) return;                    // dropped
+            if (kind === 1) {                                                        // pushed
+                const to = step + (d < 0.6 ? -1 : 1);
+                if (to > 0 && to * TPS < ctx.end && !taken.has(to)) { taken.add(to); out.push({ ...e, tick: e.tick + (to - step) * TPS }); return; }
+            }
+            if (kind === 2) {                                                        // repeated
+                const half = Math.round(spanTo(evs, i, ctx.end) / 2 / TPS) * TPS;
+                if (half >= TPS && e.tick + half < ctx.end) {
+                    out.push(e, { tick: e.tick + half, voices: e.voices.map((x) => ({ ...x, vel: x.vel * 0.85 })) });
+                    return;
+                }
+            }
+            if (kind === 3 && !drum) { len.set(e, l < 0.5 ? 0.45 : 1.8); break; }   // shorter or longer
+        }
         out.push(e);
     });
     return { evs: out.sort((a, b) => a.tick - b.tick), len };

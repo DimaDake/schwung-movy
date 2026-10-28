@@ -1968,7 +1968,7 @@ somewhere new, so the rhythm and the note lengths change from run to run too:
 | Knob | What it does |
 | --- | --- |
 | **GATE** | How much of the space to the next note each note holds: short and clipped at 0, held right up to the next one at `HELD`. Chords, pads included, need not ring for their whole length. |
-| **VARY** | Bar to bar, a note may drop out, move a 16th, repeat half way to the next one, or ring longer or shorter. 0 plays the same bar every time. Notes that land on the band's accents stay put. |
+| **VARY** | Bar to bar, a note may drop out, move a 16th, repeat half way to the next one, or ring longer or shorter. 0 plays the same bar every time; each click varies one note more, the same ones the same way, so turning back gives the take back. Notes that land on the band's accents stay put. |
 | **SWING** | Swing on the off-16ths (on the off-8ths for a part that plays no 16ths). It opens at the scene's own swing. PAD has **STRUM** here instead, which spreads a chord's notes from low to high. |
 | **DYNAMICS** | How much the velocities follow the beat: louder on the downbeats, softer off them. |
 
@@ -2029,6 +2029,13 @@ as a passing or approach note on a weak beat, or as part of a borrowed chord
 the scene allows. Smart Quantize's PITCH FIX only moves a note that clashes
 with the chord sounding at that moment, not because it is out of key.
 
+New Clip, Variation and a Smart Double's new ending never put a note a semitone
+against a note another track is holding: a chord voice moves an octave, a line's
+note to the nearest chord tone that sits. A clip shorter than its scene is
+checked against every bar it loops under, so a one-bar motif over a four-bar
+progression fits all four. New Clip's chords keep above the bass line, at least
+a fifth over it, in every REGISTER.
+
 ### The knobs
 
 In a preview, **the knobs belong to the option on screen**. Each generator has
@@ -2056,7 +2063,7 @@ A name means the same thing on every generator:
 | Knob | Turning right |
 | --- | --- |
 | **HARMONY** | Further from the source's harmony (see above). |
-| **TENSION** | From chord tones only, to colour tones, to approach and chromatic notes. |
+| **TENSION** | At 5 the take as it comes. Each click up turns a few more of its chord tones into colour tones (9th, 11th, 13th), weak beats first; each click down takes its outside notes back onto chord tones, until only chord tones are left at 0. A position keeps everything the one below it did. |
 | **AMOUNT** | More of the clip rewritten. |
 | **DENSITY** | More notes (`AS IS` in the middle, fewer to the left). |
 | **LENGTH** | Longer notes, toward legato (`AS IS` in the middle). |
@@ -2069,7 +2076,7 @@ A name means the same thing on every generator:
 | **TIMING** | From your feel to exactly on the grid. |
 | **SWING** | More swing, from 50 % (straight) to 75 %; it opens on the swing you played. |
 | **GRID** | 1/8, 1/8T, 1/16, 1/16T, 1/32; it opens on the grid you played. |
-| **PITCH FIX** | More notes moved onto the harmony. |
+| **PITCH FIX** | How many of the take's off-chord notes go onto the nearest chord tone, worst first: `OFF`, `1 NOTE`, `2 NOTES` … `ALL`. Each click fixes one more; the knob has a position for each note there is to fix (up to 10), and opens on the clear mistakes. |
 | **DYNAMICS** | From the velocities you played to the groove's accents. |
 | **DRIFT** | The take walks away from itself, one small move per click: a note a scale step up or down (onto a chord tone on the strong beats), a chord voice to the next chord tone, a drum hit a 16th along or a ghost beside it. Each position is the one before plus one more move, so turning it slowly morphs the part (live, or to find the take you want among close ones) and turning back walks it home. `OFF` is the take as generated. On every Variation and Smart Double generator with a knob free (Smart Double drifts only its second half); not on Smart Quantize, and New Clip's eight knobs are full. |
 | **SEED** | Another roll of the same idea. Generators that roll dice and had knobs to spare carry it as knob 5: CONNECT, RECOMBINE, THIN, ORNAMENT, PEDAL, OCTAVE, WALK, RETRO and drum FILL in Variation, EMBELLISH in Smart Quantize, FILL in Smart Double. There it opens on `#1`, the take you always got; turn it for which notes AMOUNT touches, which pads a fill hits, and so on. |

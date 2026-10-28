@@ -7,6 +7,7 @@ import { chordAt } from '../analysis/context.js';
 import { fromEvents, toEvents } from '../analysis/events.js';
 import { planAt } from '../plan.js';
 import { rangeOfKnob, tensionOfKnob } from '../knobs.js';
+import { tensionStage } from '../shape/tension.js';
 import { realise } from '../realise/index.js';
 import { type Rng, rng } from '../rng.js';
 import { rhythmStage } from '../shape/rhythm.js';
@@ -29,7 +30,7 @@ export function over(ctx: GenCtx, evs: Ev[], l: Look): Ev[] {
     const p = planAt(ctx, l.h ?? 0, l.changes ?? 0);
     const tension = tensionOfKnob(l.tension ?? 5);
     const shaped = l.rhythm ? rhythmStage(ctx, evs, l.rhythm, l.r ?? rng(ctx.seed)) : evs;
-    const out = realise(ctx, shaped, { plan: p, tension, range: rangeOfKnob(l.range ?? 5), pull: l.pull });
+    const out = tensionStage(ctx, realise(ctx, shaped, { plan: p, tension, range: rangeOfKnob(l.range ?? 5), pull: l.pull }), p.chords, tension);
     return l.voices !== undefined && l.voices !== 1 ? thicken(ctx, out, l.voices - 1, p.chords, tension) : out;
 }
 

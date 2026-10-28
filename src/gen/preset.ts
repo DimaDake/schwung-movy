@@ -14,6 +14,9 @@ export interface Preset {
     cls: PresetClass;
     /** New Clip on drums: writes only `ctx.pad` (ai/preview-pads.ts). */
     perPad?: boolean;
+    /** Its pitches are what its knobs ask for (a cadence's landing note, a
+     *  chromatic approach), so they are never moved off the band (generate.ts). */
+    ownPitches?: boolean;
     knobs: KnobDef[];           // four or eight
     /** Whether this part is material the preset can work with at all (a
      *  harmonised line needs a line that already plays two notes at times). */

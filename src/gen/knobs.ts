@@ -6,6 +6,7 @@ import type { GenCtx } from './analysis/context.js';
 import { GRIDS } from './analysis/groove.js';
 import { defaultHarmony, planAt } from './plan.js';
 import { CHANGES } from './theory/changes.js';
+import { fixable, fixDefault } from './shape/pitch.js';
 import { RHYTHMS } from './shape/rhythm.js';
 import { VOICE_STEPS } from './shape/thicken.js';
 import { BAR } from './types.js';
@@ -48,7 +49,10 @@ export const K = {
     grid: (): KnobDef => ({ name: 'GRID', steps: fixed(GRIDS.length), def: (c) => GRIDS.indexOf(c.groove.grid),
         label: (v) => GRIDS[v] }),
     dynamics: (def = 0): KnobDef => ({ name: 'DYNAMICS', steps: fixed(11), def: fixed(def), label: (v) => pct(v, 11) }),
-    pitchFix: (def = 4): KnobDef => ({ name: 'PITCH FIX', steps: fixed(11), def: fixed(def), label: (v) => pct(v, 11) }),
+    /* A count of notes, worst first (shape/pitch.ts fixWorst); `def` is the
+     * old bar's position, so a default fixes what it always fixed. */
+    pitchFix: (def = 4): KnobDef => ({ name: 'PITCH FIX', steps: (c) => fixable(c) + 1, def: (c) => fixDefault(c, def),
+        label: (v, c) => (v === 0 ? 'OFF' : v >= fixable(c) ? 'ALL' : `${v} NOTE${v > 1 ? 'S' : ''}`) }),
     clean: (def = 3): KnobDef => ({ name: 'CLEAN', steps: fixed(11), def: fixed(def), label: (v) => pct(v, 11) }),
     seed: (): KnobDef => ({ name: 'SEED', steps: fixed(100), def: fixed(0), label: (v) => '#' + (v + 1) }),
     changes: (def = 0): KnobDef => custom('CHANGES', CHANGES, def),

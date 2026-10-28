@@ -47,6 +47,12 @@ export function guard(ctx: GenCtx, raw: Note[]): GuardResult {
     if (!notes.length) return ctx.task === 'create' ? { ok: true, notes } : { ok: false, why: 'empty' };
     /* A double's copy is the plain Double Loop: a tap does that already. */
     if (keyOf(notes) === keyOf(ctx.task !== 'variation' ? ctx.src : [])) return { ok: false, why: 'copy' };
+    /* A double keeps its part's role too: a RUN that floods a sparse line
+     * with 16ths is no longer that line (bench 2026-10-29). */
+    if (ctx.task === 'double' && ctx.role) {
+        const broke = roleBreak(notes, ctx.role, ctx.len, ONSET_SLACK);
+        if (broke) return { ok: false, why: 'role ' + broke };
+    }
     if (ctx.task === 'variation') {
         if (ctx.role) {
             const broke = roleBreak(notes, ctx.role, ctx.len, ONSET_SLACK);

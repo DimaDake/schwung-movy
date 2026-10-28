@@ -29,7 +29,7 @@ const onsets = (was: Note[]) => [...new Set(was.map((n) => n.tick))].sort((a, b)
 
 /** Up to eight of the ending's notes re-pitched to step into the first note. */
 export const TURNAROUND: Preset = {
-    id: 'x-turnaround', name: 'TURNAROUND', task: 'double', drum: false, cls: 'close', roles: ['lead', 'arpeggio', 'bass'],
+    id: 'x-turnaround', name: 'TURNAROUND', task: 'double', drum: false, cls: 'close', roles: ['lead', 'arpeggio', 'bass'], ownPitches: true,
     fit: () => 0.85,
     knobs: [ENDING, custom('APPROACH', APPROACH), K.tension(6), SEAMS],
     generate: (ctx, v) => {
@@ -80,7 +80,7 @@ const HOLD = [0.25, 0.5, 0.75, 1];
 /** The ending lands on one note (or chord) and holds it; with BOTH the first
  *  half ends open on the dominant, a question the second half answers. */
 export const CADENCE: Preset = {
-    id: 'x-cadence', name: 'CADENCE', task: 'double', drum: false, cls: 'close', fit: () => 0.75,
+    id: 'x-cadence', name: 'CADENCE', task: 'double', drum: false, cls: 'close', fit: () => 0.75, ownPitches: true,
     knobs: [ENDING, custom('LAND', LAND, 2), custom('HOLD', ['1/4', '1/2', '3/4', 'FULL'], 3), SEAMS],
     generate: (ctx, v) => rewrite(ctx, seams(ctx, v[0], v[3]), (s, was) => {
         const t0 = was.length ? Math.min(...was.map((n) => n.tick)) : s.from;

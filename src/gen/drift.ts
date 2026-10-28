@@ -4,7 +4,7 @@
  * One fixed list of small moves per take — a note a scale step up or down,
  * onto a chord tone where the beat is strong; a chord voice to the next
  * chord tone; a drum hit a 16th along, or a ghost beside it — and DRIFT n
- * plays the first n·E/10 of them (E: the part's onsets). Position n+1 is
+ * plays the first n·E/10 of them (E: the part's onsets), n at least. Position n+1 is
  * position n with one more move, so turning it walks the part away step by
  * step, and turning back walks it home. SEED jumps; DRIFT walks. */
 
@@ -59,7 +59,9 @@ function drift(ctx: GenCtx, notes: Note[], d: number, seed: number, chords: (Cho
     if (!idx.length || d <= 0) return notes;
     const r = rng(mix(seed, 0xD21F7));
     const order = shuffled(r, idx);
-    const moves = Math.round((d * order.length) / 10);
+    /* At least one more move per click: on a part of a few notes n·E/10
+     * rounded to the same count on most clicks (bench 2026-10-29). */
+    const moves = Math.max(d, Math.round((d * order.length) / 10));
     const ps = notes.map((n) => n.pitch);
     const lo = Math.min(...ps) - 5, hi = Math.max(...ps) + 5;
     for (let j = 0; j < moves; j++) {

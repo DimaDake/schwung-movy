@@ -37,6 +37,13 @@ function measure(G, input) {
     return { picks, per };
 }
 
+/** The section's headline numbers at one level (quality/run.mjs compares them). */
+export function doubleStats(G, cases, level) {
+    const ops = cases.map((c) => doubleInput(c, level)).filter(Boolean).flatMap((i) => measure(G, i).per);
+    const m = (k) => mean(ops.map((o) => o[k]).filter((x) => x !== null));
+    return { firstKept: m('firstKept'), novelty: m('novelty'), fit: m('fit'), band: m('band') };
+}
+
 /** Markdown lines for the bench report. */
 export function doubleSection(G, cases) {
     const out = ['', '## Smart Double', '', 'Each case\'s own clip doubled. First part kept: the first half\'s (step, pitch) cells shared with '

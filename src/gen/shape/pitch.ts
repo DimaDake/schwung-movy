@@ -1,7 +1,8 @@
-/* Pitch stages for Smart Quantize: PITCH FIX moves every note whose fit
- * (category × position, theory/category.ts) is below a bar the knob raises —
- * 0 fixes nothing, 10 leaves only chord tones; EMBELLISH adds grace, passing
- * and neighbour notes the way a player would. */
+/* Pitch stages for Smart Quantize: pitchFix moves every note whose fit
+ * (category × position, theory/category.ts) is below a bar — 0 fixes
+ * nothing, 10 leaves only chord tones; the PITCH FIX knob fixes the worst N
+ * (fixWorst); EMBELLISH adds grace, passing and neighbour notes the way a
+ * player would. */
 
 import type { GenCtx } from '../analysis/context.js';
 import { chordAt } from '../analysis/context.js';
@@ -21,6 +22,46 @@ export function pitchFix(ctx: GenCtx, notes: Note[], v: number, chords: (Chord |
         if (!c || noteFit(n.pitch, c, ctx.key, strong) >= bar) return n;
         const ok = [...c.pcs, ...colourPcs(c, ctx.key)].filter((p) => noteFit(p, c, ctx.key, strong) >= bar);
         return { ...n, pitch: nearestPitch(n.pitch, ok.length ? ok : c.pcs) };
+    });
+}
+
+/** Smart Quantize's harmony: the scene's chords the part is fixed to. */
+export const fixChords = (ctx: GenCtx): (Chord | null)[] => ctx.plans[0]?.chords ?? ctx.fixedChords;
+
+const FIXED = 0.95;     // a colour tone on a weak beat (0.9) is still a candidate; a chord tone is not
+
+function fits(ctx: GenCtx, notes: Note[], chords: (Chord | null)[]): { i: number; f: number }[] {
+    return notes.map((n, i) => {
+        const c = chordAt(chords, n.tick, ctx.k);
+        return { i, f: c ? noteFit(n.pitch, c, ctx.key, isStrong(n.tick)) : 1 };
+    }).filter((x) => x.f < FIXED).sort((a, b) => a.f - b.f || notes[a.i].tick - notes[b.i].tick);
+}
+
+/** How many notes of the part PITCH FIX can move (its knob's last position,
+ *  ALL, moves every one; the knob has no more positions than that, at most 10). */
+export const fixable = (ctx: GenCtx): number => Math.min(10, fits(ctx, onGrid(ctx), fixChords(ctx)).length);
+
+/** Where PITCH FIX opens: the notes the old bar `v` (0..10) would have fixed. */
+export const fixDefault = (ctx: GenCtx, v: number): number =>
+    Math.min(fixable(ctx), fits(ctx, onGrid(ctx), fixChords(ctx)).filter((x) => x.f < (v / 10) * 0.95).length);
+
+/* Counted where the notes will land: a note played just before the beat is
+ * judged on the beat, as the quantized take it is fixed in will have it. */
+const onGrid = (ctx: GenCtx): Note[] => ctx.src.map((n) => ({ ...n, tick: Math.round(n.tick / TPS) * TPS }));
+
+/** PITCH FIX as a count (bench 2026-10-29: as a bar, 84% of its clicks
+ *  changed nothing — a take holds a few wrong notes, and the bar only moved
+ *  past them on one click in several): the `n` worst notes onto the nearest
+ *  chord tone, or all of them from the last position on, which leaves only
+ *  chord tones as the bar's top did. Each click fixes one note more. */
+export function fixWorst(ctx: GenCtx, notes: Note[], n: number, chords: (Chord | null)[]): Note[] {
+    if (n <= 0) return notes;
+    const all = fits(ctx, notes, chords);
+    const pick = new Set((n >= fixable(ctx) ? all : all.slice(0, n)).map((x) => x.i));
+    return notes.map((x, i) => {
+        if (!pick.has(i)) return x;
+        const c = chordAt(chords, x.tick, ctx.k)!;
+        return { ...x, pitch: nearestPitch(x.pitch, c.pcs) };
     });
 }
 

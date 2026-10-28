@@ -67,7 +67,7 @@ const mean = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : null);
 const f2 = (v) => (v === null || v === undefined ? '-' : v.toFixed(2));
 const pc = (v) => (v === null ? '-' : Math.round(v * 100) + '%');
 
-function summary(rows) {
+export function summary(rows) {
     const al = (k) => mean(rows.filter((r) => !k || r.kind === k).map((r) => r.alignment).filter((v) => v !== null && v !== undefined));
     const gate = (k) => { const x = rows.filter((r) => !k || r.kind === k); return x.length ? x.filter((r) => r.gatePassed).length / x.length : null; };
     return { all: al(), quant: al('quantize-messy'), vari: al('variation'), gate: gate(), played: gate('quantize-played') };

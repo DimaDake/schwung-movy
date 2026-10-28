@@ -39,3 +39,6 @@ export { bandSteps } from './create/common.js';
 export { chordUnder, runPlan } from './create/common.js';
 export { evolutions } from './presets/dbl-evolve.js';
 export { uniqueChords } from './create/plans.js';
+export { chordFloor, clearRubs } from './shape/band-pitch.js';
+export { tensionStage } from './shape/tension.js';
+export { fixable, fixWorst, fixChords } from './shape/pitch.js';

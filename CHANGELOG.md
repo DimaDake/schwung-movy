@@ -15,6 +15,24 @@ far. Earlier work is summarised in the timeline below for context.
 
 ### Changed
 
+- **Generators sound right with the band.** New Clip, Variation and a Smart
+  Double's ending no longer strike a semitone against a note another track
+  holds, including a short clip looping under a longer scene (a one-bar motif
+  over four bars of chords). New Clip's chords keep a fifth above the bass, so
+  chords and bass no longer sit in one muddy octave. A Smart Double keeps its
+  part's role, as a Variation does (no 16th-note run flooding a sparse line).
+- **Every click of TENSION, PITCH FIX, VARY and DRIFT does something.**
+  TENSION walks from 5: up adds colour tones a few at a time, down takes
+  outside notes back to chord tones. PITCH FIX counts notes (`OFF`, `1 NOTE`
+  … `ALL`), worst first. VARY and DRIFT vary at least one more note per click
+  on a short part.
+
+### Fixed
+
+- **A chord part no longer sinks.** With HARMONY on ROOTS or INVERSION, or
+  RANGE opened, a long pad or comp led each chord from the root dropped under
+  the one before and slid down bar by bar, to notes near E0.
+
 - **No more loading animation while a generator runs.** The pad sweep and
   the full-screen progress page are gone (the sweep could leave pads stuck
   in its colours). The header names the job instead (with the seconds for a

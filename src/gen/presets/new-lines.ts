@@ -79,7 +79,7 @@ export const BASS: Preset = withFeel({
         }
         return out;
     },
-}, [2, 8]);
+}, [2, 8], false, 'line');
 
 const STYLES = ['UP', 'DOWN', 'UP-DOWN', 'ORDER', 'PINKY', 'BROKEN'] as const;
 /* Slowest to fastest, so the knob turns one way. */
@@ -122,4 +122,4 @@ export const ARP: Preset = withFeel({
         }
         return out;
     },
-}, [1, 6]);
+}, [1, 6], false, 'line');

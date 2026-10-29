@@ -2017,7 +2017,7 @@ guide tones, the notes that tell one chord from the next), moving between them
 by the smallest step, and the note just before a change steps into the next
 chord's guide tone; between those they keep their own contour.
 
-Knobs 5 to 8 are the same on every New Clip option, and every run starts them
+Knobs 5 to 7 are the same on every New Clip option and knob 8 is DYNAMICS or SPARSE; every run starts them
 somewhere new, so the rhythm and the note lengths change from run to run too:
 
 | Knob | What it does |
@@ -2025,7 +2025,8 @@ somewhere new, so the rhythm and the note lengths change from run to run too:
 | **GATE** | How much of the space to the next note each note holds: short and clipped at 0, held right up to the next one at `HELD`. Chords, pads included, need not ring for their whole length. |
 | **VARY** | Bar to bar, a note may drop out, move a 16th, repeat half way to the next one, or ring longer or shorter. 0 plays the same bar every time; each click varies one note more, the same ones the same way, so turning back gives the take back. Notes that land on the band's accents stay put. |
 | **SWING** | Swing on the off-16ths (on the off-8ths for a part that plays no 16ths). It opens at the scene's own swing. PAD has **STRUM** here instead: OFF, then 2 to 12 TICKS (low to high, wider each click), UP 6 and UP 12 (high to low), ROLL (slowing as it goes, like a hand), SLOP (each note loosened in time and level), HARP and HARP 2X (the chord run up through one or two octaves over the first half of the chord). |
-| **DYNAMICS** | How much the velocities follow the beat: louder on the downbeats, softer off them. |
+| **DYNAMICS** | How much the velocities follow the beat: louder on the downbeats, softer off them. MELODY only; the others have SPARSE here. |
+| **SPARSE** | Keeps the pattern you like but plays it only in some places. `ALL` plays everything, and each click plays less, always the same way (nothing is random). The notes that stay are exactly as before. A note just before a beat counts as part of that beat, so a pickup goes with its beat. CHORDS and STABS: `1+3`, `2+4`, `BEAT 1` to `BEAT 4` (if a bar has no chord on that beat, it plays the nearest one within an 8th), `3 IN 8` and `5 IN 16` (beats spread evenly), then bars: `BAR 1 OF 2`, `BAR 1 OF 4`, `LAST BAR`. BASS, ARP, RIFF and COUNTER always keep beat 1 and the first note of every new chord, so you still hear the harmony move: `1+3`, `1+4`, `BEAT 1`, then the bar positions. PAD thins by bars only. Positions that need more bars than the clip has are left out. |
 
 Drum options have **VARY, SWING, DYNAMICS** and **HUMAN** (a few ticks of timing
 and some velocity, the way a player is never exact) in knobs 5 to 8. VARY never

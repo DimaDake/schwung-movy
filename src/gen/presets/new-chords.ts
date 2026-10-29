@@ -69,7 +69,7 @@ export const CHORDS: Preset = withFeel({
         hits.forEach(([t, g], i) => strike(out, t, vs[i], g, velAt(t, 92, r)));
         return out;
     },
-}, [3, 8]);
+}, [3, 8], false, 'chord');
 
 export const PAD: Preset = withFeel({
     id: 'n-pad', name: 'PAD', task: 'create', drum: false, cls: 'close',
@@ -93,7 +93,7 @@ export const PAD: Preset = withFeel({
         spans.forEach(([a, b], i) => strike(out, a, vs[i], Math.max(TPS, b - a - 6), velAt(a, 78, r)));
         return out;
     },
-}, [5, 10], true);
+}, [5, 10], true, 'pad');
 
 const STAB_FIGS: [string, number[]][] = [['OFFBEAT', [2, 6, 10, 14]], ['HOUSE', [3, 6, 11, 14]], ['DOTTED', [0, 3, 6, 9, 12]],
     ['3-3-2', [0, 3, 6]], ['PUSH', [0, 7, 10]], ['SYNC', [2, 5, 8, 11, 14]], ['SKANK', [4, 12]]];
@@ -113,4 +113,4 @@ export const STABS: Preset = withFeel({
         ticks.forEach((t, i) => strike(out, t, vs[i], TPS, velAt(t, 100, r)));
         return out;
     },
-}, [0, 3]);
+}, [0, 3], false, 'chord');

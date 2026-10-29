@@ -94,7 +94,7 @@ export const RIFF: Preset = withFeel({
         }
         return out;
     },
-}, [2, 7]);
+}, [2, 7], false, 'line');
 
 const RATE = [4, 2, 3, 1];
 const MOVES = [[1, -1], [1, -1, 2, -2, 3], [2, -2, 4, -3, 5]];
@@ -123,4 +123,4 @@ export const COUNTER: Preset = withFeel({
         }
         return onGuides(ctx, runPlan(ctx), out, centre - 9, centre + 12);
     },
-}, [4, 9]);
+}, [4, 9], false, 'line');

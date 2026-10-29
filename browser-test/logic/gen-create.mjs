@@ -143,4 +143,41 @@ G.forgetOptions();
 /* Length: the options follow it, every bar. */
 const long = G.generateAll(createInput(false, 'free', 5, { len: 64 }));
 ok('new_clip_fills_a_four_bar_clip', long.picks.every((p) => p.notes.some((n) => n.tick >= 48 * G.TPS)));
+
+/* SPARSE (create/sparse.ts): the generators with no density control play
+ * their pattern only in some of the metre's windows, never rewritten. */
+const SPARSE_IDS = ['n-chords', 'n-pad', 'n-stabs', 'n-bass', 'n-arp', 'n-riff', 'n-counter'];
+const sk = (p) => G.knobIndex(p, 'SPARSE');
+ok('sparse_only_where_there_is_no_density_control', SPARSE_IDS.every((id) => sk(by(id)) === 7)
+    && sk(by('n-melody')) < 0 && G.knobIndex(by('n-melody'), 'DYNAMICS') === 7);
+const full = (ns) => ns.map((n) => `${n.tick}.${n.pitch}.${n.gate}.${n.vel}`);
+for (const seed of [7, 8, 9]) {
+    const sc = G.prepare(createInput(false, 'free', seed, { len: 64 }));
+    for (const id of SPARSE_IDS) {
+        const p = by(id), k = sk(p), base = G.defaults(p, sc);
+        const sweep = Array.from({ length: p.knobs[k].steps(sc) }, (_, i) => {
+            const w = [...base]; w[k] = i;
+            return { label: p.knobs[k].label(i, sc), notes: G.regenerate(sc, p, w) ?? [] };
+        });
+        const all = new Set(full(sweep[0].notes));
+        ok(`sparse_${id}_${seed}_keeps_notes_as_the_pattern_plays_them`, sweep.every((s) => s.notes.length > 0 && full(s.notes).every((x) => all.has(x))));
+        ok(`sparse_${id}_${seed}_every_click_thins`, sweep.slice(1).every((s) => s.notes.length < sweep[0].notes.length));
+        if (id === 'n-pad') eq('sparse_pad_thins_by_bars_only', sweep.map((s) => s.label).join(), 'ALL,BAR 1 OF 2,BAR 1 OF 4,LAST BAR');
+        if (id === 'n-chords') {
+            const b3 = sweep.find((s) => s.label === 'BEAT 3').notes;
+            ok(`sparse_chords_${seed}_beat_3_plays_around_beat_3`, b3.every((n) => { const s = Math.round(n.tick / G.TPS) % 16; return s >= 6 && s <= 10; }));
+        }
+        if (id === 'n-bass' || id === 'n-riff') {
+            const down = (ns) => full(ns.filter((n) => n.tick % G.BAR === 0));
+            const beatWins = sweep.filter((s) => ['1+3', '1+4', 'BEAT 1'].includes(s.label));
+            ok(`sparse_${id}_${seed}_lines_keep_beat_1`, beatWins.length === 3 && beatWins.every((s) => down(s.notes).join() === down(sweep[0].notes).join()));
+            const hk = G.knobIndex(p, 'HARMONY'), h = hk >= 0 ? base[hk] : G.runPlan(sc);
+            const ch = (n) => G.chordAt(G.planAt(sc, h).chords, n.tick, sc.k);
+            const on = [...sweep[0].notes].sort((x, y) => x.tick - y.tick);
+            const firsts = full(on.filter((n, i) => i > 0 && !G.sameChord(ch(n), ch(on[i - 1]))));
+            ok(`sparse_${id}_${seed}_lines_play_each_new_chord`, firsts.length > 0 && sweep.every((s) => firsts.every((x) => full(s.notes).includes(x))));
+            ok(`sparse_${id}_${seed}_lines_never_play_beat_3_alone`, !sweep.some((s) => s.label === 'BEAT 3'));
+        }
+    }
+}
 }

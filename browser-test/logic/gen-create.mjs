@@ -1,6 +1,6 @@
 /* browser-test/logic/gen-create.mjs — New Clip
  * (plans/2026-10-28-new-clip-design.md): a part from nothing, eight melodic
- * and six drum options, each one of its own kind, fitting the scene when
+ * and seven drum options, each one of its own kind, fitting the scene when
  * there is one, and never the same defaults twice.
  *
  * Run by browser-test/logic.mjs.
@@ -23,7 +23,7 @@ G.forgetOptions();
 const mel = G.generateAll(createInput(false, 'empty', 1));
 eq('new_clip_melodic_offers_its_eight_parts', ids(mel), 'n-chords n-pad n-stabs n-bass n-arp n-melody n-riff n-counter');
 const drm = G.generateAll(createInput(true, 'empty', 1));
-eq('new_clip_drums_offers_two_per_pad_then_four_kits', ids(drm), 'n-pad-euclid n-pad-pattern n-groove n-euclid-kit n-broken n-perc');
+eq('new_clip_drums_offers_two_per_pad_then_five_kits', ids(drm), 'n-pad-euclid n-pad-pattern n-groove n-drum-map n-euclid-kit n-broken n-perc');
 ok('new_clip_per_pad_options_come_first', drm.picks.slice(0, 2).every((p) => p.preset.perPad) && drm.picks.slice(2).every((p) => !p.preset.perPad));
 eq('new_clip_a_silent_set_takes_the_key_setting', `${mel.ctx.key.tonic}${mel.ctx.key.minor ? 'm' : ''}`, '0');
 eq('new_clip_per_pad_writes_only_its_pad', [...new Set(drm.picks[0].notes.map((n) => n.pitch))].join(), String(G.padOf(drm.ctx)));
@@ -40,7 +40,7 @@ ok('new_clip_chords_are_the_scenes_chords', inChord.length >= chords.length * 0.
 ok('new_clip_reads_the_bands_hits', lk.ctx.band.length > 0);
 const bass = by('n-bass');
 const v = G.defaults(bass, lk.ctx);
-v[0] = bass.knobs[0].steps(lk.ctx) - 1;   // WITH KICK
+v[0] = G.figurePosition(lk.ctx, G.BASS_MAP, G.bandSteps(lk.ctx).slice(0, 6));   // the band's accents (WITH KICK)
 const locked = G.generateOption(lk.ctx, bass, v).notes;
 const accents = new Set(G.bandSteps(lk.ctx));
 ok('new_clip_bass_with_kick_lands_on_the_bands_accents', locked.length > 0 && locked.every((n) => accents.has(Math.round(n.tick / G.TPS) % 16)));
@@ -68,7 +68,7 @@ for (const drum of [false, true]) {
         for (let n = 0; n < 25; n++) {
             const r = G.generateAll(createInput(drum, scene, 1000 + n, { len: [16, 32, 64][n % 3] }));
             runs++;
-            if (r.picks.length !== (drum ? 6 : 8)) bad.push(`${scene}/${n}: ${r.picks.length} options (${r.dropped.join(' ')})`);
+            if (r.picks.length !== (drum ? 7 : 8)) bad.push(`${scene}/${n}: ${r.picks.length} options (${r.dropped.join(' ')})`);
             for (const p of r.picks) { const why = G.unmeaning(r.ctx, p.preset, p.notes); if (why) bad.push(`${p.preset.id}@${scene}/${n}: ${why}`); }
         }
     }

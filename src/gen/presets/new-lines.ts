@@ -4,44 +4,76 @@
  * pattern at a rate and span. */
 
 import { strength } from '../analysis/events.js';
-import { choice, chordUnder, HARMONY, place, velAt, withBand } from '../create/common.js';
+import { choice, chordUnder, HARMONY, place, velAt } from '../create/common.js';
+import { patternKnob, patternMap, type PatternSpec } from '../create/pattern-knob.js';
+import { struck } from '../create/push.js';
+import { IND } from '../shape/rhythm-map.js';
 import type { Preset } from '../preset.js';
 import { withFeel } from '../create/feel.js';
 import { rng } from '../rng.js';
-import { nearestPitch, pc } from '../theory/pc.js';
-import { type Note, TPS } from '../types.js';
+import { nearestPitch, pc, sameChord } from '../theory/pc.js';
+import { type Chord, type Note, TPS } from '../types.js';
 import { LIB, type Part } from './var-bass.js';
 
-const KICK = 'WITH KICK';
+/* PATTERN walks a map through the bass figures (create/pattern-knob.ts),
+ * the band's accents (WITH KICK's successor) and Euclidean figures between. */
+export const BASS_MAP: PatternSpec = { figs: LIB.map((x) => x[1].map((h) => h[0])), lo: 1, hi: 12, band: 6, own: true };
+
+/** What a hit of a map position plays: the figure's own part where the hit
+ *  is the figure's, else by where it falls: the bar's strong beats the root,
+ *  the eighths between a fifth or the octave, sixteenths the root again (a
+ *  rolling bass); a hit just before a chord change approaches it. */
+function partOf(flavour: number, step: number, i: number, approach: boolean): Part {
+    const own = LIB[flavour]?.[1].find((h) => h[0] === step);
+    if (own) return own[2];
+    if (approach) return 'a';
+    if (IND[step] >= 12) return 'r';
+    if (IND[step] >= 8) return i % 2 ? 'o' : 'f';
+    return 'r';
+}
 const BASS_NOTES = ['AS WRITTEN', 'ROOTS', 'CHORD TONES', 'OCTAVES'] as const;
 /* The low end of the root's window. LOW and MID are the takes; DEEP folds
  * the roots under them, HIGH plays the line where a lead would sit. Lower
  * than DEEP the line's middle falls under E1, below what most speakers play. */
 const BASE = [30, 36, 43, 48];
 
+/** A step into the next chord's root: a semitone under it or a tone over. */
+const approachTo = (root: number, next: Chord, below: boolean) => nearestPitch(root, [next.root], root - 6, root + 6) + (below ? -1 : 2);
+
 export const BASS: Preset = withFeel({
     id: 'n-bass', name: 'BASS', task: 'create', drum: false, cls: 'rhythm',
-    knobs: [choice('PATTERN', [...LIB.map((x) => x[0]), KICK], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+    knobs: [patternKnob(BASS_MAP, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
         choice('NOTES', BASS_NOTES, [0, 0, 1, 2, 3]), choice('OCTAVE', ['DEEP', 'LOW', 'MID', 'HIGH'], [1, 2, 2]), HARMONY],
     generate: (ctx, v, seed) => {
         const r = rng(seed);
-        const fig: [number, number, Part][] = v[0] < LIB.length ? LIB[v[0]][1]
-            : withBand(ctx, 6, [0, 4, 8, 12]).map((s, i, a) => [s, Math.max(1, (a[i + 1] ?? 16 + a[0]) - s - 1), 'r']);
+        const m = patternMap(ctx, BASS_MAP);
+        const at = Math.max(0, Math.min(m.steps.length - 1, v[0]));
+        const steps = m.steps[at], f = m.flavour[at];
+        const whole = LIB[f] && LIB[f][1].length === steps.length;
+        /* A named figure keeps its own lengths; elsewhere a hit holds to the next. */
+        const fig: [number, number][] = steps.map((s, i) => [s, whole ? LIB[f][1][i][1] : Math.max(1, (steps[i + 1] ?? 16 + steps[0]) - s)]);
         const base = BASE[v[2]];
+        const ticks: number[] = [];
+        for (let bar = 0; bar * 16 < ctx.len; bar++) for (const [s] of fig) if (bar * 16 + s < ctx.len) ticks.push(place(ctx, bar * 16 + s));
+        const chords = struck(ctx, v[3], ticks);
         const out: Note[] = [];
+        let k = 0;
         for (let bar = 0; bar * 16 < ctx.len; bar++) {
-            fig.forEach(([s, len, part0], i) => {
+            fig.forEach(([s, len], i) => {
                 const step = bar * 16 + s;
                 if (step >= ctx.len) return;
                 const t = place(ctx, step);
-                const c = chordUnder(ctx, v[3], t);
+                const c = chords[k++];
+                const pushed = !sameChord(c, chordUnder(ctx, v[3], t));
+                const approach = !pushed && k >= 2 && sameChord(chords[k - 2], c) && !sameChord(c, chords[k % chords.length]);
+                const part0 = partOf(f, s, i, approach);
                 const root = nearestPitch(base + 3, [c.bass ?? c.root], base - 2, base + 9);
                 let part: Part = v[1] === 1 ? 'r' : part0;
                 if (v[1] === 2 && strength(t) < 0.7) part = i % 2 ? 't' : 'f';
                 if (v[1] === 3) part = i % 2 ? 'o' : 'r';
                 const p = part === 'o' ? root + 12 : part === 'f' ? nearestPitch(root + 7, [c.pcs[2] ?? pc(c.root + 7)], root, root + 12)
                     : part === 't' ? nearestPitch(root + 4, c.pcs.slice(1), root + 1, root + 12)
-                        : part === 'a' ? root + (r() < 0.5 ? -1 : 2) : root;
+                        : part === 'a' ? approachTo(root, chords[k % chords.length], r() < 0.5) : root;
                 out.push({ tick: t, pitch: p, gate: Math.max(TPS / 2, len * TPS - 4), vel: velAt(t, 100, r) });
             });
         }

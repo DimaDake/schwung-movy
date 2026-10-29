@@ -7,6 +7,7 @@ import type { GenCtx } from '../analysis/context.js';
 import { chordFloor } from '../shape/band-pitch.js';
 import { choice, CHORD_REGISTER as R, chordUnder, everyBar, HARMONY, place, register, velAt } from '../create/common.js';
 import { patternAt, patternKnob, type PatternSpec } from '../create/pattern-knob.js';
+import { struck } from '../create/push.js';
 import type { Preset } from '../preset.js';
 import { withFeel } from '../create/feel.js';
 import { rng } from '../rng.js';
@@ -18,17 +19,16 @@ import { BAR, type Chord, type Note, TPS } from '../types.js';
 
 const CENTRE = R.centres;
 
-/** The notes of a part's strikes: the chord under each tick, voiced all
- *  together in a VOICING style (theory/voicings.ts) with the top note near
- *  REGISTER, never under the band's floor (band-pitch.ts: a fifth over its
- *  bass). A chord held over several strikes keeps its notes, and the clip
- *  loops, so a chord that ends it and opens it is one chord. */
-function voicePart(ctx: GenCtx, h: number, ticks: number[], style: number, reg: number, motion: Motion = 'SMOOTH'): number[][] {
+/** The notes of a part's strikes: each strike's chord (create/push.ts),
+ *  voiced all together in a VOICING style (theory/voicings.ts) with the top
+ *  note near REGISTER, never under the band's floor (band-pitch.ts: a fifth
+ *  over its bass). A chord held over several strikes keeps its notes, and
+ *  the clip loops, so a chord that ends it and opens it is one chord. */
+function voicePart(ctx: GenCtx, chords: Chord[], style: number, reg: number, motion: Motion = 'SMOOTH'): number[][] {
     const floor = chordFloor(ctx);
     const centre = CENTRE[reg];
     const runs: Chord[] = [];
-    const at = ticks.map((t) => {
-        const c = chordUnder(ctx, h, t);
+    const at = chords.map((c) => {
         if (!runs.length || !sameChord(c, runs[runs.length - 1])) runs.push(c);
         return runs.length - 1;
     });
@@ -64,7 +64,7 @@ export const CHORDS: Preset = withFeel({
             const next = i + 1 < steps.length ? steps[i + 1] : 16 + steps[0];
             hits.push([place(ctx, s), Math.min(2 * BAR / 4, (next - steps[i]) * TPS - 4)]);
         });
-        const vs = voicePart(ctx, v[3], hits.map((x) => x[0]), v[1], v[2]);
+        const vs = voicePart(ctx, struck(ctx, v[3], hits.map((x) => x[0])), v[1], v[2]);
         const out: Note[] = [];
         hits.forEach(([t, g], i) => strike(out, t, vs[i], g, velAt(t, 92, r)));
         return out;
@@ -88,7 +88,7 @@ export const PAD: Preset = withFeel({
             spans.push([at, to]);
             at = to;
         }
-        const vs = voicePart(ctx, v[3], spans.map((x) => x[0]), v[0], v[2], MOTIONS[v[1]]);
+        const vs = voicePart(ctx, spans.map((x) => chordUnder(ctx, v[3], x[0])), v[0], v[2], MOTIONS[v[1]]);
         const out: Note[] = [];
         spans.forEach(([a, b], i) => strike(out, a, vs[i], Math.max(TPS, b - a - 6), velAt(a, 78, r)));
         return out;
@@ -108,7 +108,7 @@ export const STABS: Preset = withFeel({
         const steps = patternAt(ctx, STAB_MAP, v[0]);
         const ticks: number[] = [];
         everyBar(ctx, steps, (s) => { ticks.push(place(ctx, s)); });
-        const vs = voicePart(ctx, v[3], ticks, v[1], v[2]);
+        const vs = voicePart(ctx, struck(ctx, v[3], ticks), v[1], v[2]);
         const out: Note[] = [];
         ticks.forEach((t, i) => strike(out, t, vs[i], TPS, velAt(t, 100, r)));
         return out;

@@ -17,7 +17,7 @@ import { euclid } from '../theory/pc.js';
 /* Barlow's indispensability for sixteen steps of 2·2·2·2: the downbeat,
  * then beat 3, beat 4, beat 2, the off-beat eighths, and the sixteenths last;
  * the step before a beat outranks the one after it (it leads into it). */
-const IND = [15, 0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7];
+export const IND = [15, 0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7];
 
 const byWeight = (a: number, b: number) => IND[b] - IND[a];
 
@@ -39,12 +39,13 @@ export function euclids(list: [number, number][]): number[][] {
 
 export interface RhythmMap {
     steps: number[][];      // per position: the onsets of one bar
+    flavour: number[];      // per position: the figure whose ranking it is
     takes: number[];        // the positions where a named figure sits whole
 }
 
-/** The map through `figs` from `lo` to `hi` onsets a bar, at most `cap` long.
- *  The first `named` figures are where a take may land. */
-export function rhythmMap(figs: number[][], named: number, lo: number, hi: number, cap = 128): RhythmMap {
+/** The map through `figs` from `lo` to `hi` onsets a bar, at most `cap` long
+ *  but always holding the first `named` figures, where a take may land. */
+export function rhythmMap(figs: number[][], named: number, lo: number, hi: number, cap = 128, ownPositions = false): RhythmMap {
     const ranks = figs.map(ranking);
     const order = [0];
     let end = hi;
@@ -59,7 +60,7 @@ export function rhythmMap(figs: number[][], named: number, lo: number, hi: numbe
         order.push(best);
         end = end === hi ? lo : hi;
     }
-    const steps: number[][] = [], takes: number[] = [];
+    const steps: number[][] = [], flavour: number[] = [], takes: number[] = [];
     const at = new Map<string, number>();
     order.forEach((f, j) => {
         const ks = Array.from({ length: hi - lo + 1 }, (_, i) => lo + i);
@@ -67,9 +68,15 @@ export function rhythmMap(figs: number[][], named: number, lo: number, hi: numbe
             const s = sorted(ranks[f], k);
             const id = s.join();
             const take = f < named && k === new Set(figs[f]).size;
-            if (!at.has(id) && steps.length < cap) { at.set(id, steps.length); steps.push(s); }
-            if (take && at.has(id)) takes.push(at.get(id)!);
+            /* A named figure owns its onsets where another's ranking reached
+             * them first; with `ownPositions` (a bass, whose hits carry their
+             * notes) it is its own position even where another named figure
+             * already sits whole on them. */
+            const was = at.get(id);
+            if (take && was !== undefined && !takes.includes(was)) flavour[was] = f;
+            else if ((was === undefined || (ownPositions && take && flavour[was] !== f)) && (steps.length < cap || take)) { at.set(id, steps.length); steps.push(s); flavour.push(f); }
+            if (take) takes.push(at.get(id)!);
         }
     });
-    return { steps, takes: [...new Set(takes)] };
+    return { steps, flavour, takes: [...new Set(takes)] };
 }

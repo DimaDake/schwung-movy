@@ -14,7 +14,9 @@ import { withBand } from './common.js';
  * rotations that start off the beat. */
 const EUCLIDS = euclids([[3, 0], [3, 2], [5, 0], [5, 2], [7, 0], [7, 1], [9, 0], [5, 3]]);
 
-export interface PatternSpec { figs: number[][]; lo: number; hi: number; band: number }
+export interface PatternSpec { figs: number[][]; lo: number; hi: number; band: number;
+    /** Named figures with the same onsets stay apart (rhythm-map.ts). */
+    own?: boolean }
 
 const cache = new WeakMap<GenCtx, Map<PatternSpec, RhythmMap>>();
 
@@ -25,7 +27,7 @@ export function patternMap(ctx: GenCtx, s: PatternSpec): RhythmMap {
      * BAND was; with no band they are not on the map. */
     const band = withBand(ctx, s.band, []);
     const named = band.length ? [...s.figs, band] : s.figs;
-    const m = rhythmMap([...named, ...EUCLIDS], named.length, s.lo, s.hi);
+    const m = rhythmMap([...named, ...EUCLIDS], named.length, s.lo, s.hi, 128, s.own);
     if (!cache.has(ctx)) cache.set(ctx, new Map());
     cache.get(ctx)!.set(s, m);
     return m;
@@ -50,6 +52,13 @@ export function patternKnob(s: PatternSpec, pool: number[]): KnobDef {
         label: (v) => String(v + 1),
         roll: (c, r) => pick(r, positions(c)),
     };
+}
+
+/** Where a figure sits whole on the map (its first position if not). */
+export function figurePosition(ctx: GenCtx, s: PatternSpec, fig: number[]): number {
+    const m = patternMap(ctx, s);
+    const id = [...new Set(fig)].sort((a, b) => a - b).join();
+    return Math.max(0, m.steps.findIndex((x) => x.join() === id));
 }
 
 /** A position's onsets in one bar. */

@@ -1,5 +1,5 @@
 /* The generator quality bench (plans/2026-10-29-generator-quality-metrics.md):
- * the knob sweep, the knob-space map and the piece, beside the older bench's
+ * the knob sweep, the knob-space map, the map knobs and the piece, beside the older bench's
  * headline numbers, so a change that lifts one is seen against the rest.
  *
  *   npm run build:browser && node scripts/gen-bench/quality/run.mjs --label base [--compare other] [--cases sub] [--pieces 12]
@@ -13,6 +13,7 @@ import { doubleInput, doubleStats } from '../double.mjs';
 import { judgePiece, pieceMidi } from './piece-score.mjs';
 import { buildPiece } from './piece.mjs';
 import { report } from './report.mjs';
+import { mapPreset, mapSummary } from './maps.mjs';
 import { spacePreset, spaceSummary } from './space.mjs';
 import { sweepPreset, sweepSummary } from './sweep.mjs';
 
@@ -53,13 +54,14 @@ async function main() {
     const cases = readdirSync(DATA + 'cases').sort().filter((f) => !args.cases || f.includes(args.cases))
         .map((f) => JSON.parse(readFileSync(DATA + 'cases/' + f, 'utf8')));
     const t0 = Date.now();
-    const sw = [], sp = [];
+    const sw = [], sp = [], mp = [];
     for (const input of requests(cases)) {
         G.forgetOptions();
         const ctx = G.prepare(input);
         for (const p of G.PRESETS.filter((x) => G.serves(x, ctx))) {
             sw.push(sweepPreset(G, ctx, p));
             sp.push(spacePreset(G, ctx, p, ctx.seed));
+            mp.push(mapPreset(G, ctx, p));
         }
     }
     const t1 = Date.now();
@@ -77,7 +79,7 @@ async function main() {
     const t2 = Date.now();
     const old = oldMetrics(G, cases);
     const res = { label, cases: cases.length, ms: { knobs: t1 - t0, pieces: t2 - t1, old: Date.now() - t2 },
-        sweep: sweepSummary(sw), space: spaceSummary(sp), pieces, old };
+        sweep: sweepSummary(sw), space: spaceSummary(sp), maps: mapSummary(mp), pieces, old };
     mkdirSync(DATA + 'quality', { recursive: true });
     writeFileSync(DATA + `quality/${label}.json`, JSON.stringify(res));
     const prev = args.compare && existsSync(DATA + `quality/${args.compare}.json`) ? JSON.parse(readFileSync(DATA + `quality/${args.compare}.json`, 'utf8')) : null;

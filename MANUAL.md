@@ -1851,7 +1851,7 @@ groups:
 | Group | Melodic generators | Drum generators |
 | --- | --- | --- |
 | **Close** | NEXT CHORDS (the rhythm kept, new notes from the new chords), FOLLOW (the whole part slid along the new roots, the way dub and house chords move), PULSE (the rhythm on each chord's root), HARMONIZE (a line in parallel thirds or sixths), RE-VOICE, NEW LINE, ANSWER, SPREAD, ARP, DRONE MOVE | KICK, HATS, GHOSTS, FILL |
-| **Rhythm** | BASSLINE (a new bass figure over the chords: offbeat, rolling, octaves, 3-3-2, gallop…), DISPLACE, ANTICIPATE, CONNECT (passing notes and suspensions), RECOMBINE, EUCLID, COMP (chord rhythms), OCTAVE BASS, WALK, THIN | SHIFT, TURNAROUND |
+| **Rhythm** | BASSLINE (a new bass figure over the chords: offbeat, rolling, octaves, 3-3-2, gallop…), DISPLACE, ANTICIPATE, CONNECT (passing notes and suspensions), RECOMBINE, EUCLID, COMP (chord rhythms, on the same map of comps as New Clip's CHORDS), OCTAVE BASS, WALK, THIN | SHIFT, TURNAROUND |
 | **Experimental** | STYLE (a new part in the source's own language, learned from it), LOOPER (a locked loop that mutates, after the Turing Machine), FORM (the part as a phrase: AABA, call and response…), MOTIF (a cell as a sequence), RETROGRADE, HALF/DOUBLE, ORNAMENT, REGISTER, PEDAL, DEVELOP (eight knobs) | STYLE (a new pattern learned from yours), FORM (your bar with a fill, a breakdown or a new bar as its answer), FEEL (half time, double hats), GRIDS (a map from your pattern to the genres' patterns, after Mutable Instruments' Grids), EUCLID, DEVELOP |
 
 GENERATORS (below) sets how many come from each group. Each generator is
@@ -1946,11 +1946,11 @@ Turning a knob back to where it was gives you the same notes again.
 | **CHORDS** | Comped chords on a rhythm, voice-led | PATTERN, VOICING, REGISTER, HARMONY |
 | **PAD** | Held chords, a new one where the harmony moves or each bar | VOICING, MOTION, REGISTER, HARMONY |
 | **STABS** | Short chords off the beat | PATTERN, VOICING, REGISTER, HARMONY |
-| **BASS** | A bass figure (offbeat, rolling, octaves, 3-3-2…) or WITH KICK | PATTERN, NOTES, OCTAVE, HARMONY |
+| **BASS** | A bass figure (offbeat, rolling, octaves, 3-3-2…) or the kick's accents, on a map of every figure | PATTERN, NOTES, OCTAVE, HARMONY |
 | **ARP** | Each chord broken up, down, in order… | STYLE, RATE, OCTAVES, HARMONY |
-| **MELODY** | A phrase on a contour that answers itself and lands home | CONTOUR, DENSITY, RANGE, SEED |
+| **MELODY** | A phrase on a contour that answers itself and lands home, on each chord's guide tones | CONTOUR, DENSITY, RANGE, SEED |
 | **RIFF** | A short cell repeated through the chords | CELL, NOTES, REGISTER, SEED |
-| **COUNTER** | A line that moves where the band leaves room | RATE, MOTION, REGISTER, SEED |
+| **COUNTER** | A line that moves where the band leaves room, on each chord's guide tones | RATE, MOTION, REGISTER, SEED |
 
 The knobs that set where a part sits reach past where the takes are drawn,
 for a darker or brighter, more experimental colour; a take always starts
@@ -1960,6 +1960,7 @@ inside the usual range:
 | --- | --- |
 | **REGISTER** (CHORDS, PAD, STABS) | DEEP, LOW-, **LOW**, **LOW+**, **MID**, **MID+**, **HIGH**, HIGH+, TOP. Each click opens the chord one inversion higher; it never goes under the band's bass, so with a bass playing the lowest positions meet. Every chord after the first is voiced for the whole loop at once, so the voices move as little as the VOICING allows and the last chord leads smoothly back into the first. |
 | **PATTERN** (CHORDS, STABS) | Over 100 positions, a map of every comp the part can play, numbered. Each named figure (quarters, offbeats, dub, house, tresillo, charleston, push, syncopated 16ths on CHORDS; offbeat, house, dotted, 3-3-2, push, sync, skank on STABS), the band's own accents when it has them, and Euclidean figures sit on it whole; each click from one adds or drops a single hit, from one hit a bar up to ten (eight on STABS) and back down through the next figure. So a slow turn morphs the comp hit by hit, and a full sweep passes through every figure. A take always lands on a named figure. |
+| **PATTERN** (BASS) | The same kind of map through the bass figures (offbeat, rolling, octaves, root-fifth, 3-3-2, gallop, half notes, walk, pump 8ths), the kick's accents and Euclidean figures, 1 to 12 hits a bar. A named figure plays its own notes (octaves, a fifth, an approach); between them a hit on a strong beat plays the root, the eighths between a fifth or the octave, and the hit just before a chord change steps into the next chord's root. |
 | **REGISTER** (RIFF, COUNTER) | BASS, **LOW**, **MID**, **HIGH**, TOP, an octave apart. |
 | **VOICING** (CHORDS, PAD, STABS) | How each chord is stacked, from thin to rich: DUO (two notes), **TRIAD**, **OPEN** (a triad spread past the octave), **SHELL** (root, 3rd, 7th), **ADD9**, **SEVENTH**, **DROP 2** and DROP 3 (a seventh chord with one voice dropped an octave), **SPREAD** (root, 5th, 10th, 7th: wide and cinematic), JAZZ (rootless, 3-5-7-9 or 7-9-3-5), QUARTAL (stacked fourths that still hold the chord's 3rd) and NEO SOUL (root, 7th, 10th, 5th, 9th). A 9th, 6th or 11th is added only where the key and the chord allow it; a seventh chord in the progression keeps its seventh in every style. |
 | **MOTION** (PAD) | How the voicings move from chord to chord. **SMOOTH** moves the fewest semitones; **TOP LINE** keeps the top note as still as it can; **CLIMB**, **ARCH** and FALL lift, arch or lower the top over the clip; PARALLEL slides one chord shape along the progression, as house and dub chords do. |
@@ -2007,6 +2008,14 @@ HARMONIC (i iv V i), ANDALUSIAN (i VII VI V) and PICARDY (i iv VII I) in
 minor. A run never opens on these; you turn to them. Lines written over a
 borrowed chord borrow with it: under a bVII in C they walk Bb, not B.
 
+**The parts hear the changes.** A CHORDS, STABS or BASS hit in the last eighth
+before a chord change, with nothing struck on the change itself, plays the
+*next* chord: the push of pop, funk and house comping, and a bass's
+anticipation. MELODY and COUNTER start each chord on its 3rd or 7th (its
+guide tones, the notes that tell one chord from the next), moving between them
+by the smallest step, and the note just before a change steps into the next
+chord's guide tone; between those they keep their own contour.
+
 Knobs 5 to 8 are the same on every New Clip option, and every run starts them
 somewhere new, so the rhythm and the note lengths change from run to run too:
 
@@ -2021,16 +2030,25 @@ Drum options have **VARY, SWING, DYNAMICS** and **HUMAN** (a few ticks of timing
 and some velocity, the way a player is never exact) in knobs 5 to 8. VARY never
 drops the kick on the one.
 
-**Drum tracks get six options.** The first two are **per pad**: PAD EUCLID and
+**Drum tracks get seven options.** The first two are **per pad**: PAD EUCLID and
 PAD PATTERN write only the selected pad. Press another pad and it gets its own
 notes at the same settings, while the pads you already have keep theirs. That
 way you build the kit one pad at a time. Knob 1 is **DENSITY**: turn it to 0 to
 take the selected pad's notes out again. Each pad keeps its DENSITY when you
-move between options 1 and 2. The other four write the whole kit: GROOVE (a
+move between options 1 and 2. The other five write the whole kit: GROOVE (a
 genre's pattern: four on the floor, disco, backbeat, 2-step, breakbeat, half
-time, trap, broken beat), EUCLID KIT, BROKEN (the kick leaning on the band's
+time, trap, broken beat), **DRUM MAP**, EUCLID KIT, BROKEN (the kick leaning on the band's
 accents, the snare pushed late, ghost notes) and PERC (the kit's other voices).
 On those, a pad press only plays the pad.
+
+DRUM MAP steers a groove on two axes, as on Mutable Instruments Grids.
+**GROOVE** walks through the same genres, from four on the floor to broken
+beat, trading one genre's hits for the next one's a hit at a time (the
+velocities blend with it). **KICK**, **SNARE** and **HATS** are each voice's
+number of hits a bar on that groove: each click adds or drops one hit, the
+strongest steps first, so a voice thins or fills without changing its
+character. At a genre and its own counts (four on the floor: 4 kicks, 2
+snares, 4 offbeat hats) you hear that genre.
 
 **Length.** A new clip is as long as the slot's own loop if you set one
 before the hold (Loop Mode works on an empty slot). Otherwise it takes the

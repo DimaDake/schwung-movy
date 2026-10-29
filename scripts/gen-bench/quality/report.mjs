@@ -19,6 +19,10 @@ export function scorecard(r) {
         ['2 space: musical', r.space.musical, 1, pc, 0.02], ['2 space: broken', r.space.broken, -1, pc, 0.01],
         ['2 space: refused (turn does nothing)', r.space.refused, -1, pc, 0.01],
         ['2 space: default musical', r.space.defMusical, 1, pc, 0.01], ['2 space: next to default broken', r.space.nearBroken, -1, pc, 0.01],
+        ['3 maps: positions played', r.maps?.positions ?? null, 0, String, 1], ['3 maps: gradual turns', r.maps?.gradual ?? null, 1, pc, 0.02],
+        ['3 maps: mean turn', r.maps?.meanTurn ?? null, -1, f2, 0.1], ['3 maps: distinct positions', r.maps?.distinct ?? null, 1, pc, 0.01],
+        ['3 maps: positions musical', r.maps?.musical ?? null, 1, pc, 0.02], ['3 maps: positions broken', r.maps?.broken ?? null, -1, pc, 0.01],
+        ['3 maps: onset reach (per bar)', r.maps?.reach ?? null, 1, f2, 0.5],
         ['4 piece: musical', share('musical'), 1, pc, 0.05], ['4 piece: broken', share('broken'), -1, pc, 0.0],
         ['4 piece: clash (strong beats)', mean(sc.map((s) => s.clash)), -1, pc, 0.01], ['4 piece: chord fit', mean(sc.map((s) => s.fit)), 1, f2, 0.01],
         ['4 piece: worst part fit', mean(sc.map((s) => s.worst)), 1, f2, 0.02], ['4 piece: low-end mud scenes', sc.filter((s) => s.mud).length, -1, String, 0],
@@ -66,6 +70,12 @@ export function report(r, prevRes) {
         '| generator | musical | broken | default broken | next to default broken | samples |', '| --- | --- | --- | --- | --- | --- |',
         ...r.space.per.filter((x) => x.broken > 0 || x.defBroken > 0).sort((a, b) => b.broken - a.broken).slice(0, 25)
             .map((x) => `| ${x.k} | ${pc(x.musical)} | ${pc(x.broken)} | ${pc(x.defBroken)} | ${pc(x.nearBroken)} | ${x.n} |`));
+    if (r.maps) {
+        const by = new Map();
+        for (const w of r.maps.worst) { const e = by.get(w.id) ?? [0, 0, 0]; e[0] += w.gradual ?? 0; e[1] += w.broken; e[2]++; by.set(w.id, e); }
+        out.push('', '## 3. Map knobs (every position played)', '', '| generator knob | gradual turns | broken positions | requests |', '| --- | --- | --- | --- |',
+            ...[...by].sort((a, b) => a[1][0] / a[1][2] - b[1][0] / b[1][2]).map(([k, [g, br, n]]) => `| ${k} | ${pc(g / n)} | ${pc(br / n)} | ${n} |`));
+    }
     out.push('', '## 4. Pieces', '', '| piece | verdict | A | B | A\' | clash A/B/A\' | role breaks | B copies | A→B | chords A/A\' | generators |',
         '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
         ...r.pieces.map((p) => `| ${p.motif ? 'motif' : 'scratch'} ${p.seed} | ${p.verdict} | ${p.scenes.map((s) => s.verdict[0].toUpperCase()).join(' | ')} | `

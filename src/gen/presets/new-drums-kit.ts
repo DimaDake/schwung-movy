@@ -14,9 +14,9 @@ import { NODES } from '../shape/drum-maps.js';
 import { euclid } from '../theory/pc.js';
 import { type Note, TPS } from '../types.js';
 
-const pad = (ctx: GenCtx, role: PadRole): number | null => ctx.kit?.by[role][0] ?? null;
+export const pad = (ctx: GenCtx, role: PadRole): number | null => ctx.kit?.by[role][0] ?? null;
 
-function hit(ctx: GenCtx, out: Note[], p: number | null, step: number, vel: number): void {
+export function hit(ctx: GenCtx, out: Note[], p: number | null, step: number, vel: number): void {
     if (p !== null && step < ctx.len) out.push({ tick: place(ctx, step), pitch: p, gate: TPS / 2, vel: Math.max(1, Math.min(127, Math.round(vel))) });
 }
 

@@ -1,7 +1,9 @@
 /* New Clip's single lines (plans/2026-10-28-new-clip-design.md): MELODY
  * writes a phrase on a CONTOUR and answers it, RIFF repeats a short cell
  * through the chords, COUNTER moves where the band leaves room. Strong beats
- * take chord tones, the rest walk the scale, so a line is a line. */
+ * take chord tones, the rest walk the scale, so a line is a line; MELODY and
+ * COUNTER also land on each chord's guide tone and step into the next
+ * (create/guide.ts), so they are heard to follow the changes. */
 
 import type { GenCtx } from '../analysis/context.js';
 import { strength } from '../analysis/events.js';
@@ -9,6 +11,7 @@ import { ACCENT } from '../analysis/band.js';
 import { amount, choice, chordUnder, LINE_REGISTER as L, place, register, runPlan, SEED, velAt } from '../create/common.js';
 import type { Preset } from '../preset.js';
 import { withFeel } from '../create/feel.js';
+import { onGuides } from '../create/guide.js';
 import { choose, mix, rng, type Rng } from '../rng.js';
 import { nearestPitch, stepScale } from '../theory/pc.js';
 import { scaleUnder } from '../theory/category.js';
@@ -46,6 +49,7 @@ export const MELODY: Preset = withFeel({
         const call = rhythm(phrase, v[1], r);
         const answer = rhythm(Math.min(8, phrase), v[1], r).map((s) => s + phrase - Math.min(8, phrase));
         const out: Note[] = [];
+        const home = new Set<Note>();
         for (let off = 0; off < ctx.len; off += phrase) {
             /* The last phrase answers: its tail is new and lands home. */
             const last = off + phrase >= ctx.len && off > 0;
@@ -55,10 +59,12 @@ export const MELODY: Preset = withFeel({
                 const t = place(ctx, off + s);
                 const target = lo + CONTOURS[v[0]](s / phrase) * span;
                 const p = last && i === steps.length - 1 ? nearestPitch(target, [ctx.key.tonic], lo, hi) : tone(ctx, t, target, lo, hi);
-                out.push({ tick: t, pitch: p, gate: TPS, vel: velAt(t, 96, r) });
+                const n = { tick: t, pitch: p, gate: TPS, vel: velAt(t, 96, r) };
+                if (last && i === steps.length - 1) home.add(n);
+                out.push(n);
             });
         }
-        return out;
+        return onGuides(ctx, runPlan(ctx), out, lo, hi, home);
     },
 }, [3, 9]);
 
@@ -115,6 +121,6 @@ export const COUNTER: Preset = withFeel({
             p = nearestPitch(p, strength(t) >= 0.7 ? c.pcs : scaleUnder(ctx.key, c));
             out.push({ tick: t, pitch: p, gate: TPS, vel: velAt(t, 88, r) });
         }
-        return out;
+        return onGuides(ctx, runPlan(ctx), out, centre - 9, centre + 12);
     },
 }, [4, 9]);

@@ -13,12 +13,15 @@ import { createInput } from '../gen-fixtures.mjs';
 const by = (id) => G.PRESETS.find((p) => p.id === id);
 const turn = (ctx, p, knobs) => { const v = G.defaults(p, ctx); for (const [k, x] of Object.entries(knobs)) v[G.knobIndex(p, k)] = x; return G.regenerate(ctx, p, v) ?? []; };
 const sig = (ns) => [...ns].sort((a, b) => a.tick - b.tick || a.pitch - b.pitch).map((n) => `${n.tick}.${n.pitch}.${n.gate}`).join(',');
-/* Strikes of a chord part, with the chord planned under each. */
+/* Strikes of a chord part, with the chord each one plays (the next chord
+ * where a strike pushes into it, create/push.ts). */
 function strikes(ctx, p, ns) {
     const h = turn(ctx, p, {}).length && G.defaults(p, ctx)[G.knobIndex(p, 'HARMONY')];
     const at = new Map();
     for (const n of ns) { if (!at.has(n.tick)) at.set(n.tick, []); at.get(n.tick).push(n.pitch); }
-    return [...at].map(([t, ps]) => ({ t, ps: ps.sort((a, b) => a - b), c: G.chordUnder(ctx, h, t) }));
+    const ticks = [...at.keys()].sort((a, b) => a - b);
+    const cs = G.struck(ctx, h, ticks);
+    return ticks.map((t, i) => ({ t, ps: at.get(t).sort((a, b) => a - b), c: cs[i] }));
 }
 
 export async function run() {

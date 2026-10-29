@@ -10,6 +10,7 @@ import { BAR, type Ev, TPS } from '../types.js';
 import { COMPS, nearestComp } from '../shape/rhythm.js';
 import { dynamics } from '../shape/dynamics.js';
 import { finish, over, partEvs } from './helpers.js';
+import { figurePosition, patternAt, patternKnob, type PatternSpec } from '../create/pattern-knob.js';
 
 const DIMS = ['PITCH', 'LENGTH', 'VELOCITY', 'POSITION'] as const;
 
@@ -75,14 +76,18 @@ export const EUCLID: Preset = {
     },
 };
 
+/* PATTERN walks the comp map (create/pattern-knob.ts) and opens on the
+ * figure nearest the source's rhythm that is not it. */
+const VAR_COMP: PatternSpec = { figs: COMPS.map((c) => c[1]), lo: 1, hi: 10, band: 0 };
+
 export const COMP: Preset = {
     id: 'v-comp', name: 'COMP', task: 'variation', drum: false, cls: 'rhythm', fit: () => 0.6, roles: ['stabs', 'pad'],
-    knobs: [{ ...custom('PATTERN', COMPS.map((c) => c[0])), def: (c) => nearestComp(partEvs(c)) }, K.harmony(1), K.changes(0), K.tension(5),
+    knobs: [{ ...patternKnob(VAR_COMP, [0]), def: (c) => figurePosition(c, VAR_COMP, COMPS[nearestComp(partEvs(c))][1]) }, K.harmony(1), K.changes(0), K.tension(5),
         K.voices(1), K.length(5), K.dynamics(3), K.range(5)],
     generate: (ctx, v, seed) => {
         const evs = over(ctx, partEvs(ctx), { h: v[1], changes: v[2], tension: v[3], voices: v[4], range: v[7] });
         if (!evs.length) return [];
-        const steps = COMPS[v[0]][1];
+        const steps = patternAt(ctx, VAR_COMP, v[0]);
         const pad = ctx.role?.kind === 'pad';
         const out: Ev[] = [];
         for (let bar = 0; bar * BAR < ctx.end; bar++) {

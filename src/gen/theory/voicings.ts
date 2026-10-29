@@ -50,6 +50,12 @@ export interface VoiceOpts {
      *  rest follow from there, so each click is the next inversion; under
      *  `lo` the low rungs meet at it. */
     rung?: number;
+    /** Where each chord's top note wants to be, in place of `anchor`: a
+     *  realiser follows the source's own top line this way. */
+    anchors?: number[];
+    /** A chord struck again keeps its voicing (default); a realiser lets it
+     *  move with the source instead. */
+    holdRepeats?: boolean;
 }
 
 const LADDER_FROM = 40;
@@ -82,7 +88,7 @@ export function voiceAll(chords: Chord[], k: Key, o: VoiceOpts): number[][] {
     const w = weights(o.motion ?? 'SMOOTH');
     const n = chords.length;
     const win = opening(chords[0], k, s, o);
-    const anchorAt = (i: number) => win.anchor + w.glide(n > 1 ? i / (n - 1) : 0);
+    const anchorAt = (i: number) => o.anchors?.[i] ?? win.anchor + w.glide(n > 1 ? i / (n - 1) : 0);
     const cands = chords.map((c, i) => {
         /* Nothing fits the window (a five-voice stack over a high floor):
          * let it run up, never down under the floor. A chord the style has
@@ -121,7 +127,7 @@ export function voiceAll(chords: Chord[], k: Key, o: VoiceOpts): number[][] {
         let cost = cands[0].map((c, i) => (s0 < 0 || i === s0 ? c.cost : Infinity));
         const back: number[][] = [];
         for (let t = 1; t < n; t++) {
-            const same = chords[t].root === chords[t - 1].root && chords[t].quality === chords[t - 1].quality;
+            const same = o.holdRepeats !== false && chords[t].root === chords[t - 1].root && chords[t].quality === chords[t - 1].quality;
             const prev = cands[t - 1], cur = cands[t];
             const bk: number[] = [];
             const nc = cur.map((c, j) => {

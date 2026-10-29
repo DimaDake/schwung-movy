@@ -32,15 +32,13 @@ export function previewStripTick(viewRepainted: boolean): void {
     drawPreviewStrip(previewIndex(), labels);
 }
 
-/* One dark row between the name and the band: two white bars touching
- * would read as one. */
+/* Filled down to the band, so the two read as one white block. */
 const NAME_Y = TOAST_Y - TOAST_H - 1;
 let nameDrawn = '';
 
 export function drawPreviewName(name: string): void {
     const text = 'GENERATOR: ' + name;
-    fill_rect(0, NAME_Y, W, TOAST_H, 1);
-    fill_rect(0, NAME_Y + TOAST_H, W, 1, 0);
+    fill_rect(0, NAME_Y, W, TOAST_Y - NAME_Y, 1);
     fontPrint(Math.max(1, Math.floor((W - fontWidth(text)) / 2)), NAME_Y + 1, text, 0);
 }
 

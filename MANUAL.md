@@ -2209,8 +2209,8 @@ Here a Variation's sixth option is playing:
 
 - **Turn the jog** to hear ORIG and each option. The clip swaps in place and
   keeps playing in time.
-- **Rest a finger on the jog** for a second to see which generator made the
-  option showing: `GENERATOR: NAME` appears in the top strip, like a held
+- **Touch the jog** to see which generator made the option showing:
+  `GENERATOR: NAME` appears in the top strip at once, like a held
   knob's name. Turn while still touching and it follows the option; let go
   and it goes a second later.
 

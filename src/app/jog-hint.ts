@@ -26,3 +26,6 @@ export function jogHintTick(): boolean {
 }
 
 export function jogHintVisible(): boolean { return state.shown; }
+/* A finger on the jog right now, no hold wait: the generator preview names
+ * its option at once, since there the jog does only one thing. */
+export function jogTouched(): boolean { return state.pressMs > 0 || state.shown; }

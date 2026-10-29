@@ -449,7 +449,7 @@ export function onMidiMessageInternal(data: number[]): void {
     /* Main encoder (jog) touch: note=9. Arms the hint only — it appears a
      * beat later (jogHintTick), so grabbing the jog to scroll shows nothing.
      * The repaint is needed only when the release takes a visible hint away.
-     * In the generator preview the same hold names the generator showing. */
+     * In the generator preview the touch itself names the generator showing. */
     if ((status & 0xF0) === 0x90 && d1 === JOG_TOUCH) {
         if (appState.currentView === VIEW_CHAIN || appState.currentView === VIEW_KNOBS || aiPreviewActive()) {
             if (jogHintTouch(d2 > 0)) appState.dirty = true;

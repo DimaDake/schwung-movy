@@ -7,7 +7,7 @@
  * option. One undo per visit. A held track button shows the pages beneath. */
 
 import { appState, VIEW_CHAIN, VIEW_KEYS, VIEW_KNOBS } from '../app/state.js';
-import { jogHintTouch, jogHintVisible } from '../app/jog-hint.js';
+import { jogHintTouch, jogTouched } from '../app/jog-hint.js';
 import { mlog } from '../log.js';
 import { trackButtonHeld } from '../mixer/track-volume.js';
 import { seqCmd } from '../seq/engine.js';
@@ -179,9 +179,9 @@ export function aiPreviewTick(): void {
         if (o) resume(o);
     }
     if (!cur) return;
-    /* The jog held names the generator in the top strip, kept up while held
-     * the way a held knob's is; a held knob, announced after, wins. */
-    if (jogHintVisible() && !trackButtonHeld()) seqHeaderAnnounce('GENERATOR: ' + previewName(), JOG_NAME_TTL);
+    /* A finger on the jog names the generator in the top strip at once, kept
+     * up while held the way a held knob's is; a held knob, announced after, wins. */
+    if (jogTouched() && !trackButtonHeld()) seqHeaderAnnounce('GENERATOR: ' + previewName(), JOG_NAME_TTL);
     refreshTick();
     knobsTick(replaceCurrent);
 }

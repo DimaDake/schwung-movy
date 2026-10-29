@@ -126,13 +126,15 @@ eq('dead_knob_shows_nothing', seqHeaderShown(), '');
 commitPreview();
 done();
 
-/* Holding the jog names the generator behind the option showing (the
- * top strip); the hold is the views' own jog-hint timer. */
+/* Touching the jog names the generator behind the option showing (the
+ * top strip) at once — no wait for the views' jog-hint hold timer. */
 {
     const realNow = Date.now;
     let t = 1000; Date.now = () => t;
     boot(input);
     jogHintTouch(true);
+    aiPreviewTick();
+    eq('jog_touch_names_it_at_once', seqHeaderShown(), 'GENERATOR: ' + picks[0].preset.name);
     t = 2100;
     eq('jog_hold_arms_in_the_preview', jogHintTick(), true);
     eq('jog_hold_names_option_1', previewName(), picks[0].preset.name);

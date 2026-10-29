@@ -1682,11 +1682,6 @@ the click itself never clips.)
 
 ![Settings: GENERATORS](docs/assets/flags-generators.png)
 
-**GENERATOR MODE**, the third row, picks where the generators' options come
-from: **ALGORITHMIC** (the default; on the Move, offline, with knobs) or
-**MODEL** (a Gemini model, with a key), with **knob 1**. See
-[Generators](#6b-generators-smart-quantize--variation).
-
 **MIGRATE FROM MOVE**, the last row, runs the migration from Move again. The
 first jog click arms it (the row reads **CONFIRM?**, and moving off disarms
 it), the second runs it. The hint below shows when the migration last ran. It
@@ -1788,14 +1783,9 @@ track, and Smart Double from the clip itself, played twice. Only
 [New Clip](#new-clip-shift--hold-step-14-on-an-empty-track) writes from
 nothing, and even it listens to the rest of the scene.
 
-The takes come from one of two places, chosen in **Settings → GENERATOR
-MODE**:
-
-- **ALGORITHMIC** (the default): Movy's own generators, on the Move. No key, no
-  network, an answer in under a second, and every option has **knobs** you can
-  turn to reshape it (see [The knobs](#the-knobs)).
-- **MODEL**: a Gemini language model reads your Set and answers (a free key,
-  Wi-Fi, a few seconds per request). See [MODEL mode](#model-mode).
+The takes come from Movy's own generators, on the Move: no key, no network, an
+answer in under a second, and every option has **knobs** you can turn to
+reshape it (see [The knobs](#the-knobs)).
 
 ### Smart Quantize: Shift + hold Step 16
 
@@ -1811,7 +1801,7 @@ just cycles quantization:
 The three options go from careful to bold. Option 1 is always the tightest:
 your notes on the scene's groove, with only the wrong notes moved. The other
 two **develop** the clip a little, because Smart Quantize is not only a fixer.
-In ALGORITHMIC mode they come from these generators, picked for your clip:
+They come from these generators, picked for your clip:
 
 | Generator | Melodic tracks | Drum tracks |
 | --- | --- | --- |
@@ -1841,7 +1831,7 @@ there is none above), keeps that clip's playback speed, and takes its length
 too, unless the slot already has a clip. In that case it replaces that clip at
 the same length, and ORIG gets it back.
 
-In ALGORITHMIC mode Variation offers **six options**, chosen from some thirty
+Variation offers **six options**, chosen from some thirty
 generators for the part you are varying: the ones that suit it (a chord part
 gets chord generators, a bass line bass ones) and that differ enough from each
 other. They are shown closest first, and **switching options shows the
@@ -1884,8 +1874,7 @@ Session view a tap still doubles straight away.
 
 ![Hold for Smart Double](docs/assets/ai_hold_double_50.png)
 
-Smart Double is always ALGORITHMIC, whatever GENERATOR MODE says, and it needs
-room: a loop already longer than 8 bars cannot double, and the hold does
+Smart Double needs room: a loop already longer than 8 bars cannot double, and the hold does
 nothing there. It doubles the loop window, so the new clip starts at bar 1. The
 six options are never the plain double (a tap is that), and ORIG puts back the
 clip at its old length.
@@ -1919,7 +1908,7 @@ stays where it was.
 
 On a track with nothing to vary yet, **hold Shift and hold Step 14** and the bar
 says `NEW CLIP`. When it fills, Movy writes a part for the selected slot from
-nothing. It is always ALGORITHMIC, whatever GENERATOR MODE says.
+nothing.
 
 ![Hold for a New Clip](docs/assets/ai_hold_newclip_50.png)
 
@@ -2161,10 +2150,6 @@ bar), CLOCK (1/16, 1/8 or 1/4 per step) and SPREAD (how far a rewritten step may
 leap); BASSLINE has PATTERN, NOTES, OCTAVE (-1 OCT, AS IS, +1 OCT) and SHIFT; ARP has PATTERN, RATE and OCTAVES (1, 1.5, 2, 2.5, 3, 4); REGISTER's INTERVAL reaches two octaves either way; MOTIF
 has CELL and STEP; FILL has SIZE and PADS; EUCLID has PULSES and ROTATE; and GRIDS has X, Y, KICK, SNARE, HATS and CHAOS.
 
-In MODEL mode each option gets four knobs that reshape the model's answer:
-TIMING, SWING, DYNAMICS and LENGTH for Smart Quantize, and DENSITY, LENGTH,
-RANGE and DYNAMICS for Variation. They start where the answer leaves them.
-
 ### How bold: Settings → GENERATORS
 
 **GENERATORS** on the Settings page (Shift + Step 2) sets how bold the
@@ -2172,7 +2157,7 @@ options are: **SAFE**, **BALANCED** (the default) or **WILD**. Turn **knob 1**
 on the row. It belongs to the Move, not to a Set, and a change applies from the
 next request.
 
-In ALGORITHMIC mode the level picks how many options come from each group, and
+The level picks how many options come from each group, and
 how far every generator goes by default:
 
 | Level | Variation's six options | Smart Quantize's three | Defaults |
@@ -2185,29 +2170,16 @@ Smart Double's six options are mixed from its groups the same way as
 Variation's. SAFE opens every ENDING one size shorter, WILD one size longer and
 with SEAMS on BOTH.
 
-In MODEL mode, Smart Quantize's option 1 is always the most careful of the
-three and option 3 the boldest, and the level moves the whole range. In
-Variation the level moves only the experimental options 7 and 8:
-
-| Level | Smart Quantize | Variation 7 and 8 |
-| --- | --- | --- |
-| **SAFE** | Fix the timing and clashes, tidy, then a light touch. | One borrowed chord; a new phrase around the motif (drums: half-time; a close new pattern). |
-| **BALANCED** | Closest, shaped, inspired. | Borrowed and modal colour; a bold new part from the motif (drums: half or double time; a new pattern). |
-| **WILD** | Developed, reshaped, reimagined from the motif. | Bold chromatic colour; the boldest new part (drums: a broken feel; the boldest pattern). |
-
 ### While it works
 
 The header at the top of the screen shows `QUANTIZING...`, `VARIATION...`,
-`DOUBLING...` or `NEW CLIP...` (with the seconds so far, for a model request);
-the rest of the screen and the lights stay as they were, and the sequencer
+`DOUBLING...` or `NEW CLIP...`; the rest of the screen and the lights stay as they were, and the sequencer
 keeps playing. Only **Back** does anything: it cancels and leaves the clip
-untouched. The power button's dialog still comes up and answers. In
-ALGORITHMIC mode this lasts a moment; a model request usually takes a few
-seconds.
+untouched. The power button's dialog still comes up and answers. It lasts a
+moment.
 
-If it fails, a message says why (`NO NETWORK`, `BUSY, TRY LATER` when the
-free quota is used up or the model is overloaded, or `GENERATOR ERROR`), and the
-clip is unchanged. An option that comes back identical to your clip is left out
+If it fails, a message says why (`NOTHING TO QUANTIZE`, `NOTHING TO DOUBLE` or
+`GENERATOR ERROR`), and the clip is unchanged. An option that comes back identical to your clip is left out
 (and in Variation one that breaks the role or repeats a loop), so the strip
 can show fewer options than usual. A request that leaves none says
 `GENERATOR ERROR`.
@@ -2215,14 +2187,11 @@ can show fewer options than usual. A request that leaves none says
 ### Choosing
 
 The clip's notes fill the screen, with `GEN  ORIG  1  2  3` along the bottom
-(`1` to `6` for an algorithmic Variation, `1` to `8` for a model's). It opens on
-the first option:
+(`1` to `6` for Variation). It opens on the first option:
 
 ![Preview](docs/assets/ai_preview_opt1.png)
 
-A model's options keep their numbers from the ladder, so a left-out option
-leaves a gap and 7 and 8 are always the experimental ones. Here option 5 was
-left out and option 7 is playing:
+Here a Variation's sixth option is playing:
 
 ![Variation preview](docs/assets/ai_preview_var8.png)
 
@@ -2236,48 +2205,8 @@ left out and option 7 is playing:
 - **Undo** afterwards takes the whole thing back in one step, to the clip as it
   was before the generator ran.
 
-### MODEL mode
-
-Set **GENERATOR MODE** to **MODEL** in Settings (knob 1 on the row):
-
-![Settings: GENERATOR MODE](docs/assets/flags-genmode.png)
-
-You need an API key. A **Gemini key is free** from Google AI Studio
-(aistudio.google.com/apikey). With Movy installed, open
-**`move.local:7700/modules/movy`** in a browser and paste the key. The key is
-stored on the Move and never shown again. Leave the Model field blank: Movy
-asks `gemini-3.1-flash-lite` first and, if Google says it is busy or it does
-not answer within 40 seconds, `gemini-flash-lite-latest`. Both answer in a few
-seconds on the free tier, and they were the best of the free models on Movy's
-test set of real (mostly electronic) parts. A model name typed there replaces
-the first one; the fallback stays. If there is no key, the generator gestures
-say `NO API KEY  MOVE.LOCAL:7700`.
-
-**What is sent:** every clip of every track (notes, lengths, playback speed,
-transpose), each track's module name and drum voice names, and the Set's tempo,
-swing and key. A track's identical clips are sent once. Movy also adds the
-chord it hears in each bar. No audio and no names other than modules leave the
-Move. Requests go straight from the Move to Google, over the Move's own Wi-Fi.
-ALGORITHMIC mode sends nothing anywhere.
-
-A model's Variation offers eight options in three groups:
-
-| Option | Melodic tracks | Drum tracks |
-| --- | --- | --- |
-| **1** next chords | The source's rhythm, new notes on the scene's chords. | A different kick pattern. |
-| **2** re-voiced | The rhythm kept; new inversions and spacing, or a new contour for a line. | A new hat and percussion line. |
-| **3** new line | A new line or chord choice that answers the source like a second phrase. | Ghost notes and accents reshaped. |
-| **4** answer | The first half close to the source, the second half ending somewhere new. | A fill in the last bar. |
-| **5** rhythm | The source's notes in a new rhythmic placement: syncopation, anticipated changes. | Accents displaced: a syncopated kick or moved snare. |
-| **6** connections | Passing and approach notes, suspensions, smooth voice leading into each change. | A turnaround every second bar. |
-| **7** colour | Borrowed or chromatic chords where the other tracks allow it. | A half-time or double-time feel. |
-| **8** reimagined | A new part grown from the source's core interval or rhythm cell. | A new pattern grown from the played hits. |
-
-How the two compare on Movy's test set of real parts: the ALGORITHMIC
-generators come closer to the real B sections and recover messy parts more
-closely than the model, and their options differ from each other at least as
-much in rhythm, notes, range, density and lengths
-(`plans/gen-bench-results-2026-10-27-algo.md`).
+How they do on Movy's test set of real parts is in
+`plans/gen-bench-results-2026-10-27-algo.md`.
 
 ---
 

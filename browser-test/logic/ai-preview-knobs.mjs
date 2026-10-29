@@ -123,12 +123,4 @@ eq('dead_knob_writes_nothing', ops().filter((o) => o.startsWith('aiclip')).lengt
 eq('dead_knob_shows_nothing', seqHeaderShown(), '');
 commitPreview();
 done();
-
-/* REPLY: a model's option keeps its notes until a knob is turned. */
-const base = r.picks[0].notes;
-const rp = G.replyPreset('variation', false, base);
-const rv = G.defaults(rp, r.ctx);
-eq('reply_has_four_knobs', rp.knobs.length, 4);
-eq('reply_defaults_leave_it_as_it_came', G.generateOption(r.ctx, rp, rv).notes?.length, base.length);
-ok('reply_density_up_adds_notes', (G.generateOption(r.ctx, rp, [9, 5, 5, 0]).notes?.length ?? 0) > base.length);
 }

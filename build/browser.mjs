@@ -365,7 +365,6 @@ await esbuild.build({
         resolve(root, 'src/seq/prefs.ts'),
         resolve(root, 'src/seq/click-volume.ts'),
         resolve(root, 'src/seq/gen-level.ts'),
-        resolve(root, 'src/seq/gen-mode.ts'),
         resolve(root, 'src/seq/quant-overlay.ts'),
         resolve(root, 'src/renderer/cpu-view.ts'),
         resolve(root, 'src/seq/cpu-page.ts'),

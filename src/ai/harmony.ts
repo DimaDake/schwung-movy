@@ -1,6 +1,4 @@
-/* The Set's harmonic map, computed on the device so the model is handed the
- * chords instead of inferring them from raw notes (design §9, "Context").
- * Per scene, per master bar: the sounding pitch classes of every melodic
+/* The Set's harmonic map, as the generator bench scores against it. Per scene, per master bar: the sounding pitch classes of every melodic
  * clip (transpose and playback speed applied, short clips looped) and the
  * chord they spell best. */
 
@@ -44,9 +42,7 @@ function clipMasterTicks(c: AiClip): number {
 export interface BarChord { pcs: number[]; bass: number; name: string; root: number }
 
 /** Per master bar of the scene: the sounding pitch classes (root first), the
- *  lowest pitch class, and the chord they spell; empty bars have pcs []. The
- *  prompt's HARMONY text and the bench's fit score both read this, so what the
- *  model is told and what it is scored against cannot drift apart. */
+ *  lowest pitch class, and the chord they spell; empty bars have pcs []. */
 export function sceneChords(clips: AiClip[], drum: (track: number) => boolean): BarChord[] {
     const melodic = clips.filter((c) => !drum(c.track) && c.len > 0);
     const sceneTicks = Math.max(BAR, ...clips.map(clipMasterTicks));
@@ -78,10 +74,4 @@ export function sceneChords(clips: AiClip[], drum: (track: number) => boolean): 
         const order = [...set].sort((a, b) => ((a - root + 12) % 12) - ((b - root + 12) % 12));
         return { pcs: order, bass: bass[i] % 12, name, root };
     });
-}
-
-/** One line per master bar of the scene: `bar N: Am (A C E)` or `bar N: -`. */
-export function sceneHarmony(clips: AiClip[], drum: (track: number) => boolean): string[] {
-    return sceneChords(clips, drum).map((c, i) => (c.pcs.length
-        ? `bar ${i + 1}: ${c.name} (${c.pcs.map(pcName).join(' ')})` : `bar ${i + 1}: -`));
 }

@@ -4,9 +4,9 @@
  * its loop's length (plans/2026-10-28-smart-double-design.md); New Clip writes
  * the slot from nothing (plans/2026-10-28-new-clip-design.md). */
 
-import type { AiClip, AiNote } from './clip-dump.js';
-import type { AiTrackInput } from './context.js';
-import type { AiTask } from './prompt.js';
+import type { AiClip } from './clip-dump.js';
+import type { AiTask } from './job-types.js';
+import type { AiTrackInput } from './set-input.js';
 import { MAX_STEPS } from '../seq/constants.js';
 import { kitPads } from './set-input.js';
 import { pickSource, variationTarget } from './target.js';
@@ -17,10 +17,7 @@ export interface JobCtx {
     orig: AiClip | null;
     drum: boolean;
     kit: number[];
-    units?: 'steps' | 'ticks';
     srcSlot?: number | null; // the clip a variation grows from (the knobs' generators read it)
-    source?: AiNote[];      // Variation (facts.ts): what validate.ts checks the role and loops against
-    loops?: AiNote[][];
 }
 
 /** The job's target, or why there is none ('nothing' to quantize, 'no source'). */

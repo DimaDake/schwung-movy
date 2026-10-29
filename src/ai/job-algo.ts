@@ -1,12 +1,9 @@
-/* The job's algorithmic path (plans/2026-10-27-algorithmic-generators-design.md
- * §7): the same Set reads as a model request, then the generators in slices —
- * one preset per tick — and the same preview. No key, no network. */
+/* The job's generator path (plans/2026-10-27-algorithmic-generators-design.md
+ * §7): the Set's reads, then the generators in slices — one preset per tick —
+ * and the preview. */
 
 import { mlog } from '../log.js';
-import { finishRequest, prepare, type Request, startRequest, stepRequest } from '../gen/engine.js';
-import { defaults } from '../gen/preset.js';
-import { replyPreset } from '../gen/presets/reply.js';
-import type { AiNote } from './clip-dump.js';
+import { finishRequest, type Request, startRequest, stepRequest } from '../gen/engine.js';
 import type { GenInput } from '../gen/types.js';
 import type { AiPreviewInput, Running } from './job-types.js';
 import { setHeader } from './set-input.js';
@@ -25,15 +22,6 @@ function inputOf(r: Running, source: number | null): GenInput {
 
 export function startAlgo(r: Running, source: number | null): Request {
     return startRequest(inputOf(r, source));
-}
-
-/** A model's options as REPLY presets, so they have knobs too (design §5.2). */
-export function replyGen(r: Running, options: AiNote[][]): AiPreviewInput['gen'] {
-    const ctx = prepare(inputOf(r, r.ctx!.srcSlot ?? null));
-    return { ctx, picks: options.map((o) => {
-        const preset = replyPreset(r.task, r.ctx!.drum, o);
-        return { preset, knobs: defaults(preset, ctx) };
-    }) };
 }
 
 /** One preset run; the preview input once all ran, null when none survived,

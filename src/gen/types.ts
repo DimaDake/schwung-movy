@@ -3,12 +3,15 @@
  * to the bar, pitches as stored. */
 
 import type { AiNote, AiClip } from '../ai/clip-dump.js';
-import type { AiTrackInput } from '../ai/context.js';
-import type { GenLevel } from '../ai/ladders.js';
+import type { AiTrackInput } from '../ai/set-input.js';
 import type { Role, RoleKind } from '../ai/role.js';
 
 export type Note = AiNote;
-export type { AiClip, AiTrackInput, GenLevel, Role, RoleKind };
+export type { AiClip, AiTrackInput, Role, RoleKind };
+
+/* Settings → GENERATORS: how far the options may stray (select.ts, preset.ts). */
+export type GenLevel = 'SAFE' | 'BALANCED' | 'WILD';
+export const GEN_LEVELS: GenLevel[] = ['SAFE', 'BALANCED', 'WILD'];
 
 export const TPS = 24;              // ticks per step
 export const SPB = 16;              // steps per bar

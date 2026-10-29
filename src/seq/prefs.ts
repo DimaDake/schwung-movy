@@ -12,7 +12,7 @@
 
 import { safeWrite } from './persist-store.js';
 import { platform } from '../platform/index.js';
-import { GEN_LEVELS, type GenLevel } from '../ai/ladders.js';
+import { GEN_LEVELS, type GenLevel } from '../gen/types.js';
 
 export const PREFS_PATH = '/data/UserData/schwung/modules/tools/movy/prefs.json';
 
@@ -28,7 +28,7 @@ const clampPct = (v: unknown): number =>
 
 type PrefsFile = {
     defaultQuant?: unknown; fileDirs?: unknown; moduleBlacklist?: unknown;
-    fullVelocity?: unknown; masterVolume?: unknown; clickDb?: unknown; genLevel?: unknown; genMode?: unknown;
+    fullVelocity?: unknown; masterVolume?: unknown; clickDb?: unknown; genLevel?: unknown;
 };
 
 function readPrefs(): PrefsFile {
@@ -115,16 +115,6 @@ export function readPrefGenLevel(): GenLevel {
 
 export function writePrefGenLevel(level: GenLevel): void {
     writePrefs((p) => { p.genLevel = level; });
-}
-
-/** GENERATOR MODE on the Settings page; anything but MODEL is ALGORITHMIC
- *  (the default: it needs no key and works offline). */
-export function readPrefGenMode(): 'ALGORITHMIC' | 'MODEL' {
-    return readPrefs().genMode === 'MODEL' ? 'MODEL' : 'ALGORITHMIC';
-}
-
-export function writePrefGenMode(mode: 'ALGORITHMIC' | 'MODEL'): void {
-    writePrefs((p) => { p.genMode = mode; });
 }
 
 /* Modules that must keep every instance on one render lane (chain_pin).

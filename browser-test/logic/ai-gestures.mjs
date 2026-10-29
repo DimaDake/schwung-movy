@@ -16,14 +16,12 @@ let phaseBefore = null;
 import { seqState } from '../../dist/esm/seq/state.js';
 import { seqToastText } from '../../dist/esm/seq/render.js';
 
-const MOD = '/data/UserData/schwung/modules/tools/movy';
 const WHITE_DIM = 16;
 
 function boot() {
     resetAiJob();
-    installMockFs({ [MOD + '/secrets/gemini_api_key.txt']: 'K' });
+    installMockFs({});
     installMockEngine();
-    globalThis.host_http_request_background = () => true;
     selectTrack(0);
     seqState.sessionMode = false; seqState.recording = false; seqState.countingIn = false;
     seqState.session[0].selected = 1;
@@ -34,7 +32,7 @@ function boot() {
     setPhase('ready');
 }
 function done() { if (phaseBefore !== null) setPhase(phaseBefore); phaseBefore = null; done0(); }
-function done0() { resetAiJob(); delete globalThis.host_http_request_background; uninstallMockEngine(); uninstallMockFs(); resetSeqEngine(); }
+function done0() { resetAiJob(); uninstallMockEngine(); uninstallMockFs(); resetSeqEngine(); }
 
 export async function run() {
 _log('\nTest: AI gestures');

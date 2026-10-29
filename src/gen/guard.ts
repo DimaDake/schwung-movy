@@ -5,12 +5,13 @@
 import type { GenCtx } from './analysis/context.js';
 import { onsetRange, roleBreak } from '../ai/role.js';
 import { isSameLoop, loopMatch, NEAR_DUP } from '../ai/same-loop.js';
-import { MAX_NOTES } from '../ai/validate.js';
 import type { Note } from './types.js';
 
-/* The generators may change a part's rhythm more than a model was allowed
- * to (user, 2026-10-27: "I don't like rhythmic limitations"): a third to
- * three times the onsets, still the same kind of part. */
+const MAX_NOTES = 512;   // the engine's own cap (clip.rs MAX_NOTES)
+
+/* The generators may change a part's rhythm a lot (user, 2026-10-27: "I
+ * don't like rhythmic limitations"): a third to three times the onsets,
+ * still the same kind of part. */
 export const ONSET_SLACK = 1.5;
 
 export function onsetBounds(ctx: GenCtx): [number, number] {

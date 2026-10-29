@@ -425,7 +425,7 @@ function tickBody(): void {
     /* A generator request runs alongside the frame: the header names it, and
      * everything else (the power dialog included) draws as always. */
     aiGestureTick(Date.now());   // a Shift + Step 16 hold reaching full
-    aiTick(Date.now());
+    aiTick();
     aiPreviewTick();   // a track/clip/view change commits the AI preview
     perfPhase('rest');
     stepAutoTick(); // promote a long single-step hold to step-automation mode

@@ -169,8 +169,7 @@ Movy stands on the shoulders of several projects:
   chords, pad, stabs, bass, arp, melody, riff or counter-line (or a kit built
   pad by pad), fitted to the scene and new on every run. Every option has its
   own knobs to reshape it, already set where it sounds best. Preview each on the jog against your original before anything is kept;
-  Settings → GENERATORS sets how bold, and GENERATOR MODE can switch to a Gemini
-  model instead.
+  Settings → GENERATORS sets how bold.
 
   ![Generator preview](docs/assets/ai_preview_opt1.png)
 

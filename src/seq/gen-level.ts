@@ -2,9 +2,9 @@
  *
  * A property of this device, like the click volume: read from prefs.json on
  * first use and cached, and read once per request (ai/job.ts), so turning it
- * while a request runs changes the next one, not the one on the wire. */
+ * while a request runs changes the next one, not the one running. */
 
-import { GEN_LEVELS, type GenLevel } from '../ai/ladders.js';
+import { GEN_LEVELS, type GenLevel } from '../gen/types.js';
 import { readPrefGenLevel, writePrefGenLevel } from './prefs.js';
 
 let level: GenLevel | null = null;

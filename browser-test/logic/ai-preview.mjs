@@ -120,13 +120,13 @@ eq('set_change_aborts_running_commits_preview', aiPreviewActive(), false);
 ok('set change commit clears the stash', ops().includes('aiclr'));
 done();
 
-/* Variation's eight, two dropped by the validator (plans/2026-10-27-variation-
- * eight-options.md): every one reachable and stashable, labels keep the slots. */
+/* Variation's six (plans/2026-10-27-variation-eight-options.md): every one
+ * reachable and stashable, numbered in order. */
 boot();
 commitPreview();
 ops();
-openPreview({ ...input(), task: 'variation', options: [60, 62, 64, 65, 67, 69].map(N), slots: [0, 1, 2, 3, 5, 7] });
-eq('eight: strip labels are the ladder slots', previewLabels().join(' '), '1 2 3 4 6 8');
+openPreview({ ...input(), task: 'variation', options: [60, 62, 64, 65, 67, 69].map(N) });
+eq('eight: strip labels number the options', previewLabels().join(' '), '1 2 3 4 5 6');
 previewSwitch(9);
 eq('eight: the jog reaches the last option', previewIndex(), 6);
 o = ops();

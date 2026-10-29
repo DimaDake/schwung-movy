@@ -2,7 +2,7 @@
  * Variation options for one clip.
  * The engine stashes a full copy of the clip per option (aistash/aiload), so
  * moving away from an option and back finds it exactly as edited; an option
- * never visited is written fresh (aiclip, quantize 0 so the model's timing
+ * never visited is written fresh (aiclip, quantize 0 so the option's timing
  * plays as written). Everything from open to commit is ONE undo entry. */
 
 import { appState } from '../app/state.js';
@@ -31,10 +31,8 @@ const VERBS = { quantize: 'SMART QUANT', variation: 'VARIATION', double: 'SMART 
 export function aiPreviewActive(): boolean { return cur !== null; }
 export function previewIndex(): number { return cur ? cur.index : -1; }
 export function previewCount(): number { return cur ? cur.p.options.length : 0; }
-/** Strip labels: each option's ladder number, so a dropped option leaves a
- *  gap instead of renumbering (7-8 stay the experimental ones). */
 export function previewLabels(): string[] {
-    return cur ? cur.p.options.map((_, i) => String((cur!.p.slots?.[i] ?? i) + 1)) : [];
+    return cur ? cur.p.options.map((_, i) => String(i + 1)) : [];
 }
 
 /* Switching track or clip, the view, or Session commits (design §5.2). Song

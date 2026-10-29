@@ -42,8 +42,8 @@ const PRESETS = [
     'step_indicator', 'step_rec_header', 'loop_strip_midclip', 'loop_strip_outside',
     'note_view_bass', 'note_view_chords', 'note_view_drums', 'note_view_plus', 'note_view_dense', 'note_view_wide',
     'song_band', 'song_band_overflow', 'song_band_end',
-    'quant-overlay-three', 'quant-overlay-two', 'flags-top', 'flags-scrolled', 'flags-generators', 'flags-genmode', 'gen_preview_knob',
-    'ai_error_nokey', 'ai_preview_orig', 'ai_preview_opt1', 'ai_preview_opt3', 'ai_preview_var8', 'ai_hold_progress_50', 'ai_hold_variation_50', 'ai_hold_double_50', 'ai_hold_newclip_50',
+    'quant-overlay-three', 'quant-overlay-two', 'flags-top', 'flags-scrolled', 'flags-generators', 'gen_preview_knob',
+    'ai_preview_orig', 'ai_preview_opt1', 'ai_preview_opt3', 'ai_preview_var8', 'ai_hold_progress_50', 'ai_hold_variation_50', 'ai_hold_double_50', 'ai_hold_newclip_50',
     'cpu-movy-tracks', 'cpu-unsplit-module', 'cpu-overscale',
     'cpu-empty', 'cpu-sends', 'cpu-sends-quiet', 'cpu-master', 'leave_modal',
     'power_modal', 'capture_select', 'capture_fixed', 'undo_toast', 'redo_toast',
@@ -103,8 +103,7 @@ const BASE = {
     note_view_bass: 'test8', note_view_chords: 'test8', note_view_drums: 'test8',
     note_view_plus: 'test8', note_view_dense: 'test8', note_view_wide: 'test8',
                                 'quant-overlay-three': 'test8', 'quant-overlay-two': 'test8',
-    'flags-top': 'test8', 'flags-scrolled': 'test8', 'flags-generators': 'test8', 'flags-genmode': 'test8', gen_preview_knob: 'test8',
-    ai_error_nokey: 'test8',
+    'flags-top': 'test8', 'flags-scrolled': 'test8', 'flags-generators': 'test8', gen_preview_knob: 'test8',
     ai_preview_orig: 'test8', ai_preview_opt1: 'test8', ai_preview_opt3: 'test8', ai_preview_var8: 'test8', ai_hold_progress_50: 'test8', ai_hold_variation_50: 'test8', ai_hold_double_50: 'test8', ai_hold_newclip_50: 'test8',
                                                                             lfo_chain: 'test8',         lfo_assign_toast: 'test8',
     leave_modal: 'test8', power_modal: 'test8',
@@ -180,7 +179,7 @@ const { drawJogToast }     = await import('../dist/esm/renderer/overlay.js');
 const { drawLeaveModal }   = await import('../dist/esm/renderer/leave-modal-view.js');
 const { drawCaptureOverlay } = await import('../dist/esm/renderer/capture-overlay.js');
 const { drawQuantOverlay } = await import('../dist/esm/renderer/quant-overlay.js');
-const { MSG_NO_KEY, drawPreviewStrip, drawHoldProgress } = await import('../dist/esm/ai/index.js');
+const { drawPreviewStrip, drawHoldProgress } = await import('../dist/esm/ai/index.js');
 const { seqToast, drawSeqToast } = await import('../dist/esm/seq/render.js');
 const { drawStepPiano } = await import('../dist/esm/renderer/step-piano.js');
 const { stepPianoVM, resetStepPiano } = await import('../dist/esm/seq/step-piano.js');
@@ -514,9 +513,8 @@ function applyView(preset) {
         case 'ai_preview_orig': case 'ai_preview_opt1': case 'ai_preview_opt3': case 'ai_preview_var8': {
             const sc = NOTE_VIEW_SCENES.note_view_chords;
             const idx = { ai_preview_orig: 0, ai_preview_opt1: 1, ai_preview_opt3: 3, ai_preview_var8: 6 }[preset];
-            /* Variation's eight with option 5 dropped by the validator:
-             * the strip keeps the ladder numbers, option 7 showing. */
-            const labels = preset === 'ai_preview_var8' ? ['1', '2', '3', '4', '6', '7', '8'] : ['1', '2', '3'];
+            /* Variation's six, the last one showing. */
+            const labels = preset === 'ai_preview_var8' ? ['1', '2', '3', '4', '5', '6'] : ['1', '2', '3'];
             resetSeqState(); resetSeqHeader(); resetNoteView();
             seqState.loopMode = true;
             seqState.loopStart = sc.loopStart; seqState.lenSteps = sc.lenSteps;
@@ -572,24 +570,15 @@ function applyView(preset) {
             lastRender();
             break;
         }
-        /* No key yet: the toast points at the web page that takes one. */
-        case 'ai_error_nokey': {
-            resetSeqState();
-            seqToast(MSG_NO_KEY);
-            lastRender = () => { renderKnobsView(model.getViewModel()); drawSeqToast(); };
-            lastRender();
-            break;
-        }
         /* The Settings page. Two states, because the selection band and the
          * hint that follows it are what the page IS — `top` has the selection
          * on BACKUPS, `scrolled` on the LAST row. */
         case 'flags-top':
         case 'flags-scrolled':
-        case 'flags-generators':
-        case 'flags-genmode': {
+        case 'flags-generators': {
             resetFlagsPage();
             const scrolled = preset === 'flags-scrolled';
-            flagsPageState.selected = scrolled ? flagsRowCount() - 1 : preset === 'flags-generators' ? 1 : preset === 'flags-genmode' ? 2 : 0;
+            flagsPageState.selected = scrolled ? flagsRowCount() - 1 : preset === 'flags-generators' ? 1 : 0;
             lastRender = () => renderFlagsView(buildFlagsPageVM());
             lastRender();
             break;

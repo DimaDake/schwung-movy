@@ -7,8 +7,7 @@
  */
 
 import { _log, eq, ok } from './harness.mjs';
-import { roleOf, roleBreak, roleText, saneNote, loopMatch, isSameLoop, variationFacts, validateReply, buildPrompt }
-    from '../../dist/esm/ai/index.js';
+import { roleOf, roleBreak, loopMatch, isSameLoop } from '../../dist/esm/ai/index.js';
 
 /* tick:gate:pitch, as the Set file stores them (velocity is not compared). */
 const P = (s) => s.split(',').map((x) => { const [tick, gate, pitch] = x.split(':').map(Number); return { tick, gate, pitch, vel: 110 }; });
@@ -22,11 +21,10 @@ const LEAD_B = P('102:28:74,195:33:71,266:38:69,347:25:67,867:29:74,954:29:71,10
 const DRUM_A = P('0:20:36,97:15:37,149:25:36,239:17:36,288:27:37,342:4:42');
 const DRUM_B = P('0:20:36,92:15:37,149:25:36,192:6:42,239:17:36,288:27:37,336:6:42,360:4:42');
 
-const steps = (notes) => JSON.stringify(notes.map((n) => [n.tick / 24, n.gate / 24, n.pitch, n.vel]));
 const shift = (notes, t, dp = 0) => notes.map((n) => ({ ...n, tick: n.tick + t, pitch: n.pitch + dp }));
 
 export async function run() {
-_log('\nTest: AI role + same loop');
+_log('\nTest: role + same loop');
 
 eq('role: the helm drone', roleOf(HELM_A, 64, false).kind, 'drone');
 eq('role: the dexed chords are a pad', roleOf(PAD_A, 32, false).kind, 'pad');
@@ -51,15 +49,6 @@ eq('roleBreak: chords turned to single notes', roleBreak(P('0:380:72,384:380:74'
 eq('roleBreak: chords kept', roleBreak(P('0:380:72,0:380:76,0:380:79,384:380:74,384:380:77,384:380:81'), pad, 32), null);
 eq('roleBreak: more than an octave away', roleBreak(shift(LEAD_B, 0, 15), roleOf(LEAD_A, 64, false), 64), 'register');
 eq('roleBreak: drums keep only their density', roleBreak(DRUM_B, roleOf(DRUM_A, 16, true), 16), null);
-ok('roleText names the role and its numbers', /a drone \(long held notes\): 1 onsets, 1 notes at once, notes held about 27/.test(roleText(drone, 64)));
-ok('roleText gives the onset range the validator checks', /1 to 4 onsets/.test(roleText(drone, 64)));
-ok('roleText says not to turn a held note into a melody', /held note into a melody/.test(roleText(drone, 64)));
-
-const g = (n) => saneNote(n, BASS_A, false);
-eq('saneNote: a pitch copied into the length is cut back (live reply 2026-10-27)', g({ tick: 144, gate: 52 * 24, pitch: 52, vel: 127 }).gate, 4 * 24);
-eq('saneNote: a velocity copied into the pitch is dropped', g({ tick: 144, gate: 11, pitch: 127, vel: 55 }), null);
-eq('saneNote: an ordinary note passes', JSON.stringify(g(BASS_A[2])), JSON.stringify(BASS_A[2]));
-eq('saneNote: a drone may hold its length', saneNote(HELM_A[0], HELM_A, false).gate, 649);
 
 ok('same loop: the bass with its bars swapped (device 2026-10-27)', isSameLoop(BASS_B, [BASS_A], 32, false));
 ok('same loop: the swap scores the rotation', loopMatch(BASS_B, BASS_A, 32, 'loop') >= 0.85 && loopMatch(BASS_B, BASS_A, 32, 'still') < 0.2);
@@ -73,46 +62,4 @@ ok('drums: the pattern a beat late is the same loop', isSameLoop(P('96:6:36,192:
 ok('a drone on a new pitch is no same loop (one note matches any note moved)', !isSameLoop(P('128:640:74'), [HELM_A], 64, false));
 const bar = P('0:6:36,96:6:38,192:6:36,288:6:38');
 ok('drums: a bar-repeating groove with one hit added is no rotation', !isSameLoop([...bar, ...shift(bar, 384), ...P('720:6:36')], [[...bar, ...shift(bar, 384)]], 32, true));
-
-const clip = (track, slot, len, notes) => ({ track, slot, len, loopStart: 0, scaleNum: 1, scaleDen: 1, transpose: 0, quant: 0, notes });
-const trk = (index, drum, clips) => ({ index, name: `Track ${index + 1}`, module: 'm', drum, padNames: null, clips });
-const set = (others) => ({ bpm: 116, swing: 50, root: 'C', mode: 'major', target: { track: 3, slot: 1 }, source: { track: 3, slot: 0 },
-    tracks: [trk(0, true, [clip(0, 0, 16, DRUM_A), clip(0, 1, 16, DRUM_B)]), trk(1, false, [clip(1, 0, 32, BASS_A), ...others]),
-        trk(3, false, [clip(3, 0, 64, HELM_A)])] });
-let f = variationFacts(set([]), 64);
-eq('facts: the source role', f.role.kind, 'drone');
-eq('facts: a scene with only drums is free', f.harmonySet, false);
-eq('facts: the loops are the track\'s other clips', f.loops.length, 1);
-f = variationFacts(set([clip(1, 1, 32, BASS_B)]), 64);
-eq('facts: another melodic track in the target scene sets the harmony', f.harmonySet, true);
-
-const pv = (facts, drum = false) => buildPrompt('variation', 'CTX', { len: 64, drum, facts }).user;
-ok('prompt: asks for eight', /exactly 8 options/.test(pv(f)) && /The 8 options/.test(pv(f)));
-ok('prompt: quantize still asks for three', /exactly 3 options/.test(buildPrompt('quantize', 'C', { len: 16, drum: false }).user));
-ok('prompt: states the role', pv(f).includes(roleText(f.role, 64)));
-ok('prompt: the same-loop rule', /SAME-LOOP RULE[^.]*bars swapped/.test(pv(f)));
-ok('prompt: a set scene is followed, not reharmonised', /none reharmonises/.test(pv(f)) && !/move to new chords/.test(pv(f)));
-ok('prompt: a free scene moves to new chords, not A\'s reordered', /move to new\s+chords[^.]*never the \[SOURCE\] scene's chords in another order/.test(pv({ ...f, harmonySet: false })));
-ok('prompt: the groups 1-4 / 5-6 / 7-8', /Options 1-4 stay close[^.]*5-6 change[^.]*7-8 are experimental/.test(pv(f)));
-ok('prompt: drums have kick, fill and feel rungs', /Option 1 \(kick\)[\s\S]*Option 4 \(fill\)[\s\S]*Option 7 \(feel\)/.test(pv(f, true)));
-ok('prompt: the level moves only 7-8', (() => {
-    const a = buildPrompt('variation', 'C', { len: 64, drum: false, facts: f, level: 'SAFE' }).user.split('\n');
-    const b = buildPrompt('variation', 'C', { len: 64, drum: false, facts: f, level: 'WILD' }).user.split('\n');
-    const diff = a.filter((l, i) => l !== b[i]);
-    return diff.length === 2 && diff.every((l) => /^Option [78] /.test(l));
-})());
-
-/* Replies for the bass: new notes on its rhythm, the bass as chords (role),
- * the device's swapped bars (same loop), a near copy of the first, and
- * another new line. */
-const NEW1 = P('0:15:45,88:7:48,144:11:50,229:15:52,376:17:43,471:13:47,524:14:50,619:12:48,672:15:45');
-const NEW5 = P('0:15:40,88:7:40,144:11:47,229:15:47,376:17:43,471:13:43,524:14:50,619:12:50,672:15:50');
-const CHORDS = BASS_A.flatMap((n) => [n, { ...n, pitch: n.pitch + 4 }, { ...n, pitch: n.pitch + 7 }]);
-const reply = JSON.stringify({ options: [NEW1, CHORDS, BASS_B, NEW1.map((n) => ({ ...n, vel: 90 })), NEW5]
-    .map((notes) => ({ label: 'x', notes: JSON.parse(steps(notes)) })) });
-const v = validateReply(reply, { task: 'variation', len: 32, drum: false, original: [], kitPads: [], units: 'steps',
-    source: BASS_A, loops: [BASS_A] });
-eq('validate: role break, same loop and near copy dropped', v.dropped.join(' '), '2:role voices 3:same loop 4:near copy');
-eq('validate: the survivors keep their ladder slots', v.slots.join(','), '0,4');
-eq('validate: quantize never checks a role (three asked)', validateReply(reply, { task: 'quantize', len: 32, drum: false, original: [], kitPads: [], units: 'steps' }).options.length, 3);
 }

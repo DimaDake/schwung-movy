@@ -1,4 +1,4 @@
-/* Reads the Set for an AI request: one track's clips per call (`ait:<t>`, a
+/* Reads the Set for a generator request: one track's clips per call (`ait:<t>`, a
  * blocking get, so job.ts spreads the 16 reads over 16 ticks) plus what the
  * track's synth model knows about its module and drum voices. */
 
@@ -8,8 +8,17 @@ import { keyboardState } from '../keyboard/state.js';
 import { SCALES } from '../seq/scales.js';
 import { seqState } from '../seq/state.js';
 import { parseTrackDump, TICKS_PER_STEP, type AiClip } from './clip-dump.js';
-import type { AiTrackInput } from './context.js';
 import { pcName } from './harmony.js';
+
+export interface AiTrackInput {
+    index: number;
+    name: string;
+    module: string;
+    drum: boolean;
+    padNames: Record<number, string> | null;   // pitch → declared voice name
+    pads?: number[];                           // the rack's pad notes (New Clip on an empty kit)
+    clips: AiClip[];
+}
 
 function padNames(t: number): Record<number, string> | null {
     const model = appState.trackModels[t]?.[1];
@@ -43,8 +52,8 @@ function rackPads(t: number): number[] | undefined {
 }
 
 /* What plays is the loop window, and a preview writes its clip from step 0
- * (aiclip): so the model sees only the window, rebased to 0, in the same
- * time base it is asked to answer in. Parked notes stay with ORIG. */
+ * (aiclip): so the generators see only the window, rebased to 0, in the
+ * time base they answer in. Parked notes stay with ORIG. */
 function windowed(c: AiClip): AiClip {
     const w0 = c.loopStart * TICKS_PER_STEP;
     const w1 = w0 + c.len * TICKS_PER_STEP;

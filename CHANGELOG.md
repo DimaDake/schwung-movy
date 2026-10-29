@@ -55,8 +55,7 @@ far. Earlier work is summarised in the timeline below for context.
 
 - **No more loading animation while a generator runs.** The pad sweep and
   the full-screen progress page are gone (the sweep could leave pads stuck
-  in its colours). The header names the job instead (with the seconds for a
-  model request), the screen and lights stay as they were, and the power
+  in its colours). The header names the job instead, the screen and lights stay as they were, and the power
   button's dialog now shows and answers over a running generator.
 
 ### Added
@@ -122,8 +121,8 @@ far. Earlier work is summarised in the timeline below for context.
   chosen answer as B: a sequence, an inversion, a pushed rhythm, a new phrase
   in your style, or for drums a fill or a breakdown. GRIDS now morphs with X
   and Y from your own pattern across a map of genre patterns.
-- **Algorithmic generators (the default).** Smart Quantize and Variation now
-  run Movy's own generators on the Move: no key, no network, options in under a
+- **Algorithmic generators.** Smart Quantize and Variation run Movy's own
+  generators on the Move: no key, no network, options in under a
   second. About thirty Variation generators and a dozen for Smart Quantize, each
   its own algorithm with its own four or eight knobs, built on a harmony engine
   (key and chord finding, Roman numerals, chord/colour/approach tones, voice
@@ -140,22 +139,19 @@ far. Earlier work is summarised in the timeline below for context.
   (more harmony notes) on NEXT, FOLLOW, PULSE, NEW LINE, ANSWER, SPREAD, COMP
   and DEVELOP; RANGE reaches twice the played intervals; a BASSLINE generator
   writes new bass figures. Each generator is also tried with its feel moved
-  two ways, and options after the first are chosen to differ. Settings → **GENERATOR MODE** switches
-  between ALGORITHMIC and MODEL (Gemini, as before; its replies get four knobs
-  too). Measured on the generator bench against the cached model runs
-  (`scripts/gen-bench/algo.mjs`, `plans/gen-bench-results-2026-10-27-algo.md`).
+  two ways, and options after the first are chosen to differ. Measured on the
+  generator bench (`scripts/gen-bench/algo.mjs`,
+  `plans/gen-bench-results-2026-10-27-algo.md`).
 
-- **Generators: Smart Quantize and Variation.** Shift + hold Step 16 sends the Set to
-  Gemini and previews three takes on the recorded clip, from tightened
-  to reimagined, against the original. Shift + hold Step 14 writes a variation of
-  the track's previous clip into the selected slot. Choose with the jog, edit
-  while previewing, and undo it all in one step. The key goes in at
-  `move.local:7700/modules/movy`. ENGINE 0.111.0 (`ait:` clip dump, `aiclip`,
+- **Generators: Smart Quantize and Variation.** Shift + hold Step 16 previews
+  three takes on the recorded clip, from tightened to developed, against the
+  original. Shift + hold Step 14 writes a variation of the track's previous clip
+  into the selected slot. Choose with the jog, edit while previewing, and undo
+  it all in one step. ENGINE 0.111.0 (`ait:` clip dump, `aiclip`,
   `aistash`/`aiload`/`aiclr`). They follow the chords the other tracks play,
   not a scale, and **Settings → GENERATORS** (SAFE / BALANCED / WILD) sets how
-  bold the three options are. Model `gemini-3.1-flash-lite`, falling back to
-  `gemini-flash-lite-latest` when Google is busy, chosen on a bench of real
-  MIDI (`scripts/gen-bench`, `plans/gen-bench-results-2026-10-27-summary.md`).
+  bold the options are. (An earlier Gemini-model mode and its API-key page were
+  removed before release; only the on-device generators remain.)
 
 ### Changed
 

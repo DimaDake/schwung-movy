@@ -15,11 +15,7 @@ import { run as run_model_params } from './logic/model-params.mjs';
 import { run as run_knob_input } from './logic/knob-input.mjs';
 import { run as run_declarations } from './logic/declarations.mjs';
 import { run as run_drums } from './logic/drums.mjs';
-import { run as run_ai_config } from './logic/ai-config.mjs';
-import { run as run_ai_context } from './logic/ai-context.mjs';
-import { run as run_ai_validate } from './logic/ai-validate.mjs';
 import { run as run_ai_role } from './logic/ai-role.mjs';
-import { run as run_ai_provider } from './logic/ai-provider.mjs';
 import { run as run_ai_job } from './logic/ai-job.mjs';
 import { run as run_ai_preview } from './logic/ai-preview.mjs';
 import { run as run_ai_gestures } from './logic/ai-gestures.mjs';
@@ -129,11 +125,7 @@ const SUITES = [
     run_knob_input,
     run_declarations,
     run_drums,
-    run_ai_config,
-    run_ai_context,
-    run_ai_validate,
     run_ai_role,
-    run_ai_provider,
     run_ai_job,
     run_ai_preview,
     run_ai_gestures,

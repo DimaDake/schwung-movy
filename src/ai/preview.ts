@@ -1,13 +1,15 @@
 /* The AI preview (design §5.2): ORIG + up to three Smart Quantize or eight
- * Variation options for one clip.
- * The engine stashes a full copy of the clip per option (aistash/aiload), so
- * moving away from an option and back finds it exactly as edited; an option
- * never visited is written fresh (aiclip, quantize 0 so the option's timing
- * plays as written). Everything from open to commit is ONE undo entry. */
+ * Variation options for one clip. The engine stashes a full copy of the clip
+ * per option (aistash/aiload), so an option left and come back to is exactly
+ * as edited; one never visited is written fresh (aiclip, quantize 0).
+ * A session belongs to its clip (user, 2026-10-29): leaving the clip parks it
+ * (sessions.ts), coming back takes it up; only Back or a jog click keeps an
+ * option. One undo per visit. A held track button shows the pages beneath. */
 
-import { appState } from '../app/state.js';
+import { appState, VIEW_CHAIN, VIEW_KEYS, VIEW_KNOBS } from '../app/state.js';
 import { jogHintTouch, jogHintVisible } from '../app/jog-hint.js';
 import { mlog } from '../log.js';
+import { trackButtonHeld } from '../mixer/track-volume.js';
 import { seqCmd } from '../seq/engine.js';
 import { seqHeaderAnnounce } from '../seq/render.js';
 import { seqState } from '../seq/state.js';
@@ -16,21 +18,29 @@ import { beginEdit, CLOSE, holdGroup, releaseHold } from '../undo/group.js';
 import { trackLabel } from '../undo/label.js';
 import { type AiNote, formatNotes } from './clip-dump.js';
 import { endAiPreview, type AiPreviewInput } from './job.js';
-import { knobsCtx, knobsName, knobsOpen, knobsRemake, knobsReset, knobsShown, knobsTick, knobTouch, knobTurn } from './preview-knobs.js';
-import { prepare } from '../gen/engine.js';
-import { setLoopLengthHook } from '../seq/loop-hook.js';
+import { entryStep } from './job-types.js';
+import { type KnobsSnap, knobsName, knobsOpen, knobsReset, knobsRestore, knobsSave, knobsShown, knobsTick } from './preview-knobs.js';
+import { clearParked, clipKey, hasParked, parkSession, takeSession } from './sessions.js';
+import './preview-relength.js';
 
 interface Open {
     p: AiPreviewInput;
     index: number;          // 0 = ORIG
     visited: boolean[];
-    sig: string;            // what must not change under the preview
+    knobs: KnobsSnap | null; // while parked
 }
 
 let cur: Open | null = null;
 const VERBS = { quantize: 'SMART QUANT', variation: 'VARIATION', double: 'SMART DOUBLE', create: 'NEW CLIP' } as const;
 
-export function aiPreviewActive(): boolean { return cur !== null; }
+const keyOf = (o: Open): string => clipKey(o.p.track, o.p.slot);
+
+/** A session is open on the clip on screen (shown or not). */
+export function aiSessionOpen(): boolean { return cur !== null; }
+/** The preview owns the screen and the jog: open, and no track button held. */
+export function aiPreviewActive(): boolean { return cur !== null && !trackButtonHeld(); }
+/** The step whose icon names the open session's generator; -1 none. */
+export function aiSessionStep(): number { return cur ? entryStep(cur.p.task) : -1; }
 export function previewIndex(): number { return cur ? cur.index : -1; }
 export function previewCount(): number { return cur ? cur.p.options.length : 0; }
 export function previewLabels(): string[] {
@@ -45,10 +55,13 @@ export function previewName(): string {
     return cur.index === 0 ? 'ORIG' : knobsName() || String(cur.index);
 }
 
-/* Switching track or clip, the view, or Session commits (design §5.2). Song
- * mode moving the PLAYING clip does not: that is not the user leaving. */
-function sig(track: number): string {
-    return [watchedTrack(), seqState.session[track]?.selected, appState.currentView, seqState.sessionMode].join('|');
+/* The clip a session may show on: the watched one, in a Track view. Song mode
+ * moving the PLAYING clip does not move it: that is not the user leaving. */
+function here(): string | null {
+    const v = appState.currentView;
+    if (seqState.sessionMode || (v !== VIEW_KNOBS && v !== VIEW_CHAIN && v !== VIEW_KEYS)) return null;
+    const t = watchedTrack();
+    return clipKey(t, seqState.session[t]?.selected ?? 0);
 }
 
 function write(o: Open, i: number): void {
@@ -77,15 +90,46 @@ function replaceCurrent(notes: AiNote[]): void {
     o.visited[o.index] = true;
 }
 
-export function openPreview(p: AiPreviewInput): void {
-    const key = 'ai:' + p.track;
-    beginEdit({ key, verb: VERBS[p.task], target: trackLabel(p.track),
+/* Everything done on the clip during one visit is one undo, with the AI
+ * change itself on the first. */
+function activate(o: Open): void {
+    cur = o;
+    const key = 'ai:' + keyOf(o);
+    beginEdit({ key, verb: VERBS[o.p.task], target: trackLabel(o.p.track),
         close: CLOSE.IMMEDIATE, seq: true });
     holdGroup(key);
-    cur = { p, index: 0, visited: [true, ...p.options.map(() => false)], sig: sig(p.track) };
+}
+
+function park(why: string): void {
+    const o = cur!;
+    o.knobs = knobsSave();
+    cur = null;
+    knobsReset();
+    jogHintTouch(false);
+    releaseHold(true);
+    parkSession(keyOf(o), o);
+    mlog(`ai: parked t${o.p.track} s${o.p.slot} (${why})`);
+    appState.dirty = true;
+}
+
+function resume(o: Open): void {
+    activate(o);
+    if (o.knobs) knobsRestore(o.knobs);
+    o.knobs = null;
+    knobsShown(o.index);
+    mlog(`ai: resumed t${o.p.track} s${o.p.slot} option ${o.index}`);
+    appState.dirty = true;
+}
+
+export function openPreview(p: AiPreviewInput): void {
+    if (cur) park('another opens');
+    /* A request finishing on a clip whose session is parked replaces it. */
+    if (takeSession(clipKey(p.track, p.slot))) seqCmd(`aiclr ${p.track} ${p.slot}`);
+    const o: Open = { p, index: 0, visited: [true, ...p.options.map(() => false)], knobs: null };
+    activate(o);
     mlog(`ai: preview t${p.track} s${p.slot} ${p.options.length} options`);
     if (p.gen) knobsOpen(p.gen.ctx, p.gen.picks, p.options);
-    go(cur, 1);
+    go(o, 1);
 }
 
 export function previewSwitch(delta: number): void {
@@ -96,62 +140,59 @@ export function previewSwitch(delta: number): void {
 /** Keep what is showing, edits and all. */
 export function commitPreview(why = 'commit'): void {
     if (!cur) return;
-    mlog(`ai: preview kept option ${cur.index} (${why})`);
+    const { track: t, slot: s } = cur.p;
+    mlog(`ai: preview kept option ${cur.index} t${t} s${s} (${why})`);
     cur = null;
     /* The jog hold named an option; a finger still resting after the click
      * must not turn into the view's own CLICK JOG hint. */
     jogHintTouch(false);
     knobsReset();
-    seqCmd('aiclr');
+    seqCmd(`aiclr ${t} ${s}`);
     releaseHold(true);
     endAiPreview();
     appState.dirty = true;
 }
 
-/** Per tick; one string compare while previewing, nothing otherwise. */
+/** Every session ends where it stands: a Set change, an undo or redo (which
+ *  may move any parked clip under its session). */
+export function endAllPreviews(why: string): void {
+    commitPreview(why);
+    if (clearParked().length) { seqCmd('aiclr'); mlog(`ai: parked sessions ended (${why})`); }
+}
+
+/** A clip deleted or pasted over: its session is over. */
+export function aiForgetClip(track: number, slot: number): void {
+    const key = clipKey(track, slot);
+    if (cur && keyOf(cur) === key) commitPreview('clip replaced');
+    else if (takeSession(key)) seqCmd(`aiclr ${track} ${slot}`);
+}
+
+/** Per tick: parks and takes up sessions as the clip on screen changes. */
 export function aiPreviewTick(): void {
+    if (!cur && !hasParked()) return;
+    const want = here();
+    if (want !== (cur ? keyOf(cur) : null)) {
+        if (cur) park(`left for ${want ?? 'another view'}`);
+        const o = want === null ? undefined : takeSession<Open>(want);
+        if (o) resume(o);
+    }
     if (!cur) return;
-    const now = sig(cur.p.track);
-    if (now !== cur.sig) return commitPreview(`left: ${cur.sig} -> ${now}`);
     /* The jog held names the generator in the top strip, kept up while held
      * the way a held knob's is; a held knob, announced after, wins. */
-    if (jogHintVisible()) seqHeaderAnnounce('GENERATOR: ' + previewName(), JOG_NAME_TTL);
+    if (jogHintVisible() && !trackButtonHeld()) seqHeaderAnnounce('GENERATOR: ' + previewName(), JOG_NAME_TTL);
     knobsTick(replaceCurrent);
 }
 
-/** Jog turn switches, jog click and Back commit, the knobs are the option's
- *  (preview-knobs.ts); every other control passes through, so the clip stays
- *  editable. Knob touches never reach the page underneath. */
-export function previewInput(data: number[]): boolean {
-    if (!cur) return false;
-    const kind = data[0] & 0xF0;
-    if ((kind === 0x90 || kind === 0x80) && data[1] < 8) { knobTouch(data[1], kind === 0x90 && data[2] > 0); return true; }
-    if (kind !== 0xB0) return false;
-    const [, cc, v] = data;
-    if (cc === MoveMainKnob) { previewSwitch(decodeDelta(v)); return true; }
-    if (cc === MoveMainButton || cc === MoveBack) { if (v > 0) commitPreview(cc === MoveBack ? 'back' : 'jog click'); return true; }
-    if (cc >= 71 && cc <= 78) { knobTurn(cc - 71, decodeDelta(v)); return true; }
-    return false;
-}
+export function resetPreview(): void { cur = null; clearParked(); knobsReset(); }
 
-export function resetPreview(): void { cur = null; knobsReset(); }
-
-/** Loop Mode set a length while a New Clip preview is open: every option is
- *  made again at it from its own knobs and the preview stays open (the user
- *  sizes the clip without leaving the generator). true = taken here. */
-export function previewRelength(len: number): boolean {
-    const o = cur;
-    const c = knobsCtx();
-    if (!o || o.p.task !== 'create' || !c) return false;
-    if (len === o.p.len) return true;
-    const ctx = prepare({ ...c.input, len });
-    o.p.options = knobsRemake(ctx);
-    if (o.p.gen) o.p.gen.ctx = ctx;
+/** The open New Clip session made again at `len` (preview-relength.ts):
+ *  every option replaced, the one showing written. */
+export function previewRemade(len: number, options: AiNote[][]): void {
+    const o = cur!;
+    o.p.options = options;
     o.p.len = len;
     o.visited = o.visited.map((_, i) => i === 0);
-    mlog(`ai: preview remade at ${len} steps`);
     if (o.index > 0) write(o, o.index);
     appState.dirty = true;
-    return true;
 }
-setLoopLengthHook(previewRelength);
+export function previewInputOpen(): AiPreviewInput | null { return cur ? cur.p : null; }

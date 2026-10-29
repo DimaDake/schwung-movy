@@ -73,7 +73,7 @@ impl Engine {
     /// Copy the clip at (t, slot) — empty or not — into stash `k`.
     pub fn ai_stash_clip(&mut self, t: usize, slot: usize, k: usize) {
         if t < NUM_TRACKS && slot < CLIPS_PER_TRACK && k < AI_STASH_SLOTS {
-            self.ai_stash[k] = Some(self.tracks[t].clips[slot].clone());
+            self.ai_stash.insert((t, slot, k), self.tracks[t].clips[slot].clone());
         }
     }
 
@@ -82,14 +82,18 @@ impl Engine {
         if t >= NUM_TRACKS || slot >= CLIPS_PER_TRACK || k >= AI_STASH_SLOTS {
             return;
         }
-        if let Some(c) = self.ai_stash[k].clone() {
+        if let Some(c) = self.ai_stash.get(&(t, slot, k)).cloned() {
             self.tracks[t].clips[slot] = c;
             self.dirty = true;
         }
     }
 
-    pub fn ai_clear_stash(&mut self) {
-        self.ai_stash.iter_mut().for_each(|s| *s = None);
+    /// Drop one clip's options, or every clip's with `None`.
+    pub fn ai_clear_stash(&mut self, clip: Option<(usize, usize)>) {
+        match clip {
+            Some((t, s)) => self.ai_stash.retain(|k, _| (k.0, k.1) != (t, s)),
+            None => self.ai_stash.clear(),
+        }
     }
 
     /// Replace a clip wholesale. Locks and trig overrides go with the old
@@ -258,6 +262,21 @@ mod tests {
         assert_eq!(e.tracks[0].clips[0].notes.len(), 1);
         cmd(&mut e, "aistash 0 0 1;aiclr;aiload 0 0 1");
         assert_eq!(e.tracks[0].clips[0].notes.len(), 1);
+    }
+
+    #[test]
+    fn stashes_are_per_clip_and_cleared_per_clip() {
+        let mut e = engine();
+        cmd(&mut e, "aiclip 0 0 16 1 1 0 0.24.60.100;aistash 0 0 1");
+        cmd(&mut e, "aiclip 2 3 16 1 1 0 0.24.70.100;aistash 2 3 1");
+        cmd(&mut e, "aiclip 0 0 16 1 1 0 0.24.61.100;aiclip 2 3 16 1 1 0 0.24.71.100");
+        cmd(&mut e, "aiload 0 0 1;aiload 2 3 1");
+        assert_eq!(e.tracks[0].clips[0].notes[0].pitch, 60);
+        assert_eq!(e.tracks[2].clips[3].notes[0].pitch, 70);
+        cmd(&mut e, "aiclip 0 0 16 1 1 0 0.24.62.100;aiclip 2 3 16 1 1 0 0.24.72.100;aiclr 0 0");
+        cmd(&mut e, "aiload 0 0 1;aiload 2 3 1");
+        assert_eq!(e.tracks[0].clips[0].notes[0].pitch, 62);
+        assert_eq!(e.tracks[2].clips[3].notes[0].pitch, 70);
     }
 
     #[test]

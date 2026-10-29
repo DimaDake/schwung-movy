@@ -8,6 +8,7 @@ import type { GenCtx } from '../gen/analysis/context.js';
 import type { Request } from '../gen/engine.js';
 import type { Preset } from '../gen/preset.js';
 import type { GenLevel, Task } from '../gen/types.js';
+import { STEP_AI_VARIATION, STEP_DOUBLE_LOOP, STEP_QUANTIZE } from '../seq/constants.js';
 
 export type AiTask = Task;
 
@@ -46,3 +47,8 @@ export interface Running {
 
 const LABELS: Record<AiTask, string> = { quantize: 'QUANTIZING...', variation: 'VARIATION...', double: 'DOUBLING...', create: 'NEW CLIP...' };
 export function label(task: AiTask): string { return LABELS[task]; }
+
+/* The Shift + Step entry each generator is reached by; its icon is lit while
+ * the clip on screen has a session, as an open page's is. */
+const ENTRY: Record<AiTask, number> = { quantize: STEP_QUANTIZE, variation: STEP_AI_VARIATION, double: STEP_DOUBLE_LOOP, create: STEP_AI_VARIATION };
+export function entryStep(task: AiTask): number { return ENTRY[task]; }

@@ -22,6 +22,7 @@ import { seqState } from './state.js';
 import { appState } from '../app/state.js';
 import { focusedTrack, selectTrack } from '../track/focus.js';
 import { dupActive, onUnit as dupOnUnit } from './duplicate.js';
+import { aiForgetClip } from '../ai/preview.js';
 
 const COLS = 8;
 const ROWS = 4;
@@ -68,6 +69,7 @@ export function sessionPad(padNote: number, padMin: number): void {
     const { track, slot } = cell;
 
     if (deleteHeld) {
+        aiForgetClip(track, slot);   // a generator session parked on it ends
         undoableEdit('DELETE CLIP', clipTarget(track, slot),
             () => seqCmd(`clipdelat ${track} ${slot}`));
         requestLabelSync(); // freed lanes (clip's automation gone) → re-sync

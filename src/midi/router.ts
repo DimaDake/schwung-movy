@@ -82,7 +82,8 @@ import { masterScope, trackScope } from '../lfo/scope.js';
 import { deleteActive, markDeleteActed } from '../seq/edit-ops.js';
 import { seqToast } from '../seq/render.js';
 import { aiRunningInput } from '../ai/job.js';
-import { aiPreviewActive, previewInput } from '../ai/preview.js';
+import { aiPreviewActive } from '../ai/preview.js';
+import { previewInput } from '../ai/preview-input.js';
 import { leaveModalActive, openLeaveModal, closeLeaveModal, leaveModalMove, leaveModalConfirm, leaveModalPass } from '../app/leave-modal.js';
 import {
     quantOverlayActive, quantOverlayAction, quantOverlayJog, quantOverlayHold,

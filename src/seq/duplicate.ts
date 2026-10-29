@@ -10,6 +10,7 @@ import { trackLabel } from '../undo/label.js';
 import { seqCmd, requestLabelSync } from './engine.js';
 import { seqToast } from './render.js';
 import { voiceCopyArgs } from './voice-copy.js';
+import { aiForgetClip } from '../ai/preview.js';
 
 export type DupUnit =
     | { kind: 'clip'; track: number; slot: number }
@@ -54,7 +55,11 @@ function pasteTo(dest: DupUnit): void {
     const label = dest.kind === 'clip' ? 'PASTE CLIP'
         : dest.kind === 'step' ? 'PASTE STEP' : 'PASTE BAR';
     undoableEdit(label, trackLabel(dest.track), () => {
-        if (dest.kind === 'clip') { seqCmd(`clippaste ${dest.track} ${dest.slot}`); requestLabelSync(); }
+        if (dest.kind === 'clip') {
+            aiForgetClip(dest.track, dest.slot);   // a generator session parked on it ends
+            seqCmd(`clippaste ${dest.track} ${dest.slot}`);
+            requestLabelSync();
+        }
         else if (dest.kind === 'step') seqCmd(`pst ${dest.track} ${dest.step}`);
         else seqCmd(`pst ${dest.track} ${dest.bar * 16}`);
     });

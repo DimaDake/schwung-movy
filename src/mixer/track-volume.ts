@@ -92,6 +92,9 @@ export function volumeTrackUp(track: number): void {
     endDivert();
 }
 
+/** A track button is physically down (the generator preview steps aside). */
+export function trackButtonHeld(): boolean { return heldTrack >= 0; }
+
 export function volumeTouch(on: boolean): void {
     touched = on;
 }

@@ -13,9 +13,12 @@ import { padOf } from '../gen/presets/new-drums-pad.js';
 export interface PadState { pads: Map<number, { knobs: number[]; notes: Note[] }>; pad: number }
 export interface PadOpt { preset: Preset; knobs: number[]; per?: PadState }
 
-const density = new Map<number, number>();
+let density = new Map<number, number>();
 
-export function padsReset(): void { density.clear(); }
+/* A new map, never a clear: a parked session (preview.ts) keeps the old one. */
+export function padsReset(): void { density = new Map(); }
+export function padsSave(): Map<number, number> { return density; }
+export function padsRestore(d: Map<number, number>): void { density = d; }
 
 const make = (ctx: GenCtx, o: PadOpt, pad: number, knobs: number[]): Note[] =>
     regenerate({ ...ctx, pad }, o.preset, knobs) ?? [];

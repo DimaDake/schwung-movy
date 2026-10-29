@@ -13,7 +13,7 @@ import { jobTarget } from './job-target.js';
 import { type AiPhase, type AiPreviewInput, type AiTask, label, MSG_ERROR, MSG_NOTHING, MSG_NOTHING_DOUBLE, type Running } from './job-types.js';
 import { genLevel } from '../seq/gen-level.js';
 import { readTrack } from './set-input.js';
-import { commitPreview, openPreview, resetPreview } from './preview.js';
+import { aiSessionOpen, endAllPreviews, openPreview, resetPreview } from './preview.js';
 import { algoTick, startAlgo } from './job-algo.js';
 
 export { MSG_ERROR, MSG_NOTHING, MSG_NOTHING_DOUBLE } from './job-types.js';
@@ -24,7 +24,9 @@ let phase: AiPhase = 'idle';
 let run: Running | null = null;
 let preview: AiPreviewInput | null = null;
 
-export function aiPhase(): AiPhase { return phase; }
+/* 'preview' is not a phase of the job: a session lives on its clip
+ * (preview.ts), so the job is idle again the moment one opens. */
+export function aiPhase(): AiPhase { return phase === 'running' ? phase : aiSessionOpen() ? 'preview' : 'idle'; }
 export function aiPreviewInput(): AiPreviewInput | null { return preview; }
 
 /* The job never takes the screen or the LEDs (user, 2026-10-28: the
@@ -41,7 +43,7 @@ function fail(msg: string, why: string): void {
 }
 
 export function startAiJob(task: AiTask, track: number, slot: number): void {
-    if (phase !== 'idle') return;
+    if (phase !== 'idle' || aiSessionOpen()) return;
     run = { task, track, slot, level: genLevel(), uuid: currentSetUuid(), next: 0, tracks: [],
         ctx: null, gen: null, nonce: Date.now() >>> 0 };
     phase = 'running';
@@ -60,7 +62,7 @@ function send(r: Running): void {
 function open(p: AiPreviewInput): void {
     preview = p;
     run = null;
-    phase = 'preview';
+    phase = 'idle';
     release();
     openPreview(p);
 }
@@ -102,15 +104,13 @@ export function aiCancel(): void {
 }
 
 /** The preview is over (committed by preview.ts). */
-export function endAiPreview(): void {
-    preview = null;
-    if (phase === 'preview') phase = 'idle';
-}
+export function endAiPreview(): void { preview = null; }
 
-/** A Set is about to be replaced: a running request is abandoned. */
+/** A Set is about to be replaced: a running request is abandoned, every
+ *  session ends where it stands. */
 export function aiSetWillChange(): void {
     if (phase === 'running') aiCancel();
-    commitPreview();   // a no-op unless a preview is open
+    endAllPreviews('set change');
 }
 
 export function resetAiJob(): void {

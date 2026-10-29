@@ -66,7 +66,7 @@ ok('...and takes no second snapshot', !ops().some((x) => x.startsWith('usnap')))
 eq('jog_click_commits: consumed', previewInput([0xB0, MoveMainButton, 127]), true);
 o = ops();
 eq('jog_click_commits: idle', aiPreviewActive(), false);
-ok('commit clears the stash and closes the group', o.includes('aiclr') && o.some((x) => x.startsWith('ucommit')));
+ok('commit clears the stash and closes the group', o.includes('aiclr 0 0') && o.some((x) => x.startsWith('ucommit')));
 eq('undo_after_commit_restores_pre_ai_clip_in_one_step', undoDepth(), depth + 1);
 done();
 
@@ -84,26 +84,26 @@ previewTick();
 eq('song_advance_does_not_commit', aiPreviewActive(), true);
 selectTrack(1);
 previewTick();
-eq('track_switch_commits', aiPreviewActive(), false);
+eq('track_switch_leaves_the_session', aiPreviewActive(), false);
 done();
 
 boot();
 seqState.session[0].selected = 3;
 previewTick();
-eq('clip_switch_commits', aiPreviewActive(), false);
+eq('clip_switch_leaves_the_session', aiPreviewActive(), false);
 done();
 
 boot();
 appState.currentView = appState.currentView + 1;
 previewTick();
-eq('view_change_commits', aiPreviewActive(), false);
+eq('view_change_leaves_the_session', aiPreviewActive(), false);
 appState.currentView -= 1;
 done();
 
 boot();
 seqState.sessionMode = true;
 previewTick();
-eq('session_toggle_commits', aiPreviewActive(), false);
+eq('session_toggle_leaves_the_session', aiPreviewActive(), false);
 seqState.sessionMode = false;
 done();
 
@@ -117,7 +117,7 @@ done();
 boot();
 aiSetWillChange();
 eq('set_change_aborts_running_commits_preview', aiPreviewActive(), false);
-ok('set change commit clears the stash', ops().includes('aiclr'));
+ok('set change commit clears the stash', ops().includes('aiclr 0 0'));
 done();
 
 /* Variation's six (plans/2026-10-27-variation-eight-options.md): every one

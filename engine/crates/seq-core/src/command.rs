@@ -468,7 +468,7 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                 }
             }
         }
-        // aistash <t> <slot> <k> / aiload <t> <slot> <k> / aiclr
+        // aistash <t> <slot> <k> / aiload <t> <slot> <k> / aiclr [<t> <slot>]
         "aistash" | "aiload" => {
             if let (Some(t), Some(s), Some(k)) = (next(), next(), next()) {
                 let (t, s, k) = (t.max(0) as usize, s.max(0) as usize, k.max(0) as usize);
@@ -479,7 +479,13 @@ fn apply_op(engine: &mut Engine, op: &str, out: &mut Vec<OutEvent>) {
                 }
             }
         }
-        "aiclr" => engine.ai_clear_stash(),
+        "aiclr" => {
+            let clip = match (next(), next()) {
+                (Some(t), Some(s)) => Some((t.max(0) as usize, s.max(0) as usize)),
+                _ => None,
+            };
+            engine.ai_clear_stash(clip);
+        }
         "clipdup" => {
             if let Some(t) = next() {
                 engine.duplicate_clip(t as usize);

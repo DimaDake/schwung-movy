@@ -2218,10 +2218,24 @@ Here a Variation's sixth option is playing:
 - **Turn the knobs** to reshape the option showing ([The knobs](#the-knobs)).
 - **Edit freely** with the pads, steps and held-step edits. Each option keeps its
   own edits: change option 2, look at 3, come back, and 2 is as you left it.
-- **Click the jog** (or press **Back**) to keep what is showing. Switching
-  track or clip, or leaving the view, keeps it too.
-- **Undo** afterwards takes the whole thing back in one step, to the clip as it
-  was before the generator ran.
+- **Click the jog** (or press **Back**) to keep what is showing. Only these
+  two end the preview.
+- **Leave and come back.** The preview belongs to its clip. Switch to another
+  track or clip, go to Session or another page, and the clip plays the
+  option showing. Come back to the clip and the preview is there again, on
+  the same option with the same knobs, and you carry on. Several clips can
+  each have a preview open. Selecting a clip with one takes you into it. While the
+  clip on screen has a preview open, the light under the step that started it
+  (Step 16, 14 or 15) is fully lit, as for an open page. Open previews are
+  not saved: loading another Set or reopening Movy keeps what each clip
+  shows.
+- **Hold a track button** to see the track's parameter pages instead. The
+  knobs and jog work the page while you hold it. Let go and the preview
+  comes back.
+- **Undo** takes back each visit to the clip in one step. Undo on the first
+  visit returns the clip to how it was before the generator ran. An undo or
+  redo also ends every preview left open on other clips. So does deleting
+  or pasting over such a clip.
 
 How they do on Movy's test set of real parts is in
 `plans/gen-bench-results-2026-10-27-algo.md`.
@@ -2353,6 +2367,8 @@ only.
 | **Shift + hold Step 16** | **Smart Quantize** generator (Track view). See [Generators](#6b-generators-smart-quantize--variation). |
 | **Knobs 1-8** (in a generator preview) | The option's own knobs: turn to reshape it, touch to see the name and value. See [The knobs](#the-knobs). |
 | **Hold the jog** (in a generator preview) | Shows `GENERATOR: NAME` for the option showing, in the top strip. |
+| **Hold a track button** (in a generator preview) | Shows the track's parameter pages while held; the knobs and jog work the page. Let go to return to the preview. |
+| **Jog click / Back** (in a generator preview) | Keep the option showing and end the preview. Leaving the clip parks the preview; coming back resumes it. |
 
 ---
 

@@ -15,7 +15,7 @@ import type { Note } from '../gen/types.js';
 import { seqHeaderAnnounce } from '../seq/render.js';
 import { countDetents } from '../seq/detent.js';
 import { seqState } from '../seq/state.js';
-import { type PadState, padsOpen, padsReset, padsSelect, padsShow, padsTurn, padsUnion, padsRemake } from './preview-pads.js';
+import { type PadState, padsOpen, padsReset, padsRestore, padsSave, padsSelect, padsShow, padsTurn, padsUnion, padsRemake } from './preview-pads.js';
 
 interface Opt { preset: Preset; knobs: number[]; live: (boolean | undefined)[]; per?: PadState }
 
@@ -39,6 +39,20 @@ export function knobsOpen(c: GenCtx, picks: { preset: Preset; knobs: number[] }[
     shown = 1;
     pending = false;
     held = -1;
+    accum.length = 0;
+}
+
+/** A parked session's knobs (preview.ts): everything a resume needs back,
+ *  including a turn not yet regenerated. */
+export interface KnobsSnap { ctx: GenCtx | null; opts: Opt[]; shown: number; pending: boolean; density: Map<number, number> }
+
+export function knobsSave(): KnobsSnap { return { ctx, opts, shown, pending, density: padsSave() }; }
+
+export function knobsRestore(s: KnobsSnap): void {
+    ({ ctx, opts, shown, pending } = s);
+    padsRestore(s.density);
+    held = -1;
+    resync = true;
     accum.length = 0;
 }
 

@@ -10,53 +10,41 @@ import type { Preset } from '../preset.js';
 import { withFeel } from '../create/feel.js';
 import { rng } from '../rng.js';
 import { COMPS } from '../shape/rhythm.js';
-import { pc, sameChord } from '../theory/pc.js';
-import { spreadVoicing, voiceLead } from '../theory/voicing.js';
+import { sameChord } from '../theory/pc.js';
+import { STYLE_LABELS } from '../theory/voicing-styles.js';
+import { MOTIONS, type Motion, voiceAll } from '../theory/voicings.js';
 import { BAR, type Chord, type Note, TPS } from '../types.js';
 
 const CENTRE = R.centres;
 
-/* No voice under the floor (band-pitch.ts: a fifth over the band's bass):
- * the lowest voices go up an octave, so the chord keeps its notes. */
-function lift(v: number[], floor: number): number[] {
-    const out = [...v].sort((a, b) => a - b);
-    while (out.length && out[0] < floor) { out.push(out.shift()! + 12); out.sort((a, b) => a - b); }
-    return out;
-}
-
-/* REGISTER position i opens on the chord's i-th tone up from E2: each click
- * is the next inversion, never the same chord again, and LOW, MID and HIGH
- * open about where their old centres did. Under the band's floor the low
- * positions meet at it: the chord cannot go under the bass. */
-const LADDER_FROM = 40;
-
-/** `n` chord tones stacked up from the `i`-th chord tone over E2, and not under `floor`. */
-function stack(pcs: number[], n: number, i: number, floor: number): number[] {
-    const out: number[] = [];
-    for (let p = LADDER_FROM, k = 0; out.length < n && p < LADDER_FROM + 96; p++) {
-        if (pcs.includes(pc(p)) && k++ >= i && p >= floor) out.push(p);
-    }
-    return out;
-}
-
-/** Voicings that move as little as they can, `n` voices around `centre`. */
-function voicer(n: number, reg: number, floor = 0) {
+/** The notes of a part's strikes: the chord under each tick, voiced all
+ *  together in a VOICING style (theory/voicings.ts) with the top note near
+ *  REGISTER, never under the band's floor (band-pitch.ts: a fifth over its
+ *  bass). A chord held over several strikes keeps its notes, and the clip
+ *  loops, so a chord that ends it and opens it is one chord. */
+function voicePart(ctx: GenCtx, h: number, ticks: number[], style: number, reg: number, motion: Motion = 'SMOOTH'): number[][] {
+    const floor = chordFloor(ctx);
     const centre = CENTRE[reg];
-    let prev: number[] = [];
-    const lo = Math.max(centre - 9, floor), hi = Math.max(centre + 9, lo + 14);
-    return (c: Chord): number[] => {
-        const pcs = c.pcs;
-        const req = [pcs[1], pcs[0], pcs[3], pcs[2]].filter((x) => x !== undefined);
-        const first = () => stack(pcs, n, reg, floor);
-        const v = prev.length === n ? voiceLead(prev, pcs, req, lo, hi) : first();
-        prev = lift(v.length ? v : first(), floor);
-        return prev;
-    };
+    const runs: Chord[] = [];
+    const at = ticks.map((t) => {
+        const c = chordUnder(ctx, h, t);
+        if (!runs.length || !sameChord(c, runs[runs.length - 1])) runs.push(c);
+        return runs.length - 1;
+    });
+    const wrap = runs.length > 1 && sameChord(runs[0], runs[runs.length - 1]);
+    if (wrap) runs.pop();
+    const lo = Math.max(centre - 12, floor), hi = Math.max(centre + 12, lo + 18);
+    const v = voiceAll(runs, ctx.key, { style, anchor: centre + 5, lo, hi, motion, loop: true, rung: reg });
+    return at.map((i) => v[i % runs.length] ?? []);
 }
 
 function strike(out: Note[], tick: number, pitches: number[], gate: number, vel: number): void {
     for (const p of pitches) out.push({ tick, pitch: p, gate, vel });
 }
+
+/* VOICING: how a chord is stacked, thin to rich (voicing-styles.ts); a
+ * take is drawn from `pool`. */
+const VOICING = (pool: number[]) => choice('VOICING', STYLE_LABELS, pool);
 
 const BAND = 'WITH BAND';
 const comp = (ctx: GenCtx, v: number, figs: [string, number[]][]) =>
@@ -64,31 +52,31 @@ const comp = (ctx: GenCtx, v: number, figs: [string, number[]][]) =>
 
 export const CHORDS: Preset = withFeel({
     id: 'n-chords', name: 'CHORDS', task: 'create', drum: false, cls: 'close',
-    knobs: [choice('PATTERN', [...COMPS.map((x) => x[0]), BAND], [1, 0, 3, 4, 5, 7, 8]), choice('VOICES', ['2', '3', '4', '5', '6'], [1, 2, 2]),
+    knobs: [choice('PATTERN', [...COMPS.map((x) => x[0]), BAND], [1, 0, 3, 4, 5, 7, 8]), VOICING([1, 1, 2, 4, 5, 6]),
         register([R.LOW, R.LOW + 1, R.MID, R.MID, R.MID + 1, R.HIGH]), HARMONY],
     generate: (ctx, v, seed) => {
         const r = rng(seed);
         const steps = comp(ctx, v[0], COMPS);
-        const voice = voicer(2 + v[1], v[2], chordFloor(ctx));
-        const out: Note[] = [];
+        const hits: [number, number][] = [];
         everyBar(ctx, steps, (s, bar) => {
-            const t = place(ctx, s);
             const i = steps.indexOf(s - bar * 16);
             const next = i + 1 < steps.length ? steps[i + 1] : 16 + steps[0];
-            strike(out, t, voice(chordUnder(ctx, v[3], t)), Math.min(2 * BAR / 4, (next - steps[i]) * TPS - 4), velAt(t, 92, r));
+            hits.push([place(ctx, s), Math.min(2 * BAR / 4, (next - steps[i]) * TPS - 4)]);
         });
+        const vs = voicePart(ctx, v[3], hits.map((x) => x[0]), v[1], v[2]);
+        const out: Note[] = [];
+        hits.forEach(([t, g], i) => strike(out, t, vs[i], g, velAt(t, 92, r)));
         return out;
     },
 }, [3, 8]);
 
 export const PAD: Preset = withFeel({
     id: 'n-pad', name: 'PAD', task: 'create', drum: false, cls: 'close',
-    knobs: [choice('VOICES', ['3', '4', '5', '6'], [1, 1, 2]), choice('SPREAD', ['CLOSE', 'OPEN', 'WIDE', 'WIDER', 'VAST'], [0, 1, 1, 2]),
+    knobs: [VOICING([4, 1, 2, 5, 6, 8]), choice('MOTION', MOTIONS, [0, 0, 1, 2, 3]),
         register([R.LOW, R.LOW + 1, R.MID, R.MID]), HARMONY],
     generate: (ctx, v, seed) => {
         const r = rng(seed);
-        const voice = voicer(3 + v[0], v[2], chordFloor(ctx));
-        const out: Note[] = [];
+        const spans: [number, number][] = [];
         /* A new chord where the harmony changes, and once a bar at least, so a
          * one-chord loop still breathes with the bar. */
         let at = 0;
@@ -96,11 +84,12 @@ export const PAD: Preset = withFeel({
             const c = chordUnder(ctx, v[3], at);
             let to = at + TPS * 8;
             while (to < ctx.end && to % BAR !== 0 && sameChord(chordUnder(ctx, v[3], to), c)) to += TPS * 8;
-            /* Past WIDE a voice may drop a further octave: still over the bass. */
-            const pitches = spreadVoicing(voice(c), v[1], Math.max(CENTRE[v[2]] - 14 - 6 * Math.max(0, v[1] - 2), chordFloor(ctx)));
-            strike(out, at, pitches, Math.max(TPS, to - at - 6), velAt(at, 78, r));
+            spans.push([at, to]);
             at = to;
         }
+        const vs = voicePart(ctx, v[3], spans.map((x) => x[0]), v[0], v[2], MOTIONS[v[1]]);
+        const out: Note[] = [];
+        spans.forEach(([a, b], i) => strike(out, a, vs[i], Math.max(TPS, b - a - 6), velAt(a, 78, r)));
         return out;
     },
 }, [5, 10], true);
@@ -110,17 +99,16 @@ const STAB_FIGS: [string, number[]][] = [['OFFBEAT', [2, 6, 10, 14]], ['HOUSE', 
 
 export const STABS: Preset = withFeel({
     id: 'n-stabs', name: 'STABS', task: 'create', drum: false, cls: 'rhythm',
-    knobs: [choice('PATTERN', [...STAB_FIGS.map((x) => x[0]), BAND], [0, 1, 2, 3, 4, 5, 7]), choice('VOICES', ['2', '3', '4', '5'], [1, 1, 2]),
+    knobs: [choice('PATTERN', [...STAB_FIGS.map((x) => x[0]), BAND], [0, 1, 2, 3, 4, 5, 7]), VOICING([1, 0, 1, 2, 3, 4]),
         register([R.MID, R.MID, R.MID + 1, R.HIGH]), HARMONY],
     generate: (ctx, v, seed) => {
         const r = rng(seed);
         const steps = comp(ctx, v[0], STAB_FIGS);
-        const voice = voicer(2 + v[1], v[2], chordFloor(ctx));
+        const ticks: number[] = [];
+        everyBar(ctx, steps, (s) => { ticks.push(place(ctx, s)); });
+        const vs = voicePart(ctx, v[3], ticks, v[1], v[2]);
         const out: Note[] = [];
-        everyBar(ctx, steps, (s) => {
-            const t = place(ctx, s);
-            strike(out, t, voice(chordUnder(ctx, v[3], t)), TPS, velAt(t, 100, r));
-        });
+        ticks.forEach((t, i) => strike(out, t, vs[i], TPS, velAt(t, 100, r)));
         return out;
     },
 }, [0, 3]);

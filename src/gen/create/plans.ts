@@ -10,6 +10,8 @@ import { fits, sample } from '../plan.js';
 import { chordOf } from '../theory/pc.js';
 import { diatonic } from '../theory/roman.js';
 import { journey } from '../theory/develop.js';
+import { secondary, walks } from '../theory/walk.js';
+import { mix, rng } from '../rng.js';
 import type { Chord, HarmonyPlan, Quality } from '../types.js';
 
 type Prog = [string, number[], boolean?];   // name, degrees (0 = tonic), sevenths
@@ -83,8 +85,17 @@ export function createPlans(ctx: GenCtx, n: number): HarmonyPlan[] {
         for (const p of ctx.key.minor ? LONG_MINOR : LONG_MAJOR) cands.push([p[0], degrees(ctx, p)]);
     }
     for (const p of more) cands.push([p[0], degrees(ctx, p)]);
+    /* Walks (theory/walk.ts): new loops every run, eight chords long where
+     * the clip has room. */
+    const walked = walks(ctx.key, long ? 8 : 4, 3, rng(mix(ctx.seed, 0x3A1C)), 1);
+    walked.forEach((w, i) => cands.push(['WALK ' + (i + 1), w]));
     const basic = cands.length;
     for (const [name, cs] of ctx.key.minor ? COLOUR_MINOR : COLOUR_MAJOR) cands.push([name, cs.map(([s, q]) => chordOf(ctx.key.tonic + s, q))]);
+    /* Chromatic colour on a loop: a secondary dominant into one of its
+     * chords, and the tritone substitute into a cadence. */
+    cands.push(['SEC DOM', secondary(degrees(ctx, short[0]), ctx.key, false)]);
+    if (walked.length) cands.push(['WALK SEC', secondary(walked[0], ctx.key, false)]);
+    cands.push(['TRITONE', secondary(degrees(ctx, ctx.key.minor ? short[2] : short[3]), ctx.key, true)]);
     const seen = new Set<string>();
     const out: HarmonyPlan[] = [];
     for (const [i, [name, prog]] of cands.entries()) {

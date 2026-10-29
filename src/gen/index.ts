@@ -42,3 +42,7 @@ export { uniqueChords } from './create/plans.js';
 export { chordFloor, clearRubs } from './shape/band-pitch.js';
 export { tensionStage } from './shape/tension.js';
 export { fixable, fixWorst, fixChords } from './shape/pitch.js';
+export * from './theory/voicing-styles.js';
+export * from './theory/voicings.js';
+export * from './theory/walk.js';
+export { STRUMS, strumEvent } from './shape/strum.js';

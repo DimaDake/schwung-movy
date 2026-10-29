@@ -16,6 +16,7 @@ import { dynamics } from '../shape/dynamics.js';
 import { type Ev, type Note, TPS } from '../types.js';
 import { amount } from './common.js';
 import { bandAccent } from '../shape/seams.js';
+import { STRUMS, strumEvent } from '../shape/strum.js';
 
 const pct = (v: number) => v * 10 + '%';
 
@@ -78,8 +79,7 @@ function feel(ctx: GenCtx, notes: Note[], f: number[], seed: number, drum: boole
     const [g, v, sw, dyn] = drum ? [-1, f[0], f[1], f[2]] : f;
     const { evs, len } = vary(ctx, toEvents(notes), v, r, drum);
     if (strum) {
-        /* STRUM: a chord's voices one after another, low to high. */
-        for (const e of evs) e.voices.forEach((x, i) => { x.dt = i * sw * 2; });
+        evs.forEach((e, i) => strumEvent(e, sw, spanTo(evs, i, ctx.end), r));
     } else {
         /* A part with no off-16ths swings its off-8ths, as 8th swing does;
          * unless the scene swings its own 16ths, which the part then follows. */
@@ -92,7 +92,8 @@ function feel(ctx: GenCtx, notes: Note[], f: number[], seed: number, drum: boole
         evs.forEach((e, i) => {
             const room = spanTo(evs, i, ctx.end);
             const want = Math.round(room * share(g) * (len.get(e) ?? 1)) - (g >= 10 ? 2 : 0);
-            for (const x of e.voices) x.gate = Math.max(TPS / 3, Math.min(want, ctx.end - e.tick));
+            /* A strummed voice starts late and still ends with the chord. */
+            for (const x of e.voices) x.gate = Math.max(TPS / 3, Math.min(want - (strum ? x.dt : 0), ctx.end - e.tick - x.dt));
         });
     }
     let out = dynamics(fromEvents(evs, ctx.end), dyn);
@@ -103,7 +104,7 @@ function feel(ctx: GenCtx, notes: Note[], f: number[], seed: number, drum: boole
     return out;
 }
 
-const STRUM: KnobDef = { ...amount('STRUM', 10, 0, 4), def: () => 0, label: (v) => (v ? v * 2 + ' TICKS' : 'OFF') };
+const STRUM: KnobDef = { ...amount('STRUM', STRUMS.length - 1, 0, 4), def: () => 0, label: (v) => STRUMS[v] };
 
 /** A generator with the feel row after its own four knobs; `g` is where its
  *  GATE takes are drawn (a pad holds, a stab does not). A held part, whose

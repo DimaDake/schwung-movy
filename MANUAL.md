@@ -1943,9 +1943,9 @@ Turning a knob back to where it was gives you the same notes again.
 
 | Option | What it writes | Its knobs |
 | --- | --- | --- |
-| **CHORDS** | Comped chords on a rhythm, voice-led | PATTERN, VOICES, REGISTER, HARMONY |
-| **PAD** | Held chords, a new one where the harmony moves or each bar | VOICES, SPREAD, REGISTER, HARMONY |
-| **STABS** | Short chords off the beat | PATTERN, VOICES, REGISTER, HARMONY |
+| **CHORDS** | Comped chords on a rhythm, voice-led | PATTERN, VOICING, REGISTER, HARMONY |
+| **PAD** | Held chords, a new one where the harmony moves or each bar | VOICING, MOTION, REGISTER, HARMONY |
+| **STABS** | Short chords off the beat | PATTERN, VOICING, REGISTER, HARMONY |
 | **BASS** | A bass figure (offbeat, rolling, octaves, 3-3-2…) or WITH KICK | PATTERN, NOTES, OCTAVE, HARMONY |
 | **ARP** | Each chord broken up, down, in order… | STYLE, RATE, OCTAVES, HARMONY |
 | **MELODY** | A phrase on a contour that answers itself and lands home | CONTOUR, DENSITY, RANGE, SEED |
@@ -1958,10 +1958,10 @@ inside the usual range:
 
 | Knob | Positions (the takes in **bold**) |
 | --- | --- |
-| **REGISTER** (CHORDS, PAD, STABS) | DEEP, LOW-, **LOW**, **LOW+**, **MID**, **MID+**, **HIGH**, HIGH+, TOP. Each click opens the chord one inversion higher; it never goes under the band's bass, so with a bass playing the lowest positions meet. |
+| **REGISTER** (CHORDS, PAD, STABS) | DEEP, LOW-, **LOW**, **LOW+**, **MID**, **MID+**, **HIGH**, HIGH+, TOP. Each click opens the chord one inversion higher; it never goes under the band's bass, so with a bass playing the lowest positions meet. Every chord after the first is voiced for the whole loop at once, so the voices move as little as the VOICING allows and the last chord leads smoothly back into the first. |
 | **REGISTER** (RIFF, COUNTER) | BASS, **LOW**, **MID**, **HIGH**, TOP, an octave apart. |
-| **VOICES** | CHORDS 2 to 6, PAD 3 to 6, STABS 2 to 5. |
-| **SPREAD** (PAD) | **CLOSE**, **OPEN**, **WIDE**, WIDER, VAST. Each step drops one more voice an octave, never under the bass. |
+| **VOICING** (CHORDS, PAD, STABS) | How each chord is stacked, from thin to rich: DUO (two notes), **TRIAD**, **OPEN** (a triad spread past the octave), **SHELL** (root, 3rd, 7th), **ADD9**, **SEVENTH**, **DROP 2** and DROP 3 (a seventh chord with one voice dropped an octave), **SPREAD** (root, 5th, 10th, 7th: wide and cinematic), JAZZ (rootless, 3-5-7-9 or 7-9-3-5), QUARTAL (stacked fourths that still hold the chord's 3rd) and NEO SOUL (root, 7th, 10th, 5th, 9th). A 9th, 6th or 11th is added only where the key and the chord allow it; a seventh chord in the progression keeps its seventh in every style. |
+| **MOTION** (PAD) | How the voicings move from chord to chord. **SMOOTH** moves the fewest semitones; **TOP LINE** keeps the top note as still as it can; **CLIMB**, **ARCH** and FALL lift, arch or lower the top over the clip; PARALLEL slides one chord shape along the progression, as house and dub chords do. |
 | **OCTAVE** (BASS) | DEEP, **LOW**, **MID**, HIGH. |
 | **OCTAVES** (ARP) | **1**, **1.5**, **2**, 2.5, 3, 4. A taller arp starts lower so its top stays in reach. |
 | **RATE** (ARP) | 1/4, **1/8**, **1/8T**, **1/16**, 1/16T, slowest to fastest. |
@@ -1989,6 +1989,14 @@ PHRYGIAN (i bII), HARMONIC (i iv V i), ANDALUSIAN (i VII VI V) and PICARDY
 written over a borrowed chord borrow with it: under a bVII in C they walk Bb,
 not B.
 
+Every run also offers three **WALK** progressions, new each run: four chords
+(eight on a long clip) drawn in the key from how pop and rock songs move from
+chord to chord (I to IV or V, IV back to I, V to vi, ii to V), and always leading back
+to where they started. A run may open on one. At the very end of the knob,
+**SEC DOM** and **WALK SEC** turn one chord of POP (or the first walk) into the
+dominant seventh of the chord after it (I E7 Am F in C), and **TRITONE**
+slides into the cadence by a semitone instead (Dm7 Db7 Cmaj7).
+
 Knobs 5 to 8 are the same on every New Clip option, and every run starts them
 somewhere new, so the rhythm and the note lengths change from run to run too:
 
@@ -1996,7 +2004,7 @@ somewhere new, so the rhythm and the note lengths change from run to run too:
 | --- | --- |
 | **GATE** | How much of the space to the next note each note holds: short and clipped at 0, held right up to the next one at `HELD`. Chords, pads included, need not ring for their whole length. |
 | **VARY** | Bar to bar, a note may drop out, move a 16th, repeat half way to the next one, or ring longer or shorter. 0 plays the same bar every time; each click varies one note more, the same ones the same way, so turning back gives the take back. Notes that land on the band's accents stay put. |
-| **SWING** | Swing on the off-16ths (on the off-8ths for a part that plays no 16ths). It opens at the scene's own swing. PAD has **STRUM** here instead, which spreads a chord's notes from low to high. |
+| **SWING** | Swing on the off-16ths (on the off-8ths for a part that plays no 16ths). It opens at the scene's own swing. PAD has **STRUM** here instead: OFF, then 2 to 12 TICKS (low to high, wider each click), UP 6 and UP 12 (high to low), ROLL (slowing as it goes, like a hand), SLOP (each note loosened in time and level), HARP and HARP 2X (the chord run up through one or two octaves over the first half of the chord). |
 | **DYNAMICS** | How much the velocities follow the beat: louder on the downbeats, softer off them. |
 
 Drum options have **VARY, SWING, DYNAMICS** and **HUMAN** (a few ticks of timing

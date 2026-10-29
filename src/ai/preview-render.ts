@@ -1,11 +1,13 @@
 /* The preview selector: `GEN  ORIG  1  2  3` in the bottom band, the option
- * showing boxed (design §5.2). Drawn on the Loop strip's schedule, in its
+ * showing boxed (design §5.2), and above it, while the jog is held, the
+ * generator behind that option. Drawn on the Loop strip's schedule, in its
  * place, so it costs nothing on a tick where neither it nor the view moved. */
 
-import { fontWidth } from '../font/index.js';
-import { W } from '../renderer/layout.js';
+import { fontPrint, fontWidth } from '../font/index.js';
+import { W, TOAST_Y, TOAST_H } from '../renderer/layout.js';
+import { jogHintVisible } from '../app/jog-hint.js';
 import { drawBandLead, drawBandToken } from '../seq/render.js';
-import { previewIndex, previewLabels } from './preview.js';
+import { previewIndex, previewLabels, previewName } from './preview.js';
 
 const GAP = 8;
 /* A boxed entry reaches 1 px past its label on each side. */
@@ -30,4 +32,26 @@ export function previewStripTick(viewRepainted: boolean): void {
     drawPreviewStrip(previewIndex(), labels);
 }
 
-export function resetPreviewStrip(): void { drawn = ''; }
+/* One dark row between the name and the band: two white bars touching
+ * would read as one. */
+const NAME_Y = TOAST_Y - TOAST_H - 1;
+let nameDrawn = '';
+
+export function drawPreviewName(name: string): void {
+    const text = 'GENERATOR: ' + name;
+    fill_rect(0, NAME_Y, W, TOAST_H, 1);
+    fill_rect(0, NAME_Y + TOAST_H, W, 1, 0);
+    fontPrint(Math.max(1, Math.floor((W - fontWidth(text)) / 2)), NAME_Y + 1, text, 0);
+}
+
+/** The jog held without turning (app/jog-hint.ts) shows it; turning while
+ *  held keeps it up and renames it. Taken away by the release's repaint. */
+export function previewNameTick(viewRepainted: boolean): void {
+    if (!jogHintVisible()) { nameDrawn = ''; return; }
+    const n = previewName();
+    if (!viewRepainted && n === nameDrawn) return;
+    nameDrawn = n;
+    drawPreviewName(n);
+}
+
+export function resetPreviewStrip(): void { drawn = ''; nameDrawn = ''; }

@@ -54,6 +54,9 @@ export function knobsShown(index: number): void {
     if (o) { seqHeaderAnnounce(`${index}  ${o.preset.name}`, STRIP_TTL); appState.dirty = true; }
 }
 
+/** The preset name of the option showing; '' on ORIG or without knobs. */
+export function knobsName(): string { return opts[shown - 1]?.preset.name ?? ''; }
+
 function current(i: number): Opt | null {
     const o = opts[shown - 1];
     if (!ctx || !o || i < 0 || i >= o.preset.knobs.length) return null;

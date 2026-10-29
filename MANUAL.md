@@ -2209,6 +2209,11 @@ Here a Variation's sixth option is playing:
 
 - **Turn the jog** to hear ORIG and each option. The clip swaps in place and
   keeps playing in time.
+- **Rest a finger on the jog** for a second to see which generator made the
+  option showing: `GENERATOR: NAME` appears just above the bottom line. Turn
+  while still touching and it follows the option; let go and it goes away.
+
+  ![Generator name](docs/assets/gen_preview_name.png)
 - **Turn the knobs** to reshape the option showing ([The knobs](#the-knobs)).
 - **Edit freely** with the pads, steps and held-step edits. Each option keeps its
   own edits: change option 2, look at 3, come back, and 2 is as you left it.
@@ -2346,6 +2351,7 @@ only.
 | **Shift + Step 16** | Cycle the current clip's **quantization** (0 / default / 100 %), on release in Track view. |
 | **Shift + hold Step 16** | **Smart Quantize** generator (Track view). See [Generators](#6b-generators-smart-quantize--variation). |
 | **Knobs 1-8** (in a generator preview) | The option's own knobs: turn to reshape it, touch to see the name and value. See [The knobs](#the-knobs). |
+| **Hold the jog** (in a generator preview) | Shows `GENERATOR: NAME` for the option showing, above the bottom line. |
 
 ---
 

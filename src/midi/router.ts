@@ -82,7 +82,7 @@ import { masterScope, trackScope } from '../lfo/scope.js';
 import { deleteActive, markDeleteActed } from '../seq/edit-ops.js';
 import { seqToast } from '../seq/render.js';
 import { aiRunningInput } from '../ai/job.js';
-import { previewInput } from '../ai/preview.js';
+import { aiPreviewActive, previewInput } from '../ai/preview.js';
 import { leaveModalActive, openLeaveModal, closeLeaveModal, leaveModalMove, leaveModalConfirm, leaveModalPass } from '../app/leave-modal.js';
 import {
     quantOverlayActive, quantOverlayAction, quantOverlayJog, quantOverlayHold,
@@ -447,9 +447,10 @@ export function onMidiMessageInternal(data: number[]): void {
 
     /* Main encoder (jog) touch: note=9. Arms the hint only — it appears a
      * beat later (jogHintTick), so grabbing the jog to scroll shows nothing.
-     * The repaint is needed only when the release takes a visible hint away. */
+     * The repaint is needed only when the release takes a visible hint away.
+     * In the generator preview the same hold names the generator showing. */
     if ((status & 0xF0) === 0x90 && d1 === JOG_TOUCH) {
-        if (appState.currentView === VIEW_CHAIN || appState.currentView === VIEW_KNOBS) {
+        if (appState.currentView === VIEW_CHAIN || appState.currentView === VIEW_KNOBS || aiPreviewActive()) {
             if (jogHintTouch(d2 > 0)) appState.dirty = true;
         }
         return;

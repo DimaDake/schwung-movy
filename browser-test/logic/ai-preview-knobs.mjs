@@ -8,7 +8,9 @@
 
 import { _log, eq, ok, installMockEngine, uninstallMockEngine, seqEngineTick, resetSeqEngine,
     selectTrack, resetUndoState, resetUndoGroups } from './harness.mjs';
-import { openPreview, previewIndex, previewSwitch, commitPreview, aiPreviewTick, previewInput, resetAiJob, knobsOf, knobLevels } from '../../dist/esm/ai/index.js';
+import { openPreview, previewIndex, previewSwitch, commitPreview, aiPreviewTick, previewInput, resetAiJob, knobsOf, knobLevels,
+    previewName } from '../../dist/esm/ai/index.js';
+import { jogHintTick, jogHintVisible, jogHintTouch } from '../../dist/esm/app/jog-hint.js';
 import { seqState } from '../../dist/esm/seq/state.js';
 import { seqHeaderShown, resetSeqHeader } from '../../dist/esm/seq/render.js';
 import * as G from '../../dist/esm/gen/index.js';
@@ -123,4 +125,26 @@ eq('dead_knob_writes_nothing', ops().filter((o) => o.startsWith('aiclip')).lengt
 eq('dead_knob_shows_nothing', seqHeaderShown(), '');
 commitPreview();
 done();
+
+/* Holding the jog names the generator behind the option showing (the
+ * toast above the band); the hold is the views' own jog-hint timer. */
+{
+    const realNow = Date.now;
+    let t = 1000; Date.now = () => t;
+    boot(input);
+    jogHintTouch(true);
+    t = 2100;
+    eq('jog_hold_arms_in_the_preview', jogHintTick(), true);
+    eq('jog_hold_names_option_1', previewName(), picks[0].preset.name);
+    previewInput([0xB0, 14, 1]);
+    eq('turning_while_held_renames', previewName(), picks[1].preset.name);
+    eq('turning_while_held_keeps_it_up', jogHintVisible(), true);
+    previewSwitch(-9);
+    eq('orig_is_named_orig', previewName(), 'ORIG');
+    commitPreview();
+    eq('commit_takes_the_hold_away', jogHintVisible(), false);
+    eq('no_name_after_commit', previewName(), '');
+    Date.now = realNow;
+    done();
+}
 }

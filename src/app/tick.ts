@@ -76,7 +76,7 @@ import { aiGestureTick } from '../ai/gestures.js';
 import { holdProgressTick } from '../ai/hold-render.js';
 import { aiPreviewActive, aiPreviewTick } from '../ai/preview.js';
 import { knobLevels } from '../ai/preview-knobs.js';
-import { previewStripTick } from '../ai/preview-render.js';
+import { previewNameTick, previewStripTick } from '../ai/preview-render.js';
 import { leaveModalActive, leaveModalLabels, leaveModalSel, leaveModalTitle } from './leave-modal.js';
 import { drawLeaveModal } from '../renderer/leave-modal-view.js';
 import { captureOverlayActive } from '../seq/capture.js';
@@ -116,6 +116,9 @@ let lastToastShowing = false;
 let lastHeaderShowing = false;
 let lastSessionMode = false;
 let jogToastShown = false;   // a bottom jog/browse toast is on screen (strip yields to it)
+/* The views' own CLICK JOG hint; the generator preview names its option
+ * instead, since a jog click there keeps the option. */
+const moduleJogHint = (): boolean => jogHintVisible() && !aiPreviewActive();
 let pianoShown = '';         // stepPianoKey of the held-step piano on screen, '' = none
 
 /* Last-seen module name per "track:chainIdx", to detect a module swap on a
@@ -819,20 +822,20 @@ function tickBody(): void {
                  * `module=plaits` while the master slot held `4k-eq`). */
                 noteRendered(vm);
                 const chrome = schwungChromeFor(drawnPageOwner, schwungBody, true);
-                renderKnobsView(vm, jogHintVisible(), appState.activeTrack.index,
+                renderKnobsView(vm, moduleJogHint(), appState.activeTrack.index,
                                 paramBodyFor(drawnPageOwner, schwungBody, lastAutoView),
                                 schwungBankFor(drawnPageOwner, schwungBody), chrome);
-                jogToastShown = jogHintVisible() || !!(chrome && chrome.footer);
+                jogToastShown = moduleJogHint() || !!(chrome && chrome.footer);
             } else {
                 noteRendered(vm);
                 /* The slot grid draws the focused slot's body too, so it takes
                  * Schwung's body and chrome exactly as a track's VIEW_CHAIN does
                  * (SP-58) — `paging: false`, since the jog moves slots here. */
                 const chrome = schwungChromeFor(drawnPageOwner, schwungBody, false);
-                renderChainView(vm, mIdx, jogHintVisible(), 'MASTER', MASTER_FX_SLOTS[mIdx]?.label,
+                renderChainView(vm, mIdx, moduleJogHint(), 'MASTER', MASTER_FX_SLOTS[mIdx]?.label,
                                 MASTER_FX_SLOTS, paramBodyFor(drawnPageOwner, schwungBody, lastAutoView),
                                 chrome);
-                jogToastShown = jogHintVisible() || !!(chrome && chrome.footer);
+                jogToastShown = moduleJogHint() || !!(chrome && chrome.footer);
             }
             lightKnobRow(schwungBody);
         } else if (noteViewActive()) {
@@ -899,14 +902,14 @@ function tickBody(): void {
              * and always were, this just names which owner answers each. */
             const chrome = schwungChromeFor(drawnPageOwner, schwungBody, !stepSelected);
             const chromeFooter = !!(chrome && chrome.footer);
-            renderKnobsView(vm, jogHintVisible(), appState.activeTrack.index,
+            renderKnobsView(vm, moduleJogHint(), appState.activeTrack.index,
                             paramBodyFor(drawnPageOwner, schwungBody, lastAutoView),
                             schwungBankFor(pageOwner, schwungBody), chrome);
             perfPhaseEnd();
             // The pool-full toast shares the bottom rows with the Loop strip;
             // claim them so the strip yields to it (like every other toast).
             jogToastShown = (vm.automationHeld && vm.automationPoolFull)
-                || jogHintVisible() || chromeFooter;
+                || moduleJogHint() || chromeFooter;
             perfPhase('leds');
             lightKnobRow(schwungBody);
             perfPhaseEnd();
@@ -942,14 +945,14 @@ function tickBody(): void {
              * `drawnPageOwner`, same reasoning as the VIEW_KNOBS branch above —
              * so a touched step-page cell's toast reaches the header here too. */
             const chrome = schwungChromeFor(drawnPageOwner, schwungBody, false);
-            renderChainView(vm, chainIdx, jogHintVisible(), 'T' + (appState.activeTrack.index + 1),
+            renderChainView(vm, chainIdx, moduleJogHint(), 'T' + (appState.activeTrack.index + 1),
                             undefined, undefined as any, paramBodyFor(drawnPageOwner, schwungBody, lastAutoView),
                             chrome);
             perfPhaseEnd();
             /* Must match what renderChainView actually drew: the Loop strip
              * clears rows 60-63 every tick and would erase a toast it was not
              * told about. */
-            jogToastShown = jogHintVisible() || !!(chrome && chrome.footer);
+            jogToastShown = moduleJogHint() || !!(chrome && chrome.footer);
             perfPhase('leds');
             lightKnobRow(schwungBody);
             perfPhaseEnd();
@@ -1098,7 +1101,7 @@ function tickBody(): void {
         } else {
             leavePiano(viewRepainted);
             if (noteViewActive()) noteViewTick(viewRepainted);
-            if (aiPreviewActive()) previewStripTick(viewRepainted);
+            if (aiPreviewActive()) { previewStripTick(viewRepainted); previewNameTick(viewRepainted); }
             else drawLoopStrip();
         }
     } else {

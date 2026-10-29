@@ -6,6 +6,7 @@
  * plays as written). Everything from open to commit is ONE undo entry. */
 
 import { appState } from '../app/state.js';
+import { jogHintTouch } from '../app/jog-hint.js';
 import { mlog } from '../log.js';
 import { seqCmd } from '../seq/engine.js';
 import { seqState } from '../seq/state.js';
@@ -14,7 +15,7 @@ import { beginEdit, CLOSE, holdGroup, releaseHold } from '../undo/group.js';
 import { trackLabel } from '../undo/label.js';
 import { type AiNote, formatNotes } from './clip-dump.js';
 import { endAiPreview, type AiPreviewInput } from './job.js';
-import { knobsCtx, knobsOpen, knobsRemake, knobsReset, knobsShown, knobsTick, knobTouch, knobTurn } from './preview-knobs.js';
+import { knobsCtx, knobsName, knobsOpen, knobsRemake, knobsReset, knobsShown, knobsTick, knobTouch, knobTurn } from './preview-knobs.js';
 import { prepare } from '../gen/engine.js';
 import { setLoopLengthHook } from '../seq/loop-hook.js';
 
@@ -33,6 +34,11 @@ export function previewIndex(): number { return cur ? cur.index : -1; }
 export function previewCount(): number { return cur ? cur.p.options.length : 0; }
 export function previewLabels(): string[] {
     return cur ? cur.p.options.map((_, i) => String(i + 1)) : [];
+}
+/** The generator behind the option showing, for the jog-hold toast. */
+export function previewName(): string {
+    if (!cur) return '';
+    return cur.index === 0 ? 'ORIG' : knobsName() || String(cur.index);
 }
 
 /* Switching track or clip, the view, or Session commits (design §5.2). Song
@@ -88,6 +94,9 @@ export function commitPreview(why = 'commit'): void {
     if (!cur) return;
     mlog(`ai: preview kept option ${cur.index} (${why})`);
     cur = null;
+    /* The jog hold named an option; a finger still resting after the click
+     * must not turn into the view's own CLICK JOG hint. */
+    jogHintTouch(false);
     knobsReset();
     seqCmd('aiclr');
     releaseHold(true);

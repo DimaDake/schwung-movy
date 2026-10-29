@@ -42,7 +42,7 @@ const PRESETS = [
     'step_indicator', 'step_rec_header', 'loop_strip_midclip', 'loop_strip_outside',
     'note_view_bass', 'note_view_chords', 'note_view_drums', 'note_view_plus', 'note_view_dense', 'note_view_wide',
     'song_band', 'song_band_overflow', 'song_band_end',
-    'quant-overlay-three', 'quant-overlay-two', 'flags-top', 'flags-scrolled', 'flags-generators', 'gen_preview_knob',
+    'quant-overlay-three', 'quant-overlay-two', 'flags-top', 'flags-scrolled', 'flags-generators', 'gen_preview_knob', 'gen_preview_name',
     'ai_preview_orig', 'ai_preview_opt1', 'ai_preview_opt3', 'ai_preview_var8', 'ai_hold_progress_50', 'ai_hold_variation_50', 'ai_hold_double_50', 'ai_hold_newclip_50',
     'cpu-movy-tracks', 'cpu-unsplit-module', 'cpu-overscale',
     'cpu-empty', 'cpu-sends', 'cpu-sends-quiet', 'cpu-master', 'leave_modal',
@@ -179,7 +179,7 @@ const { drawJogToast }     = await import('../dist/esm/renderer/overlay.js');
 const { drawLeaveModal }   = await import('../dist/esm/renderer/leave-modal-view.js');
 const { drawCaptureOverlay } = await import('../dist/esm/renderer/capture-overlay.js');
 const { drawQuantOverlay } = await import('../dist/esm/renderer/quant-overlay.js');
-const { drawPreviewStrip, drawHoldProgress } = await import('../dist/esm/ai/index.js');
+const { drawPreviewStrip, drawPreviewName, drawHoldProgress } = await import('../dist/esm/ai/index.js');
 const { seqToast, drawSeqToast } = await import('../dist/esm/seq/render.js');
 const { drawStepPiano } = await import('../dist/esm/renderer/step-piano.js');
 const { stepPianoVM, resetStepPiano } = await import('../dist/esm/seq/step-piano.js');
@@ -539,6 +539,21 @@ function applyView(preset) {
             seedNoteViewForTest(sc.notes);
             seqHeaderAnnounce('HARMONY', 196, 'IV SEQ');
             lastRender = () => { clear_screen(); drawSeqHeader(); noteViewTick(true); drawPreviewStrip(2, ['1', '2', '3', '4', '5', '6']); };
+            lastRender();
+            break;
+        }
+        /* The jog held in the preview: the generator behind option 3 named
+         * just above the band. */
+        case 'gen_preview_name': {
+            const sc = NOTE_VIEW_SCENES.note_view_chords;
+            resetSeqState(); resetSeqHeader(); resetNoteView();
+            seqState.loopMode = true;
+            seqState.loopStart = sc.loopStart; seqState.lenSteps = sc.lenSteps;
+            seqState.barOffset = sc.barOffset;
+            seqState.playing = true; seqState.posTick = sc.posTick;
+            seqState.noteHash = preset;
+            seedNoteViewForTest(sc.notes);
+            lastRender = () => { clear_screen(); drawSeqHeader(); noteViewTick(true); drawPreviewStrip(3, ['1', '2', '3', '4', '5', '6']); drawPreviewName('TURNAROUND'); };
             lastRender();
             break;
         }

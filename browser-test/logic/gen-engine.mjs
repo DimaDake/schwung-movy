@@ -13,8 +13,8 @@ import { fixtureInput, messy, ROLES, createInput } from '../gen-fixtures.mjs';
 const sig = (a) => (a ? a.map((n) => `${n.tick}.${n.pitch}.${n.gate}.${n.vel}`).join(',') : '-');
 const names = (cs) => cs.map(G.chordName).join(' ');
 
-function quantInput(role) {
-    const input = fixtureInput(role, { task: 'quantize' });
+function quantInput(role, scene = 'locked') {
+    const input = fixtureInput(role, { task: 'quantize', scene });
     input.tracks[0].clips[0].notes = messy(input.tracks[0].clips[0].notes);
     return input;
 }
@@ -78,7 +78,7 @@ const d = sel.picks.map((p) => G.difference(p.notes, sel.ctx.src));
 ok('select_closest_first', d.every((x, i) => i === 0 || x >= d[i - 1]));
 eq('select_is_deterministic', sel.picks.map((p) => sig(p.notes)).join('|'), G.generateAll(fixtureInput('pad', { scene: 'locked' })).picks.map((p) => sig(p.notes)).join('|'));
 const qs = G.generateAll(quantInput('lead'));
-eq('select_three_quantize_options', qs.picks.length, 3);
+eq('select_six_quantize_options', qs.picks.length, 6);
 eq('select_quantize_opens_on_the_tightest', qs.picks[0].preset.cls, 'close');
 eq('slots_three_of_six_keep_the_proportions', G.slotsFor('variation', 3, 'BALANCED').join(','), 'close,rhythm,exp');
 
@@ -90,9 +90,9 @@ const liveAny = new Map();
 const thin = [];
 let served = 0;
 for (const task of ['variation', 'quantize', 'double', 'create']) {
-    for (const scene of task === 'quantize' ? ['locked'] : task === 'create' ? ['empty', 'locked', 'free'] : ['locked', 'partial', 'free']) {
+    for (const scene of task === 'quantize' ? ['locked', 'free'] : task === 'create' ? ['empty', 'locked', 'free'] : ['locked', 'partial', 'free']) {
         for (const role of task === 'create' ? ['lead', 'drums'] : ROLES) {
-            const input = task === 'quantize' ? quantInput(role) : task === 'create' ? createInput(role === 'drums', scene, 3)
+            const input = task === 'quantize' ? quantInput(role, scene) : task === 'create' ? createInput(role === 'drums', scene, 3)
                 : fixtureInput(role, { task, scene });
             const c = G.prepare(input);
             for (const p of G.PRESETS) {

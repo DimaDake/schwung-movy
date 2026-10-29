@@ -1798,10 +1798,12 @@ just cycles quantization:
 
 ![Hold to Smart Quantize](docs/assets/ai_hold_progress_50.png)
 
-The three options go from careful to bold. Option 1 is always the tightest:
-your notes on the scene's groove, with only the wrong notes moved. The other
-two **develop** the clip a little, because Smart Quantize is not only a fixer.
-They come from these generators, picked for your clip:
+The six options go from careful to bold. Option 1 is always the tightest:
+your notes on the scene's groove, with only the wrong notes moved. The others
+**develop** or **mutate** the clip, because Smart Quantize is not only a fixer.
+Every one of them starts from your clip as you played it, on the grid with its
+wrong notes put right, and changes one thing about it; nothing is written from
+scratch. They come from these generators, picked for your clip:
 
 | Generator | Melodic tracks | Drum tracks |
 | --- | --- | --- |
@@ -1813,6 +1815,16 @@ They come from these generators, picked for your clip:
 | **ANSWER** | The second half answers the first, moved through the scale. | |
 | **GHOSTS** | | Ghost notes where the groove leaves room. |
 | **FILL** | | A small fill into the loop point. |
+| **MUTATE** | Some notes moved a scale step or more (STEPS), weak beats first; past half AMOUNT the strong beats too, onto a chord tone. A chord moves only its top note. SEED picks which. | Some hits moved a 16th or an 8th along (MOVE); the downbeat kick and the backbeat snare stay. |
+| **MODE** | The clip in another mode of its key: the parallel one (major↔minor), Dorian, Phrygian, Lydian, Mixolydian, harmonic or melodic minor, Locrian; WHERE puts it on the whole clip, the second half, every other bar or the last bar. Only on a clip playing alone, where no other track's chords would clash. | |
+| **INVERT** | The line mirrored in the key around a PIVOT (its first, lowest, middle or highest note): a step up becomes a step down. WHERE as above (lines only). | |
+| **OCTAVES** | Off-beat notes thrown an octave up, down or either (lines only). | |
+| **RATCHET** | Some notes re-struck as 1/32s, 1/16 triplets or 1/16s over their length, each repeat softer by DECAY; four strikes at most. | Rolls on the hats, the snare or any pad. |
+| **SHIFT** | The whole clip moved -4 to +4 sixteenths in the bar, wrapping; KEEP holds the downbeats where they were. | |
+| **HUMANIZE** | The opposite of quantizing: timing, velocity and length loosened by LOOSE, VELOCITY and LENGTH, the way a person would play it again. | The same for drums. |
+
+A mutation that moves pitches (MUTATE, INVERT, OCTAVES) moves a note off any
+semitone rub it makes against the other tracks.
 | **FULL** | All of the above at once, on eight knobs. | All of the above at once, on eight knobs. |
 
 ### Variation: Shift + hold Step 14
@@ -2160,11 +2172,11 @@ next request.
 The level picks how many options come from each group, and
 how far every generator goes by default:
 
-| Level | Variation's six options | Smart Quantize's three | Defaults |
+| Level | Variation's six options | Smart Quantize's six | Defaults |
 | --- | --- | --- | --- |
-| **SAFE** | 4 close, 2 rhythm | tight, then two shaped | AMOUNT and TENSION lower |
-| **BALANCED** | 3 close, 2 rhythm, 1 experimental | tight, shaped, developed | as each generator sets them |
-| **WILD** | 2 close, 2 rhythm, 2 experimental | shaped, then two developed | AMOUNT and TENSION higher; a free scene's HARMONY one move further |
+| **SAFE** | 4 close, 2 rhythm | 2 close (tight first), 3 rhythm, 1 experimental | AMOUNT and TENSION lower |
+| **BALANCED** | 3 close, 2 rhythm, 1 experimental | 2 close (tight first), 2 rhythm, 2 experimental | as each generator sets them |
+| **WILD** | 2 close, 2 rhythm, 2 experimental | 1 close (tight), 2 rhythm, 3 experimental | AMOUNT and TENSION higher; a free scene's HARMONY one move further |
 
 Smart Double's six options are mixed from its groups the same way as
 Variation's. SAFE opens every ENDING one size shorter, WILD one size longer and

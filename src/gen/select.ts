@@ -75,6 +75,9 @@ const SLOTS: Record<Exclude<Task, 'create'>, Record<number, Record<GenLevel, C[]
     },
     quantize: {
         3: { SAFE: ['close', 'rhythm', 'rhythm'], BALANCED: ['close', 'rhythm', 'exp'], WILD: ['rhythm', 'exp', 'exp'] },
+        /* Six since the mutations (presets/quant-mutate.ts): option 1 is still the tightest. */
+        6: { SAFE: ['close', 'close', 'rhythm', 'rhythm', 'rhythm', 'exp'], BALANCED: ['close', 'close', 'rhythm', 'rhythm', 'exp', 'exp'],
+            WILD: ['close', 'rhythm', 'rhythm', 'exp', 'exp', 'exp'] },
     },
 };
 

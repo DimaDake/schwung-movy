@@ -26,6 +26,9 @@ export interface GenCtx {
     key: Key;
     srcChords: (Chord | null)[];    // per master half-bar of the source scene
     freedom: Freedom;
+    /** No other track sounds pitches under the target: a Smart Quantize,
+     *  always `locked` to its own chords, may change their colour (MODE). */
+    alone: boolean;
     pinned: number[][];             // per master half-bar: pitch classes others hold in the target scene
     pinnedBass: number[];           // per master half-bar: the lowest of them (-1: none)
     fixedChords: (Chord | null)[];  // the target scene's chords where others set them
@@ -90,6 +93,7 @@ export function buildCtx(input: GenInput): GenCtx {
          * whether another track sets them (TURN may change them only if not). */
         srcChords: input.task !== 'variation' ? quantChords : chordsOf(srcSegs, key),
         freedom: input.task === 'quantize' ? 'locked' : freedom,
+        alone: freedom === 'free',
         pinned,
         pinnedBass: otherSegs.map((s) => (s.bass >= 0 ? s.bass % 12 : -1)),
         fixedChords: input.task !== 'variation' ? quantChords : freedom === 'locked' ? chordsOf(otherSegs, key) : [],

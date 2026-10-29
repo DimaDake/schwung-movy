@@ -65,7 +65,7 @@ export function stepRequest(req: Request): boolean {
     return req.todo.length === 0;
 }
 
-export const optionCountFor = (task: GenInput['task']): number => (task === 'quantize' ? 3 : 6);
+export const optionCountFor = (_task: GenInput['task']): number => 6;
 
 export function finishRequest(req: Request, count = optionCountFor(req.ctx.task)): Pick[] {
     if (req.ctx.task === 'create') {

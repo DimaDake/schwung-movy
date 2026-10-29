@@ -20,6 +20,8 @@ import { FILL, GHOSTS, HATS, KICK, SHIFT, TURN } from './var-drums.js';
 import { DEVELOP_D, EUCLID_D, FEEL, GRIDS } from './var-drums-exp.js';
 import { ANSWER_Q, EMBELLISH, FULL, GROOVE, SHAPED, TIDY, TIGHT } from './quant-melodic.js';
 import { FILL_D, FULL_D, GHOSTS_D, GROOVE_D, TIDY_D, TIGHT_D } from './quant-drums.js';
+import { HUMANIZE, INVERT, MODE, MUTATE, OCTAVES, RATCHET, SHIFT as SHIFT_Q } from './quant-mutate.js';
+import { HUMANIZE_D, MUTATE_D, RATCHET_D } from './quant-mutate-drums.js';
 import { CADENCE, PUSH, RUN, TURNAROUND } from './dbl-lines.js';
 import { ECHO, STOP, STYLE_X, TURN_X } from './dbl-melodic.js';
 import { EVOLVE } from './dbl-evolve.js';
@@ -36,8 +38,8 @@ const LISTED: Preset[] = [
     BASSLINE, DISPLACE, ANTICIPATE, CONNECT, RECOMBINE, EUCLID, COMP, OCTAVE, WALK, THIN,
     MOTIF, RETRO, HALFTIME, ORNAMENT, REGISTER, PEDAL, DEVELOP, STYLE, LOOPER, FORM,
     KICK, HATS, GHOSTS, FILL, SHIFT, TURN, FEEL, GRIDS, EUCLID_D, DEVELOP_D, STYLE_D, FORM_D,
-    TIGHT, TIDY, GROOVE, SHAPED, EMBELLISH, ANSWER_Q, FULL,
-    TIGHT_D, TIDY_D, GROOVE_D, GHOSTS_D, FILL_D, FULL_D,
+    TIGHT, TIDY, GROOVE, SHAPED, EMBELLISH, ANSWER_Q, FULL, MUTATE, MODE, INVERT, OCTAVES, RATCHET, SHIFT_Q, HUMANIZE,
+    TIGHT_D, TIDY_D, GROOVE_D, GHOSTS_D, FILL_D, FULL_D, MUTATE_D, RATCHET_D, HUMANIZE_D,
     TURNAROUND, CADENCE, PUSH, RUN, ECHO, STYLE_X, STOP, TURN_X, EVOLVE,
     FILL_X, PICKUP_D, ROLL, REPEAT, BREAK_D, STYLE_XD,
     /* New Clip: shown in this order, one option each. */

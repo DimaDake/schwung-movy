@@ -54,3 +54,5 @@ export { BASS_MAP } from './presets/new-lines.js';
 export { struck } from './create/push.js';
 export { grooveAt, hitsAt, rankOf } from './presets/new-drums-map.js';
 export { guideLine, guidePcs, onGuides } from './create/guide.js';
+export { MODES } from './shape/mutate.js';
+export { tightSrc } from './presets/quant-mutate.js';

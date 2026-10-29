@@ -29,6 +29,7 @@ import { run as run_gen_quality } from './logic/gen-quality.mjs';
 import { run as run_gen_voicing } from './logic/gen-voicing.mjs';
 import { run as run_gen_maps } from './logic/gen-maps.mjs';
 import { run as run_gen_follow } from './logic/gen-follow.mjs';
+import { run as run_gen_quantize } from './logic/gen-quantize.mjs';
 import { run as run_ai_new_clip } from './logic/ai-new-clip.mjs';
 import { run as run_gen_engine } from './logic/gen-engine.mjs';
 import { run as run_ai_preview_knobs } from './logic/ai-preview-knobs.mjs';
@@ -139,6 +140,7 @@ const SUITES = [
     run_gen_voicing,
     run_gen_maps,
     run_gen_follow,
+    run_gen_quantize,
     run_gen_engine,
     run_ai_preview_knobs,
     run_ai_new_clip,

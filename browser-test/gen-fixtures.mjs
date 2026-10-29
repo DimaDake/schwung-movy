@@ -52,7 +52,9 @@ export function fixtureInput(role, { task = 'variation', scene = 'locked', level
     const drums = { index: 3, name: 'Track 4', module: 'drumrack', drum: true, clips: [clip(3, 0, SWUNG), clip(3, 1, SWUNG)] };
     /* A double stays in scene A, so there `scene` says who else plays in A. */
     const dbl = task === 'double';
-    const others = dbl ? (scene === 'locked' ? [keys, bass] : scene === 'partial' ? [bass] : []) : [keys, bass];
+    /* A Smart Quantize in a free scene plays alone over the drums. */
+    const others = dbl ? (scene === 'locked' ? [keys, bass] : scene === 'partial' ? [bass] : [])
+        : task === 'quantize' && scene === 'free' ? [] : [keys, bass];
     const tracks = drum ? [me, ...others] : [me, ...others, drums];
     const own = task !== 'variation';
     return { task, level, tracks, target: { track: 0, slot: own ? 0 : 1 }, source: own ? null : { track: 0, slot: 0 },

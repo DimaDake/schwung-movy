@@ -117,7 +117,7 @@ done(st);
     eq('algo_opens_the_preview', aiPhase(), 'preview');
     eq('algo_sends_no_request', st.calls.length, 0);
     const p = aiPreviewInput();
-    ok('algo_offers_options', p && p.options.length >= 1 && p.options.length <= 3);
+    ok('algo_offers_options', p && p.options.length >= 1 && p.options.length <= 6);
     ok('algo_each_option_knows_its_preset_and_knobs', p && p.gen && p.gen.picks.length === p.options.length
         && p.gen.picks.every((x) => x.knobs.length === x.preset.knobs.length));
     commitPreview();

@@ -174,3 +174,11 @@ export function knobsRemake(c: GenCtx): Note[][] {
 }
 
 export function knobsCtx(): GenCtx | null { return ctx; }
+
+/** The Set moved under a parked session (preview-refresh.ts): later turns
+ *  answer the new context; the options as they stand are left alone. */
+export function knobsRecontext(c: GenCtx): void {
+    ctx = c;
+    for (const o of opts) o.live = o.live.map(() => undefined);
+    appState.dirty = true;
+}

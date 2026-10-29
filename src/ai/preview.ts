@@ -21,6 +21,7 @@ import { endAiPreview, type AiPreviewInput } from './job.js';
 import { entryStep } from './job-types.js';
 import { type KnobsSnap, knobsName, knobsOpen, knobsReset, knobsRestore, knobsSave, knobsShown, knobsTick } from './preview-knobs.js';
 import { clearParked, clipKey, hasParked, parkSession, takeSession } from './sessions.js';
+import { refreshStart, refreshStop, refreshTick } from './preview-refresh.js';
 import './preview-relength.js';
 
 interface Open {
@@ -90,8 +91,7 @@ function replaceCurrent(notes: AiNote[]): void {
     o.visited[o.index] = true;
 }
 
-/* Everything done on the clip during one visit is one undo, with the AI
- * change itself on the first. */
+/* One undo per visit to the clip, the AI change itself on the first. */
 function activate(o: Open): void {
     cur = o;
     const key = 'ai:' + keyOf(o);
@@ -104,6 +104,7 @@ function park(why: string): void {
     const o = cur!;
     o.knobs = knobsSave();
     cur = null;
+    refreshStop();
     knobsReset();
     jogHintTouch(false);
     releaseHold(true);
@@ -116,6 +117,7 @@ function resume(o: Open): void {
     activate(o);
     if (o.knobs) knobsRestore(o.knobs);
     o.knobs = null;
+    refreshStart(o.p.track, o.p.slot);
     knobsShown(o.index);
     mlog(`ai: resumed t${o.p.track} s${o.p.slot} option ${o.index}`);
     appState.dirty = true;
@@ -143,6 +145,7 @@ export function commitPreview(why = 'commit'): void {
     const { track: t, slot: s } = cur.p;
     mlog(`ai: preview kept option ${cur.index} t${t} s${s} (${why})`);
     cur = null;
+    refreshStop();
     /* The jog hold named an option; a finger still resting after the click
      * must not turn into the view's own CLICK JOG hint. */
     jogHintTouch(false);
@@ -153,8 +156,7 @@ export function commitPreview(why = 'commit'): void {
     appState.dirty = true;
 }
 
-/** Every session ends where it stands: a Set change, an undo or redo (which
- *  may move any parked clip under its session). */
+/** Every session ends where it stands: a Set change, an undo or redo. */
 export function endAllPreviews(why: string): void {
     commitPreview(why);
     if (clearParked().length) { seqCmd('aiclr'); mlog(`ai: parked sessions ended (${why})`); }
@@ -180,13 +182,13 @@ export function aiPreviewTick(): void {
     /* The jog held names the generator in the top strip, kept up while held
      * the way a held knob's is; a held knob, announced after, wins. */
     if (jogHintVisible() && !trackButtonHeld()) seqHeaderAnnounce('GENERATOR: ' + previewName(), JOG_NAME_TTL);
+    refreshTick();
     knobsTick(replaceCurrent);
 }
 
-export function resetPreview(): void { cur = null; clearParked(); knobsReset(); }
+export function resetPreview(): void { cur = null; clearParked(); refreshStop(); knobsReset(); }
 
-/** The open New Clip session made again at `len` (preview-relength.ts):
- *  every option replaced, the one showing written. */
+/** New Clip remade at `len` (preview-relength.ts): the one showing written. */
 export function previewRemade(len: number, options: AiNote[][]): void {
     const o = cur!;
     o.p.options = options;

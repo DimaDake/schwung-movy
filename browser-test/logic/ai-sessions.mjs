@@ -9,7 +9,7 @@
 import { _log, eq, ok, installMockEngine, uninstallMockEngine, seqEngineTick, resetSeqEngine,
     appState, selectTrack, undoDepth, resetUndoState, resetUndoGroups, undoOnce } from './harness.mjs';
 import { openPreview, previewIndex, previewSwitch, aiPreviewTick, previewInput, aiPreviewActive, aiSessionOpen,
-    aiSessionStep, aiForgetClip, aiPhase, aiSetWillChange, startAiJob, resetAiJob, knobsOf } from '../../dist/esm/ai/index.js';
+    aiSessionStep, aiForgetClip, aiPhase, aiSetWillChange, startAiJob, resetAiJob, knobsOf, knobsCtx } from '../../dist/esm/ai/index.js';
 import { seqState } from '../../dist/esm/seq/state.js';
 import { stepIconColor } from '../../dist/esm/seq/leds.js';
 import { volumeTrackDown, volumeTrackUp } from '../../dist/esm/mixer/track-volume.js';
@@ -124,10 +124,12 @@ tick();
 eq('deleted clip: nothing resumes', aiSessionOpen(), false);
 done();
 
-/* No second generator on a clip already in a session. */
+/* A generator on top of a session keeps what is showing and runs. */
 boot();
-startAiJob('variation', 0, 0);
-eq('no_job_while_a_session_is_open', aiPhase(), 'preview');
+startAiJob('double', 0, 0);
+eq('generator_on_top: the session is kept', aiSessionOpen(), false);
+ok('generator_on_top: its stash is cleared', ops().includes('aiclr 0 0'));
+eq('generator_on_top: the new one runs', aiPhase(), 'running');
 done();
 
 /* The entry step's icon, lit like an open page's. */
@@ -178,6 +180,32 @@ eq('parked: no knobs on screen', knobsOf(1).length, 0);
 selectTrack(0);
 tick();
 eq('knob_positions_survive_parking', knobsOf(1)[live], was + dir);
+done();
+
+/* The Set moving under a parked session: a resume reads it again, and later
+ * turns answer it; the session's own clip stays what the generators read. */
+const away = () => { selectTrack(1); tick(); selectTrack(0); tick(); };
+const reread = () => { for (let i = 0; i < 16; i++) tick(); };
+boot();
+aiForgetClip(0, 0);
+seqState.session[0].selected = 1;
+eng.params['ait:0'] = '0 16 0 1/1 0 0|0.24.60.100\n1 16 0 1/1 0 0|0.24.99.100';
+openPreview({ ...input(1), task: 'variation', options: r.picks.map((p) => p.notes),
+    len: 32, scaleNum: 1, scaleDen: 1, gen: { ctx: r.ctx, picks } });
+tick();
+away();
+reread();
+const c1 = knobsCtx();
+ok('set_moved_while_parked: knobs take the new Set', c1 !== r.ctx);
+const own = c1.input.tracks.find((t) => t.index === 0).clips;
+ok('the session\'s own clip is not read back', own.length === 1 && own[0].slot === 0);
+away();
+reread();
+eq('set_unchanged: the context is kept', knobsCtx(), c1);
+eng.params['ait:2'] = '0 16 0 1/1 0 0|0.24.64.100';
+away();
+reread();
+ok('another track edited: knobs follow it', knobsCtx() !== c1 && knobsCtx().input.tracks.some((t) => t.index === 2));
 done();
 resetUndoState(); resetUndoGroups();
 }

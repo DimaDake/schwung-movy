@@ -13,7 +13,7 @@ import { jobTarget } from './job-target.js';
 import { type AiPhase, type AiPreviewInput, type AiTask, label, MSG_ERROR, MSG_NOTHING, MSG_NOTHING_DOUBLE, type Running } from './job-types.js';
 import { genLevel } from '../seq/gen-level.js';
 import { readTrack } from './set-input.js';
-import { aiSessionOpen, endAllPreviews, openPreview, resetPreview } from './preview.js';
+import { aiSessionOpen, commitPreview, endAllPreviews, openPreview, resetPreview } from './preview.js';
 import { algoTick, startAlgo } from './job-algo.js';
 
 export { MSG_ERROR, MSG_NOTHING, MSG_NOTHING_DOUBLE } from './job-types.js';
@@ -43,7 +43,10 @@ function fail(msg: string, why: string): void {
 }
 
 export function startAiJob(task: AiTask, track: number, slot: number): void {
-    if (phase !== 'idle' || aiSessionOpen()) return;
+    if (phase !== 'idle') return;
+    /* A generator on top of an open session (user, 2026-10-29): what is
+     * showing is kept, and the new one starts from it. */
+    if (aiSessionOpen()) commitPreview('another generator');
     run = { task, track, slot, level: genLevel(), uuid: currentSetUuid(), next: 0, tracks: [],
         ctx: null, gen: null, nonce: Date.now() >>> 0 };
     phase = 'running';

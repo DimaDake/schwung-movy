@@ -2220,11 +2220,18 @@ Here a Variation's sixth option is playing:
   own edits: change option 2, look at 3, come back, and 2 is as you left it.
 - **Click the jog** (or press **Back**) to keep what is showing. Only these
   two end the preview.
+- **Start another generator on top.** Shift + hold Step 16, 14 or 15 during a
+  preview keeps what is showing and runs that generator on it: go from New
+  Clip straight to Smart Double or Smart Quantize.
 - **Leave and come back.** The preview belongs to its clip. Switch to another
   track or clip, go to Session or another page, and the clip plays the
   option showing. Come back to the clip and the preview is there again, on
   the same option with the same knobs, and you carry on. Several clips can
-  each have a preview open. Selecting a clip with one takes you into it. While the
+  each have a preview open. Selecting a clip with one takes you into it.
+  If you changed other clips while away (another track's part, or the clip a
+  Variation grew from), coming back reads the Set again. The options stay as
+  they are, but the next knob turn makes its option against the Set as it is
+  now. While the
   clip on screen has a preview open, the light under the step that started it
   (Step 16, 14 or 15) is fully lit, as for an open page. Open previews are
   not saved: loading another Set or reopening Movy keeps what each clip

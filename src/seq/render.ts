@@ -5,7 +5,7 @@
  * it keep the frame alive while content is showing; *Tick() ages them. */
 
 import { drawJogToast } from '../renderer/overlay.js';
-import { W, TOAST_Y, TOAST_H } from '../renderer/layout.js';
+import { W, HEADER_H, TOAST_Y, TOAST_H } from '../renderer/layout.js';
 import { fontPrint, fontWidth } from '../font/index.js';
 import { songBandTokens, songBandVisible, songTerminal } from './song.js';
 import { seqState } from './state.js';
@@ -40,7 +40,7 @@ export function seqHeaderTick(): void {
 
 export function drawSeqHeader(): void {
     if (headerTtl <= 0) return;
-    fill_rect(0, 0, W, 9, 1);              // inverted header band
+    fill_rect(0, 0, W, HEADER_H, 1);       // inverted header band, 1 px around the text
     fontPrint(2, 1, headerText, 0);
     if (headerRight) fontPrint(W - 2 - fontWidth(headerRight), 1, headerRight, 0);
 }

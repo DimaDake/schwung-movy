@@ -179,7 +179,7 @@ const { drawJogToast }     = await import('../dist/esm/renderer/overlay.js');
 const { drawLeaveModal }   = await import('../dist/esm/renderer/leave-modal-view.js');
 const { drawCaptureOverlay } = await import('../dist/esm/renderer/capture-overlay.js');
 const { drawQuantOverlay } = await import('../dist/esm/renderer/quant-overlay.js');
-const { drawPreviewStrip, drawPreviewName, drawHoldProgress } = await import('../dist/esm/ai/index.js');
+const { drawPreviewStrip, drawHoldProgress } = await import('../dist/esm/ai/index.js');
 const { seqToast, drawSeqToast } = await import('../dist/esm/seq/render.js');
 const { drawStepPiano } = await import('../dist/esm/renderer/step-piano.js');
 const { stepPianoVM, resetStepPiano } = await import('../dist/esm/seq/step-piano.js');
@@ -543,7 +543,7 @@ function applyView(preset) {
             break;
         }
         /* The jog held in the preview: the generator behind option 3 named
-         * just above the band. */
+         * in the top strip, as a held knob is. */
         case 'gen_preview_name': {
             const sc = NOTE_VIEW_SCENES.note_view_chords;
             resetSeqState(); resetSeqHeader(); resetNoteView();
@@ -553,7 +553,8 @@ function applyView(preset) {
             seqState.playing = true; seqState.posTick = sc.posTick;
             seqState.noteHash = preset;
             seedNoteViewForTest(sc.notes);
-            lastRender = () => { clear_screen(); drawSeqHeader(); noteViewTick(true); drawPreviewStrip(3, ['1', '2', '3', '4', '5', '6']); drawPreviewName('TURNAROUND'); };
+            seqHeaderAnnounce('GENERATOR: TURNAROUND', 196);
+            lastRender = () => { clear_screen(); drawSeqHeader(); noteViewTick(true); drawPreviewStrip(3, ['1', '2', '3', '4', '5', '6']); };
             lastRender();
             break;
         }

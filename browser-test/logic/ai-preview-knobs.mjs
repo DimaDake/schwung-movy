@@ -127,7 +127,7 @@ commitPreview();
 done();
 
 /* Holding the jog names the generator behind the option showing (the
- * toast above the band); the hold is the views' own jog-hint timer. */
+ * top strip); the hold is the views' own jog-hint timer. */
 {
     const realNow = Date.now;
     let t = 1000; Date.now = () => t;
@@ -136,8 +136,12 @@ done();
     t = 2100;
     eq('jog_hold_arms_in_the_preview', jogHintTick(), true);
     eq('jog_hold_names_option_1', previewName(), picks[0].preset.name);
+    aiPreviewTick();
+    eq('jog_hold_shows_it_in_the_top_strip', seqHeaderShown(), 'GENERATOR: ' + picks[0].preset.name);
     previewInput([0xB0, 14, 1]);
     eq('turning_while_held_renames', previewName(), picks[1].preset.name);
+    aiPreviewTick();
+    eq('the_strip_follows_the_turn', seqHeaderShown(), 'GENERATOR: ' + picks[1].preset.name);
     eq('turning_while_held_keeps_it_up', jogHintVisible(), true);
     previewSwitch(-9);
     eq('orig_is_named_orig', previewName(), 'ORIG');

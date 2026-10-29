@@ -6,9 +6,10 @@
  * plays as written). Everything from open to commit is ONE undo entry. */
 
 import { appState } from '../app/state.js';
-import { jogHintTouch } from '../app/jog-hint.js';
+import { jogHintTouch, jogHintVisible } from '../app/jog-hint.js';
 import { mlog } from '../log.js';
 import { seqCmd } from '../seq/engine.js';
+import { seqHeaderAnnounce } from '../seq/render.js';
 import { seqState } from '../seq/state.js';
 import { watchedTrack } from '../seq/watch.js';
 import { beginEdit, CLOSE, holdGroup, releaseHold } from '../undo/group.js';
@@ -35,6 +36,9 @@ export function previewCount(): number { return cur ? cur.p.options.length : 0; 
 export function previewLabels(): string[] {
     return cur ? cur.p.options.map((_, i) => String(i + 1)) : [];
 }
+/* Seen for about a second after the jog is let go (render.ts toasts). */
+const JOG_NAME_TTL = 196;
+
 /** The generator behind the option showing, for the jog-hold toast. */
 export function previewName(): string {
     if (!cur) return '';
@@ -109,6 +113,9 @@ export function aiPreviewTick(): void {
     if (!cur) return;
     const now = sig(cur.p.track);
     if (now !== cur.sig) return commitPreview(`left: ${cur.sig} -> ${now}`);
+    /* The jog held names the generator in the top strip, kept up while held
+     * the way a held knob's is; a held knob, announced after, wins. */
+    if (jogHintVisible()) seqHeaderAnnounce('GENERATOR: ' + previewName(), JOG_NAME_TTL);
     knobsTick(replaceCurrent);
 }
 

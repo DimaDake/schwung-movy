@@ -76,7 +76,7 @@ import { aiGestureTick } from '../ai/gestures.js';
 import { holdProgressTick } from '../ai/hold-render.js';
 import { aiPreviewActive, aiPreviewTick } from '../ai/preview.js';
 import { knobLevels } from '../ai/preview-knobs.js';
-import { previewNameTick, previewStripTick } from '../ai/preview-render.js';
+import { previewStripTick } from '../ai/preview-render.js';
 import { leaveModalActive, leaveModalLabels, leaveModalSel, leaveModalTitle } from './leave-modal.js';
 import { drawLeaveModal } from '../renderer/leave-modal-view.js';
 import { captureOverlayActive } from '../seq/capture.js';
@@ -1101,7 +1101,7 @@ function tickBody(): void {
         } else {
             leavePiano(viewRepainted);
             if (noteViewActive()) noteViewTick(viewRepainted);
-            if (aiPreviewActive()) { previewStripTick(viewRepainted); previewNameTick(viewRepainted); }
+            if (aiPreviewActive()) previewStripTick(viewRepainted);
             else drawLoopStrip();
         }
     } else {

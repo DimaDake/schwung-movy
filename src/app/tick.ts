@@ -115,6 +115,8 @@ let lastPhase = '';
 let lastToastShowing = false;
 let lastHeaderShowing = false;
 let lastSessionMode = false;
+let viewCovered = false;     // a box overlay (volume, quantize, undo, leave) is over the view
+let noteViewInFrame = false; // this frame already painted the note view beneath its overlays
 let jogToastShown = false;   // a bottom jog/browse toast is on screen (strip yields to it)
 /* The views' own CLICK JOG hint; the generator preview names its option
  * instead, since a jog click there keeps the option. */
@@ -719,6 +721,7 @@ function tickBody(): void {
          * below doesn't paint over it. Recomputed each rendered frame; persists
          * across non-dirty ticks since the on-screen toast persists too. */
         jogToastShown = false;
+        noteViewInFrame = false;
         /* Which branch of this chain is about to draw. Logged once per change:
          * the Schwung delegation was put on VIEW_KNOBS, but `seqState.sessionMode`
          * is tested EARLIER in the same else-if chain, so in session mode
@@ -844,6 +847,10 @@ function tickBody(): void {
              * except in a generator preview, where they are the option's and
              * light like a module's params (ai/preview-knobs.ts). */
             clear_screen();
+            /* Painted here, not only on the per-tick schedule, so the overlays
+             * below land on top of it. */
+            noteViewTick(true);
+            noteViewInFrame = true;
             const previewKnobs = knobLevels();
             if (previewKnobs) updateKnobLEDsFrom(previewKnobs);
             else updateSingleKnobLED(-1, 0);
@@ -961,6 +968,7 @@ function tickBody(): void {
          * else the master's. */
         const vol = volumeOverlay() ?? masterVolumeOverlay();
         if (vol) drawVolumeOverlay(vol);
+        viewCovered = !!vol || quantOverlayActive() || undoToastActive() || leaveModalActive();
         if (assignActive()) { drawJogToast(assignToastText()); jogToastShown = true; }
         if (toastShowing) drawSeqToast();
         if (headerShowing) drawSeqHeader();
@@ -1100,7 +1108,10 @@ function tickBody(): void {
             pianoShown = key;
         } else {
             leavePiano(viewRepainted);
-            if (noteViewActive()) noteViewTick(viewRepainted);
+            /* A box over the view stops the note view's per-tick paint, or its
+             * notes and playhead draw through the box (the AI preview shows
+             * its candidates in the note view). */
+            if (noteViewActive() && !viewCovered) noteViewTick(viewRepainted && !noteViewInFrame);
             if (aiPreviewActive()) previewStripTick(viewRepainted);
             else drawLoopStrip();
         }

@@ -2243,6 +2243,26 @@ _log('\napp-loop: loop-mode bars pulse on the firmware channels, not on any tick
      * two caches over the same 16 notes. Without forgetting both on the toggle,
      * the step row diffs against colours the hardware no longer shows and skips
      * the sends, leaving the bars on screen in Note mode. */
+    /* The note view (Loop mode, and the AI preview's candidates) paints per
+     * tick; it must not draw through a box overlay such as the master volume
+     * slider (BOX 4,14 120x36). Nothing may land inside the box after it. */
+    {
+        const rects = []; const origFR = globalThis.fill_rect;
+        globalThis.fill_rect = (x, y, w, h, v) => rects.push([x, y, w, h, v]);
+        sendMidi([0x90, 8, 127]);            // touch the volume knob
+        t += 30; advance(3);
+        globalThis.fill_rect = origFR;
+        const box = rects.findLastIndex(([x, y, w, h, v]) => x === 4 && y === 14 && w === 120 && h === 36 && v === 0);
+        ok('master volume slider drawn over the note view', box >= 0);
+        /* The note view's full clear (x 0, w 128) or a playhead column (w 1,
+         * outside the box's own borders at x 4/123) crossing the box. */
+        const through = rects.slice(box + 1).filter(([x, y, w, h]) => y < 49 && y + h > 15
+            && ((x === 0 && w === 128) || (w === 1 && x > 4 && x < 123 && h > 30)));
+        eq('nothing paints through the volume slider', through.length, 0);
+        sendMidi([0x90, 8, 0]);
+        advance(2);
+    }
+
     msgs.length = 0;
     for (const k of Object.keys(ledByPad)) delete ledByPad[k];
     sendMidi([0xB0, CC_LOOP, 127]); sendMidi([0xB0, CC_LOOP, 0]);   // back to Note mode

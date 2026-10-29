@@ -117,13 +117,13 @@ export const ORNAMENT: Preset = {
     },
 };
 
-const INTERVALS = [-12, -7, 5, 7, 12];
+const INTERVALS = [-24, -12, -7, 5, 7, 12, 24];
 
 /** The answer in another register: from SPLIT on, the part moves by an
  *  octave, a fifth or a fourth, re-fitted to the chords there. */
 export const REGISTER: Preset = {
     id: 'v-register', name: 'REGISTER', task: 'variation', drum: false, cls: 'exp', fit: () => 0.4, roles: ['lead', 'arpeggio', 'stabs', 'pad'],
-    knobs: [custom('SPLIT', ['1/4', '1/2', '3/4'], 1), custom('INTERVAL', ['-OCT', '-5TH', '+4TH', '+5TH', '+OCT'], 4), K.harmony(1), K.range(5)],
+    knobs: [custom('SPLIT', ['1/4', '1/2', '3/4'], 1), custom('INTERVAL', ['-2 OCT', '-OCT', '-5TH', '+4TH', '+5TH', '+OCT', '+2 OCT'], 5), K.harmony(1), K.range(5)],
     generate: (ctx, v, seed) => {
         const split = (ctx.end * (v[0] + 1)) / 4;
         const d = INTERVALS[v[1]];

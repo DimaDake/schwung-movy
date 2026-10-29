@@ -4,7 +4,7 @@
  * pattern at a rate and span. */
 
 import { strength } from '../analysis/events.js';
-import { amount, choice, chordUnder, HARMONY, place, velAt, withBand } from '../create/common.js';
+import { choice, chordUnder, HARMONY, place, velAt, withBand } from '../create/common.js';
 import type { Preset } from '../preset.js';
 import { withFeel } from '../create/feel.js';
 import { rng } from '../rng.js';
@@ -14,12 +14,15 @@ import { LIB, type Part } from './var-bass.js';
 
 const KICK = 'WITH KICK';
 const BASS_NOTES = ['AS WRITTEN', 'ROOTS', 'CHORD TONES', 'OCTAVES'] as const;
-const BASE = [36, 43];
+/* The low end of the root's window. LOW and MID are the takes; DEEP folds
+ * the roots under them, HIGH plays the line where a lead would sit. Lower
+ * than DEEP the line's middle falls under E1, below what most speakers play. */
+const BASE = [30, 36, 43, 48];
 
 export const BASS: Preset = withFeel({
     id: 'n-bass', name: 'BASS', task: 'create', drum: false, cls: 'rhythm',
     knobs: [choice('PATTERN', [...LIB.map((x) => x[0]), KICK], [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
-        choice('NOTES', BASS_NOTES, [0, 0, 1, 2, 3]), choice('OCTAVE', ['LOW', 'MID'], [0, 1, 1]), HARMONY],
+        choice('NOTES', BASS_NOTES, [0, 0, 1, 2, 3]), choice('OCTAVE', ['DEEP', 'LOW', 'MID', 'HIGH'], [1, 2, 2]), HARMONY],
     generate: (ctx, v, seed) => {
         const r = rng(seed);
         const fig: [number, number, Part][] = v[0] < LIB.length ? LIB[v[0]][1]
@@ -47,7 +50,11 @@ export const BASS: Preset = withFeel({
 }, [2, 8]);
 
 const STYLES = ['UP', 'DOWN', 'UP-DOWN', 'ORDER', 'PINKY', 'BROKEN'] as const;
-const RATES = [48, 24, 32, 16];
+/* Slowest to fastest, so the knob turns one way. */
+const RATES = [96, 48, 32, 24, 16];
+/* Octaves the arp climbs: halves between, so a click adds a chord tone or two
+ * rather than a whole octave. A tall arp starts lower, so its top stays in reach. */
+const OCTS = [1, 1.5, 2, 2.5, 3, 4];
 
 /** The chord's tones over `oct` octaves from `lo`, low to high. */
 function ladder(pcs: number[], lo: number, oct: number): number[] {
@@ -67,8 +74,8 @@ function order(style: number, n: number, i: number, shuffle: number[]): number {
 
 export const ARP: Preset = withFeel({
     id: 'n-arp', name: 'ARP', task: 'create', drum: false, cls: 'rhythm',
-    knobs: [choice('STYLE', STYLES, [0, 1, 2, 3, 4, 5]), choice('RATE', ['1/8', '1/16', '1/8T', '1/16T'], [0, 1, 1, 1, 2]),
-        amount('OCTAVES', 3, 1, 2), HARMONY],
+    knobs: [choice('STYLE', STYLES, [0, 1, 2, 3, 4, 5]), choice('RATE', ['1/4', '1/8', '1/8T', '1/16', '1/16T'], [1, 3, 3, 3, 2]),
+        choice('OCTAVES', OCTS.map(String), [0, 1, 2, 2]), HARMONY],
     generate: (ctx, v, seed) => {
         const r = rng(seed);
         const rate = RATES[v[1]];
@@ -76,7 +83,8 @@ export const ARP: Preset = withFeel({
         const out: Note[] = [];
         for (let t = 0, i = 0; t < ctx.end; t += rate, i++) {
             const c = chordUnder(ctx, v[3], t);
-            const tones = ladder(c.pcs, 57, Math.max(1, v[2]));
+            const oct = OCTS[v[2]];
+            const tones = ladder(c.pcs, Math.max(48, Math.min(57, 93 - 12 * oct)), oct);
             const tick = rate === TPS ? place(ctx, t / TPS) : t;
             out.push({ tick, pitch: tones[order(v[0], tones.length, i, shuffle)], gate: Math.round(rate * 0.7), vel: velAt(t, 90, r) });
         }

@@ -15,6 +15,7 @@ export function scorecard(r) {
         ['1 knobs: promise kept', r.sweep.promiseKept, 1, pc, 0.02], ['1 knobs: broken positions', r.sweep.broken, -1, pc, 0.01],
         ['1 knobs: experimental positions', r.sweep.experimental, 0, pc, 1], ['1 knobs: duplicate knob pairs', r.sweep.dups.length, -1, String, 0],
         ['1 knobs: refused positions', r.sweep.refused, -1, pc, 0.01],
+        ['1 knobs: useful clicks', r.sweep.useful ?? null, 1, String, 0], ['1 knobs: register reach (semitones)', r.sweep.reach ?? null, 1, f2, 0.5],
         ['2 space: musical', r.space.musical, 1, pc, 0.02], ['2 space: broken', r.space.broken, -1, pc, 0.01],
         ['2 space: refused (turn does nothing)', r.space.refused, -1, pc, 0.01],
         ['2 space: default musical', r.space.defMusical, 1, pc, 0.01], ['2 space: next to default broken', r.space.nearBroken, -1, pc, 0.01],

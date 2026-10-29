@@ -1952,6 +1952,21 @@ Turning a knob back to where it was gives you the same notes again.
 | **RIFF** | A short cell repeated through the chords | CELL, NOTES, REGISTER, SEED |
 | **COUNTER** | A line that moves where the band leaves room | RATE, MOTION, REGISTER, SEED |
 
+The knobs that set where a part sits reach past where the takes are drawn,
+for a darker or brighter, more experimental colour; a take always starts
+inside the usual range:
+
+| Knob | Positions (the takes in **bold**) |
+| --- | --- |
+| **REGISTER** (CHORDS, PAD, STABS) | DEEP, LOW-, **LOW**, **LOW+**, **MID**, **MID+**, **HIGH**, HIGH+, TOP. Each click opens the chord one inversion higher; it never goes under the band's bass, so with a bass playing the lowest positions meet. |
+| **REGISTER** (RIFF, COUNTER) | BASS, **LOW**, **MID**, **HIGH**, TOP, an octave apart. |
+| **VOICES** | CHORDS 2 to 6, PAD 3 to 6, STABS 2 to 5. |
+| **SPREAD** (PAD) | **CLOSE**, **OPEN**, **WIDE**, WIDER, VAST. Each step drops one more voice an octave, never under the bass. |
+| **OCTAVE** (BASS) | DEEP, **LOW**, **MID**, HIGH. |
+| **OCTAVES** (ARP) | **1**, **1.5**, **2**, 2.5, 3, 4. A taller arp starts lower so its top stays in reach. |
+| **RATE** (ARP) | 1/4, **1/8**, **1/8T**, **1/16**, 1/16T, slowest to fastest. |
+| **RANGE** (MELODY) | 4TH, **5TH**, **7TH**, **OCTAVE**, **10TH**, **12TH**, 2 OCT. |
+
 HARMONY picks the progression in a free scene; every option of one run starts
 on the same one, so the parts go together. A progression changes chord once a
 bar on clips of four bars or more. From eight bars up there is room for more
@@ -2067,7 +2082,7 @@ A name means the same thing on every generator:
 | **AMOUNT** | More of the clip rewritten. |
 | **DENSITY** | More notes (`AS IS` in the middle, fewer to the left). |
 | **LENGTH** | Longer notes, toward legato (`AS IS` in the middle). |
-| **RANGE** | Wider intervals and spread voicings, up to twice the played intervals and an octave past the played register (`AS IS` in the middle). |
+| **RANGE** | Wider intervals and spread voicings, up to twice the played intervals at X2.0 and an octave past the played register (`AS IS` in the middle); two more clicks, X2.5 and X3.0, make the line leap. Every click away from `AS IS` is heard: the stretched interval wins over the chord tone the note would have mapped to. |
 | **CHANGES** | More chord changes than the source: an approach chord before each change, then on the last beat, then a substitute inside long chords. Only where the scene's harmony is free. |
 | **RHYTHM** | A new rhythm for the same notes: KEEP, PUSH, SYNCOPATE, DOUBLE, HALF, COMP, EUCLID, SHUFFLE, and CYCLE 3, 5, 6 and 7: the first 3, 5, 6 or 7 steps repeated against the bar, drifting out of phase and back. |
 | **LIKENESS** | Closer to the source: on the left the learned walk recombines freely, on the right it keeps the source's own phrases. |
@@ -2095,7 +2110,7 @@ how much of each plays, CHAOS shakes it. LOOPER has LOCK (on the right the loop
 repeats as it is; turning left, more of its steps are rewritten each time
 round), LOOP (3 to 16 steps; a loop that does not divide 16 runs against the
 bar), CLOCK (1/16, 1/8 or 1/4 per step) and SPREAD (how far a rewritten step may
-leap); BASSLINE has PATTERN, NOTES, OCTAVE and SHIFT; ARP has PATTERN, RATE and OCTAVES; MOTIF
+leap); BASSLINE has PATTERN, NOTES, OCTAVE (-1 OCT, AS IS, +1 OCT) and SHIFT; ARP has PATTERN, RATE and OCTAVES (1, 1.5, 2, 2.5, 3, 4); REGISTER's INTERVAL reaches two octaves either way; MOTIF
 has CELL and STEP; FILL has SIZE and PADS; EUCLID has PULSES and ROTATE; and GRIDS has X, Y, KICK, SNARE, HATS and CHAOS.
 
 In MODEL mode each option gets four knobs that reshape the model's answer:

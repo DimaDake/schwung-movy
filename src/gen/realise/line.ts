@@ -11,17 +11,22 @@ import { allowedPcs, categoryOf } from '../theory/category.js';
 import { near, nearestPitch, pc, sameChord } from '../theory/pc.js';
 import { bounds, mapColour, mapMember, memberOf, type RealiseOpts } from './common.js';
 
-function choose(desired: number, pref: number[], allowed: number[], lo: number, hi: number): number {
+function choose(desired: number, pref: number[], allowed: number[], lo: number, hi: number, bend: number): number {
     const a = pref.length ? nearestPitch(desired, pref, lo, hi) : -1;
     const b = nearestPitch(desired, allowed.length ? allowed : [pc(desired)], lo, hi);
     /* The mapped tone wins unless it would bend the contour by more than a
      * third: the line's shape is what makes it the same line. */
-    return a >= 0 && Math.abs(a - desired) <= Math.abs(b - desired) + 3 ? a : b;
+    return a >= 0 && Math.abs(a - desired) <= Math.abs(b - desired) + bend ? a : b;
 }
 
 export function realiseLine(ctx: GenCtx, evs: Ev[], o: RealiseOpts, bass: boolean): Ev[] {
     const [lo, hi] = bounds(ctx, o.range);
     const pull = o.pull ?? 0.3;
+    /* As RANGE leaves 1 the scaled interval wins over the mapped tone, or
+     * the mapping pulls each note back and RANGE does nothing (bench
+     * 2026-10-29: over half its clicks were dead). Both are chord or scale
+     * tones; only which one changes. */
+    const bend = 3 * Math.max(0, 1 - Math.abs(Math.log2(o.range)) * 2);
     let prevSrc: number | null = null;
     let prevOut: number | null = null;
     let prevT: Chord | null = null;
@@ -48,7 +53,7 @@ export function realiseLine(ctx: GenCtx, evs: Ev[], o: RealiseOpts, bass: boolea
         const anchor = p + shift;
         const desired = prevOut === null || prevSrc === null ? anchor
             : (1 - pull) * (prevOut + (p - prevSrc) * o.range) + pull * anchor;
-        const q = choose(desired, pref, allowed, lo, hi);
+        const q = choose(desired, pref, allowed, lo, hi, bend);
         const d = q - p;
         for (const v of e.voices) {
             v.pitch = v === top ? q : nearestPitch(v.pitch + d, T.pcs, lo - 12, hi);

@@ -43,8 +43,16 @@ export const runPlan = (ctx: GenCtx): number => {
 export const HARMONY: KnobDef = { name: 'HARMONY', steps: (c) => Math.max(1, c.plans.length), def: runPlan,
     label: (v, c) => planAt(c, v).label };
 
-export const REGISTERS = ['LOW', 'MID', 'HIGH'] as const;
-export const register = (pool = [1]): KnobDef => choice('REGISTER', REGISTERS, pool);
+/* Where a part sits. A chord part moves its centre about a minor third a
+ * click, so each click is a new inversion; a line moves by octaves, since
+ * between them it would only fold some notes and not others. LOW, MID and
+ * HIGH are where the takes are drawn (the measured ranges); the ends past
+ * them are there to turn to, for a darker or brighter colour (user,
+ * 2026-10-29: "extended ranges add more experimental flavor"). */
+export const CHORD_REGISTER = { labels: ['DEEP', 'LOW-', 'LOW', 'LOW+', 'MID', 'MID+', 'HIGH', 'HIGH+', 'TOP'],
+    centres: [48, 51, 55, 58, 62, 65, 69, 72, 76], LOW: 2, MID: 4, HIGH: 6 } as const;
+export const LINE_REGISTER = { labels: ['BASS', 'LOW', 'MID', 'HIGH', 'TOP'], LOW: 1, MID: 2, HIGH: 3 } as const;
+export const register = (pool: number[], labels: readonly string[] = CHORD_REGISTER.labels): KnobDef => choice('REGISTER', labels, pool);
 
 /** The chord under a clip tick; the tonic when nothing is planned. */
 export function chordUnder(ctx: GenCtx, h: number, tick: number): Chord {

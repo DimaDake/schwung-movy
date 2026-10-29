@@ -26,6 +26,16 @@ far. Earlier work is summarised in the timeline below for context.
   outside notes back to chord tones. PITCH FIX counts notes (`OFF`, `1 NOTE`
   … `ALL`), worst first. VARY and DRIFT vary at least one more note per click
   on a short part.
+- **Wider knob ranges, more positions where they mean something.** The
+  octave and register knobs reach past their usual range, for a more
+  experimental colour, while New Clip's takes still start inside it. Chord
+  REGISTER has nine positions, each one inversion higher. RIFF and COUNTER
+  REGISTER go an octave further each way. BASS OCTAVE adds DEEP and HIGH.
+  ARP OCTAVES goes up to 4 in half octaves, and ARP RATE adds 1/4 and now
+  runs slowest to fastest. MELODY RANGE runs from a 4th to two octaves.
+  CHORDS VOICES runs 2 to 6, and PAD SPREAD adds WIDER and VAST. RANGE adds
+  X2.5 and X3.0, and fewer of its clicks change nothing. Variation's ARP
+  OCTAVES and REGISTER INTERVAL (±2 octaves) reach further too.
 
 ### Fixed
 

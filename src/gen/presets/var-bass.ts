@@ -6,7 +6,7 @@
 
 import { chordAt } from '../analysis/context.js';
 import { strength } from '../analysis/events.js';
-import { count, custom, K } from '../knobs.js';
+import { custom, K } from '../knobs.js';
 import { planAt } from '../plan.js';
 import type { Preset } from '../preset.js';
 import { rng } from '../rng.js';
@@ -48,7 +48,7 @@ function defaultFigure(evs: Ev[], bars: number): number {
 export const BASSLINE: Preset = {
     id: 'v-bassline', name: 'BASSLINE', task: 'variation', drum: false, cls: 'rhythm', roles: ['bass'], fit: () => 0.65,
     knobs: [{ ...custom('PATTERN', LIB.map((x) => x[0])), def: (c) => defaultFigure(partEvs(c), Math.max(1, c.end / BAR)) },
-        custom('NOTES', NOTES, 0), K.harmony(1), K.changes(0), K.length(5), count('OCTAVE', 2, 1), K.dynamics(3), custom('SHIFT', ['0', '+1/16', '+2/16', '+3/16'], 0)],
+        custom('NOTES', NOTES, 0), K.harmony(1), K.changes(0), K.length(5), custom('OCTAVE', ['-1 OCT', 'AS IS', '+1 OCT'], 1), K.dynamics(3), custom('SHIFT', ['0', '+1/16', '+2/16', '+3/16'], 0)],
     generate: (ctx, v, seed) => {
         const r = rng(seed);
         const src = partEvs(ctx);

@@ -96,12 +96,13 @@ export function verdict(f, drum) {
         if (!f.downbeat || f.perBar > 24 || f.perBar < 2) return ['experimental', !f.downbeat ? 'no downbeat' : 'density'];
         return ['musical', ''];
     }
-    if (f.perBar > 16) return ['broken', 'wall'];
+    /* A 1/16-triplet arp (24 a bar) is a trance staple, not a wall. */
+    if (f.perBar > 24) return ['broken', 'wall'];
     if (f.mid < 28 || f.mid > 100) return ['broken', 'register'];
     if (f.fit < 0.55) return ['broken', 'off harmony'];
     if (f.clash > 0.25) return ['broken', 'clash'];
     if (f.fit < 0.72 || f.clash > 0.1) return ['experimental', f.fit < 0.72 ? 'outside' : 'rub'];
-    if (f.span > 36 || f.emptyBar) return ['experimental', f.span > 36 ? 'wide' : 'gap'];
+    if (f.span > 36 || f.emptyBar || f.perBar > 16) return ['experimental', f.span > 36 ? 'wide' : f.emptyBar ? 'gap' : 'busy'];
     return ['musical', ''];
 }
 

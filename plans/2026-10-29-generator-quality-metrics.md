@@ -186,3 +186,57 @@ fixed in the bench and the baseline re-measured with them.
 (rub, refused verdict, sampling, Spearman, MIDI round trip). Each test was
 proven by putting its fix back and watching it fail; the chord-sink test fails
 on the original `realise/chords.ts`.
+
+## Round 2: ranges and positions (2026-10-29)
+
+User: "increase parameter ranges everywhere where it is musical (octaves
+especially), and make more positions where they can meaningfully change
+something"; "basic ranges as we measured and agreed before; extended ranges
+add more experimental flavour"; "experimental is still musical".
+
+So the rule: a take (New Clip's roll, a default) stays inside the measured
+range; the new positions sit past it, and may be experimental, never broken.
+Two numbers were added to the sweep: **useful clicks** (clicks that change the
+take) and **register reach** (how far a register-type knob moves the part's
+median, end to end).
+
+**Metric correction first.** A melodic part over 16 onsets a bar read as
+broken, so every 1/16T arp (24 a bar, a trance staple) was "broken". Now over
+16 is experimental (`busy`), over 24 broken. The base was re-measured with it
+(`base40`, 40 pieces a mode, since 12 moves ±1 piece on any change: a
+different scene A shows the scripted user different B options).
+
+| metric | base40 | ext40 |
+| --- | --- | --- |
+| useful clicks | 44377 | 45822 |
+| register reach | 9.4 st | 16.7 st |
+| dead clicks / broken positions | 16% / 1% | 16% / 1% |
+| space: musical | 84% | 82% (the new ends are experimental) |
+| piece: broken / mud scenes | 5% / 5 | 3% / 3 |
+| old bench | | all same; variation best-of-six gate 72% → 78% |
+
+What changed, and why each is a musical step:
+
+- **Chord REGISTER** (CHORDS, PAD, STABS): 3 → 9 positions. A centre moved by
+  a few semitones gave the same voicing more often than not (51% dead), so a
+  position is now an inversion: position i opens on the chord's i-th tone up
+  from E2 (LOW, MID, HIGH open where their centres did). 8% dead, reach 28 st.
+  Under the band's floor the low positions meet: the chord never goes under
+  the bass.
+- **Line REGISTER** (RIFF, COUNTER) adds an octave each way. Lines step by
+  octaves: between them only some notes would fold.
+- **BASS OCTAVE** adds DEEP and HIGH. A SUB position was tried and dropped:
+  its median fell under E1 (the bench's register floor).
+- **ARP**: OCTAVES 1-4 in half octaves (the old 0 and 1 were the same, 33%
+  dead; now 0%), a tall arp starts lower so its top stays under A6; RATE adds
+  1/4 and is ordered slowest to fastest.
+- **MELODY RANGE**, **VOICES**, **PAD SPREAD**, **Variation ARP OCTAVES**,
+  **REGISTER INTERVAL** (±2 octaves) extended.
+- **RANGE** adds X2.5 and X3.0, and its clicks are heard: the line realiser
+  let the mapped chord tone win within 3 semitones of the scaled interval, so
+  RANGE moved nothing until it was large. That tolerance now shrinks to 0 at
+  X1.4 / X0.7. RANGE dead clicks fell 7-20 points per generator.
+
+Tried and reverted: **PULSE OCTAVE** past an octave. The role lock refuses a
+variation that moves a part's middle more than an octave, so those positions
+could only ever be refused; and -1 OCT on a bass fell under E1.

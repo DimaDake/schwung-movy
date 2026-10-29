@@ -111,6 +111,39 @@ _log('\nTest: generator quality fixes');
     ok('double_guard_refuses_a_role_break', !g.ok && /role/.test(g.why));
 }
 
+/* Ranges (user, 2026-10-29): the takes stay where they were measured; the
+ * knob reaches past them, and each click between is a change. */
+{
+    const ctx = G.prepare(createInput(false, 'empty', 1));
+    for (const id of ['n-chords', 'n-pad', 'n-stabs']) {
+        const p = by(id);
+        const i = G.knobIndex(p, 'REGISTER');
+        const outs = Array.from({ length: p.knobs[i].steps(ctx) }, (_, v) => sig(turn(ctx, p, 'REGISTER', v)));
+        ok(`${id}_register_every_click_is_a_new_voicing`, outs.length === 9 && new Set(outs).size === 9);
+    }
+    const arp = by('n-arp');
+    const tones = (v) => Math.max(...(turn(ctx, arp, 'OCTAVES', v) ?? []).map((n) => n.pitch));
+    const t = [0, 1, 2, 3, 4, 5].map(tones);
+    ok('arp_octaves_every_click_climbs_further', t.every((x, j) => j === 0 || x > t[j - 1]));
+    const per = (v) => (turn(ctx, arp, 'RATE', v) ?? []).length;
+    ok('arp_rate_turns_one_way', [0, 1, 2, 3, 4].map(per).every((x, j, a) => j === 0 || x > a[j - 1]));
+    const reg = by('n-riff'), mid = (v) => { const ns = turn(ctx, reg, 'REGISTER', v) ?? []; return ns.reduce((a, n) => a + n.pitch, 0) / ns.length; };
+    ok('riff_register_steps_by_octaves', [0, 1, 2, 3].every((v) => Math.abs(mid(v + 1) - mid(v) - 12) < 3));
+    /* Takes are rolled inside the measured ranges, never at the new ends. */
+    const rolled = (id, name) => { const p = by(id), k = p.knobs[G.knobIndex(p, name)]; const r = G.rng(7); return new Set(Array.from({ length: 200 }, () => k.roll(ctx, r))); };
+    ok('takes_stay_in_the_measured_register', [...rolled('n-chords', 'REGISTER')].every((v) => v >= 2 && v <= 6)
+        && [...rolled('n-bass', 'OCTAVE')].every((v) => v === 1 || v === 2) && [...rolled('n-melody', 'RANGE')].every((v) => v >= 1 && v <= 5));
+}
+/* RANGE stretches a line: past AS IS the scaled interval beats the mapped
+ * tone, so the turn is heard; and it reaches x3. */
+{
+    const ctx = G.prepare(fixtureInput('lead', { scene: 'free' }));
+    const p = by('v-form');
+    const outs = [5, 7, 10, 12].map((v) => sig(turn(ctx, p, 'RANGE', v)));
+    ok('range_turns_are_heard_on_a_line', new Set(outs).size === 4);
+    eq('range_reaches_x3', p.knobs[G.knobIndex(p, 'RANGE')].label(12, ctx), 'X3.0');
+}
+
 /* The bench's own parts. */
 eq('bench_rub_is_a_minor_second_or_ninth_not_a_major_seventh', [rubs(60, 61), rubs(60, 73), rubs(60, 71), rubs(60, 62)].join(), 'true,true,false,false');
 eq('bench_refused_take_is_a_dead_click_not_a_broken_one', verdict(null, false)[0], 'refused');

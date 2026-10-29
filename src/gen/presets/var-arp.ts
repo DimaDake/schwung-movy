@@ -13,6 +13,8 @@ import { finish, over, partEvs, someOf, targetAt } from './helpers.js';
 
 const PATTERNS = ['UP', 'DOWN', 'UP-DOWN', 'DOWN-UP', 'CONVERGE', 'RANDOM'] as const;
 const RATES = [TPS * 2, TPS, (TPS * 2) / 3, TPS / 2];
+/* Halves between the octaves: a click adds a chord tone or two to the climb. */
+const OCTS = [1, 1.5, 2, 2.5, 3, 4];
 
 function order(tones: number[], pat: number, r: () => number): number[] {
     const up = [...tones].sort((a, b) => a - b);
@@ -28,7 +30,7 @@ export const ARP: Preset = {
     id: 'v-arp', name: 'ARP', task: 'variation', drum: false, cls: 'close', fit: () => 0.8, roles: ['arpeggio'],
     knobs: [custom('PATTERN', PATTERNS, 0), { ...custom('RATE', ['1/8', '1/16', '1/16T', '1/32'], 1),
         def: (c) => { const g = c.role ? c.role.lenSteps : 1; return g >= 1.6 ? 0 : 1; } },
-    custom('OCTAVES', ['1', '2', '3', '4'], 1), K.harmony(1)],
+    custom('OCTAVES', OCTS.map(String), 2), K.harmony(1)],
     generate: (ctx, v, seed) => {
         const r = rng(seed);
         const src = partEvs(ctx);
@@ -36,7 +38,7 @@ export const ARP: Preset = {
         const rate = RATES[v[1]];
         const chords = planAt(ctx, v[3]).chords;
         const lo = ctx.lo;
-        const hi = Math.max(ctx.hi, lo + 12 * (v[2] + 1));
+        const top = lo + Math.round(12 * OCTS[v[2]]);
         const out: Ev[] = [];
         let seq: number[] = [];
         let i = 0;
@@ -46,7 +48,7 @@ export const ARP: Preset = {
             if (!c) continue;
             if (!sameChord(c, last) || !seq.length) {
                 const tones: number[] = [];
-                for (let p = lo; p <= Math.min(hi, lo + 12 * (v[2] + 1)); p++) if (c.pcs.includes(pc(p))) tones.push(p);
+                for (let p = lo; p <= top; p++) if (c.pcs.includes(pc(p))) tones.push(p);
                 seq = order(tones, v[0], r);
                 last = c;
             }

@@ -6,7 +6,7 @@
 import type { GenCtx } from '../analysis/context.js';
 import { strength } from '../analysis/events.js';
 import { ACCENT } from '../analysis/band.js';
-import { amount, choice, chordUnder, place, register, runPlan, SEED, velAt } from '../create/common.js';
+import { amount, choice, chordUnder, LINE_REGISTER as L, place, register, runPlan, SEED, velAt } from '../create/common.js';
 import type { Preset } from '../preset.js';
 import { withFeel } from '../create/feel.js';
 import { choose, mix, rng, type Rng } from '../rng.js';
@@ -17,7 +17,9 @@ const CONTOURS: ((x: number) => number)[] = [
     (x) => Math.sin(Math.PI * x), (x) => x, (x) => 1 - x, (x) => (Math.sin(2 * Math.PI * x) + 1) / 2,
     (x) => (Math.floor(x * 8) % 2 ? 0.8 : 0.25),
 ];
-const SPANS = [7, 12, 19];
+/* NARROW, MID and WIDE were a fifth, an octave and a twelfth: the takes stay
+ * there, and the knob reaches a fourth and two octaves past them. */
+const SPANS = [5, 7, 10, 12, 15, 19, 24];
 
 function tone(ctx: GenCtx, tick: number, target: number, lo: number, hi: number): number {
     const c = chordUnder(ctx, runPlan(ctx), tick);
@@ -34,7 +36,7 @@ function rhythm(steps: number, density: number, r: Rng): number[] {
 export const MELODY: Preset = withFeel({
     id: 'n-melody', name: 'MELODY', task: 'create', drum: false, cls: 'exp',
     knobs: [choice('CONTOUR', ['ARCH', 'RISE', 'FALL', 'WAVE', 'ZIGZAG']), amount('DENSITY', 10, 3, 7),
-        choice('RANGE', ['NARROW', 'MID', 'WIDE'], [0, 1, 1, 2]), SEED],
+        choice('RANGE', ['4TH', '5TH', '7TH', 'OCTAVE', '10TH', '12TH', '2 OCT'], [1, 2, 3, 3, 4, 5]), SEED],
     generate: (ctx, v, seed) => {
         const r = rng(mix(seed, v[3]));
         const phrase = Math.min(32, ctx.len);
@@ -61,11 +63,11 @@ export const MELODY: Preset = withFeel({
 
 const CELLS = [4, 8, 6, 16];
 const OFFSETS = [0, 0, 2, 4, 7, -1, 1, 3];
-const CENTRE = [48, 60, 72];
+const CENTRE = [36, 48, 60, 72, 84];
 
 export const RIFF: Preset = withFeel({
     id: 'n-riff', name: 'RIFF', task: 'create', drum: false, cls: 'rhythm',
-    knobs: [choice('CELL', ['1 BEAT', '2 BEATS', '3/8', '1 BAR'], [1, 1, 2, 3]), amount('NOTES', 6, 2, 4), register([0, 1, 1, 2]), SEED],
+    knobs: [choice('CELL', ['1 BEAT', '2 BEATS', '3/8', '1 BAR'], [1, 1, 2, 3]), amount('NOTES', 6, 2, 4), register([L.LOW, L.MID, L.MID, L.HIGH], L.labels), SEED],
     generate: (ctx, v, seed) => {
         const r = rng(mix(seed, v[3]));
         const cell = CELLS[v[0]];
@@ -93,10 +95,10 @@ const MOVES = [[1, -1], [1, -1, 2, -2, 3], [2, -2, 4, -3, 5]];
 export const COUNTER: Preset = withFeel({
     id: 'n-counter', name: 'COUNTER', task: 'create', drum: false, cls: 'exp',
     knobs: [choice('RATE', ['QUARTERS', '8THS', 'DOTTED', '16THS'], [1, 0, 1, 2]), choice('MOTION', ['STEPS', 'MIXED', 'LEAPS'], [0, 1, 1, 2]),
-        register([1, 1, 2]), SEED],
+        register([L.MID, L.MID, L.HIGH], L.labels), SEED],
     generate: (ctx, v, seed) => {
         const r = rng(mix(seed, v[3]));
-        const centre = [55, 64, 72][v[2]];
+        const centre = [43, 55, 64, 72, 84][v[2]];
         const loud = new Set(ctx.band.filter((h) => h.w >= ACCENT).map((h) => Math.round(h.tick / TPS)));
         let p = nearestPitch(centre, chordUnder(ctx, runPlan(ctx), 0).pcs);
         let dir = 1;

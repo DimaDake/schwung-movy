@@ -16,6 +16,10 @@ export const PROMISE = {
     AMOUNT: ['dSrc', 1], LIKENESS: ['dSrc', -1], DRIFT: ['d0', 1], VARY: ['d0', 1], GHOSTS: ['perBar', 1],
 };
 
+/* Knobs that set where a part sits: how far their ends move its median is
+ * the register reach the bench reports. */
+export const REGISTER_KNOBS = new Set(['REGISTER', 'OCTAVE', 'OCTAVES', 'RANGE', 'INTERVAL', 'SPREAD']);
+
 /* Knobs that move a quantity: one click should be one step, not a new part. */
 const CONTINUOUS = new Set(Object.keys(PROMISE));
 
@@ -75,7 +79,9 @@ export function sweepPreset(G, ctx, p) {
             dir = r === null ? 0 : r * pr[1];
             }
         }
-        rows.push({ knob: k.name, live: true, clicks: outs.length - 1, dead, cliff, dir, def: base[i],
+        const mids = outs.filter((o) => o.f).map((o) => o.f.mid);
+        const reach = mids.length ? Math.max(...mids) - Math.min(...mids) : 0;
+        rows.push({ knob: k.name, live: true, clicks: outs.length - 1, dead, cliff, dir, def: base[i], reach,
             cls: outs.map((o) => o.cls[0]), why: outs.map((o) => o.cls[1]), defCls: outs.find((o) => o.pos === base[i])?.cls[0], outs });
     }
     /* Two knobs that land on the same takes at both ends are one knob twice. */
@@ -105,6 +111,8 @@ export function sweepSummary(results) {
     return {
         knobs: rows.length, clicks,
         dead: sum((r) => r.dead) / Math.max(1, clicks),
+        useful: sum((r) => r.clicks - r.dead),
+        reach: (() => { const g = rows.filter((r) => REGISTER_KNOBS.has(r.knob) && !r.task?.startsWith('x')); return g.length ? g.reduce((a, r) => a + r.reach, 0) / g.length : 0; })(),
         cliff: sum((r) => r.cliff) / Math.max(1, clicks),
         broken: sum((r) => r.cls.filter((c) => c === 'broken').length) / Math.max(1, pos),
         refused: sum((r) => r.cls.filter((c) => c === 'refused').length) / Math.max(1, pos),

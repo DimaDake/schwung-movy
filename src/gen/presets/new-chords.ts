@@ -5,16 +5,16 @@
 
 import type { GenCtx } from '../analysis/context.js';
 import { chordFloor } from '../shape/band-pitch.js';
-import { choice, chordUnder, everyBar, HARMONY, place, register, velAt, withBand } from '../create/common.js';
+import { choice, CHORD_REGISTER as R, chordUnder, everyBar, HARMONY, place, register, velAt, withBand } from '../create/common.js';
 import type { Preset } from '../preset.js';
 import { withFeel } from '../create/feel.js';
 import { rng } from '../rng.js';
 import { COMPS } from '../shape/rhythm.js';
-import { sameChord } from '../theory/pc.js';
-import { closeVoicing, spreadVoicing, voiceLead } from '../theory/voicing.js';
+import { pc, sameChord } from '../theory/pc.js';
+import { spreadVoicing, voiceLead } from '../theory/voicing.js';
 import { BAR, type Chord, type Note, TPS } from '../types.js';
 
-const CENTRE = [55, 62, 69];
+const CENTRE = R.centres;
 
 /* No voice under the floor (band-pitch.ts: a fifth over the band's bass):
  * the lowest voices go up an octave, so the chord keeps its notes. */
@@ -24,15 +24,32 @@ function lift(v: number[], floor: number): number[] {
     return out;
 }
 
+/* REGISTER position i opens on the chord's i-th tone up from E2: each click
+ * is the next inversion, never the same chord again, and LOW, MID and HIGH
+ * open about where their old centres did. Under the band's floor the low
+ * positions meet at it: the chord cannot go under the bass. */
+const LADDER_FROM = 40;
+
+/** `n` chord tones stacked up from the `i`-th chord tone over E2, and not under `floor`. */
+function stack(pcs: number[], n: number, i: number, floor: number): number[] {
+    const out: number[] = [];
+    for (let p = LADDER_FROM, k = 0; out.length < n && p < LADDER_FROM + 96; p++) {
+        if (pcs.includes(pc(p)) && k++ >= i && p >= floor) out.push(p);
+    }
+    return out;
+}
+
 /** Voicings that move as little as they can, `n` voices around `centre`. */
-function voicer(n: number, centre: number, floor = 0) {
+function voicer(n: number, reg: number, floor = 0) {
+    const centre = CENTRE[reg];
     let prev: number[] = [];
     const lo = Math.max(centre - 9, floor), hi = Math.max(centre + 9, lo + 14);
     return (c: Chord): number[] => {
         const pcs = c.pcs;
         const req = [pcs[1], pcs[0], pcs[3], pcs[2]].filter((x) => x !== undefined);
-        const v = prev.length === n ? voiceLead(prev, pcs, req, lo, hi) : closeVoicing(pcs, n, Math.max(centre, floor + 5));
-        prev = lift(v.length ? v : closeVoicing(pcs, n, Math.max(centre, floor + 5)), floor);
+        const first = () => stack(pcs, n, reg, floor);
+        const v = prev.length === n ? voiceLead(prev, pcs, req, lo, hi) : first();
+        prev = lift(v.length ? v : first(), floor);
         return prev;
     };
 }
@@ -47,12 +64,12 @@ const comp = (ctx: GenCtx, v: number, figs: [string, number[]][]) =>
 
 export const CHORDS: Preset = withFeel({
     id: 'n-chords', name: 'CHORDS', task: 'create', drum: false, cls: 'close',
-    knobs: [choice('PATTERN', [...COMPS.map((x) => x[0]), BAND], [1, 0, 3, 4, 5, 7, 8]), choice('VOICES', ['3', '4', '5'], [0, 1, 1]),
-        register([0, 1, 1, 2]), HARMONY],
+    knobs: [choice('PATTERN', [...COMPS.map((x) => x[0]), BAND], [1, 0, 3, 4, 5, 7, 8]), choice('VOICES', ['2', '3', '4', '5', '6'], [1, 2, 2]),
+        register([R.LOW, R.LOW + 1, R.MID, R.MID, R.MID + 1, R.HIGH]), HARMONY],
     generate: (ctx, v, seed) => {
         const r = rng(seed);
         const steps = comp(ctx, v[0], COMPS);
-        const voice = voicer(3 + v[1], CENTRE[v[2]], chordFloor(ctx));
+        const voice = voicer(2 + v[1], v[2], chordFloor(ctx));
         const out: Note[] = [];
         everyBar(ctx, steps, (s, bar) => {
             const t = place(ctx, s);
@@ -66,11 +83,11 @@ export const CHORDS: Preset = withFeel({
 
 export const PAD: Preset = withFeel({
     id: 'n-pad', name: 'PAD', task: 'create', drum: false, cls: 'close',
-    knobs: [choice('VOICES', ['3', '4', '5'], [1, 1, 2]), choice('SPREAD', ['CLOSE', 'OPEN', 'WIDE'], [0, 1, 1, 2]),
-        register([0, 1, 1]), HARMONY],
+    knobs: [choice('VOICES', ['3', '4', '5', '6'], [1, 1, 2]), choice('SPREAD', ['CLOSE', 'OPEN', 'WIDE', 'WIDER', 'VAST'], [0, 1, 1, 2]),
+        register([R.LOW, R.LOW + 1, R.MID, R.MID]), HARMONY],
     generate: (ctx, v, seed) => {
         const r = rng(seed);
-        const voice = voicer(3 + v[0], CENTRE[v[2]], chordFloor(ctx));
+        const voice = voicer(3 + v[0], v[2], chordFloor(ctx));
         const out: Note[] = [];
         /* A new chord where the harmony changes, and once a bar at least, so a
          * one-chord loop still breathes with the bar. */
@@ -79,7 +96,8 @@ export const PAD: Preset = withFeel({
             const c = chordUnder(ctx, v[3], at);
             let to = at + TPS * 8;
             while (to < ctx.end && to % BAR !== 0 && sameChord(chordUnder(ctx, v[3], to), c)) to += TPS * 8;
-            const pitches = spreadVoicing(voice(c), v[1], Math.max(CENTRE[v[2]] - 14, chordFloor(ctx)));
+            /* Past WIDE a voice may drop a further octave: still over the bass. */
+            const pitches = spreadVoicing(voice(c), v[1], Math.max(CENTRE[v[2]] - 14 - 6 * Math.max(0, v[1] - 2), chordFloor(ctx)));
             strike(out, at, pitches, Math.max(TPS, to - at - 6), velAt(at, 78, r));
             at = to;
         }
@@ -92,12 +110,12 @@ const STAB_FIGS: [string, number[]][] = [['OFFBEAT', [2, 6, 10, 14]], ['HOUSE', 
 
 export const STABS: Preset = withFeel({
     id: 'n-stabs', name: 'STABS', task: 'create', drum: false, cls: 'rhythm',
-    knobs: [choice('PATTERN', [...STAB_FIGS.map((x) => x[0]), BAND], [0, 1, 2, 3, 4, 5, 7]), choice('VOICES', ['2', '3', '4'], [1, 1, 2]),
-        register([1, 1, 2]), HARMONY],
+    knobs: [choice('PATTERN', [...STAB_FIGS.map((x) => x[0]), BAND], [0, 1, 2, 3, 4, 5, 7]), choice('VOICES', ['2', '3', '4', '5'], [1, 1, 2]),
+        register([R.MID, R.MID, R.MID + 1, R.HIGH]), HARMONY],
     generate: (ctx, v, seed) => {
         const r = rng(seed);
         const steps = comp(ctx, v[0], STAB_FIGS);
-        const voice = voicer(2 + v[1], CENTRE[v[2]], chordFloor(ctx));
+        const voice = voicer(2 + v[1], v[2], chordFloor(ctx));
         const out: Note[] = [];
         everyBar(ctx, steps, (s) => {
             const t = place(ctx, s);

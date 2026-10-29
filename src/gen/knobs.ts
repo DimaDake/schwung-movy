@@ -41,7 +41,7 @@ export const K = {
         label: (v) => (v <= 3 ? 'CHORD TONES' : v <= 6 ? 'COLOUR' : v <= 8 ? 'APPROACH' : 'CHROMATIC') + ' ' + v }),
     density: (def = 5): KnobDef => ({ name: 'DENSITY', steps: fixed(11), def: fixed(def), label: centred }),
     length: (def = 5): KnobDef => ({ name: 'LENGTH', steps: fixed(11), def: fixed(def), label: centred }),
-    range: (def = 5): KnobDef => ({ name: 'RANGE', steps: fixed(11), def: fixed(def),
+    range: (def = 5): KnobDef => ({ name: 'RANGE', steps: fixed(13), def: fixed(def),
         label: (v) => (v === 5 ? 'AS IS' : 'X' + rangeOfKnob(v).toFixed(1)) }),
     timing: (def = 10): KnobDef => ({ name: 'TIMING', steps: fixed(11), def: fixed(def), label: (v) => pct(v, 11) }),
     swing: (): KnobDef => ({ name: 'SWING', steps: fixed(11), def: (c) => Math.min(10, Math.round(c.groove.swing / 0.05)),
@@ -78,6 +78,8 @@ export function sourceBars(c: GenCtx): number {
 /** Swing knob position → fraction of a 16th. */
 export const swingOfKnob = (v: number): number => v * 0.05;
 /** RANGE → interval scale: 0.5 at the left, 1 (as played) in the middle, 2
- *  at the right — the right half reaches further, for the creative end. */
-export const rangeOfKnob = (v: number): number => (v <= 5 ? 0.5 + v * 0.1 : 1 + (v - 5) * 0.2);
+ *  at 10 — the right half reaches further, for the creative end — and 2.5
+ *  and 3 past it, where a line leaps (user, 2026-10-29: extended ranges for
+ *  experimental flavour). */
+export const rangeOfKnob = (v: number): number => (v <= 5 ? 0.5 + v * 0.1 : v <= 10 ? 1 + (v - 5) * 0.2 : 2 + (v - 10) * 0.5);
 export const tensionOfKnob = (v: number): number => v / 10;

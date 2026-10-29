@@ -16,6 +16,8 @@ import { choose, mix, rng, type Rng } from '../rng.js';
 import { nearestPitch, stepScale } from '../theory/pc.js';
 import { scaleUnder } from '../theory/category.js';
 import { type Note, TPS } from '../types.js';
+import type { Span } from '../create/phrase.js';
+import { phraseOnsets, SHAPES } from '../create/phrase-rhythm.js';
 
 const CONTOURS: ((x: number) => number)[] = [
     (x) => Math.sin(Math.PI * x), (x) => x, (x) => 1 - x, (x) => (Math.sin(2 * Math.PI * x) + 1) / 2,
@@ -37,15 +39,39 @@ function rhythm(steps: number, density: number, r: Rng): number[] {
     return out;
 }
 
+/* With SPARSE above FULL the melody is written phrase by phrase into its
+ * spans: each one's rhythm from a phrase shape (create/phrase-rhythm.ts), the
+ * contour arching over the phrase, and spans of one length sharing their
+ * rhythm, so an answer echoes its call and the silences recur. The landing
+ * is laid after (create/land.ts). */
+function phrased(ctx: GenCtx, v: number[], r: Rng, spans: readonly Span[], lo: number, hi: number): Note[] {
+    const shape = SHAPES[Math.floor(r() * SHAPES.length)][1];
+    const rhythms = new Map<number, number[]>();
+    const out: Note[] = [];
+    for (const s of spans) {
+        const a = Math.round(s.start / TPS), n = Math.round(s.land / TPS) - a;
+        let on = rhythms.get(n);
+        if (!on) { on = phraseOnsets(n, a, v[1], shape, r); rhythms.set(n, on); }
+        /* LONG TONES: a span that is only its landing gets one note to land. */
+        if (n <= 0) on = [0];
+        for (const k of on) {
+            const t = ((a + k) % ctx.len) * TPS;
+            out.push({ tick: t, pitch: tone(ctx, t, lo + CONTOURS[v[0]](n > 0 ? k / n : 0.5) * (hi - lo), lo, hi), gate: TPS, vel: velAt(t, 96, r) });
+        }
+    }
+    return out;
+}
+
 export const MELODY: Preset = withFeel({
     id: 'n-melody', name: 'MELODY', task: 'create', drum: false, cls: 'exp',
     knobs: [choice('CONTOUR', ['ARCH', 'RISE', 'FALL', 'WAVE', 'ZIGZAG']), amount('DENSITY', 10, 3, 7),
         choice('RANGE', ['4TH', '5TH', '7TH', 'OCTAVE', '10TH', '12TH', '2 OCT'], [1, 2, 3, 3, 4, 5]), SEED],
-    generate: (ctx, v, seed) => {
+    generate: (ctx, v, seed, spans) => {
         const r = rng(mix(seed, v[3]));
         const phrase = Math.min(32, ctx.len);
         const span = SPANS[v[2]];
         const lo = 72 - Math.round(span / 2), hi = lo + span;
+        if (spans) return onGuides(ctx, runPlan(ctx), phrased(ctx, v, r, spans, lo, hi), lo, hi);
         const call = rhythm(phrase, v[1], r);
         const answer = rhythm(Math.min(8, phrase), v[1], r).map((s) => s + phrase - Math.min(8, phrase));
         const out: Note[] = [];
@@ -66,7 +92,7 @@ export const MELODY: Preset = withFeel({
         }
         return onGuides(ctx, runPlan(ctx), out, lo, hi, home);
     },
-}, [3, 9]);
+}, [3, 9], false, 'melody', ['BREATH', 'CALL+ANSWER']);
 
 const CELLS = [4, 8, 6, 16];
 const OFFSETS = [0, 0, 2, 4, 7, -1, 1, 3];
@@ -94,7 +120,7 @@ export const RIFF: Preset = withFeel({
         }
         return out;
     },
-}, [2, 7], false, 'line');
+}, [2, 7], false, 'line', ['BREATH']);
 
 const RATE = [4, 2, 3, 1];
 const MOVES = [[1, -1], [1, -1, 2, -2, 3], [2, -2, 4, -3, 5]];
@@ -123,4 +149,4 @@ export const COUNTER: Preset = withFeel({
         }
         return onGuides(ctx, runPlan(ctx), out, centre - 9, centre + 12);
     },
-}, [4, 9], false, 'line');
+}, [4, 9], false, 'counter', ['BREATH', 'CALL+ANSWER']);

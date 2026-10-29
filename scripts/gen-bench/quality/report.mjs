@@ -23,6 +23,8 @@ export function scorecard(r) {
         ['3 maps: mean turn', r.maps?.meanTurn ?? null, -1, f2, 0.1], ['3 maps: distinct positions', r.maps?.distinct ?? null, 1, pc, 0.01],
         ['3 maps: positions musical', r.maps?.musical ?? null, 1, pc, 0.02], ['3 maps: positions broken', r.maps?.broken ?? null, -1, pc, 0.01],
         ['3 maps: onset reach (per bar)', r.maps?.reach ?? null, 1, f2, 0.5],
+        ['5 phrase: SPARSE positions', r.phrase?.positions ?? null, 0, String, 1], ['5 phrase: silent positions', r.phrase?.empty ?? null, -1, pc, 0.01],
+        ['5 phrase: room left', r.phrase?.room ?? null, 0, pc, 1], ['5 phrase: rests that cut a gesture', r.phrase?.cuts ?? null, -1, pc, 0.02],
         ['4 piece: musical', share('musical'), 1, pc, 0.05], ['4 piece: broken', share('broken'), -1, pc, 0.0],
         ['4 piece: clash (strong beats)', mean(sc.map((s) => s.clash)), -1, pc, 0.01], ['4 piece: chord fit', mean(sc.map((s) => s.fit)), 1, f2, 0.01],
         ['4 piece: worst part fit', mean(sc.map((s) => s.worst)), 1, f2, 0.02], ['4 piece: low-end mud scenes', sc.filter((s) => s.mud).length, -1, String, 0],

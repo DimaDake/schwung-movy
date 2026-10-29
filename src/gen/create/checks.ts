@@ -19,8 +19,9 @@ const PER_BAR: Record<string, [number, number, number]> = {   // min, max, min r
 };
 
 function melodic(ctx: GenCtx, p: Preset, notes: Note[]): string | null {
-    const bars = Math.max(1, ctx.len / 16);
     const evs = toEvents(notes);
+    /* Per bar it sounds in: a phrased take (SPARSE) rests on purpose. */
+    const bars = Math.max(1, new Set(evs.map((e) => Math.floor(e.tick / (16 * TPS)))).size);
     const [lo, hi, range] = PER_BAR[p.id] ?? [1, 16, 0];
     if (evs.length / bars < lo || evs.length / bars > hi) return 'density';
     const ps = notes.map((n) => n.pitch);

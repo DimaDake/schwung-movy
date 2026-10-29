@@ -144,40 +144,71 @@ G.forgetOptions();
 const long = G.generateAll(createInput(false, 'free', 5, { len: 64 }));
 ok('new_clip_fills_a_four_bar_clip', long.picks.every((p) => p.notes.some((n) => n.tick >= 48 * G.TPS)));
 
-/* SPARSE (create/sparse.ts): the generators with no density control play
- * their pattern only in some of the metre's windows, never rewritten. */
-const SPARSE_IDS = ['n-chords', 'n-pad', 'n-stabs', 'n-bass', 'n-arp', 'n-riff', 'n-counter'];
+/* SPARSE (plans/2026-10-29-phrase-space-design.md): a ladder of phrase
+ * templates (chord parts also keep beat windows); each phrase lands, held,
+ * before its rest; the bass holds its roots between phrases. */
+const SPARSE_IDS = ['n-chords', 'n-pad', 'n-stabs', 'n-bass', 'n-arp', 'n-melody', 'n-riff', 'n-counter'];
 const sk = (p) => G.knobIndex(p, 'SPARSE');
-ok('sparse_only_where_there_is_no_density_control', SPARSE_IDS.every((id) => sk(by(id)) === 7)
-    && sk(by('n-melody')) < 0 && G.knobIndex(by('n-melody'), 'DYNAMICS') === 7);
-const full = (ns) => ns.map((n) => `${n.tick}.${n.pitch}.${n.gate}.${n.vel}`);
+ok('sparse_on_every_melodic_new_clip', SPARSE_IDS.every((id) => sk(by(id)) === 7 && G.knobIndex(by(id), 'DYNAMICS') < 0));
+const BEAT = 4 * G.TPS;
+const sounding = (ns, len) => { const on = new Set(); for (const n of ns) for (let t = n.tick; t < n.tick + n.gate; t += G.TPS) on.add(Math.floor(t / G.TPS) % len); return on.size / len; };
+const four = G.prepare(createInput(false, 'free', 7, { len: 64 }));
+const labels = (id) => { const p = by(id); return Array.from({ length: p.knobs[sk(p)].steps(four) }, (_, i) => p.knobs[sk(p)].label(i, four)); };
+eq('sparse_pad_ladder', labels('n-pad').join(), 'ALL,BREATH,LAY OUT,ON/OFF,SECTION END,CHANGES');
+ok('sparse_bass_ladder_ends_on_roots_and_dub', labels('n-bass').slice(-2).join() === 'ROOTS,DUB' && labels('n-bass').includes('CALL+ANSWER'));
+ok('sparse_chords_keep_beat_windows_and_lay_out', labels('n-chords').includes('BEAT 3') && labels('n-chords').includes('LAY OUT'));
+ok('sparse_melody_ends_on_long_tones', labels('n-melody').pop() === 'LONG TONES');
 for (const seed of [7, 8, 9]) {
     const sc = G.prepare(createInput(false, 'free', seed, { len: 64 }));
     for (const id of SPARSE_IDS) {
         const p = by(id), k = sk(p), base = G.defaults(p, sc);
+        const hk = G.knobIndex(p, 'HARMONY'), h = hk >= 0 ? base[hk] : G.runPlan(sc);
         const sweep = Array.from({ length: p.knobs[k].steps(sc) }, (_, i) => {
             const w = [...base]; w[k] = i;
             return { label: p.knobs[k].label(i, sc), notes: G.regenerate(sc, p, w) ?? [] };
         });
-        const all = new Set(full(sweep[0].notes));
-        ok(`sparse_${id}_${seed}_keeps_notes_as_the_pattern_plays_them`, sweep.every((s) => s.notes.length > 0 && full(s.notes).every((x) => all.has(x))));
-        ok(`sparse_${id}_${seed}_every_click_thins`, sweep.slice(1).every((s) => s.notes.length < sweep[0].notes.length));
-        if (id === 'n-pad') eq('sparse_pad_thins_by_bars_only', sweep.map((s) => s.label).join(), 'ALL,BAR 1 OF 2,BAR 1 OF 4,LAST BAR');
+        const sig = (ns) => ns.map((n) => `${n.tick}.${n.pitch}.${n.gate}`).sort().join();
+        ok(`sparse_${id}_${seed}_every_position_plays_and_differs`, sweep.every((s, i) => s.notes.length > 0 && (i === 0 || sig(s.notes) !== sig(sweep[0].notes))));
+        /* Room: how much of the clip sounds; a bass's rests hold roots, so its room is its onsets. */
+        const occ = Object.fromEntries(sweep.map((s) => [s.label, id === 'n-bass' ? s.notes.length : sounding(s.notes, sc.len)]));
+        ok(`sparse_${id}_${seed}_hook_and_lead_in_leave_more_room_than_breath`, !('HOOK' in occ) || (occ.HOOK < occ.BREATH && occ['LEAD-IN'] < occ.BREATH));
+        if (['n-melody', 'n-bass', 'n-arp', 'n-riff', 'n-counter'].includes(id)) {
+            /* Every rest the plan made (a beat or more where the full part played) follows a landed
+             * note: on a beat, a tone of the chord there. The part's own gaps are its idiom. */
+            const all = sweep[0].notes;
+            const ch = (t) => G.chordAt(G.planAt(sc, h).chords, t, sc.k);
+            const cuts = [];
+            for (const s of sweep.filter((x) => !['ALL', 'DUB'].includes(x.label))) {
+                const on = [...s.notes].sort((a, b) => a.tick - b.tick);
+                on.forEach((n, i) => {
+                    const next = on.find((m) => m.tick > n.tick)?.tick ?? on[0].tick + sc.end;
+                    if (next - (n.tick + n.gate) < BEAT || on.some((m) => m.tick <= n.tick && m.tick + m.gate > n.tick + n.gate)) return;
+                    if (!all.some((m) => m.tick > n.tick && m.tick < next && !on.some((x) => x.tick === m.tick))) return;
+                    if (n.tick % (2 * G.TPS) !== 0 || !ch(n.tick).pcs.includes(G.pc(n.pitch))) cuts.push(`${s.label}@${n.tick}`);
+                });
+            }
+            eq(`sparse_${id}_${seed}_every_rest_follows_a_landing`, cuts.join(' '), '');
+        }
+        if (id === 'n-bass') {
+            /* Between its phrases the bass holds the root of each chord that starts there. */
+            const call = sweep.find((s) => s.label === 'CALL').notes;
+            const changes = G.planAt(sc, h).chords.map((_, i) => i * G.HALF).filter((t) => t < sc.end && (t === 0 || !G.sameChord(G.chordAt(G.planAt(sc, h).chords, t, sc.k), G.chordAt(G.planAt(sc, h).chords, t - G.HALF, sc.k))));
+            ok(`sparse_bass_${seed}_rests_keep_the_roots`, changes.every((t) => call.some((n) => n.tick <= t + 2 * G.TPS && n.tick + n.gate > t)));
+        }
+        if (id === 'n-melody') {
+            const ca = sweep.find((s) => s.label === 'CALL+ANSWER').notes;
+            const rel = (lo) => ca.filter((n) => n.tick >= lo && n.tick < lo + 2 * BEAT).map((n) => n.tick - lo).join();
+            ok(`sparse_melody_${seed}_answer_echoes_the_call`, rel(0).length > 0 && rel(0) === rel(G.BAR));
+        }
         if (id === 'n-chords') {
             const b3 = sweep.find((s) => s.label === 'BEAT 3').notes;
             ok(`sparse_chords_${seed}_beat_3_plays_around_beat_3`, b3.every((n) => { const s = Math.round(n.tick / G.TPS) % 16; return s >= 6 && s <= 10; }));
         }
-        if (id === 'n-bass' || id === 'n-riff') {
-            const down = (ns) => full(ns.filter((n) => n.tick % G.BAR === 0));
-            const beatWins = sweep.filter((s) => ['1+3', '1+4', 'BEAT 1'].includes(s.label));
-            ok(`sparse_${id}_${seed}_lines_keep_beat_1`, beatWins.length === 3 && beatWins.every((s) => down(s.notes).join() === down(sweep[0].notes).join()));
-            const hk = G.knobIndex(p, 'HARMONY'), h = hk >= 0 ? base[hk] : G.runPlan(sc);
-            const ch = (n) => G.chordAt(G.planAt(sc, h).chords, n.tick, sc.k);
-            const on = [...sweep[0].notes].sort((x, y) => x.tick - y.tick);
-            const firsts = full(on.filter((n, i) => i > 0 && !G.sameChord(ch(n), ch(on[i - 1]))));
-            ok(`sparse_${id}_${seed}_lines_play_each_new_chord`, firsts.length > 0 && sweep.every((s) => firsts.every((x) => full(s.notes).includes(x))));
-            ok(`sparse_${id}_${seed}_lines_never_play_beat_3_alone`, !sweep.some((s) => s.label === 'BEAT 3'));
-        }
     }
 }
+G.forgetOptions();
+const phrasedTakes = Array.from({ length: 10 }, (_, n) => G.generateAll(createInput(false, 'free', 700 + n, { len: 64 })))
+    .flatMap((r) => r.picks.filter((p) => p.preset.id === 'n-melody').map((p) => p.knobs[7]));
+ok('sparse_melody_defaults_are_sometimes_phrased', phrasedTakes.length >= 8 && phrasedTakes.some((v) => v > 0) && phrasedTakes.some((v) => v === 0));
+G.forgetOptions();
 }

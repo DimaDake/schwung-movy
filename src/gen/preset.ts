@@ -3,6 +3,7 @@
 
 import type { GenCtx } from './analysis/context.js';
 import type { KnobDef } from './knobs.js';
+import type { Span } from './create/phrase.js';
 import type { GenLevel, Note, PresetClass, RoleKind, Task } from './types.js';
 
 export interface Preset {
@@ -23,8 +24,10 @@ export interface Preset {
     accepts?: (ctx: GenCtx) => boolean;
     /** How suited this preset is to this part, 0..1 (default 0.5). */
     fit?: (ctx: GenCtx) => number;
-    /** The new part. `seed` already mixes the request, the preset and any retry. */
-    generate: (ctx: GenCtx, v: number[], seed: number) => Note[];
+    /** The new part. `seed` already mixes the request, the preset and any
+     *  retry; `spans` is SPARSE's phrase plan, for a generator that writes
+     *  its phrases into it itself (create/phrase.ts). */
+    generate: (ctx: GenCtx, v: number[], seed: number, spans?: readonly Span[]) => Note[];
 }
 
 export function serves(p: Preset, ctx: GenCtx): boolean {

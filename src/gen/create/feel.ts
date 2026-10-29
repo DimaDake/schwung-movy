@@ -15,7 +15,9 @@ import { mix, type Rng, rng } from '../rng.js';
 import { dynamics } from '../shape/dynamics.js';
 import { type Ev, type Note, TPS } from '../types.js';
 import { amount, runPlan } from './common.js';
-import { sparse, sparseKnob, type SparseKind } from './sparse.js';
+import { layInto, type Laid } from './land.js';
+import { planSpans, type Span } from './phrase.js';
+import { ladder, maskBeats, sparseKnob, type SparseKind } from './sparse.js';
 import { bandAccent } from '../shape/seams.js';
 import { STRUMS, strumEvent } from '../shape/strum.js';
 
@@ -78,7 +80,7 @@ function vary(ctx: GenCtx, evs: Ev[], v: number, r: Rng, drum: boolean): { evs: 
  * range its takes were drawn from. */
 const SPARSE_DYN = 4;
 
-interface Opts { strum: boolean; sparse?: SparseKind; h: number }
+interface Opts { strum: boolean; sparse?: SparseKind; h: number; spans: Span[] | null }
 
 function feel(ctx: GenCtx, notes: Note[], f: number[], seed: number, drum: boolean, o: Opts): Note[] {
     if (!notes.length) return notes;
@@ -86,7 +88,11 @@ function feel(ctx: GenCtx, notes: Note[], f: number[], seed: number, drum: boole
     const r = rng(mix(seed, 0xFEE1));
     const [g, v, sw, d] = drum ? [-1, f[0], f[1], f[2]] : f;
     const dyn = o.sparse ? SPARSE_DYN : d;
-    const { evs, len } = vary(ctx, toEvents(notes), v, r, drum);
+    const varied = vary(ctx, toEvents(notes), v, r, drum);
+    const { len } = varied;
+    const entry = o.sparse ? ladder(o.sparse, ctx.len)[d] : undefined;
+    const laid: Laid | null = entry?.tpl && o.spans ? layInto(ctx, varied.evs, o.spans, o.sparse!, o.h, entry.tpl) : null;
+    const evs = laid ? laid.evs : varied.evs;
     const at = new Map(evs.map((e) => [e, e.tick]));
     if (strum) {
         evs.forEach((e, i) => strumEvent(e, sw, spanTo(evs, i, ctx.end), r));
@@ -106,12 +112,23 @@ function feel(ctx: GenCtx, notes: Note[], f: number[], seed: number, drum: boole
             for (const x of e.voices) x.gate = Math.max(TPS / 3, Math.min(want - (strum ? x.dt : 0), ctx.end - e.tick - x.dt));
         });
     }
+    /* A phrase's notes end inside it; its landing is held to its end. */
+    if (laid) {
+        for (const e of evs) {
+            const lim = laid.hold.get(e);
+            if (lim === undefined) continue;
+            for (const x of e.voices) {
+                const g = laid.lands.has(e) ? lim - x.dt - 4 : Math.min(x.gate, lim - x.dt - 2);
+                x.gate = Math.max(TPS / 3, Math.min(g, ctx.end - e.tick - x.dt));
+            }
+        }
+    }
     let out = dynamics(fromEvents(evs, ctx.end), dyn);
     /* Masked after DYNAMICS, which reads the whole part, so what stays is
      * exactly what the full pattern plays there. */
-    if (o.sparse && d > 0) {
+    if (entry?.win) {
         const key = (n: Note) => n.tick * 128 + n.pitch;
-        const kept = new Set(fromEvents(sparse(ctx, evs, at, o.sparse, d, o.h), ctx.end).map(key));
+        const kept = new Set(fromEvents(maskBeats(ctx, evs, at, entry.win), ctx.end).map(key));
         out = out.filter((n) => kept.has(key(n)));
     }
     if (drum && f[3] > 0) {
@@ -127,10 +144,16 @@ const STRUM: KnobDef = { ...amount('STRUM', STRUMS.length - 1, 0, 4), def: () =>
  *  GATE takes are drawn (a pad holds, a stab does not). A held part, whose
  *  chords fall on the bar, strums instead of swinging. A generator with no
  *  density control of its own gets SPARSE of its kind for DYNAMICS. */
-export function withFeel(p: Preset, g: [number, number] = [2, 8], strum = false, sp?: SparseKind): Preset {
-    const row = p.drum ? [VARY, SWING, DYN, HUMAN] : [gate(g[0], g[1]), VARY, strum ? STRUM : SWING, sp ? sparseKnob(sp) : DYN];
+export function withFeel(p: Preset, g: [number, number] = [2, 8], strum = false, sp?: SparseKind, takes: string[] = []): Preset {
+    const row = p.drum ? [VARY, SWING, DYN, HUMAN] : [gate(g[0], g[1]), VARY, strum ? STRUM : SWING, sp ? sparseKnob(sp, takes) : DYN];
     const hk = p.knobs.findIndex((k) => k.name === 'HARMONY');
     return { ...p, knobs: [...p.knobs, ...row],
-        generate: (ctx, v, seed) => feel(ctx, p.generate(ctx, v.slice(0, 4), seed), v.slice(4), seed, p.drum,
-            { strum, sparse: sp, h: hk >= 0 ? v[hk] : runPlan(ctx) }) };
+        generate: (ctx, v, seed) => {
+            const h = hk >= 0 ? v[hk] : runPlan(ctx);
+            const tpl = sp ? ladder(sp, ctx.len)[v[7]]?.tpl : undefined;
+            const spans = tpl ? planSpans(ctx, tpl, h, sp === 'counter') : null;
+            /* A generator that phrases itself (MELODY) is handed the spans. */
+            const notes = p.generate(ctx, v.slice(0, 4), seed, spans ?? undefined);
+            return feel(ctx, notes, v.slice(4), seed, p.drum, { strum, sparse: sp, h, spans });
+        } };
 }

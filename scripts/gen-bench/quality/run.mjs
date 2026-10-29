@@ -14,6 +14,7 @@ import { judgePiece, pieceMidi } from './piece-score.mjs';
 import { buildPiece } from './piece.mjs';
 import { report } from './report.mjs';
 import { mapPreset, mapSummary } from './maps.mjs';
+import { phrasePreset, phraseSummary } from './phrase.mjs';
 import { spacePreset, spaceSummary } from './space.mjs';
 import { sweepPreset, sweepSummary } from './sweep.mjs';
 
@@ -54,7 +55,7 @@ async function main() {
     const cases = readdirSync(DATA + 'cases').sort().filter((f) => !args.cases || f.includes(args.cases))
         .map((f) => JSON.parse(readFileSync(DATA + 'cases/' + f, 'utf8')));
     const t0 = Date.now();
-    const sw = [], sp = [], mp = [];
+    const sw = [], sp = [], mp = [], ph = [];
     for (const input of requests(cases)) {
         G.forgetOptions();
         const ctx = G.prepare(input);
@@ -62,6 +63,7 @@ async function main() {
             sw.push(sweepPreset(G, ctx, p));
             sp.push(spacePreset(G, ctx, p, ctx.seed));
             mp.push(mapPreset(G, ctx, p));
+            ph.push(phrasePreset(G, ctx, p));
         }
     }
     const t1 = Date.now();
@@ -79,7 +81,7 @@ async function main() {
     const t2 = Date.now();
     const old = oldMetrics(G, cases);
     const res = { label, cases: cases.length, ms: { knobs: t1 - t0, pieces: t2 - t1, old: Date.now() - t2 },
-        sweep: sweepSummary(sw), space: spaceSummary(sp), maps: mapSummary(mp), pieces, old };
+        sweep: sweepSummary(sw), space: spaceSummary(sp), maps: mapSummary(mp), phrase: phraseSummary(ph), pieces, old };
     mkdirSync(DATA + 'quality', { recursive: true });
     writeFileSync(DATA + `quality/${label}.json`, JSON.stringify(res));
     const prev = args.compare && existsSync(DATA + `quality/${args.compare}.json`) ? JSON.parse(readFileSync(DATA + `quality/${args.compare}.json`, 'utf8')) : null;

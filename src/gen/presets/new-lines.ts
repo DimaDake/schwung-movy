@@ -79,7 +79,7 @@ export const BASS: Preset = withFeel({
         }
         return out;
     },
-}, [2, 8], false, 'line');
+}, [2, 8], false, 'bass');
 
 const STYLES = ['UP', 'DOWN', 'UP-DOWN', 'ORDER', 'PINKY', 'BROKEN'] as const;
 /* Slowest to fastest, so the knob turns one way. */

@@ -26,6 +26,16 @@ far. Earlier work is summarised in the timeline below for context.
   outside notes back to chord tones. PITCH FIX counts notes (`OFF`, `1 NOTE`
   … `ALL`), worst first. VARY and DRIFT vary at least one more note per click
   on a short part.
+- **More harmony on new scenes.** New Clip's HARMONY adds four more loops
+  in the key (SENSITIVE, ROYAL ROAD, TURNAROUND, SWAY in major; HOOK,
+  RISE, SHUTTLE, FALL in minor), which a run may open on, and at the end of
+  the knob five borrowed / modal progressions (MIXOLYDIAN, MINOR IV, BVI
+  BVII, BACKDOOR, LYDIAN; DORIAN, PHRYGIAN, HARMONIC, ANDALUSIAN, PICARDY)
+  for an experimental take. Variation's and Smart Double EVOLVE's harmony
+  in a free scene keep the moves they used to drop below WILD, at the end of
+  the knob. A line over a borrowed chord borrows its tone (Bb under a bVII
+  in C, not B), in New Clip's MELODY, RIFF and COUNTER and in every
+  Variation that walks the scale.
 - **Wider knob ranges, more positions where they mean something.** The
   octave and register knobs reach past their usual range, for a more
   experimental colour, while New Clip's takes still start inside it. Chord

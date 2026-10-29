@@ -44,6 +44,8 @@ export interface HarmonyPlan {
     sit: Sit;
     pedal: number | null;           // a pitch class held under the progression
     label: string;
+    /** Past the usual range: reached by turning HARMONY, never drawn for a take. */
+    ext?: boolean;
 }
 
 export type PresetClass = 'close' | 'rhythm' | 'exp';

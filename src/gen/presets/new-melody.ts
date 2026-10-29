@@ -10,7 +10,8 @@ import { amount, choice, chordUnder, LINE_REGISTER as L, place, register, runPla
 import type { Preset } from '../preset.js';
 import { withFeel } from '../create/feel.js';
 import { choose, mix, rng, type Rng } from '../rng.js';
-import { nearestPitch, scaleOf, stepScale } from '../theory/pc.js';
+import { nearestPitch, stepScale } from '../theory/pc.js';
+import { scaleUnder } from '../theory/category.js';
 import { type Note, TPS } from '../types.js';
 
 const CONTOURS: ((x: number) => number)[] = [
@@ -23,7 +24,7 @@ const SPANS = [5, 7, 10, 12, 15, 19, 24];
 
 function tone(ctx: GenCtx, tick: number, target: number, lo: number, hi: number): number {
     const c = chordUnder(ctx, runPlan(ctx), tick);
-    return nearestPitch(target, strength(tick) >= 0.7 ? c.pcs : scaleOf(ctx.key), lo, hi);
+    return nearestPitch(target, strength(tick) >= 0.7 ? c.pcs : scaleUnder(ctx.key, c), lo, hi);
 }
 
 /** A phrase's onsets in steps: the downbeat, then each step by its weight. */
@@ -82,7 +83,7 @@ export const RIFF: Preset = withFeel({
                 const c = chordUnder(ctx, runPlan(ctx), off * TPS);
                 const root = nearestPitch(CENTRE[v[2]], [c.root], CENTRE[v[2]] - 6, CENTRE[v[2]] + 6);
                 const p = stepScale(root, deg[i], ctx.key);
-                out.push({ tick: t, pitch: strength(t) >= 0.7 ? nearestPitch(p, c.pcs) : p, gate: TPS, vel: velAt(t, 100, r) });
+                out.push({ tick: t, pitch: nearestPitch(p, strength(t) >= 0.7 ? c.pcs : scaleUnder(ctx.key, c)), gate: TPS, vel: velAt(t, 100, r) });
             });
         }
         return out;
@@ -110,7 +111,8 @@ export const COUNTER: Preset = withFeel({
             const m = MOVES[v[1]][Math.floor(r() * MOVES[v[1]].length)];
             if (p > centre + 9) dir = -1; else if (p < centre - 7) dir = 1; else if (r() < 0.25) dir = -dir;
             p = stepScale(p, dir * Math.abs(m), ctx.key);
-            if (strength(t) >= 0.7) p = nearestPitch(p, chordUnder(ctx, runPlan(ctx), t).pcs);
+            const c = chordUnder(ctx, runPlan(ctx), t);
+            p = nearestPitch(p, strength(t) >= 0.7 ? c.pcs : scaleUnder(ctx.key, c));
             out.push({ tick: t, pitch: p, gate: TPS, vel: velAt(t, 88, r) });
         }
         return out;

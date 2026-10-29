@@ -240,3 +240,24 @@ What changed, and why each is a musical step:
 Tried and reverted: **PULSE OCTAVE** past an octave. The role lock refuses a
 variation that moves a part's middle more than an octave, so those positions
 could only ever be refused; and -1 OCT on a bass fell under E1.
+
+## Round 3: more harmony (2026-10-29)
+
+User: "more harmony options for chord generators on new scenes; apply the new
+functionality generically to all generators where possible".
+
+- New Clip (`create/plans.ts`): four more diatonic loops per mode after the
+  first eight (so every old position keeps its meaning), in the take pool;
+  five borrowed / modal progressions at the end, `HarmonyPlan.ext`, which
+  `runPlan` never draws and `defaultHarmony` never lands on. Free major:
+  8 → 17 options.
+- Generic, every free-scene HARMONY: `harmonicMoves` no longer drops a move
+  that is WILD's own or connects below `DROP_BELOW`; it appends it, `ext`,
+  after the rest (Variation's HARMONY, Smart Double EVOLVE's MOVE). `journey`
+  (+DEV) skips them, EVOLVE is only offered when a non-ext move exists.
+- Generic, every line that walks the scale: `scaleUnder(key, chord)` lends a
+  borrowed chord's foreign tone and drops the scale tone a semitone from it
+  (a major chord's major 7th stays: it is colour). Used by `allowedPcs`
+  (every Variation through the realiser) and New Clip's MELODY, RIFF, COUNTER.
+- Bench (40 pieces a mode, vs ext40): no regression; useful clicks +168;
+  HARMONY positions on New Clip broken 0 of 270.

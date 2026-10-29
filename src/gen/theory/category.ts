@@ -52,12 +52,25 @@ export function noteFit(p: number, c: Chord | null, k: Key | null, strong: boole
 }
 
 /** Pitch classes a voice may land on at a given tension (0..1) and position. */
+/** The key's scale under a chord: a chord from outside the key (a borrowed
+ *  bVII, a Phrygian bII) lends its own tones, and the scale tone a semitone
+ *  from one gives way, so a line walking the scale borrows with the chord. */
+export function scaleUnder(k: Key, c: Chord | null): number[] {
+    const sc = scaleOf(k);
+    if (!c) return sc;
+    const out = c.pcs.filter((t) => !sc.includes(t));
+    if (!out.length) return sc;
+    /* A major chord's major seventh is its colour, not a clash (A under Bb). */
+    const keep = (p: number) => (c.quality === 'maj' || c.quality === 'maj7') && pc(p - c.root) === 11;
+    return [...sc.filter((p) => keep(p) || !out.some((t) => Math.abs(pc(p - t + 6) - 6) === 1)), ...out];
+}
+
 export function allowedPcs(c: Chord, k: Key | null, tension: number, strong: boolean): number[] {
     const tones = [...c.pcs];
     if (tension < 0.35) return tones;
     const col = colourPcs(c, k);
     if (strong && tension < 0.7) return tones;
     if (tension < 0.85) return [...tones, ...col];
-    const sc = k ? scaleOf(k) : [];
+    const sc = k ? scaleUnder(k, c) : [];
     return [...new Set([...tones, ...col, ...(strong ? [] : sc)])];
 }

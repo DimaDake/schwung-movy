@@ -57,11 +57,12 @@ export function buildPlans(ctx: GenCtx): HarmonyPlan[] {
             const id = chords.map((c) => c ? c.root + c.quality : '-').join();
             if (!seen.has(id)) { seen.add(id); moves.push({ name: label, dist: 0.2 + r * 0.25, chords, pedal: null }); }
         });
-        moves.sort((a, b) => a.dist - b.dist);
+        moves.sort((a, b) => Number(!!a.ext) - Number(!!b.ext) || a.dist - b.dist);
     }
     if (!moves.length) return [{ chords: base, sit: 'asis', pedal: null, label: 'SAME' }];
     const sev = sevenths(base);
-    return moves.map((m) => ({ chords: sev ? m.chords.map((c) => withSeventh(c, ctx)) : m.chords, sit: 'asis', pedal: m.pedal, label: m.name }));
+    return moves.map((m) => ({ chords: sev ? m.chords.map((c) => withSeventh(c, ctx)) : m.chords, sit: 'asis', pedal: m.pedal, label: m.name,
+        ...(m.ext ? { ext: true } : {}) }));
 }
 
 /* The source's style carries over: a part that plays seventh chords gets
@@ -83,8 +84,9 @@ function withSeventh(c: Chord | null, ctx: GenCtx): Chord | null {
  *  its harmony), a locked one sits on the chords as played. */
 export function defaultHarmony(ctx: GenCtx, far = 1): number {
     /* Partial: the closest fit around what the others pin comes first. */
-    if (ctx.freedom !== 'free' || ctx.plans.length <= 1) return 0;
-    return Math.min(far, ctx.plans.length - 1);
+    const basic = ctx.plans.filter((p) => !p.ext).length;
+    if (ctx.freedom !== 'free' || basic <= 1) return 0;
+    return Math.min(far, basic - 1);
 }
 
 export function planAt(ctx: GenCtx, h: number, changes = 0): HarmonyPlan {

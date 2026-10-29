@@ -131,7 +131,7 @@ G.forgetOptions();
  * also DEVELOPED, eight-chord ones added, and the run opens on one. */
 const chordsIn = (ctx, notes) => new Set(Array.from({ length: ctx.len / 16 }, (_, b) =>
     [...new Set(notes.filter((n) => n.tick >= b * G.BAR && n.tick < (b + 1) * G.BAR).map((n) => n.pitch % 12))].sort().join())).size;
-eq('short_clips_keep_the_four_chord_loops', G.prepare(createInput(false, 'free', 1)).plans.length, 8);
+eq('short_clips_keep_the_four_chord_loops', G.prepare(createInput(false, 'free', 1)).plans.filter((p) => !p.label.includes('+DEV') && !['CIRCLE', 'CANON', 'ROAD', 'LAMENT', 'SAGA'].includes(p.label)).length, G.prepare(createInput(false, 'free', 1)).plans.length);
 const longPlans = G.prepare(createInput(false, 'free', 1, { len: 128 })).plans.map((p) => p.label);
 ok('long_clips_add_developed_and_eight_chord_progressions', longPlans.some((l) => l.endsWith('+DEV')) && longPlans.includes('CIRCLE'));
 const rich = [0, 1, 2, 3, 4, 5].map((n) => G.generateAll(createInput(false, 'free', 900 + n, { len: 256 })));

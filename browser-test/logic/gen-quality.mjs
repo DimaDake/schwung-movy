@@ -144,6 +144,35 @@ _log('\nTest: generator quality fixes');
     eq('range_reaches_x3', p.knobs[G.knobIndex(p, 'RANGE')].label(12, ctx), 'X3.0');
 }
 
+/* HARMONY (user, 2026-10-29: "more harmony options for chord generators on
+ * new scenes"): more loops in the key, and borrowed / modal colour at the
+ * end of the knob, which a take never opens on. Variation's moves that
+ * connect badly come last too, instead of being dropped. */
+{
+    const ctx = G.prepare(createInput(false, 'empty', 1));
+    const labels = ctx.plans.map((p) => p.label);
+    eq('harmony_first_eight_keep_their_positions', labels.slice(0, 8).join(), 'POP,DOO-WOP,CADENCE,II-V-I,VAMP,LIFT,SOUL,TONIC');
+    ok('harmony_new_scene_offers_sixteen_or_more', labels.length >= 16 && labels.includes('ROYAL ROAD') && labels.includes('MIXOLYDIAN'));
+    ok('harmony_colour_sits_at_the_end', ctx.plans.findIndex((p) => p.ext) > 0 && ctx.plans.slice(ctx.plans.findIndex((p) => p.ext)).every((p) => p.ext));
+    const takes = new Set(Array.from({ length: 40 }, (_, n) => { const c = G.prepare(createInput(false, 'empty', n)); return c.plans[G.runPlan(c)]; }));
+    ok('harmony_a_take_never_opens_on_colour', [...takes].every((p) => !p.ext) && [...takes].some((p) => ['SENSITIVE', 'ROYAL ROAD', 'TURNAROUND', 'SWAY'].includes(p.label)));
+    const moves = G.harmonicMoves([G.diatonic(ctx.key, 0), G.diatonic(ctx.key, 4)], ctx.key, false);
+    ok('variation_wild_moves_come_last_not_dropped', moves.at(-1).ext === true && moves.some((m) => m.name === 'MEDIANT'));
+    /* Under a borrowed bVII (Bb in C) a line walks Bb, not B. */
+    eq('scale_under_a_borrowed_chord_lends_its_tone', G.scaleUnder(ctx.key, G.chordOf(10, 'maj')).sort((a, b) => a - b).join(), '0,2,4,5,7,9,10');
+    const band = createInput(false, 'empty', 1);
+    band.tracks.push({ index: 1, name: 'Track 2', module: 'obxd', drum: false, padNames: null,
+        clips: [{ track: 1, slot: 1, len: 64, loopStart: 0, scaleNum: 1, scaleDen: 1, transpose: 0, quant: 0,
+            notes: [[60, 64, 67], [55, 59, 62], [53, 57, 60], [58, 62, 65]].flatMap((c, bar) => c.map((p) => N(bar * 16, p, 16))) }] });
+    band.len = 64;
+    const lc = G.prepare(band);
+    eq('borrowed_scene_reads_as_c_major', `${lc.key.tonic}${lc.key.minor}`, '0false');
+    for (const id of ['n-melody', 'n-riff', 'n-counter']) {
+        const under = [0, 1, 2, 3, 4, 5].flatMap((s) => (turn(lc, by(id), 'SEED', s) ?? []).filter((n) => n.tick >= 48 * S));
+        ok(`${id}_borrows_with_the_band_chord`, under.length > 0 && under.every((n) => n.pitch % 12 !== 11));
+    }
+}
+
 /* The bench's own parts. */
 eq('bench_rub_is_a_minor_second_or_ninth_not_a_major_seventh', [rubs(60, 61), rubs(60, 73), rubs(60, 71), rubs(60, 62)].join(), 'true,true,false,false');
 eq('bench_refused_take_is_a_dead_click_not_a_broken_one', verdict(null, false)[0], 'refused');

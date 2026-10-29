@@ -58,7 +58,7 @@ export const EVOLVE: Preset = {
     roles: ['pad', 'stabs', 'bass', 'arpeggio', 'lead'],
     /* A chord part is where a new progression is heard most plainly. */
     fit: (ctx) => (chordPart(ctx) ? 0.8 : 0.62),
-    accepts: (ctx) => ctx.freedom !== 'locked' && ctx.src.length > 0 && evolutions(ctx).length > 0,
+    accepts: (ctx) => ctx.freedom !== 'locked' && ctx.src.length > 0 && evolutions(ctx).some((m) => !m.ext),
     knobs: [{ name: 'MOVE', steps: (c) => Math.max(1, evolutions(c).length), def: () => 0, label: (v, c) => evolutions(c)[v]?.name ?? '-' },
         K.tension(4), K.rhythm(0), K.range(5), PHRASES],
     generate: (ctx, v, seed) => {

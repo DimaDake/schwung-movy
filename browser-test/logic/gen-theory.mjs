@@ -75,7 +75,8 @@ const moves = G.harmonicMoves(prog, C, false);
 eq('moves_same_first', moves[0].name, 'SAME');
 eq('moves_iv_sequence', moves.find((m) => m.name === 'IV SEQ')?.chords.map(name).join(' '), 'F C DM G');
 ok('moves_never_two_alike', new Set(moves.map((m) => m.chords.map(name).join() + m.pedal)).size === moves.length);
-ok('moves_mediant_only_when_wild', !moves.some((m) => m.name === 'MEDIANT') && G.harmonicMoves(prog, C, true).some((m) => m.name === 'MEDIANT'));
+/* Below WILD, MEDIANT is offered only past the rest, as an extended position. */
+ok('moves_mediant_only_when_wild', moves.filter((m) => m.name === 'MEDIANT').every((m) => m.ext && moves.indexOf(m) >= moves.findIndex((x) => x.ext)) && G.harmonicMoves(prog, C, true).some((m) => m.name === 'MEDIANT' && !m.ext));
 ok('moves_ordered_close_to_far', moves.every((m, i) => i === 0 || m.dist >= moves[i - 1].dist));
 const vamp = G.harmonicMoves([G.chordOf(9, 'min'), G.chordOf(9, 'min')], am, false);
 ok('moves_a_one_chord_vamp_still_gets_somewhere', vamp.length >= 3);

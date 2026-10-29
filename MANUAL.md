@@ -1977,6 +1977,18 @@ Riemann turn, a substitute, a borrowed chord), and eight-chord progressions
 opens on one of these. In a scene whose chords are already
 set, HARMONY has nothing to change and its knob stays dark.
 
+After those come more loops in the key — SENSITIVE (vi IV I V), ROYAL ROAD
+(IV V iii vi), TURNAROUND (I vi ii V) and SWAY (I ii, with sevenths) in
+major; HOOK (i III VII VI), RISE (VI VII i), SHUTTLE (i VII) and FALL
+(i v VI III, with sevenths) in minor — which a run may open on too. At the
+end of the knob is colour borrowed from outside the key, for a more
+experimental take: MIXOLYDIAN (I bVII IV I), MINOR IV (I IV iv I), BVI BVII,
+BACKDOOR (ii7 bVII7 Imaj7) and LYDIAN (I II) in major; DORIAN (i IV),
+PHRYGIAN (i bII), HARMONIC (i iv V i), ANDALUSIAN (i VII VI V) and PICARDY
+(i iv VII I) in minor. A run never opens on these; you turn to them. Lines
+written over a borrowed chord borrow with it: under a bVII in C they walk Bb,
+not B.
+
 Knobs 5 to 8 are the same on every New Clip option, and every run starts them
 somewhere new, so the rhythm and the note lengths change from run to run too:
 
@@ -2077,7 +2089,7 @@ A name means the same thing on every generator:
 
 | Knob | Turning right |
 | --- | --- |
-| **HARMONY** | Further from the source's harmony (see above). |
+| **HARMONY** | Further from the source's harmony (see above). In a free scene, the moves that are WILD's own (MEDIANT) or that connect less smoothly with the source come last, past the usual ones, for a more experimental turn; an option never opens on them. |
 | **TENSION** | At 5 the take as it comes. Each click up turns a few more of its chord tones into colour tones (9th, 11th, 13th), weak beats first; each click down takes its outside notes back onto chord tones, until only chord tones are left at 0. A position keeps everything the one below it did. |
 | **AMOUNT** | More of the clip rewritten. |
 | **DENSITY** | More notes (`AS IS` in the middle, fewer to the left). |

@@ -8,7 +8,7 @@ import { sectionConnection, DROP_BELOW } from './connect.js';
 import { chordOf, isMinorQ, pc, sameChord } from './pc.js';
 import { degreeOf, diatonic, shiftDegrees } from './roman.js';
 
-export interface MoveResult { name: string; dist: number; chords: (Chord | null)[]; pedal: number | null }
+export interface MoveResult { name: string; dist: number; chords: (Chord | null)[]; pedal: number | null; ext?: boolean }
 
 type Prog = (Chord | null)[];
 const each = (p: Prog, f: (c: Chord) => Chord): Prog => p.map((c) => (c ? f(c) : null));
@@ -81,22 +81,25 @@ const DEFS: Def[] = [
 
 const key = (p: Prog) => p.map((c) => (c ? c.root + c.quality : '-')).join(' ');
 
-/** The moves for a progression, SAME first; never two that sound alike. */
+/** The moves for a progression, SAME first; never two that sound alike.
+ *  Below WILD, a move that is WILD's own or connects badly with the source
+ *  comes after the rest, marked `ext`: HARMONY reaches it, a take never
+ *  opens on it (user, 2026-10-29: extended ranges for experimental flavour). */
 export function harmonicMoves(src: Prog, k: Key, wild: boolean): MoveResult[] {
     const out: MoveResult[] = [];
+    const ext: MoveResult[] = [];
     const seen = new Set<string>();
     for (const d of DEFS) {
-        if (d.wild && !wild) continue;
         const chords = d.map(src, k);
         const pedal = d.pedal ? k.tonic : null;
         const id = key(chords) + (pedal ?? '');
         if (seen.has(id)) continue;
-        if (d.name !== 'SAME' && !wild && sectionConnection(src, chords) < DROP_BELOW) continue;
         if (d.name !== 'SAME' && chords.every((c, i) => sameChord(c, src[i])) && pedal === null) continue;
         seen.add(id);
-        out.push({ name: d.name, dist: d.dist, chords, pedal });
+        const far = !wild && (d.wild || (d.name !== 'SAME' && sectionConnection(src, chords) < DROP_BELOW));
+        (far ? ext : out).push({ name: d.name, dist: d.dist, chords, pedal, ...(far ? { ext: true } : {}) });
     }
-    return out;
+    return [...out, ...ext];
 }
 
 /** Whether a chord tolerates pitch classes another track pins (a drone, a

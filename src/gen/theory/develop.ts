@@ -22,7 +22,7 @@ export function periodOf(p: Prog): number {
  *  says which developments the scene allows. Fewer moves than blocks:
  *  the list goes round. */
 export function journey(base: Prog, blocks: number, k: Key, wild: boolean, from = 0, ok: (p: Prog) => boolean = () => true): Prog {
-    const moves = harmonicMoves(base, k, wild).filter((m) => m.name !== 'SAME' && ok(m.chords));
+    const moves = harmonicMoves(base, k, wild).filter((m) => m.name !== 'SAME' && !m.ext && ok(m.chords));
     const out: Prog = [...base];
     for (let b = 1; b < blocks; b++) out.push(...(moves.length ? moves[(from + b - 1) % moves.length].chords : base));
     return out;

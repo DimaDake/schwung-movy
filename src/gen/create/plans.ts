@@ -7,9 +7,10 @@
 
 import type { GenCtx } from '../analysis/context.js';
 import { fits, sample } from '../plan.js';
+import { chordOf } from '../theory/pc.js';
 import { diatonic } from '../theory/roman.js';
 import { journey } from '../theory/develop.js';
-import type { Chord, HarmonyPlan } from '../types.js';
+import type { Chord, HarmonyPlan, Quality } from '../types.js';
 
 type Prog = [string, number[], boolean?];   // name, degrees (0 = tonic), sevenths
 
@@ -20,6 +21,31 @@ const MAJOR: Prog[] = [
 const MINOR: Prog[] = [
     ['MINOR LOOP', [0, 5, 2, 6]], ['DESCENT', [0, 6, 5, 4]], ['CADENCE', [0, 3, 4, 0]], ['DRIFT', [0, 6, 5, 6]],
     ['VAMP', [0, 3, 0, 3]], ['EPIC', [0, 5, 6, 0]], ['DEEP', [0, 3, 6, 2], true], ['TONIC', [0, 0, 0, 0]],
+];
+
+/* More of the loops in the key (user, 2026-10-29: "more harmony options for
+ * chord generators on new scenes"), after the first eight so those keep
+ * their positions. Diatonic, so a take may open on them. */
+const MORE_MAJOR: Prog[] = [
+    ['SENSITIVE', [5, 3, 0, 4]], ['ROYAL ROAD', [3, 4, 2, 5]], ['TURNAROUND', [0, 5, 1, 4]], ['SWAY', [0, 1, 0, 1], true],
+];
+const MORE_MINOR: Prog[] = [
+    ['HOOK', [0, 2, 6, 5]], ['RISE', [5, 6, 0, 0]], ['SHUTTLE', [0, 6, 0, 6]], ['FALL', [0, 4, 5, 2], true],
+];
+
+/* Borrowed and modal colour, chords from outside the key as semitones over
+ * the tonic: the end of the knob, for a more experimental take (user: "extended
+ * ranges add more experimental flavor"). Never drawn for a take. */
+type Colour = [string, [number, Quality][]];
+const COLOUR_MAJOR: Colour[] = [
+    ['MIXOLYDIAN', [[0, 'maj'], [10, 'maj'], [5, 'maj'], [0, 'maj']]], ['MINOR IV', [[0, 'maj'], [5, 'maj'], [5, 'min'], [0, 'maj']]],
+    ['BVI BVII', [[8, 'maj'], [10, 'maj'], [0, 'maj'], [0, 'maj']]], ['BACKDOOR', [[2, 'm7'], [10, '7'], [0, 'maj7'], [0, 'maj7']]],
+    ['LYDIAN', [[0, 'maj'], [2, 'maj'], [0, 'maj'], [2, 'maj']]],
+];
+const COLOUR_MINOR: Colour[] = [
+    ['DORIAN', [[0, 'min'], [5, 'maj'], [0, 'min'], [5, 'maj']]], ['PHRYGIAN', [[0, 'min'], [1, 'maj'], [0, 'min'], [1, 'maj']]],
+    ['HARMONIC', [[0, 'min'], [5, 'min'], [7, 'maj'], [0, 'min']]], ['ANDALUSIAN', [[0, 'min'], [10, 'maj'], [8, 'maj'], [7, 'maj']]],
+    ['PICARDY', [[0, 'min'], [5, 'min'], [10, 'maj'], [0, 'maj']]],
 ];
 
 /* Eight-chord progressions, for clips with eight chord slots or more. */
@@ -50,20 +76,24 @@ export function createPlans(ctx: GenCtx, n: number): HarmonyPlan[] {
     const wild = ctx.input.level === 'WILD';
     const cands: [string, (Chord | null)[]][] = [];
     const short = ctx.key.minor ? MINOR : MAJOR;
+    const more = ctx.key.minor ? MORE_MINOR : MORE_MAJOR;
     for (const p of short) cands.push([p[0], degrees(ctx, p)]);
     if (long) {
         for (const p of short.filter((x) => x[0] !== 'TONIC')) cands.push([p[0] + '+DEV', journey(degrees(ctx, p), Math.ceil(slots / 4), ctx.key, wild)]);
         for (const p of ctx.key.minor ? LONG_MINOR : LONG_MAJOR) cands.push([p[0], degrees(ctx, p)]);
     }
+    for (const p of more) cands.push([p[0], degrees(ctx, p)]);
+    const basic = cands.length;
+    for (const [name, cs] of ctx.key.minor ? COLOUR_MINOR : COLOUR_MAJOR) cands.push([name, cs.map(([s, q]) => chordOf(ctx.key.tonic + s, q))]);
     const seen = new Set<string>();
     const out: HarmonyPlan[] = [];
-    for (const [name, prog] of cands) {
+    for (const [i, [name, prog]] of cands.entries()) {
         const base = lay(prog, n);
         const chords = ctx.freedom === 'partial' ? fits(ctx, base, 0) : base;
         const k = id(chords);
         if (seen.has(k)) continue;
         seen.add(k);
-        out.push({ chords, sit: 'asis', pedal: null, label: ctx.freedom === 'partial' ? name + ' FIT' : name });
+        out.push({ chords, sit: 'asis', pedal: null, label: ctx.freedom === 'partial' ? name + ' FIT' : name, ...(i >= basic ? { ext: true } : {}) });
     }
     return out;
 }

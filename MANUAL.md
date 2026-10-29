@@ -1959,6 +1959,7 @@ inside the usual range:
 | Knob | Positions (the takes in **bold**) |
 | --- | --- |
 | **REGISTER** (CHORDS, PAD, STABS) | DEEP, LOW-, **LOW**, **LOW+**, **MID**, **MID+**, **HIGH**, HIGH+, TOP. Each click opens the chord one inversion higher; it never goes under the band's bass, so with a bass playing the lowest positions meet. Every chord after the first is voiced for the whole loop at once, so the voices move as little as the VOICING allows and the last chord leads smoothly back into the first. |
+| **PATTERN** (CHORDS, STABS) | Over 100 positions, a map of every comp the part can play, numbered. Each named figure (quarters, offbeats, dub, house, tresillo, charleston, push, syncopated 16ths on CHORDS; offbeat, house, dotted, 3-3-2, push, sync, skank on STABS), the band's own accents when it has them, and Euclidean figures sit on it whole; each click from one adds or drops a single hit, from one hit a bar up to ten (eight on STABS) and back down through the next figure. So a slow turn morphs the comp hit by hit, and a full sweep passes through every figure. A take always lands on a named figure. |
 | **REGISTER** (RIFF, COUNTER) | BASS, **LOW**, **MID**, **HIGH**, TOP, an octave apart. |
 | **VOICING** (CHORDS, PAD, STABS) | How each chord is stacked, from thin to rich: DUO (two notes), **TRIAD**, **OPEN** (a triad spread past the octave), **SHELL** (root, 3rd, 7th), **ADD9**, **SEVENTH**, **DROP 2** and DROP 3 (a seventh chord with one voice dropped an octave), **SPREAD** (root, 5th, 10th, 7th: wide and cinematic), JAZZ (rootless, 3-5-7-9 or 7-9-3-5), QUARTAL (stacked fourths that still hold the chord's 3rd) and NEO SOUL (root, 7th, 10th, 5th, 9th). A 9th, 6th or 11th is added only where the key and the chord allow it; a seventh chord in the progression keeps its seventh in every style. |
 | **MOTION** (PAD) | How the voicings move from chord to chord. **SMOOTH** moves the fewest semitones; **TOP LINE** keeps the top note as still as it can; **CLIMB**, **ARCH** and FALL lift, arch or lower the top over the clip; PARALLEL slides one chord shape along the progression, as house and dub chords do. |
@@ -1968,34 +1969,43 @@ inside the usual range:
 | **RANGE** (MELODY) | 4TH, **5TH**, **7TH**, **OCTAVE**, **10TH**, **12TH**, 2 OCT. |
 
 HARMONY picks the progression in a free scene; every option of one run starts
-on the same one, so the parts go together. A progression changes chord once a
-bar on clips of four bars or more. From eight bars up there is room for more
-than four chords, so HARMONY also offers each progression **+DEV**, where every
-repeat of its four chords answers with a different development (a sequence, a
-Riemann turn, a substitute, a borrowed chord), and eight-chord progressions
-(CIRCLE, CANON, ROAD in major; CIRCLE, LAMENT, SAGA in minor). A long clip
-opens on one of these. In a scene whose chords are already
-set, HARMONY has nothing to change and its knob stays dark.
+on the same one, so the parts go together, and turning it changes only the
+option on screen. A progression changes chord once a bar on clips of four bars
+or more. In a scene whose chords are already set, HARMONY has nothing to
+change and its knob stays dark.
 
-After those come more loops in the key — SENSITIVE (vi IV I V), ROYAL ROAD
-(IV V iii vi), TURNAROUND (I vi ii V) and SWAY (I ii, with sevenths) in
-major; HOOK (i III VII VI), RISE (VI VII i), SHUTTLE (i VII) and FALL
-(i v VI III, with sevenths) in minor — which a run may open on too. At the
-end of the knob is colour borrowed from outside the key, for a more
-experimental take: MIXOLYDIAN (I bVII IV I), MINOR IV (I IV iv I), BVI BVII,
-BACKDOOR (ii7 bVII7 Imaj7) and LYDIAN (I II) in major; DORIAN (i IV),
-PHRYGIAN (i bII), HARMONIC (i iv V i), ANDALUSIAN (i VII VI V) and PICARDY
-(i iv VII I) in minor. A run never opens on these; you turn to them. Lines
-written over a borrowed chord borrow with it: under a bVII in C they walk Bb,
-not B.
+HARMONY is a map of up to 128 progressions, laid out so that **each click
+changes one chord** (now and then two) rather than the whole song. It is grown
+from named loops:
 
-Every run also offers three **WALK** progressions, new each run: four chords
-(eight on a long clip) drawn in the key from how pop and rock songs move from
-chord to chord (I to IV or V, IV back to I, V to vi, ii to V), and always leading back
-to where they started. A run may open on one. At the very end of the knob,
-**SEC DOM** and **WALK SEC** turn one chord of POP (or the first walk) into the
-dominant seventh of the chord after it (I E7 Am F in C), and **TRITONE**
-slides into the cadence by a semitone instead (Dm7 Db7 Cmaj7).
+- POP, DOO-WOP, CADENCE, II-V-I, VAMP, LIFT, SOUL and TONIC in major; MINOR
+  LOOP, DESCENT, CADENCE, DRIFT, VAMP, EPIC, DEEP and TONIC in minor;
+- SENSITIVE (vi IV I V), ROYAL ROAD (IV V iii vi), TURNAROUND (I vi ii V) and
+  SWAY (I ii, with sevenths) in major; HOOK (i III VII VI), RISE (VI VII i),
+  SHUTTLE (i VII) and FALL (i v VI III, with sevenths) in minor;
+- three **WALK**s, new each run: four chords (eight on a long clip) drawn in
+  the key from how pop and rock songs move from chord to chord (I to IV or V,
+  IV back to I, V to vi, ii to V), always leading back to where they started;
+- from eight bars up, each loop **+DEV**, where every repeat of its four chords
+  answers with a different development (a sequence, a Riemann turn, a
+  substitute, a borrowed chord), and the eight-chord CIRCLE, CANON and ROAD
+  (CIRCLE, LAMENT and SAGA in minor).
+
+Between them sit loops derived the way tonal harmony is (labelled after the
+loop they came from, `POP+3`): one chord swapped for a substitute a third away
+(I for vi, IV for ii), or for the dominant or subdominant of the chord after
+it. The likeliest, by how songs actually move, are kept. A run opens only on a
+named loop.
+
+At the end of the knob is colour from outside the key, for a more
+experimental take, again a chord at a time: a secondary dominant (I E7 Am F in
+C), its tritone substitute sliding in by a semitone (Dm7 Db7 Cmaj7), a chord
+borrowed from the parallel mode (iv, bVI, bVII), and the borrowed loops
+MIXOLYDIAN (I bVII IV I), MINOR IV (I IV iv I), BVI BVII, BACKDOOR
+(ii7 bVII7 Imaj7) and LYDIAN (I II) in major; DORIAN (i IV), PHRYGIAN (i bII),
+HARMONIC (i iv V i), ANDALUSIAN (i VII VI V) and PICARDY (i iv VII I) in
+minor. A run never opens on these; you turn to them. Lines written over a
+borrowed chord borrow with it: under a bVII in C they walk Bb, not B.
 
 Knobs 5 to 8 are the same on every New Clip option, and every run starts them
 somewhere new, so the rhythm and the note lengths change from run to run too:

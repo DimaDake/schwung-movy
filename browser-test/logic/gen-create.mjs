@@ -109,7 +109,8 @@ ok('vary_moves_rhythm_and_lengths', new Set(moved.map((n) => n.gate)).size > new
 const pad = by('n-pad');
 const strum = G.regenerate(fr, pad, (() => { const w = G.defaults(pad, fr); w[G.knobIndex(pad, 'STRUM')] = 4; return w; })());
 ok('strum_spreads_a_chords_voices', G.toEvents(strum).every((e) => e.voices.length < 2 || e.voices[e.voices.length - 1].dt >= 8));
-const sw = (() => { const w = at('PATTERN', 1); w[G.knobIndex(cp, 'SWING')] = 6; return G.regenerate(fr, cp, w); })();
+const offbeats = G.patternMap(fr, G.COMP_MAP).steps.findIndex((s) => s.join() === '2,6,10,14');
+const sw = (() => { const w = at('PATTERN', offbeats); w[G.knobIndex(cp, 'SWING')] = 6; return G.regenerate(fr, cp, w); })();
 ok('swing_moves_off_8ths_on_an_8ths_part', sw.some((n) => n.tick % (4 * G.TPS) === 2 * G.TPS + 14));
 
 /* Defaults differ in length and rhythm, between parts and between runs. */

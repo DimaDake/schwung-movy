@@ -127,11 +127,11 @@ const style = (l) => G.STYLE_LABELS.indexOf(l);
     ok('a_harp_never_rings_into_the_next_chord', harp.length > 0 && harp.every((n) => n.tick + n.gate <= nextStart(owner(n.tick)) + 1));
 }
 
-/* Walks: new loops per run, in the key, closing on themselves; colour plans
- * put a dominant seventh a fifth (or with TRITONE a semitone) above the chord
- * it leads to, at the end of HARMONY. */
+/* Walks: new loops per run, in the key, closing on themselves; the grammar's
+ * colour puts a dominant seventh a fifth (or its tritone substitute a
+ * semitone) above the chord it leads to, at the end of HARMONY. */
 {
-    const walksOf = (n) => G.prepare(createInput(false, 'empty', n)).plans.filter((p) => p.label.startsWith('WALK ') && !p.ext);
+    const walksOf = (n) => G.prepare(createInput(false, 'empty', n)).plans.filter((p) => p.label.startsWith('WALK ') && !p.ext && p.seed !== undefined);
     const a = walksOf(1);
     ok('a_new_scene_offers_three_walks', a.length === 3 && a.every((p) => !p.ext));
     eq('walks_are_seeded_by_the_run', a.map((p) => p.chords.map(G.chordName).join()).join('|'), walksOf(1).map((p) => p.chords.map(G.chordName).join()).join('|'));
@@ -139,10 +139,10 @@ const style = (l) => G.STYLE_LABELS.indexOf(l);
     ok('walks_differ_from_run_to_run', runs.size >= 4);
     const ctx = G.prepare(createInput(false, 'empty', 1));
     ok('walks_stay_in_the_key', a.every((p) => p.chords.every((c) => G.degreeOf(c, ctx.key) >= 0)));
-    const plan = (l) => ctx.plans.find((p) => p.label === l);
     const leads = (p, by) => p.chords.some((c, i) => c && c.quality === '7'
         && (c.root - p.chords[(i + 1) % p.chords.length].root + 12) % 12 === by);
-    ok('sec_dom_is_a_secondary_dominant', plan('SEC DOM')?.ext && leads(plan('SEC DOM'), 7));
-    ok('tritone_slides_in_by_a_semitone', plan('TRITONE')?.ext && leads(plan('TRITONE'), 1));
+    const colour = ctx.plans.filter((p) => p.ext);
+    ok('harmony_map_has_secondary_dominants_as_colour', colour.some((p) => leads(p, 7)) && ctx.plans.filter((p) => !p.ext).every((p) => p.chords.every((c) => !c || c.pcs.every((x) => G.inKey(x, ctx.key)))));
+    ok('harmony_map_has_tritone_substitutes_as_colour', colour.some((p) => leads(p, 1)));
 }
 }

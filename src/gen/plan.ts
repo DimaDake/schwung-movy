@@ -35,9 +35,21 @@ export function fits(ctx: GenCtx, base: (Chord | null)[], rank: number): (Chord 
     });
 }
 
+/** Runs a staged build to its end. */
+export function drain<T>(g: Generator<void, T, void>): T {
+    for (;;) { const r = g.next(); if (r.done) return r.value; }
+}
+
+/** HARMONY's plans, a stage at a time: New Clip's map is several ticks of
+ *  work (create/harmony-map.ts), which a request spreads over its ticks. */
+export function* planSteps(ctx: GenCtx): Generator<void, HarmonyPlan[], void> {
+    if (ctx.task === 'create') return yield* createPlans(ctx, targetHalves(ctx));
+    return buildPlans(ctx);
+}
+
 export function buildPlans(ctx: GenCtx): HarmonyPlan[] {
     const n = targetHalves(ctx);
-    if (ctx.task === 'create') return createPlans(ctx, n);
+    if (ctx.task === 'create') return drain(createPlans(ctx, n));
     if (ctx.task !== 'variation') return [{ chords: sample(ctx.fixedChords, n), sit: 'asis', pedal: null, label: 'SCENE' }];
     if (ctx.freedom === 'locked') {
         const chords = sample(ctx.fixedChords, n);

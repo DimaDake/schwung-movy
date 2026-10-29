@@ -10,7 +10,8 @@ import { fits, sample } from '../plan.js';
 import { chordOf } from '../theory/pc.js';
 import { diatonic } from '../theory/roman.js';
 import { journey } from '../theory/develop.js';
-import { secondary, walks } from '../theory/walk.js';
+import { walks } from '../theory/walk.js';
+import { grow, type Loop, order } from './harmony-map.js';
 import { mix, rng } from '../rng.js';
 import type { Chord, HarmonyPlan, Quality } from '../types.js';
 
@@ -67,46 +68,48 @@ function lay(slots: (Chord | null)[], n: number): (Chord | null)[] {
     return Array.from({ length: n }, (_, h) => slots[Math.floor(h / per) % slots.length]);
 }
 
-/** The plans for a New Clip: each progression as a loop; on a clip with more
- *  slots than four, each also DEVELOPED (every repeat a different answer,
- *  theory/develop.ts) and the eight-chord ones, so a long clip may move
- *  through more than four chords. */
-export function createPlans(ctx: GenCtx, n: number): HarmonyPlan[] {
+/* HARMONY's positions: up to this many loops on the map. */
+const MAP = 128;
+
+/** The plans for a New Clip: the named loops, walks and colour as seeds;
+ *  on a clip with more slots than four, each also DEVELOPED (every repeat a
+ *  different answer, theory/develop.ts) and the eight-chord ones. The grammar
+ *  derives more from them, and the whole lot is laid on a line where each
+ *  next loop is one chord from the last (create/harmony-map.ts). */
+export function* createPlans(ctx: GenCtx, n: number): Generator<void, HarmonyPlan[], void> {
     if (ctx.freedom === 'locked') return [{ chords: sample(ctx.fixedChords, n), sit: 'asis', pedal: null, label: 'SCENE' }];
     const slots = Math.ceil(n / perOf(n));
     const long = slots > 4;
     const wild = ctx.input.level === 'WILD';
-    const cands: [string, (Chord | null)[]][] = [];
+    const seeds: Loop[] = [];
+    const seed = (label: string, chords: (Chord | null)[], ext = false) => seeds.push({ label, chords, ext, seed: seeds.length });
     const short = ctx.key.minor ? MINOR : MAJOR;
-    const more = ctx.key.minor ? MORE_MINOR : MORE_MAJOR;
-    for (const p of short) cands.push([p[0], degrees(ctx, p)]);
+    for (const p of short) seed(p[0], degrees(ctx, p));
     if (long) {
-        for (const p of short.filter((x) => x[0] !== 'TONIC')) cands.push([p[0] + '+DEV', journey(degrees(ctx, p), Math.ceil(slots / 4), ctx.key, wild)]);
-        for (const p of ctx.key.minor ? LONG_MINOR : LONG_MAJOR) cands.push([p[0], degrees(ctx, p)]);
+        for (const p of short.filter((x) => x[0] !== 'TONIC')) seed(p[0] + '+DEV', journey(degrees(ctx, p), Math.ceil(slots / 4), ctx.key, wild));
+        for (const p of ctx.key.minor ? LONG_MINOR : LONG_MAJOR) seed(p[0], degrees(ctx, p));
     }
-    for (const p of more) cands.push([p[0], degrees(ctx, p)]);
+    for (const p of ctx.key.minor ? MORE_MINOR : MORE_MAJOR) seed(p[0], degrees(ctx, p));
     /* Walks (theory/walk.ts): new loops every run, eight chords long where
      * the clip has room. */
-    const walked = walks(ctx.key, long ? 8 : 4, 3, rng(mix(ctx.seed, 0x3A1C)), 1);
-    walked.forEach((w, i) => cands.push(['WALK ' + (i + 1), w]));
-    const basic = cands.length;
-    for (const [name, cs] of ctx.key.minor ? COLOUR_MINOR : COLOUR_MAJOR) cands.push([name, cs.map(([s, q]) => chordOf(ctx.key.tonic + s, q))]);
-    /* Chromatic colour on a loop: a secondary dominant into one of its
-     * chords, and the tritone substitute into a cadence. */
-    cands.push(['SEC DOM', secondary(degrees(ctx, short[0]), ctx.key, false)]);
-    if (walked.length) cands.push(['WALK SEC', secondary(walked[0], ctx.key, false)]);
-    cands.push(['TRITONE', secondary(degrees(ctx, ctx.key.minor ? short[2] : short[3]), ctx.key, true)]);
+    walks(ctx.key, long ? 8 : 4, 3, rng(mix(ctx.seed, 0x3A1C)), 1).forEach((w, i) => seed('WALK ' + (i + 1), w));
+    for (const [name, cs] of ctx.key.minor ? COLOUR_MINOR : COLOUR_MAJOR) seed(name, cs.map(([s, q]) => chordOf(ctx.key.tonic + s, q)), true);
     const seen = new Set<string>();
     const out: HarmonyPlan[] = [];
-    for (const [i, [name, prog]] of cands.entries()) {
-        const base = lay(prog, n);
+    /* Not `for (… of yield* …)`: QuickJS 2025-04-26 (the device's) throws
+     * "stack underflow" on it (browser-test/source-rules.mjs bans it). */
+    const grown = yield* grow(seeds, ctx.key, MAP);
+    for (const l of grown) {
+        const base = lay(l.chords, n);
         const chords = ctx.freedom === 'partial' ? fits(ctx, base, 0) : base;
         const k = id(chords);
         if (seen.has(k)) continue;
         seen.add(k);
-        out.push({ chords, sit: 'asis', pedal: null, label: ctx.freedom === 'partial' ? name + ' FIT' : name, ...(i >= basic ? { ext: true } : {}) });
+        out.push({ chords, sit: 'asis', pedal: null, label: ctx.freedom === 'partial' ? l.label + ' FIT' : l.label,
+            ...(l.ext ? { ext: true } : {}), ...(l.seed !== undefined ? { seed: l.seed } : {}) });
     }
-    return out;
+    yield;
+    return yield* order(out, ctx.key, perOf(n));
 }
 
 /** How many different chords a plan moves through. */

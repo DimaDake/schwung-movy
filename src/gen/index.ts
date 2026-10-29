@@ -46,3 +46,8 @@ export * from './theory/voicing-styles.js';
 export * from './theory/voicings.js';
 export * from './theory/walk.js';
 export { STRUMS, strumEvent } from './shape/strum.js';
+export * from './shape/rhythm-map.js';
+export { patternMap, patternAt } from './create/pattern-knob.js';
+export { chordDistance, derive, distanceMatrix, plausible, progDistance } from './theory/grammar.js';
+export { grow, line, order } from './create/harmony-map.js';
+export { COMP_MAP, STAB_MAP } from './presets/new-chords.js';

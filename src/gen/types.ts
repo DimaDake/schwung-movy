@@ -46,6 +46,9 @@ export interface HarmonyPlan {
     label: string;
     /** Past the usual range: reached by turning HARMONY, never drawn for a take. */
     ext?: boolean;
+    /** A named loop's place among them, which a take's opening is drawn by;
+     *  absent on one the grammar derived (on the map, never a take's opening). */
+    seed?: number;
 }
 
 export type PresetClass = 'close' | 'rhythm' | 'exp';

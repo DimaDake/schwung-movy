@@ -5,7 +5,8 @@
 
 import type { GenCtx } from '../analysis/context.js';
 import { chordFloor } from '../shape/band-pitch.js';
-import { choice, CHORD_REGISTER as R, chordUnder, everyBar, HARMONY, place, register, velAt, withBand } from '../create/common.js';
+import { choice, CHORD_REGISTER as R, chordUnder, everyBar, HARMONY, place, register, velAt } from '../create/common.js';
+import { patternAt, patternKnob, type PatternSpec } from '../create/pattern-knob.js';
 import type { Preset } from '../preset.js';
 import { withFeel } from '../create/feel.js';
 import { rng } from '../rng.js';
@@ -46,17 +47,17 @@ function strike(out: Note[], tick: number, pitches: number[], gate: number, vel:
  * take is drawn from `pool`. */
 const VOICING = (pool: number[]) => choice('VOICING', STYLE_LABELS, pool);
 
-const BAND = 'WITH BAND';
-const comp = (ctx: GenCtx, v: number, figs: [string, number[]][]) =>
-    (v >= figs.length ? withBand(ctx, 5, figs[0][1]) : figs[v][1]);
+/* PATTERN walks a map through the part's figures (create/pattern-knob.ts);
+ * a take lands on one of them whole, or on the band's accents (the last). */
+export const COMP_MAP: PatternSpec = { figs: COMPS.map((x) => x[1]), lo: 1, hi: 10, band: 5 };
 
 export const CHORDS: Preset = withFeel({
     id: 'n-chords', name: 'CHORDS', task: 'create', drum: false, cls: 'close',
-    knobs: [choice('PATTERN', [...COMPS.map((x) => x[0]), BAND], [1, 0, 3, 4, 5, 7, 8]), VOICING([1, 1, 2, 4, 5, 6]),
+    knobs: [patternKnob(COMP_MAP, [1, 0, 3, 4, 5, 7, 8]), VOICING([1, 1, 2, 4, 5, 6]),
         register([R.LOW, R.LOW + 1, R.MID, R.MID, R.MID + 1, R.HIGH]), HARMONY],
     generate: (ctx, v, seed) => {
         const r = rng(seed);
-        const steps = comp(ctx, v[0], COMPS);
+        const steps = patternAt(ctx, COMP_MAP, v[0]);
         const hits: [number, number][] = [];
         everyBar(ctx, steps, (s, bar) => {
             const i = steps.indexOf(s - bar * 16);
@@ -96,14 +97,15 @@ export const PAD: Preset = withFeel({
 
 const STAB_FIGS: [string, number[]][] = [['OFFBEAT', [2, 6, 10, 14]], ['HOUSE', [3, 6, 11, 14]], ['DOTTED', [0, 3, 6, 9, 12]],
     ['3-3-2', [0, 3, 6]], ['PUSH', [0, 7, 10]], ['SYNC', [2, 5, 8, 11, 14]], ['SKANK', [4, 12]]];
+export const STAB_MAP: PatternSpec = { figs: STAB_FIGS.map((x) => x[1]), lo: 1, hi: 8, band: 5 };
 
 export const STABS: Preset = withFeel({
     id: 'n-stabs', name: 'STABS', task: 'create', drum: false, cls: 'rhythm',
-    knobs: [choice('PATTERN', [...STAB_FIGS.map((x) => x[0]), BAND], [0, 1, 2, 3, 4, 5, 7]), VOICING([1, 0, 1, 2, 3, 4]),
+    knobs: [patternKnob(STAB_MAP, [0, 1, 2, 3, 4, 5, 7]), VOICING([1, 0, 1, 2, 3, 4]),
         register([R.MID, R.MID, R.MID + 1, R.HIGH]), HARMONY],
     generate: (ctx, v, seed) => {
         const r = rng(seed);
-        const steps = comp(ctx, v[0], STAB_FIGS);
+        const steps = patternAt(ctx, STAB_MAP, v[0]);
         const ticks: number[] = [];
         everyBar(ctx, steps, (s) => { ticks.push(place(ctx, s)); });
         const vs = voicePart(ctx, v[3], ticks, v[1], v[2]);

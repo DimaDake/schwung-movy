@@ -151,11 +151,13 @@ _log('\nTest: generator quality fixes');
 {
     const ctx = G.prepare(createInput(false, 'empty', 1));
     const labels = ctx.plans.map((p) => p.label);
-    eq('harmony_first_eight_keep_their_positions', labels.slice(0, 8).join(), 'POP,DOO-WOP,CADENCE,II-V-I,VAMP,LIFT,SOUL,TONIC');
-    ok('harmony_new_scene_offers_sixteen_or_more', labels.length >= 16 && labels.includes('ROYAL ROAD') && labels.includes('MIXOLYDIAN'));
+    eq('harmony_map_opens_on_the_first_named_loop', labels[0], 'POP');
+    ok('harmony_map_holds_every_named_loop', ['POP', 'DOO-WOP', 'CADENCE', 'II-V-I', 'VAMP', 'LIFT', 'SOUL', 'TONIC', 'ROYAL ROAD', 'MIXOLYDIAN', 'BACKDOOR']
+        .every((l) => labels.includes(l)));
+    ok('harmony_new_scene_offers_a_hundred_or_more', labels.length >= 100 && labels.length <= 128);
     ok('harmony_colour_sits_at_the_end', ctx.plans.findIndex((p) => p.ext) > 0 && ctx.plans.slice(ctx.plans.findIndex((p) => p.ext)).every((p) => p.ext));
     const takes = new Set(Array.from({ length: 40 }, (_, n) => { const c = G.prepare(createInput(false, 'empty', n)); return c.plans[G.runPlan(c)]; }));
-    ok('harmony_a_take_never_opens_on_colour', [...takes].every((p) => !p.ext) && [...takes].some((p) => ['SENSITIVE', 'ROYAL ROAD', 'TURNAROUND', 'SWAY'].includes(p.label)));
+    ok('harmony_a_take_never_opens_on_colour', [...takes].every((p) => !p.ext && p.seed !== undefined) && [...takes].some((p) => ['SENSITIVE', 'ROYAL ROAD', 'TURNAROUND', 'SWAY'].includes(p.label)));
     const moves = G.harmonicMoves([G.diatonic(ctx.key, 0), G.diatonic(ctx.key, 4)], ctx.key, false);
     ok('variation_wild_moves_come_last_not_dropped', moves.at(-1).ext === true && moves.some((m) => m.name === 'MEDIANT'));
     /* Under a borrowed bVII (Bb in C) a line walks Bb, not B. */

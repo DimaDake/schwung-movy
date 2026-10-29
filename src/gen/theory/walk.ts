@@ -5,12 +5,11 @@
  * is a loop, so it must also lead from its last chord back to its first. The
  * temperature flattens the weights: a hotter walk takes the rarer turns.
  * Chromatic colour on top of a walk — a secondary dominant or its tritone
- * substitute before a chord — sits at the end of HARMONY (create/plans.ts). */
+ * substitute before a chord — is the grammar's (theory/grammar.ts). */
 
 import type { Rng } from '../rng.js';
 import type { Chord, Key } from '../types.js';
-import { chordOf } from './pc.js';
-import { degreeOf, diatonic } from './roman.js';
+import { diatonic } from './roman.js';
 
 /* Row: from a degree (0 = tonic), the weight of each next degree. */
 const MAJOR = [
@@ -34,6 +33,9 @@ const MINOR = [
 ];
 
 const table = (k: Key) => (k.minor ? MINOR : MAJOR);
+
+/** How often degree `a` goes to degree `b` in the corpus (0 = never). */
+export const transition = (k: Key, a: number, b: number): number => table(k)[a]?.[b] ?? 0;
 
 function draw(r: Rng, w: number[], temp: number): number {
     const ws = w.map((x) => (x > 0 ? Math.pow(x, 1 / temp) : 0));
@@ -65,36 +67,6 @@ export function walks(k: Key, len: number, count: number, r: Rng, temp: number):
         if (!d || seen.has(d.join())) continue;
         seen.add(d.join());
         out.push(d.map((x) => diatonic(k, x)));
-    }
-    return out;
-}
-
-/** In each four chords, the one that best becomes the dominant seventh of
- *  the chord after it (V7/vi before vi), or with `tritone` that dominant's
- *  substitute a tritone away, which slides in by a semitone. Never the
- *  tonic, nor before the tonic or a diminished chord, so the loop keeps its
- *  home; the best is the one that keeps most of its own notes. */
-export function secondary(p: (Chord | null)[], k: Key, tritone: boolean): (Chord | null)[] {
-    const out = [...p];
-    const sub = (i: number): Chord | null => {
-        const c = p[i], next = p[(i + 1) % p.length];
-        if (!c || !next) return null;
-        /* The tritone substitute is at home before the tonic (bII7-I); a plain
-         * secondary dominant there would only be V7 again. */
-        const home = degreeOf(next, k) === 0;
-        if (degreeOf(c, k) === 0 || degreeOf(next, k) < 0 || (home && !tritone) || next.quality === 'dim') return null;
-        const d = chordOf(next.root + (tritone ? 1 : 7), '7');
-        return d.root === c.root && d.quality === c.quality ? null : d;
-    };
-    for (let at = 0; at < p.length; at += 4) {
-        let best = -1, keep = -1;
-        for (let i = at; i < Math.min(p.length, at + 4); i++) {
-            const d = sub(i);
-            if (!d) continue;
-            const kept = d.pcs.filter((x) => p[i]!.pcs.includes(x)).length;
-            if (kept > keep) { keep = kept; best = i; }
-        }
-        if (best >= 0) out[best] = sub(best);
     }
     return out;
 }

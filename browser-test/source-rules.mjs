@@ -167,6 +167,19 @@ const gateCount = gates.reduce((sum, g) => sum + Number(/\((\d+)\)$/.exec(g)[1])
 ok(`at most ${TYPEOF_GATES_MAX} typeof gates on host globals`, gateCount <= TYPEOF_GATES_MAX,
    gateCount ? `${gateCount}: ${gates.join('; ')} — call the global through src/platform/standalone.ts` : 'none');
 
+/* ── Rule 5: no `for (… of yield* …)` ──────────────────────────────────────
+ *
+ * QuickJS 2025-04-26, the engine movy-host runs ui.js in, throws
+ * "InternalError: stack underflow" on a for-of over a `yield*` expression;
+ * node runs it fine, so every local suite passed while the device would have
+ * thrown in New Clip's staged harmony (create/plans.ts). Assign it first.
+ */
+log('\nRule 5: no for-of over a yield* expression (QuickJS stack underflow)');
+
+const OF_YIELD = /\bof\s*\(?\s*yield\s*\*/g;
+const ofYield = walk(SRC).filter((f) => OF_YIELD.test(stripComments(readFileSync(f, 'utf8')))).map((f) => relative('.', f));
+ok('no for-of over yield*', ofYield.length === 0, ofYield.length ? `${ofYield.join('; ')} — const x = yield* …; for (… of x)` : 'none');
+
 console.log(fails === 0
     ? '\n\x1b[32m\x1b[1mALL SOURCE RULES PASSED\x1b[0m'
     : `\n\x1b[31m\x1b[1m${fails} SOURCE RULE(S) FAILED\x1b[0m`);

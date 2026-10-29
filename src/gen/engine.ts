@@ -4,7 +4,7 @@
 
 import { buildCtx, type GenCtx } from './analysis/context.js';
 import { generateOption } from './generate.js';
-import { buildPlans } from './plan.js';
+import { buildPlans, planSteps } from './plan.js';
 import { defaults, type Preset, serves } from './preset.js';
 import { PRESETS } from './presets/catalog.js';
 import { type Candidate, scoreCandidate, selectOptions } from './select.js';
@@ -19,7 +19,9 @@ export interface Pick { preset: Preset; knobs: number[]; notes: Note[] }
 /* One take per slice: a preset's default (`which` -1) or one of its two
  * variants (variant.ts) — one generation per UI tick, however many takes. */
 export interface Take { preset: Preset; which: number }
-export interface Request { ctx: GenCtx; todo: Take[]; done: Candidate[]; dropped: string[] }
+export interface Request { ctx: GenCtx; todo: Take[]; done: Candidate[]; dropped: string[];
+    /** The harmony still being built, a stage a tick, before the first take. */
+    plans?: Generator<void, GenCtx['plans'], void> }
 
 export function prepare(input: GenInput): GenCtx {
     const ctx = buildCtx(input);
@@ -28,14 +30,22 @@ export function prepare(input: GenInput): GenCtx {
 }
 
 export function startRequest(input: GenInput): Request {
-    const ctx = prepare(input);
-    const takes = ctx.task === 'create' ? Array.from({ length: TAKES }, (_, i) => i) : [-1, 0, 1];
+    const ctx = buildCtx(input);
+    /* Only New Clip's map is staged; a preset's `accepts` may read the others' plans. */
+    const staged = ctx.task === 'create';
+    if (!staged) ctx.plans = buildPlans(ctx);
+    const takes = staged ? Array.from({ length: TAKES }, (_, i) => i) : [-1, 0, 1];
     return { ctx, todo: PRESETS.filter((p) => serves(p, ctx)).flatMap((preset) => takes.map((which) => ({ preset, which }))),
-        done: [], dropped: [] };
+        done: [], dropped: [], ...(staged ? { plans: planSteps(ctx) } : {}) };
 }
 
-/** Runs one take; true when none is left. */
+/** Runs one stage of the harmony, or one take; true when none is left. */
 export function stepRequest(req: Request): boolean {
+    if (req.plans) {
+        const r = req.plans.next();
+        if (r.done) { req.ctx.plans = r.value; req.plans = undefined; }
+        return false;
+    }
     const t = req.todo.shift();
     if (!t) return true;
     const p = t.preset;

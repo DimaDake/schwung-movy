@@ -540,7 +540,23 @@ _origLog('\nTest: generator slice cost');
         while (req.todo.length) { t = performance.now(); G.stepRequest(req); cstep = Math.max(cstep, performance.now() - t); }
         for (const p of G.finishRequest(req)) { t = performance.now(); G.regenerate(req.ctx, p.preset, p.knobs); cregen = Math.max(cregen, performance.now() - t); }
     }
+    /* A free scene builds HARMONY's map (create/harmony-map.ts) a stage a
+     * slice before its first take: no stage may cost a take's slice. */
+    let hstage = 0, fstep = 0;
+    for (let rep = 0; rep < 8; rep++) {
+        if (rep === 2) { hstage = 0; fstep = 0; }
+        const req = G.startRequest(F.createInput(false, 'empty', rep, { len: rep % 2 ? 256 : 32 }));
+        let t;
+        while (req.todo.length) {
+            const staging = !!req.plans;
+            t = performance.now(); G.stepRequest(req);
+            const d = performance.now() - t;
+            if (staging) hstage = Math.max(hstage, d); else fstep = Math.max(fstep, d);
+        }
+    }
     G.forgetOptions();
+    check('generator: one New Clip harmony stage (free scene)', Number(hstage.toFixed(2)), 3, 'ms');
+    check('generator: one New Clip take slice (free scene)', Number(fstep.toFixed(2)), 15, 'ms');
     check('generator: one New Clip take slice (16 bars)', Number(cstep.toFixed(2)), 15, 'ms');
     check('generator: a New Clip knob turn (16 bars)', Number(cregen.toFixed(2)), 12, 'ms');
 }

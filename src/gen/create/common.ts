@@ -34,7 +34,10 @@ export const SEED: KnobDef = { name: 'SEED', steps: () => 100, def: () => 0, lab
 export const runPlan = (ctx: GenCtx): number => {
     const n = ctx.plans.length;
     if (n <= 1) return 0;
-    const ok = ctx.plans.map((p, i) => i).filter((i) => !ctx.plans[i].label.startsWith('TONIC') && !ctx.plans[i].ext);
+    /* Drawn among the named loops in their own order, not the map's, so the
+     * map's layout never changes which loop a run opens on. */
+    const ok = ctx.plans.map((p, i) => i).filter((i) => !ctx.plans[i].label.startsWith('TONIC') && !ctx.plans[i].ext && ctx.plans[i].seed !== undefined)
+        .sort((a, b) => ctx.plans[a].seed! - ctx.plans[b].seed!);
     const rich = ok.filter((i) => uniqueChords(ctx.plans[i]) > 4);
     const pool = rich.length ? rich : ok;
     return pool[ctx.seed % pool.length];

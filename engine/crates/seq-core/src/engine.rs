@@ -441,6 +441,19 @@ impl Engine {
             self.tracks[track].clips[slot].clear();
             self.drop_rec_notes_for(track, slot);
             self.free_unused_lanes(track);
+            /* A deleted clip has nothing left to play, so it stops now rather
+             * than at the bar (Live does the same). Left pointing at the empty
+             * slot, the grid kept painting it as a playing/queued clip in the
+             * track's colour. service_tick flushes the gates of a track it no
+             * longer services, so nothing hangs. */
+            let t = &mut self.tracks[track];
+            if t.playing_slot == Some(slot) {
+                t.playing_slot = None;
+                t.pending_stop = false;
+            }
+            if t.queued_slot == Some(slot) {
+                t.queued_slot = None;
+            }
         }
     }
 
@@ -4741,6 +4754,22 @@ mod tests {
         let t0 = sess.split(',').next().unwrap();
         // slots 0 and 1 exist → bitmap 0x03; playing 0; queued -; selected 0.
         assert_eq!(t0, "03.0.-.0");
+    }
+
+    #[test]
+    fn deleting_the_playing_clip_stops_its_track() {
+        let mut e = engine();
+        e.tracks[0].clips[0].toggle_step(0, &[(60, 100)]);
+        e.tracks[0].clips[1].toggle_step(0, &[(62, 100)]);
+        e.launch_clip(0, 0);          // stopped → plays at once, transport starts
+        e.launch_clip(0, 1);          // running → slot 1 queued
+        e.delete_clip_at(0, 0);
+        let t0 = |e: &Engine| e.status().split("sess=").nth(1).unwrap()
+            .split(',').next().unwrap().to_string();
+        // The emptied slot is neither playing nor painted as such.
+        assert_eq!(t0(&e), "02.-.1.1");
+        e.delete_clip_at(0, 1);
+        assert_eq!(t0(&e), "00.-.-.1", "a deleted clip cannot stay queued");
     }
 
     #[test]

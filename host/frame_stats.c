@@ -11,12 +11,14 @@ static uint32_t g_work_avg_us, g_work_max_us, g_pump_min_us, g_gap_max_us, g_lat
 static uint64_t g_win_sum, g_win_max, g_win_pump_min = UINT64_MAX, g_win_gap_max, g_last;
 static int g_win_n;
 
-void frame_stats_transfer(uint64_t before_us, uint64_t after_us) {
-    if (frame_late(g_last, after_us)) __atomic_add_fetch(&g_late, 1, __ATOMIC_RELAXED);
+int frame_stats_transfer(uint64_t before_us, uint64_t after_us) {
+    int late = frame_late(g_last, after_us);
+    if (late) __atomic_add_fetch(&g_late, 1, __ATOMIC_RELAXED);
     uint64_t pump = after_us - before_us, gap = g_last ? after_us - g_last : MH_FRAME_US;
     g_last = after_us;
     if (pump < g_win_pump_min) g_win_pump_min = pump;
     if (gap > g_win_gap_max) g_win_gap_max = gap;
+    return late;
 }
 
 void frame_stats_work(uint64_t us) {

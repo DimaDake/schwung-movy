@@ -133,6 +133,15 @@ static void set_one(void *ctx, const char *key, const char *val) {
 const char *engine_slowest_key(void) { return g_slow_key; }
 uint64_t engine_slowest_us(void) { return g_slow_us; }
 
+int engine_block_detail(char *buf, int cap) {
+    buf[0] = '\0';
+    if (!g_api || !g_inst) return 0;
+    int n = get_one(NULL, "blockprof", buf, cap);
+    if (n < 0 || n >= cap) { buf[0] = '\0'; return 0; }
+    buf[n] = '\0';
+    return n;
+}
+
 static void service_one(pq_req_t *r);
 
 /* Called inside engine_frame_begin/end, so g_api cannot change under it. */

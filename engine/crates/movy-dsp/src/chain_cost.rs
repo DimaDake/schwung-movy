@@ -49,6 +49,10 @@ pub struct CostMeter {
     ui_peak_ns: Vec<u32>,
     ui_wall_ns: u64,
     ui_wall_peak_ns: u32,
+    /// This block alone, per chain, for the glitch line (`block_prof`). Every
+    /// other figure here is a mean or a held peak, and neither can say which
+    /// chain was expensive in the one block that ran late.
+    last_ns: Vec<u64>,
 }
 
 impl CostMeter {
@@ -66,6 +70,7 @@ impl CostMeter {
             ui_peak_ns: vec![0; chains],
             ui_wall_ns: 0,
             ui_wall_peak_ns: 0,
+            last_ns: vec![0; chains],
         }
     }
 
@@ -87,6 +92,7 @@ impl CostMeter {
         self.this_block_ns += dt;
         let Some(slot) = self.ns.get_mut(chain) else { return };
         *slot += dt;
+        self.last_ns[chain] += dt;
         // 1/16 exponential mean: settles in a couple of hundred blocks (well
         // under a second) yet ignores the single expensive block a note-on
         // causes, which would otherwise flip the plan on every keypress.
@@ -126,6 +132,17 @@ impl CostMeter {
         if capped > self.ui_wall_peak_ns {
             self.ui_wall_peak_ns = capped;
         }
+    }
+
+    /// Open one block: forget the last one's per-chain costs. Called on every
+    /// block, unlike `end_block`, so a chain that stopped rendering reads 0.
+    pub fn begin_block(&mut self) {
+        self.last_ns.fill(0);
+    }
+
+    /// This block's cost per chain, in nanoseconds.
+    pub fn last_ns(&self) -> &[u64] {
+        &self.last_ns
     }
 
     /// Close one block. Only called when at least one chain rendered, so the

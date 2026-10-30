@@ -189,8 +189,21 @@ shortest SPI call (`pump_min_us`, boundary wait + ~400 µs DMA) and the longest
 gap, and `late_frames` (`frame_clock.h`). An overrun never skips a frame: the
 transfer runs late and the block rate falls (serial render of an over-budget
 set ran at 293.7 Hz, not 344.5), so lateness is a gap more than 1/16 frame
-past 2902 µs. The slow-frame log (`audio: slow frame`, > 10 ms) splits the
-frame into render and params and names the slowest param, not the last.
+past 2902 µs.
+
+**The glitch recorder** (`glitch.h`, 2026-10-30) logs every frame whose work
+passes 2502 µs (the frame less the ~400 µs DMA), the point past which the next
+transfer is late. That is an audible click. `audio: glitch frame` splits the
+frame into io (display, input), params (naming the slowest, not the last),
+render and post (status publish, mirror, output copy), then appends the engine's own account of that block (`blockprof`,
+`block_prof.rs`): seq, set, load, mod, plan, render, mix, send and master in
+µs, and `top=`, the three costliest chains as `slot:module:µs`. A late transfer
+that no over-budget frame explains gets `audio: late transfer … with no
+over-budget work`: lateness from outside the audio thread's work. Lines are
+capped at 20 a second, and the next line counts any dropped (`+N unlogged`). It
+replaced the slow-frame log, which fired only past 10 ms, so every click
+shorter than that went unrecorded. `scripts/glitch-report.sh` pulls the lines
+from the box and ranks the causes.
 
 ## Measured on device (2026-10-10, schwung 1.7.3)
 

@@ -521,8 +521,9 @@ How to read three of these:
   `on_midi` — both hosts call it before that frame's render — to the first
   loud block on its chain. One block on both.
 
-**Chain-load slow frames** (movy-host logs any audio frame over 10 ms with the
-last param it serviced). Over a day of device runs: 157 slow frames, all at an
+**Chain-load slow frames** (movy-host logged any audio frame over 10 ms with the
+last param it serviced; since 2026-10-30 the glitch recorder logs every frame
+over budget instead, see `docs/standalone/movy-host.md`). Over a day of device runs: 157 slow frames, all at an
 open — three per movy-host start (`padmap`, `mfx`, `chains`, 35–40 ms each:
 the dlopen-ing chain loads released in those frames) and four `chain_host`
 loads (17 ms). None mid-session: a module swap did not produce one. The shim

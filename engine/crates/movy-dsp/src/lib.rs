@@ -3,6 +3,7 @@
 //! seq-core; this layer only parses params, drains engine events into host
 //! MIDI sends, and renders the metronome click.
 
+mod block_prof;
 mod click;
 mod pad_latency;
 mod ffi;
@@ -631,6 +632,9 @@ impl Instance {
 
     fn get_param(&mut self, key: &str) -> Option<String> {
         match key {
+            /* movy-host's glitch line (host/glitch.c), read on the audio thread
+             * right after a block that ran over budget — never on a good one. */
+            "blockprof" => Some(self.chains.block_report()),
             /* A pure read: movy-host reads this after every block to publish
              * its snapshot (WP10). `unop` is the latest group the engine found
              * changed nothing; the UI pushed it optimistically and retracts it
@@ -881,6 +885,8 @@ impl Instance {
     }
 
     fn render(&mut self, out_audio: &mut [i16]) {
+        use block_prof::Stage;
+        let mut lap = std::time::Instant::now();
         self.blocks += 1;
         self.engine
             .advance_block((out_audio.len() / 2) as u32, &mut self.out);
@@ -893,11 +899,14 @@ impl Instance {
         move_info::publish_metronome(self.engine.metronome);
         self.drain_out();
         self.click.render(out_audio);
+        self.chains.prof.lap(Stage::Seq, &mut lap);
         /* At most ONE queued module load per block. This is the blocking call —
          * it dlopens — and releasing one per callback is what stops a twelve
          * chain restore stacking into a single block (see load_queue). */
         self.service_set();
+        self.chains.prof.lap(Stage::Set, &mut lap);
         self.chains.service_loads();
+        self.chains.prof.lap(Stage::Load, &mut lap);
         self.chains.render(out_audio);
         let chains = &self.chains;
         self.padlat.after_render(self.blocks, |c| chains.peak(c));
@@ -1397,6 +1406,20 @@ mod tests {
         inst.chains.request_load(1, "synth", "obxd");
         let busy = inst.get_param("status").expect("status");
         assert!(busy.contains(" chpend=2"), "queued loads are reported: {busy}");
+    }
+
+    /* movy-host's glitch line reads this after an over-budget block, and greps
+     * nothing: the stage names are what a person reads in debug.log. */
+    #[test]
+    fn blockprof_names_every_stage_and_the_chains() {
+        let mut inst = Instance::new();
+        let mut out = vec![0i16; 256];
+        inst.render(&mut out);
+        let p = inst.get_param("blockprof").expect("blockprof");
+        for stage in ["seq=", "set=", "load=", "mod=", "plan=", "render=", "mix=", "send=", "master=", "top="] {
+            assert!(p.contains(stage), "{stage} missing: {p}");
+        }
+        assert!(p.ends_with("top=-"), "no chain rendered, none named: {p}");
     }
 
     /* The page rides the poll the UI already makes. A dedicated get_param would

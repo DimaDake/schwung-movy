@@ -6,8 +6,9 @@
 
 #include <stdint.h>
 
-/* Audio thread: around each SPI transfer, then the frame's work after it. */
-void frame_stats_transfer(uint64_t before_us, uint64_t after_us);
+/* Audio thread: around each SPI transfer, then the frame's work after it.
+ * The transfer answers whether it ran late (frame_clock.h). */
+int frame_stats_transfer(uint64_t before_us, uint64_t after_us);
 void frame_stats_work(uint64_t us);
 
 /* The work per frame, avg and max over the last window (us). */

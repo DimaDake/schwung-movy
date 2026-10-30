@@ -281,7 +281,7 @@ vdev-gated too, since the vdev runs the pinned C and JS natively.
   hardware MIDI path, uid/permission and file ownership (root vs ableton),
   store install/update paths, Move round trips;
 - **anything the work itself says only hardware can prove**, or a vdev-only
-  red/green you cannot explain. When in doubt, use the device.
+  red/green you cannot explain.
 
 **A bug reported on the device is not, by itself, a device-tier trigger.**
 What decides is what the FIX touches, not where the bug was seen. A fix in
@@ -293,17 +293,28 @@ could not be reproduced off the device.
 
 Say in the commit message which tier gated the change.
 
-**A scoped device run is enough when the change's reach is known.** If the
-device tier is required but only a few scenarios can possibly exercise what
-changed, run those plus `smoke` instead of all ~9 minutes:
-`npm run test:device -- --scenario power,smoke`. It suits a change confined to
-one feature whose scenario is obvious (a power-off path → `power`; send
-routing → `sends`). Name the scenarios in the commit message (`device tier:
-power,smoke`) and say why the rest cannot be affected. **Run the full tier
-anyway** for every release, a schwung version move, anything shared by all
-scenarios (the audio thread, SPI, `midi_in`/`midi_out`, the harness or
-fixture, launch/hold), and whenever you cannot say which scenarios reach the
-change. A scoped run does not replace the vdev tier, which still runs in full.
+**Run only what the change can actually break (user, 2026-10-30).** Size
+the gate to the risk, not to the file list above. The list says *which tier*
+can see a change; it does not demand the whole tier.
+
+- **Device tier: scoped by default.** Run `smoke` plus the scenarios that
+  exercise the changed behaviour (`npm run test:device -- --scenario
+  power,smoke`; a power-off path → `power`, send routing → `sends`, frame
+  stats → `testbus`). A change to a file every scenario passes through (the
+  audio thread, SPI, `midi_in`/`midi_out`) still only needs a scoped run when
+  the change cannot alter what those paths do: added logging or counters, a
+  measurement, a branch that runs only on an error path. `smoke` proves the
+  path still runs. Name the scenarios in the commit message (`device tier:
+  testbus,smoke`) with one line on why that is enough.
+- **The full device tier** is for releases, schwung version moves, changes to
+  the harness or fixture themselves, and changes that really do alter shared
+  behaviour (timing, scheduling, routing, launch/hold).
+- **The vdev tier** is not needed when a scoped device run already covers the
+  change. Run it when the change reaches integration behaviour (MIDI routing,
+  IPC, display, persistence) and no device run is planned.
+- **Code changes with no integration surface** (pure engine logic, a script, a
+  log line covered by a unit test) need only the local suites, plus `smoke` if
+  the change ships in movy-host or dsp.so.
 
 **Deploy at the end of every code change, even a vdev-gated one.** Once the
 gate is green: `ssh -o ConnectTimeout=3 ableton@move.local true &&

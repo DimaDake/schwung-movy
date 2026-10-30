@@ -9,6 +9,7 @@
 //! not a silent chain render. This is enforced by `renders_nothing_when_empty`
 //! rather than by inspection.
 
+use crate::block_prof::{BlockProf, Stage};
 use crate::chain_cost::CostMeter;
 use crate::chain_doc;
 use crate::chain_digest::{ChainDigest, STIMULUS};
@@ -165,6 +166,8 @@ pub struct ChainSlots {
     /// the largest single chain, and nothing else here can see a distribution —
     /// `peaks` says a chain is audible, not what it cost.
     cost: CostMeter,
+    /// The last block, stage by stage, for movy-host's glitch line.
+    pub prof: BlockProf,
     /// The helper threads, spawned once by `configure` — off the audio thread,
     /// which is the only place a spawn may happen. `None` until movy actually
     /// hosts chains, and the render falls back to serial while it is (see
@@ -277,6 +280,7 @@ impl ChainSlots {
             generation: 0,
             active_last_block: 0,
             cost: CostMeter::new(MOVY_CHAINS),
+            prof: BlockProf::default(),
             pool: None,
             planner: Planner::new(MOVY_CHAINS, LANES),
             lanes: (0..LANES).map(|_| Vec::with_capacity(MOVY_CHAINS)).collect(),
@@ -1235,6 +1239,8 @@ impl ChainSlots {
             return;
         }
         let frames = out.len().min(SCRATCH_SAMPLES);
+        self.cost.begin_block();
+        let mut lap = std::time::Instant::now();
 
         // Struck BEFORE the render, so the window's first block is the note-on's
         // own block in both arms. Doing it from a socket write instead would put
@@ -1283,6 +1289,7 @@ impl ChainSlots {
                 self.work[i] = w;
             }
         }
+        self.prof.lap(Stage::Mod, &mut lap);
 
         /* One chain a block is asked whether its module declares per-pad sends
          * — a synth swap is a plain param write, so there is no event to hang
@@ -1307,6 +1314,7 @@ impl ChainSlots {
             self.maybe_replan();
             self.arm_colocated();
         }
+        self.prof.lap(Stage::Plan, &mut lap);
         let t0 = self.cost.start();
         let active = if self.parallel_ready() {
             self.render_parallel(frames)
@@ -1318,6 +1326,8 @@ impl ChainSlots {
          * it follows. Two calls would report two smaller peaks and a capacity
          * bar that never sees the real block. */
         let render_ns = t0.elapsed().as_nanos() as u64;
+        self.prof.set(Stage::Render, render_ns);
+        lap = std::time::Instant::now();
         // A chain that did no work this block cost nothing, and its mean has to
         // say so. Serial `continue`s past it and parallel skips it above, so
         // without this the mean simply freezes — see the fold in
@@ -1393,6 +1403,7 @@ impl ChainSlots {
         /* After every chain has rendered AND mixed: a bus is a sum of tracks,
          * so it cannot exist until they are all in. Serial on the audio thread
          * by construction — there is no join left to hide behind (design §5). */
+        self.prof.lap(Stage::Mix, &mut lap);
         let t_send = self.cost.start();
         let plan = self.sends.take_plan();
         let mut send_ran = false;
@@ -1465,6 +1476,10 @@ impl ChainSlots {
         self.master.run(&mut out[..frames]);
         let master_ns = t_master.elapsed().as_nanos() as u64;
         self.master.add_cost(master_ns);
+        // Elapsed, not `send_ns`: that one reads 0 when no bus ran, and a send
+        // phase that was slow at deciding so is still where the block went.
+        self.prof.set(Stage::Send, t_master.duration_since(t_send).as_nanos() as u64);
+        self.prof.set(Stage::Master, master_ns);
         self.close_block(render_ns, send_ns + master_ns, active, true);
         self.active_last_block = active;
         // The run releases what it struck: a device must never be left holding
@@ -2064,6 +2079,18 @@ impl ChainSlots {
         self.cost.ui_reset();
         self.sends.ui_reset();
         self.master.ui_reset();
+    }
+
+    /// What the last block spent, for the glitch line (`block_prof`).
+    pub fn block_report(&self) -> String {
+        let costs = self.cost.last_ns();
+        let chains: Vec<(usize, &str, u64)> = (0..MOVY_CHAINS)
+            .map(|i| {
+                let synth = self.desired.get(i).into_iter().flatten().find(|(c, _)| c == "synth").map_or("", |(_, m)| m.as_str());
+                (i, synth, costs[i])
+            })
+            .collect();
+        self.prof.report(&chains)
     }
 
     /// Per-chain render cost since the last call — see `CostMeter::report`.

@@ -26,6 +26,21 @@ clip count and the dot marks the open Set.
 A deleted Set goes to a Trash folder on the Move, from where it can still be
 recovered by hand. A Set with no clips and no instruments is not kept.
 
+## Work from older Movy versions and Schwung
+
+Up to version 0.35, Movy ran on top of Move's own software and kept its work
+inside Move's Sets: the sequence and the tracks' instruments, alongside the
+Schwung instruments and master effects saved with each Move Set.
+
+The first time a current Movy opens, it copies that Movy and Schwung work into
+its own Sets list, one Set for each Move Set that had any, named after it. Move's
+own clips, instruments and samples are **not** copied: Movy plays Schwung modules
+only. Nothing is moved or deleted; Move and Schwung still open their Sets as before.
+
+**Settings → MIGRATE FROM MOVE** does this copy again. It replaces only the Sets
+that came from this copy (each one's current state is kept in its
+[backups](#backups) first) and never touches Sets you made in Movy.
+
 ## Saving
 
 There is no Save button. Movy saves the open Set a few seconds after you stop

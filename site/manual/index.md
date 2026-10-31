@@ -4,24 +4,6 @@ This manual explains how to use Movy, chapter by chapter. If you are new, read
 [The panel](panel.md) and work through the [Quick start](quick-start.md). After
 that, each chapter stands on its own.
 
-## I want to…
-
-| Task | Where |
-| --- | --- |
-| Load a synth or a preset | [Tracks & sounds → The Chain view](sounds.md#the-chain-view), [Presets](sounds.md#presets) |
-| Choose a key or pad layout | [Playing the pads → Pad layouts](playing.md#pad-layouts) |
-| Record a part | [The sequencer → Recording live](sequencer.md#recording-live) |
-| Program drums on the steps | [The sequencer → Entering steps](sequencer.md#entering-steps) |
-| Change a sound on one step only | [Locks, automation & LFOs → Parameter locks](modulation.md#parameter-locks) |
-| Make a part vary from bar to bar | [The Step page: probability and conditions](modulation.md#the-step-page) |
-| Reach tracks 5–16 | [Session view → Tracks and groups](session.md#tracks-and-groups) |
-| Mute or solo a track or drum voice | [Mute and solo](session.md#mute-and-solo), [Muting one drum voice](playing.md#muting-one-drum-voice) |
-| Arrange scenes into a song | [Session view → Songs](session.md#songs) |
-| Share one reverb between tracks | [Mixing & effects → Send effects](mixing.md#send-effects) |
-| Get new ideas for a part | [Generators](generators.md) |
-| Get back an earlier version of a Set | [Sets → Backups](sets.md#backups) |
-| Get out when Movy stops responding | [Settings & system → Opening and leaving](system.md#opening-and-leaving-movy) |
-
 ## Contents
 
 <!-- contents -->

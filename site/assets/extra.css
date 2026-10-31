@@ -42,3 +42,9 @@ figcaption { font-size: 0.8rem; opacity: 0.8; }
 .install-builder .ib-picks .md-button, .install-builder .ib-picks button { padding: 0.15rem 0.6rem; font-size: 0.7rem; margin: 0 0.2rem; }
 .install-builder .ib-note { font-size: 0.75rem; opacity: 0.75; margin: 0.5rem 0 0; }
 .install-builder .ib-cols label { margin: 0.35rem 0; }
+
+/* The manual's generated table of contents: chapters in columns. */
+.manual-contents > ol { columns: 2 20rem; column-gap: 2.5rem; margin-top: 0; }
+.manual-contents > ol > li { break-inside: avoid; margin-bottom: 0.8rem; }
+.manual-contents ul { margin-top: 0.2rem !important; }
+.manual-contents ul li { margin-bottom: 0 !important; }

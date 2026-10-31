@@ -32,9 +32,13 @@ theme:
     - search.highlight
     - content.code.copy
     - toc.follow
+    - toc.integrate
 
 extra_css:
   - assets/extra.css
+
+hooks:
+  - scripts/site/contents_hook.py
 
 extra_javascript:
   - assets/install-builder.js

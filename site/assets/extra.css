@@ -38,3 +38,7 @@ figcaption { font-size: 0.8rem; opacity: 0.8; }
 .ib-out { display: flex; gap: 0.6rem; align-items: flex-start; }
 .ib-out pre { flex: 1; margin: 0; white-space: pre-wrap; word-break: break-all; }
 .ib-out .md-button { margin: 0; }
+.install-builder .ib-desc { display: block; margin-left: 1.6rem; font-size: 0.75rem; opacity: 0.7; line-height: 1.3; }
+.install-builder .ib-picks .md-button, .install-builder .ib-picks button { padding: 0.15rem 0.6rem; font-size: 0.7rem; margin: 0 0.2rem; }
+.install-builder .ib-note { font-size: 0.75rem; opacity: 0.75; margin: 0.5rem 0 0; }
+.install-builder .ib-cols label { margin: 0.35rem 0; }

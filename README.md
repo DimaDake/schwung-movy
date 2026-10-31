@@ -44,7 +44,7 @@ On a Move connected to your Wi-Fi, one command installs Schwung (the version
 Movy is tested with), Movy and a few sounds, and makes the Move start in Movy:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/DimaDake/schwung-movy/main/scripts/install-movy.sh | sh -s -- --modules dexed,obxd,mrdrums,mverb,tapedelay
+curl -fsSL https://raw.githubusercontent.com/DimaDake/schwung-movy/main/scripts/install-movy.sh | sh -s -- --modules dexed,obxd,hera,hush1,8w8,9w9,dr32,dragonfly-hall,tapedelay
 ```
 
 Pick your options with the **[command builder](https://dimadake.github.io/schwung-movy/install/)**,

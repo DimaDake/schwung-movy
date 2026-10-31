@@ -29,27 +29,9 @@ Choose what you want, then copy the command into a terminal and press Enter.
 </fieldset>
 <fieldset>
 <legend>Sounds to install</legend>
-<div class="ib-cols">
-<div>
-<strong>Synths</strong>
-<label><input type="checkbox" name="module" value="dexed" checked> Dexed: FM synth</label>
-<label><input type="checkbox" name="module" value="obxd" checked> OB-Xd: analog-style synth</label>
-<label><input type="checkbox" name="module" value="plaits"> Plaits: macro oscillator</label>
-<label><input type="checkbox" name="module" value="surge"> Surge XT: hybrid synth</label>
-</div>
-<div>
-<strong>Drums</strong>
-<label><input type="checkbox" name="module" value="mrdrums" checked> MrDrums: sample drums</label>
-<label><input type="checkbox" name="module" value="simian"> SIMIAN: drum synth</label>
-<label><input type="checkbox" name="module" value="dr32"> DrumRack32: Move's kits, 32 pads</label>
-</div>
-<div>
-<strong>Effects</strong>
-<label><input type="checkbox" name="module" value="mverb" checked> MVerb: plate reverb</label>
-<label><input type="checkbox" name="module" value="dragonfly-hall"> Dragonfly Hall: hall reverb</label>
-<label><input type="checkbox" name="module" value="tapedelay" checked> TapeDelay: tape delay</label>
-</div>
-</div>
+<p class="ib-picks">A starter kit is ticked. <button class="md-button" data-pick="rec">Recommended</button> <button class="md-button" data-pick="none">None</button> <button class="md-button" data-pick="all">All</button></p>
+<div id="ib-modules" class="ib-cols"></div>
+<p class="ib-note">Every sound here works without extra files. More are in Schwung Manager → Modules any time.</p>
 </fieldset>
 <fieldset>
 <legend>Schwung version</legend>
@@ -64,7 +46,7 @@ Choose what you want, then copy the command into a terminal and press Enter.
 </fieldset>
 </form>
 
-<div class="ib-out"><pre><code id="ib-command">curl -fsSL https://raw.githubusercontent.com/DimaDake/schwung-movy/main/scripts/install-movy.sh | sh -s -- --modules dexed,obxd,mrdrums,mverb,tapedelay</code></pre><button id="ib-copy" class="md-button md-button--primary">Copy</button></div>
+<div class="ib-out"><pre><code id="ib-command">curl -fsSL https://raw.githubusercontent.com/DimaDake/schwung-movy/main/scripts/install-movy.sh | sh -s -- --modules dexed,obxd,hera,hush1,8w8,9w9,dr32,dragonfly-hall,tapedelay</code></pre><button id="ib-copy" class="md-button md-button--primary">Copy</button></div>
 
 **What the command does:**
 

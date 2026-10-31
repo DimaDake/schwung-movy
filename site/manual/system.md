@@ -36,7 +36,6 @@ open a row, **Back** to close. The line at the bottom explains the selected row.
 | **CLICK VOLUME** | How loud the metronome and count-in are. Turn **knob 1**: 0 dB to +11 dB. Kept for this Move, not per Set. |
 | **GENERATORS** | How bold the [generators](generators.md#how-bold-settings-generators) are: SAFE, BALANCED, WILD (knob 1). |
 | **BACKUPS** | Older versions of the open Set (see [Backups](sets.md#backups)). |
-| **MIGRATE FROM MOVE** | Copy your Move Sets into Movy's list again (see [Your Move Sets](sets.md#your-move-sets)). Click once to arm (`CONFIRM?`), again to run. Each replaced Set's previous state is kept in its backups; Sets you made in Movy are not touched. |
 
 ## The CPU meter
 

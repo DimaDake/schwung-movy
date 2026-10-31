@@ -2,7 +2,7 @@
 
 A first loop in ten minutes: a synth part, a drum part, a parameter lock and a
 second scene. You need at least one synth and one drum module installed (see
-[Install → Add some sounds](../install.md#3-add-some-sounds)).
+[Install](../install.md#install-with-one-command)).
 
 ## 1. Open Movy
 

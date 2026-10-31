@@ -36,6 +36,9 @@ theme:
 extra_css:
   - assets/extra.css
 
+extra_javascript:
+  - assets/install-builder.js
+
 markdown_extensions:
   - admonition
   - attr_list
@@ -71,3 +74,7 @@ nav:
       - Controls: reference/controls.md
       - Troubleshooting: reference/troubleshooting.md
       - About: reference/about.md
+
+validation:
+  anchors: warn
+  unrecognized_links: warn

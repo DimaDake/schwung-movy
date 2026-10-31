@@ -4,7 +4,7 @@
 
 Open Movy from Schwung's **Tools** menu (hold **Shift**, touch the **volume
 knob**, click the **jog**), or set the Move to start in Movy at power-on (see
-[Install → Open Movy](../install.md#4-open-movy)).
+[Install → Open Movy](../install.md#open-movy)).
 
 While Movy starts or a Set loads, the screen shows loading messages and the pads
 and knobs stay off until the instruments are ready. **Back** always works.

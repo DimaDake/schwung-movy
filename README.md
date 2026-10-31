@@ -40,16 +40,15 @@ Move's software and owns the whole device. The Move can also boot straight into 
 
 ## Install
 
-You need an Ableton Move with **[Schwung](https://github.com/charlesvestal/schwung) 1.6.0 or newer**.
-Then install Movy from **Schwung Manager** (<http://move.local:7700> → Modules →
-Movy → Install), or run:
+On a Move connected to your Wi-Fi, one command installs Schwung (the version
+Movy is tested with), Movy and a few sounds, and makes the Move start in Movy:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/DimaDake/schwung-movy/main/scripts/install-movy.sh | sh
+curl -fsSL https://raw.githubusercontent.com/DimaDake/schwung-movy/main/scripts/install-movy.sh | sh -s -- --modules dexed,obxd,mrdrums,mverb,tapedelay
 ```
 
-Full steps, including installing Schwung and some sounds:
-**[Install guide](https://dimadake.github.io/schwung-movy/install/)**.
+Pick your options with the **[command builder](https://dimadake.github.io/schwung-movy/install/)**,
+or install from Schwung Manager or the Schwung desktop installer instead.
 
 > **Early software.** Movy works on real hardware and is tested end to end, but
 > expect rough edges. Reproducible bug reports (numbered steps, what you expected,

@@ -28,3 +28,13 @@ figcaption { font-size: 0.8rem; opacity: 0.8; }
   -webkit-mask-image: var(--md-admonition-icon--move); mask-image: var(--md-admonition-icon--move);
 }
 :root { --md-admonition-icon--move: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 3h8v8H3zm10 0h8v8h-8zM3 13h8v8H3zm10 0h8v8h-8z"/></svg>'); }
+
+/* Install page command builder. */
+.install-builder fieldset { border: 1px solid var(--md-default-fg-color--lightest); border-radius: 8px; margin: 0 0 0.8rem; padding: 0.4rem 0.9rem 0.7rem; }
+.install-builder legend { font-weight: 700; padding: 0 0.3rem; }
+.install-builder label { display: block; margin: 0.25rem 0; cursor: pointer; }
+.install-builder input[type="text"] { margin-left: 0.4rem; padding: 0.1rem 0.3rem; border: 1px solid var(--md-default-fg-color--lighter); border-radius: 4px; background: transparent; color: inherit; font: inherit; }
+.ib-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 0.4rem 1.2rem; }
+.ib-out { display: flex; gap: 0.6rem; align-items: flex-start; }
+.ib-out pre { flex: 1; margin: 0; white-space: pre-wrap; word-break: break-all; }
+.ib-out .md-button { margin: 0; }

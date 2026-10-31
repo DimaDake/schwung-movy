@@ -2,7 +2,7 @@
 #include <string.h>
 #include <sys/stat.h>
 
-#include "features.h"
+#include "settings_file.h"
 
 void features_open(features_file_t *f, const char *path) {
     snprintf(f->path, sizeof f->path, "%s", path);

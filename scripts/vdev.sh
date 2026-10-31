@@ -132,8 +132,13 @@ tier() {
     local jobs="${1:-2}"; shift || true
     eval "$(env_for 0)"
     cd "$DIR"
-    node build/test-device.mjs >/dev/null && node build/device.mjs >/dev/null
-    ./scripts/build-dsp.sh >/dev/null && MOVY_VDEV=1 ./scripts/build-host.sh && ./scripts/build-schwung-js.sh
+    # One command per line: errexit ignores a failure inside an && list, which
+    # once let a broken movy-host build run the tier on yesterday's binary.
+    node build/test-device.mjs >/dev/null
+    node build/device.mjs >/dev/null
+    ./scripts/build-dsp.sh >/dev/null
+    MOVY_VDEV=1 ./scripts/build-host.sh
+    ./scripts/build-schwung-js.sh
     local shards
     shards=$(node -e '
         const fs = require("fs"), [jobs, dir] = [Number(process.argv[1]), process.argv[2]];

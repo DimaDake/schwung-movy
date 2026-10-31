@@ -16,8 +16,10 @@ deploy_host() {
     dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
     # MOVY_PREBUILT: scripts/vdev.sh tier built it once for all its shards.
     if [[ "${MOVY_PREBUILT:-0}" != 1 ]]; then
-        "$dir/scripts/build-host.sh"
-        "$dir/scripts/build-schwung-js.sh"
+        # `|| return`: callers source this without errexit, and a failed build
+        # must not ship the dist/movy-host an earlier build left behind.
+        "$dir/scripts/build-host.sh" || return 1
+        "$dir/scripts/build-schwung-js.sh" || return 1
     fi
     # The virtual device runs the fake-SPI build (scripts/vdev.sh, plan WP12).
     local dist="$dir/dist"

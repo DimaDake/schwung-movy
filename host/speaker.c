@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "features.h"
+#include "settings_file.h"
 #include "log.h"
 #include "shadow_constants.h"
 #include "speaker.h"

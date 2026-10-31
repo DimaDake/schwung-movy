@@ -2,8 +2,8 @@
  * (mirror.c's Mirror Display, speaker.c's Spkr EQ) take settings from it, and
  * the manager rewrites it whenever a toggle moves, so each poll is a stat()
  * and the file is read only when its mtime changed. */
-#ifndef MH_FEATURES_H
-#define MH_FEATURES_H
+#ifndef MH_SETTINGS_FILE_H
+#define MH_SETTINGS_FILE_H
 #include <stddef.h>
 #include <time.h>
 

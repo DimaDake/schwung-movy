@@ -7,7 +7,7 @@
 #include <unistd.h>
 
 #include "audio_live_shm.h"
-#include "features.h"
+#include "settings_file.h"
 #include "log.h"
 #include "mirror.h"
 #include "surface_live_shm.h"

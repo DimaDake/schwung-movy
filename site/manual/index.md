@@ -1,8 +1,8 @@
 # Manual
 
-This manual explains how to use Movy, chapter by chapter. If you are new, read
-[The panel](panel.md) and work through the [Quick start](quick-start.md). After
-that, each chapter stands on its own.
+This manual explains how to use Movy, chapter by chapter. If you are new, work
+through the [Quick start](quick-start.md) first. After that, each chapter stands
+on its own.
 
 ## Contents
 

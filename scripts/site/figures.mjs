@@ -25,19 +25,6 @@ export function figures(root) {
     const lit = { back: '#bbbbbb', session: '#777777', shift: '#777777', play: '#777777', rec: '#777777' };
 
     const f = {};
-    f['panel-overview'] = panel({
-        title: 'Move control surface with Movy', screen: shot('page_config_pad'), pads: keyPads,
-        steps: { 1: T1, 5: T1, 9: T1, 13: T1, 11: T1 }, leds: { ...lit, track1: T1, track2: trackLed(1), track3: trackLed(2), track4: trackLed(3) },
-        callouts: [
-            { n: 1, at: 'screen', dy: -40 }, { n: 2, at: 'knob1', dx: -24, dy: -26 }, { n: 3, at: 'volume', dx: 30, dy: -26 },
-            { n: 4, at: 'jog', dx: -50, dy: -34 }, { n: 5, at: 'back', dx: -26, dy: 26 }, { n: 6, at: 'session', dx: 26, dy: 26 },
-            { n: 7, at: 'track1', dy: -40 }, { n: 8, at: 'pad1_3', dx: 0, dy: 0 }, { n: 9, at: 'step1', dx: -18, dy: 26 },
-            { n: 10, at: 'play', dx: -26, dy: 24 }, { n: 11, at: 'rec', dx: 26, dy: 24 },
-            { n: 12, at: 'capture', dx: -24, dy: -22 }, { n: 13, at: 'loop', dx: -24, dy: -22 }, { n: 14, at: 'mute', dx: 24, dy: -22 },
-            { n: 15, at: 'delete', dx: -24, dy: -22 }, { n: 16, at: 'copy', dx: 24, dy: -22 }, { n: 17, at: 'undo', dx: -24, dy: -22 },
-            { n: 18, at: 'shift', dx: 24, dy: -22 }, { n: 19, at: 'up', dx: 26, dy: -14 }, { n: 20, at: 'right', dx: 22, dy: 18 },
-        ],
-    });
     f['panel-hero'] = panel({ title: 'Movy on Ableton Move', screen: shot('page_config_pad'), pads: keyPads,
         steps: { 1: T1, 5: T1, 9: T1, 13: T1, 11: T1, 3: GREEN }, leds: { ...lit, play: GREEN, track1: T1, track2: trackLed(1), track3: trackLed(2), track4: trackLed(3) } });
     f['gesture-sets'] = panel({ title: 'Shift + Step 1 opens Sets', screen: shot('sets_list'), held: ['shift', 'step1'],

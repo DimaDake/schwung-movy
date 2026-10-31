@@ -62,7 +62,6 @@ nav:
   - Install: install.md
   - Manual:
       - manual/index.md
-      - The panel: manual/panel.md
       - Quick start: manual/quick-start.md
       - Tracks & sounds: manual/sounds.md
       - Playing the pads: manual/playing.md

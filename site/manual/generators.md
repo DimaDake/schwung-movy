@@ -3,7 +3,7 @@
 Movy's generators offer **new takes on a clip**. Each one starts from what you
 played and listens to the rest of the scene: its chords, its groove, its
 accents. You always hear the options before anything is kept, next to your
-original. Everything runs on the Move itself.
+original.
 
 | Gesture | Generator | Starts from |
 | --- | --- | --- |

@@ -19,8 +19,8 @@ A reproducible bug report is the single most useful contribution. Please include
 3. **Which modules** were loaded in the chain (and on which track).
 4. Device/log details if you have them.
 
-See the [manual's troubleshooting section](MANUAL.md#9-troubleshooting--recovery)
-for how to grab logs.
+See [Troubleshooting → Reporting a bug](https://dimadake.github.io/schwung-movy/reference/troubleshooting/#reporting-a-bug)
+on the website, including how to record the screen with the web mirror.
 
 ---
 
@@ -55,6 +55,22 @@ Two hard architectural rules:
 ---
 
 ## Build, deploy, test
+
+You need **Node.js**, **Rust** and an **aarch64 cross-compiler**: `deploy.sh`
+builds the UI bundle (`ui.js`), the Rust engine (`dsp.so`) and `movy-host`, all
+cross-compiled for the Move's aarch64 Linux, and the local suites need a
+[schwung](https://github.com/charlesvestal/schwung) checkout at `../schwung`.
+
+```bash
+# Rust toolchain (skip if you already have cargo)
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+rustup target add aarch64-unknown-linux-gnu
+
+# aarch64 cross-compiler (macOS; on Linux: apt install gcc-aarch64-linux-gnu
+# and point engine/.cargo/config.toml's linker at it)
+brew tap messense/macos-cross-toolchains
+brew install aarch64-unknown-linux-gnu
+```
 
 ```bash
 npm install

@@ -26,16 +26,16 @@ first.
    alone. The `ping` handshake is what tells the UI a stale `dsp.so` is still
    loaded, so an unbumped version lets an old engine pass as current.
 
-4. **Regenerate the doc assets** and let git say what moved:
+4. **Regenerate the website images** and let git say what moved:
 
    ```bash
-   node scripts/make-doc-assets.mjs $(ls docs/assets/*.png | xargs -n1 basename | sed 's/\.png$//')
+   node scripts/site/build-assets.mjs
    ```
 
-   They go stale silently, and the count is not predictable from the diff — one
-   page's change has moved 47 of 105 assets before now. If the screenshot
-   baselines had zero drift, the assets cannot have drifted either (they are 4x
-   upscales of those same baselines) and this can be skipped.
+   Screens are 4x copies of the screenshot baselines and diagrams are generated
+   from the source, so `npm test` (`build-assets.mjs --check`) already fails
+   when they are stale. Read the manual chapters the release touches on the
+   website (`mkdocs serve`) — a changed gesture is a changed page.
 
 5. **Write the announcement** at `docs/discord-v<X.Y.Z>.md`. Discord caps a
    message at **2000 characters**; aim well under. `build-module.sh` refuses to

@@ -226,25 +226,33 @@ of the task, like tests and the commit. (Purely internal/dev-only changes —
 refactors, test infra, perf fixes with no visible effect — don't need doc
 edits.)
 
-Two docs, two granularities — read them before editing to match their voice:
+Two places, two granularities — read them before editing to match their voice:
 
-- **`MANUAL.md`** — the detailed how-to. Every feature/gesture gets explained in
-  its section, and every control goes in the **Controls reference** tables
-  (section 8). This is where a new gesture or page is documented step by step.
-- **`README.md`** — the short marketing overview. Only **headline** features get
-  a one-line bullet (in *Features*) with a single screenshot. Update the chain
-  description / feature list when a headline capability lands; skip minor tweaks.
+- **The website, `site/`** (MkDocs Material, `mkdocs.yml`, published to
+  <https://dimadake.github.io/schwung-movy/> by `.github/workflows/pages.yml`)
+  is the manual. A feature or gesture goes in its chapter under `site/manual/`;
+  every control also goes in `site/reference/controls.md`. Write it the way an
+  instrument manual does: what to press, what you see (a screenshot or
+  diagram), and one musical use only where it is real and obvious. **No design
+  rationale, internals, timing numbers or history** — those belong in `docs/`
+  and `plans/`. Behaviour that is identical to Move's own firmware goes inside a
+  collapsed `??? move "Works like Move: …"` block so a Move owner can skip it.
+- **`README.md`** — the short landing page. Only **headline** features get a
+  bullet. `MANUAL.md` is only a pointer to the website now; do not grow it back.
 
-**Screenshots:** add them where they help, reusing the **test baselines** so the
-docs stay in sync with what the UI actually renders. If a new UI state has no
-screenshot yet, add a `browser-test/screenshot.mjs` scene for it first. Then:
+**Images.** Screens are the **test baselines**, so the site shows what the UI
+really draws: reference `assets/screens/<baseline>.png` in a page (add a
+`browser-test/screenshot.mjs` scene first if the state has none). Diagrams —
+the Move panel with LED states, pad layouts, step-row maps, the signal flow —
+are generated from movy's own source in `scripts/site/figures.mjs`. Then:
 
 ```bash
-node scripts/make-doc-assets.mjs <baseline-name> [<baseline-name> ...]
-# 4× upscales browser-test/screenshots/baseline/<name>.png → docs/assets/<name>.png
+node scripts/site/build-assets.mjs          # exports referenced screens 4x + regenerates diagrams
+node scripts/site/build-assets.mjs --check  # (in npm test) fails if anything is stale
+pip install -r scripts/site/requirements.txt && mkdocs serve   # preview at :8000
 ```
 
-Reference the result as `docs/assets/<name>.png` in the Markdown.
+After `screenshot.mjs --update`, rerun `build-assets.mjs` or `npm test` fails.
 
 ---
 

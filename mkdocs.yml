@@ -1,0 +1,73 @@
+site_name: Movy
+site_description: A 16-track sequencer and Elektron-style knob UI for Ableton Move, built on Schwung.
+site_url: https://dimadake.github.io/schwung-movy/
+repo_url: https://github.com/DimaDake/schwung-movy
+repo_name: DimaDake/schwung-movy
+edit_uri: edit/main/site/
+docs_dir: site
+site_dir: .site-build
+copyright: Movy is MIT licensed. Ableton and Move are trademarks of Ableton AG; Movy is not affiliated with Ableton.
+
+theme:
+  name: material
+  logo: assets/logo.svg
+  favicon: assets/logo.svg
+  palette:
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: amber
+      toggle: { icon: material/weather-sunny, name: Light mode }
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: black
+      accent: deep orange
+      toggle: { icon: material/weather-night, name: Dark mode }
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.footer
+    - navigation.top
+    - navigation.indexes
+    - search.highlight
+    - content.code.copy
+    - toc.follow
+
+extra_css:
+  - assets/extra.css
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - toc: { permalink: true }
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed: { alternate_style: true }
+  - pymdownx.keys
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+nav:
+  - Home: index.md
+  - Install: install.md
+  - Manual:
+      - manual/index.md
+      - The panel: manual/panel.md
+      - Quick start: manual/quick-start.md
+      - Tracks & sounds: manual/sounds.md
+      - Playing the pads: manual/playing.md
+      - The sequencer: manual/sequencer.md
+      - Loop view: manual/loop.md
+      - Locks, automation & LFOs: manual/modulation.md
+      - Session view & songs: manual/session.md
+      - Mixing & effects: manual/mixing.md
+      - Generators: manual/generators.md
+      - Sets, saving & undo: manual/sets.md
+      - Settings & system: manual/system.md
+  - Reference:
+      - Controls: reference/controls.md
+      - Troubleshooting: reference/troubleshooting.md
+      - About: reference/about.md

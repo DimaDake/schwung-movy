@@ -20,3 +20,5 @@ host/build/
 .vdev/
 # The generator bench's downloaded MIDI and cached replies (scripts/gen-bench).
 .gen-data/
+# The website build (mkdocs build, scripts/site/).
+/.site-build/

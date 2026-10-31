@@ -1,0 +1,30 @@
+/* Screens are 1-bit 128x64 captures upscaled 4x: keep them crisp, framed like
+ * the OLED, and no wider than they read well. */
+img[src*="assets/screens/"] {
+  image-rendering: pixelated;
+  width: 384px;
+  max-width: 100%;
+  border: 6px solid #000;
+  border-radius: 4px;
+  background: #000;
+}
+img[src*="assets/screens/"].small { width: 256px; }
+img[src*="assets/diagrams/"] { max-width: 100%; height: auto; border-radius: 10px; }
+img[src*="assets/diagrams/panel"], img[src*="assets/diagrams/gesture"] { width: 100%; }
+.screens { display: flex; flex-wrap: wrap; gap: 0.8rem; align-items: flex-start; }
+.screens figure { margin: 0; }
+figcaption { font-size: 0.8rem; opacity: 0.8; }
+.md-typeset kbd { font-size: 0.8em; }
+.video { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 10px; }
+.video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+/* "Works like Move": sections that behave as on Move's own firmware, collapsed
+ * so a Move owner can skip them and a newcomer can open them. */
+:root { --movy-move: #e8c600; }
+.md-typeset .admonition.move, .md-typeset details.move { border-color: var(--movy-move); }
+.md-typeset .move > .admonition-title, .md-typeset .move > summary { background-color: rgba(232, 198, 0, 0.12); }
+.md-typeset .move > .admonition-title::before, .md-typeset .move > summary::before {
+  background-color: var(--movy-move);
+  -webkit-mask-image: var(--md-admonition-icon--move); mask-image: var(--md-admonition-icon--move);
+}
+:root { --md-admonition-icon--move: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 3h8v8H3zm10 0h8v8h-8zM3 13h8v8H3zm10 0h8v8h-8z"/></svg>'); }

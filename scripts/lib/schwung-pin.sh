@@ -5,4 +5,4 @@
 # Pinned, never the live checkout: the checkout follows origin/main (root
 # CLAUDE.md), and compiling from it would make a build depend on the day it ran.
 # A bump is a deliberate commit, gated like any other engine change.
-SCHWUNG_PIN_TAG="${SCHWUNG_PIN_TAG:-v1.7.3}"
+SCHWUNG_PIN_TAG="${SCHWUNG_PIN_TAG:-v1.8.2}"

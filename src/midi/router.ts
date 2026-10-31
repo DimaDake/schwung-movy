@@ -97,6 +97,7 @@ import { masterVolumeKnob, masterVolumeTouch } from '../mixer/master-volume.js';
 import { toggleSolo } from '../mixer/track-mutes.js';
 import { mlog } from '../log.js';
 import { platform } from '../platform/index.js';
+import { knobDirectionHeld } from './knob-direction.js';
 
 const PAD_MIN        = MovePads[0];
 const PAD_MAX        = MovePads[MovePads.length - 1];
@@ -240,6 +241,9 @@ export function onMidiMessageInternal(data: number[]): void {
     // no undo — a step button that both dismissed this and wrote a note into
     // the clip you just captured is not a trade worth offering. Releases fall
     // through so no handler is left holding a button that never came up.
+    /* A knob count the worn-encoder filter holds back is consumed before ANY
+     * knob consumer sees it (midi/knob-direction.ts; off unless opted in). */
+    if (knobDirectionHeld(data)) return;
     /* An AI request in flight owns the device: only Back (cancel) does
      * anything, and releases still pass (ai/job.ts). */
     if (aiRunningInput(data)) return;

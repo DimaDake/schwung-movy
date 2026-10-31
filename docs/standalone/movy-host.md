@@ -263,12 +263,14 @@ Still open:
   each at every open (the dlopen-ing loads), `chain_host` 17 ms. Parity with
   the shim, startup only, under the fade-in. Moving loads off the audio thread
   is an engine change: WP11.
-- **Speaker EQ (R8).** Under the shim MoveOriginal's speaker enhancer, and
-  schwung's emulation of it, colour the built-in speaker. movy-host has
-  neither: a MANUAL limitation for now. schwung's emulation is a static block
-  in `schwung_shim.c`; copying it would be vendoring, so the path is an
-  upstream extraction into `src/host/speaker_eq.c` (U7,
-  [schwung#642](https://github.com/charlesvestal/schwung/pull/642)) that
-  movy-host compiles from the pin once a tag carries it.
+- **Speaker EQ (R8)** — done (schwung pin v1.8.2). movy-host compiles
+  `src/host/speaker_eq.c` from the pin (U7,
+  [schwung#642](https://github.com/charlesvestal/schwung/pull/642)) and runs it
+  on the DAC block after the mirror (`host/speaker.c`), gated like the shim:
+  features.json `speaker_eq` auto/off/on, Auto only on a REPORTED speaker held
+  3 s. It writes schwung's `jack_state` on every CC 115 but never reads it to
+  engage. Measured 2026-10-31 (8 opens in the device tier): XMOS does NOT
+  repeat CC 115 when movy-host opens, so Auto engages only after a replug
+  (log: `speaker eq: jack reports ...`); Spkr EQ On is the way round it.
 - Not done by a person yet: opening movy-sa from the Tools menu by hand, a
   listening check, and a real power-button press (the tier only dry-runs it).

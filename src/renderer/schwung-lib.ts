@@ -49,6 +49,8 @@ import * as rp from '/data/UserData/schwung/shared/param_pages/render_page.mjs';
 import * as lfo from '/data/UserData/schwung/shared/param_pages/lfo_page.mjs';
 // @ts-ignore
 import * as lvm from '/data/UserData/schwung/shared/lane_voice_map.mjs';
+// @ts-ignore
+import * as kdf from '/data/UserData/schwung/shared/param_pages/knob_direction_filter.mjs';
 
 /** Everything movy uses from param_pages. Typed loosely on purpose: these are
  *  `.mjs` with no declarations, and inventing types here would be a second,
@@ -77,6 +79,8 @@ export interface SchwungLib {
      * stepPreset does. */
     DETENTS_PER_ENTRY: any; SETTLE_TICKS: any;
     fitHeadTail: any; frameCtx: any; enumIndexOf: any;
+    /* The opt-in worn-encoder filter (midi/knob-direction.ts). */
+    createKnobDirectionFilter: any; parseKnobFilterConfig: any; KNOB_FILTER_FLAG_PATH: any;
 }
 
 const lib: SchwungLib = {
@@ -105,6 +109,9 @@ const lib: SchwungLib = {
     frameCtx: fc.frameCtx,
     enumIndexOf: pm.enumIndexOf,
     fitHeadTail: rp.fitHeadTail,
+    createKnobDirectionFilter: kdf.createKnobDirectionFilter,
+    parseKnobFilterConfig: kdf.parseKnobFilterConfig,
+    KNOB_FILTER_FLAG_PATH: kdf.KNOB_FILTER_FLAG_PATH,
 };
 
 export function schwungLib(): SchwungLib { return lib; }

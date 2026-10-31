@@ -79,4 +79,30 @@ _log('\nTest: virtual-page knob feel (SP-57)');
     eq('7 raw units are none of one', countDetents(accum, 2, 7, 8), 0);
     eq('and the direction survives the division', countDetents(accum, 3, -8, 8), -1);
 }
+_log('\nTest: worn-encoder direction filter (schwung #658), opt-in');
+{
+    const kd = await import('../../dist/esm/midi/knob-direction.js');
+    const FLAG = '/data/UserData/schwung/knob_direction_filter';
+    const exists = globalThis.host_file_exists, read = globalThis.host_read_file;
+    const CW = [0xB0, 71, 1], CCW = [0xB0, 71, 127];
+    globalThis.host_file_exists = () => false;
+    kd.loadKnobDirectionFilter();
+    eq('no flag file: every count passes', kd.knobDirectionHeld(CCW), false);
+    globalThis.host_file_exists = (p) => p === FLAG;
+    globalThis.host_read_file = (p) => (p === FLAG ? '1' : null);
+    kd.loadKnobDirectionFilter();
+    eq('a knob the file does not list passes', kd.knobDirectionHeld([0xB0, 72, 127]), false);
+    eq('a touch is never held', kd.knobDirectionHeld([0x90, 0, 127]), false);
+    const held = [];
+    for (let i = 0; i < 8; i++) held.push(kd.knobDirectionHeld(CW));
+    eq('a new touch commits only once 8 counts agree',
+       held.join(), 'true,true,true,true,true,true,true,false');
+    eq('then a wrong-way count is held back', kd.knobDirectionHeld(CCW), true);
+    eq('and the accepted way passes', kd.knobDirectionHeld(CW), false);
+    kd.knobDirectionHeld([0x90, 0, 127]);
+    eq('a fresh touch starts the commit over', kd.knobDirectionHeld(CW), true);
+    globalThis.host_file_exists = exists;
+    globalThis.host_read_file = read;
+    kd.loadKnobDirectionFilter();
+}
 }

@@ -24,6 +24,7 @@ SCHWUNG_FILES=(
     src/host/js_display.c src/host/js_display.h
     src/host/js_host_common.c src/host/js_host_common.h
     src/host/unified_log.c src/host/unified_log.h
+    src/host/speaker_eq.c src/host/speaker_eq.h
     src/host/plugin_api_v1.h
     src/host/shadow_constants.h src/host/scene_morph.h
     src/host/shadow_midi_inject_writer.h src/host/ui_midi_ring.h
@@ -70,7 +71,7 @@ fi
 mkdir -p "$DIST"
 # shellcheck disable=SC2086
 "$CC" "${CFLAGS[@]}" $SOURCES \
-    "$SRC/src/host/js_display.c" "$SRC/src/host/js_host_common.c" "$SRC/src/host/unified_log.c" \
+    "$SRC/src/host/js_display.c" "$SRC/src/host/js_host_common.c" "$SRC/src/host/unified_log.c" "$SRC/src/host/speaker_eq.c" \
     -L"$SRC/$QJS_DIR" -lquickjs -lm -ldl -lrt -lpthread \
     -rdynamic -o "$DIST/movy-host"   # -rdynamic: the crash backtrace names functions
 "$CC" -O2 -Wall -Wextra -std=gnu11 -I"$DIR/host" "$DIR/host/heal/heal.c" -o "$DIST/movy-heal"

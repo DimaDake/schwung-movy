@@ -93,7 +93,7 @@ functions is enough to load two chains and play one.
 | Behaviour | Today | Standalone |
 |---|---|---|
 | Background mode, LINK, Move-bound Sets, Move master volume and overlay, schwung master FX, schwung-slot tracks | coexistence | retire (plan table) |
-| **Speaker EQ** | the shim applies a speaker EQ when CC 115 says the speaker is active (`schwung_shim.c:250-311`) | **missing**: R8 item; C-opt, or port the EQ into the master chain |
+| **Speaker EQ** | the shim applies a speaker EQ when CC 115 says the speaker is active (`schwung_shim.c:250-311`) | **done** (pin v1.8.2): `host/speaker.c` runs schwung's `speaker_eq.c` on the DAC block |
 | HP/speaker switching | XMOS hardware. CC 115 (0=speaker, 127=jack) only reports it. Seen live in run A | nothing to do for routing; the EQ above is the only consumer |
 | Power button | MoveOriginal's shutdown prompt, from a cable-0 SysEx `F0 00 21 1D 01 01 3A <id> <val> 00 F7` (4 packets; `schwung_shim.c:8815`) | native in WP7. Not pressed during the spike, so the signature comes from source |
 | Kernel RT tuning | `/etc/init.d/move` runs `chrt 90/91` on the spi/ablspi kthreads and pins IRQs at boot | inherited, since it happens before any app; no action |

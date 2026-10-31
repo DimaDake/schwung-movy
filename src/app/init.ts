@@ -12,6 +12,7 @@ import { buildMasterModels } from './master-models.js';
 import { resetTrackMutes } from '../mixer/track-mutes.js';
 import { resetDrumSync } from '../seq/drum-sync.js';
 import { loadFullVelocityPref, seqState } from '../seq/state.js';
+import { loadKnobDirectionFilter } from '../midi/knob-direction.js';
 import { resetHeldInput } from './input-reset.js';
 import { installEditGuard } from '../undo/record.js';
 import { resetUndoState } from '../undo/state.js';
@@ -115,6 +116,7 @@ export function init(): void {
      * back here rather than reset. Before any pad can be hit — a note that left
      * at the wrong velocity cannot be un-played. */
     loadFullVelocityPref();
+    loadKnobDirectionFilter();
     // Nothing is held at open. Today the esbuild bundle is re-evaluated on every
     // tool open so these module-level latches start clear anyway — but that is a
     // property of the host's module cache, not of movy, and "close and reopen"

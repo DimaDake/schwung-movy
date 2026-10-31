@@ -22,6 +22,7 @@
 #include "mirror.h"
 #include "movy_host.h"
 #include "param_queue.h"
+#include "speaker.h"
 #include "surface_keys.h"
 #include "vtable.h"
 
@@ -50,6 +51,7 @@ static int gather_input(uint8_t *map, uint8_t notes[][4], int max) {
     for (int i = 0; i < SCHWUNG_MIDI_IN_MAX; i++) {
         uint8_t *e = in + i * 8;
         if (!(e[0] | e[1] | e[2] | e[3])) continue;
+        speaker_in(e);   /* the hardware's jack report only, never an injected one */
         if (midi_in_feed(e, now) && n < max) memcpy(notes[n++], e, 4);
     }
     mirror_in(in, SCHWUNG_MIDI_IN_MAX * 8);
@@ -145,6 +147,9 @@ static void *audio_main(void *arg) {
         int16_t *dst = (int16_t *)(map + SCHWUNG_OFF_OUT_AUDIO);
         if (!rendered) { memset(dst, 0, sizeof buf); fade = 0; prev_over = 0; continue; }
         mirror_audio(buf, SCHWUNG_AUDIO_FRAMES);
+        /* After the mirror, which streams what Move's master bus would: the
+         * EQ voices the built-in speaker, not a recording of the mix. */
+        speaker_process(buf, SCHWUNG_AUDIO_FRAMES);
         /* Fade in from silence: the hardware may still carry whatever the
          * previous owner left, and a full-scale first block is a click. */
         if (fade < FADE_FRAMES) {

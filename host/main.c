@@ -26,6 +26,7 @@
 #include "surface_keys.h"
 #include "rt.h"
 #include "signals.h"
+#include "speaker.h"
 #include "spi.h"
 #include "testbus.h"
 #include "ui.h"
@@ -132,6 +133,7 @@ static int run(void) {
     }
     display_init();
     mirror_init("/dev/shm", MH_SCHWUNG_DIR "/config/features.json");
+    speaker_init(MH_SCHWUNG_DIR "/config/features.json", MH_SCHWUNG_DIR "/jack_state");
     audio_start(&spi);
     char path[320];
     snprintf(path, sizeof path, "%s/dsp.so", g_mh_module_dir);

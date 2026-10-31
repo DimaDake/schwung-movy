@@ -7,6 +7,7 @@
 #include <unistd.h>
 
 #include "audio_live_shm.h"
+#include "features.h"
 #include "log.h"
 #include "mirror.h"
 #include "surface_live_shm.h"
@@ -20,8 +21,7 @@ static surface_live_writer_t g_writer;
 static audio_live_shm_t *g_audio;
 static int g_sound;                       /* UI thread writes, audio thread reads */
 static float g_master = 1.0f;             /* audio thread only: param service + push */
-static char g_features[256];
-static struct timespec g_features_mtime;
+static features_file_t g_features;
 
 /* Never unlinked and recreated: display-server maps each segment ONCE and
  * never reopens it, so a fresh inode would be invisible to it until it
@@ -44,41 +44,22 @@ static void *map_segment(const char *dir, const char *name, size_t size) {
 
 /* The shim's own reading of the key, so one features.json means one answer. */
 int mirror_flag_parse(const char *json) {
-    const char *k = strstr(json, "\"display_mirror_enabled\"");
-    const char *c = k ? strchr(k, ':') : NULL;
-    if (!c) return 0;
-    for (c++; *c == ' ' || *c == '\t' || *c == '\n' || *c == '\r'; c++) {}
-    return strncmp(c, "true", 4) == 0;
+    const char *v = features_value(json, "display_mirror_enabled");
+    return v && strncmp(v, "true", 4) == 0;
 }
 
 int mirror_sound_on(void) { return __atomic_load_n(&g_sound, __ATOMIC_RELAXED); }
 
 static void read_setting(void) {
-    struct stat st;
-    if (stat(g_features, &st) != 0) {   /* absent: schwung's default, off */
-        g_features_mtime = (struct timespec){ 0, 0 };
-        __atomic_store_n(&g_sound, 0, __ATOMIC_RELAXED);
-        return;
-    }
-#ifdef __APPLE__
-    struct timespec m = st.st_mtimespec;
-#else
-    struct timespec m = st.st_mtim;
-#endif
-    if (m.tv_sec == g_features_mtime.tv_sec && m.tv_nsec == g_features_mtime.tv_nsec) return;
-    g_features_mtime = m;
     static char buf[16384];
-    FILE *f = fopen(g_features, "r");
-    size_t n = f ? fread(buf, 1, sizeof buf - 1, f) : 0;
-    if (f) fclose(f);
-    buf[n] = '\0';
-    int on = mirror_flag_parse(buf);
+    if (!features_read_if_changed(&g_features, buf, sizeof buf)) return;
+    int on = mirror_flag_parse(buf);   /* absent: schwung's default, off */
     if (on != mirror_sound_on()) mh_log("mirror: sound %s (Mirror Display %s)", on ? "streaming" : "off", on ? "on" : "off");
     __atomic_store_n(&g_sound, on, __ATOMIC_RELAXED);
 }
 
 void mirror_init(const char *shm_dir, const char *features_path) {
-    snprintf(g_features, sizeof g_features, "%s", features_path);
+    features_open(&g_features, features_path);
     g_surface = map_segment(shm_dir, SURFACE_LIVE_SHM_NAME, sizeof(surface_live_shm_t));
     if (g_surface) surface_live_init(g_surface, &g_writer);
     g_audio = map_segment(shm_dir, AUDIO_LIVE_SHM_NAME, sizeof(audio_live_shm_t));

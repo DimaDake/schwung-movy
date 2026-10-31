@@ -132,9 +132,15 @@ played on Schwung's slots. Your existing Sets come across (above), and so does
 the master chain of each Set, the first time that Set opens. Nothing of the
 old install is deleted, so going back to an older Movy finds it as it was.
 
-**Known limitations.** Move shapes the sound of its built-in speaker with its
-own EQ; Movy does not yet, so the speaker sounds different from the same Set
-under Move. Headphones and line out are unaffected.
+**Built-in speaker.** Move shapes the sound of its built-in speaker with its
+own EQ, and Movy now applies Schwung's copy of that EQ, so the speaker sounds
+as it does under Move. It follows Schwung's **Global Settings → Audio → Spkr
+EQ** (Auto / Off / On). In **Auto** it engages once Move has reported that the
+speaker is the output and that reading has held for three seconds; headphones
+and line out are never touched. If you open Movy from the Tools menu, Move may
+not report the jack again until you plug or unplug something, so the speaker
+can play without the EQ until then: set **Spkr EQ** to **On** if you only use
+the speaker.
 
 ### Opening Movy
 
@@ -2445,6 +2451,14 @@ only.
   [CONTRIBUTING.md](CONTRIBUTING.md) / the project's developer docs).
 - **A module's parameters look wrong or empty.** It may need a layout template.
   Note the module and open an issue (or contribute a template).
+
+- **A knob jumps backwards while you turn it.** A worn encoder reports some
+  of its clicks the wrong way round. Schwung's direction filter fixes it, and
+  Movy honours the same switch: create the file
+  `/data/UserData/schwung/knob_direction_filter` on the Move (empty for all
+  eight knobs, or knob numbers such as `1,4`), then reopen Movy. It costs a
+  little lag when you reverse a turn on purpose, so it stays off unless the
+  file exists.
 
 ### Reporting bugs
 

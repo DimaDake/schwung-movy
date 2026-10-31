@@ -24,6 +24,9 @@ await esbuild.build({
          * dist/esm/renderer/schwung-lib.js to import. */
         resolve(root, 'src/renderer/schwung-lib.ts'),
         resolve(root, 'src/renderer/schwung-page.ts'),
+        /* The worn-encoder filter's module state, driven by the logic suite
+         * (knob-input.mjs) at the level the opt-in lives at. */
+        resolve(root, 'src/midi/knob-direction.ts'),
         /* The delegated page's read cache (SP-26): an entry point so the logic
          * suite can drive the stale-write hazard at the level it lives at,
          * rather than racing Schwung's settle window through the page. */

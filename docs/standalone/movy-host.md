@@ -202,8 +202,13 @@ that no over-budget frame explains gets `audio: late transfer … with no
 over-budget work`: lateness from outside the audio thread's work. Lines are
 capped at 20 a second, and the next line counts any dropped (`+N unlogged`). It
 replaced the slow-frame log, which fired only past 10 ms, so every click
-shorter than that went unrecorded. `scripts/glitch-report.sh` pulls the lines
-from the box and ranks the causes.
+shorter than that went unrecorded. The lines are also kept for weeks in
+`/data/UserData/schwung/movy-glitch.log` (`glitch_log.h`, 2026-10-31). The file
+is always written, whatever `debug_log_on` says, and each line is dated. It
+carries only the glitch lines plus the context around them: each launch's
+banner, set loads and `page ready` lines. Past 8 MB it rotates once to `.1`.
+`scripts/glitch-report.sh` (`-l` for the last launch only) pulls the file from
+the box and ranks the causes by stage, by the page that was open and by day.
 
 ## Measured on device (2026-10-10, schwung 1.7.3)
 

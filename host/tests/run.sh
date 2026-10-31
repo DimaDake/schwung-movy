@@ -18,7 +18,7 @@ mkdir -p "$OUT"
 "$OUT/test_signals"
 "${CC:-cc}" -std=gnu11 -Wall -Wextra -I"$DIR" "$DIR/tests/test_handover.c" "$DIR/handover.c" -o "$OUT/test_handover"
 "$OUT/test_handover"
-"${CC:-cc}" -std=gnu11 -Wall -Wextra -I"$DIR" "$DIR/tests/test_glitch.c" "$DIR/glitch.c" -o "$OUT/test_glitch"
+"${CC:-cc}" -std=gnu11 -Wall -Wextra -I"$DIR" "$DIR/tests/test_glitch.c" "$DIR/glitch.c" "$DIR/glitch_log.c" -o "$OUT/test_glitch"
 "$OUT/test_glitch"
 # plugin_api_v1.h is schwung's: the reference checkout, as the JS suites use it.
 SCHWUNG="${SCHWUNG:-$DIR/../../schwung}"

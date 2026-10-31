@@ -3,30 +3,43 @@
 #
 # movy-host logs one `audio: glitch frame` line for every frame whose work ran
 # past its budget, and one `audio: late transfer` line for a late transfer no
-# such frame explains (host/glitch.h). This pulls them off the device in one ssh
-# call and ranks the causes: the costliest stage of each frame, and when that is
-# the chain render, the module that cost the most in it.
+# such frame explains (host/glitch.h). It keeps them, dated, for weeks in
+# movy-glitch.log (host/glitch_log.h) with the launches, set loads and page
+# opens around them. This pulls that off the device in one ssh call and ranks
+# the causes: the costliest stage of each frame (for the chain render, the
+# module that cost the most in it), the page that was open, and the day.
 #
-# Usage: ./scripts/glitch-report.sh [host] [-a]
-#   -a   every line in debug.log (default: since movy-host last started)
+# Usage: ./scripts/glitch-report.sh [host] [-l] [-v]
+#   -l   only since movy-host last started (default: everything kept)
+#   -v   also print every glitch line
 set -euo pipefail
-HOST=move.local ALL=0
-for a in "$@"; do case "$a" in -a) ALL=1 ;; *) HOST="$a" ;; esac; done
+HOST=move.local LAST=0 VERBOSE=0
+for a in "$@"; do case "$a" in -l) LAST=1 ;; -v) VERBOSE=1 ;; *) HOST="$a" ;; esac; done
 
-# debug.log spans every launch but only while the flag is on; movy-host.log is
-# always written and is replaced at each launch.
-# The costliest stage of each frame; for the chain render, its costliest module.
+# A movy-glitch.log line is "YYYY-MM-DD HH:MM:SS.mmm text"; debug.log's (the
+# fallback, for a build older than the file) is "HH:MM:SS.mmm [INFO ] [src] text".
 REPORT=$(cat <<'AWK'
+function stamp() { return $1 ~ /^[0-9][0-9][0-9][0-9]-/ ? $1 " " $2 : $1 }
+/page ready ck=/ { match($0, /ck=[^ ]+/); page = substr($0, RSTART + 3, RLENGTH - 3); next }
+/seq: loaded set / { page = "(set load)"; next }
+/=== movy-host [0-9]/ { launches++; page = "(launch)"; next }
 /audio: late transfer/ { late++; next }
 /audio: glitch frame/ {
     n++
+    if (verbose) print
     match($0, /work [0-9]+/); w = substr($0, RSTART + 5, RLENGTH - 5) + 0
     if (w > worst) { worst = w; worst_line = $0 }
-    # The largest stage, host's own (io, params) or the engine's.
+    # The largest stage, host's own (io, params, post) or the engine's.
     cause = "?"; best = -1
     if (match($0, /io [0-9]+/)) { v = substr($0, RSTART + 3, RLENGTH - 3) + 0; if (v > best) { best = v; cause = "host io (display/input)" } }
     if (match($0, /post [0-9]+/)) { v = substr($0, RSTART + 5, RLENGTH - 5) + 0; if (v > best) { best = v; cause = "host post-render (status/mirror/output)" } }
-    if (match($0, /params [0-9]+/)) { v = substr($0, RSTART + 7, RLENGTH - 7) + 0; if (v > best) { best = v; cause = "host params" } }
+    if (match($0, /params [0-9]+/)) {
+        v = substr($0, RSTART + 7, RLENGTH - 7) + 0
+        if (v > best) {
+            best = v; cause = "host params"
+            if (match($0, /slowest [^ ]+/)) cause = cause ": " substr($0, RSTART + 8, RLENGTH - 8)
+        }
+    }
     e = index($0, "| engine ")
     if (e) {
         k = split(substr($0, e + 9), f, " ")
@@ -42,32 +55,43 @@ REPORT=$(cat <<'AWK'
     }
     count[cause]++
     if (best > peak[cause]) peak[cause] = best
-    if (!first) first = $1
-    last = $1
+    p = page == "" ? "?" : page; bypage[p]++
+    if ($1 ~ /^[0-9][0-9][0-9][0-9]-/) byday[$1]++
+    if (!first) first = stamp()
+    last = stamp()
     next
 }
 END {
     if (!n && !late) { print "no glitches logged"; exit }
-    printf "%d over-budget frames (%s .. %s), %d late transfers with no over-budget work\n\n", n, first, last, late
+    printf "%d over-budget frames (%s .. %s), %d late transfers with no over-budget work, %d launches\n\n", n, first, last, late, launches
     printf "%6s  %8s  %s\n", "frames", "worst us", "costliest stage"
     for (c in count) printf "%6d  %8d  %s\n", count[c], peak[c], c | "sort -rn"
     close("sort -rn")
+    printf "\n%6s  %s\n", "frames", "page open (last page ready / set load / launch before it)"
+    for (p in bypage) printf "%6d  %s\n", bypage[p], p | "sort -rn"
+    close("sort -rn")
+    if (length(byday)) {
+        printf "\n%6s  %s\n", "frames", "day"
+        for (d in byday) printf "%6d  %s\n", byday[d], d | "sort -k2"
+        close("sort -k2")
+    }
     if (n) printf "\nworst frame:\n%s\n", worst_line
 }
 AWK
 )
 
 REMOTE=$(cat <<'SH'
-L=/data/UserData/schwung/debug.log H=/data/UserData/schwung/movy-host.log
-pat='audio: (glitch frame|late transfer)'
-if [ "$ALL" = 1 ]; then grep -E "$pat" "$L" 2>/dev/null || true
-# The last launch's lines: debug.log after its last start line, else movy-host.log.
-elif [ -f "$L" ] && grep -q 'audio: tid' "$L"; then
-    start=$(grep -n 'audio: tid' "$L" | tail -1 | cut -d: -f1)
-    tail -n +"$start" "$L" | grep -E "$pat" || true
-else grep -E "$pat" "$H" 2>/dev/null || true
+D=/data/UserData/schwung G=$D/movy-glitch.log L=$D/debug.log
+if [ -f "$G" ]; then
+    if [ "$LAST" = 1 ]; then
+        start=$(grep -n '=== movy-host [0-9]' "$G" | tail -1 | cut -d: -f1)
+        tail -n +"${start:-1}" "$G"
+    else cat "$G.1" "$G" 2>/dev/null; fi
+else
+    # Before movy-glitch.log existed: the flag-gated debug.log, undated.
+    grep -E 'audio: (glitch frame|late transfer)|page ready ck=|seq: loaded set |=== movy-host ' "$L" 2>/dev/null || true
 fi
 SH
 )
 
-ssh -o ConnectTimeout=5 -o BatchMode=yes "ableton@$HOST" "ALL=$ALL bash -s" <<<"$REMOTE" | awk "$REPORT"
+ssh -o ConnectTimeout=5 -o BatchMode=yes "ableton@$HOST" "LAST=$LAST bash -s" <<<"$REMOTE" | awk -v verbose="$VERBOSE" "$REPORT"

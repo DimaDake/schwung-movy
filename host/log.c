@@ -9,6 +9,7 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "glitch_log.h"
 #include "handover.h"
 #include "log.h"
 #include "log_ring.h"
@@ -18,9 +19,12 @@
 /* The ring's one writer is the only caller of unified_log (log_ring.h says
  * why). debug.log stamps the line when it is written, up to a few ms after it
  * was said; stderr (movy-host.log) carries the time it was pushed. */
+static glitch_log_t g_glitch_log = { MH_SCHWUNG_DIR "/movy-glitch.log", 0, -1, 0 };
+
 static void sink(const log_line_t *l) {
     unified_log(l->src, LOG_LEVEL_INFO, "%s", l->text);
     fprintf(stderr, "%lld.%03lld [%s] %s\n", (long long)(l->ms / 1000), (long long)(l->ms % 1000), l->src, l->text);
+    glitch_log_write(&g_glitch_log, l->ms, l->text);
 }
 
 static int g_log_closed;
@@ -28,6 +32,7 @@ void mh_log_close(void) {
     if (g_log_closed) return;
     g_log_closed = 1;
     log_ring_stop();
+    glitch_log_close(&g_glitch_log);
     unified_log_shutdown();
 }
 static void mh_log_shutdown(void) { mh_log_close(); }

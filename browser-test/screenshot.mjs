@@ -34,7 +34,7 @@ const UPDATE     = process.argv.includes('--update');
 
 const PRESETS = [
     'keys_view', 'browse_view', 'session_booting', 'session_loading', 'session_modules',
-    'session_preparing', 'session_failed', 'session_failed_mismatch', 'versions_empty',
+    'session_sounds', 'session_preparing', 'session_failed', 'session_failed_mismatch', 'versions_empty',
     'versions_list', 'versions_confirm', 'sets_list', 'sets_long_names', 'sets_confirm',
     'chain_synth', 'chain_empty', 'chain_jog_toast', 'knobs_jog_toast', 'chain_t2',
     'chain_t4', 'lfo_chain', 'mix_page_chain', 'master_send_slot', 'master_send_empty',
@@ -373,18 +373,19 @@ function applyView(preset) {
          * the Set's sequencer state. */
         case 'session_booting':  lastRender = () => renderLoadingView('booting', ''); lastRender(); break;
         case 'session_loading':  lastRender = () => renderLoadingView('loading', ''); lastRender(); break;
-        /* The two halves of settling: the Set is loaded but its modules are
-         * still arriving one per audio callback, then the tail where their
-         * payloads land. */
-        case 'session_modules':  lastRender = () => renderLoadingView('settling', '', 7); lastRender(); break;
-        case 'session_preparing': lastRender = () => renderLoadingView('settling', '', 0); lastRender(); break;
+        /* The three stages of settling: the modules arriving one per audio
+         * callback, then their saved sounds being applied, then the UI's own
+         * catch-up. */
+        case 'session_modules':  lastRender = () => renderLoadingView('settling', '', { step: 'modules', loaded: 3, total: 8 }); lastRender(); break;
+        case 'session_sounds':   lastRender = () => renderLoadingView('settling', '', { step: 'sounds', loaded: 0, total: 0 }); lastRender(); break;
+        case 'session_preparing': lastRender = () => renderLoadingView('settling', '', { step: 'preparing', loaded: 0, total: 0 }); lastRender(); break;
         case 'session_failed':
-            lastRender = () => renderLoadingView('failed', 'SET FILE UNREADABLE', 0, 'set');
+            lastRender = () => renderLoadingView('failed', 'SET FILE UNREADABLE', null, 'set');
             lastRender(); break;
         /* The other failure, and it must not look like the one above: nothing
          * is wrong with the set, and no button here wipes anything. */
         case 'session_failed_mismatch':
-            lastRender = () => renderLoadingView('failed', 'ENGINE MISMATCH', 0, 'engine');
+            lastRender = () => renderLoadingView('failed', 'ENGINE MISMATCH', null, 'engine');
             lastRender(); break;
         case 'versions_empty':
             lastRender = () => renderVersionsView(

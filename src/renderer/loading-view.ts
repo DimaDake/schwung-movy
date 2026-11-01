@@ -11,6 +11,9 @@ import { W } from './layout.js';
 
 const H = 64;
 
+/** set-settle.ts's SettleStage, restated so the renderer imports no state. */
+export type SettleView = { step: string; loaded: number; total: number };
+
 function centre(y: number, text: string, color: number): void {
     fontPrint(Math.floor((W - fontWidth(text)) / 2), y, text, color);
 }
@@ -20,12 +23,18 @@ function centre(y: number, text: string, color: number): void {
  *  things the user is entitled to see the difference between: the Set's state
  *  lands in one blocking write, but its modules arrive one per audio callback
  *  after it. */
-export function loadingStage(phase: string, chainPending: number, migrating = ''): string {
+export function loadingStage(phase: string, settle: SettleView | null, migrating = ''): string {
     if (phase === 'booting') return 'STARTING ENGINE';
     /* The first start's migration from Move, before any Set can open. */
     if (migrating) return 'MIGRATING SETS ' + migrating;
-    if (phase !== 'settling') return 'LOADING SET';
-    return chainPending > 0 ? 'LOADING MODULES' : 'PREPARING SET';
+    if (phase !== 'settling' || !settle) return 'LOADING SET';
+    if (settle.step === 'modules') {
+        /* A count only once there is one to show: the first status after the
+         * open can still read the previous Set's zero. */
+        return settle.total > 0 ? 'LOADING MODULES ' + settle.loaded + '/' + settle.total : 'LOADING MODULES';
+    }
+    /* The saved patches, banks and SoundFonts, applied once the modules exist. */
+    return settle.step === 'sounds' ? 'LOADING SOUNDS' : 'PREPARING SET';
 }
 
 /** The failure screen's three lines: what happened, why, and what to do.
@@ -81,7 +90,7 @@ export function splashDue(waited: number): boolean {
 
 /** Returns whether any words were drawn. */
 export function renderLoadingView(
-    phase: string, error: string, chainPending = 0, failScope = 'set',
+    phase: string, error: string, settle: SettleView | null = null, failScope = 'set',
     waitedMs = Infinity, migrating = '',
 ): boolean {
     clear_screen();
@@ -95,6 +104,6 @@ export function renderLoadingView(
         for (let i = 0; i < 3; i++) if (lines[i] !== '') centre(ys[i], lines[i], 1);
         return true;
     }
-    centre(Math.floor(H / 2) - 3, loadingStage(phase, chainPending, migrating), 1);
+    centre(Math.floor(H / 2) - 3, loadingStage(phase, settle, migrating), 1);
     return true;
 }

@@ -56,8 +56,8 @@ import { fromLane7 } from '../seq/lane-value.js';
 import { noteRender } from '../test/probe.js';
 import { mlog } from '../log.js';
 import { paramBodyFor } from './param-body.js';
-import { chainLoadsPending, currentSetUuid, sessionError, sessionFailScope, sessionPhase, sessionReady, sessionTick } from '../seq/set-session.js';
-import { loadingWaitMs, renderLoadingView, splashDue } from '../renderer/loading-view.js';
+import { currentSetUuid, sessionError, sessionFailScope, sessionPhase, sessionReady, sessionTick, settleProgress } from '../seq/set-session.js';
+import { loadingStage, loadingWaitMs, renderLoadingView, splashDue } from '../renderer/loading-view.js';
 import { migrationProgress } from '../seq/migrate-action.js';
 import { captureTick } from '../seq/capture.js';
 import { seqLedsTick, seqLedsInvalidate, displayHoldNotes } from '../seq/leds.js';
@@ -300,6 +300,8 @@ function lightKnobRow(body: (() => void) | undefined): void {
     updateKnobLEDsFrom(body ? drawnKnobLevels() : NO_LEVELS);
 }
 let _schwungView = '';
+/* The splash words last drawn, so a change of stage repaints. */
+let lastSplashText = '';
 let _schwungWhy = '';
 let _autoLanesLog = '';
 /* Everything that must happen once per rendered frame, whatever drew it. Both
@@ -709,6 +711,10 @@ function tickBody(): void {
      * that. */
     const loadingWaited = loadingWaitMs(sessionReady(), Date.now());
     if (splashDue(loadingWaited)) appState.dirty = true;
+    /* The splash's words move while it is up (3/8 → 4/8 → LOADING SOUNDS), and
+     * nothing else marks the screen dirty mid-wait. */
+    const splashText = sessionReady() ? '' : loadingStage(sessionPhase(), settleProgress(), migrationProgress());
+    if (splashText !== lastSplashText) { lastSplashText = splashText; if (splashText) appState.dirty = true; }
 
     /* Whether this tick repainted the view. The song band sits on top of it,
      * so a repaint erases the band and it has to be drawn again. */
@@ -742,7 +748,7 @@ function tickBody(): void {
         } else if (!sessionReady()) {
             /* Ahead of every view: until the Set is in the engine there is
              * nothing truthful to draw, and input is refused anyway. */
-            renderLoadingView(sessionPhase(), sessionError(), chainLoadsPending(),
+            renderLoadingView(sessionPhase(), sessionError(), settleProgress(),
                               sessionFailScope(), loadingWaited, migrationProgress());
         } else if (appState.currentView === VIEW_FLAGS) {
             renderFlagsView(buildFlagsPageVM());

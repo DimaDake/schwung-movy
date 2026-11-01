@@ -15,7 +15,10 @@ import { paramGet, paramSet } from '../host/param.js';
 import { mlog } from '../log.js';
 import { engineAbsent, engineAbsentReason, engineCaughtUp, engineGeneration, engineMark, engineReady } from './engine.js';
 import { seqState } from './state.js';
-import { beginSettle, resetSettle, settleCheck, settleOutstanding, settleWaited } from './set-settle.js';
+import {
+    beginSettle, payloadsSent, payloadsUnsent, resetSettle, settleCheck, settleOutstanding, settleStage,
+    settleWaited, type SettleStage,
+} from './set-settle.js';
 import { deliverChainPayloads } from '../track/chain-payload.js';
 import { refreshModelsForSet } from '../app/model-refresh.js';
 import { readUiBlob } from './persist-store.js';
@@ -72,8 +75,9 @@ export function sessionReady(): boolean { return phase === 'ready'; }
  * the identity poll and the engine-reload guard both run during settling. */
 function live(): boolean { return phase === 'ready' || phase === 'settling'; }
 /* What the splash is waiting on, for the renderer. */
-export function chainLoadsPending(): number {
-    return phase === 'settling' ? seqState.chainPending : 0;
+/** What the splash names while the Set settles; null in any other phase. */
+export function settleProgress(): SettleStage | null {
+    return phase === 'settling' ? settleStage() : null;
 }
 export function currentSetUuid(): string { return setId; }
 
@@ -126,16 +130,23 @@ function enterLoading(id: string, name: string): void {
 
 /* Promote a loaded Set to a playable one — set-settle.ts owns what that means. */
 function settleTick(): void {
-    const r = settleCheck();
-    if (r === 'wait') return;
+    let r = settleCheck();
     /* The loads have drained, which means the shim's param mailbox is free for
      * the first time since the document went out: NOW a chain's preset blob,
      * LFOs and level can actually land. Issued here rather than in
      * `restoreChains` because there they raced the very loads they follow, and
-     * lost — see chain-payload.ts. Promotion waits on them, so a Set never goes
-     * playable with its modules still at factory defaults. */
-    if (!deliverChainPayloads() && r !== 'capped') return;
-    if (r === 'capped') mlog('seq: settle cap reached — ' + settleOutstanding());
+     * lost — see chain-payload.ts. A Set with nothing to send is caught up at
+     * once, so it does not pay a tick for the second step. */
+    if (r === 'deliver') {
+        deliverChainPayloads();
+        payloadsSent();
+        r = settleCheck();
+    }
+    if (r === 'wait') return;
+    if (r === 'capped') {
+        if (payloadsUnsent()) { deliverChainPayloads(); payloadsSent(); }
+        mlog('seq: settle cap reached — ' + settleOutstanding());
+    }
     /* Last, and only once the engine is holding the Set: the UI's own caches.
      * Every model reads its module name and param hierarchy on a ~1 s poll, so
      * without this the first live frame was drawn from answers older than the

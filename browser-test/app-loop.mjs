@@ -1389,6 +1389,11 @@ _log('\napp-loop: nothing is live until the Set is loaded');
     if (leaveModalActive()) { sendMidi([0xB0, globalThis.MoveBack, 127]); advance(1); }
     eq('gate: the modal is closed again', leaveModalActive(), false);
     resetApp();
+    /* resetApp() resets the mock engine's request counter, which movy-host's
+     * never does: a new engine is a new generation, and that reloads the Set.
+     * Model it, or the Set this block left settling waits on a mark the reset
+     * counter will not reach again. */
+    resetSess();
     advance(30);
     eq('gate: ready again for the tests below', sessionReady(), true);
 }

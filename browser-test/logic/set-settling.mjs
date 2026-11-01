@@ -74,7 +74,6 @@ export async function run() {
         eq('S3 still settling before the cap', sessionPhase(), 'settling');
         t += 11000;
         run(4);
-    console.log('S9 after run(4): phase=', sessionPhase());
         eq('S3 the cap goes live', sessionPhase(), 'ready');
         eq('S3 with the load still outstanding', eng.status.chpend, 2);
         Date.now = realNow;
@@ -172,6 +171,68 @@ export async function run() {
         globalThis.shadow_set_params = oBS;
         resetChainPayloads();
         void fs; void eng;
+        teardown();
+    }
+
+    /* S11 — QUEUED is not APPLIED. A chain's saved state (patch blob, bank,
+     * SoundFont) takes effect only when the engine serves the write, and a
+     * SoundFont load there is 0.6-1.5 s. Going live on the queueing showed the
+     * Set's instruments at factory defaults, or silent, for that long. */
+    {
+        const { armChainPayloads, resetChainPayloads } = await import('../../dist/esm/track/chain-payload.js');
+        const { settleProgress } = await import('../../dist/esm/seq/set-session.js');
+        const realNow = Date.now;
+        let t = 500000; Date.now = () => t;
+        const fs = installMockFs({});
+        const eng = installMockEngine();
+        const oBS = globalThis.shadow_set_params;
+        /* movy-host counts a bulk set as one submitted request, like any other. */
+        globalThis.shadow_set_params = () => { eng.submitted++; return true; };
+        eng.status.chpend = 0;
+        resetSeqEngine(); resetSeqState(); resetSetSession(); resetChainPayloads();
+
+        seqEngineTick(); sessionTick();        // the Set loads; settling begins
+        armChainPayloads([{ t: 4, pairs: [['synth:state', 'SF2BLOB']], saved: { t: 4, comp: [] } }]);
+        eng.holdServed = eng.submitted;        // the engine is busy from here on
+        run(5);
+        eq('S11 still settling while the saved state is unapplied', sessionPhase(), 'settling');
+        eq('S11 the splash says what it waits on', settleProgress()?.step, 'sounds');
+
+        eng.holdServed = null;                 // the engine serves the write
+        run();
+        eq('S11 live once the engine has applied it', sessionPhase(), 'ready');
+        eq('S11 no progress outside settling', settleProgress(), null);
+
+        /* The cap still ends it: an engine wedged on a write is a missing sound,
+         * not a bricked instrument. */
+        resetSetSession(); resetChainPayloads();
+        seqEngineTick(); sessionTick();
+        armChainPayloads([{ t: 4, pairs: [['synth:state', 'SF2BLOB']], saved: { t: 4, comp: [] } }]);
+        eng.holdServed = eng.submitted;
+        run(5);
+        eq('S11 waiting on a write that never lands', sessionPhase(), 'settling');
+        t += 11000;
+        run(3);
+        eq('S11 the cap goes live anyway', sessionPhase(), 'ready');
+
+        globalThis.shadow_set_params = oBS;
+        Date.now = realNow;
+        resetChainPayloads();
+        void fs;
+        teardown();
+    }
+
+    /* S12 — the splash counts the modules down: "3/8" says the wait is moving
+     * and how much of it is left. */
+    {
+        const { settleProgress } = await import('../../dist/esm/seq/set-session.js');
+        const { eng } = boot({}, 4);
+        eq('S12 the count starts at the Set\'s size', JSON.stringify(settleProgress()),
+           JSON.stringify({ step: 'modules', loaded: 0, total: 4 }));
+        eng.status.chpend = 1;
+        run();
+        eq('S12 and counts up as loads land', JSON.stringify(settleProgress()),
+           JSON.stringify({ step: 'modules', loaded: 3, total: 4 }));
         teardown();
     }
 }
@@ -283,7 +344,7 @@ export async function run() {
     globalThis.clear_screen = () => { cleared++; };
     lv.loadingWaitMs(true, 0);                      // a fresh wait
     const w0 = lv.loadingWaitMs(false, 1000);
-    eq('the first frame of a wait draws no words', lv.renderLoadingView('booting', '', 0, 'set', w0), false);
+    eq('the first frame of a wait draws no words', lv.renderLoadingView('booting', '', null, 'set', w0), false);
     eq('but still blanks the screen (a switch must cover the old page)', cleared, 1);
     ok('and is not yet due', !lv.splashDue(w0));
     const w1 = lv.loadingWaitMs(false, 1000 + lv.SPLASH_DELAY_MS - 1);
@@ -291,8 +352,8 @@ export async function run() {
     const w2 = lv.loadingWaitMs(false, 1000 + lv.SPLASH_DELAY_MS);
     ok('a wait that lasts brings it up', lv.splashDue(w2));
     ok('once', !lv.splashDue(lv.loadingWaitMs(false, 1000 + lv.SPLASH_DELAY_MS + 50)));
-    eq('and then the words are drawn', lv.renderLoadingView('booting', '', 0, 'set', w2), true);
-    eq('a failure is never held back', lv.renderLoadingView('failed', 'X', 0, 'set', false, 0), true);
+    eq('and then the words are drawn', lv.renderLoadingView('booting', '', null, 'set', w2), true);
+    eq('a failure is never held back', lv.renderLoadingView('failed', 'X', null, 'set', 0), true);
     eq('live resets the wait', lv.loadingWaitMs(true, 5000), 0);
     ok('so the next wait is held back again', !lv.splashDue(lv.loadingWaitMs(false, 5001)));
     globalThis.clear_screen = origClear;
@@ -303,15 +364,18 @@ export async function run() {
     _log('\nloading splash names the stage:');
     const { loadingStage } = await import('../../dist/esm/renderer/loading-view.js');
 
-    eq('booting', loadingStage('booting', 0), 'STARTING ENGINE');
-    eq('loading', loadingStage('loading', 0), 'LOADING SET');
+    eq('booting', loadingStage('booting', null), 'STARTING ENGINE');
+    eq('loading', loadingStage('loading', null), 'LOADING SET');
     /* A switch reads as a load: from the user's side it is the same wait, and
      * naming it differently would only tell them which branch of the lifecycle
      * they are in. */
-    eq('switching reads as loading', loadingStage('switching', 0), 'LOADING SET');
-    eq('settling with loads outstanding', loadingStage('settling', 4), 'LOADING MODULES');
-    /* The tail of the wait: the modules are in, their payloads are landing. */
-    eq('settling with none left', loadingStage('settling', 0), 'PREPARING SET');
+    eq('switching reads as loading', loadingStage('switching', null), 'LOADING SET');
+    eq('settling counts the modules', loadingStage('settling', { step: 'modules', loaded: 3, total: 8 }), 'LOADING MODULES 3/8');
+    /* The first status after the open can still be the previous Set's zero. */
+    eq('no count before there is one', loadingStage('settling', { step: 'modules', loaded: 0, total: 0 }), 'LOADING MODULES');
+    eq('then the saved sounds', loadingStage('settling', { step: 'sounds', loaded: 0, total: 0 }), 'LOADING SOUNDS');
+    /* The tail of the wait: everything applied, the UI catching up. */
+    eq('settling with none left', loadingStage('settling', { step: 'preparing', loaded: 0, total: 0 }), 'PREPARING SET');
 }
 
 }

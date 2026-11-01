@@ -35,7 +35,7 @@ turn away. Nothing you liked is ever lost.
 | 6 | 8-knob limit | **Stay at 8.** No second page. |
 | 7 | Overlapping words | SPARSE → **SPACE**. BUSY (and every "how many notes" knob) → **DENSITY**. VARY is **replaced by DRIFT**. |
 | 8 | SAFE / BALANCED / WILD | **Remove it.** Always BALANCED, and whatever WILD alone could reach moves onto the knobs (§2.5). |
-| + | An overlong list | **Merge overlapping generators** (§2.7), but never below the picks plus 4 for any task and track kind. Nothing audible may be lost: every merged generator's sound stays reachable. |
+| + | An overlong list | **Merge overlapping generators** (§2.7), but never below the picks plus 4 for any task and track kind that selects (New Clip shows all its generators, §2.9). Nothing audible may be lost: every merged generator's sound stays reachable. |
 
 Standing rules from earlier rounds, still binding:
 
@@ -59,7 +59,7 @@ Standing rules from earlier rounds, still binding:
 
 - Learning the user's taste. Usage data or telemetry.
 - Detecting the track's instrument to order New Clip options (a later item).
-- A second knob page. New generators.
+- A second knob page. New generators (§2.9 gives existing Variation generators a second job on New Clip; that is not a new generator).
 
 ### Anti-goals (failure even if it "works")
 
@@ -112,7 +112,7 @@ Two exceptions, both stated:
 
 ### 2.2 Every suitable generator, by jog (#3)
 
-- The preview strip still opens on ORIG plus the curated first picks: 6 for Variation and Quantize, 8 for New Clip, as many as suit for Double.
+- The preview strip still opens on ORIG plus the curated first picks: 6 for Variation and Quantize, every suitable generator for New Clip (§2.9), as many as suit for Double.
 - **Turning the jog past the last pick continues** into the other generators that suit this task and this clip, best fit first. This is a quiet extra, not the centre (user, 2026-11-01): the curated picks stay what the preview is about. **There is no cap** (revised 2026-11-01): a cap ranked by fit hid the same low-prior generators on every run for a given kind of clip, which deleted them in practice. Past the picks the order is **stable**, not by fit: grouped by family (close / rhythm / experimental), then by name, so a generator found once is in the same place next time. The strip scrolls only past the picks, and its last cell reads `MORE` while there are more.
 - **Suitable** means:
   - same task (Quantize, Variation/New Clip, Double);
@@ -245,6 +245,36 @@ generators' new layouts follow §2.1.
   `land.ts`).
 - **Undo after committing reopens the preview** as §2.4 says. Considered and
   rejected (user): restoring the notes without the preview.
+
+### 2.9 New Clip adopts five Variation generators (user, 2026-11-01)
+
+New Clip had no selection: one take per generator, all shown, the same 8
+melodic options in the same order every run (`create/takes.ts`
+`selectCreate`). It gains the Variation generators that make a kind of part it
+could not, from the scene's chords alone:
+
+| Adopted | New part | Offered when |
+| --- | --- | --- |
+| **HOLD NOTE** | a drone, or a held/repeated note under the music | always |
+| **PULSE** | a one-note rhythmic ostinato | always |
+| **WALK** | a walking bass | always |
+| **LOOPER** | a generated line that locks into a loop | always |
+| **HARMONIZE**, **FOLLOW** | a second line moving with an existing melody | another melodic track plays |
+
+- **Show all, no selection (user).** The strip shows every suitable New Clip
+  generator: today's 8 first, in today's order, then the adopted ones in the
+  order above. It scrolls past 8 cells like §2.2, without a `MORE` cap.
+- Each adopted generator gets a no-clip path: its first note from the scene's
+  chords, its rhythm from the pattern map (HOLD NOTE, PULSE, LOOPER small;
+  WALK, HARMONIZE, FOLLOW medium). On New Clip they follow the New Clip
+  layout (§4) and get SPACE, as New Clip parts do.
+- The guard and `fresh` rule apply as today: a take that copies a recent one
+  is re-rolled, and one that the guard refuses is not shown.
+- **Performance:** up to 14 takes instead of 8, still one per UI tick, so a
+  New Clip opens up to ~1.75x later. `perf.mjs` gets a check for the full
+  set, and the first 8 are made first so the strip plays while the rest arrive.
+- Drums adopt nothing: the drum Variation generators that work from nothing
+  (GRIDS, EUCLID) are what DRUM MAP and EUCLID KIT already are.
 
 ## 3. Undo flow (worked example)
 

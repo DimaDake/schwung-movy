@@ -35,7 +35,7 @@ turn away. Nothing you liked is ever lost.
 | 6 | 8-knob limit | **Stay at 8.** No second page. |
 | 7 | Overlapping words | SPARSE → **SPACE**. BUSY (and every "how many notes" knob) → **DENSITY**. VARY is **replaced by DRIFT**. |
 | 8 | SAFE / BALANCED / WILD | **Remove it.** Always BALANCED, and whatever WILD alone could reach moves onto the knobs (§2.5). |
-| + | An overlong list | **Merge 16 overlapping generators into 10** (§2.7). Nothing audible may be lost: every merged generator's sound stays reachable. |
+| + | An overlong list | **Merge overlapping generators** (§2.7), but never below the picks plus 4 for any task and track kind. Nothing audible may be lost: every merged generator's sound stays reachable. |
 
 Standing rules from earlier rounds, still binding:
 
@@ -65,7 +65,8 @@ Standing rules from earlier rounds, still binding:
 
 - A knob slot whose role changes from generator to generator without a reason the table states.
 - An undo that loses timing, or audibly glitches the loop on stage.
-- A long scrolling list that buries the good picks: the first picks must stay the best.
+- A scrolling list that buries the good picks: the first picks must stay the best, and the list past them is stable, not reshuffled.
+- A task whose generators all fit in its picks, so every run shows the same set (drum Variation would have had exactly 6 for 6 slots).
 - A generator in the list that does nothing useful for this clip (e.g. Quantize options on an empty New Clip).
 
 ## 2. Design
@@ -74,19 +75,27 @@ Standing rules from earlier rounds, still binding:
 
 Each slot has one role. A generator fills the slots its knobs fit and
 leaves the rest empty and dark, so a 4-knob generator may use slots 1, 2,
-3 and 7, for example. Moving a knob to its role's slot beats packing the
+4 and 7, for example. Moving a knob to its role's slot beats packing the
 knobs into 1–4: the user learns slots, not lists.
 
 | Slot | Role | Typical knobs |
 | --- | --- | --- |
 | 1 | **WHAT**: the generator's main idea | PATTERN, STYLE, CONTOUR, CELL, FORM, MODE, GROOVE, TIMING (Quantize) |
 | 2 | **HOW MUCH**: how many notes, or how much is rewritten | DENSITY, AMOUNT, NOTES, LIKENESS |
-| 3 | **WHERE**: pitch place, or place in the clip | REGISTER, RANGE, OCTAVE(S), SPLIT, WHERE, PAD(S) |
-| 4 | **HARMONY**: the chords (melodic). Drums: the generator's second idea | HARMONY, FIX NOTES (Quantize); ACCENT, FILL, SHIFT (drums) |
+| 3 | **HARMONY**: the chords (melodic). Drums: the generator's second idea | HARMONY, FIX NOTES (Quantize); ACCENT, FILL, SHIFT (drums) |
+| 4 | **WHERE**: pitch place, or place in the clip | REGISTER, RANGE, OCTAVE(S), SPLIT, WHERE, PAD(S) |
 | 5 | **LENGTH** | GATE, LENGTH, ENDING (Double); HUMAN (drums) |
-| 6 | **OVER TIME** | DRIFT; CHORD RATE where there is no DRIFT |
+| 6 | **EXTRA** | SPACE, DYNAMICS, SEED, SEAMS |
 | 7 | **FLAVOUR** | SWING, STRUM, COLOUR, VOICING, SEED |
-| 8 | **EXTRA** | SPACE, DYNAMICS, SEED, SEAMS |
+| 8 | **OVER TIME** | DRIFT; CHORD RATE where there is no DRIFT |
+
+**Why this order (user, 2026-11-01).** Left half = the notes, right half =
+the feel, as before. Within that, the knobs turned most sit where a hand finds
+them: HARMONY is on 3, next to WHAT and HOW MUCH, ahead of WHERE (REGISTER and
+OCTAVE are rarely turned, since the part's role already places it). DRIFT, the
+knob played live, is on 8: an end knob is found by feel without looking. Both
+moves are to be confirmed by ten minutes on the device with a mock-up before
+the builder renumbers anything.
 
 **Core knobs first (user, 2026-11-01: "keep seed, harmony, density, space,
 pattern everywhere where it is meaningful").** When a generator has more
@@ -104,7 +113,7 @@ Two exceptions, both stated:
 ### 2.2 Every suitable generator, by jog (#3)
 
 - The preview strip still opens on ORIG plus the curated first picks: 6 for Variation and Quantize, 8 for New Clip, as many as suit for Double.
-- **Turning the jog past the last pick continues** into the other generators that suit this task and this clip, best fit first. This is a quiet extra, not the centre (user, 2026-11-01): the curated picks stay what the preview is about. The list is **capped at 12 options in all** (Variation/Quantize: 6 picks + 6 more; New Clip: 8 + 4). The strip scrolls only past the picks, and its last cell reads `MORE` while there are more.
+- **Turning the jog past the last pick continues** into the other generators that suit this task and this clip, best fit first. This is a quiet extra, not the centre (user, 2026-11-01): the curated picks stay what the preview is about. **There is no cap** (revised 2026-11-01): a cap ranked by fit hid the same low-prior generators on every run for a given kind of clip, which deleted them in practice. Past the picks the order is **stable**, not by fit: grouped by family (close / rhythm / experimental), then by name, so a generator found once is in the same place next time. The strip scrolls only past the picks, and its last cell reads `MORE` while there are more.
 - **Suitable** means:
   - same task (Quantize, Variation/New Clip, Double);
   - the generator's `fit` > 0 for this clip and role;
@@ -187,7 +196,7 @@ What the level did today, and where it goes:
 | Variation | OCTAVE BASS | **BASSLINE** | Octave figures become BASSLINE PATTERN positions. |
 | Variation | PEDAL, DRONE MOVE | **HOLD NOTE** | NOTE, AMOUNT, SHARED, RANGE. |
 | Variation (drums) | FILL, TURNAROUND | **FILL** | WHERE (end / a bar of the loop), SIZE, DENSITY, PADS. |
-| Variation (drums) | KICK, HATS, GHOSTS, SHIFT | **DEVELOP** | Decided (the biggest cut). DEVELOP's knobs become FILL, AMOUNT, GHOSTS, SHIFT, HATS, KICK, ACCENT, DENSITY. SEED goes, and KICK's STYLE and BARS, HATS' OPEN and GHOSTS' PAD become positions of their voice's knob. |
+| Variation (drums) | KICK, HATS, GHOSTS, SHIFT | — **not merged** | Revised 2026-11-01. With it, drum Variation had 6 generators (FILL, FEEL, GRIDS, DEVELOP, STYLE, FORM) for 6 slots: every run showed the same six, and a refused take was filled by a second take of one generator. Without it there are 10. |
 | Variation (drums) | EUCLID | **GRIDS** | Euclidean patterns become an area of the GRIDS X/Y map. |
 | Double | TURN | **TURNAROUND** | MOVE in slot 1 (APPROACH's positions + TURN's moves). |
 | Double (drums) | PICKUP | **FILL** | A pickup is FILL at its smallest ENDING; PUSH and HITS fold into FILL's knobs. |
@@ -223,16 +232,16 @@ The user marks changes here. `—` is an empty slot (LED dark). **⚑** marks a 
 
 ### New Clip — melodic
 
-| Generator | 1 WHAT | 2 HOW MUCH | 3 WHERE | 4 HARMONY | 5 LENGTH | 6 OVER TIME | 7 COLOUR | 8 EXTRA |
+| Generator | 1 WHAT | 2 HOW MUCH | 3 HARMONY | 4 WHERE | 5 LENGTH | 6 EXTRA | 7 COLOUR | 8 OVER TIME |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| CHORDS | PATTERN | DENSITY | REGISTER | HARMONY | GATE | DRIFT | VOICING | SPACE |
-| PAD | PATTERN | VOICING | REGISTER | HARMONY | GATE | DRIFT | STRUM | SPACE |
-| STABS ⚑ | PATTERN | DENSITY | REGISTER | HARMONY | GATE | DRIFT | VOICING | SPACE |
-| BASS | PATTERN | NOTES | OCTAVE | HARMONY | GATE | DRIFT | SWING | SPACE |
-| ARP | STYLE | RATE | OCTAVES | HARMONY | GATE | DRIFT | SWING | SPACE |
-| MELODY | CONTOUR | DENSITY | RANGE | HARMONY | GATE | DRIFT | SEED | SPACE |
-| RIFF | CELL | NOTES | REGISTER | HARMONY | GATE | DRIFT | SEED | SPACE |
-| COUNTER | RATE | DENSITY | REGISTER | HARMONY | GATE | DRIFT | SEED | SPACE |
+| CHORDS | PATTERN | DENSITY | HARMONY | REGISTER | GATE | SPACE | VOICING | DRIFT |
+| PAD | PATTERN | VOICING | HARMONY | REGISTER | GATE | SPACE | STRUM | DRIFT |
+| STABS ⚑ | PATTERN | DENSITY | HARMONY | REGISTER | GATE | SPACE | VOICING | DRIFT |
+| BASS | PATTERN | NOTES | HARMONY | OCTAVE | GATE | SPACE | SWING | DRIFT |
+| ARP | STYLE | RATE | HARMONY | OCTAVES | GATE | SPACE | SWING | DRIFT |
+| MELODY | CONTOUR | DENSITY | HARMONY | RANGE | GATE | SPACE | SEED | DRIFT |
+| RIFF | CELL | NOTES | HARMONY | REGISTER | GATE | SPACE | SEED | DRIFT |
+| COUNTER | RATE | DENSITY | HARMONY | REGISTER | GATE | SPACE | SEED | DRIFT |
 
 Decided 2026-11-01:
 
@@ -242,14 +251,14 @@ Decided 2026-11-01:
 
 ### New Clip — drums
 
-| Generator | 1 WHAT | 2 HOW MUCH | 3 WHERE | 4 2nd IDEA | 5 LENGTH/HUMAN | 6 OVER TIME | 7 FEEL | 8 EXTRA |
+| Generator | 1 WHAT | 2 HOW MUCH | 3 2nd IDEA | 4 WHERE | 5 LENGTH/HUMAN | 6 EXTRA | 7 FEEL | 8 OVER TIME |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| PAD EUCLID | DENSITY* | ROTATE | RATE | ACCENT | HUMAN | DRIFT | SWING | SEED |
-| PAD PATTERN | DENSITY* | STYLE | — | FILL | HUMAN | DRIFT | SWING | SEED |
-| DRUM MAP | GROOVE | KICK | SNARE | HATS | FILL | DRIFT | SWING | HUMAN |
-| EUCLID KIT | KICK | SNARE | HATS | SHIFT | HUMAN | DRIFT | SWING | DYNAMICS |
-| BROKEN | SYNC | DENSITY | GHOSTS | — | HUMAN | DRIFT | SWING | SEED |
-| PERC | ACCENT | DENSITY | PADS | — | HUMAN | DRIFT | SWING | SEED |
+| PAD EUCLID | DENSITY* | ROTATE | ACCENT | RATE | HUMAN | SEED | SWING | DRIFT |
+| PAD PATTERN | DENSITY* | STYLE | FILL | — | HUMAN | SEED | SWING | DRIFT |
+| DRUM MAP | GROOVE | KICK | HATS | SNARE | FILL | HUMAN | SWING | DRIFT |
+| EUCLID KIT | KICK | SNARE | SHIFT | HATS | HUMAN | DYNAMICS | SWING | DRIFT |
+| BROKEN | SYNC | DENSITY | — | GHOSTS | HUMAN | SEED | SWING | DRIFT |
+| PERC | ACCENT | DENSITY | — | PADS | HUMAN | SEED | SWING | DRIFT |
 
 `*` the per-pad exception (§2.1). By the core-knob rule, SEED stays (slot 8) where a generator had it, over DYNAMICS. DRUM MAP and EUCLID KIT keep three per-voice counts in 2–4, since that is their idea.
 
@@ -257,68 +266,68 @@ Decided 2026-11-01:
 
 | Generator | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| TIGHT | TIMING | DENSITY | GRID | FIX NOTES | — | — | SWING | — |
-| TIDY | TIMING | DENSITY | CLEAN | FIX NOTES? → EVEN | LENGTH | — | — | — |
-| GROOVE | TIMING | DENSITY | FEEL | — | — | — | SWING | DYNAMICS |
-| SHAPED | TIMING | — | VOICING | FIX NOTES | LENGTH | — | — | — |
-| DECORATE | TIMING | AMOUNT | KIND | FIX NOTES | — | — | — | SEED |
-| ANSWER | TIMING | DENSITY | SPLIT | FIX NOTES | LENGTH | STEP | RHYTHM | DYNAMICS |
-| FULL | TIMING | DECORATE | GRID | FIX NOTES | LENGTH | RHYTHM | SWING | DYNAMICS |
-| MUTATE | TIMING | AMOUNT | STEPS | — | — | — | — | SEED |
-| MODE | TIMING | — | WHERE | MODE | — | — | — | DYNAMICS |
-| INVERT | TIMING | — | WHERE | FIX NOTES | — | — | PIVOT | — |
-| OCTAVES | TIMING | AMOUNT | DIRECTION | — | — | — | — | SEED |
-| RATCHET | TIMING | AMOUNT | RATE | — | DECAY | — | — | — |
-| SHIFT | TIMING | — | STEPS | — | LENGTH | — | KEEP | — |
-| HUMANIZE | LOOSE | — | — | — | LENGTH | — | VELOCITY | SEED |
-| TIGHT (drums) | TIMING | DENSITY | GRID | CLEAN | — | — | SWING | — |
-| TIDY (drums) | TIMING | DENSITY | GRID | CLEAN | — | — | EVEN | — |
-| GROOVE (drums) | TIMING | DENSITY | FEEL | — | — | — | SWING | DYNAMICS |
-| GHOSTS (drums) | TIMING | COUNT | — | LEVEL | — | — | — | SEED |
-| FILL (drums) | TIMING | DENSITY | SIZE | — | — | — | — | SEED |
-| FULL (drums) | TIMING | GHOSTS | GRID | CLEAN | FILL | — | SWING | DYNAMICS |
-| MUTATE (drums) | TIMING | AMOUNT | MOVE | — | — | — | — | SEED |
-| RATCHET (drums) | TIMING | AMOUNT | PAD | RATE | — | — | — | — |
-| HUMANIZE (drums) | LOOSE | — | — | — | LENGTH | — | VELOCITY | SEED |
+| TIGHT | TIMING | DENSITY | FIX NOTES | GRID | — | — | SWING | — |
+| TIDY | TIMING | DENSITY | FIX NOTES? → EVEN | CLEAN | LENGTH | — | — | — |
+| GROOVE | TIMING | DENSITY | — | FEEL | — | DYNAMICS | SWING | — |
+| SHAPED | TIMING | — | FIX NOTES | VOICING | LENGTH | — | — | — |
+| DECORATE | TIMING | AMOUNT | FIX NOTES | KIND | — | SEED | — | — |
+| ANSWER | TIMING | DENSITY | FIX NOTES | SPLIT | LENGTH | DYNAMICS | RHYTHM | STEP |
+| FULL | TIMING | DECORATE | FIX NOTES | GRID | LENGTH | DYNAMICS | SWING | RHYTHM |
+| MUTATE | TIMING | AMOUNT | — | STEPS | — | SEED | — | — |
+| MODE | TIMING | — | MODE | WHERE | — | DYNAMICS | — | — |
+| INVERT | TIMING | — | FIX NOTES | WHERE | — | — | PIVOT | — |
+| OCTAVES | TIMING | AMOUNT | — | DIRECTION | — | SEED | — | — |
+| RATCHET | TIMING | AMOUNT | — | RATE | DECAY | — | — | — |
+| SHIFT | TIMING | — | — | STEPS | LENGTH | — | KEEP | — |
+| HUMANIZE | LOOSE | — | — | — | LENGTH | SEED | VELOCITY | — |
+| TIGHT (drums) | TIMING | DENSITY | CLEAN | GRID | — | — | SWING | — |
+| TIDY (drums) | TIMING | DENSITY | CLEAN | GRID | — | — | EVEN | — |
+| GROOVE (drums) | TIMING | DENSITY | — | FEEL | — | DYNAMICS | SWING | — |
+| GHOSTS (drums) | TIMING | COUNT | LEVEL | — | — | SEED | — | — |
+| FILL (drums) | TIMING | DENSITY | — | SIZE | — | SEED | — | — |
+| FULL (drums) | TIMING | GHOSTS | CLEAN | GRID | FILL | DYNAMICS | SWING | — |
+| MUTATE (drums) | TIMING | AMOUNT | — | MOVE | — | SEED | — | — |
+| RATCHET (drums) | TIMING | AMOUNT | RATE | PAD | — | — | — | — |
+| HUMANIZE (drums) | LOOSE | — | — | — | LENGTH | SEED | VELOCITY | — |
 
 Every Quantize option gets DENSITY in slot 2 where it is free and makes musical sense (the builder adds it via `densityStage` / `drumDensity`, as TIGHT/TIDY/GROOVE got it on 2026-11-01). The builder confirms each with the "every knob changes something" property test.
 
 ### Variation — melodic
 
-Rule: 8-knob generators put CHORD RATE in slot 6, COLOUR in 7, and the extra (VOICES, SEED, DYNAMICS) in 8. Generators with DRIFT have it in 6.
+Rule: 8-knob generators put CHORD RATE in slot 8, COLOUR in 7, and the extra (VOICES, SEED, DYNAMICS) in 6. Generators with DRIFT have it in 8.
 
 | Generator | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| NEXT CHORDS | RHYTHM | DENSITY | RANGE | HARMONY | LENGTH | CHORD RATE | COLOUR | VOICES |
-| FOLLOW | DIRECTION | DENSITY | VOICES | HARMONY | LENGTH | CHORD RATE | COLOUR | RHYTHM |
-| PULSE | NOTE | DENSITY | OCTAVE | HARMONY | LENGTH | CHORD RATE | RHYTHM | DYNAMICS |
-| HARMONIZE | INTERVAL | AMOUNT | — | HARMONY | — | DRIFT | COLOUR | — |
-| RE-VOICE | — | AMOUNT | RANGE | HARMONY | — | DRIFT | — | SEED |
-| NEW LINE | STEP | DENSITY | RHYTHM? → — | HARMONY | LENGTH | CHORD RATE | COLOUR | SEED |
-| ANSWER | SPLIT | DENSITY | STEP | HARMONY | LENGTH | CHORD RATE | COLOUR | RHYTHM |
-| SPREAD | SPREAD | RHYTHM | TOP | HARMONY | LENGTH | CHORD RATE | COLOUR | VOICES |
-| ARP | PATTERN | RATE | OCTAVES | HARMONY | — | DRIFT | — | — |
-| DRONE MOVE | NOTE | SHARED | — | HARMONY | LENGTH | DRIFT | — | — |
-| BASSLINE | PATTERN | NOTES | OCTAVE | HARMONY | LENGTH | CHORD RATE | SHIFT | DYNAMICS |
-| DISPLACE | SHIFT | AMOUNT | — | HARMONY | — | DRIFT | — | SEED |
-| ANTICIPATE | PUSH | — | — | HARMONY | LENGTH | DRIFT | COLOUR | — |
-| CONNECT | — | AMOUNT | — | HARMONY | LENGTH | DRIFT | COLOUR | SEED |
-| RECOMBINE | DIM | AMOUNT | ROTATE | HARMONY | — | DRIFT | — | SEED |
-| EUCLID | PULSES | — | ROTATE | HARMONY | LENGTH | DRIFT | — | — |
-| COMP | PATTERN | VOICES | RANGE | HARMONY | LENGTH | CHORD RATE | COLOUR | DYNAMICS |
-| OCTAVE BASS | PATTERN | AMOUNT | — | HARMONY | LENGTH | DRIFT | — | SEED |
-| WALK | — | DENSITY | AMOUNT? | HARMONY | — | DRIFT | COLOUR | SEED |
-| THIN | — | AMOUNT | RANGE | HARMONY | LENGTH | DRIFT | — | SEED |
-| MOTIF | CELL | — | STEP | HARMONY | — | DRIFT | COLOUR | — |
-| BACKWARDS | SPAN | AMOUNT | RANGE | HARMONY | — | DRIFT | — | SEED |
-| HALF/DOUBLE | SPEED | — | FROM | HARMONY | LENGTH | DRIFT | — | — |
-| DECORATE | KIND | AMOUNT | — | HARMONY | — | DRIFT | COLOUR | SEED |
-| REGISTER | SPLIT | — | INTERVAL | HARMONY | RANGE? | DRIFT | — | — |
-| HOLD NOTE | NOTE | AMOUNT | RANGE | HARMONY | — | DRIFT | — | SEED |
-| DEVELOP | RHYTHM | AMOUNT | RANGE | HARMONY | DENSITY? | CHORD RATE | COLOUR | SEED |
-| STYLE | PHRASE | LIKENESS | RANGE | HARMONY | DENSITY? | CHORD RATE | COLOUR | SEED |
-| LOOPER | LOOP | LOCK | SPREAD | HARMONY | CLOCK | DENSITY? | COLOUR | SEED |
-| FORM | FORM | UNIT | RANGE | HARMONY | LENGTH | ANSWER | COLOUR | STEP |
+| NEXT CHORDS | RHYTHM | DENSITY | HARMONY | RANGE | LENGTH | VOICES | COLOUR | CHORD RATE |
+| FOLLOW | DIRECTION | DENSITY | HARMONY | VOICES | LENGTH | RHYTHM | COLOUR | CHORD RATE |
+| PULSE | NOTE | DENSITY | HARMONY | OCTAVE | LENGTH | DYNAMICS | RHYTHM | CHORD RATE |
+| HARMONIZE | INTERVAL | AMOUNT | HARMONY | — | — | — | COLOUR | DRIFT |
+| RE-VOICE | — | AMOUNT | HARMONY | RANGE | — | SEED | — | DRIFT |
+| NEW LINE | STEP | DENSITY | HARMONY | RHYTHM? → — | LENGTH | SEED | COLOUR | CHORD RATE |
+| ANSWER | SPLIT | DENSITY | HARMONY | STEP | LENGTH | RHYTHM | COLOUR | CHORD RATE |
+| SPREAD | SPREAD | RHYTHM | HARMONY | TOP | LENGTH | VOICES | COLOUR | CHORD RATE |
+| ARP | PATTERN | RATE | HARMONY | OCTAVES | — | — | — | DRIFT |
+| DRONE MOVE | NOTE | SHARED | HARMONY | — | LENGTH | — | — | DRIFT |
+| BASSLINE | PATTERN | NOTES | HARMONY | OCTAVE | LENGTH | DYNAMICS | SHIFT | CHORD RATE |
+| DISPLACE | SHIFT | AMOUNT | HARMONY | — | — | SEED | — | DRIFT |
+| ANTICIPATE | PUSH | — | HARMONY | — | LENGTH | — | COLOUR | DRIFT |
+| CONNECT | — | AMOUNT | HARMONY | — | LENGTH | SEED | COLOUR | DRIFT |
+| RECOMBINE | DIM | AMOUNT | HARMONY | ROTATE | — | SEED | — | DRIFT |
+| EUCLID | PULSES | — | HARMONY | ROTATE | LENGTH | — | — | DRIFT |
+| COMP | PATTERN | VOICES | HARMONY | RANGE | LENGTH | DYNAMICS | COLOUR | CHORD RATE |
+| OCTAVE BASS | PATTERN | AMOUNT | HARMONY | — | LENGTH | SEED | — | DRIFT |
+| WALK | — | DENSITY | HARMONY | AMOUNT? | — | SEED | COLOUR | DRIFT |
+| THIN | — | AMOUNT | HARMONY | RANGE | LENGTH | SEED | — | DRIFT |
+| MOTIF | CELL | — | HARMONY | STEP | — | — | COLOUR | DRIFT |
+| BACKWARDS | SPAN | AMOUNT | HARMONY | RANGE | — | SEED | — | DRIFT |
+| HALF/DOUBLE | SPEED | — | HARMONY | FROM | LENGTH | — | — | DRIFT |
+| DECORATE | KIND | AMOUNT | HARMONY | — | — | SEED | COLOUR | DRIFT |
+| REGISTER | SPLIT | — | HARMONY | INTERVAL | RANGE? | — | — | DRIFT |
+| HOLD NOTE | NOTE | AMOUNT | HARMONY | RANGE | — | SEED | — | DRIFT |
+| DEVELOP | RHYTHM | AMOUNT | HARMONY | RANGE | DENSITY? | SEED | COLOUR | CHORD RATE |
+| STYLE | PHRASE | LIKENESS | HARMONY | RANGE | DENSITY? | SEED | COLOUR | CHORD RATE |
+| LOOPER | LOOP | LOCK | HARMONY | SPREAD | CLOCK | SEED | COLOUR | DENSITY? |
+| FORM | FORM | UNIT | HARMONY | RANGE | LENGTH | STEP | COLOUR | ANSWER |
 
 `?` marks a knob that has no natural slot because its generator has two "how much" knobs. The builder resolves each by moving the secondary one into the nearest free slot and lists the moves for the user.
 
@@ -326,42 +335,42 @@ Rule: 8-knob generators put CHORD RATE in slot 6, COLOUR in 7, and the extra (VO
 
 | Generator | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| KICK | STYLE | AMOUNT | BARS | — | — | DRIFT | — | SEED |
-| HATS | RATE | OPEN | — | — | — | DRIFT | SWING | DYNAMICS |
-| GHOSTS | LEVEL | COUNT | PAD | — | — | DRIFT | — | SEED |
-| FILL | SIZE | DENSITY | PADS | — | — | DRIFT | — | DYNAMICS |
-| SHIFT | STEPS | AMOUNT | PAD | — | — | DRIFT | — | SEED |
-| TURNAROUND | SIZE | DENSITY | WHERE | — | — | DRIFT | — | SEED |
-| FEEL | MODE | AMOUNT | — | — | — | DRIFT | — | DYNAMICS |
-| GRIDS | X | Y | KICK | SNARE | HATS | CHAOS | — | DYNAMICS |
-| EUCLID | PULSES | — | PAD | ROTATE | — | DRIFT | — | DYNAMICS |
-| DEVELOP | FILL | AMOUNT | GHOSTS | SHIFT | DENSITY? | ACCENT | HATS | SEED |
-| STYLE | PHRASE | LIKENESS | — | DENSITY? | — | DRIFT | — | SEED |
-| FORM | FORM | UNIT | — | ANSWER | — | DRIFT | — | DYNAMICS |
+| KICK | STYLE | AMOUNT | — | BARS | — | SEED | — | DRIFT |
+| HATS | RATE | OPEN | — | — | — | DYNAMICS | SWING | DRIFT |
+| GHOSTS | LEVEL | COUNT | — | PAD | — | SEED | — | DRIFT |
+| FILL | SIZE | DENSITY | — | PADS | — | DYNAMICS | — | DRIFT |
+| SHIFT | STEPS | AMOUNT | — | PAD | — | SEED | — | DRIFT |
+| TURNAROUND | SIZE | DENSITY | — | WHERE | — | SEED | — | DRIFT |
+| FEEL | MODE | AMOUNT | — | — | — | DYNAMICS | — | DRIFT |
+| GRIDS | X | Y | SNARE | KICK | HATS | DYNAMICS | — | CHAOS |
+| EUCLID | PULSES | — | ROTATE | PAD | — | DYNAMICS | — | DRIFT |
+| DEVELOP | FILL | AMOUNT | SHIFT | GHOSTS | DENSITY? | SEED | HATS | ACCENT |
+| STYLE | PHRASE | LIKENESS | DENSITY? | — | — | SEED | — | DRIFT |
+| FORM | FORM | UNIT | ANSWER | — | — | DYNAMICS | — | DRIFT |
 
-GRIDS keeps its X/Y map in 1–2 (it is the idea) and loses SEED (CHAOS is its randomness).
+GRIDS keeps its X/Y map in 1–2 (it is the idea) and loses SEED (CHAOS is its randomness). CHAOS sits in slot 6 here and DYNAMICS in 8: GRIDS has no DRIFT, so the builder may move CHAOS to 8 as its live knob.
 
 ### Smart Double
 
-Slot 5 is **ENDING** (how long the ending is) on every Double generator, and slot 8 is SEAMS.
+Slot 5 is **ENDING** (how long the ending is) on every Double generator, and slot 6 is SEAMS.
 
 | Generator | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| TURNAROUND | APPROACH | — | — | — | ENDING | DRIFT | COLOUR | SEAMS |
-| CADENCE | LAND | — | — | — | ENDING | DRIFT | HOLD | SEAMS |
-| PUSH | PUSH | — | — | — | ENDING | DRIFT | ACCENT | SEAMS |
-| RUN | RATE | NOTES | DIRECTION | — | ENDING | DRIFT | — | — |
-| ECHO | STEP | — | FROM | — | ENDING | DRIFT | — | SEAMS |
-| STYLE | — | LIKENESS | — | — | ENDING | DRIFT | DENSITY? | SEED |
-| STOP | KIND | — | — | — | ENDING | DRIFT | PICKUP | SEAMS |
-| TURN | MOVE | — | — | HARMONY? | ENDING | DRIFT | COLOUR | SEAMS |
-| EVOLVE | MOVE | RHYTHM | RANGE | PHRASES | — | DRIFT | COLOUR | — |
-| FILL (drums) | — | DENSITY | PADS | — | ENDING | DRIFT | — | SEAMS + SEED? |
-| PICKUP (drums) | PUSH | HITS | PADS | — | — | DRIFT | — | SEAMS |
-| ROLL (drums) | RATE | — | — | — | ENDING | DRIFT | CRESC | SEAMS |
-| REPEAT (drums) | GRAIN | — | — | — | ENDING | DRIFT | DECAY | SEAMS |
-| BREAK (drums) | KEEP | — | — | — | ENDING | DRIFT | PICKUP | SEAMS |
-| STYLE (drums) | — | LIKENESS | — | — | ENDING | DRIFT | DENSITY? | SEED |
+| TURNAROUND | APPROACH | — | — | — | ENDING | SEAMS | COLOUR | DRIFT |
+| CADENCE | LAND | — | — | — | ENDING | SEAMS | HOLD | DRIFT |
+| PUSH | PUSH | — | — | — | ENDING | SEAMS | ACCENT | DRIFT |
+| RUN | RATE | NOTES | — | DIRECTION | ENDING | — | — | DRIFT |
+| ECHO | STEP | — | — | FROM | ENDING | SEAMS | — | DRIFT |
+| STYLE | — | LIKENESS | — | — | ENDING | SEED | DENSITY? | DRIFT |
+| STOP | KIND | — | — | — | ENDING | SEAMS | PICKUP | DRIFT |
+| TURN | MOVE | — | HARMONY? | — | ENDING | SEAMS | COLOUR | DRIFT |
+| EVOLVE | MOVE | RHYTHM | PHRASES | RANGE | — | — | COLOUR | DRIFT |
+| FILL (drums) | — | DENSITY | — | PADS | ENDING | SEAMS + SEED? | — | DRIFT |
+| PICKUP (drums) | PUSH | HITS | — | PADS | — | SEAMS | — | DRIFT |
+| ROLL (drums) | RATE | — | — | — | ENDING | SEAMS | CRESC | DRIFT |
+| REPEAT (drums) | GRAIN | — | — | — | ENDING | SEAMS | DECAY | DRIFT |
+| BREAK (drums) | KEEP | — | — | — | ENDING | SEAMS | PICKUP | DRIFT |
+| STYLE (drums) | — | LIKENESS | — | — | ENDING | SEED | DENSITY? | DRIFT |
 
 ## 5. Constraints
 

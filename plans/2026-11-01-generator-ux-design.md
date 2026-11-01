@@ -100,7 +100,7 @@ the builder renumbers anything.
 **Core knobs first (user, 2026-11-01: "keep seed, harmony, density, space,
 pattern everywhere where it is meaningful").** When a generator has more
 candidates than slots, PATTERN/WHAT, DENSITY, HARMONY, SPACE and SEED win
-over the colour and feel knobs. A part that loses SWING follows the scene's
+over the colour and feel knobs, each only where it applies (§2.8). A part that loses SWING follows the scene's
 swing, as CHORDS does since 2026-11-01. The builder adds DENSITY wherever it
 is cheap and musical (`densityStage`, `drumDensity`, `patternDense`).
 SPACE stays on New Clip only (see the pushback in §6).
@@ -212,6 +212,39 @@ new code. A merge that cannot pass is reported to the user, not forced.
 
 The §4 rows for merged generators are superseded by this table; the merged
 generators' new layouts follow §2.1.
+
+### 2.8 Knob behaviour (user, 2026-11-01, third round)
+
+- **SEED, ordered close → far.** On every generator that has a random roll,
+  SEED makes about 16 takes and sorts them by `spread` (`select.ts`) from take
+  #1: position 0 is the default take, and turning right gives takes further
+  from it. Turning back still returns the same notes; a new run rolls a new set.
+  The takes are made a few per UI tick (as the harmony map is staged), with a
+  new `perf.mjs` check. Generators with no random choice (BACKWARDS,
+  HALF/DOUBLE, MODE…) get no SEED.
+- **SEED beats DRIFT** (user: "SEED gives more valuable options"). Where only
+  one fits, SEED stays. Where both fit, SEED takes the end knob 8 and DRIFT
+  moves to 6 (my call). Generators without randomness keep DRIFT on 8.
+- **HARMONY only where it applies.** New Clip melodic parts; on Variation, the
+  track that leads the harmony (bass or chords), or any track when the scene's
+  harmony is not locked. Elsewhere slot 3 stays dark and the part keeps
+  COLOUR. Reason: per-track HARMONY on followers is the 2026-10-27 bug (set
+  mmv41ucwf, every track reharmonised on its own), and the "knob changes
+  something" test cannot catch it, since a clash is still a change.
+- **CHORDS and PAD: the left ends mean "nothing moves".** PATTERN at its
+  minimum holds each chord for as long as it lasts (one sustained chord per
+  chord change). HARMONY at its minimum stays on the tonic (I, or i in minor)
+  for the whole loop. Today position 0 of both maps is the first named figure
+  or loop, not these: the builder adds them as position 0. Defaults do not
+  move.
+- **Quantize DENSITY is centred:** middle = the notes you played (the
+  default), left = drop the weakest, right = add a few quiet in-between notes
+  (DECORATE's ghost-note code). A timing fix never deletes notes by default.
+- **Later, not this rework:** SPACE on existing clips (find the player's
+  phrases by their gaps, add rests only at their ends; `create/phrase.ts`,
+  `land.ts`).
+- **Undo after committing reopens the preview** as §2.4 says. Considered and
+  rejected (user): restoring the notes without the preview.
 
 ## 3. Undo flow (worked example)
 
@@ -397,7 +430,7 @@ Slot 5 is **ENDING** (how long the ending is) on every Double generator, and slo
 ### Pushback recorded
 
 - **SPACE beyond New Clip is not in scope.** SPACE lays a NEW part into phrases (`create/phrase.ts`, `land.ts`). On an existing clip, which is what Variation and Quantize work on, it would cut the user's own phrases. DENSITY (thin to the strongest notes) and THIN cover "less" there. It is a separate design if wanted.
-- **SEED next to DRIFT** is kept because they differ: SEED jumps to a new roll, while DRIFT walks one small change at a time. Where only one fits, DRIFT wins on Variation and Double (the walk) and SEED wins on New Clip melodic (a fresh part).
+- **SEED next to DRIFT:** superseded by §2.8 (SEED wins where only one fits).
 
 ## 7. Suggested order
 

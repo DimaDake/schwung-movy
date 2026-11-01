@@ -2,6 +2,8 @@
 #include <string.h>
 
 #include "globals.h"
+#include "js_host_common.h"
+#include "mkdir_p.h"
 #include "log.h"
 #include "power.h"
 #include "movy_host.h"
@@ -38,6 +40,17 @@ static JSValue js_host_power_off(JSContext *ctx, JSValueConst this_val, int argc
     return JS_UNDEFINED;
 }
 
+/* Replaces schwung's, which forks `mkdir -p` (mkdir_p.h): same path rule,
+ * no child process. Registered after js_host_register_common, so it wins. */
+static JSValue js_host_ensure_dir(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
+    const char *path = argc > 0 ? JS_ToCString(ctx, argv[0]) : NULL;
+    if (!path) return JS_FALSE;
+    int ok = validate_path(path) && mh_mkdir_p(path) == 0;
+    if (!ok) mh_log("host_ensure_dir: cannot create %s", path);
+    JS_FreeCString(ctx, path);
+    return JS_NewBool(ctx, ok);
+}
+
 static JSValue js_shadow_load_ui_module(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv) {
     const char *path = argc > 0 ? JS_ToCString(ctx, argv[0]) : NULL;
     if (!path) return JS_FALSE;
@@ -67,6 +80,7 @@ void globals_register(JSContext *ctx) {
     MH_FN(g, "host_exit_module", js_host_exit_module, 0);
     MH_FN(g, "host_power_off", js_host_power_off, 0);
     MH_FN(g, "shadow_load_ui_module", js_shadow_load_ui_module, 1);
+    MH_FN(g, "host_ensure_dir", js_host_ensure_dir, 1);
     /* Read by movy as globalThis.overtakeParked; only a host that parks a
      * tool under Move sets it. */
     JS_SetPropertyStr(ctx, g, "overtakeParked", JS_FALSE);

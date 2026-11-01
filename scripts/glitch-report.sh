@@ -24,6 +24,9 @@ function stamp() { return $1 ~ /^[0-9][0-9][0-9][0-9]-/ ? $1 " " $2 : $1 }
 /seq: loaded set / { page = "(set load)"; next }
 /=== movy-host [0-9]/ { launches++; page = "(launch)"; next }
 /audio: late transfer/ { late++; next }
+# A fork stalls the audio thread wherever it is (host/fork_watch.h), so the
+# frame after it blames an innocent stage; these lines name the real cause.
+/audio: fork by/ { forks++; if (verbose) print; match($0, /by [^ ]+/); forker = substr($0, RSTART + 3, RLENGTH - 3); next }
 /audio: glitch frame/ {
     n++
     if (verbose) print
@@ -53,6 +56,7 @@ function stamp() { return $1 ~ /^[0-9][0-9][0-9][0-9]-/ ? $1 " " $2 : $1 }
     } else if (match($0, /render [0-9]+/)) {
         v = substr($0, RSTART + 7, RLENGTH - 7) + 0; if (v > best) { best = v; cause = "engine (no breakdown)" }
     }
+    if (forker != "") { cause = "fork by " forker; forker = "" }
     count[cause]++
     if (best > peak[cause]) peak[cause] = best
     p = page == "" ? "?" : page; bypage[p]++
@@ -63,7 +67,7 @@ function stamp() { return $1 ~ /^[0-9][0-9][0-9][0-9]-/ ? $1 " " $2 : $1 }
 }
 END {
     if (!n && !late) { print "no glitches logged"; exit }
-    printf "%d over-budget frames (%s .. %s), %d late transfers with no over-budget work, %d launches\n\n", n, first, last, late, launches
+    printf "%d over-budget frames (%s .. %s), %d late transfers with no over-budget work, %d launches, %d forks\n\n", n, first, last, late, launches, forks
     printf "%6s  %8s  %s\n", "frames", "worst us", "costliest stage"
     for (c in count) printf "%6d  %8d  %s\n", count[c], peak[c], c | "sort -rn"
     close("sort -rn")

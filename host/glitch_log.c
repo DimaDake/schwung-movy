@@ -14,7 +14,7 @@ int glitch_log_keeps(const char *text) {
     if (!strncmp(text, "[movy] ", 7)) text += 7;
     return !strncmp(text, "audio: glitch frame", 19) || !strncmp(text, "audio: late transfer", 20)
         || !strncmp(text, "=== movy-host ", 14) || !strncmp(text, "seq: loaded set ", 16)
-        || !strncmp(text, "page ready ck=", 14);
+        || !strncmp(text, "page ready ck=", 14) || !strncmp(text, "audio: fork ", 12);
 }
 
 static int open_log(glitch_log_t *g) {

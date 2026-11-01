@@ -19,6 +19,8 @@ mkdir -p "$OUT"
 "${CC:-cc}" -std=gnu11 -Wall -Wextra -I"$DIR" "$DIR/tests/test_handover.c" "$DIR/handover.c" -o "$OUT/test_handover"
 "$OUT/test_handover"
 "${CC:-cc}" -std=gnu11 -Wall -Wextra -I"$DIR" "$DIR/tests/test_glitch.c" "$DIR/glitch.c" "$DIR/glitch_log.c" -o "$OUT/test_glitch"
+"${CC:-cc}" -std=gnu11 -Wall -Wextra -pthread -I"$DIR" "$DIR/tests/test_mkdir_p.c" "$DIR/mkdir_p.c" "$DIR/fork_watch.c" "$DIR/glitch_log.c" -o "$OUT/test_mkdir_p"
+"$OUT/test_mkdir_p"
 "$OUT/test_glitch"
 # schwung's headers and speaker_eq.c from the PINNED tag, the bytes build-host.sh
 # ships -- never the checkout, which follows origin/main.

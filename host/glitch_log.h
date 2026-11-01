@@ -5,8 +5,9 @@
  * time of day without a date, and drowns the few lines that matter in ~4
  * perf lines a second. movy-host.log is replaced at every launch. This file is
  * always written, carries the date, and keeps only what a later ranking
- * needs: the glitch lines, each launch's banner (which build was running) and
- * the set loads and page opens that say what was on screen.
+ * needs: the glitch lines, each launch's banner (which build was running),
+ * the set loads and page opens that say what was on screen, and every fork
+ * (fork_watch.h), which stalls the audio thread wherever it happens to be.
  *
  * Written by the log ring's writer thread, never the audio thread. Bounded:
  * past GLITCH_LOG_CAP bytes the file rotates to `<path>.1`, replacing the

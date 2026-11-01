@@ -16,6 +16,7 @@
 
 #include "audio.h"
 #include "display.h"
+#include "fork_watch.h"
 #include "handover.h"
 #include "js_display.h"
 #include "log.h"
@@ -178,6 +179,7 @@ int main(int argc, char **argv) {
 
     mh_log_init();
     mh_crash_install();
+    fork_watch_install();
     mh_log("=== movy-host %s%s schwung=%s movy=%s pid=%d uid=%d door=%s dir=%s", MH_VERSION, MH_BUILD_KIND, SCHWUNG_TAG, MOVY_COMMIT,
            (int)getpid(), (int)getuid(), handover_armed() ? "boot" : "tools", g_mh_module_dir);
     /* mh_log_init's atexit drains the log when this returns. */

@@ -59,7 +59,7 @@ A knob name means the same thing on every generator:
 | Knob | Turning right |
 | --- | --- |
 | **AMOUNT** | Rewrites more of the clip. |
-| **DENSITY** | More notes (`AS IS` in the middle). |
+| **DENSITY** | More notes; left thins to the strongest (`AS IS` in the middle). |
 | **LENGTH** | Longer notes, towards legato. |
 | **RANGE** | Wider intervals and voicings. |
 | **TENSION** | More colour notes (9ths, 11ths, 13ths); left goes back to plain chord tones. |
@@ -85,6 +85,10 @@ The others develop the clip, each changing one thing:
 | **GHOSTS**, **FILL** (drums) | Ghost notes where there is room; a small fill into the loop. |
 | **MUTATE**, **MODE**, **INVERT**, **OCTAVES** | Notes moved through the scale, into another mode, mirrored, thrown an octave. |
 | **RATCHET**, **SHIFT**, **HUMANIZE** | Rolls and repeats; the clip moved in the bar; loosened like a player. |
+
+On **TIGHT**, **TIDY** and **GROOVE**, knob 5 is **DENSITY**: turn left to keep
+only the strongest notes, right to fill the gaps with more of what the part
+already plays. On drums every pad keeps at least one hit.
 
 ## Variation
 
@@ -118,13 +122,19 @@ key when the scene is silent. Every run is new.
 | Melodic options | |
 | --- | --- |
 | **CHORDS** | Comped chords on a rhythm. |
-| **PAD** | Held chords. |
+| **PAD** | Held chords, or held chords on a rhythm. |
 | **STABS** | Short chords off the beat. |
 | **BASS** | A bass figure: offbeat, rolling, octaves, 3-3-2… |
 | **ARP** | Each chord broken up. |
 | **MELODY** | A phrase that answers itself and lands home. |
 | **RIFF** | A short cell repeated through the chords. |
 | **COUNTER** | A line that moves where the band leaves room. |
+
+On **CHORDS**, knob 7 is **DENSITY**: it thins the rhythm to its strongest hits
+or fills it in, keeping the figure. CHORDS follows the scene's swing. On
+**PAD**, knob 6 is **PATTERN**: `HELD` changes chord with the harmony, while
+`BAR`, `HALVES`, `3-3-2`, `CHARLESTON`, `PUSH` and `2+4` re-strike the chord on
+a rhythm. Every chord change still sounds.
 
 **Drum tracks** get seven options. **PAD EUCLID** and **PAD PATTERN** write only
 the **selected pad**: press another pad and it gets its own part, so you build

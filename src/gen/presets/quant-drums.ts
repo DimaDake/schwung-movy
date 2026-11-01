@@ -9,11 +9,14 @@ import type { Preset } from '../preset.js';
 import { rng } from '../rng.js';
 import { dynamics, even } from '../shape/dynamics.js';
 import { clean, fill, ghosts } from '../shape/drums.js';
+import { drumDensity } from '../shape/drum-density.js';
 import { feelLand, timing } from '../shape/time.js';
 import { FEEL } from './quant-melodic.js';
 import type { Note } from '../types.js';
 
 const tight = (ctx: GenCtx, notes: Note[], amount = 1) => timing(ctx, notes, amount, ctx.groove.grid, ctx.groove.swing);
+/* DENSITY (5 = as played) after the timing, so an added hit lands on the grid. */
+const dense = (ctx: GenCtx, notes: Note[], v: number, seed: number) => drumDensity(notes, v, ctx.end, rng(seed));
 const EVEN = custom('EVEN', ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'], 4);
 
 /* A ghost-note count that is felt on this pattern: about a third of its hits. */
@@ -21,20 +24,20 @@ const GHOST_COUNT: KnobDef = { ...count('COUNT', 16, 4), def: (c) => Math.max(2,
 
 export const TIGHT_D: Preset = {
     id: 'qd-tight', name: 'TIGHT', task: 'quantize', drum: true, cls: 'close', fit: () => 0.9,
-    knobs: [K.timing(10), K.swing(), K.grid(), K.clean(3)],
-    generate: (ctx, v) => timing(ctx, clean(ctx.src, v[3]), v[0] / 10, GRIDS[v[2]], swingOfKnob(v[1])),
+    knobs: [K.timing(10), K.swing(), K.grid(), K.clean(3), K.density(5)],
+    generate: (ctx, v, seed) => dense(ctx, timing(ctx, clean(ctx.src, v[3]), v[0] / 10, GRIDS[v[2]], swingOfKnob(v[1])), v[4], seed),
 };
 
 export const TIDY_D: Preset = {
     id: 'qd-tidy', name: 'TIDY', task: 'quantize', drum: true, cls: 'rhythm', fit: () => 0.6,
-    knobs: [K.timing(10), K.clean(8), EVEN, K.grid()],
-    generate: (ctx, v) => even(timing(ctx, clean(ctx.src, v[1]), v[0] / 10, GRIDS[v[3]], ctx.groove.swing), v[2]),
+    knobs: [K.timing(10), K.clean(8), EVEN, K.grid(), K.density(5)],
+    generate: (ctx, v, seed) => even(dense(ctx, timing(ctx, clean(ctx.src, v[1]), v[0] / 10, GRIDS[v[3]], ctx.groove.swing), v[4], seed), v[2]),
 };
 
 export const GROOVE_D: Preset = {
     id: 'qd-groove', name: 'GROOVE', task: 'quantize', drum: true, cls: 'rhythm', fit: () => 0.65,
-    knobs: [K.timing(9), K.swing(), K.dynamics(6), FEEL],
-    generate: (ctx, v) => dynamics(timing(ctx, clean(ctx.src, 3), v[0] / 10, ctx.groove.grid, swingOfKnob(v[1]), 1, feelLand(ctx, v[3])), v[2]),
+    knobs: [K.timing(9), K.swing(), K.dynamics(6), FEEL, K.density(5)],
+    generate: (ctx, v, seed) => dynamics(dense(ctx, timing(ctx, clean(ctx.src, 3), v[0] / 10, ctx.groove.grid, swingOfKnob(v[1]), 1, feelLand(ctx, v[3])), v[4], seed), v[2]),
 };
 
 export const GHOSTS_D: Preset = {

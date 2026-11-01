@@ -9,7 +9,7 @@
 
 import { _log, eq, ok } from './harness.mjs';
 import * as G from '../../dist/esm/gen/index.js';
-import { createInput, fixtureInput, messy, PARTS } from '../gen-fixtures.mjs';
+import { createInput, fixtureInput, messy, PARTS, DRUMS } from '../gen-fixtures.mjs';
 import { rubs, verdict } from '../../scripts/gen-bench/quality/musical.mjs';
 import { positions, spearman } from '../../scripts/gen-bench/quality/sweep.mjs';
 import { writeMidi } from '../../scripts/gen-bench/quality/midi-write.mjs';
@@ -101,6 +101,23 @@ _log('\nTest: generator quality fixes');
     ok('pitch_fix_has_one_position_per_fixable_note', steps === G.fixable(ctx) + 1 && steps > 2);
     ok('pitch_fix_each_click_fixes_one_more', counts.every((c, i) => i === 0 || c < counts[i - 1]) && counts[steps - 1] === 0);
     eq('pitch_fix_label_ends_at_all', p.knobs[G.knobIndex(p, 'PITCH FIX')].label(steps - 1, ctx), 'ALL');
+}
+
+/* Smart Quantize DENSITY (user, 2026-11-01: "for quantize I want to reduce
+ * density or sparse (or increase)"): 5 is as played, left thins, right fills;
+ * a drum pad is never thinned away. */
+for (const [id, role] of [['q-tight', 'lead'], ['q-tidy', 'lead'], ['q-groove', 'lead'], ['qd-tight', 'drums'], ['qd-tidy', 'drums'], ['qd-groove', 'drums']]) {
+    const input = fixtureInput(role, { task: 'quantize' });
+    input.tracks[0].clips[0].notes = messy(role === 'drums' ? DRUMS : PARTS[role]);
+    const ctx = G.prepare(input);
+    const p = by(id);
+    const n = (d) => (turn(ctx, p, 'DENSITY', d) ?? []).length;
+    ok(`${id}_density_5_is_as_played`, G.knobIndex(p, 'DENSITY') === 4 && sig(turn(ctx, p, 'DENSITY', 5)) === sig(G.regenerate(ctx, p, G.defaults(p, ctx))));
+    ok(`${id}_density_thins_and_fills`, n(0) < n(3) && n(3) < n(5) && n(5) < n(7) && n(7) <= n(10));
+    if (p.drum) {
+        const pads = (d) => new Set((turn(ctx, p, 'DENSITY', d) ?? []).map((x) => x.pitch)).size;
+        ok(`${id}_density_keeps_every_pad`, pads(0) === pads(5));
+    }
 }
 
 /* A Smart Double keeps its part's role: a run of 16ths over a held drone is refused. */

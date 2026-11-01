@@ -110,8 +110,37 @@ const pad = by('n-pad');
 const strum = G.regenerate(fr, pad, (() => { const w = G.defaults(pad, fr); w[G.knobIndex(pad, 'STRUM')] = 4; return w; })());
 ok('strum_spreads_a_chords_voices', G.toEvents(strum).every((e) => e.voices.length < 2 || e.voices[e.voices.length - 1].dt >= 8));
 const offbeats = G.patternMap(fr, G.COMP_MAP).steps.findIndex((s) => s.join() === '2,6,10,14');
-const sw = (() => { const w = at('PATTERN', offbeats); w[G.knobIndex(cp, 'SWING')] = 6; return G.regenerate(fr, cp, w); })();
+const stp = by('n-stabs');
+const sw = (() => { const w = G.defaults(stp, fr); w[G.knobIndex(stp, 'PATTERN')] = G.patternMap(fr, G.STAB_MAP).steps.findIndex((s) => s.join() === '2,6,10,14');
+    w[G.knobIndex(stp, 'SWING')] = 6; return G.regenerate(fr, stp, w); })();
 ok('swing_moves_off_8ths_on_an_8ths_part', sw.some((n) => n.tick % (4 * G.TPS) === 2 * G.TPS + 14));
+
+/* CHORDS: DENSITY in SWING's place, over the PATTERN's own figure (user,
+ * 2026-11-01: "there is no density for new clip for chords"). */
+ok('chords_density_takes_the_swing_slot', G.knobIndex(cp, 'SWING') < 0 && G.knobIndex(cp, 'DENSITY') === 6);
+const inBar0 = (ns) => onsets(ns).filter((t) => t < G.BAR);
+const dens = Array.from({ length: 11 }, (_, d) => inBar0(G.regenerate(fr, cp, at('DENSITY', d, at('PATTERN', offbeats)))));
+eq('chords_density_5_is_the_pattern', dens[5].map((t) => t / G.TPS).join(), '2,6,10,14');
+ok('chords_density_turns_one_way', dens.every((o, d) => d === 0 || o.length > dens[d - 1].length || (o.length === 1 && d <= 5)));
+ok('chords_density_nests', dens[3].every((t) => dens[5].includes(t)) && dens[5].every((t) => dens[8].includes(t)));
+ok('chords_density_never_moves_off_the_map_at_5', G.patternMap(fr, G.COMP_MAP).steps.every((s, v) => G.patternDense(fr, G.COMP_MAP, v, 5) === s));
+
+/* PAD: a rhythm PATTERN in VARY's place (user, 2026-11-01: "there is no
+ * rythm patter for pads"), every change of the harmony still struck. */
+const pk = G.knobIndex(pad, 'PATTERN');
+ok('pad_pattern_takes_the_vary_slot', G.knobIndex(pad, 'VARY') < 0 && pk === 5);
+const padLabels = Array.from({ length: pad.knobs[pk].steps(fr) }, (_, i) => pad.knobs[pk].label(i, fr));
+const padAt = (name) => { const w = G.defaults(pad, fr); w[pk] = padLabels.indexOf(name); return G.regenerate(fr, pad, w); };
+eq('pad_pattern_opens_held', padLabels[pad.knobs[pk].def(fr)], 'HELD');
+/* Over half-bar chords BAR and HALVES strike where HELD does (every change is
+ * struck); the off-beat figures never do. */
+const padSigs = padLabels.map((l) => sig(padAt(l)));
+ok('pad_pattern_off_beat_figures_are_new_takes', new Set(padSigs).size >= padLabels.length - 2
+    && ['3-3-2', 'CHARLESTON', 'PUSH', '2+4'].every((l) => sig(padAt(l)) !== sig(padAt('HELD'))));
+ok('pad_pattern_halves_strike_each_half_bar', onsets(padAt('HALVES')).every((t) => t % (8 * G.TPS) === 0) && onsets(padAt('HALVES')).length === 4);
+ok('pad_pattern_3_3_2_strikes_the_dotted_quarters', [0, 6, 12].every((s) => onsets(padAt('3-3-2')).includes(s * G.TPS)));
+const chordsOf = (ns) => new Set(G.toEvents(ns).map((e) => e.voices.map((v) => v.pitch % 12).sort().join())).size;
+ok('pad_pattern_hears_every_change', ['BAR', '2+4', 'PUSH'].every((l) => chordsOf(padAt(l)) >= chordsOf(padAt('HELD'))));
 
 /* Defaults differ in length and rhythm, between parts and between runs. */
 G.forgetOptions();

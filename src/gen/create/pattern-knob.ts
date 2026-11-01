@@ -66,3 +66,24 @@ export const patternAt = (ctx: GenCtx, s: PatternSpec, v: number): number[] => {
     const m = patternMap(ctx, s);
     return m.steps[Math.max(0, Math.min(m.steps.length - 1, v))];
 };
+
+/* DENSITY over PATTERN: the position's own flavour played to fewer or more
+ * of its ranked steps, so the figure thins to its strongest hits or fills
+ * from the metre, nested as the map is. Left is one onset a click (Grids);
+ * right reaches about twelve, since a comp on every 16th is no comp. */
+const DENSE_TOP = 12;
+const PICKS = [5, 5, 5, 4, 6, 3];
+export const DENSITY: KnobDef = { name: 'DENSITY', steps: () => 11, def: () => 5,
+    label: (v) => (v === 5 ? 'AS IS' : (v > 5 ? '+' : '-') + Math.abs(v - 5)),
+    roll: (_c, r) => pick(r, PICKS) };
+
+/** A position's onsets in one bar at DENSITY `d` (5 = as the map has it). */
+export function patternDense(ctx: GenCtx, s: PatternSpec, v: number, d = 5): number[] {
+    const base = patternAt(ctx, s, v);
+    if (d === 5) return base;
+    const m = patternMap(ctx, s);
+    const rank = m.ranks[m.flavour[Math.max(0, Math.min(m.steps.length - 1, v))]];
+    const n = base.length;
+    const k = d < 5 ? Math.max(1, n - (5 - d)) : Math.min(16, n + (d - 5) * Math.max(1, Math.round((DENSE_TOP - n) / 5)));
+    return rank.slice(0, k).sort((a, b) => a - b);
+}

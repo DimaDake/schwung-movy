@@ -25,23 +25,26 @@ const swing = (ctx: GenCtx) => ctx.groove.swing;
 const tight = (ctx: GenCtx, notes: Note[], amount = 1) => timing(ctx, notes, amount, grid(ctx), swing(ctx));
 const len = (ctx: GenCtx, notes: Note[], v: number) => fromEvents(lengthStage(toEvents(notes), v, ctx.end), ctx.end);
 const chords = fixChords;
+/* DENSITY (5 = as played) after the timing, so an added note lands on the grid. */
+const dense = (ctx: GenCtx, notes: Note[], v: number, seed: number) =>
+    (v === 5 ? notes : fromEvents(densityStage(ctx, toEvents(notes), v, rng(seed), chords(ctx)), ctx.end));
 
 export const TIGHT: Preset = {
     id: 'q-tight', name: 'TIGHT', task: 'quantize', drum: false, cls: 'close', fit: () => 0.9,
-    knobs: [K.timing(10), K.swing(), K.grid(), K.pitchFix(4)],
-    generate: (ctx, v) => fixWorst(ctx, timing(ctx, ctx.src, v[0] / 10, GRIDS[v[2]], swingOfKnob(v[1])), v[3], chords(ctx)),
+    knobs: [K.timing(10), K.swing(), K.grid(), K.pitchFix(4), K.density(5)],
+    generate: (ctx, v, seed) => dense(ctx, fixWorst(ctx, timing(ctx, ctx.src, v[0] / 10, GRIDS[v[2]], swingOfKnob(v[1])), v[3], chords(ctx)), v[4], seed),
 };
 
 export const TIDY: Preset = {
     id: 'q-tidy', name: 'TIDY', task: 'quantize', drum: false, cls: 'rhythm', fit: () => 0.6,
-    knobs: [K.timing(10), K.clean(5), custom('EVEN', ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'], 6), K.length(6)],
-    generate: (ctx, v) => len(ctx, even(pitchFix(ctx, tight(ctx, clean(ctx.src, v[1]), v[0] / 10), 3, chords(ctx)), v[2]), v[3]),
+    knobs: [K.timing(10), K.clean(5), custom('EVEN', ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'], 6), K.length(6), K.density(5)],
+    generate: (ctx, v, seed) => len(ctx, dense(ctx, even(pitchFix(ctx, tight(ctx, clean(ctx.src, v[1]), v[0] / 10), 3, chords(ctx)), v[2]), v[4], seed), v[3]),
 };
 
 export const GROOVE: Preset = {
     id: 'q-groove', name: 'GROOVE', task: 'quantize', drum: false, cls: 'rhythm', fit: () => 0.65,
-    knobs: [K.timing(9), K.swing(), K.dynamics(6), FEEL],
-    generate: (ctx, v) => dynamics(pitchFix(ctx, timing(ctx, ctx.src, v[0] / 10, grid(ctx), swingOfKnob(v[1]), 1, feelLand(ctx, v[3])), 3, chords(ctx)), v[2]),
+    knobs: [K.timing(9), K.swing(), K.dynamics(6), FEEL, K.density(5)],
+    generate: (ctx, v, seed) => dynamics(dense(ctx, pitchFix(ctx, timing(ctx, ctx.src, v[0] / 10, grid(ctx), swingOfKnob(v[1]), 1, feelLand(ctx, v[3])), 3, chords(ctx)), v[4], seed), v[2]),
 };
 
 /** Chords filled out and voice-led; a line's stray octave leaps folded back. */

@@ -41,6 +41,7 @@ export interface RhythmMap {
     steps: number[][];      // per position: the onsets of one bar
     flavour: number[];      // per position: the figure whose ranking it is
     takes: number[];        // the positions where a named figure sits whole
+    ranks: number[][];      // per figure: its ranking of the bar (DENSITY walks it)
 }
 
 /** The map through `figs` from `lo` to `hi` onsets a bar, at most `cap` long
@@ -78,5 +79,5 @@ export function rhythmMap(figs: number[][], named: number, lo: number, hi: numbe
             if (take) takes.push(at.get(id)!);
         }
     });
-    return { steps, flavour, takes: [...new Set(takes)] };
+    return { steps, flavour, takes: [...new Set(takes)], ranks };
 }

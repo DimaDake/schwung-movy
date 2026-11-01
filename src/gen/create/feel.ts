@@ -140,20 +140,30 @@ function feel(ctx: GenCtx, notes: Note[], f: number[], seed: number, drum: boole
 
 const STRUM: KnobDef = { ...amount('STRUM', STRUMS.length - 1, 0, 4), def: () => 0, label: (v) => STRUMS[v] };
 
+/** A fifth knob of the generator's own, in the feel row's VARY (1) or SWING
+ *  (2) slot (user, 2026-11-01: eight knobs, and CHORDS wanted DENSITY, PAD a
+ *  PATTERN); the slot it took plays at its default: no variation, or the
+ *  scene's swing. The generator reads it as its v[4]. */
+export interface OwnKnob { at: 1 | 2; knob: KnobDef }
+
 /** A generator with the feel row after its own four knobs; `g` is where its
  *  GATE takes are drawn (a pad holds, a stab does not). A held part, whose
  *  chords fall on the bar, strums instead of swinging. A generator with no
  *  density control of its own gets SPARSE of its kind for DYNAMICS. */
-export function withFeel(p: Preset, g: [number, number] = [2, 8], strum = false, sp?: SparseKind, takes: string[] = []): Preset {
+export function withFeel(p: Preset, g: [number, number] = [2, 8], strum = false, sp?: SparseKind, takes: string[] = [], own?: OwnKnob): Preset {
     const row = p.drum ? [VARY, SWING, DYN, HUMAN] : [gate(g[0], g[1]), VARY, strum ? STRUM : SWING, sp ? sparseKnob(sp, takes) : DYN];
+    if (own) row[own.at] = own.knob;
     const hk = p.knobs.findIndex((k) => k.name === 'HARMONY');
     return { ...p, knobs: [...p.knobs, ...row],
         generate: (ctx, v, seed) => {
             const h = hk >= 0 ? v[hk] : runPlan(ctx);
             const tpl = sp ? ladder(sp, ctx.len)[v[7]]?.tpl : undefined;
             const spans = tpl ? planSpans(ctx, tpl, h, sp === 'counter') : null;
+            const mine = own ? [...v.slice(0, 4), v[4 + own.at]] : v.slice(0, 4);
             /* A generator that phrases itself (MELODY) is handed the spans. */
-            const notes = p.generate(ctx, v.slice(0, 4), seed, spans ?? undefined);
-            return feel(ctx, notes, v.slice(4), seed, p.drum, { strum, sparse: sp, h, spans });
+            const notes = p.generate(ctx, mine, seed, spans ?? undefined);
+            const f = v.slice(4);
+            if (own) f[own.at] = own.at === 1 ? VARY.def(ctx) : SWING.def(ctx);
+            return feel(ctx, notes, f, seed, p.drum, { strum, sparse: sp, h, spans });
         } };
 }

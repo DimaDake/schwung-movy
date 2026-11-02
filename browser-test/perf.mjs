@@ -560,6 +560,12 @@ _origLog('\nTest: generator slice cost');
     check('generator: one New Clip take slice (16 bars)', Number(cstep.toFixed(2)), 15, 'ms');
     check('generator: a New Clip knob turn (16 bars)', Number(cregen.toFixed(2)), 12, 'ms');
 
+    /* New Clip shows every generator (§2.9): up to 1.75x the slices of the
+     * eight it had, today's eight made first so the strip plays early. */
+    const full = G.startRequest(F.createInput(false, 'locked', 1, { melody: true }));
+    const melodicNow = full.todo.length;
+    check('generator: New Clip slices, full set', melodicNow, Math.round(8 * G.TAKES * 1.75), 'slices');
+
     /* SEED's order is built a take a slice (gen/seed-order.ts): no slice may
      * cost more than a take's. */
     let sslice = 0;

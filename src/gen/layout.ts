@@ -88,6 +88,13 @@ export const LAYOUTS: Record<string, Row> = {
     'n-melody': ['CONTOUR', 'DENSITY', 'HARMONY', 'RANGE', 'GATE', 'SPACE', 'DRIFT', 'SEED'],
     'n-riff': ['CELL', 'NOTES', 'HARMONY', 'REGISTER', 'GATE', 'SPACE', 'DRIFT', 'SEED'],
     'n-counter': ['RATE', 'DENSITY', 'HARMONY', 'REGISTER', 'GATE', 'SPACE', 'DRIFT', 'SEED'],
+    // New Clip, adopted from Variation (§2.9); DYNAMICS fills a slot the table left dark
+    'n-hold': ['NOTE', 'DYNAMICS', 'HARMONY', 'REGISTER', 'GATE', 'SPACE', 'SHARED', 'DRIFT'],
+    'n-pulse': ['PATTERN', 'DENSITY', 'HARMONY', 'OCTAVE', 'GATE', 'SPACE', 'NOTE', 'DRIFT'],
+    'n-walk': ['PATTERN', 'DENSITY', 'HARMONY', 'OCTAVE', 'GATE', 'SPACE', 'COLOUR', 'SEED'],
+    'n-looper': ['LOOP', 'LOCK', 'HARMONY', 'SPREAD', 'GATE', 'SPACE', 'CLOCK', 'SEED'],
+    'n-harmonize': ['INTERVAL', 'AMOUNT', _, 'DYNAMICS', 'GATE', 'SPACE', 'COLOUR', 'DRIFT'],
+    'n-follow': ['RHYTHM', 'DENSITY', 'DYNAMICS', 'VOICES', 'GATE', 'SPACE', 'COLOUR', 'DRIFT'],
     'n-pad-euclid': ['DENSITY', 'ROTATE', 'ACCENT', 'RATE', 'HUMAN', _, 'DYNAMICS', 'DRIFT'],
     'n-pad-pattern': ['DENSITY', 'STYLE', 'FILL', _, 'HUMAN', 'DRIFT', 'DYNAMICS', 'SEED'],
     'n-drum-map': ['GROOVE', 'KICK', 'SNARE', 'HATS', 'HUMAN', 'FILL', 'DYNAMICS', 'SEED'],

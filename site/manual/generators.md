@@ -133,6 +133,13 @@ key when the scene is silent. Every run is new.
 | **MELODY** | A phrase that answers itself and lands home. |
 | **RIFF** | A short cell repeated through the chords. |
 | **COUNTER** | A line that moves where the band leaves room. |
+| **HOLD NOTE** | A drone that moves with the chords. |
+| **PULSE** | One note of each chord on a bass rhythm. |
+| **WALK** | A bass that walks into each chord change. |
+| **LOOPER** | A short line that locks into a loop and slowly changes. |
+| **HARMONIZE**, **FOLLOW** | A second line under a melody another track plays (only when one does). |
+
+Turn the jog past the first eight to reach the last options.
 
 On **CHORDS**, **DENSITY** thins the rhythm to its strongest hits or fills it
 in, keeping the figure. On **PAD**, **PATTERN**: `HELD` changes chord with the harmony, while

@@ -96,14 +96,15 @@ ok('no_level_anywhere', !('level' in G.prepare(fixtureInput('lead')).input) && t
 ok('no_preset_has_a_swing_knob', G.PRESETS.every((p) => !p.knobs.some((k) => k.name === 'SWING')));
 eq('no_old_knob_names', G.PRESETS.flatMap((p) => p.knobs.filter((k) => ['TENSION', 'CHANGES', 'PITCH FIX', 'SPARSE', 'VARY', 'BUSY'].includes(k.name)).map((k) => p.id + ':' + k.name)).join(' '), '');
 eq('no_old_generator_names', G.PRESETS.filter((p) => ['RETROGRADE', 'ORNAMENT', 'EMBELLISH', 'PEDAL', 'DRONE MOVE'].includes(p.name)).map((p) => p.id).join(' '), '');
-ok('new_clip_has_drift', G.PRESETS.filter((p) => p.task === 'create' && p.id !== 'n-drum-map').every((p) => p.knobs.some((k) => k.name === 'DRIFT')));
+/* DRUM MAP, WALK and LOOPER give DRIFT up for their own knobs (§4). */
+ok('new_clip_has_drift', G.PRESETS.filter((p) => p.task === 'create' && !['n-drum-map', 'n-walk', 'n-looper'].includes(p.id)).every((p) => p.knobs.some((k) => k.name === 'DRIFT')));
 {
     /* A New Clip default writes its off-beats on the grid: the set's swing swings them at playback. */
     const sw = G.prepare(createInput(false, 'locked', 3));
     ok('new_clip_writes_straight', G.PRESETS.filter((p) => p.task === 'create' && !p.drum).every((p) => (G.regenerate(sw, p, G.defaults(p, sw)) ?? [])
         .every((n) => n.tick % (G.TPS / 2) === 0 || n.tick % 8 === 0)));
 }
-const OPENS = { 'v-revoice:TOP': ['SPREAD', 2], 'xd-fill:PUSH': ['HITS', 2] };
+const OPENS = { 'v-revoice:TOP': ['SPREAD', 2], 'xd-fill:PUSH': ['HITS', 2], 'n-hold:SHARED': ['NOTE', 0] };
 const liveOpened = (c, p, v, i) => {
     const o = OPENS[p.id + ':' + p.knobs[i].name];
     if (!o) return false;
@@ -114,8 +115,8 @@ const liveOpened = (c, p, v, i) => {
 let served = 0;
 for (const task of ['variation', 'quantize', 'double', 'create']) {
     for (const scene of task === 'quantize' ? ['locked', 'free'] : task === 'create' ? ['empty', 'locked', 'free'] : ['locked', 'partial', 'free']) {
-        for (const role of task === 'create' ? ['lead', 'drums'] : ROLES) {
-            const input = task === 'quantize' ? quantInput(role, scene) : task === 'create' ? createInput(role === 'drums', scene, 3)
+        for (const role of task === 'create' ? ['lead', 'drums', 'sung'] : ROLES) {
+            const input = task === 'quantize' ? quantInput(role, scene) : task === 'create' ? createInput(role === 'drums', scene, 3, { melody: role === 'sung' })
                 : fixtureInput(role, { task, scene });
             const c = G.prepare(input);
             for (const p of G.PRESETS) {

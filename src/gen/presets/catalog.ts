@@ -31,6 +31,7 @@ import { COUNTER, MELODY, RIFF } from './new-melody.js';
 import { PAD_EUCLID, PAD_PATTERN } from './new-drums-pad.js';
 import { BROKEN, EUCLID_KIT, PERC } from './new-drums-kit.js';
 import { DRUM_MAP } from './new-drums-map.js';
+import { FOLLOW_N, HARMONIZE_N, HOLD_N, LOOPER_N, PULSE_N, WALK_N } from './new-adopted.js';
 import { BREAK_D, FILL_X, REPEAT, ROLL, STYLE_XD } from './dbl-drums.js';
 
 const LISTED: Preset[] = [
@@ -43,7 +44,7 @@ const LISTED: Preset[] = [
     TURNAROUND, CADENCE, PUSH, RUN, ECHO, STYLE_X, STOP, EVOLVE,
     FILL_X, ROLL, REPEAT, BREAK_D, STYLE_XD,
     /* New Clip: shown in this order, one option each. */
-    CHORDS, PAD, STABS, BASS, ARP_N, MELODY, RIFF, COUNTER,
+    CHORDS, PAD, STABS, BASS, ARP_N, MELODY, RIFF, COUNTER, HOLD_N, PULSE_N, WALK_N, LOOPER_N, HARMONIZE_N, FOLLOW_N,
     PAD_EUCLID, PAD_PATTERN, DRUM_MAP, EUCLID_KIT, BROKEN, PERC,
 ];
 

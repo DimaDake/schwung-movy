@@ -21,7 +21,7 @@ G.forgetOptions();
 
 /* Nothing in the Set at all: still a full set of options, in order. */
 const mel = G.generateAll(createInput(false, 'empty', 1));
-eq('new_clip_melodic_offers_its_eight_parts', ids(mel), 'n-chords n-pad n-stabs n-bass n-arp n-melody n-riff n-counter');
+eq('new_clip_melodic_offers_every_part', ids(mel), 'n-chords n-pad n-stabs n-bass n-arp n-melody n-riff n-counter n-hold n-pulse n-walk n-looper');
 const drm = G.generateAll(createInput(true, 'empty', 1));
 eq('new_clip_drums_offers_two_per_pad_then_four_kits', ids(drm), 'n-pad-euclid n-pad-pattern n-drum-map n-euclid-kit n-broken n-perc');
 ok('new_clip_per_pad_options_come_first', drm.picks.slice(0, 2).every((p) => p.preset.perPad) && drm.picks.slice(2).every((p) => !p.preset.perPad));
@@ -68,7 +68,7 @@ for (const drum of [false, true]) {
         for (let n = 0; n < 25; n++) {
             const r = G.generateAll(createInput(drum, scene, 1000 + n, { len: [16, 32, 64][n % 3] }));
             runs++;
-            if (r.picks.length !== (drum ? 6 : 8)) bad.push(`${scene}/${n}: ${r.picks.length} options (${r.dropped.join(' ')})`);
+            if (r.picks.length !== (drum ? 6 : 12)) bad.push(`${scene}/${n}: ${r.picks.length} options (${r.dropped.join(' ')})`);
             for (const p of r.picks) { const why = G.unmeaning(r.ctx, p.preset, p.notes); if (why) bad.push(`${p.preset.id}@${scene}/${n}: ${why}`); }
         }
     }
@@ -141,6 +141,31 @@ ok('pad_pattern_halves_strike_each_half_bar', onsets(padAt('HALVES')).every((t) 
 ok('pad_pattern_3_3_2_strikes_the_dotted_quarters', [0, 6, 12].every((s) => onsets(padAt('3-3-2')).includes(s * G.TPS)));
 const chordsOf = (ns) => new Set(G.toEvents(ns).map((e) => e.voices.map((v) => v.pitch % 12).sort().join())).size;
 ok('pad_pattern_hears_every_change', ['BAR', '2+4', 'PUSH'].every((l) => chordsOf(padAt(l)) >= chordsOf(padAt('HELD'))));
+
+/* New Clip adopts five Variation generators (plans/2026-11-01-generator-ux-design.md §2.9):
+ * a drone, a pulse, a walking bass and a looped line from the scene alone; a
+ * second line only where another track plays a melody. */
+{
+    const withMelody = createInput(false, 'locked', 6, { melody: true });
+    const plain = G.generateAll(createInput(false, 'locked', 6));
+    ok('harmonize_follow_not_offered_without_a_melody', !plain.picks.some((p) => ['n-harmonize', 'n-follow'].includes(p.preset.id)));
+    const sung = G.generateAll(withMelody);
+    ok('harmonize_follow_offered_with_a_melody', ['n-harmonize', 'n-follow'].every((id) => sung.picks.some((p) => p.preset.id === id)));
+    const mel = new Set(withMelody.tracks[withMelody.tracks.length - 1].clips[0].notes.map((n) => `${n.tick}.${n.pitch}`));
+    ok('second_line_never_doubles_the_melody', ['n-harmonize', 'n-follow'].every((id) => {
+        const p = sung.picks.find((x) => x.preset.id === id);
+        return p && p.notes.length > 0 && p.notes.filter((n) => mel.has(`${n.tick}.${n.pitch}`)).length <= p.notes.length * 0.2;
+    }));
+    for (const id of ['n-hold', 'n-pulse', 'n-walk', 'n-looper']) {
+        const p = plain.picks.find((x) => x.preset.id === id);
+        ok(`${id}_writes_a_part`, !!p && p.notes.length > 0 && !G.unmeaning(plain.ctx, p.preset, p.notes));
+    }
+    const todo = G.startRequest(createInput(false, 'locked', 6, { melody: true })).todo.map((t) => t.preset.id);
+    const firstAdopted = todo.findIndex((id) => ['n-hold', 'n-pulse', 'n-walk', 'n-looper', 'n-harmonize', 'n-follow'].includes(id));
+    ok('todays_eight_are_made_first', firstAdopted >= 8 * G.TAKES && todo.slice(0, firstAdopted).every((id) => !id.startsWith('n-pad-')));
+    const hold = plain.picks.find((x) => x.preset.id === 'n-hold');
+    ok('hold_note_is_held', !!hold && hold.notes.every((n) => n.gate >= 4 * G.TPS));
+}
 
 /* Knob sets (plans/2026-11-01-generator-ux-design.md §4.1). */
 {

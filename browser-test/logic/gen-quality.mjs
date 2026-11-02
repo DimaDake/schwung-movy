@@ -169,14 +169,15 @@ for (const [id, role] of [['q-tight', 'lead'], ['qd-tight', 'drums']]) {
 {
     const ctx = G.prepare(createInput(false, 'empty', 1));
     const labels = ctx.plans.map((p) => p.label);
-    eq('harmony_map_opens_on_the_first_named_loop', labels[0], 'POP');
+    /* The tonic holds the left end (§2.8); the map itself opens on the first named loop. */
+    eq('harmony_map_opens_on_the_tonic_then_the_first_named_loop', labels.slice(0, 2).join(), 'TONIC,POP');
     ok('harmony_map_holds_every_named_loop', ['POP', 'DOO-WOP', 'CADENCE', 'II-V-I', 'VAMP', 'LIFT', 'SOUL', 'TONIC', 'ROYAL ROAD', 'MIXOLYDIAN', 'BACKDOOR']
         .every((l) => labels.includes(l)));
     ok('harmony_new_scene_offers_a_hundred_or_more', labels.length >= 100 && labels.length <= 128);
     ok('harmony_colour_sits_at_the_end', ctx.plans.findIndex((p) => p.ext) > 0 && ctx.plans.slice(ctx.plans.findIndex((p) => p.ext)).every((p) => p.ext));
     const takes = new Set(Array.from({ length: 40 }, (_, n) => { const c = G.prepare(createInput(false, 'empty', n)); return c.plans[G.runPlan(c)]; }));
     ok('harmony_a_take_never_opens_on_colour', [...takes].every((p) => !p.ext && p.seed !== undefined) && [...takes].some((p) => ['SENSITIVE', 'ROYAL ROAD', 'TURNAROUND', 'SWAY'].includes(p.label)));
-    const moves = G.harmonicMoves([G.diatonic(ctx.key, 0), G.diatonic(ctx.key, 4)], ctx.key, false);
+    const moves = G.harmonicMoves([G.diatonic(ctx.key, 0), G.diatonic(ctx.key, 4)], ctx.key);
     ok('variation_wild_moves_come_last_not_dropped', moves.at(-1).ext === true && moves.some((m) => m.name === 'MEDIANT'));
     /* Under a borrowed bVII (Bb in C) a line walks Bb, not B. */
     eq('scale_under_a_borrowed_chord_lends_its_tone', G.scaleUnder(ctx.key, G.chordOf(10, 'maj')).sort((a, b) => a - b).join(), '0,2,4,5,7,9,10');

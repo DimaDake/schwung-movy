@@ -11,6 +11,7 @@ import { harmonicMoves, tolerates } from './theory/moves.js';
 import { degreeOf, diatonic } from './theory/roman.js';
 import { holds, withChanges } from './theory/changes.js';
 import { createPlans } from './create/plans.js';
+import { chordsLabel } from './theory/chord-label.js';
 
 const SITS: [Sit, string][] = [['asis', 'AS PLAYED'], ['roots', 'ROOTS'], ['inv', 'INVERSION'], ['7th', '7TH'], ['9th', '9TH']];
 
@@ -57,8 +58,7 @@ export function buildPlans(ctx: GenCtx): HarmonyPlan[] {
     }
     const base = sample(ctx.srcChords, n);
     if (!base.some((c) => c)) return [{ chords: base, sit: 'asis', pedal: null, label: 'SAME' }];
-    const wild = ctx.input.level === 'WILD';
-    let moves = harmonicMoves(base, ctx.key, wild);
+    let moves = harmonicMoves(base, ctx.key);
     if (ctx.freedom === 'partial') {
         const col = (c: Chord) => colourPcs(c, ctx.key);
         const ok = (cs: (Chord | null)[]) => cs.every((c, i) => !c || tolerates(c, ctx.pinned[i % ctx.pinned.length] ?? [], col));
@@ -90,6 +90,26 @@ function withSeventh(c: Chord | null, ctx: GenCtx): Chord | null {
     if (d < 0) return c;
     const s = diatonic(ctx.key, d, true);
     return s.pcs.slice(0, 3).join() === c.pcs.join() ? s : c;
+}
+
+/** Whether HARMONY is a knob here (§2.8): every New Clip melodic part; on a
+ *  Variation, the part that leads the harmony (bass or chords) or any part
+ *  when the scene's harmony is not locked. A follower in a locked scene
+ *  re-harmonised on its own clashes with the band (2026-10-27, set
+ *  mmv41ucwf), so it keeps COLOUR only. */
+export function harmonyApplies(ctx: GenCtx): boolean {
+    if (ctx.task === 'create') return !ctx.drum;
+    if (ctx.task !== 'variation') return false;
+    const k = ctx.role?.kind;
+    return ctx.freedom !== 'locked' || k === 'bass' || k === 'pad' || k === 'stabs';
+}
+
+/** HARMONY's value: the chords themselves, or how a locked part sits on the
+ *  band's chords (AS PLAYED, ROOTS…), whose chords are the same throughout. */
+export function harmonyLabel(ctx: GenCtx, h: number): string {
+    const p = planAt(ctx, h);
+    if (!p) return '';
+    return ctx.task === 'variation' && ctx.freedom === 'locked' ? p.label : chordsLabel(p.chords);
 }
 
 /** Where HARMONY opens: a free scene moves somewhere (a B section changes

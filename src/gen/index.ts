@@ -7,6 +7,7 @@ export * from './theory/roman.js';
 export * from './theory/category.js';
 export * from './theory/voicing.js';
 export * from './theory/moves.js';
+export * from './theory/chord-label.js';
 export * from './theory/connect.js';
 export * from './analysis/sounding.js';
 export * from './analysis/events.js';

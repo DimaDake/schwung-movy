@@ -4,7 +4,7 @@
 
 import type { GenCtx } from './analysis/context.js';
 import { GRIDS } from './analysis/groove.js';
-import { defaultHarmony, planAt } from './plan.js';
+import { defaultHarmony, harmonyApplies, harmonyLabel } from './plan.js';
 import { CHANGES } from './theory/changes.js';
 import { fixable, fixDefault } from './shape/pitch.js';
 import { RHYTHMS } from './shape/rhythm.js';
@@ -35,8 +35,8 @@ export function count(name: string, max: number, def: number): KnobDef {
 
 export const K = {
     amount: (def = 5): KnobDef => ({ name: 'AMOUNT', steps: fixed(11), def: fixed(def), label: (v) => pct(v, 11) }),
-    harmony: (far = 1): KnobDef => ({ name: 'HARMONY', steps: (c) => Math.max(1, c.plans.length),
-        def: (c) => defaultHarmony(c, far), label: (v, c) => planAt(c, v).label }),
+    harmony: (far = 1): KnobDef => ({ name: 'HARMONY', steps: (c) => (harmonyApplies(c) ? Math.max(1, c.plans.length) : 1),
+        def: (c) => defaultHarmony(c, far), label: (v, c) => harmonyLabel(c, v) }),
     tension: (def = 5): KnobDef => ({ name: 'COLOUR', steps: fixed(11), def: fixed(def),
         label: (v) => (v <= 3 ? 'CHORD TONES' : v <= 6 ? 'COLOUR' : v <= 8 ? 'APPROACH' : 'CHROMATIC') + ' ' + v }),
     density: (def = 5): KnobDef => ({ name: 'DENSITY', steps: fixed(11), def: fixed(def), label: centred }),

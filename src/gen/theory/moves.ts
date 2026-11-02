@@ -82,10 +82,11 @@ const DEFS: Def[] = [
 const key = (p: Prog) => p.map((c) => (c ? c.root + c.quality : '-')).join(' ');
 
 /** The moves for a progression, SAME first; never two that sound alike.
- *  Below WILD, a move that is WILD's own or connects badly with the source
- *  comes after the rest, marked `ext`: HARMONY reaches it, a take never
- *  opens on it (user, 2026-10-29: extended ranges for experimental flavour). */
-export function harmonicMoves(src: Prog, k: Key, wild: boolean): MoveResult[] {
+ *  A bold move (once WILD's own) or one that connects badly with the source
+ *  comes after the rest, marked `ext`: HARMONY reaches it at its far end, a
+ *  take never opens on it (user, 2026-10-29: extended ranges for
+ *  experimental flavour; 2026-11-01: no SAFE/BALANCED/WILD). */
+export function harmonicMoves(src: Prog, k: Key): MoveResult[] {
     const out: MoveResult[] = [];
     const ext: MoveResult[] = [];
     const seen = new Set<string>();
@@ -96,7 +97,7 @@ export function harmonicMoves(src: Prog, k: Key, wild: boolean): MoveResult[] {
         if (seen.has(id)) continue;
         if (d.name !== 'SAME' && chords.every((c, i) => sameChord(c, src[i])) && pedal === null) continue;
         seen.add(id);
-        const far = !wild && (d.wild || (d.name !== 'SAME' && sectionConnection(src, chords) < DROP_BELOW));
+        const far = d.wild || (d.name !== 'SAME' && sectionConnection(src, chords) < DROP_BELOW);
         (far ? ext : out).push({ name: d.name, dist: d.dist, chords, pedal, ...(far ? { ext: true } : {}) });
     }
     return [...out, ...ext];

@@ -119,7 +119,7 @@ ok('offbeats_written_on_the_grid', sw.every((n) => n.tick % (2 * G.TPS) === 0));
  * 2026-11-01: "there is no density for new clip for chords"). */
 ok('chords_density_is_its_own_knob', G.knobIndex(cp, 'SWING') < 0 && G.knobIndex(cp, 'DENSITY') === 4);
 const inBar0 = (ns) => onsets(ns).filter((t) => t < G.BAR);
-const dens = Array.from({ length: 11 }, (_, d) => inBar0(G.regenerate(fr, cp, at('DENSITY', d, at('PATTERN', offbeats)))));
+const dens = Array.from({ length: 11 }, (_, d) => inBar0(G.regenerate(fr, cp, at('DENSITY', d, at('PATTERN', offbeats + 1)))));
 eq('chords_density_5_is_the_pattern', dens[5].map((t) => t / G.TPS).join(), '2,6,10,14');
 ok('chords_density_turns_one_way', dens.every((o, d) => d === 0 || o.length > dens[d - 1].length || (o.length === 1 && d <= 5)));
 ok('chords_density_nests', dens[3].every((t) => dens[5].includes(t)) && dens[5].every((t) => dens[8].includes(t)));

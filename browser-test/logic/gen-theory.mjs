@@ -71,14 +71,14 @@ eq('euclid_rotated', G.euclid(3, 8, 1).map((x) => (x ? 'x' : '.')).join(''), '.x
 
 /* Harmonic moves from I–V–vi–IV in C: SAME first, nothing that sounds alike twice. */
 const prog = [G.chordOf(0, 'maj'), G.chordOf(7, 'maj'), G.chordOf(9, 'min'), G.chordOf(5, 'maj')];
-const moves = G.harmonicMoves(prog, C, false);
+const moves = G.harmonicMoves(prog, C);
 eq('moves_same_first', moves[0].name, 'SAME');
 eq('moves_iv_sequence', moves.find((m) => m.name === 'IV SEQ')?.chords.map(name).join(' '), 'F C DM G');
 ok('moves_never_two_alike', new Set(moves.map((m) => m.chords.map(name).join() + m.pedal)).size === moves.length);
-/* Below WILD, MEDIANT is offered only past the rest, as an extended position. */
-ok('moves_mediant_only_when_wild', moves.filter((m) => m.name === 'MEDIANT').every((m) => m.ext && moves.indexOf(m) >= moves.findIndex((x) => x.ext)) && G.harmonicMoves(prog, C, true).some((m) => m.name === 'MEDIANT' && !m.ext));
+/* MEDIANT (once WILD's own) sits past the rest, at HARMONY's far end. */
+ok('moves_mediant_at_the_far_end', moves.some((m) => m.name === 'MEDIANT') && moves.filter((m) => m.name === 'MEDIANT').every((m) => m.ext && moves.indexOf(m) >= moves.findIndex((x) => x.ext)));
 ok('moves_ordered_close_to_far', moves.every((m, i) => i === 0 || m.dist >= moves[i - 1].dist));
-const vamp = G.harmonicMoves([G.chordOf(9, 'min'), G.chordOf(9, 'min')], am, false);
+const vamp = G.harmonicMoves([G.chordOf(9, 'min'), G.chordOf(9, 'min')], am);
 ok('moves_a_one_chord_vamp_still_gets_somewhere', vamp.length >= 3);
 
 /* Connection: fifths strong, tritones weak, a section judged in AND out. */

@@ -9,6 +9,7 @@ import { choice, CHORD_REGISTER as R, chordUnder, everyBar, HARMONY, place, regi
 import { DENSITY, patternAt, patternDense, patternKnob, type PatternSpec } from '../create/pattern-knob.js';
 import { struck } from '../create/push.js';
 import type { Preset } from '../preset.js';
+import type { KnobDef } from '../knobs.js';
 import { withFeel } from '../create/feel.js';
 import { rng } from '../rng.js';
 import { COMPS } from '../shape/rhythm.js';
@@ -51,13 +52,27 @@ const VOICING = (pool: number[]) => choice('VOICING', STYLE_LABELS, pool);
  * a take lands on one of them whole, or on the band's accents (the last). */
 export const COMP_MAP: PatternSpec = { figs: COMPS.map((x) => x[1]), lo: 1, hi: 10, band: 5 };
 
+/* PATTERN's left end holds each chord as long as it lasts (user, 2026-11-01:
+ * the left ends mean "nothing moves"); the map follows it, one up. */
+function heldFirst(k: KnobDef): KnobDef {
+    return { ...k, steps: (c) => k.steps(c) + 1, def: (c) => k.def(c) + 1, label: (v, c) => (v === 0 ? 'HELD' : k.label(v - 1, c)),
+        ...(k.roll ? { roll: (c: GenCtx, r: () => number) => k.roll!(c, r) + 1 } : {}) };
+}
+
 export const CHORDS: Preset = withFeel({
     id: 'n-chords', name: 'CHORDS', task: 'create', drum: false, cls: 'close',
-    knobs: [patternKnob(COMP_MAP, [1, 0, 3, 4, 5, 7, 8]), VOICING([1, 1, 2, 4, 5, 6]),
+    knobs: [heldFirst(patternKnob(COMP_MAP, [1, 0, 3, 4, 5, 7, 8])), VOICING([1, 1, 2, 4, 5, 6]),
         register([R.LOW, R.LOW + 1, R.MID, R.MID, R.MID + 1, R.HIGH]), HARMONY, DENSITY],
     generate: (ctx, v, seed) => {
         const r = rng(seed);
-        const steps = patternDense(ctx, COMP_MAP, v[0], v[4]);
+        if (v[0] === 0) {
+            const spans = changes(ctx, v[3], false);
+            const vs = voicePart(ctx, spans.map(([a]) => chordUnder(ctx, v[3], a)), v[1], v[2]);
+            const held: Note[] = [];
+            spans.forEach(([a, b], i) => strike(held, a, vs[i], b - a - 4, velAt(a, 92, r)));
+            return held;
+        }
+        const steps = patternDense(ctx, COMP_MAP, v[0] - 1, v[4]);
         const hits: [number, number][] = [];
         everyBar(ctx, steps, (s, bar) => {
             const i = steps.indexOf(s - bar * 16);

@@ -80,13 +80,12 @@ export function* createPlans(ctx: GenCtx, n: number): Generator<void, HarmonyPla
     if (ctx.freedom === 'locked') return [{ chords: sample(ctx.fixedChords, n), sit: 'asis', pedal: null, label: 'SCENE' }];
     const slots = Math.ceil(n / perOf(n));
     const long = slots > 4;
-    const wild = ctx.input.level === 'WILD';
     const seeds: Loop[] = [];
     const seed = (label: string, chords: (Chord | null)[], ext = false) => seeds.push({ label, chords, ext, seed: seeds.length });
     const short = ctx.key.minor ? MINOR : MAJOR;
     for (const p of short) seed(p[0], degrees(ctx, p));
     if (long) {
-        for (const p of short.filter((x) => x[0] !== 'TONIC')) seed(p[0] + '+DEV', journey(degrees(ctx, p), Math.ceil(slots / 4), ctx.key, wild));
+        for (const p of short.filter((x) => x[0] !== 'TONIC')) seed(p[0] + '+DEV', journey(degrees(ctx, p), Math.ceil(slots / 4), ctx.key));
         for (const p of ctx.key.minor ? LONG_MINOR : LONG_MAJOR) seed(p[0], degrees(ctx, p));
     }
     for (const p of ctx.key.minor ? MORE_MINOR : MORE_MAJOR) seed(p[0], degrees(ctx, p));
@@ -109,7 +108,11 @@ export function* createPlans(ctx: GenCtx, n: number): Generator<void, HarmonyPla
             ...(l.ext ? { ext: true } : {}), ...(l.seed !== undefined ? { seed: l.seed } : {}) });
     }
     yield;
-    return yield* order(out, ctx.key, perOf(n));
+    const laid = yield* order(out, ctx.key, perOf(n));
+    /* HARMONY's left end stays on the tonic (user, 2026-11-01: the left ends
+     * mean "nothing moves"); a take never opens on it (runPlan). */
+    const t = laid.findIndex((p) => p.label.startsWith('TONIC'));
+    return t > 0 ? [laid[t], ...laid.slice(0, t), ...laid.slice(t + 1)] : laid;
 }
 
 /** How many different chords a plan moves through. */

@@ -8,7 +8,7 @@
 
 import { _log, eq, ok } from './harness.mjs';
 import * as G from '../../dist/esm/gen/index.js';
-import { createInput } from '../gen-fixtures.mjs';
+import { createInput, fixtureInput } from '../gen-fixtures.mjs';
 
 const N = (step, pitch, len, vel) => ({ tick: step * G.TPS, gate: len * G.TPS, pitch, vel });
 const by = (id) => G.PRESETS.find((p) => p.id === id);
@@ -39,12 +39,16 @@ _log('\nTest: rhythm and harmony maps');
         ok(`${name}_every_named_figure_is_on_the_map`, spec.figs.every((f) => steps.includes([...f].sort((a, b) => a - b).join())));
         const p = by(id);
         const k = G.knobIndex(p, 'PATTERN');
-        eq(`${name}_knob_spans_the_map`, p.knobs[k].steps(ctx), m.steps.length);
-        const rolls = new Set(Array.from({ length: 60 }, (_, n) => G.rolled(p, ctx, n % 4, n)[k]));
+        /* CHORDS holds its chords at 0, the map follows one up (§2.8). */
+        const off = id === 'n-chords' ? 1 : 0;
+        eq(`${name}_knob_spans_the_map`, p.knobs[k].steps(ctx), m.steps.length + off);
+        const rolls = new Set(Array.from({ length: 60 }, (_, n) => G.rolled(p, ctx, n % 4, n)[k] - off));
         ok(`${name}_takes_land_on_named_figures`, [...rolls].every((v) => m.takes.includes(v)) && rolls.size >= 4);
         /* Every position is heard: a different take each click. */
-        const outs = m.steps.map((_, v) => { const w = G.defaults(p, ctx); w[k] = v; return sig(G.regenerate(ctx, p, w) ?? []); });
-        ok(`${name}_every_click_is_a_new_take`, new Set(outs).size === outs.length && outs.every((o) => o.length));
+        const outs = Array.from({ length: m.steps.length + off }, (_, v) => { const w = G.defaults(p, ctx); w[k] = v; return sig(G.regenerate(ctx, p, w) ?? []); });
+        /* HELD may equal the map's one-a-bar position where the chords change by the bar. */
+        const mapOuts = outs.slice(off);
+        ok(`${name}_every_click_is_a_new_take`, new Set(mapOuts).size === mapOuts.length && outs.every((o) => o.length));
     }
     const figs = [...G.COMP_MAP.figs, ...G.euclids([[3, 0], [5, 0], [7, 0]])];
     ok('rhythm_map_builds_in_budget', time(() => G.rhythmMap(figs, 8, 1, 10)) < 1);
@@ -93,5 +97,36 @@ _log('\nTest: rhythm and harmony maps');
     const once = G.prepare(createInput(false, 'empty', 5));
     ok('a_request_stages_its_harmony', stages >= 4 && req.todo.length > 0 && req.done.length === 0);
     eq('a_staged_map_is_the_prepared_one', req.ctx.plans.map((p) => p.label).join(), once.plans.map((p) => p.label).join());
+}
+
+/* HARMONY in plain words and in reach (plans/2026-11-01-generator-ux-design.md §2.5, §2.6, §2.8). */
+{
+    const am = G.chordOf(9, 'min'), f = G.chordOf(5, 'maj'), c = G.chordOf(0, 'maj'), g = G.chordOf(7, 'maj');
+    eq('harmony_label_is_the_chords', G.chordsLabel([am, am, f, c, g]), 'AM F C G');
+    eq('harmony_label_rest', G.chordsLabel([am, null, f, null]), 'AM - F -');
+    const long = [G.chordOf(6, 'm7b5'), G.chordOf(11, '7'), G.chordOf(4, 'm7'), G.chordOf(9, '7'), G.chordOf(2, 'maj7'), G.chordOf(7, '7')];
+    const L = G.chordsLabel(long);
+    ok('harmony_label_fits_the_strip', L.length <= G.HARMONY_LABEL_MAX && L.endsWith('…'));
+    const fr = G.prepare(createInput(false, 'free', 1));
+    const hk = (p) => p.knobs[G.knobIndex(p, 'HARMONY')];
+    eq('create_harmony_shows_chords', hk(G.presetById('n-chords')).label(1, fr), G.chordsLabel(fr.plans[1].chords));
+    eq('create_harmony_zero_is_the_tonic', new Set(fr.plans[0].chords.map((x) => G.chordName(x))).size, 1);
+    ok('tonic_is_never_a_takes_opening', G.runPlan(fr) !== 0);
+    const vfree = G.prepare(fixtureInput('lead', { scene: 'free' }));
+    ok('bold_moves_last_and_never_default', vfree.plans.findIndex((p) => p.ext) === -1
+        || (vfree.plans.slice(vfree.plans.findIndex((p) => p.ext)).every((p) => p.ext) && !vfree.plans[G.defaultHarmony(vfree)].ext));
+    ok('no_level_in_harmony', vfree.plans.length === G.prepare({ ...fixtureInput('lead', { scene: 'free' }), level: 'WILD' }).plans.length);
+    const locked = G.prepare(fixtureInput('lead', { scene: 'locked' }));
+    const next = G.presetById('v-next');
+    eq('harmony_hidden_on_a_locked_follower', hk(next).steps(locked), 1);
+    ok('harmony_kept_on_a_locked_bass', hk(next).steps(G.prepare(fixtureInput('bass', { scene: 'locked' }))) > 1);
+    eq('locked_sits_keep_their_words', hk(next).label(0, G.prepare(fixtureInput('bass', { scene: 'locked' }))), 'AS PLAYED');
+    const cp = G.presetById('n-chords');
+    const pk = G.knobIndex(cp, 'PATTERN');
+    eq('chords_pattern_zero_is_held', cp.knobs[pk].label(0, fr), 'HELD');
+    const w = G.defaults(cp, fr); w[pk] = 0;
+    const heldNotes = G.regenerate(fr, cp, w);
+    const onsets = [...new Set(heldNotes.map((n) => n.tick))];
+    ok('chords_held_strikes_once_per_change', onsets.length <= fr.plans[w[G.knobIndex(cp, 'HARMONY')]].chords.length && onsets.length >= 1);
 }
 }

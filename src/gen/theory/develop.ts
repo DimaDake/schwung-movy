@@ -21,8 +21,8 @@ export function periodOf(p: Prog): number {
  *  development of it, closest first (`from` moves along the list); `ok`
  *  says which developments the scene allows. Fewer moves than blocks:
  *  the list goes round. */
-export function journey(base: Prog, blocks: number, k: Key, wild: boolean, from = 0, ok: (p: Prog) => boolean = () => true): Prog {
-    const moves = harmonicMoves(base, k, wild).filter((m) => m.name !== 'SAME' && !m.ext && ok(m.chords));
+export function journey(base: Prog, blocks: number, k: Key, from = 0, ok: (p: Prog) => boolean = () => true): Prog {
+    const moves = harmonicMoves(base, k).filter((m) => m.name !== 'SAME' && !m.ext && ok(m.chords));
     const out: Prog = [...base];
     for (let b = 1; b < blocks; b++) out.push(...(moves.length ? moves[(from + b - 1) % moves.length].chords : base));
     return out;

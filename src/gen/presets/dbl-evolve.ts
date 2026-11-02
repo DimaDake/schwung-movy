@@ -33,7 +33,7 @@ export function evolutions(ctx: GenCtx): MoveResult[] {
     const first = sample(ctx.srcChords, h);
     const col = (c: Chord) => colourPcs(c, ctx.key);
     const fits = (cs: (Chord | null)[]) => cs.every((c, i) => !c || !ctx.pinned.length || tolerates(c, ctx.pinned[(h + i) % ctx.pinned.length], col));
-    const out = !first.some((c) => c) ? [] : harmonicMoves(first, ctx.key, ctx.input.level === 'WILD')
+    const out = !first.some((c) => c) ? [] : harmonicMoves(first, ctx.key)
         .filter((m) => m.name !== 'SAME' && fits(m.chords));
     cache.set(ctx, out);
     return out;

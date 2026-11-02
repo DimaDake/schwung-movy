@@ -7,7 +7,7 @@ import { chordAt } from '../analysis/context.js';
 import { ACCENT } from '../analysis/band.js';
 import { strength } from '../analysis/events.js';
 import { custom, type KnobDef } from '../knobs.js';
-import { planAt } from '../plan.js';
+import { harmonyLabel, planAt } from '../plan.js';
 import { uniqueChords } from './plans.js';
 import { pick, type Rng } from '../rng.js';
 import { diatonic } from '../theory/roman.js';
@@ -44,7 +44,7 @@ export const runPlan = (ctx: GenCtx): number => {
 };
 
 export const HARMONY: KnobDef = { name: 'HARMONY', steps: (c) => Math.max(1, c.plans.length), def: runPlan,
-    label: (v, c) => planAt(c, v).label };
+    label: (v, c) => harmonyLabel(c, v) };
 
 /* Where a part sits. A chord part moves its centre about a minor third a
  * click, so each click is a new inversion; a line moves by octaves, since

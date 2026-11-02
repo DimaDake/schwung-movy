@@ -47,9 +47,9 @@ eq('riemann_p_l_r_of_c', ['P', 'L', 'R'].map((t) => name(G.riemann(C, t))).join(
 eq('riemann_of_a_minor', ['P', 'L', 'R'].map((t) => name(G.riemann(Am, t))).join(' '), 'A F C');
 ok('riemann_keeps_two_common_tones', ['P', 'L', 'R'].every((t) => G.riemann(C, t).pcs.filter((x) => C.pcs.includes(x)).length === 2));
 const key = { tonic: 0, minor: false, score: 1 };
-const turn = G.harmonicMoves([C, C, G.chordOf(5, 'maj'), G.chordOf(5, 'maj')], key, false).find((m) => m.name === 'R TURN');
+const turn = G.harmonicMoves([C, C, G.chordOf(5, 'maj'), G.chordOf(5, 'maj')], key).find((m) => m.name === 'R TURN');
 eq('turn_moves_the_second_half_of_each_held_chord', turn?.chords.map(name).join(' '), 'C AM F DM');
-ok('turn_not_offered_without_held_chords', !G.harmonicMoves([C, G.chordOf(7, 'maj'), Am, G.chordOf(5, 'maj')], key, false).some((m) => m.name === 'R TURN'));
+ok('turn_not_offered_without_held_chords', !G.harmonicMoves([C, G.chordOf(7, 'maj'), Am, G.chordOf(5, 'maj')], key).some((m) => m.name === 'R TURN'));
 
 /* CYCLE: the first N steps again every N steps. */
 const cyc = G.rhythmStage(lead, src, G.RHYTHMS.indexOf('CYCLE 3'), G.rng(1));

@@ -30,7 +30,7 @@ const chords = fixChords;
 export const VELOCITY: KnobDef = { name: 'VELOCITY', steps: () => 11, def: () => 5,
     label: (v) => (v === 5 ? 'AS PLAYED' : v < 5 ? 'EVEN ' + (5 - v) : 'ACCENT ' + (v - 5)) };
 /* DENSITY (5 = as played) after the timing, so an added note lands on the grid. */
-const dense = (ctx: GenCtx, notes: Note[], v: number, seed: number) =>
+export const dense = (ctx: GenCtx, notes: Note[], v: number, seed: number) =>
     (v === 5 ? notes : fromEvents(densityStage(ctx, toEvents(notes), v, rng(seed), chords(ctx)), ctx.end));
 
 /* TIGHT is TIDY and GROOVE too (§2.7): CLEAN, LENGTH, VELOCITY and FEEL at
@@ -46,8 +46,8 @@ export const TIGHT: Preset = {
 /** Chords filled out and voice-led; a line's stray octave leaps folded back. */
 export const SHAPED: Preset = {
     id: 'q-shaped', name: 'SHAPED', task: 'quantize', drum: false, cls: 'rhythm', fit: () => 0.55,
-    knobs: [K.timing(10), K.pitchFix(6), count('VOICING', 10, 6), K.length(6)],
-    generate: (ctx, v) => {
+    knobs: [K.timing(10), K.pitchFix(6), count('VOICING', 10, 6), K.length(6), K.density(5)],
+    generate: (ctx, v, seed) => {
         let notes = fixWorst(ctx, tight(ctx, ctx.src, v[0] / 10), v[1], chords(ctx));
         const kind = ctx.role?.kind;
         if (kind === 'pad' || kind === 'stabs') {
@@ -62,7 +62,7 @@ export const SHAPED: Preset = {
             }
             notes = sorted;
         }
-        return len(ctx, notes, v[3]);
+        return len(ctx, dense(ctx, notes, v[4], seed), v[3]);
     },
 };
 

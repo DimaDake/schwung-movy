@@ -57,6 +57,12 @@ const tight = turn(lead, by('q-mutate'), { AMOUNT: 0 });
     ok('invert_mirrors_the_contour_in_the_key', ticks(inv) === ticks(tight) && pairs.length >= 6
         && pairs.filter(([t, p]) => G.degreeIndex(after.get(t), lead.key) - pivot === pivot - G.degreeIndex(p, lead.key)).length >= 0.8 * pairs.length);
 
+    /* SHAPED and SHIFT gain a centred DENSITY (§4.3): 5 is the default take. */
+    for (const id of ['q-shaped', 'q-shift']) {
+        const p = by(id);
+        const d = G.knobIndex(p, 'DENSITY');
+        ok(`${id}_density_centred`, d >= 0 && G.defaults(p, lead)[d] === 5 && turn(lead, p, { DENSITY: 9 }).length > turn(lead, p, { DENSITY: 5 }).length);
+    }
     const oct = turn(lead, by('q-octaves'), { AMOUNT: 10 });
     ok('octaves_keep_pitch_classes', ticks(oct) === ticks(tight) && sorted(oct).every((n, i) => n.pitch % 12 === sorted(tight)[i].pitch % 12)
         && pitches(oct) !== pitches(tight));

@@ -125,10 +125,10 @@ export const STAB_MAP: PatternSpec = { figs: STAB_FIGS.map((x) => x[1]), lo: 1, 
 export const STABS: Preset = withFeel({
     id: 'n-stabs', name: 'STABS', task: 'create', drum: false, cls: 'rhythm',
     knobs: [patternKnob(STAB_MAP, [0, 1, 2, 3, 4, 5, 7]), VOICING([1, 0, 1, 2, 3, 4]),
-        register([R.MID, R.MID, R.MID + 1, R.HIGH]), HARMONY],
+        register([R.MID, R.MID, R.MID + 1, R.HIGH]), HARMONY, DENSITY],
     generate: (ctx, v, seed) => {
         const r = rng(seed);
-        const steps = patternAt(ctx, STAB_MAP, v[0]);
+        const steps = patternDense(ctx, STAB_MAP, v[0], v[4]);
         const ticks: number[] = [];
         everyBar(ctx, steps, (s) => { ticks.push(place(ctx, s)); });
         const vs = voicePart(ctx, struck(ctx, v[3], ticks), v[1], v[2]);

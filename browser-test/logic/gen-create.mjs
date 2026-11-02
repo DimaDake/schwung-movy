@@ -142,6 +142,24 @@ ok('pad_pattern_3_3_2_strikes_the_dotted_quarters', [0, 6, 12].every((s) => onse
 const chordsOf = (ns) => new Set(G.toEvents(ns).map((e) => e.voices.map((v) => v.pitch % 12).sort().join())).size;
 ok('pad_pattern_hears_every_change', ['BAR', '2+4', 'PUSH'].every((l) => chordsOf(padAt(l)) >= chordsOf(padAt('HELD'))));
 
+/* Knob sets (plans/2026-11-01-generator-ux-design.md §4.1). */
+{
+    const lk2 = G.prepare(createInput(false, 'locked', 4));
+    const fr2 = G.prepare(createInput(false, 'free', 4));
+    const st = by('n-stabs');
+    const n = (c, p, name, x) => { const w = G.defaults(p, c); w[G.knobIndex(p, name)] = x; return (G.regenerate(c, p, w) ?? []).length; };
+    ok('stabs_density_thins_and_fills', G.knobIndex(st, 'DENSITY') >= 0 && n(lk2, st, 'DENSITY', 0) < n(lk2, st, 'DENSITY', 5) && n(lk2, st, 'DENSITY', 5) < n(lk2, st, 'DENSITY', 10));
+    const pcs = (p, h) => { const w = G.defaults(p, fr2); w[G.knobIndex(p, 'HARMONY')] = h; return [...new Set((G.regenerate(fr2, p, w) ?? []).map((x) => x.pitch % 12))].sort().join(); };
+    for (const id of ['n-melody', 'n-riff', 'n-counter']) {
+        const p = by(id);
+        ok(`${id}_follows_harmony`, G.knobIndex(p, 'HARMONY') >= 0 && [1, 2, 3, 4].some((h) => pcs(p, h) !== pcs(p, 0)));
+    }
+    const ct = by('n-counter');
+    const leap = (d) => { const w = G.defaults(ct, fr2); w[G.knobIndex(ct, 'DENSITY')] = d; const ns = [...(G.regenerate(fr2, ct, w) ?? [])].sort((a, b) => a.tick - b.tick);
+        return Math.max(0, ...ns.slice(1).map((x, i) => Math.abs(x.pitch - ns[i].pitch))); };
+    ok('counter_density_reaches_leaps', G.knobIndex(ct, 'MOTION') < 0 && leap(10) > leap(0));
+}
+
 /* Defaults differ in length and rhythm, between parts and between runs. */
 G.forgetOptions();
 const shares = [], padGates = new Set();

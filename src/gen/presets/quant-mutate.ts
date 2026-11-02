@@ -14,6 +14,7 @@ import { dynamics } from '../shape/dynamics.js';
 import { fixChords, fixDefault, fixWorst } from '../shape/pitch.js';
 import { humanize, invert, MODES, mutatePitches, octaves, ratchet, rotate, toMode } from '../shape/mutate.js';
 import { timing } from '../shape/time.js';
+import { dense } from './quant-melodic.js';
 import { BAR, type Note, TPS } from '../types.js';
 
 /* Smart Quantize skips the band check (it fixes the player's own notes); a
@@ -109,10 +110,10 @@ const SHIFTS = [-4, -3, -2, -1, 0, 1, 2, 3, 4];
 export const SHIFT: Preset = {
     id: 'q-shift', name: 'SHIFT', task: 'quantize', drum: false, cls: 'rhythm', fit: () => 0.45,
     knobs: [K.timing(10), custom('STEPS', SHIFTS.map((s) => (s > 0 ? '+' : '') + s + '/16'), 6),
-        custom('KEEP', ['NONE', 'DOWNBEATS'], 1), K.length(5)],
-    generate: (ctx, v) => {
+        custom('KEEP', ['NONE', 'DOWNBEATS'], 1), K.length(5), K.density(5)],
+    generate: (ctx, v, seed) => {
         const keep = v[2] === 1 ? (n: Note) => n.tick % BAR < TPS / 2 : () => false;
-        const out = rotate(tightSrc(ctx, v[0]), SHIFTS[v[1]], ctx.end, keep);
+        const out = rotate(dense(ctx, tightSrc(ctx, v[0]), v[4], seed), SHIFTS[v[1]], ctx.end, keep);
         return v[3] === 5 ? out : out.map((n) => ({ ...n, gate: Math.max(1, Math.round(n.gate * (0.5 + v[3] * 0.1))) }));
     },
 };

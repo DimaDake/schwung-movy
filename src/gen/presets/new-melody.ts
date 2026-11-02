@@ -8,11 +8,12 @@
 import type { GenCtx } from '../analysis/context.js';
 import { strength } from '../analysis/events.js';
 import { ACCENT } from '../analysis/band.js';
-import { amount, choice, chordUnder, LINE_REGISTER as L, place, register, runPlan, SEED, velAt } from '../create/common.js';
+import { amount, choice, chordUnder, HARMONY, LINE_REGISTER as L, place, register, SEED, velAt } from '../create/common.js';
 import type { Preset } from '../preset.js';
 import { withFeel } from '../create/feel.js';
 import { onGuides } from '../create/guide.js';
-import { choose, mix, rng, type Rng } from '../rng.js';
+import { choose, mix, pick, rng, type Rng } from '../rng.js';
+import type { KnobDef } from '../knobs.js';
 import { nearestPitch, stepScale } from '../theory/pc.js';
 import { scaleUnder } from '../theory/category.js';
 import { type Note, TPS } from '../types.js';
@@ -27,8 +28,8 @@ const CONTOURS: ((x: number) => number)[] = [
  * there, and the knob reaches a fourth and two octaves past them. */
 const SPANS = [5, 7, 10, 12, 15, 19, 24];
 
-function tone(ctx: GenCtx, tick: number, target: number, lo: number, hi: number): number {
-    const c = chordUnder(ctx, runPlan(ctx), tick);
+function tone(ctx: GenCtx, h: number, tick: number, target: number, lo: number, hi: number): number {
+    const c = chordUnder(ctx, h, tick);
     return nearestPitch(target, strength(tick) >= 0.7 ? c.pcs : scaleUnder(ctx.key, c), lo, hi);
 }
 
@@ -56,7 +57,7 @@ function phrased(ctx: GenCtx, v: number[], r: Rng, spans: readonly Span[], lo: n
         if (n <= 0) on = [0];
         for (const k of on) {
             const t = ((a + k) % ctx.len) * TPS;
-            out.push({ tick: t, pitch: tone(ctx, t, lo + CONTOURS[v[0]](n > 0 ? k / n : 0.5) * (hi - lo), lo, hi), gate: TPS, vel: velAt(t, 96, r) });
+            out.push({ tick: t, pitch: tone(ctx, v[4], t, lo + CONTOURS[v[0]](n > 0 ? k / n : 0.5) * (hi - lo), lo, hi), gate: TPS, vel: velAt(t, 96, r) });
         }
     }
     return out;
@@ -65,13 +66,13 @@ function phrased(ctx: GenCtx, v: number[], r: Rng, spans: readonly Span[], lo: n
 export const MELODY: Preset = withFeel({
     id: 'n-melody', name: 'MELODY', task: 'create', drum: false, cls: 'exp',
     knobs: [choice('CONTOUR', ['ARCH', 'RISE', 'FALL', 'WAVE', 'ZIGZAG']), amount('DENSITY', 10, 3, 7),
-        choice('RANGE', ['4TH', '5TH', '7TH', 'OCTAVE', '10TH', '12TH', '2 OCT'], [1, 2, 3, 3, 4, 5]), SEED],
+        choice('RANGE', ['4TH', '5TH', '7TH', 'OCTAVE', '10TH', '12TH', '2 OCT'], [1, 2, 3, 3, 4, 5]), SEED, HARMONY],
     generate: (ctx, v, seed, spans) => {
         const r = rng(mix(seed, v[3]));
         const phrase = Math.min(32, ctx.len);
         const span = SPANS[v[2]];
         const lo = 72 - Math.round(span / 2), hi = lo + span;
-        if (spans) return onGuides(ctx, runPlan(ctx), phrased(ctx, v, r, spans, lo, hi), lo, hi);
+        if (spans) return onGuides(ctx, v[4], phrased(ctx, v, r, spans, lo, hi), lo, hi);
         const call = rhythm(phrase, v[1], r);
         const answer = rhythm(Math.min(8, phrase), v[1], r).map((s) => s + phrase - Math.min(8, phrase));
         const out: Note[] = [];
@@ -84,13 +85,13 @@ export const MELODY: Preset = withFeel({
                 if (off + s >= ctx.len) return;
                 const t = place(ctx, off + s);
                 const target = lo + CONTOURS[v[0]](s / phrase) * span;
-                const p = last && i === steps.length - 1 ? nearestPitch(target, [ctx.key.tonic], lo, hi) : tone(ctx, t, target, lo, hi);
+                const p = last && i === steps.length - 1 ? nearestPitch(target, [ctx.key.tonic], lo, hi) : tone(ctx, v[4], t, target, lo, hi);
                 const n = { tick: t, pitch: p, gate: TPS, vel: velAt(t, 96, r) };
                 if (last && i === steps.length - 1) home.add(n);
                 out.push(n);
             });
         }
-        return onGuides(ctx, runPlan(ctx), out, lo, hi, home);
+        return onGuides(ctx, v[4], out, lo, hi, home);
     },
 }, [3, 9], false, 'melody', ['BREATH', 'CALL+ANSWER']);
 
@@ -100,7 +101,7 @@ const CENTRE = [36, 48, 60, 72, 84];
 
 export const RIFF: Preset = withFeel({
     id: 'n-riff', name: 'RIFF', task: 'create', drum: false, cls: 'rhythm',
-    knobs: [choice('CELL', ['1 BEAT', '2 BEATS', '3/8', '1 BAR'], [1, 1, 2, 3]), amount('NOTES', 6, 2, 4), register([L.LOW, L.MID, L.MID, L.HIGH], L.labels), SEED],
+    knobs: [choice('CELL', ['1 BEAT', '2 BEATS', '3/8', '1 BAR'], [1, 1, 2, 3]), amount('NOTES', 6, 2, 4), register([L.LOW, L.MID, L.MID, L.HIGH], L.labels), SEED, HARMONY],
     generate: (ctx, v, seed) => {
         const r = rng(mix(seed, v[3]));
         const cell = CELLS[v[0]];
@@ -112,7 +113,7 @@ export const RIFF: Preset = withFeel({
             at.forEach((s, i) => {
                 if (off + s >= ctx.len) return;
                 const t = place(ctx, off + s);
-                const c = chordUnder(ctx, runPlan(ctx), off * TPS);
+                const c = chordUnder(ctx, v[4], off * TPS);
                 const root = nearestPitch(CENTRE[v[2]], [c.root], CENTRE[v[2]] - 6, CENTRE[v[2]] + 6);
                 const p = stepScale(root, deg[i], ctx.key);
                 out.push({ tick: t, pitch: nearestPitch(p, strength(t) >= 0.7 ? c.pcs : scaleUnder(ctx.key, c)), gate: TPS, vel: velAt(t, 100, r) });
@@ -124,29 +125,40 @@ export const RIFF: Preset = withFeel({
 
 const RATE = [4, 2, 3, 1];
 const MOVES = [[1, -1], [1, -1, 2, -2, 3], [2, -2, 4, -3, 5]];
+/* DENSITY on COUNTER is how much it moves (MOTION's, §4.1): 0-3 steps, 4-7
+ * mixed, 8-10 leaps, and within a band each click leans to its larger moves. */
+const BANDS = [0, 4, 8, 11];
+const bandOf = (d: number) => (d < 4 ? 0 : d < 8 ? 1 : 2);
+const MOTION_DENSITY: KnobDef = { name: 'DENSITY', steps: () => 11, def: () => 0, label: (v) => String(v),
+    roll: (_c, r) => pick(r, [0, 4, 4, 8]) };
+function moveOf(d: number, r: Rng): number {
+    const b = bandOf(d), set = MOVES[b];
+    const t = (d - BANDS[b]) / Math.max(1, BANDS[b + 1] - BANDS[b] - 1);
+    return set[Math.min(set.length - 1, Math.floor((r() * (1 - t * 0.5) + t * 0.5) * set.length))];
+}
 
 export const COUNTER: Preset = withFeel({
     id: 'n-counter', name: 'COUNTER', task: 'create', drum: false, cls: 'exp',
-    knobs: [choice('RATE', ['QUARTERS', '8THS', 'DOTTED', '16THS'], [1, 0, 1, 2]), choice('MOTION', ['STEPS', 'MIXED', 'LEAPS'], [0, 1, 1, 2]),
-        register([L.MID, L.MID, L.HIGH], L.labels), SEED],
+    knobs: [choice('RATE', ['QUARTERS', '8THS', 'DOTTED', '16THS'], [1, 0, 1, 2]), MOTION_DENSITY,
+        register([L.MID, L.MID, L.HIGH], L.labels), SEED, HARMONY],
     generate: (ctx, v, seed) => {
         const r = rng(mix(seed, v[3]));
         const centre = [43, 55, 64, 72, 84][v[2]];
         const loud = new Set(ctx.band.filter((h) => h.w >= ACCENT).map((h) => Math.round(h.tick / TPS)));
-        let p = nearestPitch(centre, chordUnder(ctx, runPlan(ctx), 0).pcs);
+        let p = nearestPitch(centre, chordUnder(ctx, v[4], 0).pcs);
         let dir = 1;
         const out: Note[] = [];
         for (let s = 0; s < ctx.len; s += RATE[v[0]]) {
             /* Room is where the band is quiet: it answers, it does not double. */
             if (s % 16 !== 0 && (loud.has(s) ? r() < 0.75 : r() < 0.2)) continue;
             const t = place(ctx, s);
-            const m = MOVES[v[1]][Math.floor(r() * MOVES[v[1]].length)];
+            const m = moveOf(v[1], r);
             if (p > centre + 9) dir = -1; else if (p < centre - 7) dir = 1; else if (r() < 0.25) dir = -dir;
             p = stepScale(p, dir * Math.abs(m), ctx.key);
-            const c = chordUnder(ctx, runPlan(ctx), t);
+            const c = chordUnder(ctx, v[4], t);
             p = nearestPitch(p, strength(t) >= 0.7 ? c.pcs : scaleUnder(ctx.key, c));
             out.push({ tick: t, pitch: p, gate: TPS, vel: velAt(t, 88, r) });
         }
-        return onGuides(ctx, runPlan(ctx), out, centre - 9, centre + 12);
+        return onGuides(ctx, v[4], out, centre - 9, centre + 12);
     },
 }, [4, 9], false, 'counter', ['BREATH', 'CALL+ANSWER']);

@@ -21,7 +21,8 @@ export interface Generated { notes: Note[] | null; why: string; retry: number }
  * notes a double adds are moved; a generator whose knobs place its notes on
  * purpose (CADENCE's LAND, TURNAROUND's CHROMATIC) keeps them. */
 function offBand(ctx: GenCtx, p: Preset, v: number[], raw: Note[]): Note[] {
-    if (ctx.drum || ctx.task === 'quantize' || p.ownPitches) return raw;
+    const own = typeof p.ownPitches === 'function' ? p.ownPitches(v, ctx) : p.ownPitches;
+    if (ctx.drum || ctx.task === 'quantize' || own) return raw;
     const k = knobIndex(p, 'HARMONY');
     const h = k >= 0 ? v[k] : ctx.task === 'create' ? runPlan(ctx) : defaultHarmony(ctx);
     if (ctx.task !== 'double') return clearRubs(ctx, raw, h);

@@ -17,32 +17,34 @@ const pad = (ctx: GenCtx, role: PadRole) => padFor(ctx.kit!, role, ctx.src);
 const hit = (tick: number, pitch: number, vel: number): Note => ({ tick, pitch, gate: TPS / 2, vel: Math.max(1, Math.min(127, Math.round(vel))) });
 const widest = (ctx: GenCtx) => ENDING.steps(ctx) - 1;
 
-export const FILL_X: Preset = {
-    id: 'xd-fill', name: 'FILL', task: 'double', drum: true, cls: 'close', fit: () => 0.8,
-    accepts: (ctx) => pad(ctx, 'snare') !== null || ctx.kit!.by.tom.length > 0,
-    knobs: [ENDING, K.density(6), custom('PADS', ['SNARE', 'TOMS', 'BOTH'], 2), SEAMS],
-    generate: (ctx, v, seed) => {
-        const r = rng(seed);
-        const use = (['snare', 'toms', 'both'] as const)[v[2]];
-        return rewrite(ctx, seams(ctx, v[0], v[3]), (s, was) => fill(ctx, ctx.kit!, was, (s.to - s.from) / TPS, v[1] / 10, r, s.to, use));
-    },
-};
-
-const PICKS: PadRole[][] = [['kick'], ['snare'], ['open'], ['kick', 'snare']];
+/* FILL takes PICKUP in (§2.7): HITS 0 is a fill over the ending; HITS 1–3
+ * keeps the pattern and leads into the next downbeat with that many hits on
+ * PADS, PUSH early (PICKUP's). */
+const PADS_X = ['SNARE', 'TOMS', 'BOTH', 'KICK', 'OPEN HAT', 'KICK+SNARE'] as const;
+const PICKS: PadRole[][] = [['snare'], ['tom'], ['snare', 'tom'], ['kick'], ['open'], ['kick', 'snare']];
 const PUSHES = [TPS, 2 * TPS, 4 * TPS];
 
-/** The pattern kept; one to three hits lead into the next downbeat. */
-export const PICKUP_D: Preset = {
-    id: 'xd-pickup', name: 'PICKUP', task: 'double', drum: true, cls: 'close', fit: () => 0.75,
-    knobs: [custom('PADS', ['KICK', 'SNARE', 'OPEN HAT', 'KICK+SNARE'], 1), custom('PUSH', ['1/16', '1/8', '1/4'], 1),
-        count('HITS', 3, 2), SEAMS],
-    generate: (ctx, v) => rewrite(ctx, seams(ctx, widest(ctx), v[3]), (s, was) => {
-        const pads = PICKS[v[0]].map((p) => pad(ctx, p)).filter((p): p is number => p !== null);
+function pickup(ctx: GenCtx, v: number[]): Note[] {
+    return rewrite(ctx, seams(ctx, widest(ctx), v[3]), (s, was) => {
+        const pads = PICKS[v[2]].map((p) => pad(ctx, p)).filter((p): p is number => p !== null);
         if (!pads.length) return was;
-        const ticks = pickIn(ctx, s, PUSHES[v[1]], Math.max(1, v[2]));
+        const ticks = pickIn(ctx, s, PUSHES[v[4]], v[5]);
         const add = ticks.map((t, i) => hit(t, pads[i % pads.length], 85 + 30 * ((i + 1) / ticks.length)));
         return [...was.filter((n) => !ticks.includes(n.tick)), ...add];
-    }),
+    });
+}
+
+export const FILL_X: Preset = {
+    id: 'xd-fill', name: 'FILL', task: 'double', drum: true, cls: 'close', fit: () => 0.8,
+    accepts: (ctx) => pad(ctx, 'snare') !== null || ctx.kit!.by.tom.length > 0 || pad(ctx, 'kick') !== null,
+    knobs: [ENDING, K.density(6), custom('PADS', PADS_X, 2), SEAMS, custom('PUSH', ['1/16', '1/8', '1/4'], 1), count('HITS', 3, 0)],
+    seedAs: (v) => (v[5] > 0 ? 'xd-pickup' : undefined),
+    generate: (ctx, v, seed) => {
+        if (v[5] > 0) return pickup(ctx, v);
+        const r = rng(seed);
+        const use = (['snare', 'toms', 'both', 'both', 'both', 'both'] as const)[v[2]];
+        return rewrite(ctx, seams(ctx, v[0], v[3]), (s, was) => fill(ctx, ctx.kit!, was, (s.to - s.from) / TPS, v[1] / 10, r, s.to, use));
+    },
 };
 
 /** A snare roll over the ending, at a RATE or accelerating, rising by CRESC. */

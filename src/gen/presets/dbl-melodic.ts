@@ -74,7 +74,7 @@ export const STOP: Preset = {
     },
 };
 
-const MOVES = ['V7', 'IV', 'TRITONE', 'R', 'L', 'P'] as const;
+export const MOVES = ['V7', 'IV', 'TRITONE', 'R', 'L', 'P'] as const;
 
 /* The chord the ending turns to: one that leads back to the first chord
  * (its dominant, subdominant or tritone substitute), or a Tonnetz step from
@@ -86,33 +86,31 @@ function turnTo(move: string, under: Chord, first: Chord): Chord {
     return ['maj', 'min', 'maj7', '7', 'm7'].includes(under.quality) ? riemann(under, move as 'R' | 'L' | 'P') : under;
 }
 
-/** The ending over a new chord, where no other track sets the scene's chords. */
-export const TURN_X: Preset = {
-    id: 'x-turn', name: 'TURN', task: 'double', drum: false, cls: 'exp', fit: () => 0.55,
-    accepts: (ctx) => ctx.freedom === 'free' && ctx.srcChords.some((c) => c),
-    knobs: [ENDING, custom('MOVE', MOVES), K.tension(4), SEAMS],
-    generate: (ctx, v) => {
-        const first = chordUnder(ctx, 0);
-        if (!first) return [];
-        const bass = ctx.role?.kind === 'bass';
-        const on = (c: Chord, evs: Ev[]): Note[] => evs.flatMap((e) => {
-            const ps = chordPart(ctx) ? voiceLead(e.voices.map((x) => x.pitch), c.pcs, [c.root, c.pcs[1]], ctx.lo - 5, ctx.hi + 5)
-                : e.voices.map((x) => nearestPitch(x.pitch, bass && isStrong(e.tick) ? [c.root] : allowedPcs(c, ctx.key, v[2] / 10, isStrong(e.tick))));
-            return e.voices.map((x, i) => ({ tick: e.tick + x.dt, pitch: ps[i] ?? x.pitch, gate: x.gate, vel: x.vel }));
-        });
-        return rewrite(ctx, seams(ctx, v[0], v[3]), (s, was) => {
-            const under = chordUnder(ctx, s.from) ?? first;
-            const evs = was.length ? toEvents(was) : [{ tick: s.from, voices: [{ pitch: ctx.mid, dt: 0, gate: s.to - s.from, vel: velOf(ctx, was) }] }];
-            /* A move the ending already plays (a clip ending on the dominant,
-             * a bass already on that root) gives way to the next: a turn
-             * always turns. */
-            const same = (ns: Note[]) => ns.every((n) => was.some((w) => w.tick === n.tick && w.pitch === n.pitch));
-            for (let i = 0; i < MOVES.length; i++) {
-                const c = turnTo(MOVES[(v[1] + i) % MOVES.length], under, first);
-                const out = on(c, evs);
-                if (!sameChord(c, under) && !same(out)) return out;
-            }
-            return was;
-        });
-    },
-};
+/** Where TURN's moves may play: no other track sets the scene's chords. */
+export const turnOk = (ctx: GenCtx): boolean => ctx.freedom === 'free' && ctx.srcChords.some((c) => c);
+
+/** The ending over a new chord (TURN's, merged into TURNAROUND, §2.7). */
+export function turnEnding(ctx: GenCtx, ending: number, move: number, tension: number, seamsAt: number): Note[] {
+    const first = chordUnder(ctx, 0);
+    if (!first) return [];
+    const bass = ctx.role?.kind === 'bass';
+    const on = (c: Chord, evs: Ev[]): Note[] => evs.flatMap((e) => {
+        const ps = chordPart(ctx) ? voiceLead(e.voices.map((x) => x.pitch), c.pcs, [c.root, c.pcs[1]], ctx.lo - 5, ctx.hi + 5)
+            : e.voices.map((x) => nearestPitch(x.pitch, bass && isStrong(e.tick) ? [c.root] : allowedPcs(c, ctx.key, tension / 10, isStrong(e.tick))));
+        return e.voices.map((x, i) => ({ tick: e.tick + x.dt, pitch: ps[i] ?? x.pitch, gate: x.gate, vel: x.vel }));
+    });
+    return rewrite(ctx, seams(ctx, ending, seamsAt), (s, was) => {
+        const under = chordUnder(ctx, s.from) ?? first;
+        const evs = was.length ? toEvents(was) : [{ tick: s.from, voices: [{ pitch: ctx.mid, dt: 0, gate: s.to - s.from, vel: velOf(ctx, was) }] }];
+        /* A move the ending already plays (a clip ending on the dominant,
+         * a bass already on that root) gives way to the next: a turn
+         * always turns. */
+        const same = (ns: Note[]) => ns.every((n) => was.some((w) => w.tick === n.tick && w.pitch === n.pitch));
+        for (let i = 0; i < MOVES.length; i++) {
+            const c = turnTo(MOVES[(move + i) % MOVES.length], under, first);
+            const out = on(c, evs);
+            if (!sameChord(c, under) && !same(out)) return out;
+        }
+        return was;
+    });
+}

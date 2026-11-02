@@ -16,14 +16,14 @@ import { HALFTIME, MOTIF, ORNAMENT, RETRO } from './var-exp.js';
 import { HOLD, THIN, WALK } from './var-held.js';
 import { COMP, EUCLID, RECOMBINE } from './var-pattern.js';
 import { CONNECT, DISPLACE } from './var-rhythm.js';
-import { FILL, GHOSTS, HATS, KICK, SHIFT, TURN } from './var-drums.js';
-import { DEVELOP_D, EUCLID_D, FEEL, GRIDS } from './var-drums-exp.js';
+import { FILL, GHOSTS, HATS, KICK, SHIFT } from './var-drums.js';
+import { DEVELOP_D, FEEL, GRIDS } from './var-drums-exp.js';
 import { ANSWER_Q, EMBELLISH, SHAPED, TIGHT } from './quant-melodic.js';
 import { FILL_D, GHOSTS_D, TIGHT_D } from './quant-drums.js';
 import { HUMANIZE, MODE, MUTATE, OCTAVES, RATCHET, SHIFT as SHIFT_Q } from './quant-mutate.js';
 import { HUMANIZE_D, MUTATE_D, RATCHET_D } from './quant-mutate-drums.js';
 import { CADENCE, PUSH, RUN, TURNAROUND } from './dbl-lines.js';
-import { ECHO, STOP, STYLE_X, TURN_X } from './dbl-melodic.js';
+import { ECHO, STOP, STYLE_X } from './dbl-melodic.js';
 import { EVOLVE } from './dbl-evolve.js';
 import { CHORDS, PAD, STABS } from './new-chords.js';
 import { ARP as ARP_N, BASS } from './new-lines.js';
@@ -31,17 +31,17 @@ import { COUNTER, MELODY, RIFF } from './new-melody.js';
 import { PAD_EUCLID, PAD_PATTERN } from './new-drums-pad.js';
 import { BROKEN, EUCLID_KIT, GROOVE as GROOVE_N, PERC } from './new-drums-kit.js';
 import { DRUM_MAP } from './new-drums-map.js';
-import { BREAK_D, FILL_X, PICKUP_D, REPEAT, ROLL, STYLE_XD } from './dbl-drums.js';
+import { BREAK_D, FILL_X, REPEAT, ROLL, STYLE_XD } from './dbl-drums.js';
 
 const LISTED: Preset[] = [
     NEXT, FOLLOW, PULSE, HARMONIZE, REVOICE, NEWLINE, ANSWER, ARP, HOLD,
     BASSLINE, DISPLACE, CONNECT, RECOMBINE, EUCLID, COMP, WALK, THIN,
     MOTIF, RETRO, HALFTIME, ORNAMENT, DEVELOP, STYLE, LOOPER, FORM,
-    KICK, HATS, GHOSTS, FILL, SHIFT, TURN, FEEL, GRIDS, EUCLID_D, DEVELOP_D, STYLE_D, FORM_D,
+    KICK, HATS, GHOSTS, FILL, SHIFT, FEEL, GRIDS, DEVELOP_D, STYLE_D, FORM_D,
     TIGHT, SHAPED, EMBELLISH, ANSWER_Q, MUTATE, MODE, OCTAVES, RATCHET, SHIFT_Q, HUMANIZE,
     TIGHT_D, GHOSTS_D, FILL_D, MUTATE_D, RATCHET_D, HUMANIZE_D,
-    TURNAROUND, CADENCE, PUSH, RUN, ECHO, STYLE_X, STOP, TURN_X, EVOLVE,
-    FILL_X, PICKUP_D, ROLL, REPEAT, BREAK_D, STYLE_XD,
+    TURNAROUND, CADENCE, PUSH, RUN, ECHO, STYLE_X, STOP, EVOLVE,
+    FILL_X, ROLL, REPEAT, BREAK_D, STYLE_XD,
     /* New Clip: shown in this order, one option each. */
     CHORDS, PAD, STABS, BASS, ARP_N, MELODY, RIFF, COUNTER,
     PAD_EUCLID, PAD_PATTERN, GROOVE_N, DRUM_MAP, EUCLID_KIT, BROKEN, PERC,

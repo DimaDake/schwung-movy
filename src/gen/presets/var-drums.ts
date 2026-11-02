@@ -1,11 +1,12 @@
 /* Variation for drums, close and rhythmic: the pads never change, only where
  * and how hard they play (design §1). */
 
+import type { GenCtx } from '../analysis/context.js';
 import { strength } from '../analysis/events.js';
 import { padFor } from '../analysis/kit.js';
 import { count, custom, K } from '../knobs.js';
 import type { Preset } from '../preset.js';
-import { rng } from '../rng.js';
+import { type Rng, rng } from '../rng.js';
 import { accent, dynamics } from '../shape/dynamics.js';
 import { ghosts, HAT_RATES, hats } from '../shape/drums.js';
 import { BAR, BEAT, type Note, TPS } from '../types.js';
@@ -78,27 +79,55 @@ export const GHOSTS: Preset = {
         20 + v[1] * 10, rng(seed + v[3] * 7919)),
 };
 
+/* FILL takes TURNAROUND in (§2.7): WHERE puts the fill at the loop's end or
+ * at every bar's; PADS = KIT is TURNAROUND's, hits scattered over snare,
+ * kick and hat with the beats kept, the others a fill rising over the pads. */
+const PADS_OF = ['SNARE', 'TOMS', 'MIXED', 'KIT'] as const;
+
+function fillAt(ctx: GenCtx, notes: Note[], end: number, steps: number, v: number[], r: Rng): Note[] {
+    const kit = ctx.kit!;
+    const from = end - steps * TPS;
+    const sn = padFor(kit, 'snare', ctx.src);
+    const toms = kit.by.tom.length ? [...kit.by.tom].sort((a, b) => b - a) : sn !== null ? [sn] : [];
+    const pads = v[2] === 0 && sn !== null ? [sn] : v[2] === 1 && toms.length ? toms : [sn, ...toms].filter((p): p is number => p !== null);
+    if (!pads.length) return notes;
+    const kick = padFor(kit, 'kick', ctx.src);
+    const keep = notes.filter((n) => n.tick < from || n.tick >= end || (n.pitch === kick && n.tick % BEAT === 0));
+    const add: Note[] = [];
+    for (let s = 0; s < steps; s++) {
+        if (s % 2 === 1 && r() * 10 > v[1]) continue;
+        const pad = pads[Math.min(pads.length - 1, Math.floor((s / steps) * pads.length))];
+        add.push({ tick: from + s * TPS, gate: TPS / 2, pitch: pad, vel: Math.round(110 - v[3] * 6 + v[3] * 6 * (s / Math.max(1, steps - 1))) });
+    }
+    return [...keep, ...add];
+}
+
+function turnaround(ctx: GenCtx, ends: number[], len: number, density: number, r: Rng): Note[] {
+    const kit = ctx.kit!;
+    const pads = [padFor(kit, 'snare', ctx.src), padFor(kit, 'kick', ctx.src), padFor(kit, 'hat', ctx.src)].filter((p): p is number => p !== null);
+    if (!pads.length) return ctx.src;
+    let notes = ctx.src.map((n) => ({ ...n }));
+    for (const end of ends) {
+        notes = notes.filter((n) => n.tick < end - len || n.tick >= end || strength(n.tick) >= 0.85);
+        for (let t = end - len; t < end; t += TPS) {
+            if (r() * 10 > density) continue;
+            const pad = pads[Math.floor(r() * pads.length)];
+            if (!at(notes, pad, t)) notes.push({ tick: t, gate: TPS / 2, pitch: pad, vel: Math.round(70 + r() * 45) });
+        }
+    }
+    return accent(notes, 6);
+}
+
 export const FILL: Preset = {
     id: 'd-fill', name: 'FILL', task: 'variation', drum: true, cls: 'close', fit: () => 0.65,
-    knobs: [custom('SIZE', ['1 BEAT', '2 BEATS', '3 BEATS', '1 BAR'], 1), K.density(6), custom('PADS', ['SNARE', 'TOMS', 'MIXED'], 2), K.dynamics(4)],
+    knobs: [custom('SIZE', ['1 BEAT', '2 BEATS', '3 BEATS', '1 BAR'], 1), K.density(6), custom('PADS', PADS_OF, 2), K.dynamics(4),
+        custom('WHERE', ['END', 'EVERY BAR'], 0)],
+    seedAs: (v) => (v[2] === 3 ? 'd-turn' : undefined),
     generate: (ctx, v, seed) => {
         const r = rng(seed);
-        const kit = ctx.kit!;
-        const steps = (v[0] + 1) * 4;
-        const from = ctx.end - steps * TPS;
-        const sn = padFor(kit, 'snare', ctx.src);
-        const toms = kit.by.tom.length ? [...kit.by.tom].sort((a, b) => b - a) : sn !== null ? [sn] : [];
-        const pads = v[2] === 0 && sn !== null ? [sn] : v[2] === 1 && toms.length ? toms : [sn, ...toms].filter((p): p is number => p !== null);
-        if (!pads.length) return ctx.src;
-        const kick = padFor(kit, 'kick', ctx.src);
-        const keep = ctx.src.filter((n) => n.tick < from || (n.pitch === kick && n.tick % BEAT === 0));
-        const add: Note[] = [];
-        for (let s = 0; s < steps; s++) {
-            if (s % 2 === 1 && r() * 10 > v[1]) continue;
-            const pad = pads[Math.min(pads.length - 1, Math.floor((s / steps) * pads.length))];
-            add.push({ tick: from + s * TPS, gate: TPS / 2, pitch: pad, vel: Math.round(110 - v[3] * 6 + v[3] * 6 * (s / Math.max(1, steps - 1))) });
-        }
-        return [...keep, ...add];
+        const ends = v[4] === 0 ? [ctx.end] : Array.from({ length: Math.max(1, Math.round(ctx.end / BAR)) }, (_, b) => (b + 1) * BAR);
+        if (v[2] === 3) return turnaround(ctx, ends, (v[0] + 1) * BEAT, v[1], r);
+        return ends.reduce((notes, end) => fillAt(ctx, notes, end, (v[0] + 1) * 4, v, r), ctx.src);
     },
 };
 
@@ -120,28 +149,5 @@ export const SHIFT: Preset = {
             if (t >= 0 && t < ctx.end && !at(notes, n.pitch, t)) n.tick = t;
         }
         return notes;
-    },
-};
-
-export const TURN: Preset = {
-    id: 'd-turn', name: 'TURNAROUND', task: 'variation', drum: true, cls: 'rhythm', fit: () => 0.6,
-    knobs: [custom('WHERE', ['END', 'EVERY BAR'], 0), custom('SIZE', ['1 BEAT', '2 BEATS'], 0), K.density(6), K.seed()],
-    generate: (ctx, v, seed) => {
-        const r = rng(seed + v[3] * 7919);
-        const kit = ctx.kit!;
-        const pads = [padFor(kit, 'snare', ctx.src), padFor(kit, 'kick', ctx.src), padFor(kit, 'hat', ctx.src)].filter((p): p is number => p !== null);
-        if (!pads.length) return ctx.src;
-        const len = (v[1] + 1) * BEAT;
-        const ends = v[0] === 0 ? [ctx.end] : Array.from({ length: Math.round(ctx.end / BAR) }, (_, b) => (b + 1) * BAR);
-        let notes = ctx.src.map((n) => ({ ...n }));
-        for (const end of ends) {
-            notes = notes.filter((n) => n.tick < end - len || n.tick >= end || strength(n.tick) >= 0.85);
-            for (let t = end - len; t < end; t += TPS) {
-                if (r() * 10 > v[2]) continue;
-                const pad = pads[Math.floor(r() * pads.length)];
-                if (!at(notes, pad, t)) notes.push({ tick: t, gate: TPS / 2, pitch: pad, vel: Math.round(70 + r() * 45) });
-            }
-        }
-        return accent(notes, 6);
     },
 };

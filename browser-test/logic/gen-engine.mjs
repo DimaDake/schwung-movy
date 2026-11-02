@@ -91,7 +91,7 @@ const thin = [];
 /* A knob that only acts once another is turned (RE-VOICE's TOP leads the top
  * voice of a SPREAD voicing): hidden at the defaults, shown once its parent
  * moves (the preview re-probes after every turn), so probed there too. */
-const OPENS = { 'v-revoice:TOP': ['SPREAD', 2] };
+const OPENS = { 'v-revoice:TOP': ['SPREAD', 2], 'xd-fill:PUSH': ['HITS', 2] };
 const liveOpened = (c, p, v, i) => {
     const o = OPENS[p.id + ':' + p.knobs[i].name];
     if (!o) return false;
@@ -135,9 +135,9 @@ ok('knob_property_presets_have_four_to_eight_knobs', G.PRESETS.every((p) => p.kn
  * always gave, another position another take. */
 const seeded = G.PRESETS.filter((p) => p.knobs[4]?.name === 'SEED');
 eq('seed_added_where_knobs_were_free', seeded.map((p) => p.id).sort().join(' '),
-    'd-fill q-embellish v-connect v-ornament v-recombine v-retro v-thin v-walk xd-fill');
-/* HOLD NOTE (PEDAL + DRONE MOVE) has six knobs of its own, then SEED. */
-eq('hold_note_has_seed', G.presetById('v-hold').knobs[6]?.name, 'SEED');
+    'q-embellish v-connect v-ornament v-recombine v-retro v-thin v-walk');
+/* The merged ones have more knobs of their own, then SEED (§2.7). */
+for (const [id, at] of [['v-hold', 6], ['d-fill', 5], ['xd-fill', 6]]) eq(`${id}_has_seed`, G.presetById(id).knobs[at]?.name, 'SEED');
 const sc = G.prepare(fixtureInput('lead', { scene: 'free' }));
 const walk = G.PRESETS.find((p) => p.id === 'v-walk');
 const wv = G.defaults(walk, sc);

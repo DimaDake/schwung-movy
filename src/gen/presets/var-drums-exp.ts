@@ -48,12 +48,31 @@ const DIAL = ['-', '1', '2', '3', '4', '5', '6', '7', '8', '9', '+'];
  * this pattern and whose others are the genres' patterns (shape/drum-maps.ts);
  * KICK, SNARE and HATS set how much of each part's level plays, CHAOS shakes
  * the levels. Pads outside the three parts play as they did. */
+/* The Euclidean area past Y's top (EUCLID's, §2.7): X picks one pad's even
+ * line, laid over the pattern in place of that pad. [pad, pulses, rotation]. */
+const EUCLIDS: [number, number, number][] = [[0, 5, 2], [0, 3, 0], [0, 7, 1], [1, 3, 2], [1, 5, 0], [2, 3, 2], [2, 5, 3], [3, 5, 0], [3, 7, 2], [3, 9, 0], [0, 9, 1]];
+const EUCLID_Y = 11;
+
+function euclidLine(ctx: GenCtx, [pi, pulses, rot]: [number, number, number], dyn: number): Note[] {
+    const kit = ctx.kit!;
+    const role = (['perc', 'tom', 'snare', 'hat'] as const)[pi];
+    const pad = padFor(kit, role, ctx.src) ?? padFor(kit, 'perc', ctx.src) ?? padFor(kit, 'snare', ctx.src) ?? kit.pads[0];
+    const proto = ctx.src.find((n) => n.pitch === pad) ?? { tick: 0, gate: TPS / 2, pitch: pad, vel: 90 };
+    const pattern = euclid(pulses, 16, rot);
+    const out = ctx.src.filter((n) => n.pitch !== pad);
+    for (let t = 0; t < ctx.end; t += TPS) {
+        if (pattern[Math.round(t / TPS) % 16]) out.push({ ...proto, tick: t, vel: Math.round(proto.vel * (0.7 + 0.3 * strength(t))) });
+    }
+    return dynamics(out, dyn);
+}
+
 export const GRIDS: Preset = {
     id: 'd-grids', name: 'GRIDS', task: 'variation', drum: true, cls: 'exp', fit: () => 0.55,
     knobs: [{ ...count('X', 10, 5), label: (x: number) => x * 10 + '%', def: (c) => nodeOf(c)[0] },
-        { ...count('Y', 10, 0), label: (x: number) => x * 10 + '%', def: (c) => nodeOf(c)[1] },
+        { ...count('Y', EUCLID_Y, 0), label: (y: number) => (y === EUCLID_Y ? 'EUCLID' : y * 10 + '%'), def: (c) => nodeOf(c)[1] },
         custom('KICK', DIAL, 5), custom('SNARE', DIAL, 5), custom('HATS', DIAL, 5), count('CHAOS', 10, 2), K.dynamics(4), K.seed()],
     generate: (ctx, v, seed) => {
+        if (v[1] === EUCLID_Y) return euclidLine(ctx, EUCLIDS[v[0]], v[6]);
         const r = rng(seed + v[7] * 7919);
         const kit = ctx.kit!;
         const pads = MAP_ROLES.map((role) => padFor(kit, role, ctx.src));
@@ -75,23 +94,6 @@ export const GRIDS: Preset = {
             }
         });
         return dynamics(out, v[6]);
-    },
-};
-
-export const EUCLID_D: Preset = {
-    id: 'd-euclid', name: 'EUCLID', task: 'variation', drum: true, cls: 'exp', fit: () => 0.45,
-    knobs: [{ ...count('PULSES', 15, 4), label: (x: number) => String(x + 1) }, count('ROTATE', 15, 2), custom('PAD', ['PERC', 'TOM', 'SNARE', 'HAT'], 0), K.dynamics(3)],
-    generate: (ctx, v) => {
-        const kit = ctx.kit!;
-        const role = (['perc', 'tom', 'snare', 'hat'] as const)[v[2]];
-        const pad = padFor(kit, role, ctx.src) ?? padFor(kit, 'perc', ctx.src) ?? padFor(kit, 'snare', ctx.src) ?? kit.pads[0];
-        const proto = ctx.src.find((n) => n.pitch === pad) ?? { tick: 0, gate: TPS / 2, pitch: pad, vel: 90 };
-        const pattern = euclid(v[0] + 1, 16, v[1]);
-        const out = ctx.src.filter((n) => n.pitch !== pad);
-        for (let t = 0; t < ctx.end; t += TPS) {
-            if (pattern[Math.round(t / TPS) % 16]) out.push({ ...proto, tick: t, vel: Math.round(proto.vel * (0.7 + 0.3 * strength(t))) });
-        }
-        return dynamics(out, v[3]);
     },
 };
 

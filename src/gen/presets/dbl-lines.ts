@@ -13,6 +13,7 @@ import { diatonic } from '../theory/roman.js';
 import { voiceLead } from '../theory/voicing.js';
 import { type Key, type Note, TPS } from '../types.js';
 import type { GenCtx } from '../analysis/context.js';
+import { MOVES, turnEnding, turnOk } from './dbl-melodic.js';
 
 const APPROACH = ['BELOW', 'ABOVE', 'ENCLOSE', 'CHROMATIC'] as const;
 const scene = (ctx: GenCtx) => ctx.plans[0]?.chords ?? ctx.srcChords;
@@ -27,24 +28,41 @@ function approach(target: number, k: number, how: string, key: Key): number {
 
 const onsets = (was: Note[]) => [...new Set(was.map((n) => n.tick))].sort((a, b) => a - b);
 
-/** Up to eight of the ending's notes re-pitched to step into the first note. */
+/* TURNAROUND takes TURN in (§2.7): MOVE is a line's approach into the first
+ * note (BELOW … CHROMATIC: up to eight of the ending's notes re-pitched to
+ * step into it), then TURN's chord moves where the scene's chords are the
+ * clip's own (V7 … P: the ending over a chord that leads back). */
+const LINES = ['lead', 'arpeggio', 'bass'];
+const lineRole = (c: GenCtx) => LINES.includes(c.role?.kind ?? '');
+const movesOf = (c: GenCtx): string[] => [...(lineRole(c) ? APPROACH : []), ...(turnOk(c) ? MOVES : [])];
+
+function approachEnding(ctx: GenCtx, v: number[], how: string): Note[] {
+    const nx = nextEv(ctx);
+    if (!nx) return [];
+    const target = lineOf(ctx, nx);
+    return rewrite(ctx, seams(ctx, v[0], v[3]), (s, was) => {
+        let ticks = onsets(was).slice(-8);
+        if (ticks.length < 2) ticks = pickIn(ctx, s, 2 * TPS, 4);
+        const vel = velOf(ctx, was);
+        const notes = ticks.map((t, i) => ({ tick: t, pitch: approach(target, ticks.length - i, how, ctx.key),
+            gate: Math.max(TPS / 2, Math.round(((ticks[i + 1] ?? s.to) - t) * 0.9)), vel }));
+        const kept = was.filter((n) => n.tick < ticks[0]);
+        return [...kept, ...pitchFix(ctx, notes, 10 - v[2], scene(ctx))];
+    });
+}
+
 export const TURNAROUND: Preset = {
-    id: 'x-turnaround', name: 'TURNAROUND', task: 'double', drum: false, cls: 'close', roles: ['lead', 'arpeggio', 'bass'], ownPitches: true,
-    fit: () => 0.85,
-    knobs: [ENDING, custom('APPROACH', APPROACH), K.tension(6), SEAMS],
+    id: 'x-turnaround', name: 'TURNAROUND', task: 'double', drum: false, cls: 'close',
+    /* A line's approach places its notes on purpose; a chord move is fitted to the band. */
+    ownPitches: (v, c) => (APPROACH as readonly string[]).includes(movesOf(c)[v[1]] ?? ''),
+    accepts: (c) => movesOf(c).length > 0,
+    fit: (c) => (lineRole(c) ? 0.85 : 0.55),
+    knobs: [ENDING, { name: 'MOVE', steps: (c) => movesOf(c).length, def: () => 0, label: (v, c) => movesOf(c)[v] ?? '' },
+        { ...K.tension(6), def: (c) => (lineRole(c) ? 6 : 4) }, SEAMS],
     generate: (ctx, v) => {
-        const nx = nextEv(ctx);
-        if (!nx) return [];
-        const target = lineOf(ctx, nx);
-        return rewrite(ctx, seams(ctx, v[0], v[3]), (s, was) => {
-            let ticks = onsets(was).slice(-8);
-            if (ticks.length < 2) ticks = pickIn(ctx, s, 2 * TPS, 4);
-            const vel = velOf(ctx, was);
-            const notes = ticks.map((t, i) => ({ tick: t, pitch: approach(target, ticks.length - i, APPROACH[v[1]], ctx.key),
-                gate: Math.max(TPS / 2, Math.round(((ticks[i + 1] ?? s.to) - t) * 0.9)), vel }));
-            const kept = was.filter((n) => n.tick < ticks[0]);
-            return [...kept, ...pitchFix(ctx, notes, 10 - v[2], scene(ctx))];
-        });
+        const m = movesOf(ctx)[v[1]];
+        if (!m) return [];
+        return (APPROACH as readonly string[]).includes(m) ? approachEnding(ctx, v, m) : turnEnding(ctx, v[0], MOVES.indexOf(m as typeof MOVES[number]), v[2], v[3]);
     },
 };
 

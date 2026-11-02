@@ -86,5 +86,12 @@ report('merge_v_drone_into_hold', misses('v-drone', 'v-hold', { NOTE: 'PIVOT', S
 for (const id of ['v-displace', 'v-revoice', 'v-bassline']) report(`${id}_default_kept`, misses(id, id, {}));
 ok('variation_merged_away', ['v-anticipate', 'v-spread', 'v-register', 'v-octave', 'v-pedal', 'v-drone'].every(gone));
 eq('hold_note_is_named', G.presetById('v-hold')?.name, 'HOLD NOTE');
+/* Drums and Smart Double (Task 4). */
+report('merge_d_turn_into_fill', misses('d-turn', 'd-fill', { PADS: 'KIT', WHERE: 'END', SIZE: '1 BEAT', DENSITY: 6 }));
+report('merge_d_euclid_into_grids', misses('d-euclid', 'd-grids', { Y: 'EUCLID', X: 0 }));
+report('merge_x_turn_into_turnaround', misses('x-turn', 'x-turnaround', { MOVE: 'V7', TENSION: 4 }));
+report('merge_xd_pickup_into_fill', misses('xd-pickup', 'xd-fill', { HITS: 2, PADS: 'SNARE', PUSH: '1/8' }));
+for (const id of ['d-fill', 'd-grids', 'x-turnaround', 'xd-fill']) report(`${id}_default_kept`, misses(id, id, {}));
+ok('drums_double_merged_away', ['d-turn', 'd-euclid', 'x-turn', 'xd-pickup'].every(gone));
 ok('quantize_merged_away', ['q-tidy', 'q-groove', 'q-full', 'q-invert', 'qd-tidy', 'qd-groove', 'qd-full'].every(gone));
 }

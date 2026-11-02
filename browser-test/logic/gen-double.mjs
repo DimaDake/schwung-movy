@@ -70,9 +70,9 @@ eq('double_request_offers_six_for_drums', dr.picks.length, 6);
  * below it (BELOW), a semitone below (CHROMATIC). */
 const target = G.nextEv(lead).voices.at(-1).pitch;
 const lastNote = (ns) => [...ns].sort((a, b) => a.tick - b.tick).at(-1);
-eq('turnaround_below_steps_up_into_the_first_note', lastNote(take(lead, 'x-turnaround', { APPROACH: 0, TENSION: 10 }).notes).pitch,
+eq('turnaround_below_steps_up_into_the_first_note', lastNote(take(lead, 'x-turnaround', { MOVE: 0, TENSION: 10 }).notes).pitch,
     G.stepScale(target, -1, lead.key));
-eq('turnaround_chromatic_is_a_semitone_below', lastNote(take(lead, 'x-turnaround', { APPROACH: 3, TENSION: 10 }).notes).pitch, target - 1);
+eq('turnaround_chromatic_is_a_semitone_below', lastNote(take(lead, 'x-turnaround', { MOVE: 3, TENSION: 10 }).notes).pitch, target - 1);
 
 /* RUN UP rises through the ending; DOWN falls. */
 const tail = (ns, ctx) => [...ns].filter((n) => n.tick >= ctx.end - G.ENDING_STEPS[1] * G.TPS).sort((a, b) => a.tick - b.tick).map((n) => n.pitch);
@@ -93,11 +93,12 @@ const inStop = stop.notes.filter((n) => n.tick >= stopFrom);
 ok('stop_leaves_only_the_pickup', inStop.length === 2 && inStop.every((n) => n.tick >= lead.end - 4 * G.TPS));
 ok('stop_cuts_what_rings_into_it', stop.notes.every((n) => n.tick >= stopFrom || n.tick + n.gate <= stopFrom));
 
-/* TURN changes chords only where no other track sets them. */
+/* TURNAROUND's chord moves (TURN's) only where no other track sets the chords. */
 const lockedLead = G.prepare(fixtureInput('lead', { task: 'double', scene: 'locked' }));
 const freeLead = G.prepare(fixtureInput('lead', { task: 'double', scene: 'free' }));
-ok('turn_not_offered_when_others_set_the_chords', !G.serves(by('x-turn'), lockedLead));
-ok('turn_offered_in_a_free_scene', G.serves(by('x-turn'), freeLead));
+const turnMoves = (c) => { const k = by('x-turnaround').knobs[1]; return Array.from({ length: k.steps(c) }, (_, i) => k.label(i, c)); };
+ok('turn_not_offered_when_others_set_the_chords', !turnMoves(lockedLead).includes('V7'));
+ok('turn_offered_in_a_free_scene', turnMoves(freeLead).includes('V7') && turnMoves(freeLead).includes('BELOW'));
 
 /* Drums: FILL and ROLL play the snare in the ending; BREAK drops the kick and
  * hats; REPEAT repeats the slice before the ending. */
@@ -139,7 +140,7 @@ const shortBand = band(fixtureInput('lead', { task: 'double', scene: 'free' }), 
 shortBand.tracks[1].clips[0].len = 16;
 eq('a_shorter_band_loop_repeats_under_the_double', G.prepare(shortBand).band.map((h) => h.tick / G.TPS).join(), '15,31,47,63');
 const drumBand = G.prepare(band(fixtureInput('drums', { task: 'double' }), [63]));
-const dp = take(drumBand, 'xd-pickup', { PADS: 1, PUSH: 1, HITS: 1 }).notes;
+const dp = take(drumBand, 'xd-fill', { PADS: 0, PUSH: 1, HITS: 1 }).notes;
 ok('drum_pickup_hits_with_the_bass_push', dp.some((n) => n.tick === 63 * G.TPS && n.pitch === 38)
     && !dp.some((n) => n.tick === 62 * G.TPS && n.pitch === 38 && !drumBand.src.some((s) => s.tick === n.tick && s.pitch === 38)));
 const runAt = (ctx, st) => take(ctx, 'x-run', { ENDING: 1, RATE: 1 }).notes.find((n) => n.tick === st * G.TPS)?.vel;

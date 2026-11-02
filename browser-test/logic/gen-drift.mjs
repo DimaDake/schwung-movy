@@ -57,4 +57,26 @@ const kw = walkOf(dr, by('d-kick'));
 const ones = (ns) => ns.filter((n) => n.tick % G.BAR === 0).map((n) => `${n.tick}.${n.pitch}`).join();
 eq('drift_keeps_the_downbeat', ones(kw[20]), ones(kw[0]));
 ok('drift_moves_drum_hits', sig(kw[20]) !== sig(kw[0]));
+
+/* SEED, ordered close to far (plans/2026-11-01-generator-ux-design.md §2.8):
+ * position 0 is the take as it was, each next one further from it. */
+{
+    const sc = G.prepare(fixtureInput('lead', { scene: 'free' }));
+    const p = by('v-connect');
+    const v = G.defaults(p, sc);
+    const si = G.knobIndex(p, 'SEED');
+    eq('seed_has_sixteen_takes', p.knobs[si].steps(sc), G.SEED_TAKES);
+    ok('seed_knob_is_flagged', p.knobs[si].seed === true);
+    const order = G.drain(G.seedOrder(sc, p, v, si));
+    eq('seed_zero_is_default_take', order[0], 0);
+    eq('seed_order_holds_every_take_once', [...order].sort((a, b) => a - b).join(), Array.from({ length: G.SEED_TAKES }, (_, i) => i).join());
+    const take = (raw) => { const w = [...v]; w[si] = raw; return G.regenerate(sc, p, w) ?? []; };
+    const base = take(0);
+    const dists = order.map((raw) => G.spread(base, take(raw)));
+    ok('seed_order_runs_close_to_far', dists.every((d, i) => i === 0 || d >= dists[i - 1] - 1e-9));
+    let n = 0;
+    const g = G.seedOrder(sc, p, v, si);
+    while (!g.next().done) n++;
+    ok('seed_order_is_staged', n >= G.SEED_TAKES - 1);
+}
 }

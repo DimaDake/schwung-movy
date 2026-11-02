@@ -6,7 +6,7 @@ import type { GenCtx } from '../analysis/context.js';
 import { chordAt } from '../analysis/context.js';
 import { ACCENT } from '../analysis/band.js';
 import { strength } from '../analysis/events.js';
-import { custom, type KnobDef } from '../knobs.js';
+import { custom, type KnobDef, SEED_TAKES } from '../knobs.js';
 import { harmonyLabel, planAt } from '../plan.js';
 import { uniqueChords } from './plans.js';
 import { pick, type Rng } from '../rng.js';
@@ -25,8 +25,8 @@ export function amount(name: string, max: number, lo: number, hi: number): KnobD
         roll: (_c, r) => lo + Math.floor(r() * (hi - lo + 1)) };
 }
 
-export const SEED: KnobDef = { name: 'SEED', steps: () => 100, def: () => 0, label: (v) => '#' + (v + 1),
-    roll: (_c, r) => Math.floor(r() * 100) };
+export const SEED: KnobDef = { name: 'SEED', steps: () => SEED_TAKES, def: () => 0, label: (v) => '#' + (v + 1), seed: true,
+    roll: (_c, r) => Math.floor(r() * SEED_TAKES) };
 
 /** The run's progression: every option of one run shares it (a free scene),
  *  so the eight parts go together; HARMONY moves one option to another. A

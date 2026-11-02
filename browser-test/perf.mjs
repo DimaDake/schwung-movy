@@ -559,6 +559,19 @@ _origLog('\nTest: generator slice cost');
     check('generator: one New Clip take slice (free scene)', Number(fstep.toFixed(2)), 15, 'ms');
     check('generator: one New Clip take slice (16 bars)', Number(cstep.toFixed(2)), 15, 'ms');
     check('generator: a New Clip knob turn (16 bars)', Number(cregen.toFixed(2)), 12, 'ms');
+
+    /* SEED's order is built a take a slice (gen/seed-order.ts): no slice may
+     * cost more than a take's. */
+    let sslice = 0;
+    const sreq = G.startRequest(big);
+    while (!G.stepRequest(sreq));
+    for (const p of G.finishRequest(sreq).picks ?? G.finishRequest(sreq)) {
+        const si = p.preset.knobs.findIndex((k) => k.seed);
+        if (si < 0) continue;
+        const gen = G.seedOrder(sreq.ctx, p.preset, p.knobs, si);
+        for (let rep = 0; rep < 20; rep++) { const t = performance.now(); if (gen.next().done) break; sslice = Math.max(sslice, performance.now() - t); }
+    }
+    check('generator: one SEED order slice (512 notes)', Number(sslice.toFixed(2)), 15, 'ms');
 }
 
 /* ── Summary ─────────────────────────────────────────────────────────────── */

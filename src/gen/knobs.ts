@@ -19,7 +19,12 @@ export interface KnobDef {
     label: (v: number, ctx: GenCtx) => string;
     /** New Clip: a take's position, drawn from the musical subset (create/takes.ts). */
     roll?: (ctx: GenCtx, r: Rng) => number;
+    /** A SEED knob: the preview turns it through its takes ordered close to far (seed-order.ts). */
+    seed?: boolean;
 }
+
+/** Takes on a SEED knob (seed-order.ts orders them close to far). */
+export const SEED_TAKES = 16;
 
 const fixed = (n: number) => () => n;
 const pct = (v: number, steps: number) => Math.round((v / (steps - 1)) * 100) + '%';
@@ -52,7 +57,7 @@ export const K = {
     pitchFix: (def = 4): KnobDef => ({ name: 'FIX NOTES', steps: (c) => fixable(c) + 1, def: (c) => fixDefault(c, def),
         label: (v, c) => (v === 0 ? 'OFF' : v >= fixable(c) ? 'ALL' : `${v} NOTE${v > 1 ? 'S' : ''}`) }),
     clean: (def = 3): KnobDef => ({ name: 'CLEAN', steps: fixed(11), def: fixed(def), label: (v) => pct(v, 11) }),
-    seed: (): KnobDef => ({ name: 'SEED', steps: fixed(100), def: fixed(0), label: (v) => '#' + (v + 1) }),
+    seed: (): KnobDef => ({ name: 'SEED', steps: fixed(SEED_TAKES), def: fixed(0), label: (v) => '#' + (v + 1), seed: true }),
     changes: (def = 0): KnobDef => custom('CHORD RATE', CHANGES, def),
     rhythm: (def = 0): KnobDef => custom('RHYTHM', RHYTHMS, def),
     voices: (def = 1): KnobDef => custom('VOICES', VOICE_STEPS, def),

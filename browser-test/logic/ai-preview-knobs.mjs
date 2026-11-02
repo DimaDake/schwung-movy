@@ -146,6 +146,36 @@ done();
     done();
 }
 
+/* SEED walks its takes close to far (gen/seed-order.ts): built a take a tick,
+ * the strip says '...' meanwhile, and turning back returns the same notes. */
+{
+    const si = picks.findIndex((p) => p.preset.knobs.some((k, i) => k.seed && G.knobLive(r.ctx, p.preset, p.knobs, i)));
+    ok('an option with a seed exists', si >= 0);
+    boot(input);
+    previewSwitch(si);
+    ops();
+    const p = picks[si].preset;
+    const sk = p.knobs.findIndex((k) => k.seed);
+    const slot = G.knobSlot(p, sk);
+    const settle = () => { let w = []; for (let i = 0; i < 20; i++) { aiPreviewTick(); w = w.concat(ops().filter((o) => o.startsWith('aiclip'))); } return w; };
+    resetSeqHeader();
+    previewInput(KNOB(slot, 5));
+    aiPreviewTick();
+    ok('seed_strip_waits_while_ordering', seqHeaderShown().endsWith('|...'));
+    const at5 = settle().pop();
+    ok('seed_turn_writes_once_ordered', !!at5);
+    eq('seed_strip_shows_the_position', seqHeaderShown(), 'SEED|#6');
+    previewInput(KNOB(slot, 4));
+    const at9 = settle().pop();
+    previewInput(KNOB(slot, -4));
+    const back = settle().pop();
+    ok('seed_turn_back_returns_same_notes', !!at9 && at9 !== at5 && back === at5);
+    const order = G.drain(G.seedOrder(r.ctx, p, picks[si].knobs.map((k, i) => (i === sk ? 0 : k)), sk));
+    eq('seed_position_plays_its_ordered_take', knobsOf(si + 1)[sk], order[5]);
+    commitPreview();
+    done();
+}
+
 /* Touching the jog names the generator behind the option showing (the
  * top strip) at once — no wait for the views' jog-hint hold timer. */
 {

@@ -10,6 +10,7 @@ import { mlog } from '../log.js';
 import { regenerate } from '../gen/engine.js';
 import { knobLive } from '../gen/live.js';
 import { slotKnob } from '../gen/layout.js';
+import { seedLabel, seedPos, seedTick, seedTurn } from './preview-seed.js';
 import type { GenCtx } from '../gen/analysis/context.js';
 import type { Preset } from '../gen/preset.js';
 import type { Note } from '../gen/types.js';
@@ -72,9 +73,8 @@ export function knobsShown(index: number): void {
 /** The preset name of the option showing; '' on ORIG or without knobs. */
 export function knobsName(): string { return opts[shown - 1]?.preset.name ?? ''; }
 
-/* Hardware knobs are slots (gen/layout.ts): slot `s` is the preset's knob
- * at slotKnob, or none (a dark slot). */
-const knobAt = (o: Opt, s: number): number => slotKnob(o.preset, s) ?? -1;
+/* Hardware knobs are slots (gen/layout.ts); -1 where a slot is dark. */
+const knobAt = (o: Opt | undefined, s: number): number => (o ? slotKnob(o.preset, s) ?? -1 : -1);
 
 function current(i: number): Opt | null {
     const o = opts[shown - 1];
@@ -83,17 +83,17 @@ function current(i: number): Opt | null {
     return o.live[i] ? o : null;
 }
 
+const valueOf = (o: Opt, i: number): string => (o.preset.knobs[i].seed ? seedLabel(o, i) : o.preset.knobs[i].label(o.knobs[i], ctx!));
+
 function strip(o: Opt, i: number): void {
-    const k = o.preset.knobs[i];
-    seqHeaderAnnounce(k.name, STRIP_TTL, k.label(o.knobs[i], ctx!));
+    seqHeaderAnnounce(o.preset.knobs[i].name, STRIP_TTL, valueOf(o, i));
     appState.dirty = true;
 }
 
 /** True when the preview owns this knob turn. */
 export function knobTurn(slot: number, delta: number): boolean {
     if (!ctx || !opts.length) return false;
-    const shownOpt = opts[shown - 1];
-    const i = shownOpt ? knobAt(shownOpt, slot) : -1;
+    const i = knobAt(opts[shown - 1], slot);
     const o = current(i);
     if (!o || !delta) return true;
     const steps = o.preset.knobs[i].steps(ctx);
@@ -101,6 +101,11 @@ export function knobTurn(slot: number, delta: number): boolean {
      * a knob sends several raw units per click, and movy-host sums a tick's
      * worth into one turn. The remainder carries to the next turn. */
     const n = countDetents(accum, slot, delta);
+    if (o.preset.knobs[i].seed) {
+        if (n && seedTurn(ctx, o, i, n)) { o.live = o.live.map((l, j) => (j === i ? l : undefined)); pending = true; }
+        strip(o, i);
+        return true;
+    }
     const next = Math.max(0, Math.min(steps - 1, o.knobs[i] + n));
     if (next !== o.knobs[i]) {
         o.knobs[i] = next;
@@ -114,8 +119,7 @@ export function knobTurn(slot: number, delta: number): boolean {
 
 export function knobTouch(slot: number, on: boolean): boolean {
     if (!ctx || !opts.length) return false;
-    const shownOpt = opts[shown - 1];
-    const i = shownOpt ? knobAt(shownOpt, slot) : -1;
+    const i = knobAt(opts[shown - 1], slot);
     if (!on) { if (held === i) held = -1; return true; }
     const o = current(i);
     held = o ? i : -1;
@@ -130,7 +134,9 @@ export function knobsTick(write: (notes: Note[]) => void): void {
     if (!ctx) return;
     const o = opts[shown - 1];
     if (!o) return;
-    if (held >= 0) seqHeaderAnnounce(o.preset.knobs[held].name, STRIP_TTL, o.preset.knobs[held].label(o.knobs[held], ctx));
+    /* A waiting SEED turn lands once its order is built: the strip says where. */
+    if (seedTick(o)) { pending = true; strip(o, o.preset.knobs.findIndex((k) => k.seed)); }
+    if (held >= 0) seqHeaderAnnounce(o.preset.knobs[held].name, STRIP_TTL, valueOf(o, held));
     if (o.per && perPadTick(o, write)) return;
     if (pending) {
         pending = false;
@@ -151,10 +157,10 @@ export function knobLevels(): (number | null)[] | null {
     const c = ctx;
     const o = opts[shown - 1];
     return Array.from({ length: 8 }, (_, s) => {
-        const i = o ? knobAt(o, s) : -1;
+        const i = knobAt(o, s);
         if (!o || i < 0 || o.live[i] !== true) return null;
         const steps = o.preset.knobs[i].steps(c);
-        return steps > 1 ? o.knobs[i] / (steps - 1) : null;
+        return steps > 1 ? (o.preset.knobs[i].seed ? seedPos(o, i) : o.knobs[i]) / (steps - 1) : null;
     });
 }
 

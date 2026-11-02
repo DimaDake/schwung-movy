@@ -24,6 +24,7 @@ export * from './engine.js';
 export * from './live.js';
 export * from './presets/catalog.js';
 export * from './layout.js';
+export * from './seed-order.js';
 export { realise } from './realise/index.js';
 export * from './style/markov.js';
 export * from './style/melodic.js';

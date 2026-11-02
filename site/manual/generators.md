@@ -68,7 +68,7 @@ A knob name means the same thing on every generator:
 | **HARMONY** | Further from the original chords; its value shows them (`AM F C G`). Turned all the way left, a New Clip part stays on one chord; the far right holds the boldest moves. |
 | **RHYTHM** | A new rhythm for the same notes: push, syncopate, double, half, Euclid… |
 | **DRIFT** | Walks the take away from itself one small change per click. Turn back to walk home. |
-| **SEED** | Another roll of the same idea. |
+| **SEED** | Other takes of the same idea, closest first: each click right sounds a little further from the one you started on. |
 | **TIMING**, **GRID** | From your feel to exactly on the grid; the grid. |
 | **GATE**, **SPACE** | How long notes ring; how much room the part leaves between phrases. |
 

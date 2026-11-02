@@ -78,15 +78,14 @@ The others develop the clip, each changing one thing:
 
 | Generator | What it does |
 | --- | --- |
-| **TIGHT**, **TIDY** | Onto the grid; tidy also removes accidental doubles and evens out velocities. |
-| **GROOVE** | The scene's swing and timing feel, or a feel: laid back, pushed, shuffle. |
+| **TIGHT** | Onto the grid. Its knobs also remove accidental doubles (**CLEAN**), even out or accent the velocities (**VELOCITY**), lengthen or shorten notes (**LENGTH**) and pick a timing feel: the scene's, laid back, pushed, shuffle (**FEEL**). |
 | **SHAPED**, **EMBELLISH** | Chords filled out and moved smoothly; grace and passing notes added. |
 | **ANSWER** | The second half answers the first. |
 | **GHOSTS**, **FILL** (drums) | Ghost notes where there is room; a small fill into the loop. |
-| **MUTATE**, **MODE**, **INVERT**, **OCTAVES** | Notes moved through the scale, into another mode, mirrored, thrown an octave. |
+| **MUTATE**, **MODE**, **OCTAVES** | Notes moved through the scale; into another mode, or mirrored (**MIRROR**); thrown an octave. |
 | **RATCHET**, **SHIFT**, **HUMANIZE** | Rolls and repeats; the clip moved in the bar; loosened like a player. |
 
-On **TIGHT**, **TIDY** and **GROOVE**, knob 5 is **DENSITY**: turn left to keep
+On **TIGHT**, **DENSITY** turns left to keep
 only the strongest notes, right to fill the gaps with more of what the part
 already plays. On drums every pad keeps at least one hit.
 

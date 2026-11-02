@@ -33,18 +33,24 @@ const tight = turn(lead, by('q-mutate'), { AMOUNT: 0 });
     ok('mutate_moves_by_scale_steps_in_the_key', sorted(out).every((n) => G.inKey(n.pitch, lead.key)
         || !G.inKey(sorted(tight).find((x) => x.tick === n.tick)?.pitch ?? 0, lead.key)));
 
-    /* MODE is the clip alone (a free scene); against a band it is not offered. */
+    /* The modes are the clip alone (a free scene); against a band a line is
+     * offered MIRROR only (INVERT's, merged into MODE). */
     const mode = by('q-mode');
-    ok('mode_is_offered_only_on_a_free_scene', !G.serves(mode, lead) && G.serves(mode, quant('lead', 'free')));
-    const dorian = turn(lead, mode, { MODE: G.MODES.findIndex((x) => x[0] === 'DORIAN') });
+    const free = quant('lead', 'free');
+    const modeLabels = (c) => Array.from({ length: mode.knobs[1].steps(c) }, (_, i) => mode.knobs[1].label(i, c));
+    eq('mode_in_a_band_is_mirror_only', modeLabels(lead).join(), 'MIRROR');
+    ok('mode_alone_offers_every_mode', modeLabels(free).includes('DORIAN') && modeLabels(free).includes('MIRROR'));
+    ok('mode_not_offered_to_a_pad_in_a_band', !G.serves(mode, quant('pad')));
+    const tightFree = turn(free, by('q-mutate'), { AMOUNT: 0 });
+    const dorian = turn(free, mode, { MODE: G.MODES.findIndex((x) => x[0] === 'DORIAN') });
     const scale = G.MODES.find((x) => x[0] === 'DORIAN')[1].map((s) => (s + lead.key.tonic) % 12);
-    ok('mode_keeps_the_rhythm', ticks(dorian) === ticks(tight));
-    ok('mode_puts_the_clip_in_the_mode', dorian.filter((n) => G.inKey(sorted(tight).find((x) => x.tick === n.tick && Math.abs(x.pitch - n.pitch) <= 1)?.pitch ?? -1, lead.key))
+    ok('mode_keeps_the_rhythm', ticks(dorian) === ticks(tightFree));
+    ok('mode_puts_the_clip_in_the_mode', dorian.filter((n) => G.inKey(sorted(tightFree).find((x) => x.tick === n.tick && Math.abs(x.pitch - n.pitch) <= 1)?.pitch ?? -1, lead.key))
         .every((n) => scale.includes(n.pitch % 12)));
 
     /* Mirrored around the first note: each single in-key note as far below
      * it in scale steps as it was above (a few moved off a rub with the band). */
-    const inv = turn(lead, by('q-invert'), { WHERE: 0, 'PITCH FIX': 0, PIVOT: 0 });
+    const inv = turn(lead, mode, { MODE: 0, WHERE: 0, PIVOT: 0 });   // MODE 0 in a band is MIRROR
     const one = (ns) => { const m = new Map(); for (const n of ns) m.set(n.tick, m.has(n.tick) && m.get(n.tick) !== n.pitch ? null : n.pitch); return m; };
     const before = one(tight), after = one(inv), pivot = G.degreeIndex(sorted(tight)[0].pitch, lead.key);
     const pairs = [...before].filter(([t, p]) => p !== null && after.get(t) != null && G.inKey(p, lead.key));

@@ -59,25 +59,32 @@ export const MUTATE: Preset = {
 };
 
 /* A mode is the clip's whole colour: against other tracks still in the old
- * one every third clashes, so MODE is offered on a clip that plays alone. */
-export const MODE: Preset = {
-    id: 'q-mode', name: 'MODE', task: 'quantize', drum: false, cls: 'exp', fit: () => 0.45, accepts: (ctx) => ctx.alone,
-    knobs: [K.timing(10), custom('MODE', MODES.map((m) => m[0]), 0), where(0), K.dynamics(0)],
-    generate: (ctx, v) => dynamics(toMode(ctx, tightSrc(ctx, v[0]), v[1], whereOf(ctx, v[2])), v[3]),
-};
-
+ * one every third clashes, so the modes are offered on a clip that plays
+ * alone. MIRROR (INVERT's, §2.7) turns the contour over a pivot, and stays
+ * in the key: a line in a band is offered MIRROR alone. A drone's one pitch
+ * has no mode to move to (MODE was dead on it). */
 const PIVOTS = ['FIRST', 'LOW', 'MID', 'HIGH'] as const;
+const mirrors = (ctx: GenCtx) => (LINES as readonly string[]).includes(ctx.role?.kind ?? '');
+const modesOf = (ctx: GenCtx): string[] => [...(ctx.alone ? MODES.map((m) => m[0]) : []), ...(mirrors(ctx) ? ['MIRROR'] : [])];
+/* INVERT's own pitch fix, which MIRROR keeps. */
+const MIRROR_FIX = 3;
 
-export const INVERT: Preset = {
-    id: 'q-invert', name: 'INVERT', task: 'quantize', drum: false, cls: 'exp', fit: () => 0.45, roles: [...LINES],
-    knobs: [K.timing(10), where(1), custom('PIVOT', PIVOTS, 2), K.pitchFix(3)],
+function mirror(ctx: GenCtx, src: Note[], w: number, pv: number): Note[] {
+    if (!src.length) return [];
+    const ps = src.map((n) => n.pitch).sort((a, b) => a - b);
+    const first = [...src].sort((a, b) => a.tick - b.tick)[0].pitch;
+    const pivot = [first, ps[0], ps[Math.floor(ps.length / 2)], ps[ps.length - 1]][pv];
+    return offRubs(ctx, fixWorst(ctx, invert(ctx, src, pivot, whereOf(ctx, w)), fixDefault(ctx, MIRROR_FIX), fixChords(ctx)), src);
+}
+
+export const MODE: Preset = {
+    id: 'q-mode', name: 'MODE', task: 'quantize', drum: false, cls: 'exp', fit: () => 0.45, accepts: (ctx) => modesOf(ctx).length > 0 && ctx.role?.kind !== 'drone',
+    knobs: [K.timing(10), { name: 'MODE', steps: (c) => modesOf(c).length, def: () => 0, label: (v, c) => modesOf(c)[v] ?? '' },
+        { ...where(0), def: (c) => (modesOf(c)[0] === 'MIRROR' ? 1 : 0) }, K.dynamics(0), custom('PIVOT', PIVOTS, 2)],
     generate: (ctx, v) => {
         const src = tightSrc(ctx, v[0]);
-        if (!src.length) return [];
-        const ps = src.map((n) => n.pitch).sort((a, b) => a - b);
-        const first = [...src].sort((a, b) => a.tick - b.tick)[0].pitch;
-        const pivot = [first, ps[0], ps[Math.floor(ps.length / 2)], ps[ps.length - 1]][v[2]];
-        return offRubs(ctx, fixWorst(ctx, invert(ctx, src, pivot, whereOf(ctx, v[1])), v[3], fixChords(ctx)), src);
+        const m = modesOf(ctx)[v[1]];
+        return dynamics(m === 'MIRROR' ? mirror(ctx, src, v[2], v[4]) : toMode(ctx, src, v[1], whereOf(ctx, v[2])), v[3]);
     },
 };
 

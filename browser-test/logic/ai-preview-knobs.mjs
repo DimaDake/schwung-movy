@@ -108,13 +108,13 @@ done();
 
 /* A knob that cannot change this option is hidden: no strip, no write. */
 const qi = fixtureInput('pad', { task: 'quantize' });
-/* On the beat, one wrong note: something to fix, nothing to swing. */
+/* Even chords, one wrong note: something to fix, nothing to clean. */
 qi.tracks[0].clips[0].notes = qi.tracks[0].clips[0].notes.map((n, i) => (i === 1 ? { ...n, pitch: n.pitch + 1 } : n));
 const dctx = G.prepare(qi);
 const tight = G.presetById('q-tight');
 const tv = G.defaults(tight, dctx);
-const swing = tight.knobs.findIndex((k) => k.name === 'SWING');
-eq('swing_on_a_pad_on_the_beat_is_dead', G.knobLive(dctx, tight, tv, swing), false);
+const swing = tight.knobs.findIndex((k) => k.name === 'CLEAN');
+eq('clean_on_an_even_pad_is_dead', G.knobLive(dctx, tight, tv, swing), false);
 const notes = G.generateOption(dctx, tight, tv).notes;
 boot({ task: 'quantize', track: 0, slot: 0, orig: null, options: [notes], len: 32, scaleNum: 1, scaleDen: 1,
     gen: { ctx: dctx, picks: [{ preset: tight, knobs: tv }] } });

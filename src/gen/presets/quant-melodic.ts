@@ -5,13 +5,14 @@
 import type { GenCtx } from '../analysis/context.js';
 import { fromEvents, toEvents } from '../analysis/events.js';
 import { GRIDS } from '../analysis/groove.js';
-import { count, custom, K, swingOfKnob } from '../knobs.js';
+import { count, custom, K, type KnobDef } from '../knobs.js';
 import type { Preset } from '../preset.js';
 import { rng } from '../rng.js';
 import { realiseChords } from '../realise/chords.js';
-import { even, dynamics } from '../shape/dynamics.js';
+import { dynamics } from '../shape/dynamics.js';
+import { velocity } from '../shape/velocity.js';
 import { clean } from '../shape/drums.js';
-import { embellish, fixChords, fixWorst, ORNAMENTS, pitchFix } from '../shape/pitch.js';
+import { embellish, fixChords, fixWorst, ORNAMENTS } from '../shape/pitch.js';
 import { FEELS, feelLand, lengthStage, timing } from '../shape/time.js';
 import { rhythmStage } from '../shape/rhythm.js';
 import { densityStage } from '../shape/density.js';
@@ -25,26 +26,21 @@ const swing = (ctx: GenCtx) => ctx.groove.swing;
 const tight = (ctx: GenCtx, notes: Note[], amount = 1) => timing(ctx, notes, amount, grid(ctx), swing(ctx));
 const len = (ctx: GenCtx, notes: Note[], v: number) => fromEvents(lengthStage(toEvents(notes), v, ctx.end), ctx.end);
 const chords = fixChords;
+/* VELOCITY (5 = as played): left evens the velocities, right accents the beat. */
+export const VELOCITY: KnobDef = { name: 'VELOCITY', steps: () => 11, def: () => 5,
+    label: (v) => (v === 5 ? 'AS PLAYED' : v < 5 ? 'EVEN ' + (5 - v) : 'ACCENT ' + (v - 5)) };
 /* DENSITY (5 = as played) after the timing, so an added note lands on the grid. */
 const dense = (ctx: GenCtx, notes: Note[], v: number, seed: number) =>
     (v === 5 ? notes : fromEvents(densityStage(ctx, toEvents(notes), v, rng(seed), chords(ctx)), ctx.end));
 
+/* TIGHT is TIDY and GROOVE too (§2.7): CLEAN, LENGTH, VELOCITY and FEEL at
+ * their defaults are the old TIGHT, which already sat in the scene's pocket.
+ * No SWING: the set's swing swings the clip at playback. */
 export const TIGHT: Preset = {
     id: 'q-tight', name: 'TIGHT', task: 'quantize', drum: false, cls: 'close', fit: () => 0.9,
-    knobs: [K.timing(10), K.swing(), K.grid(), K.pitchFix(4), K.density(5)],
-    generate: (ctx, v, seed) => dense(ctx, fixWorst(ctx, timing(ctx, ctx.src, v[0] / 10, GRIDS[v[2]], swingOfKnob(v[1])), v[3], chords(ctx)), v[4], seed),
-};
-
-export const TIDY: Preset = {
-    id: 'q-tidy', name: 'TIDY', task: 'quantize', drum: false, cls: 'rhythm', fit: () => 0.6,
-    knobs: [K.timing(10), K.clean(5), custom('EVEN', ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10'], 6), K.length(6), K.density(5)],
-    generate: (ctx, v, seed) => len(ctx, dense(ctx, even(pitchFix(ctx, tight(ctx, clean(ctx.src, v[1]), v[0] / 10), 3, chords(ctx)), v[2]), v[4], seed), v[3]),
-};
-
-export const GROOVE: Preset = {
-    id: 'q-groove', name: 'GROOVE', task: 'quantize', drum: false, cls: 'rhythm', fit: () => 0.65,
-    knobs: [K.timing(9), K.swing(), K.dynamics(6), FEEL, K.density(5)],
-    generate: (ctx, v, seed) => dynamics(dense(ctx, pitchFix(ctx, timing(ctx, ctx.src, v[0] / 10, grid(ctx), swingOfKnob(v[1]), 1, feelLand(ctx, v[3])), 3, chords(ctx)), v[4], seed), v[2]),
+    knobs: [K.timing(10), K.density(5), K.pitchFix(4), K.grid(), K.length(5), VELOCITY, K.clean(0), { ...FEEL, def: () => 1 }],
+    generate: (ctx, v, seed) => len(ctx, velocity(dense(ctx, fixWorst(ctx,
+        timing(ctx, clean(ctx.src, v[6]), v[0] / 10, GRIDS[v[3]], 0, 1, feelLand(ctx, v[7])), v[2], chords(ctx)), v[1], seed), v[5]), v[4]),
 };
 
 /** Chords filled out and voice-led; a line's stray octave leaps folded back. */
@@ -97,17 +93,5 @@ export const ANSWER_Q: Preset = {
         const tail2 = v[4] ? rhythmStage(ctx, tail, v[4], r).filter((e) => e.tick >= split) : tail;
         const evs = densityStage(ctx, toEvents([...head, ...fromEvents(tail2, ctx.end)]), v[6], r, chords(ctx));
         return dynamics(fixWorst(ctx, len(ctx, fromEvents(evs, ctx.end), v[5]), v[3], chords(ctx)), v[7]);
-    },
-};
-
-export const FULL: Preset = {
-    id: 'q-full', name: 'FULL', task: 'quantize', drum: false, cls: 'exp', fit: () => 0.5,
-    knobs: [K.timing(10), K.swing(), K.grid(), K.pitchFix(4), count('EMBELLISH', 16, 2), K.dynamics(3), K.length(5), K.rhythm(0)],
-    generate: (ctx, v, seed) => {
-        const r = rng(seed);
-        let notes = fixWorst(ctx, timing(ctx, ctx.src, v[0] / 10, GRIDS[v[2]], swingOfKnob(v[1])), v[3], chords(ctx));
-        if (v[7]) notes = fromEvents(rhythmStage(ctx, toEvents(notes), v[7], r), ctx.end);
-        notes = embellish(ctx, notes, v[4], ORNAMENTS[Math.floor(r() * 3)], r, chords(ctx));
-        return len(ctx, dynamics(notes, v[5]), v[6]);
     },
 };

@@ -106,13 +106,14 @@ _log('\nTest: generator quality fixes');
 /* Smart Quantize DENSITY (user, 2026-11-01: "for quantize I want to reduce
  * density or sparse (or increase)"): 5 is as played, left thins, right fills;
  * a drum pad is never thinned away. */
-for (const [id, role] of [['q-tight', 'lead'], ['q-tidy', 'lead'], ['q-groove', 'lead'], ['qd-tight', 'drums'], ['qd-tidy', 'drums'], ['qd-groove', 'drums']]) {
+/* TIDY and GROOVE are TIGHT now (§2.7); its knob slot is the layout's (gen/layout.ts). */
+for (const [id, role] of [['q-tight', 'lead'], ['qd-tight', 'drums']]) {
     const input = fixtureInput(role, { task: 'quantize' });
     input.tracks[0].clips[0].notes = messy(role === 'drums' ? DRUMS : PARTS[role]);
     const ctx = G.prepare(input);
     const p = by(id);
     const n = (d) => (turn(ctx, p, 'DENSITY', d) ?? []).length;
-    ok(`${id}_density_5_is_as_played`, G.knobIndex(p, 'DENSITY') === 4 && sig(turn(ctx, p, 'DENSITY', 5)) === sig(G.regenerate(ctx, p, G.defaults(p, ctx))));
+    ok(`${id}_density_5_is_as_played`, G.knobIndex(p, 'DENSITY') >= 0 && sig(turn(ctx, p, 'DENSITY', 5)) === sig(G.regenerate(ctx, p, G.defaults(p, ctx))));
     ok(`${id}_density_thins_and_fills`, n(0) < n(3) && n(3) < n(5) && n(5) < n(7) && n(7) <= n(10));
     if (p.drum) {
         const pads = (d) => new Set((turn(ctx, p, 'DENSITY', d) ?? []).map((x) => x.pitch)).size;

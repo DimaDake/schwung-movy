@@ -9,7 +9,8 @@ import type { Preset } from '../gen/preset.js';
 import { seedOrder } from '../gen/seed-order.js';
 
 interface Opt { preset: Preset; knobs: number[] }
-interface State { sig: string; gen: Generator<void, number[], void> | null; order: number[] | null; pos: number; want: number | null }
+/* `due`: clicks turned while the order is built, placed from the take's own rank once it is. */
+interface State { sig: string; gen: Generator<void, number[], void> | null; order: number[] | null; pos: number; due: number }
 
 const states = new WeakMap<Opt, State>();
 const sigOf = (o: Opt, i: number) => o.knobs.map((v, j) => (j === i ? '-' : v)).join();
@@ -18,7 +19,7 @@ function stateOf(o: Opt, i: number): State {
     const sig = sigOf(o, i);
     let s = states.get(o);
     if (!s || s.sig !== sig) {
-        s = { sig, gen: null, order: null, pos: o.knobs[i], want: null };
+        s = { sig, gen: null, order: null, pos: o.knobs[i], due: 0 };
         states.set(o, s);
     }
     return s;
@@ -27,16 +28,15 @@ function stateOf(o: Opt, i: number): State {
 /** A turn of `n` clicks on SEED knob `i`: true when the option's knobs moved now. */
 export function seedTurn(ctx: GenCtx, o: Opt, i: number, n: number): boolean {
     const s = stateOf(o, i);
-    const top = o.preset.knobs[i].steps(ctx) - 1;
-    const want = Math.max(0, Math.min(top, (s.want ?? s.pos) + n));
-    if (s.order) return place(o, i, s, want);
-    s.want = want;
+    if (s.order) return place(o, i, s, s.pos + n);
+    s.due += n;
     if (!s.gen) s.gen = seedOrder(ctx, o.preset, o.knobs.map((v, j) => (j === i ? 0 : v)), i);
     return false;
 }
 
-function place(o: Opt, i: number, s: State, pos: number): boolean {
-    s.want = null;
+function place(o: Opt, i: number, s: State, to: number): boolean {
+    s.due = 0;
+    const pos = Math.max(0, Math.min(s.order!.length - 1, to));
     if (pos === s.pos && o.knobs[i] === s.order![pos]) return false;
     s.pos = pos;
     o.knobs[i] = s.order![pos];
@@ -56,7 +56,7 @@ export function seedTick(o: Opt): boolean {
     s.order = r.value;
     const at = s.order.indexOf(o.knobs[i]);
     s.pos = at >= 0 ? at : 0;
-    return s.want !== null ? place(o, i, s, s.want) : false;
+    return s.due ? place(o, i, s, s.pos + s.due) : false;
 }
 
 /** The SEED knob's value for the strip: its place in the order, or '...' while ordering. */

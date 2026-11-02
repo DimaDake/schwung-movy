@@ -19,7 +19,7 @@ import { countDetents } from '../seq/detent.js';
 import { seqState } from '../seq/state.js';
 import { type PadState, padsOpen, padsReset, padsRestore, padsSave, padsSelect, padsShow, padsTurn, padsUnion, padsRemake } from './preview-pads.js';
 
-interface Opt { preset: Preset; knobs: number[]; live: (boolean | undefined)[]; per?: PadState }
+interface Opt { preset: Preset; knobs: number[]; live: (boolean | undefined)[]; per?: PadState; own?: GenCtx /* made in its own context (Step 14's New Clip) */ }
 
 /* Seen for about a second after the last touch or turn (render.ts toasts). */
 const STRIP_TTL = 196;
@@ -32,10 +32,10 @@ let held = -1;              // the touched knob, -1 none
 let resync = false;         // a per-pad option came on screen: its pads to catch up
 const accum: number[] = []; // raw knob units banked toward the next step
 
-export function knobsOpen(c: GenCtx, picks: { preset: Preset; knobs: number[] }[], notes: Note[][] = []): void {
+export function knobsOpen(c: GenCtx, picks: { preset: Preset; knobs: number[]; ctx?: GenCtx }[], notes: Note[][] = []): void {
     ctx = c;
     padsReset();
-    opts = picks.map((p) => ({ preset: p.preset, knobs: [...p.knobs], live: p.knobs.map(() => undefined) }));
+    opts = picks.map((p) => ({ preset: p.preset, knobs: [...p.knobs], live: p.knobs.map(() => undefined), ...(p.ctx ? { own: p.ctx } : {}) }));
     opts.forEach((o, i) => padsOpen(c, o, notes[i] ?? []));
     resync = true;
     shown = 1;
@@ -79,11 +79,12 @@ const knobAt = (o: Opt | undefined, s: number): number => (o ? slotKnob(o.preset
 function current(i: number): Opt | null {
     const o = opts[shown - 1];
     if (!ctx || !o || i < 0 || i >= o.preset.knobs.length) return null;
-    if (o.live[i] === undefined) o.live[i] = knobLive(ctx, o.preset, o.knobs, i);
+    if (o.live[i] === undefined) o.live[i] = knobLive(cx(o), o.preset, o.knobs, i);
     return o.live[i] ? o : null;
 }
 
-const valueOf = (o: Opt, i: number): string => (o.preset.knobs[i].seed ? seedLabel(o, i) : o.preset.knobs[i].label(o.knobs[i], ctx!));
+const cx = (o: Opt): GenCtx => o.own ?? ctx!;
+const valueOf = (o: Opt, i: number): string => (o.preset.knobs[i].seed ? seedLabel(o, i) : o.preset.knobs[i].label(o.knobs[i], cx(o)));
 
 function strip(o: Opt, i: number): void {
     seqHeaderAnnounce(o.preset.knobs[i].name, STRIP_TTL, valueOf(o, i));
@@ -96,13 +97,13 @@ export function knobTurn(slot: number, delta: number): boolean {
     const i = knobAt(opts[shown - 1], slot);
     const o = current(i);
     if (!o || !delta) return true;
-    const steps = o.preset.knobs[i].steps(ctx);
+    const steps = o.preset.knobs[i].steps(cx(o));
     /* One step per click, as on movy's own stepped pages (seq/detent.ts):
      * a knob sends several raw units per click, and movy-host sums a tick's
      * worth into one turn. The remainder carries to the next turn. */
     const n = countDetents(accum, slot, delta);
     if (o.preset.knobs[i].seed) {
-        if (n && seedTurn(ctx, o, i, n)) { o.live = o.live.map((l, j) => (j === i ? l : undefined)); pending = true; }
+        if (n && seedTurn(cx(o), o, i, n)) { o.live = o.live.map((l, j) => (j === i ? l : undefined)); pending = true; }
         strip(o, i);
         return true;
     }
@@ -141,25 +142,24 @@ export function knobsTick(write: (notes: Note[]) => void): void {
     if (pending) {
         pending = false;
         if (o.per) { padsTurn(ctx, o); write(padsUnion(o)); appState.dirty = true; return; }
-        const notes = regenerate(ctx, o.preset, o.knobs);
+        const notes = regenerate(cx(o), o.preset, o.knobs);
         if (notes) { write(notes); appState.dirty = true; } else mlog(`gen: ${o.preset.id} refused ${o.knobs.join(',')}`);
         return;
     }
     const u = o.live.findIndex((l) => l === undefined);
-    if (u >= 0) { o.live[u] = knobLive(ctx, o.preset, o.knobs, u); appState.dirty = true; }
+    if (u >= 0) { o.live[u] = knobLive(cx(o), o.preset, o.knobs, u); appState.dirty = true; }
 }
 
-/** The knob LEDs, like a module's params: each slot's knob of the option
- *  showing at its position (0..1); dark where the slot has none, where it cannot change this
- *  option (or is not known yet to), and on ORIG. null = no preview knobs. */
+/** The knob LEDs, like a module's params: each slot's knob of the option showing at its
+ *  position (0..1); dark where the slot has none, where it cannot change this option
+ *  (or is not known yet to), and on ORIG. null = no preview knobs. */
 export function knobLevels(): (number | null)[] | null {
     if (!ctx || !opts.length) return null;
-    const c = ctx;
     const o = opts[shown - 1];
     return Array.from({ length: 8 }, (_, s) => {
         const i = knobAt(o, s);
         if (!o || i < 0 || o.live[i] !== true) return null;
-        const steps = o.preset.knobs[i].steps(c);
+        const steps = o.preset.knobs[i].steps(cx(o));
         return steps > 1 ? (o.preset.knobs[i].seed ? seedPos(o, i) : o.knobs[i]) / (steps - 1) : null;
     });
 }

@@ -566,6 +566,14 @@ _origLog('\nTest: generator slice cost');
     const melodicNow = full.todo.length;
     check('generator: New Clip slices, full set', melodicNow, Math.round(8 * G.TAKES * 1.75), 'slices');
 
+    /* Step 14 on a clip (§2.3): Variation's slices plus its two New Clip parts'. */
+    const v14 = G.startRequest(F.fixtureInput('bass', { scene: 'free' }));
+    let n14 = 0;
+    while (!G.stepRequest(v14)) n14++;
+    const vc = G.prepare(F.fixtureInput('bass', { scene: 'free' }));
+    const vOnly = G.PRESETS.filter((p) => G.serves(p, vc)).length;
+    check('generator: Step 14 request slices', n14, vOnly * 3 + 2 * G.TAKES + 12, 'slices');
+
     /* SEED's order is built a take a slice (gen/seed-order.ts): no slice may
      * cost more than a take's. */
     let sslice = 0;

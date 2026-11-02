@@ -103,7 +103,9 @@ and **Shift** + hold **Step 14**. The variation grows from the nearest clip
 above the slot and takes its length.
 
 Variation offers **six options**, picked from some thirty generators to suit the
-part, closest first. Every option **keeps the track's role**: chords stay
+part, closest first. Option 3 is a brand-new part of the track's kind (a New
+Clip **BASS** on a bass track, say), and option 6 a new part of a neighbouring
+kind, for when the B section wants something other than a variation. Every option **keeps the track's role**: chords stay
 chords, a bassline stays a bassline, drums never change pads. No option is
 simply the same loop rearranged.
 

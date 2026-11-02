@@ -39,7 +39,7 @@ export async function run() {
 _log('\nTest: preview knobs');
 
 const r = G.generateAll(fixtureInput('lead', { scene: 'free' }));
-const picks = r.picks.map((p) => ({ preset: p.preset, knobs: [...p.knobs] }));
+const picks = r.picks.map((p) => ({ preset: p.preset, knobs: [...p.knobs], ...(p.ctx ? { ctx: p.ctx } : {}) }));
 const input = { task: 'variation', track: 0, slot: 1, orig: null, options: r.picks.map((p) => p.notes),
     len: 32, scaleNum: 1, scaleDen: 1, gen: { ctx: r.ctx, picks } };
 const first = picks[0];
@@ -149,7 +149,7 @@ done();
 /* SEED walks its takes close to far (gen/seed-order.ts): built a take a tick,
  * the strip says '...' meanwhile, and turning back returns the same notes. */
 {
-    const si = picks.findIndex((p) => p.preset.knobs.some((k, i) => k.seed && G.knobLive(r.ctx, p.preset, p.knobs, i)));
+    const si = picks.findIndex((p) => p.preset.knobs.some((k, i) => k.seed && G.knobLive(p.ctx ?? r.ctx, p.preset, p.knobs, i)));
     ok('an option with a seed exists', si >= 0);
     boot(input);
     previewSwitch(si);
@@ -158,20 +158,42 @@ done();
     const sk = p.knobs.findIndex((k) => k.seed);
     const slot = G.knobSlot(p, sk);
     const settle = () => { let w = []; for (let i = 0; i < 20; i++) { aiPreviewTick(); w = w.concat(ops().filter((o) => o.startsWith('aiclip'))); } return w; };
+    /* A turn moves from the take's own place in the order (a rolled take need not be #1). */
+    const order = G.drain(G.seedOrder(picks[si].ctx ?? r.ctx, p, picks[si].knobs.map((k, i) => (i === sk ? 0 : k)), sk));
+    const r0 = order.indexOf(picks[si].knobs[sk]);
+    const dir = r0 + 4 < order.length ? 1 : -1;
     resetSeqHeader();
-    previewInput(KNOB(slot, 5));
+    previewInput(KNOB(slot, 2 * dir));
     aiPreviewTick();
     ok('seed_strip_waits_while_ordering', seqHeaderShown().endsWith('|...'));
-    const at5 = settle().pop();
-    ok('seed_turn_writes_once_ordered', !!at5);
-    eq('seed_strip_shows_the_position', seqHeaderShown(), 'SEED|#6');
-    previewInput(KNOB(slot, 4));
-    const at9 = settle().pop();
-    previewInput(KNOB(slot, -4));
+    const atA = settle().pop();
+    ok('seed_turn_writes_once_ordered', !!atA);
+    eq('seed_strip_shows_the_position', seqHeaderShown(), 'SEED|#' + (r0 + 2 * dir + 1));
+    eq('seed_position_plays_its_ordered_take', knobsOf(si + 1)[sk], order[r0 + 2 * dir]);
+    previewInput(KNOB(slot, 2 * dir));
+    const atB = settle().pop();
+    previewInput(KNOB(slot, -2 * dir));
     const back = settle().pop();
-    ok('seed_turn_back_returns_same_notes', !!at9 && at9 !== at5 && back === at5);
-    const order = G.drain(G.seedOrder(r.ctx, p, picks[si].knobs.map((k, i) => (i === sk ? 0 : k)), sk));
-    eq('seed_position_plays_its_ordered_take', knobsOf(si + 1)[sk], order[5]);
+    ok('seed_turn_back_returns_same_notes', !!atB && atB !== atA && back === atA);
+    commitPreview();
+    done();
+}
+
+/* Step 14's New Clip option (§2.3): its knobs answer in its own context. */
+{
+    const vr = G.generateAll(fixtureInput('bass', { scene: 'free' }));
+    const vp = vr.picks.map((p) => ({ preset: p.preset, knobs: [...p.knobs], ...(p.ctx ? { ctx: p.ctx } : {}) }));
+    boot({ task: 'variation', track: 0, slot: 1, orig: null, options: vr.picks.map((p) => p.notes), len: 32, scaleNum: 1, scaleDen: 1, gen: { ctx: vr.ctx, picks: vp } });
+    previewSwitch(2);
+    ops();
+    const hk = G.knobIndex(vp[2].preset, 'HARMONY');
+    for (let i = 0; i < 12; i++) aiPreviewTick();
+    const was = knobsOf(3)[hk];
+    previewInput(KNOB(2, was > 0 ? -1 : 1));
+    aiPreviewTick();
+    const w = ops().filter((o) => o.startsWith('aiclip'));
+    ok('new_clip_option_knobs_use_own_ctx', vp[2].ctx?.task === 'create' && knobsOf(3)[hk] !== was && w.length === 1
+        && w[0].split(' ').pop() === G.regenerate(vp[2].ctx, vp[2].preset, knobsOf(3)).map((n) => `${n.tick}.${n.gate}.${n.pitch}.${n.vel}`).join(','));
     commitPreview();
     done();
 }

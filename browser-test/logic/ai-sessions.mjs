@@ -162,7 +162,7 @@ done();
 
 /* A parked session keeps its knobs. */
 const r = G.generateAll(fixtureInput('lead', { scene: 'free' }));
-const picks = r.picks.map((p) => ({ preset: p.preset, knobs: [...p.knobs] }));
+const picks = r.picks.map((p) => ({ preset: p.preset, knobs: [...p.knobs], ...(p.ctx ? { ctx: p.ctx } : {}) }));
 const live = picks[0].preset.knobs.findIndex((_, i) => G.knobLive(r.ctx, picks[0].preset, picks[0].knobs, i));
 boot();
 aiForgetClip(0, 0);

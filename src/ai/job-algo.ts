@@ -40,6 +40,6 @@ export function algoTick(r: Running): AiPreviewInput | null | 'busy' {
     return {
         task: r.task, track: r.track, slot: r.slot, orig: c.orig, options: all.map((p) => p.notes), picks: picks.length,
         len: c.len, scaleNum: c.scale[0], scaleDen: c.scale[1],
-        gen: { ctx: g.ctx, picks: all.map((p) => ({ preset: p.preset, knobs: [...p.knobs] })) },
+        gen: { ctx: g.ctx, picks: all.map((p) => ({ preset: p.preset, knobs: [...p.knobs], ...(p.ctx ? { ctx: p.ctx } : {}) })) },
     };
 }

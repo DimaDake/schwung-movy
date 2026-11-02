@@ -30,7 +30,7 @@ export interface AiPreviewInput {
     scaleNum: number;
     scaleDen: number;
     /* What made each option, so its knobs can make it again. */
-    gen?: { ctx: GenCtx; picks: { preset: Preset; knobs: number[] }[] };
+    gen?: { ctx: GenCtx; picks: { preset: Preset; knobs: number[]; ctx?: GenCtx }[] };
 }
 
 export interface Running {

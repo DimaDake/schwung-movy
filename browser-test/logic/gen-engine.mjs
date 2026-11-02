@@ -74,7 +74,8 @@ for (const level of ['SAFE', 'BALANCED', 'WILD']) {
 const sel = G.generateAll(fixtureInput('pad', { scene: 'locked' }));
 const pairOk = sel.picks.every((a, i) => sel.picks.every((b, j) => i === j || G.difference(a.notes, b.notes) >= G.MIN_PAIR));
 ok('select_options_differ_by_the_gate_threshold', pairOk);
-const d = sel.picks.map((p) => G.difference(p.notes, sel.ctx.src));
+/* Variation's own picks closest first; Step 14's New Clip parts sit at 3 and 6 (§2.3). */
+const d = sel.picks.filter((p) => !p.ctx).map((p) => G.difference(p.notes, sel.ctx.src));
 ok('select_closest_first', d.every((x, i) => i === 0 || x >= d[i - 1]));
 eq('select_is_deterministic', sel.picks.map((p) => sig(p.notes)).join('|'), G.generateAll(fixtureInput('pad', { scene: 'locked' })).picks.map((p) => sig(p.notes)).join('|'));
 const qs = G.generateAll(quantInput('lead'));
@@ -100,10 +101,24 @@ const thin = [];
     ok('extras_exist_past_the_picks', a.extras.length > 0);
     eq('extras_are_stable', ids(a), ids(b));
     ok('extras_skip_the_picks_and_the_refused', a.extras.every((x) => x.notes.length > 0 && !a.picks.some((p) => p.preset === x.preset)));
-    const cls = a.extras.map((x) => ['close', 'rhythm', 'exp'].indexOf(x.preset.cls));
+    /* The two picks Step 14's New Clip parts displaced lead; the rest by family. */
+    const cls = a.extras.slice(2).map((x) => ['close', 'rhythm', 'exp'].indexOf(x.preset.cls));
     ok('extras_grouped_by_family', cls.every((c, i) => i === 0 || c >= cls[i - 1]));
     eq('new_clip_has_no_extras', G.generateAll(createInput(false, 'free', 2)).extras.length, 0);
     ok('options_fit_the_engine_stash', a.picks.length + a.extras.length <= G.PREVIEW_MAX);
+}
+/* Step 14 on a clip (plans/2026-11-01-generator-ux-design.md §2.3): Variation's
+ * picks hold the track's New Clip part (3rd) and a neighbouring one (last),
+ * each with its own context; the two they replace lead the rest. */
+{
+    const v = G.generateAll(fixtureInput('bass', { scene: 'free' }));
+    eq('step14_has_role_matched_new_clip', v.picks[2]?.preset.id, 'n-bass');
+    eq('step14_has_neighbour_last', v.picks[5]?.preset.id, 'n-riff');
+    ok('step14_new_clip_options_carry_their_context', v.picks[2].ctx?.task === 'create' && G.regenerate(v.picks[2].ctx, v.picks[2].preset, v.picks[2].knobs) !== null);
+    ok('step14_variation_options_keep_theirs', v.picks.filter((p, i) => i !== 2 && i !== 5).every((p) => p.preset.task === 'variation'));
+    ok('step14_displaced_picks_lead_the_rest', v.extras.length >= 2 && v.extras.slice(0, 2).every((p) => p.preset.task === 'variation'));
+    const d = G.generateAll(fixtureInput('drums', { scene: 'free' }));
+    eq('step14_drums_get_drum_map', d.picks[2]?.preset.id, 'n-drum-map');
 }
 ok('no_level_anywhere', !('level' in G.prepare(fixtureInput('lead')).input) && typeof G.GEN_LEVELS === 'undefined');
 /* Plain words and no SWING (plans/2026-11-01-generator-ux-design.md §2.6). */

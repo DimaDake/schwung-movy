@@ -14,7 +14,7 @@ import { jogHintTick, jogHintVisible, jogHintTouch } from '../../dist/esm/app/jo
 import { seqState } from '../../dist/esm/seq/state.js';
 import { seqHeaderShown, resetSeqHeader } from '../../dist/esm/seq/render.js';
 import * as G from '../../dist/esm/gen/index.js';
-import { fixtureInput } from '../gen-fixtures.mjs';
+import { createInput, fixtureInput } from '../gen-fixtures.mjs';
 
 let eng;
 function boot(input) {
@@ -45,6 +45,8 @@ const input = { task: 'variation', track: 0, slot: 1, orig: null, options: r.pic
 const first = picks[0];
 const live = first.preset.knobs.findIndex((_, i) => G.knobLive(r.ctx, first.preset, first.knobs, i));
 ok('a live knob exists on option 1', live >= 0);
+/* The hardware knob a preset knob sits on (gen/layout.ts). */
+const hw = G.knobSlot(first.preset, live);
 
 boot(input);
 eq('opens on option 1', previewIndex(), 1);
@@ -53,31 +55,31 @@ for (let i = 0; i < 8; i++) aiPreviewTick();
 ops();
 const lv = knobLevels();
 const nk = first.preset.knobs.length;
-ok('leds_show_each_live_knobs_position', first.preset.knobs.every((k, i) => !G.knobLive(r.ctx, first.preset, first.knobs, i)
-    ? lv[i] === null : Math.abs(lv[i] - first.knobs[i] / (k.steps(r.ctx) - 1)) < 1e-9));
-ok('leds_dark_past_the_presets_knobs', lv.slice(nk).every((l) => l === null));
+ok('leds_show_each_live_knobs_position', first.preset.knobs.every((k, i) => { const s = G.knobSlot(first.preset, i);
+    return s === null || (!G.knobLive(r.ctx, first.preset, first.knobs, i) ? lv[s] === null : Math.abs(lv[s] - first.knobs[i] / (k.steps(r.ctx) - 1)) < 1e-9); }));
+ok('leds_dark_on_dark_slots', lv.every((l, s) => G.slotKnob(first.preset, s) !== null || l === null) && nk > 0);
 const before = knobsOf(1)[live];
 const steps = first.preset.knobs[live].steps(r.ctx);
 const dir = before >= steps - 1 ? -1 : 1;
-previewInput(KNOB(live, dir));
-previewInput(KNOB(live, dir));
+previewInput(KNOB(hw, dir));
+previewInput(KNOB(hw, dir));
 /* Less than a click is banked, not a step (the knobs were too sensitive). */
-previewInput([0xB0, 71 + live, dir > 0 ? 3 : 125]);
+previewInput([0xB0, 71 + hw, dir > 0 ? 3 : 125]);
 eq('a_part_click_moves_nothing', knobsOf(1)[live], before + 2 * dir);
-previewInput([0xB0, 71 + live, dir > 0 ? 125 : 3]);
+previewInput([0xB0, 71 + hw, dir > 0 ? 125 : 3]);
 eq('turns_are_coalesced: nothing written before the tick', ops().filter((o) => o.startsWith('aiclip')).length, 0);
 aiPreviewTick();
 const w = ops().filter((o) => o.startsWith('aiclip 0 1 32 1 1 0'));
 eq('turn_regenerates_once_per_tick', w.length, 1);
 ok('turn_moves_the_knob', knobsOf(1)[live] !== before);
-eq('led_follows_the_turn', knobLevels()[live], knobsOf(1)[live] / (steps - 1));
+eq('led_follows_the_turn', knobLevels()[hw], knobsOf(1)[live] / (steps - 1));
 /* Like a module's params: a knob at its minimum is lit at the bottom of the
  * ramp (level 0), a knob with nothing behind it is dark (null). */
-for (let i = 0; i < 16; i++) previewInput(KNOB(live, -1));
+for (let i = 0; i < 16; i++) previewInput(KNOB(hw, -1));
 aiPreviewTick();
 ops();
-eq('led_at_minimum_is_lit_not_dark', knobLevels()[live], 0);
-for (let i = 0; i < before + 2 * dir; i++) previewInput(KNOB(live, 1));
+eq('led_at_minimum_is_lit_not_dark', knobLevels()[hw], 0);
+for (let i = 0; i < before + 2 * dir; i++) previewInput(KNOB(hw, 1));
 aiPreviewTick();
 ops();
 const expect = G.regenerate(r.ctx, first.preset, knobsOf(1)).map((n) => `${n.tick}.${n.gate}.${n.pitch}.${n.vel}`).join(',');
@@ -85,10 +87,10 @@ eq('turn_writes_the_presets_take_at_the_new_positions', w[0].split(' ').pop(), e
 ok('turn_shows_the_strip: name left, value right', seqHeaderShown().startsWith(first.preset.knobs[live].name + '|'));
 
 resetSeqHeader();
-previewInput(TOUCH(live, true));
+previewInput(TOUCH(hw, true));
 ok('touch_shows_the_strip', seqHeaderShown().startsWith(first.preset.knobs[live].name));
-previewInput(TOUCH(live, false));
-eq('a touch never reaches the page underneath', previewInput(TOUCH(live, true)), true);
+previewInput(TOUCH(hw, false));
+eq('a touch never reaches the page underneath', previewInput(TOUCH(hw, true)), true);
 
 previewSwitch(1);
 ops();
@@ -97,7 +99,7 @@ previewSwitch(-2);
 ops();
 eq('on ORIG', previewIndex(), 0);
 ok('leds_dark_on_orig', knobLevels().every((l) => l === null));
-previewInput(KNOB(live, 1));
+previewInput(KNOB(hw, 1));
 aiPreviewTick();
 eq('orig_has_no_knobs', ops().filter((o) => o.startsWith('aiclip')).length, 0);
 previewSwitch(1);
@@ -119,12 +121,30 @@ const notes = G.generateOption(dctx, tight, tv).notes;
 boot({ task: 'quantize', track: 0, slot: 0, orig: null, options: [notes], len: 32, scaleNum: 1, scaleDen: 1,
     gen: { ctx: dctx, picks: [{ preset: tight, knobs: tv }] } });
 resetSeqHeader();
-previewInput(KNOB(swing, 1));
+previewInput(KNOB(G.knobSlot(tight, swing), 1));
 aiPreviewTick();
 eq('dead_knob_writes_nothing', ops().filter((o) => o.startsWith('aiclip')).length, 0);
 eq('dead_knob_shows_nothing', seqHeaderShown(), '');
 commitPreview();
 done();
+
+/* The hardware knobs follow the slot layout (plans/2026-11-01-generator-ux-design.md
+ * §2.1): knob 3 is HARMONY on CHORDS, whatever its place in the preset. */
+{
+    const cr = G.generateAll(createInput(false, 'free', 5));
+    const ci = cr.picks.findIndex((p) => p.preset.id === 'n-chords');
+    const cin = { task: 'create', track: 0, slot: 1, orig: null, options: cr.picks.map((p) => p.notes), len: 32, scaleNum: 1, scaleDen: 1,
+        gen: { ctx: cr.ctx, picks: cr.picks.map((p) => ({ preset: p.preset, knobs: [...p.knobs] })) } };
+    boot(cin);
+    previewSwitch(ci);
+    const hk = G.knobIndex(cr.picks[ci].preset, 'HARMONY');
+    const was = knobsOf(ci + 1)[hk];
+    for (let i = 0; i < 8; i++) aiPreviewTick();
+    previewInput(KNOB(2, was > 0 ? -1 : 1));
+    ok('hardware_knob_follows_layout', knobsOf(ci + 1)[hk] !== was);
+    commitPreview();
+    done();
+}
 
 /* Touching the jog names the generator behind the option showing (the
  * top strip) at once — no wait for the views' jog-hint hold timer. */

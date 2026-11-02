@@ -9,6 +9,7 @@ import { appState } from '../app/state.js';
 import { mlog } from '../log.js';
 import { regenerate } from '../gen/engine.js';
 import { knobLive } from '../gen/live.js';
+import { slotKnob } from '../gen/layout.js';
 import type { GenCtx } from '../gen/analysis/context.js';
 import type { Preset } from '../gen/preset.js';
 import type { Note } from '../gen/types.js';
@@ -71,6 +72,10 @@ export function knobsShown(index: number): void {
 /** The preset name of the option showing; '' on ORIG or without knobs. */
 export function knobsName(): string { return opts[shown - 1]?.preset.name ?? ''; }
 
+/* Hardware knobs are slots (gen/layout.ts): slot `s` is the preset's knob
+ * at slotKnob, or none (a dark slot). */
+const knobAt = (o: Opt, s: number): number => slotKnob(o.preset, s) ?? -1;
+
 function current(i: number): Opt | null {
     const o = opts[shown - 1];
     if (!ctx || !o || i < 0 || i >= o.preset.knobs.length) return null;
@@ -85,15 +90,17 @@ function strip(o: Opt, i: number): void {
 }
 
 /** True when the preview owns this knob turn. */
-export function knobTurn(i: number, delta: number): boolean {
+export function knobTurn(slot: number, delta: number): boolean {
     if (!ctx || !opts.length) return false;
+    const shownOpt = opts[shown - 1];
+    const i = shownOpt ? knobAt(shownOpt, slot) : -1;
     const o = current(i);
     if (!o || !delta) return true;
     const steps = o.preset.knobs[i].steps(ctx);
     /* One step per click, as on movy's own stepped pages (seq/detent.ts):
      * a knob sends several raw units per click, and movy-host sums a tick's
      * worth into one turn. The remainder carries to the next turn. */
-    const n = countDetents(accum, i, delta);
+    const n = countDetents(accum, slot, delta);
     const next = Math.max(0, Math.min(steps - 1, o.knobs[i] + n));
     if (next !== o.knobs[i]) {
         o.knobs[i] = next;
@@ -105,8 +112,10 @@ export function knobTurn(i: number, delta: number): boolean {
     return true;
 }
 
-export function knobTouch(i: number, on: boolean): boolean {
+export function knobTouch(slot: number, on: boolean): boolean {
     if (!ctx || !opts.length) return false;
+    const shownOpt = opts[shown - 1];
+    const i = shownOpt ? knobAt(shownOpt, slot) : -1;
     if (!on) { if (held === i) held = -1; return true; }
     const o = current(i);
     held = o ? i : -1;
@@ -134,15 +143,16 @@ export function knobsTick(write: (notes: Note[]) => void): void {
     if (u >= 0) { o.live[u] = knobLive(ctx, o.preset, o.knobs, u); appState.dirty = true; }
 }
 
-/** The knob LEDs, like a module's params: each knob of the option showing at
- *  its position (0..1); dark where it has none, where it cannot change this
+/** The knob LEDs, like a module's params: each slot's knob of the option
+ *  showing at its position (0..1); dark where the slot has none, where it cannot change this
  *  option (or is not known yet to), and on ORIG. null = no preview knobs. */
 export function knobLevels(): (number | null)[] | null {
     if (!ctx || !opts.length) return null;
     const c = ctx;
     const o = opts[shown - 1];
-    return Array.from({ length: 8 }, (_, i) => {
-        if (!o || i >= o.preset.knobs.length || o.live[i] !== true) return null;
+    return Array.from({ length: 8 }, (_, s) => {
+        const i = o ? knobAt(o, s) : -1;
+        if (!o || i < 0 || o.live[i] !== true) return null;
         const steps = o.preset.knobs[i].steps(c);
         return steps > 1 ? o.knobs[i] / (steps - 1) : null;
     });

@@ -22,6 +22,7 @@ export * from './select.js';
 export * from './engine.js';
 export * from './live.js';
 export * from './presets/catalog.js';
+export * from './layout.js';
 export { realise } from './realise/index.js';
 export * from './style/markov.js';
 export * from './style/melodic.js';

@@ -33,6 +33,7 @@ import { run as run_gen_quantize } from './logic/gen-quantize.mjs';
 import { run as run_ai_new_clip } from './logic/ai-new-clip.mjs';
 import { run as run_gen_engine } from './logic/gen-engine.mjs';
 import { run as run_gen_merges } from './logic/gen-merges.mjs';
+import { run as run_gen_layout } from './logic/gen-layout.mjs';
 import { run as run_ai_preview_knobs } from './logic/ai-preview-knobs.mjs';
 import { run as run_ai_sessions } from './logic/ai-sessions.mjs';
 import { run as run_host_param } from './logic/host-param.mjs';
@@ -145,6 +146,7 @@ const SUITES = [
     run_gen_quantize,
     run_gen_engine,
     run_gen_merges,
+    run_gen_layout,
     run_ai_preview_knobs,
     run_ai_sessions,
     run_ai_new_clip,

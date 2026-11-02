@@ -172,7 +172,7 @@ for (let i = 0; i < 8; i++) tick();
 const was = knobsOf(1)[live];
 const steps = picks[0].preset.knobs[live].steps(r.ctx);
 const dir = was + 1 < steps ? 1 : -1;
-previewInput([0xB0, 71 + live, dir > 0 ? 8 : 120]);
+previewInput([0xB0, 71 + G.knobSlot(picks[0].preset, live), dir > 0 ? 8 : 120]);
 tick();
 selectTrack(1);
 tick();

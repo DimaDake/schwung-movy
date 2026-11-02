@@ -45,7 +45,7 @@ export const MOTIF: Preset = {
 
 /** Pitches reversed inside each chosen span; the rhythm stays. */
 export const RETRO: Preset = {
-    id: 'v-retro', name: 'RETROGRADE', task: 'variation', drum: false, cls: 'exp', fit: () => 0.45, roles: [...LINE],
+    id: 'v-retro', name: 'BACKWARDS', task: 'variation', drum: false, cls: 'exp', fit: () => 0.45, roles: [...LINE],
     knobs: [K.amount(7), custom('SPAN', ['HALF BAR', 'BAR', '2 BARS'], 1), K.harmony(1), K.range(5)],
     generate: (ctx, v, seed) => {
         const r = rng(seed);
@@ -91,7 +91,7 @@ const KINDS = ['GRACE', 'TURN', 'MORDENT', 'RESTRIKE'] as const;
 /** Ornaments on the strongest notes: a grace note, a turn, a mordent, or the
  *  note struck again on the off-16th. */
 export const ORNAMENT: Preset = {
-    id: 'v-ornament', name: 'ORNAMENT', task: 'variation', drum: false, cls: 'exp', fit: () => 0.45, roles: ['lead', 'arpeggio', 'stabs'],
+    id: 'v-ornament', name: 'DECORATE', task: 'variation', drum: false, cls: 'exp', fit: () => 0.45, roles: ['lead', 'arpeggio', 'stabs'],
     knobs: [K.amount(4), custom('KIND', KINDS, 0), K.harmony(1), K.tension(6)],
     generate: (ctx, v, seed) => {
         const r = rng(seed);

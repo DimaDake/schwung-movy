@@ -29,7 +29,7 @@ import { CHORDS, PAD, STABS } from './new-chords.js';
 import { ARP as ARP_N, BASS } from './new-lines.js';
 import { COUNTER, MELODY, RIFF } from './new-melody.js';
 import { PAD_EUCLID, PAD_PATTERN } from './new-drums-pad.js';
-import { BROKEN, EUCLID_KIT, GROOVE as GROOVE_N, PERC } from './new-drums-kit.js';
+import { BROKEN, EUCLID_KIT, PERC } from './new-drums-kit.js';
 import { DRUM_MAP } from './new-drums-map.js';
 import { BREAK_D, FILL_X, REPEAT, ROLL, STYLE_XD } from './dbl-drums.js';
 
@@ -44,7 +44,7 @@ const LISTED: Preset[] = [
     FILL_X, ROLL, REPEAT, BREAK_D, STYLE_XD,
     /* New Clip: shown in this order, one option each. */
     CHORDS, PAD, STABS, BASS, ARP_N, MELODY, RIFF, COUNTER,
-    PAD_EUCLID, PAD_PATTERN, GROOVE_N, DRUM_MAP, EUCLID_KIT, BROKEN, PERC,
+    PAD_EUCLID, PAD_PATTERN, DRUM_MAP, EUCLID_KIT, BROKEN, PERC,
 ];
 
 /* The ones that roll dice and had knobs to spare get SEED (seeded.ts). */

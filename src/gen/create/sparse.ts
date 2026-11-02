@@ -66,10 +66,10 @@ export function ladder(kind: SparseKind, len: number): Entry[] {
     return w;
 }
 
-/** SPARSE for a kind of part; `takes` names the positions a take may roll
+/** SPACE (once SPARSE) for a kind of part; `takes` names the positions a take may roll
  *  (a phrased melody is the norm; a bass or a comp starts full). */
 export const sparseKnob = (kind: SparseKind, takes: string[] = []): KnobDef => ({
-    name: 'SPARSE', steps: (c) => ladder(kind, c.len).length, def: () => 0,
+    name: 'SPACE', steps: (c) => ladder(kind, c.len).length, def: () => 0,
     label: (v, c) => ladder(kind, c.len)[v]?.name ?? 'ALL',
     ...(takes.length ? { roll: (c: GenCtx, r: () => number) => {
         const l = ladder(kind, c.len);

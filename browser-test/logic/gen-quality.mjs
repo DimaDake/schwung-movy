@@ -83,24 +83,24 @@ _log('\nTest: generator quality fixes');
     ok('tension_every_click_up_changes_the_take', new Set(counts.slice(5)).size === 6);
 }
 
-/* VARY and PITCH FIX: every click changes the take while there is something left to change. */
+/* DRIFT and FIX NOTES: every click changes the take while there is something left to change. */
 {
     const ctx = G.prepare(createInput(false, 'empty', 3));
     const p = by('n-bass');
-    const outs = Array.from({ length: 6 }, (_, v) => sig(turn(ctx, p, 'VARY', v)));
-    eq('vary_every_click_changes_the_part', new Set(outs).size, outs.length);
+    const outs = Array.from({ length: 6 }, (_, v) => sig(turn(ctx, p, 'DRIFT', v)));
+    eq('drift_every_click_changes_the_part', new Set(outs).size, outs.length);
 }
 {
     const input = fixtureInput('lead', { task: 'quantize' });
     input.tracks[0].clips[0].notes = messy(PARTS.lead);
     const ctx = G.prepare(input);
     const p = by('q-tight');
-    const steps = p.knobs[G.knobIndex(p, 'PITCH FIX')].steps(ctx);
+    const steps = p.knobs[G.knobIndex(p, 'FIX NOTES')].steps(ctx);
     const wrong = (ns) => ns.filter((n) => G.noteFit(n.pitch, G.chordAt(G.fixChords(ctx), n.tick, ctx.k), ctx.key, G.isStrong(n.tick)) < 0.95).length;
-    const counts = Array.from({ length: steps }, (_, v) => wrong(turn(ctx, p, 'PITCH FIX', v)));
+    const counts = Array.from({ length: steps }, (_, v) => wrong(turn(ctx, p, 'FIX NOTES', v)));
     ok('pitch_fix_has_one_position_per_fixable_note', steps === G.fixable(ctx) + 1 && steps > 2);
     ok('pitch_fix_each_click_fixes_one_more', counts.every((c, i) => i === 0 || c < counts[i - 1]) && counts[steps - 1] === 0);
-    eq('pitch_fix_label_ends_at_all', p.knobs[G.knobIndex(p, 'PITCH FIX')].label(steps - 1, ctx), 'ALL');
+    eq('pitch_fix_label_ends_at_all', p.knobs[G.knobIndex(p, 'FIX NOTES')].label(steps - 1, ctx), 'ALL');
 }
 
 /* Smart Quantize DENSITY (user, 2026-11-01: "for quantize I want to reduce

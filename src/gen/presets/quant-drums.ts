@@ -14,7 +14,8 @@ import { feelLand, timing } from '../shape/time.js';
 import { FEEL, VELOCITY } from './quant-melodic.js';
 import type { Note } from '../types.js';
 
-const tight = (ctx: GenCtx, notes: Note[], amount = 1) => timing(ctx, notes, amount, ctx.groove.grid, ctx.groove.swing);
+/* Straight: the set's swing swings the clip at playback (no SWING knob). */
+const tight = (ctx: GenCtx, notes: Note[], amount = 1) => timing(ctx, notes, amount, ctx.groove.grid, 0);
 /* DENSITY (5 = as played) after the timing, so an added hit lands on the grid. */
 const dense = (ctx: GenCtx, notes: Note[], v: number, seed: number) => drumDensity(notes, v, ctx.end, rng(seed));
 

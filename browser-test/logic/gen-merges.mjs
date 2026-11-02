@@ -74,7 +74,7 @@ report('qd_tight_default_kept', misses('qd-tight', 'qd-tight', {}));
 /* A drone is no longer offered MODE: its one pitch had no mode to move to. */
 report('q_mode_default_kept', misses('q-mode', 'q-mode', {}, ['messy:drone/free/quantize']));
 /* Variation melodic (Task 3). */
-report('merge_v_anticipate_into_displace', misses('v-anticipate', 'v-displace', { MODE: 'PUSH 1/8', LENGTH: 6, TENSION: 4 }));
+report('merge_v_anticipate_into_displace', misses('v-anticipate', 'v-displace', { MODE: 'PUSH 1/8', LENGTH: 6, COLOUR: 4 }));
 report('merge_v_spread_into_revoice', misses('v-spread', 'v-revoice', { AMOUNT: 0, SPREAD: 'DROP 2', TOP: 'HOLD' }));
 report('merge_v_register_into_revoice', misses('v-register', 'v-revoice', { AMOUNT: 0, SPLIT: '1/2 +OCT' }));
 report('merge_v_octave_into_bassline', misses('v-octave', 'v-bassline', { PATTERN: 'OCT OFFBEATS' }));
@@ -89,9 +89,31 @@ eq('hold_note_is_named', G.presetById('v-hold')?.name, 'HOLD NOTE');
 /* Drums and Smart Double (Task 4). */
 report('merge_d_turn_into_fill', misses('d-turn', 'd-fill', { PADS: 'KIT', WHERE: 'END', SIZE: '1 BEAT', DENSITY: 6 }));
 report('merge_d_euclid_into_grids', misses('d-euclid', 'd-grids', { Y: 'EUCLID', X: 0 }));
-report('merge_x_turn_into_turnaround', misses('x-turn', 'x-turnaround', { MOVE: 'V7', TENSION: 4 }));
+report('merge_x_turn_into_turnaround', misses('x-turn', 'x-turnaround', { MOVE: 'V7', COLOUR: 4 }));
 report('merge_xd_pickup_into_fill', misses('xd-pickup', 'xd-fill', { HITS: 2, PADS: 'SNARE', PUSH: '1/8' }));
 for (const id of ['d-fill', 'd-grids', 'x-turnaround', 'xd-fill']) report(`${id}_default_kept`, misses(id, id, {}));
-ok('drums_double_merged_away', ['d-turn', 'd-euclid', 'x-turn', 'xd-pickup'].every(gone));
+/* New Clip drums (Task 5): GROOVE's genres are DRUM MAP's nodes; its
+ * thresholded take is the nearest density on its genre's node. */
+{
+    const dm = G.presetById('n-drum-map');
+    const ks = ['KICK', 'SNARE', 'HATS'].map((n) => G.knobIndex(dm, n));
+    const near = keysOf('n-groove').filter((k) => {
+        const ctx = G.prepare(inputOf(k));
+        const v = G.defaults(dm, ctx);
+        const gk = G.knobIndex(dm, 'GROOVE');
+        v[gk] = Array.from({ length: dm.knobs[gk].steps(ctx) }, (_, i) => dm.knobs[gk].label(i, ctx)).indexOf('FOUR FLOOR');
+        for (let a = 0; a <= 8; a++) for (let b = 0; b <= 8; b++) for (let c = 0; c <= 16; c++) {
+            v[ks[0]] = a; v[ks[1]] = b; v[ks[2]] = c;
+            if (noLoss('n-groove', k, G.regenerate(ctx, dm, v))) return false;
+        }
+        return true;
+    });
+    report('merge_n_groove_into_drum_map', near);
+    ok('drum_map_has_fill_and_seed', ['FILL', 'SEED'].every((n) => G.knobIndex(dm, n) >= 0));
+    report('n_drum_map_default_kept', misses('n-drum-map', 'n-drum-map', {}));
+    report('n_pad_default_kept', misses('n-pad', 'n-pad', {}));
+    report('n_chords_default_kept', misses('n-chords', 'n-chords', {}));
+}
+ok('drums_double_merged_away', ['d-turn', 'd-euclid', 'x-turn', 'xd-pickup', 'n-groove'].every(gone));
 ok('quantize_merged_away', ['q-tidy', 'q-groove', 'q-full', 'q-invert', 'qd-tidy', 'qd-groove', 'qd-full'].every(gone));
 }

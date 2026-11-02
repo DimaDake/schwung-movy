@@ -46,7 +46,7 @@ export const KICK: Preset = {
 export const HATS: Preset = {
     id: 'd-hats', name: 'HATS', task: 'variation', drum: true, cls: 'close',
     knobs: [{ ...custom('RATE', HAT_RATES, 3), def: (c) => hatDefault(c.src, c.kit ? padFor(c.kit, 'hat', c.src) : null) },
-        count('OPEN', 4, 1), K.dynamics(3), K.swing()],
+        count('OPEN', 4, 1), K.dynamics(3)],
     fit: (c) => (c.kit && padFor(c.kit, 'hat', c.src) !== null ? 0.7 : 0.1),
     generate: (ctx, v) => {
         let notes = hats(ctx, ctx.kit!, ctx.src, v[0]);
@@ -57,7 +57,6 @@ export const HATS: Preset = {
             const per = Math.max(1, Math.floor(offs.length / v[1]));
             offs.forEach((n, i) => { if (i % per === per - 1) n.pitch = open; });
         }
-        notes = notes.map((n) => (n.pitch === hat && Math.round(n.tick / TPS) % 2 === 1 ? { ...n, tick: n.tick + Math.round(v[3] * 0.05 * TPS) } : n));
         return dynamics(notes, v[2]);
     },
 };

@@ -20,40 +20,6 @@ export function hit(ctx: GenCtx, out: Note[], p: number | null, step: number, ve
     if (p !== null && step < ctx.len) out.push({ tick: place(ctx, step), pitch: p, gate: TPS / 2, vel: Math.max(1, Math.min(127, Math.round(vel))) });
 }
 
-const GENRES: [string, number, number][] = [['FOUR FLOOR', 0, 1], ['DISCO', 0, 2], ['BACKBEAT', 1, 0], ['2-STEP', 1, 1],
-    ['BREAKBEAT', 1, 2], ['HALF TIME', 2, 0], ['TRAP', 2, 1], ['BROKEN BEAT', 2, 2]];
-const ROLES: PadRole[] = ['kick', 'snare', 'hat'];
-
-function fill(ctx: GenCtx, out: Note[], kind: number, r: Rng): void {
-    const bar = Math.ceil(ctx.len / 16) - 1;
-    const toms = ctx.kit?.by.tom ?? [];
-    for (let s = 12; s < 16; s++) {
-        const p = kind === 2 && toms.length ? toms[toms.length - 1 - Math.min(toms.length - 1, s - 12)] : pad(ctx, 'snare');
-        hit(ctx, out, p, bar * 16 + s, 70 + (s - 12) * 10 + r() * 6);
-    }
-}
-
-export const GROOVE: Preset = withFeel({
-    id: 'n-groove', name: 'GROOVE', task: 'create', drum: true, cls: 'close',
-    knobs: [choice('STYLE', GENRES.map((g) => g[0])), amount('BUSY', 10, 3, 7), choice('FILL', ['NONE', 'SNARE', 'TOMS'], [0, 0, 1, 2]), SEED],
-    generate: (ctx, v, seed) => {
-        const r = rng(mix(seed, v[3]));
-        const [, row, col] = GENRES[v[0]];
-        const lv = NODES[row][col]!;
-        const thr = 8 - v[1] * 0.7;
-        const out: Note[] = [];
-        for (let bar = 0; bar * 16 < ctx.len; bar++) {
-            const fillBar = v[2] > 0 && (bar + 1) * 16 >= ctx.len;
-            ROLES.forEach((role, i) => lv[i].forEach((L, s) => {
-                if (fillBar && s >= 12 && role !== 'hat') return;
-                if (L >= 9 || (L >= thr && r() < 0.55 + (L - thr) / 4)) hit(ctx, out, pad(ctx, role), bar * 16 + s, 58 + L * 6 + r() * 6);
-            }));
-        }
-        if (v[2] > 0) fill(ctx, out, v[2], r);
-        return out;
-    },
-});
-
 export const EUCLID_KIT: Preset = withFeel({
     id: 'n-euclid-kit', name: 'EUCLID KIT', task: 'create', drum: true, cls: 'rhythm',
     knobs: [amount('KICK', 8, 3, 5), amount('SNARE', 4, 1, 2), amount('HATS', 16, 4, 12), amount('SHIFT', 7, 0, 3)],

@@ -27,7 +27,7 @@ function offRubs(ctx: GenCtx, notes: Note[], from: Note[]): Note[] {
 /** The clip on the grid by TIMING with TIGHT's default pitch fix (the slips
  *  off the harmony put right): what every mutation starts from. */
 export function tightSrc(ctx: GenCtx, v: number): Note[] {
-    const t = timing(ctx, ctx.src, v / 10, ctx.groove.grid, ctx.groove.swing);
+    const t = timing(ctx, ctx.src, v / 10, ctx.groove.grid, 0);
     return ctx.drum ? t : fixWorst(ctx, t, fixDefault(ctx, 4), fixChords(ctx));
 }
 

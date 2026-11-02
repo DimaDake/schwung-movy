@@ -54,7 +54,7 @@ export const COMP_MAP: PatternSpec = { figs: COMPS.map((x) => x[1]), lo: 1, hi: 
 export const CHORDS: Preset = withFeel({
     id: 'n-chords', name: 'CHORDS', task: 'create', drum: false, cls: 'close',
     knobs: [patternKnob(COMP_MAP, [1, 0, 3, 4, 5, 7, 8]), VOICING([1, 1, 2, 4, 5, 6]),
-        register([R.LOW, R.LOW + 1, R.MID, R.MID, R.MID + 1, R.HIGH]), HARMONY],
+        register([R.LOW, R.LOW + 1, R.MID, R.MID, R.MID + 1, R.HIGH]), HARMONY, DENSITY],
     generate: (ctx, v, seed) => {
         const r = rng(seed);
         const steps = patternDense(ctx, COMP_MAP, v[0], v[4]);
@@ -69,7 +69,7 @@ export const CHORDS: Preset = withFeel({
         hits.forEach(([t, g], i) => strike(out, t, vs[i], g, velAt(t, 92, r)));
         return out;
     },
-}, [3, 8], false, 'chord', [], { at: 2, knob: DENSITY });
+}, [3, 8], false, 'chord');
 
 /* PATTERN on a pad: HELD strikes where the harmony changes (and once a bar);
  * a figure re-strikes the held chord on its steps, and a chord no step falls
@@ -101,21 +101,22 @@ function padTicks(ctx: GenCtx, h: number, fig: number[]): number[] {
 
 export const PAD: Preset = withFeel({
     id: 'n-pad', name: 'PAD', task: 'create', drum: false, cls: 'close',
-    knobs: [VOICING([4, 1, 2, 5, 6, 8]), choice('MOTION', MOTIONS, [0, 0, 1, 2, 3]),
-        register([R.LOW, R.LOW + 1, R.MID, R.MID]), HARMONY],
+    /* MOTION is fixed at SMOOTH (user, 2026-11-01): its knob went to PATTERN. */
+    knobs: [VOICING([4, 1, 2, 5, 6, 8]), register([R.LOW, R.LOW + 1, R.MID, R.MID]), HARMONY,
+        choice('PATTERN', PAD_FIGS.map((x) => x[0]), [0, 0, 1, 2, 3, 4, 5, 6])],
     generate: (ctx, v, seed) => {
         const r = rng(seed);
-        const fig = PAD_FIGS[v[4] ?? 0]?.[1] ?? [];
+        const fig = PAD_FIGS[v[3] ?? 0]?.[1] ?? [];
         /* HELD: a new chord where the harmony changes, and once a bar at
          * least, so a one-chord loop still breathes with the bar. */
-        const ticks = fig.length ? padTicks(ctx, v[3], fig) : changes(ctx, v[3], true).map((x) => x[0]);
-        const chords = fig.length ? struck(ctx, v[3], ticks) : ticks.map((t) => chordUnder(ctx, v[3], t));
-        const vs = voicePart(ctx, chords, v[0], v[2], MOTIONS[v[1]]);
+        const ticks = fig.length ? padTicks(ctx, v[2], fig) : changes(ctx, v[2], true).map((x) => x[0]);
+        const chords = fig.length ? struck(ctx, v[2], ticks) : ticks.map((t) => chordUnder(ctx, v[2], t));
+        const vs = voicePart(ctx, chords, v[0], v[1]);
         const out: Note[] = [];
         ticks.forEach((a, i) => strike(out, a, vs[i], Math.max(TPS, (ticks[i + 1] ?? ctx.end) - a - 6), velAt(a, 78, r)));
         return out;
     },
-}, [5, 10], true, 'pad', [], { at: 1, knob: choice('PATTERN', PAD_FIGS.map((x) => x[0]), [0, 0, 1, 2, 3, 4, 5, 6]) });
+}, [5, 10], true, 'pad');
 
 const STAB_FIGS: [string, number[]][] = [['OFFBEAT', [2, 6, 10, 14]], ['HOUSE', [3, 6, 11, 14]], ['DOTTED', [0, 3, 6, 9, 12]],
     ['3-3-2', [0, 3, 6]], ['PUSH', [0, 7, 10]], ['SYNC', [2, 5, 8, 11, 14]], ['SKANK', [4, 12]]];

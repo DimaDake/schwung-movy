@@ -1,5 +1,5 @@
 /* Method 5, phrasing (plans/2026-10-29-phrase-space-design.md §5): every
- * SPARSE position of every New Clip generator, against its own FULL part.
+ * SPACE position of every New Clip generator, against its own FULL part.
  * ROOM is the share of the clip left silent; a CUT is a rest the position
  * made (a beat or more, where the full part played) that follows a note which
  * did not land — off the 8th grid, or not a tone of the chord there. A cut
@@ -34,7 +34,7 @@ function cuts(G, ctx, h, notes, full) {
 const LINES = new Set(['n-melody', 'n-bass', 'n-arp', 'n-riff', 'n-counter']);
 
 export function phrasePreset(G, ctx, p) {
-    const k = G.knobIndex(p, 'SPARSE');
+    const k = G.knobIndex(p, 'SPACE');
     if (k < 0 || ctx.task !== 'create' || ctx.drum || !LINES.has(p.id)) return null;
     const base = G.defaults(p, ctx);
     base[k] = 0;

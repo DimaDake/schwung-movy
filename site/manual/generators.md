@@ -62,13 +62,18 @@ A knob name means the same thing on every generator:
 | **DENSITY** | More notes; left thins to the strongest (`AS IS` in the middle). |
 | **LENGTH** | Longer notes, towards legato. |
 | **RANGE** | Wider intervals and voicings. |
-| **TENSION** | More colour notes (9ths, 11ths, 13ths); left goes back to plain chord tones. |
+| **COLOUR** | More colour notes (9ths, 11ths, 13ths); left goes back to plain chord tones. |
+| **CHORD RATE** | Chords change more often under the part. |
+| **FIX NOTES** | Puts more of the notes that clash with the chords right, worst first. |
 | **HARMONY** | Further from the original chords. |
 | **RHYTHM** | A new rhythm for the same notes: push, syncopate, double, half, Euclid… |
 | **DRIFT** | Walks the take away from itself one small change per click. Turn back to walk home. |
 | **SEED** | Another roll of the same idea. |
-| **TIMING**, **SWING**, **GRID** | From your feel to exactly on the grid; swing amount; the grid. |
-| **GATE**, **VARY**, **SPARSE** | How long notes ring; bar-to-bar variation; how much room the part leaves. |
+| **TIMING**, **GRID** | From your feel to exactly on the grid; the grid. |
+| **GATE**, **SPACE** | How long notes ring; how much room the part leaves between phrases. |
+
+No generator has a swing knob: what they write is straight, and the Set's
+swing (Main page) swings it as it plays, like every clip.
 
 ## Smart Quantize
 
@@ -79,7 +84,7 @@ The others develop the clip, each changing one thing:
 | Generator | What it does |
 | --- | --- |
 | **TIGHT** | Onto the grid. Its knobs also remove accidental doubles (**CLEAN**), even out or accent the velocities (**VELOCITY**), lengthen or shorten notes (**LENGTH**) and pick a timing feel: the scene's, laid back, pushed, shuffle (**FEEL**). |
-| **SHAPED**, **EMBELLISH** | Chords filled out and moved smoothly; grace and passing notes added. |
+| **SHAPED**, **DECORATE** | Chords filled out and moved smoothly; grace and passing notes added. |
 | **ANSWER** | The second half answers the first. |
 | **GHOSTS**, **FILL** (drums) | Ghost notes where there is room; a small fill into the loop. |
 | **MUTATE**, **MODE**, **OCTAVES** | Notes moved through the scale; into another mode, or mirrored (**MIRROR**); thrown an octave. |
@@ -129,18 +134,21 @@ key when the scene is silent. Every run is new.
 | **RIFF** | A short cell repeated through the chords. |
 | **COUNTER** | A line that moves where the band leaves room. |
 
-On **CHORDS**, knob 7 is **DENSITY**: it thins the rhythm to its strongest hits
-or fills it in, keeping the figure. CHORDS follows the scene's swing. On
-**PAD**, knob 6 is **PATTERN**: `HELD` changes chord with the harmony, while
+On **CHORDS**, **DENSITY** thins the rhythm to its strongest hits or fills it
+in, keeping the figure. On **PAD**, **PATTERN**: `HELD` changes chord with the harmony, while
 `BAR`, `HALVES`, `3-3-2`, `CHARLESTON`, `PUSH` and `2+4` re-strike the chord on
 a rhythm. Every chord change still sounds.
 
-**Drum tracks** get seven options. **PAD EUCLID** and **PAD PATTERN** write only
+**Drum tracks** get six options. **PAD EUCLID** and **PAD PATTERN** write only
 the **selected pad**: press another pad and it gets its own part, so you build
-a kit one voice at a time (DENSITY at 0 removes it again). **GROOVE**, **DRUM
-MAP**, **EUCLID KIT**, **BROKEN** and **PERC** write the whole kit. DRUM MAP
-morphs between genres (four on the floor, disco, backbeat, 2-step, breakbeat,
-half time, trap, broken beat) with separate kick, snare and hat counts.
+a kit one voice at a time (DENSITY at 0 removes it again). **DRUM MAP**,
+**EUCLID KIT**, **BROKEN** and **PERC** write the whole kit. DRUM MAP morphs
+between genres (four on the floor, disco, backbeat, 2-step, breakbeat, half
+time, trap, broken beat) with separate kick, snare and hat counts, and can end
+on a fill.
+
+On every New Clip option, **DRIFT** walks the part away from itself one small
+change per click: turn it slowly while it plays to let the part evolve.
 
 The new clip is as long as the slot's loop if you set one first (Loop view works
 on an empty slot), otherwise as long as the longest loop in the scene. During the

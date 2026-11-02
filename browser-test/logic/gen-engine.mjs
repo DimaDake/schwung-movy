@@ -91,6 +91,17 @@ const thin = [];
 /* A knob that only acts once another is turned (RE-VOICE's TOP leads the top
  * voice of a SPREAD voicing): hidden at the defaults, shown once its parent
  * moves (the preview re-probes after every turn), so probed there too. */
+/* Plain words and no SWING (plans/2026-11-01-generator-ux-design.md §2.6). */
+ok('no_preset_has_a_swing_knob', G.PRESETS.every((p) => !p.knobs.some((k) => k.name === 'SWING')));
+eq('no_old_knob_names', G.PRESETS.flatMap((p) => p.knobs.filter((k) => ['TENSION', 'CHANGES', 'PITCH FIX', 'SPARSE', 'VARY', 'BUSY'].includes(k.name)).map((k) => p.id + ':' + k.name)).join(' '), '');
+eq('no_old_generator_names', G.PRESETS.filter((p) => ['RETROGRADE', 'ORNAMENT', 'EMBELLISH', 'PEDAL', 'DRONE MOVE'].includes(p.name)).map((p) => p.id).join(' '), '');
+ok('new_clip_has_drift', G.PRESETS.filter((p) => p.task === 'create' && p.id !== 'n-drum-map').every((p) => p.knobs.some((k) => k.name === 'DRIFT')));
+{
+    /* A New Clip default writes its off-beats on the grid: the set's swing swings them at playback. */
+    const sw = G.prepare(createInput(false, 'locked', 3));
+    ok('new_clip_writes_straight', G.PRESETS.filter((p) => p.task === 'create' && !p.drum).every((p) => (G.regenerate(sw, p, G.defaults(p, sw)) ?? [])
+        .every((n) => n.tick % (G.TPS / 2) === 0 || n.tick % 8 === 0)));
+}
 const OPENS = { 'v-revoice:TOP': ['SPREAD', 2], 'xd-fill:PUSH': ['HITS', 2] };
 const liveOpened = (c, p, v, i) => {
     const o = OPENS[p.id + ':' + p.knobs[i].name];

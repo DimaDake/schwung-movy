@@ -11,9 +11,9 @@ import { features, planOf, sig, verdict } from './musical.mjs';
  * (-1) as it turns up. `dSrc`: distance from the source; `d0`: from the
  * knob's own first position. */
 export const PROMISE = {
-    DENSITY: ['perBar', 1], LENGTH: ['gate', 1], GATE: ['gate', 1], RANGE: ['span', 1], TENSION: ['colour', 1],
-    DYNAMICS: ['accent', 1], SWING: ['shift0', 1], HUMAN: ['timing', 1], TIMING: ['timing', -1], 'PITCH FIX': ['outside', -1],
-    AMOUNT: ['dSrc', 1], LIKENESS: ['dSrc', -1], DRIFT: ['d0', 1], VARY: ['d0', 1], GHOSTS: ['perBar', 1],
+    DENSITY: ['perBar', 1], LENGTH: ['gate', 1], GATE: ['gate', 1], RANGE: ['span', 1], COLOUR: ['colour', 1],
+    DYNAMICS: ['accent', 1], HUMAN: ['timing', 1], TIMING: ['timing', -1], 'FIX NOTES': ['outside', -1],
+    AMOUNT: ['dSrc', 1], LIKENESS: ['dSrc', -1], DRIFT: ['d0', 1], GHOSTS: ['perBar', 1],
 };
 
 /* Knobs that set where a part sits: how far their ends move its median is

@@ -96,9 +96,8 @@ const style = (l) => G.STYLE_LABELS.indexOf(l);
     const outs = G.STYLE_LABELS.map((_, s) => sig(turn(ctx, chords, { VOICING: s })));
     eq('voicing_every_click_is_a_new_take', new Set(outs).size, G.STYLE_LABELS.length);
     const pad = by('n-pad');
-    const long = G.prepare(createInput(false, 'empty', 1, { len: 128 }));
-    const motions = G.MOTIONS.map((_, m) => sig(turn(long, pad, { MOTION: m })));
-    eq('motion_every_click_is_a_new_take', new Set(motions).size, G.MOTIONS.length);
+    /* PAD's MOTION is fixed at SMOOTH (user, 2026-11-01): PATTERN took its knob. */
+    ok('pad_motion_fixed_smooth', G.knobIndex(pad, 'MOTION') < 0);
     const lowBass = [];
     for (const l of ['TRIAD', 'OPEN', 'ADD9', 'SEVENTH', 'DROP 2', 'DROP 3', 'SPREAD']) {
         for (const s of strikes(ctx, chords, turn(ctx, chords, { VOICING: style(l) }))) {

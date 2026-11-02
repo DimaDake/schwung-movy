@@ -70,9 +70,9 @@ eq('double_request_offers_six_for_drums', dr.picks.length, 6);
  * below it (BELOW), a semitone below (CHROMATIC). */
 const target = G.nextEv(lead).voices.at(-1).pitch;
 const lastNote = (ns) => [...ns].sort((a, b) => a.tick - b.tick).at(-1);
-eq('turnaround_below_steps_up_into_the_first_note', lastNote(take(lead, 'x-turnaround', { MOVE: 0, TENSION: 10 }).notes).pitch,
+eq('turnaround_below_steps_up_into_the_first_note', lastNote(take(lead, 'x-turnaround', { MOVE: 0, COLOUR: 10 }).notes).pitch,
     G.stepScale(target, -1, lead.key));
-eq('turnaround_chromatic_is_a_semitone_below', lastNote(take(lead, 'x-turnaround', { MOVE: 3, TENSION: 10 }).notes).pitch, target - 1);
+eq('turnaround_chromatic_is_a_semitone_below', lastNote(take(lead, 'x-turnaround', { MOVE: 3, COLOUR: 10 }).notes).pitch, target - 1);
 
 /* RUN UP rises through the ending; DOWN falls. */
 const tail = (ns, ctx) => [...ns].filter((n) => n.tick >= ctx.end - G.ENDING_STEPS[1] * G.TPS).sort((a, b) => a.tick - b.tick).map((n) => n.pitch);

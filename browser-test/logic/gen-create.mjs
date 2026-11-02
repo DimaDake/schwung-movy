@@ -23,7 +23,7 @@ G.forgetOptions();
 const mel = G.generateAll(createInput(false, 'empty', 1));
 eq('new_clip_melodic_offers_its_eight_parts', ids(mel), 'n-chords n-pad n-stabs n-bass n-arp n-melody n-riff n-counter');
 const drm = G.generateAll(createInput(true, 'empty', 1));
-eq('new_clip_drums_offers_two_per_pad_then_five_kits', ids(drm), 'n-pad-euclid n-pad-pattern n-groove n-drum-map n-euclid-kit n-broken n-perc');
+eq('new_clip_drums_offers_two_per_pad_then_four_kits', ids(drm), 'n-pad-euclid n-pad-pattern n-drum-map n-euclid-kit n-broken n-perc');
 ok('new_clip_per_pad_options_come_first', drm.picks.slice(0, 2).every((p) => p.preset.perPad) && drm.picks.slice(2).every((p) => !p.preset.perPad));
 eq('new_clip_a_silent_set_takes_the_key_setting', `${mel.ctx.key.tonic}${mel.ctx.key.minor ? 'm' : ''}`, '0');
 eq('new_clip_per_pad_writes_only_its_pad', [...new Set(drm.picks[0].notes.map((n) => n.pitch))].join(), String(G.padOf(drm.ctx)));
@@ -68,7 +68,7 @@ for (const drum of [false, true]) {
         for (let n = 0; n < 25; n++) {
             const r = G.generateAll(createInput(drum, scene, 1000 + n, { len: [16, 32, 64][n % 3] }));
             runs++;
-            if (r.picks.length !== (drum ? 7 : 8)) bad.push(`${scene}/${n}: ${r.picks.length} options (${r.dropped.join(' ')})`);
+            if (r.picks.length !== (drum ? 6 : 8)) bad.push(`${scene}/${n}: ${r.picks.length} options (${r.dropped.join(' ')})`);
             for (const p of r.picks) { const why = G.unmeaning(r.ctx, p.preset, p.notes); if (why) bad.push(`${p.preset.id}@${scene}/${n}: ${why}`); }
         }
     }
@@ -97,27 +97,27 @@ const held = G.regenerate(fr, cp, at('GATE', 10));
 ok('gate_low_plays_chords_short', short.every((n) => n.gate <= roomOf(short)(n) * 0.25));
 ok('gate_full_holds_chords_to_the_next', held.every((n) => n.gate >= Math.min(roomOf(held)(n) - 2, fr.end - n.tick)));
 const bar = (ns, b) => ns.filter((n) => n.tick >= b * G.BAR && n.tick < (b + 1) * G.BAR).map((n) => `${n.tick % G.BAR}.${n.pitch % 12}.${n.gate}`).sort().join();
-const still = G.regenerate(fr, cp, at('VARY', 0, at('GATE', 5)));
-const moved = G.regenerate(fr, cp, at('VARY', 9, at('GATE', 5)));
+const still = G.regenerate(fr, cp, at('DRIFT', 0, at('GATE', 5)));
+const moved = G.regenerate(fr, cp, at('DRIFT', 9, at('GATE', 5)));
 /* Same onsets and lengths in both bars (the clip's last chord is cut at its end). */
 const last = onsets(still).pop();
 const inBar = (b) => still.filter((n) => n.tick >= b * G.BAR && n.tick < (b + 1) * G.BAR && n.tick !== last - (1 - b) * G.BAR && n.tick !== last)
     .map((n) => `${n.tick % G.BAR}.${n.gate}`).sort().join();
-ok('vary_zero_keeps_the_rhythm_bar_to_bar', inBar(0) === inBar(1) && inBar(0).length > 0);
-ok('vary_moves_rhythm_and_lengths', new Set(moved.map((n) => n.gate)).size > new Set(still.map((n) => n.gate)).size
-    || onsets(moved).join() !== onsets(still).join());
+ok('drift_zero_keeps_the_rhythm_bar_to_bar', inBar(0) === inBar(1) && inBar(0).length > 0);
+ok('drift_moves_the_part', sig(moved) !== sig(still));
 const pad = by('n-pad');
 const strum = G.regenerate(fr, pad, (() => { const w = G.defaults(pad, fr); w[G.knobIndex(pad, 'STRUM')] = 4; return w; })());
 ok('strum_spreads_a_chords_voices', G.toEvents(strum).every((e) => e.voices.length < 2 || e.voices[e.voices.length - 1].dt >= 8));
 const offbeats = G.patternMap(fr, G.COMP_MAP).steps.findIndex((s) => s.join() === '2,6,10,14');
 const stp = by('n-stabs');
 const sw = (() => { const w = G.defaults(stp, fr); w[G.knobIndex(stp, 'PATTERN')] = G.patternMap(fr, G.STAB_MAP).steps.findIndex((s) => s.join() === '2,6,10,14');
-    w[G.knobIndex(stp, 'SWING')] = 6; return G.regenerate(fr, stp, w); })();
-ok('swing_moves_off_8ths_on_an_8ths_part', sw.some((n) => n.tick % (4 * G.TPS) === 2 * G.TPS + 14));
+    return G.regenerate(fr, stp, w); })();
+/* No SWING knob: an off-beat part is written on the grid, the set's swing applies at playback. */
+ok('offbeats_written_on_the_grid', sw.every((n) => n.tick % (2 * G.TPS) === 0));
 
 /* CHORDS: DENSITY in SWING's place, over the PATTERN's own figure (user,
  * 2026-11-01: "there is no density for new clip for chords"). */
-ok('chords_density_takes_the_swing_slot', G.knobIndex(cp, 'SWING') < 0 && G.knobIndex(cp, 'DENSITY') === 6);
+ok('chords_density_is_its_own_knob', G.knobIndex(cp, 'SWING') < 0 && G.knobIndex(cp, 'DENSITY') === 4);
 const inBar0 = (ns) => onsets(ns).filter((t) => t < G.BAR);
 const dens = Array.from({ length: 11 }, (_, d) => inBar0(G.regenerate(fr, cp, at('DENSITY', d, at('PATTERN', offbeats)))));
 eq('chords_density_5_is_the_pattern', dens[5].map((t) => t / G.TPS).join(), '2,6,10,14');
@@ -128,7 +128,7 @@ ok('chords_density_never_moves_off_the_map_at_5', G.patternMap(fr, G.COMP_MAP).s
 /* PAD: a rhythm PATTERN in VARY's place (user, 2026-11-01: "there is no
  * rythm patter for pads"), every change of the harmony still struck. */
 const pk = G.knobIndex(pad, 'PATTERN');
-ok('pad_pattern_takes_the_vary_slot', G.knobIndex(pad, 'VARY') < 0 && pk === 5);
+ok('pad_pattern_is_its_own_knob', G.knobIndex(pad, 'VARY') < 0 && pk === 3 && G.knobIndex(pad, 'MOTION') < 0);
 const padLabels = Array.from({ length: pad.knobs[pk].steps(fr) }, (_, i) => pad.knobs[pk].label(i, fr));
 const padAt = (name) => { const w = G.defaults(pad, fr); w[pk] = padLabels.indexOf(name); return G.regenerate(fr, pad, w); };
 eq('pad_pattern_opens_held', padLabels[pad.knobs[pk].def(fr)], 'HELD');
@@ -177,8 +177,8 @@ ok('new_clip_fills_a_four_bar_clip', long.picks.every((p) => p.notes.some((n) =>
  * templates (chord parts also keep beat windows); each phrase lands, held,
  * before its rest; the bass holds its roots between phrases. */
 const SPARSE_IDS = ['n-chords', 'n-pad', 'n-stabs', 'n-bass', 'n-arp', 'n-melody', 'n-riff', 'n-counter'];
-const sk = (p) => G.knobIndex(p, 'SPARSE');
-ok('sparse_on_every_melodic_new_clip', SPARSE_IDS.every((id) => sk(by(id)) === 7 && G.knobIndex(by(id), 'DYNAMICS') < 0));
+const sk = (p) => G.knobIndex(p, 'SPACE');
+ok('space_on_every_melodic_new_clip', SPARSE_IDS.every((id) => sk(by(id)) >= 0));
 const BEAT = 4 * G.TPS;
 const sounding = (ns, len) => { const on = new Set(); for (const n of ns) for (let t = n.tick; t < n.tick + n.gate; t += G.TPS) on.add(Math.floor(t / G.TPS) % len); return on.size / len; };
 const four = G.prepare(createInput(false, 'free', 7, { len: 64 }));
@@ -237,7 +237,7 @@ for (const seed of [7, 8, 9]) {
 }
 G.forgetOptions();
 const phrasedTakes = Array.from({ length: 10 }, (_, n) => G.generateAll(createInput(false, 'free', 700 + n, { len: 64 })))
-    .flatMap((r) => r.picks.filter((p) => p.preset.id === 'n-melody').map((p) => p.knobs[7]));
+    .flatMap((r) => r.picks.filter((p) => p.preset.id === 'n-melody').map((p) => p.knobs[G.knobIndex(p.preset, 'SPACE')]));
 ok('sparse_melody_defaults_are_sometimes_phrased', phrasedTakes.length >= 8 && phrasedTakes.some((v) => v > 0) && phrasedTakes.some((v) => v === 0));
 G.forgetOptions();
 }

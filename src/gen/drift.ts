@@ -51,7 +51,8 @@ function moveHit(ctx: GenCtx, evs: Ev[], i: number, r: Rng): void {
     else evs.push({ tick: to * TPS, voices: e.voices.map((v) => ({ ...v, vel: Math.max(1, Math.round(v.vel * 0.45)) })) });
 }
 
-function drift(ctx: GenCtx, notes: Note[], d: number, seed: number, chords: (Chord | null)[]): Note[] {
+/** DRIFT's walk over a take: the first d·E/10 moves of its fixed list. */
+export function driftNotes(ctx: GenCtx, notes: Note[], d: number, seed: number, chords: (Chord | null)[]): Note[] {
     /* Smart Double drifts its answer only: the first half stays as played. */
     const from = ctx.task === 'double' ? ctx.end / 2 : 0;
     const evs = toEvents(notes);
@@ -81,6 +82,6 @@ export function withDrift(p: Preset): Preset {
             const out = p.generate(ctx, v.slice(0, n), seed);
             if (!v[n]) return out;
             const chords = (h >= 0 ? planAt(ctx, v[h]) : ctx.plans[0])?.chords ?? [];
-            return drift(ctx, out, v[n], mix(seed, hash(p.id)), chords);
+            return driftNotes(ctx, out, v[n], mix(seed, hash(p.id)), chords);
         } };
 }

@@ -22,8 +22,8 @@ import type { Note } from '../types.js';
 /* FEEL opens on the scene's own pocket when it has one, else straight. */
 export const FEEL = { ...custom('FEEL', FEELS.map((f) => f[0])), def: (c: GenCtx) => (c.groove.land.some((x) => x !== 0) ? 1 : 0) };
 const grid = (ctx: GenCtx) => ctx.groove.grid;
-const swing = (ctx: GenCtx) => ctx.groove.swing;
-const tight = (ctx: GenCtx, notes: Note[], amount = 1) => timing(ctx, notes, amount, grid(ctx), swing(ctx));
+/* Straight: the set's swing swings the clip at playback (no SWING knob). */
+const tight = (ctx: GenCtx, notes: Note[], amount = 1) => timing(ctx, notes, amount, grid(ctx), 0);
 const len = (ctx: GenCtx, notes: Note[], v: number) => fromEvents(lengthStage(toEvents(notes), v, ctx.end), ctx.end);
 const chords = fixChords;
 /* VELOCITY (5 = as played): left evens the velocities, right accents the beat. */
@@ -67,7 +67,7 @@ export const SHAPED: Preset = {
 };
 
 export const EMBELLISH: Preset = {
-    id: 'q-embellish', name: 'EMBELLISH', task: 'quantize', drum: false, cls: 'exp', fit: () => 0.5,
+    id: 'q-embellish', name: 'DECORATE', task: 'quantize', drum: false, cls: 'exp', fit: () => 0.5,
     knobs: [K.timing(10), count('AMOUNT', 16, 3), custom('KIND', ['GRACE', 'PASSING', 'NEIGHBOUR'], 1), K.pitchFix(4)],
     generate: (ctx, v, seed) => {
         const base = fixWorst(ctx, tight(ctx, ctx.src, v[0] / 10), v[3], chords(ctx));

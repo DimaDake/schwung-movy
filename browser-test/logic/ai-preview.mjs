@@ -66,7 +66,8 @@ ok('...and takes no second snapshot', !ops().some((x) => x.startsWith('usnap')))
 eq('jog_click_commits: consumed', previewInput([0xB0, MoveMainButton, 127]), true);
 o = ops();
 eq('jog_click_commits: idle', aiPreviewActive(), false);
-ok('commit clears the stash and closes the group', o.includes('aiclr 0 0') && o.some((x) => x.startsWith('ucommit')));
+/* The stash stays: undoing this entry reopens the session (ai/preview-undo.ts). */
+ok('commit_keeps_the_stash_and_closes_the_group', !o.includes('aiclr 0 0') && o.some((x) => x.startsWith('ucommit')));
 eq('undo_after_commit_restores_pre_ai_clip_in_one_step', undoDepth(), depth + 1);
 done();
 
@@ -110,14 +111,16 @@ done();
 boot();
 const d0 = undoDepth();
 undoOnce();
-eq('undo_during_preview_commits_first: preview closed', aiPreviewActive(), false);
-eq('undo_during_preview_commits_first: undid the AI step itself', undoDepth(), d0);
+/* Undo during the preview walks back through it (§2.4): option 1 is its first step, so ORIG. */
+eq('undo_during_preview_steps_back: still open', aiPreviewActive(), true);
+eq('undo_during_preview_steps_back: on ORIG', previewIndex(), 0);
+eq('undo_during_preview_steps_back: no entry taken', undoDepth(), d0);
 done();
 
 boot();
 aiSetWillChange();
 eq('set_change_aborts_running_commits_preview', aiPreviewActive(), false);
-ok('set change commit clears the stash', ops().includes('aiclr 0 0'));
+ok('set change clears every stash', ops().includes('aiclr'));
 done();
 
 /* Variation's six (plans/2026-10-27-variation-eight-options.md): every one

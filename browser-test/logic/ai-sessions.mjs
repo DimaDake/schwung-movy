@@ -7,7 +7,7 @@
  */
 
 import { _log, eq, ok, installMockEngine, uninstallMockEngine, seqEngineTick, resetSeqEngine,
-    appState, selectTrack, undoDepth, resetUndoState, resetUndoGroups, undoOnce } from './harness.mjs';
+    appState, selectTrack, undoDepth, resetUndoState, resetUndoGroups, undoOnce, beginEdit, endEdit, CLOSE } from './harness.mjs';
 import { openPreview, previewIndex, previewSwitch, aiPreviewTick, previewInput, aiPreviewActive, aiSessionOpen,
     aiSessionStep, aiForgetClip, aiPhase, aiSetWillChange, startAiJob, resetAiJob, knobsOf, knobsCtx } from '../../dist/esm/ai/index.js';
 import { seqState } from '../../dist/esm/seq/state.js';
@@ -71,7 +71,8 @@ eq('clip_switch_takes_over_that_clips_session', previewIndex(), 1);
 ok('clip_switch: no stash cleared', !o.some((x) => x.startsWith('aiclr')));
 eq('jog_click_keeps_this_clip_only', previewInput([0xB0, MoveMainButton, 127]), true);
 o = ops();
-ok('commit clears only its own clip', o.includes('aiclr 0 0') && !o.includes('aiclr'));
+/* Keeping leaves every stash: an undo of it reopens the session (ai/preview-undo.ts). */
+ok('commit_leaves_the_stashes', !o.some((x) => x.startsWith('aiclr')));
 seqState.session[0].selected = 3;
 tick();
 eq('the other clip is still in its session', previewIndex(), 0);
@@ -93,15 +94,23 @@ tick();
 eq('track_view_resumes', aiSessionOpen(), true);
 done();
 
-/* Undo, a Set change and a deleted clip end parked sessions too. */
+/* An undo on another clip leaves a parked session alone (§2.4); an undo
+ * that reaches the parked session's own visit entry ends it there. */
 boot();
 selectTrack(1);
 tick();
+const visit = undoDepth();
+beginEdit({ key: 'other', verb: 'EDIT', close: CLOSE.IMMEDIATE, seq: true });
+endEdit('other');
 undoOnce();
-ok('undo_ends_parked_sessions', ops().includes('aiclr'));
-selectTrack(0);
-tick();
-eq('undo: nothing resumes', aiSessionOpen(), false);
+ok('undo_on_another_clip_leaves_parked_session', !ops().includes('aiclr 0 0') && undoDepth() === visit);
+if (visit > 0) {
+    undoOnce();
+    ok('undo_of_its_visit_ends_the_parked_session', ops().includes('aiclr 0 0'));
+    selectTrack(0);
+    tick();
+    eq('undo: nothing resumes', aiSessionOpen(), false);
+}
 done();
 
 boot();

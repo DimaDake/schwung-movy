@@ -23,3 +23,11 @@ export function clearParked(): string[] {
     parked.clear();
     return keys;
 }
+
+/* The latest session kept on each clip (preview-undo.ts): an undo of its
+ * entry reopens it; a newer run on the clip, a deleted clip or a Set change
+ * forgets it. */
+const latest = new Map<string, unknown>();
+export function keepLatest<T>(key: string, o: T): void { latest.set(key, o); }
+export function latestOn<T>(key: string): T | undefined { return latest.get(key) as T | undefined; }
+export function forgetLatest(key?: string): void { if (key === undefined) latest.clear(); else latest.delete(key); }

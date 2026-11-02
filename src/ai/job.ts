@@ -12,7 +12,7 @@ import { currentSetUuid } from '../seq/set-session.js';
 import { jobTarget } from './job-target.js';
 import { type AiPhase, type AiPreviewInput, type AiTask, label, MSG_ERROR, MSG_NOTHING, MSG_NOTHING_DOUBLE, type Running } from './job-types.js';
 import { readTrack } from './set-input.js';
-import { aiSessionOpen, commitPreview, endAllPreviews, openPreview, resetPreview } from './preview.js';
+import { aiForgetClip, aiSessionOpen, commitPreview, endAllPreviews, openPreview, previewInputOpen, resetPreview } from './preview.js';
 import { algoTick, startAlgo } from './job-algo.js';
 
 export { MSG_ERROR, MSG_NOTHING, MSG_NOTHING_DOUBLE } from './job-types.js';
@@ -45,7 +45,11 @@ export function startAiJob(task: AiTask, track: number, slot: number): void {
     if (phase !== 'idle') return;
     /* A generator on top of an open session (user, 2026-10-29): what is
      * showing is kept, and the new one starts from it. */
-    if (aiSessionOpen()) commitPreview('another generator');
+    if (aiSessionOpen()) {
+        const was = previewInputOpen()!;
+        commitPreview('another generator');
+        aiForgetClip(was.track, was.slot);   // the new run starts from it: that session is over
+    }
     run = { task, track, slot, uuid: currentSetUuid(), next: 0, tracks: [],
         ctx: null, gen: null, nonce: Date.now() >>> 0 };
     phase = 'running';

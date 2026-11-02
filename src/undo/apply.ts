@@ -14,13 +14,14 @@
  * drives the wrong thing, or silently nothing, with an intact-looking UI. seq/persist.ts pairs every state restore with a label sync
  * for exactly this reason; an undo restore is the same operation. */
 
-import { endAllPreviews } from '../ai/preview.js';
+import { aiSessionOpen, commitPreview } from '../ai/preview.js';
+import { aiRedo, aiUndoFirst, aiUndoTop } from '../ai/preview-undo.js';
 import { componentPort } from '../track/registry.js';
 import { mlog } from '../log.js';
 import { seqCmd, engineGeneration, requestLabelSync } from '../seq/engine.js';
 import { currentSetUuid } from '../seq/set-session.js';
 import {
-    canRedo, canUndo, invalidateUndo, popRedo, popUndo, pushRedo, pushUndoBack,
+    canRedo, canUndo, invalidateUndo, peekUndo, popRedo, popUndo, pushRedo, pushUndoBack,
     retractEntry, takeOrphanedSnaps,
 } from './state.js';
 import { abandonGroup, endEdit } from './group.js';
@@ -170,16 +171,18 @@ const NOTHING = (reason: string): UndoResult =>
     ({ ok: false, verb: '', target: '', detail: '', reason });
 
 export function undoOnce(): UndoResult {
-    /* An open AI preview is kept first, so this undo takes back the AI step
-     * itself rather than an older entry underneath a live preview. Parked
-     * sessions end too: the undo may move their clips under them. */
-    endAllPreviews('undo');
+    /* A generator preview on screen takes the undo step by step (ai/preview-undo.ts);
+     * below ORIG it closes and may hand back its entry to take back here. */
+    const ai = aiUndoFirst((e) => { applyEntry(e, true); pushRedo(e); });
+    if (ai) return ai;
     /* A gesture still in progress is part of what the user wants undone. */
     endEdit();
     /* A module swap is still settling: a second undo now would write params
      * into a module that is about to be replaced again. */
     if (moduleRestorePending()) return NOTHING('busy');
     if (!canUndo()) return NOTHING('empty');
+    const reopened = aiUndoTop(peekUndo());
+    if (reopened) return reopened;
     const e = popUndo()!;
     if (moduleDrifted(e, true)) {
         invalidateUndo('module drift');
@@ -192,7 +195,9 @@ export function undoOnce(): UndoResult {
 }
 
 export function redoOnce(): UndoResult {
-    endAllPreviews('redo');
+    const ai = aiRedo();
+    if (ai !== 'pass') return ai.result;
+    if (aiSessionOpen()) commitPreview('redo');
     endEdit();
     if (moduleRestorePending()) return NOTHING('busy');
     if (!canRedo()) return NOTHING('empty');

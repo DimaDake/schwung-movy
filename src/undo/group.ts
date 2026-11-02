@@ -54,6 +54,7 @@ interface OpenGroup {
     uiOps: UiOp[];
     moduleOp?: ModuleOp;
     stateOp?: StateOp;
+    aiSession?: { key: string; id: number };
     lastActivityMs: number;
 }
 
@@ -62,6 +63,10 @@ let open: OpenGroup | null = null;
  * released, so everything done while previewing is one undo with the AI change
  * itself — undo lands on the clip as it was before the AI ran. */
 let heldKey: string | null = null;
+/* Told when a gesture the hold absorbed ends (a hand edit in the preview):
+ * the session records it as one of its undo steps (ai/preview-undo.ts). */
+let absorbed: (() => void) | null = null;
+export function onAbsorbedGesture(f: (() => void) | null): void { absorbed = f; }
 /* Monotonic; never reused within a session, so a stale uswap can only miss. */
 let nextSnapId = 1;
 
@@ -165,6 +170,7 @@ export function setVerb(verb: string, target?: string): void {
  * already gave way to another.
  */
 export function endEdit(key?: string): void {
+    if (heldKey !== null && open && key !== undefined && key !== heldKey) absorbed?.();
     if (!open || heldKey !== null) return;
     if (key !== undefined && open.key !== key) return;
     const g = open;
@@ -191,9 +197,13 @@ export function endEdit(key?: string): void {
     };
     if (g.stateOp) entry.stateOp = g.stateOp;
     if (hasSeq) entry.seqSnap = { before: g.snapId, after: -1 };
+    if (g.aiSession) entry.aiSession = g.aiSession;
     if (g.moduleOp) entry.moduleOp = g.moduleOp;
     pushEntry(entry);
 }
+
+/** Tag the open group as a generator session's entry. */
+export function tagAiSession(ref: { key: string; id: number }): void { if (open) open.aiSession = ref; }
 
 /** Keep the open group `key` open through every other gesture. */
 export function holdGroup(key: string): void {

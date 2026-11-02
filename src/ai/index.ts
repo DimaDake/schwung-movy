@@ -6,6 +6,7 @@ export * from './target.js';
 export * from './set-input.js';
 export * from './job.js';
 export * from './preview.js';
+export { SESSION_CAP, SessionUndo } from './session-undo.js';
 export * from './preview-input.js';
 export { knobLevels, knobsOf, knobsCtx } from './preview-knobs.js';
 export * from './preview-render.js';

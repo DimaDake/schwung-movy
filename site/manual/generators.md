@@ -32,7 +32,7 @@ When the generator is done, the clip's notes fill the screen with the options al
 | **Pads, steps, held steps** | Edit the option. Each option keeps its own edits. |
 | **Jog click** or **Back** | Keep what is showing and close the preview. |
 | Hold a **track button** | See the track's parameter pages while held. |
-| **Undo** | Return the clip to how it was before the generator ran. |
+| **Undo** | Step back through what you did in the preview (knob turns, edits, option changes), then ORIG, then close it with the clip as before. **Shift** + **Undo** steps forward. Undo right after keeping an option reopens the preview. |
 
 ![Past the first options: the strip scrolls](../assets/screens/ai_preview_scrolled.png){ .small }
 

@@ -123,4 +123,5 @@ The shortcuts also work in Session view, except the Clip page and the generators
 | Touch the **jog** | Show the generator's name. |
 | **Knobs** | Reshape the option. Touch: name and value. |
 | **Jog click** / **Back** | Keep the option shown. |
+| **Undo** / **Shift** + **Undo** | Step back / forward through the preview: knob turns, edits, option changes; past the first, ORIG, then the preview closes. Undo right after keeping reopens it. |
 | Hold a **track button** | Show the track's pages while held. |

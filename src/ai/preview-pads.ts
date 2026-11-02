@@ -4,6 +4,8 @@
  * pad keeps its own knobs; DENSITY (knob 1) is the pad's across the per-pad
  * options, so moving between them keeps how busy each pad is. */
 
+import { appState } from '../app/state.js';
+import { seqState } from '../seq/state.js';
 import { regenerate } from '../gen/engine.js';
 import type { GenCtx } from '../gen/analysis/context.js';
 import type { Preset } from '../gen/preset.js';
@@ -76,4 +78,14 @@ export function padsTurn(ctx: GenCtx, o: PadOpt): void {
 export function padsRemake(ctx: GenCtx, o: PadOpt): Note[] {
     for (const [pad, e] of o.per!.pads) e.notes = make(ctx, o, pad, e.knobs);
     return padsUnion(o);
+}
+
+/** Per tick: a per-pad option follows the selected pad, `resync` after it came
+ *  on screen; true when this tick wrote. */
+export function padsTick(ctx: GenCtx, o: PadOpt & { live: (boolean | undefined)[] }, resync: boolean, write: (notes: Note[]) => void): boolean {
+    const was = o.per!.pad;
+    const changed = (resync && padsShow(ctx, o)) || padsSelect(ctx, o, seqState.watchLane);
+    if (o.per!.pad !== was) { o.live = o.live.map(() => undefined); appState.dirty = true; }
+    if (changed) { write(padsUnion(o)); appState.dirty = true; }
+    return changed;
 }

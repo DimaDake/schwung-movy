@@ -1,9 +1,7 @@
-/* The preview's knobs (plans/2026-10-27-algorithmic-generators-design.md §5):
- * the knobs of the option on screen — of its preset. A turn regenerates that
- * option from its preset at the new positions and writes it over the clip
- * (hand edits on it are discarded, by design); touching a knob shows its name
- * and value in the top strip, the way a Schwung page shows a held knob. A knob
- * that cannot change this option is hidden (gen/live.ts). ORIG has none. */
+/* The preview's knobs (plans/2026-10-27-algorithmic-generators-design.md §5): the option on
+ * screen's, of its preset. A turn regenerates it and writes it over the clip (hand edits
+ * on it discarded, by design); a touch shows name and value in the top strip, as a Schwung
+ * page does. A knob that cannot change this option is hidden (gen/live.ts); ORIG has none. */
 
 import { appState } from '../app/state.js';
 import { mlog } from '../log.js';
@@ -16,8 +14,7 @@ import type { Preset } from '../gen/preset.js';
 import type { Note } from '../gen/types.js';
 import { seqHeaderAnnounce } from '../seq/render.js';
 import { countDetents } from '../seq/detent.js';
-import { seqState } from '../seq/state.js';
-import { type PadState, padsOpen, padsReset, padsRestore, padsSave, padsSelect, padsShow, padsTurn, padsUnion, padsRemake } from './preview-pads.js';
+import { type PadState, padsOpen, padsReset, padsRestore, padsSave, padsTick, padsTurn, padsUnion, padsRemake } from './preview-pads.js';
 
 interface Opt { preset: Preset; knobs: number[]; live: (boolean | undefined)[]; per?: PadState; own?: GenCtx /* made in its own context (Step 14's New Clip) */ }
 
@@ -31,6 +28,10 @@ let pending = false;
 let held = -1;              // the touched knob, -1 none
 let resync = false;         // a per-pad option came on screen: its pads to catch up
 const accum: number[] = []; // raw knob units banked toward the next step
+let turned = -1;            // ticks since a gesture's last regeneration, -1 none: its end is an undo step
+let onStep: (() => void) | null = null;
+export function knobsOnStep(f: (() => void) | null): void { onStep = f; }
+const stepEnds = () => { turned = -1; onStep?.(); };
 
 export function knobsOpen(c: GenCtx, picks: { preset: Preset; knobs: number[]; ctx?: GenCtx }[], notes: Note[][] = []): void {
     ctx = c;
@@ -52,10 +53,7 @@ export function knobsSave(): KnobsSnap { return { ctx, opts, shown, pending, den
 
 export function knobsRestore(s: KnobsSnap): void {
     ({ ctx, opts, shown, pending } = s);
-    padsRestore(s.density);
-    held = -1;
-    resync = true;
-    accum.length = 0;
+    padsRestore(s.density); held = -1; resync = true; accum.length = 0;
 }
 
 export function knobsReset(): void { ctx = null; opts = []; pending = false; held = -1; shown = 0; resync = false; padsReset(); }
@@ -121,7 +119,7 @@ export function knobTurn(slot: number, delta: number): boolean {
 export function knobTouch(slot: number, on: boolean): boolean {
     if (!ctx || !opts.length) return false;
     const i = knobAt(opts[shown - 1], slot);
-    if (!on) { if (held === i) held = -1; return true; }
+    if (!on) { if (held === i) held = -1; if (turned >= 0) stepEnds(); return true; }
     const o = current(i);
     held = o ? i : -1;
     if (o) strip(o, i);
@@ -138,14 +136,16 @@ export function knobsTick(write: (notes: Note[]) => void): void {
     /* A waiting SEED turn lands once its order is built: the strip says where. */
     if (seedTick(o)) { pending = true; strip(o, o.preset.knobs.findIndex((k) => k.seed)); }
     if (held >= 0) seqHeaderAnnounce(o.preset.knobs[held].name, STRIP_TTL, valueOf(o, held));
-    if (o.per && perPadTick(o, write)) return;
+    if (o.per) { const wrote = padsTick(ctx, o, resync, write); resync = false; if (wrote) return; }
     if (pending) {
         pending = false;
         if (o.per) { padsTurn(ctx, o); write(padsUnion(o)); appState.dirty = true; return; }
         const notes = regenerate(cx(o), o.preset, o.knobs);
-        if (notes) { write(notes); appState.dirty = true; } else mlog(`gen: ${o.preset.id} refused ${o.knobs.join(',')}`);
+        if (notes) { write(notes); turned = 0; appState.dirty = true; } else mlog(`gen: ${o.preset.id} refused ${o.knobs.join(',')}`);
         return;
     }
+    /* A gesture with no touch release ends when the strip times out. */
+    if (turned >= 0 && held < 0 && ++turned > STRIP_TTL) stepEnds();
     const u = o.live.findIndex((l) => l === undefined);
     if (u >= 0) { o.live[u] = knobLive(cx(o), o.preset, o.knobs, u); appState.dirty = true; }
 }
@@ -167,16 +167,17 @@ export function knobLevels(): (number | null)[] | null {
 /** Test hook: the knob positions of an option (1-based). */
 export function knobsOf(index: number): number[] { return opts[index - 1]?.knobs ?? []; }
 
-/* A per-pad option follows the selected pad (preview-pads.ts); true when
- * this tick wrote. */
-function perPadTick(o: Opt, write: (notes: Note[]) => void): boolean {
-    const c = ctx!;
-    const was = o.per!.pad;
-    const changed = (resync && padsShow(c, o)) || padsSelect(c, o, seqState.watchLane);
-    resync = false;
-    if (o.per!.pad !== was) { o.live = o.live.map(() => undefined); appState.dirty = true; }
-    if (changed) { write(padsUnion(o)); appState.dirty = true; }
-    return changed;
+/** Every option's knob positions, and putting them back (an undo step, preview-undo.ts). */
+export function knobsSnapshot(): number[][] { return opts.map((o) => [...o.knobs]); }
+export function knobsApply(k: number[][]): void {
+    opts.forEach((o, i) => { if (k[i]) { o.knobs = [...k[i]]; o.live = o.live.map(() => undefined); } }); pending = false; turned = -1;
+}
+
+/** Before an undo: a turn still to be regenerated lands now, and a gesture
+ *  in progress ends as its own step. */
+export function knobsFlush(write: (notes: Note[]) => void): void {
+    if (pending) knobsTick(write);
+    if (turned >= 0) stepEnds();
 }
 
 /** The clip's length changed under the preview (New Clip): every option made
@@ -196,5 +197,4 @@ export function knobsCtx(): GenCtx | null { return ctx; }
 export function knobsRecontext(c: GenCtx): void {
     ctx = c;
     for (const o of opts) o.live = o.live.map(() => undefined);
-    appState.dirty = true;
-}
+    appState.dirty = true; }

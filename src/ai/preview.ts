@@ -15,45 +15,39 @@ import { seqCmd } from '../seq/engine.js';
 import { seqHeaderAnnounce } from '../seq/render.js';
 import { seqState } from '../seq/state.js';
 import { watchedTrack } from '../seq/watch.js';
-import { beginEdit, CLOSE, holdGroup, releaseHold } from '../undo/group.js';
+import { beginEdit, CLOSE, holdGroup, onAbsorbedGesture, releaseHold, tagAiSession } from '../undo/group.js';
+import { pushEntry } from '../undo/state.js';
 import { trackLabel } from '../undo/label.js';
 import { type AiNote, formatNotes } from './clip-dump.js';
+import { go, keyOf, type Open, replaceCurrent, S, write } from './preview-state.js';
+import { EDIT_READ_TICKS, sessionFlush, sessionStart, sessionStep, sessionTick } from './preview-undo.js';
+import { SessionUndo } from './session-undo.js';
 import { endAiPreview, type AiPreviewInput } from './job.js';
 import { entryStep } from './job-types.js';
-import { type KnobsSnap, knobsName, knobsOpen, knobsReset, knobsRestore, knobsSave, knobsShown, knobsTick } from './preview-knobs.js';
-import { clearParked, clipKey, hasParked, parkSession, takeSession } from './sessions.js';
+import { knobsName, knobsOnStep, knobsOpen, knobsReset, knobsRestore, knobsSave, knobsShown, knobsTick } from './preview-knobs.js';
+import { clearParked, clipKey, forgetLatest, hasParked, keepLatest, latestOn, parkSession, takeSession } from './sessions.js';
 import { refreshStart, refreshStop, refreshTick } from './preview-refresh.js';
 import './preview-relength.js';
 
-interface Open {
-    p: AiPreviewInput;
-    index: number;          // 0 = ORIG
-    visited: boolean[];
-    knobs: KnobsSnap | null; // while parked
-}
+export const VERBS = { quantize: 'SMART QUANT', variation: 'VARIATION', double: 'SMART DOUBLE', create: 'NEW CLIP' } as const;
 
-let cur: Open | null = null;
-const VERBS = { quantize: 'SMART QUANT', variation: 'VARIATION', double: 'SMART DOUBLE', create: 'NEW CLIP' } as const;
-
-const keyOf = (o: Open): string => clipKey(o.p.track, o.p.slot);
-
-export function aiSessionOpen(): boolean { return cur !== null; }   // on the clip on screen, shown or not
+export function aiSessionOpen(): boolean { return S.cur !== null; }   // on the clip on screen, shown or not
 /** The preview owns the screen and the jog: open, and no track button held. */
-export function aiPreviewActive(): boolean { return cur !== null && !trackButtonHeld(); }
+export function aiPreviewActive(): boolean { return S.cur !== null && !trackButtonHeld(); }
 /** The step whose icon names the open session's generator; -1 none. */
-export function aiSessionStep(): number { return cur ? entryStep(cur.p.task) : -1; }
-export function previewIndex(): number { return cur ? cur.index : -1; }
-export function previewCount(): number { return cur ? cur.p.options.length : 0; }
+export function aiSessionStep(): number { return S.cur ? entryStep(S.cur.p.task) : -1; }
+export function previewIndex(): number { return S.cur ? S.cur.index : -1; }
+export function previewCount(): number { return S.cur ? S.cur.p.options.length : 0; }
 /** Cells the strip shows at once: the picks, at most eight (design §2.2). */
-export function previewVisible(): number { return cur ? Math.min(8, cur.p.picks ?? cur.p.options.length) : 0; }
-export function previewLabels(): string[] { return cur ? cur.p.options.map((_, i) => String(i + 1)) : []; }
+export function previewVisible(): number { return S.cur ? Math.min(8, S.cur.p.picks ?? S.cur.p.options.length) : 0; }
+export function previewLabels(): string[] { return S.cur ? S.cur.p.options.map((_, i) => String(i + 1)) : []; }
 /* Seen for about a second after the jog is let go (render.ts toasts). */
 const JOG_NAME_TTL = 196;
 
 /** The generator behind the option showing, for the jog-hold toast. */
 export function previewName(): string {
-    if (!cur) return '';
-    return cur.index === 0 ? 'ORIG' : knobsName() || String(cur.index);
+    if (!S.cur) return '';
+    return S.cur.index === 0 ? 'ORIG' : knobsName() || String(S.cur.index);
 }
 
 /* The clip a session may show on: the watched one, in a Track view. Song mode
@@ -65,45 +59,27 @@ function here(): string | null {
     return clipKey(t, seqState.session[t]?.selected ?? 0);
 }
 
-function write(o: Open, i: number): void {
-    const { track: t, slot: s } = o.p;
-    if (o.visited[i]) { seqCmd(`aiload ${t} ${s} ${i}`); return; }
-    seqCmd(`aiclip ${t} ${s} ${o.p.len} ${o.p.scaleNum} ${o.p.scaleDen} 0 ${formatNotes(o.p.options[i - 1])}`);
-    o.visited[i] = true;
-}
-
-function go(o: Open, j: number): void {
-    if (j === o.index) return;
-    seqCmd(`aistash ${o.p.track} ${o.p.slot} ${o.index}`);
-    write(o, j);
-    o.index = j;
-    knobsShown(j);
-    appState.dirty = true;
-}
-
-/* A knob turn's new take on the option showing: written over it, edits and
- * all (design §5: a turn discards hand edits), and kept as that option. */
-function replaceCurrent(notes: AiNote[]): void {
-    const o = cur;
-    if (!o || o.index === 0) return;
-    o.p.options[o.index - 1] = notes;
-    seqCmd(`aiclip ${o.p.track} ${o.p.slot} ${o.p.len} ${o.p.scaleNum} ${o.p.scaleDen} 0 ${formatNotes(notes)}`);
-    o.visited[o.index] = true;
-}
-
-/* One undo per visit to the clip, the AI change itself on the first. */
-function activate(o: Open): void {
-    cur = o;
+/* One undo per visit to the clip, the AI change itself on the first; a
+ * reopened session (preview-undo.ts) holds its gestures without a snapshot,
+ * its entry already holds the clip as it was before the generator ran. */
+export function activate(o: Open, reopened = false): void {
+    S.cur = o;
     const key = 'ai:' + keyOf(o);
-    beginEdit({ key, verb: VERBS[o.p.task], target: trackLabel(o.p.track),
-        close: CLOSE.IMMEDIATE, seq: true });
+    beginEdit({ key, verb: VERBS[o.p.task], target: trackLabel(o.p.track), close: CLOSE.IMMEDIATE, seq: !reopened });
+    if (!reopened) tagAiSession({ key: keyOf(o), id: o.id });
     holdGroup(key);
+    /* The session's steps (preview-undo.ts): a hand edit read back, a knob
+     * gesture's end. Set here, not at load: an import cycle can run this file
+     * before group.ts's own state is initialised. */
+    onAbsorbedGesture(() => { if (S.cur) S.cur.editDue = EDIT_READ_TICKS; });
+    knobsOnStep(() => { if (S.cur) sessionStep(S.cur); });
 }
+let sessions = 0;
 
-function park(why: string): void {
-    const o = cur!;
+export function park(why: string): void {
+    const o = S.cur!;
     o.knobs = knobsSave();
-    cur = null;
+    S.cur = null;
     refreshStop();
     knobsReset();
     jogHintTouch(false);
@@ -124,77 +100,95 @@ function resume(o: Open): void {
 }
 
 export function openPreview(p: AiPreviewInput): void {
-    if (cur) park('another opens');
+    if (S.cur) park('another opens');
     /* A request finishing on a clip whose session is parked replaces it. */
-    if (takeSession(clipKey(p.track, p.slot))) seqCmd(`aiclr ${p.track} ${p.slot}`);
-    const o: Open = { p, index: 0, visited: [true, ...p.options.map(() => false)], knobs: null };
+    const key = clipKey(p.track, p.slot);
+    if (takeSession(key) || latestOn(key)) { seqCmd(`aiclr ${p.track} ${p.slot}`); forgetLatest(key); }
+    const o: Open = { p, index: 0, visited: [true, ...p.options.map(() => false)], knobs: null, id: ++sessions, steps: new SessionUndo(), editDue: 0 };
     activate(o);
     mlog(`ai: preview t${p.track} s${p.slot} ${p.options.length} options`);
     if (p.gen) knobsOpen(p.gen.ctx, p.gen.picks, p.options);
     go(o, 1);
+    sessionStart(o);
 }
 
 export function previewSwitch(delta: number): void {
-    if (!cur) return;
-    go(cur, Math.max(0, Math.min(cur.p.options.length, cur.index + delta)));
+    const o = S.cur;
+    if (!o) return;
+    const was = o.index;
+    go(o, Math.max(0, Math.min(o.p.options.length, o.index + delta)));
+    if (o.index !== was) sessionStep(o);
 }
 
-/** Keep what is showing, edits and all. */
-export function commitPreview(why = 'commit'): void {
-    if (!cur) return;
-    const { track: t, slot: s } = cur.p;
-    mlog(`ai: preview kept option ${cur.index} t${t} s${s} (${why})`);
-    cur = null;
+/* The preview off the screen: what keeping and closing share. */
+export function leave(o: Open, why: string): void {
+    mlog(`ai: preview ${why} option ${o.index} t${o.p.track} s${o.p.slot}`);
+    S.cur = null;
     refreshStop();
     /* The jog hold named an option; a finger still resting after the click
      * must not turn into the view's own CLICK JOG hint. */
     jogHintTouch(false);
     knobsReset();
-    seqCmd(`aiclr ${t} ${s}`);
-    releaseHold(true);
     endAiPreview();
     appState.dirty = true;
 }
 
-/** Every session ends where it stands: a Set change, an undo or redo. */
+/** Keep what is showing, edits and all. The clip's stash stays: an undo of
+ *  this entry reopens the session (preview-undo.ts). */
+export function commitPreview(why = 'commit'): void {
+    const o = S.cur;
+    if (!o) return;
+    sessionFlush(o);
+    leave(o, 'kept (' + why + ')');
+    releaseHold(true);
+    if (o.entry) { pushEntry(o.entry); o.entry = undefined; }
+    keepLatest(keyOf(o), o);
+}
+
+/** Every session ends where it stands: a Set change. */
 export function endAllPreviews(why: string): void {
     commitPreview(why);
-    if (clearParked().length) { seqCmd('aiclr'); mlog(`ai: parked sessions ended (${why})`); }
+    forgetLatest();
+    if (clearParked().length) mlog(`ai: parked sessions ended (${why})`);
+    seqCmd('aiclr');
 }
 
 /** A clip deleted or pasted over: its session is over. */
 export function aiForgetClip(track: number, slot: number): void {
     const key = clipKey(track, slot);
-    if (cur && keyOf(cur) === key) commitPreview('clip replaced');
-    else if (takeSession(key)) seqCmd(`aiclr ${track} ${slot}`);
+    if (S.cur && keyOf(S.cur) === key) commitPreview('clip replaced');
+    else takeSession(key);
+    forgetLatest(key);
+    seqCmd(`aiclr ${track} ${slot}`);
 }
 
 /** Per tick: parks and takes up sessions as the clip on screen changes. */
 export function aiPreviewTick(): void {
-    if (!cur && !hasParked()) return;
+    if (!S.cur && !hasParked()) return;
     const want = here();
-    if (want !== (cur ? keyOf(cur) : null)) {
-        if (cur) park(`left for ${want ?? 'another view'}`);
+    if (want !== (S.cur ? keyOf(S.cur) : null)) {
+        if (S.cur) park(`left for ${want ?? 'another view'}`);
         const o = want === null ? undefined : takeSession<Open>(want);
         if (o) resume(o);
     }
-    if (!cur) return;
+    if (!S.cur) return;
     /* A finger on the jog names the generator in the top strip at once, kept
      * up while held the way a held knob's is; a held knob, announced after, wins. */
     if (jogTouched() && !trackButtonHeld()) seqHeaderAnnounce('GENERATOR: ' + previewName(), JOG_NAME_TTL);
     refreshTick();
     knobsTick(replaceCurrent);
+    if (S.cur) sessionTick(S.cur);
 }
 
-export function resetPreview(): void { cur = null; clearParked(); refreshStop(); knobsReset(); }
+export function resetPreview(): void { S.cur = null; clearParked(); forgetLatest(); refreshStop(); knobsReset(); }
 
 /** New Clip remade at `len` (preview-relength.ts): the one showing written. */
 export function previewRemade(len: number, options: AiNote[][]): void {
-    const o = cur!;
+    const o = S.cur!;
     o.p.options = options;
     o.p.len = len;
     o.visited = o.visited.map((_, i) => i === 0);
     if (o.index > 0) write(o, o.index);
     appState.dirty = true;
 }
-export function previewInputOpen(): AiPreviewInput | null { return cur ? cur.p : null; }
+export function previewInputOpen(): AiPreviewInput | null { return S.cur ? S.cur.p : null; }

@@ -110,6 +110,8 @@ export interface UndoEntry {
      * means nothing in a different set or a reloaded (empty) engine. */
     setUuid: string;
     engineGen: number;
+    /** A generator session's entry (ai/preview-undo.ts): undo reopens it while it is the clip's latest. */
+    aiSession?: { key: string; id: number };
 }
 
 export interface UndoResult {

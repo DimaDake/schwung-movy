@@ -85,8 +85,8 @@ knobs into 1–4: the user learns slots, not lists.
 | 3 | **HARMONY**: the chords (melodic). Drums: the generator's second idea | HARMONY, FIX NOTES (Quantize); ACCENT, FILL, SHIFT (drums) |
 | 4 | **WHERE**: pitch place, or place in the clip | REGISTER, RANGE, OCTAVE(S), SPLIT, WHERE, PAD(S) |
 | 5 | **LENGTH** | GATE, LENGTH, ENDING (Double); HUMAN (drums) |
-| 6 | **EXTRA** | SPACE, DYNAMICS, SEED, SEAMS |
-| 7 | **FLAVOUR** | SWING, STRUM, COLOUR, VOICING, SEED |
+| 6 | **EXTRA** | SPACE, SEAMS, DRIFT (next to SEED), DYNAMICS where 7 is taken |
+| 7 | **FLAVOUR** | DYNAMICS, STRUM, COLOUR, VOICING |
 | 8 | **OVER TIME** | DRIFT; CHORD RATE where there is no DRIFT |
 
 **Why this order (user, 2026-11-01).** Left half = the notes, right half =
@@ -100,8 +100,12 @@ the builder renumbers anything.
 **Core knobs first (user, 2026-11-01: "keep seed, harmony, density, space,
 pattern everywhere where it is meaningful").** When a generator has more
 candidates than slots, PATTERN/WHAT, DENSITY, HARMONY, SPACE and SEED win
-over the colour and feel knobs, each only where it applies (§2.8). A part that loses SWING follows the scene's
-swing, as CHORDS does since 2026-11-01. The builder adds DENSITY wherever it
+over the colour and feel knobs, each only where it applies (§2.8). **No generator has a SWING knob** (user, 2026-11-02:
+"we follow clip swing"). Parts are written straight and the set's swing
+swings them at playback: the engine delays every off-beat 16th by the set's
+swing (`swing_delay`, `seq-core` `engine.rs`), so a swing baked into the notes
+is swung twice. DYNAMICS takes SWING's slot 7. **No knob is dropped while a
+slot is dark:** it takes the nearest empty slot (user, 2026-11-02). The builder adds DENSITY wherever it
 is cheap and musical (`densityStage`, `drumDensity`, `patternDense`).
 SPACE stays on New Clip only (see the pushback in §6).
 
@@ -188,7 +192,7 @@ What the level did today, and where it goes:
 
 | Task | Merged | Into | Notes |
 | --- | --- | --- | --- |
-| Quantize (melodic + drums) | TIGHT, TIDY, GROOVE | **TIGHT** | 8 knobs: TIMING, DENSITY, GRID, FIX NOTES (drums: CLEAN), LENGTH, —, SWING, FEEL. Decided: TIDY's EVEN and GROOVE's DYNAMICS merge into one centred **VELOCITY** knob in slot 6 (left = EVEN, middle = as played, right = DYNAMICS). Melodic CLEAN becomes automatic (fixed at TIDY's default, as drum TIGHT does). Option 1 stays the tightest. |
+| Quantize (melodic + drums) | TIGHT, TIDY, GROOVE | **TIGHT** | 8 knobs: TIMING, DENSITY, FIX NOTES (drums: CLEAN), GRID, LENGTH, VELOCITY, CLEAN (melodic; drums: —), FEEL. Decided: TIDY's EVEN and GROOVE's DYNAMICS merge into one centred **VELOCITY** knob in slot 6 (left = EVEN, middle = as played, right = DYNAMICS). Melodic CLEAN stays a knob, in slot 7 where SWING was (revised 2026-11-02). Option 1 stays the tightest. |
 | Quantize (melodic + drums) | FULL | — removed | Everything it bundled is now in TIGHT + DECORATE (drums: TIGHT + GHOSTS + FILL). |
 | Quantize | MODE, INVERT | **MODE** | INVERT becomes a MODE choice (`MIRROR`), and PIVOT applies only to it. |
 | Variation | DISPLACE, ANTICIPATE | **DISPLACE** | Slot 1 = MODE (SHIFT / PUSH); PUSH's amount shares SHIFT's knob. |
@@ -301,8 +305,9 @@ applied).
 **Placement rules applied to every row** (from §2.1 and §2.8):
 
 - SEED takes slot 8 wherever the generator has one.
-- DRIFT takes slot 8 when there is no SEED. When there is one, DRIFT goes to 6, or to 7 when 6 holds SPACE, DYNAMICS or SEAMS. **My call:** §2.8 said "6", and on New Clip slot 6 is SPACE, a core knob.
-- A part that loses SWING follows the scene's swing.
+- DRIFT takes slot 8 when there is no SEED. When there is one, DRIFT goes to 6, or to 7 when 6 holds SPACE or SEAMS. **My call:** §2.8 said "6", and on New Clip slot 6 is SPACE, a core knob.
+- **No SWING anywhere** (user, 2026-11-02): the set's swing applies at playback (§2.1). DYNAMICS sits in slot 7 where that is free, else in 6.
+- **No knob is dropped while a slot is dark** (user, 2026-11-02): it takes the nearest empty slot.
 
 ### 4.0 Shared knobs: what they control
 
@@ -319,12 +324,12 @@ Described once here. Under each generator, only that generator's own knobs get a
 | RANGE | how wide the part spreads in pitch | ×0.5 … ×3 (AS IS in the middle) |
 | LENGTH (centred) | note lengths | −100 % … +100 % (AS IS in the middle) |
 | DENSITY (centred) | fewer or more notes than the part has | −100 % … +100 % (AS IS in the middle) |
-| DYNAMICS | how much velocity follows the beat (accents) | 0–100 % |
+| DYNAMICS | velocity shaping, not a level: blends the velocities as written (0) toward an accent pattern on the beat (100 %): downbeats louder, off-16ths softer | 0–100 % |
 | AMOUNT | how much of the clip is changed (Variation); a count of changes (Quantize mutations) | 0–100 %, or 0–10 / 0–16 |
 | SEED | which random take | #1 … #100 → after: ordered close → far (§2.8) |
 | DRIFT | one small change per click, away from the take and back (`drift.ts`) | OFF … +20 |
 | TIMING (Quantize) | how far notes are pulled to the grid | 0–100 % (100 %) |
-| SWING | swing amount | 50–75 % (the scene's) |
+| SWING → **removed** | today: swing written into the notes | after: none; the set's swing swings every clip at playback |
 | GRID (Quantize) | the grid notes are pulled to | 1/8, 1/8T, 1/16, 1/16T, 1/32 (the scene's) |
 | PITCH FIX → **FIX NOTES** | how many off-harmony notes are corrected, worst first | OFF / 1 NOTE … / ALL |
 | CLEAN (Quantize) | removes doubles and flams on one pad (window up to a 16th) and grazes quieter than up to 45 % of the median velocity | 0–100 % |
@@ -354,7 +359,7 @@ Described once here. Under each generator, only that generator's own knobs get a
 **CHORDS:** block chords on a comping pattern.
 - Before: PATTERN (a position on the comp map, 122 positions), VOICING, REGISTER, HARMONY, GATE, VARY, DENSITY (in SWING's place since 2026-11-01: the pattern thinned or filled, −5…+5), SPARSE.
 - After: 1 PATTERN · 2 DENSITY · 3 HARMONY · 4 REGISTER · 5 GATE · 6 SPACE · 7 VOICING · 8 DRIFT.
-- PATTERN's and HARMONY's left ends mean "nothing moves" (§2.8). Follows the scene's swing.
+- PATTERN's and HARMONY's left ends mean "nothing moves" (§2.8). Follows the set's swing.
 
 **PAD:** held chords.
 - Before: VOICING, MOTION (how the voices move between chords: SMOOTH, TOP LINE, CLIMB, ARCH, FALL, PARALLEL), REGISTER, HARMONY, GATE, PATTERN (in VARY's place: HELD, BAR, HALVES, 3-3-2, CHARLESTON, PUSH, 2+4), STRUM, SPARSE.
@@ -364,30 +369,30 @@ Described once here. Under each generator, only that generator's own knobs get a
 **STABS:** short chords on an off-beat pattern.
 - Before: PATTERN (104 positions), VOICING, REGISTER, HARMONY, GATE, VARY, SWING, SPARSE.
 - After: 1 PATTERN · 2 DENSITY (new, as CHORDS) · 3 HARMONY · 4 REGISTER · 5 GATE · 6 SPACE · 7 VOICING · 8 DRIFT.
-- SWING goes, and the part follows the scene's swing (decided).
+- SWING goes (decided); the set's swing applies.
 
 **BASS:** a bassline from the bass pattern map.
 - Before: PATTERN (128 positions), NOTES (AS WRITTEN, ROOTS, CHORD TONES, OCTAVES), OCTAVE, HARMONY, GATE, VARY, SWING, SPARSE.
-- After: 1 PATTERN · 2 NOTES · 3 HARMONY · 4 OCTAVE · 5 GATE · 6 SPACE · 7 SWING · 8 DRIFT.
+- After: 1 PATTERN · 2 NOTES · 3 HARMONY · 4 OCTAVE · 5 GATE · 6 SPACE · 7 DYNAMICS · 8 DRIFT.
 
 **ARP:** an arpeggio over the chords.
 - Before: STYLE (UP, DOWN, UP-DOWN, ORDER, PINKY, BROKEN), RATE (1/4 … 1/16T), OCTAVES (1 … 4), HARMONY, GATE, VARY, SWING, SPARSE.
-- After: 1 STYLE · 2 RATE · 3 HARMONY · 4 OCTAVES · 5 GATE · 6 SPACE · 7 SWING · 8 DRIFT.
+- After: 1 STYLE · 2 RATE · 3 HARMONY · 4 OCTAVES · 5 GATE · 6 SPACE · 7 DYNAMICS · 8 DRIFT.
 
 **MELODY:** a phrase on a contour, answered.
 - Before: CONTOUR (ARCH, RISE, FALL, WAVE, ZIGZAG), DENSITY (0–10, notes per phrase), RANGE (4TH … 2 OCT), SEED, GATE, VARY, SWING, SPARSE.
 - After: 1 CONTOUR · 2 DENSITY · 3 HARMONY (new) · 4 RANGE · 5 GATE · 6 SPACE · 7 DRIFT · 8 SEED.
-- Follows the scene's swing.
+- Follows the set's swing.
 
 **RIFF:** a short cell repeated through the chords.
 - Before: CELL (1 BEAT, 2 BEATS, 3/8, 1 BAR), NOTES (0–6, distinct pitches in the cell), REGISTER, SEED, GATE, VARY, SWING, SPARSE.
 - After: 1 CELL · 2 NOTES · 3 HARMONY (new) · 4 REGISTER · 5 GATE · 6 SPACE · 7 DRIFT · 8 SEED.
-- Follows the scene's swing.
+- Follows the set's swing.
 
 **COUNTER:** a line moving where the band leaves room.
 - Before: RATE (QUARTERS, 8THS, DOTTED, 16THS), MOTION (STEPS, MIXED, LEAPS), REGISTER, SEED, GATE, VARY, SWING, SPARSE.
 - After: 1 RATE · 2 DENSITY (was MOTION: how much it moves) · 3 HARMONY (new) · 4 REGISTER · 5 GATE · 6 SPACE · 7 DRIFT · 8 SEED.
-- Follows the scene's swing. The builder checks that STEPS…LEAPS survive as DENSITY positions.
+- Follows the set's swing. The builder checks that STEPS…LEAPS survive as DENSITY positions.
 
 **Adopted from Variation (§2.9): New Clip layouts, my proposal ⚑.** None has a New Clip "before". Each takes GATE in place of LENGTH and gains SPACE.
 
@@ -406,17 +411,16 @@ Described once here. Under each generator, only that generator's own knobs get a
 
 - VARY becomes DRIFT.
 - SEED goes to slot 8 and DRIFT to 6 or 7.
-- **⚑ DYNAMICS is dropped wherever SEED and SWING both stay** (PAD PATTERN, BROKEN, PERC, DRUM MAP). The alternative is to drop SWING and follow the scene's swing.
+- SWING goes; DYNAMICS takes slot 7 (user, 2026-11-02).
 
 **PAD EUCLID:** one pad, hits spread evenly. Per pad.
 - Before: DENSITY (0–10, hits on this pad; 0 removes the pad), ROTATE (0–15), ACCENT (FLAT, DOWNBEAT, ROLLING, RANDOM), RATE (1/16, 1/8, 1/8T), VARY, SWING, DYNAMICS, HUMAN.
-- After: 1 DENSITY · 2 ROTATE · 3 ACCENT · 4 RATE · 5 HUMAN · 6 DYNAMICS · 7 SWING · 8 DRIFT.
+- After: 1 DENSITY · 2 ROTATE · 3 ACCENT · 4 RATE · 5 HUMAN · 6 — · 7 DYNAMICS · 8 DRIFT.
 - It gets no SEED: its only random part is ACCENT RANDOM. **My call:** this fixes the old table, which gave it a SEED it never had and dropped DYNAMICS.
 
 **PAD PATTERN:** one pad, in a style. Per pad.
 - Before: DENSITY (as above), STYLE (STRAIGHT, OFFBEAT, SYNCOPATED, BROKEN, GALLOP), FILL (NONE, LAST BEAT, LAST BAR), SEED, VARY, SWING, DYNAMICS, HUMAN.
-- After: 1 DENSITY · 2 STYLE · 3 FILL · 4 — · 5 HUMAN · 6 DRIFT · 7 SWING · 8 SEED.
-- Lost: DYNAMICS ⚑.
+- After: 1 DENSITY · 2 STYLE · 3 FILL · 4 — · 5 HUMAN · 6 DRIFT · 7 DYNAMICS · 8 SEED.
 
 **GROOVE:** a genre's whole-kit pattern. Merged into DRUM MAP (§2.7).
 - Before: STYLE (FOUR FLOOR, DISCO, BACKBEAT, 2-STEP, BREAKBEAT, HALF TIME, TRAP, BROKEN BEAT), BUSY (0–10, how many hits), FILL (NONE, SNARE, TOMS), SEED, VARY, SWING, DYNAMICS, HUMAN.
@@ -424,24 +428,22 @@ Described once here. Under each generator, only that generator's own knobs get a
 
 **DRUM MAP:** whole kit from the genre map, after Grids.
 - Before: GROOVE (57 map positions), KICK (0–8 hits), SNARE (0–8), HATS (0–16), VARY, SWING, DYNAMICS, HUMAN.
-- After: 1 GROOVE · 2 KICK · 3 SNARE · 4 HATS · 5 HUMAN · 6 FILL (from GROOVE) · 7 DRIFT · 8 SEED (from GROOVE).
-- SWING follows the scene's swing, and DYNAMICS is lost ⚑.
+- After: 1 GROOVE · 2 KICK · 3 SNARE · 4 HATS · 5 HUMAN · 6 FILL (from GROOVE) · 7 DYNAMICS · 8 SEED (from GROOVE).
+- **⚑ Nine knobs for eight slots: DRIFT is the one dropped** (SEED beats DRIFT, §2.8). The alternative is to drop SEED, which DRUM MAP only gains from GROOVE.
 - **My call:** §2.7 put FILL in slot 4, which clashed with "three counts in 2–4". FILL goes to 6.
 
 **EUCLID KIT:** every voice spread evenly.
 - Before: KICK (0–8), SNARE (0–4), HATS (0–16), SHIFT (0–7, voices rotated against each other), VARY, SWING, DYNAMICS, HUMAN.
-- After: 1 KICK · 2 SNARE · 3 SHIFT · 4 HATS · 5 HUMAN · 6 DYNAMICS · 7 SWING · 8 DRIFT.
+- After: 1 KICK · 2 SNARE · 3 SHIFT · 4 HATS · 5 HUMAN · 6 — · 7 DYNAMICS · 8 DRIFT.
 - Nothing lost.
 
 **BROKEN:** the kick on the band's accents, the snare off its post.
 - Before: DENSITY (0–10), SYNC (0–10, how far off the grid posts), GHOSTS (0–10), SEED, VARY, SWING, DYNAMICS, HUMAN.
-- After: 1 SYNC · 2 DENSITY · 3 GHOSTS · 4 — · 5 HUMAN · 6 DRIFT · 7 SWING · 8 SEED.
-- Lost: DYNAMICS ⚑.
+- After: 1 SYNC · 2 DENSITY · 3 GHOSTS · 4 — · 5 HUMAN · 6 DRIFT · 7 DYNAMICS · 8 SEED.
 
 **PERC:** the kit's other voices.
 - Before: DENSITY (0–10), PADS (0–4, how many voices), ACCENT (FLAT, DOWNBEAT, RANDOM), SEED, VARY, SWING, DYNAMICS, HUMAN.
-- After: 1 — · 2 DENSITY · 3 ACCENT · 4 PADS · 5 HUMAN · 6 DRIFT · 7 SWING · 8 SEED.
-- Lost: DYNAMICS ⚑.
+- After: 1 — · 2 DENSITY · 3 ACCENT · 4 PADS · 5 HUMAN · 6 DRIFT · 7 DYNAMICS · 8 SEED.
 
 ### 4.3 Smart Quantize
 
@@ -454,15 +456,15 @@ Described once here. Under each generator, only that generator's own knobs get a
 
 **TIGHT** (melodic): notes onto the grid, slips off the harmony fixed. **Merged with TIDY and GROOVE (§2.7).**
 - Before: TIMING, SWING, GRID, PITCH FIX, DENSITY.
-- After: 1 TIMING · 2 DENSITY · 3 FIX NOTES · 4 GRID · 5 LENGTH (from TIDY) · 6 VELOCITY (new, centred: left = TIDY's EVEN, right = GROOVE's DYNAMICS) · 7 SWING · 8 FEEL (from GROOVE).
+- After: 1 TIMING · 2 DENSITY · 3 FIX NOTES · 4 GRID · 5 LENGTH (from TIDY) · 6 VELOCITY (new, centred: left = TIDY's EVEN, right = GROOVE's DYNAMICS) · 7 CLEAN (TIDY's, kept as a knob) · 8 FEEL (from GROOVE).
 
 **TIDY** (melodic): on the grid, cleaned, velocities evened. Merged into TIGHT.
 - Before: TIMING, CLEAN, EVEN, LENGTH (default +20 %), DENSITY.
-- After: gone. CLEAN becomes automatic at TIDY's default, EVEN moves to TIGHT's VELOCITY left half, and LENGTH and DENSITY move to TIGHT.
+- After: gone. CLEAN moves to TIGHT's slot 7, EVEN moves to TIGHT's VELOCITY left half, and LENGTH and DENSITY move to TIGHT.
 
 **GROOVE** (melodic): on the scene's pocket with accents. Merged into TIGHT.
 - Before: TIMING (90 %), SWING, DYNAMICS (60 %), FEEL, DENSITY.
-- After: gone. FEEL and SWING move to TIGHT, and DYNAMICS moves to VELOCITY's right half.
+- After: gone. FEEL moves to TIGHT, SWING goes (the set's swing), and DYNAMICS moves to VELOCITY's right half.
 
 **SHAPED:** chords filled out and voice-led; a line's stray octave leaps folded back.
 - Before: TIMING, PITCH FIX, VOICING (0–10, how far chords are filled and led), LENGTH.
@@ -478,7 +480,7 @@ Described once here. Under each generator, only that generator's own knobs get a
 
 **FULL** (melodic): everything at once. **Removed (§2.7).**
 - Before: TIMING, SWING, GRID, PITCH FIX, EMBELLISH (0–16), DYNAMICS, LENGTH, RHYTHM.
-- After: gone. TIGHT covers TIMING, SWING, GRID, FIX NOTES, LENGTH and DYNAMICS, and DECORATE covers EMBELLISH. **⚑ RHYTHM on a quantized clip is not carried anywhere.**
+- After: gone. TIGHT covers TIMING, GRID, FIX NOTES, LENGTH and DYNAMICS, and DECORATE covers EMBELLISH. **⚑ RHYTHM on a quantized clip is not carried anywhere.**
 
 **MUTATE:** some pitches changed by scale steps.
 - Before: TIMING, AMOUNT (0–10 notes), STEPS (1–4, how far they move), SEED.
@@ -510,7 +512,7 @@ Described once here. Under each generator, only that generator's own knobs get a
 
 **TIGHT (drums):** hits onto the grid. **Merged with TIDY and GROOVE.**
 - Before: TIMING, SWING, GRID (default 1/8), CLEAN (30 %), DENSITY (thin the weakest hits / fill gaps).
-- After: 1 TIMING · 2 DENSITY · 3 CLEAN · 4 GRID · 5 — · 6 VELOCITY (EVEN ← middle → DYNAMICS) · 7 SWING · 8 FEEL.
+- After: 1 TIMING · 2 DENSITY · 3 CLEAN · 4 GRID · 5 — · 6 VELOCITY (EVEN ← middle → DYNAMICS) · 7 — · 8 FEEL.
 
 **TIDY (drums):** on the grid, cleaned hard, velocities evened. Merged into TIGHT.
 - Before: TIMING, CLEAN (80 %), EVEN, GRID, DENSITY.
@@ -518,7 +520,7 @@ Described once here. Under each generator, only that generator's own knobs get a
 
 **GROOVE (drums):** on a pocket with accents. Merged into TIGHT.
 - Before: TIMING (90 %), SWING, DYNAMICS, FEEL (default STRAIGHT), DENSITY.
-- After: gone (into TIGHT's FEEL, SWING and VELOCITY).
+- After: gone (into TIGHT's FEEL and VELOCITY; SWING goes).
 
 **GHOSTS (drums):** quiet ghost notes added.
 - Before: TIMING, COUNT (0–16 ghosts), LEVEL (20–50, their velocity), SEED.
@@ -584,8 +586,7 @@ Described once here. Under each generator, only that generator's own knobs get a
 
 **NEW LINE:** the rhythm kept, a new line walked over the chord tones.
 - Before: HARMONY, TENSION, STEP (1–7, largest leap in chord tones), SEED, RHYTHM, CHANGES, LENGTH, DENSITY.
-- After: 1 STEP · 2 DENSITY · 3 HARMONY† · 4 — · 5 LENGTH · 6 RHYTHM · 7 COLOUR · 8 SEED.
-- **⚑ CHORD RATE is dropped (SEED wins slot 8).**
+- After: 1 STEP · 2 DENSITY · 3 HARMONY† · 4 CHORD RATE (the empty slot; SEED holds 8) · 5 LENGTH · 6 RHYTHM · 7 COLOUR · 8 SEED.
 
 **ANSWER:** call and response; the start stays, the rest answers by scale steps.
 - Before: SPLIT, STEP (−3 … +3), HARMONY, TENSION, RHYTHM, CHANGES, LENGTH, DENSITY.
@@ -688,7 +689,7 @@ Described once here. Under each generator, only that generator's own knobs get a
 
 **HATS:** the hats re-written at a rate.
 - Before: RATE (QUARTER, OFFBEAT, 8THS, 16THS, GALLOP), OPEN (0–4 open hats), DYNAMICS, SWING, DRIFT.
-- After: 1 RATE · 2 OPEN · 3 — · 4 — · 5 — · 6 DYNAMICS · 7 SWING · 8 DRIFT.
+- After: 1 RATE · 2 OPEN · 3 — · 4 — · 5 — · 6 — · 7 DYNAMICS · 8 DRIFT.
 
 **GHOSTS:** quiet ghost notes added.
 - Before: COUNT (0–12), LEVEL (20–60 velocity), PAD (SNARE, HAT, PERC), SEED, DRIFT.
@@ -696,7 +697,7 @@ Described once here. Under each generator, only that generator's own knobs get a
 
 **FILL:** a fill at the end. **Absorbs TURNAROUND.**
 - Before: SIZE (1 BEAT … 1 BAR), DENSITY, PADS (SNARE, TOMS, MIXED), DYNAMICS, SEED, DRIFT.
-- After: 1 SIZE · 2 DENSITY · 3 PADS · 4 WHERE (TURNAROUND's: END, EVERY BAR) · 5 — · 6 DYNAMICS · 7 DRIFT · 8 SEED.
+- After: 1 SIZE · 2 DENSITY · 3 PADS · 4 WHERE (TURNAROUND's: END, EVERY BAR) · 5 — · 6 DRIFT · 7 DYNAMICS · 8 SEED.
 
 **SHIFT:** some hits of one pad shifted by 16ths.
 - Before: AMOUNT, STEPS (−2/16 … +2/16), PAD (SNARE, KICK, PERC, HAT), SEED, DRIFT.
@@ -708,12 +709,12 @@ Described once here. Under each generator, only that generator's own knobs get a
 
 **FEEL:** half time, doubled hats, or both.
 - Before: MODE (HALF TIME, DOUBLE HATS, BOTH), AMOUNT, DYNAMICS, SEED, DRIFT.
-- After: 1 MODE · 2 AMOUNT · 3 — · 4 — · 5 — · 6 DYNAMICS · 7 DRIFT · 8 SEED.
+- After: 1 MODE · 2 AMOUNT · 3 — · 4 — · 5 — · 6 DRIFT · 7 DYNAMICS · 8 SEED.
 - **My call:** this fixes the old table, which had dropped FEEL's SEED.
 
 **GRIDS:** an X/Y map between this pattern and the genres' patterns (after Mutable Instruments' Grids). **Absorbs EUCLID.**
 - Before: X, Y (0–100 %), KICK, SNARE, HATS (− … +, each part's threshold), CHAOS (0–10, levels shaken), DYNAMICS, SEED.
-- After: 1 X · 2 Y · 3 SNARE · 4 KICK · 5 HATS · 6 DYNAMICS · 7 CHAOS · 8 SEED.
+- After: 1 X · 2 Y · 3 SNARE · 4 KICK · 5 HATS · 6 CHAOS · 7 DYNAMICS · 8 SEED.
 - **My call:** SEED stays per §2.8, which supersedes the old "GRIDS loses SEED".
 
 **EUCLID (drums):** one pad on a Euclidean rhythm. Merged into GRIDS.
@@ -730,7 +731,7 @@ Described once here. Under each generator, only that generator's own knobs get a
 
 **FORM (drums):** the pattern laid out as a form.
 - Before: FORM (default AAAB), UNIT, ANSWER (FILL, STYLE, SPARSE, SOURCE: how B answers), DYNAMICS, DRIFT.
-- After: 1 FORM · 2 UNIT · 3 ANSWER · 4 — · 5 — · 6 DYNAMICS · 7 — · 8 DRIFT.
+- After: 1 FORM · 2 UNIT · 3 ANSWER · 4 — · 5 — · 6 — · 7 DYNAMICS · 8 DRIFT.
 
 ### 4.6 Smart Double
 

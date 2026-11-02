@@ -3,7 +3,7 @@
  * and the preview. */
 
 import { mlog } from '../log.js';
-import { finishRequest, type Request, startRequest, stepRequest } from '../gen/engine.js';
+import { finishExtras, finishRequest, type Request, startRequest, stepRequest } from '../gen/engine.js';
 import type { GenInput } from '../gen/types.js';
 import type { AiPreviewInput, Running } from './job-types.js';
 import { setHeader } from './set-input.js';
@@ -35,9 +35,11 @@ export function algoTick(r: Running): AiPreviewInput | null | 'busy' {
         + `options ${picks.map((p) => p.preset.id).join(' ')}`);
     if (!picks.length) return null;
     const c = r.ctx!;
+    /* The jog reaches the rest past the picks (design §2.2). */
+    const all = [...picks, ...finishExtras(g, picks)];
     return {
-        task: r.task, track: r.track, slot: r.slot, orig: c.orig, options: picks.map((p) => p.notes),
+        task: r.task, track: r.track, slot: r.slot, orig: c.orig, options: all.map((p) => p.notes), picks: picks.length,
         len: c.len, scaleNum: c.scale[0], scaleDen: c.scale[1],
-        gen: { ctx: g.ctx, picks: picks.map((p) => ({ preset: p.preset, knobs: [...p.knobs] })) },
+        gen: { ctx: g.ctx, picks: all.map((p) => ({ preset: p.preset, knobs: [...p.knobs] })) },
     };
 }

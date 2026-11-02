@@ -26,13 +26,15 @@ When the generator is done, the clip's notes fill the screen with the options al
 
 | Control | Action |
 | --- | --- |
-| **Jog** | Hear **ORIG** and each option. The clip swaps in place and keeps playing in time. |
+| **Jog** | Hear **ORIG** and each option. The clip swaps in place and keeps playing in time. Keep turning past the last one for every other generator that suits the clip (`MORE` on the strip while there are more). |
 | **Touch the jog** | Show which generator made the option (`GENERATOR: TURNAROUND`). |
 | **Knobs** | Reshape the option showing (below). |
 | **Pads, steps, held steps** | Edit the option. Each option keeps its own edits. |
 | **Jog click** or **Back** | Keep what is showing and close the preview. |
 | Hold a **track button** | See the track's parameter pages while held. |
 | **Undo** | Return the clip to how it was before the generator ran. |
+
+![Past the first options: the strip scrolls](../assets/screens/ai_preview_scrolled.png){ .small }
 
 You can stack generators: during a preview, **Shift** + hold **Step 16**, **14**
 or **15** keeps what is showing and runs the next generator on it. For example,

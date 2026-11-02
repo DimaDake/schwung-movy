@@ -24,6 +24,8 @@ export interface AiPreviewInput {
     slot: number;
     orig: AiClip | null;      // null = the target slot was empty
     options: AiNote[][];
+    /** How many of `options` are the curated picks; the rest are past them (absent: all). */
+    picks?: number;
     len: number;
     scaleNum: number;
     scaleDen: number;

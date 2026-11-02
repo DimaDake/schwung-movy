@@ -91,6 +91,20 @@ const thin = [];
 /* A knob that only acts once another is turned (RE-VOICE's TOP leads the top
  * voice of a SPREAD voicing): hidden at the defaults, shown once its parent
  * moves (the preview re-probes after every turn), so probed there too. */
+/* Past the picks (plans/2026-11-01-generator-ux-design.md §2.2): every other
+ * suitable generator, in a stable order, never one the guard refused. */
+{
+    const a = G.generateAll(fixtureInput('lead', { scene: 'free' }));
+    const b = G.generateAll(fixtureInput('lead', { scene: 'free' }));
+    const ids = (r) => r.extras.map((p) => p.preset.id).join(' ');
+    ok('extras_exist_past_the_picks', a.extras.length > 0);
+    eq('extras_are_stable', ids(a), ids(b));
+    ok('extras_skip_the_picks_and_the_refused', a.extras.every((x) => x.notes.length > 0 && !a.picks.some((p) => p.preset === x.preset)));
+    const cls = a.extras.map((x) => ['close', 'rhythm', 'exp'].indexOf(x.preset.cls));
+    ok('extras_grouped_by_family', cls.every((c, i) => i === 0 || c >= cls[i - 1]));
+    eq('new_clip_has_no_extras', G.generateAll(createInput(false, 'free', 2)).extras.length, 0);
+    ok('options_fit_the_engine_stash', a.picks.length + a.extras.length <= G.PREVIEW_MAX);
+}
 ok('no_level_anywhere', !('level' in G.prepare(fixtureInput('lead')).input) && typeof G.GEN_LEVELS === 'undefined');
 /* Plain words and no SWING (plans/2026-11-01-generator-ux-design.md §2.6). */
 ok('no_preset_has_a_swing_knob', G.PRESETS.every((p) => !p.knobs.some((k) => k.name === 'SWING')));

@@ -8,7 +8,7 @@
 import { _log, eq, ok, installMockEngine, uninstallMockEngine, seqEngineTick, resetSeqEngine,
     appState, selectTrack, undoDepth, beginEdit, endEdit, CLOSE, resetUndoState, resetUndoGroups, undoOnce } from './harness.mjs';
 import { openPreview, previewIndex, previewSwitch, commitPreview, aiPreviewTick as previewTick, previewInput,
-    aiPhase, aiSetWillChange, resetAiJob, aiPreviewActive, previewLabels } from '../../dist/esm/ai/index.js';
+    aiPhase, aiSetWillChange, resetAiJob, aiPreviewActive, previewLabels, stripWindow } from '../../dist/esm/ai/index.js';
 import { seqState } from '../../dist/esm/seq/state.js';
 
 const N = (p) => [{ tick: 0, gate: 24, pitch: p, vel: 100 }];
@@ -138,4 +138,21 @@ previewSwitch(1);
 ok('eight: and gives it back', ops().includes('aiload 0 0 6'));
 done();
 resetUndoState(); resetUndoGroups();
+/* Scrolling past the picks (§2.2): the jog reaches every option, the strip
+ * windows them with MORE while there are more, and stops at the last. */
+{
+    const many = { ...input(), options: Array.from({ length: 10 }, (_, i) => N(60 + i)), picks: 3 };
+    resetUndoState(); resetUndoGroups(); resetAiJob();
+    eng = installMockEngine(); selectTrack(0); seqState.sessionMode = false; seqState.session[0].selected = 0; seqEngineTick();
+    openPreview(many);
+    previewSwitch(99);
+    eq('jog_stops_at_last_option', previewIndex(), 10);
+    eq('strip_window_at_the_picks', stripWindow(2, 10, 3).join(), '1,3,true');
+    eq('strip_window_scrolled', stripWindow(7, 10, 3).join(), '5,7,true');
+    eq('strip_window_at_the_end', stripWindow(10, 10, 3).join(), '8,10,false');
+    eq('strip_window_fits_all', stripWindow(2, 3, 3).join(), '1,3,false');
+    commitPreview();
+    done();
+}
+
 }

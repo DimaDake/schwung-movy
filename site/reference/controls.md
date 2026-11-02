@@ -119,7 +119,7 @@ The shortcuts also work in Session view, except the Clip page and the generators
 
 | Control | Action |
 | --- | --- |
-| **Jog** | Hear ORIG and each option. |
+| **Jog** | Hear ORIG and each option; past the last, every other generator that suits the clip. |
 | Touch the **jog** | Show the generator's name. |
 | **Knobs** | Reshape the option. Touch: name and value. |
 | **Jog click** / **Back** | Keep the option shown. |

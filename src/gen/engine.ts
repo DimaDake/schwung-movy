@@ -8,7 +8,7 @@ import { buildPlans, planSteps } from './plan.js';
 import { defaults, type Preset, serves } from './preset.js';
 import { PRESETS } from './presets/catalog.js';
 import { type Candidate, scoreCandidate, selectOptions } from './select.js';
-import type { GenInput, Note } from './types.js';
+import type { GenInput, Note, PresetClass } from './types.js';
 import { variantKnobs } from './variant.js';
 import { hash } from './rng.js';
 import { createTake, selectCreate, TAKES } from './create/takes.js';
@@ -77,10 +77,35 @@ export function finishRequest(req: Request, count = optionCountFor(req.ctx.task)
         .map((c) => ({ preset: c.preset, knobs: c.knobs, notes: c.notes }));
 }
 
-export function generateAll(input: GenInput, count?: number): { picks: Pick[]; ctx: GenCtx; dropped: string[] } {
+/** Options a preview can hold: ORIG and these fill the engine's stash
+ *  (AI_STASH_SLOTS in engine/crates/seq-core/src/engine/ai_clip.rs). */
+export const PREVIEW_MAX = 47;
+
+const FAMILY: PresetClass[] = ['close', 'rhythm', 'exp'];
+
+/** Past the picks (plans/2026-11-01-generator-ux-design.md §2.2): the best
+ *  take of every other generator that served this clip, already made and
+ *  passed by the guard, in a stable order (family, then name) so one found
+ *  once is in the same place next time. New Clip shows all as its picks. */
+export function finishExtras(req: Request, picks: Pick[]): Pick[] {
+    if (req.ctx.task === 'create') return [];
+    const best = new Map<Preset, Candidate>();
+    for (const c of req.done) {
+        if (c.score < 0 || picks.some((p) => p.preset === c.preset)) continue;
+        const b = best.get(c.preset);
+        if (!b || c.score > b.score) best.set(c.preset, c);
+    }
+    return [...best.values()]
+        .sort((a, b) => FAMILY.indexOf(a.preset.cls) - FAMILY.indexOf(b.preset.cls) || a.preset.name.localeCompare(b.preset.name) || a.preset.id.localeCompare(b.preset.id))
+        .slice(0, Math.max(0, PREVIEW_MAX - picks.length))
+        .map((c) => ({ preset: c.preset, knobs: c.knobs, notes: c.notes }));
+}
+
+export function generateAll(input: GenInput, count?: number): { picks: Pick[]; extras: Pick[]; ctx: GenCtx; dropped: string[] } {
     const req = startRequest(input);
     while (!stepRequest(req));
-    return { picks: finishRequest(req, count), ctx: req.ctx, dropped: req.dropped };
+    const picks = finishRequest(req, count);
+    return { picks, extras: finishExtras(req, picks), ctx: req.ctx, dropped: req.dropped };
 }
 
 /** A knob turn: the option again at the new positions, or null when the

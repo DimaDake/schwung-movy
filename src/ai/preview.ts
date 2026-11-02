@@ -1,5 +1,6 @@
-/* The AI preview (design §5.2): ORIG + up to three Smart Quantize or eight
- * Variation options for one clip. The engine stashes a full copy of the clip
+/* The AI preview (design §5.2): ORIG + the options for one clip, the picks
+ * first and the rest past them (plans/2026-11-01-generator-ux-design.md
+ * §2.2). The engine stashes a full copy of the clip
  * per option (aistash/aiload), so an option left and come back to is exactly
  * as edited; one never visited is written fresh (aiclip, quantize 0).
  * A session belongs to its clip (user, 2026-10-29): leaving the clip parks it
@@ -36,17 +37,16 @@ const VERBS = { quantize: 'SMART QUANT', variation: 'VARIATION', double: 'SMART 
 
 const keyOf = (o: Open): string => clipKey(o.p.track, o.p.slot);
 
-/** A session is open on the clip on screen (shown or not). */
-export function aiSessionOpen(): boolean { return cur !== null; }
+export function aiSessionOpen(): boolean { return cur !== null; }   // on the clip on screen, shown or not
 /** The preview owns the screen and the jog: open, and no track button held. */
 export function aiPreviewActive(): boolean { return cur !== null && !trackButtonHeld(); }
 /** The step whose icon names the open session's generator; -1 none. */
 export function aiSessionStep(): number { return cur ? entryStep(cur.p.task) : -1; }
 export function previewIndex(): number { return cur ? cur.index : -1; }
 export function previewCount(): number { return cur ? cur.p.options.length : 0; }
-export function previewLabels(): string[] {
-    return cur ? cur.p.options.map((_, i) => String(i + 1)) : [];
-}
+/** Cells the strip shows at once: the picks, at most eight (design §2.2). */
+export function previewVisible(): number { return cur ? Math.min(8, cur.p.picks ?? cur.p.options.length) : 0; }
+export function previewLabels(): string[] { return cur ? cur.p.options.map((_, i) => String(i + 1)) : []; }
 /* Seen for about a second after the jog is let go (render.ts toasts). */
 const JOG_NAME_TTL = 196;
 

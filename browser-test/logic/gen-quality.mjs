@@ -121,6 +121,22 @@ for (const [id, role] of [['q-tight', 'lead'], ['qd-tight', 'drums']]) {
     }
 }
 
+/* Quantize DENSITY's right half (§2.8): a few quiet in-between notes (DECORATE's
+ * ornaments), every note the player played kept. */
+{
+    const input = fixtureInput('lead', { task: 'quantize' });
+    input.tracks[0].clips[0].notes = messy(PARTS.lead);
+    const ctx = G.prepare(input);
+    const p = by('q-tight');
+    const mid = turn(ctx, p, 'DENSITY', 5), more = turn(ctx, p, 'DENSITY', 8);
+    const key = (n) => `${n.tick}.${n.pitch}`;
+    const kept = new Set(mid.map(key));
+    const added = more.filter((n) => !kept.has(key(n)));
+    const med = [...mid.map((n) => n.vel)].sort((a, b) => a - b)[mid.length >> 1];
+    ok('quant_density_right_adds_quiet_notes', more.length > mid.length && added.length > 0 && added.every((n) => n.vel < med)
+        && mid.every((n) => more.some((m) => m.tick === n.tick && m.pitch === n.pitch)));
+}
+
 /* A Smart Double keeps its part's role: a run of 16ths over a held drone is refused. */
 {
     const ctx = G.prepare(fixtureInput('drone', { task: 'double', scene: 'free' }));

@@ -19,7 +19,7 @@ export function flagsPageActive(): boolean {
     return appState.currentView === VIEW_FLAGS;
 }
 
-/* CLICK VOLUME and GENERATORS are value rows (click-volume.ts, gen-level.ts),
+/* CLICK VOLUME is a value row (click-volume.ts),
  * BACKUPS opens the versions
  * list, MIGRATE FROM MOVE re-runs the set migration (migrate-action.ts).
  *
@@ -33,7 +33,6 @@ export const ACTION_ROWS = [
     /* First, not last: the device scenarios reach BACKUPS by clamping onto the
      * last row and stepping up one, so MIGRATE FROM MOVE must stay last. */
     { name: 'CLICK VOLUME', hint: 'Metronome loudness. Turn knob 1: 0 to +11 dB.' },
-    { name: 'GENERATORS', hint: 'How bold the generators are. Turn knob 1.' },
     { name: 'BACKUPS', hint: 'Older versions of this set. Restore one.' },
     /* Its hint and value are live (migrate-action.ts); these are the fallback. */
     { name: 'MIGRATE FROM MOVE', hint: 'Bring every Set over from Move.' },
@@ -50,7 +49,6 @@ export function actionRowSelected(): number {
 const rowIs = (name: string) => actionRowSelected() >= 0 && ACTION_ROWS[actionRowSelected()].name === name;
 
 export function clickRowSelected(): boolean { return rowIs('CLICK VOLUME'); }
-export function genRowSelected(): boolean { return rowIs('GENERATORS'); }
 export function backupsRowSelected(): boolean { return rowIs('BACKUPS'); }
 export function migrateRowSelected(): boolean { return rowIs('MIGRATE FROM MOVE'); }
 

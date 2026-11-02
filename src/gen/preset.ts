@@ -4,7 +4,7 @@
 import type { GenCtx } from './analysis/context.js';
 import type { KnobDef } from './knobs.js';
 import type { Span } from './create/phrase.js';
-import type { GenLevel, Note, PresetClass, RoleKind, Task } from './types.js';
+import type { Note, PresetClass, RoleKind, Task } from './types.js';
 
 export interface Preset {
     id: string;
@@ -42,27 +42,10 @@ export function serves(p: Preset, ctx: GenCtx): boolean {
     return !p.roles || (kind !== undefined && p.roles.includes(kind));
 }
 
-/* The level moves every preset's intensity, not only which presets are
- * offered: SAFE rewrites less and stays on chord tones, WILD rewrites more,
- * reaches further in colour and, where the scene is free, in harmony. */
-const LEVEL_SHIFT: Record<string, Partial<Record<GenLevel, number>>> = {
-    AMOUNT: { SAFE: -2, WILD: 2 },
-    TENSION: { SAFE: -1, WILD: 2 },
-    HARMONY: { WILD: 1 },
-    LIKENESS: { SAFE: 2, WILD: -3 },
-    LOCK: { SAFE: 2, WILD: -3 },
-    ENDING: { SAFE: -1, WILD: 1 },
-    SEAMS: { WILD: 1 },
-};
-
+/** A preset's knobs at their defaults (once moved by SAFE/BALANCED/WILD,
+ *  removed 2026-11-01: the defaults are BALANCED's). */
 export function defaults(p: Preset, ctx: GenCtx): number[] {
-    const level = ctx.input.level;
-    return p.knobs.map((k) => {
-        let d = k.def(ctx);
-        const shift = LEVEL_SHIFT[k.name]?.[level] ?? 0;
-        if (shift && !(k.name === 'HARMONY' && ctx.freedom !== 'free')) d += shift;
-        return Math.max(0, Math.min(k.steps(ctx) - 1, d));
-    });
+    return p.knobs.map((k) => Math.max(0, Math.min(k.steps(ctx) - 1, k.def(ctx))));
 }
 
 /** Knob index by name, for generators that read their own knobs by name. */

@@ -37,7 +37,7 @@ const SWUNG = DRUMS.map((n) => (Math.round(n.tick / S) % 2 === 1 ? { ...n, tick:
 const clip = (track, slot, notes, len = 32) => ({ track, slot, len, loopStart: 0, scaleNum: 1, scaleDen: 1, transpose: 0, quant: 0, notes });
 
 /** A Set: track 0 is the part under test; `scene` says what the others play in B. */
-export function fixtureInput(role, { task = 'variation', scene = 'locked', level = 'BALANCED' } = {}) {
+export function fixtureInput(role, { task = 'variation', scene = 'locked' } = {}) {
     const drum = role === 'drums';
     const part = drum ? DRUMS : PARTS[role];
     const me = { index: 0, name: 'Track 1', module: drum ? 'drumrack' : 'obxd', drum,
@@ -57,7 +57,7 @@ export function fixtureInput(role, { task = 'variation', scene = 'locked', level
         : task === 'quantize' && scene === 'free' ? [] : [keys, bass];
     const tracks = drum ? [me, ...others] : [me, ...others, drums];
     const own = task !== 'variation';
-    return { task, level, tracks, target: { track: 0, slot: own ? 0 : 1 }, source: own ? null : { track: 0, slot: 0 },
+    return { task, tracks, target: { track: 0, slot: own ? 0 : 1 }, source: own ? null : { track: 0, slot: 0 },
         len: dbl ? 64 : 32, scale: [1, 1], drum, kit: drum ? [36, 37, 38, 42, 45, 46, 48] : [], root: 'A', mode: 'minor' };
 }
 
@@ -80,7 +80,7 @@ export const ROLES = ['pad', 'stabs', 'bass', 'arpeggio', 'lead', 'duet', 'drone
  *  the slot is scene B of fixtureInput, where the others play by `scene`. */
 export function createInput(drum, scene, nonce, { len = 32, pad } = {}) {
     if (scene === 'empty') {
-        return { task: 'create', level: 'BALANCED', tracks: [{ index: 0, name: 'Track 1', module: drum ? 'drumrack' : 'obxd', drum, padNames: null, clips: [] }],
+        return { task: 'create', tracks: [{ index: 0, name: 'Track 1', module: drum ? 'drumrack' : 'obxd', drum, padNames: null, clips: [] }],
             target: { track: 0, slot: 1 }, source: null, len, scale: [1, 1], drum, kit: drum ? Array.from({ length: 16 }, (_, i) => 36 + i) : [],
             root: 'C', mode: 'major', nonce, pad };
     }

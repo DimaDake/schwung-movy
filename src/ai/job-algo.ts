@@ -13,7 +13,7 @@ function inputOf(r: Running, source: number | null): GenInput {
     const c = r.ctx!;
     const h = setHeader();
     return {
-        task: r.task, level: r.level, tracks: r.tracks, target: { track: r.track, slot: r.slot },
+        task: r.task, tracks: r.tracks, target: { track: r.track, slot: r.slot },
         source: source === null ? null : { track: r.track, slot: source },
         len: c.len, scale: c.scale, drum: c.drum, kit: c.kit, root: h.root, mode: h.mode,
         ...(r.task === 'create' ? { nonce: r.nonce, pad: c.drum && seqState.watchLane >= 0 ? seqState.watchLane : undefined } : {}),

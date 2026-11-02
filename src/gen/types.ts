@@ -9,9 +9,6 @@ import type { Role, RoleKind } from '../ai/role.js';
 export type Note = AiNote;
 export type { AiClip, AiTrackInput, Role, RoleKind };
 
-/* Settings → GENERATORS: how far the options may stray (select.ts, preset.ts). */
-export type GenLevel = 'SAFE' | 'BALANCED' | 'WILD';
-export const GEN_LEVELS: GenLevel[] = ['SAFE', 'BALANCED', 'WILD'];
 
 export const TPS = 24;              // ticks per step
 export const SPB = 16;              // steps per bar
@@ -59,7 +56,6 @@ export type PresetClass = 'close' | 'rhythm' | 'exp';
 /** What the request was given: the Set as the job reads it. */
 export interface GenInput {
     task: Task;
-    level: GenLevel;
     tracks: AiTrackInput[];
     target: { track: number; slot: number };
     source: { track: number; slot: number } | null;

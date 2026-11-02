@@ -80,7 +80,7 @@ eq('select_is_deterministic', sel.picks.map((p) => sig(p.notes)).join('|'), G.ge
 const qs = G.generateAll(quantInput('lead'));
 eq('select_six_quantize_options', qs.picks.length, 6);
 eq('select_quantize_opens_on_the_tightest', qs.picks[0].preset.cls, 'close');
-eq('slots_three_of_six_keep_the_proportions', G.slotsFor('variation', 3, 'BALANCED').join(','), 'close,rhythm,exp');
+eq('slots_three_of_six_keep_the_proportions', G.slotsFor('variation', 3).join(','), 'close,rhythm,exp');
 
 /* §5.1 — every knob of every preset moves the output. Each knob must change
  * the option on at least one fixture its preset serves, and a preset keeps at
@@ -91,6 +91,7 @@ const thin = [];
 /* A knob that only acts once another is turned (RE-VOICE's TOP leads the top
  * voice of a SPREAD voicing): hidden at the defaults, shown once its parent
  * moves (the preview re-probes after every turn), so probed there too. */
+ok('no_level_anywhere', !('level' in G.prepare(fixtureInput('lead')).input) && typeof G.GEN_LEVELS === 'undefined');
 /* Plain words and no SWING (plans/2026-11-01-generator-ux-design.md §2.6). */
 ok('no_preset_has_a_swing_knob', G.PRESETS.every((p) => !p.knobs.some((k) => k.name === 'SWING')));
 eq('no_old_knob_names', G.PRESETS.flatMap((p) => p.knobs.filter((k) => ['TENSION', 'CHANGES', 'PITCH FIX', 'SPARSE', 'VARY', 'BUSY'].includes(k.name)).map((k) => p.id + ':' + k.name)).join(' '), '');

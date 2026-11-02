@@ -17,7 +17,6 @@ import { openPowerModal, closeLeaveModal } from '../../dist/esm/app/leave-modal.
 const DUMP = '0 16 0 1/1 0 0|0.24.60.100,96.24.64.100';
 
 import { PREFS_PATH } from '../../dist/esm/seq/prefs.js';
-import { genLevelTurn, resetGenLevel } from '../../dist/esm/seq/gen-level.js';
 
 function boot(files = {}) {
     const fs = installMockFs(files);
@@ -54,16 +53,13 @@ eq('start: running', aiPhase(), 'running');
 aiCancel();
 done(st);
 
-/* The GENERATORS level is read when the job starts: a turn on the Settings
- * page during the reads changes the next request, not this one. */
+/* No SAFE/BALANCED/WILD (plans/2026-11-01-generator-ux-design.md §2.5): a
+ * stored level from an older movy is ignored, and no request carries one. */
 st = boot({ [PREFS_PATH]: JSON.stringify({ genLevel: 'SAFE' }) });
-resetGenLevel();
 startAiJob('quantize', 0, 0);
-genLevelTurn(1); genLevelTurn(1);
 runTicks(80);
-eq('level_read_once_per_request', aiPreviewInput()?.gen?.ctx.input.level, 'SAFE');
+ok('no_level_in_a_request', aiPreviewInput()?.gen && !('level' in aiPreviewInput().gen.ctx.input));
 commitPreview();
-resetGenLevel();
 done(st);
 
 st = boot();

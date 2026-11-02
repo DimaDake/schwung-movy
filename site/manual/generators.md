@@ -167,17 +167,6 @@ tracks, and fills, rolls, breaks and beat repeats on drums.
 half a short ending of its own, like a question the second half answers. A loop
 longer than 8 bars can't be doubled.
 
-## How bold: Settings → GENERATORS
-
-**Shift** + **Step 2** opens Settings. On the **GENERATORS** row, turn knob 1 to
-choose **SAFE**, **BALANCED** (default) or **WILD**:
-
-![Settings: GENERATORS](../assets/screens/flags-generators.png){ .small }
-
-- **SAFE**: more close options; smaller changes; shorter Smart Double endings.
-- **BALANCED**: a mix of close, rhythmic and experimental options.
-- **WILD**: more experimental options; bigger changes; harmony moves further.
-
 ## Good to know
 
 - While a generator works, the header shows `QUANTIZING...`, `VARIATION...`,

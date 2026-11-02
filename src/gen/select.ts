@@ -1,12 +1,11 @@
 /* Choosing the options (design §4): every preset that serves the part runs at
  * its default knobs; each result is scored on how it sits in the scene; the
- * level's slots are filled per class with the best that are also different
+ * slots are filled per class with the best that are also different
  * enough from each other; the options are shown closest first. */
 
 import type { GenCtx } from './analysis/context.js';
 import { chordAt } from './analysis/context.js';
 import { isStrong } from './analysis/events.js';
-import type { GenLevel } from './types.js';
 import type { Preset } from './preset.js';
 import { noteFit } from './theory/category.js';
 import { BEAT, type Note, type PresetClass, type Task, TPS } from './types.js';
@@ -64,29 +63,24 @@ export function scoreCandidate(ctx: GenCtx, p: Preset, notes: Note[]): { score: 
 }
 
 type C = PresetClass;
-const SLOTS: Record<Exclude<Task, 'create'>, Record<number, Record<GenLevel, C[]>>> = {
-    variation: {
-        6: { SAFE: ['close', 'close', 'close', 'close', 'rhythm', 'rhythm'], BALANCED: ['close', 'close', 'rhythm', 'rhythm', 'exp', 'exp'],
-            WILD: ['close', 'rhythm', 'rhythm', 'exp', 'exp', 'exp'] },
-    },
-    double: {
-        6: { SAFE: ['close', 'close', 'close', 'rhythm', 'rhythm', 'rhythm'], BALANCED: ['close', 'close', 'rhythm', 'rhythm', 'exp', 'exp'],
-            WILD: ['close', 'rhythm', 'rhythm', 'exp', 'exp', 'exp'] },
-    },
+/* The mix of the first picks: BALANCED's, the one mix since SAFE/BALANCED/WILD
+ * went (2026-11-01); the jog reaches the rest past the picks. */
+const SLOTS: Record<Exclude<Task, 'create'>, Record<number, C[]>> = {
+    variation: { 6: ['close', 'close', 'rhythm', 'rhythm', 'exp', 'exp'] },
+    double: { 6: ['close', 'close', 'rhythm', 'rhythm', 'exp', 'exp'] },
     quantize: {
-        3: { SAFE: ['close', 'rhythm', 'rhythm'], BALANCED: ['close', 'rhythm', 'exp'], WILD: ['rhythm', 'exp', 'exp'] },
+        3: ['close', 'rhythm', 'exp'],
         /* Six since the mutations (presets/quant-mutate.ts): option 1 is still the tightest. */
-        6: { SAFE: ['close', 'close', 'rhythm', 'rhythm', 'rhythm', 'exp'], BALANCED: ['close', 'close', 'rhythm', 'rhythm', 'exp', 'exp'],
-            WILD: ['close', 'rhythm', 'rhythm', 'exp', 'exp', 'exp'] },
+        6: ['close', 'close', 'rhythm', 'rhythm', 'exp', 'exp'],
     },
 };
 
-export function slotsFor(task: Exclude<Task, 'create'>, count: number, level: GenLevel): C[] {
-    const t = SLOTS[task][count]?.[level];
+export function slotsFor(task: Exclude<Task, 'create'>, count: number): C[] {
+    const t = SLOTS[task][count];
     if (t) return t;
     /* Any other count is the full ladder thinned evenly, so three options
      * are three of the six, in the same proportions. */
-    const base = SLOTS[task][task === 'quantize' ? 3 : 6][level];
+    const base = SLOTS[task][task === 'quantize' ? 3 : 6];
     return Array.from({ length: count }, (_, i) => base[Math.min(base.length - 1, Math.floor((i * base.length) / count))]);
 }
 
@@ -108,7 +102,7 @@ export function spread(a: Note[], b: Note[]): number {
     return avg(parts);
 }
 
-export function selectOptions(cands: Candidate[], task: Task, count: number, level: GenLevel): Candidate[] {
+export function selectOptions(cands: Candidate[], task: Task, count: number): Candidate[] {
     const pool = cands.filter((c) => c.score >= 0).sort((a, b) => b.score - a.score);
     const chosen: Candidate[] = [];
     const farEnough = (c: Candidate) => chosen.every((x) => x.preset !== c.preset && difference(x.notes, c.notes) >= MIN_PAIR);
@@ -122,7 +116,7 @@ export function selectOptions(cands: Candidate[], task: Task, count: number, lev
         if (best) chosen.push(best);
         return !!best;
     };
-    for (const cls of slotsFor(task === 'create' ? 'variation' : task, count, level)) {
+    for (const cls of slotsFor(task === 'create' ? 'variation' : task, count)) {
         if (chosen.length >= count) break;
         take((c) => c.preset.cls === cls && farEnough(c)) || take(farEnough);
     }

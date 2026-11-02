@@ -42,7 +42,7 @@ const PRESETS = [
     'step_indicator', 'step_rec_header', 'loop_strip_midclip', 'loop_strip_outside',
     'note_view_bass', 'note_view_chords', 'note_view_drums', 'note_view_plus', 'note_view_dense', 'note_view_wide',
     'song_band', 'song_band_overflow', 'song_band_end',
-    'quant-overlay-three', 'quant-overlay-two', 'flags-top', 'flags-scrolled', 'flags-generators', 'gen_preview_knob', 'gen_preview_name',
+    'quant-overlay-three', 'quant-overlay-two', 'flags-top', 'flags-scrolled', 'gen_preview_knob', 'gen_preview_name',
     'ai_preview_orig', 'ai_preview_opt1', 'ai_preview_opt3', 'ai_preview_var8', 'ai_hold_progress_50', 'ai_hold_variation_50', 'ai_hold_double_50', 'ai_hold_newclip_50',
     'cpu-movy-tracks', 'cpu-unsplit-module', 'cpu-overscale',
     'cpu-empty', 'cpu-sends', 'cpu-sends-quiet', 'cpu-master', 'leave_modal',
@@ -103,7 +103,7 @@ const BASE = {
     note_view_bass: 'test8', note_view_chords: 'test8', note_view_drums: 'test8',
     note_view_plus: 'test8', note_view_dense: 'test8', note_view_wide: 'test8',
                                 'quant-overlay-three': 'test8', 'quant-overlay-two': 'test8',
-    'flags-top': 'test8', 'flags-scrolled': 'test8', 'flags-generators': 'test8', gen_preview_knob: 'test8',
+    'flags-top': 'test8', 'flags-scrolled': 'test8', gen_preview_knob: 'test8',
     ai_preview_orig: 'test8', ai_preview_opt1: 'test8', ai_preview_opt3: 'test8', ai_preview_var8: 'test8', ai_hold_progress_50: 'test8', ai_hold_variation_50: 'test8', ai_hold_double_50: 'test8', ai_hold_newclip_50: 'test8',
                                                                             lfo_chain: 'test8',         lfo_assign_toast: 'test8',
     leave_modal: 'test8', power_modal: 'test8',
@@ -591,11 +591,10 @@ function applyView(preset) {
          * hint that follows it are what the page IS — `top` has the selection
          * on BACKUPS, `scrolled` on the LAST row. */
         case 'flags-top':
-        case 'flags-scrolled':
-        case 'flags-generators': {
+        case 'flags-scrolled': {
             resetFlagsPage();
             const scrolled = preset === 'flags-scrolled';
-            flagsPageState.selected = scrolled ? flagsRowCount() - 1 : preset === 'flags-generators' ? 1 : 0;
+            flagsPageState.selected = scrolled ? flagsRowCount() - 1 : 0;
             lastRender = () => renderFlagsView(buildFlagsPageVM());
             lastRender();
             break;

@@ -48,8 +48,7 @@ import { mixerJog, mixerKnobTouch, mixerKnobTurn } from '../seq/mixer-input.js';
 import { noteViewActive } from '../seq/note-view.js';
 import { clipPageActive, clipPageRelease } from '../seq/clip-page.js';
 import { clickVolumeTurn } from '../seq/click-volume.js';
-import { genLevelTurn } from '../seq/gen-level.js';
-import { backupsRowSelected, clickRowSelected, flagsPageActive, flagsPageJog, genRowSelected, migrateRowSelected } from '../seq/flags-page.js';
+import { backupsRowSelected, clickRowSelected, flagsPageActive, flagsPageJog, migrateRowSelected } from '../seq/flags-page.js';
 import { migrateRowClick } from '../seq/migrate-action.js';
 import { setsPageActive, setsPageBack, setsPageClick, setsPageJog } from '../seq/sets-page.js';
 import { textEntry, textEntryActive } from '../renderer/text-entry-lib.js';
@@ -623,11 +622,10 @@ export function onMidiMessageInternal(data: number[]): void {
             return;
         }
         if (flagsPageActive()) {
-            // Only CLICK VOLUME and GENERATORS take a knob (1).
+            // Only CLICK VOLUME takes a knob (1).
             // Everything else is consumed anyway, so a stray turn cannot reach
             // the module underneath.
             if (k === 0 && clickRowSelected() && clickVolumeTurn(delta)) appState.dirty = true;
-            if (k === 0 && genRowSelected() && genLevelTurn(delta)) appState.dirty = true;
             return;
         }
         if (cpuPageActive()) {

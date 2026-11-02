@@ -73,7 +73,7 @@ export function finishRequest(req: Request, count = optionCountFor(req.ctx.task)
         rememberOptions(req.ctx.drum, picks.map((c) => c.notes));
         return picks.map((c) => ({ preset: c.preset, knobs: c.knobs, notes: c.notes }));
     }
-    return selectOptions(req.done, req.ctx.task, count, req.ctx.input.level)
+    return selectOptions(req.done, req.ctx.task, count)
         .map((c) => ({ preset: c.preset, knobs: c.knobs, notes: c.notes }));
 }
 

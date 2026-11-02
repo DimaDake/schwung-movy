@@ -98,7 +98,7 @@ const tight = turn(lead, by('q-mutate'), { AMOUNT: 0 });
 /* Six options; the first is still the tightest. */
 {
     for (const role of ['lead', 'pad', 'drums']) {
-        const r = G.generateAll((() => { const i = fixtureInput(role, { task: 'quantize', level: 'WILD' }); i.tracks[0].clips[0].notes = messy(i.tracks[0].clips[0].notes); return i; })());
+        const r = G.generateAll((() => { const i = fixtureInput(role, { task: 'quantize' }); i.tracks[0].clips[0].notes = messy(i.tracks[0].clips[0].notes); return i; })());
         ok(`quantize_${role}_offers_six`, r.picks.length === 6, r.picks.map((p) => p.preset.id).join(' '));
     }
 }

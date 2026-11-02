@@ -7,7 +7,7 @@ import type { JobCtx } from './job-target.js';
 import type { GenCtx } from '../gen/analysis/context.js';
 import type { Request } from '../gen/engine.js';
 import type { Preset } from '../gen/preset.js';
-import type { GenLevel, Task } from '../gen/types.js';
+import type { Task } from '../gen/types.js';
 import { STEP_AI_VARIATION, STEP_DOUBLE_LOOP, STEP_QUANTIZE } from '../seq/constants.js';
 
 export type AiTask = Task;
@@ -35,7 +35,6 @@ export interface Running {
     task: AiTask;
     track: number;
     slot: number;
-    level: GenLevel;          // read once at start: a Settings turn changes the next request
     uuid: string;
     next: number;             // next track to read; TRACKS = all read
     tracks: AiTrackInput[];

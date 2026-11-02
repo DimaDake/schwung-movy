@@ -28,6 +28,10 @@ export interface Preset {
      *  retry; `spans` is SPARSE's phrase plan, for a generator that writes
      *  its phrases into it itself (create/phrase.ts). */
     generate: (ctx: GenCtx, v: number[], seed: number, spans?: readonly Span[]) => Note[];
+    /** A merged generator (plans/2026-11-01-generator-ux-design.md §2.7):
+     *  the id whose dice a knob state rolls, so a path taken over from a
+     *  removed generator gives that generator's takes. Default: its own id. */
+    seedAs?: (v: number[], ctx: GenCtx) => string | undefined;
 }
 
 export function serves(p: Preset, ctx: GenCtx): boolean {

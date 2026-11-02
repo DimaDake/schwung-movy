@@ -8,7 +8,7 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { _log, ok } from './harness.mjs';
+import { _log, eq, ok } from './harness.mjs';
 import * as G from '../../dist/esm/gen/index.js';
 import { inputOf, REMOVED, SURVIVORS } from '../gen-merge-fixtures.mjs';
 
@@ -73,5 +73,18 @@ report('q_tight_default_kept', misses('q-tight', 'q-tight', {}));
 report('qd_tight_default_kept', misses('qd-tight', 'qd-tight', {}));
 /* A drone is no longer offered MODE: its one pitch had no mode to move to. */
 report('q_mode_default_kept', misses('q-mode', 'q-mode', {}, ['messy:drone/free/quantize']));
+/* Variation melodic (Task 3). */
+report('merge_v_anticipate_into_displace', misses('v-anticipate', 'v-displace', { MODE: 'PUSH 1/8', LENGTH: 6, TENSION: 4 }));
+report('merge_v_spread_into_revoice', misses('v-spread', 'v-revoice', { AMOUNT: 0, SPREAD: 'DROP 2', TOP: 'HOLD' }));
+report('merge_v_register_into_revoice', misses('v-register', 'v-revoice', { AMOUNT: 0, SPLIT: '1/2 +OCT' }));
+report('merge_v_octave_into_bassline', misses('v-octave', 'v-bassline', { PATTERN: 'OCT OFFBEATS' }));
+/* On a drone, HOLD NOTE is DRONE MOVE: PEDAL's pedal under a part that is
+ * already one held note is not carried over. */
+report('merge_v_pedal_into_hold', misses('v-pedal', 'v-hold', { NOTE: 'TONIC', AMOUNT: 5 },
+    ['drone/locked/variation', 'drone/partial/variation', 'drone/free/variation']));
+report('merge_v_drone_into_hold', misses('v-drone', 'v-hold', { NOTE: 'PIVOT', SHARED: 'TIE', LENGTH: 7 }));
+for (const id of ['v-displace', 'v-revoice', 'v-bassline']) report(`${id}_default_kept`, misses(id, id, {}));
+ok('variation_merged_away', ['v-anticipate', 'v-spread', 'v-register', 'v-octave', 'v-pedal', 'v-drone'].every(gone));
+eq('hold_note_is_named', G.presetById('v-hold')?.name, 'HOLD NOTE');
 ok('quantize_merged_away', ['q-tidy', 'q-groove', 'q-full', 'q-invert', 'qd-tidy', 'qd-groove', 'qd-full'].every(gone));
 }

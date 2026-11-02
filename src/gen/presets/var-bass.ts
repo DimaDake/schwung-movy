@@ -4,16 +4,16 @@
  * chord tone, an approach into the next chord), in the source's register,
  * velocity and feel. */
 
-import { chordAt } from '../analysis/context.js';
+import { chordAt, type GenCtx } from '../analysis/context.js';
 import { strength } from '../analysis/events.js';
 import { custom, K } from '../knobs.js';
 import { planAt } from '../plan.js';
 import type { Preset } from '../preset.js';
-import { rng } from '../rng.js';
+import { type Rng, rng } from '../rng.js';
 import { dynamics } from '../shape/dynamics.js';
 import { nearestPitch, pc } from '../theory/pc.js';
 import { BAR, type Ev, TPS } from '../types.js';
-import { finish, partEvs } from './helpers.js';
+import { finish, over, partEvs, someOf } from './helpers.js';
 
 export type Part = 'r' | 'o' | 'f' | 't' | 'a';
 /* [step, length in steps, part] per bar of 16ths. */
@@ -45,14 +45,29 @@ function defaultFigure(evs: Ev[], bars: number): number {
     return best;
 }
 
+/* OCTAVE BASS's figures (§2.7), after the library: the part's own notes,
+ * half of the chosen ones jumping an octave. */
+const OCTS = ['OFFBEATS', 'ALTERNATE', 'LAST', 'RANDOM'] as const;
+
+function octaveBass(ctx: GenCtx, h: number, changes: number, fig: number, r: Rng): Ev[] {
+    const out = over(ctx, partEvs(ctx), { h, changes });
+    const pick = (e: Ev, i: number) => (fig === 0 ? strength(e.tick) < 0.7 : fig === 1 ? i % 2 === 1 : fig === 2 ? i % 4 === 3 : r() < 0.5);
+    const cand = out.map((e, i) => i).filter((i) => pick(out[i], i));
+    const sel = someOf(cand.length, 0.5, r);
+    [...sel].forEach((j) => out[cand[j]].voices.forEach((x) => { x.pitch += x.pitch + 12 <= ctx.hi + 12 ? 12 : -12; }));
+    return out;
+}
+
 export const BASSLINE: Preset = {
     id: 'v-bassline', name: 'BASSLINE', task: 'variation', drum: false, cls: 'rhythm', roles: ['bass'], fit: () => 0.65,
-    knobs: [{ ...custom('PATTERN', LIB.map((x) => x[0])), def: (c) => defaultFigure(partEvs(c), Math.max(1, c.end / BAR)) },
+    seedAs: (v) => (v[0] >= LIB.length ? 'v-octave' : undefined),
+    knobs: [{ ...custom('PATTERN', [...LIB.map((x) => x[0]), ...OCTS.map((o) => 'OCT ' + o)]), def: (c) => defaultFigure(partEvs(c), Math.max(1, c.end / BAR)) },
         custom('NOTES', NOTES, 0), K.harmony(1), K.changes(0), K.length(5), custom('OCTAVE', ['-1 OCT', 'AS IS', '+1 OCT'], 1), K.dynamics(3), custom('SHIFT', ['0', '+1/16', '+2/16', '+3/16'], 0)],
     generate: (ctx, v, seed) => {
         const r = rng(seed);
         const src = partEvs(ctx);
         if (!src.length) return [];
+        if (v[0] >= LIB.length) return dynamics(finish(ctx, octaveBass(ctx, v[2], v[3], v[0] - LIB.length, r), { length: v[4] }, r), v[6]);
         const chords = planAt(ctx, v[2], v[3]).chords;
         const fig = LIB[v[0]][1];
         const vel = Math.round(src.reduce((s, e) => s + e.voices[0].vel, 0) / src.length);

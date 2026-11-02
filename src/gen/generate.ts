@@ -32,8 +32,9 @@ function offBand(ctx: GenCtx, p: Preset, v: number[], raw: Note[]): Note[] {
 
 export function generateOption(ctx: GenCtx, p: Preset, v: number[]): Generated {
     let why = 'no output';
+    const id = p.seedAs?.(v, ctx) ?? p.id;
     for (let retry = 0; retry < RETRIES; retry++) {
-        const seed = mix(ctx.seed, hash(p.id), retry);
+        const seed = mix(ctx.seed, hash(id), retry);
         let raw: Note[];
         try {
             raw = p.generate(ctx, v, seed);

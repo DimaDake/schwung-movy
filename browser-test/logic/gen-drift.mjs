@@ -23,7 +23,7 @@ export async function run() {
 _log('\nTest: generator drift');
 
 const withDrift = G.PRESETS.filter((p) => p.knobs.some((k) => k.name === 'DRIFT'));
-ok('drift_on_variation_and_double_where_a_knob_is_free', withDrift.length >= 40
+ok('drift_on_variation_and_double_where_a_knob_is_free', withDrift.length >= 30
     && withDrift.every((p) => p.task === 'variation' || p.task === 'double'));
 ok('drift_never_on_smart_quantize', !G.PRESETS.some((p) => p.task === 'quantize' && p.knobs.some((k) => k.name === 'DRIFT')));
 ok('drift_opens_off', withDrift.every((p) => G.defaults(p, G.prepare(fixtureInput(p.drum ? 'drums' : 'lead', { task: p.task, scene: 'free' })))[G.knobIndex(p, 'DRIFT')] === 0));

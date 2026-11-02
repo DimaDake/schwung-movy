@@ -1,7 +1,7 @@
 /* Variation, rhythm and connections (the second group of the old ladder):
  * the source's notes and role, placed or joined differently. */
 
-import { chordAt } from '../analysis/context.js';
+import { chordAt, type GenCtx } from '../analysis/context.js';
 import { isStrong, spanTo } from '../analysis/events.js';
 import { custom, K } from '../knobs.js';
 import { planAt } from '../plan.js';
@@ -16,38 +16,36 @@ import { finish, over, partEvs, someOf, targetAt } from './helpers.js';
 
 const SHIFTS = [-8, -6, -4, -3, -2, -1, 1, 2, 3, 4, 6, 8];
 
+/* MODE (§2.7): SHIFT moves some notes by SHIFT; a PUSH (ANTICIPATE's) leans
+ * every chord change early by its size, the note keeping its end. */
+const MODES = ['SHIFT', 'PUSH 1/32', 'PUSH 1/16', 'PUSH 1/8', 'PUSH 1/4'] as const;
+const PUSHES = [TPS / 2, TPS, TPS * 2, TPS * 4];
+
+function anticipate(ctx: GenCtx, out: Ev[], h: number, push: number): Ev[] {
+    const chords = planAt(ctx, h).chords;
+    const changes = out.map((e, i) => i > 0 && !sameChord(chordAt(chords, e.tick, ctx.k), chordAt(chords, e.tick - 1, ctx.k)));
+    const any = changes.some((x) => x);
+    return out.map((e, i) => {
+        const hit = any ? changes[i] : e.tick % (TPS * 16) === 0 && e.tick > 0;
+        if (!hit || !isStrong(e.tick)) return e;
+        const t = Math.max(i > 0 ? out[i - 1].tick + TPS / 2 : 0, e.tick - push);
+        return { tick: t, voices: e.voices.map((x) => ({ ...x, gate: x.gate + (e.tick - t) })) };
+    });
+}
+
 export const DISPLACE: Preset = {
-    id: 'v-displace', name: 'DISPLACE', task: 'variation', drum: false, cls: 'rhythm', fit: () => 0.5,
-    knobs: [K.amount(4), custom('SHIFT', SHIFTS.map((s) => (s > 0 ? '+' : '') + s + '/16'), 7), K.harmony(1), K.seed()],
+    id: 'v-displace', name: 'DISPLACE', task: 'variation', drum: false, cls: 'rhythm', fit: () => 0.55,
+    knobs: [K.amount(4), custom('SHIFT', SHIFTS.map((s) => (s > 0 ? '+' : '') + s + '/16'), 7), K.harmony(1), K.seed(),
+        custom('MODE', MODES, 0), K.length(5), K.tension(5)],
     generate: (ctx, v, seed) => {
         const r = rng(seed + v[3] * 7919);
+        if (v[4] > 0) return finish(ctx, anticipate(ctx, over(ctx, partEvs(ctx), { h: v[2], tension: v[6] }), v[2], PUSHES[v[4] - 1]), { length: v[5] }, r);
         const evs = partEvs(ctx);
         const sel = someOf(evs.length, Math.max(0.1, v[0] / 10), r);
         const moved = displace(evs, (i) => sel.has(i), SHIFTS[v[1]], ctx.end);
         /* Two onsets landing together merge: the earlier one keeps it. */
         const out = moved.filter((e, i) => i === 0 || e.tick !== moved[i - 1].tick);
-        return finish(ctx, over(ctx, out, { h: v[2] }), { length: 5 }, r);
-    },
-};
-
-/** Chord changes pushed early by a 32nd to a quarter, the way a played part
- *  leans into the next bar; the note keeps its end. */
-export const ANTICIPATE: Preset = {
-    id: 'v-anticipate', name: 'ANTICIPATE', task: 'variation', drum: false, cls: 'rhythm', fit: () => 0.6,
-    knobs: [custom('PUSH', ['1/32', '1/16', '1/8', '1/4'], 2), K.harmony(1), K.length(6), K.tension(4)],
-    generate: (ctx, v, seed) => {
-        const push = [TPS / 2, TPS, TPS * 2, TPS * 4][v[0]];
-        const out = over(ctx, partEvs(ctx), { h: v[1], tension: v[3] });
-        const chords = planAt(ctx, v[1]).chords;
-        const changes = out.map((e, i) => i > 0 && !sameChord(chordAt(chords, e.tick, ctx.k), chordAt(chords, e.tick - 1, ctx.k)));
-        const any = changes.some((x) => x);
-        const pushed = out.map((e, i) => {
-            const hit = any ? changes[i] : e.tick % (TPS * 16) === 0 && e.tick > 0;
-            if (!hit || !isStrong(e.tick)) return e;
-            const t = Math.max(i > 0 ? out[i - 1].tick + TPS / 2 : 0, e.tick - push);
-            return { tick: t, voices: e.voices.map((x) => ({ ...x, gate: x.gate + (e.tick - t) })) };
-        });
-        return finish(ctx, pushed, { length: v[2] }, rng(seed));
+        return finish(ctx, over(ctx, out, { h: v[2], tension: v[6] }), { length: v[5] }, r);
     },
 };
 

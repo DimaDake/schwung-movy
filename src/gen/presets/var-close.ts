@@ -1,9 +1,10 @@
 /* Variation, close to the source (the first group of the old ladder): the
  * source's rhythm and role, new notes from the new harmony. */
 
+import type { GenCtx } from '../analysis/context.js';
 import { custom, K } from '../knobs.js';
 import type { Preset } from '../preset.js';
-import { rng } from '../rng.js';
+import { type Rng, rng } from '../rng.js';
 import { nearestPitch, pc, stepScale } from '../theory/pc.js';
 import { colourPcs } from '../theory/category.js';
 import { spreadVoicing } from '../theory/voicing.js';
@@ -25,28 +26,64 @@ export const NEXT: Preset = {
     },
 };
 
-/** Chords: an inversion up or down on the chosen events; lines: the contour
- *  mirrored there (where the source rose, it falls). */
+/* RE-VOICE takes SPREAD and REGISTER in (§2.7). AMOUNT inverts chords (a
+ * line: mirrors its contour) on the chosen events; SPLIT moves the part from
+ * a point on by an interval (REGISTER's answer in another register); SPREAD
+ * opens chords into drop voicings, TOP leading the top voice on its own. */
+const INTERVALS: [string, number][] = [['-2 OCT', -24], ['-OCT', -12], ['-5TH', -7], ['+4TH', 5], ['+5TH', 7], ['+OCT', 12], ['+2 OCT', 24]];
+const SPLITS = ['OFF', ...['1/4', '1/2', '3/4'].flatMap((q) => INTERVALS.map(([n]) => `${q} ${n}`))];
+const splitOf = (v: number): [number, number] | null => (v ? [Math.floor((v - 1) / INTERVALS.length) + 1, INTERVALS[(v - 1) % INTERVALS.length][1]] : null);
+
+function revoiced(ctx: GenCtx, evs: Ev[], amount: number, r: Rng): Ev[] {
+    const sel = someOf(evs.length, amount / 10, r);
+    const upward = r() < 0.5;
+    const axis = ctx.mid;
+    const chords = ctx.role?.kind === 'pad' || ctx.role?.kind === 'stabs';
+    return evs.map((e, i) => {
+        if (!sel.has(i)) return e;
+        const ps = e.voices.map((x) => x.pitch).sort((a, b) => a - b);
+        if (chords && ps.length > 1) {
+            if (upward) ps[0] += 12; else ps[ps.length - 1] -= 12;
+        } else ps.forEach((p, j) => { ps[j] = 2 * axis - p; });
+        ps.sort((a, b) => a - b);
+        return { tick: e.tick, voices: e.voices.map((x, j) => ({ ...x, pitch: ps[j] })) };
+    });
+}
+
+function spread(ctx: GenCtx, out: Ev[], drop: number, topMode: number, h: number): void {
+    let top = -1;
+    for (const e of out) {
+        let ps = e.voices.map((x) => x.pitch).sort((a, b) => a - b);
+        ps = drop === 0 ? ps : spreadVoicing(ps, drop, ctx.lo - 12);
+        const T = targetAt(ctx, h, e.tick, 0);
+        if (T && top >= 0 && ps.length > 1 && topMode < 2) {
+            const want = topMode === 0 && T.pcs.includes(pc(top)) ? top : nearestPitch(top, T.pcs, top - 2, top + 2);
+            if (!ps.slice(0, -1).includes(want)) ps[ps.length - 1] = want;
+            ps.sort((a, b) => a - b);
+        }
+        top = ps[ps.length - 1];
+        e.voices.forEach((x, j) => { x.pitch = ps[j]; });
+    }
+}
+
 export const REVOICE: Preset = {
-    id: 'v-revoice', name: 'RE-VOICE', task: 'variation', drum: false, cls: 'close', roles: ['pad', 'stabs', 'lead', 'arpeggio', 'bass'], fit: () => 0.5,
-    knobs: [K.amount(6), K.harmony(1), K.range(5), K.seed()],
+    id: 'v-revoice', name: 'RE-VOICE', task: 'variation', drum: false, cls: 'close', roles: ['pad', 'stabs', 'lead', 'arpeggio', 'bass'],
+    fit: (c) => (c.role?.kind === 'pad' || c.role?.kind === 'stabs' ? 0.55 : 0.5),
+    knobs: [K.amount(6), K.harmony(1), K.range(5), K.seed(), custom('SPREAD', ['AS IS', 'CLOSE', 'DROP 2', 'DROP 2+4', 'WIDE'], 0),
+        custom('TOP', ['HOLD', 'STEP', 'FREE'], 0), custom('SPLIT', SPLITS, 0), K.tension(5)],
     generate: (ctx, v, seed) => {
         const r = rng(seed + v[3] * 7919);
-        const evs = partEvs(ctx);
-        const sel = someOf(evs.length, v[0] / 10, r);
-        const upward = r() < 0.5;
-        const axis = ctx.mid;
-        const chords = ctx.role?.kind === 'pad' || ctx.role?.kind === 'stabs';
-        const moved: Ev[] = evs.map((e, i) => {
-            if (!sel.has(i)) return e;
-            const ps = e.voices.map((x) => x.pitch).sort((a, b) => a - b);
-            if (chords && ps.length > 1) {
-                if (upward) ps[0] += 12; else ps[ps.length - 1] -= 12;
-            } else ps.forEach((p, j) => { ps[j] = 2 * axis - p; });
-            ps.sort((a, b) => a - b);
-            return { tick: e.tick, voices: e.voices.map((x, j) => ({ ...x, pitch: ps[j] })) };
-        });
-        return finish(ctx, over(ctx, moved, { h: v[1], range: v[2], pull: 0.15 }), {}, r);
+        let evs = v[0] > 0 ? revoiced(ctx, partEvs(ctx), v[0], r) : partEvs(ctx);
+        const sp = splitOf(v[6]);
+        if (sp) {
+            const at = (ctx.end * sp[0]) / 4;
+            evs = evs.map((e) => (e.tick < at ? e : { tick: e.tick, voices: e.voices.map((x) => ({ ...x, pitch: x.pitch + sp[1] })) }));
+        }
+        /* Each source pulled as it was: a re-voicing toward the old register, a split not at all. */
+        const pull = v[0] > 0 ? 0.15 : sp ? 0 : undefined;
+        const out = over(ctx, evs, { h: v[1], range: v[2], tension: v[7], pull });
+        if (v[4] > 0) spread(ctx, out, v[4] - 1, v[5], v[1]);
+        return finish(ctx, out, {}, r);
     },
 };
 
@@ -110,28 +147,3 @@ export const ANSWER: Preset = {
     },
 };
 
-/** Chords opened up (drop voicings) with the top voice led on its own: held
- *  as a common tone, moved by step, or free. */
-export const SPREAD: Preset = {
-    id: 'v-spread', name: 'SPREAD', task: 'variation', drum: false, cls: 'close', fit: () => 0.55, roles: [...CHORDS],
-    knobs: [custom('SPREAD', ['CLOSE', 'DROP 2', 'DROP 2+4', 'WIDE'], 1), custom('TOP', ['HOLD', 'STEP', 'FREE'], 0),
-        K.harmony(1), K.tension(5), K.rhythm(0), K.changes(0), K.voices(1), K.length(5)],
-    generate: (ctx, v, seed) => {
-        const r = rng(seed);
-        const out = over(ctx, partEvs(ctx), { h: v[2], changes: v[5], tension: v[3], rhythm: v[4], voices: v[6], r });
-        let top = -1;
-        for (const e of out) {
-            let ps = e.voices.map((x) => x.pitch).sort((a, b) => a - b);
-            ps = v[0] === 0 ? ps : spreadVoicing(ps, v[0], ctx.lo - 12);
-            const T = targetAt(ctx, v[2], e.tick, v[5]);
-            if (T && top >= 0 && ps.length > 1 && v[1] < 2) {
-                const want = v[1] === 0 && T.pcs.includes(pc(top)) ? top : nearestPitch(top, T.pcs, top - 2, top + 2);
-                if (!ps.slice(0, -1).includes(want)) ps[ps.length - 1] = want;
-                ps.sort((a, b) => a - b);
-            }
-            top = ps[ps.length - 1];
-            e.voices.forEach((x, j) => { x.pitch = ps[j]; });
-        }
-        return finish(ctx, out, { length: v[7] }, r);
-    },
-};

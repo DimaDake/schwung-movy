@@ -11,11 +11,11 @@ import { STYLE, STYLE_D } from './var-style.js';
 import { LOOPER } from './var-turing.js';
 import { FORM, FORM_D } from './var-form.js';
 import { HARMONIZE, PULSE } from './var-pulse.js';
-import { ANSWER, NEWLINE, NEXT, REVOICE, SPREAD } from './var-close.js';
-import { HALFTIME, MOTIF, ORNAMENT, REGISTER, RETRO } from './var-exp.js';
-import { DRONE, OCTAVE, PEDAL, THIN, WALK } from './var-held.js';
+import { ANSWER, NEWLINE, NEXT, REVOICE } from './var-close.js';
+import { HALFTIME, MOTIF, ORNAMENT, RETRO } from './var-exp.js';
+import { HOLD, THIN, WALK } from './var-held.js';
 import { COMP, EUCLID, RECOMBINE } from './var-pattern.js';
-import { ANTICIPATE, CONNECT, DISPLACE } from './var-rhythm.js';
+import { CONNECT, DISPLACE } from './var-rhythm.js';
 import { FILL, GHOSTS, HATS, KICK, SHIFT, TURN } from './var-drums.js';
 import { DEVELOP_D, EUCLID_D, FEEL, GRIDS } from './var-drums-exp.js';
 import { ANSWER_Q, EMBELLISH, SHAPED, TIGHT } from './quant-melodic.js';
@@ -34,9 +34,9 @@ import { DRUM_MAP } from './new-drums-map.js';
 import { BREAK_D, FILL_X, PICKUP_D, REPEAT, ROLL, STYLE_XD } from './dbl-drums.js';
 
 const LISTED: Preset[] = [
-    NEXT, FOLLOW, PULSE, HARMONIZE, REVOICE, NEWLINE, ANSWER, SPREAD, ARP, DRONE,
-    BASSLINE, DISPLACE, ANTICIPATE, CONNECT, RECOMBINE, EUCLID, COMP, OCTAVE, WALK, THIN,
-    MOTIF, RETRO, HALFTIME, ORNAMENT, REGISTER, PEDAL, DEVELOP, STYLE, LOOPER, FORM,
+    NEXT, FOLLOW, PULSE, HARMONIZE, REVOICE, NEWLINE, ANSWER, ARP, HOLD,
+    BASSLINE, DISPLACE, CONNECT, RECOMBINE, EUCLID, COMP, WALK, THIN,
+    MOTIF, RETRO, HALFTIME, ORNAMENT, DEVELOP, STYLE, LOOPER, FORM,
     KICK, HATS, GHOSTS, FILL, SHIFT, TURN, FEEL, GRIDS, EUCLID_D, DEVELOP_D, STYLE_D, FORM_D,
     TIGHT, SHAPED, EMBELLISH, ANSWER_Q, MUTATE, MODE, OCTAVES, RATCHET, SHIFT_Q, HUMANIZE,
     TIGHT_D, GHOSTS_D, FILL_D, MUTATE_D, RATCHET_D, HUMANIZE_D,
@@ -48,7 +48,7 @@ const LISTED: Preset[] = [
 ];
 
 /* The ones that roll dice and had knobs to spare get SEED (seeded.ts). */
-const SEEDED = new Set(['v-connect', 'v-recombine', 'v-thin', 'v-ornament', 'v-pedal', 'v-octave', 'v-walk', 'v-retro', 'd-fill',
+const SEEDED = new Set(['v-connect', 'v-recombine', 'v-thin', 'v-ornament', 'v-hold', 'v-walk', 'v-retro', 'd-fill',
     'q-embellish', 'xd-fill']);
 
 /* DRIFT wherever a knob is free, except on Smart Quantize, which fixes a

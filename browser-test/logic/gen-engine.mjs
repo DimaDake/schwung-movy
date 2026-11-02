@@ -88,6 +88,17 @@ eq('slots_three_of_six_keep_the_proportions', G.slotsFor('variation', 3, 'BALANC
  * serve that role). A knob dead on one material is hidden there (live.ts). */
 const liveAny = new Map();
 const thin = [];
+/* A knob that only acts once another is turned (RE-VOICE's TOP leads the top
+ * voice of a SPREAD voicing): hidden at the defaults, shown once its parent
+ * moves (the preview re-probes after every turn), so probed there too. */
+const OPENS = { 'v-revoice:TOP': ['SPREAD', 2] };
+const liveOpened = (c, p, v, i) => {
+    const o = OPENS[p.id + ':' + p.knobs[i].name];
+    if (!o) return false;
+    const w = [...v];
+    w[G.knobIndex(p, o[0])] = o[1];
+    return G.knobLive(c, p, w, i);
+};
 let served = 0;
 for (const task of ['variation', 'quantize', 'double', 'create']) {
     for (const scene of task === 'quantize' ? ['locked', 'free'] : task === 'create' ? ['empty', 'locked', 'free'] : ['locked', 'partial', 'free']) {
@@ -102,7 +113,7 @@ for (const task of ['variation', 'quantize', 'double', 'create']) {
                 served++;
                 const dead = p.knobs.filter((k, i) => {
                     const live = G.knobLive(c, p, v, i);
-                    if (live) liveAny.set(p.id + ':' + k.name, true);
+                    if (live || liveOpened(c, p, v, i)) liveAny.set(p.id + ':' + k.name, true);
                     else if (!liveAny.has(p.id + ':' + k.name)) liveAny.set(p.id + ':' + k.name, false);
                     return !live;
                 });
@@ -124,7 +135,9 @@ ok('knob_property_presets_have_four_to_eight_knobs', G.PRESETS.every((p) => p.kn
  * always gave, another position another take. */
 const seeded = G.PRESETS.filter((p) => p.knobs[4]?.name === 'SEED');
 eq('seed_added_where_knobs_were_free', seeded.map((p) => p.id).sort().join(' '),
-    'd-fill q-embellish v-connect v-octave v-ornament v-pedal v-recombine v-retro v-thin v-walk xd-fill');
+    'd-fill q-embellish v-connect v-ornament v-recombine v-retro v-thin v-walk xd-fill');
+/* HOLD NOTE (PEDAL + DRONE MOVE) has six knobs of its own, then SEED. */
+eq('hold_note_has_seed', G.presetById('v-hold').knobs[6]?.name, 'SEED');
 const sc = G.prepare(fixtureInput('lead', { scene: 'free' }));
 const walk = G.PRESETS.find((p) => p.id === 'v-walk');
 const wv = G.defaults(walk, sc);

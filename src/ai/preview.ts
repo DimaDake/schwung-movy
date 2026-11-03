@@ -78,6 +78,7 @@ let sessions = 0;
 
 export function park(why: string): void {
     const o = S.cur!;
+    sessionFlush(o);   // a gesture or edit still open is this session's step
     o.knobs = knobsSave();
     S.cur = null;
     refreshStop();
@@ -189,6 +190,7 @@ export function previewRemade(len: number, options: AiNote[][]): void {
     o.p.len = len;
     o.visited = o.visited.map((_, i) => i === 0);
     if (o.index > 0) write(o, o.index);
+    sessionStart(o);   // steps at the old length would write old notes at the new one
     appState.dirty = true;
 }
 export function previewInputOpen(): AiPreviewInput | null { return S.cur ? S.cur.p : null; }

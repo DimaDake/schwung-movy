@@ -12,7 +12,7 @@ import { engineGeneration, seqCmd } from '../seq/engine.js';
 import { currentSetUuid } from '../seq/set-session.js';
 import { releaseHold } from '../undo/group.js';
 import { trackLabel } from '../undo/label.js';
-import { popUndo } from '../undo/state.js';
+import { peekUndo, popUndo } from '../undo/state.js';
 import type { UndoEntry, UndoResult } from '../undo/types.js';
 import { parseTrackDump } from './clip-dump.js';
 import { activate, aiPreviewActive, commitPreview, leave, park, VERBS } from './preview.js';
@@ -145,15 +145,28 @@ export function aiEndParkedFor(e: UndoEntry): void {
  *  session open but not shown (a track button held) is kept. */
 export function aiUndoFirst(apply: (e: UndoEntry) => void): UndoResult | null {
     const ai = aiUndo();
-    if (ai !== 'pass') { if (ai.close) apply(ai.close); return ai.result; }
-    if (S.cur) commitPreview('undo');
+    if (ai !== 'pass') {
+        if (ai.close) {
+            /* A session parked and resumed left one entry per visit: closing takes them all back. */
+            const ref = ai.close.aiSession;
+            apply(ai.close);
+            while (ref && sameSession(peekUndo(), ref)) apply(popUndo()!);
+        }
+        return ai.result;
+    }
+    /* Kept, then taken back below as plain history: reopening it now would undo nothing. */
+    if (S.cur) { plain = { key: keyOf(S.cur), id: S.cur.id }; commitPreview('undo'); }
     return null;
 }
+let plain: { key: string; id: number } | null = null;
+const sameSession = (e: UndoEntry | null, ref: { key: string; id: number }) => !!e?.aiSession && e.aiSession.key === ref.key && e.aiSession.id === ref.id;
 
 /** Undo of the stack's top: a kept session's entry reopens it while it is
  *  the clip's latest; a parked session's visit entry ends that session. */
 export function aiUndoTop(top: UndoEntry | null): UndoResult | null {
     if (!top?.aiSession) return null;
+    if (plain && sameSession(top, plain)) { forgetLatest(plain.key); plain = null; return null; }
+    plain = null;
     if (aiReopenable(top)) { popUndo(); return aiReopen(top); }
     aiEndParkedFor(top);
     return null;

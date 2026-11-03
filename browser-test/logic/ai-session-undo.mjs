@@ -13,6 +13,9 @@ import { openPreview, previewIndex, previewSwitch, commitPreview, aiPreviewTick,
 import { seqState } from '../../dist/esm/seq/state.js';
 import * as G from '../../dist/esm/gen/index.js';
 import { createInput } from '../gen-fixtures.mjs';
+import { volumeTrackDown, volumeTrackUp } from '../../dist/esm/mixer/track-volume.js';
+import { fontWidth } from '../../dist/esm/font/index.js';
+import { previewRemade } from '../../dist/esm/ai/index.js';
 
 let eng;
 const KNOB = (k, d) => [0xB0, 71 + k, d * 8 > 0 ? d * 8 : 128 + d * 8];
@@ -129,6 +132,94 @@ ok('parked', !aiSessionOpen());
 seqState.session[0].selected = 1; ticks();
 undoOnce(); ticks();
 ok('parked_session_keeps_undo_steps', aiSessionOpen() && previewIndex() === 2);
+done();
+
+/* Review fixes (final branch review, 2026-11-03). */
+const seedOpt = r.picks.findIndex((p) => p.preset.knobs.some((k, i) => k.seed && G.knobLive(r.ctx, p.preset, p.knobs, i)));
+if (seedOpt >= 0) {
+    const sp = r.picks[seedOpt].preset;
+    const sk = sp.knobs.findIndex((k) => k.seed);
+    const ss = G.knobSlot(sp, sk);
+    const order = G.drain(G.seedOrder(r.ctx, sp, r.picks[seedOpt].knobs.map((k, i) => (i === sk ? 0 : k)), sk));
+    const r0 = order.indexOf(r.picks[seedOpt].knobs[sk]);
+    const dir = r0 + 3 < order.length ? 1 : -1;
+    /* 1: after Undo, SEED counts from where the notes are. */
+    boot(inp());
+    previewSwitch(seedOpt);
+    ticks();
+    /* Each turn its own gesture: the strip times out between them. */
+    previewInput(KNOB(ss, dir)); ticks(220);
+    previewInput(KNOB(ss, dir)); ticks(220);
+    undoOnce(); ticks();
+    previewInput(KNOB(ss, dir)); ticks(20);
+    eq('seed_after_undo_counts_from_the_restored_take', knobsOf(seedOpt + 1)[sk], order[r0 + 2 * dir]);
+    done();
+    /* 2: a SEED turn still waiting for its order never lands after an Undo. */
+    boot(inp());
+    previewSwitch(seedOpt);
+    ticks();
+    track();
+    previewInput(KNOB(ss, dir));
+    undoOnce();
+    ops();                       // the undo's own restore (the option switch taken back)
+    ticks(24);
+    eq('waiting_seed_turn_never_lands_after_undo', knobsOf(seedOpt + 1)[sk], r.picks[seedOpt].knobs[sk]);
+    eq('waiting_seed_turn_writes_nothing_after_undo', ops().filter((o) => o.startsWith('aiclip')).length, 0);
+    done();
+}
+
+/* 3: parked, resumed, kept, then Undo past ORIG takes back every visit. */
+boot(inp());
+previewSwitch(1); ticks();
+seqState.session[0].selected = 3; ticks();
+seqState.session[0].selected = 1; ticks();
+previewSwitch(1); ticks();
+commitPreview('jog click');
+ops();
+for (let i = 0; i < 6 && (i === 0 || aiSessionOpen()); i++) { undoOnce(); ticks(); }
+const back = ops();
+ok('resumed_session_close_takes_back_every_visit', !aiSessionOpen() && back.filter((o) => o.startsWith('uswap')).length === 2, back.filter((o) => o.startsWith('uswap')).join(' '));
+done();
+
+/* 4: HARMONY's value fits the strip and shows that more chords follow, in glyphs the font has. */
+{
+    const long = [G.chordOf(6, 'm7b5'), G.chordOf(11, '7'), G.chordOf(4, 'm7'), G.chordOf(9, '7'), G.chordOf(2, 'maj7'), G.chordOf(7, '7')];
+    const L = G.chordsLabel(long);
+    const room = 128 - 4 - fontWidth('HARMONY') - 4;
+    ok('harmony_label_fits_measured', fontWidth(L) <= room && L.endsWith('...') && !L.startsWith(' '), L + ' ' + fontWidth(L) + '/' + room);
+}
+
+/* 5: a New Clip remade at another length starts its steps again. */
+boot(inp());
+previewSwitch(2); ticks();
+previewRemade(64, r.picks.map((p) => p.notes));
+ticks();
+undoOnce(); ticks();
+eq('remake_restarts_the_steps', previewIndex(), 0);
+done();
+
+/* 6: a gesture left open when the clip is left is that session's step, never
+ * a step of the next session opened. */
+boot(inp());
+previewSwitch(2); ticks();
+const s6 = G.knobSlot(p3, dk);
+previewInput(KNOB(s6, dens0 < 10 ? 1 : -1)); ticks();
+seqState.session[0].selected = 3; ticks();
+openPreview({ ...inp(), slot: 3 }); seqEngineTick();
+ticks(220);
+undoOnce(); ticks();
+eq('open_gesture_never_lands_on_the_next_session', previewIndex(), 0);
+done();
+
+/* 7: Undo with a track button held keeps the session and takes it back. */
+boot(inp());
+previewSwitch(1); ticks();
+volumeTrackDown(0);
+undoOnce();
+const held = ops();
+volumeTrackUp(0);
+ticks();
+ok('undo_with_track_held_takes_the_session_back', !aiSessionOpen() && held.some((o) => o.startsWith('uswap')));
 done();
 
 /* The cap: the oldest steps merge into the first, which still returns to option 1. */

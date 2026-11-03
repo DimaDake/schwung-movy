@@ -106,7 +106,7 @@ _log('\nTest: rhythm and harmony maps');
     eq('harmony_label_rest', G.chordsLabel([am, null, f, null]), 'AM - F -');
     const long = [G.chordOf(6, 'm7b5'), G.chordOf(11, '7'), G.chordOf(4, 'm7'), G.chordOf(9, '7'), G.chordOf(2, 'maj7'), G.chordOf(7, '7')];
     const L = G.chordsLabel(long);
-    ok('harmony_label_fits_the_strip', L.length <= G.HARMONY_LABEL_MAX && L.endsWith('…'));
+    ok('harmony_label_fits_the_strip', L.length <= G.HARMONY_LABEL_MAX && L.endsWith('...'));
     const fr = G.prepare(createInput(false, 'free', 1));
     const hk = (p) => p.knobs[G.knobIndex(p, 'HARMONY')];
     eq('create_harmony_shows_chords', hk(G.presetById('n-chords')).label(1, fr), G.chordsLabel(fr.plans[1].chords));

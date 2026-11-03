@@ -66,6 +66,10 @@ export function seedLabel(o: Opt, i: number): string {
     return '#' + ((s && s.sig === sigOf(o, i) && s.order ? s.pos : o.knobs[i]) + 1);
 }
 
+/** The option's knobs were put back (an undo step): its SEED place is read
+ *  again from them, and a turn still waiting for the order is dropped. */
+export function seedForget(o: Opt): void { states.delete(o); }
+
 /** The SEED knob's position for its LED. */
 export function seedPos(o: Opt, i: number): number {
     const s = states.get(o);

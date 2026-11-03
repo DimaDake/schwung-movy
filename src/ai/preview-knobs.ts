@@ -8,7 +8,7 @@ import { mlog } from '../log.js';
 import { regenerate } from '../gen/engine.js';
 import { knobLive } from '../gen/live.js';
 import { slotKnob } from '../gen/layout.js';
-import { seedLabel, seedPos, seedTick, seedTurn } from './preview-seed.js';
+import { seedForget, seedLabel, seedPos, seedTick, seedTurn } from './preview-seed.js';
 import type { GenCtx } from '../gen/analysis/context.js';
 import type { Preset } from '../gen/preset.js';
 import type { Note } from '../gen/types.js';
@@ -41,7 +41,7 @@ export function knobsOpen(c: GenCtx, picks: { preset: Preset; knobs: number[]; c
     resync = true;
     shown = 1;
     pending = false;
-    held = -1;
+    held = -1; turned = -1;
     accum.length = 0;
 }
 
@@ -56,7 +56,7 @@ export function knobsRestore(s: KnobsSnap): void {
     padsRestore(s.density); held = -1; resync = true; accum.length = 0;
 }
 
-export function knobsReset(): void { ctx = null; opts = []; pending = false; held = -1; shown = 0; resync = false; padsReset(); }
+export function knobsReset(): void { ctx = null; opts = []; pending = false; held = -1; shown = 0; resync = false; turned = -1; padsReset(); }
 
 /** The jog moved to another option: its own knobs from now on, and its name. */
 export function knobsShown(index: number): void {
@@ -170,7 +170,7 @@ export function knobsOf(index: number): number[] { return opts[index - 1]?.knobs
 /** Every option's knob positions, and putting them back (an undo step, preview-undo.ts). */
 export function knobsSnapshot(): number[][] { return opts.map((o) => [...o.knobs]); }
 export function knobsApply(k: number[][]): void {
-    opts.forEach((o, i) => { if (k[i]) { o.knobs = [...k[i]]; o.live = o.live.map(() => undefined); } }); pending = false; turned = -1;
+    opts.forEach((o, i) => { seedForget(o); if (k[i]) { o.knobs = [...k[i]]; o.live = o.live.map(() => undefined); } }); pending = false; turned = -1;
 }
 
 /** Before an undo: a turn still to be regenerated lands now, and a gesture
@@ -178,7 +178,7 @@ export function knobsApply(k: number[][]): void {
 export function knobsFlush(write: (notes: Note[]) => void): void {
     if (pending) knobsTick(write);
     if (turned >= 0) stepEnds();
-}
+    opts.forEach(seedForget); }   // a SEED turn still waiting for its order never lands after
 
 /** The clip's length changed under the preview (New Clip): every option made
  *  again from its own knobs in the new context; the options' new notes. */

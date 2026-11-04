@@ -168,6 +168,23 @@ if (seedOpt >= 0) {
     eq('waiting_seed_turn_never_lands_after_undo', knobsOf(seedOpt + 1)[sk], r.picks[seedOpt].knobs[sk]);
     eq('waiting_seed_turn_writes_nothing_after_undo', ops().filter((o) => o.startsWith('aiclip')).length, 0);
     done();
+    /* ...nor after an Undo that goes straight to ORIG: no step puts the knobs
+     * back there, so knobsFlush alone forgets the turn. The steps restart on
+     * the SEED option, so its first undo is ORIG. */
+    boot(inp());
+    previewSwitch(seedOpt);
+    ticks();
+    previewRemade(32, r.picks.map((p) => p.notes));
+    ticks();
+    track();
+    previewInput(KNOB(ss, dir));
+    undoOnce();
+    ok('seed_orig_undo_lands_on_orig', previewIndex() === 0 && aiSessionOpen());
+    /* ORIG ticks no option's knobs; jogging back (no step put back) would. */
+    previewSwitch(seedOpt + 1);
+    ticks(24);
+    eq('waiting_seed_turn_never_lands_after_undo_to_orig', knobsOf(seedOpt + 1)[sk], r.picks[seedOpt].knobs[sk]);
+    done();
 }
 
 /* 3: parked, resumed, kept, then Undo past ORIG takes back every visit. */

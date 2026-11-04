@@ -43,7 +43,7 @@ export interface BeginOpts {
 
 const IDLE_MS = 600;
 
-interface OpenGroup {
+export interface OpenGroup {
     key: string;
     verb: string;
     target: string;
@@ -69,8 +69,10 @@ let nextSnapId = 1;
 
 export function groupOpen(): boolean { return open !== null; }
 export function openGroupKey(): string | null { return open ? open.key : null; }
+/** The open group, for what records into it (group-ops.ts). */
+export function currentGroup(): OpenGroup | null { return open; }
 
-function now(): number {
+export function now(): number {
     return typeof Date !== 'undefined' && Date.now ? Date.now() : 0;
 }
 
@@ -100,65 +102,6 @@ export function beginEdit(o: BeginOpts): void {
      * first and mutates second; the batched command queue preserves that order
      * within the tick. */
     if (snapId >= 0) seqCmd('usnap ' + snapId);
-}
-
-/** Record a param write into the open group. Silently ignored with no group —
- *  the guard in record.ts is what reports that, with the offending key. */
-export function addParamOp(op: ParamOp): void {
-    if (!open) return;
-    open.lastActivityMs = now();
-    /* Re-writing a key within one gesture keeps the ORIGINAL old value: the
-     * whole point of grouping a knob turn is that undo returns to where the
-     * gesture started, not to the previous detent. */
-    const prev = open.paramOps.find((p) => p.slot === op.slot && p.key === op.key);
-    if (prev) prev.new = op.new;
-    else open.paramOps.push(op);
-}
-
-/** Record a UI-field change. Like param ops, a repeat within one gesture keeps
- *  the original `old`, so undo returns to where the gesture started. */
-export function addUiOp(op: UiOp): void {
-    if (!open) return;
-    open.lastActivityMs = now();
-    const prev = open.uiOps.find((u) => u.field === op.field);
-    if (prev) prev.new = op.new;
-    else open.uiOps.push(op);
-}
-
-/** Attach the pre-gesture module state. The FIRST one wins: a preset knob turn
- *  passes several presets on its way, and undo must land on where the gesture
- *  started, not on the last preset it swept through. */
-export function addStateOp(op: StateOp): void {
-    if (!open || open.stateOp) return;
-    open.stateOp = op;
-}
-
-/** Whether the open group already holds a module snapshot. Callers check this
- *  BEFORE capturing one: the capture is hundreds of blocking reads, and
- *  addStateOp would only discard the result. */
-export function hasStateOp(): boolean {
-    return open !== null && open.stateOp !== undefined;
-}
-
-export function addModuleOp(op: ModuleOp): void {
-    if (!open) return;
-    open.lastActivityMs = now();
-    open.moduleOp = op;
-}
-
-/** Mark engine activity so an IDLE group's timer restarts. */
-export function noteEditActivity(): void {
-    if (open) open.lastActivityMs = now();
-}
-
-export function setDetail(detail: string): void {
-    if (open) open.detail = detail;
-}
-
-export function setVerb(verb: string, target?: string): void {
-    if (!open) return;
-    open.verb = verb;
-    if (target !== undefined) open.target = target;
 }
 
 /**

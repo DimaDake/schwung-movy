@@ -11,7 +11,8 @@
 
 import { mlog } from '../log.js';
 import { seqCmd, setEditGuard } from '../seq/engine.js';
-import { addParamOp, addStateOp, addUiOp, groupOpen, hasStateOp, noteEditActivity } from './group.js';
+import { groupOpen } from './group.js';
+import { addParamOp, addStateOp, addUiOp, hasStateOp, noteEditActivity } from './group-ops.js';
 import { captureModuleState, dumpModuleParams } from './module-dump.js';
 import { isControlVerb, isUndoableVerb, verbOf } from './verbs.js';
 import type { ParamOp } from './types.js';

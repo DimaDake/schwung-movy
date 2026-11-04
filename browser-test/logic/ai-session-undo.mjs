@@ -7,7 +7,7 @@
  */
 
 import { _log, eq, ok, installMockEngine, uninstallMockEngine, seqEngineTick, resetSeqEngine,
-    selectTrack, resetUndoState, resetUndoGroups, undoOnce, redoOnce, beginEdit, endEdit, CLOSE, canRedo, undoTick } from './harness.mjs';
+    selectTrack, resetUndoState, resetUndoGroups, undoOnce, redoOnce, beginEdit, endEdit, CLOSE, canRedo, undoTick, popUndo } from './harness.mjs';
 import { openPreview, previewIndex, previewSwitch, commitPreview, aiPreviewTick, previewInput, resetAiJob, knobsOf,
     aiSessionOpen, aiForgetClip, SessionUndo, SESSION_CAP } from '../../dist/esm/ai/index.js';
 import { seqState } from '../../dist/esm/seq/state.js';
@@ -17,6 +17,7 @@ import { volumeTrackDown, volumeTrackUp } from '../../dist/esm/mixer/track-volum
 import { fontWidth } from '../../dist/esm/font/index.js';
 import { previewRemade } from '../../dist/esm/ai/index.js';
 import { handleStepButton } from '../../dist/esm/seq/router-steps.js';
+import { KEPT_CAP } from '../../dist/esm/ai/index.js';
 
 let eng;
 const KNOB = (k, d) => [0xB0, 71 + k, d * 8 > 0 ? d * 8 : 128 + d * 8];
@@ -340,6 +341,38 @@ Date.now = realNow;
 ticks(6);
 undoOnce(); ticks();
 ok('held_step_turn_is_a_step', previewIndex() === 3 && track() === beforeVel, previewIndex() + ' ' + shown);
+done();
+
+/* Deferred review 4: kept sessions are capped; the oldest dropped frees its
+ * stash, and an undo of its entry is plain history, never a reopen. */
+boot(inp());
+previewSwitch(1); ticks();
+commitPreview('jog click');
+ops();
+for (let i = 0; i < KEPT_CAP; i++) {
+    openPreview({ ...inp(), track: 1 + (i % 15), slot: Math.floor(i / 15) });
+    commitPreview('jog click');
+}
+const evicted = ops();
+ok('kept_cap_frees_oldest_stash', evicted.includes('aiclr 0 1') && evicted.filter((o) => o.startsWith('aiclr')).length === 1, evicted.filter((o) => o.startsWith('aiclr')).join(' '));
+for (let i = 0; i < KEPT_CAP; i++) popUndo();
+undoOnce();
+const plainUndo = ops();
+ok('kept_cap_evicted_undo_is_plain', !aiSessionOpen() && plainUndo.some((o) => o.startsWith('uswap')), plainUndo.join(' '));
+done();
+/* A kept session reopened and parked still shows from its stash: dropped from
+ * the kept, it is not freed. */
+boot(inp());
+previewSwitch(1); ticks();
+commitPreview('jog click');
+undoOnce();
+ok('kept_cap_reopened', aiSessionOpen());
+ops();
+for (let i = 0; i < KEPT_CAP; i++) {
+    openPreview({ ...inp(), track: 1 + (i % 15), slot: Math.floor(i / 15) });
+    commitPreview('jog click');
+}
+ok('kept_cap_parked_not_freed', !ops().some((o) => o.startsWith('aiclr 0 1')));
 done();
 
 /* The cap: the oldest steps merge into the first, which still returns to option 1. */

@@ -210,6 +210,15 @@ ok('long_clips_add_developed_and_eight_chord_progressions', longPlans.some((l) =
 const rich = [0, 1, 2, 3, 4, 5].map((n) => G.generateAll(createInput(false, 'free', 900 + n, { len: 256 })));
 ok('a_long_clip_opens_on_more_than_four_chords', rich.every((r) => G.uniqueChords(r.ctx.plans[G.runPlan(r.ctx)]) > 4));
 ok('its_chords_part_plays_more_than_four', rich.every((r) => chordsIn(r.ctx, r.picks.find((p) => p.preset.id === 'n-pad').notes) > 4));
+/* Each development also BOLD (a turn to MEDIANT or a move that connects
+ * badly): at HARMONY's far end, never a default nor a take. */
+const chordsKey = (p) => p.chords.map((c) => (c ? c.root + c.quality : '-')).join(' ');
+const boldOf = (r) => r.ctx.plans.map((p, i) => [p, i]).filter(([p]) => p.label.endsWith('+BOLD'));
+ok('long_clips_add_bold_developments', rich.every((r) => boldOf(r).length > 0 && boldOf(r).every(([p]) => p.ext)));
+ok('bold_developments_sit_at_the_far_end', rich.every((r) => { const e = r.ctx.plans.findIndex((p) => p.ext); return e > 0 && r.ctx.plans.slice(e).every((p) => p.ext); }));
+ok('a_bold_development_turns_where_a_plain_one_does_not', rich.every((r) => boldOf(r).every(([b]) => !r.ctx.plans.some((p) => !p.ext && chordsKey(p) === chordsKey(b)))));
+ok('a_take_never_opens_on_a_bold_development', rich.every((r) => !r.ctx.plans[G.runPlan(r.ctx)].ext && !r.ctx.plans[G.defaultHarmony(r.ctx)].ext));
+eq('short_clips_have_no_bold_developments', G.prepare(createInput(false, 'free', 1)).plans.filter((p) => p.label.endsWith('+BOLD')).length, 0);
 G.forgetOptions();
 
 /* Length: the options follow it, every bar. */

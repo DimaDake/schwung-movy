@@ -9,7 +9,7 @@ import type { GenCtx } from '../analysis/context.js';
 import { fits, sample } from '../plan.js';
 import { chordOf } from '../theory/pc.js';
 import { diatonic } from '../theory/roman.js';
-import { journey } from '../theory/develop.js';
+import { boldJourney, journey } from '../theory/develop.js';
 import { walks } from '../theory/walk.js';
 import { grow, type Loop, order } from './harmony-map.js';
 import { mix, rng } from '../rng.js';
@@ -84,8 +84,16 @@ export function* createPlans(ctx: GenCtx, n: number): Generator<void, HarmonyPla
     const seed = (label: string, chords: (Chord | null)[], ext = false) => seeds.push({ label, chords, ext, seed: seeds.length });
     const short = ctx.key.minor ? MINOR : MAJOR;
     for (const p of short) seed(p[0], degrees(ctx, p));
+    /* Each development's bold twin goes on after the grammar, so it neither
+     * grows loops nor takes a place on the map from one: defaults and takes
+     * are drawn as before it existed. */
+    const bold: Loop[] = [];
     if (long) {
-        for (const p of short.filter((x) => x[0] !== 'TONIC')) seed(p[0] + '+DEV', journey(degrees(ctx, p), Math.ceil(slots / 4), ctx.key));
+        for (const p of short.filter((x) => x[0] !== 'TONIC')) {
+            seed(p[0] + '+DEV', journey(degrees(ctx, p), Math.ceil(slots / 4), ctx.key));
+            const b = boldJourney(degrees(ctx, p), Math.ceil(slots / 4), ctx.key);
+            if (b) bold.push({ label: p[0] + '+BOLD', chords: b, ext: true });
+        }
         for (const p of ctx.key.minor ? LONG_MINOR : LONG_MAJOR) seed(p[0], degrees(ctx, p));
     }
     for (const p of ctx.key.minor ? MORE_MINOR : MORE_MAJOR) seed(p[0], degrees(ctx, p));
@@ -98,7 +106,7 @@ export function* createPlans(ctx: GenCtx, n: number): Generator<void, HarmonyPla
     /* Not `for (… of yield* …)`: QuickJS 2025-04-26 (the device's) throws
      * "stack underflow" on it (browser-test/source-rules.mjs bans it). */
     const grown = yield* grow(seeds, ctx.key, MAP);
-    for (const l of grown) {
+    for (const l of [...grown, ...bold]) {
         const base = lay(l.chords, n);
         const chords = ctx.freedom === 'partial' ? fits(ctx, base, 0) : base;
         const k = id(chords);

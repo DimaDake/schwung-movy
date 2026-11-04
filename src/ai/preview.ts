@@ -117,6 +117,7 @@ export function previewSwitch(delta: number): void {
     const o = S.cur;
     if (!o) return;
     const was = o.index;
+    sessionFlush(o);   // an edit or turn still open is a step of the option it was made on
     go(o, Math.max(0, Math.min(o.p.options.length, o.index + delta)));
     if (o.index !== was) sessionStep(o);
 }

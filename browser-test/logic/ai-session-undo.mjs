@@ -222,6 +222,27 @@ ticks();
 ok('undo_with_track_held_takes_the_session_back', !aiSessionOpen() && held.some((o) => o.startsWith('uswap')));
 done();
 
+/* Deferred review 1: a hand edit still waiting to be read when the jog turns is
+ * the step of the option it was made on, and survives undo and redo through it. */
+const handEdit = (notes) => {
+    beginEdit({ key: 'step5', verb: 'EDIT', close: CLOSE.IMMEDIATE, seq: true });
+    eng.params['ait:0'] = `1 32 0 1/1 0 0|${notes}`;
+    endEdit('step5');
+};
+boot(inp());
+previewSwitch(2); ticks();
+const fresh3 = track();
+const edited3 = (fresh3 === '-' ? '' : fresh3 + ',') + '120.24.40.99';
+handEdit(edited3);
+previewSwitch(1); ticks();
+undoOnce(); ticks();
+ok('jog_edit_undo_lands_on_the_edit', previewIndex() === 3 && track() === edited3, previewIndex() + ' ' + shown);
+redoOnce(); ticks();
+eq('jog_edit_redo_forward', previewIndex(), 4);
+undoOnce(); ticks();
+ok('jog_edit_survives_undo_and_redo', previewIndex() === 3 && track() === edited3, previewIndex() + ' ' + shown);
+done();
+
 /* The cap: the oldest steps merge into the first, which still returns to option 1. */
 {
     const u = new SessionUndo();

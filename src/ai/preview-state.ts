@@ -8,7 +8,7 @@ import { type AiNote, formatNotes } from './clip-dump.js';
 import type { AiPreviewInput } from './job-types.js';
 import { type KnobsSnap, knobsShown } from './preview-knobs.js';
 import { clipKey } from './sessions.js';
-import type { SessionUndo } from './session-undo.js';
+import type { SessionUndo, StepMark } from './session-undo.js';
 
 export interface Open {
     p: AiPreviewInput;
@@ -20,6 +20,7 @@ export interface Open {
     editDue: number;        // ticks until a hand edit is read back as a step
     /** Reopened by an undo: the session's entry, pushed back on keeping. */
     entry?: UndoEntry;
+    mark?: StepMark;        // where it stood when reopened
 }
 
 export const S: { cur: Open | null } = { cur: null };

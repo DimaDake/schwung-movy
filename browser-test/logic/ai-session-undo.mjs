@@ -7,7 +7,7 @@
  */
 
 import { _log, eq, ok, installMockEngine, uninstallMockEngine, seqEngineTick, resetSeqEngine,
-    selectTrack, resetUndoState, resetUndoGroups, undoOnce, redoOnce, beginEdit, endEdit, CLOSE } from './harness.mjs';
+    selectTrack, resetUndoState, resetUndoGroups, undoOnce, redoOnce, beginEdit, endEdit, CLOSE, canRedo } from './harness.mjs';
 import { openPreview, previewIndex, previewSwitch, commitPreview, aiPreviewTick, previewInput, resetAiJob, knobsOf,
     aiSessionOpen, aiForgetClip, SessionUndo, SESSION_CAP } from '../../dist/esm/ai/index.js';
 import { seqState } from '../../dist/esm/seq/state.js';
@@ -241,6 +241,40 @@ redoOnce(); ticks();
 eq('jog_edit_redo_forward', previewIndex(), 4);
 undoOnce(); ticks();
 ok('jog_edit_survives_undo_and_redo', previewIndex() === 3 && track() === edited3, previewIndex() + ' ' + shown);
+done();
+
+/* Deferred review 2: a reopened session kept again unchanged leaves the redo
+ * stack as it was; changed, it is a new edit and the redo goes. */
+const keptThenUndoneTwice = () => {
+    boot(inp());
+    previewSwitch(1); ticks();
+    commitPreview('jog click');
+    beginEdit({ key: 'later', verb: 'EDIT', close: CLOSE.IMMEDIATE, seq: true });
+    endEdit('later');
+    undoOnce(); ticks();          // the later edit, onto the redo stack
+    undoOnce(); ticks();          // the kept session, reopened
+};
+keptThenUndoneTwice();
+ok('reopened_before_keep', aiSessionOpen() && canRedo());
+commitPreview('jog click');
+ok('reopen_keep_unchanged_keeps_redo', canRedo());
+ops();
+redoOnce();
+ok('reopen_keep_unchanged_redo_applies', ops().some((o) => o.startsWith('uswap')) && !canRedo());
+done();
+keptThenUndoneTwice();
+redoOnce(); ticks();          // at the session's end: keeping it again
+ok('reopen_redo_keep_keeps_redo', !aiSessionOpen() && canRedo());
+done();
+keptThenUndoneTwice();
+undoOnce(); ticks(); redoOnce(); ticks();   // there and back: nothing changed
+commitPreview('jog click');
+ok('reopen_undo_redo_keep_keeps_redo', canRedo());
+done();
+keptThenUndoneTwice();
+previewSwitch(1); ticks();
+commitPreview('jog click');
+ok('reopen_changed_keep_drops_redo', !canRedo());
 done();
 
 /* The cap: the oldest steps merge into the first, which still returns to option 1. */

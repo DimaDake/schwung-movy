@@ -16,11 +16,10 @@ import { seqHeaderAnnounce } from '../seq/render.js';
 import { seqState } from '../seq/state.js';
 import { watchedTrack } from '../seq/watch.js';
 import { beginEdit, CLOSE, holdGroup, onAbsorbedGesture, releaseHold, tagAiSession } from '../undo/group.js';
-import { pushEntry } from '../undo/state.js';
 import { trackLabel } from '../undo/label.js';
 import { type AiNote, formatNotes } from './clip-dump.js';
 import { go, keyOf, type Open, replaceCurrent, S, write } from './preview-state.js';
-import { EDIT_READ_TICKS, sessionFlush, sessionStart, sessionStep, sessionTick } from './preview-undo.js';
+import { EDIT_READ_TICKS, keepEntry, sessionFlush, sessionStart, sessionStep, sessionTick } from './preview-undo.js';
 import { SessionUndo } from './session-undo.js';
 import { endAiPreview, type AiPreviewInput } from './job.js';
 import { entryStep } from './job-types.js';
@@ -143,7 +142,7 @@ export function commitPreview(why = 'commit'): void {
     sessionFlush(o);
     leave(o, 'kept (' + why + ')');
     releaseHold(true);
-    if (o.entry) { pushEntry(o.entry); o.entry = undefined; }
+    keepEntry(o);
     keepLatest(keyOf(o), o);
 }
 

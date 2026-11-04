@@ -12,7 +12,7 @@ import { engineGeneration, seqCmd } from '../seq/engine.js';
 import { currentSetUuid } from '../seq/set-session.js';
 import { releaseHold } from '../undo/group.js';
 import { trackLabel } from '../undo/label.js';
-import { peekUndo, popUndo } from '../undo/state.js';
+import { peekUndo, popUndo, pushEntry, pushUndoBack } from '../undo/state.js';
 import type { UndoEntry, UndoResult } from '../undo/types.js';
 import { parseTrackDump } from './clip-dump.js';
 import { activate, aiPreviewActive, commitPreview, leave, park, VERBS } from './preview.js';
@@ -35,7 +35,7 @@ export function sessionStep(o: Open): void { o.steps.push(snapOf(o)); }
  *  edits stay in the session's one global entry. */
 function readEdit(o: Open): void {
     o.editDue = 0;
-    if (o.index === 0) return;
+    if (o.index === 0) { o.steps.touch(); return; }
     const c = parseTrackDump(o.p.track, paramGet('ait:' + o.p.track) ?? '').find((x) => x.slot === o.p.slot);
     if (!c) return;
     o.p.options = [...o.p.options];
@@ -128,7 +128,17 @@ export function aiReopen(e: UndoEntry): UndoResult {
     const o = latestOn<Open>(e.aiSession!.key)!;
     o.entry = e;
     reopenSession(o);
+    o.mark = o.steps.mark();
     return result(o);
+}
+
+/** Keeping a reopened session pushes its entry back. Kept as it was reopened
+ *  it changed nothing, so the redo past it still holds; changed, it is a new
+ *  edit, and a redo recorded over the old take would restore that take. */
+export function keepEntry(o: Open): void {
+    if (!o.entry) return;
+    if (o.mark && o.steps.same(o.mark)) pushUndoBack(o.entry); else pushEntry(o.entry);
+    o.entry = o.mark = undefined;
 }
 
 /** A parked session whose visit entry is being undone ends where it stands. */

@@ -6,12 +6,15 @@
 import type { AiNote } from './clip-dump.js';
 
 export interface Snap { index: number; options: AiNote[][]; knobs: number[][] }
+/** Where a session stood (preview-undo.ts): kept again there, it changed nothing. */
+export interface StepMark { n: number; top: Snap | null }
 
 export const SESSION_CAP = 128;
 
 export class SessionUndo {
     private states: Snap[] = [];
     private at = -1;            // -1: ORIG, below the first step
+    private n = 0;              // steps pushed, and edits no step holds (ORIG's)
 
     start(s: Snap): void { this.states = [s]; this.at = 0; }
 
@@ -20,6 +23,7 @@ export class SessionUndo {
     push(s: Snap): void {
         this.states = this.states.slice(0, this.at + 1);
         this.states.push(s);
+        this.n++;
         if (this.states.length > SESSION_CAP) this.states.splice(1, 1);
         this.at = this.states.length - 1;
     }
@@ -32,6 +36,10 @@ export class SessionUndo {
     }
 
     redo(): Snap | null { return this.at < this.states.length - 1 ? this.states[++this.at] : null; }
+
+    touch(): void { this.n++; }
+    mark(): StepMark { return { n: this.n, top: this.top() }; }
+    same(m: StepMark): boolean { return m.n === this.n && m.top === this.top(); }
 
     top(): Snap | null { return this.states[this.at] ?? null; }
     size(): number { return this.states.length; }

@@ -7,7 +7,7 @@
  */
 
 import { _log, eq, ok, installMockEngine, uninstallMockEngine, seqEngineTick, resetSeqEngine,
-    selectTrack, resetUndoState, resetUndoGroups, undoOnce, redoOnce, beginEdit, endEdit, CLOSE, canRedo } from './harness.mjs';
+    selectTrack, resetUndoState, resetUndoGroups, undoOnce, redoOnce, beginEdit, endEdit, CLOSE, canRedo, undoTick } from './harness.mjs';
 import { openPreview, previewIndex, previewSwitch, commitPreview, aiPreviewTick, previewInput, resetAiJob, knobsOf,
     aiSessionOpen, aiForgetClip, SessionUndo, SESSION_CAP } from '../../dist/esm/ai/index.js';
 import { seqState } from '../../dist/esm/seq/state.js';
@@ -16,6 +16,7 @@ import { createInput } from '../gen-fixtures.mjs';
 import { volumeTrackDown, volumeTrackUp } from '../../dist/esm/mixer/track-volume.js';
 import { fontWidth } from '../../dist/esm/font/index.js';
 import { previewRemade } from '../../dist/esm/ai/index.js';
+import { handleStepButton } from '../../dist/esm/seq/router-steps.js';
 
 let eng;
 const KNOB = (k, d) => [0xB0, 71 + k, d * 8 > 0 ? d * 8 : 128 + d * 8];
@@ -59,7 +60,7 @@ const dens0 = knobsOf(3)[dk], gate0 = knobsOf(3)[gk];
 turn(dk, dens0 < 10 ? 1 : -1);
 const afterDensity = track();
 const edited = (afterDensity === '-' ? '' : afterDensity + ',') + '120.24.40.99';
-beginEdit({ key: 'step5', verb: 'EDIT', close: CLOSE.IMMEDIATE, seq: true });
+beginEdit({ key: 'step5', verb: 'EDIT', target: 'T1 STEP 5', close: CLOSE.IMMEDIATE, seq: true });
 eng.params['ait:0'] = `1 32 0 1/1 0 0|${edited}`;
 endEdit('step5');
 ticks(6);
@@ -225,7 +226,7 @@ done();
 /* Deferred review 1: a hand edit still waiting to be read when the jog turns is
  * the step of the option it was made on, and survives undo and redo through it. */
 const handEdit = (notes) => {
-    beginEdit({ key: 'step5', verb: 'EDIT', close: CLOSE.IMMEDIATE, seq: true });
+    beginEdit({ key: 'step5', verb: 'EDIT', target: 'T1 STEP 5', close: CLOSE.IMMEDIATE, seq: true });
     eng.params['ait:0'] = `1 32 0 1/1 0 0|${notes}`;
     endEdit('step5');
 };
@@ -275,6 +276,70 @@ keptThenUndoneTwice();
 previewSwitch(1); ticks();
 commitPreview('jog click');
 ok('reopen_changed_keep_drops_redo', !canRedo());
+done();
+
+/* Deferred review 3: no step that changes nothing, so one undo always shows a
+ * change. A hand edit that reads back the notes already stored is no step... */
+const ait = (notes) => { eng.params['ait:0'] = `1 32 0 1/1 0 0|${notes}`; };
+boot(inp());
+previewSwitch(2); ticks();
+ait(track());
+beginEdit({ key: 'same', verb: 'EDIT', target: 'T1 STEP 3', close: CLOSE.IMMEDIATE, seq: true });
+endEdit('same');
+ticks(6);
+undoOnce(); ticks();
+eq('unchanged_edit_is_no_step', previewIndex(), 1);
+done();
+/* ...nor is a gesture that never edited the clip (a volume turn), even where a
+ * read would find something new; at ORIG of a reopened session it changes
+ * nothing, so keeping it again keeps the redo. */
+boot(inp());
+previewSwitch(2); ticks();
+ait(track() + ',120.24.40.99');
+for (const g of [{ key: 'vol:0', verb: 'VOLUME', target: 'T1', seq: false }, { key: 'mainknob:0', verb: 'TEMPO', target: '', seq: true },
+    { key: 'clipknob:1', verb: 'LENGTH', target: 'T2', seq: true }]) {
+    beginEdit({ ...g, close: CLOSE.TOUCH_RELEASE }); endEdit(g.key);
+}
+ticks(6);
+undoOnce(); ticks();
+eq('other_gestures_are_no_step', previewIndex(), 1);
+done();
+boot(inp());
+previewSwitch(-1); ticks();
+commitPreview('jog click');
+beginEdit({ key: 'later', verb: 'EDIT', close: CLOSE.IMMEDIATE, seq: true }); endEdit('later');
+undoOnce(); ticks(); undoOnce(); ticks();
+ok('reopened_at_orig', aiSessionOpen() && previewIndex() === 0 && canRedo());
+beginEdit({ key: 'vol:0', verb: 'VOLUME', target: 'T1', close: CLOSE.TOUCH_RELEASE, seq: false }); endEdit('vol:0');
+ticks(6);
+commitPreview('jog click');
+ok('orig_volume_turn_keeps_redo', canRedo());
+done();
+/* A step button's edit, which closes its group without naming it, is a step. */
+boot(inp());
+previewSwitch(2); ticks();
+const before3 = track();
+handleStepButton(4, true, false); handleStepButton(4, false, false);
+ait(before3 + ',64.24.40.99');
+ticks(6);
+undoOnce(); ticks();
+ok('step_button_edit_is_a_step', previewIndex() === 3 && track() === before3, previewIndex() + ' ' + shown);
+done();
+
+/* A held step's knob turn ends on the idle backstop alone: still a step. */
+boot(inp());
+previewSwitch(2); ticks();
+const beforeVel = track();
+const realNow = Date.now;
+let clock = realNow();
+Date.now = () => clock;
+beginEdit({ key: 'held:vel:0:4', verb: 'VELOCITY', target: 'T1', close: CLOSE.TOUCH_RELEASE, seq: true });
+ait(beforeVel + ',64.24.40.70');
+clock += 700; undoTick();
+Date.now = realNow;
+ticks(6);
+undoOnce(); ticks();
+ok('held_step_turn_is_a_step', previewIndex() === 3 && track() === beforeVel, previewIndex() + ' ' + shown);
 done();
 
 /* The cap: the oldest steps merge into the first, which still returns to option 1. */

@@ -15,11 +15,12 @@ import { seqCmd } from '../seq/engine.js';
 import { seqHeaderAnnounce } from '../seq/render.js';
 import { seqState } from '../seq/state.js';
 import { watchedTrack } from '../seq/watch.js';
-import { beginEdit, CLOSE, holdGroup, onAbsorbedGesture, releaseHold, tagAiSession } from '../undo/group.js';
+import { onAbsorbedGesture } from '../undo/absorb.js';
+import { beginEdit, CLOSE, holdGroup, releaseHold, tagAiSession } from '../undo/group.js';
 import { trackLabel } from '../undo/label.js';
 import { type AiNote, formatNotes } from './clip-dump.js';
 import { go, keyOf, type Open, replaceCurrent, S, write } from './preview-state.js';
-import { EDIT_READ_TICKS, keepEntry, sessionFlush, sessionStart, sessionStep, sessionTick } from './preview-undo.js';
+import { gestureEnded, keepEntry, sessionFlush, sessionStart, sessionStep, sessionTick } from './preview-undo.js';
 import { SessionUndo } from './session-undo.js';
 import { endAiPreview, type AiPreviewInput } from './job.js';
 import { entryStep } from './job-types.js';
@@ -70,7 +71,7 @@ export function activate(o: Open, reopened = false): void {
     /* The session's steps (preview-undo.ts): a hand edit read back, a knob
      * gesture's end. Set here, not at load: an import cycle can run this file
      * before group.ts's own state is initialised. */
-    onAbsorbedGesture(() => { if (S.cur) S.cur.editDue = EDIT_READ_TICKS; });
+    onAbsorbedGesture(gestureEnded);
     knobsOnStep(() => { if (S.cur) sessionStep(S.cur); });
 }
 let sessions = 0;

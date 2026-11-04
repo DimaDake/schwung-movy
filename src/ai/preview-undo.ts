@@ -14,7 +14,8 @@ import { releaseHold } from '../undo/group.js';
 import { trackLabel } from '../undo/label.js';
 import { peekUndo, popUndo, pushEntry, pushUndoBack } from '../undo/state.js';
 import type { UndoEntry, UndoResult } from '../undo/types.js';
-import { parseTrackDump } from './clip-dump.js';
+import type { Absorbed } from '../undo/absorb.js';
+import { type AiNote, parseTrackDump } from './clip-dump.js';
 import { activate, aiPreviewActive, commitPreview, leave, park, VERBS } from './preview.js';
 import { knobsApply, knobsFlush, knobsOpen, knobsShown, knobsSnapshot } from './preview-knobs.js';
 import { refreshStart } from './preview-refresh.js';
@@ -31,6 +32,17 @@ const snapOf = (o: Open): Snap => ({ index: o.index, options: [...o.p.options], 
 export function sessionStart(o: Open): void { o.steps.start(snapOf(o)); }
 export function sessionStep(o: Open): void { o.steps.push(snapOf(o)); }
 
+/** A gesture inside the preview ended: an edit of its clip is read back. Only
+ *  an engine gesture on its track can be one (a volume turn, a tempo change
+ *  or another track's clip never is). */
+export function gestureEnded(g: Absorbed): void {
+    const o = S.cur, t = trackLabel(o?.p.track ?? 0);
+    if (o && g.seq && (g.target === t || !!g.target?.startsWith(t + ' '))) o.editDue = EDIT_READ_TICKS;
+}
+
+/* The engine's dump may order notes otherwise than a generator wrote them. */
+const sorted = (ns: AiNote[]): string => ns.map((n) => `${n.tick}.${n.pitch}.${n.gate}.${n.vel}`).sort().join(',');
+
 /** A hand edit on the option showing becomes its notes, and a step. ORIG's
  *  edits stay in the session's one global entry. */
 function readEdit(o: Open): void {
@@ -38,6 +50,7 @@ function readEdit(o: Open): void {
     if (o.index === 0) { o.steps.touch(); return; }
     const c = parseTrackDump(o.p.track, paramGet('ait:' + o.p.track) ?? '').find((x) => x.slot === o.p.slot);
     if (!c) return;
+    if (sorted(c.notes) === sorted(o.p.options[o.index - 1])) return;   // read back unchanged: no step
     o.p.options = [...o.p.options];
     o.p.options[o.index - 1] = c.notes;
     sessionStep(o);

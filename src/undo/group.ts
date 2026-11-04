@@ -22,6 +22,7 @@ import { currentSetUuid } from '../seq/set-session.js';
 import { engineGeneration } from '../seq/engine.js';
 import type { ParamOp, ModuleOp, StateOp, UiOp, UndoEntry } from './types.js';
 import { pushEntry } from './state.js';
+import { absorbBegin, absorbEnd, absorbIdle, absorbReset } from './absorb.js';
 
 export const CLOSE = {
     IMMEDIATE: 0,
@@ -63,10 +64,6 @@ let open: OpenGroup | null = null;
  * released, so everything done while previewing is one undo with the AI change
  * itself — undo lands on the clip as it was before the AI ran. */
 let heldKey: string | null = null;
-/* Told when a gesture the hold absorbed ends (a hand edit in the preview):
- * the session records it as one of its undo steps (ai/preview-undo.ts). */
-let absorbed: (() => void) | null = null;
-export function onAbsorbedGesture(f: (() => void) | null): void { absorbed = f; }
 /* Monotonic; never reused within a session, so a stale uswap can only miss. */
 let nextSnapId = 1;
 
@@ -81,6 +78,7 @@ export function beginEdit(o: BeginOpts): void {
     if (open) {
         if (open.key === o.key || heldKey !== null) {
             open.lastActivityMs = now();
+            if (heldKey !== null && o.key !== heldKey) absorbBegin({ key: o.key, target: o.target, seq: o.seq, once: o.close === CLOSE.IMMEDIATE, idleMs: o.idleMs ?? IDLE_MS, last: open.lastActivityMs });
             return;             // same gesture, still going (or absorbed by a hold)
         }
         endEdit();              // a different gesture starts: close the old one
@@ -170,7 +168,7 @@ export function setVerb(verb: string, target?: string): void {
  * already gave way to another.
  */
 export function endEdit(key?: string): void {
-    if (heldKey !== null && open && key !== undefined && key !== heldKey) absorbed?.();
+    if (heldKey !== null && open && key !== heldKey) absorbEnd(key);
     if (!open || heldKey !== null) return;
     if (key !== undefined && open.key !== key) return;
     const g = open;
@@ -213,6 +211,7 @@ export function holdGroup(key: string): void {
 /** End a hold: push the whole thing as one entry, or drop it. */
 export function releaseHold(commit: boolean): void {
     heldKey = null;
+    absorbReset();
     if (commit) endEdit();
     else abandonGroup();
 }
@@ -221,6 +220,7 @@ export function releaseHold(commit: boolean): void {
  *  under a live gesture (set switch, engine reload). */
 export function abandonGroup(): void {
     heldKey = null;
+    absorbReset();
     if (!open) return;
     if (open.snapId >= 0) seqCmd('udrop ' + open.snapId);
     open = null;
@@ -236,7 +236,8 @@ export function onLoopWrap(): void {
 
 /** Drives the time-based close policies. Called once per app tick. */
 export function undoTick(): void {
-    if (!open || heldKey !== null) return;
+    if (!open) return;
+    if (heldKey !== null) { absorbIdle(now()); return; }
     if (open.close !== CLOSE.IDLE && open.close !== CLOSE.TOUCH_RELEASE) return;
     /* TOUCH_RELEASE keeps the idle timer as a backstop: knob turns can arrive
      * with the touch note dropped, and a group that never closes would swallow
@@ -248,6 +249,7 @@ export function undoTick(): void {
 export function resetUndoGroups(): void {
     open = null;
     heldKey = null;
+    absorbReset();
     nextSnapId = 1;
 }
 

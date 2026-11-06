@@ -39,6 +39,7 @@ export * from './create/takes.js';
 export { padOf } from './presets/new-drums-pad.js';
 export { bandSteps } from './create/common.js';
 export { chordUnder, runPlan } from './create/common.js';
+export { heardChords } from './analysis/heard.js';
 export { evolutions } from './presets/dbl-evolve.js';
 export { uniqueChords } from './create/plans.js';
 export { chordFloor, clearRubs } from './shape/band-pitch.js';

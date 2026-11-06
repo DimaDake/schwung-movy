@@ -49,6 +49,56 @@ const locked = G.generateOption(lk.ctx, bass, v).notes;
 const accents = new Set(G.bandSteps(lk.ctx));
 ok('new_clip_bass_with_kick_lands_on_the_bands_accents', locked.length > 0 && locked.every((n) => accents.has(Math.round(n.tick / G.TPS) % 16)));
 
+/* BASS under another track's chords (plans/2026-11-06-bass-over-chords-evaluation.md):
+ * a pad voiced in inversions (C/E F/A G/B Am/C, a half-bar each), struck
+ * `push` steps early. The bass plays each chord's root, never the
+ * keyboard's low voice, and changes when the chord sounds, not on the grid. */
+{
+    const VOICINGS = [[52, 55, 60], [57, 60, 65], [59, 62, 67], [60, 64, 69]];
+    const ROOTS = [0, 5, 7, 9];
+    const H = 8 * G.TPS;
+    const overPad = (push) => {
+        const input = createInput(false, 'empty', 5, { len: 32 });
+        const notes = VOICINGS.flatMap((v, i) => v.map((pitch) => {
+            const tick = Math.max(0, i * H - push * G.TPS);
+            const next = i + 1 < VOICINGS.length ? (i + 1) * H - push * G.TPS : 4 * H;
+            return { tick, pitch, gate: next - tick - 4, vel: 90 };
+        }));
+        input.tracks.push({ index: 1, name: 'Track 2', module: 'obxd', drum: false, padNames: null,
+            clips: [{ track: 1, slot: 1, len: 32, loopStart: 0, scaleNum: 1, scaleDen: 1, transpose: 0, quant: 0, notes }] });
+        const ctx = G.prepare(input);
+        const bass = by('n-bass');
+        const v = G.defaults(bass, ctx);
+        v[0] = G.figurePosition(ctx, G.BASS_MAP, [0, 2, 4, 6, 8, 10, 12, 14]);
+        v[1] = 1;                                           // ROOTS
+        v[G.knobIndex(bass, 'SPACE')] = 0;
+        return { ctx, notes: G.generateOption(ctx, bass, v).notes };
+    };
+    const sounding = (push, tick) => ROOTS[Math.min(3, Math.floor((tick + push * G.TPS) / H))];
+    const flat = overPad(0);
+    eq('new_clip_bass_under_a_pad_is_locked', flat.ctx.freedom, 'locked');
+    ok('new_clip_bass_plays_roots_not_the_pads_inversions', flat.notes.length > 0 && flat.notes.every((n) => pcOf(n.pitch) === sounding(0, n.tick)));
+    const pushed = overPad(2);
+    ok('new_clip_bass_changes_where_pushed_chords_sound', pushed.notes.length > 0 && pushed.notes.every((n) => pcOf(n.pitch) === sounding(2, n.tick)));
+}
+
+/* A two-bar phrase: the answering bar's last eighth steps into the next
+ * bar's root (a pickup on a figure that leaves it empty); the first bar
+ * does not. */
+{
+    const ctx = G.prepare(createInput(false, 'empty', 9, { len: 64 }));
+    const bass = by('n-bass');
+    const v = G.defaults(bass, ctx);
+    v[0] = G.figurePosition(ctx, G.BASS_MAP, [0, 8]);       // HALF NOTES
+    v[1] = 0;                                               // AS WRITTEN
+    v[G.knobIndex(bass, 'SPACE')] = 0;
+    const ns = G.generateOption(ctx, bass, v).notes;
+    const at = (bar) => ns.find((n) => n.tick === (bar * 16 + 14) * G.TPS);
+    const root = (bar) => G.chordUnder(ctx, v[3], ((bar * 16) * G.TPS) % ctx.end).root;
+    const steps = [1, 3].map((b) => at(b) && Math.abs(G.nearestPitch(at(b).pitch, [root(b + 1)]) - at(b).pitch));
+    ok('new_clip_bass_answers_its_phrase_into_the_next_root', !at(0) && !at(2) && steps.every((d) => d !== undefined && d >= 1 && d <= 2));
+}
+
 /* Unique: another run differs everywhere; the same run again still does,
  * because what was offered lately is passed over. */
 G.forgetOptions();

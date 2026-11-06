@@ -68,7 +68,7 @@ export const PULSE_N = adopt({ id: 'n-pulse', name: 'PULSE', cls: 'rhythm', base
     centre: () => 40 });
 
 export const WALK_N = adopt({ id: 'n-walk', name: 'WALK', cls: 'rhythm', base: withSeed(WALK), seed: 'root', role: 'bass', g: [3, 7], sp: 'bass',
-    own: [BASS_PATTERN, K.density(6), HARMONY, choice('OCTAVE', ['DEEP', 'LOW', 'MID', 'HIGH'], [1, 2, 2]), K.tension(4), SEED],
+    own: [BASS_PATTERN, K.density(6), HARMONY, choice('OCTAVE', ['DEEP', 'LOW', 'MID', 'HIGH'], [1, 1, 2]), K.tension(4), SEED],
     centre: (at) => BASS_CENTRES[at('OCTAVE')] });
 
 export const LOOPER_N = adopt({ id: 'n-looper', name: 'LOOPER', cls: 'exp', base: LOOPER, seed: 'line', role: 'lead', g: [2, 7], sp: 'line',

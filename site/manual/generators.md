@@ -142,7 +142,7 @@ preview whose scene holds a clip you made or kept stays in the key of that clip.
 | **CHORDS** | Comped chords on a rhythm. |
 | **PAD** | Held chords, or held chords on a rhythm. |
 | **STABS** | Short chords off the beat. |
-| **BASS** | A bass figure: offbeat, rolling, octaves, 3-3-2… |
+| **BASS** | A bass figure: offbeat, rolling, octaves, 3-3-2… It plays the roots of the chords other tracks play, changes where they change, and every second bar steps into the next chord. |
 | **ARP** | Each chord broken up. |
 | **MELODY** | A phrase that answers itself and lands home. |
 | **RIFF** | A short cell repeated through the chords. |

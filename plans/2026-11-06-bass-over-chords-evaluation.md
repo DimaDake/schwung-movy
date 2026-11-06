@@ -131,3 +131,33 @@ beat-role templates).
 6. Bench: a "bass over existing chords" piece order, plus these metrics
    (notes/bar, gate, step%, voicing-bass share, distinct bar rhythms) against
    the user corpus and the public parts (`public.mjs` over MidiCaps).
+
+## Implemented (2026-11-06)
+
+New Clip only; Variation's BASSLINE is unchanged.
+
+- `analysis/heard.ts`: the scene's chords a 16th at a time, from the parts
+  that play chords (pad/stabs/drone roles), cached per request. In node it
+  costs about 0.24 ms for 16 bars; on QuickJS this is an estimate, not a
+  measurement.
+- `create/push.ts`: `heardUnder` (the SCENE plan reads the heard chords) and
+  the push rule on them.
+- BASS (`presets/new-lines.ts`): the chord root under another track's chords,
+  never its voicing's low note; LOW is the OCTAVE take; GATE takes 6–10; takes
+  weighted to the band's accents and the roomier figures; the eighths between
+  cycle fifth / third / octave; approaches from the scale; every second bar's
+  last beat steps up or down the scale into the next root, with a pickup on
+  the last eighth where the figure leaves it empty (not on the band's
+  figure). ROOTS and OCTAVES keep their literal notes.
+- WALK: LOW is the OCTAVE take.
+
+The same 288-clip run, BASS take, before → after: notes on the voicing's low
+note 25% → 0%, on the root 25% → 50%, gate 1.5 → 2.8 sixteenths, legato
+0.67 → 0.82, silence 50% → 16%, notes a bar 7 → 5, median pitch Bb2 → G2.
+
+Not moved enough: scale steps 2% → 4% (target 13–29%), kick lock 38% → 41%
+(public 50–70%), distinct bar rhythms 0.25 (most takes keep one rhythm when
+the figure already covers the last eighth). Open, outside this change: a
+STABS clip of two-note chords leaves the scene "partial", so BASS plans its
+own progression over it (2 of 24 scenes). PULSE and WALK still read the
+half-bar plan.

@@ -3,7 +3,7 @@
  * the moves from the source's progression. Partial: the moves that tolerate
  * what the others pin, plus the closest diatonic fits around it. */
 
-import type { GenCtx } from './analysis/context.js';
+import type { GenCtx, Prog } from './analysis/context.js';
 import { targetHalves } from './analysis/context.js';
 import type { Chord, HarmonyPlan, Sit } from './types.js';
 import { colourPcs } from './theory/category.js';
@@ -16,8 +16,12 @@ import { type Laid, progId, sectionsOver } from './theory/sections.js';
 
 const SITS: [Sit, string][] = [['asis', 'AS PLAYED'], ['roots', 'ROOTS'], ['inv', 'INVERSION'], ['7th', '7TH'], ['9th', '9TH']];
 
-export const sample = (a: (Chord | null)[], n: number): (Chord | null)[] =>
-    Array.from({ length: n }, (_, i) => (a.length ? a[i % a.length] : null));
+/** `n` half-bars of a progression, looping; a scene's 16th reading goes with it. */
+export const sample = (a: Prog, n: number): Prog => {
+    const out: Prog = Array.from({ length: n }, (_, i) => (a.length ? a[i % a.length] : null));
+    if (a.fine) out.fine = a.fine;
+    return out;
+};
 
 export function fits(ctx: GenCtx, base: (Chord | null)[], rank: number): (Chord | null)[] {
     const col = (c: Chord) => colourPcs(c, ctx.key);

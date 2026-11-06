@@ -6,7 +6,6 @@
  * late. A change that falls between two strikes further apart simply rests. */
 
 import { chordAt, type GenCtx, type Prog } from '../analysis/context.js';
-import { heardChords } from '../analysis/heard.js';
 import { planAt } from '../plan.js';
 import { sameChord } from '../theory/pc.js';
 import { type Chord, HALF, TPS } from '../types.js';
@@ -17,7 +16,7 @@ const PUSH = 2 * TPS;
 
 /** The scene's chords as heard, when HARMONY plays them as they are. */
 export function heardUnder(ctx: GenCtx, h: number): Prog | null {
-    return planAt(ctx, h)?.label === 'SCENE' ? heardChords(ctx) : null;
+    return (planAt(ctx, h)?.chords as Prog | undefined)?.fine ?? null;
 }
 
 /** The chord each strike plays; `ticks` in order, the clip looping. */

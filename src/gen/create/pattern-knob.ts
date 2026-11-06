@@ -16,7 +16,12 @@ const EUCLIDS = euclids([[3, 0], [3, 2], [5, 0], [5, 2], [7, 0], [7, 1], [9, 0],
 
 export interface PatternSpec { figs: number[][]; lo: number; hi: number; band: number;
     /** Named figures with the same onsets stay apart (rhythm-map.ts). */
-    own?: boolean }
+    own?: boolean;
+    /** The band figure, when not the band's strongest `band` accents (a bass locks to the kick). */
+    lock?: (ctx: GenCtx) => number[] }
+
+/** The map's band figure: the spec's lock, or the band's accents. */
+const bandFigure = (ctx: GenCtx, s: PatternSpec): number[] => (s.lock ? s.lock(ctx) : withBand(ctx, s.band, []));
 
 const cache = new WeakMap<GenCtx, Map<PatternSpec, RhythmMap>>();
 
@@ -25,7 +30,7 @@ export function patternMap(ctx: GenCtx, s: PatternSpec): RhythmMap {
     if (hit) return hit;
     /* The band's accents (or nothing) are one more named figure, as WITH
      * BAND was; with no band they are not on the map. */
-    const band = withBand(ctx, s.band, []);
+    const band = bandFigure(ctx, s);
     const named = band.length ? [...s.figs, band] : s.figs;
     const m = rhythmMap([...named, ...EUCLIDS], named.length, s.lo, s.hi, 128, s.own);
     if (!cache.has(ctx)) cache.set(ctx, new Map());
@@ -41,7 +46,7 @@ export function patternKnob(s: PatternSpec, pool: number[]): KnobDef {
     const positions = (c: GenCtx): number[] => {
         const m = patternMap(c, s);
         const id = (f: number[]) => [...new Set(f)].sort((a, b) => a - b).join();
-        const ps = pool.map((i) => id(i < s.figs.length ? s.figs[i] : withBand(c, s.band, [])))
+        const ps = pool.map((i) => id(i < s.figs.length ? s.figs[i] : bandFigure(c, s)))
             .map((w) => m.takes.find((t) => m.steps[t].join() === w)).filter((t): t is number => t !== undefined);
         return ps.length ? ps : m.takes.length ? m.takes : [0];
     };

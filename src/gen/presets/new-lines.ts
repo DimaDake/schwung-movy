@@ -8,18 +8,20 @@ import { strength } from '../analysis/events.js';
 import { choice, chordUnder, HARMONY, place, velAt } from '../create/common.js';
 import { patternKnob, patternMap, type PatternSpec } from '../create/pattern-knob.js';
 import { heardUnder, struck } from '../create/push.js';
-import { chordAt, type GenCtx } from '../analysis/context.js';
+import { chordAt } from '../analysis/context.js';
 import { IND } from '../shape/rhythm-map.js';
 import type { Preset } from '../preset.js';
 import { withFeel } from '../create/feel.js';
-import { rng } from '../rng.js';
-import { nearestPitch, pc, sameChord, scaleOf } from '../theory/pc.js';
+import { mix, rng } from '../rng.js';
+import { nearestPitch, pc, sameChord } from '../theory/pc.js';
+import { answerBar, answerCell, approachTo, riffCell, riffPitch } from '../create/riff.js';
+import { lockFigure } from '../create/kick.js';
 import { type Chord, type Note, TPS } from '../types.js';
 import { LIB, type Part } from './var-bass.js';
 
 /* PATTERN walks a map through the bass figures (create/pattern-knob.ts),
  * the band's accents (WITH KICK's successor) and Euclidean figures between. */
-export const BASS_MAP: PatternSpec = { figs: LIB.map((x) => x[1].map((h) => h[0])), lo: 1, hi: 12, band: 6, own: true };
+export const BASS_MAP: PatternSpec = { figs: LIB.map((x) => x[1].map((h) => h[0])), lo: 1, hi: 12, band: 6, own: true, lock: lockFigure };
 
 /** What a hit of a map position plays: the figure's own part where the hit
  *  is the figure's, else by where it falls: the bar's strong beats the root,
@@ -34,60 +36,24 @@ function partOf(flavour: number, step: number, i: number, approach: boolean): Pa
     if (IND[step] >= 8) return (['f', 't', 'o'] as const)[i % 3];
     return 'r';
 }
-const BASS_NOTES = ['AS WRITTEN', 'ROOTS', 'CHORD TONES', 'OCTAVES'] as const;
+const BASS_NOTES = ['AS WRITTEN', 'ROOTS', 'CHORD TONES', 'OCTAVES', 'RIFF'] as const;
 /* The low end of the root's window. LOW is the take: the user's own lines
  * centre on Eb2-G2 and the public ones on Bb1-C2; MID is the brighter take,
  * DEEP folds the roots under them, HIGH plays the line where a lead would
  * sit. Lower than DEEP the line's middle falls under E1, below what most
  * speakers play. */
 const BASE = [30, 36, 43, 48];
-/* Takes favour the figures that leave room and the band's own accents (a
- * bass lands on the kick half the time in the public parts, 70% in pop):
- * the busy ones (ROLLING, OCTAVES, GALLOP, PUMP) are there to turn to. */
-const TAKES = [9, 9, 9, 0, 3, 4, 6, 7, 1, 2, 5, 8];
-
-/** The scale tone `n` steps from `p` (negative: down). */
-function scaleStep(scale: number[], p: number, n: number): number {
-    let q = p;
-    for (let k = 0; k < Math.abs(n); k++) do q += Math.sign(n); while (!scale.includes(pc(q)));
-    return q;
-}
-
-/** A step into the next chord's root: from the scale a step below or
- *  above it, else a semitone under it or a tone over. */
-function approachTo(ctx: GenCtx, root: number, next: Chord, r: () => number): number {
-    const t = nearestPitch(root, [next.root], root - 6, root + 6);
-    const below = r() < 0.6;
-    const step = scaleStep(scaleOf(ctx.key), t, below ? -1 : 1);
-    if (Math.abs(step - t) <= 2 && r() < 0.6) return step;
-    return t + (below ? -1 : 2);
-}
-
-/* A two-bar phrase: the answering bar's last beat walks up or down the
- * scale into the next bar's root (the user's lines end a phrase so; the
- * generator's copied one bar). A figure with nothing on the last eighth gets
- * a pickup there, unless it is the band's (it lands only on their hits). */
-function answer(ctx: GenCtx, out: Note[], bar: number, next: Chord, band: boolean, r: () => number): void {
-    const from = bar * 16 * TPS, tail = from + 12 * TPS, end = from + 16 * TPS, pick = from + 14 * TPS;
-    const first = out.find((n) => n.tick >= from && n.tick < end);
-    if (!first) return;
-    if (!band && pick < ctx.len * TPS && !out.some((n) => n.tick >= pick && n.tick < end)) {
-        const held = out.filter((n) => n.tick < pick && n.tick >= from).pop();
-        if (held) held.gate = Math.min(held.gate, pick - held.tick - 4);
-        out.push({ tick: pick, pitch: first.pitch, gate: 2 * TPS - 4, vel: velAt(pick, 96, r) });
-    }
-    const run = out.filter((n) => n.tick >= tail && n.tick < end).sort((a, b) => a.tick - b.tick);
-    if (!run.length) return;
-    const target = nearestPitch(first.pitch, [next.root], first.pitch - 7, first.pitch + 7);
-    const dir = target > first.pitch || (target === first.pitch && r() < 0.5) ? -1 : 1;
-    const scale = scaleOf(ctx.key);
-    run.forEach((n, j) => { n.pitch = scaleStep(scale, target, dir * (run.length - j)); });
-}
+/* Takes favour the kick (a bass lands on it half the time in the public
+ * parts, 70% in pop) and the figures that leave room. The busy ones
+ * (ROLLING, OCTAVES, GALLOP, PUMP) and ROOTS are there to turn to, not to
+ * draw: a take is the best-fitting of its rolls, and plain roots on eighths
+ * fit best, so drawn they won most runs (bench method 6). */
+const TAKES = [9, 9, 9, 9, 0, 3, 4, 6, 7];
 
 export const BASS: Preset = withFeel({
     id: 'n-bass', name: 'BASS', task: 'create', drum: false, cls: 'rhythm',
     knobs: [patternKnob(BASS_MAP, TAKES),
-        choice('NOTES', BASS_NOTES, [0, 0, 1, 2, 3]), choice('OCTAVE', ['DEEP', 'LOW', 'MID', 'HIGH'], [1, 1, 2]), HARMONY],
+        choice('NOTES', BASS_NOTES, [4, 4, 4, 0, 2]), choice('OCTAVE', ['DEEP', 'LOW', 'MID', 'HIGH'], [1, 1, 2]), HARMONY],
     generate: (ctx, v, seed) => {
         const r = rng(seed);
         const m = patternMap(ctx, BASS_MAP);
@@ -99,6 +65,9 @@ export const BASS: Preset = withFeel({
         const base = BASE[v[2]];
         const heard = heardUnder(ctx, v[3]);
         const under = (t: number) => (heard ? chordAt(heard, t, ctx.k) : null) ?? chordUnder(ctx, v[3], t);
+        /* Each figure its own riff, so two with the same onsets still differ. */
+        const cell = riffCell(fig, rng(mix(seed, 0x2177, f)));
+        const cellB = answerCell(cell, fig, rng(mix(seed, 0x2178, f)));
         const ticks: number[] = [];
         for (let bar = 0; bar * 16 < ctx.len; bar++) for (const [s] of fig) if (bar * 16 + s < ctx.len) ticks.push(place(ctx, bar * 16 + s));
         const chords = struck(ctx, v[3], ticks);
@@ -119,16 +88,16 @@ export const BASS: Preset = withFeel({
                 let part: Part = v[1] === 1 ? 'r' : part0;
                 if (v[1] === 2 && strength(t) < 0.7) part = i % 2 ? 't' : 'f';
                 if (v[1] === 3) part = i % 2 ? 'o' : 'r';
-                const p = part === 'o' ? root + 12 : part === 'f' ? nearestPitch(root + 7, [c.pcs[2] ?? pc(c.root + 7)], root, root + 12)
+                const p = v[1] === 4 && part !== 'a' ? riffPitch(ctx, c, root, (bar % 2 ? cellB : cell)[i]) : part === 'o' ? root + 12 : part === 'f' ? nearestPitch(root + 7, [c.pcs[2] ?? pc(c.root + 7)], root, root + 12)
                     : part === 't' ? nearestPitch(root + 4, c.pcs.slice(1), root + 1, root + 12)
                         : part === 'a' ? approachTo(ctx, root, chords[k % chords.length], r) : root;
                 out.push({ tick: t, pitch: p, gate: Math.max(TPS / 2, len * TPS - 4), vel: velAt(t, 100, r) });
             });
         }
         /* ROOTS and OCTAVES say what they play; the others phrase in twos. */
-        if (v[1] === 0 || v[1] === 2) {
+        if (v[1] !== 1 && v[1] !== 3) {
             const bars = Math.ceil(ctx.len / 16);
-            for (let bar = 1; bar < bars; bar += 2) answer(ctx, out, bar, under(((bar + 1) * 16 * TPS) % ctx.end), f === LIB.length, r);
+            for (let bar = 1; bar < bars; bar += 2) answerBar(ctx, out, bar, under(((bar + 1) * 16 * TPS) % ctx.end), (t) => velAt(t, 96, r));
             out.sort((a, b) => a.tick - b.tick);
         }
         return out;

@@ -21,6 +21,8 @@ export interface KnobDef {
     roll?: (ctx: GenCtx, r: Rng) => number;
     /** A SEED knob: the preview turns it through its takes ordered close to far (seed-order.ts). */
     seed?: boolean;
+    /** Variation's first moved take: the position it turns to (variant.ts), when there is one. */
+    alt?: (ctx: GenCtx) => number | undefined;
 }
 
 /** Takes on a SEED knob (seed-order.ts orders them close to far). */

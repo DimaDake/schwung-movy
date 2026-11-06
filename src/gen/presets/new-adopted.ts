@@ -63,11 +63,11 @@ export const HOLD_N = adopt({ id: 'n-hold', name: 'HOLD NOTE', cls: 'close', bas
     own: [choice('NOTE', ['PIVOT', 'ROOT', 'FIFTH', 'THIRD'], [1, 1, 2, 3, 0]), HARMONY, register([L.LOW, L.MID, L.MID], L.labels), choice('SHARED', ['TIE', 'RESTRIKE'], [0, 0, 1])],
     centre: (at) => LINE_CENTRES[at('REGISTER')] });
 
-export const PULSE_N = adopt({ id: 'n-pulse', name: 'PULSE', cls: 'rhythm', base: PULSE, seed: 'root', role: 'bass', g: [2, 6], sp: 'bass',
+export const PULSE_N = adopt({ id: 'n-pulse', name: 'PULSE', cls: 'rhythm', base: PULSE, seed: 'root', role: 'bass', g: [5, 9], sp: 'bass',
     own: [BASS_PATTERN, K.density(5), HARMONY, custom('OCTAVE', ['LOW', 'MIDDLE', 'HIGH', 'OCTAVE UP']), custom('NOTE', ['ROOT', 'FIFTH', 'THIRD'])],
     centre: () => 40 });
 
-export const WALK_N = adopt({ id: 'n-walk', name: 'WALK', cls: 'rhythm', base: withSeed(WALK), seed: 'root', role: 'bass', g: [3, 7], sp: 'bass',
+export const WALK_N = adopt({ id: 'n-walk', name: 'WALK', cls: 'rhythm', base: withSeed(WALK), seed: 'root', role: 'bass', g: [6, 10], sp: 'bass',
     own: [BASS_PATTERN, K.density(6), HARMONY, choice('OCTAVE', ['DEEP', 'LOW', 'MID', 'HIGH'], [1, 1, 2]), K.tension(4), SEED],
     centre: (at) => BASS_CENTRES[at('OCTAVE')] });
 

@@ -9,7 +9,9 @@ import { strength } from '../analysis/events.js';
 import { custom, K } from '../knobs.js';
 import { planAt } from '../plan.js';
 import type { Preset } from '../preset.js';
-import { type Rng, rng } from '../rng.js';
+import { mix, type Rng, rng } from '../rng.js';
+import { kickSteps, lockFigure } from '../create/kick.js';
+import { answerBar, answerCell, type Hit, riffCell, riffPitch } from '../create/riff.js';
 import { dynamics } from '../shape/dynamics.js';
 import { nearestPitch, pc } from '../theory/pc.js';
 import { BAR, type Ev, TPS } from '../types.js';
@@ -29,7 +31,20 @@ export const LIB: [string, [number, number, Part][]][] = [
     ['PUMP 8THS', [0, 2, 4, 6, 8, 10, 12, 14].map((s) => [s, 1, 'r'] as [number, number, Part])],
 ];
 
-const NOTES = ['AS WRITTEN', 'ROOTS ONLY', 'MORE FIFTHS', 'CHORD TONES'] as const;
+const NOTES = ['AS WRITTEN', 'ROOTS ONLY', 'MORE FIFTHS', 'CHORD TONES', 'RIFF'] as const;
+const RIFF = 4;
+
+/* KICK, after OCTAVE BASS's (plans/2026-11-06-bass-over-chords-evaluation.md):
+ * the scene's kick (create/kick.ts), each hit held to the next. */
+const KICK = LIB.length + 4;
+
+/** A bar's [step, length, part] hits: the library's, or the kick's (null
+ *  when the scene has no kick). */
+function figureOf(ctx: GenCtx, at: number): [number, number, Part][] | null {
+    if (at !== KICK) return LIB[at][1];
+    const k = lockFigure(ctx);
+    return k.length ? k.map((s, i) => [s, Math.max(1, (k[i + 1] ?? 16 + k[0]) - s), 'r']) : null;
+}
 
 /** The figure nearest the source's density whose rhythm is not the source's. */
 function defaultFigure(evs: Ev[], bars: number): number {
@@ -60,22 +75,27 @@ function octaveBass(ctx: GenCtx, h: number, changes: number, fig: number, r: Rng
 
 export const BASSLINE: Preset = {
     id: 'v-bassline', name: 'BASSLINE', task: 'variation', drum: false, cls: 'rhythm', roles: ['bass'], fit: () => 0.65,
-    seedAs: (v) => (v[0] >= LIB.length ? 'v-octave' : undefined),
-    knobs: [{ ...custom('PATTERN', [...LIB.map((x) => x[0]), ...OCTS.map((o) => 'OCT ' + o)]), def: (c) => defaultFigure(partEvs(c), Math.max(1, c.end / BAR)) },
-        custom('NOTES', NOTES, 0), K.harmony(1), K.changes(0), K.length(5), custom('OCTAVE', ['-1 OCT', 'AS IS', '+1 OCT'], 1), K.dynamics(3), custom('SHIFT', ['0', '+1/16', '+2/16', '+3/16'], 0)],
+    seedAs: (v) => (v[0] >= LIB.length && v[0] < KICK ? 'v-octave' : undefined),
+    knobs: [{ ...custom('PATTERN', [...LIB.map((x) => x[0]), ...OCTS.map((o) => 'OCT ' + o), 'KICK']), def: (c) => defaultFigure(partEvs(c), Math.max(1, c.end / BAR)),
+        /* The first moved take locks to the kick, where the scene has one. */
+        alt: (c) => (kickSteps(c).length ? KICK : undefined) },
+        custom('NOTES', NOTES, RIFF), K.harmony(1), K.changes(0), K.length(5), custom('OCTAVE', ['-1 OCT', 'AS IS', '+1 OCT'], 1), K.dynamics(3), custom('SHIFT', ['0', '+1/16', '+2/16', '+3/16'], 0)],
     generate: (ctx, v, seed) => {
         const r = rng(seed);
         const src = partEvs(ctx);
         if (!src.length) return [];
-        if (v[0] >= LIB.length) return dynamics(finish(ctx, octaveBass(ctx, v[2], v[3], v[0] - LIB.length, r), { length: v[4] }, r), v[6]);
+        if (v[0] >= LIB.length && v[0] < KICK) return dynamics(finish(ctx, octaveBass(ctx, v[2], v[3], v[0] - LIB.length, r), { length: v[4] }, r), v[6]);
         const chords = planAt(ctx, v[2], v[3]).chords;
-        const fig = LIB[v[0]][1];
+        const fig = figureOf(ctx, v[0]) ?? LIB[0][1];
+        const shape = fig.map(([s, len]) => [s, len] as [number, number]);
+        const cell = riffCell(shape, rng(mix(seed, 0x2177, v[0])));
+        const cellB = answerCell(cell, shape, rng(mix(seed, 0x2178, v[0])));
         const vel = Math.round(src.reduce((s, e) => s + e.voices[0].vel, 0) / src.length);
         const base = ctx.lo + (v[5] - 1) * 12;
         let prev = base;
-        const out: Ev[] = [];
+        const out: Hit[] = [];
         for (let bar = 0; bar * BAR < ctx.end; bar++) {
-            for (const [s, len, part0] of fig) {
+            for (const [i, [s, len, part0]] of fig.entries()) {
                 const tick = bar * BAR + ((s + v[7]) % 16) * TPS;
                 if (tick >= ctx.end) continue;
                 const T = chordAt(chords, tick, ctx.k) ?? chordAt(ctx.srcChords, tick, ctx.k);
@@ -86,7 +106,8 @@ export const BASSLINE: Preset = {
                 else if (v[1] === 3 && part === 'r' && strength(tick) < 0.7) part = 't';
                 const root = nearestPitch(prev, [T.root], base - 5, base + 7);
                 let p = root;
-                if (part === 'o') p = root + 12;
+                if (v[1] === RIFF && part !== 'a') p = riffPitch(ctx, T, root, (bar % 2 ? cellB : cell)[i]);
+                else if (part === 'o') p = root + 12;
                 else if (part === 'f') p = nearestPitch(root + 7, [T.pcs[2] ?? pc(T.root + 7)], root, root + 12);
                 else if (part === 't') p = nearestPitch(root + 4, [T.pcs[1] ?? T.root, T.pcs[2] ?? T.root], root, root + 12);
                 else if (part === 'a') {
@@ -95,11 +116,18 @@ export const BASSLINE: Preset = {
                     p = nr === root ? root + 7 : nr + (nr > root ? -1 : 1);
                 }
                 prev = root;
-                out.push({ tick, voices: [{ pitch: p, dt: 0, gate: Math.max(TPS / 2, len * TPS - 4),
-                    vel: Math.round(vel * (0.8 + 0.2 * strength(tick))) }] });
+                out.push({ tick, pitch: p, gate: Math.max(TPS / 2, len * TPS - 4), vel: Math.round(vel * (0.8 + 0.2 * strength(tick))) });
             }
         }
-        out.sort((a, b) => a.tick - b.tick);
-        return dynamics(finish(ctx, out, { length: v[4] }, r), v[6]);
+        /* RIFF phrases in twos, as New Clip's BASS does; AS WRITTEN stays the library's figure. */
+        if (v[1] === RIFF) {
+            const at = (t: number) => chordAt(chords, t % ctx.end, ctx.k) ?? chordAt(ctx.srcChords, t % ctx.end, ctx.k);
+            for (let bar = 1; bar * BAR < ctx.end; bar += 2) {
+                const next = at((bar + 1) * BAR);
+                if (next) answerBar(ctx, out, bar, next, (t) => Math.round(vel * (0.8 + 0.2 * strength(t))));
+            }
+        }
+        const evs: Ev[] = out.sort((a, b) => a.tick - b.tick).map((n) => ({ tick: n.tick, voices: [{ pitch: n.pitch, dt: 0, gate: n.gate, vel: n.vel }] }));
+        return dynamics(finish(ctx, evs, { length: v[4] }, r), v[6]);
     },
 };

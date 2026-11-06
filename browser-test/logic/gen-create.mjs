@@ -44,10 +44,18 @@ ok('new_clip_chords_are_the_scenes_chords', inChord.length >= chords.length * 0.
 ok('new_clip_reads_the_bands_hits', lk.ctx.band.length > 0);
 const bass = by('n-bass');
 const v = G.defaults(bass, lk.ctx);
-v[0] = G.figurePosition(lk.ctx, G.BASS_MAP, G.bandSteps(lk.ctx).slice(0, 6));   // the band's accents (WITH KICK)
+v[0] = G.figurePosition(lk.ctx, G.BASS_MAP, G.lockFigure(lk.ctx));   // locked to the kick (WITH KICK)
 const locked = G.generateOption(lk.ctx, bass, v).notes;
-const accents = new Set(G.bandSteps(lk.ctx));
-ok('new_clip_bass_with_kick_lands_on_the_bands_accents', locked.length > 0 && locked.every((n) => accents.has(Math.round(n.tick / G.TPS) % 16)));
+const lockSteps = new Set(G.lockFigure(lk.ctx));
+/* ...but for the answering bar's pickups on its last eighth (create/riff.ts). */
+const pickup = (n) => Math.round(n.tick / G.TPS) % 32 >= 30;
+ok('new_clip_bass_with_kick_lands_on_its_lock', locked.length > 0 && locked.every((n) => pickup(n) || lockSteps.has(Math.round(n.tick / G.TPS) % 16)));
+/* The lock is the kick itself, not every accent (a snare or a struck chord drew the bass off it). */
+const kicks = G.kickSteps(lk.ctx);
+/* The fixture's kick is four on the floor and its accents add the 14: a kick
+ * of three hits or more is the lock alone. */
+eq('new_clip_bass_lock_is_the_kick', [...lockSteps].sort((a, b) => a - b).join(), [...kicks].sort((a, b) => a - b).join());
+ok('new_clip_bass_lock_is_not_every_accent', kicks.length >= 3 && G.bandSteps(lk.ctx).some((s) => !lockSteps.has(s)));
 
 /* BASS under another track's chords (plans/2026-11-06-bass-over-chords-evaluation.md):
  * a pad voiced in inversions (C/E F/A G/B Am/C, a half-bar each), struck
@@ -80,6 +88,44 @@ ok('new_clip_bass_with_kick_lands_on_the_bands_accents', locked.length > 0 && lo
     ok('new_clip_bass_plays_roots_not_the_pads_inversions', flat.notes.length > 0 && flat.notes.every((n) => pcOf(n.pitch) === sounding(0, n.tick)));
     const pushed = overPad(2);
     ok('new_clip_bass_changes_where_pushed_chords_sound', pushed.notes.length > 0 && pushed.notes.every((n) => pcOf(n.pitch) === sounding(2, n.tick)));
+}
+
+/* Variation's BASSLINE over the same pushed pad, with a kick: the shared
+ * 16th reading (analysis/heard.ts via Prog.fine) reaches Variation too, its
+ * first moved take locks to the kick, and its default is a RIFF that moves. */
+{
+    const VOICINGS = [[52, 55, 60], [57, 60, 65], [59, 62, 67], [60, 64, 69]];
+    const ROOTS = [0, 5, 7, 9];
+    const H = 8 * G.TPS, push = 2;
+    const pad = VOICINGS.flatMap((v, i) => v.map((pitch) => {
+        const tick = Math.max(0, i * H - push * G.TPS);
+        const next = i + 1 < VOICINGS.length ? (i + 1) * H - push * G.TPS : 4 * H;
+        return { tick, pitch, gate: next - tick - 4, vel: 90 };
+    }));
+    const kick = [0, 4, 8, 12, 16, 20, 24, 28].map((s) => ({ tick: s * G.TPS, pitch: 36, gate: 12, vel: 110 }));
+    const src = Array.from({ length: 16 }, (_, i) => ({ tick: i * 2 * G.TPS, pitch: 36 + ROOTS[Math.floor(i / 4)], gate: 40, vel: 100 }));
+    const at = (track, slot, notes) => ({ track, slot, len: 32, loopStart: 0, scaleNum: 1, scaleDen: 1, transpose: 0, quant: 0, notes });
+    const input = { task: 'variation', level: 'BALANCED', len: 32, scale: [1, 1], drum: false, kit: [], root: 'C', mode: 'major',
+        target: { track: 0, slot: 2 }, source: { track: 0, slot: 1 },
+        tracks: [{ index: 0, name: 'Bass', module: 'obxd', drum: false, padNames: null, clips: [at(0, 1, src)] },
+            { index: 1, name: 'Pad', module: 'obxd', drum: false, padNames: null, clips: [at(1, 1, pad), at(1, 2, pad)] },
+            { index: 2, name: 'Drums', module: 'drumrack', drum: true, padNames: null, clips: [at(2, 1, kick), at(2, 2, kick)] }] };
+    const ctx = G.prepare(input);
+    const bl = G.presetById('v-bassline');
+    const v = G.defaults(bl, ctx);
+    const sounding = (tick) => ROOTS[Math.min(3, Math.floor((tick + push * G.TPS) / H))];
+    const roots = G.regenerate(ctx, bl, v.map((x, i) => (bl.knobs[i].name === 'NOTES' ? 1 : x)));
+    ok('variation_bassline_changes_where_pushed_chords_sound', roots?.length > 0 && roots.every((n) => pcOf(n.pitch) === sounding(n.tick)));
+    const pk = G.knobIndex(bl, 'PATTERN');
+    const alt = G.variantKnobs(bl, ctx, v, ctx.seed, 0);
+    eq('variation_bassline_first_take_locks_to_the_kick', alt && bl.knobs[pk].label(alt[pk], ctx), 'KICK');
+    const riff = G.regenerate(ctx, bl, v);
+    eq('variation_bassline_defaults_to_riff', bl.knobs[G.knobIndex(bl, 'NOTES')].label(v[G.knobIndex(bl, 'NOTES')], ctx), 'RIFF');
+    const inChord = (a, b) => sounding(a.tick) === sounding(b.tick);
+    /* In the first bar: the answering bar's run would step anyway. */
+    const bar1 = (riff ?? []).filter((n) => n.tick < 16 * G.TPS);
+    const steps = bar1.filter((n, i, ns) => i > 0 && inChord(ns[i - 1], n) && [1, 2].includes(Math.abs(n.pitch - ns[i - 1].pitch)));
+    ok('variation_bassline_riff_steps_inside_a_chord', steps.length > 0);
 }
 
 /* A two-bar phrase: the answering bar's last eighth steps into the next

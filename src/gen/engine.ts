@@ -33,7 +33,8 @@ export interface Request { ctx: GenCtx; todo: Take[]; done: Candidate[]; dropped
 /* Step 14's New Clip options (plans/2026-11-01-generator-ux-design.md §2.3):
  * the part the track plays, and a neighbouring one. */
 const STEP14: Record<string, [string, string]> = {
-    bass: ['n-bass', 'n-riff'], pad: ['n-pad', 'n-stabs'], stabs: ['n-stabs', 'n-chords'], lead: ['n-melody', 'n-counter'],
+    /* WALK, not RIFF: RIFF sits a lead's register (bench method 6 had it at E4 on a bass track). */
+    bass: ['n-bass', 'n-walk'], pad: ['n-pad', 'n-stabs'], stabs: ['n-stabs', 'n-chords'], lead: ['n-melody', 'n-counter'],
     arpeggio: ['n-arp', 'n-riff'], drone: ['n-hold', 'n-pad'], drums: ['n-drum-map', 'n-broken'],
 };
 

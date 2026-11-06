@@ -161,3 +161,61 @@ the figure already covers the last eighth). Open, outside this change: a
 STABS clip of two-note chords leaves the scene "partial", so BASS plans its
 own progression over it (2 of 24 scenes). PULSE and WALK still read the
 half-bar plan.
+
+## Round 2 (2026-11-07): one harmony reading, riffs, kick, the bench
+
+Every task, not only New Clip:
+
+- **One harmony reading.** `heard.ts` hangs the per-16th reading of the
+  chordal parts on the scene's progression (`Prog.fine`), and `chordAt` reads
+  it: New Clip, Variation (target and source scene both), Smart Double and
+  Smart Quantize all hear a pushed change where it sounds. Its chords' bass is
+  the root: a keyboard's low voice is not a bass note.
+- **Riffs** (`create/riff.ts`): a one-bar cell of scale steps from the root
+  (root, third, fifth, octave, ±1 neighbour, a held note on chord tones only,
+  a repeat half as likely), moved with the chords; the answering bar moves one
+  note and walks its last beat into the next root (a pickup, or the last eighth
+  split in two). New Clip BASS NOTES = RIFF is the take; Variation BASSLINE
+  defaults to RIFF (AS WRITTEN, the old default, is a click away).
+- **The kick** (`create/kick.ts`): the scene's kick pads (kit names, then GM)
+  in at least 40% of bars, plus the strongest off-beat accent when the kick is
+  sparse. BASS's band figure is it; BASSLINE has a KICK pattern, and its first
+  moved Variation take turns to it (`KnobDef.alt`, `variant.ts`).
+- BASS takes: the kick and the roomier figures only; ROOTS and the busy
+  figures are turned to, not drawn (a take is the best-fitting of its rolls,
+  and roots on eighths always fit best). PULSE and WALK hold their notes
+  longer (GATE takes 5-9, 6-10). Variation's track-slot neighbour for a bass
+  is WALK, not RIFF (RIFF sat at E4 on a bass track).
+- **Bench method 6** (`scripts/gen-bench/quality/bass*.mjs`, in `run.mjs`):
+  `bass-refs.mjs` builds the references (144 MidiCaps parts, the user's Move
+  and Live sets); `bass.mjs` plays 24 chords-first scenes through New Clip,
+  Variation, Double and Quantize, every bass option measured against them.
+
+Bench method 6, before (`4d3ece14`) → after:
+
+| | before | after | user / public |
+|---|---|---|---|
+| chord arrivals on the keyboard's low note (mean) | — | 9% | 0% |
+| metrics in the reference band | 78% | 91% | |
+| New Clip BASS: scale steps | 3% | 24% | 25% / 15% |
+| repeats | 17% | 11% | 19% / 39% |
+| distinct bar rhythms | 0.25 | 0.50 | 0.50 / 0.38 |
+| on the kick | 38% | 40% | – / 52% |
+| on the root | 25% | 40% | 36% / 49% |
+| notes a bar | 8 | 4.5 | 3.5 / 5.6 |
+| Variation BASSLINE: scale steps | 2% | 33% | |
+| on the kick | 40% | 89% | |
+
+The whole quality bench at 40 pieces (`plans/gen-quality-bass40.md`, against
+`pre-bass40` from `4d3ece14`): pieces broken 20% → 16%, role breaks 13 → 11,
+chords in A' 3.33 → 3.63, variation best-of-six gate 50% → 67%. Flagged:
+
+- **duplicate knob pairs 9 → 15**: Variation HARMONY's 9TH end now lands on
+  COLOUR's top end in some cases (source and target read the same chords, so
+  the two colourings agree); HARMONY's dead clicks did not move.
+- **low-end mud 0 → 2**: both are the scripted user taking New Clip BASS as the
+  B of a lead track whose A was a low RIFF (median G2), which reads as a bass.
+- useful clicks 57371 → 57260 (0.2%).
+
+Open: kick lock on New Clip BASS 40% (the kick figure is 4 of 9 takes; the
+public parts 52%); STABS of two-note chords still leave a scene "partial".

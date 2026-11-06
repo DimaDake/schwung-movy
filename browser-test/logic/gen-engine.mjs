@@ -129,7 +129,7 @@ const thin = [];
 {
     const v = G.generateAll(fixtureInput('bass', { scene: 'free' }));
     eq('step14_has_role_matched_new_clip', v.picks[2]?.preset.id, 'n-bass');
-    eq('step14_has_neighbour_last', v.picks[5]?.preset.id, 'n-riff');
+    eq('step14_has_neighbour_last', v.picks[5]?.preset.id, 'n-walk');
     ok('step14_new_clip_options_carry_their_context', v.picks[2].ctx?.task === 'create' && G.regenerate(v.picks[2].ctx, v.picks[2].preset, v.picks[2].knobs) !== null);
     ok('step14_variation_options_keep_theirs', v.picks.filter((p, i) => i !== 2 && i !== 5).every((p) => p.preset.task === 'variation'));
     ok('step14_displaced_picks_lead_the_rest', v.extras.length >= 2 && v.extras.slice(0, 2).every((p) => p.preset.task === 'variation'));

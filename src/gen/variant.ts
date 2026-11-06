@@ -23,7 +23,9 @@ export function variantKnobs(p: Preset, ctx: GenCtx, base: number[], seed: numbe
         const set = (x: number) => { const y = Math.max(0, Math.min(steps - 1, x)); if (y !== v[i]) { v[i] = y; moved = true; } };
         /* A cycle is a variation's move: Smart Quantize keeps its bar. */
         const rhythms = ctx.task === 'quantize' ? RHYTHMS.indexOf('CYCLE 3') : steps;
-        if (k.name === 'RHYTHM' && v[i] === 0) set(1 + ((seed + which * 3) % (rhythms - 1)));
+        const alt = which === 0 ? k.alt?.(ctx) : undefined;
+        if (alt !== undefined) set(alt);
+        else if (k.name === 'RHYTHM' && v[i] === 0) set(1 + ((seed + which * 3) % (rhythms - 1)));
         else if (k.name === 'VOICES') set(v[i] + up);
         else if (k.name === 'LENGTH') set(v[i] + 2 * up);
         else if (k.name === 'DENSITY') set(v[i] + 2 * up);

@@ -83,7 +83,10 @@ report('merge_v_octave_into_bassline', misses('v-octave', 'v-bassline', { PATTER
 report('merge_v_pedal_into_hold', misses('v-pedal', 'v-hold', { NOTE: 'TONIC', AMOUNT: 5 },
     ['drone/locked/variation', 'drone/partial/variation', 'drone/free/variation']));
 report('merge_v_drone_into_hold', misses('v-drone', 'v-hold', { NOTE: 'PIVOT', SHARED: 'TIE', LENGTH: 7 }));
-for (const id of ['v-displace', 'v-revoice', 'v-bassline']) report(`${id}_default_kept`, misses(id, id, {}));
+for (const id of ['v-displace', 'v-revoice']) report(`${id}_default_kept`, misses(id, id, {}));
+/* BASSLINE's default is RIFF now (plans/2026-11-06-bass-over-chords-evaluation.md);
+ * the old default is AS WRITTEN, still a click away. */
+report('v-bassline_default_kept', misses('v-bassline', 'v-bassline', { NOTES: 'AS WRITTEN' }));
 ok('variation_merged_away', ['v-anticipate', 'v-spread', 'v-register', 'v-octave', 'v-pedal', 'v-drone'].every(gone));
 eq('hold_note_is_named', G.presetById('v-hold')?.name, 'HOLD NOTE');
 /* Drums and Smart Double (Task 4). */

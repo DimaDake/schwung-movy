@@ -39,7 +39,8 @@ export * from './create/takes.js';
 export { padOf } from './presets/new-drums-pad.js';
 export { bandSteps } from './create/common.js';
 export { chordUnder, runPlan } from './create/common.js';
-export { heardChords } from './analysis/heard.js';
+export { heardOf } from './analysis/heard.js';
+export { kickSteps, lockFigure } from './create/kick.js';
 export { evolutions } from './presets/dbl-evolve.js';
 export { uniqueChords } from './create/plans.js';
 export { chordFloor, clearRubs } from './shape/band-pitch.js';
@@ -56,6 +57,7 @@ export { chordDistance, derive, distanceMatrix, plausible, progDistance } from '
 export { grow, line, order } from './create/harmony-map.js';
 export { COMP_MAP, STAB_MAP } from './presets/new-chords.js';
 export { BASS_MAP } from './presets/new-lines.js';
+export { variantKnobs } from './variant.js';
 export { struck } from './create/push.js';
 export { grooveAt, hitsAt, rankOf } from './presets/new-drums-map.js';
 export { guideLine, guidePcs, onGuides } from './create/guide.js';

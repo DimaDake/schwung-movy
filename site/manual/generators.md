@@ -110,7 +110,7 @@ chords, a bassline stays a bassline, drums never change pads. No option is
 simply the same loop rearranged.
 
 The options come from three groups: **close** (new notes on the same rhythm,
-harmonies, re-voicings), **rhythm** (new basslines, displaced or Euclidean
+harmonies, re-voicings), **rhythm** (new basslines, riffs or locked to the kick, displaced or Euclidean
 rhythms, comping) and **experimental** (a new part in the same style, phrase
 forms, motifs, grids). Touch the jog to see which generator made an option.
 
@@ -142,7 +142,7 @@ preview whose scene holds a clip you made or kept stays in the key of that clip.
 | **CHORDS** | Comped chords on a rhythm. |
 | **PAD** | Held chords, or held chords on a rhythm. |
 | **STABS** | Short chords off the beat. |
-| **BASS** | A bass figure: offbeat, rolling, octaves, 3-3-2… It plays the roots of the chords other tracks play, changes where they change, and every second bar steps into the next chord. |
+| **BASS** | A bass figure: offbeat, rolling, octaves, 3-3-2, or the scene's kick. **NOTES** RIFF moves a short cell of root, third and scale steps with the chords; it plays the roots of the chords other tracks play, changes where they change, and every second bar steps into the next chord. |
 | **ARP** | Each chord broken up. |
 | **MELODY** | A phrase that answers itself and lands home. |
 | **RIFF** | A short cell repeated through the chords. |

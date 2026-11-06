@@ -30,6 +30,8 @@ export function scorecard(r) {
         ['4 piece: worst part fit', mean(sc.map((s) => s.worst)), 1, f2, 0.02], ['4 piece: low-end mud scenes', sc.filter((s) => s.mud).length, -1, String, 0],
         ['4 piece: role breaks', P.reduce((a, p) => a + p.roleBreaks, 0), -1, String, 0], ['4 piece: B copies A', P.reduce((a, p) => a + p.copies, 0), -1, String, 0],
         ['4 piece: A to B distance', mean(P.map((p) => p.ab)), 0, f2, 1], ["4 piece: chords in A'", mean(P.map((p) => p.chordsA2)), 1, f2, 0.2],
+        ['6 bass: chord arrivals on the keyboard\'s low note', r.bass?.voicingLow ?? null, -1, pc, 0.01],
+        ['6 bass: metrics in the reference band', r.bass?.inBand ?? null, 1, pc, 0.02],
         ['old: alignment', r.old.alignment, 1, f2, 0.02], ['old: gate', r.old.gate, 1, pc, 0.03], ['old: played-drum gate', r.old.playedGate, 1, pc, 0.03],
         ['old: variation best-of-six gate', r.old.varSixGate, 1, pc, 0.03], ['old: variation novelty', r.old.varNovelty, 1, f2, 0.03],
         ['old: variation coherence', r.old.varCoherence, 1, f2, 0.02], ['old: double first part kept', r.old.double.firstKept, 1, f2, 0.02],
@@ -82,5 +84,16 @@ export function report(r, prevRes) {
         '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
         ...r.pieces.map((p) => `| ${p.motif ? 'motif' : 'scratch'} ${p.seed} | ${p.verdict} | ${p.scenes.map((s) => s.verdict[0].toUpperCase()).join(' | ')} | `
             + `${p.scenes.map((s) => pc(s.clash)).join('/')} | ${p.roleBreaks} | ${p.copies} | ${f2(p.ab)} | ${p.chordsA}/${p.chordsA2} | ${p.log.join(', ')} |`));
+    if (r.bass) out.push(...bassTable(r.bass));
     return out.join('\n') + '\n';
+}
+
+/* Method 6: every bass option against the reference parts, median per metric. */
+function bassTable(b) {
+    const K = ['perBar', 'gate', 'legato', 'silence', 'steps', 'repeats', 'rhythms', 'root', 'voicingLow', 'third', 'onKick', 'pitch'];
+    const cell = (x) => (x ? x.med.toFixed(2) : '-');
+    return ['', `## 6. Bass over chords (${b.refs.user} user, ${b.refs.public} public reference parts)`, '',
+        `| option | n | ${K.join(' | ')} | in band |`, `| --- | --- | ${K.map(() => '---').join(' | ')} | --- |`,
+        `| REF user | | ${K.map((k) => cell(b.ref.user[k])).join(' | ')} | |`, `| REF public | | ${K.map((k) => cell(b.ref.public[k])).join(' | ')} | |`,
+        ...[...b.per].sort((x, y) => x.id.localeCompare(y.id)).map((p) => `| ${p.id} | ${p.n} | ${K.map((k) => cell(p[k])).join(' | ')} | ${pc(p.inBand)} |`)];
 }

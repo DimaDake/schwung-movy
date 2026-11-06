@@ -13,6 +13,7 @@ import { doubleInput, doubleStats } from '../double.mjs';
 import { judgePiece, pieceMidi } from './piece-score.mjs';
 import { buildPiece } from './piece.mjs';
 import { report } from './report.mjs';
+import { bassBench } from './bass.mjs';
 import { mapPreset, mapSummary } from './maps.mjs';
 import { phrasePreset, phraseSummary } from './phrase.mjs';
 import { spacePreset, spaceSummary } from './space.mjs';
@@ -79,9 +80,10 @@ async function main() {
         }
     }
     const t2 = Date.now();
+    const bass = bassBench(G, Number(args.bass || 24));
     const old = oldMetrics(G, cases);
     const res = { label, cases: cases.length, ms: { knobs: t1 - t0, pieces: t2 - t1, old: Date.now() - t2 },
-        sweep: sweepSummary(sw), space: spaceSummary(sp), maps: mapSummary(mp), phrase: phraseSummary(ph), pieces, old };
+        sweep: sweepSummary(sw), space: spaceSummary(sp), maps: mapSummary(mp), phrase: phraseSummary(ph), pieces, bass, old };
     mkdirSync(DATA + 'quality', { recursive: true });
     writeFileSync(DATA + `quality/${label}.json`, JSON.stringify(res));
     const prev = args.compare && existsSync(DATA + `quality/${args.compare}.json`) ? JSON.parse(readFileSync(DATA + `quality/${args.compare}.json`, 'utf8')) : null;

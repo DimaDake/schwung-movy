@@ -10,6 +10,7 @@ import { type AiClip, type Chord, type Freedom, type GenInput, HALF, type Harmon
 import { chordsOf } from '../theory/chords.js';
 import { keyFor, keyHint } from '../theory/key.js';
 import { bandHits, type Hit } from './band.js';
+import { heardOf } from './heard.js';
 import { type Groove, grooveOf } from './groove.js';
 import { type Kit, kitOf } from './kit.js';
 import { heardPcs, profile, sceneTicks, soundingSegments } from './sounding.js';
@@ -80,7 +81,10 @@ export function buildCtx(input: GenInput): GenCtx {
 
     /* Smart Quantize fits the clip to its own scene: the others' chords when
      * they spell them, else everyone's, the clip included. */
-    const quantChords = freedom === 'locked' ? chordsOf(otherSegs, key) : chordsOf(soundingSegments(srcScene), key);
+    const heard = freedom === 'locked' ? heardOf(input, key) : null;
+    const withHeard = (p: Prog, h: Prog | null): Prog => (h ? Object.assign(p, { fine: h }) : p);
+    const withFine = (p: Prog): Prog => withHeard(p, heard);
+    const quantChords = freedom === 'locked' ? withFine(chordsOf(otherSegs, key)) : chordsOf(soundingSegments(srcScene), key);
     const pitches = src.map((n) => n.pitch);
     const allOthers = input.tracks.filter((t) => t.index !== input.target.track)
         .flatMap((t) => t.clips.filter((c) => c.slot === input.target.slot).flatMap((c) => c.notes));
@@ -91,12 +95,14 @@ export function buildCtx(input: GenInput): GenCtx {
         key,
         /* A double stays in its own scene: the chords it sounds in, and
          * whether another track sets them (TURN may change them only if not). */
-        srcChords: input.task !== 'variation' ? quantChords : chordsOf(srcSegs, key),
+        /* A Variation maps its notes from the source's chords to the target's:
+         * both read a 16th at a time, or a pushed change reads as a new chord. */
+        srcChords: input.task !== 'variation' ? quantChords : withHeard(chordsOf(srcSegs, key), srcSlot >= 0 ? heardOf(input, key, srcSlot) : null),
         freedom: input.task === 'quantize' ? 'locked' : freedom,
         alone: freedom === 'free',
         pinned,
         pinnedBass: otherSegs.map((s) => (s.bass >= 0 ? s.bass % 12 : -1)),
-        fixedChords: input.task !== 'variation' ? quantChords : freedom === 'locked' ? chordsOf(otherSegs, key) : [],
+        fixedChords: input.task !== 'variation' ? quantChords : freedom === 'locked' ? withFine(chordsOf(otherSegs, key)) : [],
         groove: grooveOf(src, allOthers.filter((n) => n.tick < end)),
         band: input.task === 'double' || input.task === 'create' ? bandHits(input, end, k) : [],
         kit: input.drum ? kitOf(input.kit.length ? input.kit : [...new Set(src.map((n) => n.pitch))], me?.padNames ?? null,
@@ -141,10 +147,14 @@ export function looped(notes: Note[], span: number, end: number): Note[] {
 
 /** A chord list per unit of master time: half-bars unless it says otherwise
  *  (a plan with CHANGES is per beat, theory/changes.ts). */
-export type Prog = (Chord | null)[] & { unit?: number };
+export type Prog = (Chord | null)[] & { unit?: number;
+    /** The same scene heard a 16th at a time (heard.ts): what chordAt reads,
+     *  so a pushed comp changes chords where it sounds, not on the grid. */
+    fine?: Prog };
 
 /** The chord under a clip tick in a per-unit list (looping). */
 export function chordAt(chords: Prog, tick: number, k: number): Chord | null {
+    if (chords.fine) return chordAt(chords.fine, tick, k);
     if (!chords.length) return null;
     const i = Math.floor((tick * k) / (chords.unit ?? HALF));
     return chords[((i % chords.length) + chords.length) % chords.length];

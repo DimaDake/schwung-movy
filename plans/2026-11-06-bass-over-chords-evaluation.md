@@ -15,26 +15,29 @@ New Clip on the bass track. The bench's scripted pieces always build bass
   (`MainSet`, `push_projects`, the `Diabolical…` / `Pattern in the Surface` /
   `3 guitar beats from move` projects). 24 of them have a chord clip in the
   same scene row.
+- **Public:** 144 bass parts (GM programs 32–39) from the bench's MidiCaps /
+  Lakh files (`.gen-data/src/midicaps`, 107 electronic, 37 pop): an 8-bar window
+  from bar 9, with the chordal parts (piano, organ, guitar, strings, pads) and
+  the kick beside them. 137 have chordal parts.
 - Scripts (scratch, not committed): `extract.py` (Move `Song.abl` JSON and Live
   `.als` XML → clips), `gen.mjs` (chords first, then bass, through
   `dist/esm/gen`), `analyse.py` (the same metrics on both sets).
 
 ## Medians
 
-| metric | user Move | user Live | BASS take | BASS PATTERN turns | PULSE | WALK |
-|---|---|---|---|---|---|---|
-| notes / bar | 2.4 | 3.8 | **7.0** | **8.0** | 6.0 | 5.0 |
-| gate (16ths) | 2.8 | 2.6 | **1.5** | **1.0** | 1.3 | 2.4 |
-| legato (gate / gap to next) | 0.98 | 0.90 | 0.67 | 0.81 | 0.50 | 0.55 |
-| silence | 26% | 30% | **50%** | 31% | 50% | 50% |
-| stepwise intervals (1–2 st) | 29% | 17% | **2%** | **5%** | 0% | 24% |
-| repeated notes | 6% | 22% | 14% | 24% | **80%** | 42% |
-| distinct bar rhythms / bars | 0.44 | 0.50 | **0.25** | **0.25** | 0.25 | 0.88 |
-| pitch moves inside one chord / bar | 1.4 | 2.1 | 1.0 | 1.0 | 1.0 | 2.5 |
-| note on chord root | 40% | 32% | **25%** | 28% | 65% | 50% |
-| note on the voicing's low note (not the root) | 0% | 0% | **25%** | 25% | 0% | 0% |
-| 3rd of the chord | 10% | 14% | 0% | 0% | 0% | 5% |
-| median pitch | 39 (Eb2) | 43 (G2) | 46 (Bb2) | 45 | 36 | 50 |
+| metric | user Move | user Live | public electronic | public pop | BASS take | BASS PATTERN turns | PULSE | WALK |
+|---|---|---|---|---|---|---|---|---|
+| notes / bar | 2.4 | 3.8 | 6.0 | 4.3 | **7.0** | **8.0** | 6.0 | 5.0 |
+| gate (16ths) | 2.8 | 2.6 | 2.0 | 2.1 | **1.5** | **1.0** | 1.3 | 2.4 |
+| legato (gate / gap to next) | 0.98 | 0.90 | 0.85 | 0.89 | **0.67** | 0.81 | 0.50 | 0.55 |
+| silence | 26% | 30% | 22% | 25% | **50%** | 31% | 50% | 50% |
+| stepwise intervals (1–2 st) | 29% | 17% | 13% | 19% | **2%** | **5%** | 0% | 24% |
+| repeated notes | 6% | 22% | 40% | 30% | 14% | 24% | **80%** | 42% |
+| distinct bar rhythms / bars | 0.44 | 0.50 | 0.38 | 0.50 | **0.25** | **0.25** | 0.25 | 0.88 |
+| note on chord root | 40% | 32% | 45% | 59% | **25%** | 28% | 65% | 50% |
+| note on the voicing's low note (not the root) | 0% | 0% | 0% | 4% | **25%** | 25% | 0% | 0% |
+| bass onsets on a kick | – | – | 50% | 70% | **38%** | 33% | 37% | 28% |
+| median pitch | 39 (Eb2) | 43 (G2) | 34 (Bb1) | 36 (C2) | **46 (Bb2)** | 45 | 36 | 50 |
 
 A clash-time metric (bass pitch class absent from the sounding chord) does not
 separate the sets: the user's lines sit outside the chord 12–19% of the time
@@ -76,6 +79,24 @@ too (passing tones).
    (24% steps, varied rhythms) but sits at D3 and still lacks root-on-change
    discipline (50% roots).
 
+## What the public parts add
+
+They confirm 1, 3 (gate, not count), 5 and 6, and add one:
+
+- Lakh's chordal parts are inverted as freely as movy's, yet their bass plays
+  the voicing's low note only 0–4% of the time: the bass ignores the
+  keyboard's inversion (finding 1).
+- Public electronic bass is as busy as BASS (6 notes a bar) but its notes are
+  held (gate 2 sixteenths, legato 0.85): the problem is short notes and gaps,
+  not the count. The user's own lines are sparser than either.
+- They repeat the root more (30–40% repeated notes, 45–59% on the root) and
+  move within a chord less than the user does: the user's lines are more
+  melodic than the genre norm, and that is part of the taste.
+- **They lock to the kick**: 50% (electronic) / 70% (pop) of bass onsets land
+  on a kick, against 28–38% for every generator. BASS reads the band's accents
+  only on some PATTERN positions.
+- They sit lower still: Bb1–C2.
+
 ## What the user's lines have (the target qualities)
 
 - The root on (or just before) each chord change; the bar's "one" is struck
@@ -101,7 +122,7 @@ beat-role templates).
    (a planned one, or a bass track's own line).
 2. Read the scene's change times from the chord clip's onsets (pushes
    included) instead of half-bar cells, for bass/line generators.
-3. BASS takes: fewer notes, longer gates (GATE take range up), more held and
+3. BASS takes: kick-locked figures as a default, fewer notes, longer gates (GATE take range up), more held and
    syncopated cells; LOW as the default OCTAVE.
 4. A 2/4-bar phrase: the cell repeats, the last bar varies (pickup run,
    approach, held note).
@@ -109,4 +130,4 @@ beat-role templates).
    3rd as a regular part.
 6. Bench: a "bass over existing chords" piece order, plus these metrics
    (notes/bar, gate, step%, voicing-bass share, distinct bar rhythms) against
-   the user corpus.
+   the user corpus and the public parts (`public.mjs` over MidiCaps).
